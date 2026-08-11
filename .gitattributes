@@ -1,0 +1,16 @@
+# Normalise every text file to LF, in the repository and in working copies.
+# Godot writes LF on all platforms; without this, Git on Windows rewrites each
+# file to CRLF and the two halves of the project trade whitespace-only diffs.
+* text=auto eol=lf
+
+# Binary assets. Never normalised, never diffed as text.
+*.png binary
+*.jpg binary
+*.webp binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.pck binary
+*.zip binary

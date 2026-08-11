@@ -1,0 +1,60 @@
+# ==============================================================================
+# BEAST ROAD — Godot 4.7
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Godot's import and script cache.
+#
+# Godot 4 keeps everything derived in one folder and regenerates it on open.
+# This is the Godot 4 equivalent of Godot 3's `.import/` — the name and the
+# location both changed, so do not copy a Godot 3 .gitignore into a 4.x project.
+# ------------------------------------------------------------------------------
+.godot/
+
+# ------------------------------------------------------------------------------
+# Deliberately NOT ignored — do not "clean these up":
+#
+#   *.import   sits next to each asset and holds its import settings and its
+#              uid://. Dropping it means every clone re-imports with fresh UIDs
+#              and any scene referencing the old one has to fall back to a path.
+#   *.uid      the Godot 4.4+ equivalent for scripts. Same reasoning.
+#
+# Both are source, not cache, however much they look generated.
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+# The engine itself. A 180 MB download, not project source.
+# The trailing slash matters: this is a folder whose name ends in .exe.
+# ------------------------------------------------------------------------------
+Godot_v*-stable_win64.exe/
+
+# ------------------------------------------------------------------------------
+# Builds and exports
+# ------------------------------------------------------------------------------
+build/
+builds/
+export/
+exports/
+*.pck
+*.zip
+
+# Export presets can hold keystore paths and passwords. Godot 4 splits the
+# secrets into their own file; that one never gets committed.
+export_credentials.cfg
+
+# ------------------------------------------------------------------------------
+# Android / iOS build templates, only present if a mobile export is set up
+# ------------------------------------------------------------------------------
+game/android/
+game/ios/
+
+# ------------------------------------------------------------------------------
+# Editors and OS cruft
+# ------------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
