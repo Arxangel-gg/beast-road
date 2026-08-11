@@ -1,0 +1,63 @@
+class_name CameraRig
+extends Camera2D
+
+## Follows the hero, leans slightly toward the mouse, and shakes on impact.
+##
+## Position is driven here rather than with Camera2D's built-in smoothing
+## because the lean and the shake have to compose with it, and `offset` is the
+## only channel left free for shake once smoothing owns the position.
+##
+## Note the arena is 1600px across against a 1920px viewport: at zoom 1.0 the
+## whole thing fits and the camera never moves. CAMERA_ZOOM exists to make
+## following mean something and to make a swing arc readable.
+
+@export var target: Node2D
+
+var _shake_magnitude: float = 0.0
+var _shake_left: float = 0.0
+var _shake_duration: float = 0.0
+var _rng := RandomNumberGenerator.new()
+
+
+func _ready() -> void:
+	_rng.randomize()
+	zoom = Vector2.ONE * Balance.CAMERA_ZOOM
+	EventBus.camera_shake_requested.connect(_on_shake_requested)
+	if target != null:
+		global_position = target.global_position
+
+
+func _process(delta: float) -> void:
+	if target != null and is_instance_valid(target):
+		var desired: Vector2 = target.global_position
+		var to_mouse: Vector2 = get_global_mouse_position() - target.global_position
+		desired += to_mouse * Balance.CAMERA_MOUSE_LEAN
+		# Frame-rate independent exponential smoothing. A plain lerp by
+		# `speed * delta` changes feel with frame rate; this does not.
+		var t: float = 1.0 - exp(-Balance.CAMERA_SMOOTHING_SPEED * delta)
+		global_position = global_position.lerp(desired, t)
+
+	_tick_shake(delta)
+
+
+func _tick_shake(delta: float) -> void:
+	if _shake_left <= 0.0:
+		offset = Vector2.ZERO
+		return
+	_shake_left = maxf(_shake_left - delta, 0.0)
+	var falloff: float = _shake_left / _shake_duration if _shake_duration > 0.0 else 0.0
+	var amount: float = _shake_magnitude * falloff
+	offset = Vector2(_rng.randf_range(-amount, amount), _rng.randf_range(-amount, amount))
+
+
+## The strongest request wins rather than the newest, so a big hit is never
+## downgraded by a small one arriving a frame later.
+func _on_shake_requested(magnitude: float, duration: float) -> void:
+	var scaled: float = magnitude * float(MetaState.settings.get("screen_shake", 1.0))
+	if scaled <= 0.0 or duration <= 0.0:
+		return
+	if scaled < _shake_magnitude * (_shake_left / _shake_duration if _shake_duration > 0.0 else 0.0):
+		return
+	_shake_magnitude = scaled
+	_shake_duration = duration
+	_shake_left = duration

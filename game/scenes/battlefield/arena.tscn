@@ -1,0 +1,40 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scenes/battlefield/arena.gd" id="1_arena"]
+[ext_resource type="Texture2D" path="res://art/terrain/terrain_ashfen.png" id="2_ground"]
+[ext_resource type="PackedScene" path="res://scenes/hero/hero.tscn" id="3_hero"]
+[ext_resource type="Script" path="res://scenes/battlefield/camera_rig.gd" id="4_camera"]
+[ext_resource type="Script" path="res://scenes/battlefield/enemy_spawner.gd" id="5_spawner"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/enemy.tscn" id="6_enemy"]
+[ext_resource type="Resource" path="res://data/enemies/bogkin.tres" id="7_bogkin"]
+[ext_resource type="Script" path="res://scripts/systems/hitstop.gd" id="8_hitstop"]
+
+[node name="Arena" type="Node2D" node_paths=PackedStringArray("ground", "boundary", "hero")]
+script = ExtResource("1_arena")
+ground = NodePath("Ground")
+boundary = NodePath("Boundary")
+hero = NodePath("Entities/Hero")
+
+[node name="Ground" type="Sprite2D" parent="."]
+texture = ExtResource("2_ground")
+
+[node name="Boundary" type="Line2D" parent="."]
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Hero" parent="Entities" instance=ExtResource("3_hero")]
+
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("4_camera")
+target = NodePath("../Entities/Hero")
+
+[node name="EnemySpawner" type="Node" parent="." node_paths=PackedStringArray("entities_root", "hero")]
+script = ExtResource("5_spawner")
+enemy_scene = ExtResource("6_enemy")
+enemy_data = ExtResource("7_bogkin")
+entities_root = NodePath("../Entities")
+hero = NodePath("../Entities/Hero")
+
+[node name="Hitstop" type="Node" parent="."]
+script = ExtResource("8_hitstop")

@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/health_bar.gd" id="1_health_bar"]
+
+[node name="HealthBar" type="Node2D" node_paths=PackedStringArray("background", "fill")]
+script = ExtResource("1_health_bar")
+background = NodePath("Background")
+fill = NodePath("Fill")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = -27.0
+offset_right = 27.0
+offset_bottom = 7.0
+color = Color(0.043, 0.078, 0.086, 0.85)
+
+[node name="Fill" type="ColorRect" parent="."]
+offset_left = -27.0
+offset_right = 27.0
+offset_bottom = 7.0
+color = Color(0.78, 0.27, 0.22, 1)

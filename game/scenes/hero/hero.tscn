@@ -1,0 +1,35 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scenes/hero/hero.gd" id="1_hero"]
+[ext_resource type="Texture2D" path="res://art/hero/hero_base.png" id="2_sprite"]
+[ext_resource type="Script" path="res://scripts/components/health.gd" id="3_health"]
+[ext_resource type="Script" path="res://scenes/hero/hero_attack.gd" id="4_attack"]
+[ext_resource type="PackedScene" path="res://scenes/ui/health_bar.tscn" id="5_health_bar"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hero"]
+radius = 26.0
+
+[node name="Hero" type="CharacterBody2D" node_paths=PackedStringArray("health", "attack", "sprite", "health_bar")]
+motion_mode = 1
+script = ExtResource("1_hero")
+health = NodePath("Health")
+attack = NodePath("Attack")
+sprite = NodePath("Sprite2D")
+health_bar = NodePath("HealthBar")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sprite")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_hero")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+max_hp = 100.0
+
+[node name="Attack" type="Node" parent="."]
+script = ExtResource("4_attack")
+
+[node name="HealthBar" parent="." instance=ExtResource("5_health_bar")]
+position = Vector2(0, -74)
+hide_until_damaged = false

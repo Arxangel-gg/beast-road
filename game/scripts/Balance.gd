@@ -158,6 +158,11 @@ const ACT3_CLEAR_BONUS_RELIC_SLOTS: int = 1
 ## edge are the same circle and there is nowhere enemies do not come from.
 const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 
+## Camera zoom. The arena is only 1600px across and the viewport is 1920 wide,
+## so at 1.0 the whole arena sits on screen and the camera never moves. Zooming
+## in makes following the hero mean something and makes a swing readable.
+const CAMERA_ZOOM: float = 1.4
+
 ## Camera lag. Lower is snappier, higher is floatier.
 const CAMERA_SMOOTHING_SPEED: float = 8.0
 
@@ -226,6 +231,10 @@ const HERO_ATTACK_KNOCKBACK: Array[float] = [170.0, 190.0, 420.0]
 ## Hero self-movement on the finisher, so the third hit steps into the swing.
 const HERO_ATTACK_LUNGE: Array[float] = [40.0, 45.0, 110.0]
 
+## How long a lunge takes to bleed off. The impulse is sized from the distance
+## above and this duration, so tuning the distance is enough.
+const HERO_ATTACK_LUNGE_TIME: float = 0.12
+
 ## How long after recovery ends the chain stays open for the next click.
 const HERO_CHAIN_WINDOW: float = 0.35
 
@@ -292,3 +301,25 @@ const SPAWN_MIN_DISTANCE_FROM_HERO: float = 420.0
 ## Enemies spawned at once when the timer fires, at the start and end of the ramp.
 const SPAWN_BURST_START: int = 1
 const SPAWN_BURST_END: int = 3
+
+# ------------------------------------------------------------------------------
+# Feedback
+# ------------------------------------------------------------------------------
+
+## Engine time scale during hitstop. 0.0 is a true freeze; raise it toward 0.1
+## for a slow-motion feel instead.
+const HITSTOP_TIME_SCALE: float = 0.0
+
+## Seconds a unit stays tinted after being hit.
+const HIT_FLASH_TIME: float = 0.09
+
+## Colour a unit flashes when damaged.
+const HIT_FLASH_COLOUR: Color = Color(2.4, 1.6, 1.6)
+
+## Unit health bars. These sit above the unit in world space — Stage 1 has no
+## screen-space HUD, but a swing you cannot see landing tells you nothing.
+const HEALTH_BAR_WIDTH: float = 54.0
+const HEALTH_BAR_HEIGHT: float = 7.0
+
+## How fast the blink cycles while the hero is invulnerable, in cycles/sec.
+const INVULN_BLINK_RATE: float = 12.0
