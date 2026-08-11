@@ -44,13 +44,17 @@ if ($dirty) {
     exit 1
 }
 
-$remote = git remote get-url origin 2>$null
-if (-not $remote) {
+# Checked by listing rather than by asking for the URL: `git remote get-url` on
+# a missing remote writes to stderr, and PowerShell 5.1 turns native stderr into
+# a terminating error under $ErrorActionPreference = 'Stop'.
+$remotes = @(git remote)
+if ($remotes -notcontains 'origin') {
     Write-Host "No 'origin' remote. Create the GitHub repo, then:" -ForegroundColor Red
     Write-Host "  git remote add origin https://github.com/Arxangel-gg/beast-road.git"
     Write-Host "  git push -u origin main"
     exit 1
 }
+$remote = git remote get-url origin
 
 $existing = git tag --list $tag
 if ($existing) {

@@ -162,7 +162,7 @@ Builds are made by GitHub Actions, never locally — no one needs Godot's export
 templates on their machine. Publishing is pushing a tag:
 
 ```
-toolselease.ps1 -Version 0.4.0
+tools\release.ps1 -Version 0.4.0
 ```
 
 `.github/workflows/release.yml` exports the game and the launcher, zips the
