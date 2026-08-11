@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_50uy1"]
+
+[resource]
+script = ExtResource("1_50uy1")
+element = 2
+is_combination = true
+parent_a = 2
+parent_b = 2
+damage = 6.0
+attack_interval = 1.5
+taunts = true
+max_hp = 2000.0
+lane_armour_bonus = 12.0
+id = "bastion"
+display_name = "Bastion"
+description = "Immovable. Armours the whole lane."

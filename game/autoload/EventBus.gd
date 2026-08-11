@@ -52,44 +52,101 @@ signal camera_shake_requested(magnitude: float, duration: float)
 signal hitstop_requested(duration: float)
 
 # ==============================================================================
-# STAGE 2+ — battlefield, city, macro, raid (declared, not yet emitted)
+# BATTLEFIELD — lanes, towers, waves (GDD §3, §4)
 # ==============================================================================
 
-## A lane's pressure value changed; the directional indicator reads off this.
+## A lane's pressure changed, 0..1. The directional indicator reads off this.
 signal lane_pressure_changed(lane_index: int, pressure: float)
 
-## An enemy reached the city centre and did damage.
-signal city_damaged(amount: float, current_hp: float, max_hp: float)
+## A wave began. `lanes` lists which lanes it uses.
+signal wave_started(wave_number: int, lanes: Array)
 
-## Total distance travelled changed. Construction progress is gated on this.
-signal distance_changed(total_distance: float, act_distance: float)
+## Every enemy of a wave is dead or has arrived.
+signal wave_cleared(wave_number: int)
 
-## The beast's walking speed changed in response to performance.
+## The contents of a tower slot changed: built, upgraded, or sold.
+signal tower_slot_changed(lane: int, slot: int)
+
+## A tower fired at something. Purely for feedback systems.
+signal tower_fired(lane: int, slot: int, at: Vector2)
+
+## An enemy reached the town and did damage.
+signal town_damaged(amount: float, current_hp: float, max_hp: float)
+
+## The town's health changed for any reason.
+signal town_health_changed(current_hp: float, max_hp: float)
+
+# ==============================================================================
+# ECONOMY AND TOWN (GDD §5)
+# ==============================================================================
+
+signal resources_changed(amount: int)
+
+## A construction started, progressed (0..1), or finished.
+signal construction_started(building_id: String, tier: int)
+signal construction_progress(building_id: String, ratio: float)
+signal construction_completed(building_id: String, tier: int)
+
+## A captive was assigned to or removed from a building.
+signal captive_assigned(captive_id: String, building_id: String)
+signal captive_unassigned(captive_id: String)
+
+## A relic was socketed or unsocketed in the Town Hall.
+signal relic_socketed(relic_id: String)
+signal relic_unsocketed(relic_id: String)
+
+# ==============================================================================
+# JOURNEY (GDD §7, §8, §9)
+# ==============================================================================
+
+signal distance_changed(total_distance: float, to_crossroad: float)
 signal beast_speed_changed(speed: float)
 
-## The war horn was blown. Distance freezes for `duration` seconds.
-signal war_horn_activated(duration: float)
-
-## The war horn window closed and distance resumes.
-signal war_horn_ended()
-
-## Raid charge changed, normalised 0..1.
-signal raid_charge_changed(charge: float)
-
-## The hero left for the enemy base. The battlefield keeps running.
-signal raid_started()
-
-## The raid ended. `standard_id` is empty if the hero was ejected with nothing.
-signal raid_ended(standard_id: String)
-
-## A segment boundary was reached and combat paused for a crossroad.
+## A segment boundary was reached; combat pauses for a crossroad.
 signal crossroad_reached(segment_index: int)
-
-## The player chose a road and combat resumes.
 signal crossroad_resolved(option_id: String)
 
-## An act boss was killed. Act 3's kill also ends the run.
+signal act_started(act: int, terrain_id: String)
+signal boss_spawned(boss_id: String, act: int)
 signal boss_defeated(boss_id: String, act: int)
 
-## The run ended, either by reaching the safe zone or by losing the city.
-signal run_ended(victory: bool)
+# ==============================================================================
+# HORN AND RAID (GDD §6)
+# ==============================================================================
+
+signal war_horn_activated(duration: float)
+signal war_horn_ended()
+
+## Raid meter, normalised 0..1.
+signal raid_charge_changed(charge: float)
+
+## The meter filled: enemies are weakened and a raid may be entered.
+signal raid_available(weakened_for: float)
+signal weakened_ended()
+
+signal raid_started()
+
+## An extraction window opened or closed.
+signal raid_window_opened(seconds: float)
+signal raid_window_closed()
+
+## A window was refused; the camp escalates.
+signal raid_escalated(refusals: int)
+
+signal chieftain_spawned(captive_id: String)
+
+## The raid ended. `reward` carries what was taken out, if anything.
+signal raid_ended(reward: Dictionary)
+
+# ==============================================================================
+# RUN AND SCOPE FLOW (GDD §9)
+# ==============================================================================
+
+## The visible scope changed. Values are GameDirector.Scope.
+signal scope_changed(scope: int)
+
+signal run_started()
+signal run_ended(victory: bool, summary: Dictionary)
+
+## Something was added to the persistent unlock pool.
+signal unlock_earned(kind: String, id: String)

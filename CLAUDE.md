@@ -10,13 +10,18 @@ any code.
 A 2D action tower-defense roguelite in Godot 4.7.1. One hero defends four
 lanes around a city riding on the back of a walking beast.
 
-**The design spec is `docs/Game_Design_v2.md`.** It is authoritative. This
+**The design spec is `docs/Game_Design_v3.md`.** It is authoritative. This
 file contains working rules only — it does not restate the design. When the
 two conflict, the GDD wins for *what* to build and this file wins for *how*.
 
-`docs/Game Design.md` is v1, kept for history. **Do not build from it.** It
-contains cut systems (chief capture economy, relic synergy altar, six
-crossroad types). If you find yourself implementing something not in v2, stop.
+`docs/Game_Design_v2.md` is superseded but **worth reading before you cut or
+re-cut anything** — it argues well for scope discipline, and v3's §14 says
+exactly which of those arguments the owner overruled and why.
+
+`docs/Game Design.md` is v1, archived history. **Do not build from it.**
+
+`References/` holds the owner's visual references, one per scope. They are the
+target, not a mood board — check them before designing a screen.
 
 ---
 
@@ -58,11 +63,12 @@ works."
 
 ## 3. Working rules
 
-1. **Build one stage at a time.** The stages are in GDD §10. Each has a kill
-   question. When a stage is done, stop and report — do not start the next
-   one without being told.
-2. **Never build anything in GDD §9 (Out of Scope).** That list exists because
-   those systems were deliberately cut.
+1. **The target is the full game** (GDD §9 "The full loop"). Build toward a
+   loop that closes: splash → menu → run → all four scopes → boss → win/lose →
+   unlock payout → menu. Report honestly what is real and what is a stub.
+2. **Never build anything in GDD §12 (Still Out of Scope).** That list is
+   shorter than v2's was, and everything the owner un-cut is already in v3 —
+   so if a system is on that list, it was cut on purpose.
 3. **Data-driven, always.** Every tower, enemy, relic, spell, and terrain is a
    `Resource` (`.tres`) in `/data`. No hardcoded stat branches, no
    `if enemy_name == "bogkin"`. Adding content must mean adding a file.
@@ -76,9 +82,11 @@ works."
 7. **`MetaState` writes only unlocked IDs, run statistics, and settings.** If
    anything else appears in the save file, a design decision has been
    violated — flag it instead of implementing it.
-8. **Architect for the battlefield simulating while the raid scene is
-   active**, starting in Stage 2. Retrofitting this later means restructuring
-   the scene tree.
+8. **The battlefield freezes during a raid and resumes exactly as it was**
+   (GDD §6.3). It must therefore be suspendable as a unit — no system may keep
+   ticking off a timer the battlefield does not own.
+9. **Player-facing strings live in data, not in logic.** This matters most for
+   the captive system (GDD §6.3), whose framing is explicitly unsettled.
 
 ---
 

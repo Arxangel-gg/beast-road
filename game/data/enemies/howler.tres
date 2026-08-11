@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_yfb0w"]
+
+[resource]
+script = ExtResource("1_yfb0w")
+category = 1
+max_hp = 120.0
+contact_damage = 9.0
+body_radius = 30.0
+knockback_resistance = 0.2
+raid_charge_value = 4.0
+resource_value = 6
+id = "howler"
+display_name = "Howler"
+description = "Strengthens everything walking beside it."

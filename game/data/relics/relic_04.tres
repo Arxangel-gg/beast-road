@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_j28nt"]
+
+[resource]
+script = ExtResource("1_j28nt")
+effect_id = "hero_damage"
+effect_magnitude = 0.15
+id = "04"
+display_name = "Knotted Cord of Teeth"
+description = "The blade bites deeper."

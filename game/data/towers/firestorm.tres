@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_ryw3k"]
+
+[resource]
+script = ExtResource("1_ryw3k")
+is_combination = true
+parent_b = 3
+damage = 18.0
+attack_interval = 0.8
+aoe_radius = 90.0
+burn_dps = 12.0
+burn_duration = 3.0
+id = "firestorm"
+display_name = "Firestorm"
+description = "Burn spreads to nearby enemies."

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_eeyr0"]
+
+[resource]
+script = ExtResource("1_eeyr0")
+is_combination = true
+parent_b = 2
+damage = 15.0
+attack_interval = 1.1
+ground_zone_dps = 22.0
+ground_zone_duration = 4.0
+id = "magma"
+display_name = "Magma"
+description = "Leaves a damaging ground zone."

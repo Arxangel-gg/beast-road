@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_1baaw"]
+
+[resource]
+script = ExtResource("1_1baaw")
+effect_id = "tower_range"
+effect_magnitude = 0.12
+id = "06"
+display_name = "Blackened Iron Key"
+description = "Towers see further."

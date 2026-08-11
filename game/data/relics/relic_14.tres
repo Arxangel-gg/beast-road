@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_2hpgg"]
+
+[resource]
+script = ExtResource("1_2hpgg")
+effect_id = "chain_targets"
+effect_magnitude = 1.0
+id = "14"
+display_name = "Coil of Copper"
+description = "Lightning reaches one more."

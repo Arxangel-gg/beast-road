@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_kuyhx"]
+
+[resource]
+script = ExtResource("1_kuyhx")
+element = 1
+is_combination = true
+parent_a = 1
+parent_b = 1
+damage = 8.0
+attack_interval = 1.3
+slow_factor = 0.35
+slow_duration = 3.0
+freeze_chance = 0.45
+id = "deep_freeze"
+display_name = "Deep Freeze"
+description = "Long freezes, little damage."

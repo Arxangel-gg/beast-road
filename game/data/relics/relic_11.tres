@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_qgoyn"]
+
+[resource]
+script = ExtResource("1_qgoyn")
+effect_id = "burn_damage"
+effect_magnitude = 0.25
+id = "11"
+display_name = "Ashen Reliquary"
+description = "Fire lingers."

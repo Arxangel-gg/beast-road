@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_76seh"]
+
+[resource]
+script = ExtResource("1_76seh")
+effect_id = "captive_output"
+effect_magnitude = 0.4
+id = "20"
+display_name = "Oathbreaker's Seal"
+description = "The work detail yields more."

@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/run/beast_scope.gd" id="1_beast"]
+[ext_resource type="Texture2D" path="res://art/bg/macro_act1.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://art/beast/beast_profile.png" id="3_beast"]
+[ext_resource type="Texture2D" path="res://art/icons/ui/ui_distance.png" id="4_marker"]
+
+[node name="BeastScope" type="Node2D" node_paths=PackedStringArray("backdrop", "beast", "route_line", "route_marker", "camera")]
+script = ExtResource("1_beast")
+backdrop = NodePath("Backdrop")
+beast = NodePath("Beast")
+route_line = NodePath("Route")
+route_marker = NodePath("RouteMarker")
+camera = NodePath("Camera2D")
+
+[node name="Backdrop" type="Sprite2D" parent="."]
+texture = ExtResource("2_bg")
+
+[node name="Beast" type="Sprite2D" parent="."]
+texture = ExtResource("3_beast")
+
+[node name="Route" type="Line2D" parent="."]
+
+[node name="RouteMarker" type="Sprite2D" parent="."]
+texture = ExtResource("4_marker")
+
+[node name="Camera2D" type="Camera2D" parent="."]

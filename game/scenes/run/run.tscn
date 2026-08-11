@@ -1,0 +1,50 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scenes/run/run.gd" id="1_run"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/battlefield.tscn" id="2_field"]
+[ext_resource type="PackedScene" path="res://scenes/city/town_scope.tscn" id="3_town"]
+[ext_resource type="PackedScene" path="res://scenes/run/beast_scope.tscn" id="4_beast"]
+[ext_resource type="PackedScene" path="res://scenes/raid/raid_arena.tscn" id="5_raid"]
+[ext_resource type="Script" path="res://scripts/systems/journey.gd" id="6_journey"]
+[ext_resource type="Script" path="res://scripts/systems/war_horn.gd" id="7_horn"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/crossroad_screen.tscn" id="9_cross"]
+[ext_resource type="PackedScene" path="res://scenes/ui/results_screen.tscn" id="10_res"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="11_pause"]
+
+[node name="Run" type="Node" node_paths=PackedStringArray("battlefield", "town", "beast", "raid", "journey", "war_horn", "hud", "crossroad_ui", "results_ui", "pause_ui")]
+script = ExtResource("1_run")
+battlefield = NodePath("Battlefield")
+town = NodePath("Town")
+beast = NodePath("Beast")
+raid = NodePath("Raid")
+journey = NodePath("Journey")
+war_horn = NodePath("WarHorn")
+hud = NodePath("HUD")
+crossroad_ui = NodePath("Crossroad")
+results_ui = NodePath("Results")
+pause_ui = NodePath("Pause")
+
+[node name="Battlefield" parent="." instance=ExtResource("2_field")]
+
+[node name="Town" parent="." instance=ExtResource("3_town")]
+
+[node name="Beast" parent="." instance=ExtResource("4_beast")]
+
+[node name="Raid" parent="." instance=ExtResource("5_raid")]
+
+[node name="Journey" type="Node" parent="."]
+script = ExtResource("6_journey")
+
+[node name="WarHorn" type="Node" parent="."]
+script = ExtResource("7_horn")
+
+[node name="HUD" parent="." instance=ExtResource("8_hud") node_paths=PackedStringArray("battlefield", "raid")]
+battlefield = NodePath("../Battlefield")
+raid = NodePath("../Raid")
+
+[node name="Crossroad" parent="." instance=ExtResource("9_cross")]
+
+[node name="Results" parent="." instance=ExtResource("10_res")]
+
+[node name="Pause" parent="." instance=ExtResource("11_pause")]

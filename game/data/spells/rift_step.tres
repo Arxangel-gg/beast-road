@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1_55wbn"]
+
+[resource]
+script = ExtResource("1_55wbn")
+cooldown = 7.0
+cast_range = 420.0
+id = "rift_step"
+display_name = "Rift Step"
+description = "Step through a tear in the air."

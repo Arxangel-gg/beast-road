@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_eky8d"]
+
+[resource]
+script = ExtResource("1_eky8d")
+is_combination = true
+parent_b = 1
+damage = 20.0
+attack_interval = 1.5
+aoe_radius = 150.0
+knockback = 300.0
+id = "steam_burst"
+display_name = "Steam Burst"
+description = "Periodic area knockback."

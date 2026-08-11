@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_w5bp1"]
+
+[resource]
+script = ExtResource("1_w5bp1")
+effect_id = "beast_speed"
+effect_magnitude = 0.1
+id = "16"
+display_name = "Salt-Crusted Idol"
+description = "The beast walks steadier."

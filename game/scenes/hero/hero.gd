@@ -4,9 +4,8 @@ extends CharacterBody2D
 ## The hero (GDD §3.1). Movement, dash, health and death; the attack chain is
 ## its own state machine in hero_attack.gd.
 ##
-## CharacterBody2D rather than a plain Node2D because Stage 2 puts the city and
-## four towers in the arena as solid obstacles, and swapping the movement out
-## then would mean re-tuning everything below.
+## CharacterBody2D rather than a plain Node2D so the town and towers can become
+## solid obstacles without the movement having to be rewritten and re-tuned.
 ##
 ## Movement speed is the hero's most valuable stat: the job is reaching the lane
 ## that is collapsing. Nothing here should ever make the hero feel heavy.
@@ -17,6 +16,11 @@ const GROUP: StringName = &"hero"
 @export var attack: HeroAttack
 @export var sprite: Sprite2D
 @export var health_bar: HealthBar
+
+## How far from the origin the hero may roam. Differs per scope — the
+## battlefield lane ring and the raid arena are not the same size — so the
+## scene that owns the hero sets it. 0 falls back to the Balance default.
+@export var bounds_radius: float = 0.0
 
 var _aim: Vector2 = Vector2.RIGHT
 
@@ -39,6 +43,10 @@ func _ready() -> void:
 	# scene's default during its own _ready.
 	health.max_hp = Balance.HERO_MAX_HP
 	health.revive()
+	# Health carries across scopes: the hero who walks into a raid is the one
+	# who walked out of the last wave.
+	if RunState.hero_hp >= 0.0:
+		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -72,10 +80,9 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	# The arena is a circle centred on the origin and the hero is clamped to the
-	# same ring the enemies spawn on, so there is nowhere to stand that nothing
-	# comes from.
-	global_position = global_position.limit_length(Balance.ARENA_RADIUS)
+	# The playable area is a circle centred on the origin.
+	global_position = global_position.limit_length(
+		bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
 
 	_update_sprite(delta)
 
@@ -143,6 +150,7 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
+	RunState.hero_hp = current
 	EventBus.hero_health_changed.emit(current, maximum)
 
 

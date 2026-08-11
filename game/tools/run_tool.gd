@@ -15,8 +15,9 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- generate
 ##   godot --headless --path game --script res://tools/run_tool.gd -- generate --force
 ##   godot --headless --path game --script res://tools/run_tool.gd -- report
+##   godot --headless --path game --script res://tools/run_tool.gd -- seed
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | font-check>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | font-check>"
 
 
 func _init() -> void:
@@ -31,6 +32,8 @@ func _init() -> void:
 			_generate(args.has("--force"))
 		"report":
 			_report()
+		"seed":
+			_seed()
 		"font-check":
 			_font_check()
 		_:
@@ -54,6 +57,17 @@ func _report() -> void:
 	var result: Dictionary = reporter.report()
 	print(result["text"])
 	quit(0 if bool(result["clean"]) else 1)
+
+
+func _seed() -> void:
+	var seeder := ContentSeeder.new()
+	var result: Dictionary = seeder.seed()
+	print("Content: %d created, %d already present, %d errors" % [
+		result["created"], result["skipped"], result["errors"],
+	])
+	for e: String in seeder.errors:
+		print("  ERROR: ", e)
+	quit(1 if int(result["errors"]) > 0 else 0)
 
 
 func _font_check() -> void:

@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scenes/raid/raid_arena.gd" id="1_raid"]
+[ext_resource type="Texture2D" path="res://art/bg/raid_arena_bg.png" id="2_ground"]
+[ext_resource type="PackedScene" path="res://scenes/hero/hero.tscn" id="3_hero"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/enemy.tscn" id="4_enemy"]
+[ext_resource type="Script" path="res://scenes/battlefield/camera_rig.gd" id="5_cam"]
+
+[node name="RaidArena" type="Node2D" node_paths=PackedStringArray("ground", "entity_root", "effect_root", "hero", "boundary", "camera")]
+script = ExtResource("1_raid")
+enemy_scene = ExtResource("4_enemy")
+ground = NodePath("Ground")
+entity_root = NodePath("EntityRoot")
+effect_root = NodePath("EffectRoot")
+hero = NodePath("EntityRoot/Hero")
+boundary = NodePath("Boundary")
+camera = NodePath("Camera2D")
+
+[node name="Ground" type="Sprite2D" parent="."]
+texture = ExtResource("2_ground")
+
+[node name="Boundary" type="Line2D" parent="."]
+
+[node name="EntityRoot" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="Hero" parent="EntityRoot" instance=ExtResource("3_hero")]
+bounds_radius = 700.0
+
+[node name="EffectRoot" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("5_cam")
+target = NodePath("../EntityRoot/Hero")
+zoom_level = 0.95

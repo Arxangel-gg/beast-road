@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_11eb1"]
+
+[resource]
+script = ExtResource("1_11eb1")
+element = 1
+damage = 16.0
+attack_interval = 0.95
+slow_factor = 0.6
+slow_duration = 1.5
+id = "rime_lance"
+display_name = "Rime Lance"

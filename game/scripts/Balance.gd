@@ -5,7 +5,7 @@ extends Node
 ## Autoloaded as `Balance`. Gameplay scripts must never contain a magic number —
 ## if a value could ever be argued about, it belongs here with a GDD reference.
 ##
-## Section markers (§) point at docs/Game_Design_v2.md. Values the GDD tags
+## Section markers (§) point at docs/Game_Design_v3.md. Values the GDD tags
 ## `[TUNE]` are starting values chosen to make the system buildable, not balance
 ## claims. Expect all of them to move.
 ##
@@ -142,13 +142,12 @@ const CROSSROAD_OPTIONS_SHOWN: int = 2
 const ACT3_CLEAR_BONUS_RELIC_SLOTS: int = 1
 
 # ==============================================================================
-# STAGE 1 GREYBOX — NOT SPECIFIED BY THE GDD
+# COMBAT FEEL — NOT SPECIFIED BY THE GDD
 # ==============================================================================
 #
-# The GDD fixes the distances and the dash, but gives no HP, damage, attack
-# timing or spawn-rate numbers — those first appear in Stage 2's wave scaling.
-# Everything below is a starting value picked to make Stage 1 playable and
-# answer its kill question. Treat all of it as provisional.
+# The GDD fixes the distances and the dash, but gives no HP, damage or attack
+# timing numbers. Everything below was picked to make combat playable rather
+# than to balance it. Treat all of it as provisional.
 
 # ------------------------------------------------------------------------------
 # Arena
@@ -158,10 +157,16 @@ const ACT3_CLEAR_BONUS_RELIC_SLOTS: int = 1
 ## edge are the same circle and there is nowhere enemies do not come from.
 const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 
-## Camera zoom. The arena is only 1600px across and the viewport is 1920 wide,
-## so at 1.0 the whole arena sits on screen and the camera never moves. Zooming
-## in makes following the hero mean something and makes a swing readable.
-const CAMERA_ZOOM: float = 1.4
+## Camera zoom, per scope. Godot zooms IN above 1.0 and OUT below it.
+##
+## The battlefield is ~1800px across against a 1080px-tall viewport, and the
+## player has to be able to see which lane is collapsing — that is the entire
+## decision loop — so it is pulled back far enough to hold the whole ring.
+## The raid is an open arena with no lanes to read, so it sits closer and the
+## swing stays legible. [TUNE]
+const CAMERA_ZOOM: float = 0.62
+const CAMERA_ZOOM_BATTLEFIELD: float = 0.62
+const CAMERA_ZOOM_RAID: float = 0.95
 
 ## Camera lag. Lower is snappier, higher is floatier.
 const CAMERA_SMOOTHING_SPEED: float = 8.0
@@ -323,3 +328,190 @@ const HEALTH_BAR_HEIGHT: float = 7.0
 
 ## How fast the blink cycles while the hero is invulnerable, in cycles/sec.
 const INVULN_BLINK_RATE: float = 12.0
+
+# ==============================================================================
+# GDD v3 — LANES, TOWERS, TOWN, RAID
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Lanes and the battlefield ring — GDD §3
+# ------------------------------------------------------------------------------
+
+## Four cardinal lanes: N, E, S, W.
+const LANE_COUNT: int = 4
+
+## Radius at which a lane's enemies spawn. [TUNE]
+const LANE_SPAWN_RADIUS: float = 900.0
+
+## Radius of the town core. Enemies that reach it deal damage. [TUNE]
+const TOWN_RADIUS: float = 160.0
+
+## Radii of the three build spots along each lane, town-outward.
+## Index 0 = inner, 1 = middle (the combination slot), 2 = outer.
+const TOWER_SLOT_RADII: Array[float] = [320.0, 520.0, 720.0]
+
+## The combination slot is the middle one and only unlocks once both of its
+## neighbours are built (GDD §4.1).
+const COMBO_SLOT_INDEX: int = 1
+
+## How far a build spot sits to the side of the lane centre line, so towers
+## flank the path instead of standing in it.
+const TOWER_SLOT_OFFSET: float = 96.0
+
+## Enemies drift up to this far from the lane centre line, so a wave reads as a
+## column rather than a single-file queue.
+const LANE_WIDTH: float = 110.0
+
+# ------------------------------------------------------------------------------
+# Towers — GDD §4
+# ------------------------------------------------------------------------------
+
+const TOWER_MAX_LEVEL: int = 3
+
+## Resource cost to build a base tower at level 1. [TUNE]
+const TOWER_BUILD_COST: int = 60
+
+## Combination towers cost more than either parent. [TUNE]
+const TOWER_COMBO_BUILD_COST: int = 140
+
+## Cost of upgrading to level N, indexed by the level being bought (1 -> 2 is
+## index 0). [TUNE]
+const TOWER_UPGRADE_COSTS: Array[int] = [80, 160]
+
+## Damage and rate multipliers per level, indexed by level - 1. [TUNE]
+const TOWER_LEVEL_DAMAGE: Array[float] = [1.0, 1.55, 2.3]
+const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.15, 1.35]
+
+## Refund fraction when a tower is sold. [TUNE]
+const TOWER_SELL_REFUND: float = 0.6
+
+## Both non-combo slots in a lane sharing an element grants this bonus. [TUNE]
+const SAME_ELEMENT_LANE_BONUS: float = 0.25
+
+## Default projectile speed for towers that fire one. [TUNE]
+const TOWER_PROJECTILE_SPEED: float = 620.0
+
+# ------------------------------------------------------------------------------
+# Waves — GDD §3
+# ------------------------------------------------------------------------------
+
+## Seconds between waves at the start of a segment. [TUNE]
+const WAVE_INTERVAL: float = 26.0
+
+## Seconds between spawns inside one wave. [TUNE]
+const WAVE_SPAWN_SPACING: float = 0.75
+
+## Enemies in wave 1, and how many are added per wave. [TUNE]
+const WAVE_BASE_COUNT: int = 5
+const WAVE_COUNT_GROWTH: float = 1.6
+
+## Enemy HP and damage multiplier added per wave. [TUNE]
+const WAVE_STAT_GROWTH: float = 0.09
+
+## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
+const WAVE_LANES_START: int = 1
+const WAVE_LANES_MAX: int = 4
+
+## Chance a given wave includes an elite, once elites are unlocked. [TUNE]
+const WAVE_ELITE_CHANCE: float = 0.25
+
+## Live enemy cap across the whole battlefield. [TUNE]
+const BATTLEFIELD_MAX_ENEMIES: int = 120
+
+# ------------------------------------------------------------------------------
+# Enemy attacks — GDD §3
+# ------------------------------------------------------------------------------
+#
+# Enemies stop and telegraph. Touching the hero does nothing: the damage comes
+# from a wind-up you can see and dash out of.
+
+## How close an enemy gets before it stops to attack. [TUNE]
+const ENEMY_ATTACK_RANGE: float = 62.0
+
+## Visible tell before the blow lands. [TUNE]
+const ENEMY_ATTACK_WINDUP: float = 0.45
+
+## How long the damaging moment lasts. [TUNE]
+const ENEMY_ATTACK_STRIKE: float = 0.12
+
+## Recovery before the enemy can act again. [TUNE]
+const ENEMY_ATTACK_RECOVERY: float = 0.75
+
+## An enemy will break off to hit the hero if the hero is this close. [TUNE]
+const ENEMY_HERO_AGGRO_RANGE: float = 210.0
+
+# ------------------------------------------------------------------------------
+# Town — GDD §5
+# ------------------------------------------------------------------------------
+
+const TOWN_MAX_HP: float = 1000.0
+
+## Damage an enemy deals to the town when it arrives, per point of its own
+## contact damage. [TUNE]
+const TOWN_DAMAGE_SCALE: float = 2.0
+
+## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
+const RESOURCE_PER_DISTANCE: float = 0.35
+
+## Extra resource rate per Granary tier. [TUNE]
+const GRANARY_TIER_BONUS: float = 0.30
+
+## Extra resource rate per captive assigned to the Scavenging Post. [TUNE]
+const CAPTIVE_WORK_BONUS: float = 0.22
+
+## Captives assignable to one building. [TUNE]
+const CAPTIVES_PER_BUILDING: int = 2
+
+## Resources granted at the start of a run. [TUNE]
+const STARTING_RESOURCES: int = 220
+
+# ------------------------------------------------------------------------------
+# War horn, raid meter and the raid — GDD §6
+# ------------------------------------------------------------------------------
+
+## Raid meter gained per kill, and the multiplier while the horn is blowing.
+const RAID_CHARGE_PER_KILL: float = 0.012
+const RAID_CHARGE_HORN_MULTIPLIER: float = 3.0
+
+## How long enemies stay weakened after the meter fills. [TUNE]
+const WEAKENED_DURATION: float = 20.0
+
+## Stat multiplier applied to weakened enemies. [TUNE]
+const WEAKENED_STAT_SCALE: float = 0.55
+
+## Enemy speed and strength multipliers while the horn is blowing. [TUNE]
+const HORN_ENEMY_SPEED_SCALE: float = 1.45
+const HORN_SPAWN_RATE_SCALE: float = 1.8
+
+## Seconds between raid extraction windows, and how long one stays open. [TUNE]
+const RAID_WINDOW_INTERVAL: float = 30.0
+const RAID_WINDOW_DURATION: float = 3.0
+
+## Refusing a window makes the camp harder by this much, compounding. [TUNE]
+const RAID_REFUSAL_ESCALATION: float = 0.35
+
+## Windows the player must refuse before the chieftain comes out. [TUNE]
+const RAID_WINDOWS_BEFORE_CHIEFTAIN: int = 3
+
+## Raid horde pacing. [TUNE]
+const RAID_SPAWN_INTERVAL: float = 0.55
+const RAID_MAX_ENEMIES: int = 90
+const RAID_ARENA_RADIUS: float = 700.0
+
+## Reward fraction for leaving early, scaled by kills against this target. [TUNE]
+const RAID_PARTIAL_REWARD_KILLS: int = 60
+
+# ------------------------------------------------------------------------------
+# Run flow — GDD §7, §8, §9
+# ------------------------------------------------------------------------------
+
+## Seconds the studio splash holds before the menu. [TUNE]
+const SPLASH_DURATION: float = 1.8
+
+## Crossfade between scopes. [TUNE]
+const SCOPE_FADE_TIME: float = 0.22
+
+## Beast speed lost per point of town damage taken, and regained per second of
+## a clean segment. [TUNE]
+const BEAST_SPEED_LOSS_PER_DAMAGE: float = 0.0006
+const BEAST_SPEED_RECOVERY_PER_SEC: float = 0.010

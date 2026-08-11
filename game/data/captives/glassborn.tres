@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CaptiveData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/captive_data.gd" id="1_406ta"]
+
+[resource]
+script = ExtResource("1_406ta")
+acquire_line = "Glass-born Chieftain is bound to the town and put to work."
+breed_id = "glassborn"
+work_multiplier = 1.2
+allowed_building_ids = Array[String](["scavenging_post"])
+id = "glassborn"
+display_name = "Glass-born Chieftain"

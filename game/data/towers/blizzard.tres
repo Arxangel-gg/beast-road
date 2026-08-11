@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_4scpx"]
+
+[resource]
+script = ExtResource("1_4scpx")
+element = 1
+is_combination = true
+parent_a = 1
+parent_b = 3
+damage = 14.0
+attack_interval = 0.85
+extra_targets = 4
+slow_factor = 0.5
+slow_duration = 2.0
+id = "blizzard"
+display_name = "Blizzard"
+description = "Chain effects also slow."

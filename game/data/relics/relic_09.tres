@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_nuods"]
+
+[resource]
+script = ExtResource("1_nuods")
+effect_id = "hero_speed"
+effect_magnitude = 0.12
+id = "09"
+display_name = "Burnt Feather"
+description = "Lighter on the road."

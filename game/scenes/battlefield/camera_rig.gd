@@ -7,11 +7,13 @@ extends Camera2D
 ## because the lean and the shake have to compose with it, and `offset` is the
 ## only channel left free for shake once smoothing owns the position.
 ##
-## Note the arena is 1600px across against a 1920px viewport: at zoom 1.0 the
-## whole thing fits and the camera never moves. CAMERA_ZOOM exists to make
-## following mean something and to make a swing arc readable.
+## Zoom is per scope: the battlefield has to show all four lanes at once or the
+## triage decision is invisible, while the raid can sit close.
 
 @export var target: Node2D
+
+## 0 falls back to the Balance default.
+@export var zoom_level: float = 0.0
 
 var _shake_magnitude: float = 0.0
 var _shake_left: float = 0.0
@@ -21,7 +23,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
-	zoom = Vector2.ONE * Balance.CAMERA_ZOOM
+	zoom = Vector2.ONE * (zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
 	EventBus.camera_shake_requested.connect(_on_shake_requested)
 	if target != null:
 		global_position = target.global_position

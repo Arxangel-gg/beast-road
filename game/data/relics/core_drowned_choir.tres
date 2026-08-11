@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_i4mk8"]
+
+[resource]
+script = ExtResource("1_i4mk8")
+is_boss_core = true
+source_act = 1
+effect_id = "tower_range"
+effect_magnitude = 0.1
+id = "core_drowned_choir"
+display_name = "Core of the Drowned Choir"
+description = "Always active. Never socketed."

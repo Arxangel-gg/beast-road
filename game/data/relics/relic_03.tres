@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_vucqm"]
+
+[resource]
+script = ExtResource("1_vucqm")
+effect_id = "resource_rate"
+effect_magnitude = 0.25
+id = "03"
+display_name = "Sealed Clay Jar"
+description = "More is scavenged from every mile."

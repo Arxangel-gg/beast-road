@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1_arxik"]
+
+[resource]
+script = ExtResource("1_arxik")
+cooldown = 16.0
+duration = 3.0
+id = "ash_veil"
+display_name = "Ash Veil"
+description = "Unseen and quick."

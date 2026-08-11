@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1_s8djb"]
+
+[resource]
+script = ExtResource("1_s8djb")
+cooldown = 18.0
+damage = 90.0
+effect_radius = 320.0
+duration = 2.5
+is_channelled = true
+id = "beasts_breath"
+display_name = "Beast's Breath"
+description = "Channel what the beast exhales."

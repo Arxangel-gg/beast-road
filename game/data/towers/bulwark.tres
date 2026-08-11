@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_fs4e2"]
+
+[resource]
+script = ExtResource("1_fs4e2")
+element = 2
+damage = 3.0
+attack_interval = 1.2
+taunts = true
+max_hp = 900.0
+id = "bulwark"
+display_name = "Bulwark"

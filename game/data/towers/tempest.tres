@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_xquuw"]
+
+[resource]
+script = ExtResource("1_xquuw")
+element = 3
+is_combination = true
+parent_a = 3
+parent_b = 3
+damage = 16.0
+attack_interval = 0.5
+extra_targets = 6
+id = "tempest"
+display_name = "Tempest"
+description = "Fast chains across many targets."

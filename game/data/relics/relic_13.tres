@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_l8csn"]
+
+[resource]
+script = ExtResource("1_l8csn")
+effect_id = "tower_armour"
+effect_magnitude = 5.0
+id = "13"
+display_name = "Split Anvil"
+description = "Towers endure."

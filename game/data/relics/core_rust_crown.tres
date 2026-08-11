@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_mfp8t"]
+
+[resource]
+script = ExtResource("1_mfp8t")
+is_boss_core = true
+source_act = 3
+effect_id = "tower_damage"
+effect_magnitude = 0.25
+id = "core_rust_crown"
+display_name = "Core of the Rust Crown"
+description = "Always active. Never socketed."

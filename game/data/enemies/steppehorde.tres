@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_1t4jp"]
+
+[resource]
+script = ExtResource("1_1t4jp")
+max_hp = 22.0
+contact_damage = 6.0
+move_speed = 78.0
+id = "steppehorde"
+display_name = "Steppe Horde"
+description = "Weak alone. They are never alone."

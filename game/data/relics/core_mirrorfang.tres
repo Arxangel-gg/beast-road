@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_8set2"]
+
+[resource]
+script = ExtResource("1_8set2")
+is_boss_core = true
+source_act = 2
+effect_id = "dash_cooldown"
+effect_magnitude = -1.0
+id = "core_mirrorfang"
+display_name = "Core of Mirrorfang"
+description = "Always active. Never socketed."

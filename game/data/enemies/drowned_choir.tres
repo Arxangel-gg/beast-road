@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_qocbu"]
+
+[resource]
+script = ExtResource("1_qocbu")
+category = 2
+max_hp = 4200.0
+contact_damage = 26.0
+move_speed = 34.0
+body_radius = 90.0
+knockback_resistance = 1.0
+resource_value = 120
+id = "drowned_choir"
+display_name = "The Drowned Choir"

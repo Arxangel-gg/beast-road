@@ -1,0 +1,65 @@
+class_name BuildingData
+extends GameData
+
+## A town building (GDD §5). Construction is gated by distance travelled, not
+## resources and not real time — surviving is building.
+##
+## `id = "forge"` -> `res://art/city/building_forge.png`
+
+## What upgrading this building actually does. The effect is a key plus a
+## magnitude rather than a script per building, so six buildings stay six rows
+## of data instead of six subclasses.
+enum Effect {
+	## Adds Town Hall relic sockets.
+	RELIC_SLOTS,
+	## Unlocks and improves tower blueprints.
+	BLUEPRINTS,
+	## Hero max HP, move speed and spell cooldown.
+	HERO_UPGRADE,
+	## Resource generation rate.
+	RESOURCE_RATE,
+	## Accepts captives, converting them into resource rate.
+	CAPTIVE_LABOUR,
+	## Reveals the composition of the next wave.
+	WAVE_FORESIGHT,
+}
+
+@export var effect: Effect = Effect.RESOURCE_RATE
+
+## Magnitude gained per tier, indexed by tier - 1.
+@export var effect_per_tier: Array[float] = [1.0, 2.0, 3.0]
+
+@export var max_tier: int = 3
+
+## Whether captives can be assigned here.
+@export var accepts_captives: bool = false
+
+## Buildings unlocked from the start of a run; the rest need blueprints.
+@export var available_from_start: bool = true
+
+## Where this building sits on the town's ring, in degrees. The Town Hall sits
+## at the centre and ignores this.
+@export var plot_angle_degrees: float = 0.0
+
+@export var is_town_hall: bool = false
+
+
+func get_sprite_path() -> String:
+	return GameData.derive_path("city", "building_", id)
+
+
+## Distance units needed to construct the given tier.
+static func tier_cost(tier: int) -> float:
+	match tier:
+		1:
+			return Balance.BUILD_COST_TIER_1
+		2:
+			return Balance.BUILD_COST_TIER_2
+		_:
+			return Balance.BUILD_COST_TIER_3
+
+
+func effect_at(tier: int) -> float:
+	if tier <= 0 or effect_per_tier.is_empty():
+		return 0.0
+	return effect_per_tier[clampi(tier - 1, 0, effect_per_tier.size() - 1)]

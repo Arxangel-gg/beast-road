@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/pause_menu.gd" id="1_pause"]
+
+[node name="PauseMenu" type="CanvasLayer" node_paths=PackedStringArray("panel", "resume_button", "menu_button")]
+layer = 20
+script = ExtResource("1_pause")
+panel = NodePath("Panel")
+resume_button = NodePath("Panel/Box/Resume")
+menu_button = NodePath("Panel/Box/Menu")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -120.0
+offset_right = 200.0
+offset_bottom = 120.0
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Box"]
+text = "Paused"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 32
+
+[node name="Resume" type="Button" parent="Panel/Box"]
+custom_minimum_size = Vector2(320, 48)
+text = "Resume"
+
+[node name="Menu" type="Button" parent="Panel/Box"]
+custom_minimum_size = Vector2(320, 48)
+text = "Abandon the road"

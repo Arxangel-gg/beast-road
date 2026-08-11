@@ -177,6 +177,10 @@ All 128×192, type T. Placeholder colour by element.
 | `building_forge.png` | 192×192 | T | `#C4552E` |
 | `building_sanctum.png` | 192×192 | T | `#9B8FC4` |
 | `building_granary.png` | 192×192 | T | `#7A8A4E` |
+| `building_scavenging_post.png` | 192×192 | T | `#6B5A4A` |
+| `building_watchtower.png` | 192×192 | T | `#5E6B7A` |
+| `plot_empty.png` | 192×192 | T | `#4A4438` |
+| `plot_locked.png` | 192×192 | T | `#33302A` |
 
 ### 5.6 Beast — `res://art/beast/`
 
@@ -225,10 +229,71 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 
 All 64×64, type T, placeholder colour `#D9CDB8`.
 
-`ui_element_fire.png` · `ui_element_frost.png` · `ui_element_stone.png` ·
-`ui_element_storm.png` · `ui_resource.png` · `ui_blueprint.png` ·
+`ui_element_fire.png` · `ui_element_water.png` · `ui_element_earth.png` ·
+`ui_element_air.png` · `ui_resource.png` · `ui_blueprint.png` ·
 `ui_relic.png` · `ui_war_horn.png` · `ui_raid_charge.png` ·
-`ui_distance.png` · `ui_city_health.png` · `ui_pressure_arrow.png`
+`ui_distance.png` · `ui_city_health.png` · `ui_pressure_arrow.png` ·
+`ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
+`ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png`
+
+> The four element icons were renamed in GDD v3 (Frost→Water, Stone→Earth,
+> Storm→Air). The old `ui_element_frost/stone/storm.png` files were deleted, not
+> left as orphans.
+
+### 5.12 Combination towers — `res://art/towers/`
+
+All 128×192, type T. Built in the middle slot of a lane from the two elements
+flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
+
+| File | Parents | Colour |
+|------|---------|--------|
+| `tower_firestorm.png` | Fire + Air | `#B0729B` |
+| `tower_magma.png` | Fire + Earth | `#9E6244` |
+| `tower_steam_burst.png` | Fire + Water | `#A17E77` |
+| `tower_blizzard.png` | Water + Air | `#8B9BC2` |
+| `tower_glacier.png` | Water + Earth | `#7C8A8E` |
+| `tower_quake.png` | Earth + Air | `#8A7F90` |
+| `tower_conflagration.png` | Fire + Fire | `#D14A22` |
+| `tower_deep_freeze.png` | Water + Water | `#6FA8CF` |
+| `tower_bastion.png` | Earth + Earth | `#6E6350` |
+| `tower_tempest.png` | Air + Air | `#A79BD8` |
+
+### 5.13 Battlefield — `res://art/battlefield/`
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `lane_path.png` | 256×256 | O | `#3A3630` |
+| `build_spot.png` | 128×128 | T | `#7A7057` |
+| `build_spot_combo.png` | 128×128 | T | `#9B8FC4` |
+| `town_core.png` | 384×384 | T | `#8A7A5E` |
+
+### 5.14 Raid — `res://art/raid/`
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `chieftain_ashfen.png` | 256×256 | T | `#3E5A52` |
+| `chieftain_saltglass.png` | 256×256 | T | `#9FB4C4` |
+| `chieftain_steppe.png` | 256×256 | T | `#9C4A3B` |
+| `captive_bogkin.png` | 128×128 | T | `#4A6B4F` |
+| `captive_glassborn.png` | 128×128 | T | `#6B8A9E` |
+| `captive_steppehorde.png` | 128×128 | T | `#8C3A2B` |
+
+### 5.15 UI frames — `res://art/ui/`
+
+Nine-slice frames and bars. Stretched in code, so the placeholder size is the
+source size, not the on-screen size.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ui_panel.png` | 256×256 | T | `#1A2428` |
+| `ui_panel_dark.png` | 256×256 | T | `#0E1518` |
+| `ui_button.png` | 256×64 | T | `#2E4048` |
+| `ui_button_hover.png` | 256×64 | T | `#3E5660` |
+| `ui_slot.png` | 96×96 | T | `#232F33` |
+| `ui_bar_fill.png` | 64×16 | T | `#C4552E` |
+| `ui_bar_back.png` | 64×16 | T | `#141C1F` |
+| `ui_logo.png` | 1024×256 | T | `#E8A33D` |
+| `splash_studio.png` | 1920×1080 | O | `#0B1416` |
 
 ---
 

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_v3mel"]
+
+[resource]
+script = ExtResource("1_v3mel")
+effect_id = "wave_foresight"
+effect_magnitude = 1.0
+id = "19"
+display_name = "Pale Lantern"
+description = "You see them coming."

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_s5v0e"]
+
+[resource]
+script = ExtResource("1_s5v0e")
+effect_id = "raid_charge"
+effect_magnitude = 0.3
+id = "08"
+display_name = "Horn Ring"
+description = "The horn calls louder."

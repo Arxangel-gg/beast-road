@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_data.gd" id="1_a3ndb"]
+
+[resource]
+script = ExtResource("1_a3ndb")
+effect = 2
+effect_per_tier = Array[float]([0.08, 0.16, 0.26])
+available_from_start = false
+plot_angle_degrees = 72.0
+id = "sanctum"
+display_name = "Sanctum"
+description = "Hero max health, movement and spell cooldown."

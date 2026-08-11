@@ -1,0 +1,44 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/crossroad_screen.gd" id="1_cross"]
+[ext_resource type="Texture2D" path="res://art/bg/crossroad_bg.png" id="2_bg"]
+
+[node name="CrossroadScreen" type="CanvasLayer" node_paths=PackedStringArray("panel", "title", "options_box")]
+layer = 10
+script = ExtResource("1_cross")
+panel = NodePath("Panel")
+title = NodePath("Panel/Art/Box/Title")
+options_box = NodePath("Panel/Art/Box/Options")
+
+[node name="Panel" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Art" type="TextureRect" parent="Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Box" type="VBoxContainer" parent="Panel/Art"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -220.0
+offset_right = 320.0
+offset_bottom = 220.0
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="Panel/Art/Box"]
+text = "Crossroad"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 36
+
+[node name="Options" type="VBoxContainer" parent="Panel/Art/Box"]
+theme_override_constants/separation = 16

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_aq605"]
+
+[resource]
+script = ExtResource("1_aq605")
+is_combination = true
+damage = 30.0
+attack_interval = 0.7
+burn_dps = 20.0
+burn_duration = 3.0
+id = "conflagration"
+display_name = "Conflagration"
+description = "Heavy single target, deep burn."

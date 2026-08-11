@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_data.gd" id="1_8m84s"]
+
+[resource]
+script = ExtResource("1_8m84s")
+effect = 1
+available_from_start = false
+id = "forge"
+display_name = "Forge"
+description = "Unlocks and improves tower blueprints for this run."

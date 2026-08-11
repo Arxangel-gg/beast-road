@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/results_screen.gd" id="1_res"]
+
+[node name="ResultsScreen" type="CanvasLayer" node_paths=PackedStringArray("panel", "title", "body", "menu_button")]
+layer = 15
+script = ExtResource("1_res")
+panel = NodePath("Panel")
+title = NodePath("Panel/Box/Title")
+body = NodePath("Panel/Box/Body")
+menu_button = NodePath("Panel/Box/Menu")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Panel/Box"]
+text = "The road ends here"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 40
+
+[node name="Body" type="Label" parent="Panel/Box"]
+theme_override_font_sizes/font_size = 19
+
+[node name="Menu" type="Button" parent="Panel/Box"]
+custom_minimum_size = Vector2(320, 52)
+text = "Back to the menu"

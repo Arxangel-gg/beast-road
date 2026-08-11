@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TerrainData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_vssda"]
+
+[resource]
+script = ExtResource("1_vssda")
+breed_id = "steppehorde"
+act = 3
+favoured_element = 2
+favoured_element_bonus = 0.2
+wave_size_multiplier = 1.5
+wave_interval_multiplier = 0.75
+id = "steppe"
+display_name = "Iron Steppe"

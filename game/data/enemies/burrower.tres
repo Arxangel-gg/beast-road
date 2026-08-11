@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_k4qo0"]
+
+[resource]
+script = ExtResource("1_k4qo0")
+category = 1
+max_hp = 160.0
+contact_damage = 16.0
+move_speed = 70.0
+body_radius = 30.0
+knockback_resistance = 0.4
+raid_charge_value = 4.0
+resource_value = 6
+id = "burrower"
+display_name = "Burrower"
+description = "Surfaces past the towers, already inside the ring."

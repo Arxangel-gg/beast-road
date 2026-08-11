@@ -1,0 +1,52 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scenes/battlefield/battlefield.gd" id="1_field"]
+[ext_resource type="Texture2D" path="res://art/battlefield/lane_path.png" id="2_ground"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/town_core.tscn" id="3_town"]
+[ext_resource type="PackedScene" path="res://scenes/hero/hero.tscn" id="4_hero"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/enemy.tscn" id="5_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/tower.tscn" id="6_tower"]
+[ext_resource type="PackedScene" path="res://scenes/battlefield/tower_slot.tscn" id="7_slot"]
+[ext_resource type="Script" path="res://scripts/systems/wave_director.gd" id="8_wave"]
+[ext_resource type="Script" path="res://scenes/battlefield/camera_rig.gd" id="9_cam"]
+
+[node name="Battlefield" type="Node2D" node_paths=PackedStringArray("ground", "lane_root", "slot_root", "entity_root", "effect_root", "town", "hero", "wave_director", "camera")]
+script = ExtResource("1_field")
+enemy_scene = ExtResource("5_enemy")
+tower_scene = ExtResource("6_tower")
+tower_slot_scene = ExtResource("7_slot")
+ground = NodePath("Ground")
+lane_root = NodePath("LaneRoot")
+slot_root = NodePath("SlotRoot")
+entity_root = NodePath("EntityRoot")
+effect_root = NodePath("EffectRoot")
+town = NodePath("EntityRoot/TownCore")
+hero = NodePath("EntityRoot/Hero")
+wave_director = NodePath("WaveDirector")
+camera = NodePath("Camera2D")
+
+[node name="Ground" type="Sprite2D" parent="."]
+texture = ExtResource("2_ground")
+
+[node name="LaneRoot" type="Node2D" parent="."]
+
+[node name="SlotRoot" type="Node2D" parent="."]
+
+[node name="EntityRoot" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="TownCore" parent="EntityRoot" instance=ExtResource("3_town")]
+
+[node name="Hero" parent="EntityRoot" instance=ExtResource("4_hero")]
+position = Vector2(0, 260)
+bounds_radius = 880.0
+
+[node name="EffectRoot" type="Node2D" parent="."]
+
+[node name="WaveDirector" type="Node" parent="."]
+script = ExtResource("8_wave")
+
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("9_cam")
+target = NodePath("../EntityRoot/Hero")
+zoom_level = 0.62
