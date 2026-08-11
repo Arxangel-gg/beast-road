@@ -81,11 +81,25 @@ jobs:
           mkdir -p build/launcher
           godot --headless --path launcher --export-release "$EXPORT_PRESET" ../build/launcher/BeastRoadLauncher.exe
 
-      - name: Check the exports exist
+      - name: Check the exports are shippable
         run: |
           set -euo pipefail
           test -s build/game/BeastRoad.exe
           test -s build/launcher/BeastRoadLauncher.exe
+
+          # The game ships as a folder, so a sidecar .pck is expected and must
+          # be present - without it the exe cannot find its data.
+          test -s build/game/BeastRoad.pck
+
+          # The launcher ships as a single file. If Godot wrote a sidecar .pck
+          # then embed_pck is off, and the exe we upload would fail on the
+          # user's machine with "Is the .pck file missing?". v0.1.0 shipped
+          # exactly that.
+          if [ -e build/launcher/BeastRoadLauncher.pck ]; then
+            echo "::error::Launcher exported with a separate .pck. Set binary_format/embed_pck=true in launcher/export_presets.cfg."
+            exit 1
+          fi
+
           ls -la build/game build/launcher
 
       - name: Package
@@ -95,6 +109,12 @@ jobs:
           # either shape works — this zips the contents.
           (cd build/game && zip -qr ../../BeastRoad-windows.zip .)
           cp build/launcher/BeastRoadLauncher.exe BeastRoadLauncher.exe
+
+          # The archive is what actually reaches a player, so assert its
+          # contents rather than the folder it was built from.
+          unzip -l BeastRoad-windows.zip
+          unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.exe"
+          unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.pck"
           ls -la BeastRoad-windows.zip BeastRoadLauncher.exe
 
       - name: Upload build artifacts
