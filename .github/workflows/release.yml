@@ -1,0 +1,118 @@
+name: Release
+
+# Publishing a build is pushing a tag. Nothing else needs to happen locally —
+# in particular, nobody needs Godot's export templates on their own machine.
+#
+#   git tag v0.4.0 && git push origin v0.4.0
+#
+# Run it by hand from the Actions tab to rehearse a build without tagging.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v0.4.0). Leave blank to build only.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.1
+  # Must match the preset name inside both export_presets.cfg files.
+  EXPORT_PRESET: Windows Desktop
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Cache Godot and export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}
+
+      - name: Install Godot and export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot
+          curl -fL -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q -o /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+
+          curl -fL -o /tmp/templates.tpz "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q -o /tmp/templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Import assets
+        # Godot must import once before it can export; a cold checkout has no
+        # .godot/ directory. The editor exits non-zero on some headless
+        # shutdowns, which is not an import failure.
+        run: |
+          godot --headless --path game --import || true
+          godot --headless --path launcher --import || true
+
+      - name: Export the game
+        run: |
+          mkdir -p build/game
+          godot --headless --path game --export-release "$EXPORT_PRESET" ../build/game/BeastRoad.exe
+
+      - name: Export the launcher
+        run: |
+          mkdir -p build/launcher
+          godot --headless --path launcher --export-release "$EXPORT_PRESET" ../build/launcher/BeastRoadLauncher.exe
+
+      - name: Check the exports exist
+        run: |
+          set -euo pipefail
+          test -s build/game/BeastRoad.exe
+          test -s build/launcher/BeastRoadLauncher.exe
+          ls -la build/game build/launcher
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          # The launcher strips a single wrapper folder if it finds one, so
+          # either shape works — this zips the contents.
+          (cd build/game && zip -qr ../../BeastRoad-windows.zip .)
+          cp build/launcher/BeastRoadLauncher.exe BeastRoadLauncher.exe
+          ls -la BeastRoad-windows.zip BeastRoadLauncher.exe
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: beast-road-windows
+          path: |
+            BeastRoad-windows.zip
+            BeastRoadLauncher.exe
+
+      - name: Publish release
+        # Only on a tag. A manual run builds and uploads artifacts without
+        # publishing, which is what you want when rehearsing.
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Beast Road ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            BeastRoad-windows.zip
+            BeastRoadLauncher.exe

@@ -1,0 +1,38 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Beast Road Launcher"
+config/description="Installs, updates and runs Beast Road."
+run/main_scene="res://scenes/launcher.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/show_image=false
+config/icon="res://art/launcher_icon.png"
+
+[autoload]
+
+LauncherConfig="*res://scripts/LauncherConfig.gd"
+
+[display]
+
+window/size/viewport_width=1000
+window/size/viewport_height=620
+window/size/resizable=false
+window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom="res://launcher_theme.tres"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

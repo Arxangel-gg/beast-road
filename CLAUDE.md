@@ -32,6 +32,7 @@ target, not a mood board — check them before designing a screen.
 | Repo root | `E:\Arxangel\GameDev\BeastRoad\` |
 | Godot binary | `E:\Arxangel\GameDev\BeastRoad\Godot_v4.7.1-stable_win64.exe\` (this is a **folder**; the executable is inside it) |
 | Godot project root | `E:\Arxangel\GameDev\BeastRoad\game\` |
+| Launcher project | `E:\Arxangel\GameDev\BeastRoad\launcher\` (its own Godot project) |
 | Design docs | `E:\Arxangel\GameDev\BeastRoad\docs\` |
 
 Windows. Paths contain spaces — quote them in every shell command.
@@ -152,3 +153,22 @@ NEXT      — the single next step (do not start it)
 
 Be honest in KILL Q. If a stage feels bad, say so — that is the entire point
 of the gate.
+
+---
+
+## 8. Shipping
+
+Builds are made by GitHub Actions, never locally — no one needs Godot's export
+templates on their machine. Publishing is pushing a tag:
+
+```
+toolselease.ps1 -Version 0.4.0
+```
+
+`.github/workflows/release.yml` exports the game and the launcher, zips the
+game, and attaches both to a GitHub Release. The launcher reads
+`releases/latest` and offers Install / Update / Play. Full details in
+`docs/RELEASING.md`.
+
+The repository must be **public** for the launcher to read the API without a
+token. Never ship a token inside the launcher to work around that.
