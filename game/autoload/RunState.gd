@@ -117,6 +117,8 @@ func reset() -> void:
 	raids_completed = 0
 	chieftains_taken = 0
 
+	_equip_starting_spells()
+
 	var starting_terrain: TerrainData = ContentDB.terrain_for_act(1)
 	if starting_terrain != null:
 		terrain_id = starting_terrain.id
@@ -126,6 +128,23 @@ func reset() -> void:
 	for b: BuildingData in ContentDB.buildings_sorted():
 		if b.available_from_start:
 			building_tiers[b.id] = 1
+
+
+## Two spells to begin with, drawn from the unlock pool where there is one.
+## A first-ever run has an empty pool, and starting with no spells at all would
+## make the hero strictly worse than the prototype — so the pool is a preference,
+## not a gate.
+func _equip_starting_spells() -> void:
+	var pool: Array[String] = []
+	for id: String in MetaState.unlocked_spells:
+		if ContentDB.spells.has(id):
+			pool.append(id)
+	if pool.is_empty():
+		for id: Variant in ContentDB.spells:
+			pool.append(String(id))
+	pool.sort()
+	for i: int in mini(Balance.STARTING_SPELLS, pool.size()):
+		equipped_spells.append(pool[i])
 
 
 # --- Slot helpers -----------------------------------------------------------
@@ -214,8 +233,8 @@ func resource_rate() -> float:
 	var granary: BuildingData = ContentDB.building("granary")
 	if granary != null:
 		rate += granary.effect_at(building_tier("granary"))
-	rate += float(assigned_captive_count()) * Balance.CAPTIVE_WORK_BONUS
-	return rate
+	rate += float(assigned_captive_count()) * Balance.CAPTIVE_WORK_BONUS * Modifiers.multiplier(Modifiers.CAPTIVE_OUTPUT)
+	return rate * Modifiers.multiplier(Modifiers.RESOURCE_RATE)
 
 
 func building_tier(id: String) -> int:

@@ -42,6 +42,15 @@ var _pressure_timer: float = 0.0
 
 const PRESSURE_INTERVAL: float = 0.2
 
+## Road art, tiled along each cardinal lane only.
+const LANE_TEXTURE: String = "res://art/battlefield/lane_path.png"
+
+## How much wider the road is than the walkable lane, so enemies travel on it
+## rather than beside it.
+const LANE_ROAD_SCALE: float = 1.6
+
+const LANE_ROAD_TINT: Color = Color(1.0, 0.96, 0.88, 0.55)
+
 
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
@@ -50,6 +59,10 @@ func _ready() -> void:
 	_build_slots()
 	wave_director.battlefield = self
 	wave_director.start()
+	# Spells and the melee arc both need to find enemies, and the hero must not
+	# go looking up the tree for the scope it happens to be sitting in.
+	if hero != null:
+		hero.field = self
 
 
 func _process(delta: float) -> void:
@@ -215,7 +228,7 @@ func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
 			return "Those two elements make %s." % allowed.display_name
 	elif tower_data.is_combination:
 		return "Combination towers only go in the middle spot."
-	var cost: int = tower_data.build_cost()
+	var cost: int = build_cost_of(tower_data)
 	if not RunState.can_afford(cost):
 		return "Needs %d resources." % cost
 	RunState.spend(cost)
@@ -230,7 +243,7 @@ func try_upgrade(lane: int, slot: int) -> String:
 	var level: int = RunState.level_in_slot(lane, slot)
 	if level >= Balance.TOWER_MAX_LEVEL:
 		return "Already at maximum level."
-	var cost: int = TowerData.upgrade_cost(level)
+	var cost: int = upgrade_cost_of(level)
 	if not RunState.can_afford(cost):
 		return "Needs %d resources." % cost
 	RunState.spend(cost)
@@ -238,14 +251,29 @@ func try_upgrade(lane: int, slot: int) -> String:
 	return ""
 
 
+## Build and upgrade prices after relics. One place, so the UI quotes exactly
+## what the purchase will charge.
+static func build_cost_of(tower_data: TowerData) -> int:
+	var scale: float = maxf(1.0 + Modifiers.value(Modifiers.BUILD_COST), 0.25)
+	return maxi(int(round(float(tower_data.build_cost()) * scale)), 1)
+
+
+static func upgrade_cost_of(level: int) -> int:
+	var base: int = TowerData.upgrade_cost(level)
+	if base < 0:
+		return -1
+	var scale: float = maxf(1.0 + Modifiers.value(Modifiers.BUILD_COST), 0.25)
+	return maxi(int(round(float(base) * scale)), 1)
+
+
 func try_sell(lane: int, slot: int) -> String:
 	var tower_data: TowerData = RunState.tower_in_slot(lane, slot)
 	if tower_data == null:
 		return "Nothing built there."
 	var level: int = RunState.level_in_slot(lane, slot)
-	var spent: int = tower_data.build_cost()
+	var spent: int = build_cost_of(tower_data)
 	for l: int in range(1, level):
-		spent += TowerData.upgrade_cost(l)
+		spent += upgrade_cost_of(l)
 	RunState.gain_resources(int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
 	RunState.clear_slot(lane, slot)
 	return ""
@@ -253,28 +281,66 @@ func try_sell(lane: int, slot: int) -> String:
 
 # --- Setup ------------------------------------------------------------------
 
+## The floor is the act's terrain, tiled. Roads are *not* part of it — a lane is
+## a strip of trodden ground running out along one cardinal, and everywhere else
+## is open country.
+## The act's terrain changed; re-skin the floor without rebuilding the scope.
+func refresh_terrain() -> void:
+	_setup_ground()
+
+
 func _setup_ground() -> void:
 	if ground == null:
 		return
-	var extent: float = Balance.LANE_SPAWN_RADIUS * 1.4
+	# Sized against the visible area, not the arena: at CAMERA_ZOOM_BATTLEFIELD
+	# the viewport shows far more world than the lanes occupy, and anything the
+	# floor does not reach renders as empty grey.
+	var visible_half: float = maxf(1920.0, 1080.0) / Balance.CAMERA_ZOOM_BATTLEFIELD
+	var extent: float = maxf(Balance.LANE_SPAWN_RADIUS * 1.4, visible_half)
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
 	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
 
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
+		ground.texture = load(terrain.get_sprite_path())
 
-## One line per lane, from the spawn point to the town. Greybox: the real thing
-## is a painted road (ASSET_MANIFEST §5.13).
+
+## Four road strips, one per cardinal, from the town wall out to the spawn point.
+## Each is the lane_path texture tiled along its own length and rotated onto the
+## lane, so the road art only ever appears where a road actually is.
 func _build_lanes() -> void:
+	var road: Texture2D = null
+	if ResourceLoader.exists(LANE_TEXTURE):
+		road = load(LANE_TEXTURE)
+
+	var length: float = Balance.LANE_SPAWN_RADIUS - Balance.TOWN_RADIUS
 	for lane: int in Balance.LANE_COUNT:
-		var line := Line2D.new()
 		var direction: Vector2 = lane_vector(lane)
+		var strip := Sprite2D.new()
+		strip.texture = road
+		strip.centered = true
+		strip.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		strip.region_enabled = true
+		# Region is in texture space, so the road tiles along the strip instead
+		# of being stretched into a smear.
+		strip.region_rect = Rect2(0.0, 0.0, length, Balance.LANE_WIDTH * LANE_ROAD_SCALE)
+		# Built along +X, then rotated onto the lane; +X is a quarter turn from
+		# lane 0 (north), which is what lane_vector returns.
+		strip.rotation = direction.angle()
+		strip.position = direction * (Balance.TOWN_RADIUS + length * 0.5)
+		strip.modulate = LANE_ROAD_TINT
+		lane_root.add_child(strip)
+
+		# A soft centre line so the walking path reads even before real art.
+		var line := Line2D.new()
 		line.points = PackedVector2Array([
 			direction * Balance.LANE_SPAWN_RADIUS,
 			direction * Balance.TOWN_RADIUS,
 		])
-		line.width = Balance.LANE_WIDTH
-		line.default_color = Color(0.72, 0.66, 0.52, 0.13)
+		line.width = 3.0
+		line.default_color = Color(0.85, 0.80, 0.72, 0.10)
 		lane_root.add_child(line)
 
 

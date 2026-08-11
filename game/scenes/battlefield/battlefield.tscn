@@ -1,7 +1,7 @@
 [gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/battlefield/battlefield.gd" id="1_field"]
-[ext_resource type="Texture2D" path="res://art/battlefield/lane_path.png" id="2_ground"]
+[ext_resource type="Texture2D" path="res://art/terrain/terrain_ashfen.png" id="2_ground"]
 [ext_resource type="PackedScene" path="res://scenes/battlefield/town_core.tscn" id="3_town"]
 [ext_resource type="PackedScene" path="res://scenes/hero/hero.tscn" id="4_hero"]
 [ext_resource type="PackedScene" path="res://scenes/battlefield/enemy.tscn" id="5_enemy"]

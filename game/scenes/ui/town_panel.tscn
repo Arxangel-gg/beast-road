@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/town_panel.gd" id="1_town_panel"]
+
+[node name="TownPanel" type="CanvasLayer" node_paths=PackedStringArray("panel", "title", "body", "actions", "progress", "progress_label", "close_button")]
+layer = 8
+script = ExtResource("1_town_panel")
+panel = NodePath("Panel")
+title = NodePath("Panel/Box/Title")
+body = NodePath("Panel/Box/Body")
+actions = NodePath("Panel/Box/Scroll/Actions")
+progress = NodePath("Panel/Box/Progress")
+progress_label = NodePath("Panel/Box/ProgressLabel")
+close_button = NodePath("Panel/Box/Close")
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -330.0
+offset_right = -32.0
+offset_bottom = 330.0
+
+[node name="Box" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Panel/Box"]
+text = "Town"
+theme_override_font_sizes/font_size = 26
+
+[node name="Body" type="Label" parent="Panel/Box"]
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 15
+
+[node name="Progress" type="ProgressBar" parent="Panel/Box"]
+custom_minimum_size = Vector2(0, 20)
+max_value = 1.0
+show_percentage = false
+
+[node name="ProgressLabel" type="Label" parent="Panel/Box"]
+theme_override_font_sizes/font_size = 14
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Box"]
+size_flags_vertical = 3
+
+[node name="Actions" type="VBoxContainer" parent="Panel/Box/Scroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Close" type="Button" parent="Panel/Box"]
+custom_minimum_size = Vector2(0, 42)
+text = "Close"

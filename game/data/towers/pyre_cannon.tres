@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_4e1h1")
-damage = 34.0
+damage = 44.0
 attack_interval = 1.7
 aoe_radius = 110.0
 id = "pyre_cannon"

@@ -62,6 +62,8 @@ func begin() -> void:
 	_chieftain_out = false
 	set_process(true)
 	visible = true
+	if hero != null:
+		hero.field = self
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.raid_started.emit()
 

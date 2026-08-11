@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_11eb1")
 element = 1
-damage = 16.0
+damage = 21.0
 attack_interval = 0.95
 slow_factor = 0.6
 slow_duration = 1.5

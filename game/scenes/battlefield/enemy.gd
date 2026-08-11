@@ -228,6 +228,19 @@ func take_damage(amount: float, from: Vector2, knockback: float) -> bool:
 	return true
 
 
+## Chain Hook drags things in. Expressed as its own operation rather than as
+## negative knockback, so knockback resistance does not accidentally make an
+## enemy immune to being pulled.
+func pull_toward(point: Vector2, strength: float) -> void:
+	if _state == State.DYING:
+		return
+	var toward: Vector2 = point - global_position
+	if toward.length() < 1.0:
+		return
+	_knockback = toward.normalized() * strength
+	_hitstun_left = maxf(_hitstun_left, Balance.ENEMY_HITSTUN)
+
+
 func apply_slow(factor: float, duration: float) -> void:
 	if factor >= 1.0 or duration <= 0.0:
 		return

@@ -45,6 +45,12 @@ signal enemy_spawned(enemy_id: String, at: Vector2)
 ## An enemy reached zero HP. Kill credit, raid charge and drops read off this.
 signal enemy_died(enemy_id: String, at: Vector2)
 
+## A spell resolved. `slot` is 0..3.
+signal spell_cast(spell_id: String, slot: int, at: Vector2)
+
+## The hero's equipped spells changed.
+signal spells_changed()
+
 ## Something wants the camera shaken — decoupled so any system can ask.
 signal camera_shake_requested(magnitude: float, duration: float)
 
@@ -107,6 +113,10 @@ signal crossroad_reached(segment_index: int)
 signal crossroad_resolved(option_id: String)
 
 signal act_started(act: int, terrain_id: String)
+
+## The act's final segment is done; the boss should walk in. Distance does not
+## advance again until the boss is dead.
+signal act_boss_due(act: int)
 signal boss_spawned(boss_id: String, act: int)
 signal boss_defeated(boss_id: String, act: int)
 

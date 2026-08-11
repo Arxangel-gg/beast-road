@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_arxik")
-cooldown = 16.0
+kind = 5
+cooldown = 18.0
 duration = 3.0
+speed_bonus = 0.45
 id = "ash_veil"
 display_name = "Ash Veil"
-description = "Unseen and quick."
+description = "Unseen, and quick with it."

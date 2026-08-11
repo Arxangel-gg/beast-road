@@ -117,6 +117,11 @@ Rules:
 **Placeholder detection:** pixel `(0,0)` of every generated placeholder is pure
 magenta `#FF00FF`. Run `asset_report.gd` to list what is still fake.
 
+Most placeholders also carry a 4px magenta border. **Terrain tiles and
+backdrops do not** — they are tiled or stretched, and four magenta edges turn a
+tiled floor into graph paper. They get a small corner pip instead. Pixel `(0,0)`
+is the contract; the border is only a convenience.
+
 ---
 
 ## 5. Asset tables

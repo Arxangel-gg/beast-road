@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1_cdeek")
-cooldown = 14.0
+kind = 6
+cooldown = 16.0
 effect_radius = 240.0
-duration = 6.0
+duration = 8.0
 id = "bulwark_ward"
 display_name = "Bulwark Ward"
-description = "Shield one lane for a while."
+description = "Shield the lane you stand in."

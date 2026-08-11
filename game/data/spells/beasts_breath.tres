@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1_s8djb")
-cooldown = 18.0
-damage = 90.0
-effect_radius = 320.0
+kind = 7
+cooldown = 20.0
+damage = 120.0
+effect_radius = 340.0
 duration = 2.5
 is_channelled = true
 id = "beasts_breath"

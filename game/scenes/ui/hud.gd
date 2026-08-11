@@ -33,6 +33,7 @@ var _message: Label
 var _message_left: float = 0.0
 
 var _lane_bars: Array[ProgressBar] = []
+var _lane_ring: Control
 var _build_panel: PanelContainer
 var _build_list: VBoxContainer
 var _build_title: Label
@@ -43,6 +44,15 @@ var _raid_panel: PanelContainer
 var _raid_status: Label
 var _extract_button: Button
 @export var raid: RaidArena
+@export var boss_director: BossDirector
+
+var _spell_buttons: Array[Button] = []
+var _spell_bar: HBoxContainer
+var _boss_panel: PanelContainer
+var _boss_name: Label
+var _boss_bar: ProgressBar
+var _state_label: Label
+var _hero: Hero = null
 
 
 func _ready() -> void:
@@ -51,6 +61,8 @@ func _ready() -> void:
 	_build_scope_bar()
 	_build_tower_panel()
 	_build_raid_panel()
+	_build_spell_bar()
+	_build_boss_bar()
 
 	EventBus.resources_changed.connect(func(v: int) -> void: _resources.text = "Resources  %d" % v)
 	EventBus.distance_changed.connect(_on_distance)
@@ -64,14 +76,25 @@ func _ready() -> void:
 	EventBus.war_horn_activated.connect(func(_d: float) -> void: _horn_button.disabled = true)
 	EventBus.war_horn_ended.connect(func() -> void: _horn_button.disabled = false)
 	EventBus.scope_changed.connect(_on_scope_changed)
+	EventBus.war_horn_activated.connect(func(_d: float) -> void: _refresh_state_label())
+	EventBus.war_horn_ended.connect(_refresh_state_label)
+	EventBus.raid_available.connect(func(_s: float) -> void: _refresh_state_label())
+	EventBus.weakened_ended.connect(_refresh_state_label)
+	EventBus.spells_changed.connect(_rebuild_spell_bar)
+	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_defeated.connect(func(_id: String, _a: int) -> void: _boss_panel.visible = false)
+	EventBus.run_started.connect(_rebuild_spell_bar)
 
 	for node: Node in get_tree().get_nodes_in_group(TowerSlot.GROUP):
 		var slot := node as TowerSlot
 		if slot != null:
 			slot.clicked.connect(_open_build_panel)
 
+	_hero = battlefield.hero if battlefield != null else null
 	_resources.text = "Resources  %d" % RunState.resources
 	_on_act(RunState.act, RunState.terrain_id)
+	_rebuild_spell_bar()
+	_refresh_state_label()
 
 
 func _process(delta: float) -> void:
@@ -81,6 +104,8 @@ func _process(delta: float) -> void:
 			_message.text = ""
 	if _raid_panel.visible:
 		_update_raid_panel()
+	_update_spell_bar()
+	_update_boss_bar()
 
 
 # --- Construction -----------------------------------------------------------
@@ -120,6 +145,14 @@ func _build_top_bar() -> void:
 	bar.add_child(_label("Hero"))
 	bar.add_child(_hero_bar)
 
+	_state_label = _label("", 19)
+	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_state_label.offset_top = 132.0
+	_state_label.offset_left = -520.0
+	_state_label.offset_right = 520.0
+	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_state_label)
+
 	_message = _label("", 22)
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message.offset_top = 90.0
@@ -152,6 +185,7 @@ func _build_lane_ring() -> void:
 	ring.set_anchors_preset(Control.PRESET_CENTER)
 	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(ring)
+	_lane_ring = ring
 
 	var offsets: Array[Vector2] = [
 		Vector2(-60, -250), Vector2(200, -12), Vector2(-60, 230), Vector2(-320, -12),
@@ -178,12 +212,12 @@ func _build_scope_bar() -> void:
 	bar.add_theme_constant_override("separation", 12)
 	add_child(bar)
 
-	_add_button(bar, "1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
-	_add_button(bar, "2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
-	_add_button(bar, "3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
+	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
+	_add_button(bar, "F2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
+	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
 
-	_horn_button = _add_button(bar, "War Horn", func() -> void: horn_requested.emit())
-	_raid_button = _add_button(bar, "Raid", func() -> void: raid_requested.emit())
+	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
+	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
 	_raid_button.disabled = true
 
 	_charge_bar = _make_bar(Color("9b8fc4"), 200.0)
@@ -246,6 +280,122 @@ func _build_raid_panel() -> void:
 	_extract_button.disabled = true
 
 
+## Four slots along the bottom. A spell you cannot cast still shows, greyed —
+## an empty bar tells the player nothing about what they are missing.
+func _build_spell_bar() -> void:
+	_spell_bar = HBoxContainer.new()
+	_spell_bar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_spell_bar.offset_left = -520.0
+	_spell_bar.offset_top = -96.0
+	_spell_bar.offset_right = -24.0
+	_spell_bar.offset_bottom = -24.0
+	_spell_bar.add_theme_constant_override("separation", 10)
+	add_child(_spell_bar)
+
+
+func _rebuild_spell_bar() -> void:
+	if _spell_bar == null:
+		return
+	for child: Node in _spell_bar.get_children():
+		child.queue_free()
+	_spell_buttons.clear()
+
+	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		var button := Button.new()
+		button.custom_minimum_size = Vector2(118, 66)
+		button.focus_mode = Control.FOCUS_NONE
+		var spell: SpellData = _spell_in_slot(slot)
+		if spell == null:
+			button.text = "%d\n—" % (slot + 1)
+			button.disabled = true
+		else:
+			button.text = "%d\n%s" % [slot + 1, spell.display_name]
+			button.tooltip_text = spell.description
+			button.pressed.connect(_cast.bind(slot))
+		_spell_bar.add_child(button)
+		_spell_buttons.append(button)
+
+
+func _spell_in_slot(slot: int) -> SpellData:
+	if slot < 0 or slot >= RunState.equipped_spells.size():
+		return null
+	return ContentDB.spells.get(RunState.equipped_spells[slot], null) as SpellData
+
+
+func _cast(slot: int) -> void:
+	if _hero != null and _hero.is_alive():
+		_hero.spells.try_cast(slot, _hero.aim_direction(), _hero.global_position)
+
+
+func _update_spell_bar() -> void:
+	if _hero == null or not is_instance_valid(_hero):
+		return
+	for slot: int in _spell_buttons.size():
+		var spell: SpellData = _spell_in_slot(slot)
+		if spell == null:
+			continue
+		var left: float = _hero.spells.cooldown_ratio(slot)
+		var button: Button = _spell_buttons[slot]
+		button.disabled = left > 0.0
+		button.text = "%d\n%s" % [slot + 1, spell.display_name] if left <= 0.0 else "%d\n%.1fs" % [slot + 1, left * spell.cooldown]
+
+
+## A boss is the only enemy that gets its own bar. Everything else reads off the
+## lane pressure ring.
+func _build_boss_bar() -> void:
+	_boss_panel = PanelContainer.new()
+	_boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_panel.offset_left = -420.0
+	_boss_panel.offset_right = 420.0
+	_boss_panel.offset_top = 54.0
+	_boss_panel.visible = false
+	add_child(_boss_panel)
+
+	var column := VBoxContainer.new()
+	_boss_panel.add_child(column)
+	_boss_name = _label("", 22)
+	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_boss_name)
+	_boss_bar = _make_bar(Color("8c3a2b"), 800.0)
+	column.add_child(_boss_bar)
+
+
+func _on_boss_spawned(boss_id: String, act: int) -> void:
+	var data: EnemyData = ContentDB.enemy(boss_id)
+	_boss_name.text = "%s   ·   Act %d" % [data.display_name if data != null else boss_id, act]
+	_boss_panel.visible = true
+	_message.text = "%s has come." % (data.display_name if data != null else "Something")
+	_message_left = 3.2
+
+
+func _update_boss_bar() -> void:
+	if not _boss_panel.visible or boss_director == null:
+		return
+	var boss: Enemy = boss_director.active_boss()
+	if boss == null:
+		_boss_panel.visible = false
+		return
+	var health: Health = Health.of(boss)
+	if health != null:
+		_boss_bar.value = health.ratio()
+
+
+## One line that says what state the field is in: horn blowing, enemies
+## weakened, or nothing special. Both of those change how the player should be
+## playing, so neither can be invisible.
+func _refresh_state_label() -> void:
+	if _state_label == null:
+		return
+	if RunState.horn_active:
+		_state_label.text = "WAR HORN  —  they come faster, and the beast has stopped walking"
+		_state_label.add_theme_color_override("font_color", Color("c4552e"))
+	elif RunState.enemies_are_weakened():
+		_state_label.text = "THEY FALTER  —  strike now, or take the road to their camp"
+		_state_label.add_theme_color_override("font_color", Color("9b8fc4"))
+	else:
+		_state_label.text = ""
+
+
 # --- Build panel ------------------------------------------------------------
 
 func _open_build_panel(lane: int, slot: int) -> void:
@@ -272,7 +422,7 @@ func _refresh_build_panel() -> void:
 		_build_list.add_child(_label("%s  ·  level %d" % [existing.display_name, level], 18))
 		_build_list.add_child(_label(existing.description, 14))
 		if level < Balance.TOWER_MAX_LEVEL:
-			var cost: int = TowerData.upgrade_cost(level)
+			var cost: int = Battlefield.upgrade_cost_of(level)
 			_add_button(_build_list, "Upgrade to %d  (%d)" % [level + 1, cost], func() -> void:
 				_report(battlefield.try_upgrade(lane, slot))
 				_refresh_build_panel())
@@ -299,7 +449,7 @@ func _refresh_build_panel() -> void:
 func _add_tower_row(tower: TowerData, lane: int, slot: int) -> void:
 	var row := VBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
-	var cost: int = tower.build_cost()
+	var cost: int = Battlefield.build_cost_of(tower)
 	var button: Button = _add_button(row, "%s  ·  %s  ·  %d" % [
 		tower.display_name, TowerData.element_name(tower.element), cost], func() -> void:
 			_report(battlefield.try_build(lane, slot, tower))
@@ -358,8 +508,17 @@ func _on_act(act: int, terrain_id: String) -> void:
 
 func _on_scope_changed(scope: int) -> void:
 	var in_raid: bool = scope == int(GameDirector.Scope.RAID)
+	var on_field: bool = scope == int(GameDirector.Scope.BATTLEFIELD)
 	_raid_panel.visible = in_raid
-	_build_panel.visible = _build_panel.visible and not in_raid
+	_build_panel.visible = _build_panel.visible and on_field
+	# The pressure ring and the boss bar describe the battlefield. Floating them
+	# over the town reads as though the town is the thing under attack.
+	if _lane_ring != null:
+		_lane_ring.visible = on_field
+	if _boss_panel != null and not on_field:
+		_boss_panel.visible = false
+	elif _boss_panel != null and boss_director != null:
+		_boss_panel.visible = boss_director.boss_is_out()
 
 
 func _update_raid_panel() -> void:

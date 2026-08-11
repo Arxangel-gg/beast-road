@@ -51,15 +51,16 @@ func _process(delta: float) -> void:
 
 	EventBus.distance_changed.emit(RunState.distance_travelled, RunState.distance_to_crossroad())
 
-	if RunState.distance_travelled >= Balance.JOURNEY_TOTAL_DISTANCE:
-		_running = false
-		GameDirector.end_run(true)
-		return
-
 	var segment_now: int = _segment_for(RunState.distance_travelled)
 	if segment_now > _segment_index:
 		_segment_index = segment_now
-		_reach_crossroad()
+		# Every third segment closes an act, and an act closes with a boss
+		# rather than a fork in the road. The run is won by killing the Act 3
+		# boss, never by the distance bar filling on its own.
+		if _segment_index % Balance.SEGMENTS_PER_ACT == 0:
+			_await_boss()
+		else:
+			_reach_crossroad()
 
 
 func _accrue_resources(walked: float) -> void:
@@ -124,6 +125,29 @@ func _reach_crossroad() -> void:
 		EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 
 	EventBus.crossroad_reached.emit(segments_done)
+
+
+## Holds the walk until the act's boss is dead. The beast does not leave a
+## region with that still standing in it.
+func _await_boss() -> void:
+	_crossroad_pending = true
+	EventBus.act_boss_due.emit(RunState.act)
+
+
+## Called by the boss director once the act boss falls.
+func resume_after_boss() -> void:
+	_crossroad_pending = false
+	_segment_index = _segment_for(RunState.distance_travelled)
+	RunState.segment += 1
+
+	var next_act: int = RunState.act + 1
+	if next_act > Balance.ACT_COUNT:
+		return
+	RunState.act = next_act
+	var terrain: TerrainData = ContentDB.terrain_for_act(next_act)
+	if terrain != null:
+		RunState.terrain_id = terrain.id
+	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 
 
 ## Called by the crossroad UI once the player has chosen a road.

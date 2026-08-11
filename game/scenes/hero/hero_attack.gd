@@ -32,6 +32,9 @@ signal lunge_requested(direction: Vector2, distance: float)
 ## A swing connected. `targets` is how many enemies it caught.
 signal landed(chain_step: int, targets: int, at: Vector2)
 
+## Multiplier applied to every swing, set by the hero from relics and buildings.
+var damage_multiplier: float = 1.0
+
 var _phase: Phase = Phase.READY
 var _step: int = 0
 var _phase_left: float = 0.0
@@ -132,8 +135,8 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 func _strike() -> void:
 	var reach: float = Balance.HERO_ATTACK_RANGE[_step]
 	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[_step] * 0.5)
-	var damage: float = Balance.HERO_ATTACK_DAMAGE[_step]
-	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step]
+	var damage: float = Balance.HERO_ATTACK_DAMAGE[_step] * damage_multiplier
+	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * Modifiers.multiplier(Modifiers.KNOCKBACK)
 	var hits: int = 0
 
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):

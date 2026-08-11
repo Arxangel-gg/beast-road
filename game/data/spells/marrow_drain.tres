@@ -4,10 +4,12 @@
 
 [resource]
 script = ExtResource("1_7o4sj")
+kind = 3
 cooldown = 8.0
-damage = 40.0
-effect_radius = 110.0
-lifesteal = 0.45
+damage = 46.0
+effect_radius = 140.0
+lifesteal = 0.5
+knockback = 60.0
 id = "marrow_drain"
 display_name = "Marrow Drain"
 description = "Take back what it took."

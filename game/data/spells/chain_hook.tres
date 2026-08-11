@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_hvmtf")
-damage = 20.0
-cast_range = 360.0
+kind = 2
+damage = 18.0
+cast_range = 420.0
+knockback = 900.0
 id = "chain_hook"
 display_name = "Chain Hook"
 description = "Drag them to you."

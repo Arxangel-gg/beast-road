@@ -12,6 +12,7 @@ const PLOT_RADIUS: float = 300.0
 
 @export var plot_root: Node2D
 @export var hall_sprite: Sprite2D
+@export var ground: Sprite2D
 
 ## Each scope owns its camera; the run makes the right one current when the
 ## scope changes, so switching does not leave the view sitting in another scope.
@@ -29,11 +30,26 @@ var _plots: Dictionary = {}
 
 
 func _ready() -> void:
+	_setup_ground()
 	_build_plots()
 	EventBus.construction_completed.connect(_on_construction_completed)
 	var hall: BuildingData = ContentDB.building("town_hall")
 	if hall != null and ResourceLoader.exists(hall.get_sprite_path()):
 		hall_sprite.texture = load(hall.get_sprite_path())
+
+
+## The town sits on the beast's back, so it gets the same ground as the field.
+func _setup_ground() -> void:
+	if ground == null:
+		return
+	var extent: float = 1600.0
+	ground.centered = true
+	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	ground.region_enabled = true
+	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
+		ground.texture = load(terrain.get_sprite_path())
 
 
 ## Lays the non-hall buildings evenly around the ring. Their order comes from

@@ -4,9 +4,11 @@
 
 [resource]
 script = ExtResource("1_71r8l")
-cooldown = 10.0
-damage = 35.0
-effect_radius = 220.0
+kind = 4
+cooldown = 11.0
+damage = 34.0
+effect_radius = 260.0
+knockback = 520.0
 id = "tremor"
 display_name = "Tremor"
 description = "The ground throws them back."

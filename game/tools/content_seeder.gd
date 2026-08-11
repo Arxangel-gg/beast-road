@@ -289,26 +289,31 @@ func _seed_relics() -> void:
 
 ## The eight hero spells (GDD §11), flavoured as scavenging incantations.
 func _seed_spells() -> void:
+	const K := SpellData.Kind
 	var rows: Array = [
-		["rift_step", "Rift Step", 7.0, 0.0, 0.0, 0.0, 420.0, 0.0, false, "Step through a tear in the air."],
-		["cinder_nova", "Cinder Nova", 9.0, 55.0, 190.0, 0.0, 0.0, 0.0, false, "A burst of ash and ember."],
-		["bulwark_ward", "Bulwark Ward", 14.0, 0.0, 240.0, 6.0, 0.0, 0.0, false, "Shield one lane for a while."],
-		["marrow_drain", "Marrow Drain", 8.0, 40.0, 110.0, 0.0, 0.0, 0.45, false, "Take back what it took."],
-		["chain_hook", "Chain Hook", 6.0, 20.0, 0.0, 0.0, 360.0, 0.0, false, "Drag them to you."],
-		["ash_veil", "Ash Veil", 16.0, 0.0, 0.0, 3.0, 0.0, 0.0, false, "Unseen and quick."],
-		["tremor", "Tremor", 10.0, 35.0, 220.0, 0.0, 0.0, 0.0, false, "The ground throws them back."],
-		["beasts_breath", "Beast's Breath", 18.0, 90.0, 320.0, 2.5, 0.0, 0.0, true, "Channel what the beast exhales."],
+		["rift_step", "Rift Step", K.BLINK, 7.0, 0.0, 0.0, 0.0, 420.0, 0.0, 0.0, "Step through a tear in the air."],
+		["cinder_nova", "Cinder Nova", K.NOVA, 9.0, 55.0, 210.0, 0.0, 0.0, 0.0, 140.0, "A burst of ash and ember."],
+		["bulwark_ward", "Bulwark Ward", K.WARD, 16.0, 0.0, 240.0, 8.0, 0.0, 0.0, 0.0, "Shield the lane you stand in."],
+		["marrow_drain", "Marrow Drain", K.DRAIN, 8.0, 46.0, 140.0, 0.0, 0.0, 0.5, 60.0, "Take back what it took."],
+		["chain_hook", "Chain Hook", K.HOOK, 6.0, 18.0, 0.0, 0.0, 420.0, 0.0, 900.0, "Drag them to you."],
+		["ash_veil", "Ash Veil", K.VEIL, 18.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, "Unseen, and quick with it."],
+		["tremor", "Tremor", K.SHOCKWAVE, 11.0, 34.0, 260.0, 0.0, 0.0, 0.0, 520.0, "The ground throws them back."],
+		["beasts_breath", "Beast's Breath", K.BEAM, 20.0, 120.0, 340.0, 2.5, 0.0, 0.0, 0.0, "Channel what the beast exhales."],
 	]
 	for row: Array in rows:
 		var sp := SpellData.new()
 		sp.id = row[0]
 		sp.display_name = row[1]
-		sp.cooldown = row[2]
-		sp.damage = row[3]
-		sp.effect_radius = row[4]
-		sp.duration = row[5]
-		sp.cast_range = row[6]
-		sp.lifesteal = row[7]
-		sp.is_channelled = row[8]
-		sp.description = row[9]
+		sp.kind = row[2]
+		sp.cooldown = row[3]
+		sp.damage = row[4]
+		sp.effect_radius = row[5]
+		sp.duration = row[6]
+		sp.cast_range = row[7]
+		sp.lifesteal = row[8]
+		sp.knockback = row[9]
+		sp.description = row[10]
+		sp.is_channelled = sp.kind == SpellData.Kind.BEAM
+		if sp.kind == SpellData.Kind.VEIL:
+			sp.speed_bonus = 0.45
 		_write(sp, "res://data/spells/%s.tres" % sp.id)

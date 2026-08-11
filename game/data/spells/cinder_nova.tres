@@ -6,7 +6,8 @@
 script = ExtResource("1_mvvgn")
 cooldown = 9.0
 damage = 55.0
-effect_radius = 190.0
+effect_radius = 210.0
+knockback = 140.0
 id = "cinder_nova"
 display_name = "Cinder Nova"
 description = "A burst of ash and ember."

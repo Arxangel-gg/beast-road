@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_3cw60")
 element = 3
-damage = 13.0
+damage = 17.0
 attack_interval = 0.9
 extra_targets = 3
 id = "arc_coil"

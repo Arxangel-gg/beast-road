@@ -16,11 +16,20 @@ const GROUP: StringName = &"hero"
 @export var attack: HeroAttack
 @export var sprite: Sprite2D
 @export var health_bar: HealthBar
+@export var spells: SpellCaster
 
 ## How far from the origin the hero may roam. Differs per scope — the
 ## battlefield lane ring and the raid arena are not the same size — so the
 ## scene that owns the hero sets it. 0 falls back to the Balance default.
 @export var bounds_radius: float = 0.0
+
+## The scope the hero is standing in. Set by that scope on entry — the hero
+## never goes looking up the tree for the thing it happens to be parented to.
+var field: EnemyField = null:
+	set(value):
+		field = value
+		if spells != null:
+			spells.field = value
 
 var _aim: Vector2 = Vector2.RIGHT
 
@@ -34,25 +43,26 @@ var _lunge_decay: float = 0.0
 var _respawn_left: float = 0.0
 var _flash_left: float = 0.0
 
+## Ash Veil's movement bonus while it lasts.
+var _veil_speed_bonus: float = 0.0
+var _veil_left: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group(GROUP)
-
-	# Balance owns the number, not the scene file, so a designer changes it in
-	# one place. revive() resyncs current HP, which Health already set from the
-	# scene's default during its own _ready.
-	health.max_hp = Balance.HERO_MAX_HP
-	health.revive()
-	# Health carries across scopes: the hero who walks into a raid is the one
-	# who walked out of the last wave.
-	if RunState.hero_hp >= 0.0:
-		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	health_bar.bind(health)
+
+	spells.field = field
+	spells.blink_requested.connect(_on_blink)
+	spells.veil_requested.connect(_on_veil)
+	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))
+
+	_apply_permanent_bonuses()
 
 
 func _physics_process(delta: float) -> void:
@@ -68,14 +78,21 @@ func _physics_process(delta: float) -> void:
 		attack.request()
 	if Input.is_action_just_pressed(&"dash"):
 		_try_dash()
+	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		if Input.is_action_just_pressed(&"spell_%d" % (slot + 1)):
+			spells.try_cast(slot, _aim, global_position)
 
+	attack.damage_multiplier = damage_multiplier()
 	attack.tick(delta, _aim, global_position)
+	spells.tick(delta, _aim, global_position)
 
 	var move_input: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 	if _dash_left > 0.0:
 		velocity = _dash_direction * (Balance.HERO_DASH_DISTANCE / Balance.HERO_DASH_DURATION)
+	elif spells.is_channelling():
+		velocity = Vector2.ZERO
 	else:
-		velocity = move_input * Balance.HERO_MOVE_SPEED * attack.move_scale()
+		velocity = move_input * move_speed() * attack.move_scale()
 	velocity += _lunge_velocity
 
 	move_and_slide()
@@ -99,6 +116,48 @@ func contact_radius() -> float:
 	return Balance.HERO_BODY_RADIUS
 
 
+## Base speed after the Sanctum, relics and an active Ash Veil.
+func move_speed() -> float:
+	var sanctum: BuildingData = ContentDB.building("sanctum")
+	var bonus: float = 0.0
+	if sanctum != null:
+		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
+	bonus += Modifiers.value(Modifiers.HERO_SPEED)
+	bonus += _veil_speed_bonus
+	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
+
+
+## Damage multiplier the attack chain applies to every swing.
+func damage_multiplier() -> float:
+	return Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+
+
+## Max HP after the Sanctum, relics and boss ascensions.
+func _apply_permanent_bonuses() -> void:
+	var sanctum: BuildingData = ContentDB.building("sanctum")
+	var bonus: float = 0.0
+	if sanctum != null:
+		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
+	var ascension: float = float(RunState.hero_ascension) * Balance.ASCENSION_STAT_BONUS
+	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) * (1.0 + bonus + ascension)
+	if RunState.hero_hp >= 0.0:
+		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
+	else:
+		health.current_hp = health.max_hp
+	health.changed.emit(health.current_hp, health.max_hp)
+
+
+func _on_blink(to: Vector2) -> void:
+	global_position = to.limit_length(bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
+	health.add_invulnerability(Balance.BLINK_IFRAMES)
+
+
+func _on_veil(duration: float, speed_bonus: float) -> void:
+	health.add_invulnerability(duration)
+	_veil_speed_bonus = speed_bonus
+	_veil_left = duration
+
+
 ## 0..1, for a cooldown readout in a later stage.
 func dash_cooldown_ratio() -> float:
 	if Balance.HERO_DASH_COOLDOWN <= 0.0:
@@ -115,6 +174,10 @@ func _tick_timers(delta: float) -> void:
 	_dash_left = maxf(_dash_left - delta, 0.0)
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
+	if _veil_left > 0.0:
+		_veil_left = maxf(_veil_left - delta, 0.0)
+		if _veil_left <= 0.0:
+			_veil_speed_bonus = 0.0
 	if _lunge_velocity != Vector2.ZERO:
 		_lunge_velocity = _lunge_velocity.move_toward(Vector2.ZERO, _lunge_decay * delta)
 
@@ -172,6 +235,7 @@ func _tick_respawn(delta: float) -> void:
 		return
 	global_position = Vector2.ZERO
 	health.revive()
+	_apply_permanent_bonuses()
 	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
 	sprite.visible = true
 	sprite.modulate = Color.WHITE

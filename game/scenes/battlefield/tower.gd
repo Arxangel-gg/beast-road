@@ -56,6 +56,9 @@ func refresh_modifiers() -> void:
 	if RunState.lane_has_element_synergy(lane) and not data.is_combination:
 		_damage_bonus += Balance.SAME_ELEMENT_LANE_BONUS
 
+	_damage_bonus += Modifiers.value(Modifiers.TOWER_DAMAGE)
+	_extra_chain_targets += int(Modifiers.value(Modifiers.CHAIN_TARGETS))
+
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null:
 		if terrain.favoured_element == data.element:
@@ -98,7 +101,7 @@ func show_range(visible_now: bool) -> void:
 ## lane "ahead" is; the battlefield sorts that for AoE.
 func _acquire_targets() -> Array[Enemy]:
 	var found: Array[Enemy] = []
-	var reach: float = data.attack_range
+	var reach: float = data.attack_range * Modifiers.multiplier(Modifiers.TOWER_RANGE)
 	var candidates: Array[Enemy] = _field.enemies_near(global_position, reach)
 	if candidates.is_empty():
 		return found
@@ -136,11 +139,13 @@ func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		enemy.take_damage(effective_damage(), global_position, data.knockback)
+		enemy.take_damage(effective_damage(), global_position,
+			data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	if data.slow_factor < 1.0:
-		enemy.apply_slow(data.slow_factor, data.slow_duration)
+		# A stronger slow is a *lower* factor, so the relic subtracts.
+		enemy.apply_slow(maxf(data.slow_factor - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1), data.slow_duration)
 	if data.burn_dps > 0.0:
-		enemy.apply_burn(data.burn_dps, data.burn_duration)
+		enemy.apply_burn(data.burn_dps * Modifiers.multiplier(Modifiers.BURN_DAMAGE), data.burn_duration)
 	if data.freeze_chance > 0.0 and randf() < data.freeze_chance:
 		enemy.apply_freeze(1.2)
 
@@ -148,9 +153,10 @@ func _hit(enemy: Enemy) -> void:
 func _draw_range_ring() -> void:
 	if range_ring == null:
 		return
+	var reach: float = data.attack_range * Modifiers.multiplier(Modifiers.TOWER_RANGE)
 	var points: PackedVector2Array = []
 	for i: int in 49:
-		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * data.attack_range)
+		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * reach)
 	range_ring.points = points
 	range_ring.width = 2.0
 	range_ring.default_color = Color(TowerData.element_colour(data.element), 0.35)

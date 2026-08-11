@@ -14,10 +14,12 @@ extends Node
 @export var raid: RaidArena
 @export var journey: Journey
 @export var war_horn: WarHorn
+@export var boss_director: BossDirector
 @export var hud: HUD
 @export var crossroad_ui: CrossroadScreen
 @export var results_ui: ResultsScreen
 @export var pause_ui: PauseMenu
+@export var town_panel: TownPanel
 
 var _scope: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
 
@@ -33,15 +35,19 @@ func _ready() -> void:
 	beast.visible = false
 
 	EventBus.crossroad_reached.connect(_on_crossroad_reached)
+	EventBus.act_boss_due.connect(_on_act_boss_due)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.raid_ended.connect(_on_raid_ended)
 	EventBus.run_ended.connect(_on_run_ended)
 
 	crossroad_ui.road_chosen.connect(_on_road_chosen)
+	town.plot_selected.connect(town_panel.open)
 	hud.scope_requested.connect(switch_scope)
 	hud.horn_requested.connect(_on_horn_requested)
 	hud.raid_requested.connect(_on_raid_requested)
 	hud.extract_requested.connect(_on_extract_requested)
 
+	boss_director.battlefield = battlefield
 	journey.start()
 	EventBus.run_started.emit()
 	switch_scope(GameDirector.Scope.BATTLEFIELD)
@@ -79,6 +85,8 @@ func switch_scope(scope: GameDirector.Scope) -> void:
 
 	# The battlefield keeps running while you are in the town or on the beast.
 	# That is deliberate: leaving the fight to manage something has to cost.
+	if scope != GameDirector.Scope.TOWN:
+		town_panel.close()
 	if scope == GameDirector.Scope.TOWN:
 		town.refresh()
 		town.activate()
@@ -146,6 +154,23 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 	var relic_id: String = String(reward.get("relic_id", ""))
 	if not relic_id.is_empty():
 		RunState.held_relics.append(relic_id)
+
+
+# --- Act bosses -------------------------------------------------------------
+
+## The battlefield keeps running: the boss arrives *into* the fight, it does not
+## replace it.
+func _on_act_boss_due(act: int) -> void:
+	boss_director.summon(act)
+
+
+func _on_boss_defeated(_boss_id: String, act: int) -> void:
+	if act >= Balance.ACT_COUNT:
+		GameDirector.end_run(true)
+		return
+	journey.resume_after_boss()
+	# A new act means new ground underfoot.
+	battlefield.refresh_terrain()
 
 
 # --- Crossroads -------------------------------------------------------------

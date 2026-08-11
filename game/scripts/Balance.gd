@@ -396,17 +396,17 @@ const TOWER_PROJECTILE_SPEED: float = 620.0
 # ------------------------------------------------------------------------------
 
 ## Seconds between waves at the start of a segment. [TUNE]
-const WAVE_INTERVAL: float = 26.0
+const WAVE_INTERVAL: float = 30.0
 
 ## Seconds between spawns inside one wave. [TUNE]
 const WAVE_SPAWN_SPACING: float = 0.75
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
 const WAVE_BASE_COUNT: int = 5
-const WAVE_COUNT_GROWTH: float = 1.6
+const WAVE_COUNT_GROWTH: float = 1.15
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_STAT_GROWTH: float = 0.09
+const WAVE_STAT_GROWTH: float = 0.065
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
@@ -444,14 +444,14 @@ const ENEMY_HERO_AGGRO_RANGE: float = 210.0
 # Town — GDD §5
 # ------------------------------------------------------------------------------
 
-const TOWN_MAX_HP: float = 1000.0
+const TOWN_MAX_HP: float = 1400.0
 
 ## Damage an enemy deals to the town when it arrives, per point of its own
 ## contact damage. [TUNE]
-const TOWN_DAMAGE_SCALE: float = 2.0
+const TOWN_DAMAGE_SCALE: float = 1.5
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.35
+const RESOURCE_PER_DISTANCE: float = 0.55
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -463,14 +463,14 @@ const CAPTIVE_WORK_BONUS: float = 0.22
 const CAPTIVES_PER_BUILDING: int = 2
 
 ## Resources granted at the start of a run. [TUNE]
-const STARTING_RESOURCES: int = 220
+const STARTING_RESOURCES: int = 300
 
 # ------------------------------------------------------------------------------
 # War horn, raid meter and the raid — GDD §6
 # ------------------------------------------------------------------------------
 
 ## Raid meter gained per kill, and the multiplier while the horn is blowing.
-const RAID_CHARGE_PER_KILL: float = 0.012
+const RAID_CHARGE_PER_KILL: float = 0.02
 const RAID_CHARGE_HORN_MULTIPLIER: float = 3.0
 
 ## How long enemies stay weakened after the meter fills. [TUNE]
@@ -515,3 +515,23 @@ const SCOPE_FADE_TIME: float = 0.22
 ## a clean segment. [TUNE]
 const BEAST_SPEED_LOSS_PER_DAMAGE: float = 0.0006
 const BEAST_SPEED_RECOVERY_PER_SEC: float = 0.010
+
+# ------------------------------------------------------------------------------
+# Spells and ascension — GDD §9, §11
+# ------------------------------------------------------------------------------
+
+## Grace granted by a Rift Step, so blinking through a wind-up works. [TUNE]
+const BLINK_IFRAMES: float = 0.25
+
+## Stat multiplier added per boss ascension. Acts 1 and 2 also grant a spell
+## slot; act 3's boss ends the run. [TUNE]
+const ASCENSION_STAT_BONUS: float = 0.18
+
+## Spells the hero starts a run with, drawn from the unlocked pool.
+const STARTING_SPELLS: int = 2
+
+## Damage a warded lane absorbs before the ward pops. [TUNE]
+const WARD_ABSORB: float = 260.0
+
+## Resources paid out by an act boss, on top of the reward package. [TUNE]
+const BOSS_RESOURCE_REWARD: int = 400

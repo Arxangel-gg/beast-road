@@ -70,7 +70,7 @@ func consume_charge() -> void:
 func _on_enemy_died(_id: String, _at: Vector2) -> void:
 	if RunState.raid_charge >= 1.0:
 		return
-	var gain: float = Balance.RAID_CHARGE_PER_KILL
+	var gain: float = Balance.RAID_CHARGE_PER_KILL * Modifiers.multiplier(Modifiers.RAID_CHARGE)
 	if RunState.horn_active:
 		gain *= Balance.RAID_CHARGE_HORN_MULTIPLIER
 	RunState.raid_charge = clampf(RunState.raid_charge + gain, 0.0, 1.0)

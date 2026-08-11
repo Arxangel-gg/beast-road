@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_fs4e2")
 element = 2
-damage = 3.0
+damage = 5.0
 attack_interval = 1.2
 taunts = true
 max_hp = 900.0
