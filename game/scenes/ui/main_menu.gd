@@ -13,6 +13,7 @@ extends Control
 
 
 func _ready() -> void:
+	MusicPlayer.play("steppe_bone_march")
 	new_run_button.pressed.connect(GameDirector.start_run)
 	quit_button.pressed.connect(GameDirector.quit_game)
 	settings_button.pressed.connect(func() -> void: settings_panel.visible = not settings_panel.visible)

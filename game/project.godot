@@ -24,6 +24,7 @@ MetaState="*res://autoload/MetaState.gd"
 RunState="*res://autoload/RunState.gd"
 Modifiers="*res://autoload/Modifiers.gd"
 GameDirector="*res://autoload/GameDirector.gd"
+MusicPlayer="*res://autoload/MusicPlayer.gd"
 
 [display]
 

@@ -29,6 +29,13 @@
 Godot_v*-stable_win64.exe/
 
 # ------------------------------------------------------------------------------
+# Art staging. Drop generated PNGs here and run tools\import_art.ps1; the
+# importer files them into game/art/, which IS committed. The inbox itself is
+# scratch space and would otherwise double the repo size with source images.
+# ------------------------------------------------------------------------------
+art_inbox/
+
+# ------------------------------------------------------------------------------
 # Builds and exports
 # ------------------------------------------------------------------------------
 build/

@@ -16,8 +16,9 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- generate --force
 ##   godot --headless --path game --script res://tools/run_tool.gd -- report
 ##   godot --headless --path game --script res://tools/run_tool.gd -- seed
+##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | font-check>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check>"
 
 
 func _init() -> void:
@@ -34,6 +35,8 @@ func _init() -> void:
 			_report()
 		"seed":
 			_seed()
+		"import":
+			_import(args.has("--dry"))
 		"font-check":
 			_font_check()
 		_:
@@ -68,6 +71,13 @@ func _seed() -> void:
 	for e: String in seeder.errors:
 		print("  ERROR: ", e)
 	quit(1 if int(result["errors"]) > 0 else 0)
+
+
+func _import(dry: bool) -> void:
+	var importer := ArtImporter.new()
+	var result: Dictionary = importer.import_all(dry)
+	print(importer.report())
+	quit(1 if int(result["problems"]) > 0 else 0)
 
 
 func _font_check() -> void:
