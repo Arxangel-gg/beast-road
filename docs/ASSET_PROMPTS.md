@@ -55,17 +55,25 @@ Paste the whole block, including the SUBJECT line. Every one of these needs a re
 `128 x 128`  ->  `res://art/hero/hero_base.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a lone armored scavenger-warrior in a mid-stride combat stance, curved single-edged blade held low, tattered dark cloak, bone-white featureless mask, lean wiry silhouette, scavenged plate over wrapped cloth
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a lone armored scavenger-warrior, curved single-edged blade held low at one side, tattered dark cloak, bone-white featureless mask, lean wiry build, scavenged plate over wrapped cloth
 ```
 
 ### `hero_ascended_1.png`
@@ -73,15 +81,23 @@ SUBJECT: a lone armored scavenger-warrior in a mid-stride combat stance, curved 
 `128 x 128`  ->  `res://art/hero/hero_ascended_1.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same armored scavenger-warrior, now transformed - the mask cracked open with amber light bleeding through, the cloak longer and torn, one arm sheathed in fused bone plating, the blade glowing faintly at its edge
 ```
@@ -91,15 +107,23 @@ SUBJECT: the same armored scavenger-warrior, now transformed - the mask cracked 
 `128 x 128`  ->  `res://art/hero/hero_ascended_2.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same warrior in final transformation - towering and monstrous, the mask fully shattered into a crown of bone shards, amber light pouring from every seam, cloak become a mass of trailing ribbons, the blade elongated and burning
 ```
@@ -111,17 +135,25 @@ SUBJECT: the same warrior in final transformation - towering and monstrous, the 
 `96 x 96`  ->  `res://art/enemies/enemy_bogkin.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead reeds hanging from its limbs, dim pale eyes, slow lumbering posture, dripping black water
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead reeds hanging from its limbs, dim pale eyes, heavy rounded shoulders, dripping black water
 ```
 
 ### `enemy_glassborn.png`
@@ -129,17 +161,25 @@ SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dea
 `96 x 96`  ->  `res://art/enemies/enemy_glassborn.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp limbs, semi-translucent body catching light, agile forward-leaning stance, hairline fractures across its chest
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp limbs, semi-translucent body catching light, hairline fractures across its shoulders
 ```
 
 ### `enemy_steppehorde.png`
@@ -147,17 +187,25 @@ SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp 
 `96 x 96`  ->  `res://art/enemies/enemy_steppehorde.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spear, wiry underfed frame, cloth-wrapped face, aggressive charging pose
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spear held upright, wiry underfed frame, cloth-wrapped head
 ```
 
 ### `elite_warden.png`
@@ -165,15 +213,23 @@ SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spea
 `128 x 128`  ->  `res://art/enemies/elite_warden.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a heavily armored bulwark warrior hunched behind an enormous riveted iron shield taller than itself, dense immovable silhouette, minimal visible body
 ```
@@ -183,17 +239,25 @@ SUBJECT: a heavily armored bulwark warrior hunched behind an enormous riveted ir
 `128 x 128`  ->  `res://art/enemies/elite_howler.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, arms flung outward, throat distended
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, throat distended
 ```
 
 ### `elite_burrower.png`
@@ -201,17 +265,25 @@ SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its 
 `128 x 128`  ->  `res://art/enemies/elite_burrower.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
 
-SUBJECT: a segmented armored digging creature erupting from broken ground, heavy clawed forelimbs, eyeless armored head plate, chitinous body half-emerged
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a segmented armored digging creature erupting from broken ground, heavy clawed forelimbs, eyeless armored head plate, broad chitinous back
 ```
 
 ## 5.3 Bosses — `res://art/bosses/`
@@ -221,15 +293,23 @@ SUBJECT: a segmented armored digging creature erupting from broken ground, heavy
 `384 x 384`  ->  `res://art/bosses/boss_drowned_choir.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 384 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a towering mass of fused drowned bodies forming a single cathedral-like figure, dozens of open singing mouths across its surface, black water pouring continuously from its frame, tattered ceremonial cloth, immense and vertical
 ```
@@ -239,15 +319,23 @@ SUBJECT: a towering mass of fused drowned bodies forming a single cathedral-like
 `384 x 384`  ->  `res://art/bosses/boss_mirrorfang.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 384 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an enormous predatory quadruped beast built from mirrored salt glass, overlapping reflective shard plating, long fanged skull, refracted amber light scattering off its flanks
 ```
@@ -257,15 +345,23 @@ SUBJECT: an enormous predatory quadruped beast built from mirrored salt glass, o
 `384 x 384`  ->  `res://art/bosses/boss_rust_crown.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 384 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a colossal armored warlord fused to a throne of corroded iron, a crown of jagged rusted spires grown into its skull, chains and torn banners hanging from its shoulders, monumental scale
 ```
@@ -1823,15 +1919,23 @@ SUBJECT: a compact fortified keep of tiered stone with a banner mast, heavy gate
 `256 x 256`  ->  `res://art/raid/chieftain_ashfen.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, draped in waterlogged hides, carrying a heavy bone maul, black water streaming from its bulk
 ```
@@ -1841,15 +1945,23 @@ SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, drape
 `256 x 256`  ->  `res://art/raid/chieftain_saltglass.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored faceless head, jagged blade-limbs, refracting amber light
 ```
@@ -1859,15 +1971,23 @@ SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored facel
 `256 x 256`  ->  `res://art/raid/chieftain_steppe.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a broad iron-plated nomad warlord in a horned rusted helm, layered scavenged armour, twin curved cleavers, torn clan banners on its back
 ```
@@ -1877,15 +1997,23 @@ SUBJECT: a broad iron-plated nomad warlord in a horned rusted helm, layered scav
 `128 x 128`  ->  `res://art/raid/captive_bogkin.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated hunched swamp-dweller creature kneeling with its head bowed, heavy iron shackles on its wrists, moss and dead reeds hanging from its limbs
 ```
@@ -1895,15 +2023,23 @@ SUBJECT: a defeated hunched swamp-dweller creature kneeling with its head bowed,
 `128 x 128`  ->  `res://art/raid/captive_glassborn.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed, heavy iron shackles on its cracked wrists, dulled fractured body
 ```
@@ -1913,15 +2049,23 @@ SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed
 `128 x 128`  ->  `res://art/raid/captive_steppehorde.png`
 
 ```text
-A 2D game sprite for a top-down action game, drawn to be seen small.
+An isometric game character sprite, in the style of a top-down isometric action RPG.
 
-CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
 
-SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
 
-STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
 
-FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
+
+POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
+
+SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
+
+STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated nomad raider kneeling with its head bowed, heavy iron shackles on its wrists, stripped armour and torn cloth wrappings
 ```

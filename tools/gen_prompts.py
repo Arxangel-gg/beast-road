@@ -28,19 +28,25 @@ _ALPHA = ("Fully transparent background - no ground, no cast shadow, no frame, n
     "border. Export as PNG with a true alpha channel.")
 
 CHARACTER_STEM = (
-    "A 2D game sprite for a top-down action game, drawn to be seen small.\n\n"
-    "CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The "
-    "top of the head and the tops of the shoulders are clearly visible and the body is "
-    "foreshortened, as if you are standing above it and slightly in front. This is NOT a "
-    "character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. "
-    "Do not show the face straight on.\n\n"
-    "SIZE: this will be displayed about {display}px tall in game. Use bold chunky shapes and a "
-    "strong readable silhouette. Leave out any detail that would vanish at that size - no fine "
-    "straps, no tiny buckles, no rendered fabric weave, no photoreal texture.\n\n"
-    "STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no "
-    "realistic rendering, no glossy highlights. " + _PALETTE + "\n\n"
-    "FRAMING: single subject, centred, filling most of the frame with a small even margin. "
-    "Square 1:1. " + _ALPHA + "\n\n"
+    "An isometric game character sprite, in the style of a top-down isometric action RPG.\n\n"
+    "VIEW - describe by what is visible, not by an angle. Degree instructions do not work on "
+    "these models; a list of what the camera can and cannot see does:\n\n"
+    "  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, "
+    "the tops of the feet.\n\n"
+    "  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles "
+    "of the feet.\n\n"
+    "  - The head overlaps the chest because you are looking down onto it. The legs are short and "
+    "foreshortened. The figure looks slightly squashed vertically, and that is correct.\n\n"
+    "POSE: standing upright and compact, weight settled, facing away from the viewer and slightly "
+    "down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across "
+    "the frame, NOT a dramatic action pose.\n\n"
+    "SIZE: displayed at about {display} pixels in game - roughly a thumbnail. Build it from large "
+    "flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no "
+    "rendered texture. If a detail would be under two pixels, leave it out.\n\n"
+    "STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic "
+    "rendering, no gloss. " + _PALETTE + "\n\n"
+    "FRAMING: one figure, centred, standing vertically and filling most of the square with a "
+    "small even margin. Square 1:1. " + _ALPHA + "\n\n"
     "SUBJECT: "
 )
 
@@ -96,9 +102,9 @@ MJ_TILE = (
 
 S = {}
 
-S["hero_base.png"] = ("a lone armored scavenger-warrior in a mid-stride combat stance, curved "
-    "single-edged blade held low, tattered dark cloak, bone-white featureless mask, lean wiry "
-    "silhouette, scavenged plate over wrapped cloth")
+S["hero_base.png"] = ("a lone armored scavenger-warrior, curved single-edged blade held low at one "
+    "side, tattered dark cloak, bone-white featureless mask, lean wiry build, scavenged plate "
+    "over wrapped cloth")
 S["hero_ascended_1.png"] = ("the same armored scavenger-warrior, now transformed - the mask "
     "cracked open with amber light bleeding through, the cloak longer and torn, one arm sheathed "
     "in fused bone plating, the blade glowing faintly at its edge")
@@ -107,18 +113,17 @@ S["hero_ascended_2.png"] = ("the same warrior in final transformation - towering
     "cloak become a mass of trailing ribbons, the blade elongated and burning")
 
 S["enemy_bogkin.png"] = ("a hunched swamp-dweller creature, waterlogged and bloated, moss and "
-    "dead reeds hanging from its limbs, dim pale eyes, slow lumbering posture, dripping black water")
+    "dead reeds hanging from its limbs, dim pale eyes, heavy rounded shoulders, dripping black water")
 S["enemy_glassborn.png"] = ("a jagged crystalline humanoid made of fractured salt glass, thin "
-    "sharp limbs, semi-translucent body catching light, agile forward-leaning stance, hairline "
-    "fractures across its chest")
+    "sharp limbs, semi-translucent body catching light, hairline fractures across its shoulders")
 S["enemy_steppehorde.png"] = ("a scrappy nomad raider in scavenged rusted iron plates, crude iron "
-    "spear, wiry underfed frame, cloth-wrapped face, aggressive charging pose")
+    "spear held upright, wiry underfed frame, cloth-wrapped head")
 S["elite_warden.png"] = ("a heavily armored bulwark warrior hunched behind an enormous riveted "
     "iron shield taller than itself, dense immovable silhouette, minimal visible body")
 S["elite_howler.png"] = ("a gaunt ritual-caller with an oversized curved bone horn raised to its "
-    "mouth, ragged banner strapped to its back, arms flung outward, throat distended")
+    "mouth, ragged banner strapped to its back, throat distended")
 S["elite_burrower.png"] = ("a segmented armored digging creature erupting from broken ground, "
-    "heavy clawed forelimbs, eyeless armored head plate, chitinous body half-emerged")
+    "heavy clawed forelimbs, eyeless armored head plate, broad chitinous back")
 
 S["boss_drowned_choir.png"] = ("a towering mass of fused drowned bodies forming a single "
     "cathedral-like figure, dozens of open singing mouths across its surface, black water pouring "
