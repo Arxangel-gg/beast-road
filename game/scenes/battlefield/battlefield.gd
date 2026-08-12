@@ -43,6 +43,13 @@ var _pressure_timer: float = 0.0
 
 const PRESSURE_INTERVAL: float = 0.2
 
+## Draw layers. Compared before y position, so the floor can never be sorted
+## above a unit and a unit can never sink beneath the floor.
+const Z_GROUND: int = -40
+const Z_LANES: int = -30
+const Z_SORTED: int = 0
+const Z_CLOUDS: int = 30
+
 ## Road art, tiled along each cardinal lane only.
 const LANE_TEXTURE: String = "res://art/battlefield/lane_path.png"
 
@@ -102,17 +109,48 @@ func is_suspended() -> bool:
 	return _suspended
 
 
-## Towers and units lived in separate parents, so nothing sorted between them
-## and the hero drew on top of a tower even when standing behind it. Y-sorting
-## has to be on every node in the chain, or the groups sort internally and then
-## stack by tree order.
+## Draw order.
+##
+## The previous version enabled y-sorting on the battlefield root, which made the
+## *ground* a sorting participant. The ground sits at y=0 and covers everything,
+## so any unit above the origin sorted behind it and disappeared underneath. That
+## is the bug where the hero vanished walking north.
+##
+## The fix is a layer split. Only things that should sort against each other go
+## in the sorted layer; the floor is pushed below it by z_index and never sorts
+## at all. z_index is compared before y position, so a lower layer can never be
+## overtaken by a unit's position no matter where it stands.
 func _setup_sorting() -> void:
-	y_sort_enabled = true
+	# The root must NOT sort: it holds the floor.
+	y_sort_enabled = false
+
+	if ground != null:
+		ground.y_sort_enabled = false
+		ground.z_index = Z_GROUND
+	if lane_root != null:
+		lane_root.y_sort_enabled = false
+		lane_root.z_index = Z_LANES
+
+	# Towers, units and ground effects share one sorted parent so they interleave
+	# by depth. Separate parents cannot sort against each other: each group sorts
+	# internally, then the groups stack by tree order.
+	var sorted := Node2D.new()
+	sorted.name = "Sorted"
+	sorted.y_sort_enabled = true
+	sorted.z_index = Z_SORTED
+	add_child(sorted)
+
 	for node: Node2D in [slot_root, entity_root, effect_root]:
-		if node != null:
-			node.y_sort_enabled = true
-			# Same z_index, or z beats y-sorting regardless of position.
-			node.z_index = 0
+		if node == null:
+			continue
+		var previous: Node = node.get_parent()
+		if previous != null:
+			previous.remove_child(node)
+		sorted.add_child(node)
+		# Children of a y-sorted node must themselves sort, and must share a
+		# z_index, or z wins and the sorting is decorative.
+		node.y_sort_enabled = true
+		node.z_index = 0
 
 
 ## A CanvasModulate tints everything under it, which is what turns the day/night
@@ -124,6 +162,13 @@ func _setup_lighting() -> void:
 	DayNight.phase_changed.connect(
 		func(_p: float, tint: Color, _d: float) -> void: modulate_node.color = tint)
 	modulate_node.color = DayNight.tint
+
+	# Above the sorted layer so a passing shadow darkens the units standing in it,
+	# not only the ground under them.
+	var clouds := CloudShadows.new()
+	clouds.name = "CloudShadows"
+	clouds.z_index = Z_CLOUDS
+	add_child(clouds)
 
 	if town != null:
 		LightKit.add_light(town, Balance.TOWN_LIGHT_COLOUR,

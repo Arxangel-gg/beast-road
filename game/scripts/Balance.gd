@@ -784,10 +784,32 @@ const PROJECTILE_LIGHT_ENERGY: float = 0.7
 # ------------------------------------------------------------------------------
 
 ## How transparent a tower or building becomes when the hero is behind it. [TUNE]
-const OCCLUDER_ALPHA: float = 0.32
+const OCCLUDER_ALPHA: float = 0.38
 
-## How close the hero must be, in pixels, for a structure to fade.
-const OCCLUDER_RANGE: float = 150.0
+## Tolerance added to a sprite's half-width when deciding whether the hero is
+## actually behind it. The trigger area otherwise comes from the sprite size.
+const OCCLUDER_SIDE_MARGIN: float = 26.0
 
 ## How fast the fade moves, in alpha per second.
 const OCCLUDER_FADE_SPEED: float = 6.0
+
+# ------------------------------------------------------------------------------
+# Cloud shadows
+# ------------------------------------------------------------------------------
+
+## Cloud shadows drift across the field, darkening ground and units alike. Speed
+## is in pixels per second; the two layers move at different rates so the sky has
+## depth rather than sliding as one sheet. [TUNE]
+const CLOUD_SPEED: Vector2 = Vector2(26.0, 9.0)
+const CLOUD_SPEED_FAR: Vector2 = Vector2(11.0, 4.0)
+
+## How dark a shadow gets at full daylight, 0..1. Clouds cast nothing at night,
+## because there is no sun to block. [TUNE]
+const CLOUD_DARKNESS: float = 0.42
+
+## Size of the noise features, in pixels. Larger is fewer, bigger clouds. [TUNE]
+const CLOUD_SCALE: float = 900.0
+const CLOUD_SCALE_FAR: float = 1500.0
+
+## Fraction of the noise range that becomes shadow. Higher is more overcast. [TUNE]
+const CLOUD_COVERAGE: float = 0.46
