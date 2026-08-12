@@ -17,10 +17,10 @@ extends Node
 # ==============================================================================
 
 ## Radius from the city centre to each of the four N/S/E/W tower slots. [TUNE]
-const TOWER_SLOT_RADIUS: float = 250.0
+const TOWER_SLOT_RADIUS: float = 270
 
 ## Radius of the arena edge; enemies spawn on this ring. [TUNE]
-const ENEMY_SPAWN_RADIUS: float = 800.0
+const ENEMY_SPAWN_RADIUS: float = 850
 
 ## Hero base movement speed. The GDD calls this the hero's most valuable stat:
 ## N tower -> S tower is ~2.5s, long enough that the choice costs something. [TUNE]
@@ -28,11 +28,11 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 60.0
+const ENEMY_WALK_SPEED: float = 68
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
-const TOWER_RANGE: float = 220.0
+const TOWER_RANGE: float = 260
 
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
@@ -51,11 +51,11 @@ const SPELLS_OFFERED_ON_LEVEL_UP: int = 3
 # ------------------------------------------------------------------------------
 
 ## How long the horn's pull window lasts.
-const WAR_HORN_DURATION: float = 30.0
+const WAR_HORN_DURATION: float = 25
 
 ## Permanent enemy HP and damage increase applied per horn use, for the rest of
 ## the run. This is the horn's delayed cost. [TUNE]
-const WAR_HORN_ESCALATION_PER_USE: float = 0.08
+const WAR_HORN_ESCALATION_PER_USE: float = 0.1
 
 # ==============================================================================
 # CITY — GDD §3.2
@@ -127,11 +127,11 @@ const TOWER_SLOT_COUNT: int = 4
 # CROSSROADS — GDD §5
 # ==============================================================================
 
-const CROSSROADS_PER_ACT: int = 2
-const CROSSROADS_PER_RUN: int = 6
+const CROSSROADS_PER_ACT: int = 3
+const CROSSROADS_PER_RUN: int = 9
 
 ## Three option types exist; two are shown at each crossroad.
-const CROSSROAD_OPTIONS_SHOWN: int = 2
+const CROSSROAD_OPTIONS_SHOWN: int = 3
 
 # ==============================================================================
 # META-PROGRESSION — GDD §7
@@ -164,8 +164,8 @@ const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 ## decision loop — so it is pulled back far enough to hold the whole ring.
 ## The raid is an open arena with no lanes to read, so it sits closer and the
 ## swing stays legible. [TUNE]
-const CAMERA_ZOOM: float = 0.62
-const CAMERA_ZOOM_BATTLEFIELD: float = 0.62
+const CAMERA_ZOOM: float = 0.72
+const CAMERA_ZOOM_BATTLEFIELD: float = 0.77
 const CAMERA_ZOOM_RAID: float = 0.95
 
 ## Camera lag. Lower is snappier, higher is floatier.
@@ -173,7 +173,7 @@ const CAMERA_SMOOTHING_SPEED: float = 8.0
 
 ## How far the camera leans toward the mouse, as a fraction of the hero-to-mouse
 ## offset. Gives a little lookahead without taking control away.
-const CAMERA_MOUSE_LEAN: float = 0.18
+const CAMERA_MOUSE_LEAN: float = 0.19
 
 # ------------------------------------------------------------------------------
 # Hero — health and movement
@@ -184,7 +184,7 @@ const HERO_MAX_HP: float = 100.0
 ## Movement multiplier while an attack is in its windup/active frames. Not fully
 ## rooted: being able to drift keeps the chain from feeling like a commitment
 ## trap, but the cost has to be legible.
-const HERO_ATTACK_MOVE_SCALE: float = 0.35
+const HERO_ATTACK_MOVE_SCALE: float = 0.38
 
 ## Time from death to respawning at the arena centre.
 const HERO_RESPAWN_DELAY: float = 1.5
@@ -259,12 +259,12 @@ const HERO_ATTACK_HITSTOP: Array[float] = [0.035, 0.04, 0.09]
 # ------------------------------------------------------------------------------
 
 ## Three light hits, or one light hit plus a finisher.
-const ENEMY_MAX_HP: float = 30.0
+const ENEMY_MAX_HP: float = 38
 
-const ENEMY_CONTACT_DAMAGE: float = 8.0
+const ENEMY_CONTACT_DAMAGE: float = 8.5
 
 ## Minimum time between two contact hits from the same enemy.
-const ENEMY_CONTACT_INTERVAL: float = 0.85
+const ENEMY_CONTACT_INTERVAL: float = 0.8
 
 ## Radius of the enemy's body for contact and hurt checks.
 const ENEMY_BODY_RADIUS: float = 22.0
@@ -297,7 +297,7 @@ const SPAWN_INTERVAL_END: float = 0.45
 const SPAWN_RAMP_SECONDS: float = 300.0
 
 ## Hard cap on live enemies, so a bad stretch cannot become unrecoverable.
-const SPAWN_MAX_ALIVE: int = 55
+const SPAWN_MAX_ALIVE: int = 120
 
 ## Enemies never appear closer to the hero than this, even if the hero is
 ## standing on the spawn ring.
@@ -305,7 +305,7 @@ const SPAWN_MIN_DISTANCE_FROM_HERO: float = 420.0
 
 ## Enemies spawned at once when the timer fires, at the start and end of the ramp.
 const SPAWN_BURST_START: int = 1
-const SPAWN_BURST_END: int = 3
+const SPAWN_BURST_END: int = 4
 
 # ------------------------------------------------------------------------------
 # Feedback
@@ -396,24 +396,24 @@ const TOWER_PROJECTILE_SPEED: float = 620.0
 # ------------------------------------------------------------------------------
 
 ## Seconds between waves at the start of a segment. [TUNE]
-const WAVE_INTERVAL: float = 30.0
+const WAVE_INTERVAL: float = 25
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.75
+const WAVE_SPAWN_SPACING: float = 0.65
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
-const WAVE_BASE_COUNT: int = 5
-const WAVE_COUNT_GROWTH: float = 1.15
+const WAVE_BASE_COUNT: int = 8
+const WAVE_COUNT_GROWTH: float = 1.25
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_STAT_GROWTH: float = 0.065
+const WAVE_STAT_GROWTH: float = 0.075
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
 const WAVE_LANES_MAX: int = 4
 
 ## Chance a given wave includes an elite, once elites are unlocked. [TUNE]
-const WAVE_ELITE_CHANCE: float = 0.25
+const WAVE_ELITE_CHANCE: float = 0.275
 
 ## Live enemy cap across the whole battlefield. [TUNE]
 const BATTLEFIELD_MAX_ENEMIES: int = 120
@@ -451,7 +451,7 @@ const TOWN_MAX_HP: float = 1400.0
 const TOWN_DAMAGE_SCALE: float = 1.5
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.55
+const RESOURCE_PER_DISTANCE: float = 0.35
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -463,7 +463,7 @@ const CAPTIVE_WORK_BONUS: float = 0.22
 const CAPTIVES_PER_BUILDING: int = 2
 
 ## Resources granted at the start of a run. [TUNE]
-const STARTING_RESOURCES: int = 300
+const STARTING_RESOURCES: int = 260
 
 # ------------------------------------------------------------------------------
 # War horn, raid meter and the raid — GDD §6
@@ -474,10 +474,10 @@ const RAID_CHARGE_PER_KILL: float = 0.02
 const RAID_CHARGE_HORN_MULTIPLIER: float = 3.0
 
 ## How long enemies stay weakened after the meter fills. [TUNE]
-const WEAKENED_DURATION: float = 20.0
+const WEAKENED_DURATION: float = 10
 
 ## Stat multiplier applied to weakened enemies. [TUNE]
-const WEAKENED_STAT_SCALE: float = 0.55
+const WEAKENED_STAT_SCALE: float = 0.60
 
 ## Enemy speed and strength multipliers while the horn is blowing. [TUNE]
 const HORN_ENEMY_SPEED_SCALE: float = 1.45
@@ -534,7 +534,7 @@ const STARTING_SPELLS: int = 2
 const WARD_ABSORB: float = 260.0
 
 ## Resources paid out by an act boss, on top of the reward package. [TUNE]
-const BOSS_RESOURCE_REWARD: int = 400
+const BOSS_RESOURCE_REWARD: int = 350
 
 ## Source pixel size of a tower sprite. Towers are square like every other
 ## generated asset; the illusion of height comes from the art, not the file.
@@ -563,9 +563,13 @@ const ANIM_STRIDE_PER_PIXEL: float = 0.011
 ## Peak height of the walk bounce, in pixels. [TUNE]
 const ANIM_BOUNCE_HEIGHT: float = 5.0
 
+## Sway speed as a fraction of the stride rate. 0.5 is one lean per two steps,
+## 1.0 is one per step. Just under 1 keeps it lively without twitching. [TUNE]
+const ANIM_TILT_RATE: float = 1
+
 ## Degrees of body sway at full speed. Runs at half stride rate, so the lean
 ## alternates once per two steps. [TUNE]
-const ANIM_WALK_TILT: float = 3.6
+const ANIM_WALK_TILT: float = 3.5
 
 ## Horizontal drift accompanying the sway, in pixels. [TUNE]
 const ANIM_WALK_SWAY: float = 2.2
@@ -678,11 +682,11 @@ const VFX_Z: int = 40
 
 ## Hard cap on live effect nodes. A wave of forty enemies dying at once would
 ## otherwise spawn hundreds of tweens in a frame.
-const VFX_MAX_LIVE: int = 220
+const VFX_MAX_LIVE: int = 350
 
 ## Shards thrown by an impact. [TUNE]
 const VFX_SPARK_LIFE: float = 0.32
-const VFX_SPARK_SPREAD: float = 0.85
+const VFX_SPARK_SPREAD: float = 0.9
 
 ## Floating damage numbers. [TUNE]
 const VFX_NUMBER_SIZE: int = 22
@@ -727,7 +731,7 @@ const MUSIC_DB: float = -8.0
 
 ## Phase a run begins at. 0.18 is mid-morning: bright, so the first minutes are
 ## readable before the game starts taking the light away. [TUNE]
-const DAY_START_PHASE: float = 0.18
+const DAY_START_PHASE: float = 0.19
 
 ## Darkness above which night rules apply.
 const NIGHT_THRESHOLD: float = 0.55

@@ -139,10 +139,10 @@ func _process(delta: float) -> void:
 
 		# The lean runs at half the stride rate, so the body sways once per two
 		# steps instead of twitching on every one.
-		rotation_now += sin(_stride * 0.5) * deg_to_rad(Balance.ANIM_WALK_TILT) * _speed_ratio
+		rotation_now += sin(_stride * Balance.ANIM_TILT_RATE) * deg_to_rad(Balance.ANIM_WALK_TILT) * _speed_ratio
 
 		# Slight horizontal drift with the sway sells weight shifting between feet.
-		offset.x += cos(_stride * 0.5) * Balance.ANIM_WALK_SWAY * _speed_ratio
+		offset.x += cos(_stride * Balance.ANIM_TILT_RATE) * Balance.ANIM_WALK_SWAY * _speed_ratio
 
 	offset += _recoil + _punch
 

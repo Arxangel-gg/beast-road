@@ -80,8 +80,8 @@ const SOUNDS: Dictionary = {
 ## others, and none of it is a design decision.
 const MIX: Dictionary = {
 	# --- constant, high-frequency: widest variation ---
-	"sfx_footstep_dirt":     {"db": -14.0, "pitch": 0.18, "limit": 4, "gap": 0.04},
-	"sfx_footstep_heavy":    {"db": -6.0, "pitch": 0.14, "limit": 3, "gap": 0.06},
+	"sfx_footstep_dirt":     {"db": -21.0, "pitch": 0.18, "limit": 4, "gap": 0.04},
+	"sfx_footstep_heavy":    {"db": -13.0, "pitch": 0.14, "limit": 3, "gap": 0.06},
 	"sfx_hero_swing_1":      {"db": -2.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
 	"sfx_hero_swing_2":      {"db": -2.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
 	"sfx_hero_swing_heavy":  {"db": 0.0,  "pitch": 0.09, "limit": 2, "gap": 0.05},
