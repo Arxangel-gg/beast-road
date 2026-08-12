@@ -50,7 +50,13 @@ var _veil_left: float = 0.0
 
 
 func _ready() -> void:
-	add_to_group(GROUP)
+	# NOT added to the group here. There are two Hero instances - one in the
+	# battlefield, one in the raid - and if both join the group then
+	# get_first_node_in_group("hero") is a coin flip. That ambiguity is what left
+	# the damage vignette stuck red after a raid: the raid hero reported low
+	# health, and on return the battlefield hero never re-emitted, so nothing
+	# corrected it. The active scope claims its hero explicitly.
+	set_active(false)
 
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -111,6 +117,21 @@ func _physics_process(delta: float) -> void:
 
 	animator.set_motion(velocity, move_speed(), delta)
 	_update_sprite(delta)
+
+
+## Called by the scope that owns this hero when it becomes, or stops being, the
+## active one. Claiming the group makes exactly one hero findable at a time.
+func set_active(active: bool) -> void:
+	if active:
+		if not is_in_group(GROUP):
+			add_to_group(GROUP)
+		# Re-announce on becoming active. Every listener that tracks health -
+		# the vignette, the HUD bar - is edge-driven, so a scope change has to
+		# re-assert the current value or they keep showing the other hero's.
+		if health != null:
+			health.changed.emit(health.current_hp, health.max_hp)
+	elif is_in_group(GROUP):
+		remove_from_group(GROUP)
 
 
 func is_alive() -> bool:

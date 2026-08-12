@@ -64,6 +64,7 @@ func begin() -> void:
 	visible = true
 	if hero != null:
 		hero.field = self
+		hero.set_active(true)
 	Vfx.bind_world(effect_root if effect_root != null else self)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.raid_started.emit()
@@ -219,6 +220,8 @@ func _finish(result: Dictionary) -> void:
 	_finished = true
 	_running = false
 	set_process(false)
+	if hero != null:
+		hero.set_active(false)
 	if EventBus.enemy_died.is_connected(_on_enemy_died):
 		EventBus.enemy_died.disconnect(_on_enemy_died)
 

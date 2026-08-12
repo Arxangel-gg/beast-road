@@ -33,6 +33,8 @@ extends EnemyField
 func activate() -> void:
 	if camera != null:
 		camera.make_current()
+	if hero != null:
+		hero.set_active(true)
 
 var _slots: Array[TowerSlot] = []
 var _suspended: bool = false
@@ -93,6 +95,8 @@ func suspend() -> void:
 	if _suspended:
 		return
 	_suspended = true
+	if hero != null:
+		hero.set_active(false)
 	process_mode = Node.PROCESS_MODE_DISABLED
 	visible = false
 
