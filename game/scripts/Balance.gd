@@ -660,7 +660,7 @@ const ANIM_MASS_BOSS: float = 9.0
 ## reads as wallpaper rather than as ground. Stretching each tile over a much
 ## larger area hides the repeat at the cost of some sharpness, which is the
 ## right trade for a floor nobody is meant to look at. [TUNE]
-const GROUND_TILE_WORLD_SIZE: float = 1400.0
+const GROUND_TILE_WORLD_SIZE: float = 900.0
 
 ## Sprite scale for units. The battlefield camera has to hold the whole lane
 ## ring, which leaves the hero about 79 screen pixels at source size - too small
@@ -877,6 +877,14 @@ const TORCH_LIGHT_RADIUS: float = 260.0
 const TORCH_LIGHT_ENERGY: float = 1.0
 const TORCH_FLICKER: float = 0.35
 
+## Embers drifting up from a lit torch, per second. [TUNE]
+const TORCH_EMBER_RATE: float = 3.2
+const TORCH_EMBER_LIFE: float = 1.5
+const TORCH_EMBER_RISE: float = 54.0
+
+## Radius of the soft glow disc drawn behind the flame. [TUNE]
+const TORCH_HALO_RADIUS: float = 26.0
+
 ## How close an enemy must pass to snuff one out. [TUNE]
 const TORCH_SNUFF_RANGE: float = 46.0
 
@@ -900,7 +908,7 @@ const TORCH_DARK_LANE_BIAS: float = 2.2
 # ------------------------------------------------------------------------------
 
 ## Clumps scattered per terrain. [TUNE]
-const FOLIAGE_COUNT: int = 190
+const FOLIAGE_COUNT: int = 460
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15
@@ -908,6 +916,15 @@ const FOLIAGE_LANE_CLEARANCE: float = 1.15
 ## Clear radius around a build spot and around the town. [TUNE]
 const FOLIAGE_SLOT_MARGIN: float = 130.0
 const FOLIAGE_TOWN_MARGIN: float = 180.0
+
+## Fraction of clumps that are low ground cover rather than tall growth. Two
+## layers at different heights read as undergrowth; one layer reads as a field
+## of identical weeds. [TUNE]
+const FOLIAGE_GROUND_RATIO: float = 0.55
+
+## Ground cover is smaller and sways less than the tall layer.
+const FOLIAGE_GROUND_SCALE: float = 0.55
+const FOLIAGE_GROUND_SWAY: float = 0.45
 
 const FOLIAGE_MIN_SCALE: float = 0.7
 const FOLIAGE_MAX_SCALE: float = 1.5
@@ -927,6 +944,10 @@ const PATH_EDGE_FADE: float = 46.0
 
 ## How hard the fringe is broken up, 0..1. [TUNE]
 const PATH_EDGE_NOISE: float = 0.55
+
+## Fraction of each end of a road given over to fading out, so the road
+## dissolves into the distance instead of stopping at a line. [TUNE]
+const PATH_END_FADE: float = 0.14
 
 ## Scale of the fringe noise, in pixels. [TUNE]
 const PATH_NOISE_SCALE: float = 70.0

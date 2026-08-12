@@ -471,6 +471,9 @@ func _build_lanes() -> void:
 		strip.rotation = direction.angle()
 		strip.position = direction * (Balance.TOWN_RADIUS + length * 0.5)
 		strip.modulate = LANE_ROAD_TINT
+		# Noisy fringe, so the road wears into the ground instead of sitting on
+		# it like a sticker with four straight edges.
+		strip.material = PathBlend.material_for(lane, Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5)
 		lane_root.add_child(strip)
 
 		# A soft centre line so the walking path reads even before real art.

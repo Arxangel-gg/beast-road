@@ -64,7 +64,10 @@ func scatter() -> void:
 		var point: Vector2 = _random_point(rng)
 		if not _is_clear(point):
 			continue
-		_clumps.append(_build_clump(point, style, rng))
+		# Ground cover first, tall growth on top. Two heights is the difference
+		# between undergrowth and a field of identical weeds.
+		var ground: bool = rng.randf() < Balance.FOLIAGE_GROUND_RATIO
+		_clumps.append(_build_clump(point, style, rng, ground))
 		placed += 1
 
 
@@ -97,7 +100,7 @@ func _is_clear(point: Vector2) -> bool:
 	return true
 
 
-func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator) -> Node2D:
+func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, ground: bool) -> Node2D:
 	var clump := Node2D.new()
 	clump.position = at
 	# Sorted with everything else, so a plant in front of the hero occludes and
@@ -106,7 +109,9 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator) ->
 	add_child(clump)
 
 	var scale: float = rng.randf_range(Balance.FOLIAGE_MIN_SCALE, Balance.FOLIAGE_MAX_SCALE)
-	var blades: int = rng.randi_range(3, 6)
+	if ground:
+		scale *= Balance.FOLIAGE_GROUND_SCALE
+	var blades: int = rng.randi_range(5, 9) if ground else rng.randi_range(3, 6)
 	for i: int in blades:
 		var blade := Polygon2D.new()
 		blade.polygon = _blade_shape(String(style["kind"]), rng)
@@ -117,7 +122,12 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator) ->
 		clump.add_child(blade)
 
 	clump.set_meta("phase", rng.randf() * TAU)
-	clump.set_meta("sway", rng.randf_range(0.6, 1.4))
+	# Low cover barely moves; tall growth catches the wind. Uniform sway across
+	# both layers is what makes procedural foliage look like it is breathing in
+	# unison rather than growing in a real place.
+	var sway: float = rng.randf_range(0.6, 1.4)
+	clump.set_meta("sway", sway * (Balance.FOLIAGE_GROUND_SWAY if ground else 1.0))
+	clump.set_meta("amount", Balance.FOLIAGE_GROUND_SWAY if ground else 1.0)
 	return clump
 
 
@@ -148,4 +158,9 @@ func _process(delta: float) -> void:
 			continue
 		var phase: float = float(clump.get_meta("phase", 0.0))
 		var rate: float = float(clump.get_meta("sway", 1.0))
-		clump.rotation = sin(_phase * rate + phase) * deg_to_rad(Balance.FOLIAGE_SWAY_DEGREES)
+		var amount: float = float(clump.get_meta("amount", 1.0))
+		# A gust term on top of the base sway: the whole field leans together
+		# every few seconds, which is what sells wind rather than fidgeting.
+		var gust: float = 0.6 + 0.4 * sin(_phase * 0.23)
+		clump.rotation = sin(_phase * rate + phase) \
+			* deg_to_rad(Balance.FOLIAGE_SWAY_DEGREES) * amount * gust
