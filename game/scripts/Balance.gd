@@ -776,6 +776,20 @@ const PROJECTILE_HIT_RADIUS: float = 16.0
 ## A shot that has not connected by now fizzles.
 const PROJECTILE_MAX_LIFE: float = 2.5
 
+## Points held in a shot's trail. More is a longer ribbon. [TUNE]
+const PROJECTILE_TRAIL_POINTS: int = 14
+
+## Size of the soft glow behind the head, as a multiple of the core. [TUNE]
+const PROJECTILE_GLOW_SCALE: float = 2.4
+
+## How fast an Earth shot tumbles, in radians per second. [TUNE]
+const PROJECTILE_SPIN_RATE: float = 9.0
+
+## Impact burst. [TUNE]
+const PROJECTILE_IMPACT_SPARKS: int = 7
+const PROJECTILE_IMPACT_RING: float = 46.0
+const PROJECTILE_IMPACT_FLASH: float = 17.0
+
 const PROJECTILE_LIGHT_RADIUS: float = 120.0
 const PROJECTILE_LIGHT_ENERGY: float = 0.7
 

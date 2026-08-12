@@ -300,38 +300,38 @@ function New-TuningTab {
     $lblFind.ForeColor = $cBone
     $page.Controls.Add($lblFind)
 
-    $txtFind = New-Object System.Windows.Forms.TextBox
-    $txtFind.Location = New-Object System.Drawing.Point(64, 11)
-    $txtFind.Size = New-Object System.Drawing.Size(300, 26)
-    $txtFind.BackColor = $cSlate
-    $txtFind.ForeColor = $cBone
-    $txtFind.BorderStyle = 'FixedSingle'
-    $page.Controls.Add($txtFind)
+    $script:txtFind = New-Object System.Windows.Forms.TextBox
+    $script:txtFind.Location = New-Object System.Drawing.Point(64, 11)
+    $script:txtFind.Size = New-Object System.Drawing.Size(300, 26)
+    $script:txtFind.BackColor = $cSlate
+    $script:txtFind.ForeColor = $cBone
+    $script:txtFind.BorderStyle = 'FixedSingle'
+    $page.Controls.Add($script:txtFind)
 
-    $lblCount = New-Object System.Windows.Forms.Label
-    $lblCount.Location = New-Object System.Drawing.Point(376, 14)
-    $lblCount.Size = New-Object System.Drawing.Size(340, 24)
-    $lblCount.ForeColor = [System.Drawing.Color]::FromArgb(150, 160, 160)
-    $page.Controls.Add($lblCount)
+    $script:lblCount = New-Object System.Windows.Forms.Label
+    $script:lblCount.Location = New-Object System.Drawing.Point(376, 14)
+    $script:lblCount.Size = New-Object System.Drawing.Size(340, 24)
+    $script:lblCount.ForeColor = [System.Drawing.Color]::FromArgb(150, 160, 160)
+    $page.Controls.Add($script:lblCount)
 
     # --- sections ---
-    $tree = New-Object System.Windows.Forms.TreeView
-    $tree.Location = New-Object System.Drawing.Point(14, 48)
-    $tree.Size = New-Object System.Drawing.Size(230, 470)
-    $tree.BackColor = $cSlate
-    $tree.ForeColor = $cBone
-    $tree.BorderStyle = 'FixedSingle'
-    $tree.HideSelection = $false
-    $page.Controls.Add($tree)
+    $script:tree = New-Object System.Windows.Forms.TreeView
+    $script:tree.Location = New-Object System.Drawing.Point(14, 48)
+    $script:tree.Size = New-Object System.Drawing.Size(230, 470)
+    $script:tree.BackColor = $cSlate
+    $script:tree.ForeColor = $cBone
+    $script:tree.BorderStyle = 'FixedSingle'
+    $script:tree.HideSelection = $false
+    $page.Controls.Add($script:tree)
 
     # --- values ---
-    $scroll = New-Object System.Windows.Forms.Panel
-    $scroll.Location = New-Object System.Drawing.Point(254, 48)
-    $scroll.Size = New-Object System.Drawing.Size(462, 470)
-    $scroll.AutoScroll = $true
-    $scroll.BackColor = [System.Drawing.Color]::FromArgb(8, 14, 16)
-    $scroll.BorderStyle = 'FixedSingle'
-    $page.Controls.Add($scroll)
+    $script:scroll = New-Object System.Windows.Forms.Panel
+    $script:scroll.Location = New-Object System.Drawing.Point(254, 48)
+    $script:scroll.Size = New-Object System.Drawing.Size(462, 470)
+    $script:scroll.AutoScroll = $true
+    $script:scroll.BackColor = [System.Drawing.Color]::FromArgb(8, 14, 16)
+    $script:scroll.BorderStyle = 'FixedSingle'
+    $page.Controls.Add($script:scroll)
 
     $lblHelp = New-Object System.Windows.Forms.Label
     $lblHelp.Location = New-Object System.Drawing.Point(14, 524)
@@ -360,32 +360,32 @@ function New-TuningTab {
     $btnReload.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(70, 84, 90)
     $page.Controls.Add($btnReload)
 
-    $lblSaved = New-Object System.Windows.Forms.Label
-    $lblSaved.Location = New-Object System.Drawing.Point(400, 576)
-    $lblSaved.Size = New-Object System.Drawing.Size(316, 24)
-    $lblSaved.ForeColor = $cGreen
-    $page.Controls.Add($lblSaved)
+    $script:lblSaved = New-Object System.Windows.Forms.Label
+    $script:lblSaved.Location = New-Object System.Drawing.Point(400, 576)
+    $script:lblSaved.Size = New-Object System.Drawing.Size(316, 24)
+    $script:lblSaved.ForeColor = $cGreen
+    $page.Controls.Add($script:lblSaved)
 
     # --- data ---
     $script:AllEntries = @()
     $script:AllEntries += Read-BalanceEntries
     $script:AllEntries += Read-SfxEntries
 
-    function Rebuild-Tree {
-        $tree.Nodes.Clear()
+    function script:Rebuild-Tree {
+        $script:tree.Nodes.Clear()
         $sections = $script:AllEntries | ForEach-Object { $_.Section } | Select-Object -Unique
         foreach ($s in $sections) {
             $count = @($script:AllEntries | Where-Object { $_.Section -eq $s }).Count
-            $node = $tree.Nodes.Add(("{0}  ({1})" -f $s, $count))
+            $node = $script:tree.Nodes.Add(("{0}  ({1})" -f $s, $count))
             $node.Tag = $s
         }
-        $projectNode = $tree.Nodes.Add('Engine settings  (4)')
+        $projectNode = $script:tree.Nodes.Add('Engine settings  (4)')
         $projectNode.Tag = '__project__'
-        $lblCount.Text = ("{0} values across {1} groups" -f $script:AllEntries.Count, $sections.Count)
-        if ($tree.Nodes.Count -gt 0) { $tree.SelectedNode = $tree.Nodes[0] }
+        $script:lblCount.Text = ("{0} values across {1} groups" -f $script:AllEntries.Count, $sections.Count)
+        if ($script:tree.Nodes.Count -gt 0) { $script:tree.SelectedNode = $script:tree.Nodes[0] }
     }
 
-    function Add-Row {
+    function script:Add-Row {
         param($Parent, [int]$Y, [string]$Label, [string]$Value, [string]$Help,
               [string]$Key, [string]$Kind, [bool]$ReadOnly, $Choices)
 
@@ -432,17 +432,17 @@ function New-TuningTab {
         return ($Y + 32)
     }
 
-    function Show-Section {
+    function script:Show-Section {
         param([string]$Section)
-        $scroll.Controls.Clear()
+        $script:scroll.Controls.Clear()
         $script:Editors = @{}
         $y = 8
-        $filter = $txtFind.Text.Trim()
+        $filter = $script:txtFind.Text.Trim()
 
         if ($Section -eq '__project__') {
             foreach ($ps in $script:ProjectSettings) {
                 $current = Read-ProjectValue -Key $ps.Key
-                $y = Add-Row -Parent $scroll -Y $y -Label $ps.Label -Value $current `
+                $y = Add-Row -Parent $script:scroll -Y $y -Label $ps.Label -Value $current `
                     -Help $ps.Key -Key ("proj::" + $ps.Key) -Kind $ps.Kind -ReadOnly $false -Choices $ps.Choices
             }
             return
@@ -459,7 +459,7 @@ function New-TuningTab {
                 $header.Size = New-Object System.Drawing.Size(430, 20)
                 $header.ForeColor = $cBone
                 $header.Font = New-Object System.Drawing.Font('Consolas', 9.5, [System.Drawing.FontStyle]::Bold)
-                $scroll.Controls.Add($header)
+                $script:scroll.Controls.Add($header)
                 $y += 26
                 foreach ($key in 'db', 'pitch', 'limit', 'gap') {
                     if (-not $e.Fields.ContainsKey($key)) { continue }
@@ -469,13 +469,13 @@ function New-TuningTab {
                         'limit' { '    max at once' }
                         'gap' { '    min gap (s)' }
                     }
-                    $y = Add-Row -Parent $scroll -Y $y -Label $label -Value $e.Fields[$key] `
+                    $y = Add-Row -Parent $script:scroll -Y $y -Label $label -Value $e.Fields[$key] `
                         -Help "$($e.Name) $key" -Key ("sfx::" + $e.Name + "/" + $key) `
                         -Kind 'float' -ReadOnly $false -Choices @()
                 }
                 $y += 6
             } else {
-                $y = Add-Row -Parent $scroll -Y $y -Label $e.Name -Value $e.Raw `
+                $y = Add-Row -Parent $script:scroll -Y $y -Label $e.Name -Value $e.Raw `
                     -Help $e.Help -Key ("bal::" + $e.Name) -Kind $e.Kind `
                     -ReadOnly $e.ReadOnly -Choices @()
             }
@@ -486,15 +486,15 @@ function New-TuningTab {
             $none.Location = New-Object System.Drawing.Point(10, 10)
             $none.Size = New-Object System.Drawing.Size(400, 24)
             $none.ForeColor = [System.Drawing.Color]::FromArgb(140, 150, 150)
-            $scroll.Controls.Add($none)
+            $script:scroll.Controls.Add($none)
         }
     }
 
-    $tree.Add_AfterSelect({
-        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
+    $script:tree.Add_AfterSelect({
+        if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
     })
-    $txtFind.Add_TextChanged({
-        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
+    $script:txtFind.Add_TextChanged({
+        if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
     })
 
     $btnReload.Add_Click({
@@ -502,7 +502,7 @@ function New-TuningTab {
         $script:AllEntries += Read-BalanceEntries
         $script:AllEntries += Read-SfxEntries
         Rebuild-Tree
-        $lblSaved.Text = 'Reloaded from disk.'
+        $script:lblSaved.Text = 'Reloaded from disk.'
     })
 
     $btnSave.Add_Click({
@@ -535,7 +535,7 @@ function New-TuningTab {
             return
         }
         if ($balance.Count + $sfx.Count + $project.Count -eq 0) {
-            $lblSaved.Text = 'Nothing changed.'
+            $script:lblSaved.Text = 'Nothing changed.'
             return
         }
 
@@ -546,12 +546,12 @@ function New-TuningTab {
         $script:AllEntries = @()
         $script:AllEntries += Read-BalanceEntries
         $script:AllEntries += Read-SfxEntries
-        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
-        $lblSaved.Text = ("Saved: {0} balance, {1} sounds, {2} settings." -f $n1, $n2, $project.Count)
+        if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
+        $script:lblSaved.Text = ("Saved: {0} balance, {1} sounds, {2} settings." -f $n1, $n2, $project.Count)
     })
 
     Rebuild-Tree
-    Show-Section -Section ([string]$tree.Nodes[0].Tag)
+    Show-Section -Section ([string]$script:tree.Nodes[0].Tag)
 }
 
 New-TuningTab -TabControl $tabs

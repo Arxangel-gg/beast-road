@@ -22,8 +22,14 @@ var _target: Enemy = null
 var _direction: Vector2 = Vector2.RIGHT
 var _life: float = 0.0
 
-var _sprite: Line2D
+## A ribbon of recent positions. A moving dot reads as a dot; a dot with a tail
+## behind it reads as speed, and costs one node and a ring buffer.
+var _trail: Line2D
+var _core: Polygon2D
+var _glow: Polygon2D
 var _light: PointLight2D
+var _history: PackedVector2Array = []
+var _spin: float = 0.0
 
 
 func setup(target: Enemy, tower_data: TowerData, hit_damage: float, hit_knockback: float) -> void:
@@ -38,13 +44,40 @@ func setup(target: Enemy, tower_data: TowerData, hit_damage: float, hit_knockbac
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
 
-	# A short streak rather than a dot: it reads as travelling even in a still
-	# frame, and costs one node.
-	_sprite = Line2D.new()
-	_sprite.points = PackedVector2Array([Vector2.ZERO, Vector2(-Balance.PROJECTILE_LENGTH, 0.0)])
-	_sprite.width = Balance.PROJECTILE_WIDTH
-	_sprite.default_color = colour
-	add_child(_sprite)
+	# The trail lives in world space, so it stays put as the head moves rather
+	# than rotating with the projectile.
+	_trail = Line2D.new()
+	_trail.top_level = true
+	_trail.width = Balance.PROJECTILE_WIDTH
+	_trail.default_color = Color(colour, 0.75)
+	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	# Tapers to nothing at the tail; a constant-width trail looks like a pipe.
+	var taper := Curve.new()
+	taper.add_point(Vector2(0.0, 0.05))
+	taper.add_point(Vector2(1.0, 1.0))
+	_trail.width_curve = taper
+	# Fades along its length as well as tapering, so the tail dissolves.
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 1.0])
+	ramp.colors = PackedColorArray([Color(colour, 0.0), Color(colour, 0.85)])
+	_trail.gradient = ramp
+	add_child(_trail)
+
+	# Each element gets its own head shape, so a lane full of shots is readable
+	# at a glance without reading the colours.
+	_glow = Polygon2D.new()
+	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE)
+	_glow.color = Color(colour, 0.30)
+	add_child(_glow)
+
+	_core = Polygon2D.new()
+	_core.polygon = _head_shape(1.0)
+	# A hot centre: the element colour lifted toward white reads as energy
+	# rather than as a coloured shape.
+	_core.color = colour.lerp(Color.WHITE, 0.55)
+	add_child(_core)
 
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all.
@@ -72,10 +105,51 @@ func _process(delta: float) -> void:
 	global_position += _direction * speed * delta
 	rotation = _direction.angle()
 
+	# Earth shots tumble; everything else holds its heading.
+	if data != null and data.element == TowerData.Element.EARTH:
+		_spin += delta * Balance.PROJECTILE_SPIN_RATE
+		_core.rotation = _spin
+		_glow.rotation = _spin
+
+	_push_trail()
+
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS
 		if global_position.distance_to(_target.global_position) <= reach:
 			_impact()
+
+
+## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
+## chunk, air a thin dart.
+func _head_shape(scale: float) -> PackedVector2Array:
+	var w: float = Balance.PROJECTILE_WIDTH * scale
+	var element: int = data.element if data != null else 0
+	match element:
+		TowerData.Element.WATER:
+			return PackedVector2Array([
+				Vector2(w * 2.6, 0.0), Vector2(0.0, -w * 0.9),
+				Vector2(-w * 1.6, 0.0), Vector2(0.0, w * 0.9)])
+		TowerData.Element.EARTH:
+			return PackedVector2Array([
+				Vector2(w * 1.5, -w * 0.6), Vector2(w * 1.1, w * 1.2),
+				Vector2(-w * 1.2, w * 1.0), Vector2(-w * 1.4, -w * 0.9),
+				Vector2(0.0, -w * 1.4)])
+		TowerData.Element.AIR:
+			return PackedVector2Array([
+				Vector2(w * 3.4, 0.0), Vector2(-w * 1.0, -w * 0.5),
+				Vector2(-w * 0.4, 0.0), Vector2(-w * 1.0, w * 0.5)])
+		_:
+			return PackedVector2Array([
+				Vector2(w * 2.2, 0.0), Vector2(w * 0.2, -w * 1.0),
+				Vector2(-w * 1.8, 0.0), Vector2(w * 0.2, w * 1.0)])
+
+
+## Keeps the last N world positions and feeds them to the trail.
+func _push_trail() -> void:
+	_history.append(global_position)
+	while _history.size() > Balance.PROJECTILE_TRAIL_POINTS:
+		_history.remove_at(0)
+	_trail.points = _history
 
 
 func _impact() -> void:
@@ -91,7 +165,14 @@ func _impact() -> void:
 		field.spawn_ground_zone(global_position, data.ground_zone_dps,
 			data.ground_zone_duration, maxf(data.aoe_radius, 90.0))
 
-	Vfx.spark(global_position, colour, 5, _direction, 200.0)
+	# A bright flash, a burst away from the impact, and a ring for anything with
+	# area. Three cues rather than one, because a single spark at this size is
+	# easy to miss in a crowded lane.
+	Vfx.spark(global_position, colour.lerp(Color.WHITE, 0.4),
+		Balance.PROJECTILE_IMPACT_SPARKS, -_direction, 260.0)
+	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING,
+		Color(colour, 0.7), 0.22, 3.0)
+	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH)
 	queue_free()
 
 

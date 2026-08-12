@@ -277,6 +277,28 @@ func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, co
 	tween.chain().tween_callback(wedge.queue_free)
 
 
+## A brief bloom at a world position. Distinct from `spark`: this is the light
+## of an impact rather than its debris, and it is what makes a hit feel hot.
+func flash_at(at: Vector2, colour: Color, radius: float) -> void:
+	if world == null:
+		return
+	var blob := Polygon2D.new()
+	var points: PackedVector2Array = []
+	for i: int in 12:
+		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 12.0) * radius)
+	blob.polygon = points
+	blob.color = Color(colour.lerp(Color.WHITE, 0.6), 0.85)
+	blob.z_index = Balance.VFX_Z
+	_track(blob)
+	blob.global_position = at
+
+	var tween: Tween = blob.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(blob, "scale", Vector2.ONE * 1.9, 0.16).set_ease(Tween.EASE_OUT)
+	tween.tween_property(blob, "modulate:a", 0.0, 0.16)
+	tween.chain().tween_callback(blob.queue_free)
+
+
 ## Full-screen colour wash. Decays quadratically so it snaps rather than smears.
 func flash(colour: Color, peak: float, life: float) -> void:
 	if peak <= _flash_peak * (_flash_left / maxf(_flash_total, 0.001)):
