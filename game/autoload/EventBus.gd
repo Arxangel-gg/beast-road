@@ -84,6 +84,9 @@ signal tower_slot_changed(lane: int, slot: int)
 ## A tower fired at something. Purely for feedback systems.
 signal tower_fired(lane: int, slot: int, at: Vector2)
 
+## A torch was snuffed out or relit. `lane` is which road it stands on.
+signal torch_state_changed(lane: int, lit: bool)
+
 ## An enemy reached the town and did damage.
 signal town_damaged(amount: float, current_hp: float, max_hp: float)
 

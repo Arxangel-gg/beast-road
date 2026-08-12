@@ -78,6 +78,22 @@ func _begin_wave() -> void:
 
 ## Waves start on one lane and open up to all four as the act progresses, so the
 ## triage decision arrives gradually instead of on wave one.
+## Weighted lane choice. A dark lane is likelier to be attacked, which is what
+## turns "keep the torches lit" into a decision rather than a chore.
+func _weighted_lane(exclude: Array) -> int:
+	var best: int = 0
+	var best_score: float = -1.0
+	for lane: int in Balance.LANE_COUNT:
+		if exclude.has(lane):
+			continue
+		var darkness: float = battlefield.lane_darkness(lane) if battlefield != null else 0.0
+		var score: float = randf() * (1.0 + darkness * Balance.TORCH_DARK_LANE_BIAS)
+		if score > best_score:
+			best_score = score
+			best = lane
+	return best
+
+
 func _pick_lanes(wave: int) -> Array[int]:
 	var count: int = clampi(
 		Balance.WAVE_LANES_START + int(floor(float(wave - 1) / 2.0)),

@@ -37,6 +37,7 @@ var _target: Node2D = null
 var _knockback: Vector2 = Vector2.ZERO
 var _hitstun_left: float = 0.0
 var _flash_left: float = 0.0
+var _snuff_timer: float = 0.0
 var _death_left: float = 0.0
 
 ## Lateral offset from the lane centre line, so a wave reads as a column.

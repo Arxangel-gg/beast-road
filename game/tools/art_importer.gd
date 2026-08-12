@@ -31,6 +31,9 @@ var installed: PackedStringArray = []
 var skipped: PackedStringArray = []
 var problems: PackedStringArray = []
 
+## Non-fatal remarks, reported but not blocking.
+var notes: PackedStringArray = []
+
 
 static func inbox_dir() -> String:
 	return ProjectSettings.globalize_path("res://").path_join(INBOX_RELATIVE).simplify_path()
@@ -41,6 +44,7 @@ func import_all(dry_run: bool = false) -> Dictionary:
 	installed = []
 	skipped = []
 	problems = []
+	notes = []
 
 	var inbox: String = inbox_dir()
 	if not DirAccess.dir_exists_absolute(inbox):
@@ -94,9 +98,16 @@ func _install(source: String, asset: ManifestAsset, dry_run: bool) -> void:
 
 	var original: Vector2i = img.get_size()
 
+	# A missing alpha channel is fatal for a sprite - a hero on an opaque black
+	# square is a black square. It is *not* fatal for a UI frame: a panel that
+	# fills its whole rectangle is a perfectly good panel, and demanding
+	# transparency of one only produced a regenerate-and-fail loop.
 	if asset.transparent and not _has_real_alpha(img):
-		problems.append("%s — no alpha channel; it arrived fully opaque. Ask for 'a true transparent alpha channel, not a checkerboard pattern drawn in the image' and regenerate." % asset.file_name())
-		return
+		if _alpha_optional(asset):
+			notes.append("%s — fully opaque, installed anyway (UI frames may be solid)." % asset.file_name())
+		else:
+			problems.append("%s — no alpha channel; it arrived fully opaque. Ask for 'a true transparent alpha channel, not a checkerboard pattern drawn in the image' and regenerate." % asset.file_name())
+			return
 
 	img.convert(Image.FORMAT_RGBA8)
 	var fitted: Image = _fit(img, asset) if asset.transparent else _cover(img, asset)
@@ -148,6 +159,12 @@ func _cover(img: Image, asset: ManifestAsset) -> Image:
 
 ## Samples rather than scanning every pixel: a 1024x1024 import would otherwise
 ## be a million get_pixel calls for a yes/no answer.
+## Frames, bars and buttons are drawn as filled rectangles. Everything else that
+## claims transparency has to actually have it.
+func _alpha_optional(asset: ManifestAsset) -> bool:
+	return asset.res_path.begins_with("res://art/ui/")
+
+
 func _has_real_alpha(img: Image) -> bool:
 	if not img.detect_alpha():
 		return false

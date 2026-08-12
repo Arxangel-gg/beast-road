@@ -850,3 +850,83 @@ const TOWER_LEVEL_LIGHT_STEP: float = 0.45
 
 ## How much bigger a projectile is per level of the tower that fired it. [TUNE]
 const PROJECTILE_TIER_SCALE: float = 0.28
+
+# ==============================================================================
+# TORCHES, FOLIAGE AND PATH BLENDING
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Torches
+# ------------------------------------------------------------------------------
+#
+# Lighting that is also a mechanic. Enemies snuff torches as they pass; the hero
+# relights them by standing close. A dark lane sends stronger, more frequent
+# enemies, so keeping the road lit competes for attention with everything else.
+
+## Torches per lane, spaced along the road between town and spawn. [TUNE]
+const TORCH_PER_LANE: int = 4
+
+## How far to the side of the lane centre they stand. [TUNE]
+const TORCH_LANE_OFFSET: float = 120.0
+
+const TORCH_HEIGHT: float = 34.0
+const TORCH_FLAME_SIZE: float = 11.0
+
+const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.72, 0.36)
+const TORCH_LIGHT_RADIUS: float = 260.0
+const TORCH_LIGHT_ENERGY: float = 1.0
+const TORCH_FLICKER: float = 0.35
+
+## How close an enemy must pass to snuff one out. [TUNE]
+const TORCH_SNUFF_RANGE: float = 46.0
+
+## Chance an enemy passing within that range actually snuffs it. Below 1.0 so a
+## single wave does not reliably black out a whole lane. [TUNE]
+const TORCH_SNUFF_CHANCE: float = 0.35
+
+## How close the hero stands, and for how long, to relight one. [TUNE]
+const TORCH_RELIGHT_RANGE: float = 90.0
+const TORCH_RELIGHT_TIME: float = 1.1
+
+## Extra enemy strength and spawn weight at a fully dark lane, applied on top of
+## the night multiplier. A dark lane at night is genuinely dangerous. [TUNE]
+const TORCH_DARK_DIFFICULTY: float = 0.5
+
+## How strongly a dark lane pulls the wave director toward choosing it. [TUNE]
+const TORCH_DARK_LANE_BIAS: float = 2.2
+
+# ------------------------------------------------------------------------------
+# Foliage
+# ------------------------------------------------------------------------------
+
+## Clumps scattered per terrain. [TUNE]
+const FOLIAGE_COUNT: int = 190
+
+## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
+const FOLIAGE_LANE_CLEARANCE: float = 1.15
+
+## Clear radius around a build spot and around the town. [TUNE]
+const FOLIAGE_SLOT_MARGIN: float = 130.0
+const FOLIAGE_TOWN_MARGIN: float = 180.0
+
+const FOLIAGE_MIN_SCALE: float = 0.7
+const FOLIAGE_MAX_SCALE: float = 1.5
+
+## Sway. Degrees of lean, and how fast the wind moves. [TUNE]
+const FOLIAGE_SWAY_DEGREES: float = 5.5
+const FOLIAGE_SWAY_SPEED: float = 1.15
+
+# ------------------------------------------------------------------------------
+# Path blending
+# ------------------------------------------------------------------------------
+
+## Width of the soft, noisy fringe on either side of a road, in pixels. The
+## centre strip is left clean - noise across the whole road makes the road
+## itself look like a mistake rather than like a road. [TUNE]
+const PATH_EDGE_FADE: float = 46.0
+
+## How hard the fringe is broken up, 0..1. [TUNE]
+const PATH_EDGE_NOISE: float = 0.55
+
+## Scale of the fringe noise, in pixels. [TUNE]
+const PATH_NOISE_SCALE: float = 70.0

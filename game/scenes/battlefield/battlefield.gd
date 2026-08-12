@@ -69,6 +69,8 @@ func _ready() -> void:
 	_setup_ground()
 	_build_lanes()
 	_build_slots()
+	_build_torches()
+	_build_foliage()
 	wave_director.battlefield = self
 	wave_director.start()
 	# Spells and the melee arc both need to find enemies, and the hero must not
@@ -184,6 +186,46 @@ func _setup_lighting() -> void:
 func add_projectile(shot: Projectile, at: Vector2) -> void:
 	effect_root.add_child(shot)
 	shot.global_position = at
+
+
+## Torches down both sides of every road.
+func _build_torches() -> void:
+	var length: float = Balance.LANE_SPAWN_RADIUS - Balance.TOWN_RADIUS
+	for lane: int in Balance.LANE_COUNT:
+		var direction: Vector2 = Battlefield.lane_vector(lane)
+		var side: Vector2 = direction.orthogonal()
+		for i: int in Balance.TORCH_PER_LANE:
+			# Spread along the road, skipping the very ends so none stands on
+			# the town wall or at the spawn point itself.
+			var t: float = float(i + 1) / float(Balance.TORCH_PER_LANE + 1)
+			var along: float = Balance.TOWN_RADIUS + length * t
+			for sign: float in [-1.0, 1.0]:
+				var torch := Torch.new()
+				torch.lane = lane
+				torch.position = direction * along + side * Balance.TORCH_LANE_OFFSET * sign
+				entity_root.add_child(torch)
+
+
+func _build_foliage() -> void:
+	var foliage := Foliage.new()
+	foliage.name = "Foliage"
+	# In the sorted layer so a plant in front of the hero occludes them and one
+	# behind does not.
+	entity_root.add_child(foliage)
+
+
+## 0..1, how dark a lane is. 1 means every torch on it is out.
+func lane_darkness(lane: int) -> float:
+	var total: int = 0
+	var dark: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
+		var torch := node as Torch
+		if torch == null or torch.lane != lane:
+			continue
+		total += 1
+		if not torch.is_lit():
+			dark += 1
+	return float(dark) / float(total) if total > 0 else 0.0
 
 
 # --- Lane geometry ----------------------------------------------------------
