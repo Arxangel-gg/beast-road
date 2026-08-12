@@ -29,11 +29,21 @@ $cGreen  = [System.Drawing.Color]::FromArgb(122, 168, 108)
 
 $form                 = New-Object System.Windows.Forms.Form
 $form.Text            = 'Beast Road - Update Manager'
-$form.Size            = New-Object System.Drawing.Size(760, 660)
+$form.Size            = New-Object System.Drawing.Size(776, 700)
 $form.StartPosition   = 'CenterScreen'
 $form.BackColor       = $cVoid
 $form.ForeColor       = $cBone
 $form.Font            = New-Object System.Drawing.Font('Segoe UI', 10)
+
+$tabs                 = New-Object System.Windows.Forms.TabControl
+$tabs.Location        = New-Object System.Drawing.Point(6, 6)
+$tabs.Size            = New-Object System.Drawing.Size(752, 652)
+$form.Controls.Add($tabs)
+
+$pagePublish          = New-Object System.Windows.Forms.TabPage
+$pagePublish.Text     = 'Publish'
+$pagePublish.BackColor = $cVoid
+$tabs.TabPages.Add($pagePublish)
 
 function New-Label($text, $x, $y, $w, $size, $color) {
     $l = New-Object System.Windows.Forms.Label
@@ -41,7 +51,7 @@ function New-Label($text, $x, $y, $w, $size, $color) {
     $l.Size = New-Object System.Drawing.Size($w, 24)
     $l.Font = New-Object System.Drawing.Font('Segoe UI', $size)
     $l.ForeColor = $color
-    $form.Controls.Add($l); return $l
+    $pagePublish.Controls.Add($l); return $l
 }
 
 New-Label 'BEAST ROAD' 24 18 400 20 $cAmber | Out-Null
@@ -59,7 +69,7 @@ $txtVersion.BackColor = $cSlate
 $txtVersion.ForeColor = $cBone
 $txtVersion.BorderStyle = 'FixedSingle'
 $txtVersion.Font      = New-Object System.Drawing.Font('Consolas', 12)
-$form.Controls.Add($txtVersion)
+$pagePublish.Controls.Add($txtVersion)
 
 # --- notes -------------------------------------------------------------------
 New-Label 'What changed (shown on the release page)' 26 196 500 10 $cBone | Out-Null
@@ -70,7 +80,7 @@ $txtNotes.Multiline   = $true
 $txtNotes.BackColor   = $cSlate
 $txtNotes.ForeColor   = $cBone
 $txtNotes.BorderStyle = 'FixedSingle'
-$form.Controls.Add($txtNotes)
+$pagePublish.Controls.Add($txtNotes)
 
 # --- publish button ----------------------------------------------------------
 $btn                  = New-Object System.Windows.Forms.Button
@@ -82,7 +92,7 @@ $btn.ForeColor        = $cBone
 $btn.FlatStyle        = 'Flat'
 $btn.Font             = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
 $btn.FlatAppearance.BorderColor = $cAmber
-$form.Controls.Add($btn)
+$pagePublish.Controls.Add($btn)
 
 $lblStage = New-Label '' 286 340 430 10 $cAmber
 
@@ -92,7 +102,7 @@ $bar.Location         = New-Object System.Drawing.Point(26, 390)
 $bar.Size             = New-Object System.Drawing.Size(690, 18)
 $bar.Style            = 'Continuous'
 $bar.Maximum          = 100
-$form.Controls.Add($bar)
+$pagePublish.Controls.Add($bar)
 
 # --- log ---------------------------------------------------------------------
 $log                  = New-Object System.Windows.Forms.TextBox
@@ -105,7 +115,7 @@ $log.BackColor        = [System.Drawing.Color]::FromArgb(8, 14, 16)
 $log.ForeColor        = [System.Drawing.Color]::FromArgb(150, 170, 165)
 $log.Font             = New-Object System.Drawing.Font('Consolas', 9)
 $log.BorderStyle      = 'FixedSingle'
-$form.Controls.Add($log)
+$pagePublish.Controls.Add($log)
 
 $lblLink              = New-Object System.Windows.Forms.LinkLabel
 $lblLink.Location     = New-Object System.Drawing.Point(26, 598)
@@ -113,7 +123,7 @@ $lblLink.Size         = New-Object System.Drawing.Size(690, 24)
 $lblLink.LinkColor    = $cAmber
 $lblLink.ActiveLinkColor = $cBone
 $lblLink.Visible      = $false
-$form.Controls.Add($lblLink)
+$pagePublish.Controls.Add($lblLink)
 
 function Write-Log($msg) {
     $log.AppendText(("[{0}] {1}`r`n" -f (Get-Date -Format 'HH:mm:ss'), $msg))
@@ -255,5 +265,295 @@ $btn.Add_Click({
 })
 
 $lblLink.Add_LinkClicked({ Start-Process $lblLink.Text })
+
+
+# ============================================================================
+# TUNING TAB
+# ============================================================================
+#
+# Every dev-side value in one window: gameplay constants from Balance.gd, the
+# per-sound mix from Sfx.gd, and the handful of engine settings that belong in
+# the same conversation.
+#
+# Values are read on open and written only when Save is pressed, so a mistyped
+# number can be abandoned by closing the app. Writes are surgical - see
+# tuning.ps1 - so nothing this parser does not understand is ever reformatted.
+
+. (Join-Path $PSScriptRoot 'tuning.ps1')
+
+$script:Editors = @{}
+$script:Dirty = $false
+
+function New-TuningTab {
+    param($TabControl)
+
+    $page = New-Object System.Windows.Forms.TabPage
+    $page.Text = 'Tuning'
+    $page.BackColor = $cVoid
+    $TabControl.TabPages.Add($page)
+
+    # --- filter ---
+    $lblFind = New-Object System.Windows.Forms.Label
+    $lblFind.Text = 'Filter'
+    $lblFind.Location = New-Object System.Drawing.Point(14, 14)
+    $lblFind.Size = New-Object System.Drawing.Size(50, 24)
+    $lblFind.ForeColor = $cBone
+    $page.Controls.Add($lblFind)
+
+    $txtFind = New-Object System.Windows.Forms.TextBox
+    $txtFind.Location = New-Object System.Drawing.Point(64, 11)
+    $txtFind.Size = New-Object System.Drawing.Size(300, 26)
+    $txtFind.BackColor = $cSlate
+    $txtFind.ForeColor = $cBone
+    $txtFind.BorderStyle = 'FixedSingle'
+    $page.Controls.Add($txtFind)
+
+    $lblCount = New-Object System.Windows.Forms.Label
+    $lblCount.Location = New-Object System.Drawing.Point(376, 14)
+    $lblCount.Size = New-Object System.Drawing.Size(340, 24)
+    $lblCount.ForeColor = [System.Drawing.Color]::FromArgb(150, 160, 160)
+    $page.Controls.Add($lblCount)
+
+    # --- sections ---
+    $tree = New-Object System.Windows.Forms.TreeView
+    $tree.Location = New-Object System.Drawing.Point(14, 48)
+    $tree.Size = New-Object System.Drawing.Size(230, 470)
+    $tree.BackColor = $cSlate
+    $tree.ForeColor = $cBone
+    $tree.BorderStyle = 'FixedSingle'
+    $tree.HideSelection = $false
+    $page.Controls.Add($tree)
+
+    # --- values ---
+    $scroll = New-Object System.Windows.Forms.Panel
+    $scroll.Location = New-Object System.Drawing.Point(254, 48)
+    $scroll.Size = New-Object System.Drawing.Size(462, 470)
+    $scroll.AutoScroll = $true
+    $scroll.BackColor = [System.Drawing.Color]::FromArgb(8, 14, 16)
+    $scroll.BorderStyle = 'FixedSingle'
+    $page.Controls.Add($scroll)
+
+    $lblHelp = New-Object System.Windows.Forms.Label
+    $lblHelp.Location = New-Object System.Drawing.Point(14, 524)
+    $lblHelp.Size = New-Object System.Drawing.Size(702, 40)
+    $lblHelp.ForeColor = [System.Drawing.Color]::FromArgb(150, 165, 160)
+    $lblHelp.Text = 'Changes are only written when you press Save. Publish afterwards to ship them.'
+    $page.Controls.Add($lblHelp)
+
+    $btnSave = New-Object System.Windows.Forms.Button
+    $btnSave.Text = 'SAVE CHANGES'
+    $btnSave.Location = New-Object System.Drawing.Point(14, 566)
+    $btnSave.Size = New-Object System.Drawing.Size(200, 40)
+    $btnSave.BackColor = $cRust
+    $btnSave.ForeColor = $cBone
+    $btnSave.FlatStyle = 'Flat'
+    $btnSave.FlatAppearance.BorderColor = $cAmber
+    $page.Controls.Add($btnSave)
+
+    $btnReload = New-Object System.Windows.Forms.Button
+    $btnReload.Text = 'Reload from disk'
+    $btnReload.Location = New-Object System.Drawing.Point(226, 566)
+    $btnReload.Size = New-Object System.Drawing.Size(160, 40)
+    $btnReload.BackColor = $cSlate
+    $btnReload.ForeColor = $cBone
+    $btnReload.FlatStyle = 'Flat'
+    $btnReload.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(70, 84, 90)
+    $page.Controls.Add($btnReload)
+
+    $lblSaved = New-Object System.Windows.Forms.Label
+    $lblSaved.Location = New-Object System.Drawing.Point(400, 576)
+    $lblSaved.Size = New-Object System.Drawing.Size(316, 24)
+    $lblSaved.ForeColor = $cGreen
+    $page.Controls.Add($lblSaved)
+
+    # --- data ---
+    $script:AllEntries = @()
+    $script:AllEntries += Read-BalanceEntries
+    $script:AllEntries += Read-SfxEntries
+
+    function Rebuild-Tree {
+        $tree.Nodes.Clear()
+        $sections = $script:AllEntries | ForEach-Object { $_.Section } | Select-Object -Unique
+        foreach ($s in $sections) {
+            $count = @($script:AllEntries | Where-Object { $_.Section -eq $s }).Count
+            $node = $tree.Nodes.Add(("{0}  ({1})" -f $s, $count))
+            $node.Tag = $s
+        }
+        $projectNode = $tree.Nodes.Add('Engine settings  (4)')
+        $projectNode.Tag = '__project__'
+        $lblCount.Text = ("{0} values across {1} groups" -f $script:AllEntries.Count, $sections.Count)
+        if ($tree.Nodes.Count -gt 0) { $tree.SelectedNode = $tree.Nodes[0] }
+    }
+
+    function Add-Row {
+        param($Parent, [int]$Y, [string]$Label, [string]$Value, [string]$Help,
+              [string]$Key, [string]$Kind, [bool]$ReadOnly, $Choices)
+
+        $name = New-Object System.Windows.Forms.Label
+        $name.Text = $Label
+        $name.Location = New-Object System.Drawing.Point(8, ($Y + 4))
+        $name.Size = New-Object System.Drawing.Size(250, 22)
+        $name.ForeColor = if ($ReadOnly) { [System.Drawing.Color]::FromArgb(110, 120, 120) } else { $cAmber }
+        $name.Font = New-Object System.Drawing.Font('Consolas', 9.5)
+        $Parent.Controls.Add($name)
+
+        if ($Kind -eq 'bool') {
+            $box = New-Object System.Windows.Forms.ComboBox
+            $box.DropDownStyle = 'DropDownList'
+            [void]$box.Items.AddRange(@('true', 'false'))
+            $box.SelectedItem = if ($Value -eq 'true') { 'true' } else { 'false' }
+        } elseif ($Kind -eq 'choice') {
+            $box = New-Object System.Windows.Forms.ComboBox
+            $box.DropDownStyle = 'DropDownList'
+            [void]$box.Items.AddRange($Choices)
+            foreach ($c in $Choices) { if ($c.StartsWith($Value)) { $box.SelectedItem = $c } }
+            if ($null -eq $box.SelectedItem -and $box.Items.Count -gt 0) { $box.SelectedIndex = 0 }
+        } else {
+            $box = New-Object System.Windows.Forms.TextBox
+            $box.Text = $Value
+            $box.BorderStyle = 'FixedSingle'
+        }
+        $box.Location = New-Object System.Drawing.Point(262, $Y)
+        $box.Size = New-Object System.Drawing.Size(160, 26)
+        $box.BackColor = if ($ReadOnly) { [System.Drawing.Color]::FromArgb(18, 24, 26) } else { $cSlate }
+        $box.ForeColor = $cBone
+        $box.Font = New-Object System.Drawing.Font('Consolas', 10)
+        $box.Enabled = -not $ReadOnly
+        $box.Tag = @{ Key = $Key; Kind = $Kind; Original = $Value }
+        $Parent.Controls.Add($box)
+        $script:Editors[$Key] = $box
+
+        if ($Help) {
+            $tip = New-Object System.Windows.Forms.ToolTip
+            $tip.AutoPopDelay = 20000
+            $tip.SetToolTip($box, $Help)
+            $tip.SetToolTip($name, $Help)
+        }
+        return ($Y + 32)
+    }
+
+    function Show-Section {
+        param([string]$Section)
+        $scroll.Controls.Clear()
+        $script:Editors = @{}
+        $y = 8
+        $filter = $txtFind.Text.Trim()
+
+        if ($Section -eq '__project__') {
+            foreach ($ps in $script:ProjectSettings) {
+                $current = Read-ProjectValue -Key $ps.Key
+                $y = Add-Row -Parent $scroll -Y $y -Label $ps.Label -Value $current `
+                    -Help $ps.Key -Key ("proj::" + $ps.Key) -Kind $ps.Kind -ReadOnly $false -Choices $ps.Choices
+            }
+            return
+        }
+
+        $rows = $script:AllEntries | Where-Object { $_.Section -eq $Section }
+        if ($filter) { $rows = $rows | Where-Object { $_.Name -like "*$filter*" } }
+
+        foreach ($e in $rows) {
+            if ($e.Source -eq 'sfx') {
+                $header = New-Object System.Windows.Forms.Label
+                $header.Text = $e.Name
+                $header.Location = New-Object System.Drawing.Point(8, ($y + 4))
+                $header.Size = New-Object System.Drawing.Size(430, 20)
+                $header.ForeColor = $cBone
+                $header.Font = New-Object System.Drawing.Font('Consolas', 9.5, [System.Drawing.FontStyle]::Bold)
+                $scroll.Controls.Add($header)
+                $y += 26
+                foreach ($key in 'db', 'pitch', 'limit', 'gap') {
+                    if (-not $e.Fields.ContainsKey($key)) { continue }
+                    $label = switch ($key) {
+                        'db' { '    level (dB)' }
+                        'pitch' { '    pitch drift' }
+                        'limit' { '    max at once' }
+                        'gap' { '    min gap (s)' }
+                    }
+                    $y = Add-Row -Parent $scroll -Y $y -Label $label -Value $e.Fields[$key] `
+                        -Help "$($e.Name) $key" -Key ("sfx::" + $e.Name + "/" + $key) `
+                        -Kind 'float' -ReadOnly $false -Choices @()
+                }
+                $y += 6
+            } else {
+                $y = Add-Row -Parent $scroll -Y $y -Label $e.Name -Value $e.Raw `
+                    -Help $e.Help -Key ("bal::" + $e.Name) -Kind $e.Kind `
+                    -ReadOnly $e.ReadOnly -Choices @()
+            }
+        }
+        if ($rows.Count -eq 0) {
+            $none = New-Object System.Windows.Forms.Label
+            $none.Text = 'Nothing matches the filter.'
+            $none.Location = New-Object System.Drawing.Point(10, 10)
+            $none.Size = New-Object System.Drawing.Size(400, 24)
+            $none.ForeColor = [System.Drawing.Color]::FromArgb(140, 150, 150)
+            $scroll.Controls.Add($none)
+        }
+    }
+
+    $tree.Add_AfterSelect({
+        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
+    })
+    $txtFind.Add_TextChanged({
+        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
+    })
+
+    $btnReload.Add_Click({
+        $script:AllEntries = @()
+        $script:AllEntries += Read-BalanceEntries
+        $script:AllEntries += Read-SfxEntries
+        Rebuild-Tree
+        $lblSaved.Text = 'Reloaded from disk.'
+    })
+
+    $btnSave.Add_Click({
+        $balance = @{}
+        $sfx = @{}
+        $project = @{}
+        $bad = New-Object System.Collections.ArrayList
+
+        foreach ($key in $script:Editors.Keys) {
+            $box = $script:Editors[$key]
+            if (-not $box.Enabled) { continue }
+            $meta = $box.Tag
+            $text = if ($box -is [System.Windows.Forms.ComboBox]) { [string]$box.SelectedItem } else { $box.Text.Trim() }
+            if ($text -eq $meta.Original) { continue }
+
+            # Validate before writing anything, so a single bad field cannot leave
+            # half the values applied.
+            switch ($meta.Kind) {
+                'int'   { if ($text -notmatch '^-?[0-9]+$') { [void]$bad.Add("$key must be a whole number") } }
+                'float' { if ($text -notmatch '^-?[0-9]*\.?[0-9]+$') { [void]$bad.Add("$key must be a number") } }
+                'bool'  { if ($text -notin @('true','false')) { [void]$bad.Add("$key must be true or false") } }
+            }
+            if ($key.StartsWith('bal::')) { $balance[$key.Substring(5)] = $text }
+            elseif ($key.StartsWith('sfx::')) { $sfx[$key.Substring(5)] = $text }
+            elseif ($key.StartsWith('proj::')) { $project[$key.Substring(6)] = ($text -split ' ')[0] }
+        }
+
+        if ($bad.Count -gt 0) {
+            [System.Windows.Forms.MessageBox]::Show(($bad -join "`r`n"), 'Fix these first') | Out-Null
+            return
+        }
+        if ($balance.Count + $sfx.Count + $project.Count -eq 0) {
+            $lblSaved.Text = 'Nothing changed.'
+            return
+        }
+
+        $n1 = Write-BalanceValues -Changes $balance
+        $n2 = Write-SfxValues -Changes $sfx
+        foreach ($k in $project.Keys) { Write-ProjectValue -Key $k -Value $project[$k] }
+
+        $script:AllEntries = @()
+        $script:AllEntries += Read-BalanceEntries
+        $script:AllEntries += Read-SfxEntries
+        if ($null -ne $tree.SelectedNode) { Show-Section -Section ([string]$tree.SelectedNode.Tag) }
+        $lblSaved.Text = ("Saved: {0} balance, {1} sounds, {2} settings." -f $n1, $n2, $project.Count)
+    })
+
+    Rebuild-Tree
+    Show-Section -Section ([string]$tree.Nodes[0].Tag)
+}
+
+New-TuningTab -TabControl $tabs
 
 [void]$form.ShowDialog()
