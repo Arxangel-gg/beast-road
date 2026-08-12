@@ -1,5 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
+[ext_resource type="Script" path="res://scripts/components/occluder.gd" id="96_occl"]
 [ext_resource type="Script" path="res://scenes/battlefield/tower.gd" id="1_tower"]
 
 [node name="Tower" type="Node2D" node_paths=PackedStringArray("sprite", "range_ring")]
@@ -10,3 +11,8 @@ range_ring = NodePath("RangeRing")
 [node name="RangeRing" type="Line2D" parent="."]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+
+[node name="Occluder" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("96_occl")
+sprite = NodePath("../Sprite2D")
+base_offset = -20.0

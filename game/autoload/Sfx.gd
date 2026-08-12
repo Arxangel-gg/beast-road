@@ -24,7 +24,52 @@ extends Node
 ## Voices in the pool. Above this, the oldest finished voice is reused.
 const VOICES: int = 24
 
-const SFX_DIR: String = "res://audio/sfx/"
+## Explicit paths, not a directory scan.
+##
+## This was `DirAccess.open("res://audio/sfx/")` and it is the bug that made
+## every sound effect silent in the exported game while working perfectly from
+## source. Godot strips the source asset out of the .pck when it imports it and
+## leaves a remap behind, so a runtime directory listing of res:// finds nothing
+## in an export. Music and ambience were unaffected because they always used
+## explicit paths - which is exactly why the soundtrack worked and nothing else
+## did.
+##
+## Regenerate with: python tools/gen_sfx_table.py
+const SOUNDS: Dictionary = {
+	"sfx_air_shot": "res://audio/sfx/sfx_air_shot.ogg",
+	"sfx_boss_spawn": "res://audio/sfx/sfx_boss_spawn.ogg",
+	"sfx_construction_done": "res://audio/sfx/sfx_construction_done.ogg",
+	"sfx_dash": "res://audio/sfx/sfx_dash.ogg",
+	"sfx_earth_shot": "res://audio/sfx/sfx_earth_shot.ogg",
+	"sfx_enemy_die": "res://audio/sfx/sfx_enemy_die.ogg",
+	"sfx_fire_shot": "res://audio/sfx/sfx_fire_shot.ogg",
+	"sfx_footstep_dirt": "res://audio/sfx/sfx_footstep_dirt.ogg",
+	"sfx_footstep_heavy": "res://audio/sfx/sfx_footstep_heavy.ogg",
+	"sfx_hero_death": "res://audio/sfx/sfx_hero_death.ogg",
+	"sfx_hero_hurt": "res://audio/sfx/sfx_hero_hurt.ogg",
+	"sfx_hero_swing_1": "res://audio/sfx/sfx_hero_swing_1.ogg",
+	"sfx_hero_swing_2": "res://audio/sfx/sfx_hero_swing_2.ogg",
+	"sfx_hero_swing_heavy": "res://audio/sfx/sfx_hero_swing_heavy.ogg",
+	"sfx_hit_armour": "res://audio/sfx/sfx_hit_armour.ogg",
+	"sfx_hit_flesh": "res://audio/sfx/sfx_hit_flesh.ogg",
+	"sfx_hit_stone": "res://audio/sfx/sfx_hit_stone.ogg",
+	"sfx_raid_ready": "res://audio/sfx/sfx_raid_ready.ogg",
+	"sfx_relic_socket": "res://audio/sfx/sfx_relic_socket.ogg",
+	"sfx_spell_blink": "res://audio/sfx/sfx_spell_blink.ogg",
+	"sfx_spell_cast": "res://audio/sfx/sfx_spell_cast.ogg",
+	"sfx_spell_nova": "res://audio/sfx/sfx_spell_nova.ogg",
+	"sfx_tower_build": "res://audio/sfx/sfx_tower_build.ogg",
+	"sfx_tower_sell": "res://audio/sfx/sfx_tower_sell.ogg",
+	"sfx_tower_upgrade": "res://audio/sfx/sfx_tower_upgrade.ogg",
+	"sfx_town_damaged": "res://audio/sfx/sfx_town_damaged.ogg",
+	"sfx_ui_click": "res://audio/sfx/sfx_ui_click.ogg",
+	"sfx_ui_confirm": "res://audio/sfx/sfx_ui_confirm.ogg",
+	"sfx_ui_deny": "res://audio/sfx/sfx_ui_deny.ogg",
+	"sfx_ui_hover": "res://audio/sfx/sfx_ui_hover.ogg",
+	"sfx_war_horn": "res://audio/sfx/sfx_war_horn.ogg",
+	"sfx_water_shot": "res://audio/sfx/sfx_water_shot.ogg",
+	"sfx_wave_incoming": "res://audio/sfx/sfx_wave_incoming.ogg",
+}
 
 ## Per-sound mix. `db` trims level, `pitch` is the +/- fraction of pitch drift,
 ## `limit` caps how many can sound at once, `gap` is the minimum seconds between
@@ -195,23 +240,25 @@ func debug_state() -> Dictionary:
 
 
 func _load_streams() -> void:
-	var dir: DirAccess = DirAccess.open(SFX_DIR)
-	if dir == null:
-		return
-	dir.list_dir_begin()
-	var entry: String = dir.get_next()
-	while entry != "":
-		if not dir.current_is_dir():
-			var clean: String = entry.trim_suffix(".remap")
-			if clean.ends_with(".ogg"):
-				var stream: AudioStream = load(SFX_DIR + clean) as AudioStream
-				if stream != null:
-					# One-shots must never loop; a looping hit sound never stops.
-					if stream is AudioStreamOggVorbis:
-						(stream as AudioStreamOggVorbis).loop = false
-					_streams[clean.get_basename()] = stream
-		entry = dir.get_next()
-	dir.list_dir_end()
+	for id: Variant in SOUNDS:
+		var path: String = String(SOUNDS[id])
+		if not ResourceLoader.exists(path):
+			push_warning("Sfx: missing %s" % path)
+			continue
+		var stream: AudioStream = load(path) as AudioStream
+		if stream == null:
+			continue
+		# One-shots must never loop; a looping hit sound never stops.
+		if stream is AudioStreamOggVorbis:
+			(stream as AudioStreamOggVorbis).loop = false
+		_streams[String(id)] = stream
+
+	# Loud failure. Silent audio that reports success is what let a broken
+	# export ship three times.
+	if _streams.is_empty():
+		push_error("Sfx: no sound effects loaded. Every sound will be silent.")
+	elif _streams.size() < SOUNDS.size():
+		push_warning("Sfx: loaded %d of %d sounds." % [_streams.size(), SOUNDS.size()])
 
 
 func _build_voices() -> void:

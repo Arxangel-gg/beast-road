@@ -23,6 +23,7 @@ ContentDB="*res://autoload/ContentDB.gd"
 MetaState="*res://autoload/MetaState.gd"
 RunState="*res://autoload/RunState.gd"
 Modifiers="*res://autoload/Modifiers.gd"
+DayNight="*res://autoload/DayNight.gd"
 Vfx="*res://autoload/Vfx.gd"
 GameDirector="*res://autoload/GameDirector.gd"
 MusicPlayer="*res://autoload/MusicPlayer.gd"
@@ -33,6 +34,8 @@ Ambience="*res://autoload/Ambience.gd"
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/size/mode=3
+window/size/borderless=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

@@ -14,6 +14,7 @@ extends EnemyField
 @export var enemy_scene: PackedScene
 @export var tower_scene: PackedScene
 @export var tower_slot_scene: PackedScene
+@export var projectile_scene: PackedScene
 
 @export var ground: Sprite2D
 @export var lane_root: Node2D
@@ -54,6 +55,8 @@ const LANE_ROAD_TINT: Color = Color(1.0, 0.96, 0.88, 0.55)
 
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
+	_setup_sorting()
+	_setup_lighting()
 	_setup_ground()
 	_build_lanes()
 	_build_slots()
@@ -97,6 +100,41 @@ func resume() -> void:
 
 func is_suspended() -> bool:
 	return _suspended
+
+
+## Towers and units lived in separate parents, so nothing sorted between them
+## and the hero drew on top of a tower even when standing behind it. Y-sorting
+## has to be on every node in the chain, or the groups sort internally and then
+## stack by tree order.
+func _setup_sorting() -> void:
+	y_sort_enabled = true
+	for node: Node2D in [slot_root, entity_root, effect_root]:
+		if node != null:
+			node.y_sort_enabled = true
+			# Same z_index, or z beats y-sorting regardless of position.
+			node.z_index = 0
+
+
+## A CanvasModulate tints everything under it, which is what turns the day/night
+## phase into an actual look rather than a number on the HUD.
+func _setup_lighting() -> void:
+	var modulate_node := CanvasModulate.new()
+	modulate_node.name = "DayTint"
+	add_child(modulate_node)
+	DayNight.phase_changed.connect(
+		func(_p: float, tint: Color, _d: float) -> void: modulate_node.color = tint)
+	modulate_node.color = DayNight.tint
+
+	if town != null:
+		LightKit.add_light(town, Balance.TOWN_LIGHT_COLOUR,
+			Balance.TOWN_LIGHT_RADIUS, Balance.TOWN_LIGHT_ENERGY, 0.05)
+
+
+## Shots are parented to the effect layer, not to the tower, so selling a tower
+## mid-flight does not delete its shot.
+func add_projectile(shot: Projectile, at: Vector2) -> void:
+	effect_root.add_child(shot)
+	shot.global_position = at
 
 
 # --- Lane geometry ----------------------------------------------------------

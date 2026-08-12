@@ -58,6 +58,9 @@ func _ready() -> void:
 	attack.lunge_requested.connect(_on_lunge_requested)
 	health_bar.bind(health)
 
+	# The hero carries the light the player navigates by after dark.
+	LightKit.add_light(self, Balance.HERO_LIGHT_COLOUR, Balance.HERO_LIGHT_RADIUS,
+		Balance.HERO_LIGHT_ENERGY, Balance.HERO_LIGHT_FLICKER)
 	animator.mass = Balance.ANIM_MASS_HERO
 	animator.capture_home()
 	attack.landed.connect(_on_attack_landed)

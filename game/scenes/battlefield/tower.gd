@@ -12,6 +12,9 @@ const GROUP: StringName = &"towers"
 @export var sprite: Sprite2D
 @export var range_ring: Line2D
 
+## Set by the battlefield so shots can be parented outside the tower.
+var projectile_scene: PackedScene = null
+
 var data: TowerData = null
 var level: int = 1
 var lane: int = 0
@@ -43,6 +46,8 @@ func _ready() -> void:
 		sprite.texture = load(path)
 	_draw_range_ring()
 	refresh_modifiers()
+	LightKit.add_light(self, TowerData.element_colour(data.element),
+		Balance.TOWER_LIGHT_RADIUS, Balance.TOWER_LIGHT_ENERGY, Balance.TOWER_LIGHT_FLICKER)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
 	_cooldown = randf() * data.interval_at(level)
 
@@ -122,17 +127,37 @@ func _fire(targets: Array[Enemy]) -> void:
 	var primary: Enemy = targets[0]
 	EventBus.tower_fired.emit(lane, slot, primary.global_position)
 
-	if data.aoe_radius > 0.0:
-		for enemy: Enemy in _field.enemies_near(primary.global_position, data.aoe_radius):
+	# An aura tower has no projectile: it affects everything in reach at once,
+	# and a shot flying out to each target would be a lie about how it works.
+	if _is_aura():
+		for enemy: Enemy in _field.enemies_near(global_position, data.attack_range):
 			_hit(enemy)
-	else:
-		for enemy: Enemy in targets:
-			_hit(enemy)
+		Vfx.ring(global_position, data.attack_range,
+			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
+		return
 
-	if data.ground_zone_dps > 0.0:
-		_field.spawn_ground_zone(primary.global_position, data.ground_zone_dps, data.ground_zone_duration, data.aoe_radius if data.aoe_radius > 0.0 else 90.0)
+	for enemy: Enemy in targets:
+		_launch(enemy)
 
-	_field.spawn_tracer(global_position, primary.global_position, TowerData.element_colour(data.element))
+
+## True for towers that pulse an area rather than firing at something.
+func _is_aura() -> bool:
+	return data.aoe_radius > 0.0 and effective_damage() <= 0.0
+
+
+## Sends a shot at `enemy`. Parented to the battlefield's effect layer rather
+## than to the tower, so it keeps flying if the tower is sold mid-flight.
+func _launch(enemy: Enemy) -> void:
+	if projectile_scene == null or _field == null:
+		_hit(enemy)
+		return
+	var shot := projectile_scene.instantiate() as Projectile
+	if shot == null:
+		_hit(enemy)
+		return
+	shot.setup(enemy, data, effective_damage(),
+		data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
+	_field.add_projectile(shot, global_position + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
 
 func _hit(enemy: Enemy) -> void:

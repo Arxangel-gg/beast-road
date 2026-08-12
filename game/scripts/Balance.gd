@@ -720,3 +720,74 @@ const AMBIENCE_DB: float = -14.0
 ## player's volume slider, so this is purely how loud music sits against the
 ## sound effects. [TUNE]
 const MUSIC_DB: float = -8.0
+
+# ==============================================================================
+# DAY / NIGHT AND LIGHTING
+# ==============================================================================
+
+## Phase a run begins at. 0.18 is mid-morning: bright, so the first minutes are
+## readable before the game starts taking the light away. [TUNE]
+const DAY_START_PHASE: float = 0.18
+
+## Darkness above which night rules apply.
+const NIGHT_THRESHOLD: float = 0.55
+
+## Extra enemy count and stats at full darkness. Night is a difficulty state,
+## not just a colour grade. [TUNE]
+const NIGHT_DIFFICULTY_BONUS: float = 0.45
+
+## Fraction of a light's energy that survives midday. Not zero, so a brazier
+## still glows a little in daylight. [TUNE]
+const LIGHT_DAY_ENERGY: float = 0.12
+
+## Hero's carried light. [TUNE]
+const HERO_LIGHT_RADIUS: float = 420.0
+const HERO_LIGHT_ENERGY: float = 1.15
+const HERO_LIGHT_COLOUR: Color = Color(1.0, 0.86, 0.62)
+const HERO_LIGHT_FLICKER: float = 0.10
+
+## Tower braziers, tinted by element. [TUNE]
+const TOWER_LIGHT_RADIUS: float = 300.0
+const TOWER_LIGHT_ENERGY: float = 0.95
+const TOWER_LIGHT_FLICKER: float = 0.16
+
+## The town is the brightest thing on the field - it is what you are defending.
+const TOWN_LIGHT_RADIUS: float = 620.0
+const TOWN_LIGHT_ENERGY: float = 1.25
+const TOWN_LIGHT_COLOUR: Color = Color(1.0, 0.82, 0.55)
+
+## Enemy eyes, so a wave is visible in the dark before it is in tower range.
+const ENEMY_LIGHT_RADIUS: float = 110.0
+const ENEMY_LIGHT_ENERGY: float = 0.5
+
+# ------------------------------------------------------------------------------
+# Projectiles
+# ------------------------------------------------------------------------------
+
+const PROJECTILE_LENGTH: float = 26.0
+const PROJECTILE_WIDTH: float = 5.0
+
+## How fast a shot turns to follow its target, per second. [TUNE]
+const PROJECTILE_TURN_RATE: float = 9.0
+
+## Extra slack on the hit test, so a fast shot cannot tunnel through.
+const PROJECTILE_HIT_RADIUS: float = 16.0
+
+## A shot that has not connected by now fizzles.
+const PROJECTILE_MAX_LIFE: float = 2.5
+
+const PROJECTILE_LIGHT_RADIUS: float = 120.0
+const PROJECTILE_LIGHT_ENERGY: float = 0.7
+
+# ------------------------------------------------------------------------------
+# See-through structures
+# ------------------------------------------------------------------------------
+
+## How transparent a tower or building becomes when the hero is behind it. [TUNE]
+const OCCLUDER_ALPHA: float = 0.32
+
+## How close the hero must be, in pixels, for a structure to fade.
+const OCCLUDER_RANGE: float = 150.0
+
+## How fast the fade moves, in alpha per second.
+const OCCLUDER_FADE_SPEED: float = 6.0

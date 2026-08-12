@@ -112,6 +112,9 @@ func refresh() -> void:
 	var instance := scene.instantiate() as Tower
 	if instance == null:
 		return
+	# The tower fires shots but does not own them, so it needs the scene handed
+	# down rather than loading a path of its own.
+	instance.projectile_scene = _field.projectile_scene
 	instance.setup(wanted, wanted_level, lane, slot, _field)
 	tower_root.add_child(instance)
 	_tower = instance

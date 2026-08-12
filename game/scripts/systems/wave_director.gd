@@ -82,6 +82,10 @@ func _pick_lanes(wave: int) -> Array[int]:
 	var count: int = clampi(
 		Balance.WAVE_LANES_START + int(floor(float(wave - 1) / 2.0)),
 		1, Balance.WAVE_LANES_MAX)
+	# After dark they come down more lanes at once, which is what actually
+	# creates the triage pressure rather than just tougher individuals.
+	if DayNight.is_night():
+		count = clampi(count + 1, 1, Balance.WAVE_LANES_MAX)
 	var all: Array[int] = []
 	for i: int in Balance.LANE_COUNT:
 		all.append(i)
@@ -133,4 +137,7 @@ func _pick_enemy(elite: bool) -> EnemyData:
 func _stat_scale() -> float:
 	var scale: float = 1.0 + Balance.WAVE_STAT_GROWTH * float(RunState.wave_number - 1)
 	scale *= RunState.enemy_escalation_multiplier()
+	# Night is a difficulty state, not just a colour grade: the same wave that is
+	# survivable at noon should not be at midnight.
+	scale *= DayNight.difficulty_multiplier()
 	return scale
