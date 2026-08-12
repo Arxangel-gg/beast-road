@@ -81,6 +81,15 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
 
+	# Shadows are added after the texture, because both are measured from it.
+	# A pool under every walker is most of what stops a crowd looking like decals
+	# sliding across the floor, and the caster is what makes them streak past a
+	# torch at night.
+	ShadowKit.add_contact(self, sprite)
+	var half: Vector2 = sprite.texture.get_size() * 0.5 if sprite.texture != null else Vector2(40, 40)
+	ShadowKit.add_caster(self, half.x * 0.42, half.y * 0.20,
+		Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
+
 	_lane_offset = randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
 	EventBus.enemy_spawned.emit(data.id, global_position)
 

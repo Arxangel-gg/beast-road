@@ -26,6 +26,12 @@ var _flash_left: float = 0.0
 var _ended: bool = false
 var _stage: int = -1
 
+## Fires currently alight on the city, and the column of smoke above it. Both are
+## rebuilt whenever the damage stage changes.
+var _fires: Array[Flame] = []
+var _smoke: CPUParticles2D = null
+var _fire_rng := RandomNumberGenerator.new()
+
 
 func _ready() -> void:
 	add_to_group(GROUP)
@@ -34,6 +40,15 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.changed.connect(_on_changed)
 	health.died.connect(_on_died)
+	# Seeded, so the fires do not shuffle to new roofs every time the scope is
+	# entered. A city that rearranges its own damage does not read as a place.
+	_fire_rng.seed = 0x8EA57
+	_build_smoke()
+	ShadowKit.add_contact(self, sprite, 0.72)
+	if sprite != null and sprite.texture != null:
+		var half: Vector2 = sprite.texture.get_size() * 0.5
+		ShadowKit.add_caster(self, half.x * 0.44, half.y * 0.18,
+			Balance.SHADOW_LAYER_SCENERY, half.y * 0.42)
 	_apply_stage(true)
 	EventBus.town_health_changed.emit(health.current_hp, health.max_hp)
 
@@ -67,11 +82,12 @@ func _apply_stage(force: bool = false) -> void:
 	_stage = wanted
 
 	var path: String = String(STAGES[wanted]["texture"])
-	if not ResourceLoader.exists(path):
-		return
-	sprite.texture = load(path)
-	if occluder != null:
-		occluder.remeasure()
+	if ResourceLoader.exists(path):
+		sprite.texture = load(path)
+		if occluder != null:
+			occluder.remeasure()
+
+	_rebuild_fires()
 
 	if not force:
 		# A stage change is a landmark: the town just visibly got worse.
@@ -79,6 +95,115 @@ func _apply_stage(force: bool = false) -> void:
 			Color(0.9, 0.45, 0.25, 0.6), 0.6, 6.0)
 		EventBus.camera_shake_requested.emit(14.0, 0.5)
 		Sfx.play("sfx_town_damaged", 4.0)
+
+
+# --- Burning ----------------------------------------------------------------
+
+## Fires on the city, one set per damage stage.
+##
+## The stage swap alone reads on a still frame and not at all in motion — a
+## player mid-wave does not study the roofline. Fire does read: it moves, it
+## throws light on the ground around it, and it is the difference between damaged
+## art and a place that is visibly losing.
+##
+## Rebuilt rather than added to, so healing the town puts the fires out.
+func _rebuild_fires() -> void:
+	for fire: Flame in _fires:
+		if is_instance_valid(fire):
+			fire.queue_free()
+	_fires.clear()
+
+	var wanted: int = 0
+	if _stage >= 0 and _stage < Balance.CITY_FIRES_PER_STAGE.size():
+		wanted = Balance.CITY_FIRES_PER_STAGE[_stage]
+
+	_update_smoke(wanted)
+	if wanted <= 0 or sprite == null or sprite.texture == null:
+		return
+
+	var extent: Vector2 = sprite.texture.get_size() * sprite.scale.abs() * Balance.CITY_FIRE_SPREAD
+	# The same seed every time, so fire number three is always on the same roof.
+	_fire_rng.seed = 0x8EA57 + _stage
+
+	for i: int in wanted:
+		var fire := Flame.new()
+		fire.name = "Fire%d" % i
+		# Spread across the silhouette, biased upward: the roofs burn, not the
+		# ground the walls stand on.
+		fire.position = Vector2(
+			_fire_rng.randf_range(-extent.x, extent.x),
+			_fire_rng.randf_range(-extent.y, extent.y * 0.35))
+		add_child(fire)
+
+		var size: float = _fire_rng.randf_range(
+			Balance.CITY_FIRE_SIZE_MIN, Balance.CITY_FIRE_SIZE_MAX)
+		# Only the larger fires carry a light. Seven lights inside one building
+		# would flatten it into a glowing blob.
+		var radius: float = size * 7.0 if size > Balance.CITY_FIRE_SIZE_MAX * 0.7 else 0.0
+		fire.configure(size, radius, Balance.FLAME_MID, 0.8, false)
+
+		# Fires further down the sprite are nearer the viewer, so they draw over
+		# the ones behind them.
+		fire.z_index = 1
+		_fires.append(fire)
+
+
+func _build_smoke() -> void:
+	_smoke = CPUParticles2D.new()
+	_smoke.name = "Smoke"
+	_smoke.texture = Flame.dot_texture()
+	_smoke.emitting = false
+	_smoke.lifetime = Balance.CITY_SMOKE_LIFETIME
+	_smoke.lifetime_randomness = 0.45
+	_smoke.local_coords = false
+	_smoke.amount = Balance.CITY_SMOKE_AMOUNT
+
+	_smoke.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_smoke.emission_sphere_radius = 70.0
+	_smoke.direction = Vector2.UP
+	_smoke.spread = 18.0
+	_smoke.initial_velocity_min = Balance.CITY_SMOKE_SPEED * 0.5
+	_smoke.initial_velocity_max = Balance.CITY_SMOKE_SPEED
+	# Leaning, so the column drifts off the city rather than standing over it
+	# like a chimney in still air.
+	_smoke.gravity = Vector2(26.0, -34.0)
+	_smoke.damping_min = 1.0
+	_smoke.damping_max = 4.0
+	_smoke.angular_velocity_min = -22.0
+	_smoke.angular_velocity_max = 22.0
+	_smoke.scale_amount_min = 1.6
+	_smoke.scale_amount_max = 3.4
+
+	var growth := Curve.new()
+	growth.add_point(Vector2(0.0, 0.3))
+	growth.add_point(Vector2(1.0, 1.0))
+	_smoke.scale_amount_curve = growth
+
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.18, 1.0])
+	ramp.colors = PackedColorArray([
+		Color(Balance.FLAME_SMOKE_COLOUR, 0.0),
+		Color(Balance.FLAME_SMOKE_COLOUR, Balance.CITY_SMOKE_ALPHA),
+		Color(Balance.FLAME_SMOKE_COLOUR, 0.0),
+	])
+	_smoke.color_ramp = ramp
+	# Above the city, so the column reads as rising off it rather than as a stain
+	# behind it.
+	_smoke.z_index = 2
+	add_child(_smoke)
+
+
+func _update_smoke(fires: int) -> void:
+	if _smoke == null:
+		return
+	_smoke.emitting = fires > 0
+	if fires <= 0:
+		return
+	# Thickens with the count rather than with the stage index, so the smoke and
+	# the fires can never disagree about how bad it is.
+	var share: float = float(fires) / float(maxi(Balance.CITY_FIRES_PER_STAGE.max(), 1))
+	_smoke.amount = maxi(int(round(float(Balance.CITY_SMOKE_AMOUNT) * share)), 1)
+	_smoke.position.y = -60.0
 
 
 func _on_damaged(amount: float, _from: Vector2) -> void:

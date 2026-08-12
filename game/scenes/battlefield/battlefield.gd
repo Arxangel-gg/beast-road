@@ -59,7 +59,13 @@ const LANE_TEXTURE: String = "res://art/battlefield/lane_path.png"
 ## rather than beside it.
 const LANE_ROAD_SCALE: float = 1.6
 
-const LANE_ROAD_TINT: Color = Color(1.0, 0.96, 0.88, 0.55)
+## Road colour. Alpha and darkening both live in Balance because both of them
+## are "can you see the lane", which is a tuning question and was answered wrong
+## once already.
+static func lane_road_tint() -> Color:
+	var shade: float = Balance.PATH_DARKEN
+	var warm: Color = Balance.PATH_WARMTH
+	return Color(warm.r * shade, warm.g * shade, warm.b * shade, Balance.PATH_TINT_ALPHA)
 
 
 func _ready() -> void:
@@ -176,7 +182,20 @@ func _setup_lighting() -> void:
 	clouds.z_index = Z_CLOUDS
 	add_child(clouds)
 
+	# Contact shadows follow the sun, and the sun follows the beast walking.
+	ShadowKit.attach_sun(self)
+
 	if town != null:
+		# No shadows on this one, and the reason is worth keeping.
+		#
+		# It is a 620px light with a dozen small occluders wandering around inside
+		# it, and Godot's 2D shadows are hard-edged wedges that run all the way to
+		# the light's rim. Every enemy near the town therefore painted a spoke
+		# across half the battlefield, and thirteen-tap filtering fanned each spoke
+		# into several. The result was a red starburst the size of the map.
+		#
+		# Cast shadows want *small, local* lights. The torches are exactly that,
+		# and they are where the effect actually reads.
 		LightKit.add_light(town, Balance.TOWN_LIGHT_COLOUR,
 			Balance.TOWN_LIGHT_RADIUS, Balance.TOWN_LIGHT_ENERGY, 0.05)
 
@@ -188,17 +207,19 @@ func add_projectile(shot: Projectile, at: Vector2) -> void:
 	shot.global_position = at
 
 
-## Torches down both sides of every road.
+## Torches down both sides of every road: three stops each side, four roads,
+## twenty-four in total.
+##
+## The stops are explicit distances rather than an even division of the road,
+## because an even division put them level with the build spots — a torch beside
+## a tower fights it for attention and sits over the thing the player is trying
+## to click. TORCH_ALONG_STOPS threads them through the gaps instead, and
+## TORCH_LANE_OFFSET stands them well back from both.
 func _build_torches() -> void:
-	var length: float = Balance.LANE_SPAWN_RADIUS - Balance.TOWN_RADIUS
 	for lane: int in Balance.LANE_COUNT:
 		var direction: Vector2 = Battlefield.lane_vector(lane)
 		var side: Vector2 = direction.orthogonal()
-		for i: int in Balance.TORCH_PER_LANE:
-			# Spread along the road, skipping the very ends so none stands on
-			# the town wall or at the spawn point itself.
-			var t: float = float(i + 1) / float(Balance.TORCH_PER_LANE + 1)
-			var along: float = Balance.TOWN_RADIUS + length * t
+		for along: float in Balance.TORCH_ALONG_STOPS:
 			for sign: float in [-1.0, 1.0]:
 				var torch := Torch.new()
 				torch.lane = lane
@@ -470,21 +491,21 @@ func _build_lanes() -> void:
 		# lane 0 (north), which is what lane_vector returns.
 		strip.rotation = direction.angle()
 		strip.position = direction * (Balance.TOWN_RADIUS + length * 0.5)
-		strip.modulate = LANE_ROAD_TINT
-		# Noisy fringe, so the road wears into the ground instead of sitting on
-		# it like a sticker with four straight edges.
-		strip.material = PathBlend.material_for(lane, Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5)
+		strip.modulate = lane_road_tint()
+		# Noisy fringe on the outer band only, so the road wears into the ground
+		# instead of sitting on it like a sticker with four straight edges — while
+		# its interior stays solid, because the interior is what the player reads
+		# enemies against.
+		#
+		# The shader is handed the region-to-texture ratio because the region is
+		# bigger than the road art: that is what makes it tile, and it is also
+		# what makes UV run past 1. See PathBlend for what that broke.
+		var uv_scale := Vector2(
+			strip.region_rect.size.x / maxf(road.get_width(), 1.0),
+			strip.region_rect.size.y / maxf(road.get_height(), 1.0)) if road != null else Vector2.ONE
+		strip.material = PathBlend.material_for(
+			lane, Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5, uv_scale)
 		lane_root.add_child(strip)
-
-		# A soft centre line so the walking path reads even before real art.
-		var line := Line2D.new()
-		line.points = PackedVector2Array([
-			direction * Balance.LANE_SPAWN_RADIUS,
-			direction * Balance.TOWN_RADIUS,
-		])
-		line.width = 3.0
-		line.default_color = Color(0.85, 0.80, 0.72, 0.10)
-		lane_root.add_child(line)
 
 
 func _build_slots() -> void:

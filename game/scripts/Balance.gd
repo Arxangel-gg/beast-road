@@ -707,6 +707,12 @@ const VFX_HURT_FLASH: float = 0.26
 const VFX_TOWN_FLASH: float = 0.34
 const VFX_TOWN_SHAKE: float = 13.0
 
+## Shortest gap between two town-damage flashes. Hits arriving inside the window
+## are added up and reported as one burst when it ends, so a broken lane reads as
+## a hard repeated pulse instead of holding the screen solid red. Must stay above
+## the flash's own 0.4s life or the flashes overlap again. [TUNE]
+const VFX_TOWN_FLASH_COOLDOWN: float = 0.85
+
 ## Town health fraction below which its damage flash doubles up. [TUNE]
 const VFX_TOWN_CRITICAL: float = 0.35
 
@@ -745,19 +751,21 @@ const NIGHT_DIFFICULTY_BONUS: float = 0.45
 const LIGHT_DAY_ENERGY: float = 0.12
 
 ## Hero's carried light. [TUNE]
-const HERO_LIGHT_RADIUS: float = 420.0
-const HERO_LIGHT_ENERGY: float = 1.15
+const HERO_LIGHT_RADIUS: float = 330.0
+const HERO_LIGHT_ENERGY: float = 1.20
 const HERO_LIGHT_COLOUR: Color = Color(1.0, 0.86, 0.62)
 const HERO_LIGHT_FLICKER: float = 0.10
 
 ## Tower braziers, tinted by element. [TUNE]
-const TOWER_LIGHT_RADIUS: float = 300.0
-const TOWER_LIGHT_ENERGY: float = 0.95
+const TOWER_LIGHT_RADIUS: float = 210.0
+const TOWER_LIGHT_ENERGY: float = 1.00
 const TOWER_LIGHT_FLICKER: float = 0.16
 
 ## The town is the brightest thing on the field - it is what you are defending.
-const TOWN_LIGHT_RADIUS: float = 620.0
-const TOWN_LIGHT_ENERGY: float = 1.25
+## Pulled in from 620 because at that reach it was a floodlight over the whole
+## middle of the map, and nothing near the town could be in shadow. [TUNE]
+const TOWN_LIGHT_RADIUS: float = 430.0
+const TOWN_LIGHT_ENERGY: float = 1.30
 const TOWN_LIGHT_COLOUR: Color = Color(1.0, 0.82, 0.55)
 
 ## Enemy eyes, so a wave is visible in the dark before it is in tower range.
@@ -863,27 +871,42 @@ const PROJECTILE_TIER_SCALE: float = 0.28
 # relights them by standing close. A dark lane sends stronger, more frequent
 # enemies, so keeping the road lit competes for attention with everything else.
 
-## Torches per lane, spaced along the road between town and spawn. [TUNE]
-const TORCH_PER_LANE: int = 4
+## Where along a road the torches stand, measured out from the town centre.
+##
+## Three stops each side of every road: 3 x 2 sides x 4 lanes = 24 torches.
+## Deliberately *between* the build spots in TOWER_SLOT_RADII rather than level
+## with them - a torch standing beside a tower competes with it for attention and
+## covers the thing the player is trying to click. [TUNE]
+const TORCH_ALONG_STOPS: Array[float] = [250.0, 430.0, 630.0]
 
-## How far to the side of the lane centre they stand. [TUNE]
-const TORCH_LANE_OFFSET: float = 120.0
+## How far to the side of the lane centre they stand. Well clear of the road
+## (half-width 88) and of the towers (offset 96 plus their own half-width), so a
+## torch never overlaps a build spot. [TUNE]
+const TORCH_LANE_OFFSET: float = 215.0
 
-const TORCH_HEIGHT: float = 34.0
-const TORCH_FLAME_SIZE: float = 11.0
+## Height of the post and of the fire on top of it. Sized against the camera, not
+## against realism: at battlefield zoom a 34px torch was a lit matchstick, and a
+## thing the player is meant to notice going out has to be legible from across
+## the lane. [TUNE]
+const TORCH_HEIGHT: float = 58.0
+const TORCH_FLAME_SIZE: float = 26.0
 
-const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.72, 0.36)
-const TORCH_LIGHT_RADIUS: float = 260.0
-const TORCH_LIGHT_ENERGY: float = 1.0
-const TORCH_FLICKER: float = 0.35
+## Tight and bright, not wide and soft.
+##
+## At 340 the twenty-four pools overlapped so heavily that the whole field was
+## lit at once: the night stopped being dark, and every cast shadow was filled in
+## by three other torches, so the shadows may as well not have been there. A
+## smaller radius at higher energy gives each torch a patch of ground it owns —
+## which is what makes the dark between them read as dark, and what lets a shadow
+## survive long enough to be seen. [TUNE]
+const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
+const TORCH_LIGHT_RADIUS: float = 225.0
+const TORCH_LIGHT_ENERGY: float = 1.55
 
-## Embers drifting up from a lit torch, per second. [TUNE]
-const TORCH_EMBER_RATE: float = 3.2
-const TORCH_EMBER_LIFE: float = 1.5
-const TORCH_EMBER_RISE: float = 54.0
-
-## Radius of the soft glow disc drawn behind the flame. [TUNE]
-const TORCH_HALO_RADIUS: float = 26.0
+## The light's own flicker. Low on purpose: the flame *shape* now carries the
+## unsteadiness, and a light that strobes as hard as the silhouette does reads as
+## a fault in the renderer rather than as fire. [TUNE]
+const TORCH_FLICKER: float = 0.16
 
 ## How close an enemy must pass to snuff one out. [TUNE]
 const TORCH_SNUFF_RANGE: float = 46.0
@@ -902,6 +925,100 @@ const TORCH_DARK_DIFFICULTY: float = 0.5
 
 ## How strongly a dark lane pulls the wave director toward choosing it. [TUNE]
 const TORCH_DARK_LANE_BIAS: float = 2.2
+
+# ------------------------------------------------------------------------------
+# Fire
+# ------------------------------------------------------------------------------
+#
+# Shared by the lane torches and the burning city. There is no fire art in the
+# project and none is wanted at these sizes - a static sprite reads as a decal.
+# See scripts/systems/flame.gd for what each of these does to the silhouette.
+
+## Horizontal slices per flame layer. More is smoother and costs draw calls; the
+## additive glow behind hides a surprising amount of blockiness. [TUNE]
+const FLAME_SEGMENTS: int = 9
+
+## How fast the tongues travel up the flame. [TUNE]
+const FLAME_DANCE_SPEED: float = 3.4
+
+## How far the tip wanders sideways, as a fraction of flame height. The base
+## never moves - the displacement grows with height, which is the whole
+## difference between a flame and a leaning triangle. [TUNE]
+const FLAME_LICK: float = 0.34
+
+## How much the height itself breathes, 0..1. A flame of constant height is a
+## lamp. [TUNE]
+const FLAME_BREATH: float = 0.26
+
+## Colours, hottest first. Drawn additively and nested, so the overlap blooms.
+const FLAME_CORE: Color = Color(1.00, 0.96, 0.80)
+const FLAME_MID: Color = Color(1.00, 0.62, 0.18)
+const FLAME_BODY: Color = Color(0.90, 0.24, 0.06)
+
+## Soft glow behind the flame: radius as a multiple of flame size, and strength.
+## This replaces the old halo polygon, whose fourteen straight sides were plainly
+## visible as a disc. [TUNE]
+const FLAME_GLOW_SCALE: float = 4.2
+const FLAME_GLOW_ALPHA: float = 0.34
+
+## Embers. A real particle system, so they inherit spread, damping and a colour
+## ramp rather than being hand-tweened one at a time. [TUNE]
+const FLAME_EMBER_AMOUNT: int = 16
+const FLAME_EMBER_LIFETIME: float = 1.7
+const FLAME_EMBER_SPEED: float = 42.0
+const FLAME_EMBER_SPREAD: float = 26.0
+const FLAME_EMBER_RISE: float = 34.0
+
+## Smoke, drawn behind the flame and mixed rather than added. [TUNE]
+const FLAME_SMOKE_AMOUNT: int = 11
+const FLAME_SMOKE_LIFETIME: float = 3.1
+const FLAME_SMOKE_SPEED: float = 20.0
+const FLAME_SMOKE_ALPHA: float = 0.26
+const FLAME_SMOKE_COLOUR: Color = Color(0.20, 0.19, 0.18)
+
+# ------------------------------------------------------------------------------
+# Shadows
+# ------------------------------------------------------------------------------
+#
+# Two kinds, because they answer different questions.
+#
+# A *contact* shadow is the soft pool directly under a thing. It is what stops
+# units looking pasted onto the floor, and everything that stands on the ground
+# gets one. It tracks the sun: long and raking at dawn and dusk, tight at noon.
+#
+# A *cast* shadow is real: a LightOccluder2D blocking a torch, throwing a hard
+# streak away from the flame. That is the one that makes a lit road at night look
+# like a lit road.
+
+## Contact shadow strength at noon and at midnight. Darker by day because by
+## night the torches are doing the work. [TUNE]
+const SHADOW_ALPHA_DAY: float = 0.40
+const SHADOW_ALPHA_NIGHT: float = 0.15
+
+## How far the pool slides from under its owner, in quad half-widths, when the
+## sun is on the horizon versus overhead. [TUNE]
+const SHADOW_OFFSET_LOW: float = 0.46
+const SHADOW_OFFSET_NOON: float = 0.10
+
+## How flat the pool is. 1.0 is a circle; higher reads as ground seen at an
+## angle, which is the projection the rest of the art assumes. [TUNE]
+const SHADOW_SQUASH: float = 2.30
+
+## Pool width as a fraction of the owner's sprite width. [TUNE]
+const SHADOW_WIDTH: float = 0.66
+
+## Real cast shadows from torch and town light. Turn off if the field ever gets
+## dense enough for the shadow passes to cost more than they are worth. [TUNE]
+const SHADOW_CAST_ENABLED: bool = true
+
+## Softening on cast shadow edges. Zero is a hard stencil edge. [TUNE]
+const SHADOW_FILTER_SMOOTH: float = 3.5
+
+## Occluder layers, so a light can be told what it may throw a shadow of. Bit 1
+## is scenery, bit 2 is units - the town light uses this to shadow the people
+## walking past it without shadowing itself.
+const SHADOW_LAYER_SCENERY: int = 1
+const SHADOW_LAYER_UNITS: int = 2
 
 # ------------------------------------------------------------------------------
 # Foliage
@@ -937,17 +1054,107 @@ const FOLIAGE_SWAY_SPEED: float = 1.15
 # Path blending
 # ------------------------------------------------------------------------------
 
-## Width of the soft, noisy fringe on either side of a road, in pixels. The
-## centre strip is left clean - noise across the whole road makes the road
-## itself look like a mistake rather than like a road. [TUNE]
-const PATH_EDGE_FADE: float = 46.0
+## Half-width of the road's solid interior, in pixels, measured out from the
+## centre line. Inside this radius the road is untouched: no fade, no noise.
+##
+## This is the value that went wrong. It used to be implied rather than stated -
+## the fringe was 46px of an 88px half-width, so the fade began barely off the
+## centre line and, at 55% tint on top, the roads all but vanished. Stating the
+## solid core explicitly means widening the fringe can never eat the road. [TUNE]
+const PATH_CORE_RADIUS: float = 58.0
 
-## How hard the fringe is broken up, 0..1. [TUNE]
-const PATH_EDGE_NOISE: float = 0.55
+## Width of the soft, noisy fringe *outside* the core, in pixels. Core plus
+## fringe should land near the road's half-width (LANE_WIDTH * 1.6 / 2 = 88);
+## more than that and the fringe is simply clipped. [TUNE]
+const PATH_EDGE_FADE: float = 30.0
+
+## How hard the fringe is broken up, 0..1. Only ever moves where the fade
+## *starts*, never how opaque the interior is. [TUNE]
+const PATH_EDGE_NOISE: float = 0.75
 
 ## Fraction of each end of a road given over to fading out, so the road
 ## dissolves into the distance instead of stopping at a line. [TUNE]
-const PATH_END_FADE: float = 0.14
+const PATH_END_FADE: float = 0.10
 
 ## Scale of the fringe noise, in pixels. [TUNE]
-const PATH_NOISE_SCALE: float = 70.0
+const PATH_NOISE_SCALE: float = 62.0
+
+## Opacity of the road over the terrain. A road you cannot see is not a road.
+## [TUNE]
+const PATH_TINT_ALPHA: float = 0.95
+
+## Multiplied into the road art so trodden ground sits darker than the country
+## either side of it.
+##
+## This is doing more work than it looks like. The road texture and the ashfen
+## terrain are close in both hue and value, so at full opacity the lane was still
+## only a faintly different rectangle. Contrast, not opacity, is what makes a
+## road read as a road — and a road the player cannot pick out at a glance is a
+## tower-defense map with no lanes on it. [TUNE]
+const PATH_DARKEN: float = 0.62
+
+## Warmth pushed into the road, so trodden earth reads brown against grey rock.
+## Two channels of separation do more than another 10% of darkening. [TUNE]
+const PATH_WARMTH: Color = Color(1.06, 0.94, 0.78)
+
+# ------------------------------------------------------------------------------
+# Lane pressure rosette
+# ------------------------------------------------------------------------------
+#
+# The directional threat readout (GDD SS3). It replaced four labelled progress
+# bars floating around the middle of the screen, which were as loud at rest as
+# under attack and put the letters N/E/S/W over the battlefield for no reason -
+# the player can already see which way is up.
+#
+# An arc sitting just outside the town, on the side the threat is coming from,
+# says the same thing without naming it, and says nothing at all when calm.
+
+## Distance from screen centre to the arc, in pixels. Just outside the town. [TUNE]
+const LANE_RING_RADIUS: float = 208.0
+
+## Thickness of the arc, and how much thicker it grows at full pressure. [TUNE]
+const LANE_RING_THICKNESS: float = 5.0
+const LANE_RING_GROWTH: float = 7.0
+
+## How much of the circle each lane's arc spans, in degrees. [TUNE]
+const LANE_RING_ARC_DEGREES: float = 58.0
+
+## Opacity of the empty track, and of a full arc. The track has to be faint
+## enough to ignore and present enough to give the fill somewhere to go. [TUNE]
+const LANE_RING_TRACK_ALPHA: float = 0.13
+const LANE_RING_FULL_ALPHA: float = 0.92
+
+## Calm to critical. The fill runs between these. [TUNE]
+const LANE_RING_CALM: Color = Color(0.85, 0.66, 0.28)
+const LANE_RING_HOT: Color = Color(0.86, 0.24, 0.14)
+
+## Pressure above which the arc pulses. Below it the readout is still. [TUNE]
+const LANE_RING_ALARM_AT: float = 0.62
+const LANE_RING_PULSE_SPEED: float = 5.4
+
+# ------------------------------------------------------------------------------
+# The burning city
+# ------------------------------------------------------------------------------
+#
+# The city already swapped to a more broken sprite at each damage stage, which
+# reads on a still frame and not at all in motion. Fire does: it moves, it lights
+# the ground around it, and it is the difference between damaged art and a place
+# that is actually losing.
+
+## Fires alight at each damage stage, in order (untouched first). [TUNE]
+const CITY_FIRES_PER_STAGE: Array[int] = [0, 2, 4, 7]
+
+## Flame size at the smallest and largest, so a burning city is not a row of
+## identical fires. [TUNE]
+const CITY_FIRE_SIZE_MIN: float = 15.0
+const CITY_FIRE_SIZE_MAX: float = 30.0
+
+## Half-extents of the area fires are scattered over, as a fraction of the city
+## sprite. Kept inside the silhouette so nothing burns off the edge of it. [TUNE]
+const CITY_FIRE_SPREAD: Vector2 = Vector2(0.30, 0.16)
+
+## Smoke column above the city, thickening with each stage. [TUNE]
+const CITY_SMOKE_AMOUNT: int = 20
+const CITY_SMOKE_LIFETIME: float = 4.4
+const CITY_SMOKE_SPEED: float = 30.0
+const CITY_SMOKE_ALPHA: float = 0.30

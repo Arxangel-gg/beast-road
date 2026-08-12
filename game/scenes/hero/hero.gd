@@ -64,9 +64,19 @@ func _ready() -> void:
 	attack.lunge_requested.connect(_on_lunge_requested)
 	health_bar.bind(health)
 
-	# The hero carries the light the player navigates by after dark.
+	# The hero carries the light the player navigates by after dark. It throws no
+	# shadows: it sits inside the hero, so the only thing it could shadow is the
+	# hero, and a character standing in their own shadow reads as a rendering bug.
 	LightKit.add_light(self, Balance.HERO_LIGHT_COLOUR, Balance.HERO_LIGHT_RADIUS,
 		Balance.HERO_LIGHT_ENERGY, Balance.HERO_LIGHT_FLICKER)
+
+	# Torches and the town do shadow the hero, though, which is the cue that
+	# matters: walking past a lit brazier should swing a streak around behind you.
+	ShadowKit.add_contact(self, sprite)
+	if sprite != null and sprite.texture != null:
+		var half: Vector2 = sprite.texture.get_size() * 0.5
+		ShadowKit.add_caster(self, half.x * 0.40, half.y * 0.18,
+			Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
 	animator.mass = Balance.ANIM_MASS_HERO
 	animator.capture_home()
 	attack.landed.connect(_on_attack_landed)

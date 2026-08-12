@@ -24,6 +24,13 @@ var _field: Battlefield = null
 var _cooldown: float = 0.0
 var _light: PointLight2D = null
 
+## The tower's ground shadow, and its size at level 1 — upgrades scale the sprite
+## and the shadow has to follow, so the level-1 measurement is kept rather than
+## re-derived from an already-scaled sprite.
+var _shadow: Sprite2D = null
+var _shadow_base_scale: Vector2 = Vector2.ONE
+var _shadow_base_y: float = 0.0
+
 ## Extra damage from the lane's same-element synergy (GDD §4.2) and terrain.
 var _damage_bonus: float = 0.0
 var _extra_chain_targets: int = 0
@@ -49,6 +56,18 @@ func _ready() -> void:
 	refresh_modifiers()
 	_light = LightKit.add_light(self, TowerData.element_colour(data.element),
 		Balance.TOWER_LIGHT_RADIUS, Balance.TOWER_LIGHT_ENERGY, Balance.TOWER_LIGHT_FLICKER)
+
+	# A tower is scenery as far as shadows go: it sits still and it is solid, so
+	# every torch near it throws its shape across the road.
+	_shadow = ShadowKit.add_contact(self, sprite)
+	if _shadow != null:
+		_shadow_base_scale = _shadow.scale
+		_shadow_base_y = _shadow.position.y
+	if sprite.texture != null:
+		var half: Vector2 = sprite.texture.get_size() * 0.5
+		ShadowKit.add_caster(self, half.x * 0.36, half.y * 0.16,
+			Balance.SHADOW_LAYER_SCENERY, half.y * 0.44)
+
 	_apply_level_look()
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
 	_cooldown = randf() * data.interval_at(level)
@@ -111,7 +130,13 @@ func upgrade_to(new_level: int) -> void:
 ## across twelve slots without clicking any of them.
 func _apply_level_look() -> void:
 	var step: float = float(level - 1)
-	sprite.scale = Vector2.ONE * (1.0 + step * Balance.TOWER_LEVEL_SCALE_STEP)
+	var growth: float = 1.0 + step * Balance.TOWER_LEVEL_SCALE_STEP
+	sprite.scale = Vector2.ONE * growth
+	# A bigger tower stands on more ground. Left out, an upgraded tower appears
+	# to lift off its own shadow.
+	if _shadow != null and is_instance_valid(_shadow):
+		_shadow.scale = _shadow_base_scale * growth
+		_shadow.position.y = _shadow_base_y * growth
 
 	var colour: Color = TowerData.element_colour(data.element)
 	sprite.self_modulate = Color.WHITE.lerp(

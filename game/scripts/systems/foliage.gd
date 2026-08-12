@@ -36,6 +36,10 @@ const STYLES: Dictionary = {
 }
 
 var _clumps: Array[Node2D] = []
+
+## Held apart from the clumps because they must not sway: a shadow that swings
+## with the plant above it reads as the ground moving.
+var _shadows: Array[Node2D] = []
 var _phase: float = 0.0
 
 
@@ -46,10 +50,11 @@ func _ready() -> void:
 
 ## Rebuilds the whole scatter for the current terrain.
 func scatter() -> void:
-	for clump: Node2D in _clumps:
-		if is_instance_valid(clump):
-			clump.queue_free()
+	for node: Node2D in _clumps + _shadows:
+		if is_instance_valid(node):
+			node.queue_free()
 	_clumps.clear()
+	_shadows.clear()
 
 	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["ashfen"])
 	var rng := RandomNumberGenerator.new()
@@ -121,6 +126,12 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, gr
 		blade.rotation = rng.randf_range(-0.18, 0.18)
 		clump.add_child(blade)
 
+	# Only the tall layer gets a shadow. Ground cover is already a few pixels
+	# high, so a pool under it reads as dirt rather than as shade — and there are
+	# two hundred and fifty of them, which is a lot of quads for nothing.
+	if not ground:
+		_add_shadow(clump, scale)
+
 	clump.set_meta("phase", rng.randf() * TAU)
 	# Low cover barely moves; tall growth catches the wind. Uniform sway across
 	# both layers is what makes procedural foliage look like it is breathing in
@@ -129,6 +140,21 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, gr
 	clump.set_meta("sway", sway * (Balance.FOLIAGE_GROUND_SWAY if ground else 1.0))
 	clump.set_meta("amount", Balance.FOLIAGE_GROUND_SWAY if ground else 1.0)
 	return clump
+
+
+## A shadow for a clump, which has no sprite to measure — so it is built by hand
+## against the same shared material every other shadow on the field uses.
+func _add_shadow(clump: Node2D, scale: float) -> void:
+	var shadow := Sprite2D.new()
+	shadow.name = "ContactShadow"
+	shadow.texture = ShadowKit.quad_texture()
+	shadow.material = ShadowKit.material()
+	shadow.scale = Vector2.ONE * (34.0 * scale / float(ShadowKit.quad_texture().width))
+	shadow.z_index = -1
+	shadow.z_as_relative = true
+	shadow.position = clump.position
+	add_child(shadow)
+	_shadows.append(shadow)
 
 
 func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Array:

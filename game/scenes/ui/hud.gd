@@ -32,7 +32,8 @@ var _raid_button: Button
 var _message: Label
 var _message_left: float = 0.0
 
-var _lane_bars: Array[ProgressBar] = []
+## The rosette listens to EventBus.lane_pressure_changed itself, so the HUD only
+## has to decide whether it is on screen.
 var _lane_ring: Control
 var _build_panel: PanelContainer
 var _build_list: VBoxContainer
@@ -72,7 +73,6 @@ func _ready() -> void:
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.raid_charge_changed.connect(_on_charge)
-	EventBus.lane_pressure_changed.connect(_on_pressure)
 	EventBus.wave_started.connect(_on_wave)
 	EventBus.act_started.connect(_on_act)
 	EventBus.raid_available.connect(func(_s: float) -> void: _raid_button.disabled = false)
@@ -182,30 +182,14 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 	return bar
 
 
-## Four bars arranged N/E/S/W around the centre of the screen: the directional
-## pressure indicator (GDD §3).
+## The directional pressure indicator (GDD §3): four arcs hugging the town, on
+## the side the threat is coming from. See LaneRosette for why it is no longer
+## four labelled bars.
 func _build_lane_ring() -> void:
-	var ring := Control.new()
-	ring.set_anchors_preset(Control.PRESET_CENTER)
-	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(ring)
-	_lane_ring = ring
-
-	var offsets: Array[Vector2] = [
-		Vector2(-60, -250), Vector2(200, -12), Vector2(-60, 230), Vector2(-320, -12),
-	]
-	for lane: int in Balance.LANE_COUNT:
-		var box := VBoxContainer.new()
-		box.position = offsets[lane]
-		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_label := _label(LANE_NAMES[lane], 16)
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		box.add_child(name_label)
-		var bar := _make_bar(Color("8c3a2b"), 120.0)
-		bar.value = 0.0
-		box.add_child(bar)
-		_lane_bars.append(bar)
-		ring.add_child(box)
+	var rosette := LaneRosette.new()
+	rosette.name = "LaneRosette"
+	add_child(rosette)
+	_lane_ring = rosette
 
 
 func _build_scope_bar() -> void:
@@ -608,11 +592,6 @@ func _on_hero_health(current: float, maximum: float) -> void:
 
 func _on_charge(value: float) -> void:
 	_charge_bar.value = value
-
-
-func _on_pressure(lane: int, value: float) -> void:
-	if lane >= 0 and lane < _lane_bars.size():
-		_lane_bars[lane].value = value
 
 
 func _on_wave(number: int, lanes: Array) -> void:

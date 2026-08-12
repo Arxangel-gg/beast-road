@@ -16,16 +16,23 @@ static var _falloff: GradientTexture2D = null
 
 
 ## A soft round falloff, white in the centre to transparent at the edge.
+##
+## The stop list is long on purpose. Three stops leave a shoulder in the curve
+## that the eye picks out as the rim of a disc — which is exactly what the
+## torches looked like from a distance. Five stops on a roughly inverse-square
+## curve give a bright core and a long thin tail, and the tail is what makes a
+## light look like light rather than like a circle of paint.
 static func falloff_texture() -> GradientTexture2D:
 	if _falloff != null:
 		return _falloff
 	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	gradient.offsets = PackedFloat32Array([0.0, 0.16, 0.36, 0.62, 1.0])
 	gradient.colors = PackedColorArray([
-		Color(1, 1, 1, 1),
-		# The mid stop is what stops a 2D light looking like a hard disc.
-		Color(1, 1, 1, 0.35),
-		Color(1, 1, 1, 0),
+		Color(1, 1, 1, 1.00),
+		Color(1, 1, 1, 0.58),
+		Color(1, 1, 1, 0.26),
+		Color(1, 1, 1, 0.08),
+		Color(1, 1, 1, 0.00),
 	])
 
 	_falloff = GradientTexture2D.new()
@@ -36,6 +43,26 @@ static func falloff_texture() -> GradientTexture2D:
 	_falloff.width = 256
 	_falloff.height = 256
 	return _falloff
+
+
+## Turns a light into one that throws real shadows off LightOccluder2D nodes.
+##
+## Kept separate from `add_light` because most lights must NOT do this. A light
+## sitting inside the sprite it belongs to would shadow itself, and fifty of them
+## would each pay for a shadow pass to produce nothing. Only the torches and the
+## town — lights that stand apart from what they illuminate — get it.
+static func enable_shadows(light: PointLight2D,
+		cull_mask: int = Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS) -> void:
+	if light == null or not Balance.SHADOW_CAST_ENABLED:
+		return
+	light.shadow_enabled = true
+	light.shadow_filter = Light2D.SHADOW_FILTER_PCF13
+	light.shadow_filter_smooth = Balance.SHADOW_FILTER_SMOOTH
+	# Fully transparent, because these lights are additive: a shadow here is the
+	# absence of the light, not a dark colour painted over the ground. A tinted
+	# shadow_color would stamp black wedges across the field in broad daylight.
+	light.shadow_color = Color(0, 0, 0, 0)
+	light.shadow_item_cull_mask = cull_mask
 
 
 ## Creates a light and attaches it to `parent`. `radius` is in pixels;

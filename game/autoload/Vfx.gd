@@ -33,6 +33,20 @@ var _flash_left: float = 0.0
 var _flash_total: float = 0.0
 var _flash_peak: float = 0.0
 
+## Town damage arrives one hit at a time, and once a lane breaks there can be
+## half a dozen enemies on the wall at once. Ungated, the full-screen flash was
+## retriggered before it had a chance to decay, so it stopped being a flash: the
+## screen simply *sat* red — at 54% opacity once the town was critical — for as
+## long as anything was hitting it. Unreadable exactly when the player most needs
+## to see what is happening.
+##
+## So the reaction is coalesced. Hits inside the window accumulate, and one burst
+## at the end of it reports the total. The information is the same; it just
+## arrives as a heartbeat rather than as a wall of red.
+var _town_cooldown: float = 0.0
+var _town_pending: float = 0.0
+var _town_critical: bool = false
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -97,6 +111,13 @@ void fragment() {
 
 
 func _process(delta: float) -> void:
+	if _town_cooldown > 0.0:
+		_town_cooldown = maxf(_town_cooldown - delta, 0.0)
+		if _town_cooldown <= 0.0 and _town_pending > 0.0:
+			_burst_town_damage(_town_pending)
+			_town_pending = 0.0
+			_town_cooldown = Balance.VFX_TOWN_FLASH_COOLDOWN
+
 	if _flash_left <= 0.0:
 		return
 	_flash_left = maxf(_flash_left - delta, 0.0)
@@ -181,17 +202,37 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, widt
 	var points: PackedVector2Array = []
 	for i: int in 33:
 		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 32.0))
-	line.points = points
-	line.width = width
 	line.default_color = colour
-	line.scale = Vector2.ONE * 4.0
+	line.width = width
 	line.z_index = Balance.VFX_Z
 	_track(line)
 	line.global_position = at
 
+	# The ring grows by having its points moved outward, NOT by scaling the node.
+	#
+	# Line2D width is in local units, so it scales with the transform. Growing a
+	# 6px ring to radius 224 by scaling therefore ended it 1344px thick — not a
+	# ring but a filled disc, whose polyline joins fanned out as spokes. Under
+	# sustained town damage the overlap became a red starburst covering half the
+	# map. (Counter-scaling the width does not fix it either: both values ease
+	# quadratically, so their product still bulges through the middle of the
+	# tween. Only leaving the scale alone actually holds the thickness.)
+	#
+	# Rebuilding thirty-three points per frame for a handful of live rings costs
+	# nothing worth measuring.
+	var grow: Callable = func(radius: float) -> void:
+		if not is_instance_valid(line):
+			return
+		var scaled: PackedVector2Array = []
+		for point: Vector2 in points:
+			scaled.append(point * radius)
+		line.points = scaled
+
+	grow.call(4.0)
+
 	var tween: Tween = line.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(line, "scale", Vector2.ONE * to_radius, life)\
+	tween.tween_method(grow, 4.0, to_radius, life)\
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(line, "modulate:a", 0.0, life)
 	tween.chain().tween_callback(line.queue_free)
@@ -355,13 +396,24 @@ func _on_hero_damaged(amount: float, from: Vector2) -> void:
 ## The town taking a hit is the loudest thing that can happen: it is the only
 ## damage in the game the player cannot heal.
 func _on_town_damaged(amount: float, current_hp: float, max_hp: float) -> void:
+	_town_critical = max_hp > 0.0 and current_hp / max_hp < Balance.VFX_TOWN_CRITICAL
+	if _town_cooldown > 0.0:
+		# Inside the window: fold this hit into the next burst rather than firing
+		# a second flash over the top of the one still running.
+		_town_pending += amount
+		return
+	_burst_town_damage(amount)
+	_town_cooldown = Balance.VFX_TOWN_FLASH_COOLDOWN
+
+
+func _burst_town_damage(amount: float) -> void:
 	flash(Color(0.8, 0.15, 0.1), Balance.VFX_TOWN_FLASH, 0.4)
 	EventBus.camera_shake_requested.emit(Balance.VFX_TOWN_SHAKE, 0.35)
 	if world != null:
 		number(Vector2.ZERO, amount, Color("ff5a48"), true)
 		ring(Vector2.ZERO, Balance.TOWN_RADIUS * 1.4, Color(0.9, 0.3, 0.2, 0.5), 0.5, 6.0)
 	# A harder flash once the town is genuinely in danger.
-	if max_hp > 0.0 and current_hp / max_hp < Balance.VFX_TOWN_CRITICAL:
+	if _town_critical:
 		flash(Color(0.9, 0.1, 0.05), Balance.VFX_TOWN_FLASH * 1.6, 0.6)
 
 
