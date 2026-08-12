@@ -36,6 +36,14 @@ signal hero_respawned(at: Vector2)
 ## The hero's dash started; `iframes` is how long invulnerability lasts.
 signal hero_dashed(iframes: float)
 
+## A swing was thrown, whether or not it hit anything. This is the one the
+## whoosh hangs off: a player swinging at air was previously silent, because the
+## only attack signal fired on contact.
+signal hero_swing_started(chain_step: int, at: Vector2)
+
+## A foot hit the ground. `mass` lets the listener pick a light or heavy step.
+signal footfall(at: Vector2, mass: float)
+
 ## A swing connected with at least one target. `chain_step` is 0-based.
 signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
 

@@ -26,7 +26,8 @@ var _tween: Tween
 
 func _ready() -> void:
 	_player = AudioStreamPlayer.new()
-	_player.bus = "Music"
+	AudioBuses.ensure()
+	_player.bus = AudioBuses.MUSIC
 	add_child(_player)
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.run_started.connect(func() -> void: play(RunState.terrain_id))

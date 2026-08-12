@@ -130,6 +130,9 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 	_chain_left = 0.0
 	_hit_ids.clear()
 	lunge_requested.emit(_swing_aim, Balance.HERO_ATTACK_LUNGE[_step])
+	# Announced on the swing, not on the hit. Feedback for an action the player
+	# took has to happen even when the action accomplishes nothing.
+	EventBus.hero_swing_started.emit(_step, _swing_origin)
 
 
 func _strike() -> void:

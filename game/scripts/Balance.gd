@@ -715,3 +715,8 @@ const VFX_VIGNETTE_MAX: float = 0.85
 ## Level the ambience bed settles at, in decibels. It is meant to be noticed
 ## only when it stops. [TUNE]
 const AMBIENCE_DB: float = -14.0
+
+## Level the music settles at on its own bus, in decibels. The bus carries the
+## player's volume slider, so this is purely how loud music sits against the
+## sound effects. [TUNE]
+const MUSIC_DB: float = -8.0

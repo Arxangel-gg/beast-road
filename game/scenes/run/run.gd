@@ -29,7 +29,7 @@ var _locked: bool = false
 
 
 func _ready() -> void:
-	MusicPlayer.play("steppe_bone_march")
+	MusicPlayer.follow_situation()
 	raid.visible = false
 	raid.process_mode = Node.PROCESS_MODE_DISABLED
 	town.visible = false

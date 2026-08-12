@@ -200,6 +200,12 @@ func _detect_footfall() -> void:
 
 	_squash = maxf(_squash, Balance.ANIM_STEP_SQUASH * _mass_scale() * _speed_ratio)
 
+	# The animator already knows exactly when a foot lands; nothing else does.
+	# Without this there is no event a footstep sound could hang off.
+	var owner_2d: Node2D = sprite.get_parent() as Node2D
+	if owner_2d != null:
+		EventBus.footfall.emit(owner_2d.global_position, mass)
+
 	# Only things with real weight shake the screen, and only when moving with
 	# intent — otherwise a crowd of walkers would shake it continuously.
 	if mass >= Balance.ANIM_SHAKE_MASS_THRESHOLD and _speed_ratio > 0.4:

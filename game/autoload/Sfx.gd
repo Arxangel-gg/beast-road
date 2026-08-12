@@ -35,55 +35,55 @@ const SFX_DIR: String = "res://audio/sfx/"
 ## others, and none of it is a design decision.
 const MIX: Dictionary = {
 	# --- constant, high-frequency: widest variation ---
-	"sfx_footstep_dirt":     {"db": -20.0, "pitch": 0.18, "limit": 4, "gap": 0.04},
-	"sfx_footstep_heavy":    {"db": -12.0, "pitch": 0.14, "limit": 3, "gap": 0.06},
-	"sfx_hero_swing_1":      {"db": -8.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
-	"sfx_hero_swing_2":      {"db": -8.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
-	"sfx_hero_swing_heavy":  {"db": -5.0,  "pitch": 0.09, "limit": 2, "gap": 0.05},
+	"sfx_footstep_dirt":     {"db": -14.0, "pitch": 0.18, "limit": 4, "gap": 0.04},
+	"sfx_footstep_heavy":    {"db": -6.0, "pitch": 0.14, "limit": 3, "gap": 0.06},
+	"sfx_hero_swing_1":      {"db": -2.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
+	"sfx_hero_swing_2":      {"db": -2.0,  "pitch": 0.14, "limit": 3, "gap": 0.03},
+	"sfx_hero_swing_heavy":  {"db": 0.0,  "pitch": 0.09, "limit": 2, "gap": 0.05},
 
 	# --- impacts: frequent, and the ones that most reveal a repeated sample ---
-	"sfx_hit_flesh":         {"db": -9.0,  "pitch": 0.16, "limit": 5, "gap": 0.03},
-	"sfx_hit_armour":        {"db": -10.0, "pitch": 0.16, "limit": 4, "gap": 0.03},
-	"sfx_hit_stone":         {"db": -10.0, "pitch": 0.16, "limit": 4, "gap": 0.03},
-	"sfx_enemy_die":         {"db": -10.0, "pitch": 0.15, "limit": 5, "gap": 0.05},
+	"sfx_hit_flesh":         {"db": -3.0,  "pitch": 0.16, "limit": 5, "gap": 0.03},
+	"sfx_hit_armour":        {"db": -4.0, "pitch": 0.16, "limit": 4, "gap": 0.03},
+	"sfx_hit_stone":         {"db": -4.0, "pitch": 0.16, "limit": 4, "gap": 0.03},
+	"sfx_enemy_die":         {"db": -4.0, "pitch": 0.15, "limit": 5, "gap": 0.05},
 
 	# --- tower fire: the most repeated sound in the game by a wide margin ---
-	"sfx_fire_shot":         {"db": -17.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
-	"sfx_water_shot":        {"db": -17.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
-	"sfx_earth_shot":        {"db": -17.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
-	"sfx_air_shot":          {"db": -17.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
+	"sfx_fire_shot":         {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
+	"sfx_water_shot":        {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
+	"sfx_earth_shot":        {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
+	"sfx_air_shot":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 
 	# --- hero ---
-	"sfx_hero_hurt":         {"db": -4.0,  "pitch": 0.10, "limit": 2, "gap": 0.15},
-	"sfx_hero_death":        {"db": -2.0,  "pitch": 0.05, "limit": 1, "gap": 0.5},
-	"sfx_dash":             {"db": -9.0,  "pitch": 0.12, "limit": 2, "gap": 0.05},
+	"sfx_hero_hurt":         {"db": -1.0,  "pitch": 0.10, "limit": 2, "gap": 0.15},
+	"sfx_hero_death":        {"db": 0.0,  "pitch": 0.05, "limit": 1, "gap": 0.5},
+	"sfx_dash":             {"db": -3.0,  "pitch": 0.12, "limit": 2, "gap": 0.05},
 
 	# --- spells ---
-	"sfx_spell_cast":        {"db": -8.0,  "pitch": 0.10, "limit": 3, "gap": 0.05},
-	"sfx_spell_nova":        {"db": -5.0,  "pitch": 0.08, "limit": 2, "gap": 0.08},
-	"sfx_spell_blink":       {"db": -8.0,  "pitch": 0.12, "limit": 2, "gap": 0.05},
+	"sfx_spell_cast":        {"db": -2.0,  "pitch": 0.10, "limit": 3, "gap": 0.05},
+	"sfx_spell_nova":        {"db": 0.0,  "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_spell_blink":       {"db": -2.0,  "pitch": 0.12, "limit": 2, "gap": 0.05},
 
 	# --- construction and UI: deliberately quiet, they are confirmations ---
-	"sfx_tower_build":       {"db": -6.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
-	"sfx_tower_upgrade":     {"db": -6.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
-	"sfx_tower_sell":        {"db": -8.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
-	"sfx_construction_done": {"db": -5.0,  "pitch": 0.04, "limit": 1, "gap": 0.2},
-	"sfx_relic_socket":      {"db": -5.0,  "pitch": 0.04, "limit": 1, "gap": 0.1},
-	"sfx_ui_click":          {"db": -13.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
-	"sfx_ui_hover":          {"db": -24.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
-	"sfx_ui_confirm":        {"db": -10.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
-	"sfx_ui_deny":           {"db": -10.0, "pitch": 0.05, "limit": 1, "gap": 0.08},
+	"sfx_tower_build":       {"db": -1.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
+	"sfx_tower_upgrade":     {"db": -1.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
+	"sfx_tower_sell":        {"db": -3.0,  "pitch": 0.06, "limit": 2, "gap": 0.1},
+	"sfx_construction_done": {"db": 0.0,  "pitch": 0.04, "limit": 1, "gap": 0.2},
+	"sfx_relic_socket":      {"db": 0.0,  "pitch": 0.04, "limit": 1, "gap": 0.1},
+	"sfx_ui_click":          {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
+	"sfx_ui_hover":          {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
+	"sfx_ui_confirm":        {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
+	"sfx_ui_deny":           {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.08},
 
 	# --- events: these are landmarks, so they barely vary and they cut through ---
-	"sfx_war_horn":          {"db": 0.0,   "pitch": 0.02, "limit": 1, "gap": 1.0},
-	"sfx_boss_spawn":        {"db": 0.0,   "pitch": 0.02, "limit": 1, "gap": 1.0},
-	"sfx_raid_ready":        {"db": -3.0,  "pitch": 0.02, "limit": 1, "gap": 0.5},
-	"sfx_wave_incoming":     {"db": -7.0,  "pitch": 0.03, "limit": 1, "gap": 0.5},
-	"sfx_town_damaged":      {"db": -2.0,  "pitch": 0.12, "limit": 2, "gap": 0.1},
+	"sfx_war_horn":          {"db": 6.0,   "pitch": 0.02, "limit": 1, "gap": 1.0},
+	"sfx_boss_spawn":        {"db": 6.0,   "pitch": 0.02, "limit": 1, "gap": 1.0},
+	"sfx_raid_ready":        {"db": 3.0,  "pitch": 0.02, "limit": 1, "gap": 0.5},
+	"sfx_wave_incoming":     {"db": -1.0,  "pitch": 0.03, "limit": 1, "gap": 0.5},
+	"sfx_town_damaged":      {"db": 2.0,  "pitch": 0.12, "limit": 2, "gap": 0.1},
 }
 
 ## Defaults for any sound not listed above.
-const DEFAULT_MIX: Dictionary = {"db": -8.0, "pitch": 0.10, "limit": 3, "gap": 0.04}
+const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0.04}
 
 ## Sounds that come in variants. Asking for the group picks one at random, which
 ## is a stronger cure for repetition than pitch alone.
@@ -111,11 +111,13 @@ var _last_variant: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_ensure_buses()
+	AudioBuses.ensure()
 	_load_streams()
 	_build_voices()
 
+	EventBus.hero_swing_started.connect(_on_swing_started)
 	EventBus.hero_attack_landed.connect(_on_attack_landed)
+	EventBus.footfall.connect(_on_footfall)
 	EventBus.hero_damaged.connect(_on_hero_damaged)
 	EventBus.hero_died.connect(func(_at: Vector2) -> void: play("sfx_hero_death"))
 	EventBus.hero_dashed.connect(func(_i: float) -> void: play("sfx_dash"))
@@ -131,19 +133,42 @@ func _ready() -> void:
 	EventBus.construction_completed.connect(func(_id: String, _t: int) -> void: play("sfx_construction_done"))
 	EventBus.relic_socketed.connect(func(_id: String) -> void: play("sfx_relic_socket"))
 
+	# Buttons are created in code all over the HUD and the panels, so wiring them
+	# individually would mean remembering to do it in every new screen. One hook
+	# on node_added covers every button in the game, including future ones.
+	get_tree().node_added.connect(_on_node_added)
+	_wire_existing_buttons(get_tree().root)
+
 	apply_volume()
 
 
-## Master / Music / SFX, created in code rather than shipped as a bus layout so
-## there is no binary .tres to keep in sync with this file.
-func _ensure_buses() -> void:
-	if AudioServer.get_bus_index("SFX") >= 0:
+func _on_node_added(node: Node) -> void:
+	var button := node as BaseButton
+	if button == null:
 		return
-	AudioServer.set_bus_count(3)
-	AudioServer.set_bus_name(1, "Music")
-	AudioServer.set_bus_send(1, "Master")
-	AudioServer.set_bus_name(2, "SFX")
-	AudioServer.set_bus_send(2, "Master")
+	if not button.pressed.is_connected(_on_button_pressed):
+		button.pressed.connect(_on_button_pressed.bind(button))
+	if not button.mouse_entered.is_connected(_on_button_hover):
+		button.mouse_entered.connect(_on_button_hover)
+
+
+func _wire_existing_buttons(node: Node) -> void:
+	_on_node_added(node)
+	for child: Node in node.get_children():
+		_wire_existing_buttons(child)
+
+
+## A disabled button that still clicks is a lie, so a refused press gets the
+## deny sound instead.
+func _on_button_pressed(button: BaseButton) -> void:
+	if button.disabled:
+		play("sfx_ui_deny")
+	else:
+		play("sfx_ui_click")
+
+
+func _on_button_hover() -> void:
+	play("sfx_ui_hover")
 
 
 func _load_streams() -> void:
@@ -169,21 +194,14 @@ func _load_streams() -> void:
 func _build_voices() -> void:
 	for i: int in VOICES:
 		var player := AudioStreamPlayer.new()
-		player.bus = "SFX"
+		player.bus = AudioBuses.SFX
 		add_child(player)
 		_voices.append(player)
 
 
 ## Reads the settings faders. Called by the options screen.
 func apply_volume() -> void:
-	var master: float = float(MetaState.settings.get("master_volume", 1.0))
-	var sfx: float = float(MetaState.settings.get("sfx_volume", 1.0))
-	AudioServer.set_bus_volume_db(0, linear_to_db(clampf(master, 0.0001, 1.0)))
-	AudioServer.set_bus_mute(0, master <= 0.001)
-	var index: int = AudioServer.get_bus_index("SFX")
-	if index >= 0:
-		AudioServer.set_bus_volume_db(index, linear_to_db(clampf(sfx, 0.0001, 1.0)))
-		AudioServer.set_bus_mute(index, sfx <= 0.001)
+	AudioBuses.apply_volumes()
 
 
 ## Plays a sound by id. Silently does nothing if the file is missing, so an
@@ -246,15 +264,29 @@ func _free_voice() -> AudioStreamPlayer:
 # EventBus reactions
 # ==============================================================================
 
-func _on_attack_landed(chain_step: int, targets: int, _at: Vector2) -> void:
-	var finisher: bool = chain_step >= Balance.HERO_CHAIN_LENGTH - 1
-	if finisher:
+## Every swing, hit or miss. This is the sound the player is owed for pressing
+## the button.
+func _on_swing_started(chain_step: int, _at: Vector2) -> void:
+	if chain_step >= Balance.HERO_CHAIN_LENGTH - 1:
 		play("sfx_hero_swing_heavy")
 	else:
 		play_group("swing_light")
-	# One impact per swing regardless of how many it caught, plus a small boost
-	# for a wide hit. Six overlapping impacts is noise, not weight.
+
+
+## Only the impact here - the whoosh already played when the swing started.
+## One impact per swing however many it caught, with a small boost for a wide
+## hit: six overlapping impacts is noise, not weight.
+func _on_attack_landed(_chain_step: int, targets: int, _at: Vector2) -> void:
 	play_group("impact", minf(float(targets - 1) * 1.2, 4.0))
+
+
+## Footsteps are throttled hard. Forty walking enemies would otherwise be a
+## continuous gravel roar, so only the hero and genuinely heavy things are heard.
+func _on_footfall(_at: Vector2, mass: float) -> void:
+	if mass >= Balance.ANIM_SHAKE_MASS_THRESHOLD:
+		play("sfx_footstep_heavy")
+	elif mass <= Balance.ANIM_MASS_HERO:
+		play("sfx_footstep_dirt")
 
 
 func _on_hero_damaged(_amount: float, _from: Vector2) -> void:

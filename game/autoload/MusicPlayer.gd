@@ -38,9 +38,9 @@ var _tween: Tween
 
 
 func _ready() -> void:
+	AudioBuses.ensure()
 	_player = AudioStreamPlayer.new()
-	_player.bus = "Music"
-	_player.bus = &"Master"
+	_player.bus = AudioBuses.MUSIC
 	# Music must keep playing while the tree is paused, or opening the pause
 	# menu would cut the soundtrack.
 	_player.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -49,6 +49,18 @@ func _ready() -> void:
 
 	if MetaState.has_signal("save_loaded"):
 		MetaState.save_loaded.connect(apply_volume)
+
+	# The soundtrack follows the situation rather than the scene, so a scope
+	# change swaps the track without every scene having to know a filename.
+	EventBus.scope_changed.connect(func(_scope: int) -> void: follow_situation())
+	EventBus.act_started.connect(func(_a: int, _t: String) -> void: follow_situation())
+	EventBus.run_started.connect(follow_situation)
+	EventBus.boss_spawned.connect(func(_id: String, _a: int) -> void: play("boss"))
+	EventBus.raid_started.connect(func() -> void: play("raid"))
+	EventBus.crossroad_reached.connect(func(_s: int) -> void: play("crossroad"))
+	EventBus.run_ended.connect(func(victory: bool, _s: Dictionary) -> void:
+		play("victory" if victory else "defeat"))
+	AudioBuses.apply_volumes()
 
 
 ## Starts `track_id`, crossfading from whatever is playing. Re-requesting the
@@ -80,7 +92,43 @@ func play(track_id: String) -> void:
 	_player.play()
 
 	_tween = create_tween()
-	_tween.tween_property(_player, "volume_db", _target_db(), FADE_TIME)
+	_tween.tween_property(_player, "volume_db", Balance.MUSIC_DB, FADE_TIME)
+
+
+## Picks the track for the current moment. Callers name a situation, never a
+## file, so re-scoring the game is editing this function.
+func for_situation() -> String:
+	# Scope is only meaningful inside a run, but a run scene opened directly -
+	# from the editor, or by a test - has never been through start_run(), and
+	# falling back to the menu theme there is wrong. Trust the scope instead.
+	if not GameDirector.run_active and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD:
+		if not RunState.terrain_id.is_empty():
+			return _battle_track()
+		return "menu"
+	if not GameDirector.run_active:
+		return "menu"
+	match GameDirector.current_scope:
+		GameDirector.Scope.RAID:
+			return "raid"
+		GameDirector.Scope.TOWN:
+			return "town"
+		GameDirector.Scope.CROSSROAD:
+			return "crossroad"
+		_:
+			pass
+	return _battle_track()
+
+
+func _battle_track() -> String:
+	var terrain: String = RunState.terrain_id
+	if TRACKS.has("battle_" + terrain):
+		return "battle_" + terrain
+	return "battle_ashfen"
+
+
+## Plays whatever the moment calls for. Safe to call repeatedly.
+func follow_situation() -> void:
+	play(for_situation())
 
 
 func stop() -> void:
@@ -97,10 +145,9 @@ func current_track() -> String:
 
 ## Called by the options screen whenever a slider moves.
 func apply_volume() -> void:
-	if _player == null:
-		return
-	_kill_tween()
-	_player.volume_db = _target_db()
+	# Volume is a property of the bus, not of the player. Doing it here as well
+	# meant the fader was applied twice and the crossfade fought the slider.
+	AudioBuses.apply_volumes()
 
 
 func _target_db() -> float:
