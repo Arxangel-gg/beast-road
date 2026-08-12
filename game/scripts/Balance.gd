@@ -831,3 +831,22 @@ const CLOUD_SCALE_FAR: float = 1500.0
 
 ## Fraction of the noise range that becomes shadow. Higher is more overcast. [TUNE]
 const CLOUD_COVERAGE: float = 0.46
+
+# ------------------------------------------------------------------------------
+# Visible tower tiers
+# ------------------------------------------------------------------------------
+#
+# An upgrade the player paid for has to be visible from across the map without
+# clicking anything.
+
+## Sprite growth per level above the first. [TUNE]
+const TOWER_LEVEL_SCALE_STEP: float = 0.16
+
+## How far the sprite tints toward its element colour per level, 0..1. [TUNE]
+const TOWER_LEVEL_TINT_STEP: float = 0.34
+
+## Extra brazier energy per level. [TUNE]
+const TOWER_LEVEL_LIGHT_STEP: float = 0.45
+
+## How much bigger a projectile is per level of the tower that fired it. [TUNE]
+const PROJECTILE_TIER_SCALE: float = 0.28

@@ -37,6 +37,11 @@ func _ready() -> void:
 
 ## Bounds come from the sprite itself, so a 192px tower and a 384px town core get
 ## proportionate trigger areas without either being hand-tuned.
+## Public so an owner that swaps its texture can refresh the trigger bounds.
+func remeasure() -> void:
+	_measure()
+
+
 func _measure() -> void:
 	if sprite.texture == null:
 		return

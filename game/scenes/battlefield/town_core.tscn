@@ -5,10 +5,11 @@
 [ext_resource type="Texture2D" path="res://art/battlefield/town_core.png" id="2_sprite"]
 [ext_resource type="Script" path="res://scripts/components/health.gd" id="3_health"]
 
-[node name="TownCore" type="Node2D" node_paths=PackedStringArray("health", "sprite")]
+[node name="TownCore" type="Node2D" node_paths=PackedStringArray("health", "sprite", "occluder")]
 script = ExtResource("1_town")
 health = NodePath("Health")
 sprite = NodePath("Sprite2D")
+occluder = NodePath("Occluder")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("2_sprite")

@@ -285,12 +285,12 @@ a non-square target just letterboxes the art and shrinks it.
 |------|------|------|--------------------|
 | `ui_panel.png` | 256×256 | T | `#1A2428` |
 | `ui_panel_dark.png` | 256×256 | T | `#0E1518` |
-| `ui_button.png` | 256×256 | T | `#2E4048` |
-| `ui_button_hover.png` | 256×256 | T | `#3E5660` |
+| `ui_button.png` | 256×88 | T | `#2E4048` |
+| `ui_button_hover.png` | 256×88 | T | `#3E5660` |
 | `ui_slot.png` | 96×96 | T | `#232F33` |
 | `ui_bar_fill.png` | 64×64 | T | `#C4552E` |
 | `ui_bar_back.png` | 64×64 | T | `#141C1F` |
-| `ui_logo.png` | 1024×1024 | T | `#E8A33D` |
+| `ui_logo.png` | 1024×512 | T | `#E8A33D` |
 | `splash_studio.png` | 1920×1080 | O | `#0B1416` |
 
 ---

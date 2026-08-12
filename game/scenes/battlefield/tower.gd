@@ -22,6 +22,7 @@ var slot: int = 0
 
 var _field: Battlefield = null
 var _cooldown: float = 0.0
+var _light: PointLight2D = null
 
 ## Extra damage from the lane's same-element synergy (GDD §4.2) and terrain.
 var _damage_bonus: float = 0.0
@@ -46,8 +47,9 @@ func _ready() -> void:
 		sprite.texture = load(path)
 	_draw_range_ring()
 	refresh_modifiers()
-	LightKit.add_light(self, TowerData.element_colour(data.element),
+	_light = LightKit.add_light(self, TowerData.element_colour(data.element),
 		Balance.TOWER_LIGHT_RADIUS, Balance.TOWER_LIGHT_ENERGY, Balance.TOWER_LIGHT_FLICKER)
+	_apply_level_look()
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
 	_cooldown = randf() * data.interval_at(level)
 
@@ -94,6 +96,31 @@ func upgrade_to(new_level: int) -> void:
 	level = clampi(new_level, 1, Balance.TOWER_MAX_LEVEL)
 	_draw_range_ring()
 	refresh_modifiers()
+	_apply_level_look()
+
+	# The upgrade gets a moment of its own. Paying resources should feel like
+	# something happened, not like a number changed in a panel.
+	var colour: Color = TowerData.element_colour(data.element)
+	Vfx.spark(global_position, colour, 14, Vector2.ZERO, 240.0)
+	Vfx.ring(global_position, 120.0, Color(colour, 0.8), 0.5, 5.0)
+	Vfx.flash_at(global_position, colour, 34.0)
+	EventBus.camera_shake_requested.emit(6.0, 0.25)
+
+
+## A higher tower is bigger, warmer and brighter. Level has to read at a glance
+## across twelve slots without clicking any of them.
+func _apply_level_look() -> void:
+	var step: float = float(level - 1)
+	sprite.scale = Vector2.ONE * (1.0 + step * Balance.TOWER_LEVEL_SCALE_STEP)
+
+	var colour: Color = TowerData.element_colour(data.element)
+	sprite.self_modulate = Color.WHITE.lerp(
+		colour.lerp(Color.WHITE, 0.55), step * Balance.TOWER_LEVEL_TINT_STEP)
+
+	if _light != null:
+		var boost: float = 1.0 + step * Balance.TOWER_LEVEL_LIGHT_STEP
+		_light.energy = Balance.TOWER_LIGHT_ENERGY * boost
+		_light.texture_scale = (Balance.TOWER_LIGHT_RADIUS / 128.0) * (1.0 + step * 0.25)
 
 
 func show_range(visible_now: bool) -> void:
@@ -157,6 +184,7 @@ func _launch(enemy: Enemy) -> void:
 		return
 	shot.setup(enemy, data, effective_damage(),
 		data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
+	shot.tier = level
 	_field.add_projectile(shot, global_position + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
 

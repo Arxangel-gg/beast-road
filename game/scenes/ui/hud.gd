@@ -53,6 +53,8 @@ var _boss_name: Label
 var _boss_bar: ProgressBar
 var _state_label: Label
 var _hero: Hero = null
+var _boss_track: ProgressBar
+var _boss_label: Label
 
 
 func _ready() -> void:
@@ -61,6 +63,7 @@ func _ready() -> void:
 	_build_scope_bar()
 	_build_tower_panel()
 	_build_raid_panel()
+	_build_boss_track()
 	_build_spell_bar()
 	_build_boss_bar()
 
@@ -106,6 +109,7 @@ func _process(delta: float) -> void:
 		_update_raid_panel()
 	_update_spell_bar()
 	_update_boss_bar()
+	_update_boss_track()
 
 
 # --- Construction -----------------------------------------------------------
@@ -282,6 +286,53 @@ func _build_raid_panel() -> void:
 
 ## Four slots along the bottom. A spell you cannot cast still shows, greyed —
 ## an empty bar tells the player nothing about what they are missing.
+## A bar counting down to the act boss.
+##
+## The trigger is distance, not waves, and nothing said so - so a player at wave
+## 33 with no boss in sight reasonably concluded it was broken. This makes the
+## approach legible, and turns the last stretch of an act into something you can
+## see coming and prepare for.
+func _build_boss_track() -> void:
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	box.offset_left = -190.0
+	box.offset_right = 190.0
+	box.offset_top = 14.0
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 2)
+	add_child(box)
+
+	_boss_label = _label("", 15)
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_boss_label)
+
+	_boss_track = _make_bar(Color("8c3a2b"), 380.0)
+	_boss_track.custom_minimum_size = Vector2(380.0, 10.0)
+	_boss_track.value = 0.0
+	box.add_child(_boss_track)
+
+
+func _update_boss_track() -> void:
+	if _boss_track == null:
+		return
+	# While the boss is actually out, the bar becomes its health instead of a
+	# countdown - the same strip of screen answering "how close" then "how bad".
+	if boss_director != null and boss_director.boss_is_out():
+		_boss_track.value = 1.0
+		_boss_label.text = ""
+		_boss_track.visible = false
+		return
+	_boss_track.visible = true
+	var remaining: float = RunState.distance_to_boss()
+	_boss_track.value = RunState.act_progress()
+	if remaining <= Balance.ACT_BOSS_RAMP_DISTANCE:
+		_boss_label.text = "THE ACT %d BOSS IS COMING  -  %d" % [RunState.act, int(remaining)]
+		_boss_label.add_theme_color_override("font_color", Color("ff7a5a"))
+	else:
+		_boss_label.text = "Act %d boss in %d distance" % [RunState.act, int(remaining)]
+		_boss_label.add_theme_color_override("font_color", Color("b8ae98"))
+
+
 func _build_spell_bar() -> void:
 	_spell_bar = HBoxContainer.new()
 	_spell_bar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -423,9 +474,17 @@ func _refresh_build_panel() -> void:
 		_build_list.add_child(_label(existing.description, 14))
 		if level < Balance.TOWER_MAX_LEVEL:
 			var cost: int = Battlefield.upgrade_cost_of(level)
-			_add_button(_build_list, "Upgrade to %d  (%d)" % [level + 1, cost], func() -> void:
-				_report(battlefield.try_upgrade(lane, slot))
-				_refresh_build_panel())
+			_add_stat_preview(existing, level)
+			var afford: bool = RunState.can_afford(cost)
+			var button: Button = _add_button(_build_list,
+				"Upgrade to level %d   -   %d resources" % [level + 1, cost], func() -> void:
+					_report(battlefield.try_upgrade(lane, slot))
+					_refresh_build_panel())
+			button.disabled = not afford
+			if not afford:
+				_build_list.add_child(_label("Need %d more." % (cost - RunState.resources), 13))
+		else:
+			_build_list.add_child(_label("Fully upgraded.", 14))
 		_add_button(_build_list, "Sell", func() -> void:
 			_report(battlefield.try_sell(lane, slot))
 			_refresh_build_panel())
@@ -444,6 +503,70 @@ func _refresh_build_panel() -> void:
 
 	for tower: TowerData in ContentDB.base_towers():
 		_add_tower_row(tower, lane, slot)
+
+
+## Shows what the next level actually buys, before the player commits.
+##
+## Upgrading was a button with a price and no answer to "what do I get". Every
+## stat that changes is listed as now -> next with the delta, and stats that do
+## not change are left out entirely so the list is short enough to read mid-wave.
+func _add_stat_preview(tower: TowerData, level: int) -> void:
+	var next_level: int = level + 1
+
+	var rows: Array[Dictionary] = []
+	_collect_stat(rows, "Damage", tower.damage_at(level), tower.damage_at(next_level), 1)
+	# Interval goes down as the tower gets faster, so shots per second is the
+	# honest way to show it - a falling number reading as an upgrade is a trap.
+	var rate_now: float = 1.0 / maxf(tower.interval_at(level), 0.001)
+	var rate_next: float = 1.0 / maxf(tower.interval_at(next_level), 0.001)
+	_collect_stat(rows, "Shots/sec", rate_now, rate_next, 2)
+	_collect_stat(rows, "Damage/sec",
+		tower.damage_at(level) * rate_now, tower.damage_at(next_level) * rate_next, 1)
+
+	if rows.is_empty():
+		return
+
+	var panel := PanelContainer.new()
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 2)
+	panel.add_child(column)
+
+	var heading: Label = _label("NEXT LEVEL", 13)
+	heading.add_theme_color_override("font_color", Color("e8a33d"))
+	column.add_child(heading)
+
+	for row: Dictionary in rows:
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 8)
+		var name_label: Label = _label(String(row["name"]), 14)
+		name_label.custom_minimum_size = Vector2(112.0, 0.0)
+		line.add_child(name_label)
+		line.add_child(_label(String(row["from"]), 14))
+		var arrow: Label = _label("->", 14)
+		arrow.add_theme_color_override("font_color", Color("7f8a86"))
+		line.add_child(arrow)
+		var to_label: Label = _label(String(row["to"]), 14)
+		to_label.add_theme_color_override("font_color", Color("9fe8b0"))
+		line.add_child(to_label)
+		var delta_label: Label = _label(String(row["delta"]), 13)
+		delta_label.add_theme_color_override("font_color", Color("9fe8b0"))
+		line.add_child(delta_label)
+		column.add_child(line)
+
+	_build_list.add_child(panel)
+
+
+## Appends a row only when the value actually moves.
+func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float, digits: int) -> void:
+	if is_equal_approx(from, to):
+		return
+	var percent: float = ((to - from) / from * 100.0) if absf(from) > 0.001 else 0.0
+	rows.append({
+		"name": name,
+		"from": String.num(from, digits),
+		"to": String.num(to, digits),
+		"delta": "+%d%%" % int(round(percent)) if percent >= 0.0 else "%d%%" % int(round(percent)),
+	})
 
 
 func _add_tower_row(tower: TowerData, lane: int, slot: int) -> void:

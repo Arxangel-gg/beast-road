@@ -18,6 +18,11 @@ var speed: float = 600.0
 var colour: Color = Color.WHITE
 var data: TowerData = null
 
+## Level of the tower that fired this. An upgraded tower throws visibly bigger,
+## brighter, longer-tailed shots, so the investment shows in flight rather than
+## only in the damage numbers.
+var tier: int = 1
+
 var _target: Enemy = null
 var _direction: Vector2 = Vector2.RIGHT
 var _life: float = 0.0
@@ -48,7 +53,7 @@ func _ready() -> void:
 	# than rotating with the projectile.
 	_trail = Line2D.new()
 	_trail.top_level = true
-	_trail.width = Balance.PROJECTILE_WIDTH
+	_trail.width = Balance.PROJECTILE_WIDTH * _tier_scale()
 	_trail.default_color = Color(colour, 0.75)
 	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
@@ -68,12 +73,12 @@ func _ready() -> void:
 	# Each element gets its own head shape, so a lane full of shots is readable
 	# at a glance without reading the colours.
 	_glow = Polygon2D.new()
-	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE)
+	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
 	_glow.color = Color(colour, 0.30)
 	add_child(_glow)
 
 	_core = Polygon2D.new()
-	_core.polygon = _head_shape(1.0)
+	_core.polygon = _head_shape(_tier_scale())
 	# A hot centre: the element colour lifted toward white reads as energy
 	# rather than as a coloured shape.
 	_core.color = colour.lerp(Color.WHITE, 0.55)
@@ -81,8 +86,9 @@ func _ready() -> void:
 
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all.
-	_light = LightKit.add_light(self, colour, Balance.PROJECTILE_LIGHT_RADIUS,
-		Balance.PROJECTILE_LIGHT_ENERGY)
+	_light = LightKit.add_light(self, colour,
+		Balance.PROJECTILE_LIGHT_RADIUS * _tier_scale(),
+		Balance.PROJECTILE_LIGHT_ENERGY * _tier_scale())
 
 	if _target != null and is_instance_valid(_target):
 		_direction = (_target.global_position - global_position).normalized()
@@ -121,6 +127,11 @@ func _process(delta: float) -> void:
 
 ## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
 ## chunk, air a thin dart.
+## How much bigger a shot is per level of the tower that fired it.
+func _tier_scale() -> float:
+	return 1.0 + float(clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1) * Balance.PROJECTILE_TIER_SCALE
+
+
 func _head_shape(scale: float) -> PackedVector2Array:
 	var w: float = Balance.PROJECTILE_WIDTH * scale
 	var element: int = data.element if data != null else 0
@@ -147,7 +158,7 @@ func _head_shape(scale: float) -> PackedVector2Array:
 ## Keeps the last N world positions and feeds them to the trail.
 func _push_trail() -> void:
 	_history.append(global_position)
-	while _history.size() > Balance.PROJECTILE_TRAIL_POINTS:
+	while _history.size() > int(float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()):
 		_history.remove_at(0)
 	_trail.points = _history
 
@@ -169,10 +180,10 @@ func _impact() -> void:
 	# area. Three cues rather than one, because a single spark at this size is
 	# easy to miss in a crowded lane.
 	Vfx.spark(global_position, colour.lerp(Color.WHITE, 0.4),
-		Balance.PROJECTILE_IMPACT_SPARKS, -_direction, 260.0)
-	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING,
+		int(float(Balance.PROJECTILE_IMPACT_SPARKS) * _tier_scale()), -_direction, 260.0)
+	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
 		Color(colour, 0.7), 0.22, 3.0)
-	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH)
+	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH * _tier_scale())
 	queue_free()
 
 

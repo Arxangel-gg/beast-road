@@ -266,6 +266,25 @@ func journey_ratio() -> float:
 	return clampf(distance_travelled / Balance.JOURNEY_TOTAL_DISTANCE, 0.0, 1.0)
 
 
+## Distance at which this act ends and its boss walks in.
+func act_boss_distance() -> float:
+	return float(act) * Balance.ACT_DISTANCE
+
+
+## How far the beast still has to walk before the act boss appears. This was
+## invisible, which made a correctly-working boss trigger look like a bug: with
+## nothing on screen counting down, "wave 33 and no boss" reads as broken rather
+## than as "still 600 units out".
+func distance_to_boss() -> float:
+	return maxf(act_boss_distance() - distance_travelled, 0.0)
+
+
+## 0..1 progress through the current act.
+func act_progress() -> float:
+	var start: float = float(act - 1) * Balance.ACT_DISTANCE
+	return clampf((distance_travelled - start) / Balance.ACT_DISTANCE, 0.0, 1.0)
+
+
 ## Distance remaining until the next crossroad.
 func distance_to_crossroad() -> float:
 	var next_boundary: float = (floorf(distance_travelled / Balance.SEGMENT_DISTANCE) + 1.0) * Balance.SEGMENT_DISTANCE
