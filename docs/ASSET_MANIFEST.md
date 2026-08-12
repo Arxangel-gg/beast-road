@@ -147,7 +147,7 @@ is the contract; the border is only a convenience.
 
 ### 5.4 Towers — `res://art/towers/`
 
-All 128×192, type T. Placeholder colour by element.
+All 192×192, type T. Placeholder colour by element.
 
 | File | Element | Colour |
 |------|---------|--------|
@@ -181,7 +181,7 @@ All 128×192, type T. Placeholder colour by element.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `beast_profile.png` | 1024×512 | T | `#2E3A33` |
+| `beast_profile.png` | 1024×1024 | T | `#2E3A33` |
 
 ### 5.7 Terrain tiles — `res://art/terrain/`
 
@@ -237,7 +237,7 @@ All 64×64, type T, placeholder colour `#D9CDB8`.
 
 ### 5.12 Combination towers — `res://art/towers/`
 
-All 128×192, type T. Built in the middle slot of a lane from the two elements
+All 192×192, type T. Built in the middle slot of a lane from the two elements
 flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 
 | File | Parents | Colour |
@@ -275,19 +275,22 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 
 ### 5.15 UI frames — `res://art/ui/`
 
-Nine-slice frames and bars. Stretched in code, so the placeholder size is the
-source size, not the on-screen size.
+Nine-slice frames and bars. **Square on purpose.** These are stretched in code,
+so the source only has to carry a border and a plain centre — the aspect on
+screen comes from the nine-slice, not from the file. Every transparent asset in
+this project is square, because every tool that makes them returns squares, and
+a non-square target just letterboxes the art and shrinks it.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `ui_panel.png` | 256×256 | T | `#1A2428` |
 | `ui_panel_dark.png` | 256×256 | T | `#0E1518` |
-| `ui_button.png` | 256×64 | T | `#2E4048` |
-| `ui_button_hover.png` | 256×64 | T | `#3E5660` |
+| `ui_button.png` | 256×256 | T | `#2E4048` |
+| `ui_button_hover.png` | 256×256 | T | `#3E5660` |
 | `ui_slot.png` | 96×96 | T | `#232F33` |
-| `ui_bar_fill.png` | 64×16 | T | `#C4552E` |
-| `ui_bar_back.png` | 64×16 | T | `#141C1F` |
-| `ui_logo.png` | 1024×256 | T | `#E8A33D` |
+| `ui_bar_fill.png` | 64×64 | T | `#C4552E` |
+| `ui_bar_back.png` | 64×64 | T | `#141C1F` |
+| `ui_logo.png` | 1024×1024 | T | `#E8A33D` |
 | `splash_studio.png` | 1920×1080 | O | `#0B1416` |
 
 ---

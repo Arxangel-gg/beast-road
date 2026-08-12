@@ -535,3 +535,133 @@ const WARD_ABSORB: float = 260.0
 
 ## Resources paid out by an act boss, on top of the reward package. [TUNE]
 const BOSS_RESOURCE_REWARD: int = 400
+
+## Source pixel size of a tower sprite. Towers are square like every other
+## generated asset; the illusion of height comes from the art, not the file.
+const TOWER_SPRITE_SIZE: float = 192.0
+
+## How far up a tower is drawn from its build spot, so the base sits on the
+## ground instead of the sprite being centred on it.
+const TOWER_SPRITE_LIFT: float = 42.0
+
+# ==============================================================================
+# PROCEDURAL ANIMATION
+# ==============================================================================
+#
+# Every sprite in the game is one static PNG, so all motion is transform work.
+# These drive SpriteAnimator. Values are for a mass of 1.0 (a human); the
+# animator scales them by each unit's mass.
+
+# ------------------------------------------------------------------------------
+# Walk cycle
+# ------------------------------------------------------------------------------
+
+## Radians of stride advanced per pixel travelled. Phase is driven by distance
+## rather than time so a slowed unit takes slower steps instead of skating. [TUNE]
+const ANIM_STRIDE_PER_PIXEL: float = 0.011
+
+## Peak height of the walk bounce, in pixels. [TUNE]
+const ANIM_BOUNCE_HEIGHT: float = 5.0
+
+## Degrees of body sway at full speed. Runs at half stride rate, so the lean
+## alternates once per two steps. [TUNE]
+const ANIM_WALK_TILT: float = 3.6
+
+## Horizontal drift accompanying the sway, in pixels. [TUNE]
+const ANIM_WALK_SWAY: float = 2.2
+
+## How fast the cycle settles back to neutral on stopping. [TUNE]
+const ANIM_SETTLE_SPEED: float = 12.0
+
+## Vertical compress applied when a foot lands. [TUNE]
+const ANIM_STEP_SQUASH: float = 0.055
+
+# ------------------------------------------------------------------------------
+# Weight
+# ------------------------------------------------------------------------------
+
+## Units at or above this mass shake the screen when they walk. A human is 1.0,
+## so only elites and bosses qualify. [TUNE]
+const ANIM_SHAKE_MASS_THRESHOLD: float = 2.5
+
+## Shake magnitude per point of mass above the threshold. [TUNE]
+const ANIM_STEP_SHAKE: float = 1.1
+const ANIM_STEP_SHAKE_TIME: float = 0.12
+
+# ------------------------------------------------------------------------------
+# Squash and stretch
+# ------------------------------------------------------------------------------
+
+## How much width is gained per unit of height lost. Roughly volume-preserving,
+## which is what makes a squash read as physical. [TUNE]
+const ANIM_SQUASH_WIDEN: float = 0.62
+
+const ANIM_SQUASH_DECAY: float = 3.4
+const ANIM_STRETCH_DECAY: float = 4.0
+
+# ------------------------------------------------------------------------------
+# Impacts
+# ------------------------------------------------------------------------------
+
+## How far the sprite is knocked from the source of a hit, in pixels. [TUNE]
+const ANIM_RECOIL_DISTANCE: float = 9.0
+const ANIM_RECOIL_DECAY: float = 90.0
+
+## Compress applied on taking a hit. [TUNE]
+const ANIM_HURT_SQUASH: float = 0.14
+
+## How far the sprite throws itself into its own swing, in pixels. [TUNE]
+const ANIM_PUNCH_DISTANCE: float = 13.0
+const ANIM_PUNCH_DECAY: float = 130.0
+
+## Degrees of roll into a swing. [TUNE]
+const ANIM_PUNCH_LEAN: float = 9.0
+const ANIM_PUNCH_SQUASH: float = 0.09
+const ANIM_LEAN_DECAY: float = 70.0
+
+# ------------------------------------------------------------------------------
+# Dash and death
+# ------------------------------------------------------------------------------
+
+## Stretch along the dash axis. Held for the dash, then released. [TUNE]
+const ANIM_DASH_STRETCH: float = 0.34
+
+## Ghost images left behind by a dash, and how long each lingers. [TUNE]
+const ANIM_DASH_GHOSTS: int = 4
+const ANIM_DASH_GHOST_LIFE: float = 0.22
+
+## Degrees a corpse rolls as it falls. [TUNE]
+const ANIM_DEATH_SPIN: float = 74.0
+const ANIM_DEATH_SQUASH: float = 0.3
+const ANIM_SPIN_DECAY: float = 60.0
+
+# ------------------------------------------------------------------------------
+# Mass by unit kind
+# ------------------------------------------------------------------------------
+#
+# EnemyData carries no mass field, so it is derived from category and body size.
+# A field could be added later; this keeps the data files unchanged.
+
+const ANIM_MASS_HERO: float = 1.0
+const ANIM_MASS_BREED: float = 1.0
+const ANIM_MASS_ELITE: float = 3.2
+const ANIM_MASS_BOSS: float = 9.0
+
+# ==============================================================================
+# WORLD SCALE
+# ==============================================================================
+
+## How much world area one terrain tile covers, in pixels. The source art is
+## 512px; drawing it 1:1 repeats it eight times across the screen and the result
+## reads as wallpaper rather than as ground. Stretching each tile over a much
+## larger area hides the repeat at the cost of some sharpness, which is the
+## right trade for a floor nobody is meant to look at. [TUNE]
+const GROUND_TILE_WORLD_SIZE: float = 1400.0
+
+## Sprite scale for units. The battlefield camera has to hold the whole lane
+## ring, which leaves the hero about 79 screen pixels at source size - too small
+## to read the art or the animation on it. [TUNE]
+const HERO_SPRITE_SCALE: float = 1.75
+const ENEMY_SPRITE_SCALE: float = 1.55
+const ELITE_SPRITE_SCALE: float = 1.9
+const BOSS_SPRITE_SCALE: float = 2.2

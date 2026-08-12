@@ -17,6 +17,7 @@ const GROUP: StringName = &"hero"
 @export var sprite: Sprite2D
 @export var health_bar: HealthBar
 @export var spells: SpellCaster
+@export var animator: SpriteAnimator
 
 ## How far from the origin the hero may roam. Differs per scope — the
 ## battlefield lane ring and the raid arena are not the same size — so the
@@ -56,6 +57,10 @@ func _ready() -> void:
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	health_bar.bind(health)
+
+	animator.mass = Balance.ANIM_MASS_HERO
+	animator.capture_home()
+	attack.landed.connect(_on_attack_landed)
 
 	spells.field = field
 	spells.blink_requested.connect(_on_blink)
@@ -101,6 +106,7 @@ func _physics_process(delta: float) -> void:
 	global_position = global_position.limit_length(
 		bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
 
+	animator.set_motion(velocity, move_speed(), delta)
 	_update_sprite(delta)
 
 
@@ -192,11 +198,18 @@ func _try_dash() -> void:
 	_dash_left = Balance.HERO_DASH_DURATION
 	_dash_cooldown_left = Balance.HERO_DASH_COOLDOWN
 	health.add_invulnerability(Balance.HERO_DASH_IFRAMES)
+	animator.dash(_dash_direction, Balance.HERO_DASH_DURATION)
+	_spawn_dash_ghosts()
 	EventBus.hero_dashed.emit(Balance.HERO_DASH_IFRAMES)
 
 
 ## Sized so the lunge covers `distance` while decaying linearly to zero over
 ## HERO_ATTACK_LUNGE_TIME. Tuning the distance is enough; the speed follows.
+func _on_attack_landed(chain_step: int, _targets: int, _at: Vector2) -> void:
+	# A connecting swing squashes harder than a whiffed one.
+	animator.squash(Balance.ANIM_PUNCH_SQUASH * (1.6 if chain_step == 2 else 1.0))
+
+
 func _on_lunge_requested(direction: Vector2, distance: float) -> void:
 	var duration: float = Balance.HERO_ATTACK_LUNGE_TIME
 	if duration <= 0.0 or distance <= 0.0:
@@ -204,10 +217,12 @@ func _on_lunge_requested(direction: Vector2, distance: float) -> void:
 	var speed: float = 2.0 * distance / duration
 	_lunge_velocity = direction * speed
 	_lunge_decay = speed / duration
+	animator.punch(direction, clampf(distance / 110.0, 0.6, 1.5))
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	animator.recoil(from, global_position, 1.0)
 	EventBus.hero_damaged.emit(amount, from)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
 
@@ -241,6 +256,29 @@ func _tick_respawn(delta: float) -> void:
 	sprite.modulate = Color.WHITE
 	health_bar.visible = true
 	EventBus.hero_respawned.emit(global_position)
+
+
+## Fading copies of the sprite left along the dash path. Cheap, and the single
+## clearest way to make a 0.16s movement read as fast rather than as a teleport.
+func _spawn_dash_ghosts() -> void:
+	var parent: Node = get_parent()
+	if parent == null or sprite.texture == null:
+		return
+	for i: int in Balance.ANIM_DASH_GHOSTS:
+		var ghost := Sprite2D.new()
+		ghost.texture = sprite.texture
+		ghost.flip_h = sprite.flip_h
+		ghost.global_position = global_position + _dash_direction * (float(i) * 22.0)
+		ghost.z_index = -1
+		ghost.modulate = Color(0.65, 0.85, 1.0, 0.42 - 0.08 * float(i))
+		parent.add_child(ghost)
+
+		var life: float = Balance.ANIM_DASH_GHOST_LIFE
+		var tween: Tween = ghost.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(ghost, "modulate:a", 0.0, life)
+		tween.tween_property(ghost, "scale", Vector2.ONE * 0.86, life)
+		tween.chain().tween_callback(ghost.queue_free)
 
 
 func _update_sprite(_delta: float) -> void:

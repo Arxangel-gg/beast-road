@@ -23,6 +23,7 @@ enum State {
 @export var health: Health
 @export var sprite: Sprite2D
 @export var health_bar: HealthBar
+@export var animator: SpriteAnimator
 
 ## Set by the spawner before the node enters the tree.
 var data: EnemyData = null
@@ -72,6 +73,9 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	health_bar.bind(health)
 
+	animator.mass = _mass_for_category()
+	animator.capture_home()
+
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
@@ -105,6 +109,8 @@ func _tick_state(delta: float) -> void:
 			_target = _pick_target()
 			if _target != null and _in_reach(_target):
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
+				# Coil before the blow: the tell the player reads.
+				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
 			else:
 				_walk(delta)
 		State.WINDUP:
@@ -112,6 +118,10 @@ func _tick_state(delta: float) -> void:
 			if _state_left <= 0.0:
 				_strike()
 				_enter(State.STRIKE, Balance.ENEMY_ATTACK_STRIKE)
+				var toward: Vector2 = Vector2.RIGHT
+				if _target != null and is_instance_valid(_target):
+					toward = (_target.global_position - global_position).normalized()
+				animator.punch(toward, 1.1)
 		State.STRIKE:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -218,6 +228,7 @@ func take_damage(amount: float, from: Vector2, knockback: float) -> bool:
 	if not health.take_damage(incoming, from):
 		return false
 	_hitstun_left = Balance.ENEMY_HITSTUN
+	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
 	var away: Vector2 = global_position - from
 	away = away.normalized() if away.length() > 0.001 else Vector2.RIGHT
 	_knockback = away * knockback * (1.0 - data.knockback_resistance)
@@ -294,7 +305,18 @@ func _tick_death(delta: float) -> void:
 		return
 	var t: float = _death_left / Balance.ENEMY_DEATH_FADE
 	sprite.modulate = Color(1.0, 1.0, 1.0, t)
-	sprite.scale = Vector2.ONE * (0.75 + 0.25 * t)
+
+
+## Mass drives how heavily this thing moves. Derived rather than authored, so
+## the enemy `.tres` files did not all need a new field.
+func _mass_for_category() -> float:
+	match data.category:
+		EnemyData.Category.ELITE:
+			return Balance.ANIM_MASS_ELITE
+		EnemyData.Category.BOSS:
+			return Balance.ANIM_MASS_BOSS
+		_:
+			return Balance.ANIM_MASS_BREED
 
 
 func _update_sprite() -> void:
@@ -317,7 +339,4 @@ func _update_sprite() -> void:
 		tint = Balance.HIT_FLASH_COLOUR.lerp(tint, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	sprite.modulate = tint
 
-	var wind_up_scale: float = 1.0
-	if _state == State.WINDUP:
-		wind_up_scale = 1.0 + 0.18 * (1.0 - _state_left / Balance.ENEMY_ATTACK_WINDUP)
-	sprite.scale = Vector2.ONE * wind_up_scale
+

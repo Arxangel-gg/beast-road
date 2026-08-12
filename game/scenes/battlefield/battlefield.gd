@@ -300,7 +300,15 @@ func _setup_ground() -> void:
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
-	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
+
+	# The region is in *texture* space and the sprite is scaled up afterwards, so
+	# one repeat covers GROUND_TILE_WORLD_SIZE of world rather than its 512
+	# source pixels. Drawn 1:1 the tile repeats eight times across the screen and
+	# the seams turn the floor into wallpaper.
+	var tile_scale: float = Balance.GROUND_TILE_WORLD_SIZE / 512.0
+	var half: float = extent / tile_scale
+	ground.region_rect = Rect2(-half, -half, half * 2.0, half * 2.0)
+	ground.scale = Vector2.ONE * tile_scale
 
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
