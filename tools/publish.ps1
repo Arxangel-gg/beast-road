@@ -314,7 +314,8 @@ $btn.Add_Click({
 
         Write-Log ''
         Write-Log "Players will be offered $tag the next time they open the launcher."
-        Write-Log 'They do NOT need to download the launcher again.'
+        Write-Log 'Game-only updates need no new launcher download.'
+        Write-Log 'If this release changes launcher code, replace the launcher once using the link below.'
         $lblLink.Text = "https://github.com/$Owner/$Repo/releases/latest"
         $lblLink.Visible = $true
         $bar.ForeColor = $cGreen

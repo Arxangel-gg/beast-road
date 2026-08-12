@@ -75,7 +75,10 @@ The launcher's permanent download link — it always points at the newest one:
 https://github.com/Arxangel-gg/beast-road/releases/latest/download/BeastRoadLauncher.exe
 ```
 
-They run it once. It installs the game, and from then on it updates itself.
+It installs and updates the game. The launcher executable cannot replace itself
+while it is running on Windows, so a release that changes `launcher/` requires
+one manual launcher refresh from this same permanent link. Game-only releases
+need no new launcher download.
 
 > Windows SmartScreen will warn about an unsigned executable. That is expected
 > for anything without a code-signing certificate; "More info" -> "Run anyway".

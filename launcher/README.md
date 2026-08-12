@@ -2,6 +2,9 @@
 
 A small Godot app that installs, updates and runs the game from GitHub Releases.
 
+It updates the game, not its own running executable. When launcher code changes,
+replace `BeastRoadLauncher.exe` once from the permanent latest-release link.
+
 - Checks `releases/latest` on the repository named in `scripts/LauncherConfig.gd`
 - Installs into `%LOCALAPPDATA%\\BeastRoad`
 - Retries transient GitHub/CDN failures and verifies the downloaded byte count
