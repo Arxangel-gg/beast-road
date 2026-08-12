@@ -1128,6 +1128,9 @@ const LANE_RING_FULL_ALPHA: float = 0.92
 const LANE_RING_CALM: Color = Color(0.85, 0.66, 0.28)
 const LANE_RING_HOT: Color = Color(0.86, 0.24, 0.14)
 
+## Size of the arrow that appears outside an alarmed arc, in pixels. [TUNE]
+const LANE_RING_ARROW_SIZE: float = 38.0
+
 ## Pressure above which the arc pulses. Below it the readout is still. [TUNE]
 const LANE_RING_ALARM_AT: float = 0.62
 const LANE_RING_PULSE_SPEED: float = 5.4

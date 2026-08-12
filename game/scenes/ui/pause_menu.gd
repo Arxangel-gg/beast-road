@@ -12,6 +12,8 @@ extends CanvasLayer
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	panel.visible = false
+	IconKit.on_button(resume_button, "close", 24.0)
+	IconKit.on_button(menu_button, "settings", 24.0)
 	resume_button.pressed.connect(toggle)
 	menu_button.pressed.connect(func() -> void:
 		get_tree().paused = false

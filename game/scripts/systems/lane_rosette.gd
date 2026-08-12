@@ -132,13 +132,22 @@ func _draw() -> void:
 		draw_arc(centre, Balance.LANE_RING_RADIUS, middle - half, middle + half,
 			48, Color(colour, alpha), thickness, true)
 
-		# A tick at the outer edge pointing down the lane. Small, and only once
-		# the lane is genuinely under load, so it works as an alert rather than
-		# as chrome.
+		# A marker outside the arc pointing down the lane. Only once the lane is
+		# genuinely under load, so it works as an alert rather than as chrome.
 		if value >= Balance.LANE_RING_ALARM_AT:
 			var outward: Vector2 = Vector2.RIGHT.rotated(middle)
-			var tip: Vector2 = centre + outward * (Balance.LANE_RING_RADIUS + thickness * 1.9)
-			var wing: Vector2 = outward.orthogonal() * thickness * 1.1
-			var back: Vector2 = centre + outward * (Balance.LANE_RING_RADIUS + thickness * 0.6)
-			draw_colored_polygon(PackedVector2Array([tip, back + wing, back - wing]),
-				Color(colour, alpha))
+			var at: Vector2 = centre + outward * (Balance.LANE_RING_RADIUS + thickness * 2.6)
+			var arrow: Texture2D = IconKit.ui("pressure_arrow")
+			if arrow != null:
+				# The art points right, which is angle zero — the same convention
+				# the arc angles use, so `middle` rotates it straight onto the lane.
+				var reach: float = Balance.LANE_RING_ARROW_SIZE * (0.75 + 0.25 * value)
+				draw_set_transform(at, middle, Vector2.ONE)
+				draw_texture_rect(arrow,
+					Rect2(-reach * 0.5, -reach * 0.5, reach, reach), false, Color(colour, alpha))
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			else:
+				var wing: Vector2 = outward.orthogonal() * thickness * 1.1
+				var back: Vector2 = centre + outward * (Balance.LANE_RING_RADIUS + thickness * 0.6)
+				draw_colored_polygon(PackedVector2Array([
+					at, back + wing, back - wing]), Color(colour, alpha))

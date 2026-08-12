@@ -18,6 +18,9 @@ signal extract_requested()
 
 const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 
+## Frame drawn behind each spell slot.
+const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
+
 @export var battlefield: Battlefield
 
 var _resources: Label
@@ -68,7 +71,7 @@ func _ready() -> void:
 	_build_spell_bar()
 	_build_boss_bar()
 
-	EventBus.resources_changed.connect(func(v: int) -> void: _resources.text = "Resources  %d" % v)
+	EventBus.resources_changed.connect(func(v: int) -> void: _resources.text = "%d" % v)
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
@@ -94,7 +97,7 @@ func _ready() -> void:
 			slot.clicked.connect(_open_build_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
-	_resources.text = "Resources  %d" % RunState.resources
+	_resources.text = "%d" % RunState.resources
 	_on_act(RunState.act, RunState.terrain_id)
 	_rebuild_spell_bar()
 	_refresh_state_label()
@@ -130,21 +133,32 @@ func _build_top_bar() -> void:
 	bar.add_theme_constant_override("separation", 32)
 	add_child(bar)
 
-	_resources = _label("Resources  0")
-	_distance = _label("Distance  0")
-	_wave = _label("Wave  0")
+	# The act name keeps its word; the three counters do not need theirs. An icon
+	# says "resources" faster than the word does once it has been seen twice, and
+	# the numbers are what the player is actually reading.
 	_act = _label("Act 1")
-	for l: Label in [_act, _resources, _distance, _wave]:
-		bar.add_child(l)
+	bar.add_child(_act)
+
+	var resource_row: HBoxContainer = IconKit.labelled("resource", "0")
+	var distance_row: HBoxContainer = IconKit.labelled("distance", "0")
+	var wave_row: HBoxContainer = IconKit.labelled("wave", "0")
+	for row: HBoxContainer in [resource_row, distance_row, wave_row]:
+		bar.add_child(row)
+	_resources = IconKit.label_of(resource_row)
+	_distance = IconKit.label_of(distance_row)
+	_wave = IconKit.label_of(wave_row)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(spacer)
 
 	_town_bar = _make_bar(Color("8a5a3a"), 240.0)
-	bar.add_child(_label("Town"))
+	bar.add_child(_bar_icon("city_health", "Town"))
 	bar.add_child(_town_bar)
 
+	# No hero icon exists in the set, and borrowing an unrelated one is worse than
+	# a word: `ui_captive` is a pair of manacles, which beside the player's own
+	# health bar would say something the game does not mean.
 	_hero_bar = _make_bar(Color("c4552e"), 180.0)
 	bar.add_child(_label("Hero"))
 	bar.add_child(_hero_bar)
@@ -165,6 +179,13 @@ func _build_top_bar() -> void:
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_color", Color("e8a33d"))
 	add_child(_message)
+
+
+## An icon if the art exists, the word if it does not. Fifty-four assets in this
+## project are still placeholders, so no piece of UI may depend on one arriving.
+func _bar_icon(id: String, fallback: String) -> Control:
+	var icon: TextureRect = IconKit.rect(id, 28.0)
+	return icon if icon != null else _label(fallback)
 
 
 func _make_bar(colour: Color, width: float) -> ProgressBar:
@@ -205,9 +226,14 @@ func _build_scope_bar() -> void:
 	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
 
 	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
+	IconKit.on_button(_horn_button, "war_horn", 26)
 	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
+	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
 
+	# No icon on the charge bar: the Raid button sitting immediately beside it
+	# already carries one, and the same symbol twice in six inches reads as a
+	# mistake rather than as a label.
 	_charge_bar = _make_bar(Color("9b8fc4"), 200.0)
 	_charge_bar.value = 0.0
 	bar.add_child(_charge_bar)
@@ -236,8 +262,14 @@ func _build_tower_panel() -> void:
 	column.add_theme_constant_override("separation", 8)
 	_build_panel.add_child(column)
 
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 8)
+	var heading_icon: TextureRect = IconKit.rect("blueprint", 28.0)
+	if heading_icon != null:
+		heading.add_child(heading_icon)
 	_build_title = _label("Build", 22)
-	column.add_child(_build_title)
+	heading.add_child(_build_title)
+	column.add_child(heading)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -247,7 +279,8 @@ func _build_tower_panel() -> void:
 	_build_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_build_list)
 
-	_add_button(column, "Close", func() -> void: _build_panel.visible = false)
+	var close: Button = _add_button(column, "Close", func() -> void: _build_panel.visible = false)
+	IconKit.on_button(close, "close", 22)
 
 
 func _build_raid_panel() -> void:
@@ -336,18 +369,40 @@ func _rebuild_spell_bar() -> void:
 	_spell_buttons.clear()
 
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		# The slot frame sits behind the button rather than being its background,
+		# so an empty slot still reads as a slot the player could fill. A gap
+		# reads as nothing at all.
+		var frame := Control.new()
+		frame.custom_minimum_size = Vector2(118, 66)
+		var plate: TextureRect = null
+		var slot_texture: Texture2D = load(SLOT_TEXTURE) \
+			if ResourceLoader.exists(SLOT_TEXTURE) else null
+		if slot_texture != null:
+			plate = TextureRect.new()
+			plate.texture = slot_texture
+			plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+			plate.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			plate.stretch_mode = TextureRect.STRETCH_SCALE
+			plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			frame.add_child(plate)
+
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(118, 66)
+		button.flat = slot_texture != null
+		button.set_anchors_preset(Control.PRESET_FULL_RECT)
 		button.focus_mode = Control.FOCUS_NONE
 		var spell: SpellData = _spell_in_slot(slot)
 		if spell == null:
 			button.text = "%d\n—" % (slot + 1)
 			button.disabled = true
+			if plate != null:
+				plate.modulate = Color(1, 1, 1, 0.45)
 		else:
 			button.text = "%d\n%s" % [slot + 1, spell.display_name]
 			button.tooltip_text = spell.description
 			button.pressed.connect(_cast.bind(slot))
-		_spell_bar.add_child(button)
+		frame.add_child(button)
+
+		_spell_bar.add_child(frame)
 		_spell_buttons.append(button)
 
 
@@ -464,6 +519,7 @@ func _refresh_build_panel() -> void:
 				"Upgrade to level %d   -   %d resources" % [level + 1, cost], func() -> void:
 					_report(battlefield.try_upgrade(lane, slot))
 					_refresh_build_panel())
+			IconKit.on_button(button, "upgrade", 22)
 			button.disabled = not afford
 			if not afford:
 				_build_list.add_child(_label("Need %d more." % (cost - RunState.resources), 13))
@@ -478,10 +534,28 @@ func _refresh_build_panel() -> void:
 	if target_slot != null and target_slot.is_combo_slot():
 		var combo: TowerData = target_slot.buildable_combination()
 		if combo == null:
-			_build_list.add_child(_label("Build a tower either side first.\nThe middle spot combines them.", 15))
+			var locked := HBoxContainer.new()
+			locked.add_theme_constant_override("separation", 8)
+			var lock: TextureRect = IconKit.rect("lock", 30.0, Color(0.75, 0.72, 0.66))
+			if lock != null:
+				locked.add_child(lock)
+			locked.add_child(_label("Build a tower either side first.\nThe middle spot combines them.", 15))
+			_build_list.add_child(locked)
 			return
-		_build_list.add_child(_label("%s + %s" % [
+		# The two parents shown as their own element icons: what this slot makes
+		# is a fact about two other slots, and the icons say that without reading.
+		var parents := HBoxContainer.new()
+		parents.add_theme_constant_override("separation", 6)
+		for parent: int in [combo.parent_a, combo.parent_b]:
+			var mark := TextureRect.new()
+			mark.texture = IconKit.element(parent)
+			mark.custom_minimum_size = Vector2(26.0, 26.0)
+			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			parents.add_child(mark)
+		parents.add_child(_label("%s + %s" % [
 			TowerData.element_name(combo.parent_a), TowerData.element_name(combo.parent_b)], 15))
+		_build_list.add_child(parents)
 		_add_tower_row(combo, lane, slot)
 		return
 
@@ -557,10 +631,16 @@ func _add_tower_row(tower: TowerData, lane: int, slot: int) -> void:
 	var row := VBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	var cost: int = Battlefield.build_cost_of(tower)
-	var button: Button = _add_button(row, "%s  ·  %s  ·  %d" % [
-		tower.display_name, TowerData.element_name(tower.element), cost], func() -> void:
+	# The element name comes off the label and onto the button's icon. Four
+	# elements across eight towers is exactly the thing an icon does better than
+	# a word - it is recognised rather than read, which matters mid-wave.
+	var button: Button = _add_button(row, "%s  ·  %d" % [tower.display_name, cost], func() -> void:
 			_report(battlefield.try_build(lane, slot, tower))
 			_refresh_build_panel())
+	button.icon = IconKit.element_sized(tower.element, 26)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.tooltip_text = "%s  ·  %s" % [
+		TowerData.element_name(tower.element), tower.description]
 	button.disabled = not RunState.can_afford(cost)
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	if not tower.description.is_empty():
@@ -579,7 +659,9 @@ func _report(problem: String) -> void:
 # --- Signal handlers --------------------------------------------------------
 
 func _on_distance(total: float, to_crossroad: float) -> void:
-	_distance.text = "Distance  %d   ·   crossroad in %d" % [int(total), int(ceil(to_crossroad))]
+	# "Distance" is dropped - the icon says it. "crossroad in" is kept, because
+	# that is a second number and an icon cannot tell the two apart.
+	_distance.text = "%d   ·   crossroad in %d" % [int(total), int(ceil(to_crossroad))]
 
 
 func _on_town_health(current: float, maximum: float) -> void:
@@ -598,7 +680,7 @@ func _on_wave(number: int, lanes: Array) -> void:
 	var names: PackedStringArray = []
 	for lane: int in lanes:
 		names.append(LANE_NAMES[clampi(lane, 0, 3)])
-	_wave.text = "Wave  %d" % number
+	_wave.text = "%d" % number
 	_message.text = "Wave %d  —  %s" % [number, ", ".join(names)]
 	_message_left = 2.0
 

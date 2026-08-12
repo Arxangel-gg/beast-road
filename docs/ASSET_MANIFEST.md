@@ -222,7 +222,11 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 
-All 64×64, type T, placeholder colour `#D9CDB8`.
+All 128×128, type T, placeholder colour `#D9CDB8`.
+
+> Raised from 64×64. The game runs fullscreen, and a 64px icon drawn into a
+> 40–48px HUD slot on a 1440p display has almost no headroom — any UI scaling at
+> all and it is visibly soft. 128 costs a few KB each and leaves room to grow.
 
 `ui_element_fire.png` · `ui_element_water.png` · `ui_element_earth.png` ·
 `ui_element_air.png` · `ui_resource.png` · `ui_blueprint.png` ·
@@ -287,7 +291,7 @@ a non-square target just letterboxes the art and shrinks it.
 | `ui_panel_dark.png` | 256×256 | T | `#0E1518` |
 | `ui_button.png` | 256×88 | T | `#2E4048` |
 | `ui_button_hover.png` | 256×88 | T | `#3E5660` |
-| `ui_slot.png` | 96×96 | T | `#232F33` |
+| `ui_slot.png` | 128×128 | T | `#232F33` |
 | `ui_bar_fill.png` | 128×16 | T | `#C4552E` |
 | `ui_bar_back.png` | 128×16 | T | `#141C1F` |
 | `ui_logo.png` | 1024×512 | T | `#E8A33D` |

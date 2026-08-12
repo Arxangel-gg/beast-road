@@ -28,6 +28,9 @@ var _roads_only: bool = false
 var _peaceful: bool = false
 var _build: bool = false
 var _no_casters: bool = false
+var _panel: bool = false
+var _panel_lane: int = 0
+var _panel_slot: int = 0
 var _reported: bool = false
 
 
@@ -44,6 +47,12 @@ func _ready() -> void:
 			# "are cast shadows rendering at all" without squinting at a dark
 			# screenshot and talking myself into a yes.
 			_no_casters = true
+		elif argument.begins_with("--panel="):
+			# --panel=lane,slot
+			var parts: PackedStringArray = argument.split("=")[1].split(",")
+			_panel = true
+			_panel_lane = int(parts[0])
+			_panel_slot = int(parts[1]) if parts.size() > 1 else 0
 		elif argument == "--build":
 			# Puts a tower in every slot. Cast shadows need something to cast,
 			# and an empty field proves nothing about them.
@@ -102,6 +111,14 @@ func _process(delta: float) -> void:
 					(node as CanvasItem).visible = false
 		if _build:
 			_build_everything()
+		if _panel:
+			# Opens the build panel on a slot. It cannot be reached without a
+			# mouse, and it is the densest piece of UI in the game — so it is the
+			# one most worth forcing open in a test.
+			for node: Node in _all(get_tree().root):
+				if node is HUD:
+					node.call("_open_build_panel", _panel_lane, _panel_slot)
+					break
 		if _no_casters:
 			var removed: int = 0
 			for node: Node in _all(get_tree().root):
