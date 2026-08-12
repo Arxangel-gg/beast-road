@@ -228,6 +228,10 @@ func take_damage(amount: float, from: Vector2, knockback: float) -> bool:
 	if not health.take_damage(incoming, from):
 		return false
 	_hitstun_left = Balance.ENEMY_HITSTUN
+	# The number is the clearest signal that a hit registered at all, which
+	# matters most when a swing catches six things at once.
+	Vfx.number(global_position, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
+	Vfx.spark(global_position, Color("ffcf9a"), 4, (global_position - from).normalized(), 170.0)
 	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
 	var away: Vector2 = global_position - from
 	away = away.normalized() if away.length() > 0.001 else Vector2.RIGHT

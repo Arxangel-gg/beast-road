@@ -665,3 +665,49 @@ const HERO_SPRITE_SCALE: float = 1.75
 const ENEMY_SPRITE_SCALE: float = 1.55
 const ELITE_SPRITE_SCALE: float = 1.9
 const BOSS_SPRITE_SCALE: float = 2.2
+
+# ==============================================================================
+# FEEDBACK VFX
+# ==============================================================================
+#
+# Drives the Vfx autoload. All of it is cosmetic: turning every value here to
+# zero should leave a game that plays identically and feels dead.
+
+## Draw order for transient effects - above units, below the HUD.
+const VFX_Z: int = 40
+
+## Hard cap on live effect nodes. A wave of forty enemies dying at once would
+## otherwise spawn hundreds of tweens in a frame.
+const VFX_MAX_LIVE: int = 220
+
+## Shards thrown by an impact. [TUNE]
+const VFX_SPARK_LIFE: float = 0.32
+const VFX_SPARK_SPREAD: float = 0.85
+
+## Floating damage numbers. [TUNE]
+const VFX_NUMBER_SIZE: int = 22
+const VFX_NUMBER_SIZE_BIG: int = 32
+const VFX_NUMBER_RISE: float = 64.0
+const VFX_NUMBER_LIFE: float = 0.85
+
+## Tower muzzle flash. [TUNE]
+const VFX_MUZZLE_LENGTH: float = 44.0
+const VFX_MUZZLE_WIDTH: float = 13.0
+const VFX_MUZZLE_LIFE: float = 0.13
+
+## The wedge that sweeps through the hero's swing arc. [TUNE]
+const VFX_SLASH_LIFE: float = 0.16
+
+## Screen wash intensities, 0..1. [TUNE]
+const VFX_HURT_FLASH: float = 0.26
+const VFX_TOWN_FLASH: float = 0.34
+const VFX_TOWN_SHAKE: float = 13.0
+
+## Town health fraction below which its damage flash doubles up. [TUNE]
+const VFX_TOWN_CRITICAL: float = 0.35
+
+## Hero health fraction at which the red edge starts, and how dark the edge gets
+## at zero health. This is edge opacity, not screen opacity - the centre of the
+## screen always stays clear. [TUNE]
+const VFX_VIGNETTE_THRESHOLD: float = 0.5
+const VFX_VIGNETTE_MAX: float = 0.85

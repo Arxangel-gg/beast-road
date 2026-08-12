@@ -63,6 +63,9 @@ func _ready() -> void:
 	# go looking up the tree for the scope it happens to be sitting in.
 	if hero != null:
 		hero.field = self
+	# Transient effects are parented into the scope that owns them, so leaving
+	# the battlefield takes its sparks with it.
+	Vfx.bind_world(effect_root if effect_root != null else self)
 
 
 func _process(delta: float) -> void:

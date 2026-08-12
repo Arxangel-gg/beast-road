@@ -64,6 +64,7 @@ func begin() -> void:
 	visible = true
 	if hero != null:
 		hero.field = self
+	Vfx.bind_world(effect_root if effect_root != null else self)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.raid_started.emit()
 

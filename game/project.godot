@@ -23,6 +23,7 @@ ContentDB="*res://autoload/ContentDB.gd"
 MetaState="*res://autoload/MetaState.gd"
 RunState="*res://autoload/RunState.gd"
 Modifiers="*res://autoload/Modifiers.gd"
+Vfx="*res://autoload/Vfx.gd"
 GameDirector="*res://autoload/GameDirector.gd"
 MusicPlayer="*res://autoload/MusicPlayer.gd"
 
