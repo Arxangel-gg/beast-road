@@ -26,6 +26,8 @@ Modifiers="*res://autoload/Modifiers.gd"
 Vfx="*res://autoload/Vfx.gd"
 GameDirector="*res://autoload/GameDirector.gd"
 MusicPlayer="*res://autoload/MusicPlayer.gd"
+Sfx="*res://autoload/Sfx.gd"
+Ambience="*res://autoload/Ambience.gd"
 
 [display]
 

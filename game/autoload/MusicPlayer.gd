@@ -12,7 +12,17 @@ extends Node
 
 ## Track id -> file. Ids are what scenes ask for; paths never appear elsewhere.
 const TRACKS: Dictionary = {
+	"battle_ashfen": "res://audio/music/music_battle_ashfen.ogg",
+	"battle_saltglass": "res://audio/music/music_battle_saltglass.ogg",
+	"battle_steppe": "res://audio/music/music_battle_steppe.ogg",
+	"boss": "res://audio/music/music_boss.ogg",
+	"crossroad": "res://audio/music/music_crossroad.ogg",
+	"defeat": "res://audio/music/music_defeat.ogg",
+	"menu": "res://audio/music/music_menu.ogg",
+	"raid": "res://audio/music/music_raid.ogg",
 	"steppe_bone_march": "res://audio/music/music_steppe_bone_march.ogg",
+	"town": "res://audio/music/music_town.ogg",
+	"victory": "res://audio/music/music_victory.ogg",
 }
 
 ## Seconds to fade between tracks, and out to silence.
@@ -29,6 +39,7 @@ var _tween: Tween
 
 func _ready() -> void:
 	_player = AudioStreamPlayer.new()
+	_player.bus = "Music"
 	_player.bus = &"Master"
 	# Music must keep playing while the tree is paused, or opening the pause
 	# menu would cut the soundtrack.

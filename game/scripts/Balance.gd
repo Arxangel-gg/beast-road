@@ -711,3 +711,7 @@ const VFX_TOWN_CRITICAL: float = 0.35
 ## screen always stays clear. [TUNE]
 const VFX_VIGNETTE_THRESHOLD: float = 0.5
 const VFX_VIGNETTE_MAX: float = 0.85
+
+## Level the ambience bed settles at, in decibels. It is meant to be noticed
+## only when it stops. [TUNE]
+const AMBIENCE_DB: float = -14.0
