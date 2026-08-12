@@ -32,20 +32,27 @@ const FADE_TIME: float = 1.2
 ## sitting at 0.0 should not leave a stream running at inaudible volume.
 const SILENCE_DB: float = -60.0
 
-var _player: AudioStreamPlayer
+## Two players, swapped on every change. A single player cannot crossfade: the
+## moment you assign a new stream the old one stops dead, so "fade in the new
+## track" was really "hard-cut, then fade up from silence". Two players let the
+## outgoing track fall away while the incoming one rises.
+var _players: Array[AudioStreamPlayer] = []
+var _active: int = 0
 var _current: String = ""
 var _tween: Tween
 
 
 func _ready() -> void:
 	AudioBuses.ensure()
-	_player = AudioStreamPlayer.new()
-	_player.bus = AudioBuses.MUSIC
-	# Music must keep playing while the tree is paused, or opening the pause
-	# menu would cut the soundtrack.
-	_player.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(_player)
-	_player.finished.connect(_on_finished)
+	for i: int in 2:
+		var player := AudioStreamPlayer.new()
+		player.bus = AudioBuses.MUSIC
+		# Music must keep playing while the tree is paused, or opening the pause
+		# menu would cut the soundtrack.
+		player.process_mode = Node.PROCESS_MODE_ALWAYS
+		player.volume_db = SILENCE_DB
+		add_child(player)
+		_players.append(player)
 
 	if MetaState.has_signal("save_loaded"):
 		MetaState.save_loaded.connect(apply_volume)
@@ -66,12 +73,11 @@ func _ready() -> void:
 ## Starts `track_id`, crossfading from whatever is playing. Re-requesting the
 ## current track is a no-op.
 func play(track_id: String) -> void:
-	if track_id == _current and _player.playing:
+	if track_id == _current and _players[_active].playing:
 		return
 	if not TRACKS.has(track_id):
 		push_warning("MusicPlayer: unknown track '%s'" % track_id)
 		return
-
 	var path: String = TRACKS[track_id]
 	if not ResourceLoader.exists(path):
 		push_warning("MusicPlayer: missing file %s" % path)
@@ -86,13 +92,25 @@ func play(track_id: String) -> void:
 	elif stream is AudioStreamMP3:
 		(stream as AudioStreamMP3).loop = true
 
-	_kill_tween()
-	_player.stream = stream
-	_player.volume_db = SILENCE_DB
-	_player.play()
+	var outgoing: AudioStreamPlayer = _players[_active]
+	_active = 1 - _active
+	var incoming: AudioStreamPlayer = _players[_active]
 
+	_kill_tween()
+	incoming.stream = stream
+	incoming.volume_db = SILENCE_DB
+	incoming.play()
+
+	# Equal-power-ish: both curves are eased so the sum does not dip in the
+	# middle, which is what makes a linear crossfade sound like a gap.
 	_tween = create_tween()
-	_tween.tween_property(_player, "volume_db", Balance.MUSIC_DB, FADE_TIME)
+	_tween.set_parallel(true)
+	_tween.tween_property(incoming, "volume_db", Balance.MUSIC_DB, FADE_TIME)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_SINE)
+	if outgoing.playing:
+		_tween.tween_property(outgoing, "volume_db", SILENCE_DB, FADE_TIME)\
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+		_tween.chain().tween_callback(outgoing.stop)
 
 
 ## Picks the track for the current moment. Callers name a situation, never a
@@ -135,8 +153,14 @@ func stop() -> void:
 	_current = ""
 	_kill_tween()
 	_tween = create_tween()
-	_tween.tween_property(_player, "volume_db", SILENCE_DB, FADE_TIME)
-	_tween.tween_callback(_player.stop)
+	_tween.set_parallel(true)
+	for player: AudioStreamPlayer in _players:
+		if player.playing:
+			_tween.tween_property(player, "volume_db", SILENCE_DB, FADE_TIME)\
+				.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+	_tween.chain().tween_callback(func() -> void:
+		for player: AudioStreamPlayer in _players:
+			player.stop())
 
 
 func current_track() -> String:
@@ -148,6 +172,11 @@ func apply_volume() -> void:
 	# Volume is a property of the bus, not of the player. Doing it here as well
 	# meant the fader was applied twice and the crossfade fought the slider.
 	AudioBuses.apply_volumes()
+
+
+## True while a crossfade is in flight. Used by the audio overlay.
+func is_crossfading() -> bool:
+	return _tween != null and _tween.is_valid()
 
 
 func _target_db() -> float:
@@ -162,8 +191,8 @@ func _target_db() -> float:
 ## Belt and braces: the stream loops itself, but a decoder that reports finished
 ## should not leave the game silent for the rest of the run.
 func _on_finished() -> void:
-	if not _current.is_empty():
-		_player.play()
+	if not _current.is_empty() and not _players.is_empty():
+		_players[_active].play()
 
 
 func _kill_tween() -> void:

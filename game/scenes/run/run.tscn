@@ -1,5 +1,6 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
+[ext_resource type="Script" path="res://scenes/ui/audio_debug.gd" id="98_adbg"]
 [ext_resource type="Script" path="res://scenes/run/run.gd" id="1_run"]
 [ext_resource type="PackedScene" path="res://scenes/battlefield/battlefield.tscn" id="2_field"]
 [ext_resource type="PackedScene" path="res://scenes/city/town_scope.tscn" id="3_town"]
@@ -57,3 +58,6 @@ raid = NodePath("../Raid")
 [node name="Pause" parent="." instance=ExtResource("11_pause")]
 
 [node name="TownPanel" parent="." instance=ExtResource("13_townui")]
+
+[node name="AudioDebug" type="CanvasLayer" parent="."]
+script = ExtResource("98_adbg")

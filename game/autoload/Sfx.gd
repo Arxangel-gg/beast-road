@@ -171,6 +171,29 @@ func _on_button_hover() -> void:
 	play("sfx_ui_hover")
 
 
+## Live counters, for diagnosing "why is nothing playing".
+var _attempts: int = 0
+var _starts: int = 0
+var _blocked_gap: int = 0
+var _blocked_limit: int = 0
+var _blocked_voices: int = 0
+var _blocked_missing: int = 0
+
+
+func debug_state() -> Dictionary:
+	var busy: int = 0
+	for v: AudioStreamPlayer in _voices:
+		if v.playing:
+			busy += 1
+	return {
+		"streams": _streams.size(),
+		"attempts": _attempts, "starts": _starts,
+		"blocked_gap": _blocked_gap, "blocked_limit": _blocked_limit,
+		"blocked_voices": _blocked_voices, "blocked_missing": _blocked_missing,
+		"voices_busy": busy, "active": _active.duplicate(),
+	}
+
+
 func _load_streams() -> void:
 	var dir: DirAccess = DirAccess.open(SFX_DIR)
 	if dir == null:
@@ -207,21 +230,27 @@ func apply_volume() -> void:
 ## Plays a sound by id. Silently does nothing if the file is missing, so an
 ## un-generated sound is an absence rather than a crash.
 func play(id: String, extra_db: float = 0.0) -> void:
+	_attempts += 1
 	var stream: AudioStream = _streams.get(id, null) as AudioStream
 	if stream == null:
+		_blocked_missing += 1
 		return
 
 	var mix: Dictionary = MIX.get(id, DEFAULT_MIX)
 	var now: float = float(Time.get_ticks_msec()) / 1000.0
 
 	if now < float(_next_allowed.get(id, 0.0)):
+		_blocked_gap += 1
 		return
 	if int(_active.get(id, 0)) >= int(mix.get("limit", 3)):
+		_blocked_limit += 1
 		return
 
 	var voice: AudioStreamPlayer = _free_voice()
 	if voice == null:
+		_blocked_voices += 1
 		return
+	_starts += 1
 
 	var drift: float = float(mix.get("pitch", 0.1))
 	voice.stream = stream
