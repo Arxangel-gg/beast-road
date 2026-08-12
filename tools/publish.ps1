@@ -159,7 +159,7 @@ $suggested, $latestTag = Suggest-Version
 $txtVersion.Text = $suggested
 $dirty = (Invoke-Git @('status', '--porcelain')).Text.Trim()
 $changeCount = if ($dirty) { @($dirty -split "`n").Count } else { 0 }
-$lblCurrent.Text = "Latest published: $latestTag     Uncommitted changes: $changeCount"
+$lblCurrent.Text = "Latest local tag: $latestTag     Uncommitted changes: $changeCount"
 
 # --- publish -----------------------------------------------------------------
 $btn.Add_Click({
@@ -182,15 +182,41 @@ $btn.Add_Click({
 
         $exists = Invoke-Git @('tag', '--list', $tag)
         if ($exists.Text.Trim() -eq $tag) { throw "$tag already exists. Pick a higher version." }
+        $remoteTag = Invoke-Git @('ls-remote', '--tags', 'origin', "refs/tags/$tag")
+        if ($remoteTag.Text.Trim()) { throw "$tag already exists on GitHub. Pick a higher version." }
+
+        # Validate the exact working tree before it is committed and before an
+        # immutable version tag is spent. These must run sequentially: two
+        # local Godot processes can race while rotating the same AppData log.
+        Set-Stage 'Validating the game and launcher...' 10
+        $godotDir = Join-Path $RepoRoot 'Godot_v4.7.1-stable_win64.exe'
+        $godot = Get-ChildItem -LiteralPath $godotDir -Filter '*_console.exe' -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if (-not $godot) { throw "Godot console executable not found in $godotDir" }
+        $checks = @(
+            @{ Name = 'game'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--quit') },
+            @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
+            @{ Name = 'launcher updater'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'launcher'), 'res://tests/release_pipeline_test.tscn') }
+        )
+        foreach ($check in $checks) {
+            Write-Log "checking $($check.Name)..."
+            $checkOutput = & $godot.FullName @($check.Args) 2>&1
+            $checkText = $checkOutput -join "`n"
+            if ($LASTEXITCODE -ne 0 -or $checkText -match '(?m)^(SCRIPT )?ERROR:|^WARNING:') {
+                throw "$($check.Name) validation failed:`n$($checkOutput -join "`n")"
+            }
+        }
+        Write-Log 'local validation passed'
 
         # Anything outstanding gets committed, so the build matches what is on
         # screen rather than the last time someone remembered to commit.
         $pending = (Invoke-Git @('status', '--porcelain')).Text.Trim()
         if ($pending) {
-            Set-Stage 'Committing your changes...' 15
+            Set-Stage 'Committing your changes...' 20
             $n = @($pending -split "`n").Count
             Write-Log "committing $n changed file(s)"
-            Invoke-Git @('add', '-A') | Out-Null
+            $add = Invoke-Git @('add', '-A')
+            if ($add.Code -ne 0) { throw "staging failed:`n$($add.Text)" }
             $msg = $txtNotes.Text.Trim()
             if (-not $msg) { $msg = "Update $tag" }
             $c = Invoke-Git @('commit', '-m', $msg)
@@ -205,6 +231,7 @@ $btn.Add_Click({
         $p = Invoke-Git @('push', 'origin', $branch)
         if ($p.Code -ne 0) { throw "push failed:`n$($p.Text)" }
         Write-Log "pushed $branch"
+        $commitSha = (Invoke-Git @('rev-parse', 'HEAD')).Text.Trim()
 
         Set-Stage 'Tagging the release...' 40
         $notes = $txtNotes.Text.Trim()
@@ -217,23 +244,32 @@ $btn.Add_Click({
 
         # --- watch the build ---
         Set-Stage 'Building on GitHub (this takes a few minutes)...' 50
-        $api = "https://api.github.com/repos/$Owner/$Repo/actions/runs?per_page=1"
+        $api = "https://api.github.com/repos/$Owner/$Repo/actions/workflows/release.yml/runs?event=push&per_page=20"
         $headers = @{ 'User-Agent' = 'BeastRoadPublisher' }
         $done = $false
+        $seenRun = $false
         for ($i = 0; $i -lt 90; $i++) {
             Start-Sleep -Seconds 10
             try {
                 $runs = Invoke-RestMethod -Uri $api -Headers $headers -TimeoutSec 20
-                $run = $runs.workflow_runs[0]
+                $run = $runs.workflow_runs | Where-Object {
+                    $_.head_branch -eq $tag -and $_.head_sha -eq $commitSha
+                } | Select-Object -First 1
             } catch {
                 Write-Log 'waiting for GitHub...'
                 continue
             }
-            if (-not $run) { continue }
+            if (-not $run) {
+                if ($i % 3 -eq 0) { Write-Log "waiting for the $tag build to start..." }
+                continue
+            }
+            if (-not $seenRun) {
+                Write-Log "watching build #$($run.run_number): $($run.html_url)"
+                $seenRun = $true
+            }
 
             if ($run.status -eq 'completed') {
                 if ($run.conclusion -eq 'success') {
-                    Set-Stage 'Published.' 100
                     Write-Log 'build succeeded'
                     $done = $true
                 } else {
@@ -244,6 +280,37 @@ $btn.Add_Click({
             Set-Stage "Building on GitHub... ($($run.status))" ([Math]::Min(50 + $i * 3, 95))
         }
         if (-not $done) { throw 'timed out waiting for the build. Check the Actions tab.' }
+
+        # A successful job is not the player-facing finish line. Confirm that
+        # GitHub's release API can see both files the launcher depends on.
+        Set-Stage 'Verifying the published files...' 98
+        $releaseApi = "https://api.github.com/repos/$Owner/$Repo/releases/tags/$tag"
+        $releaseReady = $false
+        for ($i = 0; $i -lt 30; $i++) {
+            try {
+                $release = Invoke-RestMethod -Uri $releaseApi -Headers $headers -TimeoutSec 20
+                $gameAsset = $release.assets | Where-Object {
+                    $_.name -eq 'BeastRoad-windows.zip' -and $_.state -eq 'uploaded' -and $_.size -gt 0
+                } | Select-Object -First 1
+                $launcherAsset = $release.assets | Where-Object {
+                    $_.name -eq 'BeastRoadLauncher.exe' -and $_.state -eq 'uploaded' -and $_.size -gt 0
+                } | Select-Object -First 1
+                if ($gameAsset -and $launcherAsset) {
+                    $releaseReady = $true
+                    break
+                }
+            } catch {
+                # Release creation can trail the successful job by a moment.
+            }
+            Start-Sleep -Seconds 2
+        }
+        if (-not $releaseReady) {
+            throw "the build succeeded, but GitHub did not publish both release files for $tag"
+        }
+
+        Set-Stage 'Published.' 100
+        Write-Log ("verified game archive ({0:N1} MB) and launcher ({1:N1} MB)" -f `
+            ($gameAsset.size / 1MB), ($launcherAsset.size / 1MB))
 
         Write-Log ''
         Write-Log "Players will be offered $tag the next time they open the launcher."
@@ -260,7 +327,9 @@ $btn.Add_Click({
     finally {
         $btn.Enabled = $true
         $suggested, $latestTag = Suggest-Version
-        $lblCurrent.Text = "Latest published: $latestTag"
+        # A tag can exist even when its Actions build failed, so never label a
+        # local tag as "published". The success path above verifies publication.
+        $lblCurrent.Text = "Latest local tag: $latestTag"
     }
 })
 

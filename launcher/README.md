@@ -4,6 +4,8 @@ A small Godot app that installs, updates and runs the game from GitHub Releases.
 
 - Checks `releases/latest` on the repository named in `scripts/LauncherConfig.gd`
 - Installs into `%LOCALAPPDATA%\\BeastRoad`
+- Retries transient GitHub/CDN failures and verifies the downloaded byte count
+  and SHA-256 before unpacking
 - Writes `installed.json` **last**, so an interrupted install is reported as
   "not installed" rather than as a broken game
 

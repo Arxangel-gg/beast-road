@@ -163,6 +163,17 @@ func stop() -> void:
 			player.stop())
 
 
+## Test and shutdown path: release decoder resources now instead of waiting for
+## a fade that will never finish once the scene tree begins quitting.
+func stop_immediately() -> void:
+	_current = ""
+	_kill_tween()
+	for player: AudioStreamPlayer in _players:
+		player.stop()
+		player.stream = null
+		player.volume_db = SILENCE_DB
+
+
 func current_track() -> String:
 	return _current
 

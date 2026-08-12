@@ -64,6 +64,16 @@ func stop() -> void:
 	_tween.tween_callback(_player.stop)
 
 
+## Test and shutdown path: drop the decoder immediately when no fade can be
+## observed, preventing misleading resource-leak warnings in automated soaks.
+func stop_immediately() -> void:
+	_current = ""
+	_kill_tween()
+	_player.stop()
+	_player.stream = null
+	_player.volume_db = -60.0
+
+
 func _on_act_started(_act: int, terrain_id: String) -> void:
 	play(terrain_id)
 

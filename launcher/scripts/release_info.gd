@@ -9,6 +9,7 @@ var notes: String = ""
 var asset_url: String = ""
 var asset_name: String = ""
 var asset_size: int = 0
+var asset_sha256: String = ""
 
 
 func is_usable() -> bool:
@@ -45,6 +46,9 @@ static func from_json(text: String) -> ReleaseInfo:
 		info.asset_url = String(asset.get("browser_download_url", ""))
 		# JSON numbers arrive as floats in Godot; a byte count is not a float.
 		info.asset_size = int(asset.get("size", 0))
+		var digest: String = String(asset.get("digest", "")).strip_edges().to_lower()
+		if digest.begins_with("sha256:"):
+			info.asset_sha256 = digest.trim_prefix("sha256:")
 		break
 	return info
 

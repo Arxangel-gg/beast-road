@@ -49,13 +49,25 @@ jobs:
         run: |
           set -euo pipefail
           BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          # GitHub's release CDN occasionally answers a healthy request with a
+          # transient 5xx. A tag is immutable, so retrying the exact download
+          # is both safe and much better than burning a release version.
+          CURL_RETRY=(
+            --fail
+            --location
+            --retry 5
+            --retry-delay 2
+            --retry-max-time 180
+            --retry-all-errors
+            --connect-timeout 20
+          )
           mkdir -p ~/godot
-          curl -fL -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl "${CURL_RETRY[@]}" -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q -o /tmp/godot.zip -d ~/godot
           mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
           chmod +x ~/godot/godot
 
-          curl -fL -o /tmp/templates.tpz "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl "${CURL_RETRY[@]}" -o /tmp/templates.tpz "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           mkdir -p ~/.local/share/godot/export_templates
           unzip -q -o /tmp/templates.tpz -d /tmp/templates
           mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
@@ -70,6 +82,26 @@ jobs:
         run: |
           godot --headless --path game --import || true
           godot --headless --path launcher --import || true
+
+      - name: Validate the projects and updater contract
+        run: |
+          set -euo pipefail
+          run_godot_clean() {
+            local log status
+            log="$(mktemp)"
+            set +e
+            godot "$@" 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -ne 0 ] || grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$log"; then
+              echo "::error::Godot validation failed or emitted an error/warning."
+              return 1
+            fi
+          }
+
+          run_godot_clean --headless --path game --quit
+          run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
+          run_godot_clean --headless --path launcher res://tests/release_pipeline_test.tscn
 
       - name: Export the game
         run: |

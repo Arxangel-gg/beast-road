@@ -133,8 +133,25 @@ func _process(delta: float) -> void:
 		_taken += 1
 
 	if _elapsed >= _duration:
+		set_process(false)
 		print("[soak] done")
-		get_tree().quit()
+		_finish.call_deferred()
+
+
+## Let the instantiated run release its nodes and resources before shutting
+## down. Quitting on the same frame used to turn a healthy soak into a wall of
+## false-positive ObjectDB/resource leak warnings.
+func _finish() -> void:
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	if is_instance_valid(_run):
+		_run.queue_free()
+	# The dummy audio driver releases decoder playbacks asynchronously. A few
+	# frames is racy on fast headless runners; half a second is deterministic.
+	for _frame: int in 30:
+		await get_tree().process_frame
+	get_tree().quit()
 
 
 ## Fills the two outer slots on every lane. The middle one is the combination

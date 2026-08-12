@@ -274,6 +274,16 @@ func apply_volume() -> void:
 	AudioBuses.apply_volumes()
 
 
+## Test and shutdown path: release any decoder still owned by a pooled voice.
+## Finished voices intentionally retain their stream during play so they can be
+## reused cheaply; a soak exits too quickly for the audio server to do this.
+func stop_immediately() -> void:
+	for voice: AudioStreamPlayer in _voices:
+		voice.stop()
+		voice.stream = null
+	_active.clear()
+
+
 ## Plays a sound by id. Silently does nothing if the file is missing, so an
 ## un-generated sound is an absence rather than a crash.
 func play(id: String, extra_db: float = 0.0) -> void:
