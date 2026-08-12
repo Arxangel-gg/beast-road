@@ -66,37 +66,27 @@ looking good.
 
 ## 3. Prompt stems
 
-Prepend to every prompt of that type.
+**The prompts live in `ASSET_PROMPTS.md`, generated from this file.** Do not
+write them by hand here.
 
-**ChatGPT stem (transparent):**
+There are four stems, not one, because a single stem produced eye-level concept
+art for a top-down game:
 
-> Game asset sprite on a fully transparent background. No background elements,
-> no ground shadow, no frame, no text. Single subject, centered, full body,
-> even margin on all sides. Dark painterly grim-fantasy game art, hand-painted
-> texture, visible brushwork, no black outlines. Strong warm amber rim light
-> from the upper right against deep teal-black shadow. Muted desaturated
-> palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated
-> accent. High silhouette clarity — the shape must read clearly at small size.
-> Three-quarter top-down view, camera looking down at roughly 60 degrees.
-> Square 1:1. Export as PNG with a true alpha channel.
->
-> SUBJECT: `[subject]`
+| Stem | Used for | Camera |
+|------|----------|--------|
+| Character | hero, enemies, bosses, chieftains, captives | looking down ~45 deg |
+| Structure | towers, buildings, plots, town core, beast | looking down ~60 deg |
+| Icon | relic, spell and UI icons | flat, front-on, no perspective |
+| UI frame | panels, buttons, bars | flat, symmetrical, empty centre |
 
-**Midjourney stem (opaque):**
+Characters are drawn flatter than buildings on purpose. A human at 60 degrees
+is a head and two shoulders with no silhouette worth looking at, which is why
+almost every top-down action game draws its environments steeply and its
+characters much closer to side-on.
 
-> `[subject]`, dark painterly grim-fantasy game art, hand-painted digital
-> matte painting, visible brushwork, warm amber light against deep teal-black
-> shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no
-> characters, no text, no UI `--ar 16:9 --s 250`
-
-**Midjourney stem (seamless terrain):**
-
-> seamless tileable top-down ground texture, `[subject]`, dark painterly
-> grim-fantasy game art, hand-painted, muted desaturated palette, even
-> lighting with no directional shadow, no objects casting shadow, no text
-> `--tile --ar 1:1 --s 150`
-
----
+Each stem leads with the medium, the camera and the display size, in that
+order, because image models weight early tokens most heavily. The first version
+buried the camera at the end and got a portrait back every time.
 
 ## 4. Naming and placement
 

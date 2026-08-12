@@ -46,7 +46,7 @@ game instead of separate paintings.
 
 # ChatGPT prompts - transparent background
 
-Paste whole. Every one of these needs a real alpha channel.
+Paste the whole block, including the SUBJECT line. Every one of these needs a real alpha channel.
 
 ## 5.1 Hero — `res://art/hero/`
 
@@ -55,7 +55,15 @@ Paste whole. Every one of these needs a real alpha channel.
 `128 x 128`  ->  `res://art/hero/hero_base.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a lone armored scavenger-warrior in a mid-stride combat stance, curved single-edged blade held low, tattered dark cloak, bone-white featureless mask, lean wiry silhouette, scavenged plate over wrapped cloth
 ```
@@ -65,7 +73,15 @@ SUBJECT: a lone armored scavenger-warrior in a mid-stride combat stance, curved 
 `128 x 128`  ->  `res://art/hero/hero_ascended_1.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same armored scavenger-warrior, now transformed - the mask cracked open with amber light bleeding through, the cloak longer and torn, one arm sheathed in fused bone plating, the blade glowing faintly at its edge
 ```
@@ -75,7 +91,15 @@ SUBJECT: the same armored scavenger-warrior, now transformed - the mask cracked 
 `128 x 128`  ->  `res://art/hero/hero_ascended_2.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same warrior in final transformation - towering and monstrous, the mask fully shattered into a crown of bone shards, amber light pouring from every seam, cloak become a mass of trailing ribbons, the blade elongated and burning
 ```
@@ -87,7 +111,15 @@ SUBJECT: the same warrior in final transformation - towering and monstrous, the 
 `96 x 96`  ->  `res://art/enemies/enemy_bogkin.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead reeds hanging from its limbs, dim pale eyes, slow lumbering posture, dripping black water
 ```
@@ -97,7 +129,15 @@ SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dea
 `96 x 96`  ->  `res://art/enemies/enemy_glassborn.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp limbs, semi-translucent body catching light, agile forward-leaning stance, hairline fractures across its chest
 ```
@@ -107,7 +147,15 @@ SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp 
 `96 x 96`  ->  `res://art/enemies/enemy_steppehorde.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 96px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spear, wiry underfed frame, cloth-wrapped face, aggressive charging pose
 ```
@@ -117,7 +165,15 @@ SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spea
 `128 x 128`  ->  `res://art/enemies/elite_warden.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a heavily armored bulwark warrior hunched behind an enormous riveted iron shield taller than itself, dense immovable silhouette, minimal visible body
 ```
@@ -127,7 +183,15 @@ SUBJECT: a heavily armored bulwark warrior hunched behind an enormous riveted ir
 `128 x 128`  ->  `res://art/enemies/elite_howler.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, arms flung outward, throat distended
 ```
@@ -137,7 +201,15 @@ SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its 
 `128 x 128`  ->  `res://art/enemies/elite_burrower.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a segmented armored digging creature erupting from broken ground, heavy clawed forelimbs, eyeless armored head plate, chitinous body half-emerged
 ```
@@ -149,7 +221,15 @@ SUBJECT: a segmented armored digging creature erupting from broken ground, heavy
 `384 x 384`  ->  `res://art/bosses/boss_drowned_choir.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a towering mass of fused drowned bodies forming a single cathedral-like figure, dozens of open singing mouths across its surface, black water pouring continuously from its frame, tattered ceremonial cloth, immense and vertical
 ```
@@ -159,7 +239,15 @@ SUBJECT: a towering mass of fused drowned bodies forming a single cathedral-like
 `384 x 384`  ->  `res://art/bosses/boss_mirrorfang.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an enormous predatory quadruped beast built from mirrored salt glass, overlapping reflective shard plating, long fanged skull, refracted amber light scattering off its flanks
 ```
@@ -169,7 +257,15 @@ SUBJECT: an enormous predatory quadruped beast built from mirrored salt glass, o
 `384 x 384`  ->  `res://art/bosses/boss_rust_crown.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 384px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a colossal armored warlord fused to a throne of corroded iron, a crown of jagged rusted spires grown into its skull, chains and torn banners hanging from its shoulders, monumental scale
 ```
@@ -181,7 +277,15 @@ SUBJECT: a colossal armored warlord fused to a throne of corroded iron, a crown 
 `128 x 192`  ->  `res://art/towers/tower_ember_spire.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a slender tall stone spire capped with an open burning brazier, narrow iron banding, embers rising from the top
 ```
@@ -191,7 +295,15 @@ SUBJECT: a slender tall stone spire capped with an open burning brazier, narrow 
 `128 x 192`  ->  `res://art/towers/tower_pyre_cannon.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a squat heavy siege cannon of blackened iron with a glowing fire-chamber, wide short barrel, mounted on a stone base
 ```
@@ -201,7 +313,15 @@ SUBJECT: a squat heavy siege cannon of blackened iron with a glowing fire-chambe
 `128 x 192`  ->  `res://art/towers/tower_rime_lance.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tall narrow tower of pale stone ending in a single frost-encrusted spear point, sheets of blue-white ice down one side
 ```
@@ -211,7 +331,15 @@ SUBJECT: a tall narrow tower of pale stone ending in a single frost-encrusted sp
 `128 x 192`  ->  `res://art/towers/tower_hoarfrost_bell.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a heavy stone frame holding a large frost-covered bronze bell, long icicles hanging from its rim
 ```
@@ -221,7 +349,15 @@ SUBJECT: a heavy stone frame holding a large frost-covered bronze bell, long ici
 `128 x 192`  ->  `res://art/towers/tower_bulwark.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a squat fortified stone bunker with layered overlapping shield plating, heavy and wide, almost no ornament, built to absorb
 ```
@@ -231,7 +367,15 @@ SUBJECT: a squat fortified stone bunker with layered overlapping shield plating,
 `128 x 192`  ->  `res://art/towers/tower_shard_thrower.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a mechanical ballista of stone and iron loaded with a single long jagged rock shard, tensioned cables
 ```
@@ -241,7 +385,15 @@ SUBJECT: a mechanical ballista of stone and iron loaded with a single long jagge
 `128 x 192`  ->  `res://art/towers/tower_arc_coil.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a metal tower wrapped in tiered copper coils, arcs of pale violet lightning crackling between the rings
 ```
@@ -251,7 +403,15 @@ SUBJECT: a metal tower wrapped in tiered copper coils, arcs of pale violet light
 `128 x 192`  ->  `res://art/towers/tower_gale_turret.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a slim tower with spinning bladed vanes and open wind funnels at its crown, motion blur on the blades
 ```
@@ -263,7 +423,15 @@ SUBJECT: a slim tower with spinning bladed vanes and open wind funnels at its cr
 `512 x 512`  ->  `res://art/city/city_base.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 512px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a small fortified settlement built on a curved platform of vast bone and lashed timber, tiered stone buildings, banners, chimney smoke, defensive palisade around the rim, viewed from three-quarter above
 ```
@@ -273,7 +441,15 @@ SUBJECT: a small fortified settlement built on a curved platform of vast bone an
 `512 x 512`  ->  `res://art/city/city_damage_1.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 512px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same small fortified settlement, lightly ruined - scorch marks, one collapsed roof, torn banners, thin smoke, viewed from three-quarter above
 ```
@@ -283,7 +459,15 @@ SUBJECT: the same small fortified settlement, lightly ruined - scorch marks, one
 `512 x 512`  ->  `res://art/city/city_damage_2.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 512px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same small fortified settlement, heavily ruined - several buildings burned down to their frames, the palisade breached, fires still burning, viewed from three-quarter above
 ```
@@ -293,7 +477,15 @@ SUBJECT: the same small fortified settlement, heavily ruined - several buildings
 `512 x 512`  ->  `res://art/city/city_damage_3.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 512px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same small fortified settlement, almost destroyed - mostly blackened rubble with only the town hall still standing, viewed from three-quarter above
 ```
@@ -303,7 +495,15 @@ SUBJECT: the same small fortified settlement, almost destroyed - mostly blackene
 `192 x 192`  ->  `res://art/city/building_town_hall.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tiered stone hall with a heavy timber roof and a relic-socket frame above its door, banners on both sides
 ```
@@ -313,7 +513,15 @@ SUBJECT: a tiered stone hall with a heavy timber roof and a relic-socket frame a
 `192 x 192`  ->  `res://art/city/building_forge.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a squat stone forge with a glowing open furnace mouth, anvil outside, smoke stack
 ```
@@ -323,7 +531,15 @@ SUBJECT: a squat stone forge with a glowing open furnace mouth, anvil outside, s
 `192 x 192`  ->  `res://art/city/building_sanctum.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a narrow stone shrine with a burning bowl on a pedestal and hanging chains, ritual markings on the walls
 ```
@@ -333,7 +549,15 @@ SUBJECT: a narrow stone shrine with a burning bowl on a pedestal and hanging cha
 `192 x 192`  ->  `res://art/city/building_granary.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a rounded timber and stone storehouse with sacks and barrels stacked outside, thatched roof
 ```
@@ -343,7 +567,15 @@ SUBJECT: a rounded timber and stone storehouse with sacks and barrels stacked ou
 `192 x 192`  ->  `res://art/city/building_scavenging_post.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a low open-sided work yard of rough timber and hide awnings, sorting tables piled with salvaged scrap and bone, tool racks, a heavy chain post
 ```
@@ -353,7 +585,15 @@ SUBJECT: a low open-sided work yard of rough timber and hide awnings, sorting ta
 `192 x 192`  ->  `res://art/city/building_watchtower.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tall narrow timber and stone lookout tower with an open railed platform at the top, a hanging signal lantern and a mounted spyglass
 ```
@@ -363,7 +603,15 @@ SUBJECT: a tall narrow timber and stone lookout tower with an open railed platfo
 `192 x 192`  ->  `res://art/city/plot_empty.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an empty flattened building plot of packed earth ringed by low foundation stones, a few survey stakes and coiled rope, nothing built on it
 ```
@@ -373,7 +621,15 @@ SUBJECT: an empty flattened building plot of packed earth ringed by low foundati
 `192 x 192`  ->  `res://art/city/plot_locked.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an overgrown derelict building plot behind a barred timber palisade, chained gate, weeds and rubble, clearly sealed off
 ```
@@ -385,7 +641,15 @@ SUBJECT: an overgrown derelict building plot behind a barred timber palisade, ch
 `1024 x 512`  ->  `res://art/beast/beast_profile.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 1024px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an immense ancient beast walking across a wasteland - part sea serpent, part armored turtle, part dinosaur - a long scaled neck and horned skull, a vast domed shell of stone and moss on its back carrying a small fortified city lashed down with chains, six heavy legs, seen in full side profile, colossal scale
 ```
@@ -397,9 +661,17 @@ SUBJECT: an immense ancient beast walking across a wasteland - part sea serpent,
 `128 x 128`  ->  `res://art/icons/relics/relic_01.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a cracked bone crown, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a cracked bone crown, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_02.png`
@@ -407,9 +679,17 @@ SUBJECT: a single ancient ritual object, a cracked bone crown, worn and weathere
 `128 x 128`  ->  `res://art/icons/relics/relic_02.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a rusted iron heart, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rusted iron heart, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_03.png`
@@ -417,9 +697,17 @@ SUBJECT: a single ancient ritual object, a rusted iron heart, worn and weathered
 `128 x 128`  ->  `res://art/icons/relics/relic_03.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a sealed clay jar, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a sealed clay jar, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_04.png`
@@ -427,9 +715,17 @@ SUBJECT: a single ancient ritual object, a sealed clay jar, worn and weathered, 
 `128 x 128`  ->  `res://art/icons/relics/relic_04.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a knotted cord of teeth, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a knotted cord of teeth, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_05.png`
@@ -437,9 +733,17 @@ SUBJECT: a single ancient ritual object, a knotted cord of teeth, worn and weath
 `128 x 128`  ->  `res://art/icons/relics/relic_05.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a shattered mirror shard, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a shattered mirror shard, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_06.png`
@@ -447,9 +751,17 @@ SUBJECT: a single ancient ritual object, a shattered mirror shard, worn and weat
 `128 x 128`  ->  `res://art/icons/relics/relic_06.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a blackened iron key, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a blackened iron key, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_07.png`
@@ -457,9 +769,17 @@ SUBJECT: a single ancient ritual object, a blackened iron key, worn and weathere
 `128 x 128`  ->  `res://art/icons/relics/relic_07.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a wax-sealed scroll, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a wax-sealed scroll, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_08.png`
@@ -467,9 +787,17 @@ SUBJECT: a single ancient ritual object, a wax-sealed scroll, worn and weathered
 `128 x 128`  ->  `res://art/icons/relics/relic_08.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a carved horn ring, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a carved horn ring, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_09.png`
@@ -477,9 +805,17 @@ SUBJECT: a single ancient ritual object, a carved horn ring, worn and weathered,
 `128 x 128`  ->  `res://art/icons/relics/relic_09.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a burnt feather, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a burnt feather, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_10.png`
@@ -487,9 +823,17 @@ SUBJECT: a single ancient ritual object, a burnt feather, worn and weathered, am
 `128 x 128`  ->  `res://art/icons/relics/relic_10.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a river stone bound in wire, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a river stone bound in wire, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_11.png`
@@ -497,9 +841,17 @@ SUBJECT: a single ancient ritual object, a river stone bound in wire, worn and w
 `128 x 128`  ->  `res://art/icons/relics/relic_11.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a tarnished silver bell, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a tarnished silver bell, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_12.png`
@@ -507,9 +859,17 @@ SUBJECT: a single ancient ritual object, a tarnished silver bell, worn and weath
 `128 x 128`  ->  `res://art/icons/relics/relic_12.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a bundle of splintered arrows, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a bundle of splintered arrows, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_13.png`
@@ -517,9 +877,17 @@ SUBJECT: a single ancient ritual object, a bundle of splintered arrows, worn and
 `128 x 128`  ->  `res://art/icons/relics/relic_13.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a cracked hourglass of black sand, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a cracked hourglass of black sand, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_14.png`
@@ -527,9 +895,17 @@ SUBJECT: a single ancient ritual object, a cracked hourglass of black sand, worn
 `128 x 128`  ->  `res://art/icons/relics/relic_14.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a flensed animal skull, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a flensed animal skull, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_15.png`
@@ -537,9 +913,17 @@ SUBJECT: a single ancient ritual object, a flensed animal skull, worn and weathe
 `128 x 128`  ->  `res://art/icons/relics/relic_15.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a coil of braided hair, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a coil of braided hair, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_16.png`
@@ -547,9 +931,17 @@ SUBJECT: a single ancient ritual object, a coil of braided hair, worn and weathe
 `128 x 128`  ->  `res://art/icons/relics/relic_16.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a broken compass needle, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a broken compass needle, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_17.png`
@@ -557,9 +949,17 @@ SUBJECT: a single ancient ritual object, a broken compass needle, worn and weath
 `128 x 128`  ->  `res://art/icons/relics/relic_17.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a vial of dark oil, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a vial of dark oil, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_18.png`
@@ -567,9 +967,17 @@ SUBJECT: a single ancient ritual object, a vial of dark oil, worn and weathered,
 `128 x 128`  ->  `res://art/icons/relics/relic_18.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a chipped obsidian blade, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a chipped obsidian blade, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_19.png`
@@ -577,9 +985,17 @@ SUBJECT: a single ancient ritual object, a chipped obsidian blade, worn and weat
 `128 x 128`  ->  `res://art/icons/relics/relic_19.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a rusted shackle bolt, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rusted shackle bolt, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_20.png`
@@ -587,9 +1003,17 @@ SUBJECT: a single ancient ritual object, a rusted shackle bolt, worn and weather
 `128 x 128`  ->  `res://art/icons/relics/relic_20.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object, a folded leather map, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a folded leather map, an ancient ritual object, worn and weathered
 ```
 
 ### `relic_core_drowned_choir.png`
@@ -597,9 +1021,17 @@ SUBJECT: a single ancient ritual object, a folded leather map, worn and weathere
 `128 x 128`  ->  `res://art/icons/relics/relic_core_drowned_choir.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object of great power, a fused knot of singing bone mouths weeping black water, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a fused knot of singing bone mouths weeping black water, an ancient ritual object of great power, worn and weathered
 ```
 
 ### `relic_core_mirrorfang.png`
@@ -607,9 +1039,17 @@ SUBJECT: a single ancient ritual object of great power, a fused knot of singing 
 `128 x 128`  ->  `res://art/icons/relics/relic_core_mirrorfang.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object of great power, a curved mirrored glass fang refracting amber light, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a curved mirrored glass fang refracting amber light, an ancient ritual object of great power, worn and weathered
 ```
 
 ### `relic_core_rust_crown.png`
@@ -617,9 +1057,17 @@ SUBJECT: a single ancient ritual object of great power, a curved mirrored glass 
 `128 x 128`  ->  `res://art/icons/relics/relic_core_rust_crown.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single ancient ritual object of great power, a jagged crown of corroded iron spires, worn and weathered, amber light catching one edge
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a jagged crown of corroded iron spires, an ancient ritual object of great power, worn and weathered
 ```
 
 ## 5.10 Spell icons — `res://art/icons/spells/`
@@ -629,9 +1077,17 @@ SUBJECT: a single ancient ritual object of great power, a jagged crown of corrod
 `96 x 96`  ->  `res://art/icons/spells/spell_rift_step.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a torn slit in space with a figure stepping through it, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a torn slit in space with a figure stepping through it
 ```
 
 ### `spell_cinder_nova.png`
@@ -639,9 +1095,17 @@ SUBJECT: a single glowing arcane sigil representing a torn slit in space with a 
 `96 x 96`  ->  `res://art/icons/spells/spell_cinder_nova.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a bursting star of ember and ash radiating outward, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a bursting star of ember and ash radiating outward
 ```
 
 ### `spell_bulwark_ward.png`
@@ -649,9 +1113,17 @@ SUBJECT: a single glowing arcane sigil representing a bursting star of ember and
 `96 x 96`  ->  `res://art/icons/spells/spell_bulwark_ward.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a domed protective barrier over a straight line, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a domed protective barrier over a straight line
 ```
 
 ### `spell_marrow_drain.png`
@@ -659,9 +1131,17 @@ SUBJECT: a single glowing arcane sigil representing a domed protective barrier o
 `96 x 96`  ->  `res://art/icons/spells/spell_marrow_drain.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a curved fang siphoning a spiral of light, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a curved fang siphoning a spiral of light
 ```
 
 ### `spell_chain_hook.png`
@@ -669,9 +1149,17 @@ SUBJECT: a single glowing arcane sigil representing a curved fang siphoning a sp
 `96 x 96`  ->  `res://art/icons/spells/spell_chain_hook.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a barbed hook trailing a taut chain, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a barbed hook trailing a taut chain
 ```
 
 ### `spell_ash_veil.png`
@@ -679,9 +1167,17 @@ SUBJECT: a single glowing arcane sigil representing a barbed hook trailing a tau
 `96 x 96`  ->  `res://art/icons/spells/spell_ash_veil.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a drifting veil of ash concealing a silhouette, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a drifting veil of ash concealing a silhouette
 ```
 
 ### `spell_tremor.png`
@@ -689,9 +1185,17 @@ SUBJECT: a single glowing arcane sigil representing a drifting veil of ash conce
 `96 x 96`  ->  `res://art/icons/spells/spell_tremor.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing concentric shockwave rings cracking outward from a point, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing concentric shockwave rings cracking outward from a point
 ```
 
 ### `spell_beasts_breath.png`
@@ -699,9 +1203,17 @@ SUBJECT: a single glowing arcane sigil representing concentric shockwave rings c
 `96 x 96`  ->  `res://art/icons/spells/spell_beasts_breath.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a single glowing arcane sigil representing a cone of exhaled breath widening into a beam, painted in amber and violet light, rough hand-drawn ritual mark, no border
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 96px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rough hand-drawn ritual sigil representing a cone of exhaled breath widening into a beam
 ```
 
 ## 5.11 UI icons — `res://art/icons/ui/`
@@ -711,9 +1223,17 @@ SUBJECT: a single glowing arcane sigil representing a cone of exhaled breath wid
 `64 x 64`  ->  `res://art/icons/ui/ui_element_fire.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a stylised flame, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a stylised flame
 ```
 
 ### `ui_element_water.png`
@@ -721,9 +1241,17 @@ SUBJECT: a simple bold game UI icon, a stylised flame, flat two-tone amber and b
 `64 x 64`  ->  `res://art/icons/ui/ui_element_water.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a stylised water droplet, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a stylised water droplet
 ```
 
 ### `ui_element_earth.png`
@@ -731,9 +1259,17 @@ SUBJECT: a simple bold game UI icon, a stylised water droplet, flat two-tone amb
 `64 x 64`  ->  `res://art/icons/ui/ui_element_earth.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a stylised faceted stone, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a stylised faceted stone
 ```
 
 ### `ui_element_air.png`
@@ -741,9 +1277,17 @@ SUBJECT: a simple bold game UI icon, a stylised faceted stone, flat two-tone amb
 `64 x 64`  ->  `res://art/icons/ui/ui_element_air.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a stylised swirling gust, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a stylised swirling gust
 ```
 
 ### `ui_resource.png`
@@ -751,9 +1295,17 @@ SUBJECT: a simple bold game UI icon, a stylised swirling gust, flat two-tone amb
 `64 x 64`  ->  `res://art/icons/ui/ui_resource.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a heap of salvaged scrap and bone, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a heap of salvaged scrap and bone
 ```
 
 ### `ui_blueprint.png`
@@ -761,9 +1313,17 @@ SUBJECT: a simple bold game UI icon, a heap of salvaged scrap and bone, flat two
 `64 x 64`  ->  `res://art/icons/ui/ui_blueprint.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a rolled schematic scroll, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a rolled schematic scroll
 ```
 
 ### `ui_relic.png`
@@ -771,9 +1331,17 @@ SUBJECT: a simple bold game UI icon, a rolled schematic scroll, flat two-tone am
 `64 x 64`  ->  `res://art/icons/ui/ui_relic.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a faceted ritual amulet, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a faceted ritual amulet
 ```
 
 ### `ui_war_horn.png`
@@ -781,9 +1349,17 @@ SUBJECT: a simple bold game UI icon, a faceted ritual amulet, flat two-tone ambe
 `64 x 64`  ->  `res://art/icons/ui/ui_war_horn.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a curved war horn, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a curved war horn
 ```
 
 ### `ui_raid_charge.png`
@@ -791,9 +1367,17 @@ SUBJECT: a simple bold game UI icon, a curved war horn, flat two-tone amber and 
 `64 x 64`  ->  `res://art/icons/ui/ui_raid_charge.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a filling lightning-charged meter, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a filling lightning-charged meter
 ```
 
 ### `ui_distance.png`
@@ -801,9 +1385,17 @@ SUBJECT: a simple bold game UI icon, a filling lightning-charged meter, flat two
 `64 x 64`  ->  `res://art/icons/ui/ui_distance.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a winding road vanishing to a point, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a winding road vanishing to a point
 ```
 
 ### `ui_city_health.png`
@@ -811,9 +1403,17 @@ SUBJECT: a simple bold game UI icon, a winding road vanishing to a point, flat t
 `64 x 64`  ->  `res://art/icons/ui/ui_city_health.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a fortified gate tower, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a fortified gate tower
 ```
 
 ### `ui_pressure_arrow.png`
@@ -821,9 +1421,17 @@ SUBJECT: a simple bold game UI icon, a fortified gate tower, flat two-tone amber
 `64 x 64`  ->  `res://art/icons/ui/ui_pressure_arrow.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a bold directional arrow, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a bold directional arrow
 ```
 
 ### `ui_captive.png`
@@ -831,9 +1439,17 @@ SUBJECT: a simple bold game UI icon, a bold directional arrow, flat two-tone amb
 `64 x 64`  ->  `res://art/icons/ui/ui_captive.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a pair of iron shackles, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a pair of iron shackles
 ```
 
 ### `ui_wave.png`
@@ -841,9 +1457,17 @@ SUBJECT: a simple bold game UI icon, a pair of iron shackles, flat two-tone ambe
 `64 x 64`  ->  `res://art/icons/ui/ui_wave.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, three advancing spear silhouettes, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: three advancing spear silhouettes
 ```
 
 ### `ui_upgrade.png`
@@ -851,9 +1475,17 @@ SUBJECT: a simple bold game UI icon, three advancing spear silhouettes, flat two
 `64 x 64`  ->  `res://art/icons/ui/ui_upgrade.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a chevron arrow pointing up, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a chevron arrow pointing up
 ```
 
 ### `ui_build.png`
@@ -861,9 +1493,17 @@ SUBJECT: a simple bold game UI icon, a chevron arrow pointing up, flat two-tone 
 `64 x 64`  ->  `res://art/icons/ui/ui_build.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a mason's hammer and chisel, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a mason's hammer and chisel
 ```
 
 ### `ui_pause.png`
@@ -871,9 +1511,17 @@ SUBJECT: a simple bold game UI icon, a mason's hammer and chisel, flat two-tone 
 `64 x 64`  ->  `res://art/icons/ui/ui_pause.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, two vertical pause bars, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: two vertical pause bars
 ```
 
 ### `ui_settings.png`
@@ -881,9 +1529,17 @@ SUBJECT: a simple bold game UI icon, two vertical pause bars, flat two-tone ambe
 `64 x 64`  ->  `res://art/icons/ui/ui_settings.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a toothed iron cog, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a toothed iron cog
 ```
 
 ### `ui_lock.png`
@@ -891,9 +1547,17 @@ SUBJECT: a simple bold game UI icon, a toothed iron cog, flat two-tone amber and
 `64 x 64`  ->  `res://art/icons/ui/ui_lock.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a heavy closed padlock, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a heavy closed padlock
 ```
 
 ### `ui_close.png`
@@ -901,9 +1565,17 @@ SUBJECT: a simple bold game UI icon, a heavy closed padlock, flat two-tone amber
 `64 x 64`  ->  `res://art/icons/ui/ui_close.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game UI icon.
 
-SUBJECT: a simple bold game UI icon, a bold X cross, flat two-tone amber and bone, thick readable shapes, no gradient, no frame, no text
+VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
+
+SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+
+STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
+
+FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
+
+SUBJECT: a bold X cross
 ```
 
 ## 5.12 Combination towers — `res://art/towers/`
@@ -913,7 +1585,15 @@ SUBJECT: a simple bold game UI icon, a bold X cross, flat two-tone amber and bon
 `128 x 192`  ->  `res://art/towers/tower_firestorm.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tower of blackened iron and stone with a cyclone of burning embers spiralling above its open crown, wind-torn flame, scorched banding
 ```
@@ -923,7 +1603,15 @@ SUBJECT: a tower of blackened iron and stone with a cyclone of burning embers sp
 `128 x 192`  ->  `res://art/towers/tower_magma.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a squat cracked-stone tower with molten rock glowing through its fissures, slow lava seeping down its base onto the ground
 ```
@@ -933,7 +1621,15 @@ SUBJECT: a squat cracked-stone tower with molten rock glowing through its fissur
 `128 x 192`  ->  `res://art/towers/tower_steam_burst.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a riveted copper and stone tower with pressure valves along its flanks venting thick white steam, condensation running down the metal
 ```
@@ -943,7 +1639,15 @@ SUBJECT: a riveted copper and stone tower with pressure valves along its flanks 
 `128 x 192`  ->  `res://art/towers/tower_blizzard.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a pale ice-sheathed tower with a swirling vortex of snow and violet lightning around its upper spire, frost spreading from its base
 ```
@@ -953,7 +1657,15 @@ SUBJECT: a pale ice-sheathed tower with a swirling vortex of snow and violet lig
 `128 x 192`  ->  `res://art/towers/tower_glacier.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a massive block of blue-white glacial ice fused around a stone core, thick frozen buttresses, deep internal cracks catching light
 ```
@@ -963,7 +1675,15 @@ SUBJECT: a massive block of blue-white glacial ice fused around a stone core, th
 `128 x 192`  ->  `res://art/towers/tower_quake.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a heavy megalith tower of stacked raw stone with shattered rock and dust erupting around its foundations, visible ground fracture rings
 ```
@@ -973,7 +1693,15 @@ SUBJECT: a heavy megalith tower of stacked raw stone with shattered rock and dus
 `128 x 192`  ->  `res://art/towers/tower_conflagration.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tall furnace-tower entirely engulfed in roaring fire, iron ribs glowing white-hot, a column of flame rising from its open top
 ```
@@ -983,7 +1711,15 @@ SUBJECT: a tall furnace-tower entirely engulfed in roaring fire, iron ribs glowi
 `128 x 192`  ->  `res://art/towers/tower_deep_freeze.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a jagged spire of solid black-blue ice, razor-sharp frozen shards radiating outward, air visibly frosting around it
 ```
@@ -993,7 +1729,15 @@ SUBJECT: a jagged spire of solid black-blue ice, razor-sharp frozen shards radia
 `128 x 192`  ->  `res://art/towers/tower_bastion.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an immense squat fortress block of layered granite and iron plating, utterly immovable, arrow slits and buttresses, no ornament
 ```
@@ -1003,7 +1747,15 @@ SUBJECT: an immense squat fortress block of layered granite and iron plating, ut
 `128 x 192`  ->  `res://art/towers/tower_tempest.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 192px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a skeletal iron lattice tower crowned with a violent storm cloud, multiple violet lightning bolts branching outward simultaneously
 ```
@@ -1015,7 +1767,15 @@ SUBJECT: a skeletal iron lattice tower crowned with a violent storm cloud, multi
 `128 x 128`  ->  `res://art/battlefield/build_spot.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 128px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a circular stone foundation pad set into the ground, cut flagstones with an empty socket in the centre, faint carved markings around the rim, nothing built on it
 ```
@@ -1025,7 +1785,15 @@ SUBJECT: a circular stone foundation pad set into the ground, cut flagstones wit
 `128 x 128`  ->  `res://art/battlefield/build_spot_combo.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 128px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a circular stone foundation pad inscribed with a glowing violet binding sigil, two linked channels running to its edges, empty socket in the centre
 ```
@@ -1035,7 +1803,15 @@ SUBJECT: a circular stone foundation pad inscribed with a glowing violet binding
 `384 x 384`  ->  `res://art/battlefield/town_core.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
+
+CAMERA: looking down from a steep three-quarter angle, about 60 degrees. The roof and upper surfaces are the dominant part of the image; the walls are visible but foreshortened. This is NOT an eye-level architectural view and NOT concept art.
+
+SIZE: this will be displayed about 384px tall in game. Bold readable masses, clear silhouette, no fine detail that would disappear at that size.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no photoreal rendering. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: one structure, centred, upright in frame with a small even margin, nothing else in the image. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a compact fortified keep of tiered stone with a banner mast, heavy gate and a low protective wall, seen from three-quarter above, the heart of a small settlement
 ```
@@ -1047,7 +1823,15 @@ SUBJECT: a compact fortified keep of tiered stone with a banner mast, heavy gate
 `256 x 256`  ->  `res://art/raid/chieftain_ashfen.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, draped in waterlogged hides, carrying a heavy bone maul, black water streaming from its bulk
 ```
@@ -1057,7 +1841,15 @@ SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, drape
 `256 x 256`  ->  `res://art/raid/chieftain_saltglass.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored faceless head, jagged blade-limbs, refracting amber light
 ```
@@ -1067,7 +1859,15 @@ SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored facel
 `256 x 256`  ->  `res://art/raid/chieftain_steppe.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 256px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a broad iron-plated nomad warlord in a horned rusted helm, layered scavenged armour, twin curved cleavers, torn clan banners on its back
 ```
@@ -1077,7 +1877,15 @@ SUBJECT: a broad iron-plated nomad warlord in a horned rusted helm, layered scav
 `128 x 128`  ->  `res://art/raid/captive_bogkin.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated hunched swamp-dweller creature kneeling with its head bowed, heavy iron shackles on its wrists, moss and dead reeds hanging from its limbs
 ```
@@ -1087,7 +1895,15 @@ SUBJECT: a defeated hunched swamp-dweller creature kneeling with its head bowed,
 `128 x 128`  ->  `res://art/raid/captive_glassborn.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed, heavy iron shackles on its cracked wrists, dulled fractured body
 ```
@@ -1097,7 +1913,15 @@ SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed
 `128 x 128`  ->  `res://art/raid/captive_steppehorde.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D game sprite for a top-down action game, drawn to be seen small.
+
+CAMERA: looking down on the figure from a high three-quarter angle, about 45 degrees. The top of the head and the tops of the shoulders are clearly visible and the body is foreshortened, as if you are standing above it and slightly in front. This is NOT a character portrait, NOT concept art, NOT a heroic splash pose, and NOT an eye-level view. Do not show the face straight on.
+
+SIZE: this will be displayed about 128px tall in game. Use bold chunky shapes and a strong readable silhouette. Leave out any detail that would vanish at that size - no fine straps, no tiny buckles, no rendered fabric weave, no photoreal texture.
+
+STYLE: simplified painterly game art, flat confident brushwork, no black outlines, no realistic rendering, no glossy highlights. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
+
+FRAMING: single subject, centred, filling most of the frame with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a defeated nomad raider kneeling with its head bowed, heavy iron shackles on its wrists, stripped armour and torn cloth wrappings
 ```
@@ -1109,7 +1933,15 @@ SUBJECT: a defeated nomad raider kneeling with its head bowed, heavy iron shackl
 `256 x 256`  ->  `res://art/ui/ui_panel.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a rectangular dark stone and iron interface panel with a riveted border and worn corner brackets, flat empty centre, symmetrical, suitable for nine-slice stretching
 ```
@@ -1119,7 +1951,15 @@ SUBJECT: a rectangular dark stone and iron interface panel with a riveted border
 `256 x 256`  ->  `res://art/ui/ui_panel_dark.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a rectangular near-black stone interface panel with a thin recessed iron border, flat empty centre, symmetrical, suitable for nine-slice stretching
 ```
@@ -1129,7 +1969,15 @@ SUBJECT: a rectangular near-black stone interface panel with a thin recessed iro
 `256 x 64`  ->  `res://art/ui/ui_button.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a wide horizontal dark iron button plate with bevelled edges and small corner rivets, flat empty centre, symmetrical, suitable for nine-slice stretching
 ```
@@ -1139,7 +1987,15 @@ SUBJECT: a wide horizontal dark iron button plate with bevelled edges and small 
 `256 x 64`  ->  `res://art/ui/ui_button_hover.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the same wide horizontal iron button plate lit with a warm amber inner glow along its bevelled edges, flat empty centre, symmetrical
 ```
@@ -1149,7 +2005,15 @@ SUBJECT: the same wide horizontal iron button plate lit with a warm amber inner 
 `96 x 96`  ->  `res://art/ui/ui_slot.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a square recessed inventory socket of dark stone with a worn iron rim and an empty hollow centre, symmetrical
 ```
@@ -1159,7 +2023,15 @@ SUBJECT: a square recessed inventory socket of dark stone with a worn iron rim a
 `64 x 16`  ->  `res://art/ui/ui_bar_fill.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a small horizontal bar of solid warm amber-rust light with a soft inner glow, flat, seamless left to right, no border
 ```
@@ -1169,7 +2041,15 @@ SUBJECT: a small horizontal bar of solid warm amber-rust light with a soft inner
 `64 x 16`  ->  `res://art/ui/ui_bar_back.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: a small horizontal empty trough of dark recessed iron, flat, seamless left to right, no border
 ```
@@ -1179,7 +2059,15 @@ SUBJECT: a small horizontal empty trough of dark recessed iron, flat, seamless l
 `1024 x 256`  ->  `res://art/ui/ui_logo.png`
 
 ```text
-Game asset sprite on a fully transparent background. No background elements, no ground shadow, no frame, no text. Single subject, centered, full body, even margin on all sides. Dark painterly grim-fantasy game art, hand-painted texture, visible brushwork, no black outlines. Strong warm amber rim light from the upper right against deep teal-black shadow. Muted desaturated palette (#0B1416, #1E2E33, #E8A33D, #D9CDB8, #8C3A2B) with one saturated accent. High silhouette clarity - the shape must read clearly at small size. Three-quarter top-down view, camera looking down at roughly 60 degrees. Square 1:1. Export as PNG with a true alpha channel.
+A 2D user-interface panel graphic for a game, built to be stretched.
+
+VIEW: flat and front-on, no perspective, no camera angle.
+
+CONSTRUCTION: symmetrical left-to-right and top-to-bottom, with a decorated border and a completely flat, empty, evenly-coloured centre. The centre must stay plain because it gets stretched - any pattern there will smear. Put nothing inside it.
+
+STYLE: dark weathered stone and iron, muted and low contrast so text sits on top of it legibly. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow. Restrained - this is a frame, not a focal point.
+
+FRAMING: the panel fills the whole image, edge to edge. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
 
 SUBJECT: the words BEAST ROAD as a wide game logo wordmark in a heavy weathered carved-bone serif, amber and bone, a faint horned serpent silhouette behind the letters
 ```
