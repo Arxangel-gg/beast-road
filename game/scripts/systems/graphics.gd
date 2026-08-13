@@ -39,6 +39,7 @@ const KEY_FPS_CAP: String = "graphics_fps_cap"
 const PRESET_LOW: String = "low"
 const PRESET_MEDIUM: String = "medium"
 const PRESET_HIGH: String = "high"
+const PRESET_ULTRA: String = "ultra"
 const PRESET_CUSTOM: String = "custom"
 
 ## What each preset sets. `custom` is absent on purpose: it is not a preset, it
@@ -65,6 +66,20 @@ const PRESETS: Dictionary = {
 		KEY_FOLIAGE: 1.0,
 		KEY_CLOUDS: true,
 	},
+	# For machines with power to spare. High is the authored look; Ultra pushes
+	# the two things that genuinely reward more of them - undergrowth density and
+	# particle count - past what the art was tuned for.
+	#
+	# Only those two. Shadows and clouds are already on at High and there is no
+	# "more on"; turning some other knob up to fill out the preset would be
+	# decoration on a settings screen rather than something on the screen.
+	PRESET_ULTRA: {
+		KEY_CAST_SHADOWS: true,
+		KEY_CONTACT_SHADOWS: true,
+		KEY_PARTICLES: MAX_DENSITY,
+		KEY_FOLIAGE: 1.45,
+		KEY_CLOUDS: true,
+	},
 }
 
 ## Frame cap choices. 0 is uncapped.
@@ -73,6 +88,14 @@ const PRESETS: Dictionary = {
 ## happily render several hundred frames a second into a laptop's thermal limit
 ## and then stutter, which reads to the player as the game being badly optimised.
 const FPS_CHOICES: Array[int] = [0, 30, 60, 120, 144]
+
+## The ceiling for the density multipliers.
+##
+## Above 1.0 on purpose, so Ultra can mean more than High rather than the same
+## thing with a different label. Clamped all the same: foliage is a real node
+## count and particles are real emitters, and "unbounded" is how a quality
+## setting becomes a way to hang somebody's machine.
+const MAX_DENSITY: float = 1.75
 
 ## Applied when the save has nothing. High, because the machine that cannot
 ## handle it will tell its owner within a minute and the option is one screen
@@ -129,12 +152,12 @@ static func contact_shadows() -> bool:
 
 ## Multiplier on every particle emitter's amount.
 static func particle_scale() -> float:
-	return clampf(float(_value(KEY_PARTICLES)), 0.0, 1.0)
+	return clampf(float(_value(KEY_PARTICLES)), 0.0, MAX_DENSITY)
 
 
 ## Multiplier on the foliage scatter count.
 static func foliage_scale() -> float:
-	return clampf(float(_value(KEY_FOLIAGE)), 0.0, 1.0)
+	return clampf(float(_value(KEY_FOLIAGE)), 0.0, MAX_DENSITY)
 
 
 static func cloud_shadows() -> bool:

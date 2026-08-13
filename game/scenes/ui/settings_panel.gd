@@ -331,12 +331,13 @@ func _preset_row() -> HBoxContainer:
 	for entry: Array in [
 			[Graphics.PRESET_LOW, "Low"],
 			[Graphics.PRESET_MEDIUM, "Medium"],
-			[Graphics.PRESET_HIGH, "High"]]:
+			[Graphics.PRESET_HIGH, "High"],
+			[Graphics.PRESET_ULTRA, "Ultra"]]:
 		var id: String = entry[0]
 		var button := Button.new()
 		button.text = entry[1]
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(118.0, 40.0)
+		button.custom_minimum_size = Vector2(96.0, 40.0)
 		button.pressed.connect(func() -> void:
 			Graphics.apply_preset(id)
 			_refresh_video()
