@@ -36,6 +36,11 @@ var _pulse: float = 0.0
 var _centre: Vector2 = Vector2.ZERO
 var _town: Node2D = null
 
+## The colourblind mode this was last drawn with. Watched rather than signalled:
+## the arcs only redraw when pressure moves, so a player who switches mode on a
+## quiet field would otherwise see nothing change and conclude it does nothing.
+var _palette_mode: String = ""
+
 
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
@@ -71,6 +76,10 @@ func _process(delta: float) -> void:
 		if absf(next - _shown[lane]) > 0.0005:
 			_shown[lane] = next
 			moved = true
+
+	if _palette_mode != Palette.mode():
+		_palette_mode = Palette.mode()
+		moved = true
 	# Redrawn while anything is alight, because the alarm pulse animates even
 	# when the value is steady.
 	if moved or _any_alarmed():
@@ -117,7 +126,7 @@ func _draw() -> void:
 		# it reads as pressure building on that side rather than as a bar filling
 		# from one end. Direction, not quantity, is the thing being communicated.
 		var half: float = span * 0.5 * value
-		var colour: Color = Balance.LANE_RING_CALM.lerp(Balance.LANE_RING_HOT, value)
+		var colour: Color = Palette.pressure_calm().lerp(Palette.pressure_hot(), value)
 		var alpha: float = Balance.LANE_RING_FULL_ALPHA * (0.35 + 0.65 * value)
 		var thickness: float = Balance.LANE_RING_THICKNESS + Balance.LANE_RING_GROWTH * value
 

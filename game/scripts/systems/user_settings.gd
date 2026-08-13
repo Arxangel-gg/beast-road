@@ -18,6 +18,9 @@ const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume
 
 const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"
+
+## One key holding the whole graphics dictionary, rather than seven loose ones.
+const GRAPHICS_KEY: String = "graphics"
 const GAIT_KEY: String = "beast_gait"
 
 ## Display modes, as stored. Strings rather than the DisplayServer enum, because
@@ -51,6 +54,28 @@ static func set_value(key: String, new_value: Variant) -> void:
 static func apply_all() -> void:
 	AudioBuses.apply_volumes()
 	apply_display()
+	load_presentation()
+
+
+## Pushes the saved graphics, colourblind and key choices into the classes that
+## own them.
+##
+## Those three deliberately hold no reference to `MetaState`. They are reachable
+## from `TowerData`, `ShadowKit` and `Foliage`, which the headless asset tools
+## load — and those run under `run_tool.gd`, which replaces the main loop, so
+## naming an autoload there is a compile error that takes the whole tool down.
+## This class only ever runs inside the game, so it is the safe place to bridge.
+static func load_presentation() -> void:
+	Graphics.from_dictionary(MetaState.settings.get(GRAPHICS_KEY, {}) as Dictionary)
+	Palette.set_mode(String(MetaState.settings.get(Palette.KEY_MODE, Palette.MODE_OFF)))
+	KeyBindings.apply_saved(MetaState.settings.get(KeyBindings.SAVE_KEY, {}) as Dictionary)
+
+
+## Copies them back out again, for the caller to save.
+static func store_presentation() -> void:
+	MetaState.settings[GRAPHICS_KEY] = Graphics.to_dictionary()
+	MetaState.settings[Palette.KEY_MODE] = Palette.mode()
+	MetaState.settings[KeyBindings.SAVE_KEY] = KeyBindings.to_dictionary()
 
 
 static func apply_display() -> void:

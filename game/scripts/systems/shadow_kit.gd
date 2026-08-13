@@ -127,6 +127,9 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	if target == null or sprite == null or sprite.texture == null:
 		return null
 
+	if not Graphics.contact_shadows():
+		return null
+
 	var texture_size: Vector2 = sprite.texture.get_size() * sprite.scale.abs()
 	var width: float = texture_size.x * Balance.SHADOW_WIDTH * width_scale
 	if width <= 1.0:
@@ -158,7 +161,10 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 ## town light shadows the people walking past it without shadowing itself.
 static func add_caster(target: Node2D, half_width: float, half_height: float,
 		layer: int = Balance.SHADOW_LAYER_SCENERY, base_offset: float = 0.0) -> LightOccluder2D:
-	if not Balance.SHADOW_CAST_ENABLED or target == null:
+	# No occluder means the shadow-casting lights have nothing to draw, which is
+	# where most of the saving actually comes from - the light still runs its pass
+	# either way, but an empty one is nearly free.
+	if not Graphics.cast_shadows() or target == null:
 		return null
 
 	var polygon := OccluderPolygon2D.new()

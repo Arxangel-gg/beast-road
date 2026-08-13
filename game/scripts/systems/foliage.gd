@@ -62,9 +62,13 @@ func scatter() -> void:
 	# reshuffling every time the scope is entered.
 	rng.seed = hash(RunState.terrain_id)
 
+	# Scaled at scatter time, not culled afterwards: four hundred clumps that are
+	# never created cost nothing, whereas four hundred hidden ones still sit in the
+	# tree and still get walked every frame by the wind.
+	var wanted: int = Graphics.scaled(Balance.FOLIAGE_COUNT, Graphics.foliage_scale())
 	var placed: int = 0
 	var attempts: int = 0
-	while placed < Balance.FOLIAGE_COUNT and attempts < Balance.FOLIAGE_COUNT * 12:
+	while placed < wanted and attempts < wanted * 12:
 		attempts += 1
 		var point: Vector2 = _random_point(rng)
 		if not _is_clear(point):
@@ -145,6 +149,13 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, gr
 ## A shadow for a clump, which has no sprite to measure — so it is built by hand
 ## against the same shared material every other shadow on the field uses.
 func _add_shadow(clump: Node2D, scale: float) -> void:
+	# Built by hand rather than through ShadowKit.add_contact, which measures a
+	# sprite this has none of - so the quality switch has to be checked here too.
+	# Missing it meant Low reported "ground shadows off" and still drew fifty of
+	# them, which is a setting that lies.
+	if not Graphics.contact_shadows():
+		return
+
 	var shadow := Sprite2D.new()
 	shadow.name = "ContactShadow"
 	shadow.texture = ShadowKit.quad_texture()

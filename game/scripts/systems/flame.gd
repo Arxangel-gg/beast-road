@@ -205,7 +205,8 @@ func _build_embers() -> void:
 	_embers = CPUParticles2D.new()
 	_embers.name = "Embers"
 	_embers.texture = dot_texture()
-	_embers.amount = maxi(int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), 1)
+	_embers.amount = Graphics.scaled(
+		int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale())
 	_embers.lifetime = Balance.FLAME_EMBER_LIFETIME
 	_embers.lifetime_randomness = 0.55
 	_embers.local_coords = false
@@ -244,7 +245,8 @@ func _build_smoke() -> void:
 	_smoke = CPUParticles2D.new()
 	_smoke.name = "Smoke"
 	_smoke.texture = dot_texture()
-	_smoke.amount = maxi(int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), 1)
+	_smoke.amount = Graphics.scaled(
+		int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), Graphics.particle_scale())
 	_smoke.lifetime = Balance.FLAME_SMOKE_LIFETIME
 	_smoke.lifetime_randomness = 0.4
 	_smoke.local_coords = false
@@ -326,9 +328,11 @@ func is_lit() -> bool:
 func set_intensity(value: float) -> void:
 	intensity = clampf(value, 0.0, 1.0)
 	if _embers != null:
-		_embers.amount = maxi(int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), 1)
+		_embers.amount = Graphics.scaled(
+		int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale())
 	if _smoke != null:
-		_smoke.amount = maxi(int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), 1)
+		_smoke.amount = Graphics.scaled(
+		int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), Graphics.particle_scale())
 
 
 func light() -> PointLight2D:

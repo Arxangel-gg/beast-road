@@ -53,7 +53,7 @@ static func falloff_texture() -> GradientTexture2D:
 ## town — lights that stand apart from what they illuminate — get it.
 static func enable_shadows(light: PointLight2D,
 		cull_mask: int = Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS) -> void:
-	if light == null or not Balance.SHADOW_CAST_ENABLED:
+	if light == null or not Graphics.cast_shadows():
 		return
 	light.shadow_enabled = true
 	light.shadow_filter = Light2D.SHADOW_FILTER_PCF13

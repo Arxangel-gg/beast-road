@@ -37,6 +37,19 @@ var _save_left: float = 0.0
 var _fullscreen_button: Button
 var _windowed_button: Button
 
+## Video tab widgets, kept so a preset change can push the individual switches
+## back into agreement with it.
+var _quality_switches: Array[Dictionary] = []
+var _preset_buttons: Dictionary = {}
+var _fps_buttons: Dictionary = {}
+var _colourblind_buttons: Dictionary = {}
+
+## Which action the player is currently pressing a key for, or empty.
+var _listening_for: StringName = &""
+var _listening_button: Button = null
+var _binding_buttons: Dictionary = {}
+var _binding_note: Label = null
+
 
 func _ready() -> void:
 	_build()
@@ -47,7 +60,14 @@ func _process(delta: float) -> void:
 	_save_left -= delta
 	if _save_left <= 0.0:
 		set_process(false)
-		MetaState.save_game()
+		_write()
+
+
+## Graphics, colourblind and key choices live in their own classes and have to be
+## copied into the save before it is written.
+func _write() -> void:
+	UserSettings.store_presentation()
+	MetaState.save_game()
 
 
 ## Coalesces a burst of changes into a single write.
@@ -81,14 +101,40 @@ func _build() -> void:
 	heading.add_child(_label("Settings", 26))
 	column.add_child(heading)
 
-	for row: Dictionary in VOLUME_ROWS:
-		column.add_child(_volume_row(row))
+	# Tabs, once there were three groups. Audio, video and fifteen rebindable keys
+	# in one column is a screen nobody scrolls to the bottom of, and the settings
+	# players most need - the graphics ones, when the game is running badly - would
+	# be the furthest down.
+	var tabs := TabContainer.new()
+	tabs.custom_minimum_size = Vector2(0.0, 560.0)
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(tabs)
 
-	column.add_child(_separator())
-	column.add_child(_shake_row())
-	column.add_child(_gait_row())
-	column.add_child(_separator())
-	column.add_child(_display_row())
+	var audio := VBoxContainer.new()
+	audio.name = "Audio"
+	audio.add_theme_constant_override("separation", 14)
+	for row: Dictionary in VOLUME_ROWS:
+		audio.add_child(_volume_row(row))
+	audio.add_child(_separator())
+	audio.add_child(_shake_row())
+	audio.add_child(_gait_row())
+	tabs.add_child(audio)
+
+	var video := VBoxContainer.new()
+	video.name = "Video"
+	video.add_theme_constant_override("separation", 14)
+	_build_video(video)
+	tabs.add_child(video)
+
+	var controls := VBoxContainer.new()
+	controls.name = "Controls"
+	controls.add_theme_constant_override("separation", 14)
+	_build_controls(controls)
+	tabs.add_child(controls)
+
+	_refresh_video()
+	_refresh_fps_buttons()
+	_refresh_colourblind_buttons()
 
 	var close := Button.new()
 	close.text = "Back"
@@ -100,7 +146,7 @@ func _build() -> void:
 		# than no setting at all.
 		_save_left = 0.0
 		set_process(false)
-		MetaState.save_game()
+		_write()
 		closed.emit())
 	column.add_child(close)
 
@@ -216,10 +262,305 @@ func _choose_display(mode: String) -> void:
 	# that is a restart - which must not restore the broken choice's opposite.
 	_save_left = 0.0
 	set_process(false)
-	MetaState.save_game()
+	_write()
 
 
 func _refresh_display_buttons() -> void:
 	var full: bool = UserSettings.is_fullscreen()
 	_fullscreen_button.button_pressed = full
 	_windowed_button.button_pressed = not full
+
+
+# --- Video -------------------------------------------------------------------
+
+## Quality, framerate, display mode and colourblind support.
+##
+## The preset is offered first and the individual switches below it, because most
+## players want one decision ("this is running badly, turn it down") and only some
+## want six. Touching any switch moves the preset to Custom rather than silently
+## disagreeing with the label above it.
+func _build_video(column: VBoxContainer) -> void:
+	column.add_child(_label("Quality", 20))
+	column.add_child(_preset_row())
+
+	_quality_switches = []
+	column.add_child(_toggle_row("Torch shadows", Graphics.KEY_CAST_SHADOWS,
+		"The most expensive thing on screen. Turn this off first."))
+	column.add_child(_toggle_row("Ground shadows", Graphics.KEY_CONTACT_SHADOWS,
+		"Cheaper, and worth more to how the game looks."))
+	column.add_child(_toggle_row("Cloud shadows", Graphics.KEY_CLOUDS, ""))
+	column.add_child(_amount_row("Particles", Graphics.KEY_PARTICLES))
+	column.add_child(_amount_row("Foliage", Graphics.KEY_FOLIAGE))
+
+	column.add_child(_separator())
+	column.add_child(_fps_row())
+	column.add_child(_display_row())
+	column.add_child(_separator())
+	column.add_child(_label("Colourblind", 20))
+	column.add_child(_colourblind_row())
+
+
+func _preset_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var name_label: Label = _label("Preset")
+	name_label.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(name_label)
+
+	_preset_buttons = {}
+	for entry: Array in [
+			[Graphics.PRESET_LOW, "Low"],
+			[Graphics.PRESET_MEDIUM, "Medium"],
+			[Graphics.PRESET_HIGH, "High"]]:
+		var id: String = entry[0]
+		var button := Button.new()
+		button.text = entry[1]
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(118.0, 40.0)
+		button.pressed.connect(func() -> void:
+			Graphics.apply_preset(id)
+			_refresh_video()
+			_queue_save())
+		_preset_buttons[id] = button
+		row.add_child(button)
+	return row
+
+
+## An on/off switch that also explains itself, because "cast shadows" means
+## nothing to somebody who just wants the game to stop stuttering.
+func _toggle_row(text: String, key: String, hint: String) -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var name_label: Label = _label(text)
+	name_label.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(name_label)
+
+	var button := Button.new()
+	button.toggle_mode = true
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.custom_minimum_size = Vector2(118.0, 38.0)
+	button.pressed.connect(func() -> void:
+		Graphics.set_switch(key, button.button_pressed)
+		_refresh_video()
+		_queue_save())
+	row.add_child(button)
+	box.add_child(row)
+
+	if not hint.is_empty():
+		var note: Label = _label(hint, 13)
+		note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.8))
+		box.add_child(note)
+
+	_quality_switches.append({"key": key, "button": button, "kind": "toggle"})
+	return box
+
+
+## A 0..1 density, shown as a percentage.
+func _amount_row(text: String, key: String) -> HBoxContainer:
+	var row: HBoxContainer = _slider_row(text, 0.0, 1.0, 0.05, 1.0,
+		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void:
+			Graphics.set_switch(key, v)
+			_refresh_preset_buttons())
+	_quality_switches.append({"key": key, "slider": row.get_child(1) as HSlider, "kind": "amount"})
+	return row
+
+
+func _fps_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var name_label: Label = _label("Frame cap")
+	name_label.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(name_label)
+
+	_fps_buttons = {}
+	for value: int in Graphics.FPS_CHOICES:
+		var button := Button.new()
+		button.text = Graphics.fps_label(value)
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(84.0, 38.0)
+		button.pressed.connect(func() -> void:
+			Graphics.set_fps_cap(value)
+			_refresh_fps_buttons()
+			_queue_save())
+		_fps_buttons[value] = button
+		row.add_child(button)
+	return row
+
+
+func _colourblind_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_colourblind_buttons = {}
+	for entry: Dictionary in Palette.MODES:
+		var id: String = String(entry["id"])
+		var button := Button.new()
+		button.text = String(entry["label"])
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(0.0, 38.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func() -> void:
+			Palette.set_mode(id)
+			_refresh_colourblind_buttons()
+			_queue_save())
+		_colourblind_buttons[id] = button
+		row.add_child(button)
+	return row
+
+
+func _refresh_video() -> void:
+	_refresh_preset_buttons()
+	for entry: Dictionary in _quality_switches:
+		var key: String = String(entry["key"])
+		if String(entry["kind"]) == "toggle":
+			var on: bool = Graphics.cast_shadows() if key == Graphics.KEY_CAST_SHADOWS \
+				else (Graphics.contact_shadows() if key == Graphics.KEY_CONTACT_SHADOWS \
+				else Graphics.cloud_shadows())
+			var toggle: Button = entry["button"]
+			toggle.button_pressed = on
+			toggle.text = "On" if on else "Off"
+		else:
+			var amount: float = Graphics.particle_scale() if key == Graphics.KEY_PARTICLES \
+				else Graphics.foliage_scale()
+			(entry["slider"] as HSlider).set_value_no_signal(amount)
+
+
+func _refresh_preset_buttons() -> void:
+	var current: String = Graphics.preset()
+	for id: Variant in _preset_buttons:
+		(_preset_buttons[id] as Button).button_pressed = String(id) == current
+
+
+func _refresh_fps_buttons() -> void:
+	var current: int = Graphics.fps_cap()
+	for value: Variant in _fps_buttons:
+		(_fps_buttons[value] as Button).button_pressed = int(value) == current
+
+
+func _refresh_colourblind_buttons() -> void:
+	var current: String = Palette.mode()
+	for id: Variant in _colourblind_buttons:
+		(_colourblind_buttons[id] as Button).button_pressed = String(id) == current
+
+
+# --- Controls ----------------------------------------------------------------
+
+## Fifteen rebindable actions, and a reset.
+##
+## Scrolled, unlike everything else in this panel: fifteen rows is genuinely a
+## list, and the alternative is a settings window taller than a 1080p screen.
+func _build_controls(column: VBoxContainer) -> void:
+	_binding_note = _label("Click a key, then press the one you want. Escape cancels.", 14)
+	_binding_note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))
+	_binding_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(_binding_note)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 4)
+	scroll.add_child(list)
+
+	_binding_buttons = {}
+	for entry: Dictionary in KeyBindings.REBINDABLE:
+		list.add_child(_binding_row(entry))
+
+	var reset := Button.new()
+	reset.text = "Reset all keys"
+	reset.custom_minimum_size = Vector2(0.0, 44.0)
+	IconKit.on_button(reset, "close", 22)
+	reset.pressed.connect(func() -> void:
+		KeyBindings.reset_all()
+		_refresh_bindings()
+		_queue_save())
+	column.add_child(reset)
+
+
+func _binding_row(entry: Dictionary) -> HBoxContainer:
+	var action: StringName = entry["action"]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+
+	var name_label: Label = _label(String(entry["label"]))
+	name_label.custom_minimum_size = Vector2(180.0, 0.0)
+	row.add_child(name_label)
+
+	var button := Button.new()
+	button.text = KeyBindings.label_for(action)
+	button.custom_minimum_size = Vector2(190.0, 40.0)
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.pressed.connect(func() -> void: _listen_for(action, button))
+	row.add_child(button)
+
+	_binding_buttons[String(action)] = button
+	return row
+
+
+## Puts the panel into capture mode for one action.
+func _listen_for(action: StringName, button: Button) -> void:
+	if _listening_for != &"":
+		_stop_listening()
+	_listening_for = action
+	_listening_button = button
+	button.text = "Press a key…"
+	# Godot delivers the click that started this as an input event too, so the
+	# panel would immediately capture the mouse button that opened it. Waiting a
+	# frame lets that event drain first.
+	set_process_input(false)
+	await get_tree().process_frame
+	if _listening_for == action:
+		set_process_input(true)
+
+
+func _input(event: InputEvent) -> void:
+	if _listening_for == &"":
+		return
+
+	# Escape cancels rather than binds. It is also the only way out of a capture a
+	# player opened by accident, which is why KeyBindings refuses to bind it.
+	var key := event as InputEventKey
+	if key != null and key.pressed and key.keycode == KEY_ESCAPE:
+		_stop_listening()
+		_refresh_bindings()
+		get_viewport().set_input_as_handled()
+		return
+
+	if not KeyBindings.is_bindable(event):
+		return
+
+	var clashes: Array[String] = KeyBindings.conflicts(event, _listening_for)
+	KeyBindings.rebind(_listening_for, event)
+	if not clashes.is_empty():
+		# Bound anyway, and said so. Refusing the bind would leave the player
+		# guessing which of fifteen rows was in the way.
+		_report_conflict(KeyBindings.describe(event), clashes)
+	_stop_listening()
+	_refresh_bindings()
+	_queue_save()
+	get_viewport().set_input_as_handled()
+
+
+func _stop_listening() -> void:
+	_listening_for = &""
+	_listening_button = null
+	set_process_input(false)
+
+
+func _report_conflict(key_name: String, clashes: Array[String]) -> void:
+	if _binding_note == null:
+		return
+	_binding_note.text = "%s was already %s." % [key_name, ", ".join(clashes)]
+	_binding_note.add_theme_color_override("font_color", Color("e8a33d"))
+
+
+func _refresh_bindings() -> void:
+	for action_name: Variant in _binding_buttons:
+		(_binding_buttons[action_name] as Button).text = \
+			KeyBindings.label_for(StringName(action_name))

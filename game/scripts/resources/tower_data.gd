@@ -126,16 +126,11 @@ static func element_name(e: Element) -> String:
 			return "Fire"
 
 
+## Every element colour in the game comes through here - tower buttons,
+## projectiles, lights, upgrade bursts - which is what makes colourblind support a
+## single table rather than a hunt through twenty call sites.
 static func element_colour(e: Element) -> Color:
-	match e:
-		Element.WATER:
-			return Color("7fa6bf")
-		Element.EARTH:
-			return Color("7a6e5c")
-		Element.AIR:
-			return Color("9b8fc4")
-		_:
-			return Color("c4552e")
+	return Palette.element(int(e))
 
 
 static func target_priority_name(priority: int) -> String:
