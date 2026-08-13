@@ -108,6 +108,10 @@ jobs:
 
           run_godot_clean --headless --path game --quit
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- report
+          # Shipped code must not name anything under tools/: the export strips
+          # that directory, and a missing class_name is a parse failure, so the
+          # script simply does not load. Source-run gates cannot see this.
+          run_godot_clean --headless --path game --script res://tools/run_tool.gd -- tool-leak
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build

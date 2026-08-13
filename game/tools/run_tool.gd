@@ -18,7 +18,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- seed
 ##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak>"
 
 
 func _init() -> void:
@@ -41,6 +41,8 @@ func _init() -> void:
 			_font_check()
 		"theme":
 			_theme()
+		"tool-leak":
+			_tool_leak()
 		_:
 			print(USAGE)
 			quit(2)
@@ -80,6 +82,20 @@ func _import(dry: bool) -> void:
 	var result: Dictionary = importer.import_all(dry)
 	print(importer.report())
 	quit(1 if int(result["problems"]) > 0 else 0)
+
+
+## Shipped code must not reference anything under tools/: the export strips it,
+## and a missing class_name is a parse failure, not a runtime one.
+func _tool_leak() -> void:
+	var result: Dictionary = ToolLeakCheck.run()
+	if bool(result["ok"]):
+		print("Tool leak check: %d shipped scripts, none reference an excluded class."
+			% result["checked"])
+		quit(0)
+		return
+	for leak: String in result["leaks"]:
+		print("  ERROR: ", leak)
+	quit(1)
 
 
 func _theme() -> void:

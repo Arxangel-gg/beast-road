@@ -36,10 +36,11 @@ const BUILD_ROW_GAP: int = 5
 
 ## How far the price sits in from a row's right edge.
 ##
-## Read from the theme rather than guessed, so it lines up with the button's own
-## text inset on the other side of the row. Hard-coding it at 22 against the
-## theme's 34 put every price hard against the frame's corner bolt.
-const BUILD_ROW_PRICE_INSET: float = float(ThemeBuilder.PAD_BUTTON_X)
+## Shares the theme's own button inset so it lines up with the label on the other
+## side of the row. Read from UiMetrics, never from ThemeBuilder: that lives under
+## `tools/`, which `export_presets.cfg` strips from the build, and referencing it
+## from here once cost an entire release its HUD.
+const BUILD_ROW_PRICE_INSET: float = float(UiMetrics.PAD_BUTTON_X)
 
 ## Distance from the right edge of the screen.
 const BUILD_PANEL_MARGIN: float = 34.0
