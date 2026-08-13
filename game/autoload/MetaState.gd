@@ -17,7 +17,7 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 
 ## The save file was written or loaded.
 signal save_written()
@@ -28,6 +28,14 @@ var unlocked_towers: Array[String] = []
 var unlocked_relics: Array[String] = []
 var unlocked_spells: Array[String] = []
 var unlocked_terrains: Array[String] = []
+
+## Milestone-gated construction pool. These are content permissions, not built
+## tiers; every building still starts over each run.
+var unlocked_buildings: Array[String] = []
+
+## Treasury's one sanctioned carry-over. Capped per currency and consumed when
+## the next run begins, so it cannot compound into permanent power.
+var resource_cache: Dictionary = {}
 
 ## Set once Act 3 has been cleared. Worth exactly one extra starting Town Hall
 ## relic slot, capped at +1. This is the only sanctioned persistent power.
@@ -47,6 +55,12 @@ var settings: Dictionary = {
 	"screen_shake": 1.0,
 	"beast_gait": 0.65,
 	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
+	# These keys must exist before load_save() merges persisted settings. The
+	# loader deliberately rejects unknown keys, so omitting them made Video and
+	# colourblind selections appear to save while silently reverting on launch.
+	"graphics": {},
+	"colourblind_mode": "off",
+	"key_bindings": {},
 }
 
 
@@ -72,8 +86,10 @@ func save_game() -> void:
 			"relics": unlocked_relics,
 			"spells": unlocked_spells,
 			"terrains": unlocked_terrains,
+			"buildings": unlocked_buildings,
 			"act3_cleared": act3_cleared,
 		},
+		"resource_cache": resource_cache,
 		"stats": {
 			"runs_started": runs_started,
 			"runs_won": runs_won,
@@ -120,18 +136,24 @@ func load_save() -> void:
 	# GDD §52 requires migration to "never destroy the source save". Keeping the
 	# original is the whole of that requirement, and it costs one file copy.
 	var found_version: int = int(data.get("version", 0))
-	if found_version != SAVE_VERSION:
+	if found_version != SAVE_VERSION and found_version != 1:
 		_back_up_save(text, found_version)
 		push_warning("MetaState: save version %d is not %d; kept a copy at %s and started fresh."
 			% [found_version, SAVE_VERSION, SAVE_BACKUP_PATH % found_version])
 		return
+	if found_version != SAVE_VERSION:
+		data = migrate_save(data, text)
+		if data.is_empty():
+			return
 
 	var unlocked: Dictionary = data.get("unlocked", {}) as Dictionary
 	unlocked_towers = _string_array(unlocked.get("towers", []))
 	unlocked_relics = _string_array(unlocked.get("relics", []))
 	unlocked_spells = _string_array(unlocked.get("spells", []))
 	unlocked_terrains = _string_array(unlocked.get("terrains", []))
+	unlocked_buildings = _string_array(unlocked.get("buildings", []))
 	act3_cleared = bool(unlocked.get("act3_cleared", false))
+	resource_cache = data.get("resource_cache", {}) as Dictionary
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary
 	runs_started = int(stats.get("runs_started", 0))
@@ -147,24 +169,62 @@ func load_save() -> void:
 	save_loaded.emit()
 
 
+## Migrates a known public schema without ever mutating its source file first.
+## The returned dictionary is consumed in memory and only becomes current when
+## save_game() later completes successfully.
+func migrate_save(data: Dictionary, source_text: String = "",
+		backup_path: String = "") -> Dictionary:
+	var found_version: int = int(data.get("version", 0))
+	if found_version == SAVE_VERSION:
+		return data
+	if found_version != 1:
+		return {}
+	var original: String = source_text if not source_text.is_empty() else JSON.stringify(data, "\t")
+	if not _back_up_save(original, found_version, backup_path):
+		return {}
+	var migrated: Dictionary = data.duplicate(true)
+	migrated["version"] = SAVE_VERSION
+	if not migrated.has("resource_cache"):
+		migrated["resource_cache"] = {}
+	var unlocked: Dictionary = migrated.get("unlocked", {}) as Dictionary
+	if not unlocked.has("buildings"):
+		unlocked["buildings"] = []
+	migrated["unlocked"] = unlocked
+	return migrated
+
+
+func building_unlocked(id: String) -> bool:
+	var data: BuildingData = ContentDB.building(id)
+	return data != null and (not data.requires_unlock or unlocked_buildings.has(id))
+
+
+func unlock_building(id: String) -> bool:
+	if unlocked_buildings.has(id) or ContentDB.building(id) == null:
+		return false
+	unlocked_buildings.append(id)
+	EventBus.unlock_earned.emit("building", id)
+	return true
+
+
 ## Preserves a save this build cannot read.
 ##
 ## Deliberately never overwrites an existing backup: the *first* copy is the
 ## valuable one. Bouncing between two builds would otherwise have each launch
 ## re-back-up the file the previous launch already reset, and the original would
 ## be gone by the third run.
-func _back_up_save(text: String, version: int, test_path: String = "") -> void:
+func _back_up_save(text: String, version: int, test_path: String = "") -> bool:
 	# The override exists only so the regression gate can prove byte preservation
 	# in an isolated fixture. Shipping callers always use the versioned path.
 	var path: String = test_path if not test_path.is_empty() else SAVE_BACKUP_PATH % version
 	if FileAccess.file_exists(path):
-		return
+		return true
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_warning("MetaState: could not write save backup to %s" % path)
-		return
+		return false
 	file.store_string(text)
 	file.close()
+	return true
 
 
 ## JSON gives back an untyped Array; the rest of the codebase wants Array[String].

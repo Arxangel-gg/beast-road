@@ -173,6 +173,7 @@ func _grant_rewards(act: int) -> void:
 
 	# 3. The next act's terrain, which the journey switches to at the boundary.
 	RunState.gain_resources(Balance.BOSS_RESOURCE_REWARD)
+	RunState.gain_currency(RunState.STONE, Balance.BOSS_STONE_REWARD)
 
 
 func _unequipped_spell() -> String:

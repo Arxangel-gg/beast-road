@@ -423,8 +423,8 @@ The beginning must teach before it tests the full build.
 - Wave 2 repeats that road and previews an adjacent threat.
 - Wave 3 attacks two roads.
 - Wave 4 may introduce a runner.
-- Wave 5 may introduce the first support or elite and restores the normal director pool.
-- Small opening supply pulses end after Wave 4. The late-game economy remains unchanged.
+- Wave 5 may introduce the first support or elite; the director reaches its normal pool by Wave 8 through a smooth protection taper.
+- Small opening supply pulses end after Wave 6. The late-game economy remains unchanged.
 - The director cannot select Rush, Siege Column, Howling Pack, or four-road pressure until its teaching gate is satisfied.
 
 ### Escalation rules
@@ -434,7 +434,7 @@ The beginning must teach before it tests the full build.
 - Enemy speed grows modestly and primarily through roster composition.
 - The final 100 distance of each act increases both body count and role complexity.
 - Night increases road coverage and role danger, not simply blackness.
-- Late waves overlap on cadence within a strict live-enemy cap.
+- Late formations become dense internally but the next wave never begins, and Preparation never opens, until the authored queue and all surviving enemies are resolved.
 - The director uses anti-repeat weights and cannot create an unwinnable role combination without at least two valid counters in the player's current systems.
 
 ## 18. War Horn and Raid Charge

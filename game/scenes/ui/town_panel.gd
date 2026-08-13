@@ -84,6 +84,8 @@ func _refresh() -> void:
 			_show_relics()
 		BuildingData.Effect.CAPTIVE_LABOUR:
 			_show_captives()
+		BuildingData.Effect.MARKET:
+			_show_market()
 		_:
 			pass
 
@@ -108,11 +110,15 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 		_note("Fully built.")
 		return
 
-	var cost: float = BuildingData.tier_cost(tier + 1)
+	var distance_cost: float = BuildingData.tier_cost(tier + 1)
+	var wood_cost: int = data.wood_cost_at(tier + 1)
 	var button := Button.new()
-	button.text = "Build tier %d   ·   %d distance" % [tier + 1, int(cost)]
+	button.text = "Build tier %d   ·   %d Wood   ·   %d distance" % [
+		tier + 1, wood_cost, int(distance_cost)]
 	button.custom_minimum_size = Vector2(0, 44)
-	button.disabled = not busy_with.is_empty()
+	button.disabled = not busy_with.is_empty() \
+		or not RunState.can_afford_cost({RunState.WOOD: wood_cost}) \
+		or not MetaState.building_unlocked(data.id)
 	button.pressed.connect(func() -> void:
 		var problem: String = TownScope.try_start_construction(_building_id)
 		if not problem.is_empty():
@@ -123,6 +129,46 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 	if not busy_with.is_empty():
 		var other: BuildingData = ContentDB.building(busy_with)
 		_note("Already building %s. One at a time." % (other.display_name if other != null else busy_with))
+	elif not MetaState.building_unlocked(data.id):
+		_note("Unlock this plot through its account milestone; it will still begin unbuilt each run.")
+
+
+func _show_market() -> void:
+	if RunState.building_tier("market") <= 0:
+		return
+	_note("Exchanges left this Preparation: %d   ·   %d given → %d received" % [
+		RunState.market_trades_remaining, Balance.MARKET_TRADE_LOT,
+		Balance.MARKET_TRADE_RETURN])
+	if not RunState.can_build_now():
+		return
+	for pair: Array in [[RunState.WOOD, RunState.GOLD], [RunState.FOOD, RunState.GOLD],
+			[RunState.GOLD, RunState.STONE], [RunState.STONE, RunState.WOOD]]:
+		var from_id: String = pair[0]
+		var to_id: String = pair[1]
+		var trade := Button.new()
+		trade.text = "%d %s  →  %d %s" % [Balance.MARKET_TRADE_LOT,
+			RunState.currency_name(from_id), Balance.MARKET_TRADE_RETURN,
+			RunState.currency_name(to_id)]
+		trade.custom_minimum_size = Vector2(0, 38)
+		trade.disabled = RunState.market_trades_remaining <= 0 \
+			or not RunState.can_afford_cost({from_id: Balance.MARKET_TRADE_LOT})
+		trade.pressed.connect(func() -> void:
+			var problem: String = TownScope.try_market_trade(from_id, to_id)
+			if not problem.is_empty():
+				_note(problem)
+			_refresh())
+		actions.add_child(trade)
+	var service := Button.new()
+	service.text = "ACT %d CONTRACT" % RunState.act
+	service.custom_minimum_size = Vector2(0, 42)
+	service.tooltip_text = "One rotating bounded service per act. Never a free conversion loop."
+	service.disabled = RunState.market_service_bought_this_act()
+	service.pressed.connect(func() -> void:
+		var problem: String = TownScope.try_market_service()
+		if not problem.is_empty():
+			_note(problem)
+		_refresh())
+	actions.add_child(service)
 
 
 ## Relic sockets. Only socketed relics do anything at all, which is the entire
@@ -231,5 +277,11 @@ func _effect_text(data: BuildingData, tier: int) -> String:
 				Balance.TOWER_BASE_LEVEL_CAP + tier, 1, Balance.TOWER_MAX_LEVEL)
 		BuildingData.Effect.WAVE_FORESIGHT:
 			return "next wave revealed"
+		BuildingData.Effect.PRODUCTION:
+			return "%.2f %s per distance" % [amount, RunState.currency_name(data.produced_currency)]
+		BuildingData.Effect.TREASURY_CACHE:
+			return "up to %d of each currency cached for the next run" % int(amount)
+		BuildingData.Effect.MARKET:
+			return "%d bounded exchanges per Preparation" % Balance.MARKET_TRADES_PER_PREPARATION
 		_:
 			return "%.2f" % amount

@@ -120,14 +120,18 @@ func _refresh_plot(id: String) -> void:
 	if sprite != null:
 		# An unbuilt plot shows the empty-plot marker, not a ghost of the
 		# building — the town should read as something you are assembling.
-		var art: String = data.get_sprite_path() if tier > 0 else "res://art/city/plot_empty.png"
+		var unlocked: bool = MetaState.building_unlocked(id)
+		var art: String = data.get_sprite_path() if tier > 0 else (
+			"res://art/city/plot_empty.png" if unlocked else "res://art/city/plot_locked.png")
 		if ResourceLoader.exists(art):
 			sprite.texture = load(art)
-		sprite.modulate = Color.WHITE if tier > 0 else Color(1, 1, 1, 0.55)
+			sprite.modulate = Color.WHITE if tier > 0 else Color(1, 1, 1, 0.55 if unlocked else 0.34)
 
 	if label != null:
 		if tier > 0:
 			label.text = "%s  ·  Tier %d" % [data.display_name, tier]
+		elif not MetaState.building_unlocked(id):
+			label.text = "%s  ·  LOCKED" % data.display_name
 		elif _is_building_now(id):
 			label.text = "%s  ·  building…" % data.display_name
 		else:
@@ -153,10 +157,16 @@ static func try_start_construction(building_id: String) -> String:
 	var data: BuildingData = ContentDB.building(building_id)
 	if data == null:
 		return "No such building."
+	if not MetaState.building_unlocked(building_id):
+		return "%s is not in the construction pool yet." % data.display_name
 	var tier: int = RunState.building_tier(building_id)
 	if tier >= data.max_tier:
 		return "%s is fully built." % data.display_name
 	var next_tier: int = tier + 1
+	var wood_cost: int = data.wood_cost_at(next_tier)
+	if not RunState.can_afford_cost({RunState.WOOD: wood_cost}):
+		return "Needs %d Wood." % wood_cost
+	RunState.spend_cost({RunState.WOOD: wood_cost})
 	RunState.construction = {
 		"id": building_id,
 		"tier": next_tier,
@@ -164,6 +174,55 @@ static func try_start_construction(building_id: String) -> String:
 		"distance_done": 0.0,
 	}
 	EventBus.construction_started.emit(building_id, next_tier)
+	return ""
+
+
+## Loss-making and bounded: there is no route through the Market that increases
+## total currency, and every Preparation has a hard trade cap.
+static func try_market_trade(from_id: String, to_id: String) -> String:
+	if not RunState.can_build_now():
+		return "The Market opens during Preparation."
+	if RunState.building_tier("market") <= 0:
+		return "Build the Trading Market first."
+	if from_id == to_id or not RunState.CURRENCIES.has(from_id) \
+			or not RunState.CURRENCIES.has(to_id):
+		return "Choose two different currencies."
+	if RunState.market_trades_remaining <= 0:
+		return "No Market exchanges remain this Preparation."
+	if not RunState.spend_cost({from_id: Balance.MARKET_TRADE_LOT}):
+		return "Needs %d %s." % [Balance.MARKET_TRADE_LOT, RunState.currency_name(from_id)]
+	RunState.gain_currency(to_id, Balance.MARKET_TRADE_RETURN)
+	RunState.market_trades_remaining -= 1
+	EventBus.market_traded.emit(from_id, to_id, Balance.MARKET_TRADE_LOT,
+		Balance.MARKET_TRADE_RETURN)
+	return ""
+
+
+static func try_market_service() -> String:
+	if not RunState.can_build_now():
+		return "Market contracts are chosen during Preparation."
+	if RunState.building_tier("market") <= 0:
+		return "Build the Trading Market first."
+	if RunState.market_service_bought_this_act():
+		return "This act's Market contract is already claimed."
+	var services: Array[String] = ["field_rations", "stonewright", "war_chest"]
+	var id: String = services[clampi(RunState.act - 1, 0, services.size() - 1)]
+	var costs: Array[Dictionary] = [
+		{RunState.GOLD: 45}, {RunState.WOOD: 55}, {RunState.FOOD: 50},
+	]
+	var cost: Dictionary = costs[clampi(RunState.act - 1, 0, costs.size() - 1)]
+	if not RunState.spend_cost(cost):
+		return "Needs %s." % RunState.format_cost(cost)
+	match id:
+		"field_rations":
+			RunState.gain_currency(RunState.FOOD, 32)
+		"stonewright":
+			RunState.gain_currency(RunState.STONE, 26)
+		"war_chest":
+			RunState.gain_currency(RunState.GOLD, 40)
+	RunState.market_service_act = RunState.act
+	RunState.market_service_id = id
+	EventBus.market_service_bought.emit(id)
 	return ""
 
 

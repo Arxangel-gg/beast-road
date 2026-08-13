@@ -44,6 +44,7 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.raid_ended.connect(_on_raid_ended)
 	EventBus.run_ended.connect(_on_run_ended)
+	EventBus.wave_cleared.connect(_on_wave_cleared)
 
 	crossroad_ui.road_chosen.connect(_on_road_chosen)
 	town.plot_selected.connect(town_panel.open)
@@ -79,13 +80,6 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	# A cleared road opens a breather. Checked here rather than signalled from the
-	# wave director, because "clear" is a fact about the whole battlefield - the
-	# queue and the survivors - and the director only knows half of it.
-	if RunState.phase == RunState.Phase.ROAD_BATTLE and _breather_due():
-		_enter_wave_breather()
-		return
-
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
@@ -233,7 +227,10 @@ func _on_raid_ended(reward: Dictionary) -> void:
 
 
 func _apply_raid_reward(reward: Dictionary) -> void:
-	RunState.gain_resources(int(reward.get("resources", 0)))
+	var value: int = int(reward.get("resources", 0))
+	RunState.gain_currency(RunState.GOLD, int(round(value * 0.55)))
+	RunState.gain_currency(RunState.FOOD, int(round(value * 0.30)))
+	RunState.gain_currency(RunState.STONE, int(round(value * 0.15)))
 
 	var captive_id: String = String(reward.get("captive_id", ""))
 	if not captive_id.is_empty() and ContentDB.captive(captive_id) != null:
@@ -247,10 +244,22 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 
 # --- Act bosses -------------------------------------------------------------
 
-## The battlefield keeps running: the boss arrives *into* the fight, it does not
-## replace it.
+## The boss threshold can arrive during a wave, but final Preparation waits for
+## that complete formation to resolve before the boss replaces it.
 func _on_act_boss_due(act: int) -> void:
 	_pending_boss_act = act
+	journey.stop()
+	# A distance threshold can be crossed while a formation is still alive. Let
+	# that wave resolve before opening Preparation; freezing enemies mid-attack
+	# made the phase look like a broken wave overlap.
+	if battlefield.enemy_count() > 0 or battlefield.wave_director.is_deploying():
+		EventBus.preparation_warning.emit(
+			"The Act %d boss is ahead. Clear the road first." % act)
+		return
+	_begin_boss_preparation(act)
+
+
+func _begin_boss_preparation(act: int) -> void:
 	RunState.hearthmend()
 	if battlefield.hero != null:
 		battlefield.hero.apply_hearthmend()
@@ -321,11 +330,15 @@ var _breather_after_wave: int = 0
 ## waves would turn a breather into a chore, and the confirmation exists to make
 ## the *committed* transitions deliberate - not to punctuate the ordinary rhythm
 ## of a fight.
-func _enter_wave_breather() -> void:
+func _enter_wave_breather(wave: int) -> void:
+	if _breather or wave <= _breather_after_wave:
+		return
 	_breather = true
-	_breather_after_wave = RunState.wave_number
+	RunState.begin_preparation_market()
+	_breather_after_wave = wave
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
+	journey.stop()
 	_preparation_left = Balance.PREPARATION_BETWEEN_WAVES
 	_coverage_warning_acknowledged = true
 	EventBus.preparation_changed.emit(_preparation_left, false)
@@ -337,34 +350,26 @@ func _end_wave_breather() -> void:
 	_breather = false
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	RunState.begin_command_battle()
-	battlefield.begin_battle()
 	battlefield.wave_director.resume_after_breather()
+	battlefield.begin_battle()
 	journey.start()
 	EventBus.preparation_changed.emit(0.0, false)
 
 
-## Whether a breather is due before the next wave.
-##
-## Triggered off the wave clock, not off an empty road. The first version waited
-## for the field to be clear of the last pack, which sounds right and is not:
-## waves deliberately overlap so late acts do not decay into a single-file
-## trickle, so a clear road simply never happens on most waves. It produced a
-## breather after waves 1, 2 and 4 of six - which is worse than none, because the
-## player cannot rely on it and so cannot plan around it.
-##
-## Opening just before the wave lands makes it guaranteed and predictable: every
-## wave gets its window, and the window is always in the same place.
-func _breather_due() -> bool:
-	if battlefield == null or battlefield.wave_director == null:
-		return false
-	# One per wave. Without this the breather reopens in the gap it just created.
-	if RunState.wave_number <= _breather_after_wave:
-		return false
-	return battlefield.wave_director.time_to_next_wave() <= Balance.WAVE_BREATHER_LEAD_SECONDS
+## WaveDirector owns both halves of "clear": its authored spawn queue and the
+## living enemies in the field. This is a fact, never an estimate from a timer.
+func _on_wave_cleared(wave: int) -> void:
+	if RunState.phase != RunState.Phase.ROAD_BATTLE or _locked:
+		return
+	if _pending_boss_act > 0:
+		_begin_boss_preparation(_pending_boss_act)
+		return
+	_enter_wave_breather(wave)
 
 
 func _enter_preparation(initial: bool) -> void:
 	_breather = false
+	RunState.begin_preparation_market()
 	_breather_after_wave = RunState.wave_number
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()

@@ -311,11 +311,15 @@ static func _growth_curve() -> Curve:
 func refresh_quality() -> void:
 	var scale: float = Graphics.particle_scale()
 	if _embers != null:
-		_embers.amount = Graphics.scaled(
-			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), scale)
+		var ember_amount: int = maxi(Graphics.scaled(
+			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), scale), 1)
+		if _embers.amount != ember_amount:
+			_embers.amount = ember_amount
 	if _smoke != null:
-		_smoke.amount = Graphics.scaled(
-			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), scale)
+		var smoke_amount: int = maxi(Graphics.scaled(
+			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), scale), 1)
+		if _smoke.amount != smoke_amount:
+			_smoke.amount = smoke_amount
 
 
 func set_lit(lit: bool) -> void:
@@ -342,12 +346,27 @@ func is_lit() -> bool:
 ## Scales the whole fire without rebuilding it.
 func set_intensity(value: float) -> void:
 	intensity = clampf(value, 0.0, 1.0)
+	if _light != null:
+		# LightDriver owns energy for day/night and flicker. Alpha is the orthogonal
+		# channel for flame strength, so neither system overwrites the other.
+		var light_colour: Color = _light.color
+		light_colour.a = intensity
+		_light.color = light_colour
+	if _glow != null:
+		_glow.visible = _lit and intensity > 0.01
 	if _embers != null:
-		_embers.amount = Graphics.scaled(
-		int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale())
+		var ember_amount: int = maxi(Graphics.scaled(
+			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), Graphics.particle_scale()), 1)
+		if _embers.amount != ember_amount:
+			_embers.amount = ember_amount
+		_embers.emitting = _lit and intensity > 0.035
 	if _smoke != null:
-		_smoke.amount = Graphics.scaled(
-		int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), Graphics.particle_scale())
+		var smoke_amount: int = maxi(Graphics.scaled(
+			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), Graphics.particle_scale()), 1)
+		if _smoke.amount != smoke_amount:
+			_smoke.amount = smoke_amount
+		_smoke.emitting = _lit and intensity > 0.035
+	queue_redraw()
 
 
 func light() -> PointLight2D:

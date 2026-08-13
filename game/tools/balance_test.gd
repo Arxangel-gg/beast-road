@@ -23,10 +23,11 @@ func _ready() -> void:
 	_run.journey.stop()
 
 	_test_upgrade_track()
+	_test_four_currency_economy()
 	await _test_live_tower_utility()
 	_test_opening_envelope()
 	_test_act_curves()
-	_test_overlapping_waves()
+	_test_sequential_waves()
 	_test_enemy_roles()
 	_test_zoom_range()
 	_test_beast_gait()
@@ -65,6 +66,41 @@ func _test_upgrade_track() -> void:
 	_check(full_cost >= 1000, "one max tower must remain a meaningful late-run investment")
 	_check(Balance.TOWER_LEVEL_UTILITY.size() == Balance.TOWER_MAX_LEVEL,
 		"utility progression must cover every tower level")
+
+
+func _test_four_currency_economy() -> void:
+	_check(RunState.currencies.size() == 4,
+		"the run must have exactly four role-specific economy wallets")
+	_check(RunState.currency(RunState.GOLD) >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST,
+		"starting Gold must cover one base tower per road")
+	_check(RunState.currency(RunState.STONE) >= Balance.TOWER_COMBO_STONE_COST,
+		"starting Stone must leave one opening Fusion choice")
+	_check(ContentDB.buildings.size() == 9,
+		"the town must expose all nine launch plots")
+	_check(RunState.building_tier("woodcutter") == 1 \
+		and RunState.building_tier("granary") == 1,
+		"Woodcutter and Wheat Farm must begin at tier one")
+	var total_before: int = 0
+	for id: String in RunState.CURRENCIES:
+		total_before += RunState.currency(id)
+	RunState.building_tiers["market"] = 1
+	var prior_phase: RunState.Phase = RunState.phase
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.begin_preparation_market()
+	var source: String = RunState.GOLD
+	var target: String = RunState.FOOD
+	var market_problem: String = TownScope.try_market_trade(source, target)
+	_check(market_problem.is_empty(),
+		"a funded Market exchange must resolve during Preparation (%s)" % market_problem)
+	var total_after: int = 0
+	for id: String in RunState.CURRENCIES:
+		total_after += RunState.currency(id)
+	_check(total_after < total_before,
+		"Market exchange must destroy value rather than permit a profit loop")
+	TownScope.try_market_trade(source, target)
+	_check(not TownScope.try_market_trade(source, target).is_empty(),
+		"Market exchanges must stop at the per-Preparation cap")
+	RunState.set_phase(prior_phase)
 
 
 func _test_live_tower_utility() -> void:
@@ -116,9 +152,9 @@ func _test_opening_envelope() -> void:
 	var first_size: int = director._wave_size(1, terrain)
 	var first_hp: float = director._hp_scale(0)
 	var first_damage: float = director._damage_scale(0)
-	_check(Balance.STARTING_RESOURCES >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST \
+	_check(Balance.STARTING_GOLD >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST \
 		+ Balance.TOWER_BUILD_COST,
-		"opening resources must cover all four roads plus one flex purchase")
+		"opening Gold must cover all four roads plus one flex purchase")
 	director._wave_timer = 1.0
 	RunState.wave_number = 0
 	director._on_act_started(1, "ashfen")
@@ -128,13 +164,14 @@ func _test_opening_envelope() -> void:
 	_check(first_size <= 5, "first wave must teach with a compact pack")
 	_check(first_hp <= 0.8 and first_damage <= 0.75,
 		"first enemies must be forgiving in both durability and contact threat")
-	_check(director._progressive_lane_count(3) == 1,
-		"the first three waves must teach one road at a time")
-	_check(director._progressive_lane_count(5) >= 2,
-		"lane pressure must expand once the four-wave tutorial envelope ends")
-	_check(director._opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, 5) == 1.0 \
-		and director._opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, 6) == 1.0,
-		"opening protection must fully taper out before midgame")
+	_check(director._progressive_lane_count(2) == 1,
+		"the first two waves must teach one road at a time")
+	_check(director._progressive_lane_count(3) == 2 \
+		and director._progressive_lane_count(5) == 3,
+		"lane pressure must open one road at a time instead of jumping from one to three")
+	_check(director._opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, 8) == 1.0 \
+		and director._opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, 9) == 1.0,
+		"opening protection must taper smoothly and be neutral after wave eight")
 	var early_formations: Array[WaveArchetypeData] = ContentDB.available_wave_archetypes(1, 3)
 	_check(early_formations.size() == 1 and early_formations[0].id == "measured_advance",
 		"specialist formations must wait until the core loop is established")
@@ -143,9 +180,9 @@ func _test_opening_envelope() -> void:
 		supply_total += amount
 	_check(supply_total >= Balance.TOWER_BUILD_COST,
 		"opening supply pulses must finance at least one reactive defence")
-	print("[balance] Opening pack=%d hp=%.2f damage=%.2f prep=%.0fs resources=%d+%d" \
+	print("[balance] Opening pack=%d hp=%.2f damage=%.2f prep=%.0fs gold=%d supplies=%d" \
 		% [first_size, first_hp, first_damage, Balance.WAVE_FIRST_PREPARATION,
-			Balance.STARTING_RESOURCES, supply_total])
+			Balance.STARTING_GOLD, supply_total])
 
 
 func _set_progress(act: int, distance: float, wave: int, terrain_id: String,
@@ -158,24 +195,24 @@ func _set_progress(act: int, distance: float, wave: int, terrain_id: String,
 	DayNight._apply(0.74)
 
 
-## A late pack takes longer to deploy than the nominal interval. The director
-## must still open the next wave on cadence or Act 3 turns back into a trickle.
-func _test_overlapping_waves() -> void:
+## A wave owns its complete formation. A zero timer may not stack another queue
+## on top of it; dense late formations preserve endgame pressure within a wave.
+func _test_sequential_waves() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
 	director.stop()
 	director._spawn_queue.clear()
-	director._begin_wave()
-	_check(not director._spawn_queue.is_empty(), "representative wave must create a spawn queue")
 	var before: int = RunState.wave_number
+	director._wave_active = true
+	director._spawn_queue.append({})
+	director._spawn_timer = 99.0
 	director._wave_timer = 0.0
 	director.start()
 	director._process(0.1)
 	director.stop()
-	_check(RunState.wave_number == before + 1,
-		"next wave must begin while the prior spawn queue is still deploying")
-	_check(director._spawn_queue.size() <= Balance.WAVE_MAX_QUEUED,
-		"overlapping wave queues must retain a hard safety cap")
+	_check(RunState.wave_number == before,
+		"next wave must wait while the current formation is still deploying")
 	director._spawn_queue.clear()
+	director._wave_active = false
 
 
 func _test_enemy_roles() -> void:
@@ -366,6 +403,17 @@ func _test_beast_gait() -> void:
 	RunState.beast_speed = Balance.BEAST_BASE_SPEED
 	rig._tick_gait(0.25)
 	_check(rig.offset.length() > 0.1, "enabled beast gait must visibly move the battlefield")
+	# Force a support-pair transfer and prove it creates the planted pause, body
+	# sink and impact shake that make Yuri read as a massive walker rather than a
+	# smoothly floating camera sine.
+	rig._gait_pause_left = 0.0
+	rig._gait_phase = PI - 0.01
+	rig._gait_step = 0
+	rig._tick_gait(0.03)
+	_check(rig._gait_pause_left > 0.0 and rig._step_sink > 0.0,
+		"each alternating support plant must pause and settle under Yuri's mass")
+	_check(rig._shake_left > 0.0,
+		"a planted beast step must produce a brief impact shake")
 	UserSettings.set_value(UserSettings.GAIT_KEY, 0.0)
 	rig._tick_gait(0.016)
 	_check(rig.offset == rig._shake_offset and is_zero_approx(rig.rotation),

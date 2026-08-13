@@ -38,7 +38,12 @@ func goto_menu() -> void:
 
 
 func start_run() -> void:
-	RunState.reset()
+	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
+	RunState.reset(true)
+	# Consuming Treasury carry-over is a real transaction. Persist it now so a
+	# crash/restart cannot spend the same cache repeatedly.
+	if consumed_cache:
+		MetaState.save_game()
 	run_active = true
 	current_scope = Scope.BATTLEFIELD
 	get_tree().paused = false
@@ -65,6 +70,8 @@ func end_run(victory: bool) -> void:
 		"planning_time": RunState.planning_time_seconds,
 		"resources_earned": RunState.resources_earned,
 		"resources_spent": RunState.resources_spent,
+		"currency_earned": RunState.currency_earned.duplicate(true),
+		"currency_spent": RunState.currency_spent.duplicate(true),
 		"towers_built": RunState.towers_built,
 		"tower_upgrades": RunState.tower_upgrades,
 		"towers_sold": RunState.towers_sold,
@@ -87,6 +94,7 @@ func end_run(victory: bool) -> void:
 		MetaState.act3_cleared = true
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
 	MetaState.total_enemies_killed += RunState.enemies_killed
+	_bank_treasury_cache()
 	MetaState.save_game()
 
 	EventBus.run_ended.emit(victory, summary)
@@ -129,12 +137,35 @@ func _pay_out_unlocks(victory: bool) -> Array[String]:
 			MetaState.unlocked_spells.append(s.id)
 			earned.append("spell:" + s.id)
 
+	# Milestone buildings enter the construction pool; they do not begin built.
+	var milestones: Dictionary = {
+		"treasury": RunState.act >= 2,
+		"market": RunState.act >= 3,
+		"watchtower": victory,
+		"scavenging_post": RunState.chieftains_taken > 0,
+	}
+	for id: Variant in milestones:
+		if bool(milestones[id]) and MetaState.unlock_building(String(id)):
+			earned.append("building:" + String(id))
+
 	return earned
 
 
 func quit_game() -> void:
 	MetaState.save_game()
 	get_tree().quit()
+
+
+func _bank_treasury_cache() -> void:
+	var tier: int = RunState.building_tier("treasury")
+	if tier <= 0:
+		MetaState.resource_cache.clear()
+		return
+	var cap: int = Balance.TREASURY_CACHE_PER_TIER[clampi(
+		tier - 1, 0, Balance.TREASURY_CACHE_PER_TIER.size() - 1)]
+	MetaState.resource_cache.clear()
+	for id: String in RunState.CURRENCIES:
+		MetaState.resource_cache[id] = mini(RunState.currency(id), cap)
 
 
 func _change(path: String) -> void:

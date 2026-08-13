@@ -153,7 +153,9 @@ func _validate_combination() -> void:
 		_tower.refresh_modifiers()
 		return
 	var refund: int = int(round(float(_tower.data.build_cost()) * Balance.TOWER_SELL_REFUND))
-	RunState.gain_resources(refund)
+	RunState.gain_currency(RunState.GOLD, refund)
+	RunState.gain_currency(RunState.STONE,
+		int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
 	RunState.clear_slot(lane, slot)
 
 

@@ -22,6 +22,12 @@ enum Effect {
 	CAPTIVE_LABOUR,
 	## Reveals the composition of the next wave.
 	WAVE_FORESIGHT,
+	## Produces one named run currency per distance survived.
+	PRODUCTION,
+	## Enables a capped one-run cache.
+	TREASURY_CACHE,
+	## Enables bounded loss-making exchange and a rotating act service.
+	MARKET,
 }
 
 @export var effect: Effect = Effect.RESOURCE_RATE
@@ -43,6 +49,21 @@ enum Effect {
 
 @export var is_town_hall: bool = false
 
+## Currency produced by PRODUCTION buildings.
+@export var produced_currency: String = ""
+
+## 0 is in the starting construction pool. 1/2/3 unlock after that act is first
+## cleared. Scavenger Lodge uses the Oathbound milestone and keeps this at 0.
+@export_range(0, 3) var unlock_act: int = 0
+
+## True when the plot needs a permanent content milestone before it can be
+## commissioned. This unlocks a decision, never a pre-built tier.
+@export var requires_unlock: bool = false
+
+## Wood paid immediately when the project is commissioned; travel distance is
+## still the construction clock.
+@export var wood_costs: Array[int] = []
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("city", "building_", id)
@@ -63,3 +84,11 @@ func effect_at(tier: int) -> float:
 	if tier <= 0 or effect_per_tier.is_empty():
 		return 0.0
 	return effect_per_tier[clampi(tier - 1, 0, effect_per_tier.size() - 1)]
+
+
+func wood_cost_at(tier: int) -> int:
+	if tier <= 0:
+		return 0
+	if not wood_costs.is_empty():
+		return wood_costs[clampi(tier - 1, 0, wood_costs.size() - 1)]
+	return Balance.BUILD_WOOD_COSTS[clampi(tier - 1, 0, Balance.BUILD_WOOD_COSTS.size() - 1)]

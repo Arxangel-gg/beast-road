@@ -13,15 +13,19 @@ extends Node
 ##
 ##   godot --path game res://tools/ui_sweep.tscn
 
-const SHOTS: String = "user://ui_sweep"
+const DEFAULT_SHOTS: String = "user://ui_sweep"
 
 var _index: int = 0
 var _screens: Array[Dictionary] = []
 var _current: Node = null
+var _shots_dir: String = DEFAULT_SHOTS
 
 
 func _ready() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SHOTS))
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--output="):
+			_shots_dir = argument.trim_prefix("--output=")
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_shots_dir))
 	_screens = [
 		{"name": "main_menu", "make": _main_menu},
 		{"name": "settings", "make": _settings},
@@ -47,8 +51,12 @@ func _run() -> void:
 		await RenderingServer.frame_post_draw
 
 		var image: Image = get_viewport().get_texture().get_image()
-		var path: String = "%s/%s.png" % [SHOTS, screen["name"]]
-		image.save_png(path)
+		var path: String = "%s/%s.png" % [_shots_dir, screen["name"]]
+		var error: Error = image.save_png(path)
+		if error != OK:
+			push_error("[sweep] could not save %s (error %d)" % [path, error])
+			get_tree().quit(1)
+			return
 		print("[sweep] %s -> %s" % [screen["name"], ProjectSettings.globalize_path(path)])
 
 		_current.queue_free()

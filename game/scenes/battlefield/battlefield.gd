@@ -212,11 +212,13 @@ func _setup_lighting() -> void:
 	# not only the ground under them.
 	# A full-field scrolling noise shader. Pure atmosphere, and the first thing a
 	# player chasing frames should be able to switch off.
-	if Graphics.cloud_shadows():
-		var clouds := CloudShadows.new()
-		clouds.name = "CloudShadows"
-		clouds.z_index = Z_CLOUDS
-		add_child(clouds)
+	# Built once and hidden by the quality setting. That makes the switch fully
+	# reversible during a run instead of requiring the next battlefield scene.
+	var clouds := CloudShadows.new()
+	clouds.name = "CloudShadows"
+	clouds.z_index = Z_CLOUDS
+	clouds.visible = Graphics.cloud_shadows()
+	add_child(clouds)
 
 	# Contact shadows follow the sun, and the sun follows the beast walking.
 	ShadowKit.attach_sun(self)
@@ -271,18 +273,18 @@ func _build_foliage() -> void:
 	entity_root.add_child(foliage)
 
 
-## 0..1, how dark a lane is. 1 means every torch on it is out.
+## 0..1, how dark a lane is. Dimming is continuous, so pressure grows before the
+## last flame goes out rather than jumping six binary steps.
 func lane_darkness(lane: int) -> float:
 	var total: int = 0
-	var dark: int = 0
+	var light: float = 0.0
 	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
 		var torch := node as Torch
 		if torch == null or torch.lane != lane:
 			continue
 		total += 1
-		if not torch.is_lit():
-			dark += 1
-	return float(dark) / float(total) if total > 0 else 0.0
+		light += torch.light_strength()
+	return 1.0 - light / float(total) if total > 0 else 0.0
 
 
 # --- Lane geometry ----------------------------------------------------------
@@ -433,9 +435,12 @@ func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
 	elif tower_data.is_combination:
 		return "Combination towers only go in the middle spot."
 	var cost: int = build_cost_of(tower_data)
-	if not RunState.can_afford(cost):
-		return "Needs %d resources." % cost
-	RunState.spend(cost)
+	var build_cost: Dictionary = {RunState.GOLD: cost}
+	if tower_data.is_combination:
+		build_cost[RunState.STONE] = Balance.TOWER_COMBO_STONE_COST
+	if not RunState.can_afford_cost(build_cost):
+		return "Needs %s." % RunState.format_cost(build_cost)
+	RunState.spend_cost(build_cost)
 	RunState.set_slot(lane, slot, tower_data.id, 1)
 	RunState.towers_built += 1
 	Vfx.build_burst(slot_position(lane, slot), TowerData.element_colour(tower_data.element))
@@ -454,9 +459,9 @@ func try_upgrade(lane: int, slot: int) -> String:
 	if level >= RunState.tower_level_cap():
 		return "Upgrade the Forge to unlock tower level %d." % (level + 1)
 	var cost: int = upgrade_cost_of(level)
-	if not RunState.can_afford(cost):
-		return "Needs %d resources." % cost
-	RunState.spend(cost)
+	if not RunState.can_afford_cost({RunState.GOLD: cost}):
+		return "Needs %d Gold." % cost
+	RunState.spend_cost({RunState.GOLD: cost})
 	RunState.set_slot(lane, slot, tower_data.id, level + 1)
 	RunState.tower_upgrades += 1
 	return ""
@@ -487,7 +492,11 @@ func try_sell(lane: int, slot: int) -> String:
 	var spent: int = build_cost_of(tower_data)
 	for l: int in range(1, level):
 		spent += upgrade_cost_of(l)
-	RunState.gain_resources(int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
+	RunState.gain_currency(RunState.GOLD,
+		int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
+	if tower_data.is_combination:
+		RunState.gain_currency(RunState.STONE,
+			int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
 	RunState.towers_sold += 1
 	RunState.clear_slot(lane, slot)
 	return ""
@@ -500,9 +509,9 @@ func try_repair_town() -> String:
 		return "The town cannot be reached."
 	if town.health.current_hp >= town.health.max_hp:
 		return "The town is already whole."
-	if not RunState.can_afford(Balance.TOWN_REPAIR_COST):
-		return "Needs %d resources." % Balance.TOWN_REPAIR_COST
-	RunState.spend(Balance.TOWN_REPAIR_COST)
+	if not RunState.can_afford_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST}):
+		return "Needs %d Wood." % Balance.TOWN_REPAIR_COST
+	RunState.spend_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST})
 	town.health.heal(Balance.TOWN_REPAIR_AMOUNT)
 	Vfx.ring(town.global_position, Balance.TOWN_RADIUS * 1.3,
 		Color(0.55, 0.88, 0.68, 0.65), 0.55, 6.0)

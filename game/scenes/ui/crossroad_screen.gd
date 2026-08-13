@@ -98,7 +98,9 @@ func _add_option(option: Dictionary) -> void:
 func _choose(option_id: String) -> void:
 	match option_id:
 		"resource":
-			RunState.gain_resources(180)
+			RunState.gain_currency(RunState.WOOD, 70)
+			RunState.gain_currency(RunState.FOOD, 45)
+			RunState.gain_currency(RunState.GOLD, 65)
 		"risk":
 			var ids: Array = ContentDB.relics.keys()
 			if not ids.is_empty():

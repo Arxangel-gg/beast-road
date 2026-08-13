@@ -41,6 +41,7 @@ var _reported: bool = false
 var _stay_in_preparation: bool = false
 var _full_command: bool = false
 var _output_dir: String = "user://"
+var _scope_name: String = ""
 
 
 func _ready() -> void:
@@ -105,6 +106,8 @@ func _ready() -> void:
 				_shots.append(float(piece))
 		elif argument.begins_with("--output="):
 			_output_dir = argument.trim_prefix("--output=")
+		elif argument.begins_with("--scope="):
+			_scope_name = argument.trim_prefix("--scope=").to_lower()
 
 	if not _quality.is_empty():
 		Graphics.apply_preset(_quality)
@@ -113,6 +116,13 @@ func _ready() -> void:
 	var packed: PackedScene = load(RUN_SCENE)
 	_run = packed.instantiate()
 	add_child(_run)
+	if _run is Run and not _scope_name.is_empty():
+		var wanted: int = GameDirector.Scope.BATTLEFIELD
+		if _scope_name == "town":
+			wanted = GameDirector.Scope.TOWN
+		elif _scope_name == "beast":
+			wanted = GameDirector.Scope.BEAST
+		(_run as Run).call_deferred("switch_scope", wanted)
 	if _build:
 		_build_everything()
 	if _run is Run and not _stay_in_preparation:

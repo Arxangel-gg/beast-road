@@ -25,11 +25,27 @@ var phase: Phase = Phase.PREPARATION
 
 # --- Economy ---------------------------------------------------------------
 
-var resources: int = 0
+const WOOD: String = "wood"
+const FOOD: String = "food"
+const GOLD: String = "gold"
+const STONE: String = "stone"
+const CURRENCIES: Array[String] = Balance.CURRENCY_IDS
+
+## Four role-specific wallets. `resources` remains a read/write Gold alias for
+## old diagnostic tools; production gameplay names the currency it means.
+var currencies: Dictionary = {}
+var resources: int:
+	get:
+		return currency(GOLD)
+	set(value):
+		currencies[GOLD] = maxi(value, 0)
 ## Fractional enemy drops carried between kills. Large waves stay rewarding
 ## without turning every one-HP body into a whole resource.
 var kill_resource_remainder: float = 0.0
 var blueprints: Array[String] = []
+var market_trades_remaining: int = 0
+var market_service_act: int = 0
+var market_service_id: String = ""
 
 # --- Town ------------------------------------------------------------------
 
@@ -95,6 +111,8 @@ var run_time_seconds: float = 0.0
 var planning_time_seconds: float = 0.0
 var resources_earned: int = 0
 var resources_spent: int = 0
+var currency_earned: Dictionary = {}
+var currency_spent: Dictionary = {}
 var towers_built: int = 0
 var tower_upgrades: int = 0
 var towers_sold: int = 0
@@ -124,7 +142,7 @@ func _process(delta: float) -> void:
 
 ## Wipes everything. Called when a run begins, never mid-run — death wipes the
 ## run entirely (GDD §10).
-func reset() -> void:
+func reset(use_treasury_cache: bool = false) -> void:
 	distance_travelled = 0.0
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
@@ -132,9 +150,21 @@ func reset() -> void:
 	terrain_id = ""
 	phase = Phase.PREPARATION
 
-	resources = Balance.STARTING_RESOURCES
+	currencies = {
+		WOOD: Balance.STARTING_WOOD,
+		FOOD: Balance.STARTING_FOOD,
+		GOLD: Balance.STARTING_GOLD,
+		STONE: Balance.STARTING_STONE,
+	}
+	if use_treasury_cache:
+		for id: String in CURRENCIES:
+			currencies[id] = currency(id) + int(MetaState.resource_cache.get(id, 0))
+		MetaState.resource_cache.clear()
 	kill_resource_remainder = 0.0
 	blueprints.clear()
+	market_trades_remaining = Balance.MARKET_TRADES_PER_PREPARATION
+	market_service_act = 0
+	market_service_id = ""
 
 	town_max_hp = Balance.TOWN_MAX_HP
 	town_hp = town_max_hp
@@ -174,6 +204,11 @@ func reset() -> void:
 	planning_time_seconds = 0.0
 	resources_earned = 0
 	resources_spent = 0
+	currency_earned.clear()
+	currency_spent.clear()
+	for id: String in CURRENCIES:
+		currency_earned[id] = 0
+		currency_spent[id] = 0
 	towers_built = 0
 	tower_upgrades = 0
 	towers_sold = 0
@@ -365,26 +400,72 @@ func spend_command(cost: float, order_id: String) -> bool:
 
 # --- Economy helpers --------------------------------------------------------
 
-func can_afford(cost: int) -> bool:
-	return resources >= cost
+func currency(id: String) -> int:
+	return int(currencies.get(id, 0))
 
 
-func spend(cost: int) -> bool:
-	if not can_afford(cost):
-		return false
-	resources -= cost
-	resources_spent += cost
-	EventBus.resources_changed.emit(resources)
+func currency_name(id: String) -> String:
+	return id.capitalize()
+
+
+func format_cost(cost: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for id: String in CURRENCIES:
+		var amount: int = int(cost.get(id, 0))
+		if amount > 0:
+			parts.append("%d %s" % [amount, currency_name(id)])
+	return " + ".join(parts)
+
+
+func can_afford_cost(cost: Dictionary) -> bool:
+	for key: Variant in cost:
+		var id: String = String(key)
+		if currency(id) < int(cost[key]):
+			return false
 	return true
 
 
-func gain_resources(amount: int) -> void:
-	if amount == 0:
+func spend_cost(cost: Dictionary) -> bool:
+	if not can_afford_cost(cost):
+		return false
+	for key: Variant in cost:
+		var id: String = String(key)
+		var amount: int = maxi(int(cost[key]), 0)
+		currencies[id] = currency(id) - amount
+		currency_spent[id] = int(currency_spent.get(id, 0)) + amount
+		resources_spent += amount
+		_emit_currency(id)
+	return true
+
+
+func gain_currency(id: String, amount: int) -> void:
+	if not CURRENCIES.has(id) or amount == 0:
 		return
-	resources = maxi(resources + amount, 0)
+	currencies[id] = maxi(currency(id) + amount, 0)
 	if amount > 0:
+		currency_earned[id] = int(currency_earned.get(id, 0)) + amount
 		resources_earned += amount
-	EventBus.resources_changed.emit(resources)
+	_emit_currency(id)
+
+
+func _emit_currency(id: String) -> void:
+	EventBus.currency_changed.emit(id, currency(id))
+	if id == GOLD:
+		EventBus.resources_changed.emit(currency(GOLD))
+
+
+## Compatibility wrappers for v3 tools and content. The old pooled resource is
+## now explicitly Gold; new gameplay code must use a typed cost dictionary.
+func can_afford(cost: int) -> bool:
+	return currency(GOLD) >= cost
+
+
+func spend(cost: int) -> bool:
+	return spend_cost({GOLD: cost})
+
+
+func gain_resources(amount: int) -> void:
+	gain_currency(GOLD, amount)
 
 
 ## Adds a scaled enemy drop while retaining fractions across kills.
@@ -409,13 +490,29 @@ func tower_level_cap() -> int:
 
 
 ## Resource yield per distance unit, after Granary tiers and captive labour.
-func resource_rate() -> float:
-	var rate: float = Balance.RESOURCE_PER_DISTANCE
-	var granary: BuildingData = ContentDB.building("granary")
-	if granary != null:
-		rate += granary.effect_at(building_tier("granary"))
-	rate += float(assigned_captive_count()) * Balance.CAPTIVE_WORK_BONUS * Modifiers.multiplier(Modifiers.CAPTIVE_OUTPUT)
+func production_rate(currency_id: String) -> float:
+	var building_id: String = "woodcutter" if currency_id == WOOD else "granary"
+	if currency_id != WOOD and currency_id != FOOD:
+		return 0.0
+	var producer: BuildingData = ContentDB.building(building_id)
+	var rate: float = producer.effect_at(building_tier(building_id)) \
+		if producer != null else 0.0
+	rate += float(assigned_captive_count()) * Balance.CAPTIVE_WORK_BONUS \
+		* Modifiers.multiplier(Modifiers.CAPTIVE_OUTPUT)
 	return rate * Modifiers.multiplier(Modifiers.RESOURCE_RATE)
+
+
+## v3 compatibility: passive "resources" means the combined basic production.
+func resource_rate() -> float:
+	return production_rate(WOOD) + production_rate(FOOD)
+
+
+func begin_preparation_market() -> void:
+	market_trades_remaining = Balance.MARKET_TRADES_PER_PREPARATION
+
+
+func market_service_bought_this_act() -> bool:
+	return market_service_act == act
 
 
 func building_tier(id: String) -> int:

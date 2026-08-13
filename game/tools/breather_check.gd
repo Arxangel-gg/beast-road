@@ -66,6 +66,11 @@ func _process(delta: float) -> void:
 		if _last_phase == RunState.Phase.ROAD_BATTLE \
 				and RunState.phase == RunState.Phase.PREPARATION:
 			_breathers += 1
+			if _field.enemy_count() > 0 or _field.wave_director.is_deploying():
+				push_error("Preparation opened with %d enemies and deploying=%s" % [
+					_field.enemy_count(), str(_field.wave_director.is_deploying())])
+				_bail(1)
+				return
 			print("[breather] #%d opened at %.1fs after wave %d"
 				% [_breathers, _elapsed, RunState.wave_number])
 		_last_phase = RunState.phase

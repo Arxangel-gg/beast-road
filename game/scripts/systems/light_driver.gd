@@ -47,4 +47,7 @@ func _apply() -> void:
 		# Two out-of-phase sines read as an unsteady flame; one reads as a pulse.
 		wobble = 1.0 + _flicker * (sin(_seed * 7.3) * 0.6 + sin(_seed * 13.1) * 0.4) * 0.5
 	_light.energy = _base_energy * day_scale * wobble
-	_light.visible = _light.energy > 0.01
+	# Flame.set_intensity() uses alpha as its persistent on/off/intensity signal.
+	# Respect it here so the day/night driver cannot re-light an extinguished
+	# torch on the following frame.
+	_light.visible = _light.energy > 0.01 and _light.color.a > 0.01

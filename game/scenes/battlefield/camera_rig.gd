@@ -28,6 +28,9 @@ var _wanted_zoom: float = 1.0
 var _shake_offset: Vector2 = Vector2.ZERO
 var _gait_phase: float = 0.0
 var _gait_strength: float = 0.0
+var _gait_pause_left: float = 0.0
+var _gait_step: int = 0
+var _step_sink: float = 0.0
 
 
 func _ready() -> void:
@@ -106,14 +109,37 @@ func _tick_gait(delta: float) -> void:
 		target_strength *= Balance.BEAST_GAIT_HORN_SCALE
 	var smooth: float = 1.0 - exp(-Balance.BEAST_GAIT_SMOOTHING * delta)
 	_gait_strength = lerpf(_gait_strength, target_strength, smooth)
-	_gait_phase += delta * Balance.BEAST_GAIT_FREQUENCY * TAU * maxf(speed_ratio, 0.25)
+	if _gait_pause_left > 0.0:
+		_gait_pause_left = maxf(_gait_pause_left - delta, 0.0)
+	else:
+		_gait_phase += delta * Balance.BEAST_GAIT_FREQUENCY * TAU * maxf(speed_ratio, 0.25)
+		var step: int = int(floor(_gait_phase / PI))
+		if step > _gait_step:
+			_gait_step = step
+			_plant_step()
+	_step_sink = move_toward(_step_sink, 0.0,
+		delta / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01))
 
 	var gait := Vector2(
 		sin(_gait_phase * 0.5) * Balance.BEAST_GAIT_HORIZONTAL,
-		sin(_gait_phase) * Balance.BEAST_GAIT_VERTICAL) * _gait_strength
+		sin(_gait_phase) * Balance.BEAST_GAIT_VERTICAL \
+			+ Balance.BEAST_STEP_SINK * _step_sink) * _gait_strength
 	offset = _shake_offset + gait
 	rotation = deg_to_rad(sin(_gait_phase * 0.5 + 0.4) \
 		* Balance.BEAST_GAIT_ROTATION_DEGREES * _gait_strength)
+
+
+## Alternating pair-support footfall. The camera motion pauses at the planted
+## frame, sinks under the beast's mass, and receives a brief decaying impact.
+## Simulation coordinates do not move; only the presentation camera does.
+func _plant_step() -> void:
+	_gait_pause_left = Balance.BEAST_STEP_PAUSE
+	_step_sink = 1.0
+	if not is_current() or _gait_strength <= 0.02:
+		return
+	_on_shake_requested(Balance.BEAST_STEP_SHAKE * _gait_strength,
+		Balance.BEAST_STEP_SHAKE_TIME)
+	EventBus.footfall.emit(global_position, Balance.BEAST_STEP_MASS * _gait_strength)
 
 
 ## The strongest request wins rather than the newest, so a big hit is never

@@ -32,6 +32,46 @@ func _ready() -> void:
 		_bail(1)
 		return
 
+	# Pressure is gradual and reversible, and the hero can brace a dying flame.
+	# Exercise those rules directly so a future refactor cannot quietly turn the
+	# mechanic back into an instant proximity switch.
+	torch.set_process(false)
+	hero.global_position = torch.global_position + Vector2(5000.0, 5000.0)
+	torch._strength = 1.0
+	torch._pressure = 2.0
+	torch._tick_strength(1.0)
+	var dimmed: float = torch.light_strength()
+	print("[torch] pressure dimmed strength to %.2f" % dimmed)
+	if dimmed <= 0.0 or dimmed >= 1.0:
+		push_error("torch pressure must weaken a flame gradually")
+		_bail(1)
+		return
+	torch._pressure = 0.0
+	torch._tick_strength(1.0)
+	if torch.light_strength() <= dimmed:
+		push_error("a surviving torch did not recover after pressure cleared")
+		_bail(1)
+		return
+
+	hero.global_position = torch.global_position
+	torch._strength = 0.2
+	torch._pressure = Balance.TORCH_PRESSURE_MAX_WEIGHT
+	torch._tick_strength(10.0)
+	print("[torch] hero brace floor=%.2f lit=%s"
+		% [torch.light_strength(), str(torch.is_lit())])
+	if not torch.is_lit() or torch.light_strength() < Balance.TORCH_HERO_MIN_STRENGTH:
+		push_error("hero presence did not protect the torch's minimum flame")
+		_bail(1)
+		return
+
+	hero.global_position = torch.global_position + Vector2(5000.0, 5000.0)
+	torch._tick_strength(10.0)
+	if torch.is_lit():
+		push_error("unprotected maximum pressure did not finish snuffing the torch")
+		_bail(1)
+		return
+	torch.set_process(true)
+
 	torch.extinguish()
 	await get_tree().process_frame
 	print("[torch] snuffed, lit=%s" % str(torch.is_lit()))

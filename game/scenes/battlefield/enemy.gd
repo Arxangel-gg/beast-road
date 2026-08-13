@@ -37,7 +37,6 @@ var _target: Node2D = null
 var _knockback: Vector2 = Vector2.ZERO
 var _hitstun_left: float = 0.0
 var _flash_left: float = 0.0
-var _snuff_timer: float = 0.0
 var _death_left: float = 0.0
 
 ## Lateral offset from the lane centre line, so a wave reads as a column.
@@ -127,7 +126,6 @@ func _process(delta: float) -> void:
 	global_position += _knockback * delta
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
-	_tick_torch_snuff(delta)
 	_update_sprite()
 
 
@@ -391,6 +389,8 @@ func _on_died(_from: Vector2) -> void:
 	health_bar.visible = false
 	RunState.enemies_killed += 1
 	RunState.gain_kill_resources(data.resource_value)
+	if data.category == EnemyData.Category.ELITE:
+		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 	EventBus.enemy_died.emit(data.id, global_position)
 
 
@@ -454,50 +454,6 @@ func _nearby_howler() -> Enemy:
 				and global_position.distance_to(enemy.global_position) <= enemy.data.aura_radius:
 			return enemy
 	return null
-
-
-## Passing enemies put out lane torches.
-##
-## "Passing" is measured **along the lane**, not as a straight-line distance, and
-## that distinction is the whole reason this works at all.
-##
-## Torches stand well off the road - 300px to the side, so they neither clutter
-## the build spots nor sit under the cursor during a fight. Enemies walk within
-## +-55px of the lane centre. The closest a walker ever comes to a brazier is
-## therefore about 245px, and a straight-line check at any sane radius could
-## never fire. The mechanic looked implemented, read correctly, and had simply
-## never once put a torch out.
-##
-## Widening the radius to 260 would not fix it either: at that reach an enemy in
-## the middle of the road is inside *both* torches on that stretch at once, and
-## the roll would fire on both sides constantly.
-##
-## So the test is the one the design actually means. A torch belongs to a lane.
-## An enemy marching down that lane passes it when it draws level with it, and
-## TORCH_SNUFF_RANGE is how close along the road that has to be. Lateral distance
-## is irrelevant, which is exactly right: the torch is beside the road you are
-## walking down.
-func _tick_torch_snuff(delta: float) -> void:
-	_snuff_timer = maxf(_snuff_timer - delta, 0.0)
-	if _snuff_timer > 0.0 or _field.town_node() == null:
-		return
-
-	var direction: Vector2 = Battlefield.lane_vector(lane)
-	var along: float = global_position.dot(direction)
-
-	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
-		var torch := node as Torch
-		if torch == null or torch.lane != lane or not torch.is_lit():
-			continue
-		# How far apart the two are *down the road*, ignoring how wide the verge is.
-		if absf(along - torch.global_position.dot(direction)) > Balance.TORCH_SNUFF_RANGE:
-			continue
-		# The cooldown stops one walker re-rolling every frame for the whole time
-		# it takes to cover the band.
-		_snuff_timer = Balance.TORCH_SNUFF_CHECK_INTERVAL
-		if randf() < Balance.TORCH_SNUFF_CHANCE:
-			torch.extinguish()
-		return
 
 
 func _update_sprite() -> void:

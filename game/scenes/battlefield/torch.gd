@@ -24,7 +24,10 @@ var lane: int = 0
 const GROUP: StringName = &"torches"
 
 var _lit: bool = true
+var _strength: float = 1.0
 var _relight: float = 0.0
+var _pressure: float = 0.0
+var _pressure_sample_left: float = 0.0
 
 var _flame: Flame
 var _embers_out: Sprite2D
@@ -33,6 +36,10 @@ var _relight_glow: Sprite2D
 
 func _ready() -> void:
 	add_to_group(GROUP)
+	# The origin is the contact point at the foot of the post. Keeping the whole
+	# torch under this unsorted branch makes EntityRoot compare that point to the
+	# hero's feet instead of sorting the elevated flame as a separate object.
+	y_sort_enabled = false
 	_build()
 	_apply_state(true)
 
@@ -113,7 +120,12 @@ func _build_ironwork() -> void:
 
 
 func _process(delta: float) -> void:
+	_pressure_sample_left -= delta
+	if _pressure_sample_left <= 0.0:
+		_pressure_sample_left = Balance.TORCH_PRESSURE_SAMPLE
+		_pressure = _enemy_pressure()
 	if _lit:
+		_tick_strength(delta)
 		return
 	_tick_relight(delta)
 
@@ -122,11 +134,65 @@ func is_lit() -> bool:
 	return _lit
 
 
+## Continuous contribution to lane darkness. A half flame is half a defence, so
+## waves respond before the final ember disappears.
+func light_strength() -> float:
+	return _strength if _lit else 0.0
+
+
+func _tick_strength(delta: float) -> void:
+	var hero_near: bool = _hero_is_near()
+	var before: float = _strength
+	if _pressure > 0.0:
+		_strength -= Balance.TORCH_DIM_PER_ENEMY_SECOND * _pressure * delta
+		if hero_near:
+			_strength = maxf(_strength, Balance.TORCH_HERO_MIN_STRENGTH)
+	else:
+		_strength += Balance.TORCH_RECOVERY_PER_SECOND * delta
+		if hero_near:
+			_strength += Balance.TORCH_HERO_RECOVERY_PER_SECOND * delta
+	_strength = clampf(_strength, 0.0, 1.0)
+	if not is_equal_approx(before, _strength):
+		_apply_strength()
+	if _strength <= 0.001 and not hero_near:
+		extinguish()
+
+
+## Total hostile mass presently level with this brazier. Longitudinal distance
+## is deliberate: the torch stands beside the road, so a straight-line radius
+## would never reach a walker on the lane centre.
+func _enemy_pressure() -> float:
+	var direction: Vector2 = Battlefield.lane_vector(lane)
+	var torch_along: float = global_position.dot(direction)
+	var total: float = 0.0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.lane != lane or enemy.is_dying():
+			continue
+		if absf(enemy.global_position.dot(direction) - torch_along) > Balance.TORCH_SNUFF_RANGE:
+			continue
+		var weight: float = 1.0
+		if enemy.data != null:
+			if enemy.data.category == EnemyData.Category.BOSS:
+				weight = Balance.TORCH_BOSS_PRESSURE
+			elif enemy.data.category == EnemyData.Category.ELITE:
+				weight = Balance.TORCH_ELITE_PRESSURE
+		total += weight
+	return minf(total, Balance.TORCH_PRESSURE_MAX_WEIGHT)
+
+
+func _hero_is_near() -> bool:
+	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
+	return hero != null and is_instance_valid(hero) \
+		and global_position.distance_to(hero.global_position) <= Balance.TORCH_RELIGHT_RANGE
+
+
 ## Snuffed by something walking past.
 func extinguish() -> void:
 	if not _lit:
 		return
 	_lit = false
+	_strength = 0.0
 	_relight = 0.0
 	_apply_state()
 	var at: Vector2 = global_position + Vector2(0.0, -Balance.TORCH_HEIGHT)
@@ -138,6 +204,7 @@ func relight() -> void:
 	if _lit:
 		return
 	_lit = true
+	_strength = 1.0
 	_relight = 0.0
 	_apply_state()
 	var at: Vector2 = global_position + Vector2(0.0, -Balance.TORCH_HEIGHT)
@@ -179,9 +246,17 @@ func _show_rekindle(progress: float) -> void:
 func _apply_state(quiet: bool = false) -> void:
 	if _flame != null:
 		_flame.set_lit(_lit)
+		_flame.set_intensity(_strength)
 	if _embers_out != null:
 		_embers_out.modulate.a = 0.55
 	_show_rekindle(0.0)
 	if not quiet:
 		state_changed.emit(_lit)
 		EventBus.torch_state_changed.emit(lane, _lit)
+
+
+func _apply_strength() -> void:
+	if _flame != null:
+		_flame.set_intensity(_strength)
+	if _embers_out != null:
+		_embers_out.modulate.a = lerpf(0.55, 0.12, _strength)

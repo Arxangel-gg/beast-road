@@ -36,6 +36,13 @@ func _ready() -> void:
 ## nobody does — they alt-tab and mute the game at the OS instead, which throws
 ## away the entire soundtrack and mix to fix one slider being too loud.
 func _build_settings() -> void:
+	var dim := ColorRect.new()
+	dim.name = "SettingsDim"
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.015, 0.02, 0.022, 0.78)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.visible = false
+	panel.get_parent().add_child(dim)
 	_settings = SettingsPanel.new()
 	_settings.set_anchors_preset(Control.PRESET_CENTER)
 	_settings.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -58,6 +65,9 @@ func _build_settings() -> void:
 
 func _show_settings(showing: bool) -> void:
 	_settings.visible = showing
+	var dim: ColorRect = panel.get_parent().get_node_or_null("SettingsDim") as ColorRect
+	if dim != null:
+		dim.visible = showing
 	# The pause panel steps aside rather than stacking: two panels overlapping in
 	# the middle of the screen is unreadable, and the pause menu has nothing on it
 	# worth seeing while the settings are open.

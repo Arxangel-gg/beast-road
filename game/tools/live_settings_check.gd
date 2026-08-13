@@ -27,7 +27,7 @@ func _ready() -> void:
 
 	for problem: String in _failures:
 		push_error(problem)
-	print("[live] %d of 5 live-apply checks pass" % (5 - _failures.size()))
+	print("[live] %d of 7 live/persistence checks pass" % (7 - _failures.size()))
 	_bail(1 if not _failures.is_empty() else 0)
 
 
@@ -75,6 +75,18 @@ func _check_colourblind() -> void:
 	print("[live] fire %s -> %s" % [before.to_html(false), after.to_html(false)])
 	if before.is_equal_approx(after):
 		_failures.append("colourblind mode did not change the Fire element colour")
+
+	# The Settings panel writes presentation state into MetaState, then a future
+	# launch bridges it back out. Both directions must work or the controls only
+	# survive until the process exits.
+	UserSettings.store_presentation()
+	var stored_graphics: Dictionary = MetaState.settings.get(UserSettings.GRAPHICS_KEY, {})
+	if stored_graphics.is_empty():
+		_failures.append("graphics choices were not copied into the persisted settings schema")
+	Palette.set_mode(Palette.MODE_OFF)
+	UserSettings.load_presentation()
+	if Palette.mode() != Palette.MODE_DEUTERANOPIA:
+		_failures.append("colourblind choice did not restore from persisted settings")
 
 
 ## Visible members of a group. Not a name match: Godot renames duplicates, so

@@ -85,6 +85,7 @@ const PRESSURE: Dictionary = {
 ## running game. Same split as `UiMetrics`: the half the tools can see holds no
 ## autoload references.
 static var _mode: String = MODE_OFF
+static var _revision: int = 0
 
 
 static func mode() -> String:
@@ -97,7 +98,33 @@ static func mode() -> String:
 ## caches — the rosette, which only redraws when pressure moves — watches this
 ## value itself.
 static func set_mode(id: String) -> void:
-	_mode = id
+	var valid: bool = false
+	for entry: Dictionary in MODES:
+		if String(entry["id"]) == id:
+			valid = true
+			break
+	var next: String = id if valid else MODE_OFF
+	if next == _mode:
+		return
+	_mode = next
+	_revision += 1
+	_apply_to_scene()
+
+
+static func revision() -> int:
+	return _revision
+
+
+## Existing towers cache their light and range colours. Refresh only nodes that
+## explicitly implement the palette hook; future projectiles already sample the
+## palette at spawn time.
+static func _apply_to_scene() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+	for node: Node in tree.get_nodes_in_group(&"towers"):
+		if node.has_method("refresh_palette"):
+			node.call("refresh_palette")
 
 
 ## The colour for an element under the current mode.

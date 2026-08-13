@@ -57,6 +57,7 @@ const BUILD_DETAIL_HEIGHT: float = 30.0
 @export var battlefield: Battlefield
 
 var _resources: Label
+var _currency_labels: Dictionary = {}
 var _distance: Label
 var _wave: Label
 var _wave_preview: Label
@@ -88,6 +89,9 @@ var _extract_button: Button
 @export var boss_director: BossDirector
 
 var _spell_buttons: Array[Button] = []
+var _spell_icons: Array[TextureRect] = []
+var _spell_labels: Array[Label] = []
+var _spell_cooldowns: Array[Label] = []
 var _spell_bar: HBoxContainer
 var _boss_panel: PanelContainer
 var _boss_name: Label
@@ -120,7 +124,8 @@ func _ready() -> void:
 	_build_command_panel()
 
 	EventBus.resources_changed.connect(func(v: int) -> void:
-		_resources.text = "%d" % v
+		if _resources != null:
+			_resources.text = "%d" % v
 		if _build_panel.visible:
 			_refresh_build_panel())
 	EventBus.distance_changed.connect(_on_distance)
@@ -152,6 +157,7 @@ func _ready() -> void:
 	EventBus.preparation_warning.connect(_show_message)
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
+	EventBus.currency_changed.connect(_on_currency_changed)
 
 	for node: Node in get_tree().get_nodes_in_group(TowerSlot.GROUP):
 		var slot := node as TowerSlot
@@ -159,7 +165,7 @@ func _ready() -> void:
 			slot.clicked.connect(_open_build_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
-	_resources.text = "%d" % RunState.resources
+	_refresh_currencies()
 	_on_act(RunState.act, RunState.terrain_id)
 	_rebuild_spell_bar()
 	_refresh_state_label()
@@ -215,12 +221,25 @@ func _build_top_bar() -> void:
 	_act = _label("Act 1")
 	bar.add_child(_act)
 
-	var resource_row: HBoxContainer = IconKit.labelled("resource", "0")
-	var distance_row: HBoxContainer = IconKit.labelled("distance", "0")
-	var wave_row: HBoxContainer = IconKit.labelled("wave", "0")
-	for row: HBoxContainer in [resource_row, distance_row, wave_row]:
-		bar.add_child(row)
-	_resources = IconKit.label_of(resource_row)
+	_currency_labels.clear()
+	for id: String in RunState.CURRENCIES:
+		var resource_row: HBoxContainer = IconKit.labelled(id, "0", 17, 24)
+		resource_row.tooltip_text = RunState.currency_name(id)
+		bar.add_child(resource_row)
+		_currency_labels[id] = IconKit.label_of(resource_row)
+	_resources = _currency_labels.get(RunState.GOLD, null) as Label
+	# Journey telemetry gets a quiet second line. Keeping it out of this wide
+	# health row prevents four currencies from colliding with the boss tracker at
+	# 1920x1080 and gives every counter a stable place at narrower ratios.
+	var journey_bar := HBoxContainer.new()
+	journey_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	journey_bar.position = Vector2(24.0, 52.0)
+	journey_bar.add_theme_constant_override("separation", 20)
+	add_child(journey_bar)
+	var distance_row: HBoxContainer = IconKit.labelled("distance", "0", 15, 21)
+	var wave_row: HBoxContainer = IconKit.labelled("wave", "0", 15, 21)
+	for row: HBoxContainer in [distance_row, wave_row]:
+		journey_bar.add_child(row)
 	_distance = IconKit.label_of(distance_row)
 	_wave = IconKit.label_of(wave_row)
 
@@ -347,7 +366,7 @@ func _build_scope_bar() -> void:
 	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
 	_repair_button = _add_button(bar,
-		"Repair  +%d  ·  %d" % [int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST],
+		"Repair  +%d  ·  %d Wood" % [int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST],
 		func() -> void: _report(battlefield.try_repair_town()))
 
 	# No icon on the charge bar: the Raid button sitting immediately beside it
@@ -363,7 +382,8 @@ func _update_repair_button() -> void:
 		return
 	var health: Health = battlefield.town.health
 	_repair_button.disabled = health == null or health.current_hp >= health.max_hp \
-		or not RunState.can_afford(Balance.TOWN_REPAIR_COST) or not RunState.is_preparation()
+		or not RunState.can_afford_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST}) \
+		or not RunState.is_preparation()
 
 
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
@@ -490,42 +510,43 @@ func _build_preparation_panel() -> void:
 func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_command_panel.offset_left = -810.0
-	_command_panel.offset_top = -270.0
+	_command_panel.offset_left = -454.0
+	_command_panel.offset_top = -202.0
 	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -170.0
+	_command_panel.offset_bottom = -106.0
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 6)
+	column.add_theme_constant_override("separation", 2)
 	_command_panel.add_child(column)
 	var meter_row := HBoxContainer.new()
-	meter_row.add_theme_constant_override("separation", 8)
-	var command_icon: TextureRect = IconKit.rect("command", 30.0)
+	meter_row.add_theme_constant_override("separation", 6)
+	var command_icon: TextureRect = IconKit.rect("command", 22.0)
 	if command_icon != null:
 		meter_row.add_child(command_icon)
-	var name := _label("COMMAND", 16)
+	var name := _label("COMMAND", 13)
 	name.add_theme_color_override("font_color", Color("e8a33d"))
 	meter_row.add_child(name)
-	_command_bar = _make_bar(Color("e8a33d"), 270.0)
+	_command_bar = _make_bar(Color("e8a33d"), 150.0)
+	_command_bar.custom_minimum_size.y = 9.0
 	_command_bar.value = 0.0
 	meter_row.add_child(_command_bar)
-	_command_value = _label("0 / 100", 15)
-	_command_value.custom_minimum_size = Vector2(70.0, 0.0)
+	_command_value = _label("0 / 100", 12)
+	_command_value.custom_minimum_size = Vector2(56.0, 0.0)
 	meter_row.add_child(_command_value)
 	column.add_child(meter_row)
-	_command_target = _label("TARGET  ·  select a road or tower", 13)
+	_command_target = _label("TARGET  ·  select a road or tower", 11)
 	_command_target.add_theme_color_override("font_color", Color("b8ae98"))
 	column.add_child(_command_target)
 
 	var orders := HBoxContainer.new()
 	orders.add_theme_constant_override("separation", 8)
 	column.add_child(orders)
-	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z  Overdrive  ·  30",
+	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z",
 		"command_overdrive", "Select a built tower, then surge its attack rate and utility for 5 seconds.")
-	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, "X  Rally  ·  45",
+	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, "X",
 		"command_rally", "Select any spot on a road, then stagger that road and shield its blockers.")
-	_add_command_button(orders, CommandSystemScript.LAST_STAND, "C  Last Stand  ·  100",
+	_add_command_button(orders, CommandSystemScript.LAST_STAND, "C",
 		"command_last_stand", "Protect the Town Hall for 3 seconds and reset every tower attack.")
 
 
@@ -533,11 +554,16 @@ func _add_command_button(parent: Node, id: String, text: String, icon: String,
 		tip: String) -> void:
 	var button: Button = _add_button(parent, text, func() -> void:
 		command_requested.emit(id, _selected_lane, _selected_slot))
-	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.custom_minimum_size = Vector2(54.0, 34.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.add_theme_font_size_override("font_size", 14)
-	button.tooltip_text = tip
-	IconKit.on_button(button, icon, 25)
+	button.add_theme_font_size_override("font_size", 12)
+	var costs: Dictionary = {
+		CommandSystemScript.OVERDRIVE: Balance.COMMAND_OVERDRIVE_COST,
+		CommandSystemScript.RALLY_ROAD: Balance.COMMAND_RALLY_COST,
+		CommandSystemScript.LAST_STAND: Balance.COMMAND_LAST_STAND_COST,
+	}
+	button.tooltip_text = "%s\nCommand cost: %d" % [tip, int(costs.get(id, 0))]
+	IconKit.on_button(button, icon, 19)
 	_command_buttons[id] = button
 
 
@@ -546,8 +572,10 @@ func _on_phase_changed(phase: int, _previous: int) -> void:
 	var commanding: bool = phase == int(RunState.Phase.ROAD_BATTLE) \
 		or phase == int(RunState.Phase.BOSS) \
 		or phase == int(RunState.Phase.FINAL_ASCENT)
-	_preparation_panel.visible = preparing
-	_command_panel.visible = commanding
+	_preparation_panel.visible = preparing \
+		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
+	_command_panel.visible = commanding \
+		and GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
 	if preparing:
 		_last_stand_spent = false
 	_refresh_horn_button()
@@ -667,6 +695,9 @@ func _rebuild_spell_bar() -> void:
 	for child: Node in _spell_bar.get_children():
 		child.queue_free()
 	_spell_buttons.clear()
+	_spell_icons.clear()
+	_spell_labels.clear()
+	_spell_cooldowns.clear()
 
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		# The slot frame sits behind the button rather than being its background,
@@ -691,19 +722,70 @@ func _rebuild_spell_bar() -> void:
 		button.set_anchors_preset(Control.PRESET_FULL_RECT)
 		button.focus_mode = Control.FOCUS_NONE
 		var spell: SpellData = _spell_in_slot(slot)
+
+		var hotkey := Label.new()
+		hotkey.text = str(slot + 1)
+		hotkey.position = Vector2(9.0, 5.0)
+		hotkey.add_theme_font_size_override("font_size", 13)
+		hotkey.add_theme_color_override("font_color", Color("f4ddb0"))
+		hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(hotkey)
+
+		var icon := TextureRect.new()
+		icon.position = Vector2(43.0, 5.0)
+		icon.size = Vector2(32.0, 32.0)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(icon)
+
+		var name_label := Label.new()
+		name_label.position = Vector2(5.0, 41.0)
+		name_label.size = Vector2(108.0, 20.0)
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", 11)
+		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(name_label)
+
+		var cooldown := Label.new()
+		cooldown.set_anchors_preset(Control.PRESET_FULL_RECT)
+		cooldown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cooldown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cooldown.add_theme_font_size_override("font_size", 17)
+		cooldown.add_theme_color_override("font_color", Color("ffcf76"))
+		cooldown.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_child(cooldown)
+
 		if spell == null:
-			button.text = "%d\n—" % (slot + 1)
 			button.disabled = true
+			name_label.text = "EMPTY"
+			name_label.add_theme_color_override("font_color", Color("8b8175"))
 			if plate != null:
 				plate.modulate = Color(1, 1, 1, 0.45)
 		else:
-			button.text = "%d\n%s" % [slot + 1, spell.display_name]
-			button.tooltip_text = spell.description
+			icon.texture = _spell_icon(spell)
+			name_label.text = spell.display_name.to_upper()
+			button.tooltip_text = "%s\n%s\nCooldown: %.1fs" % [
+				spell.display_name, spell.description, spell.cooldown]
 			button.pressed.connect(_cast.bind(slot))
 		frame.add_child(button)
+		# Keep the interactive surface behind informational overlays.
+		frame.move_child(button, 1 if plate != null else 0)
 
 		_spell_bar.add_child(frame)
 		_spell_buttons.append(button)
+		_spell_icons.append(icon)
+		_spell_labels.append(name_label)
+		_spell_cooldowns.append(cooldown)
+
+
+func _spell_icon(spell: SpellData) -> Texture2D:
+	if spell == null:
+		return null
+	var path: String = spell.get_sprite_path()
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
 func _spell_in_slot(slot: int) -> SpellData:
@@ -727,7 +809,11 @@ func _update_spell_bar() -> void:
 		var left: float = _hero.spells.cooldown_ratio(slot)
 		var button: Button = _spell_buttons[slot]
 		button.disabled = left > 0.0
-		button.text = "%d\n%s" % [slot + 1, spell.display_name] if left <= 0.0 else "%d\n%.1fs" % [slot + 1, left * spell.cooldown]
+		_spell_cooldowns[slot].text = "" if left <= 0.0 else "%.1f" % (left * spell.cooldown)
+		_spell_icons[slot].modulate = Color.WHITE if left <= 0.0 \
+			else Color(0.35, 0.35, 0.38, 0.45)
+		_spell_labels[slot].modulate = Color.WHITE if left <= 0.0 \
+			else Color(0.55, 0.55, 0.58)
 
 
 ## A boss is the only enemy that gets its own bar. Everything else reads off the
@@ -884,7 +970,7 @@ func _refresh_build_panel() -> void:
 		elif level < Balance.TOWER_MAX_LEVEL:
 			var cost: int = Battlefield.upgrade_cost_of(level)
 			_add_stat_preview(existing, level)
-			var afford: bool = RunState.can_afford(cost)
+			var afford: bool = RunState.can_afford_cost({RunState.GOLD: cost})
 			var button: Button = _add_button(_build_list,
 				"Upgrade to level %d" % (level + 1), func() -> void:
 					_report(battlefield.try_upgrade(lane, slot))
@@ -893,7 +979,8 @@ func _refresh_build_panel() -> void:
 			_attach_price(button, cost, afford)
 			button.disabled = not afford
 			if not afford:
-				_build_list.add_child(_label("Need %d more." % (cost - RunState.resources), 13))
+				_build_list.add_child(_label("Need %d more Gold." % (
+					cost - RunState.currency(RunState.GOLD)), 13))
 		else:
 			_build_list.add_child(_label("Fully upgraded.", 14))
 		var sell: Button = _add_button(_build_list, "Sell", func() -> void:
@@ -1024,7 +1111,10 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 ## cursor is over.
 func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 	var cost: int = Battlefield.build_cost_of(tower)
-	var affordable: bool = RunState.can_afford(cost)
+	var cost_map: Dictionary = {RunState.GOLD: cost}
+	if tower.is_combination:
+		cost_map[RunState.STONE] = Balance.TOWER_COMBO_STONE_COST
+	var affordable: bool = RunState.can_afford_cost(cost_map)
 
 	var button := Button.new()
 	button.text = tower.display_name
@@ -1043,10 +1133,11 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 
 	# Hovering explains; it does not require a tooltip's delay. A tooltip is still
 	# set for anyone who waits, but the footer answers immediately.
-	var blurb: String = "%s  ·  %s" % [TowerData.element_name(tower.element), tower.description]
+	var blurb: String = "%s  ·  %s\nCost: %s" % [TowerData.element_name(tower.element),
+		tower.description, RunState.format_cost(cost_map)]
 	button.tooltip_text = blurb
 	button.mouse_entered.connect(func() -> void: _show_build_detail(
-		blurb if affordable else "%s\nNeeds %d more." % [blurb, cost - RunState.resources]))
+		blurb if affordable else "%s\nInsufficient currency." % blurb))
 	button.mouse_exited.connect(func() -> void: _show_build_detail(""))
 	return button
 
@@ -1122,6 +1213,19 @@ func _nudge(node: Control) -> void:
 
 # --- Signal handlers --------------------------------------------------------
 
+func _on_currency_changed(id: String, amount: int) -> void:
+	var label: Label = _currency_labels.get(id, null) as Label
+	if label != null:
+		label.text = str(amount)
+	if _build_panel.visible:
+		_refresh_build_panel()
+	_update_repair_button()
+
+
+func _refresh_currencies() -> void:
+	for id: String in RunState.CURRENCIES:
+		_on_currency_changed(id, RunState.currency(id))
+
 func _on_distance(total: float, to_crossroad: float) -> void:
 	# "Distance" is dropped - the icon says it. "crossroad in" is kept, because
 	# that is a second number and an icon cannot tell the two apart.
@@ -1185,6 +1289,12 @@ func _on_scope_changed(scope: int) -> void:
 	var on_field: bool = scope == int(GameDirector.Scope.BATTLEFIELD)
 	_raid_panel.visible = in_raid
 	_build_panel.visible = _build_panel.visible and on_field
+	if _command_panel != null:
+		_command_panel.visible = on_field and RunState.is_command_combat()
+	if _preparation_panel != null:
+		_preparation_panel.visible = on_field and RunState.is_preparation()
+	if _spell_bar != null:
+		_spell_bar.visible = on_field or in_raid
 	# The pressure ring and the boss bar describe the battlefield. Floating them
 	# over the town reads as though the town is the thing under attack.
 	if _lane_ring != null:

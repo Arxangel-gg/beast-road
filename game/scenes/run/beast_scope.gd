@@ -28,9 +28,15 @@ func activate() -> void:
 var _backdrop_clone: Sprite2D = null
 var _zoomed_out: bool = false
 var _bob: float = 0.0
+var _gait_pause_left: float = 0.0
+var _gait_step: int = 0
+var _step_sink: float = 0.0
+var _step_shake_left: float = 0.0
+var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	_rng.randomize()
 	_setup_route()
 	_setup_backdrop()
 	EventBus.act_started.connect(func(_a: int, _t: String) -> void: _apply_act_backdrop())
@@ -45,9 +51,12 @@ func _ready() -> void:
 func _setup_backdrop() -> void:
 	if backdrop == null:
 		return
-	backdrop.centered = false
+	# The scope camera is centred at world origin. An uncentred 1920x1080 sprite
+	# therefore began at that origin and covered only the lower-right quarter of
+	# the screen, leaving the rest as the project's grey clear colour.
+	backdrop.centered = true
 	_backdrop_clone = Sprite2D.new()
-	_backdrop_clone.centered = false
+	_backdrop_clone.centered = true
 	_backdrop_clone.z_index = backdrop.z_index
 	backdrop.add_sibling(_backdrop_clone)
 	_apply_act_backdrop()
@@ -85,16 +94,48 @@ func _scroll_backdrop() -> void:
 
 
 func _process(delta: float) -> void:
-	# The beast bobs with its own gait rather than with real time, so a slowed
-	# beast visibly plods.
-	_bob += delta * RunState.beast_speed * 2.2
+	# The beast uses the same paired-support cadence as the battlefield camera.
+	# Each alternating plant holds for a beat, then the full body settles under
+	# its weight; at least one support pair is always in stance.
+	var speed_ratio: float = clampf(RunState.beast_speed / Balance.BEAST_BASE_SPEED, 0.0, 1.5)
+	if _gait_pause_left > 0.0:
+		_gait_pause_left = maxf(_gait_pause_left - delta, 0.0)
+	else:
+		_bob += delta * Balance.BEAST_GAIT_FREQUENCY * TAU * maxf(speed_ratio, 0.25)
+		var step: int = int(floor(_bob / PI))
+		if step > _gait_step:
+			_gait_step = step
+			_gait_pause_left = Balance.BEAST_STEP_PAUSE
+			_step_sink = 1.0
+			_step_shake_left = Balance.BEAST_STEP_SHAKE_TIME
+			if camera != null and camera.is_current():
+				EventBus.footfall.emit(beast.global_position if beast != null else Vector2.ZERO,
+					Balance.BEAST_STEP_MASS * speed_ratio)
+	_step_sink = move_toward(_step_sink, 0.0,
+		delta / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01))
 	if beast != null:
-		beast.position.y = sin(_bob) * 6.0
+		beast.position.y = sin(_bob) * 6.0 + Balance.BEAST_STEP_SINK * _step_sink
 		beast.position.x = -20.0 + sin(_bob * 0.5) * 8.0
+	_update_step_shake(delta, speed_ratio)
 
 	_scroll_backdrop()
 
 	_update_route()
+
+
+func _update_step_shake(delta: float, strength: float) -> void:
+	if camera == null:
+		return
+	if _step_shake_left <= 0.0 or not camera.is_current():
+		camera.offset = Vector2.ZERO
+		return
+	_step_shake_left = maxf(_step_shake_left - delta, 0.0)
+	var falloff: float = _step_shake_left / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01)
+	var setting: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65) \
+		* float(MetaState.settings.get(UserSettings.SHAKE_KEY, 1.0))
+	var amount: float = Balance.BEAST_STEP_SHAKE * falloff * setting * strength
+	camera.offset = Vector2(_rng.randf_range(-amount, amount),
+		_rng.randf_range(-amount, amount))
 
 
 ## Toggled from the HUD. Zooming out swaps the walking view for the whole route,

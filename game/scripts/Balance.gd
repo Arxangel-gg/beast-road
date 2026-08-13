@@ -188,12 +188,20 @@ const CAMERA_MOUSE_LEAN_MAX: float = 300.0
 ## camera drift sells that motion without moving collision geometry or making
 ## tower placement wobble under the cursor. It is a separate accessibility
 ## setting from impact shake and is enabled only on the battlefield camera.
-const BEAST_GAIT_FREQUENCY: float = 1.12
-const BEAST_GAIT_HORIZONTAL: float = 4.5
-const BEAST_GAIT_VERTICAL: float = 3.0
-const BEAST_GAIT_ROTATION_DEGREES: float = 0.12
+## One full left/right support transfer per second. Two footfalls happen in a
+## cycle; the short plant pause keeps the body over a stable pair of feet rather
+## than floating through a sinusoid like a boat. [TUNE]
+const BEAST_GAIT_FREQUENCY: float = 0.82
+const BEAST_GAIT_HORIZONTAL: float = 5.0
+const BEAST_GAIT_VERTICAL: float = 4.0
+const BEAST_GAIT_ROTATION_DEGREES: float = 0.16
 const BEAST_GAIT_SMOOTHING: float = 3.5
 const BEAST_GAIT_HORN_SCALE: float = 0.12
+const BEAST_STEP_PAUSE: float = 0.085
+const BEAST_STEP_SINK: float = 3.6
+const BEAST_STEP_SHAKE: float = 4.8
+const BEAST_STEP_SHAKE_TIME: float = 0.18
+const BEAST_STEP_MASS: float = 2.4
 
 # ------------------------------------------------------------------------------
 # Hero — health and movement
@@ -225,8 +233,8 @@ const HERO_RESPAWN_INVULN: float = 1.5
 ## The player must still confirm Ride On after this reaches zero. [TUNE]
 const PREPARATION_MIN_SECONDS: float = 18.0
 
-## A breather opened just before every wave lands. Building and upgrading are
-## open for this long, and the arriving pack waits.
+## A breather opens after every wave is fully defeated. Building and upgrading
+## are open for this long, and the next formation waits.
 ##
 ## Unlike the long Preparation above, this one ends by itself: a player is not
 ## asked to confirm Ride On thirty times a run. Ride On still skips it, so the
@@ -236,9 +244,6 @@ const PREPARATION_BETWEEN_WAVES: float = 10.0
 ## How soon the next wave may arrive once a breather ends. [TUNE]
 const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
 
-## How long before a wave would land that its breather opens. Small: the point is
-## to sit just ahead of the wave, not to cut the fight short. [TUNE]
-const WAVE_BREATHER_LEAD_SECONDS: float = 2.0
 const ROAD_START_WARNING_SECONDS: float = 2.5
 
 ## Radius of the hero's body for contact and hurt checks.
@@ -483,6 +488,8 @@ const COMMAND_ORDER_COUNT: int = 3
 
 ## Refund fraction when a tower is sold. [TUNE]
 const TOWER_SELL_REFUND: float = 0.6
+const TOWER_COMBO_STONE_COST: int = 55
+const TOWER_STONE_SELL_REFUND: float = 0.4
 
 ## Both non-combo slots in a lane sharing an element grants this bonus. [TUNE]
 const SAME_ELEMENT_LANE_BONUS: float = 0.25
@@ -497,18 +504,18 @@ const TOWER_PROJECTILE_SPEED: float = 620.0
 ## Seconds between waves at the start of a segment. [TUNE]
 const WAVE_INTERVAL: float = 20
 
-## Onboarding envelope. The first assault waits long enough for four lane
-## decisions, then body count and stats rise smoothly to the full curve. Every
-## multiplier is exactly 1.0 by wave five, so boss ramps and later acts remain
-## untouched by this safety net.
+## Eight-wave onboarding envelope. The previous curve snapped from one lane to
+## three at wave five while every protection multiplier simultaneously became
+## neutral. This opens one road at a time and hands control to the unchanged
+## late curve at wave eight. [TUNE]
 const WAVE_FIRST_PREPARATION: float = 18.0
-const WAVE_OPENING_COUNT_SCALE: Array[float] = [0.58, 0.70, 0.82, 0.92, 1.0]
-const WAVE_OPENING_HP_SCALE: Array[float] = [0.72, 0.80, 0.88, 0.95, 1.0]
-const WAVE_OPENING_DAMAGE_SCALE: Array[float] = [0.65, 0.75, 0.84, 0.92, 1.0]
-const WAVE_OPENING_SPEED_SCALE: Array[float] = [0.88, 0.93, 0.97, 1.0, 1.0]
-const WAVE_OPENING_INTERVAL_BONUS: Array[float] = [6.0, 4.0, 2.0, 0.0]
-const WAVE_OPENING_SUPPLIES: Array[int] = [0, 30, 45, 35]
-const WAVE_OPENING_SINGLE_LANE_WAVES: int = 4
+const WAVE_OPENING_COUNT_SCALE: Array[float] = [0.84, 0.86, 0.88, 0.90, 0.92, 0.95, 0.98, 1.0]
+const WAVE_OPENING_HP_SCALE: Array[float] = [0.70, 0.75, 0.80, 0.85, 0.90, 0.94, 0.97, 1.0]
+const WAVE_OPENING_DAMAGE_SCALE: Array[float] = [0.62, 0.68, 0.74, 0.80, 0.86, 0.91, 0.96, 1.0]
+const WAVE_OPENING_SPEED_SCALE: Array[float] = [0.86, 0.89, 0.92, 0.94, 0.96, 0.98, 0.99, 1.0]
+const WAVE_OPENING_INTERVAL_BONUS: Array[float] = [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
+const WAVE_OPENING_SUPPLIES: Array[int] = [0, 25, 35, 40, 30, 25]
+const WAVE_OPENING_SINGLE_LANE_WAVES: int = 2
 
 ## Seconds between spawns inside one wave. [TUNE]
 const WAVE_SPAWN_SPACING: float = 0.35
@@ -625,6 +632,29 @@ const CAPTIVES_PER_BUILDING: int = 2
 ## Covers one tower on every lane plus one deliberate flex purchase. The old
 ## 220-resource start could protect only three of four roads before combat.
 const STARTING_RESOURCES: int = 350
+
+## Four-wallet v4 opening cache. Gold covers four base towers plus one level-2
+## choice; Stone permits one Fusion; Wood supports an opening town project; Food
+## is held for hero recovery/training. [TUNE]
+const STARTING_WOOD: int = 180
+const STARTING_FOOD: int = 70
+const STARTING_GOLD: int = 390
+const STARTING_STONE: int = 90
+## Machine-readable v4 contract; RunState owns the runtime typed aliases.
+const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]
+
+const BUILD_WOOD_COSTS: Array[int] = [80, 145, 230, 340]
+const MARKET_TRADES_PER_PREPARATION: int = 2
+const MARKET_MAX_EXCHANGE: int = MARKET_TRADES_PER_PREPARATION
+const MARKET_TRADE_LOT: int = 30
+const MARKET_TRADE_RETURN: int = 18
+const TREASURY_CACHE_PER_TIER: Array[int] = [20, 35, 50]
+const TREASURY_CACHE_MAX: int = 50
+
+## Accessibility contract mirrored by Palette's authored live tables.
+const COLOURBLIND_MODES: Array[String] = ["off", "protanopia", "deuteranopia", "tritanopia"]
+const ELITE_STONE_REWARD: int = 4
+const BOSS_STONE_REWARD: int = 24
 
 ## A costly emergency action: restores the run after a partial breach while
 ## competing directly with the next tower mastery purchase.
@@ -1107,10 +1137,17 @@ const TORCH_FLICKER: float = 0.16
 ## mechanic silently never fired. See Enemy._tick_torch_snuff. [TUNE]
 const TORCH_SNUFF_RANGE: float = 120
 
-## Chance an enemy passing within that range actually snuffs it. Below 1.0 so a
-## single wave does not reliably black out a whole lane. [TUNE]
-const TORCH_SNUFF_CHANCE: float = 0.35
-const TORCH_SNUFF_CHECK_INTERVAL: float = 0.75
+## Pressure is accumulated while enemies remain level with a torch, not rolled
+## as an instant binary snuff. One walker takes time; a crowd can overwhelm it.
+## Elite and boss bodies count as more than one ordinary walker. [TUNE]
+const TORCH_PRESSURE_SAMPLE: float = 0.18
+const TORCH_DIM_PER_ENEMY_SECOND: float = 0.082
+const TORCH_PRESSURE_MAX_WEIGHT: float = 6.0
+const TORCH_ELITE_PRESSURE: float = 1.55
+const TORCH_BOSS_PRESSURE: float = 2.4
+const TORCH_RECOVERY_PER_SECOND: float = 0.13
+const TORCH_HERO_RECOVERY_PER_SECOND: float = 0.16
+const TORCH_HERO_MIN_STRENGTH: float = 0.18
 
 ## How close the hero stands, and for how long, to relight one. [TUNE]
 const TORCH_RELIGHT_RANGE: float = 150

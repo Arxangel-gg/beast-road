@@ -121,6 +121,14 @@ signal town_health_changed(current_hp: float, max_hp: float)
 
 signal resources_changed(amount: int)
 
+## One of the four run wallets changed. Kept separate from Command, which resets
+## every battle and is not an economy currency.
+signal currency_changed(currency_id: String, amount: int)
+
+## A bounded Market exchange completed.
+signal market_traded(from_id: String, to_id: String, spent: int, received: int)
+signal market_service_bought(service_id: String)
+
 ## A construction started, progressed (0..1), or finished.
 signal construction_started(building_id: String, tier: int)
 signal construction_progress(building_id: String, ratio: float)

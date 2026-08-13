@@ -170,6 +170,18 @@ func upgrade_to(new_level: int) -> void:
 	Vfx.build_burst(global_position, colour, true)
 
 
+## Colourblind modes remap semantic element cues in-place. The sprite keeps its
+## authored material, while the persistent light, tier tint and range cue all
+## update immediately and new projectiles inherit the same palette.
+func refresh_palette() -> void:
+	if data == null:
+		return
+	if _light != null:
+		_light.color = TowerData.element_colour(data.element)
+	_draw_range_ring()
+	_apply_level_look()
+
+
 ## A higher tower is bigger, warmer and brighter. Level has to read at a glance
 ## across twelve slots without clicking any of them.
 func _apply_level_look() -> void:

@@ -11,8 +11,9 @@ extends Node
 var _running: bool = false
 var _crossroad_pending: bool = false
 
-## Fractional resource yield carried between frames rather than truncated away.
-var _resource_remainder: float = 0.0
+## Fractional production per wallet, carried between frames rather than
+## truncated away.
+var _resource_remainders: Dictionary = {RunState.WOOD: 0.0, RunState.FOOD: 0.0}
 
 ## Which 300-unit segment the beast is standing in. A crossroad fires when this
 ## increments. Checking "distance to the next boundary <= 0" cannot work: the
@@ -67,13 +68,14 @@ func _process(delta: float) -> void:
 
 
 func _accrue_resources(walked: float) -> void:
-	var earned: float = walked * RunState.resource_rate()
-	# Fractional yield is accumulated rather than truncated away each frame.
-	_resource_remainder += earned
-	var whole: int = int(floor(_resource_remainder))
-	if whole > 0:
-		_resource_remainder -= float(whole)
-		RunState.gain_resources(whole)
+	for id: String in [RunState.WOOD, RunState.FOOD]:
+		var remainder: float = float(_resource_remainders.get(id, 0.0)) \
+			+ walked * RunState.production_rate(id)
+		var whole: int = int(floor(remainder))
+		if whole > 0:
+			remainder -= float(whole)
+			RunState.gain_currency(id, whole)
+		_resource_remainders[id] = remainder
 
 
 

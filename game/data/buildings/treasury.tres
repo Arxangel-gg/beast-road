@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/building_data.gd" id="1_treasury"]
+
+[resource]
+script = ExtResource("1_treasury")
+effect = 7
+effect_per_tier = Array[float]([20.0, 35.0, 50.0])
+available_from_start = false
+unlock_act = 1
+requires_unlock = true
+plot_angle_degrees = 252.0
+id = "treasury"
+display_name = "Treasury"
+description = "Caches a capped amount of each unspent run currency for the next expedition."

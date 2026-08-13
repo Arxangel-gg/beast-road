@@ -15,6 +15,10 @@ var _spawn_queue: Array[Dictionary] = []
 var _spawn_timer: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _running: bool = false
+## True from the first spawn of a formation until its queue and every surviving
+## enemy are gone. A wave is a complete encounter: the next Preparation may not
+## begin just because a clock expired while stragglers are still fighting.
+var _wave_active: bool = false
 var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
 var _preview_archetype: WaveArchetypeData = null
@@ -60,8 +64,16 @@ func _process(delta: float) -> void:
 		if _spawn_timer <= 0.0:
 			_spawn_next()
 
-	# Cadence belongs to waves, not to the tail of the previous queue. Late packs
-	# deliberately overlap so Act 3 never decays into a single-file trickle.
+	# Every member of this formation must be deployed and resolved before the road
+	# is declared clear. Clock-driven overlap used to open Preparation on top of
+	# living enemies, freeze them in place, and then stack another formation.
+	if _wave_active:
+		if _spawn_queue.is_empty() and (battlefield == null or battlefield.enemy_count() <= 0):
+			_wave_active = false
+			_running = false
+			EventBus.wave_cleared.emit(RunState.wave_number)
+		return
+
 	_wave_timer -= delta
 	if _wave_timer <= 0.0:
 		_begin_wave()
@@ -105,6 +117,8 @@ func preview_text() -> String:
 
 
 func _begin_wave() -> void:
+	if _wave_active:
+		return
 	RunState.wave_number += 1
 	var wave: int = RunState.wave_number
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
@@ -124,7 +138,7 @@ func _begin_wave() -> void:
 	# opened road. It ends before the full curve arrives and cannot inflate the
 	# late mastery economy.
 	if RunState.act == 1 and _act_wave <= Balance.WAVE_OPENING_SUPPLIES.size():
-		RunState.gain_resources(Balance.WAVE_OPENING_SUPPLIES[_act_wave - 1])
+		RunState.gain_currency(RunState.GOLD, Balance.WAVE_OPENING_SUPPLIES[_act_wave - 1])
 
 	var archetype: WaveArchetypeData = _preview_archetype
 	var lanes: Array[int] = _preview_lanes.duplicate()
@@ -168,6 +182,7 @@ func _begin_wave() -> void:
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
 	_spawn_timer = 0.0
+	_wave_active = true
 	EventBus.wave_started.emit(wave, lanes)
 	if archetype != null:
 		_last_archetype_id = archetype.id
@@ -266,8 +281,13 @@ func _pick_lanes(act_wave: int) -> Array[int]:
 ## Waves start on one lane and open to all four as the act progresses. Night
 ## adds another road, even when the formation itself is the neutral advance.
 func _progressive_lane_count(act_wave: int) -> int:
-	if RunState.act == 1 and act_wave <= Balance.WAVE_OPENING_SINGLE_LANE_WAVES:
-		return 1
+	if RunState.act == 1:
+		if act_wave <= Balance.WAVE_OPENING_SINGLE_LANE_WAVES:
+			return 1
+		if act_wave <= 4:
+			return 2
+		if act_wave <= 6:
+			return 3
 	var count: int = clampi(
 		Balance.WAVE_LANES_START + RunState.act - 1 \
 			+ int(floor(float(act_wave - 1) / 2.0)),

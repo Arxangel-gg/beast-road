@@ -174,6 +174,9 @@ All 192×192, type T. Placeholder colour by element.
 | `building_granary.png` | 192×192 | T | `#7A8A4E` |
 | `building_scavenging_post.png` | 192×192 | T | `#6B5A4A` |
 | `building_watchtower.png` | 192×192 | T | `#5E6B7A` |
+| `building_woodcutter.png` | 192×192 | T | `#5B4933` |
+| `building_treasury.png` | 192×192 | T | `#4A5158` |
+| `building_market.png` | 192×192 | T | `#7A4936` |
 | `plot_empty.png` | 192×192 | T | `#4A4438` |
 | `plot_locked.png` | 192×192 | T | `#33302A` |
 
@@ -235,7 +238,8 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
-`ui_command_last_stand.png`
+`ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
+`ui_stone.png`
 
 The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,
