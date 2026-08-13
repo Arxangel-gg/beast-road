@@ -14,6 +14,25 @@ const REPO_NAME: String = "beast-road"
 ## Release assets whose name contains this are the Windows game build.
 const GAME_ASSET_MARKER: String = "windows"
 
+## And this one is the launcher itself.
+const LAUNCHER_ASSET_MARKER: String = "launcher"
+
+## The tag this launcher was built from.
+##
+## Stamped by CI before the launcher is exported - the placeholder below is what
+## sits in the repository, and a build that still says "dev" is one somebody made
+## locally. Comparing it to the newest release tag is how a launcher knows it is
+## out of date, and comparing tags rather than parsing versions is deliberate:
+## the tag CI published is the truth, and anything that reasons about version
+## ordering eventually refuses a valid rollback.
+const VERSION: String = "dev"
+
+
+## Whether this build knows its own version. A locally exported launcher does
+## not, and must never offer to replace itself with something it cannot compare.
+func version_is_stamped() -> bool:
+	return VERSION != "dev" and not VERSION.is_empty()
+
 ## The executable to run once installed, relative to the install directory.
 const GAME_EXECUTABLE: String = "BeastRoad.exe"
 

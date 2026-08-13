@@ -15,6 +15,10 @@ enum State {
 	WORKING,
 	OFFLINE,
 	ERROR,
+	## A newer launcher exists. Offered before a game update, because installing
+	## the game with a launcher that is about to replace itself means doing the
+	## long download and then immediately restarting on top of it.
+	LAUNCHER_UPDATE,
 }
 
 @export var title_label: Label
@@ -29,12 +33,17 @@ enum State {
 @export var progress_bar: ProgressBar
 @export var spinner: Label
 @export var installer: Installer
+@export var self_update: SelfUpdate
 
 var _http: HTTPRequest
 var _state: State = State.CHECKING
 var _installed: InstallState
 var _latest: ReleaseInfo = null
 var _spin_time: float = 0.0
+
+## Set once the player declines a launcher update, so it is offered once per
+## session and not re-offered every time the launcher re-checks.
+var _skip_launcher_update: bool = false
 
 const SPINNER_FRAMES: Array[String] = ["·  ", "·· ", "···", " ··", "  ·", "   "]
 
@@ -53,7 +62,12 @@ func _ready() -> void:
 	installer.progress.connect(_on_install_progress)
 	installer.finished.connect(_on_install_finished)
 
-	title_label.text = "BEAST ROAD"
+	if self_update != null:
+		self_update.progress.connect(func(ratio: float, detail: String) -> void:
+			_on_install_progress("Launcher", ratio, detail))
+		self_update.finished.connect(_on_self_update_finished)
+
+	title_label.text = "One hero, four roads, and a town that cannot be defended everywhere at once."
 	notes_panel.visible = false
 	progress_bar.visible = false
 
@@ -107,12 +121,44 @@ func _on_release_fetched(result: int, code: int, _headers: PackedStringArray, bo
 		notes_label.text = _latest.notes
 		notes_panel.visible = true
 
-	if not _installed.installed:
+	_evaluate_release()
+
+
+## Which state this release puts the launcher in.
+##
+## Separated out because "Not now" on a launcher update has to re-run exactly
+## this decision without re-fetching, and duplicating the ladder is how the two
+## copies end up disagreeing.
+func _evaluate_release() -> void:
+	if _latest == null:
+		return
+	if _latest.has_launcher_update() and not _skip_launcher_update:
+		_set_state(State.LAUNCHER_UPDATE)
+	elif not _installed.installed:
 		_set_state(State.NOT_INSTALLED)
 	elif _latest.differs_from(_installed.tag):
 		_set_state(State.UPDATE_AVAILABLE)
 	else:
 		_set_state(State.UP_TO_DATE)
+
+
+func _launcher_size_text() -> String:
+	if _latest == null or _latest.launcher_size <= 0:
+		return "unknown size"
+	return "%.1f MB" % (float(_latest.launcher_size) / 1048576.0)
+
+
+## The helper script restarts the launcher, so there is nothing left to do here
+## but get out of its way and release the file it is waiting to overwrite.
+func _on_self_update_finished(success: bool, message: String) -> void:
+	if success:
+		status_label.text = message
+		get_tree().quit()
+		return
+	progress_bar.visible = false
+	_skip_launcher_update = true
+	_set_state(State.ERROR)
+	status_label.text = message
 
 
 ## Offline is not an error state when the game is already installed — you should
@@ -127,6 +173,9 @@ func _offline(reason: String) -> void:
 
 func _on_primary() -> void:
 	match _state:
+		State.LAUNCHER_UPDATE:
+			self_update.run(_latest)
+			_set_state(State.WORKING)
 		State.NOT_INSTALLED, State.UPDATE_AVAILABLE:
 			installer.install(_latest)
 			_set_state(State.WORKING)
@@ -142,6 +191,11 @@ func _on_secondary() -> void:
 	match _state:
 		State.WORKING:
 			installer.cancel()
+		State.LAUNCHER_UPDATE:
+			# Skippable. A launcher update is never allowed to stand between a
+			# player and a game they already have installed.
+			_skip_launcher_update = true
+			_evaluate_release()
 		State.UPDATE_AVAILABLE:
 			_play()
 		_:
@@ -219,5 +273,11 @@ func _set_state(state: State) -> void:
 			primary_button.text = "Play" if _installed.installed else "Retry"
 			secondary_button.visible = _installed.installed
 			secondary_button.text = "Retry"
+		State.LAUNCHER_UPDATE:
+			primary_button.text = "Update launcher"
+			secondary_button.visible = true
+			secondary_button.text = "Not now"
+			status_label.text = "A newer launcher (%s) is available  ·  %s" % [
+				_latest.tag, _launcher_size_text()]
 		State.ERROR:
 			primary_button.text = "Retry"

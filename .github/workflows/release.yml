@@ -129,6 +129,19 @@ jobs:
           mkdir -p build/game
           godot --headless --path game --export-release "$EXPORT_PRESET" ../build/game/BeastRoad.exe
 
+      - name: Stamp the launcher with this tag
+        # A launcher can only know it is out of date by comparing what it was
+        # built from against the newest release. Nothing else in the build knows
+        # the tag, so it is written in here, just before the export - never
+        # committed, so the repository copy stays "dev" and a locally exported
+        # launcher correctly refuses to replace itself.
+        run: |
+          set -euo pipefail
+          CONFIG=launcher/scripts/LauncherConfig.gd
+          sed -i "s|^const VERSION: String = \"dev\"$|const VERSION: String = \"${GITHUB_REF_NAME}\"|" "$CONFIG"
+          grep -q "const VERSION: String = \"${GITHUB_REF_NAME}\"" "$CONFIG" \
+            || { echo "::error::Failed to stamp the launcher version."; exit 1; }
+
       - name: Export the launcher
         run: |
           mkdir -p build/launcher
