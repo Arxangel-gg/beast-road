@@ -33,15 +33,32 @@ Superseded, but not worthless, and one of them is a trap:
   cut or re-cut anything.
 - `docs/Game Design.md` is v1, archived history. **Do not build from it.**
 
-### Re-cuts that need the owner, not you
+### Re-cuts of owner decisions
 
-v3 §14 lists nine decisions where the owner personally overruled v2's cuts. v4
-§57 reverses some of them again — most visibly **mid-combat tower placement**,
-which v3 §14 records as *"Un-cut. Owner's spec."* and v4 locks to Preparation.
+v3 §14 marks three things *"Un-cut. Owner's spec."* — decisions the owner
+personally reversed against v2's cuts. v4 re-cuts two of them. That is an owner
+decision being made a second time, so it needs an owner, not an agent.
 
-That may be right for pacing. It is still an owner decision being made twice.
-**Do not silently implement a re-cut of anything in v3 §14.** Ask, or leave the
-v3 behaviour in place and flag it.
+| v3 §14 "Owner's spec." | v4 position | Status |
+|---|---|---|
+| Mid-combat tower placement | locked to Preparation | **DECIDED 2026-08-13: lock it. Build v4.** |
+| Partial raid extraction | kept — two windows plus chieftain climax | no conflict |
+| Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **needs the owner** |
+
+**Mid-combat tower placement is settled.** Construction and upgrades belong to
+Preparation; Command orders, doctrines, the horn and the hero carry in-combat
+agency. Do not reopen it, and do not leave the v3 behaviour in place "just in
+case" — a build path that only works in one of two designs is worse than either.
+
+The captive question is genuinely different from a pacing call: v4 makes
+*"no casualized slavery framing"* a rating-target requirement (§2) and *"no
+unreviewed enslavement language ships"* a release requirement (§57). v3 §6.3
+had already flagged the framing as unsettled and kept it in data for exactly
+this reason. Until the owner rules, keep the strings in data and do not build
+new mechanics on top of the labour framing.
+
+**Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
+leave the v3 behaviour in place and flag it.
 
 `References/` holds the owner's visual references, one per scope. They are the
 target, not a mood board — check them before designing a screen.
