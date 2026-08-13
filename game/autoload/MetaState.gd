@@ -40,11 +40,17 @@ var settings: Dictionary = {
 	"music_volume": 0.8,
 	"sfx_volume": 1.0,
 	"screen_shake": 1.0,
+	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
 }
 
 
 func _ready() -> void:
 	load_save()
+	# Applied here rather than left to whoever happens to read a setting first.
+	# The buses had exactly that bug once already, and display mode has no other
+	# owner at all - without this a windowed player is put back into fullscreen
+	# every single launch.
+	UserSettings.apply_all()
 
 
 ## Extra Town Hall relic slots granted by meta-progression. Capped by design.

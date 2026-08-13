@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scenes/ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Texture2D" path="res://art/bg/menu_key_art.png" id="2_art"]
 
-[node name="MainMenu" type="Control" node_paths=PackedStringArray("new_run_button", "settings_button", "quit_button", "stats_label", "settings_panel", "shake_slider")]
+[node name="MainMenu" type="Control" node_paths=PackedStringArray("new_run_button", "settings_button", "quit_button", "stats_label")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -13,8 +13,6 @@ new_run_button = NodePath("Buttons/NewRun")
 settings_button = NodePath("Buttons/Settings")
 quit_button = NodePath("Buttons/Quit")
 stats_label = NodePath("Stats")
-settings_panel = NodePath("SettingsPanel")
-shake_slider = NodePath("SettingsPanel/Box/Shake")
 
 [node name="Art" type="TextureRect" parent="."]
 layout_mode = 1
@@ -78,28 +76,3 @@ offset_bottom = -40.0
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 18
 
-[node name="SettingsPanel" type="PanelContainer" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -110.0
-offset_right = 220.0
-offset_bottom = 110.0
-
-[node name="Box" type="VBoxContainer" parent="SettingsPanel"]
-layout_mode = 2
-
-[node name="ShakeLabel" type="Label" parent="SettingsPanel/Box"]
-layout_mode = 2
-text = "Screen shake"
-
-[node name="Shake" type="HSlider" parent="SettingsPanel/Box"]
-layout_mode = 2
-custom_minimum_size = Vector2(380, 28)
-max_value = 1.5
-step = 0.05
-value = 1.0

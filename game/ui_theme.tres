@@ -94,9 +94,9 @@ shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5kxjo"]
 content_margin_left = 0.0
-content_margin_top = 0.0
+content_margin_top = 5.0
 content_margin_right = 0.0
-content_margin_bottom = 0.0
+content_margin_bottom = 5.0
 bg_color = Color(0.9098039, 0.6392157, 0.23921569, 1)
 border_color = Color(0, 0, 0, 0)
 corner_radius_top_left = 3
@@ -108,9 +108,9 @@ shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g7fvb"]
 content_margin_left = 0.0
-content_margin_top = 0.0
+content_margin_top = 5.0
 content_margin_right = 0.0
-content_margin_bottom = 0.0
+content_margin_bottom = 5.0
 bg_color = Color(0.04, 0.06, 0.07, 1)
 border_width_left = 1
 border_width_top = 1

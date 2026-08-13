@@ -8,24 +8,43 @@ extends Control
 @export var settings_button: Button
 @export var quit_button: Button
 @export var stats_label: Label
-@export var settings_panel: PanelContainer
-@export var shake_slider: HSlider
+
+var _settings: SettingsPanel
 
 
 func _ready() -> void:
 	MusicPlayer.play("menu")
 	new_run_button.pressed.connect(GameDirector.start_run)
 	quit_button.pressed.connect(GameDirector.quit_game)
-	settings_button.pressed.connect(func() -> void: settings_panel.visible = not settings_panel.visible)
-	settings_panel.visible = false
 
-	shake_slider.value = float(MetaState.settings.get("screen_shake", 1.0))
-	shake_slider.value_changed.connect(func(v: float) -> void:
-		MetaState.settings["screen_shake"] = v
-		MetaState.save_game())
+	IconKit.on_button(settings_button, "settings", 24)
+	IconKit.on_button(quit_button, "close", 24)
+
+	_build_settings()
+	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
+
+
+## The panel is the shared component, centred over the key art. The menu used to
+## hand-roll its own settings box in the scene file, which is how it ended up
+## offering exactly one setting while three volume sliders sat unreachable in the
+## save file.
+func _build_settings() -> void:
+	_settings = SettingsPanel.new()
+	_settings.set_anchors_preset(Control.PRESET_CENTER)
+	_settings.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_settings.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_settings.visible = false
+	_settings.closed.connect(func() -> void: _show_settings(false))
+	add_child(_settings)
+
+
+func _show_settings(showing: bool) -> void:
+	_settings.visible = showing
+	if not showing:
+		settings_button.grab_focus()
 
 
 func _summary() -> String:

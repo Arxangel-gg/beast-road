@@ -102,6 +102,7 @@ jobs:
           run_godot_clean --headless --path game --quit
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- report
           run_godot_clean --headless --path game res://tools/balance_test.tscn
+          run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
           run_godot_clean --headless --path launcher res://tests/release_pipeline_test.tscn
 

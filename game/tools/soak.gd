@@ -29,6 +29,8 @@ var _peaceful: bool = false
 var _build: bool = false
 var _no_casters: bool = false
 var _panel: bool = false
+var _settings: bool = false
+var _pause_only: bool = false
 var _panel_lane: int = 0
 var _panel_slot: int = 0
 var _reported: bool = false
@@ -47,6 +49,13 @@ func _ready() -> void:
 			# "are cast shadows rendering at all" without squinting at a dark
 			# screenshot and talking myself into a yes.
 			_no_casters = true
+		elif argument == "--settings":
+			# Opens the pause screen's settings panel.
+			_settings = true
+		elif argument == "--pause":
+			# Opens the pause screen itself and stops there.
+			_settings = true
+			_pause_only = true
 		elif argument.begins_with("--panel="):
 			# --panel=lane,slot
 			var parts: PackedStringArray = argument.split("=")[1].split(",")
@@ -111,6 +120,24 @@ func _process(delta: float) -> void:
 					(node as CanvasItem).visible = false
 		if _build:
 			_build_everything()
+		if _settings:
+			# The settings panel is only reachable through two clicks and a pause,
+			# none of which a soak can perform. Opening it directly is the only way
+			# to see it before shipping it.
+			#
+			# The harness runs unpaused on purpose: toggle() pauses the whole tree,
+			# and a paused tree stops this node's _process - which is what takes the
+			# screenshots. PROCESS_MODE_ALWAYS keeps the camera rolling over a
+			# genuinely paused game, which is exactly the state being photographed.
+			process_mode = Node.PROCESS_MODE_ALWAYS
+			var opened: bool = false
+			for node: Node in _all(get_tree().root):
+				if node is PauseMenu:
+					node.toggle()
+					node.call("_show_settings", not _pause_only)
+					opened = true
+					break
+			print("[soak] settings panel opened=%s" % str(opened))
 		if _panel:
 			# Opens the build panel on a slot. It cannot be reached without a
 			# mouse, and it is the densest piece of UI in the game — so it is the
