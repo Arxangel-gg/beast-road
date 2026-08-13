@@ -1044,7 +1044,7 @@ const TORCH_LIGHT_ENERGY: float = 1.55
 const TORCH_FLICKER: float = 0.16
 
 ## How close an enemy must pass to snuff one out. [TUNE]
-const TORCH_SNUFF_RANGE: float = 46.0
+const TORCH_SNUFF_RANGE: float = 120
 
 ## Chance an enemy passing within that range actually snuffs it. Below 1.0 so a
 ## single wave does not reliably black out a whole lane. [TUNE]
@@ -1052,7 +1052,7 @@ const TORCH_SNUFF_CHANCE: float = 0.35
 const TORCH_SNUFF_CHECK_INTERVAL: float = 0.75
 
 ## How close the hero stands, and for how long, to relight one. [TUNE]
-const TORCH_RELIGHT_RANGE: float = 90.0
+const TORCH_RELIGHT_RANGE: float = 150
 const TORCH_RELIGHT_TIME: float = 1.1
 
 ## Extra enemy strength and spawn weight at a fully dark lane, applied on top of
@@ -1161,7 +1161,7 @@ const SHADOW_LAYER_UNITS: int = 2
 # ------------------------------------------------------------------------------
 
 ## Clumps scattered per terrain. [TUNE]
-const FOLIAGE_COUNT: int = 620
+const FOLIAGE_COUNT: int = 420
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15
@@ -1176,7 +1176,7 @@ const FOLIAGE_TOWN_MARGIN: float = 180.0
 const FOLIAGE_GROUND_RATIO: float = 0.55
 
 ## Ground cover is smaller and sways less than the tall layer.
-const FOLIAGE_GROUND_SCALE: float = 0.55
+const FOLIAGE_GROUND_SCALE: float = 0.64
 const FOLIAGE_GROUND_SWAY: float = 0.45
 
 const FOLIAGE_MIN_SCALE: float = 0.7

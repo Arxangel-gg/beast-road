@@ -32,6 +32,7 @@ Ambience="*res://autoload/Ambience.gd"
 UiSound="*res://autoload/UiSound.gd"
 
 [display]
+display/window/size/mode=4
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
