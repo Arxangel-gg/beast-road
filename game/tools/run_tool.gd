@@ -18,7 +18,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- seed
 ##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak | audit [--todo]>"
 
 
 func _init() -> void:
@@ -43,6 +43,8 @@ func _init() -> void:
 			_theme()
 		"tool-leak":
 			_tool_leak()
+		"audit":
+			_audit(args.has("--todo"))
 		_:
 			print(USAGE)
 			quit(2)
@@ -86,6 +88,14 @@ func _import(dry: bool) -> void:
 
 ## Shipped code must not reference anything under tools/: the export strips it,
 ## and a missing class_name is a parse failure, not a runtime one.
+## How much of GDD v4 exists. Reporting only - never fails the build, because a
+## migration in progress is supposed to be incomplete.
+func _audit(todo_only: bool) -> void:
+	var result: Dictionary = GddAudit.run(todo_only)
+	print(result["text"])
+	quit(0 if bool(result["ok"]) else 1)
+
+
 func _tool_leak() -> void:
 	var result: Dictionary = ToolLeakCheck.run()
 	if bool(result["ok"]):
