@@ -21,6 +21,15 @@ const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 ## Frame drawn behind each spell slot.
 const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 
+## Build panel geometry. Wide enough for two tower cards side by side, which is
+## what removes the scrollbar.
+const BUILD_PANEL_WIDTH: float = 640.0
+const BUILD_CARD_WIDTH: float = 286.0
+
+## Reserved height for the hover description, so the panel does not resize as the
+## cursor moves across the grid.
+const BUILD_DETAIL_HEIGHT: float = 56.0
+
 @export var battlefield: Battlefield
 
 var _resources: Label
@@ -43,6 +52,7 @@ var _lane_ring: Control
 var _build_panel: PanelContainer
 var _build_list: VBoxContainer
 var _build_title: Label
+var _build_detail: Label
 var _selected_lane: int = -1
 var _selected_slot: int = -1
 
@@ -215,18 +225,31 @@ func _bar_icon(id: String, fallback: String) -> Control:
 	return icon if icon != null else _label(fallback)
 
 
+## A bar in the theme's own art, tinted.
+##
+## It used to override both styleboxes with flat colours, which meant every bar
+## in the game bypassed the theme entirely - so `ui_bar_fill.png` and
+## `ui_bar_back.png` could never appear no matter what the theme said. Tinting a
+## textured fill keeps the art's vertical shading, which is what makes a bar look
+## lit rather than filled in.
 func _make_bar(colour: Color, width: float) -> ProgressBar:
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(width, 22.0)
 	bar.max_value = 1.0
 	bar.value = 1.0
 	bar.show_percentage = false
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = colour
-	bar.add_theme_stylebox_override("fill", fill)
-	var back := StyleBoxFlat.new()
-	back.bg_color = Color(0.08, 0.10, 0.11, 0.9)
-	bar.add_theme_stylebox_override("background", back)
+
+	var fill: StyleBox = bar.get_theme_stylebox("fill", "ProgressBar")
+	if fill is StyleBoxTexture:
+		var tinted: StyleBoxTexture = (fill as StyleBoxTexture).duplicate()
+		# The art is a neutral warm ramp so this multiply lands on the intended
+		# hue; a saturated source would drag every bar toward orange.
+		tinted.modulate_color = colour
+		bar.add_theme_stylebox_override("fill", tinted)
+	else:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = colour
+		bar.add_theme_stylebox_override("fill", flat)
 	return bar
 
 
@@ -289,24 +312,46 @@ func _update_repair_button() -> void:
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(0, 42)
+	b.custom_minimum_size = Vector2(0, 54)
+	# Left, always. Godot centres button text by default and IconKit.on_button
+	# switches to left so the icons line up - which left a column of buttons where
+	# some labels were centred and some were not, entirely by whether they happened
+	# to have art.
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.pressed.connect(on_press)
 	parent.add_child(b)
 	return b
 
 
+## The build panel: everything visible at once, no scrolling in either axis.
+##
+## It used to be a 336x480 box with a ScrollContainer in it. Eight towers, each
+## a button plus a wrapped description, come to roughly 530px of content — so
+## choosing a tower meant scrolling a list during a wave, and the two towers at
+## the bottom were effectively hidden.
+##
+## The fix is not a taller box. It is that a vertical list was the wrong shape
+## for eight items: two columns of four fit in less height than four of eight,
+## and the descriptions do not belong in the list at all. They now appear in a
+## fixed footer for whichever tower the cursor is over, which keeps the panel's
+## height constant no matter how long the text is.
+##
+## The panel has no fixed height. Anchors pinned to one line with GROW_BOTH make
+## a Control size to its own content, so the upgrade view and the build view can
+## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
 	_build_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_build_panel.offset_left = -360.0
-	_build_panel.offset_right = -24.0
-	_build_panel.offset_top = -240.0
-	_build_panel.offset_bottom = 240.0
+	_build_panel.offset_left = -BUILD_PANEL_WIDTH - 32.0
+	_build_panel.offset_right = -32.0
+	_build_panel.offset_top = 0.0
+	_build_panel.offset_bottom = 0.0
+	_build_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_build_panel.visible = false
 	add_child(_build_panel)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
+	column.add_theme_constant_override("separation", 10)
 	_build_panel.add_child(column)
 
 	var heading := HBoxContainer.new()
@@ -318,15 +363,21 @@ func _build_tower_panel() -> void:
 	heading.add_child(_build_title)
 	column.add_child(heading)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(scroll)
-
 	_build_list = VBoxContainer.new()
+	_build_list.add_theme_constant_override("separation", 8)
 	_build_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_build_list)
+	column.add_child(_build_list)
 
-	var close: Button = _add_button(column, "Close", func() -> void: _build_panel.visible = false)
+	# The footer. Its height is reserved whether or not there is anything to say,
+	# so the panel does not jump every time the cursor crosses a tower.
+	_build_detail = _label("", 14)
+	_build_detail.custom_minimum_size = Vector2(0.0, BUILD_DETAIL_HEIGHT)
+	_build_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_build_detail.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_build_detail.add_theme_color_override("font_color", Color("aebcb8"))
+	column.add_child(_build_detail)
+
+	var close: Button = _add_button(column, "Close", func() -> void: _close_build_panel())
 	IconKit.on_button(close, "close", 22)
 
 
@@ -550,11 +601,47 @@ func _open_build_panel(lane: int, slot: int) -> void:
 	_selected_slot = slot
 	_refresh_build_panel()
 	_build_panel.visible = true
+	UiSound.confirm()
+	_pop_in(_build_panel)
+
+
+func _close_build_panel() -> void:
+	if _build_panel == null or not _build_panel.visible:
+		return
+	_build_panel.visible = false
+	_show_build_detail("")
+
+
+## A panel that appears instantly reads as a texture being switched on. A short
+## overshoot reads as something being *brought up*, which is the difference
+## between a menu and an interface.
+##
+## The pivot has to be set after a layout pass or the panel scales about its
+## top-left and swings in from the corner - and this panel has no fixed height,
+## so its size is not known until the frame it is shown.
+func _pop_in(panel: Control) -> void:
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.94, 0.94)
+	await get_tree().process_frame
+	if not is_instance_valid(panel) or not panel.visible:
+		return
+	panel.pivot_offset = panel.size * 0.5
+	var tween: Tween = panel.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.12)
+	tween.tween_property(panel, "scale", Vector2.ONE, 0.22)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _refresh_build_panel() -> void:
 	for child: Node in _build_list.get_children():
 		child.queue_free()
+	# The card the cursor was over has just been freed, so its mouse_exited will
+	# never arrive. Without this the footer keeps describing a button that is no
+	# longer there.
+	_show_build_detail("")
+	# Assume no grid; the two branches that build one turn the footer back on.
+	_set_build_detail_visible(false)
 
 	var lane: int = _selected_lane
 	var slot: int = _selected_slot
@@ -625,11 +712,21 @@ func _refresh_build_panel() -> void:
 		parents.add_child(_label("%s + %s" % [
 			TowerData.element_name(combo.parent_a), TowerData.element_name(combo.parent_b)], 15))
 		_build_list.add_child(parents)
-		_add_tower_row(combo, lane, slot)
+		_build_list.add_child(_tower_card(combo, lane, slot))
+		_set_build_detail_visible(true)
 		return
 
+	# Two columns. Eight towers stacked vertically is what needed the scrollbar;
+	# four rows of two is a little over half the height and reads faster, because
+	# the eye compares across a grid rather than travelling down a list.
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 8)
 	for tower: TowerData in ContentDB.base_towers():
-		_add_tower_row(tower, lane, slot)
+		grid.add_child(_tower_card(tower, lane, slot))
+	_build_list.add_child(grid)
+	_set_build_detail_visible(true)
 
 
 ## Shows what the next level actually buys, before the player commits.
@@ -654,6 +751,9 @@ func _add_stat_preview(tower: TowerData, level: int) -> void:
 		return
 
 	var panel := PanelContainer.new()
+	# The plain dark frame, not the ornate one. This sits inside the build panel,
+	# and the same riveted border twice reads as a bug rather than as a nested box.
+	panel.theme_type_variation = &"InnerPanel"
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 2)
 	panel.add_child(column)
@@ -696,33 +796,83 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 	})
 
 
-func _add_tower_row(tower: TowerData, lane: int, slot: int) -> void:
-	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
+## One tower, as a card for the grid.
+##
+## The description does not live on the card. Eight wrapped paragraphs is what
+## made the list too tall to fit, and the player is choosing between towers, not
+## reading all eight - so the text goes to the footer for whichever one the
+## cursor is over.
+func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 	var cost: int = Battlefield.build_cost_of(tower)
-	# The element name comes off the label and onto the button's icon. Four
-	# elements across eight towers is exactly the thing an icon does better than
-	# a word - it is recognised rather than read, which matters mid-wave.
-	var button: Button = _add_button(row, "%s  ·  %d" % [tower.display_name, cost], func() -> void:
-			_report(battlefield.try_build(lane, slot, tower))
-			_refresh_build_panel())
-	button.icon = IconKit.element_sized(tower.element, 26)
+	var affordable: bool = RunState.can_afford(cost)
+
+	var button := Button.new()
+	button.text = "%s\n%d" % [tower.display_name, cost]
+	button.custom_minimum_size = Vector2(BUILD_CARD_WIDTH, 70.0)
+	button.icon = IconKit.element_sized(tower.element, 30)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	button.tooltip_text = "%s  ·  %s" % [
-		TowerData.element_name(tower.element), tower.description]
-	button.disabled = not RunState.can_afford(cost)
+	button.focus_mode = Control.FOCUS_NONE
+	button.disabled = not affordable
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
-	if not tower.description.is_empty():
-		row.add_child(_label(tower.description, 13))
-	_build_list.add_child(row)
+	button.pressed.connect(func() -> void:
+		Sfx.play("sfx_tower_build", -4.0)
+		_report(battlefield.try_build(lane, slot, tower))
+		_refresh_build_panel())
+
+	# Hovering explains; it does not require a tooltip's delay. A tooltip is still
+	# set for anyone who waits, but the footer answers immediately.
+	var blurb: String = "%s  ·  %s" % [TowerData.element_name(tower.element), tower.description]
+	button.tooltip_text = blurb
+	button.mouse_entered.connect(func() -> void: _show_build_detail(
+		blurb if affordable else "%s\nNeeds %d more." % [blurb, cost - RunState.resources]))
+	button.mouse_exited.connect(func() -> void: _show_build_detail(""))
+	return button
+
+
+## Blank means "nothing hovered", which reads as a hole in the panel rather than
+## as an empty field. The footer's height is reserved either way, so it may as
+## well say what it is for.
+const BUILD_HINT: String = "Point at a tower to see what it does."
+
+
+func _show_build_detail(text: String) -> void:
+	if _build_detail == null:
+		return
+	var showing: bool = not text.is_empty()
+	_build_detail.text = text if showing else BUILD_HINT
+	_build_detail.add_theme_color_override("font_color",
+		Color("cfe0da") if showing else Color(0.62, 0.66, 0.64, 0.55))
+
+
+## The footer belongs to the tower grid. On the upgrade view there is nothing to
+## point at, so inviting the player to point at something is just noise taking up
+## fifty-six pixels.
+func _set_build_detail_visible(showing: bool) -> void:
+	if _build_detail != null:
+		_build_detail.visible = showing
 
 
 ## Empty means the action succeeded, so only refusals are ever shown.
+##
+## A refusal now sounds like one. The click a button makes is the same whether it
+## worked or not, so without this the only signal that a build was rejected is a
+## line of text appearing above the town - which is not where the player is
+## looking when they click a slot on the right of the screen.
 func _report(problem: String) -> void:
 	if problem.is_empty():
 		return
+	UiSound.deny()
 	_message.text = problem
 	_message_left = 2.4
+	_nudge(_message)
+
+
+## A short shake on the message, so a second identical refusal still registers.
+## Re-showing the same string is otherwise invisible.
+func _nudge(node: Control) -> void:
+	node.modulate = Color(1.0, 0.55, 0.45)
+	var tween: Tween = node.create_tween()
+	tween.tween_property(node, "modulate", Color.WHITE, 0.45)
 
 
 # --- Signal handlers --------------------------------------------------------

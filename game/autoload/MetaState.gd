@@ -40,6 +40,7 @@ var settings: Dictionary = {
 	"music_volume": 0.8,
 	"sfx_volume": 1.0,
 	"screen_shake": 1.0,
+	"beast_gait": 0.65,
 	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
 }
 

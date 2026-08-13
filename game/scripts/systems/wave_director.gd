@@ -23,7 +23,7 @@ var _last_archetype_id: String = ""
 
 func _ready() -> void:
 	_rng.randomize()
-	_wave_timer = Balance.WAVE_INTERVAL * 0.35
+	_wave_timer = Balance.WAVE_FIRST_PREPARATION
 	EventBus.act_started.connect(_on_act_started)
 
 
@@ -100,7 +100,15 @@ func _begin_wave() -> void:
 		interval *= terrain.wave_interval_multiplier
 	if RunState.horn_active:
 		interval /= Balance.HORN_SPAWN_RATE_SCALE
+	if RunState.act == 1 and _act_wave <= Balance.WAVE_OPENING_INTERVAL_BONUS.size():
+		interval += Balance.WAVE_OPENING_INTERVAL_BONUS[_act_wave - 1]
 	_wave_timer = interval
+
+	# A small, visible logistics pulse lets a new defence react to each newly
+	# opened road. It ends before the full curve arrives and cannot inflate the
+	# late mastery economy.
+	if RunState.act == 1 and _act_wave <= Balance.WAVE_OPENING_SUPPLIES.size():
+		RunState.gain_resources(Balance.WAVE_OPENING_SUPPLIES[_act_wave - 1])
 
 	var archetype: WaveArchetypeData = _preview_archetype
 	var lanes: Array[int] = _preview_lanes.duplicate()
@@ -242,6 +250,8 @@ func _pick_lanes(act_wave: int) -> Array[int]:
 ## Waves start on one lane and open to all four as the act progresses. Night
 ## adds another road, even when the formation itself is the neutral advance.
 func _progressive_lane_count(act_wave: int) -> int:
+	if RunState.act == 1 and act_wave <= Balance.WAVE_OPENING_SINGLE_LANE_WAVES:
+		return 1
 	var count: int = clampi(
 		Balance.WAVE_LANES_START + RunState.act - 1 \
 			+ int(floor(float(act_wave - 1) / 2.0)),
@@ -257,6 +267,7 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 		Balance.WAVE_ACT_COUNT_SCALE.size() - 1)]
 	if terrain != null:
 		size *= terrain.wave_size_multiplier
+	size *= _opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, act_wave)
 	size *= 1.0 + DayNight.darkness * Balance.WAVE_NIGHT_COUNT_BONUS
 	if RunState.distance_to_boss() <= Balance.ACT_BOSS_RAMP_DISTANCE:
 		var ramp: float = 1.0 - RunState.distance_to_boss() / Balance.ACT_BOSS_RAMP_DISTANCE
@@ -326,6 +337,7 @@ func _hp_scale(lane: int) -> float:
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 	scale *= _situational_scale(lane, 1.0)
+	scale *= _opening_scale(Balance.WAVE_OPENING_HP_SCALE, _act_wave)
 	return scale
 
 
@@ -334,6 +346,7 @@ func _damage_scale(lane: int) -> float:
 	scale *= Balance.WAVE_ACT_DAMAGE_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_DAMAGE_SCALE.size() - 1)]
 	scale *= _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT)
+	scale *= _opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, _act_wave)
 	return scale
 
 
@@ -342,7 +355,16 @@ func _speed_scale(lane: int) -> float:
 	if battlefield != null:
 		scale *= 1.0 + battlefield.lane_darkness(lane) * Balance.TORCH_DARK_DIFFICULTY \
 			* Balance.WAVE_DARK_SPEED_WEIGHT
+	scale *= _opening_scale(Balance.WAVE_OPENING_SPEED_SCALE, _act_wave)
 	return scale
+
+
+## Samples one of the opening curves. Outside Act 1 and after the authored
+## envelope the result is exactly neutral, which is what protects late balance.
+func _opening_scale(curve: Array[float], act_wave: int) -> float:
+	if RunState.act != 1 or curve.is_empty() or act_wave > curve.size():
+		return 1.0
+	return curve[clampi(act_wave - 1, 0, curve.size() - 1)]
 
 
 func _situational_scale(lane: int, dark_weight: float) -> float:

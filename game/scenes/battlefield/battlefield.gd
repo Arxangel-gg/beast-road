@@ -400,6 +400,7 @@ func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
 	RunState.spend(cost)
 	RunState.set_slot(lane, slot, tower_data.id, 1)
 	RunState.towers_built += 1
+	Vfx.build_burst(slot_position(lane, slot), TowerData.element_colour(tower_data.element))
 	return ""
 
 

@@ -18,10 +18,12 @@ func _ready() -> void:
 
 	_test_upgrade_track()
 	await _test_live_tower_utility()
+	_test_opening_envelope()
 	_test_act_curves()
 	_test_overlapping_waves()
 	_test_enemy_roles()
 	_test_zoom_range()
+	_test_beast_gait()
 	_test_hostile_projectile()
 	_test_live_relic_updates()
 	_test_wave_archetypes()
@@ -93,6 +95,44 @@ func _test_act_curves() -> void:
 	_check(director._speed_scale(0) > 1.15, "late-run enemies must move faster")
 	print("[balance] Act2 per-lane=%d hp=%.2f damage=%.2f | Act3 per-lane=%d hp=%.2f" \
 		% [act2_size, act2_hp, act2_damage, act3_size, act3_hp])
+
+
+## New players can establish a four-road baseline and learn one pressure at a
+## time, while every modifier is neutral before the midgame begins.
+func _test_opening_envelope() -> void:
+	var director: WaveDirector = _run.battlefield.wave_director
+	_set_progress(1, 0.0, 1, "ashfen", 1)
+	DayNight._apply(0.18)
+	var terrain: TerrainData = ContentDB.terrain("ashfen")
+	var first_size: int = director._wave_size(1, terrain)
+	var first_hp: float = director._hp_scale(0)
+	var first_damage: float = director._damage_scale(0)
+	_check(Balance.STARTING_RESOURCES >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST \
+		+ Balance.TOWER_BUILD_COST,
+		"opening resources must cover all four roads plus one flex purchase")
+	_check(Balance.WAVE_FIRST_PREPARATION >= 15.0,
+		"first wave must leave a meaningful planning window")
+	_check(first_size <= 5, "first wave must teach with a compact pack")
+	_check(first_hp <= 0.8 and first_damage <= 0.75,
+		"first enemies must be forgiving in both durability and contact threat")
+	_check(director._progressive_lane_count(3) == 1,
+		"the first three waves must teach one road at a time")
+	_check(director._progressive_lane_count(4) >= 2,
+		"lane pressure must begin expanding after the tutorial envelope")
+	_check(director._opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, 5) == 1.0 \
+		and director._opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, 6) == 1.0,
+		"opening protection must fully taper out before midgame")
+	var early_formations: Array[WaveArchetypeData] = ContentDB.available_wave_archetypes(1, 3)
+	_check(early_formations.size() == 1 and early_formations[0].id == "measured_advance",
+		"specialist formations must wait until the core loop is established")
+	var supply_total: int = 0
+	for amount: int in Balance.WAVE_OPENING_SUPPLIES:
+		supply_total += amount
+	_check(supply_total >= Balance.TOWER_BUILD_COST,
+		"opening supply pulses must finance at least one reactive defence")
+	print("[balance] Opening pack=%d hp=%.2f damage=%.2f prep=%.0fs resources=%d+%d" \
+		% [first_size, first_hp, first_damage, Balance.WAVE_FIRST_PREPARATION,
+			Balance.STARTING_RESOURCES, supply_total])
 
 
 func _set_progress(act: int, distance: float, wave: int, terrain_id: String,
@@ -234,6 +274,24 @@ func _test_zoom_range() -> void:
 	_run._zoom_ladder(1)
 	_check(GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD,
 		"wheel-in from Town must return to battlefield")
+
+
+func _test_beast_gait() -> void:
+	var rig := _run.battlefield.camera as CameraRig
+	_check(rig.beast_motion, "battlefield camera must carry the beast gait")
+	_check(Balance.BEAST_GAIT_HORIZONTAL <= 6.0 \
+		and Balance.BEAST_GAIT_ROTATION_DEGREES <= 0.2,
+		"beast gait must remain below gameplay-disrupting amplitude")
+	var previous: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65)
+	UserSettings.set_value(UserSettings.GAIT_KEY, 1.0)
+	RunState.beast_speed = Balance.BEAST_BASE_SPEED
+	rig._tick_gait(0.25)
+	_check(rig.offset.length() > 0.1, "enabled beast gait must visibly move the battlefield")
+	UserSettings.set_value(UserSettings.GAIT_KEY, 0.0)
+	rig._tick_gait(0.016)
+	_check(rig.offset == rig._shake_offset and is_zero_approx(rig.rotation),
+		"turning beast motion off must stop it immediately")
+	UserSettings.set_value(UserSettings.GAIT_KEY, previous)
 
 
 func _test_hostile_projectile() -> void:

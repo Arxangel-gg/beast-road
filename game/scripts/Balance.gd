@@ -183,6 +183,17 @@ const CAMERA_SMOOTHING_SPEED: float = 8.0
 ## offset. Gives a little lookahead without taking control away.
 const CAMERA_MOUSE_LEAN: float = 0.19
 
+## The battlefield is carried on a walking colossus. A very small elliptical
+## camera drift sells that motion without moving collision geometry or making
+## tower placement wobble under the cursor. It is a separate accessibility
+## setting from impact shake and is enabled only on the battlefield camera.
+const BEAST_GAIT_FREQUENCY: float = 1.12
+const BEAST_GAIT_HORIZONTAL: float = 4.5
+const BEAST_GAIT_VERTICAL: float = 3.0
+const BEAST_GAIT_ROTATION_DEGREES: float = 0.12
+const BEAST_GAIT_SMOOTHING: float = 3.5
+const BEAST_GAIT_HORN_SCALE: float = 0.12
+
 # ------------------------------------------------------------------------------
 # Hero — health and movement
 # ------------------------------------------------------------------------------
@@ -415,6 +426,19 @@ const TOWER_PROJECTILE_SPEED: float = 620.0
 ## Seconds between waves at the start of a segment. [TUNE]
 const WAVE_INTERVAL: float = 20
 
+## Onboarding envelope. The first assault waits long enough for four lane
+## decisions, then body count and stats rise smoothly to the full curve. Every
+## multiplier is exactly 1.0 by wave five, so boss ramps and later acts remain
+## untouched by this safety net.
+const WAVE_FIRST_PREPARATION: float = 18.0
+const WAVE_OPENING_COUNT_SCALE: Array[float] = [0.58, 0.70, 0.82, 0.92, 1.0]
+const WAVE_OPENING_HP_SCALE: Array[float] = [0.72, 0.80, 0.88, 0.95, 1.0]
+const WAVE_OPENING_DAMAGE_SCALE: Array[float] = [0.65, 0.75, 0.84, 0.92, 1.0]
+const WAVE_OPENING_SPEED_SCALE: Array[float] = [0.88, 0.93, 0.97, 1.0, 1.0]
+const WAVE_OPENING_INTERVAL_BONUS: Array[float] = [6.0, 4.0, 2.0, 0.0]
+const WAVE_OPENING_SUPPLIES: Array[int] = [0, 30, 45, 35]
+const WAVE_OPENING_SINGLE_LANE_WAVES: int = 3
+
 ## Seconds between spawns inside one wave. [TUNE]
 const WAVE_SPAWN_SPACING: float = 0.24
 
@@ -527,7 +551,9 @@ const CAPTIVE_WORK_BONUS: float = 0.22
 const CAPTIVES_PER_BUILDING: int = 2
 
 ## Resources granted at the start of a run. [TUNE]
-const STARTING_RESOURCES: int = 220
+## Covers one tower on every lane plus one deliberate flex purchase. The old
+## 220-resource start could protect only three of four roads before combat.
+const STARTING_RESOURCES: int = 350
 
 ## A costly emergency action: restores the run after a partial breach while
 ## competing directly with the next tower mastery purchase.
@@ -774,6 +800,13 @@ const VFX_NUMBER_LIFE: float = 0.85
 const VFX_MUZZLE_LENGTH: float = 44.0
 const VFX_MUZZLE_WIDTH: float = 13.0
 const VFX_MUZZLE_LIFE: float = 0.13
+
+## Secondary impact language: radial rays and ground dust give large events a
+## readable silhouette without needing large opaque screen flashes. [TUNE]
+const VFX_RAY_LIFE: float = 0.24
+const VFX_DUST_LIFE: float = 0.48
+const VFX_BUILD_SHAKE: float = 4.0
+const VFX_BOSS_PHASE_SHAKE: float = 11.0
 
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
 const VFX_SLASH_LIFE: float = 0.16

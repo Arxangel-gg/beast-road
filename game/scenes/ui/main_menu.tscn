@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/ui/main_menu.gd" id="1_menu"]
 [ext_resource type="Texture2D" path="res://art/bg/menu_key_art.png" id="2_art"]
+[ext_resource type="Texture2D" path="res://art/ui/ui_logo.png" id="3_logo"]
 
 [node name="MainMenu" type="Control" node_paths=PackedStringArray("new_run_button", "settings_button", "quit_button", "stats_label")]
 layout_mode = 3
@@ -23,18 +24,18 @@ texture = ExtResource("2_art")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Title" type="Label" parent="."]
+[node name="Title" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -400.0
-offset_top = 90.0
-offset_right = 400.0
-offset_bottom = 190.0
-text = "BEAST ROAD"
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 72
+offset_left = -420.0
+offset_top = 54.0
+offset_right = 420.0
+offset_bottom = 474.0
+texture = ExtResource("3_logo")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Buttons" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -49,17 +50,17 @@ theme_override_constants/separation = 14
 
 [node name="NewRun" type="Button" parent="Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(320, 56)
+custom_minimum_size = Vector2(380, 72)
 text = "Take the road"
 
 [node name="Settings" type="Button" parent="Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(320, 48)
+custom_minimum_size = Vector2(380, 66)
 text = "Settings"
 
 [node name="Quit" type="Button" parent="Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(320, 48)
+custom_minimum_size = Vector2(380, 66)
 text = "Quit"
 
 [node name="Stats" type="Label" parent="."]

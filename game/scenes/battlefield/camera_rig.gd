@@ -1,7 +1,8 @@
 class_name CameraRig
 extends Camera2D
 
-## Follows the hero, leans slightly toward the mouse, and shakes on impact.
+## Follows the hero, leans slightly toward the mouse, shakes on impact, and can
+## carry the battlefield on the beast's deliberately subtle walking rhythm.
 ##
 ## Position is driven here rather than with Camera2D's built-in smoothing
 ## because the lean and the shake have to compose with it, and `offset` is the
@@ -15,11 +16,18 @@ extends Camera2D
 ## 0 falls back to the Balance default.
 @export var zoom_level: float = 0.0
 
+## Enabled only for the battlefield. The raid is on the ground and must remain
+## spatially still.
+@export var beast_motion: bool = false
+
 var _shake_magnitude: float = 0.0
 var _shake_left: float = 0.0
 var _shake_duration: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _wanted_zoom: float = 1.0
+var _shake_offset: Vector2 = Vector2.ZERO
+var _gait_phase: float = 0.0
+var _gait_strength: float = 0.0
 
 
 func _ready() -> void:
@@ -44,6 +52,7 @@ func _process(delta: float) -> void:
 		global_position = global_position.lerp(desired, t)
 
 	_tick_shake(delta)
+	_tick_gait(delta)
 
 
 func zoom_by(steps: int) -> bool:
@@ -65,12 +74,42 @@ func reset_to_wide() -> void:
 
 func _tick_shake(delta: float) -> void:
 	if _shake_left <= 0.0:
-		offset = Vector2.ZERO
+		_shake_offset = Vector2.ZERO
 		return
 	_shake_left = maxf(_shake_left - delta, 0.0)
 	var falloff: float = _shake_left / _shake_duration if _shake_duration > 0.0 else 0.0
 	var amount: float = _shake_magnitude * falloff
-	offset = Vector2(_rng.randf_range(-amount, amount), _rng.randf_range(-amount, amount))
+	_shake_offset = Vector2(_rng.randf_range(-amount, amount), _rng.randf_range(-amount, amount))
+
+
+## Camera-only motion keeps simulation, collision and tower-click coordinates
+## deterministic. The HUD is a CanvasLayer, so it stays pin-sharp while the
+## world beneath it breathes with the beast's stride.
+func _tick_gait(delta: float) -> void:
+	if not beast_motion:
+		offset = _shake_offset
+		rotation = 0.0
+		return
+	var setting: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65)
+	if setting <= 0.001:
+		_gait_strength = 0.0
+		offset = _shake_offset
+		rotation = 0.0
+		return
+	var speed_ratio: float = clampf(RunState.beast_speed / Balance.BEAST_BASE_SPEED, 0.0, 1.5)
+	var target_strength: float = setting * speed_ratio
+	if RunState.horn_active:
+		target_strength *= Balance.BEAST_GAIT_HORN_SCALE
+	var smooth: float = 1.0 - exp(-Balance.BEAST_GAIT_SMOOTHING * delta)
+	_gait_strength = lerpf(_gait_strength, target_strength, smooth)
+	_gait_phase += delta * Balance.BEAST_GAIT_FREQUENCY * TAU * maxf(speed_ratio, 0.25)
+
+	var gait := Vector2(
+		sin(_gait_phase * 0.5) * Balance.BEAST_GAIT_HORIZONTAL,
+		sin(_gait_phase) * Balance.BEAST_GAIT_VERTICAL) * _gait_strength
+	offset = _shake_offset + gait
+	rotation = deg_to_rad(sin(_gait_phase * 0.5 + 0.4) \
+		* Balance.BEAST_GAIT_ROTATION_DEGREES * _gait_strength)
 
 
 ## The strongest request wins rather than the newest, so a big hit is never

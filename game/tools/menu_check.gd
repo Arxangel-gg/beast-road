@@ -26,6 +26,15 @@ func _ready() -> void:
 	# ObjectDB warnings, and a gate that cries wolf gets ignored. The menu starts
 	# the title music on ready, so the audio autoloads have to be stopped too -
 	# the dummy driver releases decoder playbacks asynchronously.
+	if OS.get_cmdline_user_args().has("--shot"):
+		# Only when asked. The gate runs headless in CI, where there is no
+		# framebuffer to capture and asking for one is an error, not a picture.
+		menu.call("_show_settings", true) if OS.get_cmdline_user_args().has("--settings") else null
+		await RenderingServer.frame_post_draw
+		var image: Image = get_viewport().get_texture().get_image()
+		image.save_png("user://menu_shot.png")
+		print("[menu] shot -> user://menu_shot.png")
+
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()

@@ -18,7 +18,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- seed
 ##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme>"
 
 
 func _init() -> void:
@@ -39,6 +39,8 @@ func _init() -> void:
 			_import(args.has("--dry"))
 		"font-check":
 			_font_check()
+		"theme":
+			_theme()
 		_:
 			print(USAGE)
 			quit(2)
@@ -78,6 +80,16 @@ func _import(dry: bool) -> void:
 	var result: Dictionary = importer.import_all(dry)
 	print(importer.report())
 	quit(1 if int(result["problems"]) > 0 else 0)
+
+
+func _theme() -> void:
+	var result: Dictionary = ThemeBuilder.build()
+	if bool(result["ok"]):
+		print("Theme written to %s from the UI frame art." % result["path"])
+		quit(0)
+		return
+	print("  ERROR: ", result["error"])
+	quit(1)
 
 
 func _font_check() -> void:

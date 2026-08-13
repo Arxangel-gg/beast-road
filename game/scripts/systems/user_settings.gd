@@ -18,6 +18,7 @@ const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume
 
 const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"
+const GAIT_KEY: String = "beast_gait"
 
 ## Display modes, as stored. Strings rather than the DisplayServer enum, because
 ## this ends up in a JSON save file that a human may well open, and a 3 there

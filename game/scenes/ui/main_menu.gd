@@ -17,6 +17,11 @@ func _ready() -> void:
 	new_run_button.pressed.connect(GameDirector.start_run)
 	quit_button.pressed.connect(GameDirector.quit_game)
 
+	# All three carry an icon, which also left-aligns them. Without one on the
+	# first button its label stayed centred while the two below it were not, and a
+	# menu column with one odd row out reads as a mistake before it reads as a
+	# menu. The arrow means the same here as on the pause screen: carry on.
+	IconKit.on_button(new_run_button, "pressure_arrow", 26)
 	IconKit.on_button(settings_button, "settings", 24)
 	IconKit.on_button(quit_button, "close", 24)
 

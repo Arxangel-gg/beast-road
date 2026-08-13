@@ -61,11 +61,12 @@ func _queue_save() -> void:
 func _build() -> void:
 	custom_minimum_size = Vector2(600.0, 0.0)
 
-	# The theme's panel style has no content margin, so without this the rows sit
-	# flush against the border on every side.
+	# A little breathing room on top of what the panel frame already reserves.
+	# The theme used to provide none at all, which put the rows flush against the
+	# border; it now pads generously, so this only adds the difference.
 	var margin := MarginContainer.new()
 	for side: String in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_%s" % side, 28)
+		margin.add_theme_constant_override("margin_%s" % side, 8)
 	add_child(margin)
 
 	var column := VBoxContainer.new()
@@ -85,12 +86,13 @@ func _build() -> void:
 
 	column.add_child(_separator())
 	column.add_child(_shake_row())
+	column.add_child(_gait_row())
 	column.add_child(_separator())
 	column.add_child(_display_row())
 
 	var close := Button.new()
 	close.text = "Back"
-	close.custom_minimum_size = Vector2(0.0, 44.0)
+	close.custom_minimum_size = Vector2(0.0, 54.0)
 	IconKit.on_button(close, "close", 22)
 	close.pressed.connect(func() -> void:
 		# Whatever is pending goes to disk now: the player is leaving, and a
@@ -171,6 +173,13 @@ func _shake_row() -> HBoxContainer:
 		func(v: float) -> void: UserSettings.set_value(UserSettings.SHAKE_KEY, v))
 
 
+func _gait_row() -> HBoxContainer:
+	return _slider_row("Beast motion", 0.0, 1.25, 0.05,
+		UserSettings.number(UserSettings.GAIT_KEY, 0.65),
+		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
+		func(v: float) -> void: UserSettings.set_value(UserSettings.GAIT_KEY, v))
+
+
 ## Two buttons rather than a slider or a dropdown: there are exactly two states,
 ## and which one is active should be readable without opening anything.
 func _display_row() -> HBoxContainer:
@@ -184,14 +193,14 @@ func _display_row() -> HBoxContainer:
 	_fullscreen_button = Button.new()
 	_fullscreen_button.text = "Fullscreen"
 	_fullscreen_button.toggle_mode = true
-	_fullscreen_button.custom_minimum_size = Vector2(150.0, 40.0)
+	_fullscreen_button.custom_minimum_size = Vector2(196.0, 46.0)
 	_fullscreen_button.pressed.connect(_choose_display.bind(UserSettings.DISPLAY_FULLSCREEN))
 	row.add_child(_fullscreen_button)
 
 	_windowed_button = Button.new()
 	_windowed_button.text = "Windowed"
 	_windowed_button.toggle_mode = true
-	_windowed_button.custom_minimum_size = Vector2(150.0, 40.0)
+	_windowed_button.custom_minimum_size = Vector2(196.0, 46.0)
 	_windowed_button.pressed.connect(_choose_display.bind(UserSettings.DISPLAY_WINDOWED))
 	row.add_child(_windowed_button)
 

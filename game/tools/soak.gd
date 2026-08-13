@@ -145,6 +145,7 @@ func _process(delta: float) -> void:
 			for node: Node in _all(get_tree().root):
 				if node is HUD:
 					node.call("_open_build_panel", _panel_lane, _panel_slot)
+					_measure_panel(node)
 					break
 		if _no_casters:
 			var removed: int = 0
@@ -285,6 +286,25 @@ func _capture(at: float) -> void:
 	var path: String = "user://soak_%02d.png" % int(round(at))
 	image.save_png(path)
 	print("[soak] shot %.1fs -> %s" % [at, ProjectSettings.globalize_path(path)])
+
+
+## Prints the build panel and every row in it. "The panel looks too tall" is not
+## something to fix by guessing at margins - this says which child is claiming
+## the space.
+func _measure_panel(hud: Node) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Control = hud.get("_build_panel") as Control
+	if panel == null:
+		return
+	print("[soak] build panel size=%s min=%s" % [str(panel.size), str(panel.get_combined_minimum_size())])
+	for child: Node in _all(panel):
+		var control := child as Control
+		if control == null or control == panel:
+			continue
+		if control.get_parent() == panel or control.get_parent().get_parent() == panel:
+			print("[soak]   %-18s size=%-16s min=%s" % [
+				control.get_class(), str(control.size), str(control.get_combined_minimum_size())])
 
 
 func _all(from: Node) -> Array[Node]:

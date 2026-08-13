@@ -58,7 +58,11 @@ func _ready() -> void:
 	EventBus.hero_damaged.connect(_on_hero_damaged)
 	EventBus.town_damaged.connect(_on_town_damaged)
 	EventBus.spell_cast.connect(_on_spell_cast)
+	EventBus.wave_started.connect(_on_wave_started)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
+	EventBus.construction_completed.connect(_on_construction_completed)
+	EventBus.relic_socketed.connect(_on_relic_socketed)
 	EventBus.war_horn_activated.connect(_on_horn)
 	EventBus.raid_available.connect(_on_raid_available)
 	EventBus.hero_health_changed.connect(_on_hero_health)
@@ -293,6 +297,104 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color) -> void:
 	tween.chain().tween_callback(flash.queue_free)
 
 
+## Fast radial strokes: the readable white-hot frame between a bloom and its
+## expanding shock ring. One Line2D per ray lets each length and timing vary.
+func rays(at: Vector2, colour: Color, count: int = 8, radius: float = 60.0,
+		rotation_offset: float = 0.0) -> void:
+	if world == null:
+		return
+	for i: int in count:
+		var angle: float = rotation_offset + TAU * float(i) / float(maxi(count, 1)) \
+			+ randf_range(-0.08, 0.08)
+		var direction := Vector2.RIGHT.rotated(angle)
+		var inner: float = radius * randf_range(0.12, 0.24)
+		var outer: float = radius * randf_range(0.72, 1.08)
+		var ray := Line2D.new()
+		ray.points = PackedVector2Array([direction * inner, direction * outer])
+		ray.width = randf_range(2.0, 4.5)
+		ray.default_color = colour
+		ray.z_index = Balance.VFX_Z
+		ray.scale = Vector2.ONE * 0.35
+		_track(ray)
+		ray.global_position = at
+		var life: float = Balance.VFX_RAY_LIFE * randf_range(0.8, 1.15)
+		var tween: Tween = ray.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(ray, "scale", Vector2.ONE, life)\
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
+		tween.tween_property(ray, "modulate:a", 0.0, life).set_delay(life * 0.18)
+		tween.chain().tween_callback(ray.queue_free)
+
+
+## Low, soft puffs that anchor impacts to the ground. These are translucent
+## octagons rather than opaque particles, keeping busy lanes readable.
+func dust(at: Vector2, colour: Color, count: int = 6, radius: float = 54.0) -> void:
+	if world == null:
+		return
+	for i: int in count:
+		var puff := Polygon2D.new()
+		var points: PackedVector2Array = []
+		var size: float = randf_range(5.0, 10.0)
+		for point: int in 8:
+			points.append(Vector2.RIGHT.rotated(TAU * float(point) / 8.0) \
+				* size * randf_range(0.82, 1.15))
+		puff.polygon = points
+		puff.color = Color(colour.r, colour.g, colour.b, minf(colour.a, 0.42))
+		puff.z_index = Balance.VFX_Z - 1
+		_track(puff)
+		var direction := Vector2.RIGHT.rotated(TAU * float(i) / float(maxi(count, 1)) \
+			+ randf_range(-0.35, 0.35))
+		puff.global_position = at + direction * randf_range(4.0, 14.0)
+		var life: float = Balance.VFX_DUST_LIFE * randf_range(0.8, 1.25)
+		var tween: Tween = puff.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(puff, "global_position",
+			at + direction * radius * randf_range(0.65, 1.1), life)\
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tween.tween_property(puff, "scale", Vector2.ONE * randf_range(1.6, 2.5), life)
+		tween.tween_property(puff, "modulate:a", 0.0, life)
+		tween.chain().tween_callback(puff.queue_free)
+
+
+## One authored-feeling construction beat shared by new towers and upgrades.
+func build_burst(at: Vector2, colour: Color, upgrade: bool = false) -> void:
+	dust(at, Color(0.36, 0.28, 0.18, 0.38), 8 if upgrade else 6,
+		76.0 if upgrade else 58.0)
+	rays(at, colour.lerp(Color.WHITE, 0.45), 10 if upgrade else 7,
+		88.0 if upgrade else 62.0, PI * 0.125)
+	ring(at, 132.0 if upgrade else 88.0, Color(colour, 0.72),
+		0.46 if upgrade else 0.34, 5.0)
+	flash_at(at, colour, 38.0 if upgrade else 28.0)
+	EventBus.camera_shake_requested.emit(
+		Balance.VFX_BUILD_SHAKE * (1.5 if upgrade else 1.0), 0.24)
+
+
+## World-space phase title; short enough to read without covering combat.
+func word(at: Vector2, text: String, colour: Color, size: int = 28) -> void:
+	if world == null or text.is_empty():
+		return
+	var label := Label.new()
+	label.text = text.to_upper()
+	label.custom_minimum_size = Vector2(240.0, 48.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.025, 0.95))
+	label.add_theme_constant_override("outline_size", 8)
+	label.z_index = Balance.VFX_Z + 2
+	_track(label)
+	label.global_position = at + Vector2(-120.0, -94.0)
+	label.scale = Vector2.ONE * 0.72
+	var tween: Tween = label.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "global_position", label.global_position + Vector2(0.0, -52.0), 0.75)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.18)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(label, "modulate:a", 0.0, 0.75).set_delay(0.28)
+	tween.chain().tween_callback(label.queue_free)
+
+
 ## A wedge sweeping through the hero's swing arc.
 func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, colour: Color) -> void:
 	if world == null:
@@ -377,11 +479,34 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
 		320.0 if finisher else 220.0)
 	if finisher:
 		ring(at, 70.0, Color(1.0, 0.82, 0.5, 0.55), 0.3, 5.0)
+		rays(at + aim * 46.0, Color(1.0, 0.9, 0.67, 0.85), 9, 68.0, aim.angle())
+		flash_at(at + aim * 54.0, Color("ffd99b"), 22.0)
 
 
-func _on_enemy_died(_enemy_id: String, at: Vector2) -> void:
-	spark(at, Color("c96a4a"), 10, Vector2.ZERO, 200.0)
-	ring(at, 34.0, Color(0.85, 0.45, 0.3, 0.4), 0.28, 3.0)
+func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
+	var data: EnemyData = ContentDB.enemy(enemy_id)
+	var colour := Color("c96a4a")
+	var spark_count: int = 10
+	var radius: float = 34.0
+	if data != null:
+		match data.category:
+			EnemyData.Category.ELITE:
+				colour = Color("f2a85d")
+				spark_count = 18
+				radius = 56.0
+			EnemyData.Category.BOSS:
+				colour = Color("ff6b6b")
+				spark_count = 34
+				radius = 104.0
+			_:
+				pass
+	spark(at, colour, spark_count, Vector2.ZERO, 220.0 + radius)
+	dust(at, Color(0.34, 0.22, 0.18, 0.34), 4 + spark_count / 5, radius * 0.9)
+	ring(at, radius, Color(colour, 0.48), 0.28 + radius / 500.0, 3.0 + radius / 35.0)
+	flash_at(at, colour, 14.0 + radius * 0.18)
+	if data != null and data.category != EnemyData.Category.BREED:
+		rays(at, colour.lerp(Color.WHITE, 0.42), 8 if data.category == EnemyData.Category.ELITE else 16,
+			radius * 1.25)
 
 
 func _on_hero_damaged(amount: float, from: Vector2) -> void:
@@ -420,10 +545,47 @@ func _burst_town_damage(amount: float) -> void:
 func _on_spell_cast(_spell_id: String, _slot: int, at: Vector2) -> void:
 	ring(at, 120.0, Color(0.72, 0.62, 0.95, 0.6), 0.45, 5.0)
 	spark(at, Color("b8a8f0"), 14, Vector2.ZERO, 300.0)
+	rays(at, Color(0.88, 0.82, 1.0, 0.8), 12, 102.0, PI * 0.125)
+	flash_at(at, Color("cbbdff"), 34.0)
+
+
+func _on_wave_started(_wave_number: int, lanes: Array) -> void:
+	for value: Variant in lanes:
+		var lane: int = int(value)
+		var at: Vector2 = Battlefield.lane_spawn_point(lane)
+		var inward: Vector2 = -Battlefield.lane_vector(lane)
+		dust(at, Color(0.48, 0.35, 0.22, 0.3), 5, 48.0)
+		ring(at, 46.0, Color(1.0, 0.42, 0.22, 0.42), 0.3, 3.0)
+		spark(at, Color("ff9a58"), 5, inward, 135.0)
 
 
 func _on_boss_spawned(_boss_id: String, _act: int) -> void:
 	flash(Color(0.6, 0.1, 0.1), 0.5, 1.0)
+
+
+func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> void:
+	var at := Vector2.ZERO
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy != null and enemy.data != null and enemy.data.id == boss_id:
+			at = enemy.global_position
+			break
+	var colour := Color("ffb05f") if phase <= 1 else Color("ff5f8f")
+	flash(colour, 0.34, 0.48)
+	rays(at, colour.lerp(Color.WHITE, 0.35), 14, 142.0, float(phase) * 0.2)
+	ring(at, 168.0, Color(colour, 0.75), 0.58, 7.0)
+	ring(at, 96.0, Color(1.0, 0.92, 0.78, 0.68), 0.34, 4.0)
+	dust(at, Color(0.4, 0.18, 0.16, 0.38), 12, 118.0)
+	word(at, phase_name, colour, 31)
+	EventBus.camera_shake_requested.emit(Balance.VFX_BOSS_PHASE_SHAKE, 0.48)
+
+
+func _on_construction_completed(_building_id: String, _tier: int) -> void:
+	flash(Color(1.0, 0.72, 0.3), 0.16, 0.32)
+
+
+func _on_relic_socketed(_relic_id: String) -> void:
+	flash(Color(0.68, 0.5, 1.0), 0.14, 0.3)
 
 
 func _on_horn(_duration: float) -> void:

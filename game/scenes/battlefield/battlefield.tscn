@@ -52,3 +52,4 @@ script = ExtResource("8_wave")
 script = ExtResource("9_cam")
 target = NodePath("../EntityRoot/Hero")
 zoom_level = 0.62
+beast_motion = true

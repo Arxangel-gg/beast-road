@@ -140,10 +140,7 @@ func upgrade_to(new_level: int) -> void:
 	# The upgrade gets a moment of its own. Paying resources should feel like
 	# something happened, not like a number changed in a panel.
 	var colour: Color = TowerData.element_colour(data.element)
-	Vfx.spark(global_position, colour, 14, Vector2.ZERO, 240.0)
-	Vfx.ring(global_position, 120.0, Color(colour, 0.8), 0.5, 5.0)
-	Vfx.flash_at(global_position, colour, 34.0)
-	EventBus.camera_shake_requested.emit(6.0, 0.25)
+	Vfx.build_burst(global_position, colour, true)
 
 
 ## A higher tower is bigger, warmer and brighter. Level has to read at a glance
