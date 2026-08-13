@@ -18,6 +18,20 @@ $script:BalancePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts
 $script:SfxPath     = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\autoload\Sfx.gd'
 $script:ProjectPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\project.godot'
 
+# Balance.gd is no longer the only file holding tunable constants. These carry
+# the same `const NAME: type = value` shape and are just as much dev-side values
+# somebody wants to nudge - the UI padding especially, which gets argued about a
+# pixel at a time and should not need a code edit to try.
+#
+# Deliberately not every file with constants in it: only ones whose values can
+# change without also changing code that reasons about them.
+$script:ExtraSources = @(
+    @{ Path    = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts\systems\ui_metrics.gd'
+       Section = 'UI padding' }
+    @{ Path    = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts\systems\graphics.gd'
+       Section = 'Graphics quality' }
+)
+
 function Get-ValueKind {
     param([string]$Type, [string]$Raw)
     if ($Type -eq 'bool') { return 'bool' }
@@ -46,8 +60,10 @@ function Save-SourceLines {
 # --- Balance.gd -------------------------------------------------------------
 
 function Read-BalanceEntries {
-    if (-not (Test-Path $script:BalancePath)) { return @() }
-    $lines = Get-Content -LiteralPath $script:BalancePath -Encoding UTF8
+    param([string]$Path = '', [string]$ForcedSection = '')
+    if (-not $Path) { $Path = $script:BalancePath }
+    if (-not (Test-Path $Path)) { return @() }
+    $lines = Get-Content -LiteralPath $Path -Encoding UTF8
     $entries = New-Object System.Collections.ArrayList
     $section = 'General'
     $doc = New-Object System.Collections.ArrayList
@@ -59,9 +75,14 @@ function Read-BalanceEntries {
         if ($line -match '^#\s*={10,}') {
             if ($i + 1 -lt $lines.Count -and $lines[$i + 1] -match '^#\s*(.+?)\s*$') {
                 $candidate = $Matches[1].Trim()
-                if ($candidate -notmatch '^={5,}$' -and $candidate.Length -gt 2) {
+                if ($candidate -notmatch '^={5,}$' -and $candidate.Length -gt 2 `
+                        -and -not $ForcedSection) {
                     # Drop the "- GDD SS3.1" suffix: useful in source, noise in a
                     # list of tuning groups.
+                    #
+                    # Skipped entirely for the extra sources, which are given one
+                    # section name by the caller - a banner inside them would
+                    # otherwise rename the group half way down.
                     $section = ($candidate -split '\s+[-\u2014]\s+')[0].Trim()
                 }
             }
@@ -84,6 +105,7 @@ function Read-BalanceEntries {
             $isAlias = $raw -match '^[A-Z][A-Z0-9_]*$'
             [void]$entries.Add([pscustomobject]@{
                 Source  = 'balance'
+                Path    = $Path
                 Section = $section
                 Name    = $constName
                 Type    = $constType
@@ -102,9 +124,10 @@ function Read-BalanceEntries {
 }
 
 function Write-BalanceValues {
-    param([hashtable]$Changes)
+    param([hashtable]$Changes, [string]$Path = '')
     if ($Changes.Count -eq 0) { return 0 }
-    $lines = Get-Content -LiteralPath $script:BalancePath -Encoding UTF8
+    if (-not $Path) { $Path = $script:BalancePath }
+    $lines = Get-Content -LiteralPath $Path -Encoding UTF8
     $written = 0
     for ($i = 0; $i -lt $lines.Count; $i++) {
         if ($lines[$i] -notmatch '^const\s+([A-Z0-9_]+)\s*:\s*([A-Za-z0-9\[\]]+)\s*=\s*(.+?)\s*$') { continue }
@@ -116,7 +139,7 @@ function Write-BalanceValues {
         $lines[$i] = "const {0}: {1} = {2}" -f $name, $type, $Changes[$name]
         $written++
     }
-    Save-SourceLines -Path $script:BalancePath -Lines $lines
+    Save-SourceLines -Path $Path -Lines $lines
     return $written
 }
 

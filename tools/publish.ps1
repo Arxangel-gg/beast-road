@@ -97,11 +97,69 @@ $pagePublish.Controls.Add($btn)
 $lblStage = New-Label '' 286 340 430 10 $cAmber
 
 # --- progress ----------------------------------------------------------------
-$bar                  = New-Object System.Windows.Forms.ProgressBar
-$bar.Location         = New-Object System.Drawing.Point(26, 390)
-$bar.Size             = New-Object System.Drawing.Size(690, 18)
-$bar.Style            = 'Continuous'
-$bar.Maximum          = 100
+#
+# Owner-drawn rather than a WinForms ProgressBar, because a ProgressBar cannot
+# carry text. Publishing takes five to eight minutes and spends most of it
+# waiting on a machine you cannot see, so a bar that only fills is a bar that
+# leaves you wondering whether anything is happening. This one says what step it
+# is on, what percent it is at and how long it has left, on the bar itself.
+
+$script:BarValue  = 0
+$script:BarStage  = ''
+$script:BarDetail = ''
+$script:BarEta    = ''
+$script:BarFailed = $false
+
+$bar                  = New-Object System.Windows.Forms.Panel
+$bar.Location         = New-Object System.Drawing.Point(26, 386)
+$bar.Size             = New-Object System.Drawing.Size(690, 30)
+$bar.BackColor        = [System.Drawing.Color]::FromArgb(8, 14, 16)
+# Panels flicker badly when repainted this often; DoubleBuffered is protected,
+# so reflection is the only way to reach it from PowerShell.
+[System.Windows.Forms.Control].GetProperty(
+    'DoubleBuffered', 'Instance,NonPublic').SetValue($bar, $true, $null)
+$bar.Add_Paint({
+    param($sender, $e)
+    $g = $e.Graphics
+    $g.SmoothingMode = 'AntiAlias'
+    $w = $sender.ClientSize.Width
+    $h = $sender.ClientSize.Height
+
+    $fill = [int]([Math]::Round($w * ([Math]::Max([Math]::Min($script:BarValue, 100), 0) / 100.0)))
+    if ($fill -gt 0) {
+        $top = if ($script:BarFailed) { $cRust } else { $cAmber }
+        $rect = New-Object System.Drawing.Rectangle(0, 0, $fill, $h)
+        $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+            $rect, $top, [System.Drawing.Color]::FromArgb(120, $top.R, $top.G, $top.B), 90.0)
+        $g.FillRectangle($brush, $rect)
+        $brush.Dispose()
+    }
+
+    $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(70, 62, 50))
+    $g.DrawRectangle($pen, 0, 0, $w - 1, $h - 1)
+    $pen.Dispose()
+
+    # Percent on the left, step in the middle, time remaining on the right - so
+    # each answers a different question and none of them move as the bar fills.
+    $font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+    $ink = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(232, 226, 212))
+    $fmtL = New-Object System.Drawing.StringFormat
+    $fmtL.LineAlignment = 'Center'
+    $fmtC = New-Object System.Drawing.StringFormat
+    $fmtC.Alignment = 'Center'; $fmtC.LineAlignment = 'Center'; $fmtC.Trimming = 'EllipsisCharacter'
+    $fmtC.FormatFlags = [System.Drawing.StringFormatFlags]::NoWrap
+    $fmtR = New-Object System.Drawing.StringFormat
+    $fmtR.Alignment = 'Far'; $fmtR.LineAlignment = 'Center'
+
+    $box = New-Object System.Drawing.RectangleF(10, 0, ($w - 20), $h)
+    $g.DrawString(("{0}%" -f [int]$script:BarValue), $font, $ink, $box, $fmtL)
+    $middle = $script:BarStage
+    if ($script:BarDetail) { $middle = "$middle  -  $($script:BarDetail)" }
+    $g.DrawString($middle, $font, $ink, $box, $fmtC)
+    if ($script:BarEta) { $g.DrawString($script:BarEta, $font, $ink, $box, $fmtR) }
+
+    $font.Dispose(); $ink.Dispose()
+})
 $pagePublish.Controls.Add($bar)
 
 # --- log ---------------------------------------------------------------------
@@ -131,9 +189,84 @@ function Write-Log($msg) {
     $log.ScrollToCaret()
     [System.Windows.Forms.Application]::DoEvents()
 }
-function Set-Stage($text, $pct) {
+# How long each step usually takes, in seconds. Not guesses: these are what the
+# publish log has been showing across the releases so far.
+#
+# A simple "elapsed / percent" extrapolation is useless here, because the steps
+# are wildly uneven - tagging is instant and the GitHub build is five minutes -
+# so early progress would predict a finish that never arrives. Weighting each
+# step and then correcting by how the finished ones actually went gives an
+# estimate that is roughly right at the start and accurate by the middle.
+$script:StageWeights = [ordered]@{
+    'check'    = 3
+    'validate' = 150
+    'commit'   = 6
+    'push'     = 12
+    'tag'      = 8
+    'build'    = 330
+    'verify'   = 20
+}
+$script:StageOrder   = @('check', 'validate', 'commit', 'push', 'tag', 'build', 'verify')
+$script:StageStarted = @{}
+$script:RunStarted   = $null
+$script:StageKey     = ''
+
+
+function Format-Duration([double]$seconds) {
+    if ($seconds -lt 0) { $seconds = 0 }
+    if ($seconds -lt 60) { return ('{0:N0}s' -f $seconds) }
+    $m = [Math]::Floor($seconds / 60)
+    $s = [int]($seconds - ($m * 60))
+    return ('{0}m {1:00}s' -f $m, $s)
+}
+
+
+## Seconds still expected, from the weights and how the finished steps went.
+function Get-EtaSeconds {
+    if (-not $script:StageKey) { return -1 }
+    $index = [Array]::IndexOf($script:StageOrder, $script:StageKey)
+    if ($index -lt 0) { return -1 }
+
+    $doneWeight = 0
+    for ($i = 0; $i -lt $index; $i++) { $doneWeight += $script:StageWeights[$script:StageOrder[$i]] }
+
+    $elapsed = ((Get-Date) - $script:RunStarted).TotalSeconds
+    # Correction factor: this machine and this connection against the expected
+    # pace. Clamped so one slow step cannot predict an absurd finish.
+    $pace = 1.0
+    if ($doneWeight -gt 0) {
+        $inStage = ((Get-Date) - $script:StageStarted[$script:StageKey]).TotalSeconds
+        $pace = [Math]::Max([Math]::Min((($elapsed - $inStage) / $doneWeight), 3.0), 0.4)
+    }
+
+    $remaining = 0
+    for ($i = $index; $i -lt $script:StageOrder.Count; $i++) {
+        $remaining += $script:StageWeights[$script:StageOrder[$i]]
+    }
+    $inCurrent = ((Get-Date) - $script:StageStarted[$script:StageKey]).TotalSeconds
+    return [Math]::Max(($remaining * $pace) - $inCurrent, 0)
+}
+
+
+function Set-Stage($text, $pct, $key = '', $detail = '') {
+    if ($key -and $key -ne $script:StageKey) {
+        $script:StageKey = $key
+        $script:StageStarted[$key] = Get-Date
+        if (-not $script:RunStarted) { $script:RunStarted = Get-Date }
+    }
     $lblStage.Text = $text
-    $bar.Value = [Math]::Min([Math]::Max($pct, 0), 100)
+    $script:BarStage  = $text
+    $script:BarDetail = $detail
+    $script:BarValue  = [Math]::Min([Math]::Max($pct, 0), 100)
+
+    $eta = Get-EtaSeconds
+    if ($eta -ge 0 -and $script:BarValue -lt 100) {
+        $script:BarEta = "about $(Format-Duration $eta) left"
+    } elseif ($script:BarValue -ge 100) {
+        $total = if ($script:RunStarted) { ((Get-Date) - $script:RunStarted).TotalSeconds } else { 0 }
+        $script:BarEta = "done in $(Format-Duration $total)"
+    }
+    $bar.Invalidate()
     [System.Windows.Forms.Application]::DoEvents()
 }
 
@@ -157,6 +290,30 @@ function Suggest-Version {
 
 $suggested, $latestTag = Suggest-Version
 $txtVersion.Text = $suggested
+## What the finished package is likely to weigh.
+##
+## The packaging happens on GitHub, not here, so there is nothing local to
+## measure while it runs. The previous release's asset sizes are the honest
+## estimate - the archive changes by a megabyte or two between builds, not by an
+## order of magnitude - and saying "about 89 MB, from v0.3.9" is far better than
+## a progress bar that reveals the size only once there is nothing left to wait
+## for.
+$script:SizeEstimate = ''
+$script:LastSizes = $null
+try {
+    $prev = Invoke-RestMethod -TimeoutSec 10 `
+        -Uri "https://api.github.com/repos/$Owner/$Repo/releases/latest" `
+        -Headers @{ 'User-Agent' = 'BeastRoadPublisher' }
+    $pg = $prev.assets | Where-Object { $_.name -eq 'BeastRoad-windows.zip' } | Select-Object -First 1
+    $pl = $prev.assets | Where-Object { $_.name -eq 'BeastRoadLauncher.exe' } | Select-Object -First 1
+    if ($pg -and $pl) {
+        $script:LastSizes = @{ Tag = $prev.tag_name; Game = $pg.size; Launcher = $pl.size }
+        $script:SizeEstimate = ('about {0:N0} MB' -f (($pg.size + $pl.size) / 1MB))
+    }
+} catch {
+    # No network, or a first release. The bar simply carries no estimate.
+}
+
 $dirty = (Invoke-Git @('status', '--porcelain')).Text.Trim()
 $changeCount = if ($dirty) { @($dirty -split "`n").Count } else { 0 }
 $lblCurrent.Text = "Latest local tag: $latestTag     Uncommitted changes: $changeCount"
@@ -175,7 +332,7 @@ $btn.Add_Click({
     $log.Clear()
 
     try {
-        Set-Stage 'Checking the repository...' 5
+        Set-Stage 'Checking the repository' 3 'check'
         $remote = (Invoke-Git @('remote', 'get-url', 'origin'))
         if ($remote.Code -ne 0) { throw "No 'origin' remote. Publish the repo in GitHub Desktop first." }
         Write-Log "remote: $($remote.Text.Trim())"
@@ -188,7 +345,7 @@ $btn.Add_Click({
         # Validate the exact working tree before it is committed and before an
         # immutable version tag is spent. These must run sequentially: two
         # local Godot processes can race while rotating the same AppData log.
-        Set-Stage 'Validating the game and launcher...' 10
+        Set-Stage 'Validating the game and launcher' 8 'validate'
         $godotDir = Join-Path $RepoRoot 'Godot_v4.7.1-stable_win64.exe'
         $godot = Get-ChildItem -LiteralPath $godotDir -Filter '*_console.exe' -File -ErrorAction SilentlyContinue |
             Select-Object -First 1
@@ -214,7 +371,7 @@ $btn.Add_Click({
         # screen rather than the last time someone remembered to commit.
         $pending = (Invoke-Git @('status', '--porcelain')).Text.Trim()
         if ($pending) {
-            Set-Stage 'Committing your changes...' 20
+            Set-Stage 'Committing your changes' 30 'commit'
             $n = @($pending -split "`n").Count
             Write-Log "committing $n changed file(s)"
             $add = Invoke-Git @('add', '-A')
@@ -228,14 +385,14 @@ $btn.Add_Click({
             Write-Log 'nothing to commit, tree is clean'
         }
 
-        Set-Stage 'Pushing to GitHub...' 30
+        Set-Stage 'Pushing to GitHub' 34 'push'
         $branch = (Invoke-Git @('rev-parse', '--abbrev-ref', 'HEAD')).Text.Trim()
         $p = Invoke-Git @('push', 'origin', $branch)
         if ($p.Code -ne 0) { throw "push failed:`n$($p.Text)" }
         Write-Log "pushed $branch"
         $commitSha = (Invoke-Git @('rev-parse', 'HEAD')).Text.Trim()
 
-        Set-Stage 'Tagging the release...' 40
+        Set-Stage 'Tagging the release' 38 'tag'
         $notes = $txtNotes.Text.Trim()
         if (-not $notes) { $notes = "Beast Road $tag" }
         $t = Invoke-Git @('tag', '-a', $tag, '-m', $notes)
@@ -245,7 +402,11 @@ $btn.Add_Click({
         Write-Log "pushed $tag - GitHub is building now"
 
         # --- watch the build ---
-        Set-Stage 'Building on GitHub (this takes a few minutes)...' 50
+        Set-Stage 'Building on GitHub' 42 'build' $script:SizeEstimate
+        if ($script:SizeEstimate) {
+            Write-Log ("packaging - estimated {0} based on {1}" -f `
+                $script:SizeEstimate, $script:LastSizes.Tag)
+        }
         $api = "https://api.github.com/repos/$Owner/$Repo/actions/workflows/release.yml/runs?event=push&per_page=20"
         $headers = @{ 'User-Agent' = 'BeastRoadPublisher' }
         $done = $false
@@ -279,13 +440,14 @@ $btn.Add_Click({
                 }
                 break
             }
-            Set-Stage "Building on GitHub... ($($run.status))" ([Math]::Min(50 + $i * 3, 95))
+            Set-Stage "Building on GitHub ($($run.status))" `
+                ([Math]::Min(42 + $i * 2, 92)) 'build' $script:SizeEstimate
         }
         if (-not $done) { throw 'timed out waiting for the build. Check the Actions tab.' }
 
         # A successful job is not the player-facing finish line. Confirm that
         # GitHub's release API can see both files the launcher depends on.
-        Set-Stage 'Verifying the published files...' 98
+        Set-Stage 'Verifying the published files' 94 'verify'
         $releaseApi = "https://api.github.com/repos/$Owner/$Repo/releases/tags/$tag"
         $releaseReady = $false
         for ($i = 0; $i -lt 30; $i++) {
@@ -310,9 +472,19 @@ $btn.Add_Click({
             throw "the build succeeded, but GitHub did not publish both release files for $tag"
         }
 
-        Set-Stage 'Published.' 100
-        Write-Log ("verified game archive ({0:N1} MB) and launcher ({1:N1} MB)" -f `
-            ($gameAsset.size / 1MB), ($launcherAsset.size / 1MB))
+        Set-Stage 'Published' 100 'verify'
+        $totalMb = ($gameAsset.size + $launcherAsset.size) / 1MB
+        $script:BarDetail = ('{0:N0} MB packaged' -f $totalMb)
+        $bar.Invalidate()
+        Write-Log ("verified game archive ({0:N1} MB) and launcher ({1:N1} MB) - {2:N0} MB total" -f `
+            ($gameAsset.size / 1MB), ($launcherAsset.size / 1MB), $totalMb)
+        if ($script:LastSizes) {
+            # The delta is the useful number: a package that suddenly grows by
+            # fifty megabytes usually means something was committed that should
+            # not have been.
+            $delta = $totalMb - (($script:LastSizes.Game + $script:LastSizes.Launcher) / 1MB)
+            Write-Log ("{0:+#,0.0;-#,0.0;0} MB against {1}" -f $delta, $script:LastSizes.Tag)
+        }
 
         Write-Log ''
         Write-Log "Players will be offered $tag the next time they open the launcher."
@@ -323,7 +495,8 @@ $btn.Add_Click({
         $bar.ForeColor = $cGreen
     }
     catch {
-        Set-Stage 'Failed.' 0
+        $script:BarFailed = $true
+        Set-Stage 'Failed' $script:BarValue
         Write-Log ''
         Write-Log "ERROR: $_"
     }
@@ -441,6 +614,9 @@ function New-TuningTab {
     # --- data ---
     $script:AllEntries = @()
     $script:AllEntries += Read-BalanceEntries
+    foreach ($src in $script:ExtraSources) {
+        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
+    }
     $script:AllEntries += Read-SfxEntries
 
     function script:Rebuild-Tree {
@@ -459,7 +635,8 @@ function New-TuningTab {
 
     function script:Add-Row {
         param($Parent, [int]$Y, [string]$Label, [string]$Value, [string]$Help,
-              [string]$Key, [string]$Kind, [bool]$ReadOnly, $Choices)
+              [string]$Key, [string]$Kind, [bool]$ReadOnly, $Choices,
+              [string]$SourcePath = '')
 
         $name = New-Object System.Windows.Forms.Label
         $name.Text = $Label
@@ -491,7 +668,7 @@ function New-TuningTab {
         $box.ForeColor = $cBone
         $box.Font = New-Object System.Drawing.Font('Consolas', 10)
         $box.Enabled = -not $ReadOnly
-        $box.Tag = @{ Key = $Key; Kind = $Kind; Original = $Value }
+        $box.Tag = @{ Key = $Key; Kind = $Kind; Original = $Value; Path = $SourcePath }
         $Parent.Controls.Add($box)
         $script:Editors[$Key] = $box
 
@@ -549,7 +726,7 @@ function New-TuningTab {
             } else {
                 $y = Add-Row -Parent $script:scroll -Y $y -Label $e.Name -Value $e.Raw `
                     -Help $e.Help -Key ("bal::" + $e.Name) -Kind $e.Kind `
-                    -ReadOnly $e.ReadOnly -Choices @()
+                    -ReadOnly $e.ReadOnly -Choices @() -SourcePath $e.Path
             }
         }
         if ($rows.Count -eq 0) {
@@ -572,6 +749,9 @@ function New-TuningTab {
     $btnReload.Add_Click({
         $script:AllEntries = @()
         $script:AllEntries += Read-BalanceEntries
+    foreach ($src in $script:ExtraSources) {
+        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
+    }
         $script:AllEntries += Read-SfxEntries
         Rebuild-Tree
         $script:lblSaved.Text = 'Reloaded from disk.'
@@ -579,6 +759,7 @@ function New-TuningTab {
 
     $btnSave.Add_Click({
         $balance = @{}
+        $byPath = @{}
         $sfx = @{}
         $project = @{}
         $bad = New-Object System.Collections.ArrayList
@@ -597,7 +778,15 @@ function New-TuningTab {
                 'float' { if ($text -notmatch '^-?[0-9]*\.?[0-9]+$') { [void]$bad.Add("$key must be a number") } }
                 'bool'  { if ($text -notin @('true','false')) { [void]$bad.Add("$key must be true or false") } }
             }
-            if ($key.StartsWith('bal::')) { $balance[$key.Substring(5)] = $text }
+            if ($key.StartsWith('bal::')) {
+                $balance[$key.Substring(5)] = $text
+                # Remembered per file, because a constant may now live in
+                # Balance.gd, ui_metrics.gd or graphics.gd and each has to be
+                # written back to the file it actually came from.
+                $owner = if ($meta.Path) { $meta.Path } else { $script:BalancePath }
+                if (-not $byPath.ContainsKey($owner)) { $byPath[$owner] = @{} }
+                $byPath[$owner][$key.Substring(5)] = $text
+            }
             elseif ($key.StartsWith('sfx::')) { $sfx[$key.Substring(5)] = $text }
             elseif ($key.StartsWith('proj::')) { $project[$key.Substring(6)] = ($text -split ' ')[0] }
         }
@@ -611,12 +800,20 @@ function New-TuningTab {
             return
         }
 
-        $n1 = Write-BalanceValues -Changes $balance
+        # Grouped by the file each value came from, so a padding change writes to
+        # ui_metrics.gd and a balance change writes to Balance.gd.
+        $n1 = 0
+        foreach ($path in ($byPath.Keys)) {
+            $n1 += Write-BalanceValues -Changes $byPath[$path] -Path $path
+        }
         $n2 = Write-SfxValues -Changes $sfx
         foreach ($k in $project.Keys) { Write-ProjectValue -Key $k -Value $project[$k] }
 
         $script:AllEntries = @()
         $script:AllEntries += Read-BalanceEntries
+    foreach ($src in $script:ExtraSources) {
+        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
+    }
         $script:AllEntries += Read-SfxEntries
         if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
         $script:lblSaved.Text = ("Saved: {0} balance, {1} sounds, {2} settings." -f $n1, $n2, $project.Count)
