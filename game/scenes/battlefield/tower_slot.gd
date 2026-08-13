@@ -14,7 +14,12 @@ const GROUP: StringName = &"tower_slots"
 signal clicked(lane: int, slot: int)
 
 ## Size of the invisible click target over the marker.
-const HIT_SIZE: float = 120.0
+##
+## Sized to the marker rather than generously around it. A click target that
+## reaches past the art it represents is a target that catches clicks meant for
+## something else — here, enemies walking down the road beside it. See
+## Balance.TOWER_SLOT_OFFSET for the full geometry.
+const HIT_SIZE: float = 96.0
 
 @export var marker: Sprite2D
 @export var tower_root: Node2D

@@ -21,14 +21,27 @@ const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 ## Frame drawn behind each spell slot.
 const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 
-## Build panel geometry. Wide enough for two tower cards side by side, which is
-## what removes the scrollbar.
-const BUILD_PANEL_WIDTH: float = 640.0
-const BUILD_CARD_WIDTH: float = 286.0
+## Build panel geometry.
+##
+## One row of eight. Two rows of four fitted, but a grid asks the eye to scan in
+## two directions to compare eight things that are all the same kind of thing —
+## a single strip reads left to right once and is done. Eight cards plus gaps and
+## frame come to ~1400 of the 1920 the UI is laid out in, so it fits at any
+## window size (the stretch mode scales the whole canvas, not the layout).
+const BUILD_CARD_WIDTH: float = 158.0
+const BUILD_CARD_HEIGHT: float = 112.0
+
+## Kept narrow enough not to wall off the battlefield, and wide enough that the
+## upgrade view - which is a short column, not a row - does not become a sliver.
+const BUILD_PANEL_MIN_WIDTH: float = 560.0
+
+## Clearance above the scope and spell bars along the bottom of the screen.
+const BUILD_PANEL_BOTTOM_GAP: float = 116.0
 
 ## Reserved height for the hover description, so the panel does not resize as the
-## cursor moves across the grid.
-const BUILD_DETAIL_HEIGHT: float = 56.0
+## cursor moves along the row. One line is enough now the panel is wide enough
+## for a description to fit on one.
+const BUILD_DETAIL_HEIGHT: float = 30.0
 
 @export var battlefield: Battlefield
 
@@ -341,12 +354,19 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 ## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
-	_build_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_build_panel.offset_left = -BUILD_PANEL_WIDTH - 32.0
-	_build_panel.offset_right = -32.0
+	# Bottom centre, not centre right. A row of eight is wide, and hanging it off
+	# the right edge would push it across the eastern lane - the one place the
+	# player must keep watching while they decide what to build.
+	_build_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_build_panel.offset_left = 0.0
+	_build_panel.offset_right = 0.0
 	_build_panel.offset_top = 0.0
-	_build_panel.offset_bottom = 0.0
-	_build_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_build_panel.offset_bottom = -BUILD_PANEL_BOTTOM_GAP
+	# Both axes size to content, so the wide build row and the narrow upgrade
+	# column each get the box they need instead of sharing one compromise.
+	_build_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_build_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_build_panel.custom_minimum_size = Vector2(BUILD_PANEL_MIN_WIDTH, 0.0)
 	_build_panel.visible = false
 	add_child(_build_panel)
 
@@ -716,16 +736,15 @@ func _refresh_build_panel() -> void:
 		_set_build_detail_visible(true)
 		return
 
-	# Two columns. Eight towers stacked vertically is what needed the scrollbar;
-	# four rows of two is a little over half the height and reads faster, because
-	# the eye compares across a grid rather than travelling down a list.
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 8)
-	for tower: TowerData in ContentDB.base_towers():
-		grid.add_child(_tower_card(tower, lane, slot))
-	_build_list.add_child(grid)
+	# One row, however many towers there are. A row that silently became two would
+	# be worse than a grid, so the column count is the tower count.
+	var towers: Array[TowerData] = ContentDB.base_towers()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	for tower: TowerData in towers:
+		row.add_child(_tower_card(tower, lane, slot))
+	_build_list.add_child(row)
 	_set_build_detail_visible(true)
 
 
@@ -808,9 +827,27 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 
 	var button := Button.new()
 	button.text = "%s\n%d" % [tower.display_name, cost]
-	button.custom_minimum_size = Vector2(BUILD_CARD_WIDTH, 70.0)
-	button.icon = IconKit.element_sized(tower.element, 30)
-	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.custom_minimum_size = Vector2(BUILD_CARD_WIDTH, BUILD_CARD_HEIGHT)
+	button.icon = IconKit.element_sized(tower.element, 40)
+	# Icon above the label rather than beside it. Side by side, the longest name
+	# in the set ("Hoarfrost Bell") sets the width of all eight and the row runs
+	# off the screen; stacked, the element reads first and the card stays compact.
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	# Both alignments, not just one. `alignment` positions the text; the icon has
+	# its own axis and defaults to the left edge, which left every element mark
+	# pinned to the corner of its card while the name sat centred beneath it.
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# The theme's button padding is sized for a wide bar and would eat a card this
+	# narrow, so the cards carry their own.
+	for state: String in ["normal", "hover", "pressed", "disabled"]:
+		var style: StyleBox = button.get_theme_stylebox(state, "Button").duplicate()
+		style.content_margin_left = 8.0
+		style.content_margin_right = 8.0
+		style.content_margin_top = 10.0
+		style.content_margin_bottom = 8.0
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_font_size_override("font_size", 14)
 	button.focus_mode = Control.FOCUS_NONE
 	button.disabled = not affordable
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))

@@ -28,11 +28,11 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 68
+const ENEMY_WALK_SPEED: float = 65
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
-const TOWER_RANGE: float = 260
+const TOWER_RANGE: float = 270
 
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
@@ -375,7 +375,23 @@ const COMBO_SLOT_INDEX: int = 1
 
 ## How far a build spot sits to the side of the lane centre line, so towers
 ## flank the path instead of standing in it.
-const TOWER_SLOT_OFFSET: float = 96.0
+## How far to the side of the lane centre a build spot stands.
+##
+## This is a *click* problem before it is a layout one. The spot's hit target is
+## TowerSlot.HIT_SIZE square and centred here, so the geometry that matters is:
+##
+##     road half-width          88   (LANE_WIDTH 110 * LANE_ROAD_SCALE 1.6 / 2)
+##     enemies walk within     +-55  (LANE_WIDTH * 0.5)
+##     hit target near edge     offset - HIT_SIZE/2
+##
+## At the old 96 with a 120px target the near edge sat 36px from the centre line
+## — inside the corridor enemies walk down. Swinging at something on the near
+## side of the road hit the build spot instead and threw the build panel open
+## mid-wave.
+##
+## 158 with a 96px target puts the near edge at 110: clear of the road by 22px
+## and of the enemy corridor by 55px. [TUNE]
+const TOWER_SLOT_OFFSET: float = 158.0
 
 ## Enemies drift up to this far from the lane centre line, so a wave reads as a
 ## column rather than a single-file queue.
@@ -993,10 +1009,15 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## covers the thing the player is trying to click. [TUNE]
 const TORCH_ALONG_STOPS: Array[float] = [250.0, 430.0, 630.0]
 
-## How far to the side of the lane centre they stand. Well clear of the road
-## (half-width 88) and of the towers (offset 96 plus their own half-width), so a
-## torch never overlaps a build spot. [TUNE]
-const TORCH_LANE_OFFSET: float = 215.0
+## How far to the side of the lane centre they stand.
+##
+## Moved out with the build spots. When TOWER_SLOT_OFFSET went from 96 to 158 to
+## get the click targets off the road, the towers arrived where the torches were
+## standing - 215 was chosen to clear a tower at 96 and clears nothing at 158.
+##
+## A tower sprite is ~192 wide, so its edge reaches 158 + 96 = 254. 300 keeps the
+## flames outside that with room to spare. [TUNE]
+const TORCH_LANE_OFFSET: float = 300.0
 
 ## Height of the post and of the fire on top of it. Sized against the camera, not
 ## against realism: at battlefield zoom a 34px torch was a lit matchstick, and a
