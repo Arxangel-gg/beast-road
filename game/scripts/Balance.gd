@@ -20,7 +20,7 @@ extends Node
 const TOWER_SLOT_RADIUS: float = 270
 
 ## Radius of the arena edge; enemies spawn on this ring. [TUNE]
-const ENEMY_SPAWN_RADIUS: float = 850
+const ENEMY_SPAWN_RADIUS: float = 720
 
 ## Hero base movement speed. The GDD calls this the hero's most valuable stat:
 ## N tower -> S tower is ~2.5s, long enough that the choice costs something. [TUNE]
@@ -28,11 +28,11 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 65
+const ENEMY_WALK_SPEED: float = 38.5
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
-const TOWER_RANGE: float = 270
+const TOWER_RANGE: float = 325
 
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
@@ -182,6 +182,7 @@ const CAMERA_SMOOTHING_SPEED: float = 8.0
 ## How far the camera leans toward the mouse, as a fraction of the hero-to-mouse
 ## offset. Gives a little lookahead without taking control away.
 const CAMERA_MOUSE_LEAN: float = 0.19
+const CAMERA_MOUSE_LEAN_MAX: float = 300.0
 
 ## The battlefield is carried on a walking colossus. A very small elliptical
 ## camera drift sells that motion without moving collision geometry or making
@@ -205,11 +206,25 @@ const HERO_MAX_HP: float = 100.0
 ## trap, but the cost has to be legible.
 const HERO_ATTACK_MOVE_SCALE: float = 0.38
 
-## Time from death to respawning at the arena centre.
-const HERO_RESPAWN_DELAY: float = 1.5
+## A lethal hit downs the hero before they return with an act-long Wound. [TUNE]
+const HERO_RESPAWN_DELAY: float = 8.0
+
+const HERO_WOUND_HP_PENALTY: float = 0.10
+const HERO_MAX_WOUNDS: int = 3
+const HERO_WOUND_REVIVE_HP: float = 0.50
+const HERO_DRAUGHT_REVIVE_HP: float = 0.40
+
+## The guaranteed Hearthmend repairs this fraction of the Town Hall before the
+## enhanced service choice. [TUNE]
+const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.12
 
 ## Grace period after respawning, so you are not instantly re-killed.
 const HERO_RESPAWN_INVULN: float = 1.5
+
+## Minimum time the initial and between-road Preparation state remains open.
+## The player must still confirm Ride On after this reaches zero. [TUNE]
+const PREPARATION_MIN_SECONDS: float = 18.0
+const ROAD_START_WARNING_SECONDS: float = 2.5
 
 ## Radius of the hero's body for contact and hurt checks.
 const HERO_BODY_RADIUS: float = 26.0
@@ -395,7 +410,7 @@ const TOWER_SLOT_OFFSET: float = 158.0
 
 ## Enemies drift up to this far from the lane centre line, so a wave reads as a
 ## column rather than a single-file queue.
-const LANE_WIDTH: float = 110.0
+const LANE_WIDTH: float = 120
 
 # ------------------------------------------------------------------------------
 # Towers — GDD §4
@@ -426,6 +441,31 @@ const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.10, 1.22, 1.36, 1.52]
 const TOWER_LEVEL_UTILITY: Array[float] = [1.0, 1.10, 1.22, 1.37, 1.55]
 const TOWER_LEVEL_RANGE: Array[float] = [1.0, 1.02, 1.05, 1.08, 1.12]
 
+# ------------------------------------------------------------------------------
+# Command — GDD v4 §15
+# ------------------------------------------------------------------------------
+
+const COMMAND_MAX: float = 100.0
+const COMMAND_CAUTION_PRESSURE: float = 0.35
+const COMMAND_HERO_HIT_GAIN: float = 2.5
+const COMMAND_PRIORITY_HIT_GAIN: float = 2.0
+const COMMAND_INTERRUPT_GAIN: float = 8.0
+const COMMAND_PERFECT_DODGE_GAIN: float = 12.0
+const COMMAND_PERFECT_DODGE_RADIUS: float = 150.0
+
+const COMMAND_OVERDRIVE_COST: float = 30.0
+const COMMAND_OVERDRIVE_DURATION: float = 5.0
+const COMMAND_OVERDRIVE_RATE: float = 1.60
+const COMMAND_OVERDRIVE_UTILITY: float = 0.25
+
+const COMMAND_RALLY_COST: float = 45.0
+const COMMAND_RALLY_STAGGER: float = 1.10
+const COMMAND_RALLY_SHIELD: float = 4.0
+
+const COMMAND_LAST_STAND_COST: float = 100.0
+const COMMAND_LAST_STAND_DURATION: float = 3.0
+const COMMAND_ORDER_COUNT: int = 3
+
 ## Refund fraction when a tower is sold. [TUNE]
 const TOWER_SELL_REFUND: float = 0.6
 
@@ -453,21 +493,21 @@ const WAVE_OPENING_DAMAGE_SCALE: Array[float] = [0.65, 0.75, 0.84, 0.92, 1.0]
 const WAVE_OPENING_SPEED_SCALE: Array[float] = [0.88, 0.93, 0.97, 1.0, 1.0]
 const WAVE_OPENING_INTERVAL_BONUS: Array[float] = [6.0, 4.0, 2.0, 0.0]
 const WAVE_OPENING_SUPPLIES: Array[int] = [0, 30, 45, 35]
-const WAVE_OPENING_SINGLE_LANE_WAVES: int = 3
+const WAVE_OPENING_SINGLE_LANE_WAVES: int = 4
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.24
+const WAVE_SPAWN_SPACING: float = 0.35
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
-const WAVE_BASE_COUNT: int = 5
-const WAVE_COUNT_GROWTH: float = 0.42
+const WAVE_BASE_COUNT: int = 3
+const WAVE_COUNT_GROWTH: float = 0.33
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.18, 1.38]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.28
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
 const WAVE_HP_GROWTH: float = 0.045
 const WAVE_DAMAGE_GROWTH: float = 0.022
-const WAVE_SPEED_GROWTH: float = 0.22
+const WAVE_SPEED_GROWTH: float = 0.19
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.72
 const WAVE_DARK_SPEED_WEIGHT: float = 0.16
 const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.70, 2.60]
@@ -484,7 +524,7 @@ const WAVE_INVADER_CHANCE: Array[float] = [0.0, 0.12, 0.22]
 
 ## Elites arrive as an increasing number of squad leaders, not one lottery roll
 ## per wave for the entire 45-minute run.
-const WAVE_ELITE_BASE_CHANCE: float = 0.32
+const WAVE_ELITE_BASE_CHANCE: float = 0.19
 const WAVE_ELITE_PROGRESS_BONUS: float = 1.60
 const WAVE_ELITE_ACT_BONUS: float = 0.45
 const WAVE_MAX_QUEUED: int = 420
@@ -555,7 +595,7 @@ const RESOURCE_PER_DISTANCE: float = 0.24
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.40
+const KILL_RESOURCE_SCALE: float = 0.45
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -606,7 +646,7 @@ const RAID_WINDOWS_BEFORE_CHIEFTAIN: int = 3
 
 ## Raid horde pacing. [TUNE]
 const RAID_SPAWN_INTERVAL: float = 0.55
-const RAID_MAX_ENEMIES: int = 90
+const RAID_MAX_ENEMIES: int = 72
 const RAID_ARENA_RADIUS: float = 700.0
 
 ## Reward fraction for leaving early, scaled by kills against this target. [TUNE]
@@ -617,7 +657,7 @@ const RAID_PARTIAL_REWARD_KILLS: int = 60
 # ------------------------------------------------------------------------------
 
 ## Seconds the studio splash holds before the menu. [TUNE]
-const SPLASH_DURATION: float = 1.8
+const SPLASH_DURATION: float = 1.25
 
 ## Crossfade between scopes. [TUNE]
 const SCOPE_FADE_TIME: float = 0.22

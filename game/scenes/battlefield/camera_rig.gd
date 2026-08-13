@@ -44,7 +44,11 @@ func _process(delta: float) -> void:
 	zoom = zoom.lerp(Vector2.ONE * _wanted_zoom, zoom_t)
 	if target != null and is_instance_valid(target):
 		var desired: Vector2 = target.global_position
-		var to_mouse: Vector2 = get_global_mouse_position() - target.global_position
+		# Windows may report the cursor millions of pixels outside the viewport
+		# during startup, alt-tab, or a display-mode change. Unbounded look-ahead
+		# turns that transient input into a camera teleport away from the game.
+		var to_mouse: Vector2 = (get_global_mouse_position() - target.global_position) \
+			.limit_length(Balance.CAMERA_MOUSE_LEAN_MAX)
 		desired += to_mouse * Balance.CAMERA_MOUSE_LEAN
 		# Frame-rate independent exponential smoothing. A plain lerp by
 		# `speed * delta` changes feel with frame rate; this does not.

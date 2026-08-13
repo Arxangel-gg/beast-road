@@ -1,5 +1,7 @@
 extends Node
 
+const CommandSystemScript = preload("res://scripts/systems/command_system.gd")
+
 ## Headless regression test for the production difficulty/economy curve.
 ## It checks the two failure modes this pass fixes: Act 2 becoming easier than
 ## the player's build, and the upgrade economy ending before the first boss.
@@ -13,6 +15,10 @@ func _ready() -> void:
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	_run = packed.instantiate() as Run
 	add_child(_run)
+	await get_tree().process_frame
+	_run._preparation_left = 0.0
+	_run._on_ride_on_requested()
+	_run._on_ride_on_requested()
 	await get_tree().process_frame
 	_run.journey.stop()
 
@@ -28,6 +34,7 @@ func _ready() -> void:
 	_test_live_relic_updates()
 	_test_wave_archetypes()
 	_test_target_priorities()
+	await _test_preparation_and_command()
 	await _test_boss_phases()
 	_test_run_telemetry()
 
@@ -62,6 +69,7 @@ func _test_upgrade_track() -> void:
 
 func _test_live_tower_utility() -> void:
 	var field: Battlefield = _run.battlefield
+	RunState.set_phase(RunState.Phase.PREPARATION)
 	RunState.gain_resources(9999)
 	var bulwark: TowerData = ContentDB.tower("bulwark")
 	_check(field.try_build(0, 0, bulwark).is_empty(), "Bulwark must be buildable")
@@ -75,6 +83,7 @@ func _test_live_tower_utility() -> void:
 		tower_health.take_damage(10.0, Vector2.ZERO)
 		_check(tower_health.current_hp < before_hp,
 			"taunting towers must take enemy damage")
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 
 
 func _test_act_curves() -> void:
@@ -83,7 +92,7 @@ func _test_act_curves() -> void:
 	var act2_size: int = director._wave_size(12, ContentDB.terrain("saltglass"))
 	var act2_hp: float = director._hp_scale(0)
 	var act2_damage: float = director._damage_scale(0)
-	_check(act2_size >= 12, "Act 2 waves must outgrow an eight-tower opening defence")
+	_check(act2_size >= 10, "Act 2 waves must outgrow the compact opening formations")
 	_check(act2_hp >= 4.0, "Act 2 durability must materially exceed Act 1")
 	_check(act2_damage < act2_hp, "damage must scale below HP to avoid cheap one-shots")
 
@@ -121,8 +130,8 @@ func _test_opening_envelope() -> void:
 		"first enemies must be forgiving in both durability and contact threat")
 	_check(director._progressive_lane_count(3) == 1,
 		"the first three waves must teach one road at a time")
-	_check(director._progressive_lane_count(4) >= 2,
-		"lane pressure must begin expanding after the tutorial envelope")
+	_check(director._progressive_lane_count(5) >= 2,
+		"lane pressure must expand once the four-wave tutorial envelope ends")
 	_check(director._opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, 5) == 1.0 \
 		and director._opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, 6) == 1.0,
 		"opening protection must fully taper out before midgame")
@@ -212,6 +221,70 @@ func _test_target_priorities() -> void:
 		"upgrading a tower must preserve its targeting doctrine")
 
 
+func _test_preparation_and_command() -> void:
+	var field: Battlefield = _run.battlefield
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	_check(field.try_build(1, 0, ContentDB.tower("ember_spire")).is_empty(),
+		"tower construction must be legal during Preparation")
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_check(not field.try_upgrade(1, 0).is_empty(),
+		"tower upgrades must be locked during road combat")
+	_check(not TownScope.try_start_construction("forge").is_empty(),
+		"town construction must be locked during road combat")
+
+	RunState.begin_command_battle()
+	field._pressure[1] = 0.72
+	EventBus.hero_enemy_hit.emit("howler", 1, true, true, Vector2.RIGHT * 300.0)
+	_check(RunState.command >= Balance.COMMAND_HERO_HIT_GAIN \
+			+ Balance.COMMAND_PRIORITY_HIT_GAIN + Balance.COMMAND_INTERRUPT_GAIN,
+		"active hero hits on a pressured road must generate tactical Command")
+	RunState.gain_command(Balance.COMMAND_MAX)
+	var command: Node = _run.command_system
+	var tower: Tower = field.slot_at(1, 0).tower()
+	_check(command.use_order(CommandSystemScript.OVERDRIVE, 1, 0).is_empty(),
+		"Overdrive must resolve on a built tower")
+	_check(tower != null and tower._command_overdrive_left > 0.0,
+		"Overdrive must apply a live tower effect")
+	RunState.gain_command(Balance.COMMAND_MAX)
+	_check(command.use_order(CommandSystemScript.RALLY_ROAD, 1, -1).is_empty(),
+		"Rally Road must resolve on a selected road")
+	RunState.gain_command(Balance.COMMAND_MAX)
+	_check(command.use_order(CommandSystemScript.LAST_STAND, -1, -1).is_empty(),
+		"Last Stand must resolve at full Command")
+	_check(RunState.last_stand_used and field.town.health.is_invulnerable(),
+		"Last Stand must protect the Town Hall and enforce once-per-battle use")
+	RunState.horn_used_this_battle = false
+	_check(_run.war_horn.blow(), "the war horn must be available once in a road battle")
+	_run.war_horn._horn_left = 0.01
+	_run.war_horn._process(0.02)
+	_check(not _run.war_horn.blow(), "the war horn must not be reusable in the same road battle")
+	RunState.begin_command_battle()
+	_check(not RunState.horn_used_this_battle, "a new battle must restore its one horn opportunity")
+
+	var hero: Hero = field.hero
+	RunState.hero_wounds = 0
+	RunState.hero_hp = -1.0
+	hero.sync_from_run_state()
+	var unwounded_max: float = hero.health.max_hp
+	RunState.add_wound()
+	hero.sync_from_run_state()
+	_check(is_equal_approx(hero.health.max_hp, unwounded_max * 0.9),
+		"one Wound must reduce maximum hero HP by exactly 10 percent")
+	RunState.town_hp = RunState.town_max_hp * 0.5
+	RunState.hearthmend()
+	hero.apply_hearthmend()
+	_check(RunState.hero_wounds == 0 and is_equal_approx(hero.health.current_hp, hero.health.max_hp),
+		"Hearthmend must clear Wounds and fully restore the hero")
+	_check(RunState.town_hp > RunState.town_max_hp * 0.5,
+		"Hearthmend must provide its bounded Town Hall repair")
+	RunState.has_resurrection_draught = true
+	var deaths_before: int = RunState.hero_deaths
+	hero.health.take_damage(hero.health.max_hp * 2.0, Vector2.ZERO)
+	_check(hero.is_alive() and not RunState.has_resurrection_draught \
+			and RunState.hero_deaths == deaths_before,
+		"Resurrection Draught must prevent, not merely delay, the next lethal down")
+
+
 func _test_boss_phases() -> void:
 	var director: BossDirector = _run.boss_director
 	for act: int in range(1, Balance.ACT_COUNT + 1):
@@ -262,6 +335,8 @@ func _test_run_telemetry() -> void:
 
 func _test_zoom_range() -> void:
 	var rig := _run.battlefield.camera as CameraRig
+	_check(Balance.CAMERA_MOUSE_LEAN_MAX < Balance.LANE_SPAWN_RADIUS,
+		"camera look-ahead must be bounded inside the battlefield")
 	rig.reset_to_wide()
 	_check(not rig.zoom_by(-1), "wide battlefield limit must hand wheel-out to Town")
 	_check(rig.zoom_by(1), "wheel-in must zoom the battlefield")
@@ -320,10 +395,12 @@ func _test_live_relic_updates() -> void:
 	var town: TownCore = _run.battlefield.town
 	var before: float = town.health.max_hp
 	RunState.held_relics.append("02")
+	RunState.set_phase(RunState.Phase.PREPARATION)
 	var problem: String = TownScope.try_socket_relic("02")
 	_check(problem.is_empty(), "town-health relic must socket during a live run")
 	_check(town.health.max_hp > before,
 		"socketing a town-health relic must update the live city immediately")
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 
 
 func _check(condition: bool, message: String) -> void:

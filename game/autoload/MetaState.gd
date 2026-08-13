@@ -153,8 +153,10 @@ func load_save() -> void:
 ## valuable one. Bouncing between two builds would otherwise have each launch
 ## re-back-up the file the previous launch already reset, and the original would
 ## be gone by the third run.
-func _back_up_save(text: String, version: int) -> void:
-	var path: String = SAVE_BACKUP_PATH % version
+func _back_up_save(text: String, version: int, test_path: String = "") -> void:
+	# The override exists only so the regression gate can prove byte preservation
+	# in an isolated fixture. Shipping callers always use the versioned path.
+	var path: String = test_path if not test_path.is_empty() else SAVE_BACKUP_PATH % version
 	if FileAccess.file_exists(path):
 		return
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)

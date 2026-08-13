@@ -31,11 +31,16 @@ var _no_casters: bool = false
 var _panel: bool = false
 var _settings: bool = false
 var _pause_only: bool = false
+var _tab: int = -1
+var _quality: String = ""
 var _expect_snuff: bool = false
 var _failed: bool = false
 var _panel_lane: int = 0
 var _panel_slot: int = 0
 var _reported: bool = false
+var _stay_in_preparation: bool = false
+var _full_command: bool = false
+var _output_dir: String = "user://"
 
 
 func _ready() -> void:
@@ -57,6 +62,13 @@ func _ready() -> void:
 		elif argument == "--expect-snuff":
 			# Fails the run if no torch went out. Only meaningful with waves on.
 			_expect_snuff = true
+		elif argument.begins_with("--quality="):
+			# Forces a graphics preset before the run is built, so the reported
+			# counts are what a player on that preset would actually get.
+			_quality = argument.split("=")[1]
+		elif argument.begins_with("--tab="):
+			# Which settings tab to photograph.
+			_tab = int(argument.split("=")[1])
 		elif argument == "--pause":
 			# Opens the pause screen itself and stops there.
 			_settings = true
@@ -71,6 +83,10 @@ func _ready() -> void:
 			# Puts a tower in every slot. Cast shadows need something to cast,
 			# and an empty field proves nothing about them.
 			_build = true
+		elif argument == "--preparation":
+			_stay_in_preparation = true
+		elif argument == "--command":
+			_full_command = true
 		elif argument == "--peaceful":
 			# Stops the waves. Nobody is playing the hero in a soak, so enemies
 			# walk straight into the town and beat it forever - and the town's
@@ -87,10 +103,24 @@ func _ready() -> void:
 			_shots.clear()
 			for piece: String in argument.split("=")[1].split(","):
 				_shots.append(float(piece))
+		elif argument.begins_with("--output="):
+			_output_dir = argument.trim_prefix("--output=")
+
+	if not _quality.is_empty():
+		Graphics.apply_preset(_quality)
+		print("[soak] graphics preset=%s" % _quality)
 
 	var packed: PackedScene = load(RUN_SCENE)
 	_run = packed.instantiate()
 	add_child(_run)
+	if _build:
+		_build_everything()
+	if _run is Run and not _stay_in_preparation:
+		(_run as Run)._preparation_left = 0.0
+		(_run as Run)._on_ride_on_requested()
+		(_run as Run)._on_ride_on_requested()
+		if _full_command:
+			RunState.gain_command(Balance.COMMAND_MAX)
 	print("[soak] run instantiated, %.1fs, shots at %s" % [_duration, str(_shots)])
 
 
@@ -123,8 +153,6 @@ func _process(delta: float) -> void:
 			for node: Node in _all(get_tree().root):
 				if node.name == "Ground":
 					(node as CanvasItem).visible = false
-		if _build:
-			_build_everything()
 		if _settings:
 			# The settings panel is only reachable through two clicks and a pause,
 			# none of which a soak can perform. Opening it directly is the only way
@@ -140,6 +168,11 @@ func _process(delta: float) -> void:
 				if node is PauseMenu:
 					node.toggle()
 					node.call("_show_settings", not _pause_only)
+					if _tab >= 0:
+						for child: Node in _all(node):
+							if child is TabContainer:
+								(child as TabContainer).current_tab = _tab
+								break
 					opened = true
 					break
 			print("[soak] settings panel opened=%s" % str(opened))
@@ -313,7 +346,8 @@ func _capture(at: float) -> void:
 
 	await RenderingServer.frame_post_draw
 	var image: Image = get_viewport().get_texture().get_image()
-	var path: String = "user://soak_%02d.png" % int(round(at))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_output_dir))
+	var path: String = _output_dir.path_join("soak_%02d.png" % int(round(at)))
 	image.save_png(path)
 	print("[soak] shot %.1fs -> %s" % [at, ProjectSettings.globalize_path(path)])
 

@@ -62,6 +62,7 @@ func end_run(victory: bool) -> void:
 		"raids": RunState.raids_completed,
 		"chieftains": RunState.chieftains_taken,
 		"time": RunState.run_time_seconds,
+		"planning_time": RunState.planning_time_seconds,
 		"resources_earned": RunState.resources_earned,
 		"resources_spent": RunState.resources_spent,
 		"towers_built": RunState.towers_built,
@@ -73,6 +74,10 @@ func end_run(victory: bool) -> void:
 		"peak_pressure": RunState.peak_lane_pressure,
 		"most_common_wave": RunState.most_common_wave_archetype(),
 		"wave_archetypes": RunState.wave_archetype_counts.duplicate(true),
+		"command_earned": RunState.command_earned,
+		"command_orders": RunState.command_orders_used.duplicate(true),
+		"wounds": RunState.wounds_suffered,
+		"hearthmends": RunState.hearthmends_used,
 		"unlocks": _pay_out_unlocks(victory),
 	}
 

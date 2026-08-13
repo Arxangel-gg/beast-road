@@ -66,6 +66,7 @@ func _ready() -> void:
 	EventBus.war_horn_activated.connect(_on_horn)
 	EventBus.raid_available.connect(_on_raid_available)
 	EventBus.hero_health_changed.connect(_on_hero_health)
+	EventBus.command_order_used.connect(_on_command_order_used)
 
 
 func _build_screen_layer() -> void:
@@ -594,6 +595,30 @@ func _on_horn(_duration: float) -> void:
 
 func _on_raid_available(_weakened_for: float) -> void:
 	flash(Color(0.55, 0.45, 0.85), 0.32, 0.7)
+
+
+func _on_command_order_used(order_id: String, lane: int, _slot: int, at: Vector2) -> void:
+	match order_id:
+		"overdrive":
+			flash_at(at, Color("fff1b8"), 44.0)
+			ring(at, 150.0, Color("e8a33d", 0.78), 0.52, 7.0)
+			rays(at, Color("ffd470"), 14, 120.0)
+			word(at, "OVERDRIVE", Color("ffd470"), 28)
+		"rally_road":
+			var direction: Vector2 = Battlefield.lane_vector(lane)
+			for distance: float in [Balance.TOWN_RADIUS, Balance.TOWER_SLOT_RADIUS,
+					Balance.LANE_SPAWN_RADIUS * 0.72]:
+				ring(direction * distance, 124.0, Color("e8a33d", 0.68), 0.58, 7.0)
+				rays(direction * distance, Color("fff0bd"), 12, 92.0, direction.angle())
+			word(at, "RALLY ROAD", Color("fff0bd"), 30)
+			flash(Color("e8a33d"), 0.16, 0.34)
+		"last_stand":
+			ring(at, Balance.TOWN_RADIUS * 2.1, Color("fff0bd", 0.9), 0.75, 12.0)
+			ring(at, Balance.TOWN_RADIUS * 1.4, Color("e8a33d", 0.82), 0.48, 8.0)
+			rays(at, Color("fff6d8"), 24, Balance.TOWN_RADIUS * 2.2)
+			word(at, "LAST STAND", Color("fff0bd"), 38)
+			flash(Color("fff0bd"), 0.38, 0.65)
+			EventBus.camera_shake_requested.emit(16.0, 0.55)
 
 
 ## The vignette tracks health continuously rather than on damage, so it is

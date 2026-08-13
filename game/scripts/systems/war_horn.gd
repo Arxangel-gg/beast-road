@@ -32,13 +32,16 @@ func _process(delta: float) -> void:
 
 
 func can_blow() -> bool:
-	return not RunState.horn_active and RunState.raid_charge < 1.0
+	return RunState.phase == RunState.Phase.ROAD_BATTLE \
+		and not RunState.horn_active and not RunState.horn_used_this_battle \
+		and RunState.raid_charge < 1.0
 
 
 func blow() -> bool:
 	if not can_blow():
 		return false
 	RunState.horn_active = true
+	RunState.horn_used_this_battle = true
 	RunState.war_horn_uses += 1
 	_horn_left = Balance.WAR_HORN_DURATION
 	EventBus.war_horn_activated.emit(Balance.WAR_HORN_DURATION)

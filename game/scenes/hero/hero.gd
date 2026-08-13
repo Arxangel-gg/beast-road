@@ -42,6 +42,7 @@ var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
 
 var _respawn_left: float = 0.0
+var _respawn_fraction: float = Balance.HERO_WOUND_REVIVE_HP
 var _flash_left: float = 0.0
 
 ## Ash Veil's movement bonus while it lasts.
@@ -148,6 +149,33 @@ func set_active(active: bool) -> void:
 		remove_from_group(GROUP)
 
 
+## Scope transitions share health through RunState. Raid and battlefield use
+## separate Hero nodes, so each active copy must explicitly claim that state.
+func sync_from_run_state() -> void:
+	var was_dead: bool = health.is_dead
+	_apply_permanent_bonuses()
+	if was_dead:
+		var saved_fraction: float = health.current_hp / health.max_hp \
+			if health.max_hp > 0.0 else 1.0
+		health.revive(saved_fraction)
+		_restore_presence()
+
+
+## Raid failure is an immediate ejection. The field hero was frozen alive, so
+## it needs the same half-health Wound recovery without its normal down timer.
+func apply_raid_wound() -> void:
+	_respawn_left = 0.0
+	RunState.hero_hp = -1.0
+	_apply_permanent_bonuses()
+	if health.is_dead:
+		health.revive(Balance.HERO_WOUND_REVIVE_HP)
+	else:
+		health.current_hp = health.max_hp * Balance.HERO_WOUND_REVIVE_HP
+		health.changed.emit(health.current_hp, health.max_hp)
+	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
+	_restore_presence()
+
+
 func is_alive() -> bool:
 	return not health.is_dead
 
@@ -183,7 +211,10 @@ func _apply_permanent_bonuses() -> void:
 	if sanctum != null:
 		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
 	var ascension: float = float(RunState.hero_ascension) * Balance.ASCENSION_STAT_BONUS
-	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) * (1.0 + bonus + ascension)
+	var wound_scale: float = maxf(1.0 - float(RunState.hero_wounds) \
+		* Balance.HERO_WOUND_HP_PENALTY, 0.4)
+	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) \
+		* (1.0 + bonus + ascension) * wound_scale
 	if RunState.hero_hp >= 0.0:
 		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 	else:
@@ -284,7 +315,20 @@ func _on_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_died(at: Vector2) -> void:
+	if RunState.has_resurrection_draught:
+		RunState.has_resurrection_draught = false
+		health.revive(Balance.HERO_DRAUGHT_REVIVE_HP)
+		health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
+		EventBus.hero_respawned.emit(global_position)
+		return
+	var wounds: int = RunState.add_wound()
+	if wounds >= Balance.HERO_MAX_WOUNDS:
+		RunState.hero_deaths += 1
+		EventBus.hero_died.emit(at)
+		GameDirector.end_run(false)
+		return
 	_respawn_left = Balance.HERO_RESPAWN_DELAY
+	_respawn_fraction = Balance.HERO_WOUND_REVIVE_HP
 	_dash_left = 0.0
 	_lunge_velocity = Vector2.ZERO
 	velocity = Vector2.ZERO
@@ -300,13 +344,31 @@ func _tick_respawn(delta: float) -> void:
 	if _respawn_left > 0.0:
 		return
 	global_position = Vector2.ZERO
-	health.revive()
+	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
+	health.revive(_respawn_fraction)
 	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
+	_restore_presence()
+	EventBus.hero_respawned.emit(global_position)
+
+
+func apply_hearthmend() -> void:
+	_respawn_left = 0.0
+	RunState.hero_hp = -1.0
+	_apply_permanent_bonuses()
+	if health.is_dead:
+		global_position = Vector2.ZERO
+		health.revive()
+	else:
+		health.current_hp = health.max_hp
+		health.changed.emit(health.current_hp, health.max_hp)
+	_restore_presence()
+
+
+func _restore_presence() -> void:
 	sprite.visible = true
 	sprite.modulate = Color.WHITE
 	health_bar.visible = true
-	EventBus.hero_respawned.emit(global_position)
 
 
 ## Fading copies of the sprite left along the dash path. Cheap, and the single

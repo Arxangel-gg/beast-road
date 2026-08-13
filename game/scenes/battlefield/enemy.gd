@@ -291,9 +291,11 @@ func apply_boss_phase(phase: int) -> void:
 	animator.squash(1.45)
 
 
-func take_damage(amount: float, from: Vector2, knockback: float) -> bool:
+func take_damage(amount: float, from: Vector2, knockback: float,
+		active_hero: bool = false) -> bool:
 	if _state == State.DYING or data == null:
 		return false
+	var was_telegraphing: bool = _state == State.WINDUP
 	var incoming: float = amount
 	if RunState.enemies_are_weakened():
 		incoming /= Balance.WEAKENED_STAT_SCALE
@@ -312,6 +314,11 @@ func take_damage(amount: float, from: Vector2, knockback: float) -> bool:
 	# into a telegraph a real answer rather than a trade.
 	if knockback > 0.0 and _state == State.WINDUP:
 		_enter(State.RECOVER, Balance.ENEMY_ATTACK_RECOVERY * 0.5)
+	if active_hero:
+		var priority: bool = data.category != EnemyData.Category.BREED \
+			or data.role == EnemyData.Role.HOWLER or data.role == EnemyData.Role.BURROWER
+		EventBus.hero_enemy_hit.emit(data.id, lane, priority,
+			was_telegraphing and knockback > 0.0, global_position)
 	return true
 
 
@@ -337,6 +344,16 @@ func apply_slow(factor: float, duration: float) -> void:
 
 func apply_freeze(duration: float) -> void:
 	_freeze_left = maxf(_freeze_left, duration)
+
+
+func apply_stagger(duration: float) -> void:
+	if _state == State.DYING or duration <= 0.0:
+		return
+	_hitstun_left = maxf(_hitstun_left, duration)
+	_knockback += Battlefield.lane_vector(lane) * 90.0
+	if _state == State.WINDUP or _state == State.STRIKE:
+		_enter(State.RECOVER, maxf(duration * 0.65, Balance.ENEMY_ATTACK_RECOVERY))
+	animator.squash(1.35)
 
 
 func apply_burn(dps: float, duration: float) -> void:

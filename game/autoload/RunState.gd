@@ -7,11 +7,21 @@ extends Node
 
 # --- Journey ---------------------------------------------------------------
 
+enum Phase {
+	PREPARATION,
+	ROAD_BATTLE,
+	BOSS,
+	RAID,
+	FINAL_ASCENT,
+	ENDED,
+}
+
 var distance_travelled: float = 0.0
 var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
 var terrain_id: String = ""
+var phase: Phase = Phase.PREPARATION
 
 # --- Economy ---------------------------------------------------------------
 
@@ -57,14 +67,21 @@ var hero_ascension: int = 0
 ## Carried between scopes so a raid is not a free heal and the walk back from
 ## the town is not a reset. -1 means "start at full".
 var hero_hp: float = -1.0
+var hero_wounds: int = 0
+var has_resurrection_draught: bool = false
 
 # --- Combat state ----------------------------------------------------------
 
 var wave_number: int = 0
 var war_horn_uses: int = 0
 var horn_active: bool = false
+var horn_used_this_battle: bool = false
 var raid_charge: float = 0.0
 var weakened_until: float = 0.0
+
+## Command is earned only by active hero play and is reset between battles.
+var command: float = 0.0
+var last_stand_used: bool = false
 
 # --- Statistics ------------------------------------------------------------
 
@@ -72,7 +89,10 @@ var enemies_killed: int = 0
 var hero_deaths: int = 0
 var raids_completed: int = 0
 var chieftains_taken: int = 0
+## Active combat time. Preparation and crossroads are tracked separately so
+## balance telemetry is not distorted by thoughtful planning.
 var run_time_seconds: float = 0.0
+var planning_time_seconds: float = 0.0
 var resources_earned: int = 0
 var resources_spent: int = 0
 var towers_built: int = 0
@@ -83,6 +103,10 @@ var town_damage_taken: float = 0.0
 var town_hits_taken: int = 0
 var peak_lane_pressure: float = 0.0
 var wave_archetype_counts: Dictionary = {}
+var command_earned: float = 0.0
+var command_orders_used: Dictionary = {}
+var wounds_suffered: int = 0
+var hearthmends_used: int = 0
 
 
 func _ready() -> void:
@@ -90,7 +114,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if GameDirector.run_active:
+	if not GameDirector.run_active:
+		return
+	if phase == Phase.PREPARATION:
+		planning_time_seconds += delta
+	elif phase != Phase.ENDED:
 		run_time_seconds += delta
 
 
@@ -102,6 +130,7 @@ func reset() -> void:
 	act = 1
 	segment = 0
 	terrain_id = ""
+	phase = Phase.PREPARATION
 
 	resources = Balance.STARTING_RESOURCES
 	kill_resource_remainder = 0.0
@@ -125,18 +154,24 @@ func reset() -> void:
 	equipped_spells.clear()
 	hero_ascension = 0
 	hero_hp = -1.0
+	hero_wounds = 0
+	has_resurrection_draught = false
 
 	wave_number = 0
 	war_horn_uses = 0
 	horn_active = false
+	horn_used_this_battle = false
 	raid_charge = 0.0
 	weakened_until = 0.0
+	command = 0.0
+	last_stand_used = false
 
 	enemies_killed = 0
 	hero_deaths = 0
 	raids_completed = 0
 	chieftains_taken = 0
 	run_time_seconds = 0.0
+	planning_time_seconds = 0.0
 	resources_earned = 0
 	resources_spent = 0
 	towers_built = 0
@@ -147,6 +182,10 @@ func reset() -> void:
 	town_hits_taken = 0
 	peak_lane_pressure = 0.0
 	wave_archetype_counts.clear()
+	command_earned = 0.0
+	command_orders_used.clear()
+	wounds_suffered = 0
+	hearthmends_used = 0
 
 	_equip_starting_spells()
 
@@ -251,6 +290,77 @@ func lane_has_element_synergy(lane: int) -> bool:
 	var inner: TowerData = tower_in_slot(lane, 0)
 	var outer: TowerData = tower_in_slot(lane, 2)
 	return inner != null and outer != null and inner.element == outer.element
+
+
+# --- Phase and Command -----------------------------------------------------
+
+func set_phase(next_phase: Phase) -> void:
+	if phase == next_phase:
+		return
+	var previous: Phase = phase
+	phase = next_phase
+	EventBus.phase_changed.emit(int(phase), int(previous))
+
+
+func is_preparation() -> bool:
+	return phase == Phase.PREPARATION
+
+
+func can_build_now() -> bool:
+	return is_preparation()
+
+
+func is_command_combat() -> bool:
+	return phase == Phase.ROAD_BATTLE or phase == Phase.BOSS \
+		or phase == Phase.FINAL_ASCENT
+
+
+func begin_command_battle() -> void:
+	command = 0.0
+	last_stand_used = false
+	horn_used_this_battle = false
+	EventBus.command_changed.emit(command, Balance.COMMAND_MAX)
+
+
+func add_wound() -> int:
+	hero_wounds = mini(hero_wounds + 1, Balance.HERO_MAX_WOUNDS)
+	wounds_suffered += 1
+	EventBus.hero_wounds_changed.emit(hero_wounds, Balance.HERO_MAX_WOUNDS)
+	return hero_wounds
+
+
+func hearthmend() -> void:
+	hero_wounds = 0
+	hearthmends_used += 1
+	hero_hp = -1.0
+	var repair: float = town_max_hp * Balance.HEARTHMEND_TOWN_REPAIR_FRACTION
+	town_hp = minf(town_hp + repair, town_max_hp)
+	EventBus.hero_wounds_changed.emit(hero_wounds, Balance.HERO_MAX_WOUNDS)
+	EventBus.town_health_changed.emit(town_hp, town_max_hp)
+	EventBus.hearthmend_completed.emit(act)
+
+
+func gain_command(amount: float) -> void:
+	if amount <= 0.0 or not is_command_combat():
+		return
+	var before: float = command
+	command = clampf(command + amount, 0.0, Balance.COMMAND_MAX)
+	command_earned += command - before
+	if not is_equal_approx(command, before):
+		EventBus.command_changed.emit(command, Balance.COMMAND_MAX)
+
+
+func can_spend_command(cost: float) -> bool:
+	return is_command_combat() and cost >= 0.0 and command >= cost
+
+
+func spend_command(cost: float, order_id: String) -> bool:
+	if not can_spend_command(cost):
+		return false
+	command = maxf(command - cost, 0.0)
+	command_orders_used[order_id] = int(command_orders_used.get(order_id, 0)) + 1
+	EventBus.command_changed.emit(command, Balance.COMMAND_MAX)
+	return true
 
 
 # --- Economy helpers --------------------------------------------------------

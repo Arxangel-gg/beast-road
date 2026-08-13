@@ -88,6 +88,7 @@ func _results(victory: bool) -> Node:
 		"distance": 2700.0 if victory else 1486.0,
 		"act": 3 if victory else 2,
 		"time": 2734,
+		"planning_time": 566,
 		"kills": 1841,
 		"deaths": 4,
 		"raids": 6,
@@ -102,6 +103,10 @@ func _results(victory: bool) -> Node:
 		"resources_earned": 9840,
 		"resources_spent": 9120,
 		"most_common_wave": "siege_column",
+		"command_earned": 436,
+		"command_orders": {"overdrive": 7, "rally_road": 3, "last_stand": 1},
+		"wounds": 2,
+		"hearthmends": 1,
 		"unlocks": [
 			"tower:Deep Freeze", "relic:Ashen Sigil", "spell:Rift Step",
 			"terrain:The Saltglass Flats",

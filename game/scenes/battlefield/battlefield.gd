@@ -34,7 +34,7 @@ func activate() -> void:
 	if camera != null:
 		camera.make_current()
 	if hero != null:
-		hero.set_active(true)
+		hero.set_active(RunState.is_command_combat())
 
 var _slots: Array[TowerSlot] = []
 var _suspended: bool = false
@@ -42,6 +42,7 @@ var _suspended: bool = false
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
 var _pressure: Array[float] = []
 var _pressure_timer: float = 0.0
+var _feedback_root: Node2D = null
 
 const PRESSURE_INTERVAL: float = 0.2
 
@@ -71,6 +72,7 @@ static func lane_road_tint() -> Color:
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
 	_setup_sorting()
+	_build_feedback_root()
 	_setup_lighting()
 	_setup_ground()
 	_build_lanes()
@@ -78,14 +80,14 @@ func _ready() -> void:
 	_build_torches()
 	_build_foliage()
 	wave_director.battlefield = self
-	wave_director.start()
+	wave_director.stop()
 	# Spells and the melee arc both need to find enemies, and the hero must not
 	# go looking up the tree for the scope it happens to be sitting in.
 	if hero != null:
 		hero.field = self
 	# Transient effects are parented into the scope that owns them, so leaving
 	# the battlefield takes its sparks with it.
-	Vfx.bind_world(effect_root if effect_root != null else self)
+	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
 
 
 func _process(delta: float) -> void:
@@ -119,6 +121,25 @@ func resume() -> void:
 
 func is_suspended() -> bool:
 	return _suspended
+
+
+func enter_preparation() -> void:
+	wave_director.stop()
+	entity_root.process_mode = Node.PROCESS_MODE_DISABLED
+	effect_root.process_mode = Node.PROCESS_MODE_DISABLED
+	if hero != null:
+		hero.set_active(false)
+
+
+func begin_battle() -> void:
+	entity_root.process_mode = Node.PROCESS_MODE_INHERIT
+	effect_root.process_mode = Node.PROCESS_MODE_INHERIT
+	if RunState.wave_number == 0:
+		wave_director._wave_timer = minf(wave_director._wave_timer,
+			Balance.ROAD_START_WARNING_SECONDS)
+	wave_director.start()
+	if hero != null and visible:
+		hero.set_active(true)
 
 
 ## Draw order.
@@ -165,6 +186,18 @@ func _setup_sorting() -> void:
 		node.z_index = 0
 
 
+## Command and construction feedback remains live during Preparation while the
+## entity and projectile layers are frozen. Keeping presentation separate is
+## what prevents a build burst from waiting until Ride On to suddenly appear.
+func _build_feedback_root() -> void:
+	_feedback_root = Node2D.new()
+	_feedback_root.name = "FeedbackRoot"
+	_feedback_root.y_sort_enabled = true
+	_feedback_root.z_index = 0
+	var sorted: Node = slot_root.get_parent() if slot_root != null else self
+	sorted.add_child(_feedback_root)
+
+
 ## A CanvasModulate tints everything under it, which is what turns the day/night
 ## phase into an actual look rather than a number on the HUD.
 func _setup_lighting() -> void:
@@ -177,10 +210,13 @@ func _setup_lighting() -> void:
 
 	# Above the sorted layer so a passing shadow darkens the units standing in it,
 	# not only the ground under them.
-	var clouds := CloudShadows.new()
-	clouds.name = "CloudShadows"
-	clouds.z_index = Z_CLOUDS
-	add_child(clouds)
+	# A full-field scrolling noise shader. Pure atmosphere, and the first thing a
+	# player chasing frames should be able to switch off.
+	if Graphics.cloud_shadows():
+		var clouds := CloudShadows.new()
+		clouds.name = "CloudShadows"
+		clouds.z_index = Z_CLOUDS
+		add_child(clouds)
 
 	# Contact shadows follow the sun, and the sun follows the beast walking.
 	ShadowKit.attach_sun(self)
@@ -379,6 +415,8 @@ func spawn_ground_zone(at: Vector2, dps: float, duration: float, radius: float) 
 
 ## Returns "" on success, or a reason the build was refused.
 func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
+	if not RunState.can_build_now():
+		return "Construction is locked until Preparation."
 	if tower_data == null:
 		return "No tower selected."
 	if not RunState.slot_is_empty(lane, slot):
@@ -405,6 +443,8 @@ func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
 
 
 func try_upgrade(lane: int, slot: int) -> String:
+	if not RunState.can_build_now():
+		return "Upgrades are locked until Preparation."
 	var tower_data: TowerData = RunState.tower_in_slot(lane, slot)
 	if tower_data == null:
 		return "Nothing built there."
@@ -438,6 +478,8 @@ static func upgrade_cost_of(level: int) -> int:
 
 
 func try_sell(lane: int, slot: int) -> String:
+	if not RunState.can_build_now():
+		return "Selling is locked until Preparation."
 	var tower_data: TowerData = RunState.tower_in_slot(lane, slot)
 	if tower_data == null:
 		return "Nothing built there."
@@ -452,6 +494,8 @@ func try_sell(lane: int, slot: int) -> String:
 
 
 func try_repair_town() -> String:
+	if not RunState.can_build_now():
+		return "Repairs are prepared between road battles."
 	if town == null or town.health == null:
 		return "The town cannot be reached."
 	if town.health.current_hp >= town.health.max_hp:

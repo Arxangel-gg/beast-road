@@ -1,6 +1,8 @@
 class_name HUD
 extends CanvasLayer
 
+const CommandSystemScript = preload("res://scripts/systems/command_system.gd")
+
 ## The run's heads-up display (GDD §3, §6).
 ##
 ## Built in code rather than authored, because almost all of it is generated:
@@ -15,6 +17,8 @@ signal scope_requested(scope: GameDirector.Scope)
 signal horn_requested()
 signal raid_requested()
 signal extract_requested()
+signal ride_on_requested()
+signal command_requested(order_id: String, lane: int, slot: int)
 
 const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 
@@ -59,6 +63,7 @@ var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
+var _wounds_label: Label
 var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
@@ -91,6 +96,15 @@ var _state_label: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
 var _boss_label: Label
+var _preparation_panel: PanelContainer
+var _preparation_label: Label
+var _ride_on_button: Button
+var _command_panel: PanelContainer
+var _command_bar: ProgressBar
+var _command_value: Label
+var _command_target: Label
+var _command_buttons: Dictionary = {}
+var _last_stand_spent: bool = false
 
 
 func _ready() -> void:
@@ -102,6 +116,8 @@ func _ready() -> void:
 	_build_boss_track()
 	_build_spell_bar()
 	_build_boss_bar()
+	_build_preparation_panel()
+	_build_command_panel()
 
 	EventBus.resources_changed.connect(func(v: int) -> void:
 		_resources.text = "%d" % v
@@ -110,13 +126,14 @@ func _ready() -> void:
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
+	EventBus.hero_wounds_changed.connect(_on_hero_wounds_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
 	EventBus.wave_started.connect(_on_wave)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
 	EventBus.act_started.connect(_on_act)
 	EventBus.raid_available.connect(func(_s: float) -> void: _raid_button.disabled = false)
-	EventBus.war_horn_activated.connect(func(_d: float) -> void: _horn_button.disabled = true)
-	EventBus.war_horn_ended.connect(func() -> void: _horn_button.disabled = false)
+	EventBus.war_horn_activated.connect(func(_d: float) -> void: _refresh_horn_button())
+	EventBus.war_horn_ended.connect(_refresh_horn_button)
 	EventBus.scope_changed.connect(_on_scope_changed)
 	EventBus.war_horn_activated.connect(func(_d: float) -> void: _refresh_state_label())
 	EventBus.war_horn_ended.connect(_refresh_state_label)
@@ -130,6 +147,11 @@ func _ready() -> void:
 	EventBus.construction_completed.connect(func(_id: String, _tier: int) -> void:
 		if _build_panel.visible:
 			_refresh_build_panel())
+	EventBus.phase_changed.connect(_on_phase_changed)
+	EventBus.preparation_changed.connect(_on_preparation_changed)
+	EventBus.preparation_warning.connect(_show_message)
+	EventBus.command_changed.connect(_on_command_changed)
+	EventBus.command_order_used.connect(_on_command_order_used)
 
 	for node: Node in get_tree().get_nodes_in_group(TowerSlot.GROUP):
 		var slot := node as TowerSlot
@@ -141,9 +163,21 @@ func _ready() -> void:
 	_on_act(RunState.act, RunState.terrain_id)
 	_rebuild_spell_bar()
 	_refresh_state_label()
+	_on_phase_changed(int(RunState.phase), int(RunState.phase))
+	_on_preparation_changed(Balance.PREPARATION_MIN_SECONDS, false)
+	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
+	_on_hero_wounds_changed(RunState.hero_wounds, Balance.HERO_MAX_WOUNDS)
 
 
 func _process(delta: float) -> void:
+	if Input.is_action_just_pressed(&"ride_on"):
+		ride_on_requested.emit()
+	if Input.is_action_just_pressed(&"command_overdrive"):
+		command_requested.emit(CommandSystemScript.OVERDRIVE, _selected_lane, _selected_slot)
+	if Input.is_action_just_pressed(&"command_rally"):
+		command_requested.emit(CommandSystemScript.RALLY_ROAD, _selected_lane, _selected_slot)
+	if Input.is_action_just_pressed(&"command_last_stand"):
+		command_requested.emit(CommandSystemScript.LAST_STAND, _selected_lane, _selected_slot)
 	if _message_left > 0.0:
 		_message_left -= delta
 		if _message_left <= 0.0:
@@ -204,6 +238,9 @@ func _build_top_bar() -> void:
 	_hero_bar = _make_bar(Color("c4552e"), 180.0)
 	bar.add_child(_label("Hero"))
 	bar.add_child(_hero_bar)
+	_wounds_label = _label("Wounds 0/%d" % Balance.HERO_MAX_WOUNDS, 15)
+	_wounds_label.tooltip_text = "A lethal down adds one Wound and reduces maximum HP by 10%. The third ends the run."
+	bar.add_child(_wounds_label)
 
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -326,7 +363,7 @@ func _update_repair_button() -> void:
 		return
 	var health: Health = battlefield.town.health
 	_repair_button.disabled = health == null or health.current_hp >= health.max_hp \
-		or not RunState.can_afford(Balance.TOWN_REPAIR_COST)
+		or not RunState.can_afford(Balance.TOWN_REPAIR_COST) or not RunState.is_preparation()
 
 
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
@@ -420,6 +457,148 @@ func _build_raid_panel() -> void:
 	column.add_child(_raid_status)
 	_extract_button = _add_button(column, "Extract", func() -> void: extract_requested.emit())
 	_extract_button.disabled = true
+
+
+func _build_preparation_panel() -> void:
+	_preparation_panel = PanelContainer.new()
+	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_preparation_panel.offset_left = -310.0
+	_preparation_panel.offset_right = 310.0
+	# Its ornate skin is taller than the nominal controls. Keep the whole frame
+	# above the persistent scope bar instead of letting the lower rivets clip.
+	_preparation_panel.offset_top = -270.0
+	_preparation_panel.offset_bottom = -92.0
+	add_child(_preparation_panel)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	_preparation_panel.add_child(column)
+	var title := Label.new()
+	title.text = "PREPARATION"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color("e8a33d"))
+	column.add_child(title)
+	_preparation_label = _label("Commit towers, town projects and relics before the road.", 15)
+	_preparation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_preparation_label)
+	_ride_on_button = _add_button(column, "RIDE ON", func() -> void: ride_on_requested.emit())
+	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ride_on_button.tooltip_text = "Begin the next road battle. Building and upgrades lock until Preparation."
+
+
+func _build_command_panel() -> void:
+	_command_panel = PanelContainer.new()
+	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_command_panel.offset_left = -810.0
+	_command_panel.offset_top = -270.0
+	_command_panel.offset_right = -24.0
+	_command_panel.offset_bottom = -170.0
+	add_child(_command_panel)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+	_command_panel.add_child(column)
+	var meter_row := HBoxContainer.new()
+	meter_row.add_theme_constant_override("separation", 8)
+	var command_icon: TextureRect = IconKit.rect("command", 30.0)
+	if command_icon != null:
+		meter_row.add_child(command_icon)
+	var name := _label("COMMAND", 16)
+	name.add_theme_color_override("font_color", Color("e8a33d"))
+	meter_row.add_child(name)
+	_command_bar = _make_bar(Color("e8a33d"), 270.0)
+	_command_bar.value = 0.0
+	meter_row.add_child(_command_bar)
+	_command_value = _label("0 / 100", 15)
+	_command_value.custom_minimum_size = Vector2(70.0, 0.0)
+	meter_row.add_child(_command_value)
+	column.add_child(meter_row)
+	_command_target = _label("TARGET  ·  select a road or tower", 13)
+	_command_target.add_theme_color_override("font_color", Color("b8ae98"))
+	column.add_child(_command_target)
+
+	var orders := HBoxContainer.new()
+	orders.add_theme_constant_override("separation", 8)
+	column.add_child(orders)
+	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z  Overdrive  ·  30",
+		"command_overdrive", "Select a built tower, then surge its attack rate and utility for 5 seconds.")
+	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, "X  Rally  ·  45",
+		"command_rally", "Select any spot on a road, then stagger that road and shield its blockers.")
+	_add_command_button(orders, CommandSystemScript.LAST_STAND, "C  Last Stand  ·  100",
+		"command_last_stand", "Protect the Town Hall for 3 seconds and reset every tower attack.")
+
+
+func _add_command_button(parent: Node, id: String, text: String, icon: String,
+		tip: String) -> void:
+	var button: Button = _add_button(parent, text, func() -> void:
+		command_requested.emit(id, _selected_lane, _selected_slot))
+	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override("font_size", 14)
+	button.tooltip_text = tip
+	IconKit.on_button(button, icon, 25)
+	_command_buttons[id] = button
+
+
+func _on_phase_changed(phase: int, _previous: int) -> void:
+	var preparing: bool = phase == int(RunState.Phase.PREPARATION)
+	var commanding: bool = phase == int(RunState.Phase.ROAD_BATTLE) \
+		or phase == int(RunState.Phase.BOSS) \
+		or phase == int(RunState.Phase.FINAL_ASCENT)
+	_preparation_panel.visible = preparing
+	_command_panel.visible = commanding
+	if preparing:
+		_last_stand_spent = false
+	_refresh_horn_button()
+	if _build_panel.visible:
+		_refresh_build_panel()
+	_refresh_state_label()
+
+
+func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
+	if _preparation_label == null or _ride_on_button == null:
+		return
+	_ride_on_button.disabled = not ready
+	_ride_on_button.text = "RIDE ON" if ready else "READY IN %.0f" % ceil(seconds_left)
+	_preparation_label.text = "Choose towers, town projects and relics. Combat is paused." \
+		if ready else "Survey all four roads. Initial Preparation is protected for %.0f seconds." % ceil(seconds_left)
+
+
+func _on_command_changed(current: float, maximum: float) -> void:
+	if _command_bar == null:
+		return
+	_command_bar.value = current / maximum if maximum > 0.0 else 0.0
+	_command_value.text = "%d / %d" % [int(round(current)), int(round(maximum))]
+	_set_command_available(CommandSystemScript.OVERDRIVE,
+		current >= Balance.COMMAND_OVERDRIVE_COST)
+	_set_command_available(CommandSystemScript.RALLY_ROAD,
+		current >= Balance.COMMAND_RALLY_COST)
+	_set_command_available(CommandSystemScript.LAST_STAND,
+		current >= Balance.COMMAND_LAST_STAND_COST and not _last_stand_spent)
+
+
+func _set_command_available(id: String, available: bool) -> void:
+	var button: Button = _command_buttons.get(id, null) as Button
+	if button != null:
+		button.disabled = not available
+
+
+func _on_command_order_used(order_id: String, _lane: int, _slot: int, _at: Vector2) -> void:
+	var names: Dictionary = {
+		CommandSystemScript.OVERDRIVE: "OVERDRIVE",
+		CommandSystemScript.RALLY_ROAD: "RALLY ROAD",
+		CommandSystemScript.LAST_STAND: "LAST STAND",
+	}
+	if order_id == CommandSystemScript.LAST_STAND:
+		_last_stand_spent = true
+	_show_message(String(names.get(order_id, "COMMAND ORDER")))
+	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
+
+
+func _show_message(text: String) -> void:
+	_message.text = text
+	_message_left = 3.0
 
 
 ## Four slots along the bottom. A spell you cannot cast still shows, greyed —
@@ -622,6 +801,11 @@ func _refresh_state_label() -> void:
 func _open_build_panel(lane: int, slot: int) -> void:
 	_selected_lane = lane
 	_selected_slot = slot
+	if _command_target != null:
+		var tower: TowerData = RunState.tower_in_slot(lane, slot)
+		_command_target.text = "TARGET  ·  %s road  ·  %s" % [
+			LANE_NAMES[clampi(lane, 0, 3)],
+			tower.display_name if tower != null else "open spot"]
 	_refresh_build_panel()
 	_build_panel.visible = true
 	UiSound.confirm()
@@ -686,6 +870,13 @@ func _refresh_build_panel() -> void:
 				_refresh_build_panel())
 		target_button.tooltip_text = TowerData.target_priority_description(target_priority)
 		_build_list.add_child(_label(TowerData.target_priority_description(target_priority), 13))
+		if not RunState.is_preparation():
+			var locked_note: Label = _label(
+				"COMBAT LOCK  ·  upgrades and selling return in Preparation.\n"
+				+ "This tower is selected for Overdrive; this road is selected for Rally.", 14)
+			locked_note.add_theme_color_override("font_color", Color("e8a33d"))
+			_build_list.add_child(locked_note)
+			return
 		var level_cap: int = RunState.tower_level_cap()
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(
@@ -714,6 +905,13 @@ func _refresh_build_panel() -> void:
 		return
 
 	var target_slot: TowerSlot = battlefield.slot_at(lane, slot)
+	if not RunState.is_preparation():
+		var lock_note: Label = _label(
+			"COMBAT LOCK  ·  construction returns in Preparation.\n"
+			+ "This road is selected for Rally Road.", 14)
+		lock_note.add_theme_color_override("font_color", Color("e8a33d"))
+		_build_list.add_child(lock_note)
+		return
 	if target_slot != null and target_slot.is_combo_slot():
 		var combo: TowerData = target_slot.buildable_combination()
 		if combo == null:
@@ -938,8 +1136,25 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	_hero_bar.value = current / maximum if maximum > 0.0 else 0.0
 
 
+func _on_hero_wounds_changed(wounds: int, maximum: int) -> void:
+	if _wounds_label == null:
+		return
+	_wounds_label.text = "Wounds %d/%d" % [wounds, maximum]
+	_wounds_label.add_theme_color_override("font_color",
+		Color("dc6548") if wounds > 0 else Color("aebcb8"))
+
+
 func _on_charge(value: float) -> void:
 	_charge_bar.value = value
+	_refresh_horn_button()
+
+
+func _refresh_horn_button() -> void:
+	if _horn_button == null:
+		return
+	_horn_button.disabled = RunState.phase != RunState.Phase.ROAD_BATTLE \
+		or RunState.horn_active or RunState.horn_used_this_battle \
+		or RunState.raid_charge >= 1.0
 
 
 func _on_wave(number: int, lanes: Array) -> void:

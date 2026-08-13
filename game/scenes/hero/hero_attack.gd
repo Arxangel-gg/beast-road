@@ -157,7 +157,7 @@ func _strike() -> void:
 		# is always in the arc rather than sometimes unhittable.
 		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
 			continue
-		if not enemy.take_damage(damage, _swing_origin, knockback):
+		if not enemy.take_damage(damage, _swing_origin, knockback, true):
 			continue
 		_hit_ids[id] = true
 		hits += 1

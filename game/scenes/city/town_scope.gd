@@ -146,6 +146,8 @@ func _on_construction_completed(building_id: String, _tier: int) -> void:
 
 ## Returns "" on success, or the reason the order was refused.
 static func try_start_construction(building_id: String) -> String:
+	if not RunState.can_build_now():
+		return "Town projects are chosen during Preparation."
 	if not RunState.construction.is_empty():
 		return "Something is already being built."
 	var data: BuildingData = ContentDB.building(building_id)
@@ -166,6 +168,8 @@ static func try_start_construction(building_id: String) -> String:
 
 
 static func try_assign_captive(captive_id: String, building_id: String) -> String:
+	if not RunState.can_build_now():
+		return "Work details are assigned during Preparation."
 	var data: BuildingData = ContentDB.building(building_id)
 	if data == null or not data.accepts_captives:
 		return "That building takes no work detail."
@@ -186,6 +190,8 @@ static func try_assign_captive(captive_id: String, building_id: String) -> Strin
 
 
 static func try_socket_relic(relic_id: String) -> String:
+	if not RunState.can_build_now():
+		return "Relic sockets are changed during Preparation."
 	if RunState.socketed_relics.size() >= RunState.relic_slot_count():
 		return "No free sockets. Upgrade the Town Hall."
 	if not RunState.held_relics.has(relic_id):
@@ -196,9 +202,12 @@ static func try_socket_relic(relic_id: String) -> String:
 	return ""
 
 
-static func unsocket_relic(relic_id: String) -> void:
+static func unsocket_relic(relic_id: String) -> bool:
+	if not RunState.can_build_now():
+		return false
 	if not RunState.socketed_relics.has(relic_id):
-		return
+		return false
 	RunState.socketed_relics.erase(relic_id)
 	RunState.held_relics.append(relic_id)
 	EventBus.relic_unsocketed.emit(relic_id)
+	return true

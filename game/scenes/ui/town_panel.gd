@@ -100,6 +100,9 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 		progress.value = done / needed
 		progress_label.text = "%d of %d distance" % [int(done), int(needed)]
 		return
+	if not RunState.can_build_now():
+		_note("Read only during battle. Return in Preparation to make changes.")
+		return
 
 	if tier >= data.max_tier:
 		_note("Fully built.")
@@ -136,6 +139,7 @@ func _show_relics() -> void:
 		var row := Button.new()
 		row.text = "◆ %s   —   remove" % relic.display_name
 		row.tooltip_text = relic.description
+		row.disabled = not RunState.can_build_now()
 		row.pressed.connect(func() -> void:
 			TownScope.unsocket_relic(relic_id)
 			_refresh())
@@ -148,7 +152,7 @@ func _show_relics() -> void:
 		var row := Button.new()
 		row.text = "◇ %s   —   socket" % relic.display_name
 		row.tooltip_text = relic.description
-		row.disabled = used >= total
+		row.disabled = used >= total or not RunState.can_build_now()
 		row.pressed.connect(func() -> void:
 			var problem: String = TownScope.try_socket_relic(relic_id)
 			if not problem.is_empty():
@@ -172,6 +176,9 @@ func _show_captives() -> void:
 		if String(value) == _building_id:
 			here += 1
 	_note("Assigned  %d / %d" % [here, Balance.CAPTIVES_PER_BUILDING])
+	if not RunState.can_build_now():
+		_note("Read only during battle.")
+		return
 
 	if RunState.captives.is_empty():
 		_note("Nobody taken yet. Finish a raid.")

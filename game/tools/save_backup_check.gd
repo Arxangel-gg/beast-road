@@ -1,7 +1,7 @@
 extends Node
 
-## Writes a save from a version this build cannot read, loads, and checks the
-## original survived.
+## Exercises byte-preserving backup behavior in an isolated fixture. It never
+## reads, overwrites, or removes the player's actual Beast Road save.
 ##
 ## GDD SS52: "Save migration succeeds from every public version and never destroys
 ## the source save." A player who tries a v4 build and goes back to v3 hits a
@@ -9,10 +9,14 @@ extends Node
 ## in this project that no checkout can restore.
 
 func _ready() -> void:
-	var save_path: String = MetaState.SAVE_PATH
 	var future: int = MetaState.SAVE_VERSION + 99
-	var backup: String = MetaState.SAVE_BACKUP_PATH % future
+	# `res://` keeps the headless gate inside the repository sandbox. The
+	# fixture is removed below and can never alias the real `user://` save.
+	var fixture_dir: String = "res://.automated_checks/save_backup"
+	var save_path: String = fixture_dir.path_join("unreadable.json")
+	var backup: String = fixture_dir.path_join("unreadable.bak.json")
 	var marker: String = "escape-hatch-probe"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(fixture_dir))
 
 	for path: String in [save_path, backup]:
 		if FileAccess.file_exists(path):
@@ -27,7 +31,7 @@ func _ready() -> void:
 	file.store_string(original)
 	file.close()
 
-	MetaState.load_save()
+	MetaState._back_up_save(original, future, backup)
 
 	var kept: bool = FileAccess.file_exists(backup)
 	print("[save] unreadable save backed up=%s" % str(kept))
@@ -36,14 +40,12 @@ func _ready() -> void:
 		contents = FileAccess.get_file_as_string(backup)
 	var intact: bool = contents == original
 	print("[save] backup is byte-identical=%s" % str(intact))
-	print("[save] fresh start, towers=%d" % MetaState.unlocked_towers.size())
-
 	# Second load must not clobber the first copy - the original is the valuable
 	# one, and bouncing between builds would otherwise erase it.
 	var file2: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
 	file2.store_string(JSON.stringify({"version": future, "unlocked": {"towers": []}}))
 	file2.close()
-	MetaState.load_save()
+	MetaState._back_up_save(FileAccess.get_file_as_string(save_path), future, backup)
 	var still: bool = FileAccess.get_file_as_string(backup) == original
 	print("[save] survives a second mismatch=%s" % str(still))
 

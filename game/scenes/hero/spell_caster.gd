@@ -154,14 +154,14 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2) -> float:
 	var dealt: float = 0.0
 	for enemy: Enemy in field.enemies_near(centre, radius):
-		if enemy.take_damage(power, from, knockback):
+		if enemy.take_damage(power, from, knockback, true):
 			dealt += power
 	return dealt
 
 
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
 	for enemy: Enemy in field.enemies_near(origin, spell.cast_range):
-		enemy.take_damage(power, origin, 0.0)
+		enemy.take_damage(power, origin, 0.0, true)
 		# Negative knockback would be a hack; pulling is its own operation.
 		enemy.pull_toward(origin, spell.knockback)
 

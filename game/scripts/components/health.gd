@@ -83,10 +83,10 @@ func heal(amount: float) -> void:
 	changed.emit(current_hp, max_hp)
 
 
-## Back to full, alive, and vulnerable.
-func revive() -> void:
+## Alive and vulnerable at the requested health fraction.
+func revive(fraction: float = 1.0) -> void:
 	is_dead = false
-	current_hp = max_hp
+	current_hp = max_hp * clampf(fraction, 0.01, 1.0)
 	_invulnerable_left = 0.0
 	changed.emit(current_hp, max_hp)
 

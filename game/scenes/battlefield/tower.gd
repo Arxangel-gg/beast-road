@@ -23,6 +23,8 @@ var slot: int = 0
 var _field: Battlefield = null
 var _cooldown: float = 0.0
 var _light: PointLight2D = null
+var _command_overdrive_left: float = 0.0
+var _command_rally_left: float = 0.0
 
 ## The tower's ground shadow, and its size at level 1 — upgrades scale the sprite
 ## and the shadow has to follow, so the level-1 measurement is kept rather than
@@ -111,9 +113,13 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 
 
 func _process(delta: float) -> void:
-	if data == null or _field == null:
+	if data == null or _field == null or not RunState.is_command_combat():
 		return
-	_cooldown -= delta
+	_command_overdrive_left = maxf(_command_overdrive_left - delta, 0.0)
+	_command_rally_left = maxf(_command_rally_left - delta, 0.0)
+	var rate: float = Balance.COMMAND_OVERDRIVE_RATE \
+		if _command_overdrive_left > 0.0 else 1.0
+	_cooldown -= delta * rate
 	if _cooldown > 0.0:
 		return
 
@@ -127,7 +133,28 @@ func _process(delta: float) -> void:
 
 
 func effective_damage() -> float:
-	return data.damage_at(level) * (1.0 + _damage_bonus)
+	var command_bonus: float = Balance.COMMAND_OVERDRIVE_UTILITY \
+		if _command_overdrive_left > 0.0 else 0.0
+	return data.damage_at(level) * (1.0 + _damage_bonus + command_bonus)
+
+
+func command_overdrive(duration: float) -> void:
+	_command_overdrive_left = maxf(_command_overdrive_left, duration)
+	_cooldown = 0.0
+	Vfx.ring(global_position, effective_range() * 0.52,
+		Color("e8a33d", 0.82), 0.48, 6.0)
+	Vfx.rays(global_position, Color("fff0bd"), 10, 82.0)
+
+
+func command_rally(duration: float) -> void:
+	_command_rally_left = maxf(_command_rally_left, duration)
+	if _health != null:
+		_health.add_invulnerability(duration)
+	Vfx.ring(global_position, 68.0, Color("d9cdb8", 0.72), 0.42, 5.0)
+
+
+func command_reset_attack() -> void:
+	_cooldown = 0.0
 
 
 func upgrade_to(new_level: int) -> void:

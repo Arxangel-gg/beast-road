@@ -46,12 +46,19 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	var unlocks: Array = summary.get("unlocks", [])
 	var seconds: int = int(summary.get("time", 0))
 	var duration: String = "%d:%02d" % [seconds / 60, seconds % 60]
+	var planning_seconds: int = int(summary.get("planning_time", 0))
+	var planning_duration: String = "%d:%02d" % [planning_seconds / 60, planning_seconds % 60]
 	var wave_id: String = String(summary.get("most_common_wave", ""))
 	var wave: WaveArchetypeData = ContentDB.wave_archetype(wave_id)
 	var wave_name: String = wave.display_name if wave != null else "—"
+	var command_orders: Dictionary = summary.get("command_orders", {})
+	var command_order_total: int = 0
+	for value: Variant in command_orders.values():
+		command_order_total += int(value)
 	var lines: PackedStringArray = [
 		"Distance   %d of %d" % [int(summary.get("distance", 0)), int(Balance.JOURNEY_TOTAL_DISTANCE)],
-		"Reached act %d   ·   %s on the road" % [int(summary.get("act", 1)), duration],
+		"Reached act %d   ·   %s combat   ·   %s planning" % [
+			int(summary.get("act", 1)), duration, planning_duration],
 		"Killed %d   ·   fell %d times" % [int(summary.get("kills", 0)), int(summary.get("deaths", 0))],
 		"Raids %d   ·   chieftains taken %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
 		"",
@@ -65,6 +72,10 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 			int(summary.get("towers_lost", 0)), int(summary.get("towers_sold", 0))],
 		"Resources earned %d   ·   invested %d   ·   signature threat %s" % [
 			int(summary.get("resources_earned", 0)), int(summary.get("resources_spent", 0)), wave_name],
+		"Command earned %d   ·   orders issued %d" % [
+			int(round(float(summary.get("command_earned", 0.0)))), command_order_total],
+		"Wounds suffered %d   ·   Hearthmends %d" % [
+			int(summary.get("wounds", 0)), int(summary.get("hearthmends", 0))],
 		"",
 		"Added to the pool: %d" % unlocks.size(),
 	]

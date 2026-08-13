@@ -33,6 +33,12 @@ signal hero_died(at: Vector2)
 ## The hero is alive and controllable again.
 signal hero_respawned(at: Vector2)
 
+## Act-long Wounds changed through a lethal down or Hearthmend.
+signal hero_wounds_changed(wounds: int, maximum: int)
+
+## The guaranteed pre-boss Hearthmend cleared the hero's act attrition.
+signal hearthmend_completed(act: int)
+
 ## The hero's dash started; `iframes` is how long invulnerability lasts.
 signal hero_dashed(iframes: float)
 
@@ -46,6 +52,9 @@ signal footfall(at: Vector2, mass: float)
 
 ## A swing connected with at least one target. `chain_step` is 0-based.
 signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
+
+## An individual enemy was struck by the hero; Command reads the tactical value.
+signal hero_enemy_hit(enemy_id: String, lane: int, priority: bool, interrupted: bool, at: Vector2)
 
 ## An enemy entered the world. `enemy_id` is the EnemyData id, not a node name.
 signal enemy_spawned(enemy_id: String, at: Vector2)
@@ -90,6 +99,12 @@ signal tower_fired(lane: int, slot: int, at: Vector2)
 
 ## A tower's player-selected targeting doctrine changed.
 signal tower_targeting_changed(lane: int, slot: int, priority: int)
+
+## The battle-only Command meter changed, in points from 0 to maximum.
+signal command_changed(current: float, maximum: float)
+
+## A targeted Command order resolved successfully.
+signal command_order_used(order_id: String, lane: int, slot: int, at: Vector2)
 
 ## A torch was snuffed out or relit. `lane` is which road it stands on.
 signal torch_state_changed(lane: int, lit: bool)
@@ -175,6 +190,15 @@ signal raid_ended(reward: Dictionary)
 
 ## The visible scope changed. Values are GameDirector.Scope.
 signal scope_changed(scope: int)
+
+## The run phase changed. Values are RunState.Phase.
+signal phase_changed(phase: int, previous_phase: int)
+
+## Preparation countdown or readiness changed.
+signal preparation_changed(seconds_left: float, ready: bool)
+
+## Ride On was refused until the player acknowledges a coverage warning.
+signal preparation_warning(message: String)
 
 signal run_started()
 signal run_ended(victory: bool, summary: Dictionary)

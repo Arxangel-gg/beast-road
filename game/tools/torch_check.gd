@@ -13,6 +13,12 @@ func _ready() -> void:
 	add_child(load("res://scenes/run/run.tscn").instantiate())
 	for _f: int in 4:
 		await get_tree().process_frame
+	var run: Run = _find_run()
+	if run != null:
+		run._preparation_left = 0.0
+		run._on_ride_on_requested()
+		run._on_ride_on_requested()
+		await get_tree().process_frame
 
 	var torch: Torch = get_tree().get_first_node_in_group(&"torches") as Torch
 	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
@@ -62,3 +68,10 @@ func _bail(code: int) -> void:
 	for _f: int in 30:
 		await get_tree().process_frame
 	get_tree().quit(code)
+
+
+func _find_run() -> Run:
+	for child: Node in get_children():
+		if child is Run:
+			return child as Run
+	return null

@@ -19,12 +19,15 @@ var _resource_remainder: float = 0.0
 ## moment the boundary is crossed the remaining distance rolls over to a full
 ## segment, so the zero is never observed.
 var _segment_index: int = 0
+var _announced_act: int = 0
 
 
 func start() -> void:
 	_running = true
 	_segment_index = _segment_for(RunState.distance_travelled)
-	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
+	if _announced_act != RunState.act:
+		_announced_act = RunState.act
+		EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 
 
 func stop() -> void:
@@ -122,6 +125,7 @@ func _reach_crossroad() -> void:
 		var terrain: TerrainData = ContentDB.terrain_for_act(new_act)
 		if terrain != null:
 			RunState.terrain_id = terrain.id
+		_announced_act = RunState.act
 		EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 
 	EventBus.crossroad_reached.emit(segments_done)
@@ -147,6 +151,7 @@ func resume_after_boss() -> void:
 	var terrain: TerrainData = ContentDB.terrain_for_act(next_act)
 	if terrain != null:
 		RunState.terrain_id = terrain.id
+	_announced_act = RunState.act
 	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
 
 
