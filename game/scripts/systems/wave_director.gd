@@ -35,6 +35,22 @@ func stop() -> void:
 	_running = false
 
 
+## True while a wave's pack is still walking on. The run uses this to tell "the
+## road is clear" apart from "the road is clear because the next wave has not
+## started spawning yet", which look identical if you only count enemies.
+func is_deploying() -> bool:
+	return not _spawn_queue.is_empty()
+
+
+## Brings the next wave forward after a between-wave breather.
+##
+## Without this the wave timer keeps whatever it had left when the field cleared,
+## and a ten second breather that began with twelve seconds on the clock becomes
+## a twenty-two second gap - which reads as the game having stalled.
+func resume_after_breather() -> void:
+	_wave_timer = minf(_wave_timer, Balance.WAVE_BREATHER_RESUME_SECONDS)
+
+
 func _process(delta: float) -> void:
 	if not _running:
 		return

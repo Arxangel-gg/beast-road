@@ -79,10 +79,19 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# A cleared road opens a breather. Checked here rather than signalled from the
+	# wave director, because "clear" is a fact about the whole battlefield - the
+	# queue and the survivors - and the director only knows half of it.
+	if RunState.phase == RunState.Phase.ROAD_BATTLE and _breather_due():
+		_enter_wave_breather()
+		return
+
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
 	EventBus.preparation_changed.emit(_preparation_left, _preparation_left <= 0.0)
+	if _preparation_left <= 0.0 and _breather:
+		_end_wave_breather()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -286,7 +295,77 @@ func _on_road_chosen(option_id: String) -> void:
 
 # --- Preparation and Command ----------------------------------------------
 
+## True while the current Preparation is a between-wave breather rather than the
+## long one before a road or a boss. Breathers end on their own; the long ones
+## wait for Ride On.
+var _breather: bool = false
+
+## The wave number the last breather followed.
+##
+## One breather per wave, and this is what enforces it. Without it the run gets
+## stuck: a breather ends, the next wave has not begun spawning yet, so the road
+## still reads as clear and another breather opens immediately. The wave timer
+## never gets its moment and the run sits on wave one forever, taking a ten
+## second breather from a fight that stopped happening.
+var _breather_after_wave: int = 0
+
+
+## A pause between waves, once the road is clear of the last one.
+##
+## The player asked for this and the run had no place for it: Preparation existed
+## only at a run's start, either side of a boss, and after a crossroad. Between
+## waves the game simply never stopped, so the one phase where building is legal
+## was unreachable for the whole middle of a road.
+##
+## It ends by itself. Asking for a Ride On confirmation after every one of thirty
+## waves would turn a breather into a chore, and the confirmation exists to make
+## the *committed* transitions deliberate - not to punctuate the ordinary rhythm
+## of a fight.
+func _enter_wave_breather() -> void:
+	_breather = true
+	_breather_after_wave = RunState.wave_number
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	battlefield.enter_preparation()
+	_preparation_left = Balance.PREPARATION_BETWEEN_WAVES
+	_coverage_warning_acknowledged = true
+	EventBus.preparation_changed.emit(_preparation_left, false)
+	EventBus.preparation_warning.emit("The road is clear. Build while you can.")
+
+
+## Ends a breather and lets the next wave come.
+func _end_wave_breather() -> void:
+	_breather = false
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	RunState.begin_command_battle()
+	battlefield.begin_battle()
+	battlefield.wave_director.resume_after_breather()
+	journey.start()
+	EventBus.preparation_changed.emit(0.0, false)
+
+
+## Whether a breather is due before the next wave.
+##
+## Triggered off the wave clock, not off an empty road. The first version waited
+## for the field to be clear of the last pack, which sounds right and is not:
+## waves deliberately overlap so late acts do not decay into a single-file
+## trickle, so a clear road simply never happens on most waves. It produced a
+## breather after waves 1, 2 and 4 of six - which is worse than none, because the
+## player cannot rely on it and so cannot plan around it.
+##
+## Opening just before the wave lands makes it guaranteed and predictable: every
+## wave gets its window, and the window is always in the same place.
+func _breather_due() -> bool:
+	if battlefield == null or battlefield.wave_director == null:
+		return false
+	# One per wave. Without this the breather reopens in the gap it just created.
+	if RunState.wave_number <= _breather_after_wave:
+		return false
+	return battlefield.wave_director.time_to_next_wave() <= Balance.WAVE_BREATHER_LEAD_SECONDS
+
+
 func _enter_preparation(initial: bool) -> void:
+	_breather = false
+	_breather_after_wave = RunState.wave_number
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
 	journey.stop()
@@ -297,6 +376,10 @@ func _enter_preparation(initial: bool) -> void:
 
 func _on_ride_on_requested() -> void:
 	if not RunState.is_preparation():
+		return
+	if _breather:
+		# Skipping a breather is always allowed: it is a window, not a gate.
+		_end_wave_breather()
 		return
 	if _preparation_left > 0.0:
 		EventBus.preparation_warning.emit("Preparation ends in %.0f seconds." % ceil(_preparation_left))

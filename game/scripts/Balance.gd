@@ -224,6 +224,21 @@ const HERO_RESPAWN_INVULN: float = 1.5
 ## Minimum time the initial and between-road Preparation state remains open.
 ## The player must still confirm Ride On after this reaches zero. [TUNE]
 const PREPARATION_MIN_SECONDS: float = 18.0
+
+## A breather opened just before every wave lands. Building and upgrading are
+## open for this long, and the arriving pack waits.
+##
+## Unlike the long Preparation above, this one ends by itself: a player is not
+## asked to confirm Ride On thirty times a run. Ride On still skips it, so the
+## impatient lose nothing. [TUNE]
+const PREPARATION_BETWEEN_WAVES: float = 10.0
+
+## How soon the next wave may arrive once a breather ends. [TUNE]
+const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
+
+## How long before a wave would land that its breather opens. Small: the point is
+## to sit just ahead of the wave, not to cut the fight short. [TUNE]
+const WAVE_BREATHER_LEAD_SECONDS: float = 2.0
 const ROAD_START_WARNING_SECONDS: float = 2.5
 
 ## Radius of the hero's body for contact and hurt checks.
