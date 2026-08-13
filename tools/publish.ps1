@@ -48,14 +48,19 @@ $tabs.TabPages.Add($pagePublish)
 function New-Label($text, $x, $y, $w, $size, $color) {
     $l = New-Object System.Windows.Forms.Label
     $l.Text = $text; $l.Location = New-Object System.Drawing.Point($x, $y)
-    $l.Size = New-Object System.Drawing.Size($w, 24)
+    # Height from the font, not a fixed 24. Every label shared one hardcoded
+    # height, so the 20pt title - which needs about 34 pixels - was cropped
+    # through the descenders while the 9pt lines it was written for were fine.
+    $h = [int][Math]::Ceiling($size * 1.9) + 6
+    if ($h -lt 24) { $h = 24 }
+    $l.Size = New-Object System.Drawing.Size($w, $h)
     $l.Font = New-Object System.Drawing.Font('Segoe UI', $size)
     $l.ForeColor = $color
     $pagePublish.Controls.Add($l); return $l
 }
 
 New-Label 'BEAST ROAD' 24 18 400 20 $cAmber | Out-Null
-New-Label 'Publish an update to every installed launcher' 26 56 520 10 $cBone | Out-Null
+New-Label 'Publish an update to every installed launcher' 26 62 520 10 $cBone | Out-Null
 
 # --- current state -----------------------------------------------------------
 $lblCurrent = New-Label 'Checking...' 26 88 680 9 ([System.Drawing.Color]::FromArgb(150, 160, 160))
