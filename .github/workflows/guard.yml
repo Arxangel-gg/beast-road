@@ -1,0 +1,162 @@
+name: Guard
+
+# Does main still compile?
+#
+# Until now the only workflow ran on `push: tags: v*`, so an ordinary commit was
+# never checked by anything. The tree has then sat uncompilable for hours at a
+# stretch — `CursorKit` one time, `FactionData` the next — with nobody aware
+# until somebody happened to run a gate by hand or tried to cut a release.
+#
+# That is expensive with one person and worse with three: an agent working on a
+# broken tree cannot tell its own breakage from somebody else's, and neither can
+# a human.
+#
+# This is deliberately not the release pipeline. It answers one question in about
+# ninety seconds — does this commit load — and it names the commit that broke it.
+# The slower, judgement-heavy gates (balance, soak, performance) stay on the
+# release workflow, because they are legitimately red in the middle of a
+# migration and a check that is red for a week is a check people stop reading.
+
+on:
+  push:
+    branches:
+      - main
+    # Tags are the release workflow's job. Without this, tagging a release runs
+    # both and doubles the queue for no extra information.
+    tags-ignore:
+      - '**'
+    # Documentation cannot break a build.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'References/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# One run per branch. Three of us push in bursts, and there is no value in
+# finishing a check for a commit that two newer commits have already replaced.
+concurrency:
+  group: guard-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  compiles:
+    name: Does it load
+    runs-on: ubuntu-latest
+    # A hard ceiling, because the thing this project actually suffers from is
+    # hangs rather than failures: a check with no deadline turns a stall into a
+    # silent seventy-six minute wait that nobody is watching.
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Shares a cache key with the release workflow, so whichever runs first
+      # warms it for the other. Templates are not needed here - nothing is
+      # exported - but the key has to match or the two evict each other.
+      - name: Cache Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}
+
+      - name: Install Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot
+          curl --fail --location --retry 5 --retry-delay 2 --retry-max-time 180 \
+            --retry-all-errors --connect-timeout 20 \
+            -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q -o /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Import assets
+        # A cold checkout has no .godot/ directory and Godot must import once
+        # before anything can load. The editor exits non-zero on some headless
+        # shutdowns, which is not an import failure - hence the `|| true`.
+        run: |
+          timeout 300 godot --headless --path game --import || true
+          timeout 300 godot --headless --path launcher --import || true
+
+      - name: Register gameplay resource classes
+        # class_name Resource types must be in the cold checkout's global class
+        # cache before autoloads can type-check against them. Copied verbatim
+        # from the release workflow: without it this guard fails on import
+        # ordering rather than on real breakage, which is exactly the kind of
+        # false alarm that gets a check switched off.
+        run: timeout 300 godot --headless --editor --path game --quit
+
+      - name: Load the game, the launcher, and the menu
+        run: |
+          set -euo pipefail
+
+          # A Godot run that "succeeds" while printing script errors is the
+          # normal failure here: exit status alone does not catch a parse error
+          # in an autoload. Both are checked, and every call is bounded.
+          check() {
+            local name="$1"; shift
+            local log status
+            log="$(mktemp)"
+            set +e
+            timeout 240 godot "$@" 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+
+            if [ "$status" -eq 124 ]; then
+              echo "::error title=$name::Timed out. Something is hanging, not failing."
+              return 1
+            fi
+            if [ "$status" -ne 0 ]; then
+              echo "::error title=$name::Exited $status."
+              return 1
+            fi
+            if grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$log"; then
+              # The first root-cause line, not the cascade: one missing
+              # class_name produces a dozen "failed to compile depended scripts"
+              # and only the first line says which identifier is actually absent.
+              local first
+              first="$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$log" \
+                | grep -v 'depended scripts' | head -1)"
+              echo "::error title=$name::${first:-emitted an error or warning}"
+              return 1
+            fi
+          }
+
+          check "game" --headless --path game --quit
+          check "launcher" --headless --path launcher --quit
+          check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
+          check "main menu" --headless --path game res://tools/menu_check.tscn
+
+      - name: Say what broke
+        if: failure()
+        run: |
+          echo "### main does not load" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit \`${GITHUB_SHA:0:8}\` by ${GITHUB_ACTOR}." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "This guard only asks whether the projects load. It does not run" >> "$GITHUB_STEP_SUMMARY"
+          echo "balance, soak or performance checks - those stay on the release" >> "$GITHUB_STEP_SUMMARY"
+          echo "workflow. If this is red, something does not compile." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Reproduce locally:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo 'godot --headless --path game --quit' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
