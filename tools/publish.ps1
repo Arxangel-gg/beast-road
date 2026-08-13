@@ -392,8 +392,55 @@ $btn.Add_Click({
 
         Set-Stage 'Pushing to GitHub' 34 'push'
         $branch = (Invoke-Git @('rev-parse', '--abbrev-ref', 'HEAD')).Text.Trim()
+
+        # Take anything that landed while you were working, before pushing.
+        #
+        # Three people push to this branch: this window, and two agents. Without
+        # this, a publish that began after somebody else's push is rejected as a
+        # non-fast-forward - and it fails *after* committing your work, which
+        # leaves you staring at an error with a commit you did not expect and no
+        # obvious way forward.
+        #
+        # Rebase rather than merge: it replays your commits on top of theirs, so
+        # the history stays a straight line and a release tag points at something
+        # a human can read. Work on different files - which is the normal case
+        # here, because the three of us own different directories - merges with no
+        # interaction at all.
+        Write-Log 'fetching before push...'
+        $f = Invoke-Git @('fetch', 'origin', $branch)
+        if ($f.Code -ne 0) { throw "could not reach GitHub:`n$($f.Text)" }
+
+        $behind = (Invoke-Git @('rev-list', '--count', "HEAD..origin/$branch")).Text.Trim()
+        if ($behind -and $behind -ne '0') {
+            Write-Log "$behind commit(s) arrived while you were working - rebasing onto them"
+            $r = Invoke-Git @('rebase', "origin/$branch")
+            if ($r.Code -ne 0) {
+                # Leave the repository exactly as it was found. A half-finished
+                # rebase is a far worse thing to hand back than a clear refusal.
+                [void](Invoke-Git @('rebase', '--abort'))
+                throw ("your changes and the ones already pushed touch the same lines, " +
+                    "so they cannot be combined automatically.`n`n" +
+                    "Nothing was changed. Resolve it in a terminal, then publish again.`n`n" +
+                    $r.Text)
+            }
+            Write-Log 'rebased cleanly'
+        }
+
         $p = Invoke-Git @('push', 'origin', $branch)
-        if ($p.Code -ne 0) { throw "push failed:`n$($p.Text)" }
+        if ($p.Code -ne 0) {
+            # One retry: somebody may have pushed in the seconds between the fetch
+            # and the push. Losing a whole publish to a race that narrow would be
+            # silly when trying again costs a second.
+            Write-Log 'push rejected, someone pushed just now - retrying once'
+            [void](Invoke-Git @('fetch', 'origin', $branch))
+            $r2 = Invoke-Git @('rebase', "origin/$branch")
+            if ($r2.Code -ne 0) {
+                [void](Invoke-Git @('rebase', '--abort'))
+                throw "push failed and the retry could not be combined automatically:`n$($r2.Text)"
+            }
+            $p = Invoke-Git @('push', 'origin', $branch)
+            if ($p.Code -ne 0) { throw "push failed:`n$($p.Text)" }
+        }
         Write-Log "pushed $branch"
         $commitSha = (Invoke-Git @('rev-parse', 'HEAD')).Text.Trim()
 
