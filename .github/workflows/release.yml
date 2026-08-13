@@ -122,6 +122,12 @@ jobs:
           # Long enough for waves to reach the torches. Snuffing has been silently
           # dead twice; it is not a thing to verify by looking at a screenshot.
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=45 --shots=999 --expect-snuff
+          # GDD SS47 growth budget. Frame timing is reported but not asserted
+          # here: the dummy renderer does no GPU work, so a headless frame rate
+          # says nothing about a real one. Node, orphan and memory growth are
+          # entirely real headless, and they are what catches a system that adds
+          # something every wave and never frees it.
+          run_godot_clean --headless --path game res://tools/perf_check.tscn -- --seconds=45 --build
           run_godot_clean --headless --path launcher res://tests/release_pipeline_test.tscn
 
       - name: Export the game
