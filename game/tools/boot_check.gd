@@ -40,6 +40,13 @@ func _ready() -> void:
 			controls += 1
 	print("[boot] HUD present, %d child controls" % controls)
 
+	# Exactly one hero must be claimed. Four separate features read this group and
+	# every one of them treats an empty result as "nothing to do", so a run with no
+	# hero in it looks completely healthy and quietly does none of them: torch
+	# relighting, the see-through fade on towers and the town, and two Vfx hooks.
+	var heroes: int = get_tree().get_nodes_in_group(Hero.GROUP).size()
+	print("[boot] nodes in the hero group=%d" % heroes)
+
 	var slots: Array[Node] = get_tree().get_nodes_in_group(TowerSlot.GROUP)
 	print("[boot] tower slots=%d" % slots.size())
 
@@ -58,9 +65,9 @@ func _ready() -> void:
 		print("[boot] build panel visible after click=%s" % str(panel != null and panel.visible))
 		_clicked = panel != null and panel.visible
 
-	if controls < 20 or connected != slots.size() or not _clicked:
-		push_error("boot check failed: controls=%d wired=%d/%d panel=%s"
-			% [controls, connected, slots.size(), str(_clicked)])
+	if controls < 20 or connected != slots.size() or not _clicked or heroes != 1:
+		push_error("boot check failed: controls=%d wired=%d/%d panel=%s heroes=%d"
+			% [controls, connected, slots.size(), str(_clicked), heroes])
 		_bail(1)
 		return
 	_bail(0)

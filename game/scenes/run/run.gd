@@ -50,6 +50,23 @@ func _ready() -> void:
 
 	boss_director.battlefield = battlefield
 	journey.start()
+
+	# Claim the starting scope explicitly.
+	#
+	# `_scope` is already BATTLEFIELD, so switch_scope(BATTLEFIELD) early-returns
+	# and `battlefield.activate()` never runs at start-up. Activation is what puts
+	# the hero into the "hero" group — Hero._ready() deliberately leaves it, because
+	# there are two Hero instances (battlefield and raid) and whichever scope is
+	# live has to claim its own.
+	#
+	# So until the player switched to the town and back, *nothing at all* was in
+	# that group, and everything keyed on it silently did nothing: torch relighting,
+	# the see-through fade on towers and the town, and two Vfx hooks. Each of those
+	# reads `get_first_node_in_group("hero")` and quietly returns on null, so there
+	# was no error anywhere — just four features that were never once observed
+	# working.
+	battlefield.activate()
+
 	EventBus.run_started.emit()
 	switch_scope(GameDirector.Scope.BATTLEFIELD)
 
