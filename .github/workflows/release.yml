@@ -130,6 +130,18 @@ jobs:
           run_godot_clean --headless --path game res://tools/perf_check.tscn -- --seconds=45 --build
           run_godot_clean --headless --path launcher res://tests/release_pipeline_test.tscn
 
+      - name: Stamp the game with this tag
+        # GDD SS46: the game shows its semantic version in Settings and the
+        # debrief. Written in just before export and never committed, so the
+        # repository copy stays "dev" and a build made on somebody's machine says
+        # "development build" rather than impersonating a release.
+        run: |
+          set -euo pipefail
+          INFO=game/scripts/systems/build_info.gd
+          sed -i "s|^const VERSION: String = \"dev\"$|const VERSION: String = \"${GITHUB_REF_NAME}\"|" "$INFO"
+          grep -q "const VERSION: String = \"${GITHUB_REF_NAME}\"" "$INFO" \
+            || { echo "::error::Failed to stamp the game version."; exit 1; }
+
       - name: Export the game
         run: |
           mkdir -p build/game

@@ -81,6 +81,12 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	]
 	for entry: String in unlocks:
 		lines.append("   " + entry.replace(":", "  "))
+
+	# GDD §46 wants the version in the debrief as well as in Settings, and this is
+	# the better of the two places: it is the screen somebody is looking at when a
+	# run has just gone wrong, which is the moment they screenshot it.
+	lines.append("")
+	lines.append(BuildInfo.diagnostics())
 	body.text = "\n".join(lines)
 
 	panel.visible = true

@@ -43,6 +43,7 @@ var _quality_switches: Array[Dictionary] = []
 var _preset_buttons: Dictionary = {}
 var _fps_buttons: Dictionary = {}
 var _colourblind_buttons: Dictionary = {}
+var _colourblind_swatches: Array[ColorRect] = []
 
 ## Which action the player is currently pressing a key for, or empty.
 var _listening_for: StringName = &""
@@ -80,6 +81,10 @@ func _queue_save() -> void:
 
 func _build() -> void:
 	custom_minimum_size = Vector2(600.0, 0.0)
+	# This panel lives in its own full-screen CanvasLayer, but only the centre card
+	# should intercept input. Clicking the dimmed world around it must not leak to
+	# the paused battlefield or leave HUD controls appearing interactive.
+	mouse_filter = Control.MOUSE_FILTER_STOP
 
 	# A little breathing room on top of what the panel frame already reserves.
 	# The theme used to provide none at all, which put the rows flush against the
@@ -106,7 +111,9 @@ func _build() -> void:
 	# players most need - the graphics ones, when the game is running badly - would
 	# be the furthest down.
 	var tabs := TabContainer.new()
-	tabs.custom_minimum_size = Vector2(0.0, 560.0)
+	# Tall enough for the full Video accessibility preview at 1080p; the Video
+	# page still scrolls on shorter displays instead of clipping its controls.
+	tabs.custom_minimum_size = Vector2(0.0, 700.0)
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(tabs)
 
@@ -120,11 +127,15 @@ func _build() -> void:
 	audio.add_child(_gait_row())
 	tabs.add_child(audio)
 
+	var video_scroll := ScrollContainer.new()
+	video_scroll.name = "Video"
+	video_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var video := VBoxContainer.new()
-	video.name = "Video"
-	video.add_theme_constant_override("separation", 14)
+	video.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	video.add_theme_constant_override("separation", 6)
 	_build_video(video)
-	tabs.add_child(video)
+	video_scroll.add_child(video)
+	tabs.add_child(video_scroll)
 
 	var controls := VBoxContainer.new()
 	controls.name = "Controls"
@@ -135,6 +146,15 @@ func _build() -> void:
 	_refresh_video()
 	_refresh_fps_buttons()
 	_refresh_colourblind_buttons()
+
+	# GDD SS46: the version belongs in Settings. Small, quiet, and selectable by
+	# eye - it is the first thing to ask for in a bug report and the last thing a
+	# player can find without it.
+	var build: Label = _label(BuildInfo.diagnostics(), 13)
+	build.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	build.add_theme_color_override("font_color", Color(0.55, 0.59, 0.57, 0.75))
+	build.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(build)
 
 	var close := Button.new()
 	close.text = "Back"
@@ -296,8 +316,8 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
 	column.add_child(_separator())
-	column.add_child(_label("Colourblind", 20))
 	column.add_child(_colourblind_row())
+	column.add_child(_colourblind_preview())
 
 
 func _preset_row() -> HBoxContainer:
@@ -342,17 +362,14 @@ func _toggle_row(text: String, key: String, hint: String) -> VBoxContainer:
 	button.toggle_mode = true
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.custom_minimum_size = Vector2(118.0, 38.0)
+	button.tooltip_text = hint
+	name_label.tooltip_text = hint
 	button.pressed.connect(func() -> void:
 		Graphics.set_switch(key, button.button_pressed)
 		_refresh_video()
 		_queue_save())
 	row.add_child(button)
 	box.add_child(row)
-
-	if not hint.is_empty():
-		var note: Label = _label(hint, 13)
-		note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.8))
-		box.add_child(note)
 
 	_quality_switches.append({"key": key, "button": button, "kind": "toggle"})
 	return box
@@ -394,21 +411,58 @@ func _fps_row() -> HBoxContainer:
 func _colourblind_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
+	var name_label: Label = _label("Colourblind")
+	name_label.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(name_label)
 	_colourblind_buttons = {}
 	for entry: Dictionary in Palette.MODES:
 		var id: String = String(entry["id"])
 		var button := Button.new()
 		button.text = String(entry["label"])
 		button.toggle_mode = true
-		button.custom_minimum_size = Vector2(0.0, 38.0)
+		button.custom_minimum_size = Vector2(0.0, 34.0)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func() -> void:
 			Palette.set_mode(id)
 			_refresh_colourblind_buttons()
+			_refresh_colourblind_preview()
 			_queue_save())
 		_colourblind_buttons[id] = button
 		row.add_child(button)
 	return row
+
+
+## A live, labelled preview makes the option self-evident before the panel is
+## closed. Shape/name remain the primary cue; colour is the redundant channel.
+func _colourblind_preview() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var inset := Control.new()
+	inset.custom_minimum_size = Vector2(140.0, 0.0)
+	row.add_child(inset)
+	_colourblind_swatches.clear()
+	var names: Array[String] = ["FIRE", "WATER", "EARTH", "AIR"]
+	for element: int in names.size():
+		var chip := PanelContainer.new()
+		chip.custom_minimum_size = Vector2(0.0, 28.0)
+		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var fill := ColorRect.new()
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_child(fill)
+		var label: Label = _label(names[element], 10)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_color_override("font_color", Color("101417"))
+		chip.add_child(label)
+		row.add_child(chip)
+		_colourblind_swatches.append(fill)
+	_refresh_colourblind_preview()
+	return row
+
+
+func _refresh_colourblind_preview() -> void:
+	for element: int in _colourblind_swatches.size():
+		_colourblind_swatches[element].color = Palette.element(element)
 
 
 func _refresh_video() -> void:
@@ -444,6 +498,7 @@ func _refresh_colourblind_buttons() -> void:
 	var current: String = Palette.mode()
 	for id: Variant in _colourblind_buttons:
 		(_colourblind_buttons[id] as Button).button_pressed = String(id) == current
+	_refresh_colourblind_preview()
 
 
 # --- Controls ----------------------------------------------------------------
