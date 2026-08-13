@@ -10,15 +10,38 @@ any code.
 A 2D action tower-defense roguelite in Godot 4.7.1. One hero defends four
 lanes around a city riding on the back of a walking beast.
 
-**The design spec is `docs/Game_Design_v3.md`.** It is authoritative. This
+**The design spec is `docs/GDD_Master.docx` (v4.0).** It is authoritative. This
 file contains working rules only — it does not restate the design. When the
 two conflict, the GDD wins for *what* to build and this file wins for *how*.
 
-`docs/Game_Design_v2.md` is superseded but **worth reading before you cut or
-re-cut anything** — it argues well for scope discipline, and v3's §14 says
-exactly which of those arguments the owner overruled and why.
+`docs/Game_Design_v4.md` is the same document in markdown and is the one to
+read — a `.docx` is awkward to grep. If the two ever disagree, the `.docx` is
+the signed copy.
 
-`docs/Game Design.md` is v1, archived history. **Do not build from it.**
+`docs/V4_CONFORMANCE.md` turns v4's LOCKED decisions into machine-checked rows.
+`run_tool.gd -- audit` reports how much of v4 exists; `-- audit --todo` lists
+only what is outstanding. **Run it before claiming a milestone is done.**
+
+### The older GDDs
+
+Superseded, but not worthless, and one of them is a trap:
+
+- `docs/Game_Design_v3.md` was authoritative until 2026-08-13 and **is what the
+  shipping code was built to**. When code and v4 disagree, v3 usually explains
+  why the code is the way it is.
+- `docs/Game_Design_v2.md` argues well for scope discipline. Read it before you
+  cut or re-cut anything.
+- `docs/Game Design.md` is v1, archived history. **Do not build from it.**
+
+### Re-cuts that need the owner, not you
+
+v3 §14 lists nine decisions where the owner personally overruled v2's cuts. v4
+§57 reverses some of them again — most visibly **mid-combat tower placement**,
+which v3 §14 records as *"Un-cut. Owner's spec."* and v4 locks to Preparation.
+
+That may be right for pacing. It is still an owner decision being made twice.
+**Do not silently implement a re-cut of anything in v3 §14.** Ask, or leave the
+v3 behaviour in place and flag it.
 
 `References/` holds the owner's visual references, one per scope. They are the
 target, not a mood board — check them before designing a screen.
@@ -64,12 +87,13 @@ works."
 
 ## 3. Working rules
 
-1. **The target is the full game** (GDD §9 "The full loop"). Build toward a
-   loop that closes: splash → menu → run → all four scopes → boss → win/lose →
-   unlock payout → menu. Report honestly what is real and what is a stub.
-2. **Never build anything in GDD §12 (Still Out of Scope).** That list is
-   shorter than v2's was, and everything the owner un-cut is already in v3 —
-   so if a system is on that list, it was cut on purpose.
+1. **The target is the full game** (GDD §52 "Release Acceptance Checklist").
+   Build toward a loop that closes: splash → menu → run → all scopes → three
+   acts → summit → win/lose → payout → menu. Report honestly what is real and
+   what is a stub.
+2. **Never build anything in GDD §54 (Explicitly Out of Scope for 1.0).** If a
+   system is on that list it was cut on purpose. §55 lists what is genuinely
+   still OPEN, and none of it is gameplay.
 3. **Data-driven, always.** Every tower, enemy, relic, spell, and terrain is a
    `Resource` (`.tres`) in `/data`. No hardcoded stat branches, no
    `if enemy_name == "bogkin"`. Adding content must mean adding a file.
@@ -80,14 +104,20 @@ works."
    references. The battlefield must not hold a reference to the city.
 6. **`RunState` is the single source of truth for the current run.** No system
    caches run data locally.
-7. **`MetaState` writes only unlocked IDs, run statistics, and settings.** If
-   anything else appears in the save file, a design decision has been
-   violated — flag it instead of implementing it.
+7. **`MetaState` writes only what v4 sanctions:** unlocked IDs, run statistics,
+   settings, Tools, the four capped Sigil ranks, and the Treasury cache (GDD
+   §57). Nothing else. The rule this enforces is §52's — *"no run-only power
+   leaks into the account save"* — so if you find yourself persisting a relic,
+   a tower level, a currency balance or hero progress, a design decision has
+   been violated. Flag it instead of implementing it.
 8. **The battlefield freezes during a raid and resumes exactly as it was**
-   (GDD §6.3). It must therefore be suspendable as a unit — no system may keep
-   ticking off a timer the battlefield does not own.
+   (GDD §52, "Raid pause resumes the exact battlefield state"). It must
+   therefore be suspendable as a unit — no system may keep ticking off a timer
+   the battlefield does not own.
 9. **Player-facing strings live in data, not in logic.** This matters most for
-   the captive system (GDD §6.3), whose framing is explicitly unsettled.
+   the Oathbound leader system, whose framing v4 deliberately rewrote: leaders
+   are sworn, ransomed or memorialised, never owned. **No enslavement language
+   ships** (GDD §57), and that is a release requirement, not a preference.
 
 ---
 
@@ -144,7 +174,8 @@ End every work session with:
 
 ```
 DONE      — what now works, verifiable by running it
-KILL Q    — the stage's kill question and your honest read on it
+CONFORM   — the audit score before and after (run_tool.gd -- audit)
+KILL Q    — the milestone's kill question (GDD §53) and your honest read on it
 FILES     — created / modified
 ASSETS    — any new placeholder requirements added to the manifest
 BLOCKED   — anything needing a human decision
@@ -153,6 +184,11 @@ NEXT      — the single next step (do not start it)
 
 Be honest in KILL Q. If a stage feels bad, say so — that is the entire point
 of the gate.
+
+CONFORM is a number, not a claim. A rising score means files and symbols now
+exist; it says nothing about whether the feature is good. Never report a
+milestone complete on the audit alone — §53's kill question is the real gate,
+and the audit cannot answer it.
 
 ---
 
