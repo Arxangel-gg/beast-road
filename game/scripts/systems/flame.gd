@@ -303,6 +303,21 @@ static func _growth_curve() -> Curve:
 
 # --- State ------------------------------------------------------------------
 
+## Re-reads the particle budget without rebuilding the emitters.
+##
+## Changing `amount` restarts a CPUParticles2D, which is a visible hiccup - but
+## one hiccup when a player deliberately changes a setting is fine, and it is far
+## better than the setting appearing to do nothing at all.
+func refresh_quality() -> void:
+	var scale: float = Graphics.particle_scale()
+	if _embers != null:
+		_embers.amount = Graphics.scaled(
+			int(round(float(Balance.FLAME_EMBER_AMOUNT) * intensity)), scale)
+	if _smoke != null:
+		_smoke.amount = Graphics.scaled(
+			int(round(float(Balance.FLAME_SMOKE_AMOUNT) * intensity)), scale)
+
+
 func set_lit(lit: bool) -> void:
 	if _lit == lit:
 		return

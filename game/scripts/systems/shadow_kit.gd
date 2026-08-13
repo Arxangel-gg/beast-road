@@ -52,6 +52,12 @@ void fragment() {
 }
 """
 
+## Every contact shadow, so a quality change can reach them all at once.
+const GROUP: StringName = &"contact_shadows"
+
+## Every light blocker, for the same reason.
+const CASTER_GROUP: StringName = &"shadow_casters"
+
 static var _material: ShaderMaterial = null
 static var _quad: GradientTexture2D = null
 
@@ -127,9 +133,6 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	if target == null or sprite == null or sprite.texture == null:
 		return null
 
-	if not Graphics.contact_shadows():
-		return null
-
 	var texture_size: Vector2 = sprite.texture.get_size() * sprite.scale.abs()
 	var width: float = texture_size.x * Balance.SHADOW_WIDTH * width_scale
 	if width <= 1.0:
@@ -150,6 +153,14 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	# Shadows are ground, not objects: they must not take part in y-sorting
 	# against the thing casting them.
 	shadow.y_sort_enabled = false
+	# Always built, then shown or hidden by the quality setting.
+	#
+	# Creating them conditionally meant a player who switched quality up mid-run
+	# got nothing back: the units already on the field had no shadow node to
+	# reveal. A hidden Sprite2D issues no draw call, so the saving is the same and
+	# the setting becomes reversible without rebuilding the scope.
+	shadow.add_to_group(GROUP)
+	shadow.visible = Graphics.contact_shadows()
 	target.add_child(shadow)
 	return shadow
 
@@ -164,7 +175,7 @@ static func add_caster(target: Node2D, half_width: float, half_height: float,
 	# No occluder means the shadow-casting lights have nothing to draw, which is
 	# where most of the saving actually comes from - the light still runs its pass
 	# either way, but an empty one is nearly free.
-	if not Graphics.cast_shadows() or target == null:
+	if not Balance.SHADOW_CAST_ENABLED or target == null:
 		return null
 
 	var polygon := OccluderPolygon2D.new()
@@ -182,6 +193,10 @@ static func add_caster(target: Node2D, half_width: float, half_height: float,
 	occluder.occluder = polygon
 	occluder.occluder_light_mask = layer
 	occluder.position.y = base_offset
+	# Same reasoning as the contact shadows: built once, hidden when not wanted.
+	# A hidden occluder blocks no light.
+	occluder.add_to_group(CASTER_GROUP)
+	occluder.visible = Graphics.cast_shadows()
 	target.add_child(occluder)
 	return occluder
 

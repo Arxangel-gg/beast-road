@@ -42,6 +42,9 @@ var _clumps: Array[Node2D] = []
 var _shadows: Array[Node2D] = []
 var _phase: float = 0.0
 
+## The density this scatter was built at, so a re-scatter only happens on change.
+var _scattered_at: float = -1.0
+
 
 func _ready() -> void:
 	scatter()
@@ -65,7 +68,8 @@ func scatter() -> void:
 	# Scaled at scatter time, not culled afterwards: four hundred clumps that are
 	# never created cost nothing, whereas four hundred hidden ones still sit in the
 	# tree and still get walked every frame by the wind.
-	var wanted: int = Graphics.scaled(Balance.FOLIAGE_COUNT, Graphics.foliage_scale())
+	_scattered_at = Graphics.foliage_scale()
+	var wanted: int = Graphics.scaled(Balance.FOLIAGE_COUNT, _scattered_at)
 	var placed: int = 0
 	var attempts: int = 0
 	while placed < wanted and attempts < wanted * 12:
@@ -82,6 +86,16 @@ func scatter() -> void:
 
 ## Uniform over the disc. Sampling radius linearly would bunch everything at the
 ## centre, which is exactly where the town is.
+## Re-scatters if the density setting moved.
+##
+## Guarded because this is called on every quality change and a full re-scatter
+## of six hundred clumps is not something to do because the frame cap moved.
+func refresh_quality() -> void:
+	if is_equal_approx(_scattered_at, Graphics.foliage_scale()):
+		return
+	scatter()
+
+
 func _random_point(rng: RandomNumberGenerator) -> Vector2:
 	var radius: float = sqrt(rng.randf()) * Balance.LANE_SPAWN_RADIUS * 1.15
 	return Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
@@ -153,9 +167,6 @@ func _add_shadow(clump: Node2D, scale: float) -> void:
 	# sprite this has none of - so the quality switch has to be checked here too.
 	# Missing it meant Low reported "ground shadows off" and still drew fifty of
 	# them, which is a setting that lies.
-	if not Graphics.contact_shadows():
-		return
-
 	var shadow := Sprite2D.new()
 	shadow.name = "ContactShadow"
 	shadow.texture = ShadowKit.quad_texture()
@@ -164,6 +175,8 @@ func _add_shadow(clump: Node2D, scale: float) -> void:
 	shadow.z_index = -1
 	shadow.z_as_relative = true
 	shadow.position = clump.position
+	shadow.add_to_group(ShadowKit.GROUP)
+	shadow.visible = Graphics.contact_shadows()
 	add_child(shadow)
 	_shadows.append(shadow)
 

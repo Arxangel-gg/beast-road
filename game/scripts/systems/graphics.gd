@@ -169,14 +169,75 @@ static func set_switch(key: String, value: Variant) -> void:
 	apply_runtime()
 
 
-## The settings that take effect immediately without rebuilding anything.
+## Applies everything to the game that is currently running.
 ##
-## Shadows, foliage and particle counts are read when a scope is built, so they
-## apply on the next battlefield rather than mid-wave. That is deliberate:
-## deleting six hundred nodes underneath a running fight to save four frames is
-## not a trade worth making.
+## This used to set only the frame cap, on the reasoning that shadows, foliage
+## and particle counts are read when a scope is built and so "apply on the next
+## battlefield". That was wrong, and wrong in the way that matters: a player opens
+## settings mid-run, turns everything down, closes the panel, and the game looks
+## and performs exactly the same. From where they are sitting the setting does
+## nothing — and the one player who most needs it is the one whose frame rate is
+## already bad enough to go looking.
+##
+## Nothing here rebuilds a scope. Shadows and occluders are hidden rather than
+## deleted, particle emitters keep their nodes and change their counts, and only
+## the foliage is re-scattered — which is a plain rebuild of decoration that owns
+## no state.
 static func apply_runtime() -> void:
 	Engine.max_fps = fps_cap()
+	apply_to_scene()
+
+
+## Pushes quality at whatever is on screen now.
+static func apply_to_scene() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null or tree.root == null:
+		return
+
+	var show_contact: bool = contact_shadows()
+	for node: Node in tree.get_nodes_in_group(ShadowKit.GROUP):
+		var shadow := node as CanvasItem
+		if shadow != null:
+			shadow.visible = show_contact
+
+	var show_casters: bool = cast_shadows()
+	for node: Node in tree.get_nodes_in_group(ShadowKit.CASTER_GROUP):
+		var occluder := node as LightOccluder2D
+		if occluder != null:
+			occluder.visible = show_casters
+
+	_walk(tree.root, show_casters)
+
+
+## Lights, particles, clouds and foliage, in one pass.
+static func _walk(from: Node, show_casters: bool) -> void:
+	var light := from as PointLight2D
+	if light != null and light.shadow_enabled != show_casters:
+		# Only touch lights that were set up to cast in the first place; the hero
+		# and tower lights never do, and switching them on would light the field
+		# from inside every sprite.
+		if show_casters:
+			if from.is_in_group(LightKit.SHADOW_GROUP):
+				light.shadow_enabled = true
+		else:
+			light.shadow_enabled = false
+
+	var clouds := from as CloudShadows
+	if clouds != null:
+		clouds.visible = cloud_shadows()
+
+	var flame := from as Flame
+	if flame != null:
+		flame.refresh_quality()
+
+	var foliage := from as Foliage
+	if foliage != null:
+		foliage.refresh_quality()
+		# Its clumps are rebuilt wholesale; nothing below is worth walking.
+		return
+
+	for child: Node in from.get_children():
+		_walk(child, show_casters)
 
 
 static func fps_cap() -> int:

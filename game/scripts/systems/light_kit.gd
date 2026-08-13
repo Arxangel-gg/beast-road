@@ -12,6 +12,9 @@ extends RefCounted
 ## light nobody has to remember to update is a light that cannot get out of sync.
 
 ## Cached so fifty towers share one texture rather than generating fifty.
+## Lights that are supposed to cast shadows, so quality can restore them.
+const SHADOW_GROUP: StringName = &"shadow_lights"
+
 static var _falloff: GradientTexture2D = null
 
 
@@ -53,9 +56,12 @@ static func falloff_texture() -> GradientTexture2D:
 ## town — lights that stand apart from what they illuminate — get it.
 static func enable_shadows(light: PointLight2D,
 		cull_mask: int = Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS) -> void:
-	if light == null or not Graphics.cast_shadows():
+	if light == null or not Balance.SHADOW_CAST_ENABLED:
 		return
-	light.shadow_enabled = true
+	# Grouped so turning cast shadows back on mid-run can find exactly the lights
+	# that were meant to cast. Without it the only way to restore them would be to
+	# switch every light on, which lights the field from inside every sprite.
+	light.add_to_group(SHADOW_GROUP)
 	light.shadow_filter = Light2D.SHADOW_FILTER_PCF13
 	light.shadow_filter_smooth = Balance.SHADOW_FILTER_SMOOTH
 	# Fully transparent, because these lights are additive: a shadow here is the
@@ -63,6 +69,7 @@ static func enable_shadows(light: PointLight2D,
 	# shadow_color would stamp black wedges across the field in broad daylight.
 	light.shadow_color = Color(0, 0, 0, 0)
 	light.shadow_item_cull_mask = cull_mask
+	light.shadow_enabled = Graphics.cast_shadows()
 
 
 ## Creates a light and attaches it to `parent`. `radius` is in pixels;
