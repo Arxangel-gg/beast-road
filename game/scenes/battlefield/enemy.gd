@@ -59,6 +59,7 @@ var _burn_left: float = 0.0
 ## Velocity from the previous frame drives the procedural gait. Keeping it here
 ## also makes hitstun and freezing visibly settle instead of walking in place.
 var _motion: Vector2 = Vector2.ZERO
+var _boss_phase: int = 0
 
 
 func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
@@ -186,13 +187,24 @@ func _walk(delta: float) -> void:
 
 
 func current_speed() -> float:
-	var speed: float = data.move_speed * _speed_scale * _slow_factor
-	if RunState.horn_active:
-		speed *= Balance.HORN_ENEMY_SPEED_SCALE
+	var speed: float = targeting_speed()
 	if data.role != EnemyData.Role.HOWLER:
 		var howler: Enemy = _nearby_howler()
 		if howler != null:
 			speed *= 1.0 + howler.data.aura_strength
+	return speed
+
+
+## Cheap speed read for tower target sorting. The full movement calculation
+## searches for a nearby Howler; calling that inside a sort comparator turns a
+## 180-enemy formation into thousands of group scans per tower volley. Global,
+## status and boss-phase speed are enough to rank runners correctly.
+func targeting_speed() -> float:
+	var speed: float = data.move_speed * _speed_scale * _slow_factor
+	if _boss_phase > 0:
+		speed *= 1.0 + data.phase_speed_bonus * float(_boss_phase)
+	if RunState.horn_active:
+		speed *= Balance.HORN_ENEMY_SPEED_SCALE
 	return speed
 
 
@@ -233,6 +245,8 @@ func _strike() -> void:
 	if target_health == null:
 		return
 	var damage: float = data.contact_damage * _damage_scale
+	if _boss_phase > 0:
+		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	if data.role != EnemyData.Role.HOWLER:
 		var howler: Enemy = _nearby_howler()
 		if howler != null:
@@ -263,6 +277,18 @@ func is_dying() -> bool:
 ## react to.
 func is_telegraphing() -> bool:
 	return _state == State.WINDUP
+
+
+func apply_boss_phase(phase: int) -> void:
+	_boss_phase = maxi(phase, _boss_phase)
+	if _boss_phase <= 0:
+		return
+	# The ring and outward sparks make the transition readable through a crowd;
+	# the persistent speed/damage change is authored on EnemyData.
+	Vfx.ring(global_position, contact_radius() * 2.8,
+		Color(1.0, 0.25, 0.12, 0.8), 0.75, 8.0)
+	Vfx.spark(global_position, Color("ff7a4e"), 22, Vector2.ZERO, 330.0)
+	animator.squash(1.45)
 
 
 func take_damage(amount: float, from: Vector2, knockback: float) -> bool:

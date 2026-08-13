@@ -72,10 +72,26 @@ var enemies_killed: int = 0
 var hero_deaths: int = 0
 var raids_completed: int = 0
 var chieftains_taken: int = 0
+var run_time_seconds: float = 0.0
+var resources_earned: int = 0
+var resources_spent: int = 0
+var towers_built: int = 0
+var tower_upgrades: int = 0
+var towers_sold: int = 0
+var towers_lost: int = 0
+var town_damage_taken: float = 0.0
+var town_hits_taken: int = 0
+var peak_lane_pressure: float = 0.0
+var wave_archetype_counts: Dictionary = {}
 
 
 func _ready() -> void:
 	reset()
+
+
+func _process(delta: float) -> void:
+	if GameDirector.run_active:
+		run_time_seconds += delta
 
 
 ## Wipes everything. Called when a run begins, never mid-run — death wipes the
@@ -120,6 +136,17 @@ func reset() -> void:
 	hero_deaths = 0
 	raids_completed = 0
 	chieftains_taken = 0
+	run_time_seconds = 0.0
+	resources_earned = 0
+	resources_spent = 0
+	towers_built = 0
+	tower_upgrades = 0
+	towers_sold = 0
+	towers_lost = 0
+	town_damage_taken = 0.0
+	town_hits_taken = 0
+	peak_lane_pressure = 0.0
+	wave_archetype_counts.clear()
 
 	_equip_starting_spells()
 
@@ -181,7 +208,8 @@ func set_slot(lane: int, slot: int, tower_id: String, level: int) -> void:
 	var i: int = slot_index(lane, slot)
 	if i < 0 or i >= tower_slots.size():
 		return
-	tower_slots[i] = {"tower_id": tower_id, "level": level}
+	var priority: int = int(tower_slots[i].get("target_priority", TowerData.TargetPriority.FIRST))
+	tower_slots[i] = {"tower_id": tower_id, "level": level, "target_priority": priority}
 	EventBus.tower_slot_changed.emit(lane, slot)
 
 
@@ -191,6 +219,21 @@ func clear_slot(lane: int, slot: int) -> void:
 		return
 	tower_slots[i] = {}
 	EventBus.tower_slot_changed.emit(lane, slot)
+
+
+func target_priority_in_slot(lane: int, slot: int) -> int:
+	return int(slot_at(lane, slot).get("target_priority", TowerData.TargetPriority.FIRST))
+
+
+func cycle_target_priority(lane: int, slot: int) -> int:
+	var i: int = slot_index(lane, slot)
+	if i < 0 or i >= tower_slots.size() or tower_slots[i].is_empty():
+		return TowerData.TargetPriority.FIRST
+	var count: int = TowerData.TargetPriority.size()
+	var priority: int = (target_priority_in_slot(lane, slot) + 1) % count
+	tower_slots[i]["target_priority"] = priority
+	EventBus.tower_targeting_changed.emit(lane, slot, priority)
+	return priority
 
 
 ## The combination available in a lane's middle slot, or null. Requires both
@@ -220,6 +263,7 @@ func spend(cost: int) -> bool:
 	if not can_afford(cost):
 		return false
 	resources -= cost
+	resources_spent += cost
 	EventBus.resources_changed.emit(resources)
 	return true
 
@@ -228,6 +272,8 @@ func gain_resources(amount: int) -> void:
 	if amount == 0:
 		return
 	resources = maxi(resources + amount, 0)
+	if amount > 0:
+		resources_earned += amount
 	EventBus.resources_changed.emit(resources)
 
 
@@ -314,3 +360,20 @@ func act_progress() -> float:
 func distance_to_crossroad() -> float:
 	var next_boundary: float = (floorf(distance_travelled / Balance.SEGMENT_DISTANCE) + 1.0) * Balance.SEGMENT_DISTANCE
 	return maxf(next_boundary - distance_travelled, 0.0)
+
+
+func record_wave_archetype(id: String) -> void:
+	if id.is_empty():
+		return
+	wave_archetype_counts[id] = int(wave_archetype_counts.get(id, 0)) + 1
+
+
+func most_common_wave_archetype() -> String:
+	var best_id: String = ""
+	var best_count: int = 0
+	for key: Variant in wave_archetype_counts:
+		var count: int = int(wave_archetype_counts[key])
+		if count > best_count:
+			best_count = count
+			best_id = String(key)
+	return best_id

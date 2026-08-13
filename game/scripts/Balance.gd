@@ -453,6 +453,11 @@ const WAVE_MAX_QUEUED: int = 420
 const WAVE_LANES_START: int = 1
 const WAVE_LANES_MAX: int = 4
 
+## Authored wave formations multiply the continuous curve; these clamps keep a
+## malformed content file from producing an empty wave or an instant spawn wall.
+const WAVE_ARCHETYPE_MIN_COUNT_SCALE: float = 0.50
+const WAVE_ARCHETYPE_MIN_SPACING_SCALE: float = 0.42
+
 ## Live enemy cap across the whole battlefield. [TUNE]
 const BATTLEFIELD_MAX_ENEMIES: int = 180
 
@@ -600,6 +605,12 @@ const WARD_ABSORB: float = 260.0
 ## Resources paid out by an act boss, on top of the reward package. [TUNE]
 const BOSS_RESOURCE_REWARD: int = 180
 const BOSS_ACT_SCALE: Array[float] = [1.25, 2.10, 3.20]
+
+## Boss-phase reinforcements use the current wave curve, softened so the boss
+## remains the centre of the encounter while the other lanes demand attention.
+const BOSS_PHASE_REINFORCEMENT_HP_SCALE: float = 0.72
+const BOSS_PHASE_REINFORCEMENT_DAMAGE_SCALE: float = 0.82
+const BOSS_PHASE_MAX_REINFORCEMENTS: int = 6
 
 ## Source pixel size of a tower sprite. Towers are square like every other
 ## generated asset; the illusion of height comes from the art, not the file.

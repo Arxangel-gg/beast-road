@@ -226,6 +226,8 @@ func _update_smoke(fires: int) -> void:
 
 func _on_damaged(amount: float, _from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	RunState.town_damage_taken += amount
+	RunState.town_hits_taken += 1
 	# Damage to the town slows the beast, which slows construction. That chain
 	# is the whole reason failure compounds (GDD §7).
 	RunState.beast_speed = maxf(

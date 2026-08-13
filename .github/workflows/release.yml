@@ -83,6 +83,13 @@ jobs:
           godot --headless --path game --import || true
           godot --headless --path launcher --import || true
 
+      - name: Register gameplay resource classes
+        # New class_name Resource types must be present in the cold checkout's
+        # global class cache before autoloads can type-check against them. A
+        # short editor boot is the deterministic registration pass; --import
+        # alone may exit before that cache is written on a fresh runner.
+        run: godot --headless --editor --path game --quit
+
       - name: Validate the projects and updater contract
         run: |
           set -euo pipefail

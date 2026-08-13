@@ -399,6 +399,7 @@ func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
 		return "Needs %d resources." % cost
 	RunState.spend(cost)
 	RunState.set_slot(lane, slot, tower_data.id, 1)
+	RunState.towers_built += 1
 	return ""
 
 
@@ -416,6 +417,7 @@ func try_upgrade(lane: int, slot: int) -> String:
 		return "Needs %d resources." % cost
 	RunState.spend(cost)
 	RunState.set_slot(lane, slot, tower_data.id, level + 1)
+	RunState.tower_upgrades += 1
 	return ""
 
 
@@ -443,6 +445,7 @@ func try_sell(lane: int, slot: int) -> String:
 	for l: int in range(1, level):
 		spent += upgrade_cost_of(l)
 	RunState.gain_resources(int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
+	RunState.towers_sold += 1
 	RunState.clear_slot(lane, slot)
 	return ""
 
@@ -571,6 +574,7 @@ func _update_pressure() -> void:
 
 	for lane: int in Balance.LANE_COUNT:
 		var value: float = clampf(counts[lane] / 12.0, 0.0, 1.0)
+		RunState.peak_lane_pressure = maxf(RunState.peak_lane_pressure, value)
 		if not is_equal_approx(value, _pressure[lane]):
 			_pressure[lane] = value
 			EventBus.lane_pressure_changed.emit(lane, value)

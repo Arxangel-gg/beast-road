@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "howling_pack"
+display_name = "Howling Pack"
+description = "Kill the leaders before their aura accelerates every escort."
+minimum_act_wave = 4
+selection_weight = 1.0
+night_weight_multiplier = 1.25
+count_scale = 0.9
+hp_scale = 0.96
+speed_scale = 1.04
+signature_enemy_id = "howler"
+signature_count_per_lane = 1

@@ -82,6 +82,7 @@ func _ready() -> void:
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.raid_charge_changed.connect(_on_charge)
 	EventBus.wave_started.connect(_on_wave)
+	EventBus.wave_archetype_started.connect(_on_wave_archetype)
 	EventBus.act_started.connect(_on_act)
 	EventBus.raid_available.connect(func(_s: float) -> void: _raid_button.disabled = false)
 	EventBus.war_horn_activated.connect(func(_d: float) -> void: _horn_button.disabled = true)
@@ -93,6 +94,7 @@ func _ready() -> void:
 	EventBus.weakened_ended.connect(_refresh_state_label)
 	EventBus.spells_changed.connect(_rebuild_spell_bar)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
 	EventBus.boss_defeated.connect(func(_id: String, _a: int) -> void: _boss_panel.visible = false)
 	EventBus.run_started.connect(_rebuild_spell_bar)
 	EventBus.construction_completed.connect(func(_id: String, _tier: int) -> void:
@@ -503,6 +505,16 @@ func _on_boss_spawned(boss_id: String, act: int) -> void:
 	_message_left = 3.2
 
 
+func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> void:
+	var data: EnemyData = ContentDB.enemy(boss_id)
+	_message.text = "%s  —  %s\nReinforcements on the other roads." % [
+		data.display_name if data != null else "The boss", phase_name.to_upper()]
+	_message_left = 4.0
+	if _boss_name != null:
+		_boss_name.text = "%s  ·  %s" % [
+			data.display_name if data != null else boss_id, phase_name]
+
+
 func _update_boss_bar() -> void:
 	if not _boss_panel.visible or boss_director == null:
 		return
@@ -556,6 +568,14 @@ func _refresh_build_panel() -> void:
 	if existing != null:
 		_build_list.add_child(_label("%s  ·  level %d" % [existing.display_name, level], 18))
 		_build_list.add_child(_label(existing.description, 14))
+		var target_priority: int = RunState.target_priority_in_slot(lane, slot)
+		var target_button: Button = _add_button(_build_list,
+			"Target: %s  ·  click to cycle" % TowerData.target_priority_name(target_priority),
+			func() -> void:
+				RunState.cycle_target_priority(lane, slot)
+				_refresh_build_panel())
+		target_button.tooltip_text = TowerData.target_priority_description(target_priority)
+		_build_list.add_child(_label(TowerData.target_priority_description(target_priority), 13))
 		var level_cap: int = RunState.tower_level_cap()
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(
@@ -732,6 +752,15 @@ func _on_wave(number: int, lanes: Array) -> void:
 	_wave.text = "%d" % number
 	_message.text = "Wave %d  —  %s" % [number, ", ".join(names)]
 	_message_left = 2.0
+
+
+func _on_wave_archetype(number: int, archetype_id: String) -> void:
+	var archetype: WaveArchetypeData = ContentDB.wave_archetype(archetype_id)
+	if archetype == null:
+		return
+	_message.text = "Wave %d  —  %s\n%s" % [
+		number, archetype.display_name.to_upper(), archetype.description]
+	_message_left = 3.1
 
 
 func _on_act(act: int, terrain_id: String) -> void:

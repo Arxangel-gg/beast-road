@@ -75,6 +75,10 @@ signal lane_pressure_changed(lane_index: int, pressure: float)
 ## A wave began. `lanes` lists which lanes it uses.
 signal wave_started(wave_number: int, lanes: Array)
 
+## The authored formation carried by a wave. Kept separate from wave_started so
+## audio and older UI consumers do not need to understand formation content.
+signal wave_archetype_started(wave_number: int, archetype_id: String)
+
 ## Every enemy of a wave is dead or has arrived.
 signal wave_cleared(wave_number: int)
 
@@ -83,6 +87,9 @@ signal tower_slot_changed(lane: int, slot: int)
 
 ## A tower fired at something. Purely for feedback systems.
 signal tower_fired(lane: int, slot: int, at: Vector2)
+
+## A tower's player-selected targeting doctrine changed.
+signal tower_targeting_changed(lane: int, slot: int, priority: int)
 
 ## A torch was snuffed out or relit. `lane` is which road it stands on.
 signal torch_state_changed(lane: int, lit: bool)
@@ -130,6 +137,9 @@ signal act_started(act: int, terrain_id: String)
 signal act_boss_due(act: int)
 signal boss_spawned(boss_id: String, act: int)
 signal boss_defeated(boss_id: String, act: int)
+
+## A boss crossed an authored health threshold and changed the encounter.
+signal boss_phase_changed(boss_id: String, phase: int, phase_name: String)
 
 # ==============================================================================
 # HORN AND RAID (GDD §6)

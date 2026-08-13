@@ -66,6 +66,17 @@ enum Role {
 @export var aura_strength: float = 0.0
 @export_range(0.1, 1.0) var spawn_distance_scale: float = 1.0
 
+## Boss encounter phases. Empty for non-bosses. Crossing each health ratio in
+## order triggers the matching name, reinforcements, and another step of the
+## authored speed/damage escalation. This keeps boss identity in .tres content.
+@export var phase_thresholds: Array[float] = []
+@export var phase_names: Array[String] = []
+@export var phase_reinforcement_enemy_id: String = ""
+@export var phase_reinforcements_per_lane: int = 0
+@export var phase_reinforcement_lanes: int = 2
+@export var phase_speed_bonus: float = 0.0
+@export var phase_damage_bonus: float = 0.0
+
 
 func get_sprite_path() -> String:
 	match category:

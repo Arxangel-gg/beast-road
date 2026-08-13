@@ -61,6 +61,18 @@ func end_run(victory: bool) -> void:
 		"deaths": RunState.hero_deaths,
 		"raids": RunState.raids_completed,
 		"chieftains": RunState.chieftains_taken,
+		"time": RunState.run_time_seconds,
+		"resources_earned": RunState.resources_earned,
+		"resources_spent": RunState.resources_spent,
+		"towers_built": RunState.towers_built,
+		"tower_upgrades": RunState.tower_upgrades,
+		"towers_sold": RunState.towers_sold,
+		"towers_lost": RunState.towers_lost,
+		"town_damage": RunState.town_damage_taken,
+		"town_hits": RunState.town_hits_taken,
+		"peak_pressure": RunState.peak_lane_pressure,
+		"most_common_wave": RunState.most_common_wave_archetype(),
+		"wave_archetypes": RunState.wave_archetype_counts.duplicate(true),
 		"unlocks": _pay_out_unlocks(victory),
 	}
 

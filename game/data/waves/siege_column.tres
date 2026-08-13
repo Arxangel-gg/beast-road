@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "siege_column"
+display_name = "Siege Column"
+description = "The whole assault compresses into one armoured lane."
+lane_pattern = 1
+minimum_act_wave = 3
+selection_weight = 0.9
+count_scale = 1.08
+hp_scale = 1.32
+damage_scale = 1.12
+speed_scale = 0.84
+spawn_spacing_scale = 0.82
+signature_enemy_id = "warden"
+signature_count_per_lane = 1

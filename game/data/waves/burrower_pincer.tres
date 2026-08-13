@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "burrower_pincer"
+display_name = "Burrower Pincer"
+description = "Opposite lanes split attention while infiltrators surface inside."
+lane_pattern = 2
+minimum_act = 2
+minimum_act_wave = 2
+selection_weight = 0.92
+count_scale = 0.92
+hp_scale = 0.94
+speed_scale = 1.08
+signature_enemy_id = "burrower"
+signature_count_per_lane = 1

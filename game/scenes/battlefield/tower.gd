@@ -173,9 +173,9 @@ func show_range(visible_now: bool) -> void:
 		range_ring.visible = visible_now
 
 
-## Nearest-first, then as many extra targets as the tower chains to. Nearest to
-## the town would be better play, but this tower does not know where along the
-## lane "ahead" is; the battlefield sorts that for AoE.
+## The player chooses a doctrine per built tower. "First" is the safe default;
+## the alternatives turn high-level towers into active tactical tools against
+## the authored formations instead of fire-and-forget stat sticks.
 func _acquire_targets() -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var reach: float = effective_range()
@@ -183,9 +183,9 @@ func _acquire_targets() -> Array[Enemy]:
 	if candidates.is_empty():
 		return found
 
-	# Prefer whatever is closest to the town: that is the thing about to matter.
+	var priority: int = RunState.target_priority_in_slot(lane, slot)
 	candidates.sort_custom(func(a: Enemy, b: Enemy) -> bool:
-		return a.global_position.length() < b.global_position.length())
+		return _target_score(a, priority) > _target_score(b, priority))
 
 	var wanted: int = 1 + data.extra_targets + _extra_chain_targets
 	for enemy: Enemy in candidates:
@@ -193,6 +193,41 @@ func _acquire_targets() -> Array[Enemy]:
 			break
 		found.append(enemy)
 	return found
+
+
+func _target_score(enemy: Enemy, priority: int) -> float:
+	if enemy == null or enemy.data == null:
+		return -INF
+	# A small closeness tie-break keeps every doctrine deterministic and prevents
+	# two equal targets from shuffling order every acquisition.
+	var closeness: float = 1.0 - clampf(enemy.global_position.length() \
+		/ maxf(Balance.LANE_SPAWN_RADIUS, 1.0), 0.0, 1.0)
+	match priority:
+		TowerData.TargetPriority.STRONG:
+			var target_health: Health = Health.of(enemy)
+			return (target_health.max_hp if target_health != null else enemy.data.max_hp) \
+				+ closeness * 0.01
+		TowerData.TargetPriority.FAST:
+			return enemy.targeting_speed() + closeness * 0.01
+		TowerData.TargetPriority.SPECIAL:
+			var role_score: float = 0.0
+			match enemy.data.category:
+				EnemyData.Category.BOSS:
+					role_score = 1000.0
+				EnemyData.Category.ELITE:
+					role_score = 500.0
+			match enemy.data.role:
+				EnemyData.Role.HOWLER:
+					role_score += 90.0
+				EnemyData.Role.BURROWER:
+					role_score += 80.0
+				EnemyData.Role.WARDEN:
+					role_score += 70.0
+				EnemyData.Role.VANGUARD:
+					role_score += 55.0
+			return role_score + closeness
+		_:
+			return closeness
 
 
 func _fire(targets: Array[Enemy]) -> void:
@@ -297,6 +332,7 @@ func _on_destroyed(_from: Vector2) -> void:
 	Vfx.ring(global_position, 110.0,
 		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
 	EventBus.camera_shake_requested.emit(9.0, 0.4)
+	RunState.towers_lost += 1
 	RunState.clear_slot(lane, slot)
 
 

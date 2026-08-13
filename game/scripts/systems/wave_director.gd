@@ -3,8 +3,10 @@ extends Node
 
 ## Decides what arrives, where, and when (GDD §3).
 ##
-## Waves scale with the wave number rather than with elapsed time, so pausing
-## for a crossroad or a raid does not silently make the next wave harder.
+## Continuous stat/count curves determine how hard a wave is. WaveArchetypeData
+## determines why it is hard: a rush, a siege column, an infiltration pincer,
+## an escorted Howler pack, or pressure on every road. The vocabulary is content
+## in /data/waves rather than a switch statement in this director.
 
 @export var battlefield: Battlefield
 
@@ -15,6 +17,8 @@ var _rng := RandomNumberGenerator.new()
 var _running: bool = false
 var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
+var _preview_archetype: WaveArchetypeData = null
+var _last_archetype_id: String = ""
 
 
 func _ready() -> void:
@@ -40,9 +44,8 @@ func _process(delta: float) -> void:
 		if _spawn_timer <= 0.0:
 			_spawn_next()
 
-	# The cadence belongs to waves, not to the tail of the previous queue. Late
-	# packs deliberately overlap; otherwise a 150-body Act 3 assault quietly
-	# turns a 20-second interval into nearly a minute of single-file spawning.
+	# Cadence belongs to waves, not to the tail of the previous queue. Late packs
+	# deliberately overlap so Act 3 never decays into a single-file trickle.
 	_wave_timer -= delta
 	if _wave_timer <= 0.0:
 		_begin_wave()
@@ -53,25 +56,35 @@ func time_to_next_wave() -> float:
 	return maxf(_wave_timer, 0.0)
 
 
-## Player-facing composition preview. The Watchtower pays off in information:
-## low tiers reveal lanes, higher tiers reveal pack size and elite presence.
+## The Watchtower pays off in progressively richer information: tier one names
+## the formation and roads, tier two reveals scale and intent, and tier three
+## identifies the signature threat.
 func preview_text() -> String:
 	var tower_tier: int = RunState.building_tier("watchtower")
 	if tower_tier <= 0:
 		return ""
-	if _preview_lanes.is_empty():
-		_preview_lanes = _pick_lanes(_act_wave + 1)
-	var lanes: Array[int] = _preview_lanes
+	_prepare_preview(_act_wave + 1)
+
 	var lane_names: Array[String] = ["N", "E", "S", "W"]
 	var shown: PackedStringArray = []
-	for lane: int in lanes:
+	for lane: int in _preview_lanes:
 		shown.append(lane_names[clampi(lane, 0, lane_names.size() - 1)])
-	var text: String = "Next: " + ", ".join(shown)
+	var archetype_name: String = _preview_archetype.display_name \
+		if _preview_archetype != null else "Advance"
+	var text: String = "Next: %s  ·  %s" % [archetype_name.to_upper(), ", ".join(shown)]
+
 	if tower_tier >= 2:
-		text += "  ·  about %d each" % _wave_size(_act_wave + 1,
-			ContentDB.terrain(RunState.terrain_id))
-	if tower_tier >= 3 and _act_wave + 1 >= 3:
-		text += "  ·  elite leaders likely"
+		text += "  ·  about %d each" % _archetype_wave_size(
+			_act_wave + 1, ContentDB.terrain(RunState.terrain_id),
+			_preview_archetype, _preview_lanes.size())
+		if _preview_archetype != null:
+			text += "  ·  " + _preview_archetype.description
+	if tower_tier >= 3 and _preview_archetype != null:
+		var signature: EnemyData = ContentDB.enemy(_preview_archetype.signature_enemy_id)
+		if signature != null:
+			text += "  ·  %s leaders" % signature.display_name
+		elif _act_wave + 1 >= 3:
+			text += "  ·  elite presence likely"
 	return text
 
 
@@ -80,6 +93,7 @@ func _begin_wave() -> void:
 	var wave: int = RunState.wave_number
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	_act_wave += 1
+	_prepare_preview(_act_wave)
 
 	var interval: float = Balance.WAVE_INTERVAL
 	if terrain != null:
@@ -88,13 +102,28 @@ func _begin_wave() -> void:
 		interval /= Balance.HORN_SPAWN_RATE_SCALE
 	_wave_timer = interval
 
-	var lanes: Array[int] = _preview_lanes if not _preview_lanes.is_empty() else _pick_lanes(_act_wave)
-	_preview_lanes = []
-	var per_lane: int = _wave_size(_act_wave, terrain)
+	var archetype: WaveArchetypeData = _preview_archetype
+	var lanes: Array[int] = _preview_lanes.duplicate()
+	_preview_lanes.clear()
+	_preview_archetype = null
+
+	var per_lane: int = _archetype_wave_size(_act_wave, terrain, archetype, lanes.size())
+	var hp_multiplier: float = archetype.hp_scale if archetype != null else 1.0
+	var damage_multiplier: float = archetype.damage_scale if archetype != null else 1.0
+	var speed_multiplier: float = archetype.speed_scale if archetype != null else 1.0
+	var spacing_multiplier: float = maxf(
+		archetype.spawn_spacing_scale if archetype != null else 1.0,
+		Balance.WAVE_ARCHETYPE_MIN_SPACING_SCALE)
 
 	for lane: int in lanes:
-		for i: int in per_lane:
-			_spawn_queue.append({"lane": lane, "elite": false})
+		for _i: int in per_lane:
+			_spawn_queue.append(_spawn_entry(lane, false, "", hp_multiplier,
+				damage_multiplier, speed_multiplier, spacing_multiplier))
+		if archetype != null:
+			for _i: int in archetype.signature_count_per_lane:
+				_spawn_queue.append(_spawn_entry(lane, false,
+					archetype.signature_enemy_id, hp_multiplier, damage_multiplier,
+					speed_multiplier, spacing_multiplier))
 
 	var elite_budget: float = 0.0
 	if _act_wave >= 3:
@@ -104,21 +133,91 @@ func _begin_wave() -> void:
 	var elite_count: int = int(floor(elite_budget))
 	if _rng.randf() < elite_budget - float(elite_count):
 		elite_count += 1
-	for i: int in elite_count:
+	if archetype != null:
+		elite_count += archetype.extra_elites
+	for _i: int in elite_count:
 		var elite_lane: int = lanes[_rng.randi_range(0, lanes.size() - 1)]
-		_spawn_queue.append({"lane": elite_lane, "elite": true})
+		_spawn_queue.append(_spawn_entry(elite_lane, true, "", hp_multiplier,
+			damage_multiplier, speed_multiplier, spacing_multiplier))
 
 	_spawn_queue.shuffle()
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
 	_spawn_timer = 0.0
 	EventBus.wave_started.emit(wave, lanes)
+	if archetype != null:
+		_last_archetype_id = archetype.id
+		RunState.record_wave_archetype(archetype.id)
+		EventBus.wave_archetype_started.emit(wave, archetype.id)
 
 
-## Waves start on one lane and open up to all four as the act progresses, so the
-## triage decision arrives gradually instead of on wave one.
-## Weighted lane choice. A dark lane is likelier to be attacked, which is what
-## turns "keep the torches lit" into a decision rather than a chore.
+func _spawn_entry(lane: int, elite: bool, enemy_id: String, hp_scale: float,
+		damage_scale: float, speed_scale: float, spacing_scale: float) -> Dictionary:
+	return {
+		"lane": lane,
+		"elite": elite,
+		"enemy_id": enemy_id,
+		"hp_scale": hp_scale,
+		"damage_scale": damage_scale,
+		"speed_scale": speed_scale,
+		"spacing_scale": spacing_scale,
+	}
+
+
+func _prepare_preview(act_wave: int) -> void:
+	if _preview_archetype == null:
+		_preview_archetype = _pick_archetype(act_wave)
+	if _preview_lanes.is_empty():
+		_preview_lanes = _pick_archetype_lanes(_preview_archetype, act_wave)
+
+
+func _pick_archetype(act_wave: int) -> WaveArchetypeData:
+	var available: Array[WaveArchetypeData] = ContentDB.available_wave_archetypes(
+		RunState.act, act_wave)
+	if available.is_empty():
+		return null
+	var total: float = 0.0
+	var weights: Array[float] = []
+	for archetype: WaveArchetypeData in available:
+		var weight: float = maxf(archetype.selection_weight, 0.0)
+		if DayNight.is_night():
+			weight *= archetype.night_weight_multiplier
+		# Variety is systemic rather than purely lucky: immediate repeats become
+		# possible but deliberately uncommon when another formation is legal.
+		if archetype.id == _last_archetype_id and available.size() > 1:
+			weight *= 0.18
+		weights.append(weight)
+		total += weight
+	if total <= 0.0:
+		return available[0]
+	var roll: float = _rng.randf() * total
+	for i: int in available.size():
+		roll -= weights[i]
+		if roll <= 0.0:
+			return available[i]
+	return available.back()
+
+
+func _pick_archetype_lanes(archetype: WaveArchetypeData, act_wave: int) -> Array[int]:
+	if archetype == null:
+		return _pick_lanes(act_wave)
+	match archetype.lane_pattern:
+		WaveArchetypeData.LanePattern.FOCUSED:
+			return [_weighted_lane([])]
+		WaveArchetypeData.LanePattern.OPPOSITES:
+			var first: int = _weighted_lane([])
+			return [first, (first + 2) % Balance.LANE_COUNT]
+		WaveArchetypeData.LanePattern.ALL:
+			var all: Array[int] = []
+			for lane: int in Balance.LANE_COUNT:
+				all.append(lane)
+			return all
+		_:
+			return _pick_lanes(act_wave)
+
+
+## A dark lane is likelier to be attacked, turning torch maintenance into a
+## decision. The same weighted picker is used by authored formations.
 func _weighted_lane(exclude: Array) -> int:
 	var best: int = 0
 	var best_score: float = -1.0
@@ -126,7 +225,7 @@ func _weighted_lane(exclude: Array) -> int:
 		if exclude.has(lane):
 			continue
 		var darkness: float = battlefield.lane_darkness(lane) if battlefield != null else 0.0
-		var score: float = randf() * (1.0 + darkness * Balance.TORCH_DARK_LANE_BIAS)
+		var score: float = _rng.randf() * (1.0 + darkness * Balance.TORCH_DARK_LANE_BIAS)
 		if score > best_score:
 			best_score = score
 			best = lane
@@ -134,19 +233,22 @@ func _weighted_lane(exclude: Array) -> int:
 
 
 func _pick_lanes(act_wave: int) -> Array[int]:
+	var picked: Array[int] = []
+	for _i: int in _progressive_lane_count(act_wave):
+		picked.append(_weighted_lane(picked))
+	return picked
+
+
+## Waves start on one lane and open to all four as the act progresses. Night
+## adds another road, even when the formation itself is the neutral advance.
+func _progressive_lane_count(act_wave: int) -> int:
 	var count: int = clampi(
 		Balance.WAVE_LANES_START + RunState.act - 1 \
 			+ int(floor(float(act_wave - 1) / 2.0)),
 		1, Balance.WAVE_LANES_MAX)
-	# After dark they come down more lanes at once, which is what actually
-	# creates the triage pressure rather than just tougher individuals.
 	if DayNight.is_night():
 		count = clampi(count + 1, 1, Balance.WAVE_LANES_MAX)
-	var all: Array[int] = []
-	for i: int in Balance.LANE_COUNT:
-		all.append(i)
-	all.shuffle()
-	return all.slice(0, count)
+	return count
 
 
 func _wave_size(act_wave: int, terrain: TerrainData) -> int:
@@ -155,13 +257,22 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 		Balance.WAVE_ACT_COUNT_SCALE.size() - 1)]
 	if terrain != null:
 		size *= terrain.wave_size_multiplier
-	# Count pressure follows the darkness too; previously night changed stats and
-	# lane selection while the promised extra bodies never existed.
 	size *= 1.0 + DayNight.darkness * Balance.WAVE_NIGHT_COUNT_BONUS
 	if RunState.distance_to_boss() <= Balance.ACT_BOSS_RAMP_DISTANCE:
 		var ramp: float = 1.0 - RunState.distance_to_boss() / Balance.ACT_BOSS_RAMP_DISTANCE
 		size *= 1.0 + ramp * Balance.ACT_BOSS_RAMP_COUNT
 	return maxi(int(round(size)), 1)
+
+
+## Keeps each formation near the continuous curve's total body budget. Focused
+## assaults become dense columns; all-lane assaults spread that threat instead
+## of accidentally multiplying the difficulty by four.
+func _archetype_wave_size(act_wave: int, terrain: TerrainData,
+		archetype: WaveArchetypeData, lane_count: int) -> int:
+	var scale: float = archetype.count_scale if archetype != null else 1.0
+	scale = maxf(scale, Balance.WAVE_ARCHETYPE_MIN_COUNT_SCALE)
+	scale *= float(_progressive_lane_count(act_wave)) / float(maxi(lane_count, 1))
+	return maxi(int(round(float(_wave_size(act_wave, terrain)) * scale)), 1)
 
 
 func _spawn_next() -> void:
@@ -173,11 +284,16 @@ func _spawn_next() -> void:
 
 	var entry: Dictionary = _spawn_queue.pop_front()
 	var lane: int = int(entry.get("lane", 0))
-	var data: EnemyData = _pick_enemy(bool(entry.get("elite", false)))
+	var enemy_id: String = String(entry.get("enemy_id", ""))
+	var data: EnemyData = ContentDB.enemy(enemy_id) if not enemy_id.is_empty() \
+		else _pick_enemy(bool(entry.get("elite", false)))
 	if data != null:
-		battlefield.spawn_enemy(data, lane, _hp_scale(lane), _damage_scale(lane), _speed_scale(lane))
+		battlefield.spawn_enemy(data, lane,
+			_hp_scale(lane) * float(entry.get("hp_scale", 1.0)),
+			_damage_scale(lane) * float(entry.get("damage_scale", 1.0)),
+			_speed_scale(lane) * float(entry.get("speed_scale", 1.0)))
 
-	var spacing: float = Balance.WAVE_SPAWN_SPACING
+	var spacing: float = Balance.WAVE_SPAWN_SPACING * float(entry.get("spacing_scale", 1.0))
 	if RunState.horn_active:
 		spacing /= Balance.HORN_SPAWN_RATE_SCALE
 	_spawn_timer = spacing
@@ -188,8 +304,6 @@ func _pick_enemy(elite: bool) -> EnemyData:
 		var elites: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.ELITE)
 		if not elites.is_empty():
 			return elites[_rng.randi_range(0, elites.size() - 1)]
-	# A small veteran contingent from previously crossed terrain keeps later acts
-	# from collapsing into a single solved target profile.
 	var invader_chance: float = Balance.WAVE_INVADER_CHANCE[clampi(RunState.act - 1,
 		0, Balance.WAVE_INVADER_CHANCE.size() - 1)]
 	if RunState.act > 1 and _rng.randf() < invader_chance:
@@ -207,8 +321,6 @@ func _pick_enemy(elite: bool) -> EnemyData:
 	return breeds[0] if not breeds.is_empty() else null
 
 
-## HP grows harder than damage. A single shared multiplier made late waves
-## either paper-thin or capable of deleting the town in one telegraph.
 func _hp_scale(lane: int) -> float:
 	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
@@ -247,5 +359,7 @@ func _situational_scale(lane: int, dark_weight: float) -> float:
 func _on_act_started(_act: int, _terrain_id: String) -> void:
 	_act_wave = 0
 	_preview_lanes.clear()
+	_preview_archetype = null
+	_last_archetype_id = ""
 	# Give the new terrain a breath, but never a full idle interval.
 	_wave_timer = minf(_wave_timer, Balance.WAVE_INTERVAL * 0.55)

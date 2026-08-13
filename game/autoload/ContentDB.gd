@@ -14,6 +14,7 @@ var spells: Dictionary = {}
 var terrains: Dictionary = {}
 var buildings: Dictionary = {}
 var captives: Dictionary = {}
+var wave_archetypes: Dictionary = {}
 
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
@@ -28,6 +29,7 @@ func _ready() -> void:
 	terrains = _load_dir("res://data/terrains")
 	buildings = _load_dir("res://data/buildings")
 	captives = _load_dir("res://data/captives")
+	wave_archetypes = _load_dir("res://data/waves")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -53,6 +55,21 @@ func building(id: String) -> BuildingData:
 
 func captive(id: String) -> CaptiveData:
 	return captives.get(id, null) as CaptiveData
+
+
+func wave_archetype(id: String) -> WaveArchetypeData:
+	return wave_archetypes.get(id, null) as WaveArchetypeData
+
+
+func available_wave_archetypes(act: int, act_wave: int) -> Array[WaveArchetypeData]:
+	var out: Array[WaveArchetypeData] = []
+	for value: Variant in wave_archetypes.values():
+		var archetype := value as WaveArchetypeData
+		if archetype != null and archetype.is_available(act, act_wave):
+			out.append(archetype)
+	out.sort_custom(func(a: WaveArchetypeData, b: WaveArchetypeData) -> bool:
+		return a.id < b.id)
+	return out
 
 
 ## Base towers only — the eight the player can put in an outer or inner slot.

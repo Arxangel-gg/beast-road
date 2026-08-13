@@ -24,6 +24,10 @@ func _ready() -> void:
 	_test_zoom_range()
 	_test_hostile_projectile()
 	_test_live_relic_updates()
+	_test_wave_archetypes()
+	_test_target_priorities()
+	await _test_boss_phases()
+	_test_run_telemetry()
 
 	if _failures.is_empty():
 		print("[balance] PASS — mastery economy and three-act pressure curve")
@@ -128,6 +132,88 @@ func _test_enemy_roles() -> void:
 		"Howler must own its aura and ranged threat")
 	_check(ContentDB.enemy("burrower").spawn_distance_scale < 0.8,
 		"Burrower must emerge inside the outer defence")
+
+
+func _test_wave_archetypes() -> void:
+	_check(ContentDB.wave_archetypes.size() >= 6,
+		"the battlefield must expose a full tactical wave vocabulary")
+	for value: Variant in ContentDB.wave_archetypes.values():
+		var archetype := value as WaveArchetypeData
+		_check(archetype != null and not archetype.display_name.is_empty(),
+			"every wave archetype must be named content")
+		if archetype != null and not archetype.signature_enemy_id.is_empty():
+			_check(ContentDB.enemy(archetype.signature_enemy_id) != null,
+				"wave signature enemy '%s' must exist" % archetype.signature_enemy_id)
+	var director: WaveDirector = _run.battlefield.wave_director
+	_set_progress(2, 1200.0, 48, "saltglass", 6)
+	var siege: WaveArchetypeData = ContentDB.wave_archetype("siege_column")
+	var lanes: Array[int] = director._pick_archetype_lanes(siege, 7)
+	_check(lanes.size() == 1, "siege columns must concentrate on one lane")
+	var pincer: WaveArchetypeData = ContentDB.wave_archetype("burrower_pincer")
+	lanes = director._pick_archetype_lanes(pincer, 7)
+	_check(lanes.size() == 2 and abs(lanes[0] - lanes[1]) == 2,
+		"burrower pincers must split the player's attention across opposite roads")
+
+
+func _test_target_priorities() -> void:
+	var field: Battlefield = _run.battlefield
+	if RunState.slot_is_empty(0, 0):
+		RunState.set_slot(0, 0, "ember_spire", 1)
+	var before: int = RunState.target_priority_in_slot(0, 0)
+	var after: int = RunState.cycle_target_priority(0, 0)
+	_check(after != before and after == TowerData.TargetPriority.STRONG,
+		"built towers must cycle through player-selected targeting doctrines")
+	RunState.set_slot(0, 0, "ember_spire", 2)
+	_check(RunState.target_priority_in_slot(0, 0) == after,
+		"upgrading a tower must preserve its targeting doctrine")
+
+
+func _test_boss_phases() -> void:
+	var director: BossDirector = _run.boss_director
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var boss: EnemyData = director._boss_for_act(act)
+		_check(boss != null and boss.phase_thresholds.size() == 2,
+			"every act boss must have two encounter phases")
+		_check(boss != null and boss.phase_names.size() == boss.phase_thresholds.size(),
+			"boss phase thresholds and names must stay aligned")
+	# Exercise the live threshold contract once. Reinforcement composition itself
+	# is data-tested above and the soak test covers spawning under load.
+	director._defeated_acts.clear()
+	_check(director.summon(1), "Act 1 boss must summon for phase validation")
+	await get_tree().process_frame
+	var boss_enemy: Enemy = director.active_boss()
+	_check(boss_enemy != null, "summoned boss must remain active")
+	if boss_enemy != null:
+		var health: Health = Health.of(boss_enemy)
+		health.take_damage(health.max_hp * 0.36, Vector2.ZERO)
+		_check(director._active_phase >= 1,
+			"boss must enter a new phase after crossing its first health threshold")
+		boss_enemy.queue_free()
+		director._active = null
+		director._active_act = 0
+		director._active_phase = 0
+	# A killing blow can cross every threshold at once; it must end the encounter,
+	# not spawn both phase waves after the boss has already reached zero HP.
+	director._defeated_acts.clear()
+	_check(director.summon(1), "boss must resummon for lethal-threshold validation")
+	await get_tree().process_frame
+	boss_enemy = director.active_boss()
+	if boss_enemy != null:
+		var lethal_health: Health = Health.of(boss_enemy)
+		lethal_health.take_damage(lethal_health.max_hp * 2.0, Vector2.ZERO)
+		_check(director._active_phase == 0,
+			"a lethal blow must not trigger post-mortem boss phases")
+
+
+func _test_run_telemetry() -> void:
+	RunState.wave_archetype_counts.clear()
+	RunState.record_wave_archetype("rush")
+	RunState.record_wave_archetype("rush")
+	RunState.record_wave_archetype("siege_column")
+	_check(RunState.most_common_wave_archetype() == "rush",
+		"run debrief must identify the most frequent tactical pressure")
+	_check(RunState.resources_spent >= 0 and RunState.peak_lane_pressure >= 0.0,
+		"run telemetry counters must be safe from the first frame")
 
 
 func _test_zoom_range() -> void:

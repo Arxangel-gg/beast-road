@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "night_onslaught"
+display_name = "Night Onslaught"
+description = "Every road ignites at once under a rapid mass deployment."
+lane_pattern = 3
+minimum_act = 2
+minimum_act_wave = 5
+selection_weight = 0.45
+night_weight_multiplier = 3.2
+count_scale = 0.78
+hp_scale = 0.92
+damage_scale = 1.05
+speed_scale = 1.08
+spawn_spacing_scale = 0.54
+extra_elites = 1

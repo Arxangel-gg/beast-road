@@ -13,6 +13,7 @@ extends Node
 var _active: Enemy = null
 var _active_act: int = 0
 var _defeated_acts: Array[int] = []
+var _active_phase: int = 0
 
 
 func _ready() -> void:
@@ -48,6 +49,10 @@ func summon(act: int) -> bool:
 	if _active == null:
 		return false
 	_active_act = act
+	_active_phase = 0
+	var health: Health = Health.of(_active)
+	if health != null:
+		health.changed.connect(_on_boss_health_changed)
 
 	EventBus.boss_spawned.emit(data.id, act)
 	EventBus.camera_shake_requested.emit(18.0, 0.9)
@@ -82,6 +87,58 @@ func _expected_boss_id(act: int) -> String:
 			return "rust_crown"
 
 
+func _on_boss_health_changed(current: float, maximum: float) -> void:
+	if current <= 0.0 or not boss_is_out() or _active.data == null or maximum <= 0.0:
+		return
+	var thresholds: Array[float] = _active.data.phase_thresholds
+	while _active_phase < thresholds.size() \
+			and current / maximum <= thresholds[_active_phase]:
+		_active_phase += 1
+		_enter_phase(_active_phase)
+
+
+func _enter_phase(phase: int) -> void:
+	if not boss_is_out() or _active.data == null:
+		return
+	_active.apply_boss_phase(phase)
+	var phase_name: String = _active.data.phase_names[phase - 1] \
+		if phase - 1 < _active.data.phase_names.size() else "Phase %d" % (phase + 1)
+	_spawn_phase_reinforcements(phase)
+	EventBus.boss_phase_changed.emit(_active.data.id, phase, phase_name)
+	EventBus.camera_shake_requested.emit(15.0 + float(phase) * 3.0, 0.8)
+
+
+## Reinforcements arrive on lanes other than the boss's own. The player's
+## choice becomes burn the boss or leave it and triage the roads—a boss phase,
+## not merely a stat change.
+func _spawn_phase_reinforcements(phase: int) -> void:
+	var data: EnemyData = ContentDB.enemy(_active.data.phase_reinforcement_enemy_id)
+	if data == null:
+		var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+		data = ContentDB.enemy(terrain.breed_id) if terrain != null else null
+	if data == null:
+		return
+
+	var lanes: Array[int] = []
+	for lane: int in Balance.LANE_COUNT:
+		if lane != _active.lane:
+			lanes.append(lane)
+	lanes.shuffle()
+	var lane_count: int = mini(_active.data.phase_reinforcement_lanes + phase - 1,
+		lanes.size())
+	var per_lane: int = mini(_active.data.phase_reinforcements_per_lane + phase - 1,
+		Balance.BOSS_PHASE_MAX_REINFORCEMENTS)
+	for index: int in lane_count:
+		var lane: int = lanes[index]
+		for _i: int in per_lane:
+			battlefield.spawn_enemy(data, lane,
+				battlefield.wave_director._hp_scale(lane) \
+					* Balance.BOSS_PHASE_REINFORCEMENT_HP_SCALE,
+				battlefield.wave_director._damage_scale(lane) \
+					* Balance.BOSS_PHASE_REINFORCEMENT_DAMAGE_SCALE,
+				battlefield.wave_director._speed_scale(lane))
+
+
 func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 	if _active == null or not is_instance_valid(_active):
 		return
@@ -91,6 +148,7 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 	var act: int = _active_act
 	_active = null
 	_active_act = 0
+	_active_phase = 0
 	_defeated_acts.append(act)
 
 	_grant_rewards(act)

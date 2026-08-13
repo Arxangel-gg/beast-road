@@ -15,6 +15,15 @@ enum Element {
 	AIR,
 }
 
+## Per-built-tower targeting doctrines. Stored in RunState with the slot, so the
+## player's choice survives scope changes and upgrades.
+enum TargetPriority {
+	FIRST,
+	STRONG,
+	FAST,
+	SPECIAL,
+}
+
 @export var element: Element = Element.FIRE
 
 ## Combination towers are built in the middle slot only, and only when both
@@ -127,6 +136,30 @@ static func element_colour(e: Element) -> Color:
 			return Color("9b8fc4")
 		_:
 			return Color("c4552e")
+
+
+static func target_priority_name(priority: int) -> String:
+	match priority:
+		TargetPriority.STRONG:
+			return "Strong"
+		TargetPriority.FAST:
+			return "Fast"
+		TargetPriority.SPECIAL:
+			return "Special"
+		_:
+			return "First"
+
+
+static func target_priority_description(priority: int) -> String:
+	match priority:
+		TargetPriority.STRONG:
+			return "Highest maximum health first. Best for heavy single-target fire."
+		TargetPriority.FAST:
+			return "Fastest mover first. Stops brittle runners from slipping through."
+		TargetPriority.SPECIAL:
+			return "Bosses, Howlers, Burrowers and other specialist threats first."
+		_:
+			return "Closest to the town first. The safest general defence."
 
 
 func _level_index(level: int) -> int:

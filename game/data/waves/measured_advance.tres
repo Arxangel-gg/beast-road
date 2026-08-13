@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "measured_advance"
+display_name = "Measured Advance"
+description = "Balanced pressure that grows across the lanes."
+selection_weight = 0.8
