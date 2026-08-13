@@ -60,6 +60,42 @@ new mechanics on top of the labour framing.
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.
 
+### The three escape hatches — and why there are only three
+
+The project is going all in on v4. That is the right call and it does not need
+hedging: a runtime flag that keeps v3 behaviour alive doubles the surface that
+has to be balanced, tested and understood, and the unused branch rots until it
+is a liability rather than an option. **Do not add feature flags to preserve v3.**
+
+What deserves reversibility is only what is *expensive or impossible* to
+recreate. That is three things, and all three cost nothing to keep.
+
+**1. `v3-final` — the last working v3 game.**
+Branch at `v0.3.7`, pushed. A complete, released, verified-playable build: full
+loop, 122/122 real assets, all gates green. If the migration stalls half-done,
+this is what still runs. Never commit to it; it is a photograph, not a branch to
+develop on.
+
+**2. One gate, not scattered conditionals.**
+A decision that could ever be revisited must be enforced in exactly one place.
+Building is locked to Preparation via `RunState.can_build_now()` — every build
+and upgrade path asks that one function, and nothing anywhere else tests the
+phase inline. Reversing the decision is then a one-line change instead of an
+archaeology exercise, and *that* is the escape hatch. It is also just better
+code, which is why it costs nothing.
+
+**3. The player's save.**
+The only thing in this project git cannot restore. `MetaState` copies any save
+whose version it cannot read to `user://beast_road_save.v<N>.bak.json` before
+starting fresh, and never overwrites an existing backup — the first copy is the
+valuable one, and a player bouncing between builds would otherwise lose the
+original on the third launch. Verified by
+`res://tools/save_backup_check.tscn`.
+
+That check is **not** in CI: a discarded save legitimately emits a warning, and
+the release gate fails on any warning. **Run it by hand before any release that
+changes `SAVE_VERSION`.**
+
 `References/` holds the owner's visual references, one per scope. They are the
 target, not a mood board — check them before designing a screen.
 

@@ -62,7 +62,7 @@ the goal — §52's acceptance checklist and the kill questions are the ceiling.
 | Three acts plus a final summit | Final Ascent is a real state | `const:FINAL_ASCENT_DISTANCE` |
 | Nine road battles, six crossroads | six, not nine, crossroads | `const:CROSSROADS_PER_RUN` |
 | True final boss | Kharok the Chainmaker exists | `file:res://data/enemies/chainmaker.tres` |
-| Preparation is an explicit state | a state machine, not a mode flag | `class:RunPhase` |
+| Preparation is an explicit state | typed phase state, not a mode flag | `method:RunState.set_phase` |
 | Building locked outside Preparation | refused during combat | `method:RunState.can_build_now` |
 | Doctrines still changeable in combat | preserved from v3 | `method:RunState.cycle_target_priority` |
 
@@ -91,7 +91,7 @@ the goal — §52's acceptance checklist and the kill questions are the ceiling.
 | Three disciplines | Blood, Holy, Berserk | `const:DISCIPLINE_IDS` |
 | Four active slots | not eight spells | `const:HERO_ACTIVE_SLOTS` |
 | Wounds allow two recoveries | third down ends the run | `const:HERO_MAX_WOUNDS` |
-| Hearthmend | town-side recovery | `signal:hearthmend_used` |
+| Hearthmend | pre-boss recovery | `signal:hearthmend_completed` |
 | Resurrection Draught | consumable recovery | `file:res://data/items/resurrection_draught.tres` |
 
 ## 6. World — GDD §50
@@ -121,6 +121,7 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Item | Target | Probe |
 |------|--------|-------|
 | Save migration from every public version | never destroys the source save | `method:MetaState.migrate_save` |
+| Unreadable save is preserved | backed up, never overwritten | `method:MetaState._back_up_save` |
 | Raid pause resumes exact state | verified, not assumed | `file:res://tools/raid_suspend_check.tscn` |
 | Seed reproduction | same seed, same run | `method:RunState.set_seed` |
 | Key rebinding | all actions | `class:KeyBindings` |

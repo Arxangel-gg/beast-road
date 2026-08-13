@@ -11,6 +11,11 @@ extends Node
 
 const SAVE_PATH: String = "user://beast_road_save.json"
 
+## Where a save of an unrecognised version is preserved before the game starts
+## fresh. One per version, so a player who tries several builds keeps a copy of
+## each rather than each overwriting the last.
+const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
+
 ## Bumped when the schema changes so an old file can be migrated or discarded.
 const SAVE_VERSION: int = 1
 
@@ -102,10 +107,23 @@ func load_save() -> void:
 		return
 	var data: Dictionary = parsed
 
-	# An unknown version is discarded rather than half-read. The save holds no
-	# power, so losing it costs the player unlock progress and nothing else.
-	if int(data.get("version", 0)) != SAVE_VERSION:
-		push_warning("MetaState: unrecognised save version; starting fresh.")
+	# An unknown version is discarded rather than half-read - but never before a
+	# copy is kept.
+	#
+	# This is the one thing in the project that git cannot undo. Rolling the game
+	# back is a checkout; rolling a player's unlock history back is impossible
+	# once the file is gone, and a version mismatch happens in *both* directions:
+	# a v4 build reading a v3 save, and a v3 build reading a save that v4 has
+	# already migrated. The second is the dangerous one, because it is what
+	# happens to anyone who tries a build and then goes back.
+	#
+	# GDD §52 requires migration to "never destroy the source save". Keeping the
+	# original is the whole of that requirement, and it costs one file copy.
+	var found_version: int = int(data.get("version", 0))
+	if found_version != SAVE_VERSION:
+		_back_up_save(text, found_version)
+		push_warning("MetaState: save version %d is not %d; kept a copy at %s and started fresh."
+			% [found_version, SAVE_VERSION, SAVE_BACKUP_PATH % found_version])
 		return
 
 	var unlocked: Dictionary = data.get("unlocked", {}) as Dictionary
@@ -127,6 +145,24 @@ func load_save() -> void:
 			settings[key] = loaded_settings[key]
 
 	save_loaded.emit()
+
+
+## Preserves a save this build cannot read.
+##
+## Deliberately never overwrites an existing backup: the *first* copy is the
+## valuable one. Bouncing between two builds would otherwise have each launch
+## re-back-up the file the previous launch already reset, and the original would
+## be gone by the third run.
+func _back_up_save(text: String, version: int) -> void:
+	var path: String = SAVE_BACKUP_PATH % version
+	if FileAccess.file_exists(path):
+		return
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		push_warning("MetaState: could not write save backup to %s" % path)
+		return
+	file.store_string(text)
+	file.close()
 
 
 ## JSON gives back an untyped Array; the rest of the codebase wants Array[String].
