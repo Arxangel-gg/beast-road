@@ -174,6 +174,12 @@ func _ready() -> void:
 	EventBus.war_horn_activated.connect(func(_d: float) -> void: play("sfx_war_horn"))
 	EventBus.raid_available.connect(func(_s: float) -> void: play("sfx_raid_ready"))
 	EventBus.boss_spawned.connect(func(_id: String, _a: int) -> void: play("sfx_boss_spawn"))
+	# The boss phase has new visual weight but no dedicated recording. Layering
+	# two existing low-frequency cues gives it matching audio punctuation without
+	# adding an untracked asset to the production manifest.
+	EventBus.boss_phase_changed.connect(func(_id: String, _p: int, _name: String) -> void:
+		play("sfx_boss_spawn", -4.0)
+		play("sfx_spell_nova", -2.0))
 	EventBus.wave_started.connect(func(_n: int, _l: Array) -> void: play("sfx_wave_incoming"))
 	EventBus.construction_completed.connect(func(_id: String, _t: int) -> void: play("sfx_construction_done"))
 	EventBus.relic_socketed.connect(func(_id: String) -> void: play("sfx_relic_socket"))

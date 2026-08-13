@@ -110,8 +110,12 @@ func _test_opening_envelope() -> void:
 	_check(Balance.STARTING_RESOURCES >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST \
 		+ Balance.TOWER_BUILD_COST,
 		"opening resources must cover all four roads plus one flex purchase")
-	_check(Balance.WAVE_FIRST_PREPARATION >= 15.0,
-		"first wave must leave a meaningful planning window")
+	director._wave_timer = 1.0
+	RunState.wave_number = 0
+	director._on_act_started(1, "ashfen")
+	_check(director.time_to_next_wave() >= 15.0,
+		"live first-wave timer must leave a meaningful planning window")
+	RunState.wave_number = 1
 	_check(first_size <= 5, "first wave must teach with a compact pack")
 	_check(first_hp <= 0.8 and first_damage <= 0.75,
 		"first enemies must be forgiving in both durability and contact threat")

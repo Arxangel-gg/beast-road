@@ -383,5 +383,11 @@ func _on_act_started(_act: int, _terrain_id: String) -> void:
 	_preview_lanes.clear()
 	_preview_archetype = null
 	_last_archetype_id = ""
+	# Journey emits act_started for Act 1 during scene startup. Treating that as
+	# a terrain transition used to clamp the authored 18-second preparation back
+	# to 11 seconds before the player ever saw the field.
+	if RunState.act == 1 and RunState.wave_number == 0:
+		_wave_timer = Balance.WAVE_FIRST_PREPARATION
+		return
 	# Give the new terrain a breath, but never a full idle interval.
 	_wave_timer = minf(_wave_timer, Balance.WAVE_INTERVAL * 0.55)

@@ -9,6 +9,14 @@ dormant gameplay contracts that were present in data but never executed.
 
 ## Difficulty and pacing
 
+- Act 1 now opens with an 18-second planning window, one pressured road for the
+  first three waves, and compact packs whose count, HP, damage and speed taper
+  smoothly to the full curve by wave five.
+- Starting resources cover all four roads plus one flexible purchase. Small
+  supply pulses through wave four finance reactive defence, then disappear
+  entirely so the mastery economy and Acts 2-3 retain their pressure.
+- Rush, Siege Column and Howling Pack formations arrive only after the player
+  has learned the base lane loop; the late formation pool is unchanged.
 - Waves arrive every 20 seconds and deploy their pack quickly enough to read as
   a formation rather than a long trickle. Late packs overlap on that cadence
   instead of delaying the next wave until their entire queue has entered.
@@ -26,6 +34,7 @@ The automated regression target currently reports:
 
 | Checkpoint | Enemies per attacked lane | HP scale | Damage scale |
 |---|---:|---:|---:|
+| Opening Act 1 wave | 4 | 0.73x | 0.66x |
 | Representative Act 2 night | 17 | 7.63× | 3.81× |
 | Late Act 3 night | 42 | 18.40× | intentionally lower than HP |
 
@@ -50,12 +59,19 @@ The automated regression target currently reports:
 - Glacier/Bastion lane armour is live.
 - Kill drops retain frequent reward feedback but pay fractionally, preventing a
   large wave from automatically financing every remaining purchase.
-- Starting income, passive income and boss payouts were reduced.
+- Kill income, passive income and boss payouts remain restrained after the
+  opening support envelope ends.
 - Emergency town repair is a repeatable late-run resource sink and comeback tool.
 - Watchtower tiers now reveal next-wave lanes, pack size and elite likelihood.
 
 ## Presentation and navigation
 
+- The battlefield now carries a subtle camera-only beast gait: elliptical sway
+  and a fractional tilt, scaled by movement speed and settled by the war horn.
+  It never moves simulation geometry and has a separate accessibility slider.
+- Radial rays, grounded dust, differentiated elite/boss death bursts, lane-entry
+  tells, construction impacts, spell blooms and boss-phase callouts extend the
+  combat feedback language while respecting the existing live-effect cap.
 - Mouse wheel follows Battlefield detail ↔ Battlefield wide ↔ Town ↔ Beast.
 - Battlefield zoom interpolates between 0.62 and 1.18.
 - Projectiles have a hot filament, shedding motes, elemental silhouettes,
@@ -73,6 +89,9 @@ The automated regression target currently reports:
 `res://tools/balance_test.tscn` is part of the release workflow. It validates:
 
 - Forge-gated five-level tower mastery and its resource sink.
+- the live first-wave preparation, opening economy, one-lane teaching envelope,
+  specialist delay and exact return to full-strength scaling.
+- gameplay-safe beast gait amplitude and its immediate accessibility opt-out.
 - Act 2 and Act 3 count/HP/damage/speed ordering.
 - overlapping late-wave cadence and its hard queue cap.
 - enemy roles and Burrower insertion depth.
