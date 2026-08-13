@@ -85,6 +85,10 @@ func _ready() -> void:
 	spells.blink_requested.connect(_on_blink)
 	spells.veil_requested.connect(_on_veil)
 	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))
+	EventBus.relic_socketed.connect(_on_relic_changed)
+	EventBus.relic_unsocketed.connect(_on_relic_changed)
+	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
+	EventBus.construction_completed.connect(_on_construction_completed)
 
 	_apply_permanent_bonuses()
 
@@ -185,6 +189,19 @@ func _apply_permanent_bonuses() -> void:
 	else:
 		health.current_hp = health.max_hp
 	health.changed.emit(health.current_hp, health.max_hp)
+
+
+func _on_relic_changed(_id: String) -> void:
+	_apply_permanent_bonuses()
+
+
+func _on_boss_bonus_changed(_id: String, _act: int) -> void:
+	_apply_permanent_bonuses()
+
+
+func _on_construction_completed(id: String, _tier: int) -> void:
+	if id == "sanctum":
+		_apply_permanent_bonuses()
 
 
 func _on_blink(to: Vector2) -> void:

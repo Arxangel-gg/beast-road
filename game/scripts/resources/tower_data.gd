@@ -89,6 +89,14 @@ func interval_at(level: int) -> float:
 	return attack_interval / Balance.TOWER_LEVEL_RATE[_level_index(level)]
 
 
+func utility_at(level: int) -> float:
+	return Balance.TOWER_LEVEL_UTILITY[_level_index(level)]
+
+
+func range_at(level: int) -> float:
+	return attack_range * Balance.TOWER_LEVEL_RANGE[_level_index(level)]
+
+
 ## True when this combination is the one produced by the given pair, in either
 ## order. This is the whole lookup — combinations are data, not a branch.
 func matches_parents(a: Element, b: Element) -> bool:

@@ -57,7 +57,8 @@ func summon(act: int) -> bool:
 ## Bosses scale with accumulated horn use like everything else, so a run that
 ## leaned on the horn meets a harder boss.
 func _boss_scale(act: int) -> float:
-	return RunState.enemy_escalation_multiplier() * (1.0 + 0.15 * float(act - 1))
+	return RunState.enemy_escalation_multiplier() * Balance.BOSS_ACT_SCALE[
+		clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)]
 
 
 func _boss_for_act(act: int) -> EnemyData:

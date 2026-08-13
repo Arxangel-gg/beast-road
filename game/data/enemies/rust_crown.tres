@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_d4nje")
 category = 2
+role = 2
 max_hp = 9000.0
 contact_damage = 26.0
 move_speed = 34.0
@@ -13,3 +14,4 @@ knockback_resistance = 1.0
 resource_value = 120
 id = "rust_crown"
 display_name = "The Rust Crown"
+description = "An armoured siege sovereign. It will outlast an unfocused defence."

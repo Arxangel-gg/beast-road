@@ -326,17 +326,30 @@ func lane_pressure(lane: int) -> float:
 	return _pressure[lane] if lane >= 0 and lane < _pressure.size() else 0.0
 
 
+func lane_armour(lane: int) -> float:
+	var total: float = 0.0
+	for slot_node: TowerSlot in _slots:
+		if slot_node.lane != lane or slot_node.is_empty():
+			continue
+		var built: Tower = slot_node.tower()
+		if built != null and built.data != null:
+			total += built.data.lane_armour_bonus * built.data.utility_at(built.level) \
+				* Balance.TOWER_ARMOUR_EFFECT_SCALE
+	return total + Modifiers.value(Modifiers.TOWER_ARMOUR)
+
+
 # --- Spawning ---------------------------------------------------------------
 
-func spawn_enemy(data: EnemyData, lane: int, stat_scale: float) -> Enemy:
+func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
+		damage_scale: float = -1.0, speed_scale: float = 1.0) -> Enemy:
 	if enemy_scene == null:
 		return null
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return null
-	enemy.setup(data, lane, self, stat_scale)
+	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() * randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
-	enemy.position = lane_spawn_point(lane) + spread
+	enemy.position = lane_spawn_point(lane) * data.spawn_distance_scale + spread
 	entity_root.add_child(enemy)
 	return enemy
 
@@ -396,6 +409,8 @@ func try_upgrade(lane: int, slot: int) -> String:
 	var level: int = RunState.level_in_slot(lane, slot)
 	if level >= Balance.TOWER_MAX_LEVEL:
 		return "Already at maximum level."
+	if level >= RunState.tower_level_cap():
+		return "Upgrade the Forge to unlock tower level %d." % (level + 1)
 	var cost: int = upgrade_cost_of(level)
 	if not RunState.can_afford(cost):
 		return "Needs %d resources." % cost
@@ -429,6 +444,22 @@ func try_sell(lane: int, slot: int) -> String:
 		spent += upgrade_cost_of(l)
 	RunState.gain_resources(int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
 	RunState.clear_slot(lane, slot)
+	return ""
+
+
+func try_repair_town() -> String:
+	if town == null or town.health == null:
+		return "The town cannot be reached."
+	if town.health.current_hp >= town.health.max_hp:
+		return "The town is already whole."
+	if not RunState.can_afford(Balance.TOWN_REPAIR_COST):
+		return "Needs %d resources." % Balance.TOWN_REPAIR_COST
+	RunState.spend(Balance.TOWN_REPAIR_COST)
+	town.health.heal(Balance.TOWN_REPAIR_AMOUNT)
+	Vfx.ring(town.global_position, Balance.TOWN_RADIUS * 1.3,
+		Color(0.55, 0.88, 0.68, 0.65), 0.55, 6.0)
+	Vfx.spark(town.global_position, Color("b7e6c0"), 18, Vector2.UP, 180.0)
+	Sfx.play("sfx_tower_upgrade", -3.0)
 	return ""
 
 

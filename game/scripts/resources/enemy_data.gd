@@ -19,7 +19,19 @@ enum Category {
 	BOSS,
 }
 
+## Mechanical identities stay data-driven: the shared enemy script interprets
+## one role instead of branching on ids. Existing content defaults to a basic
+## marcher, so old resources remain valid.
+enum Role {
+	MARCHER,
+	VANGUARD,
+	WARDEN,
+	HOWLER,
+	BURROWER,
+}
+
 @export var category: Category = Category.BREED
+@export var role: Role = Role.MARCHER
 
 @export var max_hp: float = Balance.ENEMY_MAX_HP
 
@@ -36,7 +48,7 @@ enum Category {
 ## Body radius, used for contact and for crowd separation.
 @export var body_radius: float = Balance.ENEMY_BODY_RADIUS
 
-## How hard this enemy resists knockback. 1.0 takes it in full, 0.0 ignores it.
+## How hard this enemy resists knockback. 1.0 ignores it, 0.0 takes it in full.
 @export_range(0.0, 1.0) var knockback_resistance: float = 0.0
 
 ## Ashfen's bog-kin regenerate; most things do not. HP per second.
@@ -47,6 +59,12 @@ enum Category {
 
 ## Resources dropped on death.
 @export var resource_value: int = 1
+
+## Role parameters. A Howler's aura raises nearby movement and damage; a
+## Burrower enters inside the outer tower; a Vanguard is the fast lane threat.
+@export var aura_radius: float = 0.0
+@export var aura_strength: float = 0.0
+@export_range(0.1, 1.0) var spawn_distance_scale: float = 1.0
 
 
 func get_sprite_path() -> String:

@@ -22,6 +22,10 @@ signal changed(current: float, maximum: float)
 var current_hp: float = 0.0
 var is_dead: bool = false
 
+## Optional flat protection for structures. Damage always leaks through so a
+## rapid weak horde cannot be made permanently irrelevant by one armour aura.
+var flat_damage_reduction: float = 0.0
+
 var _invulnerable_left: float = 0.0
 
 
@@ -62,8 +66,9 @@ func add_invulnerability(seconds: float) -> void:
 func take_damage(amount: float, from: Vector2) -> bool:
 	if is_dead or amount <= 0.0 or is_invulnerable():
 		return false
-	current_hp = maxf(current_hp - amount, 0.0)
-	damaged.emit(amount, from)
+	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20)
+	current_hp = maxf(current_hp - applied, 0.0)
+	damaged.emit(applied, from)
 	changed.emit(current_hp, max_hp)
 	if current_hp <= 0.0:
 		is_dead = true

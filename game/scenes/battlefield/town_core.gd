@@ -51,6 +51,8 @@ func _ready() -> void:
 			Balance.SHADOW_LAYER_SCENERY, half.y * 0.42)
 	_apply_stage(true)
 	EventBus.town_health_changed.emit(health.current_hp, health.max_hp)
+	EventBus.relic_socketed.connect(_on_relic_changed)
+	EventBus.relic_unsocketed.connect(_on_relic_changed)
 
 
 func _process(delta: float) -> void:
@@ -62,6 +64,22 @@ func _process(delta: float) -> void:
 
 func radius() -> float:
 	return Balance.TOWN_RADIUS
+
+
+## Town-health relics are live run loadout choices. Preserve the damage already
+## taken when a socket changes instead of silently healing or hurting the city.
+func _apply_relic_health() -> void:
+	var wanted: float = Balance.TOWN_MAX_HP + Modifiers.value(Modifiers.TOWN_MAX_HP)
+	if is_equal_approx(wanted, health.max_hp):
+		return
+	var missing: float = health.max_hp - health.current_hp
+	health.max_hp = wanted
+	health.current_hp = clampf(wanted - missing, 1.0, wanted)
+	health.changed.emit(health.current_hp, health.max_hp)
+
+
+func _on_relic_changed(_id: String) -> void:
+	_apply_relic_health()
 
 
 ## Swaps the sprite when health crosses a threshold, and only on a change.

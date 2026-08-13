@@ -43,8 +43,11 @@ var _death_left: float = 0.0
 ## Lateral offset from the lane centre line, so a wave reads as a column.
 var _lane_offset: float = 0.0
 
-## Multipliers captured at spawn: war horn escalation and per-wave scaling.
-var _escalation: float = 1.0
+## Separate scaling keeps durability tense without letting late enemies erase
+## the town in one hit. Speed gets its own gentler curve too.
+var _hp_scale: float = 1.0
+var _damage_scale: float = 1.0
+var _speed_scale: float = 1.0
 
 # --- Status effects ---
 var _slow_factor: float = 1.0
@@ -53,12 +56,19 @@ var _freeze_left: float = 0.0
 var _burn_dps: float = 0.0
 var _burn_left: float = 0.0
 
+## Velocity from the previous frame drives the procedural gait. Keeping it here
+## also makes hitstun and freezing visibly settle instead of walking in place.
+var _motion: Vector2 = Vector2.ZERO
 
-func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField, stat_scale: float) -> void:
+
+func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
+		hp_scale: float, damage_scale: float = -1.0, speed_scale: float = 1.0) -> void:
 	data = enemy_data
 	lane = lane_index
 	_field = field
-	_escalation = stat_scale
+	_hp_scale = hp_scale
+	_damage_scale = hp_scale if damage_scale < 0.0 else damage_scale
+	_speed_scale = speed_scale
 
 
 func _ready() -> void:
@@ -68,11 +78,13 @@ func _ready() -> void:
 		queue_free()
 		return
 
-	health.max_hp = data.max_hp * _escalation
+	health.max_hp = data.max_hp * _hp_scale
 	health.revive()
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health_bar.bind(health)
+	if data.role == EnemyData.Role.HOWLER:
+		_build_aura_readout()
 
 	animator.mass = _mass_for_category()
 	animator.capture_home()
@@ -80,13 +92,16 @@ func _ready() -> void:
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
+	_apply_category_scale()
+	animator.capture_home()
 
 	# Shadows are added after the texture, because both are measured from it.
 	# A pool under every walker is most of what stops a crowd looking like decals
 	# sliding across the floor, and the caster is what makes them streak past a
 	# torch at night.
 	ShadowKit.add_contact(self, sprite)
-	var half: Vector2 = sprite.texture.get_size() * 0.5 if sprite.texture != null else Vector2(40, 40)
+	var half: Vector2 = sprite.texture.get_size() * sprite.scale.abs() * 0.5 \
+		if sprite.texture != null else Vector2(40, 40)
 	ShadowKit.add_caster(self, half.x * 0.42, half.y * 0.20,
 		Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
 
@@ -104,10 +119,14 @@ func _process(delta: float) -> void:
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.ENEMY_KNOCKBACK_DECAY * delta)
 
+	var before: Vector2 = global_position
 	if _freeze_left <= 0.0 and _hitstun_left <= 0.0:
 		_tick_state(delta)
 
 	global_position += _knockback * delta
+	_motion = (global_position - before) / maxf(delta, 0.0001)
+	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
+	_tick_torch_snuff(delta)
 	_update_sprite()
 
 
@@ -167,9 +186,13 @@ func _walk(delta: float) -> void:
 
 
 func current_speed() -> float:
-	var speed: float = data.move_speed * _slow_factor
+	var speed: float = data.move_speed * _speed_scale * _slow_factor
 	if RunState.horn_active:
 		speed *= Balance.HORN_ENEMY_SPEED_SCALE
+	if data.role != EnemyData.Role.HOWLER:
+		var howler: Enemy = _nearby_howler()
+		if howler != null:
+			speed *= 1.0 + howler.data.aura_strength
 	return speed
 
 
@@ -190,7 +213,9 @@ func _pick_target() -> Node2D:
 
 
 func _in_reach(target: Node2D) -> bool:
-	var reach: float = Balance.ENEMY_ATTACK_RANGE + contact_radius() + _field.target_radius(target)
+	var attack_range: float = Balance.ENEMY_RANGED_RANGE \
+		if data.role == EnemyData.Role.HOWLER else Balance.ENEMY_ATTACK_RANGE
+	var reach: float = attack_range + contact_radius() + _field.target_radius(target)
 	return global_position.distance_to(target.global_position) <= reach
 
 
@@ -199,17 +224,28 @@ func _strike() -> void:
 		return
 	# Re-checked at the moment of the blow, slightly generously: stepping out
 	# during the wind-up is supposed to work, but not by a single pixel.
-	var reach: float = (Balance.ENEMY_ATTACK_RANGE + contact_radius() + _field.target_radius(_target)) * 1.15
+	var attack_range: float = Balance.ENEMY_RANGED_RANGE \
+		if data.role == EnemyData.Role.HOWLER else Balance.ENEMY_ATTACK_RANGE
+	var reach: float = (attack_range + contact_radius() + _field.target_radius(_target)) * 1.15
 	if global_position.distance_to(_target.global_position) > reach:
 		return
 	var target_health: Health = Health.of(_target)
 	if target_health == null:
 		return
-	var damage: float = data.contact_damage * _escalation
+	var damage: float = data.contact_damage * _damage_scale
+	if data.role != EnemyData.Role.HOWLER:
+		var howler: Enemy = _nearby_howler()
+		if howler != null:
+			damage *= 1.0 + howler.data.aura_strength
 	if RunState.enemies_are_weakened():
 		damage *= Balance.WEAKENED_STAT_SCALE
 	if _target == _field.town_node():
 		damage *= Balance.TOWN_DAMAGE_SCALE
+	if data.role == EnemyData.Role.HOWLER:
+		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
+		shot.configure(_target, damage, global_position)
+		_field.add_child(shot)
+		return
 	target_health.take_damage(damage, global_position)
 
 
@@ -296,6 +332,9 @@ func _tick_status(delta: float) -> void:
 		health.take_damage(_burn_dps * delta, global_position)
 	if data.hp_regen > 0.0:
 		health.heal(data.hp_regen * delta)
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain != null and terrain.enemy_hp_regen > 0.0:
+		health.heal(terrain.enemy_hp_regen * delta)
 
 
 func _on_damaged(_amount: float, _from: Vector2) -> void:
@@ -308,7 +347,7 @@ func _on_died(_from: Vector2) -> void:
 	remove_from_group(GROUP)
 	health_bar.visible = false
 	RunState.enemies_killed += 1
-	RunState.gain_resources(data.resource_value)
+	RunState.gain_kill_resources(data.resource_value)
 	EventBus.enemy_died.emit(data.id, global_position)
 
 
@@ -330,7 +369,66 @@ func _mass_for_category() -> float:
 		EnemyData.Category.BOSS:
 			return Balance.ANIM_MASS_BOSS
 		_:
-			return Balance.ANIM_MASS_BREED
+			return lerpf(Balance.ANIM_MASS_BREED, Balance.ANIM_MASS_ELITE,
+				clampf((data.body_radius - Balance.ENEMY_BODY_RADIUS) / 24.0, 0.0, 0.45))
+
+
+func _apply_category_scale() -> void:
+	var visual_scale: float = Balance.ENEMY_SPRITE_SCALE
+	match data.category:
+		EnemyData.Category.ELITE:
+			visual_scale = Balance.ELITE_SPRITE_SCALE
+		EnemyData.Category.BOSS:
+			visual_scale = Balance.BOSS_SPRITE_SCALE
+	sprite.scale = Vector2.ONE * visual_scale
+	if health_bar != null and sprite.texture != null:
+		health_bar.position.y = -sprite.texture.get_height() * visual_scale * 0.46
+
+
+func _build_aura_readout() -> void:
+	if data.aura_radius <= 0.0:
+		return
+	var ring := Line2D.new()
+	var points: PackedVector2Array = []
+	for i: int in 49:
+		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * data.aura_radius)
+	ring.points = points
+	ring.width = 2.0
+	ring.default_color = Color(0.95, 0.42, 0.22, 0.22)
+	ring.z_index = -1
+	add_child(ring)
+
+
+## An active Howler turns a loose pack into an urgent escort target. The first
+## valid aura is enough; overlapping Howlers do not compound into a speed spike.
+func _nearby_howler() -> Enemy:
+	if _field == null:
+		return null
+	for enemy: Enemy in _field.enemies_near(global_position, Balance.HOWLER_SEARCH_RADIUS):
+		if enemy == self or enemy.data == null or enemy.is_dying():
+			continue
+		if enemy.data.role == EnemyData.Role.HOWLER \
+				and global_position.distance_to(enemy.global_position) <= enemy.data.aura_radius:
+			return enemy
+	return null
+
+
+## Passing enemies put out lane torches. The short local cooldown prevents one
+## walker rolling the same chance every frame while inside the brazier radius.
+func _tick_torch_snuff(delta: float) -> void:
+	_snuff_timer = maxf(_snuff_timer - delta, 0.0)
+	if _snuff_timer > 0.0 or _field.town_node() == null:
+		return
+	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
+		var torch := node as Torch
+		if torch == null or torch.lane != lane or not torch.is_lit():
+			continue
+		if global_position.distance_to(torch.global_position) > Balance.TORCH_SNUFF_RANGE:
+			continue
+		_snuff_timer = Balance.TORCH_SNUFF_CHECK_INTERVAL
+		if randf() < Balance.TORCH_SNUFF_CHANCE:
+			torch.extinguish()
+		return
 
 
 func _update_sprite() -> void:
@@ -352,5 +450,3 @@ func _update_sprite() -> void:
 	if _flash_left > 0.0:
 		tint = Balance.HIT_FLASH_COLOUR.lerp(tint, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	sprite.modulate = tint
-
-

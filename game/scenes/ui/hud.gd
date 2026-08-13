@@ -26,12 +26,14 @@ const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 var _resources: Label
 var _distance: Label
 var _wave: Label
+var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
 var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
+var _repair_button: Button
 var _message: Label
 var _message_left: float = 0.0
 
@@ -71,7 +73,10 @@ func _ready() -> void:
 	_build_spell_bar()
 	_build_boss_bar()
 
-	EventBus.resources_changed.connect(func(v: int) -> void: _resources.text = "%d" % v)
+	EventBus.resources_changed.connect(func(v: int) -> void:
+		_resources.text = "%d" % v
+		if _build_panel.visible:
+			_refresh_build_panel())
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
@@ -90,6 +95,9 @@ func _ready() -> void:
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_defeated.connect(func(_id: String, _a: int) -> void: _boss_panel.visible = false)
 	EventBus.run_started.connect(_rebuild_spell_bar)
+	EventBus.construction_completed.connect(func(_id: String, _tier: int) -> void:
+		if _build_panel.visible:
+			_refresh_build_panel())
 
 	for node: Node in get_tree().get_nodes_in_group(TowerSlot.GROUP):
 		var slot := node as TowerSlot
@@ -113,6 +121,8 @@ func _process(delta: float) -> void:
 	_update_spell_bar()
 	_update_boss_bar()
 	_update_boss_track()
+	_update_repair_button()
+	_update_wave_preview()
 
 
 # --- Construction -----------------------------------------------------------
@@ -180,9 +190,24 @@ func _build_top_bar() -> void:
 	_message.add_theme_color_override("font_color", Color("e8a33d"))
 	add_child(_message)
 
+	_wave_preview = _label("", 15)
+	_wave_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_wave_preview.offset_top = 158.0
+	_wave_preview.offset_left = -420.0
+	_wave_preview.offset_right = 420.0
+	_wave_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wave_preview.add_theme_color_override("font_color", Color("aebcb8"))
+	add_child(_wave_preview)
 
-## An icon if the art exists, the word if it does not. Fifty-four assets in this
-## project are still placeholders, so no piece of UI may depend on one arriving.
+
+func _update_wave_preview() -> void:
+	if _wave_preview == null or battlefield == null or battlefield.wave_director == null:
+		return
+	_wave_preview.text = battlefield.wave_director.preview_text()
+
+
+## An icon if the art exists, the word if it does not. The fallback protects the
+## HUD from a bad content import even though the production manifest is complete.
 func _bar_icon(id: String, fallback: String) -> Control:
 	var icon: TextureRect = IconKit.rect(id, 28.0)
 	return icon if icon != null else _label(fallback)
@@ -209,6 +234,12 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 func _build_lane_ring() -> void:
 	var rosette := LaneRosette.new()
 	rosette.name = "LaneRosette"
+	# CanvasLayer has no Control rect to inherit. Full anchors on a direct child
+	# therefore resolve to zero; size the overlay from the viewport explicitly.
+	rosette.size = get_viewport().get_visible_rect().size
+	get_viewport().size_changed.connect(func() -> void:
+		if is_instance_valid(rosette):
+			rosette.size = get_viewport().get_visible_rect().size)
 	add_child(rosette)
 	_lane_ring = rosette
 
@@ -224,12 +255,18 @@ func _build_scope_bar() -> void:
 	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
 	_add_button(bar, "F2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
 	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
+	var zoom_hint: Label = _label("Wheel  Zoom / scopes", 14)
+	zoom_hint.add_theme_color_override("font_color", Color("8f9b98"))
+	bar.add_child(zoom_hint)
 
 	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
 	IconKit.on_button(_horn_button, "war_horn", 26)
 	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
 	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
+	_repair_button = _add_button(bar,
+		"Repair  +%d  ·  %d" % [int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST],
+		func() -> void: _report(battlefield.try_repair_town()))
 
 	# No icon on the charge bar: the Raid button sitting immediately beside it
 	# already carries one, and the same symbol twice in six inches reads as a
@@ -237,6 +274,14 @@ func _build_scope_bar() -> void:
 	_charge_bar = _make_bar(Color("9b8fc4"), 200.0)
 	_charge_bar.value = 0.0
 	bar.add_child(_charge_bar)
+
+
+func _update_repair_button() -> void:
+	if _repair_button == null or battlefield == null or battlefield.town == null:
+		return
+	var health: Health = battlefield.town.health
+	_repair_button.disabled = health == null or health.current_hp >= health.max_hp \
+		or not RunState.can_afford(Balance.TOWN_REPAIR_COST)
 
 
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
@@ -511,7 +556,11 @@ func _refresh_build_panel() -> void:
 	if existing != null:
 		_build_list.add_child(_label("%s  ·  level %d" % [existing.display_name, level], 18))
 		_build_list.add_child(_label(existing.description, 14))
-		if level < Balance.TOWER_MAX_LEVEL:
+		var level_cap: int = RunState.tower_level_cap()
+		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
+			_build_list.add_child(_label(
+				"Forge tier %d required for level %d." % [level - Balance.TOWER_BASE_LEVEL_CAP + 1, level + 1], 14))
+		elif level < Balance.TOWER_MAX_LEVEL:
 			var cost: int = Battlefield.upgrade_cost_of(level)
 			_add_stat_preview(existing, level)
 			var afford: bool = RunState.can_afford(cost)

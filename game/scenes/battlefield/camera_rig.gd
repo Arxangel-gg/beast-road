@@ -19,17 +19,21 @@ var _shake_magnitude: float = 0.0
 var _shake_left: float = 0.0
 var _shake_duration: float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _wanted_zoom: float = 1.0
 
 
 func _ready() -> void:
 	_rng.randomize()
-	zoom = Vector2.ONE * (zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
+	_wanted_zoom = zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM
+	zoom = Vector2.ONE * _wanted_zoom
 	EventBus.camera_shake_requested.connect(_on_shake_requested)
 	if target != null:
 		global_position = target.global_position
 
 
 func _process(delta: float) -> void:
+	var zoom_t: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)
+	zoom = zoom.lerp(Vector2.ONE * _wanted_zoom, zoom_t)
 	if target != null and is_instance_valid(target):
 		var desired: Vector2 = target.global_position
 		var to_mouse: Vector2 = get_global_mouse_position() - target.global_position
@@ -40,6 +44,23 @@ func _process(delta: float) -> void:
 		global_position = global_position.lerp(desired, t)
 
 	_tick_shake(delta)
+
+
+func zoom_by(steps: int) -> bool:
+	if steps == 0:
+		return false
+	var before: float = _wanted_zoom
+	_wanted_zoom = clampf(_wanted_zoom + Balance.CAMERA_ZOOM_STEP * float(steps),
+		Balance.CAMERA_ZOOM_BATTLEFIELD_MIN, Balance.CAMERA_ZOOM_BATTLEFIELD_MAX)
+	return not is_equal_approx(before, _wanted_zoom)
+
+
+func is_fully_zoomed_out() -> bool:
+	return _wanted_zoom <= Balance.CAMERA_ZOOM_BATTLEFIELD_MIN + 0.001
+
+
+func reset_to_wide() -> void:
+	_wanted_zoom = Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
 
 
 func _tick_shake(delta: float) -> void:

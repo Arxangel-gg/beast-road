@@ -5,11 +5,13 @@
 [resource]
 script = ExtResource("1_a3xbi")
 category = 2
+role = 1
 max_hp = 6400.0
 contact_damage = 26.0
-move_speed = 34.0
+move_speed = 52.0
 body_radius = 90.0
 knockback_resistance = 1.0
 resource_value = 120
 id = "mirrorfang"
 display_name = "Mirrorfang"
+description = "A fast crystalline predator that turns the final Saltglass lane into a chase."

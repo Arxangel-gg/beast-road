@@ -86,6 +86,7 @@ func report() -> Dictionary:
 		and wrong_size.is_empty()
 		and unreadable.is_empty()
 		and parser.errors.is_empty()
+		and placeholders.is_empty()
 	)
 	if clean:
 		if real_art.is_empty():

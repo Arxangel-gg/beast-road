@@ -61,6 +61,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _locked:
 		return
+	if event is InputEventMouseButton and event.pressed:
+		var wheel := event as InputEventMouseButton
+		if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_ladder(1)
+			get_viewport().set_input_as_handled()
+			return
+		if wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_ladder(-1)
+			get_viewport().set_input_as_handled()
+			return
 	# Number keys jump between scopes; the whole point of the run layer is that
 	# moving between them is cheap.
 	if event.is_action_pressed(&"scope_battlefield"):
@@ -69,6 +79,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		switch_scope(GameDirector.Scope.TOWN)
 	elif event.is_action_pressed(&"scope_beast"):
 		switch_scope(GameDirector.Scope.BEAST)
+
+
+## Wheel-in moves toward tactical detail; wheel-out moves toward the whole
+## journey. Battlefield consumes steps internally until its wide limit, then
+## the next detent crosses to Town and the following one to Beast.
+func _zoom_ladder(direction: int) -> void:
+	match _scope:
+		GameDirector.Scope.BATTLEFIELD:
+			var rig := battlefield.camera as CameraRig
+			if direction > 0:
+				if rig != null:
+					rig.zoom_by(1)
+			elif rig == null or not rig.zoom_by(-1):
+				switch_scope(GameDirector.Scope.TOWN)
+		GameDirector.Scope.TOWN:
+			if direction > 0:
+				switch_scope(GameDirector.Scope.BATTLEFIELD)
+				var rig := battlefield.camera as CameraRig
+				if rig != null:
+					rig.reset_to_wide()
+			else:
+				switch_scope(GameDirector.Scope.BEAST)
+		GameDirector.Scope.BEAST:
+			if direction > 0:
+				beast.set_zoomed_out(false)
+				switch_scope(GameDirector.Scope.TOWN)
 
 
 func switch_scope(scope: GameDirector.Scope) -> void:

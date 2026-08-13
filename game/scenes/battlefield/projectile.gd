@@ -30,11 +30,13 @@ var _life: float = 0.0
 ## A ribbon of recent positions. A moving dot reads as a dot; a dot with a tail
 ## behind it reads as speed, and costs one node and a ring buffer.
 var _trail: Line2D
+var _filament: Line2D
 var _core: Polygon2D
 var _glow: Polygon2D
 var _light: PointLight2D
 var _history: PackedVector2Array = []
 var _spin: float = 0.0
+var _mote_left: float = 0.0
 
 
 func setup(target: Enemy, tower_data: TowerData, hit_damage: float, hit_knockback: float) -> void:
@@ -69,6 +71,18 @@ func _ready() -> void:
 	ramp.colors = PackedColorArray([Color(colour, 0.0), Color(colour, 0.85)])
 	_trail.gradient = ramp
 	add_child(_trail)
+
+	# A thin white-hot filament inside the broad elemental ribbon adds contrast
+	# at speed and keeps volleys readable against the darker night grade.
+	_filament = Line2D.new()
+	_filament.top_level = true
+	_filament.width = Balance.PROJECTILE_FILAMENT_WIDTH * _tier_scale()
+	_filament.default_color = Color(colour.lerp(Color.WHITE, 0.82), 0.95)
+	_filament.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_filament.end_cap_mode = Line2D.LINE_CAP_ROUND
+	_filament.width_curve = taper
+	_filament.gradient = ramp
+	add_child(_filament)
 
 	# Each element gets its own head shape, so a lane full of shots is readable
 	# at a glance without reading the colours.
@@ -118,6 +132,10 @@ func _process(delta: float) -> void:
 		_glow.rotation = _spin
 
 	_push_trail()
+	_mote_left -= delta
+	if _mote_left <= 0.0:
+		_mote_left = Balance.PROJECTILE_MOTE_INTERVAL
+		_shed_mote()
 
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS
@@ -161,6 +179,25 @@ func _push_trail() -> void:
 	while _history.size() > int(float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()):
 		_history.remove_at(0)
 	_trail.points = _history
+	_filament.points = _history
+
+
+func _shed_mote() -> void:
+	var mote := Sprite2D.new()
+	mote.texture = Flame.dot_texture()
+	mote.modulate = Color(colour.lerp(Color.WHITE, 0.55), 0.72)
+	mote.scale = Vector2.ONE * randf_range(0.08, 0.16) * _tier_scale()
+	mote.top_level = true
+	add_child(mote)
+	mote.global_position = global_position + Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+	var drift: Vector2 = -_direction * randf_range(18.0, 36.0) \
+		+ _direction.orthogonal() * randf_range(-14.0, 14.0)
+	var tween: Tween = mote.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(mote, "global_position", mote.global_position + drift,
+		Balance.PROJECTILE_MOTE_LIFE)
+	tween.tween_property(mote, "modulate:a", 0.0, Balance.PROJECTILE_MOTE_LIFE)
+	tween.chain().tween_callback(mote.queue_free)
 
 
 func _impact() -> void:
@@ -199,14 +236,16 @@ func _apply(enemy: Enemy) -> void:
 		return
 	if damage > 0.0:
 		enemy.take_damage(damage, global_position, knockback)
+	var utility: float = data.utility_at(tier)
 	if data.slow_factor < 1.0:
-		enemy.apply_slow(maxf(data.slow_factor - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1),
-			data.slow_duration)
+		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility
+		enemy.apply_slow(maxf(slow - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1),
+			data.slow_duration * utility)
 	if data.burn_dps > 0.0:
-		enemy.apply_burn(data.burn_dps * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
-			data.burn_duration)
-	if data.freeze_chance > 0.0 and randf() < data.freeze_chance:
-		enemy.apply_freeze(1.2)
+		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
+			data.burn_duration * sqrt(utility))
+	if data.freeze_chance > 0.0 and randf() < minf(data.freeze_chance * utility, 0.82):
+		enemy.apply_freeze(1.2 * sqrt(utility))
 
 
 func _find_field() -> Battlefield:

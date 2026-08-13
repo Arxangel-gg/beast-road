@@ -168,6 +168,14 @@ const CAMERA_ZOOM: float = 0.72
 const CAMERA_ZOOM_BATTLEFIELD: float = 0.77
 const CAMERA_ZOOM_RAID: float = 0.95
 
+## Mouse-wheel battlefield range. Reaching the minimum and continuing outward
+## moves through Town and Beast rather than shrinking the tactical map into an
+## unreadable postage stamp.
+const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.62
+const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.18
+const CAMERA_ZOOM_STEP: float = 0.10
+const CAMERA_ZOOM_LERP_SPEED: float = 12.0
+
 ## Camera lag. Lower is snappier, higher is floatier.
 const CAMERA_SMOOTHING_SPEED: float = 8.0
 
@@ -366,21 +374,30 @@ const LANE_WIDTH: float = 110.0
 # Towers — GDD §4
 # ------------------------------------------------------------------------------
 
-const TOWER_MAX_LEVEL: int = 3
+## Five levels keep resources relevant through Acts 2 and 3. The Forge gates
+## access above the early-game cap, so this is a progression track rather than
+## five buttons available on the opening screen.
+const TOWER_MAX_LEVEL: int = 5
+const TOWER_BASE_LEVEL_CAP: int = 2
 
 ## Resource cost to build a base tower at level 1. [TUNE]
-const TOWER_BUILD_COST: int = 60
+const TOWER_BUILD_COST: int = 70
 
 ## Combination towers cost more than either parent. [TUNE]
-const TOWER_COMBO_BUILD_COST: int = 140
+const TOWER_COMBO_BUILD_COST: int = 160
 
 ## Cost of upgrading to level N, indexed by the level being bought (1 -> 2 is
 ## index 0). [TUNE]
-const TOWER_UPGRADE_COSTS: Array[int] = [80, 160]
+const TOWER_UPGRADE_COSTS: Array[int] = [90, 190, 340, 560]
 
 ## Damage and rate multipliers per level, indexed by level - 1. [TUNE]
-const TOWER_LEVEL_DAMAGE: Array[float] = [1.0, 1.55, 2.3]
-const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.15, 1.35]
+const TOWER_LEVEL_DAMAGE: Array[float] = [1.0, 1.38, 1.88, 2.48, 3.20]
+const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.10, 1.22, 1.36, 1.52]
+
+## Status, reach, area and durability also improve. Utility towers used to gain
+## almost nothing from an upgrade because only raw damage and rate scaled.
+const TOWER_LEVEL_UTILITY: Array[float] = [1.0, 1.10, 1.22, 1.37, 1.55]
+const TOWER_LEVEL_RANGE: Array[float] = [1.0, 1.02, 1.05, 1.08, 1.12]
 
 ## Refund fraction when a tower is sold. [TUNE]
 const TOWER_SELL_REFUND: float = 0.6
@@ -396,27 +413,48 @@ const TOWER_PROJECTILE_SPEED: float = 620.0
 # ------------------------------------------------------------------------------
 
 ## Seconds between waves at the start of a segment. [TUNE]
-const WAVE_INTERVAL: float = 25
+const WAVE_INTERVAL: float = 20
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.65
+const WAVE_SPAWN_SPACING: float = 0.24
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
-const WAVE_BASE_COUNT: int = 8
-const WAVE_COUNT_GROWTH: float = 1.25
+const WAVE_BASE_COUNT: int = 7
+const WAVE_COUNT_GROWTH: float = 0.42
+const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.18, 1.38]
+const WAVE_NIGHT_COUNT_BONUS: float = 0.28
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_STAT_GROWTH: float = 0.075
+const WAVE_HP_GROWTH: float = 0.045
+const WAVE_DAMAGE_GROWTH: float = 0.022
+const WAVE_SPEED_GROWTH: float = 0.22
+const WAVE_DARK_DAMAGE_WEIGHT: float = 0.72
+const WAVE_DARK_SPEED_WEIGHT: float = 0.16
+const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.70, 2.60]
+const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.30, 1.65]
+
+## The final stretch of an act becomes a visible pressure peak instead of only
+## changing the label above the boss track.
+const ACT_BOSS_RAMP_COUNT: float = 0.55
+const ACT_BOSS_RAMP_STATS: float = 0.28
+
+## Later regions remain dominated by their own breed while veterans from
+## earlier terrain occasionally break up a predictable procession.
+const WAVE_INVADER_CHANCE: Array[float] = [0.0, 0.12, 0.22]
+
+## Elites arrive as an increasing number of squad leaders, not one lottery roll
+## per wave for the entire 45-minute run.
+const WAVE_ELITE_BASE_CHANCE: float = 0.32
+const WAVE_ELITE_PROGRESS_BONUS: float = 1.60
+const WAVE_ELITE_ACT_BONUS: float = 0.45
+const WAVE_MAX_QUEUED: int = 420
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
 const WAVE_LANES_MAX: int = 4
 
-## Chance a given wave includes an elite, once elites are unlocked. [TUNE]
-const WAVE_ELITE_CHANCE: float = 0.275
-
 ## Live enemy cap across the whole battlefield. [TUNE]
-const BATTLEFIELD_MAX_ENEMIES: int = 120
+const BATTLEFIELD_MAX_ENEMIES: int = 180
 
 # ------------------------------------------------------------------------------
 # Enemy attacks — GDD §3
@@ -440,18 +478,39 @@ const ENEMY_ATTACK_RECOVERY: float = 0.75
 ## An enemy will break off to hit the hero if the hero is this close. [TUNE]
 const ENEMY_HERO_AGGRO_RANGE: float = 210.0
 
+## Howlers and the Drowned Choir fire slow committed shots. Their target can
+## leave the marked destination before impact; this is pressure, not hitscan.
+const ENEMY_RANGED_RANGE: float = 330.0
+const ENEMY_PROJECTILE_SPEED: float = 310.0
+const ENEMY_PROJECTILE_WIDTH: float = 7.0
+const ENEMY_PROJECTILE_HIT_RADIUS: float = 18.0
+const ENEMY_PROJECTILE_BLAST_RADIUS: float = 54.0
+const ENEMY_PROJECTILE_MAX_LIFE: float = 2.0
+const ENEMY_PROJECTILE_TRAIL_POINTS: int = 12
+const ENEMY_PROJECTILE_GLOW_SCALE: float = 0.22
+const ENEMY_PROJECTILE_LIGHT_RADIUS: float = 105.0
+const ENEMY_PROJECTILE_LIGHT_ENERGY: float = 0.75
+const ENEMY_PROJECTILE_COLOUR: Color = Color(0.95, 0.25, 0.12)
+const HOWLER_SEARCH_RADIUS: float = 240.0
+
 # ------------------------------------------------------------------------------
 # Town — GDD §5
 # ------------------------------------------------------------------------------
 
-const TOWN_MAX_HP: float = 1400.0
+const TOWN_MAX_HP: float = 1250.0
 
 ## Damage an enemy deals to the town when it arrives, per point of its own
 ## contact damage. [TUNE]
-const TOWN_DAMAGE_SCALE: float = 1.5
+const TOWN_DAMAGE_SCALE: float = 1.75
+const TOWER_ARMOUR_EFFECT_SCALE: float = 0.45
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.35
+const RESOURCE_PER_DISTANCE: float = 0.24
+
+## Normal enemies still pop resource drops, but not every body is a full unit
+## of currency. A fractional carry preserves the dopamine beat without making
+## a large wave finance every remaining upgrade by itself.
+const KILL_RESOURCE_SCALE: float = 0.32
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -463,7 +522,12 @@ const CAPTIVE_WORK_BONUS: float = 0.22
 const CAPTIVES_PER_BUILDING: int = 2
 
 ## Resources granted at the start of a run. [TUNE]
-const STARTING_RESOURCES: int = 260
+const STARTING_RESOURCES: int = 220
+
+## A costly emergency action: restores the run after a partial breach while
+## competing directly with the next tower mastery purchase.
+const TOWN_REPAIR_COST: int = 110
+const TOWN_REPAIR_AMOUNT: float = 120.0
 
 # ------------------------------------------------------------------------------
 # War horn, raid meter and the raid — GDD §6
@@ -534,7 +598,8 @@ const STARTING_SPELLS: int = 2
 const WARD_ABSORB: float = 260.0
 
 ## Resources paid out by an act boss, on top of the reward package. [TUNE]
-const BOSS_RESOURCE_REWARD: int = 350
+const BOSS_RESOURCE_REWARD: int = 180
+const BOSS_ACT_SCALE: Array[float] = [1.25, 2.10, 3.20]
 
 ## Source pixel size of a tower sprite. Towers are square like every other
 ## generated asset; the illusion of height comes from the art, not the file.
@@ -805,6 +870,11 @@ const PROJECTILE_IMPACT_FLASH: float = 17.0
 const PROJECTILE_LIGHT_RADIUS: float = 120.0
 const PROJECTILE_LIGHT_ENERGY: float = 0.7
 
+## Hot filament inside the elemental ribbon and occasional shedding motes.
+const PROJECTILE_FILAMENT_WIDTH: float = 1.65
+const PROJECTILE_MOTE_INTERVAL: float = 0.055
+const PROJECTILE_MOTE_LIFE: float = 0.22
+
 # ------------------------------------------------------------------------------
 # See-through structures
 # ------------------------------------------------------------------------------
@@ -848,16 +918,16 @@ const CLOUD_COVERAGE: float = 0.46
 # clicking anything.
 
 ## Sprite growth per level above the first. [TUNE]
-const TOWER_LEVEL_SCALE_STEP: float = 0.16
+const TOWER_LEVEL_SCALE_STEP: float = 0.10
 
 ## How far the sprite tints toward its element colour per level, 0..1. [TUNE]
-const TOWER_LEVEL_TINT_STEP: float = 0.34
+const TOWER_LEVEL_TINT_STEP: float = 0.18
 
 ## Extra brazier energy per level. [TUNE]
-const TOWER_LEVEL_LIGHT_STEP: float = 0.45
+const TOWER_LEVEL_LIGHT_STEP: float = 0.30
 
 ## How much bigger a projectile is per level of the tower that fired it. [TUNE]
-const PROJECTILE_TIER_SCALE: float = 0.28
+const PROJECTILE_TIER_SCALE: float = 0.16
 
 # ==============================================================================
 # TORCHES, FOLIAGE AND PATH BLENDING
@@ -914,6 +984,7 @@ const TORCH_SNUFF_RANGE: float = 46.0
 ## Chance an enemy passing within that range actually snuffs it. Below 1.0 so a
 ## single wave does not reliably black out a whole lane. [TUNE]
 const TORCH_SNUFF_CHANCE: float = 0.35
+const TORCH_SNUFF_CHECK_INTERVAL: float = 0.75
 
 ## How close the hero stands, and for how long, to relight one. [TUNE]
 const TORCH_RELIGHT_RANGE: float = 90.0
@@ -992,8 +1063,8 @@ const FLAME_SMOKE_COLOUR: Color = Color(0.20, 0.19, 0.18)
 
 ## Contact shadow strength at noon and at midnight. Darker by day because by
 ## night the torches are doing the work. [TUNE]
-const SHADOW_ALPHA_DAY: float = 0.40
-const SHADOW_ALPHA_NIGHT: float = 0.15
+const SHADOW_ALPHA_DAY: float = 0.52
+const SHADOW_ALPHA_NIGHT: float = 0.22
 
 ## How far the pool slides from under its owner, in quad half-widths, when the
 ## sun is on the horizon versus overhead. [TUNE]
@@ -1012,7 +1083,7 @@ const SHADOW_WIDTH: float = 0.66
 const SHADOW_CAST_ENABLED: bool = true
 
 ## Softening on cast shadow edges. Zero is a hard stencil edge. [TUNE]
-const SHADOW_FILTER_SMOOTH: float = 3.5
+const SHADOW_FILTER_SMOOTH: float = 2.1
 
 ## Occluder layers, so a light can be told what it may throw a shadow of. Bit 1
 ## is scenery, bit 2 is units - the town light uses this to shadow the people
@@ -1025,7 +1096,7 @@ const SHADOW_LAYER_UNITS: int = 2
 # ------------------------------------------------------------------------------
 
 ## Clumps scattered per terrain. [TUNE]
-const FOLIAGE_COUNT: int = 460
+const FOLIAGE_COUNT: int = 620
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15

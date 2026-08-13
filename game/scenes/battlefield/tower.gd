@@ -34,6 +34,8 @@ var _shadow_base_y: float = 0.0
 ## Extra damage from the lane's same-element synergy (GDD §4.2) and terrain.
 var _damage_bonus: float = 0.0
 var _extra_chain_targets: int = 0
+var _health: Health = null
+var _health_bar: HealthBar = null
 
 
 func setup(tower_data: TowerData, tower_level: int, lane_index: int, slot_index: int, field: Battlefield) -> void:
@@ -69,6 +71,11 @@ func _ready() -> void:
 			Balance.SHADOW_LAYER_SCENERY, half.y * 0.44)
 
 	_apply_level_look()
+	_build_health()
+	call_deferred("refresh_modifiers")
+	EventBus.relic_socketed.connect(_on_relic_changed)
+	EventBus.relic_unsocketed.connect(_on_relic_changed)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
 	_cooldown = randf() * data.interval_at(level)
 
@@ -91,6 +98,16 @@ func refresh_modifiers() -> void:
 			_damage_bonus += terrain.favoured_element_bonus
 		if data.extra_targets > 0:
 			_extra_chain_targets += terrain.bonus_chain_targets
+	if _health != null:
+		_health.flat_damage_reduction = _field.lane_armour(lane)
+
+
+func _on_relic_changed(_id: String) -> void:
+	refresh_modifiers()
+
+
+func _on_boss_defeated(_id: String, _act: int) -> void:
+	refresh_modifiers()
 
 
 func _process(delta: float) -> void:
@@ -100,6 +117,8 @@ func _process(delta: float) -> void:
 	if _cooldown > 0.0:
 		return
 
+	if _health != null and _health.is_dead:
+		return
 	var targets: Array[Enemy] = _acquire_targets()
 	if targets.is_empty():
 		return
@@ -116,6 +135,7 @@ func upgrade_to(new_level: int) -> void:
 	_draw_range_ring()
 	refresh_modifiers()
 	_apply_level_look()
+	_refresh_health_for_level()
 
 	# The upgrade gets a moment of its own. Paying resources should feel like
 	# something happened, not like a number changed in a panel.
@@ -158,7 +178,7 @@ func show_range(visible_now: bool) -> void:
 ## lane "ahead" is; the battlefield sorts that for AoE.
 func _acquire_targets() -> Array[Enemy]:
 	var found: Array[Enemy] = []
-	var reach: float = data.attack_range * Modifiers.multiplier(Modifiers.TOWER_RANGE)
+	var reach: float = effective_range()
 	var candidates: Array[Enemy] = _field.enemies_near(global_position, reach)
 	if candidates.is_empty():
 		return found
@@ -182,9 +202,9 @@ func _fire(targets: Array[Enemy]) -> void:
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.
 	if _is_aura():
-		for enemy: Enemy in _field.enemies_near(global_position, data.attack_range):
+		for enemy: Enemy in _field.enemies_near(global_position, effective_range()):
 			_hit(enemy)
-		Vfx.ring(global_position, data.attack_range,
+		Vfx.ring(global_position, effective_range(),
 			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
 		return
 
@@ -219,19 +239,71 @@ func _hit(enemy: Enemy) -> void:
 	if effective_damage() > 0.0:
 		enemy.take_damage(effective_damage(), global_position,
 			data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
+	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
 		# A stronger slow is a *lower* factor, so the relic subtracts.
-		enemy.apply_slow(maxf(data.slow_factor - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1), data.slow_duration)
+		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility
+		enemy.apply_slow(maxf(slow - Modifiers.value(Modifiers.SLOW_STRENGTH), 0.1),
+			data.slow_duration * utility)
 	if data.burn_dps > 0.0:
-		enemy.apply_burn(data.burn_dps * Modifiers.multiplier(Modifiers.BURN_DAMAGE), data.burn_duration)
-	if data.freeze_chance > 0.0 and randf() < data.freeze_chance:
-		enemy.apply_freeze(1.2)
+		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
+			data.burn_duration * sqrt(utility))
+	if data.freeze_chance > 0.0 and randf() < minf(data.freeze_chance * utility, 0.82):
+		enemy.apply_freeze(1.2 * sqrt(utility))
+
+
+func effective_range() -> float:
+	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE)
+
+
+## Taunting towers are actual blockers now. They use the same Health component
+## as every other attack target, and their authored HP finally matters.
+func _build_health() -> void:
+	if data.max_hp <= 0.0:
+		return
+	_health = Health.new()
+	_health.name = "Health"
+	add_child(_health)
+	_refresh_health_for_level()
+	_health.revive()
+	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
+		Vfx.number(global_position, amount, Color("d9cdb8"))
+		Vfx.spark(global_position, Color("a78f6d"), 5,
+			(global_position - from).normalized(), 120.0))
+	_health.died.connect(_on_destroyed)
+
+	var health_scene: PackedScene = load("res://scenes/ui/health_bar.tscn")
+	_health_bar = health_scene.instantiate() as HealthBar
+	if _health_bar == null:
+		return
+	_health_bar.hide_until_damaged = true
+	_health_bar.position = Vector2(0.0, -Balance.TOWER_SPRITE_LIFT * 2.4)
+	add_child(_health_bar)
+	_health_bar.bind(_health)
+
+
+func _refresh_health_for_level() -> void:
+	if _health == null or data.max_hp <= 0.0:
+		return
+	var ratio: float = _health.ratio() if _health.max_hp > 0.0 else 1.0
+	_health.max_hp = data.max_hp * data.utility_at(level)
+	_health.current_hp = _health.max_hp * ratio
+	_health.changed.emit(_health.current_hp, _health.max_hp)
+
+
+func _on_destroyed(_from: Vector2) -> void:
+	Vfx.spark(global_position, TowerData.element_colour(data.element), 18,
+		Vector2.ZERO, 260.0)
+	Vfx.ring(global_position, 110.0,
+		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
+	EventBus.camera_shake_requested.emit(9.0, 0.4)
+	RunState.clear_slot(lane, slot)
 
 
 func _draw_range_ring() -> void:
 	if range_ring == null:
 		return
-	var reach: float = data.attack_range * Modifiers.multiplier(Modifiers.TOWER_RANGE)
+	var reach: float = effective_range()
 	var points: PackedVector2Array = []
 	for i: int in 49:
 		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * reach)

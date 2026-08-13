@@ -43,7 +43,6 @@ func _ready() -> void:
 	_shown.resize(Balance.LANE_COUNT)
 	_shown.fill(0.0)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	EventBus.lane_pressure_changed.connect(set_pressure)
 	# Drawn once up front. _process only redraws on change, so without this the
 	# empty track never appears until the first enemy walks.

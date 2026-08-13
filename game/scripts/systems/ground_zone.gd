@@ -3,8 +3,8 @@ extends Node2D
 
 ## A patch of burning ground left by a Magma tower (GDD §4.1).
 ##
-## Created in code because it is a gameplay volume rather than an asset — the
-## visible part is a placeholder circle that a real effect will replace.
+## Created in code because it is a gameplay volume rather than an asset. The
+## fading ring is an intentional, exact-radius telegraph for its damage area.
 
 var _dps: float = 0.0
 var _left: float = 0.0

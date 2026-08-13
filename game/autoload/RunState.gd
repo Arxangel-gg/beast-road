@@ -16,6 +16,9 @@ var terrain_id: String = ""
 # --- Economy ---------------------------------------------------------------
 
 var resources: int = 0
+## Fractional enemy drops carried between kills. Large waves stay rewarding
+## without turning every one-HP body into a whole resource.
+var kill_resource_remainder: float = 0.0
 var blueprints: Array[String] = []
 
 # --- Town ------------------------------------------------------------------
@@ -85,6 +88,7 @@ func reset() -> void:
 	terrain_id = ""
 
 	resources = Balance.STARTING_RESOURCES
+	kill_resource_remainder = 0.0
 	blueprints.clear()
 
 	town_max_hp = Balance.TOWN_MAX_HP
@@ -225,6 +229,27 @@ func gain_resources(amount: int) -> void:
 		return
 	resources = maxi(resources + amount, 0)
 	EventBus.resources_changed.emit(resources)
+
+
+## Adds a scaled enemy drop while retaining fractions across kills.
+func gain_kill_resources(base_amount: int) -> void:
+	if base_amount <= 0:
+		return
+	var earned: float = float(base_amount) * Balance.KILL_RESOURCE_SCALE \
+		* Modifiers.multiplier(Modifiers.KILL_RESOURCES)
+	kill_resource_remainder += earned
+	var whole: int = int(floor(kill_resource_remainder))
+	if whole <= 0:
+		return
+	kill_resource_remainder -= float(whole)
+	gain_resources(whole)
+
+
+## Maximum tower level the current Forge tier supports. Tier 0 still permits
+## the opening two levels; each Forge tier unlocks one additional mastery tier.
+func tower_level_cap() -> int:
+	return clampi(Balance.TOWER_BASE_LEVEL_CAP + building_tier("forge"),
+		Balance.TOWER_BASE_LEVEL_CAP, Balance.TOWER_MAX_LEVEL)
 
 
 ## Resource yield per distance unit, after Granary tiers and captive labour.

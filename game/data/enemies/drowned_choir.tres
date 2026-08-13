@@ -5,11 +5,15 @@
 [resource]
 script = ExtResource("1_qocbu")
 category = 2
+role = 3
 max_hp = 4200.0
 contact_damage = 26.0
 move_speed = 34.0
 body_radius = 90.0
 knockback_resistance = 1.0
 resource_value = 120
+aura_radius = 300.0
+aura_strength = 0.18
 id = "drowned_choir"
 display_name = "The Drowned Choir"
+description = "Its hymn drives the whole procession forward. Break the choir before the wave reaches the walls."

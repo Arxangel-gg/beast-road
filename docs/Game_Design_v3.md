@@ -147,8 +147,10 @@ The middle slot builds a tower derived from its two neighbours' elements.
 | Earth + Earth | Bastion | Very high HP taunt, lane damage reduction |
 | Air + Air | Tempest | Fast chain lightning, many targets |
 
-**Upgrades.** Every tower has **3 levels** `[TUNE]`. Cost scales; stats scale.
-Upgrading is the resource sink that competes with building.
+**Upgrades.** Every tower has **5 levels** `[TUNE]`. All towers can reach level
+2; Forge tiers unlock mastery levels 3, 4 and 5. Damage, rate, range and utility
+scale, so support towers remain meaningful investments. Upgrading is the
+long-run resource sink that competes with building and emergency town repair.
 
 ### 4.2 Lane synergy
 
@@ -330,7 +332,7 @@ entire schema.
 | Bosses | 3 |
 | Base towers | 8 |
 | Combination towers | 10 |
-| Tower levels | 3 |
+| Tower levels | 5, with levels 3â€“5 gated by the Forge |
 | Hero spells | 8 (pick 4) |
 | Relics | 20 + 3 boss cores |
 | Buildings | 6 |
@@ -385,7 +387,7 @@ Tremor · Beast's Breath
 | 4 tower slots → 12 (3 per lane) | Expanded | The middle combination slot is the loadout puzzle |
 | Fusion adjacency → combination slot | Restructured | Combos are now a built tower, not a passive pair effect |
 | 6 fusions → 10 combinations | Expanded | Same-element pairs now produce a tower too |
-| Tower upgrades (3 levels) | Added | Resource sink competing with building |
+| Tower upgrades (5 levels, Forge-gated) | Expanded | Resource sink competing with building through the full run |
 | Enemies free-roam → fixed lane paths | Changed | Classic TD readability |
 | Mid-combat tower placement | **Un-cut** | Was v2 §9. Owner's spec. |
 | Enemies telegraph attacks | Added | v2's contact damage made attacking feel self-harming |

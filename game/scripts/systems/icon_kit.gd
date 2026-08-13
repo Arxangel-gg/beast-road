@@ -8,9 +8,9 @@ extends RefCounted
 ## anywhere holds a second copy of that fact.
 ##
 ## A missing icon returns null rather than erroring, and every helper here copes
-## with null by simply not adding the icon. That matters because fifty-four
-## assets in this project are still placeholders: the UI has to be able to run
-## ahead of the art without the two being coupled.
+## with null by simply not adding the icon. The production manifest is now
+## complete, but keeping this fallback makes content updates fail gracefully
+## instead of taking the whole interface down with one missing file.
 
 const UI_DIR: String = "res://art/icons/ui/"
 

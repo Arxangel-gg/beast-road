@@ -134,6 +134,8 @@ func _process(delta: float) -> void:
 
 	if _elapsed >= _duration:
 		set_process(false)
+		print("[soak] final battlefield state")
+		_report()
 		print("[soak] done")
 		_finish.call_deferred()
 

@@ -220,8 +220,8 @@ func _effect_text(data: BuildingData, tier: int) -> String:
 			var details: int = int(amount)
 			return "%d work detail%s" % [details, "" if details == 1 else "s"]
 		BuildingData.Effect.BLUEPRINTS:
-			var plans: int = int(amount)
-			return "%d tower blueprint%s" % [plans, "" if plans == 1 else "s"]
+			return "tower mastery level %d unlocked" % clampi(
+				Balance.TOWER_BASE_LEVEL_CAP + tier, 1, Balance.TOWER_MAX_LEVEL)
 		BuildingData.Effect.WAVE_FORESIGHT:
 			return "next wave revealed"
 		_:

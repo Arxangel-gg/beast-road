@@ -5,7 +5,8 @@
 [resource]
 script = ExtResource("1_8m84s")
 effect = 1
+effect_per_tier = Array[float]([3.0, 4.0, 5.0])
 available_from_start = false
 id = "forge"
 display_name = "Forge"
-description = "Unlocks and improves tower blueprints for this run."
+description = "Unlocks tower mastery levels 3, 4 and 5 for this run."

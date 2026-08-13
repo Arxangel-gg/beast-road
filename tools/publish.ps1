@@ -195,6 +195,8 @@ $btn.Add_Click({
         if (-not $godot) { throw "Godot console executable not found in $godotDir" }
         $checks = @(
             @{ Name = 'game'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--quit') },
+            @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
+            @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
             @{ Name = 'launcher updater'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'launcher'), 'res://tests/release_pipeline_test.tscn') }
         )

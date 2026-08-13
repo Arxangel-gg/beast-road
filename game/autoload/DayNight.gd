@@ -19,9 +19,9 @@ const STOPS: Array[Dictionary] = [
 	{"at": 0.12, "tint": Color(1.00, 0.97, 0.92), "light": 0.05},  # morning
 	{"at": 0.28, "tint": Color(1.00, 1.00, 1.00), "light": 0.00},  # midday, unfiltered
 	{"at": 0.45, "tint": Color(0.95, 0.74, 0.52), "light": 0.35},  # late afternoon gold
-	{"at": 0.56, "tint": Color(0.62, 0.42, 0.42), "light": 0.70},  # dusk
-	{"at": 0.70, "tint": Color(0.26, 0.30, 0.48), "light": 0.95},  # night, blue
-	{"at": 0.85, "tint": Color(0.18, 0.22, 0.40), "light": 1.00},  # deep night
+	{"at": 0.56, "tint": Color(0.52, 0.31, 0.34), "light": 0.74},  # dusk
+	{"at": 0.70, "tint": Color(0.17, 0.21, 0.38), "light": 0.97},  # night, blue
+	{"at": 0.85, "tint": Color(0.10, 0.13, 0.27), "light": 1.00},  # deep night
 	{"at": 1.00, "tint": Color(0.72, 0.60, 0.58), "light": 0.55},  # back to dawn
 ]
 
