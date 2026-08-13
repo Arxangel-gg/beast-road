@@ -36,6 +36,31 @@ const INK_DIM: Color = Color(0.52, 0.5, 0.45, 0.55)
 const GOLD: Color = Color(0.90980, 0.63922, 0.23922)
 const OUTLINE: Color = Color(0.02, 0.04, 0.05, 0.9)
 
+# --- Padding -----------------------------------------------------------------
+#
+# One set of numbers for the whole interface, rather than a judgement call at
+# each call site. Every frame in the art has a decorative border with bolts in
+# the corners, and content has to clear the bolts, not the straight run of frame
+# between them — so these are measured against the deepest intrusion, not the
+# average one.
+#
+# Symmetric on both axes. Asymmetric padding is invisible until you notice it,
+# and then it is the only thing you can see.
+
+## Buttons. 34 clears the bolt on `ui_button`; 14 centres a 17px line in a 42px
+## row instead of leaving it sitting low.
+const PAD_BUTTON_X: int = 34
+const PAD_BUTTON_Y: int = 14
+
+## The ornate panel frame is the deepest in the set — its corner pieces reach
+## about 40px in, so anything less puts the first line of a heading on the ironwork.
+const PAD_PANEL_X: int = 38
+const PAD_PANEL_Y: int = 32
+
+## The plain dark frame is a thin border, so it needs far less.
+const PAD_DARK_X: int = 20
+const PAD_DARK_Y: int = 16
+
 
 static func build() -> Dictionary:
 	var theme := Theme.new()
@@ -61,10 +86,16 @@ static func build() -> Dictionary:
 	var disabled: StyleBox = _frame("ui_button", 34, 34, 15, 16, problems,
 		Color(0.55, 0.55, 0.55, 0.7))
 
-	# Left padding clears the corner bolt rather than merely clearing the frame,
-	# or the first glyph of a label sits on top of a rivet.
+	# Symmetric, and deep enough to clear the corner bolts rather than merely the
+	# straight run of frame between them.
+	#
+	# These were 34/26/10/12. Left-aligned text therefore started 8px further from
+	# its frame than it ended from the other one, and a line of 17px type in a 42px
+	# button had 10 above and 12 below - which reads as text sitting low in its box
+	# rather than centred in it. Both are the kind of thing you cannot name when
+	# you look at it and cannot unsee once you can.
 	for style: StyleBox in [normal, hover, pressed, disabled]:
-		_pad(style, 34, 26, 10, 12)
+		_pad(style, PAD_BUTTON_X, PAD_BUTTON_X, PAD_BUTTON_Y, PAD_BUTTON_Y)
 
 	theme.set_stylebox("normal", "Button", normal)
 	theme.set_stylebox("hover", "Button", hover)
@@ -85,14 +116,14 @@ static func build() -> Dictionary:
 
 	# --- Panels --------------------------------------------------------------
 	var panel: StyleBox = _frame("ui_panel", 40, 40, 40, 40, problems)
-	_pad(panel, 26, 26, 22, 22)
+	_pad(panel, PAD_PANEL_X, PAD_PANEL_X, PAD_PANEL_Y, PAD_PANEL_Y)
 	theme.set_stylebox("panel", "PanelContainer", panel)
 	theme.set_stylebox("panel", "Panel", panel)
 
 	# The plain frame for things that float over the game and must not compete
 	# with it: tooltips and popups.
 	var dark: StyleBox = _frame("ui_panel_dark", 22, 22, 22, 22, problems)
-	_pad(dark, 14, 14, 10, 10)
+	_pad(dark, PAD_DARK_X, PAD_DARK_X, PAD_DARK_Y, PAD_DARK_Y)
 	theme.set_stylebox("panel", "PopupPanel", dark)
 	theme.set_stylebox("panel", "TooltipPanel", dark)
 	theme.set_color("font_color", "TooltipLabel", INK)
@@ -102,7 +133,7 @@ static func build() -> Dictionary:
 	# build panel is the case that needs this.
 	theme.set_type_variation("InnerPanel", "PanelContainer")
 	var inner: StyleBox = _frame("ui_panel_dark", 22, 22, 22, 22, problems)
-	_pad(inner, 14, 14, 10, 10)
+	_pad(inner, PAD_DARK_X, PAD_DARK_X, PAD_DARK_Y, PAD_DARK_Y)
 	theme.set_stylebox("panel", "InnerPanel", inner)
 
 	# --- Bars ----------------------------------------------------------------

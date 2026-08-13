@@ -459,7 +459,7 @@ const WAVE_OPENING_SINGLE_LANE_WAVES: int = 3
 const WAVE_SPAWN_SPACING: float = 0.24
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
-const WAVE_BASE_COUNT: int = 7
+const WAVE_BASE_COUNT: int = 5
 const WAVE_COUNT_GROWTH: float = 0.42
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.18, 1.38]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.28
@@ -555,7 +555,7 @@ const RESOURCE_PER_DISTANCE: float = 0.24
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.32
+const KILL_RESOURCE_SCALE: float = 0.40
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -1043,7 +1043,13 @@ const TORCH_LIGHT_ENERGY: float = 1.55
 ## a fault in the renderer rather than as fire. [TUNE]
 const TORCH_FLICKER: float = 0.16
 
-## How close an enemy must pass to snuff one out. [TUNE]
+## How close an enemy must draw level with a torch to snuff it, measured **along
+## the road** rather than as a straight line.
+##
+## This is not a proximity radius and must not be read as one. Torches stand 300px
+## off the lane and enemies walk within 55px of its centre, so no straight-line
+## radius small enough to be meaningful could ever have matched - which is why the
+## mechanic silently never fired. See Enemy._tick_torch_snuff. [TUNE]
 const TORCH_SNUFF_RANGE: float = 120
 
 ## Chance an enemy passing within that range actually snuffs it. Below 1.0 so a

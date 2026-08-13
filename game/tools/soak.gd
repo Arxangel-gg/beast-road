@@ -31,6 +31,8 @@ var _no_casters: bool = false
 var _panel: bool = false
 var _settings: bool = false
 var _pause_only: bool = false
+var _expect_snuff: bool = false
+var _failed: bool = false
 var _panel_lane: int = 0
 var _panel_slot: int = 0
 var _reported: bool = false
@@ -52,6 +54,9 @@ func _ready() -> void:
 		elif argument == "--settings":
 			# Opens the pause screen's settings panel.
 			_settings = true
+		elif argument == "--expect-snuff":
+			# Fails the run if no torch went out. Only meaningful with waves on.
+			_expect_snuff = true
 		elif argument == "--pause":
 			# Opens the pause screen itself and stops there.
 			_settings = true
@@ -164,8 +169,33 @@ func _process(delta: float) -> void:
 		set_process(false)
 		print("[soak] final battlefield state")
 		_report()
+		if _expect_snuff:
+			_assert_torches_snuffed()
 		print("[soak] done")
 		_finish.call_deferred()
+
+
+## Fails the run if no torch went out.
+##
+## Snuffing has now been silently dead twice: once because the check lived on a
+## code path that never ran, and once because the torches were moved 300px off
+## the lane while the test was a straight-line radius of 120. Both times it read
+## perfectly correctly and did nothing. A mechanic that can only be verified by
+## staring at a screenshot at dusk needs a gate.
+func _assert_torches_snuffed() -> void:
+	var total: int = 0
+	var dark: int = 0
+	for node: Node in get_tree().get_nodes_in_group(&"torches"):
+		var torch := node as Torch
+		if torch == null:
+			continue
+		total += 1
+		if not torch.is_lit():
+			dark += 1
+	print("[soak] torches out: %d of %d" % [dark, total])
+	if dark == 0:
+		push_error("no torch was snuffed in %.0fs of waves - the mechanic is dead again" % _duration)
+		_failed = true
 
 
 ## Let the instantiated run release its nodes and resources before shutting
@@ -181,7 +211,7 @@ func _finish() -> void:
 	# frames is racy on fast headless runners; half a second is deterministic.
 	for _frame: int in 30:
 		await get_tree().process_frame
-	get_tree().quit()
+	get_tree().quit(1 if _failed else 0)
 
 
 ## Fills the two outer slots on every lane. The middle one is the combination

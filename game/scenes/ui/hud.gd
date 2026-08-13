@@ -23,20 +23,26 @@ const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 
 ## Build panel geometry.
 ##
-## One row of eight. Two rows of four fitted, but a grid asks the eye to scan in
-## two directions to compare eight things that are all the same kind of thing —
-## a single strip reads left to right once and is done. Eight cards plus gaps and
-## frame come to ~1400 of the 1920 the UI is laid out in, so it fits at any
-## window size (the stretch mode scales the whole canvas, not the layout).
-const BUILD_CARD_WIDTH: float = 158.0
-const BUILD_CARD_HEIGHT: float = 112.0
+## One column of eight, down the right-hand side. Each tower is one line — mark,
+## name, price — because that is all a tower needs to be chosen between: the
+## description belongs in the footer, and a card tall enough to hold one is a
+## card that forces the list to scroll.
+##
+## Nothing here is a scroll container. Eight rows at 44 plus the heading, footer
+## and close button come to ~600 of the 1080 the UI is laid out in.
+const BUILD_PANEL_WIDTH: float = 420.0
+const BUILD_ROW_HEIGHT: float = 44.0
+const BUILD_ROW_GAP: int = 5
 
-## Kept narrow enough not to wall off the battlefield, and wide enough that the
-## upgrade view - which is a short column, not a row - does not become a sliver.
-const BUILD_PANEL_MIN_WIDTH: float = 560.0
+## How far the price sits in from a row's right edge.
+##
+## Read from the theme rather than guessed, so it lines up with the button's own
+## text inset on the other side of the row. Hard-coding it at 22 against the
+## theme's 34 put every price hard against the frame's corner bolt.
+const BUILD_ROW_PRICE_INSET: float = float(ThemeBuilder.PAD_BUTTON_X)
 
-## Clearance above the scope and spell bars along the bottom of the screen.
-const BUILD_PANEL_BOTTOM_GAP: float = 116.0
+## Distance from the right edge of the screen.
+const BUILD_PANEL_MARGIN: float = 34.0
 
 ## Reserved height for the hover description, so the panel does not resize as the
 ## cursor moves along the row. One line is enough now the panel is wide enough
@@ -354,19 +360,15 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 ## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
-	# Bottom centre, not centre right. A row of eight is wide, and hanging it off
-	# the right edge would push it across the eastern lane - the one place the
-	# player must keep watching while they decide what to build.
-	_build_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_build_panel.offset_left = 0.0
-	_build_panel.offset_right = 0.0
+	_build_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	_build_panel.offset_left = -BUILD_PANEL_WIDTH - BUILD_PANEL_MARGIN
+	_build_panel.offset_right = -BUILD_PANEL_MARGIN
+	# No fixed height: anchors pinned to one line with GROW_BOTH make a Control
+	# size to its own content, so the eight-row build view and the shorter upgrade
+	# view each get the box they need rather than sharing one compromise.
 	_build_panel.offset_top = 0.0
-	_build_panel.offset_bottom = -BUILD_PANEL_BOTTOM_GAP
-	# Both axes size to content, so the wide build row and the narrow upgrade
-	# column each get the box they need instead of sharing one compromise.
-	_build_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_build_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_build_panel.custom_minimum_size = Vector2(BUILD_PANEL_MIN_WIDTH, 0.0)
+	_build_panel.offset_bottom = 0.0
+	_build_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_build_panel.visible = false
 	add_child(_build_panel)
 
@@ -692,18 +694,22 @@ func _refresh_build_panel() -> void:
 			_add_stat_preview(existing, level)
 			var afford: bool = RunState.can_afford(cost)
 			var button: Button = _add_button(_build_list,
-				"Upgrade to level %d   -   %d resources" % [level + 1, cost], func() -> void:
+				"Upgrade to level %d" % (level + 1), func() -> void:
 					_report(battlefield.try_upgrade(lane, slot))
 					_refresh_build_panel())
 			IconKit.on_button(button, "upgrade", 22)
+			_attach_price(button, cost, afford)
 			button.disabled = not afford
 			if not afford:
 				_build_list.add_child(_label("Need %d more." % (cost - RunState.resources), 13))
 		else:
 			_build_list.add_child(_label("Fully upgraded.", 14))
-		_add_button(_build_list, "Sell", func() -> void:
+		var sell: Button = _add_button(_build_list, "Sell", func() -> void:
 			_report(battlefield.try_sell(lane, slot))
 			_refresh_build_panel())
+		# Every other button in this panel carries a mark; one bare label in the
+		# column reads as an unfinished row rather than as a different action.
+		IconKit.on_button(sell, "resource", 22)
 		return
 
 	var target_slot: TowerSlot = battlefield.slot_at(lane, slot)
@@ -736,15 +742,11 @@ func _refresh_build_panel() -> void:
 		_set_build_detail_visible(true)
 		return
 
-	# One row, however many towers there are. A row that silently became two would
-	# be worse than a grid, so the column count is the tower count.
-	var towers: Array[TowerData] = ContentDB.base_towers()
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	for tower: TowerData in towers:
-		row.add_child(_tower_card(tower, lane, slot))
-	_build_list.add_child(row)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", BUILD_ROW_GAP)
+	for tower: TowerData in ContentDB.base_towers():
+		column.add_child(_tower_card(tower, lane, slot))
+	_build_list.add_child(column)
 	_set_build_detail_visible(true)
 
 
@@ -826,29 +828,13 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 	var affordable: bool = RunState.can_afford(cost)
 
 	var button := Button.new()
-	button.text = "%s\n%d" % [tower.display_name, cost]
-	button.custom_minimum_size = Vector2(BUILD_CARD_WIDTH, BUILD_CARD_HEIGHT)
-	button.icon = IconKit.element_sized(tower.element, 40)
-	# Icon above the label rather than beside it. Side by side, the longest name
-	# in the set ("Hoarfrost Bell") sets the width of all eight and the row runs
-	# off the screen; stacked, the element reads first and the card stays compact.
-	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	# Both alignments, not just one. `alignment` positions the text; the icon has
-	# its own axis and defaults to the left edge, which left every element mark
-	# pinned to the corner of its card while the name sat centred beneath it.
-	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# The theme's button padding is sized for a wide bar and would eat a card this
-	# narrow, so the cards carry their own.
-	for state: String in ["normal", "hover", "pressed", "disabled"]:
-		var style: StyleBox = button.get_theme_stylebox(state, "Button").duplicate()
-		style.content_margin_left = 8.0
-		style.content_margin_right = 8.0
-		style.content_margin_top = 10.0
-		style.content_margin_bottom = 8.0
-		button.add_theme_stylebox_override(state, style)
-	button.add_theme_font_size_override("font_size", 14)
+	button.text = tower.display_name
+	button.custom_minimum_size = Vector2(0.0, BUILD_ROW_HEIGHT)
+	button.icon = IconKit.element_sized(tower.element, 26)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
+
+	_attach_price(button, cost, affordable)
 	button.disabled = not affordable
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	button.pressed.connect(func() -> void:
@@ -870,6 +856,29 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 ## as an empty field. The footer's height is reserved either way, so it may as
 ## well say what it is for.
 const BUILD_HINT: String = "Point at a tower to see what it does."
+
+
+## Pins a price to the right edge of a button, clear of the frame.
+##
+## A right-anchored child rather than part of the label, so a column of them
+## lines up. Padding the string out with spaces cannot work here: the theme font
+## is proportional, so a space is not a fixed width and the prices land ragged.
+##
+## It also keeps long labels off the frame. "Upgrade to level 2 - 90 resources"
+## as one string ran the word "resources" straight into the right-hand bolt.
+func _attach_price(button: Button, cost: int, affordable: bool) -> void:
+	var price := Label.new()
+	price.text = str(cost)
+	price.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	price.offset_left = -110.0
+	price.offset_right = -BUILD_ROW_PRICE_INSET
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price.add_theme_font_size_override("font_size", 17)
+	price.add_theme_color_override("font_color",
+		Color("d8cfba") if affordable else Color(0.62, 0.44, 0.38))
+	button.add_child(price)
 
 
 func _show_build_detail(text: String) -> void:

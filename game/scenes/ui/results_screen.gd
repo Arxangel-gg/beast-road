@@ -13,9 +13,31 @@ extends CanvasLayer
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	panel.visible = false
+	IconKit.on_button(menu_button, "close", 24)
+	# The body sits on its own dark plate rather than directly on the ornate
+	# frame. Twelve lines of statistics against riveted ironwork is a lot of
+	# texture behind a lot of small type, and the plate is what makes it legible.
+	_plate_body()
 	menu_button.pressed.connect(func() -> void:
 		get_tree().paused = false
 		GameDirector.goto_menu())
+
+
+func _plate_body() -> void:
+	if body == null or body.get_parent() == null:
+		return
+	var column: Node = body.get_parent()
+	var index: int = body.get_index()
+	var plate := PanelContainer.new()
+	plate.theme_type_variation = &"InnerPanel"
+	plate.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.remove_child(body)
+	plate.add_child(body)
+	column.add_child(plate)
+	column.move_child(plate, index)
+	# Statistics are read down a column, so they need room between the lines. The
+	# default leading packs them tight enough that the eye loses its place.
+	body.add_theme_constant_override("line_spacing", 6)
 
 
 func show_results(victory: bool, summary: Dictionary) -> void:
