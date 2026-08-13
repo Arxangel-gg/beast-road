@@ -43,6 +43,8 @@ var _lean: float = 0.0
 var _spin: float = 0.0
 var _stretch_dir: Vector2 = Vector2.ZERO
 var _stretch: float = 0.0
+var _balance_wobble: float = 0.0
+var _impact_hold_left: float = 0.0
 
 ## Set while dashing so the sprite streaks along the movement direction.
 var _dash_left: float = 0.0
@@ -113,6 +115,19 @@ func squash(amount: float) -> void:
 	_squash = maxf(_squash, amount)
 
 
+## A local impact frame: only the struck silhouette holds, never the whole game.
+## This keeps rapid tower volleys juicy without turning them into global stutter.
+func impact_frame(duration: float = Balance.IMPACT_FRAME_TIME) -> void:
+	_impact_hold_left = maxf(_impact_hold_left, duration)
+
+
+## The city shell lurched under a colossal step. Units compress and counter-lean
+## for a beat as though fighting for balance.
+func beast_step(direction: Vector2, strength: float) -> void:
+	_squash = maxf(_squash, 0.055 * strength)
+	_balance_wobble = -signf(direction.x) * Balance.BEAST_STEP_WOBBLE_DEGREES * strength
+
+
 ## Death: fall over and shrink. Owner still controls the fade.
 func topple(direction: float) -> void:
 	_spin = signf(direction) * Balance.ANIM_DEATH_SPIN
@@ -123,7 +138,10 @@ func _process(delta: float) -> void:
 	if sprite == null:
 		return
 
-	_decay(delta)
+	if _impact_hold_left > 0.0:
+		_impact_hold_left = maxf(_impact_hold_left - delta, 0.0)
+	else:
+		_decay(delta)
 
 	# --- Compose. Every channel contributes; none of them assign. ---
 	var offset: Vector2 = Vector2.ZERO
@@ -164,7 +182,7 @@ func _process(delta: float) -> void:
 		# The net rotation cancels; the scale does not. Godot has no shear on
 		# Node2D, so this is the honest approximation and it reads fine in motion.
 
-	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin)
+	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin) + deg_to_rad(_balance_wobble)
 
 	sprite.position = _home + offset
 	sprite.rotation = rotation_now
@@ -177,6 +195,8 @@ func _decay(delta: float) -> void:
 	_squash = move_toward(_squash, 0.0, Balance.ANIM_SQUASH_DECAY * delta)
 	_lean = move_toward(_lean, 0.0, Balance.ANIM_LEAN_DECAY * delta)
 	_spin = move_toward(_spin, 0.0, Balance.ANIM_SPIN_DECAY * delta * 0.15)
+	_balance_wobble = move_toward(_balance_wobble, 0.0,
+		Balance.BEAST_STEP_WOBBLE_DEGREES * 7.0 * delta)
 
 	if _dash_left > 0.0:
 		_dash_left = maxf(_dash_left - delta, 0.0)

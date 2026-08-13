@@ -40,10 +40,12 @@ func _ready() -> void:
 			controls += 1
 	print("[boot] HUD present, %d child controls" % controls)
 
-	# Preparation intentionally has no active hero. Ride On must claim exactly one
-	# and activate combat without bypassing the real phase transition.
+	# Preparation remains playable: movement and torch bracing stay live while
+	# formations and projectiles wait. Exactly one battlefield hero must own the
+	# active group both before and after Ride On.
 	var heroes: int = get_tree().get_nodes_in_group(Hero.GROUP).size()
 	print("[boot] heroes during Preparation=%d" % heroes)
+	var preparation_heroes: int = heroes
 
 	var slots: Array[Node] = get_tree().get_nodes_in_group(TowerSlot.GROUP)
 	print("[boot] tower slots=%d" % slots.size())
@@ -72,10 +74,12 @@ func _ready() -> void:
 	heroes = get_tree().get_nodes_in_group(Hero.GROUP).size()
 	print("[boot] heroes after Ride On=%d phase=%d" % [heroes, int(RunState.phase)])
 
-	if controls < 20 or connected != slots.size() or not _clicked or heroes != 1 \
+	if controls < 20 or connected != slots.size() or not _clicked \
+			or preparation_heroes != 1 or heroes != 1 \
 			or RunState.phase != RunState.Phase.ROAD_BATTLE:
-		push_error("boot check failed: controls=%d wired=%d/%d panel=%s heroes=%d phase=%d"
-			% [controls, connected, slots.size(), str(_clicked), heroes, int(RunState.phase)])
+		push_error("boot check failed: controls=%d wired=%d/%d panel=%s prep_heroes=%d heroes=%d phase=%d"
+			% [controls, connected, slots.size(), str(_clicked), preparation_heroes,
+				heroes, int(RunState.phase)])
 		_bail(1)
 		return
 	_bail(0)

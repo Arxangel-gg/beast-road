@@ -20,6 +20,11 @@ signal state_changed(lit: bool)
 
 ## Which lane this belongs to, so the wave director can ask how dark it is.
 var lane: int = 0
+## Set before entering the tree. Non-casting torches still illuminate, flicker,
+## dim and relight; paired road lights do not both need to render the same
+## occluders from nearly the same distance.
+var casts_shadows: bool = true
+var shadow_on_ultra_only: bool = false
 
 const GROUP: StringName = &"torches"
 
@@ -52,7 +57,8 @@ func _build() -> void:
 	_flame.position.y = -Balance.TORCH_HEIGHT
 	add_child(_flame)
 	_flame.configure(Balance.TORCH_FLAME_SIZE, Balance.TORCH_LIGHT_RADIUS,
-		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY, true)
+		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY, casts_shadows,
+		shadow_on_ultra_only)
 
 	# The wisp that grows while the hero holds position to relight it. Reusing
 	# the flame for this would mean a half-lit torch already counted as lit.

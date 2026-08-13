@@ -14,6 +14,7 @@ extends RefCounted
 ## Cached so fifty towers share one texture rather than generating fifty.
 ## Lights that are supposed to cast shadows, so quality can restore them.
 const SHADOW_GROUP: StringName = &"shadow_lights"
+const ULTRA_SHADOW_GROUP: StringName = &"ultra_shadow_lights"
 
 static var _falloff: GradientTexture2D = null
 
@@ -55,21 +56,27 @@ static func falloff_texture() -> GradientTexture2D:
 ## would each pay for a shadow pass to produce nothing. Only the torches and the
 ## town — lights that stand apart from what they illuminate — get it.
 static func enable_shadows(light: PointLight2D,
-		cull_mask: int = Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS) -> void:
+		cull_mask: int = Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS,
+		ultra_only: bool = false) -> void:
 	if light == null or not Balance.SHADOW_CAST_ENABLED:
 		return
 	# Grouped so turning cast shadows back on mid-run can find exactly the lights
 	# that were meant to cast. Without it the only way to restore them would be to
 	# switch every light on, which lights the field from inside every sprite.
 	light.add_to_group(SHADOW_GROUP)
-	light.shadow_filter = Light2D.SHADOW_FILTER_PCF13
+	if ultra_only:
+		light.add_to_group(ULTRA_SHADOW_GROUP)
+	light.shadow_filter = Graphics.shadow_filter()
 	light.shadow_filter_smooth = Balance.SHADOW_FILTER_SMOOTH
 	# Fully transparent, because these lights are additive: a shadow here is the
 	# absence of the light, not a dark colour painted over the ground. A tinted
 	# shadow_color would stamp black wedges across the field in broad daylight.
 	light.shadow_color = Color(0, 0, 0, 0)
-	light.shadow_item_cull_mask = cull_mask
-	light.shadow_enabled = Graphics.cast_shadows()
+	# Callers declare the layers they support; the selected quality decides how
+	# many of those layers are worth rendering right now.
+	light.shadow_item_cull_mask = cull_mask & Graphics.shadow_cull_mask()
+	light.shadow_enabled = Graphics.cast_shadows() \
+		and (not ultra_only or Graphics.preset() == Graphics.PRESET_ULTRA)
 
 
 ## Creates a light and attaches it to `parent`. `radius` is in pixels;

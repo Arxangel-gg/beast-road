@@ -4,9 +4,11 @@
 
 [resource]
 script = ExtResource("1_406ta")
-acquire_line = "Glass-born Chieftain is bound to the town and put to work."
+role_noun = "Oathbound"
+acquire_verb = "Assign"
+acquire_line = "The Sunglass leader accepts a specialist oath for this journey."
 breed_id = "glassborn"
 work_multiplier = 1.2
 allowed_building_ids = Array[String](["scavenging_post"])
 id = "glassborn"
-display_name = "Glass-born Chieftain"
+display_name = "Sunglass Oathbound"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "fourfold_oath"
+display_name = "Fourfold Oath"
+description = "All four roads commit to a sustained mastery-level assault."
+lane_pattern = 3
+minimum_act = 3
+minimum_act_wave = 6
+selection_weight = 0.48
+night_weight_multiplier = 1.35
+count_scale = 0.84
+hp_scale = 1.1
+damage_scale = 1.08
+speed_scale = 1.04
+spawn_spacing_scale = 0.56
+extra_elites = 2

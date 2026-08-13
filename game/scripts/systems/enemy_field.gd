@@ -43,6 +43,11 @@ func taunting_tower_in_lane(_lane: int) -> Node2D:
 	return null
 
 
+## A siege target for enemies authored to attack structures.
+func vulnerable_tower_in_lane(_lane: int, _from: Vector2) -> Node2D:
+	return null
+
+
 func enemy_count() -> int:
 	return get_tree().get_node_count_in_group(Enemy.GROUP)
 

@@ -33,8 +33,15 @@ extends EnemyField
 func activate() -> void:
 	if camera != null:
 		camera.make_current()
+	if RunState.is_preparation():
+		CursorKit.use_build()
+	else:
+		CursorKit.use_attack()
 	if hero != null:
-		hero.set_active(RunState.is_command_combat())
+		# Preparation is safe construction time, but it is still a playable view.
+		# The hero remains the active local avatar so the player can inspect roads,
+		# brace torches and move between build sites while the formation is paused.
+		hero.set_active(RunState.is_command_combat() or RunState.is_preparation())
 
 var _slots: Array[TowerSlot] = []
 var _suspended: bool = false
@@ -58,7 +65,7 @@ const LANE_TEXTURE: String = "res://art/battlefield/lane_path.png"
 
 ## How much wider the road is than the walkable lane, so enemies travel on it
 ## rather than beside it.
-const LANE_ROAD_SCALE: float = 1.6
+const LANE_ROAD_SCALE: float = 1.72
 
 ## Road colour. Alpha and darkening both live in Balance because both of them
 ## are "can you see the lane", which is a tuning question and was answered wrong
@@ -125,10 +132,16 @@ func is_suspended() -> bool:
 
 func enter_preparation() -> void:
 	wave_director.stop()
-	entity_root.process_mode = Node.PROCESS_MODE_DISABLED
+	# EntityRoot also owns the battlefield Hero. Preparation only starts after
+	# WaveDirector has proved its queue and living-enemy count are empty, while
+	# Tower._process already gates itself on command combat. Keeping this branch
+	# live restores movement without allowing a hidden formation to advance.
+	entity_root.process_mode = Node.PROCESS_MODE_INHERIT
 	effect_root.process_mode = Node.PROCESS_MODE_DISABLED
 	if hero != null:
-		hero.set_active(false)
+		hero.set_active(true)
+	if visible:
+		CursorKit.use_build()
 
 
 func begin_battle() -> void:
@@ -140,6 +153,8 @@ func begin_battle() -> void:
 	wave_director.start()
 	if hero != null and visible:
 		hero.set_active(true)
+	if visible:
+		CursorKit.use_attack()
 
 
 ## Draw order.
@@ -257,10 +272,17 @@ func _build_torches() -> void:
 	for lane: int in Balance.LANE_COUNT:
 		var direction: Vector2 = Battlefield.lane_vector(lane)
 		var side: Vector2 = direction.orthogonal()
-		for along: float in Balance.TORCH_ALONG_STOPS:
-			for sign: float in [-1.0, 1.0]:
+		for stop_index: int in Balance.TORCH_ALONG_STOPS.size():
+			var along: float = Balance.TORCH_ALONG_STOPS[stop_index]
+			for side_index: int in 2:
+				var sign: float = -1.0 if side_index == 0 else 1.0
 				var torch := Torch.new()
 				torch.lane = lane
+				# High features one local shadow pool on each lane. Ultra promotes
+				# the other twenty torches in place, without rebuilding the field.
+				var featured: bool = stop_index == Balance.TORCH_FEATURED_SHADOW_STOP \
+					and side_index == lane % 2
+				torch.shadow_on_ultra_only = not featured
 				torch.position = direction * along + side * Balance.TORCH_LANE_OFFSET * sign
 				entity_root.add_child(torch)
 
@@ -347,6 +369,25 @@ func taunting_tower_in_lane(lane: int) -> Node2D:
 		if tower != null and tower.data != null and tower.data.taunts:
 			return tower
 	return null
+
+
+## Nearest live structure on this road. A stable nearest-target rule makes
+## siege enemies legible: they attack what they visibly reach instead of
+## changing targets because a farther tower happens to be more damaged.
+func vulnerable_tower_in_lane(lane: int, from: Vector2) -> Node2D:
+	var nearest: Tower = null
+	var nearest_squared: float = INF
+	for built_slot: TowerSlot in _slots:
+		if built_slot.lane != lane or built_slot.is_empty():
+			continue
+		var built: Tower = built_slot.tower()
+		if built == null or not built.is_vulnerable():
+			continue
+		var distance_squared: float = built.global_position.distance_squared_to(from)
+		if distance_squared < nearest_squared:
+			nearest = built
+			nearest_squared = distance_squared
+	return nearest
 
 
 func slot_at(lane: int, slot: int) -> TowerSlot:
@@ -520,6 +561,22 @@ func try_repair_town() -> String:
 	return ""
 
 
+func try_repair_tower(lane: int, slot: int) -> String:
+	if not RunState.can_build_now():
+		return "Tower repairs are prepared between road battles."
+	var built_slot: TowerSlot = slot_at(lane, slot)
+	var built: Tower = built_slot.tower() if built_slot != null else null
+	if built == null:
+		return "Nothing built there."
+	if not built.needs_repair():
+		return "That tower is already whole."
+	if not RunState.can_afford_cost({RunState.WOOD: Balance.TOWER_REPAIR_WOOD_COST}):
+		return "Needs %d Wood." % Balance.TOWER_REPAIR_WOOD_COST
+	RunState.spend_cost({RunState.WOOD: Balance.TOWER_REPAIR_WOOD_COST})
+	built.repair(Balance.TOWER_REPAIR_FRACTION)
+	return ""
+
+
 # --- Setup ------------------------------------------------------------------
 
 ## The floor is the act's terrain, tiled. Roads are *not* part of it — a lane is
@@ -541,6 +598,7 @@ func _setup_ground() -> void:
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
+	ground.material = TerrainBlend.material()
 
 	# The region is in *texture* space and the sprite is scaled up afterwards, so
 	# one repeat covers GROUND_TILE_WORLD_SIZE of world rather than its 512

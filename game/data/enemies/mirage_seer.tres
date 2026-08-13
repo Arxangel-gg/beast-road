@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "mirage_seer"
+display_name = "Mirage Seer"
+description = "An elite ranged support orbiting a dangerous mirrored halo."
+category = 1
+role = 3
+max_hp = 132.0
+contact_damage = 14.0
+move_speed = 52.0
+body_radius = 29.0
+knockback_resistance = 0.28
+aura_radius = 245.0
+aura_strength = 0.22
+raid_charge_value = 4.0
+resource_value = 6

@@ -15,6 +15,8 @@ var terrains: Dictionary = {}
 var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
+var discipline_nodes: Dictionary = {}
+var factions: Dictionary = {}
 
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
@@ -30,6 +32,8 @@ func _ready() -> void:
 	buildings = _load_dir("res://data/buildings")
 	captives = _load_dir("res://data/captives")
 	wave_archetypes = _load_dir("res://data/waves")
+	discipline_nodes = _load_dir("res://data/disciplines")
+	factions = _load_dir("res://data/factions")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -59,6 +63,29 @@ func captive(id: String) -> CaptiveData:
 
 func wave_archetype(id: String) -> WaveArchetypeData:
 	return wave_archetypes.get(id, null) as WaveArchetypeData
+
+
+func discipline_node(id: String) -> DisciplineNodeData:
+	return discipline_nodes.get(id, null) as DisciplineNodeData
+
+
+func faction(id: String) -> FactionData:
+	return factions.get(id, null) as FactionData
+
+
+func discipline_nodes_sorted() -> Array[DisciplineNodeData]:
+	var out: Array[DisciplineNodeData] = []
+	for value: Variant in discipline_nodes.values():
+		var node := value as DisciplineNodeData
+		if node != null:
+			out.append(node)
+	out.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
+		if a.mansion_tier != b.mansion_tier:
+			return a.mansion_tier < b.mansion_tier
+		if a.discipline != b.discipline:
+			return a.discipline < b.discipline
+		return a.id < b.id)
+	return out
 
 
 func available_wave_archetypes(act: int, act_wave: int) -> Array[WaveArchetypeData]:

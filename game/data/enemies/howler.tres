@@ -6,6 +6,7 @@
 script = ExtResource("1_yfb0w")
 category = 1
 role = 3
+sprite_id = "pack_howler"
 max_hp = 120.0
 contact_damage = 9.0
 body_radius = 30.0
@@ -15,5 +16,5 @@ resource_value = 6
 aura_radius = 210.0
 aura_strength = 0.22
 id = "howler"
-display_name = "Howler"
-description = "Strengthens everything walking beside it."
+display_name = "Pack Howler"
+description = "A priority caller whose horn strengthens everything beside it."

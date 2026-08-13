@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+[resource]
+script = ExtResource("1_faction")
+id = "sunglass_waste"
+display_name = "The Sunglass Waste"
+description = "Veiled Scale-Riders cross fused sand behind mirrors and tunneling scouts."
+act = 2
+terrain_id = "saltglass"
+regular_enemy_ids = Array[String](["glassborn", "scale_rider", "glassguard", "burrower"])
+elite_enemy_ids = Array[String](["mirage_seer", "siege_lizard"])
+visual_identity = "Pale sand, turquoise glass, bronze scale, heat shimmer and long shadows."
+mechanical_identity = "Speed, ranged support, burrowing and tower-focused siege."

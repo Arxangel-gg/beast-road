@@ -138,6 +138,18 @@ func _test_act_curves() -> void:
 	_check(act3_size > act2_size * 2, "Iron Steppe must deliver the largest packs")
 	_check(act3_hp > act2_hp * 1.8, "Act 3 must demand mastery upgrades")
 	_check(director._speed_scale(0) > 1.15, "late-run enemies must move faster")
+
+	# Crossing into Saltglass should reveal new tactics, not erase the player's
+	# progress with a seventy-percent stat jump on the very first formation.
+	DayNight._apply(0.18)
+	_set_progress(1, 790.0, 18, "ashfen", 18)
+	var act1_exit_hp: float = director._hp_scale(0)
+	_set_progress(2, 910.0, 19, "saltglass", 1)
+	var act2_entry_hp: float = director._hp_scale(0)
+	_check(act2_entry_hp <= act1_exit_hp * 1.40,
+		"Act 2 entry must rise smoothly instead of becoming an early stat wall")
+	_set_progress(3, 2550.0, 88, "steppe", 22)
+	DayNight._apply(0.74)
 	print("[balance] Act2 per-lane=%d hp=%.2f damage=%.2f | Act3 per-lane=%d hp=%.2f" \
 		% [act2_size, act2_hp, act2_damage, act3_size, act3_hp])
 
@@ -222,10 +234,33 @@ func _test_enemy_roles() -> void:
 		"Howler must own its aura and ranged threat")
 	_check(ContentDB.enemy("burrower").spawn_distance_scale < 0.8,
 		"Burrower must emerge inside the outer defence")
+	var regular_ids: Dictionary = {}
+	var elite_ids: Dictionary = {}
+	for terrain: TerrainData in [ContentDB.terrain("ashfen"),
+			ContentDB.terrain("saltglass"), ContentDB.terrain("steppe")]:
+		_check(terrain != null and terrain.enemy_ids.size() == 4,
+			"every region must ship four regular enemy roles")
+		_check(terrain != null and terrain.elite_ids.size() == 2,
+			"every region must ship two regional elites")
+		if terrain == null:
+			continue
+		for id: String in terrain.enemy_ids:
+			var enemy: EnemyData = ContentDB.enemy(id)
+			regular_ids[id] = true
+			_check(enemy != null and ResourceLoader.exists(enemy.get_sprite_path()),
+				"regional enemy '%s' needs data and production art" % id)
+		for id: String in terrain.elite_ids:
+			var elite: EnemyData = ContentDB.enemy(id)
+			elite_ids[id] = true
+			_check(elite != null and elite.category == EnemyData.Category.ELITE \
+					and ResourceLoader.exists(elite.get_sprite_path()),
+				"regional elite '%s' needs elite data and production art" % id)
+	_check(regular_ids.size() == 12 and elite_ids.size() == 6,
+		"launch roster must contain twelve unique regulars and six unique elites")
 
 
 func _test_wave_archetypes() -> void:
-	_check(ContentDB.wave_archetypes.size() >= 6,
+	_check(ContentDB.wave_archetypes.size() >= 10,
 		"the battlefield must expose a full tactical wave vocabulary")
 	for value: Variant in ContentDB.wave_archetypes.values():
 		var archetype := value as WaveArchetypeData
@@ -239,10 +274,27 @@ func _test_wave_archetypes() -> void:
 	var siege: WaveArchetypeData = ContentDB.wave_archetype("siege_column")
 	var lanes: Array[int] = director._pick_archetype_lanes(siege, 7)
 	_check(lanes.size() == 1, "siege columns must concentrate on one lane")
+	RunState.terrain_id = "saltglass"
+	_check(director._signature_enemy(siege).id == "siege_lizard",
+		"signature roles must resolve to the active regional faction")
 	var pincer: WaveArchetypeData = ContentDB.wave_archetype("burrower_pincer")
 	lanes = director._pick_archetype_lanes(pincer, 7)
 	_check(lanes.size() == 2 and abs(lanes[0] - lanes[1]) == 2,
 		"burrower pincers must split the player's attention across opposite roads")
+	var false_front: WaveArchetypeData = ContentDB.wave_archetype("false_front")
+	lanes = director._pick_archetype_lanes(false_front, 7)
+	_check(lanes.size() == 2 and (abs(lanes[0] - lanes[1]) == 1 \
+			or abs(lanes[0] - lanes[1]) == Balance.LANE_COUNT - 1),
+		"false fronts must reveal on an adjacent road")
+	director._spawn_queue.clear()
+	director._build_delayed_surge(false_front, lanes, 5, 1.0, 1.0, 1.0, 1.0)
+	var delay_entries: int = 0
+	for entry: Dictionary in director._spawn_queue:
+		if entry.has("delay"):
+			delay_entries += 1
+	_check(director._spawn_queue.size() == 11 and delay_entries == 1,
+		"false front must preserve its body budget around one authored reveal hold")
+	director._spawn_queue.clear()
 
 
 func _test_target_priorities() -> void:

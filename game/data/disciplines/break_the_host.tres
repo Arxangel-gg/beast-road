@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 2
+role = 5
+mansion_tier = 3
+food_cost = 75
+effect_id = "elite_extend_ultimate"
+effect_value = 1.5
+id = "break_the_host"
+display_name = "Break the Host"
+description = "Elite kills extend Beast's Breath within a hard cap."

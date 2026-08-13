@@ -34,6 +34,7 @@ Godot_v*-stable_win64.exe/
 # scratch space and would otherwise double the repo size with source images.
 # ------------------------------------------------------------------------------
 art_inbox/
+game/.automated_checks/
 
 # ------------------------------------------------------------------------------
 # Builds and exports

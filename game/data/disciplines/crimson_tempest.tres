@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 0
+role = 4
+mansion_tier = 3
+food_cost = 80
+spell_id = "cinder_nova"
+effect_id = "tempest_heal_cap"
+effect_value = 30.0
+id = "crimson_tempest"
+display_name = "Crimson Tempest"
+description = "Rapid area strikes return health up to a hard cap."

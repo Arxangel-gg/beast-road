@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_vu077")
 role = 1
+sprite_id = "veiled_skirmisher"
 max_hp = 18.0
 contact_damage = 7.0
 move_speed = 105.0
 id = "glassborn"
-display_name = "Glass-born"
-description = "Fast, brittle, and it hears you coming."
+display_name = "Veiled Skirmisher"
+description = "Fast and brittle; a clean test of runner targeting."

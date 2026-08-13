@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+[resource]
+script = ExtResource("1_faction")
+id = "white_teeth"
+display_name = "The White Teeth"
+description = "Rimebound clans drive black iron and living avalanches toward Yuri."
+act = 3
+terrain_id = "steppe"
+regular_enemy_ids = Array[String](["steppehorde", "ice_hauler", "snowhide_brute", "storm_caller"])
+elite_enemy_ids = Array[String](["warden", "white_maw_giant"])
+visual_identity = "Blue ice, black iron, pale fur, red warning cloth and hard moonlight."
+mechanical_identity = "Armor, tower disruption, coordinated heavy pushes and storm support."

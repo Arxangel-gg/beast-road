@@ -140,6 +140,10 @@ func _plant_step() -> void:
 	_on_shake_requested(Balance.BEAST_STEP_SHAKE * _gait_strength,
 		Balance.BEAST_STEP_SHAKE_TIME)
 	EventBus.footfall.emit(global_position, Balance.BEAST_STEP_MASS * _gait_strength)
+	var side: float = -1.0 if _gait_step % 2 == 0 else 1.0
+	var impulse := Vector2(side * 0.58, 1.0).normalized() \
+		* Balance.BEAST_STEP_WORLD_IMPULSE
+	EventBus.beast_step_landed.emit(impulse, _gait_strength)
 
 
 ## The strongest request wins rather than the newest, so a big hit is never

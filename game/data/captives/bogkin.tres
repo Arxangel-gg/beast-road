@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_gkfus")
-acquire_line = "Bog-kin Chieftain is bound to the town and put to work."
+role_noun = "Oathbound"
+acquire_verb = "Assign"
+acquire_line = "The Coal-Eye leader swears a road-oath to Yuri for this journey."
 breed_id = "bogkin"
 allowed_building_ids = Array[String](["scavenging_post"])
 id = "bogkin"
-display_name = "Bog-kin Chieftain"
+display_name = "Coal-Eye Oathbound"

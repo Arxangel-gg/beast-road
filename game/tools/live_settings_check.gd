@@ -27,19 +27,34 @@ func _ready() -> void:
 
 	for problem: String in _failures:
 		push_error(problem)
-	print("[live] %d of 7 live/persistence checks pass" % (7 - _failures.size()))
+	print("[live] %d of 11 live/persistence checks pass" % (11 - _failures.size()))
 	_bail(1 if not _failures.is_empty() else 0)
 
 
 func _check_graphics() -> void:
+	Graphics.apply_preset(Graphics.PRESET_ULTRA)
+	await get_tree().process_frame
+	var ultra_foliage: int = _foliage_clumps()
+	var ultra_shadow_lights: int = _shadow_lights_enabled()
 	Graphics.apply_preset(Graphics.PRESET_HIGH)
 	await get_tree().process_frame
 	var shadows_before: int = _count_visible(ShadowKit.GROUP)
 	var foliage_before: int = _foliage_clumps()
 	var clouds_before: int = _count_class("CloudShadows")
 	var casters_before: int = _count_visible(ShadowKit.CASTER_GROUP)
-	print("[live] HIGH  shadows=%d foliage=%d clouds=%d casters=%d"
-		% [shadows_before, foliage_before, clouds_before, casters_before])
+	var high_shadow_lights: int = _shadow_lights_enabled()
+	print("[live] HIGH  shadows=%d foliage=%d clouds=%d casters=%d shadow_lights=%d"
+		% [shadows_before, foliage_before, clouds_before, casters_before, high_shadow_lights])
+	if ultra_foliage <= foliage_before:
+		_failures.append("Ultra foliage did not exceed High (%d -> %d)"
+			% [foliage_before, ultra_foliage])
+	if Graphics.PRESETS.get(Graphics.PRESET_ULTRA, {}).is_empty():
+		_failures.append("Ultra graphics preset is not registered")
+	if ultra_shadow_lights <= high_shadow_lights:
+		_failures.append("Ultra did not promote extra torch shadows (%d -> %d)"
+			% [high_shadow_lights, ultra_shadow_lights])
+	if high_shadow_lights <= 0:
+		_failures.append("High has no featured cast-shadow lights")
 
 	# What a player does: change it while the game is in front of them.
 	Graphics.apply_preset(Graphics.PRESET_LOW)
@@ -50,8 +65,9 @@ func _check_graphics() -> void:
 	var foliage_after: int = _foliage_clumps()
 	var clouds_after: int = _count_class("CloudShadows")
 	var casters_after: int = _count_visible(ShadowKit.CASTER_GROUP)
-	print("[live] LOW   shadows=%d foliage=%d clouds=%d casters=%d"
-		% [shadows_after, foliage_after, clouds_after, casters_after])
+	var low_shadow_lights: int = _shadow_lights_enabled()
+	print("[live] LOW   shadows=%d foliage=%d clouds=%d casters=%d shadow_lights=%d"
+		% [shadows_after, foliage_after, clouds_after, casters_after, low_shadow_lights])
 
 	if shadows_after >= shadows_before and shadows_before > 0:
 		_failures.append("contact shadows did not drop on Low (%d -> %d)"
@@ -64,6 +80,8 @@ func _check_graphics() -> void:
 	if casters_after >= casters_before and casters_before > 0:
 		_failures.append("shadow casters did not clear on Low (%d -> %d)"
 			% [casters_before, casters_after])
+	if low_shadow_lights > 0:
+		_failures.append("Low left %d cast-shadow lights enabled" % low_shadow_lights)
 
 
 func _check_colourblind() -> void:
@@ -124,6 +142,15 @@ func _foliage_clumps() -> int:
 		if node is Foliage:
 			return node.get_child_count()
 	return 0
+
+
+func _shadow_lights_enabled() -> int:
+	var total: int = 0
+	for node: Node in get_tree().get_nodes_in_group(LightKit.SHADOW_GROUP):
+		var light := node as PointLight2D
+		if light != null and light.shadow_enabled:
+			total += 1
+	return total
 
 
 func _bail(code: int) -> void:

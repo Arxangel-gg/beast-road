@@ -4,9 +4,11 @@
 
 [resource]
 script = ExtResource("1_m0bgn")
-acquire_line = "Steppe Chieftain is bound to the town and put to work."
+role_noun = "Oathbound"
+acquire_verb = "Assign"
+acquire_line = "The Rimebound leader joins Yuri under a one-journey oath."
 breed_id = "steppehorde"
 work_multiplier = 1.4
 allowed_building_ids = Array[String](["scavenging_post"])
 id = "steppehorde"
-display_name = "Steppe Chieftain"
+display_name = "Rimebound Oathbound"

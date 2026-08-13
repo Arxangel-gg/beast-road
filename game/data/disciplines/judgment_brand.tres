@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 1
+role = 0
+mansion_tier = 2
+food_cost = 55
+effect_id = "tower_damage_brand"
+effect_value = 0.18
+id = "judgment_brand"
+display_name = "Judgment Brand"
+description = "Mark an elite for amplified tower damage."

@@ -60,8 +60,9 @@ enum TargetPriority {
 ## Bulwark-style: pulls enemies to it and blocks the lane.
 @export var taunts: bool = false
 
-## Structure HP for towers that can be attacked. 0 means indestructible.
-@export var max_hp: float = 0.0
+## Structure HP. All towers are vulnerable; dedicated blockers override the
+## standard value with their heavier authored durability.
+@export var max_hp: float = Balance.TOWER_BASE_MAX_HP
 
 ## Leaves a damaging zone on the ground where it hits.
 @export var ground_zone_dps: float = 0.0

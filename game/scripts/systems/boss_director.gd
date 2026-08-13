@@ -158,13 +158,10 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 
 ## The boss reward package, all three parts, every act (GDD §9).
 func _grant_rewards(act: int) -> void:
-	# 1. Hero ascension — a stat tier, and a spell slot in acts 1 and 2.
+	# 1. Hero ascension — a stat tier. Power and Ultimate discipline slots read
+	# the act gate directly; the Mansion chooses what occupies them.
 	RunState.hero_ascension += 1
-	if act < Balance.ACT_COUNT and RunState.equipped_spells.size() < Balance.HERO_MAX_SPELL_SLOTS:
-		var spare: String = _unequipped_spell()
-		if not spare.is_empty():
-			RunState.equipped_spells.append(spare)
-			EventBus.spells_changed.emit()
+	RunState._sync_discipline_spells()
 
 	# 2. Boss core — permanent, always active, never socketed.
 	var core_id: String = "core_" + _expected_boss_id(act)

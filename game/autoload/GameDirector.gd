@@ -26,6 +26,14 @@ var current_scope: Scope = Scope.BATTLEFIELD
 var run_active: bool = false
 
 
+func _ready() -> void:
+	CursorKit.apply()
+
+
+func _exit_tree() -> void:
+	CursorKit.clear()
+
+
 func goto_splash() -> void:
 	_change(SPLASH_SCENE)
 
@@ -34,6 +42,7 @@ func goto_menu() -> void:
 	run_active = false
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+	CursorKit.use_default()
 	_change(MENU_SCENE)
 
 

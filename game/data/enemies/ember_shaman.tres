@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "ember_shaman"
+display_name = "Ember Shaman"
+description = "A ranged support whose censer accelerates nearby raiders."
+role = 3
+max_hp = 44.0
+contact_damage = 8.0
+move_speed = 54.0
+body_radius = 25.0
+aura_radius = 185.0
+aura_strength = 0.14
+resource_value = 3

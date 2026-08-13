@@ -144,6 +144,24 @@ static func cast_shadows() -> bool:
 	return bool(_value(KEY_CAST_SHADOWS)) and Balance.SHADOW_CAST_ENABLED
 
 
+## High uses a crisp five-tap penumbra: it suits the harsh road lighting and is
+## the 60 FPS authored target. Ultra spends the extra GPU budget on the softer
+## thirteen-tap filter, making that tier visibly richer rather than just denser.
+static func shadow_filter() -> Light2D.ShadowFilter:
+	return Light2D.SHADOW_FILTER_PCF13 if preset() == PRESET_ULTRA \
+		else Light2D.SHADOW_FILTER_PCF5
+
+
+## Moving silhouettes multiply every torch shadow pass. High retains tower and
+## town occlusion plus the soft grounding pool under every unit; Ultra opts into
+## casting the hero/enemies themselves for the fully cinematic look.
+static func shadow_cull_mask() -> int:
+	var mask: int = Balance.SHADOW_LAYER_SCENERY
+	if preset() == PRESET_ULTRA:
+		mask |= Balance.SHADOW_LAYER_UNITS
+	return mask
+
+
 ## The soft pool under every unit. Cheaper than cast shadows, and worth more:
 ## without it sprites read as stickers sliding over the floor.
 static func contact_shadows() -> bool:
@@ -235,15 +253,15 @@ static func apply_to_scene() -> void:
 ## Lights, particles, clouds and foliage, in one pass.
 static func _walk(from: Node, show_casters: bool) -> void:
 	var light := from as PointLight2D
-	if light != null and light.shadow_enabled != show_casters:
+	if light != null and from.is_in_group(LightKit.SHADOW_GROUP):
+		light.shadow_filter = shadow_filter()
+		light.shadow_item_cull_mask = shadow_cull_mask()
 		# Only touch lights that were set up to cast in the first place; the hero
 		# and tower lights never do, and switching them on would light the field
 		# from inside every sprite.
-		if show_casters:
-			if from.is_in_group(LightKit.SHADOW_GROUP):
-				light.shadow_enabled = true
-		else:
-			light.shadow_enabled = false
+		var tier_allows: bool = not from.is_in_group(LightKit.ULTRA_SHADOW_GROUP) \
+			or preset() == PRESET_ULTRA
+		light.shadow_enabled = show_casters and tier_allows
 
 	var clouds := from as CloudShadows
 	if clouds != null:

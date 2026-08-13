@@ -21,6 +21,18 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_run.battlefield.wave_director.stop()
 
+	# War Horn is once per command battle, makes real progress, and cannot be
+	# double-triggered while active.
+	RunState.raid_charge = 0.0
+	var horn_uses_before: int = RunState.war_horn_uses
+	_check(_run.war_horn.blow(), "War Horn must activate in a live road battle")
+	_check(RunState.horn_active and RunState.war_horn_uses == horn_uses_before + 1,
+		"War Horn activation must update its run state and telemetry")
+	_check(not _run.war_horn.blow(), "War Horn must not trigger twice in one battle")
+	EventBus.enemy_died.emit("test", Vector2.ZERO)
+	_check(RunState.raid_charge > Balance.RAID_CHARGE_PER_KILL,
+		"War Horn kills must accelerate raid charge")
+
 	var data: EnemyData = ContentDB.enemy("bogkin")
 	var enemy: Enemy = _run.battlefield.spawn_enemy(data, 0, 1.0)
 	await get_tree().process_frame
@@ -32,6 +44,15 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(RunState.phase == RunState.Phase.RAID and _run.battlefield.is_suspended(),
 		"entering a raid must freeze the battlefield and claim the Raid phase")
+	_check(Balance.RAID_EXTRACTION_WINDOWS == [25.0, 50.0],
+		"raid must expose the authored 25s and 50s extraction windows")
+	_check(Balance.LEADER_RESOLUTIONS.size() == 3,
+		"full raid rewards must expose oath, ransom and standard resolutions")
+	_run.raid._elapsed = 25.0
+	_run.raid._tick_windows(0.0)
+	_check(_run.raid.window_is_open(), "first raid extraction window must open at 25s")
+	_run.raid._window_open = false
+	_run.raid._next_window = 1
 	for _frame: int in 12:
 		await get_tree().physics_frame
 	_check(enemy.global_position.is_equal_approx(enemy_at),
@@ -51,8 +72,22 @@ func _ready() -> void:
 			and is_equal_approx(_run.battlefield.hero.health.ratio(), Balance.HERO_WOUND_REVIVE_HP),
 		"raid ejection must return the battlefield hero alive at 50 percent HP")
 
+	# Regression: a dead raid hero is a reusable scene instance. Refill the meter
+	# and enter again in the same run; begin() must revive/synchronise that hero,
+	# clear its old enemies, and claim the Raid phase a second time.
+	RunState.raid_charge = 1.0
+	EventBus.raid_charge_changed.emit(1.0)
+	_run._on_raid_requested()
+	await get_tree().process_frame
+	_check(RunState.phase == RunState.Phase.RAID and _run.raid.hero.is_alive(),
+		"a raid failure must not permanently lock or kill future raid attempts")
+	_run.raid._finish({"partial": true, "died": false, "kills": 0})
+	await get_tree().process_frame
+	_check(RunState.phase == RunState.Phase.ROAD_BATTLE and not _run.battlefield.is_suspended(),
+		"a second raid must eject cleanly back to the road")
+
 	if _failures.is_empty():
-		print("[raid-suspend] PASS — exact freeze and wounded ejection")
+		print("[raid-suspend] PASS — exact freeze, wounded ejection and retry")
 	else:
 		for failure: String in _failures:
 			push_error("[raid-suspend] " + failure)

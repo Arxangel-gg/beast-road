@@ -95,6 +95,14 @@ func clear_cooldowns() -> void:
 	_beam_spell = null
 
 
+## Preparation keeps locomotion live but cancels combat commitments. In
+## particular, a beam begun on the final enemy may not root the hero for the
+## first seconds of the construction window.
+func cancel_channel() -> void:
+	_beam_left = 0.0
+	_beam_spell = null
+
+
 func is_ready(slot: int) -> bool:
 	return slot < _cooldowns.size() and _cooldowns[slot] <= 0.0 and spell_in_slot(slot) != null
 

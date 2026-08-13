@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "snowhide_brute"
+display_name = "Snowhide Brute"
+description = "A horned slab of fur and iron that anchors the road."
+role = 2
+max_hp = 128.0
+contact_damage = 15.0
+move_speed = 46.0
+body_radius = 34.0
+knockback_resistance = 0.82
+resource_value = 4

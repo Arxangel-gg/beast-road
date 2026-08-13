@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "siege_lizard"
+display_name = "Siege Lizard"
+description = "A living bombard that seeks out and crushes tower lines."
+category = 1
+role = 2
+max_hp = 250.0
+contact_damage = 19.0
+move_speed = 38.0
+body_radius = 38.0
+knockback_resistance = 0.88
+targets_towers = true
+raid_charge_value = 5.0
+resource_value = 7

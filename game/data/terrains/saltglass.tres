@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1_vp5e3")
 breed_id = "glassborn"
+enemy_ids = Array[String](["glassborn", "scale_rider", "glassguard", "burrower"])
+elite_ids = Array[String](["mirage_seer", "siege_lizard"])
 act = 2
 favoured_element = 3
 favoured_element_bonus = 0.2

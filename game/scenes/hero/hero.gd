@@ -44,6 +44,8 @@ var _lunge_decay: float = 0.0
 var _respawn_left: float = 0.0
 var _respawn_fraction: float = Balance.HERO_WOUND_REVIVE_HP
 var _flash_left: float = 0.0
+var _beast_impulse: Vector2 = Vector2.ZERO
+var _beast_stun_left: float = 0.0
 
 ## Ash Veil's movement bonus while it lasts.
 var _veil_speed_bonus: float = 0.0
@@ -90,6 +92,7 @@ func _ready() -> void:
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
 	EventBus.construction_completed.connect(_on_construction_completed)
+	EventBus.beast_step_landed.connect(_on_beast_step)
 
 	_apply_permanent_bonuses()
 
@@ -103,17 +106,25 @@ func _physics_process(delta: float) -> void:
 
 	_aim = _compute_aim()
 
-	if Input.is_action_just_pressed(&"attack"):
+	var combat_input: bool = RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
+	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"attack"):
 		attack.request()
-	if Input.is_action_just_pressed(&"dash"):
+	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"dash"):
 		_try_dash()
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
-		if Input.is_action_just_pressed(&"spell_%d" % (slot + 1)):
+		if combat_input and _beast_stun_left <= 0.0 \
+				and Input.is_action_just_pressed(&"spell_%d" % (slot + 1)):
 			spells.try_cast(slot, _aim, global_position)
 
 	attack.damage_multiplier = damage_multiplier()
-	attack.tick(delta, _aim, global_position)
-	spells.tick(delta, _aim, global_position)
+	if combat_input:
+		attack.tick(delta, _aim, global_position)
+		spells.tick(delta, _aim, global_position)
+	else:
+		# Preparation is playable traversal and construction time, not ten free
+		# seconds of cooldown recovery or a lingering attack/channel state.
+		attack.cancel()
+		spells.cancel_channel()
 
 	var move_input: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
 	if _dash_left > 0.0:
@@ -122,7 +133,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 	else:
 		velocity = move_input * move_speed() * attack.move_scale()
-	velocity += _lunge_velocity
+	velocity += _lunge_velocity + _beast_impulse
 
 	move_and_slide()
 
@@ -201,7 +212,17 @@ func move_speed() -> float:
 
 ## Damage multiplier the attack chain applies to every swing.
 func damage_multiplier() -> float:
-	return Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var multiplier: float = Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0)
+	if attack_node != null:
+		match attack_node.effect_id:
+			"bleed_finisher":
+				multiplier *= 1.08
+			"defense_radiant_finisher":
+				multiplier *= 1.05
+			"crowd_finisher_force":
+				multiplier *= 1.04
+	return multiplier
 
 
 ## Max HP after the Sanctum, relics and boss ascensions.
@@ -262,6 +283,8 @@ func _tick_timers(delta: float) -> void:
 	_dash_left = maxf(_dash_left - delta, 0.0)
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
+	_beast_stun_left = maxf(_beast_stun_left - delta, 0.0)
+	_beast_impulse = _beast_impulse.move_toward(Vector2.ZERO, 260.0 * delta)
 	if _veil_left > 0.0:
 		_veil_left = maxf(_veil_left - delta, 0.0)
 		if _veil_left <= 0.0:
@@ -304,9 +327,18 @@ func _on_lunge_requested(direction: Vector2, distance: float) -> void:
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	animator.impact_frame()
 	animator.recoil(from, global_position, 1.0)
 	EventBus.hero_damaged.emit(amount, from)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
+
+
+func _on_beast_step(impulse: Vector2, strength: float) -> void:
+	if field is RaidArena or health.is_dead:
+		return
+	_beast_impulse += impulse * clampf(strength, 0.0, 1.2)
+	_beast_stun_left = maxf(_beast_stun_left, Balance.BEAST_STEP_STUN * strength)
+	animator.beast_step(impulse, strength)
 
 
 func _on_health_changed(current: float, maximum: float) -> void:

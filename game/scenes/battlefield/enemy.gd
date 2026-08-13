@@ -106,6 +106,7 @@ func _ready() -> void:
 		Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
 
 	_lane_offset = randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
+	EventBus.beast_step_landed.connect(_on_beast_step)
 	EventBus.enemy_spawned.emit(data.id, global_position)
 
 
@@ -212,6 +213,10 @@ func _pick_target() -> Node2D:
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
 	if taunt != null and is_instance_valid(taunt):
 		return taunt
+	if data.targets_towers:
+		var structure: Node2D = _field.vulnerable_tower_in_lane(lane, global_position)
+		if structure != null and is_instance_valid(structure):
+			return structure
 	var hero: Node2D = _field.hero_node()
 	var town: Node2D = _field.town_node()
 	if hero != null and is_instance_valid(hero) and _field.hero_is_alive():
@@ -299,12 +304,23 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 		incoming /= Balance.WEAKENED_STAT_SCALE
 	if not health.take_damage(incoming, from):
 		return false
+	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
+		if active_hero else null
+	if attack_node != null and attack_node.effect_id == "bleed_finisher":
+		# The finisher is the only hit whose authored base damage reaches the last
+		# chain value. Apply a bounded three-second bleed; it uses the shared status
+		# path so death rewards and hit accounting remain identical.
+		var finisher_damage: float = Balance.HERO_ATTACK_DAMAGE[Balance.HERO_CHAIN_LENGTH - 1] \
+			* Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+		if amount >= finisher_damage * 0.9:
+			apply_burn(amount * attack_node.effect_value, 3.0)
 	_hitstun_left = Balance.ENEMY_HITSTUN
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
 	Vfx.number(global_position, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
 	Vfx.spark(global_position, Color("ffcf9a"), 4, (global_position - from).normalized(), 170.0)
 	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
+	animator.impact_frame()
 	var away: Vector2 = global_position - from
 	away = away.normalized() if away.length() > 0.001 else Vector2.RIGHT
 	_knockback = away * knockback * (1.0 - data.knockback_resistance)
@@ -318,6 +334,15 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 		EventBus.hero_enemy_hit.emit(data.id, lane, priority,
 			was_telegraphing and knockback > 0.0, global_position)
 	return true
+
+
+func _on_beast_step(impulse: Vector2, strength: float) -> void:
+	if _state == State.DYING or _field is RaidArena:
+		return
+	var resistance: float = data.knockback_resistance if data != null else 0.0
+	_knockback += impulse * strength * (1.0 - resistance) * 0.72
+	_hitstun_left = maxf(_hitstun_left, Balance.BEAST_STEP_STUN * strength)
+	animator.beast_step(impulse, strength / sqrt(maxf(_mass_for_category(), 1.0)))
 
 
 ## Chain Hook drags things in. Expressed as its own operation rather than as
@@ -418,11 +443,16 @@ func _mass_for_category() -> float:
 
 func _apply_category_scale() -> void:
 	var visual_scale: float = Balance.ENEMY_SPRITE_SCALE
+	var reference_height: float = 96.0
 	match data.category:
 		EnemyData.Category.ELITE:
 			visual_scale = Balance.ELITE_SPRITE_SCALE
+			reference_height = 128.0
 		EnemyData.Category.BOSS:
 			visual_scale = Balance.BOSS_SPRITE_SCALE
+			reference_height = float(sprite.texture.get_height()) if sprite.texture != null else 384.0
+	if sprite.texture != null:
+		visual_scale *= reference_height / maxf(float(sprite.texture.get_height()), 1.0)
 	sprite.scale = Vector2.ONE * visual_scale
 	if health_bar != null and sprite.texture != null:
 		health_bar.position.y = -sprite.texture.get_height() * visual_scale * 0.46

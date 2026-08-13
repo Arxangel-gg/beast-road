@@ -108,7 +108,7 @@ func preview_text() -> String:
 		if _preview_archetype != null:
 			text += "  ·  " + _preview_archetype.description
 	if tower_tier >= 3 and _preview_archetype != null:
-		var signature: EnemyData = ContentDB.enemy(_preview_archetype.signature_enemy_id)
+		var signature: EnemyData = _signature_enemy(_preview_archetype)
 		if signature != null:
 			text += "  ·  %s leaders" % signature.display_name
 		elif _act_wave + 1 >= 3:
@@ -152,16 +152,21 @@ func _begin_wave() -> void:
 	var spacing_multiplier: float = maxf(
 		archetype.spawn_spacing_scale if archetype != null else 1.0,
 		Balance.WAVE_ARCHETYPE_MIN_SPACING_SCALE)
+	var signature: EnemyData = _signature_enemy(archetype)
 
-	for lane: int in lanes:
-		for _i: int in per_lane:
-			_spawn_queue.append(_spawn_entry(lane, false, "", hp_multiplier,
-				damage_multiplier, speed_multiplier, spacing_multiplier))
-		if archetype != null:
-			for _i: int in archetype.signature_count_per_lane:
-				_spawn_queue.append(_spawn_entry(lane, false,
-					archetype.signature_enemy_id, hp_multiplier, damage_multiplier,
-					speed_multiplier, spacing_multiplier))
+	if archetype != null and archetype.delayed_adjacent_surge and lanes.size() >= 2:
+		_build_delayed_surge(archetype, lanes, per_lane, hp_multiplier,
+			damage_multiplier, speed_multiplier, spacing_multiplier)
+	else:
+		for lane: int in lanes:
+			for _i: int in per_lane:
+				_spawn_queue.append(_spawn_entry(lane, false, "", hp_multiplier,
+					damage_multiplier, speed_multiplier, spacing_multiplier))
+			if archetype != null and signature != null:
+				for _i: int in archetype.signature_count_per_lane:
+					_spawn_queue.append(_spawn_entry(lane, false,
+						signature.id, hp_multiplier, damage_multiplier,
+						speed_multiplier, spacing_multiplier))
 
 	var elite_budget: float = 0.0
 	if _act_wave >= 3:
@@ -178,7 +183,10 @@ func _begin_wave() -> void:
 		_spawn_queue.append(_spawn_entry(elite_lane, true, "", hp_multiplier,
 			damage_multiplier, speed_multiplier, spacing_multiplier))
 
-	_spawn_queue.shuffle()
+	# A False Front is authored through its ordering; shuffling would place the
+	# reveal before the bait. All ordinary formations retain systemic variety.
+	if archetype == null or not archetype.delayed_adjacent_surge:
+		_spawn_queue.shuffle()
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
 	_spawn_timer = 0.0
@@ -201,6 +209,24 @@ func _spawn_entry(lane: int, elite: bool, enemy_id: String, hp_scale: float,
 		"speed_scale": speed_scale,
 		"spacing_scale": spacing_scale,
 	}
+
+
+## Builds a bounded two-beat formation: a readable minority on the first road,
+## a silent hold, then the remaining threat on an adjacent road. The total body
+## budget remains identical to two ordinary lanes.
+func _build_delayed_surge(archetype: WaveArchetypeData, lanes: Array[int],
+		per_lane: int, hp_scale: float, damage_scale: float, speed_scale: float,
+		spacing_scale: float) -> void:
+	var total: int = per_lane * 2
+	var bait_count: int = clampi(int(round(float(total) * archetype.false_front_fraction)),
+		1, maxi(total - 1, 1))
+	for _i: int in bait_count:
+		_spawn_queue.append(_spawn_entry(lanes[0], false, "", hp_scale,
+			damage_scale, speed_scale, spacing_scale))
+	_spawn_queue.append({"delay": maxf(archetype.surge_delay, 0.1)})
+	for _i: int in total - bait_count:
+		_spawn_queue.append(_spawn_entry(lanes[1], false, "", hp_scale,
+			damage_scale, speed_scale, spacing_scale))
 
 
 func _prepare_preview(act_wave: int) -> void:
@@ -240,6 +266,10 @@ func _pick_archetype(act_wave: int) -> WaveArchetypeData:
 func _pick_archetype_lanes(archetype: WaveArchetypeData, act_wave: int) -> Array[int]:
 	if archetype == null:
 		return _pick_lanes(act_wave)
+	if archetype.delayed_adjacent_surge:
+		var first: int = _weighted_lane([])
+		var direction: int = -1 if _rng.randi() % 2 == 0 else 1
+		return [first, posmod(first + direction, Balance.LANE_COUNT)]
 	match archetype.lane_pattern:
 		WaveArchetypeData.LanePattern.FOCUSED:
 			return [_weighted_lane([])]
@@ -330,6 +360,9 @@ func _spawn_next() -> void:
 		return
 
 	var entry: Dictionary = _spawn_queue.pop_front()
+	if entry.has("delay"):
+		_spawn_timer = float(entry["delay"])
+		return
 	var lane: int = int(entry.get("lane", 0))
 	var enemy_id: String = String(entry.get("enemy_id", ""))
 	var data: EnemyData = ContentDB.enemy(enemy_id) if not enemy_id.is_empty() \
@@ -347,7 +380,12 @@ func _spawn_next() -> void:
 
 
 func _pick_enemy(elite: bool) -> EnemyData:
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if elite:
+		if terrain != null:
+			var regional_elites: Array[EnemyData] = _enemy_pool(terrain.elite_ids)
+			if not regional_elites.is_empty():
+				return regional_elites[_rng.randi_range(0, regional_elites.size() - 1)]
 		var elites: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.ELITE)
 		if not elites.is_empty():
 			return elites[_rng.randi_range(0, elites.size() - 1)]
@@ -356,16 +394,41 @@ func _pick_enemy(elite: bool) -> EnemyData:
 	if RunState.act > 1 and _rng.randf() < invader_chance:
 		var previous: TerrainData = ContentDB.terrain_for_act(_rng.randi_range(1, RunState.act - 1))
 		if previous != null:
-			var veteran: EnemyData = ContentDB.enemy(previous.breed_id)
-			if veteran != null:
-				return veteran
-	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+			var veterans: Array[EnemyData] = _enemy_pool(previous.enemy_ids)
+			if not veterans.is_empty():
+				return veterans[_rng.randi_range(0, veterans.size() - 1)]
 	if terrain != null:
+		var regional: Array[EnemyData] = _enemy_pool(terrain.enemy_ids)
+		if not regional.is_empty():
+			return regional[_rng.randi_range(0, regional.size() - 1)]
 		var breed: EnemyData = ContentDB.enemy(terrain.breed_id)
 		if breed != null:
 			return breed
 	var breeds: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.BREED)
 	return breeds[0] if not breeds.is_empty() else null
+
+
+func _enemy_pool(ids: Array[String]) -> Array[EnemyData]:
+	var pool: Array[EnemyData] = []
+	for id: String in ids:
+		var data: EnemyData = ContentDB.enemy(id)
+		if data != null:
+			pool.append(data)
+	return pool
+
+
+func _signature_enemy(archetype: WaveArchetypeData) -> EnemyData:
+	if archetype == null:
+		return null
+	if archetype.signature_role >= 0:
+		var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+		if terrain != null:
+			# Elites first: a formation's named leader should read above its escort.
+			for id: String in terrain.elite_ids + terrain.enemy_ids:
+				var regional: EnemyData = ContentDB.enemy(id)
+				if regional != null and int(regional.role) == archetype.signature_role:
+					return regional
+	return ContentDB.enemy(archetype.signature_enemy_id)
 
 
 func _hp_scale(lane: int) -> float:

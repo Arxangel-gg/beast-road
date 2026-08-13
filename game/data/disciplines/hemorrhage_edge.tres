@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 0
+role = 0
+mansion_tier = 1
+food_cost = 35
+effect_id = "bleed_finisher"
+effect_value = 0.24
+id = "hemorrhage_edge"
+display_name = "Hemorrhage Edge"
+description = "The third chain hit opens a controlled Bleed."

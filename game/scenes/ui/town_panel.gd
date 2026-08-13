@@ -30,6 +30,9 @@ func _ready() -> void:
 	EventBus.relic_socketed.connect(func(_id: String) -> void: _refresh())
 	EventBus.relic_unsocketed.connect(func(_id: String) -> void: _refresh())
 	EventBus.captive_assigned.connect(func(_c: String, _b: String) -> void: _refresh())
+	EventBus.discipline_trained.connect(func(_id: String, _food: int) -> void: _refresh())
+	EventBus.discipline_equipped.connect(func(_slot: int, _id: String) -> void: _refresh())
+	EventBus.discipline_respecced.connect(func(_food: int, _uses: int) -> void: _refresh())
 
 
 func open(building_id: String) -> void:
@@ -86,6 +89,8 @@ func _refresh() -> void:
 			_show_captives()
 		BuildingData.Effect.MARKET:
 			_show_market()
+		BuildingData.Effect.HERO_UPGRADE:
+			_show_disciplines()
 		_:
 			pass
 
@@ -171,6 +176,107 @@ func _show_market() -> void:
 	actions.add_child(service)
 
 
+func _show_disciplines() -> void:
+	var tier: int = RunState.building_tier("sanctum")
+	if tier <= 0:
+		_note("Build the Hero Mansion to reveal discipline training.")
+		return
+	_note("Trained %d / %d  ·  Food pays for training  ·  mix disciplines freely" % [
+		RunState.trained_discipline_nodes.size(), Balance.DISCIPLINE_MAX_TRAINED])
+
+	var slot_row := HBoxContainer.new()
+	slot_row.add_theme_constant_override("separation", 5)
+	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		var equipped: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
+		var slot_name: String = ["ATTACK", "DEFENSE", "POWER", "ULTIMATE"][slot]
+		var unlocked: bool = slot < 2 or RunState.act >= slot
+		var slot_button := Button.new()
+		slot_button.custom_minimum_size = Vector2(92.0, 48.0)
+		slot_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slot_button.text = "%s\n%s" % [slot_name,
+			equipped.display_name if equipped != null else ("EMPTY" if unlocked else "LOCKED")]
+		slot_button.add_theme_font_size_override("font_size", 10)
+		slot_button.disabled = true
+		if equipped != null and ResourceLoader.exists(equipped.get_sprite_path()):
+			slot_button.icon = load(equipped.get_sprite_path())
+			slot_button.icon_max_width = 30
+		slot_row.add_child(slot_button)
+	actions.add_child(slot_row)
+
+	var offer_title := Label.new()
+	offer_title.text = "ROAD OFFERS"
+	offer_title.add_theme_font_size_override("font_size", 16)
+	offer_title.add_theme_color_override("font_color", Color("e8a33d"))
+	actions.add_child(offer_title)
+	if RunState.discipline_offers.is_empty():
+		RunState.refresh_discipline_offers()
+	for id: String in RunState.discipline_offers:
+		var offered: DisciplineNodeData = ContentDB.discipline_node(id)
+		if offered == null:
+			continue
+		var card := Button.new()
+		card.text = "%s  ·  %s  ·  %d Food" % [
+			offered.display_name, offered.slot_name(), offered.food_cost]
+		card.custom_minimum_size = Vector2(0.0, 54.0)
+		card.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		card.tooltip_text = "%s discipline  ·  Mansion tier %d\n%s" % [
+			offered.discipline_name(), offered.mansion_tier, offered.description]
+		if ResourceLoader.exists(offered.get_sprite_path()):
+			card.icon = load(offered.get_sprite_path())
+			card.icon_max_width = 38
+		card.disabled = not RunState.is_preparation() \
+			or RunState.trained_discipline_nodes.size() >= Balance.DISCIPLINE_MAX_TRAINED \
+			or not RunState.can_afford_cost({RunState.FOOD: offered.food_cost})
+		card.pressed.connect(func() -> void:
+			var problem: String = RunState.try_train_discipline(id)
+			if not problem.is_empty():
+				_note(problem)
+			_refresh())
+		actions.add_child(card)
+
+	if not RunState.trained_discipline_nodes.is_empty():
+		var trained_title := Label.new()
+		trained_title.text = "TRAINED LOADOUT"
+		trained_title.add_theme_font_size_override("font_size", 16)
+		trained_title.add_theme_color_override("font_color", Color("b8ae98"))
+		actions.add_child(trained_title)
+	for id: String in RunState.trained_discipline_nodes:
+		var trained: DisciplineNodeData = ContentDB.discipline_node(id)
+		if trained == null:
+			continue
+		var row := Button.new()
+		row.text = "%s  ·  %s%s" % [trained.display_name, trained.slot_name(),
+			"  ·  EQUIPPED" if RunState.equipped_discipline_slots.has(id) else ""]
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.custom_minimum_size = Vector2(0.0, 44.0)
+		row.tooltip_text = trained.description
+		if ResourceLoader.exists(trained.get_sprite_path()):
+			row.icon = load(trained.get_sprite_path())
+			row.icon_max_width = 30
+		row.disabled = not RunState.is_preparation() or not trained.is_active_slot() \
+			or not trained.is_slot_unlocked(RunState.act) \
+			or RunState.equipped_discipline_slots.has(id)
+		row.pressed.connect(func() -> void:
+			var problem: String = RunState.try_equip_discipline(id)
+			if not problem.is_empty():
+				_note(problem)
+			_refresh())
+		actions.add_child(row)
+
+	var respec := Button.new()
+	respec.text = "Respec disciplines  ·  %d Food" % RunState.discipline_respec_cost()
+	respec.custom_minimum_size = Vector2(0.0, 46.0)
+	respec.tooltip_text = "Return to the curated Attack and Defense starters. Cost rises each use."
+	respec.disabled = not RunState.is_preparation() \
+		or not RunState.can_afford_cost({RunState.FOOD: RunState.discipline_respec_cost()})
+	respec.pressed.connect(func() -> void:
+		var problem: String = RunState.try_respec_disciplines()
+		if not problem.is_empty():
+			_note(problem)
+		_refresh())
+	actions.add_child(respec)
+
+
 ## Relic sockets. Only socketed relics do anything at all, which is the entire
 ## reason the Town Hall exists.
 func _show_relics() -> void:
@@ -215,7 +321,8 @@ func _show_relics() -> void:
 			_note("★ %s  —  always active" % core.display_name)
 
 
-## Captives taken from war-camp chieftains, put to work.
+## Oathbound leaders won from war camps and assigned a one-run duty. Internal
+## save names remain compatible with v3; no captivity framing reaches players.
 func _show_captives() -> void:
 	var here: int = 0
 	for value: Variant in RunState.captive_assignments.values():
@@ -227,7 +334,7 @@ func _show_captives() -> void:
 		return
 
 	if RunState.captives.is_empty():
-		_note("Nobody taken yet. Finish a raid.")
+		_note("No Oathbound leader yet. Complete a raid.")
 		return
 
 	for captive_id: String in RunState.captives:

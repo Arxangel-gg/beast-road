@@ -295,6 +295,7 @@ func _on_crossroad_reached(segment_index: int) -> void:
 
 func _on_road_chosen(option_id: String) -> void:
 	journey.resolve_crossroad(option_id)
+	RunState.refresh_discipline_offers()
 	battlefield.resume()
 	_locked = false
 	_scope = GameDirector.Scope.CROSSROAD

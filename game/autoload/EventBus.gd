@@ -50,6 +50,11 @@ signal hero_swing_started(chain_step: int, at: Vector2)
 ## A foot hit the ground. `mass` lets the listener pick a light or heavy step.
 signal footfall(at: Vector2, mass: float)
 
+## The travelling beast planted one of its paired supports. Kept separate from
+## ordinary character footfalls: this moves the entire battlefield and is the
+## only step allowed to disturb every unit standing on its back.
+signal beast_step_landed(impulse: Vector2, strength: float)
+
 ## A swing connected with at least one target. `chain_step` is 0-based.
 signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
 
@@ -67,6 +72,11 @@ signal spell_cast(spell_id: String, slot: int, at: Vector2)
 
 ## The hero's equipped spells changed.
 signal spells_changed()
+
+## Mansion progression telemetry and UI refresh.
+signal discipline_trained(node_id: String, food_spent: int)
+signal discipline_equipped(slot: int, node_id: String)
+signal discipline_respecced(food_spent: int, use_count: int)
 
 ## Something wants the camera shaken — decoupled so any system can ask.
 signal camera_shake_requested(magnitude: float, duration: float)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "torchbreakers"
+display_name = "Torchbreakers"
+description = "Inner-ring sappers smother the light while a focused column advances."
+lane_pattern = 1
+minimum_act = 2
+minimum_act_wave = 3
+selection_weight = 0.78
+night_weight_multiplier = 1.7
+count_scale = 0.94
+hp_scale = 1.04
+damage_scale = 1.02
+spawn_spacing_scale = 0.88
+signature_enemy_id = "burrower"
+signature_role = 4
+signature_count_per_lane = 2

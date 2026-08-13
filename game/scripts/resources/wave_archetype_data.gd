@@ -34,8 +34,17 @@ enum LanePattern {
 ## A signature unit added to each attacked lane. Empty means the terrain breed
 ## carries the pattern by itself. The id is validated by the balance gate.
 @export var signature_enemy_id: String = ""
+## Optional regional role selector. The fallback id preserves compatibility and
+## supplies a veteran when the current faction lacks the requested role.
+@export_range(-1, 4) var signature_role: int = -1
 @export var signature_count_per_lane: int = 0
 @export var extra_elites: int = 0
+
+## Sequenced formations may show a small commitment on one road, hold, then
+## reveal the real assault next door. Most formations stay fully shuffled.
+@export var delayed_adjacent_surge: bool = false
+@export var surge_delay: float = 0.0
+@export_range(0.1, 0.9) var false_front_fraction: float = 0.35
 
 
 func is_available(act: int, act_wave: int) -> bool:

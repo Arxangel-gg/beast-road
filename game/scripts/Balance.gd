@@ -42,6 +42,11 @@ const HERO_DASH_COOLDOWN: float = 4.0
 
 ## Maximum spells equipped at once (GDD §2, decision 4).
 const HERO_MAX_SPELL_SLOTS: int = 4
+const HERO_ACTIVE_SLOTS: int = 4
+const DISCIPLINE_IDS: Array[String] = ["blood", "holy", "berserk"]
+const DISCIPLINE_MAX_TRAINED: int = 6
+const DISCIPLINE_RESPEC_BASE_COST: int = 45
+const DISCIPLINE_RESPEC_COST_STEP: int = 30
 
 ## Spells offered to choose from on level-up; the player picks one (GDD §2).
 const SPELLS_OFFERED_ON_LEVEL_UP: int = 3
@@ -191,17 +196,28 @@ const CAMERA_MOUSE_LEAN_MAX: float = 300.0
 ## One full left/right support transfer per second. Two footfalls happen in a
 ## cycle; the short plant pause keeps the body over a stable pair of feet rather
 ## than floating through a sinusoid like a boat. [TUNE]
-const BEAST_GAIT_FREQUENCY: float = 0.82
-const BEAST_GAIT_HORIZONTAL: float = 5.0
-const BEAST_GAIT_VERTICAL: float = 4.0
-const BEAST_GAIT_ROTATION_DEGREES: float = 0.16
-const BEAST_GAIT_SMOOTHING: float = 3.5
+const BEAST_GAIT_FREQUENCY: float = 0.30
+const BEAST_GAIT_HORIZONTAL: float = 4.2
+const BEAST_GAIT_VERTICAL: float = 3.4
+const BEAST_GAIT_ROTATION_DEGREES: float = 0.13
+const BEAST_GAIT_SMOOTHING: float = 2.2
 const BEAST_GAIT_HORN_SCALE: float = 0.12
-const BEAST_STEP_PAUSE: float = 0.085
-const BEAST_STEP_SINK: float = 3.6
-const BEAST_STEP_SHAKE: float = 4.8
-const BEAST_STEP_SHAKE_TIME: float = 0.18
-const BEAST_STEP_MASS: float = 2.4
+const BEAST_STEP_PAUSE: float = 0.145
+const BEAST_STEP_SINK: float = 4.8
+const BEAST_STEP_SHAKE: float = 7.2
+const BEAST_STEP_SHAKE_TIME: float = 0.32
+const BEAST_STEP_MASS: float = 3.8
+
+## A planted support transfers a tiny physical shove through the city shell.
+## These remain deliberately below combat-stagger values: they sell unstable
+## footing without changing the outcome of an attack wind-up. [TUNE]
+const BEAST_STEP_WORLD_IMPULSE: float = 22.0
+const BEAST_STEP_STUN: float = 0.045
+const BEAST_STEP_WOBBLE_DEGREES: float = 2.6
+
+## Per-target animation hold on a registered hit. This is not global hitstop;
+## a large formation therefore remains responsive when an AoE lands. [TUNE]
+const IMPACT_FRAME_TIME: float = 0.032
 
 # ------------------------------------------------------------------------------
 # Hero — health and movement
@@ -440,6 +456,12 @@ const LANE_WIDTH: float = 120
 ## access above the early-game cap, so this is a progression track rather than
 ## five buttons available on the opening screen.
 const TOWER_MAX_LEVEL: int = 5
+
+## Every emplacement is a structure now, not only Bulwarks. Specialist blockers
+## override this in their TowerData; ordinary towers inherit it. [TUNE]
+const TOWER_BASE_MAX_HP: float = 520.0
+const TOWER_REPAIR_FRACTION: float = 0.34
+const TOWER_REPAIR_WOOD_COST: int = 32
 const TOWER_BASE_LEVEL_CAP: int = 2
 
 ## Resource cost to build a base tower at level 1. [TUNE]
@@ -532,8 +554,12 @@ const WAVE_DAMAGE_GROWTH: float = 0.022
 const WAVE_SPEED_GROWTH: float = 0.19
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.72
 const WAVE_DARK_SPEED_WEIGHT: float = 0.16
-const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.70, 2.60]
-const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.30, 1.65]
+## Act boundaries introduce new enemy roles and lane patterns, so they should
+## not also be stat cliffs. The continuous global-wave curve still takes Act 3
+## well into mastery-level pressure; these modest regional multipliers make the
+## first Saltglass formation readable after the Ashfen boss.
+const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.32, 1.72]
+const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.18, 1.48]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
 ## changing the label above the boss track.
@@ -679,15 +705,20 @@ const WEAKENED_STAT_SCALE: float = 0.60
 const HORN_ENEMY_SPEED_SCALE: float = 1.45
 const HORN_SPAWN_RATE_SCALE: float = 1.8
 
-## Seconds between raid extraction windows, and how long one stays open. [TUNE]
-const RAID_WINDOW_INTERVAL: float = 30.0
+## Two authored extraction windows at 25 and 50 seconds, followed by the
+## chieftain climax. [TUNE]
+const RAID_EXTRACTION_WINDOWS: Array[float] = [25.0, 50.0]
 const RAID_WINDOW_DURATION: float = 3.0
 
 ## Refusing a window makes the camp harder by this much, compounding. [TUNE]
 const RAID_REFUSAL_ESCALATION: float = 0.35
 
-## Windows the player must refuse before the chieftain comes out. [TUNE]
-const RAID_WINDOWS_BEFORE_CHIEFTAIN: int = 3
+const RAID_CHIEFTAIN_TIME: float = 70.0
+const RAID_HARD_LIMIT: float = 90.0
+
+## Player-facing outcomes after a full clear. The current reward defaults to
+## Accept Oath until the choice overlay lands; the vocabulary is authoritative.
+const LEADER_RESOLUTIONS: Array[String] = ["accept_oath", "ransom", "take_standard"]
 
 ## Raid horde pacing. [TUNE]
 const RAID_SPAWN_INTERVAL: float = 0.55
@@ -1123,6 +1154,12 @@ const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
 const TORCH_LIGHT_RADIUS: float = 225.0
 const TORCH_LIGHT_ENERGY: float = 1.55
 
+## High features one full cast-shadow pool per road; every other brazier still
+## lights, dims and flickers, while Ultra promotes all twenty-four to shadow
+## casters. The featured stop is central so the effect crosses the most-played
+## part of each lane. [TUNE]
+const TORCH_FEATURED_SHADOW_STOP: int = 1
+
 ## The light's own flicker. Low on purpose: the flame *shape* now carries the
 ## unsteadiness, and a light that strobes as hard as the silhouette does reads as
 ## a fault in the renderer rather than as fire. [TUNE]
@@ -1284,6 +1321,11 @@ const FOLIAGE_MAX_SCALE: float = 1.5
 const FOLIAGE_SWAY_DEGREES: float = 5.5
 const FOLIAGE_SWAY_SPEED: float = 1.15
 
+## Foliage moves slowly enough that 30 transform updates per second are visually
+## continuous, while updating hundreds of off-road clumps at the render rate
+## spends CPU on sub-pixel changes the player cannot see. [TUNE]
+const FOLIAGE_UPDATE_INTERVAL: float = 1.0 / 30.0
+
 # ------------------------------------------------------------------------------
 # Path blending
 # ------------------------------------------------------------------------------
@@ -1295,23 +1337,23 @@ const FOLIAGE_SWAY_SPEED: float = 1.15
 ## the fringe was 46px of an 88px half-width, so the fade began barely off the
 ## centre line and, at 55% tint on top, the roads all but vanished. Stating the
 ## solid core explicitly means widening the fringe can never eat the road. [TUNE]
-const PATH_CORE_RADIUS: float = 58.0
+const PATH_CORE_RADIUS: float = 70.0
 
 ## Width of the soft, noisy fringe *outside* the core, in pixels. Core plus
 ## fringe should land near the road's half-width (LANE_WIDTH * 1.6 / 2 = 88);
 ## more than that and the fringe is simply clipped. [TUNE]
-const PATH_EDGE_FADE: float = 30.0
+const PATH_EDGE_FADE: float = 39.0
 
 ## How hard the fringe is broken up, 0..1. Only ever moves where the fade
 ## *starts*, never how opaque the interior is. [TUNE]
-const PATH_EDGE_NOISE: float = 0.75
+const PATH_EDGE_NOISE: float = 0.68
 
 ## Fraction of each end of a road given over to fading out, so the road
 ## dissolves into the distance instead of stopping at a line. [TUNE]
 const PATH_END_FADE: float = 0.10
 
 ## Scale of the fringe noise, in pixels. [TUNE]
-const PATH_NOISE_SCALE: float = 62.0
+const PATH_NOISE_SCALE: float = 74.0
 
 ## Opacity of the road over the terrain. A road you cannot see is not a road.
 ## [TUNE]

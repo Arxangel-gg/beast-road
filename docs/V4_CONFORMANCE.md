@@ -53,7 +53,7 @@ the goal — §52's acceptance checklist and the kill questions are the ceiling.
 | Town buildings | 9 | `count:buildings >= 9` |
 | Wave formations | 10 | `count:waves >= 10` |
 | Road archetypes | 5 | `count:roads >= 5` |
-| Hero discipline nodes | 24 | `count:nodes >= 24` |
+| Hero discipline nodes | 24 | `count:disciplines >= 24` |
 
 ## 2. Run structure — GDD §57
 

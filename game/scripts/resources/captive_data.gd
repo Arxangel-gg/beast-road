@@ -1,22 +1,18 @@
 class_name CaptiveData
 extends GameData
 
-## A defeated chieftain taken back to the town and put to work (GDD §6.3).
+## A defeated leader who freely swears one run-long specialist oath (GDD §30).
 ##
 ## `id = "bogkin"` -> `res://art/raid/captive_bogkin.png`
 ##
-## **Every player-facing word about what this is lives in this file's exported
-## strings, never in logic.** GDD §6.3 records that the framing is unsettled and
-## that v2 argued against it on positioning grounds; the mechanic is "a unit
-## assigned to a building produces a bonus", and the fiction sits on top of it.
-## Changing enslavement to conscription, oath-binding, or taking a trophy
-## standard is editing these fields and the art, and nothing else.
+## The class name and save field remain for migration compatibility. Shipped
+## player-facing language is Oathbound throughout.
 
 ## What the player is called in relation to this unit, e.g. "Captive", "Oathbound".
-@export var role_noun: String = "Captive"
+@export var role_noun: String = "Oathbound"
 
 ## The verb used when acquiring one, e.g. "Bind", "Conscript", "Claim".
-@export var acquire_verb: String = "Bind"
+@export var acquire_verb: String = "Assign"
 
 ## The line shown on the raid victory screen.
 @export_multiline var acquire_line: String = ""

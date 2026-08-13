@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "caravan_guard"
+display_name = "Caravan Guard"
+description = "A valuable armored standard advances behind a rotating elite escort."
+lane_pattern = 1
+minimum_act = 2
+minimum_act_wave = 4
+selection_weight = 0.64
+count_scale = 0.86
+hp_scale = 1.12
+damage_scale = 0.96
+speed_scale = 0.9
+spawn_spacing_scale = 0.8
+signature_enemy_id = "warden"
+signature_role = 2
+signature_count_per_lane = 1
+extra_elites = 2

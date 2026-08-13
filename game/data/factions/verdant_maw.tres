@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+[resource]
+script = ExtResource("1_faction")
+id = "verdant_maw"
+display_name = "The Verdant Maw"
+description = "The Cinderpaint Host hunts through rain, roots and smoke."
+act = 1
+terrain_id = "ashfen"
+regular_enemy_ids = Array[String](["bogkin", "wolf_rider", "rootshield", "ember_shaman"])
+elite_enemy_ids = Array[String](["howler", "wolf_standard_bearer"])
+visual_identity = "Wet greens, charcoal blacks, ember orange and broken shrines."
+mechanical_identity = "Regeneration, pack leaders, flanking riders and light pressure."

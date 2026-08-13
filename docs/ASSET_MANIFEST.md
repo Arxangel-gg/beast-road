@@ -136,6 +136,24 @@ is the contract; the border is only a convenience.
 | `elite_warden.png` | 128×128 | T | `#5A5A6B` |
 | `elite_howler.png` | 128×128 | T | `#7A5A3D` |
 | `elite_burrower.png` | 128×128 | T | `#4A3D33` |
+| `enemy_coalpaint_raider.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_wolf_rider.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_rootshield.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_ember_shaman.png` | 192×192 | T | `#4A6B4F` |
+| `elite_pack_howler.png` | 192×192 | T | `#4A6B4F` |
+| `elite_wolf_standard_bearer.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_veiled_skirmisher.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_scale_rider.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_glassguard.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_dune_burrower.png` | 192×192 | T | `#6B8A9E` |
+| `elite_mirage_seer.png` | 192×192 | T | `#6B8A9E` |
+| `elite_siege_lizard.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_rime_marauder.png` | 192×192 | T | `#9CB9D8` |
+| `enemy_ice_hauler.png` | 192×192 | T | `#9CB9D8` |
+| `enemy_snowhide_brute.png` | 192×192 | T | `#9CB9D8` |
+| `enemy_storm_caller.png` | 192×192 | T | `#9CB9D8` |
+| `elite_avalanche_warden.png` | 192×192 | T | `#9CB9D8` |
+| `elite_white_maw_giant.png` | 192×192 | T | `#9CB9D8` |
 
 ### 5.3 Bosses — `res://art/bosses/`
 
@@ -239,7 +257,7 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
-`ui_stone.png`
+`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png`
 
 The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,
@@ -249,7 +267,39 @@ rally shield, and protected gate.
 > Storm→Air). The old `ui_element_frost/stone/storm.png` files were deleted, not
 > left as orphans.
 
-### 5.12 Combination towers — `res://art/towers/`
+### 5.12 Cursor states — `res://art/cursors/`
+
+All 64×64, type T, placeholder colour `#D9CDB8`.
+
+`cursor_default.png` · `cursor_point.png` · `cursor_build.png` ·
+`cursor_attack.png` · `cursor_repair.png` · `cursor_busy.png`
+
+Cursor artwork is registered once by `CursorKit`; standard Control hover states
+inherit it while world interactions can explicitly request build, attack, or
+repair.
+
+### 5.13 Discipline icons — `res://art/icons/disciplines/`
+
+All 192×192, type T, placeholder colour `#8C3A2B`.
+
+`discipline_hemorrhage_edge.png` · `discipline_red_pursuit.png` ·
+`discipline_sanguine_guard.png` · `discipline_marrow_drain.png` ·
+`discipline_hunters_pulse.png` · `discipline_open_vein.png` ·
+`discipline_crimson_tempest.png` · `discipline_blood_remembers.png` ·
+`discipline_consecrated_chain.png` · `discipline_judgment_brand.png` ·
+`discipline_aegis_step.png` · `discipline_bulwark_ward.png` ·
+`discipline_vigil.png` · `discipline_mercy_under_fire.png` ·
+`discipline_dawn_bell.png` · `discipline_unbroken_oath.png` ·
+`discipline_cleaving_road.png` · `discipline_chain_hook.png` ·
+`discipline_iron_roar.png` · `discipline_tremor.png` ·
+`discipline_rising_fury.png` · `discipline_no_ground_given.png` ·
+`discipline_beasts_breath.png` · `discipline_break_the_host.png`
+
+The three families share blackened iron and aged brass; Blood uses controlled
+crimson, Holy uses ivory-gold, and Berserk uses ember-orange so discipline
+identity survives without relying on text alone.
+
+### 5.14 Combination towers — `res://art/towers/`
 
 All 192×192, type T. Built in the middle slot of a lane from the two elements
 flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
@@ -267,7 +317,7 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `tower_bastion.png` | Earth + Earth | `#6E6350` |
 | `tower_tempest.png` | Air + Air | `#A79BD8` |
 
-### 5.13 Battlefield — `res://art/battlefield/`
+### 5.15 Battlefield — `res://art/battlefield/`
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -276,7 +326,7 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `build_spot_combo.png` | 128×128 | T | `#9B8FC4` |
 | `town_core.png` | 384×384 | T | `#8A7A5E` |
 
-### 5.14 Raid — `res://art/raid/`
+### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -287,7 +337,7 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `captive_glassborn.png` | 128×128 | T | `#6B8A9E` |
 | `captive_steppehorde.png` | 128×128 | T | `#8C3A2B` |
 
-### 5.15 UI frames — `res://art/ui/`
+### 5.17 UI frames — `res://art/ui/`
 
 Nine-slice frames and bars. **Square on purpose.** These are stretched in code,
 so the source only has to carry a border and a plain centre — the aspect on

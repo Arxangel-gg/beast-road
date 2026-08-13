@@ -378,12 +378,19 @@ func _toggle_row(text: String, key: String, hint: String) -> VBoxContainer:
 
 ## A 0..1 density, shown as a percentage.
 func _amount_row(text: String, key: String) -> HBoxContainer:
-	var row: HBoxContainer = _slider_row(text, 0.0, 1.0, 0.05, 1.0,
+	# Ultra deliberately exceeds the High baseline. A 0..1 slider silently
+	# clamped the live 1.75/1.45 values and made Ultra look identical to High.
+	var row: HBoxContainer = _slider_row(text, 0.0, Graphics.MAX_DENSITY, 0.05, 1.0,
 		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
 		func(v: float) -> void:
 			Graphics.set_switch(key, v)
 			_refresh_preset_buttons())
-	_quality_switches.append({"key": key, "slider": row.get_child(1) as HSlider, "kind": "amount"})
+	_quality_switches.append({
+		"key": key,
+		"slider": row.get_child(1) as HSlider,
+		"value": row.get_child(2) as Label,
+		"kind": "amount",
+	})
 	return row
 
 
@@ -481,6 +488,7 @@ func _refresh_video() -> void:
 			var amount: float = Graphics.particle_scale() if key == Graphics.KEY_PARTICLES \
 				else Graphics.foliage_scale()
 			(entry["slider"] as HSlider).set_value_no_signal(amount)
+			(entry["value"] as Label).text = "%d%%" % int(round(amount * 100.0))
 
 
 func _refresh_preset_buttons() -> void:

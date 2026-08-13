@@ -60,7 +60,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		"Reached act %d   ·   %s combat   ·   %s planning" % [
 			int(summary.get("act", 1)), duration, planning_duration],
 		"Killed %d   ·   fell %d times" % [int(summary.get("kills", 0)), int(summary.get("deaths", 0))],
-		"Raids %d   ·   chieftains taken %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
+		"Raids %d   ·   Oathbound leaders %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
 		"",
 		"DEFENCE",
 		"Town damage %d across %d breaches   ·   peak pressure %d%%" % [

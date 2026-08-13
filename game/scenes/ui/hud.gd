@@ -251,15 +251,19 @@ func _build_top_bar() -> void:
 	bar.add_child(_bar_icon("city_health", "Town"))
 	bar.add_child(_town_bar)
 
-	# No hero icon exists in the set, and borrowing an unrelated one is worse than
-	# a word: `ui_captive` is a pair of manacles, which beside the player's own
-	# health bar would say something the game does not mean.
 	_hero_bar = _make_bar(Color("c4552e"), 180.0)
-	bar.add_child(_label("Hero"))
+	bar.add_child(_bar_icon("hero_health", "Hero"))
 	bar.add_child(_hero_bar)
-	_wounds_label = _label("Wounds 0/%d" % Balance.HERO_MAX_WOUNDS, 15)
+	var wound_row := HBoxContainer.new()
+	wound_row.add_theme_constant_override("separation", 5)
+	var wound_icon: Control = _bar_icon("wounds", "Wounds")
+	wound_icon.custom_minimum_size = Vector2(24.0, 24.0)
+	wound_row.add_child(wound_icon)
+	_wounds_label = _label("0/%d" % Balance.HERO_MAX_WOUNDS, 15)
 	_wounds_label.tooltip_text = "A lethal down adds one Wound and reduces maximum HP by 10%. The third ends the run."
-	bar.add_child(_wounds_label)
+	wound_row.tooltip_text = _wounds_label.tooltip_text
+	wound_row.add_child(_wounds_label)
+	bar.add_child(wound_row)
 
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -366,14 +370,19 @@ func _build_scope_bar() -> void:
 	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
 	_repair_button = _add_button(bar,
-		"Repair  +%d  ·  %d Wood" % [int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST],
+		"Repair Town",
 		func() -> void: _report(battlefield.try_repair_town()))
+	_repair_button.tooltip_text = "Restore %d Town health during Preparation. Cost: %d Wood." % [
+		int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST]
+	_repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	IconKit.on_button(_repair_button, "upgrade", 22)
 
 	# No icon on the charge bar: the Raid button sitting immediately beside it
 	# already carries one, and the same symbol twice in six inches reads as a
 	# mistake rather than as a label.
-	_charge_bar = _make_bar(Color("9b8fc4"), 200.0)
+	_charge_bar = _make_bar(Color("9b8fc4"), 108.0)
 	_charge_bar.value = 0.0
+	_charge_bar.tooltip_text = "Raid charge. Defeat enemies to fill it; War Horn accelerates the gain."
 	bar.add_child(_charge_bar)
 
 
@@ -482,27 +491,29 @@ func _build_raid_panel() -> void:
 func _build_preparation_panel() -> void:
 	_preparation_panel = PanelContainer.new()
 	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_preparation_panel.offset_left = -310.0
-	_preparation_panel.offset_right = 310.0
+	_preparation_panel.offset_left = -230.0
+	_preparation_panel.offset_right = 230.0
 	# Its ornate skin is taller than the nominal controls. Keep the whole frame
 	# above the persistent scope bar instead of letting the lower rivets clip.
-	_preparation_panel.offset_top = -270.0
-	_preparation_panel.offset_bottom = -92.0
+	_preparation_panel.offset_top = -222.0
+	_preparation_panel.offset_bottom = -106.0
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
+	column.add_theme_constant_override("separation", 3)
 	_preparation_panel.add_child(column)
 	var title := Label.new()
 	title.text = "PREPARATION"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 17)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(title)
-	_preparation_label = _label("Commit towers, town projects and relics before the road.", 15)
+	_preparation_label = _label("Build, upgrade and reposition before the road.", 12)
 	_preparation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_preparation_label)
 	_ride_on_button = _add_button(column, "RIDE ON", func() -> void: ride_on_requested.emit())
+	_ride_on_button.custom_minimum_size.y = 38.0
+	_ride_on_button.add_theme_font_size_override("font_size", 13)
 	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ride_on_button.tooltip_text = "Begin the next road battle. Building and upgrades lock until Preparation."
 
@@ -510,10 +521,10 @@ func _build_preparation_panel() -> void:
 func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_command_panel.offset_left = -454.0
-	_command_panel.offset_top = -202.0
+	_command_panel.offset_left = -424.0
+	_command_panel.offset_top = -224.0
 	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -106.0
+	_command_panel.offset_bottom = -122.0
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
@@ -700,6 +711,7 @@ func _rebuild_spell_bar() -> void:
 	_spell_cooldowns.clear()
 
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		var discipline: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
 		# The slot frame sits behind the button rather than being its background,
 		# so an empty slot still reads as a slot the player could fill. A gap
 		# reads as nothing at all.
@@ -725,26 +737,28 @@ func _rebuild_spell_bar() -> void:
 
 		var hotkey := Label.new()
 		hotkey.text = str(slot + 1)
-		hotkey.position = Vector2(9.0, 5.0)
-		hotkey.add_theme_font_size_override("font_size", 13)
+		hotkey.position = Vector2(14.0, 9.0)
+		hotkey.add_theme_font_size_override("font_size", 11)
 		hotkey.add_theme_color_override("font_color", Color("f4ddb0"))
 		hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame.add_child(hotkey)
 
 		var icon := TextureRect.new()
-		icon.position = Vector2(43.0, 5.0)
-		icon.size = Vector2(32.0, 32.0)
+		# ui_slot's authored safe area is x=11..107, y=10..53. Content
+		# remains inside it so neither art nor text paints over the metal rail.
+		icon.position = Vector2(46.0, 9.0)
+		icon.size = Vector2(26.0, 26.0)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame.add_child(icon)
 
 		var name_label := Label.new()
-		name_label.position = Vector2(5.0, 41.0)
-		name_label.size = Vector2(108.0, 20.0)
+		name_label.position = Vector2(13.0, 37.0)
+		name_label.size = Vector2(92.0, 15.0)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 11)
+		name_label.add_theme_font_size_override("font_size", 9)
 		name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame.add_child(name_label)
@@ -758,7 +772,18 @@ func _rebuild_spell_bar() -> void:
 		cooldown.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		frame.add_child(cooldown)
 
-		if spell == null:
+		if discipline != null:
+			icon.texture = load(discipline.get_sprite_path()) \
+				if ResourceLoader.exists(discipline.get_sprite_path()) else null
+			name_label.text = discipline.display_name.to_upper()
+			button.tooltip_text = "%s · %s\n%s%s" % [discipline.discipline_name(),
+				discipline.slot_name(), discipline.description,
+				"\nCooldown: %.1fs" % spell.cooldown if spell != null else "\nModifies core combat"]
+			if spell != null:
+				button.pressed.connect(_cast.bind(slot))
+			else:
+				button.disabled = true
+		elif spell == null:
 			button.disabled = true
 			name_label.text = "EMPTY"
 			name_label.add_theme_color_override("font_color", Color("8b8175"))
@@ -805,6 +830,7 @@ func _update_spell_bar() -> void:
 	for slot: int in _spell_buttons.size():
 		var spell: SpellData = _spell_in_slot(slot)
 		if spell == null:
+			_spell_cooldowns[slot].text = ""
 			continue
 		var left: float = _hero.spells.cooldown_ratio(slot)
 		var button: Button = _spell_buttons[slot]
@@ -963,6 +989,19 @@ func _refresh_build_panel() -> void:
 			locked_note.add_theme_color_override("font_color", Color("e8a33d"))
 			_build_list.add_child(locked_note)
 			return
+		var live_slot: TowerSlot = battlefield.slot_at(lane, slot)
+		var live_tower: Tower = live_slot.tower() if live_slot != null else null
+		if live_tower != null and live_tower.needs_repair():
+			var repair_afford: bool = RunState.can_afford_cost(
+				{RunState.WOOD: Balance.TOWER_REPAIR_WOOD_COST})
+			var repair_button: Button = _add_button(_build_list, "Repair Tower", func() -> void:
+				_report(battlefield.try_repair_tower(lane, slot))
+				_refresh_build_panel())
+			repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+			repair_button.tooltip_text = "Restore %d%% durability. Cost: %d Wood." % [
+				int(round(Balance.TOWER_REPAIR_FRACTION * 100.0)), Balance.TOWER_REPAIR_WOOD_COST]
+			IconKit.on_button(repair_button, "upgrade", 22)
+			repair_button.disabled = not repair_afford
 		var level_cap: int = RunState.tower_level_cap()
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(

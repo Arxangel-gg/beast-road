@@ -24,15 +24,17 @@ extends EnemyField
 func activate() -> void:
 	if camera != null:
 		camera.make_current()
+	CursorKit.use_attack()
 
 var _running: bool = false
 var _elapsed: float = 0.0
 var _spawn_timer: float = 0.0
 
-var _window_timer: float = Balance.RAID_WINDOW_INTERVAL
+var _window_timer: float = 0.0
 var _window_left: float = 0.0
 var _window_open: bool = false
 var _refusals: int = 0
+var _next_window: int = 0
 
 var _kills: int = 0
 var _chieftain: Enemy = null
@@ -50,14 +52,18 @@ func _ready() -> void:
 
 
 func begin() -> void:
+	# queue_free() resolves at frame end; a fast second entry must not inherit
+	# targets from the failed camp while that deletion is still pending.
+	_clear_enemies()
 	_running = true
 	_finished = false
 	_elapsed = 0.0
 	_kills = 0
 	_refusals = 0
-	_window_timer = Balance.RAID_WINDOW_INTERVAL
+	_window_timer = Balance.RAID_EXTRACTION_WINDOWS[0]
 	_window_left = 0.0
 	_window_open = false
+	_next_window = 0
 	_chieftain = null
 	_chieftain_out = false
 	set_process(true)
@@ -80,6 +86,9 @@ func _process(delta: float) -> void:
 		# Dying in the camp costs everything, including the meter.
 		_finish({"partial": false, "died": true, "kills": _kills})
 		return
+	if _elapsed >= Balance.RAID_HARD_LIMIT and not _finished:
+		_finish({"partial": true, "died": false, "kills": _kills, "timed_out": true})
+		return
 
 	_tick_windows(delta)
 	_tick_spawning(delta)
@@ -96,15 +105,19 @@ func _tick_windows(delta: float) -> void:
 		if _window_left <= 0.0:
 			_window_open = false
 			_refusals += 1
+			_next_window += 1
 			EventBus.raid_window_closed.emit()
 			EventBus.raid_escalated.emit(_refusals)
-			if _refusals >= Balance.RAID_WINDOWS_BEFORE_CHIEFTAIN:
-				_spawn_chieftain()
 		return
 
-	_window_timer -= delta
+	if not _chieftain_out and _elapsed >= Balance.RAID_CHIEFTAIN_TIME:
+		_spawn_chieftain()
+		return
+	if _next_window >= Balance.RAID_EXTRACTION_WINDOWS.size():
+		_window_timer = maxf(Balance.RAID_CHIEFTAIN_TIME - _elapsed, 0.0)
+		return
+	_window_timer = maxf(Balance.RAID_EXTRACTION_WINDOWS[_next_window] - _elapsed, 0.0)
 	if _window_timer <= 0.0:
-		_window_timer = Balance.RAID_WINDOW_INTERVAL
 		_window_open = true
 		_window_left = Balance.RAID_WINDOW_DURATION
 		EventBus.raid_window_opened.emit(Balance.RAID_WINDOW_DURATION)
@@ -165,6 +178,13 @@ func _tick_spawning(delta: float) -> void:
 func _pick_breed() -> EnemyData:
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null:
+		var pool: Array[EnemyData] = []
+		for id: String in terrain.enemy_ids:
+			var regional: EnemyData = ContentDB.enemy(id)
+			if regional != null:
+				pool.append(regional)
+		if not pool.is_empty():
+			return pool[_rng.randi_range(0, pool.size() - 1)]
 		var breed: EnemyData = ContentDB.enemy(terrain.breed_id)
 		if breed != null:
 			return breed
@@ -190,7 +210,15 @@ func _spawn_chieftain() -> void:
 	if _chieftain_out:
 		return
 	_chieftain_out = true
-	var elites: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.ELITE)
+	var elites: Array[EnemyData] = []
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain != null:
+		for id: String in terrain.elite_ids:
+			var regional: EnemyData = ContentDB.enemy(id)
+			if regional != null:
+				elites.append(regional)
+	if elites.is_empty():
+		elites = ContentDB.enemies_of_category(EnemyData.Category.ELITE)
 	var data: EnemyData = elites[_rng.randi_range(0, elites.size() - 1)] if not elites.is_empty() else _pick_breed()
 	if data == null:
 		return
@@ -236,6 +264,8 @@ func _build_reward(result: Dictionary) -> Dictionary:
 		"kills": int(result.get("kills", 0)),
 		"died": bool(result.get("died", false)),
 		"partial": bool(result.get("partial", false)),
+		"timed_out": bool(result.get("timed_out", false)),
+		"leader_resolution": "",
 		"resources": 0,
 		"captive_id": "",
 		"relic_id": "",
@@ -244,9 +274,11 @@ func _build_reward(result: Dictionary) -> Dictionary:
 		return reward
 
 	if bool(result.get("chieftain", false)):
-		# Full clear: a relic and the chieftain (GDD §6.3).
+		# Full clear defaults to the Oath resolution until the dedicated outcome
+		# chooser lands; this keeps the current one-click reward path save-safe.
 		reward["resources"] = 200
 		reward["captive_id"] = _captive_id()
+		reward["leader_resolution"] = Balance.LEADER_RESOLUTIONS[0]
 		reward["relic_id"] = _pick_relic()
 		RunState.raids_completed += 1
 		return reward
@@ -266,8 +298,14 @@ func _pick_relic() -> String:
 
 
 func _clear_enemies() -> void:
-	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		node.queue_free()
+	# Enemy.GROUP is global and the frozen battlefield still owns its formation.
+	# Clearing the whole SceneTree made a raid silently erase every road enemy,
+	# contradicting the exact-resume contract. Only this arena's descendants go.
+	if entity_root == null:
+		return
+	for node: Node in entity_root.get_children():
+		if node.is_in_group(Enemy.GROUP):
+			node.queue_free()
 
 
 # --- EnemyField overrides ---------------------------------------------------
@@ -301,6 +339,7 @@ func _setup_ground() -> void:
 	var extent: float = Balance.RAID_ARENA_RADIUS * 1.3
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	ground.material = TerrainBlend.material()
 	ground.region_enabled = true
 	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
 

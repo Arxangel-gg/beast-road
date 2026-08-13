@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 1
+role = 3
+mansion_tier = 2
+food_cost = 55
+effect_id = "revive_knockback"
+effect_value = 180.0
+id = "mercy_under_fire"
+display_name = "Mercy Under Fire"
+description = "Reviving from a down emits a non-damaging knockback."

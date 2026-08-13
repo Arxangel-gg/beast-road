@@ -33,6 +33,10 @@ enum Role {
 @export var category: Category = Category.BREED
 @export var role: Role = Role.MARCHER
 
+## Stable data ids survive save migration even when a provisional launch sprite
+## is replaced by the authored faction roster. Empty keeps the conventional id.
+@export var sprite_id: String = ""
+
 @export var max_hp: float = Balance.ENEMY_MAX_HP
 
 ## Damage dealt on contact with the hero or the city.
@@ -66,6 +70,11 @@ enum Role {
 @export var aura_strength: float = 0.0
 @export_range(0.1, 1.0) var spawn_distance_scale: float = 1.0
 
+## Siege-minded enemies prefer a standing tower in their lane over the hero or
+## town. Authored on the enemy resource so adding another sapper is content, not
+## another id check in Enemy.
+@export var targets_towers: bool = false
+
 ## Boss encounter phases. Empty for non-bosses. Crossing each health ratio in
 ## order triggers the matching name, reinforcements, and another step of the
 ## authored speed/damage escalation. This keeps boss identity in .tres content.
@@ -79,10 +88,11 @@ enum Role {
 
 
 func get_sprite_path() -> String:
+	var visual_id: String = sprite_id if not sprite_id.is_empty() else id
 	match category:
 		Category.ELITE:
-			return GameData.derive_path("enemies", "elite_", id)
+			return GameData.derive_path("enemies", "elite_", visual_id)
 		Category.BOSS:
-			return GameData.derive_path("bosses", "boss_", id)
+			return GameData.derive_path("bosses", "boss_", visual_id)
 		_:
-			return GameData.derive_path("enemies", "enemy_", id)
+			return GameData.derive_path("enemies", "enemy_", visual_id)

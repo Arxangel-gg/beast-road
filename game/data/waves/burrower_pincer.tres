@@ -15,4 +15,5 @@ count_scale = 0.92
 hp_scale = 0.94
 speed_scale = 1.08
 signature_enemy_id = "burrower"
+signature_role = 4
 signature_count_per_lane = 1

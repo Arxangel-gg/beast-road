@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WaveArchetypeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_archetype_data.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+id = "false_front"
+display_name = "False Front"
+description = "A small visible push draws attention before an adjacent road erupts."
+minimum_act = 2
+minimum_act_wave = 5
+selection_weight = 0.72
+count_scale = 1.0
+hp_scale = 0.94
+damage_scale = 1.04
+speed_scale = 1.08
+spawn_spacing_scale = 0.72
+delayed_adjacent_surge = true
+surge_delay = 2.4
+false_front_fraction = 0.32

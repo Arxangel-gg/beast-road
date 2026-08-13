@@ -16,4 +16,5 @@ damage_scale = 1.12
 speed_scale = 0.84
 spawn_spacing_scale = 0.82
 signature_enemy_id = "warden"
+signature_role = 2
 signature_count_per_lane = 1

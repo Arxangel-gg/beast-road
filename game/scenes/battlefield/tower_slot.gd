@@ -30,6 +30,7 @@ var slot: int = 0
 var _field: Battlefield = null
 var _tower: Tower = null
 var _hovered: bool = false
+var _hit_button: Button = null
 
 
 func setup(lane_index: int, slot_index: int, field: Battlefield) -> void:
@@ -52,6 +53,7 @@ func _ready() -> void:
 ## behave like one — hover states, focus, and clicks that the HUD consumes.
 func _make_hit_target() -> void:
 	var button := Button.new()
+	_hit_button = button
 	button.flat = true
 	button.size = Vector2(HIT_SIZE, HIT_SIZE)
 	button.position = Vector2(-HIT_SIZE, -HIT_SIZE) * 0.5
@@ -169,3 +171,6 @@ func _update_marker() -> void:
 	elif _hovered:
 		tint = Color(1, 1, 1, 0.95)
 	marker.modulate = tint
+	if _hit_button != null:
+		_hit_button.mouse_default_cursor_shape = Control.CURSOR_DRAG \
+			if _tower == null and not is_locked() else Control.CURSOR_POINTING_HAND

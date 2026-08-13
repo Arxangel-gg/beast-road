@@ -4,7 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+sprite_id = "coalpaint_raider"
 id = "bogkin"
-display_name = "Bog-kin"
-description = "Waterlogged and slow, and there is always another one. Ashfen Marsh's dominant breed."
+display_name = "Coalpaint Raider"
+description = "A close, readable blade threat from the Verdant Maw."
 category = 0

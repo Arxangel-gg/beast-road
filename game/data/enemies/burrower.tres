@@ -4,16 +4,18 @@
 
 [resource]
 script = ExtResource("1_k4qo0")
-category = 1
+category = 0
 role = 4
-max_hp = 160.0
-contact_damage = 16.0
+sprite_id = "dune_burrower"
+max_hp = 72.0
+contact_damage = 12.0
 move_speed = 70.0
 body_radius = 30.0
 knockback_resistance = 0.4
-raid_charge_value = 4.0
-resource_value = 6
+raid_charge_value = 2.0
+resource_value = 3
 spawn_distance_scale = 0.62
+targets_towers = true
 id = "burrower"
-display_name = "Burrower"
-description = "Surfaces past the towers, already inside the ring."
+display_name = "Dune Burrower"
+description = "Surfaces inside the ring and tears into the nearest tower."

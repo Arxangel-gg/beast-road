@@ -45,6 +45,12 @@ func _ready() -> void:
 			_field.try_build(lane, slot, towers[lane % towers.size()])
 	print("[breather] built %d towers during opening preparation"
 		% get_tree().get_nodes_in_group(&"towers").size())
+	# The hero is intentionally playable during safe planning. It must be the
+	# active battlefield avatar even though towers and the next formation wait.
+	if not _field.hero.is_in_group(Hero.GROUP) \
+			or _field.entity_root.process_mode == Node.PROCESS_MODE_DISABLED:
+		push_error("Preparation froze or deactivated the battlefield hero")
+		_bail(1)
 
 
 func _process(delta: float) -> void:

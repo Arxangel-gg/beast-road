@@ -11,6 +11,11 @@ extends GameData
 ## EnemyData id of the breed that dominates this terrain.
 @export var breed_id: String = ""
 
+## Full authored regional pools. breed_id remains the compatibility/fallback id
+## used by older saves and raid reward ids.
+@export var enemy_ids: Array[String] = []
+@export var elite_ids: Array[String] = []
+
 ## Which act this terrain belongs to, 1-based.
 @export var act: int = 1
 

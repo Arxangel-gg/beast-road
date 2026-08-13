@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "storm_caller"
+display_name = "Storm Caller"
+description = "A ranged support that drives the White Teeth through the snow."
+role = 3
+max_hp = 62.0
+contact_damage = 12.0
+move_speed = 53.0
+body_radius = 27.0
+aura_radius = 205.0
+aura_strength = 0.17
+resource_value = 4

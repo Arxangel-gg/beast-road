@@ -78,6 +78,10 @@ var tower_slots: Array[Dictionary] = []
 # --- Hero ------------------------------------------------------------------
 
 var equipped_spells: Array[String] = []
+var trained_discipline_nodes: Array[String] = []
+var equipped_discipline_slots: Array[String] = []
+var discipline_offers: Array[String] = []
+var discipline_respec_uses: int = 0
 var hero_ascension: int = 0
 
 ## Carried between scopes so a raid is not a free heal and the walk back from
@@ -182,6 +186,12 @@ func reset(use_treasury_cache: bool = false) -> void:
 		tower_slots.append({})
 
 	equipped_spells.clear()
+	trained_discipline_nodes.clear()
+	equipped_discipline_slots.clear()
+	equipped_discipline_slots.resize(Balance.HERO_MAX_SPELL_SLOTS)
+	equipped_discipline_slots.fill("")
+	discipline_offers.clear()
+	discipline_respec_uses = 0
 	hero_ascension = 0
 	hero_hp = -1.0
 	hero_wounds = 0
@@ -222,7 +232,7 @@ func reset(use_treasury_cache: bool = false) -> void:
 	wounds_suffered = 0
 	hearthmends_used = 0
 
-	_equip_starting_spells()
+	_setup_starting_disciplines()
 
 	var starting_terrain: TerrainData = ContentDB.terrain_for_act(1)
 	if starting_terrain != null:
@@ -250,6 +260,136 @@ func _equip_starting_spells() -> void:
 	pool.sort()
 	for i: int in mini(Balance.STARTING_SPELLS, pool.size()):
 		equipped_spells.append(pool[i])
+
+
+## Curated first-run pair. Attack modifies the basic chain; Defense is a cast.
+## The ids remain content, and the existence checks make save migration safe if
+## a future release replaces either starter.
+func _setup_starting_disciplines() -> void:
+	for id: String in ["hemorrhage_edge", "aegis_step"]:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null:
+			continue
+		trained_discipline_nodes.append(id)
+		var slot: int = node.slot_index()
+		if slot >= 0 and equipped_discipline_slots[slot].is_empty():
+			equipped_discipline_slots[slot] = id
+	_sync_discipline_spells()
+	refresh_discipline_offers()
+
+
+func discipline_node_in_slot(slot: int) -> DisciplineNodeData:
+	if slot < 0 or slot >= equipped_discipline_slots.size():
+		return null
+	return ContentDB.discipline_node(equipped_discipline_slots[slot])
+
+
+func refresh_discipline_offers() -> void:
+	discipline_offers.clear()
+	var mansion_tier: int = building_tier("sanctum")
+	if mansion_tier <= 0:
+		return
+	var eligible: Array[DisciplineNodeData] = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.mansion_tier <= mansion_tier and not trained_discipline_nodes.has(node.id):
+			eligible.append(node)
+	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
+	# the panel, while the next road still produces a new set.
+	eligible.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
+		var seed: int = segment * 97 + wave_number * 31 + act * 13
+		return hash(a.id + str(seed)) < hash(b.id + str(seed)))
+	for node: DisciplineNodeData in eligible:
+		if discipline_offers.size() >= 3:
+			break
+		discipline_offers.append(node.id)
+	# Always expose at least one off-discipline choice when the eligible pool has
+	# one, rather than letting synergy turn into a forced mono-build.
+	if not discipline_offers.is_empty():
+		var lead: DisciplineNodeData = ContentDB.discipline_node(discipline_offers[0])
+		var has_off: bool = false
+		for id: String in discipline_offers:
+			var offered: DisciplineNodeData = ContentDB.discipline_node(id)
+			has_off = has_off or (offered != null and lead != null \
+				and offered.discipline != lead.discipline)
+		if not has_off and lead != null:
+			for node: DisciplineNodeData in eligible:
+				if node.discipline != lead.discipline:
+					discipline_offers[discipline_offers.size() - 1] = node.id
+					break
+
+
+func try_train_discipline(id: String) -> String:
+	if not is_preparation():
+		return "Hero training is available only in Preparation."
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	if node == null:
+		return "That discipline node is unavailable."
+	if trained_discipline_nodes.has(id):
+		return "Already trained."
+	if trained_discipline_nodes.size() >= Balance.DISCIPLINE_MAX_TRAINED:
+		return "Six nodes is the run limit. Respec before training another."
+	if building_tier("sanctum") < node.mansion_tier:
+		return "Hero Mansion tier %d is required." % node.mansion_tier
+	if not discipline_offers.has(id):
+		return "That node is not in this road's offers."
+	if not can_afford_cost({FOOD: node.food_cost}):
+		return "Needs %d Food." % node.food_cost
+	spend_cost({FOOD: node.food_cost})
+	trained_discipline_nodes.append(id)
+	discipline_offers.erase(id)
+	if node.is_active_slot() and node.is_slot_unlocked(act):
+		var slot: int = node.slot_index()
+		if equipped_discipline_slots[slot].is_empty():
+			equipped_discipline_slots[slot] = id
+			_sync_discipline_spells()
+	EventBus.discipline_trained.emit(id, node.food_cost)
+	return ""
+
+
+func try_equip_discipline(id: String) -> String:
+	if not is_preparation():
+		return "Loadout changes are available only in Preparation."
+	if not trained_discipline_nodes.has(id):
+		return "Train that node first."
+	var node: DisciplineNodeData = ContentDB.discipline_node(id)
+	if node == null or not node.is_active_slot():
+		return "That node is a doctrine, not an active slot."
+	if not node.is_slot_unlocked(act):
+		return "%s unlocks after the Act %d boss." % [node.slot_name(),
+			1 if node.role == DisciplineNodeData.Role.POWER else 2]
+	var slot: int = node.slot_index()
+	equipped_discipline_slots[slot] = id
+	_sync_discipline_spells()
+	EventBus.discipline_equipped.emit(slot, id)
+	return ""
+
+
+func discipline_respec_cost() -> int:
+	return Balance.DISCIPLINE_RESPEC_BASE_COST \
+		+ discipline_respec_uses * Balance.DISCIPLINE_RESPEC_COST_STEP
+
+
+func try_respec_disciplines() -> String:
+	if not is_preparation():
+		return "Respec is available only in Preparation."
+	var cost: int = discipline_respec_cost()
+	if not can_afford_cost({FOOD: cost}):
+		return "Needs %d Food." % cost
+	spend_cost({FOOD: cost})
+	discipline_respec_uses += 1
+	trained_discipline_nodes.clear()
+	equipped_discipline_slots.fill("")
+	_setup_starting_disciplines()
+	EventBus.discipline_respecced.emit(cost, discipline_respec_uses)
+	return ""
+
+
+func _sync_discipline_spells() -> void:
+	equipped_spells.clear()
+	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		var node: DisciplineNodeData = discipline_node_in_slot(slot)
+		equipped_spells.append(node.spell_id if node != null else "")
+	EventBus.spells_changed.emit()
 
 
 # --- Slot helpers -----------------------------------------------------------

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 2
+role = 1
+mansion_tier = 1
+food_cost = 40
+spell_id = "ash_veil"
+effect_id = "armor_stagger"
+effect_value = 0.30
+id = "iron_roar"
+display_name = "Iron Roar"
+description = "Brief armor and a radial stagger."

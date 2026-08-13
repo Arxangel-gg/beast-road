@@ -4,9 +4,10 @@
 
 [resource]
 script = ExtResource("1_1t4jp")
+sprite_id = "rime_marauder"
 max_hp = 22.0
 contact_damage = 6.0
 move_speed = 78.0
 id = "steppehorde"
-display_name = "Steppe Horde"
-description = "Weak alone. They are never alone."
+display_name = "Rime Marauder"
+description = "A hard-running axe fighter of the White Teeth."

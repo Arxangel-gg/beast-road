@@ -84,7 +84,7 @@ static func dot_texture() -> GradientTexture2D:
 ## each need one, and twenty of them would wash the whole town out.
 func configure(flame_size: float, light_radius: float = 0.0,
 		light_colour: Color = Balance.FLAME_MID, light_energy: float = 1.0,
-		casts_shadows: bool = false) -> void:
+		casts_shadows: bool = false, shadow_on_ultra_only: bool = false) -> void:
 	size = flame_size
 	_seed = randf() * 100.0
 
@@ -102,7 +102,9 @@ func configure(flame_size: float, light_radius: float = 0.0,
 		_light = LightKit.add_light(self, light_colour, light_radius,
 			light_energy, Balance.TORCH_FLICKER)
 		if casts_shadows:
-			LightKit.enable_shadows(_light)
+			LightKit.enable_shadows(_light,
+				Balance.SHADOW_LAYER_SCENERY | Balance.SHADOW_LAYER_UNITS,
+				shadow_on_ultra_only)
 
 
 # --- Silhouette -------------------------------------------------------------

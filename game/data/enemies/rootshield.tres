@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "rootshield"
+display_name = "Rootshield"
+description = "A living barricade that screens the pack behind it."
+role = 2
+max_hp = 88.0
+contact_damage = 10.0
+move_speed = 48.0
+body_radius = 31.0
+knockback_resistance = 0.72
+resource_value = 3

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+id = "wolf_rider"
+display_name = "Wolf Rider"
+description = "A mounted runner that punishes an uncovered road."
+role = 1
+max_hp = 27.0
+contact_damage = 8.0
+move_speed = 118.0
+body_radius = 25.0
+resource_value = 2

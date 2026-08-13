@@ -38,6 +38,8 @@ var _damage_bonus: float = 0.0
 var _extra_chain_targets: int = 0
 var _health: Health = null
 var _health_bar: HealthBar = null
+var _damage_flames: Array[Flame] = []
+var _step_wobble: float = 0.0
 
 
 func setup(tower_data: TowerData, tower_level: int, lane_index: int, slot_index: int, field: Battlefield) -> void:
@@ -78,6 +80,7 @@ func _ready() -> void:
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.beast_step_landed.connect(_on_beast_step)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
 	_cooldown = randf() * data.interval_at(level)
 
@@ -113,6 +116,7 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 
 
 func _process(delta: float) -> void:
+	_tick_step_wobble(delta)
 	if data == null or _field == null or not RunState.is_command_combat():
 		return
 	_command_overdrive_left = maxf(_command_overdrive_left - delta, 0.0)
@@ -158,16 +162,20 @@ func command_reset_attack() -> void:
 
 
 func upgrade_to(new_level: int) -> void:
+	var previous_level: int = level
 	level = clampi(new_level, 1, Balance.TOWER_MAX_LEVEL)
 	_draw_range_ring()
 	refresh_modifiers()
 	_apply_level_look()
 	_refresh_health_for_level()
+	if level != previous_level:
+		_rebuild_damage_flames()
 
 	# The upgrade gets a moment of its own. Paying resources should feel like
 	# something happened, not like a number changed in a panel.
-	var colour: Color = TowerData.element_colour(data.element)
-	Vfx.build_burst(global_position, colour, true)
+	if level != previous_level:
+		var colour: Color = TowerData.element_colour(data.element)
+		Vfx.build_burst(global_position, colour, true)
 
 
 ## Colourblind modes remap semantic element cues in-place. The sprite keeps its
@@ -330,8 +338,6 @@ func effective_range() -> float:
 ## Taunting towers are actual blockers now. They use the same Health component
 ## as every other attack target, and their authored HP finally matters.
 func _build_health() -> void:
-	if data.max_hp <= 0.0:
-		return
 	_health = Health.new()
 	_health.name = "Health"
 	add_child(_health)
@@ -340,7 +346,11 @@ func _build_health() -> void:
 	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
 		Vfx.number(global_position, amount, Color("d9cdb8"))
 		Vfx.spark(global_position, Color("a78f6d"), 5,
-			(global_position - from).normalized(), 120.0))
+			(global_position - from).normalized(), 120.0)
+		_pulse_impact(from)
+		_refresh_damage_flames())
+	_health.changed.connect(func(_current: float, _maximum: float) -> void:
+		_refresh_damage_flames())
 	_health.died.connect(_on_destroyed)
 
 	var health_scene: PackedScene = load("res://scenes/ui/health_bar.tscn")
@@ -351,6 +361,7 @@ func _build_health() -> void:
 	_health_bar.position = Vector2(0.0, -Balance.TOWER_SPRITE_LIFT * 2.4)
 	add_child(_health_bar)
 	_health_bar.bind(_health)
+	_build_damage_flames()
 
 
 func _refresh_health_for_level() -> void:
@@ -370,6 +381,105 @@ func _on_destroyed(_from: Vector2) -> void:
 	EventBus.camera_shake_requested.emit(9.0, 0.4)
 	RunState.towers_lost += 1
 	RunState.clear_slot(lane, slot)
+
+
+func is_vulnerable() -> bool:
+	return _health != null and not _health.is_dead
+
+
+func needs_repair() -> bool:
+	return is_vulnerable() and _health.current_hp < _health.max_hp - 0.5
+
+
+func repair(fraction: float) -> void:
+	if not is_vulnerable():
+		return
+	_health.heal(_health.max_hp * clampf(fraction, 0.0, 1.0))
+	_refresh_damage_flames()
+	Vfx.ring(global_position, 74.0, Color(0.58, 0.88, 0.64, 0.65), 0.45, 5.0)
+	Vfx.spark(global_position, Color("b7e6c0"), 12, Vector2.UP, 150.0)
+	Sfx.play("sfx_tower_upgrade", -5.0)
+
+
+## Damage fires are anchored to the actual alpha silhouette, not fixed world
+## coordinates. Each authored tower therefore burns from its own roofline and
+## upper structure even though all eighteen share this script.
+func _build_damage_flames() -> void:
+	if sprite == null or sprite.texture == null:
+		return
+	var image: Image = sprite.texture.get_image()
+	if image == null or image.is_empty():
+		return
+	for fraction: float in [0.34, 0.62, 0.49]:
+		var column: int = clampi(int(round(float(image.get_width() - 1) * fraction)),
+			0, image.get_width() - 1)
+		var first_opaque: int = -1
+		for y: int in image.get_height():
+			if image.get_pixel(column, y).a > 0.2:
+				first_opaque = y
+				break
+		if first_opaque < 0:
+			continue
+		var fire := Flame.new()
+		fire.name = "DamageFlame%d" % _damage_flames.size()
+		var local_x: float = (float(column) - float(image.get_width()) * 0.5) * sprite.scale.x
+		var local_y: float = (float(first_opaque) - float(image.get_height()) * 0.5 \
+			+ float(image.get_height()) * 0.14) * sprite.scale.y
+		fire.position = sprite.position + Vector2(local_x, local_y)
+		fire.z_index = 2
+		add_child(fire)
+		fire.configure(11.0 + float(_damage_flames.size()) * 1.5)
+		fire.set_lit(false)
+		_damage_flames.append(fire)
+
+
+## Upgrade scaling changes the sprite silhouette in local space. Re-sampling
+## after the scale change keeps every fire attached to its authored roofline.
+func _rebuild_damage_flames() -> void:
+	for fire: Flame in _damage_flames:
+		if is_instance_valid(fire):
+			fire.queue_free()
+	_damage_flames.clear()
+	_build_damage_flames()
+	_refresh_damage_flames()
+
+
+func _refresh_damage_flames() -> void:
+	if _damage_flames.is_empty() or _health == null:
+		return
+	var damage: float = 1.0 - _health.ratio()
+	var wanted: int = 0
+	if damage >= 0.22:
+		wanted = 1
+	if damage >= 0.48:
+		wanted = 2
+	if damage >= 0.74:
+		wanted = 3
+	for index: int in _damage_flames.size():
+		var fire: Flame = _damage_flames[index]
+		var burning: bool = index < wanted
+		fire.set_lit(burning)
+		if burning:
+			fire.set_intensity(clampf(0.45 + damage * 0.65, 0.0, 1.0))
+
+
+func _pulse_impact(from: Vector2) -> void:
+	var away: Vector2 = global_position - from
+	var side: float = signf(away.x) if absf(away.x) > 0.01 else 1.0
+	_step_wobble += side * 1.1
+
+
+func _on_beast_step(impulse: Vector2, strength: float) -> void:
+	if _health == null or _health.is_dead:
+		return
+	_step_wobble = -signf(impulse.x) * Balance.BEAST_STEP_WOBBLE_DEGREES * 0.45 * strength
+
+
+func _tick_step_wobble(delta: float) -> void:
+	if sprite == null:
+		return
+	_step_wobble = move_toward(_step_wobble, 0.0, 12.0 * delta)
+	sprite.rotation = deg_to_rad(_step_wobble)
 
 
 func _draw_range_ring() -> void:

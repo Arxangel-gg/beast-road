@@ -79,6 +79,19 @@ func bonus_relic_slots() -> int:
 
 
 func save_game() -> void:
+	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		push_warning("MetaState: could not open save for writing: %s" % SAVE_PATH)
+		return
+	file.store_string(serialized_save())
+	file.close()
+	save_written.emit()
+
+
+## The exact payload written by save_game(). Release gates use this to time an
+## isolated checkpoint inside the project instead of ever touching a player's
+## real save slot while another development session may be running.
+func serialized_save() -> String:
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
 		"unlocked": {
@@ -98,13 +111,7 @@ func save_game() -> void:
 		},
 		"settings": settings,
 	}
-	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_warning("MetaState: could not open save for writing: %s" % SAVE_PATH)
-		return
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
-	save_written.emit()
+	return JSON.stringify(data, "\t")
 
 
 func load_save() -> void:

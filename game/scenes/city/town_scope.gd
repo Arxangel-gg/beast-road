@@ -22,6 +22,7 @@ const PLOT_RADIUS: float = 300.0
 func activate() -> void:
 	if camera != null:
 		camera.make_current()
+	CursorKit.use_default()
 
 ## Emitted when the player picks a plot, so the town UI can open on it.
 signal plot_selected(building_id: String)
@@ -46,6 +47,7 @@ func _setup_ground() -> void:
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
+	ground.material = TerrainBlend.material()
 	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
