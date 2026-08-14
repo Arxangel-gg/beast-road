@@ -36,6 +36,14 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"spell_2", "label": "Ability 2"},
 	{"action": &"spell_3", "label": "Ability 3"},
 	{"action": &"spell_4", "label": "Ability 4"},
+	# Bound since they were written, and reachable from the keyboard, but absent
+	# from this list - so the settings panel offered no way to move them. Command
+	# orders sit on Z/X/C, which is exactly the corner of the keyboard a
+	# left-handed or non-QWERTY player most needs to change.
+	{"action": &"command_overdrive", "label": "Command: Overdrive"},
+	{"action": &"command_rally", "label": "Command: Rally Road"},
+	{"action": &"command_last_stand", "label": "Command: Last Stand"},
+	{"action": &"ride_on", "label": "Ride on"},
 	{"action": &"pause", "label": "Pause"},
 ]
 

@@ -624,11 +624,11 @@ func _build_command_panel() -> void:
 	orders.add_theme_constant_override("separation", 8)
 	column.add_child(orders)
 	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z",
-		"command_overdrive", "Select a built tower, then surge its attack rate and utility for 5 seconds.")
+		"command_overdrive", "Point at a tower and press Z: it surges its attack rate and utility for 5 seconds.")
 	_add_command_button(orders, CommandSystemScript.RALLY_ROAD, "X",
-		"command_rally", "Select any spot on a road, then stagger that road and shield its blockers.")
+		"command_rally", "Point at a road and press X: it staggers everything on it and shields its blockers.")
 	_add_command_button(orders, CommandSystemScript.LAST_STAND, "C",
-		"command_last_stand", "Protect the Town Hall for 3 seconds and reset every tower attack.")
+		"command_last_stand", "Press C: the Town Hall is protected for 3 seconds and every tower attack resets. Once per battle.")
 
 
 func _add_command_button(parent: Node, id: String, text: String, icon: String,
