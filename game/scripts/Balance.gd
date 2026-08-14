@@ -499,13 +499,60 @@ const LANE_SPAWN_RADIUS: float = 900.0
 ## Radius of the town core. Enemies that reach it deal damage. [TUNE]
 const TOWN_RADIUS: float = 160.0
 
-## Radii of the three build spots along each lane, town-outward.
-## Index 0 = inner, 1 = middle (the combination slot), 2 = outer.
-const TOWER_SLOT_RADII: Array[float] = [320.0, 520.0, 720.0]
+## Build spots along each lane, town-outward, for both flanks of the road.
+##
+## Six per road rather than three: the same inner/middle/outer trio, mirrored to
+## the other side of the path. 6 x 4 lanes = 24 spots. Owner decision, 2026-08-14,
+## superseding the three-spot layout in GDD v4 §3-§4; the design docs and
+## V4_CONFORMANCE were updated with it rather than left disagreeing.
+##
+## The array's size is what the rest of the game reads as "spots per lane" -
+## RunState indexes saves with it, Battlefield builds the field from it - so this
+## is the one place the number lives.
+##
+## Index 0-2 are the left flank, 3-5 the right, each running inner to outer.
+## Left and right are taken standing at the town looking outward along the road,
+## which is well defined because the orthogonal is a consistent rotation.
+const TOWER_SLOT_RADII: Array[float] = [
+	320.0, 520.0, 720.0,
+	320.0, 520.0, 720.0,
+]
 
-## The combination slot is the middle one and only unlocks once both of its
-## neighbours are built (GDD §4.1).
+## Spots on one flank. Each flank is a self-contained trio with its own
+## combination, so a road can run two different fusions at once.
+const TOWER_SLOTS_PER_SIDE: int = 3
+
+## The combination slot is the middle of its flank, and only unlocks once both of
+## its neighbours on that flank are built (GDD §4.1).
 const COMBO_SLOT_INDEX: int = 1
+
+
+## Which flank a spot is on: 0 for the left trio, 1 for the right.
+static func slot_side(slot: int) -> int:
+	return 0 if slot < TOWER_SLOTS_PER_SIDE else 1
+
+
+## The sign to push a spot away from the lane centre line with.
+static func slot_side_sign(slot: int) -> float:
+	return 1.0 if slot_side(slot) == 0 else -1.0
+
+
+## Position within its flank: 0 inner, 1 middle, 2 outer.
+static func slot_local(slot: int) -> int:
+	return slot % TOWER_SLOTS_PER_SIDE
+
+
+## First slot index of the flank this spot belongs to.
+static func slot_side_base(slot: int) -> int:
+	return slot_side(slot) * TOWER_SLOTS_PER_SIDE
+
+
+static func slot_is_combo(slot: int) -> bool:
+	return slot_local(slot) == COMBO_SLOT_INDEX
+
+
+static func slots_per_lane() -> int:
+	return TOWER_SLOT_RADII.size()
 
 ## How far a build spot sits to the side of the lane centre line, so towers
 ## flank the path instead of standing in it.
@@ -823,7 +870,19 @@ const TREASURY_CACHE_MAX: int = 50
 
 ## Accessibility contract mirrored by Palette's authored live tables.
 const COLOURBLIND_MODES: Array[String] = ["off", "protanopia", "deuteranopia", "tritanopia"]
-const ELITE_STONE_REWARD: int = 4
+## Stone from an elite kill.
+##
+## Doubling the build spots doubled the fusions a run can reach - eight rather
+## than four, two per road - and Stone is the only thing that buys them. Left at
+## 4 the second fusion on a road was arithmetic rather than a decision: the
+## currency simply never arrived.
+##
+## 6 rather than 8, deliberately. Stone is meant to be the scarce, event-driven
+## wallet: it comes from elites, raids and the quarry, never from walking. A
+## second fusion should be a run's late goal, not something every road gets by
+## default - otherwise the extra flank stops being a choice about where to spend
+## and becomes a checklist. [TUNE]
+const ELITE_STONE_REWARD: int = 6
 const BOSS_STONE_REWARD: int = 24
 
 ## A costly emergency action: restores the run after a partial breach while

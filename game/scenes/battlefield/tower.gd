@@ -91,7 +91,7 @@ func refresh_modifiers() -> void:
 	_damage_bonus = 0.0
 	_extra_chain_targets = 0
 
-	if RunState.lane_has_element_synergy(lane) and not data.is_combination:
+	if RunState.lane_has_element_synergy(lane, slot) and not data.is_combination:
 		_damage_bonus += Balance.SAME_ELEMENT_LANE_BONUS
 
 	_extra_chain_targets += int(Modifiers.value(Modifiers.CHAIN_TARGETS))

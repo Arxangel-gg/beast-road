@@ -1109,9 +1109,14 @@ func _refresh_build_panel() -> void:
 	var slot: int = _selected_slot
 	var existing: TowerData = RunState.tower_in_slot(lane, slot)
 	var level: int = RunState.level_in_slot(lane, slot)
-	_build_title.text = "%s lane  ·  %s spot" % [
+	# Six spots per road now, so the flank has to be named too - "N lane · inner
+	# spot" would point at two different places. Left and right are taken standing
+	# at the town looking outward along the road, which is what the orthogonal
+	# gives and is the same hand for every cardinal.
+	_build_title.text = "%s lane  ·  %s %s spot" % [
 		LANE_NAMES[clampi(lane, 0, 3)],
-		["inner", "middle", "outer"][clampi(slot, 0, 2)],
+		"left" if Balance.slot_side(slot) == 0 else "right",
+		["inner", "middle", "outer"][Balance.slot_local(slot)],
 	]
 
 	if existing != null:

@@ -304,13 +304,17 @@ This system keeps Darkest Dungeon-style attrition, preserves heroic risk, and av
 
 ## 13. Battlefield Layout
 
-The Town Hall sits at the center of a top-down battlefield. Four fixed roads approach from north, east, south, and west. Each road has three defense slots:
+The Town Hall sits at the center of a top-down battlefield. Four fixed roads approach from north, east, south, and west. Each road is built on from **both flanks**, and each flank carries the same trio of defense slots:
 
 - **A slot:** base tower;
 - **Fusion slot:** combination tower derived from A and B;
 - **B slot:** base tower.
 
-The battlefield therefore contains twelve tower slots. Fixed locations preserve lane readability, reduce placement traps, and focus choice on composition, upgrades, target priorities, and timing.
+Each road therefore has six slots and the battlefield twenty-four. A road can run two different fusions at once, one per flank, and each flank's Fusion slot depends only on the A and B slots beside it - building across the road neither unlocks nor invalidates the other side.
+
+Fixed locations preserve lane readability, reduce placement traps, and focus choice on composition, upgrades, target priorities, and timing. Capability remains income-bound rather than slot-bound, so the second flank buys coverage, fusion variety and structure to absorb a push - not double damage.
+
+> **Revised 2026-08-14 (owner).** This section specified three slots per road and twelve in total through v4.0. The build is six and twenty-four.
 
 ### Road pressure states
 
@@ -502,7 +506,7 @@ Bosses are authored multi-road encounters, not oversized lane enemies. Each has 
 
 All tower building, selling, element assignment, and upgrading occurs during Preparation. During combat the player may change targeting doctrine and spend Command, but cannot erase a bad commitment through mid-wave construction.
 
-Each road's A and B slots accept any unlocked base tower. When both are built, the Fusion slot can construct the combination defined by their elements. Fusion construction costs Gold and Stone. If a parent tower is destroyed, the combination tower continues at 60% base output but loses its fusion utility until the parent is repaired in Preparation `[TUNE]`.
+Each flank's A and B slots accept any unlocked base tower. When both on that flank are built, that flank's Fusion slot can construct the combination defined by their elements. Fusion construction costs Gold and Stone. If a parent tower is destroyed, the combination tower continues at 60% base output but loses its fusion utility until the parent is repaired in Preparation `[TUNE]`.
 
 Selling returns 60% of Gold cost and 40% of Stone cost during Preparation `[TUNE]`. No sale is allowed during combat.
 

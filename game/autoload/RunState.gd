@@ -525,18 +525,28 @@ func cycle_target_priority(lane: int, slot: int) -> int:
 
 ## The combination available in a lane's middle slot, or null. Requires both
 ## flanking slots to be built (GDD §4.1).
-func available_combination(lane: int) -> TowerData:
-	var inner: TowerData = tower_in_slot(lane, 0)
-	var outer: TowerData = tower_in_slot(lane, 2)
+## The fusion a flank's middle spot can currently take.
+##
+## Per flank, not per lane. Each side of a road is a self-contained trio with its
+## own inner and outer spot, so a road can run two different fusions at once -
+## which is the point of building on both sides rather than just having more
+## room for the same one.
+func available_combination(lane: int, slot: int) -> TowerData:
+	var base: int = Balance.slot_side_base(slot)
+	var inner: TowerData = tower_in_slot(lane, base)
+	var outer: TowerData = tower_in_slot(lane, base + 2)
 	if inner == null or outer == null:
 		return null
 	return ContentDB.combination_for(inner.element, outer.element)
 
 
-## True when a lane's two elemental towers share an element (GDD §4.2).
-func lane_has_element_synergy(lane: int) -> bool:
-	var inner: TowerData = tower_in_slot(lane, 0)
-	var outer: TowerData = tower_in_slot(lane, 2)
+## True when the flank's two elemental towers share an element (GDD §4.2).
+## Scoped to the flank for the same reason as the combination above: the pair
+## that would fuse is the pair that resonates.
+func lane_has_element_synergy(lane: int, slot: int) -> bool:
+	var base: int = Balance.slot_side_base(slot)
+	var inner: TowerData = tower_in_slot(lane, base)
+	var outer: TowerData = tower_in_slot(lane, base + 2)
 	return inner != null and outer != null and inner.element == outer.element
 
 

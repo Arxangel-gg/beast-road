@@ -340,10 +340,11 @@ static func lane_spawn_point(lane: int) -> Vector2:
 static func slot_position(lane: int, slot: int) -> Vector2:
 	var direction: Vector2 = lane_vector(lane)
 	var along: float = Balance.TOWER_SLOT_RADII[clampi(slot, 0, Balance.TOWER_SLOT_RADII.size() - 1)]
-	# The combination slot sits on the opposite side of the path so that "the
-	# one in the middle" reads at a glance.
-	var side: float = -1.0 if slot == Balance.COMBO_SLOT_INDEX else 1.0
-	return direction * along + direction.orthogonal() * Balance.TOWER_SLOT_OFFSET * side
+	# Both flanks of the road are built on now, so the side comes from which trio
+	# the spot belongs to. It used to come from whether the spot was the
+	# combination one, which put the middle spot opposite its own neighbours.
+	return direction * along \
+		+ direction.orthogonal() * Balance.TOWER_SLOT_OFFSET * Balance.slot_side_sign(slot)
 
 
 func town_position() -> Vector2:

@@ -1,8 +1,9 @@
 class_name TowerSlot
 extends Node2D
 
-## A build spot on a lane (GDD §3). Three per lane; the middle one is the
-## combination slot and only unlocks once both of its neighbours are built.
+## A build spot on a lane (GDD §3). Six per lane - an inner/middle/outer trio on
+## each flank of the road - and each flank's middle spot is its combination slot,
+## unlocked once both of its own neighbours are built.
 ##
 ## The slot owns no game state — RunState does. This node reads RunState and
 ## draws what it says, so a slot rebuilt from a save looks the same as one the
@@ -116,7 +117,7 @@ func _make_hit_target() -> void:
 
 
 func is_combo_slot() -> bool:
-	return slot == Balance.COMBO_SLOT_INDEX
+	return Balance.slot_is_combo(slot)
 
 
 func is_empty() -> bool:
@@ -130,7 +131,7 @@ func tower() -> Tower:
 ## What this slot can currently build, or null. For the combination slot that
 ## depends on what is standing either side of it.
 func buildable_combination() -> TowerData:
-	return RunState.available_combination(lane) if is_combo_slot() else null
+	return RunState.available_combination(lane, slot) if is_combo_slot() else null
 
 
 ## A combination slot with nothing to combine is not buildable at all.
@@ -183,10 +184,13 @@ func _on_slot_changed(changed_lane: int, changed_slot: int) -> void:
 	if changed_lane != lane:
 		return
 	# A neighbour changing can unlock or invalidate this slot's combination, so
-	# the middle slot listens to the whole lane, not just to itself.
+	# the middle slot listens to its neighbours as well as to itself - but only
+	# the ones on its own flank. The other side of the road runs its own trio and
+	# its own fusion, and letting it invalidate this one would refund a tower for
+	# something built across the path from it.
 	if changed_slot == slot:
 		refresh()
-	elif is_combo_slot():
+	elif is_combo_slot() and Balance.slot_side(changed_slot) == Balance.slot_side(slot):
 		_validate_combination()
 	else:
 		if _tower != null:

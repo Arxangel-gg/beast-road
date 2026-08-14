@@ -512,10 +512,22 @@ func _on_ride_on_requested() -> void:
 	EventBus.preparation_changed.emit(0.0, false)
 
 
+## Nothing standing on either flank.
+##
+## Used to test spots 0 and 2 by index, which was the whole road when a road had
+## three spots and is now one flank of six. A road with a full right flank and an
+## empty left one would have been reported as undefended.
+func _lane_is_undefended(lane: int) -> bool:
+	for slot: int in Balance.slots_per_lane():
+		if not RunState.slot_is_empty(lane, slot):
+			return false
+	return true
+
+
 func _uncovered_roads() -> Array[int]:
 	var result: Array[int] = []
 	for lane: int in Balance.LANE_COUNT:
-		if RunState.slot_is_empty(lane, 0) and RunState.slot_is_empty(lane, 2):
+		if _lane_is_undefended(lane):
 			result.append(lane)
 	return result
 

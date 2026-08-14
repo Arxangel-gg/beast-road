@@ -441,6 +441,7 @@ func _test_preparation_and_command() -> void:
 	await _clear_the_road(field)
 	_test_road_survives_a_declined_breather(field)
 	_test_level_moves_every_stat_a_tower_has()
+	_test_six_spots_per_road(field)
 
 
 ## The Draught's *mechanic* was complete and correct for months. Nothing in the
@@ -599,6 +600,72 @@ func _test_build_spots_yield_to_the_fight(field: Battlefield) -> void:
 			"the guard must lift again once the enemy is clear, not latch")
 		besieger.queue_free()
 	RunState.set_phase(RunState.Phase.PREPARATION)
+
+
+## Six build spots per road, three to a flank, each flank its own trio.
+##
+## Owner decision, 2026-08-14: 24 spots rather than 12. Almost everything reads
+## the count from `TOWER_SLOT_RADII.size()` and needed no change, which is why
+## the things that *did* hardcode indices are worth pinning here - a coverage
+## check that tested spots 0 and 2 used to mean "the whole road" and now means
+## "the left flank", and would have called a road with a full right flank
+## undefended.
+func _test_six_spots_per_road(field: Battlefield) -> void:
+	_check(Balance.slots_per_lane() == 6, "a road must offer six build spots")
+	_check(field.all_slots().size() == Balance.LANE_COUNT * 6,
+		"the field must build all 24 spots, got %d" % field.all_slots().size())
+
+	# One combination per flank, in the middle of it.
+	var combos: Array[int] = []
+	for slot: int in Balance.slots_per_lane():
+		if Balance.slot_is_combo(slot):
+			combos.append(slot)
+	_check(combos == [1, 4], "each flank's middle spot is its combination, got %s" % [combos])
+
+	# The flanks are opposite sides of the same road, and mirror each other.
+	for local: int in Balance.TOWER_SLOTS_PER_SIDE:
+		var left: Vector2 = Battlefield.slot_position(0, local)
+		var right: Vector2 = Battlefield.slot_position(0, local + Balance.TOWER_SLOTS_PER_SIDE)
+		_check(not left.is_equal_approx(right),
+			"flank spots must not share a position at local %d" % local)
+		_check(left.distance_to(-right) < 1.0 or is_equal_approx(left.length(), right.length()),
+			"mirrored spots must sit the same distance along the road")
+
+	# No spot may land on a torch. This bit the project once already, when moving
+	# the spots off the road put them where the torches stood.
+	for lane: int in Balance.LANE_COUNT:
+		var direction: Vector2 = Battlefield.lane_vector(lane)
+		for slot: int in Balance.slots_per_lane():
+			var at: Vector2 = Battlefield.slot_position(lane, slot)
+			for along: float in Balance.TORCH_ALONG_STOPS:
+				for sign_of: float in [1.0, -1.0]:
+					var torch: Vector2 = direction * along \
+						+ direction.orthogonal() * Balance.TORCH_LANE_OFFSET * sign_of
+					_check(at.distance_to(torch) > 120.0,
+						"lane %d spot %d stands on a torch (%.0fpx away)"
+							% [lane, slot, at.distance_to(torch)])
+
+	# A flank's fusion depends on that flank only. Building across the road must
+	# not unlock - or invalidate - the other side's combination.
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.currencies[RunState.GOLD] = 9999
+	RunState.currencies[RunState.STONE] = 9999
+	for slot: int in Balance.slots_per_lane():
+		RunState.clear_slot(3, slot)
+	_check(field.try_build(3, 0, ContentDB.tower("ember_spire")).is_empty(),
+		"left inner must build")
+	_check(field.try_build(3, 2, ContentDB.tower("ember_spire")).is_empty(),
+		"left outer must build")
+	_check(RunState.available_combination(3, 1) != null,
+		"a completed flank must offer its fusion")
+	_check(RunState.available_combination(3, 4) == null,
+		"the far flank must not inherit a fusion from across the road")
+	_check(RunState.lane_has_element_synergy(3, 0),
+		"a flank's matching pair must resonate")
+	_check(not RunState.lane_has_element_synergy(3, 3),
+		"synergy must not leak across the road")
+	for slot: int in Balance.slots_per_lane():
+		RunState.clear_slot(3, slot)
 
 
 ## An upgrade has to move the stats that make each tower the tower it is.

@@ -27,8 +27,10 @@ extends Node
 ## value means little; its **shape** is the whole point. A flat line is a game
 ## that stays as hard as it started. A step is a wall.
 
-## Three build spots per lane (GDD §3), the middle one the combination slot.
-const SLOTS_PER_LANE: int = 3
+## Six build spots per lane: an inner/middle/outer trio on each flank of the road.
+## Read from Balance rather than restated, so the six-spot road cannot leave
+## this report quietly measuring a three-spot one.
+const SLOTS_PER_LANE: int = 6
 
 ## Roughly how long a formation stays on the road once it has finished walking
 ## on, before the last body is dealt with. Added to the spawn time and the
