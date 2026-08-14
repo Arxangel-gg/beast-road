@@ -48,8 +48,33 @@ func vulnerable_tower_in_lane(_lane: int, _from: Vector2) -> Node2D:
 	return null
 
 
+## Enemies that can still fight.
+##
+## Deliberately not `get_node_count_in_group`. A wave ends when this reaches
+## zero, and the raw group count includes enemies part way through a death
+## animation and any that have been freed but not yet removed from the tree - so
+## the last kill of a wave held it open for as long as the corpse lasted, and
+## anything that failed to finish dying held it open forever.
 func enemy_count() -> int:
-	return get_tree().get_node_count_in_group(Enemy.GROUP)
+	var total: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
+			total += 1
+	return total
+
+
+## Who is keeping a wave open, for the watchdog's report.
+func living_enemy_summary() -> String:
+	var names: PackedStringArray = []
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
+		names.append("%s on road %d at %.0f,%.0f" % [
+			enemy.data.id if enemy.data != null else "?", enemy.lane,
+			enemy.global_position.x, enemy.global_position.y])
+	return ", ".join(names) if not names.is_empty() else "nothing"
 
 
 func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:

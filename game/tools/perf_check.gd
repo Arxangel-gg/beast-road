@@ -67,6 +67,9 @@ var _build: bool = false
 ## `--quality=ultra` without silently turning the normal certification into a
 ## benchmark of the most expensive possible settings.
 var _quality: String = Graphics.PRESET_HIGH
+
+## Features switched off on top of the preset, for cost attribution.
+var _disabled: Array[String] = []
 var _elapsed: float = 0.0
 
 ## Measurement starts when the first wave does, not when the process does.
@@ -99,6 +102,15 @@ func _ready() -> void:
 				_quality = requested
 			else:
 				push_warning("Unknown quality preset '%s'; testing High." % requested)
+		elif argument.begins_with("--off="):
+			# Turns one feature off on top of the chosen preset, so the cost of a
+			# single thing can be measured instead of inferred from the gap between
+			# two presets that differ in five ways at once.
+			#
+			#   --quality=high --off=cast     what do torch shadows cost
+			#   --quality=high --off=clouds   what does the cloud layer cost
+			for piece: String in argument.split("=")[1].split(","):
+				_disabled.append(piece.strip_edges().to_lower())
 		elif argument == "--build":
 			_build = true
 
@@ -111,6 +123,14 @@ func _ready() -> void:
 	# headroom disappearing until it had already gone.
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Graphics.apply_preset(_quality)
+	for feature: String in _disabled:
+		match feature:
+			"cast": Graphics.set_switch(Graphics.KEY_CAST_SHADOWS, false)
+			"contact": Graphics.set_switch(Graphics.KEY_CONTACT_SHADOWS, false)
+			"clouds": Graphics.set_switch(Graphics.KEY_CLOUDS, false)
+			"particles": Graphics.set_switch(Graphics.KEY_PARTICLES, 0.0)
+			"foliage": Graphics.set_switch(Graphics.KEY_FOLIAGE, 0.0)
+			_: push_warning("Unknown --off feature '%s'." % feature)
 	# The player's stored cap is irrelevant to a throughput test. Apply the
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
 	Engine.max_fps = 0
@@ -125,8 +145,9 @@ func _ready() -> void:
 		_build_defence()
 	_start_fighting()
 
-	print("[perf] %s renderer, %s quality, %.0fs of measured combat, warm-up %.0fs"
-		% [_renderer_name(), _quality.capitalize(), _seconds, WARMUP_SECONDS])
+	var off: String = ("  minus " + ", ".join(_disabled)) if not _disabled.is_empty() else ""
+	print("[perf] %s renderer, %s quality%s, %.0fs of measured combat, warm-up %.0fs"
+		% [_renderer_name(), _quality.capitalize(), off, _seconds, WARMUP_SECONDS])
 
 
 ## Towers, so the worst case is a real fight rather than an empty field. A

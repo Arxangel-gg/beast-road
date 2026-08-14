@@ -266,6 +266,15 @@ const PREPARATION_BETWEEN_WAVES: float = 10.0
 ## The award falls linearly to zero over PREPARATION_BETWEEN_WAVES. [TUNE]
 const PREPARATION_EARLY_GOLD_MAX: int = 30
 
+## How long a formation may fail to clear before the run moves on anyway.
+##
+## Waves wait for every enemy, which is right - but with no ceiling that wait is
+## a softlock: one enemy that cannot die or cannot be reached stops the wave, the
+## next Preparation, and the run, with nothing spawning and nothing to fight.
+## Generous, because it must never fire during an ordinary slow wave; it exists
+## only so a stall becomes a hiccup. [TUNE]
+const WAVE_STALL_TIMEOUT: float = 75.0
+
 ## How soon the next wave may arrive once a breather ends. [TUNE]
 const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
 

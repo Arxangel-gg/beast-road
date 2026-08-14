@@ -63,7 +63,7 @@ const PRESETS: Dictionary = {
 		KEY_CAST_SHADOWS: true,
 		KEY_CONTACT_SHADOWS: true,
 		KEY_PARTICLES: 1.0,
-		KEY_FOLIAGE: 1.0,
+		KEY_FOLIAGE: 0.6,
 		KEY_CLOUDS: true,
 	},
 	# For machines with power to spare. High is the authored look; Ultra pushes

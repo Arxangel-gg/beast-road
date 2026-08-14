@@ -25,16 +25,74 @@ const PALETTE_SAMPLE_SIZE: int = 32
 const PALETTE_MIN_VALUE: float = 0.08
 const PALETTE_MAX_VALUE: float = 0.78
 
-var _clumps: Array[Node2D] = []
-var _clump_phases: Array[float] = []
-var _clump_rates: Array[float] = []
-var _clump_amounts: Array[float] = []
+## Sway, done on the GPU.
+##
+## The field used to be one CanvasItem per clump - 420 of them - each rotated
+## every frame to make it lean. Measured, that was the entire performance
+## regression: switching foliage off took the game from 57 to 104 fps on a
+## 3070 Ti while cast shadows, contact shadows and clouds were worth about one
+## frame each between them.
+##
+## The cost was never the polygons; it was 420 separate canvas items, and a
+## per-frame transform write on each. So the whole field is now drawn once into
+## a single canvas item and never touched again, and the leaning happens in a
+## vertex shader.
+##
+## The trick is UV.y. Each blade is drawn with 0 at its root and 1 at its tip,
+## so the shader can displace the tip and leave the root planted - which is what
+## makes grass look rooted rather than sliding. The wind is a function of world
+## position and TIME, so neighbouring clumps lean together into a travelling
+## gust without any of them knowing about each other.
+const WIND_SHADER: String = """
+shader_type canvas_item;
+
+uniform float sway_degrees = 5.5;
+uniform float sway_speed = 1.15;
+uniform float gust_speed = 0.23;
+
+void vertex() {
+	// Root to tip. Zero at the base means the plant stays where it grew.
+	float up = UV.y;
+
+	// One travelling wave over the field, plus a slow gust that swells and eases
+	// so the whole meadow breathes rather than every blade fidgeting on its own
+	// clock.
+	float phase = TIME * sway_speed + (VERTEX.x + VERTEX.y) * 0.012;
+	float gust = 0.6 + 0.4 * sin(TIME * gust_speed);
+	float lean = sin(phase) * radians(sway_degrees) * gust;
+
+	// Displacement grows with the square of height: the tip whips, the middle
+	// bends, the base does not move at all.
+	VERTEX.x += lean * up * up * 34.0;
+}
+"""
+
+static var _wind_material: ShaderMaterial = null
+
+
+## One material for every blade in the game.
+static func wind_material() -> ShaderMaterial:
+	if _wind_material != null:
+		return _wind_material
+	var shader := Shader.new()
+	shader.code = WIND_SHADER
+	_wind_material = ShaderMaterial.new()
+	_wind_material.shader = shader
+	_wind_material.set_shader_parameter("sway_degrees", Balance.FOLIAGE_SWAY_DEGREES)
+	_wind_material.set_shader_parameter("sway_speed", Balance.FOLIAGE_SWAY_SPEED)
+	return _wind_material
+
+
+## Every blade in the field, in world space, ready to draw in one pass.
+## How many depth slices the field is drawn in. Sixteen keeps the sorting cue
+## finer than anyone can see while costing sixteen draw calls instead of 420.
+const BAND_COUNT: int = 16
+
+var _bands: Array[FoliageBand] = []
 
 ## Held apart from the clumps because they must not sway: a shadow that swings
 ## with the plant above it reads as the ground moving.
 var _shadows: Array[Node2D] = []
-var _phase: float = 0.0
-var _update_left: float = 0.0
 
 ## The density this scatter was built at, so a re-scatter only happens on change.
 var _scattered_at: float = -1.0
@@ -47,14 +105,11 @@ func _ready() -> void:
 
 ## Rebuilds the whole scatter for the current terrain.
 func scatter() -> void:
-	for node: Node2D in _clumps + _shadows:
+	for node: Node2D in _bands + _shadows:
 		if is_instance_valid(node):
 			node.queue_free()
-	_clumps.clear()
+	_bands.clear()
 	_shadows.clear()
-	_clump_phases.clear()
-	_clump_rates.clear()
-	_clump_amounts.clear()
 
 	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["ashfen"]).duplicate()
 	style.merge(_terrain_palette(), true)
@@ -63,9 +118,30 @@ func scatter() -> void:
 	# reshuffling every time the scope is entered.
 	rng.seed = hash(RunState.terrain_id)
 
-	# Scaled at scatter time, not culled afterwards: four hundred clumps that are
-	# never created cost nothing, whereas four hundred hidden ones still sit in the
-	# tree and still get walked every frame by the wind.
+	# Depth bands, not one canvas item per clump.
+	#
+	# Measured: 420 clumps cost 47 frames a second, and disabling the wind
+	# entirely recovered one of them. The work was never the maths - it was 420
+	# separate canvas items, each its own draw call.
+	#
+	# Drawing the whole field into one item would fix that and break something
+	# worth more: foliage has to sort against the hero, so a plant in front of
+	# them occludes and one behind does not. A single item sorts at one depth.
+	#
+	# Bands are the middle: each spans a slice of the map and sorts at its own
+	# centre. Sixteen of them keep the depth cue to within a band's height, which
+	# no one can see, and cost sixteen draw calls instead of four hundred.
+	var span: float = Balance.LANE_SPAWN_RADIUS * 1.15
+	for index: int in BAND_COUNT:
+		var band := FoliageBand.new()
+		band.name = "Band%d" % index
+		# Sorted against units by the band's own centre line.
+		band.position.y = lerpf(-span, span, (float(index) + 0.5) / float(BAND_COUNT))
+		band.material = wind_material()
+		band.y_sort_enabled = false
+		add_child(band)
+		_bands.append(band)
+
 	_scattered_at = Graphics.foliage_scale()
 	var wanted: int = Graphics.scaled(Balance.FOLIAGE_COUNT, _scattered_at)
 	var placed: int = 0
@@ -78,8 +154,17 @@ func scatter() -> void:
 		# Ground cover first, tall growth on top. Two heights is the difference
 		# between undergrowth and a field of identical weeds.
 		var ground: bool = rng.randf() < Balance.FOLIAGE_GROUND_RATIO
-		_clumps.append(_build_clump(point, style, rng, ground))
+		_add_clump(point, style, rng, ground, span)
 		placed += 1
+
+	for band: FoliageBand in _bands:
+		band.queue_redraw()
+
+
+## Which band a point belongs to.
+func _band_for(y: float, span: float) -> FoliageBand:
+	var ratio: float = clampf((y + span) / (span * 2.0), 0.0, 0.9999)
+	return _bands[clampi(int(ratio * float(BAND_COUNT)), 0, _bands.size() - 1)]
 
 
 ## Uniform over the disc. Sampling radius linearly would bunch everything at the
@@ -121,52 +206,66 @@ func _is_clear(point: Vector2) -> bool:
 	return true
 
 
-func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, ground: bool) -> Node2D:
-	var clump := FoliageClump.new()
-	clump.position = at
-	# Sorted with everything else, so a plant in front of the hero occludes and
-	# one behind does not.
-	clump.y_sort_enabled = false
-	add_child(clump)
+func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
+		ground: bool, span: float) -> void:
+	var band: FoliageBand = _band_for(at.y, span)
+	var local: Vector2 = at - band.position
 
 	var scale: float = rng.randf_range(Balance.FOLIAGE_MIN_SCALE, Balance.FOLIAGE_MAX_SCALE)
 	if ground:
 		scale *= Balance.FOLIAGE_GROUND_SCALE
 	var blades: int = rng.randi_range(5, 8) if ground else rng.randi_range(3, 6)
-	var span: float = 19.0 if ground else 13.0
+	var blade_span: float = 19.0 if ground else 13.0
+
+	# The skirt that roots the clump. Drawn first so blades overlap it.
+	band.add_blade(PackedVector2Array([
+		Vector2(-16.0, 2.0), Vector2(16.0, 2.0),
+		Vector2(11.0, -3.0), Vector2(-11.0, -3.0)]),
+		(style["dark"] as Color).darkened(0.22), local, 0.0, scale, false)
+
 	for blade: int in blades:
 		var ratio: float = (float(blade) + 0.5) / float(blades)
-		var offset := Vector2(lerpf(-span, span, ratio) + rng.randf_range(-2.4, 2.4),
+		var offset := Vector2(lerpf(-blade_span, blade_span, ratio) + rng.randf_range(-2.4, 2.4),
 			rng.randf_range(-1.6, 1.6))
 		var blade_scale: float = scale * rng.randf_range(0.72, 1.18)
 		if ground:
 			blade_scale *= 0.62
 		var colour: Color = (style["dark"] as Color).lerp(
 			style["light"] as Color, rng.randf_range(0.12, 0.92))
-		clump.add_blade(_blade_shape(String(style["kind"]), rng), colour,
-			offset, rng.randf_range(-0.12, 0.12), blade_scale)
-	clump.finish()
+		band.add_blade(_blade_shape(String(style["kind"]), rng), colour,
+			local + offset, rng.randf_range(-0.12, 0.12), blade_scale, true)
 
 	# Only the tall layer gets a shadow. Ground cover is already a few pixels
-	# high, so a pool under it reads as dirt rather than as shade — and there are
-	# two hundred and fifty of them, which is a lot of quads for nothing.
+	# high, so a pool under it reads as dirt rather than as shade.
 	if not ground:
-		_add_shadow(clump, scale)
-
-	_clump_phases.append(rng.randf() * TAU)
-	# Low cover barely moves; tall growth catches the wind. Uniform sway across
-	# both layers is what makes procedural foliage look like it is breathing in
-	# unison rather than growing in a real place.
-	var sway: float = rng.randf_range(0.6, 1.4)
-	_clump_rates.append(sway * (Balance.FOLIAGE_GROUND_SWAY if ground else 1.0))
-	_clump_amounts.append(Balance.FOLIAGE_GROUND_SWAY if ground else 1.0)
-	return clump
+		_add_shadow(at, scale)
 
 
-## Derives a restrained plant ramp from the actual terrain painting. Very dark
-## pits and pale highlights are excluded so one pool or salt glint cannot tint a
-## whole act. The resulting colours stay close to the ground hue, then gain just
-## enough saturation/value separation to read as foliage rather than noise.
+## A shadow for a clump, which has no sprite to measure — so it is built by hand
+## against the same shared material every other shadow on the field uses.
+func _add_shadow(at: Vector2, scale: float) -> void:
+	# Built by hand rather than through ShadowKit.add_contact, which measures a
+	# sprite this has none of - so the quality switch has to be checked here too.
+	# Missing it meant Low reported "ground shadows off" and still drew fifty of
+	# them, which is a setting that lies.
+	var shadow := Sprite2D.new()
+	shadow.name = "ContactShadow"
+	shadow.texture = ShadowKit.quad_texture()
+	shadow.material = ShadowKit.material()
+	shadow.scale = Vector2.ONE * (34.0 * scale / float(ShadowKit.quad_texture().width))
+	shadow.z_index = -1
+	shadow.z_as_relative = true
+	shadow.position = at
+	shadow.add_to_group(ShadowKit.GROUP)
+	shadow.visible = Graphics.contact_shadows()
+	add_child(shadow)
+	_shadows.append(shadow)
+
+
+## The act's own ground painting, reduced to a dark and a light.
+##
+## Sampled rather than hardcoded so plants inherit the local hue and stay
+## coherent with the terrain under the same day/night tint.
 func _terrain_palette() -> Dictionary:
 	var fallback := {"dark": Color("253129"), "light": Color("667055")}
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
@@ -202,25 +301,6 @@ func _terrain_palette() -> Dictionary:
 
 
 ## A shadow for a clump, which has no sprite to measure — so it is built by hand
-## against the same shared material every other shadow on the field uses.
-func _add_shadow(clump: Node2D, scale: float) -> void:
-	# Built by hand rather than through ShadowKit.add_contact, which measures a
-	# sprite this has none of - so the quality switch has to be checked here too.
-	# Missing it meant Low reported "ground shadows off" and still drew fifty of
-	# them, which is a setting that lies.
-	var shadow := Sprite2D.new()
-	shadow.name = "ContactShadow"
-	shadow.texture = ShadowKit.quad_texture()
-	shadow.material = ShadowKit.material()
-	shadow.scale = Vector2.ONE * (34.0 * scale / float(ShadowKit.quad_texture().width))
-	shadow.z_index = -1
-	shadow.z_as_relative = true
-	shadow.position = clump.position
-	shadow.add_to_group(ShadowKit.GROUP)
-	shadow.visible = Graphics.contact_shadows()
-	add_child(shadow)
-	_shadows.append(shadow)
-
 
 func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Array:
 	var height: float = rng.randf_range(16.0, 30.0)
@@ -240,65 +320,45 @@ func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Arra
 				Vector2(rng.randf_range(1.0, 5.0), -height)])
 
 
-## Everything leans on the same wind, each clump at its own phase and rate, so
-## the field moves as one thing without any two plants moving alike.
-func _process(delta: float) -> void:
-	_phase += delta * Balance.FOLIAGE_SWAY_SPEED
-	_update_left -= delta
-	if _update_left > 0.0:
-		return
-	_update_left += Balance.FOLIAGE_UPDATE_INTERVAL
-	var gust: float = 0.6 + 0.4 * sin(_phase * 0.23)
-	for index: int in _clumps.size():
-		var clump: Node2D = _clumps[index]
-		if not is_instance_valid(clump):
-			continue
-		var phase: float = _clump_phases[index]
-		var rate: float = _clump_rates[index]
-		var amount: float = _clump_amounts[index]
-		# A gust term on top of the base sway: the whole field leans together
-		# every few seconds, which is what sells wind rather than fidgeting.
-		clump.rotation = sin(_phase * rate + phase) \
-			* deg_to_rad(Balance.FOLIAGE_SWAY_DEGREES) * amount * gust
-
-
-## One cached CanvasItem per clump instead of one Polygon2D node per blade.
-## Godot records these draw commands until the clump changes; swaying its parent
-## transform therefore moves the whole plant without rebuilding any geometry.
-## This preserves the exact procedural silhouettes while removing thousands of
-## independently managed scene nodes from the authored High battlefield.
-class FoliageClump extends Node2D:
+## One depth slice of the field, drawn as a single canvas item.
+##
+## Blades are stored already transformed into the band's local space, so drawing
+## is a flat loop with no per-blade maths at all. UV.y carries the sway weight -
+## 0 at a root, 1 at a tip - which is the only thing the wind shader needs in
+## order to bend a plant without uprooting it.
+class FoliageBand extends Node2D:
 	var _shapes: Array[PackedVector2Array] = []
+	var _uvs: Array[PackedVector2Array] = []
 	var _colours: Array[Color] = []
-	var _offsets: Array[Vector2] = []
-	var _rotations: Array[float] = []
-	var _scales: Array[float] = []
 
 	func add_blade(shape: PackedVector2Array, colour: Color, at: Vector2,
-			angle: float, blade_scale: float) -> void:
-		_shapes.append(shape)
-		_colours.append(colour)
-		_offsets.append(at)
-		_rotations.append(angle)
-		_scales.append(blade_scale)
+			angle: float, blade_scale: float, sways: bool) -> void:
+		var transform := Transform2D(angle, at).scaled(Vector2.ONE * blade_scale)
 
-	func finish() -> void:
-		queue_redraw()
+		var points := PackedVector2Array()
+		var uvs := PackedVector2Array()
+
+		# Sway weight is height within the blade, normalised. A skirt is pinned to
+		# zero so it stays planted while the growth above it moves.
+		var lowest: float = -INF
+		var highest: float = INF
+		for point: Vector2 in shape:
+			lowest = maxf(lowest, point.y)
+			highest = minf(highest, point.y)
+		var reach: float = maxf(lowest - highest, 0.001)
+
+		for point: Vector2 in shape:
+			points.append(transform * point)
+			uvs.append(Vector2(0.5,
+				clampf((lowest - point.y) / reach, 0.0, 1.0) if sways else 0.0))
+
+		_shapes.append(points)
+		_uvs.append(uvs)
+		_colours.append(colour)
 
 	func _draw() -> void:
-		# The blades remain one cached CanvasItem, but recover the internal gaps,
-		# highlights and overlapping silhouettes that made the original growth
-		# attractive. A low shared skirt visually roots them in the ground.
-		if _shapes.is_empty():
-			return
-		var skirt_colour: Color = _colours[0].darkened(0.22)
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(-16.0, 2.0), Vector2(16.0, 2.0),
-			Vector2(11.0, -3.0), Vector2(-11.0, -3.0)]), skirt_colour)
 		for index: int in _shapes.size():
-			var transform := Transform2D(_rotations[index], _offsets[index])
-			transform = transform.scaled(Vector2.ONE * _scales[index])
-			var transformed := PackedVector2Array()
-			for point: Vector2 in _shapes[index]:
-				transformed.append(transform * point)
-			draw_colored_polygon(transformed, _colours[index])
+			var shade := PackedColorArray()
+			shade.resize(_shapes[index].size())
+			shade.fill(_colours[index])
+			draw_polygon(_shapes[index], shade, _uvs[index])

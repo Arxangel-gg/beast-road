@@ -19,6 +19,10 @@ var _running: bool = false
 ## enemy are gone. A wave is a complete encounter: the next Preparation may not
 ## begin just because a clock expired while stragglers are still fighting.
 var _wave_active: bool = false
+
+## How long this formation has been unable to clear. Reset whenever a wave
+## begins or ends, so it measures one wave rather than the run.
+var _stuck_for: float = 0.0
 var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
 var _preview_archetype: WaveArchetypeData = null
@@ -69,9 +73,26 @@ func _process(delta: float) -> void:
 	# living enemies, freeze them in place, and then stack another formation.
 	if _wave_active:
 		if _spawn_queue.is_empty() and (battlefield == null or battlefield.enemy_count() <= 0):
-			_wave_active = false
-			_running = false
-			EventBus.wave_cleared.emit(RunState.wave_number)
+			_close_wave()
+			return
+
+		# A wave that cannot end is a run that cannot continue.
+		#
+		# Waiting for the road to clear is right, but it made "clear" a condition
+		# with no way out: one enemy that cannot die, cannot reach anything, or is
+		# left somewhere unreachable by a suspend and resume stops the wave, the
+		# next Preparation, and the whole run - silently, with nothing spawning and
+		# nothing to fight. That is what happened around wave 19.
+		#
+		# So the wait is bounded. The watchdog names what was holding it, because a
+		# stall that resolves itself and says nothing is a bug that gets reported
+		# once a week forever.
+		_stuck_for += delta
+		if _stuck_for >= Balance.WAVE_STALL_TIMEOUT:
+			push_warning("Wave %d could not clear after %.0fs; still standing: %s"
+				% [RunState.wave_number, _stuck_for,
+					battlefield.living_enemy_summary() if battlefield != null else "?"])
+			_close_wave()
 		return
 
 	_wave_timer -= delta
@@ -116,9 +137,18 @@ func preview_text() -> String:
 	return text
 
 
+## Ends the formation and hands back to the run.
+func _close_wave() -> void:
+	_wave_active = false
+	_running = false
+	_stuck_for = 0.0
+	EventBus.wave_cleared.emit(RunState.wave_number)
+
+
 func _begin_wave() -> void:
 	if _wave_active:
 		return
+	_stuck_for = 0.0
 	RunState.wave_number += 1
 	var wave: int = RunState.wave_number
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
