@@ -50,9 +50,18 @@ const BUILD_ROW_PRICE_INSET: float = float(UiMetrics.PAD_BUTTON_X)
 const BUILD_PANEL_MARGIN: float = 34.0
 
 ## Reserved height for the hover description, so the panel does not resize as the
-## cursor moves along the row. One line is enough now the panel is wide enough
-## for a description to fit on one.
-const BUILD_DETAIL_HEIGHT: float = 30.0
+## cursor moves along the row.
+##
+## This said "one line is enough" and reserved thirty pixels for it, but the text
+## it holds is an element, a description, a price and sometimes a refusal - which
+## wraps to three. `custom_minimum_size` is a floor and not a ceiling, so the
+## footer simply grew past its reservation and took the panel with it: the box
+## changed size under the cursor every time it moved between towers.
+##
+## Reserved and capped, so the height is now the same whatever the text says.
+const BUILD_DETAIL_LINES: int = 3
+const BUILD_DETAIL_LINE_HEIGHT: float = 20.0
+const BUILD_DETAIL_HEIGHT: float = BUILD_DETAIL_LINES * BUILD_DETAIL_LINE_HEIGHT
 
 ## Spell slot size. Wide enough that a two-word ability name fits inside the
 ## frame's interior rather than across its border.
@@ -478,6 +487,10 @@ func _build_tower_panel() -> void:
 	_build_detail = _label("", 14)
 	_build_detail.custom_minimum_size = Vector2(0.0, BUILD_DETAIL_HEIGHT)
 	_build_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# The ceiling that makes the reservation above mean anything. Without it a
+	# long description wraps to a fourth line and the label - and the panel -
+	# grow to meet it.
+	_build_detail.max_lines_visible = BUILD_DETAIL_LINES
 	_build_detail.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	_build_detail.add_theme_color_override("font_color", Color("aebcb8"))
 	column.add_child(_build_detail)
@@ -1220,11 +1233,15 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 		_report(battlefield.try_build(lane, slot, tower))
 		_refresh_build_panel())
 
-	# Hovering explains; it does not require a tooltip's delay. A tooltip is still
-	# set for anyone who waits, but the footer answers immediately.
+	# Hovering explains, in the footer, immediately.
+	#
+	# There was a tooltip carrying the same string "for anyone who waits". What
+	# that actually did was print the description twice: the footer answered on
+	# entry, and a second later an identical floating box appeared over the row
+	# and covered the towers the player was comparing it against. One answer, in
+	# the place the panel reserves for answers.
 	var blurb: String = "%s  ·  %s\nCost: %s" % [TowerData.element_name(tower.element),
 		tower.description, RunState.format_cost(cost_map)]
-	button.tooltip_text = blurb
 	button.mouse_entered.connect(func() -> void: _show_build_detail(
 		blurb if affordable else "%s\nInsufficient currency." % blurb))
 	button.mouse_exited.connect(func() -> void: _show_build_detail(""))

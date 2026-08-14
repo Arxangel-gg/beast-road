@@ -48,9 +48,18 @@ func _ready() -> void:
 	RunState.reset()
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
-	add_child(load("res://scenes/run/run.tscn").instantiate())
+	var run: Node = load("res://scenes/run/run.tscn").instantiate()
+	add_child(run)
 	# Several frames: containers resolve their children's sizes over more than
 	# one, and measuring too early reports the pre-layout zeros as overflow.
+	for _f: int in 8:
+		await get_tree().process_frame
+
+	# The build panel is closed until a slot is clicked, so a check that only
+	# looks at the resting screen never sees the busiest interface in the game -
+	# and reported a clean sweep while the panel it was meant to be checking was
+	# not on screen. Every reported layout fault so far has been in this panel.
+	_open_build_panel(run)
 	for _f: int in 8:
 		await get_tree().process_frame
 
@@ -60,6 +69,7 @@ func _ready() -> void:
 	_check_overflow(widgets)
 	_check_overlap(widgets)
 	_check_crowding(widgets)
+	await _check_hover_stability()
 
 	for note: String in _notes:
 		print("[layout] %s" % note)
@@ -176,6 +186,79 @@ func _check_crowding(widgets: Array[Control]) -> void:
 			_failures.append("crowding: %s and %s are %.0fpx apart, want %.0f" % [
 				_path_of(panels[i]), _path_of(panels[j]), gap, MIN_PANEL_GAP])
 	_notes.append("crowding: %d" % found)
+
+
+## Opens the tower build panel, which is where the interface is densest and where
+## every layout complaint so far has come from. Reaching for a private is the
+## point of a tool: the alternative is synthesising a click on a world-space
+## button, which tests the click and not the layout.
+func _open_build_panel(run: Node) -> void:
+	var hud := run.get("hud") as HUD
+	if hud == null:
+		_failures.append("no HUD on the run, so the build panel was never checked")
+		return
+	hud._open_build_panel(0, 0)
+
+
+## Panels that change size when the cursor lands on something.
+##
+## Reported as "some UI boxes resize based on hover", and neither of the checks
+## above can see it: they measure one still frame, and the fault only exists
+## between two of them.
+##
+## It is always the same mistake. A hover writes a longer string into a label
+## that was given a `custom_minimum_size` and no ceiling - and a minimum is a
+## floor, not a cap, so the label grows, its panel grows with it, and the row the
+## player was reading about moves out from under the cursor. The build footer
+## reserved thirty pixels for text that wrapped to sixty.
+##
+## So: hover everything hoverable, and require that every panel is the size it
+## was before.
+func _check_hover_stability() -> void:
+	var panels: Array[Control] = []
+	var before: Array[Vector2] = []
+	for node: Node in _all(get_tree().root):
+		var panel := node as PanelContainer
+		if panel != null and panel.is_visible_in_tree() and _is_interface(panel):
+			panels.append(panel)
+			before.append(panel.size)
+
+	var hovered: int = 0
+	var found: int = 0
+	var reported: Dictionary = {}
+	for node: Node in _all(get_tree().root):
+		var button := node as Button
+		if button == null or not button.is_visible_in_tree() \
+				or not _is_interface(button) \
+				or not button.mouse_entered.has_connections():
+			continue
+		hovered += 1
+		button.mouse_entered.emit()
+		# Containers resolve over more than one frame, so a size change caused by
+		# the hover is not necessarily visible on the frame it was caused.
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		for i: int in panels.size():
+			if not is_instance_valid(panels[i]):
+				continue
+			var grew: Vector2 = panels[i].size - before[i]
+			if absf(grew.x) <= 1.0 and absf(grew.y) <= 1.0:
+				continue
+			# One panel that resizes does so for every button in it, so the same
+			# fault would otherwise be reported once per row.
+			var path: String = _path_of(panels[i])
+			if reported.has(path):
+				continue
+			reported[path] = true
+			found += 1
+			_failures.append("hover resize: %s changed by %.0fx%.0f when %s was hovered" % [
+				path, grew.x, grew.y, _path_of(button)])
+
+		button.mouse_exited.emit()
+		await get_tree().process_frame
+
+	_notes.append("hover: %d hoverable widgets, %d resized a panel" % [hovered, found])
 
 
 ## Shortest distance between two non-overlapping rectangles.
