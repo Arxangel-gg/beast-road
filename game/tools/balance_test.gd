@@ -439,6 +439,8 @@ func _test_preparation_and_command() -> void:
 	await _test_crossroad_waits_for_the_road(field)
 	_test_build_spots_yield_to_the_fight(field)
 	await _clear_the_road(field)
+	_test_road_survives_a_declined_breather(field)
+	_test_level_moves_every_stat_a_tower_has()
 
 
 ## The Draught's *mechanic* was complete and correct for months. Nothing in the
@@ -597,6 +599,85 @@ func _test_build_spots_yield_to_the_fight(field: Battlefield) -> void:
 			"the guard must lift again once the enemy is clear, not latch")
 		besieger.queue_free()
 	RunState.set_phase(RunState.Phase.PREPARATION)
+
+
+## An upgrade has to move the stats that make each tower the tower it is.
+##
+## `utility_at` was only ever spent on slow, burn, freeze and structure health, so
+## upgrading a splash tower bought a bigger number and the same blast, and a chain
+## tower never reached anything new. Reach grew 12% across four levels - under
+## nine pixels a level, which is not something a player can see.
+func _test_level_moves_every_stat_a_tower_has() -> void:
+	var top: int = Balance.TOWER_MAX_LEVEL
+	for value: Variant in ContentDB.towers.values():
+		var tower := value as TowerData
+		if tower == null:
+			continue
+		_check(tower.range_at(top) > tower.range_at(1) * 1.25,
+			"%s must gain visible reach by level %d" % [tower.id, top])
+		if tower.aoe_radius > 0.0:
+			_check(tower.aoe_at(top) > tower.aoe_at(1),
+				"%s is an area tower and must gain blast radius" % tower.id)
+		if tower.extra_targets > 0:
+			_check(tower.extra_targets_at(top) > tower.extra_targets_at(1),
+				"%s chains and must reach more enemies when levelled" % tower.id)
+		if tower.ground_zone_dps > 0.0:
+			_check(tower.ground_zone_dps_at(top) > tower.ground_zone_dps_at(1),
+				"%s leaves ground and that ground must get stronger" % tower.id)
+		if tower.knockback > 0.0:
+			_check(tower.knockback_at(top) > tower.knockback_at(1),
+				"%s knocks back and that must scale" % tower.id)
+		# Reach is the stat that compounds with every other one, so it must stay
+		# below the damage curve or one levelled tower covers two roads. Only
+		# meaningful for towers that deal damage: a pure support tower like the
+		# Hoarfrost Bell has none, and 0/0 is not a growth rate.
+		if tower.damage > 0.0:
+			_check(tower.range_at(top) / tower.range_at(1) \
+				< tower.damage_at(top) / tower.damage_at(1),
+				"%s reach must grow more slowly than its damage" % tower.id)
+
+
+## Reported after beating the Act 1 boss: "act 2 started with a wave while
+## preparation appeared but I couldn't use it cause my town started getting
+## attacked, so I clicked ride on and after defeating all remaining enemies the
+## wave never seemed to have ended and no preparation for next wave ever came."
+##
+## Two faults in series. The road's wave clock kept running through the boss
+## fight and started a formation under it, so `_wave_active` was still true when
+## the boss died and Act 2's Preparation opened on a live pack. Then that wave
+## closed while carrying a number the new act's Preparation had already claimed,
+## so the once-per-wave breather declined - and `_close_wave` had already stopped
+## the director, which only Ride On and the end of a breather ever restart. Clear
+## road, nothing running, run over.
+func _test_road_survives_a_declined_breather(field: Battlefield) -> void:
+	var director: WaveDirector = field.wave_director
+
+	# No road formations during a boss. The boss brings its own reinforcements.
+	RunState.set_phase(RunState.Phase.BOSS)
+	director.start()
+	director._wave_active = false
+	director._wave_timer = 0.0
+	var wave_before: int = RunState.wave_number
+	director._process(0.05)
+	_check(RunState.wave_number == wave_before and not director._wave_active,
+		"a road formation must not begin during a boss encounter")
+
+	# And a wave whose breather is declined must leave the road still running,
+	# because the next formation is the only thing that can continue the run.
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_run._locked = false
+	_run._breather = false
+	_run._pending_crossroad = -1
+	RunState.wave_number = 7
+	_run._breather_after_wave = 7  # already claimed, so the breather will decline
+	director.stop()
+	_run._on_wave_cleared(7)
+	_check(director._running,
+		"a declined breather must leave the wave director running, not a dead run")
+	_check(RunState.phase == RunState.Phase.ROAD_BATTLE,
+		"a declined breather must not change phase")
+	director.stop()
+	RunState.wave_number = wave_before
 
 
 func _test_boss_phases() -> void:

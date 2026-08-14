@@ -96,8 +96,22 @@ func _process(delta: float) -> void:
 		return
 
 	_wave_timer -= delta
-	if _wave_timer <= 0.0:
+	if _wave_timer <= 0.0 and _road_waves_allowed():
 		_begin_wave()
+
+
+## Road formations belong to the road. The boss is its own encounter and brings
+## its own reinforcements through BossDirector.
+##
+## Without this the ordinary wave clock kept running through a boss fight and
+## started a formation underneath it. That left `_wave_active` true when the boss
+## died, so `_on_boss_defeated` opened Act 2's Preparation on a live pack - the
+## player watched their town being eaten during the phase that exists to be safe,
+## and the wave it belonged to could never close because Preparation had stopped
+## the director that owns closing it.
+func _road_waves_allowed() -> bool:
+	return RunState.phase == RunState.Phase.ROAD_BATTLE \
+		or RunState.phase == RunState.Phase.FINAL_ASCENT
 
 
 ## Seconds until the next wave, for the HUD.

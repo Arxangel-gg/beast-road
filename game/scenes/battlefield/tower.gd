@@ -244,7 +244,7 @@ func _acquire_targets() -> Array[Enemy]:
 	candidates.sort_custom(func(a: Enemy, b: Enemy) -> bool:
 		return _target_score(a, priority) > _target_score(b, priority))
 
-	var wanted: int = 1 + data.extra_targets + _extra_chain_targets
+	var wanted: int = 1 + data.extra_targets_at(level) + _extra_chain_targets
 	for enemy: Enemy in candidates:
 		if found.size() >= wanted:
 			break
@@ -320,7 +320,7 @@ func _launch(enemy: Enemy) -> void:
 		_hit(enemy)
 		return
 	shot.setup(enemy, data, rolled_damage(),
-		data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
+		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	shot.tier = level
 	_field.add_projectile(shot, global_position + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
@@ -330,7 +330,7 @@ func _hit(enemy: Enemy) -> void:
 		return
 	if effective_damage() > 0.0:
 		enemy.take_damage(rolled_damage(), global_position,
-			data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
+			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
 		# A stronger slow is a *lower* factor, so the relic subtracts.

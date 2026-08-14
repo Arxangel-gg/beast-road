@@ -576,7 +576,16 @@ const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.10, 1.22, 1.36, 1.52]
 ## Status, reach, area and durability also improve. Utility towers used to gain
 ## almost nothing from an upgrade because only raw damage and rate scaled.
 const TOWER_LEVEL_UTILITY: Array[float] = [1.0, 1.10, 1.22, 1.37, 1.55]
-const TOWER_LEVEL_RANGE: Array[float] = [1.0, 1.02, 1.05, 1.08, 1.12]
+## Reach per level. Was [1.0, 1.02, 1.05, 1.08, 1.12] - twelve percent across
+## four upgrades, which is under nine pixels a level on a 270-unit tower and so
+## is not a thing a player can see happening. An upgrade the player cannot see is
+## an upgrade they do not believe in.
+##
+## Held below the damage curve on purpose: reach decides *how many* enemies a
+## tower ever gets to shoot, so it compounds with everything else a level buys.
+## 42% at level 5 is clearly visible on the range ring without letting one corner
+## tower cover two roads. [TUNE]
+const TOWER_LEVEL_RANGE: Array[float] = [1.0, 1.09, 1.19, 1.30, 1.42]
 
 # ------------------------------------------------------------------------------
 # Command — GDD v4 §15

@@ -132,6 +132,46 @@ func range_at(level: int) -> float:
 	return attack_range * Balance.TOWER_LEVEL_RANGE[_level_index(level)]
 
 
+## The rest of what a level buys, per tower.
+##
+## `utility_at` existed and was spent on slow, burn, freeze and structure health
+## only. Everything else a tower is actually *for* was read straight off the
+## resource at its level-1 value, so upgrading a splash tower bought a bigger
+## number and the same blast, and upgrading a chain tower never hit anything new.
+## These are the stats that make each tower the tower it is, so they are what an
+## upgrade has to move.
+
+func aoe_at(level: int) -> float:
+	# Area grows on the square root of utility: radius is what the player sees,
+	# but the enemies caught scale with the area, and scaling the radius linearly
+	# would quietly turn a 55% utility gain into a 140% target gain.
+	return aoe_radius * sqrt(utility_at(level))
+
+
+func knockback_at(level: int) -> float:
+	return knockback * utility_at(level)
+
+
+func ground_zone_dps_at(level: int) -> float:
+	return ground_zone_dps * utility_at(level)
+
+
+func ground_zone_duration_at(level: int) -> float:
+	return ground_zone_duration * sqrt(utility_at(level))
+
+
+## Chain targets, which have to be whole enemies rather than a multiplier.
+##
+## A 1.55 multiplier on one extra target still floors to one, so multiplying was
+## never going to work here. One more link every two levels: a chain tower that
+## starts hitting two reaches four at level 5, which is the difference between
+## trimming a column and breaking it.
+func extra_targets_at(level: int) -> int:
+	if extra_targets <= 0:
+		return 0
+	return extra_targets + int(floor(float(maxi(level, 1) - 1) / 2.0))
+
+
 ## True when this combination is the one produced by the given pair, in either
 ## order. This is the whole lookup — combinations are data, not a branch.
 func matches_parents(a: Element, b: Element) -> bool:

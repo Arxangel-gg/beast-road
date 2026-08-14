@@ -202,16 +202,19 @@ func _shed_mote() -> void:
 
 func _impact() -> void:
 	var field: Battlefield = _find_field()
-	if field != null and data.aoe_radius > 0.0:
-		for enemy: Enemy in field.enemies_near(global_position, data.aoe_radius):
+	# `tier` is the firing tower's level, so the blast grows with the upgrade
+	# rather than staying at the resource's level-one radius forever.
+	var blast: float = data.aoe_at(tier)
+	if field != null and blast > 0.0:
+		for enemy: Enemy in field.enemies_near(global_position, blast):
 			_apply(enemy)
-		Vfx.ring(global_position, data.aoe_radius, Color(colour, 0.55), 0.3, 4.0)
+		Vfx.ring(global_position, blast, Color(colour, 0.55), 0.3, 4.0)
 	elif _target != null and is_instance_valid(_target):
 		_apply(_target)
 
 	if data.ground_zone_dps > 0.0 and field != null:
-		field.spawn_ground_zone(global_position, data.ground_zone_dps,
-			data.ground_zone_duration, maxf(data.aoe_radius, 90.0))
+		field.spawn_ground_zone(global_position, data.ground_zone_dps_at(tier),
+			data.ground_zone_duration_at(tier), maxf(blast, 90.0))
 
 	# A bright flash, a burst away from the impact, and a ring for anything with
 	# area. Three cues rather than one, because a single spark at this size is

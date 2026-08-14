@@ -402,9 +402,11 @@ var _breather_after_wave: int = 0
 ## The next formation never starts underneath a player who is reading a tower,
 ## repairing a lane or moving between scopes. Choosing Ride On early pays a small
 ## tempo reward; waiting past ten seconds simply forfeits it.
-func _enter_wave_breather(wave: int) -> void:
+## True when a breather actually opened. The caller has to know, because a
+## refusal leaves the wave director stopped and somebody must restart it.
+func _enter_wave_breather(wave: int) -> bool:
 	if _breather or wave <= _breather_after_wave:
-		return
+		return false
 	_breather = true
 	RunState.begin_preparation_market()
 	_breather_after_wave = wave
@@ -415,6 +417,7 @@ func _enter_wave_breather(wave: int) -> void:
 	_coverage_warning_acknowledged = true
 	EventBus.preparation_changed.emit(_preparation_left, true)
 	EventBus.preparation_warning.emit("The road is clear. Ride early for bonus Gold, or prepare as long as you need.")
+	return true
 
 
 ## Ends a breather and lets the next wave come.
@@ -449,7 +452,20 @@ func _on_wave_cleared(wave: int) -> void:
 	if _pending_crossroad >= 0:
 		_open_crossroad(_pending_crossroad)
 		return
-	_enter_wave_breather(wave)
+	if _enter_wave_breather(wave):
+		return
+
+	# The breather was refused - one per wave, which is what stops the run
+	# stalling on a repeat - but the road still has to carry on. `_close_wave`
+	# stops the director, and the only things that restart it are Ride On and the
+	# end of a breather. With no breather, neither happens: no further wave ever
+	# spawns and no Preparation ever opens, which is a dead run with a clear road.
+	#
+	# Reported after the Act 1 boss, where it needs only ordinary play to hit: a
+	# wave that began during the boss fight closes after the act's Preparation has
+	# already claimed that wave number, so the breather declines and nothing is
+	# left running.
+	battlefield.wave_director.start()
 
 
 func _enter_preparation(initial: bool) -> void:

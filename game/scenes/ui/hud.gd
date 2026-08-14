@@ -1239,6 +1239,40 @@ func _add_stat_preview(tower: TowerData, level: int) -> void:
 	_collect_stat(rows, "Damage/sec",
 		tower.damage_at(level) * rate_now, tower.damage_at(next_level) * rate_next, 1)
 
+	# Everything else the level buys, and only for the towers it applies to.
+	# `_collect_stat` drops a row whose value does not change, so a single-target
+	# tower never shows a blast radius and a burn tower never shows chain targets -
+	# each tower's panel lists what that tower is actually for.
+	_collect_stat(rows, "Range", tower.range_at(level), tower.range_at(next_level), 0)
+	_collect_stat(rows, "Blast radius", tower.aoe_at(level), tower.aoe_at(next_level), 0)
+	_collect_stat(rows, "Targets hit",
+		float(1 + tower.extra_targets_at(level)),
+		float(1 + tower.extra_targets_at(next_level)), 0)
+	_collect_stat(rows, "Structure HP",
+		tower.max_hp * tower.utility_at(level),
+		tower.max_hp * tower.utility_at(next_level), 0)
+	if tower.burn_dps > 0.0:
+		_collect_stat(rows, "Burn/sec",
+			tower.burn_dps * tower.utility_at(level),
+			tower.burn_dps * tower.utility_at(next_level), 1)
+	if tower.slow_factor < 1.0:
+		# A slow is stored as a factor, where lower is stronger. Shown as the
+		# percentage it takes off, so a bigger number is a better upgrade.
+		_collect_stat(rows, "Slow",
+			(1.0 - tower.slow_factor) * tower.utility_at(level) * 100.0,
+			(1.0 - tower.slow_factor) * tower.utility_at(next_level) * 100.0, 0)
+	if tower.ground_zone_dps > 0.0:
+		_collect_stat(rows, "Ground/sec",
+			tower.ground_zone_dps_at(level), tower.ground_zone_dps_at(next_level), 1)
+	if tower.freeze_chance > 0.0:
+		_collect_stat(rows, "Freeze chance",
+			minf(tower.freeze_chance * tower.utility_at(level), 0.82) * 100.0,
+			minf(tower.freeze_chance * tower.utility_at(next_level), 0.82) * 100.0, 0)
+	if tower.lane_armour_bonus > 0.0:
+		_collect_stat(rows, "Road armour",
+			tower.lane_armour_bonus * tower.utility_at(level),
+			tower.lane_armour_bonus * tower.utility_at(next_level), 1)
+
 	if rows.is_empty():
 		return
 
