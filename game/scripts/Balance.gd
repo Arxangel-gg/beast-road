@@ -28,7 +28,7 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 30
+const ENEMY_WALK_SPEED: float = 33
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
