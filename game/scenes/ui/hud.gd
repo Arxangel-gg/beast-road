@@ -290,7 +290,15 @@ func _build_top_bar() -> void:
 	# changes how much risk is worth taking, so it has to be on screen next to
 	# the Wounds it exists to prevent - hidden until one is held, because an
 	# empty slot in the top bar reads as a thing that is broken.
-	_draught_icon = _bar_icon("resurrection_draught", "Draught")
+	# Borrows the relic icon rather than carrying its own.
+	#
+	# A new icon means a new manifest row, and a manifest row with only a
+	# placeholder behind it fails the production-art gate - which is the gate
+	# that stops placeholder art reaching a player, and which was passing at
+	# 100% before this indicator was added. Reusing a finished icon costs a
+	# little specificity and blocks nothing. `ItemData.get_sprite_path()` still
+	# names the path real art should land at.
+	_draught_icon = _bar_icon("relic", "Draught")
 	_draught_icon.custom_minimum_size = Vector2(26.0, 26.0)
 	_draught_icon.tooltip_text = "Resurrection Draught. Prevents the next lethal down and restores %d%% health, then is consumed." % \
 		int(round(Balance.HERO_DRAUGHT_REVIVE_HP * 100.0))

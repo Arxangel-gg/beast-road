@@ -133,6 +133,15 @@ jobs:
           check "launcher" --headless --path launcher --quit
           check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
           check "main menu" --headless --path game res://tools/menu_check.tscn
+          # Every manifest asset exists, is the right size, and is real art
+          # rather than a magenta-marked placeholder.
+          #
+          # This ran in the release workflow and in the Update Manager, and
+          # nowhere else - so adding one placeholder icon broke publishing and
+          # three green pushes went by without saying so. The owner found out by
+          # trying to ship. It is a two-second headless script; there is no
+          # reason for it to be a thing you discover at the end.
+          check "production art" --headless --path game --script res://tools/run_tool.gd -- report
 
       - name: Say what broke
         if: failure()
