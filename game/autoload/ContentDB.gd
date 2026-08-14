@@ -10,6 +10,7 @@ extends Node
 var towers: Dictionary = {}
 var enemies: Dictionary = {}
 var relics: Dictionary = {}
+var items: Dictionary = {}
 var spells: Dictionary = {}
 var terrains: Dictionary = {}
 var buildings: Dictionary = {}
@@ -38,6 +39,7 @@ func _ready() -> void:
 	factions = _load_dir("res://data/factions")
 	roads = _load_dir("res://data/roads")
 	road_difficulties = _load_dir("res://data/road_difficulties")
+	items = _load_dir("res://data/items")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -55,6 +57,10 @@ func enemy(id: String) -> EnemyData:
 
 func relic(id: String) -> RelicData:
 	return relics.get(id, null) as RelicData
+
+
+func item(id: String) -> ItemData:
+	return items.get(id, null) as ItemData
 
 
 func terrain(id: String) -> TerrainData:

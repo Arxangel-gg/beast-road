@@ -131,6 +131,19 @@ func is_suspended() -> bool:
 
 
 func enter_preparation() -> void:
+	# The precondition below is a real one and was silently false on the crossroad
+	# path: Preparation opened on a living pack, which then ate the towers during
+	# the phase that exists to be safe.
+	#
+	# Printed rather than pushed as a warning. The structural guard is
+	# `Run._road_is_busy`, which both the crossroad and the boss now ask before
+	# opening Preparation, and the gate is `_test_crossroad_waits_for_the_road`.
+	# This line is the third layer, and a third layer that fails the release build
+	# every time a test constructs a deliberately impossible field is a check that
+	# gets deleted rather than read.
+	if enemy_count() > 0:
+		print("[battlefield] Preparation opened with %d enemies still standing: %s"
+			% [enemy_count(), living_enemy_summary()])
 	wave_director.stop()
 	# EntityRoot also owns the battlefield Hero. Preparation only starts after
 	# WaveDirector has proved its queue and living-enemy count are empty, while
@@ -541,6 +554,37 @@ func try_sell(lane: int, slot: int) -> String:
 			int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
 	RunState.towers_sold += 1
 	RunState.clear_slot(lane, slot)
+	return ""
+
+
+## Field rations between formations.
+##
+## Reported: "the player should also have some way of being able to restore
+## health and regenerate health". Before this there were three, and all of them
+## were somebody else's decision: Hearthmend, three times a run and only before
+## an act boss; a spell, if the build happened to include one; and a wound
+## revive, which costs a Wound. Across a whole road the hero simply attritted.
+##
+## Deliberately shaped like Repair Town rather than as a new system: Preparation
+## only, a flat amount for a flat price, and paid in Food, which v4's economy
+## table (§691) already assigns to hero upkeep. It cannot be spammed mid-fight
+## and it competes with the same Preparation budget as everything else.
+func try_tend_hero() -> String:
+	if not RunState.can_build_now():
+		return "The hero is tended between road battles."
+	if hero == null or hero.health == null:
+		return "The hero cannot be reached."
+	if hero.health.current_hp >= hero.health.max_hp:
+		return "The hero is already whole."
+	if not RunState.can_afford_cost({RunState.FOOD: Balance.HERO_TEND_COST}):
+		return "Needs %d Food." % Balance.HERO_TEND_COST
+	RunState.spend_cost({RunState.FOOD: Balance.HERO_TEND_COST})
+	# A fraction of maximum, so it stays worth buying once Wounds have cut the
+	# ceiling and a flat number would be most of a bar.
+	hero.health.heal(hero.health.max_hp * Balance.HERO_TEND_FRACTION)
+	Vfx.ring(hero.global_position, 90.0, Color(0.62, 0.9, 0.72, 0.6), 0.45, 5.0)
+	Vfx.spark(hero.global_position, Color("cdf0d6"), 14, Vector2.UP, 150.0)
+	Sfx.play("sfx_tower_upgrade", -5.0)
 	return ""
 
 

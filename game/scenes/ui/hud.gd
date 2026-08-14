@@ -78,10 +78,12 @@ var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
 var _wounds_label: Label
+var _draught_icon: Control
 var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
 var _repair_button: Button
+var _tend_button: Button
 var _message: Label
 var _message_left: float = 0.0
 
@@ -192,11 +194,11 @@ func _process(delta: float) -> void:
 	if Input.is_action_just_pressed(&"ride_on"):
 		ride_on_requested.emit()
 	if Input.is_action_just_pressed(&"command_overdrive"):
-		command_requested.emit(CommandSystemScript.OVERDRIVE, _selected_lane, _selected_slot)
+		_request_command(CommandSystemScript.OVERDRIVE)
 	if Input.is_action_just_pressed(&"command_rally"):
-		command_requested.emit(CommandSystemScript.RALLY_ROAD, _selected_lane, _selected_slot)
+		_request_command(CommandSystemScript.RALLY_ROAD)
 	if Input.is_action_just_pressed(&"command_last_stand"):
-		command_requested.emit(CommandSystemScript.LAST_STAND, _selected_lane, _selected_slot)
+		_request_command(CommandSystemScript.LAST_STAND)
 	if _message_left > 0.0:
 		_message_left -= delta
 		if _message_left <= 0.0:
@@ -205,6 +207,8 @@ func _process(delta: float) -> void:
 		_update_raid_panel()
 	_update_spell_bar()
 	_update_boss_bar()
+	if _draught_icon != null:
+		_draught_icon.visible = RunState.has_resurrection_draught
 	_update_boss_track()
 	_update_repair_button()
 	_update_wave_preview()
@@ -281,6 +285,17 @@ func _build_top_bar() -> void:
 	wound_row.tooltip_text = _wounds_label.tooltip_text
 	wound_row.add_child(_wounds_label)
 	bar.add_child(wound_row)
+
+	# A carried item nobody can see is an item nobody plays around. The Draught
+	# changes how much risk is worth taking, so it has to be on screen next to
+	# the Wounds it exists to prevent - hidden until one is held, because an
+	# empty slot in the top bar reads as a thing that is broken.
+	_draught_icon = _bar_icon("resurrection_draught", "Draught")
+	_draught_icon.custom_minimum_size = Vector2(26.0, 26.0)
+	_draught_icon.tooltip_text = "Resurrection Draught. Prevents the next lethal down and restores %d%% health, then is consumed." % \
+		int(round(Balance.HERO_DRAUGHT_REVIVE_HP * 100.0))
+	_draught_icon.visible = false
+	bar.add_child(_draught_icon)
 
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -377,7 +392,7 @@ func _build_scope_bar() -> void:
 	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
 	_add_button(bar, "F2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
 	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
-	var zoom_hint: Label = _label("Wheel  Zoom / scopes", 14)
+	var zoom_hint: Label = _label("Wheel  Zoom", 14)
 	zoom_hint.add_theme_color_override("font_color", Color("8f9b98"))
 	bar.add_child(zoom_hint)
 
@@ -386,23 +401,35 @@ func _build_scope_bar() -> void:
 	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
 	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
+	# Short labels because the bar has to share the bottom edge with the spell
+	# slots, and both buttons carry an icon and a tooltip that say the rest.
 	_repair_button = _add_button(bar,
-		"Repair Town",
+		"Repair",
 		func() -> void: _report(battlefield.try_repair_town()))
 	_repair_button.tooltip_text = "Restore %d Town health during Preparation. Cost: %d Wood." % [
 		int(Balance.TOWN_REPAIR_AMOUNT), Balance.TOWN_REPAIR_COST]
 	_repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_repair_button, "upgrade", 22)
 
+	_tend_button = _add_button(bar,
+		"Tend",
+		func() -> void: _report(battlefield.try_tend_hero()))
+	_tend_button.tooltip_text = "Restore %d%% of the hero's health during Preparation. Cost: %d Food." % [
+		int(round(Balance.HERO_TEND_FRACTION * 100.0)), Balance.HERO_TEND_COST]
+	_tend_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	IconKit.on_button(_tend_button, "hero_health", 22)
+
 	var charge_readout := VBoxContainer.new()
-	charge_readout.custom_minimum_size = Vector2(108.0, 48.0)
+	# 92 rather than 108: the bar ends where the spell slots begin, and the last
+	# widget in it was reaching seventeen pixels into the first slot.
+	charge_readout.custom_minimum_size = Vector2(92.0, 48.0)
 	charge_readout.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	charge_readout.add_theme_constant_override("separation", 1)
-	var charge_label: Label = _label("RAID CHARGE", 10)
+	var charge_label: Label = _label("CHARGE", 10)
 	charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	charge_label.add_theme_color_override("font_color", Color("b9abc9"))
 	charge_readout.add_child(charge_label)
-	_charge_bar = _make_bar(Color("9b8fc4"), 108.0)
+	_charge_bar = _make_bar(Color("9b8fc4"), 92.0)
 	_charge_bar.custom_minimum_size.y = 18.0
 	_charge_bar.value = 0.0
 	_charge_bar.tooltip_text = "Raid charge. Defeat enemies to fill it; War Horn accelerates the gain."
@@ -417,6 +444,14 @@ func _update_repair_button() -> void:
 	var health: Health = battlefield.town.health
 	_repair_button.disabled = health == null or health.current_hp >= health.max_hp \
 		or not RunState.can_afford_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST}) \
+		or not RunState.is_preparation()
+
+	if _tend_button == null:
+		return
+	var hero_health: Health = battlefield.hero.health if battlefield.hero != null else null
+	_tend_button.disabled = hero_health == null \
+		or hero_health.current_hp >= hero_health.max_hp \
+		or not RunState.can_afford_cost({RunState.FOOD: Balance.HERO_TEND_COST}) \
 		or not RunState.is_preparation()
 
 
@@ -598,8 +633,10 @@ func _build_command_panel() -> void:
 
 func _add_command_button(parent: Node, id: String, text: String, icon: String,
 		tip: String) -> void:
+	# Routed through the same aiming as the hotkey, so pressing the button and
+	# pressing the key are the same order rather than two with different rules.
 	var button: Button = _add_button(parent, text, func() -> void:
-		command_requested.emit(id, _selected_lane, _selected_slot))
+		_request_command(id))
 	button.custom_minimum_size = Vector2(54.0, 34.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.add_theme_font_size_override("font_size", 12)
@@ -951,6 +988,59 @@ func _refresh_state_label() -> void:
 		_state_label.add_theme_color_override("font_color", Color("9b8fc4"))
 	else:
 		_state_label.text = ""
+
+
+# --- Command targeting ------------------------------------------------------
+
+## Where a Command order lands.
+##
+## Orders used to be aimed by whatever slot the player last clicked, which made
+## them unusable in the fight they exist for. During combat the build spots are
+## deliberately not clickable - clicking one meant opening the build panel over
+## the battle - so on a fresh battle nothing was selected and every hotkey
+## answered "Select a built tower for Overdrive". The order was not broken; it
+## had no way to be aimed.
+##
+## Aimed with the mouse instead, which is where the player is already pointing:
+## Overdrive takes the built tower nearest the cursor, Rally the road the cursor
+## is over, and Last Stand is the town and needs no aim at all. Clicking a tower
+## during Preparation still selects it, and that selection is still honoured -
+## it just is not required any more.
+func _request_command(order_id: String) -> void:
+	var lane: int = _selected_lane
+	var slot: int = _selected_slot
+	if order_id != CommandSystemScript.LAST_STAND and not RunState.can_build_now():
+		var aimed: Vector2i = _aimed_slot(order_id == CommandSystemScript.OVERDRIVE)
+		if aimed.x >= 0:
+			lane = aimed.x
+			slot = aimed.y
+	command_requested.emit(order_id, lane, slot)
+
+
+## The slot the cursor is aiming at, or (-1, -1). `built_only` restricts it to
+## spots with a tower on them, so Overdrive skips over an empty spot that happens
+## to be marginally nearer the cursor than the tower the player meant.
+func _aimed_slot(built_only: bool) -> Vector2i:
+	if battlefield == null:
+		return Vector2i(-1, -1)
+	var cursor: Vector2 = battlefield.get_global_mouse_position()
+	var best: Vector2i = Vector2i(-1, -1)
+	var best_distance: float = INF
+	for slot_node: TowerSlot in battlefield.all_slots():
+		if built_only and slot_node.tower() == null:
+			continue
+		var distance: float = slot_node.global_position.distance_to(cursor)
+		if distance < best_distance:
+			best_distance = distance
+			best = Vector2i(slot_node.lane, slot_node.slot)
+	if best.x < 0:
+		return best
+	# Rally wants a road, and every point on the field is nearer one road than the
+	# others, so it always has an answer. Overdrive wants a specific tower, and
+	# aiming at the far side of the map should not reach across and boost one.
+	if built_only and best_distance > Balance.COMMAND_AIM_RADIUS:
+		return Vector2i(-1, -1)
+	return best
 
 
 # --- Build panel ------------------------------------------------------------

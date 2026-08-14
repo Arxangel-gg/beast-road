@@ -242,6 +242,15 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 	if not relic_id.is_empty():
 		RunState.held_relics.append(relic_id)
 
+	# The Draught is a carried item rather than a currency (v4 §698), and holding
+	# one is the whole of its state - the carry limit is one.
+	var item_id: String = String(reward.get("item_id", ""))
+	if item_id == "resurrection_draught" and not RunState.has_resurrection_draught:
+		RunState.has_resurrection_draught = true
+		var draught: ItemData = ContentDB.item(item_id)
+		if draught != null:
+			EventBus.preparation_warning.emit(draught.acquire_line)
+
 
 # --- Act bosses -------------------------------------------------------------
 
@@ -253,7 +262,12 @@ func _on_act_boss_due(act: int) -> void:
 	# A distance threshold can be crossed while a formation is still alive. Let
 	# that wave resolve before opening Preparation; freezing enemies mid-attack
 	# made the phase look like a broken wave overlap.
-	if battlefield.enemy_count() > 0 or battlefield.wave_director.is_deploying():
+	#
+	# Shares `_road_is_busy` with the crossroad, which had the same problem and
+	# not this fix: the boss half was repaired and the fork half was left, so a
+	# crossroad reached mid-wave still opened Preparation on a live pack. One
+	# function now answers "is there still a fight here" for both.
+	if _road_is_busy():
 		EventBus.preparation_warning.emit(
 			"The Act %d boss is ahead. Clear the road first." % act)
 		return
@@ -292,12 +306,53 @@ func _on_boss_defeated(_boss_id: String, act: int) -> void:
 
 # --- Crossroads -------------------------------------------------------------
 
+## A crossroad the beast has reached but cannot stop at yet, or -1.
+##
+## Crossroads fire on distance walked, which pays no attention to whether a
+## formation is still on the road - so one routinely landed in the middle of a
+## fight. The modal suspended the battlefield, the player chose a road, and then
+## `_on_road_chosen` resumed the battlefield and opened Preparation on top of it:
+## the surviving pack woke up and went back to eating the towers during the one
+## phase that is supposed to be safe planning time.
+##
+## It was worse than it looked. `enter_preparation` documents its own precondition
+## - "Preparation only starts after WaveDirector has proved its queue and living
+## enemy count are empty" - and this was the one path that did not honour it, so
+## `wave_director.stop()` froze the remaining spawn queue while the enemies
+## already on the field kept attacking, and the wave could never close.
+##
+## The journey has already parked itself at the junction by this point, so there
+## is nothing to lose by waiting: finish the fight, then choose the road.
+var _pending_crossroad: int = -1
+
+
 func _on_crossroad_reached(segment_index: int) -> void:
+	if _road_is_busy():
+		_pending_crossroad = segment_index
+		EventBus.preparation_warning.emit(
+			"The road forks ahead. Clear this formation and the beast will stop.")
+		return
+	_open_crossroad(segment_index)
+
+
+func _open_crossroad(segment_index: int) -> void:
+	_pending_crossroad = -1
 	_locked = true
 	# The modal is part of safe planning time, not combat telemetry.
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.suspend()
 	crossroad_ui.open(segment_index)
+
+
+## Anything still to fight: a pack on the field, or one still walking on.
+## Both halves matter - counting only the living declares an empty road during
+## the gap between two spawns.
+func _road_is_busy() -> bool:
+	if battlefield == null:
+		return false
+	if battlefield.wave_director != null and battlefield.wave_director.is_deploying():
+		return true
+	return battlefield.enemy_count() > 0
 
 
 func _on_road_chosen(option_id: String) -> void:
@@ -387,6 +442,12 @@ func _on_wave_cleared(wave: int) -> void:
 		return
 	if _pending_boss_act > 0:
 		_begin_boss_preparation(_pending_boss_act)
+		return
+	# A crossroad that arrived mid-fight has been waiting for exactly this. It
+	# takes precedence over the breather rather than following it: both are
+	# Preparation, and stacking one on the other is two stops at one junction.
+	if _pending_crossroad >= 0:
+		_open_crossroad(_pending_crossroad)
 		return
 	_enter_wave_breather(wave)
 

@@ -49,6 +49,57 @@ func _ready() -> void:
 	refresh()
 
 
+## How often the click target rechecks whether a fight has arrived on top of it.
+## Every frame would be twelve slots against every living enemy; seven times a
+## second is faster than a player can aim and swing.
+const CLICK_GUARD_INTERVAL: float = 0.14
+
+var _click_guard_left: float = 0.0
+
+
+## Clicks belong to whoever the player is actually aiming at.
+##
+## Reported: "sometimes I'm trying to attack mobs on towers and end up clicking
+## on the tower and opening its build menu". The swing itself was never lost -
+## the hero polls the attack action, which a Button cannot swallow - but the
+## build panel opened over the fight every time, which is worse than losing the
+## click because now there is a panel in the way.
+##
+## So a build spot stops taking clicks while there is something to fight standing
+## on it. During Preparation it always takes them: that is what it is for, and
+## after the crossroad fix there is nothing alive on the field then anyway.
+func _process(delta: float) -> void:
+	_click_guard_left -= delta
+	if _click_guard_left > 0.0:
+		return
+	_click_guard_left = CLICK_GUARD_INTERVAL
+	if _hit_button == null:
+		return
+	_hit_button.mouse_filter = Control.MOUSE_FILTER_STOP if accepts_clicks() \
+		else Control.MOUSE_FILTER_IGNORE
+	if not accepts_clicks() and _hovered:
+		set_hovered(false)
+
+
+## Whether this spot is currently a button rather than a piece of battlefield.
+func accepts_clicks() -> bool:
+	if RunState.can_build_now():
+		return true
+	return not _enemy_is_close()
+
+
+func _enemy_is_close() -> bool:
+	var here: Vector2 = global_position
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
+		if enemy.global_position.distance_squared_to(here) \
+				<= Balance.TOWER_CLICK_BLOCK_RADIUS * Balance.TOWER_CLICK_BLOCK_RADIUS:
+			return true
+	return false
+
+
 ## A flat Button rather than an Area2D: this is a UI affordance, and it should
 ## behave like one — hover states, focus, and clicks that the HUD consumes.
 func _make_hit_target() -> void:

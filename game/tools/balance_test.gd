@@ -410,6 +410,169 @@ func _test_preparation_and_command() -> void:
 	_check(hero.is_alive() and not RunState.has_resurrection_draught \
 			and RunState.hero_deaths == deaths_before,
 		"Resurrection Draught must prevent, not merely delay, the next lethal down")
+	_test_draught_is_obtainable()
+	_test_hero_tending(field, hero)
+	await _test_crossroad_waits_for_the_road(field)
+	_test_build_spots_yield_to_the_fight(field)
+	await _clear_the_road(field)
+
+
+## The Draught's *mechanic* was complete and correct for months. Nothing in the
+## game ever granted one, so the only code that could reach it was the check
+## above - which passed, because it set the flag itself. A test that supplies the
+## thing it is testing proves the consumer and says nothing about the producer.
+func _test_draught_is_obtainable() -> void:
+	var draught: ItemData = ContentDB.item("resurrection_draught")
+	_check(draught != null, "the Resurrection Draught must exist as data")
+	if draught == null:
+		return
+	_check(draught.carry_limit == 1, "v4 caps the Draught at one carried")
+	_check(draught.raid_clear_chance > 0.0,
+		"a Draught that no reward can produce is unreachable content")
+
+	# The producer, at the odds the resource declares. A hundred clears of a
+	# 34% drop failing every time is not a run of bad luck.
+	RunState.has_resurrection_draught = false
+	var arena: RaidArena = _run.raid
+	var granted: int = 0
+	for _attempt: int in 100:
+		if not arena._pick_draught().is_empty():
+			granted += 1
+	_check(granted > 0, "a full raid clear must be able to yield a Draught")
+
+	RunState.has_resurrection_draught = true
+	_check(arena._pick_draught().is_empty(),
+		"the carry limit must stop a second Draught being granted")
+	RunState.has_resurrection_draught = false
+
+
+## Healing the player can actually choose to do.
+##
+## Reported: "the player should also have some way of being able to restore
+## health and regenerate health." Everything that existed was somebody else's
+## timing - Hearthmend three times a run, a spell if the build had one, or a
+## Wound revive, which costs a Wound.
+func _test_hero_tending(field: Battlefield, hero: Hero) -> void:
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_check(not field.try_tend_hero().is_empty(),
+		"tending must be locked during road combat, like every other purchase")
+
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	RunState.hero_wounds = 0
+	RunState.hero_hp = -1.0
+	hero.sync_from_run_state()
+	# The Draught check above revived the hero, and a revive grants respawn
+	# invulnerability - which silently swallowed the damage this test needs
+	# and left it tending a hero at full health.
+	hero.health._invulnerable_left = 0.0
+	hero.health.take_damage(hero.health.max_hp * 0.6, Vector2.ZERO)
+	var hurt: float = hero.health.current_hp
+
+	RunState.currencies[RunState.FOOD] = 0
+	_check(not field.try_tend_hero().is_empty(),
+		"tending must be refused without the Food to pay for it")
+	_check(is_equal_approx(hero.health.current_hp, hurt),
+		"a refused tend must not heal anyway")
+
+	RunState.currencies[RunState.FOOD] = Balance.HERO_TEND_COST
+	_check(field.try_tend_hero().is_empty(), "tending must resolve when affordable")
+	_check(hero.health.current_hp > hurt, "tending must actually restore health")
+	_check(RunState.currency(RunState.FOOD) <= 0,
+		"tending must charge the Food it quoted")
+
+	hero.health.heal(hero.health.max_hp)
+	_check(not field.try_tend_hero().is_empty(),
+		"tending a whole hero must be refused rather than wasting the Food")
+
+
+## Reported: "I was at a crossroads during preparation and enemies had spawned
+## in mass and destroyed my towers and base."
+##
+## A crossroad fires on distance walked, which knows nothing about whether a
+## formation is still on the road. The modal froze the battlefield, the player
+## picked a road, and `_on_road_chosen` then resumed the battlefield *and* opened
+## Preparation - so the surviving pack woke up and ate the towers during the one
+## phase that is meant to be safe. The boss path had been fixed for exactly this
+## and the crossroad path had not, so both now ask the same question.
+func _test_crossroad_waits_for_the_road(field: Battlefield) -> void:
+	var was_locked: bool = _run._locked
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_run._locked = false
+	_run._pending_crossroad = -1
+	# Earlier suites spawn enemies and leave them standing. This test's whole
+	# subject is what happens when the road is and is not clear, so it has to
+	# start from a known field rather than from whatever was left lying about.
+	await _clear_the_road(field)
+
+	var walker: Enemy = field.spawn_enemy(ContentDB.enemy("howler"), 0, 1.0, 1.0, 1.0)
+	await get_tree().process_frame
+	_check(field.enemy_count() > 0, "the test needs a live enemy to mean anything")
+
+	_run._on_crossroad_reached(4)
+	_check(RunState.phase == RunState.Phase.ROAD_BATTLE,
+		"a crossroad reached mid-formation must not open Preparation on top of it")
+	_check(_run._pending_crossroad == 4,
+		"the crossroad must be remembered rather than dropped")
+
+	# And it must not be forgotten either: once the road is clear it is the next
+	# thing that happens, ahead of the between-wave breather.
+	if walker != null:
+		walker.queue_free()
+	await _clear_the_road(field)
+	_check(field.enemy_count() == 0, "the road must actually be clear for the second half")
+	_run._on_wave_cleared(RunState.wave_number)
+	_check(RunState.phase == RunState.Phase.PREPARATION and _run._pending_crossroad < 0,
+		"a waiting crossroad must open as soon as the road clears")
+
+	_run.crossroad_ui.visible = false
+	_run._locked = was_locked
+	_run._pending_crossroad = -1
+	# Resuming here restarts the wave director, which promptly deployed a fresh
+	# formation into the next suite - and that suite opens Preparation, which now
+	# correctly warns about the enemies it found. Left suspended and clear, which
+	# is the state Preparation is supposed to be entered in anyway.
+	field.wave_director.stop()
+	await _clear_the_road(field)
+
+
+## Frees every living enemy and waits for the tree to actually be rid of them.
+## `queue_free` is deferred, so a check on the very next line still counts them.
+func _clear_the_road(field: Battlefield) -> void:
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		node.queue_free()
+	for _frame: int in 4:
+		await get_tree().process_frame
+	if field.enemy_count() > 0:
+		push_error("[balance] could not clear the road for the crossroad test")
+
+
+## Reported: "sometimes I'm trying to attack mobs on towers and end up clicking
+## on the tower and opening its build menu."
+func _test_build_spots_yield_to_the_fight(field: Battlefield) -> void:
+	var spot: TowerSlot = field.slot_at(0, 0)
+	_check(spot != null, "the test needs a build spot")
+	if spot == null:
+		return
+
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	_check(spot.accepts_clicks(),
+		"a build spot must always be clickable during Preparation - that is what it is for")
+
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_check(spot.accepts_clicks(),
+		"an undisturbed spot must stay clickable outside Preparation")
+
+	var besieger: Enemy = field.spawn_enemy(ContentDB.enemy("howler"), 0, 1.0, 1.0, 1.0)
+	if besieger != null:
+		besieger.global_position = spot.global_position
+		_check(not spot.accepts_clicks(),
+			"a spot with an enemy standing on it must let the click through to the swing")
+		besieger.global_position = spot.global_position \
+			+ Vector2(Balance.TOWER_CLICK_BLOCK_RADIUS * 2.0, 0.0)
+		_check(spot.accepts_clicks(),
+			"the guard must lift again once the enemy is clear, not latch")
+		besieger.queue_free()
+	RunState.set_phase(RunState.Phase.PREPARATION)
 
 
 func _test_boss_phases() -> void:

@@ -269,6 +269,7 @@ func _build_reward(result: Dictionary) -> Dictionary:
 		"resources": 0,
 		"captive_id": "",
 		"relic_id": "",
+		"item_id": "",
 	}
 	if bool(result.get("died", false)):
 		return reward
@@ -280,6 +281,7 @@ func _build_reward(result: Dictionary) -> Dictionary:
 		reward["captive_id"] = _captive_id()
 		reward["leader_resolution"] = Balance.LEADER_RESOLUTIONS[0]
 		reward["relic_id"] = _pick_relic()
+		reward["item_id"] = _pick_draught()
 		RunState.raids_completed += 1
 		return reward
 
@@ -288,6 +290,27 @@ func _build_reward(result: Dictionary) -> Dictionary:
 	reward["resources"] = int(round(160.0 * ratio))
 	RunState.raids_completed += 1
 	return reward
+
+
+## A Resurrection Draught, sometimes, for taking the chieftain.
+##
+## The mechanic was already written and complete - `_on_died` spends the draught
+## before it spends a Wound - but nothing in the game ever set the flag, so no
+## player could ever have one. It was reachable only from the balance test.
+##
+## Attached to a full raid clear because v4 wants it rare and earned (§296:
+## "A rare Resurrection Draught... Carry limit: one"), and a chieftain fight is
+## the run's optional risk. The odds live in the resource, so a second consumable
+## is a new file rather than another branch here.
+func _pick_draught() -> String:
+	if RunState.has_resurrection_draught:
+		return ""  # Carry limit: one.
+	var draught: ItemData = ContentDB.item("resurrection_draught")
+	if draught == null:
+		return ""
+	if RunState.rng("reward").randf() > draught.raid_clear_chance:
+		return ""
+	return draught.id
 
 
 func _pick_relic() -> String:

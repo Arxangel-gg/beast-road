@@ -257,7 +257,8 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
-`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png`
+`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` ·
+`ui_resurrection_draught.png`
 
 The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,

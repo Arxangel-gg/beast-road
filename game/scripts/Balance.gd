@@ -300,6 +300,16 @@ const HERO_MAX_WOUNDS: int = 3
 const HERO_WOUND_REVIVE_HP: float = 0.50
 const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 
+## Tending the hero during Preparation. The only healing that is not somebody
+## else's decision - Hearthmend arrives three times a run, a heal spell is a
+## build choice, and a wound revive costs a Wound.
+##
+## A third of the bar for 45 Food: enough that one purchase matters, priced so a
+## full bar costs three and competes with the towers that would have stopped the
+## damage in the first place. Healing should be the more expensive answer. [TUNE]
+const HERO_TEND_FRACTION: float = 0.34
+const HERO_TEND_COST: int = 45
+
 ## The guaranteed Hearthmend repairs this fraction of the Town Hall before the
 ## enhanced service choice. [TUNE]
 const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.12
@@ -517,6 +527,18 @@ const COMBO_SLOT_INDEX: int = 1
 ## and of the enemy corridor by 55px. [TUNE]
 const TOWER_SLOT_OFFSET: float = 158.0
 
+## How close a living enemy has to be before a build spot stops taking clicks.
+##
+## Moving the spot to 158 above got the hit target out of the corridor enemies
+## *walk* down. It could do nothing about the ones that stop and attack the
+## tower, which come right up to it and stand on the target - so swinging at a
+## besieger still threw the build panel open.
+##
+## Geometry rather than taste: the target is 96 square, so its corner is 68 from
+## the centre. 130 covers the whole target with enough margin that a click aimed
+## at an enemy just outside it is genuinely aimed at empty ground. [TUNE]
+const TOWER_CLICK_BLOCK_RADIUS: float = 130.0
+
 ## Enemies drift up to this far from the lane centre line, so a wave reads as a
 ## column rather than a single-file queue.
 const LANE_WIDTH: float = 120
@@ -567,6 +589,15 @@ const COMMAND_PRIORITY_HIT_GAIN: float = 2.0
 const COMMAND_INTERRUPT_GAIN: float = 8.0
 const COMMAND_PERFECT_DODGE_GAIN: float = 12.0
 const COMMAND_PERFECT_DODGE_RADIUS: float = 150.0
+
+## How far from the cursor Overdrive will reach for a tower.
+##
+## Orders are aimed with the mouse rather than by pre-selecting a slot. Rally
+## always has an answer - every point is nearest to some road - but Overdrive
+## names one specific tower, and aiming at the far side of the field should miss
+## rather than quietly boost whatever happened to be closest. Slightly over the
+## 270 slot radius, so pointing anywhere near a lane finds its towers. [TUNE]
+const COMMAND_AIM_RADIUS: float = 320.0
 
 const COMMAND_OVERDRIVE_COST: float = 30.0
 const COMMAND_OVERDRIVE_DURATION: float = 5.0
