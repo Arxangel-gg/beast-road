@@ -329,7 +329,7 @@ const PREPARATION_BETWEEN_WAVES: float = 10.0
 
 ## Gold awarded for riding on at the instant a between-wave breather opens.
 ## The award falls linearly to zero over PREPARATION_BETWEEN_WAVES. [TUNE]
-const PREPARATION_EARLY_GOLD_MAX: int = 30
+const PREPARATION_EARLY_GOLD_MAX: int = 15
 
 ## How long a formation may fail to clear before the run moves on anyway.
 ##
