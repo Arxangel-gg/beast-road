@@ -1,0 +1,109 @@
+name: Set up Godot
+description: Installs the Godot engine and its export templates, and proves both are on disk.
+
+# There used to be two copies of this, one in each workflow, and they disagreed
+# about what they install. That disagreement cost v0.4.2 and v0.4.3.
+#
+# Both workflows cached `~/godot` and the export templates under the same key.
+# Only the release workflow actually downloaded the templates; the guard skipped
+# them, reasoning that it exports nothing. But the guard finishes in ninety
+# seconds and the release takes minutes, so on a tagged push the guard won the
+# race and saved an engine-only cache — and because it runs on `main`, its cache
+# is the only one a tag run can see. Every release afterwards restored that key,
+# read `cache-hit == true`, skipped its install, and reached the export step with
+# no templates. The step that would have said so was the one being skipped.
+#
+# Two rules come out of that, and this file exists to hold both in one place:
+#
+#   1. One setup, one content shape, one key. If two jobs cache under the same
+#      key they must store the same thing, and the only way to guarantee that is
+#      for there to be one copy of the code that fills it.
+#   2. `cache-hit` means a key matched. It does not mean the files are present.
+#      So nothing here is conditioned on it — each piece is installed if it is
+#      missing, and asserted afterwards.
+
+inputs:
+  version:
+    description: Godot version, e.g. 4.7.1
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Restore Godot and export templates
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/godot
+          ~/.local/share/godot/export_templates
+        # Names its contents. The old key was `godot-<version>`, which said
+        # nothing about whether templates were in it — and could not, since two
+        # different workflows were filling it with two different things.
+        key: godot-${{ inputs.version }}-engine-templates
+
+    - name: Install whatever is missing
+      shell: bash
+      run: |
+        set -euo pipefail
+        V="${{ inputs.version }}"
+        BASE="https://github.com/godotengine/godot/releases/download/${V}-stable"
+        TEMPLATES="$HOME/.local/share/godot/export_templates/${V}.stable"
+
+        # GitHub's release CDN occasionally answers a healthy request with a
+        # transient 5xx. A tag is immutable, so retrying the exact download is
+        # both safe and much better than burning a release version.
+        CURL=(
+          --fail
+          --location
+          --retry 5
+          --retry-delay 2
+          --retry-max-time 300
+          --retry-all-errors
+          --connect-timeout 20
+        )
+
+        if [ ! -x "$HOME/godot/godot" ]; then
+          echo "Engine not in cache; downloading."
+          mkdir -p "$HOME/godot"
+          curl "${CURL[@]}" -o /tmp/godot.zip "$BASE/Godot_v${V}-stable_linux.x86_64.zip"
+          unzip -q -o /tmp/godot.zip -d "$HOME/godot"
+          mv "$HOME/godot/Godot_v${V}-stable_linux.x86_64" "$HOME/godot/godot"
+          chmod +x "$HOME/godot/godot"
+        fi
+
+        if [ ! -s "$TEMPLATES/windows_release_x86_64.exe" ]; then
+          echo "Export templates not in cache; downloading."
+          curl "${CURL[@]}" -o /tmp/templates.tpz "$BASE/Godot_v${V}-stable_export_templates.tpz"
+          rm -rf /tmp/templates
+          unzip -q -o /tmp/templates.tpz -d /tmp/templates
+          mkdir -p "$(dirname "$TEMPLATES")"
+          rm -rf "$TEMPLATES"
+          mv /tmp/templates/templates "$TEMPLATES"
+        fi
+
+    - name: Prove the toolchain is complete
+      # The assertion whose absence cost two version numbers. It runs on every
+      # job, hit or miss, and it fails here — cheaply, with a plain message —
+      # rather than fifteen steps later inside an export.
+      shell: bash
+      run: |
+        set -euo pipefail
+        V="${{ inputs.version }}"
+        TEMPLATES="$HOME/.local/share/godot/export_templates/${V}.stable"
+
+        missing=()
+        [ -x "$HOME/godot/godot" ] || missing+=("engine at ~/godot/godot")
+        [ -s "$TEMPLATES/windows_release_x86_64.exe" ] || missing+=("windows_release_x86_64.exe")
+        [ -s "$TEMPLATES/windows_debug_x86_64.exe" ] || missing+=("windows_debug_x86_64.exe")
+
+        if [ ${#missing[@]} -ne 0 ]; then
+          echo "::error title=Godot setup incomplete::Missing: ${missing[*]}. A restored cache was short of its contents."
+          exit 1
+        fi
+
+        "$HOME/godot/godot" --headless --version
+
+    - name: Add Godot to PATH
+      shell: bash
+      run: echo "$HOME/godot" >> "$GITHUB_PATH"

@@ -11,11 +11,16 @@ name: Guard
 # broken tree cannot tell its own breakage from somebody else's, and neither can
 # a human.
 #
-# This is deliberately not the release pipeline. It answers one question in about
-# ninety seconds — does this commit load — and it names the commit that broke it.
-# The slower, judgement-heavy gates (balance, soak, performance) stay on the
-# release workflow, because they are legitimately red in the middle of a
-# migration and a check that is red for a week is a check people stop reading.
+# This is deliberately not the release pipeline. It answers the two questions
+# that are never a matter of judgement — does this commit load, and does it
+# export — and it names the commit that broke either. The slower,
+# judgement-heavy gates (balance, soak, performance) stay on the release
+# workflow, because they are legitimately red in the middle of a migration and a
+# check that is red for a week is a check people stop reading.
+#
+# "Does it export" is here because it was previously nowhere: the export first
+# ran when a tag had already been pushed, so the way to discover it was broken
+# was to spend a version number on it.
 
 on:
   push:
@@ -46,6 +51,8 @@ permissions:
 
 env:
   GODOT_VERSION: 4.7.1
+  # Must match the preset name inside both export_presets.cfg files.
+  EXPORT_PRESET: Windows Desktop
 
 jobs:
   compiles:
@@ -60,33 +67,15 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      # Shares a cache key with the release workflow, so whichever runs first
-      # warms it for the other. Templates are not needed here - nothing is
-      # exported - but the key has to match or the two evict each other.
-      - name: Cache Godot
-        id: godot-cache
-        uses: actions/cache@v4
+      # Shared with the release workflow, and shared as one piece of code rather
+      # than as a copied block. This guard used to keep its own leaner version
+      # that skipped the export templates, and since it runs on `main` and wins
+      # every race, its cache is the one releases restore. Two releases failed
+      # on templates that were never in it.
+      - name: Set up Godot
+        uses: ./.github/actions/setup-godot
         with:
-          path: |
-            ~/godot
-            ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}
-
-      - name: Install Godot
-        if: steps.godot-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          mkdir -p ~/godot
-          curl --fail --location --retry 5 --retry-delay 2 --retry-max-time 180 \
-            --retry-all-errors --connect-timeout 20 \
-            -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q -o /tmp/godot.zip -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
-          chmod +x ~/godot/godot
-
-      - name: Add Godot to PATH
-        run: echo "$HOME/godot" >> "$GITHUB_PATH"
+          version: ${{ env.GODOT_VERSION }}
 
       - name: Import assets
         # A cold checkout has no .godot/ directory and Godot must import once
@@ -160,3 +149,58 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo 'godot --headless --path game --quit' >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  exports:
+    name: Does it export
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Loading and exporting are different questions, and the project has only
+    # ever been asking the first one. The export ran for the first time when a
+    # tag was already pushed and a version number was already spent — so an
+    # export that could not work cost v0.4.2, then cost v0.4.3 proving it was
+    # not a fluke, and neither run could say why without a signed-in session.
+    #
+    # Rehearsing it on an ordinary push moves that discovery to somewhere it
+    # costs nothing. It runs beside "Does it load" rather than after it, so it
+    # adds to the bill and not to the wait.
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Godot
+        uses: ./.github/actions/setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - name: Import assets
+        run: |
+          timeout 300 godot --headless --path game --import || true
+          timeout 300 godot --headless --path launcher --import || true
+
+      - name: Register gameplay resource classes
+        run: timeout 300 godot --headless --editor --path game --quit
+
+      - name: Export the game
+        run: bash .github/scripts/export_project.sh game game ../build/game/BeastRoad.exe "$EXPORT_PRESET"
+
+      - name: Export the launcher
+        run: bash .github/scripts/export_project.sh launcher launcher ../build/launcher/BeastRoadLauncher.exe "$EXPORT_PRESET"
+
+      - name: Check the exports are shippable
+        # The same assertions the release makes, made here instead of there.
+        # v0.1.0 shipped a launcher whose .pck was left beside it rather than
+        # embedded, which fails on the player's machine and nowhere earlier.
+        run: |
+          set -euo pipefail
+          test -s build/game/BeastRoad.exe
+          test -s build/game/BeastRoad.pck
+          test -s build/launcher/BeastRoadLauncher.exe
+
+          if [ -e build/launcher/BeastRoadLauncher.pck ]; then
+            echo "::error title=Launcher not shippable::Exported with a separate .pck. Set binary_format/embed_pck=true in launcher/export_presets.cfg."
+            exit 1
+          fi
+
+          ls -la build/game build/launcher

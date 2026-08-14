@@ -35,45 +35,10 @@ jobs:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Cache Godot and export templates
-        id: godot-cache
-        uses: actions/cache@v4
+      - name: Set up Godot
+        uses: ./.github/actions/setup-godot
         with:
-          path: |
-            ~/godot
-            ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}
-
-      - name: Install Godot and export templates
-        if: steps.godot-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
-          # GitHub's release CDN occasionally answers a healthy request with a
-          # transient 5xx. A tag is immutable, so retrying the exact download
-          # is both safe and much better than burning a release version.
-          CURL_RETRY=(
-            --fail
-            --location
-            --retry 5
-            --retry-delay 2
-            --retry-max-time 180
-            --retry-all-errors
-            --connect-timeout 20
-          )
-          mkdir -p ~/godot
-          curl "${CURL_RETRY[@]}" -o /tmp/godot.zip "$BASE/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q -o /tmp/godot.zip -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
-          chmod +x ~/godot/godot
-
-          curl "${CURL_RETRY[@]}" -o /tmp/templates.tpz "$BASE/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          mkdir -p ~/.local/share/godot/export_templates
-          unzip -q -o /tmp/templates.tpz -d /tmp/templates
-          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
-
-      - name: Add Godot to PATH
-        run: echo "$HOME/godot" >> "$GITHUB_PATH"
+          version: ${{ env.GODOT_VERSION }}
 
       - name: Import assets
         # Godot must import once before it can export; a cold checkout has no
@@ -143,9 +108,7 @@ jobs:
             || { echo "::error::Failed to stamp the game version."; exit 1; }
 
       - name: Export the game
-        run: |
-          mkdir -p build/game
-          godot --headless --path game --export-release "$EXPORT_PRESET" ../build/game/BeastRoad.exe
+        run: bash .github/scripts/export_project.sh game game ../build/game/BeastRoad.exe "$EXPORT_PRESET"
 
       - name: Stamp the launcher with this tag
         # A launcher can only know it is out of date by comparing what it was
@@ -161,9 +124,7 @@ jobs:
             || { echo "::error::Failed to stamp the launcher version."; exit 1; }
 
       - name: Export the launcher
-        run: |
-          mkdir -p build/launcher
-          godot --headless --path launcher --export-release "$EXPORT_PRESET" ../build/launcher/BeastRoadLauncher.exe
+        run: bash .github/scripts/export_project.sh launcher launcher ../build/launcher/BeastRoadLauncher.exe "$EXPORT_PRESET"
 
       - name: Check the exports are shippable
         run: |
