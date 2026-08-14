@@ -28,7 +28,7 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 28.5
+const ENEMY_WALK_SPEED: float = 30
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
@@ -541,7 +541,7 @@ const TOWER_CLICK_BLOCK_RADIUS: float = 130.0
 
 ## Enemies drift up to this far from the lane centre line, so a wave reads as a
 ## column rather than a single-file queue.
-const LANE_WIDTH: float = 120
+const LANE_WIDTH: float = 125
 
 # ------------------------------------------------------------------------------
 # Towers — GDD §4
@@ -782,12 +782,12 @@ const TOWN_DAMAGE_SCALE: float = 1.75
 const TOWER_ARMOUR_EFFECT_SCALE: float = 0.45
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.24
+const RESOURCE_PER_DISTANCE: float = 0.25
 
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.65
+const KILL_RESOURCE_SCALE: float = 0.5
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
