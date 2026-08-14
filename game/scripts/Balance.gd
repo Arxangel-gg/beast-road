@@ -653,18 +653,18 @@ const WAVE_OPENING_SUPPLIES: Array[int] = [0, 25, 35, 40, 30, 25]
 const WAVE_OPENING_SINGLE_LANE_WAVES: int = 2
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.72
+const WAVE_SPAWN_SPACING: float = 0.65
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
-const WAVE_BASE_COUNT: int = 3
-const WAVE_COUNT_GROWTH: float = 0.19
+const WAVE_BASE_COUNT: int = 4
+const WAVE_COUNT_GROWTH: float = 0.225
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.08, 1.18]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
 const WAVE_HP_GROWTH: float = 0.025
-const WAVE_DAMAGE_GROWTH: float = 0.014
-const WAVE_SPEED_GROWTH: float = 0.11
+const WAVE_DAMAGE_GROWTH: float = 0.015
+const WAVE_SPEED_GROWTH: float = 0.12
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
 const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Act boundaries introduce new enemy roles and lane patterns, so they should
@@ -691,7 +691,7 @@ const WAVE_INVADER_CHANCE: Array[float] = [0.0, 0.12, 0.22]
 
 ## Elites arrive as an increasing number of squad leaders, not one lottery roll
 ## per wave for the entire 45-minute run.
-const WAVE_ELITE_BASE_CHANCE: float = 0.12
+const WAVE_ELITE_BASE_CHANCE: float = 0.13
 const WAVE_ELITE_PROGRESS_BONUS: float = 0.75
 const WAVE_ELITE_ACT_BONUS: float = 0.20
 const WAVE_MAX_QUEUED: int = 180
