@@ -112,9 +112,12 @@ func _process(delta: float) -> void:
 			if camera != null and camera.is_current():
 				EventBus.footfall.emit(beast.global_position if beast != null else Vector2.ZERO,
 					Balance.BEAST_STEP_MASS * speed_ratio)
-				var side: float = -1.0 if _gait_step % 2 == 0 else 1.0
+				# The same four-beat cardinal the battlefield camera plants on,
+				# taken from the one place that defines it rather than restated
+				# here - the two used to carry separate copies of the diagonal
+				# and could drift apart without anything noticing.
 				EventBus.beast_step_landed.emit(
-					Vector2(side * 0.58, 1.0).normalized() * Balance.BEAST_STEP_WORLD_IMPULSE,
+					CameraRig.step_cardinal(_gait_step) * Balance.BEAST_STEP_WORLD_IMPULSE,
 					speed_ratio)
 	_step_sink = move_toward(_step_sink, 0.0,
 		delta / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01))

@@ -486,7 +486,13 @@ func _pulse_impact(from: Vector2) -> void:
 func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	if _health == null or _health.is_dead:
 		return
-	_step_wobble = -signf(impulse.x) * Balance.BEAST_STEP_WOBBLE_DEGREES * 0.45 * strength
+	# A tall structure torques whichever way it is shoved. Sideways tips it
+	# directly; a shove along the view axis still rocks it, but a 2D rotation
+	# cannot show that head-on, so it reads as a shallower lean rather than as
+	# nothing at all - which is what a bare signf(x) gave on a cardinal step.
+	var push: Vector2 = impulse.normalized()
+	var lean: float = push.x + push.y * 0.35
+	_step_wobble = -lean * Balance.BEAST_STEP_WOBBLE_DEGREES * 0.45 * strength
 
 
 func _tick_step_wobble(delta: float) -> void:

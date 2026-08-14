@@ -247,6 +247,36 @@ const BEAST_STEP_WORLD_IMPULSE: float = 27.0
 const BEAST_STEP_STUN: float = 0.055
 const BEAST_STEP_WOBBLE_DEGREES: float = 3.2
 
+## Shake, as a struck mass rather than as noise.
+##
+## The old shake was a fresh random offset every frame for the length of the
+## effect. That is white noise: it has no direction, so a footfall on the left
+## and a tower exploding on the right felt identical, and it has no frequency of
+## its own - it vibrates at whatever the frame rate happens to be, so the same
+## impact reads differently on two machines.
+##
+## A real impact does two things at once. It shoves, hard, in one direction and
+## rings down; and it leaves behind a finer vibration that climbs in pitch as
+## the energy drains and is the last thing to stop. Those are separate here, and
+## both are driven by an accumulated phase rather than by the frame, so the shake
+## is identical at 30 and at 144 fps.
+
+## The opening blow: low, heavy, directional, and quickly over. Starts at full
+## displacement on the frame of impact - the snap is the hit. [TUNE]
+const SHAKE_THUNDER_HZ: float = 5.6
+## Higher powers end the thunder sooner and hand over to the rumble faster. [TUNE]
+const SHAKE_THUNDER_DECAY: float = 2.6
+
+## The rumble that follows, climbing from a growl to a fine tremble as it
+## settles. Two axes at slightly different rates so it buzzes rather than
+## sliding back and forth along one line. [TUNE]
+const SHAKE_RUMBLE_HZ_START: float = 17.0
+const SHAKE_RUMBLE_HZ_END: float = 43.0
+## Quieter than the blow that caused it, and slower to die, which is what makes
+## it read as settling rather than as a second hit. [TUNE]
+const SHAKE_RUMBLE_SCALE: float = 0.34
+const SHAKE_RUMBLE_DECAY: float = 1.15
+
 ## Per-target animation hold on a registered hit. This is not global hitstop;
 ## a large formation therefore remains responsive when an AoE lands. [TUNE]
 const IMPACT_FRAME_TIME: float = 0.032

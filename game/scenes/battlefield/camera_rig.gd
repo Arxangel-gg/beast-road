@@ -32,6 +32,12 @@ var _gait_pause_left: float = 0.0
 var _gait_step: int = 0
 var _step_sink: float = 0.0
 
+## Which way the blow shoved. A shake with no direction cannot tell the player
+## where it came from, which is the whole point of shaking on a footfall.
+var _shake_direction: Vector2 = Vector2.RIGHT
+## Re-rolled per impact so two steps never tremble in exactly the same pattern.
+var _rumble_seed: float = 0.0
+
 
 func _ready() -> void:
 	_rng.randomize()
@@ -79,14 +85,51 @@ func reset_to_wide() -> void:
 	_wanted_zoom = Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
 
 
+## Two overlapping decays: the blow, and the ringing it leaves behind.
+##
+## Every term is a function of how long the shake has been running, so the same
+## impact reaches the same offset at the same moment on every machine. The
+## previous version drew a fresh random offset per frame, which meant the shake
+## vibrated at whatever the frame rate happened to be - a different effect at 60
+## and at 144, and nothing anyone could tune. See the SHAKE_ block in Balance.
 func _tick_shake(delta: float) -> void:
 	if _shake_left <= 0.0:
 		_shake_offset = Vector2.ZERO
 		return
 	_shake_left = maxf(_shake_left - delta, 0.0)
-	var falloff: float = _shake_left / _shake_duration if _shake_duration > 0.0 else 0.0
-	var amount: float = _shake_magnitude * falloff
-	_shake_offset = Vector2(_rng.randf_range(-amount, amount), _rng.randf_range(-amount, amount))
+	var remaining: float = _shake_left / _shake_duration if _shake_duration > 0.0 else 0.0
+	var elapsed: float = _shake_duration - _shake_left
+
+	# Thunder. `cos` rather than `sin` so the first frame is already at full
+	# displacement: the shove is the impact, and easing into it would read as the
+	# camera drifting rather than as being hit.
+	var thunder_phase: float = TAU * Balance.SHAKE_THUNDER_HZ * elapsed
+	var thunder: Vector2 = _shake_direction \
+		* cos(thunder_phase) \
+		* _shake_magnitude * pow(remaining, Balance.SHAKE_THUNDER_DECAY)
+
+	# Rumble. Quieter, finer, climbing in pitch as the energy leaves it - a
+	# struck mass rings low while it still has amplitude and finer as it settles,
+	# and that climb is most of what makes an impact feel like weight rather than
+	# like static.
+	#
+	# Phase is the integral of a linearly rising frequency, in closed form. A
+	# running `phase += delta * pitch` would be a Riemann sum of the same
+	# integral, and lands on a visibly different phase at 50fps than at 250 -
+	# which is the exact frame-rate dependence this rewrite exists to remove.
+	var climb: float = Balance.SHAKE_RUMBLE_HZ_END - Balance.SHAKE_RUMBLE_HZ_START
+	var rumble_phase: float = TAU * (Balance.SHAKE_RUMBLE_HZ_START * elapsed \
+		+ climb * elapsed * elapsed / (2.0 * maxf(_shake_duration, 0.0001)))
+
+	# The axes run at slightly different rates so it trembles rather than sliding
+	# back and forth along one line.
+	var rumble_amount: float = _shake_magnitude * Balance.SHAKE_RUMBLE_SCALE \
+		* pow(remaining, Balance.SHAKE_RUMBLE_DECAY)
+	var rumble := Vector2(
+		sin(rumble_phase + _rumble_seed),
+		sin(rumble_phase * 1.37 + _rumble_seed * 2.1)) * rumble_amount
+
+	_shake_offset = thunder + rumble
 
 
 ## Camera-only motion keeps simulation, collision and tower-click coordinates
@@ -140,6 +183,22 @@ func _lumbered_phase(raw_phase: float) -> float:
 	return (half_step + eased) * PI
 
 
+## Which way the given footfall throws everything standing on the beast.
+##
+## A four-beat walk, which is how an animal this heavy actually moves: it never
+## has fewer than three feet down, and the supports come round one at a time
+## rather than in diagonal pairs. Each plant therefore tips the shell a different
+## way, and taking those four as the four cardinals means a step lurches the deck
+## north, then east, then south, then west instead of rocking on one axis.
+##
+## The city's own geography is cardinal - four lanes, four gates - so a step that
+## shoves everyone west is legible in a way a diagonal is not: the player can see
+## which side just took the weight.
+static func step_cardinal(step: int) -> Vector2:
+	const ORDER: Array[Vector2] = [Vector2.LEFT, Vector2.DOWN, Vector2.RIGHT, Vector2.UP]
+	return ORDER[posmod(step, ORDER.size())]
+
+
 ## Alternating pair-support footfall. The camera motion pauses at the planted
 ## frame, sinks under the beast's mass, and receives a brief decaying impact.
 ## Simulation coordinates do not move; only the presentation camera does.
@@ -148,18 +207,23 @@ func _plant_step() -> void:
 	_step_sink = 1.0
 	if not is_current() or _gait_strength <= 0.02:
 		return
+	var cardinal: Vector2 = step_cardinal(_gait_step)
 	_on_shake_requested(Balance.BEAST_STEP_SHAKE * _gait_strength,
-		Balance.BEAST_STEP_SHAKE_TIME)
+		Balance.BEAST_STEP_SHAKE_TIME, cardinal)
 	EventBus.footfall.emit(global_position, Balance.BEAST_STEP_MASS * _gait_strength)
-	var side: float = -1.0 if _gait_step % 2 == 0 else 1.0
-	var impulse := Vector2(side * 0.58, 1.0).normalized() \
-		* Balance.BEAST_STEP_WORLD_IMPULSE
-	EventBus.beast_step_landed.emit(impulse, _gait_strength)
+	EventBus.beast_step_landed.emit(cardinal * Balance.BEAST_STEP_WORLD_IMPULSE,
+		_gait_strength)
 
 
 ## The strongest request wins rather than the newest, so a big hit is never
 ## downgraded by a small one arriving a frame later.
-func _on_shake_requested(magnitude: float, duration: float) -> void:
+##
+## `direction` is optional because most callers arrive over `camera_shake_requested`,
+## which carries only a magnitude and a duration and is used by a dozen unrelated
+## systems. Those get a random direction, which is what they had before. The
+## beast's footfall calls this directly and does know which way it shoved.
+func _on_shake_requested(magnitude: float, duration: float,
+		direction: Vector2 = Vector2.ZERO) -> void:
 	var scaled: float = magnitude * float(MetaState.settings.get("screen_shake", 1.0))
 	if scaled <= 0.0 or duration <= 0.0:
 		return
@@ -168,3 +232,6 @@ func _on_shake_requested(magnitude: float, duration: float) -> void:
 	_shake_magnitude = scaled
 	_shake_duration = duration
 	_shake_left = duration
+	_shake_direction = direction.normalized() if direction != Vector2.ZERO \
+		else Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU))
+	_rumble_seed = _rng.randf_range(0.0, TAU)

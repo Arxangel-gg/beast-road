@@ -504,11 +504,68 @@ func _test_beast_gait() -> void:
 		"each alternating support plant must pause and settle under Yuri's mass")
 	_check(rig._shake_left > 0.0,
 		"a planted beast step must produce a brief impact shake")
+	_test_step_shake_shape(rig)
 	UserSettings.set_value(UserSettings.GAIT_KEY, 0.0)
 	rig._tick_gait(0.016)
 	_check(rig.offset == rig._shake_offset and is_zero_approx(rig.rotation),
 		"turning beast motion off must stop it immediately")
 	UserSettings.set_value(UserSettings.GAIT_KEY, previous)
+
+
+## The shake is a shape, not just a duration, and every part of that shape is
+## invisible to a check that only asks whether it is running.
+##
+## The three things asserted here are the three that would go quietly: a shake
+## that stops being directional, a rumble that dies with the thunder instead of
+## outliving it, and a return to per-frame randomness - which looks fine on the
+## machine it was written on and vibrates differently on every other one.
+func _test_step_shake_shape(rig: CameraRig) -> void:
+	# Steps land on the four cardinals in turn. A step that shoves west must
+	# shove west, or the shake cannot tell the player which side took the weight.
+	for step: int in 4:
+		var cardinal: Vector2 = CameraRig.step_cardinal(step)
+		_check(is_equal_approx(cardinal.length(), 1.0) \
+			and is_zero_approx(cardinal.x * cardinal.y),
+			"beast step %d must land on a cardinal, got %s" % [step, cardinal])
+	_check(CameraRig.step_cardinal(0) != CameraRig.step_cardinal(1) \
+		and CameraRig.step_cardinal(0) == CameraRig.step_cardinal(4),
+		"the four-beat walk must cycle through four distinct cardinals")
+
+	# The thunder leads and the rumble outlives it. Sampled at the start and near
+	# the end of one shake: the opening displacement must lie along the shove,
+	# and what is left at the end must not.
+	rig._on_shake_requested(20.0, 0.5, Vector2.LEFT)
+	rig._tick_shake(0.001)
+	var opening: Vector2 = rig._shake_offset
+	_check(opening.x < 0.0 and absf(opening.x) > absf(opening.y),
+		"a shake must open along the direction it was shoved, got %s" % opening)
+
+	var settling := Vector2.ZERO
+	for _frame: int in 28:
+		rig._tick_shake(0.016)
+		settling = rig._shake_offset
+	_check(settling.length() > 0.0 and settling.length() < opening.length() * 0.5,
+		"the rumble must outlive the thunder and be quieter than it")
+
+	# Frame-rate independence. The same elapsed time in different sized steps has
+	# to arrive at the same place, or the shake is really being driven by the
+	# frame rate and a 144Hz machine gets a different game.
+	var sampled: Array[Vector2] = []
+	for step_size: float in [0.004, 0.02]:
+		rig._on_shake_requested(20.0, 0.5, Vector2.LEFT)
+		# The tremble seed is deliberately random per impact, so it has to be
+		# pinned here or this would be comparing two different shakes.
+		rig._rumble_seed = 1.0
+		var elapsed: float = 0.0
+		while elapsed < 0.2 - 0.0001:
+			rig._tick_shake(step_size)
+			elapsed += step_size
+		sampled.append(rig._shake_offset)
+	_check(sampled[0].distance_to(sampled[1]) < 0.05,
+		"the shake must not depend on frame rate: %s at 250fps, %s at 50fps" % sampled)
+
+	rig._shake_left = 0.0
+	rig._tick_shake(0.016)
 
 
 func _test_hostile_projectile() -> void:
