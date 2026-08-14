@@ -117,6 +117,15 @@ const RAID_DURATION: float = 60.0
 ## Teleport time in each direction.
 const RAID_TELEPORT_COOLDOWN: float = 15.0
 
+## How far a hit varies either side of its nominal damage.
+##
+## Every blow landing for exactly the same number reads as arithmetic rather than
+## as combat: two identical towers shooting the same enemy produce a metronome.
+## A spread makes each shot feel like an event without changing what a tower is
+## worth, because the average is unchanged - which matters, since every balance
+## number in this file is written as an average. [TUNE]
+const DAMAGE_SPREAD: float = 0.18
+
 # ==============================================================================
 # TOWERS & FUSION — GDD §4
 # ==============================================================================
@@ -198,17 +207,33 @@ const CAMERA_MOUSE_LEAN_MAX: float = 300.0
 ## One full left/right support transfer per second. Two footfalls happen in a
 ## cycle; the short plant pause keeps the body over a stable pair of feet rather
 ## than floating through a sinusoid like a boat. [TUNE]
-const BEAST_GAIT_FREQUENCY: float = 0.18
-const BEAST_GAIT_HORIZONTAL: float = 8.4
+## Fewer steps, each one heavier.
+##
+## A Worldstrider the size of a town does not walk at a person's cadence. The
+## step rate is what sells the scale: at 0.18 it read as a large animal, at 0.11
+## it reads as something that has to gather itself to move at all - and the
+## longer gap between footfalls is what gives each impact room to land. [TUNE]
+const BEAST_GAIT_FREQUENCY: float = 0.11
+## Held at the ceiling the balance gate enforces, not above it.
+##
+## More lateral sway was asked for, and this is as far as it goes without an
+## owner decision: this value moves the *camera*, so it moves the frame the
+## player aims and reads lanes in. balance_test caps it at 9.0 for that reason.
+##
+## The weight is carried by the things that have no such cost instead - a much
+## slower step rate, a longer pause on impact, a deeper sink and a harder shake.
+## Those make a footfall land without moving the player's reference frame, which
+## is the part that has to stay still. [TUNE]
+const BEAST_GAIT_HORIZONTAL: float = 9.0
 const BEAST_GAIT_VERTICAL: float = 4.1
 const BEAST_GAIT_ROTATION_DEGREES: float = 0.18
 const BEAST_GAIT_SMOOTHING: float = 1.65
 const BEAST_GAIT_HORN_SCALE: float = 0.12
 ## Exponentially slow support transfer followed by a faster final plant. [TUNE]
 const BEAST_GAIT_WINDUP_POWER: float = 2.15
-const BEAST_STEP_PAUSE: float = 0.24
-const BEAST_STEP_SINK: float = 6.2
-const BEAST_STEP_SHAKE: float = 8.6
+const BEAST_STEP_PAUSE: float = 0.38
+const BEAST_STEP_SINK: float = 9.0
+const BEAST_STEP_SHAKE: float = 12.5
 const BEAST_STEP_SHAKE_TIME: float = 0.42
 const BEAST_STEP_MASS: float = 4.8
 const BEAST_PROFILE_BASE_X: float = -20.0

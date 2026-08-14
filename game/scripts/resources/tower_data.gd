@@ -91,6 +91,31 @@ static func upgrade_cost(level: int) -> int:
 	return Balance.TOWER_UPGRADE_COSTS[level - 1]
 
 
+## The low and high ends of a hit at this level.
+##
+## The upgrade screen quotes these rather than the average, because "17 to 23" is
+## what the player will actually see floating off an enemy and a single number
+## they never once observe reads as the game lying to them.
+static func damage_range(nominal: float) -> Vector2:
+	return Vector2(nominal * (1.0 - Balance.DAMAGE_SPREAD),
+		nominal * (1.0 + Balance.DAMAGE_SPREAD))
+
+
+## One hit, rolled with a caller-supplied generator.
+##
+## The generator is a parameter rather than `RunState.rng("combat")` fetched in
+## here, and that is not a style choice. This class is loaded by the headless
+## asset tools, which run under `run_tool.gd` - it replaces the main loop, so no
+## autoload exists and naming one is a compile error that takes the whole tool
+## down. Same rule as `Palette` and `Graphics`: anything the tools can reach must
+## not reference an autoload.
+##
+## Callers pass the combat stream, so a seeded run still reproduces exactly.
+static func roll_damage(nominal: float, rng: RandomNumberGenerator) -> float:
+	var span: Vector2 = damage_range(nominal)
+	return rng.randf_range(span.x, span.y)
+
+
 func damage_at(level: int) -> float:
 	return damage * Balance.TOWER_LEVEL_DAMAGE[_level_index(level)]
 

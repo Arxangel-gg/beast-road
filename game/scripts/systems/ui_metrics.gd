@@ -42,6 +42,18 @@ const PAD_BUTTON_Y: int = 14
 const PAD_PANEL_X: int = 38
 const PAD_PANEL_Y: int = 32
 
+## The spell slot's own frame, as a fraction of the drawn size.
+##
+## `ui_slot.png` is a riveted border around a dark interior, and its border is
+## about 23% of the width. Content was being placed 13px from the edge of a
+## 118px slot - well inside the ironwork - so icons and names sat on the frame
+## rather than in it.
+##
+## A fraction rather than pixels because the slot is drawn stretched: a fixed
+## inset would be right at one size and wrong at every other.
+const SLOT_INSET_X: float = 0.23
+const SLOT_INSET_Y: float = 0.20
+
 ## The plain dark frame is a thin border and needs far less.
 const PAD_DARK_X: int = 20
 const PAD_DARK_Y: int = 16

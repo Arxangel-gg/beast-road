@@ -36,6 +36,10 @@ const OVERLAP_TOLERANCE: float = 6.0
 ## things.
 const BACKDROP_FRACTION: float = 0.75
 
+## How much clear space two separate panels need between them. Below this they
+## read as one crowded mass however the geometry is measured.
+const MIN_PANEL_GAP: float = 18.0
+
 var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
 
@@ -55,6 +59,7 @@ func _ready() -> void:
 
 	_check_overflow(widgets)
 	_check_overlap(widgets)
+	_check_crowding(widgets)
 
 	for note: String in _notes:
 		print("[layout] %s" % note)
@@ -135,6 +140,51 @@ func _check_overlap(widgets: Array[Control]) -> void:
 			_failures.append("overlap: %s over %s by %.0fx%.0f" % [
 				_path_of(a), _path_of(b), shared.size.x, shared.size.y])
 	_notes.append("overlap: %d" % found)
+
+
+## Assemblies that do not overlap but sit too close to read as separate.
+##
+## Reported: "the preparation box overlaps the warhorn, raid and repair town
+## buttons". The rectangles never actually intersected, so the overlap check was
+## right to stay silent and useless to the person looking at the screen - two
+## panels with four pixels between them read as touching whatever the geometry
+## says.
+##
+## So proximity is its own fault. Only between separate assemblies, and only
+## where they genuinely face each other: widgets side by side in a container are
+## meant to be close, and a gate that says otherwise would fire on every toolbar
+## in the game.
+func _check_crowding(widgets: Array[Control]) -> void:
+	var panels: Array[Control] = []
+	for control: Control in widgets:
+		# Panels are the things a player perceives as boxes. Comparing every label
+		# to every other one measures nothing anybody can see.
+		if control is PanelContainer and control.is_visible_in_tree():
+			panels.append(control)
+
+	var found: int = 0
+	for i: int in panels.size():
+		for j: int in range(i + 1, panels.size()):
+			var a: Rect2 = panels[i].get_global_rect()
+			var b: Rect2 = panels[j].get_global_rect()
+			if a.intersects(b):
+				continue  # already the overlap check's business
+			var gap: float = _gap_between(a, b)
+			if gap >= MIN_PANEL_GAP:
+				continue
+			found += 1
+			_failures.append("crowding: %s and %s are %.0fpx apart, want %.0f" % [
+				_path_of(panels[i]), _path_of(panels[j]), gap, MIN_PANEL_GAP])
+	_notes.append("crowding: %d" % found)
+
+
+## Shortest distance between two non-overlapping rectangles.
+func _gap_between(a: Rect2, b: Rect2) -> float:
+	var dx: float = maxf(maxf(a.position.x - b.end.x, b.position.x - a.end.x), 0.0)
+	var dy: float = maxf(maxf(a.position.y - b.end.y, b.position.y - a.end.y), 0.0)
+	# Diagonal separation is fine; only near-alignment on one axis reads as
+	# crowding, which is what taking the larger of the two gives.
+	return maxf(dx, dy)
 
 
 ## The widget group a control belongs to - its nearest Container, or itself.

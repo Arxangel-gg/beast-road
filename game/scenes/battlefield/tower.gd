@@ -145,6 +145,16 @@ func effective_damage() -> float:
 	return data.damage_at(level) * (1.0 + _damage_bonus + relic_bonus + command_bonus)
 
 
+## What this shot actually lands for.
+##
+## `effective_damage` stays the average, because every balance number and every
+## HUD figure is written in those terms; only the blow itself varies. Splitting
+## the two means a spread can be tuned, or set to zero, without any of the
+## arithmetic around it moving.
+func rolled_damage() -> float:
+	return TowerData.roll_damage(effective_damage(), RunState.rng("combat"))
+
+
 func command_overdrive(duration: float) -> void:
 	_command_overdrive_left = maxf(_command_overdrive_left, duration)
 	_cooldown = 0.0
@@ -309,7 +319,7 @@ func _launch(enemy: Enemy) -> void:
 	if shot == null:
 		_hit(enemy)
 		return
-	shot.setup(enemy, data, effective_damage(),
+	shot.setup(enemy, data, rolled_damage(),
 		data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	shot.tier = level
 	_field.add_projectile(shot, global_position + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
@@ -319,7 +329,7 @@ func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		enemy.take_damage(effective_damage(), global_position,
+		enemy.take_damage(rolled_damage(), global_position,
 			data.knockback * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:

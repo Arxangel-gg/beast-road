@@ -54,6 +54,10 @@ const BUILD_PANEL_MARGIN: float = 34.0
 ## for a description to fit on one.
 const BUILD_DETAIL_HEIGHT: float = 30.0
 
+## Spell slot size. Wide enough that a two-word ability name fits inside the
+## frame's interior rather than across its border.
+const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
+
 @export var battlefield: Battlefield
 
 var _resources: Label
@@ -507,8 +511,14 @@ func _build_preparation_panel() -> void:
 	_preparation_panel.offset_right = 190.0
 	# Its ornate skin is taller than the nominal controls. Keep the whole frame
 	# above the persistent scope bar instead of letting the lower rivets clip.
-	_preparation_panel.offset_top = -210.0
-	_preparation_panel.offset_bottom = -118.0
+	# Clear of the scope bar, with a gap rather than a shave.
+	#
+	# The bar occupies the bottom 84px and this used to end at 118, leaving 34px
+	# that the panel's ornate skin ate into - so it read as overlapping the horn,
+	# raid and repair buttons even though the rectangles never intersected. That
+	# is also why the layout gate stayed silent: they were close, not overlapping.
+	_preparation_panel.offset_top = -272.0
+	_preparation_panel.offset_bottom = -156.0
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
@@ -731,7 +741,14 @@ func _rebuild_spell_bar() -> void:
 		# so an empty slot still reads as a slot the player could fill. A gap
 		# reads as nothing at all.
 		var frame := Control.new()
-		frame.custom_minimum_size = Vector2(118, 66)
+		frame.custom_minimum_size = Vector2(SPELL_SLOT_SIZE.x, SPELL_SLOT_SIZE.y)
+		# Everything below is placed against the art's interior, not the slot's
+		# outer rectangle. "HEMORRHAGE EDGE" in a 92px box on a 118px slot spilled
+		# straight over the ironwork on both sides.
+		var inset := Vector2(SPELL_SLOT_SIZE.x * UiMetrics.SLOT_INSET_X,
+			SPELL_SLOT_SIZE.y * UiMetrics.SLOT_INSET_Y)
+		var interior := Vector2(SPELL_SLOT_SIZE.x - inset.x * 2.0,
+			SPELL_SLOT_SIZE.y - inset.y * 2.0)
 		var plate: TextureRect = null
 		var slot_texture: Texture2D = load(SLOT_TEXTURE) \
 			if ResourceLoader.exists(SLOT_TEXTURE) else null
@@ -752,7 +769,7 @@ func _rebuild_spell_bar() -> void:
 
 		var hotkey := Label.new()
 		hotkey.text = str(slot + 1)
-		hotkey.position = Vector2(14.0, 9.0)
+		hotkey.position = Vector2(inset.x, inset.y - 2.0)
 		hotkey.add_theme_font_size_override("font_size", 11)
 		hotkey.add_theme_color_override("font_color", Color("f4ddb0"))
 		hotkey.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -769,8 +786,8 @@ func _rebuild_spell_bar() -> void:
 		frame.add_child(icon)
 
 		var name_label := Label.new()
-		name_label.position = Vector2(13.0, 37.0)
-		name_label.size = Vector2(92.0, 15.0)
+		name_label.position = Vector2(inset.x, SPELL_SLOT_SIZE.y - inset.y - 16.0)
+		name_label.size = Vector2(interior.x, 15.0)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_label.add_theme_font_size_override("font_size", 9)
@@ -1099,7 +1116,10 @@ func _add_stat_preview(tower: TowerData, level: int) -> void:
 	var next_level: int = level + 1
 
 	var rows: Array[Dictionary] = []
-	_collect_stat(rows, "Damage", tower.damage_at(level), tower.damage_at(next_level), 1)
+	# Quoted as a range, because that is what the player watches float off an
+	# enemy. A single averaged number they never actually observe reads as the
+	# game misreporting itself.
+	_collect_range(rows, "Damage", tower.damage_at(level), tower.damage_at(next_level))
 	# Interval goes down as the tower gets faster, so shots per second is the
 	# honest way to show it - a falling number reading as an upgrade is a trap.
 	var rate_now: float = 1.0 / maxf(tower.interval_at(level), 0.001)
@@ -1142,6 +1162,21 @@ func _add_stat_preview(tower: TowerData, level: int) -> void:
 		column.add_child(line)
 
 	_build_list.add_child(panel)
+
+
+## A stat that lands somewhere inside a spread rather than on a number.
+func _collect_range(rows: Array[Dictionary], name: String, from: float, to: float) -> void:
+	if is_equal_approx(from, to):
+		return
+	var low: Vector2 = TowerData.damage_range(from)
+	var high: Vector2 = TowerData.damage_range(to)
+	var percent: float = ((to - from) / from * 100.0) if absf(from) > 0.001 else 0.0
+	rows.append({
+		"name": name,
+		"from": "%d-%d" % [roundi(low.x), roundi(low.y)],
+		"to": "%d-%d" % [roundi(high.x), roundi(high.y)],
+		"delta": "+%d%%" % roundi(percent) if percent >= 0.0 else "%d%%" % roundi(percent),
+	})
 
 
 ## Appends a row only when the value actually moves.

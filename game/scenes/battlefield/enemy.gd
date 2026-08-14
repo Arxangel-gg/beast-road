@@ -248,7 +248,11 @@ func _strike() -> void:
 	var target_health: Health = Health.of(_target)
 	if target_health == null:
 		return
-	var damage: float = data.contact_damage * _damage_scale
+	# Rolled, like a tower's shot. A blow that lands for the same number every
+	# time reads as arithmetic; the average is unchanged, so nothing balanced
+	# against it moves.
+	var damage: float = TowerData.roll_damage(
+		data.contact_damage * _damage_scale, RunState.rng("combat"))
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	if data.role != EnemyData.Role.HOWLER:
