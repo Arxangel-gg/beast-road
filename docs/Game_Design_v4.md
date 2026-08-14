@@ -1177,7 +1177,7 @@ The v4 production delta is a deliberate redesign in the following areas:
 ### M3 - Town, roads, raids, and meta
 
 - [ ] Build nine-building town state and visual growth.
-- [ ] Implement five road archetypes, three difficulty tiers, card comparison, and Watchtower reveal layers.
+- [x] Implement five road archetypes, three difficulty tiers, card comparison, and Watchtower reveal layers.
 - [ ] Implement the revised raid timing and three leader resolutions.
 - [ ] Implement Tools, content pool protections, four Sigil ranks, and Treasury cache.
 - [ ] Verify no run-only power leaks into the account save.

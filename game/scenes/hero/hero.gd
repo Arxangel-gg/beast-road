@@ -343,6 +343,7 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	RunState.hero_hp = current
+	Modifiers.rebuild()
 	EventBus.hero_health_changed.emit(current, maximum)
 
 

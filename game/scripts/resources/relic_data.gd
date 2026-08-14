@@ -13,9 +13,13 @@ extends GameData
 ## Which act's boss dropped this core. 0 for ordinary relics.
 @export var source_act: int = 0
 
+## Regional launch set: 1 Verdant, 2 Sunglass, 3 Rimebound. Boss cores use
+## source_act and leave this at zero. Drop pools filter this field explicitly.
+@export_range(0, 3) var region: int = 0
+
 ## Effect key resolved by the relic system, plus its magnitude. Keeping the
-## effect as data rather than a script per relic is what makes twenty relics a
-## twenty-line file instead of twenty files.
+## effect as data rather than a script per relic keeps the full twenty-four
+## relic launch set compact and consistently testable.
 @export var effect_id: String = ""
 
 @export var effect_magnitude: float = 0.0

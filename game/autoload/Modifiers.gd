@@ -35,6 +35,7 @@ const ENEMY_DAMAGE: String = "enemy_damage"
 const WAVE_FORESIGHT: String = "wave_foresight"
 
 var _totals: Dictionary = {}
+var _base_totals: Dictionary = {}
 
 
 func _ready() -> void:
@@ -50,6 +51,10 @@ func value(effect_id: String) -> float:
 	return float(_totals.get(effect_id, 0.0))
 
 
+func base_value(effect_id: String) -> float:
+	return float(_base_totals.get(effect_id, 0.0))
+
+
 ## Convenience for the common "1.0 + bonus" multiplier shape.
 func multiplier(effect_id: String) -> float:
 	return 1.0 + value(effect_id)
@@ -61,18 +66,41 @@ func has(effect_id: String) -> bool:
 
 func rebuild() -> void:
 	_totals.clear()
+	_base_totals.clear()
 	# Socketed relics act; held ones do not. That is the entire point of the
 	# Town Hall (GDD §5).
 	for relic_id: String in RunState.socketed_relics:
 		_add(ContentDB.relics.get(relic_id, null) as RelicData)
 	for core_id: String in RunState.boss_cores:
 		_add(ContentDB.relics.get(core_id, null) as RelicData)
+	_base_totals = _totals.duplicate()
+	_apply_regional_adapters()
 
 
 func _add(relic: RelicData) -> void:
 	if relic == null or relic.effect_id.is_empty():
 		return
 	_totals[relic.effect_id] = float(_totals.get(relic.effect_id, 0.0)) + relic.effect_magnitude
+
+
+## Every regional socket adds a bounded situational rule. Verdant stabilizes a
+## damaged town, Sunglass rewards wounded mobility, and Rimebound converts act
+## wounds into control. The rule keys off region data, never individual ids.
+func _apply_regional_adapters() -> void:
+	for relic_id: String in RunState.socketed_relics:
+		var relic := ContentDB.relics.get(relic_id, null) as RelicData
+		if relic == null:
+			continue
+		match relic.region:
+			1:
+				if RunState.town_hp < RunState.town_max_hp * 0.70:
+					_totals[TOWER_DAMAGE] = float(_totals.get(TOWER_DAMAGE, 0.0)) + 0.04
+			2:
+				if RunState.hero_hp > 0.0 and RunState.hero_hp < Balance.HERO_MAX_HP * 0.50:
+					_totals[HERO_SPEED] = float(_totals.get(HERO_SPEED, 0.0)) + 0.025
+			3:
+				if RunState.hero_wounds > 0:
+					_totals[SLOW_STRENGTH] = float(_totals.get(SLOW_STRENGTH, 0.0)) + 0.025
 
 
 func _on_relics_changed(_relic_id: String) -> void:

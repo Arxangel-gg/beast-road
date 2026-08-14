@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_y5xa1")
+region = 2
 effect_id = "slow_strength"
 effect_magnitude = 0.2
 id = "12"

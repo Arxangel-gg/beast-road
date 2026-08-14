@@ -11,4 +11,4 @@ requires_unlock = true
 plot_angle_degrees = 288.0
 id = "watchtower"
 display_name = "Watchtower"
-description = "Reveals the makeup of the next wave before it arrives."
+description = "Forecasts formations, road threats, and hidden rewards by tier."

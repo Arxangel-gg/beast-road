@@ -12,28 +12,18 @@ extends Node2D
 ## 2. **Nothing is identical.** Every clump varies in size, tint, lean and sway
 ##    phase, so a hundred instances of three shapes still look like undergrowth.
 ##
-## The shapes are polygons rather than art: three silhouettes per terrain, each
-## built from the terrain's own palette, is enough at this scale and costs no
-## asset. Real foliage art can replace `_build_clump` without touching placement.
-
-## Per-terrain look: silhouette style and colour range.
+## Per-terrain growth language. Colour is not hardcoded: it is sampled from the
+## act's ground painting each time the terrain changes, so plants inherit the
+## local hue and remain coherent under the same day/night CanvasModulate.
 const STYLES: Dictionary = {
-	"ashfen": {
-		"kind": "reed",
-		"dark": Color(0.20, 0.26, 0.18),
-		"light": Color(0.42, 0.46, 0.26),
-	},
-	"saltglass": {
-		"kind": "shard",
-		"dark": Color(0.42, 0.50, 0.56),
-		"light": Color(0.72, 0.80, 0.86),
-	},
-	"steppe": {
-		"kind": "tuft",
-		"dark": Color(0.34, 0.26, 0.16),
-		"light": Color(0.56, 0.46, 0.26),
-	},
+	"ashfen": {"kind": "reed"},
+	"saltglass": {"kind": "shard"},
+	"steppe": {"kind": "tuft"},
 }
+
+const PALETTE_SAMPLE_SIZE: int = 32
+const PALETTE_MIN_VALUE: float = 0.08
+const PALETTE_MAX_VALUE: float = 0.78
 
 var _clumps: Array[Node2D] = []
 var _clump_phases: Array[float] = []
@@ -66,7 +56,8 @@ func scatter() -> void:
 	_clump_rates.clear()
 	_clump_amounts.clear()
 
-	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["ashfen"])
+	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["ashfen"]).duplicate()
+	style.merge(_terrain_palette(), true)
 	var rng := RandomNumberGenerator.new()
 	# Seeded per terrain, so a given act always looks the same rather than
 	# reshuffling every time the scope is entered.
@@ -141,9 +132,20 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, gr
 	var scale: float = rng.randf_range(Balance.FOLIAGE_MIN_SCALE, Balance.FOLIAGE_MAX_SCALE)
 	if ground:
 		scale *= Balance.FOLIAGE_GROUND_SCALE
-	var blades: int = rng.randi_range(5, 9) if ground else rng.randi_range(3, 6)
-	clump.configure(_clump_shape(String(style["kind"]), rng, blades, ground),
-		(style["dark"] as Color).lerp(style["light"] as Color, rng.randf()), scale)
+	var blades: int = rng.randi_range(5, 8) if ground else rng.randi_range(3, 6)
+	var span: float = 19.0 if ground else 13.0
+	for blade: int in blades:
+		var ratio: float = (float(blade) + 0.5) / float(blades)
+		var offset := Vector2(lerpf(-span, span, ratio) + rng.randf_range(-2.4, 2.4),
+			rng.randf_range(-1.6, 1.6))
+		var blade_scale: float = scale * rng.randf_range(0.72, 1.18)
+		if ground:
+			blade_scale *= 0.62
+		var colour: Color = (style["dark"] as Color).lerp(
+			style["light"] as Color, rng.randf_range(0.12, 0.92))
+		clump.add_blade(_blade_shape(String(style["kind"]), rng), colour,
+			offset, rng.randf_range(-0.12, 0.12), blade_scale)
+	clump.finish()
 
 	# Only the tall layer gets a shadow. Ground cover is already a few pixels
 	# high, so a pool under it reads as dirt rather than as shade — and there are
@@ -159,6 +161,44 @@ func _build_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator, gr
 	_clump_rates.append(sway * (Balance.FOLIAGE_GROUND_SWAY if ground else 1.0))
 	_clump_amounts.append(Balance.FOLIAGE_GROUND_SWAY if ground else 1.0)
 	return clump
+
+
+## Derives a restrained plant ramp from the actual terrain painting. Very dark
+## pits and pale highlights are excluded so one pool or salt glint cannot tint a
+## whole act. The resulting colours stay close to the ground hue, then gain just
+## enough saturation/value separation to read as foliage rather than noise.
+func _terrain_palette() -> Dictionary:
+	var fallback := {"dark": Color("253129"), "light": Color("667055")}
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain == null or not ResourceLoader.exists(terrain.get_sprite_path()):
+		return fallback
+	var texture: Texture2D = load(terrain.get_sprite_path()) as Texture2D
+	if texture == null:
+		return fallback
+	var source: Image = texture.get_image()
+	if source == null or source.is_empty():
+		return fallback
+	var sampled: Image = source.duplicate()
+	sampled.resize(PALETTE_SAMPLE_SIZE, PALETTE_SAMPLE_SIZE, Image.INTERPOLATE_LANCZOS)
+	var total := Vector3.ZERO
+	var count: int = 0
+	for y: int in PALETTE_SAMPLE_SIZE:
+		for x: int in PALETTE_SAMPLE_SIZE:
+			var colour: Color = sampled.get_pixel(x, y)
+			if colour.v < PALETTE_MIN_VALUE or colour.v > PALETTE_MAX_VALUE:
+				continue
+			total += Vector3(colour.r, colour.g, colour.b)
+			count += 1
+	if count == 0:
+		return fallback
+	var average := Color(total.x / float(count), total.y / float(count),
+		total.z / float(count))
+	var saturation: float = clampf(average.s * 1.18 + 0.035, 0.08, 0.42)
+	var dark := Color.from_hsv(average.h, saturation,
+		clampf(average.v * 0.68, 0.11, 0.38), 0.96)
+	var light := Color.from_hsv(average.h, clampf(saturation * 0.82, 0.07, 0.34),
+		clampf(average.v * 1.34, 0.30, 0.68), 0.98)
+	return {"dark": dark, "light": light}
 
 
 ## A shadow for a clump, which has no sprite to measure — so it is built by hand
@@ -200,40 +240,6 @@ func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Arra
 				Vector2(rng.randf_range(1.0, 5.0), -height)])
 
 
-## One coherent silhouette per plant. Closely packed blade polygons were being
-## submitted as five to nine separate draws even though the player reads them
-## as one clump at battlefield scale. This jagged upper contour retains each
-## terrain's species language and variation in a single cached draw.
-func _clump_shape(kind: String, rng: RandomNumberGenerator, blades: int,
-		ground: bool) -> PackedVector2Array:
-	var half_span: float = 18.0 if ground else 13.0
-	var points := PackedVector2Array([Vector2(-half_span, 1.5)])
-	var spacing: float = (half_span * 2.0) / float(blades)
-	var blade_half: float = spacing * 0.46
-	for index: int in blades:
-		var x: float = -half_span + spacing * (float(index) + 0.5)
-		var height: float = rng.randf_range(13.0, 23.0) if ground \
-			else rng.randf_range(19.0, 34.0)
-		var lean: float = rng.randf_range(-2.6, 2.6)
-		match kind:
-			"shard":
-				lean *= 0.45
-			"tuft":
-				height *= 0.88
-			_:
-				lean += rng.randf_range(0.8, 2.8)
-		# Strictly increasing x makes this contour simple and guarantees Godot's
-		# triangulator never sees crossing edges, even on a nine-blade clump.
-		var left_x: float = x - blade_half
-		var right_x: float = x + blade_half
-		var tip_x: float = clampf(x + lean, left_x + 0.05, right_x - 0.05)
-		points.append(Vector2(left_x, rng.randf_range(-1.5, 0.5)))
-		points.append(Vector2(tip_x, -height))
-		points.append(Vector2(right_x, rng.randf_range(-1.5, 0.5)))
-	points.append(Vector2(half_span, 1.5))
-	return points
-
-
 ## Everything leans on the same wind, each clump at its own phase and rate, so
 ## the field moves as one thing without any two plants moving alike.
 func _process(delta: float) -> void:
@@ -262,15 +268,37 @@ func _process(delta: float) -> void:
 ## This preserves the exact procedural silhouettes while removing thousands of
 ## independently managed scene nodes from the authored High battlefield.
 class FoliageClump extends Node2D:
-	var _silhouette: PackedVector2Array = []
-	var _colour: Color = Color.WHITE
+	var _shapes: Array[PackedVector2Array] = []
+	var _colours: Array[Color] = []
+	var _offsets: Array[Vector2] = []
+	var _rotations: Array[float] = []
+	var _scales: Array[float] = []
 
-	func configure(shape: PackedVector2Array, colour: Color, clump_scale: float) -> void:
-		_silhouette = shape
-		_colour = colour
-		scale = Vector2.ONE * clump_scale
+	func add_blade(shape: PackedVector2Array, colour: Color, at: Vector2,
+			angle: float, blade_scale: float) -> void:
+		_shapes.append(shape)
+		_colours.append(colour)
+		_offsets.append(at)
+		_rotations.append(angle)
+		_scales.append(blade_scale)
+
+	func finish() -> void:
 		queue_redraw()
 
 	func _draw() -> void:
-		if not _silhouette.is_empty():
-			draw_colored_polygon(_silhouette, _colour)
+		# The blades remain one cached CanvasItem, but recover the internal gaps,
+		# highlights and overlapping silhouettes that made the original growth
+		# attractive. A low shared skirt visually roots them in the ground.
+		if _shapes.is_empty():
+			return
+		var skirt_colour: Color = _colours[0].darkened(0.22)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(-16.0, 2.0), Vector2(16.0, 2.0),
+			Vector2(11.0, -3.0), Vector2(-11.0, -3.0)]), skirt_colour)
+		for index: int in _shapes.size():
+			var transform := Transform2D(_rotations[index], _offsets[index])
+			transform = transform.scaled(Vector2.ONE * _scales[index])
+			var transformed := PackedVector2Array()
+			for point: Vector2 in _shapes[index]:
+				transformed.append(transform * point)
+			draw_colored_polygon(transformed, _colours[index])

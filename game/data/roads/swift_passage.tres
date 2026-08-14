@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+icon_id = "wave"
+promise = "A short, focused road with fewer battle cycles."
+consequence = "Less walking income and construction progress."
+distance_scale = 0.78
+resource_rate_scale = 0.74
+construction_scale = 0.74
+count_scale = 0.96
+spawn_spacing_scale = 0.94
+reward_currencies = {"gold": 24}
+id = "swift_passage"
+display_name = "Swift Passage"
+description = "Reach the next decision quickly and accept leaner growth."
+

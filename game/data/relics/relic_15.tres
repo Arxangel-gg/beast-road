@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_bd4ax")
+region = 2
 effect_id = "kill_resources"
 effect_magnitude = 0.5
 id = "15"

@@ -55,7 +55,19 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	var command_order_total: int = 0
 	for value: Variant in command_orders.values():
 		command_order_total += int(value)
+	var road_names: PackedStringArray = []
+	for entry: Dictionary in summary.get("roads", []):
+		var road: RoadData = ContentDB.road(String(entry.get("road", "")))
+		var difficulty: RoadDifficultyData = ContentDB.road_difficulty(
+			String(entry.get("difficulty", "")))
+		if road != null and difficulty != null:
+			road_names.append("%s %s" % [difficulty.display_name, road.display_name])
+	var route_lines: PackedStringArray = []
+	for start: int in range(0, road_names.size(), 3):
+		route_lines.append("  →  ".join(road_names.slice(start, mini(start + 3, road_names.size()))))
 	var lines: PackedStringArray = [
+		"Run seed   %09d" % int(summary.get("seed", 0)),
+		"Route   %s" % ("\n        ".join(route_lines) if not route_lines.is_empty() else "—"),
 		"Distance   %d of %d" % [int(summary.get("distance", 0)), int(Balance.JOURNEY_TOTAL_DISTANCE)],
 		"Reached act %d   ·   %s combat   ·   %s planning" % [
 			int(summary.get("act", 1)), duration, planning_duration],

@@ -119,13 +119,23 @@ func _process(delta: float) -> void:
 	_step_sink = move_toward(_step_sink, 0.0,
 		delta / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01))
 	if beast != null:
-		beast.position.y = sin(_bob) * 6.0 + Balance.BEAST_STEP_SINK * _step_sink
-		beast.position.x = -20.0 + sin(_bob * 0.5) * 8.0
+		var presentation_phase: float = _lumbered_phase(_bob)
+		beast.position.y = sin(presentation_phase) * Balance.BEAST_PROFILE_VERTICAL \
+			+ Balance.BEAST_STEP_SINK * _step_sink
+		beast.position.x = Balance.BEAST_PROFILE_BASE_X \
+			+ sin(presentation_phase * 0.5) * Balance.BEAST_PROFILE_HORIZONTAL
 	_update_step_shake(delta, speed_ratio)
 
 	_scroll_backdrop()
 
 	_update_route()
+
+
+func _lumbered_phase(raw_phase: float) -> float:
+	var half_step: float = floor(raw_phase / PI)
+	var progress: float = fmod(raw_phase, PI) / PI
+	var eased: float = pow(clampf(progress, 0.0, 1.0), Balance.BEAST_GAIT_WINDUP_POWER)
+	return (half_step + eased) * PI
 
 
 func _update_step_shake(delta: float, strength: float) -> void:

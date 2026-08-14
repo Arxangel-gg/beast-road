@@ -22,6 +22,28 @@ var act: int = 1
 var segment: int = 0
 var terrain_id: String = ""
 var phase: Phase = Phase.PREPARATION
+var active_road_id: String = ""
+var active_road_difficulty_id: String = ""
+## Populated only after a Relic Hunt is completed, then consumed by its modal.
+var pending_road_relics: Array[String] = []
+
+## Public QA/debrief seed. Every gameplay-random system receives its own named
+## stream derived from this value, so adding a spark or audio variation cannot
+## silently change tomorrow's formation or crossroad.
+var run_seed: int = 1
+var road_history: Array[Dictionary] = []
+var _rng_streams: Dictionary = {}
+
+const RNG_MIN_SEED: int = 100000000
+const RNG_MAX_SEED: int = 999999999
+const RNG_STREAM_SALTS: Dictionary = {
+	"waves": 104729,
+	"roads": 224737,
+	"raids": 350377,
+	"rewards": 479909,
+	"bosses": 611953,
+	"combat": 746773,
+}
 
 # --- Economy ---------------------------------------------------------------
 
@@ -144,15 +166,66 @@ func _process(delta: float) -> void:
 		run_time_seconds += delta
 
 
+## Rebuilds every gameplay stream. Tests and QA call this with an explicit
+## value; normal runs receive a fresh nine-digit code from time, date and pid.
+func set_seed(value: int) -> void:
+	run_seed = clampi(absi(value), 1, RNG_MAX_SEED)
+	_rng_streams.clear()
+	# Keep global gameplay calls deterministic while named streams protect major
+	# systems from consuming each other's sequence.
+	seed(run_seed)
+
+
+func rng(stream: String) -> RandomNumberGenerator:
+	if _rng_streams.has(stream):
+		return _rng_streams[stream] as RandomNumberGenerator
+	var generator := RandomNumberGenerator.new()
+	var salt: int = int(RNG_STREAM_SALTS.get(stream, hash(stream)))
+	generator.seed = run_seed * 1000003 + salt
+	_rng_streams[stream] = generator
+	return generator
+
+
+func record_road_choice(segment_index: int, road_id: String, difficulty_id: String) -> void:
+	road_history.append({
+		"segment": segment_index,
+		"road": road_id,
+		"difficulty": difficulty_id,
+	})
+
+
+func seed_code() -> String:
+	return "%09d" % run_seed
+
+
+## Watchtower tiers and socketed foresight relics feed one bounded information
+## ladder. A relic can supply a missing tier but can never reveal beyond tier 3.
+func foresight_tier() -> int:
+	return clampi(building_tier("watchtower") \
+		+ int(round(Modifiers.value(Modifiers.WAVE_FORESIGHT))), 0, 3)
+
+
+func _fresh_seed() -> int:
+	var stamp: Dictionary = Time.get_datetime_dict_from_system(true)
+	var value: int = int(Time.get_ticks_usec()) ^ OS.get_process_id() * 7919
+	value ^= int(stamp.get("year", 0)) * 366 + int(stamp.get("day", 0)) * 86400
+	return RNG_MIN_SEED + posmod(value, RNG_MAX_SEED - RNG_MIN_SEED + 1)
+
+
 ## Wipes everything. Called when a run begins, never mid-run — death wipes the
 ## run entirely (GDD §10).
-func reset(use_treasury_cache: bool = false) -> void:
+func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
+	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
 	distance_travelled = 0.0
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
 	terrain_id = ""
 	phase = Phase.PREPARATION
+	active_road_id = ""
+	active_road_difficulty_id = ""
+	pending_road_relics.clear()
+	road_history.clear()
 
 	currencies = {
 		WOOD: Balance.STARTING_WOOD,
@@ -296,8 +369,8 @@ func refresh_discipline_offers() -> void:
 	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
 	# the panel, while the next road still produces a new set.
 	eligible.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
-		var seed: int = segment * 97 + wave_number * 31 + act * 13
-		return hash(a.id + str(seed)) < hash(b.id + str(seed)))
+		var offer_seed: int = run_seed + segment * 97 + wave_number * 31 + act * 13
+		return hash(a.id + str(offer_seed)) < hash(b.id + str(offer_seed)))
 	for node: DisciplineNodeData in eligible:
 		if discipline_offers.size() >= 3:
 			break
@@ -500,6 +573,7 @@ func begin_command_battle() -> void:
 func add_wound() -> int:
 	hero_wounds = mini(hero_wounds + 1, Balance.HERO_MAX_WOUNDS)
 	wounds_suffered += 1
+	Modifiers.rebuild()
 	EventBus.hero_wounds_changed.emit(hero_wounds, Balance.HERO_MAX_WOUNDS)
 	return hero_wounds
 
@@ -507,6 +581,7 @@ func add_wound() -> int:
 func hearthmend() -> void:
 	hero_wounds = 0
 	hearthmends_used += 1
+	Modifiers.rebuild()
 	hero_hp = -1.0
 	var repair: float = town_max_hp * Balance.HEARTHMEND_TOWN_REPAIR_FRACTION
 	town_hp = minf(town_hp + repair, town_max_hp)
@@ -679,6 +754,14 @@ func enemies_are_weakened() -> bool:
 	return weakened_until > 0.0
 
 
+func active_road() -> RoadData:
+	return ContentDB.road(active_road_id)
+
+
+func active_road_difficulty() -> RoadDifficultyData:
+	return ContentDB.road_difficulty(active_road_difficulty_id)
+
+
 ## Total journey progress, 0..1.
 func journey_ratio() -> float:
 	return clampf(distance_travelled / Balance.JOURNEY_TOTAL_DISTANCE, 0.0, 1.0)
@@ -706,7 +789,9 @@ func act_progress() -> float:
 ## Distance remaining until the next crossroad.
 func distance_to_crossroad() -> float:
 	var next_boundary: float = (floorf(distance_travelled / Balance.SEGMENT_DISTANCE) + 1.0) * Balance.SEGMENT_DISTANCE
-	return maxf(next_boundary - distance_travelled, 0.0)
+	var remaining: float = maxf(next_boundary - distance_travelled, 0.0)
+	var road: RoadData = active_road()
+	return remaining * (road.distance_scale if road != null else 1.0)
 
 
 func record_wave_archetype(id: String) -> void:

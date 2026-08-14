@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RoadDifficultyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_difficulty_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rank = 1
+reward_rolls = 2
+card_colour = Color(0.91, 0.64, 0.24, 1)
+id = "contested"
+display_name = "Contested"
+description = "Baseline threat · two reward rolls"
+

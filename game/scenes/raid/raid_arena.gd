@@ -45,7 +45,7 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	_rng.randomize()
+	_rng = RunState.rng("raids")
 	_setup_ground()
 	_setup_boundary()
 	set_process(false)
@@ -291,10 +291,17 @@ func _build_reward(result: Dictionary) -> Dictionary:
 
 
 func _pick_relic() -> String:
-	var ids: Array = ContentDB.relics.keys()
+	var ids: Array[String] = []
+	for value: Variant in ContentDB.relics.values():
+		var relic := value as RelicData
+		if relic != null and not relic.is_boss_core and relic.region == RunState.act \
+				and not RunState.held_relics.has(relic.id) \
+				and not RunState.socketed_relics.has(relic.id):
+			ids.append(relic.id)
 	if ids.is_empty():
 		return ""
-	return String(ids[_rng.randi_range(0, ids.size() - 1)])
+	ids.sort()
+	return ids[_rng.randi_range(0, ids.size() - 1)]
 
 
 func _clear_enemies() -> void:
@@ -339,7 +346,7 @@ func _setup_ground() -> void:
 	var extent: float = Balance.RAID_ARENA_RADIUS * 1.3
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	ground.material = TerrainBlend.material()
+	ground.material = TerrainSeam.material()
 	ground.region_enabled = true
 	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
 

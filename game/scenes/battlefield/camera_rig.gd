@@ -120,13 +120,24 @@ func _tick_gait(delta: float) -> void:
 	_step_sink = move_toward(_step_sink, 0.0,
 		delta / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01))
 
+	var presentation_phase: float = _lumbered_phase(_gait_phase)
 	var gait := Vector2(
-		sin(_gait_phase * 0.5) * Balance.BEAST_GAIT_HORIZONTAL,
-		sin(_gait_phase) * Balance.BEAST_GAIT_VERTICAL \
+		sin(presentation_phase * 0.5) * Balance.BEAST_GAIT_HORIZONTAL,
+		sin(presentation_phase) * Balance.BEAST_GAIT_VERTICAL \
 			+ Balance.BEAST_STEP_SINK * _step_sink) * _gait_strength
 	offset = _shake_offset + gait
-	rotation = deg_to_rad(sin(_gait_phase * 0.5 + 0.4) \
+	rotation = deg_to_rad(sin(presentation_phase * 0.5 + 0.4) \
 		* Balance.BEAST_GAIT_ROTATION_DEGREES * _gait_strength)
+
+
+## Most of a support transfer is a slow, burdened lift. The final third gains
+## speed into the plant, where the pause, sink and impact take over. The raw
+## phase still owns step timing, so this shaping cannot skip a footfall.
+func _lumbered_phase(raw_phase: float) -> float:
+	var half_step: float = floor(raw_phase / PI)
+	var progress: float = fmod(raw_phase, PI) / PI
+	var eased: float = pow(clampf(progress, 0.0, 1.0), Balance.BEAST_GAIT_WINDUP_POWER)
+	return (half_step + eased) * PI
 
 
 ## Alternating pair-support footfall. The camera motion pauses at the planted

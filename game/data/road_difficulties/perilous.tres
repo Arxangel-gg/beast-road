@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RoadDifficultyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_difficulty_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rank = 2
+count_scale = 1.10
+stat_scale = 1.16
+speed_scale = 1.04
+spawn_spacing_scale = 0.94
+elite_budget_bonus = 0.55
+reward_rolls = 3
+reward_scale = 1.30
+card_colour = Color(0.88, 0.31, 0.22, 1)
+id = "perilous"
+display_name = "Perilous"
+description = "Dangerous modifier · three upgraded rewards"

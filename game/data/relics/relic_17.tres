@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_ciioq")
+region = 3
 effect_id = "enemy_damage"
 effect_magnitude = -0.1
 id = "17"

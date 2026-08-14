@@ -170,7 +170,7 @@ func _ready() -> void:
 	_rebuild_spell_bar()
 	_refresh_state_label()
 	_on_phase_changed(int(RunState.phase), int(RunState.phase))
-	_on_preparation_changed(Balance.PREPARATION_MIN_SECONDS, false)
+	_on_preparation_changed(0.0, true)
 	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
 	_on_hero_wounds_changed(RunState.hero_wounds, Balance.HERO_MAX_WOUNDS)
 
@@ -242,6 +242,10 @@ func _build_top_bar() -> void:
 		journey_bar.add_child(row)
 	_distance = IconKit.label_of(distance_row)
 	_wave = IconKit.label_of(wave_row)
+	var seed_label: Label = _label("SEED  " + RunState.seed_code(), 12)
+	seed_label.tooltip_text = "Gameplay seed. Enter this code on the main menu to reproduce road, wave, raid and reward rolls."
+	seed_label.add_theme_color_override("font_color", Color("778985"))
+	journey_bar.add_child(seed_label)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -377,13 +381,21 @@ func _build_scope_bar() -> void:
 	_repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_repair_button, "upgrade", 22)
 
-	# No icon on the charge bar: the Raid button sitting immediately beside it
-	# already carries one, and the same symbol twice in six inches reads as a
-	# mistake rather than as a label.
+	var charge_readout := VBoxContainer.new()
+	charge_readout.custom_minimum_size = Vector2(108.0, 48.0)
+	charge_readout.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	charge_readout.add_theme_constant_override("separation", 1)
+	var charge_label: Label = _label("RAID CHARGE", 10)
+	charge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	charge_label.add_theme_color_override("font_color", Color("b9abc9"))
+	charge_readout.add_child(charge_label)
 	_charge_bar = _make_bar(Color("9b8fc4"), 108.0)
+	_charge_bar.custom_minimum_size.y = 18.0
 	_charge_bar.value = 0.0
 	_charge_bar.tooltip_text = "Raid charge. Defeat enemies to fill it; War Horn accelerates the gain."
-	bar.add_child(_charge_bar)
+	charge_readout.tooltip_text = _charge_bar.tooltip_text
+	charge_readout.add_child(_charge_bar)
+	bar.add_child(charge_readout)
 
 
 func _update_repair_button() -> void:
@@ -491,12 +503,12 @@ func _build_raid_panel() -> void:
 func _build_preparation_panel() -> void:
 	_preparation_panel = PanelContainer.new()
 	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_preparation_panel.offset_left = -230.0
-	_preparation_panel.offset_right = 230.0
+	_preparation_panel.offset_left = -190.0
+	_preparation_panel.offset_right = 190.0
 	# Its ornate skin is taller than the nominal controls. Keep the whole frame
 	# above the persistent scope bar instead of letting the lower rivets clip.
-	_preparation_panel.offset_top = -222.0
-	_preparation_panel.offset_bottom = -106.0
+	_preparation_panel.offset_top = -210.0
+	_preparation_panel.offset_bottom = -118.0
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
@@ -505,26 +517,26 @@ func _build_preparation_panel() -> void:
 	var title := Label.new()
 	title.text = "PREPARATION"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(title)
-	_preparation_label = _label("Build, upgrade and reposition before the road.", 12)
+	_preparation_label = _label("Build, upgrade and reposition before the road.", 11)
 	_preparation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_preparation_label)
 	_ride_on_button = _add_button(column, "RIDE ON", func() -> void: ride_on_requested.emit())
-	_ride_on_button.custom_minimum_size.y = 38.0
-	_ride_on_button.add_theme_font_size_override("font_size", 13)
+	_ride_on_button.custom_minimum_size.y = 34.0
+	_ride_on_button.add_theme_font_size_override("font_size", 12)
 	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_ride_on_button.tooltip_text = "Begin the next road battle. Building and upgrades lock until Preparation."
+	_ride_on_button.tooltip_text = "Begin the next wave. Leaving during the first 10 seconds earns bonus Gold; waiting is always safe."
 
 
 func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_command_panel.offset_left = -424.0
-	_command_panel.offset_top = -224.0
+	_command_panel.offset_top = -276.0
 	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -122.0
+	_command_panel.offset_bottom = -164.0
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
@@ -599,9 +611,12 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	if _preparation_label == null or _ride_on_button == null:
 		return
 	_ride_on_button.disabled = not ready
-	_ride_on_button.text = "RIDE ON" if ready else "READY IN %.0f" % ceil(seconds_left)
-	_preparation_label.text = "Choose towers, town projects and relics. Combat is paused." \
-		if ready else "Survey all four roads. Initial Preparation is protected for %.0f seconds." % ceil(seconds_left)
+	var reward: int = int(round(float(Balance.PREPARATION_EARLY_GOLD_MAX) \
+		* clampf(seconds_left / maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01), 0.0, 1.0)))
+	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
+	_preparation_label.text = "Early-departure bonus fades in %.0f sec. The next wave still waits." \
+		% ceil(seconds_left) if reward > 0 \
+		else "Prepare as long as you need. The next wave waits for you."
 
 
 func _on_command_changed(current: float, maximum: float) -> void:

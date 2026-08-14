@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vuu1c")
+region = 1
 effect_id = "town_max_hp"
 effect_magnitude = 150.0
 id = "02"

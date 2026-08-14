@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_j28nt")
+region = 1
 effect_id = "hero_damage"
 effect_magnitude = 0.15
 id = "04"

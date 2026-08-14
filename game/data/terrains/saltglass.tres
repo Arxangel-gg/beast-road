@@ -11,6 +11,6 @@ act = 2
 favoured_element = 3
 favoured_element_bonus = 0.2
 bonus_chain_targets = 1
-wave_interval_multiplier = 0.9
+wave_interval_multiplier = 0.95
 id = "saltglass"
 display_name = "Saltglass Flats"

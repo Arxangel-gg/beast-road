@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_76seh")
+region = 3
 effect_id = "captive_output"
 effect_magnitude = 0.4
 id = "20"

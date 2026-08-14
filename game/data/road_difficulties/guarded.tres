@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RoadDifficultyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_difficulty_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rank = 0
+count_scale = 0.90
+stat_scale = 0.86
+speed_scale = 0.96
+spawn_spacing_scale = 1.08
+reward_rolls = 1
+reward_scale = 0.86
+card_colour = Color(0.53, 0.72, 0.58, 1)
+id = "guarded"
+display_name = "Guarded"
+description = "Reduced threat · one standard reward"
+

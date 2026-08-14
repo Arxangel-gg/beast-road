@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vucqm")
+region = 1
 effect_id = "resource_rate"
 effect_magnitude = 0.25
 id = "03"

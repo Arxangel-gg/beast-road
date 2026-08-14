@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+icon_id = "relic"
+promise = "A guaranteed relic from the current region."
+consequence = "Empowered regional troops defend the find."
+count_scale = 1.05
+hp_scale = 1.10
+damage_scale = 1.06
+elite_budget_bonus = 0.35
+reward_currencies = {"gold": 18}
+guaranteed_regional_relic = true
+id = "relic_hunt"
+display_name = "Relic Hunt"
+description = "Commit to a stronger formation for a build-shaping reward."
+

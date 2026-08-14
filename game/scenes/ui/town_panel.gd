@@ -383,7 +383,13 @@ func _effect_text(data: BuildingData, tier: int) -> String:
 			return "tower mastery level %d unlocked" % clampi(
 				Balance.TOWER_BASE_LEVEL_CAP + tier, 1, Balance.TOWER_MAX_LEVEL)
 		BuildingData.Effect.WAVE_FORESIGHT:
-			return "next wave revealed"
+			match tier:
+				1:
+					return "formation lanes and road threat values revealed"
+				2:
+					return "wave scale, intent and road reward depth revealed"
+				_:
+					return "signature threats and exact road rewards revealed"
 		BuildingData.Effect.PRODUCTION:
 			return "%.2f %s per distance" % [amount, RunState.currency_name(data.produced_currency)]
 		BuildingData.Effect.TREASURY_CACHE:

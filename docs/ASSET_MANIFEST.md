@@ -227,7 +227,7 @@ All 192×192, type T. Placeholder colour by element.
 
 All 128×128, type T, placeholder colour `#E8A33D`.
 
-Files: `relic_01.png` … `relic_20.png`, plus `relic_core_drowned_choir.png`,
+Files: `relic_01.png` … `relic_24.png`, plus `relic_core_drowned_choir.png`,
 `relic_core_mirrorfang.png`, `relic_core_rust_crown.png`.
 
 > Rename these to match final relic `id`s once relics are designed in Stage 5.
@@ -441,7 +441,9 @@ transparent background, `[object]`, worn and weathered, amber light catching
 one edge.* Objects: a cracked bone crown · a rusted iron heart · a sealed clay
 jar · a knotted cord of teeth · a shattered mirror shard · a blackened iron
 key · a wax-sealed scroll · a horn ring · a burnt feather · a river stone
-bound in wire.
+bound in wire. Rimebound additions: a frost-split bone carapace · a coal sealed
+inside an ice-and-black-iron reliquary · a broken black-iron glacier spur · an
+ice-crazed whiteout lens in a weathered surveyor housing.
 
 **Spells** — ChatGPT stem, subject: *a single glowing arcane sigil on
 transparent background representing `[concept]`, painted in amber and violet

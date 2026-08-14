@@ -8,14 +8,16 @@ extends Control
 @export var settings_button: Button
 @export var quit_button: Button
 @export var stats_label: Label
+@export var seed_input: LineEdit
 
 var _settings: SettingsPanel
 
 
 func _ready() -> void:
 	MusicPlayer.play("menu")
-	new_run_button.pressed.connect(GameDirector.start_run)
+	new_run_button.pressed.connect(_start_run)
 	quit_button.pressed.connect(GameDirector.quit_game)
+	seed_input.text_submitted.connect(func(_value: String) -> void: _start_run())
 
 	# All three carry an icon, which also left-aligns them. Without one on the
 	# first button its label stayed centred while the two below it were not, and a
@@ -30,6 +32,19 @@ func _ready() -> void:
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
+
+
+func _start_run() -> void:
+	var requested: int = 0
+	var entered: String = seed_input.text.strip_edges()
+	if not entered.is_empty():
+		if not entered.is_valid_int() or int(entered) <= 0:
+			seed_input.text = ""
+			seed_input.placeholder_text = "Use 1–999999999"
+			seed_input.grab_focus()
+			return
+		requested = clampi(int(entered), 1, RunState.RNG_MAX_SEED)
+	GameDirector.start_run(requested)
 
 
 ## The panel is the shared component, centred over the key art. The menu used to

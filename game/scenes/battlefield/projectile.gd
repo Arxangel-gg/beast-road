@@ -244,7 +244,8 @@ func _apply(enemy: Enemy) -> void:
 	if data.burn_dps > 0.0:
 		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
 			data.burn_duration * sqrt(utility))
-	if data.freeze_chance > 0.0 and randf() < minf(data.freeze_chance * utility, 0.82):
+	if data.freeze_chance > 0.0 and RunState.rng("combat").randf() \
+			< minf(data.freeze_chance * utility, 0.82):
 		enemy.apply_freeze(1.2 * sqrt(utility))
 
 

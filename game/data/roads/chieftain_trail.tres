@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+icon_id = "raid_charge"
+promise = "A guaranteed full Raid Charge opportunity."
+consequence = "Elite-led formations hold the trail."
+count_scale = 1.04
+hp_scale = 1.05
+damage_scale = 1.05
+elite_budget_bonus = 1.15
+raid_charge_scale = 1.65
+reward_currencies = {"stone": 12, "gold": 15}
+guarantees_raid_charge = true
+id = "chieftain_trail"
+display_name = "Chieftain Trail"
+description = "Hunt leadership and turn the danger into a raid opening."
+

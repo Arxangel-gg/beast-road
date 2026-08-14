@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_r24"]
+
+[resource]
+script = ExtResource("1_r24")
+region = 3
+effect_id = "wave_foresight"
+effect_magnitude = 1.0
+id = "24"
+display_name = "Whiteout Lens"
+description = "Frozen glass resolves movement inside the storm."

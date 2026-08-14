@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+icon_id = "resource"
+promise = "Wood, Food and flexible recovery."
+consequence = "Safer supply columns replace the best rare finds."
+resource_rate_scale = 1.22
+count_scale = 0.94
+hp_scale = 0.96
+reward_currencies = {"wood": 32, "food": 24, "gold": 18}
+id = "provision_route"
+display_name = "Provision Route"
+description = "Recover the expedition without surrendering all pressure."
+

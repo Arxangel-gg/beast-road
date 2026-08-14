@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_1baaw")
+region = 1
 effect_id = "tower_range"
 effect_magnitude = 0.12
 id = "06"

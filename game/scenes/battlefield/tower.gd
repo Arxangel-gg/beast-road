@@ -82,7 +82,7 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.beast_step_landed.connect(_on_beast_step)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
-	_cooldown = randf() * data.interval_at(level)
+	_cooldown = RunState.rng("combat").randf() * data.interval_at(level)
 
 
 ## Recomputed whenever the lane's contents or the terrain change, rather than
@@ -94,7 +94,6 @@ func refresh_modifiers() -> void:
 	if RunState.lane_has_element_synergy(lane) and not data.is_combination:
 		_damage_bonus += Balance.SAME_ELEMENT_LANE_BONUS
 
-	_damage_bonus += Modifiers.value(Modifiers.TOWER_DAMAGE)
 	_extra_chain_targets += int(Modifiers.value(Modifiers.CHAIN_TARGETS))
 
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
@@ -139,7 +138,11 @@ func _process(delta: float) -> void:
 func effective_damage() -> float:
 	var command_bonus: float = Balance.COMMAND_OVERDRIVE_UTILITY \
 		if _command_overdrive_left > 0.0 else 0.0
-	return data.damage_at(level) * (1.0 + _damage_bonus + command_bonus)
+	# Read relic damage live. Regional relic adapters can cross their town-health
+	# threshold between shots, so caching this value at build time would leave the
+	# HUD and actual combat state disagreeing until some unrelated refresh.
+	var relic_bonus: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
+	return data.damage_at(level) * (1.0 + _damage_bonus + relic_bonus + command_bonus)
 
 
 func command_overdrive(duration: float) -> void:
@@ -327,7 +330,8 @@ func _hit(enemy: Enemy) -> void:
 	if data.burn_dps > 0.0:
 		enemy.apply_burn(data.burn_dps * utility * Modifiers.multiplier(Modifiers.BURN_DAMAGE),
 			data.burn_duration * sqrt(utility))
-	if data.freeze_chance > 0.0 and randf() < minf(data.freeze_chance * utility, 0.82):
+	if data.freeze_chance > 0.0 and RunState.rng("combat").randf() \
+			< minf(data.freeze_chance * utility, 0.82):
 		enemy.apply_freeze(1.2 * sqrt(utility))
 
 

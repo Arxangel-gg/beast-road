@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_r22"]
+
+[resource]
+script = ExtResource("1_r22")
+region = 3
+effect_id = "hero_damage"
+effect_magnitude = 0.12
+id = "22"
+display_name = "Last Hearth Coal"
+description = "A caged ember hardens the hero's strikes against the cold."

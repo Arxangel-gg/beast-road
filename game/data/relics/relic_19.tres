@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_v3mel")
+region = 3
 effect_id = "wave_foresight"
 effect_magnitude = 1.0
 id = "19"

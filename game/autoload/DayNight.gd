@@ -15,14 +15,14 @@ const DAY_LENGTH: float = 420.0
 ## Keyed tint stops. Multiplied over the whole world by a CanvasModulate, so
 ## these are *filters*: nothing here can brighten, only colour and darken.
 const STOPS: Array[Dictionary] = [
-	{"at": 0.00, "tint": Color(0.72, 0.60, 0.58), "light": 0.55},  # dawn, cold and low
+	{"at": 0.00, "tint": Color(0.80, 0.70, 0.67), "light": 0.55},  # dawn, cold and low
 	{"at": 0.12, "tint": Color(1.00, 0.97, 0.92), "light": 0.05},  # morning
 	{"at": 0.28, "tint": Color(1.00, 1.00, 1.00), "light": 0.00},  # midday, unfiltered
-	{"at": 0.45, "tint": Color(0.95, 0.74, 0.52), "light": 0.35},  # late afternoon gold
-	{"at": 0.56, "tint": Color(0.52, 0.31, 0.34), "light": 0.74},  # dusk
-	{"at": 0.70, "tint": Color(0.17, 0.21, 0.38), "light": 0.97},  # night, blue
-	{"at": 0.85, "tint": Color(0.10, 0.13, 0.27), "light": 1.00},  # deep night
-	{"at": 1.00, "tint": Color(0.72, 0.60, 0.58), "light": 0.55},  # back to dawn
+	{"at": 0.45, "tint": Color(0.97, 0.79, 0.61), "light": 0.35},  # late afternoon gold
+	{"at": 0.56, "tint": Color(0.69, 0.48, 0.49), "light": 0.74},  # dusk
+	{"at": 0.70, "tint": Color(0.37, 0.43, 0.61), "light": 0.97},  # readable blue night
+	{"at": 0.85, "tint": Color(0.27, 0.32, 0.50), "light": 1.00},  # deep night
+	{"at": 1.00, "tint": Color(0.80, 0.70, 0.67), "light": 0.55},  # back to dawn
 ]
 
 ## The phase changed enough to be worth reacting to.

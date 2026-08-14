@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_w5bp1")
+region = 2
 effect_id = "beast_speed"
 effect_magnitude = 0.1
 id = "16"

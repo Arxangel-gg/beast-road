@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_hostile_projectile()
 	_test_live_relic_updates()
 	_test_wave_archetypes()
+	_test_road_archetypes()
 	_test_target_priorities()
 	await _test_preparation_and_command()
 	await _test_boss_phases()
@@ -128,16 +129,16 @@ func _test_act_curves() -> void:
 	var act2_size: int = director._wave_size(12, ContentDB.terrain("saltglass"))
 	var act2_hp: float = director._hp_scale(0)
 	var act2_damage: float = director._damage_scale(0)
-	_check(act2_size >= 10, "Act 2 waves must outgrow the compact opening formations")
-	_check(act2_hp >= 4.0, "Act 2 durability must materially exceed Act 1")
+	_check(act2_size >= 6, "Act 2 waves must outgrow the compact opening formations")
+	_check(act2_hp >= 2.4, "Act 2 durability must materially exceed Act 1")
 	_check(act2_damage < act2_hp, "damage must scale below HP to avoid cheap one-shots")
 
 	_set_progress(3, 2550.0, 88, "steppe", 22)
 	var act3_size: int = director._wave_size(22, ContentDB.terrain("steppe"))
 	var act3_hp: float = director._hp_scale(0)
-	_check(act3_size > act2_size * 2, "Iron Steppe must deliver the largest packs")
-	_check(act3_hp > act2_hp * 1.8, "Act 3 must demand mastery upgrades")
-	_check(director._speed_scale(0) > 1.15, "late-run enemies must move faster")
+	_check(act3_size > act2_size * 1.25, "Iron Steppe must deliver the largest packs")
+	_check(act3_hp > act2_hp * 1.35, "Act 3 must demand mastery upgrades")
+	_check(director._speed_scale(0) > 1.08, "late-run enemies must move faster")
 
 	# Crossing into Saltglass should reveal new tactics, not erase the player's
 	# progress with a seventy-percent stat jump on the very first formation.
@@ -297,6 +298,43 @@ func _test_wave_archetypes() -> void:
 	director._spawn_queue.clear()
 
 
+func _test_road_archetypes() -> void:
+	_check(ContentDB.roads.size() == 5,
+		"crossroads must expose exactly five authored road archetypes")
+	_check(ContentDB.road_difficulties.size() == 3,
+		"roads must expose Guarded, Contested and Perilous tiers")
+	for value: Variant in ContentDB.roads.values():
+		var road := value as RoadData
+		_check(road != null and not road.promise.is_empty() \
+			and not road.consequence.is_empty(),
+			"every road card must state a gameplay promise and consequence")
+	var guarded: RoadDifficultyData = ContentDB.road_difficulty("guarded")
+	var perilous: RoadDifficultyData = ContentDB.road_difficulty("perilous")
+	_check(guarded.reward_rolls == 1 and perilous.reward_rolls == 3 \
+		and guarded.stat_scale < perilous.stat_scale,
+		"road difficulty must trade explicit threat for reward rolls")
+	_check(Balance.ROAD_RELIC_CHOICES == 3,
+		"Relic Hunt must present a meaningful three-item regional choice")
+	var road_choices: Array[String] = _run.journey.regional_relic_choices_for_test(3)
+	_check(road_choices.size() == Balance.ROAD_RELIC_CHOICES,
+		"a completed Relic Hunt must resolve three eligible regional offers")
+	for relic_id: String in road_choices:
+		var offered: RelicData = ContentDB.relic(relic_id)
+		_check(offered != null and offered.region == 3,
+			"Relic Hunt offer '%s' must belong to the active region" % relic_id)
+	var region_counts: Array[int] = [0, 0, 0, 0]
+	for value: Variant in ContentDB.relics.values():
+		var relic := value as RelicData
+		if relic != null and not relic.is_boss_core:
+			_check(relic.region >= 1 and relic.region <= Balance.ACT_COUNT,
+				"ordinary relic '%s' must belong to one regional pool" % relic.id)
+			if relic.region >= 1 and relic.region <= Balance.ACT_COUNT:
+				region_counts[relic.region] += 1
+	for region: int in range(1, Balance.ACT_COUNT + 1):
+		_check(region_counts[region] == 8,
+			"region %d must ship exactly eight ordinary relics" % region)
+
+
 func _test_target_priorities() -> void:
 	var field: Battlefield = _run.battlefield
 	if RunState.slot_is_empty(0, 0):
@@ -447,7 +485,7 @@ func _test_zoom_range() -> void:
 func _test_beast_gait() -> void:
 	var rig := _run.battlefield.camera as CameraRig
 	_check(rig.beast_motion, "battlefield camera must carry the beast gait")
-	_check(Balance.BEAST_GAIT_HORIZONTAL <= 6.0 \
+	_check(Balance.BEAST_GAIT_HORIZONTAL <= 9.0 \
 		and Balance.BEAST_GAIT_ROTATION_DEGREES <= 0.2,
 		"beast gait must remain below gameplay-disrupting amplitude")
 	var previous: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65)

@@ -48,7 +48,12 @@ func _process(delta: float) -> void:
 	if walked <= 0.0:
 		return
 
-	RunState.distance_travelled += walked
+	var road: RoadData = RunState.active_road()
+	# Long and swift roads change how much physical travel is required for the
+	# next fixed regional boundary. Production still uses actual miles walked.
+	var progress_walked: float = walked / maxf(road.distance_scale, 0.1) \
+		if road != null else walked
+	RunState.distance_travelled += progress_walked
 	_accrue_resources(walked)
 	_advance_construction(walked)
 	_recover_beast_speed(delta)
@@ -68,9 +73,11 @@ func _process(delta: float) -> void:
 
 
 func _accrue_resources(walked: float) -> void:
+	var road: RoadData = RunState.active_road()
+	var road_scale: float = road.resource_rate_scale if road != null else 1.0
 	for id: String in [RunState.WOOD, RunState.FOOD]:
 		var remainder: float = float(_resource_remainders.get(id, 0.0)) \
-			+ walked * RunState.production_rate(id)
+			+ walked * RunState.production_rate(id) * road_scale
 		var whole: int = int(floor(remainder))
 		if whole > 0:
 			remainder -= float(whole)
@@ -82,7 +89,10 @@ func _accrue_resources(walked: float) -> void:
 func _advance_construction(walked: float) -> void:
 	if RunState.construction.is_empty():
 		return
-	var done: float = float(RunState.construction.get("distance_done", 0.0)) + walked
+	var road: RoadData = RunState.active_road()
+	var road_scale: float = road.construction_scale if road != null else 1.0
+	var done: float = float(RunState.construction.get("distance_done", 0.0)) \
+		+ walked * road_scale
 	var needed: float = float(RunState.construction.get("distance_needed", 1.0))
 	var id: String = String(RunState.construction.get("id", ""))
 	var tier: int = int(RunState.construction.get("tier", 1))
@@ -117,6 +127,7 @@ static func _segment_for(distance: float) -> int:
 
 
 func _reach_crossroad() -> void:
+	_settle_completed_road()
 	_crossroad_pending = true
 	RunState.segment += 1
 
@@ -136,6 +147,7 @@ func _reach_crossroad() -> void:
 ## Holds the walk until the act's boss is dead. The beast does not leave a
 ## region with that still standing in it.
 func _await_boss() -> void:
+	_settle_completed_road()
 	_crossroad_pending = true
 	EventBus.act_boss_due.emit(RunState.act)
 
@@ -162,6 +174,55 @@ func resolve_crossroad(option_id: String) -> void:
 	_crossroad_pending = false
 	_segment_index = _segment_for(RunState.distance_travelled)
 	EventBus.crossroad_resolved.emit(option_id)
+
+
+## Rewards belong to the road the player survived, never to clicking its card.
+## This prevents taking a perilous reward and abandoning before its cost exists.
+func _settle_completed_road() -> void:
+	var road: RoadData = RunState.active_road()
+	var difficulty: RoadDifficultyData = RunState.active_road_difficulty()
+	if road == null or difficulty == null:
+		return
+	var rolls: int = maxi(difficulty.reward_rolls, 1)
+	for currency: Variant in road.reward_currencies:
+		var base: int = int(road.reward_currencies[currency])
+		var amount: int = int(round(float(base * rolls) * difficulty.reward_scale))
+		RunState.gain_currency(String(currency), amount)
+	if road.guaranteed_regional_relic:
+		RunState.pending_road_relics = _regional_relic_choices(RunState.act)
+	if road.guarantees_raid_charge and RunState.raid_charge < 1.0:
+		RunState.raid_charge = 1.0
+		EventBus.raid_charge_changed.emit(1.0)
+	RunState.active_road_id = ""
+	RunState.active_road_difficulty_id = ""
+
+
+func _regional_relic_choices(act: int) -> Array[String]:
+	var candidates: Array[String] = []
+	for value: Variant in ContentDB.relics.values():
+		var relic := value as RelicData
+		if relic != null and not relic.is_boss_core and relic.region == act \
+				and not RunState.held_relics.has(relic.id) \
+				and not RunState.socketed_relics.has(relic.id):
+			candidates.append(relic.id)
+	if candidates.is_empty():
+		return []
+	candidates.sort()
+	# Draw without replacement. The selected road has already been completed, so
+	# this offer cannot be rerolled by reopening the crossroad.
+	for index: int in range(candidates.size() - 1, 0, -1):
+		var other: int = RunState.rng("rewards").randi_range(0, index)
+		var swap: String = candidates[index]
+		candidates[index] = candidates[other]
+		candidates[other] = swap
+	candidates.resize(mini(Balance.ROAD_RELIC_CHOICES, candidates.size()))
+	return candidates
+
+
+## Diagnostic/test seam: reward selection stays owned by Journey rather than a
+## UI test reimplementing its eligibility and duplicate rules.
+func regional_relic_choices_for_test(act: int) -> Array[String]:
+	return _regional_relic_choices(act)
 
 
 func is_at_crossroad() -> bool:

@@ -427,7 +427,8 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	if enemy == null:
 		return null
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
-	var spread: Vector2 = lane_vector(lane).orthogonal() * randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
+	var spread: Vector2 = lane_vector(lane).orthogonal() \
+		* RunState.rng("combat").randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
 	enemy.position = lane_spawn_point(lane) * data.spawn_distance_scale + spread
 	entity_root.add_child(enemy)
 	return enemy
@@ -598,7 +599,10 @@ func _setup_ground() -> void:
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
-	ground.material = TerrainBlend.material()
+	# Sample from texel centres so linear filtering cannot reveal a grid at the
+	# repeating image boundaries. Unlike the former four-sample blend, this does
+	# not average away the terrain painting or make the whole field darker.
+	ground.material = TerrainSeam.material()
 
 	# The region is in *texture* space and the sprite is scaled up afterwards, so
 	# one repeat covers GROUND_TILE_WORLD_SIZE of world rather than its 512

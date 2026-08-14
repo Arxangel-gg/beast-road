@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_2hpgg")
+region = 2
 effect_id = "chain_targets"
 effect_magnitude = 1.0
 id = "14"

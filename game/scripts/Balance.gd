@@ -135,8 +135,10 @@ const TOWER_SLOT_COUNT: int = 4
 const CROSSROADS_PER_ACT: int = 3
 const CROSSROADS_PER_RUN: int = 9
 
-## Three option types exist; two are shown at each crossroad.
-const CROSSROAD_OPTIONS_SHOWN: int = 3
+## Two cards are compared, drawn from five authored road archetypes. [TUNE]
+const CROSSROAD_OPTIONS_SHOWN: int = 2
+## A completed Relic Hunt offers a concise choice, not a random silent drop.
+const ROAD_RELIC_CHOICES: int = 3
 
 # ==============================================================================
 # META-PROGRESSION — GDD §7
@@ -196,24 +198,29 @@ const CAMERA_MOUSE_LEAN_MAX: float = 300.0
 ## One full left/right support transfer per second. Two footfalls happen in a
 ## cycle; the short plant pause keeps the body over a stable pair of feet rather
 ## than floating through a sinusoid like a boat. [TUNE]
-const BEAST_GAIT_FREQUENCY: float = 0.30
-const BEAST_GAIT_HORIZONTAL: float = 4.2
-const BEAST_GAIT_VERTICAL: float = 3.4
-const BEAST_GAIT_ROTATION_DEGREES: float = 0.13
-const BEAST_GAIT_SMOOTHING: float = 2.2
+const BEAST_GAIT_FREQUENCY: float = 0.18
+const BEAST_GAIT_HORIZONTAL: float = 8.4
+const BEAST_GAIT_VERTICAL: float = 4.1
+const BEAST_GAIT_ROTATION_DEGREES: float = 0.18
+const BEAST_GAIT_SMOOTHING: float = 1.65
 const BEAST_GAIT_HORN_SCALE: float = 0.12
-const BEAST_STEP_PAUSE: float = 0.145
-const BEAST_STEP_SINK: float = 4.8
-const BEAST_STEP_SHAKE: float = 7.2
-const BEAST_STEP_SHAKE_TIME: float = 0.32
-const BEAST_STEP_MASS: float = 3.8
+## Exponentially slow support transfer followed by a faster final plant. [TUNE]
+const BEAST_GAIT_WINDUP_POWER: float = 2.15
+const BEAST_STEP_PAUSE: float = 0.24
+const BEAST_STEP_SINK: float = 6.2
+const BEAST_STEP_SHAKE: float = 8.6
+const BEAST_STEP_SHAKE_TIME: float = 0.42
+const BEAST_STEP_MASS: float = 4.8
+const BEAST_PROFILE_BASE_X: float = -20.0
+const BEAST_PROFILE_HORIZONTAL: float = 18.0
+const BEAST_PROFILE_VERTICAL: float = 7.5
 
 ## A planted support transfers a tiny physical shove through the city shell.
 ## These remain deliberately below combat-stagger values: they sell unstable
 ## footing without changing the outcome of an attack wind-up. [TUNE]
-const BEAST_STEP_WORLD_IMPULSE: float = 22.0
-const BEAST_STEP_STUN: float = 0.045
-const BEAST_STEP_WOBBLE_DEGREES: float = 2.6
+const BEAST_STEP_WORLD_IMPULSE: float = 27.0
+const BEAST_STEP_STUN: float = 0.055
+const BEAST_STEP_WOBBLE_DEGREES: float = 3.2
 
 ## Per-target animation hold on a registered hit. This is not global hitstop;
 ## a large formation therefore remains responsive when an AoE lands. [TUNE]
@@ -245,17 +252,19 @@ const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.12
 ## Grace period after respawning, so you are not instantly re-killed.
 const HERO_RESPAWN_INVULN: float = 1.5
 
-## Minimum time the initial and between-road Preparation state remains open.
-## The player must still confirm Ride On after this reaches zero. [TUNE]
-const PREPARATION_MIN_SECONDS: float = 18.0
+## Opening Preparation has no forced timer: the road starts only when the player
+## deliberately chooses Ride On. [TUNE]
+const PREPARATION_MIN_SECONDS: float = 0.0
 
-## A breather opens after every wave is fully defeated. Building and upgrading
-## are open for this long, and the next formation waits.
-##
-## Unlike the long Preparation above, this one ends by itself: a player is not
-## asked to confirm Ride On thirty times a run. Ride On still skips it, so the
-## impatient lose nothing. [TUNE]
+## A breather opens only after every enemy in a wave is defeated. This is an
+## early-departure reward window, not an auto-start timer: Ride On is immediately
+## available, the reward falls to zero over this duration, and the next wave
+## then waits indefinitely for the player's confirmation. [TUNE]
 const PREPARATION_BETWEEN_WAVES: float = 10.0
+
+## Gold awarded for riding on at the instant a between-wave breather opens.
+## The award falls linearly to zero over PREPARATION_BETWEEN_WAVES. [TUNE]
+const PREPARATION_EARLY_GOLD_MAX: int = 30
 
 ## How soon the next wave may arrive once a breather ends. [TUNE]
 const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
@@ -540,31 +549,31 @@ const WAVE_OPENING_SUPPLIES: Array[int] = [0, 25, 35, 40, 30, 25]
 const WAVE_OPENING_SINGLE_LANE_WAVES: int = 2
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.35
+const WAVE_SPAWN_SPACING: float = 0.62
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
 const WAVE_BASE_COUNT: int = 3
-const WAVE_COUNT_GROWTH: float = 0.33
-const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.18, 1.38]
-const WAVE_NIGHT_COUNT_BONUS: float = 0.28
+const WAVE_COUNT_GROWTH: float = 0.23
+const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.08, 1.18]
+const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_HP_GROWTH: float = 0.045
-const WAVE_DAMAGE_GROWTH: float = 0.022
-const WAVE_SPEED_GROWTH: float = 0.19
-const WAVE_DARK_DAMAGE_WEIGHT: float = 0.72
-const WAVE_DARK_SPEED_WEIGHT: float = 0.16
+const WAVE_HP_GROWTH: float = 0.028
+const WAVE_DAMAGE_GROWTH: float = 0.014
+const WAVE_SPEED_GROWTH: float = 0.11
+const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
+const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Act boundaries introduce new enemy roles and lane patterns, so they should
 ## not also be stat cliffs. The continuous global-wave curve still takes Act 3
 ## well into mastery-level pressure; these modest regional multipliers make the
 ## first Saltglass formation readable after the Ashfen boss.
-const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.32, 1.72]
-const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.18, 1.48]
+const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.18, 1.38]
+const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.10, 1.24]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
 ## changing the label above the boss track.
-const ACT_BOSS_RAMP_COUNT: float = 0.55
-const ACT_BOSS_RAMP_STATS: float = 0.28
+const ACT_BOSS_RAMP_COUNT: float = 0.28
+const ACT_BOSS_RAMP_STATS: float = 0.18
 
 ## Later regions remain dominated by their own breed while veterans from
 ## earlier terrain occasionally break up a predictable procession.
@@ -572,10 +581,10 @@ const WAVE_INVADER_CHANCE: Array[float] = [0.0, 0.12, 0.22]
 
 ## Elites arrive as an increasing number of squad leaders, not one lottery roll
 ## per wave for the entire 45-minute run.
-const WAVE_ELITE_BASE_CHANCE: float = 0.19
-const WAVE_ELITE_PROGRESS_BONUS: float = 1.60
-const WAVE_ELITE_ACT_BONUS: float = 0.45
-const WAVE_MAX_QUEUED: int = 420
+const WAVE_ELITE_BASE_CHANCE: float = 0.12
+const WAVE_ELITE_PROGRESS_BONUS: float = 0.75
+const WAVE_ELITE_ACT_BONUS: float = 0.20
+const WAVE_MAX_QUEUED: int = 180
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
@@ -584,10 +593,10 @@ const WAVE_LANES_MAX: int = 4
 ## Authored wave formations multiply the continuous curve; these clamps keep a
 ## malformed content file from producing an empty wave or an instant spawn wall.
 const WAVE_ARCHETYPE_MIN_COUNT_SCALE: float = 0.50
-const WAVE_ARCHETYPE_MIN_SPACING_SCALE: float = 0.42
+const WAVE_ARCHETYPE_MIN_SPACING_SCALE: float = 0.72
 
 ## Live enemy cap across the whole battlefield. [TUNE]
-const BATTLEFIELD_MAX_ENEMIES: int = 180
+const BATTLEFIELD_MAX_ENEMIES: int = 120
 
 # ------------------------------------------------------------------------------
 # Enemy attacks — GDD §3
@@ -985,7 +994,7 @@ const NIGHT_THRESHOLD: float = 0.55
 
 ## Extra enemy count and stats at full darkness. Night is a difficulty state,
 ## not just a colour grade. [TUNE]
-const NIGHT_DIFFICULTY_BONUS: float = 0.45
+const NIGHT_DIFFICULTY_BONUS: float = 0.28
 
 ## Fraction of a light's energy that survives midday. Not zero, so a brazier
 ## still glows a little in daylight. [TUNE]
@@ -1192,7 +1201,7 @@ const TORCH_RELIGHT_TIME: float = 1.1
 
 ## Extra enemy strength and spawn weight at a fully dark lane, applied on top of
 ## the night multiplier. A dark lane at night is genuinely dangerous. [TUNE]
-const TORCH_DARK_DIFFICULTY: float = 0.5
+const TORCH_DARK_DIFFICULTY: float = 0.34
 
 ## How strongly a dark lane pulls the wave director toward choosing it. [TUNE]
 const TORCH_DARK_LANE_BIAS: float = 2.2
@@ -1357,7 +1366,7 @@ const PATH_NOISE_SCALE: float = 74.0
 
 ## Opacity of the road over the terrain. A road you cannot see is not a road.
 ## [TUNE]
-const PATH_TINT_ALPHA: float = 0.95
+const PATH_TINT_ALPHA: float = 0.84
 
 ## Multiplied into the road art so trodden ground sits darker than the country
 ## either side of it.
@@ -1367,7 +1376,7 @@ const PATH_TINT_ALPHA: float = 0.95
 ## only a faintly different rectangle. Contrast, not opacity, is what makes a
 ## road read as a road — and a road the player cannot pick out at a glance is a
 ## tower-defense map with no lanes on it. [TUNE]
-const PATH_DARKEN: float = 0.62
+const PATH_DARKEN: float = 0.76
 
 ## Warmth pushed into the road, so trodden earth reads brown against grey rock.
 ## Two channels of separation do more than another 10% of darkening. [TUNE]

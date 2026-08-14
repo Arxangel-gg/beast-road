@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_qgoyn")
+region = 2
 effect_id = "burn_damage"
 effect_magnitude = 0.25
 id = "11"

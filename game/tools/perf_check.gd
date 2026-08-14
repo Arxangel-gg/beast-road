@@ -154,9 +154,9 @@ func _build_defence() -> void:
 func _start_fighting() -> void:
 	for node: Node in _all(get_tree().root):
 		if node is Run:
-			# Performance measurement is not an onboarding test. Bypass the authored
-			# 18-second protection, and confirm uncovered roads when --build was not
-			# requested, so this gate always measures a live formation.
+			# Performance measurement is not an onboarding test. Confirm uncovered
+			# roads when --build was not requested, so this gate always measures a
+			# live formation instead of the player-controlled opening Preparation.
 			node.set("_preparation_left", 0.0)
 			node.call("_on_ride_on_requested")
 			if RunState.is_preparation():
@@ -168,11 +168,9 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	# Nothing is measured until a fight is actually happening.
 	#
-	# The opening Preparation has an eighteen second minimum and refuses Ride On
-	# until it expires, so asking once - or only during a six second warm-up -
-	# leaves the run sitting in Preparation for the entire measurement. The first
-	# version of this did exactly that and reported a flawless, perfectly static
-	# 70 seconds of an idle screen.
+	# Reasserting the request also makes this robust to the uncovered-road
+	# confirmation. The first version measured an idle Preparation screen and
+	# reported a flawless but meaningless result.
 	if not _fighting:
 		if RunState.phase == RunState.Phase.ROAD_BATTLE:
 			_fighting = true

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_l8csn")
+region = 2
 effect_id = "tower_armour"
 effect_magnitude = 5.0
 id = "13"

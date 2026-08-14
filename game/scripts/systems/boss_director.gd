@@ -14,9 +14,11 @@ var _active: Enemy = null
 var _active_act: int = 0
 var _defeated_acts: Array[int] = []
 var _active_phase: int = 0
+var _rng: RandomNumberGenerator
 
 
 func _ready() -> void:
+	_rng = RunState.rng("bosses")
 	EventBus.enemy_died.connect(_on_enemy_died)
 
 
@@ -42,7 +44,7 @@ func summon(act: int) -> bool:
 		push_warning("BossDirector: no boss defined for act %d" % act)
 		return false
 
-	var lane: int = randi() % Balance.LANE_COUNT
+	var lane: int = _rng.randi_range(0, Balance.LANE_COUNT - 1)
 	# Bosses ignore the live-enemy cap: the cap exists to stop a death spiral of
 	# trash, and the boss *is* the encounter.
 	_active = battlefield.spawn_enemy(data, lane, _boss_scale(act))
@@ -123,7 +125,11 @@ func _spawn_phase_reinforcements(phase: int) -> void:
 	for lane: int in Balance.LANE_COUNT:
 		if lane != _active.lane:
 			lanes.append(lane)
-	lanes.shuffle()
+	for index: int in range(lanes.size() - 1, 0, -1):
+		var other: int = _rng.randi_range(0, index)
+		var swap: int = lanes[index]
+		lanes[index] = lanes[other]
+		lanes[other] = swap
 	var lane_count: int = mini(_active.data.phase_reinforcement_lanes + phase - 1,
 		lanes.size())
 	var per_lane: int = mini(_active.data.phase_reinforcements_per_lane + phase - 1,

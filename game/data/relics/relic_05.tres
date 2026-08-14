@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_n6r71")
+region = 1
 effect_id = "dash_cooldown"
 effect_magnitude = -0.6
 id = "05"

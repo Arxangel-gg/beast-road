@@ -26,7 +26,7 @@ var _last_archetype_id: String = ""
 
 
 func _ready() -> void:
-	_rng.randomize()
+	_rng = RunState.rng("waves")
 	_wave_timer = Balance.WAVE_FIRST_PREPARATION
 	EventBus.act_started.connect(_on_act_started)
 
@@ -88,7 +88,7 @@ func time_to_next_wave() -> float:
 ## the formation and roads, tier two reveals scale and intent, and tier three
 ## identifies the signature threat.
 func preview_text() -> String:
-	var tower_tier: int = RunState.building_tier("watchtower")
+	var tower_tier: int = RunState.foresight_tier()
 	if tower_tier <= 0:
 		return ""
 	_prepare_preview(_act_wave + 1)
@@ -152,6 +152,21 @@ func _begin_wave() -> void:
 	var spacing_multiplier: float = maxf(
 		archetype.spawn_spacing_scale if archetype != null else 1.0,
 		Balance.WAVE_ARCHETYPE_MIN_SPACING_SCALE)
+	var road: RoadData = RunState.active_road()
+	var difficulty: RoadDifficultyData = RunState.active_road_difficulty()
+	if road != null:
+		per_lane = maxi(int(round(float(per_lane) * road.count_scale)), 1)
+		hp_multiplier *= road.hp_scale
+		damage_multiplier *= road.damage_scale
+		speed_multiplier *= road.speed_scale
+		spacing_multiplier *= road.spawn_spacing_scale
+	if difficulty != null:
+		per_lane = maxi(int(round(float(per_lane) * difficulty.count_scale)), 1)
+		hp_multiplier *= difficulty.stat_scale
+		damage_multiplier *= difficulty.stat_scale
+		speed_multiplier *= difficulty.speed_scale
+		spacing_multiplier *= difficulty.spawn_spacing_scale
+	spacing_multiplier = maxf(spacing_multiplier, Balance.WAVE_ARCHETYPE_MIN_SPACING_SCALE)
 	var signature: EnemyData = _signature_enemy(archetype)
 
 	if archetype != null and archetype.delayed_adjacent_surge and lanes.size() >= 2:
@@ -173,6 +188,10 @@ func _begin_wave() -> void:
 		elite_budget = Balance.WAVE_ELITE_BASE_CHANCE \
 			+ RunState.act_progress() * Balance.WAVE_ELITE_PROGRESS_BONUS \
 			+ float(RunState.act - 1) * Balance.WAVE_ELITE_ACT_BONUS
+	if road != null:
+		elite_budget += road.elite_budget_bonus
+	if difficulty != null:
+		elite_budget += difficulty.elite_budget_bonus
 	var elite_count: int = int(floor(elite_budget))
 	if _rng.randf() < elite_budget - float(elite_count):
 		elite_count += 1
@@ -186,7 +205,7 @@ func _begin_wave() -> void:
 	# A False Front is authored through its ordering; shuffling would place the
 	# reveal before the bait. All ordinary formations retain systemic variety.
 	if archetype == null or not archetype.delayed_adjacent_surge:
-		_spawn_queue.shuffle()
+		_shuffle_queue()
 	if _spawn_queue.size() > Balance.WAVE_MAX_QUEUED:
 		_spawn_queue.resize(Balance.WAVE_MAX_QUEUED)
 	_spawn_timer = 0.0
@@ -415,6 +434,14 @@ func _enemy_pool(ids: Array[String]) -> Array[EnemyData]:
 		if data != null:
 			pool.append(data)
 	return pool
+
+
+func _shuffle_queue() -> void:
+	for index: int in range(_spawn_queue.size() - 1, 0, -1):
+		var other: int = _rng.randi_range(0, index)
+		var swap: Dictionary = _spawn_queue[index]
+		_spawn_queue[index] = _spawn_queue[other]
+		_spawn_queue[other] = swap
 
 
 func _signature_enemy(archetype: WaveArchetypeData) -> EnemyData:

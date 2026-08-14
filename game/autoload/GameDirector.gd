@@ -46,9 +46,9 @@ func goto_menu() -> void:
 	_change(MENU_SCENE)
 
 
-func start_run() -> void:
+func start_run(requested_seed: int = 0) -> void:
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
-	RunState.reset(true)
+	RunState.reset(true, requested_seed)
 	# Consuming Treasury carry-over is a real transaction. Persist it now so a
 	# crash/restart cannot spend the same cache repeatedly.
 	if consumed_cache:
@@ -69,6 +69,8 @@ func end_run(victory: bool) -> void:
 
 	var summary: Dictionary = {
 		"victory": victory,
+		"seed": RunState.run_seed,
+		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,
 		"act": RunState.act,
 		"kills": RunState.enemies_killed,

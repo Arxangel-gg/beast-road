@@ -105,7 +105,8 @@ func _ready() -> void:
 	ShadowKit.add_caster(self, half.x * 0.42, half.y * 0.20,
 		Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
 
-	_lane_offset = randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
+	_lane_offset = RunState.rng("combat").randf_range(
+		-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
 	EventBus.beast_step_landed.connect(_on_beast_step)
 	EventBus.enemy_spawned.emit(data.id, global_position)
 

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_s5v0e")
+region = 1
 effect_id = "raid_charge"
 effect_magnitude = 0.3
 id = "08"

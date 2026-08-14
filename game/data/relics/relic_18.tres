@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_20f1m")
+region = 3
 effect_id = "knockback"
 effect_magnitude = 0.35
 id = "18"

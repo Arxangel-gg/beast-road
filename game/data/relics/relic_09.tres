@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_nuods")
+region = 2
 effect_id = "hero_speed"
 effect_magnitude = 0.12
 id = "09"

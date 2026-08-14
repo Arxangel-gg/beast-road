@@ -47,7 +47,7 @@ func _setup_ground() -> void:
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true
-	ground.material = TerrainBlend.material()
+	ground.material = TerrainSeam.material()
 	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):

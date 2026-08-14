@@ -17,6 +17,8 @@ var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var discipline_nodes: Dictionary = {}
 var factions: Dictionary = {}
+var roads: Dictionary = {}
+var road_difficulties: Dictionary = {}
 
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
@@ -34,6 +36,8 @@ func _ready() -> void:
 	wave_archetypes = _load_dir("res://data/waves")
 	discipline_nodes = _load_dir("res://data/disciplines")
 	factions = _load_dir("res://data/factions")
+	roads = _load_dir("res://data/roads")
+	road_difficulties = _load_dir("res://data/road_difficulties")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -47,6 +51,10 @@ func tower(id: String) -> TowerData:
 
 func enemy(id: String) -> EnemyData:
 	return enemies.get(id, null) as EnemyData
+
+
+func relic(id: String) -> RelicData:
+	return relics.get(id, null) as RelicData
 
 
 func terrain(id: String) -> TerrainData:
@@ -71,6 +79,35 @@ func discipline_node(id: String) -> DisciplineNodeData:
 
 func faction(id: String) -> FactionData:
 	return factions.get(id, null) as FactionData
+
+
+func road(id: String) -> RoadData:
+	return roads.get(id, null) as RoadData
+
+
+func road_difficulty(id: String) -> RoadDifficultyData:
+	return road_difficulties.get(id, null) as RoadDifficultyData
+
+
+func roads_sorted() -> Array[RoadData]:
+	var out: Array[RoadData] = []
+	for value: Variant in roads.values():
+		var road_data := value as RoadData
+		if road_data != null:
+			out.append(road_data)
+	out.sort_custom(func(a: RoadData, b: RoadData) -> bool: return a.id < b.id)
+	return out
+
+
+func road_difficulties_sorted() -> Array[RoadDifficultyData]:
+	var out: Array[RoadDifficultyData] = []
+	for value: Variant in road_difficulties.values():
+		var difficulty := value as RoadDifficultyData
+		if difficulty != null:
+			out.append(difficulty)
+	out.sort_custom(func(a: RoadDifficultyData, b: RoadDifficultyData) -> bool:
+		return a.rank < b.rank)
+	return out
 
 
 func discipline_nodes_sorted() -> Array[DisciplineNodeData]:
@@ -146,6 +183,7 @@ func enemies_of_category(category: EnemyData.Category) -> Array[EnemyData]:
 		var e := value as EnemyData
 		if e != null and e.category == category:
 			out.append(e)
+	out.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.id < b.id)
 	return out
 
 

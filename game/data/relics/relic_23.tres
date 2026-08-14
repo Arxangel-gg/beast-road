@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_r23"]
+
+[resource]
+script = ExtResource("1_r23")
+region = 3
+effect_id = "dash_cooldown"
+effect_magnitude = -0.45
+id = "23"
+display_name = "Broken Glacier Spur"
+description = "A cruel spur shortens the breath between evasive bursts."

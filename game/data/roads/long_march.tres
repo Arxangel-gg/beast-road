@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RoadData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+icon_id = "distance"
+promise = "More walking income and construction progress."
+consequence = "The longer road exposes the town to more waves."
+distance_scale = 1.25
+resource_rate_scale = 1.12
+construction_scale = 1.16
+count_scale = 1.03
+reward_currencies = {"wood": 20, "food": 16}
+id = "long_march"
+display_name = "Long March"
+description = "Trade attrition for development and a richer economy."
+

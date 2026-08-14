@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_4pyil")
+region = 1
 effect_id = "tower_damage"
 effect_magnitude = 0.1
 id = "01"

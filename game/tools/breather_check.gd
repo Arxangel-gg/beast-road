@@ -16,6 +16,8 @@ var _run: Node = null
 var _field: Battlefield = null
 var _started: bool = false
 var _nag: float = 1.0
+var _breather_age: float = 0.0
+var _proved_indefinite_wait: bool = false
 
 
 func _ready() -> void:
@@ -56,10 +58,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_elapsed += delta
 
-	# The opening Preparation has an eighteen second minimum and refuses Ride On
-	# until it expires, so this asks once a second until the first battle starts
-	# rather than once at frame zero. After that it stops asking - otherwise it
-	# would skip the very breathers it is here to count.
+	# Opening Preparation is player-controlled, so begin once the automated
+	# defence is established. Between-wave preparation is tested separately.
 	if not _started and RunState.is_preparation():
 		_nag -= delta
 		if _nag <= 0.0:
@@ -79,7 +79,15 @@ func _process(delta: float) -> void:
 				return
 			print("[breather] #%d opened at %.1fs after wave %d"
 				% [_breathers, _elapsed, RunState.wave_number])
+			_breather_age = 0.0
 		_last_phase = RunState.phase
+
+	if _started and RunState.is_preparation():
+		_breather_age += delta
+		# Waiting beyond the reward countdown must not auto-start a formation.
+		if _breather_age >= Balance.PREPARATION_BETWEEN_WAVES + 1.0:
+			_proved_indefinite_wait = true
+			_run.call("_on_ride_on_requested")
 
 	if RunState.wave_number > _waves:
 		_waves = RunState.wave_number
@@ -95,6 +103,10 @@ func _process(delta: float) -> void:
 		if _breathers < _waves - 1:
 			push_error("%d breathers across %d waves - every wave should get one"
 				% [_breathers, _waves])
+			_bail(1)
+			return
+		if not _proved_indefinite_wait:
+			push_error("Between-wave Preparation never proved it waits beyond the reward timer")
 			_bail(1)
 			return
 		_bail(0)

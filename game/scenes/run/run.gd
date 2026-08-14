@@ -47,6 +47,7 @@ func _ready() -> void:
 	EventBus.wave_cleared.connect(_on_wave_cleared)
 
 	crossroad_ui.road_chosen.connect(_on_road_chosen)
+	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
 	town.plot_selected.connect(town_panel.open)
 	hud.scope_requested.connect(switch_scope)
 	hud.horn_requested.connect(_on_horn_requested)
@@ -83,9 +84,9 @@ func _process(delta: float) -> void:
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
-	EventBus.preparation_changed.emit(_preparation_left, _preparation_left <= 0.0)
-	if _preparation_left <= 0.0 and _breather:
-		_end_wave_breather()
+	# The counter is a reward window, never an auto-start. Once it reaches zero
+	# the formation remains safely paused until the player chooses Ride On.
+	EventBus.preparation_changed.emit(_preparation_left, true)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -256,6 +257,12 @@ func _on_act_boss_due(act: int) -> void:
 		EventBus.preparation_warning.emit(
 			"The Act %d boss is ahead. Clear the road first." % act)
 		return
+	if not RunState.pending_road_relics.is_empty():
+		_locked = true
+		RunState.set_phase(RunState.Phase.PREPARATION)
+		battlefield.suspend()
+		crossroad_ui.open_relic_reward()
+		return
 	_begin_boss_preparation(act)
 
 
@@ -303,11 +310,21 @@ func _on_road_chosen(option_id: String) -> void:
 	_enter_preparation(false)
 
 
+func _on_road_relic_chosen(_relic_id: String) -> void:
+	# At a normal crossroad the same modal immediately reveals the road cards.
+	# At an act boundary it hands control back to the already-pending boss gate.
+	if _pending_boss_act <= 0:
+		return
+	_locked = false
+	battlefield.resume()
+	_on_act_boss_due(_pending_boss_act)
+
+
 # --- Preparation and Command ----------------------------------------------
 
 ## True while the current Preparation is a between-wave breather rather than the
-## long one before a road or a boss. Breathers end on their own; the long ones
-## wait for Ride On.
+## long one before a road or a boss. Both wait for Ride On; a breather alone has
+## a ten-second early-departure reward window.
 var _breather: bool = false
 
 ## The wave number the last breather followed.
@@ -327,10 +344,9 @@ var _breather_after_wave: int = 0
 ## waves the game simply never stopped, so the one phase where building is legal
 ## was unreachable for the whole middle of a road.
 ##
-## It ends by itself. Asking for a Ride On confirmation after every one of thirty
-## waves would turn a breather into a chore, and the confirmation exists to make
-## the *committed* transitions deliberate - not to punctuate the ordinary rhythm
-## of a fight.
+## The next formation never starts underneath a player who is reading a tower,
+## repairing a lane or moving between scopes. Choosing Ride On early pays a small
+## tempo reward; waiting past ten seconds simply forfeits it.
 func _enter_wave_breather(wave: int) -> void:
 	if _breather or wave <= _breather_after_wave:
 		return
@@ -342,13 +358,20 @@ func _enter_wave_breather(wave: int) -> void:
 	journey.stop()
 	_preparation_left = Balance.PREPARATION_BETWEEN_WAVES
 	_coverage_warning_acknowledged = true
-	EventBus.preparation_changed.emit(_preparation_left, false)
-	EventBus.preparation_warning.emit("The road is clear. Build while you can.")
+	EventBus.preparation_changed.emit(_preparation_left, true)
+	EventBus.preparation_warning.emit("The road is clear. Ride early for bonus Gold, or prepare as long as you need.")
 
 
 ## Ends a breather and lets the next wave come.
 func _end_wave_breather() -> void:
+	var reward_ratio: float = clampf(_preparation_left \
+		/ maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01), 0.0, 1.0)
+	var reward: int = int(round(float(Balance.PREPARATION_EARLY_GOLD_MAX) * reward_ratio))
+	if reward > 0:
+		RunState.gain_currency(RunState.GOLD, reward)
+		EventBus.preparation_warning.emit("EARLY DEPARTURE  ·  +%d Gold" % reward)
 	_breather = false
+	_preparation_left = 0.0
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	RunState.begin_command_battle()
 	battlefield.wave_director.resume_after_breather()
@@ -375,9 +398,9 @@ func _enter_preparation(initial: bool) -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
 	journey.stop()
-	_preparation_left = Balance.PREPARATION_MIN_SECONDS if initial else 0.0
+	_preparation_left = 0.0
 	_coverage_warning_acknowledged = false
-	EventBus.preparation_changed.emit(_preparation_left, _preparation_left <= 0.0)
+	EventBus.preparation_changed.emit(_preparation_left, true)
 
 
 func _on_ride_on_requested() -> void:
@@ -386,9 +409,6 @@ func _on_ride_on_requested() -> void:
 	if _breather:
 		# Skipping a breather is always allowed: it is a window, not a gate.
 		_end_wave_breather()
-		return
-	if _preparation_left > 0.0:
-		EventBus.preparation_warning.emit("Preparation ends in %.0f seconds." % ceil(_preparation_left))
 		return
 	var uncovered: Array[int] = _uncovered_roads()
 	if not uncovered.is_empty() and not _coverage_warning_acknowledged:
