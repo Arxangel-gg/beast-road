@@ -28,11 +28,11 @@ const HERO_MOVE_SPEED: float = 200.0
 
 ## Enemy walk speed. Spawn ring -> tower ring is ~9s, the player's reaction
 ## window. Tune as a set with HERO_MOVE_SPEED and ENEMY_SPAWN_RADIUS. [TUNE]
-const ENEMY_WALK_SPEED: float = 38.5
+const ENEMY_WALK_SPEED: float = 28.5
 
 ## Tower firing range. Slight overlap between adjacent slots so the diagonals
 ## have no dead zones. [TUNE]
-const TOWER_RANGE: float = 325
+const TOWER_RANGE: float = 350
 
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
@@ -275,7 +275,7 @@ const SHAKE_RUMBLE_HZ_END: float = 43.0
 ## Quieter than the blow that caused it, and slower to die, which is what makes
 ## it read as settling rather than as a second hit. [TUNE]
 const SHAKE_RUMBLE_SCALE: float = 0.34
-const SHAKE_RUMBLE_DECAY: float = 1.15
+const SHAKE_RUMBLE_DECAY: float = 0.85
 
 ## Per-target animation hold on a registered hit. This is not global hitstop;
 ## a large formation therefore remains responsive when an AoE lands. [TUNE]
@@ -402,7 +402,7 @@ const HERO_ATTACK_HITSTOP: Array[float] = [0.035, 0.04, 0.09]
 # ------------------------------------------------------------------------------
 
 ## Three light hits, or one light hit plus a finisher.
-const ENEMY_MAX_HP: float = 38
+const ENEMY_MAX_HP: float = 28
 
 const ENEMY_CONTACT_DAMAGE: float = 8.5
 
@@ -440,7 +440,7 @@ const SPAWN_INTERVAL_END: float = 0.45
 const SPAWN_RAMP_SECONDS: float = 300.0
 
 ## Hard cap on live enemies, so a bad stretch cannot become unrecoverable.
-const SPAWN_MAX_ALIVE: int = 120
+const SPAWN_MAX_ALIVE: int = 72
 
 ## Enemies never appear closer to the hero than this, even if the hero is
 ## standing on the spawn ring.
@@ -448,7 +448,7 @@ const SPAWN_MIN_DISTANCE_FROM_HERO: float = 420.0
 
 ## Enemies spawned at once when the timer fires, at the start and end of the ramp.
 const SPAWN_BURST_START: int = 1
-const SPAWN_BURST_END: int = 4
+const SPAWN_BURST_END: int = 3
 
 # ------------------------------------------------------------------------------
 # Feedback
@@ -613,16 +613,16 @@ const WAVE_OPENING_SUPPLIES: Array[int] = [0, 25, 35, 40, 30, 25]
 const WAVE_OPENING_SINGLE_LANE_WAVES: int = 2
 
 ## Seconds between spawns inside one wave. [TUNE]
-const WAVE_SPAWN_SPACING: float = 0.62
+const WAVE_SPAWN_SPACING: float = 0.72
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
 const WAVE_BASE_COUNT: int = 3
-const WAVE_COUNT_GROWTH: float = 0.23
+const WAVE_COUNT_GROWTH: float = 0.19
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.08, 1.18]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_HP_GROWTH: float = 0.028
+const WAVE_HP_GROWTH: float = 0.025
 const WAVE_DAMAGE_GROWTH: float = 0.014
 const WAVE_SPEED_GROWTH: float = 0.11
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
@@ -716,7 +716,7 @@ const RESOURCE_PER_DISTANCE: float = 0.24
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.45
+const KILL_RESOURCE_SCALE: float = 0.65
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
