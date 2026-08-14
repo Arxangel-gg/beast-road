@@ -179,12 +179,36 @@ func _test_opening_envelope() -> void:
 		"first enemies must be forgiving in both durability and contact threat")
 	_check(director._progressive_lane_count(2) == 1,
 		"the first two waves must teach one road at a time")
-	_check(director._progressive_lane_count(3) == 2 \
-		and director._progressive_lane_count(5) == 3,
-		"lane pressure must open one road at a time instead of jumping from one to three")
-	_check(director._opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, 8) == 1.0 \
-		and director._opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, 9) == 1.0,
-		"opening protection must taper smoothly and be neutral after wave eight")
+	# The property, not the timetable. These used to name the exact waves roads
+	# arrived on, so re-pacing the opening - which is a tuning decision, made
+	# against the measured curve in tools/curve_report.tscn - failed a gate that
+	# had no opinion about the thing that actually matters.
+	var widest: int = 0
+	var previous_lanes: int = 0
+	for act_wave: int in range(1, 20):
+		var lanes: int = director._progressive_lane_count(act_wave)
+		_check(lanes >= previous_lanes,
+			"roads must never close again: wave %d went %d -> %d" % [
+				act_wave, previous_lanes, lanes])
+		_check(lanes - previous_lanes <= 1,
+			"roads must open one at a time: wave %d jumped %d -> %d" % [
+				act_wave, previous_lanes, lanes])
+		previous_lanes = lanes
+		widest = maxi(widest, lanes)
+	_check(widest == Balance.WAVE_LANES_MAX,
+		"the opening act must reach every road before it ends")
+
+	# Opening curves protect and then get out of the way. Anything above 1.0
+	# would be an opening that is harder than the curve it is protecting.
+	for curve: Array[float] in [Balance.WAVE_OPENING_COUNT_SCALE,
+			Balance.WAVE_OPENING_HP_SCALE, Balance.WAVE_OPENING_DAMAGE_SCALE,
+			Balance.WAVE_ACT_OPENING_COUNT_SCALE]:
+		for value: float in curve:
+			_check(value <= 1.0, "an opening curve must never exceed 1.0, got %.2f" % value)
+		_check(is_equal_approx(curve[curve.size() - 1], 1.0),
+			"an opening curve must end neutral, got %.2f" % curve[curve.size() - 1])
+		_check(director._opening_scale(curve, curve.size() + 1) == 1.0,
+			"opening protection must be exactly neutral once its envelope is over")
 	var early_formations: Array[WaveArchetypeData] = ContentDB.available_wave_archetypes(1, 3)
 	_check(early_formations.size() == 1 and early_formations[0].id == "measured_advance",
 		"specialist formations must wait until the core loop is established")

@@ -635,7 +635,7 @@ const WAVE_INTERVAL: float = 20
 ## neutral. This opens one road at a time and hands control to the unchanged
 ## late curve at wave eight. [TUNE]
 const WAVE_FIRST_PREPARATION: float = 18.0
-const WAVE_OPENING_COUNT_SCALE: Array[float] = [0.84, 0.86, 0.88, 0.90, 0.92, 0.95, 0.98, 1.0]
+const WAVE_OPENING_COUNT_SCALE: Array[float] = [0.84, 0.86, 0.58, 0.66, 0.74, 0.82, 0.72, 0.80, 0.88, 0.68, 0.84, 1.0]
 const WAVE_OPENING_HP_SCALE: Array[float] = [0.70, 0.75, 0.80, 0.85, 0.90, 0.94, 0.97, 1.0]
 const WAVE_OPENING_DAMAGE_SCALE: Array[float] = [0.62, 0.68, 0.74, 0.80, 0.86, 0.91, 0.96, 1.0]
 const WAVE_OPENING_SPEED_SCALE: Array[float] = [0.86, 0.89, 0.92, 0.94, 0.96, 0.98, 0.99, 1.0]
@@ -667,7 +667,13 @@ const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.10, 1.24]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
 ## changing the label above the boss track.
-const ACT_BOSS_RAMP_COUNT: float = 0.28
+## Measured, the last wave of every act was the sharpest step inside that act -
+## +30%, +26%, +25% - because the ramp raises pack size and stats at once and
+## lands on top of the wave where pack size was going to increment anyway. The
+## peak is wanted; three multipliers arriving together is not. Count carries less
+## of it now, since bodies are what the ramp was already adding through its own
+## growth curve. [TUNE]
+const ACT_BOSS_RAMP_COUNT: float = 0.16
 const ACT_BOSS_RAMP_STATS: float = 0.18
 
 ## Later regions remain dominated by their own breed while veterans from
@@ -683,6 +689,31 @@ const WAVE_MAX_QUEUED: int = 180
 
 ## How many lanes a wave uses, at wave 1 and at the end of an act. [TUNE]
 const WAVE_LANES_START: int = 1
+
+## How much wider each new act opens than the last.
+##
+## Was effectively 1, which restarted Act 2 at two roads after Act 1 had ended at
+## four: measured as a 77% drop in pressure across the boundary, so the game went
+## quiet for four waves exactly when the player arrived somewhere new.
+##
+## Raising it to 2 halved the drop and then produced an 81% jump two waves later,
+## which is the same problem wearing a different hat. Lane count is a coarse
+## lever - a road is a quarter of the battlefield, so it cannot express "slightly
+## easier" - and using it to shape an act boundary can only ever see-saw.
+##
+## At 3 every act after the first opens at full width and the boundary is shaped
+## by WAVE_ACT_OPENING_COUNT_SCALE instead, which is continuous. Act 1 keeps its
+## own authored lane introduction; that one is teaching, not pacing. [TUNE]
+const WAVE_LANES_PER_ACT: int = 3
+
+## Pack size over the first waves of Acts 2 and 3, as a fraction of the curve.
+##
+## The continuous half of the act-boundary shape. A new region arrives a little
+## thinner and is back to full within four waves, so it reads as a breath rather
+## than as the difficulty falling over. Act 1 has its own, longer envelope in
+## WAVE_OPENING_COUNT_SCALE, because a first act is teaching the game rather than
+## pacing a transition. [TUNE]
+const WAVE_ACT_OPENING_COUNT_SCALE: Array[float] = [0.66, 0.78, 0.89, 1.0]
 const WAVE_LANES_MAX: int = 4
 
 ## Authored wave formations multiply the continuous curve; these clamps keep a

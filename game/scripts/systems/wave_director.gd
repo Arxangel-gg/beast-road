@@ -361,14 +361,30 @@ func _pick_lanes(act_wave: int) -> Array[int]:
 ## adds another road, even when the formation itself is the neutral advance.
 func _progressive_lane_count(act_wave: int) -> int:
 	if RunState.act == 1:
+		# One road at a time, and for longer than it used to be.
+		#
+		# The measured curve (tools/curve_report.tscn) had all four roads live by
+		# wave 7 of an act that runs to about 19, so two thirds of the opening act
+		# was played at maximum width. Each new road multiplies the bodies on the
+		# field, so those were the four sharpest increases in the whole run: +82%,
+		# +63%, +42%, +21% in five waves. That is the "scales too difficult too
+		# early" report, and it is a lane-count curve rather than a stat curve.
+		#
+		# Spread over ten waves instead of seven, so a road is added roughly every
+		# third wave and the player gets two or three goes at each width.
 		if act_wave <= Balance.WAVE_OPENING_SINGLE_LANE_WAVES:
 			return 1
-		if act_wave <= 4:
-			return 2
 		if act_wave <= 6:
+			return 2
+		if act_wave <= 9:
 			return 3
+	# A new region re-teaches, but only briefly. Starting a fresh act back at two
+	# roads made the first wave of Act 2 measure 77% *easier* than the last wave
+	# of Act 1 - arriving somewhere new and more dangerous made the game go quiet
+	# for four waves. Each act now opens two roads wider than the last, so Act 2
+	# starts at three and Act 3 at full width.
 	var count: int = clampi(
-		Balance.WAVE_LANES_START + RunState.act - 1 \
+		Balance.WAVE_LANES_START + (RunState.act - 1) * Balance.WAVE_LANES_PER_ACT \
 			+ int(floor(float(act_wave - 1) / 2.0)),
 		1, Balance.WAVE_LANES_MAX)
 	if DayNight.is_night():
@@ -383,6 +399,7 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 	if terrain != null:
 		size *= terrain.wave_size_multiplier
 	size *= _opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, act_wave)
+	size *= _act_opening_scale(act_wave)
 	size *= 1.0 + DayNight.darkness * Balance.WAVE_NIGHT_COUNT_BONUS
 	if RunState.distance_to_boss() <= Balance.ACT_BOSS_RAMP_DISTANCE:
 		var ramp: float = 1.0 - RunState.distance_to_boss() / Balance.ACT_BOSS_RAMP_DISTANCE
@@ -513,6 +530,18 @@ func _speed_scale(lane: int) -> float:
 			* Balance.WAVE_DARK_SPEED_WEIGHT
 	scale *= _opening_scale(Balance.WAVE_OPENING_SPEED_SCALE, _act_wave)
 	return scale
+
+
+## The breath at the top of Acts 2 and 3.
+##
+## Act 1 is excluded because it has its own, longer authored envelope and adding
+## a second one on top would compound into an opening that barely fights back.
+## Neutral everywhere else, so late balance is untouched.
+func _act_opening_scale(act_wave: int) -> float:
+	var curve: Array[float] = Balance.WAVE_ACT_OPENING_COUNT_SCALE
+	if RunState.act <= 1 or curve.is_empty() or act_wave > curve.size():
+		return 1.0
+	return curve[clampi(act_wave - 1, 0, curve.size() - 1)]
 
 
 ## Samples one of the opening curves. Outside Act 1 and after the authored

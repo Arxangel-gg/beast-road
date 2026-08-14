@@ -81,6 +81,11 @@ jobs:
           # be incomplete. Logging it on every release gives the v4 burndown a
           # history attached to real builds rather than to memory.
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- audit
+          # Also reporting only, for the same reason: the difficulty curve is a
+          # judgement call, and a red build is the wrong way to hold an opinion
+          # about pacing. Printing it on every release gives the curve a history
+          # attached to builds people actually played.
+          run_godot_clean --headless --path game res://tools/curve_report.tscn
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
