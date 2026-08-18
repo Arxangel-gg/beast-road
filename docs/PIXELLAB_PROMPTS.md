@@ -404,10 +404,8 @@ from the middle of each edge.
 ## 6. Pixellab techniques worth using
 
 **Animation.** The reason to do this at all. The game has no animation frames and
-fakes everything with transforms. Start with the hero and the three base enemies:
-idle, walk, attack, death. Nothing in the engine consumes frames yet — say when a
-set exists and `sprite_animator.gd` can be wired to play real frames and fall back
-to the procedural motion wherever frames do not exist.
+fakes everything with transforms. **See §9** for the state list, the frame
+contract, and the prompts.
 
 **Rotation / 8-direction.** Enemies walk inward along four cardinal roads and the
 hero moves freely. Directional sprites would remove the current sprite-flipping
@@ -453,3 +451,220 @@ survives the lighting.**
 4. Icons, buildings, bosses, chieftains.
 5. Backdrops and UI frames.
 6. `menu_key_art`.
+
+---
+
+## 9. Animation states
+
+### 9.1 The rule that decides how these frames should look
+
+**The procedural motion stays on.** Owner decision: when frame animation replaces
+the single images, the existing transform juice keeps running *on top of it* —
+squash on footfall, recoil away from a hit, lean into movement, the beast-step
+wobble, the dash stretch, the death topple.
+
+That is a design choice with a direct consequence for what you generate:
+
+> **Generate frames that are neutral in the channels the engine already drives.**
+
+`sprite_animator.gd` owns bounce, lean, squash/stretch, recoil, spin and the
+impact hold. If a walk cycle also bakes in a heavy vertical bob, the two multiply
+and the character pogos. If a death animation bakes in a full topple, it spins
+twice.
+
+Concretely, per channel:
+
+| Channel | Owned by | What to bake into frames |
+|---------|----------|--------------------------|
+| Vertical bounce | engine (`set_motion`) | a *little* — keep the body's rise under ~4px |
+| Lean into movement | engine | none; keep the body upright |
+| Squash on impact | engine (`squash`, `punch`) | none |
+| Recoil away from a hit | engine (`recoil`) | none; the hurt frames are a flinch in place |
+| Death spin and shrink | engine (`topple`) | the *collapse*, not the rotation |
+| Dash stretch | engine (`dash`) | none |
+| Limbs, weapon, cloth, effects | **frames** | everything |
+
+The frames carry what a transform cannot: limbs moving independently, a weapon
+arcing, cloth trailing, a mouth opening, a horn raised. The engine keeps carrying
+weight and impact. Together that is far more than either alone, which is the whole
+point of keeping both.
+
+### 9.2 The frame contract
+
+Nothing in the engine consumes frames yet, so this is the contract to generate
+against. Say when a set exists and `sprite_animator.gd` will be wired to it, with
+a fallback to the current procedural motion for any character that has no frames —
+so a half-finished set never breaks the game.
+
+- **One file per state.** `enemy_bogkin_walk.png`, `enemy_bogkin_windup.png`, and
+  so on. Same `snake_case` id as the base sprite, then the state.
+- **Horizontal strip, left to right.** No grids, no padding, no gaps.
+- **Every frame is exactly the base size.** A 6-frame bogkin walk is a 1152x192
+  PNG. A 6-frame hero walk is 768x128.
+- **The pivot must not move.** The engine positions the character; if the body
+  drifts across the strip the character slides. Feet stay on the same pixel row,
+  centre of mass on the same column.
+- **Transparent background, no ground shadow.** Runtime contact shadows are drawn
+  for every unit already; a painted one doubles up and reads as dirt.
+- **Lighting stays fixed across frames.** Amber key from the upper right in every
+  frame. A light that swings between frames strobes.
+
+### 9.3 Hero — 128x128 per frame
+
+The hero's attack is a **three-step chain**, and step 3 is the finisher — the
+engine already gives it a 1.6x heavier squash, so the frames should read as a
+bigger commitment too.
+
+| State | Frames | Loop | Notes |
+|-------|--------|------|-------|
+| `idle` | 4 | loop | breathing, cloak settling |
+| `walk` | 8 | loop | full stride cycle |
+| `attack_1` | 5 | once | fast horizontal slash |
+| `attack_2` | 5 | once | return slash, opposite direction |
+| `attack_3` | 7 | once | the finisher — winds up further, lands harder |
+| `dash` | 4 | once | low forward lunge |
+| `hurt` | 3 | once | flinch in place |
+| `death` | 8 | once | collapse; ends lying still |
+
+```
+[STYLE BLOCK]
+
+An 8-frame walk cycle sprite animation for a game character, seen from about 45
+degrees above, closer to side-on than top-down. Each frame exactly 128x128 pixel
+art on a transparent background, laid out as a single horizontal strip.
+
+SUBJECT: a lone armored scavenger-warrior — curved single-edged blade held low,
+tattered dark cloak, bone-white featureless mask, lean wiry silhouette, scavenged
+plate over wrapped cloth.
+
+MOTION: a full walking cycle facing three-quarter left. Legs carry the stride, the
+cloak trails and settles, the blade stays low. Keep the body upright and the
+vertical bob very small — under four pixels. The feet stay on the same pixel row
+in every frame and the body does not drift across the strip.
+
+Fixed amber key light from the upper right in every frame. No ground shadow, no
+scenery.
+```
+
+Swap the MOTION block for the other states:
+
+- **idle** — *a 4-frame idle. Weight settles, chest rises and falls, the cloak
+  drifts. Almost no movement — this plays under the engine's own idle bounce.*
+- **attack_1** — *a 5-frame horizontal slash from the character's right to left.
+  Frames 1-2 wind up, frame 3 is the contact, frames 4-5 follow through. The blade
+  traces a clear arc. The body stays in place.*
+- **attack_2** — *a 5-frame return slash, left to right, mirroring the first.*
+- **attack_3** — *a 7-frame finishing blow. A longer wind-up, an overhead committed
+  strike, a heavy follow-through. This is the biggest attack in the chain and must
+  read as the heaviest.*
+- **dash** — *a 4-frame forward lunge, body low and extended, cloak snapping out
+  behind. No stretch baked in — the engine adds that.*
+- **hurt** — *a 3-frame flinch: head snaps back, arms tighten, recovers. In place,
+  no knockback — the engine moves the body.*
+- **death** — *an 8-frame collapse. Knees fold, the blade drops, the body settles
+  to the ground and stops. No rotation — the engine adds the topple.*
+
+### 9.4 Enemies and elites — 192x192 per frame
+
+The engine's enemy state machine is **WALKING → WINDUP → STRIKE → RECOVER**, plus
+**DYING**. Those are the five, and the mapping is exact.
+
+**`windup` is the most important animation in the game.** It is the telegraph the
+player reads in order to dodge, and v4 §347 requires telegraphs to be visually
+distinct. Make it loud: a raised limb, a drawn-back weapon, a widened stance, a
+glow — something that reads at a glance with four roads on screen at once.
+
+| State | Frames | Loop | Engine state |
+|-------|--------|------|--------------|
+| `walk` | 6 | loop | `WALKING` |
+| `windup` | 4 | hold last | `WINDUP` — the telegraph |
+| `strike` | 3 | once | `STRIKE` |
+| `recover` | 3 | once | `RECOVER` |
+| `death` | 6 | once | `DYING` |
+
+```
+[STYLE BLOCK]
+
+A 4-frame attack wind-up sprite animation for a game enemy, seen from about 45
+degrees above, closer to side-on than top-down. Each frame exactly 192x192 pixel
+art on a transparent background, laid out as a single horizontal strip.
+
+SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead
+reeds hanging from its limbs, dim pale eyes, dripping black water.
+
+MOTION: the creature draws back to strike. Frame 1 begins the pull-back, frames
+2-3 rear further, frame 4 holds at full extension ready to release. This is a
+telegraph the player must read from across the screen — make the silhouette change
+dramatically and obviously between the first frame and the last.
+
+The feet stay on the same pixel row and the body does not drift across the strip.
+Fixed amber key light from the upper right. No ground shadow, no scenery.
+```
+
+Swap the MOTION block for the other states:
+
+- **walk** — *a 6-frame walking cycle, slow and lumbering, facing three-quarter
+  left. Keep the vertical bob under four pixels.*
+- **strike** — *a 3-frame release from the wind-up pose: the blow lands, fast and
+  committed. Frame 1 is still drawn back, frame 2 is contact, frame 3 is full
+  extension.*
+- **recover** — *a 3-frame return from full extension back to the neutral walking
+  pose, slower than the strike.*
+- **death** — *a 6-frame collapse. The body gives way and settles to the ground. No
+  rotation — the engine adds the topple.*
+
+Each base enemy and elite uses the same five states with its own subject line from
+§5.2. The elites deserve a longer, louder `windup` — they are the ones the player
+is meant to notice: 6 frames rather than 4.
+
+### 9.5 Bosses — 384x384 per frame
+
+Bosses cross **two health thresholds**, so they get one extra state.
+
+| State | Frames | Loop | Notes |
+|-------|--------|------|-------|
+| `idle` | 4 | loop | bosses are stationary threats; this is the default read |
+| `windup` | 6 | hold last | longer telegraph — the fight is about reading it |
+| `strike` | 4 | once | |
+| `recover` | 4 | once | |
+| `phase` | 8 | once | the transition at a health threshold |
+| `death` | 10 | once | the run's payoff; make it long |
+
+`phase` is the one worth spending real time on. It fires when the boss crosses a
+health threshold and is currently a particle burst and a screen shake with no
+sprite change at all.
+
+```
+[STYLE BLOCK]
+
+An 8-frame phase-transition sprite animation for a game boss, seen from about 45
+degrees above. Each frame exactly 384x384 pixel art on a transparent background,
+laid out as a single horizontal strip.
+
+SUBJECT: a towering mass of fused drowned bodies forming a single cathedral-like
+figure, dozens of open singing mouths across its surface, black water pouring
+continuously from its frame, tattered ceremonial cloth.
+
+MOTION: the figure convulses and changes. Frames 1-3 rear back as the mouths open
+wider in unison, frames 4-5 are the peak — amber light bursting from every seam,
+water thrown outward — frames 6-8 settle into a new, more aggressive stance that is
+visibly different from the one it started in.
+
+The base stays on the same pixel row and the body does not drift across the strip.
+Fixed amber key light from the upper right. No ground shadow, no scenery.
+```
+
+### 9.6 What to generate first
+
+Animation is expensive; the frames the player looks at most are worth doing first.
+
+1. **`enemy_bogkin` — all five states.** One complete enemy proves the pipeline end
+   to end and is what gets wired into `sprite_animator.gd` first.
+2. **`hero` — idle, walk, attack_1/2/3, death.** On screen every second of the game.
+3. The other two base enemies, `glassborn` and `steppehorde`.
+4. The three elites — especially their `windup`.
+5. Bosses: `phase` and `death` before the rest.
+
+Towers, buildings and the city do not need animation. They are static by design and
+the engine already gives them idle light flicker, damage flames, the beast-step
+wobble and an upgrade burst.
