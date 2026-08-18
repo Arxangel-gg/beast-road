@@ -71,3 +71,8 @@ desktop.ini
 # logs and screenshots away from the player's real save directory.
 .codex-godot-*/
 .codex-launcher-*/
+
+# Pixellab's raw per-frame export. 648 PNGs for the hero alone, and the packed
+# sheets in game/art/hero/ are what the game loads. Kept out of the repo so the
+# clone stays small; re-pack with tools/pack_hero_frames.py.
+art_inbox/Pixellab/

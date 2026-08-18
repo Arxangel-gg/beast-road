@@ -442,6 +442,7 @@ func _test_preparation_and_command() -> void:
 	_test_road_survives_a_declined_breather(field)
 	_test_level_moves_every_stat_a_tower_has()
 	_test_six_spots_per_road(field)
+	_test_hero_frame_animation(field)
 
 
 ## The Draught's *mechanic* was complete and correct for months. Nothing in the
@@ -745,6 +746,67 @@ func _test_road_survives_a_declined_breather(field: Battlefield) -> void:
 		"a declined breather must not change phase")
 	director.stop()
 	RunState.wave_number = wave_before
+
+
+## The hero's frame animation, which is the first thing in the game to use real
+## frames instead of transform tricks.
+##
+## Four separate features in this project have died silently because nothing
+## asserted they were running - torch relighting, the occluder fade and two Vfx
+## hooks all sat dead behind an empty "hero" group. Frame playback is exactly
+## that shape: it fails to a *working* game with a static sprite, so nobody
+## notices until they look closely at a screenshot.
+func _test_hero_frame_animation(field: Battlefield) -> void:
+	var hero: Hero = field.hero
+	_check(hero.frames != null, "the hero must have a frame animator")
+	if hero.frames == null:
+		return
+	_check(hero.frames.has_frames(), "the hero animation sheets must load")
+
+	for state: String in ["idle", "walk", "attack_1a", "attack_1b", "attack_2",
+			"attack_3", "hurt", "dash", "death"]:
+		_check(hero.frames.has_state(state), "missing hero sheet: %s" % state)
+
+	# Facing is what eight directions are for. Row order runs clockwise from
+	# east, so these four are the ones a wrong sign flips.
+	var facings: Dictionary = {
+		Vector2.RIGHT: 0, Vector2.DOWN: 2, Vector2.LEFT: 4, Vector2.UP: 6,
+	}
+	for direction: Vector2 in facings:
+		hero.frames.set_facing(direction)
+		_check(hero.frames._direction == int(facings[direction]),
+			"facing %s must select row %d, got %d"
+				% [direction, facings[direction], hero.frames._direction])
+
+	# A one-shot must actually finish and release, or the hero locks into the
+	# frame it died on and never walks again.
+	hero.frames.play("dash", true)
+	_check(hero.frames.current_state() == "dash", "play() must switch state")
+	var released: bool = false
+	for _step: int in 200:
+		hero.frames._process(0.016)
+		if not hero.frames._playing:
+			released = true
+			break
+	_check(released, "a one-shot state must stop playing rather than loop forever")
+
+	# And a loop must not.
+	hero.frames.play("idle", true)
+	for _step: int in 200:
+		hero.frames._process(0.016)
+	_check(hero.frames._playing, "a looping state must keep playing")
+
+	# Both opening swings exist, and the picker returns one of them.
+	var seen: Dictionary = {}
+	for _roll: int in 60:
+		seen[hero._frame_state_for_swing(0)] = true
+	_check(seen.has("attack_1a") and seen.has("attack_1b"),
+		"the opening swing must vary between its two authored sheets, saw %s" % [seen.keys()])
+	_check(hero._frame_state_for_swing(1) == "attack_2" 		and hero._frame_state_for_swing(2) == "attack_3",
+		"chain steps 2 and 3 must map to their own sheets")
+
+	hero.frames.play("idle", true)
+	hero._locked_state = ""
 
 
 func _test_boss_phases() -> void:

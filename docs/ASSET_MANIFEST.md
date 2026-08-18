@@ -126,6 +126,27 @@ is the contract; the border is only a convenience.
 | `hero_ascended_1.png` | 128×128 | T | `#E8A33D` |
 | `hero_ascended_2.png` | 128×128 | T | `#E8A33D` |
 
+**Animation sheets.** Rows are the 8 facings in engine index order (clockwise
+from east), columns are frames, each cell 168×160. Built from Pixellab's
+per-frame export by `tools/pack_hero_frames.py` — do not hand-edit them, and do
+not change the cell size without changing `hero_animator.gd` to match.
+
+The cell is 168×160 rather than a round 192 because it was measured: content
+reaches at most 157px above the canvas bottom and 83px either side of centre.
+Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `hero_idle.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_walk.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_attack_1a.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_attack_1b.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_attack_2.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_attack_3.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_hurt.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_dash.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_death.png` | 1512×1280 | T | `#E8A33D` |
+
 ### 5.2 Enemies — `res://art/enemies/`
 
 | File | Size | Type | Placeholder colour |

@@ -19,6 +19,15 @@ const GROUP: StringName = &"hero"
 @export var spells: SpellCaster
 @export var animator: SpriteAnimator
 
+## Eight-direction frame playback. Null-safe throughout: a build with no sheets
+## in res://art/hero/ keeps the old static sprite and every transform effect.
+@export var frames: HeroAnimator
+
+## The state frames are locked into until it finishes - a swing, a flinch, a
+## dash. Movement cannot interrupt these, which is what stops a walk cycle
+## cutting an attack in half.
+var _locked_state: String = ""
+
 ## How far from the origin the hero may roam. Differs per scope — the
 ## battlefield lane ring and the raid arena are not the same size — so the
 ## scene that owns the hero sets it. 0 falls back to the Balance default.
@@ -93,6 +102,9 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
 	EventBus.construction_completed.connect(_on_construction_completed)
 	EventBus.beast_step_landed.connect(_on_beast_step)
+	if frames != null and frames.has_frames():
+		frames.finished.connect(_on_frames_finished)
+		frames.play("idle")
 
 	_apply_permanent_bonuses()
 
@@ -142,6 +154,7 @@ func _physics_process(delta: float) -> void:
 		bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
 
 	animator.set_motion(velocity, move_speed(), delta)
+	_drive_frames()
 	_update_sprite(delta)
 
 
@@ -304,6 +317,7 @@ func _try_dash() -> void:
 	_dash_cooldown_left = Balance.HERO_DASH_COOLDOWN
 	health.add_invulnerability(Balance.HERO_DASH_IFRAMES)
 	animator.dash(_dash_direction, Balance.HERO_DASH_DURATION)
+	_lock_frames("dash")
 	_spawn_dash_ghosts()
 	EventBus.hero_dashed.emit(Balance.HERO_DASH_IFRAMES)
 
@@ -323,12 +337,14 @@ func _on_lunge_requested(direction: Vector2, distance: float) -> void:
 	_lunge_velocity = direction * speed
 	_lunge_decay = speed / duration
 	animator.punch(direction, clampf(distance / 110.0, 0.6, 1.5))
+	_lock_frames(_frame_state_for_swing(attack.current_step()))
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
 	animator.impact_frame()
 	animator.recoil(from, global_position, 1.0)
+	_lock_frames("hurt")
 	EventBus.hero_damaged.emit(amount, from)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
 
@@ -366,8 +382,14 @@ func _on_died(at: Vector2) -> void:
 	_lunge_velocity = Vector2.ZERO
 	velocity = Vector2.ZERO
 	attack.cancel()
-	sprite.visible = false
 	health_bar.visible = false
+	# With a death sheet the body collapses on screen and is hidden when the
+	# animation ends. Without one it vanishes immediately, as it always did -
+	# the respawn timer is eight seconds either way.
+	if frames != null and frames.has_state("death"):
+		_lock_frames("death")
+	else:
+		sprite.visible = false
 	RunState.hero_deaths += 1
 	EventBus.hero_died.emit(at)
 
@@ -402,6 +424,11 @@ func _restore_presence() -> void:
 	sprite.visible = true
 	sprite.modulate = Color.WHITE
 	health_bar.visible = true
+	# A revive has to release the death sheet as well as the body. Without this
+	# the Warden stands back up still holding the last frame of their collapse.
+	_locked_state = ""
+	if frames != null and frames.has_frames():
+		frames.play("idle", true)
 
 
 ## Fading copies of the sprite left along the dash path. Cheap, and the single
@@ -428,7 +455,9 @@ func _spawn_dash_ghosts() -> void:
 
 
 func _update_sprite(_delta: float) -> void:
-	sprite.flip_h = _aim.x < 0.0
+	# Eight authored facings already point the right way. Flipping on top of
+	# them mirrors the western rows twice and puts the blade in the wrong hand.
+	sprite.flip_h = _aim.x < 0.0 if frames == null or not frames.has_frames() else false
 
 	var tint: Color = Color.WHITE
 	if _flash_left > 0.0:
@@ -439,3 +468,57 @@ func _update_sprite(_delta: float) -> void:
 		var phase: float = Time.get_ticks_msec() / 1000.0 * Balance.INVULN_BLINK_RATE
 		tint.a = 0.35 + 0.4 * (0.5 + 0.5 * sin(phase * TAU))
 	sprite.modulate = tint
+
+
+# --- Frame animation ---------------------------------------------------------
+
+## Chooses the hero's animation state each frame.
+##
+## Only movement and idle are decided here. Everything else - swings, the dash,
+## a flinch, death - is pushed in by the event that causes it and holds the
+## sprite until its sheet finishes, because those are the animations the player
+## reads to know what their own character is doing.
+##
+## Facing comes from the aim vector rather than from velocity, so backing away
+## from an enemy keeps the Warden pointed at it. That is what the eight
+## directions are for; `sprite.flip_h` stays off when frames are present or the
+## western rows would be mirrored twice.
+func _drive_frames() -> void:
+	if frames == null or not frames.has_frames():
+		return
+	frames.set_facing(_aim)
+	if not _locked_state.is_empty():
+		return
+	var speed: float = velocity.length()
+	if speed > 4.0:
+		frames.set_speed_scale(speed / maxf(move_speed(), 1.0))
+		frames.play("walk")
+	else:
+		frames.play("idle")
+
+
+## Plays a state that movement cannot interrupt.
+func _lock_frames(state: String) -> void:
+	if frames == null or not frames.has_state(state):
+		return
+	_locked_state = state
+	frames.play(state, true)
+
+
+func _on_frames_finished(state: String) -> void:
+	if state == "death":
+		sprite.visible = false
+	if state == _locked_state:
+		_locked_state = ""
+
+
+## The swing sheets, one per chain step.
+##
+## Step 1 has two authored variants and picks between them at even odds, so a
+## held attack button does not play the identical opening swing every time. The
+## chain's own steps 2 and 3 are already distinct, so only the opener repeats
+## often enough to need it.
+func _frame_state_for_swing(step: int) -> String:
+	if step == 0:
+		return "attack_1a" if RunState.rng("combat").randf() < 0.5 else "attack_1b"
+	return "attack_%d" % (step + 1)
