@@ -151,16 +151,24 @@ func _build_lane_path(lane: int) -> PackedVector2Array:
 
 	# Distances out from the town along the road, and the sideways depth of the
 	# bend. Tile multiples so the road lands on tile boundaries.
-	# The bend is 8 tiles deep and 6 long. Both numbers are the pocket's, not the
-	# road's: with a 3-tile carriageway that leaves roughly 5x7 tiles of open
-	# ground inside the U, which is the four-tower pocket §13 asks for.
+	# The bend runs from 7 tiles out to 13, and 8 deep.
+	#
+	# Both ends are load bearing and both were wrong once. The *inner* end sat at
+	# 5: its return leg is a 3-tile wall across the lane axis, and that left no
+	# ground at all between it and the gate, so the last line of defence was
+	# undefendable. Pushing it to 7 fixed that and collapsed the pocket to a
+	# single tile, because the pocket's width is the gap between the two legs
+	# minus the three tiles they occupy - so the *outer* end had to move too.
+	#
+	# 13 - 7 - 3 leaves three tiles of interior width and eight of depth: room for
+	# four towers in the pocket, and room for four more inside the gate.
 	var t: float = TILE
 	var points_local: Array[Vector2] = [
 		Vector2(14.0 * t, 0.0),        # spawn edge
-		Vector2(11.0 * t, 0.0),        # run in
-		Vector2(11.0 * t, 8.0 * t),    # turn across
-		Vector2(5.0 * t, 8.0 * t),     # double back toward the town
-		Vector2(5.0 * t, 0.0),         # turn back across
+		Vector2(13.0 * t, 0.0),        # run in
+		Vector2(13.0 * t, 8.0 * t),    # turn across
+		Vector2(7.0 * t, 8.0 * t),     # double back toward the town
+		Vector2(7.0 * t, 0.0),         # turn back across
 		Vector2(0.0, 0.0),             # the gate
 	]
 
@@ -229,10 +237,19 @@ func _carve_border() -> void:
 ## The bend exists to create somewhere worth building; naming that place lets the
 ## check assert it stays open and lets the interface point at it.
 func lane_pocket_centre(lane: int) -> Vector2:
-	var forward: Vector2 = lane_vector(lane)
-	var across: Vector2 = forward.orthogonal()
-	# Midway along the detour and midway across its depth — see _build_lane_path.
-	return forward * (8.0 * TILE) + across * (4.0 * TILE)
+	var path: PackedVector2Array = lane_paths[lane]
+	if path.size() < 6:
+		return lane_vector(lane) * (10.0 * TILE)
+	# Derived from the road itself rather than restated as numbers. The bend has
+	# moved twice; both times a hardcoded centre was left pointing at where the
+	# pocket used to be, which put it on the carriageway and failed placement.
+	#
+	# The pocket is the area the detour encloses: midway between the two legs
+	# that run across the lane, and midway up the depth they reach.
+	var inner_leg: Vector2 = path[path.size() - 2]
+	var outer_leg: Vector2 = path[1]
+	var crossbar: Vector2 = path[2]
+	return (inner_leg + outer_leg) * 0.5 + (crossbar - outer_leg) * 0.5
 
 
 # --- Path queries ------------------------------------------------------------
