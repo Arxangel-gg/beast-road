@@ -355,6 +355,36 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `build_spot_combo.png` | 128×128 | T | `#9B8FC4` |
 | `town_core.png` | 384×384 | T | `#8A7A5E` |
 
+
+**Road tiles.** An 18-config connectable set — straights, corners, T-junctions, a
+crossroads, dead-ends and plain ground — sharing one look, so the U-bends in
+GDD §13 join properly instead of being stretched strips with a notch at every
+corner. 32×32 native, drawn at ×2 to land exactly on the 64-unit grid.
+
+Edge rules are a 4-bit neighbour mask: bit0=N, bit1=E, bit2=S, bit3=W, a set bit
+meaning the road continues across that edge. `path_tile_NN` is the tile for mask
+NN, so an autotiler indexes them directly.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `path_tile_00.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_01.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_02.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_03.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_04.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_05.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_06.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_07.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_08.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_09.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_10.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_11.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_12.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_13.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_14.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_15.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_16.png` | 32×32 | T | `#8A6B3F` |
+| `path_tile_17.png` | 32×32 | T | `#8A6B3F` |
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |
