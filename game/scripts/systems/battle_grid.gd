@@ -28,8 +28,14 @@ const FOOTPRINT: int = 2
 ## Half the field in world units, used to move the origin to the centre.
 const HALF_EXTENT: float = float(SIZE) * TILE * 0.5
 
-## The town occupies the middle of the grid and is never buildable.
-const TOWN_TILES: int = 4
+## The town's unbuildable block, in tiles either side of the origin.
+##
+## 1 gives a 3x3 block, 192 units across, against a TOWN_RADIUS of 160 - so it
+## covers the town and no more. It was 2 (a 5x5 block) and, with four roads
+## converging on the origin as well, that left nothing buildable inside six tiles
+## of the gate: the last line of defence was the one place the player could not
+## defend. Measured with tools/gate_probe.gd.
+const TOWN_TILES: int = 1
 
 ## Tiles either side of a road's centre line, so the carriageway is
 ## 2*ROAD_WIDTH+1 tiles across — 3 tiles, 192 units. Sized to LANE_WIDTH (120)
@@ -165,19 +171,29 @@ func _build_lane_path(lane: int) -> PackedVector2Array:
 
 
 ## Marks every tile the road covers, so nothing can be built on it.
+## The final approach narrows to a causeway.
+##
+## Four roads three tiles wide converging on one point leave only thin diagonal
+## wedges near the gate: measured, two buildable anchors per ring inside seven
+## tiles. The last line of defence was the one place with nowhere to build.
+##
+## Narrowing the last leg to a single tile frees a tile either side of all four
+## approaches, and it is better design as well as more room - a road that
+## narrows at the gate is a chokepoint, which is exactly what the ground closest
+## to the town should be.
 func _carve_road(path: PackedVector2Array) -> void:
 	for i: int in path.size() - 1:
-		_carve_segment(path[i], path[i + 1])
+		var final_leg: bool = i == path.size() - 2
+		_carve_segment(path[i], path[i + 1], 0 if final_leg else ROAD_WIDTH)
 
 
-func _carve_segment(from: Vector2, to: Vector2) -> void:
+func _carve_segment(from: Vector2, to: Vector2, half: int = ROAD_WIDTH) -> void:
 	var span: float = from.distance_to(to)
 	if span <= 0.0:
 		return
 	# Step at half a tile so a diagonal segment cannot leave gaps between the
 	# tiles it passes through.
 	var steps: int = int(ceil(span / (TILE * 0.5)))
-	var half: int = ROAD_WIDTH  # tiles either side of the centre line
 	for step: int in steps + 1:
 		var at: Vector2 = from.lerp(to, float(step) / float(steps))
 		var centre: Vector2i = world_to_tile(at)
@@ -190,7 +206,7 @@ func _carve_segment(from: Vector2, to: Vector2) -> void:
 
 func _carve_town() -> void:
 	var centre: Vector2i = world_to_tile(Vector2.ZERO)
-	var reach: int = TOWN_TILES / 2
+	var reach: int = TOWN_TILES
 	for dx: int in range(-reach, reach + 1):
 		for dy: int in range(-reach, reach + 1):
 			var tile: Vector2i = centre + Vector2i(dx, dy)

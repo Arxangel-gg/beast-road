@@ -297,23 +297,57 @@ func add_projectile(shot: Projectile, at: Vector2) -> void:
 ## a tower fights it for attention and sits over the thing the player is trying
 ## to click. TORCH_ALONG_STOPS threads them through the gaps instead, and
 ## TORCH_LANE_OFFSET stands them well back from both.
+## Torches stand on the road's *shoulder*, following the bend.
+##
+## They used to be placed on a straight line out from the town, which was right
+## when the roads were straight and puts them in the middle of the carriageway
+## now. Walking the polyline keeps them beside the road the whole way round,
+## symmetrically on both sides, and evenly spaced by arc length rather than by
+## distance from the origin - on a bent road those are not the same thing.
+##
+## The shoulder is deliberately *on* the road surface, just outside the corridor
+## enemies walk down. Road ground is unbuildable, so a torch there can never
+## stand where the player wanted a tower, and the light still falls across the
+## path it is meant to light.
 func _build_torches() -> void:
 	for lane: int in Balance.LANE_COUNT:
-		var direction: Vector2 = Battlefield.lane_vector(lane)
-		var side: Vector2 = direction.orthogonal()
-		for stop_index: int in Balance.TORCH_ALONG_STOPS.size():
-			var along: float = Balance.TORCH_ALONG_STOPS[stop_index]
+		var path: PackedVector2Array = lane_path(lane)
+		var total: float = grid.lane_length(lane) if grid != null else 1.0
+		var stops: int = Balance.TORCH_STOPS_PER_SIDE
+		for stop_index: int in stops:
+			# Inset from both ends so none sits on a spawn point or inside the town.
+			var fraction: float = (float(stop_index) + 1.0) / (float(stops) + 1.0)
+			var placement: Dictionary = _point_along(path, total * fraction)
 			for side_index: int in 2:
 				var sign: float = -1.0 if side_index == 0 else 1.0
 				var torch := Torch.new()
 				torch.lane = lane
 				# High features one local shadow pool on each lane. Ultra promotes
-				# the other twenty torches in place, without rebuilding the field.
-				var featured: bool = stop_index == Balance.TORCH_FEATURED_SHADOW_STOP \
-					and side_index == lane % 2
+				# the rest in place, without rebuilding the field.
+				var featured: bool = stop_index == Balance.TORCH_FEATURED_SHADOW_STOP 					and side_index == lane % 2
 				torch.shadow_on_ultra_only = not featured
-				torch.position = direction * along + side * Balance.TORCH_LANE_OFFSET * sign
+				var across: Vector2 = (placement["direction"] as Vector2).orthogonal()
+				torch.position = (placement["at"] as Vector2) 					+ across * Balance.TORCH_LANE_OFFSET * sign
 				entity_root.add_child(torch)
+
+
+## A point a given distance along a polyline, with the local heading there.
+func _point_along(path: PackedVector2Array, distance: float) -> Dictionary:
+	var walked: float = 0.0
+	for i: int in path.size() - 1:
+		var span: float = path[i].distance_to(path[i + 1])
+		if walked + span >= distance and span > 0.0:
+			var t: float = (distance - walked) / span
+			return {
+				"at": path[i].lerp(path[i + 1], t),
+				"direction": (path[i + 1] - path[i]).normalized(),
+			}
+		walked += span
+	var last: int = path.size() - 1
+	return {
+		"at": path[last],
+		"direction": (path[last] - path[maxi(last - 1, 0)]).normalized(),
+	}
 
 
 func _build_foliage() -> void:

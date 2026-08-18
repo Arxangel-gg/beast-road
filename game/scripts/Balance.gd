@@ -1326,7 +1326,13 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## Deliberately *between* the build spots in TOWER_SLOT_RADII rather than level
 ## with them - a torch standing beside a tower competes with it for attention and
 ## covers the thing the player is trying to click. [TUNE]
-const TORCH_ALONG_STOPS: Array[float] = [250.0, 430.0, 630.0]
+## Torch stops per side of each road, spread evenly by arc length.
+##
+## Replaces TORCH_ALONG_STOPS, which measured distance out from the town. That
+## was the same thing when roads were straight; on a bent road it puts torches on
+## the carriageway. 3 per side x 2 sides x 4 roads = 24, the count the manifest
+## and the asset budget already assume. [TUNE]
+const TORCH_STOPS_PER_SIDE: int = 3
 
 ## How far to the side of the lane centre they stand.
 ##
@@ -1336,7 +1342,14 @@ const TORCH_ALONG_STOPS: Array[float] = [250.0, 430.0, 630.0]
 ##
 ## A tower sprite is ~192 wide, so its edge reaches 158 + 96 = 254. 300 keeps the
 ## flames outside that with room to spare. [TUNE]
-const TORCH_LANE_OFFSET: float = 300.0
+## How far to the side of the road's centre line a torch stands.
+##
+## 70 puts it on the road shoulder: the carriageway runs to +-96, and enemies
+## walk within +-55, so a torch here is off the walking corridor and still on
+## unbuildable ground - which is what stops it ever standing where a tower was
+## wanted. It was 300, chosen when the buildable field was open ground beside a
+## straight road and there was no grid to conflict with. [TUNE]
+const TORCH_LANE_OFFSET: float = 70.0
 
 ## Height of the post and of the fire on top of it. Sized against the camera, not
 ## against realism: at battlefield zoom a 34px torch was a lit matchstick, and a

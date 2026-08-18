@@ -439,8 +439,22 @@ func _spawn_dash_ghosts() -> void:
 		return
 	for i: int in Balance.ANIM_DASH_GHOSTS:
 		var ghost := Sprite2D.new()
+		# Copy how the sprite is *framed*, not just what texture it uses. Handing a
+		# bare Sprite2D an atlas or a spritesheet draws the entire sheet: every
+		# frame of every direction, splayed around the hero for a fraction of a
+		# second. That is the flicker seen on every dash once the hero became a
+		# multi-frame sprite.
 		ghost.texture = sprite.texture
+		ghost.region_enabled = sprite.region_enabled
+		ghost.region_rect = sprite.region_rect
+		ghost.hframes = sprite.hframes
+		ghost.vframes = sprite.vframes
+		ghost.frame = sprite.frame
+		ghost.centered = sprite.centered
+		ghost.offset = sprite.offset
+		ghost.scale = sprite.scale
 		ghost.flip_h = sprite.flip_h
+		ghost.flip_v = sprite.flip_v
 		ghost.global_position = global_position + _dash_direction * (float(i) * 22.0)
 		ghost.z_index = -1
 		ghost.modulate = Color(0.65, 0.85, 1.0, 0.42 - 0.08 * float(i))
