@@ -79,11 +79,11 @@ table. Not 'close enough' — the collision and layout code assumes them."*
 | Hero | `res://art/hero/` | 128x128 | 3 | yes |
 | Enemies + elites | `res://art/enemies/` | 192x192 | 24 | yes |
 | Bosses | `res://art/bosses/` | 384x384 | 3 | yes |
-| Towers | `res://art/towers/` | 192x192 | 18 | yes |
+| Towers | `res://art/towers/` | 192x192 | 26 | yes |
 | Buildings + plots | `res://art/city/` | 192x192 | 11 | yes |
 | City shell | `res://art/city/` | 512x512 | 4 | yes |
 | Beast | `res://art/beast/` | 1024x1024 | 1 | yes |
-| Battlefield spots | `res://art/battlefield/` | 128x128 | 2 | yes |
+| Grid tile overlay | `res://art/battlefield/` | 128x128 | 2 | yes |
 | Lane path | `res://art/battlefield/` | 256x256 | 1 | yes |
 | Town core | `res://art/battlefield/` | 384x384 | 1 | yes |
 | Captives | `res://art/raid/` | 128x128 | 3 | yes |
@@ -358,18 +358,58 @@ stone, pale aurora, red warning cloth.
 
 ### 5.4 Towers — 192x192
 
-| File | Subject |
-|------|---------|
-| `tower_ember_spire` | a slender tall stone spire capped with an open burning brazier, narrow iron banding, embers rising from the top |
-| `tower_pyre_cannon` | a squat heavy siege cannon of blackened iron with a glowing fire-chamber, wide short barrel, mounted on a stone base |
-| `tower_rime_lance` | a tall narrow tower of pale stone ending in a single frost-encrusted spear point, sheets of blue-white ice down one side |
-| `tower_hoarfrost_bell` | a heavy stone frame holding a large frost-covered bronze bell, long icicles hanging from its rim |
-| `tower_bulwark` | a squat fortified stone bunker with layered overlapping shield plating, heavy and wide, almost no ornament, built to absorb |
-| `tower_shard_thrower` | a mechanical ballista of stone and iron loaded with a single long jagged rock shard, tensioned cables |
-| `tower_arc_coil` | a metal tower wrapped in tiered copper coils, arcs of pale violet lightning crackling between the rings |
-| `tower_gale_turret` | a slim tower with spinning bladed vanes and open wind funnels at its crown |
+**Sixteen base towers, four per element, one per role** (GDD §21, revised
+2026-08-18). Eight exist; **eight are new and marked**. Fusions are keyed by
+element pair, not tower pair, so the ten combination towers are unchanged and no
+new fusion art is needed.
 
-Ten combination towers complete the set of 18 — ids and elements are in
+The four roles read the same across all four elements, and the silhouette should
+say which role a tower is before the player reads anything:
+
+| Role | Silhouette rule |
+|------|-----------------|
+| **Skirmisher** | small and low, wide base, no tall mast |
+| **Siege** | squat and heavy, thick barrel or arm, visibly massive |
+| **Sniper** | tall and thin, one long straight line pointing up and out |
+| **Warden** | no barrel at all — a frame, a bell, a censer, a vane |
+
+**Fire — escalation.** Amber and rust, blackened iron, visible flame.
+
+| File | Role | Subject |
+|------|------|---------|
+| `tower_ember_spire` | Skirmisher | a slender tall stone spire capped with an open burning brazier, narrow iron banding, embers rising from the top |
+| `tower_pyre_cannon` | Siege | a squat heavy siege cannon of blackened iron with a glowing fire-chamber, wide short barrel, mounted on a stone base |
+| **`tower_cinder_lance`** | Sniper | **NEW** — a very tall narrow tower of black iron ending in one long straight lance-barrel angled upward, a small white-hot furnace glowing at its base, heat haze along the barrel |
+| **`tower_ashen_censer`** | Warden | **NEW** — a heavy stone frame holding a huge perforated iron censer on chains, thick grey smoke and orange embers pouring from its vents, no barrel of any kind |
+
+**Water — control.** Pale blue-white, frost, bronze and wet stone.
+
+| File | Role | Subject |
+|------|------|---------|
+| **`tower_tide_caller`** | Skirmisher | **NEW** — a low wide basin of dark wet stone on a squat plinth, ringed with small carved spouts, pale blue water arcing continuously from its rim |
+| **`tower_glacial_mortar`** | Siege | **NEW** — a fat short-barrelled mortar of frost-caked bronze angled steeply upward, packed ice shells stacked at its base, cold vapour spilling over the rim |
+| `tower_rime_lance` | Sniper | a tall narrow tower of pale stone ending in a single frost-encrusted spear point, sheets of blue-white ice down one side |
+| `tower_hoarfrost_bell` | Warden | a heavy stone frame holding a large frost-covered bronze bell, long icicles hanging from its rim |
+
+**Earth — denial.** Grey and ochre stone, raw rock, iron banding.
+
+| File | Role | Subject |
+|------|------|---------|
+| **`tower_grit_sling`** | Skirmisher | **NEW** — a small squat timber-and-rope sling frame on a low stone pad, a basket of loose grey stones beside it, the simplest and cheapest structure on the field |
+| `tower_shard_thrower` | Siege | a mechanical ballista of stone and iron loaded with a single long jagged rock shard, tensioned cables |
+| **`tower_stonewatch`** | Sniper | **NEW** — a tall narrow watch-spire of stacked grey blocks with a hinged release arm at its crown holding one enormous boulder, iron counterweight hanging behind |
+| `tower_bulwark` | Warden | a squat fortified stone bunker with layered overlapping shield plating, heavy and wide, almost no ornament, built to absorb |
+
+**Air — reach.** Pale violet, copper, thin metal, visible motion.
+
+| File | Role | Subject |
+|------|------|---------|
+| `tower_gale_turret` | Skirmisher | a slim tower with spinning bladed vanes and open wind funnels at its crown |
+| `tower_arc_coil` | Siege | a metal tower wrapped in tiered copper coils, arcs of pale violet lightning crackling between the rings |
+| **`tower_zephyr_needle`** | Sniper | **NEW** — an extremely tall and impossibly thin copper needle on a narrow tripod, guy-wires running to the ground, a single point of violet light at the very tip |
+| **`tower_stormvane`** | Warden | **NEW** — a tall open frame carrying four large spinning brass weather-vanes at different heights, torn streamers snapping outward, no weapon of any kind |
+
+Ten combination towers complete the set of 26 — ids and elements are in
 `game/data/towers/*.tres`. Each should read as its two parents fused, not as a
 third unrelated object.
 
@@ -467,6 +507,50 @@ These are **nine-slice stretched by the theme**. The centre must be genuinely em
 and the border must survive stretching, so keep ornament in the corners and away
 from the middle of each edge.
 
+### 5.11 Battlefield — the grid and the roads
+
+The 30x30 grid and the U-bend roads (GDD §13, revised 2026-08-18) change what
+three existing files have to be, and add one requirement that does not exist yet.
+
+**Repurposed — same paths, new job:**
+
+| File | Size | Was | Now |
+|------|------|-----|-----|
+| `build_spot` | 128x128 | a fixed slot marker | the **buildable-tile ghost**: a 2x2 footprint outline shown under the cursor while placing. Four faint corner brackets on a barely-tinted fill, nothing in the middle — a real tower sprite sits inside it. |
+| `build_spot_combo` | 128x128 | the combination slot | the **fusion-tile marker**: the same footprint in warm gold with a small linking mark on the two flanked edges, showing which pair it would fuse. |
+| `lane_path` | 256x256 | a straight road piece | the **straight road tile**, seamless left-to-right so it repeats along a leg. |
+
+**New requirement — road corners.** A U-bend needs corner pieces, and there is no
+corner art. At minimum one 256x256 tile that turns the road 90 degrees, mirrored
+and rotated in engine for the other three orientations; two (inner and outer
+corner) if the road has a visible bank or kerb.
+
+> Do **not** generate this until the manifest row exists. `ASSET_MANIFEST.md` §5
+> is machine-read, and a row with only a placeholder behind it fails the
+> production-art gate and blocks every release — which is exactly how the
+> Resurrection Draught icon broke publishing on 2026-08-14. The row and the real
+> art go in together, in one change. Say when the art exists and the row goes in
+> with it.
+
+```
+[STYLE BLOCK]
+
+A seamless top-down road corner tile for a game battlefield, seen from directly
+above. 256x256 pixel art, opaque, no transparency.
+
+SUBJECT: a packed dirt road turning ninety degrees, worn wheel ruts following the
+curve, loose stones and scuffed edges where the verge meets the road.
+
+The road must meet the tile edge at exactly the same width and position on both
+open sides so it lines up with the straight tile. Tileable — no lighting gradient
+across the tile, no vignette, no shadow.
+```
+
+**What the grid does not need.** No per-tile ground art: terrain tiles (§5.7)
+already cover the field and the grid is drawn as an overlay, not painted. No
+separate art for occupied versus empty tiles — the tower sprite is the occupancy
+cue.
+
 ---
 
 ## 6. Pixellab techniques worth using
@@ -503,6 +587,10 @@ faster.
   contact shadow at runtime. A painted-on shadow doubles up and reads as dirt.
 - **No level tiers for towers.** Levels are a runtime scale, tint and light change
   on the one sprite.
+- **No fixed build-spot markers.** Placement is a free 30x30 grid as of
+  2026-08-18; the old slot art is repurposed in §5.11, not reproduced.
+- **No road corner tile until its manifest row exists.** See the warning in
+  §5.11 — a row with a placeholder behind it blocks every release.
 
 ---
 
@@ -514,11 +602,13 @@ proven — but the principle holds: **do not make 187 images before knowing the 
 survives the lighting.**
 
 1. The three pilot assets (§4). Stop and look at them in-game.
-2. All 18 towers and the three act-opening regulars — the most-seen sprites.
-3. Hero, elites, city shell, terrain.
-4. Icons, buildings, bosses, chieftains.
-5. Backdrops and UI frames.
-6. `menu_key_art`.
+2. **The eight new towers** (§5.4) — they are the only genuinely missing gameplay
+   art, and they are needed whether or not the restyle happens.
+3. The other 18 towers and the three act-opening regulars — the most-seen sprites.
+4. Hero, elites, city shell, terrain.
+5. Icons, buildings, bosses, chieftains.
+6. Backdrops and UI frames.
+7. `menu_key_art`.
 
 ---
 

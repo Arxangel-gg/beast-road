@@ -95,7 +95,7 @@ Yuri's distance advances construction. The town grows because the player held th
 
 ### 3.4 Every run becomes an elemental formation
 
-Eight base towers and ten combination towers create readable, repeatable build identities. All four elements are available from the beginning; scarcity comes from resources, offers, space, and upgrades, not from hiding the game's signature fusion system until the run is nearly over.
+Sixteen base towers - four elements by four roles - and ten combination towers create readable, repeatable build identities. All four elements are available from the beginning; scarcity comes from resources, offers, space, and upgrades, not from hiding the game's signature fusion system until the run is nearly over.
 
 ### 3.5 A desperate journey with triumphant release
 
@@ -304,19 +304,47 @@ This system keeps Darkest Dungeon-style attrition, preserves heroic risk, and av
 
 ## 13. Battlefield Layout
 
-The Town Hall sits at the center of a top-down battlefield. Four fixed roads approach from north, east, south, and west. Each road is built on from **both flanks**, and each flank carries the same trio of defense slots:
+The Town Hall sits at the center of a top-down battlefield laid out on a **30x30 tile grid**. Four roads approach from north, east, south, and west. Each road leaves the map edge, runs toward the city, and **doubles back through one U-bend** before reaching the gate.
 
-- **A slot:** base tower;
-- **Fusion slot:** combination tower derived from A and B;
-- **B slot:** base tower.
+**Grid contract:**
 
-Each road therefore has six slots and the battlefield twenty-four. A road can run two different fusions at once, one per flank, and each flank's Fusion slot depends only on the A and B slots beside it - building across the road neither unlocks nor invalidates the other side.
+- One tile is 64 world units. The field is 30x30 tiles, 1920x1920 units.
+- A tower occupies **2x2 tiles** and may be placed on any four free tiles that are entirely **off-path**.
+- Roads, the city footprint, and the map border are not buildable.
+- There is **no cap on tower count**. The economy is the limit, not the geometry.
 
-Fixed locations preserve lane readability, reduce placement traps, and focus choice on composition, upgrades, target priorities, and timing. Capability remains income-bound rather than slot-bound, so the second flank buys coverage, fusion variety and structure to absorb a push - not double damage.
+### Why the U-bend
 
-> **Revised 2026-08-14 (owner).** This section specified three slots per road and twelve in total through v4.0. The build is six and twenty-four.
+A straight road gives a tower one pass at whatever walks down it, and the only way to increase a tower's value is to increase its range. A road that doubles back passes the same tower twice, so a well-placed tower earns its cost through *position* rather than through statistics. It also creates chokepoints - the inside of the bend is covered by everything built in the pocket, the outside by almost nothing - which is the decision a tower-defense map is supposed to pose.
+
+Each bend encloses a **build pocket** with room for at least four towers, and the outer edge of each bend is buildable on both sides. A road that cannot be meaningfully covered from its bend is a layout bug, not a difficulty setting.
+
+### Free placement and its consequence
+
+Placement is free within the grid. This replaces the fixed-slot layout that v4.0 specified and that shipped through v0.4.8.
+
+The cost of that freedom is real and is accepted deliberately: fixed slots guaranteed lane readability and made every placement legible at a glance. A free grid does not. Three rules hold the line instead:
+
+1. **Roads stay authored.** The map is one hand-built layout, not a generated one. Players learn it.
+2. **Towers cannot block.** Roads are never buildable, so no placement can wall a path or create a maze. Enemy pathing is fixed and readable.
+3. **Coverage is legible.** Hovering any tower shows its range ring; the road pressure states in this section remain the primary read for *where* the fight is.
+
+> **Revised 2026-08-18 (owner).** v4.0 specified three fixed slots per road and twelve in total, and §54 explicitly cut freeform tower placement. Revised 2026-08-14 to six slots per road and twenty-four. This revision supersedes both: a 30x30 grid, free placement on any off-path tile, 2x2 tower footprints, and one U-bend per road. §54 is amended accordingly - **authored** layouts remain a requirement, and only *procedural* layouts stay out of scope.
+
+### Fusion by adjacency
+
+A combination tower is built on the gap between two towers rather than in a dedicated slot.
+
+- Two towers **orthogonally aligned** - north/south or east/west, never diagonally - with **exactly one tower-width gap** between them make that gap a **fusion tile**.
+- Building on a fusion tile offers the combination defined by the two flanking elements (§22).
+- If a tile qualifies as a fusion tile for more than one pair, the player **chooses which combination** to build.
+- The player may always decline and build an ordinary tower there instead. A tower built as ordinary stays ordinary; it does not silently become a fusion later.
+- If a flanking parent is destroyed or sold, the combination behaves exactly as §20 specifies.
+
+This is the same rule the fixed-slot layout expressed - inner and outer flanking a middle - generalized to the grid. It is what makes free placement a puzzle rather than a scatter: a tower is placed for what it shoots *and* for what it can be made to flank.
 
 ### Road pressure states
+
 
 Every road reports a normalized pressure score from enemy time-to-breach, current health, role priority, projectile danger, disabled defenses, and hero presence.
 
@@ -506,24 +534,111 @@ Bosses are authored multi-road encounters, not oversized lane enemies. Each has 
 
 All tower building, selling, element assignment, and upgrading occurs during Preparation. During combat the player may change targeting doctrine and spend Command, but cannot erase a bad commitment through mid-wave construction.
 
-Each flank's A and B slots accept any unlocked base tower. When both on that flank are built, that flank's Fusion slot can construct the combination defined by their elements. Fusion construction costs Gold and Stone. If a parent tower is destroyed, the combination tower continues at 60% base output but loses its fusion utility until the parent is repaired in Preparation `[TUNE]`.
+**Placement.** A tower occupies 2x2 tiles and may be built on any four free off-path tiles (§13). Roads, the city footprint, and the border are never buildable, so no placement can block or maze a path.
 
-Selling returns 60% of Gold cost and 40% of Stone cost during Preparation `[TUNE]`. No sale is allowed during combat.
+**Fusion.** A tile flanked by two orthogonally aligned towers with exactly one tower-width gap between them is a fusion tile, and building there offers the combination their elements define (§22). Where several pairs qualify the player chooses; where none does, or where the player declines, an ordinary tower is built instead. Fusion construction costs Gold and Stone on top of the tower's own cost.
+
+If a flanking parent is destroyed, the combination tower continues at 60% base output but loses its fusion utility until the parent is repaired in Preparation `[TUNE]`. If a flanking parent is **sold**, the combination is refunded at the standard rate rather than left orphaned.
+
+**Selling** returns 60% of Gold cost and 40% of every secondary currency during Preparation `[TUNE]`. No sale is allowed during combat.
+
+### Cost model
+
+Cost is the product of two independent identities, so that "which element" and "which role" are two separate decisions rather than one.
+
+**Role sets the Gold price.** Reach is the premium stat: it decides how many enemies a tower ever gets to shoot, and it compounds with everything else.
+
+| Role | Gold | Reason |
+|---|---|---|
+| Skirmisher | 50 | The opener. Cheap enough to cover a road early. |
+| Warden | 70 | Force multiplier; pays off through what it enables. |
+| Siege | 95 | The crowd answer. |
+| Sniper | 120 | Reach is the premium. |
+
+**Element sets the secondary currency and a Gold modifier.** Each element draws on a different producer, so a build competes with the town rather than only with itself.
+
+| Element | Gold x | Secondary | Economic identity |
+|---|---|---|---|
+| Fire | x1.15 | none | Pure Gold. The damage you simply buy. |
+| Water | x0.85 | 6 Food | Cheap to place, fed to keep running. Granary matters. |
+| Earth | x0.85 | 10 Stone | Cheap but quarry-bound; competes with fusions. |
+| Air | x1.10 | 8 Wood | Expensive and timber-framed. Woodcutter matters. |
+
+Gold costs round to the nearest 5. `[TUNE]` on every number in both tables.
+
+The consequence is intended: a mono-Fire build is a pure Gold sink and starves nothing else; a mono-Earth build is cheap in Gold and will exhaust the quarry that fusions also need. Neither is wrong, and they fail differently.
 
 ## 21. Base Towers
 
-| Element | Tower | Primary role | Utility identity |
-|---|---|---|---|
-| Fire | Ember Spire | Fast single-target damage | Stacking burn rewards focus fire |
-| Fire | Pyre Cannon | Slow area damage | Ground scorch controls dense packs |
-| Water | Rime Lance | Precision control | Strong slow and armor exposure |
-| Water | Hoarfrost Bell | Support aura | Pulsed slow, chill amplification, minimal direct damage |
-| Earth | Bulwark | Blocker and taunt | High durability; buys hero travel time |
-| Earth | Shard Thrower | Piercing line damage | Rewards road alignment and heavy targets |
-| Air | Arc Coil | Chain damage | Punishes clustered support formations |
-| Air | Gale Turret | Fast disruption | Knockback and anti-runner coverage |
+Sixteen base towers: **four elements x four roles**. The role grid is deliberately uniform so a player who understands one element can read the other three, while the element decides *how* that role does its job.
+
+| Role | What it is for |
+|---|---|
+| **Skirmisher** | Cheap, fast, short range, single target. First tower on a road. |
+| **Siege** | Slow, area, expensive. The answer to a dense formation. |
+| **Sniper** | Long range, slow, single target, high per-shot. Reaches across a bend. |
+| **Warden** | Little or no direct damage. Control, durability, denial - a force multiplier. |
+
+### Fire - escalation
+
+Highest raw output, lowest durability. Fire does not stop a wave; it makes a wave that is already being held die faster. Burn stacks reward sustained focus, which is why Fire wants a road that is already slowed by something else.
+
+| Tower | Role | Combat identity |
+|---|---|---|
+| Ember Spire | Skirmisher | Fast single-target bolts; stacking burn rewards focus fire |
+| Pyre Cannon | Siege | Slow area damage; ground scorch controls dense packs |
+| **Cinder Lance** | Sniper | One searing bolt at extreme range; ignites heavily on contact |
+| **Ashen Censer** | Warden | No direct damage; wide censer field applies heavy burn to everything in it |
+
+### Water - control
+
+Lowest raw damage, highest utility. Water buys time, and time is what lets every other element finish its job. It is the element that makes a bad road survivable.
+
+| Tower | Role | Combat identity |
+|---|---|---|
+| **Tide Caller** | Skirmisher | Rapid chilling darts; cheap early slow on a whole road |
+| **Glacial Mortar** | Siege | Lobbed ice shells leaving a freezing ground zone |
+| Rime Lance | Sniper | Precision control; strong slow and armor exposure |
+| Hoarfrost Bell | Warden | Pulsed slow, chill amplification, minimal direct damage |
+
+### Earth - denial
+
+Slowest and toughest. Earth does not kill things; it decides where they have to stand. It is the only element that meaningfully changes enemy *position*.
+
+| Tower | Role | Combat identity |
+|---|---|---|
+| **Grit Sling** | Skirmisher | Rapid stone shot; cheapest tower in the game |
+| Shard Thrower | Siege | Piercing line damage; rewards road alignment and heavy targets |
+| **Stonewatch** | Sniper | Drops a single crushing boulder at extreme range |
+| Bulwark | Warden | Blocker and taunt; high durability, grants road armor, buys hero travel time |
+
+### Air - reach
+
+Longest range, fastest fire, most fragile structures. Air covers ground no other element can, including across a U-bend into the road's other leg, and pays for it by dying to anything that reaches it.
+
+| Tower | Role | Combat identity |
+|---|---|---|
+| Gale Turret | Skirmisher | Fast disruption; knockback and anti-runner coverage |
+| Arc Coil | Siege | Chain damage; punishes clustered support formations |
+| **Zephyr Needle** | Sniper | The longest range in the game; slow, precise, expensive |
+| **Stormvane** | Warden | No direct damage; sustained knockback and stagger holds a line open |
 
 Every base tower must remain useful at level 5. Support upgrades scale utility, radius, reliability, and durability rather than receiving meaningless damage-only levels.
+
+> **Added 2026-08-18 (owner).** v4.0 specified eight base towers, two per element. Eight new towers complete a uniform four-role grid. Fusions are keyed by element *pair*, not by tower pair, so the combination roster in §22 is unchanged at ten and no new fusion content is required.
+
+### Regional element affinity
+
+Each region favours one element with a damage bonus, so acts pull toward different builds without locking any out.
+
+| Act | Region | Favoured element |
+|---|---|---|
+| I | The Verdant Maw | Fire |
+| II | The Sunglass Waste | Air |
+| III | The White Teeth | Earth |
+| Final Ascent | Crown of the World | Water |
+
+Water previously had no region and was the only element never favoured anywhere. The Final Ascent is its home: the summit is where control matters most and where the run's longest fight happens.
 
 ## 22. Combination Towers
 
@@ -540,7 +655,11 @@ Every base tower must remain useful at level 5. Support upgrades scale utility, 
 | Earth + Earth | Bastion | Extreme blocking and road-wide damage reduction |
 | Air + Air | Tempest | Very fast multi-chain fire with low per-hit force |
 
-Same-element A and B towers also grant their road +25% element damage `[TUNE]`. Mono-element is a real build, not a failed fusion.
+Same-element flanking towers also grant their road +25% element damage `[TUNE]`. Mono-element is a real build, not a failed fusion.
+
+Ten combinations, unchanged. Fusions are keyed by the **element pair**, not by which tower of that element flanks the tile, so the sixteen base towers of §21 produce the same ten combinations that eight did. Adding base towers never multiplies this table - that is what makes the roster cheap to widen.
+
+Which two towers flank a fusion still matters, because the parents keep firing. Ember Spire + Rime Lance and Cinder Lance + Hoarfrost Bell both make a Steam Burst, and the two roads play nothing alike.
 
 ## 23. Tower Levels, Forge, and Doctrines
 
@@ -858,12 +977,27 @@ No uncapped stat bonus, hero level, building tier, captive level, or automatic d
 
 Tools unlock horizontal possibility:
 
-- alternate tower blueprints within the eight launch identities;
+- the tower roster itself, unlocked **across runs and never within one**;
+- alternate tower blueprints within the sixteen launch identities;
 - additional discipline nodes and relics added to offer pools;
 - road modifiers and optional challenges;
 - cosmetics, town history marks, codex entries, and music layers.
 
 The starter pool contains a viable answer to every launch enemy role. Unlocking content must not make the pool strictly worse through dilution; offer logic uses tags, prerequisites, and protection rules.
+
+### Element progression
+
+**Elements are never gated - the roster is.** Pillar §3.4 is LOCKED: all four elements are available from the beginning, and scarcity comes from resources, offers, space, and upgrades rather than from hiding the fusion system. That holds. What grows between runs is *how many ways each element can be expressed*.
+
+The account opens with **all four elements and eight towers - two roles each**, which is the roster that shipped through v0.4.8. Every element is buildable on run one, every one of the ten combinations is reachable on run one, and no fusion is hidden behind an unlock. The remaining eight towers of §21 unlock through Tools, widening each element from two roles to four.
+
+Two gating schemes were considered and rejected:
+
+**Act-locked elements** - one element in Act I, a second after the Act I boss, and so on. Act I would fall from sixteen towers to four; v4 targets 65-75% of new Standard players reaching the Act I boss (§5), so roughly a third of players would meet the entire game as a single element. The fourth element would unlock only on the final victory and could never be used in the run that earned it. It also breaks §3.4 outright.
+
+**Account-locked elements** - starting with two elements and unlocking the rest. Milder, and still wrong for the same reason: it removes a quarter of a combinatorial system and seven of ten fusions from a new player's first hours, which is exactly what §3.4 forbids.
+
+Escalation within a run already has a home that survives being gated: hero disciplines, where Power unlocks after the Act I boss and Ultimate after the Act II boss (§25). Locking one ability removes one option. Locking one element removes a quarter of a combinatorial system, every fusion it participates in, and a whole way of playing.
 
 ## 36. Sigils and Legacy Rank
 
@@ -1290,12 +1424,14 @@ Each milestone ends with an honest kill question. A no answer blocks expansion.
 - light and dark tower elements;
 - level-3 tower specialization branches;
 - relic set crafting or a synergy altar;
-- procedural battlefield layouts or freeform tower placement;
+- **procedural** battlefield layouts (authored layouts only - see below);
 - persistent Oathbound leaders or captive leveling;
 - uncapped permanent stats, idle resources, or live-service economy;
 - Cataclysm modular oaths unless all 1.0 gates are already complete;
 - runtime-generated art, dialogue, or balance;
 - more regions before the existing three and summit meet quality gates.
+
+> **Amended 2026-08-18 (owner).** This list read "procedural battlefield layouts or freeform tower placement" through v4.0. Freeform placement is now the design - see §13 and §20. Procedural *layouts* remain cut: the map is hand-authored and players are meant to learn it.
 
 ## 55. Remaining Open Production Items
 
@@ -1355,7 +1491,7 @@ v4 keeps the shared draft's stronger world and campaign while restoring the best
 3. Four scopes with the exact wheel navigation ladder.
 4. Town/tower/hero/relic changes only in consolidated Preparation.
 5. Live combat remains active through hero mastery, doctrines, horn, and Command.
-6. Eight base towers, ten combinations, five levels, all four elements available from run start.
+6. Sixteen base towers, ten combinations, five levels, all four elements available from run start.
 7. Four run resources with distinct jobs; Tools and four capped Sigils persist.
 8. Nine town buildings; building tiers reset; advanced construction pools unlock by achievements.
 9. Three disciplines, eight nodes each, four active slots, one final Keystone.

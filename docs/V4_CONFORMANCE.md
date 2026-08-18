@@ -48,8 +48,11 @@ the goal — §52's acceptance checklist and the kill questions are the ceiling.
 |------|--------|-------|
 | Regular enemies | 12 | `count:enemies >= 12` |
 | Regional elites | 6 | `count:enemies >= 18` |
-| Base + combination towers | 18 | `count:towers >= 18` |
-| Build spots per road | 6, three per flank | `const:TOWER_SLOTS_PER_SIDE` |
+| Base + combination towers | 26 | `count:towers >= 26` |
+| Battlefield grid | 30x30 tiles | `const:GRID_TILES` |
+| Tower footprint | 2x2 tiles | `const:TOWER_FOOTPRINT_TILES` |
+| U-bend per road | 4 roads, one bend each | `const:ROAD_BEND_COUNT` |
+| Fusion by adjacency | orthogonal, one-tile gap | `method:Battlefield.fusion_pair_for` |
 | Regional relics + Boss Cores | 27 | `count:relics >= 27` |
 | Town buildings | 9 | `count:buildings >= 9` |
 | Wave formations | 10 | `count:waves >= 10` |
