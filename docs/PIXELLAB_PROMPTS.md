@@ -149,6 +149,25 @@ PALETTE: shadow #0B1416, slate #1E2E33, amber #E8A33D, bone #D9CDB8,
 rust #8C3A2B. Muted and desaturated overall with a single saturated accent.
 ```
 
+### Per-act accents
+
+The block above is the house style and applies to everything. On top of it, v4
+§175-197 gives each region its own identity, and enemies, terrain and backdrops
+should carry their region's:
+
+| Act | Region | Accent palette |
+|-----|--------|----------------|
+| I | The Verdant Maw | saturated wet greens, charcoal black, ember orange |
+| II | The Sunglass Waste | pale sand, red cloth, turquoise glass, long black shadows |
+| III | The White Teeth | blue snow, black stone, pale aurora, red warning cloth |
+
+The amber key light stays constant across all three — it is the town's light, and
+v4 names it in every act ("warm town light against cool rain", "warm windows on
+Yuri"). Shift the *shadow* and the *accent*, never the key.
+
+Hero, towers, buildings and UI stay on the house palette only. They travel through
+all three regions and must not belong to any one of them.
+
 ### Camera — the rule that matters most
 
 `ASSET_MANIFEST.md` §3 learned this the hard way: a single stem produced eye-level
@@ -225,7 +244,10 @@ The whole shape must read clearly at 64 pixels. Standing on nothing — no groun
 no base plate, no shadow, no scenery.
 ```
 
-### 4.2 `enemy_bogkin.png` — 192x192
+### 4.2 `enemy_coalpaint_raider.png` — 192x192
+
+The first enemy the player ever meets. **Not `enemy_bogkin.png`** — that file
+exists and nothing loads it; see §5.2.
 
 ```
 [STYLE BLOCK]
@@ -233,9 +255,9 @@ no base plate, no shadow, no scenery.
 A game character sprite seen from about 45 degrees above, closer to side-on than
 top-down. 192x192 pixel art, transparent background.
 
-SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead
-reeds hanging from its limbs, dim pale eyes, slow lumbering posture, dripping
-black water.
+SUBJECT: a jungle raider of the Cinderpaint Host in layered leather and bark
+armour smeared with black coal paste in broad handprint marks, short heavy blade,
+wet green cloth, aggressive close stance.
 
 Full body, facing three-quarter left, standing on nothing — no ground, no shadow.
 The silhouette must read clearly at 64 pixels.
@@ -273,18 +295,58 @@ the same world. Wrap each in the matching camera line from §2 and the style blo
 
 ### 5.2 Enemies and elites — 192x192
 
+**These are the v4 roster and they replaced a v3 one.** `ASSET_MANIFEST.md` still
+describes Bogkin, Glassborn, Steppehorde, Warden, Howler and Burrower — v3
+creatures the game no longer renders. `EnemyData` carries a `sprite_id` override,
+so the id `bogkin` loads `enemy_coalpaint_raider.png`. Six art files in
+`art/enemies/` are dead: `enemy_bogkin`, `enemy_glassborn`, `enemy_steppehorde`,
+`elite_warden`, `elite_howler`, `elite_burrower`. **Generating any of those six is
+wasted work — nothing loads them.**
+
+The eighteen below are the live set, matching v4 §397-399 exactly: four regulars
+and two elites per region. Subjects are drawn from each act's visual identity in
+v4 §175-197 and each enemy's `description` in `game/data/enemies/*.tres`, so the
+art states the enemy's job — which is v4 §375's requirement: *"Every enemy must
+have a readable job."*
+
+**Act I — The Verdant Maw.** The Cinderpaint Host: rain-heavy jungle, coal paste
+marking armour, smoke, roots, wolf cavalry. Palette: saturated wet greens,
+charcoal black, ember orange.
+
 | File | Subject |
 |------|---------|
-| `enemy_bogkin` | a hunched swamp-dweller creature, waterlogged and bloated, moss and dead reeds hanging from its limbs, dim pale eyes, slow lumbering posture, dripping black water |
-| `enemy_glassborn` | a jagged crystalline humanoid made of fractured salt glass, thin sharp limbs, semi-translucent body catching light, agile forward-leaning stance, hairline fractures across its chest |
-| `enemy_steppehorde` | a scrappy nomad raider in scavenged rusted iron plates, crude iron spear, wiry underfed frame, cloth-wrapped face, aggressive charging pose |
-| `elite_warden` | a heavily armored bulwark warrior hunched behind an enormous riveted iron shield taller than itself, dense immovable silhouette, minimal visible body |
-| `elite_howler` | a gaunt ritual-caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, arms flung outward, throat distended |
-| `elite_burrower` | a segmented armored digging creature erupting from broken ground, heavy clawed forelimbs, eyeless armored head plate, chitinous body half-emerged |
+| `enemy_coalpaint_raider` | a jungle raider in layered leather and bark armour smeared with black coal paste in broad handprint marks, short heavy blade, wet green cloth, aggressive close stance |
+| `enemy_wolf_rider` | a light raider mounted on a lean grey jungle wolf, low forward charge, coal-marked shoulder plate, short spear couched |
+| `enemy_rootshield` | a broad slow figure carrying a living barricade of woven roots and bark taller than its body, moss and creeper hanging from the frame, almost no body visible |
+| `enemy_ember_shaman` | a robed ranged supporter swinging a smoking iron censer on a chain, ember orange glow lighting the face from below, charms of bone and coal at the belt |
+| `elite_pack_howler` | a tall coal-marked caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, throat distended, arms flung wide |
+| `elite_wolf_standard_bearer` | an elite rider on a heavy black wolf, a tall ragged war standard of bone and green cloth planted upright at its shoulder, commanding posture |
 
-The remaining enemy files follow the same regional logic — `game/data/enemies/*.tres`
-has the full list of ids, with `display_name` and `description` on each for its
-intended read.
+**Act II — The Sunglass Waste.** The Veiled Scale-Riders: fused sand, buried
+roads, mirage storms, lizard mounts, reflective armour, javelins, tunnelling
+scouts. Palette: pale sand, red cloth, turquoise glass, long black shadows.
+
+| File | Subject |
+|------|---------|
+| `enemy_veiled_skirmisher` | a fast lightly built desert fighter wrapped head to foot in pale sand cloth with a red sash, thin javelin, forward-leaning sprint, brittle unarmoured frame |
+| `enemy_scale_rider` | a rider low on the back of a running desert lizard, turquoise glass scale barding, javelin levelled, built entirely for the charge |
+| `enemy_glassguard` | a shield-wall soldier behind a tall mirrored slab of turquoise fused glass, reflective and featureless, planted immovably |
+| `enemy_dune_burrower` | a segmented armoured digging creature erupting upward through fused sand, heavy clawed forelimbs, eyeless armoured head plate, sand sheeting off its back |
+| `elite_mirage_seer` | a veiled ranged elite with a ring of floating mirrored glass shards orbiting its head like a halo, red robes, one hand raised, heat shimmer distorting the air around it |
+| `elite_siege_lizard` | an enormous armoured desert lizard carrying a stone bombard strapped across its back, turquoise glass plating, heavy and low to the ground |
+
+**Act III — The White Teeth.** The Rimebound Clans: frozen mountain approach,
+massive orcs, ice-clad siege carriers, storm callers. Palette: blue snow, black
+stone, pale aurora, red warning cloth.
+
+| File | Subject |
+|------|---------|
+| `enemy_rime_marauder` | a hard-running orcish axe fighter in frost-rimed black iron plate, red warning cloth wrapped at the arm, breath steaming, two-handed axe carried mid-run |
+| `enemy_ice_hauler` | a heavy figure dragging a chained iron sled loaded with ice blocks, thick chains over the shoulder, leaning hard into the pull, enormous mass |
+| `enemy_snowhide_brute` | a horned slab of white fur and black iron, hunched and enormously wide, small eyes, built to stand in a road and not move |
+| `enemy_storm_caller` | a ranged supporter in pale furs holding a black stone staff crowned with hanging ice, snow spiralling around its raised arm, aurora light on its shoulders |
+| `elite_avalanche_warden` | a colossal elite behind a wall-sized shield of blue glacier ice bound in black iron, dense immovable silhouette, almost no body visible |
+| `elite_white_maw_giant` | a towering white-furred giant with a vast frost-crusted club raised overhead, tusked lower jaw, red cloth bound around one arm, monumental scale |
 
 ### 5.3 Bosses — 384x384
 
@@ -334,11 +396,17 @@ shaggy and armored, a small fortified city strapped to its back with vast chains
 
 ### 5.7 Terrain — 512x512, must tile
 
-| File | Subject |
-|------|---------|
-| `terrain_ashfen` | dark marsh ground, pools of black standing water, pale dead reeds, ash-grey mud, sunken twisted roots |
-| `terrain_saltglass` | cracked salt flat, pale white-blue crystalline crust, thin fracture lines, scattered glassy shards |
-| `terrain_steppe` | dry steppe hardpan, red-brown cracked earth, scattered rusted iron debris, sparse dead grass tufts |
+**The file ids are v3 and the subjects below are v4.** The three terrain resources
+are still named `ashfen`, `saltglass` and `steppe`, with display names "Ashfen
+Marsh", "Saltglass Flats" and "Iron Steppe" — the v3 regions. v4 §175-197 renamed
+them and, for two of the three, changed what they *look like*. See §10; the ids
+stay, the art follows v4.
+
+| File | v4 region | Subject |
+|------|-----------|---------|
+| `terrain_ashfen` | The Verdant Maw | wet jungle floor, saturated green moss and broad leaves, black mud, thick exposed roots, standing rainwater catching light |
+| `terrain_saltglass` | The Sunglass Waste | cracked flat of fused pale sand, turquoise glass shards embedded in the crust, thin fracture lines, long hard shadows |
+| `terrain_steppe` | The White Teeth | packed blue-white snow over black stone, wind-scoured drifts, exposed dark rock edges, faint aurora light on the surface |
 
 Use a **tileset / seamless** mode, not plain generation. Test by tiling 2x2 before
 saving — a visible seam becomes a grid across the whole battlefield. No
@@ -348,9 +416,9 @@ transparency; these are opaque ground.
 
 | File | Subject |
 |------|---------|
-| `macro_act1` | a vast fog-drowned marsh valley stretching to the horizon, drowned trees, low grey mist, distant water |
-| `macro_act2` | an endless cracked white salt desert under a bruised sky, distant glass formations catching light, heat shimmer |
-| `macro_act3` | a red-brown iron steppe under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon |
+| `macro_act1` | a vast rain-heavy jungle basin stretching to the horizon, saturated wet greens, broken shrines swallowed by roots, low smoke drifting between the trees |
+| `macro_act2` | an endless waste of fused pale sand under a bleached sky, distant turquoise glass formations catching light, violent heat shimmer, long black shadows |
+| `macro_act3` | a frozen mountain approach of blue snow and black stone, narrowing passes, pale aurora across the sky, the silhouette of an immense peak on the horizon |
 | `crossroad_bg` | a fork in an ancient road at dusk, two paths diverging into different distant landscapes, weathered stone waymarker in the foreground |
 | `raid_arena_bg` | a hostile enemy warcamp seen from directly above, ringed by bone totems and burning braziers, packed dirt floor, tents at the edges |
 | `menu_key_art` | an immense ancient beast walking away across a wasteland at dusk with a small lit fortified city on its back, seen from behind and below, dramatic scale, cinematic key art |
@@ -446,7 +514,7 @@ proven — but the principle holds: **do not make 187 images before knowing the 
 survives the lighting.**
 
 1. The three pilot assets (§4). Stop and look at them in-game.
-2. All 18 towers and the 3 base enemies — the most-seen sprites in the game.
+2. All 18 towers and the three act-opening regulars — the most-seen sprites.
 3. Hero, elites, city shell, terrain.
 4. Icons, buildings, bosses, chieftains.
 5. Backdrops and UI frames.
@@ -496,11 +564,11 @@ against. Say when a set exists and `sprite_animator.gd` will be wired to it, wit
 a fallback to the current procedural motion for any character that has no frames —
 so a half-finished set never breaks the game.
 
-- **One file per state.** `enemy_bogkin_walk.png`, `enemy_bogkin_windup.png`, and
-  so on. Same `snake_case` id as the base sprite, then the state.
+- **One file per state.** `enemy_coalpaint_raider_walk.png`,
+  `enemy_coalpaint_raider_windup.png`, and so on. Same `snake_case` id as the base sprite, then the state.
 - **Horizontal strip, left to right.** No grids, no padding, no gaps.
-- **Every frame is exactly the base size.** A 6-frame bogkin walk is a 1152x192
-  PNG. A 6-frame hero walk is 768x128.
+- **Every frame is exactly the base size.** A 6-frame Coalpaint Raider walk is a
+  1152x192 PNG. A 6-frame hero walk is 768x128.
 - **The pivot must not move.** The engine positions the character; if the body
   drifts across the strip the character slides. Feet stay on the same pixel row,
   centre of mass on the same column.
@@ -589,8 +657,8 @@ A 4-frame attack wind-up sprite animation for a game enemy, seen from about 45
 degrees above, closer to side-on than top-down. Each frame exactly 192x192 pixel
 art on a transparent background, laid out as a single horizontal strip.
 
-SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead
-reeds hanging from its limbs, dim pale eyes, dripping black water.
+SUBJECT: a jungle raider of the Cinderpaint Host in layered leather and bark armour
+smeared with black coal paste, short heavy blade, wet green cloth.
 
 MOTION: the creature draws back to strike. Frame 1 begins the pull-back, frames
 2-3 rear further, frame 4 holds at full extension ready to release. This is a
@@ -658,13 +726,94 @@ Fixed amber key light from the upper right. No ground shadow, no scenery.
 
 Animation is expensive; the frames the player looks at most are worth doing first.
 
-1. **`enemy_bogkin` — all five states.** One complete enemy proves the pipeline end
-   to end and is what gets wired into `sprite_animator.gd` first.
+1. **`enemy_coalpaint_raider` — all five states.** The first enemy the player ever
+   meets. One complete enemy proves the pipeline end to end and is what gets wired
+   into `sprite_animator.gd` first.
 2. **`hero` — idle, walk, attack_1/2/3, death.** On screen every second of the game.
-3. The other two base enemies, `glassborn` and `steppehorde`.
+3. The other two act-opening regulars, `enemy_veiled_skirmisher` and
+   `enemy_rime_marauder`.
 4. The three elites — especially their `windup`.
 5. Bosses: `phase` and `death` before the rest.
 
 Towers, buildings and the city do not need animation. They are static by design and
 the engine already gives them idle light flicker, damage flames, the beast-step
 wobble and an upgrade burst.
+
+---
+
+## 10. v4 conformance of the art
+
+Checked against `Game_Design_v4.md` on 2026-08-14, by reading the shipped `.tres`
+data rather than the older docs. `ASSET_MANIFEST.md` predates v4 and describes the
+v3 world in several places; where the two disagree, this section is the one that
+matches the running game.
+
+### Conformant
+
+**The enemy roster is exactly v4.** Twelve regulars and six elites, four and two
+per region, matching the table in v4 §397-399 name for name: Coalpaint Raider,
+Wolf Rider, Rootshield, Ember Shaman, Pack Howler, Wolf Standard-Bearer / Veiled
+Skirmisher, Scale Rider, Glassguard, Dune Burrower, Mirage Seer, Siege Lizard /
+Rime Marauder, Ice Hauler, Snowhide Brute, Storm Caller, Avalanche Warden, White
+Maw Giant. Each `description` states the enemy's job, which is v4 §375's
+requirement.
+
+**The Oathbound framing is correct.** v4 §57 makes "no unreviewed enslavement
+language ships" a release requirement. Every player-facing string is Oathbound —
+`role_noun = "Oathbound"`, `acquire_verb = "Assign"`, display names "Coal-Eye
+Oathbound", "Sunglass Oathbound", "Rimebound Oathbound". Only internal ids and
+filenames still read `captive_*`, which CLAUDE.md explicitly sanctions for save
+compatibility. **Do not put chains, cages, collars or bindings in the Oathbound or
+chieftain art.** These leaders are sworn, ransomed or memorialised — never owned.
+
+**Tower count and elements.** 18 towers, four elements, ten combinations. v4 §54
+cuts light and dark elements and level-3 specialisation branches; neither exists
+in the data.
+
+### Drifted — still v3 in the shipped game
+
+These are game-data issues, not art issues. Flagged rather than changed, because
+renaming shipped content is an owner call.
+
+| Thing | Shipped | v4 says |
+|-------|---------|---------|
+| Act I region | "Ashfen Marsh" | **The Verdant Maw** — a rain-heavy jungle |
+| Act II region | "Saltglass Flats" | **The Sunglass Waste** |
+| Act III region | "Iron Steppe" | **The White Teeth** — a frozen mountain approach |
+| Act I boss | "The Drowned Choir" | **Rakka Coal-Eye, Wolf Marshal** |
+| Act II boss | "Mirrorfang" | **Veyr of the Sunglass, Dune Seer** |
+| Act III boss | "The Rust Crown" | **Mogrun White-Maw, Avalanche King** |
+
+**The Act III mismatch is the one that shows.** Its enemies are entirely frozen —
+Rime Marauder, Ice Hauler, Snowhide Brute, Storm Caller, Avalanche Warden, White
+Maw Giant — and they currently walk across a red-brown dusty iron steppe. The
+terrain and backdrop prompts in §5.7 and §5.8 are written to v4 (blue snow, black
+stone, aurora), so generating them fixes the picture even if the display names are
+left alone. Act I has the same problem more mildly: grey ash marsh under a roster
+that v4 describes as jungle.
+
+The three boss names are pure text. The v4 names carry `[TUNE name]` markers, so
+they are not final either — worth deciding before the boss art is drawn, since
+"The Drowned Choir" and "Rakka Coal-Eye, Wolf Marshal" are not the same creature.
+The boss subjects in §5.3 are still written to the v3 names and should be redone
+once that is settled.
+
+### Dead art — do not generate
+
+Six files in `art/enemies/` are loaded by nothing, because `EnemyData.sprite_id`
+redirects their ids to the v4 sprites:
+
+`enemy_bogkin` · `enemy_glassborn` · `enemy_steppehorde` · `elite_warden` ·
+`elite_howler` · `elite_burrower`
+
+They pass the asset report because they have manifest rows, so nothing complains
+about them. They are v3 leftovers and generating replacements would be wasted
+work. Worth deleting from both the manifest and `art/` in a future pass — that is
+a code change, not an art one.
+
+### `ASSET_MANIFEST.md` is stale
+
+Its §6 subject tables still describe Bogkin, Glassborn, Steppehorde, Warden,
+Howler and Burrower, and its terrain and backdrop subjects still describe the
+marsh and the iron steppe. It remains correct for **paths and sizes**, which is
+what the tooling parses it for. For *subjects*, this document supersedes it.
