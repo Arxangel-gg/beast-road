@@ -287,11 +287,14 @@ the same world. Wrap each in the matching camera line from §2 and the style blo
 
 ### 5.1 Hero — 128x128
 
-| File | Subject |
-|------|---------|
-| `hero_base` | a lone armored scavenger-warrior in a mid-stride combat stance, curved single-edged blade held low, tattered dark cloak, bone-white featureless mask, lean wiry silhouette, scavenged plate over wrapped cloth |
-| `hero_ascended_1` | the same warrior transformed — the mask cracked open with amber light bleeding through, the cloak longer and torn, one arm sheathed in fused bone plating, the blade glowing faintly at its edge |
-| `hero_ascended_2` | the same warrior in final transformation — towering and monstrous, the mask shattered into a crown of bone shards, amber light pouring from every seam, cloak become a mass of trailing ribbons, the blade elongated and burning |
+**See §11, the Warden character bible.** The hero is the only asset generated once and
+then multiplied into eight directions and eight animation states, so it has a section of
+its own with the full prompt, the silhouette contract and the exclusions that stop the
+model drifting into a skeleton king.
+
+Generate **`hero_base` only**. `hero_ascended_1` and `hero_ascended_2` are v3 leftovers
+that no shipped code references, and v4's ascension is a single Keystone (§24) that has no
+visual design yet.
 
 ### 5.2 Enemies and elites — 192x192
 
@@ -669,6 +672,9 @@ so a half-finished set never breaks the game.
 
 ### 9.3 Hero — 128x128 per frame
 
+Read §11 first — the base sprite, the eight-direction order and the pivot rule all live
+there, and every state below is generated from that base.
+
 The hero's attack is a **three-step chain**, and step 3 is the finisher — the
 engine already gives it a 1.6x heavier squash, so the frames should read as a
 bigger commitment too.
@@ -907,3 +913,150 @@ Its §6 subject tables still describe Bogkin, Glassborn, Steppehorde, Warden,
 Howler and Burrower, and its terrain and backdrop subjects still describe the
 marsh and the iron steppe. It remains correct for **paths and sizes**, which is
 what the tooling parses it for. For *subjects*, this document supersedes it.
+
+---
+
+## 11. The Warden — hero character bible
+
+The hero is on screen every second of the game and every animation state is generated
+from one base sprite. It is the only asset worth over-specifying, so this section is the
+authority: **§5.1 and §9.3 defer to it.**
+
+### 11.1 Who the Warden is
+
+v4 §149: *"The player is the town's **Warden**, a singular defender bound to Yuri."*
+
+Not a knight, not a king, not a wanderer who happens to be here. One person responsible
+for a refuge town riding on the back of a walking beast, holding four roads alone. v4
+§112 adds that the hero is *"attached to Yuri and the town because both visibly carry the
+history of the run"* — so the Warden should look like they belong **to that town**, not
+like a mercenary who arrived from somewhere else.
+
+`hero_ascended_1` and `hero_ascended_2` are v3 leftovers and are referenced by no shipped
+code. **Generate `hero_base` only.** v4's ascension is a single Ascension Keystone chosen
+after the Act III boss (§24), so if an ascended sprite is ever wanted it is one, not two,
+and it does not exist yet as a design.
+
+### 11.2 The three silhouette hooks
+
+The Warden is 128x128 on a battlefield that also holds towers at 192x192 and enemies at
+192x192, viewed at a zoom that shows all four roads. **The player has to find their own
+character instantly in a crowded, dark frame.** That is a silhouette problem, and it is
+solved by three asymmetric hooks that never change across any state or direction:
+
+| Hook | Side | Why |
+|---|---|---|
+| **A long curved single-edged blade, carried low** | one hand | Reads as offense at a glance and gives a hard diagonal no enemy silhouette has |
+| **A torn banner-cloak in the town's rust red** | opposite side | Motion, asymmetry, and the only saturated colour on the sprite |
+| **A hooded ember-lamp at the hip** | centre-low | The warm point of light — see below |
+
+**The lamp is not decoration.** `torch.gd` gives the Warden a real mechanic: *"the hero
+standing near a dead one relights it."* The Warden is the only thing on the battlefield
+that can bring a road's light back. Carrying the flame that does it is the sprite stating
+its own verb, and it supplies the one warm accent the house style asks for.
+
+### 11.3 What the current attempt gets right, and the four fixes
+
+The generated attempt is close and worth iterating rather than restarting. It already has
+the blade held low, a torn dark cloak, a lean layered build, and a palette in the right
+family.
+
+**Fix 1 — the face reads as a skull. It must be a featureless mask.**
+A skull says undead, necromancer, or lich. That is the most common creature in dark-fantasy
+training data, and it is why every prompt drifts toward it. The Warden's face is a
+**smooth bone-pale plate with no eye sockets, no nose, no teeth, no jaw seam** — a blank.
+Say so explicitly and negatively, or the model will put a skull there every time.
+
+**Fix 2 — there is no amber anywhere.**
+The house style is *"strong warm amber rim light from the upper right against deep
+teal-black shadow"* with *"a single saturated accent per asset."* The attempt is almost
+monochrome dark, which will vanish against a dark battlefield and go muddy under the
+game's real `PointLight2D` torchlight. The sprite needs the amber rim baked along its
+upper-right contour and one warm accent — the lamp.
+
+**Fix 3 — nothing says which town this is.**
+Add the rust-red banner-cloak. It is the town's colour, it is the asymmetry hook, and it
+is what makes this a *Warden* rather than a generic hooded swordsman.
+
+**Fix 4 — value contrast is too low to survive the battlefield.**
+Dark cloth on a dark field at 128px reads as a blob. The rule below is not stylistic.
+
+> **The 64-pixel test.** Shrink the sprite to 64x64 and squint. The blade, the cloak
+> direction and the lamp must still be three separate things. If it collapses into one
+> mass, the values are too close — lighten the upper-right armour plates and darken the
+> lower-left cloth until it separates.
+
+### 11.4 Base sprite prompt — `hero_base.png`, 128x128
+
+Generate this **facing south (toward the camera)**. Pixellab rotates from a south base, and
+every other direction and every animation state descends from this one image, so it is the
+only generation that is worth spending several attempts on.
+
+Pose is **neutral and weight-centred** — a ready stance, not a dramatic one. A base sprite
+with a dynamic pose baked in fights every animation generated from it and rotates badly.
+
+```
+A game character sprite for a top-down action game. 128x128 pixel art, transparent
+background. Full body, standing, facing the camera (south).
+
+CHARACTER: the Warden — the lone defender of a small refuge town. Lean, athletic and
+built to run, not a heavy knight. Layered scavenged plate over wrapped dark cloth, worn
+and repaired. Hood up.
+
+FACE: a smooth bone-pale mask, completely featureless — no eye sockets, no nose, no
+mouth, no teeth, no jaw line. A blank plate, not a skull.
+
+SILHOUETTE (must read at 64 pixels):
+- a long curved single-edged blade carried low in the right hand, angled down and out
+- a torn banner-cloak in deep rust red hanging from the left shoulder
+- a small hooded lamp burning amber at the hip
+
+POSE: neutral ready stance, weight centred over both feet, arms clear of the body so the
+silhouette is open. Not mid-swing, not crouched, not dramatic.
+
+STYLE: dark grim-fantasy pixel art, chunky detailed pixels, limited palette, subtle
+dithering, no anti-aliasing on outer edges, strong readable silhouette.
+
+LIGHT: warm amber key light from the upper right putting a bright rim along the top-right
+contour of the head, shoulder and blade. Deep teal-black shadow on the lower left. The
+lamp casts a second small warm glow at the hip.
+
+PALETTE: teal-black #0B1416, slate #1E2E33, bone #D9CDB8 for the mask, rust #8C3A2B for
+the banner-cloak, amber #E8A33D for the lamp flame and the rim light only.
+
+FRAMING: the whole figure inside the frame with a two-pixel margin, feet on the bottom
+edge, centred horizontally.
+
+NOT: no crown, no throne, not seated, no skull face, no gold metal, no shield, no cape of
+office, no full plate armour, no horns, no glowing eyes, no ground, no shadow, no scenery.
+```
+
+**The NOT line is doing real work.** An earlier attempt at "grim-fantasy armored figure
+with a bone mask" returned a crowned skeleton king seated on a throne — the genre's
+strongest attractor. Gold and crowns pull toward royalty; "bone" pulls toward skulls.
+Naming them as exclusions is cheaper than re-rolling.
+
+### 11.5 Eight directions
+
+Once the south base is right, rotate it before generating a single animation. Every state
+is then generated per direction from a sprite that already agrees with itself.
+
+Order of work, and do not skip ahead:
+
+1. **`hero_base` south.** Iterate until the 64-pixel test passes. This is the expensive step.
+2. **8-direction rotation** from that base. Check the blade stays in the same hand and the
+   banner stays on the same shoulder in all eight — a rotation that swaps them is a reroll.
+3. **`idle`**, 4 frames, south only. Confirm the animation pipeline and the pivot.
+4. The remaining states in §9.3, per direction.
+
+The engine positions the character, so **the pivot must not move** — feet on the same pixel
+row and the body on the same column in every frame and every direction. A drifting pivot
+makes the Warden slide as they turn.
+
+### 11.6 What the engine adds, so the frames should not
+
+Repeating §9.1 because it matters most here: the Warden's frames run **underneath** the
+procedural motion. `sprite_animator.gd` already supplies bounce, lean, squash, recoil, the
+dash stretch and the death topple. Frames that bake those in multiply against them.
+
+Generate the limbs, the blade arc, the cloak and the lamp. Leave the weight to the engine.
