@@ -42,6 +42,10 @@ var _death_left: float = 0.0
 ## Lateral offset from the lane centre line, so a wave reads as a column.
 var _lane_offset: float = 0.0
 
+## Which leg of the road this enemy is walking. Only ever increases.
+var _path_index: int = 0
+
+
 ## Separate scaling keeps durability tense without letting late enemies erase
 ## the town in one hit. Speed gets its own gentler curve too.
 var _hp_scale: float = 1.0
@@ -169,21 +173,64 @@ func _enter(state: State, duration: float) -> void:
 	_state_left = duration
 
 
-## Walks toward the current objective, tracking the lane's centre line with a
-## fixed lateral offset so a wave arrives as a column, not a single file.
+## Walks the lane's road toward the town, holding a fixed lateral offset so a
+## wave arrives as a column rather than in single file.
+##
+## The road bends now (GDD §13), so this follows waypoints instead of aiming at
+## the town. Aiming straight at the town across a U-bend would send the whole
+## formation over the open ground the player is meant to be building on, which
+## is the entire point of the bend.
 func _walk(delta: float) -> void:
 	var destination: Vector2 = _target.global_position if _target != null else _field.town_position()
 	var to: Vector2 = destination - global_position
 	if to.length() <= 1.0:
 		return
 	var direction: Vector2 = to.normalized()
-	# Only enemies still heading for the town hold the lane line; one that has
-	# broken off to fight the hero moves straight at them.
+	# Only enemies still heading for the town hold the road; one that has broken
+	# off to fight the hero moves straight at them.
 	if _target == null or _target == _field.town_node():
-		var lane_dir: Vector2 = _field.lane_direction(lane)
-		var desired: Vector2 = _field.town_position() + lane_dir.orthogonal() * _lane_offset
-		direction = (desired - global_position).normalized() if global_position.distance_to(desired) > 4.0 else direction
+		direction = _road_direction()
 	global_position += direction * current_speed() * delta
+
+
+## Direction to the next waypoint, offset sideways into this enemy's column lane.
+##
+## The offset is applied perpendicular to the *current segment* rather than to
+## the lane's overall heading, so a column keeps its shape around a corner
+## instead of fanning out and cutting it.
+func _road_direction() -> Vector2:
+	var path: PackedVector2Array = _field.lane_path(lane)
+	if path.size() < 2:
+		return (_field.town_position() - global_position).normalized()
+
+	# Advance by *projection along the segment*, not by distance to the waypoint.
+	#
+	# The radius test this replaces could be missed entirely: an enemy holds a
+	# lateral offset of up to half a lane width, so it approaches a line that
+	# passes the corner to one side and may never come within any fixed radius of
+	# it. The formation then walked to the first bend and stopped there.
+	#
+	# Asking "am I past the end of this leg" cannot be missed, however wide the
+	# column runs or however hard something was knocked sideways.
+	while _path_index < path.size() - 1:
+		var from: Vector2 = path[_path_index]
+		var segment: Vector2 = path[_path_index + 1] - from
+		var length_squared: float = segment.length_squared()
+		if length_squared <= 0.01:
+			_path_index += 1
+			continue
+		if (global_position - from).dot(segment) / length_squared >= 1.0:
+			_path_index += 1
+		else:
+			break
+
+	if _path_index >= path.size() - 1:
+		return (_field.town_position() - global_position).normalized()
+
+	var leg: Vector2 = path[_path_index + 1] - path[_path_index]
+	var aim: Vector2 = path[_path_index + 1] + leg.normalized().orthogonal() * _lane_offset
+	var toward: Vector2 = aim - global_position
+	return toward.normalized() if toward.length() > 1.0 else leg.normalized()
 
 
 func current_speed() -> float:

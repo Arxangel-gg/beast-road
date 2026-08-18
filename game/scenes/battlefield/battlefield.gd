@@ -76,12 +76,19 @@ static func lane_road_tint() -> Color:
 	return Color(warm.r * shade, warm.g * shade, warm.b * shade, Balance.PATH_TINT_ALPHA)
 
 
+## The tile grid and the four bent roads (GDD §13). Built before anything that
+## reads geometry, because the road art, the spawn points and enemy pathing all
+## come off it now instead of off a straight line from the spawn radius.
+var grid: BattleGrid = null
+
+
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
 	_setup_sorting()
 	_build_feedback_root()
 	_setup_lighting()
 	_setup_ground()
+	grid = BattleGrid.new()
 	_build_lanes()
 	_build_slots()
 	_build_torches()
@@ -333,8 +340,27 @@ func lane_direction(lane: int) -> Vector2:
 	return lane_vector(lane)
 
 
+## Where a lane's enemies appear: the head of its road.
+##
+## Static for the callers that have no field handy; those get the straight-line
+## radius, which is the same point the road starts from. `road_spawn_point`
+## below is the exact one and is what the field itself uses.
 static func lane_spawn_point(lane: int) -> Vector2:
 	return lane_vector(lane) * Balance.LANE_SPAWN_RADIUS
+
+
+func road_spawn_point(lane: int) -> Vector2:
+	if grid == null:
+		return lane_spawn_point(lane)
+	var path: PackedVector2Array = grid.lane_paths[lane]
+	return path[0]
+
+
+## The road a lane's enemies walk, spawn to gate.
+func lane_path(lane: int) -> PackedVector2Array:
+	if grid == null:
+		return PackedVector2Array([lane_spawn_point(lane), Vector2.ZERO])
+	return grid.lane_paths[lane]
 
 
 static func slot_position(lane: int, slot: int) -> Vector2:
@@ -443,7 +469,10 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() \
 		* RunState.rng("combat").randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
-	enemy.position = lane_spawn_point(lane) * data.spawn_distance_scale + spread
+	# Spawn on the head of the road. `spawn_distance_scale` still pulls certain
+	# breeds in closer, but it now slides them *along the road* rather than along
+	# a straight line that the road no longer follows.
+	enemy.position = road_spawn_point(lane) * data.spawn_distance_scale + spread
 	entity_root.add_child(enemy)
 	return enemy
 
@@ -671,9 +700,25 @@ func _build_lanes() -> void:
 	if ResourceLoader.exists(LANE_TEXTURE):
 		road = load(LANE_TEXTURE)
 
-	var length: float = Balance.LANE_SPAWN_RADIUS - Balance.TOWN_RADIUS
+	# One strip per *segment*, not one per lane. A road with a U-bend is a
+	# polyline, and a single rotated strip can only ever draw a straight one -
+	# which would leave enemies walking a bend across painted-on straight ground.
 	for lane: int in Balance.LANE_COUNT:
-		var direction: Vector2 = lane_vector(lane)
+		var path: PackedVector2Array = grid.lane_paths[lane]
+		for i: int in path.size() - 1:
+			_build_road_segment(road, lane, path[i], path[i + 1], lane_root)
+
+
+## One tiled strip of road between two points.
+func _build_road_segment(road: Texture2D, lane: int, from: Vector2, to: Vector2,
+		lane_root: Node2D) -> void:
+	var span: Vector2 = to - from
+	# Overlap each end by half a road width so the corners join without a notch
+	# showing the ground through the inside of every bend.
+	var half_width: float = Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5
+	var length: float = span.length() + half_width * 2.0
+	if length > 0.0:
+		var direction: Vector2 = span.normalized()
 		var strip := Sprite2D.new()
 		strip.texture = road
 		strip.centered = true
@@ -682,10 +727,9 @@ func _build_lanes() -> void:
 		# Region is in texture space, so the road tiles along the strip instead
 		# of being stretched into a smear.
 		strip.region_rect = Rect2(0.0, 0.0, length, Balance.LANE_WIDTH * LANE_ROAD_SCALE)
-		# Built along +X, then rotated onto the lane; +X is a quarter turn from
-		# lane 0 (north), which is what lane_vector returns.
+		# Built along +X, then rotated onto the segment.
 		strip.rotation = direction.angle()
-		strip.position = direction * (Balance.TOWN_RADIUS + length * 0.5)
+		strip.position = (from + to) * 0.5
 		strip.modulate = lane_road_tint()
 		# Noisy fringe on the outer band only, so the road wears into the ground
 		# instead of sitting on it like a sticker with four straight edges — while
@@ -727,9 +771,14 @@ func _update_pressure() -> void:
 		if enemy == null or enemy.is_dying():
 			continue
 		var lane: int = clampi(enemy.lane, 0, Balance.LANE_COUNT - 1)
-		var distance: float = enemy.global_position.length()
+		# Distance *along the road*, not straight-line. With a U-bend those are
+		# different answers: an enemy at the far end of the detour is close to the
+		# town as the crow flies and still has most of the road left to walk.
+		# Ranking by the crow would call a lane critical while it is fine.
+		var distance: float = grid.distance_to_town_along(lane, enemy.global_position) 			if grid != null else enemy.global_position.length()
+		var road_length: float = grid.lane_length(lane) if grid != null 			else Balance.LANE_SPAWN_RADIUS
 		var closeness: float = 1.0 - clampf(
-			(distance - Balance.TOWN_RADIUS) / maxf(Balance.LANE_SPAWN_RADIUS - Balance.TOWN_RADIUS, 1.0),
+			(distance - Balance.TOWN_RADIUS) / maxf(road_length - Balance.TOWN_RADIUS, 1.0),
 			0.0, 1.0)
 		counts[lane] += 0.25 + closeness * closeness * 2.0
 

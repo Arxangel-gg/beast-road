@@ -443,6 +443,7 @@ func _test_preparation_and_command() -> void:
 	_test_level_moves_every_stat_a_tower_has()
 	_test_six_spots_per_road(field)
 	_test_hero_frame_animation(field)
+	await _test_enemies_walk_the_road(field)
 
 
 ## The Draught's *mechanic* was complete and correct for months. Nothing in the
@@ -807,6 +808,64 @@ func _test_hero_frame_animation(field: Battlefield) -> void:
 
 	hero.frames.play("idle", true)
 	hero._locked_state = ""
+
+
+## Enemies must walk the bent road, not cut across the pocket.
+##
+## The pocket inside each U-bend is the ground the player builds on, and it is
+## only worth anything because the formation walks around it twice. An enemy
+## that steers straight at the town would cross it, which reads as pathing
+## broken and quietly deletes the reason the bend exists.
+func _test_enemies_walk_the_road(field: Battlefield) -> void:
+	await _clear_the_road(field)
+	_check(field.grid != null, "the battlefield must own a grid")
+	if field.grid == null:
+		return
+
+	var lane: int = 0
+	var pocket: Vector2 = field.grid.lane_pocket_centre(lane)
+	var walker: Enemy = field.spawn_enemy(ContentDB.enemy("bogkin"), lane, 1.0, 1.0, 1.0)
+	_check(walker != null, "the test needs an enemy")
+	if walker == null:
+		return
+
+	# It starts on the road, so it starts far from the pocket.
+	var start_from_pocket: float = walker.global_position.distance_to(pocket)
+	_check(start_from_pocket > BattleGrid.TILE * 3.0,
+		"an enemy should not spawn inside the build pocket")
+
+	# Walk it a long way and watch how close it ever comes to the pocket centre.
+	var closest_to_pocket: float = INF
+	var travelled: float = 0.0
+	var previous: Vector2 = walker.global_position
+	# Long enough to actually finish. The road is ~1920 units and a bogkin walks
+	# 33 a second, so this needs about sixty seconds of simulation - the first
+	# version ran twenty-seven and reported a stall that was really a test that
+	# stopped watching halfway along the first crossbar.
+	for _step: int in 3000:
+		walker._walk(0.03)
+		travelled += previous.distance_to(walker.global_position)
+		previous = walker.global_position
+		closest_to_pocket = minf(closest_to_pocket, walker.global_position.distance_to(pocket))
+		if walker.global_position.length() <= Balance.TOWN_RADIUS:
+			break
+
+	_check(walker.global_position.length() <= Balance.TOWN_RADIUS * 1.5,
+		"the enemy must reach the town, stopped %.0f away" % walker.global_position.length())
+
+	# The pocket is roughly 5x7 tiles, so its centre is ~2 tiles from the road on
+	# every side. Anything closer than that means the path was cut.
+	_check(closest_to_pocket > BattleGrid.TILE * 1.5,
+		"the enemy walked through the build pocket (came within %.0f)" % closest_to_pocket)
+
+	# And it walked the road's length rather than the straight line.
+	var straight: float = field.grid.lane_paths[lane][0].length()
+	_check(travelled > straight * 1.3,
+		"the enemy travelled %.0f, barely more than the %.0f straight line - it cut the bend"
+			% [travelled, straight])
+
+	walker.queue_free()
+	await _clear_the_road(field)
 
 
 func _test_boss_phases() -> void:
