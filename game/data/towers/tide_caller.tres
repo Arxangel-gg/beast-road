@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+role = 0
+element = 1
+damage = 9.0
+attack_interval = 0.40
+attack_range = 290.0
+slow_factor = 0.86
+slow_duration = 1.1
+max_hp = 470.0
+id = "tide_caller"
+display_name = "Tide Caller"
+description = "Skirmisher. Rapid chilling darts; cheap early slow across a whole road."
+sprite_id = "rime_lance"

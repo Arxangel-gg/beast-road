@@ -142,7 +142,17 @@ func available_wave_archetypes(act: int, act_wave: int) -> Array[WaveArchetypeDa
 	return out
 
 
-## Base towers only — the eight the player can put in an outer or inner slot.
+## Base towers this account may actually build. The build panel uses this;
+## `base_towers` stays unfiltered for balance tools and the curve report, which
+## are asking about the design rather than about one save file.
+func unlocked_base_towers() -> Array[TowerData]:
+	var out: Array[TowerData] = []
+	for tower: TowerData in base_towers():
+		if MetaState.unlocked_towers.has(tower.id):
+			out.append(tower)
+	return out
+
+
 func base_towers() -> Array[TowerData]:
 	var out: Array[TowerData] = []
 	for value: Variant in towers.values():

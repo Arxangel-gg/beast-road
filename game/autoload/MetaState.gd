@@ -24,6 +24,29 @@ signal save_written()
 signal save_loaded()
 
 # --- Unlock pool: ids only, never state ---
+## Base towers the account may build. Seeded with the eight the game shipped
+## with, so **every element and every fusion is reachable on run one** - v4 §3.4
+## is explicit that the signature fusion system is not hidden behind progress.
+##
+## What unlocks is the *roster*: the eight later towers that widen each element
+## from two roles to four (GDD §21, §35). Elements are never gated.
+const STARTING_TOWERS: Array[String] = [
+	"ember_spire", "pyre_cannon",
+	"rime_lance", "hoarfrost_bell",
+	"bulwark", "shard_thrower",
+	"arc_coil", "gale_turret",
+]
+
+## The roster order the later towers are earned in. One per act boss felled, so
+## the toolkit widens at the same pace the run does and a new player meets one
+## new tower at a time rather than sixteen at once.
+const ROSTER_UNLOCK_ORDER: Array[String] = [
+	"tide_caller", "grit_sling",
+	"cinder_lance", "glacial_mortar",
+	"stonewatch", "zephyr_needle",
+	"ashen_censer", "stormvane",
+]
+
 var unlocked_towers: Array[String] = []
 var unlocked_relics: Array[String] = []
 var unlocked_spells: Array[String] = []
@@ -64,8 +87,32 @@ var settings: Dictionary = {
 }
 
 
+## Every account starts able to build the original eight, whatever the save
+## says. A save written before the roster existed has none of them listed, and a
+## player who could build nothing at all would have no way to earn the rest.
+func _seed_starting_roster() -> void:
+	for id: String in STARTING_TOWERS:
+		if not unlocked_towers.has(id):
+			unlocked_towers.append(id)
+
+
+## Fells an act boss and widens the roster by one, in a fixed order.
+##
+## Returns the tower id earned, or "" when the roster is already complete.
+## Persisted immediately: an unlock that only exists until the process exits is
+## not progression.
+func earn_next_roster_tower() -> String:
+	for id: String in ROSTER_UNLOCK_ORDER:
+		if not unlocked_towers.has(id):
+			unlocked_towers.append(id)
+			save_game()
+			return id
+	return ""
+
+
 func _ready() -> void:
 	load_save()
+	_seed_starting_roster()
 	# Applied here rather than left to whoever happens to read a setting first.
 	# The buses had exactly that bug once already, and display mode has no other
 	# owner at all - without this a windowed player is put back into fullscreen
@@ -155,6 +202,7 @@ func load_save() -> void:
 
 	var unlocked: Dictionary = data.get("unlocked", {}) as Dictionary
 	unlocked_towers = _string_array(unlocked.get("towers", []))
+	_seed_starting_roster()
 	unlocked_relics = _string_array(unlocked.get("relics", []))
 	unlocked_spells = _string_array(unlocked.get("spells", []))
 	unlocked_terrains = _string_array(unlocked.get("terrains", []))

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_11eb1")
+role = 2
 element = 1
 damage = 21.0
 attack_interval = 0.95

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_pvqol")
+role = 0
 damage = 12.0
 attack_interval = 0.45
 id = "ember_spire"

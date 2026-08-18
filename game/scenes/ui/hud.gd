@@ -526,7 +526,14 @@ func _build_tower_panel() -> void:
 	# The footer. Its height is reserved whether or not there is anything to say,
 	# so the panel does not jump every time the cursor crosses a tower.
 	_build_detail = _label("", 14)
+	# Fixed height, not a minimum. A minimum still grows when the text needs more
+	# room, and the new towers carry longer descriptions - so hovering one rewrapped
+	# the footer to a second line and pushed the whole panel six pixels taller. A
+	# panel that changes size under the cursor is the jitter the hover gate exists
+	# to catch.
 	_build_detail.custom_minimum_size = Vector2(0.0, BUILD_DETAIL_HEIGHT)
+	_build_detail.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_build_detail.clip_text = true
 	_build_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# The ceiling that makes the reservation above mean anything. Without it a
 	# long description wraps to a fourth line and the label - and the panel -
@@ -1149,7 +1156,7 @@ func _refresh_build_panel() -> void:
 					_report(battlefield.try_upgrade(anchor))
 					_refresh_build_panel())
 			IconKit.on_button(button, "upgrade", 22)
-			_attach_price(button, cost, afford)
+			_attach_price(button, {RunState.GOLD: cost}, afford)
 			button.disabled = not afford
 			if not afford:
 				_build_list.add_child(_label("Need %d more Gold." % (
@@ -1214,7 +1221,7 @@ func _refresh_build_panel() -> void:
 		note.add_theme_color_override("font_color", Color("aebcb8"))
 		column.add_child(note)
 
-	for tower: TowerData in ContentDB.base_towers():
+	for tower: TowerData in ContentDB.unlocked_base_towers():
 		column.add_child(_tower_card(tower, anchor))
 	_build_list.add_child(column)
 	_set_build_detail_visible(true)
@@ -1346,10 +1353,10 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 ## reading all eight - so the text goes to the footer for whichever one the
 ## cursor is over.
 func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
-	var cost: int = Battlefield.build_cost_of(tower)
-	var cost_map: Dictionary = {RunState.GOLD: cost}
-	if tower.is_combination:
-		cost_map[RunState.STONE] = Balance.TOWER_COMBO_STONE_COST
+	# Quoted from the same function that charges. Assembling the price here as
+	# well is how a quote and a charge end up disagreeing, and only one of them
+	# knew about the secondary currency each element draws on.
+	var cost_map: Dictionary = Battlefield.cost_of(tower)
 	var affordable: bool = RunState.can_afford_cost(cost_map)
 
 	var button := Button.new()
@@ -1359,7 +1366,7 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	button.focus_mode = Control.FOCUS_NONE
 
-	_attach_price(button, cost, affordable)
+	_attach_price(button, cost_map, affordable)
 	button.disabled = not affordable
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	button.pressed.connect(func() -> void:
@@ -1396,11 +1403,21 @@ const BUILD_HINT: String = "Point at a tower to see what it does."
 ##
 ## It also keeps long labels off the frame. "Upgrade to level 2 - 90 resources"
 ## as one string ran the word "resources" straight into the right-hand bolt.
-func _attach_price(button: Button, cost: int, affordable: bool) -> void:
+## The price tag on a build or upgrade button.
+##
+## Takes a currency map rather than a bare number, because a tower can cost two
+## things now and a button that shows only the Gold is a button that lies about
+## what it will charge.
+func _attach_price(button: Button, cost: Dictionary, affordable: bool) -> void:
+	var parts: PackedStringArray = []
+	for id: String in RunState.CURRENCIES:
+		var amount: int = int(cost.get(id, 0))
+		if amount > 0:
+			parts.append("%d %s" % [amount, id.substr(0, 1).to_upper()])
 	var price := Label.new()
-	price.text = str(cost)
+	price.text = "  ".join(parts)
 	price.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	price.offset_left = -110.0
+	price.offset_left = -150.0
 	price.offset_right = -BUILD_ROW_PRICE_INSET
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	price.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

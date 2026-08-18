@@ -773,6 +773,14 @@ func gain_resources(amount: int) -> void:
 	gain_currency(GOLD, amount)
 
 
+## Funds every wallet. For harnesses that want to build without the economy
+## being the subject of the test - since towers draw on a secondary currency per
+## element now, funding Gold alone buys only the Fire roster.
+func gain_every_currency(amount: int) -> void:
+	for id: String in CURRENCIES:
+		gain_currency(id, amount)
+
+
 ## Adds a scaled enemy drop while retaining fractions across kills.
 func gain_kill_resources(base_amount: int) -> void:
 	if base_amount <= 0:

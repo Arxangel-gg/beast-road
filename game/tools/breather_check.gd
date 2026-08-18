@@ -40,7 +40,7 @@ func _ready() -> void:
 	# Towers, while Preparation still allows building them. Without a defence
 	# nothing ever dies, the road never clears, and a breather can never open -
 	# which would look exactly like the bug this is testing for.
-	RunState.gain_resources(99999)
+	RunState.gain_every_currency(99999)
 	var towers: Array[TowerData] = ContentDB.base_towers()
 	# Free placement, so a defence is built by walking out from each bend pocket
 	# until legal ground is found rather than by naming slot indices.

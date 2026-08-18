@@ -607,6 +607,26 @@ const TOWER_REPAIR_WOOD_COST: int = 32
 const TOWER_BASE_LEVEL_CAP: int = 2
 
 ## Resource cost to build a base tower at level 1. [TUNE]
+## Tower price, as two independent decisions (GDD §20).
+##
+## Role sets the Gold. Reach is the premium stat: it decides how many enemies a
+## tower ever gets to shoot, so it compounds with everything else a level buys.
+## Indexed by TowerData.Role. [TUNE]
+const TOWER_ROLE_GOLD: Array[int] = [50, 95, 120, 70]
+
+## Element sets a Gold modifier and a secondary currency, so a build competes
+## with the town rather than only with itself. Indexed by TowerData.Element:
+## Fire, Water, Earth, Air. [TUNE]
+const TOWER_ELEMENT_GOLD_SCALE: Array[float] = [1.15, 0.85, 0.85, 1.10]
+
+## Secondary currency per element, and how much. Fire is pure Gold - the damage
+## you simply buy. Water is fed, Earth is quarried, Air is timber-framed, and
+## each draws on a different town producer. [TUNE]
+const TOWER_ELEMENT_SECONDARY: Array[String] = ["", "food", "stone", "wood"]
+const TOWER_ELEMENT_SECONDARY_COST: Array[int] = [0, 6, 10, 8]
+
+## Fallback for anything without a role, and the figure the opening-economy
+## checks are written against.
 const TOWER_BUILD_COST: int = 70
 
 ## Combination towers cost more than either parent. [TUNE]
@@ -704,21 +724,35 @@ const WAVE_SPAWN_SPACING: float = 0.65
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
 const WAVE_BASE_COUNT: int = 4
-const WAVE_COUNT_GROWTH: float = 0.225
-const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.08, 1.18]
+## Rebalanced 2026-08-18 for the grid battlefield.
+##
+## Two changes landed together and I described them as pulling in opposite
+## directions. They do not - both make the game easier for the defender:
+##
+##   * Tower count is uncapped. The curve report's capability roughly doubled.
+##   * Roads are 2.1x longer, so a formation is under fire 2.1x as long. A bend
+##     costs the attacker time; it does not cost the defender anything.
+##
+## Measured, pressure across Acts 2-3 had halved - 0.09-0.12 where the old
+## three-slot game reached 0.25. Threat has to rise to meet it, so pack growth
+## and HP growth both go up, and enemies move faster to claw back some of the
+## time the bend hands the player. Speed is the honest lever for the road
+## length; HP and count answer the tower count. [TUNE]
+const WAVE_COUNT_GROWTH: float = 0.285
+const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.14, 1.30]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_HP_GROWTH: float = 0.025
+const WAVE_HP_GROWTH: float = 0.041
 const WAVE_DAMAGE_GROWTH: float = 0.015
-const WAVE_SPEED_GROWTH: float = 0.12
+const WAVE_SPEED_GROWTH: float = 0.19
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
 const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Act boundaries introduce new enemy roles and lane patterns, so they should
 ## not also be stat cliffs. The continuous global-wave curve still takes Act 3
 ## well into mastery-level pressure; these modest regional multipliers make the
 ## first Saltglass formation readable after the Ashfen boss.
-const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.18, 1.38]
+const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.26, 1.56]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.10, 1.24]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only

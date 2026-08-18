@@ -267,7 +267,7 @@ func _build_everything() -> void:
 			break
 	if field == null:
 		return
-	RunState.gain_resources(9999)
+	RunState.gain_every_currency(9999)
 	var towers: Array[TowerData] = ContentDB.base_towers()
 	if towers.is_empty():
 		return

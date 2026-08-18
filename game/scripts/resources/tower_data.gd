@@ -15,6 +15,16 @@ enum Element {
 	AIR,
 }
 
+## What a tower is *for*, independent of its element (GDD §21). The grid is
+## deliberately uniform: a player who learns one element can read the other
+## three, and the element decides how that role does its job.
+enum Role {
+	SKIRMISHER,
+	SIEGE,
+	SNIPER,
+	WARDEN,
+}
+
 ## Per-built-tower targeting doctrines. Stored in RunState with the slot, so the
 ## player's choice survives scope changes and upgrades.
 enum TargetPriority {
@@ -25,6 +35,7 @@ enum TargetPriority {
 }
 
 @export var element: Element = Element.FIRE
+@export var role: Role = Role.SKIRMISHER
 
 ## Combination towers are built in the middle slot only, and only when both
 ## flanking slots are filled. `parent_a` / `parent_b` are the elements that
@@ -75,13 +86,59 @@ enum TargetPriority {
 @export var lane_armour_bonus: float = 0.0
 
 
+## Borrow another tower's art. Same escape hatch `EnemyData` already has, and
+## used for the same reason: eight new towers shipped as data before their
+## sprites exist, and a tower with no texture is invisible on the battlefield.
+##
+## Pointed at an element sibling so a new tower reads as the right element while
+## its own art is pending. Clearing this field is all that is needed once the
+## real sprite lands at the conventional path.
+@export var sprite_id: String = ""
+
+
 func get_sprite_path() -> String:
-	return GameData.derive_path("towers", "tower_", id)
+	var visual: String = sprite_id if not sprite_id.is_empty() else id
+	return GameData.derive_path("towers", "tower_", visual)
 
 
-## Resource cost to place this tower at level 1.
+## Gold to place this tower at level 1.
+##
+## Two independent identities multiplied: the role sets the price, the element
+## scales it. Splitting them means "which element" and "which role" are two
+## decisions rather than one, and it is why a mono-Fire build is a pure Gold sink
+## while a mono-Earth build is cheap in Gold and exhausts the quarry instead.
 func build_cost() -> int:
-	return Balance.TOWER_COMBO_BUILD_COST if is_combination else Balance.TOWER_BUILD_COST
+	if is_combination:
+		return Balance.TOWER_COMBO_BUILD_COST
+	var gold: int = Balance.TOWER_ROLE_GOLD[int(role)]
+	var scaled: float = float(gold) * Balance.TOWER_ELEMENT_GOLD_SCALE[int(element)]
+	# Rounded to the nearest 5. Prices a player has to read at a glance should
+	# not end in 3.
+	return maxi(int(round(scaled / 5.0)) * 5, 5)
+
+
+## Everything this tower costs to place, as a currency dictionary.
+##
+## The single place a build price is decided, so the HUD quote and the actual
+## charge cannot disagree - they were two separate sums before and only one of
+## them knew about Stone.
+func build_cost_table() -> Dictionary:
+	var cost: Dictionary = {RunStateCurrency.GOLD: build_cost()}
+	if is_combination:
+		cost[RunStateCurrency.STONE] = Balance.TOWER_COMBO_STONE_COST
+		return cost
+	var secondary: String = Balance.TOWER_ELEMENT_SECONDARY[int(element)]
+	var amount: int = Balance.TOWER_ELEMENT_SECONDARY_COST[int(element)]
+	if not secondary.is_empty() and amount > 0:
+		cost[secondary] = amount
+	return cost
+
+
+## Currency ids, named here rather than reached through the RunState autoload.
+## This class is loaded by the headless tools, where no autoload exists.
+class RunStateCurrency:
+	const GOLD: String = "gold"
+	const STONE: String = "stone"
 
 
 ## Cost to go from `level` to `level + 1`. Returns -1 when already maxed.

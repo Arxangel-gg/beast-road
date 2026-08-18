@@ -107,7 +107,7 @@ func _test_four_currency_economy() -> void:
 func _test_live_tower_utility() -> void:
 	var field: Battlefield = _run.battlefield
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	RunState.gain_resources(9999)
+	RunState.gain_every_currency(9999)
 	var bulwark: TowerData = ContentDB.tower("bulwark")
 	var bulwark_at: Vector2i = _free_anchor(field)
 	_check(field.try_build(bulwark_at, bulwark).is_empty(), "Bulwark must be buildable")
@@ -611,8 +611,11 @@ func _test_build_spots_yield_to_the_fight(field: Battlefield) -> void:
 ## aligned towers exactly one tower-width apart.
 func _test_free_placement(field: Battlefield) -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	RunState.currencies[RunState.GOLD] = 99999
-	RunState.currencies[RunState.STONE] = 99999
+	# Every wallet, not just Gold and Stone. Towers draw on a secondary currency
+	# per element now (GDD §20), so a test that funds two of four silently cannot
+	# afford half the roster.
+	for id: String in RunState.CURRENCIES:
+		RunState.currencies[id] = 99999
 	RunState.towers.clear()
 
 	var pocket: Vector2i = BattleGrid.world_to_tile(field.grid.lane_pocket_centre(0))

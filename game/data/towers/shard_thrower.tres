@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hxva5")
+role = 1
 element = 2
 damage = 29.0
 attack_interval = 1.3

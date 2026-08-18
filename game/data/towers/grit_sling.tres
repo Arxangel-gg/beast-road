@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+role = 0
+element = 2
+damage = 11.0
+attack_interval = 0.38
+attack_range = 285.0
+knockback = 40.0
+max_hp = 610.0
+id = "grit_sling"
+display_name = "Grit Sling"
+description = "Skirmisher. Rapid stone shot; the cheapest tower on the field."
+sprite_id = "shard_thrower"

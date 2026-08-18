@@ -547,9 +547,7 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 		if not allowed:
 			return "Nothing beside this tile fuses into %s." % tower_data.display_name
 
-	var build_cost: Dictionary = {RunState.GOLD: build_cost_of(tower_data)}
-	if tower_data.is_combination:
-		build_cost[RunState.STONE] = Balance.TOWER_COMBO_STONE_COST
+	var build_cost: Dictionary = cost_of(tower_data)
 	if not RunState.can_afford_cost(build_cost):
 		return "Needs %s." % RunState.format_cost(build_cost)
 	RunState.spend_cost(build_cost)
@@ -615,6 +613,22 @@ static func build_cost_of(tower_data: TowerData) -> int:
 	return maxi(int(round(float(tower_data.build_cost()) * scale)), 1)
 
 
+## Everything a tower costs to place, after relics. One function, so the price
+## the HUD quotes and the price actually charged cannot drift apart - they were
+## assembled separately before and only one of them knew about the secondary
+## currency each element draws on.
+static func cost_of(tower_data: TowerData) -> Dictionary:
+	var scale: float = maxf(1.0 + Modifiers.value(Modifiers.BUILD_COST), 0.25)
+	var cost: Dictionary = {}
+	for key: Variant in tower_data.build_cost_table():
+		var id: String = String(key)
+		var amount: int = int(tower_data.build_cost_table()[key])
+		# Relics discount Gold only. A build-cost relic that also halved Stone
+		# would quietly undo the point of a scarce second currency.
+		cost[id] = maxi(int(round(float(amount) * scale)), 1) if id == RunState.GOLD else amount
+	return cost
+
+
 static func upgrade_cost_of(level: int) -> int:
 	var base: int = TowerData.upgrade_cost(level)
 	if base < 0:
@@ -635,9 +649,13 @@ func try_sell(anchor: Vector2i) -> String:
 		spent += upgrade_cost_of(l)
 	RunState.gain_currency(RunState.GOLD,
 		int(round(float(spent) * Balance.TOWER_SELL_REFUND)))
-	if tower_data.is_combination:
-		RunState.gain_currency(RunState.STONE,
-			int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
+	# Every secondary currency comes back at its own rate, not just Stone.
+	for key: Variant in tower_data.build_cost_table():
+		var id: String = String(key)
+		if id == RunState.GOLD:
+			continue
+		RunState.gain_currency(id, int(round(
+			float(tower_data.build_cost_table()[key]) * Balance.TOWER_STONE_SELL_REFUND)))
 	RunState.towers_sold += 1
 	RunState.clear_tower(anchor)
 	# Selling a fusion parent orphans the fusion. Refunded rather than left

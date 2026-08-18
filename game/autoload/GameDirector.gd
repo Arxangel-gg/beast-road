@@ -27,6 +27,7 @@ var run_active: bool = false
 
 
 func _ready() -> void:
+	EventBus.boss_defeated.connect(_on_boss_felled)
 	CursorKit.apply()
 
 
@@ -109,6 +110,20 @@ func end_run(victory: bool) -> void:
 	MetaState.save_game()
 
 	EventBus.run_ended.emit(victory, summary)
+
+
+## Felling an act boss widens the roster by one tower, permanently.
+##
+## v4 §35: elements are never gated - the account opens able to build all four
+## and every fusion. What is earned is the *roster*, the eight later towers that
+## widen each element from two roles to four. Tied to act bosses so the toolkit
+## grows at the pace the run does, and so a new player meets one new tower at a
+## time instead of sixteen at once.
+func _on_boss_felled(_boss_id: String, _act: int) -> void:
+	var earned: String = MetaState.earn_next_roster_tower()
+	if earned.is_empty():
+		return
+	EventBus.unlock_earned.emit("tower", earned)
 
 
 ## Everything the player touched this run enters the pool of things that *can*

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_4e1h1")
+role = 1
 damage = 44.0
 attack_interval = 1.7
 aoe_radius = 110.0

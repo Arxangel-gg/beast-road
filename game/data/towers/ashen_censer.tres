@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+role = 3
+element = 0
+damage = 0.0
+attack_interval = 1.1
+attack_range = 300.0
+aoe_radius = 205.0
+burn_dps = 14.0
+burn_duration = 3.5
+max_hp = 430.0
+id = "ashen_censer"
+display_name = "Ashen Censer"
+description = "Warden. No direct damage; a wide censer field burns everything inside it."
+sprite_id = "ember_spire"

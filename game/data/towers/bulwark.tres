@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_fs4e2")
+role = 3
 element = 2
 damage = 5.0
 attack_interval = 1.2
