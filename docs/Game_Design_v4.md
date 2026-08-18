@@ -993,7 +993,7 @@ The account opens with **all four elements and eight towers - two roles each**, 
 
 Two gating schemes were considered and rejected:
 
-**Act-locked elements** - one element in Act I, a second after the Act I boss, and so on. Act I would fall from sixteen towers to four; v4 targets 65-75% of new Standard players reaching the Act I boss (§5), so roughly a third of players would meet the entire game as a single element. The fourth element would unlock only on the final victory and could never be used in the run that earned it. It also breaks §3.4 outright.
+**Act-locked elements** - one element in Act I, a second after the Act I boss, and so on. Act I would fall from twenty-six available towers to five - four base and the one same-element fusion they can make; v4 targets 65-75% of new Standard players reaching the Act I boss (§5), so roughly a third of players would meet the entire game as a single element. The fourth element would unlock only on the final victory and could never be used in the run that earned it. It also breaks §3.4 outright.
 
 **Account-locked elements** - starting with two elements and unlocking the rest. Milder, and still wrong for the same reason: it removes a quarter of a combinatorial system and seven of ten fusions from a new player's first hours, which is exactly what §3.4 forbids.
 
