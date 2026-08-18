@@ -15,4 +15,3 @@ max_hp = 470.0
 id = "tide_caller"
 display_name = "Tide Caller"
 description = "Skirmisher. Rapid chilling darts; cheap early slow across a whole road."
-sprite_id = "rime_lance"

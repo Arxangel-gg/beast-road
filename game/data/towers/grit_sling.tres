@@ -14,4 +14,3 @@ max_hp = 610.0
 id = "grit_sling"
 display_name = "Grit Sling"
 description = "Skirmisher. Rapid stone shot; the cheapest tower on the field."
-sprite_id = "shard_thrower"

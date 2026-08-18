@@ -18,4 +18,3 @@ max_hp = 500.0
 id = "glacial_mortar"
 display_name = "Glacial Mortar"
 description = "Siege. Lobbed ice shells that leave a freezing ground zone."
-sprite_id = "hoarfrost_bell"

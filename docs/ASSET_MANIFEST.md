@@ -198,6 +198,14 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_shard_thrower.png` | Stone | `#7A6E5C` |
 | `tower_arc_coil.png` | Storm | `#9B8FC4` |
 | `tower_gale_turret.png` | Storm | `#9B8FC4` |
+| `tower_cinder_lance.png` | Fire | `#C4552E` |
+| `tower_ashen_censer.png` | Fire | `#C4552E` |
+| `tower_tide_caller.png` | Frost | `#7FA6BF` |
+| `tower_glacial_mortar.png` | Frost | `#7FA6BF` |
+| `tower_grit_sling.png` | Stone | `#7A6E5C` |
+| `tower_stonewatch.png` | Stone | `#7A6E5C` |
+| `tower_zephyr_needle.png` | Storm | `#9B8FC4` |
+| `tower_stormvane.png` | Storm | `#9B8FC4` |
 
 ### 5.5 City — `res://art/city/`
 

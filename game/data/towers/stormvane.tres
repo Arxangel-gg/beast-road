@@ -16,4 +16,3 @@ max_hp = 360.0
 id = "stormvane"
 display_name = "Stormvane"
 description = "Warden. No direct damage; sustained knockback holds a line open."
-sprite_id = "gale_turret"

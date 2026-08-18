@@ -13,4 +13,3 @@ max_hp = 350.0
 id = "zephyr_needle"
 display_name = "Zephyr Needle"
 description = "Sniper. The longest reach in the game; slow, precise, expensive."
-sprite_id = "arc_coil"

@@ -14,4 +14,3 @@ max_hp = 660.0
 id = "stonewatch"
 display_name = "Stonewatch"
 description = "Sniper. Drops a single crushing boulder at extreme range."
-sprite_id = "bulwark"

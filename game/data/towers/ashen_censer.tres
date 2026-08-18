@@ -16,4 +16,3 @@ max_hp = 430.0
 id = "ashen_censer"
 display_name = "Ashen Censer"
 description = "Warden. No direct damage; a wide censer field burns everything inside it."
-sprite_id = "ember_spire"

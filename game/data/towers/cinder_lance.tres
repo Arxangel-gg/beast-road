@@ -15,4 +15,3 @@ max_hp = 380.0
 id = "cinder_lance"
 display_name = "Cinder Lance"
 description = "Sniper. One searing bolt at extreme range; ignites heavily on contact."
-sprite_id = "pyre_cannon"
