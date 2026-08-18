@@ -1,7 +1,7 @@
 class_name Tower
 extends Node2D
 
-## An auto-firing tower standing in one of a lane's three build spots (GDD §4).
+## An auto-firing tower standing on a 2x2 patch of the battlefield grid (GDD §13).
 ##
 ## All behaviour is read off TowerData: single target, AoE, chains, slows,
 ## burns, freezes, taunts. There is no per-tower script and there must never be
@@ -17,8 +17,15 @@ var projectile_scene: PackedScene = null
 
 var data: TowerData = null
 var level: int = 1
-var lane: int = 0
-var slot: int = 0
+
+## Top-left tile of this tower's 2x2 footprint. Its identity on the grid.
+var anchor: Vector2i = Vector2i.ZERO
+
+
+## Which road this tower answers to, for synergy, road armour and Rally.
+## Free placement means a tower is not *in* a lane; the nearest cardinal is.
+func lane() -> int:
+	return RunState.tower_lane(anchor)
 
 var _field: Battlefield = null
 var _cooldown: float = 0.0
@@ -42,11 +49,10 @@ var _damage_flames: Array[Flame] = []
 var _step_wobble: float = 0.0
 
 
-func setup(tower_data: TowerData, tower_level: int, lane_index: int, slot_index: int, field: Battlefield) -> void:
+func setup(tower_data: TowerData, tower_level: int, tile: Vector2i, field: Battlefield) -> void:
 	data = tower_data
 	level = tower_level
-	lane = lane_index
-	slot = slot_index
+	anchor = tile
 	_field = field
 
 
@@ -91,7 +97,7 @@ func refresh_modifiers() -> void:
 	_damage_bonus = 0.0
 	_extra_chain_targets = 0
 
-	if RunState.lane_has_element_synergy(lane, slot) and not data.is_combination:
+	if RunState.has_fusion_synergy(anchor) and not data.is_combination:
 		_damage_bonus += Balance.SAME_ELEMENT_LANE_BONUS
 
 	_extra_chain_targets += int(Modifiers.value(Modifiers.CHAIN_TARGETS))
@@ -103,7 +109,7 @@ func refresh_modifiers() -> void:
 		if data.extra_targets > 0:
 			_extra_chain_targets += terrain.bonus_chain_targets
 	if _health != null:
-		_health.flat_damage_reduction = _field.lane_armour(lane)
+		_health.flat_damage_reduction = _field.lane_armour(lane())
 
 
 func _on_relic_changed(_id: String) -> void:
@@ -240,7 +246,7 @@ func _acquire_targets() -> Array[Enemy]:
 	if candidates.is_empty():
 		return found
 
-	var priority: int = RunState.target_priority_in_slot(lane, slot)
+	var priority: int = RunState.target_priority_at(anchor)
 	candidates.sort_custom(func(a: Enemy, b: Enemy) -> bool:
 		return _target_score(a, priority) > _target_score(b, priority))
 
@@ -289,7 +295,7 @@ func _target_score(enemy: Enemy, priority: int) -> float:
 
 func _fire(targets: Array[Enemy]) -> void:
 	var primary: Enemy = targets[0]
-	EventBus.tower_fired.emit(lane, slot, primary.global_position)
+	EventBus.tower_fired.emit(anchor, primary.global_position)
 
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.
@@ -394,7 +400,7 @@ func _on_destroyed(_from: Vector2) -> void:
 		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
 	EventBus.camera_shake_requested.emit(9.0, 0.4)
 	RunState.towers_lost += 1
-	RunState.clear_slot(lane, slot)
+	RunState.clear_tower(anchor)
 
 
 func is_vulnerable() -> bool:

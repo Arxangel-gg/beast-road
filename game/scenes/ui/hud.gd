@@ -18,7 +18,7 @@ signal horn_requested()
 signal raid_requested()
 signal extract_requested()
 signal ride_on_requested()
-signal command_requested(order_id: String, lane: int, slot: int)
+signal command_requested(order_id: String, anchor: Vector2i)
 
 const LANE_NAMES: Array[String] = ["N", "E", "S", "W"]
 
@@ -94,8 +94,8 @@ var _build_panel: PanelContainer
 var _build_list: VBoxContainer
 var _build_title: Label
 var _build_detail: Label
-var _selected_lane: int = -1
-var _selected_slot: int = -1
+## The tile the build panel is open on, or an impossible anchor for "none".
+var _selected: Vector2i = Vector2i(-999, -999)
 
 var _raid_panel: PanelContainer
 var _raid_status: Label
@@ -174,10 +174,8 @@ func _ready() -> void:
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)
 
-	for node: Node in get_tree().get_nodes_in_group(TowerSlot.GROUP):
-		var slot := node as TowerSlot
-		if slot != null:
-			slot.clicked.connect(_open_build_panel)
+	if battlefield != null and battlefield.placement != null:
+		battlefield.placement.tile_clicked.connect(_open_build_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
 	_refresh_currencies()
@@ -1015,52 +1013,45 @@ func _refresh_state_label() -> void:
 ## during Preparation still selects it, and that selection is still honoured -
 ## it just is not required any more.
 func _request_command(order_id: String) -> void:
-	var lane: int = _selected_lane
-	var slot: int = _selected_slot
+	var target: Vector2i = _selected
 	if order_id != CommandSystemScript.LAST_STAND and not RunState.can_build_now():
-		var aimed: Vector2i = _aimed_slot(order_id == CommandSystemScript.OVERDRIVE)
-		if aimed.x >= 0:
-			lane = aimed.x
-			slot = aimed.y
-	command_requested.emit(order_id, lane, slot)
+		var aimed: Vector2i = _aimed_tower()
+		if aimed.x != -999:
+			target = aimed
+	command_requested.emit(order_id, target)
 
 
 ## The slot the cursor is aiming at, or (-1, -1). `built_only` restricts it to
 ## spots with a tower on them, so Overdrive skips over an empty spot that happens
 ## to be marginally nearer the cursor than the tower the player meant.
-func _aimed_slot(built_only: bool) -> Vector2i:
+func _aimed_tower() -> Vector2i:
 	if battlefield == null:
-		return Vector2i(-1, -1)
+		return Vector2i(-999, -999)
 	var cursor: Vector2 = battlefield.get_global_mouse_position()
-	var best: Vector2i = Vector2i(-1, -1)
+	var best: Vector2i = Vector2i(-999, -999)
 	var best_distance: float = INF
-	for slot_node: TowerSlot in battlefield.all_slots():
-		if built_only and slot_node.tower() == null:
-			continue
-		var distance: float = slot_node.global_position.distance_to(cursor)
+	for built: Tower in battlefield.all_towers():
+		var distance: float = built.global_position.distance_to(cursor)
 		if distance < best_distance:
 			best_distance = distance
-			best = Vector2i(slot_node.lane, slot_node.slot)
-	if best.x < 0:
-		return best
-	# Rally wants a road, and every point on the field is nearer one road than the
-	# others, so it always has an answer. Overdrive wants a specific tower, and
-	# aiming at the far side of the map should not reach across and boost one.
-	if built_only and best_distance > Balance.COMMAND_AIM_RADIUS:
-		return Vector2i(-1, -1)
+			best = built.anchor
+	# Aiming at the far side of the map should not reach across and boost a tower.
+	# Rally derives its road from whatever this returns, so an out-of-reach answer
+	# is no answer for either order.
+	if best.x == -999 or best_distance > Balance.COMMAND_AIM_RADIUS:
+		return Vector2i(-999, -999)
 	return best
 
 
 # --- Build panel ------------------------------------------------------------
 
-func _open_build_panel(lane: int, slot: int) -> void:
-	_selected_lane = lane
-	_selected_slot = slot
+func _open_build_panel(anchor: Vector2i) -> void:
+	_selected = anchor
 	if _command_target != null:
-		var tower: TowerData = RunState.tower_in_slot(lane, slot)
+		var tower: TowerData = RunState.tower_at(anchor)
 		_command_target.text = "TARGET  ·  %s road  ·  %s" % [
-			LANE_NAMES[clampi(lane, 0, 3)],
-			tower.display_name if tower != null else "open spot"]
+			LANE_NAMES[clampi(RunState.tower_lane(anchor), 0, 3)],
+			tower.display_name if tower != null else "open ground"]
 	_refresh_build_panel()
 	_build_panel.visible = true
 	UiSound.confirm()
@@ -1105,28 +1096,24 @@ func _refresh_build_panel() -> void:
 	# Assume no grid; the two branches that build one turn the footer back on.
 	_set_build_detail_visible(false)
 
-	var lane: int = _selected_lane
-	var slot: int = _selected_slot
-	var existing: TowerData = RunState.tower_in_slot(lane, slot)
-	var level: int = RunState.level_in_slot(lane, slot)
-	# Six spots per road now, so the flank has to be named too - "N lane · inner
-	# spot" would point at two different places. Left and right are taken standing
-	# at the town looking outward along the road, which is what the orthogonal
-	# gives and is the same hand for every cardinal.
-	_build_title.text = "%s lane  ·  %s %s spot" % [
-		LANE_NAMES[clampi(lane, 0, 3)],
-		"left" if Balance.slot_side(slot) == 0 else "right",
-		["inner", "middle", "outer"][Balance.slot_local(slot)],
-	]
+	var anchor: Vector2i = _selected
+	var existing: TowerData = RunState.tower_at(anchor)
+	var level: int = RunState.level_at(anchor)
+	# Placement is free, so a tile has no name of its own - it is identified by
+	# the road it covers and how far out it sits, which is what a player reading
+	# the panel actually wants to know.
+	var reach: float = BattleGrid.footprint_centre(anchor).length()
+	_build_title.text = "%s road  ·  %d paces out" % [
+		LANE_NAMES[clampi(RunState.tower_lane(anchor), 0, 3)], int(round(reach / BattleGrid.TILE))]
 
 	if existing != null:
 		_build_list.add_child(_label("%s  ·  level %d" % [existing.display_name, level], 18))
 		_build_list.add_child(_label(existing.description, 14))
-		var target_priority: int = RunState.target_priority_in_slot(lane, slot)
+		var target_priority: int = RunState.target_priority_at(anchor)
 		var target_button: Button = _add_button(_build_list,
 			"Target: %s  ·  click to cycle" % TowerData.target_priority_name(target_priority),
 			func() -> void:
-				RunState.cycle_target_priority(lane, slot)
+				RunState.cycle_target_priority(anchor)
 				_refresh_build_panel())
 		target_button.tooltip_text = TowerData.target_priority_description(target_priority)
 		_build_list.add_child(_label(TowerData.target_priority_description(target_priority), 13))
@@ -1137,13 +1124,12 @@ func _refresh_build_panel() -> void:
 			locked_note.add_theme_color_override("font_color", Color("e8a33d"))
 			_build_list.add_child(locked_note)
 			return
-		var live_slot: TowerSlot = battlefield.slot_at(lane, slot)
-		var live_tower: Tower = live_slot.tower() if live_slot != null else null
+		var live_tower: Tower = battlefield.tower_at_anchor(anchor)
 		if live_tower != null and live_tower.needs_repair():
 			var repair_afford: bool = RunState.can_afford_cost(
 				{RunState.WOOD: Balance.TOWER_REPAIR_WOOD_COST})
 			var repair_button: Button = _add_button(_build_list, "Repair Tower", func() -> void:
-				_report(battlefield.try_repair_tower(lane, slot))
+				_report(battlefield.try_repair_tower(anchor))
 				_refresh_build_panel())
 			repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 			repair_button.tooltip_text = "Restore %d%% durability. Cost: %d Wood." % [
@@ -1160,7 +1146,7 @@ func _refresh_build_panel() -> void:
 			var afford: bool = RunState.can_afford_cost({RunState.GOLD: cost})
 			var button: Button = _add_button(_build_list,
 				"Upgrade to level %d" % (level + 1), func() -> void:
-					_report(battlefield.try_upgrade(lane, slot))
+					_report(battlefield.try_upgrade(anchor))
 					_refresh_build_panel())
 			IconKit.on_button(button, "upgrade", 22)
 			_attach_price(button, cost, afford)
@@ -1171,34 +1157,42 @@ func _refresh_build_panel() -> void:
 		else:
 			_build_list.add_child(_label("Fully upgraded.", 14))
 		var sell: Button = _add_button(_build_list, "Sell", func() -> void:
-			_report(battlefield.try_sell(lane, slot))
+			_report(battlefield.try_sell(anchor))
 			_refresh_build_panel())
 		# Every other button in this panel carries a mark; one bare label in the
 		# column reads as an unfinished row rather than as a different action.
 		IconKit.on_button(sell, "resource", 22)
 		return
 
-	var target_slot: TowerSlot = battlefield.slot_at(lane, slot)
 	if not RunState.is_preparation():
 		var lock_note: Label = _label(
-			"COMBAT LOCK  ·  construction returns in Preparation.\n"
+			"COMBAT LOCK  ·  construction returns in Preparation.
+"
 			+ "This road is selected for Rally Road.", 14)
 		lock_note.add_theme_color_override("font_color", Color("e8a33d"))
 		_build_list.add_child(lock_note)
 		return
-	if target_slot != null and target_slot.is_combo_slot():
-		var combo: TowerData = target_slot.buildable_combination()
-		if combo == null:
-			var locked := HBoxContainer.new()
-			locked.add_theme_constant_override("separation", 8)
-			var lock: TextureRect = IconKit.rect("lock", 30.0, Color(0.75, 0.72, 0.66))
-			if lock != null:
-				locked.add_child(lock)
-			locked.add_child(_label("Build a tower either side first.\nThe middle spot combines them.", 15))
-			_build_list.add_child(locked)
-			return
-		# The two parents shown as their own element icons: what this slot makes
-		# is a fact about two other slots, and the icons say that without reading.
+
+	var blocked: String = battlefield.placement_problem(anchor)
+	if not blocked.is_empty():
+		var no := HBoxContainer.new()
+		no.add_theme_constant_override("separation", 8)
+		var lock: TextureRect = IconKit.rect("lock", 30.0, Color(0.75, 0.72, 0.66))
+		if lock != null:
+			no.add_child(lock)
+		no.add_child(_label(blocked, 15))
+		_build_list.add_child(no)
+		return
+
+	# Fusions first, because they are the reason this tile is interesting. More
+	# than one pair can flank a tile, and v4 §13 says the player picks rather
+	# than the game picking for them - so each is offered as its own card.
+	var offers: Array[Dictionary] = RunState.combinations_for_tile(anchor)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", BUILD_ROW_GAP)
+
+	for option: Dictionary in offers:
+		var combo: TowerData = option["tower"]
 		var parents := HBoxContainer.new()
 		parents.add_theme_constant_override("separation", 6)
 		for parent: int in [combo.parent_a, combo.parent_b]:
@@ -1208,17 +1202,20 @@ func _refresh_build_panel() -> void:
 			mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			parents.add_child(mark)
-		parents.add_child(_label("%s + %s" % [
-			TowerData.element_name(combo.parent_a), TowerData.element_name(combo.parent_b)], 15))
-		_build_list.add_child(parents)
-		_build_list.add_child(_tower_card(combo, lane, slot))
-		_set_build_detail_visible(true)
-		return
+		parents.add_child(_label("%s + %s  ·  fusion" % [
+			TowerData.element_name(combo.parent_a),
+			TowerData.element_name(combo.parent_b)], 15))
+		column.add_child(parents)
+		column.add_child(_tower_card(combo, anchor))
 
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", BUILD_ROW_GAP)
+	if not offers.is_empty():
+		var note: Label = _label(
+			"Or build an ordinary tower here. A tower built ordinary stays ordinary.", 13)
+		note.add_theme_color_override("font_color", Color("aebcb8"))
+		column.add_child(note)
+
 	for tower: TowerData in ContentDB.base_towers():
-		column.add_child(_tower_card(tower, lane, slot))
+		column.add_child(_tower_card(tower, anchor))
 	_build_list.add_child(column)
 	_set_build_detail_visible(true)
 
@@ -1348,7 +1345,7 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 ## made the list too tall to fit, and the player is choosing between towers, not
 ## reading all eight - so the text goes to the footer for whichever one the
 ## cursor is over.
-func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
+func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	var cost: int = Battlefield.build_cost_of(tower)
 	var cost_map: Dictionary = {RunState.GOLD: cost}
 	if tower.is_combination:
@@ -1367,7 +1364,7 @@ func _tower_card(tower: TowerData, lane: int, slot: int) -> Button:
 	button.add_theme_color_override("font_color", TowerData.element_colour(tower.element))
 	button.pressed.connect(func() -> void:
 		Sfx.play("sfx_tower_build", -4.0)
-		_report(battlefield.try_build(lane, slot, tower))
+		_report(battlefield.try_build(anchor, tower))
 		_refresh_build_panel())
 
 	# Hovering explains, in the footer, immediately.

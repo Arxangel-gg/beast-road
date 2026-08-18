@@ -199,7 +199,10 @@ func _open_build_panel(run: Node) -> void:
 	if hud == null:
 		_failures.append("no HUD on the run, so the build panel was never checked")
 		return
-	hud._open_build_panel(0, 0)
+	# Free placement: open the panel on a real legal tile rather than on a slot
+	# index that no longer exists.
+	var field: Battlefield = run.get("battlefield") as Battlefield
+	hud._open_build_panel(field.free_anchor_near(0) if field != null else Vector2i.ZERO)
 
 
 ## Panels that change size when the cursor lands on something.

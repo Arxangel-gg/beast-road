@@ -116,8 +116,8 @@ func end_run(victory: bool) -> void:
 func _pay_out_unlocks(victory: bool) -> Array[String]:
 	var earned: Array[String] = []
 
-	for entry: Dictionary in RunState.tower_slots:
-		var id: String = String(entry.get("tower_id", ""))
+	for key: Variant in RunState.towers:
+		var id: String = String(RunState.towers[key].get("tower_id", ""))
 		if id.is_empty() or MetaState.unlocked_towers.has(id):
 			continue
 		MetaState.unlocked_towers.append(id)

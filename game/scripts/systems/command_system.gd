@@ -19,23 +19,22 @@ func _ready() -> void:
 	EventBus.hero_dashed.connect(_on_hero_dashed)
 
 
-func use_order(order_id: String, lane: int, slot: int) -> String:
+func use_order(order_id: String, anchor: Vector2i) -> String:
 	if not RunState.is_command_combat():
 		return "Command orders are available during battle."
 	match order_id:
 		OVERDRIVE:
-			return _use_overdrive(lane, slot)
+			return _use_overdrive(anchor)
 		RALLY_ROAD:
-			return _use_rally(lane)
+			return _use_rally(RunState.tower_lane(anchor))
 		LAST_STAND:
 			return _use_last_stand()
 		_:
 			return "Unknown Command order."
 
 
-func _use_overdrive(lane: int, slot: int) -> String:
-	var target_slot: TowerSlot = battlefield.slot_at(lane, slot) if battlefield != null else null
-	var tower: Tower = target_slot.tower() if target_slot != null else null
+func _use_overdrive(anchor: Vector2i) -> String:
+	var tower: Tower = battlefield.tower_at_anchor(anchor) if battlefield != null else null
 	if tower == null:
 		return "Select a built tower for Overdrive."
 	if not RunState.can_spend_command(Balance.COMMAND_OVERDRIVE_COST):
@@ -43,7 +42,7 @@ func _use_overdrive(lane: int, slot: int) -> String:
 	if not RunState.spend_command(Balance.COMMAND_OVERDRIVE_COST, OVERDRIVE):
 		return _need(Balance.COMMAND_OVERDRIVE_COST)
 	tower.command_overdrive(Balance.COMMAND_OVERDRIVE_DURATION)
-	EventBus.command_order_used.emit(OVERDRIVE, lane, slot, tower.global_position)
+	EventBus.command_order_used.emit(OVERDRIVE, RunState.tower_lane(anchor), 0, tower.global_position)
 	return ""
 
 
@@ -59,9 +58,9 @@ func _use_rally(lane: int) -> String:
 		var enemy := node as Enemy
 		if enemy != null and battlefield.is_ancestor_of(enemy) and enemy.lane == lane:
 			enemy.apply_stagger(Balance.COMMAND_RALLY_STAGGER)
-	for slot_node: TowerSlot in battlefield.all_slots():
-		if slot_node.lane == lane and slot_node.tower() != null:
-			slot_node.tower().command_rally(Balance.COMMAND_RALLY_SHIELD)
+	for built: Tower in battlefield.all_towers():
+		if built.lane() == lane:
+			built.command_rally(Balance.COMMAND_RALLY_SHIELD)
 
 	var at: Vector2 = Battlefield.lane_vector(lane) * Balance.TOWER_SLOT_RADIUS
 	EventBus.command_order_used.emit(RALLY_ROAD, lane, -1, at)
@@ -80,9 +79,8 @@ func _use_last_stand() -> String:
 
 	RunState.last_stand_used = true
 	battlefield.town.health.add_invulnerability(Balance.COMMAND_LAST_STAND_DURATION)
-	for slot_node: TowerSlot in battlefield.all_slots():
-		if slot_node.tower() != null:
-			slot_node.tower().command_reset_attack()
+	for built: Tower in battlefield.all_towers():
+		built.command_reset_attack()
 	EventBus.command_order_used.emit(LAST_STAND, -1, -1, battlefield.town.global_position)
 	return ""
 

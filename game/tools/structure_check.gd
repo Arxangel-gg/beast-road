@@ -17,11 +17,11 @@ func _ready() -> void:
 		_check(data.max_hp > 0.0, "%s has no structure durability" % data.id)
 
 	var tower_data: TowerData = ContentDB.tower("ember_spire")
-	_check(_run.battlefield.try_build(0, 0, tower_data).is_empty(),
+	var anchor: Vector2i = _run.battlefield.free_anchor_near(0)
+	_check(_run.battlefield.try_build(anchor, tower_data).is_empty(),
 		"test tower could not be built")
 	await get_tree().process_frame
-	var built_slot: TowerSlot = _run.battlefield.slot_at(0, 0)
-	var tower: Tower = built_slot.tower()
+	var tower: Tower = _run.battlefield.tower_at_anchor(anchor)
 	var health: Health = Health.of(tower)
 	_check(health != null and health.max_hp > 0.0,
 		"ordinary towers must expose Health")
@@ -37,7 +37,7 @@ func _ready() -> void:
 			burning += 1
 	_check(burning >= 2, "heavily damaged tower did not ignite staged damage fires")
 	var before: float = health.current_hp
-	_check(_run.battlefield.try_repair_tower(0, 0).is_empty() \
+	_check(_run.battlefield.try_repair_tower(anchor).is_empty() \
 			and health.current_hp > before,
 		"Preparation repair did not restore tower durability")
 

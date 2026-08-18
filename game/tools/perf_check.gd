@@ -167,8 +167,8 @@ func _build_defence() -> void:
 	if towers.is_empty():
 		return
 	for lane: int in Balance.LANE_COUNT:
-		for slot: int in [0, 2]:
-			field.try_build(lane, slot, towers[lane % towers.size()])
+		for _pair: int in 2:
+			field.try_build(field.free_anchor_near(lane), towers[lane % towers.size()])
 
 
 ## Leaves Preparation so waves actually arrive.

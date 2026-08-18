@@ -47,19 +47,16 @@ func _ready() -> void:
 	print("[boot] heroes during Preparation=%d" % heroes)
 	var preparation_heroes: int = heroes
 
-	var slots: Array[Node] = get_tree().get_nodes_in_group(TowerSlot.GROUP)
-	print("[boot] tower slots=%d" % slots.size())
-
-	var connected: int = 0
-	for node: Node in slots:
-		var slot := node as TowerSlot
-		if slot != null and slot.clicked.get_connections().size() > 0:
-			connected += 1
-	print("[boot] slots wired to the HUD=%d" % connected)
-
-	# Actually press one, through the real signal the real button emits.
-	if not slots.is_empty():
-		(slots[0] as TowerSlot).clicked.emit(0, 0)
+	# The build path, exercised through the real signal the real cursor emits.
+	# Free placement replaced the twelve fixed slot nodes, so what is checked now
+	# is that a legal tile opens the panel - the same question, one layer up.
+	var field: Battlefield = _find(Battlefield) as Battlefield
+	if field != null and field.placement != null and field.grid != null:
+		var anchor: Vector2i = BattleGrid.world_to_tile(field.grid.lane_pocket_centre(0))
+		print("[boot] placement cursor live=%s, pocket buildable=%s" % [
+			str(field.placement._is_active()),
+			str(field.placement_problem(anchor).is_empty())])
+		field.placement.tile_clicked.emit(anchor)
 		await get_tree().process_frame
 		var panel: Control = hud.get("_build_panel") as Control
 		print("[boot] build panel visible after click=%s" % str(panel != null and panel.visible))
@@ -74,12 +71,13 @@ func _ready() -> void:
 	heroes = get_tree().get_nodes_in_group(Hero.GROUP).size()
 	print("[boot] heroes after Ride On=%d phase=%d" % [heroes, int(RunState.phase)])
 
-	if controls < 20 or connected != slots.size() or not _clicked \
+	# "wired slots" is gone with the slot nodes; the equivalent question is whether
+	# clicking a legal tile opens the build panel, which `_clicked` answers.
+	if controls < 20 or not _clicked \
 			or preparation_heroes != 1 or heroes != 1 \
 			or RunState.phase != RunState.Phase.ROAD_BATTLE:
-		push_error("boot check failed: controls=%d wired=%d/%d panel=%s prep_heroes=%d heroes=%d phase=%d"
-			% [controls, connected, slots.size(), str(_clicked), preparation_heroes,
-				heroes, int(RunState.phase)])
+		push_error("boot check failed: controls=%d panel=%s prep_heroes=%d heroes=%d phase=%d"
+			% [controls, str(_clicked), preparation_heroes, heroes, int(RunState.phase)])
 		_bail(1)
 		return
 	_bail(0)

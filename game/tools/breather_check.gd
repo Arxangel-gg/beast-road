@@ -42,9 +42,11 @@ func _ready() -> void:
 	# which would look exactly like the bug this is testing for.
 	RunState.gain_resources(99999)
 	var towers: Array[TowerData] = ContentDB.base_towers()
+	# Free placement, so a defence is built by walking out from each bend pocket
+	# until legal ground is found rather than by naming slot indices.
 	for lane: int in Balance.LANE_COUNT:
-		for slot: int in [0, 2]:
-			_field.try_build(lane, slot, towers[lane % towers.size()])
+		for _pair: int in 2:
+			_field.try_build(_field.free_anchor_near(lane), towers[lane % towers.size()])
 	print("[breather] built %d towers during opening preparation"
 		% get_tree().get_nodes_in_group(&"towers").size())
 	# The hero is intentionally playable during safe planning. It must be the

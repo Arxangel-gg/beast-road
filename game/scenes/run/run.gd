@@ -518,10 +518,9 @@ func _on_ride_on_requested() -> void:
 ## three spots and is now one flank of six. A road with a full right flank and an
 ## empty left one would have been reported as undefended.
 func _lane_is_undefended(lane: int) -> bool:
-	for slot: int in Balance.slots_per_lane():
-		if not RunState.slot_is_empty(lane, slot):
-			return false
-	return true
+	# Free placement, so "defended" is about coverage rather than about a slot
+	# being filled: any tower answering to this road counts.
+	return RunState.towers_on_lane(lane).is_empty()
 
 
 func _uncovered_roads() -> Array[int]:
@@ -532,8 +531,8 @@ func _uncovered_roads() -> Array[int]:
 	return result
 
 
-func _on_command_requested(order_id: String, lane: int, slot: int) -> void:
-	var problem: String = command_system.use_order(order_id, lane, slot)
+func _on_command_requested(order_id: String, anchor: Vector2i) -> void:
+	var problem: String = command_system.use_order(order_id, anchor)
 	if not problem.is_empty():
 		EventBus.preparation_warning.emit(problem)
 

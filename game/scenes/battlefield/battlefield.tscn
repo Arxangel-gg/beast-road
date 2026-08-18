@@ -7,7 +7,6 @@
 [ext_resource type="PackedScene" path="res://scenes/hero/hero.tscn" id="4_hero"]
 [ext_resource type="PackedScene" path="res://scenes/battlefield/enemy.tscn" id="5_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/battlefield/tower.tscn" id="6_tower"]
-[ext_resource type="PackedScene" path="res://scenes/battlefield/tower_slot.tscn" id="7_slot"]
 [ext_resource type="Script" path="res://scripts/systems/wave_director.gd" id="8_wave"]
 [ext_resource type="Script" path="res://scenes/battlefield/camera_rig.gd" id="9_cam"]
 
@@ -16,7 +15,6 @@ script = ExtResource("1_field")
 enemy_scene = ExtResource("5_enemy")
 tower_scene = ExtResource("6_tower")
 projectile_scene = ExtResource("97_proj")
-tower_slot_scene = ExtResource("7_slot")
 ground = NodePath("Ground")
 lane_root = NodePath("LaneRoot")
 slot_root = NodePath("SlotRoot")

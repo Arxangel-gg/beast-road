@@ -13,7 +13,6 @@ extends EnemyField
 
 @export var enemy_scene: PackedScene
 @export var tower_scene: PackedScene
-@export var tower_slot_scene: PackedScene
 @export var projectile_scene: PackedScene
 
 @export var ground: Sprite2D
@@ -43,7 +42,10 @@ func activate() -> void:
 		# brace torches and move between build sites while the formation is paused.
 		hero.set_active(RunState.is_command_combat() or RunState.is_preparation())
 
-var _slots: Array[TowerSlot] = []
+## Placed towers, keyed by footprint anchor. Replaces the fixed slot nodes:
+## with free placement there is nothing to pre-instantiate, so towers appear and
+## disappear as RunState changes and this dictionary is how they are found again.
+var _towers: Dictionary = {}
 var _suspended: bool = false
 
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
@@ -81,6 +83,9 @@ static func lane_road_tint() -> Color:
 ## come off it now instead of off a straight line from the spawn radius.
 var grid: BattleGrid = null
 
+## Draws the build footprint under the mouse and turns a click into an anchor.
+var placement: PlacementCursor = null
+
 
 func _ready() -> void:
 	_pressure.resize(Balance.LANE_COUNT)
@@ -90,7 +95,11 @@ func _ready() -> void:
 	_setup_ground()
 	grid = BattleGrid.new()
 	_build_lanes()
-	_build_slots()
+	EventBus.tower_changed.connect(_on_tower_changed)
+	placement = PlacementCursor.new()
+	placement.name = "PlacementCursor"
+	placement.setup(self)
+	slot_root.add_child(placement)
 	_build_torches()
 	_build_foliage()
 	wave_director.battlefield = self
@@ -402,11 +411,8 @@ func target_radius(node: Node2D) -> float:
 
 ## The taunting tower in a lane, if one is built and still standing.
 func taunting_tower_in_lane(lane: int) -> Node2D:
-	for slot: TowerSlot in _slots:
-		if slot.lane != lane or slot.is_empty():
-			continue
-		var tower: Tower = slot.tower()
-		if tower != null and tower.data != null and tower.data.taunts:
+	for tower: Tower in all_towers():
+		if tower.lane() == lane and tower.data != null and tower.data.taunts:
 			return tower
 	return null
 
@@ -417,11 +423,8 @@ func taunting_tower_in_lane(lane: int) -> Node2D:
 func vulnerable_tower_in_lane(lane: int, from: Vector2) -> Node2D:
 	var nearest: Tower = null
 	var nearest_squared: float = INF
-	for built_slot: TowerSlot in _slots:
-		if built_slot.lane != lane or built_slot.is_empty():
-			continue
-		var built: Tower = built_slot.tower()
-		if built == null or not built.is_vulnerable():
+	for built: Tower in all_towers():
+		if built.lane() != lane or not built.is_vulnerable():
 			continue
 		var distance_squared: float = built.global_position.distance_squared_to(from)
 		if distance_squared < nearest_squared:
@@ -430,30 +433,17 @@ func vulnerable_tower_in_lane(lane: int, from: Vector2) -> Node2D:
 	return nearest
 
 
-func slot_at(lane: int, slot: int) -> TowerSlot:
-	for s: TowerSlot in _slots:
-		if s.lane == lane and s.slot == slot:
-			return s
-	return null
-
-
-func all_slots() -> Array[TowerSlot]:
-	return _slots
-
-
 func lane_pressure(lane: int) -> float:
 	return _pressure[lane] if lane >= 0 and lane < _pressure.size() else 0.0
 
 
 func lane_armour(lane: int) -> float:
 	var total: float = 0.0
-	for slot_node: TowerSlot in _slots:
-		if slot_node.lane != lane or slot_node.is_empty():
+	for built: Tower in all_towers():
+		if built.lane() != lane or built.data == null:
 			continue
-		var built: Tower = slot_node.tower()
-		if built != null and built.data != null:
-			total += built.data.lane_armour_bonus * built.data.utility_at(built.level) \
-				* Balance.TOWER_ARMOUR_EFFECT_SCALE
+		total += built.data.lane_armour_bonus * built.data.utility_at(built.level) \
+			* Balance.TOWER_ARMOUR_EFFECT_SCALE
 	return total + Modifiers.value(Modifiers.TOWER_ARMOUR)
 
 
@@ -501,44 +491,76 @@ func spawn_ground_zone(at: Vector2, dps: float, duration: float, radius: float) 
 # --- Build API (called by the UI) -------------------------------------------
 
 ## Returns "" on success, or a reason the build was refused.
-func try_build(lane: int, slot: int, tower_data: TowerData) -> String:
+##
+## `anchor` is the top-left tile of the 2x2 footprint. Placement is free: any
+## four open off-path tiles will do, and there is no cap on how many towers a
+## run may stand up (GDD §13).
+func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 	if not RunState.can_build_now():
 		return "Construction is locked until Preparation."
 	if tower_data == null:
 		return "No tower selected."
-	if not RunState.slot_is_empty(lane, slot):
-		return "That spot is taken."
-	var target_slot: TowerSlot = slot_at(lane, slot)
-	if target_slot == null:
-		return "No such build spot."
-	if target_slot.is_combo_slot():
-		var allowed: TowerData = target_slot.buildable_combination()
-		if allowed == null:
-			return "Build both flanking towers first."
-		if allowed != tower_data:
-			return "Those two elements make %s." % allowed.display_name
-	elif tower_data.is_combination:
-		return "Combination towers only go in the middle spot."
-	var cost: int = build_cost_of(tower_data)
-	var build_cost: Dictionary = {RunState.GOLD: cost}
+	var refusal: String = placement_problem(anchor)
+	if not refusal.is_empty():
+		return refusal
+
+	if tower_data.is_combination:
+		var offered: Array[Dictionary] = RunState.combinations_for_tile(anchor)
+		var allowed: bool = false
+		for option: Dictionary in offered:
+			if option["tower"] == tower_data:
+				allowed = true
+		if not allowed:
+			return "Nothing beside this tile fuses into %s." % tower_data.display_name
+
+	var build_cost: Dictionary = {RunState.GOLD: build_cost_of(tower_data)}
 	if tower_data.is_combination:
 		build_cost[RunState.STONE] = Balance.TOWER_COMBO_STONE_COST
 	if not RunState.can_afford_cost(build_cost):
 		return "Needs %s." % RunState.format_cost(build_cost)
 	RunState.spend_cost(build_cost)
-	RunState.set_slot(lane, slot, tower_data.id, 1)
+	RunState.set_tower(anchor, tower_data.id, 1)
 	RunState.towers_built += 1
-	Vfx.build_burst(slot_position(lane, slot), TowerData.element_colour(tower_data.element))
+	Vfx.build_burst(BattleGrid.footprint_centre(anchor),
+		TowerData.element_colour(tower_data.element))
 	return ""
 
 
-func try_upgrade(lane: int, slot: int) -> String:
+## Why a 2x2 tower cannot stand here, or "".
+##
+## Two separate questions, because two different objects own the answers: the
+## grid knows the map (roads, town, border) and RunState knows what has already
+## been built. Asking one object about both is how the two end up disagreeing.
+func placement_problem(anchor: Vector2i) -> String:
+	if grid == null:
+		return "The battlefield is not ready."
+	if not grid.footprint_is_open(anchor):
+		return "That ground cannot be built on."
+	for tile: Vector2i in BattleGrid.footprint_tiles(anchor):
+		if not _occupied_anchors_touching(tile).is_empty():
+			return "That space is taken."
+	return ""
+
+
+## Every placed tower whose footprint covers this tile.
+func _occupied_anchors_touching(tile: Vector2i) -> Array[Vector2i]:
+	var found: Array[Vector2i] = []
+	# A 2x2 tower covering `tile` can only be anchored within one tile of it.
+	for dx: int in range(-BattleGrid.FOOTPRINT + 1, 1):
+		for dy: int in range(-BattleGrid.FOOTPRINT + 1, 1):
+			var candidate: Vector2i = tile + Vector2i(dx, dy)
+			if not RunState.tile_is_empty(candidate):
+				found.append(candidate)
+	return found
+
+
+func try_upgrade(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Upgrades are locked until Preparation."
-	var tower_data: TowerData = RunState.tower_in_slot(lane, slot)
+	var tower_data: TowerData = RunState.tower_at(anchor)
 	if tower_data == null:
 		return "Nothing built there."
-	var level: int = RunState.level_in_slot(lane, slot)
+	var level: int = RunState.level_at(anchor)
 	if level >= Balance.TOWER_MAX_LEVEL:
 		return "Already at maximum level."
 	if level >= RunState.tower_level_cap():
@@ -547,7 +569,7 @@ func try_upgrade(lane: int, slot: int) -> String:
 	if not RunState.can_afford_cost({RunState.GOLD: cost}):
 		return "Needs %d Gold." % cost
 	RunState.spend_cost({RunState.GOLD: cost})
-	RunState.set_slot(lane, slot, tower_data.id, level + 1)
+	RunState.set_tower(anchor, tower_data.id, level + 1)
 	RunState.tower_upgrades += 1
 	return ""
 
@@ -567,13 +589,13 @@ static func upgrade_cost_of(level: int) -> int:
 	return maxi(int(round(float(base) * scale)), 1)
 
 
-func try_sell(lane: int, slot: int) -> String:
+func try_sell(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Selling is locked until Preparation."
-	var tower_data: TowerData = RunState.tower_in_slot(lane, slot)
+	var tower_data: TowerData = RunState.tower_at(anchor)
 	if tower_data == null:
 		return "Nothing built there."
-	var level: int = RunState.level_in_slot(lane, slot)
+	var level: int = RunState.level_at(anchor)
 	var spent: int = build_cost_of(tower_data)
 	for l: int in range(1, level):
 		spent += upgrade_cost_of(l)
@@ -583,8 +605,29 @@ func try_sell(lane: int, slot: int) -> String:
 		RunState.gain_currency(RunState.STONE,
 			int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
 	RunState.towers_sold += 1
-	RunState.clear_slot(lane, slot)
+	RunState.clear_tower(anchor)
+	# Selling a fusion parent orphans the fusion. Refunded rather than left
+	# standing at reduced output forever, because the player chose to remove it
+	# and a silently crippled tower is worse than the Gold back.
+	_refund_orphaned_fusions()
 	return ""
+
+
+## Any fusion whose flanking parents no longer stand is sold back.
+func _refund_orphaned_fusions() -> void:
+	var orphans: Array[Vector2i] = []
+	for key: Variant in RunState.towers:
+		var anchor: Vector2i = key
+		var built: TowerData = RunState.tower_at(anchor)
+		if built != null and built.is_combination 				and not RunState.fusion_parents_intact(anchor):
+			orphans.append(anchor)
+	for anchor: Vector2i in orphans:
+		var built: TowerData = RunState.tower_at(anchor)
+		RunState.gain_currency(RunState.GOLD,
+			int(round(float(build_cost_of(built)) * Balance.TOWER_SELL_REFUND)))
+		RunState.gain_currency(RunState.STONE,
+			int(round(float(Balance.TOWER_COMBO_STONE_COST) * Balance.TOWER_STONE_SELL_REFUND)))
+		RunState.clear_tower(anchor)
 
 
 ## Field rations between formations.
@@ -636,11 +679,10 @@ func try_repair_town() -> String:
 	return ""
 
 
-func try_repair_tower(lane: int, slot: int) -> String:
+func try_repair_tower(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Tower repairs are prepared between road battles."
-	var built_slot: TowerSlot = slot_at(lane, slot)
-	var built: Tower = built_slot.tower() if built_slot != null else null
+	var built: Tower = tower_at_anchor(anchor)
 	if built == null:
 		return "Nothing built there."
 	if not built.needs_repair():
@@ -747,17 +789,82 @@ func _build_road_segment(road: Texture2D, lane: int, from: Vector2, to: Vector2,
 		lane_root.add_child(strip)
 
 
-func _build_slots() -> void:
-	for lane: int in Balance.LANE_COUNT:
-		for slot: int in Balance.TOWER_SLOT_RADII.size():
-			var instance := tower_slot_scene.instantiate() as TowerSlot
-			if instance == null:
-				continue
-			instance.setup(lane, slot, self)
-			instance.position = slot_position(lane, slot)
-			slot_root.add_child(instance)
-			_slots.append(instance)
+## Keeps the tower nodes in step with RunState.
+##
+## RunState is the source of truth (CLAUDE.md rule 6); this only ever reacts to
+## it. That is why building, selling, refunding an orphaned fusion and a tower
+## being destroyed all end up here through one signal rather than each spawning
+## and freeing nodes for themselves.
+func _on_tower_changed(anchor: Vector2i) -> void:
+	var wanted: TowerData = RunState.tower_at(anchor)
+	var existing: Tower = _towers.get(anchor, null) as Tower
 
+	if wanted == null:
+		if existing != null and is_instance_valid(existing):
+			existing.queue_free()
+		_towers.erase(anchor)
+		_refresh_tower_modifiers()
+		return
+
+	if existing != null and is_instance_valid(existing) and existing.data == wanted:
+		existing.upgrade_to(RunState.level_at(anchor))
+		_refresh_tower_modifiers()
+		return
+
+	if existing != null and is_instance_valid(existing):
+		existing.queue_free()
+
+	var instance := tower_scene.instantiate() as Tower
+	if instance == null:
+		return
+	instance.projectile_scene = projectile_scene
+	instance.setup(wanted, RunState.level_at(anchor), anchor, self)
+	instance.position = BattleGrid.footprint_centre(anchor)
+	slot_root.add_child(instance)
+	_towers[anchor] = instance
+	_refresh_tower_modifiers()
+
+
+## A placement change can alter another tower's synergy or road armour, so every
+## standing tower recomputes rather than guessing which ones were affected.
+func _refresh_tower_modifiers() -> void:
+	for key: Variant in _towers:
+		var built: Tower = _towers[key] as Tower
+		if built != null and is_instance_valid(built):
+			built.refresh_modifiers()
+
+
+## A legal build anchor near a road's bend pocket, or the pocket itself.
+##
+## Free placement has no slot list, so anything that needs "somewhere sensible to
+## put a tower" - the soak, the perf harness, the breather check, a future
+## build hint - would otherwise each grow its own search. One copy, here.
+func free_anchor_near(lane: int, search: int = 3) -> Vector2i:
+	if grid == null:
+		return Vector2i.ZERO
+	var origin: Vector2i = BattleGrid.world_to_tile(grid.lane_pocket_centre(lane))
+	for ring: int in search + 1:
+		for dx: int in range(-ring, ring + 1):
+			for dy: int in range(-ring, ring + 1):
+				if absi(dx) != ring and absi(dy) != ring:
+					continue
+				var candidate: Vector2i = origin + Vector2i(dx, dy) * BattleGrid.FOOTPRINT
+				if placement_problem(candidate).is_empty():
+					return candidate
+	return origin
+
+
+func tower_at_anchor(anchor: Vector2i) -> Tower:
+	return _towers.get(anchor, null) as Tower
+
+
+func all_towers() -> Array[Tower]:
+	var found: Array[Tower] = []
+	for key: Variant in _towers:
+		var built: Tower = _towers[key] as Tower
+		if built != null and is_instance_valid(built):
+			found.append(built)
+	return found
 
 ## Pressure is how much of a lane's threat is close to the town, so a lane full
 ## of enemies that just spawned reads calmer than one about to break.

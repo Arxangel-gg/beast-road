@@ -457,11 +457,11 @@ func flash(colour: Color, peak: float, life: float) -> void:
 # EventBus reactions
 # ==============================================================================
 
-func _on_tower_fired(lane: int, slot: int, at: Vector2) -> void:
-	var tower: TowerData = RunState.tower_in_slot(lane, slot)
+func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
+	var tower: TowerData = RunState.tower_at(anchor)
 	if tower == null or world == null:
 		return
-	var origin: Vector2 = Battlefield.slot_position(lane, slot)
+	var origin: Vector2 = BattleGrid.footprint_centre(anchor)
 	var colour: Color = TowerData.element_colour(tower.element)
 	muzzle(origin, (at - origin).normalized(), colour)
 

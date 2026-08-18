@@ -168,7 +168,7 @@ func _ready() -> void:
 	EventBus.hero_dashed.connect(func(_i: float) -> void: play("sfx_dash"))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.tower_fired.connect(_on_tower_fired)
-	EventBus.tower_slot_changed.connect(_on_slot_changed)
+	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.town_damaged.connect(func(_a: float, _c: float, _m: float) -> void: play("sfx_town_damaged"))
 	EventBus.spell_cast.connect(_on_spell_cast)
 	EventBus.war_horn_activated.connect(func(_d: float) -> void: play("sfx_war_horn"))
@@ -389,19 +389,19 @@ func _on_enemy_died(_enemy_id: String, _at: Vector2) -> void:
 	play("sfx_enemy_die")
 
 
-func _on_tower_fired(lane: int, slot: int, _at: Vector2) -> void:
-	var tower: TowerData = RunState.tower_in_slot(lane, slot)
+func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
+	var tower: TowerData = RunState.tower_at(anchor)
 	if tower == null:
 		return
 	var index: int = clampi(int(tower.element), 0, ELEMENT_SHOTS.size() - 1)
 	play(ELEMENT_SHOTS[index])
 
 
-func _on_slot_changed(lane: int, slot: int) -> void:
+func _on_tower_changed(anchor: Vector2i) -> void:
 	# Built or upgraded versus sold, told apart by whether anything is there now.
-	if RunState.slot_is_empty(lane, slot):
+	if RunState.tile_is_empty(anchor):
 		play("sfx_tower_sell")
-	elif RunState.level_in_slot(lane, slot) > 1:
+	elif RunState.level_at(anchor) > 1:
 		play("sfx_tower_upgrade")
 	else:
 		play("sfx_tower_build")

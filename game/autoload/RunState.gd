@@ -95,7 +95,13 @@ var boss_cores: Array[String] = []
 
 ## Twelve slots: lane * 3 + slot_index. Each entry is {} or
 ## {"tower_id": String, "level": int}.
-var tower_slots: Array[Dictionary] = []
+## Every tower standing on the battlefield, keyed by the top-left tile of its
+## 2x2 footprint (GDD §13). Placement is free, so there is no fixed slot list
+## any more and no upper bound - the economy is the limit.
+##
+## Run-only, like everything else here. Nothing about a battlefield reaches the
+## account save.
+var towers: Dictionary = {}
 
 # --- Hero ------------------------------------------------------------------
 
@@ -254,9 +260,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	held_relics.clear()
 	boss_cores.clear()
 
-	tower_slots.clear()
-	for i: int in Balance.LANE_COUNT * Balance.TOWER_SLOT_RADII.size():
-		tower_slots.append({})
+	towers.clear()
 
 	equipped_spells.clear()
 	trained_discipline_nodes.clear()
@@ -465,89 +469,165 @@ func _sync_discipline_spells() -> void:
 	EventBus.spells_changed.emit()
 
 
-# --- Slot helpers -----------------------------------------------------------
+# --- Tower placement --------------------------------------------------------
 
-static func slot_index(lane: int, slot: int) -> int:
-	return lane * Balance.TOWER_SLOT_RADII.size() + slot
-
-
-func slot_at(lane: int, slot: int) -> Dictionary:
-	var i: int = slot_index(lane, slot)
-	return tower_slots[i] if i >= 0 and i < tower_slots.size() else {}
+func tower_entry(anchor: Vector2i) -> Dictionary:
+	return towers.get(anchor, {})
 
 
-func slot_is_empty(lane: int, slot: int) -> bool:
-	return slot_at(lane, slot).is_empty()
+func tile_is_empty(anchor: Vector2i) -> bool:
+	return not towers.has(anchor)
 
 
-func tower_in_slot(lane: int, slot: int) -> TowerData:
-	var entry: Dictionary = slot_at(lane, slot)
+func tower_at(anchor: Vector2i) -> TowerData:
+	var entry: Dictionary = tower_entry(anchor)
 	if entry.is_empty():
 		return null
 	return ContentDB.tower(String(entry.get("tower_id", "")))
 
 
-func level_in_slot(lane: int, slot: int) -> int:
-	return int(slot_at(lane, slot).get("level", 0))
+func level_at(anchor: Vector2i) -> int:
+	return int(tower_entry(anchor).get("level", 0))
 
 
-func set_slot(lane: int, slot: int, tower_id: String, level: int) -> void:
-	var i: int = slot_index(lane, slot)
-	if i < 0 or i >= tower_slots.size():
+func set_tower(anchor: Vector2i, tower_id: String, level: int) -> void:
+	var priority: int = int(tower_entry(anchor).get("target_priority",
+		TowerData.TargetPriority.FIRST))
+	towers[anchor] = {"tower_id": tower_id, "level": level, "target_priority": priority}
+	EventBus.tower_changed.emit(anchor)
+
+
+func clear_tower(anchor: Vector2i) -> void:
+	if not towers.has(anchor):
 		return
-	var priority: int = int(tower_slots[i].get("target_priority", TowerData.TargetPriority.FIRST))
-	tower_slots[i] = {"tower_id": tower_id, "level": level, "target_priority": priority}
-	EventBus.tower_slot_changed.emit(lane, slot)
+	towers.erase(anchor)
+	EventBus.tower_changed.emit(anchor)
 
 
-func clear_slot(lane: int, slot: int) -> void:
-	var i: int = slot_index(lane, slot)
-	if i < 0 or i >= tower_slots.size():
-		return
-	tower_slots[i] = {}
-	EventBus.tower_slot_changed.emit(lane, slot)
+func target_priority_at(anchor: Vector2i) -> int:
+	return int(tower_entry(anchor).get("target_priority", TowerData.TargetPriority.FIRST))
 
 
-func target_priority_in_slot(lane: int, slot: int) -> int:
-	return int(slot_at(lane, slot).get("target_priority", TowerData.TargetPriority.FIRST))
-
-
-func cycle_target_priority(lane: int, slot: int) -> int:
-	var i: int = slot_index(lane, slot)
-	if i < 0 or i >= tower_slots.size() or tower_slots[i].is_empty():
+func cycle_target_priority(anchor: Vector2i) -> int:
+	if not towers.has(anchor):
 		return TowerData.TargetPriority.FIRST
 	var count: int = TowerData.TargetPriority.size()
-	var priority: int = (target_priority_in_slot(lane, slot) + 1) % count
-	tower_slots[i]["target_priority"] = priority
-	EventBus.tower_targeting_changed.emit(lane, slot, priority)
+	var priority: int = (target_priority_at(anchor) + 1) % count
+	towers[anchor]["target_priority"] = priority
+	EventBus.tower_targeting_changed.emit(anchor, priority)
 	return priority
 
 
-## The combination available in a lane's middle slot, or null. Requires both
-## flanking slots to be built (GDD §4.1).
-## The fusion a flank's middle spot can currently take.
+## Which road a tower answers to, for lane armour, Rally and pressure.
 ##
-## Per flank, not per lane. Each side of a road is a self-contained trio with its
-## own inner and outer spot, so a road can run two different fusions at once -
-## which is the point of building on both sides rather than just having more
-## room for the same one.
-func available_combination(lane: int, slot: int) -> TowerData:
-	var base: int = Balance.slot_side_base(slot)
-	var inner: TowerData = tower_in_slot(lane, base)
-	var outer: TowerData = tower_in_slot(lane, base + 2)
-	if inner == null or outer == null:
-		return null
-	return ContentDB.combination_for(inner.element, outer.element)
+## Free placement means a tower is not *in* a lane any more, but several systems
+## still need one: road armour applies to a road, Rally targets a road. The
+## nearest cardinal by angle is the honest answer - it is the road the tower is
+## most plausibly defending.
+static func tower_lane(anchor: Vector2i) -> int:
+	var at: Vector2 = BattleGrid.footprint_centre(anchor)
+	if at.is_zero_approx():
+		return 0
+	var best: int = 0
+	var best_dot: float = -INF
+	for lane: int in Balance.LANE_COUNT:
+		var dot: float = at.normalized().dot(BattleGrid.lane_vector(lane))
+		if dot > best_dot:
+			best_dot = dot
+			best = lane
+	return best
 
 
-## True when the flank's two elemental towers share an element (GDD §4.2).
-## Scoped to the flank for the same reason as the combination above: the pair
-## that would fuse is the pair that resonates.
-func lane_has_element_synergy(lane: int, slot: int) -> bool:
-	var base: int = Balance.slot_side_base(slot)
-	var inner: TowerData = tower_in_slot(lane, base)
-	var outer: TowerData = tower_in_slot(lane, base + 2)
-	return inner != null and outer != null and inner.element == outer.element
+## Every anchor whose tower answers to this road.
+func towers_on_lane(lane: int) -> Array:
+	var found: Array = []
+	for key: Variant in towers:
+		var anchor: Vector2i = key
+		if tower_lane(anchor) == lane:
+			found.append(anchor)
+	return found
+
+
+# --- Fusion by adjacency ----------------------------------------------------
+
+## The four orthogonal neighbours a fusion could pair across.
+##
+## A tower is 2x2, so "exactly one tower-width gap" is a step of four tiles: two
+## for this tower, two for the gap. Diagonals are deliberately excluded (GDD §13).
+const FUSION_STEP: int = BattleGrid.FOOTPRINT * 2
+
+static func fusion_partners(anchor: Vector2i) -> Array[Vector2i]:
+	return [
+		anchor + Vector2i(FUSION_STEP, 0),
+		anchor + Vector2i(-FUSION_STEP, 0),
+		anchor + Vector2i(0, FUSION_STEP),
+		anchor + Vector2i(0, -FUSION_STEP),
+	]
+
+
+## Every combination that could be built on this tile, given what flanks it.
+##
+## Returns one entry per qualifying pair: {"tower": TowerData, "a": Vector2i,
+## "b": Vector2i}. More than one pair can qualify, and v4 §13 says the player
+## chooses rather than the game picking for them.
+func combinations_for_tile(anchor: Vector2i) -> Array[Dictionary]:
+	var offered: Array[Dictionary] = []
+	var seen: Dictionary = {}
+	# From the *gap*, each parent is one footprint away - not two. Two is the
+	# distance between the parents themselves, which is what `fusion_partners`
+	# measures; measuring from the middle with the same number looked past both
+	# of them and offered nothing.
+	for axis: Vector2i in [Vector2i(BattleGrid.FOOTPRINT, 0), Vector2i(0, BattleGrid.FOOTPRINT)]:
+		var a: Vector2i = anchor - axis
+		var b: Vector2i = anchor + axis
+		var left: TowerData = tower_at(a)
+		var right: TowerData = tower_at(b)
+		if left == null or right == null:
+			continue
+		# A fusion parent may not itself be a fusion.
+		if left.is_combination or right.is_combination:
+			continue
+		var made: TowerData = ContentDB.combination_for(left.element, right.element)
+		if made == null or seen.has(made.id):
+			continue
+		seen[made.id] = true
+		offered.append({"tower": made, "a": a, "b": b})
+	return offered
+
+
+## True when this tower's flanking parents still stand.
+##
+## A fusion whose parent was destroyed keeps firing at reduced output (GDD §20),
+## so this is a question about utility, not existence.
+func fusion_parents_intact(anchor: Vector2i) -> bool:
+	var entry: Dictionary = tower_entry(anchor)
+	if entry.is_empty():
+		return true
+	var built: TowerData = tower_at(anchor)
+	if built == null or not built.is_combination:
+		return true
+	for axis: Vector2i in [Vector2i(BattleGrid.FOOTPRINT, 0), Vector2i(0, BattleGrid.FOOTPRINT)]:
+		if tower_at(anchor - axis) != null and tower_at(anchor + axis) != null:
+			return true
+	return false
+
+
+## True when this tower is one of a matching pair that could fuse (GDD §4.2).
+##
+## Same-element resonance now follows the same adjacency rule as fusion: the pair
+## that *would* fuse is the pair that resonates. A tower with a same-element
+## partner exactly one tower-width away, orthogonally, gets the bonus - so
+## resonance is something the player arranges on the grid rather than something a
+## fixed slot handed them.
+func has_fusion_synergy(anchor: Vector2i) -> bool:
+	var mine: TowerData = tower_at(anchor)
+	if mine == null or mine.is_combination:
+		return false
+	for partner: Vector2i in fusion_partners(anchor):
+		var other: TowerData = tower_at(partner)
+		if other != null and not other.is_combination and other.element == mine.element:
+			return true
+	return false
 
 
 # --- Phase and Command -----------------------------------------------------

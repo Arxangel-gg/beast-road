@@ -109,9 +109,10 @@ func _test_live_tower_utility() -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	RunState.gain_resources(9999)
 	var bulwark: TowerData = ContentDB.tower("bulwark")
-	_check(field.try_build(0, 0, bulwark).is_empty(), "Bulwark must be buildable")
+	var bulwark_at: Vector2i = _free_anchor(field)
+	_check(field.try_build(bulwark_at, bulwark).is_empty(), "Bulwark must be buildable")
 	await get_tree().process_frame
-	var built: Tower = field.slot_at(0, 0).tower()
+	var built: Tower = field.tower_at_anchor(bulwark_at)
 	_check(built != null and Health.of(built) != null,
 		"taunting towers must expose live structure health")
 	if built != null and Health.of(built) != null:
@@ -361,24 +362,26 @@ func _test_road_archetypes() -> void:
 
 func _test_target_priorities() -> void:
 	var field: Battlefield = _run.battlefield
-	if RunState.slot_is_empty(0, 0):
-		RunState.set_slot(0, 0, "ember_spire", 1)
-	var before: int = RunState.target_priority_in_slot(0, 0)
-	var after: int = RunState.cycle_target_priority(0, 0)
+	var anchor: Vector2i = _free_anchor(field)
+	RunState.set_tower(anchor, "ember_spire", 1)
+	var before: int = RunState.target_priority_at(anchor)
+	var after: int = RunState.cycle_target_priority(anchor)
 	_check(after != before and after == TowerData.TargetPriority.STRONG,
 		"built towers must cycle through player-selected targeting doctrines")
-	RunState.set_slot(0, 0, "ember_spire", 2)
-	_check(RunState.target_priority_in_slot(0, 0) == after,
+	RunState.set_tower(anchor, "ember_spire", 2)
+	_check(RunState.target_priority_at(anchor) == after,
 		"upgrading a tower must preserve its targeting doctrine")
+	RunState.clear_tower(anchor)
 
 
 func _test_preparation_and_command() -> void:
 	var field: Battlefield = _run.battlefield
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	_check(field.try_build(1, 0, ContentDB.tower("ember_spire")).is_empty(),
+	var spire_at: Vector2i = _free_anchor(field)
+	_check(field.try_build(spire_at, ContentDB.tower("ember_spire")).is_empty(),
 		"tower construction must be legal during Preparation")
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
-	_check(not field.try_upgrade(1, 0).is_empty(),
+	_check(not field.try_upgrade(spire_at).is_empty(),
 		"tower upgrades must be locked during road combat")
 	_check(not TownScope.try_start_construction("forge").is_empty(),
 		"town construction must be locked during road combat")
@@ -391,16 +394,16 @@ func _test_preparation_and_command() -> void:
 		"active hero hits on a pressured road must generate tactical Command")
 	RunState.gain_command(Balance.COMMAND_MAX)
 	var command: Node = _run.command_system
-	var tower: Tower = field.slot_at(1, 0).tower()
-	_check(command.use_order(CommandSystemScript.OVERDRIVE, 1, 0).is_empty(),
+	var tower: Tower = field.tower_at_anchor(spire_at)
+	_check(command.use_order(CommandSystemScript.OVERDRIVE, spire_at).is_empty(),
 		"Overdrive must resolve on a built tower")
 	_check(tower != null and tower._command_overdrive_left > 0.0,
 		"Overdrive must apply a live tower effect")
 	RunState.gain_command(Balance.COMMAND_MAX)
-	_check(command.use_order(CommandSystemScript.RALLY_ROAD, 1, -1).is_empty(),
+	_check(command.use_order(CommandSystemScript.RALLY_ROAD, spire_at).is_empty(),
 		"Rally Road must resolve on a selected road")
 	RunState.gain_command(Balance.COMMAND_MAX)
-	_check(command.use_order(CommandSystemScript.LAST_STAND, -1, -1).is_empty(),
+	_check(command.use_order(CommandSystemScript.LAST_STAND, Vector2i.ZERO).is_empty(),
 		"Last Stand must resolve at full Command")
 	_check(RunState.last_stand_used and field.town.health.is_invulnerable(),
 		"Last Stand must protect the Town Hall and enforce once-per-battle use")
@@ -441,7 +444,7 @@ func _test_preparation_and_command() -> void:
 	await _clear_the_road(field)
 	_test_road_survives_a_declined_breather(field)
 	_test_level_moves_every_stat_a_tower_has()
-	_test_six_spots_per_road(field)
+	_test_free_placement(field)
 	_test_hero_frame_animation(field)
 	await _test_enemies_walk_the_road(field)
 
@@ -575,99 +578,102 @@ func _clear_the_road(field: Battlefield) -> void:
 		push_error("[balance] could not clear the road for the crossroad test")
 
 
+## A free build anchor, from the field's own search so the test and the game
+## agree about what "somewhere legal" means.
+func _free_anchor(field: Battlefield) -> Vector2i:
+	return field.free_anchor_near(0)
+
+
 ## Reported: "sometimes I'm trying to attack mobs on towers and end up clicking
 ## on the tower and opening its build menu."
 func _test_build_spots_yield_to_the_fight(field: Battlefield) -> void:
-	var spot: TowerSlot = field.slot_at(0, 0)
-	_check(spot != null, "the test needs a build spot")
-	if spot == null:
-		return
-
+	# Reported once as "I'm trying to attack mobs on towers and end up opening
+	# the build menu". Free placement answers it structurally rather than with a
+	# proximity guard: the placement cursor does not exist outside Preparation,
+	# so a click during combat has nothing to open.
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	_check(spot.accepts_clicks(),
-		"a build spot must always be clickable during Preparation - that is what it is for")
+	_check(field.placement != null, "the battlefield must own a placement cursor")
+	if field.placement == null:
+		return
+	_check(field.placement._is_active(),
+		"the placement cursor must be live during Preparation - that is what it is for")
 
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
-	_check(spot.accepts_clicks(),
-		"an undisturbed spot must stay clickable outside Preparation")
-
-	var besieger: Enemy = field.spawn_enemy(ContentDB.enemy("howler"), 0, 1.0, 1.0, 1.0)
-	if besieger != null:
-		besieger.global_position = spot.global_position
-		_check(not spot.accepts_clicks(),
-			"a spot with an enemy standing on it must let the click through to the swing")
-		besieger.global_position = spot.global_position \
-			+ Vector2(Balance.TOWER_CLICK_BLOCK_RADIUS * 2.0, 0.0)
-		_check(spot.accepts_clicks(),
-			"the guard must lift again once the enemy is clear, not latch")
-		besieger.queue_free()
+	_check(not field.placement._is_active(),
+		"the placement cursor must be inert during combat, so a swing cannot open a build panel")
 	RunState.set_phase(RunState.Phase.PREPARATION)
 
 
-## Six build spots per road, three to a flank, each flank its own trio.
+## Free placement on the grid, and fusion by adjacency (GDD §13).
 ##
-## Owner decision, 2026-08-14: 24 spots rather than 12. Almost everything reads
-## the count from `TOWER_SLOT_RADII.size()` and needed no change, which is why
-## the things that *did* hardcode indices are worth pinning here - a coverage
-## check that tested spots 0 and 2 used to mean "the whole road" and now means
-## "the left flank", and would have called a road with a full right flank
-## undefended.
-func _test_six_spots_per_road(field: Battlefield) -> void:
-	_check(Balance.slots_per_lane() == 6, "a road must offer six build spots")
-	_check(field.all_slots().size() == Balance.LANE_COUNT * 6,
-		"the field must build all 24 spots, got %d" % field.all_slots().size())
-
-	# One combination per flank, in the middle of it.
-	var combos: Array[int] = []
-	for slot: int in Balance.slots_per_lane():
-		if Balance.slot_is_combo(slot):
-			combos.append(slot)
-	_check(combos == [1, 4], "each flank's middle spot is its combination, got %s" % [combos])
-
-	# The flanks are opposite sides of the same road, and mirror each other.
-	for local: int in Balance.TOWER_SLOTS_PER_SIDE:
-		var left: Vector2 = Battlefield.slot_position(0, local)
-		var right: Vector2 = Battlefield.slot_position(0, local + Balance.TOWER_SLOTS_PER_SIDE)
-		_check(not left.is_equal_approx(right),
-			"flank spots must not share a position at local %d" % local)
-		_check(left.distance_to(-right) < 1.0 or is_equal_approx(left.length(), right.length()),
-			"mirrored spots must sit the same distance along the road")
-
-	# No spot may land on a torch. This bit the project once already, when moving
-	# the spots off the road put them where the torches stood.
-	for lane: int in Balance.LANE_COUNT:
-		var direction: Vector2 = Battlefield.lane_vector(lane)
-		for slot: int in Balance.slots_per_lane():
-			var at: Vector2 = Battlefield.slot_position(lane, slot)
-			for along: float in Balance.TORCH_ALONG_STOPS:
-				for sign_of: float in [1.0, -1.0]:
-					var torch: Vector2 = direction * along \
-						+ direction.orthogonal() * Balance.TORCH_LANE_OFFSET * sign_of
-					_check(at.distance_to(torch) > 120.0,
-						"lane %d spot %d stands on a torch (%.0fpx away)"
-							% [lane, slot, at.distance_to(torch)])
-
-	# A flank's fusion depends on that flank only. Building across the road must
-	# not unlock - or invalidate - the other side's combination.
+## Owner decision, 2026-08-18: towers go anywhere off-path on a 30x30 grid in
+## 2x2 footprints, and a fusion is built on the gap between two orthogonally
+## aligned towers exactly one tower-width apart.
+func _test_free_placement(field: Battlefield) -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	RunState.currencies[RunState.GOLD] = 9999
-	RunState.currencies[RunState.STONE] = 9999
-	for slot: int in Balance.slots_per_lane():
-		RunState.clear_slot(3, slot)
-	_check(field.try_build(3, 0, ContentDB.tower("ember_spire")).is_empty(),
-		"left inner must build")
-	_check(field.try_build(3, 2, ContentDB.tower("ember_spire")).is_empty(),
-		"left outer must build")
-	_check(RunState.available_combination(3, 1) != null,
-		"a completed flank must offer its fusion")
-	_check(RunState.available_combination(3, 4) == null,
-		"the far flank must not inherit a fusion from across the road")
-	_check(RunState.lane_has_element_synergy(3, 0),
-		"a flank's matching pair must resonate")
-	_check(not RunState.lane_has_element_synergy(3, 3),
-		"synergy must not leak across the road")
-	for slot: int in Balance.slots_per_lane():
-		RunState.clear_slot(3, slot)
+	RunState.currencies[RunState.GOLD] = 99999
+	RunState.currencies[RunState.STONE] = 99999
+	RunState.towers.clear()
+
+	var pocket: Vector2i = BattleGrid.world_to_tile(field.grid.lane_pocket_centre(0))
+	_check(field.placement_problem(pocket).is_empty(),
+		"the bend pocket must be buildable: %s" % field.placement_problem(pocket))
+
+	# Roads and the town refuse construction.
+	var on_road: Vector2i = BattleGrid.world_to_tile(field.grid.lane_paths[0][1])
+	_check(not field.placement_problem(on_road).is_empty(),
+		"a road tile must refuse construction")
+	_check(not field.placement_problem(BattleGrid.world_to_tile(Vector2.ZERO)).is_empty(),
+		"the town must refuse construction")
+
+	# Build, and the footprint is then taken - including from a tile that would
+	# merely overlap it, which is the bug a naive "is this exact anchor free"
+	# check would let through.
+	var fire: TowerData = ContentDB.tower("ember_spire")
+	_check(field.try_build(pocket, fire).is_empty(), "the pocket must accept a tower")
+	_check(not RunState.tile_is_empty(pocket), "the tower must be recorded")
+	_check(not field.placement_problem(pocket).is_empty(), "its own tile is now taken")
+	_check(not field.placement_problem(pocket + Vector2i(1, 0)).is_empty(),
+		"a tile overlapping the footprint must be taken too")
+	_check(field.placement_problem(pocket + Vector2i(2, 0)).is_empty(),
+		"the tile immediately beyond the footprint must still be free")
+
+	# Fusion by adjacency: two towers with exactly one tower-width gap.
+	var gap: Vector2i = pocket + Vector2i(2, 0)
+	var far: Vector2i = pocket + Vector2i(4, 0)
+	_check(RunState.combinations_for_tile(gap).is_empty(),
+		"one tower alone offers no fusion")
+	_check(field.try_build(far, ContentDB.tower("rime_lance")).is_empty(),
+		"the second parent must build")
+	var offers: Array[Dictionary] = RunState.combinations_for_tile(gap)
+	_check(offers.size() == 1, "a flanked tile must offer exactly one fusion, got %d" % offers.size())
+	if not offers.is_empty():
+		_check((offers[0]["tower"] as TowerData).id == "steam_burst",
+			"Fire + Water must offer Steam Burst, got %s" % offers[0]["tower"].id)
+
+	# Diagonals do not fuse.
+	_check(RunState.combinations_for_tile(pocket + Vector2i(2, 2)).is_empty(),
+		"a diagonal pair must not offer a fusion")
+
+	# And the fusion builds on the gap.
+	var steam: TowerData = ContentDB.tower("steam_burst")
+	_check(field.try_build(gap, steam).is_empty(), "the fusion must build on the gap tile")
+	_check(RunState.tower_at(gap) == steam, "the gap must hold the fusion")
+
+	# Selling a parent orphans the fusion, which is refunded rather than left
+	# standing crippled forever.
+	_check(field.try_sell(far).is_empty(), "the parent must sell")
+	_check(RunState.tile_is_empty(gap), "an orphaned fusion must be refunded, not left standing")
+
+	# Same-element neighbours resonate, which is now something the player
+	# arranges on the grid rather than something a fixed slot handed them.
+	RunState.towers.clear()
+	_check(field.try_build(pocket, fire).is_empty(), "resonance test needs a tower")
+	_check(not RunState.has_fusion_synergy(pocket), "one tower cannot resonate with itself")
+	_check(field.try_build(far, fire).is_empty(), "resonance test needs a matching partner")
+	_check(RunState.has_fusion_synergy(pocket) and RunState.has_fusion_synergy(far),
+		"a matching pair one tower-width apart must resonate")
+	RunState.towers.clear()
 
 
 ## An upgrade has to move the stats that make each tower the tower it is.

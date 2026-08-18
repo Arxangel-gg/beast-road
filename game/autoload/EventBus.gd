@@ -102,13 +102,15 @@ signal wave_archetype_started(wave_number: int, archetype_id: String)
 signal wave_cleared(wave_number: int)
 
 ## The contents of a tower slot changed: built, upgraded, or sold.
-signal tower_slot_changed(lane: int, slot: int)
+## A tower was built, upgraded, sold or destroyed on this tile. The anchor is
+## the top-left tile of its 2x2 footprint.
+signal tower_changed(anchor: Vector2i)
 
 ## A tower fired at something. Purely for feedback systems.
-signal tower_fired(lane: int, slot: int, at: Vector2)
+signal tower_fired(anchor: Vector2i, at: Vector2)
 
 ## A tower's player-selected targeting doctrine changed.
-signal tower_targeting_changed(lane: int, slot: int, priority: int)
+signal tower_targeting_changed(anchor: Vector2i, priority: int)
 
 ## The battle-only Command meter changed, in points from 0 to maximum.
 signal command_changed(current: float, maximum: float)
