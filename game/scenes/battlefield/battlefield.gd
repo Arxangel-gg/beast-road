@@ -73,6 +73,11 @@ const PATH_TILE_FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
 ## no code change. Falls back to PATH_TILE_FORMAT for any region without a set,
 ## which is how one act can be re-skinned without breaking the other two.
 const PATH_TILE_REGION_FORMAT: String = "res://art/battlefield/path_%s_%02d.png"
+
+## The region's corner (Wang) ground set. Derived from the terrain id, like every
+## other asset path in the project. Absent means the region falls back to a
+## single repeating tile.
+const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
 const PATH_TILE_PIXELS: int = 32
 
 ## The carriageway, 2*ROAD_WIDTH+1 = 3 tiles across.
@@ -94,6 +99,8 @@ const PIECE: float = BattleGrid.TILE * float(ROAD_CELL) / ROAD_ART_SPAN
 const ROAD_BAKE_PPU: float = 0.25
 
 var _path_tiles: Array = []
+var _ground_tiles_cache: Array = []
+var _ground_cache_id: String = ""
 
 ## How much wider the road is than the walkable lane, so enemies travel on it
 ## rather than beside it.
@@ -821,11 +828,92 @@ func _setup_ground() -> void:
 	ground.region_rect = Rect2(-half, -half, half * 2.0, half * 2.0)
 	ground.scale = Vector2.ONE * tile_scale
 
-	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
-	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
-		ground.texture = load(terrain.get_sprite_path())
-	# Nearest, so a tileset ground stays pixel art at the scale it is drawn.
+	# Nearest, so the floor stays pixel art at the scale it is drawn.
 	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var baked: ImageTexture = _bake_ground(extent)
+	if baked != null:
+		# A baked floor is already the whole field, so it must not repeat and it
+		# is drawn 1:1 - the tiling happened at bake time.
+		ground.texture = baked
+		ground.region_enabled = false
+		ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
+		ground.material = null
+		ground.scale = Vector2.ONE * Balance.GROUND_UNITS_PER_TEXEL
+	elif terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
+		ground.texture = load(terrain.get_sprite_path())
+
+
+## Bakes the region's floor from its corner (Wang) tileset.
+##
+## A single tile repeating is wallpaper: the eye finds the period within a second
+## and the whole battlefield reads as graph paper. A corner set gives the region
+## two materials - earth and moss, rock and snow - and sixteen tiles covering
+## every way four corners can be one or the other, so which tile goes where is
+## decided by a noise field rather than by position. The repeat lives in the
+## *pattern* and there is nothing regular left for the eye to lock onto.
+##
+## Baked into one texture for the same reason the road is: as sprites the tiles
+## abut in world space and the rasteriser rounds each quad on its own, so a
+## hairline of background opens along some joins and which joins depends on the
+## camera.
+##
+## Returns null when the region has no set, and the caller falls back to the
+## single repeating tile - which is what every region had before this.
+func _bake_ground(extent: float) -> ImageTexture:
+	var tiles: Array = _ground_tiles()
+	if tiles.is_empty():
+		return null
+
+	var tile_px: int = (tiles[0] as Image).get_width()
+	var cells: int = int(ceil(extent * 2.0 / (float(tile_px) * Balance.GROUND_UNITS_PER_TEXEL)))
+	cells = maxi(cells, 1)
+	var canvas: Image = Image.create_empty(cells * tile_px, cells * tile_px,
+		false, Image.FORMAT_RGBA8)
+
+	# Seeded from the run, so a given seed always grows the same ground - the
+	# debrief promises a seed reproduces the run, and the floor is part of that.
+	var noise := FastNoiseLite.new()
+	noise.seed = RunState.run_seed
+	noise.frequency = Balance.GROUND_PATCH_FREQUENCY
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+
+	for cy: int in cells:
+		for cx: int in cells:
+			# Corners are shared with the neighbouring cells by construction,
+			# which is the whole trick: adjacent tiles agree on the corner they
+			# share, so the two materials interlock instead of butting.
+			var mask: int = 0
+			const OFFSETS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
+				Vector2i(1, 1), Vector2i(0, 1)]
+			for bit: int in 4:
+				var at: Vector2i = Vector2i(cx, cy) + OFFSETS[bit]
+				if noise.get_noise_2d(float(at.x), float(at.y)) > Balance.GROUND_PATCH_THRESHOLD:
+					mask |= 1 << bit
+			var piece: Image = tiles[mask] as Image
+			if piece == null:
+				continue
+			canvas.blit_rect(piece, Rect2i(Vector2i.ZERO, piece.get_size()),
+				Vector2i(cx * tile_px, cy * tile_px))
+	return ImageTexture.create_from_image(canvas)
+
+
+## The region's sixteen corner tiles, cached, indexed by corner mask.
+func _ground_tiles() -> Array:
+	if _ground_cache_id == RunState.terrain_id:
+		return _ground_tiles_cache
+	_ground_cache_id = RunState.terrain_id
+	_ground_tiles_cache = []
+	for mask: int in 16:
+		var path: String = GROUND_TILE_FORMAT % [RunState.terrain_id, mask]
+		if not ResourceLoader.exists(path):
+			_ground_tiles_cache = []
+			return _ground_tiles_cache
+		var image: Image = (load(path) as Texture2D).get_image()
+		image.convert(Image.FORMAT_RGBA8)
+		_ground_tiles_cache.append(image)
+	return _ground_tiles_cache
 
 
 ## Four road strips, one per cardinal, from the town wall out to the spawn point.
@@ -984,7 +1072,9 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 		return
 	instance.projectile_scene = projectile_scene
 	instance.setup(wanted, RunState.level_at(anchor), anchor, self)
-	instance.position = BattleGrid.footprint_centre(anchor)
+	# On the plot front edge, not its middle: see Balance.TOWER_SORT_LIFT.
+	var plot: Vector2 = BattleGrid.footprint_centre(anchor)
+	instance.position = plot + Vector2(0.0, Balance.TOWER_SORT_LIFT)
 	slot_root.add_child(instance)
 	_towers[anchor] = instance
 	_refresh_tower_modifiers()

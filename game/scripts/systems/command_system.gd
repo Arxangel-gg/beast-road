@@ -42,7 +42,7 @@ func _use_overdrive(anchor: Vector2i) -> String:
 	if not RunState.spend_command(Balance.COMMAND_OVERDRIVE_COST, OVERDRIVE):
 		return _need(Balance.COMMAND_OVERDRIVE_COST)
 	tower.command_overdrive(Balance.COMMAND_OVERDRIVE_DURATION)
-	EventBus.command_order_used.emit(OVERDRIVE, RunState.tower_lane(anchor), 0, tower.global_position)
+	EventBus.command_order_used.emit(OVERDRIVE, RunState.tower_lane(anchor), 0, tower.origin())
 	return ""
 
 

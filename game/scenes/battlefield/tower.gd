@@ -49,6 +49,17 @@ var _damage_flames: Array[Flame] = []
 var _step_wobble: float = 0.0
 
 
+## The plot centre: where this tower *is*, for anything that measures.
+##
+## The node itself stands one tile lower, on the front edge of its plot, because
+## that is the only way to make it y-sort against ground foliage by the ground it
+## occupies. Foliage growing in front of a tower has to draw in front of it, and
+## sorting on a structure's middle gets that backwards for everything in the
+## lower half of the sprite.
+func origin() -> Vector2:
+	return global_position + Vector2(0.0, -Balance.TOWER_SORT_LIFT)
+
+
 func setup(tower_data: TowerData, tower_level: int, tile: Vector2i, field: Battlefield) -> void:
 	data = tower_data
 	level = tower_level
@@ -71,6 +82,12 @@ func _ready() -> void:
 
 	# A tower is scenery as far as shadows go: it sits still and it is solid, so
 	# every torch near it throws its shape across the road.
+	# Everything visible is lifted back to the plot centre, so moving the node
+	# down to its base changes the sorting and nothing else.
+	sprite.position.y -= Balance.TOWER_SORT_LIFT
+	if range_ring != null:
+		range_ring.position.y -= Balance.TOWER_SORT_LIFT
+
 	_shadow = ShadowKit.add_contact(self, sprite)
 	if _shadow != null:
 		_shadow_base_scale = _shadow.scale
@@ -164,16 +181,16 @@ func rolled_damage() -> float:
 func command_overdrive(duration: float) -> void:
 	_command_overdrive_left = maxf(_command_overdrive_left, duration)
 	_cooldown = 0.0
-	Vfx.ring(global_position, effective_range() * 0.52,
+	Vfx.ring(origin(), effective_range() * 0.52,
 		Color("e8a33d", 0.82), 0.48, 6.0)
-	Vfx.rays(global_position, Color("fff0bd"), 10, 82.0)
+	Vfx.rays(origin(), Color("fff0bd"), 10, 82.0)
 
 
 func command_rally(duration: float) -> void:
 	_command_rally_left = maxf(_command_rally_left, duration)
 	if _health != null:
 		_health.add_invulnerability(duration)
-	Vfx.ring(global_position, 68.0, Color("d9cdb8", 0.72), 0.42, 5.0)
+	Vfx.ring(origin(), 68.0, Color("d9cdb8", 0.72), 0.42, 5.0)
 
 
 func command_reset_attack() -> void:
@@ -194,7 +211,7 @@ func upgrade_to(new_level: int) -> void:
 	# something happened, not like a number changed in a panel.
 	if level != previous_level:
 		var colour: Color = TowerData.element_colour(data.element)
-		Vfx.build_burst(global_position, colour, true)
+		Vfx.build_burst(origin(), colour, true)
 
 
 ## Colourblind modes remap semantic element cues in-place. The sprite keeps its
@@ -242,7 +259,7 @@ func show_range(visible_now: bool) -> void:
 func _acquire_targets() -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var reach: float = effective_range()
-	var candidates: Array[Enemy] = _field.enemies_near(global_position, reach)
+	var candidates: Array[Enemy] = _field.enemies_near(origin(), reach)
 	if candidates.is_empty():
 		return found
 
@@ -300,9 +317,9 @@ func _fire(targets: Array[Enemy]) -> void:
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.
 	if _is_aura():
-		for enemy: Enemy in _field.enemies_near(global_position, effective_range()):
+		for enemy: Enemy in _field.enemies_near(origin(), effective_range()):
 			_hit(enemy)
-		Vfx.ring(global_position, effective_range(),
+		Vfx.ring(origin(), effective_range(),
 			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
 		return
 
@@ -328,14 +345,14 @@ func _launch(enemy: Enemy) -> void:
 	shot.setup(enemy, data, rolled_damage(),
 		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	shot.tier = level
-	_field.add_projectile(shot, global_position + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
+	_field.add_projectile(shot, origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
 
 func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		enemy.take_damage(rolled_damage(), global_position,
+		enemy.take_damage(rolled_damage(), origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
@@ -364,9 +381,9 @@ func _build_health() -> void:
 	_refresh_health_for_level()
 	_health.revive()
 	_health.damaged.connect(func(amount: float, from: Vector2) -> void:
-		Vfx.number(global_position, amount, Color("d9cdb8"))
-		Vfx.spark(global_position, Color("a78f6d"), 5,
-			(global_position - from).normalized(), 120.0)
+		Vfx.number(origin(), amount, Color("d9cdb8"))
+		Vfx.spark(origin(), Color("a78f6d"), 5,
+			(origin() - from).normalized(), 120.0)
 		_pulse_impact(from)
 		_refresh_damage_flames())
 	_health.changed.connect(func(_current: float, _maximum: float) -> void:
@@ -378,7 +395,8 @@ func _build_health() -> void:
 	if _health_bar == null:
 		return
 	_health_bar.hide_until_damaged = true
-	_health_bar.position = Vector2(0.0, -Balance.TOWER_SPRITE_LIFT * 2.4)
+	_health_bar.position = Vector2(0.0,
+		-Balance.TOWER_SPRITE_LIFT * 2.4 - Balance.TOWER_SORT_LIFT)
 	add_child(_health_bar)
 	_health_bar.bind(_health)
 	_build_damage_flames()
@@ -394,9 +412,9 @@ func _refresh_health_for_level() -> void:
 
 
 func _on_destroyed(_from: Vector2) -> void:
-	Vfx.spark(global_position, TowerData.element_colour(data.element), 18,
+	Vfx.spark(origin(), TowerData.element_colour(data.element), 18,
 		Vector2.ZERO, 260.0)
-	Vfx.ring(global_position, 110.0,
+	Vfx.ring(origin(), 110.0,
 		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
 	EventBus.camera_shake_requested.emit(9.0, 0.4)
 	RunState.towers_lost += 1
@@ -416,8 +434,8 @@ func repair(fraction: float) -> void:
 		return
 	_health.heal(_health.max_hp * clampf(fraction, 0.0, 1.0))
 	_refresh_damage_flames()
-	Vfx.ring(global_position, 74.0, Color(0.58, 0.88, 0.64, 0.65), 0.45, 5.0)
-	Vfx.spark(global_position, Color("b7e6c0"), 12, Vector2.UP, 150.0)
+	Vfx.ring(origin(), 74.0, Color(0.58, 0.88, 0.64, 0.65), 0.45, 5.0)
+	Vfx.spark(origin(), Color("b7e6c0"), 12, Vector2.UP, 150.0)
 	Sfx.play("sfx_tower_upgrade", -5.0)
 
 
@@ -484,7 +502,7 @@ func _refresh_damage_flames() -> void:
 
 
 func _pulse_impact(from: Vector2) -> void:
-	var away: Vector2 = global_position - from
+	var away: Vector2 = origin() - from
 	var side: float = signf(away.x) if absf(away.x) > 0.01 else 1.0
 	_step_wobble += side * 1.1
 

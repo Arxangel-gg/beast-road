@@ -240,6 +240,84 @@ density (`Balance.GROUND_UNITS_PER_TEXEL`).
 | `terrain_saltglass.png` | 40×40 | O | `#8FA8B8` |
 | `terrain_steppe.png` | 40×40 | O | `#6B4A3A` |
 
+**Region floors — corner (Wang) sets.**
+
+Each region's floor is sixteen tiles covering every way four corners can be one
+of two materials, indexed by a corner mask (bit0=NW, bit1=NE, bit2=SE, bit3=SW;
+a set bit is the *upper* material). `Battlefield` bakes the floor by sampling a
+seeded noise field at the cell corners, so the two materials interlock in
+organic drifts and the floor never shows a repeat — the periodicity lives in the
+pattern, not in the image.
+
+Sliced from a PixelLab tileset by `tools/build_ground_tiles.py`, which documents
+the two traps: slice by each tile's `bounding_box`, never by its name or grid
+position, and read the corners by name rather than positionally.
+
+`terrain_<id>.png` above remains the fallback for a region with no corner set.
+
+**Act I — The Verdant Maw** (dark jungle earth → deep-green moss)
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ground_ashfen_00.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_01.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_02.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_03.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_04.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_05.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_06.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_07.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_08.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_09.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_10.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_11.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_12.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_13.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_14.png` | 32×32 | O | `#2E3A33` |
+| `ground_ashfen_15.png` | 32×32 | O | `#2E3A33` |
+
+**Act II — The Sunglass Waste** (pale salt hardpan → golden sand drifts)
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ground_saltglass_00.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_01.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_02.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_03.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_04.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_05.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_06.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_07.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_08.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_09.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_10.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_11.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_12.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_13.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_14.png` | 32×32 | O | `#C9A968` |
+| `ground_saltglass_15.png` | 32×32 | O | `#C9A968` |
+
+**Act III — The White Teeth** (frozen rock → wind-packed snow)
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ground_steppe_00.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_01.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_02.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_03.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_04.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_05.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_06.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_07.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_08.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_09.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_10.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_11.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_12.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_13.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_14.png` | 32×32 | O | `#8FA8B8` |
+| `ground_steppe_15.png` | 32×32 | O | `#8FA8B8` |
+
 ### 5.8 Backdrops — `res://art/bg/`
 
 | File | Size | Type | Placeholder colour |

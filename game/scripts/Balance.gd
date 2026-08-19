@@ -1136,6 +1136,19 @@ const TOWER_SPRITE_SIZE: float = 192.0
 ## ground instead of the sprite being centred on it.
 const TOWER_SPRITE_LIFT: float = 42.0
 
+## How far below its plot's centre a tower's node sits, so it y-sorts on the
+## ground it stands on rather than on its own middle.
+##
+## A y-sorted parent sorts children by their own y and Godot has no per-node sort
+## origin, so the only way to sort a structure by its base is to put the node
+## there. One tile - half a 2x2 footprint - lands it on the plot's front edge,
+## which is exactly where the tower meets the ground.
+##
+## The visual does not move: the sprite, range ring and health bar are lifted by
+## the same amount, and `Tower.origin()` hands the plot centre back to everything
+## that measures range or spawns an effect, so nothing about the gameplay shifts.
+const TOWER_SORT_LIFT: float = 64.0
+
 # ==============================================================================
 # PROCEDURAL ANIMATION
 # ==============================================================================
@@ -1258,6 +1271,16 @@ const ANIM_MASS_BOSS: float = 9.0
 ## Expressed per texel rather than per tile so the floor art can change size -
 ## one tile, or a mosaic of four - without the scale needing to be retuned. [TUNE]
 const GROUND_UNITS_PER_TEXEL: float = 12.0
+
+## How quickly the floor's two materials trade places, in patches per ground
+## cell. Low enough that moss and earth arrive in broad drifts a player reads as
+## terrain; high enough that a screen holds several of them. [TUNE]
+const GROUND_PATCH_FREQUENCY: float = 0.22
+
+## Noise above this is the region's *upper* material. Slightly above zero, so the
+## floor is mostly its base material with the second one laid over it in patches
+## rather than the two splitting the field evenly. [TUNE]
+const GROUND_PATCH_THRESHOLD: float = 0.06
 
 ## Sprite scale for units. The battlefield camera has to hold the whole lane
 ## ring, which leaves the hero about 79 screen pixels at source size - too small
@@ -1492,7 +1515,10 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## was the same thing when roads were straight; on a bent road it puts torches on
 ## the carriageway. 3 per side x 2 sides x 4 roads = 24, the count the manifest
 ## and the asset budget already assume. [TUNE]
-const TORCH_STOPS_PER_SIDE: int = 3
+## Five per side, forty in all. Three left long unlit stretches on the outside
+## of a U-bend, where the arc is longest and the light is needed most. Torches
+## are built in code rather than authored, so the count costs art nothing. [TUNE]
+const TORCH_STOPS_PER_SIDE: int = 5
 
 ## How far to the side of the lane centre they stand.
 ##
@@ -1509,7 +1535,18 @@ const TORCH_STOPS_PER_SIDE: int = 3
 ## unbuildable ground - which is what stops it ever standing where a tower was
 ## wanted. It was 300, chosen when the buildable field was open ground beside a
 ## straight road and there was no grid to conflict with. [TUNE]
-const TORCH_LANE_OFFSET: float = 70.0
+## Just off the carriageway, not on it.
+##
+## The road runs to +-96. 70 stood the posts *on* the road surface - chosen so a
+## torch could never occupy ground the player wanted to build on, which it does
+## solve, and which is not worth standing a burning post in the middle of the
+## lane the enemies walk down. 116 clears the road edge by twenty units, so the
+## flame reads as lining the road rather than blocking it, and still throws its
+## light across the carriageway.
+##
+## Towers do not conflict: placement is by tile and a torch occupies none, so the
+## worst case is a tower sprite overlapping a flame at the plot's inner corner.
+const TORCH_LANE_OFFSET: float = 116.0
 
 ## Height of the post and of the fire on top of it. Sized against the camera, not
 ## against realism: at battlefield zoom a 34px torch was a lit matchstick, and a
