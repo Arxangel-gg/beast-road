@@ -8,6 +8,7 @@ func _ready() -> void:
 	_test_download_failure_policy()
 	_test_unusable_release()
 	_test_self_update_gate()
+	_test_launcher_version_gate()
 	_test_corrupt_archive()
 	_test_truncated_archive()
 	_cleanup()
@@ -203,6 +204,75 @@ func _test_self_update_gate() -> void:
 		"a repository build must report itself as unstamped")
 	_check(not release.has_launcher_update(),
 		"an unstamped build must never offer to replace itself")
+
+
+## A game-only release must not ask the player for a new launcher.
+##
+## This is the regression this whole mechanism exists for. The launcher used to
+## compare the release tag, which moves every release, so every game update also
+## made the player re-download the launcher - reported from a metered connection,
+## where it was most of the cost of a patch.
+##
+## Tested through `launcher_asset_differs` rather than `has_launcher_update`
+## because a repository build is never CI-stamped, so the public method can only
+## ever return false here and would pass no matter how broken the rule was.
+func _test_launcher_version_gate() -> void:
+	var versioned: ReleaseInfo = ReleaseInfo.from_json(JSON.stringify({
+		"tag_name": "v9.9.9",
+		"assets": [
+			{"name": "BeastRoad-windows.zip", "browser_download_url": "https://e.invalid/g.zip", "size": 1},
+			{"name": "BeastRoadLauncher-l2.exe", "browser_download_url": "https://e.invalid/l.exe", "size": 2},
+		],
+	}))
+	_check(versioned != null, "a versioned launcher release should parse")
+	if versioned == null:
+		return
+	_check(versioned.launcher_version == "2",
+		"the launcher version should be read out of the asset filename")
+	_check(not versioned.launcher_asset_differs("2", "v0.0.1"),
+		"a new game release must not ask for a new launcher when the launcher version matches")
+	_check(versioned.launcher_asset_differs("3", "v9.9.9"),
+		"a launcher version that differs must still be offered")
+	_check(versioned.is_usable(),
+		"skipping the launcher update must leave the game installable")
+
+	# The round trip CI depends on: the filename it builds from LAUNCHER_VERSION
+	# has to parse back to exactly that string, or a launcher can never match the
+	# launcher that was published for it.
+	var published: String = "BeastRoadLauncher-l%s.exe" % LauncherConfig.LAUNCHER_VERSION
+	_check(LauncherConfig.launcher_version_in(published) == LauncherConfig.LAUNCHER_VERSION,
+		"LAUNCHER_VERSION must survive the round trip through the asset filename")
+
+	# A name that merely contains "-l" is not a version. Without this guard
+	# "BeastRoad-launcher.exe" parses as "auncher", never matches, and every
+	# release looks like a launcher update again.
+	_check(LauncherConfig.launcher_version_in("BeastRoad-launcher.exe").is_empty(),
+		"a non-numeric suffix must not be read as a launcher version")
+	_check(LauncherConfig.launcher_version_in("BeastRoadLauncher.exe").is_empty(),
+		"an unversioned launcher asset should report no version")
+
+	# Releases from before launchers were versioned still fall back to the tag, so
+	# a player on an old launcher is carried forward exactly once.
+	var legacy: ReleaseInfo = ReleaseInfo.from_json(JSON.stringify({
+		"tag_name": "v9.9.9",
+		"assets": [
+			{"name": "BeastRoad-windows.zip", "browser_download_url": "https://e.invalid/g.zip", "size": 1},
+			{"name": "BeastRoadLauncher.exe", "browser_download_url": "https://e.invalid/l.exe", "size": 2},
+		],
+	}))
+	_check(legacy.launcher_version.is_empty(), "a legacy asset carries no version")
+	_check(legacy.launcher_asset_differs("2", "v0.0.1"),
+		"an unversioned release should fall back to comparing the tag")
+	_check(not legacy.launcher_asset_differs("2", "v9.9.9"),
+		"an unversioned release matching the running tag is not an update")
+
+	# No launcher attached at all is never a launcher update.
+	var gameonly: ReleaseInfo = ReleaseInfo.from_json(JSON.stringify({
+		"tag_name": "v9.9.9",
+		"assets": [{"name": "BeastRoad-windows.zip", "browser_download_url": "https://e.invalid/g.zip", "size": 1}],
+	}))
+	_check(not gameonly.launcher_asset_differs("2", "v0.0.1"),
+		"a release with no launcher asset must never report a launcher update")
 
 
 func _cleanup() -> void:

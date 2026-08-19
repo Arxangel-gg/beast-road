@@ -18,6 +18,10 @@ var launcher_url: String = ""
 var launcher_name: String = ""
 var launcher_size: int = 0
 
+## The launcher version its filename advertises, or "" on releases published
+## before launchers carried one.
+var launcher_version: String = ""
+
 
 func is_usable() -> bool:
 	return not tag.is_empty() and not asset_url.is_empty()
@@ -52,6 +56,7 @@ static func from_json(text: String) -> ReleaseInfo:
 			info.launcher_name = name
 			info.launcher_url = String(asset.get("browser_download_url", ""))
 			info.launcher_size = int(asset.get("size", 0))
+			info.launcher_version = LauncherConfig.launcher_version_in(name)
 			continue
 
 		if not name.to_lower().ends_with(".zip"):
@@ -68,14 +73,38 @@ static func from_json(text: String) -> ReleaseInfo:
 	return info
 
 
-## True when this release carries a launcher build newer than the running one.
+## True when this release carries a launcher build different from the running one.
 ##
 ## A launcher that cannot tell what it is - one exported locally, with no CI
 ## stamp - never offers to replace itself. Guessing there means possibly
 ## overwriting a developer's build with a release, which is a bad way to find out
 ## the check was wrong.
 func has_launcher_update() -> bool:
-	return not launcher_url.is_empty() 		and LauncherConfig.version_is_stamped() 		and tag != LauncherConfig.VERSION
+	return LauncherConfig.version_is_stamped() 		and launcher_asset_differs(LauncherConfig.LAUNCHER_VERSION, LauncherConfig.VERSION)
+
+
+## Whether this release's launcher asset is a different build from the running
+## launcher, ignoring the stamp guard.
+##
+## Split out from `has_launcher_update` so the rule can be tested: a repository
+## build is never stamped, so going through the guard can only ever prove the
+## negative case, and the case that matters here is the *positive* one - that a
+## game-only release does not ask for a new launcher.
+##
+## This used to compare the release tag, which changes on every release, so every
+## game update replaced the launcher too. The launcher version changes only when
+## the launcher does, so a run of game-only releases now leaves it alone however
+## long that run gets.
+func launcher_asset_differs(running_launcher_version: String, running_tag: String) -> bool:
+	if launcher_url.is_empty():
+		return false
+	if not launcher_version.is_empty():
+		return launcher_version != running_launcher_version
+	# A release from before launchers were versioned cannot say whether its
+	# launcher differs, so the tag is all there is to go on. Kept only so that an
+	# older release still carries a player forward onto a launcher that knows
+	# better; it is the old, over-eager behaviour and applies to nothing new.
+	return tag != running_tag
 
 
 ## True when `tag` differs from what is installed. Deliberately not a semantic

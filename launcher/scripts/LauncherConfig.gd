@@ -21,17 +21,54 @@ const LAUNCHER_ASSET_MARKER: String = "launcher"
 ##
 ## Stamped by CI before the launcher is exported - the placeholder below is what
 ## sits in the repository, and a build that still says "dev" is one somebody made
-## locally. Comparing it to the newest release tag is how a launcher knows it is
-## out of date, and comparing tags rather than parsing versions is deliberate:
-## the tag CI published is the truth, and anything that reasons about version
-## ordering eventually refuses a valid rollback.
+## locally. It identifies the build and gates self-replacement; it is **not** what
+## decides whether a new launcher is needed. See LAUNCHER_VERSION.
 const VERSION: String = "dev"
+
+## The launcher's own version, and the only thing that decides whether a player
+## has to download a new launcher. Bump it by hand when the launcher changes.
+##
+## It is deliberately not the release tag. The tag moves on every game update, so
+## comparing tags meant every game update also replaced the launcher - a fresh
+## download and a restart for a launcher that had not changed a line. On a metered
+## connection that was most of the cost of a patch that touched one .tres file,
+## which is how it was found.
+##
+## Published in the launcher asset's filename, `BeastRoadLauncher-l<version>.exe`,
+## so a running launcher can compare without downloading anything. CI builds that
+## name by reading *this* constant, so the two cannot drift apart.
+const LAUNCHER_VERSION: String = "2"
+
+## Separates the launcher version from the rest of the asset's filename.
+const LAUNCHER_VERSION_SEPARATOR: String = "-l"
 
 
 ## Whether this build knows its own version. A locally exported launcher does
 ## not, and must never offer to replace itself with something it cannot compare.
 func version_is_stamped() -> bool:
 	return VERSION != "dev" and not VERSION.is_empty()
+
+
+## The launcher version an asset filename advertises, or "" when it carries none.
+##
+## Releases published before launchers had their own version have no version in
+## the name, and "" is what tells `ReleaseInfo` to fall back to the old tag
+## comparison rather than treat the absence as a mismatch.
+func launcher_version_in(asset_name: String) -> String:
+	var stem: String = asset_name.get_file().get_basename()
+	var at: int = stem.rfind(LAUNCHER_VERSION_SEPARATOR)
+	if at < 0:
+		return ""
+	var found: String = stem.substr(at + LAUNCHER_VERSION_SEPARATOR.length())
+	if found.is_empty():
+		return ""
+	# Digits and dots only. Without this, an asset named "BeastRoad-launcher.exe"
+	# parses as version "auncher", never matches, and every release looks like a
+	# launcher update again - the exact bug this constant exists to kill.
+	for index: int in found.length():
+		if not (found[index].is_valid_int() or found[index] == "."):
+			return ""
+	return found
 
 ## The executable to run once installed, relative to the install directory.
 const GAME_EXECUTABLE: String = "BeastRoad.exe"
