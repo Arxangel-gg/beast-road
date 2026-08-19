@@ -4,6 +4,9 @@ extends Node
 ## Diagnostic only, never a gate.
 
 func _ready() -> void:
+	# Force a first-time account, so the shot shows the coach card as a new
+	# player meets it rather than as a returning one never does.
+	MetaState.settings["tutorial_seen"] = false
 	RunState.reset()
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(run)

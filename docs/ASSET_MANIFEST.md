@@ -229,11 +229,16 @@ All 192×192, type T. Placeholder colour by element.
 
 ### 5.7 Terrain tiles — `res://art/terrain/`
 
+Each region's floor is the plain-ground tile of its own road set, mirrored into
+a seamless 40×40 tile by `tools/build_road_tiles.py`. Ground and road therefore
+come from one generation, share a palette, and are drawn at the same pixel
+density (`Balance.GROUND_UNITS_PER_TEXEL`).
+
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `terrain_ashfen.png` | 512×512 | O | `#2E3A33` |
-| `terrain_saltglass.png` | 512×512 | O | `#8FA8B8` |
-| `terrain_steppe.png` | 512×512 | O | `#6B4A3A` |
+| `terrain_ashfen.png` | 40×40 | O | `#2E3A33` |
+| `terrain_saltglass.png` | 40×40 | O | `#8FA8B8` |
+| `terrain_steppe.png` | 40×40 | O | `#6B4A3A` |
 
 ### 5.8 Backdrops — `res://art/bg/`
 
@@ -403,7 +408,28 @@ terrain id (`path_<terrain>_NN.png`), falling back to `path_tile_NN` for any
 region without one. Built from a generated set by `tools/build_road_tiles.py`,
 which is where the tile-order, missing-mask and seam problems are documented.
 
-Act I keeps the default set, so it has no table of its own.
+`path_tile_NN` remains the fallback for any region without a set.
+
+**Act I — The Verdant Maw**
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `path_ashfen_00.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_01.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_02.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_03.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_04.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_05.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_06.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_07.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_08.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_09.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_10.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_11.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_12.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_13.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_14.png` | 32×32 | T | `#6B5A44` |
+| `path_ashfen_15.png` | 32×32 | T | `#6B5A44` |
 
 **Act II — The Sunglass Waste**
 

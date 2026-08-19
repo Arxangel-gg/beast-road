@@ -44,10 +44,11 @@ TILE = 32
 # the battlefield's PIECE sizing assumes when it draws a piece at twice the
 # carriageway (see Battlefield.ROAD_ART_SPAN).
 BAND = (8, 24)
-# Corner rounding radius, in source pixels. Big enough to read as a bend at the
-# twelvefold scale the road is drawn at, small enough to leave the straight
-# sections straight.
-ROUND = 3
+# Corner rounding radius, in source pixels. Big enough to read as a real bend at
+# the twelvefold scale the road is drawn at, small enough to leave the straight
+# sections straight. This is the number that decides whether the U-bends look
+# curved or stepped, and stepped is what the first pass shipped.
+ROUND = 4
 # How deep the forced full-width collar runs in from a connected edge. Only the
 # join has to be exact; inside the tile the road keeps whatever silhouette the
 # generator painted, which is what stops it reading as a slab.
@@ -162,6 +163,30 @@ def strip_bevel(rgb: np.ndarray) -> np.ndarray:
     return np.array(
         Image.fromarray(crop).resize((TILE, TILE), Image.NEAREST)
     )
+
+
+def seamless_floor(rgb: np.ndarray) -> np.ndarray:
+    """The region's floor, built to tile with itself exactly.
+
+    The generator draws each tile as a lit slab, and the slab's cut faces do not
+    tile: laid out they line up into pale bars straight across the battlefield.
+    Cropping them off is what the road pieces do, but cropping a *floor* also
+    moves its edges, so a cropped tile no longer matches its own neighbour - the
+    bars just move.
+
+    Mirroring solves both at once. The bevel-free interior is reflected into four
+    quadrants, so the left edge is the right edge and the top is the bottom by
+    construction: it cannot seam, whatever the generator drew. The cost is a
+    symmetry, which at twelve world units per texel and under the day/night grade
+    is far less visible than a bar across the map.
+
+    A mosaic of several variants was tried first and is the trap here: different
+    variants share no edges, so it seams *more*, not less.
+    """
+    inset = 6
+    core = rgb[inset:-inset, inset:-inset]
+    top = np.concatenate([core, core[:, ::-1]], axis=1)
+    return np.concatenate([top, top[::-1, :]], axis=0).astype(np.uint8)
 
 
 def road_seed(envelope: np.ndarray) -> np.ndarray:
@@ -293,6 +318,17 @@ def main() -> int:
         out[..., 3] = np.where(envelope, 255, 0)
         built[mask] = out
         print(f"  mask {mask:2d} <- {name}{f' turned {turns}' if turns else ''}")
+
+    # The plain-ground tile is the region's floor. Taken from the same set as
+    # the road on purpose: one generation, one palette, one pixel density, and
+    # no chance of the ground and the road looking like different games.
+    floor_name = by_mask.get(0)
+    if floor_name is not None:
+        floor = seamless_floor(
+            np.array(Image.open(os.path.join(src_dir, f"{floor_name}.png")).convert("RGB")))
+        floor_path = os.path.join("game", "art", "terrain", f"terrain_{terrain}.png")
+        Image.fromarray(floor).save(floor_path)
+        print(f"  ground   -> {floor_path} {floor.shape[1]}x{floor.shape[0]}")
 
     normalise(built, road_value)
     for mask, out in built.items():

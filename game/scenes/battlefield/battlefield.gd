@@ -812,10 +812,11 @@ func _setup_ground() -> void:
 	ground.material = TerrainSeam.material()
 
 	# The region is in *texture* space and the sprite is scaled up afterwards, so
-	# one repeat covers GROUND_TILE_WORLD_SIZE of world rather than its 512
-	# source pixels. Drawn 1:1 the tile repeats eight times across the screen and
-	# the seams turn the floor into wallpaper.
-	var tile_scale: float = Balance.GROUND_TILE_WORLD_SIZE / 512.0
+	# one repeat covers GROUND_UNITS_PER_TEXEL of world per source pixel.
+	# One texel is one fixed slice of world, whatever size the floor art is. That
+	# is what keeps the ground and the road at the same resolution when either
+	# one is regenerated.
+	var tile_scale: float = Balance.GROUND_UNITS_PER_TEXEL
 	var half: float = extent / tile_scale
 	ground.region_rect = Rect2(-half, -half, half * 2.0, half * 2.0)
 	ground.scale = Vector2.ONE * tile_scale
@@ -823,6 +824,8 @@ func _setup_ground() -> void:
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
 		ground.texture = load(terrain.get_sprite_path())
+	# Nearest, so a tileset ground stays pixel art at the scale it is drawn.
+	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 
 ## Four road strips, one per cardinal, from the town wall out to the spawn point.

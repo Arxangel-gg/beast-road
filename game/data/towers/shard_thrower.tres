@@ -11,3 +11,4 @@ attack_interval = 1.3
 extra_targets = 3
 id = "shard_thrower"
 display_name = "Shard Thrower"
+description = "Siege. Splits into four shards on release. Ordinary against one enemy, brutal against a pack."

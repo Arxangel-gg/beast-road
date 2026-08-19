@@ -513,6 +513,20 @@ const ENEMY_SEPARATION_SPEED: float = 45.0
 ## Seconds of stagger applied on being hit, during which the enemy does not walk.
 const ENEMY_HITSTUN: float = 0.18
 
+## Minimum moving time between two hitstuns on the same enemy.
+##
+## Hitstun used to be applied on every single hit with nothing stopping it from
+## being refreshed. Any tower firing faster than once per ENEMY_HITSTUN - or two
+## towers between them, or one splash landing on the same enemy every volley -
+## therefore pinned it in place indefinitely. That is what "frozen solid by a
+## Glacial Mortar" actually was: not the freeze, which is capped and has its own
+## refractory, but the flinch, which had neither.
+##
+## With this, an enemy spends at most ENEMY_HITSTUN of every
+## ENEMY_HITSTUN + ENEMY_HITSTUN_GAP seconds locked - about 30% - however much
+## fire is landing on it. [TUNE]
+const ENEMY_HITSTUN_GAP: float = 0.42
+
 ## How fast knockback velocity bleeds off, in px/s per second.
 const ENEMY_KNOCKBACK_DECAY: float = 900.0
 
@@ -1233,12 +1247,17 @@ const ANIM_MASS_BOSS: float = 9.0
 # WORLD SCALE
 # ==============================================================================
 
-## How much world area one terrain tile covers, in pixels. The source art is
-## 512px; drawing it 1:1 repeats it eight times across the screen and the result
-## reads as wallpaper rather than as ground. Stretching each tile over a much
-## larger area hides the repeat at the cost of some sharpness, which is the
-## right trade for a floor nobody is meant to look at. [TUNE]
-const GROUND_TILE_WORLD_SIZE: float = 900.0
+## World units behind one terrain texel.
+##
+## Matched to the road rather than chosen for the floor alone: a road piece is a
+## 32px tile drawn across PIECE (384) units, so twelve puts exactly the same
+## number of world units behind a ground texel as behind a road texel. Anything
+## else and the two are visibly different resolutions stacked on each other, and
+## the ground reads as a photograph the road was pasted onto.
+##
+## Expressed per texel rather than per tile so the floor art can change size -
+## one tile, or a mosaic of four - without the scale needing to be retuned. [TUNE]
+const GROUND_UNITS_PER_TEXEL: float = 12.0
 
 ## Sprite scale for units. The battlefield camera has to hold the whole lane
 ## ring, which leaves the hero about 79 screen pixels at source size - too small

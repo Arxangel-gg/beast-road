@@ -10,3 +10,4 @@ attack_interval = 1.7
 aoe_radius = 110.0
 id = "pyre_cannon"
 display_name = "Pyre Cannon"
+description = "Siege. A slow, heavy shell that detonates on impact. Built to break a formation, not to trade with a runner."

@@ -6,9 +6,10 @@
 script = ExtResource("1_fs4e2")
 role = 3
 element = 2
-damage = 5.0
+damage = 9.0
 attack_interval = 1.2
 taunts = true
 max_hp = 900.0
 id = "bulwark"
 display_name = "Bulwark"
+description = "Warden. Taunts enemies into attacking it and has the structure to survive that. Hits back, slowly."

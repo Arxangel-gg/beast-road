@@ -11,3 +11,4 @@ attack_interval = 0.9
 extra_targets = 3
 id = "arc_coil"
 display_name = "Arc Coil"
+description = "Skirmisher. Arcs to four targets at once. Best where a road is crowded, wasted where it is not."

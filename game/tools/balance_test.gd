@@ -305,6 +305,20 @@ func _test_chill_never_locks() -> void:
 	# Ten seconds of the worst possible frost, at one lock per refractory.
 	_check(frozen <= 10.0 * (Balance.FREEZE_MAX_SECONDS / Balance.FREEZE_REFRACTORY) + 0.5,
 		"an enemy under continuous frost must spend most of its time moving")
+
+	# And the same for the flinch, on real frames, because that is what actually
+	# pinned enemies: hitstun was applied by every hit with nothing stopping it
+	# refreshing, so a splash tower landing on the same enemy every volley held
+	# it still forever. Driving _process rather than poking fields is the point -
+	# the countdown and the gate both have to be right.
+	var free_frames: int = 0
+	for _frame: int in 240:
+		victim.call("_add_hitstun", Balance.ENEMY_HITSTUN)
+		await get_tree().process_frame
+		if float(victim.get("_hitstun_left")) <= 0.0:
+			free_frames += 1
+	_check(free_frames >= 60,
+		"an enemy hit every frame must still be free to move most of the time")
 	victim.queue_free()
 
 

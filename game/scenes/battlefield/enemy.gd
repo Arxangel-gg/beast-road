@@ -36,6 +36,10 @@ var _target: Node2D = null
 
 var _knockback: Vector2 = Vector2.ZERO
 var _hitstun_left: float = 0.0
+
+## Counts down before another hitstun may be applied. Without it, every hit
+## refreshes the flinch and a well-covered tile switches an enemy off.
+var _hitstun_refractory: float = 0.0
 var _flash_left: float = 0.0
 var _death_left: float = 0.0
 
@@ -136,6 +140,7 @@ func _process(delta: float) -> void:
 
 	_tick_status(delta)
 	_hitstun_left = maxf(_hitstun_left - delta, 0.0)
+	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.ENEMY_KNOCKBACK_DECAY * delta)
 
@@ -380,7 +385,7 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 			* Modifiers.multiplier(Modifiers.HERO_DAMAGE)
 		if amount >= finisher_damage * 0.9:
 			apply_burn(amount * attack_node.effect_value, 3.0)
-	_hitstun_left = Balance.ENEMY_HITSTUN
+	_add_hitstun(Balance.ENEMY_HITSTUN)
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
 	Vfx.number(global_position, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
@@ -407,7 +412,7 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 		return
 	var resistance: float = data.knockback_resistance if data != null else 0.0
 	_knockback += impulse * strength * (1.0 - resistance) * 0.72
-	_hitstun_left = maxf(_hitstun_left, Balance.BEAST_STEP_STUN * strength)
+	_add_hitstun(Balance.BEAST_STEP_STUN * strength)
 	animator.beast_step(impulse, strength / sqrt(maxf(_mass_for_category(), 1.0)))
 
 
@@ -421,12 +426,27 @@ func pull_toward(point: Vector2, strength: float) -> void:
 	if toward.length() < 1.0:
 		return
 	_knockback = toward.normalized() * strength
-	_hitstun_left = maxf(_hitstun_left, Balance.ENEMY_HITSTUN)
+	_add_hitstun(Balance.ENEMY_HITSTUN)
 
 
 ## Feeds the chill meter. Repeated slows stack toward the floor instead of the
 ## strongest one simply winning, which is what makes a second frost tower worth
 ## building rather than redundant.
+## Locks the enemy briefly, unless one was applied too recently.
+##
+## The single door for every movement lock in the game. It used to be four
+## separate assignments, and the one in `take_damage` fired on *every* hit with
+## nothing to stop it refreshing - so enough incoming fire simply switched an
+## enemy off, which is what a Glacial Mortar or a Pyre Cannon looked like from
+## the player's side. Routing them all through here makes "an enemy always gets
+## to move" a property of this class rather than of whatever is shooting it.
+func _add_hitstun(duration: float) -> void:
+	if duration <= 0.0 or _hitstun_refractory > 0.0:
+		return
+	_hitstun_left = maxf(_hitstun_left, duration)
+	_hitstun_refractory = duration + Balance.ENEMY_HITSTUN_GAP
+
+
 func apply_slow(factor: float, duration: float) -> void:
 	if factor >= 1.0 or duration <= 0.0:
 		return
@@ -473,7 +493,7 @@ func _shatter() -> void:
 func apply_stagger(duration: float) -> void:
 	if _state == State.DYING or duration <= 0.0:
 		return
-	_hitstun_left = maxf(_hitstun_left, duration)
+	_add_hitstun(duration)
 	_knockback += Battlefield.lane_vector(lane) * 90.0
 	if _state == State.WINDUP or _state == State.STRIKE:
 		_enter(State.RECOVER, maxf(duration * 0.65, Balance.ENEMY_ATTACK_RECOVERY))

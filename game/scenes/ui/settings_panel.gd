@@ -56,6 +56,7 @@ const ERASE_LABEL: String = "Erase saved data"
 var _erase_button: Button = null
 var _erase_note: Label = null
 var _erase_confirm_left: float = 0.0
+var _tutorial_toggle: Button = null
 var _binding_buttons: Dictionary = {}
 var _binding_note: Label = null
 
@@ -549,20 +550,26 @@ func _refresh_colourblind_buttons() -> void:
 func _build_data(column: VBoxContainer) -> void:
 	column.add_child(_label("Tutorial", 22))
 	var coach_note: Label = _label(
-		"The first-run prompts show once per account. This offers them again.", 14)
+		"Short prompts that explain the game as you meet each part of it. They "
+		+ "turn themselves off once you have seen them all.", 14)
 	coach_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	coach_note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))
 	column.add_child(coach_note)
 
-	var replay := Button.new()
-	replay.text = "Show the tutorial again"
-	replay.custom_minimum_size = Vector2(0.0, 54.0)
-	IconKit.on_button(replay, "upgrade", 22)
-	replay.pressed.connect(func() -> void:
-		MetaState.settings[TutorialCoach.SETTING_KEY] = false
+	# A toggle rather than a "show it again" button. The prompts switch
+	# themselves off after a first run, so the only honest control is one that
+	# reports the current state and can be moved either way.
+	_tutorial_toggle = Button.new()
+	_tutorial_toggle.toggle_mode = true
+	_tutorial_toggle.custom_minimum_size = Vector2(0.0, 54.0)
+	_tutorial_toggle.button_pressed = not bool(
+		MetaState.settings.get(TutorialCoach.SETTING_KEY, false))
+	_refresh_tutorial_toggle()
+	_tutorial_toggle.toggled.connect(func(on: bool) -> void:
+		MetaState.settings[TutorialCoach.SETTING_KEY] = not on
 		MetaState.save_game()
-		replay.text = "The tutorial will show on the next run")
-	column.add_child(replay)
+		_refresh_tutorial_toggle())
+	column.add_child(_tutorial_toggle)
 
 	column.add_child(_separator())
 	column.add_child(_label("Saved data", 22))
@@ -585,6 +592,17 @@ func _build_data(column: VBoxContainer) -> void:
 	_erase_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_erase_note.add_theme_color_override("font_color", Color(0.92, 0.53, 0.45))
 	column.add_child(_erase_note)
+
+
+## The toggle says what it currently is, not what pressing it would do. A
+## control labelled with its own action leaves the player guessing which state
+## they are in, which is the one thing a settings screen must never do.
+func _refresh_tutorial_toggle() -> void:
+	if _tutorial_toggle == null:
+		return
+	var on: bool = _tutorial_toggle.button_pressed
+	_tutorial_toggle.text = "Tutorial prompts: on" if on else "Tutorial prompts: off"
+	IconKit.on_button(_tutorial_toggle, "upgrade" if on else "close", 22)
 
 
 func _on_erase_pressed() -> void:

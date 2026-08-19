@@ -114,6 +114,10 @@ func erase_progress() -> void:
 	best_distance = 0.0
 	total_enemies_killed = 0
 	_seed_starting_roster()
+	# The tutorial comes back too. It is a preference and the rest of the
+	# preferences are kept, but somebody erasing their progress is asking for a
+	# first run, and a first run includes being shown how the game works.
+	settings["tutorial_seen"] = false
 	# Written immediately rather than left in memory: the player asked for the
 	# save to be gone, and a crash before the next autosave would hand it back.
 	save_game()

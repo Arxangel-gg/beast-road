@@ -11,3 +11,4 @@ attack_interval = 0.35
 knockback = 160.0
 id = "gale_turret"
 display_name = "Gale Turret"
+description = "Skirmisher. Fires almost continuously and shoves what it hits, buying the towers behind it time."

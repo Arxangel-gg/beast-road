@@ -9,3 +9,4 @@ damage = 12.0
 attack_interval = 0.45
 id = "ember_spire"
 display_name = "Ember Spire"
+description = "Skirmisher. The fastest single-target gun in the roster. Cheap, relentless, and the first thing most roads want."

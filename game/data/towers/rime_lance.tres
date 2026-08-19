@@ -12,3 +12,4 @@ slow_factor = 0.6
 slow_duration = 1.5
 id = "rime_lance"
 display_name = "Rime Lance"
+description = "Sniper. Long reach, and every hit leaves its target crawling. Feeds a chill meter faster than it kills."
