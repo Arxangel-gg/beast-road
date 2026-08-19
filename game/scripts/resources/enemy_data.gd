@@ -6,8 +6,9 @@ extends GameData
 ##
 ## The manifest files these three categories in two folders, so the category
 ## picks both the folder and the prefix:
-##   BREED "bogkin"        -> res://art/enemies/enemy_bogkin.png
-##   ELITE "warden"        -> res://art/enemies/elite_warden.png
+##   BREED "bogkin"        -> res://art/enemies/enemy_coalpaint_raider.png
+##                          (via sprite_id; see below)
+##   ELITE "warden"        -> res://art/enemies/elite_avalanche_warden.png
 ##   BOSS  "drowned_choir" -> res://art/bosses/boss_drowned_choir.png
 
 enum Category {

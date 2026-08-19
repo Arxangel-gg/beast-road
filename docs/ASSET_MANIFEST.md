@@ -151,12 +151,6 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `enemy_bogkin.png` | 96×96 | T | `#4A6B4F` |
-| `enemy_glassborn.png` | 96×96 | T | `#6B8A9E` |
-| `enemy_steppehorde.png` | 96×96 | T | `#8C3A2B` |
-| `elite_warden.png` | 128×128 | T | `#5A5A6B` |
-| `elite_howler.png` | 128×128 | T | `#7A5A3D` |
-| `elite_burrower.png` | 128×128 | T | `#4A3D33` |
 | `enemy_coalpaint_raider.png` | 192×192 | T | `#4A6B4F` |
 | `enemy_wolf_rider.png` | 192×192 | T | `#4A6B4F` |
 | `enemy_rootshield.png` | 192×192 | T | `#4A6B4F` |
