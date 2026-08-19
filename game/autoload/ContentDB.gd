@@ -16,6 +16,10 @@ var terrains: Dictionary = {}
 var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
+
+## First-run coach prompts. Content because the strings are player-facing and
+## CLAUDE.md keeps those out of scripts.
+var tutorial_steps: Dictionary = {}
 var discipline_nodes: Dictionary = {}
 var factions: Dictionary = {}
 var roads: Dictionary = {}
@@ -40,6 +44,7 @@ func _ready() -> void:
 	roads = _load_dir("res://data/roads")
 	road_difficulties = _load_dir("res://data/road_difficulties")
 	items = _load_dir("res://data/items")
+	tutorial_steps = _load_dir("res://data/tutorial")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData

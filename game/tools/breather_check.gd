@@ -17,7 +17,9 @@ var _field: Battlefield = null
 var _started: bool = false
 var _nag: float = 1.0
 var _breather_age: float = 0.0
-var _proved_indefinite_wait: bool = false
+## Set when a breather ends with nothing having pressed Ride On, which is the
+## property the countdown exists to provide.
+var _proved_auto_start: bool = false
 
 
 func _ready() -> void:
@@ -71,6 +73,8 @@ func _process(delta: float) -> void:
 		_started = true
 
 	if RunState.phase != _last_phase:
+		if _last_phase == RunState.Phase.PREPARATION and _breathers > 0 and RunState.phase == RunState.Phase.ROAD_BATTLE:
+			_proved_auto_start = true
 		if _last_phase == RunState.Phase.ROAD_BATTLE \
 				and RunState.phase == RunState.Phase.PREPARATION:
 			_breathers += 1
@@ -86,10 +90,14 @@ func _process(delta: float) -> void:
 
 	if _started and RunState.is_preparation():
 		_breather_age += delta
-		# Waiting beyond the reward countdown must not auto-start a formation.
-		if _breather_age >= Balance.PREPARATION_BETWEEN_WAVES + 1.0:
-			_proved_indefinite_wait = true
-			_run.call("_on_ride_on_requested")
+		# The opposite of what this used to assert. A between-wave breather is a
+		# countdown now and has to end on its own, so nothing here presses Ride On
+		# and overrunning the window is the failure.
+		if _breather_age > Balance.PREPARATION_BETWEEN_WAVES + 2.0:
+			push_error("A between-wave breather ran %.1fs without starting the wave"
+				% _breather_age)
+			_bail(1)
+			return
 
 	if RunState.wave_number > _waves:
 		_waves = RunState.wave_number
@@ -107,8 +115,8 @@ func _process(delta: float) -> void:
 				% [_breathers, _waves])
 			_bail(1)
 			return
-		if not _proved_indefinite_wait:
-			push_error("Between-wave Preparation never proved it waits beyond the reward timer")
+		if not _proved_auto_start:
+			push_error("No between-wave breather was seen ending on its own")
 			_bail(1)
 			return
 		_bail(0)

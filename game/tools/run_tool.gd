@@ -85,42 +85,54 @@ func _road_tiles() -> void:
 	# and an autoload does not exist in a SceneTree tool - naming it is a compile
 	# error, not a runtime one.
 	const FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
+	# Every region's set, not just the default one. A region whose road is one
+	# tile short renders a road that stops dead mid-bend, and it does it only in
+	# that act - which is the last place anybody looks.
+	const REGIONS: Array[String] = ["ashfen", "saltglass", "steppe"]
+	var sets: Array[String] = [FORMAT]
+	for region: String in REGIONS:
+		var candidate: String = "res://art/battlefield/path_%s_%%02d.png" % region
+		if ResourceLoader.exists(candidate % 0):
+			sets.append(candidate)
+
 	var problems: PackedStringArray = []
-	for mask: int in 16:
-		var path: String = FORMAT % mask
-		if not ResourceLoader.exists(path):
-			problems.append("%s is missing" % path.get_file())
-			continue
-		var image: Image = (load(path) as Texture2D).get_image()
-		image.convert(Image.FORMAT_RGBA8)
-		var size: int = image.get_width()
-		var found: int = 0
-		for bit: int in 4:
-			var count: int = 0
-			for i: int in size:
-				var at: Vector2i = [Vector2i(i, 0), Vector2i(size - 1, i),
-					Vector2i(i, size - 1), Vector2i(0, i)][bit]
-				if image.get_pixel(at.x, at.y).a > 0.5:
-					count += 1
-			if count >= 4:
-				found |= 1 << bit
-		if found != mask:
-			problems.append("%s connects %s, should connect %s" % [
-				path.get_file(), _edges(found, SIDES), _edges(mask, SIDES)])
-			continue
-		for bit: int in 4:
-			if not (mask >> bit) & 1:
+	for format: String in sets:
+		for mask: int in 16:
+			var path: String = format % mask
+			if not ResourceLoader.exists(path):
+				problems.append("%s is missing" % path.get_file())
 				continue
-			for depth: int in COLLAR:
-				for i: int in range(LO, HI):
-					var at: Vector2i = [Vector2i(i, depth), Vector2i(size - 1 - depth, i),
-						Vector2i(i, size - 1 - depth), Vector2i(depth, i)][bit]
-					if image.get_pixel(at.x, at.y).a <= 0.5:
-						problems.append("%s has a thin %s collar at %s" % [
-							path.get_file(), SIDES[bit], at])
-						break
+			var image: Image = (load(path) as Texture2D).get_image()
+			image.convert(Image.FORMAT_RGBA8)
+			var size: int = image.get_width()
+			var found: int = 0
+			for bit: int in 4:
+				var count: int = 0
+				for i: int in size:
+					var at: Vector2i = [Vector2i(i, 0), Vector2i(size - 1, i),
+						Vector2i(i, size - 1), Vector2i(0, i)][bit]
+					if image.get_pixel(at.x, at.y).a > 0.5:
+						count += 1
+				if count >= 4:
+					found |= 1 << bit
+			if found != mask:
+				problems.append("%s connects %s, should connect %s" % [
+					path.get_file(), _edges(found, SIDES), _edges(mask, SIDES)])
+				continue
+			for bit: int in 4:
+				if not (mask >> bit) & 1:
+					continue
+				for depth: int in COLLAR:
+					for i: int in range(LO, HI):
+						var at: Vector2i = [Vector2i(i, depth), Vector2i(size - 1 - depth, i),
+							Vector2i(i, size - 1 - depth), Vector2i(depth, i)][bit]
+						if image.get_pixel(at.x, at.y).a <= 0.5:
+							problems.append("%s has a thin %s collar at %s" % [
+								path.get_file(), SIDES[bit], at])
+							break
 	if problems.is_empty():
-		print("Road tiles: 16/16 connect as named, collars solid.")
+		print("Road tiles: %d sets x 16 connect as named, collars solid."
+			% sets.size())
 		quit(0)
 		return
 	for problem: String in problems:

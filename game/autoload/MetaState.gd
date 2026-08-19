@@ -84,7 +84,39 @@ var settings: Dictionary = {
 	"graphics": {},
 	"colourblind_mode": "off",
 	"key_bindings": {},
+	# Must exist here or it is silently dropped: the loader rejects keys it does
+	# not already know, so a default missing from this dictionary is a setting
+	# that appears to save and reverts on the next launch.
+	"tutorial_seen": false,
 }
+
+
+## Throws the account away and starts over.
+##
+## Offered in Settings because a roguelite's unlock pool is most of what a
+## returning player is playing against, and somebody who wants the first run
+## back has no other way to get it. Deliberately total: progress, statistics and
+## the Treasury cache all go.
+##
+## Player settings are *kept*. Volume, display mode and key bindings are not
+## progress, and wiping somebody's key bindings because they wanted a fresh
+## unlock pool would be a second, unasked-for destruction.
+func erase_progress() -> void:
+	unlocked_towers.clear()
+	unlocked_relics.clear()
+	unlocked_spells.clear()
+	unlocked_terrains.clear()
+	unlocked_buildings.clear()
+	resource_cache.clear()
+	act3_cleared = false
+	runs_started = 0
+	runs_won = 0
+	best_distance = 0.0
+	total_enemies_killed = 0
+	_seed_starting_roster()
+	# Written immediately rather than left in memory: the player asked for the
+	# save to be gone, and a crash before the next autosave would hand it back.
+	save_game()
 
 
 ## Every account starts able to build the original eight, whatever the save

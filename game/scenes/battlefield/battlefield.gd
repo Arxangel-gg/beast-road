@@ -66,6 +66,13 @@ const Z_CLOUDS: int = 30
 ## The autotiled road set. 32px art on a 64-unit grid, so every piece draws at
 ## exactly 2x - a whole number, the only scale that leaves a pixel grid intact.
 const PATH_TILE_FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
+
+## The same set, per region. Derived from the terrain id exactly the way every
+## other asset path in the project is derived from an id (CLAUDE.md SS4), so
+## giving an act its own road is dropping sixteen files in - no manifest lookup,
+## no code change. Falls back to PATH_TILE_FORMAT for any region without a set,
+## which is how one act can be re-skinned without breaking the other two.
+const PATH_TILE_REGION_FORMAT: String = "res://art/battlefield/path_%s_%02d.png"
 const PATH_TILE_PIXELS: int = 32
 
 ## The carriageway, 2*ROAD_WIDTH+1 = 3 tiles across.
@@ -780,6 +787,12 @@ func try_repair_tower(anchor: Vector2i) -> String:
 ## The act's terrain changed; re-skin the floor without rebuilding the scope.
 func refresh_terrain() -> void:
 	_setup_ground()
+	# The road is regional too, so a new act re-lays it. Without this the ground
+	# changed underfoot and the road stayed the previous region's.
+	_path_tiles.clear()
+	for piece: Node in lane_root.get_children():
+		piece.queue_free()
+	_build_lanes()
 
 
 func _setup_ground() -> void:
@@ -923,7 +936,9 @@ func _bake_piece(canvas: Image, extent: float, at: Vector2, mask: int, size: Vec
 func _path_image(mask: int) -> Image:
 	if _path_tiles.is_empty():
 		for index: int in 16:
-			var path: String = PATH_TILE_FORMAT % index
+			var path: String = PATH_TILE_REGION_FORMAT % [RunState.terrain_id, index]
+			if not ResourceLoader.exists(path):
+				path = PATH_TILE_FORMAT % index
 			if not ResourceLoader.exists(path):
 				_path_tiles.append(null)
 				continue

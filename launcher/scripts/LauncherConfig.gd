@@ -34,13 +34,18 @@ const VERSION: String = "dev"
 ## connection that was most of the cost of a patch that touched one .tres file,
 ## which is how it was found.
 ##
-## Published in the launcher asset's filename, `BeastRoadLauncher-l<version>.exe`,
+## Published as a tiny marker asset on every release, `launcher-version-<v>.txt`,
 ## so a running launcher can compare without downloading anything. CI builds that
 ## name by reading *this* constant, so the two cannot drift apart.
+##
+## A marker rather than a version in the executable's own filename, because
+## `releases/latest/download/BeastRoadLauncher.exe` is the permanent link testers
+## install from and it resolves by exact filename - versioning the exe would break
+## it on the release that fixed the update, which is the worst possible timing.
 const LAUNCHER_VERSION: String = "2"
 
-## Separates the launcher version from the rest of the asset's filename.
-const LAUNCHER_VERSION_SEPARATOR: String = "-l"
+## Names the marker asset that carries LAUNCHER_VERSION.
+const LAUNCHER_VERSION_ASSET_PREFIX: String = "launcher-version-"
 
 
 ## Whether this build knows its own version. A locally exported launcher does
@@ -49,22 +54,20 @@ func version_is_stamped() -> bool:
 	return VERSION != "dev" and not VERSION.is_empty()
 
 
-## The launcher version an asset filename advertises, or "" when it carries none.
+## The launcher version a marker asset advertises, or "" for any other asset.
 ##
-## Releases published before launchers had their own version have no version in
-## the name, and "" is what tells `ReleaseInfo` to fall back to the old tag
-## comparison rather than treat the absence as a mismatch.
+## Releases published before launchers had their own version carry no marker, and
+## "" is what tells `ReleaseInfo` to fall back to the old tag comparison rather
+## than treat the absence as a mismatch.
 func launcher_version_in(asset_name: String) -> String:
-	var stem: String = asset_name.get_file().get_basename()
-	var at: int = stem.rfind(LAUNCHER_VERSION_SEPARATOR)
-	if at < 0:
+	var name: String = asset_name.get_file()
+	if not name.to_lower().begins_with(LAUNCHER_VERSION_ASSET_PREFIX):
 		return ""
-	var found: String = stem.substr(at + LAUNCHER_VERSION_SEPARATOR.length())
+	var found: String = name.get_basename().substr(LAUNCHER_VERSION_ASSET_PREFIX.length())
 	if found.is_empty():
 		return ""
-	# Digits and dots only. Without this, an asset named "BeastRoad-launcher.exe"
-	# parses as version "auncher", never matches, and every release looks like a
-	# launcher update again - the exact bug this constant exists to kill.
+	# Digits and dots only, so a stray asset cannot be read as a version it is
+	# not, never match, and quietly restore the every-release-is-an-update bug.
 	for index: int in found.length():
 		if not (found[index].is_valid_int() or found[index] == "."):
 			return ""

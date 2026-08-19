@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "fight"
+display_name = "The road"
+trigger = 3
+order = 0
+body = "Move with WASD, swing with the left mouse button, dash with Space. Your towers cannot hold every road alone."
+seconds = 9.0

@@ -34,7 +34,11 @@ const SLOT_TEXTURE: String = "res://art/ui/ui_slot.png"
 ##
 ## Nothing here is a scroll container. Eight rows at 44 plus the heading, footer
 ## and close button come to ~600 of the 1080 the UI is laid out in.
-const BUILD_PANEL_WIDTH: float = 420.0
+## Wide enough for the element rail and the towers it pulls out beside it.
+const BUILD_PANEL_WIDTH: float = 560.0
+
+## The element rail down the left of the build panel.
+const ELEMENT_RAIL_WIDTH: float = 150.0
 const BUILD_ROW_HEIGHT: float = 44.0
 const BUILD_ROW_GAP: int = 5
 
@@ -91,6 +95,11 @@ var _message_left: float = 0.0
 ## has to decide whether it is on screen.
 var _lane_ring: Control
 var _build_panel: PanelContainer
+
+## Which element's towers the build panel is showing, or -1 for none. Survives a
+## refresh, because building a tower rebuilds the panel and collapsing the rail
+## each time would fight the player placing three Water towers in a row.
+var _build_element: int = -1
 var _build_list: VBoxContainer
 var _build_title: Label
 var _build_detail: Label
@@ -111,6 +120,7 @@ var _spell_bar: HBoxContainer
 var _boss_panel: PanelContainer
 var _boss_name: Label
 var _boss_bar: ProgressBar
+var _tutorial: TutorialCoach
 var _state_label: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
@@ -135,6 +145,7 @@ func _ready() -> void:
 	_build_boss_track()
 	_build_spell_bar()
 	_build_boss_bar()
+	_build_tutorial_coach()
 	_build_preparation_panel()
 	_build_command_panel()
 
@@ -684,12 +695,24 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	if _preparation_label == null or _ride_on_button == null:
 		return
 	_ride_on_button.disabled = not ready
-	var reward: int = int(round(float(Balance.PREPARATION_EARLY_GOLD_MAX) \
-		* clampf(seconds_left / maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01), 0.0, 1.0)))
+	var reward: int = Balance.preparation_early_gold(seconds_left)
 	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
-	_preparation_label.text = "Early-departure bonus fades in %.0f sec. The next wave still waits." \
-		% ceil(seconds_left) if reward > 0 \
-		else "Prepare as long as you need. The next wave waits for you."
+	_preparation_label.text = _preparation_text(seconds_left, reward)
+
+
+## What the breather says it is doing. Three states, because the countdown has
+## three: the bonus is falling, the bonus is about to vanish, and the wave comes
+## regardless. One "time left" number would hide both cliffs the reward schedule
+## is built around, and the cliffs are the whole decision.
+func _preparation_text(seconds_left: float, reward: int) -> String:
+	if seconds_left <= 0.0:
+		return "Prepare as long as you need. The next wave waits for you."
+	if reward > Balance.PREPARATION_EARLY_GOLD_FLOOR:
+		return "Ride on now for +%d Gold — the bonus drops every second." % reward
+	if reward > 0:
+		var left: float = ceil(Balance.preparation_bonus_seconds_left(seconds_left))
+		return "+%d Gold if you ride on within %.0f sec, then the bonus is gone." % [reward, left]
+	return "No bonus left. The wave rolls in %.0f sec." % ceil(seconds_left)
 
 
 func _on_command_changed(current: float, maximum: float) -> void:
@@ -939,6 +962,13 @@ func _update_spell_bar() -> void:
 
 ## A boss is the only enemy that gets its own bar. Everything else reads off the
 ## lane pressure ring.
+## The first-run coach. Built last so it sits above the panels it points at, and
+## owned by the HUD because every moment it teaches is a HUD moment.
+func _build_tutorial_coach() -> void:
+	_tutorial = TutorialCoach.new()
+	add_child(_tutorial)
+
+
 func _build_boss_bar() -> void:
 	_boss_panel = PanelContainer.new()
 	_boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -1061,6 +1091,8 @@ func _open_build_panel(anchor: Vector2i) -> void:
 			tower.display_name if tower != null else "open ground"]
 	_refresh_build_panel()
 	_build_panel.visible = true
+	if _tutorial != null:
+		_tutorial.build_panel_opened()
 	UiSound.confirm()
 	_pop_in(_build_panel)
 
@@ -1221,8 +1253,7 @@ func _refresh_build_panel() -> void:
 		note.add_theme_color_override("font_color", Color("aebcb8"))
 		column.add_child(note)
 
-	for tower: TowerData in ContentDB.unlocked_base_towers():
-		column.add_child(_tower_card(tower, anchor))
+	column.add_child(_element_rail(anchor))
 	_build_list.add_child(column)
 	_set_build_detail_visible(true)
 
@@ -1352,6 +1383,63 @@ func _collect_stat(rows: Array[Dictionary], name: String, from: float, to: float
 ## made the list too tall to fit, and the player is choosing between towers, not
 ## reading all eight - so the text goes to the footer for whichever one the
 ## cursor is over.
+## The build menu's element rail, and the towers it pulls out beside it.
+##
+## The roster is sixteen towers. As one column that is a scroll, and a scroll is
+## where a player stops reading - so the panel offers four elements and picking
+## one opens just that element's towers next to it. Two steps, and they are the
+## two the roster is already organised around: the element, then the role in it.
+func _element_rail(anchor: Vector2i) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+
+	var rail := VBoxContainer.new()
+	rail.add_theme_constant_override("separation", 6)
+	row.add_child(rail)
+
+	var by_element: Dictionary = {}
+	for tower: TowerData in ContentDB.unlocked_base_towers():
+		var listed: Array = by_element.get(tower.element, [])
+		listed.append(tower)
+		by_element[tower.element] = listed
+
+	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
+			TowerData.Element.EARTH, TowerData.Element.AIR]:
+		var towers: Array = by_element.get(element, [])
+		var pick := Button.new()
+		pick.custom_minimum_size = Vector2(ELEMENT_RAIL_WIDTH, BUILD_ROW_HEIGHT)
+		pick.text = "%s  %d" % [TowerData.element_name(element), towers.size()]
+		pick.icon = IconKit.element_sized(element, 26)
+		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		pick.focus_mode = Control.FOCUS_NONE
+		pick.toggle_mode = true
+		pick.button_pressed = element == _build_element
+		pick.disabled = towers.is_empty()
+		pick.add_theme_color_override("font_color", TowerData.element_colour(element))
+		pick.tooltip_text = "%s  -  %d unlocked" % [
+			TowerData.element_name(element), towers.size()]
+		pick.pressed.connect(func() -> void:
+			_build_element = -1 if _build_element == element else element
+			_refresh_build_panel())
+		rail.add_child(pick)
+
+	var flyout := VBoxContainer.new()
+	flyout.add_theme_constant_override("separation", BUILD_ROW_GAP)
+	flyout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(flyout)
+
+	if _build_element < 0 or not by_element.has(_build_element):
+		var hint: Label = _label("Pick an element to see its towers.", 14)
+		hint.add_theme_color_override("font_color", Color("aebcb8"))
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		flyout.add_child(hint)
+		return row
+
+	for tower: TowerData in by_element[_build_element]:
+		flyout.add_child(_tower_card(tower, anchor))
+	return row
+
+
 func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	# Quoted from the same function that charges. Assembling the price here as
 	# well is how a quote and a charge end up disagreeing, and only one of them
@@ -1386,7 +1474,37 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	button.mouse_entered.connect(func() -> void: _show_build_detail(
 		blurb if affordable else "%s\nInsufficient currency." % blurb))
 	button.mouse_exited.connect(func() -> void: _show_build_detail(""))
+	# A tooltip *and* the footer, which an earlier version deliberately avoided
+	# because both carried the same sentence. They no longer do: the footer says
+	# what the tower is for, the tooltip gives the figures. Two questions, and
+	# the second one cannot be answered in prose.
+	button.tooltip_text = _tower_tooltip(tower, cost_map)
 	return button
+
+
+## The numbers behind a tower, for its hover tooltip.
+func _tower_tooltip(tower: TowerData, cost_map: Dictionary) -> String:
+	var level: int = 1
+	var rate: float = 1.0 / maxf(tower.interval_at(level), 0.001)
+	var lines: PackedStringArray = [
+		"%s  -  %s" % [tower.display_name, TowerData.element_name(tower.element)],
+		"Damage %.0f  -  %.2f shots/sec  -  %.0f DPS" % [
+			tower.damage_at(level), rate, tower.damage_at(level) * rate],
+		"Range %.0f" % tower.range_at(level),
+	]
+	if tower.aoe_at(level) > 0.0:
+		lines.append("Blast radius %.0f" % tower.aoe_at(level))
+	if tower.extra_targets_at(level) > 0:
+		lines.append("Hits %d targets" % (1 + tower.extra_targets_at(level)))
+	if tower.burn_dps > 0.0:
+		lines.append("Burn %.0f/sec for %.1fs" % [tower.burn_dps, tower.burn_duration])
+	if tower.slow_factor < 1.0:
+		lines.append("Slow to %d%% for %.1fs" % [
+			int(round(tower.slow_factor * 100.0)), tower.slow_duration])
+	if tower.max_hp > 0.0:
+		lines.append("Structure %.0f HP" % tower.max_hp)
+	lines.append("Cost: %s" % RunState.format_cost(cost_map))
+	return "\n".join(lines)
 
 
 ## Blank means "nothing hovered", which reads as a hole in the panel rather than

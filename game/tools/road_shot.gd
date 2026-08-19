@@ -9,6 +9,16 @@ func _ready() -> void:
 	add_child(run)
 	for _f: int in 12:
 		await get_tree().process_frame
+	# `-- <terrain_id>` re-skins the field before the shot, so one tool proves the
+	# whole regional pipeline: the ground swap, the per-region road set, and the
+	# fallback for a region that has no set of its own.
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if args.size() > 0 and ContentDB.terrain(args[0]) != null:
+		RunState.terrain_id = args[0]
+		run.battlefield.refresh_terrain()
+		for _f: int in 4:
+			await get_tree().process_frame
+
 	var cam := run.battlefield.camera as Camera2D
 	if cam != null:
 		cam.zoom = Vector2(0.32, 0.32)

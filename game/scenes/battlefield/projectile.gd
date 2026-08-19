@@ -11,6 +11,10 @@ extends Node2D
 ## Homing rather than ballistic. A tower that fires at where something *was* is
 ## technically more honest and practically just frustrating at this scale.
 
+## Element head art, derived from the element name the same way every other
+## asset path in the project is derived from an id (CLAUDE.md SS4).
+const PROJECTILE_ART_FORMAT: String = "res://art/vfx/projectile_%s.png"
+
 ## Set by the tower before it enters the tree.
 var damage: float = 0.0
 var knockback: float = 0.0
@@ -32,6 +36,10 @@ var _life: float = 0.0
 var _trail: Line2D
 var _filament: Line2D
 var _core: Polygon2D
+
+## Painted head, when the element has art. The authored polygons stay as the
+## fallback, so a missing file costs nothing and the shot still reads.
+var _head: Sprite2D = null
 var _glow: Polygon2D
 var _light: PointLight2D
 var _history: PackedVector2Array = []
@@ -98,6 +106,8 @@ func _ready() -> void:
 	_core.color = colour.lerp(Color.WHITE, 0.55)
 	add_child(_core)
 
+	_build_head()
+
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all.
 	_light = LightKit.add_light(self, colour,
@@ -130,6 +140,8 @@ func _process(delta: float) -> void:
 		_spin += delta * Balance.PROJECTILE_SPIN_RATE
 		_core.rotation = _spin
 		_glow.rotation = _spin
+		if _head != null:
+			_head.rotation = _spin
 
 	_push_trail()
 	_mote_left -= delta
@@ -145,6 +157,30 @@ func _process(delta: float) -> void:
 
 ## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
 ## chunk, air a thin dart.
+## Swaps the authored polygon head for painted art, where art exists.
+##
+## The polygon is hidden rather than removed and the glow is kept but dimmed:
+## the glow is what carries the element colour at distance, and the sprite is
+## what carries the shape up close. Everything that *moves* - the taper, the
+## tumble, the light, the per-level scaling - is untouched, because the motion
+## is the read and the sprite is only the surface.
+func _build_head() -> void:
+	var element: int = data.element if data != null else TowerData.Element.FIRE
+	var path: String = PROJECTILE_ART_FORMAT % TowerData.element_name(element).to_lower()
+	if not ResourceLoader.exists(path):
+		return
+	_head = Sprite2D.new()
+	_head.texture = load(path)
+	_head.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_head.scale = Vector2.ONE * Balance.PROJECTILE_ART_SCALE * _tier_scale()
+	# Tinted toward the element rather than left neutral, so a Fire shot from a
+	# fused tower still reads as that tower's colour.
+	_head.modulate = colour.lerp(Color.WHITE, 0.35)
+	add_child(_head)
+	_core.visible = false
+	_glow.color = Color(colour, 0.22)
+
+
 ## How much bigger a shot is per level of the tower that fired it.
 func _tier_scale() -> float:
 	return 1.0 + float(clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1) * Balance.PROJECTILE_TIER_SCALE

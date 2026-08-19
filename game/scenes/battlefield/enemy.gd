@@ -53,8 +53,22 @@ var _damage_scale: float = 1.0
 var _speed_scale: float = 1.0
 
 # --- Status effects ---
+## Movement penalty, derived from `_chill` every tick. Kept as its own field
+## because movement and target sorting both read it on hot paths.
 var _slow_factor: float = 1.0
-var _slow_left: float = 0.0
+
+## The chill meter, 0..1. Every slow in the game feeds this one value rather than
+## overwriting the last one, and it is the single source of both how slowly the
+## enemy walks and whether it shatters. See the chill block in Balance.
+var _chill: float = 0.0
+
+## While positive, chill holds instead of decaying. This is what an authored
+## `slow_duration` means now.
+var _chill_hold: float = 0.0
+
+## Counts down before this enemy may be locked again.
+var _freeze_refractory: float = 0.0
+
 var _freeze_left: float = 0.0
 var _burn_dps: float = 0.0
 var _burn_left: float = 0.0
@@ -410,15 +424,50 @@ func pull_toward(point: Vector2, strength: float) -> void:
 	_hitstun_left = maxf(_hitstun_left, Balance.ENEMY_HITSTUN)
 
 
+## Feeds the chill meter. Repeated slows stack toward the floor instead of the
+## strongest one simply winning, which is what makes a second frost tower worth
+## building rather than redundant.
 func apply_slow(factor: float, duration: float) -> void:
 	if factor >= 1.0 or duration <= 0.0:
 		return
-	_slow_factor = minf(_slow_factor, factor)
-	_slow_left = maxf(_slow_left, duration)
+	_add_chill((1.0 - factor) * Balance.CHILL_PER_SLOW)
+	_chill_hold = maxf(_chill_hold, duration)
 
 
+## A freeze proc is chill, not a lock.
+##
+## This used to set a timer that any later proc refreshed, so overlapping freeze
+## towers held an enemy still for as long as they kept firing. It now fills the
+## meter faster than a plain slow does, and the lock - if one happens at all -
+## comes from `_shatter`, under the same ceiling and refractory as everything
+## else.
 func apply_freeze(duration: float) -> void:
-	_freeze_left = maxf(_freeze_left, duration)
+	if duration <= 0.0:
+		return
+	_add_chill(Balance.CHILL_PER_FREEZE_PROC)
+	_chill_hold = maxf(_chill_hold, duration)
+
+
+## Adds chill and locks the enemy if that fills the meter.
+func _add_chill(amount: float) -> void:
+	if amount <= 0.0 or _state == State.DYING:
+		return
+	if data != null and data.category == EnemyData.Category.BOSS:
+		amount *= Balance.CHILL_BOSS_RESIST
+	_chill = minf(_chill + amount, 1.0)
+	if _chill >= 1.0:
+		_shatter()
+
+
+## The moment at a full meter: a short lock, then back to walking slowed.
+func _shatter() -> void:
+	if _freeze_refractory > 0.0:
+		return
+	_freeze_left = maxf(_freeze_left,
+		minf(Balance.CHILL_SHATTER_SECONDS, Balance.FREEZE_MAX_SECONDS))
+	_freeze_refractory = Balance.FREEZE_REFRACTORY
+	_chill = Balance.CHILL_AFTER_SHATTER
+	animator.squash(1.25)
 
 
 func apply_stagger(duration: float) -> void:
@@ -439,10 +488,12 @@ func apply_burn(dps: float, duration: float) -> void:
 
 
 func _tick_status(delta: float) -> void:
-	if _slow_left > 0.0:
-		_slow_left -= delta
-		if _slow_left <= 0.0:
-			_slow_factor = 1.0
+	_freeze_refractory = maxf(_freeze_refractory - delta, 0.0)
+	if _chill_hold > 0.0:
+		_chill_hold -= delta
+	elif _chill > 0.0:
+		_chill = maxf(_chill - Balance.CHILL_DECAY * delta, 0.0)
+	_slow_factor = lerpf(1.0, Balance.CHILL_SLOW_FLOOR, _chill)
 	if _freeze_left > 0.0:
 		_freeze_left -= delta
 	if _burn_left > 0.0:
@@ -545,8 +596,10 @@ func _update_sprite() -> void:
 	var tint: Color = Color.WHITE
 	if _freeze_left > 0.0:
 		tint = Color(0.55, 0.80, 1.0)
-	elif _slow_left > 0.0:
-		tint = Color(0.75, 0.88, 1.0)
+	elif _chill > 0.02:
+		# Deepens with the meter rather than being on or off, so a player can see
+		# a shatter building and read a second frost tower as doing something.
+		tint = Color.WHITE.lerp(Color(0.62, 0.84, 1.0), _chill)
 	if _burn_left > 0.0:
 		tint = tint.lerp(Color(1.0, 0.55, 0.25), 0.5)
 	# The wind-up tell overrides every other tint, because it is the one the

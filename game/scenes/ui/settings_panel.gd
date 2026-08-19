@@ -48,6 +48,14 @@ var _colourblind_swatches: Array[ColorRect] = []
 ## Which action the player is currently pressing a key for, or empty.
 var _listening_for: StringName = &""
 var _listening_button: Button = null
+
+## The erase control is a two-press confirmation; this is how long the second
+## press stays available before the button disarms itself.
+const ERASE_CONFIRM_SECONDS: float = 4.0
+const ERASE_LABEL: String = "Erase saved data"
+var _erase_button: Button = null
+var _erase_note: Label = null
+var _erase_confirm_left: float = 0.0
 var _binding_buttons: Dictionary = {}
 var _binding_note: Label = null
 
@@ -58,10 +66,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	_save_left -= delta
-	if _save_left <= 0.0:
+	_tick_erase(delta)
+	if _save_left > 0.0:
+		_save_left -= delta
+		if _save_left <= 0.0:
+			_write()
+	# Two timers share this frame now, so it stops only when neither wants it.
+	# Disarming the erase confirmation is exactly as time-based as the coalesced
+	# save, and the first version of this cancelled itself on the next frame.
+	if _save_left <= 0.0 and _erase_confirm_left <= 0.0:
 		set_process(false)
-		_write()
 
 
 ## Graphics, colourblind and key choices live in their own classes and have to be
@@ -142,6 +156,12 @@ func _build() -> void:
 	controls.add_theme_constant_override("separation", 14)
 	_build_controls(controls)
 	tabs.add_child(controls)
+
+	var data := VBoxContainer.new()
+	data.name = "Data"
+	data.add_theme_constant_override("separation", 14)
+	_build_data(data)
+	tabs.add_child(data)
 
 	_refresh_video()
 	_refresh_fps_buttons()
@@ -516,6 +536,80 @@ func _refresh_colourblind_buttons() -> void:
 ##
 ## Scrolled, unlike everything else in this panel: fifteen rows is genuinely a
 ## list, and the alternative is a settings window taller than a 1080p screen.
+## Erasing the account.
+##
+## A roguelite's unlock pool is most of what a returning player is playing
+## against, so wanting the first run back is a reasonable thing to want, and
+## before this there was no way to ask for it short of deleting a file by hand.
+##
+## Two presses, not a modal. A confirmation dialog for a destructive action is
+## the correct instinct, but a button that changes into its own confirmation and
+## changes back after a few seconds cannot be dismissed by reflex the way a
+## dialog can, and it cannot be clicked through by somebody who is not reading.
+func _build_data(column: VBoxContainer) -> void:
+	column.add_child(_label("Tutorial", 22))
+	var coach_note: Label = _label(
+		"The first-run prompts show once per account. This offers them again.", 14)
+	coach_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	coach_note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))
+	column.add_child(coach_note)
+
+	var replay := Button.new()
+	replay.text = "Show the tutorial again"
+	replay.custom_minimum_size = Vector2(0.0, 54.0)
+	IconKit.on_button(replay, "upgrade", 22)
+	replay.pressed.connect(func() -> void:
+		MetaState.settings[TutorialCoach.SETTING_KEY] = false
+		MetaState.save_game()
+		replay.text = "The tutorial will show on the next run")
+	column.add_child(replay)
+
+	column.add_child(_separator())
+	column.add_child(_label("Saved data", 22))
+	var note: Label = _label(
+		"Unlocked towers, relics, spells, terrain and buildings, your run "
+		+ "statistics, and any Treasury carry-over. Settings and key bindings are kept.", 14)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))
+	column.add_child(note)
+
+	_erase_button = Button.new()
+	_erase_button.text = ERASE_LABEL
+	_erase_button.custom_minimum_size = Vector2(0.0, 54.0)
+	_erase_button.add_theme_color_override("font_color", Color(0.92, 0.53, 0.45))
+	IconKit.on_button(_erase_button, "close", 22)
+	_erase_button.pressed.connect(_on_erase_pressed)
+	column.add_child(_erase_button)
+
+	_erase_note = _label("", 14)
+	_erase_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_erase_note.add_theme_color_override("font_color", Color(0.92, 0.53, 0.45))
+	column.add_child(_erase_note)
+
+
+func _on_erase_pressed() -> void:
+	if _erase_confirm_left <= 0.0:
+		_erase_confirm_left = ERASE_CONFIRM_SECONDS
+		_erase_button.text = "Press again to erase everything"
+		_erase_note.text = "This cannot be undone."
+		set_process(true)
+		return
+	_erase_confirm_left = 0.0
+	MetaState.erase_progress()
+	_erase_button.text = ERASE_LABEL
+	_erase_note.text = "Saved data erased. The next run starts from the beginning."
+
+
+## Lets the confirmation lapse, so a stray first click does not sit armed.
+func _tick_erase(delta: float) -> void:
+	if _erase_confirm_left <= 0.0:
+		return
+	_erase_confirm_left -= delta
+	if _erase_confirm_left <= 0.0:
+		_erase_button.text = ERASE_LABEL
+		_erase_note.text = ""
+
+
 func _build_controls(column: VBoxContainer) -> void:
 	_binding_note = _label("Click a key, then press the one you want. Escape cancels.", 14)
 	_binding_note.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))

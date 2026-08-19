@@ -52,9 +52,10 @@ script = ExtResource("12_boss")
 [node name="CommandSystem" type="Node" parent="."]
 script = ExtResource("14_command")
 
-[node name="HUD" parent="." instance=ExtResource("8_hud") node_paths=PackedStringArray("battlefield", "raid")]
+[node name="HUD" parent="." instance=ExtResource("8_hud") node_paths=PackedStringArray("battlefield", "raid", "boss_director")]
 battlefield = NodePath("../Battlefield")
 raid = NodePath("../Raid")
+boss_director = NodePath("../BossDirector")
 
 [node name="Crossroad" parent="." instance=ExtResource("9_cross")]
 

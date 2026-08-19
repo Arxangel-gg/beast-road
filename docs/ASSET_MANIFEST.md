@@ -398,6 +398,69 @@ NN, so an autotiler indexes them directly.
 | `path_tile_13.png` | 32×32 | T | `#8A6B3F` |
 | `path_tile_14.png` | 32×32 | T | `#8A6B3F` |
 | `path_tile_15.png` | 32×32 | T | `#8A6B3F` |
+**Regional road tiles.** The same sixteen-piece set per region, picked by the
+terrain id (`path_<terrain>_NN.png`), falling back to `path_tile_NN` for any
+region without one. Built from a generated set by `tools/build_road_tiles.py`,
+which is where the tile-order, missing-mask and seam problems are documented.
+
+Act I keeps the default set, so it has no table of its own.
+
+**Act II — The Sunglass Waste**
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `path_saltglass_00.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_01.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_02.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_03.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_04.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_05.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_06.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_07.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_08.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_09.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_10.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_11.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_12.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_13.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_14.png` | 32×32 | T | `#D8C08A` |
+| `path_saltglass_15.png` | 32×32 | T | `#D8C08A` |
+
+**Act III — The White Teeth**
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `path_steppe_00.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_01.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_02.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_03.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_04.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_05.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_06.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_07.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_08.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_09.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_10.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_11.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_12.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_13.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_14.png` | 32×32 | T | `#8A8D95` |
+| `path_steppe_15.png` | 32×32 | T | `#8A8D95` |
+
+### 5.18 Projectiles — `res://art/vfx/`
+
+One head per element, drawn pointing east with its wake trailing behind. The
+sprite is a skin over the existing flight: the trail, filament, light, tumble and
+per-level scaling all still run underneath, so a missing file costs nothing and
+the shot still reads.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `projectile_fire.png` | 64×64 | T | `#E8752B` |
+| `projectile_water.png` | 64×64 | T | `#54B8C8` |
+| `projectile_earth.png` | 64×64 | T | `#B07A3E` |
+| `projectile_air.png` | 64×64 | T | `#BFE6F0` |
+
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |

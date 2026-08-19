@@ -13,6 +13,16 @@ extends CanvasLayer
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	panel.visible = false
+	# The panel was a fixed 800x600 box. A finished three-act run produces the
+	# longest debrief in the game - every act, every road, and the whole unlock
+	# payout - and a VBoxContainer does not shrink its children below their
+	# minimum size, so the text simply pushed the one button off the bottom.
+	# Winning the game left the player on a screen with no way out of it.
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT, false)
+	panel.offset_left = 140.0
+	panel.offset_top = 70.0
+	panel.offset_right = -140.0
+	panel.offset_bottom = -70.0
 	IconKit.on_button(menu_button, "close", 24)
 	# The body sits on its own dark plate rather than directly on the ornate
 	# frame. Twelve lines of statistics against riveted ironwork is a lot of
@@ -30,11 +40,22 @@ func _plate_body() -> void:
 	var index: int = body.get_index()
 	var plate := PanelContainer.new()
 	plate.theme_type_variation = &"InnerPanel"
-	plate.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# The statistics scroll and the button does not. Length is content here - a
+	# longer run genuinely has more to say - so the fix is to give the text
+	# somewhere to go, not to trim what a player earned the right to read.
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+
 	column.remove_child(body)
 	plate.add_child(body)
-	column.add_child(plate)
-	column.move_child(plate, index)
+	scroll.add_child(plate)
+	column.add_child(scroll)
+	column.move_child(scroll, index)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Statistics are read down a column, so they need room between the lines. The
 	# default leading packs them tight enough that the eye loses its place.
 	body.add_theme_constant_override("line_spacing", 6)
@@ -42,6 +63,8 @@ func _plate_body() -> void:
 
 func show_results(victory: bool, summary: Dictionary) -> void:
 	title.text = "The sanctuary" if victory else "The road ends here"
+	if victory and int(summary.get("endless_waves", 0)) > 0:
+		title.text = "The sanctuary, and beyond"
 
 	var unlocks: Array = summary.get("unlocks", [])
 	var seconds: int = int(summary.get("time", 0))
@@ -91,6 +114,12 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		"",
 		"Added to the pool: %d" % unlocks.size(),
 	]
+	var endless_waves: int = int(summary.get("endless_waves", 0))
+	if endless_waves > 0:
+		var at: int = lines.find("DEFENCE")
+		if at > 0:
+			lines.insert(at - 1, "Endless   %d waves past the summit" % endless_waves)
+
 	for entry: String in unlocks:
 		lines.append("   " + entry.replace(":", "  "))
 

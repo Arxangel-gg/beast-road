@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "pick_element"
+display_name = "Choose a tower"
+trigger = 1
+order = 0
+body = "Pick an element on the left, then a tower from the list beside it. Point at one to read what it does."
+seconds = 9.0

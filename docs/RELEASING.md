@@ -41,9 +41,11 @@ That triggers `.github/workflows/release.yml`, which:
 
 1. Exports the game to `BeastRoad.exe` and zips it as `BeastRoad-windows.zip`
 2. Exports the launcher to `BeastRoadLauncher.exe`
-3. Creates a GitHub Release named after the tag and attaches both
+3. Writes `launcher-version-<n>.txt`, naming the launcher's own version
+4. Creates a GitHub Release named after the tag and attaches all three
 
-The launcher notices the new tag on its next start and offers **Update**.
+The launcher notices the new tag on its next start and offers **Update** — and
+updates *the game only*, unless the launcher version changed too.
 
 The Update Manager runs the game, a short gameplay soak, and the launcher
 release-contract test before it commits or tags anything. It then watches the
@@ -75,10 +77,8 @@ The launcher's permanent download link — it always points at the newest one:
 https://github.com/Arxangel-gg/beast-road/releases/latest/download/BeastRoadLauncher.exe
 ```
 
-It installs and updates the game. The launcher executable cannot replace itself
-while it is running on Windows, so a release that changes `launcher/` requires
-one manual launcher refresh from this same permanent link. Game-only releases
-need no new launcher download.
+It installs and updates the game, and it keeps working across releases — a game
+update no longer drags a launcher download along with it. See below.
 
 > Windows SmartScreen will warn about an unsigned executable. That is expected
 > for anything without a code-signing certificate; "More info" -> "Run anyway".
@@ -88,9 +88,39 @@ need no new launcher download.
 
 ## Version numbering
 
-The tag *is* the version. The launcher compares tags for equality and does not
-try to order them, so `v0.4.0` -> `v0.3.9` is a valid rollback rather than an
+The tag *is* the game's version. The launcher compares tags for equality and does
+not try to order them, so `v0.4.0` -> `v0.3.9` is a valid rollback rather than an
 error.
+
+---
+
+## The launcher's version is separate — bump it by hand
+
+`LAUNCHER_VERSION` in `launcher/scripts/LauncherConfig.gd` is the launcher's own
+version, and the only thing that makes a player download a new launcher.
+
+**Change anything under `launcher/`? Bump it. Otherwise leave it alone.**
+
+```gdscript
+const LAUNCHER_VERSION: String = "2"
+```
+
+CI reads that constant and publishes a marker asset named after it. A running
+launcher compares the marker against the version compiled into itself: same
+version means the published launcher is the one already installed, so it skips
+straight to updating the game.
+
+This used to be the release tag, which moves every release — so every game
+update also replaced the launcher, a fresh download and a restart for a launcher
+that had not changed a line. On a metered connection that was most of the cost of
+a patch that touched one `.tres` file.
+
+Forgetting to bump it ships a launcher nobody installs; the fix is to bump it and
+cut another release. Bumping it needlessly costs testers one download. Neither
+breaks anything, which is the point of keeping it a hand-turned dial.
+
+Digits and dots only — the release workflow fails the build on anything else,
+because the launcher will not parse it.
 
 ---
 

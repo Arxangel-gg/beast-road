@@ -50,13 +50,20 @@ static func from_json(text: String) -> ReleaseInfo:
 			continue
 		var name: String = String(asset.get("name", ""))
 
+		# The version marker is checked first and does not `continue`-guard the
+		# others, because it is a different asset from the launcher itself and
+		# GitHub does not promise an order for the two.
+		var marked: String = LauncherConfig.launcher_version_in(name)
+		if not marked.is_empty():
+			info.launcher_version = marked
+			continue
+
 		# The launcher is an .exe and the game is a .zip, so the two never
 		# compete for the same slot.
 		if name.to_lower().ends_with(".exe") 				and name.to_lower().contains(LauncherConfig.LAUNCHER_ASSET_MARKER):
 			info.launcher_name = name
 			info.launcher_url = String(asset.get("browser_download_url", ""))
 			info.launcher_size = int(asset.get("size", 0))
-			info.launcher_version = LauncherConfig.launcher_version_in(name)
 			continue
 
 		if not name.to_lower().ends_with(".zip"):

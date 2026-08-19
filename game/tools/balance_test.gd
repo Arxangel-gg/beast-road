@@ -29,6 +29,9 @@ func _ready() -> void:
 	_test_act_curves()
 	_test_sequential_waves()
 	_test_enemy_roles()
+	await _test_chill_never_locks()
+	_test_boss_bar_is_wired()
+	_test_projectile_art_resolves()
 	_test_zoom_range()
 	_test_beast_gait()
 	_test_hostile_projectile()
@@ -251,6 +254,89 @@ func _test_sequential_waves() -> void:
 		"next wave must wait while the current formation is still deploying")
 	director._spawn_queue.clear()
 	director._wave_active = false
+
+
+## An enemy under continuous frost must keep walking.
+##
+## Two frost towers covering one tile used to hold an enemy still for as long as
+## they kept firing, because both slow and freeze refreshed a timer. The lane
+## stopped being a lane, and the natural response - build a third - made it
+## worse. The rule now is that a lock is a moment: this hammers an enemy with the
+## strongest slow and a freeze proc every single frame, which is worse than any
+## real tower layout can manage, and asserts it still travels.
+func _test_chill_never_locks() -> void:
+	var field: Battlefield = _run.battlefield
+	var breed: EnemyData = ContentDB.enemy("bogkin")
+	if breed == null:
+		for id: String in ContentDB.enemies:
+			breed = ContentDB.enemy(id)
+			break
+	if breed == null or field == null:
+		_check(false, "the chill check needs a breed and a battlefield")
+		return
+	var victim: Enemy = field.spawn_enemy(breed, 0, 1.0)
+	if victim == null:
+		_check(false, "the chill check needs an enemy")
+		return
+	await get_tree().process_frame
+
+	var step: float = 1.0 / 60.0
+	var frozen: float = 0.0
+	var longest_lock: float = 0.0
+	var lock: float = 0.0
+	var slowest: float = 1.0
+	for _frame: int in 600:                      # ten seconds of unbroken frost
+		victim.apply_slow(0.05, 2.0)
+		victim.apply_freeze(1.2)
+		victim.call("_tick_status", step)
+		slowest = minf(slowest, victim.get("_slow_factor"))
+		if float(victim.get("_freeze_left")) > 0.0:
+			frozen += step
+			lock += step
+			longest_lock = maxf(longest_lock, lock)
+		else:
+			lock = 0.0
+
+	_check(slowest >= Balance.CHILL_SLOW_FLOOR - 0.001,
+		"chill must never slow an enemy past the floor")
+	_check(slowest < 1.0, "stacked slows must actually slow the enemy")
+	_check(longest_lock <= Balance.FREEZE_MAX_SECONDS + 0.02,
+		"no single lock may exceed the freeze ceiling")
+	# Ten seconds of the worst possible frost, at one lock per refractory.
+	_check(frozen <= 10.0 * (Balance.FREEZE_MAX_SECONDS / Balance.FREEZE_REFRACTORY) + 0.5,
+		"an enemy under continuous frost must spend most of its time moving")
+	victim.queue_free()
+
+
+## The boss health bar has to be connected to something.
+##
+## `HUD.boss_director` is an @export that run.tscn simply never filled in, so
+## `_update_boss_bar` hit its null guard on every frame of every boss fight and
+## the bar sat at full while the boss died. Nothing errored - a null check that
+## silently does nothing looks exactly like a bar that works. This is the check
+## that would have caught it, and it is cheap.
+func _test_boss_bar_is_wired() -> void:
+	var hud: HUD = _run.hud
+	_check(hud != null, "the run must have a HUD")
+	if hud == null:
+		return
+	_check(hud.boss_director != null,
+		"HUD.boss_director must be wired, or the boss health bar never updates")
+	_check(hud.battlefield != null, "HUD.battlefield must be wired")
+
+
+## Every element's projectile head has to resolve from its own name.
+##
+## The path is derived, not listed, so nothing errors when it is wrong - the
+## shot silently falls back to its polygon and the art simply never appears.
+## Renaming an element or a file is the whole failure mode, and this is the only
+## thing that would notice.
+func _test_projectile_art_resolves() -> void:
+	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
+			TowerData.Element.EARTH, TowerData.Element.AIR]:
+		var path: String = Projectile.PROJECTILE_ART_FORMAT % TowerData.element_name(element).to_lower()
+		_check(ResourceLoader.exists(path),
+			"%s projectile art must resolve at %s" % [TowerData.element_name(element), path])
 
 
 func _test_enemy_roles() -> void:

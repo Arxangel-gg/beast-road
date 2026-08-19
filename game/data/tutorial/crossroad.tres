@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "crossroad"
+display_name = "Crossroads"
+trigger = 6
+order = 0
+body = "A crossroads. Each road ahead offers a different reward and a different difficulty - read both before you choose."
+seconds = 9.0

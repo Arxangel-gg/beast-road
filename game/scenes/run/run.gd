@@ -84,9 +84,15 @@ func _process(delta: float) -> void:
 	if not RunState.is_preparation() or _preparation_left <= 0.0:
 		return
 	_preparation_left = maxf(_preparation_left - delta, 0.0)
-	# The counter is a reward window, never an auto-start. Once it reaches zero
-	# the formation remains safely paused until the player chooses Ride On.
 	EventBus.preparation_changed.emit(_preparation_left, true)
+	# The clock starts the wave itself now. It used to be a reward window that
+	# never ended, so the road only moved when the player remembered to press a
+	# button and the pacing between formations was whatever they happened to do.
+	# Only the between-wave breather auto-starts: the opening, and the breathers
+	# a crossroad or a boss opens, are the player's to leave. Dropping a
+	# formation on somebody reading a crossroad is the bug this used to be.
+	if _preparation_left <= 0.0 and _breather:
+		_end_wave_breather()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -294,9 +300,8 @@ func _begin_boss_preparation(act: int) -> void:
 
 
 func _on_boss_defeated(_boss_id: String, act: int) -> void:
-	if act >= Balance.ACT_COUNT:
-		RunState.set_phase(RunState.Phase.ENDED)
-		GameDirector.end_run(true)
+	if act >= Balance.ACT_COUNT and not RunState.summit_reached:
+		_begin_endless()
 		return
 	journey.resume_after_boss()
 	# A new act means new ground underfoot.
@@ -399,9 +404,10 @@ var _breather_after_wave: int = 0
 ## waves the game simply never stopped, so the one phase where building is legal
 ## was unreachable for the whole middle of a road.
 ##
-## The next formation never starts underneath a player who is reading a tower,
-## repairing a lane or moving between scopes. Choosing Ride On early pays a small
-## tempo reward; waiting past ten seconds simply forfeits it.
+## The next formation never starts while enemies are still standing. Choosing
+## Ride On early pays a tempo reward that falls to a floor, holds there, and is
+## gone after ten seconds; the breather itself ends at fifteen and the wave comes
+## whether or not the player pressed anything.
 ## True when a breather actually opened. The caller has to know, because a
 ## refusal leaves the wave director stopped and somebody must restart it.
 func _enter_wave_breather(wave: int) -> bool:
@@ -416,15 +422,14 @@ func _enter_wave_breather(wave: int) -> bool:
 	_preparation_left = Balance.PREPARATION_BETWEEN_WAVES
 	_coverage_warning_acknowledged = true
 	EventBus.preparation_changed.emit(_preparation_left, true)
-	EventBus.preparation_warning.emit("The road is clear. Ride early for bonus Gold, or prepare as long as you need.")
+	EventBus.preparation_warning.emit("The road is clear. Ride early for bonus Gold — the next wave rolls in %.0f seconds."
+		% Balance.PREPARATION_BETWEEN_WAVES)
 	return true
 
 
 ## Ends a breather and lets the next wave come.
 func _end_wave_breather() -> void:
-	var reward_ratio: float = clampf(_preparation_left \
-		/ maxf(Balance.PREPARATION_BETWEEN_WAVES, 0.01), 0.0, 1.0)
-	var reward: int = int(round(float(Balance.PREPARATION_EARLY_GOLD_MAX) * reward_ratio))
+	var reward: int = Balance.preparation_early_gold(_preparation_left)
 	if reward > 0:
 		RunState.gain_currency(RunState.GOLD, reward)
 		EventBus.preparation_warning.emit("EARLY DEPARTURE  ·  +%d Gold" % reward)
@@ -535,6 +540,29 @@ func _on_command_requested(order_id: String, anchor: Vector2i) -> void:
 	var problem: String = command_system.use_order(order_id, anchor)
 	if not problem.is_empty():
 		EventBus.preparation_warning.emit(problem)
+
+
+
+## The summit is reached, and the road carries on.
+##
+## Killing the Act 3 boss used to call `end_run(true)` on the spot: a debrief,
+## and the game was over at the exact moment the player had finally assembled a
+## defence worth playing with. The win is banked here instead - `summit_reached`
+## carries it to whenever the run actually ends - and the run rolls into Endless,
+## which is also where the mode is unlocked for the main menu. Earned by
+## finishing, not by a toggle.
+func _begin_endless() -> void:
+	var first_time: bool = not MetaState.act3_cleared
+	RunState.begin_endless(true)
+	MetaState.act3_cleared = true
+	MetaState.save_game()
+	journey.resume_after_boss()
+	battlefield.refresh_terrain()
+	_enter_preparation(false)
+	EventBus.preparation_warning.emit(
+		"THE SUMMIT IS YOURS  ·  Endless begins. Ride as far as you can."
+		if first_time
+		else "THE SUMMIT IS YOURS  ·  Endless begins.")
 
 
 # --- Ending -----------------------------------------------------------------

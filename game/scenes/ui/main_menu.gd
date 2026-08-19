@@ -27,6 +27,7 @@ func _ready() -> void:
 	IconKit.on_button(settings_button, "settings", 24)
 	IconKit.on_button(quit_button, "close", 24)
 
+	_build_endless_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
@@ -34,7 +35,29 @@ func _ready() -> void:
 	new_run_button.grab_focus()
 
 
-func _start_run() -> void:
+## Endless is earned by finishing, so the button only exists once the summit has
+## been reached. Built here rather than in the scene because it is conditional:
+## a permanent button that says "locked" is a worse front door than one that
+## arrives when it means something.
+func _build_endless_button() -> void:
+	if not MetaState.act3_cleared or new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Endless"
+	button.text = "Endless road"
+	button.tooltip_text = "The same three acts, escalating from the first wave, and no finish line."
+	button.custom_minimum_size = new_run_button.custom_minimum_size
+	button.theme_type_variation = new_run_button.theme_type_variation
+	column.add_child(button)
+	column.move_child(button, new_run_button.get_index() + 1)
+	IconKit.on_button(button, "pressure_arrow", 26)
+	button.pressed.connect(func() -> void: _start_run(true))
+
+
+func _start_run(endless: bool = false) -> void:
 	var requested: int = 0
 	var entered: String = seed_input.text.strip_edges()
 	if not entered.is_empty():
@@ -44,7 +67,7 @@ func _start_run() -> void:
 			seed_input.grab_focus()
 			return
 		requested = clampi(int(entered), 1, RunState.RNG_MAX_SEED)
-	GameDirector.start_run(requested)
+	GameDirector.start_run(requested, endless)
 
 
 ## The panel is the shared component, centred over the key art. The menu used to

@@ -244,6 +244,56 @@ const BEAST_PROFILE_VERTICAL: float = 7.5
 ## These remain deliberately below combat-stagger values: they sell unstable
 ## footing without changing the outcome of an attack wind-up. [TUNE]
 const BEAST_STEP_WORLD_IMPULSE: float = 27.0
+# --- Chill: slows stack, freezes are a moment ---------------------------------
+#
+# Slow used to be "strongest wins, refresh the timer" and freeze used to be
+# "refresh the timer". Two frost towers covering the same tile therefore held an
+# enemy still indefinitely: the lane stopped being a lane, and the fix a player
+# reaches for - build another frost tower - made it worse.
+#
+# The model now: every slow feeds one chill meter, the meter sets how slowly the
+# enemy walks down to a floor it never passes, and only a *full* meter buys a
+# single short lock. After that the enemy walks away still slowed and cannot be
+# locked again until its refractory expires.
+
+## Slowest an enemy ever walks, however much chill is on it. Never zero - a tower
+## line that stops enemies outright stops the game with them.
+const CHILL_SLOW_FLOOR: float = 0.34
+
+## Chill from a slow that would have stopped an enemy dead (factor 0). An
+## authored slow_factor of 0.6 therefore contributes 0.4 of this. [TUNE]
+const CHILL_PER_SLOW: float = 0.42
+
+## Chill from a dedicated freeze proc. A freeze tower is a chill engine now, and
+## reaches the lock sooner than a plain slow rather than by a different rule.
+const CHILL_PER_FREEZE_PROC: float = 0.55
+
+## Chill lost per second once nothing is refreshing it. [TUNE]
+const CHILL_DECAY: float = 0.5
+
+## The lock at a full meter. Long enough to read as a freeze, far too short to
+## chain into a stunlock.
+const CHILL_SHATTER_SECONDS: float = 0.45
+
+## Hard ceiling on any single freeze, wherever it comes from. Nothing in the game
+## may exceed this, which is what makes "enemies never stop for long" a property
+## rather than a hope.
+const FREEZE_MAX_SECONDS: float = 0.6
+
+## How long before the same enemy can be locked again. The constant that turns a
+## freeze into a moment instead of a state. [TUNE]
+const FREEZE_REFRACTORY: float = 3.2
+
+## Chill left after a lock breaks. Not zero: the enemy walks out of it slowed, so
+## the towers that froze it keep their grip and the meter refills honestly.
+const CHILL_AFTER_SHATTER: float = 0.55
+
+## Bosses take chill at this rate. They still slow and still shatter - a boss
+## immune to the utility half of the roster would invalidate those towers exactly
+## when they matter - but they do it about twice as slowly. [TUNE]
+const CHILL_BOSS_RESIST: float = 0.45
+
+
 const BEAST_STEP_STUN: float = 0.055
 const BEAST_STEP_WOBBLE_DEGREES: float = 3.2
 
@@ -321,15 +371,49 @@ const HERO_RESPAWN_INVULN: float = 1.5
 ## deliberately chooses Ride On. [TUNE]
 const PREPARATION_MIN_SECONDS: float = 0.0
 
-## A breather opens only after every enemy in a wave is defeated. This is an
-## early-departure reward window, not an auto-start timer: Ride On is immediately
-## available, the reward falls to zero over this duration, and the next wave
-## then waits indefinitely for the player's confirmation. [TUNE]
-const PREPARATION_BETWEEN_WAVES: float = 10.0
+## A breather opens only after every enemy in a wave is defeated, and it is a
+## countdown: at the end of it the next formation rolls in by itself.
+##
+## It used to wait indefinitely for Ride On. That made the start of every wave a
+## decision with nothing pressing it, so a run stopped dead between formations
+## and the pacing of the whole road came apart. Fifteen seconds is long enough to
+## build, upgrade and reposition, and short enough to feel like a breath. [TUNE]
+const PREPARATION_BETWEEN_WAVES: float = 15.0
 
-## Gold awarded for riding on at the instant a between-wave breather opens.
-## The award falls linearly to zero over PREPARATION_BETWEEN_WAVES. [TUNE]
-const PREPARATION_EARLY_GOLD_MAX: int = 15
+## Gold for riding on the instant a between-wave breather opens. [TUNE]
+const PREPARATION_EARLY_GOLD_MAX: int = 10
+
+## The award stops falling here, and holds. [TUNE]
+const PREPARATION_EARLY_GOLD_FLOOR: int = 5
+
+## The award falls a gold a second across this window, MAX down to FLOOR. [TUNE]
+const PREPARATION_EARLY_GOLD_DECAY: float = 5.0
+
+## After this the award is gone entirely, though the breather still has time left
+## on it. [TUNE]
+const PREPARATION_EARLY_GOLD_DEADLINE: float = 10.0
+
+
+## The early-departure award for riding on with `seconds_left` on the clock.
+##
+## Falls a gold a second to a floor, holds there, then vanishes at a deadline -
+## three steps rather than one ramp, and deliberately. A linear fade to zero
+## gives a number that is never quite worth hurrying for and never quite worth
+## waiting out. Two cliffs give two real decisions: go now for the most, or go
+## before the bonus disappears at all.
+static func preparation_early_gold(seconds_left: float) -> int:
+	var elapsed: float = maxf(PREPARATION_BETWEEN_WAVES - seconds_left, 0.0)
+	if elapsed >= PREPARATION_EARLY_GOLD_DEADLINE:
+		return 0
+	if elapsed >= PREPARATION_EARLY_GOLD_DECAY:
+		return PREPARATION_EARLY_GOLD_FLOOR
+	return maxi(PREPARATION_EARLY_GOLD_MAX - int(floor(elapsed)),
+		PREPARATION_EARLY_GOLD_FLOOR)
+
+
+## Seconds left before the early-departure award disappears entirely.
+static func preparation_bonus_seconds_left(seconds_left: float) -> float:
+	return maxf(seconds_left 		- (PREPARATION_BETWEEN_WAVES - PREPARATION_EARLY_GOLD_DEADLINE), 0.0)
 
 ## How long a formation may fail to clear before the run moves on anyway.
 ##
@@ -705,6 +789,13 @@ const TOWER_STONE_SELL_REFUND: float = 0.4
 const SAME_ELEMENT_LANE_BONUS: float = 0.25
 
 ## Default projectile speed for towers that fire one. [TUNE]
+## How large the painted projectile head is drawn, against its 64px source.
+##
+## The art is a skin over the same flight: the trail, filament, light, tumble and
+## per-level scaling all still run underneath it. A sprite that replaced them
+## would read as a decal sliding across the field rather than as a shot. [TUNE]
+const PROJECTILE_ART_SCALE: float = 0.44
+
 const TOWER_PROJECTILE_SPEED: float = 620.0
 
 # ------------------------------------------------------------------------------
@@ -746,6 +837,14 @@ const WAVE_BASE_COUNT: int = 4
 ## and HP growth both go up, and enemies move faster to claw back some of the
 ## time the bend hands the player. Speed is the honest lever for the road
 ## length; HP and count answer the tower count. [TUNE]
+## Endless escalation, applied per Endless wave on top of the ordinary per-wave
+## growth. Without these, Endless settles at whatever pressure Act 3 ended on and
+## becomes a treadmill the player can never lose - which is the one thing an
+## endless mode must not be. [TUNE]
+const ENDLESS_HP_GROWTH: float = 0.055
+const ENDLESS_DAMAGE_GROWTH: float = 0.032
+const ENDLESS_COUNT_GROWTH: float = 0.11
+
 const WAVE_COUNT_GROWTH: float = 0.285
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.14, 1.30]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16

@@ -164,6 +164,7 @@ func _begin_wave() -> void:
 		return
 	_stuck_for = 0.0
 	RunState.wave_number += 1
+	RunState.count_endless_wave()
 	var wave: int = RunState.wave_number
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	_act_wave += 1
@@ -410,6 +411,7 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 	var size: float = Balance.WAVE_BASE_COUNT + Balance.WAVE_COUNT_GROWTH * float(act_wave - 1)
 	size *= Balance.WAVE_ACT_COUNT_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_COUNT_SCALE.size() - 1)]
+	size *= RunState.endless_scale(Balance.ENDLESS_COUNT_GROWTH)
 	if terrain != null:
 		size *= terrain.wave_size_multiplier
 	size *= _opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, act_wave)
@@ -523,6 +525,7 @@ func _hp_scale(lane: int) -> float:
 	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
+	scale *= RunState.endless_scale(Balance.ENDLESS_HP_GROWTH)
 	scale *= _situational_scale(lane, 1.0)
 	scale *= _opening_scale(Balance.WAVE_OPENING_HP_SCALE, _act_wave)
 	return scale
@@ -532,6 +535,7 @@ func _damage_scale(lane: int) -> float:
 	var scale: float = 1.0 + Balance.WAVE_DAMAGE_GROWTH * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_DAMAGE_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_DAMAGE_SCALE.size() - 1)]
+	scale *= RunState.endless_scale(Balance.ENDLESS_DAMAGE_GROWTH)
 	scale *= _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT)
 	scale *= _opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, _act_wave)
 	return scale

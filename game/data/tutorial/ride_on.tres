@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "ride_on"
+display_name = "Ride On"
+trigger = 2
+order = 0
+body = "RIDE ON starts the wave. Going early pays bonus Gold, and the breather ends by itself after 15 seconds."
+seconds = 9.0

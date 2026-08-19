@@ -21,6 +21,21 @@ var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
 var terrain_id: String = ""
+## True once this run has killed the Act 3 boss.
+##
+## The run does not end there any more - it rolls into Endless - so the win has
+## to be remembered rather than reported on the spot. Without it, dying in
+## Endless would file a run that beat the game as a loss.
+var summit_reached: bool = false
+
+## True while the run is past its finish line and simply seeing how far it goes.
+var endless: bool = false
+
+## Waves survived since Endless began. Drives the extra escalation on top of the
+## ordinary per-wave growth, so Endless keeps getting harder rather than settling
+## at whatever Act 3 happened to end on.
+var endless_wave: int = 0
+
 var phase: Phase = Phase.PREPARATION
 var active_road_id: String = ""
 var active_road_difficulty_id: String = ""
@@ -224,6 +239,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
 	distance_travelled = 0.0
 	beast_speed = Balance.BEAST_BASE_SPEED
+	summit_reached = false
+	endless = false
+	endless_wave = 0
 	act = 1
 	segment = 0
 	terrain_id = ""
@@ -907,3 +925,26 @@ func most_common_wave_archetype() -> String:
 			best_count = count
 			best_id = String(key)
 	return best_id
+
+
+## Switches the run to Endless.
+##
+## `from_summit` is what separates the victory lap from the mode picked off the
+## menu: only the former is a win. Without the distinction, starting Endless from
+## the front door would file every death as a completed campaign.
+func begin_endless(from_summit: bool) -> void:
+	summit_reached = summit_reached or from_summit
+	endless = true
+	endless_wave = 0
+
+
+## Counts one Endless wave. Called by the wave director, not by the clock, so
+## the escalation tracks what the player actually fought.
+func count_endless_wave() -> void:
+	if endless:
+		endless_wave += 1
+
+
+## Extra multiplier applied on top of ordinary wave growth once Endless starts.
+func endless_scale(per_wave: float) -> float:
+	return 1.0 + per_wave * float(endless_wave)

@@ -221,14 +221,17 @@ func _test_launcher_version_gate() -> void:
 		"tag_name": "v9.9.9",
 		"assets": [
 			{"name": "BeastRoad-windows.zip", "browser_download_url": "https://e.invalid/g.zip", "size": 1},
-			{"name": "BeastRoadLauncher-l2.exe", "browser_download_url": "https://e.invalid/l.exe", "size": 2},
+			{"name": "BeastRoadLauncher.exe", "browser_download_url": "https://e.invalid/l.exe", "size": 2},
+			{"name": "launcher-version-2.txt", "browser_download_url": "https://e.invalid/v.txt", "size": 40},
 		],
 	}))
 	_check(versioned != null, "a versioned launcher release should parse")
 	if versioned == null:
 		return
 	_check(versioned.launcher_version == "2",
-		"the launcher version should be read out of the asset filename")
+		"the launcher version should be read out of the marker asset")
+	_check(versioned.launcher_name == "BeastRoadLauncher.exe",
+		"the launcher executable keeps its permanent name, so the install link still resolves")
 	_check(not versioned.launcher_asset_differs("2", "v0.0.1"),
 		"a new game release must not ask for a new launcher when the launcher version matches")
 	_check(versioned.launcher_asset_differs("3", "v9.9.9"),
@@ -236,20 +239,20 @@ func _test_launcher_version_gate() -> void:
 	_check(versioned.is_usable(),
 		"skipping the launcher update must leave the game installable")
 
-	# The round trip CI depends on: the filename it builds from LAUNCHER_VERSION
-	# has to parse back to exactly that string, or a launcher can never match the
-	# launcher that was published for it.
-	var published: String = "BeastRoadLauncher-l%s.exe" % LauncherConfig.LAUNCHER_VERSION
+	# The round trip CI depends on: the marker filename it builds from
+	# LAUNCHER_VERSION has to parse back to exactly that string, or a launcher can
+	# never match the launcher that was published for it.
+	var published: String = "%s%s.txt" % [
+		LauncherConfig.LAUNCHER_VERSION_ASSET_PREFIX, LauncherConfig.LAUNCHER_VERSION]
 	_check(LauncherConfig.launcher_version_in(published) == LauncherConfig.LAUNCHER_VERSION,
-		"LAUNCHER_VERSION must survive the round trip through the asset filename")
+		"LAUNCHER_VERSION must survive the round trip through the marker filename")
 
-	# A name that merely contains "-l" is not a version. Without this guard
-	# "BeastRoad-launcher.exe" parses as "auncher", never matches, and every
-	# release looks like a launcher update again.
-	_check(LauncherConfig.launcher_version_in("BeastRoad-launcher.exe").is_empty(),
-		"a non-numeric suffix must not be read as a launcher version")
 	_check(LauncherConfig.launcher_version_in("BeastRoadLauncher.exe").is_empty(),
-		"an unversioned launcher asset should report no version")
+		"the launcher executable is not a version marker")
+	_check(LauncherConfig.launcher_version_in("BeastRoad-windows.zip").is_empty(),
+		"the game archive is not a version marker")
+	_check(LauncherConfig.launcher_version_in("launcher-version-notes.txt").is_empty(),
+		"a non-numeric marker must not be read as a launcher version")
 
 	# Releases from before launchers were versioned still fall back to the tag, so
 	# a player on an old launcher is carried forward exactly once.

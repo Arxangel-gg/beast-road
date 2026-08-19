@@ -47,9 +47,14 @@ func goto_menu() -> void:
 	_change(MENU_SCENE)
 
 
-func start_run(requested_seed: int = 0) -> void:
+## `endless` starts the run already past its finish line: the three acts still
+## play, but the escalation compounds from the first wave and nothing stops at
+## the summit. Unlocked by finishing the campaign once.
+func start_run(requested_seed: int = 0, endless: bool = false) -> void:
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	RunState.reset(true, requested_seed)
+	if endless:
+		RunState.begin_endless(false)
 	# Consuming Treasury carry-over is a real transaction. Persist it now so a
 	# crash/restart cannot spend the same cache repeatedly.
 	if consumed_cache:
@@ -67,6 +72,10 @@ func end_run(victory: bool) -> void:
 	if not run_active:
 		return
 	run_active = false
+
+	# A run that reached the summit is a win however it ends. Endless is the
+	# victory lap, and the town falling on lap nine does not retract the win.
+	victory = victory or RunState.summit_reached
 
 	var summary: Dictionary = {
 		"victory": victory,
@@ -97,6 +106,7 @@ func end_run(victory: bool) -> void:
 		"command_orders": RunState.command_orders_used.duplicate(true),
 		"wounds": RunState.wounds_suffered,
 		"hearthmends": RunState.hearthmends_used,
+		"endless_waves": RunState.endless_wave,
 		"unlocks": _pay_out_unlocks(victory),
 	}
 

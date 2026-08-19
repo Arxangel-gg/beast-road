@@ -128,15 +128,20 @@ jobs:
           grep -q "const VERSION: String = \"${GITHUB_REF_NAME}\"" "$CONFIG" \
             || { echo "::error::Failed to stamp the launcher version."; exit 1; }
 
-      - name: Name the launcher asset after the launcher's own version
+      - name: Publish the launcher's own version
         # This is what stops every game update from also replacing the player's
-        # launcher. The launcher compares the version in this filename against the
-        # LAUNCHER_VERSION compiled into it; equal means the published launcher is
-        # already the one running, however many game releases have gone by.
+        # launcher. The launcher compares the version in this marker's filename
+        # against the LAUNCHER_VERSION compiled into it; equal means the published
+        # launcher is already the one running, however many game releases have
+        # gone by since it last changed.
         #
-        # Read from the same constant the launcher compares against, on purpose:
-        # a second source of truth for the launcher version would eventually
-        # disagree with the first, and the failure mode is silent.
+        # A marker asset rather than a version in the executable's filename: the
+        # permanent install link resolves by exact filename, so renaming the exe
+        # would break it on the very release that fixes the update.
+        #
+        # Read from the same constant the launcher compares against, on purpose.
+        # A second source of truth for the launcher version would eventually
+        # disagree with the first, and it would disagree silently.
         run: |
           set -euo pipefail
           CONFIG=launcher/scripts/LauncherConfig.gd
@@ -146,13 +151,21 @@ jobs:
             exit 1
           fi
           case "$LAUNCHER_VERSION" in
-            *-*)
-              echo "::error::LAUNCHER_VERSION must not contain '-'; that character separates the version in the asset filename."
+            *[!0-9.]*)
+              echo "::error::LAUNCHER_VERSION must be digits and dots only; the launcher will not parse anything else."
               exit 1
               ;;
           esac
-          echo "LAUNCHER_ASSET=BeastRoadLauncher-l${LAUNCHER_VERSION}.exe" >> "$GITHUB_ENV"
-          echo "Publishing the launcher as BeastRoadLauncher-l${LAUNCHER_VERSION}.exe"
+          MARKER="launcher-version-${LAUNCHER_VERSION}.txt"
+          {
+            echo "Beast Road launcher version ${LAUNCHER_VERSION}."
+            echo
+            echo "The launcher reads this filename to decide whether it needs replacing."
+            echo "Game-only releases carry the same launcher version and leave the"
+            echo "installed launcher alone, so updating the game does not re-download it."
+          } > "$MARKER"
+          echo "LAUNCHER_VERSION_ASSET=$MARKER" >> "$GITHUB_ENV"
+          echo "Publishing launcher version ${LAUNCHER_VERSION} as $MARKER"
 
       - name: Export the launcher
         run: bash .github/scripts/export_project.sh launcher launcher ../build/launcher/BeastRoadLauncher.exe "$EXPORT_PRESET"
@@ -184,14 +197,14 @@ jobs:
           # The launcher strips a single wrapper folder if it finds one, so
           # either shape works — this zips the contents.
           (cd build/game && zip -qr ../../BeastRoad-windows.zip .)
-          cp build/launcher/BeastRoadLauncher.exe "$LAUNCHER_ASSET"
+          cp build/launcher/BeastRoadLauncher.exe BeastRoadLauncher.exe
 
           # The archive is what actually reaches a player, so assert its
           # contents rather than the folder it was built from.
           unzip -l BeastRoad-windows.zip
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.exe"
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.pck"
-          ls -la BeastRoad-windows.zip "$LAUNCHER_ASSET"
+          ls -la BeastRoad-windows.zip BeastRoadLauncher.exe "$LAUNCHER_VERSION_ASSET"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -199,7 +212,8 @@ jobs:
           name: beast-road-windows
           path: |
             BeastRoad-windows.zip
-            BeastRoadLauncher-l*.exe
+            BeastRoadLauncher.exe
+            launcher-version-*.txt
 
       - name: Publish release
         # Only on a tag. A manual run builds and uploads artifacts without
@@ -211,4 +225,5 @@ jobs:
           generate_release_notes: true
           files: |
             BeastRoad-windows.zip
-            BeastRoadLauncher-l*.exe
+            BeastRoadLauncher.exe
+            launcher-version-*.txt
