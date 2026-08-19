@@ -19,11 +19,11 @@ extends RefCounted
 
 ## 30x30 tiles at 64 units is a 1920x1920 field — close to the old arena, and a
 ## whole number of tiles across so the roads can be authored on tile boundaries.
-const SIZE: int = 30
+const SIZE: int = Balance.GRID_TILES
 const TILE: float = 64.0
 
 ## A tower covers 2x2 tiles. Its anchor is the top-left tile of that square.
-const FOOTPRINT: int = 2
+const FOOTPRINT: int = Balance.TOWER_FOOTPRINT_TILES
 
 ## Half the field in world units, used to move the origin to the centre.
 const HALF_EXTENT: float = float(SIZE) * TILE * 0.5

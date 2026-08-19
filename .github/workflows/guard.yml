@@ -142,6 +142,11 @@ jobs:
           # trying to ship. It is a two-second headless script; there is no
           # reason for it to be a thing you discover at the end.
           check "production art" --headless --path game --script res://tools/run_tool.gd -- report
+          # Every path tile connects on the edges its filename claims. The
+          # autotiler picks by index, so a mislabelled tile draws a road that
+          # stops dead mid-bend, and the generated set arrived in an order that
+          # had nothing to do with the mask.
+          check "road tiles" --headless --path game --script res://tools/run_tool.gd -- road-tiles
 
       - name: Say what broke
         if: failure()

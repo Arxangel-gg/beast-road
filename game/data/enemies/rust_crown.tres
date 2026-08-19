@@ -20,5 +20,5 @@ phase_reinforcement_lanes = 2
 phase_speed_bonus = 0.06
 phase_damage_bonus = 0.16
 id = "rust_crown"
-display_name = "The Rust Crown"
-description = "An armoured siege sovereign. It will outlast an unfocused defence."
+display_name = "Mogrun White-Maw, Avalanche King"
+description = "The Rimebound crown. Armoured against the cold and everything else; he will outlast an unfocused defence."

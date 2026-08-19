@@ -22,5 +22,5 @@ phase_reinforcement_lanes = 2
 phase_speed_bonus = 0.08
 phase_damage_bonus = 0.12
 id = "drowned_choir"
-display_name = "The Drowned Choir"
-description = "Its hymn drives the whole procession forward. Break the choir before the wave reaches the walls."
+display_name = "Rakka Coal-Eye, Wolf Marshal"
+description = "Warlord of the Cinderpaint Host. His horn turns a column into a charge; break the marshal and the pack loses its nerve."

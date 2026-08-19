@@ -63,7 +63,30 @@ const Z_SORTED: int = 0
 const Z_CLOUDS: int = 30
 
 ## Road art, tiled along each cardinal lane only.
-const LANE_TEXTURE: String = "res://art/battlefield/lane_path.png"
+## The autotiled road set. 32px art on a 64-unit grid, so every piece draws at
+## exactly 2x - a whole number, the only scale that leaves a pixel grid intact.
+const PATH_TILE_FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
+const PATH_TILE_PIXELS: int = 32
+
+## The carriageway, 2*ROAD_WIDTH+1 = 3 tiles across.
+const ROAD_CELL: int = BattleGrid.ROAD_WIDTH * 2 + 1
+
+## Fraction of a path tile its painted road actually covers across the road.
+## The rest is the shoulder, which is transparent and shows the terrain.
+const ROAD_ART_SPAN: float = 0.5
+
+## World size of one road piece, so its painted surface is exactly a carriageway.
+const PIECE: float = BattleGrid.TILE * float(ROAD_CELL) / ROAD_ART_SPAN
+
+## Texture pixels per world unit in the baked road surface.
+##
+## A road texel is PIECE/32 = 12 world units, and every road distance in the grid
+## is a multiple of a 64-unit tile, so a quarter puts every piece, every position
+## and every partial run on a whole texture pixel. That is the property the bake
+## depends on: pieces that abut on exact pixel boundaries cannot leave a seam.
+const ROAD_BAKE_PPU: float = 0.25
+
+var _path_tiles: Array = []
 
 ## How much wider the road is than the walkable lane, so enemies travel on it
 ## rather than beside it.
@@ -353,6 +376,9 @@ func _point_along(path: PackedVector2Array, distance: float) -> Dictionary:
 func _build_foliage() -> void:
 	var foliage := Foliage.new()
 	foliage.name = "Foliage"
+	# Assigned before it enters the tree: the first scatter runs on ready and has
+	# to know where the roads are.
+	foliage.grid = grid
 	# In the sorted layer so a plant in front of the hero occludes them and one
 	# behind does not.
 	entity_root.add_child(foliage)
@@ -789,56 +815,125 @@ func _setup_ground() -> void:
 ## Four road strips, one per cardinal, from the town wall out to the spawn point.
 ## Each is the lane_path texture tiled along its own length and rotated onto the
 ## lane, so the road art only ever appears where a road actually is.
+## Bakes the road into a single texture from an autotiled path set.
+##
+## Replaces four rotated strips, which could only ever draw a straight road and
+## left a notch on the inside of every bend.
+##
+## Two decisions here were each arrived at the hard way.
+##
+## **Pieces follow the lane polyline, not a lattice.** A lattice is the obvious
+## way to autotile and it cannot work: the U-bend turns at 7 and 13 tiles out and
+## runs 8 deep, none of which is a multiple of the 3-tile carriageway, so
+## quantising the road onto road-sized cells put every piece up to a tile off its
+## own road and dropped a cell wherever the rounding went the other way. Those
+## distances are tuned pocket geometry (see BattleGrid), so the renderer bends.
+##
+## **The pieces are composited into one image rather than left as sprites.** As
+## sprites they abut in *world* space and the rasteriser rounds each quad to
+## screen pixels on its own, so a hairline of terrain opens along some joins and
+## which joins depends on the camera. Growing the pieces to overlap only moves
+## the problem around. Compositing at a fixed whole-pixel scale settles it at the
+## source, and it costs 28 draw calls rather than adding any.
 func _build_lanes() -> void:
-	var road: Texture2D = null
-	if ResourceLoader.exists(LANE_TEXTURE):
-		road = load(LANE_TEXTURE)
-
-	# One strip per *segment*, not one per lane. A road with a U-bend is a
-	# polyline, and a single rotated strip can only ever draw a straight one -
-	# which would leave enemies walking a bend across painted-on straight ground.
+	if grid == null:
+		return
+	var extent: float = BattleGrid.HALF_EXTENT + PIECE
+	var side: int = int(round(extent * 2.0 * ROAD_BAKE_PPU))
+	var canvas: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
 	for lane: int in Balance.LANE_COUNT:
-		var path: PackedVector2Array = grid.lane_paths[lane]
-		for i: int in path.size() - 1:
-			_build_road_segment(road, lane, path[i], path[i + 1], lane_root)
+		_bake_lane(canvas, extent, grid.lane_paths[lane])
+	# The four approaches share the gate, so it is baked once, as a crossroads.
+	_bake_piece(canvas, extent, Vector2.ZERO, 15, Vector2(PIECE, PIECE))
+
+	var surface := Sprite2D.new()
+	surface.name = "RoadSurface"
+	surface.texture = ImageTexture.create_from_image(canvas)
+	surface.centered = true
+	surface.scale = Vector2.ONE / ROAD_BAKE_PPU
+	# Nearest, or the road stops being pixel art the moment it reaches the screen.
+	surface.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	lane_root.add_child(surface)
 
 
-## One tiled strip of road between two points.
-func _build_road_segment(road: Texture2D, lane: int, from: Vector2, to: Vector2,
-		lane_root: Node2D) -> void:
-	var span: Vector2 = to - from
-	# Overlap each end by half a road width so the corners join without a notch
-	# showing the ground through the inside of every bend.
-	var half_width: float = Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5
-	var length: float = span.length() + half_width * 2.0
-	if length > 0.0:
-		var direction: Vector2 = span.normalized()
-		var strip := Sprite2D.new()
-		strip.texture = road
-		strip.centered = true
-		strip.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-		strip.region_enabled = true
-		# Region is in texture space, so the road tiles along the strip instead
-		# of being stretched into a smear.
-		strip.region_rect = Rect2(0.0, 0.0, length, Balance.LANE_WIDTH * LANE_ROAD_SCALE)
-		# Built along +X, then rotated onto the segment.
-		strip.rotation = direction.angle()
-		strip.position = (from + to) * 0.5
-		strip.modulate = lane_road_tint()
-		# Noisy fringe on the outer band only, so the road wears into the ground
-		# instead of sitting on it like a sticker with four straight edges — while
-		# its interior stays solid, because the interior is what the player reads
-		# enemies against.
-		#
-		# The shader is handed the region-to-texture ratio because the region is
-		# bigger than the road art: that is what makes it tile, and it is also
-		# what makes UV run past 1. See PathBlend for what that broke.
-		var uv_scale := Vector2(
-			strip.region_rect.size.x / maxf(road.get_width(), 1.0),
-			strip.region_rect.size.y / maxf(road.get_height(), 1.0)) if road != null else Vector2.ONE
-		strip.material = PathBlend.material_for(
-			lane, Balance.LANE_WIDTH * LANE_ROAD_SCALE * 0.5, uv_scale)
-		lane_root.add_child(strip)
+func _bake_lane(canvas: Image, extent: float, path: PackedVector2Array) -> void:
+	var half: float = PIECE * 0.5
+	for i: int in path.size() - 1:
+		var from: Vector2 = path[i]
+		var to: Vector2 = path[i + 1]
+		var along: Vector2 = (to - from).normalized()
+		# A corner covers half a piece back from the vertex it turns on, so the
+		# straight only fills what is left between them. The outermost end has no
+		# corner, so the run there starts at the spawn edge itself.
+		var start: Vector2 = from + along * (half if i > 0 else 0.0)
+		var run: float = (to - along * half - start).dot(along)
+		var laid: float = 0.0
+		while run - laid > 1.0:
+			# Whole pieces, and a slice of one for the remainder. Squashing a tile
+			# into a short run instead would compress its surface detail, so the
+			# road's grain would visibly change size between one bend and the next.
+			var take: float = minf(PIECE, run - laid)
+			_bake_piece(canvas, extent, start + along * (laid + take * 0.5),
+				_straight_mask(along), _piece_size(along, take))
+			laid += take
+		if i > 0:
+			var back: Vector2 = (from - path[i - 1]).normalized()
+			_bake_piece(canvas, extent, from,
+				_dir_bit(-back) | _dir_bit(along), Vector2(PIECE, PIECE))
+
+
+## A piece covering `take` along its own axis and a full carriageway across.
+func _piece_size(along: Vector2, take: float) -> Vector2:
+	var axis := Vector2(absf(along.x), absf(along.y))
+	return Vector2(axis.y, axis.x) * PIECE + axis * take
+
+
+## The straight that runs along `along`: both cardinals on that axis.
+func _straight_mask(along: Vector2) -> int:
+	return _dir_bit(along) | _dir_bit(-along)
+
+
+## Which edge of a tile a cardinal direction leaves by, as an autotile bit.
+func _dir_bit(dir: Vector2) -> int:
+	if absf(dir.x) > absf(dir.y):
+		return 2 if dir.x > 0.0 else 8
+	return 1 if dir.y < 0.0 else 4
+
+
+## Composites one piece of road surface into the canvas.
+##
+## The painted road covers half of each tile across, so a piece is drawn at twice
+## the carriageway for its surface to come out the right width.
+func _bake_piece(canvas: Image, extent: float, at: Vector2, mask: int, size: Vector2) -> void:
+	var src: Image = _path_image(mask)
+	if src == null:
+		return
+	var whole: int = int(round(PIECE * ROAD_BAKE_PPU))
+	var px := Vector2i((size * ROAD_BAKE_PPU).round())
+	if px.x <= 0 or px.y <= 0:
+		return
+	var piece: Image = src.duplicate()
+	piece.resize(maxi(px.x, whole), maxi(px.y, whole), Image.INTERPOLATE_NEAREST)
+	var corner: Vector2 = at - size * 0.5 + Vector2(extent, extent)
+	canvas.blend_rect(piece, Rect2i(Vector2i.ZERO, px),
+		Vector2i((corner * ROAD_BAKE_PPU).round()))
+
+
+## The path tiles as images, cached, indexed by autotile mask.
+func _path_image(mask: int) -> Image:
+	if _path_tiles.is_empty():
+		for index: int in 16:
+			var path: String = PATH_TILE_FORMAT % index
+			if not ResourceLoader.exists(path):
+				_path_tiles.append(null)
+				continue
+			var image: Image = (load(path) as Texture2D).get_image()
+			# blend_rect needs a matching, uncompressed format.
+			image.convert(Image.FORMAT_RGBA8)
+			_path_tiles.append(image)
+	if mask < 0 or mask >= _path_tiles.size():
+		return null
+	return _path_tiles[mask] as Image
 
 
 ## Keeps the tower nodes in step with RunState.

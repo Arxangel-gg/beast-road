@@ -17,8 +17,9 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- report
 ##   godot --headless --path game --script res://tools/run_tool.gd -- seed
 ##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
+##   godot --headless --path game --script res://tools/run_tool.gd -- road-tiles
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak | audit [--todo]>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak | road-tiles | audit [--todo]>"
 
 
 func _init() -> void:
@@ -43,6 +44,8 @@ func _init() -> void:
 			_theme()
 		"tool-leak":
 			_tool_leak()
+		"road-tiles":
+			_road_tiles()
 		"audit":
 			_audit(args.has("--todo"))
 		_:
@@ -59,6 +62,78 @@ func _generate(force: bool) -> void:
 	for e: String in generator.errors:
 		print("  ERROR: ", e)
 	quit(1 if (int(result["failed"]) > 0 or not generator.errors.is_empty()) else 0)
+
+
+## Every path tile connects on exactly the edges its filename claims.
+##
+## The autotiler picks a tile purely by index, so a tile whose art connects north
+## and west while sitting in the north-east slot draws a road that stops dead in
+## the middle of a bend. That happened: the generated set arrived in an order that
+## had nothing to do with the mask, two masks were missing outright, and the only
+## reason it was caught was a screenshot. It is measurable in a second, so it is
+## a gate.
+##
+## Also checks the collar - the road must present the same cross-section at every
+## connected edge - because a tile that is a pixel narrow there leaves a hairline
+## of terrain across the road at the join.
+func _road_tiles() -> void:
+	const SIDES: Array[String] = ["N", "E", "S", "W"]
+	const LO: int = 8
+	const HI: int = 24
+	const COLLAR: int = 2
+	# Spelled out rather than read from Battlefield: that class reaches RunState,
+	# and an autoload does not exist in a SceneTree tool - naming it is a compile
+	# error, not a runtime one.
+	const FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
+	var problems: PackedStringArray = []
+	for mask: int in 16:
+		var path: String = FORMAT % mask
+		if not ResourceLoader.exists(path):
+			problems.append("%s is missing" % path.get_file())
+			continue
+		var image: Image = (load(path) as Texture2D).get_image()
+		image.convert(Image.FORMAT_RGBA8)
+		var size: int = image.get_width()
+		var found: int = 0
+		for bit: int in 4:
+			var count: int = 0
+			for i: int in size:
+				var at: Vector2i = [Vector2i(i, 0), Vector2i(size - 1, i),
+					Vector2i(i, size - 1), Vector2i(0, i)][bit]
+				if image.get_pixel(at.x, at.y).a > 0.5:
+					count += 1
+			if count >= 4:
+				found |= 1 << bit
+		if found != mask:
+			problems.append("%s connects %s, should connect %s" % [
+				path.get_file(), _edges(found, SIDES), _edges(mask, SIDES)])
+			continue
+		for bit: int in 4:
+			if not (mask >> bit) & 1:
+				continue
+			for depth: int in COLLAR:
+				for i: int in range(LO, HI):
+					var at: Vector2i = [Vector2i(i, depth), Vector2i(size - 1 - depth, i),
+						Vector2i(i, size - 1 - depth), Vector2i(depth, i)][bit]
+					if image.get_pixel(at.x, at.y).a <= 0.5:
+						problems.append("%s has a thin %s collar at %s" % [
+							path.get_file(), SIDES[bit], at])
+						break
+	if problems.is_empty():
+		print("Road tiles: 16/16 connect as named, collars solid.")
+		quit(0)
+		return
+	for problem: String in problems:
+		print("  ERROR: ", problem)
+	quit(1)
+
+
+func _edges(mask: int, names: Array[String]) -> String:
+	var out: PackedStringArray = []
+	for bit: int in 4:
+		if (mask >> bit) & 1:
+			out.append(names[bit])
+	return "".join(out) if not out.is_empty() else "nothing"
 
 
 func _report() -> void:

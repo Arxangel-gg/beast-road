@@ -286,6 +286,27 @@ The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,
 rally shield, and protected gate.
 
+**Two languages, on purpose.** The set is not stylistically uniform and should
+not be made so:
+
+- **World objects are painted** in the Command icons' bone/amber language —
+  resources, elements, relic, war horn, gatehouse, blueprint, torch, wave,
+  captive, distance, build. These name a thing that exists in the fiction, and a
+  painted thing sits beside a painted game.
+- **Chrome stays a flat amber glyph** — `ui_close`, `ui_pause`, `ui_settings`,
+  `ui_lock`, `ui_upgrade`, `ui_pressure_arrow`. These name an *action on the
+  interface*, they sit on top of the battlefield, and a painted miniature there
+  competes with the thing the player is trying to look at.
+
+The four element icons carry their own hue and are the one place colour does the
+work: fire is ember red, water teal, earth ochre, air pale cyan. They were amber
+like everything else once, which left fire and water distinguishable only by
+outline — the whole point of an element marker, lost.
+
+Every icon here must still read at 32px. That rules out thin, vertical or
+diagonal subjects however good they look at 128: a sword and a rank of spears
+were both tried and both came back as slivers.
+
 > The four element icons were renamed in GDD v3 (Frost→Water, Stone→Earth,
 > Storm→Air). The old `ui_element_frost/stone/storm.png` files were deleted, not
 > left as orphans.
@@ -350,7 +371,7 @@ flanking it (GDD §4.1). Placeholder colour blends the two parent elements.
 | `town_core.png` | 384×384 | T | `#8A7A5E` |
 
 
-**Road tiles.** An 18-config connectable set — straights, corners, T-junctions, a
+**Road tiles.** A 16-piece connectable set — straights, corners, T-junctions, a
 crossroads, dead-ends and plain ground — sharing one look, so the U-bends in
 GDD §13 join properly instead of being stretched strips with a notch at every
 corner. 32×32 native, drawn at ×2 to land exactly on the 64-unit grid.
@@ -377,8 +398,6 @@ NN, so an autotiler indexes them directly.
 | `path_tile_13.png` | 32×32 | T | `#8A6B3F` |
 | `path_tile_14.png` | 32×32 | T | `#8A6B3F` |
 | `path_tile_15.png` | 32×32 | T | `#8A6B3F` |
-| `path_tile_16.png` | 32×32 | T | `#8A6B3F` |
-| `path_tile_17.png` | 32×32 | T | `#8A6B3F` |
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |

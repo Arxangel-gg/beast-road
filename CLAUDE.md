@@ -181,7 +181,21 @@ works."
 `res://art/towers/tower_ember_spire.png`. Nothing else.
 
 This means: **replacing a placeholder with real art is overwriting a file.**
-No code change, no re-import step, no manifest edit.
+No code change, no manifest edit.
+
+**But you must re-import.** Godot only re-imports changed art in the *editor*;
+the runtime loads whatever `.godot/imported/` already holds, so a game or a tool
+scene launched after overwriting a PNG keeps rendering the old texture — silently,
+with no error. Every screenshot you take to check your art is a screenshot of the
+previous version until you run:
+
+```
+"<godot folder>\<Godot executable>" --headless --path "E:\Arxangel\GameDev\BeastRoad\game" --import
+```
+
+CI already does this (`guard.yml`, "Import assets"), which is why builds were
+right while local checks were stale. Verified art that disagrees with what the
+game draws is this, every time.
 
 - Placeholders live at the **exact final path and exact final pixel
   dimensions** listed in `docs/ASSET_MANIFEST.md`

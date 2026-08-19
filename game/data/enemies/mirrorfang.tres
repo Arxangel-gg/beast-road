@@ -20,5 +20,5 @@ phase_reinforcement_lanes = 2
 phase_speed_bonus = 0.14
 phase_damage_bonus = 0.1
 id = "mirrorfang"
-display_name = "Mirrorfang"
-description = "A fast crystalline predator that turns the final Saltglass lane into a chase."
+display_name = "Veyr of the Sunglass, Dune Seer"
+description = "She reads the road before it happens, ringed by mirrored shards that turn a volley back down the lane it came from."

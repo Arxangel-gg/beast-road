@@ -493,6 +493,14 @@ const INVULN_BLINK_RATE: float = 12.0
 ## Four cardinal lanes: N, E, S, W.
 const LANE_COUNT: int = 4
 
+## The battlefield's build grid, in tiles per side (GDD §13, LOCKED at 30x30).
+## `BattleGrid` reads this rather than owning it: it is a tuning number, and every
+## tuning number lives here. [TUNE]
+const GRID_TILES: int = 30
+
+## A tower covers this many tiles on a side (GDD §13, LOCKED at 2x2). [TUNE]
+const TOWER_FOOTPRINT_TILES: int = 2
+
 ## Radius at which a lane's enemies spawn. [TUNE]
 const LANE_SPAWN_RADIUS: float = 900.0
 

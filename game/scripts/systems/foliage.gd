@@ -97,6 +97,10 @@ var _shadows: Array[Node2D] = []
 ## The density this scatter was built at, so a re-scatter only happens on change.
 var _scattered_at: float = -1.0
 
+## The battlefield's grid, so the scatter can ask where the roads are. Assigned
+## before the node enters the tree: the first scatter happens on ready.
+var grid: BattleGrid = null
+
 
 func _ready() -> void:
 	scatter()
@@ -184,24 +188,25 @@ func _random_point(rng: RandomNumberGenerator) -> Vector2:
 	return Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
 
 
-## Keeps plants off the roads, the build spots and the town.
+## Keeps plants off the roads and the town.
+##
+## Asks the grid where the road is rather than measuring four straight lane centre
+## lines. The lanes have U-bends now, so a centre-line test cleared the whole bend
+## and reeds grew straight across the road - and decoration that overlaps a road
+## makes the road look like a mistake, which is rule 1 above. The old test also
+## avoided a fixed ring of tower slots that free placement did away with.
 func _is_clear(point: Vector2) -> bool:
 	if point.length() < Balance.TOWN_RADIUS + Balance.FOLIAGE_TOWN_MARGIN:
 		return false
-
-	for lane: int in Balance.LANE_COUNT:
-		var direction: Vector2 = Battlefield.lane_vector(lane)
-		# Distance from the lane's centre line, but only along the stretch the
-		# road actually occupies - beyond the spawn point there is no road to
-		# avoid.
-		var along: float = point.dot(direction)
-		if along > 0.0 and along < Balance.LANE_SPAWN_RADIUS:
-			var across: float = absf(point.dot(direction.orthogonal()))
-			if across < Balance.LANE_WIDTH * Balance.FOLIAGE_LANE_CLEARANCE:
-				return false
-
-		for slot: int in Balance.TOWER_SLOT_RADII.size():
-			if point.distance_to(Battlefield.slot_position(lane, slot)) < Balance.FOLIAGE_SLOT_MARGIN:
+	if grid == null:
+		return true
+	var tile: Vector2i = BattleGrid.world_to_tile(point)
+	# A tile of margin either way: a clump is wider than the point it is placed
+	# on, and a blade leaning in the wind reaches further still.
+	for dx: int in range(-1, 2):
+		for dy: int in range(-1, 2):
+			var cell: int = grid.cell_at(tile + Vector2i(dx, dy))
+			if cell == BattleGrid.Cell.ROAD or cell == BattleGrid.Cell.TOWN:
 				return false
 	return true
 
