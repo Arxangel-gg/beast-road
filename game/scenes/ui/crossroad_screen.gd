@@ -16,7 +16,9 @@ signal relic_chosen(relic_id: String)
 
 ## Width of an option card. Wide enough that no description wraps to three lines,
 ## which is what makes three cards different heights and the column look broken.
-const CARD_WIDTH: float = 700.0
+## Minimum width of a road card. The cards expand to share the row, so this is
+## a floor rather than a size - it stops a single offer collapsing to its text.
+const CARD_WIDTH: float = 460.0
 
 ## Matches the theme's button text inset, so a description lines up under the
 ## name it belongs to instead of starting somewhere near it.
@@ -25,6 +27,10 @@ const TEXT_INDENT: int = 34
 var _rng := RandomNumberGenerator.new()
 var _relic_followup_segment: int = -1
 var _open_segment: int = 0
+
+## The row the road cards sit in. Rebuilt per crossroad; relic rewards do not use
+## it and stay in the column, which is the right shape for a list.
+var _road_row: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -46,6 +52,17 @@ func _open_roads(segment_index: int) -> void:
 
 	title.text = "Crossroad  ·  segment %d of %d" % [
 		segment_index, int(Balance.JOURNEY_TOTAL_DISTANCE / Balance.SEGMENT_DISTANCE)]
+
+	# Side by side, not stacked. This is a choice between two roads and it reads
+	# as one when they are next to each other at the same size; stacked in a
+	# narrow column they read as a list, and the screen was a quarter full.
+	# The column has to expand before the row inside it can, or the cards sit at
+	# their minimum height in the top third and the screen looks half-drawn.
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = HBoxContainer.new()
+	_road_row.add_theme_constant_override("separation", 26)
+	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options_box.add_child(_road_row)
 
 	for offer: Dictionary in draw_offers(segment_index):
 		_add_option(offer["road"] as RoadData, offer["difficulty"] as RoadDifficultyData)
@@ -70,6 +87,7 @@ func draw_offers(segment_index: int) -> Array[Dictionary]:
 ## Relic Hunt resolves only after its danger has been survived. Present its
 ## authored regional reward before the next road (or the act boss) can begin.
 func open_relic_reward(followup_segment: int = -1) -> void:
+	_road_row = null
 	_relic_followup_segment = followup_segment
 	for child: Node in options_box.get_children():
 		child.queue_free()
@@ -122,6 +140,8 @@ func _add_option(road: RoadData, difficulty: RoadDifficultyData) -> void:
 	var card := PanelContainer.new()
 	card.theme_type_variation = &"InnerPanel"
 	card.custom_minimum_size = Vector2(CARD_WIDTH, 0.0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -129,8 +149,9 @@ func _add_option(road: RoadData, difficulty: RoadDifficultyData) -> void:
 
 	var button := Button.new()
 	button.text = "%s  ·  %s" % [difficulty.display_name.to_upper(), road.display_name]
-	button.custom_minimum_size = Vector2(0.0, 54.0)
+	button.custom_minimum_size = Vector2(0.0, 64.0)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.add_theme_font_size_override("font_size", 21)
 	button.add_theme_color_override("font_color", difficulty.card_colour)
 	IconKit.on_button(button, road.icon_id, 26)
 	button.pressed.connect(func() -> void: _choose(road.id, difficulty.id))
@@ -139,7 +160,11 @@ func _add_option(road: RoadData, difficulty: RoadDifficultyData) -> void:
 	var text := Label.new()
 	text.text = "%s\n%s\n%s" % [road.promise, road.consequence,
 		_exact_consequences(road, difficulty)]
-	text.add_theme_font_size_override("font_size", 16)
+	text.add_theme_font_size_override("font_size", 18)
+	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Leading, because these are three separate claims about the road and they
+	# ran together as one paragraph at the old size.
+	text.add_theme_constant_override("line_spacing", 7)
 	text.add_theme_color_override("font_color", Color("bcc9c4"))
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Indented to the button's own text inset, so the description reads as
@@ -152,7 +177,10 @@ func _add_option(road: RoadData, difficulty: RoadDifficultyData) -> void:
 	indent.add_child(text)
 	box.add_child(indent)
 
-	options_box.add_child(card)
+	if _road_row != null:
+		_road_row.add_child(card)
+	else:
+		options_box.add_child(card)
 
 
 func _shuffle_roads(roads: Array[RoadData]) -> void:

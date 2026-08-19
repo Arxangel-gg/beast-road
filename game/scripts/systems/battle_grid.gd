@@ -172,10 +172,28 @@ func _build_lane_path(lane: int) -> PackedVector2Array:
 		Vector2(0.0, 0.0),             # the gate
 	]
 
+	# The shape above is one there-and-back detour. Asserted against the constant
+	# rather than merely described by it, so the two cannot drift: a second bend
+	# would need six more points and this would catch a half-made edit.
+	assert(_bends_in(points_local) == Balance.ROAD_BEND_COUNT,
+		"lane shape no longer matches Balance.ROAD_BEND_COUNT")
+
 	var path: PackedVector2Array = []
 	for local: Vector2 in points_local:
 		path.append(forward * local.x + across * local.y)
 	return path
+
+
+## How many times the road leaves the lane axis and comes back to it.
+static func _bends_in(points: Array[Vector2]) -> int:
+	var away: int = 0
+	var previous: bool = false
+	for point: Vector2 in points:
+		var off_axis: bool = absf(point.y) > 0.001
+		if off_axis and not previous:
+			away += 1
+		previous = off_axis
+	return away
 
 
 ## Marks every tile the road covers, so nothing can be built on it.

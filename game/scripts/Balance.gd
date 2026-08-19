@@ -810,6 +810,10 @@ const SAME_ELEMENT_LANE_BONUS: float = 0.25
 ## would read as a decal sliding across the field rather than as a shot. [TUNE]
 const PROJECTILE_ART_SCALE: float = 0.44
 
+## How wide a painted impact burst is drawn for a shot with no blast radius. An
+## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
+const PROJECTILE_IMPACT_ART_SIZE: float = 86.0
+
 const TOWER_PROJECTILE_SPEED: float = 620.0
 
 # ------------------------------------------------------------------------------
@@ -1518,7 +1522,28 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## Five per side, forty in all. Three left long unlit stretches on the outside
 ## of a U-bend, where the arc is longest and the light is needed most. Torches
 ## are built in code rather than authored, so the count costs art nothing. [TUNE]
-const TORCH_STOPS_PER_SIDE: int = 5
+## Distance a torch keeps from either end of the straight it stands on.
+##
+## Torches used to be placed by distance along the whole polyline, which meant
+## one landing near a bend took its heading from whichever segment contained it
+## and stood the post in the middle of the perpendicular leg. They are placed per
+## straight now, and this keeps them out of the corners entirely. [TUNE]
+## U-bends per road (GDD v4 SS13). One: the road runs in, turns across, doubles
+## back away from the town, turns across again, then resumes. That single detour
+## is what encloses the buildable pocket - a second would halve the pocket and
+## double the walk without adding a decision.
+const ROAD_BEND_COUNT: int = 1
+
+const TORCH_CORNER_CLEARANCE: float = 150.0
+
+## Target gap between torches along a straight. The real gap is this rounded to
+## fit the segment, so spacing is even within a run and no two end up shoulder to
+## shoulder across a bend. [TUNE]
+const TORCH_SPACING: float = 300.0
+
+## One in this many torches casts a real shadow at High. The rest are promoted at
+## Ultra without rebuilding the field.
+const TORCH_FEATURED_SHADOW_EVERY: int = 4
 
 ## How far to the side of the lane centre they stand.
 ##
@@ -1544,9 +1569,15 @@ const TORCH_STOPS_PER_SIDE: int = 5
 ## flame reads as lining the road rather than blocking it, and still throws its
 ## light across the carriageway.
 ##
+## 116 was the first attempt and cleared the road by only twenty units, which at
+## this zoom is a dozen pixels - close enough that torches on the outside of a
+## bend still read as standing in the lane. 138 clears it by forty and reads as
+## lining the road from every angle.
+##
 ## Towers do not conflict: placement is by tile and a torch occupies none, so the
-## worst case is a tower sprite overlapping a flame at the plot's inner corner.
-const TORCH_LANE_OFFSET: float = 116.0
+## worst case is a tower sprite overlapping a flame - and towers y-sort above the
+## ground now, so the tower simply occludes it, which is what should happen.
+const TORCH_LANE_OFFSET: float = 138.0
 
 ## Height of the post and of the fire on top of it. Sized against the camera, not
 ## against realism: at battlefield zoom a 34px torch was a lit matchstick, and a
@@ -1564,14 +1595,21 @@ const TORCH_FLAME_SIZE: float = 26.0
 ## which is what makes the dark between them read as dark, and what lets a shadow
 ## survive long enough to be seen. [TUNE]
 const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
-const TORCH_LIGHT_RADIUS: float = 225.0
-const TORCH_LIGHT_ENERGY: float = 1.55
+## A torch's pool of light.
+##
+## Widened with the darker night grade below. The two are one change: a deeper
+## night is only atmospheric if the lit ground is genuinely lit, and a 225 pool
+## against a darker field left the road legible only directly under the flame.
+## At 360 the pools overlap along a straight, so a road reads as a lit ribbon
+## through darkness rather than as a row of separate glows. [TUNE]
+const TORCH_LIGHT_RADIUS: float = 360.0
+const TORCH_LIGHT_ENERGY: float = 1.9
 
 ## High features one full cast-shadow pool per road; every other brazier still
 ## lights, dims and flickers, while Ultra promotes all twenty-four to shadow
 ## casters. The featured stop is central so the effect crosses the most-played
 ## part of each lane. [TUNE]
-const TORCH_FEATURED_SHADOW_STOP: int = 1
+
 
 ## The light's own flicker. Low on purpose: the flame *shape* now carries the
 ## unsteadiness, and a light that strobes as hard as the silhouette does reads as

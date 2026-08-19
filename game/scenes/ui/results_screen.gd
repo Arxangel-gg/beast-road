@@ -18,11 +18,12 @@ func _ready() -> void:
 	# payout - and a VBoxContainer does not shrink its children below their
 	# minimum size, so the text simply pushed the one button off the bottom.
 	# Winning the game left the player on a screen with no way out of it.
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT, false)
-	panel.offset_left = 140.0
-	panel.offset_top = 70.0
-	panel.offset_right = -140.0
-	panel.offset_bottom = -70.0
+	# Wide enough for the longest debrief, and centred rather than stretched: a
+	# full-height panel around a short summary is a small block of text at the
+	# top of an enormous empty box, which reads as a bug rather than as a screen.
+	panel.set_anchors_preset(Control.PRESET_CENTER, false)
+	panel.custom_minimum_size = Vector2(1180.0, 0.0)
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	IconKit.on_button(menu_button, "close", 24)
 	# The body sits on its own dark plate rather than directly on the ornate
 	# frame. Twelve lines of statistics against riveted ironwork is a lot of
@@ -46,9 +47,13 @@ func _plate_body() -> void:
 	# longer run genuinely has more to say - so the fix is to give the text
 	# somewhere to go, not to trim what a player earned the right to read.
 	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Grows with the text up to a ceiling, then scrolls. Expanding to fill
+	# instead is what left a short debrief floating in a void, and a fixed height
+	# would clip the long one - which is the case that had no way out.
+	scroll.custom_minimum_size = Vector2(0.0, 0.0)
+	scroll.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	column.remove_child(body)
 	plate.add_child(body)
@@ -129,6 +134,15 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	lines.append("")
 	lines.append(BuildInfo.diagnostics())
 	body.text = "\n".join(lines)
+
+	# Measured after the text is in, so the panel is only as tall as it needs to
+	# be and the scroll only appears when the debrief actually overruns.
+	await get_tree().process_frame
+	var ceiling: float = float(get_viewport().get_visible_rect().size.y) * 0.78
+	var wanted: float = body.get_combined_minimum_size().y
+	var scroll_box: ScrollContainer = body.get_parent().get_parent() as ScrollContainer
+	if scroll_box != null:
+		scroll_box.custom_minimum_size = Vector2(0.0, minf(wanted, ceiling))
 
 	panel.visible = true
 	get_tree().paused = true

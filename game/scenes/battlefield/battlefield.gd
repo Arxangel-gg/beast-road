@@ -346,26 +346,63 @@ func add_projectile(shot: Projectile, at: Vector2) -> void:
 ## enemies walk down. Road ground is unbuildable, so a torch there can never
 ## stand where the player wanted a tower, and the light still falls across the
 ## path it is meant to light.
+## The two towers whose adjacency would fuse into `combo` on `anchor`, or an
+## empty array when that pair is not flanking this tile (GDD v4 SS13).
+##
+## Fusion is a property of *where you built*, not a menu: two finished towers
+## either side of an empty plot offer their combination there and nowhere else.
+## `RunState` owns what has been built and answers which pairs flank a tile; this
+## is the battlefield-side name for that question, so callers asking "can these
+## two fuse here" have one place to ask rather than assembling it from parts.
+func fusion_pair_for(anchor: Vector2i, combo: TowerData) -> Array[Vector2i]:
+	var empty: Array[Vector2i] = []
+	if combo == null or not combo.is_combination:
+		return empty
+	for option: Dictionary in RunState.combinations_for_tile(anchor):
+		if (option["tower"] as TowerData) != combo:
+			continue
+		return [option["a"] as Vector2i, option["b"] as Vector2i] as Array[Vector2i]
+	return empty
+
+
 func _build_torches() -> void:
+	if grid == null:
+		return
 	for lane: int in Balance.LANE_COUNT:
 		var path: PackedVector2Array = lane_path(lane)
-		var total: float = grid.lane_length(lane) if grid != null else 1.0
-		var stops: int = Balance.TORCH_STOPS_PER_SIDE
-		for stop_index: int in stops:
-			# Inset from both ends so none sits on a spawn point or inside the town.
-			var fraction: float = (float(stop_index) + 1.0) / (float(stops) + 1.0)
-			var placement: Dictionary = _point_along(path, total * fraction)
-			for side_index: int in 2:
-				var sign: float = -1.0 if side_index == 0 else 1.0
-				var torch := Torch.new()
-				torch.lane = lane
-				# High features one local shadow pool on each lane. Ultra promotes
-				# the rest in place, without rebuilding the field.
-				var featured: bool = stop_index == Balance.TORCH_FEATURED_SHADOW_STOP 					and side_index == lane % 2
-				torch.shadow_on_ultra_only = not featured
-				var across: Vector2 = (placement["direction"] as Vector2).orthogonal()
-				torch.position = (placement["at"] as Vector2) 					+ across * Balance.TORCH_LANE_OFFSET * sign
-				entity_root.add_child(torch)
+		var placed: int = 0
+		for i: int in path.size() - 1:
+			var from: Vector2 = path[i]
+			var to: Vector2 = path[i + 1]
+			var span: float = from.distance_to(to)
+			var along: Vector2 = (to - from).normalized() if span > 0.0 else Vector2.RIGHT
+			# Every torch on a segment shares that segment's heading, so the
+			# offset direction cannot rotate underneath one. Placing by distance
+			# along the *whole* polyline was the bug: a stop that landed near a
+			# vertex took its heading from whichever segment happened to contain
+			# it, and stood the post in the middle of the perpendicular leg.
+			var across: Vector2 = along.orthogonal()
+			var usable: float = span - Balance.TORCH_CORNER_CLEARANCE * 2.0
+			if usable < 0.0:
+				continue
+			# Even spacing within the segment, so two torches either side of a
+			# bend cannot end up shoulder to shoulder.
+			var gaps: int = maxi(1, int(round(usable / Balance.TORCH_SPACING)))
+			var step: float = usable / float(gaps)
+			for n: int in gaps + 1:
+				var offset: float = Balance.TORCH_CORNER_CLEARANCE + step * float(n)
+				var at: Vector2 = from + along * offset
+				for side: int in 2:
+					var sign: float = -1.0 if side == 0 else 1.0
+					var torch := Torch.new()
+					torch.lane = lane
+					# High features a few local shadow pools per lane; Ultra
+					# promotes the rest in place, without rebuilding the field.
+					torch.shadow_on_ultra_only = not (placed % Balance.TORCH_FEATURED_SHADOW_EVERY == 0
+						and side == lane % 2)
+					torch.position = at + across * Balance.TORCH_LANE_OFFSET * sign
+					entity_root.add_child(torch)
+				placed += 1
 
 
 ## A point a given distance along a polyline, with the local heading there.

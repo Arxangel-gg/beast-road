@@ -12,17 +12,26 @@ extends Node
 ## One full day per this many distance units. [TUNE]
 const DAY_LENGTH: float = 420.0
 
-## Keyed tint stops. Multiplied over the whole world by a CanvasModulate, so
+## Keyed tint stops, deliberately wide apart.
+##
+## The ramp used to bottom out around 0.30 grey-blue, which is dim but not dark,
+## and a dim field has no contrast in it: everything is a little grey and nothing
+## reads as lit. Deep night now lands near 0.15 and the torches were widened and
+## brightened to match, so the night is genuinely dark and the lit ground is
+## genuinely lit. Midday is untouched - the arc is what carries the day, and
+## flattening the top would cost the contrast the bottom just gained.
+##
+## Multiplied over the whole world by a CanvasModulate, so
 ## these are *filters*: nothing here can brighten, only colour and darken.
 const STOPS: Array[Dictionary] = [
-	{"at": 0.00, "tint": Color(0.80, 0.70, 0.67), "light": 0.55},  # dawn, cold and low
-	{"at": 0.12, "tint": Color(1.00, 0.97, 0.92), "light": 0.05},  # morning
+	{"at": 0.00, "tint": Color(0.62, 0.55, 0.58), "light": 0.62},  # dawn, cold and low
+	{"at": 0.12, "tint": Color(0.98, 0.94, 0.88), "light": 0.08},  # morning
 	{"at": 0.28, "tint": Color(1.00, 1.00, 1.00), "light": 0.00},  # midday, unfiltered
-	{"at": 0.45, "tint": Color(0.97, 0.79, 0.61), "light": 0.35},  # late afternoon gold
-	{"at": 0.56, "tint": Color(0.69, 0.48, 0.49), "light": 0.74},  # dusk
-	{"at": 0.70, "tint": Color(0.37, 0.43, 0.61), "light": 0.97},  # readable blue night
-	{"at": 0.85, "tint": Color(0.27, 0.32, 0.50), "light": 1.00},  # deep night
-	{"at": 1.00, "tint": Color(0.80, 0.70, 0.67), "light": 0.55},  # back to dawn
+	{"at": 0.45, "tint": Color(0.98, 0.74, 0.52), "light": 0.40},  # late afternoon gold
+	{"at": 0.56, "tint": Color(0.55, 0.35, 0.42), "light": 0.82},  # dusk
+	{"at": 0.70, "tint": Color(0.22, 0.27, 0.44), "light": 0.99},  # blue night
+	{"at": 0.85, "tint": Color(0.13, 0.17, 0.33), "light": 1.00},  # deep night
+	{"at": 1.00, "tint": Color(0.62, 0.55, 0.58), "light": 0.62},  # back to dawn
 ]
 
 ## The phase changed enough to be worth reacting to.

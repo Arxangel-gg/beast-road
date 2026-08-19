@@ -32,6 +32,7 @@ func _ready() -> void:
 	await _test_chill_never_locks()
 	_test_boss_bar_is_wired()
 	_test_projectile_art_resolves()
+	_test_fusion_pair_lookup()
 	_test_zoom_range()
 	_test_beast_gait()
 	_test_hostile_projectile()
@@ -348,9 +349,37 @@ func _test_boss_bar_is_wired() -> void:
 func _test_projectile_art_resolves() -> void:
 	for element: int in [TowerData.Element.FIRE, TowerData.Element.WATER,
 			TowerData.Element.EARTH, TowerData.Element.AIR]:
-		var path: String = Projectile.PROJECTILE_ART_FORMAT % TowerData.element_name(element).to_lower()
+		var name: String = TowerData.element_name(element).to_lower()
+		var path: String = Projectile.PROJECTILE_ART_FORMAT % name
 		_check(ResourceLoader.exists(path),
 			"%s projectile art must resolve at %s" % [TowerData.element_name(element), path])
+		var burst: String = Vfx.IMPACT_ART_FORMAT % name
+		_check(ResourceLoader.exists(burst),
+			"%s impact art must resolve at %s" % [TowerData.element_name(element), burst])
+
+
+## The named adjacency lookup has to agree with the offer it came from.
+##
+## `fusion_pair_for` exists so callers stop assembling "which two towers would
+## fuse here" out of RunState internals. A wrapper that disagrees with the thing
+## it wraps is worse than no wrapper, so this checks the pair it hands back is
+## the pair the offer names, and that a non-fusion asks for nothing.
+func _test_fusion_pair_lookup() -> void:
+	var field: Battlefield = _run.battlefield
+	if field == null:
+		_check(false, "the fusion lookup needs a battlefield")
+		return
+	var plain: TowerData = ContentDB.tower("ember_spire")
+	_check(field.fusion_pair_for(Vector2i(4, 4), plain).is_empty(),
+		"an ordinary tower has no fusion pair")
+	_check(field.fusion_pair_for(Vector2i(4, 4), null).is_empty(),
+		"no tower has no fusion pair")
+	for anchor: Variant in [Vector2i(6, 6), Vector2i(8, 8), Vector2i(10, 10)]:
+		var tile: Vector2i = anchor
+		for option: Dictionary in RunState.combinations_for_tile(tile):
+			var pair: Array[Vector2i] = field.fusion_pair_for(tile, option["tower"] as TowerData)
+			_check(pair.size() == 2 and pair[0] == option["a"] and pair[1] == option["b"],
+				"fusion_pair_for must return the offer's own two parents")
 
 
 func _test_enemy_roles() -> void:

@@ -565,6 +565,17 @@ the shot still reads.
 | `projectile_earth.png` | 64×64 | T | `#B07A3E` |
 | `projectile_air.png` | 64×64 | T | `#BFE6F0` |
 
+Impact bursts, one per element, layered over the sparks and the blast ring at
+the moment of a hit. The sparks carry direction and the ring carries radius, so
+the art only has to carry the element - which is why one frame is enough.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `impact_fire.png` | 96×96 | T | `#E8752B` |
+| `impact_water.png` | 96×96 | T | `#54B8C8` |
+| `impact_earth.png` | 96×96 | T | `#B07A3E` |
+| `impact_air.png` | 96×96 | T | `#BFE6F0` |
+
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |

@@ -48,6 +48,11 @@ var _town_pending: float = 0.0
 var _town_critical: bool = false
 
 
+## Elemental impact art, derived from the element name like every other asset
+## path in the project.
+const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_screen_layer()
@@ -423,6 +428,41 @@ func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, co
 
 ## A brief bloom at a world position. Distinct from `spark`: this is the light
 ## of an impact rather than its debris, and it is what makes a hit feel hot.
+## A painted impact burst, scaled and spun in.
+##
+## Layered over the sparks and the ring rather than replacing them: the sparks
+## carry the direction, the ring carries the blast radius, and this carries the
+## element. One static frame doing all the work would read as a decal; one frame
+## on top of motion that already reads reads as a hit.
+##
+## Silently does nothing when the element has no art, so a missing file costs the
+## same as it did before there was any.
+func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
+	if world == null:
+		return
+	var path: String = IMPACT_ART_FORMAT % TowerData.element_name(element).to_lower()
+	if not ResourceLoader.exists(path):
+		return
+	var burst := Sprite2D.new()
+	burst.texture = load(path)
+	burst.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	burst.modulate = Color(colour.lerp(Color.WHITE, 0.45), 0.95)
+	burst.z_index = Balance.VFX_Z
+	# A different quarter-turn each time, so a lane full of the same tower firing
+	# does not stamp the identical picture forty times.
+	burst.rotation = TAU * float(randi() % 4) / 4.0
+	_track(burst)
+	burst.global_position = at
+
+	var start: float = size / maxf(float(burst.texture.get_width()), 1.0)
+	burst.scale = Vector2.ONE * start * 0.45
+	var tween: Tween = burst.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(burst, "scale", Vector2.ONE * start, 0.14).set_ease(Tween.EASE_OUT)
+	tween.tween_property(burst, "modulate:a", 0.0, 0.26).set_delay(0.06)
+	tween.chain().tween_callback(burst.queue_free)
+
+
 func flash_at(at: Vector2, colour: Color, radius: float) -> void:
 	if world == null:
 		return

@@ -255,6 +255,8 @@ func _impact() -> void:
 	# A bright flash, a burst away from the impact, and a ring for anything with
 	# area. Three cues rather than one, because a single spark at this size is
 	# easy to miss in a crowded lane.
+	Vfx.impact(global_position, data.element if data != null else TowerData.Element.FIRE,
+		colour, maxf(blast * 1.15, Balance.PROJECTILE_IMPACT_ART_SIZE * _tier_scale()))
 	Vfx.spark(global_position, colour.lerp(Color.WHITE, 0.4),
 		int(float(Balance.PROJECTILE_IMPACT_SPARKS) * _tier_scale()), -_direction, 260.0)
 	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
