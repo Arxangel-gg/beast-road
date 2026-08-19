@@ -1083,6 +1083,8 @@ func _aimed_tower() -> Vector2i:
 # --- Build panel ------------------------------------------------------------
 
 func _open_build_panel(anchor: Vector2i) -> void:
+	# Cleared before the selection moves, or the previous tower keeps its ring.
+	_show_selected_range(false)
 	_selected = anchor
 	if _command_target != null:
 		var tower: TowerData = RunState.tower_at(anchor)
@@ -1090,6 +1092,7 @@ func _open_build_panel(anchor: Vector2i) -> void:
 			LANE_NAMES[clampi(RunState.tower_lane(anchor), 0, 3)],
 			tower.display_name if tower != null else "open ground"]
 	_refresh_build_panel()
+	_show_selected_range(true)
 	_build_panel.visible = true
 	if _tutorial != null:
 		_tutorial.build_panel_opened()
@@ -1097,9 +1100,23 @@ func _open_build_panel(anchor: Vector2i) -> void:
 	_pop_in(_build_panel)
 
 
+## Rings the selected tower's reach.
+##
+## `Tower.show_range` existed and nothing ever called it, so the rings were dead
+## code and a player had no way to see what a tower actually covered - which is
+## the single most important thing about where it stands.
+func _show_selected_range(on: bool) -> void:
+	if battlefield == null:
+		return
+	var tower: Tower = battlefield.tower_at_anchor(_selected)
+	if tower != null and is_instance_valid(tower):
+		tower.show_range(on)
+
+
 func _close_build_panel() -> void:
 	if _build_panel == null or not _build_panel.visible:
 		return
+	_show_selected_range(false)
 	_build_panel.visible = false
 	_show_build_detail("")
 

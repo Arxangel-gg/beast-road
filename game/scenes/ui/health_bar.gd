@@ -18,6 +18,13 @@ var _bound: Health = null
 
 
 func _ready() -> void:
+	# Above everything in the sorted layer, and absolute rather than relative so
+	# it cannot inherit a parent's depth. A health bar is a readout, not scenery:
+	# foliage standing in front of the hero was drawing over the hero's own bar,
+	# which is correct y-sorting and completely wrong information.
+	z_index = Balance.HEALTH_BAR_Z
+	z_as_relative = false
+
 	_apply_size()
 	visible = not hide_until_damaged
 

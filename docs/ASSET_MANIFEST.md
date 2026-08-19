@@ -553,17 +553,19 @@ which is where the tile-order, missing-mask and seam problems are documented.
 
 ### 5.18 Projectiles — `res://art/vfx/`
 
-One head per element, drawn pointing east with its wake trailing behind. The
+One head per element, drawn as a horizontal bolt pointing east with its wake
+trailing west. Horizontal on purpose: the sprite is rotated to its heading in
+flight, and a diagonal drawing reads as permanently mis-aimed. The
 sprite is a skin over the existing flight: the trail, filament, light, tumble and
 per-level scaling all still run underneath, so a missing file costs nothing and
 the shot still reads.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `projectile_fire.png` | 64×64 | T | `#E8752B` |
-| `projectile_water.png` | 64×64 | T | `#54B8C8` |
-| `projectile_earth.png` | 64×64 | T | `#B07A3E` |
-| `projectile_air.png` | 64×64 | T | `#BFE6F0` |
+| `projectile_fire.png` | 96×48 | T | `#E8752B` |
+| `projectile_water.png` | 96×48 | T | `#54B8C8` |
+| `projectile_earth.png` | 96×48 | T | `#B07A3E` |
+| `projectile_air.png` | 96×48 | T | `#BFE6F0` |
 
 Impact bursts, one per element, layered over the sparks and the blast ring at
 the moment of a hit. The sparks carry direction and the ring carries radius, so

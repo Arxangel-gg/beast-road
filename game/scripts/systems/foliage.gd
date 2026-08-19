@@ -86,7 +86,14 @@ static func wind_material() -> ShaderMaterial:
 ## Every blade in the field, in world space, ready to draw in one pass.
 ## How many depth slices the field is drawn in. Sixteen keeps the sorting cue
 ## finer than anyone can see while costing sixteen draw calls instead of 420.
-const BAND_COUNT: int = 16
+## Sorting bands across the field.
+##
+## Every plant in a band sorts at the band's centre, so a band is also the error
+## in that plant's depth: at 16 bands each was a few hundred world units tall and
+## a plant near its top edge drew in front of anything up to half a band above
+## it - which is what "foliage in front of a tower it is standing behind" was.
+## 48 brings the error to about a tile, which is below what the eye picks up.
+const BAND_COUNT: int = 48
 
 var _bands: Array[FoliageBand] = []
 

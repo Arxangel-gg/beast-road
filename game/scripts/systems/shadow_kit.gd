@@ -145,7 +145,13 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	# The quad is drawn larger than the pool inside it so the falloff and the
 	# sun-driven slide both have somewhere to go without clipping at the edge.
 	shadow.scale = Vector2.ONE * (width * 2.0 / float(quad_texture().width))
-	shadow.position.y = (texture_size.y * 0.40) if is_nan(base_offset) else base_offset
+	# Measured from the *sprite*, not from the node. They are the same thing for
+	# most callers and are not for a tower: its node was moved down to its plot's
+	# front edge so it y-sorts on the ground it stands on, and the sprite lifted
+	# back up to compensate. A shadow placed from the node then floated a tile
+	# below the tower it belonged to.
+	var anchor: float = sprite.position.y
+	shadow.position.y = anchor + ((texture_size.y * 0.40) if is_nan(base_offset) else base_offset)
 	# Relative, so every contact shadow lands on one layer just under the sorted
 	# units. A shadow must never be able to draw over somebody's boots.
 	shadow.z_index = -1

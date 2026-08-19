@@ -404,6 +404,24 @@ func _build_torches() -> void:
 					entity_root.add_child(torch)
 				placed += 1
 
+			# One on the outside of every bend. The straights keep a clearance from
+			# each vertex so no post ends up in a corner the road turns through, and
+			# that left the outside of each U-bend - the longest arc on the road, and
+			# the part furthest from the town - as the one stretch nobody lit.
+			if i > 0:
+				var back: Vector2 = (from - path[i - 1]).normalized()
+				# Inside a turn is where you would cut the corner: the sum of the two
+				# headings. Outside is the other way.
+				var outward: Vector2 = -(back + along).normalized()
+				if outward.length() > 0.01:
+					var corner := Torch.new()
+					corner.lane = lane
+					corner.shadow_on_ultra_only = placed % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
+					var reach: float = Balance.TORCH_LANE_OFFSET * Balance.TORCH_CORNER_OFFSET_SCALE
+					corner.position = from + outward * reach
+					entity_root.add_child(corner)
+					placed += 1
+
 
 ## A point a given distance along a polyline, with the local heading there.
 func _point_along(path: PackedVector2Array, distance: float) -> Dictionary:

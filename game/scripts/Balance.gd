@@ -808,7 +808,10 @@ const SAME_ELEMENT_LANE_BONUS: float = 0.25
 ## The art is a skin over the same flight: the trail, filament, light, tumble and
 ## per-level scaling all still run underneath it. A sprite that replaced them
 ## would read as a decal sliding across the field rather than as a shot. [TUNE]
-const PROJECTILE_ART_SCALE: float = 0.44
+## Drawn against a 96x48 source. The art is a long horizontal bolt now rather
+## than a square blob: the first set was drawn diagonally, so rotating it to its
+## heading left every shot pointing about 45 degrees off its own travel. [TUNE]
+const PROJECTILE_ART_SCALE: float = 0.40
 
 ## How wide a painted impact burst is drawn for a shot with no blast radius. An
 ## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
@@ -1152,6 +1155,11 @@ const TOWER_SPRITE_LIFT: float = 42.0
 ## the same amount, and `Tower.origin()` hands the plot centre back to everything
 ## that measures range or spawns an effect, so nothing about the gameplay shifts.
 const TOWER_SORT_LIFT: float = 64.0
+
+## Layer health bars draw on. Above the sorted world layer and below the cloud
+## shadows, so a readout is never occluded by the thing it is reporting on or by
+## a plant standing in front of it. Absolute, not relative.
+const HEALTH_BAR_Z: int = 20
 
 # ==============================================================================
 # PROCEDURAL ANIMATION
@@ -1534,6 +1542,13 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## double the walk without adding a decision.
 const ROAD_BEND_COUNT: int = 1
 
+## How far out a corner torch stands from the vertex it lights.
+##
+## A multiple of the straight offset rather than the same number: at a right
+## angle a post has to clear two roads at once, and sqrt(2) is exactly the extra
+## reach that keeps its margin equal to a torch on a straight.
+const TORCH_CORNER_OFFSET_SCALE: float = 1.42
+
 const TORCH_CORNER_CLEARANCE: float = 150.0
 
 ## Target gap between torches along a straight. The real gap is this rounded to
@@ -1603,7 +1618,15 @@ const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
 ## At 360 the pools overlap along a straight, so a road reads as a lit ribbon
 ## through darkness rather than as a row of separate glows. [TUNE]
 const TORCH_LIGHT_RADIUS: float = 360.0
-const TORCH_LIGHT_ENERGY: float = 1.9
+
+## Per-torch energy, deliberately low for the radius.
+##
+## Light adds. At 360 the pools overlap along a straight, so two torches sum
+## where they meet and a torch standing alone looks dim beside them - which is
+## what "some glow more than others" was, rather than any torch being faulty.
+## Energy came down as the radius went up so the *sum* lands where a single
+## bright torch used to, and the road is lit evenly instead of in bright knots.
+const TORCH_LIGHT_ENERGY: float = 1.15
 
 ## High features one full cast-shadow pool per road; every other brazier still
 ## lights, dims and flickers, while Ultra promotes all twenty-four to shadow

@@ -121,7 +121,11 @@ func _physics_process(delta: float) -> void:
 	var combat_input: bool = RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
 	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"attack"):
 		attack.request()
-	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"dash"):
+	# Dash is movement, and movement is allowed whenever the hero is on the field.
+	# Gating it behind combat meant a player repositioning during Preparation had
+	# to walk, which is the one phase where they are most likely to want to cross
+	# the map. It still costs its cooldown, so nothing is gained by spamming it.
+	if _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"dash"):
 		_try_dash()
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if combat_input and _beast_stun_left <= 0.0 \
