@@ -79,6 +79,9 @@ var resources: int:
 ## Fractional enemy drops carried between kills. Large waves stay rewarding
 ## without turning every one-HP body into a whole resource.
 var kill_resource_remainder: float = 0.0
+
+## Crossroad pairs this run may still redraw. Granted by Sigil rank 2.
+var crossroad_rerolls_left: int = 0
 var blueprints: Array[String] = []
 var market_trades_remaining: int = 0
 var market_service_act: int = 0
@@ -257,6 +260,11 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		GOLD: Balance.STARTING_GOLD,
 		STONE: Balance.STARTING_STONE,
 	}
+	# Sigil rank 2: crossroad redraws, granted per run and spent from the
+	# crossroad screen. Held here rather than on MetaState because it is run
+	# state - the account earns the rank, the run spends the charge.
+	crossroad_rerolls_left = MetaState.sigil_crossroad_rerolls()
+
 	# Sigil rank 1: a modest bundle on every currency (v4 §36). Applied before
 	# the Treasury cache so the two stack rather than one replacing the other.
 	var bundle: int = MetaState.sigil_starting_supply()

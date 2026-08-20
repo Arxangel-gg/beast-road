@@ -1121,6 +1121,14 @@ const SIGIL_MAX_RANK: int = 4
 const SIGIL_RANK1_SUPPLY: int = 25
 
 ## Rank 3: what the Treasury may carry when the rank is held. [TUNE]
+## Sigil rank 2: crossroad pairs a run may redraw (v4 SS36).
+##
+## One, and per run rather than per crossroad. A reroll at every fork would make
+## the route a shopping list instead of a decision - the point of a crossroad is
+## that you take one of the two in front of you. One redraw across a whole run is
+## a rescue from a pair that fights your build, which is the case rank 2 is for.
+const SIGIL_RANK2_REROLLS: int = 1
+
 const SIGIL_RANK3_TREASURY_CAP: int = 120
 
 ## Accessibility contract mirrored by Palette's authored live tables.
@@ -1648,6 +1656,15 @@ const TORCH_CORNER_CLEARANCE: float = 150.0
 ## fit the segment, so spacing is even within a run and no two end up shoulder to
 ## shoulder across a bend. [TUNE]
 const TORCH_SPACING: float = 300.0
+
+## No two torches may stand closer than this.
+##
+## Spacing is even *within* a straight by construction, but a straight's end stop
+## and the corner post of the bend past it are placed by different rules and land
+## on top of each other. Each is correct locally; only the set knows they crowd.
+## Applied as a filter over the whole lane after every position is proposed.
+## [TUNE]
+const TORCH_MIN_GAP: float = 190.0
 
 ## One in this many torches casts a real shadow at High. The rest are promoted at
 ## Ultra without rebuilding the field.

@@ -67,7 +67,33 @@ func _open_roads(segment_index: int) -> void:
 	for offer: Dictionary in draw_offers(segment_index):
 		_add_option(offer["road"] as RoadData, offer["difficulty"] as RoadDifficultyData)
 
+	_add_reroll()
 	panel.visible = true
+
+
+## Sigil rank 2's redraw, offered only while the run still holds a charge.
+##
+## Below the pair rather than beside it, and worded with the count, because the
+## charge is per *run*: a player who cannot see that it is their only one will
+## spend it on the first pair they mildly dislike.
+func _add_reroll() -> void:
+	if RunState.crossroad_rerolls_left <= 0:
+		return
+	var button := Button.new()
+	button.text = "Redraw this pair  ·  %d left this run" % RunState.crossroad_rerolls_left
+	button.custom_minimum_size = Vector2(0.0, 46.0)
+	button.add_theme_font_size_override("font_size", 18)
+	button.pressed.connect(_reroll)
+	options_box.add_child(button)
+
+
+func _reroll() -> void:
+	if RunState.crossroad_rerolls_left <= 0:
+		return
+	RunState.crossroad_rerolls_left -= 1
+	# Redrawn from the same "roads" stream rather than a fresh one, so a seeded
+	# replay that rerolls stays reproducible.
+	_open_roads(_open_segment)
 
 
 ## Public test/replay seam: cards and diagnostics use the same authored draw,

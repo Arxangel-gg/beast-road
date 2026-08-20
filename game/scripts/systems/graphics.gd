@@ -36,6 +36,22 @@ const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
 
+## Lifts the night toward daylight, for players whose screen is darker than the
+## one this was graded on.
+##
+## Deliberately *not* in PRESETS. A quality preset is about what the machine can
+## afford; this is about what the person can see, and folding it into Low/High
+## would mean picking a preset silently changed how bright the game is.
+const KEY_BRIGHTNESS: String = "display_brightness"
+
+## How far the darkest grade may be lifted toward white. Not to 1.0: at a full
+## lift the day/night cycle stops existing, and a setting that can erase a core
+## system is a setting that will be used to erase it by accident.
+const BRIGHTNESS_MAX_LIFT: float = 0.55
+
+## World tints that must be re-graded when brightness changes.
+const TINT_GROUP: StringName = &"world_tint"
+
 const PRESET_LOW: String = "low"
 const PRESET_MEDIUM: String = "medium"
 const PRESET_HIGH: String = "high"
@@ -178,6 +194,26 @@ static func foliage_scale() -> float:
 	return clampf(float(_value(KEY_FOLIAGE)), 0.0, MAX_DENSITY)
 
 
+## How far to lift the world tint toward white, 0.0 to BRIGHTNESS_MAX_LIFT.
+##
+## A lift rather than a multiply, because it has to raise the *floor*. Scaling a
+## near-black tint by a gain leaves it near-black - which is exactly the case a
+## brightness control exists for.
+static func brightness_lift() -> float:
+	var stored: Variant = _value(KEY_BRIGHTNESS)
+	if stored == null:
+		return 0.0
+	return clampf(float(stored), 0.0, BRIGHTNESS_MAX_LIFT)
+
+
+## The world tint as the player should actually see it.
+##
+## Every scope that tints for time of day goes through here, so the setting
+## cannot be honoured on the battlefield and quietly ignored in the town.
+static func graded(tint: Color) -> Color:
+	return tint.lerp(Color.WHITE, brightness_lift())
+
+
 static func cloud_shadows() -> bool:
 	return bool(_value(KEY_CLOUDS))
 
@@ -207,6 +243,17 @@ static func apply_preset(name: String) -> void:
 static func set_switch(key: String, value: Variant) -> void:
 	_chosen[key] = value
 	_chosen[KEY_PRESET] = PRESET_CUSTOM
+	apply_runtime()
+
+
+## A display preference, which is not part of any preset.
+##
+## Separate from `set_switch` because that one knocks the preset to Custom, and
+## it should: touching shadows means you are no longer on High. Brightness is not
+## a quality trade-off - it is about the screen in front of the player - so
+## turning it up must not silently unlabel their chosen preset.
+static func set_display(key: String, value: Variant) -> void:
+	_chosen[key] = value
 	apply_runtime()
 
 
@@ -246,6 +293,13 @@ static func apply_to_scene() -> void:
 		var occluder := node as LightOccluder2D
 		if occluder != null:
 			occluder.visible = show_casters
+
+	# Re-grade anything tinting for time of day, so brightness takes effect on
+	# the field the player is looking at rather than on the next one built.
+	for node: Node in tree.get_nodes_in_group(TINT_GROUP):
+		var tint := node as CanvasModulate
+		if tint != null:
+			tint.color = graded(DayNight.tint)
 
 	_walk(tree.root, show_casters)
 

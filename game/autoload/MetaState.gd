@@ -242,6 +242,11 @@ func sigil_starting_supply() -> int:
 	return Balance.SIGIL_RANK1_SUPPLY if sigils >= 1 else 0
 
 
+## Crossroad redraws this account has earned (rank 2).
+func sigil_crossroad_rerolls() -> int:
+	return Balance.SIGIL_RANK2_REROLLS if sigils >= 2 else 0
+
+
 func save_game() -> void:
 	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:

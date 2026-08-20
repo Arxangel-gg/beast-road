@@ -334,6 +334,7 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_amount_row("Foliage", Graphics.KEY_FOLIAGE))
 
 	column.add_child(_separator())
+	column.add_child(_brightness_row())
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
 	column.add_child(_separator())
@@ -413,6 +414,20 @@ func _amount_row(text: String, key: String) -> HBoxContainer:
 		"kind": "amount",
 	})
 	return row
+
+
+## Brightness, for screens darker than the one the night was graded on.
+##
+## Sits with the display settings rather than the quality ones, and does not
+## knock the preset to Custom: it is about the player's screen, not about what
+## their machine can afford.
+func _brightness_row() -> HBoxContainer:
+	return _slider_row("Brightness", 0.0, Graphics.BRIGHTNESS_MAX_LIFT, 0.05,
+		Graphics.brightness_lift(),
+		func(v: float) -> String:
+			return "Graded" if v <= 0.001 else "+%d%%" % int(round(
+				v / Graphics.BRIGHTNESS_MAX_LIFT * 100.0)),
+		func(v: float) -> void: Graphics.set_display(Graphics.KEY_BRIGHTNESS, v))
 
 
 func _fps_row() -> HBoxContainer:

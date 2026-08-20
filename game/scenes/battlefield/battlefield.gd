@@ -99,6 +99,10 @@ const PIECE: float = BattleGrid.TILE * float(ROAD_CELL) / ROAD_ART_SPAN
 const ROAD_BAKE_PPU: float = 0.25
 
 var _path_tiles: Array = []
+
+## Counts torches actually built, so the every-Nth light and shadow rules stay
+## evenly spread after the minimum-gap filter has removed some.
+var _torch_index: int = 0
 var _ground_tiles_cache: Array = []
 var _ground_cache_id: String = ""
 
@@ -286,8 +290,14 @@ func _setup_lighting() -> void:
 	modulate_node.name = "DayTint"
 	add_child(modulate_node)
 	DayNight.phase_changed.connect(
-		func(_p: float, tint: Color, _d: float) -> void: modulate_node.color = tint)
-	modulate_node.color = DayNight.tint
+		func(_p: float, tint: Color, _d: float) -> void:
+			modulate_node.color = Graphics.graded(tint))
+	modulate_node.color = Graphics.graded(DayNight.tint)
+	# Grouped so `Graphics.apply_to_scene` can re-grade a field that is already
+	# standing. Without it, changing brightness from the pause menu does nothing
+	# until the next battlefield is built - which is the one moment a player is
+	# most likely to reach for the setting.
+	modulate_node.add_to_group(Graphics.TINT_GROUP)
 
 	# Above the sorted layer so a passing shadow darkens the units standing in it,
 	# not only the ground under them.
@@ -368,63 +378,112 @@ func fusion_pair_for(anchor: Vector2i, combo: TowerData) -> Array[Vector2i]:
 func _build_torches() -> void:
 	if grid == null:
 		return
+	# Every road proposes the same candidates in the same order, because every
+	# road is one shape rotated a quarter turn.
+	var lanes: Array = []
 	for lane: int in Balance.LANE_COUNT:
-		var path: PackedVector2Array = lane_path(lane)
-		var placed: int = 0
-		for i: int in path.size() - 1:
-			var from: Vector2 = path[i]
-			var to: Vector2 = path[i + 1]
-			var span: float = from.distance_to(to)
-			var along: Vector2 = (to - from).normalized() if span > 0.0 else Vector2.RIGHT
-			# Every torch on a segment shares that segment's heading, so the
-			# offset direction cannot rotate underneath one. Placing by distance
-			# along the *whole* polyline was the bug: a stop that landed near a
-			# vertex took its heading from whichever segment happened to contain
-			# it, and stood the post in the middle of the perpendicular leg.
-			var across: Vector2 = along.orthogonal()
-			var usable: float = span - Balance.TORCH_CORNER_CLEARANCE * 2.0
-			if usable < 0.0:
-				continue
-			# Even spacing within the segment, so two torches either side of a
-			# bend cannot end up shoulder to shoulder.
+		lanes.append(_torch_candidates(lane_path(lane)))
+	if lanes.is_empty():
+		return
+
+	# Thinned in rotational groups: the k-th candidate of all four roads is
+	# accepted or rejected together.
+	#
+	# Filtering road by road is not enough, and filtering the field greedily is
+	# worse. Crowding happens *between* roads as well as along one - the four
+	# final legs converge on the gate, and adjacent roads put torches 184 apart
+	# there - but a greedy pass over the whole field would keep road 0's torch
+	# and drop road 1's, leaving the roads visibly unequal. Deciding per group
+	# makes symmetry a property of the algorithm rather than something to check
+	# for afterwards.
+	var kept: Array[Vector2] = []
+	var count: int = (lanes[0] as Array[Vector2]).size()
+	for index: int in count:
+		var group: Array[Vector2] = []
+		for lane: int in Balance.LANE_COUNT:
+			var candidates: Array[Vector2] = lanes[lane]
+			if index < candidates.size():
+				group.append(candidates[index])
+		if _group_is_clear(group, kept):
+			for lane: int in group.size():
+				_place_torch(lane, group[lane])
+				kept.append(group[lane])
+
+
+## Whether a whole rotational group can stand without crowding anything.
+##
+## Checks the group against what is already placed *and* against itself: near the
+## gate the four roads come close enough that a group can crowd its own members
+## even when every one of them is clear of every torch placed before it.
+func _group_is_clear(group: Array[Vector2], kept: Array[Vector2]) -> bool:
+	for i: int in group.size():
+		for other: Vector2 in kept:
+			if group[i].distance_to(other) < Balance.TORCH_MIN_GAP:
+				return false
+		for j: int in range(i + 1, group.size()):
+			if group[i].distance_to(group[j]) < Balance.TORCH_MIN_GAP:
+				return false
+	return true
+
+
+## Every position a lane would like a torch at, before any thinning.
+##
+## Proposed and filtered in two passes rather than placed as computed, because
+## the crowding is a property of the *set*: a straight's end stop and the corner
+## post of the bend past it are each correctly placed with respect to their own
+## segment and still land on top of each other. Nothing local to either can see
+## that. The order is deterministic - segments, then stops, then sides, then the
+## corner post - so the k-th candidate means the same thing on all four roads.
+func _torch_candidates(path: PackedVector2Array) -> Array[Vector2]:
+	var wanted: Array[Vector2] = []
+	for i: int in path.size() - 1:
+		var from: Vector2 = path[i]
+		var to: Vector2 = path[i + 1]
+		var span: float = from.distance_to(to)
+		var along: Vector2 = (to - from).normalized() if span > 0.0 else Vector2.RIGHT
+		# Every torch on a segment shares that segment's heading, so the offset
+		# direction cannot rotate underneath one. Placing by distance along the
+		# *whole* polyline was the original bug: a stop landing near a vertex took
+		# its heading from whichever segment contained it, and stood the post in
+		# the middle of the perpendicular leg.
+		var across: Vector2 = along.orthogonal()
+		var usable: float = span - Balance.TORCH_CORNER_CLEARANCE * 2.0
+		if usable >= 0.0:
 			var gaps: int = maxi(1, int(round(usable / Balance.TORCH_SPACING)))
 			var step: float = usable / float(gaps)
 			for n: int in gaps + 1:
-				var offset: float = Balance.TORCH_CORNER_CLEARANCE + step * float(n)
-				var at: Vector2 = from + along * offset
+				var at: Vector2 = from + along 					* (Balance.TORCH_CORNER_CLEARANCE + step * float(n))
 				for side: int in 2:
 					var sign: float = -1.0 if side == 0 else 1.0
-					var torch := Torch.new()
-					torch.lane = lane
-					# High features a few local shadow pools per lane; Ultra
-					# promotes the rest in place, without rebuilding the field.
-					torch.shadow_on_ultra_only = not (placed % Balance.TORCH_FEATURED_SHADOW_EVERY == 0
-						and side == lane % 2)
-					torch.carries_light = placed % Balance.TORCH_LIGHT_EVERY == 0
-					torch.position = at + across * Balance.TORCH_LANE_OFFSET * sign
-					entity_root.add_child(torch)
-				placed += 1
+					wanted.append(at + across * Balance.TORCH_LANE_OFFSET * sign)
 
-			# One on the outside of every bend. The straights keep a clearance from
-			# each vertex so no post ends up in a corner the road turns through, and
-			# that left the outside of each U-bend - the longest arc on the road, and
-			# the part furthest from the town - as the one stretch nobody lit.
-			if i > 0:
-				var back: Vector2 = (from - path[i - 1]).normalized()
-				# Inside a turn is where you would cut the corner: the sum of the two
-				# headings. Outside is the other way.
-				var outward: Vector2 = -(back + along).normalized()
-				if outward.length() > 0.01:
-					var corner := Torch.new()
-					corner.lane = lane
-					corner.shadow_on_ultra_only = placed % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
-					var reach: float = Balance.TORCH_LANE_OFFSET * Balance.TORCH_CORNER_OFFSET_SCALE
-					# Corners always carry one: they are the darkest part of the road
-					# and the reason the corner post exists at all.
-					corner.carries_light = true
-					corner.position = from + outward * reach
-					entity_root.add_child(corner)
-					placed += 1
+		# One on the outside of every bend. The straights keep a clearance from
+		# each vertex so no post ends up in a corner the road turns through, and
+		# that left the outside of each U-bend - the longest arc on the road, and
+		# the part furthest from the town - as the one stretch nobody lit.
+		if i > 0:
+			var back: Vector2 = (from - path[i - 1]).normalized()
+			# Inside a turn is where you would cut the corner: the sum of the two
+			# headings. Outside is the other way.
+			var outward: Vector2 = -(back + along).normalized()
+			if outward.length() > 0.01:
+				var reach: float = Balance.TORCH_LANE_OFFSET * Balance.TORCH_CORNER_OFFSET_SCALE
+				wanted.append(from + outward * reach)
+
+	return wanted
+
+
+func _place_torch(lane: int, at: Vector2) -> void:
+	var torch := Torch.new()
+	torch.lane = lane
+	torch.position = at
+	# Counted over the torches that survived the filter, not the ones that were
+	# proposed, or the every-Nth rules would skip in clumps wherever the filter
+	# happened to remove one.
+	torch.shadow_on_ultra_only = _torch_index % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
+	torch.carries_light = _torch_index % Balance.TORCH_LIGHT_EVERY == 0
+	_torch_index += 1
+	entity_root.add_child(torch)
 
 
 ## A point a given distance along a polyline, with the local heading there.

@@ -433,6 +433,31 @@ func _test_tools_and_sigils() -> void:
 	_check(MetaState.treasury_cap(999) == 999,
 		"a Sigil rank must never reduce a cap the Treasury already had")
 
+	# Rank 2's redraw is a *run* charge earned by an *account* rank, and the two
+	# are easy to conflate into a reroll at every crossroad. Check both edges:
+	# below rank 2 the run gets none, and at rank 2 it gets exactly one that a
+	# redraw actually consumes.
+	var rerolls_before: int = RunState.crossroad_rerolls_left
+	MetaState.sigils = 1
+	_check(MetaState.sigil_crossroad_rerolls() == 0,
+		"a Legacy below rank 2 must grant no crossroad redraw")
+	MetaState.sigils = 2
+	_check(MetaState.sigil_crossroad_rerolls() == Balance.SIGIL_RANK2_REROLLS,
+		"rank 2 must grant its crossroad redraws")
+
+	var screen: CrossroadScreen = _run.crossroad_ui
+	if screen != null:
+		RunState.crossroad_rerolls_left = Balance.SIGIL_RANK2_REROLLS
+		screen.call("_reroll")
+		_check(RunState.crossroad_rerolls_left == Balance.SIGIL_RANK2_REROLLS - 1,
+			"a redraw must spend exactly one charge")
+		RunState.crossroad_rerolls_left = 0
+		screen.call("_reroll")
+		_check(RunState.crossroad_rerolls_left == 0,
+			"a run with no charge left must not be able to redraw into the negative")
+		screen.panel.visible = false
+	RunState.crossroad_rerolls_left = rerolls_before
+
 	MetaState.tools = tools_before
 	MetaState.sigils = sigils_before
 

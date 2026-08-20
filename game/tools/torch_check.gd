@@ -20,6 +20,10 @@ func _ready() -> void:
 		run._on_ride_on_requested()
 		await get_tree().process_frame
 
+	if not _check_layout():
+		_bail(1)
+		return
+
 	var torch: Torch = get_tree().get_first_node_in_group(&"torches") as Torch
 	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
 	if torch == null:
@@ -99,6 +103,78 @@ func _ready() -> void:
 		_bail(1)
 		return
 	_bail(0)
+
+
+## The field's torches must be spread, symmetric, and off the road.
+##
+## Placement is three rules interacting - stops along a straight, a corner post
+## on the outside of each bend, and a minimum-gap filter over the result - and
+## each is correct on its own while the set is what has to come out right. That
+## is only checkable by looking at every torch at once, which is what this does.
+func _check_layout() -> bool:
+	var torches: Array[Node] = get_tree().get_nodes_in_group(&"torches")
+	if torches.size() < Balance.LANE_COUNT * 4:
+		push_error("only %d torches in the field - the roads cannot be lit" % torches.size())
+		return false
+
+	var points: Array[Vector2] = []
+	for node: Node in torches:
+		points.append((node as Node2D).global_position)
+
+	var closest: float = INF
+	for i: int in points.size():
+		for j: int in range(i + 1, points.size()):
+			closest = minf(closest, points[i].distance_to(points[j]))
+	if closest < Balance.TORCH_MIN_GAP - 1.0:
+		for i: int in points.size():
+			for j: int in range(i + 1, points.size()):
+				if points[i].distance_to(points[j]) <= closest + 0.5:
+					print("[torch] crowded pair: road %d at %s and road %d at %s, %.0f apart, %.0f and %.0f from the gate"
+						% [(torches[i] as Torch).lane, points[i], (torches[j] as Torch).lane,
+						points[j], closest, points[i].length(), points[j].length()])
+		push_error("two torches stand %.0f apart, under the %.0f minimum"
+			% [closest, Balance.TORCH_MIN_GAP])
+		return false
+
+	# Every lane is the same shape rotated a quarter turn, so rotating one lane's
+	# torches onto the next must land on torches that exist. This is what catches
+	# a filter that keeps a different set on one road than on another - the roads
+	# would each look fine alone and the field would be visibly lopsided.
+	var lanes: Dictionary = {}
+	for node: Node in torches:
+		var torch := node as Torch
+		if not lanes.has(torch.lane):
+			lanes[torch.lane] = [] as Array[Vector2]
+		(lanes[torch.lane] as Array[Vector2]).append(torch.global_position)
+	var first: Array[Vector2] = lanes.get(0, [] as Array[Vector2])
+	for lane: int in Balance.LANE_COUNT:
+		var here: Array[Vector2] = lanes.get(lane, [] as Array[Vector2])
+		if here.size() != first.size():
+			push_error("road %d has %d torches and road 0 has %d - the field is lopsided"
+				% [lane, here.size(), first.size()])
+			return false
+		var turn: float = TAU * float(lane) / float(Balance.LANE_COUNT)
+		for at: Vector2 in first:
+			var want: Vector2 = at.rotated(turn)
+			var near: float = INF
+			for other: Vector2 in here:
+				near = minf(near, want.distance_to(other))
+			if near > 2.0:
+				push_error("road %d has no torch where road 0 has one at %s" % [lane, at])
+				return false
+
+	# Off the carriageway, not on it. A torch on the road is the complaint this
+	# placement was rewritten to fix, and it reads as a bug even when it is lit.
+	var field: Battlefield = _find_run().battlefield
+	if field != null and field.grid != null:
+		for at: Vector2 in points:
+			if field.grid.cell_at(BattleGrid.world_to_tile(at)) == BattleGrid.Cell.ROAD:
+				push_error("a torch at %s stands on the road" % at)
+				return false
+
+	print("[torch] layout: %d torches, closest pair %.0f apart, four roads symmetric"
+		% [points.size(), closest])
+	return true
 
 
 func _bail(code: int) -> void:

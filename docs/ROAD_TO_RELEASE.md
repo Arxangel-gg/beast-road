@@ -52,8 +52,21 @@ Highest priority: these are things that are wrong, not things that are missing.
 - [x] No torch on the *outer* corner of a U-bend. Straights keep a clearance from
       each vertex, which left the longest arc on the road unlit; each bend now
       gets its own post on the outside of the turn.
-- [~] A few torches still sit closer together than the rest, where a segment's
-      end stop lands near a corner post. Cosmetic; needs a minimum-gap pass.
+- [x] Torch crowding. Fixed and now gated by `tools/torch_check.tscn`, which
+      asserts the whole layout: minimum gap, four-road symmetry, and that no
+      torch stands on the carriageway.
+
+      Two passes were needed. A per-road filter fixed the reported case — a
+      straight's end stop overlapping the corner post of the bend past it — but
+      the check then caught a second one the report had not: adjacent *roads*
+      putting torches 184 apart where the four final legs converge on the gate.
+      A greedy field-wide filter would fix that by keeping road 0's torch and
+      dropping road 1's, leaving the roads visibly unequal, so candidates are
+      thinned in rotational groups instead: the k-th candidate of all four roads
+      is accepted or rejected together, which makes symmetry a property of the
+      algorithm rather than something to verify afterwards.
+
+      32 torches, closest pair 212 apart, none on the road.
 - [x] Enemy and foliage shadow anchors. Audited every `add_contact` caller: the
       enemy, hero and town sprites all sit at their node origin, so the
       sprite-relative fix is a no-op for them and they were never wrong. Foliage
@@ -100,8 +113,12 @@ Highest priority: these are things that are wrong, not things that are missing.
       sanctioned persistent power. Left on the first clear rather than the
       fourth: strictly more generous than v4, and it avoids two systems paying
       twice for the same achievement. Revisit only if the owner wants it gated.
-- [ ] Rank 2 — reroll one crossroad pair per run. Needs a button on the crossroad
-      screen and a per-run counter; nothing else.
+- [x] Rank 2 — one crossroad redraw per run. Per run rather than per crossroad:
+      a reroll at every fork turns the route into a shopping list instead of a
+      decision. The button states the remaining count for that reason. Redrawn
+      from the same `roads` stream so a seeded replay that rerolls stays
+      reproducible. Tested at both edges — rank 1 grants none, rank 2 grants one
+      that a redraw actually spends and cannot go negative.
 
 Both surface on the debrief as `Tools N · Legacy rank N of 4`.
 
@@ -141,7 +158,45 @@ Both surface on the debrief as `Tools N · Legacy rank N of 4`.
       for the entire battlefield — a flat wash, not cloud. The quad now passes
       its own world size in, and is sized from the same extent the floor uses so
       it covers exactly the ground it passes over.
-- [ ] Night at minimum brightness still playable (audit's human-judgement row).
+- [x] Night at minimum brightness. Two things were missing, and the second was
+      the real one.
+
+      **There was no brightness setting at all.** I had deepened the night grade
+      from ~0.30 to ~0.15 and left players on a dim screen with no recourse.
+      Added under Display, as a lift toward white rather than a gain — a gain on
+      a near-black tint leaves it near-black, which is the exact case the control
+      exists for. Capped at +55%: at a full lift the day/night cycle stops
+      existing, and a setting that can erase a core system will erase it by
+      accident. It does not knock the quality preset to Custom, because it is
+      about the player's screen, not what their machine can afford, and it
+      re-grades a field that is already standing so changing it from the pause
+      menu does something.
+
+      **`tools/night_check.tscn`** then answers the row: at the darkest legal
+      grade, is the road distinguishable from unlit ground, and an enemy from
+      what is behind it. Windowed, not headless — it measures pixels.
+
+      Getting it to *mean* anything took four wrong versions, each of which
+      returned confident numbers: a hand-rolled world→screen mapping that drifted
+      once the camera followed the hero; sampling at the enemy's node origin,
+      which is at its feet, so it compared road against road and reported a
+      separation of exactly 0.000 twice; freezing the enemy at spawn, which froze
+      its spawn-in part way; and comparing against a point a fixed distance to
+      one side, which landed on road, ground or torchlight depending on where the
+      enemy stopped. It now samples the sprite against the ring around it, which
+      is the question a player actually asks and is asked the same way wherever
+      the enemy stands.
+
+      Thresholds sit *below* the measured band (road 0.033–0.055, enemy
+      0.050–0.083) rather than inside it. That spread is not noise — foliage
+      scatters afresh every build — and a gate pitched mid-band fails a good
+      build about one run in six. Under the floor it still catches what it is
+      for: torches that stopped lighting the road collapse it to near zero.
+      5 of 5 runs pass.
+
+      Windowed, so it cannot run on CI. By hand, like the save-backup check:
+
+          godot --path game res://tools/night_check.tscn
 
 ### VFX
 
@@ -240,7 +295,11 @@ Both surface on the debrief as `Tools N · Legacy rank N of 4`.
       keep flame, glow and smoke and are lit by neighbours — taking it to 75 with
       no visible difference, since the pools overlap heavily at that radius.
 
-- [ ] `save_backup_check.tscn` run by hand before any release that changes
+- [x] `save_backup_check.tscn` run by hand — all five rows pass (unreadable save
+      backed up, backup byte-identical, survives a second mismatch, v1 source
+      preserved, v2 terrain rename with unknown ids kept). `SAVE_VERSION` is
+      unchanged since v0.4.25, so this release did not strictly need it.
+- [ ] `save_backup_check.tscn` re-run by hand before any release that changes
       `SAVE_VERSION`.
 
 ---
