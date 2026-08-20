@@ -28,12 +28,38 @@ func _ready() -> void:
 	IconKit.on_button(quit_button, "close", 24)
 
 	_build_tier_row()
+	_build_stash_button()
 	_build_endless_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
+
+
+## The stash, reached from the menu rather than from a run.
+##
+## Only once there is something in it. A button leading to an empty screen on a
+## first launch is a promise the game has not made yet, and the first gear a
+## player finds announces itself anyway.
+func _build_stash_button() -> void:
+	if MetaState.stash.is_empty() and MetaState.marks <= 0:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.text = "Stash  ·  %d Marks" % MetaState.marks
+	IconKit.on_button(button, "relic", 24)
+	column.add_child(button)
+	column.move_child(button, new_run_button.get_index() + 1)
+
+	var screen := StashScreen.new()
+	add_child(screen)
+	screen.closed.connect(func() -> void:
+		button.text = "Stash  ·  %d Marks" % MetaState.marks
+		new_run_button.grab_focus())
+	button.pressed.connect(func() -> void: screen.open())
 
 
 ## The campaign tier, chosen before a run and shown with the hero it will be

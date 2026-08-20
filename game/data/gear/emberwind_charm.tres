@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 2
+attribute = 2
+base_points = 3
+weight = 0.9
+min_tier = 1
+description = "A knot of hot air that pulls you into the next stride."
+id = "emberwind_charm"
+display_name = "Emberwind Charm"

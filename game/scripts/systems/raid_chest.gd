@@ -76,6 +76,18 @@ func _open() -> void:
 			RunState.rng("raids").randi_range(0, RunState.CURRENCIES.size() - 1)]
 		if field != null:
 			field.spawn_loot(currency, share, global_position)
+	# A locked chest always carries gear; an unlocked one sometimes does. That is
+	# what makes finding the key worth the detour rather than a slower way to the
+	# same coins.
+	var tier_order: int = tier.order if tier != null else 0
+	if locked or RunState.rng("raids").randf() < Balance.GEAR_CHEST_CHANCE:
+		var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
+			RunState.rng("raids"))
+		if not piece.is_empty() and MetaState.take_gear(piece):
+			var kind: GearData = ContentDB.gear(String(piece["kind"]))
+			EventBus.preparation_warning.emit("%s  %s  ·  taken to the stash"
+				% [Stash.rarity_name(piece), kind.display_name if kind else "Gear"])
+
 	Sfx.play("sfx_relic_socket")
 	Vfx.ring(global_position, Balance.RAID_CHEST_GLOW * 0.8,
 		Balance.LOOT_GLOW_COLOUR, 0.5, 5.0)

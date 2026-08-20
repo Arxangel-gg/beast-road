@@ -617,10 +617,17 @@ func spend_attribute_point(attribute: int) -> String:
 	return ""
 
 
+## An attribute's total: points the player placed, plus points their gear grants.
+##
+## Gear is folded in here rather than at each use site, so every consumer -
+## damage, health, movement, command - reads one number and none of them can be
+## the one that forgot about equipment.
 func attribute(which: int) -> int:
 	if which < 0 or which >= hero_attributes.size():
 		return 0
-	return hero_attributes[which]
+	var worn: Array[int] = MetaState.gear_attribute_points()
+	var bonus: int = worn[which] if which < worn.size() else 0
+	return hero_attributes[which] + bonus
 
 
 ## How many discipline nodes this hero may hold, which grows with level.

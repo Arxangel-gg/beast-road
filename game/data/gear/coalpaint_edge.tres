@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 0
+attribute = 0
+base_points = 2
+weight = 1.4
+min_tier = 0
+description = "Cinder-marked steel. Heavier than it looks, and it bites."
+id = "coalpaint_edge"
+display_name = "Coalpaint Edge"

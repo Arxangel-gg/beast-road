@@ -18,6 +18,7 @@ var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
 var tiers: Dictionary = {}
+var gear_kinds: Dictionary = {}
 
 ## First-run coach prompts. Content because the strings are player-facing and
 ## CLAUDE.md keeps those out of scripts.
@@ -40,6 +41,7 @@ func _ready() -> void:
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
 	tiers = _load_dir("res://data/tiers")
+	gear_kinds = _load_dir("res://data/gear")
 	buildings = _load_dir("res://data/buildings")
 	captives = _load_dir("res://data/captives")
 	wave_archetypes = _load_dir("res://data/waves")
@@ -70,6 +72,22 @@ func relic(id: String) -> RelicData:
 
 func item(id: String) -> ItemData:
 	return items.get(id, null) as ItemData
+
+
+## One kind of gear by id.
+func gear(id: String) -> GearData:
+	return gear_kinds.get(id, null) as GearData
+
+
+## Every kind of gear, for rolling a drop.
+func gear_sorted() -> Array[GearData]:
+	var out: Array[GearData] = []
+	for value: Variant in gear_kinds.values():
+		var kind := value as GearData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: GearData, b: GearData) -> bool: return a.id < b.id)
+	return out
 
 
 ## Campaign tiers, easiest first.

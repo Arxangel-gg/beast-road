@@ -85,6 +85,9 @@ signal raid_chest_opened(was_locked: bool)
 ## A key was picked up in a raid; carries the new total.
 signal raid_key_taken(held: int)
 
+## The stash changed: gear taken, sold, broken, upgraded or equipped.
+signal stash_changed()
+
 ## A spell resolved. `slot` is 0..3.
 signal spell_cast(spell_id: String, slot: int, at: Vector2)
 

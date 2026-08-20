@@ -17,7 +17,7 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 
 ## Terrain ids as they were before v4's regions were adopted. A save records
 ## which terrains a player has unlocked *by id*, so renaming the content renames
@@ -25,7 +25,7 @@ const SAVE_VERSION: int = 4
 ## that no longer name anything, silently losing the unlocks.
 ## Save versions this build can carry forward. Anything else is backed up and
 ## the account starts fresh.
-const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3]
+const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3, 4]
 
 const TERRAIN_RENAMES_V3: Dictionary = {
 	"ashfen": "jungle",
@@ -108,6 +108,24 @@ var tier_cleared: int = -1
 
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
+
+# --- The stash (owner ruling, 2026-08-20) -------------------------------------
+#
+# Gear persists with the hero. Marks are the account's currency and shards are
+# what broken gear becomes; neither is a run currency, and gold cannot be turned
+# into either. That separation is the point: a stash purchase must never compete
+# with the wall that is about to be overrun.
+
+## Owned gear, each a plain dictionary of kind, rarity and level.
+var stash: Array = []
+
+## Equipped pieces, keyed by GearData.Slot. Values are indices into `stash`.
+var equipped: Dictionary = {}
+
+## The account's currency, and what salvage yields.
+var marks: int = 0
+var shards: int = 0
+
 
 ## Whether the opening cinematic has been shown. A setting rather than a
 ## statistic: it exists so the intro plays once, and it is cleared when a player
@@ -320,6 +338,89 @@ func _read_hero(hero: Dictionary) -> void:
 			over -= taken
 
 
+## Reads the stash, discarding anything that is not a real piece of gear.
+##
+## A save is a file on someone's disk. Every entry is validated against the
+## content that actually exists rather than trusted, because a piece naming a
+## kind this build no longer ships is not an error anywhere — it is a silent hole
+## that surfaces later as a null in the equip screen.
+func _read_stash(data: Dictionary) -> void:
+	marks = maxi(int(data.get("marks", 0)), 0)
+	shards = maxi(int(data.get("shards", 0)), 0)
+	stash = []
+	for entry: Variant in data.get("gear", []) as Array:
+		if not (entry is Dictionary):
+			continue
+		var piece: Dictionary = entry
+		var kind: String = String(piece.get("kind", ""))
+		if ContentDB.gear(kind) == null:
+			continue
+		stash.append(Stash.make(kind, int(piece.get("rarity", 0)),
+			int(piece.get("level", 1))))
+		if stash.size() >= Balance.STASH_CAPACITY:
+			break
+
+	equipped = {}
+	for key: Variant in (data.get("equipped", {}) as Dictionary):
+		var index: int = int((data["equipped"] as Dictionary)[key])
+		if index >= 0 and index < stash.size():
+			equipped[int(key)] = index
+
+
+## The piece worn in a slot, or an empty dictionary.
+func equipped_piece(slot: int) -> Dictionary:
+	var index: int = int(equipped.get(slot, -1))
+	if index < 0 or index >= stash.size():
+		return {}
+	return stash[index]
+
+
+## Attribute points every equipped piece grants, as a four-entry array.
+func gear_attribute_points() -> Array[int]:
+	var out: Array[int] = [0, 0, 0, 0]
+	for slot: Variant in equipped:
+		var piece: Dictionary = equipped_piece(int(slot))
+		if piece.is_empty():
+			continue
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		if kind == null or kind.attribute < 0 or kind.attribute >= out.size():
+			continue
+		out[kind.attribute] += Stash.points(piece, kind)
+	return out
+
+
+## Takes a piece into the stash. Returns false when there is no room.
+func take_gear(piece: Dictionary) -> bool:
+	if piece.is_empty() or stash.size() >= Balance.STASH_CAPACITY:
+		return false
+	stash.append(piece)
+	save_game()
+	EventBus.stash_changed.emit()
+	return true
+
+
+## Removes a piece, keeping the equipped indices pointing at the same gear.
+##
+## Indices shift when an element is removed from the middle of an array, so
+## anything equipped after the removed slot has to move down with it. Getting
+## this wrong does not fail loudly - it silently re-equips a different sword.
+func drop_gear(index: int) -> Dictionary:
+	if index < 0 or index >= stash.size():
+		return {}
+	var piece: Dictionary = stash[index]
+	stash.remove_at(index)
+	var moved: Dictionary = {}
+	for slot: Variant in equipped:
+		var at: int = int(equipped[slot])
+		if at == index:
+			continue
+		moved[int(slot)] = at - 1 if at > index else at
+	equipped = moved
+	save_game()
+	EventBus.stash_changed.emit()
+	return piece
+
+
 ## Which campaign tiers this account may choose.
 func tier_is_unlocked(tier: CampaignTierData) -> bool:
 	return tier != null and tier.order <= tier_cleared + 1
@@ -367,6 +468,12 @@ func serialized_save() -> String:
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,
 			"story_seen": story_intro_seen,
+		},
+		"stash": {
+			"gear": stash,
+			"equipped": equipped,
+			"marks": marks,
+			"shards": shards,
 		},
 		"resource_cache": resource_cache,
 		"stats": {
@@ -430,6 +537,7 @@ func load_save() -> void:
 	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
+	_read_stash(data.get("stash", {}) as Dictionary)
 	resource_cache = data.get("resource_cache", {}) as Dictionary
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary

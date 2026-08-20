@@ -105,6 +105,22 @@ const LOOT_BOB_SPEED: float = 5.0
 const LOOT_BOB_HEIGHT: float = 3.0
 const LOOT_Z_INDEX: int = -2
 
+## How much gear the stash holds.
+##
+## Finite on purpose. An unlimited stash means a player never chooses what to
+## keep, and "which of these do I break for shards" is the decision the
+## blacksmith exists to pose. [TUNE]
+const STASH_CAPACITY: int = 40
+
+## Chance a raid chest also yields a piece of gear.
+const GEAR_CHEST_CHANCE: float = 0.34
+
+## Marks paid for finishing a run, before the tier multiplier.
+const RUN_MARKS_REWARD: int = 45
+
+## What a losing run still pays, as a share of a winning one. [TUNE]
+const RUN_MARKS_LOSS_SHARE: float = 0.55
+
 const HERO_MAX_LEVEL: int = 100
 
 ## Runs per tier that `tools/level_curve.tscn` simulates. Reporting only.

@@ -609,4 +609,21 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	journey.stop()
 	battlefield.suspend()
 	raid.process_mode = Node.PROCESS_MODE_DISABLED
+
+	# Marks for the run, scaled by how far it got and which tier it was on.
+	#
+	# Paid on a loss as well, at a fraction. A run that ended in Act II still
+	# taught the player something and still cost them an hour; paying nothing for
+	# it makes the stash a reward for winning, which is exactly backwards for a
+	# system whose job is to make the *next* attempt stronger.
+	var tier: CampaignTierData = RunState.tier()
+	var earned: float = float(Balance.RUN_MARKS_REWARD) * float(RunState.act)
+	if tier != null:
+		earned *= tier.loot_scale
+	if not victory:
+		earned *= Balance.RUN_MARKS_LOSS_SHARE
+	MetaState.marks += maxi(1, int(round(earned)))
+	MetaState.save_game()
+	summary["marks"] = maxi(1, int(round(earned)))
+
 	results_ui.show_results(victory, summary)

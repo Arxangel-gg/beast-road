@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_hero_levelling()
 	await _test_loot_and_weather()
 	_test_tiers_and_persistence()
+	_test_stash_economy()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -717,7 +718,7 @@ func _test_tiers_and_persistence() -> void:
 		var keys: Array = (parsed as Dictionary).keys()
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
-				"settings", "hero"],
+				"settings", "hero", "stash"],
 				"unexpected top-level save key \"%s\"" % key)
 		# The list is about *power*, not tidiness. "story_seen" is on it because it
 		# rides in the same block, and it is not progression - a flag saying the
@@ -755,6 +756,109 @@ func _test_tiers_and_persistence() -> void:
 	MetaState.hero_attributes = [0, 0, 0, 0]
 	MetaState.hero_attribute_points = 0
 	RunState.reset()
+
+
+## The stash economy: rolling, pricing, equipping, and the two currencies
+## staying separate.
+##
+## The equip-index check is the one that matters most. Removing a piece from the
+## middle of the array shifts everything after it down, and an equipped index
+## that is not shifted with it does not fail loudly - it silently equips a
+## different sword, which a player would read as the game losing their gear.
+func _test_stash_economy() -> void:
+	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	_check(kinds.size() >= 6, "there must be gear to find, got %d" % kinds.size())
+	if kinds.size() < 6:
+		return
+	for kind: GearData in kinds:
+		_check(kind.base_points > 0, "%s must be worth something" % kind.id)
+		_check(kind.attribute >= 0 and kind.attribute < 4,
+			"%s names attribute %d, which does not exist" % [kind.id, kind.attribute])
+
+	var stash_before: Array = MetaState.stash.duplicate(true)
+	var equipped_before: Dictionary = MetaState.equipped.duplicate()
+	var marks_before: int = MetaState.marks
+	var shards_before: int = MetaState.shards
+	MetaState.stash = []
+	MetaState.equipped = {}
+
+	# A roll must produce a real piece, and only from tiers that allow it.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var seen_rarities: Dictionary = {}
+	for _try: int in 400:
+		var piece: Dictionary = Stash.roll(kinds, 0, rng)
+		_check(not piece.is_empty(), "a roll must produce a piece")
+		if piece.is_empty():
+			break
+		var kind: GearData = ContentDB.gear(String(piece["kind"]))
+		_check(kind != null, "a roll must name real gear")
+		if kind != null:
+			_check(kind.min_tier <= 0, "tier 0 rolled %s, which needs tier %d"
+				% [kind.id, kind.min_tier])
+		seen_rarities[int(piece["rarity"])] = true
+	_check(seen_rarities.size() >= 2, "400 rolls should produce more than one rarity")
+
+	# Rarity and level must both pay, or neither decision matters.
+	var kind_one: GearData = kinds[0]
+	var worn: Dictionary = Stash.make(kind_one.id, 0, 1)
+	var better: Dictionary = Stash.make(kind_one.id, 2, 1)
+	var levelled: Dictionary = Stash.make(kind_one.id, 0, Stash.MAX_LEVEL)
+	_check(Stash.points(better, kind_one) > Stash.points(worn, kind_one),
+		"a rarer piece must grant more")
+	_check(Stash.points(levelled, kind_one) > Stash.points(worn, kind_one),
+		"an upgraded piece must grant more")
+	_check(Stash.sell_price(better) > Stash.sell_price(worn),
+		"a rarer piece must sell for more")
+	_check(Stash.upgrade_cost(Stash.make(kind_one.id, 0, Stash.MAX_LEVEL)).is_empty(),
+		"a maxed piece must not offer another upgrade")
+
+	# Equipping, and the index shift on removal.
+	MetaState.take_gear(Stash.make(kinds[0].id, 0))
+	MetaState.take_gear(Stash.make(kinds[1].id, 1))
+	MetaState.take_gear(Stash.make(kinds[2].id, 2))
+	var third: Dictionary = MetaState.stash[2].duplicate()
+	MetaState.equipped[ContentDB.gear(String(third["kind"])).slot] = 2
+	MetaState.drop_gear(0)
+	var still: Dictionary = MetaState.equipped_piece(
+		ContentDB.gear(String(third["kind"])).slot)
+	_check(still.get("kind", "") == third["kind"],
+		"removing an earlier piece must not change which piece is worn")
+
+	# Worn gear must reach the hero.
+	MetaState.stash = []
+	MetaState.equipped = {}
+	var mighty: GearData = null
+	for kind: GearData in kinds:
+		if kind.attribute == RunState.Attribute.MIGHT:
+			mighty = kind
+			break
+	if mighty != null:
+		var base: int = RunState.attribute(RunState.Attribute.MIGHT)
+		MetaState.take_gear(Stash.make(mighty.id, 3))
+		MetaState.equipped[mighty.slot] = 0
+		_check(RunState.attribute(RunState.Attribute.MIGHT) > base,
+			"equipped gear must reach the hero's attributes")
+
+	# Capacity is a ceiling, not a suggestion.
+	MetaState.stash = []
+	MetaState.equipped = {}
+	for _fill: int in Balance.STASH_CAPACITY + 8:
+		MetaState.take_gear(Stash.make(kinds[0].id, 0))
+	_check(MetaState.stash.size() == Balance.STASH_CAPACITY,
+		"the stash must stop at %d, holds %d" % [Balance.STASH_CAPACITY,
+			MetaState.stash.size()])
+
+	# The two currencies must not be the same currency wearing two hats.
+	_check(not RunState.CURRENCIES.has("marks"),
+		"marks must not be a run currency - a stash purchase must never compete"
+		+ " with the wall about to be overrun")
+	_check(not RunState.CURRENCIES.has("shards"), "shards must not be a run currency")
+
+	MetaState.stash = stash_before
+	MetaState.equipped = equipped_before
+	MetaState.marks = marks_before
+	MetaState.shards = shards_before
 
 
 ## The summit has to be reachable, and the Chainmaker has to be the thing at the

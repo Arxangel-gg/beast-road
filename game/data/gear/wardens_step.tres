@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 2
+attribute = 2
+base_points = 2
+weight = 1.2
+min_tier = 0
+description = "Bound to the beast's stride. You move when Yuri moves."
+id = "wardens_step"
+display_name = "Warden's Step"

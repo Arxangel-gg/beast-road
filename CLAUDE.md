@@ -179,7 +179,14 @@ works."
 
    The bound that replaces §974's is `Balance.HERO_MAX_LEVEL`: hero growth is
    *capped*, not uncapped, and §54's cut of "uncapped permanent stats" survives
-   intact.
+   intact. The stash has its own bound in `Balance.STASH_CAPACITY`, and gear
+   grants *attribute points* rather than raw stats — so worn equipment is
+   measured on the same capped scale as levelling and cannot out-run the curve
+   the campaign tiers are tuned against.
+
+   Gold, Wood, Food and Stone are still run currencies and still reset. Marks and
+   Shards are account currencies and deliberately do not exchange with them: a
+   stash purchase must never compete with the wall about to be overrun.
 8. **The battlefield freezes during a raid and resumes exactly as it was**
    (GDD §52, "Raid pause resumes the exact battlefield state"). It must
    therefore be suspendable as a unit — no system may keep ticking off a timer

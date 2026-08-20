@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 1
+attribute = 1
+base_points = 4
+weight = 0.7
+min_tier = 2
+description = "Rimebound siege harness, cut down to fit one person."
+id = "avalanche_harness"
+display_name = "Avalanche Harness"

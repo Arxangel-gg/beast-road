@@ -410,8 +410,40 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       sprite kinds alongside them).
 - [ ] Tower/building idle animations and base damage-state art.
 - [ ] Loot diversity: relic and supply drop types, remaining currency art.
-- [ ] Persistent stash and inventory, a second (cross-run) currency, blacksmith
-      upgrade/salvage.
+- [x] **Stash, inventory and blacksmith.** Ten kinds of gear across three slots,
+      each a file. A *kind* is authored content — name, slot, icon, which
+      attribute it favours; rarity and level are things that happened to one
+      particular copy, so they live on the owned instance rather than writing
+      back into the content files.
+
+      **Gear grants attribute points, not raw stats.** That keeps one number
+      governing hero power — the same number levelling feeds — so a lucky drop
+      cannot out-scale the curve the campaign tiers are tuned against, and a
+      player can compare a sword to two levels without arithmetic.
+
+      **Two currencies, deliberately not exchangeable.** Gold is a run currency:
+      spent under pressure, reset each run. Marks are what the account keeps.
+      Mixing them means either hoarding gold instead of defending, or a stash
+      purchase competing with the wall about to be overrun. Shards are what
+      broken gear becomes and only buy upgrades, so a duplicate poses a real
+      question: sell it for Marks, or break it for Shards.
+
+      Upgrades cost **both**, for the same reason — Shards alone and a full stash
+      upgrades everything free; Marks alone and salvage has no purpose.
+
+      Stash and blacksmith are one screen because they are one decision. "Is this
+      better than mine" and "should I break it to upgrade what I have" are the
+      same question from either end.
+
+      Capacity is finite (40): an unlimited stash means never choosing what to
+      keep, which is the decision the blacksmith exists to pose. Losing runs pay
+      Marks at 55% — a run that died in Act II still cost an hour, and paying
+      nothing for it makes the stash a reward for winning, which is backwards for
+      a system whose job is making the *next* attempt stronger.
+
+      `SAVE_VERSION` 4 → 5; v4 saves arrive with no stash block, which is handled
+      and tested. Save-backup check run by hand, all five rows. CLAUDE.md rule 7
+      amended to name the stash and its bounds.
 - [x] **The full audio library re-processed (2026-08-20).** 228 takes across 42
       sounds, reduced to 81 shipped files. Three takes for anything that can fire
       more than once every few seconds — impacts, footsteps, shots, loot, UI —
