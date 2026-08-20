@@ -423,12 +423,19 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       strip for the text left the panel in a box wider than 16:9, so a 16:9 image
       was pillarboxed on a 16:9 monitor — the one shape it should have fitted.
 
-- [~] **Loot art.** Painted world art for gold and relic drops, resolved by
-      convention (`loot_<currency>.png`) with the UI icon as fallback, so a new
-      currency drops correctly the moment its art lands. Wood, food and stone
-      still use their HUD icons — readable, but drawn for a 24px slot on a dark
-      bar rather than for lying on a lit road. Relic and supply *drop types* (as
-      opposed to currency drops) are still to do.
+- [x] **Loot art and cache diversity.** All four run currencies now have
+      purpose-built 48px PixelLab world pickups, resolved by convention
+      (`loot_<currency>.png`) with the UI icon retained only as a damaged-install
+      fallback. Ordinary raid chests use a strapped supply-crate silhouette;
+      locked high-ground caches retain the ornate purple relic chest, so their
+      value and key requirement read before the player commits to the ramp.
+
+      `tools/loot_art_check.tscn` drives the real `LootDrop` resolver for every
+      currency, asserts the two cache paths stay distinct, rejects duplicated or
+      empty art, and runs in the push, release and Update Manager preflights.
+      Relics still enter the run through authored regional choices and raid
+      resolution, not as arbitrary enemy drops; loot variety does not bypass the
+      GDD's build-shaping choice.
 - [x] **Cinematic pacing and skip model.** Hold time now starts when the *line*
       finishes fading rather than when the panel starts — the prose previously had
       about a second and a half of legible time, less than it takes to read two
@@ -608,7 +615,8 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       `tools/touch_shot.tscn` renders it with both thumbs down.
 - [ ] Whether the sticks *feel* right under a thumb, on a real phone. Nothing
       headless can answer that, and the check says so.
-- [ ] Loot diversity: relic and supply drop types, remaining currency art.
+- [x] Loot diversity: relic and supply cache types, all four currency pickups,
+      and a release gate that exercises their runtime resolution.
 - [x] **Stash, inventory and blacksmith.** Ten kinds of gear across three slots,
       each a file. A *kind* is authored content — name, slot, icon, which
       attribute it favours; rarity and level are things that happened to one

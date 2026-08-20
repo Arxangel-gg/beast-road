@@ -9,6 +9,8 @@ extends Node2D
 ## which is the decision the camp's shape was built to pose.
 
 const GROUP: StringName = &"raid_chests"
+const SUPPLY_ART_ID: String = "supplies"
+const RELIC_ART_ID: String = "relic"
 
 var locked: bool = false
 
@@ -30,7 +32,7 @@ func _ready() -> void:
 	add_child(_glow)
 
 	_sprite = Sprite2D.new()
-	var art: String = Balance.LOOT_ART_FORMAT % "relic"
+	var art: String = art_path()
 	if ResourceLoader.exists(art):
 		_sprite.texture = load(art)
 	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
@@ -41,6 +43,14 @@ func _ready() -> void:
 		_sprite.modulate = Balance.RAID_LOCKED_TINT
 	add_child(_sprite)
 	ShadowKit.add_contact(self, _sprite)
+
+
+## The common chest is provisions; the locked high-ground cache is the premium
+## relic silhouette. Keeping the convention in one function lets the release
+## gate exercise the same choice the player sees instead of duplicating it.
+func art_path() -> String:
+	var art_id: String = RELIC_ART_ID if locked else SUPPLY_ART_ID
+	return Balance.LOOT_ART_FORMAT % art_id
 
 
 func _process(delta: float) -> void:

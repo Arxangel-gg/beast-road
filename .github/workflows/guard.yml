@@ -150,6 +150,9 @@ jobs:
           # trying to ship. It is a two-second headless script; there is no
           # reason for it to be a thing you discover at the end.
           check "production art" --headless --path game --script res://tools/run_tool.gd -- report
+          # Every run currency has purpose-built world art, and ordinary raid
+          # supplies cannot be mistaken for the premium locked relic cache.
+          check "loot art" --headless --path game res://tools/loot_art_check.tscn
           # Every path tile connects on the edges its filename claims. The
           # autotiler picks by index, so a mislabelled tile draws a road that
           # stops dead mid-bend, and the generated set arrived in an order that

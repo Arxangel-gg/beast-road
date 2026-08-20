@@ -359,6 +359,7 @@ $btn.Add_Click({
         $checks = @(
             @{ Name = 'game'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--quit') },
             @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
+            @{ Name = 'loot and cache art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/loot_art_check.tscn') },
             @{ Name = 'structure animation art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_art_check.tscn') },
             @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },

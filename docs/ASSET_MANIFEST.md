@@ -519,14 +519,18 @@ arbitrary window is the fastest way to make careful art look cheap.
 
 ### 5.8c Loot drops — `res://art/loot/`
 
-World art for dropped rewards, named `loot_<currency>.png` by convention so a
-new currency drops correctly the moment its art lands. A currency with no file
-falls back to its UI icon, which works but is drawn to read at 24px against a
-dark HUD bar rather than lying on a lit road.
+World art for dropped rewards, named `loot_<reward>.png` by convention. Every
+run currency has a dedicated road-scale silhouette. The supplies silhouette is
+the ordinary raid provision cache; the relic silhouette is reserved for the
+locked premium cache, so the detour's value reads before the player reaches it.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
+| `loot_wood.png` | 48×48 | T | `#8D5A32` |
+| `loot_food.png` | 48×48 | T | `#D8A33A` |
 | `loot_gold.png` | 48×48 | T | `#C8A44A` |
+| `loot_stone.png` | 48×48 | T | `#697386` |
+| `loot_supplies.png` | 48×48 | T | `#8B7250` |
 | `loot_relic.png` | 48×48 | T | `#7A5BA8` |
 
 ### 5.8d Sidescroller ground — `res://art/bg/`

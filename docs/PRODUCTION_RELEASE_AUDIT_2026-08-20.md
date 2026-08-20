@@ -10,15 +10,16 @@ screenshots.
 
 The game is a substantial playable production candidate, not a release
 candidate yet. Its systems and content skeleton are unusually complete:
-44/44 automatable conformance probes pass, all 585 manifest assets are present
+44/44 automatable conformance probes pass, all 589 manifest assets are present
 and non-placeholder, the three acts and summit exist, and the release pipeline
 builds Windows, launcher and web artifacts.
 
 It must not be advertised as production-ready until the P0 list below is closed.
-The largest gaps are not another combat mechanic. They are a blocked live
-leaderboard, final in-motion structure-art acceptance, a visibly weak battlefield
-ground pass, mobile-web controls, full-session human validation,
-localization/accessibility closeout, and publishing/legal work.
+The largest gaps are not another combat mechanic. With leaderboard networking
+on the owner's explicit hold, they are final in-motion art acceptance, a real-
+device mobile pass, full-session human validation, milestone cinematics and
+global event juice, localization/accessibility closeout, and publishing/legal
+work.
 
 “AAA” is a quality bar, not a switch that code coverage can turn on. Reaching
 that bar here means blind playtest footage, art direction, frame pacing, input,
@@ -28,7 +29,8 @@ balance or delight.
 
 ## What Claude had completed before the handoff
 
-- Replaced every manifest placeholder: 405/405 assets report as real art.
+- Replaced every manifest placeholder; the current 589/589 assets report as
+  real art.
 - Added the authored 45×45 battlefield layout, routing, regional ground/road
   sets, torches, foliage expansion, weather, shadows and visual settings.
 - Added authored beast idle/walk frames and the three side-scope backdrop sets.
@@ -47,7 +49,7 @@ service remains blocked as described below.
 
 - Cold game and launcher load: no project warning or error outside the sandbox.
 - GDD audit: 44/44 automatable rows; seven human rows remain deliberately open.
-- Manifest: 585 rows, 585 files, zero placeholders.
+- Manifest: 589 rows, 589 files, zero placeholders.
 - PixelLab structure package: 26 tower loops and 27 building-tier loops, all
   four poses on 192×192 transparent canvases. The 53-package size/alpha/anchor/
   silhouette gate passes, and the runtime keeps transform motion only as a
@@ -56,7 +58,15 @@ service remains blocked as described below.
   sprite, and all nine buildings change visibly through three tiers.
 - Foliage: region-painted horizontal ferns ship for jungle, desert and snow on
   the existing 32-band batched rendering path.
-- Shipped-script leak: 101 scripts, none depend on excluded tools.
+- Battlefield floor and regional road sets have been rebuilt and are guarded by
+  luminance/material-cohesion and edge-connectivity checks.
+- Mobile web now has dynamic twin-stick move/aim, attack threshold, dash,
+  zoom/pause controls, touch-safe placement release, an Auto/On/Off setting and
+  a synthetic multi-touch release gate. Real-phone feel remains a human row.
+- The menu now presents animated pixel art with reduced-motion handling.
+- Every currency has dedicated road-scale pickup art; ordinary supply and locked
+  relic caches have distinct silhouettes and a runtime resolution gate.
+- Shipped-script leak: 103 scripts, none depend on excluded tools.
 - Road-tile connectivity, authored grid and three-route lane geometry pass.
 - Balance, curve, menu, leaderboard, audio, torch, raid layout, raid suspension,
   seed reproduction, live settings, structures, disciplines and layout pass.
@@ -76,8 +86,10 @@ service remains blocked as described below.
   with every action visible.
 - Update Manager tuning now includes the authored structure-frame rate alongside
   the existing Balance/UI/graphics constants, sound mix, engine keys and 17
-  content-resource groups. Its publish preflight also runs the 53-package art
-  gate. Surgical write and publisher-contract tests pass.
+  content-resource groups. The generic Balance reader exposes all 26 current
+  loot/cache tuning entries without a hardcoded tab list. Its publish preflight
+  runs both the 53-package structure gate and the loot/cache art gate. Surgical
+  write and publisher-contract tests pass.
 - The night gate now maps authored canvas coordinates through the real display
   stretch before reading pixels; five corrected 1440p runs pass at minimum
   brightness and emit a frame for human review.
@@ -137,21 +149,19 @@ Exit proof: a blind capture clearly identifies tower element/role and building
 tier without UI labels; no loop pops, feet slide, pivots jump or instances pulse
 in unison.
 
-### 3. Rebuild the battlefield environment pass
+### 3. Accept and finish the rebuilt battlefield environment pass
 
-The fresh authored-map screenshot is functionally readable but not release art:
-large black/green/tan patchwork, harsh seams/noisy black streaks and repeated road
-texture dominate the frame. This is currently the largest visual gap between the
-game and its references.
+Implementation state: the void-dark floor was replaced with three coherent
+regional 16-mask sets, snow lattice artifacts were removed, and all four road
+sets pass connection/collar checks. What remains is art-direction acceptance and
+variation rather than a broken foundation.
 
 Remaining work:
 
-- Replace or repaint the Wang ground/road set to eliminate black void-like seams
-  and obvious 64-pixel repetition while preserving exact connection masks.
 - Add bounded procedural variation inside each road and ground mask, not a new
   procedural layout.
-- Finish the foliage variety/density art-direction pass for desert and snow as
-  well as jungle; verify fern roots, shadows and y-sort at every camera zoom.
+- Finish the foliage density/art-direction review in all three regions; verify
+  fern roots, shadows and y-sort at every camera zoom.
 - Rebalance foliage clusters around buildable plots, junctions and telegraphs so
   decoration never hides placement, enemies, projectiles or health bars.
 - Re-stage the raid field, whose current capture reads sparse and dark, while
@@ -188,21 +198,20 @@ last-resort recovery resolves stranded enemies through the normal death path
 before emitting `wave_cleared`. The 180-second regression now passes with three
 waves and a breather after each completed wave.
 
-### 5. Make the web target genuinely playable on mobile browsers
+### 5. Qualify the mobile-browser controls on real devices
 
-The Web preset exports, but the project contains no touch input, virtual controls
-or mobile interaction layer. “Builds for web” is not “playable on mobile.”
+Implementation state: the web build has dynamic twin sticks, dash, zoom and
+pause controls, touch-safe tower placement and a forced/automatic visibility
+setting. Synthetic multi-touch exercises simultaneous move/aim, attack, dash,
+release cleanup and pointer ownership on every push.
 
 Remaining work:
 
-- Design touch movement/aim, dash, attacks, spells, scope wheel, tower placement,
-  hover-equivalent tooltips, scrolling and back navigation.
-- Adapt hit targets and information density for phone/tablet safe areas and
-  portrait/landscape policy; define the minimum supported viewport.
 - Test iOS Safari and Android Chrome on real devices for memory, audio unlock,
-  suspend/resume, soft keyboard, WebGL context loss and leaderboard CORS.
-- Decide whether mobile browser support remains a 1.0 promise. If yes, this is a
-  P0 feature; if no, amend §54 and the store/README copy before launch.
+  suspend/resume, soft keyboard and WebGL context loss; judge stick deadzone,
+  placement and dash reach under real thumbs.
+- Confirm phone/tablet safe areas, minimum landscape viewport and readable HUD
+  density on the supported-device matrix.
 
 ### 6. Finish release engineering and real-machine qualification
 
@@ -256,12 +265,8 @@ assignments are literal. M7's localization and pseudo-localization gate is open.
 
 - Finish milestone cutscenes: regional transitions and boss introductions, not
   only opening/ending screens.
-- Replace the static, painterly main-menu key art with the requested animated
-  pixel-art presentation and verify title/button contrast throughout the loop.
 - Complete the global “juice” matrix for fire, impact, land, death, destruction,
   upgrade, fusion, loot, Command, boss phase, objective and completion events.
-- Complete loot diversity and remaining currency/supply/relic world art; every
-  pickup type must read before the label.
 - Review Rank 4 relic-socket timing. The shipped first-clear bonus currently
   grants what v4 assigns to Legacy Rank 4; this is an explicit owner decision,
   not a code-cleanup task.
@@ -312,7 +317,8 @@ The remaining design contradictions are:
 2. GDD milestone and acceptance checkboxes remain mostly unchecked even where
    code exists. Close them only from evidence and signed human gates, not from
    the 44/44 symbol audit.
-3. §54 says mobile-browser web is in scope, but there is no touch-control design.
+3. Mobile-browser web is in scope and the control design is implemented; the
+   supported-device and real-thumb acceptance matrix still needs owner sign-off.
 4. Confirm whether leaderboard scores are community/unverified or competitive/
    trusted; the backend architecture depends on that choice.
 5. Confirm Legacy Rank 4 socket timing and the final Oathbound visual framing.
@@ -324,8 +330,9 @@ The remaining design contradictions are:
 2. Resolve the five owner decisions immediately; they change acceptance criteria.
 3. Run the blind in-game tower-role/building-tier and loop-motion acceptance on
    the completed PixelLab package; regenerate only rejected packages.
-4. Repaint roads/ground/foliage and restage raids; run night and readability QA.
-5. Implement mobile touch or formally remove mobile-browser support from 1.0.
+4. Finish road/ground variation, foliage and raid staging acceptance; run night
+   and readability QA on the final art.
+5. Qualify mobile touch on real iOS/Android devices and sign the viewport matrix.
 6. Lock copy, localization, accessibility, credits and legal/store packages.
 7. Run structured balance cohorts and the uninterrupted full-loop matrix.
 8. Qualify exported builds on minimum hardware and a clean non-developer machine.
