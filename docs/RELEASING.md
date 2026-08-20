@@ -56,7 +56,15 @@ Same tag, same commit, no extra step. The release job exports the `Web` preset
 alongside the Windows one and attaches **`BeastRoad-web.zip`** to the release.
 
 **The zip is the deployment.** Its `index.html` sits at the root, which is the
-shape Netlify takes directly:
+shape Netlify takes directly.
+
+Every release builds one, and the Update Manager says so when it finishes —
+it prints the size and the direct download link, because the web build reaches
+nobody on its own and the alternative signal is remembering that there is always
+a new one. A release without a web zip is reported too, and neither case ever
+blocks a desktop update: the launcher does not read that file.
+
+To deploy it:
 
 1. Download `BeastRoad-web.zip` from the release.
 2. Netlify → **Sites** → drag the zip onto the drop area (or `netlify deploy

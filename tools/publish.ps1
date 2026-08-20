@@ -525,6 +525,7 @@ $btn.Add_Click({
                 if ($releaseStatus.Ready) {
                     $gameAsset = $releaseStatus.GameAsset
                     $launcherAsset = $releaseStatus.LauncherAsset
+                    $webAsset = $releaseStatus.WebAsset
                     $releaseReady = $true
                     break
                 }
@@ -550,11 +551,11 @@ $btn.Add_Click({
         Write-Log ("verified game archive ({0:N1} MB) and launcher ({1:N1} MB) - {2:N0} MB total" -f `
             ($gameAsset.size / 1MB), ($launcherAsset.size / 1MB), $totalMb)
         if ($releaseStatus.AuxiliaryWarning) {
-            $script:BarDetail = 'desktop update live; web publish needs attention'
+            $script:BarDetail = 'desktop update live; part of the build needs attention'
             $bar.Invalidate()
             Write-Log ''
             Write-Log "WARNING: the launcher update is published, but the workflow finished as '$workflowConclusion'."
-            Write-Log 'The separate web/Pages job may need attention; this does not block installed launchers.'
+            Write-Log 'Something else in the build needs attention; this does not block installed launchers.'
             if ($workflowUrl) { Write-Log $workflowUrl }
         }
         if ($script:LastSizes) {
@@ -563,6 +564,20 @@ $btn.Add_Click({
             # not have been.
             $delta = $totalMb - (($script:LastSizes.Game + $script:LastSizes.Launcher) / 1MB)
             Write-Log ("{0:+#,0.0;-#,0.0;0} MB against {1}" -f $delta, $script:LastSizes.Tag)
+        }
+
+        # The web build is built by the same workflow on the same tag, but
+        # nothing downloads it on its own - it is a zip a person uploads. Said
+        # out loud every time, because the alternative is remembering.
+        Write-Log ''
+        if ($webAsset) {
+            Write-Log ("web build ready: BeastRoad-web.zip ({0:N1} MB)" -f ($webAsset.size / 1MB))
+            Write-Log 'Upload it to Netlify to update the browser version - drag the zip'
+            Write-Log 'straight onto the site, its index.html is already at the root:'
+            Write-Log "https://github.com/$Owner/$Repo/releases/download/$tag/BeastRoad-web.zip"
+        } else {
+            Write-Log 'NOTE: this release carries no BeastRoad-web.zip, so the browser'
+            Write-Log 'version is unchanged. Installed launchers are unaffected.'
         }
 
         Write-Log ''
