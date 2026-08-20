@@ -5,7 +5,14 @@ extends Node
 ## Diagnostic only, never a gate.
 
 func _ready() -> void:
-	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	# `-- --touch=off` captures the same interface without the thumb controls, so
+	# the desktop and mobile layouts can be compared as two pictures of one HUD
+	# rather than described to each other.
+	var touch: bool = true
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--touch=off":
+			touch = false
+	MetaState.settings[TouchInput.TOUCH_KEY] = touch
 	RunState.reset()
 	GameDirector.run_active = true
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
@@ -18,6 +25,14 @@ func _ready() -> void:
 		await get_tree().process_frame
 
 	# Two thumbs down, pushed as a player would hold them.
+	if not TouchInput.is_showing():
+		get_viewport().get_texture().get_image().save_png("user://touch_shot.png")
+		print("[touch] shot (no thumb controls) -> %s"
+			% ProjectSettings.globalize_path("user://touch_shot.png"))
+		Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
+		get_tree().quit(0)
+		return
+
 	var left: Vector2 = TouchInput.zone(false).get_center()
 	var right: Vector2 = TouchInput.zone(true).get_center()
 	_press(left, 0)

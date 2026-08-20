@@ -158,11 +158,11 @@ var _last_stand_spent: bool = false
 func _ready() -> void:
 	_build_top_bar()
 	_build_lane_ring()
-	_build_scope_bar()
+	_build_nav_bar()
 	_build_tower_panel()
 	_build_raid_panel()
 	_build_boss_track()
-	_build_spell_bar()
+	_build_bottom_row()
 	_build_boss_bar()
 	_build_region_card()
 	_build_tutorial_coach()
@@ -428,24 +428,38 @@ func _build_lane_ring() -> void:
 	_lane_ring = rosette
 
 
-func _build_scope_bar() -> void:
+## Two bars, split by what the buttons are *for* rather than by what fits.
+##
+## Everything used to live on one wide row pinned to the bottom left, with the
+## ability slots on a second row underneath it. That reads as an afterthought
+## bolted below the interface, and it is the wrong way round besides: abilities
+## are the thing a player uses every few seconds and they were the row furthest
+## from the eye, under nine buttons most players press once a minute.
+##
+## Now the split is by frequency and by kind:
+##
+##   top right     scope switching, zoom and the menu - navigation, and rarely
+##                 touched during a fight
+##   bottom centre one row: the combat actions, then the abilities
+##
+## Nothing is stacked on anything, both bottom corners are left empty for thumbs,
+## and the row a player actually watches sits in the middle of the bottom edge
+## where their eyes already are.
+func _build_nav_bar() -> void:
 	var bar := HBoxContainer.new()
-	bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	bar.offset_left = 24.0
-	# Raised to sit *above* the ability bar rather than beside it.
+	bar.name = "NavBar"
+	bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	bar.offset_right = -24.0
+	# Below the centred status band, not beside it.
 	#
-	# Both rows lived on the same line, which only worked while the ability bar
-	# was a quarter off the screen. Once it was sized correctly the two collided,
-	# and no amount of nudging fixes that: seven scope-and-action buttons plus
-	# four ability slots is more than one row of a 1920 screen holds. Stacking
-	# them is the honest answer, and it also groups scope switching apart from
-	# the abilities rather than running the two together.
-	bar.offset_top = -(84.0 + BOTTOM_BAND)
-	# Bounded, or the row reaches from its top to the bottom of the screen and
-	# its buttons overlap everything below them however high it is moved. That is
-	# what made the first two attempts at this look like the move had not worked.
-	bar.offset_bottom = -(BOTTOM_BAND + 12.0)
-	bar.add_theme_constant_override("separation", 12)
+	# The state line and the wave preview are anchored centre-top and are 1040
+	# units wide, so they reach from x=440 to x=1480 on a 1920 screen - straight
+	# through where a right-anchored bar sits. `layout_check` caught it; by eye it
+	# looked fine, because the state label is usually empty and an empty label
+	# still occupies its rect the moment it has something to say.
+	bar.offset_top = 196.0
+	bar.add_theme_constant_override("separation", 10)
 	add_child(bar)
 
 	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
@@ -468,6 +482,9 @@ func _build_scope_bar() -> void:
 	# the settings, or out of the game.
 	_add_button(bar, "\u2261  Menu", func() -> void: pause_requested.emit())
 
+
+## The combat half: what a player reaches for while something is happening.
+func _build_action_bar(bar: HBoxContainer) -> void:
 	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
 	IconKit.on_button(_horn_button, "war_horn", 26)
 	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
@@ -858,32 +875,59 @@ func _update_boss_track() -> void:
 		_boss_label.add_theme_color_override("font_color", Color("b8ae98"))
 
 
-func _build_spell_bar() -> void:
-	_spell_bar = HBoxContainer.new()
-	# Centred along the bottom rather than tucked bottom-right.
-	#
-	# Sizing it correctly made it 662 units wide, which then ran straight into the
-	# command row on the left - the old 496 only "fitted" because a quarter of it
-	# was off the screen. Centre is also where an ability bar belongs: it is the
-	# thing the player's eye returns to, and it now has the whole width to sit in
-	# without fighting anything for space.
-	_spell_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+## The bottom row: actions, then abilities, centred as one thing.
+##
+## One container rather than two anchored separately, because two centred rows
+## that must not collide is a sum nobody can hold in their head - and the last
+## attempt at it ended with the ability bar a quarter off the right of the
+## screen. A single HBox cannot overlap itself.
+func _build_bottom_row() -> void:
+	var centre := HBoxContainer.new()
+	centre.name = "BottomRow"
+	centre.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	centre.alignment = BoxContainer.ALIGNMENT_CENTER
+	centre.offset_top = -BOTTOM_BAND
+	centre.offset_bottom = -SPELL_BAR_MARGIN
+	centre.add_theme_constant_override("separation", 26)
+	add_child(centre)
 
-	# Sized from the slots it will hold, not from a number typed once.
+	var actions := HBoxContainer.new()
+	actions.name = "Actions"
+	actions.add_theme_constant_override("separation", 10)
+	centre.add_child(actions)
+	_build_action_bar(actions)
+
+	_build_spell_bar(centre)
+
+
+## Whether the interface is being driven by a thumb.
+##
+## Asked rather than assumed from the platform: a tablet with a keyboard case and
+## a touch laptop both report a touchscreen, and the setting can say otherwise.
+static func touch_ui() -> bool:
+	return TouchInput.is_showing()
+
+
+## A size, grown if a thumb has to hit it.
+static func hit(size: Vector2) -> Vector2:
+	return size * Balance.UI_TOUCH_SCALE if touch_ui() else size
+
+
+func _build_spell_bar(parent: Node = null) -> void:
+	_spell_bar = HBoxContainer.new()
+	_spell_bar.name = "Abilities"
+	# No anchors and no offsets any more: it is a child of the bottom row, and
+	# the row centres itself and both its halves together.
 	#
-	# It was a flat -520, which is 496 units of box for four 152-unit slots and
-	# three 10-unit gaps - 638 units of content. The fourth slot hung off the
-	# right edge of the screen with a sliver showing, and would have again the
-	# next time a slot was added or resized. [bug: skill 4 off screen]
-	const SEPARATION: int = 10
-	var slots: int = Balance.HERO_MAX_SPELL_SLOTS
-	var content: float = float(slots) * SPELL_SLOT_SIZE.x 		+ float(maxi(slots - 1, 0)) * float(SEPARATION)
-	_spell_bar.offset_left = -content * 0.5
-	_spell_bar.offset_right = content * 0.5
-	_spell_bar.offset_top = -(SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN)
-	_spell_bar.offset_bottom = -SPELL_BAR_MARGIN
-	_spell_bar.add_theme_constant_override("separation", SEPARATION)
-	add_child(_spell_bar)
+	# It used to anchor itself to the bottom centre and compute its own width
+	# from its slots, which was correct in isolation and could not stay correct
+	# beside a second bar doing the same sum - the two collided, and the fix at
+	# the time was to stack them, which is the thing this replaces.
+	_spell_bar.add_theme_constant_override("separation", 10)
+	if parent != null:
+		parent.add_child(_spell_bar)
+	else:
+		add_child(_spell_bar)
 
 
 func _rebuild_spell_bar() -> void:

@@ -2606,6 +2606,19 @@ const TOUCH_ATTACK_THRESHOLD: float = 0.45
 ## see is the battlefield - a thumb already knows where it is.
 const TOUCH_OPACITY: float = 0.34
 
+## How much bigger every interactive element is when the game is being played
+## with a thumb.
+##
+## Fingertips are about 9mm across and a mouse cursor is one pixel. Apple and
+## Google both put the minimum comfortable target near 44-48 density-independent
+## pixels; the desktop buttons here are 54 tall, which is fine under a cursor and
+## marginal under a thumb once a phone's scaling is applied.
+##
+## Applied as a scale rather than as a second set of sizes, so there is one
+## layout with one set of proportions and no chance of the two drifting apart.
+const UI_TOUCH_SCALE: float = 1.28
+
+
 ## How visible a persistent touch *button* is.
 ##
 ## Higher than a stick's, because the two are seen under opposite conditions. A
