@@ -412,6 +412,36 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [ ] Loot diversity: relic and supply drop types, remaining currency art.
 - [ ] Persistent stash and inventory, a second (cross-run) currency, blacksmith
       upgrade/salvage.
+- [x] **The full audio library re-processed (2026-08-20).** 228 takes across 42
+      sounds, reduced to 81 shipped files. Three takes for anything that can fire
+      more than once every few seconds — impacts, footsteps, shots, loot, UI —
+      because that is where one repeated sample is what the ear picks out; one
+      take for events that happen once a wave or once a run, since three subtly
+      different war horns are three sounds nobody will ever consciously compare
+      and three files to ship.
+
+      Peak-normalised to −6 dB (sfx) and −9 dB (ambience). The first pass
+      targeted −3 and files came back out of the encoder at 0.0: Vorbis is lossy
+      and routinely overshoots the source peak by a couple of decibels on
+      transients. Final spread across 81 files is 7.3 dB with nothing clipping.
+      `sfx_boss_spawn` overshot by five and took a true-peak limiter rather than
+      another blind gain cut, which would only have made it quiet.
+
+      Ambience keeps its stereo image and its internal quiet — trimming silence
+      out of a two-minute loop is how a loop gets a seam in it.
+
+      **`play()` now falls through to a group of the same name**, so adding takes
+      is a data change rather than a rename across a dozen call sites. That also
+      made deleting the 19 superseded single files *necessary* rather than tidy:
+      while `sfx_fire_shot.ogg` existed, `play("sfx_fire_shot")` found it directly
+      and the three new takes never rotated.
+
+      `audio_verify` follows nested groups — "impact" names three materials and
+      each material names its own takes, which is the right shape: first choice
+      is which surface was hit, second is which recording of it.
+
+      Inbox emptied, stale v3 names corrected. STILL TO RECORD: 0.
+
 - [ ] Raid overhaul: larger arena, procedural tilemap terrain, elevation islands,
       chests and keys, loot.
 - [ ] Milestone cutscenes beyond the opening.
