@@ -707,7 +707,26 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       ask `Graphics.canvas_filter()` and join a group so the toggle applies to
       the field being looked at. Like brightness, it does not knock the quality
       preset to Custom: it is about the screen, not what the machine can afford.
-- [ ] Main menu pixel art, animated.
+- [x] **Main menu, animated** — and *not* redrawn as pixel art. Half of this row
+      was a bad instruction and is recorded as such rather than quietly dropped.
+
+      The style-clash argument that moved the three act backdrops to pixel art
+      does not reach the menu. A backdrop shares a frame with a pixel-art beast
+      standing in front of it; key art shares a frame with nothing. Redrawing it
+      would trade a strong image for a consistent one that no player is ever in
+      a position to compare against anything.
+
+      What it did lack was motion: a completely still first screen reads as a
+      screenshot of a game rather than a game waiting. The key art now drifts on
+      two sine waves of different periods, ~25px over a quarter of a
+      ninety-second cycle, over a 1.03x overscan so drifting cannot pull a bare
+      edge in. Slow enough that nobody catches it moving, which is the point.
+
+      `tools/menu_shot.tscn` captures the menu and the board over it — the front
+      door was the one screen no shot tool covered, because `ui_shot` captures
+      the in-run interfaces and those all need a Run the menu deliberately has
+      no part of. It proves the drift by driving `_process` rather than by
+      waiting out a ninety-second cycle.
 - [~] Leaderboards — local/client path complete; Supabase quota, schema/RLS and
       live production verification remain (see the detailed item above).
 

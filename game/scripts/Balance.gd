@@ -2537,6 +2537,36 @@ const SCORE_PER_ENDLESS_WAVE: float = 260.0
 const SCORE_DEATH_COST: float = 220.0
 const SCORE_DEATH_FLOOR: float = 0.45
 
+# ---------------------------------------------------------------------------
+# Main menu
+#
+# The menu art stays painterly and is deliberately *not* being redrawn as pixel
+# art. The style-clash argument that moved the act backdrops does not reach it:
+# a backdrop shares a frame with a pixel-art beast standing in front of it, and
+# key art shares a frame with nothing. Redrawing it would trade a strong image
+# for a consistent one nobody is in a position to compare.
+#
+# What it did lack is motion. A completely still first screen reads as a
+# screenshot of a game rather than as a game waiting.
+# ---------------------------------------------------------------------------
+
+## How far the key art drifts from centre, as a fraction of its own size.
+##
+## Small enough that nobody catches it moving, which is the point: a menu that
+## visibly pans is a menu doing a trick. Paired with the overscan below, so the
+## art never drifts far enough to show an edge.
+const MENU_DRIFT: float = 0.012
+
+## How long one full drift cycle takes, in seconds. Slow — a minute and a half,
+## so a player reading the buttons never sees it repeat.
+const MENU_DRIFT_PERIOD: float = 92.0
+
+## How much larger than the screen the art is drawn, so drifting cannot uncover
+## an edge. Derived from the drift rather than guessed: twice the travel, plus a
+## little, is exactly enough.
+const MENU_OVERSCAN: float = 1.0 + MENU_DRIFT * 2.4
+
+
 ## The one field a stranger chooses, so the one field that needs a rule.
 const SCORE_NAME_MAX: int = 20
 const SCORE_NAME_FALLBACK: String = "Oathless"
