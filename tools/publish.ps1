@@ -18,6 +18,7 @@ Add-Type -AssemblyName System.Drawing
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Owner    = 'Arxangel-gg'
 $Repo     = 'beast-road'
+. (Join-Path $PSScriptRoot 'publish_contract.ps1')
 
 # --- palette, matched to the game -------------------------------------------
 $cVoid   = [System.Drawing.Color]::FromArgb(11, 20, 22)
@@ -463,6 +464,8 @@ $btn.Add_Click({
         $headers = @{ 'User-Agent' = 'BeastRoadPublisher' }
         $done = $false
         $seenRun = $false
+        $workflowConclusion = ''
+        $workflowUrl = ''
         for ($i = 0; $i -lt 90; $i++) {
             Start-Sleep -Seconds 10
             try {
@@ -484,34 +487,43 @@ $btn.Add_Click({
             }
 
             if ($run.status -eq 'completed') {
+                $workflowConclusion = [string]$run.conclusion
+                $workflowUrl = [string]$run.html_url
                 if ($run.conclusion -eq 'success') {
                     Write-Log 'build succeeded'
-                    $done = $true
                 } else {
-                    throw "build finished as '$($run.conclusion)'. Open the run and read the failing step:`n$($run.html_url)"
+                    # The web deployment is a separate job by design. GitHub can
+                    # publish every file the installed launcher needs and then
+                    # fail Pages because the repository's one-time Pages setting
+                    # is off. v0.4.32 did exactly that: reporting the whole update
+                    # as failed sent the owner back to republish an update players
+                    # could already download. The release assets below are the
+                    # player-facing authority; a failed auxiliary job becomes a
+                    # visible warning only after those files are proved live.
+                    Write-Log "workflow finished as '$($run.conclusion)' - checking the published files before deciding"
                 }
+                $done = $true
                 break
             }
             Set-Stage "Building on GitHub ($($run.status))" `
                 ([Math]::Min(42 + $i * 2, 92)) 'build' $script:SizeEstimate
         }
-        if (-not $done) { throw 'timed out waiting for the build. Check the Actions tab.' }
+        if (-not $done) { throw 'timed out waiting for the workflow. Check the Actions tab.' }
 
         # A successful job is not the player-facing finish line. Confirm that
         # GitHub's release API can see both files the launcher depends on.
         Set-Stage 'Verifying the published files' 94 'verify'
         $releaseApi = "https://api.github.com/repos/$Owner/$Repo/releases/tags/$tag"
         $releaseReady = $false
+        $releaseStatus = $null
         for ($i = 0; $i -lt 30; $i++) {
             try {
                 $release = Invoke-RestMethod -Uri $releaseApi -Headers $headers -TimeoutSec 20
-                $gameAsset = $release.assets | Where-Object {
-                    $_.name -eq 'BeastRoad-windows.zip' -and $_.state -eq 'uploaded' -and $_.size -gt 0
-                } | Select-Object -First 1
-                $launcherAsset = $release.assets | Where-Object {
-                    $_.name -eq 'BeastRoadLauncher.exe' -and $_.state -eq 'uploaded' -and $_.size -gt 0
-                } | Select-Object -First 1
-                if ($gameAsset -and $launcherAsset) {
+                $releaseStatus = Get-BeastRoadDesktopReleaseStatus `
+                    -Release $release -WorkflowConclusion $workflowConclusion
+                if ($releaseStatus.Ready) {
+                    $gameAsset = $releaseStatus.GameAsset
+                    $launcherAsset = $releaseStatus.LauncherAsset
                     $releaseReady = $true
                     break
                 }
@@ -521,7 +533,13 @@ $btn.Add_Click({
             Start-Sleep -Seconds 2
         }
         if (-not $releaseReady) {
-            throw "the build succeeded, but GitHub did not publish both release files for $tag"
+            $detail = if ($workflowConclusion) {
+                "The workflow finished as '$workflowConclusion'."
+            } else {
+                'The workflow did not report a conclusion.'
+            }
+            if ($workflowUrl) { $detail += "`n$workflowUrl" }
+            throw ("GitHub did not publish both launcher-facing release files for $tag.`n" + $detail)
         }
 
         Set-Stage 'Published' 100 'verify'
@@ -530,6 +548,14 @@ $btn.Add_Click({
         $bar.Invalidate()
         Write-Log ("verified game archive ({0:N1} MB) and launcher ({1:N1} MB) - {2:N0} MB total" -f `
             ($gameAsset.size / 1MB), ($launcherAsset.size / 1MB), $totalMb)
+        if ($releaseStatus.AuxiliaryWarning) {
+            $script:BarDetail = 'desktop update live; web publish needs attention'
+            $bar.Invalidate()
+            Write-Log ''
+            Write-Log "WARNING: the launcher update is published, but the workflow finished as '$workflowConclusion'."
+            Write-Log 'The separate web/Pages job may need attention; this does not block installed launchers.'
+            if ($workflowUrl) { Write-Log $workflowUrl }
+        }
         if ($script:LastSizes) {
             # The delta is the useful number: a package that suddenly grows by
             # fifty megabytes usually means something was committed that should

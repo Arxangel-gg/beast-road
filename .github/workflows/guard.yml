@@ -80,6 +80,10 @@ jobs:
         with:
           version: ${{ env.GODOT_VERSION }}
 
+      - name: Validate Update Manager release contract
+        shell: pwsh
+        run: ./tools/publish_contract_test.ps1
+
       - name: Import assets
         # A cold checkout has no .godot/ directory and Godot must import once
         # before anything can load. The editor exits non-zero on some headless

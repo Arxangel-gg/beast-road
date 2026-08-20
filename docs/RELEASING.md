@@ -58,9 +58,11 @@ alongside the Windows one, and a second job deploys it to Pages:
 https://arxangel-gg.github.io/beast-road/
 ```
 
-The first tagged release after this was added turns Pages on by itself —
-`actions/configure-pages` is run with `enablement: true`, so nobody has to have
-found the repository setting first.
+GitHub may reject the first automatic Pages enablement with `Resource not
+accessible by integration`. If that happens, open repository **Settings →
+Pages**, set **Source** to **GitHub Actions**, and rerun the failed Pages job or
+publish the next patch. This is a one-time repository setting; subsequent tagged
+releases deploy automatically.
 
 It is a **separate job** on purpose. Deploying to Pages needs `pages: write` and
 `id-token: write`, and publishing a release needs `contents: write`; the step
@@ -84,8 +86,11 @@ one from someone who opened a tab.
 
 The Update Manager runs the game, a short gameplay soak, and the launcher
 release-contract test before it commits or tags anything. It then watches the
-workflow for that exact tag and does not report success until both release
-assets are visible through GitHub's API.
+workflow for that exact tag and does not report desktop success until both
+launcher-facing release assets are visible through GitHub's API. The web deploy
+is a separate job: if only Pages fails, the manager reports the installed update
+as published and shows a web-publishing warning instead of telling the owner to
+spend another tag on files that are already live.
 
 ### If a build fails
 

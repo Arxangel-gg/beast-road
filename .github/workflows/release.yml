@@ -43,6 +43,10 @@ jobs:
         with:
           version: ${{ env.GODOT_VERSION }}
 
+      - name: Validate Update Manager release contract
+        shell: pwsh
+        run: ./tools/publish_contract_test.ps1
+
       - name: Import assets
         # Godot must import once before it can export; a cold checkout has no
         # .godot/ directory. The editor exits non-zero on some headless
@@ -293,9 +297,12 @@ jobs:
     # and this job deliberately does not hold contents permission to read the
     # repository with.
     steps:
-      # `enablement: true` turns Pages on the first time rather than requiring
-      # someone to have found the repository setting beforehand. It is a no-op
-      # once it is on.
+      # GitHub may reject first-time enablement from the workflow token with
+      # "Resource not accessible by integration". In that case enable Pages
+      # once in Settings -> Pages with Source set to GitHub Actions. Keeping the
+      # request here makes it a no-op on configured repositories and a useful,
+      # non-blocking signal in Update Manager on repositories where policy
+      # prevents automatic enablement.
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
