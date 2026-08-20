@@ -43,19 +43,23 @@ decision being made a second time, so it needs an owner, not an agent.
 |---|---|---|
 | Mid-combat tower placement | locked to Preparation | **DECIDED 2026-08-13: lock it. Build v4.** |
 | Partial raid extraction | kept — two windows plus chieftain climax | no conflict |
-| Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **needs the owner** |
+| Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **DECIDED 2026-08-20: adopt v4's Oathbound framing.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
 agency. Do not reopen it, and do not leave the v3 behaviour in place "just in
 case" — a build path that only works in one of two designs is worse than either.
 
-The captive question is genuinely different from a pacing call: v4 makes
-*"no casualized slavery framing"* a rating-target requirement (§2) and *"no
-unreviewed enslavement language ships"* a release requirement (§57). v3 §6.3
-had already flagged the framing as unsettled and kept it in data for exactly
-this reason. Until the owner rules, keep the strings in data and do not build
-new mechanics on top of the labour framing.
+**The captive question is settled.** v4's framing is adopted: leaders are sworn,
+ransomed or memorialised, never owned. The owner ruled on 2026-08-20.
+
+It was held open because v4 makes *"no casualized slavery framing"* a
+rating-target requirement (§2) and *"no unreviewed enslavement language ships"* a
+release requirement (§57), and v3 §6.3 had flagged the framing as unsettled. That
+is now decided rather than pending — but the §57 requirement is unchanged by the
+decision. Player-facing strings still live in data (working rule 9), and any new
+leader copy still has to be read before it ships. What has changed is that
+Oathbound mechanics may now be built on, rather than parked.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

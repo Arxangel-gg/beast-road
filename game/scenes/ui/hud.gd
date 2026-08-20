@@ -124,6 +124,7 @@ var _tutorial: TutorialCoach
 var _region_card: VBoxContainer
 var _region_kicker: Label
 var _region_title: Label
+var _region_tween: Tween = null
 var _state_label: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
@@ -1000,6 +1001,17 @@ func _build_region_card() -> void:
 
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.boss_spawned.connect(_on_boss_announced)
+	EventBus.run_started.connect(_on_run_opened)
+
+
+## The opening beat, before Act I names itself.
+##
+## Deferred by a frame rather than shown immediately: `act_started` for Act I
+## fires during scene startup, and both cards arriving on the same frame means
+## the second tween simply overwrites the first and the title is never seen.
+func _on_run_opened() -> void:
+	await get_tree().process_frame
+	announce("The road begins", "BEAST ROAD")
 
 
 func _on_act_started(act: int, terrain_id: String) -> void:
@@ -1024,7 +1036,12 @@ func announce(kicker: String, title: String) -> void:
 	_region_card.visible = true
 	_region_card.modulate.a = 0.0
 
+	# Killed rather than layered: two cards overlapping fade against each other
+	# and both come out muddy.
+	if _region_tween != null and _region_tween.is_valid():
+		_region_tween.kill()
 	var show: Tween = create_tween()
+	_region_tween = show
 	show.tween_property(_region_card, "modulate:a", 1.0, REGION_CARD_FADE)
 	show.tween_interval(REGION_CARD_HOLD)
 	show.tween_property(_region_card, "modulate:a", 0.0, REGION_CARD_FADE)

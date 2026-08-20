@@ -224,35 +224,22 @@ Both surface on the debrief as `Tools N · Legacy rank N of 4`.
       *also* bound to the four move actions, so anything else reading movement
       gets it free. Gated by a test that every rebindable and every `ui_*` action
       carries a pad event, and that re-applying does not duplicate bindings.
-- [~] 60 FPS at 1920×1080. `tools/perf_check.tscn` now measures it: it fills the
-      board, starts a wave, warms up, samples 120 frames and reports mean, p95,
-      over-budget fraction, draw calls and a node breakdown.
+- [~] 60 FPS at 1920×1080. `tools/perf_check.tscn` measures it, asserts growth
+      always and asserts frame timing **only when a real renderer is present** —
+      the dummy renderer does no GPU work, so a headless frame rate says nothing
+      about a real one. It runs in the release workflow every publish.
 
-      **The number still needs to come from your machine.** Run the baseline
-      first (`-- baseline`); on the container this was written in, an *empty
-      window* reported 1 FPS and the loaded battlefield 21, which looks damning
-      and is a statement about a software rasteriser. Two numbers, one of them
-      obviously impossible, is the only way to tell those apart.
+      **The frame-rate number still has to come from a windowed run on real
+      hardware:**
 
-      One real finding survived it: the field carried **107 PointLight2D**, from
+          godot --path game res://tools/perf_check.tscn -- --seconds=120 --build
+
+      One real finding stands: the field carried **107 PointLight2D**, from
       torches going 24 → ~60 with their radius raised 225 → 360. Every 2D light
-      redraws everything it covers, so that is lights × items-under-them. One
-      post in two now carries a pool — the rest keep flame, glow and smoke and
-      are lit by their neighbours — which took it to 75 with no visible
-      difference, the pools overlapping heavily at that radius.
-- [x] Region transitions and boss introductions. Every one of these moments
-      already fired and none of them was *shown* — the act changed, the ground
-      changed and the music changed, and the only acknowledgement was a line in
-      the message strip that also carries "not enough Gold". One card serves all
-      three, because they are the same beat and three near-identical overlays is
-      how a game ends up with three slightly different fonts. Never blocks: a
-      card that paused for a boss walk-in would take the fight away at the exact
-      moment it started.
-- [ ] Opening title. The menu goes straight into Act I's card; there is no
-      pre-run title beat.
-- [ ] **Oathbound framing decision.** "No enslavement language ships" is a v4 §57
-      *release requirement*, and CLAUDE.md flags it as needing the owner, not an
-      agent. Blocking for 1.0.
+      redraws everything it covers. One post in two now carries a pool — the rest
+      keep flame, glow and smoke and are lit by neighbours — taking it to 75 with
+      no visible difference, since the pools overlap heavily at that radius.
+
 - [ ] `save_backup_check.tscn` run by hand before any release that changes
       `SAVE_VERSION`.
 
