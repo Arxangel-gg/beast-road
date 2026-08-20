@@ -2627,7 +2627,15 @@ const LEADERBOARD_DURATION_MAX: int = 86400
 ## Network presentation. Reads are deliberately short and bounded because a
 ## public board must never stall the menu or make an unbounded response.
 const LEADERBOARD_PAGE_SIZE: int = 50
-const LEADERBOARD_REQUEST_TIMEOUT: float = 8.0
+## How long one request may take before it is abandoned.
+##
+## Was eight seconds, which is fine on a desk and too short on a phone. Godot's
+## web build implements `HTTPRequest` with `fetch()` and an `AbortController`, so
+## this is a hard abort — and the first request of a session pays for a cold DNS
+## lookup and TLS handshake on mobile data while the game is still busy. An
+## abandoned request then reports as a transport failure, which is
+## indistinguishable from having no connection at all and was reported as such.
+const LEADERBOARD_REQUEST_TIMEOUT: float = 25.0
 
 ## How many of this save's own runs the local board keeps.
 ##

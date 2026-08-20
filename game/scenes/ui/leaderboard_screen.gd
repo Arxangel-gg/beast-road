@@ -148,8 +148,11 @@ func _fill(rows: Array, from_network: bool) -> void:
 		_rows.remove_child(child)
 		child.queue_free()
 
-	_note.text = "%d %s" % [rows.size(), "entries" if from_network
-		else "of your own runs — the board could not be reached"]
+	var waiting: int = Leaderboard.pending_count()
+	var queued: String = "" if waiting == 0 else \
+		"  ·  %d of yours still to send" % waiting
+	_note.text = "%d %s%s" % [rows.size(), "entries" if from_network
+		else "of your own runs — the board could not be reached", queued]
 
 	if rows.is_empty():
 		var empty := Label.new()

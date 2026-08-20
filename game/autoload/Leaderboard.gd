@@ -78,6 +78,12 @@ func fetch(tier_id: String) -> void:
 	if not _network_allowed():
 		board_loaded.emit(tier_id, local_board(tier_id), false)
 		return
+
+	# Opening the board is the moment a player is both online and looking, which
+	# makes it the best time to try the outbox again. Retrying only at launch
+	# meant a run that failed once sat unsent until the *next* session, and the
+	# player who watched it fail had no way to ask for another go.
+	_flush_pending()
 	var query: String = "%s/%s?select=%s&tier=eq.%s&order=score.desc&limit=%d" % [
 		ENDPOINT, TABLE, ",".join(Score.FIELDS), tier_id.uri_encode(),
 		Balance.LEADERBOARD_PAGE_SIZE]
@@ -106,6 +112,15 @@ func local_board(tier_id: String) -> Array:
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("score", 0)) > int(b.get("score", 0)))
 	return out
+
+
+## How many finished runs are waiting to be sent.
+##
+## Exposed so the board can say so. A queue nobody can see is a queue nobody
+## trusts: the player who watched a submission fail has otherwise no evidence
+## the game kept it.
+func pending_count() -> int:
+	return MetaState.pending_runs.size()
 
 
 ## Whether a row came from this save, so a board can mark it.
@@ -174,15 +189,31 @@ func _parse(result: int, code: int, body: PackedByteArray) -> Dictionary:
 ## tells nobody whether to check their wifi or the table's policies.
 func _why(result: int, code: int, body: PackedByteArray) -> String:
 	if result != HTTPRequest.RESULT_SUCCESS:
-		return "No connection. Saved; it will send next launch."
+		# Named, not lumped. "No connection" was returned for every transport
+		# failure, and a player who reported one could not say — and neither
+		# could anyone reading the code afterwards — whether the request had been
+		# blocked, had timed out, or had never resolved a name. Those have
+		# different causes and different answers.
+		return "%s Saved; it retries when you open the board." % {
+			HTTPRequest.RESULT_TIMEOUT:
+				"The board did not answer in time.",
+			HTTPRequest.RESULT_CANT_CONNECT:
+				"Could not reach the board. A blocker or firewall may be stopping it.",
+			HTTPRequest.RESULT_CANT_RESOLVE:
+				"Could not look up the board's address. Check the connection.",
+			HTTPRequest.RESULT_CONNECTION_ERROR:
+				"The connection to the board dropped.",
+			HTTPRequest.RESULT_TLS_HANDSHAKE_ERROR:
+				"Could not secure the connection to the board.",
+		}.get(result, "The board could not be reached (error %d)." % result)
 	if code == 401 or code == 403:
 		return "The board refused the entry. Check the table's insert policy."
 	if code == 402:
-		return "The board is temporarily unavailable. Saved; it will retry next launch."
+		return "The board is temporarily unavailable. Saved; it retries when you open the board."
 	if code == 404:
 		return "The board's table is missing."
 	var text: String = body.get_string_from_utf8().strip_edges()
-	return "Board error %d. Saved; it will send next launch.%s" % [code,
+	return "Board error %d. Saved; it retries when you open the board.%s" % [code,
 		"" if text.is_empty() else "  (%s)" % text.left(120)]
 
 
