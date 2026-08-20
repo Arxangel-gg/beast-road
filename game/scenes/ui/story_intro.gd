@@ -47,9 +47,30 @@ const PANELS: Array[Dictionary] = [
 	},
 ]
 
-const FADE: float = 1.1
-const HOLD: float = 3.4
+const FADE: float = 1.4
+
+## How long a panel holds once its text has fully arrived.
+##
+## Was 3.4 measured from the *start* of the panel, which meant the prose had
+## about a second and a half of legible time - less than it takes to read two
+## lines. It now starts counting when the line finishes fading in, so this is
+## reading time rather than total time. [TUNE]
+const HOLD: float = 5.2
+
 const TITLE_RISE: float = 26.0
+
+## A slow push on the art while a panel holds, so a still image is not a still
+## image. Fraction of its size, over the whole panel.
+const KEN_BURNS: float = 0.055
+
+## Seconds Escape must be held to abandon the whole cinematic.
+##
+## Held rather than tapped, and separate from advancing. Tapping any key skips
+## to the *next* panel, which is what someone re-reading a line they have already
+## seen wants; skipping the whole thing is a different intent and should take a
+## deliberate act, or a player who taps twice to hurry up finds they have thrown
+## away the opening entirely.
+const SKIP_HOLD: float = 0.9
 
 var _root: Control
 var _art: TextureRect
@@ -58,6 +79,13 @@ var _line: Label
 var _hint: Label
 var _running: bool = false
 var _skipped: bool = false
+
+## Set when the player asks for the next panel rather than the whole skip.
+var _advance: bool = false
+
+## How long Escape has been held this frame run.
+var _held: float = 0.0
+var _hold_bar: ProgressBar
 
 
 func _ready() -> void:
@@ -127,7 +155,7 @@ func _build() -> void:
 	column.add_child(_line)
 
 	_hint = Label.new()
-	_hint.text = "Any key to skip"
+	_hint.text = "Any key: next   ·   hold Esc: skip"
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_hint.offset_left = -320.0
@@ -137,6 +165,21 @@ func _build() -> void:
 	_hint.add_theme_font_size_override("font_size", 15)
 	_hint.add_theme_color_override("font_color", Color(0.62, 0.58, 0.50, 0.75))
 	_root.add_child(_hint)
+
+	# A visible fill while Escape is held, so holding reads as doing something
+	# rather than as the key not working.
+	_hold_bar = ProgressBar.new()
+	_hold_bar.show_percentage = false
+	_hold_bar.max_value = SKIP_HOLD
+	_hold_bar.value = 0.0
+	_hold_bar.custom_minimum_size = Vector2(0.0, 4.0)
+	_hold_bar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_hold_bar.offset_left = -320.0
+	_hold_bar.offset_top = -16.0
+	_hold_bar.offset_right = -28.0
+	_hold_bar.offset_bottom = -12.0
+	_hold_bar.modulate = Color(0.91, 0.64, 0.24, 0.0)
+	_root.add_child(_hold_bar)
 
 
 ## A one-pixel-wide vertical gradient, transparent to near-black.
@@ -169,6 +212,7 @@ func play() -> void:
 	visible = true
 	get_tree().paused = true
 
+	Sfx.play("sfx_story_open", 0.0)
 	for panel: Dictionary in PANELS:
 		if _skipped:
 			break
@@ -196,6 +240,15 @@ func _show(panel: Dictionary) -> void:
 	for node: CanvasItem in [_art, _title, _line]:
 		node.modulate.a = 0.0
 
+	# A slow push across the whole panel. A still image held for seven seconds
+	# reads as the game having frozen; the drift is what says it is a scene.
+	_art.pivot_offset = _art.size * 0.5
+	_art.scale = Vector2.ONE
+	var drift: Tween = create_tween()
+	drift.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	drift.tween_property(_art, "scale", Vector2.ONE * (1.0 + KEN_BURNS),
+		FADE * 2.0 + HOLD)
+
 	var rise: Tween = create_tween()
 	rise.set_parallel(true)
 	rise.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
@@ -203,10 +256,16 @@ func _show(panel: Dictionary) -> void:
 	rise.tween_property(_title, "modulate:a", 1.0, FADE * 0.8)
 	rise.tween_property(_title, "position:y", start, FADE)
 	rise.tween_property(_line, "modulate:a", 1.0, FADE).set_delay(FADE * 0.4)
+	Sfx.play("sfx_story_panel", 0.0)
 
-	await _wait(HOLD)
-	if _skipped:
-		return
+	# The hold begins once the *line* has finished arriving, not once the panel
+	# started. Counting from the start gave the prose about a second and a half
+	# of legible time, which is less than it takes to read it.
+	await _wait(FADE * 1.4)
+	if _skipped or await _interruptible(HOLD):
+		drift.kill()
+		if _skipped:
+			return
 
 	var out: Tween = create_tween()
 	out.set_parallel(true)
@@ -221,6 +280,40 @@ func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds, true, false, true).timeout
 
 
+## Waits, but returns early if the player asked for the next panel.
+##
+## Polled rather than awaited on a signal because the wait has to end on *either*
+## the clock or the player, and a plain timer cannot be cancelled. Returns true
+## when it was cut short.
+func _interruptible(seconds: float) -> bool:
+	var left: float = seconds
+	while left > 0.0:
+		if _advance or _skipped:
+			_advance = false
+			return true
+		await get_tree().process_frame
+		left -= get_process_delta_time()
+	return false
+
+
+## Escape held long enough abandons the whole cinematic.
+func _process(delta: float) -> void:
+	if not _running:
+		return
+	if Input.is_key_pressed(KEY_ESCAPE):
+		_held += delta
+		if _hold_bar != null:
+			_hold_bar.value = _held
+			_hold_bar.modulate.a = clampf(_held / SKIP_HOLD, 0.0, 1.0)
+		if _held >= SKIP_HOLD:
+			_skipped = true
+	else:
+		_held = 0.0
+		if _hold_bar != null:
+			_hold_bar.value = 0.0
+			_hold_bar.modulate.a = 0.0
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not _running or _skipped:
 		return
@@ -229,4 +322,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		or (event is InputEventJoypadButton and event.is_pressed())
 	if pressed:
 		get_viewport().set_input_as_handled()
-		_skipped = true
+		# A tap moves on; only a held Escape abandons the whole thing, which
+		# `_process` decides. Tapping used to skip everything, so a player
+		# hurrying past a line they had read threw away the rest of the opening.
+		_advance = true
+		Sfx.play("sfx_ui_move", 0.0)

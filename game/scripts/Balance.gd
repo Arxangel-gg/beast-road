@@ -95,6 +95,11 @@ const LOOT_LIFETIME: float = 24.0
 ## Painted drop art, by currency id. Absent falls back to the UI icon.
 const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
 
+## The pool of light under a drop, which is what makes it findable on a lit road.
+const LOOT_GLOW_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.5)
+const LOOT_GLOW_SIZE: float = 72.0
+const LOOT_GLOW_SPEED: float = 3.1
+
 const LOOT_ICON_SIZE: float = 26.0
 const LOOT_BOB_SPEED: float = 5.0
 const LOOT_BOB_HEIGHT: float = 3.0

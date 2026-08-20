@@ -117,6 +117,13 @@ const MIX: Dictionary = {
 	"sfx_ui_click":          {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
 	"sfx_ui_hover":          {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
 	"sfx_ui_confirm":        {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
+	"sfx_ui_move":           {"db": -9.0, "pitch": 0.06, "limit": 1, "gap": 0.04},
+	# Loot drops in handfuls, so its mix has to survive six landing at once: a
+	# tight gap and a low ceiling, or a cleared pack sounds like a coin fountain.
+	"sfx_loot_drop":         {"db": -11.0, "pitch": 0.14, "limit": 3, "gap": 0.05},
+	"sfx_loot_collect":      {"db": -8.0, "pitch": 0.11, "limit": 4, "gap": 0.03},
+	"sfx_story_open":        {"db": -3.0, "pitch": 0.0, "limit": 1, "gap": 0.5},
+	"sfx_story_panel":       {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 0.3},
 	"sfx_ui_deny":           {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.08},
 
 	# --- events: these are landmarks, so they barely vary and they cut through ---
@@ -128,6 +135,24 @@ const MIX: Dictionary = {
 }
 
 ## Defaults for any sound not listed above.
+## Sounds the game asks for and does not have yet.
+##
+## Listed but **not loaded**. Putting them in PATHS makes the loader warn on
+## every start, and the release gate fails on any warning - so five unrecorded
+## sounds would have blocked every build until somebody recorded them.
+##
+## They are here rather than nowhere because a planned sound that exists only as
+## a string literal in one script is a sound nobody finds again. `play()` already
+## returns quietly on an id it has no stream for, so the game is simply silent in
+## these places. `tools/gen_sfx_prompts.py` writes the prompts.
+const PLANNED: Array[String] = [
+	"sfx_ui_move",
+	"sfx_loot_drop",
+	"sfx_loot_collect",
+	"sfx_story_open",
+	"sfx_story_panel",
+]
+
 const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0.04}
 
 ## Sounds that come in variants. Asking for the group picks one at random, which

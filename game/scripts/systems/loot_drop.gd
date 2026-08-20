@@ -24,6 +24,7 @@ var _sprite: Sprite2D
 var _velocity: Vector2 = Vector2.ZERO
 var _life: float = 0.0
 var _homing: bool = false
+var _glow: Sprite2D
 
 
 func setup(currency_id: String, value: int, from: Vector2) -> void:
@@ -55,8 +56,23 @@ func _ready() -> void:
 		_sprite.scale = Vector2.ONE * (Balance.LOOT_ICON_SIZE
 			/ maxf(_sprite.texture.get_width(), 1.0))
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# A soft pool under the drop, so a coin lying on a lit road still reads.
+	#
+	# Behind the sprite rather than a shader on it: an outline drawn on the sprite
+	# competes with the road's own edge detail at this size, while a pool of light
+	# separates the drop from whatever it landed on regardless of what that was.
+	var glow := Sprite2D.new()
+	glow.texture = LightKit.falloff_texture()
+	glow.modulate = Balance.LOOT_GLOW_COLOUR
+	glow.scale = Vector2.ONE * (Balance.LOOT_GLOW_SIZE
+		/ maxf(LightKit.falloff_texture().get_width(), 1.0))
+	glow.z_index = -1
+	add_child(glow)
+	_glow = glow
+
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
+	Sfx.play("sfx_loot_drop", 0.0)
 
 
 func _process(delta: float) -> void:
@@ -84,6 +100,12 @@ func _process(delta: float) -> void:
 	# A small hover, so a coin lying on a busy road is still findable.
 	if _sprite != null:
 		_sprite.position.y = sin(_life * Balance.LOOT_BOB_SPEED) * Balance.LOOT_BOB_HEIGHT
+	# The pool breathes out of phase with the hover, which reads as a thing
+	# glinting rather than as a sprite being scaled.
+	if _glow != null:
+		var pulse: float = 1.0 + sin(_life * Balance.LOOT_GLOW_SPEED) * 0.16
+		_glow.scale = Vector2.ONE * (Balance.LOOT_GLOW_SIZE * pulse
+			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 
 	if _life >= Balance.LOOT_LIFETIME:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
@@ -95,5 +117,7 @@ func _process(delta: float) -> void:
 func _collect() -> void:
 	if amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
+		Sfx.play("sfx_loot_collect", 0.0)
+		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
 		EventBus.loot_collected.emit(currency, amount, global_position)
 	queue_free()

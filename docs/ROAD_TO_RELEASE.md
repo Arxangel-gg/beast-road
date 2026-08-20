@@ -371,7 +371,54 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       still use their HUD icons — readable, but drawn for a 24px slot on a dark
       bar rather than for lying on a lit road. Relic and supply *drop types* (as
       opposed to currency drops) are still to do.
-- [ ] Foliage variety and idle animations.
+- [x] **Cinematic pacing and skip model.** Hold time now starts when the *line*
+      finishes fading rather than when the panel starts — the prose previously had
+      about a second and a half of legible time, less than it takes to read two
+      lines. A tap advances to the next panel; only Escape **held** for 0.9s
+      abandons the whole thing, with a fill bar so holding reads as doing
+      something. Tapping used to skip everything, so hurrying past a line you had
+      already read threw away the rest of the opening. Slow push on the art, and
+      SFX hooks on open and per panel.
+- [x] **Drops are findable and audible.** A soft pool of light under each drop
+      rather than an outline on the sprite: at this size an outline competes with
+      the road's own edge detail, while a pool separates the drop from whatever it
+      landed on. Pulse is out of phase with the hover so it reads as a glint.
+      Sounds on drop and collect, plus a floating number on pickup.
+- [x] **Skill 4 was off screen.** The bar's box was a flat 496 units for 638
+      units of content — the fourth slot hung off the right edge. Now derived from
+      slot size and count. Fixing it made the bar collide with the command row,
+      so the ability bar moved to centre-bottom (where an ability bar belongs) and
+      everything else lifted by one derived `BOTTOM_BAND` constant, so moving the
+      bar again moves the rest with it.
+- [x] **`layout_check` now catches off-screen widgets.** It could not see this
+      class of bug at all: a widget outside the viewport overlaps nothing, so the
+      layout looked perfectly clean while a quarter of the ability bar was gone.
+- [x] **Settings reorganised.** Screen shake and beast motion moved off the Audio
+      page to a new **Game** tab — they were on Audio because Audio was the page
+      that already had sliders, and someone turning off camera shake for motion
+      sickness has no reason to look under Audio. Tutorial/opening replay added
+      there too.
+- [x] **`docs/SFX_PROMPTS.md` leads with STILL TO RECORD (11).** Computed from
+      disk when the doc is generated, not hand-maintained — a tracked list is
+      wrong the moment a file lands, and then it sends you to record something you
+      already have. The five new ids are declared in `Sfx.PLANNED` rather than in
+      `PATHS`: registering a path with no file makes the loader warn, and the
+      release gate fails on any warning, so five unrecorded sounds would have
+      blocked every build.
+
+- [ ] Foliage variety and idle animations (keep the procedural polygons, add
+      sprite kinds alongside them).
+- [ ] Tower/building idle animations and base damage-state art.
+- [ ] Loot diversity: relic and supply drop types, remaining currency art.
+- [ ] Persistent stash and inventory, a second (cross-run) currency, blacksmith
+      upgrade/salvage.
+- [ ] Raid overhaul: larger arena, procedural tilemap terrain, elevation islands,
+      chests and keys, loot.
+- [ ] Milestone cutscenes beyond the opening.
+- [ ] Cloud shadows are not noticeable enough.
+- [ ] Antialiasing / smoothing option.
+- [ ] Main menu pixel art, animated.
+- [ ] Leaderboards and the web build.
 
 ---
 

@@ -137,10 +137,21 @@ func _build() -> void:
 	audio.add_theme_constant_override("separation", 14)
 	for row: Dictionary in VOLUME_ROWS:
 		audio.add_child(_volume_row(row))
-	audio.add_child(_separator())
-	audio.add_child(_shake_row())
-	audio.add_child(_gait_row())
 	tabs.add_child(audio)
+
+	# Screen shake and beast motion used to live on the Audio page, under the
+	# volume sliders. They are not audio settings by any reading; they were there
+	# because Audio was the page that already had sliders on it. A player turning
+	# off camera shake because it makes them motion sick has no reason to look
+	# under Audio for it, which is the one case that matters most.
+	var game := VBoxContainer.new()
+	game.name = "Game"
+	game.add_theme_constant_override("separation", 14)
+	game.add_child(_shake_row())
+	game.add_child(_gait_row())
+	game.add_child(_separator())
+	game.add_child(_tutorial_row())
+	tabs.add_child(game)
 
 	var video_scroll := ScrollContainer.new()
 	video_scroll.name = "Video"
@@ -320,6 +331,27 @@ func _refresh_display_buttons() -> void:
 ## players want one decision ("this is running badly, turn it down") and only some
 ## want six. Touching any switch moves the preset to Custom rather than silently
 ## disagreeing with the label above it.
+## Replaying the tutorial is a game setting, not a data one.
+func _tutorial_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Tutorial")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+	var button := Button.new()
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.text = "Show the coach prompts again"
+	button.tooltip_text = "Replays the first-run prompts on the next run."
+	button.pressed.connect(func() -> void:
+		MetaState.settings["tutorial_seen"] = false
+		MetaState.story_intro_seen = false
+		MetaState.save_game()
+		button.text = "The prompts and opening will play again"
+		button.disabled = true)
+	row.add_child(button)
+	return row
+
+
 func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_label("Quality", 20))
 	column.add_child(_preset_row())

@@ -68,6 +68,7 @@ func _ready() -> void:
 
 	_check_overflow(widgets)
 	_check_overlap(widgets)
+	_check_on_screen(widgets)
 	_check_crowding(widgets)
 	await _check_hover_stability()
 
@@ -98,6 +99,36 @@ func _check_overflow(widgets: Array[Control]) -> void:
 
 
 ## Leaf widgets from different branches covering the same pixels.
+## Nothing interactive may hang off the edge of the screen.
+##
+## Added after the fourth spell slot shipped with a sliver of it showing and the
+## rest off-screen: the bar's box was a number typed once and never re-derived
+## when a slot was added. Overlap checking cannot see this - a widget outside the
+## viewport overlaps nothing at all, so the layout looked perfectly clean.
+##
+## Widgets partly off the edge are the failure; ones entirely outside are usually
+## deliberate (an off-screen panel waiting to slide in), so they are ignored.
+func _check_on_screen(widgets: Array[Control]) -> void:
+	var screen: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	var clipped: int = 0
+	for control: Control in widgets:
+		if not _is_leaf_widget(control) or not control.is_visible_in_tree():
+			continue
+		var rect: Rect2 = control.get_global_rect()
+		if rect.size.x <= 0.0 or rect.size.y <= 0.0:
+			continue
+		if not screen.intersects(rect):
+			continue
+		var inside: Rect2 = screen.intersection(rect)
+		var shown: float = (inside.size.x * inside.size.y) 			/ maxf(rect.size.x * rect.size.y, 1.0)
+		if shown < 0.995:
+			clipped += 1
+			_failures.append("off screen: %s%s at %s size %s - only %.0f%% visible"
+				% [control.get_parent().name if control.get_parent() != null else "?",
+					"/" + control.name, rect.position, rect.size, shown * 100.0])
+	_notes.append("off screen: %d" % clipped)
+
+
 func _check_overlap(widgets: Array[Control]) -> void:
 	var leaves: Array[Control] = []
 	var screen: Vector2 = get_viewport().get_visible_rect().size

@@ -71,6 +71,13 @@ const BUILD_DETAIL_HEIGHT: float = BUILD_DETAIL_LINES * BUILD_DETAIL_LINE_HEIGHT
 ## frame's interior rather than across its border.
 const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 
+## Gap between the spell bar and the screen edge.
+const SPELL_BAR_MARGIN: float = 24.0
+
+## Height of the bottom band the ability bar owns. Everything that used to sit
+## on the bottom edge is lifted by this, so the bar has a row to itself.
+const BOTTOM_BAND: float = SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN
+
 @export var battlefield: Battlefield
 
 var _resources: Label
@@ -419,7 +426,19 @@ func _build_scope_bar() -> void:
 	var bar := HBoxContainer.new()
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	bar.offset_left = 24.0
-	bar.offset_top = -84.0
+	# Raised to sit *above* the ability bar rather than beside it.
+	#
+	# Both rows lived on the same line, which only worked while the ability bar
+	# was a quarter off the screen. Once it was sized correctly the two collided,
+	# and no amount of nudging fixes that: seven scope-and-action buttons plus
+	# four ability slots is more than one row of a 1920 screen holds. Stacking
+	# them is the honest answer, and it also groups scope switching apart from
+	# the abilities rather than running the two together.
+	bar.offset_top = -(84.0 + BOTTOM_BAND)
+	# Bounded, or the row reaches from its top to the bottom of the screen and
+	# its buttons overlap everything below them however high it is moved. That is
+	# what made the first two attempts at this look like the move had not worked.
+	bar.offset_bottom = -(BOTTOM_BAND + 12.0)
 	bar.add_theme_constant_override("separation", 12)
 	add_child(bar)
 
@@ -606,8 +625,11 @@ func _build_preparation_panel() -> void:
 	# that the panel's ornate skin ate into - so it read as overlapping the horn,
 	# raid and repair buttons even though the rectangles never intersected. That
 	# is also why the layout gate stayed silent: they were close, not overlapping.
-	_preparation_panel.offset_top = -272.0
-	_preparation_panel.offset_bottom = -156.0
+	# Shifted up by exactly the band the ability bar now occupies, derived from the
+	# same constants rather than re-typed, so moving the bar again moves these
+	# with it instead of silently re-opening the collision.
+	_preparation_panel.offset_top = -272.0 - BOTTOM_BAND
+	_preparation_panel.offset_bottom = -156.0 - BOTTOM_BAND
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
@@ -633,9 +655,9 @@ func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_command_panel.offset_left = -424.0
-	_command_panel.offset_top = -276.0
+	_command_panel.offset_top = -276.0 - BOTTOM_BAND
 	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -164.0
+	_command_panel.offset_bottom = -164.0 - BOTTOM_BAND
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
@@ -819,12 +841,29 @@ func _update_boss_track() -> void:
 
 func _build_spell_bar() -> void:
 	_spell_bar = HBoxContainer.new()
-	_spell_bar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_spell_bar.offset_left = -520.0
-	_spell_bar.offset_top = -96.0
-	_spell_bar.offset_right = -24.0
-	_spell_bar.offset_bottom = -24.0
-	_spell_bar.add_theme_constant_override("separation", 10)
+	# Centred along the bottom rather than tucked bottom-right.
+	#
+	# Sizing it correctly made it 662 units wide, which then ran straight into the
+	# command row on the left - the old 496 only "fitted" because a quarter of it
+	# was off the screen. Centre is also where an ability bar belongs: it is the
+	# thing the player's eye returns to, and it now has the whole width to sit in
+	# without fighting anything for space.
+	_spell_bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+
+	# Sized from the slots it will hold, not from a number typed once.
+	#
+	# It was a flat -520, which is 496 units of box for four 152-unit slots and
+	# three 10-unit gaps - 638 units of content. The fourth slot hung off the
+	# right edge of the screen with a sliver showing, and would have again the
+	# next time a slot was added or resized. [bug: skill 4 off screen]
+	const SEPARATION: int = 10
+	var slots: int = Balance.HERO_MAX_SPELL_SLOTS
+	var content: float = float(slots) * SPELL_SLOT_SIZE.x 		+ float(maxi(slots - 1, 0)) * float(SEPARATION)
+	_spell_bar.offset_left = -content * 0.5
+	_spell_bar.offset_right = content * 0.5
+	_spell_bar.offset_top = -(SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN)
+	_spell_bar.offset_bottom = -SPELL_BAR_MARGIN
+	_spell_bar.add_theme_constant_override("separation", SEPARATION)
 	add_child(_spell_bar)
 
 
