@@ -58,11 +58,21 @@ alongside the Windows one, and a second job deploys it to Pages:
 https://arxangel-gg.github.io/beast-road/
 ```
 
-GitHub may reject the first automatic Pages enablement with `Resource not
-accessible by integration`. If that happens, open repository **Settings →
-Pages**, set **Source** to **GitHub Actions**, and rerun the failed Pages job or
-publish the next patch. This is a one-time repository setting; subsequent tagged
-releases deploy automatically.
+**Pages has to be switched on by hand, once:**
+
+> Settings → Pages → Build and deployment → **Source: GitHub Actions**
+
+Not "may need to be" — it cannot be automated. `actions/configure-pages` takes
+an `enablement: true` and it was set, on the theory that the first tagged
+release would turn Pages on by itself. It cannot: creating a Pages site is an
+admin operation and `GITHUB_TOKEN` is not an admin. v0.4.32, v0.4.33 and v0.4.34
+each failed on it with `Resource not accessible by integration`, a message that
+says nothing about what to do.
+
+Until the setting is flipped the release still succeeds and `BeastRoad-web.zip`
+is still attached — the export happens in the build job, and only the hosting is
+missing. The run carries a warning saying so and the job summary names the
+setting. Once flipped, every release publishes by itself and the warning stops.
 
 It is a **separate job** on purpose. Deploying to Pages needs `pages: write` and
 `id-token: write`, and publishing a release needs `contents: write`; the step
