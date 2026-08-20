@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "drowned_choir"
+eyebrow = "Act I Boss  ·  The Cinderpaint horn answers"
+presentation = 1
+id = "drowned_choir"
+display_name = "Rakka Coal-Eye, Wolf Marshal"
+description = "His horn turns a column into a charge. Break the marshal, and the pack loses its nerve."

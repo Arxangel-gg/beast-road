@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "mirrorfang"
+eyebrow = "Act II Boss  ·  The road reflects itself"
+presentation = 1
+act = 2
+id = "mirrorfang"
+display_name = "Veyr of the Sunglass, Dune Seer"
+description = "She reads the road before it happens. Her mirrored shards turn a volley back down the lane it came from."

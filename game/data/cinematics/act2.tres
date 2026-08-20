@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "desert"
+eyebrow = "Act II  ·  The road burns white"
+act = 2
+id = "act2"
+display_name = "The Sunglass Waste"
+description = "Heat turns the horizon to a blade. Veiled Scale-Riders cross the fused sand behind mirrors and tunnelling scouts."

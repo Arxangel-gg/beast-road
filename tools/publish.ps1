@@ -361,6 +361,7 @@ $btn.Add_Click({
             @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
             @{ Name = 'loot and cache art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/loot_art_check.tscn') },
             @{ Name = 'structure animation art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_art_check.tscn') },
+            @{ Name = 'milestone cinematics'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/milestone_cinematic_check.tscn') },
             @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
             @{ Name = 'launcher updater'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'launcher'), 'res://tests/release_pipeline_test.tscn') }

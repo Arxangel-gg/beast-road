@@ -159,6 +159,8 @@ var best_distance: float = 0.0
 var total_enemies_killed: int = 0
 
 # --- Settings ---
+const MILESTONE_CINEMATICS_SEEN_KEY: String = "milestone_cinematics_seen"
+
 var settings: Dictionary = {
 	"master_volume": 1.0,
 	"music_volume": 0.8,
@@ -176,6 +178,8 @@ var settings: Dictionary = {
 	# not already know, so a default missing from this dictionary is a setting
 	# that appears to save and reverts on the next launch.
 	"tutorial_seen": false,
+	## First-view milestone ids. The HUD's light title cards remain on replays.
+	MILESTONE_CINEMATICS_SEEN_KEY: [],
 }
 
 
@@ -267,12 +271,39 @@ func erase_progress() -> void:
 	# preferences are kept, but somebody erasing their progress is asking for a
 	# first run, and a first run includes being shown how the game works.
 	settings["tutorial_seen"] = false
+	settings[MILESTONE_CINEMATICS_SEEN_KEY] = []
 	# And the opening cinematic, for the same reason: somebody erasing their
 	# progress is asking for a first run, and a first run starts with the story.
 	story_intro_seen = false
 	# Written immediately rather than left in memory: the player asked for the
 	# save to be gone, and a crash before the next autosave would hand it back.
 	save_game()
+
+
+func milestone_cinematic_seen(id: String) -> bool:
+	if id.is_empty():
+		return false
+	var seen: Array = _milestone_cinematic_ids()
+	return seen.has(id)
+
+
+func mark_milestone_cinematic_seen(id: String) -> void:
+	if id.is_empty() or milestone_cinematic_seen(id):
+		return
+	var seen: Array = _milestone_cinematic_ids()
+	seen.append(id)
+	settings[MILESTONE_CINEMATICS_SEEN_KEY] = seen
+	save_game()
+
+
+func _milestone_cinematic_ids() -> Array:
+	var stored: Variant = settings.get(MILESTONE_CINEMATICS_SEEN_KEY, [])
+	if stored is Array:
+		return stored as Array
+	# A hand-edited or damaged setting must not break a milestone signal in the
+	# middle of a run. Treat it as a fresh first-view list and repair in memory.
+	settings[MILESTONE_CINEMATICS_SEEN_KEY] = []
+	return []
 
 
 ## Every account starts able to build the original eight, whatever the save
