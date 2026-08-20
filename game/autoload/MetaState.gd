@@ -109,6 +109,11 @@ var tier_cleared: int = -1
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
 
+## Whether the opening cinematic has been shown. A setting rather than a
+## statistic: it exists so the intro plays once, and it is cleared when a player
+## wipes their save because a fresh account should see the opening again.
+var story_intro_seen: bool = false
+
 
 ## Legacy rank, one per full clear, capped at Balance.SIGIL_MAX_RANK (v4 §36).
 var sigils: int = 0
@@ -286,6 +291,7 @@ func _read_hero(hero: Dictionary) -> void:
 	hero_skill_points = maxi(int(hero.get("skill_points", 0)), 0)
 	tier_cleared = clampi(int(hero.get("tier_cleared", -1)), -1, 8)
 	last_tier_id = String(hero.get("last_tier", "normal"))
+	story_intro_seen = bool(hero.get("story_seen", false))
 
 	hero_attributes = [0, 0, 0, 0]
 	var stored: Array = hero.get("attributes", []) as Array
@@ -357,6 +363,7 @@ func serialized_save() -> String:
 			"skill_points": hero_skill_points,
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,
+			"story_seen": story_intro_seen,
 		},
 		"resource_cache": resource_cache,
 		"stats": {

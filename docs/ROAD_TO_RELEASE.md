@@ -343,8 +343,34 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
 - [ ] **Leaderboards** — now in scope (§54 amended 2026-08-20). Not built.
 - [ ] **Web build** — now in scope (§54 amended). Not built.
-- [ ] Story intro cinematic and milestone cutscenes.
-- [ ] Loot art and greater drop diversity.
+- [x] **Story intro cinematic.** Four panels and four lines — what Yuri is, what
+      is chasing them, who the player is, where the road goes. That is the whole
+      premise (GDD §6), and it is the minimum before someone is asked to defend
+      four roads for an hour. Art generated at a native 688×384 and drawn
+      nearest-neighbour.
+
+      Skippable from the first frame and shown once. A cinematic that cannot be
+      skipped gets resented on the second run; one that replays every launch is
+      worse. Gated on a save flag rather than on `runs_started`, so a player who
+      quits *during* the intro gets it again.
+
+      It lives in `GameDirector.start_run`, not in `Run._ready()`, and that is
+      not cosmetic: every headless tool instantiates `run.tscn` directly, so an
+      intro inside the run scene played — and paused the tree for eighteen
+      seconds — inside the balance test, the layout check and the snuff soak. All
+      three failed, none for a reason connected to what they test. `start_run` is
+      the door a *player* comes through; tools do not use it.
+
+      The art fills the frame with the text on a gradient scrim. Reserving a
+      strip for the text left the panel in a box wider than 16:9, so a 16:9 image
+      was pillarboxed on a 16:9 monitor — the one shape it should have fitted.
+
+- [~] **Loot art.** Painted world art for gold and relic drops, resolved by
+      convention (`loot_<currency>.png`) with the UI icon as fallback, so a new
+      currency drops correctly the moment its art lands. Wood, food and stone
+      still use their HUD icons — readable, but drawn for a 24px slot on a dark
+      bar rather than for lying on a lit road. Relic and supply *drop types* (as
+      opposed to currency drops) are still to do.
 - [ ] Foliage variety and idle animations.
 
 ---

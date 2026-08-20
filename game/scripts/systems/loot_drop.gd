@@ -40,7 +40,17 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 func _ready() -> void:
 	add_to_group(GROUP)
 	_sprite = Sprite2D.new()
-	_sprite.texture = IconKit.ui(currency)
+	# World art where it exists, the currency's UI icon otherwise.
+	#
+	# A HUD icon is drawn to read at 24px against a dark bar, not lying on a lit
+	# road among corpses, so the ones that have proper drop art use it - and the
+	# fallback keeps every currency working the moment it is added, rather than
+	# dropping an invisible pickup until somebody notices.
+	var painted: String = Balance.LOOT_ART_FORMAT % currency
+	if ResourceLoader.exists(painted):
+		_sprite.texture = load(painted)
+	else:
+		_sprite.texture = IconKit.ui(currency)
 	if _sprite.texture != null:
 		_sprite.scale = Vector2.ONE * (Balance.LOOT_ICON_SIZE
 			/ maxf(_sprite.texture.get_width(), 1.0))

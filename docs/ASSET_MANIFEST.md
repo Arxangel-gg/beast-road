@@ -344,6 +344,31 @@ toward the region's sampled ground palette so it sits in the same light.
 | `menu_key_art.png` | 1920×1080 | O | `#0B1416` |
 | `summit.png` | 1920×1080 | O | `#1B2436` |
 
+### 5.8b Story panels — `res://art/story/`
+
+Four 16:9 panels for the opening cinematic (GDD §6). Native 688×384, drawn
+nearest-neighbour and letterboxed rather than stretched: pixel art scaled to an
+arbitrary window is the fastest way to make careful art look cheap.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `story_worldstrider.png` | 688×384 | O | `#2E3A42` |
+| `story_host.png` | 688×384 | O | `#16223A` |
+| `story_warden.png` | 688×384 | O | `#1E2E33` |
+| `story_summit.png` | 688×384 | O | `#101A2E` |
+
+### 5.8c Loot drops — `res://art/loot/`
+
+World art for dropped rewards, named `loot_<currency>.png` by convention so a
+new currency drops correctly the moment its art lands. A currency with no file
+falls back to its UI icon, which works but is drawn to read at 24px against a
+dark HUD bar rather than lying on a lit road.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `loot_gold.png` | 48×48 | T | `#C8A44A` |
+| `loot_relic.png` | 48×48 | T | `#7A5BA8` |
+
 ### 5.9 Relic icons — `res://art/icons/relics/`
 
 All 128×128, type T, placeholder colour `#E8A33D`.

@@ -50,7 +50,27 @@ func goto_menu() -> void:
 ## `endless` starts the run already past its finish line: the three acts still
 ## play, but the escalation compounds from the first wave and nothing stops at
 ## the summit. Unlocked by finishing the campaign once.
+## The opening cinematic, played on the way into a player's first run.
+##
+## Here rather than in `Run._ready()`, and the distinction is not cosmetic: every
+## headless tool instantiates `run.tscn` directly, so an intro living in the run
+## scene played - and paused the tree for eighteen seconds - inside the balance
+## test, the layout check and the snuff soak. All three failed, and none of them
+## failed for a reason that had anything to do with what they were testing.
+##
+## This is the door a *player* comes through. Tools do not use it.
+func _play_intro() -> void:
+	if StoryIntro.already_seen():
+		return
+	var intro := StoryIntro.new()
+	intro.name = "StoryIntro"
+	get_tree().root.add_child(intro)
+	await intro.play()
+	intro.queue_free()
+
+
 func start_run(requested_seed: int = 0, endless: bool = false) -> void:
+	await _play_intro()
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	RunState.reset(true, requested_seed)
 	if endless:

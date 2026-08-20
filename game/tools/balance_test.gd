@@ -719,10 +719,14 @@ func _test_tiers_and_persistence() -> void:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero"],
 				"unexpected top-level save key \"%s\"" % key)
+		# The list is about *power*, not tidiness. "story_seen" is on it because it
+		# rides in the same block, and it is not progression - a flag saying the
+		# opening has played cannot make a run easier. Anything that could is what
+		# this check exists to catch.
 		var hero: Dictionary = (parsed as Dictionary).get("hero", {}) as Dictionary
 		for key: Variant in hero.keys():
 			_check(String(key) in ["level", "xp", "attributes", "attribute_points",
-				"skill_points", "tier_cleared", "last_tier"],
+				"skill_points", "tier_cleared", "last_tier", "story_seen"],
 				"unexpected hero save key \"%s\" - only the amendment's fields persist" % key)
 
 	# The migration every existing player will actually hit: a v3 save has no hero

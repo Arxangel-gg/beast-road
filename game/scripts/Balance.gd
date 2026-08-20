@@ -92,6 +92,9 @@ const LOOT_DRAG: float = 420.0
 ## is worse than either extreme. [TUNE]
 const LOOT_LIFETIME: float = 24.0
 
+## Painted drop art, by currency id. Absent falls back to the UI icon.
+const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
+
 const LOOT_ICON_SIZE: float = 26.0
 const LOOT_BOB_SPEED: float = 5.0
 const LOOT_BOB_HEIGHT: float = 3.0
