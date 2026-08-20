@@ -2578,6 +2578,42 @@ const MENU_BEAST_FRAME_TIME: float = 0.22
 const MENU_MIST_SPEED: float = 7.5
 
 
+# ---------------------------------------------------------------------------
+# Touch controls
+# ---------------------------------------------------------------------------
+
+## How far from where a thumb landed counts as a full push, in screen pixels at
+## the 1080p design resolution.
+##
+## A thumb rolls rather than slides, so this is much shorter than it looks: past
+## about this far the thumb has to lift and the stick sticks at full tilt.
+const TOUCH_STICK_REACH: float = 130.0
+
+## How far a thumb may wander before it means anything. Larger than a mouse
+## deadzone would be, because a resting thumb on glass is never still.
+const TOUCH_STICK_DEADZONE: float = 14.0
+
+## How far the right stick must be pushed before it is asking for an attack
+## rather than only turning the hero.
+##
+## Not zero, deliberately: aiming without swinging has to be possible, or a
+## player cannot line a shot up without committing to it.
+const TOUCH_ATTACK_THRESHOLD: float = 0.45
+
+## How visible the on-screen controls are.
+##
+## Low on purpose. They sit over the battlefield, and the thing a player needs to
+## see is the battlefield - a thumb already knows where it is.
+const TOUCH_OPACITY: float = 0.34
+
+## How visible a persistent touch *button* is.
+##
+## Higher than a stick's, because the two are seen under opposite conditions. A
+## stick is drawn only once a thumb is already on it, so it never has to be
+## found; a button is on screen the whole time and has to be found exactly once.
+const TOUCH_BUTTON_OPACITY: float = 0.58
+
+
 ## The one field a stranger chooses, so the one field that needs a rule.
 const SCORE_NAME_MAX: int = 20
 const SCORE_NAME_FALLBACK: String = "Oathless"

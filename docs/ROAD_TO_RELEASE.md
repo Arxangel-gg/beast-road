@@ -567,6 +567,47 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] Tower and building idle animation — recorded again here in error; it was
       already built, and towers additionally derive damage-fire anchors from
       their own silhouette rather than from authored damage art.
+- [x] **Mobile browser touch.** Twin sticks, low opacity, appearing where the
+      thumb lands rather than sitting in fixed spots — a fixed stick makes a
+      player look down to find it, a dynamic one is under the thumb by
+      definition. Left moves, right aims and attacks past a threshold so a shot
+      can be lined up without committing to it.
+
+      Movement is fed back into the **input map** rather than into the hero:
+      `Input.action_press(&"move_left", strength)`. `Hero._move_input()` already
+      reads `Input.get_vector` over those actions and respects strength, so a
+      thumb arrives by the same road as a key and the hero needed no change.
+      Only aim needed a branch, because a direction is not a button.
+
+      Three things were found by measuring rather than by reasoning:
+
+      *Godot emulates a mouse from touch, and the emulated event arrives*
+      **before** *the real one.* So a thumb walking the movement stick also drags
+      a mouse across the battlefield, and at press time nothing yet knows the
+      finger belongs to a stick. Placement now acts on *release*, when it does —
+      which also gives a mouse the slide-off-to-cancel it lacked. Only finger 0
+      is emulated, so ownership is the test rather than geometry; asking "is this
+      point in a stick zone" would have made two corners of the field
+      permanently untappable whether a thumb was there or not.
+
+      *The dash button was eating the aim stick.* Sized from screen height, it
+      became a quarter of the frame across on a tall viewport, directly under
+      where an aiming thumb rests. It is sized from the shorter axis now and sits
+      at the right edge at half height — the one part of the frame the HUD never
+      claims. That matters more than tidiness: the sticks read `_unhandled_input`
+      so Controls win, which means a HUD panel over a touch button does not hide
+      it, it *eats the tap*.
+
+      *The zoom hint named a mouse wheel* and pause was Escape-only, so a phone
+      player could neither see the whole field nor leave it. Both are buttons now,
+      on every platform, because a two-button zoom is no worse with a mouse.
+
+      `tools/touch_check.tscn` is a guard gate — it drives synthetic touch and
+      drag events through the real autoload and reads the real input map, because
+      this machine has no touchscreen and the alternative test is a phone.
+      `tools/touch_shot.tscn` renders it with both thumbs down.
+- [ ] Whether the sticks *feel* right under a thumb, on a real phone. Nothing
+      headless can answer that, and the check says so.
 - [ ] Loot diversity: relic and supply drop types, remaining currency art.
 - [x] **Stash, inventory and blacksmith.** Ten kinds of gear across three slots,
       each a file. A *kind* is authored content — name, slot, icon, which

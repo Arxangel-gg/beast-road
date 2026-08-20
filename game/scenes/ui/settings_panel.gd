@@ -35,6 +35,7 @@ const SAVE_DELAY: float = 0.45
 
 var _save_left: float = 0.0
 var _fullscreen_button: Button
+var _touch_buttons: Array[Button] = []
 var _windowed_button: Button
 
 ## Video tab widgets, kept so a preset change can push the individual switches
@@ -280,6 +281,52 @@ func _gait_row() -> HBoxContainer:
 
 ## Two buttons rather than a slider or a dropdown: there are exactly two states,
 ## and which one is active should be readable without opening anything.
+## On-screen controls, with an explicit third state.
+##
+## Auto is the default and is right almost always: a phone browser reports a
+## touchscreen and a desktop does not. The two overrides exist because
+## `is_touchscreen_available()` is a hint rather than a promise - a Windows
+## laptop with a touch display reports true and is played with a mouse, and a
+## tablet with a keyboard case reports true and may not want thumb sticks over
+## the battlefield.
+func _touch_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+
+	var name_label: Label = _label("Touch controls")
+	name_label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(name_label)
+
+	for choice: Array in [["Auto", null], ["On", true], ["Off", false]]:
+		var button := Button.new()
+		button.text = String(choice[0])
+		button.toggle_mode = true
+		button.custom_minimum_size = Vector2(126.0, 46.0)
+		var wanted: Variant = choice[1]
+		button.pressed.connect(func() -> void:
+			if wanted == null:
+				MetaState.settings.erase(TouchInput.TOUCH_KEY)
+			else:
+				MetaState.settings[TouchInput.TOUCH_KEY] = bool(wanted)
+			TouchInput.refresh()
+			_refresh_touch_buttons()
+			_save_left = 0.0
+			set_process(false)
+			_write())
+		_touch_buttons.append(button)
+		row.add_child(button)
+
+	_refresh_touch_buttons()
+	return row
+
+
+func _refresh_touch_buttons() -> void:
+	var forced: Variant = MetaState.settings.get(TouchInput.TOUCH_KEY, null)
+	var chosen: int = 0 if forced == null else (1 if bool(forced) else 2)
+	for index: int in _touch_buttons.size():
+		_touch_buttons[index].button_pressed = index == chosen
+
+
 func _display_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
@@ -371,6 +418,7 @@ func _build_video(column: VBoxContainer) -> void:
 		"Softens the hard edges of scaled pixel art. Off is how the art was drawn."))
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
+	column.add_child(_touch_row())
 	column.add_child(_separator())
 	column.add_child(_colourblind_row())
 	column.add_child(_colourblind_preview())

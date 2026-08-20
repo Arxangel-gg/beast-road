@@ -51,6 +51,8 @@ func _ready() -> void:
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
 	town.plot_selected.connect(town_panel.open)
 	hud.scope_requested.connect(switch_scope)
+	hud.zoom_requested.connect(_zoom_ladder)
+	hud.pause_requested.connect(func() -> void: pause_ui.toggle())
 	hud.horn_requested.connect(_on_horn_requested)
 	hud.raid_requested.connect(_on_raid_requested)
 	hud.extract_requested.connect(_on_extract_requested)

@@ -61,7 +61,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _is_active() or not _field.visible:
 		return
 	var click := event as InputEventMouseButton
-	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
+	if click == null or click.pressed or click.button_index != MOUSE_BUTTON_LEFT:
+		return
+
+	# On release, not on press, and that is what makes touch work.
+	#
+	# Godot emulates a mouse from finger 0, and the emulated events arrive
+	# *before* the real touch event - so at press time nothing yet knows the
+	# finger belongs to a thumb stick. By release it does. Acting on release also
+	# means a player can slide off a plot to cancel, which is the behaviour a
+	# mouse already had everywhere else in this interface.
+	if TouchInput.owns_pointer():
 		return
 	var tile: Vector2i = _anchor_under_mouse()
 	# An occupied tile is still worth clicking: that is how a built tower is

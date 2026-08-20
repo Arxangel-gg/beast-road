@@ -161,6 +161,10 @@ jobs:
           # the battlefield, for months — and it was found by a person looking at
           # a screenshot, not by anything that runs.
           check "floor tiles" --headless --path game --script res://tools/run_tool.gd -- floor-tiles
+          # Thumbs reach the input map, two sticks work at once, and nothing is
+          # left held when the controls go away. The machine this is developed on
+          # has no touchscreen, so without this the only test is a phone.
+          check "touch controls" --headless --path game res://tools/touch_check.tscn
 
       - name: Say what broke
         if: failure()

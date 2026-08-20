@@ -14,6 +14,12 @@ const CommandSystemScript = preload("res://scripts/systems/command_system.gd")
 ## hero's entire decision loop reads off it; without it the player is guessing.
 
 signal scope_requested(scope: GameDirector.Scope)
+
+## Zoom a step in or out. The HUD owns no camera; the run does.
+signal zoom_requested(steps: int)
+
+## Open the pause menu, for anything with no Escape key.
+signal pause_requested()
 signal horn_requested()
 signal raid_requested()
 signal extract_requested()
@@ -445,9 +451,22 @@ func _build_scope_bar() -> void:
 	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
 	_add_button(bar, "F2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
 	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
-	var zoom_hint: Label = _label("Wheel  Zoom", 14)
-	zoom_hint.add_theme_color_override("font_color", Color("8f9b98"))
-	bar.add_child(zoom_hint)
+	# Buttons rather than a hint that names a mouse wheel.
+	#
+	# "Wheel Zoom" is not an instruction on a phone, it is a description of a
+	# device the player does not have — and zoom is not optional here: the whole
+	# field does not fit a phone screen at combat zoom. They are shown on every
+	# platform because a two-button zoom is no worse with a mouse, and one
+	# control that works everywhere beats two that each work in one place.
+	_add_button(bar, "\u2212", func() -> void: zoom_requested.emit(-1)).custom_minimum_size = \
+		Vector2(56.0, 0.0)
+	_add_button(bar, "+", func() -> void: zoom_requested.emit(1)).custom_minimum_size = \
+		Vector2(56.0, 0.0)
+
+	# Escape is the only other way to reach the pause menu, and a phone browser
+	# has no Escape - so without this there is no way off the battlefield, out of
+	# the settings, or out of the game.
+	_add_button(bar, "\u2261  Menu", func() -> void: pause_requested.emit())
 
 	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
 	IconKit.on_button(_horn_button, "war_horn", 26)

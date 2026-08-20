@@ -377,6 +377,14 @@ func _update_facing(delta: float) -> void:
 
 
 func _compute_aim() -> Vector2:
+	# Touch first, for the same reason the pad is checked before the mouse: a
+	# thumb on the right stick is an explicit statement about where to point, and
+	# on a phone the emulated mouse cursor is wherever the last tap happened to
+	# land. Movement and attack arrive as ordinary input actions and need no
+	# branch here; a direction is not a button, so aim does.
+	var touch: Vector2 = TouchInput.aim()
+	if touch != Vector2.ZERO:
+		return touch
 	var pad: Vector2 = KeyBindings.pad_aim()
 	if pad != Vector2.ZERO:
 		return pad.normalized()
