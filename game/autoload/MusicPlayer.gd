@@ -12,15 +12,15 @@ extends Node
 
 ## Track id -> file. Ids are what scenes ask for; paths never appear elsewhere.
 const TRACKS: Dictionary = {
-	"battle_ashfen": "res://audio/music/music_battle_ashfen.ogg",
-	"battle_saltglass": "res://audio/music/music_battle_saltglass.ogg",
-	"battle_steppe": "res://audio/music/music_battle_steppe.ogg",
+	"battle_jungle": "res://audio/music/music_battle_jungle.ogg",
+	"battle_desert": "res://audio/music/music_battle_desert.ogg",
+	"battle_snow": "res://audio/music/music_battle_snow.ogg",
 	"boss": "res://audio/music/music_boss.ogg",
 	"crossroad": "res://audio/music/music_crossroad.ogg",
 	"defeat": "res://audio/music/music_defeat.ogg",
 	"menu": "res://audio/music/music_menu.ogg",
 	"raid": "res://audio/music/music_raid.ogg",
-	"steppe_bone_march": "res://audio/music/music_steppe_bone_march.ogg",
+	"snow_bone_march": "res://audio/music/music_snow_bone_march.ogg",
 	"town": "res://audio/music/music_town.ogg",
 	"victory": "res://audio/music/music_victory.ogg",
 }
@@ -141,7 +141,7 @@ func _battle_track() -> String:
 	var terrain: String = RunState.terrain_id
 	if TRACKS.has("battle_" + terrain):
 		return "battle_" + terrain
-	return "battle_ashfen"
+	return "battle_jungle"
 
 
 ## Plays whatever the moment calls for. Safe to call repeatedly.

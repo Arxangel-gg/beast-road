@@ -16,7 +16,7 @@ Status legend: `[ ]` outstanding · `[~]` partially done, detail in the note ·
 
 ## 0. Conformance snapshot
 
-`run_tool.gd -- audit` — **36 / 44 (82%)**, 7 rows need human judgement.
+`run_tool.gd -- audit` — **41 / 44 (93%)**, 7 rows need human judgement.
 
 Re-run it after any section below is closed; do not hand-edit this number.
 
@@ -48,29 +48,56 @@ Highest priority: these are things that are wrong, not things that are missing.
       gets its own post on the outside of the turn.
 - [~] A few torches still sit closer together than the rest, where a segment's
       end stop lands near a corner post. Cosmetic; needs a minimum-gap pass.
-- [ ] Enemy and foliage shadow anchors — same class of bug as the tower one.
-      Audit every `add_contact` caller for a sprite offset it does not account for.
+- [x] Enemy and foliage shadow anchors. Audited every `add_contact` caller: the
+      enemy, hero and town sprites all sit at their node origin, so the
+      sprite-relative fix is a no-op for them and they were never wrong. Foliage
+      builds its shadow by hand and never used `add_contact`. The tower was the
+      only offset caller, and it is fixed.
 
 ---
 
 ## 2. Conformance — the 8 outstanding rows
 
-### Terrain ids (3 rows) — a rename plus a save migration
+### Terrain ids (3 rows) — done
 
-- [ ] `ashfen` → `jungle`, `saltglass` → `desert`, `steppe` → `snow`.
-      Touches the terrain `.tres`, 48 Wang ground tiles, 48 road tiles, the
-      manifest, and `run_tool.gd`'s region list.
-      **`MetaState.unlocked_terrains` stores ids**, so this needs a `SAVE_VERSION`
-      bump and a run of `res://tools/save_backup_check.tscn` (CLAUDE.md §1 — that
-      check is deliberately not in CI).
+- [x] The three regions now carry v4's ids: `jungle`, `desert`, `snow` (they were
+      `ashfen`, `saltglass`, `steppe`). 213 files renamed, including the audio
+      beds and the raid chieftain art, which are keyed by region as well.
 
-### Meta systems that do not exist (2 rows)
+      `SAVE_VERSION` is 3, and `migrate_save` now *chains* v1 -> v2 -> v3 rather
+      than jumping straight to the current shape, so a v1 save walks every step.
+      The v3 step remaps unlocked terrain ids and passes an id it does not
+      recognise through rather than dropping it — a migration that quietly
+      forgets an unlock is worse than one that carries a stale string.
 
-- [ ] Tools: earning, cap (`Balance.TOOLS_MAX`), persistence, payout, UI.
-- [ ] Four capped Sigil ranks (`Balance.SIGIL_MAX_RANK`), awarded one per win.
+      `save_backup_check.tscn` was extended to prove the v2 -> v3 step and run by
+      hand; it is deliberately not in CI (CLAUDE.md §1), because a discarded save
+      legitimately warns and the release gate fails on any warning.
 
-Both are already sanctioned for `MetaState` by CLAUDE.md §7, so the save schema
-is agreed; nothing else is built.
+      Two traps worth remembering: a whole-word replace protects `steppehorde`
+      but skips `_`-joined stems like `ambience_ashfen`, and `MusicPlayer` builds
+      its track key from the terrain id — so leaving the audio unrenamed would
+      have silently played the Act I theme in all three acts. Scenes had to be
+      swept too; `.tres` and `.gd` alone left two `ExtResource` paths dangling.
+
+### Meta systems (2 rows) — done, with two legacy effects outstanding
+
+- [x] Tools. Earned by depth (per act reached, plus a victory bonus), capped, and
+      spent automatically on the authored roster order at the end of a run.
+      Replaces the old "one tower per act boss felled", which paid a run that
+      *died* in Act III the same as one that cleared it.
+- [x] Four capped Sigil ranks, one per full clear, persisted and clamped on load.
+- [x] Rank 1 — starting supply bundle on every currency.
+- [x] Rank 3 — Treasury may carry 120; never lowers a cap the tier already had.
+- [~] Rank 4 — "one additional Town Hall relic socket" is already granted by the
+      shipped `act3_cleared` bonus, which CLAUDE.md §7 names as the *only*
+      sanctioned persistent power. Left on the first clear rather than the
+      fourth: strictly more generous than v4, and it avoids two systems paying
+      twice for the same achievement. Revisit only if the owner wants it gated.
+- [ ] Rank 2 — reroll one crossroad pair per run. Needs a button on the crossroad
+      screen and a per-run counter; nothing else.
+
+Both surface on the debrief as `Tools N · Legacy rank N of 4`.
 
 ### The summit (3 rows) — the largest remaining feature
 

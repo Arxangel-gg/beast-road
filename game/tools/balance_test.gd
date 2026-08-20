@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_boss_bar_is_wired()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
+	_test_tools_and_sigils()
 	_test_zoom_range()
 	_test_beast_gait()
 	_test_hostile_projectile()
@@ -130,16 +131,16 @@ func _test_live_tower_utility() -> void:
 
 func _test_act_curves() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
-	_set_progress(2, 1200.0, 48, "saltglass", 12)
-	var act2_size: int = director._wave_size(12, ContentDB.terrain("saltglass"))
+	_set_progress(2, 1200.0, 48, "desert", 12)
+	var act2_size: int = director._wave_size(12, ContentDB.terrain("desert"))
 	var act2_hp: float = director._hp_scale(0)
 	var act2_damage: float = director._damage_scale(0)
 	_check(act2_size >= 6, "Act 2 waves must outgrow the compact opening formations")
 	_check(act2_hp >= 2.4, "Act 2 durability must materially exceed Act 1")
 	_check(act2_damage < act2_hp, "damage must scale below HP to avoid cheap one-shots")
 
-	_set_progress(3, 2550.0, 88, "steppe", 22)
-	var act3_size: int = director._wave_size(22, ContentDB.terrain("steppe"))
+	_set_progress(3, 2550.0, 88, "snow", 22)
+	var act3_size: int = director._wave_size(22, ContentDB.terrain("snow"))
 	var act3_hp: float = director._hp_scale(0)
 	_check(act3_size > act2_size * 1.25, "Iron Steppe must deliver the largest packs")
 	_check(act3_hp > act2_hp * 1.35, "Act 3 must demand mastery upgrades")
@@ -148,13 +149,13 @@ func _test_act_curves() -> void:
 	# Crossing into Saltglass should reveal new tactics, not erase the player's
 	# progress with a seventy-percent stat jump on the very first formation.
 	DayNight._apply(0.18)
-	_set_progress(1, 790.0, 18, "ashfen", 18)
+	_set_progress(1, 790.0, 18, "jungle", 18)
 	var act1_exit_hp: float = director._hp_scale(0)
-	_set_progress(2, 910.0, 19, "saltglass", 1)
+	_set_progress(2, 910.0, 19, "desert", 1)
 	var act2_entry_hp: float = director._hp_scale(0)
 	_check(act2_entry_hp <= act1_exit_hp * 1.40,
 		"Act 2 entry must rise smoothly instead of becoming an early stat wall")
-	_set_progress(3, 2550.0, 88, "steppe", 22)
+	_set_progress(3, 2550.0, 88, "snow", 22)
 	DayNight._apply(0.74)
 	print("[balance] Act2 per-lane=%d hp=%.2f damage=%.2f | Act3 per-lane=%d hp=%.2f" \
 		% [act2_size, act2_hp, act2_damage, act3_size, act3_hp])
@@ -164,9 +165,9 @@ func _test_act_curves() -> void:
 ## time, while every modifier is neutral before the midgame begins.
 func _test_opening_envelope() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
-	_set_progress(1, 0.0, 1, "ashfen", 1)
+	_set_progress(1, 0.0, 1, "jungle", 1)
 	DayNight._apply(0.18)
-	var terrain: TerrainData = ContentDB.terrain("ashfen")
+	var terrain: TerrainData = ContentDB.terrain("jungle")
 	var first_size: int = director._wave_size(1, terrain)
 	var first_hp: float = director._hp_scale(0)
 	var first_damage: float = director._damage_scale(0)
@@ -175,7 +176,7 @@ func _test_opening_envelope() -> void:
 		"opening Gold must cover all four roads plus one flex purchase")
 	director._wave_timer = 1.0
 	RunState.wave_number = 0
-	director._on_act_started(1, "ashfen")
+	director._on_act_started(1, "jungle")
 	_check(director.time_to_next_wave() >= 15.0,
 		"live first-wave timer must leave a meaningful planning window")
 	RunState.wave_number = 1
@@ -382,6 +383,57 @@ func _test_fusion_pair_lookup() -> void:
 				"fusion_pair_for must return the offer's own two parents")
 
 
+## Tools buy the roster, Sigils cap at four, and neither leaks power.
+##
+## CLAUDE.md §7 is the rule being defended here: the account save may hold
+## unlocked ids, statistics, settings, Tools, the four Sigil ranks and the
+## Treasury cache, and nothing else. A test that only counted Tools going up
+## would miss the thing that actually matters, which is that spending them
+## widens the roster and never strengthens it.
+func _test_tools_and_sigils() -> void:
+	var tools_before: int = MetaState.tools
+	var sigils_before: int = MetaState.sigils
+	var roster_before: int = MetaState.unlocked_towers.size()
+
+	# Depth pays, and paying enough buys roster width.
+	var bought: Array[String] = MetaState.award_tools(3, true)
+	_check(MetaState.tools <= Balance.TOOLS_MAX, "Tools must respect their cap")
+	_check(MetaState.unlocked_towers.size() == roster_before + bought.size(),
+		"every Tool spent on the roster must produce exactly one new tower")
+	for id: String in bought:
+		_check(ContentDB.tower(id) != null, "a bought roster id must name a real tower")
+
+	# The cap is a ceiling, not a soft target: hammer it.
+	for _run: int in 40:
+		MetaState.award_tools(3, true)
+	_check(MetaState.tools <= Balance.TOOLS_MAX,
+		"Tools must stay capped across many runs")
+	# Not a count of `unlocked_towers` - that pool also collects every tower the
+	# player *used*, fusions included, so it is not bounded by the roster. The
+	# invariant is that Tools stop buying once the authored order is exhausted.
+	for id: String in MetaState.ROSTER_UNLOCK_ORDER:
+		_check(MetaState.unlocked_towers.has(id),
+			"repeated runs must eventually unlock the whole roster (%s)" % id)
+	_check(MetaState.award_tools(3, true).is_empty(),
+		"a complete roster must stop consuming Tools")
+
+	# Four ranks, and then done.
+	for _win: int in Balance.SIGIL_MAX_RANK + 3:
+		MetaState.award_sigil()
+	_check(MetaState.sigils == Balance.SIGIL_MAX_RANK,
+		"Sigils must stop at the Legacy cap")
+	_check(not MetaState.award_sigil(), "a capped Legacy must refuse another Sigil")
+
+	# Rank 3 raises the Treasury ceiling; it must never lower a tier's own cap.
+	_check(MetaState.treasury_cap(20) == Balance.SIGIL_RANK3_TREASURY_CAP,
+		"rank 3 must raise the Treasury cap")
+	_check(MetaState.treasury_cap(999) == 999,
+		"a Sigil rank must never reduce a cap the Treasury already had")
+
+	MetaState.tools = tools_before
+	MetaState.sigils = sigils_before
+
+
 func _test_enemy_roles() -> void:
 	_check(ContentDB.enemy("glassborn").role == EnemyData.Role.VANGUARD,
 		"Glass-born must carry the fast-vanguard role")
@@ -391,8 +443,8 @@ func _test_enemy_roles() -> void:
 		"Burrower must emerge inside the outer defence")
 	var regular_ids: Dictionary = {}
 	var elite_ids: Dictionary = {}
-	for terrain: TerrainData in [ContentDB.terrain("ashfen"),
-			ContentDB.terrain("saltglass"), ContentDB.terrain("steppe")]:
+	for terrain: TerrainData in [ContentDB.terrain("jungle"),
+			ContentDB.terrain("desert"), ContentDB.terrain("snow")]:
 		_check(terrain != null and terrain.enemy_ids.size() == 4,
 			"every region must ship four regular enemy roles")
 		_check(terrain != null and terrain.elite_ids.size() == 2,
@@ -425,11 +477,11 @@ func _test_wave_archetypes() -> void:
 			_check(ContentDB.enemy(archetype.signature_enemy_id) != null,
 				"wave signature enemy '%s' must exist" % archetype.signature_enemy_id)
 	var director: WaveDirector = _run.battlefield.wave_director
-	_set_progress(2, 1200.0, 48, "saltglass", 6)
+	_set_progress(2, 1200.0, 48, "desert", 6)
 	var siege: WaveArchetypeData = ContentDB.wave_archetype("siege_column")
 	var lanes: Array[int] = director._pick_archetype_lanes(siege, 7)
 	_check(lanes.size() == 1, "siege columns must concentrate on one lane")
-	RunState.terrain_id = "saltglass"
+	RunState.terrain_id = "desert"
 	_check(director._signature_enemy(siege).id == "siege_lizard",
 		"signature roles must resolve to the active regional faction")
 	var pincer: WaveArchetypeData = ContentDB.wave_archetype("burrower_pincer")

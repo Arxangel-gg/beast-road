@@ -196,9 +196,9 @@ func _seed_enemies() -> void:
 
 func _seed_terrains() -> void:
 	var rows: Array = [
-		["ashfen", "Ashfen Marsh", "bogkin", 1, TowerData.Element.FIRE, 0.25, 1.5, 0, 1.0, 1.0],
-		["saltglass", "Saltglass Flats", "glassborn", 2, TowerData.Element.AIR, 0.20, 0.0, 1, 1.0, 0.9],
-		["steppe", "Iron Steppe", "steppehorde", 3, TowerData.Element.EARTH, 0.20, 0.0, 0, 1.5, 0.75],
+		["jungle", "Ashfen Marsh", "bogkin", 1, TowerData.Element.FIRE, 0.25, 1.5, 0, 1.0, 1.0],
+		["desert", "Saltglass Flats", "glassborn", 2, TowerData.Element.AIR, 0.20, 0.0, 1, 1.0, 0.9],
+		["snow", "Iron Steppe", "steppehorde", 3, TowerData.Element.EARTH, 0.20, 0.0, 0, 1.5, 0.75],
 	]
 	for row: Array in rows:
 		var t := TerrainData.new()

@@ -104,7 +104,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	RunState.wave_number = wave
 	RunState.distance_travelled = distance
 	var terrain: TerrainData = ContentDB.terrain_for_act(act)
-	RunState.terrain_id = terrain.id if terrain != null else "ashfen"
+	RunState.terrain_id = terrain.id if terrain != null else "jungle"
 	director._act_wave = act_wave
 	# Measured in daylight. Night is a modifier on top of everything here and
 	# folding it in would hide which curve is doing the work.

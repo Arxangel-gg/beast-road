@@ -96,7 +96,7 @@ func _ready() -> void:
 			_peaceful = true
 		elif argument == "--roads-only":
 			# Hides the terrain so the road strips can be judged on their own.
-			# The ashfen texture tiles with strong tonal blocks that look exactly
+			# The jungle texture tiles with strong tonal blocks that look exactly
 			# like a hard-edged road from a distance, which makes "is the blend
 			# working" impossible to answer by eye over the top of it.
 			_roads_only = true

@@ -1030,6 +1030,43 @@ const MARKET_TRADE_RETURN: int = 18
 const TREASURY_CACHE_PER_TIER: Array[int] = [20, 35, 50]
 const TREASURY_CACHE_MAX: int = 50
 
+# ==============================================================================
+# TOOLS AND SIGILS (GDD v4 SS35, SS36)
+# ==============================================================================
+#
+# The two account-level systems v4 sanctions. Both are horizontal: Tools widen
+# what a run *can* contain and Sigils widen how a run *starts*. Neither makes a
+# tower hit harder, which is the line CLAUDE.md SS7 draws around the save.
+
+## Tools earned for reaching an act, cumulative. Getting deeper is the whole
+## earning curve - there is no per-kill trickle, because a trickle rewards
+## farming a wave rather than surviving a road. [TUNE]
+const TOOLS_PER_ACT: int = 2
+
+## On top of that, for a run that reached the summit. [TUNE]
+const TOOLS_VICTORY_BONUS: int = 3
+
+## What one roster tower costs. Eight towers at four each is thirty-two Tools,
+## which is roughly four full runs - the roster widens over a campaign rather
+## than over an evening. [TUNE]
+const TOOLS_PER_ROSTER_TOWER: int = 4
+
+## Ceiling on the stored balance. Tools are spent automatically at the end of a
+## run, so a balance only builds up once the roster is complete; the cap stops it
+## growing into a meaningless number on the debrief. [TUNE]
+const TOOLS_MAX: int = 40
+
+## Legacy ranks, and the cap v4 SS36 fixes at four. "Four clears expose the
+## complete bounded legacy" - the point of the cap is that the ceiling is
+## reachable and then done, not a ladder without a top.
+const SIGIL_MAX_RANK: int = 4
+
+## Rank 1: a modest starting bundle, per currency. [TUNE]
+const SIGIL_RANK1_SUPPLY: int = 25
+
+## Rank 3: what the Treasury may carry when the rank is held. [TUNE]
+const SIGIL_RANK3_TREASURY_CAP: int = 120
+
 ## Accessibility contract mirrored by Palette's authored live tables.
 const COLOURBLIND_MODES: Array[String] = ["off", "protanopia", "deuteranopia", "tritanopia"]
 ## Stone from an elite kill.
@@ -1836,7 +1873,7 @@ const PATH_TINT_ALPHA: float = 0.84
 ## Multiplied into the road art so trodden ground sits darker than the country
 ## either side of it.
 ##
-## This is doing more work than it looks like. The road texture and the ashfen
+## This is doing more work than it looks like. The road texture and the jungle
 ## terrain are close in both hue and value, so at full opacity the lane was still
 ## only a faintly different rectangle. Contrast, not opacity, is what makes a
 ## road read as a road — and a road the player cannot pick out at a glance is a

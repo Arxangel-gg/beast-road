@@ -447,9 +447,9 @@ stay, the art follows v4.
 
 | File | v4 region | Subject |
 |------|-----------|---------|
-| `terrain_ashfen` | The Verdant Maw | wet jungle floor, saturated green moss and broad leaves, black mud, thick exposed roots, standing rainwater catching light |
-| `terrain_saltglass` | The Sunglass Waste | cracked flat of fused pale sand, turquoise glass shards embedded in the crust, thin fracture lines, long hard shadows |
-| `terrain_steppe` | The White Teeth | packed blue-white snow over black stone, wind-scoured drifts, exposed dark rock edges, faint aurora light on the surface |
+| `terrain_jungle` | The Verdant Maw | wet jungle floor, saturated green moss and broad leaves, black mud, thick exposed roots, standing rainwater catching light |
+| `terrain_desert` | The Sunglass Waste | cracked flat of fused pale sand, turquoise glass shards embedded in the crust, thin fracture lines, long hard shadows |
+| `terrain_snow` | The White Teeth | packed blue-white snow over black stone, wind-scoured drifts, exposed dark rock edges, faint aurora light on the surface |
 
 Use a **tileset / seamless** mode, not plain generation. Test by tiling 2x2 before
 saving — a visible seam becomes a grid across the whole battlefield. No

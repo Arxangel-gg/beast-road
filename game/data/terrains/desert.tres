@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TerrainData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_vp5e3"]
+
+[resource]
+script = ExtResource("1_vp5e3")
+breed_id = "glassborn"
+enemy_ids = Array[String](["glassborn", "scale_rider", "glassguard", "burrower"])
+elite_ids = Array[String](["mirage_seer", "siege_lizard"])
+act = 2
+favoured_element = 3
+favoured_element_bonus = 0.2
+bonus_chain_targets = 1
+wave_interval_multiplier = 0.95
+id = "desert"
+display_name = "The Sunglass Waste"

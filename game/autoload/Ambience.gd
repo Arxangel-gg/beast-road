@@ -11,10 +11,10 @@ extends Node
 ## the whole background down, not just the melody.
 
 const BEDS: Dictionary = {
-	"ashfen": "res://audio/ambience/ambience_ashfen.ogg",
+	"jungle": "res://audio/ambience/ambience_jungle.ogg",
 	"beast_walk": "res://audio/ambience/ambience_beast_walk.ogg",
-	"saltglass": "res://audio/ambience/ambience_saltglass.ogg",
-	"steppe": "res://audio/ambience/ambience_steppe.ogg",
+	"desert": "res://audio/ambience/ambience_desert.ogg",
+	"snow": "res://audio/ambience/ambience_snow.ogg",
 }
 
 const FADE_TIME: float = 2.5
@@ -33,7 +33,7 @@ func _ready() -> void:
 	EventBus.run_started.connect(func() -> void: play(RunState.terrain_id))
 
 
-## `bed_id` accepts a terrain id ("ashfen") or a bed id. Unknown ids stop the bed
+## `bed_id` accepts a terrain id ("jungle") or a bed id. Unknown ids stop the bed
 ## rather than erroring, so a terrain without ambience is simply quiet.
 func play(bed_id: String) -> void:
 	var key: String = bed_id.trim_prefix("ambience_")

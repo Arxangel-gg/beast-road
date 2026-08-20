@@ -47,7 +47,7 @@ ROWS = [
      "combat music for a cracked salt desert: brittle high metallic tones, glass "
      "and bowed metal, thin dry percussion, a sharp nervous energy"),
     ("music_battle_steppe", "music", "music", "2:00-3:00", "Suno",
-     "combat music for an iron steppe: driving low toms, war drums, rusted metal "
+     "combat music for an iron snow: driving low toms, war drums, rusted metal "
      "struck rhythmically, the most aggressive track in the game"),
     ("music_raid", "music", "music", "2:00-3:00", "Suno",
      "music for raiding an enemy camp: fast, relentless, tribal drums and a "
@@ -76,7 +76,7 @@ ROWS = [
      "a vast dry salt flat: thin high wind, faint crystalline ticking as the "
      "ground cools, nothing living"),
     ("ambience_steppe", "ambience", "ambience", "0:60-2:00", "Suno",
-     "an open iron steppe: steady dusty wind, loose metal creaking somewhere far "
+     "an open iron snow: steady dusty wind, loose metal creaking somewhere far "
      "away, sparse dry grass"),
     ("ambience_beast_walk", "ambience", "ambience", "0:60-2:00", "Suno",
      "the inside of an enormous walking creature heard from its back: a slow "

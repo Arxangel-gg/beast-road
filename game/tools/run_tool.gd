@@ -88,7 +88,7 @@ func _road_tiles() -> void:
 	# Every region's set, not just the default one. A region whose road is one
 	# tile short renders a road that stops dead mid-bend, and it does it only in
 	# that act - which is the last place anybody looks.
-	const REGIONS: Array[String] = ["ashfen", "saltglass", "steppe"]
+	const REGIONS: Array[String] = ["jungle", "desert", "snow"]
 	var sets: Array[String] = [FORMAT]
 	for region: String in REGIONS:
 		var candidate: String = "res://art/battlefield/path_%s_%%02d.png" % region

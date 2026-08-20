@@ -1914,9 +1914,9 @@ SUBJECT: a compact fortified keep of tiered stone with a banner mast, heavy gate
 
 ## 5.14 Raid — `res://art/raid/`
 
-### `chieftain_ashfen.png`
+### `chieftain_jungle.png`
 
-`256 x 256`  ->  `res://art/raid/chieftain_ashfen.png`
+`256 x 256`  ->  `res://art/raid/chieftain_jungle.png`
 
 ```text
 An isometric game character sprite, in the style of a top-down isometric action RPG.
@@ -1940,9 +1940,9 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, draped in waterlogged hides, carrying a heavy bone maul, black water streaming from its bulk
 ```
 
-### `chieftain_saltglass.png`
+### `chieftain_desert.png`
 
-`256 x 256`  ->  `res://art/raid/chieftain_saltglass.png`
+`256 x 256`  ->  `res://art/raid/chieftain_desert.png`
 
 ```text
 An isometric game character sprite, in the style of a top-down isometric action RPG.
@@ -1966,9 +1966,9 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored faceless head, jagged blade-limbs, refracting amber light
 ```
 
-### `chieftain_steppe.png`
+### `chieftain_snow.png`
 
-`256 x 256`  ->  `res://art/raid/chieftain_steppe.png`
+`256 x 256`  ->  `res://art/raid/chieftain_snow.png`
 
 ```text
 An isometric game character sprite, in the style of a top-down isometric action RPG.
@@ -2044,9 +2044,9 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed, heavy iron shackles on its cracked wrists, dulled fractured body
 ```
 
-### `captive_steppehorde.png`
+### `captive_snowhorde.png`
 
-`128 x 128`  ->  `res://art/raid/captive_steppehorde.png`
+`128 x 128`  ->  `res://art/raid/captive_snowhorde.png`
 
 ```text
 An isometric game character sprite, in the style of a top-down isometric action RPG.
@@ -2224,25 +2224,25 @@ Terrain tiles use `--tile` and should be checked by tiling them 2x2 before use.
 
 ## 5.7 Terrain tiles — `res://art/terrain/`
 
-### `terrain_ashfen.png`
+### `terrain_jungle.png`
 
-`512 x 512`  ->  `res://art/terrain/terrain_ashfen.png`
+`512 x 512`  ->  `res://art/terrain/terrain_jungle.png`
 
 ```text
 seamless tileable top-down ground texture, dark marsh ground, pools of black standing water, pale dead reeds, ash-grey mud, sunken twisted roots, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
 ```
 
-### `terrain_saltglass.png`
+### `terrain_desert.png`
 
-`512 x 512`  ->  `res://art/terrain/terrain_saltglass.png`
+`512 x 512`  ->  `res://art/terrain/terrain_desert.png`
 
 ```text
 seamless tileable top-down ground texture, cracked salt flat, pale white-blue crystalline crust, thin fracture lines, scattered glassy shards, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
 ```
 
-### `terrain_steppe.png`
+### `terrain_snow.png`
 
-`512 x 512`  ->  `res://art/terrain/terrain_steppe.png`
+`512 x 512`  ->  `res://art/terrain/terrain_snow.png`
 
 ```text
 seamless tileable top-down ground texture, dry steppe hardpan, red-brown cracked earth, scattered rusted iron debris, sparse dead grass tufts, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
@@ -2412,13 +2412,13 @@ a plain dark textured background of deep teal-black with a faint warm amber glow
 | 86 | `ui_wave.png` | 64 x 64 | ChatGPT |
 | 87 | `captive_bogkin.png` | 128 x 128 | ChatGPT |
 | 88 | `captive_glassborn.png` | 128 x 128 | ChatGPT |
-| 89 | `captive_steppehorde.png` | 128 x 128 | ChatGPT |
-| 90 | `chieftain_ashfen.png` | 256 x 256 | ChatGPT |
-| 91 | `chieftain_saltglass.png` | 256 x 256 | ChatGPT |
-| 92 | `chieftain_steppe.png` | 256 x 256 | ChatGPT |
-| 93 | `terrain_ashfen.png` | 512 x 512 | Midjourney |
-| 94 | `terrain_saltglass.png` | 512 x 512 | Midjourney |
-| 95 | `terrain_steppe.png` | 512 x 512 | Midjourney |
+| 89 | `captive_snowhorde.png` | 128 x 128 | ChatGPT |
+| 90 | `chieftain_jungle.png` | 256 x 256 | ChatGPT |
+| 91 | `chieftain_desert.png` | 256 x 256 | ChatGPT |
+| 92 | `chieftain_snow.png` | 256 x 256 | ChatGPT |
+| 93 | `terrain_jungle.png` | 512 x 512 | Midjourney |
+| 94 | `terrain_desert.png` | 512 x 512 | Midjourney |
+| 95 | `terrain_snow.png` | 512 x 512 | Midjourney |
 | 96 | `tower_arc_coil.png` | 128 x 192 | ChatGPT |
 | 97 | `tower_bastion.png` | 128 x 192 | ChatGPT |
 | 98 | `tower_blizzard.png` | 128 x 192 | ChatGPT |

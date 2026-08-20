@@ -61,7 +61,7 @@ func _route(run_seed: int) -> Array[String]:
 
 func _wave_plan(run_seed: int) -> Array[String]:
 	RunState.reset(false, run_seed)
-	RunState.terrain_id = "ashfen"
+	RunState.terrain_id = "jungle"
 	RunState.act = 1
 	DayNight._apply(0.18)
 	var director := WaveDirector.new()

@@ -236,9 +236,9 @@ density (`Balance.GROUND_UNITS_PER_TEXEL`).
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `terrain_ashfen.png` | 40×40 | O | `#2E3A33` |
-| `terrain_saltglass.png` | 40×40 | O | `#8FA8B8` |
-| `terrain_steppe.png` | 40×40 | O | `#6B4A3A` |
+| `terrain_jungle.png` | 40×40 | O | `#2E3A33` |
+| `terrain_desert.png` | 40×40 | O | `#8FA8B8` |
+| `terrain_snow.png` | 40×40 | O | `#6B4A3A` |
 
 **Region floors — corner (Wang) sets.**
 
@@ -259,64 +259,64 @@ position, and read the corners by name rather than positionally.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_ashfen_00.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_01.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_02.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_03.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_04.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_05.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_06.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_07.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_08.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_09.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_10.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_11.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_12.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_13.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_14.png` | 32×32 | O | `#2E3A33` |
-| `ground_ashfen_15.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_00.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_01.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_02.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_03.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_04.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_05.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_06.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_07.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_08.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_09.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_10.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_11.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_12.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_13.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_14.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_15.png` | 32×32 | O | `#2E3A33` |
 
 **Act II — The Sunglass Waste** (pale salt hardpan → golden sand drifts)
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_saltglass_00.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_01.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_02.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_03.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_04.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_05.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_06.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_07.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_08.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_09.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_10.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_11.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_12.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_13.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_14.png` | 32×32 | O | `#C9A968` |
-| `ground_saltglass_15.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_00.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_01.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_02.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_03.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_04.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_05.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_06.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_07.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_08.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_09.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_10.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_11.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_12.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_13.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_14.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_15.png` | 32×32 | O | `#C9A968` |
 
 **Act III — The White Teeth** (frozen rock → wind-packed snow)
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_steppe_00.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_01.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_02.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_03.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_04.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_05.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_06.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_07.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_08.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_09.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_10.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_11.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_12.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_13.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_14.png` | 32×32 | O | `#8FA8B8` |
-| `ground_steppe_15.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_00.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_01.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_02.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_03.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_04.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_05.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_06.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_07.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_08.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_09.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_10.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_11.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_12.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_13.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_14.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_15.png` | 32×32 | O | `#8FA8B8` |
 
 ### 5.8 Backdrops — `res://art/bg/`
 
@@ -492,64 +492,64 @@ which is where the tile-order, missing-mask and seam problems are documented.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_ashfen_00.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_01.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_02.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_03.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_04.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_05.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_06.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_07.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_08.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_09.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_10.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_11.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_12.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_13.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_14.png` | 32×32 | T | `#6B5A44` |
-| `path_ashfen_15.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_00.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_01.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_02.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_03.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_04.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_05.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_06.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_07.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_08.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_09.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_10.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_11.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_12.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_13.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_14.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_15.png` | 32×32 | T | `#6B5A44` |
 
 **Act II — The Sunglass Waste**
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_saltglass_00.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_01.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_02.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_03.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_04.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_05.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_06.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_07.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_08.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_09.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_10.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_11.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_12.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_13.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_14.png` | 32×32 | T | `#D8C08A` |
-| `path_saltglass_15.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_00.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_01.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_02.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_03.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_04.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_05.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_06.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_07.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_08.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_09.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_10.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_11.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_12.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_13.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_14.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_15.png` | 32×32 | T | `#D8C08A` |
 
 **Act III — The White Teeth**
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_steppe_00.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_01.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_02.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_03.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_04.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_05.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_06.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_07.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_08.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_09.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_10.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_11.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_12.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_13.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_14.png` | 32×32 | T | `#8A8D95` |
-| `path_steppe_15.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_00.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_01.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_02.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_03.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_04.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_05.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_06.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_07.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_08.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_09.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_10.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_11.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_12.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_13.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_14.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_15.png` | 32×32 | T | `#8A8D95` |
 
 ### 5.18 Projectiles — `res://art/vfx/`
 
@@ -582,9 +582,9 @@ the art only has to carry the element - which is why one frame is enough.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `chieftain_ashfen.png` | 256×256 | T | `#3E5A52` |
-| `chieftain_saltglass.png` | 256×256 | T | `#9FB4C4` |
-| `chieftain_steppe.png` | 256×256 | T | `#9C4A3B` |
+| `chieftain_jungle.png` | 256×256 | T | `#3E5A52` |
+| `chieftain_desert.png` | 256×256 | T | `#9FB4C4` |
+| `chieftain_snow.png` | 256×256 | T | `#9C4A3B` |
 | `captive_bogkin.png` | 128×128 | T | `#4A6B4F` |
 | `captive_glassborn.png` | 128×128 | T | `#6B8A9E` |
 | `captive_steppehorde.png` | 128×128 | T | `#8C3A2B` |
@@ -671,9 +671,9 @@ Drop each `SUBJECT` into the matching stem from §3.
 
 | Asset | Subject |
 |-------|---------|
-| `terrain_ashfen` | dark marsh ground, pools of black standing water, pale dead reeds, ash-grey mud, sunken twisted roots |
-| `terrain_saltglass` | cracked salt flat, pale white-blue crystalline crust, thin fracture lines, scattered glassy shards |
-| `terrain_steppe` | dry steppe hardpan, red-brown cracked earth, scattered rusted iron debris, sparse dead grass tufts |
+| `terrain_jungle` | dark marsh ground, pools of black standing water, pale dead reeds, ash-grey mud, sunken twisted roots |
+| `terrain_desert` | cracked salt flat, pale white-blue crystalline crust, thin fracture lines, scattered glassy shards |
+| `terrain_snow` | dry snow hardpan, red-brown cracked earth, scattered rusted iron debris, sparse dead grass tufts |
 
 ### Backdrops (Midjourney, opaque stem)
 
@@ -681,7 +681,7 @@ Drop each `SUBJECT` into the matching stem from §3.
 |-------|---------|
 | `macro_act1` | a vast fog-drowned marsh valley stretching to the horizon, drowned trees, low grey mist, distant water |
 | `macro_act2` | an endless cracked white salt desert under a bruised sky, distant glass formations catching light, heat shimmer |
-| `macro_act3` | a red-brown iron steppe under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon |
+| `macro_act3` | a red-brown iron snow under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon |
 | `crossroad_bg` | a fork in an ancient road at dusk, two paths diverging into different distant landscapes, weathered stone waymarker in the foreground |
 | `raid_arena_bg` | a hostile enemy warcamp seen from directly above, ringed by bone totems and burning braziers, packed dirt floor, tents at the edges `--ar 1:1` |
 | `menu_key_art` | an immense ancient beast walking away across a wasteland at dusk with a small lit fortified city on its back, seen from behind and below, dramatic scale, cinematic key art |
@@ -716,7 +716,7 @@ for a long time.
 
 | When | Make |
 |------|------|
-| **After Stage 2** (triage confirmed fun) | `hero_base`, `enemy_bogkin`, all 8 towers, `city_base`, `terrain_ashfen` |
+| **After Stage 2** (triage confirmed fun) | `hero_base`, `enemy_bogkin`, all 8 towers, `city_base`, `terrain_jungle` |
 | **After Stage 3** | `elite_*`, `raid_arena_bg` |
 | **After Stage 4** | `building_*`, `beast_profile`, `ui_*` |
 | **Stage 5–6** | everything else |

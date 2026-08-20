@@ -17,7 +17,21 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
+
+## Terrain ids as they were before v4's regions were adopted. A save records
+## which terrains a player has unlocked *by id*, so renaming the content renames
+## the save keys with it - and a v2 save would otherwise arrive holding three ids
+## that no longer name anything, silently losing the unlocks.
+## Save versions this build can carry forward. Anything else is backed up and
+## the account starts fresh.
+const MIGRATABLE_VERSIONS: Array[int] = [1, 2]
+
+const TERRAIN_RENAMES_V3: Dictionary = {
+	"ashfen": "jungle",
+	"saltglass": "desert",
+	"steppe": "snow",
+}
 
 ## The save file was written or loaded.
 signal save_written()
@@ -37,8 +51,10 @@ const STARTING_TOWERS: Array[String] = [
 	"arc_coil", "gale_turret",
 ]
 
-## The roster order the later towers are earned in. One per act boss felled, so
-## the toolkit widens at the same pace the run does and a new player meets one
+## The roster order the later towers are earned in, bought with Tools at the end
+## of a run (v4 §35). It was one per act boss felled, which paid a run that died
+## in Act III the same as one that cleared it; Tools price depth instead. Still
+## an authored order, so a new player meets one
 ## new tower at a time rather than sixteen at once.
 const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"tide_caller", "grit_sling",
@@ -63,6 +79,13 @@ var resource_cache: Dictionary = {}
 ## Set once Act 3 has been cleared. Worth exactly one extra starting Town Hall
 ## relic slot, capped at +1. This is the only sanctioned persistent power.
 var act3_cleared: bool = false
+
+## Tools: the account currency that widens what a run can contain (v4 §35).
+## Earned by getting deep, spent on the roster. Never on power.
+var tools: int = 0
+
+## Legacy rank, one per full clear, capped at Balance.SIGIL_MAX_RANK (v4 §36).
+var sigils: int = 0
 
 # --- Run statistics ---
 var runs_started: int = 0
@@ -91,6 +114,51 @@ var settings: Dictionary = {
 }
 
 
+## Banks Tools for a finished run and spends them on the roster.
+##
+## Earning is by depth, not by kills: a per-kill trickle pays for farming one
+## wave, which is the opposite of what the run is for. Spending is automatic and
+## in the authored order, because a shop for one currency with one thing to buy
+## is a menu standing in front of a decision nobody makes.
+##
+## Returns the tower ids unlocked, so the debrief can name them.
+func award_tools(act_reached: int, victory: bool) -> Array[String]:
+	var earned: int = Balance.TOOLS_PER_ACT * maxi(act_reached, 1)
+	if victory:
+		earned += Balance.TOOLS_VICTORY_BONUS
+	tools = mini(tools + earned, Balance.TOOLS_MAX)
+
+	var bought: Array[String] = []
+	while tools >= Balance.TOOLS_PER_ROSTER_TOWER:
+		var id: String = earn_next_roster_tower()
+		if id.is_empty():
+			break                                   # roster complete
+		tools -= Balance.TOOLS_PER_ROSTER_TOWER
+		bought.append(id)
+	return bought
+
+
+## One Sigil per full clear, until the legacy is complete.
+##
+## v4 §36 wants this on the true final boss. The Chainmaker does not exist yet,
+## so it is awarded on the summit clear that currently ends the campaign - the
+## same moment, one boss early. Move the call, not the rule, when the summit is
+## built.
+func award_sigil() -> bool:
+	if sigils >= Balance.SIGIL_MAX_RANK:
+		return false
+	sigils += 1
+	save_game()
+	return true
+
+
+## What the Treasury may carry between runs. Rank 3 raises it (v4 §36).
+func treasury_cap(tier_cap: int) -> int:
+	if sigils >= 3:
+		return maxi(tier_cap, Balance.SIGIL_RANK3_TREASURY_CAP)
+	return tier_cap
+
+
 ## Throws the account away and starts over.
 ##
 ## Offered in Settings because a roguelite's unlock pool is most of what a
@@ -109,6 +177,8 @@ func erase_progress() -> void:
 	unlocked_buildings.clear()
 	resource_cache.clear()
 	act3_cleared = false
+	tools = 0
+	sigils = 0
 	runs_started = 0
 	runs_won = 0
 	best_distance = 0.0
@@ -157,8 +227,19 @@ func _ready() -> void:
 
 
 ## Extra Town Hall relic slots granted by meta-progression. Capped by design.
+## Rank 4's legacy effect in v4 §36 is "one additional Town Hall relic socket",
+## which is exactly what the shipped `act3_cleared` bonus already grants - and
+## CLAUDE.md §7 names that bonus as the *only* sanctioned persistent power. So
+## the socket stays on the first clear rather than the fourth: strictly more
+## generous than v4, takes nothing away from an account that has it, and avoids
+## two systems paying twice for the same achievement.
 func bonus_relic_slots() -> int:
 	return Balance.ACT3_CLEAR_BONUS_RELIC_SLOTS if act3_cleared else 0
+
+
+## The starting bundle rank 1 grants, per currency (v4 §36).
+func sigil_starting_supply() -> int:
+	return Balance.SIGIL_RANK1_SUPPLY if sigils >= 1 else 0
 
 
 func save_game() -> void:
@@ -183,6 +264,8 @@ func serialized_save() -> String:
 			"spells": unlocked_spells,
 			"terrains": unlocked_terrains,
 			"buildings": unlocked_buildings,
+			"tools": tools,
+			"sigils": sigils,
 			"act3_cleared": act3_cleared,
 		},
 		"resource_cache": resource_cache,
@@ -226,7 +309,7 @@ func load_save() -> void:
 	# GDD §52 requires migration to "never destroy the source save". Keeping the
 	# original is the whole of that requirement, and it costs one file copy.
 	var found_version: int = int(data.get("version", 0))
-	if found_version != SAVE_VERSION and found_version != 1:
+	if found_version != SAVE_VERSION and not MIGRATABLE_VERSIONS.has(found_version):
 		_back_up_save(text, found_version)
 		push_warning("MetaState: save version %d is not %d; kept a copy at %s and started fresh."
 			% [found_version, SAVE_VERSION, SAVE_BACKUP_PATH % found_version])
@@ -244,6 +327,8 @@ func load_save() -> void:
 	unlocked_terrains = _string_array(unlocked.get("terrains", []))
 	unlocked_buildings = _string_array(unlocked.get("buildings", []))
 	act3_cleared = bool(unlocked.get("act3_cleared", false))
+	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
+	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	resource_cache = data.get("resource_cache", {}) as Dictionary
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary
@@ -268,20 +353,39 @@ func migrate_save(data: Dictionary, source_text: String = "",
 	var found_version: int = int(data.get("version", 0))
 	if found_version == SAVE_VERSION:
 		return data
-	if found_version != 1:
+	if not MIGRATABLE_VERSIONS.has(found_version):
 		return {}
 	var original: String = source_text if not source_text.is_empty() else JSON.stringify(data, "\t")
 	if not _back_up_save(original, found_version, backup_path):
 		return {}
 	var migrated: Dictionary = data.duplicate(true)
-	migrated["version"] = SAVE_VERSION
-	if not migrated.has("resource_cache"):
-		migrated["resource_cache"] = {}
 	var unlocked: Dictionary = migrated.get("unlocked", {}) as Dictionary
-	if not unlocked.has("buildings"):
-		unlocked["buildings"] = []
+
+	# Applied in order, so a v1 save walks every step rather than jumping to the
+	# current shape and skipping the ones in between.
+	if found_version <= 1:
+		if not migrated.has("resource_cache"):
+			migrated["resource_cache"] = {}
+		if not unlocked.has("buildings"):
+			unlocked["buildings"] = []
+	if found_version <= 2:
+		unlocked["terrains"] = _renamed_terrains(unlocked.get("terrains", []))
+
 	migrated["unlocked"] = unlocked
+	migrated["version"] = SAVE_VERSION
 	return migrated
+
+
+## Rewrites unlocked terrain ids to their v4 region names, dropping nothing: an
+## id that is already current, or that names no terrain at all, is passed through
+## rather than discarded. A migration that quietly forgets an unlock is worse
+## than one that carries a stale string.
+func _renamed_terrains(ids: Array) -> Array:
+	var out: Array = []
+	for value: Variant in ids:
+		var id: String = String(value)
+		out.append(TERRAIN_RENAMES_V3.get(id, id))
+	return out
 
 
 func building_unlocked(id: String) -> bool:

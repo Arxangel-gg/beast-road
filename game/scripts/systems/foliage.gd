@@ -16,9 +16,9 @@ extends Node2D
 ## act's ground painting each time the terrain changes, so plants inherit the
 ## local hue and remain coherent under the same day/night CanvasModulate.
 const STYLES: Dictionary = {
-	"ashfen": {"kind": "reed"},
-	"saltglass": {"kind": "shard"},
-	"steppe": {"kind": "tuft"},
+	"jungle": {"kind": "reed"},
+	"desert": {"kind": "shard"},
+	"snow": {"kind": "tuft"},
 }
 
 const PALETTE_SAMPLE_SIZE: int = 32
@@ -122,7 +122,7 @@ func scatter() -> void:
 	_bands.clear()
 	_shadows.clear()
 
-	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["ashfen"]).duplicate()
+	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["jungle"]).duplicate()
 	style.merge(_terrain_palette(), true)
 	var rng := RandomNumberGenerator.new()
 	# Seeded per terrain, so a given act always looks the same rather than

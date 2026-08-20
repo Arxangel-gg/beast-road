@@ -79,6 +79,8 @@ func end_run(victory: bool) -> void:
 
 	var summary: Dictionary = {
 		"victory": victory,
+		"tools": MetaState.tools,
+		"sigils": MetaState.sigils,
 		"seed": RunState.run_seed,
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,
@@ -114,6 +116,14 @@ func end_run(victory: bool) -> void:
 	if victory:
 		MetaState.runs_won += 1
 		MetaState.act3_cleared = true
+	# Tools for depth, and the roster they buy. Before the statistics, so the
+	# debrief's unlock list already contains anything they paid for.
+	var roster: Array[String] = MetaState.award_tools(RunState.act, victory)
+	for id: String in roster:
+		EventBus.unlock_earned.emit("tower", id)
+	if victory:
+		MetaState.award_sigil()
+
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
 	MetaState.total_enemies_killed += RunState.enemies_killed
 	_bank_treasury_cache()
@@ -129,11 +139,13 @@ func end_run(victory: bool) -> void:
 ## widen each element from two roles to four. Tied to act bosses so the toolkit
 ## grows at the pace the run does, and so a new player meets one new tower at a
 ## time instead of sixteen at once.
+## Kept as the moment the *run* records depth; the roster itself is now bought
+## with Tools when the run ends (v4 §35). Felling a boss used to unlock a tower
+## outright, which meant a run that died in Act III with a boss down paid the
+## same as one that cleared the act - and a currency the player can see going up
+## reads as progress in a way a silent unlock does not.
 func _on_boss_felled(_boss_id: String, _act: int) -> void:
-	var earned: String = MetaState.earn_next_roster_tower()
-	if earned.is_empty():
-		return
-	EventBus.unlock_earned.emit("tower", earned)
+	pass
 
 
 ## Everything the player touched this run enters the pool of things that *can*
@@ -197,8 +209,8 @@ func _bank_treasury_cache() -> void:
 	if tier <= 0:
 		MetaState.resource_cache.clear()
 		return
-	var cap: int = Balance.TREASURY_CACHE_PER_TIER[clampi(
-		tier - 1, 0, Balance.TREASURY_CACHE_PER_TIER.size() - 1)]
+	var cap: int = MetaState.treasury_cap(Balance.TREASURY_CACHE_PER_TIER[clampi(
+		tier - 1, 0, Balance.TREASURY_CACHE_PER_TIER.size() - 1)])
 	MetaState.resource_cache.clear()
 	for id: String in RunState.CURRENCIES:
 		MetaState.resource_cache[id] = mini(RunState.currency(id), cap)

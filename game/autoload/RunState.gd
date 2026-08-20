@@ -257,6 +257,13 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		GOLD: Balance.STARTING_GOLD,
 		STONE: Balance.STARTING_STONE,
 	}
+	# Sigil rank 1: a modest bundle on every currency (v4 §36). Applied before
+	# the Treasury cache so the two stack rather than one replacing the other.
+	var bundle: int = MetaState.sigil_starting_supply()
+	if bundle > 0:
+		for id: String in CURRENCIES:
+			currencies[id] = currency(id) + bundle
+
 	if use_treasury_cache:
 		for id: String in CURRENCIES:
 			currencies[id] = currency(id) + int(MetaState.resource_cache.get(id, 0))

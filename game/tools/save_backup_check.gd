@@ -65,13 +65,39 @@ func _ready() -> void:
 	print("[save] v1 source preserved=%s migration valid=%s"
 		% [str(migration_kept), str(migration_valid)])
 
+	# v2 -> v3 renamed the terrain ids to v4's regions, and a save records which
+	# terrains are unlocked *by id*. Without the rename step a returning player
+	# silently loses three unlocks to strings that no longer name anything, and
+	# nothing errors - the ids are just never matched again.
+	var v2_text: String = JSON.stringify({
+		"version": 2,
+		"unlocked": {
+			"towers": [marker],
+			"buildings": [],
+			"terrains": ["ashfen", "steppe", "already_current"],
+		},
+		"resource_cache": {},
+	}, "\t")
+	var v2: Dictionary = MetaState.migrate_save(
+		JSON.parse_string(v2_text) as Dictionary, v2_text, migration_backup)
+	var terrains: Array = (v2.get("unlocked", {}) as Dictionary).get("terrains", []) as Array
+	var renamed: bool = terrains.has("jungle") and terrains.has("snow")
+	var gone: bool = not terrains.has("ashfen") and not terrains.has("steppe")
+	# An id the rename does not know is carried through rather than dropped: a
+	# migration that quietly forgets an unlock is worse than a stale string.
+	var kept_unknown: bool = terrains.has("already_current")
+	var v2_valid: bool = int(v2.get("version", 0)) == MetaState.SAVE_VERSION
+	v2_valid = v2_valid and renamed and gone and kept_unknown
+	print("[save] v2 terrain rename=%s unknown ids kept=%s"
+		% [str(renamed and gone), str(kept_unknown)])
 	for path: String in [save_path, backup, migration_backup]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
-	if not (kept and intact and still and migration_kept and migration_valid):
-		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s"
-			% [str(kept), str(intact), str(still), str(migration_kept), str(migration_valid)])
+	if not (kept and intact and still and migration_kept and migration_valid and v2_valid):
+		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s v2=%s"
+			% [str(kept), str(intact), str(still), str(migration_kept),
+				str(migration_valid), str(v2_valid)])
 		get_tree().quit(1)
 		return
 	for _f: int in 5:

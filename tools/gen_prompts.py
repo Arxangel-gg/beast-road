@@ -209,14 +209,14 @@ S["terrain_ashfen.png"] = ("dark marsh ground, pools of black standing water, pa
     "ash-grey mud, sunken twisted roots")
 S["terrain_saltglass.png"] = ("cracked salt flat, pale white-blue crystalline crust, thin "
     "fracture lines, scattered glassy shards")
-S["terrain_steppe.png"] = ("dry steppe hardpan, red-brown cracked earth, scattered rusted iron "
+S["terrain_steppe.png"] = ("dry snow hardpan, red-brown cracked earth, scattered rusted iron "
     "debris, sparse dead grass tufts")
 
 S["macro_act1.png"] = ("a vast fog-drowned marsh valley stretching to the horizon, drowned trees, "
     "low grey mist, distant water")
 S["macro_act2.png"] = ("an endless cracked white salt desert under a bruised sky, distant glass "
     "formations catching light, heat shimmer")
-S["macro_act3.png"] = ("a red-brown iron steppe under a heavy dust sky, the ruined silhouette of "
+S["macro_act3.png"] = ("a red-brown iron snow under a heavy dust sky, the ruined silhouette of "
     "an immense fortress on the far horizon")
 S["crossroad_bg.png"] = ("a fork in an ancient road at dusk, two paths diverging into different "
     "distant landscapes, weathered stone waymarker in the foreground")

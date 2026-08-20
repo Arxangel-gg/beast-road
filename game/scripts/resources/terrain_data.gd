@@ -6,7 +6,7 @@ extends GameData
 ## element. That pairing is what makes the crossroad terrain choice a real
 ## decision rather than a difficulty slider.
 ##
-## `id = "ashfen"` -> `res://art/terrain/terrain_ashfen.png`
+## `id = "jungle"` -> `res://art/terrain/terrain_jungle.png`
 
 ## EnemyData id of the breed that dominates this terrain.
 @export var breed_id: String = ""

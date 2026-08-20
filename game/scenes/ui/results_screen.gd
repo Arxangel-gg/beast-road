@@ -117,6 +117,10 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		"Wounds suffered %d   ·   Hearthmends %d" % [
 			int(summary.get("wounds", 0)), int(summary.get("hearthmends", 0))],
 		"",
+		"Tools %d   ·   Legacy rank %d of %d" % [
+			int(summary.get("tools", 0)), int(summary.get("sigils", 0)),
+			Balance.SIGIL_MAX_RANK],
+		"",
 		"Added to the pool: %d" % unlocks.size(),
 	]
 	var endless_waves: int = int(summary.get("endless_waves", 0))
