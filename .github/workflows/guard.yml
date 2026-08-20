@@ -155,6 +155,12 @@ jobs:
           # stops dead mid-bend, and the generated set arrived in an order that
           # had nothing to do with the mask.
           check "road tiles" --headless --path game --script res://tools/run_tool.gd -- road-tiles
+          # Every region's floor is bright enough to be ground and its two
+          # materials belong to the same place. The jungle shipped a base
+          # material with a median luminance of 19 out of 255 — across most of
+          # the battlefield, for months — and it was found by a person looking at
+          # a screenshot, not by anything that runs.
+          check "floor tiles" --headless --path game --script res://tools/run_tool.gd -- floor-tiles
 
       - name: Say what broke
         if: failure()

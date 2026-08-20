@@ -19,7 +19,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/run_tool.gd -- import [--dry]
 ##   godot --headless --path game --script res://tools/run_tool.gd -- road-tiles
 
-const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak | road-tiles | audit [--todo]>"
+const USAGE: String = "usage: run_tool.gd -- <generate [--force] | report | seed | import [--dry] | font-check | theme | tool-leak | road-tiles | floor-tiles | audit [--todo]>"
 
 
 func _init() -> void:
@@ -46,6 +46,8 @@ func _init() -> void:
 			_tool_leak()
 		"road-tiles":
 			_road_tiles()
+		"floor-tiles":
+			_floor_tiles()
 		"audit":
 			_audit(args.has("--todo"))
 		_:
@@ -76,6 +78,121 @@ func _generate(force: bool) -> void:
 ## Also checks the collar - the road must present the same cross-section at every
 ## connected edge - because a tile that is a pixel narrow there leaves a hairline
 ## of terrain across the road at the join.
+## Every region's floor is legible, textured, and made of two materials that
+## belong to the same place.
+##
+## The jungle floor shipped with a base material whose median luminance was 19
+## out of 255 — near black, across most of the battlefield, for months. It was
+## found by a person looking at a screenshot and calling it "the largest visual
+## gap in the game", which is exactly the kind of defect a two-second check
+## should have caught on the push that introduced it.
+##
+## Four rules, and each one is here because a real regeneration failed it:
+##
+## 1. **Not a hole.** Median luminance at or above `FLOOR_MIN`. The original
+##    jungle base sat at 19 and read as a void the road was suspended over.
+## 2. **Has texture.** The 10th-to-90th percentile spread is at least
+##    `FLOOR_RANGE_MIN`. A tile can be a perfectly reasonable brightness and
+##    still be a flat colour field with nothing in it.
+## 3. **Two materials, not one.** The RGB distance between the pure-lower and
+##    pure-upper tiles is at least `FLOOR_MATERIAL_MIN`. A regeneration of the
+##    snow set came back with both materials at the same near-white; the
+##    sixteen-tile set was intact, correct, and drawing nothing.
+## 4. **The same place.** Their luminance ratio is at most `FLOOR_CONTRAST_MAX`.
+##    Snow shipped a near-black lower against a near-white upper — 5.1x — which
+##    reads as holes cut in a snowfield rather than as drifts on one.
+##
+## There is deliberately **no upper brightness limit**. Snow is white and desert
+## hardpan is nearly white; capping them would be fighting the material. Whether
+## anything can be seen *against* a bright floor is a different question, it is
+## measured directly rather than guessed at, and `night_check.tscn` is where.
+##
+## Brightness is reported as a *median*, never a mean: a tile is mostly its
+## material, and a handful of bright specks should not vouch for a black field.
+func _floor_tiles() -> void:
+	const REGIONS: Array[String] = ["jungle", "desert", "snow"]
+	const FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
+	# Spelled out rather than read from Balance: this runs under a SceneTree tool
+	# where no autoload exists, and naming one is a compile error.
+	#
+	# Thresholds sit clear of what the shipping sets actually measure, so this
+	# fails on a regression rather than on a regeneration that came back slightly
+	# different. Measured at the time of writing: darkest median 136 against a
+	# floor of 45, thinnest texture 14 against 10, closest materials 70 against
+	# 40, widest contrast 1.79x against 3.2x.
+	const FLOOR_MIN: int = 45
+	const FLOOR_RANGE_MIN: int = 10
+	const FLOOR_MATERIAL_MIN: float = 40.0
+	const FLOOR_CONTRAST_MAX: float = 3.2
+
+	var problems: PackedStringArray = []
+	for region: String in REGIONS:
+		var medians: Array[int] = []
+		var means: Array[Color] = []
+		for mask: int in 16:
+			var path: String = FORMAT % [region, mask]
+			if not ResourceLoader.exists(path):
+				problems.append("%s is missing" % path.get_file())
+				continue
+			var image: Image = (load(path) as Texture2D).get_image()
+			image.convert(Image.FORMAT_RGBA8)
+
+			var levels: PackedInt32Array = PackedInt32Array()
+			var total := Vector3.ZERO
+			for y: int in image.get_height():
+				for x: int in image.get_width():
+					var pixel: Color = image.get_pixel(x, y)
+					if pixel.a <= 0.5:
+						continue
+					levels.append(int(round(pixel.get_luminance() * 255.0)))
+					total += Vector3(pixel.r, pixel.g, pixel.b) * 255.0
+			if levels.is_empty():
+				problems.append("%s is fully transparent" % path.get_file())
+				continue
+
+			levels.sort()
+			var count: int = levels.size()
+			var median: int = levels[count / 2]
+			var spread: int = levels[count * 9 / 10] - levels[count / 10]
+			medians.append(median)
+			total /= float(count)
+			means.append(Color(total.x, total.y, total.z))
+
+			if median < FLOOR_MIN:
+				problems.append("%s is a hole, not ground: median luminance %d, floor is %d"
+					% [path.get_file(), median, FLOOR_MIN])
+			if spread < FLOOR_RANGE_MIN:
+				problems.append("%s is a flat colour field: p10-p90 spread %d, needs %d"
+					% [path.get_file(), spread, FLOOR_RANGE_MIN])
+
+		# Corner masks 0 and 15 are the two materials undiluted. Everything else
+		# is a blend of them, so the pair is the whole of what a region is made of.
+		if medians.size() == 16 and means.size() == 16:
+			var low: float = float(mini(medians[0], medians[15]))
+			var high: float = float(maxi(medians[0], medians[15]))
+			var ratio: float = high / maxf(low, 1.0)
+			var apart: float = Vector3(means[0].r, means[0].g, means[0].b).distance_to(
+				Vector3(means[15].r, means[15].g, means[15].b))
+			if apart < FLOOR_MATERIAL_MIN:
+				problems.append(
+					"%s has one material, not two: the pure tiles are %.0f apart, needs %.0f"
+					% [region, apart, FLOOR_MATERIAL_MIN])
+			if ratio > FLOOR_CONTRAST_MAX:
+				problems.append(
+					"%s's materials are not the same place: %d against %d (%.1fx, limit %.1fx)"
+					% [region, int(low), int(high), ratio, FLOOR_CONTRAST_MAX])
+			print("  %-7s medians %d..%d   materials %.0f apart, %.2fx contrast"
+				% [region, medians.min(), medians.max(), apart, ratio])
+
+	if problems.is_empty():
+		print("Floor tiles: all three regions legible, textured and cohesive.")
+		quit(0)
+		return
+	for problem: String in problems:
+		printerr("Floor tiles: %s" % problem)
+	quit(1)
+
+
 func _road_tiles() -> void:
 	const SIDES: Array[String] = ["N", "E", "S", "W"]
 	const LO: int = 8

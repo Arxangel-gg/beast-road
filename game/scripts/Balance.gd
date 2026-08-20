@@ -1799,20 +1799,39 @@ const ANIM_MASS_BOSS: float = 9.0
 
 ## World units behind one terrain texel.
 ##
-## Matched to the road rather than chosen for the floor alone: a road piece is a
-## 32px tile drawn across PIECE (384) units, so twelve puts exactly the same
-## number of world units behind a ground texel as behind a road texel. Anything
-## else and the two are visibly different resolutions stacked on each other, and
-## the ground reads as a photograph the road was pasted onto.
+## This was twelve, matched to the road: a road piece is a 32px tile drawn across
+## PIECE (384) world units, and twelve put exactly the same number of world units
+## behind a ground texel as behind a road texel. The reasoning was sound and the
+## number was not. Twelve gives the *entire* 2880-unit battlefield a 256x256
+## floor texture — one texel every eight screen pixels with the camera pulled all
+## the way out, and far coarser than that in play. That is the flat green and tan
+## patchwork with hard stepped edges the environment audit called the largest
+## visual gap in the game.
+##
+## Four is three times the texel density for a 928px bake, and it costs the
+## grain-match with the road, which stays at twelve because its scale is not a
+## choice: half of a road tile has to cover a three-tile carriageway, so 32px art
+## *must* span 384 units. Raising the road needs higher-resolution road art, not
+## a different constant.
+##
+## Losing the match is the right trade and not only the cheap one. A road is a
+## smoother thing than the undergrowth beside it, so a finer verge against a
+## flatter carriageway reads as two materials; equal coarseness read as one
+## blurry photograph of both.
 ##
 ## Expressed per texel rather than per tile so the floor art can change size -
 ## one tile, or a mosaic of four - without the scale needing to be retuned. [TUNE]
-const GROUND_UNITS_PER_TEXEL: float = 12.0
+const GROUND_UNITS_PER_TEXEL: float = 4.0
 
 ## How quickly the floor's two materials trade places, in patches per ground
 ## cell. Low enough that moss and earth arrive in broad drifts a player reads as
-## terrain; high enough that a screen holds several of them. [TUNE]
-const GROUND_PATCH_FREQUENCY: float = 0.22
+## terrain; high enough that a screen holds several of them.
+##
+## Divided by three when the texel scale was, so the drifts stay exactly the size
+## they were tuned to be. The unit is patches per *cell*, and cells got three
+## times smaller — left alone, the same number would have shrunk every patch on
+## the field to a third of its width. [TUNE]
+const GROUND_PATCH_FREQUENCY: float = 0.0733
 
 ## Noise above this is the region's *upper* material. Slightly above zero, so the
 ## floor is mostly its base material with the second one laid over it in patches

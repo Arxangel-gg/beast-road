@@ -40,6 +40,20 @@ extends GameData
 ## The ground texture tiles across the whole arena, so it must be seamless.
 @export var tile_size: int = 512
 
+## Which of the floor's two materials covers most of the field.
+##
+## A region's Wang set is generated as a *lower* material with an *upper* one
+## laid over it in patches, and which of the two should dominate is a fact about
+## the place rather than about the tileset. The jungle set is earth-and-moss, and
+## generated in that order it drew a dry terracotta field with green patches on
+## it — the right two materials, in the wrong proportion, reading as scrubland.
+##
+## Rather than regenerate the art with the descriptions swapped, the bake flips
+## the corner mask: the tile for the complement of a mask has the other material
+## on exactly those corners, so `15 - mask` is the same set read the other way
+## round. No new art, and one field per region says which way it is read.
+@export var moss_dominant: bool = false
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("terrain", "terrain_", id)

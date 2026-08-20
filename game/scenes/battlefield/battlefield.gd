@@ -1076,6 +1076,9 @@ func _bake_ground(extent: float) -> ImageTexture:
 	noise.frequency = Balance.GROUND_PATCH_FREQUENCY
 	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var flipped: bool = terrain != null and terrain.moss_dominant
+
 	for cy: int in cells:
 		for cx: int in cells:
 			# Corners are shared with the neighbouring cells by construction,
@@ -1088,6 +1091,12 @@ func _bake_ground(extent: float) -> ImageTexture:
 				var at: Vector2i = Vector2i(cx, cy) + OFFSETS[bit]
 				if noise.get_noise_2d(float(at.x), float(at.y)) > Balance.GROUND_PATCH_THRESHOLD:
 					mask |= 1 << bit
+			# Read the other way round for regions whose upper material is the
+			# common one: the tile for a mask's complement carries the opposite
+			# material on exactly those corners, so this swaps which of the two
+			# covers the field without needing a second tileset.
+			if flipped:
+				mask = 15 - mask
 			var piece: Image = tiles[mask] as Image
 			if piece == null:
 				continue

@@ -786,6 +786,49 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       rather than a fixed dark line — a sand road wants a warm shadow and a snow
       road a cold one, and one black outline on both looks like a sticker. Two
       steps of falloff, so it reads as depth rather than as an outline.
+- [x] **The battlefield floor.** The environment audit called this the largest
+      visual gap in the game, and it was three separate faults stacked.
+
+      *Resolution.* `GROUND_UNITS_PER_TEXEL` was 12, matched to the road — a road
+      piece is a 32px tile drawn across 384 world units, so twelve put the same
+      world units behind a ground texel as behind a road texel. Sound reasoning,
+      wrong number: it gave the whole 2880-unit battlefield a **256x256** floor
+      texture, one texel every eight screen pixels with the camera fully out and
+      far coarser in play. That is the flat patchwork with stepped edges. Now 4,
+      with `GROUND_PATCH_FREQUENCY` divided by the same three so the drifts stay
+      the size they were tuned to. The road stays at 12 because its scale is not
+      a choice — half a road tile *must* cover a three-tile carriageway — so
+      raising it needs higher-resolution road art, not a constant. Losing the
+      grain match is the right trade: a road is smoother than the undergrowth
+      beside it, and equal coarseness read as one blurry photograph of both.
+
+      *Brightness.* The jungle floor's base material had a **median luminance of
+      19 out of 255** — near black, across most of the battlefield, for months.
+      That is the "black void-like seams". Snow had a near-black lower against a
+      near-white upper, 5.1x apart, reading as holes cut in a snowfield. All
+      three sets regenerated, lineless: outlines on a *floor* gave the earth a
+      repeating waffle and put a purple fringe around the moss.
+
+      *Palette.* The generator does not take a palette, only prose. The jungle
+      set came back with 20% of its pixels outside any hue a jungle floor has —
+      magenta and blue noise that clustered into pink patches. `tools/conform_ground.py`
+      folds out-of-gamut hues to the nearest edge of a region's declared arcs and
+      caps saturation, touching nothing else; it is idempotent, so the committed
+      PNG is reproducible from the generated one.
+
+      Two things came out of it that were not planned. `run_tool.gd -- floor-tiles`
+      is now a CI gate: four rules, each one written because a real regeneration
+      failed it, and it independently reproduces both shipped defects. And which
+      of a region's two materials *dominates* is now per-region data — generated
+      in tileset order, the jungle drew a dry terracotta field with green patches,
+      the right materials in the wrong proportion. `TerrainData.moss_dominant`
+      flips the corner mask to its complement, which reads the same sixteen tiles
+      the other way round and needs no second set.
+
+      Measured effect on night readability, which was the worry: enemy-against-
+      ground separation went from **0.005 against a 0.005 threshold** — exactly
+      on the line — to **0.017**.
+- [ ] Higher-resolution road art, so the carriageway can leave 12 units a texel.
 - [ ] Procedural texture variation within a road, not one tile repeated.
 
 ### Foliage
