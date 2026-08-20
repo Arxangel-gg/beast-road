@@ -428,6 +428,33 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       mismatch; it stays because the line is the *true* boundary and the art is
       decoration over it, but it now reads as a shadow rather than a border.
 
+- [~] **Beast scope.** The beast is now animated pixel art: a 256px side-profile
+      generated from Pixellab with a 9-frame walk and a 7-frame idle, and a
+      sidescroller ground strip baked from a 16-tile platform set and scrolled as
+      a leapfrogging pair (two nodes tile an arbitrary distance, and the journey
+      is arbitrarily long).
+
+      Frames are layered **over** the procedural gait, not in place of it — the
+      bob, step sink, settle and footfall impulses all stay, and the walk frame is
+      driven by the gait *phase* rather than a timer, so the beast plants a foot
+      on the same beat the camera shakes on. Swapping the procedural motion for a
+      spritesheet would have traded a gait that responds to speed and pauses for
+      one that plays at a fixed rate.
+
+      Absent frames fall back to the single profile sprite, so a partial set costs
+      the animation rather than the screen.
+
+      **Two things still wrong, and both are mine to have caused:**
+
+      1. **The town is missing from the beast's back.** The old 1024px profile
+         carried it; the generated beast does not. That is the premise of the
+         game sitting on that silhouette, so it needs a town layer sprite over the
+         back before this is finished.
+      2. **Style clash.** A pixel-art beast now stands on a painterly photo-real
+         backdrop. The rest of the game is pixel art and the *backdrops* are the
+         outlier, so the fix is probably to regenerate `macro_act*.png` as pixel
+         art rather than to undo the beast — but that is an art-direction call.
+
 - [ ] Foliage variety and idle animations (keep the procedural polygons, add
       sprite kinds alongside them).
 - [ ] Tower/building idle animations and base damage-state art.

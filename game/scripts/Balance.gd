@@ -1485,6 +1485,38 @@ const RAID_CLIFF_EDGE_WIDTH: float = 2.0
 ## Chest and key presentation.
 ## Terrain sits above the ground sprite and below everything that walks on it.
 ## The camp floor, under the elevation plates.
+## Beast walk and idle frames, by convention. Absent falls back to the single
+## profile sprite.
+## The sidescroller ground the beast walks over, by region.
+const BEAST_GROUND_TILE_FORMAT: String = "res://art/bg/side_%s_%02d.png"
+
+## Strip size in tiles. Wide enough that two of them leapfrog without a seam
+## crossing the screen; deep enough that the bottom is never visible.
+const BEAST_GROUND_TILES_ACROSS: int = 72
+const BEAST_GROUND_TILES_DOWN: int = 6
+
+## Where the strip sits, and how fast it passes. Faster than the sky, which is
+## what sells the distance.
+const BEAST_GROUND_Y: float = 452.0
+const BEAST_GROUND_Z: int = -5
+const BEAST_GROUND_SCROLL: float = 0.55
+
+const BEAST_WALK_FRAME_FORMAT: String = "res://art/beast/beast_walk_%02d.png"
+const BEAST_IDLE_FRAME_FORMAT: String = "res://art/beast/beast_idle_%02d.png"
+
+## How many frames a series may hold. Loading stops at the first gap.
+const BEAST_FRAME_MAX: int = 16
+
+## How much the 256px frames are enlarged. The profile sprite they replace is
+## 1024, so four keeps the beast the size it has always been on screen.
+const BEAST_FRAME_SCALE: float = 4.0
+
+## Where the framed beast sits, so its feet meet the ground strip.
+const BEAST_FRAME_BASE_Y: float = -40.0
+
+## Idle frames per second. Slow: a resting animal breathes, it does not fidget.
+const BEAST_IDLE_FRAME_RATE: float = 5.0
+
 const RAID_GROUND_Z: int = -40
 
 ## Terrain sits above the ground sprite and below everything that walks on it.

@@ -228,6 +228,37 @@ All 192×192, type T. Placeholder colour by element.
 |------|------|------|--------------------|
 | `beast_profile.png` | 1024×1024 | T | `#2E3A33` |
 
+### 5.6b Beast frames — `res://art/beast/`
+
+Walk and idle cycles for the beast scope, layered **over** the procedural gait
+rather than replacing it: the bob, step sink, settle and footfall impulses stay,
+and the frames give the legs somewhere to be while all of that happens. Swapping
+the procedural motion out for a spritesheet would trade a gait that responds to
+speed, pauses and terrain for one that plays at a fixed rate.
+
+Loading stops at the first gap, and an empty series falls back to the single
+profile sprite in section 5.6 — so a partial set costs the animation, not the
+screen.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `beast_walk_00.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_01.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_02.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_03.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_04.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_05.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_06.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_07.png` | 256×256 | T | `#4A5A4A` |
+| `beast_walk_08.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_00.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_01.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_02.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_03.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_04.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_05.png` | 256×256 | T | `#4A5A4A` |
+| `beast_idle_06.png` | 256×256 | T | `#4A5A4A` |
+
 ### 5.7 Terrain tiles — `res://art/terrain/`
 
 Each region's floor is the plain-ground tile of its own road set, mirrored into
@@ -368,6 +399,35 @@ dark HUD bar rather than lying on a lit road.
 |------|------|------|--------------------|
 | `loot_gold.png` | 48×48 | T | `#C8A44A` |
 | `loot_relic.png` | 48×48 | T | `#7A5BA8` |
+
+### 5.8d Sidescroller ground — `res://art/bg/`
+
+A sixteen-tile side-view platform set for the beast scope: the ground Yuri walks
+over, baked into one wide strip and scrolled as a leapfrogging pair. Row 0 of the
+sheet is the mossy surface, row 1 the solid body; the rest are edge pieces.
+
+Named `side_<region>_NN.png`, so a region without a set falls through to no
+ground rather than to a placeholder — the scope read fine without one, and a
+magenta strip across the bottom would be a downgrade.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `side_jungle_00.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_01.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_02.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_03.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_04.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_05.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_06.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_07.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_08.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_09.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_10.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_11.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_12.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_13.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_14.png` | 32×32 | T | `#2E3A33` |
+| `side_jungle_15.png` | 32×32 | T | `#2E3A33` |
 
 ### 5.9 Relic icons — `res://art/icons/relics/`
 

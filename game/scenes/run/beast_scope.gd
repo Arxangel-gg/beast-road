@@ -27,8 +27,25 @@ func activate() -> void:
 	CursorKit.use_default()
 
 var _backdrop_clone: Sprite2D = null
+var _ground_pieces: Array[Sprite2D] = []
 var _zoomed_out: bool = false
 var _bob: float = 0.0
+## Authored frames, when the art exists. Empty falls back to the single profile
+## sprite, which is what shipped before them.
+##
+## Layered *over* the procedural gait rather than replacing it. The bob, the step
+## sink, the settle and the footfall impulses stay exactly as they were - frames
+## give the legs somewhere to be while all of that is happening. Swapping the
+## procedural motion out for a spritesheet would trade a gait that responds to
+## speed, pauses and terrain for one that plays at a fixed rate.
+var _walk_frames: Array[Texture2D] = []
+var _idle_frames: Array[Texture2D] = []
+var _frame_clock: float = 0.0
+
+## 1.0 while the single profile sprite is in use, larger once frames load. The
+## presentation toggle multiplies this rather than replacing it.
+var _frame_scale: float = 1.0
+
 var _gait_pause_left: float = 0.0
 var _gait_step: int = 0
 var _step_sink: float = 0.0
@@ -41,7 +58,118 @@ func _ready() -> void:
 	_rng.randomize()
 	_setup_route()
 	_setup_backdrop()
+	_setup_ground()
+	_load_frames()
 	EventBus.act_started.connect(func(_a: int, _t: String) -> void: _apply_act_backdrop())
+
+
+## The ground the beast walks over, from the region's sidescroller tileset.
+##
+## Baked into one strip and scrolled as a leapfrogging pair, the same trick the
+## backdrop uses: two nodes tile an arbitrary distance, and the journey is
+## arbitrarily long. Baking rather than laying tiles as nodes matters more here
+## than it looks - a strip wide enough to leapfrog is a hundred tiles, twice.
+##
+## Absent art falls through to nothing rather than to a placeholder. The scope
+## read fine without a ground for the whole project so far; a magenta strip
+## across the bottom would be a downgrade.
+func _setup_ground() -> void:
+	var strip: ImageTexture = _bake_ground()
+	if strip == null:
+		return
+	for index: int in 2:
+		var piece := Sprite2D.new()
+		piece.name = "Ground%d" % index
+		piece.texture = strip
+		piece.centered = true
+		piece.z_index = Balance.BEAST_GROUND_Z
+		piece.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+		piece.add_to_group(Graphics.FILTER_GROUP)
+		piece.position.y = Balance.BEAST_GROUND_Y + Balance.BEAST_FRAME_BASE_Y
+		add_child(piece)
+		_ground_pieces.append(piece)
+
+
+## Composites one screen-wide strip of ground: a surface row over fill.
+func _bake_ground() -> ImageTexture:
+	var tiles: Array[Image] = []
+	for index: int in 16:
+		var path: String = Balance.BEAST_GROUND_TILE_FORMAT % [_ground_region(), index]
+		if not ResourceLoader.exists(path):
+			return null
+		var image: Image = (load(path) as Texture2D).get_image()
+		image.convert(Image.FORMAT_RGBA8)
+		tiles.append(image)
+
+	var tile_px: int = tiles[0].get_width()
+	var across: int = Balance.BEAST_GROUND_TILES_ACROSS
+	var down: int = Balance.BEAST_GROUND_TILES_DOWN
+	var canvas: Image = Image.create_empty(across * tile_px, down * tile_px,
+		false, Image.FORMAT_RGBA8)
+	for column: int in across:
+		for row: int in down:
+			# Row 0 carries the mossy surface; everything under it is fill. The
+			# sheet's first row is the top edge, and its second is solid body.
+			var index: int = (column % 4) if row == 0 else 4 + (column % 4)
+			canvas.blend_rect(tiles[index], Rect2i(Vector2i.ZERO, tiles[index].get_size()),
+				Vector2i(column * tile_px, row * tile_px))
+	return ImageTexture.create_from_image(canvas)
+
+
+## Which tileset the current act uses, falling back to the first.
+func _ground_region() -> String:
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	return terrain.id if terrain != null else "jungle"
+
+
+## Loads whatever walk and idle frames exist, by convention.
+##
+## Absence is a supported state, not a failure: the beast shipped as one static
+## sprite and still works as one. That matters for a scope whose art arrives in
+## pieces - a missing frame set should cost the animation, not the screen.
+func _load_frames() -> void:
+	_walk_frames = _frame_series(Balance.BEAST_WALK_FRAME_FORMAT)
+	_idle_frames = _frame_series(Balance.BEAST_IDLE_FRAME_FORMAT)
+	if _walk_frames.is_empty() and _idle_frames.is_empty():
+		return
+	# The frames are a quarter the size of the profile sprite they replace, so
+	# without this the beast arrives correct and tiny. Scaled here rather than in
+	# the scene because it depends on *which* art loaded, and the scene has no way
+	# to know that.
+	_frame_scale = Balance.BEAST_FRAME_SCALE
+	if beast != null:
+		beast.scale = Vector2.ONE * _frame_scale
+		beast.position.y = Balance.BEAST_FRAME_BASE_Y
+
+
+func _frame_series(format: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for index: int in Balance.BEAST_FRAME_MAX:
+		var path: String = format % index
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
+
+
+## Picks the frame for this moment, from whichever series is playing.
+##
+## Driven by the *gait phase* for the walk rather than by a timer, so the frames
+## and the bob stay locked together: the beast plants a foot on the same beat the
+## camera shakes on, because both read the same number.
+func _drive_frames(delta: float, walking: bool, speed_ratio: float) -> void:
+	if beast == null:
+		return
+	var series: Array[Texture2D] = _walk_frames if walking else _idle_frames
+	if series.is_empty():
+		return
+	var index: int = 0
+	if walking:
+		index = int(floor(_bob / TAU * float(series.size()))) % series.size()
+	else:
+		_frame_clock += delta * Balance.BEAST_IDLE_FRAME_RATE
+		index = int(floor(_frame_clock)) % series.size()
+	beast.texture = series[maxi(index, 0)]
 
 
 ## The backdrop was a single sprite whose x was decremented forever. Once it had
@@ -93,6 +221,19 @@ func _scroll_backdrop() -> void:
 	backdrop.position.x = -offset
 	_backdrop_clone.position.x = -offset + width
 	_backdrop_clone.position.y = backdrop.position.y
+	_scroll_ground()
+
+
+## The ground scrolls faster than the sky, which is what sells the distance.
+func _scroll_ground() -> void:
+	if _ground_pieces.size() < 2 or _ground_pieces[0].texture == null:
+		return
+	var width: float = _ground_pieces[0].texture.get_width() * _ground_pieces[0].scale.x
+	if width <= 0.0:
+		return
+	var offset: float = fmod(RunState.distance_travelled * Balance.BEAST_GROUND_SCROLL, width)
+	_ground_pieces[0].position.x = -offset
+	_ground_pieces[1].position.x = -offset + width
 
 
 ## True while the journey is not advancing and the beast should be at rest.
@@ -135,7 +276,9 @@ func _process(delta: float) -> void:
 	# footfalls and the step shake all stop with it.
 	if _standing_still():
 		_settle_to_idle(delta)
+		_drive_frames(delta, false, 0.0)
 		return
+	_drive_frames(delta, true, speed_ratio)
 
 	if _gait_pause_left > 0.0:
 		_gait_pause_left = maxf(_gait_pause_left - delta, 0.0)
@@ -203,7 +346,7 @@ func set_zoomed_out(value: bool) -> void:
 	if route_marker != null:
 		route_marker.visible = value
 	if beast != null:
-		beast.scale = Vector2.ONE * (0.45 if value else 1.0)
+		beast.scale = Vector2.ONE * _frame_scale * (0.45 if value else 1.0)
 	var tint: Color = Color(0.55, 0.55, 0.6) if value else Color.WHITE
 	if backdrop != null:
 		backdrop.modulate = tint
