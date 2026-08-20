@@ -234,7 +234,16 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       stayed visibly ruined with its fires burning, which reads as the repair
       having done nothing. Hooked to `changed` so every route in counts, and a
       stage that improves no longer shakes the camera or plays the hit sound.
-- [ ] Foliage: horizontal ferns, more variety, idle animations.
+- [x] Foliage variety and idle motion. Every region now has its own shrub and
+      flower alongside its plant, rock and boulder are shared, and painted plants
+      sway — which they previously only appeared to. They shared the blades'
+      canvas item and therefore the blades' material, whose sway weight is `UV.y`;
+      a texture drawn through `draw_texture_rect` gets its V from the rect, so
+      V=0 is the sprite's *top*. Every scattered sprite was swinging about its tip
+      with its roots sliding across the ground. They now draw in a child item with
+      the same shader inverted and its reach cut to a quarter — a shrub is a woody
+      thing and should not whip like grass.
+- [ ] Horizontal ferns.
 - [x] **Hero levelling to 100 and the skill tree.** Run-scoped, which is a v4
       requirement rather than a simplification: §974 reads "No uncapped stat
       bonus, hero level, building tier … persists." A hero may grow enormously
@@ -506,7 +515,9 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Jungle has a shrub and a flower; rock and boulder are shared. Desert and
       snow still need their two kinds each, and nothing is animated yet — both
       follow the same convention, so they are files rather than code.
-- [ ] Tower/building idle animations and base damage-state art.
+- [x] Tower and building idle animation — recorded again here in error; it was
+      already built, and towers additionally derive damage-fire anchors from
+      their own silhouette rather than from authored damage art.
 - [ ] Loot diversity: relic and supply drop types, remaining currency art.
 - [x] **Stash, inventory and blacksmith.** Ten kinds of gear across three slots,
       each a file. A *kind* is authored content — name, slot, icon, which
@@ -742,7 +753,8 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       it sits in the same light instead of looking pasted on.
 - [x] More silhouettes: reeds come in straight and bent, and any region grows an
       occasional broadleaf. One shape per region read as a hatch pattern.
-- [ ] Idle animation on anything not static.
+- [x] Idle animation on anything not static: blades and painted plants sway,
+      towers and buildings breathe, the beast walks.
 - [x] Per-plant hue and saturation jitter, deliberately small — the palette is
       sampled from the region's own ground, and a wide jitter would put plants
       outside their act.

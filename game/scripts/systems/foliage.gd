@@ -83,10 +83,19 @@ shader_type canvas_item;
 uniform float sway_degrees = 5.5;
 uniform float sway_speed = 1.15;
 uniform float gust_speed = 0.23;
+uniform float sway_reach = 34.0;
+
+// Whether V runs root-to-tip or tip-to-root.
+//
+// Blades are built with the root at V=0 because that is what the sway weight
+// means. A texture drawn with draw_texture_rect gets its UVs from the rect, so
+// V=0 is the *top* of the sprite - and a painted plant sharing the blade
+// material therefore swung its base while its tip stayed nailed in place.
+uniform float root_at_top = 0.0;
 
 void vertex() {
 	// Root to tip. Zero at the base means the plant stays where it grew.
-	float up = UV.y;
+	float up = mix(UV.y, 1.0 - UV.y, root_at_top);
 
 	// One travelling wave over the field, plus a slow gust that swells and eases
 	// so the whole meadow breathes rather than every blade fidgeting on its own
@@ -97,24 +106,44 @@ void vertex() {
 
 	// Displacement grows with the square of height: the tip whips, the middle
 	// bends, the base does not move at all.
-	VERTEX.x += lean * up * up * 34.0;
+	VERTEX.x += lean * up * up * sway_reach;
 }
 """
 
+static var _wind_shader: Shader = null
 static var _wind_material: ShaderMaterial = null
+static var _painted_material: ShaderMaterial = null
 
 
 ## One material for every blade in the game.
 static func wind_material() -> ShaderMaterial:
-	if _wind_material != null:
-		return _wind_material
-	var shader := Shader.new()
-	shader.code = WIND_SHADER
-	_wind_material = ShaderMaterial.new()
-	_wind_material.shader = shader
-	_wind_material.set_shader_parameter("sway_degrees", Balance.FOLIAGE_SWAY_DEGREES)
-	_wind_material.set_shader_parameter("sway_speed", Balance.FOLIAGE_SWAY_SPEED)
+	if _wind_material == null:
+		_wind_material = _make_material(0.0, Balance.FOLIAGE_SWAY_REACH)
 	return _wind_material
+
+
+## The same wind, for painted plants: V inverted and the reach cut right down.
+##
+## A second material rather than a second shader - one compile, two parameter
+## sets - and a second *canvas item*, because a material is per item and the
+## blades and the sprites share a band.
+static func painted_material() -> ShaderMaterial:
+	if _painted_material == null:
+		_painted_material = _make_material(1.0, Balance.FOLIAGE_SWAY_REACH_PAINTED)
+	return _painted_material
+
+
+static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
+	if _wind_shader == null:
+		_wind_shader = Shader.new()
+		_wind_shader.code = WIND_SHADER
+	var material := ShaderMaterial.new()
+	material.shader = _wind_shader
+	material.set_shader_parameter("sway_degrees", Balance.FOLIAGE_SWAY_DEGREES)
+	material.set_shader_parameter("sway_speed", Balance.FOLIAGE_SWAY_SPEED)
+	material.set_shader_parameter("sway_reach", reach)
+	material.set_shader_parameter("root_at_top", root_at_top)
+	return material
 
 
 ## Every blade in the field, in world space, ready to draw in one pass.
@@ -478,13 +507,20 @@ class FoliageBand extends Node2D:
 	## The sprites are the few plants the eye actually stops on. Replacing every
 	## blade with a texture would multiply the draw cost of a field for a
 	## difference nobody would see at a quarter of the plants.
-	var _plants: Array[Dictionary] = []
+	var _painted: PaintedLayer = null
 
 	func add_plant(texture: Texture2D, at: Vector2, plant_scale: float,
 			tint: Color, flip: bool) -> void:
 		if texture == null:
 			return
-		_plants.append({"texture": texture, "at": at, "scale": plant_scale,
+		if _painted == null:
+			# A child, so it draws after this band's blades - a painted plant
+			# stands in front of the undergrowth around it rather than being
+			# buried in it - and so it can carry its own wind material.
+			_painted = PaintedLayer.new()
+			_painted.material = Foliage.painted_material()
+			add_child(_painted)
+		_painted.plants.append({"texture": texture, "at": at, "scale": plant_scale,
 			"tint": tint, "flip": flip})
 
 	func add_blade(shape: PackedVector2Array, colour: Color, at: Vector2,
@@ -519,9 +555,18 @@ class FoliageBand extends Node2D:
 			shade.fill(_colours[index])
 			draw_polygon(_shapes[index], shade, _uvs[index])
 
-		# Drawn after the blades so a painted plant stands in front of the
-		# undergrowth around it rather than being buried in it.
-		for plant: Dictionary in _plants:
+
+## The painted plants of one band, in their own canvas item.
+##
+## Split off from the blades for one reason: a material is per canvas item, and
+## these need the wind with V inverted and its reach cut down. Sharing the band's
+## item meant sharing the band's material, which swung every sprite about its tip
+## and left its roots sliding across the ground.
+class PaintedLayer extends Node2D:
+	var plants: Array[Dictionary] = []
+
+	func _draw() -> void:
+		for plant: Dictionary in plants:
 			var texture: Texture2D = plant["texture"]
 			var size: Vector2 = texture.get_size() * float(plant["scale"])
 			var at: Vector2 = plant["at"]

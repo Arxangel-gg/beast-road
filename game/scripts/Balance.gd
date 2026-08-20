@@ -2338,6 +2338,14 @@ const FOLIAGE_MAX_SCALE: float = 1.5
 const FOLIAGE_SWAY_DEGREES: float = 5.5
 const FOLIAGE_SWAY_SPEED: float = 1.15
 
+## How far a blade's tip travels at full lean, in world units.
+const FOLIAGE_SWAY_REACH: float = 34.0
+
+## The same, for painted plants. Much less: a shrub, a rock or a flowering
+## succulent is a stiff thing with a woody base, and giving it a blade of grass's
+## whip is what makes scattered sprites read as cardboard flapping in a breeze.
+const FOLIAGE_SWAY_REACH_PAINTED: float = 9.0
+
 ## Foliage moves slowly enough that 30 transform updates per second are visually
 ## continuous, while updating hundreds of off-road clumps at the render rate
 ## spends CPU on sub-pixel changes the player cannot see. [TUNE]

@@ -378,6 +378,10 @@ point is that a clump is occasionally *not* what you expected.
 |------|------|------|--------------------|
 | `plant_jungle_shrub.png` | 56×64 | T | `#2E3A33` |
 | `plant_jungle_flower.png` | 48×56 | T | `#2E3A33` |
+| `plant_desert_shrub.png` | 56×64 | T | `#6E5B3C` |
+| `plant_desert_flower.png` | 48×56 | T | `#6E5B3C` |
+| `plant_snow_shrub.png` | 56×64 | T | `#7C8A96` |
+| `plant_snow_flower.png` | 48×56 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
 | `prop_boulder.png` | 64×56 | T | `#4A4A46` |
 
