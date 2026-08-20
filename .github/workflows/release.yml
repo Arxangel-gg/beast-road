@@ -301,17 +301,60 @@ jobs:
     # and this job deliberately does not hold contents permission to read the
     # repository with.
     steps:
-      # GitHub may reject first-time enablement from the workflow token with
-      # "Resource not accessible by integration". In that case enable Pages
-      # once in Settings -> Pages with Source set to GitHub Actions. Keeping the
-      # request here makes it a no-op on configured repositories and a useful,
-      # non-blocking signal in Update Manager on repositories where policy
-      # prevents automatic enablement.
+      # Whether there is a Pages site to deploy to, asked before trying.
+      #
+      # `configure-pages` was given `enablement: true` on the theory that it
+      # would switch Pages on the first time. It cannot: creating a Pages site
+      # is an admin operation and `GITHUB_TOKEN` is not an admin, so every
+      # release since failed with `Resource not accessible by integration` —
+      # a message that says nothing about what to do about it.
+      #
+      # The two cases are genuinely different and are now treated differently.
+      # Pages not being switched on is a *configuration state* that one person
+      # has to fix once, so it warns loudly, says exactly which setting, and
+      # lets the release stand: the build already exported the web target and
+      # attached BeastRoad-web.zip. A deploy that fails with Pages *on* is a
+      # real fault and still fails the job.
+      - name: Is Pages switched on
+        id: pages_state
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          code="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" || echo 000)"
+
+          if [ "$code" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages is configured; deploying."
+            exit 0
+          fi
+
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          echo "::warning title=GitHub Pages is not switched on::The web build was exported and attached to this release as BeastRoad-web.zip, but there is nowhere to host it. Enable it once by hand: Settings -> Pages -> Build and deployment -> Source: GitHub Actions. A workflow token cannot do this itself - creating a Pages site needs admin."
+          {
+            echo "### The web build was not published"
+            echo ""
+            echo "\`BeastRoad-web.zip\` is attached to the release, so nothing is lost."
+            echo "It is simply not hosted anywhere yet."
+            echo ""
+            echo "One person, once, in this repository:"
+            echo ""
+            echo "**Settings → Pages → Build and deployment → Source: _GitHub Actions_**"
+            echo ""
+            echo "Every release after that publishes to"
+            echo "<https://arxangel-gg.github.io/beast-road/> by itself."
+            echo ""
+            echo "(The API answered \`$code\` for this repository's Pages site.)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Configure Pages
+        if: steps.pages_state.outputs.enabled == 'true'
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Deploy
         id: deploy
+        if: steps.pages_state.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4
