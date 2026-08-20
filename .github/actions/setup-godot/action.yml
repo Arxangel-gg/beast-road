@@ -40,7 +40,13 @@ runs:
         # Names its contents. The old key was `godot-<version>`, which said
         # nothing about whether templates were in it — and could not, since two
         # different workflows were filling it with two different things.
-        key: godot-${{ inputs.version }}-engine-templates
+        #
+        # The suffix is part of the contents' name, not a version of this file.
+        # `actions/cache` restores on a hit and does not save again, so widening
+        # what the setup needs without widening the key leaves every run
+        # restoring a cache that is short of it and re-downloading a gigabyte of
+        # templates to make up the difference — quietly, and forever.
+        key: godot-${{ inputs.version }}-engine-templates-windows-web
 
     - name: Install whatever is missing
       shell: bash
