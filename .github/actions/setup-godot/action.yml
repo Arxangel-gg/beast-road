@@ -72,7 +72,12 @@ runs:
           chmod +x "$HOME/godot/godot"
         fi
 
-        if [ ! -s "$TEMPLATES/windows_release_x86_64.exe" ]; then
+        # Both templates are checked, because the .tpz carries every platform
+        # and a cache filled before the web export existed has only the one that
+        # was asserted. That is the same shape of bug that cost v0.4.2: a cache
+        # key that promises more than its contents.
+        if [ ! -s "$TEMPLATES/windows_release_x86_64.exe" ] \
+                || [ ! -s "$TEMPLATES/web_nothreads_release.zip" ]; then
           echo "Export templates not in cache; downloading."
           curl "${CURL[@]}" -o /tmp/templates.tpz "$BASE/Godot_v${V}-stable_export_templates.tpz"
           rm -rf /tmp/templates
@@ -96,6 +101,10 @@ runs:
         [ -x "$HOME/godot/godot" ] || missing+=("engine at ~/godot/godot")
         [ -s "$TEMPLATES/windows_release_x86_64.exe" ] || missing+=("windows_release_x86_64.exe")
         [ -s "$TEMPLATES/windows_debug_x86_64.exe" ] || missing+=("windows_debug_x86_64.exe")
+        # The web preset sets variant/thread_support=false, so it is the
+        # *nothreads* template the export reaches for. The threaded one being
+        # present proves nothing.
+        [ -s "$TEMPLATES/web_nothreads_release.zip" ] || missing+=("web_nothreads_release.zip")
 
         if [ ${#missing[@]} -ne 0 ]; then
           echo "::error title=Godot setup incomplete::Missing: ${missing[*]}. A restored cache was short of its contents."

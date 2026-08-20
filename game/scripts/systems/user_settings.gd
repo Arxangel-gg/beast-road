@@ -79,6 +79,13 @@ static func store_presentation() -> void:
 
 
 static func apply_display() -> void:
+	# The browser owns the window. A canvas cannot be moved, cannot be resized by
+	# the page it sits in, and cannot enter fullscreen except from inside a user
+	# gesture - so on load this would ask for fullscreen, be refused, and then set
+	# a size and a position for a window that does not exist. The export sizes the
+	# canvas to the page instead (html/canvas_resize_policy).
+	if OS.has_feature("web"):
+		return
 	var wanted: String = String(MetaState.settings.get(DISPLAY_KEY, DISPLAY_FULLSCREEN))
 	var mode: DisplayServer.WindowMode = DisplayServer.WINDOW_MODE_FULLSCREEN \
 		if wanted == DISPLAY_FULLSCREEN else DisplayServer.WINDOW_MODE_WINDOWED

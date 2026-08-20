@@ -131,6 +131,21 @@ const MAX_DENSITY: float = 1.75
 ## quietly given the worst-looking version of the game.
 const DEFAULT_PRESET: String = PRESET_HIGH
 
+## The same question, answered differently in a browser.
+##
+## The argument for High rests on the player staying long enough to find the
+## settings screen, which is a fair bet from someone who downloaded and installed
+## a game. It is a bad bet on the web: the same machine runs slower there —
+## WebGL2 through `gl_compatibility`, one thread, no driver-level shader cache —
+## and the cost of closing a tab is nothing. Medium is what a first minute should
+## look like when leaving is free.
+const DEFAULT_PRESET_WEB: String = PRESET_MEDIUM
+
+
+## The preset a save with no graphics block starts on.
+static func default_preset() -> String:
+	return DEFAULT_PRESET_WEB if OS.has_feature("web") else DEFAULT_PRESET
+
 
 ## The live settings, held here rather than read from the save.
 ##
@@ -143,7 +158,7 @@ static var _chosen: Dictionary = {}
 
 
 static func preset() -> String:
-	return String(_chosen.get(KEY_PRESET, DEFAULT_PRESET))
+	return String(_chosen.get(KEY_PRESET, default_preset()))
 
 
 ## Reads one switch, falling back through the current preset to High.

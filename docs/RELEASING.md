@@ -41,11 +41,46 @@ That triggers `.github/workflows/release.yml`, which:
 
 1. Exports the game to `BeastRoad.exe` and zips it as `BeastRoad-windows.zip`
 2. Exports the launcher to `BeastRoadLauncher.exe`
-3. Writes `launcher-version-<n>.txt`, naming the launcher's own version
-4. Creates a GitHub Release named after the tag and attaches all three
+3. Exports the web build and zips it as `BeastRoad-web.zip`
+4. Writes `launcher-version-<n>.txt`, naming the launcher's own version
+5. Creates a GitHub Release named after the tag and attaches all four
+6. Publishes the web build to GitHub Pages, in a separate job
 
 The launcher notices the new tag on its next start and offers **Update** — and
 updates *the game only*, unless the launcher version changed too.
+
+### The web build
+
+Same tag, same commit, no extra step. The release job exports the `Web` preset
+alongside the Windows one, and a second job deploys it to Pages:
+
+```
+https://arxangel-gg.github.io/beast-road/
+```
+
+The first tagged release after this was added turns Pages on by itself —
+`actions/configure-pages` is run with `enablement: true`, so nobody has to have
+found the repository setting first.
+
+It is a **separate job** on purpose. Deploying to Pages needs `pages: write` and
+`id-token: write`, and publishing a release needs `contents: write`; the step
+that writes to the public web has no business also being able to rewrite the
+repository. It also means a Pages failure leaves the release published rather
+than rolling the whole thing back.
+
+Two constraints are load-bearing and are asserted in CI rather than remembered:
+
+- **`variant/thread_support=false`.** A threaded web build only runs on a page
+  served with COOP/COEP cross-origin-isolation headers, and Pages cannot set
+  response headers at all. A threaded export writes `index.worker.js`; both
+  workflows fail if that file appears.
+- **`gl_compatibility`.** Already the project's renderer, and the only one that
+  reaches WebGL2. Forward+ would need WebGPU.
+
+The web build defaults to the **Medium** graphics preset rather than High. The
+argument for High — a player who cannot run it will find the settings screen
+within a minute — is a fair bet from someone who installed the game and a bad
+one from someone who opened a tab.
 
 The Update Manager runs the game, a short gameplay soak, and the launcher
 release-contract test before it commits or tags anything. It then watches the
@@ -83,6 +118,16 @@ update no longer drags a launcher download along with it. See below.
 > Windows SmartScreen will warn about an unsigned executable. That is expected
 > for anything without a code-signing certificate; "More info" -> "Run anyway".
 > Signing costs a few hundred a year and is worth it only near a store release.
+
+Or send them the browser link, which needs no download and no SmartScreen
+conversation:
+
+```
+https://arxangel-gg.github.io/beast-road/
+```
+
+Saves live in the browser's storage for that site, so a web save and an
+installed save are separate games. Clearing site data erases it.
 
 ---
 

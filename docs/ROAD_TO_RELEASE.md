@@ -351,7 +351,35 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       run by hand — all five rows pass.
 
 - [ ] **Leaderboards** — now in scope (§54 amended 2026-08-20). Not built.
-- [ ] **Web build** — now in scope (§54 amended). Not built.
+- [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
+      on the same tag as the Windows build, attached to the release as
+      `BeastRoad-web.zip`, and deployed to GitHub Pages from a second job.
+
+      Two things made this cheap: the project already renders through
+      `gl_compatibility`, which is the only path to WebGL2, and it owns no
+      `Thread`. So `variant/thread_support=false` costs nothing — and it is
+      required, because a threaded build needs COOP/COEP headers and Pages cannot
+      send response headers at all. Both workflows fail if `index.worker.js`
+      appears, which is what a threaded export writes.
+
+      The preset was not written from memory of an older Godot. The option keys
+      were read out of the 4.7.1 binary itself, and the export was run locally to
+      the point where it named `web_nothreads_release.zip` — which proves the
+      thread key is spelled right and taking effect, without needing the template
+      on this machine.
+
+      Rehearsed on every push, not only on a tag: the guard's export job builds
+      the web target too, so a web export that cannot work costs a push rather
+      than a version number.
+
+      Two behaviours are gated on the platform. `UserSettings.apply_display()`
+      returns immediately — a canvas cannot be moved, resized by its page, or put
+      fullscreen outside a user gesture, so on load it would ask for fullscreen,
+      be refused, and then set a size and a position for a window that does not
+      exist. And the default graphics preset is Medium rather than High: the case
+      for High rests on the player staying long enough to find the settings
+      screen, which is a fair bet from someone who installed the game and a bad
+      one from someone who opened a tab.
 - [x] **Story intro cinematic.** Four panels and four lines — what Yuri is, what
       is chasing them, who the player is, where the road goes. That is the whole
       premise (GDD §6), and it is the minimum before someone is asked to defend
@@ -667,7 +695,7 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       the field being looked at. Like brightness, it does not knock the quality
       preset to Custom: it is about the screen, not what the machine can afford.
 - [ ] Main menu pixel art, animated.
-- [ ] Leaderboards and the web build.
+- [ ] Leaderboards.
 
 ---
 

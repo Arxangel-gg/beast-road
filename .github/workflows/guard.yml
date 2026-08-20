@@ -53,6 +53,9 @@ env:
   GODOT_VERSION: 4.7.1
   # Must match the preset name inside both export_presets.cfg files.
   EXPORT_PRESET: Windows Desktop
+  # The game project only. The launcher is a desktop installer and has no
+  # meaning in a browser.
+  WEB_PRESET: Web
 
 jobs:
   compiles:
@@ -202,6 +205,11 @@ jobs:
       - name: Export the launcher
         run: bash .github/scripts/export_project.sh launcher launcher ../build/launcher/BeastRoadLauncher.exe "$EXPORT_PRESET"
 
+      # Rehearsed here for the same reason the Windows export is: a web export
+      # that cannot work should cost a push, not a version number.
+      - name: Export the web build
+        run: bash .github/scripts/export_project.sh web game ../build/web/index.html "$WEB_PRESET"
+
       - name: Check the exports are shippable
         # The same assertions the release makes, made here instead of there.
         # v0.1.0 shipped a launcher whose .pck was left beside it rather than
@@ -212,9 +220,27 @@ jobs:
           test -s build/game/BeastRoad.pck
           test -s build/launcher/BeastRoadLauncher.exe
 
+          # A web export writes a set of files beside the html, and the one that
+          # actually matters is the wasm - index.html alone is what you get when
+          # the template is missing pieces.
+          for f in index.html index.js index.wasm index.pck; do
+            if [ ! -s "build/web/$f" ]; then
+              echo "::error title=Web build incomplete::build/web/$f is missing or empty."
+              exit 1
+            fi
+          done
+
+          # A threaded build needs COOP/COEP headers, which GitHub Pages cannot
+          # set. If this file appears, variant/thread_support got turned back on
+          # and the page would load and then fail to start.
+          if [ -e build/web/index.worker.js ]; then
+            echo "::error title=Web build is threaded::Set variant/thread_support=false in game/export_presets.cfg; Pages cannot send the cross-origin-isolation headers a threaded build needs."
+            exit 1
+          fi
+
           if [ -e build/launcher/BeastRoadLauncher.pck ]; then
             echo "::error title=Launcher not shippable::Exported with a separate .pck. Set binary_format/embed_pck=true in launcher/export_presets.cfg."
             exit 1
           fi
 
-          ls -la build/game build/launcher
+          ls -la build/game build/launcher build/web
