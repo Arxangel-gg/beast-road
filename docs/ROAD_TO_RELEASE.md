@@ -444,6 +444,44 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Absent frames fall back to the single profile sprite, so a partial set costs
       the animation rather than the screen.
 
+      **The scope now composes as one image**, which took four separate fixes and
+      each of the first three exposed the next:
+
+      *The style clash.* The three act backdrops were 1920x1080 painterly art, so
+      a pixel-art beast stood in front of a photograph. The backdrops were the
+      outlier — the rest of the game is pixel art — so all three were regenerated
+      as 688x384 pixel art and are scaled to fill the view height from the
+      texture, not from a constant.
+
+      *The parallax seam.* A backdrop that does not tile, butted against its own
+      left edge, cut a hard vertical line through the sky every time the pair
+      leapfrogged. The clone is mirrored, so both joins are edge-against-identical
+      -edge and neither shows.
+
+      *The ground that was never drawn.* The strip sat at z -5 under a backdrop
+      left at the default 0: baked, scrolled, and covered by an opaque painting on
+      every frame. Worse, when it was uncovered it turned out the bake indexed a
+      **corner-mask set** by column — laying fourteen part-transparent transition
+      tiles in a row, which drew as a single black line at the beast's feet. The
+      bake now measures each tile's four corners from its own alpha, so which mask
+      a tile answers to is read from the art rather than assumed from its
+      filename. It also rebakes on act change: the strip was built once in
+      `_ready`, so the desert and the snow both walked on jungle rock and the two
+      tilesets that exist to tell the acts apart were never drawn.
+
+      *The light.* Tilesets generate at full daylight saturation. Unlit, Act I's
+      grass read as a bright green platform pasted over a sunset; a fixed dark
+      tint fixed that and drew Act II's desert as grey slate under a blazing sky.
+      The tint is sampled from the backdrop's own horizon instead — hue pulled
+      most of the way back toward white so it cannot compound the art's own
+      colour, brightness floored so Act I's near-black dusk does not produce a
+      featureless void along the bottom of the screen.
+
+      Act II and Act III each got their own 16-tile set. The first snow set was
+      generated from "blue glacial ice" and came back electric cyan, which read as
+      water rather than ground; regenerated as frost-cracked slate, it sits under
+      the aurora as stone.
+
       **The town is back on its back.** The first generated beast had none, which
       left the premise of the game — a town riding a Worldstrider — as just a
       lizard. Fixed by regenerating the beast *with* the town rather than
@@ -724,14 +762,14 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [~] PixelLab art for every tower and building. All 26 towers and 9 buildings
       already have generated art; what is missing is *more* of it — tier variants
       and per-element silhouette passes.
-- [ ] Beast walk/idle as authored frames, layered over the procedural gait.
+- [x] Beast walk/idle as authored frames, layered over the procedural gait.
 - [ ] Building tier variants — nine buildings have one sprite each; v4 §M3 wants
       visible growth.
 
 ### The beast scope
 
-- [ ] Sidescroller background as a procedural tileset.
-- [ ] The beast as a proper sidescroller sprite with walk and idle animations.
+- [x] Sidescroller background as a procedural tileset — one 16-tile set per act.
+- [x] The beast as a proper sidescroller sprite with walk and idle animations.
 - [x] Idle while Preparation is paused. The gait, the footfalls and the step
       shake all wind down rather than cut — a gait that stops on the frame the
       phase changes reads as a freeze. Gated by a test that drives `_process`
@@ -800,3 +838,5 @@ the history.
 - Foliage sorting bands refined 16 -> 48, cutting depth error to about a tile.
 - Dash allowed in every phase the hero can move in.
 - Tower range rings shown on selection (`Tower.show_range` had no caller at all).
+- Beast scope reads as one world: pixel-art skies, ground lit from the horizon,
+  and the parallax wrap no longer visible.

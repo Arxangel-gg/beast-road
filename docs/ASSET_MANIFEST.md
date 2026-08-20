@@ -383,11 +383,18 @@ point is that a clump is occasionally *not* what you expected.
 
 ### 5.8 Backdrops — `res://art/bg/`
 
+> The three `macro_act*` backdrops are **688×384 pixel art**, scaled to fill the
+> view height at draw time. They were 1920×1080 paintings, which read as a
+> different game once the beast standing in front of them became pixel art — the
+> rest of the project is pixel art and the backdrops were the outlier. The
+> remaining 1920×1080 entries here are UI key art, which is never seen beside a
+> sprite.
+
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `macro_act1.png` | 1920×1080 | O | `#1E2E33` |
-| `macro_act2.png` | 1920×1080 | O | `#2E3A42` |
-| `macro_act3.png` | 1920×1080 | O | `#3A2E2E` |
+| `macro_act1.png` | 688×384 | O | `#1E2E33` |
+| `macro_act2.png` | 688×384 | O | `#2E3A42` |
+| `macro_act3.png` | 688×384 | O | `#3A2E2E` |
 | `crossroad_bg.png` | 1920×1080 | O | `#1E2E33` |
 | `raid_arena_bg.png` | 1920×1080 | O | `#160E12` |
 | `menu_key_art.png` | 1920×1080 | O | `#0B1416` |
@@ -421,12 +428,18 @@ dark HUD bar rather than lying on a lit road.
 ### 5.8d Sidescroller ground — `res://art/bg/`
 
 A sixteen-tile side-view platform set for the beast scope: the ground Yuri walks
-over, baked into one wide strip and scrolled as a leapfrogging pair. Row 0 of the
-sheet is the mossy surface, row 1 the solid body; the rest are edge pieces.
+over, baked into one wide strip and scrolled as a leapfrogging pair.
 
-Named `side_<region>_NN.png`, so a region without a set falls through to no
-ground rather than to a placeholder — the scope read fine without one, and a
-magenta strip across the bottom would be a downgrade.
+**It is a corner-mask set, not sixteen interchangeable slabs.** Exactly one tile
+is solid, one is empty, and the other fourteen are the transitions between. The
+numbering carries no meaning — the bake *measures* each tile's four corners from
+its own alpha and files it under the mask it answers to, so a regenerated set
+cannot silently invert the convention and put sky underground.
+
+Named `side_<region>_NN.png`, one set per act region. A region without a set
+falls back to `jungle` rather than to a placeholder: a missing set should cost
+an act its own material, not its ground, and a magenta strip across the bottom
+of the screen would be a downgrade on both.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -446,6 +459,38 @@ magenta strip across the bottom would be a downgrade.
 | `side_jungle_13.png` | 32×32 | T | `#2E3A33` |
 | `side_jungle_14.png` | 32×32 | T | `#2E3A33` |
 | `side_jungle_15.png` | 32×32 | T | `#2E3A33` |
+| `side_desert_00.png` | 32×32 | T | `#B08A52` |
+| `side_desert_01.png` | 32×32 | T | `#B08A52` |
+| `side_desert_02.png` | 32×32 | T | `#B08A52` |
+| `side_desert_03.png` | 32×32 | T | `#B08A52` |
+| `side_desert_04.png` | 32×32 | T | `#B08A52` |
+| `side_desert_05.png` | 32×32 | T | `#B08A52` |
+| `side_desert_06.png` | 32×32 | T | `#B08A52` |
+| `side_desert_07.png` | 32×32 | T | `#B08A52` |
+| `side_desert_08.png` | 32×32 | T | `#B08A52` |
+| `side_desert_09.png` | 32×32 | T | `#B08A52` |
+| `side_desert_10.png` | 32×32 | T | `#B08A52` |
+| `side_desert_11.png` | 32×32 | T | `#B08A52` |
+| `side_desert_12.png` | 32×32 | T | `#B08A52` |
+| `side_desert_13.png` | 32×32 | T | `#B08A52` |
+| `side_desert_14.png` | 32×32 | T | `#B08A52` |
+| `side_desert_15.png` | 32×32 | T | `#B08A52` |
+| `side_snow_00.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_01.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_02.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_03.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_04.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_05.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_06.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_07.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_08.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_09.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_10.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_11.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_12.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_13.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_14.png` | 32×32 | T | `#8FA4B8` |
+| `side_snow_15.png` | 32×32 | T | `#8FA4B8` |
 
 ### 5.9 Relic icons — `res://art/icons/relics/`
 

@@ -27,6 +27,8 @@ func activate() -> void:
 	CursorKit.use_default()
 
 var _backdrop_clone: Sprite2D = null
+var _ground_tile_px: int = 32
+var _ground_baked_region: String = ""
 var _ground_pieces: Array[Sprite2D] = []
 var _zoomed_out: bool = false
 var _bob: float = 0.0
@@ -74,13 +76,9 @@ func _ready() -> void:
 ## read fine without a ground for the whole project so far; a magenta strip
 ## across the bottom would be a downgrade.
 func _setup_ground() -> void:
-	var strip: ImageTexture = _bake_ground()
-	if strip == null:
-		return
 	for index: int in 2:
 		var piece := Sprite2D.new()
 		piece.name = "Ground%d" % index
-		piece.texture = strip
 		piece.centered = true
 		piece.z_index = Balance.BEAST_GROUND_Z
 		piece.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
@@ -88,38 +86,156 @@ func _setup_ground() -> void:
 		piece.position.y = Balance.BEAST_GROUND_Y + Balance.BEAST_FRAME_BASE_Y
 		add_child(piece)
 		_ground_pieces.append(piece)
+	_refresh_ground()
 
 
-## Composites one screen-wide strip of ground: a surface row over fill.
+## Rebakes the strip when the act's region changes, and relights it either way.
+##
+## The strip used to be baked once in `_ready`. A run reaches the desert and the
+## snow without the scope ever being rebuilt, so both walked on Act I's jungle
+## rock - and the two tilesets that exist to make the acts feel different were
+## generated, shipped, and never drawn.
+func _refresh_ground() -> void:
+	if _ground_pieces.size() < 2:
+		return
+	var region: String = _ground_region()
+	if region != _ground_baked_region:
+		var strip: ImageTexture = _bake_ground()
+		if strip == null:
+			return
+		_ground_baked_region = region
+		# Drawn at the same grain as the beast and the sky rather than at its
+		# native 32px, so the three do not read as three resolutions stacked.
+		var grain: float = Balance.BEAST_GROUND_TILE_WORLD \
+			/ maxf(float(_ground_tile_px), 1.0)
+		for piece: Sprite2D in _ground_pieces:
+			piece.texture = strip
+			piece.scale = Vector2.ONE * grain
+	var tint: Color = _ground_tint()
+	for piece: Sprite2D in _ground_pieces:
+		piece.modulate = tint
+
+
+## The light the near ground stands in, taken from the backdrop's own horizon.
+##
+## Hue comes from the sampled band normalised to its brightest channel and then
+## pulled most of the way back toward white, so the ground picks up the sky's
+## colour without picking up its exposure or compounding its own. Brightness
+## comes from the band's luminance against a neutral, clamped at 1 so a white
+## desert sky cannot wash the art out past what was drawn.
+func _ground_tint() -> Color:
+	if backdrop == null or backdrop.texture == null:
+		return Color.WHITE
+	var image: Image = backdrop.texture.get_image()
+	if image == null:
+		return Color.WHITE
+	var height: int = image.get_height()
+	var from: int = maxi(0, height - maxi(1,
+		int(round(float(height) * Balance.BEAST_GROUND_LIGHT_BAND))))
+	var total: Color = Color(0.0, 0.0, 0.0, 0.0)
+	var samples: int = 0
+	# Every fourth pixel: this runs once per act, and the average of a horizon
+	# band does not need every texel to be right.
+	for y: int in range(from, height, 2):
+		for x: int in range(0, image.get_width(), 4):
+			var pixel: Color = image.get_pixel(x, y)
+			total += Color(pixel.r, pixel.g, pixel.b, 0.0)
+			samples += 1
+	if samples == 0:
+		return Color.WHITE
+	var lit := Color(total.r / float(samples), total.g / float(samples),
+		total.b / float(samples))
+	var peak: float = maxf(maxf(lit.r, lit.g), maxf(lit.b, 0.001))
+	var brightness: float = clampf(
+		lit.get_luminance() / Balance.BEAST_GROUND_LIGHT_NEUTRAL,
+		Balance.BEAST_GROUND_LIGHT_FLOOR, 1.0) * Balance.BEAST_GROUND_SHADE
+	var hue := Color(lit.r / peak, lit.g / peak, lit.b / peak)
+	var mixed: Color = Color.WHITE.lerp(hue, Balance.BEAST_GROUND_LIGHT_HUE)
+	# Three components, not four: multiplying a Color by a float scales alpha
+	# with it, which would fade the ground out rather than darken it.
+	return Color(mixed.r * brightness, mixed.g * brightness, mixed.b * brightness)
+
+
+## Composites one tiling strip of ground from the region's sixteen-tile set.
+##
+## The set is a **corner mask set**, not a row of interchangeable slabs: exactly
+## one tile is solid, one is empty, and the other fourteen are the transitions
+## between. The first version indexed it by column - first four across the top,
+## next four repeating below - which laid fourteen part-transparent transitions
+## in a row and drew on screen as a single hard black line at the beast's feet
+## with the sky showing through everywhere else.
+##
+## Which mask each tile answers to is **measured from its own alpha** rather than
+## assumed from its filename, so regenerating a tileset cannot silently invert
+## the convention and put the sky underground.
 func _bake_ground() -> ImageTexture:
-	var tiles: Array[Image] = []
+	var by_mask: Dictionary = {}
 	for index: int in 16:
 		var path: String = Balance.BEAST_GROUND_TILE_FORMAT % [_ground_region(), index]
 		if not ResourceLoader.exists(path):
 			return null
 		var image: Image = (load(path) as Texture2D).get_image()
 		image.convert(Image.FORMAT_RGBA8)
-		tiles.append(image)
+		by_mask[_tile_mask(image)] = image
+		_ground_tile_px = image.get_width()
 
-	var tile_px: int = tiles[0].get_width()
 	var across: int = Balance.BEAST_GROUND_TILES_ACROSS
 	var down: int = Balance.BEAST_GROUND_TILES_DOWN
-	var canvas: Image = Image.create_empty(across * tile_px, down * tile_px,
-		false, Image.FORMAT_RGBA8)
+	var canvas: Image = Image.create_empty(across * _ground_tile_px,
+		down * _ground_tile_px, false, Image.FORMAT_RGBA8)
+
+	# The surface, as a height per column boundary. Periodic in `across` so the
+	# strip's right edge lines up with its own left edge when it wraps - a rolling
+	# horizon that stepped at the wrap would advertise the trick every few seconds.
+	var surface: PackedInt32Array = PackedInt32Array()
+	for corner: int in across + 1:
+		var phase: float = TAU * float(corner) / float(across)
+		var roll: float = (sin(phase) + sin(phase * 2.0) * 0.5) * Balance.BEAST_GROUND_ROLL
+		surface.append(down / 2 - int(round(roll)))
+
+	const CORNERS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
+		Vector2i(1, 1), Vector2i(0, 1)]
 	for column: int in across:
 		for row: int in down:
-			# Row 0 carries the mossy surface; everything under it is fill. The
-			# sheet's first row is the top edge, and its second is solid body.
-			var index: int = (column % 4) if row == 0 else 4 + (column % 4)
-			canvas.blend_rect(tiles[index], Rect2i(Vector2i.ZERO, tiles[index].get_size()),
-				Vector2i(column * tile_px, row * tile_px))
+			var mask: int = 0
+			for bit: int in 4:
+				var corner: Vector2i = Vector2i(column, row) + CORNERS[bit]
+				if corner.y >= surface[corner.x]:
+					mask |= 1 << bit
+			var piece: Image = by_mask.get(mask, null) as Image
+			if piece == null:
+				continue
+			canvas.blend_rect(piece, Rect2i(Vector2i.ZERO, piece.get_size()),
+				Vector2i(column * _ground_tile_px, row * _ground_tile_px))
 	return ImageTexture.create_from_image(canvas)
 
 
-## Which tileset the current act uses, falling back to the first.
+## Which corners of a tile carry ground, read from its own alpha.
+##
+## Bit 0 is the top-left corner, then clockwise: the convention the battlefield
+## ground and the raid cliffs already use, so all three agree.
+func _tile_mask(image: Image) -> int:
+	var quarter: int = image.get_width() / 4
+	var far: int = image.get_width() - quarter
+	var points: Array[Vector2i] = [Vector2i(quarter, quarter), Vector2i(far, quarter),
+		Vector2i(far, far), Vector2i(quarter, far)]
+	var mask: int = 0
+	for bit: int in 4:
+		if image.get_pixelv(points[bit]).a > 0.5:
+			mask |= 1 << bit
+	return mask
+
+
+## Which tileset the current act uses.
+##
+## Falls back to the first region rather than to nothing: a missing set costs the
+## act its own material, not its ground.
 func _ground_region() -> String:
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
-	return terrain.id if terrain != null else "jungle"
+	if terrain != null and ResourceLoader.exists(
+			Balance.BEAST_GROUND_TILE_FORMAT % [terrain.id, 0]):
+		return terrain.id
+	return "jungle"
 
 
 ## Loads whatever walk and idle frames exist, by convention.
@@ -185,8 +301,14 @@ func _setup_backdrop() -> void:
 	# therefore began at that origin and covered only the lower-right quarter of
 	# the screen, leaving the rest as the project's grey clear colour.
 	backdrop.centered = true
+	backdrop.z_index = Balance.BEAST_BACKDROP_Z
 	_backdrop_clone = Sprite2D.new()
 	_backdrop_clone.centered = true
+	# Mirrored, so the join is a reflection rather than a cut. The backdrop is a
+	# painting and does not tile: butting its right edge against its own left edge
+	# put a hard vertical seam through the sky every time the pair leapfrogged.
+	# Flipped, both joins are edge-against-identical-edge and neither shows.
+	_backdrop_clone.flip_h = true
 	_backdrop_clone.z_index = backdrop.z_index
 	backdrop.add_sibling(_backdrop_clone)
 	_apply_act_backdrop()
@@ -204,9 +326,20 @@ func _apply_act_backdrop() -> void:
 		return
 	var texture: Texture2D = load(path)
 	backdrop.texture = texture
+	# Scaled to fill the view height rather than drawn at its native size.
+	#
+	# The backdrops were 1920x1080 paintings and are 688x384 pixel art now, which
+	# is a quarter the height - drawn 1:1 the sky would occupy the middle third of
+	# the screen with the clear colour above and below it. Derived from the
+	# texture so it stays right whatever size the art is next time.
+	var fill: float = Balance.BEAST_BACKDROP_HEIGHT / maxf(float(texture.get_height()), 1.0)
+	backdrop.scale = Vector2.ONE * fill
 	if _backdrop_clone != null:
 		_backdrop_clone.texture = texture
+		_backdrop_clone.scale = backdrop.scale
 		_backdrop_clone.modulate = backdrop.modulate
+	# A new sky is new light and, past Act I, new ground under it.
+	_refresh_ground()
 
 
 ## Two sprites leapfrogging: whichever has scrolled fully off the left is moved

@@ -1492,12 +1492,76 @@ const BEAST_GROUND_TILE_FORMAT: String = "res://art/bg/side_%s_%02d.png"
 
 ## Strip size in tiles. Wide enough that two of them leapfrog without a seam
 ## crossing the screen; deep enough that the bottom is never visible.
-const BEAST_GROUND_TILES_ACROSS: int = 72
+const BEAST_GROUND_TILES_ACROSS: int = 32
 const BEAST_GROUND_TILES_DOWN: int = 6
+
+## World units one ground tile covers. Sets the sidescroller's pixel grain, and
+## is the reason the ground is not drawn at its native 32px beside a beast four
+## times that size.
+const BEAST_GROUND_TILE_WORLD: float = 64.0
+
+## How far the surface rolls, in tiles, either side of level.
+##
+## Zero, and deliberately. A sidescroller tileset has no slope tiles, so any
+## roll at all is built from vertical cliff faces - which drew the scope as a
+## platformer stage with ledges to jump between, under a beast that is plainly
+## walking on level ground. Flat is the honest read.
+const BEAST_GROUND_ROLL: float = 0.0
+
+## The ground is lit by the sky it stands under.
+##
+## The tilesets are generated at full daylight saturation. Dropped unlit into
+## Act I's dusk, the grass read as a bright green platform pasted over a sunset;
+## a fixed dark tint fixed that and then drew Act II's desert as a slab of grey
+## slate under a blazing white sky. One constant cannot serve three acts, because
+## the three are not lit alike.
+##
+## So the tint is **sampled from the backdrop's own horizon** instead: the ground
+## takes the hue of the light falling on it and a brightness scaled from that
+## light's own. Nothing to retune when an act's sky is regenerated.
+##
+## How much of the backdrop, measured up from its bottom edge, counts as the
+## light falling on the near ground.
+const BEAST_GROUND_LIGHT_BAND: float = 0.14
+
+## How much darker the near ground sits than the distance behind it. Foreground
+## reads darker at any hour - it is nearer the viewer than the light is.
+const BEAST_GROUND_SHADE: float = 0.86
+
+## The horizon brightness that means "no tinting at all". Sampled light above
+## this is clamped, so a white desert sky cannot bleach the ground past its art.
+const BEAST_GROUND_LIGHT_NEUTRAL: float = 0.52
+
+## The dimmest the ground is allowed to get, as a fraction of neutral light.
+##
+## Act I's dusk horizon is genuinely almost black, and lighting the ground
+## faithfully from it drew a featureless void along the bottom of the screen -
+## physically right and unreadable. The floor is the concession: the beast has to
+## be seen standing on something.
+const BEAST_GROUND_LIGHT_FLOOR: float = 0.52
+
+## How far the ground's tint carries the sky's hue, against staying neutral.
+##
+## Not all the way. A tint normalised to the horizon's brightest channel is a
+## *coloured* multiplier, and multiplying already-coloured art by it compounds:
+## the snow act's blue sky pushed blue tiles to electric cyan. Pulled back toward
+## white, the light still reads warm in the desert and cold in the snow without
+## driving the art's own colour past where it was drawn.
+const BEAST_GROUND_LIGHT_HUE: float = 0.35
 
 ## Where the strip sits, and how fast it passes. Faster than the sky, which is
 ## what sells the distance.
+## How tall the beast scope draws its backdrop, whatever the art's native size.
+const BEAST_BACKDROP_HEIGHT: float = 1080.0
+
 const BEAST_GROUND_Y: float = 452.0
+## The sky sits behind everything, including the ground the beast walks on.
+##
+## It was left at the default 0 while the ground was at -5, which drew a
+## full-screen opaque painting over the ground strip: the sidescroller terrain
+## was baked, scrolled and never once visible.
+const BEAST_BACKDROP_Z: int = -20
+
 const BEAST_GROUND_Z: int = -5
 const BEAST_GROUND_SCROLL: float = 0.55
 
