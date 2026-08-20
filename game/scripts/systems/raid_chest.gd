@@ -1,0 +1,92 @@
+class_name RaidChest
+extends Node2D
+
+## A chest in a raid camp. Opened by standing on it; locked ones need a key.
+##
+## No prompt and no button. A raid is sixty seconds of being chased, and a
+## chest that needs a keypress needs the player to stop being chased to press
+## it — so proximity opens it and the decision stays "is it worth going there",
+## which is the decision the camp's shape was built to pose.
+
+const GROUP: StringName = &"raid_chests"
+
+var locked: bool = false
+
+var _opened: bool = false
+var _sprite: Sprite2D
+var _glow: Sprite2D
+var _life: float = 0.0
+
+
+func _ready() -> void:
+	add_to_group(GROUP)
+	_glow = Sprite2D.new()
+	_glow.texture = LightKit.falloff_texture()
+	_glow.modulate = Balance.LOOT_GLOW_COLOUR if not locked \
+		else Balance.RAID_LOCKED_GLOW
+	_glow.scale = Vector2.ONE * (Balance.RAID_CHEST_GLOW
+		/ maxf(LightKit.falloff_texture().get_width(), 1.0))
+	_glow.z_index = -1
+	add_child(_glow)
+
+	_sprite = Sprite2D.new()
+	var art: String = Balance.LOOT_ART_FORMAT % "relic"
+	if ResourceLoader.exists(art):
+		_sprite.texture = load(art)
+	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_sprite.add_to_group(Graphics.FILTER_GROUP)
+	if locked:
+		# Locked ones read cold until they are opened, so a player can tell
+		# across the camp whether they need to go and find a key first.
+		_sprite.modulate = Balance.RAID_LOCKED_TINT
+	add_child(_sprite)
+	ShadowKit.add_contact(self, _sprite)
+
+
+func _process(delta: float) -> void:
+	if _opened:
+		return
+	_life += delta
+	if _sprite != null:
+		_sprite.position.y = sin(_life * 2.2) * 2.0
+	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
+	if hero == null or not is_instance_valid(hero):
+		return
+	if hero.global_position.distance_to(global_position) > Balance.RAID_REACH:
+		return
+	if locked and not RunState.spend_raid_key():
+		return
+	_open()
+
+
+func _open() -> void:
+	_opened = true
+	var reward: int = Balance.RAID_LOCKED_CHEST_REWARD if locked \
+		else Balance.RAID_CHEST_REWARD
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		reward = int(round(float(reward) * tier.loot_scale))
+	# Paid as scattered drops rather than straight into the purse, so opening a
+	# chest is a thing that happens on the ground in front of the player instead
+	# of a number changing in the corner of the screen.
+	var field: EnemyField = _field()
+	for _piece: int in Balance.RAID_CHEST_PIECES:
+		var share: int = maxi(1, reward / Balance.RAID_CHEST_PIECES)
+		var currency: String = RunState.CURRENCIES[
+			RunState.rng("raids").randi_range(0, RunState.CURRENCIES.size() - 1)]
+		if field != null:
+			field.spawn_loot(currency, share, global_position)
+	Sfx.play("sfx_relic_socket")
+	Vfx.ring(global_position, Balance.RAID_CHEST_GLOW * 0.8,
+		Balance.LOOT_GLOW_COLOUR, 0.5, 5.0)
+	EventBus.raid_chest_opened.emit(locked)
+	queue_free()
+
+
+func _field() -> EnemyField:
+	var parent: Node = get_parent()
+	while parent != null:
+		if parent is EnemyField:
+			return parent as EnemyField
+		parent = parent.get_parent()
+	return null

@@ -107,9 +107,16 @@ func spawn_tracer(_from: Vector2, _to: Vector2, _colour: Color) -> void:
 	pass
 
 
-## Drops collectable loot. The raid arena has no economy, so it ignores this.
+## Drops collectable loot. Both scopes pay; the base is for anything that does
+## not.
 func spawn_loot(_currency: String, _amount: int, _at: Vector2) -> void:
 	pass
+
+
+## Whether a body may move between two points. Open ground says yes to
+## everything; the raid camp has cliffs and answers properly.
+func step_is_legal(_from: Vector2, _to: Vector2) -> bool:
+	return true
 
 
 func spawn_ground_zone(_at: Vector2, _dps: float, _duration: float, _radius: float) -> void:

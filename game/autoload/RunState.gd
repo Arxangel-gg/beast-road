@@ -143,6 +143,13 @@ enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS }
 ## Per road rather than per wave: weather that changed every ninety seconds would
 ## be noise a player cannot plan around, and the whole point is that it is a
 ## condition you build *for* during Preparation.
+## Keys picked up in the current raid camp.
+##
+## Not persisted and not carried between camps: a key is a thing you found in
+## *this* camp, and banking them would turn the second raid of a run into a free
+## chest opening rather than a search.
+var raid_keys: int = 0
+
 var weather_id: String = "clear"
 
 ## The campaign tier this run is being played on.
@@ -331,6 +338,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	discipline_offers.clear()
 	discipline_respec_uses = 0
 	hero_ascension = 0
+	raid_keys = 0
 	weather_id = "clear"
 	# Restored from the account, not zeroed.
 	#
@@ -467,6 +475,14 @@ func refresh_discipline_offers() -> void:
 				if node.discipline != lead.discipline:
 					discipline_offers[discipline_offers.size() - 1] = node.id
 					break
+
+
+## Spends a key if one is held. Returns whether it could.
+func spend_raid_key() -> bool:
+	if raid_keys <= 0:
+		return false
+	raid_keys -= 1
+	return true
 
 
 ## The live weather, or null when the roster is missing.

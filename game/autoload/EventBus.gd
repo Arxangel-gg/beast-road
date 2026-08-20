@@ -79,6 +79,12 @@ signal weather_changed(weather_id: String)
 ## A drop was picked up (or paid out on expiry), for feedback and telemetry.
 signal loot_collected(currency: String, amount: int, at: Vector2)
 
+## A raid chest was opened, and whether it had been locked.
+signal raid_chest_opened(was_locked: bool)
+
+## A key was picked up in a raid; carries the new total.
+signal raid_key_taken(held: int)
+
 ## A spell resolved. `slot` is 0..3.
 signal spell_cast(spell_id: String, slot: int, at: Vector2)
 

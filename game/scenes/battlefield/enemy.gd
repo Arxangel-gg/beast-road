@@ -218,7 +218,22 @@ func _walk(delta: float) -> void:
 	# off to fight the hero moves straight at them.
 	if _target == null or _target == _field.town_node():
 		direction = _road_direction()
-	global_position += direction * current_speed() * delta
+
+	var step: Vector2 = direction * current_speed() * delta
+	var wanted: Vector2 = global_position + step
+	if _field.step_is_legal(global_position, wanted):
+		global_position = wanted
+		return
+
+	# Blocked by a cliff. Slide along it rather than stopping dead: an enemy that
+	# freezes at the foot of an island reads as broken, while one that runs along
+	# the face looking for the ramp reads as a siege - which is the behaviour the
+	# ramp exists to produce.
+	for sideways: Vector2 in [Vector2(step.y, -step.x), Vector2(-step.y, step.x)]:
+		var slide: Vector2 = global_position + sideways
+		if _field.step_is_legal(global_position, slide):
+			global_position = slide
+			return
 
 
 ## Direction to the next waypoint, offset sideways into this enemy's column lane.

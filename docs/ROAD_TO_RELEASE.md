@@ -442,8 +442,49 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
       Inbox emptied, stale v3 names corrected. STILL TO RECORD: 0.
 
-- [ ] Raid overhaul: larger arena, procedural tilemap terrain, elevation islands,
-      chests and keys, loot.
+- [x] **Raid overhaul.** The camp was a flat circle 700 units across, and nothing
+      in it made one part different from another — so a raid was sixty seconds of
+      backing away from whatever spawned. It is now a **40×40 tile field (2560
+      units)**, close to the battlefield's 2880 and nearly four times the old
+      diameter.
+
+      **Elevation islands**, generated per raid. They do three things at once:
+      block movement and line, so contact can be broken and enemies have to come
+      round; hold the better loot, so climbing is a decision made under pressure;
+      and each is reached by a **one-tile ramp**, which is a choke — whoever
+      holds it holds the island.
+
+      `RaidLayout` is pure geometry with no nodes and no autoloads, the same rule
+      `BattleGrid` follows, because connectivity decides whether a camp is
+      playable and has to be checkable without standing an arena up.
+      `tools/raid_layout_check.gd` builds **300 camps** and asserts it: nothing
+      stranded, arrival clear, real relief, every chest and key reachable, and a
+      key for every lock.
+
+      It found two generator bugs on the first run — procedural terrain is right
+      on the seed you looked at and wrong on one you have not seen. Islands grew
+      over the arrival point (keeping *seeds* clear is not enough when a seed
+      five tiles out has a radius of six), and my first repair lowered stranded
+      tiles one level per pass, which produced level-0 hollows inside level-1
+      islands that were equally unreachable. Repair now cuts a ramp where one is
+      legal and flattens a whole region to its lowest neighbour where none is.
+
+      **Chests and keys.** Locked chests take the high ground; their keys sit on
+      the floor the player crosses anyway — a key hidden on *another* island turns
+      one detour into two. Keys are not bound to a specific lock: finding "the
+      wrong key" in a sixty-second camp reads as the game wasting your time.
+      Opened by proximity, because a chest needing a keypress needs the player to
+      stop being chased to press it. Chests pay in scattered drops rather than
+      into the purse, so opening one happens on the ground in front of you.
+
+      **Raids pay out at all now** — the arena inherited `EnemyField`'s empty
+      `spawn_loot`, so a camp full of kills dropped nothing while the battlefield
+      beside it did.
+
+      Enemies respect cliffs and slide along them looking for the ramp rather
+      than stopping dead, which reads as a siege instead of as a bug. The camp
+      floor is the act's own terrain: the raid backdrop tiled across 2560 units
+      showed its own seams as a grid.
 - [ ] Milestone cutscenes beyond the opening.
 - [x] **The new SFX are integrated.** Eleven takes trimmed, peak-normalised to a
       common −3 dB ceiling and converted to Ogg. Peak-normalised rather than

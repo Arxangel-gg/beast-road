@@ -1397,7 +1397,81 @@ const LEADER_RESOLUTIONS: Array[String] = ["accept_oath", "ransom", "take_standa
 ## Raid horde pacing. [TUNE]
 const RAID_SPAWN_INTERVAL: float = 0.55
 const RAID_MAX_ENEMIES: int = 72
+## The old circular arena. Kept only as the fallback bound for a raid whose
+## layout failed to build; the camp is a 40x40 tile field now (RaidLayout).
 const RAID_ARENA_RADIUS: float = 700.0
+
+# --- Raid camp terrain --------------------------------------------------------
+#
+# The camp was a flat circle 700 units across, which made every part of it the
+# same as every other part - so a raid was a minute of backing away from whatever
+# spawned. Raised islands give it corners to break contact behind, high ground
+# worth climbing for, and ramps narrow enough to hold.
+
+## How many raised blobs a camp gets. [TUNE]
+const RAID_ISLANDS_MIN: int = 4
+const RAID_ISLANDS_MAX: int = 7
+
+## Tiles between island seeds, so they read as separate hills.
+const RAID_ISLAND_SPACING: float = 9.0
+
+## Blob size in tiles, before the edge wobble.
+const RAID_ISLAND_RADIUS_MIN: float = 3.4
+const RAID_ISLAND_RADIUS_MAX: float = 6.2
+
+## How often an island gets a second tier on top of its first.
+const RAID_SECOND_TIER_CHANCE: float = 0.45
+
+## Tiles clear around the arrival point, so nobody lands inside a cliff.
+const RAID_ARRIVAL_CLEARANCE: float = 5.0
+
+## Above this many tiles, an island may get a second ramp. One ramp on a large
+## island is a siege; one on a small island is a choke.
+const RAID_BIG_ISLAND_TILES: int = 40
+
+## Chests per camp, and how many of those are locked.
+const RAID_CHESTS_MIN: int = 3
+const RAID_CHESTS_MAX: int = 5
+const RAID_LOCKED_CHESTS: int = 2
+
+## Tiles between anything placed, so two chests never share a corner.
+const RAID_CHEST_SPACING: float = 6.0
+
+## What a chest pays, before the tier multiplier.
+## How each elevation reads. Higher is lighter, which is the only cue a player
+## needs and the one that survives a dark camp at night.
+const RAID_LEVEL_TINT: Array[Color] = [
+	Color(0, 0, 0, 0),
+	Color(0.62, 0.60, 0.54, 0.28),
+	Color(0.78, 0.76, 0.70, 0.36),
+]
+const RAID_RAMP_TINT: Color = Color(0.88, 0.68, 0.32, 0.40)
+const RAID_CLIFF_EDGE: Color = Color(0.06, 0.05, 0.05, 0.85)
+const RAID_CLIFF_EDGE_WIDTH: float = 3.0
+
+## Chest and key presentation.
+## Terrain sits above the ground sprite and below everything that walks on it.
+## The camp floor, under the elevation plates.
+const RAID_GROUND_Z: int = -40
+
+## Terrain sits above the ground sprite and below everything that walks on it.
+const RAID_TERRAIN_Z: int = -20
+
+const RAID_CHEST_GLOW: float = 96.0
+const RAID_LOCKED_TINT: Color = Color(0.66, 0.74, 0.95)
+const RAID_LOCKED_GLOW: Color = Color(0.55, 0.68, 1.0, 0.45)
+const RAID_KEY_GLOW: Color = Color(1.0, 0.85, 0.42, 0.6)
+
+## How many drops a chest scatters. Paid on the ground rather than into the
+## purse, so opening one happens in front of the player.
+const RAID_CHEST_PIECES: int = 6
+
+## How near the hero must be to open a chest or take a key.
+const RAID_REACH: float = 74.0
+
+## What a chest pays, before the tier multiplier.
+const RAID_CHEST_REWARD: int = 40
+const RAID_LOCKED_CHEST_REWARD: int = 110
 
 ## Reward fraction for leaving early, scaled by kills against this target. [TUNE]
 const RAID_PARTIAL_REWARD_KILLS: int = 60

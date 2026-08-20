@@ -43,11 +43,16 @@ var _finished: bool = false
 
 var _rng := RandomNumberGenerator.new()
 
+## The camp's terrain. Rebuilt per raid, so two camps are never the same shape.
+var layout: RaidLayout = null
+
+## Nodes rebuilt with the terrain, torn down between raids.
+var _terrain_root: Node2D = null
+
 
 func _ready() -> void:
 	_rng = RunState.rng("raids")
 	_setup_ground()
-	_setup_boundary()
 	set_process(false)
 
 
@@ -55,6 +60,12 @@ func begin() -> void:
 	# queue_free() resolves at frame end; a fast second entry must not inherit
 	# targets from the failed camp while that deletion is still pending.
 	_clear_enemies()
+	# Re-skinned per raid: the camp belongs to the act it is raided from.
+	_setup_ground()
+	# A fresh camp every raid. Built here rather than in `_ready` because the
+	# shape is the content: the same arena twice is the flat circle again with
+	# extra steps.
+	_build_camp()
 	_running = true
 	_finished = false
 	_elapsed = 0.0
@@ -203,7 +214,13 @@ func _spawn(data: EnemyData, at: Vector2, scale: float) -> Enemy:
 
 
 func _edge_point() -> Vector2:
-	return Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU)) * Balance.RAID_ARENA_RADIUS
+	# Spawned on the camp's edge, and only somewhere standable: the old circle
+	# had no unwalkable ground, so a ring of random angles was always valid.
+	for _try: int in 24:
+		var at: Vector2 = Vector2.RIGHT.rotated(_rng.randf_range(0.0, TAU)) 			* (RaidLayout.HALF_EXTENT - RaidLayout.TILE * 2.0)
+		if layout == null or layout.is_open(at):
+			return at
+	return Vector2.RIGHT * (RaidLayout.HALF_EXTENT - RaidLayout.TILE * 2.0)
 
 
 func _spawn_chieftain() -> void:
@@ -363,24 +380,123 @@ func spawn_tracer(from: Vector2, to: Vector2, colour: Color) -> void:
 	tween.tween_callback(line.queue_free)
 
 
+## Generates and stands up one camp: terrain, cliffs, chests and keys.
+func _build_camp() -> void:
+	if _terrain_root != null and is_instance_valid(_terrain_root):
+		_terrain_root.queue_free()
+	_terrain_root = Node2D.new()
+	_terrain_root.name = "Camp"
+	add_child(_terrain_root)
+	move_child(_terrain_root, 0)
+
+	layout = RaidLayout.new(_rng)
+	RunState.raid_keys = 0
+
+	var terrain := RaidTerrain.new()
+	terrain.layout = layout
+	terrain.z_index = Balance.RAID_TERRAIN_Z
+	_terrain_root.add_child(terrain)
+
+	_build_cliffs()
+	_place_treasure()
+
+	if hero != null:
+		# The camp is a square field now, so the hero is bounded by its edge
+		# rather than by the old circle.
+		hero.bounds_extent = Vector2.ONE * (RaidLayout.HALF_EXTENT - RaidLayout.TILE)
+		hero.global_position = Vector2.ZERO
+
+
+## Static bodies along every cliff face, so the hero cannot walk up one.
+##
+## Built from the *edges* rather than by filling islands with collision: an
+## island the hero is standing on must not also be a wall, and the thing that
+## blocks movement is the change in level, not the height itself.
+func _build_cliffs() -> void:
+	var body := StaticBody2D.new()
+	body.name = "Cliffs"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	_terrain_root.add_child(body)
+
+	for y: int in RaidLayout.SIZE:
+		for x: int in RaidLayout.SIZE:
+			var tile := Vector2i(x, y)
+			for step: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+				var next: Vector2i = tile + step
+				if not RaidLayout.in_bounds(next):
+					continue
+				if layout.can_step(tile, next) and layout.can_step(next, tile):
+					continue
+				var shape := CollisionShape2D.new()
+				var rect := RectangleShape2D.new()
+				var along: Vector2 = Vector2(float(step.y), float(step.x))
+				rect.size = along * RaidLayout.TILE + Vector2(step) * 8.0
+				shape.shape = rect
+				shape.position = (RaidLayout.tile_to_world(tile)
+					+ RaidLayout.tile_to_world(next)) * 0.5
+				body.add_child(shape)
+
+
+func _place_treasure() -> void:
+	for index: int in layout.chests.size():
+		var chest := RaidChest.new()
+		chest.locked = layout.locked_chests[index]
+		chest.position = layout.chests[index]
+		_terrain_root.add_child(chest)
+	for at: Vector2 in layout.keys:
+		var key := RaidKey.new()
+		key.position = at
+		_terrain_root.add_child(key)
+
+
+## Raids pay out now. The arena used to inherit `EnemyField`'s empty default, so
+## a camp full of kills dropped nothing on the ground while the battlefield beside
+## it did — which reads as the raid being the part of the game nobody finished.
+func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
+	if amount <= 0:
+		return
+	var drop := LootDrop.new()
+	drop.setup(currency, amount, at)
+	(effect_root if effect_root != null else self).add_child(drop)
+
+
+## Whether a body standing at `from` may move to `to`.
+##
+## Enemies move by setting a position rather than through the physics body the
+## cliffs collide with, so without this they walk up the side of an island and
+## the whole shape stops meaning anything. Asked per step rather than pathfound:
+## a camp is sixty seconds long and an enemy that slides along a cliff looking
+## for the ramp reads as a siege, which is what the ramp is for.
+func step_is_legal(from: Vector2, to: Vector2) -> bool:
+	if layout == null:
+		return true
+	return layout.can_step(RaidLayout.world_to_tile(from), RaidLayout.world_to_tile(to))
+
+
+## The camp floor: the act's own terrain, tiled.
+##
+## It used to be the raid backdrop repeated, which was fine on a 700-unit circle
+## and is not on a 2560-unit camp - a 1920-wide painting tiled across that shows
+## its own seams as a grid, which is what the first screenshot of the new arena
+## looked like. The regional terrain is authored to tile and puts the camp in the
+## same place as the road outside it.
 func _setup_ground() -> void:
 	if ground == null:
 		return
-	var extent: float = Balance.RAID_ARENA_RADIUS * 1.3
+	var extent: float = RaidLayout.HALF_EXTENT + RaidLayout.TILE * 2.0
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.material = TerrainSeam.material()
 	ground.region_enabled = true
-	ground.region_rect = Rect2(-extent, -extent, extent * 2.0, extent * 2.0)
+	# Below the elevation plates, which are what the player reads the camp from.
+	ground.z_index = Balance.RAID_GROUND_Z
+	ground.y_sort_enabled = false
 
-
-func _setup_boundary() -> void:
-	if boundary == null:
-		return
-	var points: PackedVector2Array = []
-	for i: int in 97:
-		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 96.0) * Balance.RAID_ARENA_RADIUS)
-	boundary.points = points
-	boundary.closed = true
-	boundary.width = 5.0
-	boundary.default_color = Color(0.75, 0.25, 0.22, 0.45)
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
+		ground.texture = load(terrain.get_sprite_path())
+	var tile_scale: float = Balance.GROUND_UNITS_PER_TEXEL
+	var half: float = extent / tile_scale
+	ground.region_rect = Rect2(-half, -half, half * 2.0, half * 2.0)
+	ground.scale = Vector2.ONE * tile_scale
