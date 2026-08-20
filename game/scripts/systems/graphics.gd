@@ -10,13 +10,13 @@ extends RefCounted
 ##   24 shadow-casting lights   each torch runs a PCF13 shadow pass
 ##   ~290 contact shadows       one shader quad under every unit and plant
 ##   ~50 particle systems       embers and smoke on every flame
-##   420 foliage clumps         polygons, each rotating every frame
+##   32 foliage band meshes     hundreds of plants batched by depth
 ##   1 cloud shadow layer       a full-field scrolling noise shader
 ##   uncapped frame rate        a laptop rendering 300 fps to cook itself
 ##
-## In roughly that order. Cast shadows are first because twenty-four lights each
-## rendering occluders is the single largest item, and it is also the one whose
-## absence costs the least: the game looks flatter at night and plays identically.
+## The measured order varies with scene population. Foliage used to dominate
+## until it was batched; cast shadows remain an effective option whose absence
+## costs little: the game looks flatter at night and plays identically.
 ##
 ## **Nothing here changes gameplay.** Foliage is decoration, shadows are
 ## decoration, particles are decoration. A player on Low sees the same enemies at

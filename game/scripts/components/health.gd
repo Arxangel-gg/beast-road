@@ -83,6 +83,18 @@ func heal(amount: float) -> void:
 	changed.emit(current_hp, max_hp)
 
 
+## Resolves a system-level softlock without being defeated by temporary
+## invulnerability. Ordinary combat must use `take_damage`; this is for an owner
+## such as the wave watchdog that has already proved the encounter cannot move.
+func kill(from: Vector2) -> void:
+	if is_dead:
+		return
+	current_hp = 0.0
+	is_dead = true
+	changed.emit(current_hp, max_hp)
+	died.emit(from)
+
+
 ## Alive and vulnerable at the requested health fraction.
 func revive(fraction: float = 1.0) -> void:
 	is_dead = false

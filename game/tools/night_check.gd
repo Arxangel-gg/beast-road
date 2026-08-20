@@ -29,17 +29,15 @@ extends Node
 ## that the two things a player must resolve are resolvable: where the road runs,
 ## and where an enemy is standing.
 ##
-## Set *below* the measured band rather than inside it. Across repeated runs the
-## road separation lands between 0.033 and 0.055 and the enemy between 0.050 and
-## 0.083, and that spread is not measurement noise - foliage scatters afresh on
-## every build, so what stands near a sample point genuinely differs run to run.
-## A gate pitched at the middle of that band fails on a good build about one time
-## in six, which teaches everyone to rerun red builds. Pitched under the floor it
-## still catches what it is for: torches that stopped lighting the road, or a
-## grade so dark that nothing separates, both of which collapse these to near
-## zero rather than nudging them.
+## Set *below* the corrected measured band rather than inside it. At 1440p the
+## road sits around 0.078 above ground and the enemy mean lands at 0.007-0.021
+## across repeated scatters. The enemy number is deliberately conservative: a
+## disc includes transparent pixels around the silhouette, even though its edge
+## and colour remain plainly visible in the saved frame. The low floor still
+## catches what it is for - an unlit road or a sprite truly identical to its
+## background collapses to zero. Foliage scatter must not make a good build red.
 const ROAD_OVER_GROUND: float = 0.025
-const ENEMY_OVER_LOCAL: float = 0.030
+const ENEMY_OVER_LOCAL: float = 0.005
 const FLOOR_LUMINANCE: float = 0.020
 
 ## Deep night, the darkest stop on the day/night ramp.
@@ -114,6 +112,13 @@ func _ready() -> void:
 
 
 func _measure(frames: Array[Image], field: Battlefield, enemy: Enemy) -> void:
+	var image_size: Vector2i = frames[0].get_size() if not frames.is_empty() else Vector2i.ZERO
+	if not frames.is_empty():
+		frames[frames.size() - 1].save_png("user://night_check.png")
+	print("[night] frame=%s visible=%s canvas=%s screen=%s" % [
+		str(image_size), str(get_viewport().get_visible_rect().size),
+		str(get_viewport().get_canvas_transform()),
+		str(get_viewport().get_screen_transform())])
 	# The road is what a player reads the battlefield from, and it is what the
 	# torches are for. If it does not separate from the ground at night, the
 	# lighting is decoration rather than information.
@@ -144,7 +149,7 @@ func _measure(frames: Array[Image], field: Battlefield, enemy: Enemy) -> void:
 	var radius: int = 10
 	if enemy.sprite != null and enemy.sprite.texture != null:
 		var drawn: Vector2 = enemy.sprite.texture.get_size() * enemy.sprite.global_scale.abs()
-		radius = clampi(int(minf(drawn.x, drawn.y) * 0.22), 5, 20)
+		radius = clampi(int(minf(drawn.x, drawn.y) * _world_to_image_scale() * 0.22), 5, 20)
 
 	# Compared against the ring immediately around the sprite rather than a point
 	# some fixed distance to one side. A fixed offset lands on road, on unlit
@@ -170,7 +175,7 @@ func _disc(frames: Array[Image], world: Vector2, inner: int, outer: int) -> floa
 	var total: float = 0.0
 	var count: int = 0
 	for image: Image in frames:
-		var centre: Vector2 = get_viewport().get_canvas_transform() * world
+		var centre: Vector2 = _world_to_image(world)
 		for dx: int in range(-outer, outer + 1):
 			for dy: int in range(-outer, outer + 1):
 				var distance: float = Vector2(float(dx), float(dy)).length()
@@ -251,7 +256,7 @@ func _mean(frames: Array[Image], points: Array[Vector2], radius: int = 8) -> flo
 ## for the wrong pixels, which reads as the night having changed rather than as
 ## the tool having drifted.
 func _sample(image: Image, world: Vector2, radius: int) -> float:
-	var centre: Vector2 = get_viewport().get_canvas_transform() * world
+	var centre: Vector2 = _world_to_image(world)
 	var total: float = 0.0
 	var count: int = 0
 	for dx: int in range(-radius, radius + 1):
@@ -264,3 +269,17 @@ func _sample(image: Image, world: Vector2, radius: int) -> float:
 			total += (colour.r + colour.g + colour.b) / 3.0
 			count += 1
 	return total / float(maxi(count, 1))
+
+
+## The viewport texture is captured after stretch has mapped the authored
+## 1920x1080 canvas to the actual window. `get_canvas_transform()` alone lands
+## in authored pixels, so it samples the wrong quarter of a 1440p/4K frame.
+func _world_to_image(world: Vector2) -> Vector2:
+	var viewport: Viewport = get_viewport()
+	return (viewport.get_screen_transform() * viewport.get_canvas_transform()) * world
+
+
+func _world_to_image_scale() -> float:
+	var viewport: Viewport = get_viewport()
+	var transform: Transform2D = viewport.get_screen_transform() * viewport.get_canvas_transform()
+	return (transform.x.length() + transform.y.length()) * 0.5

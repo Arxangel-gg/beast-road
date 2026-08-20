@@ -91,6 +91,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/curve_report.tscn
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
+          run_godot_clean --headless --path game res://tools/leaderboard_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
           # Long enough for waves to reach the torches. Snuffing has been silently
           # dead twice; it is not a thing to verify by looking at a screenshot.

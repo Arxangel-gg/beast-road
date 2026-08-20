@@ -33,6 +33,13 @@ extends GameData
 @export var xp_scale: float = 1.0
 @export var loot_scale: float = 1.0
 
+## What a run on this tier is worth on the leaderboard.
+##
+## Applied to the finished score rather than to any one term, so it scales the
+## whole run. Boards are read per tier anyway; this is what keeps a Hell run from
+## sorting below a Normal one on a combined view.
+@export var score_scale: float = 1.0
+
 ## Shown on the difficulty picker under the name.
 @export var summary: String = ""
 

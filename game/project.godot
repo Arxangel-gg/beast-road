@@ -30,6 +30,7 @@ MusicPlayer="*res://autoload/MusicPlayer.gd"
 Sfx="*res://autoload/Sfx.gd"
 Ambience="*res://autoload/Ambience.gd"
 UiSound="*res://autoload/UiSound.gd"
+Leaderboard="*res://autoload/Leaderboard.gd"
 
 [display]
 
@@ -38,7 +39,6 @@ window/size/viewport_height=1080
 window/size/mode=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-display/window/size/mode=4
 
 [gui]
 

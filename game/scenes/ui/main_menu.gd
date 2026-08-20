@@ -1,6 +1,8 @@
 class_name MainMenu
 extends Control
 
+const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
+
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
 
@@ -11,6 +13,7 @@ extends Control
 @export var seed_input: LineEdit
 
 var _settings: SettingsPanel
+var _leaderboard: CanvasLayer
 
 
 func _ready() -> void:
@@ -30,6 +33,7 @@ func _ready() -> void:
 	_build_tier_row()
 	_build_stash_button()
 	_build_endless_button()
+	_build_leaderboard_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
@@ -135,6 +139,29 @@ func _build_endless_button() -> void:
 	column.move_child(button, new_run_button.get_index() + 1)
 	IconKit.on_button(button, "pressure_arrow", 26)
 	button.pressed.connect(func() -> void: _start_run(true))
+
+
+## The shared board is always reachable. With no network it becomes this save's
+## personal-best list, so the button never opens a dead screen.
+func _build_leaderboard_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Leaderboard"
+	button.text = "Leaderboard"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "distance", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+
+	_leaderboard = LeaderboardScreenScript.new()
+	add_child(_leaderboard)
+	_leaderboard.closed.connect(func() -> void: button.grab_focus())
+	button.pressed.connect(func() -> void: _leaderboard.open())
 
 
 func _start_run(endless: bool = false) -> void:

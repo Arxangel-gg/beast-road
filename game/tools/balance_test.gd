@@ -718,8 +718,12 @@ func _test_tiers_and_persistence() -> void:
 		var keys: Array = (parsed as Dictionary).keys()
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
-				"settings", "hero", "stash"],
+				"settings", "hero", "stash", "board"],
 				"unexpected top-level save key \"%s\"" % key)
+		var board: Dictionary = (parsed as Dictionary).get("board", {}) as Dictionary
+		for key: Variant in board.keys():
+			_check(String(key) in ["name", "best", "pending"],
+				"unexpected leaderboard save key \"%s\"" % key)
 		# The list is about *power*, not tidiness. "story_seen" is on it because it
 		# rides in the same block, and it is not progression - a flag saying the
 		# opening has played cannot make a run easier. Anything that could is what

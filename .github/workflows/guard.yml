@@ -136,6 +136,7 @@ jobs:
           check "launcher" --headless --path launcher --quit
           check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
           check "main menu" --headless --path game res://tools/menu_check.tscn
+          check "leaderboard" --headless --path game res://tools/leaderboard_check.tscn
           # Every manifest asset exists, is the right size, and is real art
           # rather than a magenta-marked placeholder.
           #

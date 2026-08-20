@@ -1,9 +1,19 @@
 extends Node
 
 var _failures: int = 0
+var _previous_local_app_data: String = ""
+var _fixture_base: String = ""
 
 
 func _ready() -> void:
+	# LauncherConfig normally targets the player's real LOCALAPPDATA install.
+	# Every failure-path test below writes and removes trees, so redirect the
+	# entire contract into a repository-local fixture before asking it for a
+	# single path. A release gate must never be able to delete the game it tests.
+	_previous_local_app_data = OS.get_environment("LOCALAPPDATA")
+	_fixture_base = ProjectSettings.globalize_path(
+		"res://.automated_checks/release_pipeline")
+	OS.set_environment("LOCALAPPDATA", _fixture_base)
 	_test_release_parsing()
 	_test_download_failure_policy()
 	_test_unusable_release()
@@ -285,3 +295,6 @@ func _cleanup() -> void:
 	installer.call("_remove_tree", LauncherConfig.install_dir())
 	installer.call("_remove_tree", LauncherConfig.staging_dir())
 	installer.queue_free()
+	OS.set_environment("LOCALAPPDATA", _previous_local_app_data)
+	if DirAccess.dir_exists_absolute(_fixture_base):
+		DirAccess.remove_absolute(_fixture_base)

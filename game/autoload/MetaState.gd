@@ -17,7 +17,7 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 5
+const SAVE_VERSION: int = 6
 
 ## Terrain ids as they were before v4's regions were adopted. A save records
 ## which terrains a player has unlocked *by id*, so renaming the content renames
@@ -25,7 +25,7 @@ const SAVE_VERSION: int = 5
 ## that no longer name anything, silently losing the unlocks.
 ## Save versions this build can carry forward. Anything else is backed up and
 ## the account starts fresh.
-const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3, 4]
+const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3, 4, 5]
 
 const TERRAIN_RENAMES_V3: Dictionary = {
 	"ashfen": "jungle",
@@ -137,6 +137,22 @@ var story_intro_seen: bool = false
 var sigils: int = 0
 
 # --- Run statistics ---
+## The name a submitted run is posted under, and this save's own best runs.
+##
+## Both are run statistics under working rule 7 — a name is what a statistic is
+## filed under, and a best-run row is a record of a run that finished. Neither
+## carries power: nothing in a row is ever read back into a run, which is the
+## line rule 7 actually draws.
+var player_name: String = ""
+var best_runs: Array = []
+
+## Runs that finished while the board was unreachable.
+##
+## A bounded outbox, not a permanent record. Rows retain their submission IDs
+## across retries and leave the queue only after success, so a lost response
+## cannot create duplicate leaderboard entries.
+var pending_runs: Array = []
+
 var runs_started: int = 0
 var runs_won: int = 0
 var best_distance: float = 0.0
@@ -228,6 +244,20 @@ func erase_progress() -> void:
 	act3_cleared = false
 	tools = 0
 	sigils = 0
+	hero_level = 1
+	hero_xp = 0.0
+	hero_attributes = [0, 0, 0, 0]
+	hero_attribute_points = 0
+	hero_skill_points = 0
+	tier_cleared = -1
+	last_tier_id = "normal"
+	stash.clear()
+	equipped.clear()
+	marks = 0
+	shards = 0
+	player_name = ""
+	best_runs.clear()
+	pending_runs.clear()
 	runs_started = 0
 	runs_won = 0
 	best_distance = 0.0
@@ -367,6 +397,37 @@ func _read_stash(data: Dictionary) -> void:
 			equipped[int(key)] = index
 
 
+## The leaderboard block, bounded on the way in.
+##
+## Read defensively for the same reason the hero and stash blocks are: a save is
+## a file on a player's disk and the only thing standing between an edited one
+## and a broken screen is what happens here. A row that is not a dictionary is
+## dropped rather than stored, and the name goes through the same cleaner a
+## submitted name does — a save carrying newlines in its name would otherwise
+## break every row of a board it appears on.
+func _read_board(data: Dictionary) -> void:
+	player_name = Score.clean_name(String(data.get("name", ""))) \
+		if not String(data.get("name", "")).is_empty() else ""
+
+	best_runs = []
+	var best_value: Variant = data.get("best", [])
+	if best_value is Array:
+		for entry: Variant in best_value as Array:
+			if entry is Dictionary:
+				best_runs.append(Score.clean_row(entry as Dictionary))
+			if best_runs.size() >= Balance.LEADERBOARD_LOCAL_MAX:
+				break
+
+	pending_runs = []
+	var pending_value: Variant = data.get("pending", [])
+	if pending_value is Array:
+		for entry: Variant in pending_value as Array:
+			if entry is Dictionary:
+				pending_runs.append(Score.clean_row(entry as Dictionary))
+			if pending_runs.size() >= Balance.LEADERBOARD_PENDING_MAX:
+				break
+
+
 ## The piece worn in a slot, or an empty dictionary.
 func equipped_piece(slot: int) -> Dictionary:
 	var index: int = int(equipped.get(slot, -1))
@@ -482,6 +543,11 @@ func serialized_save() -> String:
 			"best_distance": best_distance,
 			"total_enemies_killed": total_enemies_killed,
 		},
+		"board": {
+			"name": player_name,
+			"best": best_runs,
+			"pending": pending_runs,
+		},
 		"settings": settings,
 	}
 	return JSON.stringify(data, "\t")
@@ -538,6 +604,7 @@ func load_save() -> void:
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
+	_read_board(data.get("board", {}) as Dictionary)
 	resource_cache = data.get("resource_cache", {}) as Dictionary
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary

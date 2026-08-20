@@ -29,6 +29,7 @@ func _ready() -> void:
 	_screens = [
 		{"name": "main_menu", "make": _main_menu},
 		{"name": "settings", "make": _settings},
+		{"name": "leaderboard", "make": _leaderboard},
 		{"name": "crossroad", "make": _crossroad},
 		{"name": "results_win", "make": _results.bind(true)},
 		{"name": "results_loss", "make": _results.bind(false)},
@@ -85,6 +86,34 @@ func _settings() -> Node:
 func _crossroad() -> Node:
 	var screen: Node = load("res://scenes/ui/crossroad_screen.tscn").instantiate()
 	screen.ready.connect(func() -> void: screen.call("open", 4), CONNECT_ONE_SHOT)
+	return screen
+
+
+func _leaderboard() -> Node:
+	# Three realistic rows exercise rank, long names, summit marker and the
+	# numeric columns. The network may replace them later, but the capture happens
+	# after layout and before a remote service is allowed to control visual QA.
+	MetaState.last_tier_id = "normal"
+	MetaState.best_runs = [
+		{
+			"submission_id": "sweep-one", "name": "Roadwarden", "tier": "normal",
+			"score": 184250, "act": 3, "wave": 51, "hero_level": 97,
+			"duration": 3624, "victory": true,
+		},
+		{
+			"submission_id": "sweep-two", "name": "Ash-and-Iron", "tier": "normal",
+			"score": 96380, "act": 3, "wave": 43, "hero_level": 81,
+			"duration": 3042, "victory": false,
+		},
+		{
+			"submission_id": "sweep-three", "name": "A Very Long Wanderer Name",
+			"tier": "normal", "score": 41750, "act": 2, "wave": 29,
+			"hero_level": 56, "duration": 2168, "victory": false,
+		},
+	]
+	var screen: CanvasLayer = load(
+		"res://scenes/ui/leaderboard_screen.gd").new() as CanvasLayer
+	screen.ready.connect(func() -> void: screen.call("open"), CONNECT_ONE_SHOT)
 	return screen
 
 

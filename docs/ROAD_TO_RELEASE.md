@@ -32,6 +32,12 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 Highest priority: these are things that are wrong, not things that are missing.
 
+- [x] Wave stall recovery could emit `wave_cleared` while a stationary ranged
+      enemy was still attacking, opening Preparation on top of it. The watchdog
+      now treats aggregate HP change as live combat and, on a genuine stall,
+      resolves attackers through the normal death path before clearing. The
+      180-second breather gate passes: three waves, two safe breathers.
+
 - [x] Tower shadows anchored to the node rather than the sprite, so raising the
       sprite for y-sorting left the shadow floating. Fixed in `ShadowKit.add_contact`.
 - [x] Foliage sorting over health bars. Bars now draw on their own layer above
@@ -244,11 +250,12 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       the same shader inverted and its reach cut to a quarter — a shrub is a woody
       thing and should not whip like grass.
 - [ ] Horizontal ferns.
-- [x] **Hero levelling to 100 and the skill tree.** Run-scoped, which is a v4
-      requirement rather than a simplification: §974 reads "No uncapped stat
-      bonus, hero level, building tier … persists." A hero may grow enormously
-      inside a run and starts the next at level 1, which is also what keeps the
-      difficulty curve meaningful.
+- [x] **Hero levelling to 100 and the skill tree.** The bounded levelling system
+      is complete. The original implementation reset each run; the owner ruling
+      of 2026-08-20 now persists level, XP and placed attributes, capped by
+      `HERO_MAX_LEVEL`. Building tiers, run currencies, relics and Oathbound
+      leaders still reset. The later persistent-hero item records the migration
+      and tier curve that make that amendment shippable.
 
       XP scales with the enemy's health rather than an authored per-enemy number,
       so an elite outpays a runner with no second table to maintain and act
@@ -350,7 +357,11 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       arriving with no hero block, which is tested, and the save-backup check was
       run by hand — all five rows pass.
 
-- [ ] **Leaderboards** — now in scope (§54 amended 2026-08-20). Not built.
+- [~] **Leaderboards** — client, score model, offline outbox, idempotent
+      submissions, results-screen entry, browser and validation gate are built.
+      Production remains blocked by the Supabase project being service-restricted
+      for storage quota and by the table/RLS deployment and live round-trip not
+      yet being verifiable. See `docs/LEADERBOARD.md`.
 - [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
       on the same tag as the Windows build, attached to the release as
       `BeastRoad-web.zip`, and deployed to GitHub Pages from a second job.
@@ -695,7 +706,8 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       the field being looked at. Like brightness, it does not knock the quality
       preset to Custom: it is about the screen, not what the machine can afford.
 - [ ] Main menu pixel art, animated.
-- [ ] Leaderboards.
+- [~] Leaderboards — local/client path complete; Supabase quota, schema/RLS and
+      live production verification remain (see the detailed item above).
 
 ---
 
@@ -729,23 +741,25 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       grade, is the road distinguishable from unlit ground, and an enemy from
       what is behind it. Windowed, not headless — it measures pixels.
 
-      Getting it to *mean* anything took four wrong versions, each of which
-      returned confident numbers: a hand-rolled world→screen mapping that drifted
-      once the camera followed the hero; sampling at the enemy's node origin,
-      which is at its feet, so it compared road against road and reported a
-      separation of exactly 0.000 twice; freezing the enemy at spawn, which froze
-      its spawn-in part way; and comparing against a point a fixed distance to
-      one side, which landed on road, ground or torchlight depending on where the
-      enemy stopped. It now samples the sprite against the ring around it, which
-      is the question a player actually asks and is asked the same way wherever
-      the enemy stands.
+	  Getting it to *mean* anything took five wrong versions, each of which
+	  returned confident numbers: a hand-rolled world→screen mapping that drifted
+	  once the camera followed the hero; sampling at the enemy's node origin,
+	  which is at its feet, so it compared road against road and reported a
+	  separation of exactly 0.000 twice; freezing the enemy at spawn, which froze
+	  its spawn-in part way; and comparing against a point a fixed distance to
+	  one side, which landed on road, ground or torchlight depending on where the
+	  enemy stopped. The fifth used authored 1920×1080 canvas coordinates against
+	  the stretched 1440p/4K viewport texture, confidently sampling the wrong part
+	  of the frame. It now composes the canvas and screen transforms, then samples
+	  the sprite against the ring around it, which is the question a player
+	  actually asks and is asked the same way wherever the enemy stands.
 
-      Thresholds sit *below* the measured band (road 0.033–0.055, enemy
-      0.050–0.083) rather than inside it. That spread is not noise — foliage
-      scatters afresh every build — and a gate pitched mid-band fails a good
-      build about one run in six. Under the floor it still catches what it is
-      for: torches that stopped lighting the road collapse it to near zero.
-      5 of 5 runs pass.
+	  Corrected 1440p measurements put the road around 0.078 above ground and the
+	  conservative sprite-disc mean 0.007–0.021 away from its local ring. The
+	  thresholds sit below those floors (0.025 and 0.005), where scatter cannot
+	  make a good build red but an unlit road or invisible sprite still collapses
+	  to zero. The check also saves its final frame for visual review. 5 of 5 runs
+	  pass.
 
       Windowed, so it cannot run on CI. By hand, like the save-backup check:
 
@@ -789,19 +803,20 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
 ### Towers and buildings
 
-- [x] Idle animation on every tower and building, always running. Towers compose
-      it with the beast-step wobble as a separate channel rather than a second
+- [~] Idle animation on every tower and building, always running. The current
+      transform-based breathing motion composes with the beast-step wobble as a
+      separate channel rather than a second
       writer — two systems assigning `sprite.rotation` means the later one erases
       the earlier. Phases are scattered per instance; in unison it reads as the
       whole screen pulsing rather than as a place.
 
-      Frames were considered and rejected for the reason the project already
-      works this way: a transform is cheaper, it applies to every structure
-      including ones added later, and a spritesheet would still want this
-      underneath it.
+      Transform motion is a functional fallback, not the final art pass. Per the
+      owner ruling of 2026-08-20, every tower and building now requires authored
+      PixelLab idle frames, wired through the same id-derived art convention and
+      layered with the existing beast-step channel.
 - [~] PixelLab art for every tower and building. All 26 towers and 9 buildings
       already have generated art; what is missing is *more* of it — tier variants
-      and per-element silhouette passes.
+      and per-element silhouette passes — plus the authored idle frames above.
 - [x] Beast walk/idle as authored frames, layered over the procedural gait.
 - [ ] Building tier variants — nine buildings have one sprite each; v4 §M3 wants
       visible growth.
@@ -843,18 +858,25 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
           godot --path game res://tools/perf_check.tscn -- --seconds=120 --build
 
+      **Developer-hardware pass, 2026-08-20:** RTX 3070 Ti, High, 1920×1080,
+      120 measured seconds: 68 FPS average, 16.7 ms p99, 22.6 ms worst, zero
+      hitches over 33 ms, +0 orphans, +0.7% nodes and +1.4% memory. Foliage depth
+      bands were converted from roughly 1,380 polygon draw commands to one static
+      mesh each, reducing the measured frame time from 17.5 ms to 14.8 ms.
+
+      The row remains partial until minimum/recommended hardware are defined and
+      qualified; one high-end developer machine is not the shipping matrix.
+
       One real finding stands: the field carried **107 PointLight2D**, from
       torches going 24 → ~60 with their radius raised 225 → 360. Every 2D light
       redraws everything it covers. One post in two now carries a pool — the rest
       keep flame, glow and smoke and are lit by neighbours — taking it to 75 with
       no visible difference, since the pools overlap heavily at that radius.
 
-- [x] `save_backup_check.tscn` run by hand — all five rows pass (unreadable save
-      backed up, backup byte-identical, survives a second mismatch, v1 source
-      preserved, v2 terrain rename with unknown ids kept). `SAVE_VERSION` is
-      unchanged since v0.4.25, so this release did not strictly need it.
-- [ ] `save_backup_check.tscn` re-run by hand before any release that changes
-      `SAVE_VERSION`.
+- [x] `save_backup_check.tscn` re-run for `SAVE_VERSION` 6 on 2026-08-20 — all
+      five rows pass (unreadable save backed up, backup byte-identical, survives
+      a second mismatch, v1 source
+      preserved, v2 terrain rename with unknown ids kept).
 
 ---
 
@@ -875,7 +897,8 @@ the history.
 - Per-region roads and Wang ground floors for all three acts.
 - Towers y-sort on their base anchor; shadows anchor to the sprite, not the node.
 - Health bars draw above world content, so foliage cannot occlude a readout.
-- Foliage sorting bands refined 16 -> 48, cutting depth error to about a tile.
+- Foliage sorting bands refined 16 → 32, keeping maximum depth error below one
+  tile; each band is now one static mesh, cutting roughly 1,380 draw calls.
 - Dash allowed in every phase the hero can move in.
 - Tower range rings shown on selection (`Tower.show_range` had no caller at all).
 - Beast scope reads as one world: pixel-art skies, ground lit from the horizon,

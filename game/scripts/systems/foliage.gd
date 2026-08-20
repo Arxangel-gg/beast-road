@@ -68,9 +68,9 @@ const PALETTE_MAX_VALUE: float = 0.78
 ## frame each between them.
 ##
 ## The cost was never the polygons; it was 420 separate canvas items, and a
-## per-frame transform write on each. So the whole field is now drawn once into
-## a single canvas item and never touched again, and the leaning happens in a
-## vertex shader.
+## per-frame transform write on each. The field is now baked into 32 depth-band
+## meshes and never transformed on the CPU; the leaning happens in a vertex
+## shader.
 ##
 ## The trick is UV.y. Each blade is drawn with 0 at its root and 1 at its tip,
 ## so the shader can displace the tip and leave the root planted - which is what
@@ -147,25 +147,29 @@ static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
 
 
 ## Every blade in the field, in world space, ready to draw in one pass.
-## How many depth slices the field is drawn in. Sixteen keeps the sorting cue
-## finer than anyone can see while costing sixteen draw calls instead of 420.
 ## Sorting bands across the field.
 ##
 ## Every plant in a band sorts at the band's centre, so a band is also the error
 ## in that plant's depth: at 16 bands each was a few hundred world units tall and
 ## a plant near its top edge drew in front of anything up to half a band above
 ## it - which is what "foliage in front of a tower it is standing behind" was.
-## 48 brings the error to about a tile, which is below what the eye picks up.
-const BAND_COUNT: int = 48
+## 32 keeps the maximum error under one 64-unit tile on the authored field while
+## avoiding sixteen extra shader/painted-layer canvas items. The old 16-band
+## version exceeded a tile of error and visibly sorted plants over actors.
+const BAND_COUNT: int = 32
 
 var _bands: Array[FoliageBand] = []
 
 ## Held apart from the clumps because they must not sway: a shadow that swings
 ## with the plant above it reads as the ground moving.
-var _shadows: Array[Node2D] = []
+## All foliage shadows share one static canvas item. Fifty independent
+## Sprite2Ds cost almost as much as the foliage bands they sat under, despite
+## every one using the same texture, material and visibility switch.
+var _shadow_layer: FoliageShadowLayer = null
 
 ## The density this scatter was built at, so a re-scatter only happens on change.
 var _scattered_at: float = -1.0
+var _clump_count: int = 0
 
 ## The battlefield's grid, so the scatter can ask where the roads are. Assigned
 ## before the node enters the tree: the first scatter happens on ready.
@@ -179,11 +183,19 @@ func _ready() -> void:
 
 ## Rebuilds the whole scatter for the current terrain.
 func scatter() -> void:
-	for node: Node2D in _bands + _shadows:
+	for node: Node2D in _bands:
 		if is_instance_valid(node):
 			node.queue_free()
+	if _shadow_layer != null and is_instance_valid(_shadow_layer):
+		_shadow_layer.queue_free()
 	_bands.clear()
-	_shadows.clear()
+	_shadow_layer = FoliageShadowLayer.new()
+	_shadow_layer.name = "FoliageShadows"
+	_shadow_layer.material = ShadowKit.material()
+	_shadow_layer.z_index = -1
+	_shadow_layer.add_to_group(ShadowKit.GROUP)
+	_shadow_layer.visible = Graphics.contact_shadows()
+	add_child(_shadow_layer)
 
 	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["jungle"]).duplicate()
 	style.merge(_terrain_palette(), true)
@@ -203,8 +215,8 @@ func scatter() -> void:
 	# them occludes and one behind does not. A single item sorts at one depth.
 	#
 	# Bands are the middle: each spans a slice of the map and sorts at its own
-	# centre. Sixteen of them keep the depth cue to within a band's height, which
-	# no one can see, and cost sixteen draw calls instead of four hundred.
+	# centre. Thirty-two keep the maximum error below one tile, while each band is
+	# now one static mesh draw rather than hundreds of polygon commands.
 	var span: float = Balance.LANE_SPAWN_RADIUS * 1.15
 	for index: int in BAND_COUNT:
 		var band := FoliageBand.new()
@@ -230,9 +242,17 @@ func scatter() -> void:
 		var ground: bool = rng.randf() < Balance.FOLIAGE_GROUND_RATIO
 		_add_clump(point, style, rng, ground, span)
 		placed += 1
+	_clump_count = placed
 
 	for band: FoliageBand in _bands:
-		band.queue_redraw()
+		band.bake()
+	_shadow_layer.queue_redraw()
+
+
+## The density gate needs the number of plants represented by the batched draw
+## data, not the number of CanvasItems used to render them.
+func clump_count() -> int:
+	return _clump_count
 
 
 ## Which band a point belongs to.
@@ -336,18 +356,8 @@ func _add_shadow(at: Vector2, scale: float) -> void:
 	# sprite this has none of - so the quality switch has to be checked here too.
 	# Missing it meant Low reported "ground shadows off" and still drew fifty of
 	# them, which is a setting that lies.
-	var shadow := Sprite2D.new()
-	shadow.name = "ContactShadow"
-	shadow.texture = ShadowKit.quad_texture()
-	shadow.material = ShadowKit.material()
-	shadow.scale = Vector2.ONE * (34.0 * scale / float(ShadowKit.quad_texture().width))
-	shadow.z_index = -1
-	shadow.z_as_relative = true
-	shadow.position = at
-	shadow.add_to_group(ShadowKit.GROUP)
-	shadow.visible = Graphics.contact_shadows()
-	add_child(shadow)
-	_shadows.append(shadow)
+	if _shadow_layer != null:
+		_shadow_layer.add_shadow(at, scale)
 
 
 ## The act's own ground painting, reduced to a dark and a light.
@@ -491,16 +501,16 @@ func _kind_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Array
 
 ## One depth slice of the field, drawn as a single canvas item.
 ##
-## Blades are stored already transformed into the band's local space, so drawing
-## is a flat loop with no per-blade maths at all. UV.y carries the sway weight -
-## 0 at a root, 1 at a tip - which is the only thing the wind shader needs in
-## order to bend a plant without uprooting it.
+## Blades are baked already transformed into one indexed mesh for the band.
+## UV.y carries the sway weight - 0 at a root, 1 at a tip - which is the only
+## thing the wind shader needs in order to bend a plant without uprooting it.
 class FoliageBand extends Node2D:
 	var _shapes: Array[PackedVector2Array] = []
 	var _uvs: Array[PackedVector2Array] = []
 	var _colours: Array[Color] = []
+	var _mesh: ArrayMesh = null
 
-	## Painted plants, drawn in the same canvas item as the blades.
+	## Painted plants, batched in one child canvas item above the blades.
 	##
 	## Alongside them rather than instead of them: the polygons are cheap enough
 	## to scatter hundreds of, and they are what makes the ground look *covered*.
@@ -548,12 +558,48 @@ class FoliageBand extends Node2D:
 		_uvs.append(uvs)
 		_colours.append(colour)
 
+	## Turns every blade polygon in this depth slice into one indexed mesh.
+	## `draw_polygon` records one canvas command per blade even when all of them
+	## share a material; a populated High field was therefore spending about
+	## 1,380 draw calls on foliage alone. The vertices and UV sway weights are
+	## unchanged — only the command shape changes.
+	func bake() -> void:
+		var vertices := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		var colours := PackedColorArray()
+		var indices := PackedInt32Array()
+		for shape_index: int in _shapes.size():
+			var shape: PackedVector2Array = _shapes[shape_index]
+			if shape.size() < 3:
+				continue
+			var base: int = vertices.size()
+			for point_index: int in shape.size():
+				vertices.append(shape[point_index])
+				uvs.append(_uvs[shape_index][point_index])
+				colours.append(_colours[shape_index])
+			for triangle: int in range(1, shape.size() - 1):
+				indices.append(base)
+				indices.append(base + triangle)
+				indices.append(base + triangle + 1)
+		if vertices.is_empty():
+			_mesh = null
+		else:
+			var arrays: Array = []
+			arrays.resize(Mesh.ARRAY_MAX)
+			arrays[Mesh.ARRAY_VERTEX] = vertices
+			arrays[Mesh.ARRAY_TEX_UV] = uvs
+			arrays[Mesh.ARRAY_COLOR] = colours
+			arrays[Mesh.ARRAY_INDEX] = indices
+			_mesh = ArrayMesh.new()
+			_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		_shapes.clear()
+		_uvs.clear()
+		_colours.clear()
+		queue_redraw()
+
 	func _draw() -> void:
-		for index: int in _shapes.size():
-			var shade := PackedColorArray()
-			shade.resize(_shapes[index].size())
-			shade.fill(_colours[index])
-			draw_polygon(_shapes[index], shade, _uvs[index])
+		if _mesh != null:
+			draw_mesh(_mesh, null)
 
 
 ## The painted plants of one band, in their own canvas item.
@@ -574,3 +620,21 @@ class PaintedLayer extends Node2D:
 			# point it was scattered on, and centring it buries half of it.
 			var rect := Rect2(at - Vector2(size.x * 0.5, size.y), size)
 			draw_texture_rect(texture, rect, false, plant["tint"], bool(plant["flip"]))
+
+
+## Static foliage contact shadows batched into one draw owner. Shadows do not
+## sway and never need independent transforms, so one item preserves the image
+## while removing dozens of canvas nodes from every rendered frame.
+class FoliageShadowLayer extends Node2D:
+	var shadows: Array[Dictionary] = []
+
+	func add_shadow(at: Vector2, shadow_scale: float) -> void:
+		shadows.append({"at": at, "scale": shadow_scale})
+
+	func _draw() -> void:
+		var texture: Texture2D = ShadowKit.quad_texture()
+		for shadow: Dictionary in shadows:
+			var size: float = 34.0 * float(shadow["scale"])
+			var at: Vector2 = shadow["at"]
+			draw_texture_rect(texture,
+				Rect2(at - Vector2.ONE * size * 0.5, Vector2.ONE * size), false)

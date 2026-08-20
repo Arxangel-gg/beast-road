@@ -105,6 +105,10 @@ func end_run(victory: bool) -> void:
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,
 		"act": RunState.act,
+		# The wave the run reached, which is the leaderboard's main progress
+		# term. `act` alone cannot carry it: two runs both "lost in Act II" are
+		# not the same run.
+		"wave": RunState.wave_number,
 		"kills": RunState.enemies_killed,
 		"deaths": RunState.hero_deaths,
 		"raids": RunState.raids_completed,

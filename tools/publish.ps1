@@ -581,6 +581,17 @@ $lblLink.Add_LinkClicked({ Start-Process $lblLink.Text })
 $script:Editors = @{}
 $script:Dirty = $false
 
+function script:Load-TuningEntries {
+    $entries = @()
+    $entries += Read-BalanceEntries
+    foreach ($src in $script:ExtraSources) {
+        $entries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
+    }
+    $entries += Read-SfxEntries
+    $entries += Read-ResourceEntries
+    return $entries
+}
+
 function New-TuningTab {
     param($TabControl)
 
@@ -664,12 +675,7 @@ function New-TuningTab {
     $page.Controls.Add($script:lblSaved)
 
     # --- data ---
-    $script:AllEntries = @()
-    $script:AllEntries += Read-BalanceEntries
-    foreach ($src in $script:ExtraSources) {
-        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
-    }
-    $script:AllEntries += Read-SfxEntries
+    $script:AllEntries = Load-TuningEntries
 
     function script:Rebuild-Tree {
         $script:tree.Nodes.Clear()
@@ -679,7 +685,7 @@ function New-TuningTab {
             $node = $script:tree.Nodes.Add(("{0}  ({1})" -f $s, $count))
             $node.Tag = $s
         }
-        $projectNode = $script:tree.Nodes.Add('Engine settings  (4)')
+        $projectNode = $script:tree.Nodes.Add(('Engine settings  ({0})' -f $script:ProjectSettings.Count))
         $projectNode.Tag = '__project__'
         $script:lblCount.Text = ("{0} values across {1} groups" -f $script:AllEntries.Count, $sections.Count)
         if ($script:tree.Nodes.Count -gt 0) { $script:tree.SelectedNode = $script:tree.Nodes[0] }
@@ -688,7 +694,7 @@ function New-TuningTab {
     function script:Add-Row {
         param($Parent, [int]$Y, [string]$Label, [string]$Value, [string]$Help,
               [string]$Key, [string]$Kind, [bool]$ReadOnly, $Choices,
-              [string]$SourcePath = '')
+              [string]$SourcePath = '', [string]$SourceField = '')
 
         $name = New-Object System.Windows.Forms.Label
         $name.Text = $Label
@@ -720,7 +726,7 @@ function New-TuningTab {
         $box.ForeColor = $cBone
         $box.Font = New-Object System.Drawing.Font('Consolas', 10)
         $box.Enabled = -not $ReadOnly
-        $box.Tag = @{ Key = $Key; Kind = $Kind; Original = $Value; Path = $SourcePath }
+        $box.Tag = @{ Key = $Key; Kind = $Kind; Original = $Value; Path = $SourcePath; Field = $SourceField }
         $Parent.Controls.Add($box)
         $script:Editors[$Key] = $box
 
@@ -775,6 +781,11 @@ function New-TuningTab {
                         -Kind 'float' -ReadOnly $false -Choices @()
                 }
                 $y += 6
+            } elseif ($e.Source -eq 'resource') {
+                $resourceKey = 'res::' + $e.Relative + '::' + $e.Field
+                $y = Add-Row -Parent $script:scroll -Y $y -Label $e.Name -Value $e.Raw `
+                    -Help $e.Help -Key $resourceKey -Kind $e.Kind -ReadOnly $false `
+                    -Choices @() -SourcePath $e.Path -SourceField $e.Field
             } else {
                 $y = Add-Row -Parent $script:scroll -Y $y -Label $e.Name -Value $e.Raw `
                     -Help $e.Help -Key ("bal::" + $e.Name) -Kind $e.Kind `
@@ -799,12 +810,7 @@ function New-TuningTab {
     })
 
     $btnReload.Add_Click({
-        $script:AllEntries = @()
-        $script:AllEntries += Read-BalanceEntries
-    foreach ($src in $script:ExtraSources) {
-        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
-    }
-        $script:AllEntries += Read-SfxEntries
+        $script:AllEntries = Load-TuningEntries
         Rebuild-Tree
         $script:lblSaved.Text = 'Reloaded from disk.'
     })
@@ -812,6 +818,7 @@ function New-TuningTab {
     $btnSave.Add_Click({
         $balance = @{}
         $byPath = @{}
+        $resourcesByPath = @{}
         $sfx = @{}
         $project = @{}
         $bad = New-Object System.Collections.ArrayList
@@ -829,6 +836,9 @@ function New-TuningTab {
                 'int'   { if ($text -notmatch '^-?[0-9]+$') { [void]$bad.Add("$key must be a whole number") } }
                 'float' { if ($text -notmatch '^-?[0-9]*\.?[0-9]+$') { [void]$bad.Add("$key must be a number") } }
                 'bool'  { if ($text -notin @('true','false')) { [void]$bad.Add("$key must be true or false") } }
+                'array' { if ($text -notmatch '^Array(?:\[[A-Za-z0-9_]+\])?\(\[.*\]\)$') { [void]$bad.Add("$key must be a Godot Array(...) value") } }
+                'vector' { if ($text -notmatch '^Vector[234]\(.+\)$') { [void]$bad.Add("$key must be a Vector2/3/4(...) value") } }
+                'color' { if ($text -notmatch '^Color\(.+\)$') { [void]$bad.Add("$key must be a Color(...) value") } }
             }
             if ($key.StartsWith('bal::')) {
                 $balance[$key.Substring(5)] = $text
@@ -841,13 +851,17 @@ function New-TuningTab {
             }
             elseif ($key.StartsWith('sfx::')) { $sfx[$key.Substring(5)] = $text }
             elseif ($key.StartsWith('proj::')) { $project[$key.Substring(6)] = ($text -split ' ')[0] }
+            elseif ($key.StartsWith('res::')) {
+                if (-not $resourcesByPath.ContainsKey($meta.Path)) { $resourcesByPath[$meta.Path] = @{} }
+                $resourcesByPath[$meta.Path][$meta.Field] = $text
+            }
         }
 
         if ($bad.Count -gt 0) {
             [System.Windows.Forms.MessageBox]::Show(($bad -join "`r`n"), 'Fix these first') | Out-Null
             return
         }
-        if ($balance.Count + $sfx.Count + $project.Count -eq 0) {
+        if ($balance.Count + $sfx.Count + $project.Count + $resourcesByPath.Count -eq 0) {
             $script:lblSaved.Text = 'Nothing changed.'
             return
         }
@@ -859,16 +873,15 @@ function New-TuningTab {
             $n1 += Write-BalanceValues -Changes $byPath[$path] -Path $path
         }
         $n2 = Write-SfxValues -Changes $sfx
+        $n3 = 0
+        foreach ($path in $resourcesByPath.Keys) {
+            $n3 += Write-ResourceValues -Changes $resourcesByPath[$path] -Path $path
+        }
         foreach ($k in $project.Keys) { Write-ProjectValue -Key $k -Value $project[$k] }
 
-        $script:AllEntries = @()
-        $script:AllEntries += Read-BalanceEntries
-    foreach ($src in $script:ExtraSources) {
-        $script:AllEntries += Read-BalanceEntries -Path $src.Path -ForcedSection $src.Section
-    }
-        $script:AllEntries += Read-SfxEntries
+        $script:AllEntries = Load-TuningEntries
         if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
-        $script:lblSaved.Text = ("Saved: {0} balance, {1} sounds, {2} settings." -f $n1, $n2, $project.Count)
+        $script:lblSaved.Text = ("Saved: {0} constants, {1} sounds, {2} content values, {3} settings." -f $n1, $n2, $n3, $project.Count)
     })
 
     Rebuild-Tree

@@ -3,11 +3,12 @@
 # Reads and writes the game's dev-side values. Kept separate from publish.ps1 so
 # the parsing can be reasoned about (and fixed) without touching the publisher.
 #
-# Two sources, because the game keeps its numbers in two shapes:
+# The game keeps its numbers in several shapes:
 #
 #   Balance.gd   `const NAME: type = value`, grouped by `# ===` banners, each
 #                documented by the `##` lines above it.
 #   Sfx.gd       the MIX dictionary: one row per sound, four fields each.
+#   data/*.tres  exported numeric, boolean and compact collection properties.
 #
 # Writes are surgical. Only the value on a matched line is replaced, so comments,
 # ordering, grouping and anything this parser does not understand survive
@@ -17,6 +18,7 @@
 $script:BalancePath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts\Balance.gd'
 $script:SfxPath     = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\autoload\Sfx.gd'
 $script:ProjectPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\project.godot'
+$script:DataPath    = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\data'
 
 # Balance.gd is no longer the only file holding tunable constants. These carry
 # the same `const NAME: type = value` shape and are just as much dev-side values
@@ -198,6 +200,81 @@ function Write-SfxValues {
     return $written
 }
 
+# --- data resources --------------------------------------------------------
+
+function Get-ResourceValueKind {
+    param([string]$Raw)
+    if ($Raw -in @('true', 'false')) { return 'bool' }
+    if ($Raw -match '^-?[0-9]+$') { return 'int' }
+    if ($Raw -match '^-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$') { return 'float' }
+    if ($Raw -match '^Array(?:\[[A-Za-z0-9_]+\])?\(\[.*\]\)$') { return 'array' }
+    if ($Raw -match '^Vector[234]\(.+\)$') { return 'vector' }
+    if ($Raw -match '^Color\(.+\)$') { return 'color' }
+    return ''
+}
+
+function Read-ResourceEntries {
+    if (-not (Test-Path $script:DataPath)) { return @() }
+    $entries = New-Object System.Collections.ArrayList
+    $files = Get-ChildItem -LiteralPath $script:DataPath -Filter '*.tres' -File -Recurse | Sort-Object FullName
+    foreach ($file in $files) {
+        $relative = $file.FullName.Substring($script:DataPath.Length).TrimStart('\')
+        $folder = Split-Path -Parent $relative
+        if (-not $folder) { $folder = 'General' }
+        $section = 'Content / ' + ($folder -replace '\\', ' / ')
+        $resourceSection = $false
+        $lines = Get-Content -LiteralPath $file.FullName -Encoding UTF8
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i]
+            if ($line -match '^\[(.+)\]\s*$') {
+                $resourceSection = $Matches[1] -eq 'resource'
+                continue
+            }
+            if (-not $resourceSection -or $line -notmatch '^([a-z][a-z0-9_]*)\s*=\s*(.+?)\s*$') { continue }
+            $field = $Matches[1]
+            $raw = $Matches[2]
+            if ($field -in @('script', 'id', 'display_name', 'description', 'summary')) { continue }
+            $kind = Get-ResourceValueKind -Raw $raw
+            if (-not $kind) { continue }
+            [void]$entries.Add([pscustomobject]@{
+                Source   = 'resource'
+                Path     = $file.FullName
+                Relative = $relative
+                Section  = $section
+                Name     = ('{0} / {1}' -f $file.BaseName, $field)
+                Field    = $field
+                Raw      = $raw
+                Kind     = $kind
+                Help     = ('{0}: {1}' -f $relative, $field)
+                Line     = $i
+                ReadOnly = $false
+            })
+        }
+    }
+    return $entries
+}
+
+function Write-ResourceValues {
+    param([hashtable]$Changes, [string]$Path)
+    if ($Changes.Count -eq 0 -or -not (Test-Path $Path)) { return 0 }
+    $lines = @(Get-Content -LiteralPath $Path -Encoding UTF8)
+    $resourceSection = $false
+    $written = 0
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\[(.+)\]\s*$') {
+            $resourceSection = $Matches[1] -eq 'resource'
+            continue
+        }
+        if (-not $resourceSection -or $lines[$i] -notmatch '^([a-z][a-z0-9_]*)\s*=\s*(.+?)\s*$') { continue }
+        $field = $Matches[1]
+        if (-not $Changes.ContainsKey($field)) { continue }
+        $lines[$i] = ('{0} = {1}' -f $field, $Changes[$field])
+        $written++
+    }
+    if ($written -gt 0) { Save-SourceLines -Path $Path -Lines $lines }
+    return $written
+}
+
 # --- project.godot ---------------------------------------------------------
 #
 # A handful of engine settings belong in the same window as the gameplay values,
@@ -215,8 +292,18 @@ $script:ProjectSettings = @(
 function Read-ProjectValue {
     param([string]$Key)
     if (-not (Test-Path $script:ProjectPath)) { return '' }
-    $escaped = [regex]::Escape($Key)
+    $slash = $Key.IndexOf('/')
+    if ($slash -lt 1) { return '' }
+    $section = $Key.Substring(0, $slash)
+    $relative = $Key.Substring($slash + 1)
+    $escaped = [regex]::Escape($relative)
+    $inside = $false
     foreach ($line in Get-Content -LiteralPath $script:ProjectPath -Encoding UTF8) {
+        if ($line -match '^\[(.+)\]\s*$') {
+            $inside = $Matches[1] -eq $section
+            continue
+        }
+        if (-not $inside) { continue }
         if ($line -match ('^{0}\s*=\s*(.+?)\s*$' -f $escaped)) { return $Matches[1] }
     }
     return ''
@@ -224,24 +311,38 @@ function Read-ProjectValue {
 
 function Write-ProjectValue {
     param([string]$Key, [string]$Value)
-    $lines = @(Get-Content -LiteralPath $script:ProjectPath -Encoding UTF8)
-    $escaped = [regex]::Escape($Key)
+    $slash = $Key.IndexOf('/')
+    if ($slash -lt 1) { throw "Project key must include its section: $Key" }
+    $sectionName = $Key.Substring(0, $slash)
+    $relative = $Key.Substring($slash + 1)
+    $lines = [System.Collections.ArrayList]@(Get-Content -LiteralPath $script:ProjectPath -Encoding UTF8)
+    $escaped = [regex]::Escape($relative)
     $found = $false
+    $sectionAt = -1
+    $insertAt = -1
+    $inside = $false
     for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^\[(.+)\]\s*$') {
+            if ($inside) { $insertAt = $i; break }
+            $inside = $Matches[1] -eq $sectionName
+            if ($inside) { $sectionAt = $i; $insertAt = $i + 1 }
+            continue
+        }
+        if (-not $inside) { continue }
+        $insertAt = $i + 1
         if ($lines[$i] -match ('^{0}\s*=' -f $escaped)) {
-            $lines[$i] = "$Key=$Value"; $found = $true; break
+            $lines[$i] = "$relative=$Value"; $found = $true; break
         }
     }
     if (-not $found) {
-        # New keys go in the section they belong to, creating it if absent.
-        $section = '[' + $Key.Split('/')[0] + ']'
-        $at = -1
-        for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i].Trim() -eq $section) { $at = $i; break } }
-        if ($at -ge 0) {
-            $lines = $lines[0..$at] + @("$Key=$Value") + $lines[($at + 1)..($lines.Count - 1)]
+        if ($sectionAt -ge 0) {
+            $lines.Insert($insertAt, "$relative=$Value")
         } else {
-            $lines += @('', $section, '', "$Key=$Value")
+            [void]$lines.Add('')
+            [void]$lines.Add("[$sectionName]")
+            [void]$lines.Add('')
+            [void]$lines.Add("$relative=$Value")
         }
     }
-    Save-SourceLines -Path $script:ProjectPath -Lines $lines
+    Save-SourceLines -Path $script:ProjectPath -Lines @($lines)
 }

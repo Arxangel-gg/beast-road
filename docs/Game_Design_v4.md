@@ -1021,7 +1021,7 @@ Treasury resources replace the previous cache rather than stacking. Starting a r
 - **Story:** 75% threat budget, more generous telegraphs, full story and unlock access. Awards Tools; first clear awards one Sigil.
 - **Standard:** intended balance and primary review target.
 - **Veteran:** unlocked by a Standard clear; +20% threat budget and authored elite modifiers `[TUNE]`.
-- **Cataclysm:** POST-LAUNCH unless all 1.0 gates pass; modular difficulty oaths and leaderboards remain out of launch scope.
+- **Cataclysm:** POST-LAUNCH unless all 1.0 gates pass; modular difficulty oaths remain out of launch scope. **Amended 2026-08-20 (owner):** global leaderboards are in launch scope; see §54.
 
 Difficulty never changes enemy telegraph shapes, control responsiveness, or accessibility settings. Higher difficulty increases simultaneous decision pressure and role combinations before resorting to raw damage.
 

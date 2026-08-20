@@ -262,6 +262,11 @@ func _check_timing() -> void:
 		% [average, fps, p99, _worst_ms])
 	_notes.append("hitches over %.0f ms: %d  (%.1f per minute, budget %.1f)"
 		% [HITCH_MS, _hitches, per_minute, MAX_HITCHES_PER_MINUTE])
+	_notes.append("render objects %d  primitives %d  draw calls %d" % [
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+	])
 
 	if not _has_renderer():
 		_notes.append("timing NOT asserted: the dummy renderer does no GPU work, "

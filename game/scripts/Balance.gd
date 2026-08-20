@@ -588,6 +588,11 @@ const WAVE_STALL_TIMEOUT: float = 75.0
 ## disarm the watchdog entirely. [TUNE]
 const WAVE_PROGRESS_EPSILON: float = 24.0
 
+## Aggregate HP change that proves combat is still resolving even when a ranged
+## attacker has stopped walking. Position alone called a caster firing at the
+## town "stuck" and opened Preparation on top of it. [TUNE]
+const WAVE_ACTIVITY_EPSILON: float = 0.25
+
 ## How soon the next wave may arrive once a breather ends. [TUNE]
 const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
 
@@ -2462,3 +2467,76 @@ const CITY_SMOKE_AMOUNT: int = 20
 const CITY_SMOKE_LIFETIME: float = 4.4
 const CITY_SMOKE_SPEED: float = 30.0
 const CITY_SMOKE_ALPHA: float = 0.30
+
+# ---------------------------------------------------------------------------
+# Leaderboard score
+#
+# One number per finished run. Every coefficient here is a statement about what
+# playing well means, which is why they are all in one place and none of them
+# live inside `Score` - a formula whose weights are scattered is a formula
+# nobody can retune without re-reading it.
+#
+# Calibration, on Normal: a clean Act I loss lands near 900, a full clear near
+# 5,800, and a perfect fast clear near 8,000. Hell multiplies that sixfold, so a
+# combined board sorts by difficulty first without needing a second key.
+# ---------------------------------------------------------------------------
+
+## Progress, which is most of a score. A run is a road, and the first thing a
+## board should answer is how far down it you got.
+const SCORE_PER_WAVE: float = 120.0
+const SCORE_PER_ACT: float = 450.0
+
+## Reaching the summit. Large enough that no amount of endless grinding on a lost
+## run out-scores finishing the game.
+const SCORE_VICTORY: float = 1800.0
+
+## Awarded on a win, scaled by how far under par the run came in.
+const SCORE_SPEED: float = 900.0
+
+## The clear that speed is measured against, in seconds. Fifty minutes: about
+## what an unhurried full run takes, so the bonus rewards a defence that holds
+## without nursing rather than one that rushes.
+const SCORE_PAR_SECONDS: float = 3000.0
+
+## An untouched town, at full value. Measured from damage taken rather than
+## health remaining, because Hearthmend repairs it and a town rebuilt three times
+## was patched, not defended.
+const SCORE_TOWN_INTACT: float = 1200.0
+
+## Per wave of the victory lap. Worth more than a campaign wave because by then
+## nothing is being unlocked and the only thing left to spend is skill.
+const SCORE_PER_ENDLESS_WAVE: float = 260.0
+
+## What a hero death costs, and the share of a score deaths can never eat.
+##
+## The floor is the important half. A penalty that can reach zero invites a
+## player to stop playing rather than risk one more death, which is the opposite
+## of what a board is for.
+const SCORE_DEATH_COST: float = 220.0
+const SCORE_DEATH_FLOOR: float = 0.45
+
+## The one field a stranger chooses, so the one field that needs a rule.
+const SCORE_NAME_MAX: int = 20
+const SCORE_NAME_FALLBACK: String = "Oathless"
+
+## Bounds shared by the client, save reader and Supabase table policy.
+const LEADERBOARD_SCORE_MAX: int = 999999999
+const LEADERBOARD_ACT_MAX: int = 3
+const LEADERBOARD_WAVE_MAX: int = 100000
+const LEADERBOARD_DURATION_MAX: int = 86400
+
+## Network presentation. Reads are deliberately short and bounded because a
+## public board must never stall the menu or make an unbounded response.
+const LEADERBOARD_PAGE_SIZE: int = 50
+const LEADERBOARD_REQUEST_TIMEOUT: float = 8.0
+
+## How many of this save's own runs the local board keeps.
+##
+## Bounded because it is written into the save on every run end, and an unbounded
+## list of finished runs is a save file that grows forever.
+const LEADERBOARD_LOCAL_MAX: int = 60
+
+## How many unsent runs the outbox holds before it stops accepting more. Small:
+## a player this far offline is not going to care about the fortieth queued row,
+## and the cap is what stops a broken table from filling a save.
+const LEADERBOARD_PENDING_MAX: int = 12

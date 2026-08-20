@@ -1,5 +1,7 @@
 extends Node
 
+const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
+
 ## Boots the real main menu, so a scene edit cannot break the front door
 ## silently. The settings box used to be authored into main_menu.tscn; removing
 ## it in favour of the shared component is exactly the change that would leave a
@@ -13,12 +15,23 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	var panels: int = 0
+	var boards: int = 0
+	var board_buttons: int = 0
 	for node: Node in _all(menu):
 		if node is SettingsPanel:
 			panels += 1
-	print("[menu] instantiated ok, settings panels=%d" % panels)
+		if node.get_script() == LeaderboardScreenScript:
+			boards += 1
+		if node is Button and node.name == "Leaderboard":
+			board_buttons += 1
+	print("[menu] instantiated ok, settings panels=%d, boards=%d, board buttons=%d"
+		% [panels, boards, board_buttons])
 	if panels != 1:
 		push_error("main menu should own exactly one SettingsPanel")
+		get_tree().quit(1)
+		return
+	if boards != 1 or board_buttons != 1:
+		push_error("main menu should own exactly one leaderboard screen and button")
 		get_tree().quit(1)
 		return
 	# Let the instantiated menu release its nodes before shutting down. Quitting

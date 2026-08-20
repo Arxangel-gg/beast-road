@@ -11,6 +11,7 @@ speed_scale = 1.0
 boss_levels = Array[int]([10, 20, 30])
 xp_scale = 1.0
 loot_scale = 1.0
+score_scale = 1.0
 summary = "The road as it was meant to be walked. Hard, and winnable the first time."
 id = "normal"
 display_name = "Normal"

@@ -140,7 +140,7 @@ func _count_class(type_name: String) -> int:
 func _foliage_clumps() -> int:
 	for node: Node in _all(get_tree().root):
 		if node is Foliage:
-			return node.get_child_count()
+			return (node as Foliage).clump_count()
 	return 0
 
 

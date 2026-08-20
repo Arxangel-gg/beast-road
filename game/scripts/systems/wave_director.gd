@@ -31,6 +31,9 @@ var _stuck_for: float = 0.0
 ## route is still closing on the town every second, and one wedged in geometry is
 ## not.
 var _closest_approach: float = INF
+## Total live HP across attackers and structures on the previous frame. A ranged
+## attacker can be stationary and still be resolving the encounter.
+var _activity_checksum: float = INF
 var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
 var _preview_archetype: WaveArchetypeData = null
@@ -103,16 +106,31 @@ func _process(delta: float) -> void:
 		# was still walking, which is the exact failure the wait exists to
 		# prevent. An enemy closing on the town is not a stall.
 		var nearest: float = INF
+		var activity: float = INF
 		if battlefield != null:
 			nearest = battlefield.nearest_enemy_distance()
-		if nearest < _closest_approach - Balance.WAVE_PROGRESS_EPSILON:
+			activity = battlefield.wave_activity_checksum()
+		var health_changed: bool = is_finite(activity) and is_finite(_activity_checksum) \
+			and absf(activity - _activity_checksum) >= Balance.WAVE_ACTIVITY_EPSILON
+		if nearest < _closest_approach - Balance.WAVE_PROGRESS_EPSILON or health_changed:
 			_closest_approach = nearest
 			_stuck_for = 0.0
+		_activity_checksum = activity
 		_stuck_for += delta
 		if _stuck_for >= Balance.WAVE_STALL_TIMEOUT:
 			push_warning("Wave %d could not clear after %.0fs; still standing: %s"
 				% [RunState.wave_number, _stuck_for,
 					battlefield.living_enemy_summary() if battlefield != null else "?"])
+			var resolved: int = battlefield.resolve_stalled_wave() if battlefield != null else 0
+			if resolved > 0:
+				EventBus.preparation_warning.emit(
+					"%d stranded attacker%s driven off." % [resolved,
+					" was" if resolved == 1 else "s were"])
+			if battlefield != null and battlefield.enemy_count() > 0:
+				# A Health-less unit is a deeper fault. Keep the phase safe and retry
+				# the diagnostic instead of opening Preparation on top of it.
+				_stuck_for = 0.0
+				return
 			_close_wave()
 		return
 
@@ -178,6 +196,7 @@ func _close_wave() -> void:
 	_running = false
 	_stuck_for = 0.0
 	_closest_approach = INF
+	_activity_checksum = INF
 	EventBus.wave_cleared.emit(RunState.wave_number)
 
 
@@ -186,6 +205,7 @@ func _begin_wave() -> void:
 		return
 	_stuck_for = 0.0
 	_closest_approach = INF
+	_activity_checksum = battlefield.wave_activity_checksum() if battlefield != null else INF
 	RunState.wave_number += 1
 	RunState.count_endless_wave()
 	var wave: int = RunState.wave_number

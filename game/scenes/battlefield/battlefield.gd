@@ -708,6 +708,37 @@ func nearest_enemy_distance() -> float:
 	return nearest
 
 
+## Aggregate health across both sides of the live wave. Any material change
+## means combat is resolving even if the nearest ranged attacker is stationary.
+func wave_activity_checksum() -> float:
+	var total: float = town.health.current_hp if town != null and town.health != null else 0.0
+	for group: StringName in [Enemy.GROUP, Tower.GROUP]:
+		for node: Node in get_tree().get_nodes_in_group(group):
+			if not is_instance_valid(node):
+				continue
+			var health: Health = Health.of(node)
+			if health != null and not health.is_dead:
+				total += health.current_hp
+	return total
+
+
+## Last-resort recovery after the activity watchdog proves a formation cannot
+## move, deal damage or take damage. Resolving through Health keeps death
+## rewards, counts and VFX on the normal path and removes every enemy from the
+## live group synchronously before Preparation can open.
+func resolve_stalled_wave() -> int:
+	var resolved: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
+		var health: Health = Health.of(enemy)
+		if health != null:
+			health.kill(town_position())
+			resolved += 1
+	return resolved
+
+
 func spawn_tracer(from: Vector2, to: Vector2, colour: Color) -> void:
 	var line := Line2D.new()
 	line.points = PackedVector2Array([from, to])

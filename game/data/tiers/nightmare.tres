@@ -11,6 +11,7 @@ speed_scale = 1.08
 boss_levels = Array[int]([45, 58, 70])
 xp_scale = 2.4
 loot_scale = 2.0
+score_scale = 2.6
 summary = "Everything again, and everything hits back. Bring what you learned."
 id = "nightmare"
 display_name = "Nightmare"
