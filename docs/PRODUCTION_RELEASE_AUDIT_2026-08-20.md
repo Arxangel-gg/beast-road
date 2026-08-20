@@ -32,7 +32,8 @@ balance or delight.
 - Added the authored 45×45 battlefield layout, routing, regional ground/road
   sets, torches, foliage expansion, weather, shadows and visual settings.
 - Added authored beast idle/walk frames and the three side-scope backdrop sets.
-- Completed web export and GitHub Pages release jobs.
+- Completed web export release job. (Hosting moved to Netlify on 2026-08-20;
+  the Pages job was removed rather than left failing.)
 - Added persistent capped hero progression, gear/stash/blacksmith and campaign
   tiers under the 2026-08-20 owner amendment.
 - Completed the audio library, raid terrain/chests/keys, and most visual gates.

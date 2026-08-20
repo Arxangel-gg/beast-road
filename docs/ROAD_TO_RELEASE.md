@@ -366,7 +366,15 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       yet being verifiable. See `docs/LEADERBOARD.md`.
 - [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
       on the same tag as the Windows build, attached to the release as
-      `BeastRoad-web.zip`, and deployed to GitHub Pages from a second job.
+      `BeastRoad-web.zip`. Hosting is Netlify, not GitHub Pages: publishing to
+      Pages needs a Pages site, creating one is an admin operation a workflow
+      token cannot perform (three releases failed on it), and it needs a domain
+      to be worth having. The zip's `index.html` sits at its root, which is the
+      shape Netlify deploys directly, and `_headers` is written into the bundle
+      so caching travels with the build rather than living in a host dashboard.
+      The page is embedded in a Carrd iframe, which is also why the build stays
+      single-threaded — a cross-origin-isolated document will not embed in an
+      iframe that is not.
 
       Two things made this cheap: the project already renders through
       `gl_compatibility`, which is the only path to WebGL2, and it owns no

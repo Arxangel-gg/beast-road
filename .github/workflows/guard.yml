@@ -241,9 +241,33 @@ jobs:
             fi
           done
 
-          # A threaded build needs COOP/COEP headers, which GitHub Pages cannot
-          # set. If this file appears, variant/thread_support got turned back on
-          # and the page would load and then fail to start.
+          # Caching rules travel with the build rather than living in a host's
+          # dashboard, so a redeploy cannot lose them. Netlify reads `_headers`
+          # from the root of whatever is deployed; other static hosts ignore the
+          # file harmlessly.
+          #
+          # The wasm and the pck are content-addressed by the release they came
+          # from and are tens of megabytes, so they cache for a year. index.html
+          # is the one file that must not: it is what points at the others, and a
+          # cached copy of it is how a player ends up running last month's game
+          # against this month's data.
+          {
+            echo '/index.wasm'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.pck'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.js'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.html'
+            echo '  Cache-Control: no-cache'
+          } > build/web/_headers
+          test -s build/web/_headers
+
+          # A threaded build only runs on a cross-origin-isolated page, and a
+          # cross-origin-isolated document will not embed in an iframe that is
+          # not — which is where this build is going. If this file appears,
+          # variant/thread_support got turned back on and the page would load
+          # and then fail to start.
           if [ -e build/web/index.worker.js ]; then
             echo "::error title=Web build is threaded::Set variant/thread_support=false in game/export_presets.cfg; Pages cannot send the cross-origin-isolation headers a threaded build needs."
             exit 1

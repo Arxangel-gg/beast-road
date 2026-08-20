@@ -44,7 +44,8 @@ That triggers `.github/workflows/release.yml`, which:
 3. Exports the web build and zips it as `BeastRoad-web.zip`
 4. Writes `launcher-version-<n>.txt`, naming the launcher's own version
 5. Creates a GitHub Release named after the tag and attaches all four
-6. Publishes the web build to GitHub Pages, in a separate job
+
+Hosting the web build is a separate, manual step — see below.
 
 The launcher notices the new tag on its next start and offers **Update** — and
 updates *the game only*, unless the launcher version changed too.
@@ -52,40 +53,49 @@ updates *the game only*, unless the launcher version changed too.
 ### The web build
 
 Same tag, same commit, no extra step. The release job exports the `Web` preset
-alongside the Windows one, and a second job deploys it to Pages:
+alongside the Windows one and attaches **`BeastRoad-web.zip`** to the release.
 
+**The zip is the deployment.** Its `index.html` sits at the root, which is the
+shape Netlify takes directly:
+
+1. Download `BeastRoad-web.zip` from the release.
+2. Netlify → **Sites** → drag the zip onto the drop area (or `netlify deploy
+   --prod --dir=<unzipped folder>`).
+3. Netlify gives back a URL like `https://<name>.netlify.app`.
+4. In Carrd, add an **Embed** element, set it to *Code*, and paste an iframe
+   pointing at that URL.
+
+Nothing else has to be configured. `_headers` is written into the bundle by the
+release job, so caching rules travel with the build instead of living in a host
+dashboard where a redeploy can lose them: the wasm, pck and js cache for a year
+because they belong to the release they were built from, and `index.html` is
+`no-cache` because it is what points at the other three.
+
+An iframe that runs the game wants its own size and the keyboard:
+
+```html
+<iframe src="https://<name>.netlify.app"
+        style="width:100%;aspect-ratio:16/9;border:0"
+        allow="autoplay; fullscreen; gamepad"
+        allowfullscreen></iframe>
 ```
-https://arxangel-gg.github.io/beast-road/
-```
 
-**Pages has to be switched on by hand, once:**
+A canvas only receives key events once it has focus, and inside an iframe that
+means the player has to click the game before typing — which they do anyway to
+start it, because browsers will not begin audio without a gesture either.
 
-> Settings → Pages → Build and deployment → **Source: GitHub Actions**
-
-Not "may need to be" — it cannot be automated. `actions/configure-pages` takes
-an `enablement: true` and it was set, on the theory that the first tagged
-release would turn Pages on by itself. It cannot: creating a Pages site is an
-admin operation and `GITHUB_TOKEN` is not an admin. v0.4.32, v0.4.33 and v0.4.34
-each failed on it with `Resource not accessible by integration`, a message that
-says nothing about what to do.
-
-Until the setting is flipped the release still succeeds and `BeastRoad-web.zip`
-is still attached — the export happens in the build job, and only the hosting is
-missing. The run carries a warning saying so and the job summary names the
-setting. Once flipped, every release publishes by itself and the warning stops.
-
-It is a **separate job** on purpose. Deploying to Pages needs `pages: write` and
-`id-token: write`, and publishing a release needs `contents: write`; the step
-that writes to the public web has no business also being able to rewrite the
-repository. It also means a Pages failure leaves the release published rather
-than rolling the whole thing back.
+**GitHub Pages was tried and removed.** Publishing there needs a Pages site, and
+creating one is an admin operation a workflow token cannot perform — three
+releases failed on it. It also needs a domain to be worth having. The Netlify
+route needs neither, so the Pages job is gone rather than left failing.
 
 Two constraints are load-bearing and are asserted in CI rather than remembered:
 
-- **`variant/thread_support=false`.** A threaded web build only runs on a page
-  served with COOP/COEP cross-origin-isolation headers, and Pages cannot set
-  response headers at all. A threaded export writes `index.worker.js`; both
-  workflows fail if that file appears.
+- **`variant/thread_support=false`.** A threaded web build only runs on a
+  cross-origin-isolated page, and a cross-origin-isolated document will not
+  embed in an iframe that is not — which is exactly where this build is going.
+  Netlify *could* send COOP/COEP headers, unlike Pages, and it still must not.
+  A threaded export writes `index.worker.js`; both workflows fail if it appears.
 - **`gl_compatibility`.** Already the project's renderer, and the only one that
   reaches WebGL2. Forward+ would need WebGPU.
 
@@ -135,14 +145,13 @@ update no longer drags a launcher download along with it. See below.
 > Signing costs a few hundred a year and is worth it only near a store release.
 
 Or send them the browser link, which needs no download and no SmartScreen
-conversation:
-
-```
-https://arxangel-gg.github.io/beast-road/
-```
+conversation — whatever Netlify URL the current `BeastRoad-web.zip` was deployed
+to, or the Carrd page embedding it.
 
 Saves live in the browser's storage for that site, so a web save and an
-installed save are separate games. Clearing site data erases it.
+installed save are separate games. Clearing site data erases it, and so does
+deploying to a *different* Netlify URL — the storage is per-origin, so keep the
+site rather than making a new one each release.
 
 ---
 

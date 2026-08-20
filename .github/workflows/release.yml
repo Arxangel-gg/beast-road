@@ -198,14 +198,38 @@ jobs:
             test -s "build/web/$f"
           done
 
-          # A threaded build needs the page served with COOP/COEP headers, and
-          # Pages cannot send response headers at all. If this file exists,
+          # A threaded build only runs on a page served with COOP/COEP
+          # cross-origin-isolation headers. Netlify can send those, unlike Pages
+          # — but the game is going into an iframe on a Carrd page, and a
+          # cross-origin-isolated document will not embed in one that is not.
+          # Single-threaded costs this project nothing: it renders through
+          # gl_compatibility and owns no Thread. If this file exists,
           # variant/thread_support is back on and the page would load and then
           # fail to start.
           if [ -e build/web/index.worker.js ]; then
             echo "::error::Web build is threaded. Set variant/thread_support=false in game/export_presets.cfg."
             exit 1
           fi
+
+          # Caching rules travel inside the bundle rather than living in a host's
+          # dashboard, so a redeploy cannot lose them. Netlify reads `_headers`
+          # from the root of whatever is deployed; other static hosts ignore it.
+          #
+          # The wasm and the pck belong to the release they were built from and
+          # are tens of megabytes, so they cache for a year. index.html must not:
+          # it is what points at the others, and a cached copy of it is how a
+          # player ends up running last month's game against this month's data.
+          {
+            echo '/index.wasm'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.pck'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.js'
+            echo '  Cache-Control: public, max-age=31536000, immutable'
+            echo '/index.html'
+            echo '  Cache-Control: no-cache'
+          } > build/web/_headers
+          test -s build/web/_headers
 
           # The game ships as a folder, so a sidecar .pck is expected and must
           # be present - without it the exe cannot find its data.
@@ -236,11 +260,13 @@ jobs:
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.exe"
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.pck"
 
-          # Shipped as well as hosted. The Pages copy is the one people play;
-          # the zip is what someone needs to host it themselves, and it is the
-          # only copy that survives Pages being turned off.
+          # The zip *is* the deployment. Netlify takes a folder or a zip whose
+          # index.html sits at its root, which is exactly this shape, so the
+          # release asset is dragged straight onto a Netlify site with nothing
+          # unpacked or rearranged in between.
           (cd build/web && zip -qr ../../BeastRoad-web.zip .)
           unzip -l BeastRoad-web.zip | grep -q "index.wasm"
+          unzip -l BeastRoad-web.zip | grep -q "_headers"
 
           ls -la BeastRoad-windows.zip BeastRoad-web.zip BeastRoadLauncher.exe "$LAUNCHER_VERSION_ASSET"
 
@@ -267,94 +293,3 @@ jobs:
             BeastRoad-web.zip
             BeastRoadLauncher.exe
             launcher-version-*.txt
-
-      # Uploaded from the build job and deployed from its own, because
-      # deploy-pages needs permissions this job must not have: `contents: write`
-      # publishes releases, and there is no reason for the step that writes to
-      # the public web to also be able to rewrite the repository.
-      - name: Bundle the web build for Pages
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-
-  pages:
-    name: Publish the web build
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-
-    # Every release replaces what is at the Pages URL, so the web build is
-    # always the current release rather than whatever was last pushed to main.
-    # It is a separate job so that a Pages failure — the setting being off, an
-    # org policy — leaves the release itself published rather than rolling the
-    # whole thing back.
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-
-    # No checkout: deploy-pages consumes the artifact the build job uploaded,
-    # and this job deliberately does not hold contents permission to read the
-    # repository with.
-    steps:
-      # Whether there is a Pages site to deploy to, asked before trying.
-      #
-      # `configure-pages` was given `enablement: true` on the theory that it
-      # would switch Pages on the first time. It cannot: creating a Pages site
-      # is an admin operation and `GITHUB_TOKEN` is not an admin, so every
-      # release since failed with `Resource not accessible by integration` —
-      # a message that says nothing about what to do about it.
-      #
-      # The two cases are genuinely different and are now treated differently.
-      # Pages not being switched on is a *configuration state* that one person
-      # has to fix once, so it warns loudly, says exactly which setting, and
-      # lets the release stand: the build already exported the web target and
-      # attached BeastRoad-web.zip. A deploy that fails with Pages *on* is a
-      # real fault and still fails the job.
-      - name: Is Pages switched on
-        id: pages_state
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -uo pipefail
-          code="$(curl -sS -o /dev/null -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" || echo 000)"
-
-          if [ "$code" = "200" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "Pages is configured; deploying."
-            exit 0
-          fi
-
-          echo "enabled=false" >> "$GITHUB_OUTPUT"
-          echo "::warning title=GitHub Pages is not switched on::The web build was exported and attached to this release as BeastRoad-web.zip, but there is nowhere to host it. Enable it once by hand: Settings -> Pages -> Build and deployment -> Source: GitHub Actions. A workflow token cannot do this itself - creating a Pages site needs admin."
-          {
-            echo "### The web build was not published"
-            echo ""
-            echo "\`BeastRoad-web.zip\` is attached to the release, so nothing is lost."
-            echo "It is simply not hosted anywhere yet."
-            echo ""
-            echo "One person, once, in this repository:"
-            echo ""
-            echo "**Settings → Pages → Build and deployment → Source: _GitHub Actions_**"
-            echo ""
-            echo "Every release after that publishes to"
-            echo "<https://arxangel-gg.github.io/beast-road/> by itself."
-            echo ""
-            echo "(The API answered \`$code\` for this repository's Pages site.)"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Configure Pages
-        if: steps.pages_state.outputs.enabled == 'true'
-        uses: actions/configure-pages@v5
-
-      - name: Deploy
-        id: deploy
-        if: steps.pages_state.outputs.enabled == 'true'
-        uses: actions/deploy-pages@v4
