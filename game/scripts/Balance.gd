@@ -1454,16 +1454,33 @@ const RAID_LOCKED_CHESTS: int = 2
 const RAID_CHEST_SPACING: float = 6.0
 
 ## What a chest pays, before the tier multiplier.
-## How each elevation reads. Higher is lighter, which is the only cue a player
-## needs and the one that survives a dark camp at night.
+## The region's sixteen-tile corner set, shared by the battlefield floor and the
+## raid camp's raised ground - an island is different ground, so the region's own
+## upper material is exactly the right texture for it.
+const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
+
+## Fallback tint when a region has no corner set, so a camp is still readable
+## rather than invisible.
 const RAID_LEVEL_TINT: Array[Color] = [
 	Color(0, 0, 0, 0),
 	Color(0.62, 0.60, 0.54, 0.28),
 	Color(0.78, 0.76, 0.70, 0.36),
 ]
 const RAID_RAMP_TINT: Color = Color(0.88, 0.68, 0.32, 0.40)
-const RAID_CLIFF_EDGE: Color = Color(0.06, 0.05, 0.05, 0.85)
-const RAID_CLIFF_EDGE_WIDTH: float = 3.0
+
+## Lightening applied per tier above the first, so two stacked plates of the
+## same material still read as two.
+const RAID_TIER_LIFT: Color = Color(1.0, 0.98, 0.92, 0.16)
+## The cliff outline, drawn over the textured surface.
+##
+## Softer than it was. With flat plates the line *was* the boundary; now the
+## material transition carries most of that reading, and a hard black outline
+## fights it — the art transition is organic while collision follows the tile
+## grid, so a heavy line advertises the mismatch. It stays because the line is
+## the *true* boundary and the art is decoration over it, but it reads as a
+## shadow under the edge rather than as a drawn border. [TUNE]
+const RAID_CLIFF_EDGE: Color = Color(0.04, 0.03, 0.04, 0.5)
+const RAID_CLIFF_EDGE_WIDTH: float = 2.0
 
 ## Chest and key presentation.
 ## Terrain sits above the ground sprite and below everything that walks on it.

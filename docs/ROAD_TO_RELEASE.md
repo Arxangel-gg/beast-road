@@ -406,6 +406,28 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       release gate fails on any warning, so five unrecorded sounds would have
       blocked every build.
 
+- [x] **Raid terrain is textured.** The first pass drew flat tinted plates —
+      legible, and it looked like programmer art, which is a fair trade for a
+      prototype and not for a release.
+
+      Raised ground now uses the **region's own sixteen-tile corner set**, the
+      same Wang art the battlefield floor uses. Not a shortcut: an island *is*
+      different ground, so the moss on jungle rock or the drift on snow is the
+      right material for it, and it autotiles against the camp floor with real
+      corner transitions rather than ending on a hard square edge. Baked into one
+      texture, so a camp is one sprite rather than several hundred nodes.
+
+      The corner mask counts a corner raised only when **every** tile meeting it
+      is raised. "Any" was the first attempt and produced a visibly flat island:
+      every edge tile then has all four corners set, so every tile drew the full
+      upper piece and fifteen of the sixteen tiles — all the transitions — were
+      never used at all.
+
+      The cliff outline is kept but softened. The art transition is organic while
+      collision follows the tile grid, so a heavy black line advertises the
+      mismatch; it stays because the line is the *true* boundary and the art is
+      decoration over it, but it now reads as a shadow rather than a border.
+
 - [ ] Foliage variety and idle animations (keep the procedural polygons, add
       sprite kinds alongside them).
 - [ ] Tower/building idle animations and base damage-state art.
