@@ -314,12 +314,37 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       additives on one tower is how a "+40%" turns out to be +95% with neither
       number explaining it.
 
-- [ ] **Leaderboards — blocked, needs an owner ruling.** GDD §54 cuts
-      "multiplayer, PvP, co-op, **leaderboards**, daily online challenges", and
-      CLAUDE.md working rule 2 forbids building from that list. Endless was on
-      §54 too and the owner re-instated it; this needs the same explicit call.
-- [ ] **Mobile and web builds — same.** §54 cuts "mobile or console launch
-      builds". A Netlify web build is a 1.0 scope decision, not a task.
+- [x] **Persistent hero and campaign tiers (owner ruling, 2026-08-20).** Hero
+      level, experience, placed attributes and the tier cleared now persist;
+      everything else — towers, relics, currencies, building tiers, Oathbound
+      leaders — still resets. Recorded as dated amendments in GDD §974 and §54
+      and in CLAUDE.md's re-cut table and rule 7.
+
+      §974's actual intent survives: the word carrying it was *uncapped*, and
+      hero growth still stops at `HERO_MAX_LEVEL`.
+
+      Three tiers — Normal, Nightmare, Hell — each the whole campaign again,
+      unlocked by clearing the one below. Boss level expectancies are published
+      to the player and are **expectancies, not locks**: a wall that says "come
+      back later" throws away the forty minutes already spent, while a fight you
+      can see going badly teaches you what to grind for.
+
+      XP retuned from 5.4 to 0.30 per point of health. At 5.4 a single run took
+      the hero 1 → 97, which was right when levels reset and wrong now: the whole
+      climb would have been over before Nightmare unlocked. Measured ladder:
+
+          Normal    run 1: 9 / 19 / 30   (expects 10 / 20 / 30)
+          Nightmare opens at 46          (expects 45 at its first boss)
+          Hell      opens at 82          (expects 80), ends at 100
+
+      About seven full clears to cap. `SAVE_VERSION` 3 → 4; v3 saves migrate by
+      arriving with no hero block, which is tested, and the save-backup check was
+      run by hand — all five rows pass.
+
+- [ ] **Leaderboards** — now in scope (§54 amended 2026-08-20). Not built.
+- [ ] **Web build** — now in scope (§54 amended). Not built.
+- [ ] Story intro cinematic and milestone cutscenes.
+- [ ] Loot art and greater drop diversity.
 - [ ] Foliage variety and idle animations.
 
 ---

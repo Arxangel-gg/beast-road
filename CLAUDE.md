@@ -44,6 +44,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Mid-combat tower placement | locked to Preparation | **DECIDED 2026-08-13: lock it. Build v4.** |
 | Partial raid extraction | kept — two windows plus chieftain climax | no conflict |
 | Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **DECIDED 2026-08-20: adopt v4's Oathbound framing.** |
+| Run-scoped hero power (v4 §974) | — | **DECIDED 2026-08-20: hero level, attributes and loot now persist. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -161,12 +162,24 @@ works."
    references. The battlefield must not hold a reference to the city.
 6. **`RunState` is the single source of truth for the current run.** No system
    caches run data locally.
-7. **`MetaState` writes only what v4 sanctions:** unlocked IDs, run statistics,
-   settings, Tools, the four capped Sigil ranks, and the Treasury cache (GDD
-   §57). Nothing else. The rule this enforces is §52's — *"no run-only power
-   leaks into the account save"* — so if you find yourself persisting a relic,
-   a tower level, a currency balance or hero progress, a design decision has
-   been violated. Flag it instead of implementing it.
+7. **`MetaState` writes only what v4 sanctions, plus the hero.** Unlocked IDs,
+   run statistics, settings, Tools, the four capped Sigil ranks, the Treasury
+   cache (GDD §57) — **and, since 2026-08-20, hero level, experience, placed
+   attributes and the campaign tier cleared.**
+
+   That last clause is an owner re-cut of v4 §974, taken deliberately: the game
+   is now a multi-run grind with Normal / Nightmare / Hell tiers, and a hero who
+   resets every run cannot climb them. The amendment is recorded in GDD §54 and
+   §974 with the same date.
+
+   **The rest of the rule is unchanged and still binding.** No relic, tower
+   level, run currency balance, building tier or Oathbound leader may persist.
+   Hero power is now sanctioned; everything else on that list is still a design
+   violation, and the answer is still to flag it rather than implement it.
+
+   The bound that replaces §974's is `Balance.HERO_MAX_LEVEL`: hero growth is
+   *capped*, not uncapped, and §54's cut of "uncapped permanent stats" survives
+   intact.
 8. **The battlefield freezes during a raid and resumes exactly as it was**
    (GDD §52, "Raid pause resumes the exact battlefield state"). It must
    therefore be suspendable as a unit — no system may keep ticking off a timer

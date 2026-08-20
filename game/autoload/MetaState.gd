@@ -17,7 +17,7 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 
 ## Terrain ids as they were before v4's regions were adopted. A save records
 ## which terrains a player has unlocked *by id*, so renaming the content renames
@@ -25,7 +25,7 @@ const SAVE_VERSION: int = 3
 ## that no longer name anything, silently losing the unlocks.
 ## Save versions this build can carry forward. Anything else is backed up and
 ## the account starts fresh.
-const MIGRATABLE_VERSIONS: Array[int] = [1, 2]
+const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3]
 
 const TERRAIN_RENAMES_V3: Dictionary = {
 	"ashfen": "jungle",
@@ -83,6 +83,32 @@ var act3_cleared: bool = false
 ## Tools: the account currency that widens what a run can contain (v4 §35).
 ## Earned by getting deep, spent on the roster. Never on power.
 var tools: int = 0
+
+# --- Hero progression (owner amendment, 2026-08-20) ---------------------------
+#
+# GDD §974 read "no hero level persists" through v4.0. The owner re-cut it: the
+# game is now a multi-run climb through Normal, Nightmare and Hell, and a hero
+# who resets every run cannot climb it. CLAUDE.md §7 carries the same amendment.
+#
+# What §974 was protecting is still protected. Growth is *capped* at
+# HERO_MAX_LEVEL, so nothing unbounded persists, and the rest of the run - towers,
+# relics, currencies, building tiers, Oathbound leaders - resets exactly as
+# before. A player carries their hero forward, not their defence.
+
+## The hero's level, experience and placed attributes, carried between runs.
+var hero_level: int = 1
+var hero_xp: float = 0.0
+var hero_attributes: Array[int] = [0, 0, 0, 0]
+var hero_attribute_points: int = 0
+var hero_skill_points: int = 0
+
+## Highest campaign tier order fully cleared. -1 means none, so only the first
+## tier is open.
+var tier_cleared: int = -1
+
+## The tier the player last chose, so the picker reopens where they left off.
+var last_tier_id: String = "normal"
+
 
 ## Legacy rank, one per full clear, capped at Balance.SIGIL_MAX_RANK (v4 §36).
 var sigils: int = 0
@@ -247,6 +273,56 @@ func sigil_crossroad_rerolls() -> int:
 	return Balance.SIGIL_RANK2_REROLLS if sigils >= 2 else 0
 
 
+## Reads the hero block, clamping everything.
+##
+## A save is a file on someone's disk and may have been edited, truncated or
+## written by a build that is not this one. Every field is bounded here rather
+## than trusted, because an out-of-range level does not fail loudly - it produces
+## a hero with 4,000 attribute points and a game that is no longer a game.
+func _read_hero(hero: Dictionary) -> void:
+	hero_level = clampi(int(hero.get("level", 1)), 1, Balance.HERO_MAX_LEVEL)
+	hero_xp = maxf(float(hero.get("xp", 0.0)), 0.0)
+	hero_attribute_points = maxi(int(hero.get("attribute_points", 0)), 0)
+	hero_skill_points = maxi(int(hero.get("skill_points", 0)), 0)
+	tier_cleared = clampi(int(hero.get("tier_cleared", -1)), -1, 8)
+	last_tier_id = String(hero.get("last_tier", "normal"))
+
+	hero_attributes = [0, 0, 0, 0]
+	var stored: Array = hero.get("attributes", []) as Array
+	for i: int in mini(stored.size(), hero_attributes.size()):
+		hero_attributes[i] = maxi(int(stored[i]), 0)
+
+	# Placed points plus unspent may not exceed what the level could ever have
+	# granted. This is the one line that stops a hand-edited save from arriving
+	# with a maxed hero on a fresh account.
+	var granted: int = hero_level - 1
+	var placed: int = 0
+	for value: int in hero_attributes:
+		placed += value
+	if placed + hero_attribute_points > granted:
+		var over: int = placed + hero_attribute_points - granted
+		hero_attribute_points = maxi(hero_attribute_points - over, 0)
+		over = placed + hero_attribute_points - granted
+		for i: int in hero_attributes.size():
+			if over <= 0:
+				break
+			var taken: int = mini(hero_attributes[i], over)
+			hero_attributes[i] -= taken
+			over -= taken
+
+
+## Which campaign tiers this account may choose.
+func tier_is_unlocked(tier: CampaignTierData) -> bool:
+	return tier != null and tier.order <= tier_cleared + 1
+
+
+## Records a full clear, which is what opens the next tier.
+func record_tier_cleared(order: int) -> void:
+	if order > tier_cleared:
+		tier_cleared = order
+		save_game()
+
+
 func save_game() -> void:
 	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -272,6 +348,15 @@ func serialized_save() -> String:
 			"tools": tools,
 			"sigils": sigils,
 			"act3_cleared": act3_cleared,
+		},
+		"hero": {
+			"level": hero_level,
+			"xp": hero_xp,
+			"attributes": hero_attributes,
+			"attribute_points": hero_attribute_points,
+			"skill_points": hero_skill_points,
+			"tier_cleared": tier_cleared,
+			"last_tier": last_tier_id,
 		},
 		"resource_cache": resource_cache,
 		"stats": {
@@ -334,6 +419,7 @@ func load_save() -> void:
 	act3_cleared = bool(unlocked.get("act3_cleared", false))
 	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
+	_read_hero(data.get("hero", {}) as Dictionary)
 	resource_cache = data.get("resource_cache", {}) as Dictionary
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary

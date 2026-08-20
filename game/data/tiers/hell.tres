@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CampaignTierData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/campaign_tier_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+order = 2
+hp_scale = 7.4
+damage_scale = 2.8
+speed_scale = 1.15
+boss_levels = Array[int]([80, 88, 94])
+xp_scale = 5.0
+loot_scale = 3.6
+summary = "The Chainmaker's own terms. Come at ninety or do not come."
+id = "hell"
+display_name = "Hell"

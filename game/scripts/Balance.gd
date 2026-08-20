@@ -99,6 +99,9 @@ const LOOT_Z_INDEX: int = -2
 
 const HERO_MAX_LEVEL: int = 100
 
+## Runs per tier that `tools/level_curve.tscn` simulates. Reporting only.
+const LEVEL_CURVE_RUNS_PER_TIER: int = 3
+
 ## XP needed to leave level L is HERO_XP_BASE * L^HERO_XP_CURVE.
 ##
 ## Superlinear so late levels are earned rather than collected, but well under
@@ -121,7 +124,16 @@ const HERO_XP_CURVE: float = 1.42
 ## The hero should arrive at the summit still a few levels short: reaching the
 ## cap on the last kill of Act III leaves the Final Ascent - the longest fight in
 ## the run - with nothing left to earn.
-const HERO_XP_PER_HP: float = 5.4
+## Retuned 2026-08-20 for persistent levels across three campaign tiers.
+##
+## At 5.4 a single run took the hero from 1 to 97, which was right when levels
+## reset and is wrong now that they do not: the whole climb would be over before
+## Nightmare had been unlocked, and there would be nothing to grind for.
+##
+## The target is a Normal clear landing near 30 - the tier's own Act III boss
+## expectancy - with Nightmare and Hell carrying the rest through their own XP
+## multipliers. Measured with `tools/level_curve.tscn`. [TUNE]
+const HERO_XP_PER_HP: float = 0.30
 
 ## Levels between skill points. Twenty across a full run.
 const HERO_SKILL_POINT_EVERY: int = 5

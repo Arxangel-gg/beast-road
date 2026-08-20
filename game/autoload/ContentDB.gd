@@ -17,6 +17,7 @@ var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
+var tiers: Dictionary = {}
 
 ## First-run coach prompts. Content because the strings are player-facing and
 ## CLAUDE.md keeps those out of scripts.
@@ -38,6 +39,7 @@ func _ready() -> void:
 	spells = _load_dir("res://data/spells")
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
+	tiers = _load_dir("res://data/tiers")
 	buildings = _load_dir("res://data/buildings")
 	captives = _load_dir("res://data/captives")
 	wave_archetypes = _load_dir("res://data/waves")
@@ -68,6 +70,22 @@ func relic(id: String) -> RelicData:
 
 func item(id: String) -> ItemData:
 	return items.get(id, null) as ItemData
+
+
+## Campaign tiers, easiest first.
+func tiers_sorted() -> Array[CampaignTierData]:
+	var out: Array[CampaignTierData] = []
+	for value: Variant in tiers.values():
+		var tier := value as CampaignTierData
+		if tier != null:
+			out.append(tier)
+	out.sort_custom(func(a: CampaignTierData, b: CampaignTierData) -> bool:
+		return a.order < b.order)
+	return out
+
+
+func tier(id: String) -> CampaignTierData:
+	return tiers.get(id, null) as CampaignTierData
 
 
 ## Every weather eligible for an act, for the roll.

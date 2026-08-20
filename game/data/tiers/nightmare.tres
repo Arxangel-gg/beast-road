@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CampaignTierData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/campaign_tier_data.gd" id="1_t"]
+
+[resource]
+script = ExtResource("1_t")
+order = 1
+hp_scale = 2.9
+damage_scale = 1.7
+speed_scale = 1.08
+boss_levels = Array[int]([45, 58, 70])
+xp_scale = 2.4
+loot_scale = 2.0
+summary = "Everything again, and everything hits back. Bring what you learned."
+id = "nightmare"
+display_name = "Nightmare"

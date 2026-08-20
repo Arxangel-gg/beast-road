@@ -145,6 +145,9 @@ enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS }
 ## condition you build *for* during Preparation.
 var weather_id: String = "clear"
 
+## The campaign tier this run is being played on.
+var tier_id: String = "normal"
+
 var hero_level: int = 1
 var hero_xp: float = 0.0
 
@@ -329,11 +332,18 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	discipline_respec_uses = 0
 	hero_ascension = 0
 	weather_id = "clear"
-	hero_level = 1
-	hero_xp = 0.0
-	hero_attribute_points = 0
-	hero_skill_points = 0
-	hero_attributes = [0, 0, 0, 0]
+	# Restored from the account, not zeroed.
+	#
+	# This is the owner amendment of 2026-08-20 in one place: the hero is the only
+	# thing that survives a run. Towers, relics, currencies and building tiers are
+	# all cleared above, exactly as they always were - a player carries who they
+	# have become, not the defence they built.
+	hero_level = MetaState.hero_level
+	hero_xp = MetaState.hero_xp
+	hero_attribute_points = MetaState.hero_attribute_points
+	hero_skill_points = MetaState.hero_skill_points
+	hero_attributes = MetaState.hero_attributes.duplicate()
+	tier_id = MetaState.last_tier_id
 	hero_hp = -1.0
 	hero_wounds = 0
 	has_resurrection_draught = false
@@ -526,7 +536,49 @@ func gain_hero_xp(amount: float) -> void:
 	if hero_level >= Balance.HERO_MAX_LEVEL:
 		hero_xp = 0.0
 	if gained > 0:
+		_store_hero()
 		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, hero_skill_points)
+
+
+## Writes hero progression back to the account.
+##
+## On every level and every point placed, rather than at the end of a run. A
+## crash or an alt-F4 forty minutes in should not cost a player the levels they
+## earned - and "the run ended properly" is exactly the case that does not
+## happen when someone rage-quits a losing Hell run, which is when they most need
+## the grind to have counted.
+func _store_hero() -> void:
+	MetaState.hero_level = hero_level
+	MetaState.hero_xp = hero_xp
+	MetaState.hero_attribute_points = hero_attribute_points
+	MetaState.hero_skill_points = hero_skill_points
+	MetaState.hero_attributes = hero_attributes.duplicate()
+	MetaState.last_tier_id = tier_id
+	MetaState.save_game()
+
+
+## The campaign tier this run is on.
+func tier() -> CampaignTierData:
+	var found: CampaignTierData = ContentDB.tier(tier_id)
+	if found != null:
+		return found
+	var all: Array[CampaignTierData] = ContentDB.tiers_sorted()
+	return all[0] if not all.is_empty() else null
+
+
+## What the tier expects the hero to be worth at this act's boss.
+func expected_boss_level(for_act: int) -> int:
+	var live: CampaignTierData = tier()
+	return live.expected_level(for_act) if live != null else 1
+
+
+## How far under the tier's expectancy the hero is, as a fraction. Zero when at
+## or above it.
+func under_levelled(for_act: int) -> float:
+	var want: int = expected_boss_level(for_act)
+	if want <= 1 or hero_level >= want:
+		return 0.0
+	return clampf(1.0 - float(hero_level) / float(want), 0.0, 1.0)
 
 
 ## Fraction of the way to the next level, for the HUD.
@@ -544,6 +596,7 @@ func spend_attribute_point(attribute: int) -> String:
 		return "No such attribute."
 	hero_attribute_points -= 1
 	hero_attributes[attribute] += 1
+	_store_hero()
 	EventBus.hero_attributes_changed.emit()
 	return ""
 

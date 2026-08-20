@@ -1062,10 +1062,18 @@ func _on_act_started(act: int, terrain_id: String) -> void:
 	announce("Act %d" % act, terrain.display_name if terrain != null else terrain_id)
 
 
-func _on_boss_announced(boss_id: String, _act: int) -> void:
+func _on_boss_announced(boss_id: String, act: int) -> void:
 	var data: EnemyData = ContentDB.enemy(boss_id)
-	announce("Something enormous is on the road",
-		data.display_name if data != null else boss_id)
+	# The tier publishes what it expects of the hero here, and only when they are
+	# short of it. A boss is an expectancy rather than a lock - a wall that says
+	# "come back later" throws away the forty minutes already spent - so the
+	# player is told plainly and then allowed to try it anyway.
+	var behind: float = RunState.under_levelled(act)
+	var kicker: String = "Something enormous is on the road"
+	if behind > 0.0:
+		kicker = "Level %d expected — you are %d" % [
+			RunState.expected_boss_level(act), RunState.hero_level]
+	announce(kicker, data.display_name if data != null else boss_id)
 
 
 ## Shows the card, then takes it away. Never blocks: the road does not stop for

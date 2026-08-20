@@ -545,31 +545,40 @@ func _signature_enemy(archetype: WaveArchetypeData) -> EnemyData:
 
 
 func _hp_scale(lane: int) -> float:
+	var tier: CampaignTierData = RunState.tier()
 	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 	scale *= RunState.endless_scale(Balance.ENDLESS_HP_GROWTH)
 	scale *= _situational_scale(lane, 1.0)
 	scale *= _opening_scale(Balance.WAVE_OPENING_HP_SCALE, _act_wave)
+	if tier != null:
+		scale *= tier.hp_scale
 	return scale
 
 
 func _damage_scale(lane: int) -> float:
+	var tier: CampaignTierData = RunState.tier()
 	var scale: float = 1.0 + Balance.WAVE_DAMAGE_GROWTH * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_DAMAGE_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_DAMAGE_SCALE.size() - 1)]
 	scale *= RunState.endless_scale(Balance.ENDLESS_DAMAGE_GROWTH)
 	scale *= _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT)
 	scale *= _opening_scale(Balance.WAVE_OPENING_DAMAGE_SCALE, _act_wave)
+	if tier != null:
+		scale *= tier.damage_scale
 	return scale
 
 
 func _speed_scale(lane: int) -> float:
+	var tier: CampaignTierData = RunState.tier()
 	var scale: float = 1.0 + RunState.journey_ratio() * Balance.WAVE_SPEED_GROWTH
 	if battlefield != null:
 		scale *= 1.0 + battlefield.lane_darkness(lane) * Balance.TORCH_DARK_DIFFICULTY \
 			* Balance.WAVE_DARK_SPEED_WEIGHT
 	scale *= _opening_scale(Balance.WAVE_OPENING_SPEED_SCALE, _act_wave)
+	if tier != null:
+		scale *= tier.speed_scale
 	return scale
 
 

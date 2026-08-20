@@ -971,7 +971,11 @@ The account save contains:
 - achievements, challenges, run records, aggregate statistics, tutorial flags, and settings;
 - save version and migration metadata.
 
-No uncapped stat bonus, hero level, building tier, captive level, or automatic damage growth persists.
+No uncapped stat bonus, building tier, captive level, or automatic damage growth persists.
+
+> **Amended 2026-08-20 (owner).** This line read "No uncapped stat bonus, hero level, building tier…" through v4.0. **Hero level, experience and placed attributes now persist across runs**, together with the highest campaign tier cleared. The game is a multi-run progression with Normal / Nightmare / Hell tiers (§9a), and a hero who resets every run cannot climb them.
+>
+> The word that carries the original intent is *uncapped*, and it still holds: hero growth stops at `HERO_MAX_LEVEL`, so nothing unbounded persists. Building tiers, run currencies, relics and Oathbound leaders remain run-scoped exactly as before.
 
 ## 35. Tools and Unlock Philosophy
 
@@ -1418,15 +1422,15 @@ Each milestone ends with an honest kill question. A no answer blocks expansion.
 ## 54. Explicitly Out of Scope for 1.0
 
 - multiple heroes, party roster, or hero swapping;
-- multiplayer, PvP, co-op, leaderboards, daily online challenges;
+- multiplayer, PvP, co-op, daily online challenges (**amended 2026-08-20 (owner):** leaderboards are back in scope);
 - endless mode;
-- mobile or console launch builds;
+- console launch builds (**amended 2026-08-20 (owner):** a web build, playable on mobile browsers, is back in scope);
 - light and dark tower elements;
 - level-3 tower specialization branches;
 - relic set crafting or a synergy altar;
 - **procedural** battlefield layouts (authored layouts only - see below);
 - persistent Oathbound leaders or captive leveling;
-- uncapped permanent stats, idle resources, or live-service economy;
+- uncapped permanent stats, idle resources, or live-service economy (**amended 2026-08-20:** *capped* hero level and attributes persist — see §974);
 - Cataclysm modular oaths unless all 1.0 gates are already complete;
 - runtime-generated art, dialogue, or balance;
 - more regions before the existing three and summit meet quality gates.

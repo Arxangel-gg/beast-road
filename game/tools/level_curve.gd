@@ -36,9 +36,29 @@ func _ready() -> void:
 		await get_tree().process_frame
 
 	var director: WaveDirector = run.battlefield.wave_director
-	var terrains: Array[String] = ["jungle", "desert", "snow"]
+	# Levels persist now, so the question is no longer "what does a run reach"
+	# but "how many runs is the climb". Each tier is walked from wherever the
+	# previous one left the hero.
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		RunState.tier_id = tier.id
+		print("[level] --- %s (hp x%.1f, xp x%.1f), expects %s at its bosses ---"
+			% [tier.display_name, tier.hp_scale, tier.xp_scale, str(tier.boss_levels)])
+		for _run_index: int in Balance.LEVEL_CURVE_RUNS_PER_TIER:
+			await _walk_campaign(director)
+			print("[level]   after a clear: level %d, %d attribute points, %d skill"
+				% [_level, _attribute_points, _skill_points])
+	_report()
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _f: int in 10:
+		await get_tree().process_frame
+	get_tree().quit(0)
 
-	print("[level] act wave  pack  hp_scale   kills  level attr skill")
+
+func _walk_campaign(director: WaveDirector) -> void:
+	var terrains: Array[String] = ["jungle", "desert", "snow"]
 	for act: int in 3:
 		for wave: int in WAVES_PER_ACT:
 			RunState.act = act + 1
@@ -54,16 +74,20 @@ func _ready() -> void:
 				_kills += 1
 				_award(health * Balance.HERO_XP_PER_HP)
 			if wave == WAVES_PER_ACT - 1:
-				print("[level]  %d   %2d  %4d     %5.2f   %5d    %3d  %3d   %3d"
-					% [act + 1, wave + 1, pack, scale, _kills,
-						_level, _attribute_points, _skill_points])
+				print("[level]   act %d done: level %d  (pack %d, hp x%.1f)"
+					% [act + 1, _level, pack, scale])
 
+
+func _report() -> void:
 	print("[level] ends at %d of %d after %d kills"
 		% [_level, Balance.HERO_MAX_LEVEL, _kills])
 	print("[level] %d attribute points, %d skill points, %d of 24 discipline nodes"
 		% [_attribute_points, _skill_points,
 			Balance.DISCIPLINE_MAX_TRAINED
 				+ int(_level / Balance.HERO_DISCIPLINE_CAP_EVERY)])
+	print("[level] %.1f hours of play at %d minutes a run"
+		% [float(Balance.LEVEL_CURVE_RUNS_PER_TIER * 3) * 60.0 / 60.0,
+			60])
 	# A single-attribute build's ceiling: the number that decides whether
 	# levelling is a nice bonus or the thing that carries the run.
 	print("[level] all-in: Might +%.0f%%  Vigour +%.0f%%  Swiftness +%.0f%% move  Focus +%.0f%% command"
@@ -71,15 +95,6 @@ func _ready() -> void:
 			float(_attribute_points) * Balance.HERO_VIGOUR_PER_POINT * 100.0,
 			float(_attribute_points) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT * 100.0,
 			float(_attribute_points) * Balance.HERO_FOCUS_COMMAND_PER_POINT * 100.0])
-
-	Sfx.stop_immediately()
-	MusicPlayer.stop_immediately()
-	Ambience.stop_immediately()
-	run.queue_free()
-	for _f: int in 10:
-		await get_tree().process_frame
-	get_tree().quit(0)
-
 
 func _award(amount: float) -> void:
 	_xp += amount

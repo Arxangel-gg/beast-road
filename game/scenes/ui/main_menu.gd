@@ -27,12 +27,66 @@ func _ready() -> void:
 	IconKit.on_button(settings_button, "settings", 24)
 	IconKit.on_button(quit_button, "close", 24)
 
+	_build_tier_row()
 	_build_endless_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
+
+
+## The campaign tier, chosen before a run and shown with the hero it will be
+## played by.
+##
+## Built here rather than in the scene because which tiers exist is an account
+## question: a locked tier is not drawn at all. A row of greyed-out buttons
+## advertises content a new player cannot have and reads as a paywall.
+func _build_tier_row() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+
+	var hero := Label.new()
+	hero.text = "Warden  ·  level %d" % MetaState.hero_level
+	if MetaState.hero_attribute_points > 0:
+		hero.text += "  ·  %d unspent" % MetaState.hero_attribute_points
+	hero.add_theme_font_size_override("font_size", 15)
+	hero.add_theme_color_override("font_color", Color("b8ae98"))
+	column.add_child(hero)
+	column.move_child(hero, new_run_button.get_index())
+
+	var unlocked: Array[CampaignTierData] = []
+	for tier: CampaignTierData in ContentDB.tiers_sorted():
+		if MetaState.tier_is_unlocked(tier):
+			unlocked.append(tier)
+	if unlocked.size() <= 1:
+		# One tier open is not a choice, and a picker with one entry is furniture.
+		if not unlocked.is_empty():
+			MetaState.last_tier_id = unlocked[0].id
+		return
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for tier: CampaignTierData in unlocked:
+		var button := Button.new()
+		button.toggle_mode = true
+		button.text = tier.display_name
+		button.tooltip_text = "%s
+Expects level %s at its act bosses." % [
+			tier.summary, str(tier.boss_levels)]
+		button.button_pressed = tier.id == MetaState.last_tier_id
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(func() -> void:
+			MetaState.last_tier_id = tier.id
+			MetaState.save_game()
+			for other: Node in row.get_children():
+				(other as Button).button_pressed = (other as Button).text == tier.display_name)
+		row.add_child(button)
+	column.add_child(row)
+	column.move_child(row, new_run_button.get_index())
 
 
 ## Endless is earned by finishing, so the button only exists once the summit has

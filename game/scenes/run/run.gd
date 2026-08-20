@@ -585,6 +585,12 @@ func _summit_cleared() -> void:
 	var first_time: bool = not MetaState.act3_cleared
 	RunState.begin_endless(true)
 	MetaState.act3_cleared = true
+	# Clearing the summit is what opens the next campaign tier. Recorded from the
+	# tier actually being played, not from a counter, so replaying Normal after
+	# unlocking Hell cannot walk the ladder backwards.
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		MetaState.record_tier_cleared(tier.order)
 	MetaState.save_game()
 	journey.resume_after_boss()
 	battlefield.refresh_terrain()

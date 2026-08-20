@@ -34,6 +34,7 @@ func _ready() -> void:
 	_test_damage_states_are_reversible()
 	_test_hero_levelling()
 	await _test_loot_and_weather()
+	_test_tiers_and_persistence()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -562,12 +563,21 @@ func _test_hero_levelling() -> void:
 			and not name.contains("xp"),
 			"the account save must not carry hero progression, found \"%s\"" % name)
 
-	# Reset returns the hero to level one, which is what makes the next run a run.
+	# Reset restores the hero from the account rather than zeroing it.
+	#
+	# This assertion used to read "a new run must start at level 1", which was
+	# correct until the owner amended GDD §974 on 2026-08-20. Left as it was it
+	# would have failed every build from that day on, and the temptation would
+	# have been to delete it - so it states the new contract instead, which is the
+	# stricter of the two: the hero comes back *exactly* as the account holds it.
+	MetaState.hero_level = 37
+	MetaState.hero_attribute_points = 4
+	MetaState.hero_attributes = [3, 0, 0, 0]
 	RunState.reset()
-	_check(RunState.hero_level == 1, "a new run must start at level 1")
-	_check(RunState.hero_attribute_points == 0, "a new run must start with no points")
-	_check(RunState.attribute(RunState.Attribute.MIGHT) == 0,
-		"a new run must start with no attributes placed")
+	_check(RunState.hero_level == 37, "a new run must restore the account's hero")
+	_check(RunState.hero_attribute_points == 4, "unspent points must come back")
+	_check(RunState.attribute(RunState.Attribute.MIGHT) == 3,
+		"placed attributes must come back")
 	RunState.hero_level = before_level
 
 
@@ -643,6 +653,104 @@ func _test_loot_and_weather() -> void:
 		seen[RunState.weather_id] = true
 	_check(seen.size() >= 2, "twelve rolls should produce more than one weather")
 	RunState.weather_id = "clear"
+
+
+## Campaign tiers must ladder, and the hero must survive a run while nothing
+## else does.
+##
+## The second half is the owner amendment of 2026-08-20 stated as a test. GDD
+## §974 used to forbid *any* hero persistence; it now sanctions exactly four
+## fields and nothing more. A tower level or a currency balance sneaking into the
+## save would be the original violation wearing the amendment as cover.
+func _test_tiers_and_persistence() -> void:
+	var tiers: Array[CampaignTierData] = ContentDB.tiers_sorted()
+	_check(tiers.size() >= 3, "there must be three campaign tiers, found %d" % tiers.size())
+	if tiers.size() < 3:
+		return
+
+	# Each tier must be strictly harder and strictly better paid, or there is no
+	# reason to climb.
+	for i: int in range(1, tiers.size()):
+		_check(tiers[i].hp_scale > tiers[i - 1].hp_scale,
+			"%s must be tougher than %s" % [tiers[i].id, tiers[i - 1].id])
+		_check(tiers[i].xp_scale > tiers[i - 1].xp_scale,
+			"%s must pay better than %s" % [tiers[i].id, tiers[i - 1].id])
+		_check(tiers[i].expected_level(1) > tiers[i - 1].expected_level(3),
+			"%s should open above where %s ended" % [tiers[i].id, tiers[i - 1].id])
+	for tier: CampaignTierData in tiers:
+		for act: int in [1, 2, 3]:
+			_check(tier.expected_level(act) <= Balance.HERO_MAX_LEVEL,
+				"%s expects a level above the cap at act %d" % [tier.id, act])
+		_check(not tier.summary.is_empty(), "%s must describe itself" % tier.id)
+
+	# Only the next tier up is ever open.
+	var cleared_before: int = MetaState.tier_cleared
+	MetaState.tier_cleared = -1
+	_check(MetaState.tier_is_unlocked(tiers[0]), "the first tier must always be open")
+	_check(not MetaState.tier_is_unlocked(tiers[2]),
+		"the last tier must be locked on a fresh account")
+	MetaState.tier_cleared = 0
+	_check(MetaState.tier_is_unlocked(tiers[1]), "clearing a tier must open the next")
+	_check(not MetaState.tier_is_unlocked(tiers[2]),
+		"clearing one tier must not open two")
+	MetaState.tier_cleared = cleared_before
+
+	# The hero survives a run; the defence does not.
+	MetaState.hero_level = 42
+	MetaState.hero_attributes = [5, 4, 3, 2]
+	MetaState.hero_attribute_points = 7
+	RunState.gain_currency(RunState.GOLD, 999)
+	RunState.reset()
+	_check(RunState.hero_level == 42, "the hero's level must survive a new run")
+	_check(RunState.attribute(RunState.Attribute.MIGHT) == 5,
+		"placed attributes must survive a new run")
+	_check(RunState.hero_attribute_points == 7, "unspent points must survive a new run")
+	_check(RunState.towers.is_empty(), "towers must not survive a new run")
+	_check(RunState.currency(RunState.GOLD) < 999,
+		"a run's currency balance must not survive into the next run")
+
+	# The save carries the hero and nothing else new.
+	var text: String = MetaState.serialized_save()
+	var parsed: Variant = JSON.parse_string(text)
+	_check(parsed is Dictionary, "the save must be a dictionary")
+	if parsed is Dictionary:
+		var keys: Array = (parsed as Dictionary).keys()
+		for key: Variant in keys:
+			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
+				"settings", "hero"],
+				"unexpected top-level save key \"%s\"" % key)
+		var hero: Dictionary = (parsed as Dictionary).get("hero", {}) as Dictionary
+		for key: Variant in hero.keys():
+			_check(String(key) in ["level", "xp", "attributes", "attribute_points",
+				"skill_points", "tier_cleared", "last_tier"],
+				"unexpected hero save key \"%s\" - only the amendment's fields persist" % key)
+
+	# The migration every existing player will actually hit: a v3 save has no hero
+	# block at all, and must arrive as a level-one hero rather than as garbage.
+	MetaState.hero_level = 55
+	MetaState.hero_attribute_points = 20
+	MetaState.call("_read_hero", {})
+	_check(MetaState.hero_level == 1,
+		"a save with no hero block must load as level 1, got %d" % MetaState.hero_level)
+	_check(MetaState.hero_attribute_points == 0,
+		"a save with no hero block must load with no points")
+	_check(MetaState.tier_cleared == -1,
+		"a save with no hero block must open only the first tier")
+
+	# A hand-edited save must not arrive with more points than its level granted.
+	MetaState.call("_read_hero", {"level": 5, "attributes": [900, 0, 0, 0],
+		"attribute_points": 900})
+	var placed: int = 0
+	for value: int in MetaState.hero_attributes:
+		placed += value
+	_check(placed + MetaState.hero_attribute_points <= 4,
+		"a level 5 hero may hold at most 4 points, found %d"
+			% (placed + MetaState.hero_attribute_points))
+
+	MetaState.hero_level = 1
+	MetaState.hero_attributes = [0, 0, 0, 0]
+	MetaState.hero_attribute_points = 0
+	RunState.reset()
 
 
 ## The summit has to be reachable, and the Chainmaker has to be the thing at the
