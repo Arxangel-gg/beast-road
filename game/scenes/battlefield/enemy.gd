@@ -546,6 +546,10 @@ func _on_died(_from: Vector2) -> void:
 	health_bar.visible = false
 	RunState.enemies_killed += 1
 	RunState.gain_kill_resources(data.resource_value)
+	# XP scales with the enemy's health rather than an authored per-enemy number,
+	# so an elite is worth more than a runner with no second table to maintain,
+	# and act scaling carries the curve forward on its own.
+	RunState.gain_hero_xp(data.max_hp * _hp_scale * Balance.HERO_XP_PER_HP)
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 	EventBus.enemy_died.emit(data.id, global_position)

@@ -75,6 +75,7 @@ const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 
 var _resources: Label
 var _currency_labels: Dictionary = {}
+var _level: Label
 var _distance: Label
 var _wave: Label
 var _wave_preview: Label
@@ -251,6 +252,12 @@ func _build_top_bar() -> void:
 	# the numbers are what the player is actually reading.
 	_act = _label("Act 1")
 	bar.add_child(_act)
+
+	# The level sits with the act rather than with the currencies: it is what the
+	# player has become, not what they can spend.
+	_level = _label("Lv 1")
+	_level.tooltip_text = "Hero level. Resets with the run."
+	bar.add_child(_level)
 
 	_currency_labels.clear()
 	for id: String in RunState.CURRENCIES:
@@ -1002,6 +1009,23 @@ func _build_region_card() -> void:
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.boss_spawned.connect(_on_boss_announced)
 	EventBus.run_started.connect(_on_run_opened)
+	EventBus.hero_levelled.connect(_on_hero_levelled)
+
+
+## A level is worth announcing: it is the only reward in the run that arrives
+## mid-fight and cannot be seen on the board.
+func _on_hero_levelled(level: int, attribute_points: int, skill_points: int) -> void:
+	if _level != null:
+		_level.text = "Lv %d" % level
+	var parts: PackedStringArray = ["Level %d" % level]
+	if attribute_points > 0:
+		parts.append("%d attribute point%s"
+			% [attribute_points, "" if attribute_points == 1 else "s"])
+	if skill_points > 0:
+		parts.append("%d skill point%s"
+			% [skill_points, "" if skill_points == 1 else "s"])
+	_show_message("  ·  ".join(parts))
+	Sfx.play("sfx_ui_confirm", 2.0)
 
 
 ## The opening beat, before Act I names itself.
@@ -1765,6 +1789,10 @@ func _on_wave_archetype(number: int, archetype_id: String) -> void:
 func _on_act(act: int, terrain_id: String) -> void:
 	var terrain: TerrainData = ContentDB.terrain(terrain_id)
 	_act.text = "Act %d  ·  %s" % [act, terrain.display_name if terrain != null else "—"]
+	# Refreshed here as well as on level-up, so a HUD rebuilt mid-run - a scope
+	# change, a reload - does not show Lv 1 under a level 60 hero.
+	if _level != null:
+		_level.text = "Lv %d" % RunState.hero_level
 
 
 func _on_scope_changed(scope: int) -> void:

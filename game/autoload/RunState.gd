@@ -130,6 +130,24 @@ var discipline_offers: Array[String] = []
 var discipline_respec_uses: int = 0
 var hero_ascension: int = 0
 
+# --- Levelling ---------------------------------------------------------------
+#
+# All of it run-scoped. GDD v4 SS974 forbids a hero level persisting, and
+# CLAUDE.md SS7 names the save's whole contents - none of this is in it.
+
+## The four attributes, in the order their points are stored.
+enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS }
+
+var hero_level: int = 1
+var hero_xp: float = 0.0
+
+## Points earned and not yet placed.
+var hero_attribute_points: int = 0
+var hero_skill_points: int = 0
+
+## Points placed, one entry per Attribute.
+var hero_attributes: Array[int] = [0, 0, 0, 0]
+
 ## Carried between scopes so a raid is not a free heal and the walk back from
 ## the town is not a reset. -1 means "start at full".
 var hero_hp: float = -1.0
@@ -303,6 +321,11 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	discipline_offers.clear()
 	discipline_respec_uses = 0
 	hero_ascension = 0
+	hero_level = 1
+	hero_xp = 0.0
+	hero_attribute_points = 0
+	hero_skill_points = 0
+	hero_attributes = [0, 0, 0, 0]
 	hero_hp = -1.0
 	hero_wounds = 0
 	has_resurrection_draught = false
@@ -428,6 +451,68 @@ func refresh_discipline_offers() -> void:
 					break
 
 
+## XP required to leave a level.
+static func hero_xp_for_level(level: int) -> float:
+	if level >= Balance.HERO_MAX_LEVEL:
+		return INF
+	return Balance.HERO_XP_BASE * pow(float(maxi(level, 1)), Balance.HERO_XP_CURVE)
+
+
+## Awards experience and resolves however many levels it crosses.
+##
+## Loops rather than levelling once, because a single boss kill late in a run is
+## worth several levels and dropping the remainder would quietly waste it.
+func gain_hero_xp(amount: float) -> void:
+	if amount <= 0.0 or hero_level >= Balance.HERO_MAX_LEVEL:
+		return
+	hero_xp += amount
+	var gained: int = 0
+	while hero_level < Balance.HERO_MAX_LEVEL:
+		var needed: float = hero_xp_for_level(hero_level)
+		if hero_xp < needed:
+			break
+		hero_xp -= needed
+		hero_level += 1
+		gained += 1
+		hero_attribute_points += 1
+		if hero_level % Balance.HERO_SKILL_POINT_EVERY == 0:
+			hero_skill_points += 1
+	if hero_level >= Balance.HERO_MAX_LEVEL:
+		hero_xp = 0.0
+	if gained > 0:
+		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, hero_skill_points)
+
+
+## Fraction of the way to the next level, for the HUD.
+func hero_level_progress() -> float:
+	if hero_level >= Balance.HERO_MAX_LEVEL:
+		return 1.0
+	return clampf(hero_xp / maxf(hero_xp_for_level(hero_level), 1.0), 0.0, 1.0)
+
+
+## Places one point. Returns why not, or "" when it landed.
+func spend_attribute_point(attribute: int) -> String:
+	if hero_attribute_points <= 0:
+		return "No attribute points to spend."
+	if attribute < 0 or attribute >= hero_attributes.size():
+		return "No such attribute."
+	hero_attribute_points -= 1
+	hero_attributes[attribute] += 1
+	EventBus.hero_attributes_changed.emit()
+	return ""
+
+
+func attribute(which: int) -> int:
+	if which < 0 or which >= hero_attributes.size():
+		return 0
+	return hero_attributes[which]
+
+
+## How many discipline nodes this hero may hold, which grows with level.
+func discipline_cap() -> int:
+	return Balance.DISCIPLINE_MAX_TRAINED 		+ int(hero_level / Balance.HERO_DISCIPLINE_CAP_EVERY)
+
+
 func try_train_discipline(id: String) -> String:
 	if not is_preparation():
 		return "Hero training is available only in Preparation."
@@ -436,8 +521,15 @@ func try_train_discipline(id: String) -> String:
 		return "That discipline node is unavailable."
 	if trained_discipline_nodes.has(id):
 		return "Already trained."
-	if trained_discipline_nodes.size() >= Balance.DISCIPLINE_MAX_TRAINED:
-		return "Six nodes is the run limit. Respec before training another."
+	if trained_discipline_nodes.size() >= discipline_cap():
+		return "%d nodes is the limit at level %d. Level up or respec." 			% [discipline_cap(), hero_level]
+	# A skill point as well as the Food. Two gates on purpose: the point is the
+	# growth the player earned by fighting, the Food is the Preparation decision
+	# they make against their towers. Either alone would be weaker - skill points
+	# only, and the hero stops competing with the defence for resources; Food
+	# only, and levelling has nothing to say about the skill tree.
+	if hero_skill_points <= 0:
+		return "Needs a skill point. Level up to earn one."
 	if building_tier("sanctum") < node.mansion_tier:
 		return "Hero Mansion tier %d is required." % node.mansion_tier
 	if not discipline_offers.has(id):
@@ -445,6 +537,7 @@ func try_train_discipline(id: String) -> String:
 	if not can_afford_cost({FOOD: node.food_cost}):
 		return "Needs %d Food." % node.food_cost
 	spend_cost({FOOD: node.food_cost})
+	hero_skill_points -= 1
 	trained_discipline_nodes.append(id)
 	discipline_offers.erase(id)
 	if node.is_active_slot() and node.is_slot_unlocked(act):
@@ -716,6 +809,9 @@ func hearthmend() -> void:
 func gain_command(amount: float) -> void:
 	if amount <= 0.0 or not is_command_combat():
 		return
+	# Focus. Applied to the gain rather than to the ceiling, so it makes orders
+	# come round faster without letting a player bank more of them.
+	amount *= 1.0 + float(attribute(Attribute.FOCUS)) * Balance.HERO_FOCUS_COMMAND_PER_POINT
 	var before: float = command
 	command = clampf(command + amount, 0.0, Balance.COMMAND_MAX)
 	command_earned += command - before

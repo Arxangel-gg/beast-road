@@ -56,6 +56,61 @@ func _on_progress(building_id: String, ratio: float) -> void:
 	progress_label.text = "%d%%" % int(ratio * 100.0)
 
 
+## The level readout and the four attributes, with a button each.
+##
+## Placed on the Mansion beside discipline training rather than on its own
+## screen: both are "what has the hero become this run", and splitting them puts
+## the two halves of one decision in two places.
+##
+## Spendable outside Preparation on purpose. Training a discipline is a
+## Preparation action because it changes the loadout and costs Food the defence
+## also wants; placing a point you already earned is not a decision against the
+## towers, and making a player wait to spend it turns a reward into a chore.
+func _build_attributes() -> void:
+	var title := Label.new()
+	title.text = "LEVEL %d" % RunState.hero_level
+	if RunState.hero_level < Balance.HERO_MAX_LEVEL:
+		title.text += "  ·  %d%% to next" % int(RunState.hero_level_progress() * 100.0)
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color("e8a33d"))
+	actions.add_child(title)
+
+	var pools := Label.new()
+	pools.text = "%d attribute point%s  ·  %d skill point%s  ·  %d of %d nodes trained" % [
+		RunState.hero_attribute_points, "" if RunState.hero_attribute_points == 1 else "s",
+		RunState.hero_skill_points, "" if RunState.hero_skill_points == 1 else "s",
+		RunState.trained_discipline_nodes.size(), RunState.discipline_cap()]
+	pools.add_theme_font_size_override("font_size", 13)
+	pools.add_theme_color_override("font_color", Color("b8ae98"))
+	actions.add_child(pools)
+
+	const NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
+	const BLURBS: Array[String] = [
+		"Damage on every swing.",
+		"Maximum health.",
+		"Movement and swing speed.",
+		"Command generation and spell power.",
+	]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	for index: int in NAMES.size():
+		var button := Button.new()
+		button.text = "%s
+%d" % [NAMES[index], RunState.attribute(index)]
+		button.tooltip_text = BLURBS[index]
+		button.custom_minimum_size = Vector2(0.0, 50.0)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 12)
+		button.disabled = RunState.hero_attribute_points <= 0
+		button.pressed.connect(func() -> void:
+			var problem: String = RunState.spend_attribute_point(index)
+			if not problem.is_empty():
+				_note(problem)
+			_refresh())
+		row.add_child(button)
+	actions.add_child(row)
+
+
 func _refresh() -> void:
 	for child: Node in actions.get_children():
 		child.queue_free()
@@ -202,6 +257,8 @@ func _show_disciplines() -> void:
 			slot_button.icon_max_width = 30
 		slot_row.add_child(slot_button)
 	actions.add_child(slot_row)
+
+	_build_attributes()
 
 	var offer_title := Label.new()
 	offer_title.text = "ROAD OFFERS"

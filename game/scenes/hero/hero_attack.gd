@@ -67,6 +67,16 @@ func cancel() -> void:
 	_hit_ids.clear()
 
 
+## How much faster Swiftness makes a swing, as a multiplier on its phases.
+##
+## Every phase scales together - wind-up, active and recovery - because
+## shortening only the recovery would make the swing read as faster without the
+## telegraph shortening with it, and the telegraph is what the enemy reads.
+func _swiftness_scale() -> float:
+	var points: int = RunState.attribute(RunState.Attribute.SWIFTNESS)
+	return 1.0 / (1.0 + float(points) * Balance.HERO_SWIFTNESS_ATTACK_PER_POINT)
+
+
 func is_swinging() -> bool:
 	return _phase == Phase.WINDUP or _phase == Phase.ACTIVE
 
@@ -108,10 +118,10 @@ func _advance_phase() -> void:
 	match _phase:
 		Phase.WINDUP:
 			_phase = Phase.ACTIVE
-			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step]
+			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale()
 		Phase.ACTIVE:
 			_phase = Phase.RECOVERY
-			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step]
+			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale()
 		Phase.RECOVERY:
 			_phase = Phase.READY
 			_phase_left = 0.0
@@ -124,7 +134,7 @@ func _advance_phase() -> void:
 func _begin_swing(step: int, aim: Vector2) -> void:
 	_step = clampi(step, 0, Balance.HERO_CHAIN_LENGTH - 1)
 	_phase = Phase.WINDUP
-	_phase_left = Balance.HERO_ATTACK_WINDUP[_step]
+	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale()
 	_swing_aim = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	_buffer_left = 0.0
 	_chain_left = 0.0

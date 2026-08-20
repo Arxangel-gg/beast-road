@@ -67,6 +67,12 @@ signal enemy_spawned(enemy_id: String, at: Vector2)
 ## An enemy reached zero HP. Kill credit, raid charge and drops read off this.
 signal enemy_died(enemy_id: String, at: Vector2)
 
+## The hero reached a new level, and how much is now unspent.
+signal hero_levelled(level: int, attribute_points: int, skill_points: int)
+
+## A point was placed, so anything reading an attribute should re-read it.
+signal hero_attributes_changed()
+
 ## A spell resolved. `slot` is 0..3.
 signal spell_cast(spell_id: String, slot: int, at: Vector2)
 

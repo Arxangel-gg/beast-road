@@ -32,6 +32,7 @@ func _ready() -> void:
 	await _test_chill_never_locks()
 	_test_boss_bar_is_wired()
 	_test_damage_states_are_reversible()
+	_test_hero_levelling()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -499,6 +500,74 @@ func _test_damage_states_are_reversible() -> void:
 		if (fire as Flame).is_lit():
 			burning += 1
 	_check(burning == 0, "a fully repaired town must not still be on fire (%d fires)" % burning)
+
+
+## Levelling has to grow the hero, stop at the cap, and leave no trace on the
+## account.
+##
+## The last part is the one that matters most and is easiest to break silently:
+## GDD v4 §974 forbids a hero level persisting, and CLAUDE.md §7 names the
+## save's entire contents. A stat that leaked into MetaState would make every
+## later run start stronger, which is the failure mode roguelite progression is
+## specifically designed to avoid.
+func _test_hero_levelling() -> void:
+	var before_level: int = RunState.hero_level
+	RunState.hero_level = 1
+	RunState.hero_xp = 0.0
+	RunState.hero_attribute_points = 0
+	RunState.hero_skill_points = 0
+	RunState.hero_attributes = [0, 0, 0, 0]
+
+	# One enormous award must resolve every level it crosses, not just one.
+	RunState.gain_hero_xp(50000.0)
+	_check(RunState.hero_level > 20,
+		"a large award must resolve every level it crosses, reached %d" % RunState.hero_level)
+	_check(RunState.hero_attribute_points == RunState.hero_level - 1,
+		"one attribute point per level (%d points at level %d)"
+			% [RunState.hero_attribute_points, RunState.hero_level])
+	_check(RunState.hero_skill_points
+		== int(RunState.hero_level / Balance.HERO_SKILL_POINT_EVERY),
+		"a skill point every %d levels" % Balance.HERO_SKILL_POINT_EVERY)
+
+	# The cap is a ceiling, not a soft target.
+	RunState.gain_hero_xp(50000000.0)
+	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
+		"levelling must stop at %d, reached %d"
+			% [Balance.HERO_MAX_LEVEL, RunState.hero_level])
+	RunState.gain_hero_xp(50000000.0)
+	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
+		"a capped hero must not level again")
+
+	# Points land where they are put, and run out.
+	var pool: int = RunState.hero_attribute_points
+	_check(RunState.spend_attribute_point(RunState.Attribute.MIGHT).is_empty(),
+		"spending a point that exists must succeed")
+	_check(RunState.attribute(RunState.Attribute.MIGHT) == 1, "the point must land")
+	_check(RunState.hero_attribute_points == pool - 1, "the pool must fall")
+	RunState.hero_attribute_points = 0
+	_check(not RunState.spend_attribute_point(RunState.Attribute.MIGHT).is_empty(),
+		"spending from an empty pool must be refused")
+
+	# The discipline cap grows with level.
+	_check(RunState.discipline_cap() > Balance.DISCIPLINE_MAX_TRAINED,
+		"a level %d hero should have earned discipline slots" % RunState.hero_level)
+
+	# And none of it reaches the save.
+	var saved: Dictionary = MetaState.call("_unlocked_payload") if MetaState.has_method(
+		"_unlocked_payload") else {}
+	for key: Variant in saved:
+		var name: String = String(key)
+		_check(not name.contains("level") and not name.contains("attribute")
+			and not name.contains("xp"),
+			"the account save must not carry hero progression, found \"%s\"" % name)
+
+	# Reset returns the hero to level one, which is what makes the next run a run.
+	RunState.reset()
+	_check(RunState.hero_level == 1, "a new run must start at level 1")
+	_check(RunState.hero_attribute_points == 0, "a new run must start with no points")
+	_check(RunState.attribute(RunState.Attribute.MIGHT) == 0,
+		"a new run must start with no attributes placed")
+	RunState.hero_level = before_level
 
 
 ## The summit has to be reachable, and the Chainmaker has to be the thing at the

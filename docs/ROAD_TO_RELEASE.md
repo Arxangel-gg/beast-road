@@ -235,7 +235,56 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       having done nothing. Hooked to `changed` so every route in counts, and a
       stage that improves no longer shakes the camera or plays the hit sound.
 - [ ] Foliage: horizontal ferns, more variety, idle animations.
-- [ ] Rebalance for the larger map, hero levelling, loot, weather.
+- [x] **Hero levelling to 100 and the skill tree.** Run-scoped, which is a v4
+      requirement rather than a simplification: §974 reads "No uncapped stat
+      bonus, hero level, building tier … persists." A hero may grow enormously
+      inside a run and starts the next at level 1, which is also what keeps the
+      difficulty curve meaningful.
+
+      XP scales with the enemy's health rather than an authored per-enemy number,
+      so an elite outpays a runner with no second table to maintain and act
+      scaling carries the curve on its own. Four attributes — Might (damage),
+      Vigour (health), Swiftness (movement and swing speed), Focus (command and
+      spells) — at one point per level, and a skill point every five.
+
+      Built *around* the existing discipline system rather than replacing it. The
+      24 nodes, per-road offers and Food costs stay; training now also costs a
+      skill point, and the trained cap grows with level (6 → 11 over a run). Two
+      gates on purpose: the point is growth earned by fighting, the Food is the
+      Preparation decision made against the towers. Skill points only, and the
+      hero stops competing with the defence for resources; Food only, and
+      levelling has nothing to say about the tree.
+
+      Curve solved by measurement, not guess. `tools/level_curve.tscn` drives the
+      *real* wave director — the first version modelled wave growth as
+      compounding across the run and reported 103,788 kills, because growth
+      compounds per act and resets. A tool that models the thing it measures is
+      only as right as the model, and a wrong one produces confident numbers to
+      tune against. Measured: 640 kills, level 30 → 63 → 97 across the three
+      acts, arriving at the summit three levels short so the longest fight in the
+      run still pays.
+
+- [x] **Rebalance.** Three things had made the game easier at once and none
+      looked like a balance change: far more buildable ground (568 places take
+      two towers abreast, where the old pockets took one), free placement
+      removing the slot ceiling, and a hero who can now reach +109% damage.
+      Measured peak pressure was 0.26 — towers alone covering roughly four times
+      the threat, which is the passive game played from the base.
+
+      `curve_report` models tower capability and **no hero at all**, so peak
+      pressure is exactly the fraction of late threat the player must cover
+      themselves. Now 0.63: the towers hold most of a wave and the rest is the
+      player's job, which is what the levelling exists to make possible.
+
+      Carried by the per-wave rate (0.041 → 0.122), not the act multipliers. The
+      first attempt raised those and the balance gate refused it — an act
+      multiplier applies in full on the first formation of an act, so 1.26 → 1.68
+      is a 33% wall at Act 2's door, exactly the "erase the player's progress on
+      the very first formation" the gate exists to catch. Growth is linear, so a
+      higher rate lifts wave 51 far more than wave 5 and arrives as a ramp.
+      Wave 1 is untouched.
+
+- [ ] Loot with magnetised pickup, and weather affinities.
 
 ---
 

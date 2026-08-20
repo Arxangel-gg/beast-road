@@ -122,6 +122,10 @@ func _ready() -> void:
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
 	EventBus.construction_completed.connect(_on_construction_completed)
+	# Vigour changes the health pool, so the pool has to be rebuilt when a point
+	# lands. Without this a player spends into Vigour mid-wave and sees nothing
+	# until the next thing that happens to recompute it.
+	EventBus.hero_attributes_changed.connect(_apply_permanent_bonuses)
 	EventBus.beast_step_landed.connect(_on_beast_step)
 	if frames != null and frames.has_frames():
 		frames.finished.connect(_on_frames_finished)
@@ -237,6 +241,12 @@ func contact_radius() -> float:
 
 
 ## Base speed after the Sanctum, relics and an active Ash Veil.
+## Vigour's share of the health pool.
+func _vigour_bonus() -> float:
+	var points: int = RunState.attribute(RunState.Attribute.VIGOUR)
+	return float(points) * Balance.HERO_VIGOUR_PER_POINT
+
+
 func move_speed() -> float:
 	var sanctum: BuildingData = ContentDB.building("sanctum")
 	var bonus: float = 0.0
@@ -244,12 +254,18 @@ func move_speed() -> float:
 		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
 	bonus += Modifiers.value(Modifiers.HERO_SPEED)
 	bonus += _veil_speed_bonus
+	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
 
 
 ## Damage multiplier the attack chain applies to every swing.
 func damage_multiplier() -> float:
 	var multiplier: float = Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	# Might. Additive with itself and multiplicative with everything else, so a
+	# hundred points is a known ceiling rather than something that compounds
+	# with relics into a number nobody predicted.
+	var might: int = RunState.attribute(RunState.Attribute.MIGHT)
+	multiplier *= 1.0 + float(might) * Balance.HERO_MIGHT_PER_POINT
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0)
 	if attack_node != null:
 		match attack_node.effect_id:
@@ -272,7 +288,7 @@ func _apply_permanent_bonuses() -> void:
 	var wound_scale: float = maxf(1.0 - float(RunState.hero_wounds) \
 		* Balance.HERO_WOUND_HP_PENALTY, 0.4)
 	health.max_hp = (Balance.HERO_MAX_HP + Modifiers.value(Modifiers.HERO_MAX_HP)) \
-		* (1.0 + bonus + ascension) * wound_scale
+		* (1.0 + bonus + ascension + _vigour_bonus()) * wound_scale
 	if RunState.hero_hp >= 0.0:
 		health.current_hp = clampf(RunState.hero_hp, 1.0, health.max_hp)
 	else:

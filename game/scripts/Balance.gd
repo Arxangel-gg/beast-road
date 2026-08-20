@@ -45,6 +45,63 @@ const HERO_MAX_SPELL_SLOTS: int = 4
 const HERO_ACTIVE_SLOTS: int = 4
 const DISCIPLINE_IDS: Array[String] = ["blood", "holy", "berserk"]
 const DISCIPLINE_MAX_TRAINED: int = 6
+
+# --- Hero levelling ----------------------------------------------------------
+#
+# Run-scoped, and that is a v4 requirement rather than a simplification: SS974
+# reads "No uncapped stat bonus, hero level, building tier, captive level, or
+# automatic damage growth persists." A hero may grow enormously inside a run and
+# starts the next one at level one, which is also what keeps the difficulty curve
+# meaningful - a run that begins strong has nothing left to earn.
+
+const HERO_MAX_LEVEL: int = 100
+
+## XP needed to leave level L is HERO_XP_BASE * L^HERO_XP_CURVE.
+##
+## Superlinear so late levels are earned rather than collected, but well under
+## quadratic: at 2.0 the last ten levels cost more than the first ninety and the
+## curve stops paying out exactly when the player most needs it to. [TUNE]
+const HERO_XP_BASE: float = 17.0
+const HERO_XP_CURVE: float = 1.42
+
+## XP a kill is worth, per point of the enemy's maximum health.
+##
+## Tied to health rather than to a per-enemy authored number so that an elite is
+## worth more than a runner without anyone maintaining a second table, and so
+## that act scaling carries the curve forward on its own. Calibrated by
+## `tools/level_curve.gd` against a full three-act run. [TUNE]
+## Solved against a measured run rather than guessed: `tools/level_curve.tscn`
+## counts 640 kills carrying about 48,000 points of health across three acts, and
+## reaching 100 over that needs roughly ten XP per point. The first guess of 0.62
+## ended the game at level 31.
+## Trimmed after the rebalance raised enemy health, which raised XP with it.
+## The hero should arrive at the summit still a few levels short: reaching the
+## cap on the last kill of Act III leaves the Final Ascent - the longest fight in
+## the run - with nothing left to earn.
+const HERO_XP_PER_HP: float = 5.4
+
+## Levels between skill points. Twenty across a full run.
+const HERO_SKILL_POINT_EVERY: int = 5
+
+## Levels between one more discipline node being allowed.
+##
+## The trained cap starts at DISCIPLINE_MAX_TRAINED and grows with this, so
+## levelling opens the tree rather than only filling a bar.
+const HERO_DISCIPLINE_CAP_EVERY: int = 20
+
+## Per-point attribute gains, as fractions.
+##
+## Small individually and bounded by the point total: a hundred points is one
+## run's entire growth, so a single-attribute build ends around +110% of its
+## chosen stat. Deliberately not enough to carry a player who never builds a
+## tower, and enough that fighting well is worth more than standing at the base.
+## [TUNE]
+const HERO_MIGHT_PER_POINT: float = 0.011
+const HERO_VIGOUR_PER_POINT: float = 0.010
+const HERO_SWIFTNESS_MOVE_PER_POINT: float = 0.0055
+const HERO_SWIFTNESS_ATTACK_PER_POINT: float = 0.006
+const HERO_FOCUS_COMMAND_PER_POINT: float = 0.009
+const HERO_FOCUS_SPELL_PER_POINT: float = 0.008
 const DISCIPLINE_RESPEC_BASE_COST: int = 45
 const DISCIPLINE_RESPEC_COST_STEP: int = 30
 
@@ -985,8 +1042,27 @@ const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.14, 1.30]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
-const WAVE_HP_GROWTH: float = 0.041
-const WAVE_DAMAGE_GROWTH: float = 0.015
+## Rebalanced for the authored map and hero levelling (2026-08-20).
+##
+## Three changes made the game easier at once and none of them looked like a
+## balance change: the map gained far more buildable ground (568 places take two
+## towers abreast, where the old pockets took one), free placement removed the
+## slot ceiling, and the hero can now reach +105% damage over a run. Measured
+## peak pressure sat at 0.26 - towers alone were covering roughly four times the
+## threat, which is exactly the passive game that gets played from the base.
+##
+## Threat is raised rather than tower damage cut, on purpose. Cutting towers
+## makes the early game worse for a new player who has not learned to fight yet;
+## raising the curve leaves Road 1 where it was and bites where a player has
+## levels, skills and a defence to fight alongside. [TUNE]
+## Solved for a target rather than nudged. `curve_report` models tower
+## capability and *no hero at all*, so peak pressure is precisely the fraction of
+## late threat the player has to cover themselves. At 0.26 that was a quarter,
+## which a good defence absorbs without anyone leaving the base. Around 0.6 the
+## towers hold most of a wave and the rest is the player's job - which is the
+## stated goal, and what the levelling exists to make possible.
+const WAVE_HP_GROWTH: float = 0.122
+const WAVE_DAMAGE_GROWTH: float = 0.019
 const WAVE_SPEED_GROWTH: float = 0.19
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
 const WAVE_DARK_SPEED_WEIGHT: float = 0.10
@@ -994,8 +1070,17 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## not also be stat cliffs. The continuous global-wave curve still takes Act 3
 ## well into mastery-level pressure; these modest regional multipliers make the
 ## first Saltglass formation readable after the Ashfen boss.
-const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.26, 1.56]
-const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.10, 1.24]
+## Act multipliers stay close to where they were tuned.
+##
+## Raising these was the first attempt at the 2026-08-20 rebalance and the
+## balance gate refused it: an act multiplier applies in full on the first
+## formation of an act, so 1.26 -> 1.68 is a 33% wall at Act 2's door, which is
+## precisely the "erase the player's progress on the very first formation" the
+## gate exists to catch. The per-wave rate carries the increase instead - growth
+## is linear, so a higher rate lifts wave 51 far more than wave 5 and arrives as
+## a ramp rather than a step. [TUNE]
+const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.28, 1.60]
+const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.12, 1.28]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
 ## changing the label above the boss track.
