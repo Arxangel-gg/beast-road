@@ -99,6 +99,19 @@ Two constraints are load-bearing and are asserted in CI rather than remembered:
 - **`gl_compatibility`.** Already the project's renderer, and the only one that
   reaches WebGL2. Forward+ would need WebGPU.
 
+Two platform behaviours are handled where they have to be, not where it would
+have been convenient:
+
+- **The window mode** is overridden to windowed for the web in `project.godot`
+  (`window/size/mode.web=0`). Mode 3 is fullscreen and the engine applies it at
+  boot *before any script runs*, so the build opened by asking a browser for
+  fullscreen and being refused — a warning on every single load. A feature-tagged
+  project setting is the only place early enough to prevent it.
+- **The Fullscreen button still works** in a browser. A first attempt blocked
+  the whole display path on the web, which stopped the boot-time request (the
+  bug) and also killed the settings button (not the bug). Fullscreen is legal
+  from inside a user gesture, and a click is one.
+
 The web build defaults to the **Medium** graphics preset rather than High. The
 argument for High — a player who cannot run it will find the settings screen
 within a minute — is a fair bet from someone who installed the game and a bad

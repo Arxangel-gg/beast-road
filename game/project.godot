@@ -37,6 +37,14 @@ Leaderboard="*res://autoload/Leaderboard.gd"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=3
+; Windowed on the web, where "the window" is a canvas in someone else's page.
+;
+; Mode 3 is fullscreen, and the engine applies it at boot before any script
+; runs - so the web build opened by asking for fullscreen and being refused,
+; because a browser only grants it from inside a user gesture. The console said
+; so on every load. A feature-tagged override is the only place this can be
+; fixed; UserSettings.apply_display() runs far too late to prevent it.
+window/size/mode.web=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

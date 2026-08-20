@@ -46,7 +46,9 @@ static func set_value(key: String, new_value: Variant) -> void:
 	if VOLUME_KEYS.has(key):
 		AudioBuses.apply_volumes()
 	elif key == DISPLAY_KEY:
-		apply_display()
+		# Reached only from the settings buttons, so there is a live user gesture
+		# to spend - which is what the web needs in order to go fullscreen at all.
+		apply_display(true)
 
 
 ## Everything the settings control, applied at once. Called after the save file
@@ -78,15 +80,27 @@ static func store_presentation() -> void:
 	MetaState.settings[KeyBindings.SAVE_KEY] = KeyBindings.to_dictionary()
 
 
-static func apply_display() -> void:
-	# The browser owns the window. A canvas cannot be moved, cannot be resized by
-	# the page it sits in, and cannot enter fullscreen except from inside a user
-	# gesture - so on load this would ask for fullscreen, be refused, and then set
-	# a size and a position for a window that does not exist. The export sizes the
-	# canvas to the page instead (html/canvas_resize_policy).
-	if OS.has_feature("web"):
-		return
+## Applies the display setting.
+##
+## `from_gesture` is true only when a player just clicked one of the display
+## buttons, and it exists for the web: a browser grants fullscreen from inside a
+## user gesture and refuses it everywhere else. Blocking the web outright was the
+## first fix and it went too far - it stopped the boot-time request, which was
+## the bug, and also killed the settings button, which was not.
+static func apply_display(from_gesture: bool = false) -> void:
 	var wanted: String = String(MetaState.settings.get(DISPLAY_KEY, DISPLAY_FULLSCREEN))
+
+	if OS.has_feature("web"):
+		# A canvas has no position and no size of its own to set - the page and
+		# `html/canvas_resize_policy` decide those - so only the mode is touched,
+		# and only when there is a gesture to spend on it.
+		if from_gesture:
+			var canvas_mode := DisplayServer.WINDOW_MODE_WINDOWED
+			if wanted == DISPLAY_FULLSCREEN:
+				canvas_mode = DisplayServer.WINDOW_MODE_FULLSCREEN
+			DisplayServer.window_set_mode(canvas_mode)
+		return
+
 	var mode: DisplayServer.WindowMode = DisplayServer.WINDOW_MODE_FULLSCREEN \
 		if wanted == DISPLAY_FULLSCREEN else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() == mode:
