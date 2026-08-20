@@ -829,6 +829,11 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       ground separation went from **0.005 against a 0.005 threshold** — exactly
       on the line — to **0.017**.
 - [ ] Higher-resolution road art, so the carriageway can leave 12 units a texel.
+- [ ] The snow drift tile still carries a faint blue crosshatch. It reads as
+      texture rather than as a grid, which the previous set's navy lattice did
+      not, so it is a nit rather than the defect it replaced. Structure is what
+      a 32px generator reaches for when asked for a material; the way out is
+      probably a 64px `pro` set rather than another prompt.
 - [ ] Procedural texture variation within a road, not one tile repeated.
 
 ### Foliage
