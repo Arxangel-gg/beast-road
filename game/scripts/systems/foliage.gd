@@ -32,8 +32,28 @@ const BROADLEAF_CHANCE: float = 0.18
 ## Painted plant art, one per region.
 const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 
+## Extra painted kinds, drawn from alongside the region's own plant.
+##
+## Two families. **Regional** kinds carry the act's identity and are named per
+## region; **shared** kinds are things that look the same everywhere - a rock is
+## a rock in a jungle or a snowfield - and are named once.
+##
+## The region's own plant stays the most common draw. The rest are punctuation:
+## a field of nothing but boulders is as monotonous as a field of nothing but
+## reeds, and the point of the extra kinds is that a clump is occasionally *not*
+## the thing you expected.
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower"]
+const SHARED_KINDS: Array[String] = ["rock", "boulder"]
+const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
+const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
+
 var _plant_art: Texture2D = null
 var _plant_art_id: String = ""
+
+## Every painted kind available for the current region, the region's own plant
+## first. Rebuilt when the act changes.
+var _kind_art: Array[Texture2D] = []
+var _kind_art_id: String = ""
 
 const PALETTE_SAMPLE_SIZE: int = 32
 const PALETTE_MIN_VALUE: float = 0.08
@@ -264,7 +284,7 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 	# gives a region a face: the polygons say "ground cover", the sprite says
 	# which region's ground cover it is.
 	if not ground and rng.randf() < Balance.FOLIAGE_PAINTED_CHANCE:
-		var art: Texture2D = _plant_texture()
+		var art: Texture2D = _painted_kind(rng)
 		if art != null:
 			# Tinted toward the region's own sampled palette rather than drawn
 			# neutral, so a painted plant sits in the same light as everything
@@ -358,6 +378,39 @@ func _plant_texture() -> Texture2D:
 	var path: String = PLANT_ART_FORMAT % RunState.terrain_id
 	_plant_art = load(path) as Texture2D if ResourceLoader.exists(path) else null
 	return _plant_art
+
+
+## Every painted kind this region offers, cached per act.
+func _painted_kinds() -> Array[Texture2D]:
+	if _kind_art_id == RunState.terrain_id:
+		return _kind_art
+	_kind_art_id = RunState.terrain_id
+	_kind_art = []
+	var own: Texture2D = _plant_texture()
+	if own != null:
+		_kind_art.append(own)
+	for kind: String in REGIONAL_KINDS:
+		var path: String = REGIONAL_KIND_FORMAT % [RunState.terrain_id, kind]
+		if ResourceLoader.exists(path):
+			_kind_art.append(load(path) as Texture2D)
+	for kind: String in SHARED_KINDS:
+		var path: String = SHARED_KIND_FORMAT % kind
+		if ResourceLoader.exists(path):
+			_kind_art.append(load(path) as Texture2D)
+	return _kind_art
+
+
+## Draws one painted kind, weighted toward the region's own plant.
+##
+## The region's plant is what makes a field read as *this* act, so it stays the
+## common case; the extra kinds are what stop a field of it reading as wallpaper.
+func _painted_kind(rng: RandomNumberGenerator) -> Texture2D:
+	var kinds: Array[Texture2D] = _painted_kinds()
+	if kinds.is_empty():
+		return null
+	if kinds.size() == 1 or rng.randf() < Balance.FOLIAGE_REGION_PLANT_SHARE:
+		return kinds[0]
+	return kinds[rng.randi_range(1, kinds.size() - 1)]
 
 
 func _plant_colour(style: Dictionary, rng: RandomNumberGenerator) -> Color:

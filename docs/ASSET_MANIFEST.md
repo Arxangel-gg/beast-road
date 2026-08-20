@@ -363,6 +363,24 @@ toward the region's sampled ground palette so it sits in the same light.
 | `plant_desert.png` | 48×64 | T | `#C0AC7E` |
 | `plant_snow.png` | 48×64 | T | `#A8BCCC` |
 
+### 5.7c Foliage kinds — `res://art/foliage/`
+
+Extra painted kinds scattered alongside each region's own plant. Two families:
+**regional** kinds carry the act's identity and are named per region
+(`plant_<region>_<kind>.png`); **shared** kinds look the same everywhere — a rock
+is a rock in a jungle or a snowfield — and are named once (`prop_<kind>.png`).
+
+The region's own plant stays the common draw. These are punctuation: a field of
+nothing but boulders is as monotonous as a field of nothing but reeds, and the
+point is that a clump is occasionally *not* what you expected.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `plant_jungle_shrub.png` | 56×64 | T | `#2E3A33` |
+| `plant_jungle_flower.png` | 48×56 | T | `#2E3A33` |
+| `prop_rock.png` | 48×40 | T | `#4A4A46` |
+| `prop_boulder.png` | 64×56 | T | `#4A4A46` |
+
 ### 5.8 Backdrops — `res://art/bg/`
 
 | File | Size | Type | Placeholder colour |

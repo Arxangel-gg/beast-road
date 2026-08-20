@@ -1517,6 +1517,11 @@ const BEAST_FRAME_BASE_Y: float = -40.0
 ## Idle frames per second. Slow: a resting animal breathes, it does not fidget.
 const BEAST_IDLE_FRAME_RATE: float = 5.0
 
+## How often a painted clump uses the region's own plant rather than one of the
+## extra kinds. High: the region's plant is what makes a field read as *this*
+## act, and the extra kinds are punctuation rather than the sentence. [TUNE]
+const FOLIAGE_REGION_PLANT_SHARE: float = 0.58
+
 const RAID_GROUND_Z: int = -40
 
 ## Terrain sits above the ground sprite and below everything that walks on it.

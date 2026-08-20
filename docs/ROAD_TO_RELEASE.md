@@ -428,7 +428,7 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       mismatch; it stays because the line is the *true* boundary and the art is
       decoration over it, but it now reads as a shadow rather than a border.
 
-- [~] **Beast scope.** The beast is now animated pixel art: a 256px side-profile
+- [x] **Beast scope.** The beast is now animated pixel art: a 256px side-profile
       generated from Pixellab with a 9-frame walk and a 7-frame idle, and a
       sidescroller ground strip baked from a 16-tile platform set and scrolled as
       a leapfrogging pair (two nodes tile an arbitrary distance, and the journey
@@ -444,19 +444,30 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Absent frames fall back to the single profile sprite, so a partial set costs
       the animation rather than the screen.
 
-      **Two things still wrong, and both are mine to have caused:**
+      **The town is back on its back.** The first generated beast had none, which
+      left the premise of the game — a town riding a Worldstrider — as just a
+      lizard. Fixed by regenerating the beast *with* the town rather than
+      compositing a town sprite over it: the back rises, settles and tilts through
+      the walk cycle, so an overlay would slide against it every frame, and
+      inpainting nine frames consistently is a harder problem than asking for the
+      whole animal once. Walled rampart, tiled roofs, watchtower, banner, lit
+      windows and chimney smoke, all of it moving with the body because it *is*
+      the body.
 
-      1. **The town is missing from the beast's back.** The old 1024px profile
-         carried it; the generated beast does not. That is the premise of the
-         game sitting on that silhouette, so it needs a town layer sprite over the
-         back before this is finished.
-      2. **Style clash.** A pixel-art beast now stands on a painterly photo-real
-         backdrop. The rest of the game is pixel art and the *backdrops* are the
-         outlier, so the fix is probably to regenerate `macro_act*.png` as pixel
-         art rather than to undo the beast — but that is an art-direction call.
+- [~] **Foliage variety.** The procedural polygons stay — they are what says
+      "ground cover" — and painted kinds are scattered among them in two families:
+      **regional** kinds carrying the act's identity (`plant_<region>_<kind>`) and
+      **shared** props that look the same everywhere (`prop_<kind>`), because a
+      rock is a rock in a jungle or a snowfield.
 
-- [ ] Foliage variety and idle animations (keep the procedural polygons, add
-      sprite kinds alongside them).
+      The region's own plant stays the common draw at 58%. The extra kinds are
+      punctuation: a field of nothing but boulders is as monotonous as a field of
+      nothing but reeds, and the point is that a clump is occasionally *not* what
+      you expected.
+
+      Jungle has a shrub and a flower; rock and boulder are shared. Desert and
+      snow still need their two kinds each, and nothing is animated yet — both
+      follow the same convention, so they are files rather than code.
 - [ ] Tower/building idle animations and base damage-state art.
 - [ ] Loot diversity: relic and supply drop types, remaining currency art.
 - [x] **Stash, inventory and blacksmith.** Ten kinds of gear across three slots,
