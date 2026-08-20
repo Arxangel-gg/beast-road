@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WeatherData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_w"]
+
+[resource]
+script = ExtResource("1_w")
+element_scale = Array[float]([1.25, 0.82, 1.0, 0.94])
+acts = Array[int]([1, 2])
+weight = 1.2
+tint = Color(1.05, 0.97, 0.86, 1)
+gloom = 0.0
+effect_line = "Fire burns hotter. Water and cold thin out."
+id = "heatwave"
+display_name = "Heatwave"

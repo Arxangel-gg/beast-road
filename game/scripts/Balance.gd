@@ -54,6 +54,49 @@ const DISCIPLINE_MAX_TRAINED: int = 6
 # starts the next one at level one, which is also what keeps the difficulty curve
 # meaningful - a run that begins strong has nothing left to earn.
 
+# --- Loot ---------------------------------------------------------------------
+#
+# Drops are a *bonus* on top of the guaranteed kill payout, never a replacement
+# for it. The difficulty curve was tuned against guaranteed income, so making the
+# base collectable would quietly cut a passive player's economy and re-harden a
+# game that had just been balanced. A bonus can only add.
+
+## Share of a kill's resources dropped again as collectable loot. [TUNE]
+const LOOT_BONUS_SHARE: float = 0.45
+
+## Chance a kill drops anything at all. Below one so drops are an event rather
+## than a constant stream of coins to walk over. [TUNE]
+const LOOT_DROP_CHANCE: float = 0.34
+
+## An elite or boss always drops, and drops more.
+const LOOT_ELITE_MULTIPLIER: float = 3.0
+
+## Distance at which a drop starts flying to the hero.
+##
+## Generous on purpose: chasing coins is not the interesting part, being out on
+## the road is. The magnet is what makes fighting forward pay without turning the
+## reward into a second job. [TUNE]
+const LOOT_MAGNET_RANGE: float = 260.0
+const LOOT_COLLECT_RANGE: float = 34.0
+const LOOT_MAGNET_SPEED: float = 780.0
+const LOOT_MAGNET_ACCELERATION: float = 2600.0
+
+## How a drop leaves the corpse, so a pack that dies together scatters.
+const LOOT_SCATTER_SPEED: float = 190.0
+const LOOT_DRAG: float = 420.0
+
+## Seconds before an uncollected drop pays out on its own and fades.
+##
+## It pays rather than expiring. Losing a reward already earned by killing the
+## thing teaches a player to stop fighting and stand on the road hoovering, which
+## is worse than either extreme. [TUNE]
+const LOOT_LIFETIME: float = 24.0
+
+const LOOT_ICON_SIZE: float = 26.0
+const LOOT_BOB_SPEED: float = 5.0
+const LOOT_BOB_HEIGHT: float = 3.0
+const LOOT_Z_INDEX: int = -2
+
 const HERO_MAX_LEVEL: int = 100
 
 ## XP needed to leave level L is HERO_XP_BASE * L^HERO_XP_CURVE.

@@ -550,9 +550,33 @@ func _on_died(_from: Vector2) -> void:
 	# so an elite is worth more than a runner with no second table to maintain,
 	# and act scaling carries the curve forward on its own.
 	RunState.gain_hero_xp(data.max_hp * _hp_scale * Balance.HERO_XP_PER_HP)
+	_drop_loot()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 	EventBus.enemy_died.emit(data.id, global_position)
+
+
+## Scatters this kill's bonus loot, if it rolled any.
+##
+## Rolled from the combat stream so a seeded replay drops the same things, and
+## rounded up to at least one so a low-value enemy that *did* roll a drop never
+## produces a pickup worth nothing.
+func _drop_loot() -> void:
+	if _field == null or not _field.has_method("spawn_loot"):
+		return
+	var elite: bool = data.category != EnemyData.Category.BREED
+	var chance: float = Balance.LOOT_DROP_CHANCE
+	if elite:
+		chance = 1.0
+	if RunState.rng("combat").randf() > chance:
+		return
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE
+	if elite:
+		share *= Balance.LOOT_ELITE_MULTIPLIER
+	var amount: int = maxi(1, int(round(share)))
+	var currency: String = RunState.CURRENCIES[
+		RunState.rng("combat").randi_range(0, RunState.CURRENCIES.size() - 1)]
+	_field.spawn_loot(currency, amount, global_position)
 
 
 func _tick_death(delta: float) -> void:

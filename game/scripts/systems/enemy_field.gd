@@ -107,5 +107,10 @@ func spawn_tracer(_from: Vector2, _to: Vector2, _colour: Color) -> void:
 	pass
 
 
+## Drops collectable loot. The raid arena has no economy, so it ignores this.
+func spawn_loot(_currency: String, _amount: int, _at: Vector2) -> void:
+	pass
+
+
 func spawn_ground_zone(_at: Vector2, _dps: float, _duration: float, _radius: float) -> void:
 	pass

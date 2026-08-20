@@ -42,6 +42,9 @@ var _shadow_base_y: float = 0.0
 
 ## Extra damage from the lane's same-element synergy (GDD §4.2) and terrain.
 var _damage_bonus: float = 0.0
+
+## The live weather's multiplier for this tower's element.
+var _weather_scale: float = 1.0
 var _extra_chain_targets: int = 0
 var _health: Health = null
 var _health_bar: HealthBar = null
@@ -109,6 +112,7 @@ func _ready() -> void:
 	call_deferred("refresh_modifiers")
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
+	EventBus.weather_changed.connect(_on_weather_changed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.beast_step_landed.connect(_on_beast_step)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
@@ -119,12 +123,21 @@ func _ready() -> void:
 ## every frame — these only move when the player builds something.
 func refresh_modifiers() -> void:
 	_damage_bonus = 0.0
+	_weather_scale = 1.0
 	_extra_chain_targets = 0
 
 	if RunState.has_fusion_synergy(anchor) and not data.is_combination:
 		_damage_bonus += Balance.SAME_ELEMENT_LANE_BONUS
 
 	_extra_chain_targets += int(Modifiers.value(Modifiers.CHAIN_TARGETS))
+
+	# Weather multiplies where the region's affinity adds.
+	#
+	# Two additives on one tower is how a "+40%" turns out to be +95% and neither
+	# number explains it. A multiplier also means weather reads the same whatever
+	# else the tower has going for it: a Downpour costs a fire tower a fifth of
+	# its damage on any road, in any act, with any relic.
+	_weather_scale = RunState.weather_scale(data.element)
 
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null:
@@ -134,6 +147,10 @@ func refresh_modifiers() -> void:
 			_extra_chain_targets += terrain.bonus_chain_targets
 	if _health != null:
 		_health.flat_damage_reduction = _field.lane_armour(lane())
+
+
+func _on_weather_changed(_id: String) -> void:
+	refresh_modifiers()
 
 
 func _on_relic_changed(_id: String) -> void:
@@ -172,7 +189,8 @@ func effective_damage() -> float:
 	# threshold between shots, so caching this value at build time would leave the
 	# HUD and actual combat state disagreeing until some unrelated refresh.
 	var relic_bonus: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
-	return data.damage_at(level) * (1.0 + _damage_bonus + relic_bonus + command_bonus)
+	var total: float = 1.0 + _damage_bonus + relic_bonus + command_bonus
+	return data.damage_at(level) * total * _weather_scale
 
 
 ## What this shot actually lands for.

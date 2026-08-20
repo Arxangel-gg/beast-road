@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WeatherData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_w"]
+
+[resource]
+script = ExtResource("1_w")
+element_scale = Array[float]([1.0, 1.0, 1.0, 1.0])
+acts = Array[int]([])
+weight = 3.0
+tint = Color(1, 1, 1, 1)
+gloom = 0.0
+effect_line = "No advantage to anyone."
+id = "clear"
+display_name = "Clear"

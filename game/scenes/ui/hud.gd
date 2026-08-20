@@ -76,6 +76,7 @@ const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 var _resources: Label
 var _currency_labels: Dictionary = {}
 var _level: Label
+var _weather: Label
 var _distance: Label
 var _wave: Label
 var _wave_preview: Label
@@ -258,6 +259,10 @@ func _build_top_bar() -> void:
 	_level = _label("Lv 1")
 	_level.tooltip_text = "Hero level. Resets with the run."
 	bar.add_child(_level)
+
+	_weather = _label("Clear")
+	_weather.tooltip_text = "Weather over the road."
+	bar.add_child(_weather)
 
 	_currency_labels.clear()
 	for id: String in RunState.CURRENCIES:
@@ -1010,6 +1015,20 @@ func _build_region_card() -> void:
 	EventBus.boss_spawned.connect(_on_boss_announced)
 	EventBus.run_started.connect(_on_run_opened)
 	EventBus.hero_levelled.connect(_on_hero_levelled)
+	EventBus.weather_changed.connect(_on_weather_changed)
+
+
+## Weather is a condition the player has to build for, so it is announced when
+## it turns rather than only shown as a label they may never look at.
+func _on_weather_changed(weather_id: String) -> void:
+	var weather: WeatherData = ContentDB.weather(weather_id)
+	if weather == null:
+		return
+	if _weather != null:
+		_weather.text = weather.display_name
+		_weather.tooltip_text = weather.effect_line
+	if weather.id != "clear":
+		announce(weather.effect_line, weather.display_name.to_upper())
 
 
 ## A level is worth announcing: it is the only reward in the run that arrives

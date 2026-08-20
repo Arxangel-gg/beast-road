@@ -284,7 +284,43 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       higher rate lifts wave 51 far more than wave 5 and arrives as a ramp.
       Wave 1 is untouched.
 
-- [ ] Loot with magnetised pickup, and weather affinities.
+- [x] **Loot with magnetised pickup.** A drop is a *bonus*, never the base
+      income — the kill still pays its resources instantly, exactly as before,
+      and the drop is an extra share on top. That split is load-bearing: the
+      difficulty curve was tuned against guaranteed income, so making the base
+      collectable would quietly cut a passive player's economy and re-harden a
+      game that had just been balanced. A bonus can only add.
+
+      What it buys is what the rebalance is for — a reason to be on the road
+      rather than behind the towers. 34% of ordinary kills drop, elites always
+      do and drop triple. The magnet is generous (260 units) because chasing
+      coins is not the interesting part; being out there is. Homing latches once
+      entered, or a drop at the edge stutters in and out of range and reads as
+      broken. Uncollected drops **pay out anyway** on expiry: losing a reward
+      already earned by killing the thing teaches a player to stop fighting and
+      stand on the road hoovering, which is worse than either extreme.
+
+- [x] **Weather.** Five states, rolled per road so it is known before Preparation
+      and can be built *for* rather than discovered mid-wave. Heatwave favours
+      fire and thins water; Downpour reverses it; Snowfall favours cold; a
+      Duststorm carries wind and stone. Drawn from what each region already is —
+      v4 describes Act I as rain-heavy, Act II as a desert of mirage storms, and
+      Act III as an approach where "weather suppresses visibility".
+
+      Applied **per element, multiplicatively**. Per element because §20 promises
+      "a player who learns one element can read the other", and weather that
+      singled out named towers would break exactly that. Multiplicative because
+      the region's favoured element is already additive, and stacking two
+      additives on one tower is how a "+40%" turns out to be +95% with neither
+      number explaining it.
+
+- [ ] **Leaderboards — blocked, needs an owner ruling.** GDD §54 cuts
+      "multiplayer, PvP, co-op, **leaderboards**, daily online challenges", and
+      CLAUDE.md working rule 2 forbids building from that list. Endless was on
+      §54 too and the owner re-instated it; this needs the same explicit call.
+- [ ] **Mobile and web builds — same.** §54 cuts "mobile or console launch
+      builds". A Netlify web build is a 1.0 scope decision, not a task.
+- [ ] Foliage variety and idle animations.
 
 ---
 

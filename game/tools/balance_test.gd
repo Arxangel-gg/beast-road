@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_boss_bar_is_wired()
 	_test_damage_states_are_reversible()
 	_test_hero_levelling()
+	await _test_loot_and_weather()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -568,6 +569,80 @@ func _test_hero_levelling() -> void:
 	_check(RunState.attribute(RunState.Attribute.MIGHT) == 0,
 		"a new run must start with no attributes placed")
 	RunState.hero_level = before_level
+
+
+## Loot must add to income without ever replacing it, and weather must move
+## element damage without singling out towers.
+##
+## The first half is the one that could quietly undo the rebalance: the
+## difficulty curve was tuned against *guaranteed* kill income, so a drop system
+## that diverted the base into something collectable would cut a passive player's
+## economy and re-harden a game that had just been balanced.
+func _test_loot_and_weather() -> void:
+	var field: Battlefield = _run.battlefield
+
+	# A kill pays its base regardless of whether anyone picks anything up.
+	RunState.weather_id = "clear"
+	var before: int = RunState.currency(RunState.GOLD)
+	RunState.gain_kill_resources(40)
+	_check(RunState.currency(RunState.GOLD) > before,
+		"a kill must pay its resources whether or not loot is collected")
+
+	# A drop pays on collection, and only once.
+	var banked: int = RunState.currency(RunState.GOLD)
+	field.spawn_loot(RunState.GOLD, 25, Vector2(300.0, 0.0))
+	var drops: Array[Node] = get_tree().get_nodes_in_group(LootDrop.GROUP)
+	_check(drops.size() >= 1, "spawn_loot must produce a drop")
+	if drops.is_empty():
+		return
+	var drop := drops[drops.size() - 1] as LootDrop
+	drop.call("_collect")
+	_check(RunState.currency(RunState.GOLD) == banked + 25,
+		"collecting a drop must pay exactly its amount")
+	await get_tree().process_frame
+	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion(),
+		"a collected drop must not survive to be collected again")
+
+	# Weather scales elements, and Clear scales nothing.
+	for element: int in 4:
+		_check(is_equal_approx(RunState.weather_scale(element), 1.0),
+			"Clear weather must leave element %d alone" % element)
+
+	var heatwave: WeatherData = ContentDB.weather("heatwave")
+	_check(heatwave != null, "the heatwave weather must exist")
+	if heatwave == null:
+		return
+	RunState.weather_id = "heatwave"
+	_check(RunState.weather_scale(TowerData.Element.FIRE) > 1.0,
+		"a heatwave must favour fire")
+	_check(RunState.weather_scale(TowerData.Element.WATER) < 1.0,
+		"a heatwave must punish water")
+
+	# Every weather must name what it does. A modifier the player cannot read is
+	# an unexplained difficulty swing.
+	for act: int in [1, 2, 3]:
+		var options: Array[WeatherData] = ContentDB.weathers_for_act(act)
+		_check(options.size() >= 2, "act %d needs more than one weather" % act)
+		for option: WeatherData in options:
+			_check(not option.effect_line.is_empty(),
+				"weather \"%s\" must say what it does" % option.id)
+			_check(option.element_scale.size() == 4,
+				"weather \"%s\" must scale all four elements" % option.id)
+
+	# A roll must land on something eligible, and not repeat itself.
+	RunState.act = 2
+	var seen: Dictionary = {}
+	for _try: int in 12:
+		var was: String = RunState.weather_id
+		RunState.roll_weather()
+		_check(RunState.weather_id != was or ContentDB.weathers_for_act(2).size() == 1,
+			"a roll should not return the same weather twice running")
+		var rolled: WeatherData = RunState.weather()
+		_check(rolled != null and rolled.allows_act(2),
+			"a roll must land on weather eligible for the act")
+		seen[RunState.weather_id] = true
+	_check(seen.size() >= 2, "twelve rolls should produce more than one weather")
+	RunState.weather_id = "clear"
 
 
 ## The summit has to be reachable, and the Chainmaker has to be the thing at the

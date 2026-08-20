@@ -73,6 +73,12 @@ signal hero_levelled(level: int, attribute_points: int, skill_points: int)
 ## A point was placed, so anything reading an attribute should re-read it.
 signal hero_attributes_changed()
 
+## The weather over the battlefield changed, and towers should re-read it.
+signal weather_changed(weather_id: String)
+
+## A drop was picked up (or paid out on expiry), for feedback and telemetry.
+signal loot_collected(currency: String, amount: int, at: Vector2)
+
 ## A spell resolved. `slot` is 0..3.
 signal spell_cast(spell_id: String, slot: int, at: Vector2)
 

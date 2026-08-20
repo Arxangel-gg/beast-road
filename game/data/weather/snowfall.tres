@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WeatherData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weather_data.gd" id="1_w"]
+
+[resource]
+script = ExtResource("1_w")
+element_scale = Array[float]([0.8, 1.22, 1.06, 0.92])
+acts = Array[int]([3])
+weight = 1.6
+tint = Color(0.88, 0.93, 1, 1)
+gloom = 0.26
+effect_line = "Cold bites deeper. Fire struggles to hold."
+id = "snowfall"
+display_name = "Snowfall"

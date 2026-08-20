@@ -369,6 +369,9 @@ func _road_is_busy() -> bool:
 
 func _on_road_chosen(option_id: String) -> void:
 	journey.resolve_crossroad(option_id)
+	# Rolled as the road is chosen, so it is known before Preparation opens and
+	# the player can build for it rather than discover it mid-wave.
+	RunState.roll_weather()
 	RunState.refresh_discipline_offers()
 	battlefield.resume()
 	_locked = false

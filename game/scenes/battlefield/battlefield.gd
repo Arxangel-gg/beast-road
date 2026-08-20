@@ -686,6 +686,19 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 ##
 ## The wave watchdog's measure of progress. INF when the road is clear, which
 ## reads as "no longer waiting on anything".
+## Drops a collectable reward on the field.
+##
+## Parented into the effect root rather than the sorted layer: a coin is feedback,
+## not a participant, and y-sorting it against units would have it flicker in
+## front of and behind whatever it landed next to.
+func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
+	if amount <= 0:
+		return
+	var drop := LootDrop.new()
+	drop.setup(currency, amount, at)
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
 func nearest_enemy_distance() -> float:
 	var nearest: float = INF
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):

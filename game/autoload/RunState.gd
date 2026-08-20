@@ -138,6 +138,13 @@ var hero_ascension: int = 0
 ## The four attributes, in the order their points are stored.
 enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS }
 
+## The weather over the battlefield. Rolled per road, held for its duration.
+##
+## Per road rather than per wave: weather that changed every ninety seconds would
+## be noise a player cannot plan around, and the whole point is that it is a
+## condition you build *for* during Preparation.
+var weather_id: String = "clear"
+
 var hero_level: int = 1
 var hero_xp: float = 0.0
 
@@ -321,6 +328,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	discipline_offers.clear()
 	discipline_respec_uses = 0
 	hero_ascension = 0
+	weather_id = "clear"
 	hero_level = 1
 	hero_xp = 0.0
 	hero_attribute_points = 0
@@ -449,6 +457,44 @@ func refresh_discipline_offers() -> void:
 				if node.discipline != lead.discipline:
 					discipline_offers[discipline_offers.size() - 1] = node.id
 					break
+
+
+## The live weather, or null when the roster is missing.
+func weather() -> WeatherData:
+	return ContentDB.weather(weather_id)
+
+
+## How much a weather helps or hurts one element right now.
+func weather_scale(element: int) -> float:
+	var live: WeatherData = weather()
+	return live.scale_for(element) if live != null else 1.0
+
+
+## Rolls the weather for a new road, weighted, and never the same twice running.
+##
+## Excluding a repeat matters more than it looks: with five entries and a weighted
+## draw, the same weather twice in a row is common enough that players read it as
+## the system being broken rather than as chance.
+func roll_weather() -> void:
+	var options: Array[WeatherData] = ContentDB.weathers_for_act(act)
+	if options.is_empty():
+		return
+	var pool: Array[WeatherData] = []
+	for option: WeatherData in options:
+		if option.id != weather_id or options.size() == 1:
+			pool.append(option)
+	var total: float = 0.0
+	for option: WeatherData in pool:
+		total += maxf(option.weight, 0.0)
+	if total <= 0.0:
+		return
+	var target: float = rng("weather").randf() * total
+	for option: WeatherData in pool:
+		target -= maxf(option.weight, 0.0)
+		if target <= 0.0:
+			weather_id = option.id
+			EventBus.weather_changed.emit(option.id)
+			return
 
 
 ## XP required to leave a level.
