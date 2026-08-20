@@ -12,9 +12,7 @@ const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
 @export var stats_label: Label
 @export var seed_input: LineEdit
 
-var _drift_art: TextureRect = null
-var _drift_home := Vector2.ZERO
-var _drift_time: float = 0.0
+
 
 var _settings: SettingsPanel
 var _leaderboard: CanvasLayer
@@ -43,39 +41,27 @@ func _ready() -> void:
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
-	_setup_drift()
+	_setup_stage()
 
 
-## The key art drifts, slowly, forever.
+## Swaps the still key art for the living one.
 ##
-## Two sine waves at different periods rather than one, so the path does not
-## retrace itself on a cycle a player could notice. The art is scaled slightly
-## past the screen first: drifting a full-rect texture would otherwise pull a
-## bare edge in from whichever side it moved away from.
-##
-## `_process` rather than a Tween because it never ends and has no keyframes —
-## it is a function of time, and writing it as one is shorter than the tween
-## that would loop it.
-func _setup_drift() -> void:
+## The authored `Art` node stays in the scene and is emptied rather than freed.
+## It is what the scene file's NodePath points at, and a menu that deletes its
+## own exported node is a menu that breaks the next time someone opens the scene
+## — which is exactly the failure `menu_check` exists to catch.
+func _setup_stage() -> void:
 	var art: TextureRect = get_node_or_null("Art") as TextureRect
 	if art == null:
 		return
-	art.pivot_offset = art.size * 0.5
-	art.scale = Vector2.ONE * Balance.MENU_OVERSCAN
-	_drift_art = art
-	_drift_home = art.position
+	art.texture = null
 
-
-func _process(delta: float) -> void:
-	if _drift_art == null:
-		return
-	_drift_time += delta
-	var turn: float = TAU * _drift_time / maxf(Balance.MENU_DRIFT_PERIOD, 1.0)
-	var travel: Vector2 = _drift_art.size * Balance.MENU_DRIFT
-	# The vertical wave runs at a different rate to the horizontal one, so the
-	# two never come back into phase inside a session.
-	_drift_art.position = _drift_home + Vector2(
-		sin(turn) * travel.x, sin(turn * 0.61) * travel.y)
+	var stage := MenuStage.new()
+	stage.name = "Stage"
+	# Directly after the art it replaces, so it is under the logo, the buttons
+	# and the statistics line and over nothing else.
+	art.add_sibling(stage)
+	move_child(stage, art.get_index() + 1)
 
 
 ## The stash, reached from the menu rather than from a run.

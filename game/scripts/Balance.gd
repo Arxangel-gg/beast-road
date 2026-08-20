@@ -2566,6 +2566,17 @@ const MENU_DRIFT_PERIOD: float = 92.0
 ## little, is exactly enough.
 const MENU_OVERSCAN: float = 1.0 + MENU_DRIFT * 2.4
 
+## Seconds a beast idle frame is held on the menu.
+##
+## Slower than the scope's, deliberately. In the scope the beast is walking and
+## the gait drives the frame; here it is standing still and breathing, and a
+## breath that keeps time with a walk reads as impatience.
+const MENU_BEAST_FRAME_TIME: float = 0.22
+
+## How fast the menu's mist bands cross, in pixels a second at 1080p. Slow
+## enough to be weather rather than a scrolling texture.
+const MENU_MIST_SPEED: float = 7.5
+
 
 ## The one field a stranger chooses, so the one field that needs a rule.
 const SCORE_NAME_MAX: int = 20

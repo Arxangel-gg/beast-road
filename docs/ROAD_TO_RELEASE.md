@@ -715,26 +715,44 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       ask `Graphics.canvas_filter()` and join a group so the toggle applies to
       the field being looked at. Like brightness, it does not knock the quality
       preset to Custom: it is about the screen, not what the machine can afford.
-- [x] **Main menu, animated** — and *not* redrawn as pixel art. Half of this row
-      was a bad instruction and is recorded as such rather than quietly dropped.
+- [x] **Main menu: pixel art, and alive.** I argued for keeping the painterly
+      key art — a backdrop shares a frame with a pixel-art beast standing in
+      front of it, key art shares a frame with nothing — and the owner overruled
+      it on 2026-08-21. Their call, and the right one: a first screen is a
+      promise about what the game looks like, and one made in a different medium
+      is a promise the game does not keep.
 
-      The style-clash argument that moved the three act backdrops to pixel art
-      does not reach the menu. A backdrop shares a frame with a pixel-art beast
-      standing in front of it; key art shares a frame with nothing. Redrawing it
-      would trade a strong image for a consistent one that no player is ever in
-      a position to compare against anything.
+      `MenuStage` composes six layers over a 688x384 pixel vista. The backdrop
+      is authored with its **middle deliberately empty**, because the thing that
+      goes there is the game's own beast on the game's own idle frames — not a
+      menu-only illustration of one. That is the whole point of putting it there:
+      the thing on the front is the thing you get, down to the town on its back.
 
-      What it did lack was motion: a completely still first screen reads as a
-      screenshot of a game rather than a game waiting. The key art now drifts on
-      two sine waves of different periods, ~25px over a quarter of a
-      ninety-second cycle, over a 1.03x overscan so drifting cannot pull a bare
-      edge in. Slow enough that nobody catches it moving, which is the point.
+      Everything else is motion, each layer on its own rate and period so the
+      composition never comes back into phase: the backdrop drifts on two sine
+      waves over a 1.03x overscan, the beast counter-drifts at 0.55 of that so
+      the two separate in depth, two mist bands breathe, embers rise out of the
+      valley pre-seeded across their own lifetime, stars twinkle on individual
+      phases, and the horizon glow swells on a twenty-second breath.
 
-      `tools/menu_shot.tscn` captures the menu and the board over it — the front
-      door was the one screen no shot tool covered, because `ui_shot` captures
-      the in-run interfaces and those all need a Run the menu deliberately has
-      no part of. It proves the drift by driving `_process` rather than by
-      waiting out a ninety-second cycle.
+      Three things had to be found rather than assumed. A Control's `size` is
+      zero in `_ready` and `resized` never fires for a node added after its
+      parent has settled, so everything laid out at the origin at native scale —
+      it keys off the viewport rect instead. The beast frames carry a hard dark
+      ground line under the feet, which is right in the beast scope where there
+      is ground and drew as a black bar ruled across the road here; the row is
+      *detected* and cropped, because a row number written down would stop being
+      the right one the next time the frames are generated. And the mist began
+      as slices of the backdrop, on the reasoning that a strip of the vista is
+      already the right colour — it drew two flat grey rectangles, because what
+      makes mist is having no edges at all. It is a shader now.
+
+      `tools/menu_shot.tscn` captures the menu and the board over it. The front
+      door was the one screen no shot tool covered: `ui_shot` captures the in-run
+      interfaces and every one needs a Run the menu deliberately has no part of.
+      It proves the drift and the idle cycle by driving `_process` rather than by
+      waiting — and it samples a whole cycle, after reporting "no change" once
+      because the seven-frame idle happened to land back on frame one.
 - [~] Leaderboards — local/client path complete; Supabase quota, schema/RLS and
       live production verification remain (see the detailed item above).
 

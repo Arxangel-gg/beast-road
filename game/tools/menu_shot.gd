@@ -20,11 +20,24 @@ func _ready() -> void:
 	# That the key art drifts, proven by driving `_process` rather than by
 	# waiting: the cycle is ninety-two seconds long on purpose, and a tool that
 	# waited for it would be a tool nobody runs.
-	var art: Control = menu.get_node_or_null("Art") as Control
-	var before: Vector2 = art.position if art != null else Vector2.ZERO
-	menu.call("_process", 23.0)
-	var after: Vector2 = art.position if art != null else Vector2.ZERO
-	print("[menu] key art drifted %.1f px over a quarter cycle" % before.distance_to(after))
+	var stage: Control = menu.get_node_or_null("Stage") as Control
+	var art: Control = stage.get_node_or_null("Backdrop") as Control if stage != null else null
+	var beast: Node2D = stage.get_node_or_null("Beast") as Node2D if stage != null else null
+	var art_before: Vector2 = art.position if art != null else Vector2.ZERO
+	var beast_before: Vector2 = beast.position if beast != null else Vector2.ZERO
+	# Sampled across a cycle rather than at one point. Checking a single step
+	# reported "no change" once because the idle set is seven frames and the step
+	# chosen happened to land back on the first one - a true answer to a question
+	# that was not the one being asked.
+	var seen: Dictionary = {}
+	for _step: int in 24:
+		stage.call("_process", Balance.MENU_BEAST_FRAME_TIME)
+		if beast != null:
+			seen[(beast as Sprite2D).texture] = true
+	print("[menu] backdrop drifted %.1f px, beast %.1f px the other way, %d distinct idle frames" % [
+		art_before.distance_to(art.position if art != null else Vector2.ZERO),
+		beast_before.distance_to(beast.position if beast != null else Vector2.ZERO),
+		seen.size()])
 
 	# The board over the menu, which is where a player actually meets it.
 	for node: Node in _all(menu):

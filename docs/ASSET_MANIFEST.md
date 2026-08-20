@@ -501,7 +501,7 @@ point is that a clump is occasionally *not* what you expected.
 | `macro_act3.png` | 688×384 | O | `#3A2E2E` |
 | `crossroad_bg.png` | 1920×1080 | O | `#1E2E33` |
 | `raid_arena_bg.png` | 1920×1080 | O | `#160E12` |
-| `menu_key_art.png` | 1920×1080 | O | `#0B1416` |
+| `menu_key_art.png` | 688×384 | O | `#0B1416` |
 | `summit.png` | 1920×1080 | O | `#1B2436` |
 
 ### 5.8b Story panels — `res://art/story/`
@@ -962,7 +962,7 @@ Drop each `SUBJECT` into the matching stem from §3.
 | `macro_act3` | a red-brown iron snow under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon |
 | `crossroad_bg` | a fork in an ancient road at dusk, two paths diverging into different distant landscapes, weathered stone waymarker in the foreground |
 | `raid_arena_bg` | a hostile enemy warcamp seen from directly above, ringed by bone totems and burning braziers, packed dirt floor, tents at the edges `--ar 1:1` |
-| `menu_key_art` | an immense ancient beast walking away across a wasteland at dusk with a small lit fortified city on its back, seen from behind and below, dramatic scale, cinematic key art |
+| `menu_key_art` | a wide dusk vista: a pale road running to a distant vanishing point, layered indigo ridges, deep violet sky warming to amber at the horizon, a lit watchtower on a crag at the right — **the centre left open and no creature in it**, because the game's own beast is drawn onto it at runtime |
 
 ### Icons
 
@@ -998,7 +998,7 @@ for a long time.
 | **After Stage 3** | `elite_*`, `raid_arena_bg` |
 | **After Stage 4** | `building_*`, `beast_profile`, `ui_*` |
 | **Stage 5–6** | everything else |
-| **Last** | `menu_key_art` — make it when you know what the game looks like, because it becomes your Steam capsule |
+| **Last** | `menu_key_art` — make it when you know what the game looks like, because it becomes your Steam capsule. It is a *stage*, not a finished picture: `MenuStage` composes the beast, mist, embers, star shimmer and horizon glow over it at runtime, so the art must leave its middle empty |
 
 If a stage's kill question fails, every asset made for it is wasted. That is
 the whole reason for this order.
