@@ -32,8 +32,8 @@ extends Node
 ## with no network at all.
 
 ## The board, and the public key that reaches it.
-const ENDPOINT: String = "https://tycfegwvjyszxhenimzq.supabase.co/rest/v1"
-const ANON_KEY: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5Y2ZlZ3d2anlzenhoZW5pbXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMTI0NzMsImV4cCI6MjEwMjc4ODQ3M30.HLheNB3fU0zjkY5STwj7SU_eZOnGbg-tDFzxsompU6M"
+const ENDPOINT: String = "https://xscyioampvjfqcciccie.supabase.co/rest/v1"
+const ANON_KEY: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzY3lpb2FtcHZqZnFjY2ljY2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNDI2NDksImV4cCI6MjEwMjgxODY0OX0.oN74ghnJqAlWtoRKWJVzb4Otw19lH68po_v2z2JlXmU"
 
 ## The table. Named for what a row is, not for what the screen showing it is.
 const TABLE: String = "runs"

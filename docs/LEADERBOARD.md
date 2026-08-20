@@ -5,17 +5,34 @@ bounded personal-best board in the save. Network failure never blocks a run,
 debrief, or menu. Posting is explicit from the debrief; merely finishing a run
 does not publish anything.
 
-## Current external blocker (2026-08-20)
+## The project the game points at
 
-The configured project currently answers every REST request with HTTP 402:
+`Leaderboard.ENDPOINT` and `Leaderboard.ANON_KEY` name it. The two must always
+agree: a Supabase anon key is a JWT whose `ref` claim *is* the project, so a key
+left over from a different project answers every request with 401 and no other
+clue. Both were repointed on 2026-08-20 after the first project was restricted
+for exceeding its storage quota (HTTP 402 on every request, including reads).
 
-> Service for this project is restricted because it exceeded its storage-size
-> quota. The owner must upgrade the plan or remove the spend cap.
+**Current status: the table does not exist yet on this project.** A read answers:
 
-Restore the project in the Supabase dashboard before testing the SQL below.
-Until then, the game correctly shows and stores personal runs, queues at most
-`Balance.LEADERBOARD_PENDING_MAX` unsent rows, and reports the shared board as
-unavailable.
+```
+{"code":"PGRST205","message":"Could not find the table 'public.runs' in the schema cache"}
+```
+
+That is the expected answer before the SQL below has been run once, and it is
+not a code failure — the game handles it the same way it handles being offline:
+personal runs are still scored, shown and stored, at most
+`Balance.LEADERBOARD_PENDING_MAX` unsent rows are queued, and the shared board
+reports itself unavailable rather than erroring.
+
+To check which state you are in, without opening the game:
+
+```bash
+curl -s -H "apikey: $ANON" -H "Authorization: Bearer $ANON"   "https://xscyioampvjfqcciccie.supabase.co/rest/v1/runs?select=submission_id&limit=1"
+```
+
+`[]` means the table is live and empty. `PGRST205` means run the SQL. `401`
+means the key and the URL are from different projects.
 
 ## Create or repair the table
 
