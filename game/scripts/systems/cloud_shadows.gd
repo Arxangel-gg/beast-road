@@ -30,6 +30,13 @@ uniform float strength : hint_range(0.0, 1.0) = 0.0;
 // Fraction of the noise range that becomes shadow.
 uniform float coverage : hint_range(0.0, 1.0) = 0.46;
 
+// World size of this quad, in units. Passed in rather than derived: a ColorRect
+// has no texture, so TEXTURE_PIXEL_SIZE is (1,1) and the obvious reconstruction
+// collapses the whole field into a half-unit square. Divided by a 900-unit cloud
+// scale that samples one point of noise for the entire battlefield, which is why
+// this read as a flat wash rather than as cloud.
+uniform vec2 field_size = vec2(4000.0);
+
 // Cheap hash-based value noise. A NoiseTexture2D would work too, but this keeps
 // the whole effect in one file with nothing to import or keep in sync.
 float hash(vec2 p) {
@@ -58,9 +65,9 @@ float clouds(vec2 world) {
 }
 
 void fragment() {
-	// UV is across this quad; reconstruct world space so the pattern is anchored
-	// to the battlefield and does not slide when the camera moves.
-	vec2 world = (vec2(UV) - vec2(0.5)) / TEXTURE_PIXEL_SIZE;
+	// UV is across this quad; scaled by the quad's own world size so the pattern
+	// is anchored to the battlefield and does not slide when the camera moves.
+	vec2 world = (vec2(UV) - vec2(0.5)) * field_size;
 	float n = clouds(world);
 
 	// Remap so `coverage` sets how much of the field is in shade, with a soft
@@ -84,7 +91,11 @@ var _far: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
-	var extent: float = Balance.LANE_SPAWN_RADIUS * 3.0
+	# Sized against the same visible area the floor uses, so the clouds cover
+	# exactly the ground they are supposed to be passing over. Three times the
+	# spawn radius happened to be enough at the old zoom and is not a rule.
+	var visible_half: float = maxf(1920.0, 1080.0) / Balance.CAMERA_ZOOM_BATTLEFIELD
+	var extent: float = maxf(Balance.LANE_SPAWN_RADIUS * 1.4, visible_half) * 1.35
 
 	_rect = ColorRect.new()
 	_rect.color = Color.WHITE
@@ -102,6 +113,7 @@ func _ready() -> void:
 	_material.set_shader_parameter("scale_far", Balance.CLOUD_SCALE_FAR)
 	_material.set_shader_parameter("coverage", Balance.CLOUD_COVERAGE)
 	_material.set_shader_parameter("strength", 0.0)
+	_material.set_shader_parameter("field_size", Vector2(extent * 2.0, extent * 2.0))
 	_rect.material = _material
 	add_child(_rect)
 

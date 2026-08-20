@@ -48,6 +48,12 @@ var _health_bar: HealthBar = null
 var _damage_flames: Array[Flame] = []
 var _step_wobble: float = 0.0
 
+## Idle animation state. The phase starts scattered so a row of towers breathes
+## out of step - in unison it reads as a screen-wide pulse rather than as
+## buildings settling.
+var _idle_phase: float = 0.0
+var _level_scale: Vector2 = Vector2.ONE
+
 
 ## The plot centre: where this tower *is*, for anything that measures.
 ##
@@ -97,6 +103,7 @@ func _ready() -> void:
 		ShadowKit.add_caster(self, half.x * 0.36, half.y * 0.16,
 			Balance.SHADOW_LAYER_SCENERY, half.y * 0.44)
 
+	_idle_phase = RunState.rng("combat").randf() * TAU
 	_apply_level_look()
 	_build_health()
 	call_deferred("refresh_modifiers")
@@ -231,7 +238,10 @@ func refresh_palette() -> void:
 func _apply_level_look() -> void:
 	var step: float = float(level - 1)
 	var growth: float = 1.0 + step * Balance.TOWER_LEVEL_SCALE_STEP
-	sprite.scale = Vector2.ONE * growth
+	# Stored rather than assigned: the idle multiplies this every frame, and a
+	# tower that wrote its level scale straight to the sprite would fight it.
+	_level_scale = Vector2.ONE * growth
+	sprite.scale = _level_scale
 	# A bigger tower stands on more ground. Left out, an upgraded tower appears
 	# to lift off its own shadow.
 	if _shadow != null and is_instance_valid(_shadow):
@@ -519,11 +529,21 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	_step_wobble = -lean * Balance.BEAST_STEP_WOBBLE_DEGREES * 0.45 * strength
 
 
+## The beast's step, and the tower's own idle, summed into one transform.
+##
+## Two channels rather than two writers: the wobble is a reaction that decays to
+## zero and the idle never stops, and if both assigned `sprite.rotation` the
+## later one would simply erase the earlier. Same rule the SpriteAnimator uses.
 func _tick_step_wobble(delta: float) -> void:
 	if sprite == null:
 		return
 	_step_wobble = move_toward(_step_wobble, 0.0, 12.0 * delta)
-	sprite.rotation = deg_to_rad(_step_wobble)
+	_idle_phase += delta * Balance.STRUCTURE_IDLE_RATE * TAU
+
+	var breathe: float = sin(_idle_phase)
+	var sway: float = sin(_idle_phase * 0.63)
+	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY)
+	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE)
 
 
 func _draw_range_ring() -> void:

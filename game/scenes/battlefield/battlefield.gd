@@ -400,6 +400,7 @@ func _build_torches() -> void:
 					# promotes the rest in place, without rebuilding the field.
 					torch.shadow_on_ultra_only = not (placed % Balance.TORCH_FEATURED_SHADOW_EVERY == 0
 						and side == lane % 2)
+					torch.carries_light = placed % Balance.TORCH_LIGHT_EVERY == 0
 					torch.position = at + across * Balance.TORCH_LANE_OFFSET * sign
 					entity_root.add_child(torch)
 				placed += 1
@@ -418,6 +419,9 @@ func _build_torches() -> void:
 					corner.lane = lane
 					corner.shadow_on_ultra_only = placed % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
 					var reach: float = Balance.TORCH_LANE_OFFSET * Balance.TORCH_CORNER_OFFSET_SCALE
+					# Corners always carry one: they are the darkest part of the road
+					# and the reason the corner post exists at all.
+					corner.carries_light = true
 					corner.position = from + outward * reach
 					entity_root.add_child(corner)
 					placed += 1
@@ -610,9 +614,10 @@ func spawn_tracer(from: Vector2, to: Vector2, colour: Color) -> void:
 	tween.tween_callback(line.queue_free)
 
 
-func spawn_ground_zone(at: Vector2, dps: float, duration: float, radius: float) -> void:
+func spawn_ground_zone(at: Vector2, dps: float, duration: float, radius: float,
+		element: int = 0) -> void:
 	var zone := GroundZone.new()
-	zone.configure(dps, duration, radius, self)
+	zone.configure(dps, duration, radius, self, element)
 	zone.position = at
 	effect_root.add_child(zone)
 

@@ -34,6 +34,9 @@ func _ready() -> void:
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
+	_test_final_ascent()
+	_test_beast_rests_in_preparation()
+	_test_controller_parity()
 	_test_zoom_range()
 	_test_beast_gait()
 	_test_hostile_projectile()
@@ -432,6 +435,142 @@ func _test_tools_and_sigils() -> void:
 
 	MetaState.tools = tools_before
 	MetaState.sigils = sigils_before
+
+
+## The summit has to be reachable, and the Chainmaker has to be the thing at the
+## top of it.
+##
+## `Phase.FINAL_ASCENT` sat in the enum for months while nothing ever entered it,
+## and three systems quietly tolerated a state the run could not reach. A symbol
+## test would have passed that whole time, which is exactly what CLAUDE.md §7
+## warns the audit cannot tell you - so this checks the route, the boss lookup
+## and the act mapping rather than the constant.
+func _test_final_ascent() -> void:
+	var director: BossDirector = _run.boss_director
+	_check(director != null, "the run needs a boss director")
+	if director == null:
+		return
+
+	# Every act maps to its own boss, and the ascent to the Chainmaker.
+	var seen: Dictionary = {}
+	for act: int in [1, 2, 3, Balance.FINAL_ASCENT_ACT]:
+		var boss: EnemyData = director.call("_boss_for_act", act)
+		_check(boss != null, "act %d must have a boss" % act)
+		if boss == null:
+			continue
+		_check(not seen.has(boss.id),
+			"act %d must not reuse the boss of an earlier act (%s)" % [act, boss.id])
+		seen[boss.id] = true
+	var summit: EnemyData = director.call("_boss_for_act", Balance.FINAL_ASCENT_ACT)
+	_check(summit != null and summit.id == "chainmaker",
+		"the Final Ascent must summon the Chainmaker")
+	if summit != null:
+		_check(summit.phase_names.size() >= 3,
+			"the true final boss needs its three phases")
+		_check(summit.max_hp > ContentDB.enemy("rust_crown").max_hp,
+			"the Chainmaker must outweigh the Act III boss")
+
+	# The route: entering the ascent moves the run past the three acts, and the
+	# summit is further out than the journey they just finished.
+	var act_before: int = RunState.act
+	var phase_before: int = RunState.phase
+	RunState.begin_final_ascent()
+	_check(RunState.is_final_ascent(), "begin_final_ascent must enter the ascent")
+	_check(RunState.final_ascent_target() > Balance.JOURNEY_TOTAL_DISTANCE,
+		"the summit must lie beyond the three acts")
+	_check(RunState.phase == RunState.Phase.FINAL_ASCENT,
+		"the ascent must actually enter its own phase")
+	RunState.act = act_before
+	RunState.set_phase(phase_before as RunState.Phase)
+
+	_check(_run.ending_ui != null, "the run must carry an ending screen")
+
+
+## The beast stands still while the player is building.
+##
+## It walks because the journey advances, and the journey is stopped during
+## Preparation - so a beast still lumbering was animating a journey that was not
+## happening, and still emitting footfalls that shook the battlefield camera
+## somebody was trying to place a tower on.
+##
+## Driven synchronously rather than over real frames. Awaiting 180 frames while
+## flipping the run phase underneath a live wave director hung the suite; calling
+## `_process` directly tests the same branch, deterministically, in no time.
+func _test_beast_rests_in_preparation() -> void:
+	var beast: BeastScope = _run.beast
+	if beast == null:
+		_check(false, "the run needs a beast scope")
+		return
+
+	# Measured on the gait phase, not on the footfall signal: footfalls only fire
+	# when the beast camera is the current one, so in a harness looking at the
+	# battlefield they never arrive and the test would prove nothing.
+	var phase_before: int = RunState.phase
+	const STEP: float = 1.0 / 60.0
+
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var rest_start: float = beast.get("_bob")
+	for _frame: int in 240:
+		beast._process(STEP)
+	var rested: float = absf(float(beast.get("_bob")) - rest_start)
+
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	var walk_start: float = beast.get("_bob")
+	for _frame: int in 240:
+		beast._process(STEP)
+	var walked: float = absf(float(beast.get("_bob")) - walk_start)
+
+	RunState.set_phase(phase_before as RunState.Phase)
+
+	_check(is_zero_approx(rested),
+		"the beast's gait must not advance while the journey is stopped")
+	# The counterpart matters as much: a beast that never walks is not a fix.
+	_check(walked > 0.5, "the beast must walk again once the road resumes")
+
+
+## Every action a player needs is reachable from a controller.
+##
+## "Controller parity" is a release row v4 §52 leaves to human judgement, and the
+## judgement is easy to get wrong by feel: the game had *no* joypad bindings at
+## all and nothing said so, because a missing binding is not an error - the
+## action simply never fires. This is the machine-checkable half: every
+## rebindable action carries at least one joypad event, and so does every UI
+## action, because a pad that can play but cannot press a menu button is not
+## parity.
+func _test_controller_parity() -> void:
+	KeyBindings.apply_pad_bindings()
+
+	for entry: Dictionary in KeyBindings.REBINDABLE:
+		var action: StringName = entry["action"]
+		if not InputMap.has_action(action):
+			_check(false, "%s is rebindable but not in the input map" % action)
+			continue
+		var pad: bool = false
+		for event: InputEvent in InputMap.action_get_events(action):
+			if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+				pad = true
+				break
+		_check(pad, "%s has no controller binding" % entry["label"])
+
+	for action: StringName in KeyBindings.PAD_UI:
+		var reachable: bool = false
+		for event: InputEvent in InputMap.action_get_events(action):
+			if event is InputEventJoypadButton:
+				reachable = true
+				break
+		_check(reachable, "%s must be reachable from a pad" % action)
+
+	# Applying twice must not double a binding: `apply_saved` runs on every
+	# settings write, and an action collecting a duplicate every time is a slow
+	# leak nobody would look for.
+	var before: int = InputMap.action_get_events(&"dash").size()
+	KeyBindings.apply_pad_bindings()
+	_check(InputMap.action_get_events(&"dash").size() == before,
+		"re-applying the pad layer must not duplicate bindings")
+
+	# The stick deadzone has to actually reject a resting stick.
+	_check(KeyBindings.PAD_DEADZONE > 0.1,
+		"a deadzone below 0.1 lets a worn pad walk the hero on its own")
 
 
 func _test_enemy_roles() -> void:

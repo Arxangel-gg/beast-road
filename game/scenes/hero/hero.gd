@@ -142,7 +142,7 @@ func _physics_process(delta: float) -> void:
 		attack.cancel()
 		spells.cancel_channel()
 
-	var move_input: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+	var move_input: Vector2 = _move_input()
 	if _dash_left > 0.0:
 		velocity = _dash_direction * (Balance.HERO_DASH_DISTANCE / Balance.HERO_DASH_DURATION)
 	elif spells.is_channelling():
@@ -291,7 +291,30 @@ func dash_cooldown_ratio() -> float:
 	return _dash_cooldown_left / Balance.HERO_DASH_COOLDOWN
 
 
+## Movement, from whichever device is being used.
+##
+## The stick wins when it is pushed, and the keys the rest of the time - rather
+## than one device being selected in a menu. A player with a pad in their hands
+## and a keyboard on the desk uses both without telling the game which.
+func _move_input() -> Vector2:
+	var pad: Vector2 = KeyBindings.pad_move()
+	if pad != Vector2.ZERO:
+		return pad
+	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+
+
+## Where the hero is pointing.
+##
+## The right stick when it is pushed, the mouse otherwise. A pad has no cursor,
+## so aiming from the mouse position on a controller would leave the hero facing
+## wherever the pointer was last left - usually a corner of the screen.
+##
+## Both fall back to the previous aim rather than to a default direction: a
+## hero that snaps east every time the stick centres reads as broken.
 func _compute_aim() -> Vector2:
+	var pad: Vector2 = KeyBindings.pad_aim()
+	if pad != Vector2.ZERO:
+		return pad.normalized()
 	var to_mouse: Vector2 = get_global_mouse_position() - global_position
 	return to_mouse.normalized() if to_mouse.length() > 1.0 else _aim
 
@@ -315,7 +338,7 @@ func _try_dash() -> void:
 		return
 	# Dash where you are steering; fall back to where you are looking, so a
 	# standing dash still goes somewhere deliberate.
-	var move_input: Vector2 = Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+	var move_input: Vector2 = _move_input()
 	_dash_direction = move_input.normalized() if move_input.length() > 0.1 else _aim
 	_dash_left = Balance.HERO_DASH_DURATION
 	_dash_cooldown_left = Balance.HERO_DASH_COOLDOWN

@@ -95,6 +95,19 @@ const ACT_DISTANCE: float = 900.0
 ## 3 acts. Filling this bar is the win condition (GDD §2, decision 1).
 const JOURNEY_TOTAL_DISTANCE: float = 2700.0
 
+## The Final Ascent (GDD v4 §"Final Ascent - Crown of the World").
+##
+## A short authored climb after Act III rather than a fourth act: no crossroads,
+## no fork, one road to the summit. v4 budgets 6-8 minutes for the ascent and the
+## Chainmaker together, and 600 is about two segments of walking with the boss at
+## the end of it. [TUNE]
+const FINAL_ASCENT_DISTANCE: float = 600.0
+
+## The act index the ascent reports. One past ACT_COUNT on purpose: every
+## per-act table clamps to its last entry, so the ascent inherits Act III's
+## scaling rather than needing a fourth column in each of them.
+const FINAL_ASCENT_ACT: int = ACT_COUNT + 1
+
 ## Beast walking speed in distance units per second. At full speed this is
 ## ~15 min per act, ~45 min per run. [TUNE]
 const BEAST_BASE_SPEED: float = 1.0
@@ -816,6 +829,49 @@ const PROJECTILE_ART_SCALE: float = 0.40
 ## How wide a painted impact burst is drawn for a shot with no blast radius. An
 ## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
 const PROJECTILE_IMPACT_ART_SIZE: float = 86.0
+
+## How fast a ground pool turns while it burns, in radians per second at full
+## jitter. Slow: this is meant to keep a long pool alive to the eye, not to spin
+## like a fan. [TUNE]
+const GROUND_ZONE_DRIFT: float = 0.22
+
+# --- Structure idle ----------------------------------------------------------
+#
+# Towers and buildings are single static PNGs and were completely still, which
+# reads as a diorama rather than a place. Frames were considered and rejected for
+# the reason the whole project already works this way: a transform is cheaper
+# than a spritesheet, it applies to every structure at once including any added
+# later, and a real spritesheet would still want this underneath it.
+#
+# Deliberately small. This is meant to be felt and not watched - a structure that
+# visibly pulses pulls the eye away from the road, which is where the game is.
+
+## Cycles per second of the breathe. Slow: a building is not panting. [TUNE]
+const STRUCTURE_IDLE_RATE: float = 0.42
+
+## How much a structure swells and settles, as a fraction of its size. [TUNE]
+const STRUCTURE_IDLE_SCALE: float = 0.012
+
+## How far it leans, in degrees, at the ends of its cycle. [TUNE]
+const STRUCTURE_IDLE_SWAY: float = 0.55
+
+## The beast standing still: how far it rises and falls, and how often.
+##
+## Much slower and larger than a structure's breathe - this is an animal the size
+## of a town, and a fast shallow bob on it reads as a shiver. [TUNE]
+const BEAST_IDLE_BREATH: float = 5.0
+const BEAST_IDLE_BREATH_RATE: float = 0.16
+
+## How often a foliage clump is a painted plant rather than only blades.
+##
+## Low on purpose. The polygons are what make the ground look covered and they
+## cost almost nothing; the sprites are the few plants the eye stops on. Raising
+## this multiplies the field's draw cost for a difference nobody sees. [TUNE]
+const FOLIAGE_PAINTED_CHANCE: float = 0.16
+
+## How far a painted plant is tinted toward its region's sampled palette, so it
+## sits in the same light as the blades instead of looking pasted on. [TUNE]
+const FOLIAGE_PAINTED_TINT: float = 0.45
 
 const TOWER_PROJECTILE_SPEED: float = 620.0
 
@@ -1596,6 +1652,16 @@ const TORCH_SPACING: float = 300.0
 ## One in this many torches casts a real shadow at High. The rest are promoted at
 ## Ultra without rebuilding the field.
 const TORCH_FEATURED_SHADOW_EVERY: int = 4
+
+## One torch in this many carries a real PointLight2D. The rest keep their flame,
+## their glow and their smoke, and are lit by their neighbours' pools.
+##
+## Measured, not guessed. Every 2D light re-draws every item it covers, so cost
+## is lights x items-under-them - and widening the pools to 360 while raising the
+## count to about sixty took a quiet field to 107 lights and 6,000 draw calls at
+## 21 FPS. The pools overlap heavily at that radius, so lighting every second
+## post looks the same and costs half. [TUNE]
+const TORCH_LIGHT_EVERY: int = 2
 
 ## How far to the side of the lane centre they stand.
 ##

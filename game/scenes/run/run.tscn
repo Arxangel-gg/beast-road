@@ -12,11 +12,12 @@
 [ext_resource type="Script" path="res://scripts/systems/command_system.gd" id="14_command"]
 [ext_resource type="PackedScene" path="res://scenes/ui/town_panel.tscn" id="13_townui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="8_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ending_screen.tscn" id="30_end"]
 [ext_resource type="PackedScene" path="res://scenes/ui/crossroad_screen.tscn" id="9_cross"]
 [ext_resource type="PackedScene" path="res://scenes/ui/results_screen.tscn" id="10_res"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="11_pause"]
 
-[node name="Run" type="Node" node_paths=PackedStringArray("battlefield", "town", "beast", "raid", "journey", "war_horn", "boss_director", "command_system", "hud", "crossroad_ui", "results_ui", "pause_ui", "town_panel")]
+[node name="Run" type="Node" node_paths=PackedStringArray("battlefield", "town", "beast", "raid", "journey", "war_horn", "boss_director", "command_system", "hud", "crossroad_ui", "results_ui", "ending_ui", "pause_ui", "town_panel")]
 script = ExtResource("1_run")
 battlefield = NodePath("Battlefield")
 town = NodePath("Town")
@@ -29,6 +30,7 @@ command_system = NodePath("CommandSystem")
 hud = NodePath("HUD")
 crossroad_ui = NodePath("Crossroad")
 results_ui = NodePath("Results")
+ending_ui = NodePath("Ending")
 pause_ui = NodePath("Pause")
 town_panel = NodePath("TownPanel")
 
@@ -58,6 +60,8 @@ raid = NodePath("../Raid")
 boss_director = NodePath("../BossDirector")
 
 [node name="Crossroad" parent="." instance=ExtResource("9_cross")]
+
+[node name="Ending" parent="." instance=ExtResource("30_end")]
 
 [node name="Results" parent="." instance=ExtResource("10_res")]
 

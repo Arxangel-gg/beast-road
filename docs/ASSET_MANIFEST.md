@@ -177,6 +177,7 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `boss_drowned_choir.png` | 384×384 | T | `#2E4A52` |
 | `boss_mirrorfang.png` | 384×384 | T | `#8FA8B8` |
 | `boss_rust_crown.png` | 384×384 | T | `#8C3A2B` |
+| `boss_chainmaker.png` | 384×384 | T | `#2A3140` |
 
 ### 5.4 Towers — `res://art/towers/`
 
@@ -318,6 +319,19 @@ position, and read the corners by name rather than positionally.
 | `ground_snow_14.png` | 32×32 | O | `#8FA8B8` |
 | `ground_snow_15.png` | 32×32 | O | `#8FA8B8` |
 
+### 5.7b Foliage — `res://art/foliage/`
+
+One painted plant per region, scattered among the procedural blades rather than
+replacing them: the polygons are what make the ground look covered and cost
+almost nothing, and the sprite is the plant the eye actually stops on. Tinted
+toward the region's sampled ground palette so it sits in the same light.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `plant_jungle.png` | 48×64 | T | `#2E4A33` |
+| `plant_desert.png` | 48×64 | T | `#C0AC7E` |
+| `plant_snow.png` | 48×64 | T | `#A8BCCC` |
+
 ### 5.8 Backdrops — `res://art/bg/`
 
 | File | Size | Type | Placeholder colour |
@@ -328,6 +342,7 @@ position, and read the corners by name rather than positionally.
 | `crossroad_bg.png` | 1920×1080 | O | `#1E2E33` |
 | `raid_arena_bg.png` | 1920×1080 | O | `#160E12` |
 | `menu_key_art.png` | 1920×1080 | O | `#0B1416` |
+| `summit.png` | 1920×1080 | O | `#1B2436` |
 
 ### 5.9 Relic icons — `res://art/icons/relics/`
 
@@ -577,6 +592,17 @@ the art only has to carry the element - which is why one frame is enough.
 | `impact_water.png` | 96×96 | T | `#54B8C8` |
 | `impact_earth.png` | 96×96 | T | `#B07A3E` |
 | `impact_air.png` | 96×96 | T | `#BFE6F0` |
+
+Ground pools, one per element. Rotated to any angle, scaled and hue-jittered per
+cast, so four files never read as four stamps — the variety lives in the
+placement, the same way it does in the ground tiles.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `pool_fire.png` | 128×128 | T | `#E8752B` |
+| `pool_water.png` | 128×128 | T | `#54B8C8` |
+| `pool_earth.png` | 128×128 | T | `#B07A3E` |
+| `pool_air.png` | 128×128 | T | `#BFE6F0` |
 
 ### 5.16 Raid — `res://art/raid/`
 

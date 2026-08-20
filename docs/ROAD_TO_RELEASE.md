@@ -16,7 +16,13 @@ Status legend: `[ ]` outstanding · `[~]` partially done, detail in the note ·
 
 ## 0. Conformance snapshot
 
-`run_tool.gd -- audit` — **41 / 44 (93%)**, 7 rows need human judgement.
+`run_tool.gd -- audit` — **44 / 44 (100%)**. 7 rows need human judgement and are
+not counted; they are in section 4.
+
+100% here means every automatable row's file or symbol exists *and*, for
+everything closed in this pass, a gate exercises it. It does not mean the game is
+finished — CLAUDE.md §7 is explicit that the audit cannot tell you whether a
+feature is good, and section 3 is entirely things the audit cannot see.
 
 Re-run it after any section below is closed; do not hand-edit this number.
 
@@ -99,18 +105,27 @@ Highest priority: these are things that are wrong, not things that are missing.
 
 Both surface on the debrief as `Tools N · Legacy rank N of 4`.
 
-### The summit (3 rows) — the largest remaining feature
+### The summit (3 rows) — done
 
-- [ ] Final Ascent route (`Balance.FINAL_ASCENT_DISTANCE`). `Phase.FINAL_ASCENT`
-      exists as an enum three systems tolerate; **nothing ever enters it**.
-- [ ] Kharok the Chainmaker, three phases (v4 §513): all four roads → chained
-      tower formations → summit arena with the town still visible.
-- [ ] Summit backdrop art.
-- [ ] Ending and credits. v4 wants the final break to transition *directly* into
-      the ending with no post-victory loot menu.
+- [x] Final Ascent route. Act III's boss now opens a short authored climb rather
+      than ending the campaign. No crossroads and no fork: the journey skips its
+      segment logic entirely while `is_final_ascent()`, and the boss is summoned
+      by distance rather than at a segment boundary.
+- [x] Kharok the Chainmaker — 16k HP, three phases, reinforcements on all four
+      roads. The act→boss fallback used to index a directory listing, which would
+      have handed the ascent whichever boss sorted fourth; it looks up by id now.
+- [x] Summit backdrop.
+- [x] Ending sequence. Lines arrive one at a time over a scrim, then the player
+      chooses: keep riding into Endless, or take the debrief.
 
-Beating Act III currently rolls into Endless. That is a good loop and was asked
-for, but it is not v4's ending.
+      One deliberate deviation from v4, which ends the run at the summit: the
+      owner asked for Endless to continue past it, so both are offered. Ending
+      the run from that screen is the *same* end as dying in Endless —
+      `summit_reached` carries the win either way, so riding on and falling at
+      wave ninety still files a victory.
+
+- [x] Credits. A skippable roll over the summit art rather than on its own
+      screen: the art is the last thing the player earned.
 
 ---
 
@@ -119,36 +134,66 @@ for, but it is not v4's ending.
 ### Lighting and atmosphere
 
 - [x] Torch light: even, unblown, readable, and reaching the bend corners.
-- [ ] Cloud shadows crossing the whole ground, procedurally. `CloudShadows`
-      exists as a full-field noise shader; it needs to actually read as moving
-      cloud over terrain.
+- [x] Cloud shadows crossing the whole ground. The shader was there and had a
+      real bug: a `ColorRect` has no texture, so `TEXTURE_PIXEL_SIZE` is (1,1)
+      and the world reconstruction collapsed the whole field into a half-unit
+      square. Divided by a 900-unit cloud scale that sampled one point of noise
+      for the entire battlefield — a flat wash, not cloud. The quad now passes
+      its own world size in, and is sized from the same extent the floor uses so
+      it covers exactly the ground it passes over.
 - [ ] Night at minimum brightness still playable (audit's human-judgement row).
 
 ### VFX
 
 - [x] Painted projectile heads over the existing procedural flight.
 - [x] Elemental impact bursts layered over sparks and blast ring.
-- [ ] Tower AoE pools: replace the thin ring with painted art, ideally generated
-      per-cast so no two are identical, the way the tilesets vary.
+- [x] Tower AoE pools. Painted per element, then varied per cast: any rotation,
+      scale jitter, a few degrees of hue drift, a bloom-in and a slow turn while
+      it burns. Four files, and no two casts look stamped — the variety lives in
+      the placement, the same way it does in the ground tiles. The exact-radius
+      ring survives underneath at low alpha, because the art is ragged on purpose
+      and the damage edge is the one thing that must not be vague.
 - [ ] A juice pass across everything that fires, lands, dies or completes.
 
 ### Roads and ground
 
 - [x] Per-region road sets and Wang-tiled ground floors.
-- [ ] Road edge stroke, catered per environment.
+- [x] Road edge stroke, per environment. Derived from the road's own colour
+      rather than a fixed dark line — a sand road wants a warm shadow and a snow
+      road a cold one, and one black outline on both looks like a sticker. Two
+      steps of falloff, so it reads as depth rather than as an outline.
 - [ ] Procedural texture variation within a road, not one tile repeated.
 
 ### Foliage
 
-- [ ] Per-act foliage matching each region.
-- [ ] More kinds and more variation, placed procedurally.
+- [x] Per-act painted foliage: one plant per region, scattered *among* the
+      procedural blades rather than replacing them. The polygons are what make
+      the ground look covered and cost almost nothing; the sprite is the plant
+      the eye stops on. Tinted toward the region's own sampled ground palette so
+      it sits in the same light instead of looking pasted on.
+- [x] More silhouettes: reeds come in straight and bent, and any region grows an
+      occasional broadleaf. One shape per region read as a hatch pattern.
 - [ ] Idle animation on anything not static.
-- [ ] Minor hue variation per plant, still inside the region's palette.
+- [x] Per-plant hue and saturation jitter, deliberately small — the palette is
+      sampled from the region's own ground, and a wide jitter would put plants
+      outside their act.
 
 ### Towers and buildings
 
-- [ ] PixelLab art for every tower and building.
-- [ ] Idle animations on all of them, always running, so the field is not static.
+- [x] Idle animation on every tower and building, always running. Towers compose
+      it with the beast-step wobble as a separate channel rather than a second
+      writer — two systems assigning `sprite.rotation` means the later one erases
+      the earlier. Phases are scattered per instance; in unison it reads as the
+      whole screen pulsing rather than as a place.
+
+      Frames were considered and rejected for the reason the project already
+      works this way: a transform is cheaper, it applies to every structure
+      including ones added later, and a spritesheet would still want this
+      underneath it.
+- [~] PixelLab art for every tower and building. All 26 towers and 9 buildings
+      already have generated art; what is missing is *more* of it — tier variants
+      and per-element silhouette passes.
+- [ ] Beast walk/idle as authored frames, layered over the procedural gait.
 - [ ] Building tier variants — nine buildings have one sprite each; v4 §M3 wants
       visible growth.
 
@@ -156,15 +201,55 @@ for, but it is not v4's ending.
 
 - [ ] Sidescroller background as a procedural tileset.
 - [ ] The beast as a proper sidescroller sprite with walk and idle animations.
-- [ ] Idle while Preparation is paused: the walk, the shake and the gait all stop.
+- [x] Idle while Preparation is paused. The gait, the footfalls and the step
+      shake all wind down rather than cut — a gait that stops on the frame the
+      phase changes reads as a freeze. Gated by a test that drives `_process`
+      synchronously and measures the gait phase; measuring the footfall signal
+      proved nothing, because footfalls only fire when the beast camera is
+      current and a harness looking at the battlefield never sees one.
 
 ---
 
 ## 4. Production readiness
 
-- [ ] Controller parity (audit human-judgement row, no implementation seen).
-- [ ] 60 FPS at 1920×1080, measured.
-- [ ] Opening, region transitions and boss introductions.
+- [x] Controller parity. There were **no joypad bindings at all** — and nothing
+      said so, because a missing binding is not an error: the action simply never
+      fires. Added as a layer applied before defaults are captured, so a pad
+      binding is part of the defaults and "reset" restores it rather than
+      stripping the controller out.
+
+      Left stick moves and right stick aims, read directly for a radial deadzone
+      and a rescale from its edge — `Input.get_vector` treats each axis
+      separately and turns a diagonal push into a square corner. The stick is
+      *also* bound to the four move actions, so anything else reading movement
+      gets it free. Gated by a test that every rebindable and every `ui_*` action
+      carries a pad event, and that re-applying does not duplicate bindings.
+- [~] 60 FPS at 1920×1080. `tools/perf_check.tscn` now measures it: it fills the
+      board, starts a wave, warms up, samples 120 frames and reports mean, p95,
+      over-budget fraction, draw calls and a node breakdown.
+
+      **The number still needs to come from your machine.** Run the baseline
+      first (`-- baseline`); on the container this was written in, an *empty
+      window* reported 1 FPS and the loaded battlefield 21, which looks damning
+      and is a statement about a software rasteriser. Two numbers, one of them
+      obviously impossible, is the only way to tell those apart.
+
+      One real finding survived it: the field carried **107 PointLight2D**, from
+      torches going 24 → ~60 with their radius raised 225 → 360. Every 2D light
+      redraws everything it covers, so that is lights × items-under-them. One
+      post in two now carries a pool — the rest keep flame, glow and smoke and
+      are lit by their neighbours — which took it to 75 with no visible
+      difference, the pools overlapping heavily at that radius.
+- [x] Region transitions and boss introductions. Every one of these moments
+      already fired and none of them was *shown* — the act changed, the ground
+      changed and the music changed, and the only acknowledgement was a line in
+      the message strip that also carries "not enough Gold". One card serves all
+      three, because they are the same beat and three near-identical overlays is
+      how a game ends up with three slightly different fonts. Never blocks: a
+      card that paused for a boss walk-in would take the fight away at the exact
+      moment it started.
+- [ ] Opening title. The menu goes straight into Act I's card; there is no
+      pre-run title beat.
 - [ ] **Oathbound framing decision.** "No enslavement language ships" is a v4 §57
       *release requirement*, and CLAUDE.md flags it as needing the owner, not an
       agent. Blocking for 1.0.

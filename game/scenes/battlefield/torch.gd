@@ -26,6 +26,11 @@ var lane: int = 0
 var casts_shadows: bool = true
 var shadow_on_ultra_only: bool = false
 
+## Whether this post carries a real light. False still burns, glows and smokes -
+## it is simply lit by its neighbours rather than casting its own pool. See
+## Balance.TORCH_LIGHT_EVERY for why not every post can afford one.
+var carries_light: bool = true
+
 const GROUP: StringName = &"torches"
 
 var _lit: bool = true
@@ -56,9 +61,12 @@ func _build() -> void:
 	_flame.name = "Fire"
 	_flame.position.y = -Balance.TORCH_HEIGHT
 	add_child(_flame)
-	_flame.configure(Balance.TORCH_FLAME_SIZE, Balance.TORCH_LIGHT_RADIUS,
-		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY, casts_shadows,
-		shadow_on_ultra_only)
+	# A radius of zero means "no PointLight2D", which is how an unlit post still
+	# gets its flame and glow without adding to the light budget.
+	_flame.configure(Balance.TORCH_FLAME_SIZE,
+		Balance.TORCH_LIGHT_RADIUS if carries_light else 0.0,
+		Balance.TORCH_LIGHT_COLOUR, Balance.TORCH_LIGHT_ENERGY,
+		casts_shadows and carries_light, shadow_on_ultra_only)
 
 	# The wisp that grows while the hero holds position to relight it. Reusing
 	# the flame for this would mean a half-lit torch already counted as lit.

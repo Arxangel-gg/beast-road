@@ -19,6 +19,7 @@ extends Node
 @export var hud: HUD
 @export var crossroad_ui: CrossroadScreen
 @export var results_ui: ResultsScreen
+@export var ending_ui: EndingScreen
 @export var pause_ui: PauseMenu
 @export var town_panel: TownPanel
 
@@ -300,8 +301,14 @@ func _begin_boss_preparation(act: int) -> void:
 
 
 func _on_boss_defeated(_boss_id: String, act: int) -> void:
-	if act >= Balance.ACT_COUNT and not RunState.summit_reached:
-		_begin_endless()
+	# The Chainmaker is the run's actual end. Act III's boss now opens the climb
+	# to him rather than finishing the campaign, which is what v4 asks for and
+	# what the enum has always described.
+	if act >= Balance.FINAL_ASCENT_ACT:
+		_summit_cleared()
+		return
+	if act >= Balance.ACT_COUNT and not RunState.is_final_ascent():
+		_begin_final_ascent()
 		return
 	journey.resume_after_boss()
 	# A new act means new ground underfoot.
@@ -551,7 +558,27 @@ func _on_command_requested(order_id: String, anchor: Vector2i) -> void:
 ## carries it to whenever the run actually ends - and the run rolls into Endless,
 ## which is also where the mode is unlocked for the main menu. Earned by
 ## finishing, not by a toggle.
-func _begin_endless() -> void:
+## Act III is behind us; the beast climbs.
+##
+## No crossroad and no fork: the ascent is one authored road, so this only has to
+## move the run into the ascent act and let the journey walk it. The Chainmaker
+## is summoned by distance, not by a segment boundary.
+func _begin_final_ascent() -> void:
+	RunState.begin_final_ascent()
+	journey.resume_after_boss()
+	battlefield.refresh_terrain()
+	_enter_preparation(false)
+	EventBus.preparation_warning.emit(
+		"THE THREE ROADS ARE BEHIND YOU  ·  the Crown of the World is ahead.")
+
+
+## The Chainmaker is down. This is the win.
+##
+## The ending plays first and the debrief follows it, because v4 is explicit that
+## the final break transitions *directly* into the ending rather than into a
+## post-victory loot menu. Endless then continues from the summit for anyone who
+## wants to keep riding.
+func _summit_cleared() -> void:
 	var first_time: bool = not MetaState.act3_cleared
 	RunState.begin_endless(true)
 	MetaState.act3_cleared = true
@@ -559,10 +586,10 @@ func _begin_endless() -> void:
 	journey.resume_after_boss()
 	battlefield.refresh_terrain()
 	_enter_preparation(false)
+	if ending_ui != null:
+		ending_ui.play(first_time)
 	EventBus.preparation_warning.emit(
-		"THE SUMMIT IS YOURS  ·  Endless begins. Ride as far as you can."
-		if first_time
-		else "THE SUMMIT IS YOURS  ·  Endless begins.")
+		"THE CHAINS ARE BROKEN  ·  Endless begins. Ride as far as you can.")
 
 
 # --- Ending -----------------------------------------------------------------

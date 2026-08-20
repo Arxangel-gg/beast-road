@@ -29,6 +29,11 @@ signal plot_selected(building_id: String)
 
 var _plots: Dictionary = {}
 
+## Per-building idle phase, so no two plots swell together. Keyed by building id
+## because the plots themselves are rebuilt when the town changes.
+var _idle_phases: Dictionary = {}
+var _idle_time: float = 0.0
+
 
 func _ready() -> void:
 	_setup_ground()
@@ -57,6 +62,35 @@ func _setup_ground() -> void:
 ## Lays the non-hall buildings evenly around the ring. Their order comes from
 ## ContentDB, which sorts by plot angle, so adding a seventh building spaces
 ## itself without anyone editing a scene.
+## The town's idle.
+##
+## Nine buildings and a Town Hall, every one of them a single static PNG, made
+## the city read as a model of a town rather than a town. The same breathe the
+## towers use, at the same rate, so the two scopes feel like one game.
+##
+## Written straight to the sprite rather than through a channel sum, because
+## nothing else animates a plot - if that ever changes this has to move to
+## SpriteAnimator's model, the way the tower's did when the beast step arrived.
+func _process(delta: float) -> void:
+	_idle_time += delta
+	var swing: float = _idle_time * Balance.STRUCTURE_IDLE_RATE * TAU
+	for id: Variant in _plots:
+		var plot: Node2D = _plots[id] as Node2D
+		if plot == null:
+			continue
+		var sprite := plot.get_node_or_null("Sprite") as Sprite2D
+		if sprite == null or sprite.texture == null:
+			continue
+		var phase: float = float(_idle_phases.get(id, 0.0)) + swing
+		sprite.scale = Vector2.ONE * (1.0 + sin(phase) * Balance.STRUCTURE_IDLE_SCALE)
+		sprite.rotation = deg_to_rad(sin(phase * 0.63) * Balance.STRUCTURE_IDLE_SWAY)
+
+	if hall_sprite != null:
+		# The hall swells a little less: it is the biggest thing on screen and the
+		# same fraction on it is a much larger movement.
+		var swell: float = 1.0 + sin(swing) * Balance.STRUCTURE_IDLE_SCALE * 0.6
+		hall_sprite.scale = Vector2.ONE * swell
+
 func _build_plots() -> void:
 	var buildings: Array[BuildingData] = ContentDB.buildings_sorted()
 	var ring: Array[BuildingData] = []
@@ -81,6 +115,9 @@ func _make_plot(data: BuildingData) -> Node2D:
 	var sprite := Sprite2D.new()
 	sprite.name = "Sprite"
 	root.add_child(sprite)
+	# Scattered so the town breathes out of step. In unison it reads as the whole
+	# screen pulsing rather than as a place with people in it.
+	_idle_phases[data.id] = randf() * TAU
 
 	var button := Button.new()
 	button.name = "Hit"

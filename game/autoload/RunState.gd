@@ -934,6 +934,22 @@ func most_common_wave_archetype() -> String:
 	return best_id
 
 
+## True while the run is climbing to the summit, past the three acts.
+func is_final_ascent() -> bool:
+	return act >= Balance.FINAL_ASCENT_ACT
+
+
+## Distance at which the Chainmaker is due.
+func final_ascent_target() -> float:
+	return Balance.JOURNEY_TOTAL_DISTANCE + Balance.FINAL_ASCENT_DISTANCE
+
+
+## Leaves the three acts behind and starts the climb.
+func begin_final_ascent() -> void:
+	act = Balance.FINAL_ASCENT_ACT
+	set_phase(Phase.FINAL_ASCENT)
+
+
 ## Switches the run to Endless.
 ##
 ## `from_summit` is what separates the victory lap from the mode picked off the

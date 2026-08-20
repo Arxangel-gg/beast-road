@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_chain"]
+
+[resource]
+script = ExtResource("1_chain")
+category = 2
+role = 2
+max_hp = 16000.0
+contact_damage = 34.0
+move_speed = 30.0
+body_radius = 104.0
+knockback_resistance = 1.0
+resource_value = 200
+phase_thresholds = Array[float]([0.72, 0.38])
+phase_names = Array[String](["The Iron Levy", "Chained Ground", "The Last Break"])
+phase_reinforcement_enemy_id = "warden"
+phase_reinforcements_per_lane = 1
+phase_reinforcement_lanes = 4
+phase_speed_bonus = 0.05
+phase_damage_bonus = 0.18
+id = "chainmaker"
+display_name = "Kharok the Chainmaker"
+description = "The one who bound the beast. He commands every road at once, and the chains he made are the only thing still holding Yuri."

@@ -250,7 +250,7 @@ func _impact() -> void:
 
 	if data.ground_zone_dps > 0.0 and field != null:
 		field.spawn_ground_zone(global_position, data.ground_zone_dps_at(tier),
-			data.ground_zone_duration_at(tier), maxf(blast, 90.0))
+			data.ground_zone_duration_at(tier), maxf(blast, 90.0), data.element)
 
 	# A bright flash, a burst away from the impact, and a ring for anything with
 	# area. Three cues rather than one, because a single spark at this size is

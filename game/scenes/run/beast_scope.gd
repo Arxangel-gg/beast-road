@@ -32,6 +32,7 @@ var _bob: float = 0.0
 var _gait_pause_left: float = 0.0
 var _gait_step: int = 0
 var _step_sink: float = 0.0
+var _idle_breath: float = 0.0
 var _step_shake_left: float = 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -94,11 +95,48 @@ func _scroll_backdrop() -> void:
 	_backdrop_clone.position.y = backdrop.position.y
 
 
+## True while the journey is not advancing and the beast should be at rest.
+##
+## Asks the run state rather than the journey node: the beast scope is a window
+## onto the run and must not hold a reference to the systems driving it
+## (CLAUDE.md §5).
+func _standing_still() -> bool:
+	return RunState.is_preparation() or RunState.phase == RunState.Phase.ENDED
+
+
+## The standing idle: a slow breath, and everything the walk was doing wound
+## down rather than cut. A gait that stops on the frame the phase changes reads
+## as a freeze; settling reads as an animal coming to a halt.
+func _settle_to_idle(delta: float) -> void:
+	_gait_pause_left = 0.0
+	_step_sink = move_toward(_step_sink, 0.0, delta * 2.0)
+	_step_shake_left = maxf(_step_shake_left - delta * 2.0, 0.0)
+	_idle_breath += delta * Balance.BEAST_IDLE_BREATH_RATE * TAU
+	if beast != null:
+		var rest_y: float = sin(_idle_breath) * Balance.BEAST_IDLE_BREATH
+		beast.position.y = move_toward(beast.position.y, rest_y, delta * 90.0)
+		beast.position.x = move_toward(beast.position.x,
+			Balance.BEAST_PROFILE_BASE_X, delta * 60.0)
+	_update_step_shake(delta, 0.0)
+
+
 func _process(delta: float) -> void:
 	# The beast uses the same paired-support cadence as the battlefield camera.
 	# Each alternating plant holds for a beat, then the full body settles under
 	# its weight; at least one support pair is always in stance.
 	var speed_ratio: float = clampf(RunState.beast_speed / Balance.BEAST_BASE_SPEED, 0.0, 1.5)
+
+	# Standing still during Preparation.
+	#
+	# The beast walks because the journey advances, and the journey is stopped
+	# while the player is building - so a beast still lumbering along, still
+	# planting footfalls and still shaking the battlefield camera, was animating
+	# a journey that was not happening. It breathes instead, and the gait, the
+	# footfalls and the step shake all stop with it.
+	if _standing_still():
+		_settle_to_idle(delta)
+		return
+
 	if _gait_pause_left > 0.0:
 		_gait_pause_left = maxf(_gait_pause_left - delta, 0.0)
 	else:

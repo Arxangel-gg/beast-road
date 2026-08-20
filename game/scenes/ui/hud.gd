@@ -121,6 +121,9 @@ var _boss_panel: PanelContainer
 var _boss_name: Label
 var _boss_bar: ProgressBar
 var _tutorial: TutorialCoach
+var _region_card: VBoxContainer
+var _region_kicker: Label
+var _region_title: Label
 var _state_label: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
@@ -145,6 +148,7 @@ func _ready() -> void:
 	_build_boss_track()
 	_build_spell_bar()
 	_build_boss_bar()
+	_build_region_card()
 	_build_tutorial_coach()
 	_build_preparation_panel()
 	_build_command_panel()
@@ -962,6 +966,71 @@ func _update_spell_bar() -> void:
 
 ## A boss is the only enemy that gets its own bar. Everything else reads off the
 ## lane pressure ring.
+## The card that announces an act, a region or a boss.
+##
+## Every one of these moments existed and none of them was *shown*: the act
+## changed, the terrain changed underfoot and the music changed, and the only
+## acknowledgement was a line in the message strip that also carries "not enough
+## Gold". A region the player has just arrived in deserves to be named.
+##
+## One card for all three rather than three screens, because they are the same
+## beat — something has changed and the next thirty seconds are different — and
+## three near-identical overlays is how a game ends up with three slightly
+## different fonts.
+func _build_region_card() -> void:
+	_region_card = VBoxContainer.new()
+	_region_card.name = "RegionCard"
+	_region_card.visible = false
+	_region_card.modulate.a = 0.0
+	_region_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_region_card.set_anchors_preset(Control.PRESET_CENTER)
+	_region_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_region_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_region_card.add_theme_constant_override("separation", 4)
+	add_child(_region_card)
+
+	_region_kicker = _label("", 20)
+	_region_kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_region_kicker.add_theme_color_override("font_color", Color("d9b271"))
+	_region_card.add_child(_region_kicker)
+
+	_region_title = _label("", 52)
+	_region_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_region_card.add_child(_region_title)
+
+	EventBus.act_started.connect(_on_act_started)
+	EventBus.boss_spawned.connect(_on_boss_announced)
+
+
+func _on_act_started(act: int, terrain_id: String) -> void:
+	var terrain: TerrainData = ContentDB.terrain(terrain_id)
+	announce("Act %d" % act, terrain.display_name if terrain != null else terrain_id)
+
+
+func _on_boss_announced(boss_id: String, _act: int) -> void:
+	var data: EnemyData = ContentDB.enemy(boss_id)
+	announce("Something enormous is on the road",
+		data.display_name if data != null else boss_id)
+
+
+## Shows the card, then takes it away. Never blocks: the road does not stop for
+## a title, and a card that paused the game during a boss walk-in would be
+## taking the fight away at the exact moment it started.
+func announce(kicker: String, title: String) -> void:
+	if _region_card == null:
+		return
+	_region_kicker.text = kicker.to_upper()
+	_region_title.text = title
+	_region_card.visible = true
+	_region_card.modulate.a = 0.0
+
+	var show: Tween = create_tween()
+	show.tween_property(_region_card, "modulate:a", 1.0, REGION_CARD_FADE)
+	show.tween_interval(REGION_CARD_HOLD)
+	show.tween_property(_region_card, "modulate:a", 0.0, REGION_CARD_FADE)
+	show.tween_callback(func() -> void: _region_card.visible = false)
+
+
 ## The first-run coach. Built last so it sits above the panels it points at, and
 ## owned by the HUD because every moment it teaches is a HUD moment.
 func _build_tutorial_coach() -> void:
@@ -1527,6 +1596,11 @@ func _tower_tooltip(tower: TowerData, cost_map: Dictionary) -> String:
 ## Blank means "nothing hovered", which reads as a hole in the panel rather than
 ## as an empty field. The footer's height is reserved either way, so it may as
 ## well say what it is for.
+## How long a region card fades and how long it holds. Short: this is a caption,
+## not a cutscene, and the player is usually mid-wave when a boss one appears.
+const REGION_CARD_FADE: float = 0.45
+const REGION_CARD_HOLD: float = 2.1
+
 const BUILD_HINT: String = "Point at a tower to see what it does."
 
 

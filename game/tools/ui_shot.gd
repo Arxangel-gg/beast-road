@@ -11,6 +11,7 @@ func _ready() -> void:
 	for _f: int in 12:
 		await get_tree().process_frame
 
+	await _shot("ending", func() -> void: run.ending_ui.play(true))
 	await _shot("crossroad", func() -> void: run.crossroad_ui.open(1))
 	await _shot("town", func() -> void: run.town_panel.open("forge"))
 	await _shot("pause", func() -> void: run.pause_ui.toggle())
@@ -28,7 +29,7 @@ func _ready() -> void:
 func _shot(name: String, open: Callable) -> void:
 	open.call()
 	get_tree().paused = false
-	for _f: int in 10:
+	for _f: int in 200:
 		await get_tree().process_frame
 	var image: Image = get_viewport().get_texture().get_image()
 	image.save_png("user://ui_%s.png" % name)

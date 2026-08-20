@@ -76,8 +76,13 @@ func _boss_for_act(act: int) -> EnemyData:
 		var terrain: TerrainData = ContentDB.terrain_for_act(act)
 		if terrain != null and boss.id.begins_with(_expected_boss_id(act)):
 			return boss
-	var all: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.BOSS)
-	return all[clampi(act - 1, 0, all.size() - 1)] if not all.is_empty() else null
+	# Fall back by id rather than by index: indexing a directory listing hands
+	# the Final Ascent whichever boss happens to sort fourth.
+	var wanted: String = _expected_boss_id(act)
+	for boss: EnemyData in ContentDB.enemies_of_category(EnemyData.Category.BOSS):
+		if boss.id == wanted:
+			return boss
+	return null
 
 
 ## Act to boss id. The mapping is in the GDD's act table; keeping it here rather
@@ -88,8 +93,12 @@ func _expected_boss_id(act: int) -> String:
 			return "drowned_choir"
 		2:
 			return "mirrorfang"
-		_:
+		3:
 			return "rust_crown"
+		_:
+			# The Final Ascent reports one act past ACT_COUNT, and the summit is
+			# the only thing out there.
+			return "chainmaker"
 
 
 func _on_boss_health_changed(current: float, maximum: float) -> void:

@@ -60,6 +60,15 @@ func _process(delta: float) -> void:
 
 	EventBus.distance_changed.emit(RunState.distance_travelled, RunState.distance_to_crossroad())
 
+	# The ascent is one authored road to the summit: no crossroads, no fork, and
+	# the Chainmaker at the end of it rather than at a segment boundary. Checked
+	# before the segment logic so the climb cannot be interrupted by one.
+	if RunState.is_final_ascent():
+		var at_summit: bool = RunState.distance_travelled >= RunState.final_ascent_target()
+		if at_summit and not _crossroad_pending:
+			_await_boss()
+		return
+
 	var segment_now: int = _segment_for(RunState.distance_travelled)
 	if segment_now > _segment_index:
 		_segment_index = segment_now

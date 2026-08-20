@@ -21,6 +21,20 @@ const STYLES: Dictionary = {
 	"snow": {"kind": "tuft"},
 }
 
+## How far a single plant's hue may drift from the region's sampled palette.
+## Small on purpose: the palette comes from the ground so the field stays in tint
+## with its act, and a wide jitter would put plants outside their own region.
+const HUE_JITTER: float = 0.035
+
+## How often a plant is a broadleaf rather than its region's own silhouette.
+const BROADLEAF_CHANCE: float = 0.18
+
+## Painted plant art, one per region.
+const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
+
+var _plant_art: Texture2D = null
+var _plant_art_id: String = ""
+
 const PALETTE_SAMPLE_SIZE: int = 32
 const PALETTE_MIN_VALUE: float = 0.08
 const PALETTE_MAX_VALUE: float = 0.78
@@ -242,10 +256,23 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 		var blade_scale: float = scale * rng.randf_range(0.72, 1.18)
 		if ground:
 			blade_scale *= 0.62
-		var colour: Color = (style["dark"] as Color).lerp(
-			style["light"] as Color, rng.randf_range(0.12, 0.92))
+		var colour: Color = _plant_colour(style, rng)
 		band.add_blade(_blade_shape(String(style["kind"]), rng), colour,
 			local + offset, rng.randf_range(-0.12, 0.12), blade_scale, true)
+
+	# A painted plant every so often, standing among the blades. This is what
+	# gives a region a face: the polygons say "ground cover", the sprite says
+	# which region's ground cover it is.
+	if not ground and rng.randf() < Balance.FOLIAGE_PAINTED_CHANCE:
+		var art: Texture2D = _plant_texture()
+		if art != null:
+			# Tinted toward the region's own sampled palette rather than drawn
+			# neutral, so a painted plant sits in the same light as everything
+			# around it instead of looking pasted on.
+			var tint: Color = Color.WHITE.lerp(_plant_colour(style, rng),
+				Balance.FOLIAGE_PAINTED_TINT)
+			band.add_plant(art, local, scale * rng.randf_range(0.62, 0.92),
+				tint, rng.randf() < 0.5)
 
 	# Only the tall layer gets a shadow. Ground cover is already a few pixels
 	# high, so a pool under it reads as dirt rather than as shade.
@@ -314,7 +341,48 @@ func _terrain_palette() -> Dictionary:
 
 ## A shadow for a clump, which has no sprite to measure — so it is built by hand
 
+## One plant's colour: the region's own light-to-dark range, nudged a few degrees
+## around the hue circle.
+##
+## The lerp alone gave every plant in an act the identical hue at a different
+## brightness, which reads as one plant drawn four hundred times. A small hue
+## jitter is enough to make a field look grown rather than stamped, and it is
+## deliberately small - the palette is sampled from the ground so the field stays
+## in tint with its region, and a wide jitter would throw plants out of it.
+## The current region's painted plant, cached. Derived from the terrain id like
+## every other asset path here; a region without one simply grows no sprites.
+func _plant_texture() -> Texture2D:
+	if _plant_art_id == RunState.terrain_id:
+		return _plant_art
+	_plant_art_id = RunState.terrain_id
+	var path: String = PLANT_ART_FORMAT % RunState.terrain_id
+	_plant_art = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	return _plant_art
+
+
+func _plant_colour(style: Dictionary, rng: RandomNumberGenerator) -> Color:
+	var colour: Color = (style["dark"] as Color).lerp(
+		style["light"] as Color, rng.randf_range(0.12, 0.92))
+	colour.h = wrapf(colour.h + rng.randf_range(-HUE_JITTER, HUE_JITTER), 0.0, 1.0)
+	colour.s = clampf(colour.s * rng.randf_range(0.86, 1.14), 0.0, 1.0)
+	return colour
+
+
 func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Array:
+	# A region's own silhouette most of the time, and a broadleaf occasionally.
+	# One shape per region made a field read as a texture; an occasional
+	# different plant makes it read as ground something grows out of.
+	if rng.randf() < BROADLEAF_CHANCE:
+		var leaf: float = rng.randf_range(13.0, 22.0)
+		return PackedVector2Array([
+			Vector2(-1.5, 0.0), Vector2(1.5, 0.0),
+			Vector2(rng.randf_range(3.0, 7.0), -leaf * 0.55),
+			Vector2(rng.randf_range(-1.0, 1.0), -leaf),
+			Vector2(rng.randf_range(-7.0, -3.0), -leaf * 0.55)])
+	return _kind_shape(kind, rng)
+
+
+func _kind_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Array:
 	var height: float = rng.randf_range(16.0, 30.0)
 	match kind:
 		"shard":
@@ -327,6 +395,13 @@ func _blade_shape(kind: String, rng: RandomNumberGenerator) -> PackedVector2Arra
 				Vector2(2.0, -height * 0.7), Vector2(0.0, -height),
 				Vector2(-2.0, -height * 0.7)])
 		_:
+			# Reeds come in two: a straight blade and a bent one. Two silhouettes
+			# is the difference between a field and a hatch pattern.
+			if rng.randf() < 0.42:
+				return PackedVector2Array([
+					Vector2(-2.0, 0.0), Vector2(2.0, 0.0),
+					Vector2(rng.randf_range(4.0, 9.0), -height * 0.62),
+					Vector2(rng.randf_range(1.0, 4.0), -height)])
 			return PackedVector2Array([
 				Vector2(-2.0, 0.0), Vector2(2.0, 0.0),
 				Vector2(rng.randf_range(1.0, 5.0), -height)])
@@ -342,6 +417,22 @@ class FoliageBand extends Node2D:
 	var _shapes: Array[PackedVector2Array] = []
 	var _uvs: Array[PackedVector2Array] = []
 	var _colours: Array[Color] = []
+
+	## Painted plants, drawn in the same canvas item as the blades.
+	##
+	## Alongside them rather than instead of them: the polygons are cheap enough
+	## to scatter hundreds of, and they are what makes the ground look *covered*.
+	## The sprites are the few plants the eye actually stops on. Replacing every
+	## blade with a texture would multiply the draw cost of a field for a
+	## difference nobody would see at a quarter of the plants.
+	var _plants: Array[Dictionary] = []
+
+	func add_plant(texture: Texture2D, at: Vector2, plant_scale: float,
+			tint: Color, flip: bool) -> void:
+		if texture == null:
+			return
+		_plants.append({"texture": texture, "at": at, "scale": plant_scale,
+			"tint": tint, "flip": flip})
 
 	func add_blade(shape: PackedVector2Array, colour: Color, at: Vector2,
 			angle: float, blade_scale: float, sways: bool) -> void:
@@ -374,3 +465,14 @@ class FoliageBand extends Node2D:
 			shade.resize(_shapes[index].size())
 			shade.fill(_colours[index])
 			draw_polygon(_shapes[index], shade, _uvs[index])
+
+		# Drawn after the blades so a painted plant stands in front of the
+		# undergrowth around it rather than being buried in it.
+		for plant: Dictionary in _plants:
+			var texture: Texture2D = plant["texture"]
+			var size: Vector2 = texture.get_size() * float(plant["scale"])
+			var at: Vector2 = plant["at"]
+			# Anchored at the foot, not the centre: a plant grows up out of the
+			# point it was scattered on, and centring it buries half of it.
+			var rect := Rect2(at - Vector2(size.x * 0.5, size.y), size)
+			draw_texture_rect(texture, rect, false, plant["tint"], bool(plant["flip"]))

@@ -1,6 +1,6 @@
 """Turn a PixelLab path-tile set into Beast Road's 16 autotile pieces.
 
-    python tools/build_road_tiles.py <tiles-dir> <rules.json> <terrain-id> [road-value]
+    python tools/build_road_tiles.py <tiles-dir> <rules.json> <terrain-id> [road-value] [edge-tone]
 
 The engine indexes road art by a 4-bit neighbour mask (bit0=N, bit1=E, bit2=S,
 bit3=W) and expects `path_<terrain>_NN.png`, so the job is to get from "eighteen
@@ -259,6 +259,32 @@ def normalise(tiles: dict[int, np.ndarray], road_value: float = 1.0) -> None:
         tile[..., :3] = np.where(mask[..., None], out.round().astype(np.uint8), tile[..., :3])
 
 
+def stroke_edges(rgb: np.ndarray, shape: np.ndarray, tone: float) -> np.ndarray:
+    """Darken the road's outermost pixels into an edge stroke.
+
+    A road clipped to a silhouette meets the ground on a hard boundary with
+    nothing marking it, so at twelve world units per texel the two surfaces just
+    abut. A stroke reads as the road being *worn into* the ground rather than
+    laid on top of it, and it is what makes the shape legible when road and
+    ground are close in value - which is every region except the marsh.
+
+    Derived from the road's own colour rather than a fixed dark line: a sand road
+    wants a warm shadow and a snow road a cold one, and one black outline on both
+    looks like a sticker. `tone` is how far toward black the edge goes, so a
+    region can ask for more or less.
+    """
+    inner = erode(shape, disc(1))
+    edge = shape & ~inner
+    out = rgb.astype(float)
+    out[edge] *= tone
+    # A second, softer step inside it, so the stroke has a falloff instead of a
+    # single hard line - one pixel of pure dark reads as an outline, two with a
+    # gradient read as depth.
+    inner2 = erode(inner, disc(1))
+    out[inner & ~inner2] *= (tone + 1.0) * 0.5
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
 def rotate_mask(mask: int, quarter_turns: int) -> int:
     """A quarter turn clockwise moves every edge round by one."""
     for _ in range(quarter_turns % 4):
@@ -267,11 +293,12 @@ def rotate_mask(mask: int, quarter_turns: int) -> int:
 
 
 def main() -> int:
-    if len(sys.argv) not in (4, 5):
+    if len(sys.argv) not in (4, 5, 6):
         print(__doc__)
         return 2
     src_dir, rules_path, terrain = sys.argv[1], sys.argv[2], sys.argv[3]
     road_value = float(sys.argv[4]) if len(sys.argv) == 5 else 1.0
+    edge_tone = float(sys.argv[5]) if len(sys.argv) == 6 else 0.72
     out_dir = os.path.join("game", "art", "battlefield")
 
     rules: dict[str, int] = json.load(open(rules_path, encoding="utf-8"))
@@ -312,6 +339,8 @@ def main() -> int:
             # the nearest road pixel, so the piece is road all the way to its
             # border and cannot show a rim of ground at a join.
             rgb = fill_from_road(rgb, seed, envelope)
+
+        rgb = stroke_edges(rgb, envelope, edge_tone)
 
         out = np.zeros((TILE, TILE, 4), dtype=np.uint8)
         out[..., :3] = rgb

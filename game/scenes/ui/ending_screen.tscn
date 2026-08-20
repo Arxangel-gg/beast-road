@@ -1,0 +1,72 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/ui/ending_screen.gd" id="1_end"]
+[ext_resource type="Texture2D" path="res://art/bg/summit.png" id="2_bg"]
+
+[node name="EndingScreen" type="CanvasLayer" node_paths=PackedStringArray("backdrop", "title", "body", "ride_button", "finish_button", "credits_button", "credits")]
+layer = 20
+script = ExtResource("1_end")
+backdrop = NodePath("Backdrop")
+title = NodePath("Box/Title")
+body = NodePath("Box/Body")
+ride_button = NodePath("Box/Buttons/Ride")
+finish_button = NodePath("Box/Buttons/Finish")
+credits_button = NodePath("Box/Buttons/Credits")
+credits = NodePath("Credits")
+
+[node name="Backdrop" type="TextureRect" parent="."]
+texture = ExtResource("2_bg")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Box" type="VBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -560.0
+offset_top = -260.0
+offset_right = 560.0
+offset_bottom = 260.0
+theme_override_constants/separation = 28
+
+[node name="Title" type="Label" parent="Box"]
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 52
+
+[node name="Body" type="Label" parent="Box"]
+size_flags_vertical = 3
+horizontal_alignment = 1
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 22
+
+[node name="Buttons" type="HBoxContainer" parent="Box"]
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Ride" type="Button" parent="Box/Buttons"]
+custom_minimum_size = Vector2(340, 58)
+text = "Ride on"
+
+[node name="Finish" type="Button" parent="Box/Buttons"]
+custom_minimum_size = Vector2(340, 58)
+text = "End the run here"
+
+[node name="Credits" type="Button" parent="Box/Buttons"]
+custom_minimum_size = Vector2(220, 58)
+text = "Credits"
+
+[node name="Credits" type="Label" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_right = 400.0
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 26

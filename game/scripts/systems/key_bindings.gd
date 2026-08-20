@@ -47,6 +47,136 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"pause", "label": "Pause"},
 ]
 
+## Controller bindings, added on top of the shipped keyboard ones.
+##
+## Held here rather than in `project.godot` for two reasons. The project file
+## stores an input event as a serialised `Object(...)` line, which is unpleasant
+## to hand-edit and easy to corrupt; and adding them here means the pad layer is
+## applied *before* `_capture_defaults`, so a controller binding is part of the
+## defaults and "reset to default" restores it like anything else.
+##
+## Left stick moves, right stick aims - neither is an action, so both are read
+## directly by the hero. Everything else is a button, laid out the way an Xbox
+## pad expects: face buttons for the things done constantly, shoulders for the
+## abilities, d-pad for the scopes.
+const PAD_BUTTONS: Dictionary = {
+	&"attack": JOY_BUTTON_X,
+	&"dash": JOY_BUTTON_A,
+	&"ride_on": JOY_BUTTON_Y,
+	&"war_horn": JOY_BUTTON_B,
+	&"pause": JOY_BUTTON_START,
+	&"spell_1": JOY_BUTTON_LEFT_SHOULDER,
+	&"spell_2": JOY_BUTTON_RIGHT_SHOULDER,
+	&"scope_battlefield": JOY_BUTTON_DPAD_LEFT,
+	&"scope_town": JOY_BUTTON_DPAD_UP,
+	&"scope_beast": JOY_BUTTON_DPAD_RIGHT,
+	&"command_overdrive": JOY_BUTTON_DPAD_DOWN,
+	&"command_rally": JOY_BUTTON_LEFT_STICK,
+	&"command_last_stand": JOY_BUTTON_RIGHT_STICK,
+}
+
+## The left stick, bound to the four movement actions as well as read directly.
+##
+## Both, on purpose. Binding the actions means `Input.get_vector` works on a pad
+## with no special case, and anything else that reads movement — a menu, a future
+## system — gets the stick for free. Reading the stick directly on top of that
+## buys a radial deadzone and a rescale from its edge, which `get_vector` cannot
+## do because it treats each axis separately and turns a diagonal push into a
+## square corner.
+const PAD_MOVE: Dictionary = {
+	&"move_left": [JOY_AXIS_LEFT_X, -1.0],
+	&"move_right": [JOY_AXIS_LEFT_X, 1.0],
+	&"move_up": [JOY_AXIS_LEFT_Y, -1.0],
+	&"move_down": [JOY_AXIS_LEFT_Y, 1.0],
+}
+
+## Triggers, for the two abilities the face and shoulder buttons ran out of room
+## for. An axis, so they need a threshold rather than a button index.
+const PAD_AXES: Dictionary = {
+	&"spell_3": JOY_AXIS_TRIGGER_LEFT,
+	&"spell_4": JOY_AXIS_TRIGGER_RIGHT,
+}
+
+## Menus have to be usable without a mouse or the pad is only half supported.
+## Godot drives focus from these, so binding them is the whole of UI navigation.
+const PAD_UI: Dictionary = {
+	&"ui_accept": JOY_BUTTON_A,
+	&"ui_cancel": JOY_BUTTON_B,
+	&"ui_up": JOY_BUTTON_DPAD_UP,
+	&"ui_down": JOY_BUTTON_DPAD_DOWN,
+	&"ui_left": JOY_BUTTON_DPAD_LEFT,
+	&"ui_right": JOY_BUTTON_DPAD_RIGHT,
+}
+
+## Movement and aim sticks. Read directly rather than through actions, because a
+## stick carries a direction and an action carries a bool.
+const PAD_MOVE_AXES: Array[int] = [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]
+const PAD_AIM_AXES: Array[int] = [JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y]
+
+## Below this a stick is at rest. Generous: a worn pad does not centre exactly,
+## and a hero that drifts because the stick reads 0.04 is worse than one that
+## needs a firmer push.
+const PAD_DEADZONE: float = 0.24
+
+
+## Adds the controller layer. Idempotent, and safe to call before defaults are
+## captured - which is the point.
+static func apply_pad_bindings() -> void:
+	for action: StringName in PAD_BUTTONS:
+		_add_pad_event(action, _button_event(int(PAD_BUTTONS[action])))
+	for action: StringName in PAD_AXES:
+		_add_pad_event(action, _axis_event(int(PAD_AXES[action]), 1.0))
+	for action: StringName in PAD_MOVE:
+		var spec: Array = PAD_MOVE[action]
+		_add_pad_event(action, _axis_event(int(spec[0]), float(spec[1])))
+	for action: StringName in PAD_UI:
+		_add_pad_event(action, _button_event(int(PAD_UI[action])))
+
+
+static func _axis_event(axis: int, value: float) -> InputEventJoypadMotion:
+	var event := InputEventJoypadMotion.new()
+	event.axis = axis
+	event.axis_value = value
+	return event
+
+
+static func _button_event(index: int) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.button_index = index
+	return event
+
+
+## Adds an event only if nothing equivalent is already bound, so calling this
+## twice does not give an action two identical bindings.
+static func _add_pad_event(action: StringName, event: InputEvent) -> void:
+	if not InputMap.has_action(action):
+		return
+	for existing: InputEvent in InputMap.action_get_events(action):
+		if existing.is_match(event):
+			return
+	InputMap.action_add_event(action, event)
+
+
+## The left stick, as a direction. Zero when at rest.
+static func pad_move() -> Vector2:
+	return _stick(PAD_MOVE_AXES)
+
+
+## The right stick, as a direction. Zero when at rest.
+static func pad_aim() -> Vector2:
+	return _stick(PAD_AIM_AXES)
+
+
+static func _stick(axes: Array[int]) -> Vector2:
+	var raw := Vector2(Input.get_joy_axis(0, axes[0]), Input.get_joy_axis(0, axes[1]))
+	if raw.length() < PAD_DEADZONE:
+		return Vector2.ZERO
+	# Rescaled from the deadzone edge, so the first usable push is a small
+	# movement rather than a jump to a quarter speed.
+	return raw.normalized() * clampf(
+		(raw.length() - PAD_DEADZONE) / (1.0 - PAD_DEADZONE), 0.0, 1.0)
+
+
 ## The project's own bindings, captured before any override is applied.
 static var _defaults: Dictionary = {}
 
@@ -62,6 +192,9 @@ static var _overrides: Dictionary = {}
 ## Lays the player's choices over the shipped bindings.
 static func apply_saved(saved: Dictionary) -> void:
 	_overrides = saved.duplicate()
+	# Before the capture, so the pad is part of the defaults and a reset restores
+	# it rather than stripping the controller out of the game.
+	apply_pad_bindings()
 	_capture_defaults()
 	for entry: Dictionary in REBINDABLE:
 		var action: StringName = entry["action"]
