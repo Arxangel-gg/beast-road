@@ -171,7 +171,8 @@ func _build_head() -> void:
 		return
 	_head = Sprite2D.new()
 	_head.texture = load(path)
-	_head.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_head.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_head.add_to_group(Graphics.FILTER_GROUP)
 	_head.scale = Vector2.ONE * Balance.PROJECTILE_ART_SCALE * _tier_scale()
 	# Tinted toward the element rather than left neutral, so a Fire shot from a
 	# fused tower still reads as that tower's colour.

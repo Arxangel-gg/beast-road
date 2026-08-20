@@ -132,6 +132,15 @@ func _process(delta: float) -> void:
 ## Shadows need a sun. They fade out as night falls and vanish in the dark,
 ## rather than lingering as unexplained dark patches.
 func _on_phase(_phase: float, _tint: Color, darkness: float) -> void:
-	var daylight: float = clampf(1.0 - darkness, 0.0, 1.0)
+	# Curved rather than linear, and that is the whole reason these had stopped
+	# being noticeable. The night grade was deepened from ~0.30 to ~0.15, which
+	# pushed `darkness` high across most of the cycle - so a linear fade left the
+	# shadows at a few percent of their strength for most of a run, present in
+	# the code and invisible on screen.
+	#
+	# The square root keeps them readable through dusk and still takes them to
+	# nothing at true night, which is the behaviour that was wanted: a shadow
+	# needs a sun, and unexplained dark patches at midnight are worse than none.
+	var daylight: float = sqrt(clampf(1.0 - darkness, 0.0, 1.0))
 	_material.set_shader_parameter("strength", Balance.CLOUD_DARKNESS * daylight)
 	_rect.visible = daylight > 0.02

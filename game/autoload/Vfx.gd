@@ -445,7 +445,8 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 		return
 	var burst := Sprite2D.new()
 	burst.texture = load(path)
-	burst.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	burst.add_to_group(Graphics.FILTER_GROUP)
 	burst.modulate = Color(colour.lerp(Color.WHITE, 0.45), 0.95)
 	burst.z_index = Balance.VFX_Z
 	# A different quarter-turn each time, so a lane full of the same tower firing

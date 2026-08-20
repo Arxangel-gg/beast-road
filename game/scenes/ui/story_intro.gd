@@ -112,7 +112,8 @@ func _build() -> void:
 	_art = TextureRect.new()
 	_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_art.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_art.add_to_group(Graphics.FILTER_GROUP)
 	_art.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_art.modulate.a = 0.0
 	_root.add_child(_art)
@@ -256,7 +257,7 @@ func _show(panel: Dictionary) -> void:
 	rise.tween_property(_title, "modulate:a", 1.0, FADE * 0.8)
 	rise.tween_property(_title, "position:y", start, FADE)
 	rise.tween_property(_line, "modulate:a", 1.0, FADE).set_delay(FADE * 0.4)
-	Sfx.play("sfx_story_panel", 0.0)
+	Sfx.play_group("story_panel")
 
 	# The hold begins once the *line* has finished arriving, not once the panel
 	# started. Counting from the start gave the prose about a second and a half

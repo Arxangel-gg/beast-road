@@ -64,6 +64,20 @@ const SOUNDS: Dictionary = {
 	"sfx_town_damaged": "res://audio/sfx/sfx_town_damaged.ogg",
 	"sfx_ui_click": "res://audio/sfx/sfx_ui_click.ogg",
 	"sfx_ui_confirm": "res://audio/sfx/sfx_ui_confirm.ogg",
+	"sfx_ui_move": "res://audio/sfx/sfx_ui_move.ogg",
+	"sfx_story_open": "res://audio/sfx/sfx_story_open.ogg",
+	# Three takes each, rotated by GROUPS. Loot lands in handfuls and the intro
+	# plays four panels back to back, so both are cases where one sample repeating
+	# is the thing the ear picks out.
+	"sfx_story_panel_1": "res://audio/sfx/sfx_story_panel_1.ogg",
+	"sfx_story_panel_2": "res://audio/sfx/sfx_story_panel_2.ogg",
+	"sfx_story_panel_3": "res://audio/sfx/sfx_story_panel_3.ogg",
+	"sfx_loot_drop_1": "res://audio/sfx/sfx_loot_drop_1.ogg",
+	"sfx_loot_drop_2": "res://audio/sfx/sfx_loot_drop_2.ogg",
+	"sfx_loot_drop_3": "res://audio/sfx/sfx_loot_drop_3.ogg",
+	"sfx_loot_collect_1": "res://audio/sfx/sfx_loot_collect_1.ogg",
+	"sfx_loot_collect_2": "res://audio/sfx/sfx_loot_collect_2.ogg",
+	"sfx_loot_collect_3": "res://audio/sfx/sfx_loot_collect_3.ogg",
 	"sfx_ui_deny": "res://audio/sfx/sfx_ui_deny.ogg",
 	"sfx_ui_hover": "res://audio/sfx/sfx_ui_hover.ogg",
 	"sfx_war_horn": "res://audio/sfx/sfx_war_horn.ogg",
@@ -117,13 +131,22 @@ const MIX: Dictionary = {
 	"sfx_ui_click":          {"db": -7.0, "pitch": 0.07, "limit": 2, "gap": 0.03},
 	"sfx_ui_hover":          {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
 	"sfx_ui_confirm":        {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.05},
-	"sfx_ui_move":           {"db": -9.0, "pitch": 0.06, "limit": 1, "gap": 0.04},
-	# Loot drops in handfuls, so its mix has to survive six landing at once: a
-	# tight gap and a low ceiling, or a cleared pack sounds like a coin fountain.
-	"sfx_loot_drop":         {"db": -11.0, "pitch": 0.14, "limit": 3, "gap": 0.05},
-	"sfx_loot_collect":      {"db": -8.0, "pitch": 0.11, "limit": 4, "gap": 0.03},
-	"sfx_story_open":        {"db": -3.0, "pitch": 0.0, "limit": 1, "gap": 0.5},
-	"sfx_story_panel":       {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 0.3},
+	"sfx_ui_move":           {"db": -12.0, "pitch": 0.07, "limit": 1, "gap": 0.04},
+	"sfx_story_open":        {"db": -4.0, "pitch": 0.0, "limit": 1, "gap": 0.5},
+	# Pitch spread on top of three samples. Three takes stop the *sample*
+	# repeating; the spread stops the three takes themselves becoming a pattern
+	# over a four-panel cinematic or a cleared pack of twelve.
+	"sfx_story_panel_1":     {"db": -7.0, "pitch": 0.04, "limit": 1, "gap": 0.25},
+	"sfx_story_panel_2":     {"db": -7.0, "pitch": 0.04, "limit": 1, "gap": 0.25},
+	"sfx_story_panel_3":     {"db": -7.0, "pitch": 0.04, "limit": 1, "gap": 0.25},
+	# Loot lands in handfuls: a tight gap and a low ceiling, or clearing a pack
+	# sounds like a coin fountain.
+	"sfx_loot_drop_1":       {"db": -13.0, "pitch": 0.16, "limit": 3, "gap": 0.05},
+	"sfx_loot_drop_2":       {"db": -13.0, "pitch": 0.16, "limit": 3, "gap": 0.05},
+	"sfx_loot_drop_3":       {"db": -13.0, "pitch": 0.16, "limit": 3, "gap": 0.05},
+	"sfx_loot_collect_1":    {"db": -9.0, "pitch": 0.13, "limit": 4, "gap": 0.03},
+	"sfx_loot_collect_2":    {"db": -9.0, "pitch": 0.13, "limit": 4, "gap": 0.03},
+	"sfx_loot_collect_3":    {"db": -9.0, "pitch": 0.13, "limit": 4, "gap": 0.03},
 	"sfx_ui_deny":           {"db": -4.0, "pitch": 0.05, "limit": 1, "gap": 0.08},
 
 	# --- events: these are landmarks, so they barely vary and they cut through ---
@@ -135,24 +158,6 @@ const MIX: Dictionary = {
 }
 
 ## Defaults for any sound not listed above.
-## Sounds the game asks for and does not have yet.
-##
-## Listed but **not loaded**. Putting them in PATHS makes the loader warn on
-## every start, and the release gate fails on any warning - so five unrecorded
-## sounds would have blocked every build until somebody recorded them.
-##
-## They are here rather than nowhere because a planned sound that exists only as
-## a string literal in one script is a sound nobody finds again. `play()` already
-## returns quietly on an id it has no stream for, so the game is simply silent in
-## these places. `tools/gen_sfx_prompts.py` writes the prompts.
-const PLANNED: Array[String] = [
-	"sfx_ui_move",
-	"sfx_loot_drop",
-	"sfx_loot_collect",
-	"sfx_story_open",
-	"sfx_story_panel",
-]
-
 const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0.04}
 
 ## Sounds that come in variants. Asking for the group picks one at random, which
@@ -160,6 +165,9 @@ const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0
 const GROUPS: Dictionary = {
 	"swing_light": ["sfx_hero_swing_1", "sfx_hero_swing_2"],
 	"impact": ["sfx_hit_flesh", "sfx_hit_armour", "sfx_hit_stone"],
+	"story_panel": ["sfx_story_panel_1", "sfx_story_panel_2", "sfx_story_panel_3"],
+	"loot_drop": ["sfx_loot_drop_1", "sfx_loot_drop_2", "sfx_loot_drop_3"],
+	"loot_collect": ["sfx_loot_collect_1", "sfx_loot_collect_2", "sfx_loot_collect_3"],
 }
 
 ## Element -> tower fire sound.

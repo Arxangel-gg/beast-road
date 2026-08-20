@@ -994,7 +994,8 @@ func _setup_ground() -> void:
 	ground.scale = Vector2.ONE * tile_scale
 
 	# Nearest, so the floor stays pixel art at the scale it is drawn.
-	ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ground.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	ground.add_to_group(Graphics.FILTER_GROUP)
 
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	var baked: ImageTexture = _bake_ground(extent)
@@ -1144,7 +1145,8 @@ func _build_lanes() -> void:
 	surface.centered = true
 	surface.scale = Vector2.ONE / ROAD_BAKE_PPU
 	# Nearest, or the road stops being pixel art the moment it reaches the screen.
-	surface.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	surface.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	surface.add_to_group(Graphics.FILTER_GROUP)
 	lane_root.add_child(surface)
 
 

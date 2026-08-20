@@ -1779,12 +1779,19 @@ const OCCLUDER_FADE_SPEED: float = 6.0
 ## Cloud shadows drift across the field, darkening ground and units alike. Speed
 ## is in pixels per second; the two layers move at different rates so the sky has
 ## depth rather than sliding as one sheet. [TUNE]
-const CLOUD_SPEED: Vector2 = Vector2(26.0, 9.0)
-const CLOUD_SPEED_FAR: Vector2 = Vector2(11.0, 4.0)
+## Drift. Slightly quicker than it was: on a field half again as large, the old
+## speed crossed the screen so slowly the motion read as a static gradient.
+const CLOUD_SPEED: Vector2 = Vector2(38.0, 14.0)
+const CLOUD_SPEED_FAR: Vector2 = Vector2(17.0, 6.0)
 
 ## How dark a shadow gets at full daylight, 0..1. Clouds cast nothing at night,
 ## because there is no sun to block. [TUNE]
-const CLOUD_DARKNESS: float = 0.42
+## How dark a cloud shadow gets at full daylight.
+##
+## Raised with the fade curve in `CloudShadows._on_phase`. At 0.42 against a
+## deepened night grade they were a few percent of themselves for most of a run -
+## reported, correctly, as "not really noticeable if they're even there". [TUNE]
+const CLOUD_DARKNESS: float = 0.60
 
 ## Size of the noise features, in pixels. Larger is fewer, bigger clouds. [TUNE]
 const CLOUD_SCALE: float = 900.0

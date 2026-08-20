@@ -55,7 +55,8 @@ func _ready() -> void:
 	if _sprite.texture != null:
 		_sprite.scale = Vector2.ONE * (Balance.LOOT_ICON_SIZE
 			/ maxf(_sprite.texture.get_width(), 1.0))
-	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	# A soft pool under the drop, so a coin lying on a lit road still reads.
 	#
 	# Behind the sprite rather than a shader on it: an outline drawn on the sprite
@@ -72,7 +73,7 @@ func _ready() -> void:
 
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
-	Sfx.play("sfx_loot_drop", 0.0)
+	Sfx.play_group("loot_drop")
 
 
 func _process(delta: float) -> void:
@@ -117,7 +118,7 @@ func _process(delta: float) -> void:
 func _collect() -> void:
 	if amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
-		Sfx.play("sfx_loot_collect", 0.0)
+		Sfx.play_group("loot_collect")
 		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
 		EventBus.loot_collected.emit(currency, amount, global_position)
 	queue_free()

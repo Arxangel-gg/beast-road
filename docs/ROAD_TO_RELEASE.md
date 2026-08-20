@@ -415,8 +415,45 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [ ] Raid overhaul: larger arena, procedural tilemap terrain, elevation islands,
       chests and keys, loot.
 - [ ] Milestone cutscenes beyond the opening.
-- [ ] Cloud shadows are not noticeable enough.
-- [ ] Antialiasing / smoothing option.
+- [x] **The new SFX are integrated.** Eleven takes trimmed, peak-normalised to a
+      common −3 dB ceiling and converted to Ogg. Peak-normalised rather than
+      loudness-normalised because these are one-shots: `loudnorm` is built for
+      programme material and would pump a 0.3s click up to match a two-second
+      swell. A shared ceiling is what makes the per-sound decibels in `Sfx.MIX`
+      mean the same thing for each of them.
+
+      `sfx_ui_move` was 2.00s of which 95% was silence — trimmed to 0.10s and
+      lifted 12.4 dB. Three of the five arrived as multiple takes, so they are
+      named `_1.._3` and rotated by `Sfx.GROUPS`, which already re-rolls to avoid
+      an immediate repeat. Pitch spread sits on top of that: three takes stop the
+      *sample* repeating, the spread stops the three takes becoming a pattern over
+      a four-panel cinematic or a cleared pack of twelve.
+
+- [x] **The music prompts described the wrong game.** Three music and three
+      ambience rows still named Ashfen, Saltglass and Iron Steppe — the v3
+      regions, renamed by v4 §175-195. The files on disk had been renamed to
+      match; the generator had not, so the doc reported six sounds as missing
+      that have existed for months and described three places the game no longer
+      contains. Rewritten for the Verdant Maw, the Sunglass Waste and the White
+      Teeth. **STILL TO RECORD is now 0.**
+
+- [x] **`tools/audio_verify.tscn`** — every sound id resolves to a real file,
+      every group names real sounds, every mix row names a real sound. The loader
+      warns on a missing *file*; nothing checked the groups, and a group naming a
+      sound that does not exist plays silence and warns about nothing, because
+      there is no file to be missing. 44 sounds, 5 groups, all resolving.
+
+- [x] **Cloud shadows.** They faded linearly with daylight, and the night grade
+      was deepened from ~0.30 to ~0.15 — so they sat at a few percent of strength
+      across most of a run, present in the code and invisible on screen. The fade
+      is now curved, strength 0.42 → 0.60, and drift is quicker because on a
+      field half again as large the old speed read as a static gradient.
+
+- [x] **Smoothing option.** Off by default and it should stay off — the art is
+      authored as pixel art. Seven hardcoded `TEXTURE_FILTER_NEAREST` sites now
+      ask `Graphics.canvas_filter()` and join a group so the toggle applies to
+      the field being looked at. Like brightness, it does not knock the quality
+      preset to Custom: it is about the screen, not what the machine can afford.
 - [ ] Main menu pixel art, animated.
 - [ ] Leaderboards and the web build.
 

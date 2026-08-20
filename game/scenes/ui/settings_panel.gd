@@ -367,6 +367,8 @@ func _build_video(column: VBoxContainer) -> void:
 
 	column.add_child(_separator())
 	column.add_child(_brightness_row())
+	column.add_child(_display_toggle_row("Smooth pixel art", Graphics.KEY_SMOOTHING,
+		"Softens the hard edges of scaled pixel art. Off is how the art was drawn."))
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
 	column.add_child(_separator())
@@ -453,6 +455,33 @@ func _amount_row(text: String, key: String) -> HBoxContainer:
 ## Sits with the display settings rather than the quality ones, and does not
 ## knock the preset to Custom: it is about the player's screen, not about what
 ## their machine can afford.
+## A display toggle, which is not a quality trade-off.
+##
+## Same distinction as the brightness slider: `_toggle_row` knocks the preset to
+## Custom, and it should when somebody turns shadows off - that genuinely is no
+## longer High. Smoothing is about how the art looks to this person on this
+## screen, and silently unlabelling their chosen preset for it is wrong.
+func _display_toggle_row(text: String, key: String, hint: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label(text)
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	label.tooltip_text = hint
+	row.add_child(label)
+	var button := Button.new()
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.tooltip_text = hint
+	var on: bool = Graphics.canvas_filter() == CanvasItem.TEXTURE_FILTER_LINEAR
+	button.button_pressed = on
+	button.text = "On" if on else "Off"
+	button.pressed.connect(func() -> void:
+		Graphics.set_display(key, button.button_pressed)
+		button.text = "On" if button.button_pressed else "Off")
+	row.add_child(button)
+	return row
+
+
 func _brightness_row() -> HBoxContainer:
 	return _slider_row("Brightness", 0.0, Graphics.BRIGHTNESS_MAX_LIFT, 0.05,
 		Graphics.brightness_lift(),

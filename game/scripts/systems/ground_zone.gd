@@ -65,7 +65,8 @@ func _build_pool() -> void:
 	var rng := RunState.rng("combat")
 	_pool = Sprite2D.new()
 	_pool.texture = load(path)
-	_pool.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_pool.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_pool.add_to_group(Graphics.FILTER_GROUP)
 	# Any angle, not a quarter turn: this is a stain on the ground, and the eye
 	# reads four repeated orientations as a pattern almost immediately.
 	_pool.rotation = rng.randf() * TAU

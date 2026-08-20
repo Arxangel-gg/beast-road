@@ -41,15 +41,18 @@ ROWS = [
      "the main menu theme: slow, wide and a little mournful, a low drone under a "
      "single bone flute, distant drums that never quite arrive, the sound of "
      "somewhere you are about to leave"),
-    ("music_battle_ashfen", "music", "music", "2:00-3:00", "Suno",
-     "combat music for a drowned marsh: waterlogged percussion, detuned low "
-     "strings, a slow insistent pulse, damp and heavy and unhurried"),
-    ("music_battle_saltglass", "music", "music", "2:00-3:00", "Suno",
-     "combat music for a cracked salt desert: brittle high metallic tones, glass "
-     "and bowed metal, thin dry percussion, a sharp nervous energy"),
-    ("music_battle_steppe", "music", "music", "2:00-3:00", "Suno",
-     "combat music for an iron snow: driving low toms, war drums, rusted metal "
-     "struck rhythmically, the most aggressive track in the game"),
+    ("music_battle_jungle", "music", "music", "2:00-3:00", "Suno",
+     "combat music for the Verdant Maw, a rain-heavy jungle: wet low toms,"
+     " damp skin drums, detuned strings under a steady insistent pulse,"
+     " ember warmth pushing through cold rain"),
+    ("music_battle_desert", "music", "music", "2:00-3:00", "Suno",
+     "combat music for the Sunglass Waste, a desert of fused sand: brittle"
+     " high metallic tones, bowed glass, thin dry percussion, heat shimmer"
+     " and a sharp nervous energy"),
+    ("music_battle_snow", "music", "music", "2:00-3:00", "Suno",
+     "combat music for the White Teeth, a frozen mountain approach: driving"
+     " low toms, war drums under a storm, hard bright metal struck in"
+     " rhythm, the most aggressive track in the game"),
     ("music_raid", "music", "music", "2:00-3:00", "Suno",
      "music for raiding an enemy camp: fast, relentless, tribal drums and a "
      "rising drone, dangerous and exciting rather than grim"),
@@ -70,15 +73,16 @@ ROWS = [
      "silence, no drums, no resolution"),
 
     # ---------------- ambience ----------------
-    ("ambience_ashfen", "ambience", "ambience", "0:60-2:00", "Suno",
-     "a still marsh at dusk: dripping water, distant frogs, wind over reeds, "
-     "occasional far-off birds"),
-    ("ambience_saltglass", "ambience", "ambience", "0:60-2:00", "Suno",
-     "a vast dry salt flat: thin high wind, faint crystalline ticking as the "
-     "ground cools, nothing living"),
-    ("ambience_steppe", "ambience", "ambience", "0:60-2:00", "Suno",
-     "an open iron snow: steady dusty wind, loose metal creaking somewhere far "
-     "away, sparse dry grass"),
+    ("ambience_jungle", "ambience", "ambience", "0:60-2:00", "Suno",
+     "the Verdant Maw at dusk: heavy rain on broad leaves, water running off"
+     " stone, distant frogs and insects, far-off birds through the canopy"),
+    ("ambience_desert", "ambience", "ambience", "0:60-2:00", "Suno",
+     "the Sunglass Waste: thin high wind over fused sand, faint crystalline"
+     " ticking as the ground cools, a distant mirage-storm hiss, nothing"
+     " living"),
+    ("ambience_snow", "ambience", "ambience", "0:60-2:00", "Suno",
+     "the White Teeth: steady mountain wind carrying dry snow, a low moan"
+     " across stone, ice shifting somewhere far below, sparse and vast"),
     ("ambience_beast_walk", "ambience", "ambience", "0:60-2:00", "Suno",
      "the inside of an enormous walking creature heard from its back: a slow "
      "deep heartbeat, groaning bone, leather and chain shifting with each step"),
@@ -160,16 +164,16 @@ ROWS = [
      "a very short soft tick for moving between options, quieter than the click"),
     ("sfx_loot_drop", "sfx", "sfx", "0.35s", "ElevenLabs",
      "a small handful of coins landing on packed dirt, dry and close, no ring;"
-     " six of these may land within a second so it must not sparkle"),
+     " six of these may land within a second so it must not sparkle — record 3 takes, saved as _1.._3; they rotate"),
     ("sfx_loot_collect", "sfx", "sfx", "0.3s", "ElevenLabs",
      "picking up coins: a short bright chime with a cloth rustle under it,"
-     " satisfying and small, repeatable many times a minute without fatigue"),
+     " satisfying and small, repeatable many times a minute without fatigue — record 3 takes, saved as _1.._3; they rotate"),
     ("sfx_story_open", "sfx", "sfx", "3.0s", "ElevenLabs",
      "the opening of a story: a deep slow swell of low strings and a distant"
      " horn, rising then settling, sets a solemn tone"),
     ("sfx_story_panel", "sfx", "sfx", "1.4s", "ElevenLabs",
      "a cinematic panel arriving: a soft low whoosh with a faint paper or"
-     " parchment turn inside it, understated, plays four times in a row"),
+     " parchment turn inside it, understated, plays four times in a row — record 3 takes, saved as _1.._3; they rotate"),
 ]
 
 
@@ -192,7 +196,18 @@ def still_missing() -> list:
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game", "audio")
     out = []
     for entry in ROWS:
-        if not os.path.exists(os.path.join(root, entry[2], entry[0] + ".ogg")):
+        folder = os.path.join(root, entry[2])
+        # A numbered take satisfies the row. Several of these are deliberately
+        # recorded three times over and rotated by Sfx.GROUPS, so insisting on a
+        # bare `name.ogg` would report a sound as missing while three takes of it
+        # sat in the folder.
+        found = os.path.exists(os.path.join(folder, entry[0] + ".ogg"))
+        if not found:
+            for take in range(1, 9):
+                if os.path.exists(os.path.join(folder, "%s_%d.ogg" % (entry[0], take))):
+                    found = True
+                    break
+        if not found:
             out.append(entry)
     return out
 
