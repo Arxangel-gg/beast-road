@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "snow"
+eyebrow = "Act III  ·  The mountain closes in"
+act = 3
+id = "act3"
+display_name = "The White Teeth"
+description = "The road narrows beneath storm and black iron. Rimebound clans drive the avalanche toward Yuri."

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "rust_crown"
+eyebrow = "Act III Boss  ·  The avalanche wears a crown"
+presentation = 1
+act = 3
+id = "rust_crown"
+display_name = "Mogrun White-Maw, Avalanche King"
+description = "Black iron, frozen hide, and the patience to outlast a scattered defence. Bring every road to bear."

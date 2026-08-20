@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 2
+trigger_id = "rust_crown"
+eyebrow = "Final Ascent  ·  One road remains"
+presentation = 2
+act = 4
+id = "summit"
+display_name = "The Crown of the World"
+description = "Three war hosts lie behind you. Above waits the beacon, the Chainmaker, and the last chain binding Yuri."

@@ -27,6 +27,7 @@ var discipline_nodes: Dictionary = {}
 var factions: Dictionary = {}
 var roads: Dictionary = {}
 var road_difficulties: Dictionary = {}
+var milestone_cinematics: Dictionary = {}
 
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
@@ -51,6 +52,7 @@ func _ready() -> void:
 	road_difficulties = _load_dir("res://data/road_difficulties")
 	items = _load_dir("res://data/items")
 	tutorial_steps = _load_dir("res://data/tutorial")
+	milestone_cinematics = _load_dir("res://data/cinematics")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -171,6 +173,17 @@ func road_difficulties_sorted() -> Array[RoadDifficultyData]:
 			out.append(difficulty)
 	out.sort_custom(func(a: RoadDifficultyData, b: RoadDifficultyData) -> bool:
 		return a.rank < b.rank)
+	return out
+
+
+func milestone_cinematics_sorted() -> Array[MilestoneCinematicData]:
+	var out: Array[MilestoneCinematicData] = []
+	for value: Variant in milestone_cinematics.values():
+		var data := value as MilestoneCinematicData
+		if data != null:
+			out.append(data)
+	out.sort_custom(func(a: MilestoneCinematicData, b: MilestoneCinematicData) -> bool:
+		return a.id < b.id)
 	return out
 
 

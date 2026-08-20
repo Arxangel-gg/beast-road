@@ -724,7 +724,24 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       than stopping dead, which reads as a siege instead of as a bug. The camp
       floor is the act's own terrain: the raid backdrop tiled across 2560 units
       showed its own seams as a grid.
-- [ ] Milestone cutscenes beyond the opening.
+- [x] **Milestone cutscenes beyond the opening.** First arrivals in the Sunglass
+      Waste, the White Teeth and the Final Ascent now receive short illustrated
+      travel cards; Rakka, Veyr, Mogrun and Kharok each receive a dedicated boss
+      introduction over their regional art. Every word and trigger is a
+      `MilestoneCinematicData` resource, while the art remains derived from the
+      resource id by convention.
+
+      They pause the whole run rather than letting a newly spawned boss attack
+      under an overlay, restore the exact prior pause state, and stay below five
+      seconds unattended against the GDD's ten-second ceiling. Tap, mouse,
+      keyboard and controller advance; Escape or touch held for 0.9s skips. Each
+      full card is first-view only and persisted with the other tutorial/settings
+      flags; the HUD's light, non-blocking region and boss title cards remain on
+      every replay.
+
+      Headless tools suppress presentation by default, and the focused release
+      gate verifies all seven trigger mappings, convention art paths, persistence,
+      pause restoration and desktop/mobile input before a build can ship.
 - [x] **The new SFX are integrated.** Eleven takes trimmed, peak-normalised to a
       common −3 dB ceiling and converted to Ogg. Peak-normalised rather than
       loudness-normalised because these are one-shots: `loudnorm` is built for

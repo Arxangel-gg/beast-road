@@ -2579,6 +2579,19 @@ const MENU_MIST_SPEED: float = 7.5
 
 
 # ---------------------------------------------------------------------------
+# Milestone cinematics
+# ---------------------------------------------------------------------------
+
+## One milestone remains below five seconds when left untouched, far inside the
+## GDD's ten-second interruption ceiling. All four values are real-time seconds.
+## [TUNE]
+const MILESTONE_CINEMATIC_FADE_IN_SECONDS: float = 0.55
+const MILESTONE_CINEMATIC_HOLD_SECONDS: float = 3.4
+const MILESTONE_CINEMATIC_FADE_OUT_SECONDS: float = 0.4
+const MILESTONE_CINEMATIC_SKIP_HOLD_SECONDS: float = 0.9
+
+
+# ---------------------------------------------------------------------------
 # Touch controls
 # ---------------------------------------------------------------------------
 

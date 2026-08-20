@@ -32,6 +32,7 @@ Ambience="*res://autoload/Ambience.gd"
 UiSound="*res://autoload/UiSound.gd"
 Leaderboard="*res://autoload/Leaderboard.gd"
 TouchInput="*res://autoload/TouchInput.gd"
+MilestoneCinematics="*res://autoload/MilestoneCinematics.gd"
 
 [display]
 

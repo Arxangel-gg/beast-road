@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "chainmaker"
+eyebrow = "True Final Boss  ·  Every chain draws tight"
+presentation = 1
+act = 4
+id = "chainmaker"
+display_name = "Kharok the Chainmaker"
+description = "The one who bound the beast commands every road at once. Break him, and Yuri walks free."

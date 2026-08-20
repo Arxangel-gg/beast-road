@@ -263,8 +263,11 @@ assignments are literal. M7's localization and pseudo-localization gate is open.
 
 ## P1 — production polish required for the intended quality bar
 
-- Finish milestone cutscenes: regional transitions and boss introductions, not
-  only opening/ending screens.
+- **Closed in `codex/milestone-cinematics`:** three first-view regional/final-
+  ascent transitions and all four boss introductions now ship as data-driven,
+  convention-art presentations. They pause safely, restore prior pause state,
+  accept keyboard/controller/mouse/touch skip, remain under five seconds, persist
+  first-view state and are covered by local, guard and release gates.
 - Complete the global “juice” matrix for fire, impact, land, death, destruction,
   upgrade, fusion, loot, Command, boss phase, objective and completion events.
 - Review Rank 4 relic-socket timing. The shipped first-clear bonus currently
