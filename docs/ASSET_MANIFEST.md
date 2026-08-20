@@ -202,6 +202,41 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_zephyr_needle.png` | Storm | `#9B8FC4` |
 | `tower_stormvane.png` | Storm | `#9B8FC4` |
 
+### 5.4b Tower idle frames — `res://art/towers/`
+
+All 192×192, type T, placeholder colour `#6E667A`.
+
+The conventional base sprite is runtime pose zero. PixelLab generates four
+interior/interpolation poses with that same source pinned as both endpoints;
+poses 01–03 ship, while the exact terminal duplicate is only the loop target.
+
+Files: `tower_arc_coil_idle_01.png` … `tower_arc_coil_idle_03.png`
+Files: `tower_ashen_censer_idle_01.png` … `tower_ashen_censer_idle_03.png`
+Files: `tower_bastion_idle_01.png` … `tower_bastion_idle_03.png`
+Files: `tower_blizzard_idle_01.png` … `tower_blizzard_idle_03.png`
+Files: `tower_bulwark_idle_01.png` … `tower_bulwark_idle_03.png`
+Files: `tower_cinder_lance_idle_01.png` … `tower_cinder_lance_idle_03.png`
+Files: `tower_conflagration_idle_01.png` … `tower_conflagration_idle_03.png`
+Files: `tower_deep_freeze_idle_01.png` … `tower_deep_freeze_idle_03.png`
+Files: `tower_ember_spire_idle_01.png` … `tower_ember_spire_idle_03.png`
+Files: `tower_firestorm_idle_01.png` … `tower_firestorm_idle_03.png`
+Files: `tower_gale_turret_idle_01.png` … `tower_gale_turret_idle_03.png`
+Files: `tower_glacial_mortar_idle_01.png` … `tower_glacial_mortar_idle_03.png`
+Files: `tower_glacier_idle_01.png` … `tower_glacier_idle_03.png`
+Files: `tower_grit_sling_idle_01.png` … `tower_grit_sling_idle_03.png`
+Files: `tower_hoarfrost_bell_idle_01.png` … `tower_hoarfrost_bell_idle_03.png`
+Files: `tower_magma_idle_01.png` … `tower_magma_idle_03.png`
+Files: `tower_pyre_cannon_idle_01.png` … `tower_pyre_cannon_idle_03.png`
+Files: `tower_quake_idle_01.png` … `tower_quake_idle_03.png`
+Files: `tower_rime_lance_idle_01.png` … `tower_rime_lance_idle_03.png`
+Files: `tower_shard_thrower_idle_01.png` … `tower_shard_thrower_idle_03.png`
+Files: `tower_steam_burst_idle_01.png` … `tower_steam_burst_idle_03.png`
+Files: `tower_stonewatch_idle_01.png` … `tower_stonewatch_idle_03.png`
+Files: `tower_stormvane_idle_01.png` … `tower_stormvane_idle_03.png`
+Files: `tower_tempest_idle_01.png` … `tower_tempest_idle_03.png`
+Files: `tower_tide_caller_idle_01.png` … `tower_tide_caller_idle_03.png`
+Files: `tower_zephyr_needle_idle_01.png` … `tower_zephyr_needle_idle_03.png`
+
 ### 5.5 City — `res://art/city/`
 
 | File | Size | Type | Placeholder colour |
@@ -221,6 +256,68 @@ All 192×192, type T. Placeholder colour by element.
 | `building_market.png` | 192×192 | T | `#7A4936` |
 | `plot_empty.png` | 192×192 | T | `#4A4438` |
 | `plot_locked.png` | 192×192 | T | `#33302A` |
+
+### 5.5b Building tiers and idle frames — `res://art/city/`
+
+All 192×192, type T, placeholder colour `#62584B`.
+
+Tier one keeps the conventional base path. Every tier has its own four-pose
+package: the base/tier sprite is pose zero and poses 01–03 are the shipped
+PixelLab continuation frames.
+
+Files: `building_forge_idle_01.png` … `building_forge_idle_03.png`
+Files: `building_forge_tier_02.png`
+Files: `building_forge_tier_02_idle_01.png` … `building_forge_tier_02_idle_03.png`
+Files: `building_forge_tier_03.png`
+Files: `building_forge_tier_03_idle_01.png` … `building_forge_tier_03_idle_03.png`
+
+Files: `building_granary_idle_01.png` … `building_granary_idle_03.png`
+Files: `building_granary_tier_02.png`
+Files: `building_granary_tier_02_idle_01.png` … `building_granary_tier_02_idle_03.png`
+Files: `building_granary_tier_03.png`
+Files: `building_granary_tier_03_idle_01.png` … `building_granary_tier_03_idle_03.png`
+
+Files: `building_market_idle_01.png` … `building_market_idle_03.png`
+Files: `building_market_tier_02.png`
+Files: `building_market_tier_02_idle_01.png` … `building_market_tier_02_idle_03.png`
+Files: `building_market_tier_03.png`
+Files: `building_market_tier_03_idle_01.png` … `building_market_tier_03_idle_03.png`
+
+Files: `building_sanctum_idle_01.png` … `building_sanctum_idle_03.png`
+Files: `building_sanctum_tier_02.png`
+Files: `building_sanctum_tier_02_idle_01.png` … `building_sanctum_tier_02_idle_03.png`
+Files: `building_sanctum_tier_03.png`
+Files: `building_sanctum_tier_03_idle_01.png` … `building_sanctum_tier_03_idle_03.png`
+
+Files: `building_scavenging_post_idle_01.png` … `building_scavenging_post_idle_03.png`
+Files: `building_scavenging_post_tier_02.png`
+Files: `building_scavenging_post_tier_02_idle_01.png` … `building_scavenging_post_tier_02_idle_03.png`
+Files: `building_scavenging_post_tier_03.png`
+Files: `building_scavenging_post_tier_03_idle_01.png` … `building_scavenging_post_tier_03_idle_03.png`
+
+Files: `building_town_hall_idle_01.png` … `building_town_hall_idle_03.png`
+Files: `building_town_hall_tier_02.png`
+Files: `building_town_hall_tier_02_idle_01.png` … `building_town_hall_tier_02_idle_03.png`
+Files: `building_town_hall_tier_03.png`
+Files: `building_town_hall_tier_03_idle_01.png` … `building_town_hall_tier_03_idle_03.png`
+
+Files: `building_treasury_idle_01.png` … `building_treasury_idle_03.png`
+Files: `building_treasury_tier_02.png`
+Files: `building_treasury_tier_02_idle_01.png` … `building_treasury_tier_02_idle_03.png`
+Files: `building_treasury_tier_03.png`
+Files: `building_treasury_tier_03_idle_01.png` … `building_treasury_tier_03_idle_03.png`
+
+Files: `building_watchtower_idle_01.png` … `building_watchtower_idle_03.png`
+Files: `building_watchtower_tier_02.png`
+Files: `building_watchtower_tier_02_idle_01.png` … `building_watchtower_tier_02_idle_03.png`
+Files: `building_watchtower_tier_03.png`
+Files: `building_watchtower_tier_03_idle_01.png` … `building_watchtower_tier_03_idle_03.png`
+
+Files: `building_woodcutter_idle_01.png` … `building_woodcutter_idle_03.png`
+Files: `building_woodcutter_tier_02.png`
+Files: `building_woodcutter_tier_02_idle_01.png` … `building_woodcutter_tier_02_idle_03.png`
+Files: `building_woodcutter_tier_03.png`
+Files: `building_woodcutter_tier_03_idle_01.png` … `building_woodcutter_tier_03_idle_03.png`
 
 ### 5.6 Beast — `res://art/beast/`
 
@@ -378,10 +475,13 @@ point is that a clump is occasionally *not* what you expected.
 |------|------|------|--------------------|
 | `plant_jungle_shrub.png` | 56×64 | T | `#2E3A33` |
 | `plant_jungle_flower.png` | 48×56 | T | `#2E3A33` |
+| `plant_jungle_fern.png` | 64×40 | T | `#2E3A33` |
 | `plant_desert_shrub.png` | 56×64 | T | `#6E5B3C` |
 | `plant_desert_flower.png` | 48×56 | T | `#6E5B3C` |
+| `plant_desert_fern.png` | 64×40 | T | `#6E5B3C` |
 | `plant_snow_shrub.png` | 56×64 | T | `#7C8A96` |
 | `plant_snow_flower.png` | 48×56 | T | `#7C8A96` |
+| `plant_snow_fern.png` | 64×40 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
 | `prop_boulder.png` | 64×56 | T | `#4A4A46` |
 

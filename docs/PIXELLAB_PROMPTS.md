@@ -11,13 +11,21 @@ sizes) and `ASSET_PROMPTS.md` (the existing ChatGPT/Midjourney book).
 
 ## 0. Read this before spending a single generation
 
-**The game is not missing any art.** `run_tool.gd -- report` currently says:
+**Production update, 2026-08-20:** the structure animation and building-tier
+batch described by the later owner ruling is complete. The live source of truth
+for its four-pose package, prompt templates, paths and correction process is
+`STRUCTURE_ART_PIPELINE.md`. This larger prompt book remains useful for source
+art direction and any future full-style pass, but its old priority list is
+historical.
+
+The asset report currently says:
 
 ```
-All 187 manifest assets exist. 187 have real art.
+All 585 manifest assets exist. 585 have real art.
 ```
 
-There is no gap to fill. Exactly one asset is *pending by choice* — see §3.
+There is no unfilled manifest gap. New or replacement art is an art-direction
+task and still lands only with an exact manifest path.
 
 **Pixellab makes pixel art. Beast Road's 187 assets are painterly.** The house
 style in `ASSET_MANIFEST.md` §1 is "dark painterly grim-fantasy game art,

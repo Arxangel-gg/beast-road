@@ -32,6 +32,8 @@ var _plots: Dictionary = {}
 ## Per-building idle phase, so no two plots swell together. Keyed by building id
 ## because the plots themselves are rebuilt when the town changes.
 var _idle_phases: Dictionary = {}
+var _plot_idle_frames: Dictionary = {}
+var _hall_idle_frames: Array[Texture2D] = []
 var _idle_time: float = 0.0
 
 
@@ -39,9 +41,7 @@ func _ready() -> void:
 	_setup_ground()
 	_build_plots()
 	EventBus.construction_completed.connect(_on_construction_completed)
-	var hall: BuildingData = ContentDB.building("town_hall")
-	if hall != null and ResourceLoader.exists(hall.get_sprite_path()):
-		hall_sprite.texture = load(hall.get_sprite_path())
+	_refresh_hall()
 
 
 ## The town sits on the beast's back, so it gets the same ground as the field.
@@ -64,9 +64,9 @@ func _setup_ground() -> void:
 ## itself without anyone editing a scene.
 ## The town's idle.
 ##
-## Nine buildings and a Town Hall, every one of them a single static PNG, made
-## the city read as a model of a town rather than a town. The same breathe the
-## towers use, at the same rate, so the two scopes feel like one game.
+## Authored frame loops carry the visible motion. The old breathe remains only
+## for an unbuilt marker or a missing sequence, so art can arrive incrementally
+## without leaving the scope frozen.
 ##
 ## Written straight to the sprite rather than through a channel sum, because
 ## nothing else animates a plot - if that ever changes this has to move to
@@ -82,10 +82,24 @@ func _process(delta: float) -> void:
 		if sprite == null or sprite.texture == null:
 			continue
 		var phase: float = float(_idle_phases.get(id, 0.0)) + swing
-		sprite.scale = Vector2.ONE * (1.0 + sin(phase) * Balance.STRUCTURE_IDLE_SCALE)
-		sprite.rotation = deg_to_rad(sin(phase * 0.63) * Balance.STRUCTURE_IDLE_SWAY)
+		var frames: Array = _plot_idle_frames.get(String(id), [])
+		if not frames.is_empty() and RunState.building_tier(String(id)) > 0:
+			var clock: float = _idle_time * Balance.STRUCTURE_IDLE_FRAME_RATE \
+				+ float(_idle_phases.get(id, 0.0)) / TAU * float(frames.size())
+			var frame: int = int(floor(clock)) % frames.size()
+			sprite.texture = frames[frame] as Texture2D
+			sprite.scale = Vector2.ONE
+			sprite.rotation = 0.0
+		else:
+			sprite.scale = Vector2.ONE * (1.0 + sin(phase) * Balance.STRUCTURE_IDLE_SCALE)
+			sprite.rotation = deg_to_rad(sin(phase * 0.63) * Balance.STRUCTURE_IDLE_SWAY)
 
-	if hall_sprite != null:
+	if hall_sprite != null and not _hall_idle_frames.is_empty():
+		var hall_frame: int = int(floor(_idle_time * Balance.STRUCTURE_IDLE_FRAME_RATE)) \
+			% _hall_idle_frames.size()
+		hall_sprite.texture = _hall_idle_frames[hall_frame]
+		hall_sprite.scale = Vector2.ONE
+	elif hall_sprite != null:
 		# The hall swells a little less: it is the biggest thing on screen and the
 		# same fraction on it is a much larger movement.
 		var swell: float = 1.0 + sin(swing) * Balance.STRUCTURE_IDLE_SCALE * 0.6
@@ -160,11 +174,12 @@ func _refresh_plot(id: String) -> void:
 		# An unbuilt plot shows the empty-plot marker, not a ghost of the
 		# building — the town should read as something you are assembling.
 		var unlocked: bool = MetaState.building_unlocked(id)
-		var art: String = data.get_sprite_path() if tier > 0 else (
+		var art: String = data.get_sprite_path_for_tier(tier) if tier > 0 else (
 			"res://art/city/plot_empty.png" if unlocked else "res://art/city/plot_locked.png")
 		if ResourceLoader.exists(art):
 			sprite.texture = load(art)
 			sprite.modulate = Color.WHITE if tier > 0 else Color(1, 1, 1, 0.55 if unlocked else 0.34)
+		_plot_idle_frames[id] = GameData.load_idle_frames(art) if tier > 0 else []
 
 	if label != null:
 		if tier > 0:
@@ -182,7 +197,20 @@ func _is_building_now(id: String) -> bool:
 
 
 func _on_construction_completed(building_id: String, _tier: int) -> void:
-	_refresh_plot(building_id)
+	if building_id == "town_hall":
+		_refresh_hall()
+	else:
+		_refresh_plot(building_id)
+
+
+func _refresh_hall() -> void:
+	var hall: BuildingData = ContentDB.building("town_hall")
+	if hall == null or hall_sprite == null:
+		return
+	var art: String = hall.get_sprite_path_for_tier(RunState.building_tier(hall.id))
+	if ResourceLoader.exists(art):
+		hall_sprite.texture = load(art)
+	_hall_idle_frames = GameData.load_idle_frames(art)
 
 
 # --- Construction API (called by the town UI) -------------------------------

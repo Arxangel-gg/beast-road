@@ -10,14 +10,14 @@ screenshots.
 
 The game is a substantial playable production candidate, not a release
 candidate yet. Its systems and content skeleton are unusually complete:
-44/44 automatable conformance probes pass, all 405 manifest assets are present
+44/44 automatable conformance probes pass, all 585 manifest assets are present
 and non-placeholder, the three acts and summit exist, and the release pipeline
 builds Windows, launcher and web artifacts.
 
 It must not be advertised as production-ready until the P0 list below is closed.
 The largest gaps are not another combat mechanic. They are a blocked live
-leaderboard, incomplete authored animation/town presentation, a visibly weak
-battlefield ground pass, mobile-web controls, full-session human validation,
+leaderboard, final in-motion structure-art acceptance, a visibly weak battlefield
+ground pass, mobile-web controls, full-session human validation,
 localization/accessibility closeout, and publishing/legal work.
 
 “AAA” is a quality bar, not a switch that code coverage can turn on. Reaching
@@ -46,7 +46,15 @@ service remains blocked as described below.
 
 - Cold game and launcher load: no project warning or error outside the sandbox.
 - GDD audit: 44/44 automatable rows; seven human rows remain deliberately open.
-- Manifest: 405 rows, 405 files, zero placeholders.
+- Manifest: 585 rows, 585 files, zero placeholders.
+- PixelLab structure package: 26 tower loops and 27 building-tier loops, all
+  four poses on 192×192 transparent canvases. The 53-package size/alpha/anchor/
+  silhouette gate passes, and the runtime keeps transform motion only as a
+  missing-art fallback.
+- Building growth: 18 distinct tier-two/tier-three bases now replace scaling one
+  sprite, and all nine buildings change visibly through three tiers.
+- Foliage: region-painted horizontal ferns ship for jungle, desert and snow on
+  the existing 32-band batched rendering path.
 - Shipped-script leak: 101 scripts, none depend on excluded tools.
 - Road-tile connectivity, authored grid and three-route lane geometry pass.
 - Balance, curve, menu, leaderboard, audio, torch, raid layout, raid suspension,
@@ -55,18 +63,20 @@ service remains blocked as described below.
   the player's save.
 - Short soak, 45-second torch-snuff soak and 45-second memory-growth performance
   gate pass. The headless timing number is not a GPU benchmark.
-- The 120-second real-renderer High/1920×1080 gate now passes on the developer's
-  RTX 3070 Ti at 68 FPS average, 16.7 ms p99, zero >33 ms hitches, +0 orphans,
-  +0.7% nodes and +1.4% memory. This qualifies that machine, not minimum spec.
+- The fresh post-animation 120-second real-renderer High/1920×1080 gate passes
+  on the developer's RTX 3070 Ti at 62 FPS average, 19.7 ms p99, 29.9 ms worst,
+  zero >33 ms hitches, +0 orphans, +0.4% nodes and +0.2% memory. This qualifies
+  that machine, not minimum spec.
 - Launcher failure tests now use a repository-local fixture rather than the real
   `%LOCALAPPDATA%\BeastRoad` install and pass without touching an installed game.
 - Fresh 1920×1080 UI sweep covers menu, settings, leaderboard, crossroad, win and
   loss. It found the new leaderboard footer pushing the exit action below the
   screen; the footer was re-budgeted and both results screens were recaptured
   with every action visible.
-- Update Manager tuning now reads Balance/UI/graphics constants, the sound mix,
-  valid Godot engine keys, and 917 numeric/boolean/collection values from 17
-  content-resource groups. Surgical write tests pass.
+- Update Manager tuning now includes the authored structure-frame rate alongside
+  the existing Balance/UI/graphics constants, sound mix, engine keys and 17
+  content-resource groups. Its publish preflight also runs the 53-package art
+  gate. Surgical write and publisher-contract tests pass.
 - The night gate now maps authored canvas coordinates through the real display
   stretch before reading pixels; five corrected 1440p runs pass at minimum
   brightness and emit a frame for human review.
@@ -103,34 +113,24 @@ Exit proof: live production round trip from Windows and web, duplicate retry
 creates one row, anonymous users cannot update/delete rows or select unintended
 tables, and an outage never blocks debrief or menu navigation.
 
-### 2. Complete the PixelLab tower/building animation package
+### 2. Complete in-motion acceptance of the PixelLab structure package
 
-Current state: 26 tower and 9 building base sprites exist. A transform-based
-breathing effect is a functional fallback, not the owner-requested final authored
-animation. Buildings still lack visible tier growth.
-
-PixelLab MCP is configured in Claude Code, but no PixelLab MCP capability is
-available in this Codex session. Per PixelLab's MCP contract, raw HTTP is not a
-substitute for missing tools. Generation must resume in a session where the MCP
-server is actually available.
+Implementation state: complete. PixelLab generated four-pose packages for every
+one of the 26 towers and all three tiers of all nine buildings. Higher building
+tiers have distinct permanent architecture rather than a scaled tier-one image.
+All 180 new art files are in the manifest and imported. Runtime lookup, phase
+scatter, beast-step composition, fallback behavior, tuning exposure and the
+53-package release gate are implemented and passing. The reproducible prompt and
+correction contract is recorded in `STRUCTURE_ART_PIPELINE.md`.
 
 Remaining work:
 
-- Lock one animation specification: frame count, cadence, canvas size, pivot,
-  transparent bounds, loop pose and maximum silhouette drift.
-- Generate and art-direct idle frames for all 26 towers and all 9 buildings.
-- Produce visually distinct building tiers for every building; include damaged
-  or scarred treatment where required by M6 rather than only scaling one sprite.
-- Run a per-element silhouette pass so all tower families remain readable at
-  gameplay zoom, at night, under weather and under maximum effects.
-- Add every final frame path and dimension to `ASSET_MANIFEST.md` in the same
-  change as its exact-path file; never land code that names an unmanifested art
-  requirement.
-- Implement frame loading by resource ID convention, retain the beast-step
-  channel, randomize phase per instance, and keep transform breathing only as a
-  fallback for a missing sequence.
-- Gate loop continuity, pivot stability, sprite bounds, tier lookup, zero
-  placeholders and performance with hundreds of animated structures.
+- Capture all tower families and every building tier at gameplay zoom, at night,
+  under weather and under maximum effects.
+- Run the owner/blind-reader role-and-tier identification review and regenerate
+  any package that fails readability or art-direction judgement.
+- Confirm loop continuity by eye in the running game; the automated gate proves
+  stable bounds and anchors, but cannot judge a distracting material motion.
 
 Exit proof: a blind capture clearly identifies tower element/role and building
 tier without UI labels; no loop pops, feet slide, pivots jump or instances pulse
@@ -149,8 +149,8 @@ Remaining work:
   and obvious 64-pixel repetition while preserving exact connection masks.
 - Add bounded procedural variation inside each road and ground mask, not a new
   procedural layout.
-- Finish horizontal ferns and the foliage variety/density pass for desert and
-  snow as well as jungle; verify roots, shadows and y-sort at every camera zoom.
+- Finish the foliage variety/density art-direction pass for desert and snow as
+  well as jungle; verify fern roots, shadows and y-sort at every camera zoom.
 - Rebalance foliage clusters around buildable plots, junctions and telegraphs so
   decoration never hides placement, enemies, projectiles or health bars.
 - Re-stage the raid field, whose current capture reads sparse and dark, while
@@ -318,10 +318,11 @@ The remaining design contradictions are:
 
 ## Recommended closure order
 
-1. Restore Supabase, deploy RLS/schema and complete the live leaderboard test.
+1. Keep leaderboard networking on the owner's explicit hold. When that hold is
+   lifted, restore Supabase, deploy RLS/schema and complete the live test.
 2. Resolve the five owner decisions immediately; they change acceptance criteria.
-3. Resume PixelLab in an MCP-enabled session and complete towers/buildings/tier
-   animation packages plus manifest/loader/performance gates.
+3. Run the blind in-game tower-role/building-tier and loop-motion acceptance on
+   the completed PixelLab package; regenerate only rejected packages.
 4. Repaint roads/ground/foliage and restage raids; run night and readability QA.
 5. Implement mobile touch or formally remove mobile-browser support from 1.0.
 6. Lock copy, localization, accessibility, credits and legal/store packages.

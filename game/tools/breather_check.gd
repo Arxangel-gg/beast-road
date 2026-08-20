@@ -123,6 +123,13 @@ func _process(delta: float) -> void:
 
 
 func _bail(code: int) -> void:
+	# This harness owns the instantiated run. Let it leave the tree before asking
+	# the engine to stop; quitting with the live battlefield still attached made
+	# an otherwise passing check emit ObjectDB/resource leak diagnostics.
+	if is_instance_valid(_run):
+		_run.queue_free()
+	_field = null
+	_run = null
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()

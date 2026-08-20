@@ -69,6 +69,25 @@ func get_sprite_path() -> String:
 	return GameData.derive_path("city", "building_", id)
 
 
+## Tier one keeps the canonical path. Higher tiers are derived from the same id
+## and remain optional at runtime, so an interrupted art install falls back to
+## the last known-good base rather than making a building invisible.
+func get_sprite_path_for_tier(tier: int) -> String:
+	var base: String = get_sprite_path()
+	var candidate: String = get_tier_sprite_path(tier)
+	return candidate if ResourceLoader.exists(candidate) else base
+
+
+## Exact authored path, without the runtime fallback. Production art gates use
+## this form so a missing higher tier cannot hide behind a perfectly valid tier
+## one sprite.
+func get_tier_sprite_path(tier: int) -> String:
+	var base: String = get_sprite_path()
+	if tier <= 1:
+		return base
+	return "%s_tier_%02d.png" % [base.get_basename(), tier]
+
+
 ## Distance units needed to construct the given tier.
 static func tier_cost(tier: int) -> float:
 	match tier:

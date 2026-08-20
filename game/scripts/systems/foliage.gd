@@ -42,7 +42,7 @@ const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 ## a field of nothing but boulders is as monotonous as a field of nothing but
 ## reeds, and the point of the extra kinds is that a clump is occasionally *not*
 ## the thing you expected.
-const REGIONAL_KINDS: Array[String] = ["shrub", "flower"]
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern"]
 const SHARED_KINDS: Array[String] = ["rock", "boulder"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"

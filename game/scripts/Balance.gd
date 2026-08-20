@@ -1030,17 +1030,20 @@ const GROUND_ZONE_DRIFT: float = 0.22
 
 # --- Structure idle ----------------------------------------------------------
 #
-# Towers and buildings are single static PNGs and were completely still, which
-# reads as a diorama rather than a place. Frames were considered and rejected for
-# the reason the whole project already works this way: a transform is cheaper
-# than a spritesheet, it applies to every structure at once including any added
-# later, and a real spritesheet would still want this underneath it.
+# Towers and buildings prefer authored PixelLab frame loops by id convention.
+# The transform remains the missing-art fallback, so a partial install still
+# reads as alive instead of freezing or dropping the sprite entirely.
 #
 # Deliberately small. This is meant to be felt and not watched - a structure that
 # visibly pulses pulls the eye away from the road, which is where the game is.
 
 ## Cycles per second of the breathe. Slow: a building is not panting. [TUNE]
 const STRUCTURE_IDLE_RATE: float = 0.42
+
+## Authored structure-idle playback speed in frames per second. Four poses at
+## this cadence make a one-second closed loop without pulling focus from combat.
+## [TUNE]
+const STRUCTURE_IDLE_FRAME_RATE: float = 4.0
 
 ## How much a structure swells and settles, as a fraction of its size. [TUNE]
 const STRUCTURE_IDLE_SCALE: float = 0.012

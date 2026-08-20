@@ -37,6 +37,39 @@ static func derive_path(folder: String, prefix: String, resource_id: String) -> 
 	return "res://art/%s/%s%s.png" % [folder, prefix, resource_id]
 
 
+## The authored structure-idle convention. Frame zero is always the ordinary
+## sprite path; generated continuation frames sit beside it as `_idle_01`,
+## `_idle_02`, and so on. Keeping the source pose as frame zero means replacing
+## or regenerating a structure never requires a resource or scene edit.
+static func idle_frame_path(base_path: String, index: int) -> String:
+	if base_path.is_empty() or index <= 0:
+		return base_path
+	return "%s_idle_%02d.png" % [base_path.get_basename(), index]
+
+
+## Loads a complete-by-convention idle sequence. No continuation frame is a
+## supported state and returns an empty series, which lets callers retain their
+## transform fallback. Once frame 01 exists, loading stops at the first gap so
+## a damaged install cannot jump across a missing pose.
+static func load_idle_frames(base_path: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	if base_path.is_empty() or not ResourceLoader.exists(base_path):
+		return out
+	var first: String = idle_frame_path(base_path, 1)
+	if not ResourceLoader.exists(first):
+		return out
+	out.append(load(base_path) as Texture2D)
+	# Eight is a defensive ceiling, not an authored frame count. Production
+	# structure loops currently ship three continuation frames and the art gate
+	# owns that contract; runtime remains forward-compatible with a longer loop.
+	for index: int in range(1, 9):
+		var path: String = idle_frame_path(base_path, index)
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
+
+
 ## True when the id is set and the derived file is actually on disk. Useful in
 ## tooling and in asserts; not something gameplay code should need.
 func has_sprite() -> bool:

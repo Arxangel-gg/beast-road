@@ -249,7 +249,9 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       with its roots sliding across the ground. They now draw in a child item with
       the same shader inverted and its reach cut to a quarter — a shrub is a woody
       thing and should not whip like grass.
-- [ ] Horizontal ferns.
+- [x] Horizontal ferns. Jungle, desert and snow now each carry a wide 64×40
+      region-painted fern. They use the existing 32-band batched foliage path,
+      so the added silhouette does not reintroduce per-plant draw calls.
 - [x] **Hero levelling to 100 and the skill tree.** The bounded levelling system
       is complete. The original implementation reset each run; the owner ruling
       of 2026-08-20 now persists level, XP and placed attributes, capped by
@@ -803,23 +805,20 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
 ### Towers and buildings
 
-- [~] Idle animation on every tower and building, always running. The current
-      transform-based breathing motion composes with the beast-step wobble as a
-      separate channel rather than a second
-      writer — two systems assigning `sprite.rotation` means the later one erases
-      the earlier. Phases are scattered per instance; in unison it reads as the
-      whole screen pulsing rather than as a place.
-
-      Transform motion is a functional fallback, not the final art pass. Per the
-      owner ruling of 2026-08-20, every tower and building now requires authored
-      PixelLab idle frames, wired through the same id-derived art convention and
-      layered with the existing beast-step channel.
-- [~] PixelLab art for every tower and building. All 26 towers and 9 buildings
-      already have generated art; what is missing is *more* of it — tier variants
-      and per-element silhouette passes — plus the authored idle frames above.
+- [x] Idle animation on every tower and building, always running. Every one of
+      the 26 towers and all 27 building tiers now has an authored four-pose
+      PixelLab package. Runtime loading follows the id-derived path convention,
+      scatters phase per instance, and composes with beast-step wobble. The old
+      transform breathe remains only as a damaged-install fallback.
+- [x] PixelLab art package for every tower and building. The complete batch is
+      78 tower continuation frames, 18 higher-tier building bases and 81
+      building continuation frames. `structure_art_check.tscn` gates all 53
+      packages at exact size, alpha, stable ground anchor and bounded silhouette
+      drift. Blind role/tier readability remains a human acceptance row in the
+      production audit, not an ungenerated-asset task.
 - [x] Beast walk/idle as authored frames, layered over the procedural gait.
-- [ ] Building tier variants — nine buildings have one sprite each; v4 §M3 wants
-      visible growth.
+- [x] Building tier variants — all nine buildings now have distinct tier-two and
+      tier-three architecture, and every tier has its own idle package.
 
 ### The beast scope
 
@@ -858,11 +857,12 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
           godot --path game res://tools/perf_check.tscn -- --seconds=120 --build
 
-      **Developer-hardware pass, 2026-08-20:** RTX 3070 Ti, High, 1920×1080,
-      120 measured seconds: 68 FPS average, 16.7 ms p99, 22.6 ms worst, zero
-      hitches over 33 ms, +0 orphans, +0.7% nodes and +1.4% memory. Foliage depth
-      bands were converted from roughly 1,380 polygon draw commands to one static
-      mesh each, reducing the measured frame time from 17.5 ms to 14.8 ms.
+      **Post-structure-animation developer-hardware pass, 2026-08-20:** RTX 3070
+      Ti, High, 1920×1080, 120 measured seconds: 62 FPS average, 19.7 ms p99,
+      29.9 ms worst, zero hitches over 33 ms, +0 orphans, +0.4% nodes and +0.2%
+      memory. This is the current release evidence after all 53 authored frame
+      packages were live. The earlier foliage batching pass converted roughly
+      1,380 polygon draw commands to one static mesh per depth band.
 
       The row remains partial until minimum/recommended hardware are defined and
       qualified; one high-end developer machine is not the shipping matrix.

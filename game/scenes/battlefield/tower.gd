@@ -55,6 +55,8 @@ var _step_wobble: float = 0.0
 ## out of step - in unison it reads as a screen-wide pulse rather than as
 ## buildings settling.
 var _idle_phase: float = 0.0
+var _idle_frame_clock: float = 0.0
+var _idle_frames: Array[Texture2D] = []
 var _level_scale: Vector2 = Vector2.ONE
 
 
@@ -84,6 +86,7 @@ func _ready() -> void:
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
+	_idle_frames = GameData.load_idle_frames(path)
 	_draw_range_ring()
 	refresh_modifiers()
 	_light = LightKit.add_light(self, TowerData.element_colour(data.element),
@@ -107,6 +110,8 @@ func _ready() -> void:
 			Balance.SHADOW_LAYER_SCENERY, half.y * 0.44)
 
 	_idle_phase = RunState.rng("combat").randf() * TAU
+	if not _idle_frames.is_empty():
+		_idle_frame_clock = _idle_phase / TAU * float(_idle_frames.size())
 	_apply_level_look()
 	_build_health()
 	call_deferred("refresh_modifiers")
@@ -556,10 +561,16 @@ func _tick_step_wobble(delta: float) -> void:
 	if sprite == null:
 		return
 	_step_wobble = move_toward(_step_wobble, 0.0, 12.0 * delta)
-	_idle_phase += delta * Balance.STRUCTURE_IDLE_RATE * TAU
-
-	var breathe: float = sin(_idle_phase)
-	var sway: float = sin(_idle_phase * 0.63)
+	var breathe: float = 0.0
+	var sway: float = 0.0
+	if not _idle_frames.is_empty():
+		_idle_frame_clock += delta * Balance.STRUCTURE_IDLE_FRAME_RATE
+		var frame: int = int(floor(_idle_frame_clock)) % _idle_frames.size()
+		sprite.texture = _idle_frames[frame]
+	else:
+		_idle_phase += delta * Balance.STRUCTURE_IDLE_RATE * TAU
+		breathe = sin(_idle_phase)
+		sway = sin(_idle_phase * 0.63)
 	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY)
 	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE)
 

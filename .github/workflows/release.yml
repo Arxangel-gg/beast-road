@@ -80,6 +80,10 @@ jobs:
 
           run_godot_clean --headless --path game --quit
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- report
+          # Every tower and every building tier must carry its exact four-pose
+          # PixelLab package. Runtime fallbacks are for damaged installs, not a
+          # release excuse; this also gates canvas size and ground-anchor drift.
+          run_godot_clean --headless --path game res://tools/structure_art_check.tscn
           # Shipped code must not name anything under tools/: the export strips
           # that directory, and a missing class_name is a parse failure, so the
           # script simply does not load. Source-run gates cannot see this.
