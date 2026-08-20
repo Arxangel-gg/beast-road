@@ -113,6 +113,13 @@ func _ready() -> void:
 ## is only checkable by looking at every torch at once, which is what this does.
 func _check_layout() -> bool:
 	var torches: Array[Node] = get_tree().get_nodes_in_group(&"torches")
+	# Every torch lights. An unlit torch prop is the reported bug: a road lined
+	# with posts that is still dark between them.
+	for node: Node in torches:
+		if not (node as Torch).carries_light:
+			push_error("a torch at %s carries no light" % (node as Node2D).global_position)
+			return false
+
 	if torches.size() < Balance.LANE_COUNT * 4:
 		push_error("only %d torches in the field - the roads cannot be lit" % torches.size())
 		return false
@@ -136,32 +143,22 @@ func _check_layout() -> bool:
 			% [closest, Balance.TORCH_MIN_GAP])
 		return false
 
-	# Every lane is the same shape rotated a quarter turn, so rotating one lane's
-	# torches onto the next must land on torches that exist. This is what catches
-	# a filter that keeps a different set on one road than on another - the roads
-	# would each look fine alone and the field would be visibly lopsided.
-	var lanes: Dictionary = {}
-	for node: Node in torches:
-		var torch := node as Torch
-		if not lanes.has(torch.lane):
-			lanes[torch.lane] = [] as Array[Vector2]
-		(lanes[torch.lane] as Array[Vector2]).append(torch.global_position)
-	var first: Array[Vector2] = lanes.get(0, [] as Array[Vector2])
-	for lane: int in Balance.LANE_COUNT:
-		var here: Array[Vector2] = lanes.get(lane, [] as Array[Vector2])
-		if here.size() != first.size():
-			push_error("road %d has %d torches and road 0 has %d - the field is lopsided"
-				% [lane, here.size(), first.size()])
+	# The field must map onto itself under a quarter turn.
+	#
+	# Asserted over the *whole set* rather than per lane. Torches now belong to
+	# corridors, and a corridor between two junctions does not belong to any one
+	# road - the lane recorded on a torch is only for snuff bookkeeping, and
+	# counting torches per lane made the check fail on a field that was in fact
+	# perfectly symmetric. What has to hold is that turning the map ninety degrees
+	# leaves it looking the same, which is this.
+	for at: Vector2 in points:
+		var want: Vector2 = at.rotated(TAU * 0.25)
+		var near: float = INF
+		for other: Vector2 in points:
+			near = minf(near, want.distance_to(other))
+		if near > 2.0:
+			push_error("no torch a quarter turn from %s - the field is lopsided" % at)
 			return false
-		var turn: float = TAU * float(lane) / float(Balance.LANE_COUNT)
-		for at: Vector2 in first:
-			var want: Vector2 = at.rotated(turn)
-			var near: float = INF
-			for other: Vector2 in here:
-				near = minf(near, want.distance_to(other))
-			if near > 2.0:
-				push_error("road %d has no torch where road 0 has one at %s" % [lane, at])
-				return false
 
 	# Off the carriageway, not on it. A torch on the road is the complaint this
 	# placement was rewritten to fix, and it reads as a bug even when it is lit.

@@ -49,6 +49,14 @@ var _lane_offset: float = 0.0
 ## Which leg of the road this enemy is walking. Only ever increases.
 var _path_index: int = 0
 
+## The way in this enemy chose when it spawned.
+##
+## Held rather than looked up, because the authored map forks: asking the lane
+## for "the" path would send every enemy down the shortest corridor and quietly
+## throw away the whole point of the layout. Chosen once so the choice is stable
+## - re-rolling it per frame would make an enemy dither at every junction.
+var _route: PackedVector2Array = PackedVector2Array()
+
 
 ## Separate scaling keeps durability tense without letting late enemies erase
 ## the town in one hit. Speed gets its own gentler curve too.
@@ -91,6 +99,7 @@ func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 	_hp_scale = hp_scale
 	_damage_scale = hp_scale if damage_scale < 0.0 else damage_scale
 	_speed_scale = speed_scale
+	_route = field.lane_route(lane_index)
 
 
 func _ready() -> void:
@@ -218,7 +227,7 @@ func _walk(delta: float) -> void:
 ## the lane's overall heading, so a column keeps its shape around a corner
 ## instead of fanning out and cutting it.
 func _road_direction() -> Vector2:
-	var path: PackedVector2Array = _field.lane_path(lane)
+	var path: PackedVector2Array = _route
 	if path.size() < 2:
 		return (_field.town_position() - global_position).normalized()
 

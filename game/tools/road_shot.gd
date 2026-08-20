@@ -21,7 +21,7 @@ func _ready() -> void:
 
 	var cam := run.battlefield.camera as Camera2D
 	if cam != null:
-		cam.zoom = Vector2(0.32, 0.32)
+		cam.zoom = Vector2(0.21, 0.21)
 		cam.global_position = Vector2.ZERO
 	if run.hud != null:
 		run.hud.visible = false

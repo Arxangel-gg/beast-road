@@ -1192,11 +1192,21 @@ func _test_enemies_walk_the_road(field: Battlefield) -> void:
 	var closest_to_pocket: float = INF
 	var travelled: float = 0.0
 	var previous: Vector2 = walker.global_position
-	# Long enough to actually finish. The road is ~1920 units and a bogkin walks
-	# 33 a second, so this needs about sixty seconds of simulation - the first
-	# version ran twenty-seven and reported a stall that was really a test that
-	# stopped watching halfway along the first crossbar.
-	for _step: int in 3000:
+	# Long enough to actually finish, derived rather than guessed.
+	#
+	# This has now been too short twice, and both times it reported a stall that
+	# was really a test that stopped watching. The number is computed from the
+	# longest route on the map and the walker's own speed, so growing the map or
+	# adding a longer way in cannot quietly turn a pass into a failure again.
+	var longest: float = 0.0
+	for route: Variant in _run.battlefield.grid.routes[walker.lane]:
+		var length: float = 0.0
+		var points: PackedVector2Array = route
+		for i: int in points.size() - 1:
+			length += points[i].distance_to(points[i + 1])
+		longest = maxf(longest, length)
+	var seconds: float = longest / maxf(walker.current_speed(), 1.0) * 1.6
+	for _step: int in int(seconds / 0.03):
 		walker._walk(0.03)
 		travelled += previous.distance_to(walker.global_position)
 		previous = walker.global_position

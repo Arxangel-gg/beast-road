@@ -604,6 +604,30 @@ const INVULN_BLINK_RATE: float = 12.0
 ## Four cardinal lanes: N, E, S, W.
 const LANE_COUNT: int = 4
 
+## How many distinct routes a lane may offer.
+##
+## The authored map yields eight per lane. The cap is a guard on the search, not
+## a design number: simple-path enumeration is exponential in the worst case, and
+## a future map with more forks should slow the level down rather than hang it.
+const ROUTES_PER_LANE_MAX: int = 24
+
+## How hard route choice leans toward the shorter way in.
+##
+## Weight is length raised to minus this. At 0 every route is equally likely and
+## a third of each wave takes the long way, which arrives as a second clump and
+## reads as a bug. At 1.5 the short ways carry the wave and a real minority still
+## goes round, which is the behaviour that makes the forks worth having. [TUNE]
+const ROUTE_LENGTH_BIAS: float = 1.5
+
+## The longest route a lane may offer, as a multiple of its shortest.
+##
+## The authored map's longest way in is three and a half times its shortest. An
+## enemy taking it walks for around two and a half minutes, which is not variety
+## - the wave has been over for a minute by the time it arrives, and it reads as
+## a stuck enemy rather than as a flanker. Capped at twice the direct route,
+## which still leaves several genuinely different ways in. [TUNE]
+const ROUTE_LENGTH_MAX_RATIO: float = 2.0
+
 ## The battlefield's build grid, in tiles per side (GDD §13, LOCKED at 30x30).
 ## `BattleGrid` reads this rather than owning it: it is a tuning number, and every
 ## tuning number lives here. [TUNE]

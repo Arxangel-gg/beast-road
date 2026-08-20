@@ -38,6 +38,19 @@ func lane_direction(_lane: int) -> Vector2:
 	return Vector2.UP
 
 
+## The way in an enemy should take from this lane's spawn.
+##
+## Declared here rather than only on Battlefield because Enemy calls it on the
+## field it was given, and the raid arena hands it this base class. It used to
+## reach `lane_path` the same way, which happened to work only because the raid
+## never spawns anything that looks for a road - a latent break waiting for the
+## first raid enemy that did.
+##
+## The default is the arena's honest answer: no roads, walk at the objective.
+func lane_route(_lane: int) -> PackedVector2Array:
+	return PackedVector2Array()
+
+
 ## Only the battlefield has towers that can taunt.
 func taunting_tower_in_lane(_lane: int) -> Node2D:
 	return null

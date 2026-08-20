@@ -80,8 +80,8 @@ const PATH_TILE_REGION_FORMAT: String = "res://art/battlefield/path_%s_%02d.png"
 const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
 const PATH_TILE_PIXELS: int = 32
 
-## The carriageway, 2*ROAD_WIDTH+1 = 3 tiles across.
-const ROAD_CELL: int = BattleGrid.ROAD_WIDTH * 2 + 1
+## The carriageway, three tiles across in the authored layout.
+const ROAD_CELL: int = BattleGrid.ROAD_WIDTH_TILES
 
 ## Fraction of a path tile its painted road actually covers across the road.
 ## The rest is the shoulder, which is transparent and shows the terrain.
@@ -378,110 +378,114 @@ func fusion_pair_for(anchor: Vector2i, combo: TowerData) -> Array[Vector2i]:
 func _build_torches() -> void:
 	if grid == null:
 		return
-	# Every road proposes the same candidates in the same order, because every
-	# road is one shape rotated a quarter turn.
-	var lanes: Array = []
-	for lane: int in Balance.LANE_COUNT:
-		lanes.append(_torch_candidates(lane_path(lane)))
-	if lanes.is_empty():
-		return
-
-	# Thinned in rotational groups: the k-th candidate of all four roads is
-	# accepted or rejected together.
+	# One torch per corridor, and every one of them lit.
 	#
-	# Filtering road by road is not enough, and filtering the field greedily is
-	# worse. Crowding happens *between* roads as well as along one - the four
-	# final legs converge on the gate, and adjacent roads put torches 184 apart
-	# there - but a greedy pass over the whole field would keep road 0's torch
-	# and drop road 1's, leaving the roads visibly unequal. Deciding per group
-	# makes symmetry a property of the algorithm rather than something to check
-	# for afterwards.
+	# The previous scheme placed a dense row along each lane and then, for frame
+	# rate, gave only one torch in two an actual light. That is the worst of both
+	# trades: more sprites *and* less light, and it produced exactly what was
+	# reported - stretches of road lined with torches that were nonetheless dark,
+	# because the lit ones were somewhere else.
+	#
+	# A corridor is about 450 units long and a torch pool reaches 360, so one at
+	# the middle of each covers it, and there is no unlit prop anywhere.
+	var wanted: Array[Vector2] = _torch_candidates()
 	var kept: Array[Vector2] = []
-	var count: int = (lanes[0] as Array[Vector2]).size()
-	for index: int in count:
-		var group: Array[Vector2] = []
-		for lane: int in Balance.LANE_COUNT:
-			var candidates: Array[Vector2] = lanes[lane]
-			if index < candidates.size():
-				group.append(candidates[index])
-		if _group_is_clear(group, kept):
-			for lane: int in group.size():
-				_place_torch(lane, group[lane])
-				kept.append(group[lane])
+	var claimed: Dictionary = {}
+	for at: Vector2 in wanted:
+		if claimed.has(_orbit_key(at)):
+			continue
+		# Accepted or rejected as a quarter-turn orbit, never one at a time. The
+		# map is four-fold symmetric and the lighting has to be too; deciding per
+		# torch lets a crowding rule keep one road's post and drop the matching
+		# one on the road beside it, which reads as sloppiness rather than as a
+		# rule.
+		var orbit: Array[Vector2] = []
+		for turn: int in Balance.LANE_COUNT:
+			orbit.append(at.rotated(TAU * float(turn) / float(Balance.LANE_COUNT)))
+		for member: Vector2 in orbit:
+			claimed[_orbit_key(member)] = true
+		if not _orbit_is_clear(orbit, kept):
+			continue
+		for member: Vector2 in orbit:
+			kept.append(member)
+			_place_torch(_lane_of(member), member)
 
 
-## Whether a whole rotational group can stand without crowding anything.
+## One position per corridor, on whichever side faces away from the town.
 ##
-## Checks the group against what is already placed *and* against itself: near the
-## gate the four roads come close enough that a group can crowd its own members
-## even when every one of them is clear of every torch placed before it.
-func _group_is_clear(group: Array[Vector2], kept: Array[Vector2]) -> bool:
-	for i: int in group.size():
+## Outward rather than "the first side that is open", because outward is the same
+## choice under a quarter turn and "first" is not — that alone made the field
+## asymmetric.
+func _torch_candidates() -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	var done: Dictionary = {}
+	for node: Vector2i in grid.lattice_nodes():
+		for other: Vector2i in grid.lattice_neighbours(node):
+			var key: String = "%d|%d" % [
+				mini(_key(node), _key(other)), maxi(_key(node), _key(other))]
+			if done.has(key):
+				continue
+			done[key] = true
+			var middle: Vector2 = BattleGrid.tile_to_world(node).lerp(
+				BattleGrid.tile_to_world(other), 0.5)
+			var across: Vector2 = (BattleGrid.tile_to_world(other)
+				- BattleGrid.tile_to_world(node)).normalized().orthogonal()
+			if across.dot(middle) < 0.0:
+				across = -across
+			var at: Vector2 = middle + across * Balance.TORCH_LANE_OFFSET
+			if grid.cell_at(BattleGrid.world_to_tile(at)) != BattleGrid.Cell.OPEN:
+				at = middle - across * Balance.TORCH_LANE_OFFSET
+			if grid.cell_at(BattleGrid.world_to_tile(at)) == BattleGrid.Cell.OPEN:
+				out.append(at)
+	return out
+
+
+## A rotation-stable identity for a candidate, so an orbit is only decided once.
+static func _orbit_key(at: Vector2) -> String:
+	return "%d,%d" % [roundi(at.x), roundi(at.y)]
+
+
+func _orbit_is_clear(orbit: Array[Vector2], kept: Array[Vector2]) -> bool:
+	for i: int in orbit.size():
+		if grid.cell_at(BattleGrid.world_to_tile(orbit[i])) != BattleGrid.Cell.OPEN:
+			return false
 		for other: Vector2 in kept:
-			if group[i].distance_to(other) < Balance.TORCH_MIN_GAP:
+			if orbit[i].distance_to(other) < Balance.TORCH_MIN_GAP:
 				return false
-		for j: int in range(i + 1, group.size()):
-			if group[i].distance_to(group[j]) < Balance.TORCH_MIN_GAP:
+		for j: int in range(i + 1, orbit.size()):
+			if orbit[i].distance_to(orbit[j]) < Balance.TORCH_MIN_GAP:
 				return false
 	return true
 
 
-## Every position a lane would like a torch at, before any thinning.
-##
-## Proposed and filtered in two passes rather than placed as computed, because
-## the crowding is a property of the *set*: a straight's end stop and the corner
-## post of the bend past it are each correctly placed with respect to their own
-## segment and still land on top of each other. Nothing local to either can see
-## that. The order is deterministic - segments, then stops, then sides, then the
-## corner post - so the k-th candidate means the same thing on all four roads.
-func _torch_candidates(path: PackedVector2Array) -> Array[Vector2]:
-	var wanted: Array[Vector2] = []
-	for i: int in path.size() - 1:
-		var from: Vector2 = path[i]
-		var to: Vector2 = path[i + 1]
-		var span: float = from.distance_to(to)
-		var along: Vector2 = (to - from).normalized() if span > 0.0 else Vector2.RIGHT
-		# Every torch on a segment shares that segment's heading, so the offset
-		# direction cannot rotate underneath one. Placing by distance along the
-		# *whole* polyline was the original bug: a stop landing near a vertex took
-		# its heading from whichever segment contained it, and stood the post in
-		# the middle of the perpendicular leg.
-		var across: Vector2 = along.orthogonal()
-		var usable: float = span - Balance.TORCH_CORNER_CLEARANCE * 2.0
-		if usable >= 0.0:
-			var gaps: int = maxi(1, int(round(usable / Balance.TORCH_SPACING)))
-			var step: float = usable / float(gaps)
-			for n: int in gaps + 1:
-				var at: Vector2 = from + along 					* (Balance.TORCH_CORNER_CLEARANCE + step * float(n))
-				for side: int in 2:
-					var sign: float = -1.0 if side == 0 else 1.0
-					wanted.append(at + across * Balance.TORCH_LANE_OFFSET * sign)
+## Which road a point belongs to, for torch bookkeeping and snuff pressure.
+func _lane_of(at: Vector2) -> int:
+	var best: int = 0
+	var nearest: float = -INF
+	for lane: int in Balance.LANE_COUNT:
+		var along: float = at.dot(BattleGrid.lane_vector(lane))
+		if along > nearest:
+			nearest = along
+			best = lane
+	return best
 
-		# One on the outside of every bend. The straights keep a clearance from
-		# each vertex so no post ends up in a corner the road turns through, and
-		# that left the outside of each U-bend - the longest arc on the road, and
-		# the part furthest from the town - as the one stretch nobody lit.
-		if i > 0:
-			var back: Vector2 = (from - path[i - 1]).normalized()
-			# Inside a turn is where you would cut the corner: the sum of the two
-			# headings. Outside is the other way.
-			var outward: Vector2 = -(back + along).normalized()
-			if outward.length() > 0.01:
-				var reach: float = Balance.TORCH_LANE_OFFSET * Balance.TORCH_CORNER_OFFSET_SCALE
-				wanted.append(from + outward * reach)
 
-	return wanted
+func _crowds(at: Vector2, placed: Array[Vector2]) -> bool:
+	for other: Vector2 in placed:
+		if at.distance_to(other) < Balance.TORCH_MIN_GAP:
+			return true
+	return false
 
 
 func _place_torch(lane: int, at: Vector2) -> void:
 	var torch := Torch.new()
 	torch.lane = lane
 	torch.position = at
-	# Counted over the torches that survived the filter, not the ones that were
-	# proposed, or the every-Nth rules would skip in clumps wherever the filter
-	# happened to remove one.
+	# Every torch lights. The quality tier decides whether it also *casts*, which
+	# is the expensive half; a light with no shadow is cheap and is what stops the
+	# road going dark between posts.
+	torch.carries_light = true
 	torch.shadow_on_ultra_only = _torch_index % Balance.TORCH_FEATURED_SHADOW_EVERY != 0
-	torch.carries_light = _torch_index % Balance.TORCH_LIGHT_EVERY == 0
 	_torch_index += 1
 	entity_root.add_child(torch)
 
@@ -562,6 +566,17 @@ func lane_path(lane: int) -> PackedVector2Array:
 	if grid == null:
 		return PackedVector2Array([lane_spawn_point(lane), Vector2.ZERO])
 	return grid.lane_paths[lane]
+
+
+## One of the ways in from this lane's spawn, drawn per enemy.
+##
+## Rolled from the combat stream so a seeded replay sends the same enemy down the
+## same corridor. The bias toward shorter routes lives in the grid; this only
+## supplies the roll.
+func lane_route(lane: int) -> PackedVector2Array:
+	if grid == null:
+		return lane_path(lane)
+	return grid.route_for(lane, RunState.rng("combat").randf())
 
 
 static func slot_position(lane: int, slot: int) -> Vector2:
@@ -1064,10 +1079,33 @@ func _build_lanes() -> void:
 	var extent: float = BattleGrid.HALF_EXTENT + PIECE
 	var side: int = int(round(extent * 2.0 * ROAD_BAKE_PPU))
 	var canvas: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+
+	# Baked from the corridor lattice, not from the lane paths.
+	#
+	# The authored map forks and rejoins, so corridors are shared: several routes
+	# and often several lanes run down the same stretch of road. Baking per route
+	# would draw those stretches two and three times over, which costs nothing in
+	# frames but does compound the tiles' alpha edges into a visible darker seam
+	# wherever routes overlap. The lattice visits every junction and every
+	# corridor exactly once, which is also simply what the road *is*.
+	var done: Dictionary = {}
+	for node: Vector2i in grid.lattice_nodes():
+		var at: Vector2 = BattleGrid.tile_to_world(node)
+		var mask: int = 0
+		for other: Vector2i in grid.lattice_neighbours(node):
+			mask |= _dir_bit(Vector2(other - node))
+			var key: String = "%s|%s" % [mini(_key(node), _key(other)), maxi(_key(node), _key(other))]
+			if done.has(key):
+				continue
+			done[key] = true
+			_bake_corridor(canvas, extent, at, BattleGrid.tile_to_world(other))
+		_bake_piece(canvas, extent, at, mask, Vector2(PIECE, PIECE))
+
+	# The stubs out to the map edge, so enemies do not walk in over bare ground.
 	for lane: int in Balance.LANE_COUNT:
-		_bake_lane(canvas, extent, grid.lane_paths[lane])
-	# The four approaches share the gate, so it is baked once, as a crossroads.
-	_bake_piece(canvas, extent, Vector2.ZERO, 15, Vector2(PIECE, PIECE))
+		var path: PackedVector2Array = grid.lane_paths[lane]
+		if path.size() >= 2:
+			_bake_corridor(canvas, extent, path[0], path[1])
 
 	var surface := Sprite2D.new()
 	surface.name = "RoadSurface"
@@ -1079,30 +1117,28 @@ func _build_lanes() -> void:
 	lane_root.add_child(surface)
 
 
-func _bake_lane(canvas: Image, extent: float, path: PackedVector2Array) -> void:
+## A stable ordering key for a lattice node, so an edge can be deduplicated
+## without caring which end it was reached from.
+static func _key(node: Vector2i) -> int:
+	return node.y * BattleGrid.SIZE + node.x
+
+
+## Lays straight road between two junctions, stopping half a piece short of each
+## so the junction tile itself is what covers the turn.
+func _bake_corridor(canvas: Image, extent: float, from: Vector2, to: Vector2) -> void:
+	var along: Vector2 = (to - from).normalized()
 	var half: float = PIECE * 0.5
-	for i: int in path.size() - 1:
-		var from: Vector2 = path[i]
-		var to: Vector2 = path[i + 1]
-		var along: Vector2 = (to - from).normalized()
-		# A corner covers half a piece back from the vertex it turns on, so the
-		# straight only fills what is left between them. The outermost end has no
-		# corner, so the run there starts at the spawn edge itself.
-		var start: Vector2 = from + along * (half if i > 0 else 0.0)
-		var run: float = (to - along * half - start).dot(along)
-		var laid: float = 0.0
-		while run - laid > 1.0:
-			# Whole pieces, and a slice of one for the remainder. Squashing a tile
-			# into a short run instead would compress its surface detail, so the
-			# road's grain would visibly change size between one bend and the next.
-			var take: float = minf(PIECE, run - laid)
-			_bake_piece(canvas, extent, start + along * (laid + take * 0.5),
-				_straight_mask(along), _piece_size(along, take))
-			laid += take
-		if i > 0:
-			var back: Vector2 = (from - path[i - 1]).normalized()
-			_bake_piece(canvas, extent, from,
-				_dir_bit(-back) | _dir_bit(along), Vector2(PIECE, PIECE))
+	var start: Vector2 = from + along * half
+	var run: float = (to - along * half - start).dot(along)
+	var laid: float = 0.0
+	while run - laid > 1.0:
+		# Whole pieces, and a slice of one for the remainder. Squashing a tile
+		# into a short run instead would compress its surface detail, so the
+		# road's grain would visibly change size between one bend and the next.
+		var take: float = minf(PIECE, run - laid)
+		_bake_piece(canvas, extent, start + along * (laid + take * 0.5),
+			_straight_mask(along), _piece_size(along, take))
+		laid += take
 
 
 ## A piece covering `take` along its own axis and a full carriageway across.

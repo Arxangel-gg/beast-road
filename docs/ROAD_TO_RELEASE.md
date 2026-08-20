@@ -146,6 +146,59 @@ Both surface on the debrief as `Tools N · Legacy rank N of 4`.
 
 ---
 
+## 2b. The authored map (2026-08-20)
+
+The owner's map tool now supplies the layout: `docs/beast-road-current-layout-blueprint.json`,
+copied to `game/data/maps/battlefield_layout.json` and loaded at build.
+
+- [x] 45×45 at 64 units, replacing the procedural 30×30 with four U-bends. The
+      generator went, not because the bends were wrong, but because a generator
+      can only make the shape it was written for — and this map **forks and
+      rejoins**, which no amount of tuning a single polyline could produce.
+- [x] A lane is no longer *a path*. It is a set of routes sharing corridors with
+      each other and with the other three lanes. `lane_paths` keeps the shortest
+      so old callers still work; enemies pick their own at spawn.
+- [x] Route enumeration over a **corridor lattice**, derived rather than
+      hard-coded: corridors are three tiles wide, so a run of exactly three
+      across one identifies its centre line, and every junction sits where two
+      centre lines cross. 49 nodes, 52 edges. Re-exporting the map does not mean
+      editing a table.
+- [x] Route length capped at 2× the shortest. The map's longest way in is 3.5×,
+      about two and a half minutes of walking — the wave is over before it
+      arrives, and it reads as a stuck enemy rather than a flanker. 3 routes per
+      lane at 2752–4928 units.
+- [x] Choice weighted toward shorter routes rather than uniform, so the long way
+      round is a minority the player notices instead of a second clump.
+- [x] Road baked from the lattice, not per route. Shared corridors would
+      otherwise be drawn two and three times, compounding the tiles' alpha edges
+      into a visible seam wherever routes overlap.
+- [x] Border sealed to building without touching authored tiles. The blueprint
+      marks the whole outer ring Background, which is buildable, and a tower
+      flush against the edge draws half off the field — but the ring also carries
+      the twelve spawn tiles, so only open ground is sealed.
+- [x] **568 places take two towers side by side**, which is the layout's stated
+      purpose for four-tile gaps, asserted rather than taken on trust.
+- [x] `grid_check` rewritten. The old one asserted U-bend shape — that each road
+      doubled back and was 25% longer than the straight line — which describes
+      the previous design, and a check that describes the last design is worse
+      than none because it goes green on a build it never looked at. It now
+      verifies every waypoint of every route lands on road and every corridor
+      between them is road end to end: the lattice is derived, so a centre line
+      found one tile off would still produce routes that connect and look
+      plausible while walking enemies through the buildable ground beside the
+      road.
+- [x] Torches rebuilt on the lattice: one per corridor, **every one lit**, 48
+      total. The previous scheme placed a dense row per lane and then, for frame
+      rate, gave only one torch in two a light — the worst of both trades, more
+      sprites and less light, and exactly the reported symptom of roads lined
+      with torches that were still dark. Placed in quarter-turn orbits so the
+      lighting is symmetric by construction, and `torch_check` now asserts both
+      that symmetry and that no torch is unlit.
+- [ ] Camera framing for a field 1.5× larger — zoom limits were tuned for 30×30.
+- [ ] Foliage, ground bake and build-hint UI reviewed against the bigger field.
+
+---
+
 ## 3. Presentation and juice
 
 ### Lighting and atmosphere
