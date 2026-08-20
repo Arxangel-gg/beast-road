@@ -194,8 +194,48 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       with torches that were still dark. Placed in quarter-turn orbits so the
       lighting is symmetric by construction, and `torch_check` now asserts both
       that symmetry and that no torch is unlit.
-- [ ] Camera framing for a field 1.5× larger — zoom limits were tuned for 30×30.
-- [ ] Foliage, ground bake and build-hint UI reviewed against the bigger field.
+- [x] Camera reframed for the 45×45 field: 0.77 → 0.52, range 0.62–1.18 → 0.38–1.00.
+      At the old zoom a player at the gate could not see the junction the road
+      forks at, so the choice the map is built around happened off screen.
+- [x] The hero could not reach their own map. Movement was clamped with
+      `limit_length` — a circle of radius 880 on a field that runs to 1440, so
+      the corners were unreachable and the further a road bent from the axis the
+      less of it could be defended. Bounds are rectangular now and set from the
+      grid rather than authored in the scene, so they follow the map.
+- [x] Preparation opening on a live enemy. The stall watchdog counts time, and
+      time cannot tell a wave that is stuck from a wave that is merely long — the
+      authored map's far route is nearly twice the direct one, so an enemy
+      walking it tripped a 75s timeout that then opened Preparation on top of it.
+      Progress now resets the clock: an enemy closing on the town is not a stall.
+- [x] Enemies walking backwards, including the Act I boss. Facing followed the
+      *target* only, so an enemy with nothing in reach kept whichever way it last
+      fought — and on a map whose roads double back, that is a whole leg walked
+      backwards. Now follows direction of travel when there is no target, with a
+      deadzone so a sprite tracking a bend does not shudder between facings.
+- [x] Hero facing. Was the aim vector alone, so running east with the cursor
+      resting west ran backwards. Now resolved in priority order: an attack owns
+      the facing for 0.35s, then movement, then the cursor. The eight authored
+      frame rows are driven from the same resolved vector as the flip, or the two
+      disagree the moment you walk one way and point another.
+- [x] Tower projectiles 620 → 880. The camera sits further out, so the same shot
+      covered less of the view per second and read as slow — and a slow shot
+      leads more, so it also missed more.
+- [x] Torch lights. Verified as real enabled `PointLight2D`s rather than as the
+      flag meant to produce one: the flag would have passed the entire time the
+      bug existed, since torches honestly reported the every-Nth rule that left
+      most of them dark. All 48 checked.
+- [x] Death report. The panel kept its scene offsets (−400..+400) while being
+      forced to 1180 wide, so it sat 190 units left of centre with its button off
+      the side of the window. Centred by a container — anchors cannot express
+      "centre something whose size depends on its contents" — and Escape or the
+      controller's accept now dismiss it, with the button focused on open.
+- [x] Repair restores damage art. The town recomputed its stage only on
+      `damaged`, so it could get worse and never better: repaired to full it
+      stayed visibly ruined with its fires burning, which reads as the repair
+      having done nothing. Hooked to `changed` so every route in counts, and a
+      stage that improves no longer shakes the camera or plays the hit sound.
+- [ ] Foliage: horizontal ferns, more variety, idle animations.
+- [ ] Rebalance for the larger map, hero levelling, loot, weather.
 
 ---
 

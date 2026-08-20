@@ -194,14 +194,22 @@ const ARENA_RADIUS: float = ENEMY_SPAWN_RADIUS
 ## The raid is an open arena with no lanes to read, so it sits closer and the
 ## swing stays legible. [TUNE]
 const CAMERA_ZOOM: float = 0.72
-const CAMERA_ZOOM_BATTLEFIELD: float = 0.77
+## Framed for the authored 45x45 field.
+##
+## 0.77 framed the old 30x30 arena, where the whole map was two screens across.
+## The authored map is 2880 units on a side, and at that zoom a player standing
+## at the gate could not see the junction the road forks at - so the choice the
+## map is built around happened entirely off screen. Pulled out to show about
+## two thirds of the field's width at 1080p, which puts a fork and the ground
+## either side of it in view together. [TUNE]
+const CAMERA_ZOOM_BATTLEFIELD: float = 0.52
 const CAMERA_ZOOM_RAID: float = 0.95
 
 ## Mouse-wheel battlefield range. Reaching the minimum and continuing outward
 ## moves through Town and Beast rather than shrinking the tactical map into an
 ## unreadable postage stamp.
-const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.62
-const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.18
+const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38
+const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.00
 const CAMERA_ZOOM_STEP: float = 0.10
 const CAMERA_ZOOM_LERP_SPEED: float = 12.0
 
@@ -437,6 +445,13 @@ static func preparation_bonus_seconds_left(seconds_left: float) -> float:
 ## only so a stall becomes a hiccup. [TUNE]
 const WAVE_STALL_TIMEOUT: float = 75.0
 
+## How much closer an enemy must get for the wave to count as progressing.
+##
+## Small, but not zero: an enemy circling a bend edges nearer and further by a
+## few units a frame, and a zero threshold would call that progress forever and
+## disarm the watchdog entirely. [TUNE]
+const WAVE_PROGRESS_EPSILON: float = 24.0
+
 ## How soon the next wave may arrive once a breather ends. [TUNE]
 const WAVE_BREATHER_RESUME_SECONDS: float = 1.5
 
@@ -539,6 +554,19 @@ const ENEMY_HITSTUN: float = 0.18
 ## ENEMY_HITSTUN + ENEMY_HITSTUN_GAP seconds locked - about 30% - however much
 ## fire is landing on it. [TUNE]
 const ENEMY_HITSTUN_GAP: float = 0.42
+
+## Sideways speed below which a sprite keeps the facing it already has.
+##
+## Anything moving mostly along the y axis has a tiny, sign-flipping x component,
+## and a bare `x < 0` test turns that into a sprite that shudders between facings
+## every frame. [TUNE]
+const FACING_DEADZONE: float = 6.0
+
+## How long an attack holds the hero's facing after it lands.
+##
+## Long enough that a swing thrown behind you reads as a swing behind you, rather
+## than snapping back to the walk direction before the animation is done. [TUNE]
+const HERO_ATTACK_FACING_HOLD: float = 0.35
 
 ## How fast knockback velocity bleeds off, in px/s per second.
 const ENEMY_KNOCKBACK_DECAY: float = 900.0
@@ -897,7 +925,13 @@ const FOLIAGE_PAINTED_CHANCE: float = 0.16
 ## sits in the same light as the blades instead of looking pasted on. [TUNE]
 const FOLIAGE_PAINTED_TINT: float = 0.45
 
-const TOWER_PROJECTILE_SPEED: float = 620.0
+## Raised with the field.
+##
+## 620 was tuned when a tower's whole range fitted comfortably on screen. On the
+## authored map the camera sits further out, so the same shot covers less of the
+## view per second and reads as slow — and a slow shot against a moving enemy is
+## also a shot that misses more, because the lead grows with flight time. [TUNE]
+const TOWER_PROJECTILE_SPEED: float = 880.0
 
 # ------------------------------------------------------------------------------
 # Waves — GDD §3
@@ -1047,7 +1081,9 @@ const ENEMY_HERO_AGGRO_RANGE: float = 210.0
 ## Howlers and the Drowned Choir fire slow committed shots. Their target can
 ## leave the marked destination before impact; this is pressure, not hitscan.
 const ENEMY_RANGED_RANGE: float = 330.0
-const ENEMY_PROJECTILE_SPEED: float = 310.0
+## Raised alongside the tower shot, but by less: an enemy's shot has to stay
+## dodgeable, and the hero has more ground to dodge into now. [TUNE]
+const ENEMY_PROJECTILE_SPEED: float = 400.0
 const ENEMY_PROJECTILE_WIDTH: float = 7.0
 const ENEMY_PROJECTILE_HIT_RADIUS: float = 18.0
 const ENEMY_PROJECTILE_BLAST_RADIUS: float = 54.0

@@ -149,6 +149,11 @@ func _ready() -> void:
 	# go looking up the tree for the scope it happens to be sitting in.
 	if hero != null:
 		hero.field = self
+		# Set from the grid rather than authored in the scene, so the playable
+		# area follows the map instead of having to be remembered whenever the
+		# map changes. It was not remembered: the scene still carried an 880
+		# circle from the 30x30 field.
+		hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
 	# Transient effects are parented into the scope that owns them, so leaving
 	# the battlefield takes its sparks with it.
 	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
@@ -677,6 +682,19 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 ## Placeholder VFX. A line that fades is not art — it is the readout that a
 ## tower fired at something, and it gets replaced wholesale when real effects
 ## exist (see ASSET_MANIFEST §7).
+## How close the nearest living enemy has come to the town.
+##
+## The wave watchdog's measure of progress. INF when the road is clear, which
+## reads as "no longer waiting on anything".
+func nearest_enemy_distance() -> float:
+	var nearest: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
+			nearest = minf(nearest, enemy.global_position.length())
+	return nearest
+
+
 func spawn_tracer(from: Vector2, to: Vector2, colour: Color) -> void:
 	var line := Line2D.new()
 	line.points = PackedVector2Array([from, to])

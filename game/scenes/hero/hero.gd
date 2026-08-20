@@ -33,6 +33,16 @@ var _locked_state: String = ""
 ## scene that owns the hero sets it. 0 falls back to the Balance default.
 @export var bounds_radius: float = 0.0
 
+## Half-extents of a rectangular playable area. Takes precedence over
+## `bounds_radius` when either axis is set.
+##
+## The battlefield is a square map and was being clamped to a circle, so the
+## hero could reach 880 units in any direction on a field that runs to 1440 — the
+## corners of their own map were simply unreachable, and the further the road
+## bent from the axis the less of it they could defend. The raid arena really is
+## a circle and still uses the radius.
+@export var bounds_extent: Vector2 = Vector2.ZERO
+
 ## The scope the hero is standing in. Set by that scope on entry — the hero
 ## never goes looking up the tree for the thing it happens to be parented to.
 var field: EnemyField = null:
@@ -42,6 +52,17 @@ var field: EnemyField = null:
 			spells.field = value
 
 var _aim: Vector2 = Vector2.RIGHT
+
+## Which way the hero is *looking*, which is not always where they are aiming.
+##
+## Walking looks where you are going; standing still looks where the mouse is;
+## swinging looks where the swing went, for as long as the swing lasts. Facing
+## used to be the aim vector alone, so a hero running east with the cursor
+## resting west ran backwards the whole way.
+var _facing: Vector2 = Vector2.RIGHT
+
+## Counts down while an attack owns the facing.
+var _facing_hold: float = 0.0
 
 var _dash_left: float = 0.0
 var _dash_cooldown_left: float = 0.0
@@ -117,6 +138,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_aim = _compute_aim()
+	_update_facing(delta)
 
 	var combat_input: bool = RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
 	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"attack"):
@@ -153,9 +175,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	# The playable area is a circle centred on the origin.
-	global_position = global_position.limit_length(
-		bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
+	global_position = _inside_bounds(global_position)
 
 	animator.set_motion(velocity, move_speed(), delta)
 	_drive_frames()
@@ -268,13 +288,22 @@ func _on_boss_bonus_changed(_id: String, _act: int) -> void:
 	_apply_permanent_bonuses()
 
 
+## Holds a point inside whatever shape the scope's playable area is.
+func _inside_bounds(at: Vector2) -> Vector2:
+	if bounds_extent.x > 0.0 or bounds_extent.y > 0.0:
+		return Vector2(
+			clampf(at.x, -bounds_extent.x, bounds_extent.x),
+			clampf(at.y, -bounds_extent.y, bounds_extent.y))
+	return at.limit_length(bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
+
+
 func _on_construction_completed(id: String, _tier: int) -> void:
 	if id == "sanctum":
 		_apply_permanent_bonuses()
 
 
 func _on_blink(to: Vector2) -> void:
-	global_position = to.limit_length(bounds_radius if bounds_radius > 0.0 else Balance.ARENA_RADIUS)
+	global_position = _inside_bounds(to)
 	health.add_invulnerability(Balance.BLINK_IFRAMES)
 
 
@@ -311,6 +340,26 @@ func _move_input() -> Vector2:
 ##
 ## Both fall back to the previous aim rather than to a default direction: a
 ## hero that snaps east every time the stick centres reads as broken.
+## Resolves the three claims on which way the hero looks.
+##
+## Order matters and is the whole behaviour: an attack outranks movement, and
+## movement outranks the cursor. Without the hold an attack thrown behind you is
+## visible for a single frame before the walk direction takes the sprite back.
+func _update_facing(delta: float) -> void:
+	_facing_hold = maxf(_facing_hold - delta, 0.0)
+	if attack != null and attack.is_swinging():
+		_facing = _aim
+		_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
+		return
+	if _facing_hold > 0.0:
+		return
+	var moving: Vector2 = _move_input()
+	if moving.length() > 0.1:
+		_facing = moving.normalized()
+		return
+	_facing = _aim
+
+
 func _compute_aim() -> Vector2:
 	var pad: Vector2 = KeyBindings.pad_aim()
 	if pad != Vector2.ZERO:
@@ -498,7 +547,7 @@ func _spawn_dash_ghosts() -> void:
 func _update_sprite(_delta: float) -> void:
 	# Eight authored facings already point the right way. Flipping on top of
 	# them mirrors the western rows twice and puts the blade in the wrong hand.
-	sprite.flip_h = _aim.x < 0.0 if frames == null or not frames.has_frames() else false
+	sprite.flip_h = _facing.x < -0.001 if frames == null or not frames.has_frames() else false
 
 	var tint: Color = Color.WHITE
 	if _flash_left > 0.0:
@@ -527,7 +576,10 @@ func _update_sprite(_delta: float) -> void:
 func _drive_frames() -> void:
 	if frames == null or not frames.has_frames():
 		return
-	frames.set_facing(_aim)
+	# The same resolved facing the flip uses. Driving the eight authored rows from
+	# the aim vector while the flip followed movement would have the two disagree
+	# the moment a player walked one way and pointed another.
+	frames.set_facing(_facing)
 	if not _locked_state.is_empty():
 		return
 	var speed: float = velocity.length()

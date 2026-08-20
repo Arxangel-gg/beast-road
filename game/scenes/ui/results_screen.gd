@@ -21,7 +21,15 @@ func _ready() -> void:
 	# Wide enough for the longest debrief, and centred rather than stretched: a
 	# full-height panel around a short summary is a small block of text at the
 	# top of an enormous empty box, which reads as a bug rather than as a screen.
-	panel.set_anchors_preset(Control.PRESET_CENTER, false)
+	# Centred by a container rather than by anchors.
+	#
+	# The panel carried offsets from the scene (-400 to +400) and was then given a
+	# 1180 minimum width. A PanelContainer grows right from its left offset, so it
+	# ended up 190 units left of centre with its right edge - and the button on it
+	# - hanging off the side of a 1600-wide window. Anchoring cannot express
+	# "centre something whose size depends on its contents"; a CenterContainer
+	# can, and it stays correct at any window size and any length of debrief.
+	_centre_panel()
 	panel.custom_minimum_size = Vector2(1180.0, 0.0)
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	IconKit.on_button(menu_button, "close", 24)
@@ -29,9 +37,40 @@ func _ready() -> void:
 	# frame. Twelve lines of statistics against riveted ironwork is a lot of
 	# texture behind a lot of small type, and the plate is what makes it legible.
 	_plate_body()
-	menu_button.pressed.connect(func() -> void:
-		get_tree().paused = false
-		GameDirector.goto_menu())
+	menu_button.text = "Return to the menu"
+	menu_button.pressed.connect(_leave)
+
+
+## Wraps the panel in a container that fills the screen and centres its child.
+func _centre_panel() -> void:
+	var parent: Node = panel.get_parent()
+	if parent == null or parent is CenterContainer:
+		return
+	var centre := CenterContainer.new()
+	centre.name = "Centre"
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# The container is only for layout; clicks belong to the panel on it.
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var index: int = panel.get_index()
+	parent.remove_child(panel)
+	parent.add_child(centre)
+	parent.move_child(centre, index)
+	centre.add_child(panel)
+
+
+func _leave() -> void:
+	get_tree().paused = false
+	GameDirector.goto_menu()
+
+
+## The debrief is a dead end unless something can dismiss it, and a mouse is not
+## the only way people play. Escape and the controller's accept both leave.
+func _unhandled_input(event: InputEvent) -> void:
+	if panel == null or not panel.visible:
+		return
+	if event.is_action_pressed(&"ui_cancel") or event.is_action_pressed(&"ui_accept"):
+		get_viewport().set_input_as_handled()
+		_leave()
 
 
 func _plate_body() -> void:
@@ -68,6 +107,9 @@ func _plate_body() -> void:
 
 func show_results(victory: bool, summary: Dictionary) -> void:
 	title.text = "The sanctuary" if victory else "The road ends here"
+	# Focused so a controller or the keyboard can leave without hunting for the
+	# button, and so the one way out is visibly the one way out.
+	menu_button.grab_focus.call_deferred()
 	if victory and int(summary.get("endless_waves", 0)) > 0:
 		title.text = "The sanctuary, and beyond"
 

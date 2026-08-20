@@ -39,7 +39,6 @@ y_sort_enabled = true
 
 [node name="Hero" parent="EntityRoot" instance=ExtResource("4_hero")]
 position = Vector2(0, 260)
-bounds_radius = 880.0
 
 [node name="EffectRoot" type="Node2D" parent="."]
 

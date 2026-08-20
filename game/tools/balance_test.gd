@@ -31,6 +31,7 @@ func _ready() -> void:
 	_test_enemy_roles()
 	await _test_chill_never_locks()
 	_test_boss_bar_is_wired()
+	_test_damage_states_are_reversible()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -460,6 +461,44 @@ func _test_tools_and_sigils() -> void:
 
 	MetaState.tools = tools_before
 	MetaState.sigils = sigils_before
+
+
+## Damage art has to come back down when something is repaired.
+##
+## The town only recomputed its stage on `damaged`, so it could get worse and
+## never better: a town repaired to full stayed visibly ruined with its fires
+## still burning. That reads as the repair having done nothing, which is the
+## worst possible feedback for something the player spent resources on.
+func _test_damage_states_are_reversible() -> void:
+	var town: TownCore = _run.battlefield.town
+	if town == null:
+		_check(false, "the battlefield needs a town to check damage stages")
+		return
+
+	var full: float = town.health.max_hp
+	town.health.current_hp = full
+	town.call("_apply_stage", true)
+	var pristine: int = town.get("_stage")
+
+	# Down to a quarter, which is past the last threshold.
+	town.health.current_hp = full * 0.2
+	town.health.changed.emit(town.health.current_hp, full)
+	var ruined: int = town.get("_stage")
+	_check(ruined > pristine,
+		"the town must look worse at 20%% health (stage %d vs %d)" % [ruined, pristine])
+
+	# And back up again.
+	town.health.heal(full)
+	var repaired: int = town.get("_stage")
+	_check(repaired == pristine,
+		"repairing the town must restore its art (stage %d, expected %d)"
+			% [repaired, pristine])
+
+	var burning: int = 0
+	for fire: Variant in town.get("_fires"):
+		if (fire as Flame).is_lit():
+			burning += 1
+	_check(burning == 0, "a fully repaired town must not still be on fire (%d fires)" % burning)
 
 
 ## The summit has to be reachable, and the Chainmaker has to be the thing at the

@@ -38,6 +38,12 @@ func _ready() -> void:
 	health.max_hp = RunState.town_max_hp
 	health.current_hp = RunState.town_hp
 	health.damaged.connect(_on_damaged)
+	# Healing has to re-evaluate the stage as well, or the town can be repaired
+	# to full and stay visibly ruined with its fires still burning: the stage was
+	# only ever recomputed on damage, so it could go one way. `changed` covers
+	# every route in - repair, relic, and the debug heal alike - where hooking
+	# only the repair call would have missed the others.
+	health.changed.connect(func(_hp: float, _max: float) -> void: _apply_stage())
 	health.changed.connect(_on_changed)
 	health.died.connect(_on_died)
 	# Seeded, so the fires do not shuffle to new roofs every time the scope is
@@ -97,6 +103,7 @@ func _apply_stage(force: bool = false) -> void:
 			break
 	if wanted == _stage and not force:
 		return
+	var previous: int = _stage
 	_stage = wanted
 
 	var path: String = String(STAGES[wanted]["texture"])
@@ -107,8 +114,10 @@ func _apply_stage(force: bool = false) -> void:
 
 	_rebuild_fires()
 
-	if not force:
-		# A stage change is a landmark: the town just visibly got worse.
+	# Only announce a stage that got *worse*. Repairing the town back through a
+	# threshold should quietly put a fire out, not shake the camera and play the
+	# sound of being hit.
+	if not force and wanted > previous:
 		Vfx.ring(global_position, Balance.TOWN_RADIUS * 1.6,
 			Color(0.9, 0.45, 0.25, 0.6), 0.6, 6.0)
 		EventBus.camera_shake_requested.emit(14.0, 0.5)

@@ -23,6 +23,14 @@ var _wave_active: bool = false
 ## How long this formation has been unable to clear. Reset whenever a wave
 ## begins or ends, so it measures one wave rather than the run.
 var _stuck_for: float = 0.0
+
+## Closest any living enemy has come to the town during this wave.
+##
+## The stall watchdog counts time, and time alone cannot tell a wave that is
+## stuck from a wave that is merely long. Progress can: an enemy walking the far
+## route is still closing on the town every second, and one wedged in geometry is
+## not.
+var _closest_approach: float = INF
 var _act_wave: int = 0
 var _preview_lanes: Array[int] = []
 var _preview_archetype: WaveArchetypeData = null
@@ -87,6 +95,19 @@ func _process(delta: float) -> void:
 		# So the wait is bounded. The watchdog names what was holding it, because a
 		# stall that resolves itself and says nothing is a bug that gets reported
 		# once a week forever.
+		#
+		# Progress resets that clock, and has to: time alone cannot tell a wave
+		# that is stuck from a wave that is merely long. The watchdog fired on an
+		# enemy that had simply taken the long way round - the authored map's far
+		# route is nearly twice the direct one - and Preparation opened while it
+		# was still walking, which is the exact failure the wait exists to
+		# prevent. An enemy closing on the town is not a stall.
+		var nearest: float = INF
+		if battlefield != null:
+			nearest = battlefield.nearest_enemy_distance()
+		if nearest < _closest_approach - Balance.WAVE_PROGRESS_EPSILON:
+			_closest_approach = nearest
+			_stuck_for = 0.0
 		_stuck_for += delta
 		if _stuck_for >= Balance.WAVE_STALL_TIMEOUT:
 			push_warning("Wave %d could not clear after %.0fs; still standing: %s"
@@ -156,6 +177,7 @@ func _close_wave() -> void:
 	_wave_active = false
 	_running = false
 	_stuck_for = 0.0
+	_closest_approach = INF
 	EventBus.wave_cleared.emit(RunState.wave_number)
 
 
@@ -163,6 +185,7 @@ func _begin_wave() -> void:
 	if _wave_active:
 		return
 	_stuck_for = 0.0
+	_closest_approach = INF
 	RunState.wave_number += 1
 	RunState.count_endless_wave()
 	var wave: int = RunState.wave_number

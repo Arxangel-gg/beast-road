@@ -619,8 +619,19 @@ func _nearby_howler() -> Enemy:
 
 
 func _update_sprite() -> void:
+	# Facing follows the target when there is one, and the direction of travel
+	# otherwise. It used to follow *only* the target, so an enemy with nothing in
+	# reach kept whichever way it happened to be facing when it last fought - and
+	# on the authored map, where roads double back, that is how a boss came to
+	# walk a whole leg backwards.
+	#
+	# Thresholded rather than tested against zero: an enemy tracking a bend drifts
+	# a fraction of a unit either way on the x axis, and a bare sign test would
+	# make it shudder between facings every frame.
 	if _target != null and is_instance_valid(_target):
 		sprite.flip_h = _target.global_position.x < global_position.x
+	elif absf(_motion.x) > Balance.FACING_DEADZONE:
+		sprite.flip_h = _motion.x < 0.0
 
 	var tint: Color = Color.WHITE
 	if _freeze_left > 0.0:

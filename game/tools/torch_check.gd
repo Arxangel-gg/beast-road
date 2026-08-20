@@ -113,11 +113,19 @@ func _ready() -> void:
 ## is only checkable by looking at every torch at once, which is what this does.
 func _check_layout() -> bool:
 	var torches: Array[Node] = get_tree().get_nodes_in_group(&"torches")
-	# Every torch lights. An unlit torch prop is the reported bug: a road lined
-	# with posts that is still dark between them.
+	# Every torch lights, checked as an actual PointLight2D rather than as the
+	# flag that is supposed to produce one.
+	#
+	# The flag alone would have passed the whole time the bug existed: torches
+	# were built with `carries_light` set from an every-Nth rule, so most of them
+	# honestly reported that they did not light, and a check reading the flag
+	# would have agreed with them and gone green. What the player sees is whether
+	# a light exists and is on.
 	for node: Node in torches:
-		if not (node as Torch).carries_light:
-			push_error("a torch at %s carries no light" % (node as Node2D).global_position)
+		var torch := node as Torch
+		if not _has_live_light(torch):
+			push_error("the torch at %s is lit but emits no light"
+				% torch.global_position)
 			return false
 
 	if torches.size() < Balance.LANE_COUNT * 4:
@@ -172,6 +180,17 @@ func _check_layout() -> bool:
 	print("[torch] layout: %d torches, closest pair %.0f apart, four roads symmetric"
 		% [points.size(), closest])
 	return true
+
+
+## Whether this torch actually has an enabled light with a real radius.
+func _has_live_light(from: Node) -> bool:
+	for child: Node in from.get_children():
+		var light := child as PointLight2D
+		if light != null and light.enabled and light.energy > 0.0 				and light.texture_scale > 0.0:
+			return true
+		if _has_live_light(child):
+			return true
+	return false
 
 
 func _bail(code: int) -> void:
