@@ -2673,6 +2673,14 @@ const TOUCH_BUTTON_OPACITY: float = 0.58
 const SCORE_NAME_MAX: int = 20
 const SCORE_NAME_FALLBACK: String = "Oathless"
 
+## What a run is filed under when it carries no build version.
+##
+## The board's table checks `char_length(version) between 1 and 32`, so an empty
+## string is not a harmless blank - it is a rejected insert. Runs queued by an
+## older build carry one, and retried forever against a constraint they could
+## never satisfy.
+const SCORE_VERSION_FALLBACK: String = "unknown"
+
 ## Bounds shared by the client, save reader and Supabase table policy.
 const LEADERBOARD_SCORE_MAX: int = 999999999
 const LEADERBOARD_ACT_MAX: int = 3

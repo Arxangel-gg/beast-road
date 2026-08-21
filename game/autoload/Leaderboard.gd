@@ -257,7 +257,10 @@ func _flush_pending() -> void:
 	MetaState.save_game()
 	for row: Variant in queued:
 		if row is Dictionary:
-			_post(row as Dictionary)
+			# Repaired on the way out, not merely on the way in. A row queued by
+			# an older build carries whatever that build wrote, and a fix applied
+			# only at construction would leave the already-stuck rows stuck.
+			_post(Score.clean_row(row as Dictionary))
 
 
 func _request() -> HTTPRequest:

@@ -99,7 +99,7 @@ static func row(summary: Dictionary, tier: CampaignTierData, player: String,
 			Balance.LEADERBOARD_DURATION_MAX),
 		"victory": bool(summary.get("victory", false)),
 		"seed": String(summary.get("seed", "")).left(32),
-		"version": version.left(32),
+		"version": safe_version(version),
 	}
 
 
@@ -122,8 +122,20 @@ static func clean_row(entry: Dictionary) -> Dictionary:
 			Balance.LEADERBOARD_DURATION_MAX),
 		"victory": bool(entry.get("victory", false)),
 		"seed": String(entry.get("seed", "")).left(32),
-		"version": String(entry.get("version", "")).left(32),
+		"version": safe_version(String(entry.get("version", ""))),
 	}
+
+
+## A version string the board will actually accept.
+##
+## Bounded at both ends, not just the top. The table checks
+## `char_length(version) between 1 and 32`; capping the maximum and leaving the
+## minimum to chance is what made an empty version a permanent 400 rather than a
+## cosmetic blank - the row was rejected, requeued, and retried against a
+## constraint no amount of retrying could satisfy.
+static func safe_version(value: String) -> String:
+	var trimmed: String = value.strip_edges().left(32)
+	return trimmed if not trimmed.is_empty() else Balance.SCORE_VERSION_FALLBACK
 
 
 ## Names are the one field a stranger chooses, so they are the one field that
