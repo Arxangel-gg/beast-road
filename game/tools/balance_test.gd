@@ -9,8 +9,30 @@ const CommandSystemScript = preload("res://scripts/systems/command_system.gd")
 var _failures: PackedStringArray = []
 var _run: Run = null
 
+## The account's worn gear, put aside for the duration.
+var _equipped_before: Dictionary = {}
+
 
 func _ready() -> void:
+	# The tester's own equipment is not part of the game's balance.
+	#
+	# `RunState.attribute()` returns placed points *plus* whatever gear the
+	# account is wearing, which is right for gameplay and wrong for a measurement
+	# tool. Three assertions here read that accessor to check where a *placed*
+	# point landed, so on a save with a Might weapon equipped they saw placed plus
+	# gear and failed - "the point must land", "placed attributes must come back",
+	# "placed attributes must survive a new run".
+	#
+	# CI never saw it. A fresh runner has no save, so the gear bonus is zero and
+	# every assertion passed; the failure only appeared on a machine belonging to
+	# somebody who had actually played the game, which is the worst possible place
+	# for a release gate to first go red.
+	#
+	# Set aside rather than asserted around: no measurement in this file should
+	# depend on what the person running it happens to be wearing.
+	_equipped_before = MetaState.equipped.duplicate()
+	MetaState.equipped = {}
+
 	RunState.reset()
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	_run = packed.instantiate() as Run
@@ -58,6 +80,11 @@ func _ready() -> void:
 	else:
 		for failure: String in _failures:
 			push_error("[balance] " + failure)
+
+	# Handed back before the process ends. The tool writes no save, but it shares
+	# the autoload with anything that might, and a gate that quietly undresses the
+	# player would be a worse bug than the one it was added to fix.
+	MetaState.equipped = _equipped_before
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
