@@ -63,8 +63,8 @@ const Z_SORTED: int = 0
 const Z_CLOUDS: int = 30
 
 ## Road art, tiled along each cardinal lane only.
-## The autotiled road set. 32px art on a 64-unit grid, so every piece draws at
-## exactly 2x - a whole number, the only scale that leaves a pixel grid intact.
+## The fallback path set. Regional production sets use the same 16-mask
+## contract at 64px; a missing region still resolves through these files.
 const PATH_TILE_FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
 
 ## The same set, per region. Derived from the terrain id exactly the way every
@@ -78,7 +78,7 @@ const PATH_TILE_REGION_FORMAT: String = "res://art/battlefield/path_%s_%02d.png"
 ## other asset path in the project. Absent means the region falls back to a
 ## single repeating tile.
 const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
-const PATH_TILE_PIXELS: int = 32
+const PATH_TILE_PIXELS: int = 64
 
 ## The carriageway, three tiles across in the authored layout.
 const ROAD_CELL: int = BattleGrid.ROAD_WIDTH_TILES
@@ -92,18 +92,20 @@ const PIECE: float = BattleGrid.TILE * float(ROAD_CELL) / ROAD_ART_SPAN
 
 ## Texture pixels per world unit in the baked road surface.
 ##
-## A road texel is PIECE/32 = 12 world units, and every road distance in the grid
-## is a multiple of a 64-unit tile, so a quarter puts every piece, every position
-## and every partial run on a whole texture pixel. That is the property the bake
-## depends on: pieces that abut on exact pixel boundaries cannot leave a seam.
-const ROAD_BAKE_PPU: float = 0.25
+## Regional sources are 64px across and the bake holds each source pixel on an
+## exact 3x grid (384 world units * 0.5 = 192 output pixels). Every road distance
+## is a multiple of a 64-unit grid cell, so pieces and partial runs still land on
+## whole texture pixels and cannot open a seam between independently laid pieces.
+const ROAD_BAKE_PPU: float = 0.5
 
 var _path_tiles: Array = []
+var _path_variants_cache: Dictionary = {}
 
 ## Counts torches actually built, so the every-Nth light and shadow rules stay
 ## evenly spread after the minimum-gap filter has removed some.
 var _torch_index: int = 0
 var _ground_tiles_cache: Array = []
+var _ground_variants_cache: Dictionary = {}
 var _ground_cache_id: String = ""
 
 ## How much wider the road is than the walkable lane, so enemies travel on it
@@ -699,6 +701,14 @@ func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 
 
+func spawn_gear(piece: Dictionary, at: Vector2) -> void:
+	if piece.is_empty():
+		return
+	var drop := LootDrop.new()
+	drop.setup_gear(piece, at)
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
 func nearest_enemy_distance() -> float:
 	var nearest: float = INF
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
@@ -993,6 +1003,7 @@ func refresh_terrain() -> void:
 	# The road is regional too, so a new act re-lays it. Without this the ground
 	# changed underfoot and the road stayed the previous region's.
 	_path_tiles.clear()
+	_path_variants_cache.clear()
 	for piece: Node in lane_root.get_children():
 		piece.queue_free()
 	_build_lanes()
@@ -1097,7 +1108,12 @@ func _bake_ground(extent: float) -> ImageTexture:
 			# covers the field without needing a second tileset.
 			if flipped:
 				mask = 15 - mask
-			var piece: Image = tiles[mask] as Image
+			# Eight legal rotations/reflections are available for every topology:
+			# transform a different source mask into the requested one. That keeps
+			# shared corners exact while ensuring large same-material patches do not
+			# stamp the identical crack or root motif in one orientation.
+			var transform_id: int = posmod(hash(Vector3i(cx, cy, RunState.run_seed)), 8)
+			var piece: Image = _ground_variant(mask, transform_id)
 			if piece == null:
 				continue
 			canvas.blit_rect(piece, Rect2i(Vector2i.ZERO, piece.get_size()),
@@ -1111,6 +1127,7 @@ func _ground_tiles() -> Array:
 		return _ground_tiles_cache
 	_ground_cache_id = RunState.terrain_id
 	_ground_tiles_cache = []
+	_ground_variants_cache.clear()
 	for mask: int in 16:
 		var path: String = GROUND_TILE_FORMAT % [RunState.terrain_id, mask]
 		if not ResourceLoader.exists(path):
@@ -1120,6 +1137,55 @@ func _ground_tiles() -> Array:
 		image.convert(Image.FORMAT_RGBA8)
 		_ground_tiles_cache.append(image)
 	return _ground_tiles_cache
+
+
+## One of the eight dihedral transforms of a Wang tile, selected so the result's
+## corner mask still equals `wanted_mask`. Cached once per region rather than
+## rotating thousands of pixels every time the field is redrawn.
+func _ground_variant(wanted_mask: int, transform_id: int) -> Image:
+	var key: int = wanted_mask * 8 + transform_id
+	if _ground_variants_cache.has(key):
+		return _ground_variants_cache[key] as Image
+	var source_mask: int = wanted_mask
+	for candidate: int in 16:
+		if _transform_ground_mask(candidate, transform_id) == wanted_mask:
+			source_mask = candidate
+			break
+	var source: Image = _ground_tiles_cache[source_mask] as Image
+	var result: Image = _transform_ground_image(source, transform_id)
+	_ground_variants_cache[key] = result
+	return result
+
+
+static func _transform_ground_mask(mask: int, transform_id: int) -> int:
+	const CORNERS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
+		Vector2i(1, 1), Vector2i(0, 1)]
+	var out: int = 0
+	for bit: int in 4:
+		if (mask & (1 << bit)) == 0:
+			continue
+		var point: Vector2i = CORNERS[bit]
+		for _turn: int in transform_id % 4:
+			point = Vector2i(1 - point.y, point.x)
+		if transform_id >= 4:
+			point.x = 1 - point.x
+		var output_bit: int = CORNERS.find(point)
+		out |= 1 << output_bit
+	return out
+
+
+static func _transform_ground_image(source: Image, transform_id: int) -> Image:
+	var side: int = source.get_width()
+	var out: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+	for sy: int in side:
+		for sx: int in side:
+			var point := Vector2i(sx, sy)
+			for _turn: int in transform_id % 4:
+				point = Vector2i(side - 1 - point.y, point.x)
+			if transform_id >= 4:
+				point.x = side - 1 - point.x
+			out.set_pixelv(point, source.get_pixel(sx, sy))
+	return out
 
 
 ## Four road strips, one per cardinal, from the town wall out to the spawn point.
@@ -1237,7 +1303,12 @@ func _dir_bit(dir: Vector2) -> int:
 ## The painted road covers half of each tile across, so a piece is drawn at twice
 ## the carriageway for its surface to come out the right width.
 func _bake_piece(canvas: Image, extent: float, at: Vector2, mask: int, size: Vector2) -> void:
-	var src: Image = _path_image(mask)
+	# A legal rotation/reflection of an equivalent mask keeps every connection
+	# exact while changing which scars and ruts face the eye. Long straights no
+	# longer stamp one painting from town to map edge.
+	var cell := Vector2i((at / BattleGrid.TILE).round())
+	var transform_id: int = posmod(hash(Vector3i(cell.x, cell.y, RunState.run_seed)), 8)
+	var src: Image = _path_variant(mask, transform_id)
 	if src == null:
 		return
 	var whole: int = int(round(PIECE * ROAD_BAKE_PPU))
@@ -1268,6 +1339,46 @@ func _path_image(mask: int) -> Image:
 	if mask < 0 or mask >= _path_tiles.size():
 		return null
 	return _path_tiles[mask] as Image
+
+
+## One of the eight legal dihedral transforms of an edge-connected path tile.
+## The source mask is chosen so transforming it produces `wanted_mask`, keeping
+## the canonical N/E/S/W contract while providing deterministic visual variety.
+func _path_variant(wanted_mask: int, transform_id: int) -> Image:
+	# Populate the source cache before indexing it.
+	if _path_image(wanted_mask) == null:
+		return null
+	var key: int = wanted_mask * 8 + transform_id
+	if _path_variants_cache.has(key):
+		return _path_variants_cache[key] as Image
+	var source_mask: int = wanted_mask
+	for candidate: int in 16:
+		if _transform_path_mask(candidate, transform_id) == wanted_mask:
+			source_mask = candidate
+			break
+	var source: Image = _path_tiles[source_mask] as Image
+	if source == null:
+		return null
+	var result: Image = _transform_ground_image(source, transform_id)
+	_path_variants_cache[key] = result
+	return result
+
+
+static func _transform_path_mask(mask: int, transform_id: int) -> int:
+	const EDGES: Array[Vector2i] = [Vector2i(1, 0), Vector2i(2, 1),
+		Vector2i(1, 2), Vector2i(0, 1)]
+	var out: int = 0
+	for bit: int in 4:
+		if (mask & (1 << bit)) == 0:
+			continue
+		var point: Vector2i = EDGES[bit]
+		for _turn: int in transform_id % 4:
+			point = Vector2i(2 - point.y, point.x)
+		if transform_id >= 4:
+			point.x = 2 - point.x
+		var output_bit: int = EDGES.find(point)
+		out |= 1 << output_bit
+	return out
 
 
 ## Keeps the tower nodes in step with RunState.

@@ -91,7 +91,30 @@ function Read-BalanceEntries {
             $doc.Clear()
             continue
         }
-        # `# ---- ` sub-banner names a group too, but only if it looks like a title.
+        # `# --- Loot ---` sub-banners are the human-facing groups used in
+        # Balance.gd. They used to clear the documentation without changing the
+        # section, which put touch UI values under the last distant `# ===`
+        # banner (and battlefield gear under another unrelated group) in Update
+        # Manager. Read the inline title so every new production control lands
+        # where a tuner expects it.
+        if ($line -match '^#\s*-{5,}\s*$') {
+            $candidate = ''
+            if ($i + 2 -lt $lines.Count -and $lines[$i + 1] `
+                    -match '^#\s*([A-Za-z0-9].+?)\s*$') {
+                $candidate = $Matches[1].Trim()
+            }
+            if ($candidate -and $lines[$i + 2] -match '^#\s*-{5,}\s*$' `
+                    -and -not $ForcedSection) {
+                $section = $candidate
+            }
+            $doc.Clear()
+            continue
+        }
+        if ($line -match '^#\s*-{3,}\s+([A-Za-z0-9].*?)\s+-{3,}\s*$') {
+            if (-not $ForcedSection) { $section = $Matches[1].Trim() }
+            $doc.Clear()
+            continue
+        }
         if ($line -match '^#\s*-{10,}') { $doc.Clear(); continue }
 
         if ($line -match '^##\s?(.*)$') { [void]$doc.Add($Matches[1].Trim()); continue }

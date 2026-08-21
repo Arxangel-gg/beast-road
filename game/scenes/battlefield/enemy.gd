@@ -571,6 +571,7 @@ func _on_died(_from: Vector2) -> void:
 	var payout: float = data.max_hp * _hp_scale * Balance.HERO_XP_PER_HP
 	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
 	_drop_loot()
+	_drop_gear()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 	EventBus.enemy_died.emit(data.id, global_position)
@@ -600,6 +601,30 @@ func _drop_loot() -> void:
 	var currency: String = RunState.CURRENCIES[
 		RunState.rng("combat").randi_range(0, RunState.CURRENCIES.size() - 1)]
 	_field.spawn_loot(currency, amount, global_position)
+
+
+## Gear used to exist only behind a raid chest. The battlefield now has its own
+## low-frequency hunt: breeds can surprise, elites are meaningful prospects and
+## bosses always leave a piece. A separate deterministic stream means adding a
+## cosmetic spark or changing attack variance cannot rewrite the stash reward.
+func _drop_gear() -> void:
+	if _field == null or not (_field is Battlefield) \
+			or not _field.has_method("spawn_gear"):
+		return
+	var chance: float = Balance.GEAR_BATTLEFIELD_DROP_CHANCE
+	match data.category:
+		EnemyData.Category.ELITE:
+			chance = Balance.GEAR_BATTLEFIELD_ELITE_CHANCE
+		EnemyData.Category.BOSS:
+			chance = Balance.GEAR_BATTLEFIELD_BOSS_CHANCE
+	if RunState.rng("gear").randf() > chance:
+		return
+	var tier: CampaignTierData = RunState.tier()
+	var tier_order: int = tier.order if tier != null else 0
+	var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
+		RunState.rng("gear"))
+	if not piece.is_empty():
+		_field.spawn_gear(piece, global_position)
 
 
 func _tick_death(delta: float) -> void:

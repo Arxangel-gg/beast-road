@@ -62,6 +62,7 @@ const CHECKPOINT_PATH: String = "user://beast_road_perf_checkpoint.json"
 
 var _seconds: float = 120.0
 var _build: bool = false
+var _checkpoint_path: String = CHECKPOINT_PATH
 ## High is the shipped, authored target and therefore the release budget. Ultra
 ## is intentionally an opt-in headroom mode; it can be profiled explicitly with
 ## `--quality=ultra` without silently turning the normal certification into a
@@ -96,6 +97,11 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--seconds="):
 			_seconds = float(argument.split("=")[1])
+		elif argument.begins_with("--checkpoint="):
+			# CI uses user:// to exercise the shipped storage backend. Sandboxed
+			# developer runs can point at a disposable absolute path instead of
+			# weakening the save-time gate or touching an installed save profile.
+			_checkpoint_path = argument.trim_prefix("--checkpoint=")
 		elif argument.begins_with("--quality="):
 			var requested: String = argument.split("=")[1].to_lower()
 			if Graphics.PRESETS.has(requested):
@@ -312,22 +318,22 @@ func _check_save_time() -> void:
 	# antivirus indexing (hundreds of milliseconds in QA); gameplay checkpoints
 	# overwrite an already provisioned slot, which is the operation §47 budgets.
 	var payload: String = MetaState.serialized_save()
-	var provision: FileAccess = FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
+	var provision: FileAccess = FileAccess.open(_checkpoint_path, FileAccess.WRITE)
 	if provision == null:
-		_failures.append("could not provision isolated checkpoint at %s" % CHECKPOINT_PATH)
+		_failures.append("could not provision isolated checkpoint at %s" % _checkpoint_path)
 		return
 	provision.store_string(payload)
 	provision.close()
 
 	var started: int = Time.get_ticks_usec()
-	var file: FileAccess = FileAccess.open(CHECKPOINT_PATH, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(_checkpoint_path, FileAccess.WRITE)
 	if file == null:
-		_failures.append("could not create isolated checkpoint at %s" % CHECKPOINT_PATH)
+		_failures.append("could not create isolated checkpoint at %s" % _checkpoint_path)
 		return
 	file.store_string(payload)
 	file.close()
 	var ms: float = float(Time.get_ticks_usec() - started) / 1000.0
-	DirAccess.remove_absolute(ProjectSettings.globalize_path(CHECKPOINT_PATH))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(_checkpoint_path))
 	_notes.append("save     %.1f ms (budget 100 ms)" % ms)
 	if ms > 100.0:
 		_failures.append("saving took %.1f ms, budget is 100 ms" % ms)

@@ -70,6 +70,9 @@ signal enemy_died(enemy_id: String, at: Vector2)
 ## The hero reached a new level, and how much is now unspent.
 signal hero_levelled(level: int, attribute_points: int, skill_points: int)
 
+## Hero XP moved, including awards that did not cross a level boundary.
+signal hero_xp_changed(current: float, needed: float, level: int)
+
 ## A point was placed, so anything reading an attribute should re-read it.
 signal hero_attributes_changed()
 
@@ -78,6 +81,9 @@ signal weather_changed(weather_id: String)
 
 ## A drop was picked up (or paid out on expiry), for feedback and telemetry.
 signal loot_collected(currency: String, amount: int, at: Vector2)
+
+## Persistent gear reached the hero; a full stash converts it into shards.
+signal gear_collected(piece: Dictionary, stored: bool, shards: int, at: Vector2)
 
 ## A raid chest was opened, and whether it had been locked.
 signal raid_chest_opened(was_locked: bool)

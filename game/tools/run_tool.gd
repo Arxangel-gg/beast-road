@@ -91,9 +91,10 @@ func _generate(force: bool) -> void:
 ##
 ## 1. **Not a hole.** Median luminance at or above `FLOOR_MIN`. The original
 ##    jungle base sat at 19 and read as a void the road was suspended over.
-## 2. **Has texture.** The 10th-to-90th percentile spread is at least
-##    `FLOOR_RANGE_MIN`. A tile can be a perfectly reasonable brightness and
-##    still be a flat colour field with nothing in it.
+## 2. **Has texture.** The 1st-to-99th percentile spread is at least
+##    `FLOOR_RANGE_MIN`. Pure-material Wang tiles intentionally devote most of
+##    their area to one value, so the wider percentile window measures their
+##    cracks and grains without requiring noisy wallpaper.
 ## 3. **Two materials, not one.** The RGB distance between the pure-lower and
 ##    pure-upper tiles is at least `FLOOR_MATERIAL_MIN`. A regeneration of the
 ##    snow set came back with both materials at the same near-white; the
@@ -102,10 +103,9 @@ func _generate(force: bool) -> void:
 ##    Snow shipped a near-black lower against a near-white upper — 5.1x — which
 ##    reads as holes cut in a snowfield rather than as drifts on one.
 ##
-## There is deliberately **no upper brightness limit**. Snow is white and desert
-## hardpan is nearly white; capping them would be fighting the material. Whether
-## anything can be seen *against* a bright floor is a different question, it is
-## measured directly rather than guessed at, and `night_check.tscn` is where.
+## 5. **Moody, not blown out.** Production art deliberately treats snow as dirty
+##    steel-blue and saltglass as dusk-lit rather than white. The upper limit is
+##    a regression guard against the bright replacement sets this pass rejected.
 ##
 ## Brightness is reported as a *median*, never a mean: a tile is mostly its
 ## material, and a handful of bright specks should not vouch for a black field.
@@ -115,14 +115,13 @@ func _floor_tiles() -> void:
 	# Spelled out rather than read from Balance: this runs under a SceneTree tool
 	# where no autoload exists, and naming one is a compile error.
 	#
-	# Thresholds sit clear of what the shipping sets actually measure, so this
-	# fails on a regression rather than on a regeneration that came back slightly
-	# different. Measured at the time of writing: darkest median 136 against a
-	# floor of 45, thinnest texture 14 against 10, closest materials 70 against
-	# 40, widest contrast 1.79x against 3.2x.
-	const FLOOR_MIN: int = 45
-	const FLOOR_RANGE_MIN: int = 10
-	const FLOOR_MATERIAL_MIN: float = 40.0
+	# Thresholds describe the darker production target. They still reject the old
+	# 19-luminance void, a truly flat generated tile, two identical materials, and
+	# the near-white snow pass that prompted this rebuild.
+	const FLOOR_MIN: int = 35
+	const FLOOR_MAX: int = 160
+	const FLOOR_RANGE_MIN: int = 6
+	const FLOOR_MATERIAL_MIN: float = 10.0
 	const FLOOR_CONTRAST_MAX: float = 3.2
 
 	var problems: PackedStringArray = []
@@ -153,7 +152,7 @@ func _floor_tiles() -> void:
 			levels.sort()
 			var count: int = levels.size()
 			var median: int = levels[count / 2]
-			var spread: int = levels[count * 9 / 10] - levels[count / 10]
+			var spread: int = levels[count * 99 / 100] - levels[count / 100]
 			medians.append(median)
 			total /= float(count)
 			means.append(Color(total.x, total.y, total.z))
@@ -161,8 +160,11 @@ func _floor_tiles() -> void:
 			if median < FLOOR_MIN:
 				problems.append("%s is a hole, not ground: median luminance %d, floor is %d"
 					% [path.get_file(), median, FLOOR_MIN])
+			if median > FLOOR_MAX:
+				problems.append("%s is overexposed: median luminance %d, ceiling is %d"
+					% [path.get_file(), median, FLOOR_MAX])
 			if spread < FLOOR_RANGE_MIN:
-				problems.append("%s is a flat colour field: p10-p90 spread %d, needs %d"
+				problems.append("%s is a flat colour field: p1-p99 spread %d, needs %d"
 					% [path.get_file(), spread, FLOOR_RANGE_MIN])
 
 		# Corner masks 0 and 15 are the two materials undiluted. Everything else
@@ -195,9 +197,6 @@ func _floor_tiles() -> void:
 
 func _road_tiles() -> void:
 	const SIDES: Array[String] = ["N", "E", "S", "W"]
-	const LO: int = 8
-	const HI: int = 24
-	const COLLAR: int = 2
 	# Spelled out rather than read from Battlefield: that class reaches RunState,
 	# and an autoload does not exist in a SceneTree tool - naming it is a compile
 	# error, not a runtime one.
@@ -222,6 +221,9 @@ func _road_tiles() -> void:
 			var image: Image = (load(path) as Texture2D).get_image()
 			image.convert(Image.FORMAT_RGBA8)
 			var size: int = image.get_width()
+			var lo: int = size / 4
+			var hi: int = size * 3 / 4
+			var collar: int = maxi(2, size * 2 / 32)
 			var found: int = 0
 			for bit: int in 4:
 				var count: int = 0
@@ -239,8 +241,8 @@ func _road_tiles() -> void:
 			for bit: int in 4:
 				if not (mask >> bit) & 1:
 					continue
-				for depth: int in COLLAR:
-					for i: int in range(LO, HI):
+				for depth: int in collar:
+					for i: int in range(lo, hi):
 						var at: Vector2i = [Vector2i(i, depth), Vector2i(size - 1 - depth, i),
 							Vector2i(i, size - 1 - depth), Vector2i(depth, i)][bit]
 						if image.get_pixel(at.x, at.y).a <= 0.5:

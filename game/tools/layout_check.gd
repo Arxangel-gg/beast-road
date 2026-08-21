@@ -42,9 +42,25 @@ const MIN_PANEL_GAP: float = 18.0
 
 var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
+var _touch_layout: bool = false
 
 
 func _ready() -> void:
+	var viewport_size := Vector2i.ZERO
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--touch=on":
+			_touch_layout = true
+		elif argument.begins_with("--viewport="):
+			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
+			if dimensions.size() == 2:
+				viewport_size = Vector2i(dimensions[0].to_int(), dimensions[1].to_int())
+	if viewport_size.x > 0 and viewport_size.y > 0:
+		get_window().mode = Window.MODE_WINDOWED
+		get_window().size = viewport_size
+	if _touch_layout:
+		MetaState.settings[TouchInput.TOUCH_KEY] = true
+	MetaState.settings["tutorial_seen"] = true
+	MetaState.story_intro_seen = true
 	RunState.reset()
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
@@ -54,6 +70,10 @@ func _ready() -> void:
 	# one, and measuring too early reports the pre-layout zeros as overflow.
 	for _f: int in 8:
 		await get_tree().process_frame
+	if _touch_layout:
+		TouchInput.refresh()
+		for _f: int in 4:
+			await get_tree().process_frame
 
 	# The build panel is closed until a slot is clicked, so a check that only
 	# looks at the resting screen never sees the busiest interface in the game -
@@ -70,6 +90,8 @@ func _ready() -> void:
 	_check_overlap(widgets)
 	_check_on_screen(widgets)
 	_check_crowding(widgets)
+	if _touch_layout:
+		_check_touch_targets(widgets)
 	await _check_hover_stability()
 
 	for note: String in _notes:
@@ -78,6 +100,27 @@ func _ready() -> void:
 		push_error(problem)
 	print("[layout] %s" % ("PASS" if _failures.is_empty() else "FAIL"))
 	_bail(1 if not _failures.is_empty() else 0)
+
+
+## A touch layout is only real if the controls themselves grew. Measuring the
+## rectangles catches a visually enlarged parent whose child hit boxes remained
+## desktop-sized — the exact failure that prompted the responsive pass.
+func _check_touch_targets(widgets: Array[Control]) -> void:
+	var checked: int = 0
+	var undersized: int = 0
+	var screen: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	for control: Control in widgets:
+		if not control is BaseButton or not control.is_visible_in_tree():
+			continue
+		var rect: Rect2 = control.get_global_rect()
+		if not screen.intersects(rect) or bool((control as BaseButton).disabled):
+			continue
+		checked += 1
+		if rect.size.y + 1.0 < Balance.UI_TOUCH_MIN_TARGET_HEIGHT:
+			undersized += 1
+			_failures.append("touch target: %s is %.0fpx tall, minimum is %.0fpx" % [
+				_path_of(control), rect.size.y, Balance.UI_TOUCH_MIN_TARGET_HEIGHT])
+	_notes.append("touch targets: %d checked, %d undersized" % [checked, undersized])
 
 
 ## Content that needs more room than it was given.

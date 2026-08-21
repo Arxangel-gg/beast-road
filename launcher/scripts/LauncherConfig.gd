@@ -42,7 +42,7 @@ const VERSION: String = "dev"
 ## `releases/latest/download/BeastRoadLauncher.exe` is the permanent link testers
 ## install from and it resolves by exact filename - versioning the exe would break
 ## it on the release that fixed the update, which is the worst possible timing.
-const LAUNCHER_VERSION: String = "2"
+const LAUNCHER_VERSION: String = "3"
 
 ## Names the marker asset that carries LAUNCHER_VERSION.
 const LAUNCHER_VERSION_ASSET_PREFIX: String = "launcher-version-"

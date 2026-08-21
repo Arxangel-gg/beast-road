@@ -505,14 +505,8 @@ func _test_damage_states_are_reversible() -> void:
 	_check(burning == 0, "a fully repaired town must not still be on fire (%d fires)" % burning)
 
 
-## Levelling has to grow the hero, stop at the cap, and leave no trace on the
-## account.
-##
-## The last part is the one that matters most and is easiest to break silently:
-## GDD v4 §974 forbids a hero level persisting, and CLAUDE.md §7 names the
-## save's entire contents. A stat that leaked into MetaState would make every
-## later run start stronger, which is the failure mode roguelite progression is
-## specifically designed to avoid.
+## Levelling has to grow the hero, stop at the cap, and persist only through the
+## dedicated capped hero schema introduced by the 2026-08-20 owner amendment.
 func _test_hero_levelling() -> void:
 	var before_level: int = RunState.hero_level
 	RunState.hero_level = 1
@@ -520,11 +514,29 @@ func _test_hero_levelling() -> void:
 	RunState.hero_attribute_points = 0
 	RunState.hero_skill_points = 0
 	RunState.hero_attributes = [0, 0, 0, 0]
+	MetaState.hero_xp = 0.0
+	RunState.gain_hero_xp(3.0)
+	_check(is_equal_approx(MetaState.hero_xp, 3.0),
+		"sub-level XP must reach account state for the run-end save")
+	RunState.hero_xp = 0.0
+	MetaState.hero_xp = 0.0
 
 	# One enormous award must resolve every level it crosses, not just one.
 	RunState.gain_hero_xp(50000.0)
 	_check(RunState.hero_level > 20,
 		"a large award must resolve every level it crosses, reached %d" % RunState.hero_level)
+	var xp_label: Label = _run.hud.get("_xp_label") as Label
+	var xp_band: Control = _run.hud.get("_xp_band") as Control
+	_check(xp_label != null and xp_label.text.contains("LEVEL %d" % RunState.hero_level)
+		and xp_label.text.contains(" XP"),
+		"the battlefield XP strip must show the current level and XP threshold")
+	_run.hud.call("_on_scope_changed", int(GameDirector.Scope.RAID))
+	_check(xp_band != null and xp_band.visible,
+		"the hero XP strip must remain visible in a raid")
+	_run.hud.call("_on_scope_changed", int(GameDirector.Scope.TOWN))
+	_check(xp_band != null and not xp_band.visible,
+		"the hero XP strip must stay out of non-combat scopes")
+	_run.hud.call("_on_scope_changed", int(GameDirector.Scope.BATTLEFIELD))
 	_check(RunState.hero_attribute_points == RunState.hero_level - 1,
 		"one attribute point per level (%d points at level %d)"
 			% [RunState.hero_attribute_points, RunState.hero_level])
@@ -537,6 +549,8 @@ func _test_hero_levelling() -> void:
 	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
 		"levelling must stop at %d, reached %d"
 			% [Balance.HERO_MAX_LEVEL, RunState.hero_level])
+	_check(xp_label != null and xp_label.text.contains("MAX"),
+		"the XP strip must communicate the level cap")
 	RunState.gain_hero_xp(50000000.0)
 	_check(RunState.hero_level == Balance.HERO_MAX_LEVEL,
 		"a capped hero must not level again")
@@ -555,7 +569,7 @@ func _test_hero_levelling() -> void:
 	_check(RunState.discipline_cap() > Balance.DISCIPLINE_MAX_TRAINED,
 		"a level %d hero should have earned discipline slots" % RunState.hero_level)
 
-	# And none of it reaches the save.
+	# The generic unlock payload must not duplicate the dedicated hero schema.
 	var saved: Dictionary = MetaState.call("_unlocked_payload") if MetaState.has_method(
 		"_unlocked_payload") else {}
 	for key: Variant in saved:
@@ -572,10 +586,12 @@ func _test_hero_levelling() -> void:
 	# have been to delete it - so it states the new contract instead, which is the
 	# stricter of the two: the hero comes back *exactly* as the account holds it.
 	MetaState.hero_level = 37
+	MetaState.hero_xp = 6.0
 	MetaState.hero_attribute_points = 4
 	MetaState.hero_attributes = [3, 0, 0, 0]
 	RunState.reset()
 	_check(RunState.hero_level == 37, "a new run must restore the account's hero")
+	_check(is_equal_approx(RunState.hero_xp, 6.0), "partial XP must come back")
 	_check(RunState.hero_attribute_points == 4, "unspent points must come back")
 	_check(RunState.attribute(RunState.Attribute.MIGHT) == 3,
 		"placed attributes must come back")
@@ -613,6 +629,36 @@ func _test_loot_and_weather() -> void:
 	await get_tree().process_frame
 	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion(),
 		"a collected drop must not survive to be collected again")
+
+	# A battlefield gear roll becomes the same persistent reward as a raid chest,
+	# but arrives as a physical pickup rather than silently editing the stash.
+	var stash_before: Array = MetaState.stash.duplicate(true)
+	var equipped_before: Dictionary = MetaState.equipped.duplicate()
+	var gear_kinds: Array[GearData] = ContentDB.gear_sorted()
+	MetaState.stash = []
+	MetaState.equipped = {}
+	_check(not gear_kinds.is_empty(), "battlefield gear requires at least one gear resource")
+	if not gear_kinds.is_empty():
+		var piece: Dictionary = Stash.make(gear_kinds[0].id, 1)
+		field.spawn_gear(piece, Vector2(320.0, 0.0))
+		var gear_drops: Array[Node] = get_tree().get_nodes_in_group(LootDrop.GROUP)
+		var gear_drop: LootDrop = null
+		for candidate: Node in gear_drops:
+			var candidate_drop := candidate as LootDrop
+			if candidate_drop != null and not candidate_drop.gear.is_empty():
+				gear_drop = candidate_drop
+				break
+		_check(gear_drop != null, "spawn_gear must produce a physical battlefield pickup")
+		if gear_drop != null:
+			gear_drop.call("_collect")
+			_check(MetaState.stash.size() == 1
+				and String((MetaState.stash[0] as Dictionary).get("kind", "")) == gear_kinds[0].id,
+				"collecting battlefield gear must deliver it to the stash")
+	MetaState.stash = stash_before
+	MetaState.equipped = equipped_before
+	_check(Balance.GEAR_BATTLEFIELD_DROP_CHANCE < Balance.GEAR_BATTLEFIELD_ELITE_CHANCE
+		and Balance.GEAR_BATTLEFIELD_ELITE_CHANCE < Balance.GEAR_BATTLEFIELD_BOSS_CHANCE,
+		"battlefield gear odds must climb from breed to elite to boss")
 
 	# Weather scales elements, and Clear scales nothing.
 	for element: int in 4:
@@ -852,6 +898,16 @@ func _test_stash_economy() -> void:
 	_check(MetaState.stash.size() == Balance.STASH_CAPACITY,
 		"the stash must stop at %d, holds %d" % [Balance.STASH_CAPACITY,
 			MetaState.stash.size()])
+	var full_piece: Dictionary = Stash.make(kinds[1].id, 2)
+	var expected_shards: int = Stash.salvage_yield(full_piece)
+	var shards_at_capacity: int = MetaState.shards
+	var overflow: Dictionary = MetaState.receive_gear(full_piece)
+	_check(not bool(overflow.get("stored", true))
+		and int(overflow.get("shards", 0)) == expected_shards,
+		"a full stash must report its deterministic salvage payout")
+	_check(MetaState.stash.size() == Balance.STASH_CAPACITY
+		and MetaState.shards == shards_at_capacity + expected_shards,
+		"a full stash must auto-break the drop instead of deleting the reward")
 
 	# The two currencies must not be the same currency wearing two hats.
 	_check(not RunState.CURRENCIES.has("marks"),

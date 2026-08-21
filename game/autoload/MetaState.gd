@@ -491,6 +491,22 @@ func take_gear(piece: Dictionary) -> bool:
 	return true
 
 
+## Delivers a drop without ever deleting an earned reward. A free stash slot
+## stores it; a full stash breaks it into shards immediately. The returned
+## payload is presentation-neutral so battlefield pickups and raid chests can
+## describe the same outcome in their own UI.
+func receive_gear(piece: Dictionary) -> Dictionary:
+	if piece.is_empty():
+		return {"stored": false, "shards": 0}
+	if take_gear(piece):
+		return {"stored": true, "shards": 0}
+	var salvaged: int = Stash.salvage_yield(piece)
+	shards += salvaged
+	save_game()
+	EventBus.stash_changed.emit()
+	return {"stored": false, "shards": salvaged}
+
+
 ## Removes a piece, keeping the equipped indices pointing at the same gear.
 ##
 ## Indices shift when an element is removed from the middle of an array, so

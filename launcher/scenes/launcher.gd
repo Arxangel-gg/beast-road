@@ -40,6 +40,9 @@ var _state: State = State.CHECKING
 var _installed: InstallState
 var _latest: ReleaseInfo = null
 var _spin_time: float = 0.0
+var _stage_time: float = 0.0
+@onready var _backdrop: TextureRect = get_node("Backdrop") as TextureRect
+@onready var _logo: TextureRect = get_node("Logo") as TextureRect
 
 ## Set once the player declines a launcher update, so it is offered once per
 ## session and not re-offered every time the launcher re-checks.
@@ -76,6 +79,19 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# The main menu is a living pixel-art road rather than a poster. The launcher
+	# uses the same art and the same restrained motion language so the hand-off
+	# feels like one product: long backdrop drift, barely perceptible logo breath.
+	_stage_time += delta
+	if _backdrop != null:
+		var drift: float = sin(_stage_time * 0.075) * 10.0
+		_backdrop.offset_left = -18.0 + drift
+		_backdrop.offset_right = 18.0 + drift
+	if _logo != null:
+		var bob: float = sin(_stage_time * 0.52) * 2.0
+		_logo.offset_top = 46.0 + bob
+		_logo.offset_bottom = 330.0 + bob
+
 	if _state != State.CHECKING and _state != State.WORKING:
 		spinner.text = ""
 		return

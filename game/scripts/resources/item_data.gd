@@ -24,12 +24,8 @@ extends GameData
 
 ## Where this item's icon belongs, by the usual convention.
 ##
-## No item has one yet, and that is deliberate rather than an oversight: the
-## production-art gate treats a manifest row as a promise that finished art
-## exists behind it, so adding a row with a placeholder behind it blocks every
-## release until somebody draws the thing. The HUD borrows a finished icon
-## instead. When real Draught art is drawn, it goes at the path this returns and
-## gains its manifest row in the same change - see CLAUDE.md §4.
+## The Resurrection Draught ships at the path this returns, and its manifest row
+## keeps the convention covered by the production-art gate.
 func get_sprite_path() -> String:
 	if id.is_empty():
 		return ""

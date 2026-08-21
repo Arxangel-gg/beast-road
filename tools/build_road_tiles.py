@@ -14,9 +14,11 @@ edge rules; use them. Assuming `tile_N` is mask N produces a road that looks
 plausible in a contact sheet and breaks into disconnected C and J shapes the
 moment it is laid out.
 
-**A set does not contain all sixteen masks.** Two or three are always missing.
-They are recovered by rotating a tile that has the right shape, which works
-because a quarter turn maps the mask bits round by one.
+**A set does not always contain all sixteen masks.** Missing orientations are
+recovered by rotating a tile with the same topology. A rare generator result
+can omit a topology entirely (usually the four dead ends); the canonical clip
+still makes a safe recovery possible from the closest painted surface because
+the generated tile supplies texture while the script owns the final silhouette.
 
 **The road is clipped to a canonical shape rather than colour-keyed out of its
 background.** Keying was tried first and is a trap: it depends on the road and
@@ -40,19 +42,25 @@ import numpy as np
 from PIL import Image
 
 TILE = 32
-# The road's half-width at a tile edge. 16 of 32 is half the tile, which is what
-# the battlefield's PIECE sizing assumes when it draws a piece at twice the
-# carriageway (see Battlefield.ROAD_ART_SPAN).
 BAND = (8, 24)
-# Corner rounding radius, in source pixels. Big enough to read as a real bend at
-# the twelvefold scale the road is drawn at, small enough to leave the straight
-# sections straight. This is the number that decides whether the U-bends look
-# curved or stepped, and stepped is what the first pass shipped.
 ROUND = 4
-# How deep the forced full-width collar runs in from a connected edge. Only the
-# join has to be exact; inside the tile the road keeps whatever silhouette the
-# generator painted, which is what stops it reading as a slab.
 COLLAR = 3
+
+
+def configure_geometry(tile_size: int) -> None:
+    """Scale the canonical road geometry with the generated source resolution.
+
+    PixelLab's first path sets were 32px. Production sets are edited at 64px so
+    their wheel ruts and ground grain retain detail in the battlefield bake. A
+    single proportional definition keeps both source sizes buildable and, more
+    importantly, keeps the connection band at exactly half a tile at either
+    resolution.
+    """
+    global TILE, BAND, ROUND, COLLAR
+    TILE = tile_size
+    BAND = (tile_size // 4, tile_size * 3 // 4)
+    ROUND = max(2, tile_size // 8)
+    COLLAR = max(3, tile_size * 3 // 32)
 
 
 def disc(r: int) -> np.ndarray:
@@ -141,12 +149,14 @@ def strip_bevel(rgb: np.ndarray) -> np.ndarray:
     exactly as painted; the canonical clip fixes the width afterwards regardless.
     """
     out = rgb.astype(float)
-    interior = np.median(out[10:22, 10:22].reshape(-1, 3), axis=0)
+    lo = TILE * 5 // 16
+    hi = TILE * 11 // 16
+    interior = np.median(out[lo:hi, lo:hi].reshape(-1, 3), axis=0)
 
     def inset(view: np.ndarray, reverse: bool) -> int:
         order = range(TILE - 1, -1, -1) if reverse else range(TILE)
         for step, i in enumerate(order):
-            if step > 6:
+            if step > TILE * 3 // 16:
                 break
             line = view[i, BAND[0] : BAND[1]].mean(0)
             if np.linalg.norm(line - interior) < 22.0:
@@ -158,7 +168,7 @@ def strip_bevel(rgb: np.ndarray) -> np.ndarray:
     top, bottom = inset(rows, False), inset(rows, True)
     left, right = inset(cols, False), inset(cols, True)
     crop = rgb[top : TILE - bottom, left : TILE - right]
-    if crop.shape[0] < 8 or crop.shape[1] < 8:
+    if crop.shape[0] < TILE // 4 or crop.shape[1] < TILE // 4:
         return rgb
     return np.array(
         Image.fromarray(crop).resize((TILE, TILE), Image.NEAREST)
@@ -183,7 +193,7 @@ def seamless_floor(rgb: np.ndarray) -> np.ndarray:
     A mosaic of several variants was tried first and is the trap here: different
     variants share no edges, so it seams *more*, not less.
     """
-    inset = 6
+    inset = TILE // 4
     core = rgb[inset:-inset, inset:-inset]
     top = np.concatenate([core, core[:, ::-1]], axis=1)
     return np.concatenate([top, top[::-1, :]], axis=0).astype(np.uint8)
@@ -198,7 +208,7 @@ def road_seed(envelope: np.ndarray) -> np.ndarray:
     ragged silhouette that reads as damage rather than as a road. The middle of
     the envelope is road by construction, whatever the region looks like.
     """
-    return erode(envelope, disc(4))
+    return erode(envelope, disc(max(2, TILE // 8)))
 
 
 def fill_from_road(rgb: np.ndarray, road: np.ndarray, _want: np.ndarray) -> np.ndarray:
@@ -273,14 +283,15 @@ def stroke_edges(rgb: np.ndarray, shape: np.ndarray, tone: float) -> np.ndarray:
     looks like a sticker. `tone` is how far toward black the edge goes, so a
     region can ask for more or less.
     """
-    inner = erode(shape, disc(1))
+    stroke = max(1, TILE // 32)
+    inner = erode(shape, disc(stroke))
     edge = shape & ~inner
     out = rgb.astype(float)
     out[edge] *= tone
     # A second, softer step inside it, so the stroke has a falloff instead of a
     # single hard line - one pixel of pure dark reads as an outline, two with a
     # gradient read as depth.
-    inner2 = erode(inner, disc(1))
+    inner2 = erode(inner, disc(stroke))
     out[inner & ~inner2] *= (tone + 1.0) * 0.5
     return np.clip(out, 0, 255).astype(np.uint8)
 
@@ -302,12 +313,16 @@ def main() -> int:
     out_dir = os.path.join("game", "art", "battlefield")
 
     rules: dict[str, int] = json.load(open(rules_path, encoding="utf-8"))
+    first_source = next(iter(rules))
+    first_image = Image.open(os.path.join(src_dir, f"{first_source}.png"))
+    if first_image.width != first_image.height:
+        raise ValueError(f"path source must be square, got {first_image.size}")
+    configure_geometry(first_image.width)
     by_mask: dict[int, str] = {}
     for name, mask in rules.items():
         by_mask.setdefault(int(mask), name)
 
-    # Recover any mask the set does not contain by turning one that has the same
-    # shape. Every mask is some rotation of one that is present.
+    # Recover a missing orientation from a rotated tile with the same topology.
     plan: dict[int, tuple[str, int]] = {m: (n, 0) for m, n in by_mask.items()}
     for mask in range(16):
         if mask in plan:
@@ -317,6 +332,26 @@ def main() -> int:
             if source in by_mask:
                 plan[mask] = (by_mask[source], turns)
                 break
+
+    # Some generated sets omit an entire topology. The road silhouette below is
+    # canonical and does not trust the source alpha, so choose the closest
+    # painted surface and clip it to the missing shape. Prefer the same number of
+    # connections, then the orientation with the fewest differing edges.
+    for mask in range(16):
+        if mask in plan:
+            continue
+        best: tuple[int, str, int] | None = None
+        for source, name in by_mask.items():
+            for turns in range(4):
+                rotated = rotate_mask(source, turns)
+                score = (abs(bin(rotated).count("1") - bin(mask).count("1")) * 100
+                         + bin(rotated ^ mask).count("1")
+                         + (10 if mask != 0 and rotated == 0 else 0))
+                option = (score, name, turns)
+                if best is None or option < best:
+                    best = option
+        if best is not None:
+            plan[mask] = (best[1], best[2])
 
     written = 0
     built: dict[int, np.ndarray] = {}

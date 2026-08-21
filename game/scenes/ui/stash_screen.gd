@@ -105,12 +105,13 @@ func _refresh() -> void:
 	for index: int in ATTRIBUTE_NAMES.size():
 		if worn[index] > 0:
 			parts.append("+%d %s" % [worn[index], ATTRIBUTE_NAMES[index]])
-	_note.text = "%d of %d held%s" % [MetaState.stash.size(), Balance.STASH_CAPACITY,
+	_note.text = "%d of %d held%s  ·  full-stash drops auto-break into Shards" % [
+		MetaState.stash.size(), Balance.STASH_CAPACITY,
 		"  ·  worn: " + ", ".join(parts) if not parts.is_empty() else ""]
 
 	if MetaState.stash.is_empty():
 		var empty := Label.new()
-		empty.text = "Nothing yet. Gear comes out of raid chests."
+		empty.text = "Nothing yet. Gear can fall on the battlefield or come out of raid chests."
 		empty.add_theme_color_override("font_color", Color("8f9b98"))
 		_list.add_child(empty)
 		return

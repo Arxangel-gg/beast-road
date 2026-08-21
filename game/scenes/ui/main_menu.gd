@@ -70,13 +70,13 @@ func _setup_stage() -> void:
 ## first launch is a promise the game has not made yet, and the first gear a
 ## player finds announces itself anyway.
 func _build_stash_button() -> void:
-	if MetaState.stash.is_empty() and MetaState.marks <= 0:
+	if MetaState.stash.is_empty() and MetaState.marks <= 0 and MetaState.shards <= 0:
 		return
 	var column: Node = new_run_button.get_parent()
 	if column == null:
 		return
 	var button := Button.new()
-	button.text = "Stash  ·  %d Marks" % MetaState.marks
+	button.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 	IconKit.on_button(button, "relic", 24)
 	column.add_child(button)
 	column.move_child(button, new_run_button.get_index() + 1)
@@ -84,7 +84,7 @@ func _build_stash_button() -> void:
 	var screen := StashScreen.new()
 	add_child(screen)
 	screen.closed.connect(func() -> void:
-		button.text = "Stash  ·  %d Marks" % MetaState.marks
+		button.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 		new_run_button.grab_focus())
 	button.pressed.connect(func() -> void: screen.open())
 

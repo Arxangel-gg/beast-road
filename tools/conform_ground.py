@@ -18,9 +18,10 @@ everything -- including the parts that were right -- against a prompt that has
 already shown it cannot express "these hues and no others".
 
 So this is a **conform pass, not a paint pass**. It moves hues that are outside a
-region's gamut to the nearest edge of it and caps saturation. It invents nothing,
-it draws nothing, and it is deterministic: the same input always produces the
-same output, so the committed PNG is reproducible from the generated one.
+region's gamut to the nearest edge, caps saturation, and folds generated value
+outliers into the act's exposure envelope. It invents nothing, it draws nothing,
+and it is deterministic: the same input always produces the same output, so the
+committed PNG is reproducible from the generated one.
 
 ## The rule
 
@@ -31,9 +32,11 @@ ceiling. Every pixel is examined once:
   - a hue outside every arc is moved to the nearest arc edge
   - saturation above the ceiling is scaled down to it
 
-Value is never touched. Brightness is what `run_tool.gd -- floor-tiles` checks
-and what night readability depends on, and a palette pass has no business
-changing it.
+  - regions with a value envelope clamp outliers into that envelope
+
+The value clamp exists because prompt wording did not stop snow rims reaching
+pure white or dark hardpan reaching near-black. A global per-region mapping
+preserves every edge and detail while keeping both materials on one moody plane.
 """
 
 import colorsys
@@ -59,21 +62,17 @@ ART = Path(__file__).resolve().parent.parent / "game" / "art" / "terrain"
 # that a future regeneration of either is measured against something rather than
 # trusted.
 REGIONS = {
-    # One arc from brown through to green, not two with a gap at yellow.
-    #
-    # Two was the first attempt, on the reasoning that a jungle floor has no
-    # yellow in it. But fourteen of the sixteen tiles are earth *blending into*
-    # moss, and a blend between orange and green passes through yellow on the
-    # way — excluding it folded the middle of every transition tile onto an arc
-    # edge and put a hard colour break across the join the tile exists to hide.
-    # The magenta noise is well outside this arc either way, which is the only
-    # thing that actually needed removing.
-    "jungle": {"arcs": [(0.02, 0.36)], "saturation": 0.55},
-    # Sand and clay are one continuous warm arc; there is no second material to
-    # leave room for.
-    "desert": {"arcs": [(0.01, 0.17)], "saturation": 0.55},
-    # Stone and snow, both cool, one arc through blue.
-    "snow": {"arcs": [(0.38, 0.72)], "saturation": 0.60},
+    # Wet umber, blue-green standing water and near-red dead roots. The separated
+    # arcs deliberately leave magenta/purple out without folding the generated
+    # teal material into brown and destroying the two-material read.
+    "jungle": {"arcs": [(0.00, 0.15), (0.40, 0.60), (0.90, 1.00)],
+               "saturation": 0.55},
+    # Smoky umber hardpan and petrol-blue saltglass are both intentional.
+    "desert": {"arcs": [(0.01, 0.17), (0.50, 0.68)],
+               "saturation": 0.48, "value_range": (0.16, 0.58)},
+    # Oxblood basalt under dirty blue snow: two restrained temperature families.
+    "snow": {"arcs": [(0.00, 0.08), (0.50, 0.72), (0.94, 1.00)],
+             "saturation": 0.48, "value_range": (0.18, 0.54)},
 }
 
 
@@ -120,6 +119,7 @@ def conform(region: str, check_only: bool) -> int:
     ceiling = rules["saturation"]
     folded_count = 0
     capped_count = 0
+    graded_count = 0
     total = 0
 
     for mask in range(16):
@@ -146,16 +146,28 @@ def conform(region: str, check_only: bool) -> int:
                 # tolerance those pixels are "capped" on every run forever, and
                 # the pass reports work it did not do.
                 capped = min(s, ceiling - INSET) if s > ceiling + INSET else s
+                graded = v
+                if "value_range" in rules:
+                    low, high = rules["value_range"]
+                    graded = min(max(v, low), high)
+                if folded == h and capped == s and graded == v:
+                    continue
+                nr, ng, nb = colorsys.hsv_to_rgb(folded, capped, graded)
+                output = (round(nr * 255), round(ng * 255), round(nb * 255))
+                # HSV values can remain microscopically beyond a limit after an
+                # 8-bit round trip even when the resulting RGB is already exact.
+                # Comparing the actual bytes is what makes the pass idempotent.
+                if output == (r, g, b):
+                    continue
                 if folded != h:
                     folded_count += 1
                 if capped != s:
                     capped_count += 1
-                if folded == h and capped == s:
-                    continue
+                if graded != v:
+                    graded_count += 1
                 if check_only:
                     continue
-                nr, ng, nb = colorsys.hsv_to_rgb(folded, capped, v)
-                pixels[x, y] = (round(nr * 255), round(ng * 255), round(nb * 255), a)
+                pixels[x, y] = (*output, a)
 
         if not check_only:
             image.save(path)
@@ -165,9 +177,9 @@ def conform(region: str, check_only: bool) -> int:
     # lot is repainting the art and should be a regeneration instead.
     verb = "would fold" if check_only else "folded"
     share = 100.0 / max(total, 1)
-    print("  %-7s %s %d hues (%.1f%%), capped %d saturations (%.1f%%), of %d pixels"
+    print("  %-7s %s %d hues (%.1f%%), capped %d saturations (%.1f%%), graded %d values, of %d pixels"
           % (region, verb, folded_count, folded_count * share,
-             capped_count, capped_count * share, total))
+             capped_count, capped_count * share, graded_count, total))
     return folded_count
 
 

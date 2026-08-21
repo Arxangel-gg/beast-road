@@ -359,15 +359,15 @@ screen.
 ### 5.7 Terrain tiles — `res://art/terrain/`
 
 Each region's floor is the plain-ground tile of its own road set, mirrored into
-a seamless 40×40 tile by `tools/build_road_tiles.py`. Ground and road therefore
+a seamless 64×64 tile by `tools/build_road_tiles.py`. Ground and road therefore
 come from one generation, share a palette, and are drawn at the same pixel
 density (`Balance.GROUND_UNITS_PER_TEXEL`).
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `terrain_jungle.png` | 40×40 | O | `#2E3A33` |
-| `terrain_desert.png` | 40×40 | O | `#8FA8B8` |
-| `terrain_snow.png` | 40×40 | O | `#6B4A3A` |
+| `terrain_jungle.png` | 64×64 | O | `#2E3A33` |
+| `terrain_desert.png` | 64×64 | O | `#8FA8B8` |
+| `terrain_snow.png` | 64×64 | O | `#6B4A3A` |
 
 **Region floors — corner (Wang) sets.**
 
@@ -388,64 +388,64 @@ position, and read the corners by name rather than positionally.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_jungle_00.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_01.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_02.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_03.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_04.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_05.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_06.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_07.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_08.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_09.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_10.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_11.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_12.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_13.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_14.png` | 32×32 | O | `#2E3A33` |
-| `ground_jungle_15.png` | 32×32 | O | `#2E3A33` |
+| `ground_jungle_00.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_01.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_02.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_03.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_04.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_05.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_06.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_07.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_08.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_09.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_10.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_11.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_12.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_13.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_14.png` | 64×64 | O | `#2E3A33` |
+| `ground_jungle_15.png` | 64×64 | O | `#2E3A33` |
 
 **Act II — The Sunglass Waste** (pale salt hardpan → golden sand drifts)
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_desert_00.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_01.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_02.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_03.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_04.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_05.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_06.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_07.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_08.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_09.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_10.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_11.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_12.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_13.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_14.png` | 32×32 | O | `#C9A968` |
-| `ground_desert_15.png` | 32×32 | O | `#C9A968` |
+| `ground_desert_00.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_01.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_02.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_03.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_04.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_05.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_06.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_07.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_08.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_09.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_10.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_11.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_12.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_13.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_14.png` | 64×64 | O | `#C9A968` |
+| `ground_desert_15.png` | 64×64 | O | `#C9A968` |
 
 **Act III — The White Teeth** (frozen rock → wind-packed snow)
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `ground_snow_00.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_01.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_02.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_03.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_04.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_05.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_06.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_07.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_08.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_09.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_10.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_11.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_12.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_13.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_14.png` | 32×32 | O | `#8FA8B8` |
-| `ground_snow_15.png` | 32×32 | O | `#8FA8B8` |
+| `ground_snow_00.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_01.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_02.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_03.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_04.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_05.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_06.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_07.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_08.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_09.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_10.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_11.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_12.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_13.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_14.png` | 64×64 | O | `#8FA8B8` |
+| `ground_snow_15.png` | 64×64 | O | `#8FA8B8` |
 
 ### 5.7b Foliage — `res://art/foliage/`
 
@@ -634,7 +634,8 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
-`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png`
+`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` ·
+`ui_resurrection_draught.png`
 
 The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,
@@ -763,64 +764,64 @@ which is where the tile-order, missing-mask and seam problems are documented.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_jungle_00.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_01.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_02.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_03.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_04.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_05.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_06.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_07.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_08.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_09.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_10.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_11.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_12.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_13.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_14.png` | 32×32 | T | `#6B5A44` |
-| `path_jungle_15.png` | 32×32 | T | `#6B5A44` |
+| `path_jungle_00.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_01.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_02.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_03.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_04.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_05.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_06.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_07.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_08.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_09.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_10.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_11.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_12.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_13.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_14.png` | 64×64 | T | `#6B5A44` |
+| `path_jungle_15.png` | 64×64 | T | `#6B5A44` |
 
 **Act II — The Sunglass Waste**
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_desert_00.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_01.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_02.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_03.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_04.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_05.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_06.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_07.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_08.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_09.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_10.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_11.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_12.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_13.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_14.png` | 32×32 | T | `#D8C08A` |
-| `path_desert_15.png` | 32×32 | T | `#D8C08A` |
+| `path_desert_00.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_01.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_02.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_03.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_04.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_05.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_06.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_07.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_08.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_09.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_10.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_11.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_12.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_13.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_14.png` | 64×64 | T | `#D8C08A` |
+| `path_desert_15.png` | 64×64 | T | `#D8C08A` |
 
 **Act III — The White Teeth**
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `path_snow_00.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_01.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_02.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_03.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_04.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_05.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_06.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_07.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_08.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_09.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_10.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_11.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_12.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_13.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_14.png` | 32×32 | T | `#8A8D95` |
-| `path_snow_15.png` | 32×32 | T | `#8A8D95` |
+| `path_snow_00.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_01.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_02.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_03.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_04.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_05.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_06.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_07.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_08.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_09.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_10.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_11.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_12.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_13.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_14.png` | 64×64 | T | `#8A8D95` |
+| `path_snow_15.png` | 64×64 | T | `#8A8D95` |
 
 ### 5.18 Projectiles — `res://art/vfx/`
 

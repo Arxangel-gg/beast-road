@@ -96,6 +96,9 @@ var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
+var _xp_band: Control
+var _xp_bar: ProgressBar
+var _xp_label: Label
 var _wounds_label: Label
 var _draught_icon: Control
 var _charge_bar: ProgressBar
@@ -132,6 +135,9 @@ var _spell_icons: Array[TextureRect] = []
 var _spell_labels: Array[Label] = []
 var _spell_cooldowns: Array[Label] = []
 var _spell_bar: HBoxContainer
+var _bottom_row: HBoxContainer
+var _nav_bar: HBoxContainer
+var _nav_buttons: Array[Button] = []
 var _boss_panel: PanelContainer
 var _boss_name: Label
 var _boss_bar: ProgressBar
@@ -163,6 +169,7 @@ func _ready() -> void:
 	_build_raid_panel()
 	_build_boss_track()
 	_build_bottom_row()
+	_build_xp_bar()
 	_build_boss_bar()
 	_build_region_card()
 	_build_tutorial_coach()
@@ -178,6 +185,7 @@ func _ready() -> void:
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.hero_wounds_changed.connect(_on_hero_wounds_changed)
+	EventBus.hero_xp_changed.connect(_on_hero_xp_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
 	EventBus.wave_started.connect(_on_wave)
 	EventBus.wave_archetype_started.connect(_on_wave_archetype)
@@ -204,6 +212,7 @@ func _ready() -> void:
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)
+	TouchInput.shown_changed.connect(_on_touch_layout_changed)
 
 	if battlefield != null and battlefield.placement != null:
 		battlefield.placement.tile_clicked.connect(_open_build_panel)
@@ -217,6 +226,9 @@ func _ready() -> void:
 	_on_preparation_changed(0.0, true)
 	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
 	_on_hero_wounds_changed(RunState.hero_wounds, Balance.HERO_MAX_WOUNDS)
+	_refresh_xp_bar()
+	_on_touch_layout_changed(touch_ui())
+	_on_scope_changed(int(GameDirector.current_scope))
 
 
 func _process(delta: float) -> void:
@@ -270,7 +282,7 @@ func _build_top_bar() -> void:
 	# The level sits with the act rather than with the currencies: it is what the
 	# player has become, not what they can spend.
 	_level = _label("Lv 1")
-	_level.tooltip_text = "Hero level. Resets with the run."
+	_level.tooltip_text = "Persistent hero level. Earn XP in battles and raids."
 	bar.add_child(_level)
 
 	_weather = _label("Clear")
@@ -329,15 +341,10 @@ func _build_top_bar() -> void:
 	# changes how much risk is worth taking, so it has to be on screen next to
 	# the Wounds it exists to prevent - hidden until one is held, because an
 	# empty slot in the top bar reads as a thing that is broken.
-	# Borrows the relic icon rather than carrying its own.
-	#
-	# A new icon means a new manifest row, and a manifest row with only a
-	# placeholder behind it fails the production-art gate - which is the gate
-	# that stops placeholder art reaching a player, and which was passing at
-	# 100% before this indicator was added. Reusing a finished icon costs a
-	# little specificity and blocks nothing. `ItemData.get_sprite_path()` still
-	# names the path real art should land at.
-	_draught_icon = _bar_icon("relic", "Draught")
+	# The item follows the same id-derived icon convention as every resource. It
+	# used to borrow the relic icon while art was pending, which made a carried
+	# extra life visually indistinguishable from the locked raid cache.
+	_draught_icon = _bar_icon("resurrection_draught", "Draught")
 	_draught_icon.custom_minimum_size = Vector2(26.0, 26.0)
 	_draught_icon.tooltip_text = "Resurrection Draught. Prevents the next lethal down and restores %d%% health, then is consumed." % \
 		int(round(Balance.HERO_DRAUGHT_REVIVE_HP * 100.0))
@@ -447,6 +454,7 @@ func _build_lane_ring() -> void:
 ## where their eyes already are.
 func _build_nav_bar() -> void:
 	var bar := HBoxContainer.new()
+	_nav_bar = bar
 	bar.name = "NavBar"
 	bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -462,9 +470,12 @@ func _build_nav_bar() -> void:
 	bar.add_theme_constant_override("separation", 10)
 	add_child(bar)
 
-	_add_button(bar, "F1  Battlefield", func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD))
-	_add_button(bar, "F2  Town", func() -> void: scope_requested.emit(GameDirector.Scope.TOWN))
-	_add_button(bar, "F3  Beast", func() -> void: scope_requested.emit(GameDirector.Scope.BEAST))
+	_nav_buttons.append(_add_button(bar, "F1  Battlefield",
+		func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD)))
+	_nav_buttons.append(_add_button(bar, "F2  Town",
+		func() -> void: scope_requested.emit(GameDirector.Scope.TOWN)))
+	_nav_buttons.append(_add_button(bar, "F3  Beast",
+		func() -> void: scope_requested.emit(GameDirector.Scope.BEAST)))
 	# Buttons rather than a hint that names a mouse wheel.
 	#
 	# "Wheel Zoom" is not an instruction on a phone, it is a description of a
@@ -472,15 +483,17 @@ func _build_nav_bar() -> void:
 	# field does not fit a phone screen at combat zoom. They are shown on every
 	# platform because a two-button zoom is no worse with a mouse, and one
 	# control that works everywhere beats two that each work in one place.
-	_add_button(bar, "\u2212", func() -> void: zoom_requested.emit(-1)).custom_minimum_size = \
-		Vector2(56.0, 0.0)
-	_add_button(bar, "+", func() -> void: zoom_requested.emit(1)).custom_minimum_size = \
-		Vector2(56.0, 0.0)
+	var zoom_out: Button = _add_button(bar, "\u2212", func() -> void: zoom_requested.emit(-1))
+	zoom_out.custom_minimum_size = Vector2(56.0, 0.0)
+	_nav_buttons.append(zoom_out)
+	var zoom_in: Button = _add_button(bar, "+", func() -> void: zoom_requested.emit(1))
+	zoom_in.custom_minimum_size = Vector2(56.0, 0.0)
+	_nav_buttons.append(zoom_in)
 
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
 	# the settings, or out of the game.
-	_add_button(bar, "\u2261  Menu", func() -> void: pause_requested.emit())
+	_nav_buttons.append(_add_button(bar, "\u2261  Menu", func() -> void: pause_requested.emit()))
 
 
 ## The combat half: what a player reaches for while something is happening.
@@ -664,8 +677,8 @@ func _build_preparation_panel() -> void:
 	# Shifted up by exactly the band the ability bar now occupies, derived from the
 	# same constants rather than re-typed, so moving the bar again moves these
 	# with it instead of silently re-opening the collision.
-	_preparation_panel.offset_top = -272.0 - BOTTOM_BAND
-	_preparation_panel.offset_bottom = -156.0 - BOTTOM_BAND
+	_preparation_panel.offset_top = -272.0 - _bottom_band_height()
+	_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
@@ -691,9 +704,9 @@ func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
 	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_command_panel.offset_left = -424.0
-	_command_panel.offset_top = -276.0 - BOTTOM_BAND
+	_command_panel.offset_top = -276.0 - _bottom_band_height()
 	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -164.0 - BOTTOM_BAND
+	_command_panel.offset_bottom = -164.0 - _bottom_band_height()
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
@@ -883,11 +896,12 @@ func _update_boss_track() -> void:
 ## screen. A single HBox cannot overlap itself.
 func _build_bottom_row() -> void:
 	var centre := HBoxContainer.new()
+	_bottom_row = centre
 	centre.name = "BottomRow"
 	centre.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	centre.alignment = BoxContainer.ALIGNMENT_CENTER
-	centre.offset_top = -BOTTOM_BAND
-	centre.offset_bottom = -SPELL_BAR_MARGIN
+	centre.offset_top = -_bottom_band_height()
+	centre.offset_bottom = -_bottom_row_inset()
 	centre.add_theme_constant_override("separation", 26)
 	add_child(centre)
 
@@ -910,7 +924,56 @@ static func touch_ui() -> bool:
 
 ## A size, grown if a thumb has to hit it.
 static func hit(size: Vector2) -> Vector2:
-	return size * Balance.UI_TOUCH_SCALE if touch_ui() else size
+	return Vector2(size.x, size.y * Balance.UI_TOUCH_SCALE) if touch_ui() else size
+
+
+static func _spell_slot_size() -> Vector2:
+	return Vector2(SPELL_SLOT_SIZE.x,
+		Balance.UI_TOUCH_SPELL_SLOT_HEIGHT if touch_ui() else SPELL_SLOT_SIZE.y)
+
+
+static func _bottom_band_height() -> float:
+	return _spell_slot_size().y + _bottom_row_inset()
+
+
+static func _bottom_row_inset() -> float:
+	# Desktop keeps the authored 24px air. The taller mobile XP strip becomes the
+	# lower bound so a 120px touch target never reaches into progression text.
+	return maxf(SPELL_BAR_MARGIN, _xp_bar_height() + 4.0)
+
+
+## The XP strip lives on the literal screen edge so it remains readable during
+## the two scopes where XP is earned without joining the already busy combat
+## control row. It is deliberately thin: progression context, not a fifth
+## health bar competing for attention.
+func _build_xp_bar() -> void:
+	_xp_band = Control.new()
+	_xp_band.name = "HeroXP"
+	_xp_band.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_xp_band.offset_top = -_xp_bar_height()
+	_xp_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_xp_band)
+
+	_xp_bar = _make_bar(Color("9b8fc4"), 0.0)
+	_xp_bar.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_xp_bar.custom_minimum_size = Vector2.ZERO
+	_xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_band.add_child(_xp_bar)
+
+	_xp_label = _label("LEVEL 1  ·  0 / 17 XP", 12)
+	_xp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_xp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_xp_label.add_theme_color_override("font_color", Color("f3e7cb"))
+	_xp_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_xp_label.add_theme_constant_override("shadow_offset_x", 1)
+	_xp_label.add_theme_constant_override("shadow_offset_y", 1)
+	_xp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_xp_band.add_child(_xp_label)
+
+
+static func _xp_bar_height() -> float:
+	return Balance.UI_XP_BAR_TOUCH_HEIGHT if touch_ui() else Balance.UI_XP_BAR_HEIGHT
 
 
 func _build_spell_bar(parent: Node = null) -> void:
@@ -941,19 +1004,20 @@ func _rebuild_spell_bar() -> void:
 	_spell_cooldowns.clear()
 
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
+		var slot_size: Vector2 = _spell_slot_size()
 		var discipline: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
 		# The slot frame sits behind the button rather than being its background,
 		# so an empty slot still reads as a slot the player could fill. A gap
 		# reads as nothing at all.
 		var frame := Control.new()
-		frame.custom_minimum_size = Vector2(SPELL_SLOT_SIZE.x, SPELL_SLOT_SIZE.y)
+		frame.custom_minimum_size = slot_size
 		# Everything below is placed against the art's interior, not the slot's
 		# outer rectangle. "HEMORRHAGE EDGE" in a 92px box on a 118px slot spilled
 		# straight over the ironwork on both sides.
-		var inset := Vector2(SPELL_SLOT_SIZE.x * UiMetrics.SLOT_INSET_X,
-			SPELL_SLOT_SIZE.y * UiMetrics.SLOT_INSET_Y)
-		var interior := Vector2(SPELL_SLOT_SIZE.x - inset.x * 2.0,
-			SPELL_SLOT_SIZE.y - inset.y * 2.0)
+		var inset := Vector2(slot_size.x * UiMetrics.SLOT_INSET_X,
+			slot_size.y * UiMetrics.SLOT_INSET_Y)
+		var interior := Vector2(slot_size.x - inset.x * 2.0,
+			slot_size.y - inset.y * 2.0)
 		var plate: TextureRect = null
 		var slot_texture: Texture2D = load(SLOT_TEXTURE) \
 			if ResourceLoader.exists(SLOT_TEXTURE) else null
@@ -991,7 +1055,7 @@ func _rebuild_spell_bar() -> void:
 		frame.add_child(icon)
 
 		var name_label := Label.new()
-		name_label.position = Vector2(inset.x, SPELL_SLOT_SIZE.y - inset.y - 16.0)
+		name_label.position = Vector2(inset.x, slot_size.y - inset.y - 16.0)
 		name_label.size = Vector2(interior.x, 15.0)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1147,6 +1211,88 @@ func _on_hero_levelled(level: int, attribute_points: int, skill_points: int) -> 
 			% [skill_points, "" if skill_points == 1 else "s"])
 	_show_message("  ·  ".join(parts))
 	Sfx.play("sfx_ui_confirm", 2.0)
+	_refresh_xp_bar()
+
+
+func _on_hero_xp_changed(_current: float, _needed: float, _level_number: int) -> void:
+	_refresh_xp_bar()
+
+
+func _refresh_xp_bar() -> void:
+	if _xp_bar == null or _xp_label == null:
+		return
+	if RunState.hero_level >= Balance.HERO_MAX_LEVEL:
+		_xp_bar.max_value = 1.0
+		_xp_bar.value = 1.0
+		_xp_label.text = "LEVEL %d  ·  MAX" % RunState.hero_level
+		return
+	var needed: float = RunState.hero_xp_for_level(RunState.hero_level)
+	_xp_bar.max_value = maxf(needed, 1.0)
+	_xp_bar.value = RunState.hero_xp
+	_xp_label.text = "LEVEL %d  ·  %d / %d XP" % [RunState.hero_level,
+		int(floor(RunState.hero_xp)), int(ceil(needed))]
+
+
+## Touch changes the metrics of the controls themselves, not the CanvasLayer.
+## The HUD only owns the structural follow-through: short labels, a taller spell
+## frame and moving the panels that intentionally sit above that frame.
+func _on_touch_layout_changed(showing: bool) -> void:
+	var desktop_nav: PackedStringArray = ["F1  Battlefield", "F2  Town", "F3  Beast",
+		"\u2212", "+", "\u2261  Menu"]
+	var touch_nav: PackedStringArray = ["FIELD", "TOWN", "BEAST", "\u2212", "+", "MENU"]
+	var labels: PackedStringArray = touch_nav if showing else desktop_nav
+	for index: int in mini(_nav_buttons.size(), labels.size()):
+		_nav_buttons[index].text = labels[index]
+
+	if _horn_button != null:
+		_horn_button.text = "HORN" if showing else "Q  War Horn"
+	if _raid_button != null:
+		_raid_button.text = "RAID" if showing else "R  Raid"
+	if _repair_button != null:
+		_repair_button.text = "FIX" if showing else "Repair"
+	if _tend_button != null:
+		_tend_button.text = "TEND" if showing else "Tend"
+
+	if _bottom_row != null:
+		_bottom_row.offset_top = -_bottom_band_height()
+		_bottom_row.offset_bottom = -_bottom_row_inset()
+	if _nav_bar != null:
+		# The build sheet owns the right edge and the live state labels own the top
+		# centre. Compact touch navigation therefore uses the clear upper-left band;
+		# desktop keeps its authored upper-right position. This is a structural
+		# mobile layout, not a scaled desktop rectangle.
+		if showing:
+			_nav_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_nav_bar.grow_horizontal = Control.GROW_DIRECTION_END
+			_nav_bar.offset_left = 24.0
+			_nav_bar.offset_right = 24.0
+			_nav_bar.offset_top = 232.0
+		else:
+			_nav_bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			_nav_bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+			_nav_bar.offset_right = -24.0
+			_nav_bar.offset_top = 196.0
+	if _xp_band != null:
+		_xp_band.offset_top = -_xp_bar_height()
+	if _build_panel != null:
+		# A two-column touch sheet still grows taller because its Close action is a
+		# true 120px target. Lift the content-sized panel clear of the combat row;
+		# desktop's smaller controls remain centred.
+		_build_panel.offset_top = -52.0 if showing else 0.0
+		_build_panel.offset_bottom = -52.0 if showing else 0.0
+	if _wave_preview != null:
+		_wave_preview.offset_top = 176.0 if showing else 158.0
+		_wave_preview.offset_left = -360.0 if showing else -420.0
+		_wave_preview.offset_right = 360.0 if showing else 420.0
+	if _preparation_panel != null:
+		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
+		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
+	if _command_panel != null:
+		_command_panel.offset_top = -276.0 - _bottom_band_height()
+		_command_panel.offset_bottom = -164.0 - _bottom_band_height()
+
+	_rebuild_spell_bar()
+	UiMetrics.apply_touch_tree(self, showing)
 
 
 ## The opening beat, before Act I names itself.
@@ -1927,6 +2073,8 @@ func _on_act(act: int, terrain_id: String) -> void:
 func _on_scope_changed(scope: int) -> void:
 	var in_raid: bool = scope == int(GameDirector.Scope.RAID)
 	var on_field: bool = scope == int(GameDirector.Scope.BATTLEFIELD)
+	if _xp_band != null:
+		_xp_band.visible = on_field or in_raid
 	_raid_panel.visible = in_raid
 	_build_panel.visible = _build_panel.visible and on_field
 	if _command_panel != null:

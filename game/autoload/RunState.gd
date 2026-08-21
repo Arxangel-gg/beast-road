@@ -56,6 +56,7 @@ const RNG_STREAM_SALTS: Dictionary = {
 	"roads": 224737,
 	"raids": 350377,
 	"rewards": 479909,
+	"gear": 518363,
 	"bosses": 611953,
 	"combat": 746773,
 }
@@ -551,9 +552,16 @@ func gain_hero_xp(amount: float) -> void:
 			hero_skill_points += 1
 	if hero_level >= Balance.HERO_MAX_LEVEL:
 		hero_xp = 0.0
+	# Keep sub-level progress in the account state as it is earned. A level-up
+	# persists immediately below; otherwise the normal run-end save writes this
+	# value without turning every enemy death into a disk write.
+	MetaState.hero_xp = hero_xp
 	if gained > 0:
 		_store_hero()
 		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, hero_skill_points)
+	var needed: float = hero_xp_for_level(hero_level)
+	EventBus.hero_xp_changed.emit(hero_xp, 0.0 if is_inf(needed) else needed,
+		hero_level)
 
 
 ## Writes hero progression back to the account.

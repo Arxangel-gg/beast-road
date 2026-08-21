@@ -10,16 +10,15 @@ screenshots.
 
 The game is a substantial playable production candidate, not a release
 candidate yet. Its systems and content skeleton are unusually complete:
-44/44 automatable conformance probes pass, all 589 manifest assets are present
+44/44 automatable conformance probes pass, all 590 manifest assets are present
 and non-placeholder, the three acts and summit exist, and the release pipeline
 builds Windows, launcher and web artifacts.
 
 It must not be advertised as production-ready until the P0 list below is closed.
 The largest gaps are not another combat mechanic. With leaderboard networking
 on the owner's explicit hold, they are final in-motion art acceptance, a real-
-device mobile pass, full-session human validation, milestone cinematics and
-global event juice, localization/accessibility closeout, and publishing/legal
-work.
+device mobile pass, full-session human validation, global event juice,
+localization/accessibility closeout, and publishing/legal work.
 
 “AAA” is a quality bar, not a switch that code coverage can turn on. Reaching
 that bar here means blind playtest footage, art direction, frame pacing, input,
@@ -29,7 +28,7 @@ balance or delight.
 
 ## What Claude had completed before the handoff
 
-- Replaced every manifest placeholder; the current 589/589 assets report as
+- Replaced every manifest placeholder; the current 590/590 assets report as
   real art.
 - Added the authored 45×45 battlefield layout, routing, regional ground/road
   sets, torches, foliage expansion, weather, shadows and visual settings.
@@ -49,7 +48,7 @@ service remains blocked as described below.
 
 - Cold game and launcher load: no project warning or error outside the sandbox.
 - GDD audit: 44/44 automatable rows; seven human rows remain deliberately open.
-- Manifest: 589 rows, 589 files, zero placeholders.
+- Manifest: 590 rows, 590 files, zero placeholders.
 - PixelLab structure package: 26 tower loops and 27 building-tier loops, all
   four poses on 192×192 transparent canvases. The 53-package size/alpha/anchor/
   silhouette gate passes, and the runtime keeps transform motion only as a
@@ -60,9 +59,20 @@ service remains blocked as described below.
   the existing 32-band batched rendering path.
 - Battlefield floor and regional road sets have been rebuilt and are guarded by
   luminance/material-cohesion and edge-connectivity checks.
+- The three regional ground and connected-road sets now render at 64×64 with
+  legal topology-preserving variation, moody act-specific palettes and bounded
+  exposure. The final rendered captures pass the floor and road release gates.
 - Mobile web now has dynamic twin-stick move/aim, attack threshold, dash,
   zoom/pause controls, touch-safe placement release, an Auto/On/Off setting and
-  a synthetic multi-touch release gate. Real-phone feel remains a human row.
+  a synthetic multi-touch release gate. The HUD now applies touch metrics to
+  each control and panel: a 1170×540 renderer gate found zero geometry defects
+  and all 13 actionable targets at or above 120 px. Real-phone feel remains a
+  human row.
+- Battlefield and raid scopes now carry a thin bottom-edge hero XP strip with
+  persistent level and exact current/required XP presentation, including MAX.
+- Normal, elite and boss battlefield kills now have tuned gear chances and
+  spawn physical rarity-lit pickups. The shared stash receiver stores them or
+  automatically salvages a full-stash reward into Shards without deleting loot.
 - The menu now presents animated pixel art with reduced-motion handling.
 - Every currency has dedicated road-scale pickup art; ordinary supply and locked
   relic caches have distinct silhouettes and a runtime resolution gate.
@@ -84,12 +94,17 @@ service remains blocked as described below.
   loss. It found the new leaderboard footer pushing the exit action below the
   screen; the footer was re-budgeted and both results screens were recaptured
   with every action visible.
-- Update Manager tuning now includes the authored structure-frame rate alongside
-  the existing Balance/UI/graphics constants, sound mix, engine keys and 17
-  content-resource groups. The generic Balance reader exposes all 26 current
-  loot/cache tuning entries without a hardcoded tab list. Its publish preflight
-  runs both the 53-package structure gate and the loot/cache art gate. Surgical
-  write and publisher-contract tests pass.
+- Update Manager tuning now recognizes both compact and banner section headers,
+  grouping all 674 current Balance constants, including new Loot, World Scale,
+  touch-control and XP-strip values, alongside sound, engine and 17 content-
+  resource groups. Its publish preflight runs the 53-package structure gate and
+  loot/cache art gate. Surgical write and publisher-contract tests pass.
+- The launcher now uses the main menu's dark pixel-art key art, transparent
+  production logo, scrim and restrained motion. Its independent update marker
+  is version 3 and the complete launcher release pipeline passes.
+- Regional-transition/final-ascent and four boss-introduction milestone
+  cinematics ship as data-driven, skippable, pause-safe first-view sequences;
+  their local, guard and release gates pass.
 - The night gate now maps authored canvas coordinates through the real display
   stretch before reading pixels; five corrected 1440p runs pass at minimum
   brightness and emit a frame for human review.
@@ -152,14 +167,13 @@ in unison.
 ### 3. Accept and finish the rebuilt battlefield environment pass
 
 Implementation state: the void-dark floor was replaced with three coherent
-regional 16-mask sets, snow lattice artifacts were removed, and all four road
-sets pass connection/collar checks. What remains is art-direction acceptance and
-variation rather than a broken foundation.
+regional 64×64 16-mask sets, snow lattice artifacts were removed, all four road
+sets pass connection/collar checks, and deterministic dihedral variation now
+breaks repetition without breaking Wang or road topology. What remains is
+in-motion art-direction acceptance rather than missing implementation.
 
 Remaining work:
 
-- Add bounded procedural variation inside each road and ground mask, not a new
-  procedural layout.
 - Finish the foliage density/art-direction review in all three regions; verify
   fern roots, shadows and y-sort at every camera zoom.
 - Rebalance foliage clusters around buildable plots, junctions and telegraphs so
@@ -201,9 +215,11 @@ waves and a breather after each completed wave.
 ### 5. Qualify the mobile-browser controls on real devices
 
 Implementation state: the web build has dynamic twin sticks, dash, zoom and
-pause controls, touch-safe tower placement and a forced/automatic visibility
-setting. Synthetic multi-touch exercises simultaneous move/aim, attack, dash,
-release cleanup and pointer ownership on every push.
+pause controls, touch-safe tower placement, a forced/automatic visibility
+setting, mobile-specific HUD structure, and per-control target, font, padding,
+panel and gap scaling. Synthetic multi-touch exercises simultaneous move/aim,
+attack, dash, release cleanup and pointer ownership on every push; rendered
+1170×540 geometry and 120 px target-size gates pass.
 
 Remaining work:
 
@@ -285,9 +301,9 @@ assignments are literal. M7's localization and pseudo-localization gate is open.
 ## P2 — hardening and maintainability before declaring the build “perfected”
 
 - Split oversized responsibility clusters after behavior is locked: `hud.gd`
-  (1,895 lines), `battlefield.gd` (about 1,370), `RunState.gd` (1,199),
-  `settings_panel.gd` (818), `MetaState.gd`/`enemy.gd` (about 700 each) and
-  `wave_director.gd` (about 650). `Balance.gd` is large by design, but the others
+  (2,106 lines), `battlefield.gd` (1,491), `RunState.gd` (1,203),
+  `settings_panel.gd` (866), `MetaState.gd` (754), `enemy.gd` (728) and
+  `wave_director.gd` (648). `Balance.gd` is large by design, but the others
   exceed the project's one-responsibility/400-line rule.
 - Keep the new content-resource tuning parser conservative. Add schema-aware
   min/max/enum validation so an Update Manager edit cannot create a valid-looking
@@ -333,8 +349,8 @@ The remaining design contradictions are:
 2. Resolve the five owner decisions immediately; they change acceptance criteria.
 3. Run the blind in-game tower-role/building-tier and loop-motion acceptance on
    the completed PixelLab package; regenerate only rejected packages.
-4. Finish road/ground variation, foliage and raid staging acceptance; run night
-   and readability QA on the final art.
+4. Finish foliage and raid staging acceptance; run night and readability QA on
+   the final 64×64 environment art.
 5. Qualify mobile touch on real iOS/Android devices and sign the viewport matrix.
 6. Lock copy, localization, accessibility, credits and legal/store packages.
 7. Run structured balance cohorts and the uninterrupted full-loop matrix.

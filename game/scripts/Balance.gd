@@ -48,11 +48,9 @@ const DISCIPLINE_MAX_TRAINED: int = 6
 
 # --- Hero levelling ----------------------------------------------------------
 #
-# Run-scoped, and that is a v4 requirement rather than a simplification: SS974
-# reads "No uncapped stat bonus, hero level, building tier, captive level, or
-# automatic damage growth persists." A hero may grow enormously inside a run and
-# starts the next one at level one, which is also what keeps the difficulty curve
-# meaningful - a run that begins strong has nothing left to earn.
+# Persistent and capped by owner amendment (2026-08-20). The road still owns the
+# current values through RunState; MetaState only checkpoints them so a crash or
+# a new run does not discard earned progression.
 
 # --- Loot ---------------------------------------------------------------------
 #
@@ -114,6 +112,20 @@ const STASH_CAPACITY: int = 40
 
 ## Chance a raid chest also yields a piece of gear.
 const GEAR_CHEST_CHANCE: float = 0.34
+
+## Battlefield gear is rarer than a currency pickup, but no longer raid-only.
+## A normal wave should occasionally surprise the player without filling forty
+## stash slots in a single run; elites and bosses are the reliable hunts. [TUNE]
+const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.006
+const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.18
+const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
+
+## Gear is a more important silhouette than a coin and earns a larger pickup.
+const GEAR_DROP_ICON_SIZE: float = 38.0
+const GEAR_DROP_GLOW_SIZE: float = 92.0
+const GEAR_RARITY_COLOURS: Array[Color] = [
+	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
+	Color("b486d9"), Color("e8b85c")]
 
 ## Marks paid for finishing a run, before the tier multiplier.
 const RUN_MARKS_REWARD: int = 45
@@ -1821,7 +1833,9 @@ const ANIM_MASS_BOSS: float = 9.0
 ##
 ## Expressed per texel rather than per tile so the floor art can change size -
 ## one tile, or a mosaic of four - without the scale needing to be retuned. [TUNE]
-const GROUND_UNITS_PER_TEXEL: float = 4.0
+## 64px production Wang tiles replace the former 32px set. Two world units per
+## texel preserves the authored patch scale while doubling visible detail.
+const GROUND_UNITS_PER_TEXEL: float = 2.0
 
 ## How quickly the floor's two materials trade places, in patches per ground
 ## cell. Low enough that moss and earth arrive in broad drifts a player reads as
@@ -2619,17 +2633,32 @@ const TOUCH_ATTACK_THRESHOLD: float = 0.45
 ## see is the battlefield - a thumb already knows where it is.
 const TOUCH_OPACITY: float = 0.34
 
-## How much bigger every interactive element is when the game is being played
-## with a thumb.
+## How much taller interactive elements are when the game is being played with
+## a thumb.
 ##
 ## Fingertips are about 9mm across and a mouse cursor is one pixel. Apple and
 ## Google both put the minimum comfortable target near 44-48 density-independent
 ## pixels; the desktop buttons here are 54 tall, which is fine under a cursor and
 ## marginal under a thumb once a phone's scaling is applied.
 ##
-## Applied as a scale rather than as a second set of sizes, so there is one
-## layout with one set of proportions and no chance of the two drifting apart.
-const UI_TOUCH_SCALE: float = 1.28
+## Width is intentionally not multiplied: a nine-control combat row cannot grow
+## sideways on a phone. UiMetrics applies this to each control's Y target,
+## padding, label size and panel contents independently. [TUNE]
+const UI_TOUCH_SCALE: float = 2.0
+
+## Absolute floors keep small desktop-only utility controls from remaining tiny
+## merely because 1.68 times tiny is still tiny. [TUNE]
+const UI_TOUCH_MIN_TARGET_HEIGHT: float = 120.0
+const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
+const UI_TOUCH_FONT_SCALE: float = 1.40
+const UI_TOUCH_MIN_FONT_SIZE: int = 26
+const UI_TOUCH_PANEL_SCALE: float = 1.10
+const UI_TOUCH_GAP_SCALE: float = 1.28
+const UI_TOUCH_SPELL_SLOT_HEIGHT: float = 132.0
+
+## The thin hero-progression strip across battlefield and raid views. [TUNE]
+const UI_XP_BAR_HEIGHT: float = 18.0
+const UI_XP_BAR_TOUCH_HEIGHT: float = 32.0
 
 
 ## How visible a persistent touch *button* is.

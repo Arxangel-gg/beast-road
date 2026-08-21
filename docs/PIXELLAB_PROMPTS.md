@@ -21,7 +21,7 @@ historical.
 The asset report currently says:
 
 ```
-All 585 manifest assets exist. 585 have real art.
+All 590 manifest assets exist. 590 have real art.
 ```
 
 There is no unfilled manifest gap. New or replacement art is an art-direction
@@ -200,17 +200,14 @@ as the style reference for everything else. This is the pixel-art equivalent of 
 
 ---
 
-## 3. The one genuinely pending asset
+## 3. Completed item-icon source
 
 `ui_resurrection_draught.png` — 128x128 — `res://art/icons/ui/`
 
-The Resurrection Draught is implemented and earnable: a full raid clear can yield
-one, carry limit one, prevents the next lethal down and restores 40% health. Its
-HUD indicator currently **borrows the relic icon**, because a manifest row with a
-placeholder behind it fails the production-art gate and blocks every release.
-
-Generate this one and say so — the manifest row, the indicator and the gate re-run
-are a five-minute change.
+Completed 2026-08-20 with PixelLab Pixflux job
+`63a0379a-87c4-4639-af1e-cbf2cb44d496` (seed `81061`). The HUD now resolves the
+item's convention path directly and the manifest/production-art gate covers it.
+Keep the prompt below as the exact reroll brief.
 
 ```
 [STYLE BLOCK]
@@ -445,7 +442,33 @@ separate settlements — the game crossfades between them.
 shaggy and armored, a small fortified city strapped to its back with vast chains,
 **seen in full side profile**, colossal scale, one figure-sized detail for scale.
 
-### 5.7 Terrain — 512x512, must tile
+### 5.7 Terrain — production Wang sets
+
+**Production override, 2026-08-20.** The runtime no longer uses one 512px repeat.
+Each act ships a 16-piece 64×64 Wang floor plus a 16-mask 64×64 connected road.
+The final PixelLab sources are recorded here because their deliberately darker
+brief supersedes the brighter v4 concept wording below:
+
+| Act | Wang ground source | Connected-road source |
+|-----|--------------------|-----------------------|
+| Verdant Maw | `e4e4aea3-4419-4236-a58e-afbf27f0893b` | `c790502f-d1b4-4083-bfcb-087722c9ef97` |
+| Sunglass Waste | `ba47b7ff-94be-47b4-9329-9108124f0cc9` | `975f6f07-2d46-4343-b763-8d892fdf8d5b` |
+| White Teeth | `a71e043a-8492-4a65-94f5-4a3e30e4d329` | `b13cd460-1930-49aa-a968-1f156d9ce40b` |
+
+Ground prompt rule: `FLAT COPLANAR`, directly overhead, two dark surfaces at the
+same ground height, restrained low saturation, no props, no repeating motif,
+and explicitly no cliff, wall, bank, ledge, rim, bevel or bright highlight.
+Act I is wet umber loam/blue-green standing water; Act II is near-black smoky
+umber hardpan/medium-dark blue-grey saltglass; Act III is nearly-black oxblood
+basalt/dirty steel-blue snow film. `tools/conform_ground.py` clamps palette and
+exposure outliers without changing topology.
+
+Road prompt rule: directly overhead flat traversable surface, preserve the
+N/E/S/W edge contract, dark ruts and sparse material-specific grit, no slab or
+elevation. Jungle and snow sources were whole-number nearest-neighbour enlarged
+to 64px after a semantic upscale changed their topology; desert used the accepted
+64px edit job `bc3e0ae7-802b-4abf-a8bc-fee01d74c616`. The road builder owns the
+final canonical silhouette and seam collar.
 
 **The file ids are v3 and the subjects below are v4.** The three terrain resources
 are still named `ashfen`, `saltglass` and `steppe`, with display names "Ashfen

@@ -19,12 +19,15 @@ const GROUP: StringName = &"loot"
 
 var currency: String = ""
 var amount: int = 0
+var gear: Dictionary = {}
 
 var _sprite: Sprite2D
 var _velocity: Vector2 = Vector2.ZERO
 var _life: float = 0.0
 var _homing: bool = false
 var _glow: Sprite2D
+var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
+var _glow_size: float = Balance.LOOT_GLOW_SIZE
 
 
 func setup(currency_id: String, value: int, from: Vector2) -> void:
@@ -38,6 +41,19 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 		Balance.LOOT_SCATTER_SPEED * 0.4, Balance.LOOT_SCATTER_SPEED)
 
 
+func setup_gear(piece: Dictionary, from: Vector2) -> void:
+	gear = piece.duplicate(true)
+	position = from
+	var rarity: int = clampi(int(gear.get("rarity", 0)), 0,
+		Balance.GEAR_RARITY_COLOURS.size() - 1)
+	_glow_colour = Balance.GEAR_RARITY_COLOURS[rarity]
+	_glow_colour.a = 0.58
+	_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	var angle: float = randf() * TAU
+	_velocity = Vector2.RIGHT.rotated(angle) * randf_range(
+		Balance.LOOT_SCATTER_SPEED * 0.55, Balance.LOOT_SCATTER_SPEED * 1.15)
+
+
 func _ready() -> void:
 	add_to_group(GROUP)
 	_sprite = Sprite2D.new()
@@ -47,13 +63,20 @@ func _ready() -> void:
 	# road among corpses, so the ones that have proper drop art use it - and the
 	# fallback keeps every currency working the moment it is added, rather than
 	# dropping an invisible pickup until somebody notices.
-	var painted: String = Balance.LOOT_ART_FORMAT % currency
-	if ResourceLoader.exists(painted):
-		_sprite.texture = load(painted)
+	var icon_size: float = Balance.LOOT_ICON_SIZE
+	if not gear.is_empty():
+		var kind: GearData = ContentDB.gear(String(gear.get("kind", "")))
+		if kind != null and ResourceLoader.exists(kind.get_sprite_path()):
+			_sprite.texture = load(kind.get_sprite_path())
+		icon_size = Balance.GEAR_DROP_ICON_SIZE
 	else:
-		_sprite.texture = IconKit.ui(currency)
+		var painted: String = Balance.LOOT_ART_FORMAT % currency
+		if ResourceLoader.exists(painted):
+			_sprite.texture = load(painted)
+		else:
+			_sprite.texture = IconKit.ui(currency)
 	if _sprite.texture != null:
-		_sprite.scale = Vector2.ONE * (Balance.LOOT_ICON_SIZE
+		_sprite.scale = Vector2.ONE * (icon_size
 			/ maxf(_sprite.texture.get_width(), 1.0))
 	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	_sprite.add_to_group(Graphics.FILTER_GROUP)
@@ -64,8 +87,8 @@ func _ready() -> void:
 	# separates the drop from whatever it landed on regardless of what that was.
 	var glow := Sprite2D.new()
 	glow.texture = LightKit.falloff_texture()
-	glow.modulate = Balance.LOOT_GLOW_COLOUR
-	glow.scale = Vector2.ONE * (Balance.LOOT_GLOW_SIZE
+	glow.modulate = _glow_colour
+	glow.scale = Vector2.ONE * (_glow_size
 		/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 	glow.z_index = -1
 	add_child(glow)
@@ -105,7 +128,7 @@ func _process(delta: float) -> void:
 	# glinting rather than as a sprite being scaled.
 	if _glow != null:
 		var pulse: float = 1.0 + sin(_life * Balance.LOOT_GLOW_SPEED) * 0.16
-		_glow.scale = Vector2.ONE * (Balance.LOOT_GLOW_SIZE * pulse
+		_glow.scale = Vector2.ONE * (_glow_size * pulse
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 
 	if _life >= Balance.LOOT_LIFETIME:
@@ -116,7 +139,20 @@ func _process(delta: float) -> void:
 
 
 func _collect() -> void:
-	if amount > 0 and not currency.is_empty():
+	if not gear.is_empty():
+		var result: Dictionary = MetaState.receive_gear(gear)
+		var stored: bool = bool(result.get("stored", false))
+		var salvaged: int = int(result.get("shards", 0))
+		var kind: GearData = ContentDB.gear(String(gear.get("kind", "")))
+		var title: String = kind.display_name if kind != null else "Gear"
+		var outcome: String = "taken to the stash" if stored \
+			else "stash full  ·  broken into %d Shards" % salvaged
+		EventBus.preparation_warning.emit("%s  %s  ·  %s" % [
+			Stash.rarity_name(gear), title, outcome])
+		EventBus.gear_collected.emit(gear, stored, salvaged, global_position)
+		Sfx.play_group("loot_collect")
+		Vfx.ring(global_position, _glow_size * 0.55, _glow_colour, 0.32, 4.0)
+	elif amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
 		Sfx.play_group("loot_collect")
 		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)

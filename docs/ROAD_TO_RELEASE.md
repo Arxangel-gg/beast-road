@@ -900,18 +900,13 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] **The battlefield floor.** The environment audit called this the largest
       visual gap in the game, and it was three separate faults stacked.
 
-      *Resolution.* `GROUND_UNITS_PER_TEXEL` was 12, matched to the road — a road
-      piece is a 32px tile drawn across 384 world units, so twelve put the same
-      world units behind a ground texel as behind a road texel. Sound reasoning,
-      wrong number: it gave the whole 2880-unit battlefield a **256x256** floor
-      texture, one texel every eight screen pixels with the camera fully out and
-      far coarser in play. That is the flat patchwork with stepped edges. Now 4,
-      with `GROUND_PATCH_FREQUENCY` divided by the same three so the drifts stay
-      the size they were tuned to. The road stays at 12 because its scale is not
-      a choice — half a road tile *must* cover a three-tile carriageway — so
-      raising it needs higher-resolution road art, not a constant. Losing the
-      grain match is the right trade: a road is smoother than the undergrowth
-      beside it, and equal coarseness read as one blurry photograph of both.
+      *Resolution.* Production floors are now sixteen 64px Wang tiles at two
+      world units per texel, giving the battlefield a 3264px-class baked surface
+      with real crack, root and mineral grain. Roads are also 64px sources baked
+      on an exact 3x pixel grid. Both floor and road select deterministic legal
+      dihedral variants per cell, preserving corner/edge topology while changing
+      which roots, scars and wheel ruts face the eye; the repeated stamp from town
+      to map edge is gone without sacrificing seed reproduction.
 
       *Brightness.* The jungle floor's base material had a **median luminance of
       19 out of 255** — near black, across most of the battlefield, for months.
@@ -939,13 +934,12 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Measured effect on night readability, which was the worry: enemy-against-
       ground separation went from **0.005 against a 0.005 threshold** — exactly
       on the line — to **0.017**.
-- [ ] Higher-resolution road art, so the carriageway can leave 12 units a texel.
-- [ ] The snow drift tile still carries a faint blue crosshatch. It reads as
-      texture rather than as a grid, which the previous set's navy lattice did
-      not, so it is a nit rather than the defect it replaced. Structure is what
-      a 32px generator reaches for when asked for a material; the way out is
-      probably a 64px `pro` set rather than another prompt.
-- [ ] Procedural texture variation within a road, not one tile repeated.
+- [x] Higher-resolution regional road art: all three 16-mask sets now ship at
+      64×64 and the manifest/gate derive their seam bands from source size.
+- [x] Snow crosshatch replaced by a restrained dirty steel-blue/oxblood set;
+      the production exposure conform caps white rims before import.
+- [x] Deterministic texture variation within roads and floors using legal
+      rotations/reflections that preserve every N/E/S/W or Wang-corner contract.
 
 ### Foliage
 

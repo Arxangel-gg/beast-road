@@ -61,6 +61,7 @@ func _ready() -> void:
 	layer = 48
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
+	get_tree().node_added.connect(_on_node_added)
 	refresh()
 
 
@@ -115,12 +116,28 @@ func refresh() -> void:
 	var wanted: bool = DisplayServer.is_touchscreen_available() if forced == null \
 		else bool(forced)
 	if wanted == _showing:
+		# A new scene may have arrived since the last refresh.
+		UiMetrics.apply_touch_tree(get_tree().root, wanted)
 		return
 	_showing = wanted
 	visible = wanted
+	UiMetrics.apply_touch_tree(get_tree().root, wanted)
 	if not wanted:
 		_release_all()
 	shown_changed.emit(wanted)
+
+
+## New modal screens and rebuilt stash/build rows inherit the same mobile
+## metrics as the HUD. Deferred so the creator has assigned its authored desktop
+## size and font before those values are captured for a reversible touch pass.
+func _on_node_added(node: Node) -> void:
+	if _showing:
+		_apply_touch_later.call_deferred(node)
+
+
+func _apply_touch_later(node: Node) -> void:
+	if is_instance_valid(node) and _showing:
+		UiMetrics.apply_touch_tree(node, true)
 
 
 ## The setting key, so Settings can offer an override.

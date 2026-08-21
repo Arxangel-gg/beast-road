@@ -93,10 +93,14 @@ func _open() -> void:
 	if locked or RunState.rng("raids").randf() < Balance.GEAR_CHEST_CHANCE:
 		var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
 			RunState.rng("raids"))
-		if not piece.is_empty() and MetaState.take_gear(piece):
+		if not piece.is_empty():
+			var result: Dictionary = MetaState.receive_gear(piece)
 			var kind: GearData = ContentDB.gear(String(piece["kind"]))
-			EventBus.preparation_warning.emit("%s  %s  ·  taken to the stash"
-				% [Stash.rarity_name(piece), kind.display_name if kind else "Gear"])
+			var outcome: String = "taken to the stash" \
+				if bool(result.get("stored", false)) \
+				else "stash full  ·  broken into %d Shards" % int(result.get("shards", 0))
+			EventBus.preparation_warning.emit("%s  %s  ·  %s"
+				% [Stash.rarity_name(piece), kind.display_name if kind else "Gear", outcome])
 
 	Sfx.play("sfx_relic_socket")
 	Vfx.ring(global_position, Balance.RAID_CHEST_GLOW * 0.8,

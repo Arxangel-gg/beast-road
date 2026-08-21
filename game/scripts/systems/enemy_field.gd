@@ -113,6 +113,12 @@ func spawn_loot(_currency: String, _amount: int, _at: Vector2) -> void:
 	pass
 
 
+## Drops persistent gear. Battlefield overrides this; raids award gear through
+## authored chests so a camp route retains its own reward rhythm.
+func spawn_gear(_piece: Dictionary, _at: Vector2) -> void:
+	pass
+
+
 ## Whether a body may move between two points. Open ground says yes to
 ## everything; the raid camp has cliffs and answers properly.
 func step_is_legal(_from: Vector2, _to: Vector2) -> bool:

@@ -57,3 +57,88 @@ const SLOT_INSET_Y: float = 0.20
 ## The plain dark frame is a thin border and needs far less.
 const PAD_DARK_X: int = 20
 const PAD_DARK_Y: int = 16
+
+# --- Touch layout ------------------------------------------------------------
+
+## Per-control mobile metrics.
+##
+## Scaling the CanvasLayer only makes the interface blurrier and clips the outer
+## controls. A phone needs taller hit rectangles, more breathing room and more
+## legible type while retaining the horizontal measurements that make the HUD
+## fit. These helpers therefore touch the actual controls and can restore their
+## desktop values when the touch override changes at runtime.
+const TOUCH_STATE: StringName = &"beast_road_touch_metrics"
+
+
+static func apply_touch_tree(root: Node, enabled: bool) -> void:
+	if root is Control:
+		_apply_touch_control(root as Control, enabled)
+	for child: Node in root.get_children():
+		apply_touch_tree(child, enabled)
+
+
+static func _apply_touch_control(control: Control, enabled: bool) -> void:
+	if enabled:
+		if control.has_meta(TOUCH_STATE):
+			return
+		var state: Dictionary = {
+			"minimum": control.custom_minimum_size,
+			"font_override": control.has_theme_font_size_override("font_size"),
+			"font_size": control.get_theme_font_size("font_size"),
+			"separation_override": control.has_theme_constant_override("separation"),
+			"separation": control.get_theme_constant("separation"),
+		}
+		control.set_meta(TOUCH_STATE, state)
+
+		var minimum: Vector2 = control.custom_minimum_size
+		if control is BaseButton or control is LineEdit:
+			minimum.y = maxf(minimum.y * Balance.UI_TOUCH_SCALE,
+				Balance.UI_TOUCH_MIN_TARGET_HEIGHT)
+			if minimum.x > 0.0:
+				minimum.x = maxf(minimum.x, Balance.UI_TOUCH_MIN_TARGET_WIDTH)
+			_grow_font(control, true)
+		elif control is Slider:
+			minimum.y = maxf(minimum.y, Balance.UI_TOUCH_MIN_TARGET_HEIGHT * 0.72)
+		elif control is PanelContainer:
+			# A panel with an authored floor keeps that intent, with enough extra
+			# room for the larger children and frame padding. Content-sized panels
+			# grow naturally from those children and need no arbitrary floor.
+			if minimum.x > 0.0:
+				minimum.x *= Balance.UI_TOUCH_PANEL_SCALE
+			if minimum.y > 0.0:
+				minimum.y *= Balance.UI_TOUCH_PANEL_SCALE
+		elif control is Label or control is RichTextLabel:
+			_grow_font(control)
+		control.custom_minimum_size = minimum
+
+		if control is Container:
+			var separation: int = control.get_theme_constant("separation")
+			if separation > 0:
+				control.add_theme_constant_override("separation",
+					maxi(separation + 2,
+						int(round(float(separation) * Balance.UI_TOUCH_GAP_SCALE))))
+		return
+
+	if not control.has_meta(TOUCH_STATE):
+		return
+	var state: Dictionary = control.get_meta(TOUCH_STATE) as Dictionary
+	control.custom_minimum_size = state.get("minimum", Vector2.ZERO) as Vector2
+	if bool(state.get("font_override", false)):
+		control.add_theme_font_size_override("font_size", int(state.get("font_size", 16)))
+	else:
+		control.remove_theme_font_size_override("font_size")
+	if bool(state.get("separation_override", false)):
+		control.add_theme_constant_override("separation", int(state.get("separation", 0)))
+	else:
+		control.remove_theme_constant_override("separation")
+	control.remove_meta(TOUCH_STATE)
+
+
+static func _grow_font(control: Control, enforce_button_floor: bool = false) -> void:
+	var current: int = control.get_theme_font_size("font_size")
+	if current <= 0:
+		return
+	var floor_size: int = Balance.UI_TOUCH_MIN_FONT_SIZE if enforce_button_floor else 0
+	control.add_theme_font_size_override("font_size",
+		maxi(floor_size,
+			maxi(current + 1, int(round(float(current) * Balance.UI_TOUCH_FONT_SCALE)))))
