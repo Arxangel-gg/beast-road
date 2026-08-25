@@ -719,12 +719,24 @@ one. Standing still and walking are two sequences over one source sprite, so a
 creature can ship with either, both or neither — the animator falls back to a
 transform where a sequence is missing.
 
-Files: `wildlife_raven_move_01.png`
-Files: `wildlife_fox_move_01.png`
+**Three of the six have a second frame and three do not, and that is a limit of
+the tool rather than an oversight.** Text-to-image will not reliably produce "the
+same animal, different pose, *same size*" — across two attempts the rabbit, deer
+and squirrel each came back a different size, a different shade, or sitting down
+when asked to run. A mismatched pair is exactly the flicker the second frame
+exists to remove, so those three ship with one stride pose: static while walking,
+but consistent.
+
+Getting the missing three needs hand-editing, or building those creatures through
+PixelLab's character rig (`create_character` + `animate_character`), which is
+made for coherent multi-frame sets in a way the freeform image call is not.
+
+Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
+Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png`
+Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png`
 Files: `wildlife_rabbit_move_01.png`
 Files: `wildlife_deer_move_01.png`
 Files: `wildlife_squirrel_move_01.png`
-Files: `wildlife_raccoon_move_01.png`
 
 ### 5.10e Wildlife flight frames — `res://art/wildlife/`
 
