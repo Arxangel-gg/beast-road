@@ -30,16 +30,31 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.49** from `main`. 28 of 28 local gates green at the tag,
+Published as **v0.4.53** from `main`. 30 of 30 local gates green at the tag,
 plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
 processes and are deliberately outside CI.
 
 Landed since v0.4.44: the zero-capital start, two-player co-op end to end, the
 co-op lobby, visible weather, beast-scope parallax, eight bugs reported from
 play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
-Landed in v0.4.49: the replication batch — shared Ride On, the world clock
-(time of day, weather, act), enemy combat state and interpolation, shared
-pause, and hero death with partner revive.
+
+- **v0.4.49** the replication batch — shared Ride On, the world clock (time of
+  day, weather, act), enemy combat state and interpolation, shared pause, and
+  hero death with partner revive.
+- **v0.4.50** guest towers fire and guest hits are felt; mirrored facing; the
+  guest's phase; shared cinematic skips; the revive redesign.
+- **v0.4.51** the scope bar as an icon column, the command column, the build
+  sheet inset clear of it, and the phone layout in CI for the first time.
+- **v0.4.52** tower firing recoil, weather-driven foliage wind, ravens and
+  wildlife.
+- **v0.4.53** the city rocks and shudders, four silent completions given a
+  voice, §57 made a gate, and the minimum spec declared.
+
+**Three bugs found on the way that were on nobody's list.** `String(int)` threw
+in `Score.row()` on *every* completed run, taking the results screen's score line
+and the leaderboard submission with it. A guest's pause never reached the host —
+it tripped the authority guard and was dropped silently. And the phone layout had
+never passed at all.
 
 **What is genuinely still open**, in the order it matters:
 
@@ -49,9 +64,10 @@ pause, and hero death with partner revive.
    loopback gate and obvious within a minute of play. The gates prove the
    transport, the authority model and the plumbing; they say little about feel
    or latency, and the co-op difficulty constant is still provisional.
-2. **Co-op hero XP is shared but untested in play** — the award crosses and
-   lands on each player's own hero, verified across two processes, but no
-   human has watched two heroes level together.
+2. **Co-op hero XP is decided and built, but untested in play** — the owner
+   ruled "both players share XP" on 2026-08-24. The award crosses and lands on
+   each player's own hero, verified across two processes, but no human has
+   watched two heroes level together.
 3. **Tower shots and hit feedback now replicate too** (v0.4.50), and the
    reasoning that nearly left them out is worth keeping: the first estimate was
    that relaying shots would be the heaviest traffic in the game. Measured, it
@@ -1754,19 +1770,21 @@ has its design settled and written down; no netcode is written yet.
       recording a defeat — the player did not lose, the session went away, and
       writing a loss would put a phantom run on a leaderboard.
 
-- [ ] **Co-op hero XP has no answer yet, and needs an owner.** Found while
-      building step 4, recorded in `docs/COOP_DESIGN.md` §10 rather than guessed
-      at.
+- [x] **Co-op hero XP: shared credit.** **DECIDED 2026-08-24 by the owner — "both
+      players should share XP."** The row is ticked on that ruling; it had been
+      left open because the answer was a design decision rather than a patch, and
+      it was.
 
-      Each player brings their own persistent hero, and hero level and XP persist
-      per account (CLAUDE.md rule 7). But XP is granted in `Enemy._on_died`, which
-      runs only on the host, into the single `RunState.hero_xp` a run has. So a
-      guest can fight a whole run and their hero learns nothing.
+      The implementation turns on one distinction: **the award travels, never the
+      total.** Hero level and XP persist per account (CLAUDE.md rule 7), so two
+      players arrive with heroes at different levels. Relaying an absolute would
+      overwrite a level-20 guest with a level-5 host's number and *demote* them —
+      a shared pool would quietly delete somebody's progress. The host emits the
+      amount before applying it locally, so both machines credit the same figure
+      and each applies it to its own hero against its own curve.
 
-      That is indefensible as a shipped answer, given that a persistent hero is
-      the reason "two heroes" was the right call in the first place. The fix is a
-      design decision — per-player run state, shared credit, or something else —
-      not a patch.
+      Still untested by two humans: the award crosses and lands correctly across
+      two processes, but nobody has watched two heroes level together.
 
       Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
       challenges" as explicitly out of scope for 1.0, with only leaderboards
