@@ -2829,12 +2829,20 @@ const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
 ## which is where it starts because the measured curve did not need one.
 const COOP_KILL_INCOME_SCALE: float = 1.0
 
+# ------------------------------------------------------------------------------
+# Torch shadow
+# ------------------------------------------------------------------------------
+
 ## The pool of shadow at the foot of a torch post, in world units. [TUNE]
 ##
 ## Given rather than measured: the ironwork is drawn from polygons and has no
 ## texture to size a shadow from. Narrow, because a torch is a post - a wide pool
 ## reads as a barrel.
 const TORCH_SHADOW_WIDTH: float = 26.0
+
+# ------------------------------------------------------------------------------
+# Beast parallax — GDD §7
+# ------------------------------------------------------------------------------
 
 ## The beast scope's procedural parallax bands (GDD §7).
 ##
@@ -2888,7 +2896,11 @@ const BEAST_FOREGROUND_BASELINE: float = 560.0
 ## the band still silhouettes but belongs to the place it is in.
 const BEAST_FOREGROUND_DARKEN: float = 0.32
 
-## Weather — GDD §177, §193. See scripts/systems/weather_veil.gd
+# ------------------------------------------------------------------------------
+# Weather — GDD §177, §193
+# ------------------------------------------------------------------------------
+
+## See scripts/systems/weather_veil.gd.
 ##
 ## How long precipitation takes to arrive or clear, in seconds. Weather that
 ## switches on between two frames reads as a bug in the renderer rather than as
@@ -2908,3 +2920,28 @@ const SNOW_MELT_SECONDS: float = 240.0
 ## floor art has to stay legible under it, and a pure white field is a field
 ## where nothing can be read. [TUNE]
 const SNOW_COVER_STRENGTH: float = 0.62
+
+# ------------------------------------------------------------------------------
+# Snow on the ground — see scripts/systems/snow_cover.gd
+# ------------------------------------------------------------------------------
+
+## How white the *paths* go under snow, 0..1. [TUNE]
+##
+## Much lighter than `SNOW_COVER_STRENGTH`. A road is walked on, so it holds a
+## dusting rather than a drift - and the faint layer that produces it is drawn
+## above the roads, which is also what feathers the edge where a deep verge meets
+## a cleared path. The two layers share one noise field, so a drift continues
+## across the road as a dusting rather than stopping at the kerb.
+const SNOW_PATH_STRENGTH: float = 0.22
+
+## Chance per step that an enemy walking on snow slips sideways, at full cover.
+##
+## Scaled by how much snow is actually lying, so a dusting barely does it and a
+## covered field does it often. Deliberately small: a slip is a moment of
+## character, and one that fires constantly is a movement bug with a story
+## attached. [TUNE]
+const SNOW_SLIP_CHANCE: float = 0.055
+
+## How far a slip carries, in world units, and how long it lasts.
+const SNOW_SLIP_DISTANCE: float = 46.0
+const SNOW_SLIP_SECONDS: float = 0.34

@@ -42,8 +42,14 @@ const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 ## a field of nothing but boulders is as monotonous as a field of nothing but
 ## reeds, and the point of the extra kinds is that a clump is occasionally *not*
 ## the thing you expected.
-const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern"]
-const SHARED_KINDS: Array[String] = ["rock", "boulder"]
+## Adding a kind is adding this name and the files it implies - one per region
+## for a regional kind, one for a shared one. No other code changes, which is the
+## whole point of deriving the path from the name.
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern", "bush"]
+
+## A rock is a rock in a jungle or a snowfield, and so is a fallen log. These are
+## the props that carry no regional identity, so one file serves all three acts.
+const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 

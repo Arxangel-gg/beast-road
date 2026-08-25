@@ -117,6 +117,15 @@ var _burn_left: float = 0.0
 var _motion: Vector2 = Vector2.ZERO
 var _boss_phase: int = 0
 
+## A slide in progress on snow, and how long is left of it.
+##
+## Sideways rather than forwards: a slip is losing your footing, not being
+## hurried along. Carried as a velocity so it composes with the walk instead of
+## replacing it - an enemy mid-slip is still trying to get where it was going,
+## which is what makes it read as a stumble rather than as a teleport.
+var _slip: Vector2 = Vector2.ZERO
+var _slip_left: float = 0.0
+
 
 func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 		hp_scale: float, damage_scale: float = -1.0, speed_scale: float = 1.0) -> void:
@@ -299,7 +308,8 @@ func _walk(delta: float) -> void:
 	if _target == null or _target == _field.town_node():
 		direction = _road_direction()
 
-	var step: Vector2 = direction * current_speed() * delta
+	_tick_slip(delta, direction)
+	var step: Vector2 = (direction * current_speed() + _slip) * delta
 	var wanted: Vector2 = global_position + step
 	if _field.step_is_legal(global_position, wanted):
 		global_position = wanted
@@ -314,6 +324,44 @@ func _walk(delta: float) -> void:
 		if _field.step_is_legal(global_position, slide):
 			global_position = slide
 			return
+
+
+## Losing your footing on snow.
+##
+## Rolled per step against how much snow is *actually lying* - a dusting barely
+## does it and a covered field does it often - so the effect appears with the
+## weather rather than being a property of the act. Read from `RunState`, which
+## is where the run's snow depth lives; an enemy caching its own copy would keep
+## slipping through a thaw.
+##
+## Rolled from the combat stream, so a seeded replay slips in the same places.
+## Anything else would make a reproducible run stop being reproducible the moment
+## it snowed.
+##
+## Puppets never slip: on a guest they are a picture of an enemy whose footing
+## was decided on the host, and rolling locally would have the two machines
+## disagree about where it ended up.
+func _tick_slip(delta: float, heading: Vector2) -> void:
+	if _slip_left > 0.0:
+		_slip_left -= delta
+		if _slip_left <= 0.0:
+			_slip = Vector2.ZERO
+		return
+	if puppet or RunState.snow_cover <= 0.01:
+		return
+	var chance: float = Balance.SNOW_SLIP_CHANCE * RunState.snow_cover * delta * 10.0
+	if RunState.rng("combat").randf() > chance:
+		return
+	# Sideways, either way, off the direction of travel.
+	var side: Vector2 = heading.orthogonal().normalized()
+	if RunState.rng("combat").randf() < 0.5:
+		side = -side
+	_slip = side * (Balance.SNOW_SLIP_DISTANCE / maxf(Balance.SNOW_SLIP_SECONDS, 0.01))
+	_slip_left = Balance.SNOW_SLIP_SECONDS
+	# The lean sells it. Without this an enemy slides flat and reads as being
+	# dragged rather than as having lost its footing.
+	if animator != null:
+		animator.punch(side, 0.55)
 
 
 ## Direction to the next waypoint, offset sideways into this enemy's column lane.

@@ -352,9 +352,13 @@ func _setup_lighting() -> void:
 	# above the ground rather than in the sorted layer: whitening the sorted
 	# layer would bleach the enemies, and a wave that cannot be read is a worse
 	# problem than a field that is not snowy enough.
+	# Two layers straddling the roads: full cover on the bare ground below them,
+	# a faint dusting above so the paths whiten a little and the drift carries
+	# across the kerb instead of stopping at it.
 	var lying := SnowCover.new()
 	lying.name = "SnowCover"
-	lying.z_index = Z_GROUND + 1
+	lying.ground_z = Z_GROUND + 1
+	lying.path_z = Z_LANES + 1
 	add_child(lying)
 
 	# Contact shadows follow the sun, and the sun follows the beast walking.

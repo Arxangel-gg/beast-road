@@ -14,3 +14,4 @@ id = "heatwave"
 display_name = "Heatwave"
 precipitation = 0
 precipitation_density = 0.0
+snow_melt_scale = 9.0

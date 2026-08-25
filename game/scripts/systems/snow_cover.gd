@@ -16,9 +16,22 @@ extends Node2D
 ## bare, through drifts in the hollows, to nearly covered - which is the same
 ## progression a player watching it happen expects.
 ##
-## Sits directly above the floor and below everything sorted, so it whitens the
-## ground and never the units standing on it. A wave that cannot be read is a
-## worse problem than a field that is not snowy enough.
+## **Two layers, because the roads sit between them.**
+##
+## The roads draw above the bare ground, so a single snow layer under them left
+## the paths perfectly clear with a hard cut where the white stopped - snow that
+## respected the road edge to the pixel, which is not how snow works.
+##
+## So there is a second, much fainter layer *above* the roads. It dusts
+## everything, which on the road is the only snow there is and off the road is a
+## marginal addition to what is already lying. Both layers sample the same noise
+## at the same world position, so a drift that is deep on the verge continues
+## across the path as a dusting instead of stopping at the kerb - which is the
+## feathered transition, and it costs nothing because the field is shared.
+##
+## Neither layer is in the sorted band, so the ground whitens and the units
+## standing on it never do. A wave that cannot be read is a worse problem than a
+## field that is not snowy enough.
 
 const SHADER_CODE: String = """
 shader_type canvas_item;
@@ -72,31 +85,54 @@ void fragment() {
 }
 """
 
-var _rect: ColorRect = null
-var _material: ShaderMaterial = null
+## Where each layer sits and how strong it is. Assigned by the battlefield, which
+## is the thing that knows its own z ordering.
+var ground_z: int = 0
+var path_z: int = 0
+
+var _materials: Array[ShaderMaterial] = []
 
 
 func _ready() -> void:
 	var extent: float = maxf(Balance.LANE_SPAWN_RADIUS * 1.4,
 		maxf(1920.0, 1080.0) / Balance.CAMERA_ZOOM_BATTLEFIELD)
-	_rect = ColorRect.new()
-	_rect.name = "Lying"
-	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_rect.size = Vector2(extent * 2.0, extent * 2.0)
-	_rect.position = -Vector2(extent, extent)
+	_build_layer("Lying", ground_z, Balance.SNOW_COVER_STRENGTH, extent)
+	_build_layer("OnPaths", path_z, Balance.SNOW_PATH_STRENGTH, extent)
+	EventBus.snow_cover_changed.connect(set_cover)
+	set_cover(RunState.snow_cover)
 
-	_material = ShaderMaterial.new()
+
+func _build_layer(layer_name: String, z: int, alpha: float, extent: float) -> void:
+	var rect := ColorRect.new()
+	rect.name = layer_name
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.size = Vector2(extent * 2.0, extent * 2.0)
+	rect.position = -Vector2(extent, extent)
+	# Absolute, because the two layers straddle the roads and must not inherit a
+	# single parent depth.
+	rect.z_as_relative = false
+	rect.z_index = z
+
+	var material := ShaderMaterial.new()
 	var shader := Shader.new()
 	shader.code = SHADER_CODE
-	_material.shader = shader
-	_material.set_shader_parameter("field_size", Vector2(extent * 2.0, extent * 2.0))
-	_material.set_shader_parameter("max_alpha", Balance.SNOW_COVER_STRENGTH)
-	_rect.material = _material
-	add_child(_rect)
-
-	EventBus.snow_cover_changed.connect(set_cover)
+	material.shader = shader
+	material.set_shader_parameter("field_size", Vector2(extent * 2.0, extent * 2.0))
+	material.set_shader_parameter("max_alpha", alpha)
+	rect.material = material
+	add_child(rect)
+	_materials.append(material)
 
 
 func set_cover(cover: float) -> void:
-	if _material != null:
-		_material.set_shader_parameter("cover", clampf(cover, 0.0, 1.0))
+	var lying: float = clampf(cover, 0.0, 1.0)
+	for material: ShaderMaterial in _materials:
+		material.set_shader_parameter("cover", lying)
+	# Hidden outright at zero rather than left drawing nothing. A full-screen
+	# fragment shader that returns a transparent pixel still runs for every pixel
+	# on the screen, and most of a run has no snow in it at all - so this is two
+	# whole-screen passes saved for the price of a boolean.
+	for child: Node in get_children():
+		var canvas := child as CanvasItem
+		if canvas != null:
+			canvas.visible = lying > 0.001

@@ -32,7 +32,19 @@ $script:ExtraSources = @(
        Section = 'UI padding' }
     @{ Path    = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts\systems\graphics.gd'
        Section = 'Graphics quality' }
+    @{ Path    = Join-Path (Split-Path -Parent $PSScriptRoot) 'game\scripts\systems\parallax_band.gd'
+       Section = 'Beast parallax shape' }
 )
+
+# Deliberately NOT added, and worth writing down so nobody adds them later
+# thinking it was an oversight: weather_veil.gd, snow_cover.gd, cloud_shadows.gd
+# and foliage.gd each hold their shader as `const SHADER_CODE: String = """..."""`.
+# The const matcher would happily take that as a one-line text value and offer it
+# for editing, and writing it back would replace an entire shader with a single
+# line. A tuning tool that can destroy a shader is one nobody dares run.
+#
+# Everything genuinely tunable in those files already lives in Balance.gd, which
+# is where it belongs anyway.
 
 function Get-ValueKind {
     param([string]$Type, [string]$Raw)

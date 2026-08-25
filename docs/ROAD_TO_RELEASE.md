@@ -954,8 +954,10 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       It proves the drift and the idle cycle by driving `_process` rather than by
       waiting — and it samples a whole cycle, after reporting "no change" once
       because the seven-frame idle happened to land back on frame one.
-- [~] Leaderboards — local/client path complete; Supabase quota, schema/RLS and
-      live production verification remain (see the detailed item above).
+- [x] Leaderboards — **live and verified 2026-08-25.** The `runs` table exists
+      on the configured project, answers 200 with rows, and its schema matches
+      the contract in `docs/LEADERBOARD.md` field for field. The anon key in
+      `Leaderboard.ANON_KEY` is the one that project answers to.
 
 ---
 
@@ -1090,15 +1092,25 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] Per-plant hue and saturation jitter, deliberately small — the palette is
       sampled from the region's own ground, and a wide jitter would put plants
       outside their act.
-- [ ] **Many more kinds per act.** Shrubs, bushes, flowers, plants, trees and
-      rocks, each with variations per region. Three kinds per act reads as three
-      kinds. The scatter is already driven off `REGIONAL_KINDS` in
-      `scripts/systems/foliage.gd`, so this is files plus one list, not code.
-- [ ] Animation on every kind that should not be static. The wind shader exists
-      and already sways blades and painted plants; new kinds have to opt into it
-      rather than arrive stiff. A tree standing still beside grass that moves
-      reads as a bug, not as a tree.
-- [ ] Fallen logs.
+- [x] **More kinds per act, and the art to fill them.** A fourth regional kind
+      (`bush`, one per region) and two more shared props, generated and
+      integrated: 595 manifest assets, all real art, no placeholders.
+
+      It was files plus one list, as predicted. `REGIONAL_KINDS` and
+      `SHARED_KINDS` gained a name each and the path convention did the rest -
+      no other code changed.
+- [x] **Fallen logs**, plus stumps. Shared props rather than regional: a fallen
+      log is a fallen log in a jungle or a snowfield.
+- [x] The new kinds sway with everything else. They are painted plants and pick
+      up `painted_material()` from the same scatter path the existing kinds use,
+      so opting in was not a step - not opting in would have been.
+
+      **The art-direction question that blocked this is closed.** The pixel-art
+      restyle already happened and shipped: `beast_scope.gd` says the backdrops
+      "are 688x384 pixel art now", 53 PixelLab structure packages are gated, and
+      the rendered game is unambiguous. `ASSET_MANIFEST.md` §1 and
+      `PIXELLAB_PROMPTS.md` §0 still describe the old painterly style and are
+      stale on that point alone - their paths, sizes and contracts are current.
 
 ### Towers and buildings
 
@@ -1191,9 +1203,32 @@ still lists it unfinished. Today it is not visible at all.
 - [x] Authored per weather rather than branched on an id: precipitation kind,
       density, wind, speed, tint and whether it settles are all fields on the
       `.tres`, so a new weather is still a file.
-- [ ] **Weather drives the foliage.** The wind hook already exists in the
-      foliage shader; weather should feed it rather than run alongside it. Not
-      done - the veil and the foliage still know nothing about each other.
+- [x] **Precipitation falls down.** It did not: the shader sampled at
+      `p + offset`, which moves the *pattern* the opposite way from the offset,
+      so adding to both axes made rain drift up-and-left at about 36 degrees off
+      vertical. Reported as "rain and snow fall leftish". Subtracting fixes the
+      direction and makes a positive `wind` blow right, which is what a positive
+      number in a `.tres` ought to mean.
+- [x] **Snow on the paths, feathered.** A second, much fainter snow layer sits
+      *above* the roads, so the paths take a dusting and a drift carries across
+      the kerb instead of stopping at it. Both layers sample the same noise at
+      the same world position, so the continuation is exact and costs nothing.
+- [x] **Snow melts to the weather, not just to the clock.** Rain washes it off
+      and a heatwave burns it away - authored per weather as `snow_melt_scale`,
+      so a cold drizzle that leaves snow alone needs no code change.
+- [x] **Snow makes enemies slip.** Rolled per step against how much snow is
+      actually lying, from the combat stream so a seeded replay slips in the
+      same places. Sideways rather than forwards, composed with the walk rather
+      than replacing it, so it reads as a stumble. Puppets never slip: on a guest
+      their footing was decided on the host.
+- [x] **Answers to the graphics preset.** Density scales with
+      `Graphics.particle_scale()` and the three depth layers drop to two at
+      medium and one at low - the real saving, since density in a shader is only
+      a threshold while each layer is a whole extra pass per pixel. Both snow
+      layers are hidden outright at zero cover rather than left drawing nothing.
+- [ ] **Weather drives the foliage wind.** Still outstanding: the veil and the
+      foliage shader know nothing about each other, so a downpour does not bend
+      the grass.
 
 ### Wildlife and ambient life
 

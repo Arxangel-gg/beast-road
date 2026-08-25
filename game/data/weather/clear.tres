@@ -14,3 +14,4 @@ id = "clear"
 display_name = "Clear"
 precipitation = 0
 precipitation_density = 0.0
+snow_melt_scale = 1.0

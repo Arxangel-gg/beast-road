@@ -47,6 +47,14 @@ uniform vec4 tint : source_color = vec4(0.78, 0.85, 0.96, 1.0);
 // The quad's aspect, so drops are not stretched into diagonals on a wide view.
 uniform float aspect = 1.777;
 
+// How many of the three depth layers actually run, 1..3.
+//
+// The cheapest real saving available here. Density costs nothing in a shader -
+// it is a threshold - but each layer is a whole extra hash-and-distance pass per
+// pixel, and this is a full-screen effect. Low drops to one layer, which still
+// reads as rain and costs a third.
+uniform float layers : hint_range(1.0, 3.0) = 3.0;
+
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -56,10 +64,16 @@ float hash(vec2 p) {
 float layer(vec2 uv, float depth, float t) {
 	float scale = mix(26.0, 13.0, depth);
 	vec2 p = uv * scale;
+	// **Subtracted, not added.** Sampling at `p + offset` moves the *pattern* the
+	// opposite way from the offset, so adding to y made the rain drift upwards
+	// and adding to x made it drift left. Both were added, so it fell up-and-left
+	// at about 36 degrees off vertical - reported as "rain falls leftish".
+	//
 	// Wind and fall are applied in cell space so they stay consistent whatever
-	// the scale of the layer.
-	p.x += wind * t * scale * mix(0.7, 1.4, depth);
-	p.y += fall_speed * t * scale * mix(0.35, 1.0, depth) * 0.12;
+	// the scale of the layer, and positive wind now blows to the right, which is
+	// what a positive number in a `.tres` ought to mean.
+	p.x -= wind * t * scale * mix(0.7, 1.4, depth);
+	p.y -= fall_speed * t * scale * mix(0.35, 1.0, depth) * 0.12;
 
 	vec2 cell = floor(p);
 	vec2 f = fract(p);
@@ -119,11 +133,16 @@ void fragment() {
 		uv.x *= aspect;
 		float t = TIME;
 
-		float fall = 0.0;
-		// Three layers. Two reads as flat, four costs more than it shows.
-		fall += layer(uv, 0.0, t) * 0.55;
-		fall += layer(uv + vec2(3.7, 1.3), 0.5, t) * 0.75;
-		fall += layer(uv + vec2(8.1, 5.9), 1.0, t) * 1.0;
+		// The near layer always runs; the two behind it are dropped on weaker
+		// presets. Branching rather than multiplying by zero, so the work is
+		// genuinely skipped instead of computed and discarded.
+		float fall = layer(uv + vec2(8.1, 5.9), 1.0, t) * 1.0;
+		if (layers > 1.5) {
+			fall += layer(uv + vec2(3.7, 1.3), 0.5, t) * 0.75;
+		}
+		if (layers > 2.5) {
+			fall += layer(uv, 0.0, t) * 0.55;
+		}
 
 		float land = ripples(uv, t) * impact * (1.0 - flake);
 
@@ -156,6 +175,7 @@ var _wanted: float = 0.0
 ## own those decide what white means to them.
 var _cover: float = 0.0
 var _settling: bool = false
+var _melt_scale: float = 1.0
 
 
 func _ready() -> void:
@@ -172,6 +192,7 @@ func _ready() -> void:
 	shader.code = SHADER_CODE
 	_material.shader = shader
 	_material.set_shader_parameter("aspect", 1.0)
+	_apply_quality()
 	_rect.material = _material
 	add_child(_rect)
 
@@ -197,13 +218,33 @@ func _tick_cover(delta: float) -> void:
 		_cover = minf(_cover + delta * _amount
 			/ maxf(Balance.SNOW_SETTLE_SECONDS, 0.01), 1.0)
 	else:
-		_cover = maxf(_cover - delta
+		# Rain washes it off and a heatwave burns it away, both far faster than
+		# still air. Authored per weather rather than derived from the kind.
+		_cover = maxf(_cover - delta * _melt_scale
 			/ maxf(Balance.SNOW_MELT_SECONDS, 0.01), 0.0)
 	if not is_equal_approx(before, _cover):
+		RunState.snow_cover = _cover
 		EventBus.snow_cover_changed.emit(_cover)
 
 
+## How much of the effect the current graphics preset pays for.
+##
+## Re-read on every weather change as well as on ready, so a player who lowers
+## the preset mid-run sees it take effect at the next change of sky rather than
+## having to restart.
+func _apply_quality() -> void:
+	var budget: float = Graphics.particle_scale()
+	# Three layers at the authored budget and above, two at medium, one at low.
+	var count: float = 3.0
+	if budget < 0.5:
+		count = 1.0
+	elif budget < 0.9:
+		count = 2.0
+	_material.set_shader_parameter("layers", count)
+
+
 func _on_weather_changed(weather_id: String) -> void:
+	_apply_quality()
 	_apply(ContentDB.weather(weather_id))
 
 
@@ -217,8 +258,12 @@ func _apply(weather: WeatherData) -> void:
 	if weather == null:
 		_wanted = 0.0
 		return
-	_wanted = clampf(weather.precipitation_density, 0.0, 1.0)
+	# Scaled by the same budget that governs every other particle count, so a
+	# machine set to Low gets thinner weather without a second setting to find.
+	_wanted = clampf(weather.precipitation_density * Graphics.particle_scale(),
+		0.0, 1.0)
 	_settling = weather.settles
+	_melt_scale = maxf(weather.snow_melt_scale, 0.0)
 	# Dust drifts as motes, not as streaks. Only rain falls fast enough in a
 	# straight enough line to read as a line.
 	var rounded: bool = weather.precipitation == WeatherData.Precipitation.SNOW 		or weather.precipitation == WeatherData.Precipitation.DUST
@@ -253,4 +298,5 @@ func cover() -> float:
 ## to move the value this system owns rather than shout past it.
 func set_cover(value: float) -> void:
 	_cover = clampf(value, 0.0, 1.0)
+	RunState.snow_cover = _cover
 	EventBus.snow_cover_changed.emit(_cover)

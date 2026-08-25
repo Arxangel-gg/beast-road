@@ -232,6 +232,14 @@ func _ready() -> void:
 ##
 ## Guest-only. On the host `gain_hero_xp` is what emitted this, and applying it
 ## again would pay the host twice.
+## How much snow is lying on the field, 0..1.
+##
+## Here rather than only inside the weather system, because it stopped being a
+## drawing concern the moment enemies started slipping on it. Working rule 6: the
+## run's state lives in one place and nothing caches its own copy.
+var snow_cover: float = 0.0
+
+
 func _on_coop_xp_awarded(amount: float) -> void:
 	if Coop.is_guest():
 		gain_hero_xp(amount)
