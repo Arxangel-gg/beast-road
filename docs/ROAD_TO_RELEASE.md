@@ -1288,14 +1288,41 @@ still lists it unfinished. Today it is not visible at all.
 
 ### Wildlife and ambient life
 
-- [ ] **Ravens, procedurally.** Flying in, landing, moving about, leaving; new
-      ones arriving as old ones go. Sometimes almost none, sometimes plenty -
-      the variation is the whole point, because a fixed population reads as
-      decoration rather than as life.
-- [ ] **Wildlife living off the roads.** Deer, foxes, squirrels, raccoons,
-      rabbits, birds. Each needs an idle and a move animation, whatever other
-      states its behaviour implies, and enough AI to keep it in the unpathed
-      ground rather than wandering into a lane.
+- [x] **Ravens and wildlife**, as one data-driven system (`scripts/systems/
+      wildlife.gd`). Four kinds shipped — raven, fox, rabbit, deer — each a
+      `.tres` in `data/wildlife/` plus a sprite named for its id, so adding a
+      fifth is a file rather than a branch.
+
+      The variation is built in the way the row asked for: arrivals are a coin
+      flip against a chance, not a top-up to a target count. The cap is a ceiling
+      on cost rather than a number to be reached, so the field is genuinely
+      sometimes empty and sometimes busy. A fixed population reads as decoration
+      however good the sprites are, because the eye works out inside a minute
+      that there are always exactly six.
+
+      Ravens fly in from above and leave the same way; the rest walk in from the
+      side. Nothing pops into existence in the middle of a field. A raven's
+      skittish radius is deliberately zero — they are the animals that turn up
+      *because* of a battle rather than in spite of one — while a rabbit bolts
+      at 240 units and runs at three times its walking speed.
+
+      Animation is authored idle frames where they exist and a procedural bob
+      where they do not, which is the same choice the structures make. Skittish
+      checks look at heroes only: testing every enemy would be a distance check
+      per animal per enemy per frame to decide whether a rabbit twitches.
+
+      Acts gate who appears, and the field clears when the act turns — a deer
+      standing in Act III ash is worse than an empty field.
+
+- [x] **Kept out of the lanes**, and the gate found the real bug here twice. The
+      first version of the check asserted no animal *stands* on a road and was
+      reporting correct behaviour: a deer crossing a lane is a deer crossing a
+      path, and that is the whole point of having them. The invariant that
+      actually matters is that nothing ever **chooses** to stand there, and
+      testing that turned up two genuine holes — a group's spread offset was
+      never validated against the anchor that was, and the wander fallback
+      returned `home` unchecked, so an animal that had fled onto a road could
+      adopt it as somewhere to live.
 
 ### UI and controls
 

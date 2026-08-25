@@ -1103,6 +1103,23 @@ const STRUCTURE_IDLE_SCALE: float = 0.012
 ## the weathers that should be felt are. The bias is a *steady lean* rather than
 ## more waving, because that is the difference between a breeze and a gale -
 ## a gale holds the grass over. [TUNE]
+## Ambient animals: how many, how often, and how they move.
+##
+## The cap is a ceiling on cost rather than a target population - arrivals are a
+## coin flip against the chance below, so the field is genuinely sometimes empty
+## and sometimes busy. A fixed count reads as decoration however good the sprites
+## are, because the eye works out inside a minute that there are always six.
+## [TUNE]
+const WILDLIFE_MAX: int = 14
+const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
+const WILDLIFE_FIELD_SPAN: float = 1150.0
+const WILDLIFE_ENTRY_DISTANCE: float = 1500.0
+const WILDLIFE_PAUSE_MIN: float = 1.6
+const WILDLIFE_PAUSE_MAX: float = 7.0
+const WILDLIFE_IDLE_FRAME_RATE: float = 2.6
+const WILDLIFE_BOB_RATE: float = 11.0
+const WILDLIFE_BOB_SCALE: float = 0.09
+
 const FOLIAGE_WIND_SWAY_GAIN: float = 1.35
 const FOLIAGE_WIND_SPEED_GAIN: float = 0.85
 const FOLIAGE_WIND_BIAS_DEGREES: float = 7.0

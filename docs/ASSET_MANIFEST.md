@@ -623,6 +623,32 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
 
+### 5.10b Wildlife — `res://art/wildlife/`
+
+All 64×64, type T, placeholder colour `#7A8B6E`.
+
+Deliberately small and few. These are ambient animals seen at combat zoom across
+a field: what has to survive is the silhouette and the colour, and detail spent
+past that is detail nobody will ever be close enough to see. Adding a creature is
+a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
+
+`wildlife_raven.png` · `wildlife_fox.png` · `wildlife_rabbit.png` ·
+`wildlife_deer.png`
+
+### 5.10c Wildlife idle frames — `res://art/wildlife/`
+
+All 64×64, type T, placeholder colour `#7A8B6E`.
+
+One continuation pose each, following the same `_idle_01` convention the
+structures use — so the animator is the same code, and a creature shipped with
+no continuation frame is a supported state rather than a broken one. Generated
+img2img from the base pose so the palette cannot drift between frames.
+
+Files: `wildlife_raven_idle_01.png`
+Files: `wildlife_fox_idle_01.png`
+Files: `wildlife_rabbit_idle_01.png`
+Files: `wildlife_deer_idle_01.png`
+
 ### 5.11 UI icons — `res://art/icons/ui/`
 
 All 128×128, type T, placeholder colour `#D9CDB8`.

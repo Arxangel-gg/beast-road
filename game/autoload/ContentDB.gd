@@ -17,6 +17,7 @@ var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
+var wildlife_kinds: Dictionary = {}
 var tiers: Dictionary = {}
 var gear_kinds: Dictionary = {}
 
@@ -41,6 +42,7 @@ func _ready() -> void:
 	spells = _load_dir("res://data/spells")
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
+	wildlife_kinds = _load_dir("res://data/wildlife")
 	tiers = _load_dir("res://data/tiers")
 	gear_kinds = _load_dir("res://data/gear")
 	buildings = _load_dir("res://data/buildings")
@@ -121,6 +123,20 @@ func weathers_for_act(act: int) -> Array[WeatherData]:
 
 func weather(id: String) -> WeatherData:
 	return weathers.get(id, null) as WeatherData
+
+
+## Every animal that can turn up on the field, in a stable order.
+##
+## Sorted by id rather than left in directory order, because the spawner rolls
+## against this list and a seeded run must pick the same animal on two machines.
+func wildlife() -> Array[WildlifeData]:
+	var out: Array[WildlifeData] = []
+	for value: Variant in wildlife_kinds.values():
+		var kind := value as WildlifeData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: WildlifeData, b: WildlifeData) -> bool: return a.id < b.id)
+	return out
 
 
 func terrain(id: String) -> TerrainData:

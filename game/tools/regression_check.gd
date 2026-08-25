@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_enemy_faces_its_travel()
 	await _test_boss_summons_leave_with_the_boss()
 	await _test_weather_can_be_seen()
+	await _test_the_field_is_inhabited()
 	_test_touch_release_always_lands()
 	_test_touch_controls_belong_to_the_run()
 
@@ -66,7 +67,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if _failures == 0:
 		print("[regression] PASS - facing, threat lane, boss summons, loot scale, "
-			+ "weather, touch ownership")
+			+ "weather, touch ownership, wildlife")
 	get_tree().quit(_failures)
 
 
@@ -379,3 +380,48 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	printerr("[regression] %s" % why)
+
+
+## Animals turn up, and they stay off the roads.
+##
+## The road rule is the one that matters. A deer grazing in the middle of a lane
+## makes the lane look like a mistake, and it is exactly the kind of thing that
+## survives review because it only happens on some seeds in some acts.
+func _test_the_field_is_inhabited() -> void:
+	var field: Battlefield = _run.battlefield
+	if field == null:
+		return
+	var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
+	_check(wildlife != null, "the battlefield must build its wildlife")
+	if wildlife == null:
+		return
+
+	for kind: WildlifeData in ContentDB.wildlife():
+		_check(ResourceLoader.exists(kind.get_sprite_path()),
+			"%s has no sprite at %s" % [kind.id, kind.get_sprite_path()])
+		_check(kind.group_min <= kind.group_max,
+			"%s has a group range that cannot be rolled" % kind.id)
+		_check(kind.stay_min <= kind.stay_max,
+			"%s has a patience range that cannot be rolled" % kind.id)
+	_check(not ContentDB.wildlife().is_empty(), "there must be something alive out there")
+
+	# Driven rather than waited out: arrivals are on a four second clock and a
+	# gate must not be.
+	for _tick: int in 40:
+		wildlife._process(1.0)
+	_check(wildlife.population() > 0, "something should have turned up by now")
+	var cap: int = int(round(float(Balance.WILDLIFE_MAX) * Graphics.foliage_scale()))
+	_check(wildlife.population() <= cap,
+		"population %d must stay under the cap of %d"
+			% [wildlife.population(), cap])
+
+	# Where they are *going*, not where they are. A deer crossing a lane is a
+	# deer crossing a path and is the whole point of having them; a deer that has
+	# decided to stand in one makes the lane look like a mistake. The first was
+	# what an earlier version of this check reported, and it was reporting
+	# correct behaviour.
+	var goals: PackedVector2Array = wildlife.goals()
+	_check(goals.size() > 0, "settled animals must have somewhere to be")
+	for goal: Vector2 in goals:
+		_check(wildlife._is_clear(goal),
+			"an animal chose to stand on a road or in the town at %s" % goal)

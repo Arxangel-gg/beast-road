@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "raven"
+display_name = "Raven"
+description = "Comes for the battle, not despite it."
+acts = Array[int]([])
+weight = 2.40
+group_min = 1
+group_max = 4
+speed = 52.0
+roam = 420.0
+skittish_radius = 0.0
+flee_speed_scale = 1.00
+flies = true
+scale = 0.62
+stay_min = 25.0
+stay_max = 70.0

@@ -568,6 +568,19 @@ func _build_foliage() -> void:
 	# In the sorted layer so a plant in front of the hero occludes them and one
 	# behind does not.
 	entity_root.add_child(foliage)
+	_build_wildlife()
+
+
+## The animals that live off the roads.
+##
+## In the sorted layer beside the foliage, and for the same reason: a deer in
+## front of the hero should occlude them and one behind should not. It shares the
+## foliage's grid because it obeys the same rule about where it may stand.
+func _build_wildlife() -> void:
+	var wildlife := Wildlife.new()
+	wildlife.name = "Wildlife"
+	wildlife.grid = grid
+	entity_root.add_child(wildlife)
 
 
 ## 0..1, how dark a lane is. Dimming is continuous, so pressure grows before the

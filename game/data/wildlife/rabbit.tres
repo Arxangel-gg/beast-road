@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rabbit"
+display_name = "Rabbit"
+description = "Gone before you have finished looking at it."
+acts = Array[int]([1, 2])
+weight = 2.00
+group_min = 1
+group_max = 3
+speed = 38.0
+roam = 180.0
+skittish_radius = 240.0
+flee_speed_scale = 3.20
+flies = false
+scale = 0.50
+stay_min = 25.0
+stay_max = 65.0
