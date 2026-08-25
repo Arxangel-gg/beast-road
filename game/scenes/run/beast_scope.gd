@@ -8,6 +8,9 @@ extends Node2D
 ## like a place rather than a number in the corner of a HUD.
 
 ## How far the parallax layers scroll per distance unit.
+##
+## `FOREGROUND_SCROLL` sat here unused for a long time - the shape of a layer
+## that was planned and never built. It drives the near band now.
 const BACKDROP_SCROLL: float = 2.4
 const FOREGROUND_SCROLL: float = 6.0
 
@@ -27,6 +30,12 @@ func activate() -> void:
 	CursorKit.use_default()
 
 var _backdrop_clone: Sprite2D = null
+
+## Two procedural silhouettes: a hazed ridge between the sky and the ground, and
+## a near band that passes in front of the beast. Built rather than painted -
+## see `scripts/systems/parallax_band.gd` for why that is the only option here.
+var _ridge: ParallaxBand = null
+var _foreground: ParallaxBand = null
 var _ground_tile_px: int = 32
 var _ground_baked_region: String = ""
 var _ground_pieces: Array[Sprite2D] = []
@@ -114,6 +123,35 @@ func _refresh_ground() -> void:
 	var tint: Color = _ground_tint()
 	for piece: Sprite2D in _ground_pieces:
 		piece.modulate = tint
+
+
+## The horizon's own colour, averaged, with nothing done to it.
+##
+## `_ground_tint` below samples the same band and then normalises it toward white,
+## because it is used as a `modulate` and a tint must not darken what it tints.
+## A silhouette is not a tint - it is painted with an actual colour - and reusing
+## the tint for one produced a near-white ridge across half the sky. Two callers,
+## two different questions, and only one of them wants the exposure removed.
+func _horizon_colour() -> Color:
+	if backdrop == null or backdrop.texture == null:
+		return Color(0.2, 0.2, 0.25)
+	var image: Image = backdrop.texture.get_image()
+	if image == null:
+		return Color(0.2, 0.2, 0.25)
+	var height: int = image.get_height()
+	var from: int = maxi(0, height - maxi(1,
+		int(round(float(height) * Balance.BEAST_GROUND_LIGHT_BAND))))
+	var total: Color = Color(0.0, 0.0, 0.0, 0.0)
+	var samples: int = 0
+	for y: int in range(from, height, 2):
+		for x: int in range(0, image.get_width(), 4):
+			var pixel: Color = image.get_pixel(x, y)
+			total += Color(pixel.r, pixel.g, pixel.b, 0.0)
+			samples += 1
+	if samples == 0:
+		return Color(0.2, 0.2, 0.25)
+	return Color(total.r / float(samples), total.g / float(samples),
+		total.b / float(samples))
 
 
 ## The light the near ground stands in, taken from the backdrop's own horizon.
@@ -311,7 +349,61 @@ func _setup_backdrop() -> void:
 	_backdrop_clone.flip_h = true
 	_backdrop_clone.z_index = backdrop.z_index
 	backdrop.add_sibling(_backdrop_clone)
+	_build_parallax()
 	_apply_act_backdrop()
+
+
+## The two drawn bands.
+##
+## Added as children of this scope rather than siblings of the backdrop, so they
+## travel with the scope and are removed with it. Their depth is set from Balance
+## and must stay ordered against the sky and the ground: anything out of order
+## reads as the world turning inside out.
+func _build_parallax() -> void:
+	_ridge = ParallaxBand.new()
+	_ridge.name = "Ridge"
+	_ridge.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0)
+	_ridge.band_height = Balance.BEAST_RIDGE_HEIGHT
+	_ridge.baseline = Balance.BEAST_RIDGE_BASELINE
+	_ridge.z_index = Balance.BEAST_RIDGE_Z
+	add_child(_ridge)
+
+	_foreground = ParallaxBand.new()
+	_foreground.name = "NearBand"
+	_foreground.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0) * 0.6
+	_foreground.band_height = Balance.BEAST_FOREGROUND_HEIGHT
+	_foreground.baseline = Balance.BEAST_FOREGROUND_BASELINE
+	_foreground.z_index = Balance.BEAST_FOREGROUND_Z
+	add_child(_foreground)
+
+
+## Colours and reshapes the bands for the act that just began.
+##
+## The ridge is the ground's own light pulled most of the way toward the sky,
+## which is what distance does to colour - a far hill is mostly the air in front
+## of it. The near band is the same ground colour taken down to almost nothing,
+## because something that close reads as an occluder rather than as terrain.
+##
+## Both are reseeded per act, so each region has its own skyline instead of the
+## same hills in a different colour.
+func _apply_parallax_palette() -> void:
+	if _ridge == null or _foreground == null:
+		return
+	# The horizon's real colour, not the ground's tint. A far ridge is mostly the
+	# air in front of it, so it is pulled toward the sky and then taken down -
+	# hazed *and* darker than what it stands against, or it reads as fog rather
+	# than as land.
+	var horizon: Color = _horizon_colour()
+	var hazed: Color = horizon.lerp(Color(horizon.r, horizon.g, horizon.b)
+		.lightened(0.25), Balance.BEAST_RIDGE_HAZE)
+	_ridge.colour = hazed.darkened(Balance.BEAST_RIDGE_SHADE)
+	_ridge.colour.a = 1.0
+	_ridge.shape_seed = hash(RunState.terrain_id + "ridge")
+	_ridge.rebuild()
+
+	_foreground.colour = Color(horizon.r, horizon.g, horizon.b, 1.0) 		.darkened(1.0 - Balance.BEAST_FOREGROUND_DARKEN)
+	_foreground.shape_seed = hash(RunState.terrain_id + "near")
+	_foreground.rebuild()
 
 
 ## Each act has its own sky. Falls back to act 1 rather than going blank if a
@@ -340,6 +432,7 @@ func _apply_act_backdrop() -> void:
 		_backdrop_clone.modulate = backdrop.modulate
 	# A new sky is new light and, past Act I, new ground under it.
 	_refresh_ground()
+	_apply_parallax_palette()
 
 
 ## Two sprites leapfrogging: whichever has scrolled fully off the left is moved
@@ -355,6 +448,12 @@ func _scroll_backdrop() -> void:
 	_backdrop_clone.position.x = -offset + width
 	_backdrop_clone.position.y = backdrop.position.y
 	_scroll_ground()
+	# Ordered slowest to fastest, which is the whole illusion: sky, ridge,
+	# ground, then the band that overtakes the beast.
+	if _ridge != null:
+		_ridge.scroll_to(RunState.distance_travelled, Balance.BEAST_RIDGE_SCROLL)
+	if _foreground != null:
+		_foreground.scroll_to(RunState.distance_travelled, FOREGROUND_SCROLL)
 
 
 ## The ground scrolls faster than the sky, which is what sells the distance.

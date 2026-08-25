@@ -2835,3 +2835,55 @@ const COOP_KILL_INCOME_SCALE: float = 1.0
 ## texture to size a shadow from. Narrow, because a torch is a post - a wide pool
 ## reads as a barrel.
 const TORCH_SHADOW_WIDTH: float = 26.0
+
+## The beast scope's procedural parallax bands (GDD §7).
+##
+## The scope had two depths — a painted sky and the ground underfoot — so
+## distance read as a texture sliding rather than as land being crossed. These
+## are drawn silhouettes rather than painted art, because a distant ridge is one
+## flat colour under a skyline once haze has taken the detail out of it, and new
+## painted art is an art-direction task this toolchain cannot do.
+##
+## Rates are the whole illusion and they must stay ordered: sky slowest, then
+## ridge, then ground, then the near band that passes in front of the beast.
+## Anything out of order reads as the world turning inside out.
+const BEAST_RIDGE_Z: int = -12
+const BEAST_RIDGE_SCROLL: float = 0.34
+const BEAST_RIDGE_HEIGHT: float = 130.0
+
+## Just above where the ground meets the sky. The scope camera is centred on the
+## world origin, so this is measured down from the middle of the view - the first
+## attempt put it at 210 and drew a wall across half the sky.
+const BEAST_RIDGE_BASELINE: float = 366.0
+
+## How much darker the hazed ridge is than the sky it stands against. Without it
+## the band reads as fog rather than as land. [TUNE]
+const BEAST_RIDGE_SHADE: float = 0.34
+
+## How far the ridge is pulled toward the sky's own colour. High, because the
+## point of a distant band is that the air between has taken most of it. [TUNE]
+const BEAST_RIDGE_HAZE: float = 0.62
+
+## The band that passes in front of everything, including the beast.
+##
+## Fast and nearly black: it is close enough that the eye cannot resolve it, and
+## it is what turns "a beast on a treadmill" into "a beast being overtaken by
+## the ground". Kept short so it frames the bottom of the view rather than
+## eating it.
+const BEAST_FOREGROUND_Z: int = 40
+
+## Tall enough that its peaks rise *above* the ground line and cross the beast's
+## feet. The first attempt kept it entirely below that line, where it was a dark
+## shape on an already-dark ground and read as nothing at all - a foreground that
+## never occludes the subject is not a foreground, it is a texture.
+const BEAST_FOREGROUND_HEIGHT: float = 190.0
+const BEAST_FOREGROUND_BASELINE: float = 560.0
+
+## How much of the horizon's colour the near band keeps. [TUNE]
+##
+## Not near-black, which was the first attempt and is a trap: keeping 14% of a
+## pale desert sky is effectively black, and a black mass against near-white sand
+## reads as a hole punched in the screen rather than as ground close to the
+## camera. Keeping a third leaves a deep version of the region's own colour, so
+## the band still silhouettes but belongs to the place it is in.
+const BEAST_FOREGROUND_DARKEN: float = 0.32

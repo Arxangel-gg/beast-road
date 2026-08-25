@@ -1135,10 +1135,29 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       synchronously and measures the gait phase; measuring the footfall signal
       proved nothing, because footfalls only fire when the beast camera is
       current and a harness looking at the battlefield never sees one.
-- [ ] **Procedural background with parallax.** The 16-tile per-act set is the
-      floor of this rather than the finish. The scope wants layers moving at
-      different rates, foreground as well as background, so the ride reads as
-      travel instead of as a treadmill.
+- [x] **Procedural background with parallax.** Two drawn silhouette bands: a
+      hazed ridge between the sky and the ground, and a near band that passes in
+      *front* of the beast. `FOREGROUND_SCROLL` had been sitting in
+      `beast_scope.gd` unused - the shape of a layer planned and never built.
+
+      Drawn rather than painted, which is what made it possible at all: new
+      painted art is an art-direction task this toolchain cannot do, and a
+      distant ridge is one flat colour under a skyline once haze has taken the
+      detail out of it anyway.
+
+      Seamless by construction rather than by tiling. The profile is a sum of
+      sines whose frequencies are whole cycles across the band's own width, so
+      the curve at the far edge equals the curve at the near one by arithmetic
+      and translating by one width is invisible. The painted backdrop next door
+      has to mirror itself precisely because it lacks that property.
+
+      **Three things were wrong and only looking found them.** The ridge was
+      first coloured from `_ground_tint()`, which is a *modulate* and therefore
+      near-white by design - it drew a white wall across half the sky. The
+      silhouette used `absf(sin)`, which puts a cusp at every zero crossing and
+      came out as a row of black triangular teeth. And the near band kept 14% of
+      the horizon colour, which against pale desert sand is a hole punched in the
+      screen rather than ground. Screenshots at all three acts, each time.
 
 ### Weather
 
