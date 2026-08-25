@@ -1331,9 +1331,23 @@ still lists it unfinished. Today it is not visible at all.
 ### Wildlife and ambient life
 
 - [x] **Ravens and wildlife**, as one data-driven system (`scripts/systems/
-      wildlife.gd`). Four kinds shipped — raven, fox, rabbit, deer — each a
-      `.tres` in `data/wildlife/` plus a sprite named for its id, so adding a
-      fifth is a file rather than a branch.
+      wildlife.gd`). **Six kinds** — raven, fox, rabbit, deer, squirrel, raccoon
+      — each a `.tres` in `data/wildlife/` plus a sprite named for its id, so a
+      seventh is a file rather than a branch. (Four at first; the owner asked for
+      six on 2026-08-25.)
+
+      **Three things play reported, and two of them were mine.** They were tiny:
+      scales were judged against each other rather than against the hero, who is
+      about 224 world units tall — a deer is 3.0 now, not 0.95. They walked
+      backwards: the sprites are drawn facing *left* and the flip was written for
+      right-facing art. That is a declared per-creature flag now rather than a
+      global assumption, which immediately earned itself when the squirrel came
+      out of the generator facing right regardless of the prompt.
+
+      And they had no move animation — walking borrowed the standing pose and
+      bobbed it, which reads as a cut-out being slid along the ground. There is a
+      `_move_01` convention beside the idle one now, sharing one loader, so a
+      creature can ship with either sequence, both, or neither.
 
       The variation is built in the way the row asked for: arrivals are a coin
       flip against a chance, not a top-up to a target count. The cap is a ceiling
