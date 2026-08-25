@@ -2977,3 +2977,11 @@ const COOP_REVIVE_RADIUS: float = 150.0
 ## make dying cost something and two players should be *better* than one rather
 ## than *safer* than one. [TUNE]
 const COOP_REVIVE_SPEED: float = 3.0
+
+## How far from the reported impact point a guest will look for the enemy a
+## relayed tower shot was aimed at, in world units.
+##
+## Wide enough to survive a batch of movement between the host firing and the
+## packet landing, narrow enough that it cannot pick a different enemy in a
+## crowd. Roughly one and a half tiles. [TUNE]
+const COOP_SHOT_MATCH_RANGE: float = 96.0

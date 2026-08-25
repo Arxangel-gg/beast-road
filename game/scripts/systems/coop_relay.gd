@@ -55,6 +55,7 @@ enum Fact {
 	PAUSED = 16,
 	HERO_DOWN = 17,
 	HERO_REVIVED = 18,
+	TOWER_FIRED = 19,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -207,6 +208,7 @@ func _fact_bindings() -> Array:
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
 		["coop_hero_revived", _on_coop_hero_revived],
+		["coop_tower_fired", _on_coop_tower_fired],
 	]
 
 
@@ -252,6 +254,10 @@ func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2,
 
 func _on_coop_tower_state(anchor: Vector2i, tower_id: String, level: int) -> void:
 	_relay(Fact.TOWER_STATE, [anchor, tower_id, level])
+
+
+func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
+	_relay(Fact.TOWER_FIRED, [anchor, at])
 
 
 func _on_coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
@@ -430,6 +436,9 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 4:
 				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
 					args[2] as Vector2, args[3] as Vector2)
+		Fact.TOWER_FIRED:
+			if args.size() == 2:
+				bus.coop_tower_fired.emit(args[0] as Vector2i, args[1] as Vector2)
 		Fact.TOWER_STATE:
 			if args.size() == 3:
 				bus.coop_tower_state.emit(args[0] as Vector2i, String(args[1]),

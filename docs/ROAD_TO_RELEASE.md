@@ -52,9 +52,12 @@ pause, and hero death with partner revive.
 2. **Co-op hero XP is shared but untested in play** — the award crosses and
    lands on each player's own hero, verified across two processes, but no
    human has watched two heroes level together.
-3. **Tower attacks are not replicated, on purpose.** Guest towers fire locally
-   at mirrored enemies and damage is host-authoritative, so it cannot change an
-   outcome — but nobody has confirmed it *looks* right in play.
+3. **Tower shots and hit feedback now replicate too** (v0.4.50), and the
+   reasoning that nearly left them out is worth keeping: the first estimate was
+   that relaying shots would be the heaviest traffic in the game. Measured, it
+   is about 6% of what the enemy batch already costs — a shot is a plot and a
+   point, and towers fire far less often than thirty enemies move. The decision
+   was reversed on the number rather than on the intuition.
 4. **The UI vertical-bar rework** — the largest remaining code item, and one
    whose acceptance test is "does this feel right on a phone".
 5. **§57 copy review**, minimum-spec definition, and the juice pass.
@@ -1531,11 +1534,42 @@ has its design settled and written down; no netcode is written yet.
       them would make two players *safer* than one rather than *better* than
       one. The second player buys time, and pays for it by leaving a lane.
 
-      *Not done, deliberately.* Tower **attacks** are not relayed. Guest towers
-      fire locally at mirrored enemies, which looks right, and damage is
-      host-authoritative so it cannot change an outcome. Relaying every shot
-      would be the heaviest traffic in the game to reproduce something each
-      client already draws. Worth paying only if it turns out to look wrong.
+      **Step 7 — towers shoot, and hits are felt (v0.4.50).** Held back one
+      version on the belief that relaying every shot would be the heaviest
+      traffic in the game. It is not: twelve towers at roughly 1.5 shots a
+      second is about 18 messages a second against the enemy batch's ten
+      packets carrying thirty bodies each — call it 6%. The estimate was wrong
+      and the decision went with the measurement.
+
+      A guest's towers are now **puppets**: they never acquire, and they fire
+      only when told. Left autonomous they were not merely redundant but
+      actively divergent — cooldowns, target priority and the closeness
+      tie-break all run against puppet positions that are a batch old, so the
+      two screens showed different towers shooting different enemies. The host
+      sends *where* the shot went rather than *which* enemy it was: a position
+      needs no identity to survive the wire, no lookup at the far end, and the
+      same batch that placed the puppets placed them against those exact
+      coordinates, so the nearest one is the enemy the host meant. If it has
+      since died the shot is skipped, because a homing projectile with nothing
+      to home on flies off the field.
+
+      `tower_fired` stays local and unrelayed — every machine emits it for its
+      own muzzle flash. The host-authored `coop_tower_fired` is a separate
+      signal, which is what keeps the guard meaningful: a shot is an *event*,
+      and quietly adding `tower_fired` to the announcements list to stop the
+      guard shouting would have weakened the one check that catches a guest
+      inventing facts.
+
+      **Hit feedback was the bigger bug, and it was invisible from the host's
+      seat.** A guest's own hero swings at puppets, `take_damage` correctly
+      refuses — and so the player saw no number, no spark, no recoil, only a
+      health bar quietly draining. That is not a missing flourish, it is the
+      feedback loop of attacking, absent. `mirror` now plays the reaction for
+      whatever health was lost since the last packet: one number per batch
+      window rather than per hit, which is a fair summary of damage the host
+      never itemised. Status effects were guarded at the same time — slow,
+      chill and burn were still landing locally on puppets, which is the same
+      class of mistake damage had already been fixed for.
 
 - [ ] **Co-op played by two people on two machines.** Every co-op gate is a
       headless loopback in one process. That proves the transport, the

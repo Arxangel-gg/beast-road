@@ -287,6 +287,14 @@ signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
 ## An empty `tower_id` means the plot is now clear.
 signal coop_tower_state(anchor: Vector2i, tower_id: String, level: int)
 
+## A tower took a shot, and where it was aiming — on the host's say-so.
+##
+## Distinct from `tower_fired`, which every machine emits for its own muzzle
+## flash and camera juice and which is never relayed. This is the host telling
+## the guest that a shot *happened*, which is what makes a guest's towers stop
+## deciding for themselves and start agreeing with the host's.
+signal coop_tower_fired(anchor: Vector2i, at: Vector2)
+
 ## The host put an enemy on the field and gave it an identity.
 signal coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
 	hp_scale: float, damage_scale: float, speed_scale: float)

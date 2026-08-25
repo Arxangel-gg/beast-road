@@ -59,6 +59,10 @@ var _idle_frame_clock: float = 0.0
 var _idle_frames: Array[Texture2D] = []
 var _level_scale: Vector2 = Vector2.ONE
 
+## True when the host decides this tower's shots and this machine only draws
+## them. Set by `CoopWorld` on a guest; false in single player and on the host.
+var puppet: bool = false
+
 
 ## The plot centre: where this tower *is*, for anything that measures.
 ##
@@ -179,6 +183,11 @@ func _process(delta: float) -> void:
 		return
 
 	if _health != null and _health.is_dead:
+		return
+	# A puppet tower does not choose. Its shots arrive from the host, and letting
+	# it acquire locally would have the two screens firing at different enemies
+	# on different cooldowns - the same drift the enemies themselves used to have.
+	if puppet:
 		return
 	var targets: Array[Enemy] = _acquire_targets()
 	if targets.is_empty():
@@ -358,6 +367,47 @@ func _fire(targets: Array[Enemy]) -> void:
 
 	for enemy: Enemy in targets:
 		_launch(enemy)
+
+
+## Plays a shot the host has already decided on.
+##
+## The host sends *where* its primary target was rather than *which* enemy it
+## was. A position needs no identity to survive the wire and no lookup at the far
+## end, and it is exact: the same batch that placed the puppets placed them at
+## the coordinates this was measured against, so the nearest one to that point is
+## the enemy the host meant.
+##
+## Nothing here damages anything. Puppets ignore damage and status by design -
+## the host has already resolved the hit and reports it as health in the next
+## batch - so what this adds is purely the part the guest was missing, which is
+## seeing its towers work at all.
+func fire_remote(at: Vector2) -> void:
+	if data == null or _field == null:
+		return
+	EventBus.tower_fired.emit(anchor, at)
+	if _is_aura():
+		Vfx.ring(origin(), effective_range(),
+			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
+		return
+	var target: Enemy = _nearest_enemy(at)
+	# The enemy died between the host firing and the packet arriving. A homing
+	# shot with nothing to home on flies off the field, which reads worse than a
+	# shot that never appears.
+	if target == null:
+		return
+	_launch(target)
+
+
+## The enemy the host meant, identified by where it said the shot was going.
+func _nearest_enemy(at: Vector2) -> Enemy:
+	var best: Enemy = null
+	var best_distance: float = Balance.COOP_SHOT_MATCH_RANGE
+	for enemy: Enemy in _field.enemies_near(at, Balance.COOP_SHOT_MATCH_RANGE):
+		var distance: float = enemy.global_position.distance_to(at)
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
 
 
 ## True for towers that pulse an area rather than firing at something.

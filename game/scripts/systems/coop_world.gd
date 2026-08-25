@@ -71,6 +71,8 @@ func _ready() -> void:
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_world_clock.connect(_on_world_clock)
+	EventBus.tower_fired.connect(_on_tower_fired)
+	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
 	# announcing it. Nothing to spawn here, but the identity counter must not
@@ -228,6 +230,49 @@ func _on_tower_state(anchor: Vector2i, tower_id: String, level: int) -> void:
 		RunState.clear_tower(anchor)
 	else:
 		RunState.set_tower(anchor, tower_id, level)
+	# The battlefield rebuilds its tower nodes off that write, so the new one
+	# exists by the time this returns and has to be told it does not decide.
+	_mark_puppet_towers()
+
+
+## Every tower on a guest is a puppet.
+##
+## Told rather than asked, and told here rather than in `Tower._ready`, for the
+## same reason `Enemy` carries a flag somebody else sets: a tower that looked up
+## the session itself would be a gameplay node that knows a network exists, and
+## the seam stops being a seam the moment one of them does.
+func _mark_puppet_towers() -> void:
+	if not Coop.is_guest():
+		return
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower != null:
+			tower.puppet = true
+
+
+## This machine's own tower took a shot. Host side.
+##
+## Relayed as a fact rather than left for each machine to derive, because it
+## cannot be derived: cooldowns, target priority and the closeness tie-break all
+## run against positions that are a batch old on the guest, so two machines
+## acquiring independently pick different enemies at different moments. Cheap to
+## send - a shot is a plot and a point, and towers fire far less often than
+## enemies move.
+func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
+	if not _is_authority_with_company():
+		return
+	EventBus.coop_tower_fired.emit(anchor, at)
+
+
+## The host's tower fired, so ours does too. Guest side.
+func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
+	if not Coop.is_guest():
+		return
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower != null and tower.anchor == anchor:
+			tower.fire_remote(at)
+			return
 
 
 ## Forwards this machine's own tower changes. Host side.

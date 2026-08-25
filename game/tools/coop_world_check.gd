@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _test_a_puppet_leaves_without_paying()
 	await _test_towers_rebuild_from_run_state()
 	await _test_building_is_refused_for_the_right_reason()
+	await _test_a_puppet_tower_draws_the_host_shot()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -220,3 +221,69 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	printerr("[coop-world] %s" % why)
+
+
+## A guest's tower draws the host's shot and decides nothing of its own.
+##
+## Two properties, and the second is the one that is easy to lose. A puppet tower
+## must *draw* the shot, or a guest watches towers stand silent through a wave.
+## And it must not *resolve* it: a shot that also dealt damage locally would have
+## the guest killing enemies the host has not killed, which the next batch then
+## resurrects.
+##
+## The mirrored hit reaction is checked in the same place because it is the other
+## half of the same problem. A guest's own hero swings at puppets, `take_damage`
+## rightly refuses, and without a reaction driven from the wire the player sees
+## nothing at all happen - no number, no spark, no recoil. Silence while
+## attacking is not a missing flourish, it is a broken feedback loop.
+func _test_a_puppet_tower_draws_the_host_shot() -> void:
+	var anchor := Vector2i(4, 1)
+	RunState.set_tower(anchor, "ember_spire", 1)
+	await get_tree().process_frame
+	var tower: Tower = _field.tower_at_anchor(anchor)
+	if tower == null:
+		_check(false, "the harness needs a tower to make a puppet of")
+		return
+	tower.puppet = true
+
+	var enemy: Enemy = _spawn()
+	if enemy == null:
+		return
+	enemy.puppet = true
+	var at: Vector2 = tower.origin() + Vector2(80.0, 0.0)
+	enemy.mirror(at, 1.0)
+	await get_tree().process_frame
+
+	var fired: Array[Vector2i] = []
+	var watch := func(plot: Vector2i, _where: Vector2) -> void: fired.append(plot)
+	EventBus.tower_fired.connect(watch)
+	var hp_before: float = enemy.health.current_hp
+	tower.fire_remote(at)
+	for _f: int in 4:
+		await get_tree().process_frame
+	EventBus.tower_fired.disconnect(watch)
+
+	_check(fired.has(anchor),
+		"a puppet tower told to fire must actually draw the shot")
+	_check(is_equal_approx(enemy.health.current_hp, hp_before),
+		"and must not resolve it: the host already did")
+
+	# Left to itself over a second of combat, a puppet tower must never take a
+	# shot nobody told it to. This is what stops the two screens drifting apart.
+	fired.clear()
+	EventBus.tower_fired.connect(watch)
+	for _f: int in 60:
+		await get_tree().process_frame
+	EventBus.tower_fired.disconnect(watch)
+	_check(not fired.has(anchor),
+		"a puppet tower must never acquire a target of its own")
+
+	# The reaction the wire has to supply, because local damage will not.
+	var reacted: bool = false
+	var before: float = enemy.health.current_hp
+	enemy.mirror(at, 0.5)
+	reacted = enemy.health.current_hp < before
+	_check(reacted, "health told to a puppet must land")
+	enemy.queue_free()
+	RunState.clear_tower(anchor)
+	await get_tree().process_frame

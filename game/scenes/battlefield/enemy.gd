@@ -302,8 +302,40 @@ func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 			# every packet, or the enemy shudders in place for the whole wind-up.
 			animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
 	if health != null and health.max_hp > 0.0:
+		var was_hp: float = health.current_hp
 		health.current_hp = clampf(hp_ratio, 0.0, 1.0) * health.max_hp
 		health.changed.emit(health.current_hp, health.max_hp)
+		var lost: float = was_hp - health.current_hp
+		if lost > health.max_hp * 0.005:
+			_react_to_mirrored_hit(lost)
+
+
+## Plays the reaction to damage this machine did not resolve.
+##
+## Without this a guest fights in silence: its own hero's swings land on puppets,
+## `take_damage` rightly refuses them, and the player sees no number, no spark
+## and no recoil - only a health bar quietly draining. Feeling a hit land is not
+## cosmetic detail, it is the whole feedback loop of attacking.
+##
+## The amount is whatever was lost since the last packet, so several small hits
+## inside one batch window arrive as one number. That is a fair summary rather
+## than a lie: the total is right, and inventing separate numbers for damage the
+## host never itemised would be the invention.
+##
+## Direction is taken from where this enemy is looking, because the wire does not
+## carry it and that is where the fight is - an enemy is facing its target, and
+## its target is what hit it.
+func _react_to_mirrored_hit(lost: float) -> void:
+	if data == null or _state == State.DYING:
+		return
+	var facing: Vector2 = Vector2.LEFT if sprite.flip_h else Vector2.RIGHT
+	var from: Vector2 = global_position + facing * 24.0
+	Vfx.number(global_position, lost, Color("ffe3b0"), lost >= data.max_hp * 0.4)
+	Vfx.spark(global_position, Color("ffcf9a"), 4, -facing, 170.0)
+	if animator != null:
+		animator.recoil(from, global_position,
+			clampf(lost / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
+		animator.impact_frame()
 
 
 # --- State machine ----------------------------------------------------------
@@ -679,6 +711,10 @@ func apply_freeze(duration: float) -> void:
 
 ## Adds chill and locks the enemy if that fills the meter.
 func _add_chill(amount: float) -> void:
+	# Chill is a host decision, like damage. A puppet told to slow itself would
+	# drift out of step with the body the host is actually simulating.
+	if puppet:
+		return
 	if amount <= 0.0 or _state == State.DYING:
 		return
 	if data != null and data.category == EnemyData.Category.BOSS:
@@ -710,7 +746,7 @@ func apply_stagger(duration: float) -> void:
 
 
 func apply_burn(dps: float, duration: float) -> void:
-	if dps <= 0.0 or duration <= 0.0:
+	if dps <= 0.0 or duration <= 0.0 or puppet:
 		return
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_left = maxf(_burn_left, duration)
