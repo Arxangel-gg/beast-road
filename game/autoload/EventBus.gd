@@ -328,3 +328,13 @@ signal coop_run_started(seed: int, endless: bool)
 ## The host's reachable address changed, or the attempt to find one finished.
 ## `external` is empty while unknown; `mapped` says whether UPnP opened the port.
 signal coop_address_known(local_address: String, external: String, mapped: bool)
+
+## What the host's own player is asking their hero to do.
+##
+## Input, not outcome. Relaying the host's *position* alone left the guest with a
+## partner that slid about without a walk cycle and never swung - a hero has no
+## velocity if nothing is driving it, and every animation in the game is chosen
+## from velocity and state. Sending the same snapshot the guest already sends
+## upward means the mirrored hero walks, swings and dashes through exactly the
+## code its owner does, with no second animation path to keep in step.
+signal coop_host_input(snapshot: Array)

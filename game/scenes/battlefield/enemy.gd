@@ -39,6 +39,17 @@ var net_id: int = 0
 var puppet: bool = false
 var _puppet_last: Vector2 = Vector2.ZERO
 
+## Where the host last said this is, and how long there is to get there.
+##
+## A puppet is **interpolated**, not snapped. Positions arrive ten times a second
+## and a body that jumps to each one and then waits is a body that stutters -
+## reported from play as "enemy walks are all jittery". Between packets it walks
+## the remaining distance at the speed that will arrive exactly as the next one
+## does, so the motion is continuous and the position is still the host's.
+var _mirror_target: Vector2 = Vector2.ZERO
+var _mirror_left: float = 0.0
+var _mirror_ratio: float = 0.0
+
 enum State {
 	WALKING,
 	WINDUP,
@@ -211,6 +222,13 @@ func _process(delta: float) -> void:
 ## enemy uses. A puppet with its own facing rule would be a second implementation
 ## of the thing that was just fixed for walking backwards.
 func _tick_puppet(delta: float) -> void:
+	# Walk toward where the host says to be, rather than teleporting there. The
+	# step is scaled by how much of the remaining window this frame is, so the
+	# body arrives just as the next packet lands however the frame rate varies.
+	if _mirror_left > 0.0:
+		var step: float = minf(delta / _mirror_left, 1.0)
+		global_position = global_position.lerp(_mirror_target, step)
+		_mirror_left -= delta
 	_motion = (global_position - _puppet_last) / maxf(delta, 0.0001)
 	_puppet_last = global_position
 	if animator != null and data != null:
@@ -240,13 +258,29 @@ func health_ratio() -> float:
 	return health.ratio() if health != null else 0.0
 
 
+## How long to expect between position packets, in seconds.
+##
+## Told rather than guessed: the interpolation has to know the size of the window
+## it is spreading movement across, and a hard-coded copy of `BATCH_INTERVAL`
+## here would silently start stuttering the day that constant was tuned.
+func set_mirror_interval(seconds: float) -> void:
+	_mirror_ratio = seconds
+
+
 ## Takes a position and health from the host.
 ##
 ## Health is assigned rather than damaged: a puppet must not run the death path,
 ## because the host already ran it and will say so with its own message. Two
 ## machines each paying out the same kill is how a shared purse doubles.
 func mirror(at: Vector2, hp_ratio: float) -> void:
-	global_position = at
+	# The first packet places it; every one after aims it. Snapping on arrival
+	# would put the body where it *was* when the packet was sent and then leave
+	# it there, which is the stutter this exists to remove.
+	if _mirror_left <= 0.0 and _mirror_target == Vector2.ZERO:
+		global_position = at
+		_puppet_last = at
+	_mirror_target = at
+	_mirror_left = maxf(_mirror_ratio, 0.05)
 	if health != null and health.max_hp > 0.0:
 		health.current_hp = clampf(hp_ratio, 0.0, 1.0) * health.max_hp
 		health.changed.emit(health.current_hp, health.max_hp)

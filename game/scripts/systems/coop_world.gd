@@ -147,6 +147,7 @@ func _on_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
 	# Set before the first frame so nothing simulates even once. A puppet that
 	# picks a target on its first tick has already disagreed with the host.
 	enemy.puppet = true
+	enemy.set_mirror_interval(BATCH_INTERVAL)
 	enemy.global_position = at
 	_puppets[net_id] = enemy
 

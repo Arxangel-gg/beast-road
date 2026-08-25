@@ -2945,3 +2945,19 @@ const SNOW_SLIP_CHANCE: float = 0.055
 ## How far a slip carries, in world units, and how long it lasts.
 const SNOW_SLIP_DISTANCE: float = 46.0
 const SNOW_SLIP_SECONDS: float = 0.34
+
+# ------------------------------------------------------------------------------
+# Co-op smoothing
+# ------------------------------------------------------------------------------
+
+## How hard a hero is pulled onto the position the host reports, 0..1 per packet.
+##
+## Not 1.0, which is the obvious value and the wrong one. Both heroes are already
+## walking - the partner from relayed input, the local one from its own player -
+## so assigning the authoritative position outright fights that motion twenty
+## times a second. It reads as a stutter, and it flattens the velocity the walk
+## cycle is chosen from, so a moving hero plays its idle animation.
+##
+## Low enough to be invisible, high enough that a real disagreement is gone
+## within a few packets. [TUNE]
+const COOP_POSITION_CORRECTION: float = 0.25

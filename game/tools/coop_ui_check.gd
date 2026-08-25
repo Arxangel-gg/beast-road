@@ -152,6 +152,10 @@ func _enter_run_in_place(role: String) -> void:
 		print("[coop-ui] %s sees both heroes" % role)
 
 	if role == "host":
+		# The host drives its own hero too, so the guest has something to mirror.
+		# Without this the host stands still, and "the partner does not animate"
+		# cannot be told apart from "the partner has nothing to animate".
+		field.hero.use_input(PushedInput.new(field.hero))
 		# The guest's input has to reach the hero the host is simulating for it.
 		# Without a partner spawned there is no sink, the input is dropped, and
 		# the guest is corrected back to its spawn on every packet.
@@ -169,6 +173,18 @@ func _enter_run_in_place(role: String) -> void:
 			"the guest's hero must move on the host when the guest pushes a "
 			+ "stick, moved %.1f" % moved)
 		print("[coop-ui] host moved the guest's hero %.1f units" % moved)
+		# Moving is not the same as *animating*. Every animation in this game is
+		# chosen from velocity, so a mirrored hero that is repositioned without
+		# being driven slides along playing its idle - which is what "no walking
+		# animation" looked like.
+		_check(partner.velocity.length() > 1.0,
+			"the mirrored hero must carry velocity, not just change position")
+		print("[coop-ui] guest's hero has velocity %.0f on the host"
+			% partner.velocity.length())
+		# Outlives the guest deliberately: the guest is measuring *this* hero at
+		# the same moment, and a host that leaves first takes the thing being
+		# measured with it.
+		await _hold(6.0)
 	else:
 		# Drive the local hero, which is what gets sampled and sent.
 		var mine: Hero = field.hero
@@ -176,11 +192,22 @@ func _enter_run_in_place(role: String) -> void:
 		_check(source != null, "the guest drives its own hero locally")
 		var pushed := PushedInput.new(mine)
 		mine.use_input(pushed)
+		# The partner here is the *host's* hero. It should be walking under
+		# relayed input rather than being slid about, so it must carry velocity
+		# too - and its attack chain must be reachable, which is what makes a
+		# swing visible rather than silent.
+		var partner: Hero = field.partner_hero()
+		if partner != null:
+			_check(partner.input is RemoteHeroInput,
+				"the host's hero must be driven from the wire on the guest")
 		# Longer than the host's measuring window on purpose. The partner hero is
 		# freed the instant this process leaves, and the host is three seconds
 		# into timing it - so a guest that finishes first takes the thing being
 		# measured with it.
 		await _hold(7.0)
+		if partner != null and is_instance_valid(partner):
+			print("[coop-ui] guest sees host hero velocity %.0f"
+				% partner.velocity.length())
 		print("[coop-ui] guest pushed its stick for seven seconds")
 
 

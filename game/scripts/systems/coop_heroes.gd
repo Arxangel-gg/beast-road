@@ -48,6 +48,7 @@ func _ready() -> void:
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_hero_state.connect(_on_hero_state)
+	EventBus.coop_host_input.connect(_on_host_input)
 
 	# **The partner may already be here.**
 	#
@@ -165,6 +166,11 @@ func _physics_process(delta: float) -> void:
 	if Coop.is_guest():
 		_send_input(relay)
 	else:
+		# The host sends its input too, not only its position. A mirrored hero
+		# with no input has no velocity, and every animation in this game is
+		# chosen from velocity and state - which is why the guest's partner slid
+		# about with no walk cycle and never swung.
+		_send_host_input()
 		_state_timer -= delta
 		if _state_timer <= 0.0:
 			_state_timer = STATE_INTERVAL
@@ -184,6 +190,28 @@ func _send_input(relay: CoopRelay) -> void:
 	if source == null:
 		return
 	relay.request(CoopRelay.Request.HERO_INPUT, source.snapshot(mine.aim_direction()))
+
+
+## What the host's player is asking for, so the guest can animate it.
+##
+## The same snapshot the guest sends upward, travelling the other way. Sent every
+## physics frame rather than on the slower state clock: a button press is an edge
+## and lives for one frame, so a press sampled at 20Hz is a swing that sometimes
+## simply never happens.
+func _send_host_input() -> void:
+	var mine: Hero = _local_hero()
+	if mine == null:
+		return
+	var source := mine.input as LocalHeroInput
+	if source == null:
+		return
+	EventBus.coop_host_input.emit(source.snapshot(mine.aim_direction()))
+
+
+## The host's stick and buttons, applied to the hero standing in for them here.
+func _on_host_input(snapshot: Array) -> void:
+	if Coop.is_guest() and _remote != null:
+		_remote.apply(snapshot)
 
 
 ## The host tells the guest where both heroes actually are.
@@ -217,12 +245,25 @@ func _on_hero_state(host_at: Vector2, host_aim: Vector2,
 		guest_at: Vector2, _guest_aim: Vector2) -> void:
 	if not Coop.is_guest():
 		return
+	# **Corrected toward, not snapped to.**
+	#
+	# Both heroes are already walking here - the partner from the host's relayed
+	# input, this player's own from their hands - so a hard assignment every
+	# packet fights that motion twenty times a second. It reads as a hero that
+	# stutters and, worse, it flattens the velocity the walk cycle is chosen
+	# from, so a moving hero plays its idle. Easing onto the authoritative
+	# position keeps the movement continuous and still ends up where the host
+	# says.
 	if has_partner():
-		_partner.global_position = host_at
+		_partner.global_position = _partner.global_position.lerp(host_at,
+			Balance.COOP_POSITION_CORRECTION)
 		_partner.face(host_aim)
 	var mine: Hero = _local_hero()
 	if mine != null:
-		mine.global_position = guest_at
+		# Gentler still for the hero under this player's own hands: a correction
+		# they can feel is worse than a few pixels of disagreement.
+		mine.global_position = mine.global_position.lerp(guest_at,
+			Balance.COOP_POSITION_CORRECTION * 0.5)
 
 
 func _on_request(kind: int, args: Array, _from: int) -> void:
