@@ -30,26 +30,34 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.45** from `main`. 28 of 28 local gates green at the tag,
-plus `tools/coop_live.sh`, which runs co-op as two real processes and is
-deliberately outside CI.
+Published as **v0.4.49** from `main`. 28 of 28 local gates green at the tag,
+plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
+processes and are deliberately outside CI.
 
-Landed since v0.4.44: the zero-capital start, two-player co-op end to end,
-visible weather, beast-scope parallax, eight bugs reported from play, torch
-shadows, five new foliage assets, and a leaderboard confirmed live.
+Landed since v0.4.44: the zero-capital start, two-player co-op end to end, the
+co-op lobby, visible weather, beast-scope parallax, eight bugs reported from
+play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
+Landed in v0.4.49: the replication batch — shared Ride On, the world clock
+(time of day, weather, act), enemy combat state and interpolation, shared
+pause, and hero death with partner revive.
 
 **What is genuinely still open**, in the order it matters:
 
-1. **Co-op has never been played by two people.** Every gate is a loopback,
-   including the two-process one. It proves the transport, the authority
-   model and the plumbing; it proves nothing about feel or latency, and the
-   co-op difficulty constant is explicitly provisional against it.
+1. **Co-op has now been played by two people, and each round of play has found
+   real bugs** — no partner hero spawning, mirrored bodies with no velocity,
+   and six replication gaps, in that order. Every one was invisible to a
+   loopback gate and obvious within a minute of play. The gates prove the
+   transport, the authority model and the plumbing; they say little about feel
+   or latency, and the co-op difficulty constant is still provisional.
 2. **Co-op hero XP is shared but untested in play** — the award crosses and
    lands on each player's own hero, verified across two processes, but no
    human has watched two heroes level together.
-3. **The UI vertical-bar rework** — the largest remaining code item, and one
+3. **Tower attacks are not replicated, on purpose.** Guest towers fire locally
+   at mirrored enemies and damage is host-authoritative, so it cannot change an
+   outcome — but nobody has confirmed it *looks* right in play.
+4. **The UI vertical-bar rework** — the largest remaining code item, and one
    whose acceptance test is "does this feel right on a phone".
-4. **§57 copy review**, minimum-spec definition, and the juice pass.
+5. **§57 copy review**, minimum-spec definition, and the juice pass.
 5. **Weather does not drive the foliage wind** — the one weather row left.
 
 **A caution worth keeping.** Three features this session compiled, loaded and
@@ -1476,6 +1484,58 @@ has its design settled and written down; no netcode is written yet.
       guest shares the host's run state and the two cannot disagree.
       Everything identity rests on is gated instead. The remainder is a
       two-machine play test — see the row below.
+
+      **Step 6 — the world, not just the things in it (2026-08-25).** Play
+      reported six gaps, and they shared a cause: both machines were
+      *simulating* a great deal they should have been *told*. Small
+      individually; together they were two players standing in different games
+      that happened to look alike.
+
+      *Ride On is one decision.* Both players had to press it, and each machine
+      then ran it locally and rolled its own next wave from its own stream — so
+      the two saw different enemies, which is exactly how it was reported.
+      Either player may press it now; the guest asks and stops, and the phase
+      change, spawns and wave number come back as facts. Routed through the
+      same handler a local click uses, so the coverage warning and breather
+      rules apply identically however it arrived.
+
+      *One world clock*, rather than three signals relayed separately: distance
+      walked, weather, act. Time of day is *derived* from distance, so sending
+      distance keeps both skies, night flags and the night difficulty bonus
+      identical without replicating the derivation at all. Weather is
+      re-announced only on change — it arrives twice a second and
+      `weather_changed` starts a three-second fade, so re-emitting it every
+      packet would restart that fade forever and the rain would never arrive.
+
+      *Enemies carry combat state.* The wind-up is the telegraph the whole
+      dodge window rests on; a puppet that mirrored position but not the fact
+      it was about to strike killed the guest with no warning. Played on the
+      transition rather than per packet, or the enemy shudders in place for the
+      whole wind-up. DYING is never taken from the wire — a puppet leaves
+      through `dismiss`, and a packet pushing it into dying starts a second
+      death alongside the one already running.
+
+      *Pause is shared*, or it is not pausing: one player stops while the other
+      fights a wave still walking on a machine that has stopped simulating it.
+      Either player may do it — needing to put the game down is not an
+      authority decision. Applied directly on receipt rather than through the
+      announcing path, which has the two telling each other to pause for as
+      long as anyone cares to watch. The pause *panel* stays local.
+
+      *Deaths and revive.* Deaths are watched as a change against last frame
+      rather than hooked to `hero_died`, because that signal cannot say which
+      of the two heroes it was — and the roles swap across the wire. Revive is
+      an **acceleration of the existing respawn**, not a separate downed state,
+      and that is a design call worth stating: the wound, reduced health and
+      invulnerability window are what make dying cost something, and bypassing
+      them would make two players *safer* than one rather than *better* than
+      one. The second player buys time, and pays for it by leaving a lane.
+
+      *Not done, deliberately.* Tower **attacks** are not relayed. Guest towers
+      fire locally at mirrored enemies, which looks right, and damage is
+      host-authoritative so it cannot change an outcome. Relaying every shot
+      would be the heaviest traffic in the game to reproduce something each
+      client already draws. Worth paying only if it turns out to look wrong.
 
 - [ ] **Co-op played by two people on two machines.** Every co-op gate is a
       headless loopback in one process. That proves the transport, the
