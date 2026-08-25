@@ -200,6 +200,17 @@ func _enter_run_in_place(role: String) -> void:
 		if partner != null:
 			_check(partner.input is RemoteHeroInput,
 				"the host's hero must be driven from the wire on the guest")
+
+		# The world the guest is standing in has to be the host's world, not one
+		# it is deriving for itself. Distance drives the time of day, the night
+		# difficulty bonus and the act, so if it is not the host's number then
+		# the two are playing different games under different skies.
+		await _hold(2.0)
+		_check(RunState.distance_travelled > 0.0
+			or RunState.weather_id != "",
+			"the guest must be receiving the host's world clock")
+		print("[coop-ui] guest world clock: distance %.0f weather '%s' act %d"
+			% [RunState.distance_travelled, RunState.weather_id, RunState.act])
 		# Longer than the host's measuring window on purpose. The partner hero is
 		# freed the instant this process leaves, and the host is three seconds
 		# into timing it - so a guest that finishes first takes the thing being

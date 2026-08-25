@@ -25,7 +25,11 @@ func _ready() -> void:
 	_build_settings()
 	resume_button.pressed.connect(toggle)
 	menu_button.pressed.connect(func() -> void:
-		get_tree().paused = false
+		# Leaving unpauses the other player as well: quitting is not a reason to
+		# leave somebody frozen on a battlefield they can no longer act on. The
+		# session ending is what they are told about next.
+		GameDirector.set_paused(false)
+		Coop.leave()
 		GameDirector.goto_menu())
 
 
@@ -84,6 +88,12 @@ func toggle() -> void:
 		return
 	var showing: bool = not panel.visible
 	panel.visible = showing
-	get_tree().paused = showing
+	# Through GameDirector, which tells the other player. Setting the tree
+	# directly pauses one machine while the other keeps fighting a wave that is
+	# still walking on a battlefield which has stopped simulating it.
+	#
+	# The panel itself stays local: a player who pauses to read the settings has
+	# not asked their friend to read them too.
+	GameDirector.set_paused(showing)
 	if not showing and _settings != null:
 		_settings.visible = false

@@ -338,3 +338,26 @@ signal coop_address_known(local_address: String, external: String, mapped: bool)
 ## upward means the mirrored hero walks, swings and dashes through exactly the
 ## code its owner does, with no second animation path to keep in step.
 signal coop_host_input(snapshot: Array)
+
+## The state of the world that is not a body: how far the beast has walked, what
+## the sky is doing, and what the weather is.
+##
+## One message rather than three signals relayed separately. These change slowly
+## and always together from the guest's point of view - and time of day is
+## *derived* from distance, so sending distance and the weather id keeps the two
+## machines' skies and difficulty in step without replicating the derivation.
+signal coop_world_clock(distance: float, weather_id: String, act: int)
+
+## The game was paused or resumed, for both players.
+##
+## Pausing has to be shared or it is not pausing: one player halts and the other
+## keeps fighting a wave that is still walking on a machine that has stopped
+## simulating it.
+signal coop_paused(paused: bool)
+
+## A hero went down, and whether it was the host's.
+##
+## Named by role rather than by "mine", because the two swap across the wire -
+## exactly the trap `coop_hero_state` names its arguments to avoid.
+signal coop_hero_down(host_hero: bool, at: Vector2)
+signal coop_hero_revived(host_hero: bool, at: Vector2)

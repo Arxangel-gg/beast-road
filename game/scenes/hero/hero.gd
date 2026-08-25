@@ -382,6 +382,37 @@ func use_input(source: HeroInput) -> void:
 	input = source if source != null else LocalHeroInput.new(self)
 
 
+## How fast this hero is getting back up, as a multiple of the normal rate.
+##
+## One when alone or when the partner is elsewhere; faster while they stand close
+## enough to be doing something about it. Reads the battlefield's partner rather
+## than caching it, so a partner who leaves mid-revive stops helping.
+func _revive_speed() -> float:
+	if not Coop.is_networked():
+		return 1.0
+	var scope := field as Battlefield
+	if scope == null:
+		return 1.0
+	var helper: Hero = scope.partner_hero() if scope.hero == self else scope.hero
+	if helper == null or not is_instance_valid(helper) or not helper.is_alive():
+		return 1.0
+	if global_position.distance_to(helper.global_position) > Balance.COOP_REVIVE_RADIUS:
+		return 1.0
+	return Balance.COOP_REVIVE_SPEED
+
+
+## Brings this hero back because the host says it is back.
+##
+## The host owns when a revival happens; the local respawn timer is what decides
+## it there. Here it is simply obeyed, so the two machines never disagree about
+## whether somebody is on their feet.
+func revive_from_coop() -> void:
+	if is_alive():
+		return
+	_respawn_left = 0.0
+	_finish_respawn()
+
+
 ## 0..1, for a cooldown readout in a later stage.
 func dash_cooldown_ratio() -> float:
 	if Balance.HERO_DASH_COOLDOWN <= 0.0:
@@ -535,9 +566,31 @@ func _on_died(at: Vector2) -> void:
 
 
 func _tick_respawn(delta: float) -> void:
-	_respawn_left -= delta
+	# A partner standing over you gets you up faster.
+	#
+	# Deliberately an acceleration of the respawn that already exists rather than
+	# a separate downed-and-revived mechanic. The solo rules - the wound, the
+	# reduced health, the invulnerability window - are what make dying cost
+	# something, and a co-op path that bypassed them would make two players safer
+	# than one rather than better than one.
+	#
+	# So the second player buys *time*, which is the thing that actually hurts
+	# during a wave, and buys it only by being there: crossing the field to reach
+	# a downed friend is the decision, and it is paid for in a lane going
+	# undefended while they do it.
+	_respawn_left -= delta * _revive_speed()
 	if _respawn_left > 0.0:
 		return
+	_finish_respawn()
+
+
+## Getting back up, wherever the decision came from.
+##
+## Extracted so the co-op path cannot drift from the solo one. A guest told its
+## partner is on their feet must come back exactly as it would have on its own -
+## same health fraction, same invulnerability window, same announcement - or the
+## two machines end up with heroes in different conditions.
+func _finish_respawn() -> void:
 	global_position = Vector2.ZERO
 	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()

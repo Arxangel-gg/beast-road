@@ -29,9 +29,18 @@ extends Node
 ## speed, which is exactly the motion a lower rate hides best.
 const BATCH_INTERVAL: float = 0.1
 
+## How often the world clock goes out, in seconds. [TUNE]
+##
+## Far slower than the bodies, because none of it moves quickly: distance walked,
+## the weather, the act. Time of day is *derived* from distance, so sending the
+## distance keeps both skies in step without replicating the derivation - and
+## keeps the difficulty in step too, since night raises the wave budget.
+const CLOCK_INTERVAL: float = 0.5
+
 var field: Node = null
 
 var _batch_timer: float = 0.0
+var _clock_timer: float = 0.0
 
 ## Host side: the next identity to hand out. Starts at 1 so 0 keeps meaning
 ## "nobody announced this", which is every enemy in a single-player run.
@@ -61,6 +70,7 @@ func _ready() -> void:
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.coop_state_changed.connect(_on_session_changed)
+	EventBus.coop_world_clock.connect(_on_world_clock)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
 	# announcing it. Nothing to spawn here, but the identity counter must not
@@ -100,6 +110,11 @@ func _retire_missing(living: Dictionary) -> void:
 func _physics_process(delta: float) -> void:
 	if not _is_authority_with_company():
 		return
+	_clock_timer -= delta
+	if _clock_timer <= 0.0:
+		_clock_timer = CLOCK_INTERVAL
+		EventBus.coop_world_clock.emit(RunState.distance_travelled,
+			RunState.weather_id, RunState.act)
 	_batch_timer -= delta
 	if _batch_timer > 0.0:
 		return
@@ -121,7 +136,12 @@ func _send_batch() -> void:
 		if enemy == null or enemy.net_id == 0 or enemy.is_dying():
 			continue
 		living[enemy.net_id] = true
-		entries.append([enemy.net_id, enemy.global_position, enemy.health_ratio()])
+		# The state rides along with the position, and it has to. A wind-up is
+		# the telegraph the whole dodge window is built on - an enemy that
+		# mirrors its position but not the fact that it is about to strike gives
+		# the guest no warning at all, and the guest is playing a different game.
+		entries.append([enemy.net_id, enemy.global_position, enemy.health_ratio(),
+			enemy.combat_state()])
 	# Retirements first. A guest that is told where something is and then that it
 	# is gone, in that order, never draws a corpse at a stale position.
 	_retire_missing(living)
@@ -159,11 +179,12 @@ func _on_enemy_batch(entries: Array) -> void:
 		if not (entry is Array):
 			continue
 		var row: Array = entry
-		if row.size() != 3:
+		if row.size() < 3:
 			continue
 		var enemy: Enemy = _puppets.get(int(row[0]), null) as Enemy
 		if enemy != null and is_instance_valid(enemy):
-			enemy.mirror(row[1] as Vector2, float(row[2]))
+			enemy.mirror(row[1] as Vector2, float(row[2]),
+				int(row[3]) if row.size() > 3 else -1)
 
 
 func _on_enemy_removed(net_id: int) -> void:
@@ -176,6 +197,27 @@ func _on_enemy_removed(net_id: int) -> void:
 		# The payout is skipped for the same reason `dismiss` exists at all: the
 		# host already paid, and a guest paying again doubles a shared purse.
 		enemy.dismiss()
+
+
+## The sky, the weather and how far the beast has walked.
+##
+## Distance is written straight into `RunState` rather than announced, because
+## `DayNight` already derives the time of day from it - so one number keeps both
+## machines' light, tint, night flag and night difficulty bonus identical without
+## any of that being replicated separately.
+##
+## The weather is re-announced only when it actually changes. It arrives twice a
+## second and `weather_changed` starts a three-second fade, so emitting it every
+## time would restart the fade forever and the rain would never arrive.
+func _on_world_clock(distance: float, weather_id: String, act: int) -> void:
+	if not Coop.is_guest():
+		return
+	RunState.distance_travelled = distance
+	RunState.act = act
+	EventBus.distance_changed.emit(distance, RunState.distance_to_crossroad())
+	if weather_id != RunState.weather_id:
+		RunState.weather_id = weather_id
+		EventBus.weather_changed.emit(weather_id)
 
 
 ## A tower appeared, changed tier or went away, on the host's say-so.

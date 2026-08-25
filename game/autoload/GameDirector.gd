@@ -45,6 +45,30 @@ func abandon_run(reason: String) -> void:
 	goto_menu()
 
 
+## Pauses or resumes for both players.
+##
+## Pausing has to be shared or it is not pausing: one player halts while the
+## other keeps fighting a wave that is still walking on a machine which has
+## stopped simulating it, and they come back to two different battlefields.
+##
+## Either player may do it. A pause is not an authority decision - it is somebody
+## needing to stop - and making the guest ask permission to put the game down
+## would be the wrong kind of correct.
+func set_paused(paused: bool) -> void:
+	if get_tree().paused == paused:
+		return
+	get_tree().paused = paused
+	if Coop.is_networked() and Coop.partner_present():
+		EventBus.coop_paused.emit(paused)
+
+
+func _on_coop_paused(paused: bool) -> void:
+	# Applied directly rather than through `set_paused`, which would announce it
+	# straight back and leave the two machines telling each other to pause for as
+	# long as anyone cared to watch.
+	get_tree().paused = paused
+
+
 ## The host started a run, so this guest starts the same one.
 ##
 ## The *same* one: the seed travels, because both machines have to roll an
@@ -80,6 +104,7 @@ func _ready() -> void:
 	# people who then sat in two separate menus - which is what "co-op is not
 	# fully integrated" looked like from the outside, and it was right.
 	EventBus.coop_run_started.connect(_on_coop_run_started)
+	EventBus.coop_paused.connect(_on_coop_paused)
 	CursorKit.apply()
 
 

@@ -57,6 +57,8 @@ func _ready() -> void:
 	hud.raid_requested.connect(_on_raid_requested)
 	hud.extract_requested.connect(_on_extract_requested)
 	hud.ride_on_requested.connect(_on_ride_on_requested)
+	# A guest pressing Ride On arrives here as a request rather than as a click.
+	EventBus.coop_request_received.connect(_on_coop_request)
 	hud.command_requested.connect(_on_command_requested)
 
 	boss_director.battlefield = battlefield
@@ -497,7 +499,31 @@ func _enter_preparation(initial: bool) -> void:
 	EventBus.preparation_changed.emit(_preparation_left, true)
 
 
+## A guest asked for something only the host may do.
+##
+## Routed through the same handler a local click uses, so the coverage warning,
+## the breather skip and every other rule apply identically however the request
+## arrived. A second path here would be a second set of rules.
+func _on_coop_request(kind: int, _args: Array, _from: int) -> void:
+	if kind == CoopRelay.Request.RIDE_ON and Coop.is_host():
+		_on_ride_on_requested()
+
+
 func _on_ride_on_requested() -> void:
+	# Either player may start the next wave, and exactly one machine performs it.
+	#
+	# Both used to run this locally, so each rolled its own next wave from its own
+	# stream and the two saw different enemies - reported as "discrepancies in the
+	# enemies that each player sees". Starting a wave is a decision about the
+	# world, and the world has one author.
+	#
+	# The guest asks and stops. What follows arrives as facts: the phase change,
+	# the spawns, the wave number.
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.RIDE_ON)
+		return
 	if not RunState.is_preparation():
 		return
 	if _breather:

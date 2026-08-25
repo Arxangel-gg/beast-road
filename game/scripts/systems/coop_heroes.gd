@@ -37,6 +37,11 @@ var _partner: Hero = null
 var _remote: RemoteHeroInput = null
 var _state_timer: float = 0.0
 
+## What was true last frame, so a death or a revival can be spotted as a change
+## rather than as a signal that cannot say whose it was.
+var _host_was_alive: bool = true
+var _partner_was_alive: bool = true
+
 ## Where a partner hero appears if nothing better is known. Beside the town,
 ## which is the one place on the map guaranteed to be walkable.
 const SPAWN_OFFSET: Vector2 = Vector2(90.0, 0.0)
@@ -49,6 +54,8 @@ func _ready() -> void:
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_hero_state.connect(_on_hero_state)
 	EventBus.coop_host_input.connect(_on_host_input)
+	EventBus.coop_hero_down.connect(_on_hero_down)
+	EventBus.coop_hero_revived.connect(_on_hero_revived)
 
 	# **The partner may already be here.**
 	#
@@ -163,6 +170,7 @@ func _physics_process(delta: float) -> void:
 	if relay == null:
 		return
 
+	_watch_deaths()
 	if Coop.is_guest():
 		_send_input(relay)
 	else:
@@ -190,6 +198,62 @@ func _send_input(relay: CoopRelay) -> void:
 	if source == null:
 		return
 	relay.request(CoopRelay.Request.HERO_INPUT, source.snapshot(mine.aim_direction()))
+
+
+## Watches both heroes so a death crosses the wire.
+##
+## Polled rather than hooked to `hero_died`, because that signal is emitted by
+## whichever hero died on *this* machine and carries no way to say which of the
+## two it was - and the two swap roles across the wire. Comparing against what
+## was true last frame answers "whose, and which way" without either hero
+## needing to know a network exists.
+func _watch_deaths() -> void:
+	if not _is_authority_with_company():
+		return
+	var mine: Hero = _local_hero()
+	var host_alive: bool = mine != null and mine.is_alive()
+	var partner_alive: bool = has_partner() and _partner.is_alive()
+
+	if host_alive != _host_was_alive:
+		_host_was_alive = host_alive
+		if host_alive:
+			EventBus.coop_hero_revived.emit(true, mine.global_position)
+		else:
+			EventBus.coop_hero_down.emit(true, mine.global_position)
+	if partner_alive != _partner_was_alive:
+		_partner_was_alive = partner_alive
+		if partner_alive:
+			EventBus.coop_hero_revived.emit(false, _partner.global_position)
+		else:
+			EventBus.coop_hero_down.emit(false, _partner.global_position)
+
+
+## A hero went down on the host. Put the matching one down here.
+##
+## `host_hero` names the role rather than the owner, because the two swap: the
+## host's hero is the guest's partner. Reading it as "mine" would drop the wrong
+## player every time.
+func _on_hero_down(host_hero: bool, at: Vector2) -> void:
+	var who: Hero = _mirrored(host_hero)
+	if who != null and who.is_alive():
+		who.global_position = at
+		# Through the normal damage path, so the death animation, the vignette
+		# and the respawn timer all run exactly as they do for a solo death.
+		who.health.take_damage(who.health.max_hp * 2.0, at)
+
+
+func _on_hero_revived(host_hero: bool, at: Vector2) -> void:
+	var who: Hero = _mirrored(host_hero)
+	if who != null and not who.is_alive():
+		who.global_position = at
+		who.revive_from_coop()
+
+
+## Which hero here stands for the one the host is talking about.
+func _mirrored(host_hero: bool) -> Hero:
+	if not Coop.is_guest():
+		return null
+	return _partner if host_hero else _local_hero()
 
 
 ## What the host's player is asking for, so the guest can animate it.
@@ -271,6 +335,15 @@ func _on_request(kind: int, args: Array, _from: int) -> void:
 		return
 	if _remote != null:
 		_remote.apply(args)
+
+
+## True when this machine decides things *and* somebody is listening.
+##
+## Both halves matter: a guest must never author a death, and a host playing
+## alone has nobody to tell - so a single-player run pays one boolean per frame
+## and sends nothing.
+func _is_authority_with_company() -> bool:
+	return Coop.is_host() and Coop.partner_present()
 
 
 func _local_hero() -> Hero:

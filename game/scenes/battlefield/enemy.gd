@@ -272,7 +272,12 @@ func set_mirror_interval(seconds: float) -> void:
 ## Health is assigned rather than damaged: a puppet must not run the death path,
 ## because the host already ran it and will say so with its own message. Two
 ## machines each paying out the same kill is how a shared purse doubles.
-func mirror(at: Vector2, hp_ratio: float) -> void:
+## Which of the four combat states this is in, for the wire.
+func combat_state() -> int:
+	return int(_state)
+
+
+func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 	# The first packet places it; every one after aims it. Snapping on arrival
 	# would put the body where it *was* when the packet was sent and then leave
 	# it there, which is the stutter this exists to remove.
@@ -281,6 +286,21 @@ func mirror(at: Vector2, hp_ratio: float) -> void:
 		_puppet_last = at
 	_mirror_target = at
 	_mirror_left = maxf(_mirror_ratio, 0.05)
+	# The wind-up, the strike and the recovery all read from `_state`: it drives
+	# the tell's pulsing tint and the animator's posture. A puppet given only a
+	# position is an enemy that kills you with no warning, because the telegraph
+	# the dodge window depends on never appears.
+	#
+	# DYING is never taken from the wire. A puppet leaves through `dismiss`, and
+	# letting a packet put it into the dying state would start a second death
+	# alongside the one already running.
+	if state >= 0 and state != int(State.DYING) and _state != State.DYING:
+		var was: State = _state
+		_state = state as State
+		if was != _state and _state == State.WINDUP and animator != null:
+			# The coil the player reads. Played on the transition rather than
+			# every packet, or the enemy shudders in place for the whole wind-up.
+			animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
 	if health != null and health.max_hp > 0.0:
 		health.current_hp = clampf(hp_ratio, 0.0, 1.0) * health.max_hp
 		health.changed.emit(health.current_hp, health.max_hp)

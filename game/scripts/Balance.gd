@@ -2961,3 +2961,19 @@ const SNOW_SLIP_SECONDS: float = 0.34
 ## Low enough to be invisible, high enough that a real disagreement is gone
 ## within a few packets. [TUNE]
 const COOP_POSITION_CORRECTION: float = 0.25
+
+## How close a partner must stand to help a downed hero back up, in world units.
+##
+## About two body widths: close enough that it is a deliberate act rather than
+## something that happens because you were nearby, and close enough to be
+## dangerous during a wave. [TUNE]
+const COOP_REVIVE_RADIUS: float = 150.0
+
+## How much faster the respawn runs while a partner is standing over you.
+##
+## Three times, so an eight-second wait becomes under three. It accelerates the
+## respawn that already exists rather than replacing it: the wound, the reduced
+## health and the invulnerability window all still apply, because those are what
+## make dying cost something and two players should be *better* than one rather
+## than *safer* than one. [TUNE]
+const COOP_REVIVE_SPEED: float = 3.0

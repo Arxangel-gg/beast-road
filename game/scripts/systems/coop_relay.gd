@@ -51,6 +51,10 @@ enum Fact {
 	XP_AWARDED = 12,
 	RUN_STARTED = 13,
 	HOST_INPUT = 14,
+	WORLD_CLOCK = 15,
+	PAUSED = 16,
+	HERO_DOWN = 17,
+	HERO_REVIVED = 18,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -199,6 +203,10 @@ func _fact_bindings() -> Array:
 		["coop_xp_awarded", _on_coop_xp_awarded],
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
+		["coop_world_clock", _on_coop_world_clock],
+		["coop_paused", _on_coop_paused],
+		["coop_hero_down", _on_coop_hero_down],
+		["coop_hero_revived", _on_coop_hero_revived],
 	]
 
 
@@ -270,6 +278,22 @@ func _on_coop_run_started(seed_value: int, endless: bool) -> void:
 
 func _on_coop_host_input(snapshot: Array) -> void:
 	_relay(Fact.HOST_INPUT, [snapshot])
+
+
+func _on_coop_world_clock(distance: float, weather_id: String, act: int) -> void:
+	_relay(Fact.WORLD_CLOCK, [distance, weather_id, act])
+
+
+func _on_coop_paused(paused: bool) -> void:
+	_relay(Fact.PAUSED, [paused])
+
+
+func _on_coop_hero_down(host_hero: bool, at: Vector2) -> void:
+	_relay(Fact.HERO_DOWN, [host_hero, at])
+
+
+func _on_coop_hero_revived(host_hero: bool, at: Vector2) -> void:
+	_relay(Fact.HERO_REVIVED, [host_hero, at])
 
 
 # --- Sending -----------------------------------------------------------------
@@ -430,6 +454,18 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.HOST_INPUT:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_host_input.emit(args[0] as Array)
+		Fact.WORLD_CLOCK:
+			if args.size() == 3:
+				bus.coop_world_clock.emit(float(args[0]), String(args[1]), int(args[2]))
+		Fact.PAUSED:
+			if args.size() == 1:
+				bus.coop_paused.emit(bool(args[0]))
+		Fact.HERO_DOWN:
+			if args.size() == 2:
+				bus.coop_hero_down.emit(bool(args[0]), args[1] as Vector2)
+		Fact.HERO_REVIVED:
+			if args.size() == 2:
+				bus.coop_hero_revived.emit(bool(args[0]), args[1] as Vector2)
 	_replaying = false
 
 
