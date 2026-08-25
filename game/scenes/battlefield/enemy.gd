@@ -524,11 +524,17 @@ func _pick_target() -> Node2D:
 			return structure
 	var hero: Node2D = _field.hero_node()
 	var town: Node2D = _field.town_node()
+	# A barricade is not chosen over the hero: a wall does not distract somebody
+	# already in a fight. It is chosen over the *town*, because it is the thing
+	# physically in the way of getting there.
+	var wall: Node2D = _field.blocking_barricade_in_lane(lane, global_position)
 	if hero != null and is_instance_valid(hero) and _field.hero_is_alive():
 		# With no town to march on — the raid arena — the hero is the only
 		# objective there is, at any distance.
 		if town == null or global_position.distance_to(hero.global_position) <= Balance.ENEMY_HERO_AGGRO_RANGE:
 			return hero
+	if wall != null and is_instance_valid(wall):
+		return wall
 	return town
 
 

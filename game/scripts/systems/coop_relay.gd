@@ -61,6 +61,7 @@ enum Fact {
 	REVIVE_PROGRESS = 22,
 	TRAP_STATE = 23,
 	TRAP_FIRED = 24,
+	BARRICADE_STATE = 25,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -76,6 +77,7 @@ enum Request {
 	PAUSE = 7,
 	SKIP_CINEMATIC = 8,
 	PLACE_TRAP = 9,
+	RAISE_BARRICADE = 10,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -222,6 +224,7 @@ func _fact_bindings() -> Array:
 		["coop_revive_progress", _on_coop_revive_progress],
 		["coop_trap_state", _on_coop_trap_state],
 		["coop_trap_fired", _on_coop_trap_fired],
+		["coop_barricade_state", _on_coop_barricade_state],
 	]
 
 
@@ -263,6 +266,11 @@ func _on_coop_trap_state(tile: Vector2i, trap_id: String, triggers_left: int) ->
 
 func _on_coop_trap_fired(tile: Vector2i) -> void:
 	_relay(Fact.TRAP_FIRED, [tile])
+
+
+func _on_coop_barricade_state(tile: Vector2i, barricade_id: String,
+		health: float) -> void:
+	_relay(Fact.BARRICADE_STATE, [tile, barricade_id, health])
 
 
 func _on_currency_changed(id: String, amount: int) -> void:
@@ -476,6 +484,10 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 4:
 				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
 					args[2] as Vector2, args[3] as Vector2)
+		Fact.BARRICADE_STATE:
+			if args.size() == 3:
+				bus.coop_barricade_state.emit(args[0] as Vector2i, String(args[1]),
+					float(args[2]))
 		Fact.TRAP_STATE:
 			if args.size() == 3:
 				bus.coop_trap_state.emit(args[0] as Vector2i, String(args[1]),

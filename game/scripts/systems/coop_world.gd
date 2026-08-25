@@ -78,6 +78,8 @@ func _ready() -> void:
 	EventBus.coop_trap_state.connect(_on_coop_trap_state)
 	EventBus.trap_triggered.connect(_on_trap_triggered)
 	EventBus.coop_trap_fired.connect(_on_coop_trap_fired)
+	EventBus.barricade_changed.connect(_on_barricade_changed)
+	EventBus.coop_barricade_state.connect(_on_coop_barricade_state)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
@@ -280,6 +282,29 @@ func _on_coop_phase(phase: int, _previous: int) -> void:
 	RunState.set_phase(phase as RunState.Phase)
 
 
+## This machine's own barricades changed. Host side.
+##
+## Health travels as a *fraction* rather than an absolute, so a guest rebuilds
+## against its own `max_hp` and the two cannot drift if the resource is retuned.
+func _on_barricade_changed(tile: Vector2i) -> void:
+	if not _is_authority_with_company():
+		return
+	var data: BarricadeData = RunState.barricade_at(tile)
+	EventBus.coop_barricade_state.emit(tile, data.id if data != null else "",
+		RunState.barricade_health(tile))
+
+
+## A barricade was raised, worn down or broken, on the host's say-so. Guest side.
+func _on_coop_barricade_state(tile: Vector2i, barricade_id: String,
+		health: float) -> void:
+	if not Coop.is_guest():
+		return
+	if barricade_id.is_empty():
+		RunState.clear_barricade(tile)
+	else:
+		RunState.set_barricade(tile, barricade_id, health)
+
+
 ## This machine's own traps changed. Host side.
 ##
 ## The same shape the towers use, and free for the same reason: the battlefield
@@ -388,6 +413,10 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_place_trap(args[0] as Vector2i,
 					ContentDB.trap(String(args[1]))))
+		CoopRelay.Request.RAISE_BARRICADE:
+			if args.size() == 2:
+				_answer(from, kind, battlefield.try_raise_barricade(
+					args[0] as Vector2i, ContentDB.barricade(String(args[1]))))
 
 
 ## Tells one peer why it did not get what it asked for.

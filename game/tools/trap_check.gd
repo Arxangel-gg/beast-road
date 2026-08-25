@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _test_laying_is_preparation_only()
 	await _test_a_trap_belongs_on_a_road()
 	await _test_it_fires_and_is_spent()
+	await _test_a_barricade_is_something_to_break()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -54,7 +55,8 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[trap] PASS - road-only, Preparation-only, and every one of them runs out")
+		print("[trap] PASS - road-only, Preparation-only, traps run out, "
+			+ "barricades get in the way")
 	get_tree().quit(_failures)
 
 
@@ -167,3 +169,66 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	printerr("[trap] %s" % why)
+
+
+## Barricades: raised on roads, and *targeted* rather than walked around.
+##
+## The property that matters is the last one. There is no pathfinder in this
+## game - enemies follow their lane's waypoints - so a barricade cannot reroute
+## anything and does not try to. It works by being a thing an enemy chooses to
+## attack, which it only is because the field is willing to offer it as a target.
+##
+## If that offer ever stops being made, nothing errors. Enemies simply walk past
+## the wall as though it were scenery, which looks like the wall is broken rather
+## than like the targeting is.
+func _test_a_barricade_is_something_to_break() -> void:
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var kinds: Array = ContentDB.barricades.values()
+	_check(kinds.size() >= 2, "the barricades must ship, found %d" % kinds.size())
+	for value: Variant in kinds:
+		var kind := value as BarricadeData
+		if kind == null:
+			continue
+		_check(ResourceLoader.exists(kind.get_sprite_path()),
+			"%s has no sprite at %s" % [kind.id, kind.get_sprite_path()])
+		_check(kind.max_hp > 0.0, "%s must be breakable" % kind.id)
+		_check(not kind.cost.is_empty(), "%s must cost something" % kind.id)
+
+	var off_road: Vector2i = _open_tile()
+	_check(not _field.try_raise_barricade(off_road,
+		ContentDB.barricade("stake_line")).is_empty(),
+		"a barricade off the road must be refused")
+
+	var road: Vector2i = _road_tile()
+	_check(_field.try_raise_barricade(road,
+		ContentDB.barricade("stake_line")).is_empty(),
+		"and on a road must be allowed")
+	await get_tree().process_frame
+	var wall: Barricade = null
+	for node: Node in get_tree().get_nodes_in_group(Barricade.GROUP):
+		var candidate := node as Barricade
+		if candidate != null and candidate.tile == road:
+			wall = candidate
+	if wall == null:
+		_check(false, "raising a barricade must raise its node")
+		return
+
+	# The offer itself, asked of the field the way an enemy asks it. Standing
+	# further from the town than the wall is what "behind it" means.
+	var behind: Vector2 = wall.global_position 		+ (wall.global_position - _field.town_position()).normalized() * 200.0
+	var offered: Node2D = _field.blocking_barricade_in_lane(wall.lane, behind)
+	_check(offered == wall,
+		"an enemy behind a barricade must be offered it as a target, "
+			+ "or it walks past a wall as though it were scenery")
+
+	# And an enemy already past it is not sent back.
+	var ahead: Vector2 = wall.global_position.lerp(_field.town_position(), 0.5)
+	_check(_field.blocking_barricade_in_lane(wall.lane, ahead) != wall,
+		"and one already past it must not be sent back to it")
+
+	# Breaking it clears it from the run rather than leaving a corpse standing.
+	wall.health.take_damage(wall.health.max_hp * 2.0, wall.global_position)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(not RunState.barricades.has(road),
+		"a broken barricade must be cleared from the run")

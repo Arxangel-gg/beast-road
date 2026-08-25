@@ -61,6 +61,16 @@ func vulnerable_tower_in_lane(_lane: int, _from: Vector2) -> Node2D:
 	return null
 
 
+## The first barricade standing between something and the town, if any.
+##
+## The *first* one specifically, not the nearest: an enemy at the back of a lane
+## must deal with the barricade it will actually walk into, not beeline past two
+## of them to the one closest to the town. Getting this wrong would look like
+## enemies ignoring the wall in front of them.
+func blocking_barricade_in_lane(_lane: int, _from: Vector2) -> Node2D:
+	return null
+
+
 ## Enemies that can still fight.
 ##
 ## Deliberately not `get_node_count_in_group`. A wave ends when this reaches

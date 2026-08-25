@@ -20,6 +20,7 @@ var weathers: Dictionary = {}
 var wildlife_kinds: Dictionary = {}
 var companions: Dictionary = {}
 var traps: Dictionary = {}
+var barricades: Dictionary = {}
 var tiers: Dictionary = {}
 var gear_kinds: Dictionary = {}
 
@@ -47,6 +48,7 @@ func _ready() -> void:
 	wildlife_kinds = _load_dir("res://data/wildlife")
 	companions = _load_dir("res://data/companions")
 	traps = _load_dir("res://data/traps")
+	barricades = _load_dir("res://data/barricades")
 	tiers = _load_dir("res://data/tiers")
 	gear_kinds = _load_dir("res://data/gear")
 	buildings = _load_dir("res://data/buildings")
@@ -133,6 +135,10 @@ func weather(id: String) -> WeatherData:
 ##
 ## Sorted by id rather than left in directory order, because the spawner rolls
 ## against this list and a seeded run must pick the same animal on two machines.
+func barricade(id: String) -> BarricadeData:
+	return barricades.get(id, null) as BarricadeData
+
+
 func trap(id: String) -> TrapData:
 	return traps.get(id, null) as TrapData
 

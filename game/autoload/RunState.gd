@@ -130,6 +130,13 @@ var towers: Dictionary = {}
 ## know which kind it had found before it could ask anything useful.
 var traps: Dictionary = {}
 
+## Barricades raised across the roads, keyed by tile: {barricade_id, health}.
+##
+## Health as a *fraction* rather than an absolute, so a guest told about one
+## rebuilds it against its own `max_hp` and the two cannot drift if the resource
+## is ever retuned mid-version.
+var barricades: Dictionary = {}
+
 # --- Hero ------------------------------------------------------------------
 
 var equipped_spells: Array[String] = []
@@ -209,6 +216,7 @@ var currency_earned: Dictionary = {}
 var currency_spent: Dictionary = {}
 var towers_built: int = 0
 var traps_laid: int = 0
+var barricades_raised: int = 0
 var tower_upgrades: int = 0
 var towers_sold: int = 0
 var towers_lost: int = 0
@@ -368,6 +376,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 
 	towers.clear()
 	traps.clear()
+	barricades.clear()
 
 	equipped_spells.clear()
 	trained_discipline_nodes.clear()
@@ -419,6 +428,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		currency_spent[id] = 0
 	towers_built = 0
 	traps_laid = 0
+	barricades_raised = 0
 	tower_upgrades = 0
 	towers_sold = 0
 	towers_lost = 0
@@ -826,6 +836,28 @@ func clear_trap(tile: Vector2i) -> void:
 		return
 	traps.erase(tile)
 	EventBus.trap_changed.emit(tile)
+
+
+## What stands on a tile, or null.
+func barricade_at(tile: Vector2i) -> BarricadeData:
+	var entry: Dictionary = barricades.get(tile, {}) as Dictionary
+	return ContentDB.barricade(String(entry.get("barricade_id", "")))
+
+
+func barricade_health(tile: Vector2i) -> float:
+	return float((barricades.get(tile, {}) as Dictionary).get("health", 1.0))
+
+
+func set_barricade(tile: Vector2i, barricade_id: String, health: float) -> void:
+	barricades[tile] = {"barricade_id": barricade_id, "health": health}
+	EventBus.barricade_changed.emit(tile)
+
+
+func clear_barricade(tile: Vector2i) -> void:
+	if not barricades.has(tile):
+		return
+	barricades.erase(tile)
+	EventBus.barricade_changed.emit(tile)
 
 
 func clear_tower(anchor: Vector2i) -> void:

@@ -623,6 +623,16 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
 
+### 5.9d Barricades — `res://art/barricades/`
+
+All 96×96, type T, placeholder colour `#B89A70`.
+
+Larger than the traps because they stand up rather than lie flat, and are looked
+at from the side like every other structure. Sized to read as a thing an enemy
+has to break rather than a thing it steps over — which is the whole mechanic.
+
+`barricade_stake_line.png` · `barricade_iron_hoarding.png`
+
 ### 5.10 Traps — `res://art/traps/`
 
 All 64×64, type T, placeholder colour `#DBB96B`.

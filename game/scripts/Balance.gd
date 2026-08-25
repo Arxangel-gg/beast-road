@@ -1127,6 +1127,11 @@ const TOWN_JOLT_SECONDS: float = 0.28
 const TOWN_JOLT_SCALE: float = 0.022
 const TOWN_JOLT_SHOVE: float = 7.0
 
+## How close an enemy has to be to a barricade to be held by it, and for how
+## long the hold is refreshed. [TUNE]
+const BARRICADE_GRIP_RADIUS: float = 90.0
+const BARRICADE_GRIP_SECONDS: float = 0.6
+
 const WILDLIFE_MAX: int = 14
 const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
 const WILDLIFE_FIELD_SPAN: float = 1150.0

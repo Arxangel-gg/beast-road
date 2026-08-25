@@ -1891,9 +1891,36 @@ has its design settled and written down; no netcode is written yet.
 
 ### Not in the GDD at all - new content, needs a design decision
 
-- [ ] **Barricade perimeter with broken entrances.** A real tower-defense idea,
-      raised with a question mark. It interacts with freeform placement
-      (§13/§20) and with enemy pathing, and v4 describes it nowhere.
+- [x] **Barricade perimeter with broken entrances.** Built 2026-08-25. Two
+      kinds: Stake Line (cheap wood, will not hold long) and Iron Hoarding
+      (holds, and costs stone to say so).
+
+      **The pathing objection is answered by not pathing.** There is no
+      pathfinder here — enemies follow their lane's waypoints — so a wall that
+      rerouted would mean writing one, and a pathfinder is a far larger thing
+      than a wall. A barricade is therefore an *obstacle to break* rather than a
+      maze piece, which needed no pathing change at all: enemy targeting is
+      already field-mediated and striking already looks up `Health.of(target)`
+      without caring what it found, so a barricade with a `Health` is simply
+      another thing the field can offer. `Enemy` gained four lines and no new
+      concept.
+
+      **The broken entrances are the player's, not the map's.** Not a prefab ring
+      with gaps designed in — barricades go up one tile at a time and the gaps
+      are wherever the player did not spend, so the funnel is a decision somebody
+      made rather than a shape they were handed.
+
+      A barricade **slows what is pressed against it**, and that is what makes a
+      partial line worth building rather than a speed bump with extra steps: the
+      gap is faster than the wall, so the wall shapes where they go instead of
+      only delaying them.
+
+      The gate's load-bearing assertion is that the field *offers* the wall to an
+      enemy behind it and does not offer it to one already past. If that offer
+      stops being made nothing errors — enemies walk past the wall as though it
+      were scenery, which reads as the wall being broken rather than the
+      targeting. Health replicates as a fraction, so a guest rebuilds against its
+      own `max_hp` and the two cannot drift if the resource is retuned.
 - [x] **Trap placements.** Built 2026-08-25. Three kinds: Spike Pit (three
       bites), Tar Snare (holds a road still and hurts nothing), Firebloom (one
       burst, and everything on it burns).

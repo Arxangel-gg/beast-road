@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BarricadeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/barricade_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "stake_line"
+display_name = "Stake Line"
+description = "Cheap, and it will not hold long."
+max_hp = 650.0
+cost = {"wood": 45}
+slow_factor = 0.72
+colour = Color(0.72, 0.6, 0.44, 1)

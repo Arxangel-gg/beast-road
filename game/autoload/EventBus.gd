@@ -283,6 +283,12 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
 	guest_at: Vector2, guest_aim: Vector2)
 
+## A barricade was raised, damaged or broken.
+signal barricade_changed(tile: Vector2i)
+
+## A barricade appeared, changed or broke — on the host's say-so.
+signal coop_barricade_state(tile: Vector2i, barricade_id: String, health: float)
+
 ## A trap was laid on a tile, spent a trigger, or was cleared.
 signal trap_changed(tile: Vector2i)
 

@@ -56,6 +56,9 @@ var _towers: Dictionary = {}
 
 ## Laid traps, keyed by tile. Mirrors `_towers`.
 var _traps: Dictionary = {}
+
+## Raised barricades, keyed by tile.
+var _barricades: Dictionary = {}
 var _suspended: bool = false
 
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
@@ -154,6 +157,7 @@ func _ready() -> void:
 	_build_lanes()
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.trap_changed.connect(_on_trap_changed)
+	EventBus.barricade_changed.connect(_on_barricade_changed)
 	placement = PlacementCursor.new()
 	placement.name = "PlacementCursor"
 	placement.setup(self)
@@ -921,6 +925,85 @@ func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
 	RunState.traps_laid += 1
 	Vfx.build_burst(BattleGrid.tile_to_world(tile), trap_data.colour)
 	return ""
+
+
+## Raises a barricade across a road tile, or says why not.
+##
+## The same shape and the same single gate as `try_build` and `try_place_trap` —
+## see the trap's for why the phase question is asked of `can_build_now()` rather
+## than tested inline.
+func try_raise_barricade(tile: Vector2i, barricade_data: BarricadeData) -> String:
+	if not RunState.can_build_now():
+		return "Barricades are raised during Preparation."
+	if barricade_data == null:
+		return "No barricade selected."
+	if grid == null:
+		return "The battlefield is not ready."
+	if grid.cell_at(tile) != BattleGrid.Cell.ROAD:
+		return "A barricade only stands across a road."
+	if RunState.barricades.has(tile):
+		return "Something already stands here."
+	if not RunState.can_afford_cost(barricade_data.cost):
+		return "Needs %s." % RunState.format_cost(barricade_data.cost)
+	RunState.spend_cost(barricade_data.cost)
+	RunState.set_barricade(tile, barricade_data.id, 1.0)
+	RunState.barricades_raised += 1
+	Vfx.build_burst(BattleGrid.tile_to_world(tile), barricade_data.colour)
+	return ""
+
+
+## Brings the barricade nodes into line with what RunState says stands.
+##
+## Rebuilt from the run state like the towers and the traps, which is what makes
+## a guest free: it is told what stands where, it writes it, the nodes follow.
+func _on_barricade_changed(tile: Vector2i) -> void:
+	var wanted: BarricadeData = RunState.barricade_at(tile)
+	var existing: Barricade = _barricades.get(tile, null) as Barricade
+
+	if wanted == null:
+		if existing != null and is_instance_valid(existing):
+			existing.queue_free()
+		_barricades.erase(tile)
+		return
+
+	if existing != null and is_instance_valid(existing) and existing.data == wanted:
+		existing.set_health_ratio(RunState.barricade_health(tile))
+		return
+
+	if existing != null and is_instance_valid(existing):
+		existing.queue_free()
+
+	var wall := Barricade.new()
+	wall.setup(wanted, tile, BattleGrid.lane_at(BattleGrid.tile_to_world(tile)), self)
+	wall.global_position = BattleGrid.tile_to_world(tile)
+	wall.puppet = Coop.is_guest()
+	entity_root.add_child(wall)
+	wall.set_health_ratio(RunState.barricade_health(tile))
+	_barricades[tile] = wall
+
+
+## The first barricade between something and the town, in its lane.
+##
+## The *first*, not the nearest: an enemy at the back of a lane has to deal with
+## the wall it will actually walk into. Picking the nearest would have it beeline
+## past two barricades to the one closest to the town, which reads as enemies
+## ignoring the wall directly in front of them.
+func blocking_barricade_in_lane(lane: int, from: Vector2) -> Node2D:
+	var town: Vector2 = town_position()
+	var mine: float = from.distance_to(town)
+	var best: Barricade = null
+	var best_distance: float = -1.0
+	for value: Variant in _barricades.values():
+		var wall := value as Barricade
+		if wall == null or not is_instance_valid(wall) or wall.lane != lane:
+			continue
+		var theirs: float = wall.global_position.distance_to(town)
+		# Ahead of us, and the furthest such one from the town is the next one we
+		# meet.
+		if theirs < mine and theirs > best_distance:
+			best_distance = theirs
+			best = wall
+	return best
 
 
 ## Why a 2x2 tower cannot stand here, or "".
