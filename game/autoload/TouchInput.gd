@@ -120,7 +120,10 @@ func refresh() -> void:
 		UiMetrics.apply_touch_tree(get_tree().root, wanted)
 		return
 	_showing = wanted
-	visible = wanted
+	# `_controls_live`, not `wanted`: the setting can enable the controls while
+	# the player is still on the menu, and turning them on there is what put the
+	# dash button on the front door. `_process` raises them when a run starts.
+	visible = _controls_live()
 	UiMetrics.apply_touch_tree(get_tree().root, wanted)
 	if not wanted:
 		_release_all()
@@ -163,8 +166,49 @@ func _build() -> void:
 	add_child(_dash)
 
 
+## Whether the on-screen controls should be up *right now*.
+##
+## Two questions, deliberately kept apart. `_showing` answers "does this player
+## drive with thumbs at all" - a device and settings question, and the HUD's
+## mobile metrics follow it everywhere, the menu included. This answers "is there
+## anything to drive": the sticks and the dash button move the hero, and outside
+## a run there is no hero.
+##
+## Left as one question, the dash button drew its ring over the main menu. The
+## visible ring was the smaller half of the problem. Because the controls read
+## `_unhandled_input`, the button kept *consuming taps* on the front door - and
+## an invisible button eats a press exactly as well as a visible one does.
+func _controls_live() -> bool:
+	return _showing and GameDirector.run_active
+
+
+## Releases are watched here, and *only* releases.
+##
+## `_unhandled_input` never sees an event some Control consumed first. A thumb
+## that went down on a stick and then lifted while a panel was open - or lifted
+## onto the Close button that dismissed the panel - had its touch-up eaten, so
+## the stick went on believing it still held that finger. Godot emulates the
+## mouse from finger 0 only, so `owns_pointer()` stayed true forever, and
+## `placement_cursor.gd` refused every later tap on a tile as "that is a thumb,
+## not a click". The build panel could be opened, closed once, and never opened
+## again.
+##
+## Acquiring a finger stays in `_unhandled_input`, where a press has to lose to
+## any UI above it. Letting go is not a contest: nothing else wants the release,
+## and the worst case of acting on it here is releasing something already
+## released, which is free.
+func _input(event: InputEvent) -> void:
+	var touch := event as InputEventScreenTouch
+	if touch == null or touch.pressed:
+		return
+	for stick: TouchStick in _sticks:
+		stick.release_finger(touch.index)
+	if _dash != null:
+		_dash.release_finger(touch.index)
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if not _showing:
+	if not _controls_live():
 		return
 
 	# The dash button is checked first: it sits inside the right stick's corner,
@@ -210,7 +254,19 @@ func dash_rect() -> Rect2:
 
 
 func _process(_delta: float) -> void:
-	if not _showing:
+	# Watched here rather than signalled from GameDirector: the run starts and
+	# ends through several paths - menu, victory, defeat, quit-to-menu - and a
+	# gate that has to be remembered at each of them is a gate that will be
+	# forgotten at one of them.
+	var live: bool = _controls_live()
+	if visible != live:
+		visible = live
+		# A thumb still down when the run ends would otherwise leave its action
+		# held forever, since the release event arrives after the controls stop
+		# listening for it.
+		if not live:
+			_release_all()
+	if not live:
 		return
 	_move = (_sticks[0] as TouchStick).value()
 	var right: Vector2 = (_sticks[1] as TouchStick).value()
@@ -268,6 +324,11 @@ func _release_all() -> void:
 			Input.action_release(action)
 	for stick: TouchStick in _sticks:
 		stick.forget()
+	# The dash button too. It was left out, and a button still holding finger 0
+	# when the controls were hidden kept `owns_pointer()` true against a set of
+	# controls that no longer existed.
+	if _dash != null:
+		_dash.forget()
 
 
 ## One thumb stick: a ring where the thumb landed and a knob where it is now.
@@ -307,6 +368,15 @@ class TouchStick extends Control:
 	## from. Any other finger produces no mouse events and cannot mis-click.
 	func holds_emulated_finger() -> bool:
 		return _finger == 0
+
+
+	## Lets go of `index`, if this stick was the one holding it.
+	##
+	## Safe to call for a finger it never had, which is what lets the release be
+	## broadcast to every stick without asking which one owns it first.
+	func release_finger(index: int) -> void:
+		if _finger >= 0 and index == _finger:
+			forget()
 
 
 	## Takes the event if it belongs to this stick. Returns whether it did.
@@ -370,6 +440,22 @@ class TouchButton extends Control:
 
 	func holds_emulated_finger() -> bool:
 		return _finger == 0
+
+
+	## As `TouchStick.release_finger`. The press has already been recorded by the
+	## time a thumb lifts, so letting go here cannot lose a dash.
+	func release_finger(index: int) -> void:
+		if _finger >= 0 and index == _finger:
+			forget()
+
+
+	## Unconditional. Mirrors `TouchStick.forget` so `_release_all` can clear the
+	## button without reaching into it.
+	func forget() -> void:
+		if _finger < 0:
+			return
+		_finger = -1
+		queue_redraw()
 
 
 	func consume(event: InputEvent, rect: Rect2) -> bool:

@@ -75,7 +75,11 @@ const LOOT_ELITE_MULTIPLIER: float = 3.0
 ## the road is. The magnet is what makes fighting forward pay without turning the
 ## reward into a second job. [TUNE]
 const LOOT_MAGNET_RANGE: float = 260.0
-const LOOT_COLLECT_RANGE: float = 34.0
+## Raised with `LOOT_ICON_SIZE`, and it has to be. At 34.0 against a drop drawn
+## 58 units wide, the hero could stand visually on top of a coin without picking
+## it up - the collect radius was smaller than the sprite, so the art and the
+## rule disagreed about where the thing was.
+const LOOT_COLLECT_RANGE: float = 48.0
 const LOOT_MAGNET_SPEED: float = 780.0
 const LOOT_MAGNET_ACCELERATION: float = 2600.0
 
@@ -95,10 +99,28 @@ const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
 
 ## The pool of light under a drop, which is what makes it findable on a lit road.
 const LOOT_GLOW_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.5)
-const LOOT_GLOW_SIZE: float = 72.0
+const LOOT_GLOW_SIZE: float = 132.0
 const LOOT_GLOW_SPEED: float = 3.1
 
-const LOOT_ICON_SIZE: float = 26.0
+## How big a drop is drawn, in world units.
+##
+## This was 26.0, which was measured against nothing. The arithmetic that says
+## why it is now 58.0:
+##
+##   hero sprite      128 px art x HERO_SPRITE_SCALE 1.75 = 224 world units tall
+##   drop at 26.0     11.6% of the hero's height
+##   at battlefield zoom CAMERA_ZOOM_BATTLEFIELD 0.52 ->  13.5 screen px at 1080p
+##   zoomed fully out CAMERA_ZOOM_BATTLEFIELD_MIN 0.38 ->   9.9 screen px
+##
+## Ten pixels, on a field carrying corpses, foliage, torchlight and blast rings -
+## and fewer than ten on a phone. A reward the player never notices is a reward
+## that did not happen, which is the whole complaint.
+##
+## 58.0 is picked from the far end instead: about 30 screen px at the default
+## battlefield zoom and still 22 when fully zoomed out, which is roughly a
+## quarter of the hero's height. Large enough to be a thing lying on the road,
+## small enough not to read as a crate.
+const LOOT_ICON_SIZE: float = 58.0
 const LOOT_BOB_SPEED: float = 5.0
 const LOOT_BOB_HEIGHT: float = 3.0
 const LOOT_Z_INDEX: int = -2
@@ -121,8 +143,11 @@ const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.18
 const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
 
 ## Gear is a more important silhouette than a coin and earns a larger pickup.
-const GEAR_DROP_ICON_SIZE: float = 38.0
-const GEAR_DROP_GLOW_SIZE: float = 92.0
+## Scaled up alongside `LOOT_ICON_SIZE` and by slightly more, so the rarer drop
+## stays the one that catches the eye first - see that constant for the
+## screen-pixel arithmetic these come from.
+const GEAR_DROP_ICON_SIZE: float = 76.0
+const GEAR_DROP_GLOW_SIZE: float = 168.0
 const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
 	Color("b486d9"), Color("e8b85c")]
@@ -1312,12 +1337,33 @@ const CAPTIVES_PER_BUILDING: int = 2
 ## 220-resource start could protect only three of four roads before combat.
 const STARTING_RESOURCES: int = 350
 
-## Four-wallet v4 opening cache. Gold covers four base towers plus one level-2
-## choice; Stone permits one Fusion; Wood supports an opening town project; Food
-## is held for hero recovery/training. [TUNE]
+## Four-wallet v4 opening cache, amended 2026-08-24 (owner).
+##
+## **Gold starts at zero.** The run begins with no build capital at all, and the
+## player buys their first tower with money taken off the enemies they killed.
+## The point is that the hero has to fight: with four towers already up, an act
+## could be subcontracted to them and watched.
+##
+## This reverses GDD §448's opening protection envelope, which read "Starting
+## Gold and Stone can build one level-1 base tower on each road plus one
+## meaningful upgrade or town choice". The re-cut is recorded there and in
+## CLAUDE.md, both dated.
+##
+## **Wood, Food and Stone are deliberately not zeroed**, and that is an
+## interpretation worth stating rather than burying. No tower can be built
+## without Gold - every entry in `build_cost_table` carries a Gold price - so
+## zero Gold already means zero towers, which is the whole of the owner's
+## intent. What the secondary wallets decide is *which element* the first
+## affordable tower may be, since Fire is the only pure-Gold line. Emptying them
+## too would not make the opening more demanding; it would silently force every
+## player onto Fire for the first act. The run still starts unable to build
+## anything.
+##
+## Wood and Food also pay for town repair and hero tending, which have nothing
+## to do with tower capital and would be collateral damage.
 const STARTING_WOOD: int = 180
 const STARTING_FOOD: int = 70
-const STARTING_GOLD: int = 390
+const STARTING_GOLD: int = 0
 const STARTING_STONE: int = 90
 ## Machine-readable v4 contract; RunState owns the runtime typed aliases.
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]

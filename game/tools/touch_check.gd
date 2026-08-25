@@ -20,6 +20,11 @@ func _ready() -> void:
 	# Forced on: this machine has no touchscreen, and the point is to exercise
 	# the controls rather than the decision about whether to show them.
 	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	# The controls belong to a run. They drive the hero, so outside a run they are
+	# hidden *and* deaf on purpose - that is what keeps the dash button from
+	# sitting on the main menu eating taps. This harness has no run, so it says it
+	# has one; `touch_shot.gd` does the same for the same reason.
+	GameDirector.run_active = true
 	TouchInput.refresh()
 	await get_tree().process_frame
 

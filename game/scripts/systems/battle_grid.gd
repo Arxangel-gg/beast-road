@@ -504,3 +504,31 @@ func lane_length(lane: int) -> float:
 ## the town is this", not "how far has it walked".
 func distance_to_town_along(lane: int, at: Vector2) -> float:
 	return maxf(at.dot(lane_vector(lane)), 0.0)
+
+
+## Which lane a world point bears on, seen from the town.
+##
+## The lane something *spawned* in is a fact about the past. Anything asking
+## "which way is this threat coming from" has to recompute the answer from where
+## the thing actually is, because an enemy that leaves the road to chase the hero
+## can cross into another lane's quarter entirely - and then it is pressure on
+## the side it is standing, not on the side it entered from.
+##
+## Decided by best alignment rather than by bucketing an arc-tangent: with four
+## lanes this is four dot products, it needs no angle wrapping or quadrant
+## special-casing, and it stays correct if `LANE_COUNT` ever changes.
+static func lane_at(at: Vector2) -> int:
+	# Dead centre bears on nothing. Answering 0 rather than dividing by zero -
+	# anything standing exactly on the town is already inside it, and no readout
+	# is improved by picking a random side for it.
+	if at.length_squared() < 0.0001:
+		return 0
+	var heading: Vector2 = at.normalized()
+	var best: int = 0
+	var best_dot: float = -2.0
+	for lane: int in Balance.LANE_COUNT:
+		var aligned: float = heading.dot(lane_vector(lane))
+		if aligned > best_dot:
+			best_dot = aligned
+			best = lane
+	return best

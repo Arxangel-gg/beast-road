@@ -450,7 +450,13 @@ Waves are authored formations driven by a continuous threat budget. Difficulty s
 The beginning must teach before it tests the full build.
 
 - Initial Preparation lasts at least 18 seconds and waits for player confirmation.
-- Starting Gold and Stone can build one level-1 base tower on each road plus one meaningful upgrade or town choice.
+- ~~Starting Gold and Stone can build one level-1 base tower on each road plus one meaningful upgrade or town choice.~~ **Amended 2026-08-24 (owner): the run starts with no build capital, and no tower can be built until one is earned.** The player takes tower money off the enemies they kill, so the hero is required to fight rather than able to subcontract the act to towers.
+
+> **What "no build capital" means precisely.** Starting **Gold is zero**. Wood, Food and Stone keep their opening values, and that is deliberate rather than an oversight: every tower in the game carries a Gold price, so zero Gold already means zero towers on the opening frame - which is the whole of the intent. What the secondary wallets decide is only *which element* the first affordable tower may be, since Fire is the one pure-Gold line. Emptying them would not make the opening more demanding, it would silently force every player onto Fire for Act I. Wood and Food additionally pay for town repair and hero tending, which are not tower capital and would be collateral damage.
+>
+> **Implemented and measured, 2026-08-25.** The best-case opening Gold ramp reads 5, 38, 85, 137, 183, 224, 247, 277, 312, 344 across waves 1-10. Against a 70-Gold tower and a 280-Gold four-road baseline, the first tower lands on wave 3 - which is when the second road opens - and the baseline on wave 8. The lane progression paces this without either curve being tuned to match. Peak pressure across the run is unchanged at 0.63; what changed is Act I, which used to sit at 0.02-0.19 through the opening and now ramps 0.06 to 0.48.
+>
+> The rest of this envelope still holds and is now doing more work, not less. The teaching obligation at the top of this section is unchanged - the opening must still teach before it tests, and a player who cannot kill fast enough to afford a first tower has been tested, not taught. `tools/balance_test.tscn` asserts both ends of that: wave 1 alone must **not** pay for a tower, and a first tower must be affordable by wave 4.
 - Wave 1 attacks one clearly marked road with 3-4 basic enemies.
 - Wave 2 repeats that road and previews an adjacent threat.
 - Wave 3 attacks two roads.
@@ -1422,7 +1428,7 @@ Each milestone ends with an honest kill question. A no answer blocks expansion.
 ## 54. Explicitly Out of Scope for 1.0
 
 - multiple heroes, party roster, or hero swapping;
-- multiplayer, PvP, co-op, daily online challenges (**amended 2026-08-20 (owner):** leaderboards are back in scope);
+- multiplayer, PvP, co-op, daily online challenges (**amended 2026-08-20 (owner):** leaderboards are back in scope; **amended 2026-08-24 (owner):** two-player co-operative play is back in scope - see the note below. PvP and daily online challenges remain cut);
 - endless mode;
 - console launch builds (**amended 2026-08-20 (owner):** a web build, playable on mobile browsers, is back in scope);
 - light and dark tower elements;
@@ -1436,6 +1442,12 @@ Each milestone ends with an honest kill question. A no answer blocks expansion.
 - more regions before the existing three and summit meet quality gates.
 
 > **Amended 2026-08-18 (owner).** This list read "procedural battlefield layouts or freeform tower placement" through v4.0. Freeform placement is now the design - see §13 and §20. Procedural *layouts* remain cut: the map is hand-authored and players are meant to learn it.
+
+> **Amended 2026-08-24 (owner).** **Two-player co-operative play is in scope.** Two players, on any platform the game ships to, defend the same city on the same beast. PvP, larger party sizes and daily online challenges stay cut. The difficulty director scales to the player count rather than presenting one player's curve to two.
+>
+> This reverses the co-op half of the bullet above and nothing else. It does **not** reopen "multiple heroes, party roster, or hero swapping": that line governs how many heroes *one* player commands, and it is unchanged. How the second player is embodied is a co-op design question answered in the co-op design note, not a licence to give a single player a roster.
+>
+> Co-op is the largest structural change made to this project. It lands on CLAUDE.md working rules 5, 6 and 8 - the EventBus contract, `RunState` as the single source of truth, and the exact-resume raid freeze. Those rules are not suspended for it; the co-op design has to satisfy them, and where it cannot, the rule is amended deliberately and dated rather than quietly broken.
 
 ## 55. Remaining Open Production Items
 

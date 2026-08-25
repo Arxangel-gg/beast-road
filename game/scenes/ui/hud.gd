@@ -59,6 +59,19 @@ const BUILD_ROW_PRICE_INSET: float = float(UiMetrics.PAD_BUTTON_X)
 ## Distance from the right edge of the screen.
 const BUILD_PANEL_MARGIN: float = 34.0
 
+## The hover figures box, which sits *beside* the build panel rather than over it.
+##
+## Godot's own `tooltip_text` opens at the cursor, and the cursor is by definition
+## inside the panel - so the numbers for the tower being considered landed on top
+## of the towers it was being compared against. A player cannot compare two rows
+## when reading one of them hides the other.
+##
+## The panel is pinned to the right edge, so anything parked immediately to its
+## left is guaranteed to be outside it at any window size, with no overlap test
+## to get wrong.
+const BUILD_TOOLTIP_WIDTH: float = 320.0
+const BUILD_TOOLTIP_GAP: float = 12.0
+
 ## Reserved height for the hover description, so the panel does not resize as the
 ## cursor moves along the row.
 ##
@@ -121,6 +134,8 @@ var _build_element: int = -1
 var _build_list: VBoxContainer
 var _build_title: Label
 var _build_detail: Label
+var _build_tooltip: PanelContainer
+var _build_tooltip_label: Label
 ## The tile the build panel is open on, or an impossible anchor for "none".
 var _selected: Vector2i = Vector2i(-999, -999)
 
@@ -641,6 +656,76 @@ func _build_tower_panel() -> void:
 
 	var close: Button = _add_button(column, "Close", func() -> void: _close_build_panel())
 	IconKit.on_button(close, "close", 22)
+
+	_build_side_tooltip()
+
+
+## The figures box that sits beside the build panel.
+##
+## A sibling of the panel rather than a child of it, so the panel's own clipping
+## and layout have no say in where it lands - it is pinned to the screen's right
+## edge and steps left past the panel's full width, which puts it outside the
+## panel by construction rather than by arithmetic that could drift.
+func _build_side_tooltip() -> void:
+	_build_tooltip = PanelContainer.new()
+	_build_tooltip.anchor_left = 1.0
+	_build_tooltip.anchor_right = 1.0
+	_build_tooltip.anchor_top = 0.0
+	_build_tooltip.anchor_bottom = 0.0
+	# Grows downward from wherever it is placed, so the box sizes to its own text
+	# and the row it belongs to stays its top edge.
+	_build_tooltip.grow_vertical = Control.GROW_DIRECTION_END
+	_build_tooltip.offset_right = -(BUILD_PANEL_MARGIN + BUILD_PANEL_WIDTH + BUILD_TOOLTIP_GAP)
+	_build_tooltip.offset_left = _build_tooltip.offset_right - BUILD_TOOLTIP_WIDTH
+	# It must never eat a click meant for the field behind it, and it is never
+	# interactive itself.
+	_build_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_tooltip.visible = false
+	add_child(_build_tooltip)
+
+	_build_tooltip_label = _label("", 14)
+	_build_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_build_tooltip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_tooltip.add_child(_build_tooltip_label)
+
+
+## Shows the figures for `near`, aligned with the row that asked.
+func _show_build_tooltip(text: String, near: Control) -> void:
+	if _build_tooltip == null:
+		return
+	if text.is_empty() or near == null or not is_instance_valid(near):
+		_hide_build_tooltip()
+		return
+	_build_tooltip_label.text = text
+	_build_tooltip.visible = true
+	# Straight from the row's global position, with nothing subtracted: this is a
+	# CanvasLayer at the identity transform, so a child's offsets and a Control's
+	# global position are already the same viewport space.
+	var row_top: float = near.global_position.y
+	_build_tooltip.offset_top = row_top
+	_build_tooltip.offset_bottom = row_top
+	# The height is not known until the box has been laid out with this text, and
+	# a row near the bottom of a tall panel would otherwise hang off the screen.
+	_clamp_build_tooltip.call_deferred(row_top)
+
+
+## Pulls the box back inside the viewport once its height is known.
+func _clamp_build_tooltip(row_top: float) -> void:
+	if _build_tooltip == null or not _build_tooltip.visible:
+		return
+	# The viewport's height, not the layer's - a CanvasLayer has no size of its
+	# own, and the bottom of the screen is what the box must not fall off.
+	var screen_height: float = get_viewport().get_visible_rect().size.y
+	var lowest: float = maxf(screen_height - _build_tooltip.size.y - BUILD_TOOLTIP_GAP,
+		BUILD_TOOLTIP_GAP)
+	var top: float = clampf(row_top, BUILD_TOOLTIP_GAP, lowest)
+	_build_tooltip.offset_top = top
+	_build_tooltip.offset_bottom = top
+
+
+func _hide_build_tooltip() -> void:
+	if _build_tooltip != null:
+		_build_tooltip.visible = false
 
 
 func _build_raid_panel() -> void:
@@ -1504,6 +1589,7 @@ func _close_build_panel() -> void:
 	_show_selected_range(false)
 	_build_panel.visible = false
 	_show_build_detail("")
+	_hide_build_tooltip()
 
 
 ## A panel that appears instantly reads as a texture being switched on. A short
@@ -1532,8 +1618,10 @@ func _refresh_build_panel() -> void:
 		child.queue_free()
 	# The card the cursor was over has just been freed, so its mouse_exited will
 	# never arrive. Without this the footer keeps describing a button that is no
-	# longer there.
+	# longer there - and the figures box keeps hanging beside the panel with the
+	# numbers of a row that no longer exists.
 	_show_build_detail("")
+	_hide_build_tooltip()
 	# Assume no grid; the two branches that build one turn the footer back on.
 	_set_build_detail_visible(false)
 
@@ -1556,7 +1644,9 @@ func _refresh_build_panel() -> void:
 			func() -> void:
 				RunState.cycle_target_priority(anchor)
 				_refresh_build_panel())
-		target_button.tooltip_text = TowerData.target_priority_description(target_priority)
+		# No tooltip here. The very next line puts the same sentence in the panel
+		# as a label, so the floating copy was covering rows to repeat something
+		# already visible an inch below it.
 		_build_list.add_child(_label(TowerData.target_priority_description(target_priority), 13))
 		if not RunState.is_preparation():
 			var locked_note: Label = _label(
@@ -1573,8 +1663,11 @@ func _refresh_build_panel() -> void:
 				_report(battlefield.try_repair_tower(anchor))
 				_refresh_build_panel())
 			repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
-			repair_button.tooltip_text = "Restore %d%% durability. Cost: %d Wood." % [
+			var repair_figures: String = "Restore %d%% durability.\nCost: %d Wood." % [
 				int(round(Balance.TOWER_REPAIR_FRACTION * 100.0)), Balance.TOWER_REPAIR_WOOD_COST]
+			repair_button.mouse_entered.connect(func() -> void:
+				_show_build_tooltip(repair_figures, repair_button))
+			repair_button.mouse_exited.connect(func() -> void: _hide_build_tooltip())
 			IconKit.on_button(repair_button, "upgrade", 22)
 			repair_button.disabled = not repair_afford
 		var level_cap: int = RunState.tower_level_cap()
@@ -1873,14 +1966,22 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	# the place the panel reserves for answers.
 	var blurb: String = "%s  ·  %s\nCost: %s" % [TowerData.element_name(tower.element),
 		tower.description, RunState.format_cost(cost_map)]
-	button.mouse_entered.connect(func() -> void: _show_build_detail(
-		blurb if affordable else "%s\nInsufficient currency." % blurb))
-	button.mouse_exited.connect(func() -> void: _show_build_detail(""))
-	# A tooltip *and* the footer, which an earlier version deliberately avoided
-	# because both carried the same sentence. They no longer do: the footer says
-	# what the tower is for, the tooltip gives the figures. Two questions, and
-	# the second one cannot be answered in prose.
-	button.tooltip_text = _tower_tooltip(tower, cost_map)
+	# The figures box *and* the footer, which an earlier version deliberately
+	# avoided because both carried the same sentence. They no longer do: the
+	# footer says what the tower is for, the box gives the numbers. Two
+	# questions, and the second one cannot be answered in prose.
+	#
+	# What changed is where the numbers appear. This was `button.tooltip_text`,
+	# and Godot opens those at the cursor - which is inside the panel, so the
+	# figures for the row being considered covered the rows it was being weighed
+	# against. The box now opens beside the panel instead of over it.
+	var figures: String = _tower_tooltip(tower, cost_map)
+	button.mouse_entered.connect(func() -> void:
+		_show_build_detail(blurb if affordable else "%s\nInsufficient currency." % blurb)
+		_show_build_tooltip(figures, button))
+	button.mouse_exited.connect(func() -> void:
+		_show_build_detail("")
+		_hide_build_tooltip())
 	return button
 
 

@@ -12,6 +12,14 @@ extends Node2D
 
 const GROUP: StringName = &"enemies"
 
+## Enemies that exist only because a boss called them.
+##
+## A group rather than a list held by BossDirector: the boss can die on any
+## frame, summons die on their own all the time, and a list of node references
+## would need validity-checking on every entry. The group carries the same
+## information and cannot dangle.
+const SUMMON_GROUP: StringName = &"boss_summons"
+
 enum State {
 	WALKING,
 	WINDUP,
@@ -577,6 +585,32 @@ func _on_died(_from: Vector2) -> void:
 	EventBus.enemy_died.emit(data.id, global_position)
 
 
+## Removes this enemy without killing it.
+##
+## For the pack a boss called and then died before it could spend. The boss's
+## death ends the wave and the act, so anything it summoned rides into the next
+## act's Preparation - which is untimed and is meant to be the one safe phase.
+## The player was spending it hunting leftovers instead of preparing, which is
+## the exact failure that phase exists to prevent.
+##
+## Deliberately not `_on_died`, and the difference is the whole point: nothing
+## here is a kill. No kill count, no resources, no hero XP, no loot, no gear, no
+## `enemy_died`. Paying out for these would make ignoring a boss's adds and
+## rushing the boss the most profitable way to fight one, which is the opposite
+## of what summoning is for.
+##
+## It fades rather than popping. A dozen sprites vanishing on a single frame
+## reads as a crash, not as a rout.
+func dismiss() -> void:
+	if is_dying():
+		return
+	_enter(State.DYING, 0.0)
+	_death_left = Balance.ENEMY_DEATH_FADE
+	remove_from_group(GROUP)
+	remove_from_group(SUMMON_GROUP)
+	health_bar.visible = false
+
+
 ## Scatters this kill's bonus loot, if it rolled any.
 ##
 ## Rolled from the combat stream so a seeded replay drops the same things, and
@@ -695,19 +729,26 @@ func _nearby_howler() -> Enemy:
 
 
 func _update_sprite() -> void:
-	# Facing follows the target when there is one, and the direction of travel
-	# otherwise. It used to follow *only* the target, so an enemy with nothing in
-	# reach kept whichever way it happened to be facing when it last fought - and
-	# on the authored map, where roads double back, that is how a boss came to
-	# walk a whole leg backwards.
+	# A walking enemy faces the way it is walking. A fighting enemy faces what it
+	# is hitting. Those are different questions and the state answers which one
+	# applies, because the two only agree on a straight approach.
+	#
+	# This used to ask about the target first, which meant an enemy that had
+	# acquired something walked the rest of its leg backwards whenever the road
+	# bent away from it - the lock outranked the legs. Motion now wins while
+	# WALKING, and only WALKING moves under its own power, so the target branch
+	# still covers the windup, the strike, the recovery and the knockback slide,
+	# where facing the victim is right and facing the slide is not.
 	#
 	# Thresholded rather than tested against zero: an enemy tracking a bend drifts
 	# a fraction of a unit either way on the x axis, and a bare sign test would
-	# make it shudder between facings every frame.
-	if _target != null and is_instance_valid(_target):
-		sprite.flip_h = _target.global_position.x < global_position.x
-	elif absf(_motion.x) > Balance.FACING_DEADZONE:
+	# make it shudder between facings every frame. Below the threshold the facing
+	# is left alone rather than reset, so a road running straight up the screen
+	# does not blank it.
+	if _state == State.WALKING and absf(_motion.x) > Balance.FACING_DEADZONE:
 		sprite.flip_h = _motion.x < 0.0
+	elif _target != null and is_instance_valid(_target):
+		sprite.flip_h = _target.global_position.x < global_position.x
 
 	var tint: Color = Color.WHITE
 	if _freeze_left > 0.0:

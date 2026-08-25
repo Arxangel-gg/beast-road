@@ -112,15 +112,29 @@ func _test_upgrade_track() -> void:
 func _test_four_currency_economy() -> void:
 	_check(RunState.currencies.size() == 4,
 		"the run must have exactly four role-specific economy wallets")
-	_check(RunState.currency(RunState.GOLD) >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST,
-		"starting Gold must cover one base tower per road")
+	# Inverted on 2026-08-24 with GDD §448. This asserted that starting Gold
+	# covered one base tower per road; the owner re-cut the envelope, and a run
+	# that hands the player four towers is now the failure rather than the
+	# contract. `_test_opening_envelope` owns the replacement - that the ramp
+	# *earns* those towers on a sane schedule.
+	_check(RunState.currency(RunState.GOLD) == 0,
+		"the run must start with no Gold: tower capital is earned, not issued")
+	# Stone is deliberately still seeded. It cannot buy anything on its own -
+	# every tower, Fusion included, carries a Gold price - so this says only that
+	# Stone will not be the thing standing between an earned Gold pile and the
+	# opening Fusion.
 	_check(RunState.currency(RunState.STONE) >= Balance.TOWER_COMBO_STONE_COST,
-		"starting Stone must leave one opening Fusion choice")
+		"seeded Stone must not be what blocks the opening Fusion")
 	_check(ContentDB.buildings.size() == 9,
 		"the town must expose all nine launch plots")
 	_check(RunState.building_tier("woodcutter") == 1 \
 		and RunState.building_tier("granary") == 1,
 		"Woodcutter and Wheat Farm must begin at tier one")
+	# The exchange is the subject here, not the opening economy, so it funds
+	# itself. The run starts with no Gold as of 2026-08-24, and a Market test
+	# leaning on the old 390-Gold cache would be silently measuring the re-cut
+	# instead of the trade.
+	RunState.gain_currency(RunState.GOLD, 200)
 	var total_before: int = 0
 	for id: String in RunState.CURRENCIES:
 		total_before += RunState.currency(id)
@@ -206,9 +220,30 @@ func _test_opening_envelope() -> void:
 	var first_size: int = director._wave_size(1, terrain)
 	var first_hp: float = director._hp_scale(0)
 	var first_damage: float = director._damage_scale(0)
-	_check(Balance.STARTING_GOLD >= Balance.LANE_COUNT * Balance.TOWER_BUILD_COST \
-		+ Balance.TOWER_BUILD_COST,
-		"opening Gold must cover all four roads plus one flex purchase")
+	# The opening contract, rewritten for the zero-capital start.
+	#
+	# This assertion read "opening Gold must cover all four roads plus one flex
+	# purchase". As of 2026-08-24 that is false by design - GDD §448's envelope
+	# was re-cut by the owner and there is no opening Gold at all.
+	#
+	# What survives the re-cut is §448's teaching obligation, which the amendment
+	# restates rather than removes: the opening must teach before it tests. These
+	# are its measurable halves. A player who cannot kill fast enough to afford a
+	# first tower has been tested, not taught - and a player handed one for free
+	# on wave 1 was never asked to fight for it.
+	var ramp: Dictionary = _opening_gold_ramp(director, terrain)
+	var first_tower_wave: int = int(ramp["first_tower_wave"])
+	var baseline_wave: int = int(ramp["baseline_wave"])
+	_check(Balance.STARTING_GOLD == 0,
+		"the run must start with no build capital, got %d Gold" % Balance.STARTING_GOLD)
+	_check(first_tower_wave >= 2,
+		"the first wave alone must not pay for a tower, or fighting taught nothing")
+	_check(first_tower_wave > 0 and first_tower_wave <= 4,
+		"clearing the opening must pay for a first tower by wave 4, got %s" % (
+			"never" if first_tower_wave == 0 else str(first_tower_wave)))
+	_check(baseline_wave > 0 and baseline_wave <= 12,
+		"a tower for every road must be affordable by wave 12, got %s" % (
+			"never" if baseline_wave == 0 else str(baseline_wave)))
 	director._wave_timer = 1.0
 	RunState.wave_number = 0
 	director._on_act_started(1, "jungle")
@@ -261,6 +296,53 @@ func _test_opening_envelope() -> void:
 	print("[balance] Opening pack=%d hp=%.2f damage=%.2f prep=%.0fs gold=%d supplies=%d" \
 		% [first_size, first_hp, first_damage, Balance.WAVE_FIRST_PREPARATION,
 			Balance.STARTING_GOLD, supply_total])
+
+
+## When the opening can afford its first tower, and one for every road.
+##
+## Walks the opening waves adding what clearing each one pays - bodies times the
+## average drop, plus that wave's supply pulse - and reports the wave each
+## milestone lands on. Best case throughout: every body killed, nothing spent
+## before the milestone. A ramp the best case cannot reach is unarguable.
+func _opening_gold_ramp(director: WaveDirector, terrain: TerrainData) -> Dictionary:
+	var per_body: float = _gold_per_body()
+	var earned: float = float(Balance.STARTING_GOLD)
+	var first_tower: int = 0
+	var baseline: int = 0
+	var trail: PackedStringArray = []
+	for act_wave: int in range(1, 13):
+		var bodies: int = director._wave_size(act_wave, terrain) \
+			* director._progressive_lane_count(act_wave)
+		earned += float(bodies) * per_body
+		if act_wave <= Balance.WAVE_OPENING_SUPPLIES.size():
+			earned += float(Balance.WAVE_OPENING_SUPPLIES[act_wave - 1])
+		if first_tower == 0 and earned >= float(Balance.TOWER_BUILD_COST):
+			first_tower = act_wave
+		if baseline == 0 and earned >= float(Balance.LANE_COUNT * Balance.TOWER_BUILD_COST):
+			baseline = act_wave
+		trail.append("%d:%d" % [act_wave, int(earned)])
+	print("[balance] Opening Gold ramp, wave:total — %s  (tower %d, road %d)" % [
+		" ".join(trail), Balance.TOWER_BUILD_COST,
+		Balance.LANE_COUNT * Balance.TOWER_BUILD_COST])
+	return {"first_tower_wave": first_tower, "baseline_wave": baseline}
+
+
+## Average Gold a non-boss body pays.
+##
+## Read from the content rather than typed in, so rebalancing a drop moves the
+## gate with it instead of leaving it asserting against a remembered number.
+func _gold_per_body() -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var enemy := value as EnemyData
+		if enemy == null or enemy.category == EnemyData.Category.BOSS:
+			continue
+		total += float(enemy.resource_value)
+		count += 1
+	if count == 0:
+		return Balance.KILL_RESOURCE_SCALE
+	return total / float(count) * Balance.KILL_RESOURCE_SCALE
 
 
 func _set_progress(act: int, distance: float, wave: int, terrain_id: String,
@@ -1208,6 +1290,11 @@ func _test_target_priorities() -> void:
 func _test_preparation_and_command() -> void:
 	var field: Battlefield = _run.battlefield
 	RunState.set_phase(RunState.Phase.PREPARATION)
+	# The phase rule is the subject, not the price. Funded explicitly because the
+	# run starts with no Gold as of 2026-08-24 - otherwise this reads "you cannot
+	# build in Preparation" when what actually happened is "you cannot afford it",
+	# which is a different sentence and a passing gate would have hidden it.
+	RunState.gain_every_currency(9999)
 	var spire_at: Vector2i = _free_anchor(field)
 	_check(field.try_build(spire_at, ContentDB.tower("ember_spire")).is_empty(),
 		"tower construction must be legal during Preparation")

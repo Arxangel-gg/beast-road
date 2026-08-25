@@ -45,6 +45,8 @@ decision being made a second time, so it needs an owner, not an agent.
 | Partial raid extraction | kept — two windows plus chieftain climax | no conflict |
 | Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **DECIDED 2026-08-20: adopt v4's Oathbound framing.** |
 | Run-scoped hero power (v4 §974) | — | **DECIDED 2026-08-20: hero level, attributes and loot now persist. See below.** |
+| Co-op (v4 §54 cut) | cut for 1.0 | **DECIDED 2026-08-24: build two-player co-op. See below.** |
+| Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-24: start with nothing; earn it by killing. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -61,6 +63,48 @@ is now decided rather than pending — but the §57 requirement is unchanged by 
 decision. Player-facing strings still live in data (working rule 9), and any new
 leader copy still has to be read before it ships. What has changed is that
 Oathbound mechanics may now be built on, rather than parked.
+
+**Two-player co-op is in scope, as of 2026-08-24.** The owner reversed v4 §54's
+cut. Two players, cross-platform, defending one city. PvP, bigger parties and
+daily challenges stay cut.
+
+This is the one re-cut that changes the shape of the codebase rather than the
+content of the game, so it comes with a standing rule: **co-op does not get to
+quietly break working rules 5, 6 and 8.** `RunState` stays the single source of
+truth - co-op answers *whose* copy is authoritative, it does not license a second
+local cache. Systems still talk through `EventBus`, which is the seam the network
+layer belongs at. The raid freeze still resumes exactly, now for two observers
+instead of one. Where co-op genuinely cannot satisfy one of those rules, amend
+the rule here, dated, in the same change - do not leave the codebase disagreeing
+with this file.
+
+**The run starts with no build capital, as of 2026-08-24.** The owner re-cut
+v4 §448's opening protection envelope. `Balance.STARTING_GOLD` is **0** and
+tower money is taken off the enemies the player kills. The intent is that the
+hero has to fight.
+
+**Gold is the only wallet that was zeroed**, and that is a decision rather than
+an omission. Every tower carries a Gold price, so zero Gold already means zero
+towers on the opening frame. What Wood, Food and Stone decide is *which element*
+the first affordable tower may be — Fire is the one pure-Gold line — so emptying
+them would not harden the opening, it would quietly force Fire for Act I. Wood
+and Food also pay for town repair and hero tending, which are not tower capital.
+If that reading is ever revisited, revisit it as a decision.
+
+**Built and green on 2026-08-25.** The best-case opening ramp puts the first
+tower on wave 3 and the four-road baseline on wave 8, against a lane progression
+that opens the second road on wave 3 and the fourth on wave 10. Peak run
+pressure is unchanged at 0.63 — starting Gold was only about 12% of a run's
+total income — but Act I now ramps 0.06 → 0.48 instead of sitting at 0.02–0.19.
+
+Two things had to learn about the change and both are gates now. `curve_report`
+models hero DPS as part of capability, because with no towers the hero *is* the
+defence for the opening waves and a tower-only model divides by nothing there.
+`balance_test` asserts the new contract at both ends: wave 1 alone must **not**
+pay for a tower, and a first tower must be affordable by wave 4. Any harness
+that wants to build without the economy being its subject must fund itself with
+`RunState.gain_every_currency` — three of them were silently leaning on the old
+390-Gold cache.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

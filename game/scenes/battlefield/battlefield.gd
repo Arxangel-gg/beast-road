@@ -1471,7 +1471,18 @@ func _update_pressure() -> void:
 		var enemy := node as Enemy
 		if enemy == null or enemy.is_dying():
 			continue
-		var lane: int = clampi(enemy.lane, 0, Balance.LANE_COUNT - 1)
+		# The lane the enemy is in *now*, not the one it spawned in.
+		#
+		# `enemy.lane` is written once at spawn and never again, so the readout
+		# was describing the wave's opening shape for as long as the wave lasted.
+		# An enemy that breaks off the road to chase the hero can end up bearing
+		# on a different side of the town entirely, and it was still counted
+		# against the road it entered by - lighting the wrong arc, and grading its
+		# depth by projecting onto a road it had already left, which gives a
+		# smaller number the further off-road it gets. Two wrong answers that
+		# happened to look plausible together.
+		var lane: int = grid.lane_at(enemy.global_position) if grid != null \
+			else clampi(enemy.lane, 0, Balance.LANE_COUNT - 1)
 		# Distance *along the road*, not straight-line. With a U-bend those are
 		# different answers: an enemy at the far end of the detour is close to the
 		# town as the crow flies and still has most of the road left to walk.

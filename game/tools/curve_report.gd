@@ -118,12 +118,21 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	var speed: float = director._speed_scale(0)
 
 	var threat: float = float(bodies) * hp
+
 	# Killing pays for the next wall, so income is a function of the bodies
 	# already dealt with rather than of the clock. Modelling it as time-based
 	# reported a flat capability for the whole run, which would have made every
 	# ratio below meaningless.
 	_earned_gold += float(bodies) * _gold_per_body()
-	var capability: float = _affordable_dps(_earned_gold)
+	# The hero counts toward the defence now, and has to.
+	#
+	# While the run began with four towers up, leaving the hero out was a
+	# conservative simplification: towers were the floor and the hero was the
+	# bonus. The zero-capital start inverts that for the opening - for the first
+	# waves the hero *is* the entire defence - and a model scoring those waves as
+	# having no defence at all divides by nothing and reports an infinite spike
+	# exactly where the design intends its gentlest moment.
+	var capability: float = _hero_dps() + _affordable_dps(_earned_gold)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -132,6 +141,27 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
 	}
+
+
+## The hero's own sustained damage, as a floor.
+##
+## One full three-hit combo against a single target: the windup, active and
+## recovery of each swing for the time, the damage of all three for the numerator.
+## Single-target on purpose - the swing arcs are 110 and 170 degrees and the
+## finisher lunges, so a real hero in a pack does better than this. A floor is
+## what a capability model wants.
+##
+## Read from the same arrays the hero fights with, so a rebalance of the combo
+## moves this number too rather than leaving a typed-in constant behind.
+func _hero_dps() -> float:
+	var damage: float = 0.0
+	var duration: float = 0.0
+	for index: int in Balance.HERO_ATTACK_DAMAGE.size():
+		damage += Balance.HERO_ATTACK_DAMAGE[index]
+		duration += Balance.HERO_ATTACK_WINDUP[index] \
+			+ Balance.HERO_ATTACK_ACTIVE[index] \
+			+ Balance.HERO_ATTACK_RECOVERY[index]
+	return damage / maxf(duration, 0.01)
 
 
 ## Average Gold a body is worth, across the enemies that actually walk on.

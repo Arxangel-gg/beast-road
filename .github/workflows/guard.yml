@@ -169,6 +169,13 @@ jobs:
           # left held when the controls go away. The machine this is developed on
           # has no touchscreen, so without this the only test is a phone.
           check "touch controls" --headless --path game res://tools/touch_check.tscn
+          # The bugs the owner reported on 2026-08-24, held so they stay fixed.
+          # Every one of them was a quiet failure rather than a crash - an enemy
+          # facing the wrong way, a threat readout describing a wave that had
+          # moved on, a boss's pack outliving the act, a dash button eating taps
+          # on the main menu. Nothing errored, which is exactly why none of them
+          # were caught by anything that runs.
+          check "regressions" --headless --path game res://tools/regression_check.tscn
 
       - name: Say what broke
         if: failure()
