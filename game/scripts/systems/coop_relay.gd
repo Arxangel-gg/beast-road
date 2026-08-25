@@ -48,6 +48,7 @@ enum Fact {
 	ENEMY_SPAWNED = 9,
 	ENEMY_BATCH = 10,
 	ENEMY_REMOVED = 11,
+	XP_AWARDED = 12,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -181,6 +182,7 @@ func _fact_bindings() -> Array:
 		["coop_enemy_spawned", _on_coop_enemy_spawned],
 		["coop_enemy_batch", _on_coop_enemy_batch],
 		["coop_enemy_removed", _on_coop_enemy_removed],
+		["coop_xp_awarded", _on_coop_xp_awarded],
 	]
 
 
@@ -240,6 +242,10 @@ func _on_coop_enemy_batch(entries: Array) -> void:
 
 func _on_coop_enemy_removed(net_id: int) -> void:
 	_relay(Fact.ENEMY_REMOVED, [net_id])
+
+
+func _on_coop_xp_awarded(amount: float) -> void:
+	_relay(Fact.XP_AWARDED, [amount])
 
 
 # --- Sending -----------------------------------------------------------------
@@ -376,6 +382,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.ENEMY_REMOVED:
 			if args.size() == 1:
 				bus.coop_enemy_removed.emit(int(args[0]))
+		Fact.XP_AWARDED:
+			if args.size() == 1:
+				bus.coop_xp_awarded.emit(float(args[0]))
 	_replaying = false
 
 

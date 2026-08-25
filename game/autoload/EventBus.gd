@@ -303,3 +303,10 @@ signal coop_enemy_removed(net_id: int)
 ## The host refused something this machine asked for, with a reason already
 ## written for a player to read. Guest-side.
 signal coop_request_refused(kind: int, reason: String)
+
+## Experience was earned, and both players get it (owner ruling, 2026-08-25).
+##
+## The amount awarded, never a running total. Heroes persist per account and
+## arrive at different levels, so sending a total would overwrite the higher hero
+## with the lower one's number.
+signal coop_xp_awarded(amount: float)

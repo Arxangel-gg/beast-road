@@ -2828,3 +2828,10 @@ const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
 ## "co-op is too rich" is a number rather than a redesign; 1.0 means no trim,
 ## which is where it starts because the measured curve did not need one.
 const COOP_KILL_INCOME_SCALE: float = 1.0
+
+## The pool of shadow at the foot of a torch post, in world units. [TUNE]
+##
+## Given rather than measured: the ironwork is drawn from polygons and has no
+## texture to size a shadow from. Narrow, because a torch is a post - a wide pool
+## reads as a barrel.
+const TORCH_SHADOW_WIDTH: float = 26.0
