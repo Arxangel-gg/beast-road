@@ -122,6 +122,14 @@ var boss_cores: Array[String] = []
 ## account save.
 var towers: Dictionary = {}
 
+## Traps laid on the roads, keyed by tile: {trap_id, triggers_left}.
+##
+## Beside the towers rather than inside them, because the two obey opposite
+## placement rules - a tower may not stand on a lane and a trap is worthless
+## anywhere else - and one dictionary holding both would mean every reader had to
+## know which kind it had found before it could ask anything useful.
+var traps: Dictionary = {}
+
 # --- Hero ------------------------------------------------------------------
 
 var equipped_spells: Array[String] = []
@@ -200,6 +208,7 @@ var resources_spent: int = 0
 var currency_earned: Dictionary = {}
 var currency_spent: Dictionary = {}
 var towers_built: int = 0
+var traps_laid: int = 0
 var tower_upgrades: int = 0
 var towers_sold: int = 0
 var towers_lost: int = 0
@@ -358,6 +367,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	boss_cores.clear()
 
 	towers.clear()
+	traps.clear()
 
 	equipped_spells.clear()
 	trained_discipline_nodes.clear()
@@ -408,6 +418,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		currency_earned[id] = 0
 		currency_spent[id] = 0
 	towers_built = 0
+	traps_laid = 0
 	tower_upgrades = 0
 	towers_sold = 0
 	towers_lost = 0
@@ -792,6 +803,29 @@ func set_tower(anchor: Vector2i, tower_id: String, level: int) -> void:
 		TowerData.TargetPriority.FIRST))
 	towers[anchor] = {"tower_id": tower_id, "level": level, "target_priority": priority}
 	EventBus.tower_changed.emit(anchor)
+
+
+## What is laid on a tile, or null.
+func trap_at(tile: Vector2i) -> TrapData:
+	var entry: Dictionary = traps.get(tile, {}) as Dictionary
+	return ContentDB.trap(String(entry.get("trap_id", "")))
+
+
+## How many triggers that trap has left.
+func trap_triggers_left(tile: Vector2i) -> int:
+	return int((traps.get(tile, {}) as Dictionary).get("triggers_left", 0))
+
+
+func set_trap(tile: Vector2i, trap_id: String, triggers_left: int) -> void:
+	traps[tile] = {"trap_id": trap_id, "triggers_left": triggers_left}
+	EventBus.trap_changed.emit(tile)
+
+
+func clear_trap(tile: Vector2i) -> void:
+	if not traps.has(tile):
+		return
+	traps.erase(tile)
+	EventBus.trap_changed.emit(tile)
 
 
 func clear_tower(anchor: Vector2i) -> void:

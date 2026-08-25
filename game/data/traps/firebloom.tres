@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trap_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "firebloom"
+display_name = "Firebloom"
+description = "Goes off once, and everything on it burns."
+triggers = 1
+arm_seconds = 1.00
+damage = 70.0
+radius = 150.0
+knockback = 90.0
+slow_factor = 1.00
+slow_duration = 0.0
+burn_dps = 26.0
+burn_duration = 5.0
+cost = {"gold": 55, "stone": 20}
+colour = Color(0.95, 0.55, 0.25, 1)

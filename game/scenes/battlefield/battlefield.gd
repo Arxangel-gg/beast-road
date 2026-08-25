@@ -53,6 +53,9 @@ func activate() -> void:
 ## with free placement there is nothing to pre-instantiate, so towers appear and
 ## disappear as RunState changes and this dictionary is how they are found again.
 var _towers: Dictionary = {}
+
+## Laid traps, keyed by tile. Mirrors `_towers`.
+var _traps: Dictionary = {}
 var _suspended: bool = false
 
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
@@ -150,6 +153,7 @@ func _ready() -> void:
 	grid = BattleGrid.new()
 	_build_lanes()
 	EventBus.tower_changed.connect(_on_tower_changed)
+	EventBus.trap_changed.connect(_on_trap_changed)
 	placement = PlacementCursor.new()
 	placement.name = "PlacementCursor"
 	placement.setup(self)
@@ -887,6 +891,38 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 	return ""
 
 
+## Lays a trap on a road tile, or says why not.
+##
+## Deliberately the same shape as `try_build`, including asking
+## `RunState.can_build_now()` first. CLAUDE.md §1 locks construction to
+## Preparation and says not to reopen it; a trap placed mid-combat would reopen
+## exactly that, so it goes through the same single gate every other build path
+## asks. Reversing the decision stays a one-line change rather than an
+## archaeology exercise.
+##
+## The placement rule is *inverted* against a tower's and that is the point: a
+## trap must be **on** a road, where a tower must not be.
+func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
+	if not RunState.can_build_now():
+		return "Traps are laid during Preparation."
+	if trap_data == null:
+		return "No trap selected."
+	if grid == null:
+		return "The battlefield is not ready."
+	if grid.cell_at(tile) != BattleGrid.Cell.ROAD:
+		return "A trap only works on a road."
+	if RunState.traps.has(tile):
+		return "Something is already laid here."
+	var cost: Dictionary = trap_data.cost
+	if not RunState.can_afford_cost(cost):
+		return "Needs %s." % RunState.format_cost(cost)
+	RunState.spend_cost(cost)
+	RunState.set_trap(tile, trap_data.id, trap_data.triggers)
+	RunState.traps_laid += 1
+	Vfx.build_burst(BattleGrid.tile_to_world(tile), trap_data.colour)
+	return ""
+
+
 ## Why a 2x2 tower cannot stand here, or "".
 ##
 ## Two separate questions, because two different objects own the answers: the
@@ -1470,6 +1506,38 @@ static func _transform_path_mask(mask: int, transform_id: int) -> int:
 ## it. That is why building, selling, refunding an orphaned fusion and a tower
 ## being destroyed all end up here through one signal rather than each spawning
 ## and freeing nodes for themselves.
+## Brings the trap nodes into line with what RunState says is laid.
+##
+## Rebuilt from the run state rather than tracked alongside it, exactly as the
+## towers are. That is what makes a guest free: it is told what is laid where, it
+## writes it, and the nodes follow - no separate replication for the objects
+## themselves.
+func _on_trap_changed(tile: Vector2i) -> void:
+	var wanted: TrapData = RunState.trap_at(tile)
+	var existing: Trap = _traps.get(tile, null) as Trap
+
+	if wanted == null:
+		if existing != null and is_instance_valid(existing):
+			existing.queue_free()
+		_traps.erase(tile)
+		return
+
+	if existing != null and is_instance_valid(existing) and existing.data == wanted:
+		existing.set_triggers_left(RunState.trap_triggers_left(tile))
+		return
+
+	if existing != null and is_instance_valid(existing):
+		existing.queue_free()
+
+	var trap := Trap.new()
+	trap.setup(wanted, tile, self)
+	trap.global_position = BattleGrid.tile_to_world(tile)
+	trap.puppet = Coop.is_guest()
+	entity_root.add_child(trap)
+	trap.set_triggers_left(RunState.trap_triggers_left(tile))
+	_traps[tile] = trap
+
+
 func _on_tower_changed(anchor: Vector2i) -> void:
 	var wanted: TowerData = RunState.tower_at(anchor)
 	var existing: Tower = _towers.get(anchor, null) as Tower

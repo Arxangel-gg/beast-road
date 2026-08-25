@@ -19,6 +19,7 @@ var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
 var wildlife_kinds: Dictionary = {}
 var companions: Dictionary = {}
+var traps: Dictionary = {}
 var tiers: Dictionary = {}
 var gear_kinds: Dictionary = {}
 
@@ -45,6 +46,7 @@ func _ready() -> void:
 	weathers = _load_dir("res://data/weather")
 	wildlife_kinds = _load_dir("res://data/wildlife")
 	companions = _load_dir("res://data/companions")
+	traps = _load_dir("res://data/traps")
 	tiers = _load_dir("res://data/tiers")
 	gear_kinds = _load_dir("res://data/gear")
 	buildings = _load_dir("res://data/buildings")
@@ -131,6 +133,21 @@ func weather(id: String) -> WeatherData:
 ##
 ## Sorted by id rather than left in directory order, because the spawner rolls
 ## against this list and a seeded run must pick the same animal on two machines.
+func trap(id: String) -> TrapData:
+	return traps.get(id, null) as TrapData
+
+
+## Every trap that can be laid, in a stable order for the build panel.
+func trap_kinds() -> Array[TrapData]:
+	var out: Array[TrapData] = []
+	for value: Variant in traps.values():
+		var kind := value as TrapData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: TrapData, b: TrapData) -> bool: return a.id < b.id)
+	return out
+
+
 func companion(id: String) -> CompanionData:
 	return companions.get(id, null) as CompanionData
 

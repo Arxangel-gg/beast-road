@@ -283,6 +283,18 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
 	guest_at: Vector2, guest_aim: Vector2)
 
+## A trap was laid on a tile, spent a trigger, or was cleared.
+signal trap_changed(tile: Vector2i)
+
+## A trap went off. Carries what is left, so the HUD need not ask.
+signal trap_triggered(tile: Vector2i, trap_id: String, triggers_left: int)
+
+## A trap appeared, changed, or was cleared — on the host's say-so.
+signal coop_trap_state(tile: Vector2i, trap_id: String, triggers_left: int)
+
+## A trap went off — on the host's say-so.
+signal coop_trap_fired(tile: Vector2i)
+
 ## A tower appeared, changed tier, or went away — on the host's say-so.
 ## An empty `tower_id` means the plot is now clear.
 signal coop_tower_state(anchor: Vector2i, tower_id: String, level: int)

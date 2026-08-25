@@ -1894,9 +1894,35 @@ has its design settled and written down; no netcode is written yet.
 - [ ] **Barricade perimeter with broken entrances.** A real tower-defense idea,
       raised with a question mark. It interacts with freeform placement
       (§13/§20) and with enemy pathing, and v4 describes it nowhere.
-- [ ] **Trap placements.** Same standing. Also note it brushes the locked build
-      phase: traps placed mid-combat would reopen the decision CLAUDE.md §1
-      says not to reopen, so if traps happen, they are Preparation-placed.
+- [x] **Trap placements.** Built 2026-08-25. Three kinds: Spike Pit (three
+      bites), Tar Snare (holds a road still and hurts nothing), Firebloom (one
+      burst, and everything on it burns).
+
+      Three decisions, each pinned by the gate because none of them would
+      announce itself by breaking.
+
+      **Preparation-only, through the same single gate.** Laying a trap asks
+      `RunState.can_build_now()` — the function every other build path asks — so
+      §1's locked decision stays reversible in one line. A trap droppable
+      mid-combat reopens that decision without erroring; it just quietly becomes
+      a different game.
+
+      **The placement rule is inverted.** A tower may not stand on a lane; a trap
+      is worthless anywhere else. That is why it is its own resource and its own
+      path rather than a `TowerData` with a flag — a flag would mean every caller
+      of `placement_problem` had to remember which way round it was reading, and
+      two opposite rules a few lines apart is how one gets written backwards.
+
+      **They are consumed.** Triggers, then gone. That is what stops a lane being
+      solved once and ceasing to be a lane, and it is why a trap can hit hard
+      without being a cheaper tower that cannot be shot.
+
+      Damage is deliberately unscaled by hero modifiers: a trap is the town's,
+      not the hero's. Co-op replication came almost free on the same dividend
+      towers gave — the battlefield rebuilds trap nodes from `RunState`, so a
+      guest told what is laid where writes it and the node follows. Guest traps
+      are puppets, or two machines would each spend the same trap's triggers
+      against their own copies of the enemies.
 - [x] **Summon companion — Wolf, Crow and Bear.** Built 2026-08-25 after the
       owner reaffirmed "continue with everything remaining" twice against a
       standing flag that this wanted a ruling. Three spells, three

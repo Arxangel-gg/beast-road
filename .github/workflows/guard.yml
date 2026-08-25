@@ -195,6 +195,11 @@ jobs:
           # being applied and a second cast that stacked would neither error nor
           # look wrong in a screenshot.
           check "companions" --headless --path game res://tools/companion_check.tscn
+          # Traps: laid on roads, in Preparation, and consumed. All three are
+          # rules nothing else would notice being broken - a trap that could be
+          # dropped mid-combat reopens the locked build phase without erroring,
+          # and one that stopped counting down would look entirely normal.
+          check "traps" --headless --path game res://tools/trap_check.tscn
           # Co-op step 1: a host and a guest in one process, over a real
           # loopback socket. Two MultiplayerAPI instances can coexist because
           # one is registered per subtree, which is the only reason co-op can be

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trap_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "spike_pit"
+display_name = "Spike Pit"
+description = "Bites three times, then it is a hole."
+triggers = 3
+arm_seconds = 0.80
+damage = 110.0
+radius = 86.0
+knockback = 30.0
+slow_factor = 1.00
+slow_duration = 0.0
+burn_dps = 0.0
+burn_duration = 0.0
+cost = {"gold": 40, "wood": 20}
+colour = Color(0.86, 0.72, 0.5, 1)

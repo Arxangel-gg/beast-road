@@ -74,6 +74,10 @@ func _ready() -> void:
 	EventBus.tower_fired.connect(_on_tower_fired)
 	EventBus.phase_changed.connect(_on_phase_changed)
 	EventBus.coop_phase.connect(_on_coop_phase)
+	EventBus.trap_changed.connect(_on_trap_changed)
+	EventBus.coop_trap_state.connect(_on_coop_trap_state)
+	EventBus.trap_triggered.connect(_on_trap_triggered)
+	EventBus.coop_trap_fired.connect(_on_coop_trap_fired)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
@@ -276,6 +280,47 @@ func _on_coop_phase(phase: int, _previous: int) -> void:
 	RunState.set_phase(phase as RunState.Phase)
 
 
+## This machine's own traps changed. Host side.
+##
+## The same shape the towers use, and free for the same reason: the battlefield
+## rebuilds its trap nodes from `RunState` on one signal, so a guest told what is
+## laid where writes it and the node follows.
+func _on_trap_changed(tile: Vector2i) -> void:
+	if not _is_authority_with_company():
+		return
+	var data: TrapData = RunState.trap_at(tile)
+	EventBus.coop_trap_state.emit(tile, data.id if data != null else "",
+		RunState.trap_triggers_left(tile))
+
+
+## A trap was laid, spent or cleared, on the host's say-so. Guest side.
+func _on_coop_trap_state(tile: Vector2i, trap_id: String, triggers_left: int) -> void:
+	if not Coop.is_guest():
+		return
+	if trap_id.is_empty():
+		RunState.clear_trap(tile)
+	else:
+		RunState.set_trap(tile, trap_id, triggers_left)
+
+
+## One of this machine's traps went off. Host side.
+func _on_trap_triggered(tile: Vector2i, _trap_id: String, _left: int) -> void:
+	if not _is_authority_with_company():
+		return
+	EventBus.coop_trap_fired.emit(tile)
+
+
+## The host's trap went off, so ours draws it. Guest side.
+func _on_coop_trap_fired(tile: Vector2i) -> void:
+	if not Coop.is_guest():
+		return
+	for node: Node in get_tree().get_nodes_in_group(Trap.GROUP):
+		var trap := node as Trap
+		if trap != null and trap.tile == tile:
+			trap.fire()
+			return
+
+
 ## This machine's own tower took a shot. Host side.
 ##
 ## Relayed as a fact rather than left for each machine to derive, because it
@@ -339,6 +384,10 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 		CoopRelay.Request.UPGRADE_TOWER:
 			if args.size() == 1:
 				_answer(from, kind, battlefield.try_upgrade(args[0] as Vector2i))
+		CoopRelay.Request.PLACE_TRAP:
+			if args.size() == 2:
+				_answer(from, kind, battlefield.try_place_trap(args[0] as Vector2i,
+					ContentDB.trap(String(args[1]))))
 
 
 ## Tells one peer why it did not get what it asked for.

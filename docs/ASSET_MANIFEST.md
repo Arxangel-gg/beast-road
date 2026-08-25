@@ -623,6 +623,16 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
 
+### 5.10 Traps — `res://art/traps/`
+
+All 64×64, type T, placeholder colour `#DBB96B`.
+
+Drawn top-down rather than in profile, unlike everything else this size: a trap
+lies flat on the road and is looked at from above, where a wolf or a deer stands
+on it and is looked at from the side.
+
+`trap_spike_pit.png` · `trap_tar_snare.png` · `trap_firebloom.png`
+
 ### 5.10a Companions — `res://art/companions/`
 
 All 64×64, type T, placeholder colour `#9EC8FF`.
