@@ -60,7 +60,10 @@ pause, and hero death with partner revive.
    was reversed on the number rather than on the intuition.
 4. **The UI vertical-bar rework** — the largest remaining code item, and one
    whose acceptance test is "does this feel right on a phone".
-5. **§57 copy review**, minimum-spec definition, and the juice pass.
+5. **All three are now done** — §57 copy review, the minimum-spec definition
+   and the juice pass. Two of them left something behind that is worth reading:
+   the §57 review found a live regression path rather than a bad string, and the
+   minimum spec is *declared but not verified*. See `MINIMUM_SPEC.md`.
 5. **Weather does not drive the foliage wind** — the one weather row left.
 
 **A caution worth keeping.** Three features this session compiled, loaded and

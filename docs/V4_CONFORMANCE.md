@@ -131,6 +131,6 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Key rebinding | all actions | `class:KeyBindings` |
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
 | Controller parity | every screen focusable | `manual` |
-| 60 FPS at 1920x1080 | on minimum spec | `manual` |
+| 60 FPS at 1920x1080 | on minimum spec | `manual` — spec now declared in `MINIMUM_SPEC.md`, but **derived rather than verified**: nothing has been run on a machine of that class |
 | No placeholder or orphan assets | manifest clean | `manual` |
 | Night playable at minimum brightness | readability under load | `manual` |

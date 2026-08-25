@@ -115,8 +115,8 @@ func _seed_buildings() -> void:
 			"Hero max health, movement and spell cooldown."],
 		["granary", "Granary", BuildingData.Effect.RESOURCE_RATE, [0.30, 0.65, 1.10], 144.0, false, false,
 			"Raises the resource yield of every distance unit walked."],
-		["scavenging_post", "Scavenging Post", BuildingData.Effect.CAPTIVE_LABOUR, [1.0, 2.0, 3.0], 216.0, false, true,
-			"Work detail. Assigned prisoners raise the resource yield."],
+		["scavenging_post", "Scavenger Lodge", BuildingData.Effect.CAPTIVE_LABOUR, [1.0, 2.0, 3.0], 216.0, false, true,
+			"Assigns an Oathbound leader to one specialist duty for the run."],
 		["watchtower", "Watchtower", BuildingData.Effect.WAVE_FORESIGHT, [1.0, 2.0, 3.0], 288.0, false, false,
 			"Reveals the makeup of the next wave before it arrives."],
 	]
@@ -216,11 +216,25 @@ func _seed_terrains() -> void:
 
 
 ## The framing words live here and only here — see CaptiveData's header.
+##
+## **These were v3's and they were not updated when v4's framing was adopted.**
+## The shipped `.tres` files had been corrected by hand to the Oathbound wording;
+## this seeder, which *regenerates* those files, still said "Captive", "Bind" and
+## "is bound to the town and put to work". So the release requirement in GDD §57
+## - that no unreviewed enslavement language ships - was one `content_seeder`
+## run away from being violated by a file nobody would have thought to re-read.
+##
+## Found by the §57 copy review on 2026-08-25. The lesson generalises: correcting
+## generated content without correcting its generator leaves the old words in the
+## only place that can put them back.
 func _seed_captives() -> void:
 	var rows: Array = [
-		["bogkin", "Bog-kin Chieftain", 1.0],
-		["glassborn", "Glass-born Chieftain", 1.2],
-		["steppehorde", "Steppe Chieftain", 1.4],
+		["bogkin", "Coal-Eye Oathbound", 1.0,
+			"The Coal-Eye leader swears a road-oath to Yuri for this journey."],
+		["glassborn", "Sunglass Oathbound", 1.2,
+			"The Sunglass leader accepts a specialist oath for this journey."],
+		["steppehorde", "Rimebound Oathbound", 1.4,
+			"The Rimebound leader joins Yuri under a one-journey oath."],
 	]
 	for row: Array in rows:
 		var c := CaptiveData.new()
@@ -228,9 +242,12 @@ func _seed_captives() -> void:
 		c.display_name = row[1]
 		c.breed_id = row[0]
 		c.work_multiplier = row[2]
-		c.role_noun = "Captive"
-		c.acquire_verb = "Bind"
-		c.acquire_line = "%s is bound to the town and put to work." % c.display_name
+		c.role_noun = "Oathbound"
+		c.acquire_verb = "Assign"
+		# Bespoke per faction, and every one of them says the same three things:
+		# the leader acts, the oath is accepted rather than imposed, and it ends
+		# with the journey.
+		c.acquire_line = String(row[3])
 		var allowed: Array[String] = ["scavenging_post"]
 		c.allowed_building_ids = allowed
 		_write(c, "res://data/captives/%s.tres" % c.id)
@@ -259,7 +276,7 @@ func _seed_relics() -> void:
 		["17", "Widow's Bell", "enemy_damage", -0.10, "They strike weakly."],
 		["18", "Thresher's Chain", "knockback", 0.35, "Blows carry."],
 		["19", "Pale Lantern", "wave_foresight", 1.0, "You see them coming."],
-		["20", "Oathbreaker's Seal", "captive_output", 0.40, "The work detail yields more."],
+		["20", "Oathbreaker's Seal", "captive_output", 0.40, "An Oathbound leader's duty yields more."],
 	]
 	for row: Array in rows:
 		var r := RelicData.new()

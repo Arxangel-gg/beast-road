@@ -182,6 +182,13 @@ jobs:
           # on the main menu. Nothing errored, which is exactly why none of them
           # were caught by anything that runs.
           check "regressions" --headless --path game res://tools/regression_check.tscn
+          # GDD §57 makes "no unreviewed enslavement language ships" a release
+          # requirement. It was a thing somebody remembered to do until the
+          # 2026-08-25 review found the seeder still writing v3's "Captive",
+          # "Bind" and "is bound to the town and put to work" - one run from
+          # putting it all back. A release requirement that depends on somebody
+          # remembering is not a requirement, it is a hope.
+          check "§57 copy" --headless --path game res://tools/copy_check.tscn
           # Co-op step 1: a host and a guest in one process, over a real
           # loopback socket. Two MultiplayerAPI instances can coexist because
           # one is registered per subtree, which is the only reason co-op can be

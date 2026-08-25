@@ -8,10 +8,15 @@ extends GameData
 ## The class name and save field remain for migration compatibility. Shipped
 ## player-facing language is Oathbound throughout.
 
-## What the player is called in relation to this unit, e.g. "Captive", "Oathbound".
+## What this unit is called in relation to the player, e.g. "Oathbound", "Sworn".
+##
+## The examples matter. They used to read "Captive", "Bind", "Claim" - the v3
+## vocabulary - which quietly told every future author which way to write. GDD
+## §57 makes "no unreviewed enslavement language ships" a release requirement,
+## and a doc comment offering the wrong word is how an unreviewed one gets in.
 @export var role_noun: String = "Oathbound"
 
-## The verb used when acquiring one, e.g. "Bind", "Conscript", "Claim".
+## The verb for taking one on, e.g. "Assign", "Swear", "Welcome".
 @export var acquire_verb: String = "Assign"
 
 ## The line shown on the raid victory screen.

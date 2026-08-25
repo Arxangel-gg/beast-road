@@ -435,7 +435,7 @@ func _effect_text(data: BuildingData, tier: int) -> String:
 			return "+%d%% hero health, speed and cooldowns" % int(amount * 100.0)
 		BuildingData.Effect.CAPTIVE_LABOUR:
 			var details: int = int(amount)
-			return "%d work detail%s" % [details, "" if details == 1 else "s"]
+			return "%d dut%s" % [details, "y" if details == 1 else "ies"]
 		BuildingData.Effect.BLUEPRINTS:
 			return "tower mastery level %d unlocked" % clampi(
 				Balance.TOWER_BASE_LEVEL_CAP + tier, 1, Balance.TOWER_MAX_LEVEL)

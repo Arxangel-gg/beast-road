@@ -295,10 +295,10 @@ static func try_market_service() -> String:
 
 static func try_assign_captive(captive_id: String, building_id: String) -> String:
 	if not RunState.can_build_now():
-		return "Work details are assigned during Preparation."
+		return "Duties are assigned during Preparation."
 	var data: BuildingData = ContentDB.building(building_id)
 	if data == null or not data.accepts_captives:
-		return "That building takes no work detail."
+		return "That building takes no duty."
 	if RunState.building_tier(building_id) <= 0:
 		return "Build it first."
 	var captive: CaptiveData = ContentDB.captive(captive_id)
