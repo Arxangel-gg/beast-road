@@ -136,6 +136,7 @@ func _ready() -> void:
 			"clouds": Graphics.set_switch(Graphics.KEY_CLOUDS, false)
 			"particles": Graphics.set_switch(Graphics.KEY_PARTICLES, 0.0)
 			"foliage": Graphics.set_switch(Graphics.KEY_FOLIAGE, 0.0)
+			"lights": _kill_lights()
 			_: push_warning("Unknown --off feature '%s'." % feature)
 	# The player's stored cap is irrelevant to a throughput test. Apply the
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
@@ -273,6 +274,18 @@ func _check_timing() -> void:
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 	])
+	# Where the frame actually goes.
+	#
+	# Added after the minimum-spec work, which found that turning off cast
+	# shadows, contact shadows, clouds, particles and foliage *together* did not
+	# improve the frame time at all - so 13-14 ms was going somewhere none of the
+	# quality settings touch, and the report could not say where. A total with no
+	# breakdown tells you that you have a problem and nothing about whose it is.
+	var script_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var physics_ms: float = Performance.get_monitor(
+		Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	_notes.append("frame split  process %.1f ms  physics %.1f ms  rest %.1f ms"
+		% [script_ms, physics_ms, maxf(average - script_ms - physics_ms, 0.0)])
 
 	if not _has_renderer():
 		_notes.append("timing NOT asserted: the dummy renderer does no GPU work, "
@@ -365,6 +378,31 @@ func _tail_over_head(values: Array[float]) -> float:
 
 func _has_renderer() -> bool:
 	return DisplayServer.get_name() != "headless" and RenderingServer.get_video_adapter_name() != ""
+
+
+## Switches every 2D light off, for pricing them.
+##
+## Not a quality setting, and that is exactly why it is worth being able to
+## measure: there is no slider a player can move to reduce the light count, so if
+## lights turn out to be the fixed cost then the fixed cost is not something the
+## player can do anything about. Deferred a frame so the scopes have built.
+func _kill_lights() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var killed: int = 0
+	for node: Node in _all_nodes(get_tree().root):
+		var light := node as Light2D
+		if light != null:
+			light.enabled = false
+			killed += 1
+	print("[perf] lights disabled: %d" % killed)
+
+
+func _all_nodes(from: Node) -> Array[Node]:
+	var out: Array[Node] = [from]
+	for child: Node in from.get_children():
+		out.append_array(_all_nodes(child))
+	return out
 
 
 func _renderer_name() -> String:
