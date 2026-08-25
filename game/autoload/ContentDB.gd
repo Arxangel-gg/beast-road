@@ -18,6 +18,7 @@ var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
 var wildlife_kinds: Dictionary = {}
+var companions: Dictionary = {}
 var tiers: Dictionary = {}
 var gear_kinds: Dictionary = {}
 
@@ -43,6 +44,7 @@ func _ready() -> void:
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
 	wildlife_kinds = _load_dir("res://data/wildlife")
+	companions = _load_dir("res://data/companions")
 	tiers = _load_dir("res://data/tiers")
 	gear_kinds = _load_dir("res://data/gear")
 	buildings = _load_dir("res://data/buildings")
@@ -129,6 +131,10 @@ func weather(id: String) -> WeatherData:
 ##
 ## Sorted by id rather than left in directory order, because the spawner rolls
 ## against this list and a seeded run must pick the same animal on two machines.
+func companion(id: String) -> CompanionData:
+	return companions.get(id, null) as CompanionData
+
+
 func wildlife() -> Array[WildlifeData]:
 	var out: Array[WildlifeData] = []
 	for value: Variant in wildlife_kinds.values():

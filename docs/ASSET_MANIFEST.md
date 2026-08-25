@@ -623,6 +623,21 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
 
+### 5.10a Companions — `res://art/companions/`
+
+All 64×64, type T, placeholder colour `#9EC8FF`.
+
+The three summonable spirits. Sized and lit to match the wildlife rather than the
+enemies, because they read at the same distance and against the same ground — and
+tinted toward the summon's pale blue so a Spirit Wolf is not mistaken for
+something that turned up on its own.
+
+`companion_wolf.png` · `companion_crow.png` · `companion_bear.png`
+
+No attack pose. One authored strike frame per companion is three more sprites for
+something on screen ten seconds at a time; the lunge toward the target is a
+transform and reads at any zoom.
+
 ### 5.10b Wildlife — `res://art/wildlife/`
 
 All 64×64, type T, placeholder colour `#7A8B6E`.

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SpellData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 8
+cooldown = 26.0
+damage = 0.0
+effect_radius = 0.0
+duration = 0.0
+companion_id = "wolf"
+id = "call_wolf"
+display_name = "Call the Wolf"
+description = "Summons a Spirit Wolf to hunt beside you."

@@ -25,6 +25,13 @@ signal cooldown_changed(slot: int, ratio: float)
 
 var field: EnemyField = null
 
+## The hero this casts for. Assigned by `Hero`, beside `field`.
+##
+## Handed in rather than reached for with `get_parent()`, which is CLAUDE.md §5's
+## rule and earns its keep here: a companion has to know whose it is, and in
+## co-op there are two heroes with two casters and the wrong answer is silent.
+var hero: Node2D = null
+
 ## Seconds remaining per slot, indexed the same as RunState.equipped_spells.
 var _cooldowns: Array[float] = []
 
@@ -157,6 +164,31 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			_beam_spell = spell
 			_beam_left = spell.duration
 			_beam_aim = aim
+		SpellData.Kind.COMPANION:
+			_summon(spell, origin, aim)
+
+
+## Calls a companion in beside the hero.
+##
+## Placed a little way along the aim rather than on top of the caster, so it
+## arrives *between* the hero and whatever they were pointing at - which is where
+## a summon is wanted, and it saves the first second of it walking there.
+##
+## Only one at a time per hero. A second cast replaces the first rather than
+## stacking, because two Bears is a party and §54 cut that; replacing also gives
+## the spell an honest use while it is already up.
+func _summon(spell: SpellData, origin: Vector2, aim: Vector2) -> void:
+	var data: CompanionData = ContentDB.companion(spell.companion_id)
+	if data == null or field == null:
+		return
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var existing := node as Companion
+		if existing != null and existing.owner_hero == hero:
+			existing.dismiss()
+	var companion := Companion.new()
+	companion.setup(data, hero, field)
+	companion.global_position = origin + aim.normalized() * 70.0
+	field.add_child(companion)
 
 
 func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2) -> float:

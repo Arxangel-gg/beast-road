@@ -148,6 +148,7 @@ func _ready() -> void:
 	attack.landed.connect(_on_attack_landed)
 
 	spells.field = field
+	spells.hero = self
 	spells.blink_requested.connect(_on_blink)
 	spells.veil_requested.connect(_on_veil)
 	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))

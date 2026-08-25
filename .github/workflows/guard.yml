@@ -189,6 +189,12 @@ jobs:
           # putting it all back. A release requirement that depends on somebody
           # remembering is not a requirement, it is a hope.
           check "§57 copy" --headless --path game res://tools/copy_check.tscn
+          # The summons, and specifically the two properties that keep them a
+          # spell rather than the party roster §54 cut: they expire, and there is
+          # only ever one. Both would rot silently - a duration that stopped
+          # being applied and a second cast that stacked would neither error nor
+          # look wrong in a screenshot.
+          check "companions" --headless --path game res://tools/companion_check.tscn
           # Co-op step 1: a host and a guest in one process, over a real
           # loopback socket. Two MultiplayerAPI instances can coexist because
           # one is registered per subtree, which is the only reason co-op can be

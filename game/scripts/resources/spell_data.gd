@@ -25,7 +25,18 @@ enum Kind {
 	WARD,
 	## Channelled beam along the aim direction for `duration`.
 	BEAM,
+	## Summons the companion named by `companion_id` for its own duration.
+	##
+	## Appended, never renumbered: a saved loadout stores the kind, and an older
+	## save must not read a newer build's spell as a different one.
+	COMPANION,
 }
+
+## Which companion a COMPANION spell calls. Ignored by every other kind.
+##
+## A name rather than an embedded resource, so the three summons are three data
+## files and adding a fourth needs no new spell code at all.
+@export var companion_id: String = ""
 
 @export var kind: Kind = Kind.NOVA
 

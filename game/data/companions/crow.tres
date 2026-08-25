@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CompanionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/companion_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "crow"
+display_name = "Spirit Crow"
+description = "Fast, frail work. It reaches what you cannot."
+duration = 16.0
+damage = 17.0
+attack_interval = 0.42
+attack_range = 76.0
+hunt_range = 620.0
+speed = 430.0
+follow_distance = 120.0
+knockback = 14.0
+flies = true
+scale = 0.60
+colour = Color(0.7, 0.76, 1, 1)

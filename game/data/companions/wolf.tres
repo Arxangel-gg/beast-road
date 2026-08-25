@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CompanionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/companion_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wolf"
+display_name = "Spirit Wolf"
+description = "It runs the lane down and does not stop."
+duration = 14.0
+damage = 30.0
+attack_interval = 0.75
+attack_range = 88.0
+hunt_range = 520.0
+speed = 340.0
+follow_distance = 96.0
+knockback = 70.0
+flies = false
+scale = 0.85
+colour = Color(0.62, 0.82, 1, 1)

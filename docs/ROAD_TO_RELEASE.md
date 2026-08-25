@@ -1897,11 +1897,30 @@ has its design settled and written down; no netcode is written yet.
 - [ ] **Trap placements.** Same standing. Also note it brushes the locked build
       phase: traps placed mid-combat would reopen the decision CLAUDE.md §1
       says not to reopen, so if traps happen, they are Preparation-placed.
-- [ ] **Summon companion spell - Wolf / Crow / Bear.** Not a hero *swap*, so
-      §54's "multiple heroes, party roster" cut does not obviously catch it,
-      but a second permanent body on the field is near enough that line to want
-      an explicit ruling. The cheap version is a hero discipline node in §720's
-      roster rather than a new system.
+- [x] **Summon companion — Wolf, Crow and Bear.** Built 2026-08-25 after the
+      owner reaffirmed "continue with everything remaining" twice against a
+      standing flag that this wanted a ruling. Three spells, three
+      `CompanionData` resources, three sprites.
+
+      **The §54 question is answered by the duration, and that is the whole
+      design.** A second *permanent* body is the party roster wearing a different
+      word. A summon that expires is a spell effect — Beast's Breath with legs —
+      so companions have a duration, and a second cast replaces rather than
+      stacks. Those two properties are what keep this inside the cut, so the gate
+      asserts them directly: both would rot silently, since neither a duration
+      that stopped applying nor a stacking second cast would error or look wrong
+      in a screenshot.
+
+      Kept small by the same decision. Companions have no health and nothing
+      targets them, so the targeting, threat and death-payout systems never learn
+      a new kind of thing exists — the difference between adding a spell and
+      adding a unit. Damage goes through the ordinary `take_damage` with
+      `active_hero` false: a companion's hit is the hero's damage at one remove,
+      not the hero's swing, so finisher discipline nodes do not fire for it.
+
+      Differentiated by role rather than by numbers. Wolf runs things down, Crow
+      is fragile reach and the only flier, Bear is slow and throws what it
+      reaches (210 knockback).
 
 ---
 
