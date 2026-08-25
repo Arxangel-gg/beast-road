@@ -280,8 +280,23 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 ## Named by role rather than by "mine" and "theirs" on purpose: the two swap
 ## across the wire, and a guest reading its own body as its partner's would have
 ## each player watching the other wearing their name.
-signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
-	guest_at: Vector2, guest_aim: Vector2)
+## Both heroes, as the host sees them: where they are, where they point, and
+## how much health they have left.
+##
+## Health rides along rather than getting a signal of its own because it changes
+## on the same clock and would otherwise be a second packet describing the same
+## two people. It travels as a **fraction**, so each machine applies it against
+## its own hero's maximum - the two arrive at different levels with different
+## maximum HP, and an absolute would hand a level-5 host's number to a level-20
+## guest.
+signal coop_hero_state(host_at: Vector2, host_aim: Vector2, host_hp: float,
+	guest_at: Vector2, guest_aim: Vector2, guest_hp: float)
+
+## The host dropped loot and gave it an identity.
+signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2)
+
+## That loot was picked up — on the host's say-so.
+signal coop_loot_taken(net_id: int)
 
 ## A barricade was raised, damaged or broken.
 signal barricade_changed(tile: Vector2i)

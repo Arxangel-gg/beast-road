@@ -79,6 +79,13 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_defeated_juice)
 	EventBus.hero_levelled.connect(_on_hero_levelled)
 	EventBus.hero_respawned.connect(_on_hero_respawned)
+	# The vignette is driven by health, so with no hero left to report any, it
+	# keeps whatever it was last told. Dying at the end of a run therefore
+	# carried the red edge onto the main menu and stayed there - reported from
+	# play, and invisible to anything that only ever looks at the battlefield.
+	EventBus.run_ended.connect(func(_won: bool, _s: Dictionary) -> void:
+		clear_vignette())
+	EventBus.run_started.connect(func() -> void: clear_vignette())
 
 
 func _build_screen_layer() -> void:
@@ -158,6 +165,21 @@ func clear() -> void:
 	if _container != null and is_instance_valid(_container):
 		for child: Node in _container.get_children():
 			child.queue_free()
+	clear_vignette()
+
+
+## Takes the red edge off the screen.
+##
+## Separate from `clear`, because the two are cleared at different moments: the
+## effect layer goes with the scope it was drawn in, and the vignette goes with
+## the *run*. A scope change must not wipe the warning that the hero is nearly
+## dead.
+func clear_vignette() -> void:
+	if _vignette == null or not is_instance_valid(_vignette):
+		return
+	var material: ShaderMaterial = _vignette.material as ShaderMaterial
+	if material != null:
+		material.set_shader_parameter("strength", 0.0)
 
 
 ## Parents an effect and enforces the cap by freeing the oldest child. Children

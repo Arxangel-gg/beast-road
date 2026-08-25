@@ -4,19 +4,19 @@
 
 [resource]
 script = ExtResource("1")
-id = "fox"
-display_name = "Fox"
-description = "Alone, and keeping its distance."
-acts = Array[int]([1, 2])
-weight = 1.20
+id = "raccoon"
+display_name = "Raccoon"
+description = "Turning over whatever the road left behind."
+acts = Array[int]([2, 3])
+weight = 1.10
 group_min = 1
-group_max = 1
-speed = 110.0
-roam = 380.0
-skittish_radius = 300.0
-flee_speed_scale = 2.80
+group_max = 2
+speed = 88.0
+roam = 300.0
+skittish_radius = 260.0
+flee_speed_scale = 2.60
 flies = false
-scale = 1.50
+scale = 1.15
 art_faces_right = false
 stay_min = 30.0
-stay_max = 80.0
+stay_max = 75.0

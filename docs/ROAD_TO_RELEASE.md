@@ -1735,6 +1735,37 @@ has its design settled and written down; no netcode is written yet.
       chill and burn were still landing locally on puppets, which is the same
       class of mistake damage had already been fixed for.
 
+- [~] **Second play report, 2026-08-25 — and almost every symptom was one bug.**
+      Enemies ignoring the guest, the guest taking no damage, the guest never
+      being targeted by melee or ranged, loot flying only to the host: all of it
+      was `hero_node()` meaning *this machine's player* and enemies asking it.
+      There is a `nearest_hero()` now, kept distinct because the camera and the
+      HUD genuinely do want the other question.
+
+      **The guest was running its own waves.** The relayed phase change woke its
+      wave director, which began spawning a formation of real enemies from its
+      own queue that the host had never heard of. The guest was looking at two
+      waves — one mirrored, one invented — which is the whole of "some enemies
+      are only visible to one of us".
+
+      **Hero health was never replicated at all.** Each machine simulated its own
+      copy, so the two held different opinions about whether anybody was hurt,
+      and a guest could die locally while standing up on the host. It travels as
+      a fraction now, applied against each hero's own maximum, because the two
+      arrive at different levels.
+
+      **The stutter was a second, separate flaw.** Puppets aimed to arrive
+      exactly as the next packet landed, so a packet one frame late left the body
+      standing still and then jerking. They coast on their last known speed now
+      and are redirected rather than restarted.
+
+      Also: loot replicates (host places and banks, guest sees and hears), and
+      the hurt vignette is cleared with the run rather than riding onto the menu.
+
+      Gated at the root: with two heroes on the field, an enemy beside the
+      partner is offered the partner, one beside the local hero gets that one,
+      and a downed hero is offered to nobody however close they are.
+
 - [ ] **Co-op played by two people on two machines.** Every co-op gate is a
       headless loopback in one process. That proves the transport, the
       authority model and the plumbing; it proves nothing about how co-op

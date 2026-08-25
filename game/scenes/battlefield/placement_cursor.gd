@@ -15,6 +15,14 @@ extends Node2D
 ## The player clicked a legal tile. The HUD opens the build panel on it.
 signal tile_clicked(anchor: Vector2i)
 
+## A *road* tile was clicked, which is a different question with a different
+## answer: plots take towers, roads take traps and barricades.
+##
+## Its own signal rather than a flag on the one above, because the two open
+## different panels offering different things, and a caller that had to ask
+## "which kind was it" before it could act would be the same decision made twice.
+signal road_tile_clicked(tile: Vector2i)
+
 ## How often the hover is recomputed. The mouse moves continuously; the *tile*
 ## under it does not, and re-querying placement legality every frame is work for
 ## an answer that changes a few times a second.
@@ -79,6 +87,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	# so a misclick on a road does not close whatever the player had open.
 	if _field.placement_problem(tile).is_empty() or not RunState.tile_is_empty(tile):
 		tile_clicked.emit(tile)
+		get_viewport().set_input_as_handled()
+		return
+
+	# A road, which until now did nothing at all - and was therefore the reason
+	# traps and barricades shipped with no way to reach them. The exact tile
+	# under the cursor rather than the 2x2 anchor: a trap occupies one tile, and
+	# offsetting it half a footprint would lay it on the tile beside the one the
+	# player pointed at.
+	var exact: Vector2i = BattleGrid.world_to_tile(get_global_mouse_position())
+	if _field.grid.cell_at(exact) == BattleGrid.Cell.ROAD:
+		road_tile_clicked.emit(exact)
 		get_viewport().set_input_as_handled()
 
 

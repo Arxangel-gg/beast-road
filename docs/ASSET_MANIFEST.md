@@ -668,7 +668,14 @@ past that is detail nobody will ever be close enough to see. Adding a creature i
 a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 
 `wildlife_raven.png` · `wildlife_fox.png` · `wildlife_rabbit.png` ·
-`wildlife_deer.png`
+`wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png`
+
+**The art faces left, except the squirrel, which faces right.** That is declared
+per creature in the `.tres` (`art_faces_right`) rather than assumed globally, and
+the reason is that assuming is what went wrong the first time: the flip was
+written for right-facing sprites against art drawn facing left, and every animal
+in the game walked backwards. The squirrel then came out of the generator facing
+the other way regardless of the prompt, which is precisely why the flag exists.
 
 ### 5.10c Wildlife idle frames — `res://art/wildlife/`
 
@@ -683,6 +690,24 @@ Files: `wildlife_raven_idle_01.png`
 Files: `wildlife_fox_idle_01.png`
 Files: `wildlife_rabbit_idle_01.png`
 Files: `wildlife_deer_idle_01.png`
+Files: `wildlife_squirrel_idle_01.png`
+Files: `wildlife_raccoon_idle_01.png`
+
+### 5.10d Wildlife move frames — `res://art/wildlife/`
+
+All 64×64, type T, placeholder colour `#7A8B6E`.
+
+The walking half of each pair, on the `_move_01` convention that mirrors the idle
+one. Standing still and walking are two sequences over one source sprite, so a
+creature can ship with either, both or neither — the animator falls back to a
+transform where a sequence is missing.
+
+Files: `wildlife_raven_move_01.png`
+Files: `wildlife_fox_move_01.png`
+Files: `wildlife_rabbit_move_01.png`
+Files: `wildlife_deer_move_01.png`
+Files: `wildlife_squirrel_move_01.png`
+Files: `wildlife_raccoon_move_01.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 
@@ -765,11 +790,18 @@ All 192×192, type T, placeholder colour `#8C3A2B`.
 `discipline_cleaving_road.png` · `discipline_chain_hook.png` ·
 `discipline_iron_roar.png` · `discipline_tremor.png` ·
 `discipline_rising_fury.png` · `discipline_no_ground_given.png` ·
-`discipline_beasts_breath.png` · `discipline_break_the_host.png`
+`discipline_beasts_breath.png` · `discipline_break_the_host.png` ·
+`discipline_call_wolf.png` · `discipline_call_crow.png` ·
+`discipline_call_bear.png`
 
 The three families share blackened iron and aged brass; Blood uses controlled
 crimson, Holy uses ivory-gold, and Berserk uses ember-orange so discipline
 identity survives without relying on text alone.
+
+The three summons break that scheme on purpose: they are ghost-blue in all three
+families, because what they have in common is being a *spirit* rather than
+belonging to a school. One is offered per discipline, so any hero can reach a
+companion and no hero can hold all three.
 
 ### 5.14 Combination towers — `res://art/towers/`
 

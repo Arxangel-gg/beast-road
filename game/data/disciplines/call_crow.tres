@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+discipline = 0
+role = 2
+mansion_tier = 2
+food_cost = 65
+spell_id = "call_crow"
+effect_id = ""
+effect_value = 0.0
+id = "call_crow"
+display_name = "Call the Crow"
+description = "Summons a Spirit Crow to harry the road."

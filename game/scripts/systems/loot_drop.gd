@@ -1,7 +1,7 @@
 class_name LootDrop
 extends Node2D
 
-## A dropped reward that flies to the hero when they come near.
+## A dropped reward that flies to the nearest hero when they come near.
 ##
 ## **It is a bonus, never the base income.** The kill still pays its resources
 ## the instant it dies, exactly as before; this drops an *extra* share on top for
@@ -16,6 +16,13 @@ extends Node2D
 
 ## Group so the battlefield can sweep them when it tears down.
 const GROUP: StringName = &"loot"
+
+## Identity across the wire, assigned by the host. 0 means local-only.
+var net_id: int = 0
+
+## True when the host decides whether this is collected and this machine only
+## draws it. A guest's drops are pictures of the host's.
+var puppet: bool = false
 
 var currency: String = ""
 var amount: int = 0
@@ -101,7 +108,12 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_life += delta
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
+	# The *nearest* hero, not the one holding the hero group.
+	#
+	# That group answers "which hero does the HUD describe", which is this
+	# machine's own - so in co-op every coin on the field flew to the host and
+	# ignored the guest standing on top of it.
+	var hero: Node2D = _nearest_hero()
 	if hero != null and is_instance_valid(hero):
 		var to_hero: Vector2 = hero.global_position - global_position
 		var distance: float = to_hero.length()
@@ -138,7 +150,42 @@ func _process(delta: float) -> void:
 		_collect()
 
 
+## Whichever hero is closest, of however many there are.
+func _nearest_hero() -> Node2D:
+	var best: Node2D = null
+	var best_distance: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not who.is_alive():
+			continue
+		var distance: float = global_position.distance_to(who.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = who
+	return best
+
+
+## Taken on the host's say-so: the feedback without the payout.
+##
+## A guest still gets the pop, the number and the sound, because that is what
+## tells the player their friend picked something up. It does not gain the
+## currency, because `RunState` already has it from the host.
+func collect_mirrored() -> void:
+	Sfx.play_group("loot_collect")
+	if gear.is_empty() and amount > 0:
+		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
+	else:
+		Vfx.ring(global_position, _glow_size * 0.55, _glow_colour, 0.32, 4.0)
+	queue_free()
+
+
 func _collect() -> void:
+	# A guest's drop is a picture. The host decides what was picked up and says
+	# so, or two machines would each bank the same coin.
+	if puppet:
+		return
+	if net_id != 0:
+		EventBus.coop_loot_taken.emit(net_id)
 	if not gear.is_empty():
 		var result: Dictionary = MetaState.receive_gear(gear)
 		var stored: bool = bool(result.get("stored", false))

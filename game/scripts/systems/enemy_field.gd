@@ -29,6 +29,17 @@ func hero_is_alive() -> bool:
 	return false
 
 
+## The closest living hero to a point, of however many there are.
+##
+## Distinct from `hero_node()`, and the difference is the whole of co-op being
+## playable. `hero_node()` means *this machine's player* — the camera follows it,
+## the HUD describes it. An enemy has no such attachment: it should walk at
+## whichever hero is nearer, and asking it the local one made every enemy in a
+## two-player game ignore the guest completely.
+func nearest_hero(_from: Vector2) -> Node2D:
+	return null
+
+
 ## Body radius of anything an enemy might walk up to and hit.
 func target_radius(_node: Node2D) -> float:
 	return 40.0

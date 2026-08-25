@@ -73,6 +73,17 @@ func resume_after_breather() -> void:
 func _process(delta: float) -> void:
 	if not _running:
 		return
+	# **A guest never runs waves.**
+	#
+	# This is the whole of "some enemies are only visible to one of us". The
+	# phase change is relayed, so a guest's director woke up with it and began
+	# spawning its own formation - real enemies, from its own queue, that the
+	# host had never heard of and could not touch. The guest was then looking at
+	# two waves: the host's, mirrored, and its own, invented.
+	#
+	# The guest's enemies arrive entirely as facts. It has no wave to run.
+	if Coop.is_guest():
+		return
 
 	if not _spawn_queue.is_empty():
 		_spawn_timer -= delta

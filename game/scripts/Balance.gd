@@ -1132,13 +1132,21 @@ const TOWN_JOLT_SHOVE: float = 7.0
 const BARRICADE_GRIP_RADIUS: float = 90.0
 const BARRICADE_GRIP_SECONDS: float = 0.6
 
-const WILDLIFE_MAX: int = 14
+const WILDLIFE_MAX: int = 22
 const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
-const WILDLIFE_FIELD_SPAN: float = 1150.0
+## How far out from the town animals are placed.
+##
+## Widened from 1150: the ground being scattered across was barely larger than
+## the road network, so animals only ever appeared among the lanes. Reported as
+## wanting more life *beyond* the paths - the placement rule already keeps them
+## off the roads, it simply was not being offered much ground that is not one.
+## [TUNE]
+const WILDLIFE_FIELD_SPAN: float = 2000.0
 const WILDLIFE_ENTRY_DISTANCE: float = 1500.0
 const WILDLIFE_PAUSE_MIN: float = 1.6
 const WILDLIFE_PAUSE_MAX: float = 7.0
 const WILDLIFE_IDLE_FRAME_RATE: float = 2.6
+const WILDLIFE_MOVE_FRAME_RATE: float = 7.5
 const WILDLIFE_BOB_RATE: float = 11.0
 const WILDLIFE_BOB_SCALE: float = 0.09
 
@@ -2465,7 +2473,28 @@ const SHADOW_LAYER_UNITS: int = 2
 # ------------------------------------------------------------------------------
 
 ## Clumps scattered per terrain. [TUNE]
-const FOLIAGE_COUNT: int = 420
+## How far out plants are scattered, in world units.
+##
+## Comfortably past the lane network at 900. The scatter used to stop at 1.15x
+## that, so everything grew among the roads and the ground beyond them was empty
+## - which reads as a map that stops rather than a place that continues. [TUNE]
+const FOLIAGE_REACH: float = 2100.0
+
+## A measured compromise rather than a density target.
+##
+## Holding the old density across the new reach wants ~1700 clumps, because area
+## grows with the square. Measured, that costs 2.3 ms a frame and lands the
+## worst-case wave at 61 fps against a 60 requirement - no headroom at all on a
+## machine far above the declared minimum.
+##
+## So the field is *thinner further out*, which is also what ground away from a
+## road looks like. `FOLIAGE_INNER_BIAS` keeps the density near the lanes, where
+## the player actually is, close to what it was. [TUNE]
+const FOLIAGE_COUNT: int = 1050
+
+## How strongly the scatter crowds inward. 0.5 is uniform by area; lower packs
+## more of it near the roads and leaves the outer ground sparse.
+const FOLIAGE_INNER_BIAS: float = 0.38
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15
@@ -3058,3 +3087,10 @@ const COOP_DOWNED_REVIVE_HP: float = 0.35
 ## packet landing, narrow enough that it cannot pick a different enemy in a
 ## crowd. Roughly one and a half tiles. [TUNE]
 const COOP_SHOT_MATCH_RANGE: float = 96.0
+
+## How long a mirrored body keeps walking on its last known speed before giving
+## up and standing still.
+##
+## Long enough to ride out a late packet or two, short enough that a dropped
+## connection does not march the whole field off the map. [TUNE]
+const COOP_MIRROR_COAST_LIMIT: float = 0.75

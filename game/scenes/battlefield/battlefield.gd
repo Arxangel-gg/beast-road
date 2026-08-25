@@ -59,6 +59,9 @@ var _traps: Dictionary = {}
 
 ## Raised barricades, keyed by tile.
 var _barricades: Dictionary = {}
+
+## Rising identity for relayed loot. Host side only.
+var _loot_net_id: int = 0
 var _suspended: bool = false
 
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
@@ -693,16 +696,41 @@ func hero_node() -> Node2D:
 	return hero
 
 
+## Whether *anybody* is still standing.
+##
+## Any hero, not the local one. An enemy asking "is there a hero to go for" in a
+## two-player game is asking about the pair.
 func hero_is_alive() -> bool:
-	return hero != null and hero.is_alive()
+	for who: Hero in heroes():
+		if who.is_alive():
+			return true
+	return false
+
+
+## The closest living hero to a point.
+func nearest_hero(from: Vector2) -> Node2D:
+	var best: Hero = null
+	var best_distance: float = INF
+	for who: Hero in heroes():
+		if not who.is_alive():
+			continue
+		var distance: float = from.distance_to(who.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = who
+	return best
 
 
 ## Body radius of anything an enemy might walk up to and hit.
 func target_radius(node: Node2D) -> float:
 	if node == town:
 		return town.radius()
-	if node == hero:
-		return hero.contact_radius()
+	# Any hero, not just the local one. A guest's hero measured at the default
+	# 40 would be reached from the wrong distance - enemies stopping short of it,
+	# or swinging from too far away.
+	var who := node as Hero
+	if who != null and heroes().has(who):
+		return who.contact_radius()
 	return 40.0
 
 
@@ -787,9 +815,39 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 func spawn_loot(currency: String, amount: int, at: Vector2) -> void:
 	if amount <= 0:
 		return
+	# A guest never drops its own loot. Enemies die on the host, so the coins are
+	# the host's to place - a guest that scattered its own would have twice as
+	# many on screen as the run actually paid out.
+	if Coop.is_guest():
+		return
 	var drop := LootDrop.new()
 	drop.setup(currency, amount, at)
+	if Coop.is_host() and Coop.partner_present():
+		_loot_net_id += 1
+		drop.net_id = _loot_net_id
+		EventBus.coop_loot_spawned.emit(drop.net_id, currency, amount, at)
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
+## Puts a mirrored coin on a guest's field. Draws only; the host banks it.
+func mirror_loot(net_id: int, currency: String, amount: int, at: Vector2) -> void:
+	var drop := LootDrop.new()
+	drop.setup(currency, amount, at)
+	drop.net_id = net_id
+	drop.puppet = true
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
+## Removes a mirrored coin, because the host says it was taken.
+func take_mirrored_loot(net_id: int) -> void:
+	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
+		var drop := node as LootDrop
+		if drop != null and drop.net_id == net_id:
+			# Through the ordinary collect path, so a guest still gets the pop
+			# and the sound - it simply does not gain the currency, because
+			# RunState already has it from the host.
+			drop.collect_mirrored()
+			return
 
 
 func spawn_gear(piece: Dictionary, at: Vector2) -> void:

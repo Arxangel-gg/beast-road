@@ -365,6 +365,13 @@ func hero_is_alive() -> bool:
 	return hero != null and hero.is_alive()
 
 
+## One hero in a raid, so nearest is simply that one. Overridden anyway rather
+## than left to the base class, which returns null - an enemy that found no hero
+## in an arena where the hero is the only objective would stand still.
+func nearest_hero(_from: Vector2) -> Node2D:
+	return hero if hero != null and hero.is_alive() else null
+
+
 func target_radius(node: Node2D) -> float:
 	return hero.contact_radius() if node == hero else 40.0
 

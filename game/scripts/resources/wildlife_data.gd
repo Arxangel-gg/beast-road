@@ -43,7 +43,20 @@ extends GameData
 @export var flies: bool = false
 
 ## Drawn size, as a multiple of the sprite's own pixels.
-@export_range(0.2, 3.0) var scale: float = 1.0
+##
+## Judge these against the hero, not against each other: the hero is 128px of art
+## at `HERO_SPRITE_SCALE` 1.75, so about 224 world units tall. A deer stands with
+## its back at roughly a person's shoulder, so it wants ~200 units — which at
+## 64px of art means a scale near 3, not near 1. The first pass had every one of
+## these under 1 and they read as toys on the grass.
+@export_range(0.2, 6.0) var scale: float = 1.0
+
+## True when the source art faces right. All six ship facing **left**.
+##
+## Declared rather than assumed, because assuming is what went wrong: the flip
+## was written for right-facing art against sprites that were drawn facing left,
+## so every animal in the game walked backwards.
+@export var art_faces_right: bool = false
 
 ## Seconds this creature stays before wandering off, as a range.
 @export_range(4.0, 600.0) var stay_min: float = 30.0

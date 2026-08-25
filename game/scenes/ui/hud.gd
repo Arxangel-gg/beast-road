@@ -190,6 +190,12 @@ var _message_left: float = 0.0
 var _lane_ring: Control
 var _build_panel: PanelContainer
 
+## The road sheet: traps and barricades, for the tile that was clicked.
+var _road_panel: PanelContainer
+var _road_list: VBoxContainer
+var _road_title: Label
+var _road_tile: Vector2i = Vector2i.ZERO
+
 ## Which element's towers the build panel is showing, or -1 for none. Survives a
 ## refresh, because building a tower rebuilds the panel and collapsing the rail
 ## each time would fight the player placing three Water towers in a row.
@@ -245,6 +251,7 @@ func _ready() -> void:
 	_build_lane_ring()
 	_build_nav_bar()
 	_build_tower_panel()
+	_build_road_panel()
 	_build_raid_panel()
 	_build_boss_track()
 	_build_bottom_row()
@@ -295,6 +302,7 @@ func _ready() -> void:
 
 	if battlefield != null and battlefield.placement != null:
 		battlefield.placement.tile_clicked.connect(_open_build_panel)
+		battlefield.placement.road_tile_clicked.connect(_open_road_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
 	_refresh_currencies()
@@ -748,6 +756,100 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 	b.pressed.connect(on_press)
 	parent.add_child(b)
 	return b
+
+
+## The road sheet: what can be put *on* a lane, as opposed to beside one.
+##
+## A separate panel from the build sheet rather than a tab inside it, because the
+## two answer different questions and are reached by clicking different things. A
+## player who clicked a road wants to know what goes on a road.
+##
+## Its absence is why traps and barricades shipped unreachable: both systems
+## were built, gated and replicated, and there was no way for a person to touch
+## either of them. Gates do not check that a feature can be found.
+func _build_road_panel() -> void:
+	_road_panel = PanelContainer.new()
+	_road_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_road_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+	_road_panel.offset_right = -_build_panel_inset()
+	_road_panel.offset_top = -_build_panel_lift()
+	_road_panel.offset_bottom = -_build_panel_lift()
+	_road_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_road_panel.visible = false
+	add_child(_road_panel)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	_road_panel.add_child(column)
+
+	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 8)
+	var icon: TextureRect = IconKit.rect("blueprint", 28.0)
+	if icon != null:
+		heading.add_child(icon)
+	_road_title = _label("The road", 22)
+	heading.add_child(_road_title)
+	column.add_child(heading)
+
+	_road_list = VBoxContainer.new()
+	_road_list.add_theme_constant_override("separation", 8)
+	_road_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_child(_road_list)
+
+	var close: Button = _add_button(column, "Close",
+		func() -> void: _road_panel.visible = false)
+	IconKit.on_button(close, "close", 22)
+
+
+## Opens it on one tile, listing what may be put there.
+func _open_road_panel(tile: Vector2i) -> void:
+	if _road_panel == null or battlefield == null:
+		return
+	_road_tile = tile
+	_close_build_panel()
+	_road_panel.visible = true
+	_refresh_road_panel()
+
+
+func _refresh_road_panel() -> void:
+	for child: Node in _road_list.get_children():
+		child.queue_free()
+	var lane: int = BattleGrid.lane_at(BattleGrid.tile_to_world(_road_tile))
+	_road_title.text = "%s road  ·  %d paces out" % [
+		LANE_NAMES[clampi(lane, 0, 3)],
+		int(round(BattleGrid.tile_to_world(_road_tile).length() / BattleGrid.TILE))]
+
+	var standing: TrapData = RunState.trap_at(_road_tile)
+	var wall: BarricadeData = RunState.barricade_at(_road_tile)
+	if standing != null or wall != null:
+		var name: String = standing.display_name if standing != null else wall.display_name
+		var note: Label = _label("%s is already here." % name, 15)
+		note.add_theme_color_override("font_color", Color("aebcb8"))
+		_road_list.add_child(note)
+	else:
+		for trap: TrapData in ContentDB.trap_kinds():
+			_add_road_row(trap.display_name, trap.description, trap.cost,
+				func() -> void: _report(battlefield.try_place_trap(_road_tile, trap)))
+		for value: Variant in ContentDB.barricades.values():
+			var barricade := value as BarricadeData
+			if barricade == null:
+				continue
+			_add_road_row(barricade.display_name, barricade.description,
+				barricade.cost,
+				func() -> void: _report(battlefield.try_raise_barricade(
+					_road_tile, barricade)))
+	UiMetrics.apply_touch_tree(_road_panel, touch_ui())
+
+
+## One offer on the road sheet.
+func _add_road_row(name: String, description: String, cost: Dictionary,
+		on_press: Callable) -> void:
+	var row: Button = _add_button(_road_list, "%s   %s" % [
+		name, RunState.format_cost(cost)], func() -> void:
+		on_press.call()
+		_refresh_road_panel())
+	row.tooltip_text = description
+	row.disabled = not RunState.can_afford_cost(cost)
 
 
 ## The build panel: everything visible at once, no scrolling in either axis.

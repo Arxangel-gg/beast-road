@@ -80,6 +80,8 @@ func _ready() -> void:
 	EventBus.coop_trap_fired.connect(_on_coop_trap_fired)
 	EventBus.barricade_changed.connect(_on_barricade_changed)
 	EventBus.coop_barricade_state.connect(_on_coop_barricade_state)
+	EventBus.coop_loot_spawned.connect(_on_coop_loot_spawned)
+	EventBus.coop_loot_taken.connect(_on_coop_loot_taken)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
@@ -280,6 +282,25 @@ func _on_coop_phase(phase: int, _previous: int) -> void:
 	if not Coop.is_guest():
 		return
 	RunState.set_phase(phase as RunState.Phase)
+
+
+## The host dropped a coin, so one appears here too. Guest side.
+func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
+		at: Vector2) -> void:
+	if not Coop.is_guest():
+		return
+	var battlefield := field as Battlefield
+	if battlefield != null:
+		battlefield.mirror_loot(net_id, currency, amount, at)
+
+
+## The host says that coin was picked up. Guest side.
+func _on_coop_loot_taken(net_id: int) -> void:
+	if not Coop.is_guest():
+		return
+	var battlefield := field as Battlefield
+	if battlefield != null:
+		battlefield.take_mirrored_loot(net_id)
 
 
 ## This machine's own barricades changed. Host side.

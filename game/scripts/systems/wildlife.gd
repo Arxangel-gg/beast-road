@@ -146,6 +146,7 @@ func _spawn(kind: WildlifeData, at: Vector2) -> void:
 		"home": at,
 		"goal": at,
 		"idle": GameData.load_idle_frames(path),
+		"move": GameData.load_move_frames(path),
 		"frame_clock": _rng.randf() * 4.0,
 		"pause": 0.0,
 		"patience": _rng.randf_range(kind.stay_min, kind.stay_max),
@@ -179,9 +180,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	if moving:
 		var step: Vector2 = toward.normalized() * speed * delta
 		sprite.global_position += step
-		# Facing from motion, like everything else in this game that walks.
+		# Facing from motion, against the *art's own* direction rather than a
+		# guess. The sprites are drawn facing left, the flip was written for
+		# right-facing art, and the result was six species walking backwards.
 		if absf(step.x) > 0.001:
-			sprite.flip_h = step.x < 0.0
+			sprite.flip_h = (step.x > 0.0) != kind.art_faces_right
 	else:
 		match state:
 			State.ARRIVING:
@@ -212,17 +215,20 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 ## perfectly still, which is what makes a sprite read as a cut-out.
 func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 		moving: bool) -> void:
-	var frames := animal["idle"] as Array
 	var kind := animal["data"] as WildlifeData
-	if not frames.is_empty() and not moving:
-		animal["frame_clock"] = float(animal["frame_clock"]) \
-			+ delta * Balance.WILDLIFE_IDLE_FRAME_RATE
+	# Two authored sequences, chosen by what the animal is doing. Walking has its
+	# own frames now rather than borrowing the standing pose and bobbing it,
+	# which read as a cut-out being slid along the ground.
+	var frames := (animal["move"] if moving else animal["idle"]) as Array
+	var rate: float = Balance.WILDLIFE_MOVE_FRAME_RATE if moving 		else Balance.WILDLIFE_IDLE_FRAME_RATE
+	if not frames.is_empty():
+		animal["frame_clock"] = float(animal["frame_clock"]) + delta * rate
 		var index: int = int(floor(float(animal["frame_clock"]))) % frames.size()
 		sprite.texture = frames[index] as Texture2D
 		sprite.scale.y = kind.scale
 		return
-	if not frames.is_empty():
-		sprite.texture = frames[0] as Texture2D
+	# No authored frames for this state: the transform keeps it from standing
+	# perfectly still, which is what makes a sprite read as a cut-out.
 	animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_BOB_RATE
 	var bob: float = absf(sin(float(animal["bob"]))) if moving else 0.0
 	sprite.scale.y = kind.scale * (1.0 + bob * Balance.WILDLIFE_BOB_SCALE)
@@ -238,7 +244,9 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 	if kind.skittish_radius <= 0.0:
 		return false
-	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP):
+	# Every hero, not the local one: a rabbit that only bolted from the host
+	# sat perfectly still while the guest walked through it.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
 		var hero := node as Node2D
 		if hero != null and at.distance_to(hero.global_position) < kind.skittish_radius:
 			return true

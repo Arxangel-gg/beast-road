@@ -50,6 +50,13 @@ var _mirror_target: Vector2 = Vector2.ZERO
 var _mirror_left: float = 0.0
 var _mirror_ratio: float = 0.0
 
+## The speed the last two packets implied, so a puppet keeps moving between them.
+var _mirror_velocity: Vector2 = Vector2.ZERO
+
+## How long the host has been quiet, so a dropped connection stops rather than
+## walking the whole field off the map.
+var _mirror_stale: float = 0.0
+
 enum State {
 	WALKING,
 	WINDUP,
@@ -229,6 +236,26 @@ func _tick_puppet(delta: float) -> void:
 		var step: float = minf(delta / _mirror_left, 1.0)
 		global_position = global_position.lerp(_mirror_target, step)
 		_mirror_left -= delta
+	else:
+		# **Keep walking when the packets run out.**
+		#
+		# Arriving exactly as the next packet lands is right only if it lands on
+		# time. One that is late by a single frame left the body standing
+		# perfectly still and then jerking off toward its new target - arrive,
+		# stop, jerk, arrive, stop - which is precisely what "stutter step" looks
+		# like from the other seat.
+		#
+		# So when the window runs out it carries on at the speed it was last
+		# told, and the next packet redirects it rather than restarting it. Being
+		# a little wrong while moving reads as an enemy walking; being exactly
+		# right while stopped does not.
+		global_position += _mirror_velocity * delta
+		_mirror_stale += delta
+		# Unless the host has been quiet long enough that guessing is worse than
+		# waiting - a body that keeps walking on a dropped connection walks off
+		# the map.
+		if _mirror_stale > Balance.COOP_MIRROR_COAST_LIMIT:
+			_mirror_velocity = Vector2.ZERO
 	_motion = (global_position - _puppet_last) / maxf(delta, 0.0001)
 	_puppet_last = global_position
 	if animator != null and data != null:
@@ -284,8 +311,15 @@ func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 	if _mirror_left <= 0.0 and _mirror_target == Vector2.ZERO:
 		global_position = at
 		_puppet_last = at
+	# Derived from the *previous* target rather than from where the body actually
+	# is: the body is mid-correction and its own displacement is part
+	# interpolation, which would feed the error back into the guess.
+	var window: float = maxf(_mirror_ratio, 0.05)
+	if _mirror_target != Vector2.ZERO:
+		_mirror_velocity = (at - _mirror_target) / window
+	_mirror_stale = 0.0
 	_mirror_target = at
-	_mirror_left = maxf(_mirror_ratio, 0.05)
+	_mirror_left = window
 	# The wind-up, the strike and the recovery all read from `_state`: it drives
 	# the tell's pulsing tint and the animator's posture. A puppet given only a
 	# position is an enemy that kills you with no warning, because the telegraph
@@ -522,7 +556,10 @@ func _pick_target() -> Node2D:
 		var structure: Node2D = _field.vulnerable_tower_in_lane(lane, global_position)
 		if structure != null and is_instance_valid(structure):
 			return structure
-	var hero: Node2D = _field.hero_node()
+	# The *nearest* hero, not this machine's own. Asking for the local one made
+	# every enemy in a two-player game walk past the guest as though they were
+	# not there - no aggro, no melee, no ranged fire, and therefore no damage.
+	var hero: Node2D = _field.nearest_hero(global_position)
 	var town: Node2D = _field.town_node()
 	# A barricade is not chosen over the hero: a wall does not distract somebody
 	# already in a fight. It is chosen over the *town*, because it is the thing

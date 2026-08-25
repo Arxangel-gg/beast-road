@@ -333,8 +333,22 @@ func refresh_quality() -> void:
 	scatter()
 
 
+## Somewhere on the field to try planting.
+##
+## The reach is well past the road network on purpose. It used to stop at 1.15x
+## the lane radius, which is barely wider than the lanes themselves - so every
+## plant in the game grew *among* the roads and the ground beyond them was bare.
+## Reported as wanting more life outside the paths, and this is the half of it
+## that is foliage.
+##
+## The exponent on the roll decides how it thins out. An exponent of 0.5 - a
+## plain square root - is uniform density by area, because a ring's area grows
+## with its distance out. Below that the scatter crowds inward, which is both
+## cheaper and truer: ground away from a road really is sparser than ground
+## beside one, and holding an even density all the way out cost 2.3 ms a frame
+## for plants mostly off screen.
 func _random_point(rng: RandomNumberGenerator) -> Vector2:
-	var radius: float = sqrt(rng.randf()) * Balance.LANE_SPAWN_RADIUS * 1.15
+	var radius: float = pow(rng.randf(), Balance.FOLIAGE_INNER_BIAS) 		* Balance.FOLIAGE_REACH
 	return Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
 
 

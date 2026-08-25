@@ -62,6 +62,8 @@ enum Fact {
 	TRAP_STATE = 23,
 	TRAP_FIRED = 24,
 	BARRICADE_STATE = 25,
+	LOOT_SPAWNED = 26,
+	LOOT_TAKEN = 27,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -225,6 +227,8 @@ func _fact_bindings() -> Array:
 		["coop_trap_state", _on_coop_trap_state],
 		["coop_trap_fired", _on_coop_trap_fired],
 		["coop_barricade_state", _on_coop_barricade_state],
+		["coop_loot_spawned", _on_coop_loot_spawned],
+		["coop_loot_taken", _on_coop_loot_taken],
 	]
 
 
@@ -273,6 +277,15 @@ func _on_coop_barricade_state(tile: Vector2i, barricade_id: String,
 	_relay(Fact.BARRICADE_STATE, [tile, barricade_id, health])
 
 
+func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
+		at: Vector2) -> void:
+	_relay(Fact.LOOT_SPAWNED, [net_id, currency, amount, at])
+
+
+func _on_coop_loot_taken(net_id: int) -> void:
+	_relay(Fact.LOOT_TAKEN, [net_id])
+
+
 func _on_currency_changed(id: String, amount: int) -> void:
 	_relay(Fact.CURRENCY_CHANGED, [id, amount])
 
@@ -288,9 +301,10 @@ func _on_town_health_changed(current: float, maximum: float) -> void:
 ## it, exactly as it forwards a death or a wave clearing. One mechanism, and the
 ## guard covers hero state for free - a guest that tried to author a position
 ## would be caught by the same check that catches a guest inventing a kill.
-func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2,
-		guest_at: Vector2, guest_aim: Vector2) -> void:
-	_relay(Fact.HERO_STATE, [host_at, host_aim, guest_at, guest_aim])
+func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2, host_hp: float,
+		guest_at: Vector2, guest_aim: Vector2, guest_hp: float) -> void:
+	_relay(Fact.HERO_STATE,
+		[host_at, host_aim, host_hp, guest_at, guest_aim, guest_hp])
 
 
 func _on_coop_tower_state(anchor: Vector2i, tower_id: String, level: int) -> void:
@@ -481,9 +495,17 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 2:
 				bus.town_health_changed.emit(float(args[0]), float(args[1]))
 		Fact.HERO_STATE:
-			if args.size() == 4:
+			if args.size() == 6:
 				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
-					args[2] as Vector2, args[3] as Vector2)
+					float(args[2]), args[3] as Vector2, args[4] as Vector2,
+					float(args[5]))
+		Fact.LOOT_SPAWNED:
+			if args.size() == 4:
+				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),
+					int(args[2]), args[3] as Vector2)
+		Fact.LOOT_TAKEN:
+			if args.size() == 1:
+				bus.coop_loot_taken.emit(int(args[0]))
 		Fact.BARRICADE_STATE:
 			if args.size() == 3:
 				bus.coop_barricade_state.emit(args[0] as Vector2i, String(args[1]),

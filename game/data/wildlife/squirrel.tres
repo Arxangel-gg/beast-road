@@ -4,19 +4,19 @@
 
 [resource]
 script = ExtResource("1")
-id = "fox"
-display_name = "Fox"
-description = "Alone, and keeping its distance."
+id = "squirrel"
+display_name = "Squirrel"
+description = "Busy, and never for long."
 acts = Array[int]([1, 2])
-weight = 1.20
+weight = 1.80
 group_min = 1
-group_max = 1
-speed = 110.0
-roam = 380.0
-skittish_radius = 300.0
-flee_speed_scale = 2.80
+group_max = 2
+speed = 120.0
+roam = 200.0
+skittish_radius = 200.0
+flee_speed_scale = 3.40
 flies = false
-scale = 1.50
-art_faces_right = false
-stay_min = 30.0
-stay_max = 80.0
+scale = 0.62
+art_faces_right = true
+stay_min = 20.0
+stay_max = 55.0

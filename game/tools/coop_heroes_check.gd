@@ -43,6 +43,9 @@ func _ready() -> void:
 	await _test_the_phase_binds_both()
 	await _test_a_partner_leaving_leaves_nothing_held()
 	await _test_a_battlefield_built_mid_session_finds_its_partner()
+	# Before the revive test, which deliberately ends the run on its third wipe
+	# and leaves nothing standing to be found.
+	await _test_the_field_can_see_both_heroes()
 	await _test_going_down_costs_nothing_until_both_do()
 
 	if _run != null and is_instance_valid(_run):
@@ -55,7 +58,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if _failures == 0:
 		print("[coop-heroes] PASS - one hero alone, two in company, independent, "
-			+ "phase-bound, revived without a wound")
+			+ "phase-bound, revived without a wound, and both of them findable")
 	get_tree().quit(_failures)
 
 
@@ -313,3 +316,57 @@ func _test_going_down_costs_nothing_until_both_do() -> void:
 		"the last wipe must take the final Wound")
 	_check(not GameDirector.run_active,
 		"and %d Wounds must end the run" % Balance.HERO_MAX_WOUNDS)
+
+
+## Everything that looks for "a hero" must be able to find either one.
+##
+## This is the bug that made co-op look finished and play broken. `hero_node()`
+## answers "this machine's player" - the camera follows it, the HUD describes it
+## - and enemies were asking it. So every enemy in a two-player game walked past
+## the guest as though they were not there: no aggro, no melee, no ranged fire
+## and therefore no damage at all. The loot had the same fault for the same
+## reason and flew to the host over a guest standing on top of it.
+##
+## The distinction is worth keeping and worth testing, because both halves are
+## reasonable-looking calls that mean opposite things.
+func _test_the_field_can_see_both_heroes() -> void:
+	_field = _run.get("battlefield") as Battlefield
+	if _field == null or _field.hero == null:
+		_check(false, "the harness needs a battlefield")
+		return
+	var partner: Hero = _field.partner_hero()
+	if partner == null:
+		partner = _spawn_partner()
+	if partner == null:
+		return
+	await get_tree().process_frame
+
+	# Every hero is in the all-heroes group; exactly one holds the active group.
+	# Asked of the field rather than counted in the group: a harness that has
+	# spawned and discarded partners leaves the group holding more than the field
+	# does, and the field is the thing enemies actually ask.
+	_check(_field.heroes().size() == 2,
+		"the field must hold both heroes, holds %d" % _field.heroes().size())
+	_check(get_tree().get_nodes_in_group(Hero.GROUP_ANY).size() >= 2,
+		"and both must be findable as heroes")
+	_check(get_tree().get_nodes_in_group(Hero.GROUP).size() <= 1,
+		"but only one may be the *active* hero: that group answers a different "
+			+ "question and the camera reads it")
+
+	_field.hero.global_position = Vector2(-600.0, 0.0)
+	partner.global_position = Vector2(600.0, 0.0)
+	await get_tree().process_frame
+	_check(_field.nearest_hero(Vector2(500.0, 0.0)) == partner,
+		"an enemy beside the partner must be offered the partner")
+	_check(_field.nearest_hero(Vector2(-500.0, 0.0)) == _field.hero,
+		"and one beside the local hero must be offered that one")
+
+	# And a hero whose body is down is not somebody to walk at.
+	partner.go_down(partner.global_position)
+	await get_tree().process_frame
+	_check(_field.nearest_hero(Vector2(500.0, 0.0)) == _field.hero,
+		"a downed hero must not be offered as a target, however close they are")
+	_check(_field.hero_is_alive(),
+		"and the field must still report a hero alive while one of them stands")
+	partner.respawn_from_wipe()
+	await get_tree().process_frame

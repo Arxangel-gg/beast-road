@@ -335,6 +335,28 @@ func _on_revive_progress(host_hero: bool, progress: float) -> void:
 		who.set_revive_progress(progress)
 
 
+## Sets a hero's health from a relayed fraction, against its own maximum.
+##
+## Against its own maximum on purpose: the two players arrive with heroes at
+## different levels and therefore different maximum HP, so an absolute would hand
+## a level-5 host's number to a level-20 guest and read as a wound they never
+## took.
+##
+## Never *raises* health past what arrived, and never applies a lethal value: a
+## death is announced separately by `coop_hero_down`, which runs the whole death
+## path. Assigning zero here would leave a hero at no health and still standing.
+func _apply_health(who: Hero, fraction: float) -> void:
+	if who == null or who.health == null or who.health.max_hp <= 0.0:
+		return
+	if not who.is_alive():
+		return
+	var wanted: float = maxf(clampf(fraction, 0.0, 1.0) * who.health.max_hp, 1.0)
+	if is_equal_approx(who.health.current_hp, wanted):
+		return
+	who.health.current_hp = wanted
+	who.health.changed.emit(who.health.current_hp, who.health.max_hp)
+
+
 ## Which hero here stands for the one the host is talking about.
 func _mirrored(host_hero: bool) -> Hero:
 	if not Coop.is_guest():
@@ -377,8 +399,16 @@ func _send_state() -> void:
 		return
 	var partner_at: Vector2 = _partner.global_position if has_partner() else Vector2.ZERO
 	var partner_aim: Vector2 = _partner.aim_direction() if has_partner() else Vector2.ZERO
+	var partner_hp: float = _health_of(_partner) if has_partner() else 1.0
 	EventBus.coop_hero_state.emit(mine.global_position, mine.aim_direction(),
-		partner_at, partner_aim)
+		_health_of(mine), partner_at, partner_aim, partner_hp)
+
+
+## A hero's health as a fraction of its own maximum.
+func _health_of(who: Hero) -> float:
+	if who == null or who.health == null or who.health.max_hp <= 0.0:
+		return 1.0
+	return clampf(who.health.current_hp / who.health.max_hp, 0.0, 1.0)
 
 
 ## Applies a state packet. Guest side.
@@ -401,10 +431,22 @@ func _send_state() -> void:
 ## mirrored hero now runs it from the relayed input like any other, which means
 ## it cannot drift from what its owner sees by construction rather than by
 ## keeping two rules in step.
-func _on_hero_state(host_at: Vector2, _host_aim: Vector2,
-		guest_at: Vector2, _guest_aim: Vector2) -> void:
+func _on_hero_state(host_at: Vector2, _host_aim: Vector2, host_hp: float,
+		guest_at: Vector2, _guest_aim: Vector2, guest_hp: float) -> void:
 	if not Coop.is_guest():
 		return
+	# Health is *assigned*, both heroes, and that is the fix for a guest who
+	# walked through a battle at full health while the host watched them die.
+	#
+	# Nothing damages a guest's heroes locally - puppet enemies never strike -
+	# so there is no local simulation to fight here. The host is simply the only
+	# thing that knows, and until it said so the two machines held two different
+	# opinions about whether anybody was hurt.
+	if has_partner():
+		_apply_health(_partner, host_hp)
+	var local: Hero = _local_hero()
+	if local != null:
+		_apply_health(local, guest_hp)
 	# **Corrected toward, not snapped to.**
 	#
 	# Both heroes are already walking here - the partner from the host's relayed

@@ -51,11 +51,36 @@ static func idle_frame_path(base_path: String, index: int) -> String:
 ## supported state and returns an empty series, which lets callers retain their
 ## transform fallback. Once frame 01 exists, loading stops at the first gap so
 ## a damaged install cannot jump across a missing pose.
+## The authored *move* convention, exactly parallel to the idle one.
+##
+## `_move_01`, `_move_02` and so on beside the ordinary sprite, which stays pose
+## zero for both loops. A creature that walks and a creature that stands still
+## are two sequences over one source, so neither needs a resource edit.
+static func move_frame_path(base_path: String, index: int) -> String:
+	if base_path.is_empty() or index <= 0:
+		return base_path
+	return "%s_move_%02d.png" % [base_path.get_basename(), index]
+
+
+static func load_move_frames(base_path: String) -> Array[Texture2D]:
+	return _load_sequence(base_path, move_frame_path)
+
+
 static func load_idle_frames(base_path: String) -> Array[Texture2D]:
+	return _load_sequence(base_path, idle_frame_path)
+
+
+## One sequence loader for both conventions.
+##
+## Shared rather than copied, because the awkward parts - frame zero being the
+## ordinary sprite, and stopping at the first gap so a damaged install cannot
+## jump across a missing pose - are exactly the parts that would drift if there
+## were two of them.
+static func _load_sequence(base_path: String, namer: Callable) -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
 	if base_path.is_empty() or not ResourceLoader.exists(base_path):
 		return out
-	var first: String = idle_frame_path(base_path, 1)
+	var first: String = namer.call(base_path, 1)
 	if not ResourceLoader.exists(first):
 		return out
 	out.append(load(base_path) as Texture2D)
@@ -63,7 +88,7 @@ static func load_idle_frames(base_path: String) -> Array[Texture2D]:
 	# structure loops currently ship three continuation frames and the art gate
 	# owns that contract; runtime remains forward-compatible with a longer loop.
 	for index: int in range(1, 9):
-		var path: String = idle_frame_path(base_path, index)
+		var path: String = namer.call(base_path, index)
 		if not ResourceLoader.exists(path):
 			break
 		out.append(load(path) as Texture2D)

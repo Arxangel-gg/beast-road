@@ -5,8 +5,11 @@ var _failures: PackedStringArray = []
 
 func _ready() -> void:
 	RunState.reset()
-	_check(ContentDB.discipline_nodes.size() == 24,
-		"expected 24 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
+	# 27 since the three companion summons joined the roster on 2026-08-25. The
+	# count is asserted rather than derived on purpose: a node that vanishes from
+	# the data is a hero power silently disappearing, which nothing else notices.
+	_check(ContentDB.discipline_nodes.size() == 27,
+		"expected 27 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
 	_check(RunState.trained_discipline_nodes.size() == 2,
 		"a run must begin with the curated Attack and Defense pair")
 	_check(RunState.discipline_node_in_slot(0) != null \
@@ -49,7 +52,7 @@ func _ready() -> void:
 			"missing discipline icon: %s" % node.get_sprite_path())
 
 	if _failures.is_empty():
-		print("[discipline] PASS — 24 nodes, role gates, offers, respec and icons")
+		print("[discipline] PASS — 27 nodes, role gates, offers, respec and icons")
 	else:
 		for failure: String in _failures:
 			push_error("[discipline] " + failure)

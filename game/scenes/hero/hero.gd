@@ -10,7 +10,19 @@ extends CharacterBody2D
 ## Movement speed is the hero's most valuable stat: the job is reaching the lane
 ## that is collapsing. Nothing here should ever make the hero feel heavy.
 
+## The *active* hero — exactly one at a time. The camera follows it, the HUD
+## describes it, and `set_active` is what claims it.
 const GROUP: StringName = &"hero"
+
+## **Every** hero on the field, claimed for life rather than passed around.
+##
+## The distinction is the whole of co-op being playable. Anything that means
+## "this player" wants `GROUP`; anything that means "a person standing there" —
+## an enemy choosing whom to hit, a coin deciding where to fly, a rabbit deciding
+## whether to bolt — wants this one. Asking the first question when you meant the
+## second is how a guest ends up walking through a battle untouched, with the
+## loot ignoring them and the wildlife unbothered.
+const GROUP_ANY: StringName = &"heroes"
 
 ## Where this hero's intentions come from.
 ##
@@ -124,6 +136,7 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
+	add_to_group(GROUP_ANY)
 	health_bar.bind(health)
 	# Built here rather than placed in the scene: it is co-op furniture, it draws
 	# nothing at all in a solo run, and adding it in code keeps one hero scene
