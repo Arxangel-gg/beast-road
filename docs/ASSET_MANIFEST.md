@@ -640,7 +640,14 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
 `ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` ·
-`ui_resurrection_draught.png`
+`ui_resurrection_draught.png` · `ui_scope_battlefield.png` ·
+`ui_scope_town.png` · `ui_scope_beast.png`
+
+The three `ui_scope_*` icons are final production art, added when the scope bar
+became a column of icons: text that named function keys could not survive on a
+phone. Crossed blades on a shield, a gate keep, and the walking beast in profile
+- three silhouettes that stay apart at 30px, which is the only size that matters
+for them.
 
 The four Command icons are final production art. They share the bone/amber
 field-command language and remain distinct at 32px: crest, surging tower,

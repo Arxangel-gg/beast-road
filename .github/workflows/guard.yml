@@ -169,6 +169,12 @@ jobs:
           # left held when the controls go away. The machine this is developed on
           # has no touchscreen, so without this the only test is a phone.
           check "touch controls" --headless --path game res://tools/touch_check.tscn
+          # The same layout, judged as a phone. Ran by hand until 2026-08-25 and
+          # had therefore never actually passed: the interface was overlapping
+          # itself in three places and five controls were under the thumb floor,
+          # none of which the desktop run can see. A layout check that only ever
+          # measures the shape it was authored at is checking the easy case.
+          check "layout (phone)" --headless --path game res://tools/layout_check.tscn             -- --touch=on --viewport=430x932
           # The bugs the owner reported on 2026-08-24, held so they stay fixed.
           # Every one of them was a quiet failure rather than a crash - an enemy
           # facing the wrong way, a threat readout describing a wave that had

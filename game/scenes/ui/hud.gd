@@ -59,6 +59,21 @@ const BUILD_ROW_PRICE_INSET: float = float(UiMetrics.PAD_BUTTON_X)
 ## Distance from the right edge of the screen.
 const BUILD_PANEL_MARGIN: float = 34.0
 
+## How far the build sheet's lower edge sits above the combat row.
+##
+## The command panel's old bottom edge, inherited on purpose: that gap was
+## already tuned to clear the bottom band without wasting the space.
+const BUILD_PANEL_LIFT: float = 164.0
+
+## The same, for a thumb.
+##
+## The Preparation box sits in the bottom centre between 156 and 272 above the
+## combat row. On desktop the build sheet is far enough right to pass beside it;
+## on touch that box grows past its authored width and the sheet's Close button
+## lands on it. Cleared rather than narrowed: the box is what a player reads to
+## decide whether to press Ride On, so it wins the space.
+const BUILD_PANEL_TOUCH_LIFT: float = 300.0
+
 ## The hover figures box, which sits *beside* the build panel rather than over it.
 ##
 ## Godot's own `tooltip_text` opens at the cursor, and the cursor is by definition
@@ -96,6 +111,54 @@ const SPELL_BAR_MARGIN: float = 24.0
 ## Height of the bottom band the ability bar owns. Everything that used to sit
 ## on the bottom edge is lifted by this, so the bar has a row to itself.
 const BOTTOM_BAND: float = SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN
+
+## One square in the scope column, and the art inside it.
+##
+## Matched to the combat row's buttons deliberately: the two are one control
+## system - where you are, and what you do while you are there - and a player
+## should not have to learn that they are different sizes to know they are
+## different things.
+const NAV_ICON_SIZE: float = 58.0
+const NAV_ICON_ART: int = 38
+const NAV_TOUCH_ICON_SIZE: float = 120.0
+const NAV_TOUCH_ICON_ART: int = 80
+
+## Padding inside a scope button, on all four sides.
+##
+## Overridden rather than inherited. The theme's button style pads the sides far
+## more than the top and bottom, which is right for a label and wrong for a
+## square: it made a 58px button 100px wide, so a column of squares came out a
+## column of letterboxes with a small mark in the middle of each.
+const NAV_ICON_PAD: float = 8.0
+
+## How far down the scope column starts. Below the top bar and no further:
+## sitting higher with less padding was the whole objection to the old one.
+const NAV_BAR_TOP: float = 104.0
+
+## The command column, top left.
+const COMMAND_BAR_WIDTH: float = 236.0
+const COMMAND_BAR_TOP: float = 104.0
+
+## Where the boss track sits, and where it moves to for a thumb.
+##
+## It shares the top edge with the resource bar, which is fine at desktop sizes
+## and is not once the currency icons and their numbers are grown for touch: the
+## row then reaches into the centre and prints straight through "Act 1 boss in
+## 900 distance". Dropped below the bar rather than shortened, because the thing
+## it is competing with is the information a player checks most often.
+## The centred stack, top to bottom, in both layouts.
+##
+## One table rather than four scattered numbers, because they are not four
+## independent decisions - they are a column, and the only thing that matters is
+## that each clears the one above it. Touch grows the resource bar into the
+## centre of the top edge, so everything below shifts by roughly one row rather
+## than one element being nudged and the collision moving down to the next.
+const BOSS_TRACK_TOP: float = 14.0
+const BOSS_TRACK_TOUCH_TOP: float = 78.0
+const MESSAGE_TOP: float = 90.0
+const MESSAGE_TOUCH_TOP: float = 130.0
+const STATE_LABEL_TOP: float = 132.0
+const STATE_LABEL_TOUCH_TOP: float = 172.0
 
 @export var battlefield: Battlefield
 
@@ -151,7 +214,8 @@ var _spell_labels: Array[Label] = []
 var _spell_cooldowns: Array[Label] = []
 var _spell_bar: HBoxContainer
 var _bottom_row: HBoxContainer
-var _nav_bar: HBoxContainer
+var _nav_bar: VBoxContainer
+var _boss_box: VBoxContainer
 var _nav_buttons: Array[Button] = []
 var _boss_panel: PanelContainer
 var _boss_name: Label
@@ -368,7 +432,7 @@ func _build_top_bar() -> void:
 
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_state_label.offset_top = 132.0
+	_state_label.offset_top = STATE_LABEL_TOP
 	_state_label.offset_left = -520.0
 	_state_label.offset_right = 520.0
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -376,7 +440,7 @@ func _build_top_bar() -> void:
 
 	_message = _label("", 22)
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_message.offset_top = 90.0
+	_message.offset_top = MESSAGE_TOP
 	_message.offset_left = -400.0
 	_message.offset_right = 400.0
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -460,55 +524,155 @@ func _build_lane_ring() -> void:
 ##
 ## Now the split is by frequency and by kind:
 ##
-##   top right     scope switching, zoom and the menu - navigation, and rarely
+##   right edge    scope switching, zoom and the menu - navigation, and rarely
 ##                 touched during a fight
+##   top left      command orders, which are aimed rather than pressed
 ##   bottom centre one row: the combat actions, then the abilities
 ##
 ## Nothing is stacked on anything, both bottom corners are left empty for thumbs,
 ## and the row a player actually watches sits in the middle of the bottom edge
 ## where their eyes already are.
+
+
+## Where you are, as a column of icons down the right edge.
+##
+## It was a horizontal row of text buttons, and the objection was not what was in
+## it but its shape. A row across the top has to be read left to right and then
+## pointed at; a column of squares under a thumb is one movement, and it stops
+## competing with the centred status band for the same horizontal space - which
+## is what forced the old bar down to y=196 to begin with. Being narrow is what
+## lets it sit higher, which was the other half of the complaint.
+##
+## Icons rather than words because the words were the widest thing about it, and
+## because "F1 Battlefield" names a key a phone does not have. The shortcut
+## survives in the tooltip: useful to the people holding a keyboard, invisible to
+## the people who are not.
 func _build_nav_bar() -> void:
-	var bar := HBoxContainer.new()
+	var bar := VBoxContainer.new()
 	_nav_bar = bar
 	bar.name = "NavBar"
 	bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	bar.offset_right = -24.0
-	# Below the centred status band, not beside it.
-	#
-	# The state line and the wave preview are anchored centre-top and are 1040
-	# units wide, so they reach from x=440 to x=1480 on a 1920 screen - straight
-	# through where a right-anchored bar sits. `layout_check` caught it; by eye it
-	# looked fine, because the state label is usually empty and an empty label
-	# still occupies its rect the moment it has something to say.
-	bar.offset_top = 196.0
-	bar.add_theme_constant_override("separation", 10)
+	bar.offset_top = NAV_BAR_TOP
+	bar.add_theme_constant_override("separation", 8)
 	add_child(bar)
 
-	_nav_buttons.append(_add_button(bar, "F1  Battlefield",
+	_nav_buttons.append(_add_icon_button(bar, "scope_battlefield",
+		"Battlefield  (F1)",
 		func() -> void: scope_requested.emit(GameDirector.Scope.BATTLEFIELD)))
-	_nav_buttons.append(_add_button(bar, "F2  Town",
+	_nav_buttons.append(_add_icon_button(bar, "scope_town", "Town  (F2)",
 		func() -> void: scope_requested.emit(GameDirector.Scope.TOWN)))
-	_nav_buttons.append(_add_button(bar, "F3  Beast",
+	_nav_buttons.append(_add_icon_button(bar, "scope_beast", "Beast  (F3)",
 		func() -> void: scope_requested.emit(GameDirector.Scope.BEAST)))
-	# Buttons rather than a hint that names a mouse wheel.
-	#
-	# "Wheel Zoom" is not an instruction on a phone, it is a description of a
-	# device the player does not have — and zoom is not optional here: the whole
-	# field does not fit a phone screen at combat zoom. They are shown on every
-	# platform because a two-button zoom is no worse with a mouse, and one
-	# control that works everywhere beats two that each work in one place.
-	var zoom_out: Button = _add_button(bar, "\u2212", func() -> void: zoom_requested.emit(-1))
-	zoom_out.custom_minimum_size = Vector2(56.0, 0.0)
+
+	# Zoom stays in the column rather than somewhere tidier, because it is
+	# navigation too - and it is not optional: the whole field does not fit a
+	# phone screen at combat zoom. Glyphs rather than icons, because plus and
+	# minus are already universal and two more 128px assets would say less.
+	var zoom_out: Button = _add_icon_button(bar, "", "Zoom out",
+		func() -> void: zoom_requested.emit(-1))
+	zoom_out.text = "\u2212"
 	_nav_buttons.append(zoom_out)
-	var zoom_in: Button = _add_button(bar, "+", func() -> void: zoom_requested.emit(1))
-	zoom_in.custom_minimum_size = Vector2(56.0, 0.0)
+	var zoom_in: Button = _add_icon_button(bar, "", "Zoom in",
+		func() -> void: zoom_requested.emit(1))
+	zoom_in.text = "+"
 	_nav_buttons.append(zoom_in)
 
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
 	# the settings, or out of the game.
-	_nav_buttons.append(_add_button(bar, "\u2261  Menu", func() -> void: pause_requested.emit()))
+	_nav_buttons.append(_add_icon_button(bar, "pause", "Menu  (Esc)",
+		func() -> void: pause_requested.emit()))
+	_size_nav_bar()
+
+
+## How far above the bottom edge the build sheet's lower rim sits.
+func _build_panel_lift() -> float:
+	var base: float = BUILD_PANEL_TOUCH_LIFT if touch_ui() else BUILD_PANEL_LIFT
+	return base + _bottom_band_height()
+
+
+## How far in from the right edge the build sheet has to start.
+##
+## Clear of the scope column, not merely below it. The sheet's *height* changes
+## with what is in it - eight towers, or one upgrade - so a rule that relies on
+## it staying short breaks the first time somebody adds a tower. A column's width
+## does not change, so this is the half of "must not overlap" that cannot come
+## undone.
+func _build_panel_inset() -> float:
+	return BUILD_PANEL_MARGIN + _nav_column_width() + 16.0
+
+
+## The scope column's width, including the margin it holds off the right edge.
+func _nav_column_width() -> float:
+	return (NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE) + 24.0
+
+
+## One square in the scope column.
+func _add_icon_button(parent: Node, icon: String, tip: String,
+		on_press: Callable) -> Button:
+	var b := Button.new()
+	b.tooltip_text = tip
+	b.focus_mode = Control.FOCUS_NONE
+	if not icon.is_empty():
+		b.set_meta(&"nav_icon", icon)
+		IconKit.on_button(b, icon, NAV_ICON_ART)
+	# Set after `on_button`, which switches to left alignment so that labelled
+	# buttons line their icons up. There is no label here, so centred is the only
+	# thing that looks deliberate.
+	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.pressed.connect(on_press)
+	parent.add_child(b)
+	# After it is in the tree, and that is not a detail: a Control outside the
+	# tree has no theme to read, so asking it for its style box returns the engine
+	# default and the override silently replaces the game's frame with nothing.
+	_square_off(b)
+	return b
+
+
+## Makes a button's padding the same on all four sides.
+##
+## Without this the theme's label padding decides the width and no minimum size
+## can win it back: a Control cannot be smaller than its own style demands, so
+## asking for 58x58 got 100x58 and the column read as a stack of letterboxes.
+func _square_off(button: Button) -> void:
+	for state: String in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var box: StyleBox = button.get_theme_stylebox(state)
+		if box == null:
+			continue
+		var square: StyleBox = box.duplicate()
+		square.content_margin_left = NAV_ICON_PAD
+		square.content_margin_right = NAV_ICON_PAD
+		square.content_margin_top = NAV_ICON_PAD
+		square.content_margin_bottom = NAV_ICON_PAD
+		button.add_theme_stylebox_override(state, square)
+
+
+## Grows the column for a thumb without moving it.
+##
+## The old layout sent the whole bar to the opposite corner on touch, because a
+## wide row of text could not share the right edge with the build sheet. A column
+## of icons can, so there is one position to reason about instead of two - and
+## the top left it used to borrow is now free for the command column.
+func _size_nav_bar() -> void:
+	if _nav_bar == null:
+		return
+	var side: float = NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE
+	var art: int = NAV_TOUCH_ICON_ART if touch_ui() else NAV_ICON_ART
+	for button: Button in _nav_buttons:
+		if button == null or not is_instance_valid(button):
+			continue
+		button.custom_minimum_size = Vector2(side, side)
+		# Re-cut from the 128px source at the size it will actually be drawn at,
+		# rather than stretched from whatever it was built as. A resized icon on a
+		# button is the one place softness is obvious, because it is sitting next
+		# to a crisp frame.
+		if button.has_meta(&"nav_icon"):
+			IconKit.on_button(button, String(button.get_meta(&"nav_icon")), art)
+			button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		if button.text.length() > 0:
+			button.add_theme_font_size_override("font_size", int(art * 0.7))
 
 
 ## The combat half: what a player reaches for while something is happening.
@@ -604,15 +768,20 @@ func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
 ## differ in height without either one being cropped or padded to fit the other.
 func _build_tower_panel() -> void:
 	_build_panel = PanelContainer.new()
-	_build_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_build_panel.offset_left = -BUILD_PANEL_WIDTH - BUILD_PANEL_MARGIN
-	_build_panel.offset_right = -BUILD_PANEL_MARGIN
-	# No fixed height: anchors pinned to one line with GROW_BOTH make a Control
-	# size to its own content, so the eight-row build view and the shorter upgrade
-	# view each get the box they need rather than sharing one compromise.
-	_build_panel.offset_top = 0.0
-	_build_panel.offset_bottom = 0.0
-	_build_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# Anchored to the bottom and grown upward, into the space the command panel
+	# used to occupy.
+	#
+	# Centred on the right edge, it ran straight through the scope column above
+	# it - which is the overlap that was reported. Hanging it from the bottom
+	# instead means its height changes where its *top* is rather than where its
+	# bottom is, so the taller build view and the shorter upgrade view both clear
+	# the column by the same margin without either being given a fixed height.
+	_build_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+	_build_panel.offset_right = -_build_panel_inset()
+	_build_panel.offset_top = -_build_panel_lift()
+	_build_panel.offset_bottom = -_build_panel_lift()
+	_build_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_build_panel.visible = false
 	add_child(_build_panel)
 
@@ -787,11 +956,20 @@ func _build_preparation_panel() -> void:
 
 func _build_command_panel() -> void:
 	_command_panel = PanelContainer.new()
-	_command_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_command_panel.offset_left = -424.0
-	_command_panel.offset_top = -276.0 - _bottom_band_height()
-	_command_panel.offset_right = -24.0
-	_command_panel.offset_bottom = -164.0 - _bottom_band_height()
+	# Top left, as a column.
+	#
+	# It used to sit above the bottom right, directly over the space the build
+	# sheet needed - the two could not both be open without one covering the
+	# other. Moving it here is what frees that space, and it suits the orders
+	# besides: they are *aimed*, so the hand is already going to the field rather
+	# than to the bar, and the corner that costs least to leave is the one no
+	# thumb rests in.
+	_command_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_command_panel.offset_left = 24.0
+	_command_panel.offset_right = 24.0 + COMMAND_BAR_WIDTH
+	_command_panel.offset_top = COMMAND_BAR_TOP
+	_command_panel.offset_bottom = COMMAND_BAR_TOP
+	_command_panel.grow_vertical = Control.GROW_DIRECTION_END
 	add_child(_command_panel)
 
 	var column := VBoxContainer.new()
@@ -805,7 +983,7 @@ func _build_command_panel() -> void:
 	var name := _label("COMMAND", 13)
 	name.add_theme_color_override("font_color", Color("e8a33d"))
 	meter_row.add_child(name)
-	_command_bar = _make_bar(Color("e8a33d"), 150.0)
+	_command_bar = _make_bar(Color("e8a33d"), 96.0)
 	_command_bar.custom_minimum_size.y = 9.0
 	_command_bar.value = 0.0
 	meter_row.add_child(_command_bar)
@@ -815,10 +993,15 @@ func _build_command_panel() -> void:
 	column.add_child(meter_row)
 	_command_target = _label("TARGET  ·  select a road or tower", 11)
 	_command_target.add_theme_color_override("font_color", Color("b8ae98"))
+	# It wraps now that the panel is a column rather than a wide strip. Without
+	# this the longest target name pushes the panel wider than the bar it lives
+	# in and the whole column jumps about as the cursor moves.
+	_command_target.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_command_target.custom_minimum_size = Vector2(COMMAND_BAR_WIDTH - 24.0, 30.0)
 	column.add_child(_command_target)
 
-	var orders := HBoxContainer.new()
-	orders.add_theme_constant_override("separation", 8)
+	var orders := VBoxContainer.new()
+	orders.add_theme_constant_override("separation", 6)
 	column.add_child(orders)
 	_add_command_button(orders, CommandSystemScript.OVERDRIVE, "Z",
 		"command_overdrive", "Point at a tower and press Z: it surges its attack rate and utility for 5 seconds.")
@@ -934,10 +1117,11 @@ func _show_message(text: String) -> void:
 ## see coming and prepare for.
 func _build_boss_track() -> void:
 	var box := VBoxContainer.new()
+	_boss_box = box
 	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	box.offset_left = -190.0
 	box.offset_right = 190.0
-	box.offset_top = 14.0
+	box.offset_top = BOSS_TRACK_TOP
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 2)
 	add_child(box)
@@ -1322,13 +1506,6 @@ func _refresh_xp_bar() -> void:
 ## The HUD only owns the structural follow-through: short labels, a taller spell
 ## frame and moving the panels that intentionally sit above that frame.
 func _on_touch_layout_changed(showing: bool) -> void:
-	var desktop_nav: PackedStringArray = ["F1  Battlefield", "F2  Town", "F3  Beast",
-		"\u2212", "+", "\u2261  Menu"]
-	var touch_nav: PackedStringArray = ["FIELD", "TOWN", "BEAST", "\u2212", "+", "MENU"]
-	var labels: PackedStringArray = touch_nav if showing else desktop_nav
-	for index: int in mini(_nav_buttons.size(), labels.size()):
-		_nav_buttons[index].text = labels[index]
-
 	if _horn_button != null:
 		_horn_button.text = "HORN" if showing else "Q  War Horn"
 	if _raid_button != null:
@@ -1341,32 +1518,29 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	if _bottom_row != null:
 		_bottom_row.offset_top = -_bottom_band_height()
 		_bottom_row.offset_bottom = -_bottom_row_inset()
-	if _nav_bar != null:
-		# The build sheet owns the right edge and the live state labels own the top
-		# centre. Compact touch navigation therefore uses the clear upper-left band;
-		# desktop keeps its authored upper-right position. This is a structural
-		# mobile layout, not a scaled desktop rectangle.
-		if showing:
-			_nav_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
-			_nav_bar.grow_horizontal = Control.GROW_DIRECTION_END
-			_nav_bar.offset_left = 24.0
-			_nav_bar.offset_right = 24.0
-			_nav_bar.offset_top = 232.0
-		else:
-			_nav_bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-			_nav_bar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-			_nav_bar.offset_right = -24.0
-			_nav_bar.offset_top = 196.0
+	# The column stays where it is and only grows. Moving it to the opposite
+	# corner on touch was a workaround for a *wide* bar that could not share the
+	# right edge with the build sheet; a narrow one can, and one position is one
+	# thing to reason about instead of two.
+	_size_nav_bar()
+	if _boss_box != null:
+		_boss_box.offset_top = BOSS_TRACK_TOUCH_TOP if showing else BOSS_TRACK_TOP
+	if _message != null:
+		_message.offset_top = MESSAGE_TOUCH_TOP if showing else MESSAGE_TOP
+	if _state_label != null:
+		_state_label.offset_top = STATE_LABEL_TOUCH_TOP if showing else STATE_LABEL_TOP
 	if _xp_band != null:
 		_xp_band.offset_top = -_xp_bar_height()
 	if _build_panel != null:
-		# A two-column touch sheet still grows taller because its Close action is a
-		# true 120px target. Lift the content-sized panel clear of the combat row;
-		# desktop's smaller controls remain centred.
-		_build_panel.offset_top = -52.0 if showing else 0.0
-		_build_panel.offset_bottom = -52.0 if showing else 0.0
+		# Hung from the bottom in both layouts, so the touch sheet growing taller
+		# moves its top edge rather than pushing its footer into the combat row.
+		var lift: float = -_build_panel_lift()
+		_build_panel.offset_top = lift
+		_build_panel.offset_bottom = lift
+		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+		_build_panel.offset_right = -_build_panel_inset()
 	if _wave_preview != null:
-		_wave_preview.offset_top = 176.0 if showing else 158.0
+		_wave_preview.offset_top = 214.0 if showing else 158.0
 		_wave_preview.offset_left = -360.0 if showing else -420.0
 		_wave_preview.offset_right = 360.0 if showing else 420.0
 	if _preparation_panel != null:
@@ -1613,6 +1787,16 @@ func _pop_in(panel: Control) -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## Rebuilds the sheet's contents, then re-applies the touch sizing to them.
+##
+## The rows are thrown away and rebuilt every time the sheet opens or the
+## selection changes - long after the responsive pass has run. So on a phone the
+## element filters and the Close button were built at their desktop size and
+## nothing ever came back to grow them: 118px targets on a 120px floor, and the
+## only reason it was ever noticed is that a gate measured them.
+##
+## Applied to this subtree rather than the whole HUD, because everything else has
+## already been converted and `apply_touch_tree` is not free.
 func _refresh_build_panel() -> void:
 	for child: Node in _build_list.get_children():
 		child.queue_free()
@@ -1751,6 +1935,7 @@ func _refresh_build_panel() -> void:
 	column.add_child(_element_rail(anchor))
 	_build_list.add_child(column)
 	_set_build_detail_visible(true)
+	UiMetrics.apply_touch_tree(_build_panel, touch_ui())
 
 
 ## Shows what the next level actually buys, before the player commits.

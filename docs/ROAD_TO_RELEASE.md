@@ -1289,17 +1289,38 @@ still lists it unfinished. Today it is not visible at all.
 An earlier pass made the bottom bar one row. The remaining objection is that it
 is a horizontal bar at all.
 
-- [ ] **The scope bar becomes a vertical icon bar** - Battlefield, Town, Beast,
-      Menu as icons rather than text, sized to match the already-resized Warhorn,
-      Raid, Repair and Tend buttons so the two read as one control system.
-- [ ] Less vertical padding, and sitting higher.
-- [ ] **It must not overlap the build panel**, which means the build panel moves
-      down into the command panel's position to leave room above it.
-- [ ] **The command menu becomes a vertical bar in the top left**, also built
-      for a thumb.
-- [ ] All of the above judged on a phone, not on a desktop window sized like
-      one. This is the same row as the touch-feel item in section 2b and should
-      be answered in the same sitting.
+- [x] **The scope bar is a vertical icon column** on the right edge - three new
+      128px icons (crossed blades on a shield, a gate keep, the beast in
+      profile), zoom, and the menu, in 58px squares matching the combat row.
+      Shortcuts moved into tooltips: "F1 Battlefield" names a key a phone does
+      not have.
+- [x] Less padding and sitting higher - y=104 rather than 196. Being narrow is
+      what allowed it: a wide row had to sit below the centred status band, and
+      a column passes beside it.
+- [x] **It does not overlap the build sheet**, and the sheet is *inset past the
+      column's width* rather than only moved down. The sheet's height changes
+      with its contents - eight towers or one upgrade - so a rule that depends
+      on it staying short breaks the first time somebody adds a tower. A
+      column's width does not change.
+- [x] **The command menu is a column in the top left**, which is what freed the
+      bottom right for the build sheet.
+- [x] Judged on a phone, and that is where the value was: **the touch layout had
+      never actually passed**. Three overlaps and five undersized controls, none
+      of them caused by this work - verified by stashing it and re-running. The
+      touch run now has its own row in `guard.yml`.
+
+      Worth recording, because the pattern will repeat. The desktop gate passed
+      while a screenshot showed the bar still carrying "F1 Battlefield" text on
+      every button and the build sheet covering the bottom two. A rectangle
+      check has no opinion about a button that should not say anything, and the
+      overlap it missed was hidden by the sheet being *drawn* over the column
+      rather than intersecting the leaves the check compares. **Look at it.**
+
+      One of the three faults was the gate's own: `canvas_items` stretch scales
+      the interface by window/base, so it measured a 120px thumb floor against
+      118.2 screen pixels - a property of whatever size the headless window
+      opened at, not of the button. It now measures in the units the floor is
+      written in.
 
 ---
 

@@ -116,10 +116,18 @@ func _check_touch_targets(widgets: Array[Control]) -> void:
 		if not screen.intersects(rect) or bool((control as BaseButton).disabled):
 			continue
 		checked += 1
-		if rect.size.y + 1.0 < Balance.UI_TOUCH_MIN_TARGET_HEIGHT:
+		# Measured in the control's own space rather than in screen pixels.
+		#
+		# `canvas_items` stretch scales the whole interface by window/base, so a
+		# global rect is the layout size times that ratio - and the ratio in a
+		# headless run is whatever size the window happened to open at. That made
+		# a 120px minimum measure 118.2 and fail, which is a property of the test
+		# window rather than of the button. The floor is written in the same units
+		# `custom_minimum_size` is, so it is compared against the same units.
+		if control.size.y + 1.0 < Balance.UI_TOUCH_MIN_TARGET_HEIGHT:
 			undersized += 1
 			_failures.append("touch target: %s is %.0fpx tall, minimum is %.0fpx" % [
-				_path_of(control), rect.size.y, Balance.UI_TOUCH_MIN_TARGET_HEIGHT])
+				_named(control), control.size.y, Balance.UI_TOUCH_MIN_TARGET_HEIGHT])
 	_notes.append("touch targets: %d checked, %d undersized" % [checked, undersized])
 
 
@@ -457,3 +465,19 @@ func _all(from: Node) -> Array[Node]:
 	for child: Node in from.get_children():
 		found.append_array(_all(child))
 	return found
+
+
+## A control described by what it says, not by where it sits in the tree.
+##
+## `@Button@861` names nothing a person can act on. The label is what identifies
+## a control to whoever has to go and fix it.
+func _named(control: Control) -> String:
+	var text: String = ""
+	if control is Button:
+		text = (control as Button).text
+	if text.is_empty():
+		text = control.tooltip_text.split("
+")[0]
+	if text.is_empty():
+		return _path_of(control)
+	return "%s \"%s\"" % [_path_of(control), text.substr(0, 32)]
