@@ -12,6 +12,13 @@ extends CharacterBody2D
 
 const GROUP: StringName = &"hero"
 
+## Where this hero's intentions come from.
+##
+## A local player, or a partner over the wire. Defaults to local, so a hero that
+## is never told otherwise behaves exactly as it always has - which is every hero
+## in a single-player run. See `scripts/components/hero_input.gd`.
+var input: HeroInput = null
+
 @export var health: Health
 @export var attack: HeroAttack
 @export var sprite: Sprite2D
@@ -83,6 +90,13 @@ var _veil_left: float = 0.0
 
 
 func _ready() -> void:
+	# Local unless something says otherwise, which is every hero in a
+	# single-player run and one of the two in co-op. Set before anything else:
+	# `_physics_process` asks it on the first frame and a null source there would
+	# be a crash in the most-run function in the game.
+	if input == null:
+		input = LocalHeroInput.new(self)
+
 	# NOT added to the group here. There are two Hero instances - one in the
 	# battlefield, one in the raid - and if both join the group then
 	# get_first_node_in_group("hero") is a coin flip. That ambiguity is what left
@@ -144,18 +158,18 @@ func _physics_process(delta: float) -> void:
 	_aim = _compute_aim()
 	_update_facing(delta)
 
-	var combat_input: bool = RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
-	if combat_input and _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"attack"):
+	var combat_input: bool = can_fight()
+	if combat_input and _beast_stun_left <= 0.0 and input.pressed(HeroInput.BUTTON_ATTACK):
 		attack.request()
 	# Dash is movement, and movement is allowed whenever the hero is on the field.
 	# Gating it behind combat meant a player repositioning during Preparation had
 	# to walk, which is the one phase where they are most likely to want to cross
 	# the map. It still costs its cooldown, so nothing is gained by spamming it.
-	if _beast_stun_left <= 0.0 and Input.is_action_just_pressed(&"dash"):
+	if _beast_stun_left <= 0.0 and input.pressed(HeroInput.BUTTON_DASH):
 		_try_dash()
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if combat_input and _beast_stun_left <= 0.0 \
-				and Input.is_action_just_pressed(&"spell_%d" % (slot + 1)):
+				and input.pressed(HeroInput.spell_button(slot)):
 			spells.try_cast(slot, _aim, global_position)
 
 	attack.damage_multiplier = damage_multiplier()
@@ -232,8 +246,34 @@ func is_alive() -> bool:
 	return not health.is_dead
 
 
+## Whether this hero may swing and cast right now.
+##
+## Read from `RunState`, which both heroes share, so the phase binds the pair
+## identically without either being special-cased. Extracted from
+## `_physics_process` so a test can ask the question rather than re-deriving it -
+## a duplicated condition is one that drifts, and this one drifting would mean a
+## guest able to attack during Preparation, which is a cheat rather than a
+## glitch.
+func can_fight() -> bool:
+	return RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
+
+
 func aim_direction() -> Vector2:
 	return _aim
+
+
+## Points this hero, without it having been asked to by any input.
+##
+## For the partner's hero on a guest, whose aim is a fact received rather than a
+## decision made here. Sets `_facing` as well as `_aim`, and holds it briefly, so
+## the sprite does not snap back to the walk direction on the very next frame -
+## which is the same hold `_update_facing` gives a swing, for the same reason.
+func face(direction: Vector2) -> void:
+	if direction == Vector2.ZERO:
+		return
+	_aim = direction
+	_facing = direction
+	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
 
 
 func contact_radius() -> float:
@@ -329,6 +369,19 @@ func _on_veil(duration: float, speed_bonus: float) -> void:
 	_veil_left = duration
 
 
+## Hands this hero over to a different source of intentions.
+##
+## The partner's hero is given a `RemoteHeroInput` when it spawns. Nothing else
+## about it changes: it walks, swings, dashes, is stunned by the beast's step and
+## dies through exactly the same code as the local one. That is the reason for
+## the seam — a bug that affects only the partner's hero becomes unlikely rather
+## than expected, because there is no second implementation for it to live in.
+##
+## Passing null restores local control, which is what a partner leaving means.
+func use_input(source: HeroInput) -> void:
+	input = source if source != null else LocalHeroInput.new(self)
+
+
 ## 0..1, for a cooldown readout in a later stage.
 func dash_cooldown_ratio() -> float:
 	if Balance.HERO_DASH_COOLDOWN <= 0.0:
@@ -336,26 +389,20 @@ func dash_cooldown_ratio() -> float:
 	return _dash_cooldown_left / Balance.HERO_DASH_COOLDOWN
 
 
-## Movement, from whichever device is being used.
+## Movement, from whoever is driving this hero.
 ##
-## The stick wins when it is pushed, and the keys the rest of the time - rather
-## than one device being selected in a menu. A player with a pad in their hands
-## and a keyboard on the desk uses both without telling the game which.
+## The device-juggling that used to live here moved to `LocalHeroInput` intact.
+## The hero no longer knows whether a stick, a keyboard or a partner on another
+## machine is asking it to walk, and that is the point.
 func _move_input() -> Vector2:
-	var pad: Vector2 = KeyBindings.pad_move()
-	if pad != Vector2.ZERO:
-		return pad
-	return Input.get_vector(&"move_left", &"move_right", &"move_up", &"move_down")
+	return input.move()
 
 
 ## Where the hero is pointing.
 ##
-## The right stick when it is pushed, the mouse otherwise. A pad has no cursor,
-## so aiming from the mouse position on a controller would leave the hero facing
-## wherever the pointer was last left - usually a corner of the screen.
-##
-## Both fall back to the previous aim rather than to a default direction: a
-## hero that snaps east every time the stick centres reads as broken.
+## Also delegated. `_aim` is passed in as the fallback so a source with nothing
+## to say leaves the hero facing where it already was: a hero that snaps east
+## every time a stick centres reads as broken.
 ## Resolves the three claims on which way the hero looks.
 ##
 ## Order matters and is the whole behaviour: an attack outranks movement, and
@@ -382,14 +429,7 @@ func _compute_aim() -> Vector2:
 	# on a phone the emulated mouse cursor is wherever the last tap happened to
 	# land. Movement and attack arrive as ordinary input actions and need no
 	# branch here; a direction is not a button, so aim does.
-	var touch: Vector2 = TouchInput.aim()
-	if touch != Vector2.ZERO:
-		return touch
-	var pad: Vector2 = KeyBindings.pad_aim()
-	if pad != Vector2.ZERO:
-		return pad.normalized()
-	var to_mouse: Vector2 = get_global_mouse_position() - global_position
-	return to_mouse.normalized() if to_mouse.length() > 1.0 else _aim
+	return input.aim(_aim)
 
 
 func _tick_timers(delta: float) -> void:

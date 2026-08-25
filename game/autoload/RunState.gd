@@ -215,6 +215,34 @@ var hearthmends_used: int = 0
 
 func _ready() -> void:
 	reset()
+	# Shared XP arrives here rather than in a battlefield system, and the two-
+	# process live check is what showed why. It was handled in `CoopHeroes`
+	# first, which only exists while a battlefield does - so an award landing in
+	# a raid, on a crossroad, or in a harness with no field simply vanished. Hero
+	# experience is run-level state, and this is where run-level state lives.
+	EventBus.coop_xp_awarded.connect(_on_coop_xp_awarded)
+
+
+## The host earned experience, so this player earns the same amount.
+##
+## Applied to *this machine's own* hero against its own curve. The award is
+## shared; the hero it lands on is not. A guest arriving at level 20 beside a
+## level-5 host keeps their level and simply progresses more slowly for the same
+## award, exactly as the curve already does in a solo run.
+##
+## Guest-only. On the host `gain_hero_xp` is what emitted this, and applying it
+## again would pay the host twice.
+## How much snow is lying on the field, 0..1.
+##
+## Here rather than only inside the weather system, because it stopped being a
+## drawing concern the moment enemies started slipping on it. Working rule 6: the
+## run's state lives in one place and nothing caches its own copy.
+var snow_cover: float = 0.0
+
+
+func _on_coop_xp_awarded(amount: float) -> void:
+	if Coop.is_guest():
+		gain_hero_xp(amount)
 
 
 func _process(delta: float) -> void:
@@ -538,6 +566,19 @@ static func hero_xp_for_level(level: int) -> float:
 func gain_hero_xp(amount: float) -> void:
 	if amount <= 0.0 or hero_level >= Balance.HERO_MAX_LEVEL:
 		return
+	# Shared XP in co-op. Owner ruling, 2026-08-25, closing the gap recorded in
+	# docs/COOP_DESIGN.md §10: both players are awarded the same amount.
+	#
+	# The **award** travels, never the total. That distinction is the whole of
+	# making this safe: hero level and XP persist per account (CLAUDE.md rule 7),
+	# so two players arrive with heroes at different levels. Relaying an absolute
+	# would overwrite a level-20 guest with a level-5 host's number and *demote*
+	# them - a shared pool would quietly delete somebody's progress.
+	#
+	# Emitted before the local application so the two machines credit the same
+	# figure; each then applies it to its own hero, against its own curve.
+	if Coop.is_host() and Coop.partner_present():
+		EventBus.coop_xp_awarded.emit(amount)
 	hero_xp += amount
 	var gained: int = 0
 	while hero_level < Balance.HERO_MAX_LEVEL:
@@ -1046,6 +1087,12 @@ func gain_kill_resources(base_amount: int) -> void:
 		return
 	var earned: float = float(base_amount) * Balance.KILL_RESOURCE_SCALE \
 		* Modifiers.multiplier(Modifiers.KILL_RESOURCES)
+	# Twice the bodies into one shared pool is twice the income, and the tower
+	# curve was tuned against one player earning. The trim is 1.0 today because
+	# the measured curve did not need one; it exists so that if co-op ever plays
+	# rich, the fix is a constant rather than a redesign.
+	if Coop.partner_present():
+		earned *= Balance.COOP_KILL_INCOME_SCALE
 	kill_resource_remainder += earned
 	var whole: int = int(floor(kill_resource_remainder))
 	if whole <= 0:

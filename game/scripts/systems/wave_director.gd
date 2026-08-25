@@ -463,7 +463,34 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 	if RunState.distance_to_boss() <= Balance.ACT_BOSS_RAMP_DISTANCE:
 		var ramp: float = 1.0 - RunState.distance_to_boss() / Balance.ACT_BOSS_RAMP_DISTANCE
 		size *= 1.0 + ramp * Balance.ACT_BOSS_RAMP_COUNT
+	size *= coop_body_scale()
 	return maxi(int(round(size)), 1)
+
+
+## How much this wave grows for the players present.
+##
+## The *only* place the player count touches difficulty, and deliberately so.
+## `docs/COOP_DESIGN.md` §5: more enemies, never tougher ones. Scaling health or
+## damage instead adds duration rather than pressure and invalidates the dodge
+## windows the whole combat design rests on.
+##
+## Reads `Coop.player_count`, which answers on whether a partner is actually
+## *present* rather than on whether a session is open - so a host listening alone
+## still faces a one-player wave, and a partner dropping mid-act does not leave
+## the survivor fighting a wave sized for two.
+func coop_body_scale() -> float:
+	return body_scale_for(Coop.player_count())
+
+
+## The same, for a player count that is not the live one.
+##
+## So a report or a gate can ask "what would two players face" without standing
+## up a network session to be told. Static, and the single expression of the
+## rule - a tool that recomputed it from the constant would be a second copy, and
+## the two would disagree the first time either moved.
+static func body_scale_for(players: int) -> float:
+	var extra: int = maxi(players - 1, 0)
+	return 1.0 + float(extra) * Balance.COOP_BODY_SCALE_PER_PLAYER
 
 
 ## Keeps each formation near the continuous curve's total body budget. Focused

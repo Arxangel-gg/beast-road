@@ -3,6 +3,7 @@ extends Node
 ## What the difficulty curve actually looks like, wave by wave.
 ##
 ##   godot --headless --path game res://tools/curve_report.tscn
+##   godot --headless --path game res://tools/curve_report.tscn -- --players=2
 ##
 ## A report, never a gate. Balance is judgement, and a red build is the wrong way
 ## to express an opinion about pacing — see CLAUDE.md §7 on why the audit score is
@@ -49,8 +50,24 @@ var _rows: Array[Dictionary] = []
 ## Cumulative Gold from kills, carried across waves.
 var _earned_gold: float = 0.0
 
+## How many players the run is being measured for.
+##
+## Co-op scales the count of enemies and nothing else (`COOP_DESIGN.md` §5), and
+## both sides of that move together: twice the bodies, but also two heroes and a
+## shared purse earning from twice the kills. Whether those cancel is exactly the
+## question this report exists to answer, so it is asked rather than assumed -
+## run it at 1 and at 2 and compare the pressure columns.
+##
+## Not a network session. `WaveDirector.body_scale_for` is the one expression of
+## the rule and is asked directly, so this cannot drift from what the director
+## actually does when two people are playing.
+var _players: int = 1
+
 
 func _ready() -> void:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--players="):
+			_players = maxi(int(argument.split("=")[1]), 1)
 	RunState.reset()
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	var run: Run = packed.instantiate() as Run
@@ -112,18 +129,31 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 
 	var lanes: int = director._progressive_lane_count(act_wave)
 	var per_lane: int = director._wave_size(act_wave, terrain)
-	var bodies: int = per_lane * lanes
+	var bodies: int = int(round(float(per_lane * lanes)
+		* WaveDirector.body_scale_for(_players)))
 	var hp: float = director._hp_scale(0)
 	var damage: float = director._damage_scale(0)
 	var speed: float = director._speed_scale(0)
 
 	var threat: float = float(bodies) * hp
+
 	# Killing pays for the next wall, so income is a function of the bodies
 	# already dealt with rather than of the clock. Modelling it as time-based
 	# reported a flat capability for the whole run, which would have made every
 	# ratio below meaningless.
 	_earned_gold += float(bodies) * _gold_per_body()
-	var capability: float = _affordable_dps(_earned_gold)
+	# The hero counts toward the defence now, and has to.
+	#
+	# While the run began with four towers up, leaving the hero out was a
+	# conservative simplification: towers were the floor and the hero was the
+	# bonus. The zero-capital start inverts that for the opening - for the first
+	# waves the hero *is* the entire defence - and a model scoring those waves as
+	# having no defence at all divides by nothing and reports an infinite spike
+	# exactly where the design intends its gentlest moment.
+	# Both heroes count. Two players is two of them on the field, which is most of
+	# why twice the bodies is close to the right answer rather than double the
+	# difficulty.
+	var capability: float = _hero_dps() * float(_players) 		+ _affordable_dps(_earned_gold)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -132,6 +162,27 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 		"threat": threat, "capability": capability,
 		"pressure": threat / maxf(capability, 0.001),
 	}
+
+
+## The hero's own sustained damage, as a floor.
+##
+## One full three-hit combo against a single target: the windup, active and
+## recovery of each swing for the time, the damage of all three for the numerator.
+## Single-target on purpose - the swing arcs are 110 and 170 degrees and the
+## finisher lunges, so a real hero in a pack does better than this. A floor is
+## what a capability model wants.
+##
+## Read from the same arrays the hero fights with, so a rebalance of the combo
+## moves this number too rather than leaving a typed-in constant behind.
+func _hero_dps() -> float:
+	var damage: float = 0.0
+	var duration: float = 0.0
+	for index: int in Balance.HERO_ATTACK_DAMAGE.size():
+		damage += Balance.HERO_ATTACK_DAMAGE[index]
+		duration += Balance.HERO_ATTACK_WINDUP[index] \
+			+ Balance.HERO_ATTACK_ACTIVE[index] \
+			+ Balance.HERO_ATTACK_RECOVERY[index]
+	return damage / maxf(duration, 0.01)
 
 
 ## Average Gold a body is worth, across the enemies that actually walk on.
@@ -185,7 +236,8 @@ func _affordable_dps(earned: float) -> float:
 
 func _print_table() -> void:
 	print("")
-	print("BEAST ROAD — difficulty curve, %d waves, daylight, best-case spending" % _rows.size())
+	print("BEAST ROAD — difficulty curve, %d waves, daylight, best-case spending, %d player%s"
+		% [_rows.size(), _players, "" if _players == 1 else "s"])
 	print("")
 	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat   capable   pressure  step")
 	var previous: float = 0.0

@@ -135,7 +135,29 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 
 	var texture_size: Vector2 = sprite.texture.get_size() * sprite.scale.abs()
 	var width: float = texture_size.x * Balance.SHADOW_WIDTH * width_scale
-	if width <= 1.0:
+	# Measured from the *sprite*, not from the node. They are the same thing for
+	# most callers and are not for a tower: its node was moved down to its plot's
+	# front edge so it y-sorts on the ground it stands on, and the sprite lifted
+	# back up to compensate. A shadow placed from the node then floated a tile
+	# below the tower it belonged to.
+	var anchor: float = sprite.position.y 		+ ((texture_size.y * 0.40) if is_nan(base_offset) else base_offset)
+	return add_contact_sized(target, width, anchor)
+
+
+## The same shadow, for something that is not a sprite.
+##
+## Everything drawn from polygons needs this: the torches are `Polygon2D`
+## ironwork and the foliage builds its own clumps, so neither can hand over a
+## texture to be measured. They were left standing on nothing - a torch lighting
+## the whole field while casting no pool of its own is the kind of gap that reads
+## as "the lighting is wrong" without anyone being able to say why.
+##
+## `width` is the finished shadow width in world units, and `base_offset` is
+## where the ground is in the target's own frame - 0.0 for anything whose origin
+## is already its contact point, which is how the torches are built.
+static func add_contact_sized(target: Node2D, width: float,
+		base_offset: float = 0.0) -> Sprite2D:
+	if target == null or width <= 1.0:
 		return null
 
 	var shadow := Sprite2D.new()
@@ -145,13 +167,7 @@ static func add_contact(target: Node2D, sprite: Sprite2D,
 	# The quad is drawn larger than the pool inside it so the falloff and the
 	# sun-driven slide both have somewhere to go without clipping at the edge.
 	shadow.scale = Vector2.ONE * (width * 2.0 / float(quad_texture().width))
-	# Measured from the *sprite*, not from the node. They are the same thing for
-	# most callers and are not for a tower: its node was moved down to its plot's
-	# front edge so it y-sorts on the ground it stands on, and the sprite lifted
-	# back up to compensate. A shadow placed from the node then floated a tile
-	# below the tower it belonged to.
-	var anchor: float = sprite.position.y
-	shadow.position.y = anchor + ((texture_size.y * 0.40) if is_nan(base_offset) else base_offset)
+	shadow.position.y = base_offset
 	# Relative, so every contact shadow lands on one layer just under the sorted
 	# units. A shadow must never be able to draw over somebody's boots.
 	shadow.z_index = -1

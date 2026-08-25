@@ -38,6 +38,54 @@ extends GameData
 @export var effect_line: String = ""
 
 
+## What falls out of the sky, if anything.
+##
+## An enum rather than a boolean pair, because "raining and snowing" is not a
+## state this game has and a pair would let somebody author one.
+enum Precipitation {
+	NONE,
+	RAIN,
+	SNOW,
+	DUST,
+}
+
+## Weather has been data, a tint and a HUD label since it was written, and never
+## visible. Everything below is what makes it something the player can see, and
+## it is authored per weather rather than branched on an id in code - working
+## rule 3, and the reason a new weather is a file.
+@export var precipitation: Precipitation = Precipitation.NONE
+
+## How heavy it falls, 0..1. Density of drops rather than opacity: fading opacity
+## alone reads as fog rather than as lighter rain.
+@export_range(0.0, 1.0) var precipitation_density: float = 0.0
+
+## Sideways drift. Negative blows the other way; a duststorm wants far more of
+## this than it does fall speed.
+@export_range(-1.0, 1.0) var precipitation_wind: float = 0.10
+
+## Downward speed. Snow wants a fraction of rain's, which is most of what makes
+## the two read differently at a glance.
+@export_range(0.0, 6.0) var precipitation_speed: float = 1.5
+
+## Colour and opacity of what falls.
+@export var precipitation_tint: Color = Color(0.78, 0.85, 0.96, 0.55)
+
+## Whether this leaves anything behind on the ground.
+##
+## Snow does; rain does not. Kept separate from `precipitation` so a region that
+## wants dry snow blowing past without settling can have it.
+@export var settles: bool = false
+
+## How fast this weather takes lying snow away, as a multiple of the base rate.
+##
+## Snow does not only melt because it stopped snowing. Rain washes it off and a
+## heatwave burns it away, and both are far quicker than still air - which is the
+## difference between a field that remembers the last storm and one that
+## remembers the last *weather*. Authored rather than derived from the kind, so a
+## cold drizzle that leaves the snow alone is possible without a code change.
+@export_range(0.0, 12.0) var snow_melt_scale: float = 1.0
+
+
 func scale_for(element: int) -> float:
 	if element < 0 or element >= element_scale.size():
 		return 1.0

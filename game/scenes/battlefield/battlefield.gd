@@ -28,6 +28,13 @@ extends EnemyField
 ## scope changes, so switching does not leave the view sitting in another scope.
 @export var camera: Camera2D
 
+## The partner's hero, when a second player is here. Null-safe everywhere: in a
+## single-player run this exists and does nothing.
+var _coop_heroes: CoopHeroes = null
+
+## Enemies and towers, made to agree on two machines. Inert when playing alone.
+var _coop_world: CoopWorld = null
+
 
 func activate() -> void:
 	if camera != null:
@@ -61,6 +68,10 @@ const Z_GROUND: int = -40
 const Z_LANES: int = -30
 const Z_SORTED: int = 0
 const Z_CLOUDS: int = 30
+
+## Above the clouds. Precipitation falls between the player and everything else,
+## including the shadow of the cloud dropping it.
+const Z_WEATHER: int = 34
 
 ## Road art, tiled along each cardinal lane only.
 ## The fallback path set. Regional production sets use the same 16-mask
@@ -156,6 +167,18 @@ func _ready() -> void:
 		# map changes. It was not remembered: the scene still carried an 880
 		# circle from the 30x30 field.
 		hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
+	# The partner's hero, when there is one. Created unconditionally and inert in
+	# a single-player run: it spawns nothing, sends nothing and costs one early
+	# return per physics frame. A system that only exists in co-op is a system
+	# that only gets exercised in co-op.
+	_coop_heroes = CoopHeroes.new()
+	_coop_heroes.name = "CoopHeroes"
+	_coop_heroes.field = self
+	add_child(_coop_heroes)
+	_coop_world = CoopWorld.new()
+	_coop_world.name = "CoopWorld"
+	_coop_world.field = self
+	add_child(_coop_world)
 	# Transient effects are parented into the scope that owns them, so leaving
 	# the battlefield takes its sparks with it.
 	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
@@ -317,6 +340,26 @@ func _setup_lighting() -> void:
 	clouds.z_index = Z_CLOUDS
 	clouds.visible = Graphics.cloud_shadows()
 	add_child(clouds)
+
+	# Above the clouds, because precipitation is between the player and
+	# everything - including the shadow the cloud dropping it is casting.
+	var weather := WeatherVeil.new()
+	weather.name = "WeatherVeil"
+	weather.z_index = Z_WEATHER
+	add_child(weather)
+
+	# Snow lies on the floor and under everything that walks on it. Directly
+	# above the ground rather than in the sorted layer: whitening the sorted
+	# layer would bleach the enemies, and a wave that cannot be read is a worse
+	# problem than a field that is not snowy enough.
+	# Two layers straddling the roads: full cover on the bare ground below them,
+	# a faint dusting above so the paths whiten a little and the drift carries
+	# across the kerb instead of stopping at it.
+	var lying := SnowCover.new()
+	lying.name = "SnowCover"
+	lying.ground_z = Z_GROUND + 1
+	lying.path_z = Z_LANES + 1
+	add_child(lying)
 
 	# Contact shadows follow the sun, and the sun follows the beast walking.
 	ShadowKit.attach_sun(self)
@@ -604,6 +647,27 @@ func town_node() -> Node2D:
 	return town
 
 
+## The partner's hero, or null when playing alone.
+##
+## `hero` stays "the hero this player drives" everywhere it is already used —
+## the camera target, the HUD's subject, the one the vignette follows. Renaming
+## that to mean "either hero" would have been the change that quietly broke
+## every one of those.
+func partner_hero() -> Hero:
+	return _coop_heroes.partner() if _coop_heroes != null else null
+
+
+## Both heroes on the field, in a single-player run just the one.
+func heroes() -> Array[Hero]:
+	var found: Array[Hero] = []
+	if hero != null:
+		found.append(hero)
+	var second: Hero = partner_hero()
+	if second != null:
+		found.append(second)
+	return found
+
+
 func hero_node() -> Node2D:
 	return hero
 
@@ -678,6 +742,12 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	# a straight line that the road no longer follows.
 	enemy.position = road_spawn_point(lane) * data.spawn_distance_scale + spread
 	entity_root.add_child(enemy)
+	# Announced *after* it is in the tree, so the position the guest is told is
+	# the one it actually spawned at. Does nothing in a single-player run, and
+	# nothing on a guest - which is what stops a mirrored enemy being announced
+	# back and spawning a mirror of a mirror.
+	if _coop_world != null:
+		_coop_world.announce_enemy(enemy)
 	return enemy
 
 
@@ -1471,7 +1541,18 @@ func _update_pressure() -> void:
 		var enemy := node as Enemy
 		if enemy == null or enemy.is_dying():
 			continue
-		var lane: int = clampi(enemy.lane, 0, Balance.LANE_COUNT - 1)
+		# The lane the enemy is in *now*, not the one it spawned in.
+		#
+		# `enemy.lane` is written once at spawn and never again, so the readout
+		# was describing the wave's opening shape for as long as the wave lasted.
+		# An enemy that breaks off the road to chase the hero can end up bearing
+		# on a different side of the town entirely, and it was still counted
+		# against the road it entered by - lighting the wrong arc, and grading its
+		# depth by projecting onto a road it had already left, which gives a
+		# smaller number the further off-road it gets. Two wrong answers that
+		# happened to look plausible together.
+		var lane: int = grid.lane_at(enemy.global_position) if grid != null \
+			else clampi(enemy.lane, 0, Balance.LANE_COUNT - 1)
 		# Distance *along the road*, not straight-line. With a U-bend those are
 		# different answers: an enemy at the far end of the detour is close to the
 		# town as the crow flies and still has most of the road left to walk.

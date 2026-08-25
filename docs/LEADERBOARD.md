@@ -13,7 +13,14 @@ left over from a different project answers every request with 401 and no other
 clue. Both were repointed on 2026-08-20 after the first project was restricted
 for exceeding its storage quota (HTTP 402 on every request, including reads).
 
-**Current status: the table does not exist yet on this project.** A read answers:
+**Current status, verified 2026-08-25: the table is LIVE.** A read answers 200
+with rows, the schema matches the contract below exactly, and the anon key in
+`Leaderboard.ANON_KEY` is the one that project answers to. Four rows present.
+
+Nothing below needs doing again unless the project is moved. The rest of this
+section is kept because it is how you tell *which* broken state you are in.
+
+Historical: before the SQL had been run once, a read answered:
 
 ```
 {"code":"PGRST205","message":"Could not find the table 'public.runs' in the schema cache"}

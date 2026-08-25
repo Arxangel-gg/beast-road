@@ -79,6 +79,141 @@ Highest priority: these are things that are wrong, not things that are missing.
       builds its shadow by hand and never used `add_contact`. The tower was the
       only offset caller, and it is fixed.
 
+### Raised 2026-08-24 — all eight fixed and gated
+
+Closed on 2026-08-25. Every row below is held by
+`tools/regression_check.tscn`, which is in `guard.yml` and runs on every
+push. That gate exists because all eight were *quiet* failures - nothing
+errored, nothing logged, and so nothing that runs had any opinion about
+them. The full local suite is 24 of 24 green.
+
+- [x] **Enemy facing comes from the target lock, not from motion.** An enemy
+      whose path bends away from the thing it is locked onto walks backwards.
+      Facing has to be the sign of that frame's own velocity X, not the bearing
+      to its intended victim - those two agree only on a straight approach,
+      which is exactly why it looks correct until a road turns.
+
+- [x] **The threat meter does not update when enemies change path.** It reads
+      the wave's opening shape and keeps reading it while the roster
+      redistributes. A meter that goes stale precisely when the wave gets
+      interesting is worse than no meter, because the player trusts it.
+
+- [x] **Act-boss summons outlive the act.** A boss that dies while its summons
+      are alive still ends the wave and the act, and the survivors ride into the
+      next act's indefinite Preparation - which the player then spends hunting
+      them instead of preparing. They should be despawned on the boss's death,
+      with no payout and no drops, because they were not killed.
+
+      GDD §448 says Preparation never opens until all surviving enemies are
+      resolved. Despawning *is* resolving them; this is an exception to the
+      payout, not to the rule.
+
+- [x] **Build tooltips cover the build panel.** A tooltip that occludes the
+      options beside the one being hovered makes comparison impossible - the
+      player has to move the mouse away to read what they moved it toward. It
+      must open outside the panel's rect rather than over it.
+
+- [x] **Foliage behind a tower draws on top of it.** A plant whose sort origin
+      is behind a structure still paints over the structure's sprite. Towers and
+      buildings are tall, so the sort key has to account for their height and
+      not just their base row.
+
+- [x] **On mobile, closing a build menu can leave tiles unresponsive.** Tapping
+      a tile afterwards does not reopen it. Very likely the same class as the
+      touch-eating HUD panel fixed in the touch pass: a dismissed panel leaving
+      something behind that still swallows the tap.
+
+- [x] **The dash button renders on the main menu** - a combat control over the
+      front door.
+
+- [x] **Loot pickups are far too small.** Filed as a bug, not as art: the art is
+      fine and the on-screen scale is wrong. A reward the player never notices is
+      a reward that did not happen. This wants a real size pass measured against
+      the hero sprite at shipping zoom, not a nudge - it has now been raised
+      twice.
+
+      **What they turned out to be.** Four of the eight were not where the
+      symptom was, and two shared a single cause:
+
+      *Facing* asked about the target before it asked about motion, so the
+      lock outranked the legs. Motion now wins while WALKING, and only
+      WALKING moves under its own power - so the target branch still covers
+      the windup, the strike and the knockback slide, where facing the
+      victim is right.
+
+      *The threat meter* read `enemy.lane`, which is written once at spawn
+      and never again. Worse than lighting the wrong arc: it graded depth by
+      projecting onto a road the enemy had already left, which returns a
+      smaller number the further off-road it gets. Two wrong answers that
+      looked plausible together. `BattleGrid.lane_at` now answers from where
+      the enemy actually is.
+
+      *Foliage sorting* was the interesting one. Bands sorted at their
+      *centre*, which makes the error symmetric - a plant in the near half
+      of a band sorted in front of where it stood. No band count fixes that,
+      it only shrinks it, which is why 16 → 32 helped and did not cure.
+      Sorting at the band's leading edge makes the error one-directional:
+      nothing can now draw over a thing it is standing behind, as a
+      guarantee rather than a tolerance. One line.
+
+      *The mobile lockout and the dash button on the menu* were one bug
+      wearing two hats. The controls read `_unhandled_input`, which never
+      sees an event a Control consumed first - so a thumb lifted over a
+      panel left the stick holding finger 0 forever, `owns_pointer()` stayed
+      true, and `placement_cursor` refused every later tap as "that is a
+      thumb". Releases now go through `_input`, which runs regardless.
+      Separately, the overlay is gated on `run_active`: the visible ring on
+      the front door was the smaller half of that problem, because an
+      invisible button eats a tap exactly as well as a visible one.
+
+      *Loot scale* was measured rather than nudged. A drop was 11.6% of the
+      hero's drawn height - about 13 screen px at the default battlefield
+      zoom and under 10 fully zoomed out. Now 58 world units, roughly a
+      quarter of the hero, 30 screen px at default and 22 at the widest
+      zoom. `LOOT_COLLECT_RANGE` went 34 → 48 with it, because a collect
+      radius smaller than the sprite means standing on a coin without
+      taking it.
+
+      *Build tooltips* now open in a box beside the panel rather than at the
+      cursor, which is by definition inside it. The target-priority tooltip
+      was deleted outright - the next line already put the same sentence in
+      the panel as a label.
+
+- [x] **`breather_check` was flaky, and had been all along.** Found while
+      verifying the above, not caused by it - an A/B run with the change
+      reverted failed identically.
+
+      It called `RunState.reset()` with no seed, which draws a fresh random
+      one, so every run rolled a different roster, different spawn positions
+      and a different time to clear wave 1. Across runs of *identical* code
+      the first breather opened anywhere between 24 and 63 seconds. The
+      window was 60. The gate had been passing on a coin toss.
+
+      That is worse than having no gate, because a test that goes green on a
+      re-run teaches everyone to re-run it. Now seeded, so it measures the
+      breather mechanic rather than the dice, and the window is 150s so a
+      slow-but-legal wave is not a failure. Verified by running it twice and
+      getting byte-identical output - `#1 opened at 30.7s` both times.
+
+      **Worth a look across the other harnesses**: any gate that resets a run
+      without a seed is measuring one sample of a distribution.
+
+- [x] **`regression_check` leaked audio at exit**, on an otherwise passing
+      run. The jungle music and ambience streams stayed alive, and the guard
+      workflow fails a gate on any `WARNING:` line - so a green test would
+      have broken the build.
+
+      The cause was teardown order. The run has to leave the tree *first*,
+      then the audio autoloads are silenced, then the tree needs enough
+      frames to actually collect before quitting. `breather_check._bail`
+      already had exactly this sequence, with a comment explaining it, and
+      the new gate was written without reading it. Both now match.
+
+      Two harness defects in one session, both found only because the suite
+      was re-run rather than trusted once. That is the argument for running
+      the whole suite after a change rather than the gate you think is
+      relevant.
+
 ---
 
 ## 2. Conformance — the 8 outstanding rows
@@ -819,8 +954,10 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       It proves the drift and the idle cycle by driving `_process` rather than by
       waiting — and it samples a whole cycle, after reporting "no change" once
       because the seven-frame idle happened to land back on frame one.
-- [~] Leaderboards — local/client path complete; Supabase quota, schema/RLS and
-      live production verification remain (see the detailed item above).
+- [x] Leaderboards — **live and verified 2026-08-25.** The `runs` table exists
+      on the configured project, answers 200 with rows, and its schema matches
+      the contract in `docs/LEADERBOARD.md` field for field. The anon key in
+      `Leaderboard.ANON_KEY` is the one that project answers to.
 
 ---
 
@@ -955,6 +1092,25 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] Per-plant hue and saturation jitter, deliberately small — the palette is
       sampled from the region's own ground, and a wide jitter would put plants
       outside their act.
+- [x] **More kinds per act, and the art to fill them.** A fourth regional kind
+      (`bush`, one per region) and two more shared props, generated and
+      integrated: 595 manifest assets, all real art, no placeholders.
+
+      It was files plus one list, as predicted. `REGIONAL_KINDS` and
+      `SHARED_KINDS` gained a name each and the path convention did the rest -
+      no other code changed.
+- [x] **Fallen logs**, plus stumps. Shared props rather than regional: a fallen
+      log is a fallen log in a jungle or a snowfield.
+- [x] The new kinds sway with everything else. They are painted plants and pick
+      up `painted_material()` from the same scatter path the existing kinds use,
+      so opting in was not a step - not opting in would have been.
+
+      **The art-direction question that blocked this is closed.** The pixel-art
+      restyle already happened and shipped: `beast_scope.gd` says the backdrops
+      "are 688x384 pixel art now", 53 PixelLab structure packages are gated, and
+      the rendered game is unambiguous. `ASSET_MANIFEST.md` §1 and
+      `PIXELLAB_PROMPTS.md` §0 still describe the old painterly style and are
+      stale on that point alone - their paths, sizes and contracts are current.
 
 ### Towers and buildings
 
@@ -972,6 +1128,14 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] Beast walk/idle as authored frames, layered over the procedural gait.
 - [x] Building tier variants — all nine buildings now have distinct tier-two and
       tier-three architecture, and every tier has its own idle package.
+- [ ] **Tower attack animations.** Every tower currently idles through its own
+      shot. The authored-package convention and the id-derived path rule are
+      both in place, so an attack pose set follows the same road as the idles.
+- [ ] **Base pixel art with states** - idle animation and a hit reaction, on the
+      same authored-frame footing as the towers.
+- [ ] **Torch base shadow.** The torches light everything and sit on nothing.
+      `ShadowKit.add_contact` is the call, and it has been sprite-relative since
+      the tower fix, so this is one caller.
 
 ### The beast scope
 
@@ -983,6 +1147,116 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       synchronously and measures the gait phase; measuring the footfall signal
       proved nothing, because footfalls only fire when the beast camera is
       current and a harness looking at the battlefield never sees one.
+- [x] **Procedural background with parallax.** Two drawn silhouette bands: a
+      hazed ridge between the sky and the ground, and a near band that passes in
+      *front* of the beast. `FOREGROUND_SCROLL` had been sitting in
+      `beast_scope.gd` unused - the shape of a layer planned and never built.
+
+      Drawn rather than painted, which is what made it possible at all: new
+      painted art is an art-direction task this toolchain cannot do, and a
+      distant ridge is one flat colour under a skyline once haze has taken the
+      detail out of it anyway.
+
+      Seamless by construction rather than by tiling. The profile is a sum of
+      sines whose frequencies are whole cycles across the band's own width, so
+      the curve at the far edge equals the curve at the near one by arithmetic
+      and translating by one width is invisible. The painted backdrop next door
+      has to mirror itself precisely because it lacks that property.
+
+      **Three things were wrong and only looking found them.** The ridge was
+      first coloured from `_ground_tint()`, which is a *modulate* and therefore
+      near-white by design - it drew a white wall across half the sky. The
+      silhouette used `absf(sin)`, which puts a cusp at every zero crossing and
+      came out as a row of black triangular teeth. And the near band kept 14% of
+      the horizon colour, which against pale desert sand is a hole punched in the
+      screen rather than ground. Screenshots at all three acts, each time.
+
+### Weather
+
+Not new scope: §159, §193, §1045 and §1098 all build on weather and §1350
+still lists it unfinished. Today it is not visible at all.
+
+- [x] **Rain**, with drops that land. Falling streaks plus small expanding rings
+      where they hit, on their own sparser grid - reusing the fall grid would put
+      a ring under every drop, which is not what water does.
+- [x] **Snow**, with accumulation and melt. Settles in 90 seconds of continuous
+      snowfall and takes 240 to go, and the asymmetry is the design: snow that
+      left with the clouds would be an overlay tied to a switch rather than a
+      thing that happened. The gate asserts melting is slower than settling.
+
+      Lying snow is a patchy noise layer *above* the floor and below the sorted
+      units. The first attempt was a `modulate` on the ground sprite and cannot
+      work - a modulate multiplies, and multiplying a dark jungle floor by
+      anything still leaves a dark jungle floor. It is also why the units are not
+      whitened: a wave that cannot be read is a worse problem than a field that
+      is not snowy enough.
+
+      The roads staying dark is luck rather than design - they draw above the
+      snow layer - but it reads as paths trodden through the snow, so it stays.
+- [x] **A shader, not particles**, which is the whole performance story. This
+      covers the entire field, so particles would need thousands to look like
+      weather and would cost per-particle CPU every frame - on the GL
+      Compatibility renderer this ships with, and in a browser tab. A fragment
+      shader costs screen area rather than density, so heavier rain is free.
+      `menu_stage.gd` picks CPUParticles2D for its embers for the opposite and
+      equally good reason, and the code says so in both places.
+- [x] Authored per weather rather than branched on an id: precipitation kind,
+      density, wind, speed, tint and whether it settles are all fields on the
+      `.tres`, so a new weather is still a file.
+- [x] **Precipitation falls down.** It did not: the shader sampled at
+      `p + offset`, which moves the *pattern* the opposite way from the offset,
+      so adding to both axes made rain drift up-and-left at about 36 degrees off
+      vertical. Reported as "rain and snow fall leftish". Subtracting fixes the
+      direction and makes a positive `wind` blow right, which is what a positive
+      number in a `.tres` ought to mean.
+- [x] **Snow on the paths, feathered.** A second, much fainter snow layer sits
+      *above* the roads, so the paths take a dusting and a drift carries across
+      the kerb instead of stopping at it. Both layers sample the same noise at
+      the same world position, so the continuation is exact and costs nothing.
+- [x] **Snow melts to the weather, not just to the clock.** Rain washes it off
+      and a heatwave burns it away - authored per weather as `snow_melt_scale`,
+      so a cold drizzle that leaves snow alone needs no code change.
+- [x] **Snow makes enemies slip.** Rolled per step against how much snow is
+      actually lying, from the combat stream so a seeded replay slips in the
+      same places. Sideways rather than forwards, composed with the walk rather
+      than replacing it, so it reads as a stumble. Puppets never slip: on a guest
+      their footing was decided on the host.
+- [x] **Answers to the graphics preset.** Density scales with
+      `Graphics.particle_scale()` and the three depth layers drop to two at
+      medium and one at low - the real saving, since density in a shader is only
+      a threshold while each layer is a whole extra pass per pixel. Both snow
+      layers are hidden outright at zero cover rather than left drawing nothing.
+- [ ] **Weather drives the foliage wind.** Still outstanding: the veil and the
+      foliage shader know nothing about each other, so a downpour does not bend
+      the grass.
+
+### Wildlife and ambient life
+
+- [ ] **Ravens, procedurally.** Flying in, landing, moving about, leaving; new
+      ones arriving as old ones go. Sometimes almost none, sometimes plenty -
+      the variation is the whole point, because a fixed population reads as
+      decoration rather than as life.
+- [ ] **Wildlife living off the roads.** Deer, foxes, squirrels, raccoons,
+      rabbits, birds. Each needs an idle and a move animation, whatever other
+      states its behaviour implies, and enough AI to keep it in the unpathed
+      ground rather than wandering into a lane.
+
+### UI and controls
+
+An earlier pass made the bottom bar one row. The remaining objection is that it
+is a horizontal bar at all.
+
+- [ ] **The scope bar becomes a vertical icon bar** - Battlefield, Town, Beast,
+      Menu as icons rather than text, sized to match the already-resized Warhorn,
+      Raid, Repair and Tend buttons so the two read as one control system.
+- [ ] Less vertical padding, and sitting higher.
+- [ ] **It must not overlap the build panel**, which means the build panel moves
+      down into the command panel's position to leave room above it.
+- [ ] **The command menu becomes a vertical bar in the top left**, also built
+      for a thumb.
+- [ ] All of the above judged on a phone, not on a desktop window sized like
+      one. This is the same row as the touch-feel item in section 2b and should
+      be answered in the same sitting.
 
 ---
 
@@ -1030,6 +1304,312 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       five rows pass (unreadable save backed up, backup byte-identical, survives
       a second mismatch, v1 source
       preserved, v2 terrain rename with unknown ids kept).
+
+---
+
+## 4b. Scope changes - ruled on 2026-08-24
+
+Raised and ruled on the same day. Every item here either reverses something v4
+locks or adds a system v4 does not describe, so each needed an owner rather than
+an agent. **The owner ruled yes to all of it on 2026-08-24.**
+
+The two re-cuts are recorded where they belong - GDD §54 and §448, and the
+CLAUDE.md re-cut table - rather than only here. This section tracks the *work*;
+those files carry the *decision*.
+
+Ordering note: co-op and the zero-capital start both re-tune the same difficulty
+surface, and doing them as two separate balance passes means doing the second
+one twice. They share a pass.
+
+**Progress, 2026-08-25.** The zero-capital start is built and green. Co-op
+has its design settled and written down; no netcode is written yet.
+
+### Cut in §54 - needs a recorded re-cut
+
+- [~] **Two-player co-op.** Design settled in `docs/COOP_DESIGN.md`, and
+      **all six steps are built and gated** (2026-08-25). The owner's three rulings:
+      **two heroes, one each**; **desktop-to-desktop only** for now, with the
+      web build staying single-player; **one shared resource pool**.
+
+      Decided in the design pass rather than left open: **host-authoritative,
+      not lockstep**. Seeded reproduction was built to make a *replay*
+      reproducible on one machine, which is a different problem from holding
+      two live machines in agreement - and lockstep needs bit-identical float
+      behaviour across different CPUs to avoid silent desync. Host authority
+      also settles rule 6 by strengthening it: the host's `RunState` is the
+      one that exists, and the guest's is a read-only mirror.
+
+      The transport was verified against this engine rather than recalled -
+      `ENetMultiplayerPeer`, `SceneMultiplayer`, the peer signals, and
+      `MultiplayerSpawner`/`MultiplayerSynchronizer` are all present in
+      4.7.1, and a server stands up. ENet does not work in web exports, which
+      is exactly why the desktop-only ruling removes the relay host, the
+      signalling service and the bill.
+
+      The one design question that note left open is now closed: **both
+      players go on raids** (owner, 2026-08-25). The alternative would have
+      left the holding player watching a frozen battlefield, and making that
+      interesting means letting the field tick during a raid - which breaks
+      working rule 8 outright. Extraction windows are a joint decision
+      rather than per-player, or the same problem reappears inside the raid.
+
+      **Step 1 — lobby and transport.** `game/autoload/Coop.gd` owns the peer
+      and the session state machine; `tools/coop_check.tscn` stands a host and
+      a guest up in one process over a real loopback socket and is in
+      `guard.yml`. No lobby *screen* yet, on purpose — that belongs with the
+      UI pass rather than being built twice.
+
+      The load-bearing detail: `Coop` reads its own `multiplayer` property
+      rather than the tree's, because a `MultiplayerAPI` is registered per
+      subtree. That is the entire reason co-op can be tested on a push instead
+      of needing two machines. A subtree's API is also not polled by the loop
+      that drives the default one, so the harness pumps both by hand.
+
+      `is_host()` answers **true** in single player, deliberately: a lone
+      player is the authority over their own run, so every downstream
+      permission check reads the same in both modes and the single-player path
+      cannot rot from being the branch nobody exercises.
+
+      New EventBus signals (CLAUDE.md §6): `coop_state_changed`,
+      `coop_partner_joined`, `coop_partner_left`, `coop_failed`.
+
+      **Step 2 — the relay layer.** `scripts/systems/coop_relay.gd` is the one
+      place a message crosses the wire, and nothing in the battlefield, town or
+      beast scope knows a network exists. Host-authored facts forward and
+      re-emit on the guest's own bus; guest requests travel the other way and
+      stay requests; cosmetic signals are not relayed, enforced by *omission*
+      from the binding table rather than by a decision at each call site.
+
+      Raw packets rather than `@rpc`, because `@rpc` resolves by node path and
+      the harness has host and guest at different paths in one tree — a
+      path-bound relay could not be tested in process at all. The bus is
+      injected for the same family of reason: two machines have two buses, and
+      sharing the autoload would echo facts forever and trip the guard on
+      traffic that never crossed a wire.
+
+      **The guard is the row that matters.** A host-authored fact originating
+      on a guest is caught at the moment of emission and named. It cannot be
+      enforced by review — one system breaking it once is enough for two
+      machines to disagree, and the desync would be debugged nowhere near the
+      cause. It records rather than throws: crashing a run in front of two
+      players is worse than a loud log and a gate that fails next push.
+
+      New EventBus signal: `coop_request_received(kind, args, from_peer)`.
+
+      **Step 3 — two heroes.** The hero stopped reading `Input` directly. It
+      did so in five places, which is right for one hero and wrong for two;
+      the alternative was an "is this hero mine" test at each site, and the
+      failure mode of getting one wrong is a partner's hero that twitches
+      whenever the local player walks. A hero now asks its own `HeroInput`
+      and never learns which kind it is.
+
+      Sticks are levels and buttons are edges, handled differently on
+      purpose: a newer move vector replaces the older one, while presses are
+      latched until read. Packets and physics frames do not line up, so
+      assigning the button mask instead of OR-ing it drops the press landing
+      in the gap — an attack that never comes out every few seconds, for no
+      reason the player can see.
+
+      Hero state needed no new send path: `CoopHeroes` emits it on its own
+      bus and the relay forwards it like any other fact, so the authority
+      guard covers hero positions for free.
+
+      Not solved yet, and flagged rather than hidden: the guest's own hero
+      keeps simulating between state packets, so it will visibly correct
+      under latency. Proper prediction is a later refinement — a hero that
+      only moves when a packet arrives is worse than one that snaps.
+
+      **Step 4 — enemies and towers over the wire.** Towers turned out to be
+      almost free, and that is a dividend rather than luck: `battlefield.gd`
+      already rebuilt every tower node from `RunState` on one signal, so a
+      guest told what stands where writes it and the tower appears. The gate
+      asserts that property directly — if it stops being true, towers need
+      real replication and the system needs rewriting rather than patching.
+
+      Enemies are mirrored as puppets. Identity is an assigned integer, not a
+      node name: names are unique within a parent, not across a wire, and
+      Godot renames on collision. A puppet decides nothing — no targeting,
+      walking, damage or payout — while its sprite, facing and walk cycle run
+      through the same code as a real enemy, so a guest's field looks alive
+      rather than like a slideshow.
+
+      Removals are computed by the *host* comparing its own view against
+      itself, never inferred by the guest from a missing batch entry — which
+      would empty the field the first time a packet arrived late. That also
+      keeps `Enemy` free of any knowledge that a network exists.
+
+      **What the gate deliberately does not claim.** The build order asked
+      for "a wave runs identically on both sides", and one process cannot
+      honestly assert that: there is one `RunState` autoload, so a simulated
+      guest shares the host's run state and the two cannot disagree.
+      Everything identity rests on is gated instead. The remainder is a
+      two-machine play test — see the row below.
+
+- [ ] **Co-op played by two people on two machines.** Every co-op gate is a
+      headless loopback in one process. That proves the transport, the
+      authority model and the plumbing; it proves nothing about how co-op
+      *feels*, and nothing about latency, which is the one thing the design
+      knowingly defers (the guest's own hero visibly corrects).
+
+      Worth doing **before** step 5 tunes difficulty, or the tuning is aimed
+      at an experience nobody has had. Same class of row as "whether the
+      sticks feel right under a thumb".
+
+      **Step 5 — difficulty scaling, and the naive answer was wrong.** Body
+      count is the only thing the player count touches; `balance_test` gates that
+      health, damage and speed do *not* move, because scaling those adds duration
+      rather than pressure and invalidates every dodge window.
+
+      Measured rather than reasoned about, with `curve_report -- --players=2`:
+      doubling the bodies made co-op **43% harder** at the peak (0.90 against a
+      solo 0.63), not equal. The reason is worth keeping: the late game is
+      *tower* dominated, so a second hero barely moves late capability — at zero
+      extra bodies two players still measure 0.60. Bodies scale threat linearly
+      while a second player scales capability much less than linearly, because
+      the tower count is capped and upgrades escalate.
+
+      Settled at 1.5x bodies for two players, measuring ~0.71. Deliberately above
+      the solo curve: the model cannot see two lanes covered *at once*, which is
+      the biggest thing a second player brings, and cannot see latency either.
+      **Provisional until the two-machine play test.**
+
+      **Step 6 — disconnects.** A guest dropping leaves the host playing on, and
+      the rescale happens at the next wave with no code: `_wave_size` is only
+      consulted when a wave begins, so a wave already walking is never resized
+      under the survivor. A host dropping abandons the guest's run rather than
+      recording a defeat — the player did not lose, the session went away, and
+      writing a loss would put a phantom run on a leaderboard.
+
+- [ ] **Co-op hero XP has no answer yet, and needs an owner.** Found while
+      building step 4, recorded in `docs/COOP_DESIGN.md` §10 rather than guessed
+      at.
+
+      Each player brings their own persistent hero, and hero level and XP persist
+      per account (CLAUDE.md rule 7). But XP is granted in `Enemy._on_died`, which
+      runs only on the host, into the single `RunState.hero_xp` a run has. So a
+      guest can fight a whole run and their hero learns nothing.
+
+      That is indefensible as a shipped answer, given that a persistent hero is
+      the reason "two heroes" was the right call in the first place. The fix is a
+      design decision — per-player run state, shared credit, or something else —
+      not a patch.
+
+      Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
+      challenges" as explicitly out of scope for 1.0, with only leaderboards
+      carved back by the 2026-08-20 amendment. Restoring co-op is the same kind
+      of decision as the two already recorded in CLAUDE.md §1 and deserves the
+      same treatment: an owner ruling, dated, written into §54 and CLAUDE.md
+      together.
+
+      It is also the largest change anyone has proposed here, and it lands on
+      three load-bearing working rules:
+
+      - **Rule 6** - `RunState` is the single source of truth for the run. With
+        two players there is a question rule 6 does not answer: whose machine
+        owns it, and what the other one holds instead.
+      - **Rule 5** - systems talk through `EventBus`. That is genuinely the
+        right shape for a network boundary, so the seam already exists. But it
+        has never been asked to carry authority, ordering or replay, and a
+        signal that is fine locally is not automatically fine across a wire.
+      - **Rule 8** - the battlefield freezes for a raid and resumes exactly. A
+        pause one player triggers and both must observe identically is a harder
+        version of a guarantee the game already makes.
+
+      Determinism is the piece to settle first. Seeded reproduction exists and
+      is gated (`seed_reproduction_check.tscn`), which is a real head start
+      toward lockstep - but it was built to make a *replay* reproducible, not to
+      hold two live machines in agreement, and the gap between those is most of
+      the work.
+
+      If this is a yes, the honest sequence is a design pass before any code:
+      authority model, what a desync means, what happens when one player drops
+      mid-raid, and whether it ships in 1.0 or as the thing after it.
+
+- [ ] **Co-op difficulty scaling for two players.** Dependent on the above. The
+      director's threat budget is already data-driven and tuned per act, so
+      scaling *for* a second player is tuning - but scaling it *well* is a
+      balance question that cannot be answered before the mode exists.
+
+### Locked in §448 - needs a recorded re-cut
+
+- [x] **Start with no gold; earn tower money by killing.** Done and gated on
+      2026-08-25. `Balance.STARTING_GOLD` is 0.
+
+      **Wood, Food and Stone were deliberately not zeroed, and that is an
+      interpretation the owner should confirm.** No tower can be built
+      without Gold - every `build_cost_table` entry carries a Gold price - so
+      zero Gold already means zero towers, which is the whole of the intent.
+      What the secondary wallets decide is *which element* the first
+      affordable tower may be, since Fire is the only pure-Gold line.
+      Emptying them would not make the opening harder; it would silently
+      force every player onto Fire for act 1. Wood and Food also pay for town
+      repair and hero tending, which are not tower capital.
+
+      **The re-tune, measured rather than asserted.** The opening Gold ramp,
+      best case, wave:total —
+
+          1:5  2:38  3:85  4:137  5:183  6:224  7:247  8:277  9:312  10:344
+
+      A tower costs 70 and four roads cost 280, so the first tower lands on
+      **wave 3** - which is when the second road opens - and the four-road
+      baseline on **wave 8**. The lane progression paces it without anything
+      being tuned to match: the player fights alone through the two
+      single-road teaching waves, then buys a road at roughly the rate roads
+      arrive.
+
+      **Nothing else needed changing**, which was the surprise. Starting Gold
+      was only about 12% of a run's total Gold income, so peak pressure is
+      unchanged at 0.63 on wave 51. What changed is the shape of act 1:
+      pressure used to sit at 0.02-0.19 through the opening and now ramps
+      0.06 → 0.48. The opening stopped being a formality.
+
+      **`curve_report` had to learn about the hero.** It modelled towers as
+      the only defence, which was a fair simplification while the run began
+      with four of them. With none, the hero *is* the defence for the first
+      waves, and a model scoring them as undefended divides by nothing and
+      reports an infinite spike where the design intends its gentlest moment.
+      Hero DPS is now read from the combo arrays as a single-target floor.
+
+      **`balance_test` asserted the opposite** and now asserts the new
+      contract: no starting capital, wave 1 alone must *not* pay for a tower
+      (or fighting taught nothing), a first tower by wave 4, all four roads
+      by wave 12. Three other harnesses quietly relied on the old cache and
+      now fund themselves, so they measure their own subject instead of the
+      re-cut.
+
+      Original entry: the intent is good
+      and clear: make the hero fight, rather than let the player subcontract the
+      act to towers.
+
+      §448's opening protection envelope locks the opposite in as many words -
+      "Starting Gold and Stone can build one level-1 base tower on each road
+      plus one meaningful upgrade or town choice" - and the whole protection
+      taper through Wave 8 assumes those towers are up. `Balance.STARTING_GOLD`
+      is 390 and `Balance.STARTING_RESOURCES` is 350, so the *change* is two
+      constants. **The re-tune is not.** Waves 1-6, the opening supply pulses,
+      the taper and the act multipliers were every one of them tuned against a
+      player who starts with four towers.
+
+      Worth ruling on the goal rather than the number. If the goal is "the hero
+      has to matter", a reduced start plus a kill bounty may reach it without
+      inverting a teaching ramp that currently works. If the goal is literally
+      zero, that is a legitimate call - it just means re-tuning the opening
+      envelope as a single unit, with `balance_test.tscn` and `curve_report`
+      agreeing afterwards.
+
+### Not in the GDD at all - new content, needs a design decision
+
+- [ ] **Barricade perimeter with broken entrances.** A real tower-defense idea,
+      raised with a question mark. It interacts with freeform placement
+      (§13/§20) and with enemy pathing, and v4 describes it nowhere.
+- [ ] **Trap placements.** Same standing. Also note it brushes the locked build
+      phase: traps placed mid-combat would reopen the decision CLAUDE.md §1
+      says not to reopen, so if traps happen, they are Preparation-placed.
+- [ ] **Summon companion spell - Wolf / Crow / Bear.** Not a hero *swap*, so
+      §54's "multiple heroes, party roster" cut does not obviously catch it,
+      but a second permanent body on the field is near enough that line to want
+      an explicit ruling. The cheap version is a hero discipline node in §720's
+      roster rather than a new system.
 
 ---
 

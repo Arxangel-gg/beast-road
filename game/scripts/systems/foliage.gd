@@ -42,8 +42,14 @@ const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 ## a field of nothing but boulders is as monotonous as a field of nothing but
 ## reeds, and the point of the extra kinds is that a clump is occasionally *not*
 ## the thing you expected.
-const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern"]
-const SHARED_KINDS: Array[String] = ["rock", "boulder"]
+## Adding a kind is adding this name and the files it implies - one per region
+## for a regional kind, one for a shared one. No other code changes, which is the
+## whole point of deriving the path from the name.
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern", "bush"]
+
+## A rock is a rock in a jungle or a snowfield, and so is a fallen log. These are
+## the props that carry no regional identity, so one file serves all three acts.
+const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 
@@ -149,13 +155,16 @@ static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
 ## Every blade in the field, in world space, ready to draw in one pass.
 ## Sorting bands across the field.
 ##
-## Every plant in a band sorts at the band's centre, so a band is also the error
-## in that plant's depth: at 16 bands each was a few hundred world units tall and
-## a plant near its top edge drew in front of anything up to half a band above
-## it - which is what "foliage in front of a tower it is standing behind" was.
-## 32 keeps the maximum error under one 64-unit tile on the authored field while
-## avoiding sixteen extra shader/painted-layer canvas items. The old 16-band
-## version exceeded a tile of error and visibly sorted plants over actors.
+## Every plant in a band shares the band's sort depth, so the band height is the
+## error in that plant's depth. What matters is not only how large that error is
+## but which way it points - see `scatter`, where the band is sorted at its
+## leading edge so the error can only ever push a plant further back, never in
+## front of something it is standing behind.
+##
+## The count then decides how often a plant fails to occlude something it really
+## is in front of, which is the harmless direction. 32 keeps that under one tile
+## on the authored field while avoiding sixteen extra shader/painted-layer canvas
+## items; 16 was visibly coarse even before the sorting was made one-directional.
 const BAND_COUNT: int = 32
 
 var _bands: Array[FoliageBand] = []
@@ -221,8 +230,30 @@ func scatter() -> void:
 	for index: int in BAND_COUNT:
 		var band := FoliageBand.new()
 		band.name = "Band%d" % index
-		# Sorted against units by the band's own centre line.
-		band.position.y = lerpf(-span, span, (float(index) + 0.5) / float(BAND_COUNT))
+		# Sorted at the band's *leading* edge, not its centre.
+		#
+		# The centre is the obvious choice and it is the wrong one, because it
+		# makes the error symmetric: a plant in the near half of a band sorted
+		# *in front of* where it actually stood, by up to half a band. That is
+		# the whole of "foliage behind a tower drawing over it" - and no band
+		# count fixes it, it only shrinks it, which is why raising 16 to 32
+		# helped and did not cure.
+		#
+		# The leading edge makes the error one-directional. Every plant in a band
+		# now sorts at or behind its true depth and never in front of it, so
+		# nothing can draw over a thing it is standing behind - towers,
+		# buildings, the hero, any of it. That is a guarantee rather than a
+		# tolerance.
+		#
+		# What it costs: a plant genuinely just in front of a structure can sort
+		# behind it, by up to one band. That artifact is the mild one. A plant
+		# tucked at a tower's foot looks like a plant at a tower's foot; a plant
+		# painted across the tower's chest looks broken. It also fails safe for
+		# readability, since the actor is never the thing that gets hidden.
+		#
+		# `_add_clump` stores each clump relative to `band.position`, so moving
+		# the sort line here does not move any art.
+		band.position.y = lerpf(-span, span, float(index) / float(BAND_COUNT))
 		band.material = wind_material()
 		band.y_sort_enabled = false
 		add_child(band)

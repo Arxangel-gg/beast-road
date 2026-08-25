@@ -149,12 +149,18 @@ func _spawn_phase_reinforcements(phase: int) -> void:
 	for index: int in lane_count:
 		var lane: int = lanes[index]
 		for _i: int in per_lane:
-			battlefield.spawn_enemy(data, lane,
+			var summoned: Enemy = battlefield.spawn_enemy(data, lane,
 				battlefield.wave_director._hp_scale(lane) \
 					* Balance.BOSS_PHASE_REINFORCEMENT_HP_SCALE,
 				battlefield.wave_director._damage_scale(lane) \
 					* Balance.BOSS_PHASE_REINFORCEMENT_DAMAGE_SCALE,
 				battlefield.wave_director._speed_scale(lane))
+			# Marked at the point of summoning, which is the only place that
+			# knows these are the boss's rather than the road's. An identical
+			# breed walking up from a formation is a real enemy and keeps its
+			# payout; this one only exists while its summoner does.
+			if summoned != null:
+				summoned.add_to_group(Enemy.SUMMON_GROUP)
 
 
 func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
@@ -169,9 +175,30 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 	_active_phase = 0
 	_defeated_acts.append(act)
 
+	# Before the rewards and before the signal. Everything downstream of
+	# `boss_defeated` - closing the wave, ending the act, opening the next
+	# Preparation - is entitled to assume the boss encounter is actually over,
+	# and it is not over while the boss's pack is still walking.
+	_dismiss_summons()
+
 	_grant_rewards(act)
 	EventBus.camera_shake_requested.emit(22.0, 1.2)
 	EventBus.boss_defeated.emit(enemy_id, act)
+
+
+## Clears the pack the boss called, now that the boss is gone.
+##
+## They leave without paying out anything - see `Enemy.dismiss` for why that is
+## the point rather than an oversight. Iterating the group rather than a tracked
+## list means summons that already died, or were never spawned because the act
+## ended in phase one, cost nothing to handle.
+func _dismiss_summons() -> void:
+	if battlefield == null or not is_inside_tree():
+		return
+	for node: Node in get_tree().get_nodes_in_group(Enemy.SUMMON_GROUP):
+		var summoned := node as Enemy
+		if summoned != null and is_instance_valid(summoned):
+			summoned.dismiss()
 
 
 ## The boss reward package, all three parts, every act (GDD §9).

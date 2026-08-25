@@ -169,6 +169,29 @@ jobs:
           # left held when the controls go away. The machine this is developed on
           # has no touchscreen, so without this the only test is a phone.
           check "touch controls" --headless --path game res://tools/touch_check.tscn
+          # The bugs the owner reported on 2026-08-24, held so they stay fixed.
+          # Every one of them was a quiet failure rather than a crash - an enemy
+          # facing the wrong way, a threat readout describing a wave that had
+          # moved on, a boss's pack outliving the act, a dash button eating taps
+          # on the main menu. Nothing errored, which is exactly why none of them
+          # were caught by anything that runs.
+          check "regressions" --headless --path game res://tools/regression_check.tscn
+          # Co-op step 1: a host and a guest in one process, over a real
+          # loopback socket. Two MultiplayerAPI instances can coexist because
+          # one is registered per subtree, which is the only reason co-op can be
+          # tested on a push at all rather than needing two machines.
+          check "co-op transport" --headless --path game res://tools/coop_check.tscn
+          # Co-op step 3: two heroes on one field. The hero reads its intentions
+          # from a HeroInput rather than from Input directly, and if that ever
+          # regresses to a per-call-site "is this hero mine" test, the partner's
+          # hero twitches whenever the local player walks - obvious in co-op and
+          # invisible to anyone testing alone.
+          check "co-op heroes" --headless --path game res://tools/coop_heroes_check.tscn
+          # Co-op step 4: mirrored enemies and host-judged building. A puppet
+          # decides nothing - it does not walk, take damage or pay out - and a
+          # build request is answered by the same try_build a local click uses
+          # rather than by a copy of its rules, which would be a second answer.
+          check "co-op world" --headless --path game res://tools/coop_world_check.tscn
 
       - name: Say what broke
         if: failure()

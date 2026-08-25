@@ -75,7 +75,11 @@ const LOOT_ELITE_MULTIPLIER: float = 3.0
 ## the road is. The magnet is what makes fighting forward pay without turning the
 ## reward into a second job. [TUNE]
 const LOOT_MAGNET_RANGE: float = 260.0
-const LOOT_COLLECT_RANGE: float = 34.0
+## Raised with `LOOT_ICON_SIZE`, and it has to be. At 34.0 against a drop drawn
+## 58 units wide, the hero could stand visually on top of a coin without picking
+## it up - the collect radius was smaller than the sprite, so the art and the
+## rule disagreed about where the thing was.
+const LOOT_COLLECT_RANGE: float = 48.0
 const LOOT_MAGNET_SPEED: float = 780.0
 const LOOT_MAGNET_ACCELERATION: float = 2600.0
 
@@ -95,10 +99,28 @@ const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
 
 ## The pool of light under a drop, which is what makes it findable on a lit road.
 const LOOT_GLOW_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.5)
-const LOOT_GLOW_SIZE: float = 72.0
+const LOOT_GLOW_SIZE: float = 132.0
 const LOOT_GLOW_SPEED: float = 3.1
 
-const LOOT_ICON_SIZE: float = 26.0
+## How big a drop is drawn, in world units.
+##
+## This was 26.0, which was measured against nothing. The arithmetic that says
+## why it is now 58.0:
+##
+##   hero sprite      128 px art x HERO_SPRITE_SCALE 1.75 = 224 world units tall
+##   drop at 26.0     11.6% of the hero's height
+##   at battlefield zoom CAMERA_ZOOM_BATTLEFIELD 0.52 ->  13.5 screen px at 1080p
+##   zoomed fully out CAMERA_ZOOM_BATTLEFIELD_MIN 0.38 ->   9.9 screen px
+##
+## Ten pixels, on a field carrying corpses, foliage, torchlight and blast rings -
+## and fewer than ten on a phone. A reward the player never notices is a reward
+## that did not happen, which is the whole complaint.
+##
+## 58.0 is picked from the far end instead: about 30 screen px at the default
+## battlefield zoom and still 22 when fully zoomed out, which is roughly a
+## quarter of the hero's height. Large enough to be a thing lying on the road,
+## small enough not to read as a crate.
+const LOOT_ICON_SIZE: float = 58.0
 const LOOT_BOB_SPEED: float = 5.0
 const LOOT_BOB_HEIGHT: float = 3.0
 const LOOT_Z_INDEX: int = -2
@@ -121,8 +143,11 @@ const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.18
 const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
 
 ## Gear is a more important silhouette than a coin and earns a larger pickup.
-const GEAR_DROP_ICON_SIZE: float = 38.0
-const GEAR_DROP_GLOW_SIZE: float = 92.0
+## Scaled up alongside `LOOT_ICON_SIZE` and by slightly more, so the rarer drop
+## stays the one that catches the eye first - see that constant for the
+## screen-pixel arithmetic these come from.
+const GEAR_DROP_ICON_SIZE: float = 76.0
+const GEAR_DROP_GLOW_SIZE: float = 168.0
 const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
 	Color("b486d9"), Color("e8b85c")]
@@ -1312,12 +1337,33 @@ const CAPTIVES_PER_BUILDING: int = 2
 ## 220-resource start could protect only three of four roads before combat.
 const STARTING_RESOURCES: int = 350
 
-## Four-wallet v4 opening cache. Gold covers four base towers plus one level-2
-## choice; Stone permits one Fusion; Wood supports an opening town project; Food
-## is held for hero recovery/training. [TUNE]
+## Four-wallet v4 opening cache, amended 2026-08-24 (owner).
+##
+## **Gold starts at zero.** The run begins with no build capital at all, and the
+## player buys their first tower with money taken off the enemies they killed.
+## The point is that the hero has to fight: with four towers already up, an act
+## could be subcontracted to them and watched.
+##
+## This reverses GDD §448's opening protection envelope, which read "Starting
+## Gold and Stone can build one level-1 base tower on each road plus one
+## meaningful upgrade or town choice". The re-cut is recorded there and in
+## CLAUDE.md, both dated.
+##
+## **Wood, Food and Stone are deliberately not zeroed**, and that is an
+## interpretation worth stating rather than burying. No tower can be built
+## without Gold - every entry in `build_cost_table` carries a Gold price - so
+## zero Gold already means zero towers, which is the whole of the owner's
+## intent. What the secondary wallets decide is *which element* the first
+## affordable tower may be, since Fire is the only pure-Gold line. Emptying them
+## too would not make the opening more demanding; it would silently force every
+## player onto Fire for the first act. The run still starts unable to build
+## anything.
+##
+## Wood and Food also pay for town repair and hero tending, which have nothing
+## to do with tower capital and would be collateral damage.
 const STARTING_WOOD: int = 180
 const STARTING_FOOD: int = 70
-const STARTING_GOLD: int = 390
+const STARTING_GOLD: int = 0
 const STARTING_STONE: int = 90
 ## Machine-readable v4 contract; RunState owns the runtime typed aliases.
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]
@@ -2710,3 +2756,192 @@ const LEADERBOARD_LOCAL_MAX: int = 60
 ## a player this far offline is not going to care about the fortieth queued row,
 ## and the cap is what stops a broken table from filling a save.
 const LEADERBOARD_PENDING_MAX: int = 12
+
+# ------------------------------------------------------------------------------
+# Co-op — GDD §54, amended 2026-08-24. See docs/COOP_DESIGN.md
+# ------------------------------------------------------------------------------
+
+## The default port a host listens on.
+##
+## High and unregistered on purpose. The obvious choices — 7777, 27015 — are the
+## ones already occupied on a machine that plays other games, and "someone else's
+## server is already on that port" reads to a player as "co-op is broken".
+const COOP_PORT: int = 45870
+
+## Two, and the transport is told so.
+##
+## Not a soft convention: ENet is given this as its peer limit, so a third
+## connection is refused by the transport rather than by a rule somewhere in
+## GDScript that could be missed. §54's re-cut restored *co-op*, not parties.
+const COOP_MAX_PLAYERS: int = 2
+const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
+
+## How long a join attempt may sit before it is called a failure. [TUNE]
+##
+## A timer is needed rather than only ENet's `connection_failed`, because that
+## signal answers "the host refused" and not "there is nothing at this address".
+## A wrong IP produces silence, and silence with no clock is a player staring at
+## a spinner deciding the game has hung.
+const COOP_CONNECT_TIMEOUT: float = 10.0
+
+## How much bigger a wave gets per extra player. [TUNE]
+##
+## **Body count, and nothing else.** GDD §54's co-op re-cut scales the director
+## to the player count, and `docs/COOP_DESIGN.md` §5 is explicit about which knob
+## that must be: more enemies, never tougher ones.
+##
+## Scaling individual health and damage instead is the classic mistake. It does
+## not add pressure, it adds *duration* — the same fight, slower — and it
+## invalidates every dodge window the combat design is built on, because a
+## wind-up tuned to be dodgeable is tuned against a specific time-to-kill.
+##
+## **0.5, and the naive answer was wrong.** Two players face 1.5x the bodies, not
+## 2x. Measured with `curve_report -- --players=2` rather than reasoned about:
+##
+##   per extra player   1.00   0.70   0.60   0.50   0.30   0.00
+##   peak pressure      0.90   0.77   0.74   0.71   0.70   0.60
+##   (one player peaks at 0.63)
+##
+## Doubling the bodies made co-op 43% harder at the peak, not equal. The reason
+## is worth knowing before anyone retunes this: the late game is **tower**
+## dominated, so a second hero barely moves late capability - at zero extra
+## bodies, two players still measure 0.60 against a solo 0.63. The offset that
+## does exist comes from income, and income buys sublinear damage because the
+## tower count is capped and upgrades escalate. So bodies scale threat linearly
+## while a second player scales capability much less than linearly.
+##
+## 0.5 sits above the solo curve on purpose. The model is blind to the single
+## biggest thing a second player brings - two lanes covered *at once*, where solo
+## play must choose - and it is equally blind to the costs, latency and
+## coordination. Those partly cancel and the balance of them is not something a
+## headless model can settle.
+##
+## **This number is provisional until co-op is played on two machines**, which is
+## a row on the road list. It is one constant with a recorded measurement behind
+## it, which is what makes it cheap to move.
+const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
+
+## Trim on what a body pays when there are two players. [TUNE]
+##
+## Twice the bodies into one shared pool is twice the income, and the tower
+## curve was tuned against one player's earnings. This exists so the fix for
+## "co-op is too rich" is a number rather than a redesign; 1.0 means no trim,
+## which is where it starts because the measured curve did not need one.
+const COOP_KILL_INCOME_SCALE: float = 1.0
+
+# ------------------------------------------------------------------------------
+# Torch shadow
+# ------------------------------------------------------------------------------
+
+## The pool of shadow at the foot of a torch post, in world units. [TUNE]
+##
+## Given rather than measured: the ironwork is drawn from polygons and has no
+## texture to size a shadow from. Narrow, because a torch is a post - a wide pool
+## reads as a barrel.
+const TORCH_SHADOW_WIDTH: float = 26.0
+
+# ------------------------------------------------------------------------------
+# Beast parallax — GDD §7
+# ------------------------------------------------------------------------------
+
+## The beast scope's procedural parallax bands (GDD §7).
+##
+## The scope had two depths — a painted sky and the ground underfoot — so
+## distance read as a texture sliding rather than as land being crossed. These
+## are drawn silhouettes rather than painted art, because a distant ridge is one
+## flat colour under a skyline once haze has taken the detail out of it, and new
+## painted art is an art-direction task this toolchain cannot do.
+##
+## Rates are the whole illusion and they must stay ordered: sky slowest, then
+## ridge, then ground, then the near band that passes in front of the beast.
+## Anything out of order reads as the world turning inside out.
+const BEAST_RIDGE_Z: int = -12
+const BEAST_RIDGE_SCROLL: float = 0.34
+const BEAST_RIDGE_HEIGHT: float = 130.0
+
+## Just above where the ground meets the sky. The scope camera is centred on the
+## world origin, so this is measured down from the middle of the view - the first
+## attempt put it at 210 and drew a wall across half the sky.
+const BEAST_RIDGE_BASELINE: float = 366.0
+
+## How much darker the hazed ridge is than the sky it stands against. Without it
+## the band reads as fog rather than as land. [TUNE]
+const BEAST_RIDGE_SHADE: float = 0.34
+
+## How far the ridge is pulled toward the sky's own colour. High, because the
+## point of a distant band is that the air between has taken most of it. [TUNE]
+const BEAST_RIDGE_HAZE: float = 0.62
+
+## The band that passes in front of everything, including the beast.
+##
+## Fast and nearly black: it is close enough that the eye cannot resolve it, and
+## it is what turns "a beast on a treadmill" into "a beast being overtaken by
+## the ground". Kept short so it frames the bottom of the view rather than
+## eating it.
+const BEAST_FOREGROUND_Z: int = 40
+
+## Tall enough that its peaks rise *above* the ground line and cross the beast's
+## feet. The first attempt kept it entirely below that line, where it was a dark
+## shape on an already-dark ground and read as nothing at all - a foreground that
+## never occludes the subject is not a foreground, it is a texture.
+const BEAST_FOREGROUND_HEIGHT: float = 190.0
+const BEAST_FOREGROUND_BASELINE: float = 560.0
+
+## How much of the horizon's colour the near band keeps. [TUNE]
+##
+## Not near-black, which was the first attempt and is a trap: keeping 14% of a
+## pale desert sky is effectively black, and a black mass against near-white sand
+## reads as a hole punched in the screen rather than as ground close to the
+## camera. Keeping a third leaves a deep version of the region's own colour, so
+## the band still silhouettes but belongs to the place it is in.
+const BEAST_FOREGROUND_DARKEN: float = 0.32
+
+# ------------------------------------------------------------------------------
+# Weather — GDD §177, §193
+# ------------------------------------------------------------------------------
+
+## See scripts/systems/weather_veil.gd.
+##
+## How long precipitation takes to arrive or clear, in seconds. Weather that
+## switches on between two frames reads as a bug in the renderer rather than as
+## a change in the sky. [TUNE]
+const WEATHER_FADE_SECONDS: float = 3.5
+
+## How long snow takes to cover the ground from bare, and to melt back, in
+## seconds of continuous snowfall. [TUNE]
+##
+## Melting is deliberately far slower than settling. Snow arrives with the storm
+## and outlives it by a long way, which is what makes it feel like a thing that
+## happened rather than an overlay tied to a switch.
+const SNOW_SETTLE_SECONDS: float = 90.0
+const SNOW_MELT_SECONDS: float = 240.0
+
+## How white the ground goes at full cover, 0..1. Not 1.0: the region's own
+## floor art has to stay legible under it, and a pure white field is a field
+## where nothing can be read. [TUNE]
+const SNOW_COVER_STRENGTH: float = 0.62
+
+# ------------------------------------------------------------------------------
+# Snow on the ground — see scripts/systems/snow_cover.gd
+# ------------------------------------------------------------------------------
+
+## How white the *paths* go under snow, 0..1. [TUNE]
+##
+## Much lighter than `SNOW_COVER_STRENGTH`. A road is walked on, so it holds a
+## dusting rather than a drift - and the faint layer that produces it is drawn
+## above the roads, which is also what feathers the edge where a deep verge meets
+## a cleared path. The two layers share one noise field, so a drift continues
+## across the road as a dusting rather than stopping at the kerb.
+const SNOW_PATH_STRENGTH: float = 0.22
+
+## Chance per step that an enemy walking on snow slips sideways, at full cover.
+##
+## Scaled by how much snow is actually lying, so a dusting barely does it and a
+## covered field does it often. Deliberately small: a slip is a moment of
+## character, and one that fires constantly is a movement bug with a story
+## attached. [TUNE]
+const SNOW_SLIP_CHANCE: float = 0.055
+
+## How far a slip carries, in world units, and how long it lasts.
+const SNOW_SLIP_DISTANCE: float = 46.0
+const SNOW_SLIP_SECONDS: float = 0.34

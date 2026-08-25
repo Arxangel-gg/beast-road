@@ -57,6 +57,18 @@ func _ready() -> void:
 func _build() -> void:
 	_build_ironwork()
 
+	# A pool at the foot of the post.
+	#
+	# The torches light the whole field and stood on nothing, which reads as
+	# "the lighting is wrong" without anyone being able to say why: every other
+	# object on the ground has a contact shadow, so the one thing casting the
+	# light looked pasted on top of the floor.
+	#
+	# Sized rather than measured, because the ironwork is `Polygon2D` and has no
+	# texture to measure - see `ShadowKit.add_contact_sized`. The origin is
+	# already the contact point at the foot of the post, so the offset is zero.
+	ShadowKit.add_contact_sized(self, Balance.TORCH_SHADOW_WIDTH)
+
 	_flame = Flame.new()
 	_flame.name = "Fire"
 	_flame.position.y = -Balance.TORCH_HEIGHT

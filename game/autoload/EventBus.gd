@@ -252,3 +252,68 @@ signal run_ended(victory: bool, summary: Dictionary)
 
 ## Something was added to the persistent unlock pool.
 signal unlock_earned(kind: String, id: String)
+
+# ==============================================================================
+# CO-OP (GDD §54, amended 2026-08-24 — see docs/COOP_DESIGN.md)
+# ==============================================================================
+
+## The co-op session changed shape. `state` is a `Coop.State`, passed as an int
+## because this file may not reach an autoload for a type.
+signal coop_state_changed(state: int)
+
+## The other player arrived. Host-side fact; the guest learns it by connecting.
+signal coop_partner_joined(peer_id: int)
+
+## The other player is gone — quit, dropped, or the host closed the session.
+signal coop_partner_left(peer_id: int)
+
+## Hosting or joining did not work, with a sentence fit to show a player.
+signal coop_failed(reason: String)
+
+## A guest asked the host to do something. Host-side only, and a *request* rather
+## than a fact: the host still validates it and answers by authoring a fact.
+## `kind` is a `CoopRelay.Request`.
+signal coop_request_received(kind: int, args: Array, from_peer: int)
+
+## Where both heroes are, authored by the host (`docs/COOP_DESIGN.md` §6).
+##
+## Named by role rather than by "mine" and "theirs" on purpose: the two swap
+## across the wire, and a guest reading its own body as its partner's would have
+## each player watching the other wearing their name.
+signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
+	guest_at: Vector2, guest_aim: Vector2)
+
+## A tower appeared, changed tier, or went away — on the host's say-so.
+## An empty `tower_id` means the plot is now clear.
+signal coop_tower_state(anchor: Vector2i, tower_id: String, level: int)
+
+## The host put an enemy on the field and gave it an identity.
+signal coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
+	hp_scale: float, damage_scale: float, speed_scale: float)
+
+## Where every living enemy is, in one message. Entries are
+## `[net_id: int, at: Vector2, health_ratio: float]`.
+signal coop_enemy_batch(entries: Array)
+
+## An enemy is gone. Sent explicitly rather than inferred from a missing batch
+## entry: a guest deleting anything absent from a packet would empty the field
+## the first time one arrived late.
+signal coop_enemy_removed(net_id: int)
+
+## The host refused something this machine asked for, with a reason already
+## written for a player to read. Guest-side.
+signal coop_request_refused(kind: int, reason: String)
+
+## Experience was earned, and both players get it (owner ruling, 2026-08-25).
+##
+## The amount awarded, never a running total. Heroes persist per account and
+## arrive at different levels, so sending a total would overwrite the higher hero
+## with the lower one's number.
+signal coop_xp_awarded(amount: float)
+
+## How much snow is lying on the ground, 0..1.
+##
+## Announced rather than applied: the weather has no business reaching into the
+## ground sprite or the foliage, so it says how deep the snow is and each scope
+## decides what that means to what it draws.
+signal snow_cover_changed(cover: float)
