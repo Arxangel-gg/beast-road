@@ -42,6 +42,7 @@ func _ready() -> void:
 	_test_loot_reads_at_range()
 	await _test_enemy_faces_its_travel()
 	await _test_boss_summons_leave_with_the_boss()
+	await _test_weather_can_be_seen()
 	_test_touch_release_always_lands()
 	_test_touch_controls_belong_to_the_run()
 
@@ -64,7 +65,8 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[regression] PASS - facing, threat lane, boss summons, loot scale, touch ownership")
+		print("[regression] PASS - facing, threat lane, boss summons, loot scale, "
+			+ "weather, touch ownership")
 	get_tree().quit(_failures)
 
 
@@ -228,6 +230,75 @@ func _test_boss_summons_leave_with_the_boss() -> void:
 ## holding finger 0 forever, `owns_pointer()` stayed true, and every later tap on
 ## a tile was refused as "that is a thumb". The build panel opened once and never
 ## again.
+## Weather must be visible, and snow must gather and then go.
+##
+## Weather shipped as data, a tint and a HUD label and was never *visible* -
+## which is the quietest possible failure: every gate passed, the label said
+## "Downpour", and nothing fell out of the sky. A test that only checked the
+## resources would have agreed with all of it.
+func _test_weather_can_be_seen() -> void:
+	var field: Battlefield = _run.battlefield
+	if field == null:
+		_check(false, "the harness needs a battlefield to look at the weather")
+		return
+	var veil: WeatherVeil = field.get_node_or_null("WeatherVeil")
+	_check(veil != null, "the battlefield must build a weather veil")
+	_check(field.get_node_or_null("SnowCover") != null,
+		"and something for snow to lie on")
+	if veil == null:
+		return
+
+	# Every authored weather has to be coherent, because the shader believes it.
+	for id: String in ["downpour", "snowfall", "duststorm", "clear"]:
+		var weather: WeatherData = ContentDB.weather(id)
+		_check(weather != null, "weather %s must exist" % id)
+		if weather == null:
+			continue
+		if weather.precipitation == WeatherData.Precipitation.NONE:
+			_check(is_zero_approx(weather.precipitation_density),
+				"%s falls as nothing and must have no density" % id)
+		else:
+			_check(weather.precipitation_density > 0.0,
+				"%s must actually fall, or it is weather in name only" % id)
+	_check(ContentDB.weather("snowfall").settles,
+		"snow must settle, or accumulation can never begin")
+	_check(not ContentDB.weather("downpour").settles,
+		"rain must not settle: it is not snow")
+
+	# Arriving. Driven rather than waited out - the fade is seconds long and a
+	# gate must not be.
+	EventBus.weather_changed.emit("downpour")
+	for _f: int in 12:
+		veil._process(0.5)
+	_check(veil.intensity() > 0.3,
+		"a downpour must become visible, got %.2f" % veil.intensity())
+
+	# Clearing.
+	EventBus.weather_changed.emit("clear")
+	for _f: int in 12:
+		veil._process(0.5)
+	_check(veil.intensity() < 0.05,
+		"clear weather must clear, got %.2f" % veil.intensity())
+
+	# Gathering, then melting. The asymmetry is the design: snow outlives the
+	# storm by a long way, or it is an overlay tied to a switch.
+	veil.set_cover(0.0)
+	EventBus.weather_changed.emit("snowfall")
+	for _f: int in 40:
+		veil._process(1.0)
+	_check(veil.cover() > 0.0, "snow must gather while it falls")
+	var gathered: float = veil.cover()
+
+	EventBus.weather_changed.emit("clear")
+	for _f: int in 40:
+		veil._process(1.0)
+	_check(veil.cover() < gathered, "and melt back once it stops")
+	_check(Balance.SNOW_MELT_SECONDS > Balance.SNOW_SETTLE_SECONDS,
+		"melting must be slower than settling, or snow leaves with the clouds")
+	veil.set_cover(0.0)
+	await get_tree().process_frame
+
+
 func _test_touch_release_always_lands() -> void:
 	MetaState.settings[TouchInput.TOUCH_KEY] = true
 	GameDirector.run_active = true

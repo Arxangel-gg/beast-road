@@ -69,6 +69,10 @@ const Z_LANES: int = -30
 const Z_SORTED: int = 0
 const Z_CLOUDS: int = 30
 
+## Above the clouds. Precipitation falls between the player and everything else,
+## including the shadow of the cloud dropping it.
+const Z_WEATHER: int = 34
+
 ## Road art, tiled along each cardinal lane only.
 ## The fallback path set. Regional production sets use the same 16-mask
 ## contract at 64px; a missing region still resolves through these files.
@@ -336,6 +340,22 @@ func _setup_lighting() -> void:
 	clouds.z_index = Z_CLOUDS
 	clouds.visible = Graphics.cloud_shadows()
 	add_child(clouds)
+
+	# Above the clouds, because precipitation is between the player and
+	# everything - including the shadow the cloud dropping it is casting.
+	var weather := WeatherVeil.new()
+	weather.name = "WeatherVeil"
+	weather.z_index = Z_WEATHER
+	add_child(weather)
+
+	# Snow lies on the floor and under everything that walks on it. Directly
+	# above the ground rather than in the sorted layer: whitening the sorted
+	# layer would bleach the enemies, and a wave that cannot be read is a worse
+	# problem than a field that is not snowy enough.
+	var lying := SnowCover.new()
+	lying.name = "SnowCover"
+	lying.z_index = Z_GROUND + 1
+	add_child(lying)
 
 	# Contact shadows follow the sun, and the sun follows the beast walking.
 	ShadowKit.attach_sun(self)

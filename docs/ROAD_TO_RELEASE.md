@@ -1164,17 +1164,36 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 Not new scope: §159, §193, §1045 and §1098 all build on weather and §1350
 still lists it unfinished. Today it is not visible at all.
 
-- [ ] **Rain** as a real particle system rather than an overlay - drops that
-      land, with an impact reaction on the terrain they hit. §177 calls the
-      jungle rain-heavy, so this is the act's identity and not a garnish.
-- [ ] **Snow**, the same, plus accumulation: it should build up over time on any
-      map where it falls and melt back once it stops. That makes the ground a
-      record of the weather instead of a backdrop to it.
+- [x] **Rain**, with drops that land. Falling streaks plus small expanding rings
+      where they hit, on their own sparser grid - reusing the fall grid would put
+      a ring under every drop, which is not what water does.
+- [x] **Snow**, with accumulation and melt. Settles in 90 seconds of continuous
+      snowfall and takes 240 to go, and the asymmetry is the design: snow that
+      left with the clouds would be an overlay tied to a switch rather than a
+      thing that happened. The gate asserts melting is slower than settling.
+
+      Lying snow is a patchy noise layer *above* the floor and below the sorted
+      units. The first attempt was a `modulate` on the ground sprite and cannot
+      work - a modulate multiplies, and multiplying a dark jungle floor by
+      anything still leaves a dark jungle floor. It is also why the units are not
+      whitened: a wave that cannot be read is a worse problem than a field that
+      is not snowy enough.
+
+      The roads staying dark is luck rather than design - they draw above the
+      snow layer - but it reads as paths trodden through the snow, so it stays.
+- [x] **A shader, not particles**, which is the whole performance story. This
+      covers the entire field, so particles would need thousands to look like
+      weather and would cost per-particle CPU every frame - on the GL
+      Compatibility renderer this ships with, and in a browser tab. A fragment
+      shader costs screen area rather than density, so heavier rain is free.
+      `menu_stage.gd` picks CPUParticles2D for its embers for the opposite and
+      equally good reason, and the code says so in both places.
+- [x] Authored per weather rather than branched on an id: precipitation kind,
+      density, wind, speed, tint and whether it settles are all fields on the
+      `.tres`, so a new weather is still a file.
 - [ ] **Weather drives the foliage.** The wind hook already exists in the
-      foliage shader; weather should feed it rather than run alongside it.
-- [ ] Performance is a requirement here, not a follow-up pass. The lighting work
-      already found 107 PointLight2D quietly eating frames - a particle system
-      covering the whole field is the same trap with a different name.
+      foliage shader; weather should feed it rather than run alongside it. Not
+      done - the veil and the foliage still know nothing about each other.
 
 ### Wildlife and ambient life
 

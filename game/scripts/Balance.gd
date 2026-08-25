@@ -2887,3 +2887,24 @@ const BEAST_FOREGROUND_BASELINE: float = 560.0
 ## camera. Keeping a third leaves a deep version of the region's own colour, so
 ## the band still silhouettes but belongs to the place it is in.
 const BEAST_FOREGROUND_DARKEN: float = 0.32
+
+## Weather — GDD §177, §193. See scripts/systems/weather_veil.gd
+##
+## How long precipitation takes to arrive or clear, in seconds. Weather that
+## switches on between two frames reads as a bug in the renderer rather than as
+## a change in the sky. [TUNE]
+const WEATHER_FADE_SECONDS: float = 3.5
+
+## How long snow takes to cover the ground from bare, and to melt back, in
+## seconds of continuous snowfall. [TUNE]
+##
+## Melting is deliberately far slower than settling. Snow arrives with the storm
+## and outlives it by a long way, which is what makes it feel like a thing that
+## happened rather than an overlay tied to a switch.
+const SNOW_SETTLE_SECONDS: float = 90.0
+const SNOW_MELT_SECONDS: float = 240.0
+
+## How white the ground goes at full cover, 0..1. Not 1.0: the region's own
+## floor art has to stay legible under it, and a pure white field is a field
+## where nothing can be read. [TUNE]
+const SNOW_COVER_STRENGTH: float = 0.62

@@ -310,3 +310,10 @@ signal coop_request_refused(kind: int, reason: String)
 ## arrive at different levels, so sending a total would overwrite the higher hero
 ## with the lower one's number.
 signal coop_xp_awarded(amount: float)
+
+## How much snow is lying on the ground, 0..1.
+##
+## Announced rather than applied: the weather has no business reaching into the
+## ground sprite or the foliage, so it says how deep the snow is and each scope
+## decides what that means to what it draws.
+signal snow_cover_changed(cover: float)

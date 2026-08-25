@@ -12,3 +12,5 @@ gloom = 0.0
 effect_line = "No advantage to anyone."
 id = "clear"
 display_name = "Clear"
+precipitation = 0
+precipitation_density = 0.0

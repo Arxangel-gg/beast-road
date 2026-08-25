@@ -12,3 +12,5 @@ gloom = 0.0
 effect_line = "Fire burns hotter. Water and cold thin out."
 id = "heatwave"
 display_name = "Heatwave"
+precipitation = 0
+precipitation_density = 0.0
