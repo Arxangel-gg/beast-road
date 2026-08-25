@@ -181,6 +181,12 @@ jobs:
           # one is registered per subtree, which is the only reason co-op can be
           # tested on a push at all rather than needing two machines.
           check "co-op transport" --headless --path game res://tools/coop_check.tscn
+          # Co-op step 3: two heroes on one field. The hero reads its intentions
+          # from a HeroInput rather than from Input directly, and if that ever
+          # regresses to a per-call-site "is this hero mine" test, the partner's
+          # hero twitches whenever the local player walks - obvious in co-op and
+          # invisible to anyone testing alone.
+          check "co-op heroes" --headless --path game res://tools/coop_heroes_check.tscn
 
       - name: Say what broke
         if: failure()

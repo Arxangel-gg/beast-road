@@ -5,7 +5,7 @@ decision is recorded in `docs/Game_Design_v4.md` §54 and in `CLAUDE.md`; this
 file is the design that follows from it, and the thing to read before touching
 any netcode.
 
-**Status: design settled; steps 1 and 2 of 6 built.** Sections 1–4 are decided.
+**Status: design settled; steps 1–3 of 6 built.** Sections 1–4 are decided.
 Section 8 is the build order and records what is done. Section 9 is what is
 deliberately not in scope.
 
@@ -308,9 +308,47 @@ Each step is meant to be verifiable on its own, and each has a gate.
    (`--headless --editor --path game --quit`). `guard.yml` already does this as
    "Register gameplay resource classes"; a local run needs it by hand after
    adding one, or the failure reads as "type not found" in unrelated files.
-3. **Two heroes.** A second hero in the scene, driven by relayed input. Gate:
-   both heroes exist, move independently, and neither can act during a phase the
-   other cannot.
+3. ~~**Two heroes.**~~ **Done 2026-08-25.** `tools/coop_heroes_check.tscn`, in
+   `guard.yml`. Separate from `coop_check` on purpose: that one is about the wire
+   and needs no game, this one needs a real Run and has nothing to say about
+   sockets.
+
+   **The hero no longer reads `Input`.** It read it directly in five places —
+   attack, dash, four spell slots, movement and aim — which is exactly right for
+   one hero on one machine and wrong for two. The alternative was an "is this
+   hero mine" test at each site: five decisions, five places to forget, and a
+   partner's hero that twitches whenever the local player walks. Instead a hero
+   asks its own `HeroInput` and never learns which kind it is.
+
+   - `LocalHeroInput` holds the device-juggling moved out of `hero.gd` intact —
+     stick over keys, touch over pad, both falling back to the previous aim. A
+     player who has never heard of co-op must not be able to tell.
+   - `RemoteHeroInput` holds the last snapshot. **Sticks are levels, buttons are
+     edges**, and they are handled differently for that reason: a newer move
+     vector simply replaces the older one, while presses are *latched* until
+     read. Packets and physics frames do not line up, and assigning the button
+     mask instead of OR-ing it drops the press that arrives in the gap — an
+     attack that never comes out, every few seconds, for no visible reason.
+   - The partner's hero is an ordinary `hero.tscn`. It walks, swings, dashes, is
+     knocked about by the beast's step and dies through the same code, because a
+     second implementation is a second place for bugs and only one of the two
+     would ever be play-tested.
+
+   **Hero state needed no new send path.** `CoopHeroes` emits `coop_hero_state`
+   on its own bus and the relay forwards it exactly as it forwards a death. The
+   authority guard therefore covers hero positions for free: a guest trying to
+   author one is caught by the same check that catches a guest inventing a kill.
+
+   **What is deliberately not solved yet.** The guest's own hero keeps simulating
+   locally between state packets rather than freezing until the next one. That is
+   naive prediction and it will visibly correct under latency. §2 already calls
+   proper prediction a later refinement, and a hero that only moves when a packet
+   arrives is worse than one that occasionally snaps.
+
+   `battlefield.hero` still means *the hero this player drives* — the camera
+   target, the HUD's subject, the one the damage vignette follows. Renaming it to
+   mean "either hero" would have been the change that quietly broke all of those.
+   `partner_hero()` and `heroes()` are the additions.
 4. **Enemies and towers over the wire.** Gate: a wave runs identically on both
    sides; a guest build request is granted, refused, and refused for the right
    reason.

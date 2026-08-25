@@ -43,6 +43,7 @@ enum Fact {
 	PHASE_CHANGED = 4,
 	CURRENCY_CHANGED = 5,
 	TOWN_HEALTH = 6,
+	HERO_STATE = 7,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -54,6 +55,7 @@ enum Request {
 	WAR_HORN = 3,
 	RIDE_ON = 4,
 	ENTER_RAID = 5,
+	HERO_INPUT = 6,
 }
 
 ## Wire tags. A packet is `[tag, kind, args]`.
@@ -165,6 +167,7 @@ func _fact_bindings() -> Array:
 		["phase_changed", _on_phase_changed],
 		["currency_changed", _on_currency_changed],
 		["town_health_changed", _on_town_health_changed],
+		["coop_hero_state", _on_coop_hero_state],
 	]
 
 
@@ -194,6 +197,18 @@ func _on_currency_changed(id: String, amount: int) -> void:
 
 func _on_town_health_changed(current: float, maximum: float) -> void:
 	_relay(Fact.TOWN_HEALTH, [current, maximum])
+
+
+## Hero positions are a fact like any other, and travel the same way.
+##
+## Worth noting because it looked at first like it needed its own send path: it
+## does not. `CoopHeroes` emits this on the host's own bus and the relay forwards
+## it, exactly as it forwards a death or a wave clearing. One mechanism, and the
+## guard covers hero state for free - a guest that tried to author a position
+## would be caught by the same check that catches a guest inventing a kill.
+func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2,
+		guest_at: Vector2, guest_aim: Vector2) -> void:
+	_relay(Fact.HERO_STATE, [host_at, host_aim, guest_at, guest_aim])
 
 
 # --- Sending -----------------------------------------------------------------
@@ -293,6 +308,10 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.TOWN_HEALTH:
 			if args.size() == 2:
 				bus.town_health_changed.emit(float(args[0]), float(args[1]))
+		Fact.HERO_STATE:
+			if args.size() == 4:
+				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
+					args[2] as Vector2, args[3] as Vector2)
 	_replaying = false
 
 

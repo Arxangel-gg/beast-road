@@ -28,6 +28,10 @@ extends EnemyField
 ## scope changes, so switching does not leave the view sitting in another scope.
 @export var camera: Camera2D
 
+## The partner's hero, when a second player is here. Null-safe everywhere: in a
+## single-player run this exists and does nothing.
+var _coop_heroes: CoopHeroes = null
+
 
 func activate() -> void:
 	if camera != null:
@@ -156,6 +160,14 @@ func _ready() -> void:
 		# map changes. It was not remembered: the scene still carried an 880
 		# circle from the 30x30 field.
 		hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
+	# The partner's hero, when there is one. Created unconditionally and inert in
+	# a single-player run: it spawns nothing, sends nothing and costs one early
+	# return per physics frame. A system that only exists in co-op is a system
+	# that only gets exercised in co-op.
+	_coop_heroes = CoopHeroes.new()
+	_coop_heroes.name = "CoopHeroes"
+	_coop_heroes.field = self
+	add_child(_coop_heroes)
 	# Transient effects are parented into the scope that owns them, so leaving
 	# the battlefield takes its sparks with it.
 	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
@@ -602,6 +614,27 @@ func town_position() -> Vector2:
 
 func town_node() -> Node2D:
 	return town
+
+
+## The partner's hero, or null when playing alone.
+##
+## `hero` stays "the hero this player drives" everywhere it is already used —
+## the camera target, the HUD's subject, the one the vignette follows. Renaming
+## that to mean "either hero" would have been the change that quietly broke
+## every one of those.
+func partner_hero() -> Hero:
+	return _coop_heroes.partner() if _coop_heroes != null else null
+
+
+## Both heroes on the field, in a single-player run just the one.
+func heroes() -> Array[Hero]:
+	var found: Array[Hero] = []
+	if hero != null:
+		found.append(hero)
+	var second: Hero = partner_hero()
+	if second != null:
+		found.append(second)
+	return found
 
 
 func hero_node() -> Node2D:

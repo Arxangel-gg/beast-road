@@ -1254,7 +1254,7 @@ has its design settled and written down; no netcode is written yet.
 ### Cut in §54 - needs a recorded re-cut
 
 - [~] **Two-player co-op.** Design settled in `docs/COOP_DESIGN.md`, and
-      **steps 1 and 2 of 6 are built and gated** (2026-08-25). The owner's three rulings:
+      **steps 1, 2 and 3 of 6 are built and gated** (2026-08-25). The owner's three rulings:
       **two heroes, one each**; **desktop-to-desktop only** for now, with the
       web build staying single-player; **one shared resource pool**.
 
@@ -1323,8 +1323,31 @@ has its design settled and written down; no netcode is written yet.
 
       New EventBus signal: `coop_request_received(kind, args, from_peer)`.
 
-      Steps 3-6 remain: two heroes, enemies and towers over the wire,
-      difficulty scaling, disconnect behaviour.
+      **Step 3 — two heroes.** The hero stopped reading `Input` directly. It
+      did so in five places, which is right for one hero and wrong for two;
+      the alternative was an "is this hero mine" test at each site, and the
+      failure mode of getting one wrong is a partner's hero that twitches
+      whenever the local player walks. A hero now asks its own `HeroInput`
+      and never learns which kind it is.
+
+      Sticks are levels and buttons are edges, handled differently on
+      purpose: a newer move vector replaces the older one, while presses are
+      latched until read. Packets and physics frames do not line up, so
+      assigning the button mask instead of OR-ing it drops the press landing
+      in the gap — an attack that never comes out every few seconds, for no
+      reason the player can see.
+
+      Hero state needed no new send path: `CoopHeroes` emits it on its own
+      bus and the relay forwards it like any other fact, so the authority
+      guard covers hero positions for free.
+
+      Not solved yet, and flagged rather than hidden: the guest's own hero
+      keeps simulating between state packets, so it will visibly correct
+      under latency. Proper prediction is a later refinement — a hero that
+      only moves when a packet arrives is worse than one that snaps.
+
+      Steps 4-6 remain: enemies and towers over the wire, difficulty
+      scaling, disconnect behaviour.
 
       Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
       challenges" as explicitly out of scope for 1.0, with only leaderboards

@@ -274,3 +274,11 @@ signal coop_failed(reason: String)
 ## than a fact: the host still validates it and answers by authoring a fact.
 ## `kind` is a `CoopRelay.Request`.
 signal coop_request_received(kind: int, args: Array, from_peer: int)
+
+## Where both heroes are, authored by the host (`docs/COOP_DESIGN.md` §6).
+##
+## Named by role rather than by "mine" and "theirs" on purpose: the two swap
+## across the wire, and a guest reading its own body as its partner's would have
+## each player watching the other wearing their name.
+signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
+	guest_at: Vector2, guest_aim: Vector2)
