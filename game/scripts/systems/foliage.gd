@@ -99,6 +99,13 @@ uniform float sway_reach = 34.0;
 // material therefore swung its base while its tip stayed nailed in place.
 uniform float root_at_top = 0.0;
 
+// A steady lean, in degrees, on top of the oscillation.
+//
+// This is what makes weather readable in the grass rather than merely faster.
+// A breeze waves; a gale holds everything over and *then* waves. Doubling the
+// sway alone reads as agitated calm, which is not the same picture.
+uniform float wind_bias = 0.0;
+
 void vertex() {
 	// Root to tip. Zero at the base means the plant stays where it grew.
 	float up = mix(UV.y, 1.0 - UV.y, root_at_top);
@@ -108,7 +115,7 @@ void vertex() {
 	// clock.
 	float phase = TIME * sway_speed + (VERTEX.x + VERTEX.y) * 0.012;
 	float gust = 0.6 + 0.4 * sin(TIME * gust_speed);
-	float lean = sin(phase) * radians(sway_degrees) * gust;
+	float lean = sin(phase) * radians(sway_degrees) * gust + radians(wind_bias);
 
 	// Displacement grows with the square of height: the tip whips, the middle
 	// bends, the base does not move at all.
@@ -137,6 +144,28 @@ static func painted_material() -> ShaderMaterial:
 	if _painted_material == null:
 		_painted_material = _make_material(1.0, Balance.FOLIAGE_SWAY_REACH_PAINTED)
 	return _painted_material
+
+
+## Bends every blade in the game to the weather.
+##
+## The veil and the foliage used to know nothing about each other, so a downpour
+## fell through grass that went on swaying as though it were a clear afternoon.
+## One number reaches both now, and it is an authored field on the weather rather
+## than something derived from the rain - a duststorm is wind you can see and a
+## heatwave is dead air, and neither has anything to do with precipitation.
+##
+## Applied to the shared materials, so it costs two parameter writes per weather
+## change no matter how much grass is on the field.
+static func set_wind(weather: WeatherData) -> void:
+	var wind: float = 0.0 if weather == null else clampf(weather.wind, -1.0, 1.0)
+	var strength: float = absf(wind)
+	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
+	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
+	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES
+	for material: ShaderMaterial in [wind_material(), painted_material()]:
+		material.set_shader_parameter("sway_degrees", degrees)
+		material.set_shader_parameter("sway_speed", speed)
+		material.set_shader_parameter("wind_bias", bias)
 
 
 static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:

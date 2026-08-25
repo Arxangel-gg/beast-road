@@ -253,6 +253,10 @@ func _on_weather_changed(weather_id: String) -> void:
 ## Every value comes from the `.tres` - working rule 3. A weather that wants to
 ## be heavier, colder or windier is an edited resource, never a branch here.
 func _apply(weather: WeatherData) -> void:
+	# The same weather fact, resolved once and given to both consumers. A second
+	# listener doing its own `ContentDB.weather` lookup would be a second place
+	# for the sky and the ground to disagree about what the weather is.
+	Foliage.set_wind(weather)
 	if _material == null:
 		return
 	if weather == null:

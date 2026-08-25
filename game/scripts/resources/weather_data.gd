@@ -63,6 +63,14 @@ enum Precipitation {
 ## this than it does fall speed.
 @export_range(-1.0, 1.0) var precipitation_wind: float = 0.10
 
+## How hard the air is moving, regardless of whether anything is falling in it.
+##
+## Separate from `precipitation_wind`, which is the *slant of the rain* and says
+## nothing on a dry day. A duststorm is wind you can see; a heatwave is dead
+## still air; a clear day is neither. Signed, so it also says which way: the
+## grass leans downwind rather than merely waving harder.
+@export_range(-1.0, 1.0) var wind: float = 0.0
+
 ## Downward speed. Snow wants a fraction of rain's, which is most of what makes
 ## the two read differently at a glance.
 @export_range(0.0, 6.0) var precipitation_speed: float = 1.5

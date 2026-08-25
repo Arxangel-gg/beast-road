@@ -59,6 +59,15 @@ var _idle_frame_clock: float = 0.0
 var _idle_frames: Array[Texture2D] = []
 var _level_scale: Vector2 = Vector2.ONE
 
+## How much of the firing kick is left: 1 at the shot, 0 at rest.
+var _fire_kick: float = 0.0
+
+## Which way the recoil pushes — away from what was shot at.
+var _fire_recoil: Vector2 = Vector2.UP
+
+## Where the sprite sits when nothing is shoving it.
+var _sprite_home: Vector2 = Vector2.ZERO
+
 ## True when the host decides this tower's shots and this machine only draws
 ## them. Set by `CoopWorld` on a guest; false in single player and on the host.
 var puppet: bool = false
@@ -101,6 +110,9 @@ func _ready() -> void:
 	# Everything visible is lifted back to the plot centre, so moving the node
 	# down to its base changes the sorting and nothing else.
 	sprite.position.y -= Balance.TOWER_SORT_LIFT
+	# Captured after the sort lift, so the recoil returns the sprite to where the
+	# tower actually stands rather than to the node's origin.
+	_sprite_home = sprite.position
 	if range_ring != null:
 		range_ring.position.y -= Balance.TOWER_SORT_LIFT
 
@@ -355,6 +367,7 @@ func _target_score(enemy: Enemy, priority: int) -> float:
 func _fire(targets: Array[Enemy]) -> void:
 	var primary: Enemy = targets[0]
 	EventBus.tower_fired.emit(anchor, primary.global_position)
+	kick(primary.global_position)
 
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.
@@ -385,6 +398,7 @@ func fire_remote(at: Vector2) -> void:
 	if data == null or _field == null:
 		return
 	EventBus.tower_fired.emit(anchor, at)
+	kick(at)
 	if _is_aura():
 		Vfx.ring(origin(), effective_range(),
 			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
@@ -408,6 +422,17 @@ func _nearest_enemy(at: Vector2) -> Enemy:
 			best_distance = distance
 			best = enemy
 	return best
+
+
+## Shoves the tower back from what it just shot at.
+##
+## Public because a guest's tower is told to fire rather than deciding to, and
+## both paths have to look the same - a tower that only recoiled on the machine
+## that chose the shot would read as broken on the other one.
+func kick(toward: Vector2) -> void:
+	_fire_kick = 1.0
+	var away: Vector2 = origin() - toward
+	_fire_recoil = away.normalized() if away.length() > 0.001 else Vector2.UP
 
 
 ## True for towers that pulse an area rather than firing at something.
@@ -621,8 +646,18 @@ func _tick_step_wobble(delta: float) -> void:
 		_idle_phase += delta * Balance.STRUCTURE_IDLE_RATE * TAU
 		breathe = sin(_idle_phase)
 		sway = sin(_idle_phase * 0.63)
+	# Squared, so the kick is sharp at the shot and settles rather than sliding
+	# back at a constant rate. A linear recoil reads as the tower being dragged.
+	_fire_kick = maxf(_fire_kick - delta / Balance.TOWER_FIRE_KICK_SECONDS, 0.0)
+	var kicked: float = _fire_kick * _fire_kick
 	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY)
-	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE)
+	# The kick rides *on top of* the idle rather than replacing it. Two systems
+	# assigning the same property is how the earlier sway and wobble bug happened,
+	# and a tower that stopped breathing while it recoiled would read as two
+	# animations fighting over one sprite.
+	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE
+		+ kicked * Balance.TOWER_FIRE_KICK_SCALE)
+	sprite.position = _sprite_home 		+ _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH
 
 
 func _draw_range_ring() -> void:

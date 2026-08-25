@@ -1171,9 +1171,15 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 - [x] Beast walk/idle as authored frames, layered over the procedural gait.
 - [x] Building tier variants — all nine buildings now have distinct tier-two and
       tier-three architecture, and every tier has its own idle package.
-- [ ] **Tower attack animations.** Every tower currently idles through its own
-      shot. The authored-package convention and the id-derived path rule are
-      both in place, so an attack pose set follows the same road as the idles.
+- [x] **Tower attack animations** — as a procedural recoil, and that is an order
+      of work rather than a substitute for one. Twenty-six towers would be some
+      seventy authored frames; a transform kick reads at every zoom, arrives free
+      for any tower added later, and still composes with authored poses when
+      somebody draws them, exactly as the idle loop already does (it replaces the
+      texture while the same code drives scale and rotation). Gated on both
+      halves: firing must shove the tower, and the shove must fully settle — a
+      kick that never quite decays leaves every tower a few pixels off its own
+      base and reads as misaligned art months later.
 - [ ] **Base pixel art with states** - idle animation and a hit reaction, on the
       same authored-frame footing as the towers.
 - [ ] **Torch base shadow.** The torches light everything and sit on nothing.
@@ -1269,9 +1275,16 @@ still lists it unfinished. Today it is not visible at all.
       medium and one at low - the real saving, since density in a shader is only
       a threshold while each layer is a whole extra pass per pixel. Both snow
       layers are hidden outright at zero cover rather than left drawing nothing.
-- [ ] **Weather drives the foliage wind.** Still outstanding: the veil and the
-      foliage shader know nothing about each other, so a downpour does not bend
-      the grass.
+- [x] **Weather drives the foliage wind.** `WeatherData` carries an authored
+      `wind` field — duststorm 0.95, downpour 0.55, snowfall 0.30, clear 0.18,
+      heatwave −0.04. Deliberately *not* derived from the rain:
+      `precipitation_wind` is the slant of what is falling and says nothing on a
+      dry day, and a duststorm is wind you can see while a heatwave is dead air.
+
+      The shader gains a steady lean on top of its oscillation, which is the half
+      that reads as wind rather than as agitation — a breeze waves, a gale holds
+      the grass over and *then* waves. Written to the two shared materials, so a
+      weather change costs two parameter writes however much grass is on screen.
 
 ### Wildlife and ambient life
 

@@ -265,6 +265,28 @@ func _test_weather_can_be_seen() -> void:
 	_check(not ContentDB.weather("downpour").settles,
 		"rain must not settle: it is not snow")
 
+	# The weather has to reach the ground, not only the sky.
+	#
+	# Reported as "a downpour does not bend the grass": the veil and the foliage
+	# shader knew nothing about each other, so rain fell through a meadow having a
+	# pleasant afternoon. Checked on the shared material because that is the thing
+	# every blade in the game actually reads.
+	var grass: ShaderMaterial = Foliage.wind_material()
+	Foliage.set_wind(ContentDB.weather("duststorm"))
+	var storm_sway: float = float(grass.get_shader_parameter("sway_degrees"))
+	var storm_bias: float = float(grass.get_shader_parameter("wind_bias"))
+	Foliage.set_wind(ContentDB.weather("heatwave"))
+	var still_sway: float = float(grass.get_shader_parameter("sway_degrees"))
+	var still_bias: float = float(grass.get_shader_parameter("wind_bias"))
+	_check(storm_sway > still_sway,
+		"a duststorm must move the grass more than dead air does, %.1f vs %.1f"
+			% [storm_sway, still_sway])
+	# The lean is the half that reads as *wind* rather than as agitation, so it
+	# is checked separately from the sway.
+	_check(absf(storm_bias) > absf(still_bias) + 1.0,
+		"and must hold it over, bias %.1f vs %.1f" % [storm_bias, still_bias])
+	Foliage.set_wind(ContentDB.weather("clear"))
+
 	# Arriving. Driven rather than waited out - the fade is seconds long and a
 	# gate must not be.
 	EventBus.weather_changed.emit("downpour")

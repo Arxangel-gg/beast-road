@@ -57,8 +57,32 @@ func _ready() -> void:
 	_check(absf(float(tower.get("_step_wobble"))) > 0.0,
 		"beast step did not wobble towers")
 
+	# Firing shoves the tower and the shove settles.
+	#
+	# Both halves matter and the second is the one that rots quietly: a kick that
+	# never fully decays leaves every tower on the field permanently a few pixels
+	# off its own base, which nobody notices for months and then reads as the art
+	# being misaligned.
+	var home: Vector2 = tower.sprite.position
+	tower.kick(tower.origin() + Vector2(200.0, 0.0))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(tower.sprite.position.distance_to(home) > 0.5,
+		"firing must shove the tower off its rest position")
+	_check(tower.sprite.position.x < home.x,
+		"and shove it away from what it shot at, not toward it")
+	var settle: float = Balance.TOWER_FIRE_KICK_SECONDS + 0.2
+	var waited: float = 0.0
+	while waited < settle:
+		waited += get_process_delta_time()
+		await get_tree().process_frame
+	_check(tower.sprite.position.distance_to(home) < 0.5,
+		"and the shove must settle back, %.2f off"
+			% tower.sprite.position.distance_to(home))
+
 	if _failures.is_empty():
-		print("[structure] PASS — durability, repair, siege targeting, damage fires and step impulse")
+		print("[structure] PASS — durability, repair, siege targeting, damage fires, "
+			+ "step impulse and firing recoil")
 	else:
 		for failure: String in _failures:
 			push_error("[structure] " + failure)

@@ -1085,6 +1085,32 @@ const STRUCTURE_IDLE_FRAME_RATE: float = 4.0
 ## How much a structure swells and settles, as a fraction of its size. [TUNE]
 const STRUCTURE_IDLE_SCALE: float = 0.012
 
+## The shove a tower gives itself when it looses a shot.
+##
+## Procedural rather than an authored attack pose, and that is an order of work
+## rather than a substitute for one: twenty-six towers would be some seventy
+## frames to draw, while a transform kick reads at every zoom, arrives free for
+## any tower added later, and still composes with authored frames when they
+## come - the idle loop already proves that, since it replaces the texture while
+## the same code keeps driving scale and rotation.
+##
+## Short, because it has to finish before the next shot on a fast tower: an
+## Arc Coil at tier three fires inside a quarter second. [TUNE]
+## How far weather pushes the foliage past its resting sway.
+##
+## The gain is on top of the authored calm, not a replacement for it: at wind 0
+## the grass moves exactly as it always did, so a clear day is unchanged and only
+## the weathers that should be felt are. The bias is a *steady lean* rather than
+## more waving, because that is the difference between a breeze and a gale -
+## a gale holds the grass over. [TUNE]
+const FOLIAGE_WIND_SWAY_GAIN: float = 1.35
+const FOLIAGE_WIND_SPEED_GAIN: float = 0.85
+const FOLIAGE_WIND_BIAS_DEGREES: float = 7.0
+
+const TOWER_FIRE_KICK_SECONDS: float = 0.17
+const TOWER_FIRE_KICK_SCALE: float = 0.08
+const TOWER_FIRE_KICK_PUSH: float = 5.0
+
 ## How far it leans, in degrees, at the ends of its cycle. [TUNE]
 const STRUCTURE_IDLE_SWAY: float = 0.55
 

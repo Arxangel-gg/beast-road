@@ -14,6 +14,7 @@ id = "downpour"
 display_name = "Downpour"
 precipitation = 1
 precipitation_density = 0.82
+wind = 0.55
 precipitation_wind = 0.05
 precipitation_speed = 2.4
 precipitation_tint = Color(0.74, 0.83, 0.96, 0.5)
