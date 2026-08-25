@@ -57,6 +57,11 @@ func abandon_run(reason: String) -> void:
 func set_paused(paused: bool) -> void:
 	if get_tree().paused == paused:
 		return
+	# Nothing outside a run is pausable, and nothing outside a run may pause a
+	# partner. A menu that could stop somebody else's game is a menu with reach
+	# it should not have.
+	if not run_active and paused:
+		return
 	get_tree().paused = paused
 	if not Coop.partner_present():
 		return
@@ -71,6 +76,17 @@ func set_paused(paused: bool) -> void:
 			relay.request(CoopRelay.Request.PAUSE, [paused])
 		return
 	EventBus.coop_paused.emit(paused)
+
+
+## The host's run ended, so this one does too.
+##
+## The guest builds its own summary from its own `RunState` rather than being
+## sent one: the two mirror each other, and a summary that travelled would have
+## to carry a hero, a stash and a tier the guest already has better copies of.
+func _on_coop_run_ended(victory: bool) -> void:
+	if not Coop.is_guest():
+		return
+	end_run(victory)
 
 
 ## Somebody skipped a cinematic, so both of us skip it.
@@ -149,6 +165,7 @@ func _ready() -> void:
 	EventBus.coop_run_started.connect(_on_coop_run_started)
 	EventBus.coop_paused.connect(_on_coop_paused)
 	EventBus.coop_request_received.connect(_on_coop_request)
+	EventBus.coop_run_ended.connect(_on_coop_run_ended)
 	CursorKit.apply()
 
 
@@ -165,6 +182,17 @@ func goto_menu() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	CursorKit.use_default()
+	# **The session ends with the run.**
+	#
+	# It used to outlive it, and the consequences were not obvious: a guest still
+	# reading its results screen could pause a host who had already reached the
+	# main menu, and every button there went dead with no visible cause. The
+	# relay also went on exchanging hero positions and world clocks for a run
+	# that no longer existed.
+	#
+	# Two players who want another run make another session, which is one button
+	# and unambiguous about what they are joining.
+	Coop.leave()
 	_change(MENU_SCENE)
 
 
@@ -229,6 +257,11 @@ func end_run(victory: bool) -> void:
 	if not run_active:
 		return
 	run_active = false
+	# A run is one shared thing, so it ends for both. Announced before the
+	# summary is built: the guest has its own summary to build from its own
+	# RunState, and waiting would leave it standing in its town with no report.
+	if Coop.is_host() and Coop.partner_present():
+		EventBus.coop_run_ended.emit(victory)
 
 	# A run that reached the summit is a win however it ends. Endless is the
 	# victory lap, and the town falling on lap nine does not retract the win.

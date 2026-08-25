@@ -1168,7 +1168,12 @@ const WILDLIFE_MAX: int = 22
 ## How far a hero's swing reaches an animal, how much of the field an animal may
 ## wander off before it stops existing, and how high a flier is drawn above the
 ## ground it sorts against. [TUNE]
-const WILDLIFE_KILL_RADIUS: float = 120.0
+## How much further than the swing's own reach a hunt connects.
+##
+## A little generous: an ambient animal is not a combat target and should not
+## demand combat precision, but the arc test in front of the hero keeps it from
+## being a radius kill.
+const WILDLIFE_KILL_REACH_BONUS: float = 40.0
 const WILDLIFE_FORGET_DISTANCE: float = 2600.0
 const WILDLIFE_FLIER_LIFT: float = 54.0
 const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
@@ -1185,6 +1190,12 @@ const WILDLIFE_PAUSE_MIN: float = 1.6
 const WILDLIFE_PAUSE_MAX: float = 7.0
 const WILDLIFE_IDLE_FRAME_RATE: float = 2.6
 const WILDLIFE_MOVE_FRAME_RATE: float = 7.5
+
+## The hop given to walkers that have only one authored frame. Rise, fall, and a
+## squash at the bottom - which is the right gait for a rabbit anyway. [TUNE]
+const WILDLIFE_HOP_RATE: float = 9.0
+const WILDLIFE_HOP_HEIGHT: float = 9.0
+const WILDLIFE_HOP_SQUASH: float = 0.16
 const WILDLIFE_FLIGHT_FRAME_RATE: float = 9.5
 const WILDLIFE_BOB_RATE: float = 11.0
 const WILDLIFE_BOB_SCALE: float = 0.09

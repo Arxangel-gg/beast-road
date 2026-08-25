@@ -687,12 +687,16 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_raven.png` · `wildlife_fox.png` · `wildlife_rabbit.png` ·
 `wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png`
 
-**The art faces left, except the squirrel, which faces right.** That is declared
-per creature in the `.tres` (`art_faces_right`) rather than assumed globally, and
-the reason is that assuming is what went wrong the first time: the flip was
-written for right-facing sprites against art drawn facing left, and every animal
-in the game walked backwards. The squirrel then came out of the generator facing
-the other way regardless of the prompt, which is precisely why the flag exists.
+**Facing is declared per creature (`art_faces_right`) and must be verified per
+*frame*.** Five face right; the deer and the raccoon face left.
+
+This has been got wrong three times, each time by reading the art too small or
+not at all, so the rule is now explicit: **the generator assigns facing at
+random, per frame, regardless of the prompt.** Frames within one creature's own
+set routinely disagree with each other — the squirrel's base and walk frames
+faced opposite ways, and so did the raven's base and flight frames. Any new frame
+must be composited into a contact sheet at 6× and looked at before it is
+declared. A 3× sheet was read wrong; 6× was not.
 
 ### 5.10c Wildlife idle frames — `res://art/wildlife/`
 
@@ -719,23 +723,27 @@ one. Standing still and walking are two sequences over one source sprite, so a
 creature can ship with either, both or neither — the animator falls back to a
 transform where a sequence is missing.
 
-**Three of the six have a second frame and three do not, and that is a limit of
-the tool rather than an oversight.** Text-to-image will not reliably produce "the
-same animal, different pose, *same size*" — across two attempts the rabbit, deer
-and squirrel each came back a different size, a different shade, or sitting down
-when asked to run. A mismatched pair is exactly the flicker the second frame
-exists to remove, so those three ship with one stride pose: static while walking,
-but consistent.
+**Four of the six have a second frame; the rabbit and the squirrel do not.**
+Text-to-image will not reliably produce "the same animal, a different pose, the
+*same size and shade*" — across three attempts those two came back darker,
+lighter or larger every time. A mismatched pair is exactly the flicker a second
+frame exists to remove.
 
-Getting the missing three needs hand-editing, or building those creatures through
-PixelLab's character rig (`create_character` + `animate_character`), which is
-made for coherent multi-frame sets in a way the freeform image call is not.
+They lose nothing by it. A single-frame walker is given a **procedural hop**
+instead: rise, fall, and a squash at the bottom of the arc. For a rabbit and a
+squirrel that is not a compromise, it is the correct gait — and it is guaranteed
+consistent, because it is the same sprite throughout.
+
+A matching second frame for those two needs hand-editing, or building them
+through PixelLab's character rig (`create_character` + `animate_character`),
+which is made for coherent multi-frame sets in a way the freeform image call is
+not.
 
 Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
 Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png`
 Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png`
+Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png`
 Files: `wildlife_rabbit_move_01.png`
-Files: `wildlife_deer_move_01.png`
 Files: `wildlife_squirrel_move_01.png`
 
 ### 5.10e Wildlife flight frames — `res://art/wildlife/`

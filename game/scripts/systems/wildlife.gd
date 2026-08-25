@@ -22,6 +22,10 @@ extends Node2D
 ## How often an arrival is considered.
 const ARRIVAL_INTERVAL: float = 4.0
 
+## How often a guest is told where the animals are. Slower than the enemy batch
+## on purpose: nothing is being aimed at, so a coarser update is invisible.
+const BATCH_INTERVAL: float = 0.2
+
 ## What an animal is doing. Small on purpose: ambient life with a rich state
 ## machine is a bug waiting to be found by somebody watching a wave.
 enum State { ARRIVING, SETTLED, FLEEING, LEAVING }
@@ -42,6 +46,10 @@ var field: Node = null
 
 var _living: Array[Dictionary] = []
 var _arrival_clock: float = 0.0
+var _batch_clock: float = 0.0
+
+## Rising identity for relayed animals. Host side.
+var _net_id: int = 0
 var _kinds: Array[WildlifeData] = []
 var _rng := RandomNumberGenerator.new()
 
@@ -55,7 +63,12 @@ func _ready() -> void:
 	# rather than fought for: putting wildlife in the enemy group would have
 	# towers shooting rabbits and waves never ending, which is a far worse bug
 	# than not being able to hunt.
-	EventBus.hero_attack_landed.connect(_on_attack_landed)
+	EventBus.hero_swing_resolved.connect(_on_swing_resolved)
+	# Replicated so a hunt is shared. A guest whose field held different animals
+	# could not help farm one, and would watch its partner swing at nothing.
+	EventBus.coop_wildlife_spawned.connect(_on_coop_spawned)
+	EventBus.coop_wildlife_batch.connect(_on_coop_batch)
+	EventBus.coop_wildlife_removed.connect(_on_coop_removed)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
 		_refresh_kinds()
 		# Old residents leave with the old act rather than lingering into ground
@@ -80,6 +93,17 @@ func _process(delta: float) -> void:
 	if Graphics.foliage_scale() <= 0.0:
 		clear()
 		return
+	# A guest decides nothing about the wildlife: no arrivals, no wandering, no
+	# hunting. Its animals are the host's, mirrored - otherwise the two fields
+	# hold different creatures and a shared hunt is impossible.
+	if Coop.is_guest():
+		_tick_puppets(delta)
+		return
+	if _is_authority_with_company():
+		_batch_clock -= delta
+		if _batch_clock <= 0.0:
+			_batch_clock = BATCH_INTERVAL
+			_send_batch()
 	_arrival_clock -= delta
 	if _arrival_clock <= 0.0:
 		_arrival_clock = ARRIVAL_INTERVAL
@@ -91,6 +115,75 @@ func _process(delta: float) -> void:
 		if sprite != null and is_instance_valid(sprite):
 			sprite.queue_free()
 		_living.remove_at(index)
+
+
+## Mirrored animals: walk to where the host said, and animate from that.
+##
+## The same treatment the enemies get, and for the same reason - a body that is
+## repositioned has no velocity, and every animation here is chosen from whether
+## the thing is moving.
+func _tick_puppets(delta: float) -> void:
+	for animal: Dictionary in _living:
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var target := animal["goal"] as Vector2
+		var before: Vector2 = sprite.global_position
+		sprite.global_position = before.lerp(target,
+			clampf(delta / BATCH_INTERVAL, 0.0, 1.0))
+		var step: Vector2 = sprite.global_position - before
+		var kind := animal["data"] as WildlifeData
+		if absf(step.x) > 0.001:
+			sprite.flip_h = (step.x > 0.0) != kind.art_faces_right
+		_animate(animal, sprite, delta, step.length() > 0.5)
+
+
+## Everything alive, in one packet. Host side.
+func _send_batch() -> void:
+	var entries: Array = []
+	for animal: Dictionary in _living:
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		entries.append([int(animal["net_id"]), sprite.global_position])
+	if not entries.is_empty():
+		EventBus.coop_wildlife_batch.emit(entries)
+
+
+## The host put an animal down, so one appears here. Guest side.
+func _on_coop_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
+	if not Coop.is_guest():
+		return
+	for data: WildlifeData in ContentDB.wildlife():
+		if data.id == kind_id:
+			_spawn(data, at, net_id)
+			return
+
+
+func _on_coop_batch(entries: Array) -> void:
+	if not Coop.is_guest():
+		return
+	for entry: Variant in entries:
+		var row := entry as Array
+		if row == null or row.size() != 2:
+			continue
+		for animal: Dictionary in _living:
+			if int(animal["net_id"]) == int(row[0]):
+				animal["goal"] = row[1] as Vector2
+				break
+
+
+func _on_coop_removed(net_id: int) -> void:
+	if not Coop.is_guest():
+		return
+	for index: int in range(_living.size() - 1, -1, -1):
+		if int(_living[index]["net_id"]) != net_id:
+			continue
+		var sprite: Node = _living[index]["sprite"]
+		if sprite != null and is_instance_valid(sprite):
+			sprite.queue_free()
+		_living.remove_at(index)
+		return
 
 
 ## Perhaps something turns up.
@@ -143,7 +236,12 @@ func _pick_kind() -> WildlifeData:
 	return _kinds[_kinds.size() - 1]
 
 
-func _spawn(kind: WildlifeData, at: Vector2) -> void:
+## True when this machine decides things *and* somebody is listening.
+func _is_authority_with_company() -> bool:
+	return Coop.is_host() and Coop.partner_present()
+
+
+func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
 		return
@@ -163,7 +261,13 @@ func _spawn(kind: WildlifeData, at: Vector2) -> void:
 		sprite.offset.y = -Balance.WILDLIFE_FLIER_LIFT
 	(host if host != null else self).add_child(sprite)
 
+	var identity: int = mirrored_id
+	if identity == 0 and _is_authority_with_company():
+		_net_id += 1
+		identity = _net_id
+		EventBus.coop_wildlife_spawned.emit(identity, kind.id, at)
 	_living.append({
+		"net_id": identity,
 		"data": kind,
 		"sprite": sprite,
 		"state": State.ARRIVING,
@@ -175,6 +279,7 @@ func _spawn(kind: WildlifeData, at: Vector2) -> void:
 		"fly": GameData.load_flight_frames(path),
 		"frame_clock": _rng.randf() * 4.0,
 		"pause": 0.0,
+		"hp": kind.max_hp,
 		"patience": _rng.randf_range(kind.stay_min, kind.stay_max),
 		"bob": _rng.randf() * TAU,
 	})
@@ -264,6 +369,29 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 		var index: int = int(floor(float(animal["frame_clock"]))) % frames.size()
 		sprite.texture = frames[index] as Texture2D
 		sprite.scale.y = kind.scale
+		# **One authored frame is a pose, not a cycle.**
+		#
+		# Three of the six could not be given a matching second walk frame - the
+		# generator returns a different size or a different shade every time - so
+		# rather than ship a mismatched pair that flickers, a single-frame walker
+		# gets its motion from a hop: rise and fall with a squash at the bottom.
+		#
+		# For a rabbit or a squirrel that is not a compromise, it is the correct
+		# gait. Skipped for anything with a real cycle, which is already moving.
+		if moving and frames.size() == 1 and not kind.flies:
+			animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_HOP_RATE
+			var phase: float = float(animal["bob"])
+			var lift: float = absf(sin(phase))
+			sprite.offset.y = -lift * Balance.WILDLIFE_HOP_HEIGHT
+			# Squashed at the bottom of the arc, stretched at the top, which is
+			# what makes a hop read as weight rather than as a sprite sliding up
+			# and down.
+			var squash: float = (1.0 - lift) * Balance.WILDLIFE_HOP_SQUASH
+			sprite.scale.y = kind.scale * (1.0 - squash)
+			sprite.scale.x = kind.scale * (1.0 + squash * 0.6)
+		else:
+			sprite.offset.y = 0.0
+			sprite.scale.x = kind.scale
 		return
 	# No authored frames for this state. Back to the resting pose plus a
 	# transform, which keeps it from standing perfectly still - that is what
@@ -309,24 +437,59 @@ func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 ## Heard rather than hunted. Wildlife stays out of the enemy group - towers would
 ## shoot rabbits and waves would never end - so the hero's blow is picked up from
 ## the bus and resolved here, where it cannot reach the combat systems at all.
-func _on_attack_landed(_chain_step: int, _targets: int, at: Vector2) -> void:
+func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
+	# The host decides what died, like everything else that pays out. A guest
+	# swinging kills nothing locally and is told what happened.
 	if Coop.is_guest():
 		return
+	var forward: Vector2 = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	for index: int in range(_living.size() - 1, -1, -1):
 		var animal: Dictionary = _living[index]
 		var sprite := animal["sprite"] as Sprite2D
 		if sprite == null or not is_instance_valid(sprite):
 			continue
-		if sprite.global_position.distance_to(at) > Balance.WILDLIFE_KILL_RADIUS:
+		var toward: Vector2 = sprite.global_position - at
+		var distance: float = toward.length()
+		if distance > reach + Balance.WILDLIFE_KILL_REACH_BONUS:
 			continue
-		var kind := animal["data"] as WildlifeData
-		Vfx.spark(sprite.global_position, Color("c4552e"), 8, Vector2.UP, 180.0)
-		if field != null and field.has_method("spawn_loot"):
-			field.spawn_loot(RunState.FOOD, kind.food_reward,
-				sprite.global_position)
-		sprite.queue_free()
-		_living.remove_at(index)
+		# In front of the swing, not merely near it. A blade that killed things
+		# behind the hero would be a strange thing to discover by accident.
+		if distance > 1.0 and toward.normalized().dot(forward) < 0.2:
+			continue
+		_wound(index, animal)
 		return
+
+
+## Puts damage into one animal, and pays out if that finishes it.
+##
+## Health rather than a one-hit kill, because the owner asked for size to matter:
+## a rabbit should die to a swing and a deer should take a few, which is the only
+## way "larger gives more" is a decision rather than a lottery.
+func _wound(index: int, animal: Dictionary) -> void:
+	var kind := animal["data"] as WildlifeData
+	var sprite := animal["sprite"] as Sprite2D
+	animal["hp"] = float(animal["hp"]) - Balance.HERO_ATTACK_DAMAGE[0]
+	Vfx.spark(sprite.global_position, Color("c4552e"), 6,
+		Vector2.UP, 170.0)
+	if float(animal["hp"]) > 0.0:
+		# Being hit is also a very good reason to leave.
+		animal["state"] = State.FLEEING
+		animal["goal"] = _bolt_target(sprite.global_position)
+		return
+
+	# Food and experience both scale with the animal, rolled rather than fixed so
+	# two deer are not worth exactly the same. Its own stream, so a seeded replay
+	# is not changed by whether somebody stopped to hunt.
+	var food: int = _rng.randi_range(kind.food_min, kind.food_max)
+	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
+	if field != null and field.has_method("spawn_loot"):
+		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
+	RunState.gain_hero_xp(float(kind.xp_reward))
+	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position)
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_removed.emit(int(animal["net_id"]))
+	sprite.queue_free()
+	_living.remove_at(index)
 
 
 ## True when an animal is far enough from every player to stop existing.

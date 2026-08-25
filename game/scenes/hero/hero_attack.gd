@@ -172,6 +172,10 @@ func _strike() -> void:
 		_hit_ids[id] = true
 		hits += 1
 
+	# Announced whether or not it connected, and *before* the early return: a
+	# swing that touched no enemy is still a swing, and something small standing
+	# in front of the hero should know about it.
+	EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach)
 	if hits == 0:
 		return
 	landed.emit(_step, hits, _swing_origin)

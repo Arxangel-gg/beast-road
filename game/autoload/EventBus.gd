@@ -58,6 +58,34 @@ signal beast_step_landed(impulse: Vector2, strength: float)
 ## A swing connected with at least one target. `chain_step` is 0-based.
 signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
 
+## A swing was resolved, whether or not it touched an enemy.
+##
+## `hero_attack_landed` fires only on a hit, which is right for hitstop and
+## screen shake and wrong for anything else that a blade should reach. Wildlife
+## is not in the enemy group - towers would shoot rabbits and waves would never
+## end - so hunting listens for this instead, and a swing at a rabbit standing
+## alone in a field emitted nothing at all until it existed.
+signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float)
+
+## The host put an animal on the field and gave it an identity.
+signal coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2)
+
+## Where the host's animals are now, as one batch.
+signal coop_wildlife_batch(entries: Array)
+
+## The host's run is over, so the guest's is too.
+##
+## A run is one shared thing. Without this the guest stood in its town with no
+## report and no way out while the host read the results of a run they had both
+## just lost.
+signal coop_run_ended(victory: bool)
+
+## An animal left, whether hunted or forgotten.
+signal coop_wildlife_removed(net_id: int)
+
+## An animal was hunted — on the host's say-so, so both players see it fall.
+signal wildlife_killed(kind_id: String, food: int, at: Vector2)
+
 ## An individual enemy was struck by the hero; Command reads the tactical value.
 signal hero_enemy_hit(enemy_id: String, lane: int, priority: bool, interrupted: bool, at: Vector2)
 

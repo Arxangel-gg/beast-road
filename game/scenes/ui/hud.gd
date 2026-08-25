@@ -806,6 +806,7 @@ func _open_road_panel(tile: Vector2i) -> void:
 	if _road_panel == null or battlefield == null:
 		return
 	_road_tile = tile
+	# The tower sheet closes, for the same reason: one question at a time.
 	_close_build_panel()
 	_road_panel.visible = true
 	_refresh_road_panel()
@@ -1828,7 +1829,15 @@ func _aimed_tower() -> Vector2i:
 
 # --- Build panel ------------------------------------------------------------
 
+## Opens the tower sheet, closing the road sheet if it was up.
+##
+## The two are alternatives, not layers: a plot and a road are different pieces
+## of ground and nobody is deciding about both at once. Leaving the other open
+## put two panels over each other in the same corner, which is not a stacking
+## order anybody chose.
 func _open_build_panel(anchor: Vector2i) -> void:
+	if _road_panel != null:
+		_road_panel.visible = false
 	# Cleared before the selection moves, or the previous tower keeps its ring.
 	_show_selected_range(false)
 	_selected = anchor

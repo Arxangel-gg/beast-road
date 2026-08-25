@@ -61,7 +61,12 @@ func _ready() -> void:
 	_apply_facing()
 	add_child(_sprite)
 	ShadowKit.add_contact(self, _sprite, 0.8)
-	z_index = int(global_position.y)
+	# Sorted by the entity root against everything else standing on the ground.
+	# Assigning z from its own y fought that sorting rather than helping it -
+	# absolute z takes a node *out* of the y-sort it is sitting in.
+	z_as_relative = true
+	z_index = 0
+	y_sort_enabled = false
 
 	# A wall with no visible health is a wall nobody can decide about: whether to
 	# reinforce a lane or spend elsewhere is exactly the judgement the bar exists

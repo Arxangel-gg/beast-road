@@ -420,6 +420,57 @@ func _test_the_field_is_inhabited() -> void:
 	# decided to stand in one makes the lane look like a mistake. The first was
 	# what an earlier version of this check reported, and it was reporting
 	# correct behaviour.
+	# Hunting: it has to be possible at all, and it has to pay by size.
+	#
+	# "Possible at all" is the one that was broken and looked fine. Wildlife
+	# listened for `hero_attack_landed`, which fires only when an *enemy* was hit
+	# - so a swing at a rabbit standing alone in a field emitted nothing and no
+	# animal in the game could ever be killed.
+	for kind: WildlifeData in ContentDB.wildlife():
+		_check(kind.max_hp > 0.0, "%s must be killable" % kind.id)
+		_check(kind.food_min <= kind.food_max,
+			"%s has a food range that cannot be rolled" % kind.id)
+		_check(kind.xp_reward > 0, "%s must be worth something to kill" % kind.id)
+	var small: WildlifeData = ContentDB.wildlife()[0]
+	var large: WildlifeData = small
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind.max_hp < small.max_hp:
+			small = kind
+		if kind.max_hp > large.max_hp:
+			large = kind
+	# Size has to *mean* something, or the ranges are decoration.
+	_check(large.food_min > small.food_max,
+		"the largest animal must be worth more food than the smallest, "
+			+ "%s %d-%d against %s %d-%d" % [large.id, large.food_min,
+			large.food_max, small.id, small.food_min, small.food_max])
+	_check(large.xp_reward > small.xp_reward,
+		"and more experience")
+
+	var before_food: int = RunState.currency(RunState.FOOD)
+	var before_xp: float = RunState.hero_xp
+	var hunted: bool = false
+	for child: Node in wildlife.get_children():
+		var animal := child as Sprite2D
+		if animal == null:
+			continue
+		# Swing at it from close by, the way the hero's attack reports itself.
+		var from: Vector2 = animal.global_position - Vector2(40.0, 0.0)
+		for _swing: int in 40:
+			EventBus.hero_swing_resolved.emit(from, Vector2.RIGHT, 200.0)
+		hunted = true
+		break
+	if hunted:
+		for _f: int in 6:
+			await get_tree().process_frame
+		_check(RunState.hero_xp > before_xp,
+			"hunting must grant experience: %0.1f -> %0.1f"
+				% [before_xp, RunState.hero_xp])
+		# The food arrives as a dropped pickup rather than straight into the
+		# purse, so the wallet is not the assertion - the drop existing is.
+		_check(get_tree().get_nodes_in_group(LootDrop.GROUP).size() > 0
+			or RunState.currency(RunState.FOOD) > before_food,
+			"and must drop food")
+
 	var goals: PackedVector2Array = wildlife.goals()
 	_check(goals.size() > 0, "settled animals must have somewhere to be")
 	for goal: Vector2 in goals:

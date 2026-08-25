@@ -58,12 +58,21 @@ extends GameData
 ## so every animal in the game walked backwards.
 @export var art_faces_right: bool = false
 
-## Food dropped when a hero kills one.
+## What it takes to bring one down, and what it is worth.
 ##
-## Small, and deliberately not scaled by anything. Hunting is a thing to do while
-## crossing the field, not an economy - a rabbit worth a tower would turn every
-## Preparation into a hunt and the road into a larder.
-@export_range(0, 60) var food_reward: int = 6
+## All three scale together with the animal's size, which is what makes hunting a
+## *choice*: a deer is worth crossing the field for and costs several swings, a
+## squirrel is a swing of opportunity. Nothing here is scaled by hero damage or
+## by the run - hunting is a thing to do while crossing the field, not an economy,
+## and a rabbit worth a tower would turn every Preparation into a larder.
+##
+## Food is a range rather than a number so two deer are never worth exactly the
+## same, rolled from the wildlife stream so a seeded replay is unchanged by
+## whether anybody stopped to hunt.
+@export_range(1.0, 400.0) var max_hp: float = 30.0
+@export_range(0, 90) var food_min: int = 4
+@export_range(0, 90) var food_max: int = 8
+@export_range(0, 400) var xp_reward: int = 6
 
 ## Seconds this creature stays before wandering off, as a range.
 @export_range(4.0, 600.0) var stay_min: float = 30.0

@@ -47,9 +47,13 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		_sprite.texture = load(path)
 	add_child(_sprite)
-	# Under everything that walks. A trap the enemies disappear behind is a trap
-	# the player cannot see working.
+	# Under everything that walks, and *relative* so the entity root's y-sorting
+	# still places it against the ground rather than lifting it out of the scene.
+	# Absolute z put every trap in the game at one depth, in front of things that
+	# were standing closer to the camera than it was.
+	z_as_relative = true
 	z_index = -2
+	y_sort_enabled = false
 
 
 func _physics_process(delta: float) -> void:

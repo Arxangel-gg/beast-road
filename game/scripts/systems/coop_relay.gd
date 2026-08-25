@@ -64,6 +64,10 @@ enum Fact {
 	BARRICADE_STATE = 25,
 	LOOT_SPAWNED = 26,
 	LOOT_TAKEN = 27,
+	WILDLIFE_SPAWNED = 28,
+	WILDLIFE_BATCH = 29,
+	WILDLIFE_REMOVED = 30,
+	RUN_ENDED = 31,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -229,6 +233,10 @@ func _fact_bindings() -> Array:
 		["coop_barricade_state", _on_coop_barricade_state],
 		["coop_loot_spawned", _on_coop_loot_spawned],
 		["coop_loot_taken", _on_coop_loot_taken],
+		["coop_wildlife_spawned", _on_coop_wildlife_spawned],
+		["coop_wildlife_batch", _on_coop_wildlife_batch],
+		["coop_wildlife_removed", _on_coop_wildlife_removed],
+		["coop_run_ended", _on_coop_run_ended],
 	]
 
 
@@ -284,6 +292,22 @@ func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
 
 func _on_coop_loot_taken(net_id: int) -> void:
 	_relay(Fact.LOOT_TAKEN, [net_id])
+
+
+func _on_coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
+	_relay(Fact.WILDLIFE_SPAWNED, [net_id, kind_id, at])
+
+
+func _on_coop_wildlife_batch(entries: Array) -> void:
+	_relay(Fact.WILDLIFE_BATCH, [entries])
+
+
+func _on_coop_wildlife_removed(net_id: int) -> void:
+	_relay(Fact.WILDLIFE_REMOVED, [net_id])
+
+
+func _on_coop_run_ended(victory: bool) -> void:
+	_relay(Fact.RUN_ENDED, [victory])
 
 
 func _on_currency_changed(id: String, amount: int) -> void:
@@ -499,6 +523,19 @@ func _replay(kind: int, args: Array) -> void:
 				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
 					float(args[2]), args[3] as Vector2, args[4] as Vector2,
 					float(args[5]))
+		Fact.WILDLIFE_SPAWNED:
+			if args.size() == 3:
+				bus.coop_wildlife_spawned.emit(int(args[0]), String(args[1]),
+					args[2] as Vector2)
+		Fact.WILDLIFE_BATCH:
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_wildlife_batch.emit(args[0] as Array)
+		Fact.WILDLIFE_REMOVED:
+			if args.size() == 1:
+				bus.coop_wildlife_removed.emit(int(args[0]))
+		Fact.RUN_ENDED:
+			if args.size() == 1:
+				bus.coop_run_ended.emit(bool(args[0]))
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),
