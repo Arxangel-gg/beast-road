@@ -15,6 +15,9 @@ extends Node
 ## rows below are two symptoms of one thing - a release that never arrived -
 ## and they are checked as that.
 
+## Fixed, so every run of this gate rolls the same game. Any value would do.
+const SEED: int = 141421356
+
 var _failures: int = 0
 var _run: Run = null
 
@@ -22,7 +25,12 @@ var _run: Run = null
 func _ready() -> void:
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
-	RunState.reset()
+	# Seeded, so a failure here is reproducible rather than a thing that happened
+	# once. Nothing below depends on a roll - enemies are spawned and positioned
+	# explicitly - but `spawn_enemy` still draws from the combat stream for its
+	# lane offset, and a gate nobody can re-run identically is a gate that gets
+	# re-run until it passes. See `breather_check` for what that costs.
+	RunState.reset(false, SEED)
 	GameDirector.run_active = true
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(_run)
@@ -37,14 +45,23 @@ func _ready() -> void:
 	_test_touch_release_always_lands()
 	_test_touch_controls_belong_to_the_run()
 
-	Sfx.stop_immediately()
-	MusicPlayer.stop_immediately()
-	Ambience.stop_immediately()
-	# Torn down rather than left standing, so the leak report at exit means
-	# something. `breather_check` does the same for the same reason.
+	# Order matters, and this had it backwards. The run leaves the tree *first*,
+	# then the audio autoloads are silenced, then the tree is given enough frames
+	# to actually collect everything before quitting. Stopping the music before
+	# freeing the battlefield left the jungle music and ambience streams alive,
+	# and quitting four frames later reported eight leaked ObjectDB instances on
+	# an otherwise passing check - which fails the guard workflow, since it treats
+	# any WARNING line as a failure.
+	#
+	# `breather_check._bail` carries the same sequence and the same comment. It
+	# was right and this was written without reading it.
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
-	for _f: int in 4:
+	_run = null
+	MusicPlayer.stop_immediately()
+	Sfx.stop_immediately()
+	Ambience.stop_immediately()
+	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
 		print("[regression] PASS - facing, threat lane, boss summons, loot scale, touch ownership")

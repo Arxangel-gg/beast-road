@@ -5,9 +5,9 @@ decision is recorded in `docs/Game_Design_v4.md` §54 and in `CLAUDE.md`; this
 file is the design that follows from it, and the thing to read before touching
 any netcode.
 
-**Status: design settled, not yet built.** Nothing in `game/` implements this
-yet. Sections 1–4 are decided. Section 8 is the build order. Section 9 is what
-is deliberately not in scope.
+**Status: design settled; step 1 of 6 built.** Sections 1–4 are decided.
+Section 8 is the build order and records what is done. Section 9 is what is
+deliberately not in scope.
 
 ---
 
@@ -232,12 +232,40 @@ Ordered by how much they matter, not by how hard they are.
 
 ## 8. Build order
 
-Each step is meant to be verifiable on its own, and each has a gate. Nothing
-here is started yet.
+Each step is meant to be verifiable on its own, and each has a gate.
 
-1. **Lobby and transport.** Host, join by address, connection status, clean
-   disconnect. Gate: a headless harness stands up a server and a client in one
-   process and completes a handshake.
+1. ~~**Lobby and transport.**~~ **Done 2026-08-25.** `game/autoload/Coop.gd`
+   owns the peer and the session state machine — `host`, `join`, `leave`, and
+   the one honest answer to "am I the host". `tools/coop_check.tscn` stands a
+   host and a guest up in one process over a real loopback socket and is in
+   `guard.yml`.
+
+   Three things worth carrying forward from building it:
+
+   - **`Coop` reads its own `multiplayer` property**, never
+     `get_tree().get_multiplayer()`. A `MultiplayerAPI` is registered against a
+     subtree path, so a Coop node parented under a custom-API subtree picks that
+     API up. That single choice is why co-op can be tested on a push instead of
+     needing two machines — keep it.
+   - **A subtree's API is not polled by the loop that drives the default one.**
+     The harness pumps both by hand each frame. Anything else standing up a
+     non-default API has to do the same or the handshake simply never advances.
+   - **`is_host()` answers true in single player**, deliberately. A lone player
+     is the authority over their own run, so every downstream "may I do this"
+     check reads identically in both modes and the single-player path cannot rot
+     from being the branch nobody exercises. `is_networked()` is the question to
+     ask when the answer really is "is anyone else here", and `player_count()`
+     is built on whether a partner is *present* rather than on session state —
+     a host listening alone still balances for one.
+
+   New `EventBus` signals, per CLAUDE.md §6: `coop_state_changed(state: int)`,
+   `coop_partner_joined(peer_id: int)`, `coop_partner_left(peer_id: int)`,
+   `coop_failed(reason: String)`. New constants: `Balance.COOP_PORT`,
+   `COOP_MAX_PLAYERS`, `COOP_MAX_GUESTS`, `COOP_CONNECT_TIMEOUT`.
+
+   **Not built in this step, on purpose:** there is no lobby *screen* yet. The
+   session is driveable from code and gated; putting a front end on it belongs
+   with the UI pass, and building one now would mean building it twice.
 2. **The relay layer.** The host-authored `EventBus` set forwarded and re-emitted
    on the guest, with the guest-request path returning host-authored results.
    Gate: a harness asserts a guest never originates a host-authored signal.

@@ -176,6 +176,11 @@ jobs:
           # on the main menu. Nothing errored, which is exactly why none of them
           # were caught by anything that runs.
           check "regressions" --headless --path game res://tools/regression_check.tscn
+          # Co-op step 1: a host and a guest in one process, over a real
+          # loopback socket. Two MultiplayerAPI instances can coexist because
+          # one is registered per subtree, which is the only reason co-op can be
+          # tested on a push at all rather than needing two machines.
+          check "co-op transport" --headless --path game res://tools/coop_check.tscn
 
       - name: Say what broke
         if: failure()

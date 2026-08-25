@@ -6,12 +6,32 @@ extends Node
 ## a phase that is unreachable, not one that is wrong. That is invisible to every
 ## other gate: the game runs, waves come, nothing errors. Only counting the
 ## transitions catches it.
+##
+## **Seeded, since 2026-08-25, and it has to be.** This ran on `RunState.reset()`
+## with no seed, which draws a fresh random one - so every run rolled a different
+## roster, different spawn positions and a different time to clear wave 1.
+## Measured across runs of identical code, the first breather opened anywhere
+## between 24 and 63 seconds. Against a 60-second window that is a coin toss, and
+## the gate had been passing on luck rather than on the property it names.
+##
+## A flaky gate is worse than no gate: it trains everyone to re-run it until it
+## goes green, which is the same as not having it. The seed makes this measure
+## the breather mechanic instead of the dice, and the window is now wide enough
+## that a slow-but-legal wave is not a failure.
+
+
+## Fixed so the wave roster, spawn positions and clear time repeat exactly.
+## Any seed would do; this one is simply the one that was verified.
+const SEED: int = 271828182
 
 var _breathers: int = 0
 var _waves: int = 0
 var _last_phase: int = -1
 var _elapsed: float = 0.0
-var _seconds: float = 60.0
+## Two full wave cycles with room to spare. 60 was the old default and sat right
+## on the edge: a wave that took a legal 63 seconds to clear failed a gate that
+## has no opinion about how long a wave takes.
+var _seconds: float = 150.0
 var _run: Node = null
 var _field: Battlefield = null
 var _started: bool = false
@@ -27,7 +47,7 @@ func _ready() -> void:
 		if argument.begins_with("--seconds="):
 			_seconds = float(argument.split("=")[1])
 
-	RunState.reset()
+	RunState.reset(false, SEED)
 	GameDirector.run_active = true
 	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
 	add_child(load("res://scenes/run/run.tscn").instantiate())

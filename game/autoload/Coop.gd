@@ -1,0 +1,231 @@
+extends Node
+
+## The co-op session: hosting, joining, and knowing which of the two you are.
+##
+## Two players, one city, one beast (GDD §54, amended 2026-08-24 by the owner).
+## The full design is `docs/COOP_DESIGN.md`; this is step 1 of its build order
+## and it owns the connection and **nothing else**. No game state crosses this
+## yet — no heroes, no enemies, no resources. That is step 2 onward, and keeping
+## them apart is deliberate: a transport that cannot be tested without a running
+## game is a transport nobody tests.
+##
+## **Host-authoritative.** The host simulates and the guest mirrors. This class
+## does not enforce that by itself; what it provides is one honest answer to "am
+## I the host", so every system that has to ask asks the same thing rather than
+## each inventing its own test. See `docs/COOP_DESIGN.md` §2 for why lockstep was
+## rejected.
+##
+## Deliberately safe when nothing is connected. `is_host()` answers **true** in a
+## single-player run, because a lone player is the authority over their own game.
+## Every "may I do this" check downstream then reads the same in both modes, and
+## the single-player path cannot rot from being the branch nobody exercises.
+## `is_networked()` is the question to ask when the answer really is "is anyone
+## else here".
+
+enum State {
+	## Single player. The default, and what every run has been until now.
+	OFFLINE,
+	## Listening. Playable alone: a host does not wait for company to start.
+	HOSTING,
+	## Dialling a host. The outcome is not known yet.
+	CONNECTING,
+	## Joined, as the guest.
+	CONNECTED,
+	## The last attempt did not work; `last_error` says how.
+	FAILED,
+}
+
+## Why the last attempt failed, in a sentence fit to put in front of a player.
+var last_error: String = ""
+
+var _state: State = State.OFFLINE
+var _peer: ENetMultiplayerPeer = null
+var _connect_left: float = 0.0
+
+
+func _ready() -> void:
+	# ALWAYS, because a co-op session must survive the tree being paused. A
+	# pause menu that also stops answering the network drops the other player.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_bind()
+
+
+## Wires this node's own `MultiplayerAPI`.
+##
+## `multiplayer` rather than `get_tree().get_multiplayer()`, and that is what
+## makes co-op testable at all: a `MultiplayerAPI` is registered against a subtree
+## path, so a Coop node placed under a custom-API subtree picks that one up. The
+## harness stands a host and a guest up in one process on exactly that property.
+func _bind() -> void:
+	var api: MultiplayerAPI = multiplayer
+	if api == null:
+		return
+	api.peer_connected.connect(_on_peer_connected)
+	api.peer_disconnected.connect(_on_peer_disconnected)
+	api.connected_to_server.connect(_on_connected_to_server)
+	api.connection_failed.connect(_on_connection_failed)
+	api.server_disconnected.connect(_on_server_disconnected)
+
+
+# --- Asking ------------------------------------------------------------------
+
+func state() -> State:
+	return _state
+
+
+## True when a second machine is involved at all.
+func is_networked() -> bool:
+	return _state == State.HOSTING or _state == State.CONNECTING \
+		or _state == State.CONNECTED
+
+
+## True for the authority over the simulation — **including single player**.
+##
+## See the class comment: a lone player is the authority over their own run, so
+## every downstream permission check reads identically in both modes.
+func is_host() -> bool:
+	return _state != State.CONNECTING and _state != State.CONNECTED
+
+
+## True only for the joined second player.
+func is_guest() -> bool:
+	return _state == State.CONNECTED
+
+
+## Whether the other player is actually here, as opposed to expected.
+##
+## A host that is listening with nobody connected is not in company, and a wave
+## sized for two would be a wave sized for a player who has not arrived.
+func partner_present() -> bool:
+	var api: MultiplayerAPI = multiplayer
+	if api == null or not api.has_multiplayer_peer():
+		return false
+	return not api.get_peers().is_empty()
+
+
+## How many players the run should be balanced for, right now.
+##
+## The number the difficulty director will read in step 5. One unless somebody
+## is genuinely connected, which is why it is built on `partner_present` rather
+## than on the session state.
+func player_count() -> int:
+	return 2 if partner_present() else 1
+
+
+# --- Doing -------------------------------------------------------------------
+
+## Opens the session. Returns whether the port was taken.
+##
+## Hosting does not block or wait. The run is playable immediately and alone;
+## the partner arriving is an event, not a precondition.
+func host(port: int = Balance.COOP_PORT) -> bool:
+	leave()
+	var peer := ENetMultiplayerPeer.new()
+	var made: int = peer.create_server(port, Balance.COOP_MAX_GUESTS)
+	if made != OK:
+		return _fail("Could not open port %d. Another program may be using it." % port)
+	_peer = peer
+	multiplayer.multiplayer_peer = peer
+	_set_state(State.HOSTING)
+	return true
+
+
+## Dials a host. Returns whether the attempt *started*, not whether it worked.
+##
+## The outcome arrives later, as `coop_state_changed` reaching CONNECTED or
+## FAILED. Callers must not treat `true` as connected — a wrong address returns
+## true here and fails ten seconds later, which is the whole reason the timeout
+## in `_process` exists.
+func join(address: String, port: int = Balance.COOP_PORT) -> bool:
+	leave()
+	var wanted: String = address.strip_edges()
+	if wanted.is_empty():
+		return _fail("Enter the host's address.")
+	var peer := ENetMultiplayerPeer.new()
+	var made: int = peer.create_client(wanted, port)
+	if made != OK:
+		return _fail("%s is not an address this game can dial." % wanted)
+	_peer = peer
+	multiplayer.multiplayer_peer = peer
+	_connect_left = Balance.COOP_CONNECT_TIMEOUT
+	_set_state(State.CONNECTING)
+	return true
+
+
+## Ends the session and returns to single player.
+##
+## Safe to call when there is no session, which is why `host` and `join` both
+## open with it: reconnecting is then the same code path as connecting, and
+## there is no second teardown to keep in step with this one.
+func leave() -> void:
+	_connect_left = 0.0
+	if _peer != null:
+		_peer.close()
+		_peer = null
+	var api: MultiplayerAPI = multiplayer
+	if api != null:
+		api.multiplayer_peer = null
+	if _state != State.OFFLINE:
+		_set_state(State.OFFLINE)
+
+
+func _process(delta: float) -> void:
+	if _state != State.CONNECTING:
+		return
+	_connect_left -= delta
+	if _connect_left <= 0.0:
+		# Deliberately not a silent return to OFFLINE. A join that quietly gives
+		# up looks identical to one still trying, and the player retypes the
+		# address they already had right.
+		var reason: String = "No answer from the host. Check the address and that they are hosting."
+		leave()
+		_fail(reason)
+
+
+# --- Hearing -----------------------------------------------------------------
+
+func _on_peer_connected(id: int) -> void:
+	EventBus.coop_partner_joined.emit(id)
+
+
+func _on_peer_disconnected(id: int) -> void:
+	EventBus.coop_partner_left.emit(id)
+
+
+func _on_connected_to_server() -> void:
+	_connect_left = 0.0
+	_set_state(State.CONNECTED)
+
+
+func _on_connection_failed() -> void:
+	var reason: String = "The host refused the connection."
+	leave()
+	_fail(reason)
+
+
+## The host went away. For a guest this ends the run's authority, so it cannot
+## be silent: `docs/COOP_DESIGN.md` §7 rules that a host drop ends the run for
+## both, and host migration is out of scope.
+func _on_server_disconnected() -> void:
+	leave()
+	_fail("The host ended the session.")
+
+
+# --- Bookkeeping -------------------------------------------------------------
+
+func _set_state(to: State) -> void:
+	if _state == to:
+		return
+	_state = to
+	if to != State.FAILED:
+		last_error = ""
+	EventBus.coop_state_changed.emit(int(to))
+
+
+## Records a failure and reports it. Always returns false, so every caller can
+## `return _fail(...)` and read as one line.
+func _fail(reason: String) -> bool:
+	last_error = reason
+	_set_state(State.FAILED)
+	EventBus.coop_failed.emit(reason)
+	return false

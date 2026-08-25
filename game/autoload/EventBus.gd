@@ -252,3 +252,20 @@ signal run_ended(victory: bool, summary: Dictionary)
 
 ## Something was added to the persistent unlock pool.
 signal unlock_earned(kind: String, id: String)
+
+# ==============================================================================
+# CO-OP (GDD §54, amended 2026-08-24 — see docs/COOP_DESIGN.md)
+# ==============================================================================
+
+## The co-op session changed shape. `state` is a `Coop.State`, passed as an int
+## because this file may not reach an autoload for a type.
+signal coop_state_changed(state: int)
+
+## The other player arrived. Host-side fact; the guest learns it by connecting.
+signal coop_partner_joined(peer_id: int)
+
+## The other player is gone — quit, dropped, or the host closed the session.
+signal coop_partner_left(peer_id: int)
+
+## Hosting or joining did not work, with a sentence fit to show a player.
+signal coop_failed(reason: String)

@@ -179,6 +179,41 @@ them. The full local suite is 24 of 24 green.
       was deleted outright - the next line already put the same sentence in
       the panel as a label.
 
+- [x] **`breather_check` was flaky, and had been all along.** Found while
+      verifying the above, not caused by it - an A/B run with the change
+      reverted failed identically.
+
+      It called `RunState.reset()` with no seed, which draws a fresh random
+      one, so every run rolled a different roster, different spawn positions
+      and a different time to clear wave 1. Across runs of *identical* code
+      the first breather opened anywhere between 24 and 63 seconds. The
+      window was 60. The gate had been passing on a coin toss.
+
+      That is worse than having no gate, because a test that goes green on a
+      re-run teaches everyone to re-run it. Now seeded, so it measures the
+      breather mechanic rather than the dice, and the window is 150s so a
+      slow-but-legal wave is not a failure. Verified by running it twice and
+      getting byte-identical output - `#1 opened at 30.7s` both times.
+
+      **Worth a look across the other harnesses**: any gate that resets a run
+      without a seed is measuring one sample of a distribution.
+
+- [x] **`regression_check` leaked audio at exit**, on an otherwise passing
+      run. The jungle music and ambience streams stayed alive, and the guard
+      workflow fails a gate on any `WARNING:` line - so a green test would
+      have broken the build.
+
+      The cause was teardown order. The run has to leave the tree *first*,
+      then the audio autoloads are silenced, then the tree needs enough
+      frames to actually collect before quitting. `breather_check._bail`
+      already had exactly this sequence, with a comment explaining it, and
+      the new gate was written without reading it. Both now match.
+
+      Two harness defects in one session, both found only because the suite
+      was re-run rather than trusted once. That is the argument for running
+      the whole suite after a change rather than the gate you think is
+      relevant.
+
 ---
 
 ## 2. Conformance — the 8 outstanding rows
@@ -1218,8 +1253,8 @@ has its design settled and written down; no netcode is written yet.
 
 ### Cut in §54 - needs a recorded re-cut
 
-- [~] **Two-player co-op.** Design settled and recorded in
-      `docs/COOP_DESIGN.md`; nothing is built yet. The owner's three rulings:
+- [~] **Two-player co-op.** Design settled in `docs/COOP_DESIGN.md`, and
+      **step 1 of 6 is built and gated** (2026-08-25). The owner's three rulings:
       **two heroes, one each**; **desktop-to-desktop only** for now, with the
       web build staying single-player; **one shared resource pool**.
 
@@ -1244,6 +1279,29 @@ has its design settled and written down; no netcode is written yet.
       interesting means letting the field tick during a raid - which breaks
       working rule 8 outright. Extraction windows are a joint decision
       rather than per-player, or the same problem reappears inside the raid.
+
+      **Step 1 — lobby and transport.** `game/autoload/Coop.gd` owns the peer
+      and the session state machine; `tools/coop_check.tscn` stands a host and
+      a guest up in one process over a real loopback socket and is in
+      `guard.yml`. No lobby *screen* yet, on purpose — that belongs with the
+      UI pass rather than being built twice.
+
+      The load-bearing detail: `Coop` reads its own `multiplayer` property
+      rather than the tree's, because a `MultiplayerAPI` is registered per
+      subtree. That is the entire reason co-op can be tested on a push instead
+      of needing two machines. A subtree's API is also not polled by the loop
+      that drives the default one, so the harness pumps both by hand.
+
+      `is_host()` answers **true** in single player, deliberately: a lone
+      player is the authority over their own run, so every downstream
+      permission check reads the same in both modes and the single-player path
+      cannot rot from being the branch nobody exercises.
+
+      New EventBus signals (CLAUDE.md §6): `coop_state_changed`,
+      `coop_partner_joined`, `coop_partner_left`, `coop_failed`.
+
+      Steps 2-6 remain: the relay layer, two heroes, enemies and towers over
+      the wire, difficulty scaling, disconnect behaviour.
 
       Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
       challenges" as explicitly out of scope for 1.0, with only leaderboards

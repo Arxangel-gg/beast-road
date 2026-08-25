@@ -2756,3 +2756,30 @@ const LEADERBOARD_LOCAL_MAX: int = 60
 ## a player this far offline is not going to care about the fortieth queued row,
 ## and the cap is what stops a broken table from filling a save.
 const LEADERBOARD_PENDING_MAX: int = 12
+
+# ------------------------------------------------------------------------------
+# Co-op — GDD §54, amended 2026-08-24. See docs/COOP_DESIGN.md
+# ------------------------------------------------------------------------------
+
+## The default port a host listens on.
+##
+## High and unregistered on purpose. The obvious choices — 7777, 27015 — are the
+## ones already occupied on a machine that plays other games, and "someone else's
+## server is already on that port" reads to a player as "co-op is broken".
+const COOP_PORT: int = 45870
+
+## Two, and the transport is told so.
+##
+## Not a soft convention: ENet is given this as its peer limit, so a third
+## connection is refused by the transport rather than by a rule somewhere in
+## GDScript that could be missed. §54's re-cut restored *co-op*, not parties.
+const COOP_MAX_PLAYERS: int = 2
+const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
+
+## How long a join attempt may sit before it is called a failure. [TUNE]
+##
+## A timer is needed rather than only ENet's `connection_failed`, because that
+## signal answers "the host refused" and not "there is nothing at this address".
+## A wrong IP produces silence, and silence with no clock is a player staring at
+## a spinner deciding the game has hung.
+const COOP_CONNECT_TIMEOUT: float = 10.0
