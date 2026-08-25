@@ -213,18 +213,33 @@ func _test_a_barricade_is_something_to_break() -> void:
 		_check(false, "raising a barricade must raise its node")
 		return
 
-	# The offer itself, asked of the field the way an enemy asks it. Standing
-	# further from the town than the wall is what "behind it" means.
-	var behind: Vector2 = wall.global_position 		+ (wall.global_position - _field.town_position()).normalized() * 200.0
-	var offered: Node2D = _field.blocking_barricade_in_lane(wall.lane, behind)
-	_check(offered == wall,
-		"an enemy behind a barricade must be offered it as a target, "
+	# Asked the way an enemy asks it: from a position, with a heading.
+	#
+	# The first version of this check passed the wall's *own* lane and therefore
+	# proved nothing - it could not fail. Meanwhile the real query filtered by a
+	# lane derived from the wall's angle around the town, the roads bend, and
+	# enemies walked straight past every barricade in the game. A gate that hands
+	# the code its own answer is worse than no gate, because it reports success.
+	var toward_town: Vector2 = (_field.town_position()
+		- wall.global_position).normalized()
+	var behind: Vector2 = wall.global_position - toward_town * 200.0
+	_check(_field.blocking_barricade_ahead(behind, toward_town) == wall,
+		"an enemy walking at a barricade must be offered it as a target, "
 			+ "or it walks past a wall as though it were scenery")
 
-	# And an enemy already past it is not sent back.
-	var ahead: Vector2 = wall.global_position.lerp(_field.town_position(), 0.5)
-	_check(_field.blocking_barricade_in_lane(wall.lane, ahead) != wall,
+	# Facing away from it, it is not in the way.
+	_check(_field.blocking_barricade_ahead(behind, -toward_town) != wall,
+		"and one walking away from it must not be turned round")
+
+	# Already past it, it is behind them.
+	var ahead: Vector2 = wall.global_position + toward_town * 200.0
+	_check(_field.blocking_barricade_ahead(ahead, toward_town) != wall,
 		"and one already past it must not be sent back to it")
+
+	# Far enough away it is somebody else's problem.
+	var distant: Vector2 = wall.global_position 		- toward_town * (Balance.BARRICADE_NOTICE_RANGE + 300.0)
+	_check(_field.blocking_barricade_ahead(distant, toward_town) != wall,
+		"and one still a long way off must not stop to fight it")
 
 	# Breaking it clears it from the run rather than leaving a corpse standing.
 	wall.health.take_damage(wall.health.max_hp * 2.0, wall.global_position)

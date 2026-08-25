@@ -35,5 +35,27 @@ extends GameData
 @export var colour: Color = Color(0.72, 0.6, 0.44)
 
 
+## Which way a barricade is turned, chosen from the road it stands on.
+##
+## A wall drawn lying along the road is not a wall, it is a fence. The image has
+## to cross the lane, so which image to use is a question about the *road*, not
+## about the barricade - a straight run wants the piece that crosses it, and a
+## corner wants the diagonal, flipped to follow which way the corner turns.
+enum Facing { ACROSS, ALONG, DIAGONAL }
+
+
 func get_sprite_path() -> String:
 	return GameData.derive_path("barricades", "barricade_", id)
+
+
+## The image for one orientation. `ACROSS` is the ordinary sprite, so a barricade
+## that ships only one piece still works everywhere.
+func sprite_path_for(facing: Facing) -> String:
+	var base: String = get_sprite_path()
+	match facing:
+		Facing.ALONG:
+			return "%s_along.png" % base.get_basename()
+		Facing.DIAGONAL:
+			return "%s_diagonal.png" % base.get_basename()
+		_:
+			return base

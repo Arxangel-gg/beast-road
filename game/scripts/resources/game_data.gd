@@ -56,14 +56,54 @@ static func idle_frame_path(base_path: String, index: int) -> String:
 ## `_move_01`, `_move_02` and so on beside the ordinary sprite, which stays pose
 ## zero for both loops. A creature that walks and a creature that stands still
 ## are two sequences over one source, so neither needs a resource edit.
+## The authored *flight* convention, for anything that leaves the ground.
+##
+## A third sequence rather than reusing the move one, because a bird walking and
+## a bird flying are not the same animal doing the same thing at two speeds - a
+## crow that hopped across the sky was the whole of the report.
+static func flight_frame_path(base_path: String, index: int) -> String:
+	if base_path.is_empty() or index <= 0:
+		return base_path
+	return "%s_fly_%02d.png" % [base_path.get_basename(), index]
+
+
+static func load_flight_frames(base_path: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	if base_path.is_empty():
+		return out
+	for index: int in range(1, 9):
+		var path: String = flight_frame_path(base_path, index)
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
+
+
 static func move_frame_path(base_path: String, index: int) -> String:
 	if base_path.is_empty() or index <= 0:
 		return base_path
 	return "%s_move_%02d.png" % [base_path.get_basename(), index]
 
 
+## **The base sprite is not part of a move loop**, which is the one place this
+## differs from the idle convention.
+##
+## Frame zero being the ordinary sprite is right for standing still: the base
+## *is* the resting pose. It is wrong for walking, because the base is an animal
+## sitting or standing and the authored frames are it mid-stride - so a two-frame
+## walk alternated between sitting and running, which reads as the sprite being
+## replaced rather than animated. Reported from play as a squirrel that "flashes,
+## almost like it is not the same squirrel".
 static func load_move_frames(base_path: String) -> Array[Texture2D]:
-	return _load_sequence(base_path, move_frame_path)
+	var out: Array[Texture2D] = []
+	if base_path.is_empty():
+		return out
+	for index: int in range(1, 9):
+		var path: String = move_frame_path(base_path, index)
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
 
 
 static func load_idle_frames(base_path: String) -> Array[Texture2D]:

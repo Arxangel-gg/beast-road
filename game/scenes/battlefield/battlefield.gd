@@ -161,6 +161,7 @@ func _ready() -> void:
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.trap_changed.connect(_on_trap_changed)
 	EventBus.barricade_changed.connect(_on_barricade_changed)
+	EventBus.phase_changed.connect(_on_phase_cursor)
 	placement = PlacementCursor.new()
 	placement.name = "PlacementCursor"
 	placement.setup(self)
@@ -265,6 +266,23 @@ func begin_battle() -> void:
 	if hero != null and visible:
 		hero.set_active(true)
 	if visible:
+		CursorKit.use_attack()
+
+
+## The cursor follows the *phase*, not the button that changed it.
+##
+## `begin_battle()` set it, and `begin_battle()` is reached from the local Ride
+## On - so a guest, whose phase arrives as a fact rather than as a click, kept
+## the build cursor through the whole wave. Reported from play.
+##
+## Driven from the phase instead, which is one place and covers every route in:
+## a click, a relayed fact, a breather ending, or anything added later.
+func _on_phase_cursor(_phase: int, _previous: int) -> void:
+	if not visible:
+		return
+	if RunState.is_preparation():
+		CursorKit.use_build()
+	else:
 		CursorKit.use_attack()
 
 
@@ -591,6 +609,11 @@ func _build_wildlife() -> void:
 	var wildlife := Wildlife.new()
 	wildlife.name = "Wildlife"
 	wildlife.grid = grid
+	wildlife.field = self
+	# The sprites are parented into the y-sorted entity root, not under the
+	# system: sorted under it they would all draw at *its* position - the origin -
+	# so every animal in the game drew at the town's depth.
+	wildlife.host = entity_root
 	entity_root.add_child(wildlife)
 
 
@@ -725,6 +748,9 @@ func nearest_hero(from: Vector2) -> Node2D:
 func target_radius(node: Node2D) -> float:
 	if node == town:
 		return town.radius()
+	var wall := node as Barricade
+	if wall != null:
+		return wall.radius()
 	# Any hero, not just the local one. A guest's hero measured at the default
 	# 40 would be reached from the wrong distance - enemies stopping short of it,
 	# or swinging from too far away.
@@ -1036,31 +1062,76 @@ func _on_barricade_changed(tile: Vector2i) -> void:
 	wall.global_position = BattleGrid.tile_to_world(tile)
 	wall.puppet = Coop.is_guest()
 	entity_root.add_child(wall)
+	var turn: Array = _road_facing(tile)
+	wall.set_facing(turn[0] as BarricadeData.Facing, bool(turn[1]))
 	wall.set_health_ratio(RunState.barricade_health(tile))
 	_barricades[tile] = wall
 
 
-## The first barricade between something and the town, in its lane.
+## Which way the road runs under a tile, and whether the piece is mirrored.
 ##
-## The *first*, not the nearest: an enemy at the back of a lane has to deal with
-## the wall it will actually walk into. Picking the nearest would have it beeline
-## past two barricades to the one closest to the town, which reads as enemies
-## ignoring the wall directly in front of them.
-func blocking_barricade_in_lane(lane: int, from: Vector2) -> Node2D:
-	var town: Vector2 = town_position()
-	var mine: float = from.distance_to(town)
+## A wall drawn lying *along* a road is a fence, not a barricade - the image has
+## to cross the lane. So which piece to use is a question about the road, and the
+## grid is what knows: look at which of the four neighbours are also road.
+##
+## A straight run through gives one axis and wants the piece that crosses it. A
+## corner gives two perpendicular neighbours and wants the diagonal, mirrored to
+## follow which way the corner turns - a bend coming from the west and leaving
+## south is the mirror of one coming from the east and leaving south.
+func _road_facing(tile: Vector2i) -> Array:
+	if grid == null:
+		return [BarricadeData.Facing.ACROSS, false]
+	var north: bool = grid.cell_at(tile + Vector2i(0, -1)) == BattleGrid.Cell.ROAD
+	var south: bool = grid.cell_at(tile + Vector2i(0, 1)) == BattleGrid.Cell.ROAD
+	var west: bool = grid.cell_at(tile + Vector2i(-1, 0)) == BattleGrid.Cell.ROAD
+	var east: bool = grid.cell_at(tile + Vector2i(1, 0)) == BattleGrid.Cell.ROAD
+
+	var vertical: bool = north or south
+	var horizontal: bool = west or east
+	if vertical and horizontal:
+		# A corner. The diagonal art runs from lower-left to upper-right; the
+		# other two bends are that piece mirrored.
+		var mirrored: bool = (north and east) or (south and west)
+		return [BarricadeData.Facing.DIAGONAL, mirrored]
+	if vertical:
+		# The road runs up and down, so the wall lies across it, left to right.
+		return [BarricadeData.Facing.ACROSS, false]
+	if horizontal:
+		return [BarricadeData.Facing.ALONG, false]
+	# An isolated road tile has no direction to speak of.
+	return [BarricadeData.Facing.ACROSS, false]
+
+
+## The barricade an enemy is about to walk into, if any.
+##
+## By heading rather than by lane, and that correction is why barricades did not
+## work at all. A wall's lane was derived from where it sits *around* the town -
+## but the roads bend, so a wall standing on lane 0's road could read as lane 1,
+## match no enemy, and be walked straight past. Whatever the road is doing, a
+## wall is in the way if it is in front of you and close, and that still holds
+## halfway round a U-bend where a lane index describes nothing useful.
+##
+## The nearest such wall: "in front of me and close" already excludes the ones
+## further along, so there is nothing to reason about regarding which comes
+## first.
+func blocking_barricade_ahead(from: Vector2, heading: Vector2) -> Node2D:
+	if heading.length_squared() < 0.0001:
+		return null
+	var forward: Vector2 = heading.normalized()
 	var best: Barricade = null
-	var best_distance: float = -1.0
+	var best_distance: float = Balance.BARRICADE_NOTICE_RANGE
 	for value: Variant in _barricades.values():
 		var wall := value as Barricade
-		if wall == null or not is_instance_valid(wall) or wall.lane != lane:
+		if wall == null or not is_instance_valid(wall):
 			continue
-		var theirs: float = wall.global_position.distance_to(town)
-		# Ahead of us, and the furthest such one from the town is the next one we
-		# meet.
-		if theirs < mine and theirs > best_distance:
-			best_distance = theirs
-			best = wall
+		var toward: Vector2 = wall.global_position - from
+		var distance: float = toward.length()
+		if distance > best_distance or distance < 0.01:
+			continue
+		if (toward / distance).dot(forward) < Balance.BARRICADE_AHEAD_DOT:
+			continue
+		best_distance = distance
+		best = wall
 	return best
 
 

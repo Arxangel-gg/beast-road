@@ -633,6 +633,23 @@ has to break rather than a thing it steps over — which is the whole mechanic.
 
 `barricade_stake_line.png` · `barricade_iron_hoarding.png`
 
+### 5.9e Barricade orientations — `res://art/barricades/`
+
+All 96×96, type T, placeholder colour `#B89A70`.
+
+A wall drawn lying *along* a road is a fence, not a barricade — the image has to
+cross the lane. So the piece is chosen from the road under it, and the road is
+what the grid knows: a straight north-south run takes the main sprite, an
+east-west run takes `_along`, and a corner takes `_diagonal`, mirrored to follow
+which way the bend turns.
+
+Three pieces rather than four, because the fourth is the third flipped. A
+barricade that ships only its main sprite still stands everywhere — turned the
+wrong way rather than invisible.
+
+Files: `barricade_stake_line_along.png` · `barricade_stake_line_diagonal.png`
+Files: `barricade_iron_hoarding_along.png` · `barricade_iron_hoarding_diagonal.png`
+
 ### 5.10 Traps — `res://art/traps/`
 
 All 64×64, type T, placeholder colour `#DBB96B`.
@@ -708,6 +725,20 @@ Files: `wildlife_rabbit_move_01.png`
 Files: `wildlife_deer_move_01.png`
 Files: `wildlife_squirrel_move_01.png`
 Files: `wildlife_raccoon_move_01.png`
+
+### 5.10e Wildlife flight frames — `res://art/wildlife/`
+
+All 64×64, type T, placeholder colour `#7A8B6E`.
+
+A third sequence, for anything that leaves the ground. Not a reuse of the move
+frames: a bird walking and a bird flying are not the same animal at two speeds,
+and a crow that hopped across the sky was exactly what shipping only one moving
+sequence looked like.
+
+Two frames — wings up and wings down — which is the least that reads as a
+wingbeat rather than a bird held in one pose.
+
+Files: `wildlife_raven_fly_01.png` · `wildlife_raven_fly_02.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 

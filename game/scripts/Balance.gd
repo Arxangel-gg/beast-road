@@ -1129,10 +1129,48 @@ const TOWN_JOLT_SHOVE: float = 7.0
 
 ## How close an enemy has to be to a barricade to be held by it, and for how
 ## long the hold is refreshed. [TUNE]
+## How far ahead an enemy notices a barricade, and how directly in front of it
+## the wall must be to count as in the way.
+##
+## The dot is generous on purpose: a road bends, and a wall a little off the
+## current heading is still one the enemy is about to reach. Too strict and they
+## walk past anything on a curve - which is where walls are most worth building.
+## [TUNE]
+## How high the barricade's health bar rides, and how it looks as it is worn
+## down: greyed and settling rather than swapped for a broken sprite. Three
+## authored damage states per orientation per barricade is twelve images for
+## something the player mostly reads off the bar. [TUNE]
+## How far a corner piece is turned. Mirrored for the other diagonal.
+##
+## Not 45: the art is drawn in elevation like every other structure here, and a
+## full 45 degrees reads as a wall that has fallen over. Enough lean to say
+## "this follows the bend" without pretending the sprite is a plan view. [TUNE]
+const BARRICADE_DIAGONAL_DEGREES: float = 26.0
+
+const BARRICADE_BAR_LIFT: float = 62.0
+const BARRICADE_BROKEN_TINT: Color = Color(0.55, 0.5, 0.46, 1.0)
+const BARRICADE_SAG: float = 0.22
+
+const BARRICADE_NOTICE_RANGE: float = 520.0
+const BARRICADE_AHEAD_DOT: float = 0.45
+
 const BARRICADE_GRIP_RADIUS: float = 90.0
 const BARRICADE_GRIP_SECONDS: float = 0.6
 
+## The floor and the ceiling on how many animals are about.
+##
+## Below the floor something always arrives; above it arrival is a coin flip. The
+## floor is what stops a field being empty for minutes at a time, and the flip
+## above it is what stops the population reading as a quota. [TUNE]
+const WILDLIFE_MIN: int = 6
 const WILDLIFE_MAX: int = 22
+
+## How far a hero's swing reaches an animal, how much of the field an animal may
+## wander off before it stops existing, and how high a flier is drawn above the
+## ground it sorts against. [TUNE]
+const WILDLIFE_KILL_RADIUS: float = 120.0
+const WILDLIFE_FORGET_DISTANCE: float = 2600.0
+const WILDLIFE_FLIER_LIFT: float = 54.0
 const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
 ## How far out from the town animals are placed.
 ##
@@ -1147,6 +1185,7 @@ const WILDLIFE_PAUSE_MIN: float = 1.6
 const WILDLIFE_PAUSE_MAX: float = 7.0
 const WILDLIFE_IDLE_FRAME_RATE: float = 2.6
 const WILDLIFE_MOVE_FRAME_RATE: float = 7.5
+const WILDLIFE_FLIGHT_FRAME_RATE: float = 9.5
 const WILDLIFE_BOB_RATE: float = 11.0
 const WILDLIFE_BOB_SCALE: float = 0.09
 
@@ -2482,19 +2521,20 @@ const FOLIAGE_REACH: float = 2100.0
 
 ## A measured compromise rather than a density target.
 ##
-## Holding the old density across the new reach wants ~1700 clumps, because area
-## grows with the square. Measured, that costs 2.3 ms a frame and lands the
-## worst-case wave at 61 fps against a 60 requirement - no headroom at all on a
-## machine far above the declared minimum.
+## Holding an even density across the new reach wants ~1700 clumps, because area
+## grows with the square - and that measured 2.3 ms a frame, landing the
+## worst-case wave at 61 fps against a 60 requirement.
 ##
 ## So the field is *thinner further out*, which is also what ground away from a
-## road looks like. `FOLIAGE_INNER_BIAS` keeps the density near the lanes, where
-## the player actually is, close to what it was. [TUNE]
-const FOLIAGE_COUNT: int = 1050
+## road looks like, and the bias below keeps the density near the lanes - where
+## the player actually is - close to what it was. That inner density was still
+## reported as too thin on 2026-08-25, so the count is up and the bias is
+## stronger: more plants, more of them near the roads, same outer reach. [TUNE]
+const FOLIAGE_COUNT: int = 1350
 
 ## How strongly the scatter crowds inward. 0.5 is uniform by area; lower packs
 ## more of it near the roads and leaves the outer ground sparse.
-const FOLIAGE_INNER_BIAS: float = 0.38
+const FOLIAGE_INNER_BIAS: float = 0.30
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15
@@ -2512,8 +2552,13 @@ const FOLIAGE_GROUND_RATIO: float = 0.55
 const FOLIAGE_GROUND_SCALE: float = 0.64
 const FOLIAGE_GROUND_SWAY: float = 0.45
 
-const FOLIAGE_MIN_SCALE: float = 0.7
-const FOLIAGE_MAX_SCALE: float = 1.5
+## How large a clump is drawn, as a range so no two match.
+##
+## Raised on 2026-08-25: plants read as too small beside a 224-unit hero, which
+## made the ground look like a texture rather than somewhere with things growing
+## in it. Judge these against the hero, not against each other. [TUNE]
+const FOLIAGE_MIN_SCALE: float = 1.15
+const FOLIAGE_MAX_SCALE: float = 2.35
 
 ## Sway. Degrees of lean, and how fast the wind moves. [TUNE]
 const FOLIAGE_SWAY_DEGREES: float = 5.5

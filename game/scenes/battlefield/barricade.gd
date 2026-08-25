@@ -30,7 +30,11 @@ var puppet: bool = false
 
 var health: Health = null
 var _sprite: Sprite2D = null
+var _bar: HealthBar = null
 var _flash: float = 0.0
+
+## Which way the road runs under it, so the right piece is drawn.
+var facing: BarricadeData.Facing = BarricadeData.Facing.ACROSS
 
 
 func setup(barricade: BarricadeData, at: Vector2i, in_lane: int, arena: Node) -> void:
@@ -54,20 +58,26 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 
 	_sprite = Sprite2D.new()
-	var path: String = data.get_sprite_path()
-	if ResourceLoader.exists(path):
-		_sprite.texture = load(path)
+	_apply_facing()
 	add_child(_sprite)
 	ShadowKit.add_contact(self, _sprite, 0.8)
 	z_index = int(global_position.y)
 
+	# A wall with no visible health is a wall nobody can decide about: whether to
+	# reinforce a lane or spend elsewhere is exactly the judgement the bar exists
+	# to inform, and it was missing.
+	_bar = (load("res://scenes/ui/health_bar.tscn") as PackedScene).instantiate()
+	_bar.position = Vector2(0.0, -Balance.BARRICADE_BAR_LIFT)
+	add_child(_bar)
+	_bar.bind(health)
+
 
 func _process(delta: float) -> void:
-	if _flash <= 0.0 or _sprite == null:
+	if _sprite == null:
 		return
-	_flash = maxf(_flash - delta, 0.0)
-	_sprite.modulate = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE,
-		1.0 - _flash / Balance.HIT_FLASH_TIME)
+	if _flash > 0.0:
+		_flash = maxf(_flash - delta, 0.0)
+		_apply_wear()
 
 
 func _physics_process(_delta: float) -> void:
@@ -83,8 +93,14 @@ func _physics_process(_delta: float) -> void:
 		enemy.apply_slow(data.slow_factor, Balance.BARRICADE_GRIP_SECONDS)
 
 
-func _on_damaged(_amount: float, _from: Vector2) -> void:
+func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash = Balance.HIT_FLASH_TIME
+	# Splinters, off the side it was struck from. A wall that only flashed read
+	# as a health bar with a picture behind it rather than as something being
+	# broken apart.
+	Vfx.spark(global_position, data.colour, 5,
+		(global_position - from).normalized(), 150.0)
+	Vfx.number(global_position, amount, data.colour, false)
 	if puppet:
 		return
 	RunState.set_barricade(tile, data.id, health_ratio())
@@ -113,6 +129,64 @@ func set_health_ratio(ratio: float) -> void:
 		return
 	health.current_hp = clampf(ratio, 0.0, 1.0) * health.max_hp
 	health.changed.emit(health.current_hp, health.max_hp)
+	_apply_wear()
+
+
+## Turns the wall to match the road under it.
+##
+## Called by the battlefield when it raises one, because the *grid* is what knows
+## which way the road runs - the barricade only knows the tile it was given.
+## Turns the wall to match the road under it.
+##
+## The piece *and* a rotation, because the two do different jobs. The authored
+## pieces carry the right silhouette for a wall seen face-on or edge-on; a corner
+## needs an actual angle, and rotating is exact where asking a generator for "the
+## same wall at 45 degrees" produced a third design rather than a third
+## orientation. So the diagonal piece is turned, and mirrored to follow whether
+## the bend runs north-east or north-west.
+func set_facing(wanted: BarricadeData.Facing, mirrored: bool) -> void:
+	facing = wanted
+	if _sprite == null:
+		return
+	_sprite.flip_h = mirrored
+	var lean: float = Balance.BARRICADE_DIAGONAL_DEGREES 		if wanted == BarricadeData.Facing.DIAGONAL else 0.0
+	_sprite.rotation = deg_to_rad(-lean if mirrored else lean)
+	_apply_facing()
+
+
+func _apply_facing() -> void:
+	if _sprite == null or data == null:
+		return
+	var path: String = data.sprite_path_for(facing)
+	if not ResourceLoader.exists(path):
+		# A barricade that ships only its main piece still stands everywhere,
+		# turned the wrong way rather than invisible.
+		path = data.get_sprite_path()
+	if ResourceLoader.exists(path):
+		_sprite.texture = load(path)
+	_apply_wear()
+
+
+## Damage shown on the wall itself, not only on the bar.
+##
+## Darkened and settled rather than swapped for a broken sprite: three authored
+## damage states per orientation per barricade is twelve images for something the
+## player reads mostly from the bar, and a wall that sags and greys as it is worn
+## down carries the same information at every zoom.
+## One writer for the tint, composing both channels.
+##
+## The wear and the hit flash both want `modulate`, and two systems assigning one
+## property is how the earlier tower sway-versus-wobble bug happened - the later
+## write simply erases the earlier, so a wall would flash white and lose its wear,
+## or wear and never flash. Summed here instead, in the one place that owns it.
+func _apply_wear() -> void:
+	if _sprite == null:
+		return
+	var wear: float = 1.0 - health_ratio()
+	var worn: Color = Color.WHITE.lerp(Balance.BARRICADE_BROKEN_TINT, wear)
+	var struck: float = _flash / Balance.HIT_FLASH_TIME if _flash > 0.0 else 0.0
+	_sprite.modulate = worn.lerp(Balance.HIT_FLASH_COLOUR, struck)
+	_sprite.scale.y = 1.0 - wear * Balance.BARRICADE_SAG
 
 
 ## How far out its own body reaches, so an enemy knows when it is in range.

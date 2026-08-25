@@ -17,6 +17,7 @@ skittish_radius = 200.0
 flee_speed_scale = 3.40
 flies = false
 scale = 0.62
+food_reward = 4
 art_faces_right = true
 stay_min = 20.0
 stay_max = 55.0

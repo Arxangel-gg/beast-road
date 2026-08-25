@@ -331,10 +331,26 @@ func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 	if state >= 0 and state != int(State.DYING) and _state != State.DYING:
 		var was: State = _state
 		_state = state as State
-		if was != _state and _state == State.WINDUP and animator != null:
-			# The coil the player reads. Played on the transition rather than
-			# every packet, or the enemy shudders in place for the whole wind-up.
-			animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+		if was != _state and animator != null:
+			# Played on the transition rather than every packet, or the enemy
+			# shudders in place for the whole state.
+			#
+			# All three, because a mirrored enemy was coiling and then never
+			# swinging: the wind-up crossed and the *punch* did not, so from the
+			# guest's seat every attack was a threat that never landed.
+			match _state:
+				State.WINDUP:
+					# The coil the player reads.
+					animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+				State.STRIKE:
+					# Toward whatever it faces: the wire carries no target, and
+					# an enemy's facing already points at the thing it is hitting.
+					animator.punch(
+						Vector2.LEFT if sprite.flip_h else Vector2.RIGHT, 1.1)
+				State.RECOVER:
+					animator.squash(Balance.ANIM_HURT_SQUASH * 0.45)
+				_:
+					pass
 	if health != null and health.max_hp > 0.0:
 		var was_hp: float = health.current_hp
 		health.current_hp = clampf(hp_ratio, 0.0, 1.0) * health.max_hp
@@ -564,7 +580,8 @@ func _pick_target() -> Node2D:
 	# A barricade is not chosen over the hero: a wall does not distract somebody
 	# already in a fight. It is chosen over the *town*, because it is the thing
 	# physically in the way of getting there.
-	var wall: Node2D = _field.blocking_barricade_in_lane(lane, global_position)
+	var wall: Node2D = _field.blocking_barricade_ahead(global_position,
+		_road_direction())
 	if hero != null and is_instance_valid(hero) and _field.hero_is_alive():
 		# With no town to march on — the raid arena — the hero is the only
 		# objective there is, at any distance.

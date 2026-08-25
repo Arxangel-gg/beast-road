@@ -455,7 +455,14 @@ func is_holding_revive() -> bool:
 ## field and stood in the open for three seconds to make that happen, and
 ## teleporting the rescued hero to the spawn would throw that away.
 func revive_in_place() -> void:
-	if not _downed:
+	# Any hero who is not standing, rather than only one flagged downed.
+	#
+	# Reported from play: the bar filled and nothing happened. A hero can stop
+	# being alive by more than one road - the solo wound path, a raid ejection, a
+	# lethal packet arriving a frame before the flag - and refusing to get them up
+	# because the flag was not set leaves a body on the floor that the game has
+	# no other way to recover.
+	if is_alive():
 		return
 	_downed = false
 	_revive_progress = 0.0

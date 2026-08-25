@@ -58,6 +58,13 @@ extends GameData
 ## so every animal in the game walked backwards.
 @export var art_faces_right: bool = false
 
+## Food dropped when a hero kills one.
+##
+## Small, and deliberately not scaled by anything. Hunting is a thing to do while
+## crossing the field, not an economy - a rabbit worth a tower would turn every
+## Preparation into a hunt and the road into a larder.
+@export_range(0, 60) var food_reward: int = 6
+
 ## Seconds this creature stays before wandering off, as a range.
 @export_range(4.0, 600.0) var stay_min: float = 30.0
 @export_range(4.0, 600.0) var stay_max: float = 90.0

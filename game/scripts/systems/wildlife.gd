@@ -29,6 +29,17 @@ enum State { ARRIVING, SETTLED, FLEEING, LEAVING }
 ## The grid, so animals can be kept off the roads. Assigned by the battlefield.
 var grid: BattleGrid = null
 
+## Where the sprites are parented, and it is not this node.
+##
+## They go into the battlefield's y-sorted entity root so each animal sorts
+## against the enemies and the hero individually. Parented under this system they
+## sorted as one block at *its* position, which is the origin - so every animal
+## in the game drew at the depth of the town, in front of things it was behind.
+var host: Node2D = null
+
+## The field, so a kill can drop something.
+var field: Node = null
+
 var _living: Array[Dictionary] = []
 var _arrival_clock: float = 0.0
 var _kinds: Array[WildlifeData] = []
@@ -40,6 +51,11 @@ func _ready() -> void:
 	# combat stream, or a seeded replay would produce a different wave because a
 	# rabbit happened to turn up.
 	_rng.seed = hash("wildlife") ^ RunState.run_seed
+	# A hero's swing is the only thing that can kill an animal, and it is heard
+	# rather than fought for: putting wildlife in the enemy group would have
+	# towers shooting rabbits and waves never ending, which is a far worse bug
+	# than not being able to hunt.
+	EventBus.hero_attack_landed.connect(_on_attack_landed)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
 		_refresh_kinds()
 		# Old residents leave with the old act rather than lingering into ground
@@ -90,7 +106,10 @@ func _consider_arrival() -> void:
 	var cap: int = int(round(float(Balance.WILDLIFE_MAX) * Graphics.foliage_scale()))
 	if _living.size() >= cap:
 		return
-	if _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
+	# Below the floor, something always comes. Above it, arrival stays a coin
+	# flip - that is what keeps the population varying rather than sitting at a
+	# quota, while still guaranteeing the field is never empty for long.
+	if _living.size() >= Balance.WILDLIFE_MIN 			and _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
 		return
 	var kind: WildlifeData = _pick_kind()
 	if kind == null:
@@ -137,7 +156,12 @@ func _spawn(kind: WildlifeData, at: Vector2) -> void:
 		Balance.WILDLIFE_ENTRY_DISTANCE * (1.0 if _rng.randf() < 0.5 else -1.0),
 		-Balance.WILDLIFE_ENTRY_DISTANCE if kind.flies else 0.0)
 	sprite.z_as_relative = false
-	add_child(sprite)
+	# A flier is drawn above the ground it sorts against: the offset lifts the
+	# picture without moving the body, so a crow passing in front of an enemy
+	# still sorts by where it actually is.
+	if kind.flies:
+		sprite.offset.y = -Balance.WILDLIFE_FLIER_LIFT
+	(host if host != null else self).add_child(sprite)
 
 	_living.append({
 		"data": kind,
@@ -145,8 +169,10 @@ func _spawn(kind: WildlifeData, at: Vector2) -> void:
 		"state": State.ARRIVING,
 		"home": at,
 		"goal": at,
+		"base": sprite.texture,
 		"idle": GameData.load_idle_frames(path),
 		"move": GameData.load_move_frames(path),
+		"fly": GameData.load_flight_frames(path),
 		"frame_clock": _rng.randf() * 4.0,
 		"pause": 0.0,
 		"patience": _rng.randf_range(kind.stay_min, kind.stay_max),
@@ -160,6 +186,12 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	if sprite == null or not is_instance_valid(sprite):
 		return false
 	var kind := animal["data"] as WildlifeData
+
+	# Gone, if it has wandered far enough out that nobody can see it. That is
+	# what keeps a long run from accumulating animals along the whole road behind
+	# the beast, and it is why the cap can be generous.
+	if _is_forgotten(sprite.global_position):
+		return false
 
 	animal["patience"] = float(animal["patience"]) - delta
 	if int(animal["state"]) == State.SETTLED:
@@ -204,7 +236,6 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 					animal["goal"] = _wander_from(animal["home"] as Vector2, kind)
 
 	_animate(animal, sprite, delta, moving)
-	sprite.z_index = int(sprite.global_position.y)
 	return true
 
 
@@ -219,16 +250,27 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 	# Two authored sequences, chosen by what the animal is doing. Walking has its
 	# own frames now rather than borrowing the standing pose and bobbing it,
 	# which read as a cut-out being slid along the ground.
-	var frames := (animal["move"] if moving else animal["idle"]) as Array
-	var rate: float = Balance.WILDLIFE_MOVE_FRAME_RATE if moving 		else Balance.WILDLIFE_IDLE_FRAME_RATE
+	# A flier in motion is *flying*, not walking. A crow that hopped across the
+	# sky was the reported symptom of there being only one moving sequence.
+	var flight := animal["fly"] as Array
+	var frames: Array = animal["idle"] as Array
+	var rate: float = Balance.WILDLIFE_IDLE_FRAME_RATE
+	if moving:
+		var airborne: bool = kind.flies and not flight.is_empty()
+		frames = flight if airborne else (animal["move"] as Array)
+		rate = Balance.WILDLIFE_FLIGHT_FRAME_RATE if airborne 			else Balance.WILDLIFE_MOVE_FRAME_RATE
 	if not frames.is_empty():
 		animal["frame_clock"] = float(animal["frame_clock"]) + delta * rate
 		var index: int = int(floor(float(animal["frame_clock"]))) % frames.size()
 		sprite.texture = frames[index] as Texture2D
 		sprite.scale.y = kind.scale
 		return
-	# No authored frames for this state: the transform keeps it from standing
-	# perfectly still, which is what makes a sprite read as a cut-out.
+	# No authored frames for this state. Back to the resting pose plus a
+	# transform, which keeps it from standing perfectly still - that is what
+	# makes a sprite read as a cut-out.
+	var base := animal["base"] as Texture2D
+	if base != null:
+		sprite.texture = base
 	animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_BOB_RATE
 	var bob: float = absf(sin(float(animal["bob"]))) if moving else 0.0
 	sprite.scale.y = kind.scale * (1.0 + bob * Balance.WILDLIFE_BOB_SCALE)
@@ -236,11 +278,16 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 
 ## Whether anything alarming is close enough to matter.
 ##
-## Heroes only, and only for creatures that care. Testing every enemy would be a
-## distance check per animal per enemy per frame in order to decide whether a
-## rabbit twitches, which is exactly the cost ambient decoration must not have.
-## A raven has a radius of zero: they are the animals that turn up *because* of a
-## battle rather than in spite of one.
+## People and enemies both. A rabbit that bolted from a hero and grazed happily
+## through a pack of Bogkin is a rabbit nobody believes.
+##
+## The enemy check is deliberately *not* a scan of every enemy: it asks the field
+## for the ones near this animal, which is the same broadphase the towers use. A
+## distance test per animal per enemy per frame, to decide whether a rabbit
+## twitches, is exactly the cost ambient decoration must not have.
+##
+## A raven has a radius of zero and is frightened by nothing: they are the
+## animals that turn up *because* of a battle rather than in spite of one.
 func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 	if kind.skittish_radius <= 0.0:
 		return false
@@ -250,7 +297,52 @@ func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 		var hero := node as Node2D
 		if hero != null and at.distance_to(hero.global_position) < kind.skittish_radius:
 			return true
+	if field != null and field.has_method("enemies_near"):
+		for enemy: Enemy in field.enemies_near(at, kind.skittish_radius):
+			if not enemy.is_dying():
+				return true
 	return false
+
+
+## A hero swung, and anything small enough nearby does not survive it.
+##
+## Heard rather than hunted. Wildlife stays out of the enemy group - towers would
+## shoot rabbits and waves would never end - so the hero's blow is picked up from
+## the bus and resolved here, where it cannot reach the combat systems at all.
+func _on_attack_landed(_chain_step: int, _targets: int, at: Vector2) -> void:
+	if Coop.is_guest():
+		return
+	for index: int in range(_living.size() - 1, -1, -1):
+		var animal: Dictionary = _living[index]
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		if sprite.global_position.distance_to(at) > Balance.WILDLIFE_KILL_RADIUS:
+			continue
+		var kind := animal["data"] as WildlifeData
+		Vfx.spark(sprite.global_position, Color("c4552e"), 8, Vector2.UP, 180.0)
+		if field != null and field.has_method("spawn_loot"):
+			field.spawn_loot(RunState.FOOD, kind.food_reward,
+				sprite.global_position)
+		sprite.queue_free()
+		_living.remove_at(index)
+		return
+
+
+## True when an animal is far enough from every player to stop existing.
+##
+## Distance from the *heroes* rather than from a camera: there are two cameras in
+## co-op and either one seeing it is reason enough to keep it. Measuring from the
+## people is the same answer without asking the rendering layer anything.
+func _is_forgotten(at: Vector2) -> bool:
+	var heroes: Array = get_tree().get_nodes_in_group(Hero.GROUP_ANY)
+	if heroes.is_empty():
+		return false
+	for node: Node in heroes:
+		var hero := node as Node2D
+		if hero != null and at.distance_to(hero.global_position) 				< Balance.WILDLIFE_FORGET_DISTANCE:
+			return false
+	return true
 
 
 ## Somewhere to run, away from the middle.

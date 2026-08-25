@@ -51,10 +51,13 @@ func pressed(button: int) -> bool:
 
 
 func held(mask: int) -> bool:
-	if mask == BUTTON_ATTACK:
-		return Input.is_action_pressed(&"attack")
 	if mask == HOLD_REVIVE:
 		return Input.is_action_pressed(&"revive")
+	# Held attack, for anything that wants to know the button is still down.
+	# Tested *after* the holds, so a future hold sharing this value cannot shadow
+	# it the way this branch once shadowed the revive.
+	if mask == BUTTON_ATTACK:
+		return Input.is_action_pressed(&"attack")
 	return false
 
 

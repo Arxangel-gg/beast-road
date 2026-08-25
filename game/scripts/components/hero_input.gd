@@ -31,7 +31,17 @@ const SPELL_BIT_OFFSET: int = 2
 ## them would break both: a button is an edge and is latched until read, while a
 ## hold is a level and must stop being true the instant the key comes up. A
 ## latched hold would revive a partner somebody had already let go of.
-const HOLD_REVIVE: int = 1 << 0
+## **Numbered clear of the button bits, and that is not cosmetic.**
+##
+## `held()` dispatches on the mask *value*, so a hold sharing a bit with a button
+## is indistinguishable from it. `HOLD_REVIVE` was `1 << 0` — the same as
+## `BUTTON_ATTACK` — and the first branch won: holding the attack button filled a
+## partner's revive bar and the revive key did nothing at all. Reported from
+## play as "it says Hold E but it wants left mouse".
+##
+## Two namespaces sharing one dispatch need two ranges. Holds start at bit 8,
+## which leaves room for six more spell slots before anything can collide again.
+const HOLD_REVIVE: int = 1 << 8
 
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.

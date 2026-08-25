@@ -72,13 +72,18 @@ func vulnerable_tower_in_lane(_lane: int, _from: Vector2) -> Node2D:
 	return null
 
 
-## The first barricade standing between something and the town, if any.
+## The barricade an enemy is about to walk into, if any.
 ##
-## The *first* one specifically, not the nearest: an enemy at the back of a lane
-## must deal with the barricade it will actually walk into, not beeline past two
-## of them to the one closest to the town. Getting this wrong would look like
-## enemies ignoring the wall in front of them.
-func blocking_barricade_in_lane(_lane: int, _from: Vector2) -> Node2D:
+## Asked with a **heading**, not a lane, and that correction is the whole reason
+## barricades did not work. A wall's lane was derived from its angular position
+## around the town - but the roads bend, so a wall standing on lane 0's road can
+## sit at an angle that reads as lane 1, and the filter then matched nothing. The
+## enemies walked straight past it.
+##
+## A heading has no such problem: whatever the road is doing, a wall is in the
+## way if it is in front of you and close. That also handles an enemy halfway
+## round a U-bend, which a lane index cannot describe at all.
+func blocking_barricade_ahead(_from: Vector2, _heading: Vector2) -> Node2D:
 	return null
 
 
