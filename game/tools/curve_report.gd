@@ -3,6 +3,7 @@ extends Node
 ## What the difficulty curve actually looks like, wave by wave.
 ##
 ##   godot --headless --path game res://tools/curve_report.tscn
+##   godot --headless --path game res://tools/curve_report.tscn -- --players=2
 ##
 ## A report, never a gate. Balance is judgement, and a red build is the wrong way
 ## to express an opinion about pacing — see CLAUDE.md §7 on why the audit score is
@@ -49,8 +50,24 @@ var _rows: Array[Dictionary] = []
 ## Cumulative Gold from kills, carried across waves.
 var _earned_gold: float = 0.0
 
+## How many players the run is being measured for.
+##
+## Co-op scales the count of enemies and nothing else (`COOP_DESIGN.md` §5), and
+## both sides of that move together: twice the bodies, but also two heroes and a
+## shared purse earning from twice the kills. Whether those cancel is exactly the
+## question this report exists to answer, so it is asked rather than assumed -
+## run it at 1 and at 2 and compare the pressure columns.
+##
+## Not a network session. `WaveDirector.body_scale_for` is the one expression of
+## the rule and is asked directly, so this cannot drift from what the director
+## actually does when two people are playing.
+var _players: int = 1
+
 
 func _ready() -> void:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--players="):
+			_players = maxi(int(argument.split("=")[1]), 1)
 	RunState.reset()
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	var run: Run = packed.instantiate() as Run
@@ -112,7 +129,8 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 
 	var lanes: int = director._progressive_lane_count(act_wave)
 	var per_lane: int = director._wave_size(act_wave, terrain)
-	var bodies: int = per_lane * lanes
+	var bodies: int = int(round(float(per_lane * lanes)
+		* WaveDirector.body_scale_for(_players)))
 	var hp: float = director._hp_scale(0)
 	var damage: float = director._damage_scale(0)
 	var speed: float = director._speed_scale(0)
@@ -132,7 +150,10 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# waves the hero *is* the entire defence - and a model scoring those waves as
 	# having no defence at all divides by nothing and reports an infinite spike
 	# exactly where the design intends its gentlest moment.
-	var capability: float = _hero_dps() + _affordable_dps(_earned_gold)
+	# Both heroes count. Two players is two of them on the field, which is most of
+	# why twice the bodies is close to the right answer rather than double the
+	# difficulty.
+	var capability: float = _hero_dps() * float(_players) 		+ _affordable_dps(_earned_gold)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -215,7 +236,8 @@ func _affordable_dps(earned: float) -> float:
 
 func _print_table() -> void:
 	print("")
-	print("BEAST ROAD — difficulty curve, %d waves, daylight, best-case spending" % _rows.size())
+	print("BEAST ROAD — difficulty curve, %d waves, daylight, best-case spending, %d player%s"
+		% [_rows.size(), _players, "" if _players == 1 else "s"])
 	print("")
 	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat   capable   pressure  step")
 	var previous: float = 0.0

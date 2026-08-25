@@ -226,9 +226,22 @@ func _on_connection_failed() -> void:
 	_fail(reason)
 
 
-## The host went away. For a guest this ends the run's authority, so it cannot
-## be silent: `docs/COOP_DESIGN.md` §7 rules that a host drop ends the run for
-## both, and host migration is out of scope.
+## The host went away.
+##
+## `docs/COOP_DESIGN.md` §7: a host drop ends the run for both, and host
+## migration is out of scope — a large amount of work for a two-player game where
+## one player is by definition the owner of the run.
+##
+## The guest's run has to end, but **this is not the thing that ends it.** All
+## that happens here is the fact being reported: the session is gone, and why.
+## `GameDirector` owns navigation and listens for it.
+##
+## That split is not tidiness. A first version had this call `goto_menu()`
+## directly, which is the network layer reaching across to drive scene changes -
+## against working rule 5, and immediately visible as a bug: it replaced the
+## scene the co-op harness was running in, mid-test, and the run ended in a page
+## of engine shutdown errors. A layer that can delete its own caller is one worth
+## keeping on its own side of the seam.
 func _on_server_disconnected() -> void:
 	leave()
 	_fail("The host ended the session.")

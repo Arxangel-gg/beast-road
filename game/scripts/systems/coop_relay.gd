@@ -44,6 +44,10 @@ enum Fact {
 	CURRENCY_CHANGED = 5,
 	TOWN_HEALTH = 6,
 	HERO_STATE = 7,
+	TOWER_STATE = 8,
+	ENEMY_SPAWNED = 9,
+	ENEMY_BATCH = 10,
+	ENEMY_REMOVED = 11,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -59,8 +63,13 @@ enum Request {
 }
 
 ## Wire tags. A packet is `[tag, kind, args]`.
+##
+## A refusal is its own tag rather than a fact, because it is the one message
+## addressed to a *person* rather than describing the world. It goes to the peer
+## that asked and nobody else, and it carries a sentence rather than state.
 const TAG_FACT: int = 0
 const TAG_REQUEST: int = 1
+const TAG_REFUSAL: int = 2
 
 ## The session that says whether we are the host. Assigned by `Coop` on creation.
 var session: Node = null
@@ -168,6 +177,10 @@ func _fact_bindings() -> Array:
 		["currency_changed", _on_currency_changed],
 		["town_health_changed", _on_town_health_changed],
 		["coop_hero_state", _on_coop_hero_state],
+		["coop_tower_state", _on_coop_tower_state],
+		["coop_enemy_spawned", _on_coop_enemy_spawned],
+		["coop_enemy_batch", _on_coop_enemy_batch],
+		["coop_enemy_removed", _on_coop_enemy_removed],
 	]
 
 
@@ -211,6 +224,24 @@ func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2,
 	_relay(Fact.HERO_STATE, [host_at, host_aim, guest_at, guest_aim])
 
 
+func _on_coop_tower_state(anchor: Vector2i, tower_id: String, level: int) -> void:
+	_relay(Fact.TOWER_STATE, [anchor, tower_id, level])
+
+
+func _on_coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
+		hp_scale: float, damage_scale: float, speed_scale: float) -> void:
+	_relay(Fact.ENEMY_SPAWNED,
+		[net_id, data_id, lane, at, hp_scale, damage_scale, speed_scale])
+
+
+func _on_coop_enemy_batch(entries: Array) -> void:
+	_relay(Fact.ENEMY_BATCH, [entries])
+
+
+func _on_coop_enemy_removed(net_id: int) -> void:
+	_relay(Fact.ENEMY_REMOVED, [net_id])
+
+
 # --- Sending -----------------------------------------------------------------
 
 ## A relayed signal fired locally. Forward it, or catch a guest inventing it.
@@ -242,12 +273,23 @@ func request(kind: Request, args: Array = []) -> bool:
 	return _send([TAG_REQUEST, int(kind), args])
 
 
-func _send(packet: Array) -> bool:
+## Tells one peer it cannot have what it asked for.
+##
+## Addressed rather than broadcast: the other player has no use for it, and a
+## refusal shown on both screens would read as the game refusing *both* of them.
+## Host side only - a guest has nobody to refuse.
+func refuse(peer: int, kind: int, reason: String) -> bool:
+	if session == null or not bool(session.call("is_host")):
+		return false
+	return _send([TAG_REFUSAL, kind, [reason]], peer)
+
+
+func _send(packet: Array, to_peer: int = 0) -> bool:
 	var api := multiplayer as SceneMultiplayer
 	if api == null or not api.has_multiplayer_peer():
 		return false
 	# 0 means every peer. With two players that is the other one.
-	return api.send_bytes(var_to_bytes(packet), 0,
+	return api.send_bytes(var_to_bytes(packet), to_peer,
 		MultiplayerPeer.TRANSFER_MODE_RELIABLE) == OK
 
 
@@ -276,6 +318,13 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 		if session == null or not bool(session.call("is_host")):
 			return
 		bus.coop_request_received.emit(kind, args, from)
+	elif tag == TAG_REFUSAL:
+		# Only a host refuses. A packet telling the host it was refused is either a
+		# bug or something hostile, and either way it is not believed.
+		if session != null and bool(session.call("is_host")):
+			return
+		if args.size() == 1:
+			bus.coop_request_refused.emit(kind, String(args[0]))
 
 
 ## Re-emits a received fact on this machine's own EventBus.
@@ -312,6 +361,21 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 4:
 				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
 					args[2] as Vector2, args[3] as Vector2)
+		Fact.TOWER_STATE:
+			if args.size() == 3:
+				bus.coop_tower_state.emit(args[0] as Vector2i, String(args[1]),
+					int(args[2]))
+		Fact.ENEMY_SPAWNED:
+			if args.size() == 7:
+				bus.coop_enemy_spawned.emit(int(args[0]), String(args[1]),
+					int(args[2]), args[3] as Vector2, float(args[4]),
+					float(args[5]), float(args[6]))
+		Fact.ENEMY_BATCH:
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_enemy_batch.emit(args[0] as Array)
+		Fact.ENEMY_REMOVED:
+			if args.size() == 1:
+				bus.coop_enemy_removed.emit(int(args[0]))
 	_replaying = false
 
 

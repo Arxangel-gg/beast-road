@@ -5,7 +5,7 @@ decision is recorded in `docs/Game_Design_v4.md` §54 and in `CLAUDE.md`; this
 file is the design that follows from it, and the thing to read before touching
 any netcode.
 
-**Status: design settled; steps 1–3 of 6 built.** Sections 1–4 are decided.
+**Status: design settled; all six steps built.** Sections 1–4 are decided.
 Section 8 is the build order and records what is done. Section 9 is what is
 deliberately not in scope.
 
@@ -349,11 +349,99 @@ Each step is meant to be verifiable on its own, and each has a gate.
    target, the HUD's subject, the one the damage vignette follows. Renaming it to
    mean "either hero" would have been the change that quietly broke all of those.
    `partner_hero()` and `heroes()` are the additions.
-4. **Enemies and towers over the wire.** Gate: a wave runs identically on both
-   sides; a guest build request is granted, refused, and refused for the right
-   reason.
-5. **Difficulty scaling.** Gate: `curve_report` with two heroes lands inside the
-   same pressure envelope as one.
+4. ~~**Enemies and towers over the wire.**~~ **Done 2026-08-25.**
+   `scripts/systems/coop_world.gd`, gated by `coop_world_check.tscn` (meaning)
+   and `coop_check.tscn` (wire). Two very different problems wearing one name:
+
+   **Towers were almost free, and that is a dividend rather than luck.**
+   `battlefield.gd` already rebuilt every tower node from `RunState` whenever
+   `tower_changed` fired — building, selling, upgrading and a refunded fusion all
+   arrive through that one signal. So a guest told "a level 2 Ember Spire stands
+   at (3, 4)" writes it and the tower appears, with no tower-specific network
+   code at all. `coop_world_check` asserts that property directly, because if it
+   ever stops being true, towers need real replication and this needs rewriting
+   rather than patching.
+
+   **Enemies were not.** Fifty of them, moving every frame, with identity that
+   has to survive a wire. They are mirrored as puppets — spawned on
+   announcement, moved in a periodic batch, removed on command.
+
+   - **Identity is an assigned integer, not a node name.** Names are unique
+     within a parent, not across a wire, and Godot renames on collision — so two
+     machines can disagree about which enemy is which without either being wrong
+     locally.
+   - **A puppet decides nothing.** No targeting, walking, striking, damage or
+     payout. Everything else — sprite, facing, walk cycle, tint — runs through
+     the same code as a real enemy, which is why a guest's field looks alive
+     rather than like a slideshow. Its motion is *derived* from the positions it
+     is sent, so facing uses the same `_motion` that was fixed for walking
+     backwards rather than a second rule.
+   - **Removals are computed by the host** comparing its own view against itself,
+     never inferred by the guest from a missing batch entry — a guest deleting
+     anything absent from a packet would empty the field the first time one
+     arrived late. This also keeps `Enemy` free of any knowledge that a network
+     exists, and catches every way an enemy can leave at once.
+   - **A refusal is addressed, not broadcast.** It is the one message aimed at a
+     person rather than describing the world; on both screens it would read as
+     the game refusing them both. A grant needs no reply at all — it produces
+     facts, and those are already on their way.
+
+   **What the gate deliberately does not claim.** The build order asked for "a
+   wave runs identically on both sides", and a harness in one process cannot
+   honestly assert that: there is one `RunState` autoload per process, so a
+   simulated guest shares the host's run state and the two cannot meaningfully
+   disagree. What is gated instead is every piece identity rests on — a puppet
+   deciding nothing, taking position and health from what it is told, leaving
+   without paying, and a build request judged by the same `try_build` a local
+   click uses. Two machines agreeing follows from those plus the wire. The
+   remainder is a two-machine play test, which is on the road list.
+5. ~~**Difficulty scaling.**~~ **Done 2026-08-25, and the naive answer was
+   wrong.** Body count is the only thing the player count touches, exactly as §5
+   required. `balance_test` gates *which knob* - that bodies scale and that
+   health, damage and speed do not - because that part is not judgement. Whether
+   the resulting curve feels right is pacing, and `curve_report` says in its own
+   header that it is a report and never a gate.
+
+   Measured with `curve_report -- --players=2` rather than reasoned about:
+
+   | extra bodies per player | 1.00 | 0.70 | 0.60 | 0.50 | 0.30 | 0.00 |
+   |---|---|---|---|---|---|---|
+   | two-player peak pressure | 0.90 | 0.77 | 0.74 | 0.71 | 0.70 | 0.60 |
+
+   One player peaks at 0.63. **Doubling the bodies made co-op 43% harder, not
+   equal**, and the reason matters more than the number: the late game is
+   *tower* dominated, so a second hero barely moves late capability - at zero
+   extra bodies two players still measure 0.60 against a solo 0.63. Bodies scale
+   threat linearly while a second player scales capability much less than
+   linearly, because the tower count is capped and upgrades escalate.
+
+   Settled at **0.5**, so two players face 1.5x the bodies and measure ~0.71.
+   That sits above the solo curve on purpose: the model is blind to the biggest
+   thing a second player brings - two lanes covered *at once*, where solo play
+   must choose - and equally blind to latency and coordination costs. Those
+   partly cancel, and a headless model cannot settle the balance of them.
+   **Provisional until the two-machine play test.**
+
+6. ~~**Disconnect behaviour.**~~ **Done 2026-08-25.**
+
+   **Guest drops:** the host plays on. Difficulty rescales at the next wave
+   rather than mid-wave, and that needed no code - `_wave_size` is only consulted
+   when a wave begins, so a wave already walking is never resized under the
+   survivor. `player_count()` keys off whether a partner is *present*, so it
+   falls back on its own.
+
+   **Host drops:** the guest's run is abandoned - **not** recorded as a defeat.
+   `end_run(false)` would write a loss, raise the defeat screen and offer a score
+   for a run nobody finished. The player did not lose; the session went away.
+
+   The layering here was got wrong first and is worth recording. `Coop` initially
+   called `goto_menu()` itself, which is the network layer driving navigation -
+   against working rule 5. It announced itself immediately: it replaced the scene
+   the co-op harness was running in, mid-test, and ended in a page of engine
+   shutdown errors. `Coop` now reports the loss and `GameDirector` decides what
+   it means. A layer that can delete its own caller belongs on its own side of
+   the seam, and a test that has to destroy itself to run is telling you where
+   that seam should be.
 6. **Disconnect behaviour.** Gate: guest drop leaves a playable single-player
    run; host drop ends and saves cleanly.
 
@@ -371,4 +459,29 @@ Cut here so it does not creep back in:
   answered.
 - Matchmaking, lobbies-as-a-service, friend lists, invites. Join by address.
 - Voice chat.
+
+---
+
+## 10. Open, and found while building
+
+**Hero XP is per-account, but `RunState` holds one hero's.** Each player brings
+their own persistent hero (§1), and hero level, XP and attributes persist per
+account (CLAUDE.md working rule 7). But XP is granted in `Enemy._on_died`, which
+runs only on the host, into the one `RunState.hero_xp` a run has.
+
+So today a guest fights a whole run and their hero learns nothing from it. That
+is not a bug in anything built here - it is a question the design did not ask,
+and inventing an answer inside step 4 would have buried it. The shapes available:
+
+- **Each player earns their own**, which means run-scoped hero state stops being
+  a single field and becomes per-player. Most correct, most invasive, and it
+  touches working rule 6's "single source of truth" in a way worth thinking
+  about rather than patching.
+- **Both earn the same**, credited to whoever is connected. Cheap, and it makes
+  a guest's progression depend on the host finishing.
+- **The guest earns nothing**, which is what happens now and is indefensible as
+  a shipped answer, given that a persistent hero is the reason two heroes was
+  the right call in the first place.
+
+Needs an owner ruling before co-op is playable as more than a demo.
 - Separate per-player economies, which the owner ruled against.

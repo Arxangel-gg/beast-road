@@ -26,8 +26,42 @@ var current_scope: Scope = Scope.BATTLEFIELD
 var run_active: bool = false
 
 
+## Why a run ended without being played to a conclusion.
+##
+## Distinct from `end_run`, which records a result. This is for a run that simply
+## stopped existing - today only because a co-op host went away.
+var abandoned_reason: String = ""
+
+
+func abandon_run(reason: String) -> void:
+	if not run_active:
+		return
+	# Deliberately **not** `end_run(false)`. That writes a defeat into the record,
+	# raises the defeat screen and offers a score for a run nobody finished. The
+	# player did not lose; the session went away, and calling that a loss would
+	# put a phantom run on a leaderboard.
+	abandoned_reason = reason
+	run_active = false
+	goto_menu()
+
+
+## A co-op session failed while a run was live.
+##
+## Only a *guest* can be orphaned this way: a host owns the run and its session
+## ending is its own decision. `is_host()` answers true for a lone player too, so
+## this cannot fire for someone who was never networked.
+func _on_coop_failed(reason: String) -> void:
+	if run_active and not Coop.is_host():
+		abandon_run(reason)
+
+
 func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_felled)
+	# Navigation belongs here, not in the network layer. `Coop` reports that the
+	# session is gone; deciding that this means leaving the run is this node's
+	# job, and keeping it so is what stops the co-op layer being able to change
+	# scenes out from under whatever is running.
+	EventBus.coop_failed.connect(_on_coop_failed)
 	CursorKit.apply()
 
 

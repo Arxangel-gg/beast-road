@@ -4,9 +4,11 @@ extends Node
 ##
 ##   godot --headless --path game res://tools/coop_check.tscn
 ##
-## Steps 1 and 2 of the co-op build order in `docs/COOP_DESIGN.md`: the
-## transport and session state machine, then the relay layer over it. No heroes,
-## enemies or towers cross the wire yet — those are steps 3 and 4.
+## The wire, for every step that uses it: the transport and session state machine
+## (step 1), the relay layer over it (step 2), and that the hero, enemy and tower
+## messages of steps 3 and 4 arrive intact. What those messages *mean* is checked
+## in `coop_heroes_check.tscn` and `coop_world_check.tscn`, which need a real Run
+## and have nothing to say about sockets.
 ##
 ## The row that matters most is `_test_a_guest_cannot_author_a_fact`. Everything
 ## else here would still look fine if the authority model were quietly broken;
@@ -48,6 +50,8 @@ var _guest_bus: Node = null
 var _guest_heard: Array = []
 var _host_heard: Array = []
 var _host_requests: Array = []
+var _guest_world: Array = []
+var _guest_refusals: Array = []
 
 ## Signals seen, recorded from the callbacks rather than inferred afterwards.
 ## Members rather than captured locals: a GDScript lambda captures a local **by
@@ -73,6 +77,9 @@ func _ready() -> void:
 	await _test_a_guest_cannot_author_a_fact()
 	await _test_requests_travel_guest_to_host()
 	await _test_cosmetic_signals_stay_home()
+	await _test_world_facts_cross_the_wire()
+	await _test_a_refusal_is_addressed()
+	await _test_a_dropped_host_ends_the_guest_run()
 	await _test_guest_leaves_cleanly()
 	await _test_a_bad_address_fails_instead_of_hanging()
 
@@ -81,7 +88,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if _failures == 0:
 		print("[coop] PASS - handshake, relayed facts, the authority guard, "
-			+ "requests, cosmetic isolation, clean leave, dead address")
+			+ "requests and refusals, world facts, cosmetic isolation, "
+			+ "host drop, clean leave, dead address")
 	get_tree().quit(_failures)
 
 
@@ -324,6 +332,149 @@ func _test_cosmetic_signals_stay_home() -> void:
 	_check(_guest_heard.size() == before,
 		"cosmetic signals must not cross the wire, got %d new"
 			% (_guest_heard.size() - before))
+
+
+## The step 4 traffic: enemies and towers.
+##
+## Checked here, at the wire, because it is the part a harness *can* see. What it
+## cannot see is two battlefields agreeing - there is one `RunState` autoload in
+## a process, so a simulated guest shares the host's run state and the two cannot
+## meaningfully disagree. `coop_world_check.tscn` covers what a mirrored enemy
+## does; this covers that the facts describing one arrive intact.
+func _test_world_facts_cross_the_wire() -> void:
+	_guest_bus.coop_enemy_spawned.connect(
+		func(net_id: int, data_id: String, lane: int, at: Vector2,
+				hp: float, dmg: float, spd: float) -> void:
+			_guest_world.append(["spawned", net_id, data_id, lane, at, hp, dmg, spd]))
+	_guest_bus.coop_enemy_batch.connect(
+		func(entries: Array) -> void: _guest_world.append(["batch", entries]))
+	_guest_bus.coop_enemy_removed.connect(
+		func(net_id: int) -> void: _guest_world.append(["removed", net_id]))
+	_guest_bus.coop_tower_state.connect(
+		func(anchor: Vector2i, id: String, level: int) -> void:
+			_guest_world.append(["tower", anchor, id, level]))
+
+	_host_bus.coop_enemy_spawned.emit(41, "bogkin", 2, Vector2(300.0, -120.0),
+		1.5, 1.25, 1.1)
+	_host_bus.coop_enemy_batch.emit([[41, Vector2(280.0, -100.0), 0.5]])
+	_host_bus.coop_tower_state.emit(Vector2i(3, 4), "ember_spire", 2)
+	_host_bus.coop_enemy_removed.emit(41)
+	await _settle(func() -> bool: return _guest_world.size() >= 4)
+
+	_check(_guest_world.size() >= 4,
+		"all four world facts must arrive, got %d" % _guest_world.size())
+	var spawned: Array = _row("spawned")
+	_check(not spawned.is_empty(), "an enemy spawn must cross")
+	if not spawned.is_empty():
+		# Every field, because a spawn is how the guest *builds* the enemy: a lane
+		# or a scale arriving wrong makes a mirror of a different creature, and the
+		# health bar it draws would be a bar for something else.
+		_check(int(spawned[1]) == 41 and String(spawned[2]) == "bogkin"
+			and int(spawned[3]) == 2 and spawned[4] == Vector2(300.0, -120.0)
+			and is_equal_approx(float(spawned[5]), 1.5)
+			and is_equal_approx(float(spawned[6]), 1.25)
+			and is_equal_approx(float(spawned[7]), 1.1),
+			"a spawn must arrive with every field intact")
+
+	var batch: Array = _row("batch")
+	_check(not batch.is_empty(), "a position batch must cross")
+	if not batch.is_empty():
+		var entries: Array = batch[1]
+		_check(entries.size() == 1 and (entries[0] as Array).size() == 3,
+			"a batch must survive as a list of rows, not be flattened")
+
+	var tower: Array = _row("tower")
+	_check(not tower.is_empty() and tower[1] == Vector2i(3, 4)
+		and String(tower[2]) == "ember_spire" and int(tower[3]) == 2,
+		"a tower placement must cross with its anchor, kind and tier")
+	_check(not _row("removed").is_empty(), "a retirement must cross")
+
+
+## A refusal goes to the one who asked, and only the host may send one.
+##
+## Addressed rather than broadcast because the other player has no use for it —
+## a refusal on both screens reads as the game refusing them both.
+func _test_a_refusal_is_addressed() -> void:
+	_guest_bus.coop_request_refused.connect(
+		func(kind: int, reason: String) -> void:
+			_guest_refusals.append([kind, reason]))
+	var host_relay: CoopRelay = _host.call("relay")
+	var guest_relay: CoopRelay = _guest.call("relay")
+
+	var peers: Array = (_host.multiplayer as MultiplayerAPI).get_peers()
+	_check(not peers.is_empty(), "the host must know who to answer")
+	if peers.is_empty():
+		return
+	_check(host_relay.refuse(int(peers[0]), CoopRelay.Request.BUILD_TOWER,
+		"Needs 70 Gold."), "a host must be able to refuse")
+	await _settle(func() -> bool: return not _guest_refusals.is_empty())
+
+	_check(not _guest_refusals.is_empty(), "the refusal must reach the guest")
+	if not _guest_refusals.is_empty():
+		_check(int(_guest_refusals[0][0]) == CoopRelay.Request.BUILD_TOWER,
+			"and say which request it answers")
+		_check(String(_guest_refusals[0][1]) == "Needs 70 Gold.",
+			"carrying the host's own sentence, unedited")
+
+	# A guest refusing anything would be a guest deciding an outcome.
+	_check(not guest_relay.refuse(1, CoopRelay.Request.BUILD_TOWER, "no"),
+		"a guest must not be able to refuse anything")
+
+
+## The first recorded world row of a kind, or empty.
+func _row(kind: String) -> Array:
+	for entry: Array in _guest_world:
+		if String(entry[0]) == kind:
+			return entry
+	return []
+
+
+## A host that vanishes is reported to the guest, loudly and recoverably.
+##
+## `docs/COOP_DESIGN.md` §7. What follows from it - the guest's run being
+## abandoned back to the menu - is `GameDirector`'s job, deliberately, and is
+## **not** driven here.
+##
+## That is not squeamishness. A first version had `Coop` call `goto_menu()`
+## itself, and it replaced the scene this harness was running in, mid-test, ending
+## the run in a page of engine shutdown errors. The layering fix and the testing
+## problem had the same answer: the network layer reports, and the thing that owns
+## navigation decides. A test that has to destroy itself to run is telling you the
+## seam is in the wrong place.
+##
+## So `run_active` is left false here. What is asserted is that the session
+## reports the loss with something to show a player, that it does not quietly
+## record a finished run, and that a new session can be opened afterwards - a
+## dropped host that leaves the game unable to reconnect would be the worse bug.
+func _test_a_dropped_host_ends_the_guest_run() -> void:
+	_check(_guest.state() == _guest.State.CONNECTED,
+		"the harness expects a joined guest")
+	_check(not GameDirector.run_active,
+		"this harness must not have a live run: abandoning one changes the scene")
+	var best_before: int = MetaState.best_runs.size()
+	var failures_before: int = _failure_reasons.size()
+
+	# The host goes away without saying goodbye, which is the case that matters:
+	# a clean quit and a pulled cable must look the same to the guest.
+	_host.leave()
+	await _settle(func() -> bool: return _guest.state() != _guest.State.CONNECTED)
+
+	_check(_guest.state() != _guest.State.CONNECTED,
+		"the guest must notice the host is gone")
+	_check(_failure_reasons.size() > failures_before,
+		"and say so, with a reason fit to show a player")
+	_check(_guest.is_host(),
+		"the player is their own authority again afterwards")
+	_check(MetaState.best_runs.size() == best_before,
+		"a vanished host must not write a finished run into the record")
+
+	# Put the pair back together for the rows that follow, which also proves a
+	# drop does not leave the game unable to reconnect.
+	_check(_host.host(TEST_PORT), "the harness must be able to host again")
+	_check(_guest.join("127.0.0.1", TEST_PORT), "and the guest to rejoin")
+	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED)
+	_check(_guest.state() == _guest.State.CONNECTED,
+		"a session must be re-openable after a drop")
 
 
 func _test_guest_leaves_cleanly() -> void:

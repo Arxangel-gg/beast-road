@@ -20,6 +20,25 @@ const GROUP: StringName = &"enemies"
 ## information and cannot dangle.
 const SUMMON_GROUP: StringName = &"boss_summons"
 
+## Identity across two machines, assigned by the host when it spawns this.
+##
+## Zero in a single-player run and for anything the host never announced. Node
+## names would have been the obvious alternative and are the wrong one: they are
+## unique within a parent, not across a wire, and Godot renames on collision - so
+## two machines can disagree about which enemy is which without either being
+## wrong locally.
+var net_id: int = 0
+
+## True when this is a picture of an enemy simulated on another machine.
+##
+## A puppet decides nothing. It does not pick targets, walk, strike, take damage
+## or pay out; its position and health arrive as facts. Everything else - the
+## sprite, the facing, the walk animation, the tint - runs through exactly the
+## same code as a real enemy, which is why a guest's battlefield looks alive
+## rather than like a slideshow of the host's.
+var puppet: bool = false
+var _puppet_last: Vector2 = Vector2.ZERO
+
 enum State {
 	WALKING,
 	WINDUP,
@@ -155,6 +174,10 @@ func _process(delta: float) -> void:
 		_tick_death(delta)
 		return
 
+	if puppet:
+		_tick_puppet(delta)
+		return
+
 	_tick_status(delta)
 	_hitstun_left = maxf(_hitstun_left - delta, 0.0)
 	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
@@ -169,6 +192,55 @@ func _process(delta: float) -> void:
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite()
+
+
+## A mirrored enemy: draw what arrived, decide nothing.
+##
+## Motion is *derived* from the position the host sent rather than sent
+## alongside it. Two reasons: it is a vector the wire does not have to carry, and
+## it means facing and the walk cycle are driven by the same `_motion` the real
+## enemy uses. A puppet with its own facing rule would be a second implementation
+## of the thing that was just fixed for walking backwards.
+func _tick_puppet(delta: float) -> void:
+	_motion = (global_position - _puppet_last) / maxf(delta, 0.0001)
+	_puppet_last = global_position
+	if animator != null and data != null:
+		animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
+	_update_sprite()
+
+
+## The scaling this enemy was spawned with, so a mirror can be built to match.
+##
+## Read rather than guessed: the guest must construct an identical enemy or the
+## health bar it draws is a bar for a different creature.
+func hp_scale() -> float:
+	return _hp_scale
+
+
+func damage_scale() -> float:
+	return _damage_scale
+
+
+func speed_scale() -> float:
+	return _speed_scale
+
+
+## Health as 0..1, which is what crosses the wire. A ratio rather than an
+## absolute survives any later change to how max health is computed.
+func health_ratio() -> float:
+	return health.ratio() if health != null else 0.0
+
+
+## Takes a position and health from the host.
+##
+## Health is assigned rather than damaged: a puppet must not run the death path,
+## because the host already ran it and will say so with its own message. Two
+## machines each paying out the same kill is how a shared purse doubles.
+func mirror(at: Vector2, hp_ratio: float) -> void:
+	global_position = at
+	if health != null and health.max_hp > 0.0:
+		health.current_hp = clampf(hp_ratio, 0.0, 1.0) * health.max_hp
+		health.changed.emit(health.current_hp, health.max_hp)
 
 
 # --- State machine ----------------------------------------------------------
@@ -397,9 +469,12 @@ func apply_boss_phase(phase: int) -> void:
 	animator.squash(1.45)
 
 
+## A puppet ignores damage. The host decides what hurt it and by how much, and
+## the answer arrives as health in `mirror`. Applying local damage as well would
+## make a guest's enemies die early and then be resurrected by the next packet.
 func take_damage(amount: float, from: Vector2, knockback: float,
 		active_hero: bool = false) -> bool:
-	if _state == State.DYING or data == null:
+	if _state == State.DYING or data == null or puppet:
 		return false
 	var was_telegraphing: bool = _state == State.WINDUP
 	var incoming: float = amount

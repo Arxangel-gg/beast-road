@@ -187,6 +187,11 @@ jobs:
           # hero twitches whenever the local player walks - obvious in co-op and
           # invisible to anyone testing alone.
           check "co-op heroes" --headless --path game res://tools/coop_heroes_check.tscn
+          # Co-op step 4: mirrored enemies and host-judged building. A puppet
+          # decides nothing - it does not walk, take damage or pay out - and a
+          # build request is answered by the same try_build a local click uses
+          # rather than by a copy of its rules, which would be a second answer.
+          check "co-op world" --headless --path game res://tools/coop_world_check.tscn
 
       - name: Say what broke
         if: failure()

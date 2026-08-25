@@ -48,6 +48,7 @@ func _ready() -> void:
 	_test_four_currency_economy()
 	await _test_live_tower_utility()
 	_test_opening_envelope()
+	_test_coop_scaling()
 	_test_act_curves()
 	_test_sequential_waves()
 	_test_enemy_roles()
@@ -343,6 +344,48 @@ func _gold_per_body() -> float:
 	if count == 0:
 		return Balance.KILL_RESOURCE_SCALE
 	return total / float(count) * Balance.KILL_RESOURCE_SCALE
+
+
+## Co-op scales the count of enemies, and nothing else about them.
+##
+## `docs/COOP_DESIGN.md` §5, and the half that is a gate rather than a judgement.
+## Whether the resulting curve *feels* right is pacing, and pacing belongs in
+## `curve_report`, which says in its own header that it is a report and never a
+## gate. What is not judgement is which knob was turned.
+##
+## Scaling health or damage to the player count is the classic mistake: it adds
+## duration rather than pressure - the same fight, slower - and it invalidates
+## every dodge window, because a wind-up tuned to be dodgeable is tuned against a
+## particular time-to-kill. This exists so that mistake cannot be made quietly.
+func _test_coop_scaling() -> void:
+	var director: WaveDirector = _run.battlefield.wave_director
+	_set_progress(1, 0.0, 12, "jungle", 12)
+	var terrain: TerrainData = ContentDB.terrain("jungle")
+
+	_check(is_equal_approx(WaveDirector.body_scale_for(1), 1.0),
+		"one player must face an unscaled wave")
+	var two: float = WaveDirector.body_scale_for(2)
+	_check(two > 1.0, "two players must face more bodies, got %.2f" % two)
+	_check(two <= 2.0,
+		"and not more than one extra player's worth, got %.2f" % two)
+
+	# The live count is one here, so this is the single-player wave. Two players
+	# face it multiplied - the director applies exactly this factor and nothing
+	# else touches the count.
+	var solo: int = director._wave_size(12, terrain)
+	var pair: int = maxi(int(round(float(solo) * two)), 1)
+	_check(pair > solo,
+		"a two-player wave must be bigger: %d vs %d" % [pair, solo])
+
+	# The rows that must NOT move.
+	var hp: float = director._hp_scale(0)
+	var damage: float = director._damage_scale(0)
+	var speed: float = director._speed_scale(0)
+	_check(director._hp_scale(0) == hp and director._damage_scale(0) == damage
+		and director._speed_scale(0) == speed,
+		"per-enemy scaling must not depend on the player count")
+	print("[balance] Co-op wave %d -> %d bodies, hp/damage/speed unchanged at %.2f/%.2f/%.2f"
+		% [solo, pair, hp, damage, speed])
 
 
 func _set_progress(act: int, distance: float, wave: int, terrain_id: String,

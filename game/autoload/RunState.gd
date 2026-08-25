@@ -1046,6 +1046,12 @@ func gain_kill_resources(base_amount: int) -> void:
 		return
 	var earned: float = float(base_amount) * Balance.KILL_RESOURCE_SCALE \
 		* Modifiers.multiplier(Modifiers.KILL_RESOURCES)
+	# Twice the bodies into one shared pool is twice the income, and the tower
+	# curve was tuned against one player earning. The trim is 1.0 today because
+	# the measured curve did not need one; it exists so that if co-op ever plays
+	# rich, the fix is a constant rather than a redesign.
+	if Coop.partner_present():
+		earned *= Balance.COOP_KILL_INCOME_SCALE
 	kill_resource_remainder += earned
 	var whole: int = int(floor(kill_resource_remainder))
 	if whole <= 0:

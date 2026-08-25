@@ -1254,7 +1254,7 @@ has its design settled and written down; no netcode is written yet.
 ### Cut in §54 - needs a recorded re-cut
 
 - [~] **Two-player co-op.** Design settled in `docs/COOP_DESIGN.md`, and
-      **steps 1, 2 and 3 of 6 are built and gated** (2026-08-25). The owner's three rulings:
+      **all six steps are built and gated** (2026-08-25). The owner's three rulings:
       **two heroes, one each**; **desktop-to-desktop only** for now, with the
       web build staying single-player; **one shared resource pool**.
 
@@ -1346,8 +1346,80 @@ has its design settled and written down; no netcode is written yet.
       under latency. Proper prediction is a later refinement — a hero that
       only moves when a packet arrives is worse than one that snaps.
 
-      Steps 4-6 remain: enemies and towers over the wire, difficulty
-      scaling, disconnect behaviour.
+      **Step 4 — enemies and towers over the wire.** Towers turned out to be
+      almost free, and that is a dividend rather than luck: `battlefield.gd`
+      already rebuilt every tower node from `RunState` on one signal, so a
+      guest told what stands where writes it and the tower appears. The gate
+      asserts that property directly — if it stops being true, towers need
+      real replication and the system needs rewriting rather than patching.
+
+      Enemies are mirrored as puppets. Identity is an assigned integer, not a
+      node name: names are unique within a parent, not across a wire, and
+      Godot renames on collision. A puppet decides nothing — no targeting,
+      walking, damage or payout — while its sprite, facing and walk cycle run
+      through the same code as a real enemy, so a guest's field looks alive
+      rather than like a slideshow.
+
+      Removals are computed by the *host* comparing its own view against
+      itself, never inferred by the guest from a missing batch entry — which
+      would empty the field the first time a packet arrived late. That also
+      keeps `Enemy` free of any knowledge that a network exists.
+
+      **What the gate deliberately does not claim.** The build order asked
+      for "a wave runs identically on both sides", and one process cannot
+      honestly assert that: there is one `RunState` autoload, so a simulated
+      guest shares the host's run state and the two cannot disagree.
+      Everything identity rests on is gated instead. The remainder is a
+      two-machine play test — see the row below.
+
+- [ ] **Co-op played by two people on two machines.** Every co-op gate is a
+      headless loopback in one process. That proves the transport, the
+      authority model and the plumbing; it proves nothing about how co-op
+      *feels*, and nothing about latency, which is the one thing the design
+      knowingly defers (the guest's own hero visibly corrects).
+
+      Worth doing **before** step 5 tunes difficulty, or the tuning is aimed
+      at an experience nobody has had. Same class of row as "whether the
+      sticks feel right under a thumb".
+
+      **Step 5 — difficulty scaling, and the naive answer was wrong.** Body
+      count is the only thing the player count touches; `balance_test` gates that
+      health, damage and speed do *not* move, because scaling those adds duration
+      rather than pressure and invalidates every dodge window.
+
+      Measured rather than reasoned about, with `curve_report -- --players=2`:
+      doubling the bodies made co-op **43% harder** at the peak (0.90 against a
+      solo 0.63), not equal. The reason is worth keeping: the late game is
+      *tower* dominated, so a second hero barely moves late capability — at zero
+      extra bodies two players still measure 0.60. Bodies scale threat linearly
+      while a second player scales capability much less than linearly, because
+      the tower count is capped and upgrades escalate.
+
+      Settled at 1.5x bodies for two players, measuring ~0.71. Deliberately above
+      the solo curve: the model cannot see two lanes covered *at once*, which is
+      the biggest thing a second player brings, and cannot see latency either.
+      **Provisional until the two-machine play test.**
+
+      **Step 6 — disconnects.** A guest dropping leaves the host playing on, and
+      the rescale happens at the next wave with no code: `_wave_size` is only
+      consulted when a wave begins, so a wave already walking is never resized
+      under the survivor. A host dropping abandons the guest's run rather than
+      recording a defeat — the player did not lose, the session went away, and
+      writing a loss would put a phantom run on a leaderboard.
+
+- [ ] **Co-op hero XP has no answer yet, and needs an owner.** Found while
+      building step 4, recorded in `docs/COOP_DESIGN.md` §10 rather than guessed
+      at.
+
+      Each player brings their own persistent hero, and hero level and XP persist
+      per account (CLAUDE.md rule 7). But XP is granted in `Enemy._on_died`, which
+      runs only on the host, into the single `RunState.hero_xp` a run has. So a
+      guest can fight a whole run and their hero learns nothing.
+
+      That is indefensible as a shipped answer, given that a persistent hero is
+      the reason "two heroes" was the right call in the first place. The fix is a
+      design decision — per-player run state, shared credit, or something else —
+      not a patch.
 
       Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
       challenges" as explicitly out of scope for 1.0, with only leaderboards

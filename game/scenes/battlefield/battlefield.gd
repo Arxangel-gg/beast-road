@@ -32,6 +32,9 @@ extends EnemyField
 ## single-player run this exists and does nothing.
 var _coop_heroes: CoopHeroes = null
 
+## Enemies and towers, made to agree on two machines. Inert when playing alone.
+var _coop_world: CoopWorld = null
+
 
 func activate() -> void:
 	if camera != null:
@@ -168,6 +171,10 @@ func _ready() -> void:
 	_coop_heroes.name = "CoopHeroes"
 	_coop_heroes.field = self
 	add_child(_coop_heroes)
+	_coop_world = CoopWorld.new()
+	_coop_world.name = "CoopWorld"
+	_coop_world.field = self
+	add_child(_coop_world)
 	# Transient effects are parented into the scope that owns them, so leaving
 	# the battlefield takes its sparks with it.
 	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
@@ -711,6 +718,12 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	# a straight line that the road no longer follows.
 	enemy.position = road_spawn_point(lane) * data.spawn_distance_scale + spread
 	entity_root.add_child(enemy)
+	# Announced *after* it is in the tree, so the position the guest is told is
+	# the one it actually spawned at. Does nothing in a single-player run, and
+	# nothing on a guest - which is what stops a mirrored enemy being announced
+	# back and spawning a mirror of a mirror.
+	if _coop_world != null:
+		_coop_world.announce_enemy(enemy)
 	return enemy
 
 

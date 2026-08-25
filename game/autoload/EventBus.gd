@@ -282,3 +282,24 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 ## each player watching the other wearing their name.
 signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
 	guest_at: Vector2, guest_aim: Vector2)
+
+## A tower appeared, changed tier, or went away — on the host's say-so.
+## An empty `tower_id` means the plot is now clear.
+signal coop_tower_state(anchor: Vector2i, tower_id: String, level: int)
+
+## The host put an enemy on the field and gave it an identity.
+signal coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
+	hp_scale: float, damage_scale: float, speed_scale: float)
+
+## Where every living enemy is, in one message. Entries are
+## `[net_id: int, at: Vector2, health_ratio: float]`.
+signal coop_enemy_batch(entries: Array)
+
+## An enemy is gone. Sent explicitly rather than inferred from a missing batch
+## entry: a guest deleting anything absent from a packet would empty the field
+## the first time one arrived late.
+signal coop_enemy_removed(net_id: int)
+
+## The host refused something this machine asked for, with a reason already
+## written for a player to read. Guest-side.
+signal coop_request_refused(kind: int, reason: String)

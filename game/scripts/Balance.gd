@@ -2783,3 +2783,48 @@ const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
 ## A wrong IP produces silence, and silence with no clock is a player staring at
 ## a spinner deciding the game has hung.
 const COOP_CONNECT_TIMEOUT: float = 10.0
+
+## How much bigger a wave gets per extra player. [TUNE]
+##
+## **Body count, and nothing else.** GDD §54's co-op re-cut scales the director
+## to the player count, and `docs/COOP_DESIGN.md` §5 is explicit about which knob
+## that must be: more enemies, never tougher ones.
+##
+## Scaling individual health and damage instead is the classic mistake. It does
+## not add pressure, it adds *duration* — the same fight, slower — and it
+## invalidates every dodge window the combat design is built on, because a
+## wind-up tuned to be dodgeable is tuned against a specific time-to-kill.
+##
+## **0.5, and the naive answer was wrong.** Two players face 1.5x the bodies, not
+## 2x. Measured with `curve_report -- --players=2` rather than reasoned about:
+##
+##   per extra player   1.00   0.70   0.60   0.50   0.30   0.00
+##   peak pressure      0.90   0.77   0.74   0.71   0.70   0.60
+##   (one player peaks at 0.63)
+##
+## Doubling the bodies made co-op 43% harder at the peak, not equal. The reason
+## is worth knowing before anyone retunes this: the late game is **tower**
+## dominated, so a second hero barely moves late capability - at zero extra
+## bodies, two players still measure 0.60 against a solo 0.63. The offset that
+## does exist comes from income, and income buys sublinear damage because the
+## tower count is capped and upgrades escalate. So bodies scale threat linearly
+## while a second player scales capability much less than linearly.
+##
+## 0.5 sits above the solo curve on purpose. The model is blind to the single
+## biggest thing a second player brings - two lanes covered *at once*, where solo
+## play must choose - and it is equally blind to the costs, latency and
+## coordination. Those partly cancel and the balance of them is not something a
+## headless model can settle.
+##
+## **This number is provisional until co-op is played on two machines**, which is
+## a row on the road list. It is one constant with a recorded measurement behind
+## it, which is what makes it cheap to move.
+const COOP_BODY_SCALE_PER_PLAYER: float = 0.5
+
+## Trim on what a body pays when there are two players. [TUNE]
+##
+## Twice the bodies into one shared pool is twice the income, and the tower
+## curve was tuned against one player's earnings. This exists so the fix for
+## "co-op is too rich" is a number rather than a redesign; 1.0 means no trim,
+## which is where it starts because the measured curve did not need one.
+const COOP_KILL_INCOME_SCALE: float = 1.0
