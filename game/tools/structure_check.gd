@@ -80,9 +80,38 @@ func _ready() -> void:
 		"and the shove must settle back, %.2f off"
 			% tower.sprite.position.distance_to(home))
 
+	# The city moves when it is carried and when it is hit.
+	#
+	# It had neither. A 512px city cannot breathe the way a tower does without
+	# reading as wobbling masonry, so its idle is the beast's gait - which is also
+	# the truthful answer, since it is standing on the beast's back. And being
+	# struck flashed it white while it otherwise stood there as though nothing had
+	# touched it: shaking the camera says "you were hit", shaking the city says
+	# "the city was hit", and only the first sentence was being spoken.
+	var town: TownCore = _run.battlefield.town
+	if town != null and town.sprite != null:
+		var rest: Vector2 = town.sprite.position
+		var upright: float = town.sprite.rotation
+		EventBus.beast_step_landed.emit(Vector2.RIGHT, 1.0)
+		await get_tree().process_frame
+		_check(not is_equal_approx(town.sprite.rotation, upright),
+			"the city must rock when the beast puts a foot down")
+
+		town.health.take_damage(20.0, town.global_position + Vector2(300.0, 0.0))
+		await get_tree().process_frame
+		_check(town.sprite.position.distance_to(rest) > 0.5,
+			"and must shudder when it is struck")
+		var town_settle: float = Balance.TOWN_JOLT_SECONDS + 0.5
+		var town_waited: float = 0.0
+		while town_waited < town_settle:
+			town_waited += get_process_delta_time()
+			await get_tree().process_frame
+		_check(town.sprite.position.distance_to(rest) < 0.5,
+			"and both must settle, %.2f off" % town.sprite.position.distance_to(rest))
+
 	if _failures.is_empty():
 		print("[structure] PASS — durability, repair, siege targeting, damage fires, "
-			+ "step impulse and firing recoil")
+			+ "step impulse, firing recoil and a city that rocks and shudders")
 	else:
 		for failure: String in _failures:
 			push_error("[structure] " + failure)

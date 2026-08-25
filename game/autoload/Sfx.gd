@@ -295,6 +295,26 @@ func _ready() -> void:
 	EventBus.construction_completed.connect(func(_id: String, _t: int) -> void: play("sfx_construction_done"))
 	EventBus.relic_socketed.connect(func(_id: String) -> void: play("sfx_relic_socket"))
 
+	# The four completions that finished in silence.
+	#
+	# Layered from cues that already ship rather than adding four recordings to
+	# the manifest, which is the same call the boss phase change made and for the
+	# same reason: an untracked asset is worse than a composite that works.
+	#
+	# A wave clearing is *relief*, so it is the quietest of the four and is the
+	# only one that does not get a second layer - celebrating survival as hard as
+	# a kill would flatten the difference between them.
+	EventBus.wave_cleared.connect(func(_wave: int) -> void:
+		play("sfx_ui_confirm", -6.0))
+	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
+		play("sfx_spell_nova")
+		play("sfx_relic_socket", -3.0))
+	EventBus.hero_levelled.connect(func(_l: int, _a: int, _s: int) -> void:
+		play("sfx_relic_socket")
+		play("sfx_loot_collect_1", -4.0))
+	EventBus.hero_respawned.connect(func(_at: Vector2) -> void:
+		play("sfx_construction_done", -8.0))
+
 	# Buttons are created in code all over the HUD and the panels, so wiring them
 	# individually would mean remembering to do it in every new screen. One hook
 	# on node_added covers every button in the game, including future ones.

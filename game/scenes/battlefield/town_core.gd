@@ -23,6 +23,18 @@ const STAGES: Array[Dictionary] = [
 ]
 
 var _flash_left: float = 0.0
+
+## The beast's gait, rocking the city it carries. Decays to zero between steps.
+var _gait: float = 0.0
+var _gait_lift: float = 0.0
+
+## How much of a hit is left to shudder off, 1 at the blow and 0 at rest.
+var _jolt: float = 0.0
+var _jolt_from: Vector2 = Vector2.UP
+
+## Where the sprite sits when nothing is moving it.
+var _sprite_home: Vector2 = Vector2.ZERO
+var _sprite_scale: Vector2 = Vector2.ONE
 var _ended: bool = false
 var _stage: int = -1
 
@@ -56,16 +68,58 @@ func _ready() -> void:
 		ShadowKit.add_caster(self, half.x * 0.44, half.y * 0.18,
 			Balance.SHADOW_LAYER_SCENERY, half.y * 0.42)
 	_apply_stage(true)
+	if sprite != null:
+		_sprite_home = sprite.position
+		_sprite_scale = sprite.scale
+	# The city is on the beast's back. It should move when the beast does, and
+	# that is the whole of its idle - see `Balance.TOWN_GAIT_DEGREES`.
+	EventBus.beast_step_landed.connect(_on_beast_step)
 	EventBus.town_health_changed.emit(health.current_hp, health.max_hp)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 
 
 func _process(delta: float) -> void:
-	if _flash_left <= 0.0:
+	if _flash_left > 0.0:
+		_flash_left = maxf(_flash_left - delta, 0.0)
+		sprite.modulate = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE,
+			1.0 - _flash_left / Balance.HIT_FLASH_TIME)
+	_tick_motion(delta)
+
+
+## The gait and the jolt, summed into one transform.
+##
+## Two channels, one writer. The gait is a slow reaction that decays between
+## steps and the jolt is a sharp one that decays in a third of a second; if both
+## assigned `sprite.rotation` the later one would erase the earlier, which is the
+## same bug the towers had and the reason they compose theirs in one place too.
+func _tick_motion(delta: float) -> void:
+	if sprite == null:
 		return
-	_flash_left = maxf(_flash_left - delta, 0.0)
-	sprite.modulate = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
+	if is_zero_approx(_gait) and is_zero_approx(_jolt) and is_zero_approx(_gait_lift):
+		return
+	_gait = move_toward(_gait, 0.0, Balance.TOWN_GAIT_DEGREES * 3.4 * delta)
+	_gait_lift = move_toward(_gait_lift, 0.0, Balance.TOWN_GAIT_LIFT * 3.4 * delta)
+	# Squared, so a blow lands hard and settles rather than sliding back evenly.
+	_jolt = maxf(_jolt - delta / Balance.TOWN_JOLT_SECONDS, 0.0)
+	var shudder: float = _jolt * _jolt
+	sprite.rotation = deg_to_rad(_gait)
+	sprite.scale = _sprite_scale * (1.0 + shudder * Balance.TOWN_JOLT_SCALE)
+	sprite.position = _sprite_home + Vector2(0.0, _gait_lift) 		+ _jolt_from * shudder * Balance.TOWN_JOLT_SHOVE
+
+
+## The beast put a foot down, and the city on its back felt it.
+func _on_beast_step(impulse: Vector2, strength: float) -> void:
+	if _ended:
+		return
+	var push: Vector2 = impulse.normalized()
+	# The same torque rule the towers use: sideways tips it directly, and a shove
+	# along the view axis still rocks it but cannot be shown head-on in 2D, so it
+	# reads as a shallower lean rather than as nothing at all.
+	var lean: float = push.x + push.y * 0.35
+	_gait = -lean * Balance.TOWN_GAIT_DEGREES * strength
+	# And a settle downward, because the thing carrying it just took the weight.
+	_gait_lift = Balance.TOWN_GAIT_LIFT * strength
 
 
 func radius() -> float:
@@ -233,7 +287,7 @@ func _update_smoke(fires: int) -> void:
 	_smoke.position.y = -60.0
 
 
-func _on_damaged(amount: float, _from: Vector2) -> void:
+func _on_damaged(amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
 	RunState.town_damage_taken += amount
 	RunState.town_hits_taken += 1
@@ -246,6 +300,12 @@ func _on_damaged(amount: float, _from: Vector2) -> void:
 	_apply_stage()
 	EventBus.town_damaged.emit(amount, health.current_hp, health.max_hp)
 	EventBus.camera_shake_requested.emit(6.0, 0.25)
+	# Shaking the camera says "you were hit"; shaking the city says "the city was
+	# hit". They are different sentences and the second one was missing - the town
+	# flashed white and otherwise stood there as though nothing had touched it.
+	_jolt = 1.0
+	var away: Vector2 = global_position - from
+	_jolt_from = away.normalized() if away.length() > 0.001 else Vector2.UP
 
 
 func _on_changed(current: float, maximum: float) -> void:

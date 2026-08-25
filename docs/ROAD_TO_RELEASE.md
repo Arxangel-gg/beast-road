@@ -1068,7 +1068,22 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       the placement, the same way it does in the ground tiles. The exact-radius
       ring survives underneath at low alpha, because the art is ragged on purpose
       and the damage edge is the one thing that must not be vague.
-- [ ] A juice pass across everything that fires, lands, dies or completes.
+- [x] A juice pass across everything that fires, lands, dies or completes. The
+      audit had a clear shape: *fires*, *lands* and *dies* were all spoken for
+      already, and **completing** something was not. Four things happened in
+      total silence — clearing a wave, felling a boss, levelling up, and getting
+      back on your feet.
+
+      Each has a visual and a sound now. The sounds are layered from cues that
+      already ship rather than four new recordings, which is the call the boss
+      phase change made and for the same reason: an untracked asset is worse than
+      a composite that works.
+
+      One judgement worth naming. A wave clearing is **relief**, not triumph, so
+      it is the quietest of the four and the only one with no second layer —
+      celebrating survival as hard as a boss kill flattens the difference between
+      them. Levelling up gets rays rather than a ring, because a ring reads as an
+      area of effect and nothing on the field was touched: the player changed.
 
 ### Roads and ground
 
@@ -1180,11 +1195,19 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       halves: firing must shove the tower, and the shove must fully settle — a
       kick that never quite decays leaves every tower a few pixels off its own
       base and reads as misaligned art months later.
-- [ ] **Base pixel art with states** - idle animation and a hit reaction, on the
-      same authored-frame footing as the towers.
-- [ ] **Torch base shadow.** The torches light everything and sit on nothing.
-      `ShadowKit.add_contact` is the call, and it has been sprite-relative since
-      the tower fix, so this is one caller.
+- [x] **The city moves**, as gait and jolt rather than authored frames. Two
+      reasons, and neither is cost: the sprite is 512×512 and cannot be round
+      tripped through the art tool at all, and a city gently scaling reads as
+      wobbling masonry. What a city on the back of a walking beast should do is
+      rock with the gait — which is also simply true of where it is standing.
+
+      The hit reaction was the real gap. Being struck flashed the sprite white
+      and shook the camera, and that was all: shaking the camera says "you were
+      hit" while shaking the *city* says "the city was hit", and only the first
+      sentence was being spoken. Gated on both, including that they settle.
+- [x] **Torch base shadow.** Done and gated (`torch`), the row was simply never
+      ticked. `add_contact_sized` rather than `add_contact`, because the ironwork
+      is `Polygon2D` and has no texture to measure.
 
 ### The beast scope
 

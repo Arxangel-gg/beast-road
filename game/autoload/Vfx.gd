@@ -72,6 +72,13 @@ func _ready() -> void:
 	EventBus.raid_available.connect(_on_raid_available)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.command_order_used.connect(_on_command_order_used)
+	# The four completions that had no answer at all. Everything that *fires*,
+	# *lands* or *dies* was already spoken for; finishing something was not, which
+	# meant surviving a wave and levelling up both happened in silence.
+	EventBus.wave_cleared.connect(_on_wave_cleared)
+	EventBus.boss_defeated.connect(_on_boss_defeated_juice)
+	EventBus.hero_levelled.connect(_on_hero_levelled)
+	EventBus.hero_respawned.connect(_on_hero_respawned)
 
 
 func _build_screen_layer() -> void:
@@ -624,6 +631,57 @@ func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> 
 
 func _on_construction_completed(_building_id: String, _tier: int) -> void:
 	flash(Color(1.0, 0.72, 0.3), 0.16, 0.32)
+
+
+## A wave is over. The loudest thing about it should be the quiet.
+##
+## A pulse out from the town rather than a burst somewhere: what just happened is
+## that the pressure came off the city, and the city is where the player's eye
+## already is. Deliberately gentler than a kill - a wave clearing is relief, and
+## celebrating it as hard as a boss would flatten the difference between them.
+func _on_wave_cleared(_wave_number: int) -> void:
+	ring(Vector2.ZERO, Balance.TOWN_RADIUS * 2.1, Color(0.62, 0.86, 0.72, 0.5),
+		0.7, 3.0)
+	flash(Color(0.5, 0.8, 0.65), 0.07, 0.4)
+
+
+## A boss is down. This one is allowed to be loud.
+##
+## The boss's own death burst has already played through `enemy_died` - this is
+## the *act* landing on top of it, which is why it is a screen flash and a long
+## shake rather than another thing at a position.
+func _on_boss_defeated_juice(_boss_id: String, _act: int) -> void:
+	flash(Color(1.0, 0.86, 0.55), 0.34, 0.9)
+	EventBus.camera_shake_requested.emit(9.0, 0.5)
+
+
+## Levelling up. At the hero, because that is what changed.
+##
+## Rays rather than a ring: a ring reads as an area of effect, and this is not
+## one - nothing on the field has been touched, the player has.
+func _on_hero_levelled(level: int, _attribute_points: int, _skill_points: int) -> void:
+	var at: Vector2 = _hero_position()
+	rays(at, Color(1.0, 0.85, 0.42), 10, 96.0)
+	spark(at, Color(1.0, 0.9, 0.6), 14, Vector2.UP, 190.0)
+	word(at + Vector2(0.0, -70.0), "LEVEL %d" % level, Color(1.0, 0.88, 0.5), 30)
+
+
+## Back on your feet. A short exhale, not a celebration.
+##
+## It marks where the hero *is*, which after eight seconds of watching the field
+## without one is genuinely useful information rather than decoration.
+func _on_hero_respawned(at: Vector2) -> void:
+	ring(at, 92.0, Color(0.86, 0.92, 1.0, 0.6), 0.4, 3.0)
+	dust(at, Color(0.8, 0.84, 0.9), 8, 46.0)
+
+
+## Where the hero this player is driving currently stands.
+func _hero_position() -> Vector2:
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP):
+		var hero := node as Node2D
+		if hero != null:
+			return hero.global_position
+	return Vector2.ZERO
 
 
 func _on_relic_socketed(_relic_id: String) -> void:

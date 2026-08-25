@@ -1110,6 +1110,23 @@ const STRUCTURE_IDLE_SCALE: float = 0.012
 ## and sometimes busy. A fixed count reads as decoration however good the sprites
 ## are, because the eye works out inside a minute that there are always six.
 ## [TUNE]
+## The city's own motion: how it rides the beast, and how it takes a hit.
+##
+## The city does *not* breathe the way a tower does, and that is a judgement
+## about the subject rather than a tuning value: a 512px city gently scaling
+## reads as wobbling masonry. What a city on a walking beast should do is rock
+## with the gait, so the idle is the beast's step and nothing else.
+##
+## The jolt is separate and much sharper. Being struck already flashed the
+## sprite and shook the camera - shaking the camera says "you were hit" while
+## shaking the *city* says "the city was hit", and those are different
+## sentences. [TUNE]
+const TOWN_GAIT_DEGREES: float = 0.55
+const TOWN_GAIT_LIFT: float = 5.0
+const TOWN_JOLT_SECONDS: float = 0.28
+const TOWN_JOLT_SCALE: float = 0.022
+const TOWN_JOLT_SHOVE: float = 7.0
+
 const WILDLIFE_MAX: int = 14
 const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
 const WILDLIFE_FIELD_SPAN: float = 1150.0
