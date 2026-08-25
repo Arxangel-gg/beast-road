@@ -1817,6 +1817,26 @@ has its design settled and written down; no netcode is written yet.
       authority model, what a desync means, what happens when one player drops
       mid-raid, and whether it ships in 1.0 or as the thing after it.
 
+- [~] **Three new player-power systems, checked against the curve (2026-08-25).**
+      Companions, traps and barricades all landed in one stretch, so the curve
+      was re-read afterwards rather than assumed. Peak pressure is **unchanged at
+      0.63**, and the reason is worth writing down because it is not luck.
+
+      `curve_report` models capability as hero DPS plus *every earned Gold spent
+      on towers*. That makes it a best case, and it means **traps and barricades
+      cannot inflate it**: they are alternative spends of the same wallet, so a
+      player who buys a Spike Pit did not buy a tower. The model stays a valid
+      upper bound without knowing they exist.
+
+      **Companions are the exception and the model does understate them.** They
+      cost a spell slot and a cooldown rather than Gold, so their damage is
+      uncounted. A Wolf is 40 DPS at roughly 54% uptime — about 21 sustained,
+      against a modelled capability of ~1078 at wave 51. Two percent, which is
+      inside the noise of the model itself. Worth knowing, not worth a retune.
+
+      If companions are ever buffed materially, or given more than one slot, that
+      2% is where to look first.
+
 - [ ] **Co-op difficulty scaling for two players.** Dependent on the above. The
       director's threat budget is already data-driven and tuned per act, so
       scaling *for* a second player is tuning - but scaling it *well* is a
