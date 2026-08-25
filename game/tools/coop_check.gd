@@ -4,9 +4,14 @@ extends Node
 ##
 ##   godot --headless --path game res://tools/coop_check.tscn
 ##
-## Step 1 of the co-op build order in `docs/COOP_DESIGN.md`. It checks the
-## transport and the session state machine and deliberately nothing else — no
-## heroes, no waves, no resources cross the wire yet.
+## Steps 1 and 2 of the co-op build order in `docs/COOP_DESIGN.md`: the
+## transport and session state machine, then the relay layer over it. No heroes,
+## enemies or towers cross the wire yet — those are steps 3 and 4.
+##
+## The row that matters most is `_test_a_guest_cannot_author_a_fact`. Everything
+## else here would still look fine if the authority model were quietly broken;
+## that one is the invariant the whole design rests on, and it only has to fail
+## once in one system for two machines to start disagreeing about what happened.
 ##
 ## **Why this can exist at all.** A `MultiplayerAPI` is registered against a
 ## subtree path rather than being one global thing, so two of them can live in
@@ -35,6 +40,15 @@ var _guest_root: Node = null
 var _host: Node = null
 var _guest: Node = null
 
+## One event bus per simulated machine. See `_build_two_sessions`.
+var _host_bus: Node = null
+var _guest_bus: Node = null
+
+## What each side heard, recorded from its own bus.
+var _guest_heard: Array = []
+var _host_heard: Array = []
+var _host_requests: Array = []
+
 ## Signals seen, recorded from the callbacks rather than inferred afterwards.
 ## Members rather than captured locals: a GDScript lambda captures a local **by
 ## value**, so `connected = true` inside one updates a copy and the outer
@@ -55,6 +69,10 @@ func _ready() -> void:
 	await _test_offline_is_its_own_authority()
 	await _test_host_and_join()
 	await _test_partner_and_player_count()
+	await _test_facts_travel_host_to_guest()
+	await _test_a_guest_cannot_author_a_fact()
+	await _test_requests_travel_guest_to_host()
+	await _test_cosmetic_signals_stay_home()
 	await _test_guest_leaves_cleanly()
 	await _test_a_bad_address_fails_instead_of_hanging()
 
@@ -62,7 +80,8 @@ func _ready() -> void:
 	for _f: int in 4:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[coop] PASS - loopback handshake, partner count, clean leave, dead address")
+		print("[coop] PASS - handshake, relayed facts, the authority guard, "
+			+ "requests, cosmetic isolation, clean leave, dead address")
 	get_tree().quit(_failures)
 
 
@@ -84,15 +103,50 @@ func _build_two_sessions() -> void:
 	get_tree().set_multiplayer(MultiplayerAPI.create_default_interface(),
 		_guest_root.get_path())
 
+	# A bus each. Two machines have two event buses, and sharing the one autoload
+	# between the simulated pair would make the host's own emissions arrive at the
+	# guest's relay without ever crossing a wire — echoing facts back and forth
+	# and tripping the guard on local traffic. `CoopRelay.bus` is injectable for
+	# exactly this reason.
+	var bus_script: GDScript = load("res://autoload/EventBus.gd") as GDScript
+	_host_bus = Node.new()
+	_host_bus.name = "HostBus"
+	_host_bus.set_script(bus_script)
+	_host_root.add_child(_host_bus)
+	_guest_bus = Node.new()
+	_guest_bus.name = "GuestBus"
+	_guest_bus.set_script(bus_script)
+	_guest_root.add_child(_guest_bus)
+
 	_host = Node.new()
 	_host.name = "Coop"
 	_host.set_script(script)
 	_host_root.add_child(_host)
+	_rebind_relay(_host, _host_bus)
 
 	_guest = Node.new()
 	_guest.name = "Coop"
 	_guest.set_script(script)
 	_guest_root.add_child(_guest)
+	_rebind_relay(_guest, _guest_bus)
+
+
+## Points a session's relay at this side's own bus.
+##
+## The relay binds in `_ready`, and `_ready` has already run by the time
+## `add_child` returns — so the relay is holding the real `EventBus` autoload.
+## Replacing it here means dropping the old connections and binding again, which
+## is why `_bind_facts` had to be safe to call twice.
+func _rebind_relay(session: Node, bus: Node) -> void:
+	var relay: CoopRelay = session.call("relay")
+	if relay == null:
+		_check(false, "a session must build its relay on ready")
+		return
+	relay.rebind_bus(bus)
+	# The guard test provokes a real violation to prove it is caught, and
+	# `guard.yml` fails any check that prints an ERROR line. Only the logging is
+	# silenced; `violations()` still records, and that is what is asserted.
+	relay.report_violations = false
 
 
 ## The autoload — the instance the game actually ships with.
@@ -169,6 +223,109 @@ func _test_partner_and_player_count() -> void:
 		"coop_partner_joined must have been emitted for the arrival")
 
 
+## A fact the host authors must arrive on the guest, intact.
+##
+## "Intact" is the part that matters and the part a looser test would miss. The
+## wire carries Variants, so a float arriving where the signal declares an int
+## is a mismatch that would surface a long way from here — the arguments are
+## compared by value, not merely counted.
+func _test_facts_travel_host_to_guest() -> void:
+	_listen(_guest_bus, _guest_heard)
+	_listen(_host_bus, _host_heard)
+
+	_host_bus.enemy_died.emit("bogkin", Vector2(120.0, -40.0))
+	_host_bus.wave_cleared.emit(7)
+	_host_bus.currency_changed.emit("gold", 315)
+	await _settle(func() -> bool: return _guest_heard.size() >= 3)
+
+	_check(_heard(_guest_heard, "enemy_died", ["bogkin", Vector2(120.0, -40.0)]),
+		"the guest must receive enemy_died with its arguments unchanged")
+	_check(_heard(_guest_heard, "wave_cleared", [7]),
+		"the guest must receive wave_cleared")
+	_check(_heard(_guest_heard, "currency_changed", ["gold", 315]),
+		"the guest must receive currency_changed: the pool is shared")
+
+	# And the host does not hear its own traffic come back. An echo would double
+	# every kill and every payment.
+	_check(_count(_host_heard, "enemy_died") == 1,
+		"the host must not receive an echo of the fact it authored")
+
+
+## The invariant the whole layer rests on.
+##
+## `docs/COOP_DESIGN.md` §4: the guest must never originate a host-authored
+## fact. It only has to happen once, in one system, for the two machines to
+## start disagreeing about what happened — and the resulting desync would be
+## debugged nowhere near the line that caused it. The relay catches it at the
+## moment of emission and names the signal.
+func _test_a_guest_cannot_author_a_fact() -> void:
+	var guest_relay: CoopRelay = _guest.call("relay")
+	var before: int = _guest_heard.size()
+	_check(guest_relay.violations().is_empty(),
+		"nothing legitimate so far may have counted as a violation")
+
+	# A guest-side system misbehaving. Deliberately the same signal the host
+	# authored above, so the test cannot pass by the guard simply rejecting
+	# everything.
+	_guest_bus.enemy_died.emit("bogkin", Vector2.ZERO)
+	await get_tree().process_frame
+
+	_check(guest_relay.violations().has("ENEMY_DIED"),
+		"a guest authoring enemy_died must be caught and named")
+	await _settle_frames(6)
+	_check(_count(_host_heard, "enemy_died") == 1,
+		"and it must not reach the host: a guest cannot tell the host what happened")
+
+	# Mirrored facts must not be mistaken for invented ones, or the guard would
+	# fire on every single relayed message and be worthless.
+	_host_bus.wave_cleared.emit(8)
+	await _settle(func() -> bool: return _guest_heard.size() > before + 1)
+	_check(not guest_relay.violations().has("WAVE_CLEARED"),
+		"a fact the guest was *told* must not be counted as one it invented")
+
+
+## A request travels the other way, and stays a request.
+func _test_requests_travel_guest_to_host() -> void:
+	_host_bus.coop_request_received.connect(
+		func(kind: int, args: Array, from: int) -> void:
+			_host_requests.append([kind, args, from]))
+
+	var guest_relay: CoopRelay = _guest.call("relay")
+	_check(guest_relay.request(CoopRelay.Request.BUILD_TOWER, [Vector2i(3, 4), "ember_spire"]),
+		"a guest must be able to ask the host to build")
+	await _settle(func() -> bool: return not _host_requests.is_empty())
+
+	_check(not _host_requests.is_empty(), "the request must reach the host")
+	if not _host_requests.is_empty():
+		var got: Array = _host_requests[0]
+		_check(int(got[0]) == CoopRelay.Request.BUILD_TOWER,
+			"the host must see which request it was")
+		_check((got[1] as Array).size() == 2 and (got[1] as Array)[0] == Vector2i(3, 4),
+			"and its arguments, unchanged")
+		_check(int(got[2]) > 0, "and who asked, so it can answer them")
+
+	# The host cannot issue requests: it has nobody to ask.
+	var host_relay: CoopRelay = _host.call("relay")
+	_check(not host_relay.request(CoopRelay.Request.WAR_HORN),
+		"a host must not send itself a request")
+
+
+## Cosmetic signals stay on the machine that raised them.
+##
+## Each client can derive a screen shake from the facts it already has. Relaying
+## them would double the traffic to reproduce something free — and this is
+## enforced by *omission* from the relay's table, so there is no per-call-site
+## decision anywhere to get wrong.
+func _test_cosmetic_signals_stay_home() -> void:
+	var before: int = _guest_heard.size()
+	_host_bus.camera_shake_requested.emit(22.0, 1.2)
+	_host_bus.hero_dashed.emit(0.3)
+	await _settle_frames(8)
+	_check(_guest_heard.size() == before,
+		"cosmetic signals must not cross the wire, got %d new"
+			% (_guest_heard.size() - before))
+
+
 func _test_guest_leaves_cleanly() -> void:
 	_guest.leave()
 	_check(_guest.state() == _guest.State.OFFLINE, "leaving must return to OFFLINE")
@@ -238,12 +395,70 @@ func _settle(done: Callable) -> void:
 	for _f: int in NETWORK_FRAMES:
 		if bool(done.call()):
 			return
-		var host_api: MultiplayerAPI = _host.multiplayer
-		var guest_api: MultiplayerAPI = _guest.multiplayer
-		if host_api != null and host_api.has_multiplayer_peer():
-			host_api.poll()
-		if guest_api != null and guest_api.has_multiplayer_peer():
-			guest_api.poll()
+		_poll_both()
+		await get_tree().process_frame
+
+
+func _poll_both() -> void:
+	var host_api: MultiplayerAPI = _host.multiplayer
+	var guest_api: MultiplayerAPI = _guest.multiplayer
+	if host_api != null and host_api.has_multiplayer_peer():
+		host_api.poll()
+	if guest_api != null and guest_api.has_multiplayer_peer():
+		guest_api.poll()
+
+
+## Records everything relayable that a bus emits, as `[name, args]`.
+##
+## Connected by name from the same list the relay uses, so a signal added to the
+## relay and forgotten here shows up as a missing recording rather than as a
+## silent gap in the test.
+func _listen(bus: Node, into: Array) -> void:
+	for name: String in ["enemy_died", "wave_cleared", "boss_defeated",
+			"lane_pressure_changed", "phase_changed", "currency_changed",
+			"town_health_changed", "camera_shake_requested", "hero_dashed"]:
+		var tag: String = name
+		bus.connect(StringName(name), func(a: Variant = null, b: Variant = null) -> void:
+			var args: Array = []
+			if a != null:
+				args.append(a)
+			if b != null:
+				args.append(b)
+			into.append([tag, args]))
+
+
+## Whether `into` recorded `name` carrying exactly `args`.
+func _heard(into: Array, name: String, args: Array) -> bool:
+	for entry: Array in into:
+		if String(entry[0]) != name:
+			continue
+		var got: Array = entry[1]
+		if got.size() != args.size():
+			continue
+		var same: bool = true
+		for index: int in args.size():
+			# Compared by value *and* type: the wire carries Variants, so an int
+			# arriving as a float is exactly the class of drift worth catching.
+			if typeof(got[index]) != typeof(args[index]) or got[index] != args[index]:
+				same = false
+				break
+		if same:
+			return true
+	return false
+
+
+func _count(into: Array, name: String) -> int:
+	var total: int = 0
+	for entry: Array in into:
+		if String(entry[0]) == name:
+			total += 1
+	return total
+
+
+## Pumps both sides for a fixed number of frames, for asserting a *non*-event.
+func _settle_frames(count: int) -> void:
+	for _f: int in count:
+		_poll_both()
 		await get_tree().process_frame
 
 

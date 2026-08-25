@@ -269,3 +269,8 @@ signal coop_partner_left(peer_id: int)
 
 ## Hosting or joining did not work, with a sentence fit to show a player.
 signal coop_failed(reason: String)
+
+## A guest asked the host to do something. Host-side only, and a *request* rather
+## than a fact: the host still validates it and answers by authoring a fact.
+## `kind` is a `CoopRelay.Request`.
+signal coop_request_received(kind: int, args: Array, from_peer: int)

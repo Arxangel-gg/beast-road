@@ -5,7 +5,7 @@ decision is recorded in `docs/Game_Design_v4.md` §54 and in `CLAUDE.md`; this
 file is the design that follows from it, and the thing to read before touching
 any netcode.
 
-**Status: design settled; step 1 of 6 built.** Sections 1–4 are decided.
+**Status: design settled; steps 1 and 2 of 6 built.** Sections 1–4 are decided.
 Section 8 is the build order and records what is done. Section 9 is what is
 deliberately not in scope.
 
@@ -266,9 +266,48 @@ Each step is meant to be verifiable on its own, and each has a gate.
    **Not built in this step, on purpose:** there is no lobby *screen* yet. The
    session is driveable from code and gated; putting a front end on it belongs
    with the UI pass, and building one now would mean building it twice.
-2. **The relay layer.** The host-authored `EventBus` set forwarded and re-emitted
-   on the guest, with the guest-request path returning host-authored results.
-   Gate: a harness asserts a guest never originates a host-authored signal.
+2. ~~**The relay layer.**~~ **Done 2026-08-25.**
+   `game/scripts/systems/coop_relay.gd` is the one place a message crosses the
+   wire, built as a child of `Coop` so it is guaranteed to share the session's
+   `MultiplayerAPI`. `coop_check.tscn` now covers it.
+
+   The three-way traffic split from §4 is implemented as written: host-authored
+   facts forwarded and re-emitted on the guest's own bus, guest requests
+   travelling the other way as *requests*, and cosmetic signals not relayed at
+   all. Cosmetic isolation is enforced by **omission** from the relay's binding
+   table — there is no per-call-site decision anywhere to get wrong.
+
+   - **Raw packets, not `@rpc`.** An `@rpc` call resolves by node path and needs
+     the sender and receiver at the same path in their trees. The harness
+     necessarily has a host and a guest at different paths in one tree, so a
+     path-bound relay could not be tested in process — throwing away the one
+     property step 1 was built to have. `SceneMultiplayer.send_bytes` is
+     path-independent, verified against 4.7.1.
+   - **`allow_object_decoding` is set false explicitly**, and `bytes_to_var` is
+     left at its non-object default. A packet is data; letting one name a class
+     to instantiate turns a corrupt or hostile message into code execution.
+   - **The bus is injected, not reached for.** Two machines have two event
+     buses. A harness simulating both in one process would otherwise share the
+     single autoload, so the host's own emissions would arrive at the guest's
+     relay without crossing a wire — echoing forever and tripping the guard on
+     local traffic. A test that cannot tell the two machines apart cannot test
+     the thing that separates them.
+   - **The guard is the point.** A host-authored fact originating on a guest is
+     caught at the moment of emission and named. It cannot be enforced by review:
+     it only has to be broken once, in one system, for two machines to start
+     disagreeing — and the desync would be debugged nowhere near the cause. It
+     records rather than throws, because crashing a run in front of two players
+     is worse than a loud log and a gate that fails on the next push.
+
+   New `EventBus` signal, per CLAUDE.md §6:
+   `coop_request_received(kind: int, args: Array, from_peer: int)` — host-side
+   only, and a *request* rather than a fact.
+
+   **Note for step 3 onward:** a new `class_name` script is not visible to
+   autoloads until Godot has re-registered its global class cache
+   (`--headless --editor --path game --quit`). `guard.yml` already does this as
+   "Register gameplay resource classes"; a local run needs it by hand after
+   adding one, or the failure reads as "type not found" in unrelated files.
 3. **Two heroes.** A second hero in the scene, driven by relayed input. Gate:
    both heroes exist, move independently, and neither can act during a phase the
    other cannot.

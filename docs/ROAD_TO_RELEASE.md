@@ -1254,7 +1254,7 @@ has its design settled and written down; no netcode is written yet.
 ### Cut in §54 - needs a recorded re-cut
 
 - [~] **Two-player co-op.** Design settled in `docs/COOP_DESIGN.md`, and
-      **step 1 of 6 is built and gated** (2026-08-25). The owner's three rulings:
+      **steps 1 and 2 of 6 are built and gated** (2026-08-25). The owner's three rulings:
       **two heroes, one each**; **desktop-to-desktop only** for now, with the
       web build staying single-player; **one shared resource pool**.
 
@@ -1300,8 +1300,31 @@ has its design settled and written down; no netcode is written yet.
       New EventBus signals (CLAUDE.md §6): `coop_state_changed`,
       `coop_partner_joined`, `coop_partner_left`, `coop_failed`.
 
-      Steps 2-6 remain: the relay layer, two heroes, enemies and towers over
-      the wire, difficulty scaling, disconnect behaviour.
+      **Step 2 — the relay layer.** `scripts/systems/coop_relay.gd` is the one
+      place a message crosses the wire, and nothing in the battlefield, town or
+      beast scope knows a network exists. Host-authored facts forward and
+      re-emit on the guest's own bus; guest requests travel the other way and
+      stay requests; cosmetic signals are not relayed, enforced by *omission*
+      from the binding table rather than by a decision at each call site.
+
+      Raw packets rather than `@rpc`, because `@rpc` resolves by node path and
+      the harness has host and guest at different paths in one tree — a
+      path-bound relay could not be tested in process at all. The bus is
+      injected for the same family of reason: two machines have two buses, and
+      sharing the autoload would echo facts forever and trip the guard on
+      traffic that never crossed a wire.
+
+      **The guard is the row that matters.** A host-authored fact originating
+      on a guest is caught at the moment of emission and named. It cannot be
+      enforced by review — one system breaking it once is enough for two
+      machines to disagree, and the desync would be debugged nowhere near the
+      cause. It records rather than throws: crashing a run in front of two
+      players is worse than a loud log and a gate that fails next push.
+
+      New EventBus signal: `coop_request_received(kind, args, from_peer)`.
+
+      Steps 3-6 remain: two heroes, enemies and towers over the wire,
+      difficulty scaling, disconnect behaviour.
 
       Original entry, kept because the reasoning still stands: §54 reads "multiplayer, PvP, co-op, daily online
       challenges" as explicitly out of scope for 1.0, with only leaderboards

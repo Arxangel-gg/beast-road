@@ -42,12 +42,26 @@ var _state: State = State.OFFLINE
 var _peer: ENetMultiplayerPeer = null
 var _connect_left: float = 0.0
 
+## The one place messages cross the wire. A child rather than a sibling or a
+## second autoload, and that is load-bearing: a `MultiplayerAPI` is registered
+## against a subtree, so a relay parented here is guaranteed to be on the same
+## API as the session that owns it. The harness stands up two of each and neither
+## can accidentally end up talking through the other's peer.
+var _relay: CoopRelay = null
+
 
 func _ready() -> void:
 	# ALWAYS, because a co-op session must survive the tree being paused. A
 	# pause menu that also stops answering the network drops the other player.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bind()
+	_relay = CoopRelay.new()
+	_relay.name = "Relay"
+	_relay.session = self
+	# Both set before the node enters the tree: the relay binds its signals in
+	# `_ready`, and a relay that arrives without a bus binds to nothing.
+	_relay.bus = EventBus
+	add_child(_relay)
 
 
 ## Wires this node's own `MultiplayerAPI`.
@@ -101,6 +115,15 @@ func partner_present() -> bool:
 	if api == null or not api.has_multiplayer_peer():
 		return false
 	return not api.get_peers().is_empty()
+
+
+## The relay, for the systems that have to send a request or read the guard.
+##
+## Nothing in the battlefield, town or beast scope should reach for this. The
+## relay exists so those systems do not have to know a network exists, and a
+## gameplay script that starts asking it questions has undone that.
+func relay() -> CoopRelay:
+	return _relay
 
 
 ## How many players the run should be balanced for, right now.
