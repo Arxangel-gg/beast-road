@@ -317,3 +317,14 @@ signal coop_xp_awarded(amount: float)
 ## ground sprite or the foliage, so it says how deep the snow is and each scope
 ## decides what that means to what it draws.
 signal snow_cover_changed(cover: float)
+
+## The host began the run, and the guest must begin the same one.
+##
+## Carries the seed because both machines have to roll the identical world. The
+## guest's RunState mirrors the host's, and a mirror of a different world is not
+## a mirror.
+signal coop_run_started(seed: int, endless: bool)
+
+## The host's reachable address changed, or the attempt to find one finished.
+## `external` is empty while unknown; `mapped` says whether UPnP opened the port.
+signal coop_address_known(local_address: String, external: String, mapped: bool)

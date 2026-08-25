@@ -49,6 +49,7 @@ enum Fact {
 	ENEMY_BATCH = 10,
 	ENEMY_REMOVED = 11,
 	XP_AWARDED = 12,
+	RUN_STARTED = 13,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -62,6 +63,18 @@ enum Request {
 	ENTER_RAID = 5,
 	HERO_INPUT = 6,
 }
+
+## Facts that are *state announcements* rather than events.
+##
+## A machine re-stating something it already holds - the town saying how much
+## health it has on the frame it is built - is not the same as claiming something
+## happened. Both are host-authored and both are relayed; the difference is only
+## that a guest emitting one is harmless rather than a bug, because the host's
+## own value overwrites it immediately.
+##
+## Kept deliberately short. Everything absent from it is an event, and a guest
+## originating an event is exactly what the guard exists to catch.
+const ANNOUNCEMENT_FACTS: Array[int] = [Fact.TOWN_HEALTH, Fact.CURRENCY_CHANGED]
 
 ## Wire tags. A packet is `[tag, kind, args]`.
 ##
@@ -183,6 +196,7 @@ func _fact_bindings() -> Array:
 		["coop_enemy_batch", _on_coop_enemy_batch],
 		["coop_enemy_removed", _on_coop_enemy_removed],
 		["coop_xp_awarded", _on_coop_xp_awarded],
+		["coop_run_started", _on_coop_run_started],
 	]
 
 
@@ -248,6 +262,10 @@ func _on_coop_xp_awarded(amount: float) -> void:
 	_relay(Fact.XP_AWARDED, [amount])
 
 
+func _on_coop_run_started(seed_value: int, endless: bool) -> void:
+	_relay(Fact.RUN_STARTED, [seed_value, endless])
+
+
 # --- Sending -----------------------------------------------------------------
 
 ## A relayed signal fired locally. Forward it, or catch a guest inventing it.
@@ -260,7 +278,22 @@ func _relay(kind: Fact, args: Array) -> void:
 	if session == null:
 		return
 	if not bool(session.call("is_host")):
-		_guard(kind)
+		# A guest re-announcing state it already holds is not a guest inventing an
+		# outcome, and the guard must be able to tell the two apart.
+		#
+		# Found in live play: the guest's town emits `town_health_changed` when the
+		# battlefield builds, because a full-health town announcing itself is what
+		# that signal is *for* on a single machine. The host's own value arrives a
+		# moment later and overwrites it, so nothing is wrong - but the guard saw a
+		# host-authored fact originating on a guest and was right to shout.
+		#
+		# Suppressed rather than reported, and suppressed *silently*: it must not
+		# reach the wire either, because the host does not want to be told what its
+		# guest's town thinks. A guest that authored something genuinely new - a
+		# kill, a wave clearing, a position - is still caught, because those carry
+		# information the host never sent.
+		if not ANNOUNCEMENT_FACTS.has(kind):
+			_guard(kind)
 		return
 	if not bool(session.call("partner_present")):
 		# Single player, or a host nobody has joined. Nothing to tell.
@@ -385,6 +418,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.XP_AWARDED:
 			if args.size() == 1:
 				bus.coop_xp_awarded.emit(float(args[0]))
+		Fact.RUN_STARTED:
+			if args.size() == 2:
+				bus.coop_run_started.emit(int(args[0]), bool(args[1]))
 	_replaying = false
 
 

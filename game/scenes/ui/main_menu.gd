@@ -2,6 +2,7 @@ class_name MainMenu
 extends Control
 
 const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
+const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -16,6 +17,7 @@ const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
 
 var _settings: SettingsPanel
 var _leaderboard: CanvasLayer
+var _coop: CanvasLayer
 
 
 func _ready() -> void:
@@ -35,6 +37,7 @@ func _ready() -> void:
 	_build_tier_row()
 	_build_stash_button()
 	_build_endless_button()
+	_build_coop_button()
 	_build_leaderboard_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
@@ -166,6 +169,37 @@ func _build_endless_button() -> void:
 
 ## The shared board is always reachable. With no network it becomes this save's
 ## personal-best list, so the button never opens a dead screen.
+## Co-op, on the front door.
+##
+## Directly under the button that starts a single-player run, because that is
+## where a player looks for "the other way to play" and because co-op is a
+## separate mode rather than a setting on this one.
+##
+## Its absence was the whole of "multiplayer is not fully integrated": every
+## piece underneath worked and was gated across two real processes, and none of
+## it could be reached by anyone playing the game.
+func _build_coop_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Coop"
+	button.text = "Co-op"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "pressure_arrow", 26)
+	column.add_child(button)
+	# Immediately below "New run", not at the bottom with the utilities.
+	column.move_child(button, new_run_button.get_index() + 1)
+
+	_coop = CoopScreenScript.new()
+	add_child(_coop)
+	_coop.closed.connect(func() -> void: button.grab_focus())
+	button.pressed.connect(func() -> void: _coop.open())
+
+
 func _build_leaderboard_button() -> void:
 	if new_run_button == null:
 		return

@@ -5,7 +5,8 @@ decision is recorded in `docs/Game_Design_v4.md` §54 and in `CLAUDE.md`; this
 file is the design that follows from it, and the thing to read before touching
 any netcode.
 
-**Status: design settled; all six steps built.** Sections 1–4 are decided.
+**Status: playable.** All six steps built, plus the lobby that makes them
+reachable. Sections 1–4 are decided.
 Section 8 is the build order and records what is done. Section 9 is what is
 deliberately not in scope.
 
@@ -263,9 +264,38 @@ Each step is meant to be verifiable on its own, and each has a gate.
    `coop_failed(reason: String)`. New constants: `Balance.COOP_PORT`,
    `COOP_MAX_PLAYERS`, `COOP_MAX_GUESTS`, `COOP_CONNECT_TIMEOUT`.
 
-   **Not built in this step, on purpose:** there is no lobby *screen* yet. The
-   session is driveable from code and gated; putting a front end on it belongs
-   with the UI pass, and building one now would mean building it twice.
+   **A lobby was deferred here and that was a mistake.** The note read "no lobby
+   screen yet, on purpose" and the feature was then summarised as complete
+   through five more steps. It was not: every piece worked, was gated, and was
+   unreachable by anyone playing the game. The owner found it by looking for a
+   button.
+
+   Built now — `scenes/ui/coop_screen.gd`, opened from a **Co-op** button
+   directly under "Take the road" on the main menu, because co-op is a separate
+   way to play rather than a setting on the single-player one.
+
+   The screen answers the three things a player needs, in order:
+
+   - **Your address, said out loud.** Same-network for a second machine in the
+     house, public for a friend elsewhere. A player who has to go and find their
+     own IP will not play co-op.
+   - **Whether the door is open.** UPnP asks the router to forward the port and
+     most oblige. On the rest it silently does not, and the screen says so and
+     names the port to forward — rather than letting two people fail to connect
+     and blame the game. Skipped headless: there is no player to tell, and
+     Godot's UPNP prints an ERROR when it finds no gateway, which fails the guard.
+   - **Begin, host-only.** The guest is carried in automatically, so there is no
+     second ready button to coordinate.
+
+   **The guest now follows the host into the run**, which was the other half of
+   "not fully integrated". The run start is a host-authored fact carrying the
+   seed, because both machines must roll the identical world. The seed announced
+   is the one actually *rolled*, not the one requested — a fresh run requests 0
+   and `RunState` picks, so announcing the request would send a zero and have the
+   guest roll a world of its own.
+
+   Verified by `tools/coop_ui.sh`: two real processes entering through the menu,
+   both reaching the same run on seed 218318049.
 2. ~~**The relay layer.**~~ **Done 2026-08-25.**
    `game/scripts/systems/coop_relay.gd` is the one place a message crosses the
    wire, built as a child of `Coop` so it is guaranteed to share the session's

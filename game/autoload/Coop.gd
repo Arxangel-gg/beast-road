@@ -49,6 +49,26 @@ var _connect_left: float = 0.0
 ## can accidentally end up talking through the other's peer.
 var _relay: CoopRelay = null
 
+## The address a friend would type, once it is known.
+##
+## Two of them, because they answer different questions. The local one is what a
+## second machine in the same house uses; the external is what somebody in
+## another country needs. Both are looked up rather than assumed - a player who
+## has to find their own public IP will not play co-op.
+var local_address: String = ""
+var external_address: String = ""
+
+## Whether UPnP persuaded the router to forward the port.
+##
+## False is not a failure to report as an error: plenty of routers have UPnP
+## switched off, and the honest answer is "forward port N yourself, or play on
+## the same network" rather than a stack trace.
+var port_mapped: bool = false
+
+## UPnP discovery blocks for seconds. On the main thread that is the menu
+## freezing, so it runs on its own and the result arrives as a signal.
+var _upnp_thread: Thread = null
+
 
 func _ready() -> void:
 	# ALWAYS, because a co-op session must survive the tree being paused. A
@@ -150,6 +170,7 @@ func host(port: int = Balance.COOP_PORT) -> bool:
 	_peer = peer
 	multiplayer.multiplayer_peer = peer
 	_set_state(State.HOSTING)
+	_begin_address_lookup(port)
 	return true
 
 
@@ -182,6 +203,7 @@ func join(address: String, port: int = Balance.COOP_PORT) -> bool:
 ## there is no second teardown to keep in step with this one.
 func leave() -> void:
 	_connect_left = 0.0
+	_join_lookup()
 	if _peer != null:
 		_peer.close()
 		_peer = null
@@ -190,6 +212,75 @@ func leave() -> void:
 		api.multiplayer_peer = null
 	if _state != State.OFFLINE:
 		_set_state(State.OFFLINE)
+
+
+## Finds the two addresses a friend might need, off the main thread.
+##
+## `UPNP.discover()` blocks for about two seconds and a menu that freezes for two
+## seconds when you click Host reads as a crash. The thread is joined in
+## `_exit_tree` and before any second lookup, because a Thread destroyed without
+## `wait_to_finish` warns loudly - and a warning on exit fails the guard.
+func _begin_address_lookup(port: int) -> void:
+	local_address = _first_local_address()
+	external_address = ""
+	port_mapped = false
+	EventBus.coop_address_known.emit(local_address, "", false)
+	_join_lookup()
+	# Not headless. There is no player to show a public address to, and Godot's
+	# UPNP prints `ERROR: Couldn't find any UPNPDevices` when there is no gateway
+	# to find - which is a perfectly ordinary answer on a CI runner and a fatal
+	# one to `guard.yml`, which fails any check that emits an ERROR line.
+	#
+	# Skipping it headless also keeps every harness that hosts a session from
+	# spending two seconds asking a router that is not there.
+	if DisplayServer.get_name() == "headless":
+		return
+	_upnp_thread = Thread.new()
+	_upnp_thread.start(_lookup_external.bind(port))
+
+
+func _lookup_external(port: int) -> void:
+	var upnp := UPNP.new()
+	var found: int = upnp.discover()
+	var address: String = ""
+	var mapped: bool = false
+	if found == UPNP.UPNP_RESULT_SUCCESS and upnp.get_gateway() != null 			and upnp.get_gateway().is_valid_gateway():
+		address = upnp.query_external_address()
+		# UDP: ENet is a UDP protocol, and mapping TCP would open the wrong door
+		# and report success while nothing could connect.
+		mapped = upnp.add_port_mapping(port, port, "Beast Road co-op",
+			"UDP") == UPNP.UPNP_RESULT_SUCCESS
+	_finish_lookup.call_deferred(address, mapped)
+
+
+## Back on the main thread, because signals reach UI from here.
+func _finish_lookup(address: String, mapped: bool) -> void:
+	external_address = address
+	port_mapped = mapped
+	EventBus.coop_address_known.emit(local_address, external_address, port_mapped)
+
+
+func _join_lookup() -> void:
+	if _upnp_thread != null:
+		if _upnp_thread.is_started():
+			_upnp_thread.wait_to_finish()
+		_upnp_thread = null
+
+
+## The machine's own address on its network.
+##
+## Skips loopback and IPv6: what this is for is being read aloud or pasted into a
+## friend's join box, and neither `::1` nor a link-local IPv6 address is that.
+func _first_local_address() -> String:
+	for address: String in IP.get_local_addresses():
+		if address.begins_with("127.") or address.contains(":"):
+			continue
+		return address
+	return "127.0.0.1"
+
+
+func _exit_tree() -> void:
+	_join_lookup()
 
 
 func _process(delta: float) -> void:

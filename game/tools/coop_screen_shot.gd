@@ -1,0 +1,30 @@
+extends Node
+
+## Renders the co-op screen so it can be looked at. Diagnostic only.
+##
+##   godot --path game res://tools/coop_screen_shot.tscn -- --hosting
+
+func _ready() -> void:
+	MetaState.settings["tutorial_seen"] = true
+	MetaState.story_intro_seen = true
+	var hosting: bool = OS.get_cmdline_user_args().has("--hosting")
+	var menu: MainMenu = (load("res://scenes/ui/main_menu.tscn") as PackedScene) \
+		.instantiate() as MainMenu
+	add_child(menu)
+	for _f: int in 14:
+		await get_tree().process_frame
+	var coop: CanvasLayer = menu.get("_coop") as CanvasLayer
+	coop.call("open")
+	if hosting:
+		Coop.host()
+	for _f: int in 40:
+		await get_tree().process_frame
+	coop.call("_refresh")
+	for _f: int in 6:
+		await get_tree().process_frame
+	var path: String = "user://coop_screen%s.png" % ("_hosting" if hosting else "")
+	get_viewport().get_texture().get_image().save_png(path)
+	print("[coop-shot] -> %s" % ProjectSettings.globalize_path(path))
+	Coop.leave()
+	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
+	get_tree().quit(0)

@@ -45,6 +45,20 @@ func abandon_run(reason: String) -> void:
 	goto_menu()
 
 
+## The host started a run, so this guest starts the same one.
+##
+## The *same* one: the seed travels, because both machines have to roll an
+## identical world. The guest's RunState mirrors the host's, and a mirror of a
+## different world is not a mirror - it is two games sharing a socket.
+##
+## Guest-only. On the host `start_run` is what announced this, and acting on it
+## again would restart the run it just began.
+func _on_coop_run_started(seed_value: int, endless: bool) -> void:
+	if Coop.is_host() or run_active:
+		return
+	start_run(seed_value, endless)
+
+
 ## A co-op session failed while a run was live.
 ##
 ## Only a *guest* can be orphaned this way: a host owns the run and its session
@@ -62,6 +76,10 @@ func _ready() -> void:
 	# job, and keeping it so is what stops the co-op layer being able to change
 	# scenes out from under whatever is running.
 	EventBus.coop_failed.connect(_on_coop_failed)
+	# The guest follows the host into the run. Without this, co-op connected two
+	# people who then sat in two separate menus - which is what "co-op is not
+	# fully integrated" looked like from the outside, and it was right.
+	EventBus.coop_run_started.connect(_on_coop_run_started)
 	CursorKit.apply()
 
 
@@ -109,6 +127,12 @@ func start_run(requested_seed: int = 0, endless: bool = false) -> void:
 	RunState.reset(true, requested_seed)
 	if endless:
 		RunState.begin_endless(false)
+	# Told *after* the reset, so the seed announced is the one actually rolled.
+	# `requested_seed` is 0 for a fresh run and RunState picks one; announcing the
+	# request rather than the result would send the guest a zero and have it roll
+	# a different world.
+	if Coop.is_host() and Coop.partner_present():
+		EventBus.coop_run_started.emit(RunState.run_seed, endless)
 	# Consuming Treasury carry-over is a real transaction. Persist it now so a
 	# crash/restart cannot spend the same cache repeatedly.
 	if consumed_cache:
