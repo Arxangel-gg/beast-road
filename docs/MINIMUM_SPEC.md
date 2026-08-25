@@ -94,24 +94,57 @@ the game has been run on a machine of roughly the declared class, the honest
 status of §47's row is "declared, not verified". `V4_CONFORMANCE.md` should say
 so rather than showing it green.
 
-**The fixed 13–15 ms has been located but not explained.** `Performance`
-monitors put essentially all of it in the process step and none in physics, and a
-census of the running scene found only 182 nodes with `_process` or
-`_physics_process` enabled — 147 of them torches and their flames and light
-drivers. 182 script callbacks cannot plausibly account for 13 ms, so the cost is
-mostly *engine* work inside that step rather than GDScript, and Godot's process
-monitor cannot separate the two.
+**The fixed cost is not in any game system, and A/B timing cannot find it.**
+That is now a result rather than a suspicion, and it took three rounds of
+increasingly careful measurement to reach.
 
-Answering it properly needs a real profiler rather than these monitors. It is
-worth doing: it is a large per-frame cost for a 2D game, and reducing it would
-lower the declared minimum, which is the cheapest available way to widen who can
-play this. It has not been started.
+Three configurations, interleaved, three passes each:
 
-**Beware the variance.** Any future comparison needs several runs per
-configuration, or repeats of the mistake above: three of the four rows in the
-table were initially over-read as meaningful differences when they sit inside the
-noise. `--off=lights` was added to the perf tool during this work and is worth
-keeping — it answered its question, and the answer was "not that".
+| Configuration | Mean |
+|---|---|
+| idle battlefield, everything on | 16.8 ms |
+| idle, all 97 CPU particle emitters off | 16.8 ms |
+| idle, **plus** lights, foliage, particles, both shadow types and clouds off | 16.8 ms |
+
+Identical to one decimal place. Disabling every visual subsystem in the game
+changes the frame time by nothing measurable. Combat is free too: an *idle*
+battlefield costs the same as a fight.
+
+A census of the running scene found 1138 visible canvas items with nobody on the
+field — 216 sprites, 192 polygons, 97 CPU particle emitters, 51 lights and about
+330 UI nodes — so the cost is spread across the scene existing rather than
+concentrated in a system that can be switched off. Answering *where* needs a real
+profiler attached to a frame. That has not been done.
+
+Ruled out along the way, each of which looked promising: the ground (a single
+repeating sprite, one draw call), the roads (baked to one sprite), the torch
+flames, the 2D lights, and the foliage.
+
+**Two methodology traps, both of which caught me.**
+
+*Never compare configurations in blocks.* Running each three times in a row
+produced a clean monotonic decline — 17.4, 16.9, 16.2, 15.5 — that tracked run
+*order*, not configuration. Interleaving the same three configurations produced
+identical means. Any future comparison must interleave.
+
+*This machine drifts by more than the effects being measured.* Morning baselines
+were 13–14 ms; afternoon, on the same code paths with no stray processes and the
+CPU at 12%, 16–17 ms. Same-session interleaved comparisons hold; anything
+compared across hours does not.
+
+Both traps produced numbers that were acted on. A single-run reading said 1700
+foliage clumps cost 2.3 ms, and the foliage was thinned twice on the strength of
+it — including after the owner reported it as too sparse. Interleaved, foliage on
+and off are 16.8 ms and 16.8 ms at 1350 clumps, rising to about +0.7 ms at 2100.
+The density is set on look now, at 1500.
+
+**A consequence worth stating plainly.** The 60 FPS assertion in `perf_check` is
+currently marginal on the reference machine for reasons that have nothing to do
+with the game: an idle field with every effect disabled measures 16.8 ms, which
+is 59.5 fps. `perf_check` is deliberately **not** in the gate suite or in
+`guard.yml`, and this is why — a throughput budget that fails on a warm machine
+would be a build break with no defect behind it. It is a tool to be run and read,
+not a gate.
 
 ---
 

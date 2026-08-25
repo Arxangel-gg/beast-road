@@ -62,6 +62,8 @@ const CHECKPOINT_PATH: String = "user://beast_road_perf_checkpoint.json"
 
 var _seconds: float = 120.0
 var _build: bool = false
+var _idle: bool = false
+var _vsync_actual: int = -1
 var _checkpoint_path: String = CHECKPOINT_PATH
 ## High is the shipped, authored target and therefore the release budget. Ultra
 ## is intentionally an opt-in headroom mode; it can be profiled explicitly with
@@ -119,6 +121,12 @@ func _ready() -> void:
 				_disabled.append(piece.strip_edges().to_lower())
 		elif argument == "--build":
 			_build = true
+		elif argument == "--idle":
+			# No wave at all, to separate "the scene exists" from "a fight is
+			# happening". Turning individual effects off never moved the frame
+			# time, so the question became *what is left* - and a battlefield
+			# with nobody on it is the only measurement that answers it.
+			_idle = true
 
 	# Vsync off, or this measures the monitor rather than the game.
 	#
@@ -128,6 +136,11 @@ func _ready() -> void:
 	# jitter. A budget that cannot tell "slow" from "capped" would never detect
 	# headroom disappearing until it had already gone.
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	# Reported, not assumed. Asking for it off and *getting* it off are different
+	# things - a driver or compositor can hold the swap regardless, and then every
+	# number lands near the refresh interval and looks like a fixed cost in the
+	# game. Which is exactly what a whole afternoon of measurements looked like.
+	_vsync_actual = int(DisplayServer.window_get_vsync_mode())
 	Graphics.apply_preset(_quality)
 	for feature: String in _disabled:
 		match feature:
@@ -137,6 +150,7 @@ func _ready() -> void:
 			"particles": Graphics.set_switch(Graphics.KEY_PARTICLES, 0.0)
 			"foliage": Graphics.set_switch(Graphics.KEY_FOLIAGE, 0.0)
 			"lights": _kill_lights()
+			"flames": _kill_emitters()
 			_: push_warning("Unknown --off feature '%s'." % feature)
 	# The player's stored cap is irrelevant to a throughput test. Apply the
 	# visual preset first (it reapplies that cap), then uncap the benchmark.
@@ -150,9 +164,12 @@ func _ready() -> void:
 
 	if _build:
 		_build_defence()
-	_start_fighting()
+	if not _idle:
+		_start_fighting()
 
 	var off: String = ("  minus " + ", ".join(_disabled)) if not _disabled.is_empty() else ""
+	print("[perf] vsync requested OFF, actually %d (0=disabled 1=on 2=adaptive 3=mailbox)"
+		% _vsync_actual)
 	print("[perf] %s renderer, %s quality%s, %.0fs of measured combat, warm-up %.0fs"
 		% [_renderer_name(), _quality.capitalize(), off, _seconds, WARMUP_SECONDS])
 
@@ -378,6 +395,26 @@ func _tail_over_head(values: Array[float]) -> float:
 
 func _has_renderer() -> bool:
 	return DisplayServer.get_name() != "headless" and RenderingServer.get_video_adapter_name() != ""
+
+
+## Switches every CPU particle emitter off, for pricing them.
+##
+## Deliberately separate from `--off=particles`, which scales the *VFX* budget.
+## The torch flames are their own emitters and that setting never touched them -
+## a census of an idle battlefield found ninety-seven CPUParticles2D nodes still
+## running, which is ninety-seven simulations a frame that no quality option in
+## the game can turn down.
+func _kill_emitters() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var killed: int = 0
+	for node: Node in _all_nodes(get_tree().root):
+		var emitter := node as CPUParticles2D
+		if emitter != null:
+			emitter.emitting = false
+			emitter.visible = false
+			killed += 1
+	print("[perf] emitters disabled: %d" % killed)
 
 
 ## Switches every 2D light off, for pricing them.

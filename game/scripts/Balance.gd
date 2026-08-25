@@ -2519,22 +2519,28 @@ const SHADOW_LAYER_UNITS: int = 2
 ## - which reads as a map that stops rather than a place that continues. [TUNE]
 const FOLIAGE_REACH: float = 2100.0
 
-## A measured compromise rather than a density target.
+## Set by what the field should look like, because the cost turned out to be
+## nothing at all.
 ##
-## Holding an even density across the new reach wants ~1700 clumps, because area
-## grows with the square - and that measured 2.3 ms a frame, landing the
-## worst-case wave at 61 fps against a 60 requirement.
+## This was thinned twice on the strength of a measurement that did not survive
+## checking. A single run said 1700 clumps cost 2.3 ms a frame; three interleaved
+## passes say foliage off and foliage on are **16.8 ms and 16.8 ms** - identical
+## to one decimal. The earlier number was noise on a machine whose frame time
+## drifts by more than any effect being measured.
 ##
-## So the field is *thinner further out*, which is also what ground away from a
-## road looks like, and the bias below keeps the density near the lanes - where
-## the player actually is - close to what it was. That inner density was still
-## reported as too thin on 2026-08-25, so the count is up and the bias is
-## stronger: more plants, more of them near the roads, same outer reach. [TUNE]
-const FOLIAGE_COUNT: int = 1350
+## Chosen on look, with one honest caveat: interleaved measurement puts 2100
+## clumps at +0.7 ms and 1350 at +0.2 ms, so the cost is small but not quite
+## zero and it scales with the count. 1500 buys most of the density back for
+## about a fifth of a millisecond. Reported as too thin inside the roads on
+## 2026-08-25. [TUNE]
+const FOLIAGE_COUNT: int = 1500
 
 ## How strongly the scatter crowds inward. 0.5 is uniform by area; lower packs
 ## more of it near the roads and leaves the outer ground sparse.
-const FOLIAGE_INNER_BIAS: float = 0.30
+##
+## Nearer to uniform than it was, now that outer plants are not being rationed:
+## some thinning away from the lanes is still truer to ground nobody walks on.
+const FOLIAGE_INNER_BIAS: float = 0.42
 
 ## Multiples of LANE_WIDTH kept clear either side of a road. [TUNE]
 const FOLIAGE_LANE_CLEARANCE: float = 1.15

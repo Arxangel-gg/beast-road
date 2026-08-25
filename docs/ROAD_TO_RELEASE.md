@@ -30,7 +30,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.53** from `main`. 30 of 30 local gates green at the tag,
+Published as **v0.4.57** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
 processes and are deliberately outside CI.
 
@@ -49,6 +49,25 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
   wildlife.
 - **v0.4.53** the city rocks and shudders, four silent completions given a
   voice, §57 made a gate, and the minimum spec declared.
+- **v0.4.54** the three feature rows that had been flagged as needing a ruling:
+  summon companions, traps, barricades.
+- **v0.4.55** the second co-op play report — enemies that ignored the guest,
+  the guest running its own phantom wave, hero health never replicated at all.
+- **v0.4.56–57** the third play report: wildlife facing, scale, y-sorting,
+  flight and walk cycles; barricades that actually block; the revive that wanted
+  the wrong button; the guest's stuck build cursor; puppets that swing.
+
+**What three rounds of play have established.** Every round found bugs that every
+loopback gate passed, and the causes were almost always singular rather than
+many: one accessor answering the wrong question, one director running where it
+should not, one mask value shared between two namespaces. The gates were not
+weak so much as *aimed at symptoms*. Two were actively misleading — a barricade
+check that handed the query its own answer, and an art claim written from
+glancing at two sprites out of eighteen.
+
+The habit that came out of it: **look at the thing**. Render the screenshot,
+composite the contact sheet, print the runtime value. Each of those settled in
+one call what reasoning had got backwards.
 
 **Three bugs found on the way that were on nobody's list.** `String(int)` threw
 in `Score.row()` on *every* completed run, taking the results screen's score line
@@ -76,8 +95,14 @@ never passed at all.
    was reversed on the number rather than on the intuition.
 4. **The UI vertical-bar rework** — the largest remaining code item, and one
    whose acceptance test is "does this feel right on a phone".
-5. **All three are now done** — §57 copy review, the minimum-spec definition
-   and the juice pass. Two of them left something behind that is worth reading:
+5. **All three are done** — §57 copy review, the minimum-spec definition and the
+   juice pass. The spec's open question is answered too, in the negative: the
+   fixed per-frame cost is **not in any game system**, and A/B timing cannot find
+   it. Interleaved, disabling lights, foliage, particles, both shadow types,
+   clouds and all 97 CPU particle emitters leaves the frame at 16.8 ms — the same
+   as leaving everything on. Combat is free; an idle field costs the same as a
+   fight. Finding *where* needs a real profiler attached to a frame, which has
+   not been done. See `MINIMUM_SPEC.md`. Two of them left something behind that is worth reading:
    the §57 review found a live regression path rather than a bad string, and the
    minimum spec is *declared but not verified*. See `MINIMUM_SPEC.md`.
 5. **Weather does not drive the foliage wind** — the one weather row left.
