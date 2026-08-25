@@ -61,6 +61,13 @@ func _ready() -> void:
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.coop_state_changed.connect(_on_session_changed)
+	# Same reasoning as `CoopHeroes`: the session is established in the menu,
+	# so a system built with the battlefield has already missed every signal
+	# announcing it. Nothing to spawn here, but the identity counter must not
+	# carry over from a previous session on the same machine.
+	if not Coop.is_networked():
+		_puppets.clear()
+		_announced.clear()
 
 
 ## Hands an enemy its identity and announces it. Host side, called on spawn.

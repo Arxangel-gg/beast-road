@@ -122,17 +122,27 @@ func _play_intro() -> void:
 
 
 func start_run(requested_seed: int = 0, endless: bool = false) -> void:
-	await _play_intro()
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
+	# The world is rolled and announced **before** the cinematic, not after.
+	#
+	# The intro is eighteen seconds and it used to run first, so the host played
+	# its whole opening before telling the guest a run had begun - and the guest
+	# then started its own eighteen seconds. One player watched a cinematic while
+	# the other watched a menu, and they arrived on the battlefield most of a
+	# minute apart. Told first, both cinematics play at once and both players
+	# arrive together.
+	#
+	# Announced *after* the reset, because the seed sent has to be the one
+	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
+	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
 	if endless:
 		RunState.begin_endless(false)
-	# Told *after* the reset, so the seed announced is the one actually rolled.
-	# `requested_seed` is 0 for a fresh run and RunState picks one; announcing the
-	# request rather than the result would send the guest a zero and have it roll
-	# a different world.
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed, endless)
+
+	await _play_intro()
+
 	# Consuming Treasury carry-over is a real transaction. Persist it now so a
 	# crash/restart cannot spend the same cache repeatedly.
 	if consumed_cache:

@@ -49,6 +49,27 @@ func _ready() -> void:
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_hero_state.connect(_on_hero_state)
 
+	# **The partner may already be here.**
+	#
+	# Both of the signals above fire while the players are still in the *menu* -
+	# the host gets `coop_partner_joined` when the peer connects, the guest gets
+	# CONNECTED at the same moment - and this system is built by
+	# `Battlefield._ready()`, which happens long afterwards. Listening alone
+	# therefore missed the only announcement that was ever going to come.
+	#
+	# The cost was the whole of co-op looking broken from a player's seat: no
+	# partner hero on either screen, so neither could see the other, and on the
+	# host no `_remote` to feed, so the guest's input went nowhere and its hero
+	# was corrected back to its spawn on every state packet - "the guest cannot
+	# move". One missing line, two symptoms, and both of them the first thing
+	# anybody would notice.
+	#
+	# Asking rather than waiting is also simply more robust: a scope rebuilt
+	# mid-session - a raid, a return to the battlefield - gets its partner back
+	# without depending on an event that has already gone by.
+	if Coop.partner_present():
+		spawn_partner()
+
 
 ## The partner's hero, or null when playing alone.
 func partner() -> Hero:

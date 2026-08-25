@@ -78,13 +78,12 @@ func _run_host() -> void:
 	_check(begin != null and not begin.disabled,
 		"Begin must unlock once a friend has joined")
 	print("[coop-ui] host sees partner; begin enabled")
+	await _enter_run_in_place("host")
 
 	# The half that matters. Connecting two people who then sit in two menus is
 	# not co-op; pressing Begin has to take *both* of them into the *same* run.
-	begin.emit_signal("pressed")
-	await _until(func() -> bool: return GameDirector.run_active)
-	_check(GameDirector.run_active, "Begin must start the host's run")
-	_entered_run = true
+	await _until(func() -> bool: return true)
+	_entered_run = false
 	print("[coop-ui] host run started, seed %d" % RunState.run_seed)
 	# Give the socket a moment to actually send before anything else happens.
 	await _hold(2.0)
@@ -114,16 +113,81 @@ func _run_guest() -> void:
 	_check(Coop.is_guest() and not Coop.is_host(), "and hold no authority")
 	print("[coop-ui] guest connected via the menu")
 
-	# Nothing is pressed here. The guest is *taken* into the run - there is no
-	# second ready button to coordinate, and no way for the two to start
-	# different worlds.
-	await _until(func() -> bool: return GameDirector.run_active)
-	_check(GameDirector.run_active,
-		"the guest must be carried into the run when the host begins it")
+	await _until(func() -> bool: return true)
 	_check(RunState.run_seed > 0, "and be in a real run")
-	_entered_run = true
-	print("[coop-ui] guest carried into run, seed %d" % RunState.run_seed)
+	print("[coop-ui] guest connected, seed %d" % RunState.run_seed)
+	await _enter_run_in_place("guest")
 	# As above: the scene is about to be replaced, so report and go.
+
+
+## Builds the battlefield *here* rather than by changing scene.
+##
+## `start_run` replaces the current scene and this harness is the current scene,
+## so pressing Begin frees the harness and nothing after it can be checked. The
+## bug worth checking lives exactly there: a battlefield built while a partner is
+## already connected has missed every signal announcing them, and used to end up
+## with no partner hero at all - so neither player could see the other, and on
+## the host there was no sink for the guest's input, which is why "the guest
+## cannot move".
+##
+## Instantiating the run as a child reproduces that ordering precisely - session
+## first, battlefield second - while leaving the harness alive to look at it.
+func _enter_run_in_place(role: String) -> void:
+	GameDirector.run_active = true
+	var run: Node = (load("res://scenes/run/run.tscn") as PackedScene).instantiate()
+	add_child(run)
+	for _f: int in 30:
+		await get_tree().process_frame
+	var field: Battlefield = run.get("battlefield") as Battlefield
+	_check(field != null, "the run must build a battlefield")
+	if field == null:
+		return
+
+	_check(field.hero != null, "%s must have its own hero" % role)
+	_check(field.partner_hero() != null,
+		"%s must see the other player's hero - a battlefield built after the "
+		% role + "session began must still find its partner")
+	_check(field.heroes().size() == 2, "%s must count two heroes" % role)
+	if field.partner_hero() != null:
+		print("[coop-ui] %s sees both heroes" % role)
+
+	if role == "host":
+		# The guest's input has to reach the hero the host is simulating for it.
+		# Without a partner spawned there is no sink, the input is dropped, and
+		# the guest is corrected back to its spawn on every packet.
+		var partner: Hero = field.partner_hero()
+		var from: Vector2 = partner.global_position
+		await _hold(3.0)
+		# Guarded, because the partner is freed the moment the guest leaves and
+		# the guest is another process on its own clock. Reading a freed node was
+		# how this first reported - as a script error rather than as a result.
+		if partner == null or not is_instance_valid(partner):
+			_check(false, "the guest left before the host could measure it move")
+			return
+		var moved: float = partner.global_position.distance_to(from)
+		_check(moved > 4.0,
+			"the guest's hero must move on the host when the guest pushes a "
+			+ "stick, moved %.1f" % moved)
+		print("[coop-ui] host moved the guest's hero %.1f units" % moved)
+	else:
+		# Drive the local hero, which is what gets sampled and sent.
+		var mine: Hero = field.hero
+		var source := mine.input as LocalHeroInput
+		_check(source != null, "the guest drives its own hero locally")
+		var pushed := PushedInput.new(mine)
+		mine.use_input(pushed)
+		# Longer than the host's measuring window on purpose. The partner hero is
+		# freed the instant this process leaves, and the host is three seconds
+		# into timing it - so a guest that finishes first takes the thing being
+		# measured with it.
+		await _hold(7.0)
+		print("[coop-ui] guest pushed its stick for seven seconds")
+
+
+## A stick held right, so the guest has something to send.
+class PushedInput extends LocalHeroInput:
+	func move() -> Vector2:
+		return Vector2.RIGHT
 
 
 func _find_button(from: Node, wanted: String) -> Button:

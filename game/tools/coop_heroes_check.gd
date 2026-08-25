@@ -42,6 +42,7 @@ func _ready() -> void:
 	await _test_buttons_latch_rather_than_drop()
 	await _test_the_phase_binds_both()
 	await _test_a_partner_leaving_leaves_nothing_held()
+	await _test_a_battlefield_built_mid_session_finds_its_partner()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -175,6 +176,48 @@ func _test_a_partner_leaving_leaves_nothing_held() -> void:
 		+ "still holding one walks into a wall forever")
 	_check(not remote.pressed(HeroInput.BUTTON_ATTACK),
 		"nor an unspent press")
+
+
+## A battlefield built while a partner is *already* connected must still get one.
+##
+## This is the bug that made co-op look broken from a player's seat, and it was
+## invisible to every check here because they all spawn the partner by hand.
+##
+## Partner spawning was purely signal-driven, and both announcements - the host's
+## `coop_partner_joined`, the guest's CONNECTED - fire while the players are
+## still in the *menu*. `CoopHeroes` is built by `Battlefield._ready()`, long
+## after, so it listened for something that had already happened and heard
+## nothing. Neither player got a partner hero, so neither could see the other;
+## and with no `_remote` on the host, the guest's input went nowhere and its hero
+## was corrected back to spawn on every state packet - "the guest cannot move".
+##
+## Two of the three things reported from play, one missing line.
+func _test_a_battlefield_built_mid_session_finds_its_partner() -> void:
+	var heroes: Node = _field.get_node_or_null("CoopHeroes")
+	if heroes == null:
+		_check(false, "the battlefield must build its CoopHeroes system")
+		return
+	heroes.call("despawn_partner")
+	await get_tree().process_frame
+	_check(_field.partner_hero() == null, "the harness starts from no partner")
+
+	# A fresh CoopHeroes, standing in for the one a rebuilt scope would create,
+	# with a partner already present rather than about to arrive.
+	var rebuilt := CoopHeroes.new()
+	rebuilt.name = "CoopHeroesRebuilt"
+	rebuilt.field = _field
+	_field.add_child(rebuilt)
+	await get_tree().process_frame
+
+	# Playing alone here, so nothing should appear - the check is that it *asks*
+	# rather than waits, and asks the right question.
+	_check(not Coop.partner_present(), "this harness plays alone")
+	_check(rebuilt.call("partner") == null,
+		"a system built with nobody connected must not conjure a partner")
+	_check(rebuilt.has_method("spawn_partner"),
+		"and must be able to spawn one the moment it is asked, not only when told")
+	rebuilt.queue_free()
+	await get_tree().process_frame
 
 
 func _spawn_partner() -> Hero:
