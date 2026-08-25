@@ -28,6 +28,38 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ---
 
+## 0b. Where this stands, 2026-08-25
+
+Published as **v0.4.45** from `main`. 28 of 28 local gates green at the tag,
+plus `tools/coop_live.sh`, which runs co-op as two real processes and is
+deliberately outside CI.
+
+Landed since v0.4.44: the zero-capital start, two-player co-op end to end,
+visible weather, beast-scope parallax, eight bugs reported from play, torch
+shadows, five new foliage assets, and a leaderboard confirmed live.
+
+**What is genuinely still open**, in the order it matters:
+
+1. **Co-op has never been played by two people.** Every gate is a loopback,
+   including the two-process one. It proves the transport, the authority
+   model and the plumbing; it proves nothing about feel or latency, and the
+   co-op difficulty constant is explicitly provisional against it.
+2. **Co-op hero XP is shared but untested in play** — the award crosses and
+   lands on each player's own hero, verified across two processes, but no
+   human has watched two heroes level together.
+3. **The UI vertical-bar rework** — the largest remaining code item, and one
+   whose acceptance test is "does this feel right on a phone".
+4. **§57 copy review**, minimum-spec definition, and the juice pass.
+5. **Weather does not drive the foliage wind** — the one weather row left.
+
+**A caution worth keeping.** Three features this session compiled, loaded and
+passed every gate while being visibly broken: a white wall across half the
+sky, dinner-plate rain ripples, and snow that never appeared. Each took one
+screenshot to find. The gates answer "does it still run" and have no opinion
+whatever about what the screen looks like.
+
+---
+
 ## 1. Bugs and regressions
 
 Highest priority: these are things that are wrong, not things that are missing.
