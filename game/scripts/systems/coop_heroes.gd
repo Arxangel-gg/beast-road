@@ -40,6 +40,9 @@ var _state_timer: float = 0.0
 ## What was true last frame, so a death or a revival can be spotted as a change
 ## rather than as a signal that cannot say whose it was.
 var _host_was_alive: bool = true
+
+## Whether the current wipe has already been announced, so it is charged once.
+var _wipe_announced: bool = false
 var _partner_was_alive: bool = true
 
 ## Where a partner hero appears if nothing better is known. Beside the town,
@@ -56,6 +59,8 @@ func _ready() -> void:
 	EventBus.coop_host_input.connect(_on_host_input)
 	EventBus.coop_hero_down.connect(_on_hero_down)
 	EventBus.coop_hero_revived.connect(_on_hero_revived)
+	EventBus.coop_team_wipe.connect(_on_team_wipe)
+	EventBus.coop_revive_progress.connect(_on_revive_progress)
 
 	# **The partner may already be here.**
 	#
@@ -171,6 +176,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_watch_deaths()
+	_tick_revives(delta)
 	if Coop.is_guest():
 		_send_input(relay)
 	else:
@@ -246,7 +252,87 @@ func _on_hero_revived(host_hero: bool, at: Vector2) -> void:
 	var who: Hero = _mirrored(host_hero)
 	if who != null and not who.is_alive():
 		who.global_position = at
-		who.revive_from_coop()
+		who.revive_in_place()
+
+
+## Reviving, and the one thing in co-op that costs the run. Host side.
+##
+## The rules the owner set on 2026-08-25: a player who goes down takes no wound
+## and waits. A partner who reaches them and holds gets them up for free. Both
+## down at once is the failure, and the pair pays one Wound between them - three
+## of those and the run is over, exactly as in solo play.
+##
+## Run entirely on the host and mirrored, rather than each machine deciding for
+## itself. Two machines measuring "is my partner close enough" against positions
+## a packet apart is how one player watches a revive complete that never happened
+## on the other.
+func _tick_revives(delta: float) -> void:
+	if not _is_authority_with_company():
+		return
+	var mine: Hero = _local_hero()
+	if mine == null or not has_partner():
+		return
+
+	if mine.is_downed() and _partner.is_downed():
+		# Latched, or a wipe would be announced on every frame the pair spends on
+		# the floor - and each announcement would charge the run another Wound.
+		if not _wipe_announced:
+			_wipe_announced = true
+			EventBus.coop_team_wipe.emit()
+		return
+	_wipe_announced = false
+	_tick_one_revive(mine, _partner, delta, true)
+	_tick_one_revive(_partner, mine, delta, false)
+
+
+## One downed hero, and whatever their partner is doing about it.
+func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
+		host_hero: bool) -> void:
+	if not downed.is_downed():
+		return
+	var reaching: bool = helper.is_alive() and helper.is_holding_revive() 		and helper.global_position.distance_to(downed.global_position) 			<= Balance.COOP_REVIVE_RADIUS
+	# Decays when they let go or are driven off. A revive interrupted by having
+	# to fight is meant to lose ground, or standing in the open for three seconds
+	# during a wave would not be the cost it is supposed to be.
+	var step: float = delta / maxf(Balance.COOP_REVIVE_SECONDS, 0.01)
+	var before: float = downed.revive_progress()
+	var after: float = clampf(before + (step if reaching else -step), 0.0, 1.0)
+	if is_equal_approx(before, after):
+		return
+	downed.set_revive_progress(after)
+	EventBus.coop_revive_progress.emit(host_hero, after)
+	if after < 1.0:
+		return
+	# Announced by `_watch_deaths` on the next frame, from the change in who is
+	# alive - the same path a wipe respawn takes. Emitting it here as well would
+	# send the fact twice for one revival.
+	downed.revive_in_place()
+
+
+## The pair went down together, so the run pays. Applied on both machines.
+##
+## The Wound is added here rather than in either hero because it belongs to the
+## run, not to a person - charging it in both heroes would cost two Wounds for
+## one wipe and end the run in a wave and a half.
+func _on_team_wipe() -> void:
+	_wipe_announced = true
+	var wounds: int = RunState.add_wound()
+	if wounds >= Balance.HERO_MAX_WOUNDS:
+		RunState.hero_deaths += 1
+		GameDirector.end_run(false)
+		return
+	var mine: Hero = _local_hero()
+	if mine != null and mine.is_downed():
+		mine.respawn_from_wipe()
+	if has_partner() and _partner.is_downed():
+		_partner.respawn_from_wipe()
+
+
+## The host's bar, on the guest's screen.
+func _on_revive_progress(host_hero: bool, progress: float) -> void:
+	var who: Hero = _mirrored(host_hero)
+	if who != null:
+		who.set_revive_progress(progress)
 
 
 ## Which hero here stands for the one the host is talking about.
@@ -305,7 +391,17 @@ func _send_state() -> void:
 ## one thing a player feels immediately, and taking it from a packet arriving
 ## twenty times a second would make their own cursor lag. The host still decides
 ## what that aim *did*.
-func _on_hero_state(host_at: Vector2, host_aim: Vector2,
+## Facing is deliberately *not* applied here, and that is the fix for a bug play
+## found: a partner walked around permanently facing wherever their cursor was,
+## while every player sees their own hero face the way they are *walking*. So the
+## two of you watched a different character than the one you were playing.
+##
+## The cause was applying the aim vector directly. `Hero._update_facing` already
+## resolves this properly - attack beats movement, movement beats cursor - and a
+## mirrored hero now runs it from the relayed input like any other, which means
+## it cannot drift from what its owner sees by construction rather than by
+## keeping two rules in step.
+func _on_hero_state(host_at: Vector2, _host_aim: Vector2,
 		guest_at: Vector2, _guest_aim: Vector2) -> void:
 	if not Coop.is_guest():
 		return
@@ -321,7 +417,6 @@ func _on_hero_state(host_at: Vector2, host_aim: Vector2,
 	if has_partner():
 		_partner.global_position = _partner.global_position.lerp(host_at,
 			Balance.COOP_POSITION_CORRECTION)
-		_partner.face(host_aim)
 	var mine: Hero = _local_hero()
 	if mine != null:
 		# Gentler still for the hero under this player's own hands: a correction

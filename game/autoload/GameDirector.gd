@@ -58,8 +58,51 @@ func set_paused(paused: bool) -> void:
 	if get_tree().paused == paused:
 		return
 	get_tree().paused = paused
-	if Coop.is_networked() and Coop.partner_present():
-		EventBus.coop_paused.emit(paused)
+	if not Coop.partner_present():
+		return
+	# Applied here first and announced second, on both sides. Needing to put the
+	# game down is not an authority decision, so a guest must not wait for
+	# permission to stop - but the host has to be told, or one player halts while
+	# the other keeps fighting a wave that is still walking on a machine which has
+	# stopped simulating it.
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.PAUSE, [paused])
+		return
+	EventBus.coop_paused.emit(paused)
+
+
+## Somebody skipped a cinematic, so both of us skip it.
+##
+## Either player may. Sitting through the rest of an opening alone because your
+## friend skipped theirs is the same failure as the original bug, only quieter:
+## it leaves the two of you arriving at the battlefield a minute apart.
+func skip_cinematic() -> void:
+	if not Coop.partner_present():
+		return
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.SKIP_CINEMATIC)
+		return
+	EventBus.coop_cinematic_skipped.emit()
+
+
+## A guest asked for something that is not the battlefield's to grant.
+##
+## Pause and cinematic skips are handled here rather than in `CoopWorld` because
+## that router needs a battlefield to exist, and a cinematic plays before there
+## is one - which is exactly when a skip request arrives.
+func _on_coop_request(kind: int, args: Array, _from: int) -> void:
+	if not Coop.is_host():
+		return
+	match kind:
+		CoopRelay.Request.PAUSE:
+			if args.size() == 1:
+				set_paused(bool(args[0]))
+		CoopRelay.Request.SKIP_CINEMATIC:
+			EventBus.coop_cinematic_skipped.emit()
 
 
 func _on_coop_paused(paused: bool) -> void:
@@ -105,6 +148,7 @@ func _ready() -> void:
 	# fully integrated" looked like from the outside, and it was right.
 	EventBus.coop_run_started.connect(_on_coop_run_started)
 	EventBus.coop_paused.connect(_on_coop_paused)
+	EventBus.coop_request_received.connect(_on_coop_request)
 	CursorKit.apply()
 
 

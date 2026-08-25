@@ -80,6 +80,21 @@ var _lunge_decay: float = 0.0
 
 var _respawn_left: float = 0.0
 var _respawn_fraction: float = Balance.HERO_WOUND_REVIVE_HP
+
+## True while this hero is down and waiting for a partner, in co-op.
+##
+## Not the same as being dead, and the difference is the whole mechanic: a downed
+## hero has taken **no wound** and has **no respawn timer**. The only two ways
+## out are a partner reaching them, or both players going down at once - and only
+## the second costs the run anything.
+var _downed: bool = false
+
+## How far through the revive hold the partner has got, from 0 to 1.
+##
+## Owned by the host and mirrored to the guest, so both players watch the same
+## bar fill. Decays when the partner lets go or walks away: a revive interrupted
+## by having to fight is supposed to lose ground.
+var _revive_progress: float = 0.0
 var _flash_left: float = 0.0
 var _beast_impulse: Vector2 = Vector2.ZERO
 var _beast_stun_left: float = 0.0
@@ -110,6 +125,10 @@ func _ready() -> void:
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	health_bar.bind(health)
+	# Built here rather than placed in the scene: it is co-op furniture, it draws
+	# nothing at all in a solo run, and adding it in code keeps one hero scene
+	# serving both.
+	add_child(ReviveBar.new(self))
 
 	# The hero carries the light the player navigates by after dark. It throws no
 	# shadows: it sits inside the hero, so the only thing it could shadow is the
@@ -151,7 +170,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 
-	if health.is_dead:
+	if not is_alive():
 		_tick_respawn(delta)
 		return
 
@@ -242,8 +261,14 @@ func apply_raid_wound() -> void:
 	_restore_presence()
 
 
+## Standing and able to act.
+##
+## Being *downed* counts as not alive even though the body has not necessarily
+## been dealt lethal damage - a hero waiting for a partner is out of the fight in
+## every way that matters, and anything that walks, swings or is targeted should
+## treat them as gone until somebody gets them up.
 func is_alive() -> bool:
-	return not health.is_dead
+	return not health.is_dead and not _downed
 
 
 ## Whether this hero may swing and cast right now.
@@ -387,29 +412,52 @@ func use_input(source: HeroInput) -> void:
 ## One when alone or when the partner is elsewhere; faster while they stand close
 ## enough to be doing something about it. Reads the battlefield's partner rather
 ## than caching it, so a partner who leaves mid-revive stops helping.
-func _revive_speed() -> float:
-	if not Coop.is_networked():
-		return 1.0
-	var scope := field as Battlefield
-	if scope == null:
-		return 1.0
-	var helper: Hero = scope.partner_hero() if scope.hero == self else scope.hero
-	if helper == null or not is_instance_valid(helper) or not helper.is_alive():
-		return 1.0
-	if global_position.distance_to(helper.global_position) > Balance.COOP_REVIVE_RADIUS:
-		return 1.0
-	return Balance.COOP_REVIVE_SPEED
+## True while down and waiting for help, rather than dead and waiting for a clock.
+func is_downed() -> bool:
+	return _downed
 
 
-## Brings this hero back because the host says it is back.
+func revive_progress() -> float:
+	return _revive_progress
+
+
+## Mirrored from the host, or set by it. The bar reads this and nothing else.
+func set_revive_progress(value: float) -> void:
+	_revive_progress = clampf(value, 0.0, 1.0)
+
+
+## Whether this hero's player is holding the revive key right now.
 ##
-## The host owns when a revival happens; the local respawn timer is what decides
-## it there. Here it is simply obeyed, so the two machines never disagree about
-## whether somebody is on their feet.
-func revive_from_coop() -> void:
-	if is_alive():
+## Asked of the input source rather than of `Input`, so a partner's hold arrives
+## over the wire through the same seam their movement does and the host can read
+## both players' hands without either hero knowing a network exists.
+func is_holding_revive() -> bool:
+	return input != null and input.held(HeroInput.HOLD_REVIVE)
+
+
+## Helped back up by a partner. Costs the run nothing.
+##
+## Comes back **where they fell**, which is the point: the partner crossed the
+## field and stood in the open for three seconds to make that happen, and
+## teleporting the rescued hero to the spawn would throw that away.
+func revive_in_place() -> void:
+	if not _downed:
 		return
-	_respawn_left = 0.0
+	_downed = false
+	_revive_progress = 0.0
+	_respawn_fraction = Balance.COOP_DOWNED_REVIVE_HP
+	_finish_respawn(false)
+
+
+## Both players went down, so the run pays a Wound and both come back.
+##
+## The wound itself is added once, by whoever is coordinating the pair - not here
+## - because it belongs to the run rather than to either hero, and adding it in
+## both heroes would charge twice for one wipe.
+func respawn_from_wipe() -> void:
+	_downed = false
+	_revive_progress = 0.0
+	_respawn_fraction = Balance.HERO_WOUND_REVIVE_HP
 	_finish_respawn()
 
 
@@ -521,7 +569,7 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 
 
 func _on_beast_step(impulse: Vector2, strength: float) -> void:
-	if field is RaidArena or health.is_dead:
+	if field is RaidArena or not is_alive():
 		return
 	_beast_impulse += impulse * clampf(strength, 0.0, 1.2)
 	_beast_stun_left = maxf(_beast_stun_left, Balance.BEAST_STEP_STUN * strength)
@@ -541,6 +589,14 @@ func _on_died(at: Vector2) -> void:
 		health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
 		EventBus.hero_respawned.emit(global_position)
 		return
+	# In co-op, going down is not by itself the end of anything.
+	#
+	# No wound, no respawn clock: the hero lies there until a partner gets them
+	# up, or until the other player goes down too and the pair pays one Wound
+	# between them. Owner's re-cut, 2026-08-25. Solo play is untouched below.
+	if Coop.partner_present():
+		go_down(at)
+		return
 	var wounds: int = RunState.add_wound()
 	if wounds >= Balance.HERO_MAX_WOUNDS:
 		RunState.hero_deaths += 1
@@ -549,6 +605,29 @@ func _on_died(at: Vector2) -> void:
 		return
 	_respawn_left = Balance.HERO_RESPAWN_DELAY
 	_respawn_fraction = Balance.HERO_WOUND_REVIVE_HP
+	_collapse(at)
+
+
+## Goes down without dying: no Wound, no respawn clock, waiting for a partner.
+##
+## Public rather than a branch buried in the death path, so the rule can be
+## provoked and checked directly. The difference between this and a solo death is
+## entirely in what it *does not* do, and that is the hardest kind of behaviour
+## to gate by accident.
+func go_down(at: Vector2) -> void:
+	if _downed:
+		return
+	_downed = true
+	_revive_progress = 0.0
+	_collapse(at)
+
+
+## Everything that happens to the body when a hero goes down, either way.
+##
+## Shared so the two paths cannot drift: a downed hero and a dead one look
+## identical, which is correct - the difference is what happens next, not what it
+## looks like.
+func _collapse(at: Vector2) -> void:
 	_dash_left = 0.0
 	_lunge_velocity = Vector2.ZERO
 	velocity = Vector2.ZERO
@@ -578,7 +657,11 @@ func _tick_respawn(delta: float) -> void:
 	# during a wave, and buys it only by being there: crossing the field to reach
 	# a downed friend is the decision, and it is paid for in a lane going
 	# undefended while they do it.
-	_respawn_left -= delta * _revive_speed()
+	# A downed hero has no clock. They are waiting for a person, not a timer, and
+	# letting this run would stand them straight back up on the next frame.
+	if _downed:
+		return
+	_respawn_left -= delta
 	if _respawn_left > 0.0:
 		return
 	_finish_respawn()
@@ -590,8 +673,9 @@ func _tick_respawn(delta: float) -> void:
 ## partner is on their feet must come back exactly as it would have on its own -
 ## same health fraction, same invulnerability window, same announcement - or the
 ## two machines end up with heroes in different conditions.
-func _finish_respawn() -> void:
-	global_position = Vector2.ZERO
+func _finish_respawn(to_spawn: bool = true) -> void:
+	if to_spawn:
+		global_position = Vector2.ZERO
 	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
 	health.revive(_respawn_fraction)

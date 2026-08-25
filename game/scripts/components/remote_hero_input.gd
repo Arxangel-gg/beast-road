@@ -19,6 +19,10 @@ var _has_aim: bool = false
 ## Presses received and not yet consumed. OR-ed in, cleared per bit on read.
 var _pending: int = 0
 
+## What the partner is holding down right now. Assigned rather than OR-ed: a
+## hold is a level, and latching it would keep reviving after they let go.
+var _held: int = 0
+
 ## Frames since anything arrived, so a silent partner can be told from a still
 ## one. Nobody reads it yet; step 6 answers what a dropped partner looks like.
 var _quiet_for: float = 0.0
@@ -26,8 +30,11 @@ var _quiet_for: float = 0.0
 
 ## Takes one snapshot from the wire. Shape matches `LocalHeroInput.snapshot`.
 func apply(snapshot: Array) -> void:
-	if snapshot.size() != 3:
+	if snapshot.size() < 3:
 		return
+	# Holds were added after the first shape. Tolerated rather than required so a
+	# snapshot built by anything that predates them still applies cleanly.
+	_held = int(snapshot[3]) if snapshot.size() > 3 else 0
 	_move = snapshot[0] as Vector2
 	_aim = snapshot[1] as Vector2
 	_has_aim = _aim != Vector2.ZERO
@@ -51,11 +58,16 @@ func quiet_for() -> float:
 ## Used when a partner leaves. A remote hero left holding its last move vector
 ## would walk into a wall forever, which is the same failure the touch controls
 ## had when a hidden stick kept its action pressed.
+func held(mask: int) -> bool:
+	return (_held & mask) != 0
+
+
 func clear() -> void:
 	_move = Vector2.ZERO
 	_aim = Vector2.ZERO
 	_has_aim = false
 	_pending = 0
+	_held = 0
 
 
 func move() -> Vector2:

@@ -72,6 +72,8 @@ func _ready() -> void:
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_world_clock.connect(_on_world_clock)
 	EventBus.tower_fired.connect(_on_tower_fired)
+	EventBus.phase_changed.connect(_on_phase_changed)
+	EventBus.coop_phase.connect(_on_coop_phase)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
@@ -248,6 +250,30 @@ func _mark_puppet_towers() -> void:
 		var tower := node as Tower
 		if tower != null:
 			tower.puppet = true
+
+
+## This machine's own run changed phase. Host side.
+func _on_phase_changed(phase: int, previous: int) -> void:
+	if not _is_authority_with_company():
+		return
+	EventBus.coop_phase.emit(phase, previous)
+
+
+## The host's run changed phase, so this one does too. Guest side.
+##
+## Written into `RunState` rather than merely announced, which is the bug play
+## found: the relay used to re-emit `phase_changed` straight onto the guest's
+## bus, so every listener heard that combat had begun while `RunState.phase`
+## still said Preparation. `can_build_now()` reads the phase, so the guest sat in
+## build mode through a wave the host had already started.
+##
+## `set_phase` emits the guest's own `phase_changed` as a consequence of the
+## write, exactly as it does on a machine playing alone - so guest-side systems
+## still never learn a network exists.
+func _on_coop_phase(phase: int, _previous: int) -> void:
+	if not Coop.is_guest():
+		return
+	RunState.set_phase(phase as RunState.Phase)
 
 
 ## This machine's own tower took a shot. Host side.

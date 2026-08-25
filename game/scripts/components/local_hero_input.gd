@@ -50,6 +50,14 @@ func pressed(button: int) -> bool:
 	return false
 
 
+func held(mask: int) -> bool:
+	if mask == BUTTON_ATTACK:
+		return Input.is_action_pressed(&"attack")
+	if mask == HOLD_REVIVE:
+		return Input.is_action_pressed(&"revive")
+	return false
+
+
 func is_local() -> bool:
 	return true
 
@@ -70,4 +78,7 @@ func snapshot(current_aim: Vector2) -> Array:
 		var bit: int = HeroInput.spell_button(slot)
 		if pressed(bit):
 			buttons |= bit
-	return [move(), current_aim, buttons]
+	var holds: int = 0
+	if held(HOLD_REVIVE):
+		holds |= HOLD_REVIVE
+	return [move(), current_aim, buttons, holds]

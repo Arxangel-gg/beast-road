@@ -1534,6 +1534,67 @@ has its design settled and written down; no netcode is written yet.
       them would make two players *safer* than one rather than *better* than
       one. The second player buys time, and pays for it by leaving a lane.
 
+      **Step 8 — the second play report (v0.4.50).** Four things from play, and
+      a fifth and sixth found while fixing them.
+
+      *Facing.* Partners walked around permanently pointed at their own cursor,
+      while every player sees their own hero face the way they are **walking**.
+      The cause was applying the relayed aim vector directly. `_update_facing`
+      already resolves this properly - attack beats movement, movement beats
+      cursor - so a mirrored hero now just runs it from the relayed input and
+      cannot disagree with its owner by construction.
+
+      *The guest stayed in build mode through a wave.* The relay re-emitted
+      `phase_changed` on the guest without ever **writing** the phase, so every
+      listener heard that combat had begun while `RunState.phase` still said
+      Preparation - and `can_build_now()` reads the phase. Replaced with a
+      host-authored `coop_phase` that the guest writes, exactly like tower
+      state; the guest's own `phase_changed` then follows from the write.
+
+      *Cinematic skips are shared.* Either player's skip skips for both. Only
+      the whole-cinematic hold crosses - advancing one panel stays personal,
+      because reading speed is, and yanking the page out from under somebody
+      mid-sentence to keep two machines in lockstep is worse than a few seconds
+      of drift the next hold resolves anyway.
+
+      *Guest-initiated pause never reached the host*, found while wiring the
+      above. It tripped the authority guard and was dropped silently, so a guest
+      pausing left the host fighting alone. Pause now travels as a **request**
+      the host answers - the existing model, rather than a softer guard.
+
+      *`String(int)` threw in `Score.row()`* on **every** completed run, taking
+      the results screen's score line and the leaderboard submission with it. A
+      run seed is an int and Godot 4 has no such constructor. Found because the
+      new revive gate is the first check that ends a run - which is the argument
+      for gates that finish things rather than sampling the middle.
+
+      **The revive redesign, and why the first one was wrong (owner's re-cut,
+      2026-08-25).** v0.4.49 made a partner *accelerate the respawn*: the wound,
+      the reduced health and the invulnerability window all still applied, on
+      the reasoning that two players should be better than one rather than
+      safer. The owner re-cut it, and the new rules are better because they put
+      the cost somewhere the players can act on:
+
+      * one player down costs the run **nothing** - no Wound, and no clock that
+        would quietly stand them up without anybody helping
+      * a partner holds `revive` within 150 units for three seconds and returns
+        them **where they fell**, at 35% health - fragile, and standing in the
+        open during a wave was the price
+      * both down at once costs **one** Wound between the pair
+      * three Wounds ends the run, exactly as in solo play
+
+      Progress decays when the helper lets go or is driven off, or three seconds
+      in the open would not be the cost it is meant to be. The hold travels in
+      its own mask beside the button bits, because a button is an edge and is
+      latched until read while a hold is a level - a latched hold would revive
+      somebody the player had already let go of.
+
+      Gated deliberately hard, because every rule above is a negative or an
+      off-by-one: none would announce itself by failing visibly, and the
+      double-charge in particular would look only like a run that ended early.
+      `is_alive()` now counts a downed hero as not alive, which is what stops
+      beast steps walking them out from under their own revive bar.
+
       **Step 7 — towers shoot, and hits are felt (v0.4.50).** Held back one
       version on the belief that relaying every shot would be the heaviest
       traffic in the game. It is not: twelve towers at roughly 1.5 shots a

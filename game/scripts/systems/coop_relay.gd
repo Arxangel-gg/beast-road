@@ -56,6 +56,9 @@ enum Fact {
 	HERO_DOWN = 17,
 	HERO_REVIVED = 18,
 	TOWER_FIRED = 19,
+	CINEMATIC_SKIPPED = 20,
+	TEAM_WIPE = 21,
+	REVIVE_PROGRESS = 22,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -68,6 +71,8 @@ enum Request {
 	RIDE_ON = 4,
 	ENTER_RAID = 5,
 	HERO_INPUT = 6,
+	PAUSE = 7,
+	SKIP_CINEMATIC = 8,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -193,7 +198,7 @@ func _fact_bindings() -> Array:
 		["wave_cleared", _on_wave_cleared],
 		["boss_defeated", _on_boss_defeated],
 		["lane_pressure_changed", _on_lane_pressure_changed],
-		["phase_changed", _on_phase_changed],
+		["coop_phase", _on_coop_phase],
 		["currency_changed", _on_currency_changed],
 		["town_health_changed", _on_town_health_changed],
 		["coop_hero_state", _on_coop_hero_state],
@@ -209,6 +214,9 @@ func _fact_bindings() -> Array:
 		["coop_hero_down", _on_coop_hero_down],
 		["coop_hero_revived", _on_coop_hero_revived],
 		["coop_tower_fired", _on_coop_tower_fired],
+		["coop_cinematic_skipped", _on_coop_cinematic_skipped],
+		["coop_team_wipe", _on_coop_team_wipe],
+		["coop_revive_progress", _on_coop_revive_progress],
 	]
 
 
@@ -228,8 +236,20 @@ func _on_lane_pressure_changed(lane: int, pressure: float) -> void:
 	_relay(Fact.LANE_PRESSURE, [lane, pressure])
 
 
-func _on_phase_changed(phase: int, previous: int) -> void:
+func _on_coop_phase(phase: int, previous: int) -> void:
 	_relay(Fact.PHASE_CHANGED, [phase, previous])
+
+
+func _on_coop_cinematic_skipped() -> void:
+	_relay(Fact.CINEMATIC_SKIPPED, [])
+
+
+func _on_coop_team_wipe() -> void:
+	_relay(Fact.TEAM_WIPE, [])
+
+
+func _on_coop_revive_progress(host_hero: bool, progress: float) -> void:
+	_relay(Fact.REVIVE_PROGRESS, [host_hero, progress])
 
 
 func _on_currency_changed(id: String, amount: int) -> void:
@@ -425,7 +445,14 @@ func _replay(kind: int, args: Array) -> void:
 				bus.lane_pressure_changed.emit(int(args[0]), float(args[1]))
 		Fact.PHASE_CHANGED:
 			if args.size() == 2:
-				bus.phase_changed.emit(int(args[0]), int(args[1]))
+				bus.coop_phase.emit(int(args[0]), int(args[1]))
+		Fact.CINEMATIC_SKIPPED:
+			bus.coop_cinematic_skipped.emit()
+		Fact.TEAM_WIPE:
+			bus.coop_team_wipe.emit()
+		Fact.REVIVE_PROGRESS:
+			if args.size() == 2:
+				bus.coop_revive_progress.emit(bool(args[0]), float(args[1]))
 		Fact.CURRENCY_CHANGED:
 			if args.size() == 2:
 				bus.currency_changed.emit(String(args[0]), int(args[1]))

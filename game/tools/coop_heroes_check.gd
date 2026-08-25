@@ -43,6 +43,7 @@ func _ready() -> void:
 	await _test_the_phase_binds_both()
 	await _test_a_partner_leaving_leaves_nothing_held()
 	await _test_a_battlefield_built_mid_session_finds_its_partner()
+	await _test_going_down_costs_nothing_until_both_do()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -53,7 +54,8 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[coop-heroes] PASS - one hero alone, two in company, independent, phase-bound")
+		print("[coop-heroes] PASS - one hero alone, two in company, independent, "
+			+ "phase-bound, revived without a wound")
 	get_tree().quit(_failures)
 
 
@@ -233,3 +235,81 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	printerr("[coop-heroes] %s" % why)
+
+
+## The revive rules, which are almost entirely about what does *not* happen.
+##
+## Owner's re-cut, 2026-08-25, replacing a design where dying in co-op still cost
+## a Wound and a partner only sped the respawn up. The rules now:
+##
+## * one player down costs the run **nothing** - no Wound, and no clock that
+##   would quietly stand them back up without anybody helping
+## * a partner who reaches them returns them **where they fell**, fragile
+## * both down at once costs **one** Wound between them, not one each
+## * three Wounds ends the run, exactly as in solo play
+##
+## Every one of those is a negative or an off-by-one, which is why this exists:
+## none of them would announce itself by failing visibly in a normal run, and
+## the double-charge in particular would just look like a run that ended early.
+func _test_going_down_costs_nothing_until_both_do() -> void:
+	# Re-read and re-spawn rather than assuming: the tests above deliberately
+	# take a partner away and rebuild the battlefield, and a harness that assumed
+	# its own earlier state would be testing the previous test.
+	_field = _run.get("battlefield") as Battlefield
+	if _field == null or _field.hero == null:
+		_check(false, "the harness needs a battlefield for the revive rules")
+		return
+	var partner: Hero = _field.partner_hero()
+	if partner == null:
+		partner = _spawn_partner()
+	if partner == null:
+		_check(false, "the harness needs both heroes for the revive rules")
+		return
+	await get_tree().process_frame
+	var hero: Hero = _field.hero
+	RunState.hero_wounds = 0
+
+	var fell_at := Vector2(120.0, -40.0)
+	hero.global_position = fell_at
+	hero.go_down(fell_at)
+	_check(hero.is_downed(), "a hero who goes down must be downed")
+	_check(not hero.is_alive(), "and must not be standing")
+	_check(RunState.hero_wounds == 0,
+		"going down alone must cost no Wound, got %d" % RunState.hero_wounds)
+
+	# A full respawn delay of waiting must not get them up. Nothing but a person
+	# should, and a clock left running here is the whole bug.
+	for _f: int in 90:
+		await get_tree().process_frame
+	_check(hero.is_downed(), "a downed hero must not stand up on a timer")
+
+	hero.set_revive_progress(1.0)
+	hero.revive_in_place()
+	_check(hero.is_alive(), "a revived hero must be on their feet")
+	_check(hero.global_position.distance_to(fell_at) < 1.0,
+		"and must come back where they fell, not at the spawn")
+	_check(RunState.hero_wounds == 0, "a revive must still cost no Wound")
+
+	# Both down: one Wound between them, and both back up.
+	RunState.hero_wounds = 0
+	hero.go_down(hero.global_position)
+	partner.go_down(partner.global_position)
+	EventBus.coop_team_wipe.emit()
+	await get_tree().process_frame
+	_check(RunState.hero_wounds == 1,
+		"a wipe must cost exactly one Wound between the pair, got %d"
+			% RunState.hero_wounds)
+	_check(hero.is_alive() and partner.is_alive(),
+		"and must put both players back on their feet")
+
+	# The third Wound ends the run, exactly as it does alone. Left until last:
+	# ending the run tears down what everything above is standing on.
+	RunState.hero_wounds = Balance.HERO_MAX_WOUNDS - 1
+	hero.go_down(hero.global_position)
+	partner.go_down(partner.global_position)
+	EventBus.coop_team_wipe.emit()
+	await get_tree().process_frame
+	_check(RunState.hero_wounds == Balance.HERO_MAX_WOUNDS,
+		"the last wipe must take the final Wound")
+	_check(not GameDirector.run_active,
+		"and %d Wounds must end the run" % Balance.HERO_MAX_WOUNDS)

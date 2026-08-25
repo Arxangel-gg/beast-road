@@ -25,6 +25,14 @@ const BUTTON_ATTACK: int = 1 << 0
 const BUTTON_DASH: int = 1 << 1
 const SPELL_BIT_OFFSET: int = 2
 
+## Things that are *held* rather than pressed, in their own mask.
+##
+## Separate from the button mask because the two are read differently and mixing
+## them would break both: a button is an edge and is latched until read, while a
+## hold is a level and must stop being true the instant the key comes up. A
+## latched hold would revive a partner somebody had already let go of.
+const HOLD_REVIVE: int = 1 << 0
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null
@@ -55,6 +63,11 @@ func aim(previous: Vector2) -> Vector2:
 
 ## Whether a button was pressed *this frame*. Edge-triggered, not held.
 func pressed(button: int) -> bool:
+	return false
+
+
+## Whether something is being held down right now. Level, not edge.
+func held(_mask: int) -> bool:
 	return false
 
 

@@ -93,6 +93,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	visible = false
+	EventBus.coop_cinematic_skipped.connect(skip_from_coop)
 
 
 func _build() -> void:
@@ -307,6 +308,8 @@ func _process(delta: float) -> void:
 			_hold_bar.value = _held
 			_hold_bar.modulate.a = clampf(_held / SKIP_HOLD, 0.0, 1.0)
 		if _held >= SKIP_HOLD:
+			if not _skipped:
+				GameDirector.skip_cinematic()
 			_skipped = true
 	else:
 		_held = 0.0
@@ -328,3 +331,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		# hurrying past a line they had read threw away the rest of the opening.
 		_advance = true
 		Sfx.play("sfx_ui_move", 0.0)
+
+
+## Skipped by the other player, so skipped here.
+##
+## Only the *whole-cinematic* skip crosses. Advancing a single panel does not:
+## reading speed is personal, the panels are short, and yanking the page out from
+## under someone mid-sentence to keep two machines in lockstep would be a worse
+## experience than a few seconds of drift that the next hold resolves anyway.
+func skip_from_coop() -> void:
+	if not _running:
+		return
+	_skipped = true

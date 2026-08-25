@@ -287,6 +287,32 @@ signal coop_hero_state(host_at: Vector2, host_aim: Vector2,
 ## An empty `tower_id` means the plot is now clear.
 signal coop_tower_state(anchor: Vector2i, tower_id: String, level: int)
 
+## The run moved to a new phase — on the host's say-so.
+##
+## Distinct from `phase_changed`, which every machine emits for itself when its
+## own `RunState` moves, and which is *not* relayed. Relaying that one directly
+## announced the phase without ever writing it, so a guest heard "combat began"
+## while its own `RunState` still said Preparation — and stayed in build mode
+## through the wave. The guest writes the phase, and its own `phase_changed`
+## follows from the write like it does anywhere else.
+signal coop_phase(phase: int, previous: int)
+
+## Both players are down at once, so the run pays a Wound — on the host's say-so.
+##
+## The one thing in co-op that costs the run anything. A single player going down
+## costs nothing but the time it takes their partner to reach them; the pair
+## being down together is what a Wound is *for*.
+signal coop_team_wipe()
+
+## How far through the revive hold a partner has got, from 0 to 1.
+##
+## `host_hero` names the role rather than the owner: the host's hero is the
+## guest's partner, and reading it as "mine" fills the wrong player's bar.
+signal coop_revive_progress(host_hero: bool, progress: float)
+
+## Somebody skipped a cinematic, so everybody skips it — on the host's say-so.
+signal coop_cinematic_skipped()
+
 ## A tower took a shot, and where it was aiming — on the host's say-so.
 ##
 ## Distinct from `tower_fired`, which every machine emits for its own muzzle

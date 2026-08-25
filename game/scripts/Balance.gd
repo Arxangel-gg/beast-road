@@ -2969,14 +2969,22 @@ const COOP_POSITION_CORRECTION: float = 0.25
 ## dangerous during a wave. [TUNE]
 const COOP_REVIVE_RADIUS: float = 150.0
 
-## How much faster the respawn runs while a partner is standing over you.
+## How long a partner must hold the revive key to get somebody back up.
 ##
-## Three times, so an eight-second wait becomes under three. It accelerates the
-## respawn that already exists rather than replacing it: the wound, the reduced
-## health and the invulnerability window all still apply, because those are what
-## make dying cost something and two players should be *better* than one rather
-## than *safer* than one. [TUNE]
-const COOP_REVIVE_SPEED: float = 3.0
+## Long enough to be a commitment - three seconds standing still beside a downed
+## friend, in the open, during a wave - and short enough that it is worth trying
+## rather than writing them off. This replaced an earlier design in which dying
+## in co-op still cost a wound and a partner merely made the respawn faster; the
+## owner re-cut it on 2026-08-25 so that a rescued player costs the run nothing
+## and only a *team wipe* is paid for. [TUNE]
+const COOP_REVIVE_SECONDS: float = 3.0
+
+## Health a revived hero comes back with, as a fraction of their maximum.
+##
+## Lower than the Wound respawn, and that asymmetry is the balance: a revive is
+## fast and costs the run nothing, so it returns somebody fragile and standing
+## where they fell rather than safe at the spawn. [TUNE]
+const COOP_DOWNED_REVIVE_HP: float = 0.35
 
 ## How far from the reported impact point a guest will look for the enemy a
 ## relayed tower shot was aimed at, in world units.

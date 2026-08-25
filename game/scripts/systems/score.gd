@@ -98,7 +98,10 @@ static func row(summary: Dictionary, tier: CampaignTierData, player: String,
 		"duration": clampi(_number(summary, "time"), 0,
 			Balance.LEADERBOARD_DURATION_MAX),
 		"victory": bool(summary.get("victory", false)),
-		"seed": String(summary.get("seed", "")).left(32),
+		# `str`, not `String`: a run seed is an int and Godot 4 has no
+		# `String(int)` constructor, so this threw on every completed run and
+		# took the whole row with it.
+		"seed": str(summary.get("seed", "")).left(32),
 		"version": safe_version(version),
 	}
 
@@ -121,7 +124,7 @@ static func clean_row(entry: Dictionary) -> Dictionary:
 		"duration": clampi(_value_as_int(entry.get("duration", 0)), 0,
 			Balance.LEADERBOARD_DURATION_MAX),
 		"victory": bool(entry.get("victory", false)),
-		"seed": String(entry.get("seed", "")).left(32),
+		"seed": str(entry.get("seed", "")).left(32),
 		"version": safe_version(String(entry.get("version", ""))),
 	}
 
