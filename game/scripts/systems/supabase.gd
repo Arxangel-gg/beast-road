@@ -73,16 +73,44 @@ func call_rpc(name: String, arguments: Dictionary, done: Callable) -> void:
 ## No I, L, O or U: the first three are unreadable next to 1 and 0, and the
 ## fourth turns an alphabet of six characters into an occasional embarrassment.
 static func room_code() -> String:
-	const LETTERS: String = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-	var out: String = ""
-	for _character: int in 6:
-		out += LETTERS[randi() % LETTERS.length()]
-	return out
+	return _random_text(6, "0123456789ABCDEFGHJKMNPQRSTVWXYZ")
 
 
 ## A secret this machine keeps, proving it owns a row it created.
+##
+## **Not `randi()`.** This is a capability: whoever holds it *is* that side of
+## the room, and the engine's global RNG is a seeded PRNG shared with gameplay,
+## so its output is neither private nor guaranteed distinct between two copies
+## of the game that started life the same way.
+##
+## Two peers drawing the same token is not a near miss, it is a deadlock, and a
+## silent one. `enter_room` will set `guest_token` to a string that already sits
+## in `host_token`, and from then on the service resolves *both* peers to the
+## host - so `read_signals`, which returns only rows whose sender is the other
+## side, hides each peer's notes from the other. Both sides poll successfully
+## for forty-five seconds, both post successfully, and neither hears anything.
+## Reproduced against the live service on 2026-08-26: with one shared token the
+## host hears 0 notes, with two distinct tokens it hears 1.
 static func token() -> String:
+	return _random_text(24, "0123456789abcdefghijklmnopqrstuvwxyz")
+
+
+## Random text from the OS, drawn without modulo bias.
+##
+## Bytes that would land in the short tail of the alphabet are discarded rather
+## than folded in, so every character is equally likely. That matters more for
+## `token` than for `room_code`, but there is no reason for the room code to be
+## the guessable one - a predictable code is a stranger in your game.
+static func _random_text(length: int, alphabet: String) -> String:
+	var span: int = alphabet.length()
+	var limit: int = 256 - (256 % span)
+	var crypto := Crypto.new()
 	var out: String = ""
-	for _character: int in 24:
-		out += "0123456789abcdefghijklmnopqrstuvwxyz"[randi() % 36]
+	while out.length() < length:
+		for byte: int in crypto.generate_random_bytes(length * 2):
+			if byte >= limit:
+				continue
+			out += alphabet[byte % span]
+			if out.length() == length:
+				break
 	return out

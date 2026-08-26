@@ -239,8 +239,16 @@ begin
   perform public.sweep_rooms();
   -- First guest wins; a second is refused rather than quietly joining a
   -- handshake already in progress.
+  --
+  -- `host_token <> p_token` is the important half. Both sides are identified
+  -- by matching their token against this row, so a guest arriving with the
+  -- host's token would be resolved as the host by every function below - and
+  -- `read_signals`, which returns only the *other* side's notes, would then
+  -- hide each peer's messages from the other. That is a silent deadlock: both
+  -- peers poll and post successfully for the full handshake timeout and
+  -- neither hears a thing. Refusing the join says so in one second instead.
   update public.rooms set guest_token = p_token
-   where code = p_code and guest_token is null
+   where code = p_code and guest_token is null and host_token <> p_token
    returning id into found;
   return found;
 end $$;

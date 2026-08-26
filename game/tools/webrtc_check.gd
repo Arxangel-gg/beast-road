@@ -157,6 +157,7 @@ func _ready() -> void:
 	_check(returned == back, "with the guest receiving it, got %s" % str(returned))
 
 	_test_signalling_routing()
+	_test_tokens_are_not_the_global_rng()
 	_finish()
 
 
@@ -168,6 +169,42 @@ func _ready() -> void:
 ## offers, so no answer was ever produced and every real join timed out with
 ## "could not reach the other player". A network-shaped message for a pure
 ## dispatch fault, on the one path no test touched.
+## Two peers must never draw the same room token.
+##
+## This is a regression test with a date on it. Until 2026-08-26 `token()` was
+## built from `randi()`, the engine's global seeded PRNG, and two copies of the
+## game that began life in the same state produced the same "secret". A guest
+## carrying the host's token is resolved as the host by the service, so
+## `read_signals` - which returns only the other side's notes - hid every
+## message from both peers. Both sides polled and posted successfully for the
+## full forty-five second timeout and neither heard anything.
+##
+## Seeding the global RNG identically and demanding different tokens is exactly
+## the shape of that bug: it fails against `randi()` and passes against the OS.
+func _test_tokens_are_not_the_global_rng() -> void:
+	seed(20260826)
+	var first: String = Supabase.token()
+	var first_code: String = Supabase.room_code()
+	seed(20260826)
+	var second: String = Supabase.token()
+	var second_code: String = Supabase.room_code()
+	_check(first != second,
+		"two peers seeded alike must still draw different tokens, got %s twice"
+			% first)
+	_check(first_code != second_code,
+		"and different room codes, got %s twice" % first_code)
+	_check(first.length() == 24, "a token is 24 characters, got %d"
+		% first.length())
+	_check(first_code.length() == 6, "a room code is six characters, got %d"
+		% first_code.length())
+	# The service checks the code against this pattern and rejects the room
+	# outright if it does not match, which would fail as "could not open a room".
+	var shape := RegEx.new()
+	shape.compile("^[0-9A-HJKMNP-TV-Z]{6}$")
+	_check(shape.search(first_code) != null,
+		"and it must match what the service accepts, got %s" % first_code)
+
+
 func _test_signalling_routing() -> void:
 	# Exactly one side offers.
 	_check(CoopWebRTC.offers(false) != CoopWebRTC.offers(true),

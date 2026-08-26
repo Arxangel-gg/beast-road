@@ -80,6 +80,16 @@ var _heard_ice: int = 0
 ## Reads attempted, and reads the service actually answered.
 var _polls: int = 0
 var _replies: int = 0
+## Posts the service *confirmed* it stored, and posts it silently dropped.
+##
+## Separate from `_sent_sdp` and `_sent_ice`, which count what this side tried
+## to say. The two are not the same number and the gap between them is a whole
+## class of fault: `post_signal` answers HTTP 200 with a body of `null` when the
+## caller's token belongs to neither side of the room, so a peer writing into a
+## room it is not a member of looks, from here, exactly like a peer writing
+## successfully into one it is.
+var _stored: int = 0
+var _refused: int = 0
 
 
 func _ready() -> void:
@@ -123,9 +133,13 @@ func status_line() -> String:
 	# `polls` is what separates "nobody said anything" from "nobody was
 	# listening". Without it, zero heard is two entirely different faults with
 	# the same reading, and the fix for one is nothing like the fix for the other.
-	return "sdp %d/%d  ice %d/%d  polls %d/%d  link %d  mesh %d" % [
-		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _polls, _replies,
-		link, mesh]
+	# The room id is here because "both sides are polling and neither hears
+	# anything" has two causes that read identically - the same room refusing
+	# the writes, or two different rooms each working perfectly. Eight
+	# characters is enough to tell one from the other at a glance.
+	return "sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  mesh %d  room %s" % [
+		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
+		_polls, _replies, link, mesh, _room.substr(0, 8)]
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -257,6 +271,8 @@ func _begin_polling() -> void:
 	_heard_ice = 0
 	_polls = 0
 	_replies = 0
+	_stored = 0
+	_refused = 0
 	_poll_left = 0.0
 	_deadline = HANDSHAKE_TIMEOUT
 	set_process(true)
@@ -288,7 +304,22 @@ func _post(kind: String, payload: Dictionary) -> void:
 		"p_token": _token,
 		"p_kind": kind,
 		"p_payload": payload,
-	}, func(_ok: bool, _data: Variant) -> void: pass)
+	}, func(ok: bool, data: Variant) -> void:
+		# `post_signal` returns the new sequence number, or null. Null is not a
+		# transport failure - the request succeeded - it means the service
+		# looked up this token against the room and found it on neither side,
+		# so the note was thrown away. Discarding this reply, which is what used
+		# to happen here, turns the one fatal answer the service can give into
+		# forty-five seconds of silence on the *other* machine.
+		if ok and (data is float or data is int):
+			_stored += 1
+			return
+		_refused += 1
+		print("[rtc] %s refused by the room (reply: %s)" % [kind, str(data)])
+		if _refused == 1:
+			_fail("The matchmaking service would not accept this connection: "
+				+ "the room did not recognise us. The host may have closed it, "
+				+ "or somebody else joined first."))
 
 
 func _poll() -> void:
