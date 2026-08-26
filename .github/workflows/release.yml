@@ -340,7 +340,39 @@ jobs:
           fi
 
           # `dl=1` is what turns a Dropbox preview page into the file itself.
-          DIRECT="$(printf '%s' "$LINK" | sed 's/[?&]dl=0$//; s/$/?dl=1/')"
+          #
+          # Assembled properly rather than by appending. The first attempt did
+          # `sed 's/[?&]dl=0$//; s/$/?dl=1/'` on the assumption that a share link
+          # always ends in `dl=0` - modern `scl/fi` links do not, so it appended
+          # a *second* `?` and produced a URL that could never work. Strip any
+          # `dl=` that is there, then join with the right separator.
+          # Pure shell on purpose: a heredoc inside a YAML `run:` block cannot
+          # close, because bash wants the terminator at column 0 and YAML wants
+          # it indented. Written the clever way first and it would not have run.
+          DIRECT="${LINK%&dl=0}"
+          DIRECT="${DIRECT%\?dl=0}"
+          case "$DIRECT" in
+            *\?*) DIRECT="$DIRECT&dl=1" ;;
+            *)     DIRECT="$DIRECT?dl=1" ;;
+          esac
+          echo "Mirror URL: $DIRECT"
+
+          # **Proved, not assumed.** A mirror is only ever used when the primary
+          # has already failed, so a broken one is discovered by the player it
+          # was meant to rescue. One range request costs a kilobyte and settles
+          # it here instead - and it is exactly what the malformed URL above
+          # would have failed.
+          if ! curl -sfL -r 0-3 "$DIRECT" -o mirror_probe.bin; then
+            echo "::error title=Mirror::The mirror URL did not serve anything."
+            exit 1
+          fi
+          if [ "$(head -c 2 mirror_probe.bin)" != "PK" ]; then
+            echo "::error title=Mirror::The mirror URL served something that is not a zip."
+            exit 1
+          fi
+          rm -f mirror_probe.bin
+          echo "Mirror verified: serves a zip."
+
           jq -n --arg url "$DIRECT" '[{name:"Dropbox",assets:{"BeastRoad-windows.zip":$url}}]'             > mirrors.json
           cat mirrors.json
 
