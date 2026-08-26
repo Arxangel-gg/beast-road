@@ -295,6 +295,17 @@ func _on_join() -> void:
 ## `GameDirector` listens for the run starting — there is no second ready button
 ## to coordinate, and no way for the two to start different worlds.
 func _on_begin() -> void:
+	# **Nobody is dragged into a tier they have not opened.**
+	#
+	# Checked here rather than when they joined, because the host may change the
+	# tier after the party has formed, and a check at the door would miss that.
+	# Named, too: "somebody in your party cannot play this" sends four people
+	# asking each other which of them it is.
+	var blocked: String = Coop.party_blocked_from(RunState.tier())
+	if not blocked.is_empty():
+		Coop.report_failure(blocked + " Choose a lower tier, or play without them.")
+		_refresh()
+		return
 	if not Coop.is_host() or not Coop.partner_present():
 		return
 	close()

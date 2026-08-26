@@ -23,6 +23,8 @@ const LINGER: float = 16.0
 var _role: String = ""
 var _failures: int = 0
 var _want: int = 2
+var _rosters: int = 0
+var _last_rows: int = 0
 
 
 func _ready() -> void:
@@ -42,6 +44,10 @@ func _ready() -> void:
 		await _until(func() -> bool: return Coop.state() == Coop.State.CONNECTED)
 		_check(Coop.state() == Coop.State.CONNECTED, "and reach the host")
 
+	EventBus.coop_party_roster.connect(func(rows: Array) -> void:
+		_rosters += 1
+		_last_rows = rows.size())
+
 	# Everybody, not just the first arrival. A party fills over several seconds
 	# and a harness that measures too early measures the queue.
 	await _until(func() -> bool: return Coop.player_count() >= _want)
@@ -53,7 +59,9 @@ func _ready() -> void:
 	await _until(func() -> bool: return Coop.party().seats().size() >= _want)
 	var seats: Array = Coop.party().seats()
 	_check(seats.size() == _want,
-		"%s must see %d seats, saw %d" % [_role, _want, seats.size()])
+		"%s must see %d seats, saw %d (rosters received: %d, last carried %d, "
+			% [_role, _want, seats.size(), _rosters, _last_rows]
+			+ "peers %d, state %d)" % [Coop.player_count(), Coop.state()])
 
 	var numbers: Dictionary = {}
 	var colours: Dictionary = {}
@@ -123,8 +131,16 @@ func _ready() -> void:
 	_finish()
 
 
+## Waits on a wall clock, generously.
+##
+## **Four Godot processes on one machine is the load this measures under**, and
+## thirty seconds turned out to be marginal: the same code failed with two
+## seatless guests on one run and passed completely on the next. That is a flaky
+## harness, which is worse than no harness - it teaches you to re-run until
+## green. The deadline is patience, not a property of the game, so it costs
+## nothing to make it plainly sufficient.
 func _until(done: Callable) -> void:
-	var deadline: int = Time.get_ticks_msec() + 30000
+	var deadline: int = Time.get_ticks_msec() + 75000
 	while Time.get_ticks_msec() < deadline and not bool(done.call()):
 		await get_tree().process_frame
 

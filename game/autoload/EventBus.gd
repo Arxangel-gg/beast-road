@@ -110,6 +110,15 @@ signal coop_party_roster(rows: Array)
 ## Something a player typed, and the seat they typed it from.
 signal coop_chat(slot: int, text: String)
 
+## Something worth telling the party, and the seat answerable for it.
+##
+## **Local, never relayed.** Every machine already receives the facts these are
+## written from - a currency change, a tower appearing, a wave clearing - so
+## sending the sentence as well would be sending the same event twice and
+## risking two machines describing it differently. Each one writes its own line
+## from the fact it was given.
+signal party_notice(slot: int, text: String)
+
 signal coop_pointer_moved(at: Vector2)
 
 ## Somebody took the regional relic. One reward, one winner - the fork's relic

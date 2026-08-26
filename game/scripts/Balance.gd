@@ -3068,6 +3068,15 @@ const PARTY_MARK_SCALE: float = 0.62
 const PARTY_MARK_LIFT: float = 16.0
 const PARTY_MARK_ALPHA: float = 0.55
 
+## How wide a line in the party feed may run before it wraps. [TUNE]
+const PARTY_LOG_WIDTH: float = 420.0
+
+## The longest thing a player may say at once.
+##
+## Bounded because it arrives from the network and is drawn: a line long enough
+## to fill the screen is a line long enough to hide a wave behind. [TUNE]
+const CHAT_MAX_LENGTH: int = 140
+
 ## How long a join attempt may sit before it is called a failure. [TUNE]
 ##
 ## A timer is needed rather than only ENet's `connection_failed`, because that

@@ -23,6 +23,13 @@ var _coop: CanvasLayer = null
 ## is waiting for, and the scene it lives in is about to be replaced anyway.
 var _entered_run: bool = false
 
+## What the host says, and what the guest heard it say.
+const HOST_SAID: String = "pulling to the north road"
+var _heard_chat: String = ""
+var _heard_from: int = 0
+var _notices: int = 0
+
+
 ## Set when a partner's cursor arrives over the wire, at the fork.
 var _saw_partner_pointer: bool = false
 
@@ -76,6 +83,16 @@ func _ready() -> void:
 			_role = argument.split("=")[1]
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
+
+	EventBus.coop_chat.connect(func(slot: int, text: String) -> void:
+		# Only what arrived. This machine draws its own copy of anything it says
+		# from the same signal, and counting that would prove nothing.
+		var relay: CoopRelay = Coop.relay()
+		if relay != null and relay.is_replaying():
+			_heard_chat = text
+			_heard_from = slot)
+	EventBus.party_notice.connect(func(_slot: int, _text: String) -> void:
+		_notices += 1)
 
 	_menu = (load("res://scenes/ui/main_menu.tscn") as PackedScene).instantiate() as MainMenu
 	add_child(_menu)
@@ -297,6 +314,13 @@ func _enter_run_in_place(role: String) -> void:
 		# the same moment, and a host that leaves first takes the thing being
 		# measured with it.
 		await _hold(6.0)
+
+		# **Chat.** A line typed on one machine has to arrive on the other,
+		# carrying the seat that said it - the seat is what colours it and names
+		# it, and a line attributed to the wrong player is worse than a line that
+		# did not arrive.
+		EventBus.coop_chat.emit(Coop.party().slot(), HOST_SAID)
+		print("[coop-ui] host said something")
 
 		# **Projectiles.** Reported as missing on the guest entirely - tower
 		# shots, enemy shots and the ground effects that come off their impacts.
@@ -566,6 +590,17 @@ func _enter_run_in_place(role: String) -> void:
 		# arithmetic rather than the game.
 		print("[coop-ui] guest saw tower shots=%s enemy shots=%s"
 			% [str(_saw_tower_shot), str(_saw_enemy_shot)])
+
+		_check(_heard_chat == HOST_SAID,
+			"the guest must hear what the host said, got '%s'" % _heard_chat)
+		_check(_heard_from == 1,
+			"attributed to the host's seat, got %d" % _heard_from)
+		# And a receipt for something that happened, written locally from a fact
+		# rather than sent as a sentence.
+		_check(_notices > 0,
+			"the guest must see notices for what the party did, saw %d" % _notices)
+		print("[coop-ui] guest heard '%s' from seat %d, and %d notices"
+			% [_heard_chat, _heard_from, _notices])
 
 		# **Tending, from the seat that cannot pay for it.**
 		#

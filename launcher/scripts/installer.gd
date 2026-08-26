@@ -23,12 +23,47 @@ var _busy: bool = false
 var _cancelled: bool = false
 var _attempt: int = 0
 
+## Progress watch, so a blocked host is told apart from a slow one.
+var _last_bytes: int = 0
+var _stalled: float = 0.0
+
+## Which mirror is being tried, and the list it indexes.
+var _mirror: int = 0
+var _sources: Array = []
+
+
+## The mirror currently being tried.
+func _source_url() -> String:
+	if _mirror < 0 or _mirror >= _sources.size():
+		return _release.asset_url if _release != null else ""
+	return String((_sources[_mirror] as Dictionary).get("url", ""))
+
+
+func _source_name() -> String:
+	if _mirror < 0 or _mirror >= _sources.size():
+		return "GitHub"
+	return String((_sources[_mirror] as Dictionary).get("name", "a mirror"))
+
 
 func _ready() -> void:
 	_http = HTTPRequest.new()
 	_http.use_threads = true
 	# GitHub serves release assets from a redirect to its CDN.
 	_http.max_redirects = 8
+	# **A download with no deadline does not fail. It hangs.**
+	#
+	# Godot defaults `timeout` to zero, which means wait forever, and the retry
+	# below only runs on an *error* - so a host that accepts the connection and
+	# then sends nothing leaves the launcher at 0% with no message, no retry and
+	# no mirror attempt, until somebody kills it. Reported from a player behind a
+	# national filter: the version check reached `api.github.com` and the asset
+	# download went to a different host that silently dropped it.
+	#
+	# Measured against *stall*, not total time: `HTTPRequest.timeout` is a
+	# deadline for the whole request, so it has to be generous enough for a large
+	# file on a slow line. `_process` below watches for no progress instead, and
+	# gives up much sooner when nothing at all is arriving.
+	_http.timeout = LauncherConfig.DOWNLOAD_DEADLINE
 	add_child(_http)
 	_http.request_completed.connect(_on_download_completed)
 
@@ -60,6 +95,11 @@ func install(release: ReleaseInfo) -> void:
 		_fail("Could not create %s" % download.get_base_dir())
 		return
 
+	_sources = LauncherConfig.mirrors_for(release.asset_name, release.asset_url)
+	_mirror = 0
+	if _sources.is_empty():
+		_fail("That release has nowhere to download from.")
+		return
 	_start_download()
 
 
@@ -70,7 +110,9 @@ func _start_download() -> void:
 	var download: String = LauncherConfig.download_path()
 	DirAccess.remove_absolute(download)
 	_http.download_file = download
-	var err: int = _http.request(_release.asset_url, LauncherConfig.download_headers())
+	_last_bytes = 0
+	_stalled = 0.0
+	var err: int = _http.request(_source_url(), LauncherConfig.download_headers())
 	if err != OK:
 		_handle_download_failure(
 			"Could not start the download (%s)." % error_string(err),
@@ -78,7 +120,10 @@ func _start_download() -> void:
 		)
 		return
 	var attempt_text: String = "" if _attempt == 1 else " (attempt %d/%d)" % [_attempt, MAX_DOWNLOAD_ATTEMPTS]
-	progress.emit("Downloading", 0.0, _release.asset_name + attempt_text)
+	# The source is named, always. "Downloading" tells a player nothing when the
+	# interesting question is *which* of three places it is coming from.
+	progress.emit("Downloading", 0.0, "%s from %s%s"
+		% [_release.asset_name, _source_name(), attempt_text])
 	set_process(true)
 
 
@@ -94,11 +139,30 @@ func cancel() -> void:
 	finished.emit(false, "Cancelled.")
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _busy:
 		return
 	var total: int = _http.get_body_size()
 	var got: int = _http.get_downloaded_bytes()
+
+	# **Stalled, as distinct from slow.**
+	#
+	# A slow line still moves; a blocked one sits at exactly the same byte count
+	# forever. Watching progress catches the second in twenty seconds without
+	# ever punishing the first, which a total-time limit cannot do - any deadline
+	# generous enough for ninety megabytes on a poor connection is far too long
+	# to wait before trying the next mirror.
+	if got > _last_bytes:
+		_last_bytes = got
+		_stalled = 0.0
+	else:
+		_stalled += delta
+		if _stalled >= LauncherConfig.DOWNLOAD_STALL_LIMIT:
+			_http.cancel_request()
+			_handle_download_failure(
+				"No data from %s for %d seconds." % [_source_name(),
+					int(LauncherConfig.DOWNLOAD_STALL_LIMIT)], true)
+			return
 	# Servers may omit Content-Length; fall back to the size the API reported.
 	if total <= 0:
 		total = _release.asset_size
@@ -153,6 +217,21 @@ func _download_validation_error() -> String:
 func _handle_download_failure(message: String, retryable: bool) -> void:
 	set_process(false)
 	DirAccess.remove_absolute(LauncherConfig.download_path())
+
+	# **Try somewhere else before trying the same place harder.**
+	#
+	# Retrying a host that is blocked is three more identical failures and forty
+	# more seconds of a player watching nothing happen. A different mirror is the
+	# only attempt with new information in it, so it goes first; the per-mirror
+	# retries below still cover an ordinary dropped connection.
+	if retryable and not _cancelled and _mirror + 1 < _sources.size():
+		_mirror += 1
+		_attempt = 0
+		progress.emit("Trying %s" % _source_name(), 0.0,
+			"%s  Trying %s instead." % [message, _source_name()])
+		_retry_timer.start(RETRY_DELAYS[0])
+		return
+
 	if retryable and _attempt < MAX_DOWNLOAD_ATTEMPTS and not _cancelled:
 		var delay: float = RETRY_DELAYS[mini(_attempt - 1, RETRY_DELAYS.size() - 1)]
 		progress.emit(

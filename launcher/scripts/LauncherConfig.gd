@@ -17,6 +17,69 @@ const GAME_ASSET_MARKER: String = "windows"
 ## And this one is the launcher itself.
 const LAUNCHER_ASSET_MARKER: String = "launcher"
 
+## The whole-request deadline, and the one that actually matters.
+##
+## `DOWNLOAD_DEADLINE` has to be generous enough for ninety megabytes on a poor
+## line, which makes it useless for noticing a *blocked* host - so the stall
+## limit does that job instead: no new bytes at all for this long means try
+## somewhere else. A slow connection still moves and is never punished by it.
+const DOWNLOAD_DEADLINE: float = 1800.0
+const DOWNLOAD_STALL_LIMIT: float = 20.0
+
+## Where a build can be fetched from, in the order they are tried.
+##
+## **GitHub first, always.** It is where the release actually is, it is the only
+## one that is right by construction, and every other entry is a copy somebody
+## has to remember to update. The rest exist because GitHub's asset CDN is a
+## different host from `github.com` and is unreachable from some countries -
+## reported by a player whose launcher sat at 0% forever while the version check
+## worked perfectly.
+##
+## Read from `mirrors.json` beside the launcher when one is there, so a mirror
+## can be moved, added or dropped without a new build. The file is a list of
+## `{"name": ..., "assets": {"<asset name>": "<direct url>"}}`; see
+## `docs/MIRRORS.md` for how to get a direct URL out of Drive or Dropbox that
+## survives the next upload.
+const MIRROR_FILE: String = "mirrors.json"
+
+
+## Every place to try for one asset, in order. The first is always GitHub.
+static func mirrors_for(asset: String, github_url: String) -> Array:
+	var out: Array = []
+	if not github_url.is_empty():
+		out.append({"name": "GitHub", "url": github_url})
+	for entry: Variant in _mirror_file():
+		if not (entry is Dictionary):
+			continue
+		var mirror: Dictionary = entry
+		var assets: Variant = mirror.get("assets", null)
+		if not (assets is Dictionary):
+			continue
+		var url: String = String((assets as Dictionary).get(asset, ""))
+		# Only http(s). A mirror list is a file on disk and a `file://` entry in
+		# one would have the launcher "download" from anywhere on the machine.
+		if url.begins_with("http://") or url.begins_with("https://"):
+			out.append({"name": String(mirror.get("name", "a mirror")), "url": url})
+	return out
+
+
+## The mirror list from disk, or an empty list. Never throws, never blocks.
+static func _mirror_file() -> Array:
+	for path: String in [
+		OS.get_executable_path().get_base_dir().path_join(MIRROR_FILE),
+		ProjectSettings.globalize_path("user://").path_join(MIRROR_FILE),
+	]:
+		if not FileAccess.file_exists(path):
+			continue
+		var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		var parsed: Variant = JSON.parse_string(file.get_as_text())
+		file.close()
+		if parsed is Array:
+			return parsed as Array
+	return []
+
 ## The tag this launcher was built from.
 ##
 ## Stamped by CI before the launcher is exported - the placeholder below is what

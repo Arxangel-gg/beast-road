@@ -84,6 +84,15 @@ var _directory: CoopDirectory = null
 ## Who is in the party, and which seat each of them holds.
 var _party: CoopParty = null
 
+## The seat currently being acted for, while the host carries out a request.
+##
+## **So a receipt can name the right player.** The host performs a guest's build
+## through exactly the same `try_build` a local click uses - which is what keeps
+## one set of rules rather than two - and that function has no idea who asked.
+## This is set around the call and read by `PartyNotices`; zero means "this
+## machine's own player", which is the truth everywhere except inside a request.
+var acting_slot: int = 0
+
 ## The shared REST client, and the WebRTC transport that uses it for signalling.
 var _rest: Supabase = null
 var _webrtc: CoopWebRTC = null
@@ -180,6 +189,26 @@ func join_room(code: String) -> bool:
 	return true
 
 
+## Tells the host how far this account has climbed. Guest side.
+##
+## Sent on connecting rather than asked for, because the host needs it before it
+## can decide whether the party may play the tier it has chosen - and a question
+## the host has to remember to ask is a question it will forget to ask.
+func _declare_tier() -> void:
+	if not is_guest():
+		return
+	var line: CoopRelay = relay()
+	if line != null:
+		line.request(CoopRelay.Request.DECLARE_TIER, [MetaState.tier_cleared])
+
+
+## Why this party cannot play the run's chosen tier, or "" if it can.
+func party_blocked_from(tier: CampaignTierData) -> String:
+	if not is_networked():
+		return ""
+	return party().blocked_from(tier)
+
+
 ## The handshake finished. Install the peer and let the game get on with it.
 ##
 ## Everything above this point - the relay, the facts, the authority guard - is
@@ -189,6 +218,7 @@ func _on_webrtc_ready(peer: WebRTCMultiplayerPeer) -> void:
 	multiplayer.multiplayer_peer = peer
 	if _state == State.CONNECTING:
 		_set_state(State.CONNECTED)
+	_declare_tier.call_deferred()
 
 
 func _on_webrtc_failed(reason: String) -> void:
@@ -365,6 +395,13 @@ func join(address: String, port: int = Balance.COOP_PORT,
 	# the other before giving up.
 	_alternate = alternate.strip_edges()
 	_alternate_port = port
+	if OS.has_feature("web"):
+		# A browser cannot open the socket this dials. The lobby list already
+		# hides address-coded games here, but a player can still paste one, and
+		# a dial that fails ten seconds later with "no answer from the host"
+		# would send them looking for a network problem they do not have.
+		return _fail("A browser cannot dial an address. Ask your friend for a "
+			+ "six-character room code instead.")
 	var peer := ENetMultiplayerPeer.new()
 	var made: int = peer.create_client(wanted, port)
 	if made != OK:
@@ -549,6 +586,12 @@ func _on_peer_connected(id: int) -> void:
 	# join announced before the seat exists is a player briefly wearing nobody's
 	# colour on somebody else's screen.
 	if is_host():
+		# The host's own clear is recorded once, so `blocked_from` can judge the
+		# whole party from one list rather than treating seat one as a special
+		# case that has to be remembered separately.
+		var mine: CoopParty.Seat = party().seat_for_slot(1)
+		if mine != null:
+			mine.cleared = MetaState.tier_cleared
 		party().seat(id, "Warden")
 		_publish_roster()
 	EventBus.coop_partner_joined.emit(id)
@@ -582,6 +625,7 @@ var _roster_clock: float = 0.0
 func _on_connected_to_server() -> void:
 	_connect_left = 0.0
 	_set_state(State.CONNECTED)
+	_declare_tier.call_deferred()
 
 
 func _on_connection_failed() -> void:

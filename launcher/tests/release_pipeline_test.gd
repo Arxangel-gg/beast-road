@@ -23,7 +23,58 @@ func _ready() -> void:
 	_test_truncated_archive()
 	_cleanup()
 	if _failures == 0:
-		print("[launcher test] release pipeline checks passed")
+		_test_mirrors()
+	print("[launcher test] release pipeline checks passed")
+
+
+## Where a build may be fetched from, and in what order.
+##
+## **A fallback nobody tests is a fallback that does not work on the day it is
+## needed**, and this one is needed exactly when the developer cannot reproduce
+## the problem - a player in a country where GitHub's asset host is unreachable.
+func _test_mirrors() -> void:
+	var github: String = "https://github.com/o/r/releases/download/v1/BeastRoad-windows.zip"
+
+	# With no mirror file, GitHub and nothing else. It is where the release
+	# actually is; every other entry is a copy somebody has to remember.
+	var plain: Array = LauncherConfig.mirrors_for("BeastRoad-windows.zip", github)
+	_check(plain.size() >= 1, "there must always be somewhere to download from")
+	_check(String((plain[0] as Dictionary)["name"]) == "GitHub",
+		"GitHub must be tried first, it is the only source that is right by "
+			+ "construction")
+	_check(String((plain[0] as Dictionary)["url"]) == github,
+		"and it must use the release's own asset url")
+
+	# A release with no asset has nowhere to go, and must say so rather than
+	# offering an empty list that reads as success.
+	_check(LauncherConfig.mirrors_for("BeastRoad-windows.zip", "").is_empty(),
+		"a release with no asset must offer no sources at all")
+
+	# Only http(s). The mirror list is a file on disk, and a `file://` entry in
+	# one would have the launcher "download" from anywhere on the machine.
+	var written: String = ProjectSettings.globalize_path("user://").path_join(
+		LauncherConfig.MIRROR_FILE)
+	var file: FileAccess = FileAccess.open(written, FileAccess.WRITE)
+	_check(file != null, "the test must be able to write a mirror file")
+	if file == null:
+		return
+	file.store_string(JSON.stringify([
+		{"name": "Drive", "assets": {"BeastRoad-windows.zip": "https://example.invalid/a.zip"}},
+		{"name": "Dropbox", "assets": {"BeastRoad-windows.zip": "https://example.invalid/b.zip"}},
+		{"name": "Evil", "assets": {"BeastRoad-windows.zip": "file:///C:/Windows/System32/x"}},
+		{"name": "Wrong asset", "assets": {"something-else.zip": "https://example.invalid/c.zip"}},
+		"not a mirror at all",
+	]))
+	file.close()
+
+	var listed: Array = LauncherConfig.mirrors_for("BeastRoad-windows.zip", github)
+	var names: Array = []
+	for entry: Variant in listed:
+		names.append(String((entry as Dictionary)["name"]))
+	_check(names == ["GitHub", "Drive", "Dropbox"],
+		"mirrors must be offered in order, http(s) only, and only for the asset "
+			+ "actually being fetched - got %s" % str(names))
+	DirAccess.remove_absolute(written)
 	get_tree().quit(_failures)
 
 

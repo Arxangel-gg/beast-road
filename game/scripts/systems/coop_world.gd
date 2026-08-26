@@ -455,6 +455,15 @@ func _on_session_changed(state: int) -> void:
 ## either changed. The refusal string it returns is already written for a player
 ## to read, so it travels back as-is.
 func _on_request(kind: int, args: Array, from: int) -> void:
+	# Named for the duration of the call, so a receipt can say who asked. The
+	# functions below are the same ones a local click uses and know nothing about
+	# peers; this is the only place the two facts are both in scope.
+	Coop.acting_slot = Coop.party().slot_for_peer(from)
+	_carry_out(kind, args, from)
+	Coop.acting_slot = 0
+
+
+func _carry_out(kind: int, args: Array, from: int) -> void:
 	if not Coop.is_host():
 		return
 	var battlefield := field as Battlefield
@@ -472,6 +481,11 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_place_trap(args[0] as Vector2i,
 					ContentDB.trap(String(args[1]))))
+		CoopRelay.Request.DECLARE_TIER:
+			# What this player says they have cleared, so the host can tell
+			# whether the party may play the tier it has chosen.
+			if args.size() == 1:
+				Coop.party().declare(from, int(args[0]))
 		CoopRelay.Request.TEND_HERO:
 			# Against the *guest's* hero, which is this machine's partner. The
 			# same function a local click uses, so there is one set of rules

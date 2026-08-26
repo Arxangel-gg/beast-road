@@ -95,6 +95,7 @@ enum Request {
 	CHOOSE_RELIC = 12,
 	TEND_HERO = 13,
 	REPAIR_TOWN = 14,
+	DECLARE_TIER = 15,
 }
 
 ## Facts that are *state announcements* rather than events.

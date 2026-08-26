@@ -20,9 +20,24 @@ class Seat extends RefCounted:
 	var peer: int = 0
 	var name: String = ""
 
+	## The highest campaign tier this player has cleared, from their own save.
+	##
+	## **Declared, not proven**, and that is a deliberate limit rather than an
+	## oversight. Nothing here is competitive and there is no server holding an
+	## authoritative save, so a player who edits their file to claim Hell is
+	## cheating themselves into a fight they will lose. What this prevents is the
+	## real case: somebody joining a Nightmare party by accident and wondering
+	## why everything kills them.
+	var cleared: int = -1
+
 	func colour() -> Color:
 		return Balance.PARTY_COLOURS[clampi(slot - 1, 0,
 			Balance.PARTY_COLOURS.size() - 1)]
+
+	## Whether this player may play a given tier.
+	func may_play(tier: CampaignTierData) -> bool:
+		return tier != null and tier.order <= cleared + 1
+
 
 	func colour_name() -> String:
 		return Balance.PARTY_COLOUR_NAMES[clampi(slot - 1, 0,
@@ -154,6 +169,39 @@ func unseat(peer_id: int) -> void:
 			return
 
 
+## Records what a player says they have cleared. Host side.
+func declare(peer_id: int, cleared: int) -> void:
+	for occupant: Variant in _seats.values():
+		var person := occupant as Seat
+		if person != null and person.peer == peer_id:
+			person.cleared = clampi(cleared, -1, 8)
+			roster_changed.emit()
+			return
+
+
+## Why this party cannot play a tier, or "" if it can.
+##
+## Named, because "somebody in your party cannot play this" is a message that
+## sends four people asking each other. The host is the one who chooses the
+## tier, so the host is the one who has to be told which of their friends is
+## short of it.
+func blocked_from(tier: CampaignTierData) -> String:
+	if tier == null:
+		return ""
+	var short: Array[String] = []
+	for occupant: Variant in seats():
+		var person := occupant as Seat
+		if person != null and not person.may_play(tier):
+			short.append(person.name)
+	if short.is_empty():
+		return ""
+	if short.size() == 1:
+		return "%s has not cleared the tier before %s yet." % [short[0],
+			tier.display_name]
+	return "%s have not cleared the tier before %s yet." % [
+		", ".join(short), tier.display_name]
+
+
 func clear() -> void:
 	_seats.clear()
 	_own_slot = 0
@@ -165,7 +213,7 @@ func to_wire() -> Array:
 	var rows: Array = []
 	for occupant: Variant in seats():
 		var person := occupant as Seat
-		rows.append([person.slot, person.peer, person.name])
+		rows.append([person.slot, person.peer, person.name, person.cleared])
 	return rows
 
 
@@ -185,13 +233,17 @@ func _on_roster(rows: Array) -> void:
 	_own_slot = 0
 	for entry: Variant in rows:
 		var row: Array = entry as Array
-		if row == null or row.size() != 3:
+		# Three was the shape before tiers were declared. Tolerated rather than
+		# required so a mixed-version party degrades to "nobody has cleared
+		# anything" instead of an empty roster.
+		if row == null or row.size() < 3:
 			continue
 		var number: int = clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS)
 		var person := Seat.new()
 		person.slot = number
 		person.peer = int(row[1])
 		person.name = _clean(String(row[2]))
+		person.cleared = int(row[3]) if row.size() > 3 else -1
 		_seats[number] = person
 		if person.peer == own_peer:
 			_own_slot = number

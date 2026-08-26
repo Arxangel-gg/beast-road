@@ -61,6 +61,12 @@ func _ready() -> void:
 	hud.ride_on_requested.connect(_on_ride_on_requested)
 	# A guest pressing Ride On arrives here as a request rather than as a click.
 	EventBus.coop_request_received.connect(_on_coop_request)
+	# Turns things that happen into sentences the party can read. Owned by the
+	# run so it lives and dies with one, and writes locally on every machine
+	# from facts every machine already has - see `PartyNotices`.
+	var notices := PartyNotices.new()
+	notices.name = "PartyNotices"
+	add_child(notices)
 	hud.command_requested.connect(_on_command_requested)
 
 	boss_director.battlefield = battlefield

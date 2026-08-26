@@ -185,6 +185,10 @@ var _repair_button: Button
 ## Build or Fight, during Preparation. Hidden outside it, because outside it
 ## there is nothing to build and the question does not arise.
 var _mode_button: Button
+
+## The party feed and the box a player types into.
+var _party_log: PartyLog = null
+var _chat_box: LineEdit = null
 var _tend_button: Button
 var _message: Label
 var _message_left: float = 0.0
@@ -259,6 +263,7 @@ func _ready() -> void:
 	_build_raid_panel()
 	_build_boss_track()
 	_build_bottom_row()
+	_build_party_feed()
 	_build_xp_bar()
 	_build_boss_bar()
 	_build_region_card()
@@ -740,6 +745,87 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 	charge_readout.tooltip_text = _charge_bar.tooltip_text
 	charge_readout.add_child(_charge_bar)
 	bar.add_child(charge_readout)
+
+
+## The party feed, and the line a player types into.
+##
+## Bottom left, above the action bar: the corner the eye is not using during a
+## wave, and the place every game with a chat log has put one for twenty years -
+## which matters more than whether it is the prettiest spot, because a player
+## should not have to learn where their friends are talking.
+##
+## **The box is hidden until Enter is pressed.** A permanent text field in the
+## corner of an action game is a permanent invitation to lose a wave to it, and
+## it would also swallow every key a player meant for the hero.
+func _build_party_feed() -> void:
+	var column := VBoxContainer.new()
+	column.name = "PartyFeed"
+	column.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	column.offset_left = 18.0
+	column.offset_bottom = -_bottom_band_height() - 14.0
+	column.offset_top = -520.0
+	column.offset_right = Balance.PARTY_LOG_WIDTH + 18.0
+	column.alignment = BoxContainer.ALIGNMENT_END
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(column)
+
+	_party_log = PartyLog.new()
+	_party_log.name = "PartyLog"
+	column.add_child(_party_log)
+
+	_chat_box = LineEdit.new()
+	_chat_box.name = "ChatBox"
+	_chat_box.placeholder_text = "Say something to your party"
+	_chat_box.max_length = Balance.CHAT_MAX_LENGTH
+	_chat_box.visible = false
+	_chat_box.custom_minimum_size = Vector2(Balance.PARTY_LOG_WIDTH, 0.0)
+	_chat_box.text_submitted.connect(_on_chat_submitted)
+	column.add_child(_chat_box)
+
+
+## Enter opens the box; Enter sends and closes it; Escape closes it unsent.
+##
+## Handled in `_input` rather than `_unhandled_input` for the same reason Tab is:
+## a LineEdit with focus eats the key before an unhandled handler ever sees it,
+## so the second Enter would never reach this.
+func _input(event: InputEvent) -> void:
+	if not _chat_available():
+		return
+	if _chat_box.visible and event.is_action_pressed(&"ui_cancel"):
+		_close_chat()
+		get_viewport().set_input_as_handled()
+		return
+	if not event.is_action_pressed(&"chat"):
+		return
+	if _chat_box.visible:
+		_on_chat_submitted(_chat_box.text)
+	else:
+		_chat_box.visible = true
+		_chat_box.grab_focus()
+	get_viewport().set_input_as_handled()
+
+
+func _chat_available() -> bool:
+	return _chat_box != null and is_instance_valid(_chat_box) 		and Coop.is_networked()
+
+
+func _on_chat_submitted(text: String) -> void:
+	var said: String = text.strip_edges()
+	_close_chat()
+	if said.is_empty():
+		return
+	# Emitted, not sent. The relay forwards it and the host passes it on to the
+	# rest of the party; this machine draws its own copy from the same signal.
+	var slot: int = Coop.party().slot()
+	EventBus.coop_chat.emit(maxi(slot, 1), said.substr(0, Balance.CHAT_MAX_LENGTH))
+
+
+func _close_chat() -> void:
+	if _chat_box == null or not is_instance_valid(_chat_box):
+		return
+	_chat_box.text = ""
+	_chat_box.visible = false
+	_chat_box.release_focus()
 
 
 ## The mode button says what pressing it *gives you*, not what mode you are in.

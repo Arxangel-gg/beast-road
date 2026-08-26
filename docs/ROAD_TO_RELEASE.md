@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.68** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.69** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,36 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.69** the party feed, download mirrors and tier gating.
+
+  **Chat and notifications are one list, not two.** A chat window beside a combat
+  log is two places to look at the moment a player has least attention to spare,
+  and they are about the same thing anyway - "buying the mortar" and "Blue built
+  a Glacial Mortar" belong in the order they happened. Every line is coloured by
+  the seat answerable for it. Enter opens the box, Enter sends, Escape cancels;
+  there is no permanent text field to lose a wave to.
+
+  Notices are written **locally on every machine from facts every machine
+  already has**, never sent as sentences - sending them would be sending each
+  event twice and risking two machines describing one thing differently.
+  Spending is attributed exactly where it is knowable and to "the party" where
+  it is not: the host knows who asked because a request arrives on a peer, and a
+  guest cannot know, so it does not guess. A wrong name on a receipt is worse
+  than no name.
+
+  **Mirrors, and the bug that made them necessary and useless at once.** The
+  launcher never set `HTTPRequest.timeout`, so a blocked host produced 0% for
+  ever - no error, no retry, no failover, because the retry only ran on an error
+  that never arrived. A *stall* watch does that job now: no new bytes for twenty
+  seconds means try elsewhere, which catches a blocked host quickly without ever
+  punishing a slow line. Mirrors are read from `mirrors.json` beside the
+  launcher, so one can be moved or dropped without a new build. See
+  `docs/MIRRORS.md`, including how to get a direct URL out of Drive or Dropbox
+  that survives the next upload.
+
+  **Tier gating.** A party is gated by its weakest member and is told which one.
+  Checked when the run starts rather than at the door, because the host can
+  change the tier after the party has formed.
 - **v0.4.68** **parties of up to four.** The hero replication layer was built on
   a `host_hero: bool`, which is two-player by construction: with two people a
   wrong seat and a right one are the same number. It is keyed on *slots* now -

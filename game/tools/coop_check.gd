@@ -86,6 +86,7 @@ func _ready() -> void:
 	await _test_a_beacon_is_heard()
 	_test_the_public_list_is_not_trusted()
 	_test_webrtc_is_actually_available()
+	_test_a_party_is_gated_by_what_it_has_cleared()
 	_test_both_kinds_of_code_are_offered()
 
 	_tear_down()
@@ -718,6 +719,63 @@ func _test_both_kinds_of_code_are_offered() -> void:
 	_check(not CoopDirectory.joinable_code(""), "nor an empty one")
 	_check(not CoopDirectory.joinable_code("K7M2Q!"),
 		"nor six characters that are not a room code")
+
+
+## Nobody is dragged into a tier they have not opened.
+##
+## Declared rather than proven, and deliberately: there is no server holding an
+## authoritative save, so a player who edits their file into Hell is cheating
+## themselves into a fight they will lose. What this prevents is the real case -
+## somebody joining a Nightmare party by accident and wondering why everything
+## kills them in one hit.
+func _test_a_party_is_gated_by_what_it_has_cleared() -> void:
+	var party := CoopParty.new()
+	party.open("Host")
+	var host_seat: CoopParty.Seat = party.seat_for_slot(1)
+	_check(host_seat != null, "a host must hold a seat")
+	if host_seat == null:
+		party.free()
+		return
+
+	var normal: CampaignTierData = ContentDB.tier("normal")
+	var nightmare: CampaignTierData = ContentDB.tier("nightmare")
+	var hell: CampaignTierData = ContentDB.tier("hell")
+	_check(normal != null and nightmare != null and hell != null,
+		"the three campaign tiers must exist to be gated on")
+	if normal == null or nightmare == null or hell == null:
+		party.free()
+		return
+
+	# A fresh account has cleared nothing and may still play the first tier.
+	host_seat.cleared = -1
+	_check(party.blocked_from(normal).is_empty(),
+		"a new player must be able to play the first tier")
+	_check(not party.blocked_from(nightmare).is_empty(),
+		"and must not be able to play the second")
+
+	# One clear opens exactly one tier, never two.
+	host_seat.cleared = normal.order
+	_check(party.blocked_from(nightmare).is_empty(),
+		"clearing the first tier must open the second")
+	_check(not party.blocked_from(hell).is_empty(),
+		"but not the third")
+
+	# **The party is gated by its weakest member, and is told which one.**
+	party.seat(77, "Newcomer")
+	party.declare(77, -1)
+	var why: String = party.blocked_from(nightmare)
+	_check(not why.is_empty(),
+		"a party carrying somebody who has not cleared the tier must be blocked")
+	_check(why.contains("Newcomer"),
+		"and must name them, got '%s'" % why)
+	_check(not why.contains("Host"),
+		"without blaming anybody who is qualified, got '%s'" % why)
+
+	# Solo is never blocked by a party rule.
+	party.clear()
+	_check(party.blocked_from(hell).is_empty(),
+		"an empty party blocks nobody")
+	party.free()
 
 
 func _tear_down() -> void:

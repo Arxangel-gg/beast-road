@@ -113,8 +113,9 @@ func host() -> String:
 	rest.call_rpc("open_room", {"p_code": _code, "p_token": _token},
 		func(ok: bool, data: Variant) -> void:
 			if not ok:
-				_fail("Could not open a room. The matchmaking service is not " \
-					+ "reachable.")
+				_fail("Could not open a room: the matchmaking service did not "
+					+ "answer. If this is a fresh install of the service, the "
+					+ "tables in docs/MATCHMAKING.md have not been created yet.")
 				return
 			_room = _text_of(data)
 			if _room.is_empty():
