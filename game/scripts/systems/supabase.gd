@@ -41,7 +41,14 @@ func request(path: String, method: int, body: Dictionary, done: Callable) -> voi
 			var ok: bool = result == HTTPRequest.RESULT_SUCCESS \
 				and code >= 200 and code < 300
 			var parsed: Variant = null
-			if ok and raw.size() > 0:
+			# **Decoded on failure too.** PostgREST answers a raised exception
+			# with a JSON body naming it, and throwing that away left every
+			# failure looking the same to the caller - a service saying "this
+			# room is gone" was indistinguishable from a request that timed out
+			# on a busy connection, which are opposite problems with opposite
+			# fixes. `ok` still says whether it worked; `parsed` now says why
+			# it did not.
+			if raw.size() > 0:
 				parsed = JSON.parse_string(raw.get_string_from_utf8())
 			http.queue_free()
 			done.call(ok, parsed))

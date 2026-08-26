@@ -25,6 +25,7 @@ const SETTLE: float = 60.0
 var _role: String = ""
 var _failures: int = 0
 var _handshake: String = ""
+var _busy: bool = false
 
 
 func _ready() -> void:
@@ -33,12 +34,21 @@ func _ready() -> void:
 			_role = argument.split("=")[1]
 		elif argument.begins_with("--code-file="):
 			_handshake = argument.split("=")[1]
+		elif argument == "--busy":
+			_busy = true
 
 	Coop.webrtc().progress.connect(func(text: String) -> void:
 		print("[room] %s: %s" % [_role, text]))
 	Coop.webrtc().failed.connect(func(why: String) -> void:
 		_check(false, "handshake failed: %s" % why))
 
+	# **The co-op screen is never just a handshake.** It publishes a public
+	# lobby, heartbeats it, and polls the list once a second the entire time it
+	# is hosting - all against the same service, from the same process. Testing
+	# the handshake alone left that whole layer beside it uncovered, so pass
+	# `--busy` to run the screen's traffic too.
+	if _busy:
+		Coop.directory().browse()
 	if _role == "host":
 		await _run_host()
 	else:
@@ -53,6 +63,8 @@ func _run_host() -> void:
 	if code.length() != 6:
 		return
 	print("[room] host opened %s" % code)
+	if _busy:
+		Coop.directory().publish(code, Coop.lobby_name())
 	# Handed over on disk, because the guest is another process and the whole
 	# point is that it joins by nothing but the code.
 	var file: FileAccess = FileAccess.open(_handshake, FileAccess.WRITE)
@@ -61,6 +73,8 @@ func _run_host() -> void:
 		file.close()
 	await _until(func() -> bool: return Coop.partner_present())
 	_check(Coop.partner_present(), "the host must see the guest arrive")
+	_check(Coop.webrtc().status_line() != "", "the diagnostic must read")
+	print("[room] host line: %s" % Coop.webrtc().status_line())
 	# Outlives the guest: it is measuring this session at the same moment.
 	await _hold(12.0)
 
@@ -92,6 +106,7 @@ func _run_guest() -> void:
 	_check(relay != null, "a connected session must have a relay")
 	await _hold(3.0)
 	_check(Coop.partner_present(), "and must still see the host after settling")
+	print("[room] guest line: %s" % Coop.webrtc().status_line())
 	print("[room] guest connected through the room")
 
 

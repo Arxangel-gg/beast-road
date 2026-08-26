@@ -55,7 +55,12 @@ const HANDSHAKE_TIMEOUT: float = 45.0
 
 ## How many refused polls in a row mean the room has gone, rather than one
 ## request losing its way. At one poll a second this is a few seconds of grace.
-const MISSES_ALLOWED: int = 5
+const MISSES_ALLOWED: int = 20
+
+## What the service raises when the room in question no longer exists. Told
+## apart from a request that merely failed, because one is fatal and certain and
+## the other is a busy connection that will very likely work next second.
+const ROOM_GONE: String = "P0002"
 
 ## The longest a host will hold a room open waiting for somebody.
 ##
@@ -107,6 +112,16 @@ var _replies: int = 0
 ## successfully into one it is.
 var _stored: int = 0
 var _refused: int = 0
+## The room and code this side last used, kept **through** a reset purely so the
+## diagnostic can be read after a failure.
+##
+## Same mistake as the counters, in the same file: `_reset` cleared `_room`, so
+## the status line showed an empty room in precisely the state anybody wants to
+## read it - after it went wrong. Two peers that never met and two peers that
+## met in different rooms are completely different faults and the blank looked
+## identical for both.
+var _last_room: String = ""
+var _last_code: String = ""
 ## Consecutive polls the service refused. A room that has been swept away
 ## answers every read with an error, and polling a room that no longer exists is
 ## otherwise indistinguishable from polling a quiet one.
@@ -158,9 +173,13 @@ func status_line() -> String:
 	# anything" has two causes that read identically - the same room refusing
 	# the writes, or two different rooms each working perfectly. Eight
 	# characters is enough to tell one from the other at a glance.
-	return "sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  mesh %d  room %s" % [
-		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
-		_polls, _replies, link, mesh, _room.substr(0, 8)]
+	var room: String = _room if not _room.is_empty() else _last_room
+	var code: String = _code if not _code.is_empty() else _last_code
+	return ("%s %s  sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  "
+		+ "mesh %d  room %s") % [
+			"host" if _is_host else "guest", code,
+			_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
+			_polls, _replies, link, mesh, room.substr(0, 8)]
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -367,14 +386,23 @@ func _poll() -> void:
 		"p_after": _seen,
 	}, func(ok: bool, data: Variant) -> void:
 		if not ok or not (data is Array):
-			# The room is gone, or the service is unwell. Either way a peer that
-			# keeps polling a room nobody can find will sit there until its
-			# deadline - and a host, which now has no deadline, would sit there
-			# for ever.
-			_misses += 1
-			if _misses >= MISSES_ALLOWED:
+			# **Two different failures wear this shape**, and treating them
+			# alike is why a browser reported a closed room it was still in.
+			#
+			# The service raising `P0002` is the room genuinely being gone -
+			# certain, immediate, and worth saying so. A request that simply
+			# did not arrive is a busy connection, and a browser has plenty:
+			# the lobby list, the heartbeat, the signal posts and this poll all
+			# compete, and any of them can lose an 8 second timeout. Giving up
+			# after five of *those* ends a session that was fine.
+			if data is Dictionary 					and String((data as Dictionary).get("code", "")) == ROOM_GONE:
 				_fail("The room is no longer open. Host again to get a fresh "
 					+ "code.")
+				return
+			_misses += 1
+			if _misses >= MISSES_ALLOWED:
+				_fail("Lost contact with the matchmaking service. Check your "
+					+ "connection and try again.")
 			return
 		_misses = 0
 		_replies += 1
@@ -543,6 +571,7 @@ func _close_room() -> void:
 		return
 	var room: String = _room
 	var token: String = _token
+	_last_room = room
 	_room = ""
 	rest.call_rpc("close_room", {"p_room": room, "p_token": token},
 		func(_ok: bool, _data: Variant) -> void: pass)
@@ -557,6 +586,10 @@ func _reset() -> void:
 	# handshake got at the exact moment somebody wanted to read it - the guest's
 	# line said 0/0 after every timeout, which is indistinguishable from never
 	# having tried.
+	if not _room.is_empty():
+		_last_room = _room
+	if not _code.is_empty():
+		_last_code = _code
 	_room = ""
 	_code = ""
 	set_process(false)
