@@ -26,6 +26,31 @@ create table if not exists public.lobbies (
 -- create above: a database that already exists must reach the same shape.
 alter table public.lobbies add column if not exists password text;
 
+-- **`create table if not exists` does nothing to a table that already exists**,
+-- including its constraints - so a check written when the rules were different
+-- is still enforcing the old rules. Two of them were, and both broke real play
+-- rather than only this script:
+--
+--   * `code` was 8-24 characters, from when a lobby always carried an address
+--     code. A WebRTC room code is six, so publishing a room to the lobby list
+--     failed on the constraint.
+--   * `players` was 1-2, from when co-op meant two people. A party of three or
+--     four could not update its own headcount.
+--
+-- Restated rather than assumed, so the table matches this file whatever it was
+-- before. Postgres names an inline check `<table>_<column>_check`.
+alter table public.lobbies drop constraint if exists lobbies_code_check;
+alter table public.lobbies add  constraint lobbies_code_check
+  check (char_length(code) between 6 and 24);
+
+alter table public.lobbies drop constraint if exists lobbies_players_check;
+alter table public.lobbies add  constraint lobbies_players_check
+  check (players between 1 and 4);
+
+alter table public.lobbies drop constraint if exists lobbies_name_check;
+alter table public.lobbies add  constraint lobbies_name_check
+  check (char_length(name) <= 40);
+
 create index if not exists lobbies_heartbeat_idx on public.lobbies (heartbeat desc);
 
 create table if not exists public.rooms (
