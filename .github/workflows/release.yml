@@ -440,6 +440,12 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    # Pages accepts one deployment at a time, so two releases close together
+    # race and the loser fails. Queue them instead - and do not cancel the one
+    # in progress, because a half-finished deploy is worse than a slow one.
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
