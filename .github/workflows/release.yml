@@ -399,6 +399,13 @@ jobs:
         run: |
           set -euo pipefail
           touch build/web/.nojekyll
+
+          # The custom domain travels inside the artifact rather than living
+          # only in the repository's Pages settings. Same reasoning as
+          # `_headers`: a deployment should carry everything that decides where
+          # and how it is served, so no redeploy can quietly lose it.
+          echo 'beastroad.arxangel.gg' > build/web/CNAME
+
           test -s build/web/index.wasm
 
       - name: Upload the Pages artifact

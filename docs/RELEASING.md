@@ -60,7 +60,15 @@ shape a static host takes directly.
 
 **Since 2026-08-26 the release also publishes it to GitHub Pages by itself**, at
 
-    https://arxangel-gg.github.io/beast-road/
+    https://beastroad.arxangel.gg
+
+The subdomain, not the apex: `arxangel.gg` serves the Carrd page and pointing
+the root at Pages would replace it. `beastroad` is a CNAME to
+`arxangel-gg.github.io`, and the `CNAME` file is written into the artifact by
+the release job rather than being left to the repository's Pages settings - a
+deployment should carry everything that decides where it is served, so no
+redeploy can lose it. `https://arxangel-gg.github.io/beast-road/` keeps working
+as well.
 
 so hosting the browser build is no longer a manual step and no longer costs
 anything. Pages has no deploy quota, which is the reason it is here: a metered
