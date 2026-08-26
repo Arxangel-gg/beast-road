@@ -25,6 +25,7 @@ var _host_link: WebRTCPeerConnection = null
 var _guest_link: WebRTCPeerConnection = null
 var _seen_candidates: int = 0
 var _guest_candidates: int = 0
+var _last_report: int = -1
 
 
 func _ready() -> void:
@@ -73,7 +74,7 @@ func _ready() -> void:
 		"the host must accept the guest into its mesh")
 	_check(_guest.add_peer(_guest_link, CoopWebRTC.HOST_ID) == OK,
 		"the guest must accept the host into its mesh")
-	_host_link.create_offer()
+	_guest_link.create_offer()
 
 	# **`get_connection_status` is not the question.**
 	#
@@ -84,11 +85,6 @@ func _ready() -> void:
 	# transport first. What actually matters is whether the *other peer's*
 	# channel is open, which is what `peer_connected` announces and what
 	# `get_peers()[id]["connected"]` reports.
-	var host_ready: bool = false
-	var guest_ready: bool = false
-	_host.peer_connected.connect(func(_id: int) -> void: host_ready = true)
-	_guest.peer_connected.connect(func(_id: int) -> void: guest_ready = true)
-
 	var waited: float = 0.0
 	while waited < TIMEOUT:
 		# The connections as well as the meshes. A mesh polls what it owns, and
@@ -97,11 +93,11 @@ func _ready() -> void:
 		_guest_link.poll()
 		_host.poll()
 		_guest.poll()
-		if host_ready and guest_ready:
+		if _peer_is_open(_host, CoopWebRTC.GUEST_ID) \
+				and _peer_is_open(_guest, CoopWebRTC.HOST_ID):
 			break
 		await get_tree().process_frame
 		waited += get_process_delta_time()
-
 	# Printed whatever happens: on a failure it is the difference between "the
 	# two never described themselves to each other" and "they did, and the
 	# packets between them were dropped" - which are different faults with
@@ -109,14 +105,15 @@ func _ready() -> void:
 	print("[webrtc] routes offered: host %d, guest %d; states %d / %d"
 		% [_seen_candidates, _guest_candidates,
 			_host_link.get_connection_state(), _guest_link.get_connection_state()])
-	_check(host_ready, "the host must see the guest connect, waited %.1fs" % waited)
-	_check(guest_ready, "the guest must see the host connect, waited %.1fs" % waited)
+	var host_ready: bool = _peer_is_open(_host, CoopWebRTC.GUEST_ID)
+	var guest_ready: bool = _peer_is_open(_guest, CoopWebRTC.HOST_ID)
+	_check(host_ready, "the host must see the guest's channel open, waited %.1fs"
+		% waited)
+	_check(guest_ready, "the guest must see the host's channel open, waited %.1fs"
+		% waited)
 	if not (host_ready and guest_ready):
 		_finish()
 		return
-	# The same fact read the other way, because the transport tests it that way.
-	_check(_peer_is_open(_host, CoopWebRTC.GUEST_ID),
-		"and the host must report the guest's channel open")
 	print("[webrtc] connected in %.1fs" % waited)
 
 	# **The thing every fact in this game travels on.**
@@ -164,10 +161,12 @@ func _ready() -> void:
 
 ## Whether one named peer's channel is actually usable.
 ##
-## `get_peers()` maps a peer id to a dictionary carrying `connected`. This is the
-## same question `peer_connected` answers as an event, asked as a state - the
-## transport needs the state form, because a peer installed after the signal
-## fired would otherwise wait for an announcement that already happened.
+## **The state, not the signal.** This waited on `peer_connected` first and
+## timed out at twenty seconds against two peers that were connected in four -
+## the signal is emitted by a `MultiplayerAPI` driving the peer, and nothing here
+## drives one. Reading `get_peers()[id]["connected"]` asks the peer directly and
+## is what the transport uses, so the harness and the thing it tests now ask the
+## same question in the same words.
 static func _peer_is_open(peer: WebRTCMultiplayerPeer, id: int) -> bool:
 	var peers: Dictionary = peer.get_peers()
 	if not peers.has(id):

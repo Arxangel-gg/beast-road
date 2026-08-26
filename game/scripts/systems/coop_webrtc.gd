@@ -120,10 +120,8 @@ func host() -> String:
 			if _room.is_empty():
 				_fail("The matchmaking service refused the room.")
 				return
-			# The host offers. A browser and a desktop build negotiate exactly
-			# the same way, which is the entire reason this works cross-platform.
-			_begin_polling()
-			_connection.create_offer())
+			# The host does *not* offer. See `join`.
+			_begin_polling())
 	return _code
 
 
@@ -152,8 +150,17 @@ func join(code: String) -> void:
 			if _room.is_empty():
 				_fail("No game is waiting on that code.")
 				return
-			# The guest answers, so it only listens until an offer arrives.
-			_begin_polling())
+			# **The guest offers, and which side does is not arbitrary.**
+			#
+			# `WebRTCMultiplayerPeer` creates the data channels on the peer with
+			# the higher id and expects the lower one to receive them, so the
+			# offer has to come from the side that made them or it describes a
+			# connection with nothing in it. The guest is 2 and the host is 1.
+			#
+			# A browser and a desktop build negotiate identically from here,
+			# which is the entire reason this works cross-platform.
+			_begin_polling()
+			_connection.create_offer())
 
 
 ## Builds the peer and this side's half of the connection.

@@ -22,8 +22,8 @@ Two peers with fixed ids — the host is 1, the guest is 2 — and a short-lived
 row in a table that exists only to let them describe themselves to each other.
 
 1. The host opens a room. It gets back a six-character code and a secret token.
-2. The host creates a WebRTC offer and posts it to the room.
-3. The guest enters the room by code, reads the offer, and posts an answer.
+2. The guest enters the room by code and posts a WebRTC offer.
+3. The host reads it and posts an answer.
 4. Both post ICE candidates — the routes each might be reachable on — as their
    connection layer discovers them.
 5. The moment the peer reports connected, **the room is deleted**. Nothing
@@ -57,6 +57,12 @@ Two consequences worth knowing:
 - **The `.gdextension` lists only what is committed.** Adding a platform means
   adding its binary in the same change. A file listed and missing is a promise
   the repository does not keep.
+- **The guest offers, and which side does is not arbitrary.**
+  `WebRTCMultiplayerPeer` creates the data channels on the peer with the higher
+  id and expects the lower one to receive them, so an offer from the host
+  describes a connection with nothing in it. ICE and DTLS still complete, both
+  connections report `STATE_CONNECTED`, and no channel ever opens — a failure
+  that looks exactly like a network problem and is not one.
 - **`CoopWebRTC.available()` initialises a connection rather than checking for a
   class name.** The engine defines `WebRTCPeerConnection` whether or not
   anything implements it, so `class_exists` answers true on a build with no
@@ -76,3 +82,17 @@ it turns out to matter, the place to add one is `ICE_SERVERS` in
 Three STUN servers are listed rather than one. In the places where reaching a
 friend is hardest, one of them being unreachable is the likely case rather than
 the unlucky one.
+
+## Two things that look like network faults and are not
+
+Both cost an afternoon, and both present as a handshake that times out:
+
+- **`get_connection_status()` on a mesh answers CONNECTED immediately**, because
+  a mesh is connected to itself. Waiting on it succeeds instantly and installs a
+  peer whose data channel is still closed; the first packet then fails with
+  "DataChannel not open". Ask `get_peers()[id]["connected"]` instead — the state
+  of the *other* peer, which is what both the transport and the harness now do.
+- **`peer_connected` is emitted by a `MultiplayerAPI` driving the peer**, not by
+  the peer on its own. A harness that polls a peer directly and waits for that
+  signal waits forever, against two peers that connected in a fifth of a second.
+  Read the state, not the announcement.
