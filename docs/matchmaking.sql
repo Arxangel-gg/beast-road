@@ -318,9 +318,25 @@ create or replace function public.close_room(p_room uuid, p_token text)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare hit int;
 begin
-  delete from public.rooms
-   where id = p_room and (host_token = p_token or guest_token = p_token);
+  -- **Only the host may end a room.** A guest leaving releases its seat.
+  --
+  -- Letting either side delete the row meant a guest that gave up, retried, or
+  -- pressed anything routed through `leave` took the host's game down with it -
+  -- and `host_room` and `join_room` both call `leave` first, so this fired
+  -- constantly. The host's next poll then failed with "room is not open" and
+  -- the host was told its own room had closed.
+  --
+  -- Releasing the seat is also what makes a second attempt possible at all:
+  -- `enter_room` only matches while `guest_token is null`, so a guest that
+  -- vanished without clearing it locked the room against everybody, including
+  -- itself.
+  delete from public.rooms where id = p_room and host_token = p_token;
   get diagnostics hit = row_count;
+  if hit = 0 then
+    update public.rooms set guest_token = null, seen_at = now()
+     where id = p_room and guest_token = p_token;
+    get diagnostics hit = row_count;
+  end if;
   perform public.sweep_rooms();
   return hit > 0;
 end $$;
