@@ -154,9 +154,7 @@ func host() -> String:
 				_fail("The matchmaking service refused the room.")
 				return
 			_begin_polling()
-			if offers(_is_host):
-				print("[rtc] asking for an offer")
-				_connection.create_offer())
+			_start_offer())
 	return _code
 
 
@@ -189,9 +187,30 @@ func join(code: String) -> void:
 			# a desktop build negotiate identically from here, which is the
 			# entire reason this works cross-platform.
 			_begin_polling()
-			if offers(_is_host):
-				print("[rtc] asking for an offer")
-				_connection.create_offer())
+			_start_offer())
+
+
+## Asks this side for an offer, if this is the side that offers.
+##
+## The return value is checked, which it previously was not, and that omission
+## is the shape of the bug it was hiding: `create_offer` is the one step of the
+## handshake that can fail without anything being logged, thrown or emitted. A
+## guest whose offer never gets made looks identical from the host's chair to a
+## guest who never arrived - the mesh is built, the peer is added, the room is
+## polled, and the counter simply reads zero for forty-five seconds.
+##
+## Every other call in `_build_peer` was already checked. This one is now too.
+func _start_offer() -> void:
+	if not offers(_is_host):
+		# Not this side's turn. The other one speaks first and we answer.
+		print("[rtc] waiting for an offer")
+		return
+	print("[rtc] asking for an offer")
+	var result: int = _connection.create_offer()
+	if result != OK:
+		print("[rtc] create_offer refused: %d" % result)
+		_fail("This browser would not start a connection (error %d). "
+			% result + "WebRTC may be disabled or blocked by an extension.")
 
 
 ## Builds the peer and this side's half of the connection.
