@@ -77,6 +77,10 @@ var _heard_sdp: int = 0
 var _sent_ice: int = 0
 var _heard_ice: int = 0
 
+## Reads attempted, and reads the service actually answered.
+var _polls: int = 0
+var _replies: int = 0
+
 
 func _ready() -> void:
 	set_process(false)
@@ -116,8 +120,12 @@ func room_code() -> String:
 func status_line() -> String:
 	var link: int = _connection.get_connection_state() if _connection != null else -1
 	var mesh: int = _peer.get_connection_status() if _peer != null else -1
-	return "sdp %d/%d  ice %d/%d  link %d  mesh %d" % [
-		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, link, mesh]
+	# `polls` is what separates "nobody said anything" from "nobody was
+	# listening". Without it, zero heard is two entirely different faults with
+	# the same reading, and the fix for one is nothing like the fix for the other.
+	return "sdp %d/%d  ice %d/%d  polls %d/%d  link %d  mesh %d" % [
+		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _polls, _replies,
+		link, mesh]
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -147,6 +155,7 @@ func host() -> String:
 				return
 			_begin_polling()
 			if offers(_is_host):
+				print("[rtc] asking for an offer")
 				_connection.create_offer())
 	return _code
 
@@ -181,6 +190,7 @@ func join(code: String) -> void:
 			# entire reason this works cross-platform.
 			_begin_polling()
 			if offers(_is_host):
+				print("[rtc] asking for an offer")
 				_connection.create_offer())
 
 
@@ -222,6 +232,12 @@ func _build_peer(own_id: int, other_id: int) -> bool:
 func _begin_polling() -> void:
 	_live = true
 	_seen = 0
+	_sent_sdp = 0
+	_heard_sdp = 0
+	_sent_ice = 0
+	_heard_ice = 0
+	_polls = 0
+	_replies = 0
 	_poll_left = 0.0
 	_deadline = HANDSHAKE_TIMEOUT
 	set_process(true)
@@ -231,6 +247,9 @@ func _begin_polling() -> void:
 
 ## This side produced an offer or an answer. Keep it, and post it.
 func _on_description(type: String, sdp: String) -> void:
+	# Printed as well as counted. On the web these reach the browser console, so
+	# a failure can be read without attaching a debugger to anything.
+	print("[rtc] made a %s (%d chars)" % [type, sdp.length()])
 	_sent_sdp += 1
 	_connection.set_local_description(type, sdp)
 	_post(type, {"sdp": sdp})
@@ -256,6 +275,9 @@ func _post(kind: String, payload: Dictionary) -> void:
 func _poll() -> void:
 	if _room.is_empty():
 		return
+	_polls += 1
+	if _polls == 1:
+		print("[rtc] polling as %s" % ("host" if _is_host else "guest"))
 	rest.call_rpc("read_signals", {
 		"p_room": _room,
 		"p_token": _token,
@@ -263,6 +285,9 @@ func _poll() -> void:
 	}, func(ok: bool, data: Variant) -> void:
 		if not ok or not (data is Array):
 			return
+		_replies += 1
+		if (data as Array).size() > 0:
+			print("[rtc] heard %d note(s)" % (data as Array).size())
 		for entry: Variant in (data as Array):
 			if entry is Dictionary:
 				_apply(entry as Dictionary))
@@ -425,10 +450,11 @@ func _reset() -> void:
 	_live = false
 	_announced = false
 	_seen = 0
-	_sent_sdp = 0
-	_heard_sdp = 0
-	_sent_ice = 0
-	_heard_ice = 0
+	# **The counters survive a failure**, and are cleared when the next attempt
+	# begins instead. Resetting them here wiped the only record of how far the
+	# handshake got at the exact moment somebody wanted to read it - the guest's
+	# line said 0/0 after every timeout, which is indistinguishable from never
+	# having tried.
 	_room = ""
 	_code = ""
 	set_process(false)
