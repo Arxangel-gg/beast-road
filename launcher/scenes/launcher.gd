@@ -137,7 +137,32 @@ func _on_release_fetched(result: int, code: int, _headers: PackedStringArray, bo
 		notes_label.text = _latest.notes
 		notes_panel.visible = true
 
+	_refresh_mirrors()
 	_evaluate_release()
+
+
+## Fetches the release's mirror list and keeps a copy.
+##
+## **Nothing waits for this.** It is a few hundred bytes of "where else could
+## this come from", and the download it informs is minutes away; blocking the
+## interface on it would trade a certain delay for an uncertain benefit. If it
+## never arrives, the cached copy from last time is used, and if there is no
+## cache the launcher simply has GitHub - which is where it was before mirrors
+## existed.
+func _refresh_mirrors() -> void:
+	if _latest == null or _latest.mirrors_url.is_empty():
+		return
+	var request := HTTPRequest.new()
+	request.timeout = 10.0
+	add_child(request)
+	request.request_completed.connect(
+		func(result: int, code: int, _h: PackedStringArray,
+				payload: PackedByteArray) -> void:
+			if result == HTTPRequest.RESULT_SUCCESS and code >= 200 and code < 300:
+				LauncherConfig.remember_mirrors(payload.get_string_from_utf8())
+			request.queue_free())
+	if request.request(_latest.mirrors_url, LauncherConfig.download_headers()) != OK:
+		request.queue_free()
 
 
 ## Which state this release puts the launcher in.

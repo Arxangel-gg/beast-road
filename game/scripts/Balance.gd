@@ -3064,9 +3064,17 @@ const PARTY_COLOUR_NAMES: Array[String] = ["Red", "Blue", "Yellow", "Green"]
 ## and green would fight the art, the lighting and the damage flash - and the
 ## flash is a readout that matters more than the colour. Faint enough to read as
 ## ground rather than as an effect. [TUNE]
-const PARTY_MARK_SCALE: float = 0.62
+## The mark under a player's feet, and how far the body is leaned toward the
+## seat colour.
+##
+## Both, because neither alone was enough. A ground mark on its own could not be
+## picked out of a crowded lane, and a body painted flat would fight the art, the
+## lighting and the hurt flash. The tint is a *lean* - the character still looks
+## like itself, and a white flash still reads as a flash. [TUNE]
+const PARTY_MARK_SCALE: float = 0.86
 const PARTY_MARK_LIFT: float = 16.0
-const PARTY_MARK_ALPHA: float = 0.55
+const PARTY_MARK_ALPHA: float = 0.78
+const PARTY_TINT_STRENGTH: float = 0.30
 
 ## How wide a line in the party feed may run before it wraps. [TUNE]
 const PARTY_LOG_WIDTH: float = 420.0

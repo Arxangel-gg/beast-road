@@ -126,6 +126,10 @@ var spawn_point: Vector2 = Vector2.ZERO
 ## **Colour comes from here and from nowhere else**, so a player is the same
 ## colour on every screen in the party. 1 alone, which is why a solo run is a
 ## party of one rather than a case with no colour.
+## The seat colour leaned into the sprite, composed with everything else that
+## writes `modulate`. White when playing alone.
+var _tint: Color = Color.WHITE
+
 var party_slot: int = 1:
 	set(value):
 		party_slot = clampi(value, 1, Balance.COOP_MAX_PLAYERS)
@@ -753,24 +757,38 @@ func apply_hearthmend() -> void:
 	_restore_presence()
 
 
-## Tints the banner that says which player this is.
+## Colours this hero as its player, on the ground and on the body.
 ##
-## **The body is not tinted.** Four heroes painted red, blue, yellow and green
-## would fight the art, the lighting and the damage flash - and the flash is a
-## readout the player needs more than the colour. The mark sits under the feet
-## where it never covers the character and never leaves the screen.
+## **Both, and lightly on the body.** A mark under the feet alone was not enough
+## to tell four heroes apart in a crowded lane - reported from play - and a body
+## painted flat red would fight the art, the lighting and the damage flash, which
+## is a readout the player needs more than the colour. So the sprite is *leaned*
+## toward the seat colour rather than replaced by it: enough to pick your friend
+## out at a glance, little enough that the character still looks like itself and
+## a white hurt-flash still reads as one.
+##
+## `_tint` is stored rather than written straight onto the sprite, because
+## everything else that touches `modulate` - the flash, the dash ghosts, the
+## death fade - has to compose with it instead of erasing it.
 func _apply_party_colour() -> void:
 	if not is_inside_tree():
 		return
-	var mark: Node2D = get_node_or_null("PartyMark") as Node2D
 	var wanted: Color = CoopParty.colour_of(party_slot)
+	var showing: bool = Coop.player_count() > 1
+
+	var mark: Node2D = get_node_or_null("PartyMark") as Node2D
 	if mark == null:
 		mark = _build_party_mark()
-	mark.modulate = Color(wanted.r, wanted.g, wanted.b,
-		Balance.PARTY_MARK_ALPHA)
+	mark.modulate = Color(wanted.r, wanted.g, wanted.b, Balance.PARTY_MARK_ALPHA)
+	mark.scale = Vector2.ONE * Balance.PARTY_MARK_SCALE
 	# Only ever drawn in company. One player does not need to be told which
 	# player they are.
-	mark.visible = Coop.player_count() > 1
+	mark.visible = showing
+
+	_tint = Color.WHITE.lerp(wanted, Balance.PARTY_TINT_STRENGTH) if showing \
+		else Color.WHITE
+	if sprite != null:
+		sprite.modulate = _tint
 
 
 func _build_party_mark() -> Node2D:
@@ -789,7 +807,7 @@ func _build_party_mark() -> Node2D:
 
 func _restore_presence() -> void:
 	sprite.visible = true
-	sprite.modulate = Color.WHITE
+	sprite.modulate = _tint
 	health_bar.visible = true
 	# A revive has to release the death sheet as well as the body. Without this
 	# the Warden stands back up still holding the last frame of their collapse.
@@ -840,9 +858,15 @@ func _update_sprite(_delta: float) -> void:
 	# them mirrors the western rows twice and puts the blade in the wrong hand.
 	sprite.flip_h = _facing.x < -0.001 if frames == null or not frames.has_frames() else false
 
-	var tint: Color = Color.WHITE
+	# **Composed with the seat colour, not written over it.**
+	#
+	# This runs every frame and used to start from white, so a tinted hero was
+	# repainted plain on the very next tick and the party colours vanished the
+	# moment anybody moved. The hurt flash still wins outright while it lasts -
+	# it is a readout the player needs more than the colour.
+	var tint: Color = _tint
 	if _flash_left > 0.0:
-		tint = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
+		tint = Balance.HIT_FLASH_COLOUR.lerp(_tint, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	# Blinking is the only cue that i-frames are active, and the dash is the
 	# hero's whole defensive game — it has to be unmissable.
 	if health.is_invulnerable():

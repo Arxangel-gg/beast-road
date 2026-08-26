@@ -26,6 +26,10 @@ const NOTABLE_SPEND: int = 20
 
 var _last_currency: Dictionary = {}
 
+## Which quarter of its health the town was in last time it was mentioned, so a
+## falling wall is reported once per quarter rather than once per hit.
+var _town_band: int = 4
+
 
 func _ready() -> void:
 	EventBus.tower_changed.connect(_on_tower)
@@ -40,6 +44,16 @@ func _ready() -> void:
 	EventBus.coop_partner_left.connect(_on_left)
 	EventBus.act_started.connect(_on_act)
 	EventBus.currency_changed.connect(_on_currency)
+	EventBus.hero_levelled.connect(_on_levelled)
+	EventBus.hero_wounds_changed.connect(_on_wounds)
+	EventBus.relic_socketed.connect(_on_relic)
+	EventBus.coop_relic_chosen.connect(_on_relic_taken)
+	EventBus.discipline_trained.connect(_on_discipline)
+	EventBus.weather_changed.connect(_on_weather)
+	EventBus.town_health_changed.connect(_on_town)
+	EventBus.raid_chest_opened.connect(_on_chest)
+	EventBus.crossroad_resolved.connect(_on_road)
+	EventBus.war_horn_activated.connect(_on_horn)
 
 
 ## Who is answerable for the thing being built right now.
@@ -133,6 +147,76 @@ func _on_joined(peer_id: int) -> void:
 func _on_left(peer_id: int) -> void:
 	var slot: int = Coop.party().slot_for_peer(peer_id)
 	_say(slot, "%s left the party." % _who(slot))
+
+
+# --- Growth and setbacks -----------------------------------------------------
+
+func _on_levelled(level: int, _attributes: int, _skills: int) -> void:
+	_say(_blame(), "%s reached level %d." % [_who(_blame()), level])
+
+
+## A Wound is the run's health, so it is the party's news rather than one
+## player's - it is spent from a pool all four of them are drawing on.
+func _on_wounds(wounds: int, maximum: int) -> void:
+	if wounds <= 0:
+		return
+	var left: int = maxi(maximum - wounds, 0)
+	_say(PARTY, "Wound %d of %d. %s" % [wounds, maximum,
+		"One more ends the run." if left == 1 else "%d left." % left])
+
+
+func _on_relic(relic_id: String) -> void:
+	var relic: RelicData = ContentDB.relic(relic_id)
+	if relic != null:
+		_say(PARTY, "%s socketed." % relic.display_name)
+
+
+func _on_relic_taken(relic_id: String) -> void:
+	var relic: RelicData = ContentDB.relic(relic_id)
+	if relic != null:
+		_say(_blame(), "%s took %s." % [_who(_blame()), relic.display_name])
+
+
+func _on_discipline(node_id: String, food_spent: int) -> void:
+	var node: DisciplineNodeData = ContentDB.discipline_node(node_id)
+	_say(_blame(), "%s trained %s for %d Food."
+		% [_who(_blame()), node.display_name if node != null else node_id,
+			food_spent])
+
+
+func _on_weather(weather_id: String) -> void:
+	var weather: WeatherData = ContentDB.weather(weather_id)
+	if weather != null and not weather.display_name.is_empty():
+		_say(PARTY, "The weather turns: %s." % weather.display_name)
+
+
+## Only when the wall is in trouble. A health bar that narrated every scratch
+## would bury everything else, and the number is already on screen.
+func _on_town(current_hp: float, max_hp: float) -> void:
+	if max_hp <= 0.0:
+		return
+	var band: int = int(floor(current_hp / max_hp * 4.0))
+	if band >= _town_band or band > 2:
+		_town_band = band
+		return
+	_town_band = band
+	_say(PARTY, "The town is at %d%%." % int(round(current_hp / max_hp * 100.0)))
+
+
+func _on_chest(was_locked: bool) -> void:
+	_say(_blame(), "%s opened %s chest."
+		% [_who(_blame()), "a locked" if was_locked else "a"])
+
+
+func _on_road(option_id: String) -> void:
+	var road: RoadData = ContentDB.road(option_id)
+	_say(PARTY, "The party takes %s."
+		% (road.display_name if road != null else option_id))
+
+
+func _on_horn(duration: float) -> void:
+	_say(_blame(), "%s sounded the war horn - %ds."
+		% [_who(_blame()), int(round(duration))])
 
 
 # --- Spending ----------------------------------------------------------------

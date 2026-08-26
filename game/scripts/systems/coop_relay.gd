@@ -75,6 +75,7 @@ enum Fact {
 	ENEMY_STRUCK = 36,
 	PARTY_ROSTER = 37,
 	CHAT = 38,
+	ACT_STARTED = 39,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -275,6 +276,7 @@ func _fact_bindings() -> Array:
 		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
+		["act_started", _on_act_started],
 		["coop_pointer_moved", _on_coop_pointer_moved],
 	]
 
@@ -367,6 +369,19 @@ func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
 
 func _on_coop_party_roster(rows: Array) -> void:
 	_relay(Fact.PARTY_ROSTER, [rows])
+
+
+## **The act is told, not worked out.**
+##
+## Every machine could derive it - the distance is replicated and the act falls
+## out of it - and deriving it in two places is exactly how the two drifted: the
+## host announced Act I from `journey.start()` on a condition a guest had already
+## satisfied, and later acts came from a world-clock comparison that a guest's
+## own journey had usually made first. Reported twice as the act title appearing
+## for the host alone. One author now, and the banner, the music, the ambience
+## and the region cinematic all hang off the same sentence.
+func _on_act_started(act: int, terrain_id: String) -> void:
+	_relay(Fact.ACT_STARTED, [act, terrain_id])
 
 
 ## **Chat is the other fact either player may author**, like the pointer.
@@ -645,6 +660,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.CHAT:
 			if args.size() == 2:
 				bus.coop_chat.emit(int(args[0]), String(args[1]))
+		Fact.ACT_STARTED:
+			if args.size() == 2:
+				bus.act_started.emit(int(args[0]), String(args[1]))
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),

@@ -38,6 +38,7 @@ var _lobby_title: Label = null
 var _lobby_list: VBoxContainer = null
 var _public_title: Label = null
 var _public_list: VBoxContainer = null
+var _diagnostic: Label = null
 var _join_button: Button = null
 var _begin_button: Button = null
 var _leave_button: Button = null
@@ -203,6 +204,19 @@ func _build() -> void:
 		Coop.leave()
 		_refresh())
 
+	# **One line that says why co-op is not working.**
+	#
+	# "It does not work" is the hardest report to act on, and the three things
+	# that can be wrong are invisible from the outside: the build is older than
+	# the feature, this platform has no WebRTC, or the matchmaking service is not
+	# answering. The version matters most of all on the web, where the build is
+	# whatever was last deployed rather than whatever was last released.
+	_diagnostic = Label.new()
+	_diagnostic.add_theme_font_size_override("font_size", 12)
+	_diagnostic.add_theme_color_override("font_color", Color("7d8a86"))
+	_diagnostic.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(_diagnostic)
+
 	var back: Button = _button(column, "Back", "close")
 	back.pressed.connect(close)
 
@@ -234,6 +248,22 @@ func _on_host_room() -> void:
 ## The label change is not decoration. A copy button that does nothing visible is
 ## one people press three times and then doubt, and there is nothing else on
 ## screen to confirm it worked.
+## The three things that can be wrong, stated plainly.
+func _update_diagnostic() -> void:
+	if _diagnostic == null:
+		return
+	# `BuildInfo.VERSION` is stamped from the tag at export and left as "dev" in
+	# the repository, so a build made on somebody's machine says so rather than
+	# impersonating a release.
+	var version: String = BuildInfo.VERSION
+	var platform: String = "browser" if OS.has_feature("web") else OS.get_name()
+	var rtc: String = "yes" if CoopWebRTC.available() else "NO"
+	var lobby: String = "unreachable" if Coop.directory().status().begins_with(
+		"Could not") else "reachable"
+	_diagnostic.text = "build %s  ·  %s  ·  rooms: %s  ·  lobby list: %s" % [
+		version, platform, rtc, lobby]
+
+
 ## Six characters, no dots. See `_on_join`.
 static func _looks_like_room(text: String) -> bool:
 	var cleaned: String = text.strip_edges().to_upper().replace("-", "")
@@ -360,6 +390,7 @@ func _refresh() -> void:
 	# The lobby rows are join buttons, so they follow the same rule.
 	_on_games_changed(Coop.beacon().games())
 	_on_public_games(Coop.directory().games())
+	_update_diagnostic()
 	_join_button.disabled = _host_button.disabled
 	_join_field.editable = not _host_button.disabled
 	# Only a host with company may begin, which is the rule the button should

@@ -7,6 +7,15 @@ var tag: String = ""
 var title: String = ""
 var notes: String = ""
 var asset_url: String = ""
+
+## Where `mirrors.json` is on this release, if it published one.
+##
+## The mirror list travels *with the release* rather than being baked into the
+## launcher, so a mirror can be added, moved or dropped without every player
+## needing a new launcher first. It is cached on disk after each successful
+## fetch, because the one moment it is needed is the moment GitHub cannot be
+## reached - and a list that only exists on GitHub is no use then.
+var mirrors_url: String = ""
 var asset_name: String = ""
 var asset_size: int = 0
 var asset_sha256: String = ""
@@ -56,6 +65,10 @@ static func from_json(text: String) -> ReleaseInfo:
 		var marked: String = LauncherConfig.launcher_version_in(name)
 		if not marked.is_empty():
 			info.launcher_version = marked
+			continue
+
+		if name == LauncherConfig.MIRROR_FILE:
+			info.mirrors_url = String(asset.get("browser_download_url", ""))
 			continue
 
 		# The launcher is an .exe and the game is a .zip, so the two never

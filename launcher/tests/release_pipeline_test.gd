@@ -75,6 +75,23 @@ func _test_mirrors() -> void:
 		"mirrors must be offered in order, http(s) only, and only for the asset "
 			+ "actually being fetched - got %s" % str(names))
 	DirAccess.remove_absolute(written)
+
+	# A fetched list is cached, so the day GitHub cannot be reached is not the
+	# day the mirror list becomes unreachable too.
+	_check(LauncherConfig.remember_mirrors(JSON.stringify([
+		{"name": "Dropbox", "assets": {"BeastRoad-windows.zip": "https://example.invalid/d.zip"}}])),
+		"a well-formed mirror list must be cached")
+	_check(not LauncherConfig.remember_mirrors("{\"not\": \"a list\"}"),
+		"and a malformed one must be refused rather than stored - a corrupt "
+			+ "cache outlives the request that made it")
+	var cached: Array = LauncherConfig.mirrors_for("BeastRoad-windows.zip", github)
+	var cached_names: Array = []
+	for entry: Variant in cached:
+		cached_names.append(String((entry as Dictionary)["name"]))
+	_check(cached_names == ["GitHub", "Dropbox"],
+		"a cached list must be used when no file sits beside the launcher, "
+			+ "got %s" % str(cached_names))
+	DirAccess.remove_absolute(LauncherConfig.mirror_cache_path())
 	get_tree().quit(_failures)
 
 

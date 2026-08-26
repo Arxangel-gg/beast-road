@@ -243,12 +243,15 @@ func _on_world_clock(distance: float, weather_id: String, act: int) -> void:
 	# The terrain is derived here rather than sent. Both machines hold the same
 	# ContentDB and `journey` derives it from the act on the host, so putting it
 	# on the wire would be sending something the guest can already work out.
+	# The number, so everything derived from it stays right. The *announcement*
+	# is a fact of its own now - see `CoopRelay._on_act_started` - because
+	# deriving it here as well meant two machines deciding independently whether
+	# to say something, and disagreeing.
 	if act != RunState.act:
 		RunState.act = act
 		var terrain: TerrainData = ContentDB.terrain_for_act(act)
 		if terrain != null:
 			RunState.terrain_id = terrain.id
-		EventBus.act_started.emit(act, RunState.terrain_id)
 
 
 ## A tower appeared, changed tier or went away, on the host's say-so.

@@ -286,6 +286,64 @@ jobs:
 
           ls -la BeastRoad-windows.zip BeastRoad-web.zip BeastRoadLauncher.exe "$LAUNCHER_VERSION_ASSET"
 
+      # **The backup mirror, refreshed every release and never by hand.**
+      #
+      # GitHub serves release assets from a host that is filtered in some
+      # countries - reported by a player whose version check worked perfectly
+      # while the download sat at 0%. Dropbox is the second place to try.
+      #
+      # Uploaded to a *fixed path* in overwrite mode, which is the whole trick:
+      # a Dropbox link belongs to the file rather than to the name, so deleting
+      # and re-uploading would silently break every launcher in the world.
+      # Overwriting keeps one link alive forever, and the shared link is then
+      # read back and published as `mirrors.json` so the launcher learns it
+      # without a new build.
+      #
+      # Skipped entirely, with a notice and no failure, when the secrets are
+      # absent: a mirror is a convenience and a release must not depend on one.
+      - name: Mirror to Dropbox
+        id: dropbox
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DROPBOX_REFRESH_TOKEN:-}" ]; then
+            echo "::notice title=Mirror::No Dropbox secrets set; skipping the backup mirror."
+            exit 0
+          fi
+
+          # Short-lived tokens only, minted from the refresh token. A long-lived
+          # token in a secret is a long-lived token in every log that ever
+          # prints an environment.
+          TOKEN="$(curl -sf -X POST https://api.dropbox.com/oauth2/token             -u "$DROPBOX_APP_KEY:$DROPBOX_APP_SECRET"             -d grant_type=refresh_token             -d "refresh_token=$DROPBOX_REFRESH_TOKEN" | jq -r .access_token)"
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error title=Mirror::Could not exchange the Dropbox refresh token."
+            exit 1
+          fi
+
+          DEST="/BeastRoad/BeastRoad-windows.zip"
+          curl -sf -X POST https://content.dropboxapi.com/2/files/upload             -H "Authorization: Bearer $TOKEN"             -H "Dropbox-API-Arg: {\"path\":\"$DEST\",\"mode\":\"overwrite\",\"mute\":true}"             -H "Content-Type: application/octet-stream"             --data-binary @BeastRoad-windows.zip > /dev/null
+          echo "Uploaded $(du -h BeastRoad-windows.zip | cut -f1) to Dropbox:$DEST"
+
+          # Reuse the existing public link if there is one; make it if not. The
+          # link must survive every future release, so it is never recreated
+          # once it exists.
+          LINK="$(curl -sf -X POST https://api.dropboxapi.com/2/sharing/list_shared_links             -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"             -d "{\"path\":\"$DEST\",\"direct_only\":true}" | jq -r '.links[0].url // empty')"
+          if [ -z "$LINK" ]; then
+            LINK="$(curl -sf -X POST https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings               -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"               -d "{\"path\":\"$DEST\",\"settings\":{\"requested_visibility\":\"public\",\"audience\":\"public\",\"access\":\"viewer\"}}"               | jq -r '.url // empty')"
+          fi
+          if [ -z "$LINK" ]; then
+            echo "::error title=Mirror::Uploaded, but could not obtain a public link."
+            exit 1
+          fi
+
+          # `dl=1` is what turns a Dropbox preview page into the file itself.
+          DIRECT="$(printf '%s' "$LINK" | sed 's/[?&]dl=0$//; s/$/?dl=1/')"
+          jq -n --arg url "$DIRECT" '[{name:"Dropbox",assets:{"BeastRoad-windows.zip":$url}}]'             > mirrors.json
+          cat mirrors.json
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -295,6 +353,7 @@ jobs:
             BeastRoad-web.zip
             BeastRoadLauncher.exe
             launcher-version-*.txt
+            mirrors.json
 
       - name: Publish release
         # Only on a tag. A manual run builds and uploads artifacts without
@@ -309,3 +368,4 @@ jobs:
             BeastRoad-web.zip
             BeastRoadLauncher.exe
             launcher-version-*.txt
+            mirrors.json

@@ -71,3 +71,67 @@ reachable, but neither is universal, and the launcher itself still has to be
 downloaded from somewhere the first time. For a player who can reach none of
 them, the answer is the web build — an ordinary page on an ordinary CDN, with no
 download at all.
+
+---
+
+# The Dropbox mirror — what is automatic and what is not
+
+Since v0.4.70 the release workflow does all of this on every tag, with nothing
+to remember:
+
+1. Uploads `BeastRoad-windows.zip` to `/BeastRoad/BeastRoad-windows.zip` in
+   Dropbox, in **overwrite** mode.
+2. Reuses the existing public link, or creates one the first time.
+3. Writes that link into a `mirrors.json` published alongside the release.
+
+The launcher fetches `mirrors.json` when it checks for an update and **caches
+it**, so the day GitHub cannot be reached is not also the day the mirror list
+becomes unreachable.
+
+Overwrite mode is the whole trick. A Dropbox link belongs to the *file*, not to
+the name, so deleting and re-uploading would hand out a new link and silently
+break every launcher already in the world. Overwriting keeps one link alive for
+ever.
+
+## The one-time setup
+
+Three repository secrets. After this, nothing needs touching again:
+
+1. Go to <https://www.dropbox.com/developers/apps> → **Create app** → *Scoped
+   access* → *App folder* is fine → name it anything.
+2. On the **Permissions** tab tick `files.content.write`,
+   `files.content.read`, `sharing.write` and `sharing.read`, then **Submit**.
+   Do this *before* generating a token — a token only carries the permissions
+   that existed when it was made.
+3. On **Settings**, note the *App key* and *App secret*.
+4. Get a refresh token. In a browser, visit — with your app key in place:
+
+   ```
+   https://www.dropbox.com/oauth2/authorize?client_id=APP_KEY&token_access_type=offline&response_type=code
+   ```
+
+   Approve, copy the code, then exchange it (once, from any terminal):
+
+   ```
+   curl -u APP_KEY:APP_SECRET -d code=THE_CODE -d grant_type=authorization_code \
+     https://api.dropbox.com/oauth2/token
+   ```
+
+   The reply contains `refresh_token`.
+5. In GitHub → *Settings* → *Secrets and variables* → *Actions*, add
+   `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` and `DROPBOX_REFRESH_TOKEN`.
+
+**Refresh tokens do not expire.** The workflow exchanges one for a short-lived
+access token on each run, so no long-lived credential is ever stored or printed.
+
+If the secrets are missing the step prints a notice and the release continues —
+a mirror is a convenience, and a release must never fail because a convenience
+is unavailable.
+
+## Why Google Drive was dropped
+
+Drive refuses a direct download above roughly 100 MB, interposing a virus-scan
+warning page that a launcher cannot answer. `BeastRoad-windows.zip` is 88 MB
+today and rising, and a mirror that stops working at some unannounced future
+size is worse than no mirror — it fails on exactly the release nobody tested.
+Dropbox has no such limit.

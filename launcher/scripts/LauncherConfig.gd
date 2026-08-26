@@ -63,10 +63,45 @@ static func mirrors_for(asset: String, github_url: String) -> Array:
 	return out
 
 
+## Where a fetched mirror list is kept between runs.
+##
+## **Cached, because the day it is needed is the day GitHub cannot be reached.**
+## A list that only exists on the release it describes is no use to a player who
+## cannot reach that release; the copy from last time is.
+static func mirror_cache_path() -> String:
+	return install_dir_static().path_join(MIRROR_FILE)
+
+
+## Writes a fetched mirror list to the cache. Anything unparseable is dropped
+## rather than stored - a corrupt cache would outlive the request that made it.
+static func remember_mirrors(text: String) -> bool:
+	if not (JSON.parse_string(text) is Array):
+		return false
+	DirAccess.make_dir_recursive_absolute(mirror_cache_path().get_base_dir())
+	var file: FileAccess = FileAccess.open(mirror_cache_path(), FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(text)
+	file.close()
+	return true
+
+
+## `install_dir` without an instance, for the static helpers above.
+static func install_dir_static() -> String:
+	var base: String = OS.get_environment("LOCALAPPDATA")
+	if base.is_empty():
+		base = ProjectSettings.globalize_path("user://")
+	return base.replace("\\", "/").path_join("BeastRoad")
+
+
 ## The mirror list from disk, or an empty list. Never throws, never blocks.
+##
+## Beside the executable first, so a hand-written file always wins over a fetched
+## one - somebody who edits it is answering a question the release could not.
 static func _mirror_file() -> Array:
 	for path: String in [
 		OS.get_executable_path().get_base_dir().path_join(MIRROR_FILE),
+		mirror_cache_path(),
 		ProjectSettings.globalize_path("user://").path_join(MIRROR_FILE),
 	]:
 		if not FileAccess.file_exists(path):

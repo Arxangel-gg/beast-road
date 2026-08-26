@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.69** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.70** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,26 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.70** the matchmaking backend verified live, the act announced once,
+  party colours you can actually see, and a Dropbox mirror that needs nothing
+  per patch.
+
+  **The backend works.** Verified end to end against the live project rather
+  than assumed: a guest posts an offer, the host reads it, the guest correctly
+  reads nothing back, the room closes. So matchmaking failing on the web is not
+  a backend problem.
+
+  **The act was being derived in two places**, which is how the two drifted -
+  `journey.start()` announced Act I on a condition a guest had already
+  satisfied, and later acts came from a world-clock comparison a guest's own
+  journey usually made first. It is one relayed fact now, with one author, and
+  the banner, music, ambience, cinematic and chat line all hang off it.
+
+  **Colour is on the body as well as the ground.** A mark under the feet could
+  not be picked out of a crowded lane. The sprite is *leaned* toward the seat
+  colour rather than painted with it, and the per-frame tint composes with it
+  instead of overwriting it - which it was doing, so party colours vanished the
+  moment anybody moved.
 - **v0.4.69** the party feed, download mirrors and tier gating.
 
   **Chat and notifications are one list, not two.** A chat window beside a combat
