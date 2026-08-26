@@ -56,7 +56,28 @@ Same tag, same commit, no extra step. The release job exports the `Web` preset
 alongside the Windows one and attaches **`BeastRoad-web.zip`** to the release.
 
 **The zip is the deployment.** Its `index.html` sits at the root, which is the
-shape Netlify takes directly.
+shape a static host takes directly.
+
+**Since 2026-08-26 the release also publishes it to GitHub Pages by itself**, at
+
+    https://arxangel-gg.github.io/beast-road/
+
+so hosting the browser build is no longer a manual step and no longer costs
+anything. Pages has no deploy quota, which is the reason it is here: a metered
+host ran out of credits in the middle of debugging web co-op and took the only
+way of testing it down with it. Nothing about the drag-a-zip route below has
+stopped working — it is the fallback and the way to put a build somewhere
+private, and the release still attaches the zip either way.
+
+This works **only because the export is single-threaded**. Pages cannot send
+COOP/COEP headers, so a threaded build would load and then refuse to start; the
+build job fails outright if `variant/thread_support` is ever switched back on,
+which is what that check is guarding.
+
+One-time setup, if Pages has never been enabled on the repository: **Settings →
+Pages → Source → GitHub Actions**. Until that is done the `pages` job fails and
+the rest of the release still succeeds — the desktop build, the launcher and the
+zip are all unaffected.
 
 Every release builds one, and the Update Manager says so when it finishes —
 it prints the size and the direct download link, because the web build reaches

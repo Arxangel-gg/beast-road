@@ -20,6 +20,11 @@ on:
 
 permissions:
   contents: write
+  # For publishing the browser build to GitHub Pages. `pages` writes the site,
+  # `id-token` is what deploy-pages uses to prove the deployment came from this
+  # workflow rather than from somebody who guessed a URL.
+  pages: write
+  id-token: write
 
 env:
   GODOT_VERSION: 4.7.1
@@ -387,6 +392,20 @@ jobs:
             launcher-version-*.txt
             mirrors.json
 
+      - name: Prepare the browser build for Pages
+        # Jekyll is Pages' default processor and it drops files beginning with
+        # an underscore, which would silently eat `_headers`. It has nothing to
+        # do here anyway: this is an exported game, not a site to render.
+        run: |
+          set -euo pipefail
+          touch build/web/.nojekyll
+          test -s build/web/index.wasm
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
       - name: Publish release
         # Only on a tag. A manual run builds and uploads artifacts without
         # publishing, which is what you want when rehearsing.
@@ -401,3 +420,23 @@ jobs:
             BeastRoadLauncher.exe
             launcher-version-*.txt
             mirrors.json
+
+  # Publishing the browser build to Pages, which costs nothing and has no deploy
+  # quota - the reason this exists is that a metered host ran out mid-debugging
+  # and took web co-op testing down with it.
+  #
+  # Safe on Pages only because the export is single-threaded: a threaded build
+  # needs COOP/COEP cross-origin-isolation headers, Pages cannot send them, and
+  # the build job fails if `variant/thread_support` is ever turned back on.
+  pages:
+    name: Publish the browser build
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
