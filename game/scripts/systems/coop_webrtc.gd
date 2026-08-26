@@ -62,6 +62,17 @@ const MISSES_ALLOWED: int = 20
 ## the other is a busy connection that will very likely work next second.
 const ROOM_GONE: String = "P0002"
 
+## A frame longer than this means the game was not running, not that it was
+## running slowly.
+##
+## A browser stops `requestAnimationFrame` in a hidden tab, and Godot's whole
+## main loop rides on it - so a backgrounded tab is *stopped*, not slow. Any
+## request in flight when that happens sits there while its eight second timeout
+## expires in wall-clock time, and every one of them fails the instant the tab
+## is looked at again. Two tabs on one machine therefore lose roughly half their
+## requests, which is a fact about browsers rather than a fault in the session.
+const SUSPENDED_FRAME: float = 0.5
+
 ## The longest a host will hold a room open waiting for somebody.
 ##
 ## Not a handshake timeout - it is the point past which an abandoned room should
@@ -472,6 +483,14 @@ func _process(delta: float) -> void:
 			_close_room()
 			ready_to_play.emit(_peer)
 			return
+
+	if delta > SUSPENDED_FRAME:
+		# The tab was asleep. Everything that failed while it was is noise: the
+		# requests did not fail on their merits, they expired unattended. Hold
+		# the clock too, or a player who looked at another window for a minute
+		# comes back to a session that gave up on them.
+		_misses = 0
+		return
 
 	_deadline -= delta
 	if _deadline <= 0.0:
