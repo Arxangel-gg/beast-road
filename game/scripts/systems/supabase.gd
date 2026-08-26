@@ -20,7 +20,13 @@ const ANON: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 ## Long enough for a slow connection, short enough that a blocked host is
 ## reported rather than waited on forever. The launcher learned that lesson the
 ## expensive way: an HTTP client with no timeout does not fail, it hangs.
-const TIMEOUT: float = 8.0
+## Long enough for a slow link to answer, short enough that a dead host is
+## reported rather than waited on.
+##
+## Was 8, which is fine on a desk and marginal on anything else - and a poll
+## that times out is counted as a failure, so a merely slow connection read as a
+## broken one.
+const TIMEOUT: float = 20.0
 
 
 ## One request. The callback always runs, exactly once, with `ok` and a decoded
@@ -50,6 +56,13 @@ func request(path: String, method: int, body: Dictionary, done: Callable) -> voi
 			# it did not.
 			if raw.size() > 0:
 				parsed = JSON.parse_string(raw.get_string_from_utf8())
+			if not ok and not (parsed is Dictionary):
+				# A failure with no body from the service is a failure that
+				# never reached it. `result` says which - timeout, could not
+				# connect, no response - and without it every one of them is
+				# just `false`, which is how a browser losing half its requests
+				# looked exactly like a service that was refusing them.
+				parsed = {"code": "HTTP", "result": result, "status": code}
 			http.queue_free()
 			done.call(ok, parsed))
 	var headers := PackedStringArray([

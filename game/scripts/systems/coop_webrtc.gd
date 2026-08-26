@@ -137,6 +137,13 @@ var _last_code: String = ""
 ## answers every read with an error, and polling a room that no longer exists is
 ## otherwise indistinguishable from polling a quiet one.
 var _misses: int = 0
+## True while a poll is out. A poll is issued on a timer, and a timer does not
+## know whether the last one came back - so on a slow link they stack, and each
+## new one competes with the ones already waiting. The pile only ever grows.
+var _poll_busy: bool = false
+## Why the last request failed, for the diagnostic. `ok` alone cannot tell a
+## timeout from a refusal, and those are opposite problems.
+var _why: String = ""
 
 
 func _ready() -> void:
@@ -187,10 +194,11 @@ func status_line() -> String:
 	var room: String = _room if not _room.is_empty() else _last_room
 	var code: String = _code if not _code.is_empty() else _last_code
 	return ("%s %s  sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  "
-		+ "mesh %d  room %s") % [
+		+ "mesh %d  room %s%s") % [
 			"host" if _is_host else "guest", code,
 			_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
-			_polls, _replies, link, mesh, room.substr(0, 8)]
+			_polls, _replies, link, mesh, room.substr(0, 8),
+			"" if _why.is_empty() else "  why " + _why]
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -324,6 +332,7 @@ func _begin_polling() -> void:
 	_replies = 0
 	_stored = 0
 	_refused = 0
+	_poll_busy = false
 	_poll_left = 0.0
 	_misses = 0
 	# **A host has no deadline until somebody arrives.**
@@ -386,8 +395,9 @@ func _post(kind: String, payload: Dictionary) -> void:
 
 
 func _poll() -> void:
-	if _room.is_empty():
+	if _room.is_empty() or _poll_busy:
 		return
+	_poll_busy = true
 	_polls += 1
 	if _polls == 1:
 		print("[rtc] polling as %s" % ("host" if _is_host else "guest"))
@@ -396,7 +406,12 @@ func _poll() -> void:
 		"p_token": _token,
 		"p_after": _seen,
 	}, func(ok: bool, data: Variant) -> void:
+		_poll_busy = false
 		if not ok or not (data is Array):
+			if data is Dictionary:
+				var d: Dictionary = data
+				_why = "%s/%s/%s" % [d.get("code", "?"), d.get("result", "-"),
+					d.get("status", "-")]
 			# **Two different failures wear this shape**, and treating them
 			# alike is why a browser reported a closed room it was still in.
 			#
