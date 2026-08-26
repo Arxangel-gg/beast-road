@@ -29,8 +29,13 @@ var _guest_candidates: int = 0
 
 func _ready() -> void:
 	if not CoopWebRTC.available():
-		_check(false, "WebRTC must be usable in this build - see "
-			+ "addons/webrtc_native and docs/COOP_WEBRTC.md")
+		# Named platform and all, because the usual cause is an extension that
+		# has a binary for the machine somebody develops on and not for the one
+		# that runs the checks.
+		_check(false, "WebRTC must be usable in this build - no implementation "
+			+ "on %s. See addons/webrtc_native/webrtc_native.gdextension, which "
+				% OS.get_name()
+			+ "must list a library for every platform that runs this.")
 		_finish()
 		return
 

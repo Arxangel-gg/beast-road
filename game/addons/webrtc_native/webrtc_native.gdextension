@@ -3,12 +3,22 @@
 entry_symbol = "webrtc_extension_init"
 compatibility_minimum = 4.3
 
-; Windows x86_64 only, deliberately. The desktop build is Windows; the *web*
-; build needs nothing here at all, because a browser implements WebRTC itself
-; and the engine binds straight to it. Adding a platform means adding its
-; binary in the same change - see docs/COOP_WEBRTC.md.
+; Windows because that is what ships, and Linux because that is what proves it.
+;
+; The desktop build is Windows only, so the Linux libraries never reach a
+; player - Godot exports only the ones matching the target platform. They are
+; here because CI runs on Ubuntu, and a transport that cannot be tested on the
+; machine that tests everything else is a transport nobody is checking. The
+; alternative was fetching them in the workflow, which makes the repository
+; describe binaries it does not contain.
+;
+; The *web* build needs nothing here at all: a browser implements WebRTC itself
+; and the engine binds straight to it. Adding a platform means adding its binary
+; in the same change - see docs/COOP_WEBRTC.md.
 
 [libraries]
 
 windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_debug.x86_64.dll"
 windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "lib/libwebrtc_native.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "lib/libwebrtc_native.linux.template_release.x86_64.so"
