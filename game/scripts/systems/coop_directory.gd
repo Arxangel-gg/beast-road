@@ -86,6 +86,18 @@ func is_listed() -> bool:
 # --- Hosting -----------------------------------------------------------------
 
 ## Puts this game on the public list. Safe to call more than once.
+## The password this machine's lobby is locked with, or "" for an open one.
+var _password: String = ""
+
+## True between asking for a listing and hearing back, so one host makes one row.
+var _publishing: bool = false
+
+
+## Locks or unlocks the lobby this machine is about to publish.
+func set_password(secret: String) -> void:
+	_password = secret.strip_edges()
+
+
 func publish(code: String, game_name: String) -> void:
 	if code.is_empty():
 		return
@@ -96,12 +108,24 @@ func publish(code: String, game_name: String) -> void:
 		# or two after hosting starts, so the row is updated, not duplicated.
 		_beat()
 		return
+	# **Latched before the request, not after it.**
+	#
+	# `is_listed()` reads `_row_id`, which is only set when the reply arrives -
+	# so two calls made before that reply both saw "not listed" and both created
+	# a row. The co-op screen republishes on every refresh, so every host
+	# appeared in the public list twice. Seen live: one player, two identical
+	# rows.
+	if _publishing:
+		return
+	_publishing = true
 	_token = _make_token()
 	_call("rpc/create_lobby", HTTPClient.METHOD_POST, {
 		"p_code": _listed_code,
 		"p_name": _listed_name,
 		"p_token": _token,
+		"p_password": _password if not _password.is_empty() else null,
 	}, func(ok: bool, data: Variant) -> void:
+		_publishing = false
 		if not ok:
 			_set_status("Could not reach the public lobby list.")
 			return
@@ -123,6 +147,7 @@ func withdraw() -> void:
 	var token: String = _token
 	_row_id = ""
 	_token = ""
+	_publishing = false
 	_set_status("")
 	_call("rpc/delete_lobby", HTTPClient.METHOD_POST,
 		{"p_id": row, "p_token": token},

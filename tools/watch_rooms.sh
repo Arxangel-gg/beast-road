@@ -24,6 +24,12 @@ while [ $SECONDS -lt $end ]; do
   now="lobbies: $lobbies"
   if [ "$now" != "$last" ]; then
     printf '[%s] %s\n' "$(date +%H:%M:%S)" "$now"
+    # players goes 1 -> 2 only when the host heartbeat reports a partner is
+    # actually present, which is the far side of a completed handshake. It is
+    # the one number that says the channel opened.
+    if printf '%s' "$lobbies" | grep -q '"players":2'; then
+      echo "    ^^ TWO PLAYERS - the channel opened. Web co-op works."
+    fi
     last="$now"
   fi
   sleep 3

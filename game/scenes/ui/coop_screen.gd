@@ -441,6 +441,12 @@ func _update_diagnostic() -> void:
 		"Could not") else "reachable"
 	_diagnostic.text = "build %s  ·  %s  ·  rooms: %s  ·  lobby list: %s" % [
 		version, platform, rtc, lobby]
+	# While a handshake is in flight or has just failed, say how far it got.
+	# "Connecting, then a timeout" is the same sentence for four different
+	# faults, and this is what tells them apart.
+	if Coop.state() != Coop.State.OFFLINE or not Coop.room_code.is_empty():
+		_diagnostic.text += "
+" + Coop.webrtc().status_line()
 
 
 ## Six characters, no dots. See `_on_join`.

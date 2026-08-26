@@ -71,6 +71,12 @@ var _deadline: float = 0.0
 var _live: bool = false
 var _announced: bool = false
 
+## How far the handshake got. See `status_line`.
+var _sent_sdp: int = 0
+var _heard_sdp: int = 0
+var _sent_ice: int = 0
+var _heard_ice: int = 0
+
 
 func _ready() -> void:
 	set_process(false)
@@ -94,6 +100,24 @@ static func available() -> bool:
 
 func room_code() -> String:
 	return _code
+
+
+## **What the handshake has actually done**, in one line, for the co-op screen.
+##
+## A timeout says only that it did not finish. This says how far it got, and the
+## stages fail in a fixed order - so where the numbers stop is where the fault
+## is. Sent/heard offers and answers prove the table is carrying notes; routes
+## prove ICE gathered and crossed; the states prove whether the connection and
+## the channel came up.
+##
+## Written because the browser cannot be driven from the development harness,
+## and "connecting, then a timeout" was the only evidence available for three
+## rounds of guessing.
+func status_line() -> String:
+	var link: int = _connection.get_connection_state() if _connection != null else -1
+	var mesh: int = _peer.get_connection_status() if _peer != null else -1
+	return "sdp %d/%d  ice %d/%d  link %d  mesh %d" % [
+		_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, link, mesh]
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -207,12 +231,14 @@ func _begin_polling() -> void:
 
 ## This side produced an offer or an answer. Keep it, and post it.
 func _on_description(type: String, sdp: String) -> void:
+	_sent_sdp += 1
 	_connection.set_local_description(type, sdp)
 	_post(type, {"sdp": sdp})
 
 
 ## A route this machine might be reachable on.
 func _on_candidate(media: String, index: int, name: String) -> void:
+	_sent_ice += 1
 	_post("candidate", {"media": media, "index": index, "name": name})
 
 
@@ -258,6 +284,10 @@ func _apply(row: Dictionary) -> void:
 	var body: Dictionary = payload
 	if not consumes(kind, _is_host):
 		return
+	if kind == "candidate":
+		_heard_ice += 1
+	else:
+		_heard_sdp += 1
 	match kind:
 		"offer":
 			_connection.set_remote_description("offer", String(body.get("sdp", "")))
@@ -395,6 +425,10 @@ func _reset() -> void:
 	_live = false
 	_announced = false
 	_seen = 0
+	_sent_sdp = 0
+	_heard_sdp = 0
+	_sent_ice = 0
+	_heard_ice = 0
 	_room = ""
 	_code = ""
 	set_process(false)
