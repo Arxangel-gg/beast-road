@@ -163,7 +163,7 @@ func stop_browsing() -> void:
 
 
 func _refresh() -> void:
-	var query: String = "lobbies_public?select=code,name,players,age_seconds" \
+	var query: String = "lobbies_public?select=code,name,players,locked,age_seconds" \
 		+ "&order=created_at.desc&limit=%d" % MAX_ROWS
 	_call(query, HTTPClient.METHOD_GET, {}, func(ok: bool, data: Variant) -> void:
 		if not ok:
@@ -172,6 +172,41 @@ func _refresh() -> void:
 			return
 		_games = parse_rows(data, _listed_code)
 		games_changed.emit(_games))
+
+
+## Finds a party to join, or nothing.
+##
+## **The seat is claimed by the database, in the statement that finds it.** Two
+## players pressing Find at the same instant must not both be handed the last
+## seat in the same lobby, and a select-then-join from the client would do
+## exactly that. The answer is a code, or "" meaning "nobody is waiting - host
+## one yourself".
+func find_party(done: Callable) -> void:
+	_call("rpc/find_party", HTTPClient.METHOD_POST,
+		{"p_max": Balance.COOP_MAX_PLAYERS},
+		func(ok: bool, data: Variant) -> void:
+			var code: String = String(data) if ok and data is String else ""
+			done.call(joinable_code(code), code))
+
+
+## Gives a claimed seat back, for a search that was abandoned or a join that
+## failed. Without it a lobby slowly fills with people who never arrived.
+func release_seat(code: String) -> void:
+	if code.is_empty():
+		return
+	_call("rpc/release_seat", HTTPClient.METHOD_POST, {"p_code": code},
+		func(_ok: bool, _data: Variant) -> void: pass)
+
+
+## Asks the service whether a password opens a lobby.
+##
+## Checked in the database and never here: a client-side check is a suggestion,
+## because anybody can call the API directly.
+func check_password(code: String, secret: String, done: Callable) -> void:
+	_call("rpc/lobby_password_ok", HTTPClient.METHOD_POST,
+		{"p_code": code, "p_password": secret},
+		func(ok: bool, data: Variant) -> void:
+			done.call(ok and data is bool and bool(data)))
 
 
 ## Whether a code from the table is something this build can actually dial.
@@ -226,6 +261,10 @@ static func parse_rows(data: Variant, own_code: String = "") -> Array:
 			"name": _clean(String(row.get("name", ""))),
 			"players": clampi(int(row.get("players", 1)), 1, Balance.COOP_MAX_PLAYERS),
 			"age": maxi(int(row.get("age_seconds", 0)), 0),
+			# Whether it is locked, never what unlocks it. The view does not
+			# return the password at all, so a browsing client can draw a padlock
+			# without ever being told what opens it.
+			"locked": bool(row.get("locked", false)),
 		})
 	return rows
 
@@ -324,6 +363,13 @@ static func _clean(text: String) -> String:
 
 
 func _exit_tree() -> void:
-	# Best effort. A row left behind is swept within the minute, which is why the
-	# sweep exists rather than being a tidy-up nobody relies on.
-	withdraw()
+	# **No network during teardown.**
+	#
+	# Withdrawing here meant building an `HTTPRequest` and adding it as a child
+	# while the tree was being destroyed, which segfaulted the process
+	# intermittently on exit - it passed three runs in a row and failed the
+	# fourth. A row left behind is swept within the minute anyway, which is
+	# precisely why the sweep exists rather than being a tidy-up nobody relies
+	# on. Leaving is handled by `Coop.leave`, which runs while the game is alive.
+	_row_id = ""
+	_token = ""

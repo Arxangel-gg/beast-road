@@ -321,3 +321,161 @@ ends at once — that needs a TURN relay, which is a server that carries the
 traffic rather than just the introductions, and therefore a running cost. If
 that turns out to matter in practice the place to add it is `ICE_SERVERS` in
 `coop_webrtc.gd`; nothing else has to change.
+
+---
+
+# Passwords, matchmaking and friends
+
+Everything above shipped with v0.4.66-70. This section is the v0.4.73 additions,
+and like the rest it is safe to re-run.
+
+```sql
+-- ---------------------------------------------------------------- passwords --
+-- A lobby may be private. The password is never returned by the view - only
+-- whether there is one - so a browsing client can draw a padlock without ever
+-- being told what opens it.
+alter table public.lobbies add column if not exists password text;
+
+create or replace view public.lobbies_public
+with (security_invoker = off) as
+  select id,
+         code,
+         name,
+         players,
+         (password is not null) as locked,
+         created_at,
+         extract(epoch from (now() - created_at))::int as age_seconds
+    from public.lobbies
+   where heartbeat > now() - interval '75 seconds'
+   order by created_at desc;
+
+grant select on public.lobbies_public to anon;
+
+create or replace function public.create_lobby(
+  p_code text, p_name text, p_token text, p_password text default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare new_id uuid;
+begin
+  perform public.sweep_lobbies();
+  if (select count(*) from public.lobbies) > 500 then
+    raise exception 'lobby list is full';
+  end if;
+  insert into public.lobbies (code, name, owner_token, password)
+       values (p_code, left(p_name, 40), p_token,
+               nullif(btrim(coalesce(p_password, '')), ''))
+    returning id into new_id;
+  return new_id;
+end $$;
+
+-- Checked in the database, never in the client. A client-side check is a
+-- suggestion: anybody can call the API directly.
+create or replace function public.lobby_password_ok(p_code text, p_password text)
+returns boolean language sql security definer set search_path = public as $$
+  select coalesce(
+    (select password is null or password = p_password
+       from public.lobbies where code = p_code limit 1),
+    false);
+$$;
+
+-- ------------------------------------------------------------- matchmaking --
+-- Finds a party to join, or says there is none.
+--
+-- **The seat is taken inside the same statement that finds it.** Two people
+-- pressing Find at the same moment must not both be handed the last seat in the
+-- same lobby, and that is exactly what a select-then-update would do.
+create or replace function public.find_party(p_max smallint default 4)
+returns text language plpgsql security definer set search_path = public as $$
+declare found text;
+begin
+  perform public.sweep_lobbies();
+  update public.lobbies
+     set players = players + 1
+   where id = (
+     select id from public.lobbies
+      where players < p_max
+        and password is null
+        and heartbeat > now() - interval '75 seconds'
+      -- Oldest first: whoever has been waiting longest gets company, and a
+      -- party that is nearly full is completed before a new one is started.
+      order by players desc, created_at asc
+      limit 1
+      for update skip locked)
+   returning code into found;
+  return found;
+end $$;
+
+-- A searcher that gives up, or whose join fails, must give the seat back or the
+-- lobby slowly fills with people who never arrived.
+create or replace function public.release_seat(p_code text)
+returns void language sql security definer set search_path = public as $$
+  update public.lobbies set players = greatest(players - 1, 1) where code = p_code;
+$$;
+
+grant execute on function public.create_lobby(text, text, text, text) to anon;
+grant execute on function public.lobby_password_ok(text, text)        to anon;
+grant execute on function public.find_party(smallint)                 to anon;
+grant execute on function public.release_seat(text)                   to anon;
+
+-- ---------------------------------------------------------------- friends ---
+-- No accounts, so a "friend" is a code somebody chose to share, and the only
+-- thing stored is whether that code is online right now. There is nothing here
+-- worth stealing: a row says "this play code was seen at this time", which is
+-- exactly what a friend already knows.
+create table if not exists public.presence (
+  play_code  text primary key check (play_code ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),
+  name       text not null,
+  room_code  text,
+  heartbeat  timestamptz not null default now()
+);
+
+alter table public.presence enable row level security;
+revoke all on public.presence from anon, authenticated;
+
+create or replace function public.announce_presence(
+  p_play_code text, p_name text, p_room text)
+returns void language sql security definer set search_path = public as $$
+  delete from public.presence where heartbeat < now() - interval '120 seconds';
+  insert into public.presence (play_code, name, room_code, heartbeat)
+       values (p_play_code, left(p_name, 40), p_room, now())
+  on conflict (play_code)
+    do update set name = excluded.name,
+                  room_code = excluded.room_code,
+                  heartbeat = now();
+$$;
+
+-- Asked about by code, never listed. Without this you could enumerate every
+-- player who is online; with it you can only ask about codes you were given.
+create or replace function public.friends_online(p_codes text[])
+returns table(play_code text, name text, room_code text)
+language sql security definer set search_path = public as $$
+  select p.play_code, p.name, p.room_code
+    from public.presence p
+   where p.play_code = any(p_codes)
+     and p.heartbeat > now() - interval '120 seconds';
+$$;
+
+create or replace function public.forget_presence(p_play_code text)
+returns void language sql security definer set search_path = public as $$
+  delete from public.presence where play_code = p_play_code;
+$$;
+
+grant execute on function public.announce_presence(text, text, text) to anon;
+grant execute on function public.friends_online(text[])              to anon;
+grant execute on function public.forget_presence(text)               to anon;
+```
+
+## Why a friends list has no accounts
+
+Signing in would mean holding passwords, resetting them, and storing something
+worth stealing — for a game whose entire social feature is "let me play with the
+person I am already talking to".
+
+So each player gets a **play code**: six characters, generated once, kept in
+their save. You give it to a friend the way you would give them a phone number.
+The only thing the service ever stores against it is a heartbeat and, if they
+are hosting, the room they are in — so a friends list is "which of these codes
+answered in the last two minutes", and a row leaks nothing its owner did not
+hand out.
+
+Presence is asked about **by code and never listed**, which is the difference
+between looking up a friend and enumerating every player online.

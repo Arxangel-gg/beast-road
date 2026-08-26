@@ -908,7 +908,17 @@ func _test_tiers_and_persistence() -> void:
 	_check(RunState.currency(RunState.GOLD) < 999,
 		"a run's currency balance must not survive into the next run")
 
-	# The save carries the hero and nothing else new.
+	# **The save carries the hero and nothing else that is power.**
+	#
+	# Working rule 7 is the subject here: no relic, tower level, run currency,
+	# building tier or Oathbound leader may persist, and the hero is the one
+	# sanctioned exception. This list is what enforces it, so anything added to
+	# it needs a reason written down rather than a nod.
+	#
+	# `social` is a play code and a list of other people's play codes. It is an
+	# *address book*: nothing in it makes a hero stronger, a run easier or a tier
+	# reachable that was not, and deleting the whole block costs a player their
+	# contacts and nothing else. Added 2026-08-26 with the friends list.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -916,8 +926,16 @@ func _test_tiers_and_persistence() -> void:
 		var keys: Array = (parsed as Dictionary).keys()
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
-				"settings", "hero", "stash", "board"],
+				"settings", "hero", "stash", "board", "social"],
 				"unexpected top-level save key \"%s\"" % key)
+		# The exception has to stay an address book. A save that starts carrying
+		# power under this name would pass the check above and break the rule it
+		# exists to keep.
+		var social: Dictionary = (parsed as Dictionary).get("social", {}) as Dictionary
+		for key: Variant in social.keys():
+			_check(String(key) in ["play_code", "friends"],
+				"the social block must hold addresses and nothing else, found \"%s\""
+					% key)
 		var board: Dictionary = (parsed as Dictionary).get("board", {}) as Dictionary
 		for key: Variant in board.keys():
 			_check(String(key) in ["name", "best", "pending"],

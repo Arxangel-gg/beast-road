@@ -87,6 +87,7 @@ func _ready() -> void:
 	_test_the_public_list_is_not_trusted()
 	_test_webrtc_is_actually_available()
 	_test_a_party_is_gated_by_what_it_has_cleared()
+	_test_friends_are_codes_not_accounts()
 	_test_both_kinds_of_code_are_offered()
 
 	_tear_down()
@@ -776,6 +777,47 @@ func _test_a_party_is_gated_by_what_it_has_cleared() -> void:
 	_check(party.blocked_from(hell).is_empty(),
 		"an empty party blocks nobody")
 	party.free()
+
+
+## A friend is a code somebody chose to share, not an account.
+##
+## Nothing here reaches the network: what has to be right is the bookkeeping -
+## a code is six characters, you cannot befriend yourself, you cannot hold the
+## same person twice, and the list is bounded because it is drawn and because
+## every refresh asks about every code at once.
+func _test_friends_are_codes_not_accounts() -> void:
+	var kept: Array = MetaState.friends.duplicate(true)
+	var own: String = MetaState.play_code
+	MetaState.friends = []
+	MetaState.play_code = ""
+
+	var mine: String = MetaState.own_play_code()
+	_check(mine.length() == 6, "a play code is six characters, got %d" % mine.length())
+	_check(MetaState.own_play_code() == mine,
+		"and never changes once made - it is what a friend wrote down")
+
+	_check(MetaState.remember_friend("K7M2QX", "Blue"), "a code can be kept")
+	_check(not MetaState.remember_friend("K7M2QX", "Blue again"),
+		"but not twice - one person is one row")
+	_check(not MetaState.remember_friend(mine, "me"),
+		"and you cannot befriend yourself")
+	_check(not MetaState.remember_friend("nope", "short"),
+		"nor keep something that is not a code")
+	_check(MetaState.friend_codes() == ["K7M2QX"],
+		"the list holds exactly what was kept, got %s"
+			% str(MetaState.friend_codes()))
+
+	# Lower case and dashes are what a person actually types.
+	_check(MetaState.remember_friend("a1-b2c3", "Typed oddly"),
+		"a code typed with a dash and lower case must still be kept")
+	_check(MetaState.friend_codes().has("A1B2C3"),
+		"and stored in one shape, got %s" % str(MetaState.friend_codes()))
+
+	MetaState.forget_friend("K7M2QX")
+	_check(not MetaState.friend_codes().has("K7M2QX"), "and can be dropped")
+
+	MetaState.friends = kept
+	MetaState.play_code = own
 
 
 func _tear_down() -> void:

@@ -39,6 +39,15 @@ var _lobby_list: VBoxContainer = null
 var _public_title: Label = null
 var _public_list: VBoxContainer = null
 var _diagnostic: Label = null
+var _party_view: VBoxContainer = null
+var _friends_list: VBoxContainer = null
+var _friend_field: LineEdit = null
+var _password_field: LineEdit = null
+var _find_button: Button = null
+
+## The seat claimed by a matchmaking search, held so it can be given back if the
+## search is abandoned or the join fails.
+var _claimed: String = ""
 var _join_button: Button = null
 var _begin_button: Button = null
 var _leave_button: Button = null
@@ -64,6 +73,10 @@ func open() -> void:
 		Coop.beacon().games_changed.connect(_on_games_changed)
 	# And the public list, which is the same idea reaching further.
 	Coop.directory().browse()
+	Coop.friends().begin()
+	if not Coop.friends().friends_changed.is_connected(_on_friends):
+		Coop.friends().friends_changed.connect(_on_friends)
+	_on_friends(Coop.friends().rows())
 	if not Coop.directory().games_changed.is_connected(_on_public_games):
 		Coop.directory().games_changed.connect(_on_public_games)
 		Coop.directory().status_changed.connect(
@@ -82,6 +95,7 @@ func close() -> void:
 	# Stops polling; a listing this machine owns stays up, because a host who
 	# closed this screen is still hosting.
 	Coop.directory().stop_browsing()
+	Coop.friends().end()
 	closed.emit()
 
 
@@ -127,6 +141,13 @@ func _build() -> void:
 	_lobby_list.add_theme_constant_override("separation", 4)
 	column.add_child(_lobby_list)
 
+	# **Who is actually here.** A party assembles over a minute or two and the
+	# only thing anybody wants during that is a list of who has arrived, in their
+	# colour, so the party knows when to start.
+	_party_view = VBoxContainer.new()
+	_party_view.add_theme_constant_override("separation", 3)
+	column.add_child(_party_view)
+
 	_public_title = Label.new()
 	_public_title.add_theme_font_size_override("font_size", 15)
 	_public_title.add_theme_color_override("font_color", Color("9aa8a4"))
@@ -135,6 +156,25 @@ func _build() -> void:
 	_public_list = VBoxContainer.new()
 	_public_list.add_theme_constant_override("separation", 4)
 	column.add_child(_public_list)
+
+	# **Friends: a code you were given, not an account you signed up for.**
+	var friend_row := HBoxContainer.new()
+	friend_row.add_theme_constant_override("separation", 8)
+	column.add_child(friend_row)
+	_friend_field = LineEdit.new()
+	_friend_field.placeholder_text = "Add a friend by their play code"
+	_friend_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_friend_field.max_length = 7
+	_friend_field.text_submitted.connect(func(_v: String) -> void: _on_add_friend())
+	friend_row.add_child(_friend_field)
+	var add := Button.new()
+	add.text = "Add"
+	add.pressed.connect(_on_add_friend)
+	friend_row.add_child(add)
+
+	_friends_list = VBoxContainer.new()
+	_friends_list.add_theme_constant_override("separation", 3)
+	column.add_child(_friends_list)
 
 	_status = Label.new()
 	_status.add_theme_font_size_override("font_size", 17)
@@ -173,6 +213,22 @@ func _build() -> void:
 	# Opening a port is still offered below it because it needs no internet at
 	# all, which is what two people in one house with the line down actually
 	# want, and it is the lower-latency path when it is available.
+	# **Find a party** sits above hosting, because it is the answer for somebody
+	# who does not care *whose* game they join and just wants to play. It joins
+	# whoever has been waiting longest and opens a room only when nobody has.
+	_find_button = _button(column, "Find a party  ·  join anyone waiting",
+		"pressure_arrow")
+	_find_button.pressed.connect(_on_find_party)
+
+	# Optional, and empty means open. A lobby with a password is still listed -
+	# with a padlock - because a private game nobody can see is a private game
+	# whose owner cannot tell their friend where it is.
+	_password_field = LineEdit.new()
+	_password_field.placeholder_text = "Password for your room (optional)"
+	_password_field.secret = true
+	_password_field.max_length = 32
+	column.add_child(_password_field)
+
 	_room_button = _button(column, "Host a room  ·  anyone can join",
 		"pressure_arrow")
 	_room_button.pressed.connect(_on_host_room)
@@ -239,8 +295,38 @@ func _on_host() -> void:
 
 ## Opens a room over WebRTC. The code it returns is the whole handshake.
 func _on_host_room() -> void:
+	Coop.directory().set_password(
+		_password_field.text if _password_field != null else "")
 	Coop.host_room()
 	_refresh()
+
+
+## Joins whoever has been waiting longest, or opens a room if nobody has.
+##
+## **The seat is claimed by the service before this machine is told about it**,
+## so two people searching at the same instant cannot both be handed the last
+## seat in one lobby. If the join then fails, the seat is given back - otherwise
+## a lobby slowly fills with people who never arrived.
+func _on_find_party() -> void:
+	if _find_button != null:
+		_find_button.disabled = true
+		_find_button.text = "Searching..."
+	Coop.directory().find_party(func(usable: bool, code: String) -> void:
+		if usable:
+			_claimed = code
+			_join_field.text = code
+			_on_join()
+		else:
+			# Nobody waiting. Becoming the host is the useful answer - somebody
+			# has to be first, and the searcher is already here.
+			if not code.is_empty():
+				Coop.directory().release_seat(code)
+			Coop.directory().set_password("")
+			Coop.host_room()
+		if _find_button != null:
+			_find_button.disabled = false
+			_find_button.text = "Find a party  ·  join anyone waiting"
+		_refresh())
 
 
 ## Puts the code on the clipboard, and says so.
@@ -248,6 +334,99 @@ func _on_host_room() -> void:
 ## The label change is not decoration. A copy button that does nothing visible is
 ## one people press three times and then doubt, and there is nothing else on
 ## screen to confirm it worked.
+func _on_add_friend() -> void:
+	var typed: String = _friend_field.text
+	_friend_field.text = ""
+	if MetaState.remember_friend(typed, ""):
+		Coop.friends().refresh()
+	else:
+		Coop.report_failure("That is not a play code, or you already have it. "
+			+ "A code is six characters.")
+	_refresh()
+
+
+## Everybody known, and which of them is playing right now.
+##
+## An offline friend is still drawn, greyed out. A list that shows only the
+## people who happen to be on is a list that looks broken when nobody is.
+func _on_friends(rows: Array) -> void:
+	if _friends_list == null:
+		return
+	for child: Node in _friends_list.get_children():
+		child.queue_free()
+
+	var title := Label.new()
+	title.text = "Friends  ·  your code is %s" % MetaState.own_play_code()
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color("9aa8a4"))
+	_friends_list.add_child(title)
+
+	for entry: Variant in rows:
+		var friend: Dictionary = entry
+		var online: bool = bool(friend["online"])
+		var room: String = String(friend["room"])
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		_friends_list.add_child(row)
+
+		var who := Button.new()
+		var name: String = String(friend["name"])
+		var shown: String = name if not name.is_empty() else String(friend["code"])
+		who.text = "%s  ·  %s" % [shown,
+			("in a room" if not room.is_empty() else "online") if online
+				else "offline"]
+		who.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		who.add_theme_font_size_override("font_size", 14)
+		# Only joinable when they are actually hosting something joinable.
+		who.disabled = room.is_empty() or Coop.state() != Coop.State.OFFLINE
+		who.add_theme_color_override("font_color",
+			Color("cfe3d8") if online else Color("6c7a75"))
+		var code: String = room
+		who.pressed.connect(func() -> void:
+			_join_field.text = code
+			_on_join())
+		row.add_child(who)
+
+		var drop := Button.new()
+		drop.text = "✕"
+		drop.tooltip_text = "Forget this friend"
+		var forget: String = String(friend["code"])
+		drop.pressed.connect(func() -> void:
+			MetaState.forget_friend(forget)
+			Coop.friends().refresh())
+		row.add_child(drop)
+
+
+## The party, one row per seat, in each player's own colour.
+func _update_party_view() -> void:
+	if _party_view == null:
+		return
+	for child: Node in _party_view.get_children():
+		child.queue_free()
+	if not Coop.is_networked():
+		return
+	var seats: Array = Coop.party().seats()
+	var header := Label.new()
+	header.text = "Party  %d/%d" % [maxi(seats.size(), 1), Balance.COOP_MAX_PLAYERS]
+	header.add_theme_font_size_override("font_size", 15)
+	header.add_theme_color_override("font_color", Color("9aa8a4"))
+	_party_view.add_child(header)
+
+	for entry: Variant in seats:
+		var seat := entry as CoopParty.Seat
+		var row := Label.new()
+		var mine: String = "  (you)" if seat.slot == Coop.party().slot() else ""
+		# The colour name is written out as well as shown, because "Blue" is what
+		# people say out loud and because a colour alone is no use to a player who
+		# cannot tell two of them apart.
+		row.text = "%d. %s  ·  %s%s" % [seat.slot, seat.name,
+			seat.colour_name(), mine]
+		row.add_theme_font_size_override("font_size", 15)
+		row.add_theme_color_override("font_color", seat.colour())
+		_party_view.add_child(row)
+
+
 ## The three things that can be wrong, stated plainly.
 func _update_diagnostic() -> void:
 	if _diagnostic == null:
@@ -342,7 +521,16 @@ func _on_begin() -> void:
 	GameDirector.start_run()
 
 
-func _on_state_changed(_state: int) -> void:
+func _on_state_changed(state: int) -> void:
+	# A search that ended badly gives its seat back. Held until the outcome is
+	# known rather than released on the way out, because a join that succeeds
+	# must keep the seat it was given.
+	if not _claimed.is_empty() and (state == Coop.State.OFFLINE
+			or state == Coop.State.FAILED):
+		Coop.directory().release_seat(_claimed)
+		_claimed = ""
+	elif state == Coop.State.CONNECTED:
+		_claimed = ""
 	_refresh()
 
 
@@ -391,6 +579,7 @@ func _refresh() -> void:
 	_on_games_changed(Coop.beacon().games())
 	_on_public_games(Coop.directory().games())
 	_update_diagnostic()
+	_update_party_view()
 	_join_button.disabled = _host_button.disabled
 	_join_field.editable = not _host_button.disabled
 	# Only a host with company may begin, which is the rule the button should
@@ -491,7 +680,9 @@ func _on_public_games(found: Array) -> void:
 		# seconds old is a person waiting; one four minutes old is usually not.
 		# The headcount is the first thing anybody wants from a lobby list: a
 		# party of three needs one more, and a party of one may be a long wait.
-		row.text = "%s  ·  %d/%d  ·  waiting %s" % [String(game["name"]),
+		var locked: bool = bool(game.get("locked", false))
+		row.text = "%s%s  ·  %d/%d  ·  waiting %s" % [
+			"🔒 " if locked else "", String(game["name"]),
 			int(game["players"]), Balance.COOP_MAX_PLAYERS,
 			_waited(int(game["age"]))]
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT

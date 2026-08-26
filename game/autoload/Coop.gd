@@ -95,6 +95,7 @@ var acting_slot: int = 0
 
 ## The shared REST client, and the WebRTC transport that uses it for signalling.
 var _rest: Supabase = null
+var _friends: CoopFriends = null
 var _webrtc: CoopWebRTC = null
 
 ## The room code a friend types, while this machine is hosting over WebRTC.
@@ -132,6 +133,16 @@ func party() -> CoopParty:
 		_party.name = "CoopParty"
 		add_child(_party)
 	return _party
+
+
+## Who this player knows, and which of them is online.
+func friends() -> CoopFriends:
+	if _friends == null:
+		_friends = CoopFriends.new()
+		_friends.name = "CoopFriends"
+		_friends.rest = rest()
+		add_child(_friends)
+	return _friends
 
 
 ## The REST client. One instance, shared by the lobby list and by signalling.

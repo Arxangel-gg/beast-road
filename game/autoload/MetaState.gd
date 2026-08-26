@@ -109,6 +109,20 @@ var tier_cleared: int = -1
 ## The tier the player last chose, so the picker reopens where they left off.
 var last_tier_id: String = "normal"
 
+## This player's own six-character code, and the codes they have kept.
+##
+## **New persistent data, and worth justifying against working rule 7.** That
+## rule is about game *power* - relics, tower levels, currencies, building tiers
+## - none of which may survive a run. Neither of these is power: a play code is
+## an address, like a phone number, and a friends list is a handful of other
+## people's addresses. Nothing here makes a hero stronger or a run easier, and
+## deleting the whole block costs a player their contacts and nothing else.
+##
+## The code is generated once, on first need, and never changes - it is what a
+## friend has written down.
+var play_code: String = ""
+var friends: Array = []
+
 # --- The stash (owner ruling, 2026-08-20) -------------------------------------
 #
 # Gear persists with the hero. Marks are the account's currency and shards are
@@ -366,6 +380,29 @@ func sigil_crossroad_rerolls() -> int:
 ## written by a build that is not this one. Every field is bounded here rather
 ## than trusted, because an out-of-range level does not fail loudly - it produces
 ## a hero with 4,000 attribute points and a game that is no longer a game.
+## Reads the social block: this player's code and the friends they have kept.
+##
+## Bounded like everything else here, and for the same reason - a save is a file
+## on somebody's disk. A malformed code is dropped rather than repaired, because
+## a repaired one would be a *different* code, and a play code is the one thing
+## a friend has written down.
+func _read_social(social: Dictionary) -> void:
+	var kept: String = String(social.get("play_code", "")).to_upper()
+	play_code = kept if kept.length() == 6 else ""
+	friends = []
+	for entry: Variant in (social.get("friends", []) as Array):
+		if not (entry is Dictionary):
+			continue
+		var row: Dictionary = entry
+		var code: String = String(row.get("code", "")).to_upper()
+		if code.length() != 6 or friends.size() >= Balance.FRIENDS_MAX:
+			continue
+		friends.append({
+			"code": code,
+			"name": String(row.get("name", "")).substr(0, 24),
+		})
+
+
 func _read_hero(hero: Dictionary) -> void:
 	hero_level = clampi(int(hero.get("level", 1)), 1, Balance.HERO_MAX_LEVEL)
 	hero_xp = maxf(float(hero.get("xp", 0.0)), 0.0)
@@ -541,6 +578,48 @@ func record_tier_cleared(order: int) -> void:
 		save_game()
 
 
+## This player's own code, made the first time anybody asks for it.
+##
+## Generated rather than assigned by a server, because there is no server that
+## knows who anybody is - and it does not need to be unique against the world,
+## only unguessable enough that a stranger cannot find you by typing. Thirty-two
+## to the sixth is a billion.
+func own_play_code() -> String:
+	if play_code.length() != 6:
+		play_code = Supabase.room_code()
+		save_game()
+	return play_code
+
+
+## Keeps somebody's code under a name of this player's choosing.
+func remember_friend(code: String, called: String) -> bool:
+	var cleaned: String = code.strip_edges().to_upper().replace("-", "")
+	if cleaned.length() != 6 or cleaned == own_play_code():
+		return false
+	for entry: Variant in friends:
+		if String((entry as Dictionary).get("code", "")) == cleaned:
+			return false
+	if friends.size() >= Balance.FRIENDS_MAX:
+		return false
+	friends.append({"code": cleaned, "name": called.strip_edges().substr(0, 24)})
+	save_game()
+	return true
+
+
+func forget_friend(code: String) -> void:
+	for index: int in range(friends.size() - 1, -1, -1):
+		if String((friends[index] as Dictionary).get("code", "")) == code:
+			friends.remove_at(index)
+	save_game()
+
+
+func friend_codes() -> Array:
+	var out: Array = []
+	for entry: Variant in friends:
+		out.append(String((entry as Dictionary).get("code", "")))
+	return out
+
+
 func save_game() -> void:
 	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -576,6 +655,10 @@ func serialized_save() -> String:
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,
 			"story_seen": story_intro_seen,
+		},
+		"social": {
+			"play_code": play_code,
+			"friends": friends,
 		},
 		"stash": {
 			"gear": stash,
@@ -650,6 +733,7 @@ func load_save() -> void:
 	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
+	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
 	resource_cache = data.get("resource_cache", {}) as Dictionary

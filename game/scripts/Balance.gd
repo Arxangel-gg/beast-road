@@ -3085,6 +3085,14 @@ const PARTY_LOG_WIDTH: float = 420.0
 ## to fill the screen is a line long enough to hide a wave behind. [TUNE]
 const CHAT_MAX_LENGTH: int = 140
 
+## How many friends may be kept, and how often the list is refreshed.
+##
+## Bounded because the list is drawn and because every refresh asks about every
+## code at once - a thousand friends would be a thousand codes in one query. [TUNE]
+const FRIENDS_MAX: int = 60
+const FRIENDS_REFRESH: float = 12.0
+const PRESENCE_INTERVAL: float = 30.0
+
 ## How long a join attempt may sit before it is called a failure. [TUNE]
 ##
 ## A timer is needed rather than only ENet's `connection_failed`, because that

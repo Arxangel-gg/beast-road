@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.70** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.73** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,27 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.73** the last four social features: **friends, passworded lobbies,
+  auto-matchmaking and the party view.**
+
+  **A friend is a code, not an account.** Signing in would mean holding
+  passwords, resetting them and storing something worth stealing, for a game
+  whose entire social feature is "let me play with the person I am already
+  talking to". Each player gets a six-character play code kept in their save and
+  given out like a phone number; the service stores a heartbeat against it and
+  nothing else. Presence is asked about **by code and never listed**, which is
+  the difference between looking up a friend and enumerating everybody online.
+
+  **Matchmaking claims the seat in the statement that finds it.** Two people
+  pressing Find at the same instant must not both be handed the last seat in one
+  lobby, which a select-then-join from the client would do. An abandoned search
+  gives the seat back, or a lobby slowly fills with people who never arrived.
+
+  **A password is checked in the database, never in the client** - a client-side
+  check is a suggestion, because anybody can call the API directly. The view
+  returns *whether* a lobby is locked and never what unlocks it, so a browsing
+  client can draw a padlock without being told the answer.
+
 - **v0.4.70** the matchmaking backend verified live, the act announced once,
   party colours you can actually see, and a Dropbox mirror that needs nothing
   per patch.
