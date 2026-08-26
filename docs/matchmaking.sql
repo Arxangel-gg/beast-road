@@ -58,8 +58,18 @@ create table if not exists public.rooms (
   code        text        not null unique check (code ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),
   host_token  text        not null,
   guest_token text,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  -- Last time either peer was heard from. The sweep runs on *this*, not on
+  -- created_at: a host waiting for a friend to read a code out of a chat window
+  -- is idle, not stale, and deleting the room out from under them told the
+  -- friend "no game is waiting on that code" while the host still said it was
+  -- hosting.
+  seen_at     timestamptz not null default now()
 );
+
+-- Migration for a database created before seen_at existed.
+alter table public.rooms add column if not exists
+  seen_at timestamptz not null default now();
 
 create table if not exists public.signals (
   seq        bigserial primary key,
@@ -213,7 +223,7 @@ $$;
 -- Rooms, which exist only for as long as a WebRTC handshake takes.
 create or replace function public.sweep_rooms()
 returns void language sql security definer set search_path = public as $$
-  delete from public.rooms where created_at < now() - interval '2 minutes';
+  delete from public.rooms where seen_at < now() - interval '2 minutes';
 $$;
 
 create or replace function public.open_room(p_code text, p_token text)
@@ -224,7 +234,7 @@ begin
   -- Six characters collide eventually. Taking the code back from a room that is
   -- already stale is correct; taking it from a live one is not.
   delete from public.rooms
-   where code = p_code and created_at < now() - interval '2 minutes';
+   where code = p_code and seen_at < now() - interval '2 minutes';
   insert into public.rooms (code, host_token) values (p_code, p_token)
     returning id into new_id;
   return new_id;
@@ -287,8 +297,15 @@ begin
               when guest_token = p_token then 'guest' end
     into who from public.rooms where id = p_room;
   if who is null then
-    return;
+    -- Raised rather than returned empty. An empty result is what a quiet room
+    -- looks like, so answering a *deleted* room the same way leaves a peer
+    -- polling a corpse with no way to tell - which is exactly how a swept host
+    -- waited for ever. The client counts these and gives up saying why.
+    raise exception 'room % is not open', p_room using errcode = 'no_data_found';
   end if;
+  -- A poll is a heartbeat. While either peer is still reading the room, the
+  -- room is in use and the sweep must leave it alone.
+  update public.rooms set seen_at = now() where id = p_room;
   -- Only the other side's notes. Reading your own back would have each peer
   -- applying its own offer.
   return query

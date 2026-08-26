@@ -53,6 +53,23 @@ const POLL_SECONDS: float = 1.0
 ## connection that would have worked is the worse failure.
 const HANDSHAKE_TIMEOUT: float = 45.0
 
+## How many refused polls in a row mean the room has gone, rather than one
+## request losing its way. At one poll a second this is a few seconds of grace.
+const MISSES_ALLOWED: int = 5
+
+## The longest a host will hold a room open waiting for somebody.
+##
+## Not a handshake timeout - it is the point past which an abandoned room should
+## stop being advertised. Generous, because the failure it replaces was a host
+## being cut off after forty-five seconds, and erring the other way costs
+## nothing but a stale row the sweep will take.
+##
+## It also keeps this build honest against a service that has not been migrated
+## yet: without the `seen_at` heartbeat the room is swept after two minutes, and
+## a host with no deadline at all would poll a room that no longer exists until
+## somebody closed the tab.
+const HOST_WAIT_LIMIT: float = 900.0
+
 signal ready_to_play(peer: WebRTCMultiplayerPeer)
 signal failed(reason: String)
 signal progress(text: String)
@@ -90,6 +107,10 @@ var _replies: int = 0
 ## successfully into one it is.
 var _stored: int = 0
 var _refused: int = 0
+## Consecutive polls the service refused. A room that has been swept away
+## answers every read with an error, and polling a room that no longer exists is
+## otherwise indistinguishable from polling a quiet one.
+var _misses: int = 0
 
 
 func _ready() -> void:
@@ -274,7 +295,19 @@ func _begin_polling() -> void:
 	_stored = 0
 	_refused = 0
 	_poll_left = 0.0
-	_deadline = HANDSHAKE_TIMEOUT
+	_misses = 0
+	# **A host has no deadline until somebody arrives.**
+	#
+	# A guest may fairly give up on a clock: it typed a code for a room that is
+	# supposed to be there right now. A host is waiting for a *person* to read
+	# six characters out of a chat window and type them in, and that takes as
+	# long as it takes.
+	#
+	# Arming this for the host failed every host after forty-five seconds - and
+	# `_fail` closes the room on its way out, so the friend who finally typed
+	# the code was told no game was waiting on it, while the host's screen still
+	# said it was hosting. The clock starts when the guest speaks.
+	_deadline = HOST_WAIT_LIMIT if _is_host else HANDSHAKE_TIMEOUT
 	set_process(true)
 
 
@@ -334,8 +367,21 @@ func _poll() -> void:
 		"p_after": _seen,
 	}, func(ok: bool, data: Variant) -> void:
 		if not ok or not (data is Array):
+			# The room is gone, or the service is unwell. Either way a peer that
+			# keeps polling a room nobody can find will sit there until its
+			# deadline - and a host, which now has no deadline, would sit there
+			# for ever.
+			_misses += 1
+			if _misses >= MISSES_ALLOWED:
+				_fail("The room is no longer open. Host again to get a fresh "
+					+ "code.")
 			return
+		_misses = 0
 		_replies += 1
+		if _is_host and _deadline > HANDSHAKE_TIMEOUT 				and not (data as Array).is_empty():
+			# Somebody is negotiating. From here a clock is fair, and a stalled
+			# handshake should be reported rather than waited on for ever.
+			_deadline = HANDSHAKE_TIMEOUT
 		if (data as Array).size() > 0:
 			print("[rtc] heard %d note(s)" % (data as Array).size())
 		for entry: Variant in (data as Array):
@@ -401,7 +447,13 @@ func _process(delta: float) -> void:
 
 	_deadline -= delta
 	if _deadline <= 0.0:
-		_fail("Could not reach the other player. They may have closed the game.")
+		if _is_host and _sent_sdp == 0 and _heard_sdp == 0:
+			# Nobody ever arrived. That is not a failed connection, and saying
+			# it was sends people looking for a network fault that is not there.
+			_fail("Nobody joined. Host again when your friend is ready.")
+		else:
+			_fail("Could not reach the other player. They may have closed the "
+				+ "game.")
 		return
 
 	_poll_left -= delta
