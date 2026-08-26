@@ -261,6 +261,13 @@ jobs:
           unzip -l BeastRoad-windows.zip
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.exe"
           unzip -l BeastRoad-windows.zip | grep -q "BeastRoad.pck"
+          # WebRTC is what lets a desktop player and a browser player meet, and
+          # on desktop it lives in a DLL rather than in the engine. Godot ships
+          # it automatically from the .gdextension - and an export that quietly
+          # did not would produce a build whose room button is decoration, with
+          # nothing failing anywhere. Asserted on the archive that reaches a
+          # player rather than on the folder it was built from.
+          unzip -l BeastRoad-windows.zip | grep -q "libwebrtc_native.windows.template_release.x86_64.dll"
 
           # The zip *is* the deployment. Netlify takes a folder or a zip whose
           # index.html sits at its root, which is exactly this shape, so the
@@ -269,6 +276,13 @@ jobs:
           (cd build/web && zip -qr ../../BeastRoad-web.zip .)
           unzip -l BeastRoad-web.zip | grep -q "index.wasm"
           unzip -l BeastRoad-web.zip | grep -q "_headers"
+          # And the opposite for the web build: a browser implements WebRTC
+          # itself, so the desktop DLL has no business being in there. Four
+          # megabytes of dead weight on a download that already asks for sixty.
+          if unzip -l BeastRoad-web.zip | grep -q "libwebrtc_native"; then
+            echo "::error::The web export bundled the desktop WebRTC library."
+            exit 1
+          fi
 
           ls -la BeastRoad-windows.zip BeastRoad-web.zip BeastRoadLauncher.exe "$LAUNCHER_VERSION_ASSET"
 

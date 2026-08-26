@@ -81,6 +81,13 @@ var _beacon: CoopBeacon = null
 ## looks for a game never makes a request.
 var _directory: CoopDirectory = null
 
+## The shared REST client, and the WebRTC transport that uses it for signalling.
+var _rest: Supabase = null
+var _webrtc: CoopWebRTC = null
+
+## The room code a friend types, while this machine is hosting over WebRTC.
+var room_code: String = ""
+
 
 ## The lobby broadcaster and listener.
 func beacon() -> CoopBeacon:
@@ -103,6 +110,75 @@ func directory() -> CoopDirectory:
 		_directory.name = "CoopDirectory"
 		add_child(_directory)
 	return _directory
+
+
+## The REST client. One instance, shared by the lobby list and by signalling.
+func rest() -> Supabase:
+	if _rest == null:
+		_rest = Supabase.new()
+		_rest.name = "Supabase"
+		add_child(_rest)
+	return _rest
+
+
+## The WebRTC transport.
+func webrtc() -> CoopWebRTC:
+	if _webrtc == null:
+		_webrtc = CoopWebRTC.new()
+		_webrtc.name = "CoopWebRTC"
+		_webrtc.rest = rest()
+		add_child(_webrtc)
+		_webrtc.ready_to_play.connect(_on_webrtc_ready)
+		_webrtc.failed.connect(_on_webrtc_failed)
+	return _webrtc
+
+
+## Opens a room anybody can join, on any platform, without forwarding a port.
+##
+## **This is the one that works everywhere.** ENet hosting below needs an open
+## port and cannot run in a browser at all; this needs neither, and a desktop
+## player and a browser player meet on it identically. Returns the code to
+## share, or "" if this build cannot do it.
+func host_room() -> String:
+	leave()
+	if not CoopWebRTC.available():
+		_fail("This build cannot use WebRTC.")
+		return ""
+	var code: String = webrtc().host()
+	if code.is_empty():
+		return ""
+	room_code = code
+	# Hosting, immediately and honestly: a host is playable alone and does not
+	# wait for company, exactly as with ENet.
+	_set_state(State.HOSTING)
+	return code
+
+
+## Joins a room by its code. Works from a browser and from the desktop build.
+func join_room(code: String) -> bool:
+	leave()
+	if not CoopWebRTC.available():
+		return _fail("This build cannot use WebRTC.")
+	_connect_left = Balance.COOP_CONNECT_TIMEOUT_ROOM
+	_set_state(State.CONNECTING)
+	webrtc().join(code)
+	return true
+
+
+## The handshake finished. Install the peer and let the game get on with it.
+##
+## Everything above this point - the relay, the facts, the authority guard - is
+## unchanged and never learns which transport carried it.
+func _on_webrtc_ready(peer: WebRTCMultiplayerPeer) -> void:
+	_peer = null
+	multiplayer.multiplayer_peer = peer
+	if _state == State.CONNECTING:
+		_set_state(State.CONNECTED)
+
+
+func _on_webrtc_failed(reason: String) -> void:
+	room_code = ""
+	_fail(reason)
 
 
 func lobby_name() -> String:
@@ -218,8 +294,17 @@ func player_count() -> int:
 ##
 ## Hosting does not block or wait. The run is playable immediately and alone;
 ## the partner arriving is an event, not a precondition.
+## Opens a port on this machine. Direct, serverless, and desktop-only.
+##
+## Kept alongside `host_room` rather than replaced by it, and each has a job the
+## other cannot do: this one needs no internet at all, which is what makes two
+## people in one house work with the line down, and it is measurably lower
+## latency because nothing is negotiated. What it cannot do is run in a browser
+## or cross a router nobody configured.
 func host(port: int = Balance.COOP_PORT) -> bool:
 	leave()
+	if OS.has_feature("web"):
+		return _fail("Opening a port needs the desktop version. Host a room instead.")
 	var peer := ENetMultiplayerPeer.new()
 	var made: int = peer.create_server(port, Balance.COOP_MAX_GUESTS)
 	if made != OK:
@@ -273,6 +358,9 @@ func join(address: String, port: int = Balance.COOP_PORT,
 ## there is no second teardown to keep in step with this one.
 func leave() -> void:
 	_connect_left = 0.0
+	room_code = ""
+	if _webrtc != null:
+		_webrtc.cancel()
 	beacon().stop_announcing()
 	# Off the public list too. A game nobody is hosting is not one to advertise,
 	# and the row is what keeps that table honest.

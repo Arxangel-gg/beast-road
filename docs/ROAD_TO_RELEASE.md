@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.66** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.67** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,24 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.67** **co-op in the browser.** A second transport — WebRTC — so the
+  web build can play, and so two desktop players can meet through home routers
+  neither of them configured. Nothing above the transport changed: `CoopRelay`
+  speaks `send_bytes` on whatever peer is installed, which it does because it
+  was written to be path-independent, and portability came free.
+
+  ENet is kept rather than replaced, and each has a job the other cannot do. A
+  port needs no internet at all — two people in one house with the line down —
+  and is lower latency. A room runs in a browser and crosses a router. The
+  interface offers the room first because it is the one that works for
+  everybody.
+
+  **The harness earned its place the day it was written.** `webrtc_check.tscn`
+  reported "connected in 0.0s" about two peers that could not exchange a byte:
+  a mesh answers `get_connection_status()` with CONNECTED immediately, because
+  it is connected to itself, so the transport was installing a peer whose data
+  channel was still closed. Readiness now asks whether the *other* peer's
+  channel is open.
 - **v0.4.66** the eighth play report, and matchmaking finished: a **public
   lobby list** on Supabase alongside the local one, so the three doors into a
   game are now your own network, the whole internet, and a pasted code. Plus a

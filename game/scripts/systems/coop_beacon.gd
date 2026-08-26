@@ -76,7 +76,19 @@ func _ready() -> void:
 
 
 ## Starts shouting that a game is open here. Called when hosting begins.
+## True where a UDP socket can exist at all.
+##
+## A browser cannot open one - the sandbox allows WebSocket and WebRTC and
+## nothing else - so every entry point here returns quietly on the web rather
+## than failing six different ways. The web build finds its games through the
+## public lobby list instead, which is HTTP and works everywhere.
+static func possible() -> bool:
+	return not OS.has_feature("web")
+
+
 func announce(game_name: String, game_port: int) -> void:
+	if not possible():
+		return
 	_name = _clean(game_name)
 	_port = game_port
 	# A new identity each time a game opens, so one host reached by two routes is
@@ -96,6 +108,8 @@ func stop_announcing() -> void:
 
 ## Starts listening for games. Called when the co-op screen opens.
 func listen() -> void:
+	if not possible():
+		return
 	_listening_now = true
 	_seen.clear()
 	_open()

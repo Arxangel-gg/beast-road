@@ -85,6 +85,8 @@ func _ready() -> void:
 	_test_a_code_survives_the_round_trip()
 	await _test_a_beacon_is_heard()
 	_test_the_public_list_is_not_trusted()
+	_test_webrtc_is_actually_available()
+	_test_both_kinds_of_code_are_offered()
 
 	_tear_down()
 	for _f: int in 4:
@@ -669,6 +671,52 @@ func _test_the_public_list_is_not_trusted() -> void:
 	var mine: Array = CoopDirectory.parse_rows(
 		[{"code": good, "name": "me", "players": 1, "age_seconds": 3}], good)
 	_check(mine.is_empty(), "a host must not be offered its own game")
+
+
+## WebRTC has an implementation behind it, not just a class name.
+##
+## **The engine defines `WebRTCPeerConnection` whether or not anything
+## implements it**, so `class_exists` answers true on a desktop build with no
+## extension and the co-op screen would offer a room button that cannot work.
+## The only honest test is to initialise one, which is what `available()` does.
+##
+## A desktop build reaching here without the extension is a build somebody made
+## wrong - the DLLs are committed - so this fails rather than warns.
+func _test_webrtc_is_actually_available() -> void:
+	_check(CoopWebRTC.available(),
+		"WebRTC must be usable in this build: the extension in "
+			+ "addons/webrtc_native is what lets a desktop player meet a browser "
+			+ "player, and without it the room button is decoration")
+	# The ids are fixed and the two sides must not agree by coincidence.
+	_check(CoopWebRTC.HOST_ID != CoopWebRTC.GUEST_ID,
+		"the two peers in a room need different ids")
+	# A room code has to survive being read aloud and typed back.
+	for _attempt: int in 40:
+		var code: String = Supabase.room_code()
+		_check(code.length() == 6, "a room code is six characters, got %d"
+			% code.length())
+		for character: String in code:
+			_check(not "ILOU".contains(character),
+				"a room code must avoid characters that are misread: %s" % code)
+
+
+## The lobby list offers what this build can dial, and nothing else.
+##
+## Both kinds of code live in the same column - six characters is a WebRTC room,
+## longer is an address - and a listing that understood only one would silently
+## hide every game hosted the other way.
+func _test_both_kinds_of_code_are_offered() -> void:
+	var address: String = CoopCode.encode_pair("203.0.113.9", "192.168.0.4",
+		Balance.COOP_PORT)
+	_check(CoopDirectory.joinable_code(address),
+		"a desktop build must offer address-coded games")
+	_check(CoopDirectory.joinable_code("K7M2QX"),
+		"and room-coded ones, which are the only kind a browser can join")
+	_check(not CoopDirectory.joinable_code("ILLEGAL"),
+		"but not a code that is neither")
+	_check(not CoopDirectory.joinable_code(""), "nor an empty one")
+	_check(not CoopDirectory.joinable_code("K7M2Q!"),
+		"nor six characters that are not a room code")
 
 
 func _tear_down() -> void:

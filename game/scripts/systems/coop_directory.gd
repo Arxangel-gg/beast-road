@@ -174,6 +174,31 @@ func _refresh() -> void:
 		games_changed.emit(_games))
 
 
+## Whether a code from the table is something this build can actually dial.
+##
+## **Two kinds of code go in this column.** A six-character *room* code is a
+## WebRTC handshake and works from anywhere including a browser; a ten- or
+## sixteen-character *connect* code carries addresses and needs ENet. Both are
+## legitimate rows, so a listing that only understood one of them would silently
+## hide every game hosted the other way - which is how a lobby list becomes a
+## list of the games you happen to be able to see.
+static func joinable_code(code: String) -> bool:
+	var cleaned: String = code.strip_edges().to_upper().replace("-", "")
+	if cleaned.length() == 6:
+		# A room. Only offered where a room can be joined at all.
+		if not CoopWebRTC.available():
+			return false
+		for character: String in cleaned:
+			if not "0123456789ABCDEFGHJKMNPQRSTVWXYZ".contains(character):
+				return false
+		return true
+	# An address code. Never offered in a browser, which cannot open the socket
+	# it names - drawing it would be drawing a button that must fail.
+	if OS.has_feature("web"):
+		return false
+	return not CoopCode.decode(code).is_empty()
+
+
 ## Turns whatever the table returned into rows fit to draw.
 ##
 ## **Static and public because everything in it arrived off the internet.** Rows
@@ -191,7 +216,7 @@ static func parse_rows(data: Variant, own_code: String = "") -> Array:
 			continue
 		var row: Dictionary = entry
 		var code: String = String(row.get("code", ""))
-		if CoopCode.decode(code).is_empty():
+		if not joinable_code(code):
 			continue
 		# Our own listing. Offering to join yourself is not useful.
 		if not own_code.is_empty() and code == own_code:

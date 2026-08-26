@@ -31,6 +31,7 @@ var _address_label: Label = null
 var _hint: Label = null
 var _join_field: LineEdit = null
 var _host_button: Button = null
+var _room_button: Button = null
 var _share_row: HBoxContainer = null
 var _copy_button: Button = null
 var _lobby_title: Label = null
@@ -164,7 +165,19 @@ func _build() -> void:
 	IconKit.on_button(_copy_button, "pressure_arrow", 20)
 	_share_row.add_child(_copy_button)
 
-	_host_button = _button(column, "Host a game", "pressure_arrow")
+	# **The one that works everywhere**, and therefore the one on top.
+	#
+	# A room needs no port forwarded, crosses two home routers, and runs in a
+	# browser - so a desktop player and a web player meet on it identically.
+	# Opening a port is still offered below it because it needs no internet at
+	# all, which is what two people in one house with the line down actually
+	# want, and it is the lower-latency path when it is available.
+	_room_button = _button(column, "Host a room  ·  anyone can join",
+		"pressure_arrow")
+	_room_button.pressed.connect(_on_host_room)
+
+	_host_button = _button(column, "Open a port  ·  same network or forwarded",
+		"pressure_arrow")
 	_host_button.pressed.connect(_on_host)
 
 	var join_row := HBoxContainer.new()
@@ -210,11 +223,28 @@ func _on_host() -> void:
 	_refresh()
 
 
+## Opens a room over WebRTC. The code it returns is the whole handshake.
+func _on_host_room() -> void:
+	Coop.host_room()
+	_refresh()
+
+
 ## Puts the code on the clipboard, and says so.
 ##
 ## The label change is not decoration. A copy button that does nothing visible is
 ## one people press three times and then doubt, and there is nothing else on
 ## screen to confirm it worked.
+## Six characters, no dots. See `_on_join`.
+static func _looks_like_room(text: String) -> bool:
+	var cleaned: String = text.strip_edges().to_upper().replace("-", "")
+	if cleaned.length() != 6 or cleaned.contains("."):
+		return false
+	for character: String in cleaned:
+		if not "0123456789ABCDEFGHJKMNPQRSTVWXYZ".contains(character):
+			return false
+	return true
+
+
 func _on_copy() -> void:
 	var code: String = _share_code()
 	if code.is_empty():
@@ -238,6 +268,14 @@ func _on_join() -> void:
 		# machine, so an empty box means that rather than nothing.
 		typed = "127.0.0.1"
 		_join_field.text = typed
+	# **A room code is tried first**, because it is the one a player is most
+	# likely to have been sent and the only one that works from a browser. Six
+	# characters and no dot: an address has dots and a connect code is ten or
+	# sixteen characters, so the three cannot be confused for one another.
+	if _looks_like_room(typed):
+		Coop.join_room(typed)
+		_refresh()
+		return
 	if CoopCode.looks_like_code(typed):
 		var parsed: Dictionary = CoopCode.decode(typed)
 		if parsed.is_empty():
@@ -298,6 +336,16 @@ func _refresh() -> void:
 			_hint.text = "Try again, or host instead."
 
 	_host_button.disabled = state != Coop.State.OFFLINE and state != Coop.State.FAILED
+	if _room_button != null:
+		_room_button.disabled = _host_button.disabled or not CoopWebRTC.available()
+		# Said plainly rather than left as a button that does nothing. A desktop
+		# build without the extension is a build somebody made wrong, and a
+		# browser always has it.
+		_room_button.tooltip_text = "Six characters to share. Works in a browser " 			+ "and through a home router." if CoopWebRTC.available() 			else "This build was made without WebRTC support."
+	# Opening a port is desktop-only: a browser cannot do it, and offering it is
+	# offering a button that must fail.
+	if OS.has_feature("web"):
+		_host_button.visible = false
 	# The lobby rows are join buttons, so they follow the same rule.
 	_on_games_changed(Coop.beacon().games())
 	_on_public_games(Coop.directory().games())
@@ -406,6 +454,9 @@ func _on_public_games(found: Array) -> void:
 		row.disabled = Coop.state() != Coop.State.OFFLINE 			and Coop.state() != Coop.State.FAILED
 		IconKit.on_button(row, "pressure_arrow", 18)
 		var code: String = String(game["code"])
+		# Straight through `_on_join`, so a lobby row and a pasted code take
+		# exactly the same path - including working out which transport the code
+		# is for. A second join path is a second place for it to be wrong.
 		row.pressed.connect(func() -> void:
 			_join_field.text = code
 			_on_join())
@@ -424,9 +475,15 @@ static func _waited(seconds: int) -> String:
 ## world can reach. Falls back to the local one so a code always works for two
 ## machines in the same house rather than showing nothing until a router answers.
 func _share_code() -> String:
-	# Both addresses in one code. Whoever pastes it tries the public one and
-	# falls back to the local one, so the same code works from the next room and
-	# from another country - which a single address cannot do.
+	# **A room code beats an address code whenever there is one.** It is six
+	# characters instead of sixteen, it works from a browser, it crosses a router
+	# nobody configured, and it names no address at all - so it is what a player
+	# should be handing to a friend whenever this machine has one.
+	if not Coop.room_code.is_empty():
+		return Coop.room_code
+	# Otherwise both addresses in one code. Whoever pastes it tries the public
+	# one and falls back to the local one, so the same code works from the next
+	# room and from another country - which a single address cannot do.
 	return CoopCode.encode_pair(Coop.external_address, Coop.local_address,
 		Balance.COOP_PORT)
 

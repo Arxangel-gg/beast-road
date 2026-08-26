@@ -3042,6 +3042,17 @@ const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
 ## a spinner deciding the game has hung.
 const COOP_CONNECT_TIMEOUT: float = 10.0
 
+## How long a *room* may take to connect, against ten seconds for a direct dial.
+##
+## Much longer on purpose, because it is a different kind of wait: ENet either
+## reaches an address or it does not, while a WebRTC handshake asks two routers
+## about themselves through a third party and then tries several routes. On a
+## slow link the first attempt legitimately takes half a minute, and giving up
+## on a connection that would have worked is the worse failure. `CoopWebRTC` has
+## its own deadline just under this one, so the transport reports the reason
+## before the session times out with nothing to say. [TUNE]
+const COOP_CONNECT_TIMEOUT_ROOM: float = 50.0
+
 ## How much bigger a wave gets per extra player. [TUNE]
 ##
 ## **Body count, and nothing else.** GDD §54's co-op re-cut scales the director

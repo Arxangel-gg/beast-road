@@ -153,3 +153,171 @@ Four ways, so no single one has to be reliable:
 Nothing breaks. Every call fails quietly, the public list stays empty, and the
 local lobby and the connect code work exactly as they do now. The game never
 blocks on this table and never shows an error about it.
+
+---
+
+# Rooms and signalling — how the web build plays
+
+The lobby table above answers *"who is open right now"*. This second pair of
+tables answers *"how do these two machines reach each other"*, and it is what
+makes co-op work **in a browser** and **through a home router nobody
+configured**.
+
+Two peers cannot start a WebRTC connection without something in the middle to
+pass notes: each has to tell the other what it looks like from the outside
+(an SDP offer or answer) and which routes might work (ICE candidates). That is
+all a signalling server does, and it is out of the picture the moment the two
+are talking directly. Here it is a table, polled over the same REST client the
+lobby list uses — a handshake is a handful of messages over a couple of seconds,
+so polling costs nothing and avoids a second protocol that would have to behave
+identically inside a browser and outside one.
+
+**A room is deleted the instant both sides connect.** Nothing about a finished
+handshake is worth keeping.
+
+## The SQL
+
+Run this after the lobby SQL above. Safe to re-run.
+
+```sql
+-- A room is two players trying to find each other, and nothing else. It lives
+-- for as long as a handshake takes.
+create table if not exists public.rooms (
+  id          uuid primary key default gen_random_uuid(),
+  code        text        not null unique check (code ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),
+  host_token  text        not null,
+  guest_token text,
+  created_at  timestamptz not null default now()
+);
+
+-- One note passed between them. `seq` is what lets a reader ask for "anything
+-- after what I already have" instead of re-reading the whole exchange.
+create table if not exists public.signals (
+  seq        bigserial primary key,
+  room       uuid        not null references public.rooms(id) on delete cascade,
+  sender     text        not null,
+  kind       text        not null check (kind in ('offer', 'answer', 'candidate')),
+  payload    jsonb       not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists signals_room_idx on public.signals (room, seq);
+
+alter table public.rooms   enable row level security;
+alter table public.signals enable row level security;
+revoke all on public.rooms, public.signals from anon, authenticated;
+
+-- Rooms nobody finished with. Two minutes is far longer than any handshake and
+-- far shorter than a table worth worrying about; the cascade takes the notes
+-- with the room.
+create or replace function public.sweep_rooms()
+returns void language sql security definer set search_path = public as $$
+  delete from public.rooms where created_at < now() - interval '2 minutes';
+$$;
+
+create or replace function public.open_room(p_code text, p_token text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare new_id uuid;
+begin
+  perform public.sweep_rooms();
+  -- A code is six characters, so collisions happen. Taking the code back from a
+  -- room that is already stale is correct; taking it from a live one is not.
+  delete from public.rooms
+   where code = p_code and created_at < now() - interval '2 minutes';
+  insert into public.rooms (code, host_token) values (p_code, p_token)
+    returning id into new_id;
+  return new_id;
+exception when unique_violation then
+  return null;
+end $$;
+
+create or replace function public.enter_room(p_code text, p_token text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare found uuid;
+begin
+  perform public.sweep_rooms();
+  -- First guest wins, and a second one is refused rather than quietly joining a
+  -- handshake already in progress.
+  update public.rooms set guest_token = p_token
+   where code = p_code and guest_token is null
+   returning id into found;
+  return found;
+end $$;
+
+create or replace function public.post_signal(
+  p_room uuid, p_token text, p_kind text, p_payload jsonb)
+returns bigint language plpgsql security definer set search_path = public as $$
+declare who text; new_seq bigint;
+begin
+  -- The token says which side this is. A caller that owns neither is not in
+  -- this room and cannot write to it.
+  select case when host_token  = p_token then 'host'
+              when guest_token = p_token then 'guest' end
+    into who from public.rooms where id = p_room;
+  if who is null then
+    return null;
+  end if;
+  -- Bounded: a handshake is a dozen messages, and anything past that is either
+  -- broken or not a handshake.
+  if (select count(*) from public.signals where room = p_room) > 200 then
+    return null;
+  end if;
+  insert into public.signals (room, sender, kind, payload)
+       values (p_room, who, p_kind, p_payload)
+    returning seq into new_seq;
+  return new_seq;
+end $$;
+
+create or replace function public.read_signals(
+  p_room uuid, p_token text, p_after bigint)
+returns setof public.signals language plpgsql security definer
+set search_path = public as $$
+declare who text;
+begin
+  select case when host_token  = p_token then 'host'
+              when guest_token = p_token then 'guest' end
+    into who from public.rooms where id = p_room;
+  if who is null then
+    return;
+  end if;
+  -- Only the other side's notes. Reading your own back would have each peer
+  -- applying its own offer.
+  return query
+    select * from public.signals
+     where room = p_room and seq > coalesce(p_after, 0) and sender <> who
+     order by seq;
+end $$;
+
+create or replace function public.close_room(p_room uuid, p_token text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare hit int;
+begin
+  delete from public.rooms
+   where id = p_room and (host_token = p_token or guest_token = p_token);
+  get diagnostics hit = row_count;
+  perform public.sweep_rooms();
+  return hit > 0;
+end $$;
+
+grant execute on function public.open_room(text, text)                   to anon;
+grant execute on function public.enter_room(text, text)                  to anon;
+grant execute on function public.post_signal(uuid, text, text, jsonb)    to anon;
+grant execute on function public.read_signals(uuid, text, bigint)        to anon;
+grant execute on function public.close_room(uuid, text)                  to anon;
+revoke execute on function public.sweep_rooms() from anon, authenticated;
+```
+
+## What a room does not contain
+
+No IP address, no port, no machine name. The SDP and ICE payloads describe how
+to reach a peer and are visible only to the other side of that room, for the few
+seconds the handshake lasts, and go with the room when it is deleted.
+
+## STUN, and the case this does not cover
+
+Connections are negotiated against public STUN servers, which is enough for the
+great majority of home routers. It is **not** enough for a symmetric NAT at both
+ends at once — that needs a TURN relay, which is a server that carries the
+traffic rather than just the introductions, and therefore a running cost. If
+that turns out to matter in practice the place to add it is `ICE_SERVERS` in
+`coop_webrtc.gd`; nothing else has to change.

@@ -1,0 +1,14 @@
+[configuration]
+
+entry_symbol = "webrtc_extension_init"
+compatibility_minimum = 4.3
+
+; Windows x86_64 only, deliberately. The desktop build is Windows; the *web*
+; build needs nothing here at all, because a browser implements WebRTC itself
+; and the engine binds straight to it. Adding a platform means adding its
+; binary in the same change - see docs/COOP_WEBRTC.md.
+
+[libraries]
+
+windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"

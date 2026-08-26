@@ -216,6 +216,20 @@ jobs:
           # build request is answered by the same try_build a local click uses
           # rather than by a copy of its rules, which would be a second answer.
           check "co-op world" --headless --path game res://tools/coop_world_check.tscn
+          # Two WebRTC peers actually connecting and carrying packets, which is
+          # the transport the web build and every unforwarded router depend on.
+          #
+          # **This runs here and not on the developer machine**, and that is the
+          # point: Windows Firewall blocks inbound UDP to a headless binary with
+          # no window to prompt from, so two local peers can gather routes and
+          # never complete a check. A Linux runner has no such rule, so CI is
+          # where this can be proved rather than argued about.
+          #
+          # It found a real bug the day it was written: the transport waited on
+          # `get_connection_status()`, which a mesh answers CONNECTED to
+          # immediately because it is connected to itself - installing a peer
+          # whose data channel was still closed.
+          check "webrtc" --headless --path game res://tools/webrtc_check.tscn
 
       - name: Say what broke
         if: failure()
