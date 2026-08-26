@@ -152,6 +152,39 @@ func _enter_run_in_place(role: String) -> void:
 		print("[coop-ui] %s sees both heroes" % role)
 
 	if role == "host":
+		# **The things three rounds of play kept finding, checked live.**
+		#
+		# Every one of these passed an in-process gate and failed in front of two
+		# people, because a single process cannot tell "the guest was told" from
+		# "the guest worked it out itself" - there is one RunState and one set of
+		# nodes, so a guest that computed the wrong answer locally computed the
+		# same wrong answer the host did.
+		#
+		# Made on the host, asserted on the guest, and nothing is shared between
+		# them but the socket.
+		# After a pause, deliberately. The first attempt made these facts the
+		# instant the host's battlefield existed, and the guest was still
+		# building its own - so the packets arrived before there was anything to
+		# apply them to. Loot came through as zero and looked like a broken
+		# feature rather than a race in the harness.
+		await _hold(2.0)
+		field.spawn_loot(RunState.GOLD, 7, Vector2(240.0, -120.0))
+		var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
+		if wildlife != null:
+			# Forced rather than waited for: arrivals are a coin flip on a four
+			# second clock and a harness must not be.
+			for _try: int in 6:
+				wildlife._consider_arrival()
+			print("[coop-ui] host wildlife: %d" % wildlife.population())
+		# Hurt the guest's hero, which is the one that no enemy could reach until
+		# `nearest_hero` existed and whose health never crossed the wire at all.
+		var guest_hero: Hero = field.partner_hero()
+		if guest_hero != null and guest_hero.health != null:
+			guest_hero.health.take_damage(guest_hero.health.max_hp * 0.4,
+				guest_hero.global_position)
+			print("[coop-ui] host wounded the guest's hero to %.0f%%"
+				% (guest_hero.health.current_hp / guest_hero.health.max_hp * 100.0))
+
 		# The host drives its own hero too, so the guest has something to mirror.
 		# Without this the host stands still, and "the partner does not animate"
 		# cannot be told apart from "the partner has nothing to animate".
@@ -215,7 +248,35 @@ func _enter_run_in_place(role: String) -> void:
 		# freed the instant this process leaves, and the host is three seconds
 		# into timing it - so a guest that finishes first takes the thing being
 		# measured with it.
-		await _hold(7.0)
+		await _hold(3.0)
+
+		# Loot the host dropped. A coin that only one player can see is a coin
+		# they cannot decide about together.
+		var coins: int = get_tree().get_nodes_in_group(LootDrop.GROUP).size()
+		_check(coins > 0, "the guest must see the loot the host dropped")
+		print("[coop-ui] guest sees %d dropped coins" % coins)
+
+		# Animals, so a hunt can be shared rather than watched.
+		var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
+		if wildlife != null:
+			_check(wildlife.population() > 0,
+				"the guest must see the host's wildlife, or a shared hunt is "
+					+ "one player swinging at nothing")
+			print("[coop-ui] guest sees %d animals" % wildlife.population())
+
+		# **The one that mattered most.** The guest's own hero was hurt on the
+		# host; health was never replicated, so the two machines held different
+		# opinions about whether anybody was injured and a guest could die on its
+		# own screen while standing up on the host's.
+		var own: Hero = field.hero
+		if own != null and own.health != null and own.health.max_hp > 0.0:
+			var ratio: float = own.health.current_hp / own.health.max_hp
+			_check(ratio < 0.95,
+				"the guest's own hero must show the damage the host dealt it, "
+					+ "at %.0f%%" % (ratio * 100.0))
+			print("[coop-ui] guest's hero is at %.0f%%" % (ratio * 100.0))
+
+		await _hold(4.0)
 		if partner != null and is_instance_valid(partner):
 			print("[coop-ui] guest sees host hero velocity %.0f"
 				% partner.velocity.length())

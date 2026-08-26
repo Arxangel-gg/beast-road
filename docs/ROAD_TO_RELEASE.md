@@ -1805,6 +1805,30 @@ has its design settled and written down; no netcode is written yet.
       partner is offered the partner, one beside the local hero gets that one,
       and a downed hero is offered to nobody however close they are.
 
+- [~] **The two-process harness now covers what play kept breaking (2026-08-25).**
+      `tools/coop_ui.sh` tested plumbing — a handshake, a run starting, two heroes
+      with velocity. Three rounds of play found bugs it passed, so it now asserts
+      the behaviours those rounds broke, live, across two real processes:
+
+      * the guest's own hero shows damage the **host** dealt it (health, which
+        was never replicated at all)
+      * loot dropped by the host appears on the guest
+      * the host's wildlife appears on the guest, so a hunt can be shared
+
+      **Why these are structurally invisible in-process**, and worth the extra
+      machinery: one process has one `RunState` and one set of nodes, so a guest
+      that computed the wrong answer locally computed the *same* wrong answer the
+      host did. Only two processes can tell "the guest was told" from "the guest
+      worked it out itself".
+
+      A known limitation, found by the harness racing itself: a fact that arrives
+      before the guest's battlefield exists is silently dropped. Everything that
+      matters happens well after both fields are up, so it is recorded rather
+      than buffered against.
+
+      This is not a substitute for the row below. It cannot judge feel or latency
+      and it only checks what somebody thought to assert.
+
 - [ ] **Co-op played by two people on two machines.** Every co-op gate is a
       headless loopback in one process. That proves the transport, the
       authority model and the plumbing; it proves nothing about how co-op
