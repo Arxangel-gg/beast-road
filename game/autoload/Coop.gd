@@ -224,9 +224,10 @@ func party_blocked_from(tier: CampaignTierData) -> String:
 ##
 ## Everything above this point - the relay, the facts, the authority guard - is
 ## unchanged and never learns which transport carried it.
-func _on_webrtc_ready(peer: WebRTCMultiplayerPeer) -> void:
+## The handshake finished. The peer is already installed - see `_build_peer` -
+## so this only has to say the session is up.
+func _on_webrtc_ready(_peer_in: WebRTCMultiplayerPeer) -> void:
 	_peer = null
-	multiplayer.multiplayer_peer = peer
 	if _state == State.CONNECTING:
 		_set_state(State.CONNECTED)
 	_declare_tier.call_deferred()

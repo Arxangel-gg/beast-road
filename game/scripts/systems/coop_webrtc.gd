@@ -178,6 +178,20 @@ func _build_peer(own_id: int, other_id: int) -> bool:
 	if _peer.add_peer(_connection, other_id) != OK:
 		_fail("Could not add the other player to the session.")
 		return false
+
+	# **Installed now, not when it connects.**
+	#
+	# `peer_connected` is emitted by the peer the moment the channel opens, and
+	# the `MultiplayerAPI` only learns who is in the session by hearing it. Wait
+	# for the channel and *then* install, and that announcement has already been
+	# and gone: the handshake succeeds, both sides say "Connected", and
+	# `multiplayer.get_peers()` is empty for ever - so `partner_present()` is
+	# false and the game believes nobody arrived.
+	#
+	# This is how ENet is used too: the peer is installed and then connects.
+	# Nothing above minds a peer that is still negotiating, because nothing above
+	# sends anything until `Coop` says the session is up.
+	multiplayer.multiplayer_peer = _peer
 	return true
 
 
@@ -388,6 +402,11 @@ func _reset() -> void:
 		_connection.close()
 		_connection = null
 	if _peer != null:
+		# Uninstalled before it is closed, or the session is left holding a dead
+		# peer - which reads to everything above as a connection that exists and
+		# never answers.
+		if multiplayer.multiplayer_peer == _peer:
+			multiplayer.multiplayer_peer = null
 		_peer.close()
 		_peer = null
 
