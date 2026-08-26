@@ -83,6 +83,7 @@ func _ready() -> void:
 	await _test_guest_leaves_cleanly()
 	await _test_a_bad_address_fails_instead_of_hanging()
 	_test_a_code_survives_the_round_trip()
+	await _test_a_beacon_is_heard()
 
 	_tear_down()
 	for _f: int in 4:
@@ -561,6 +562,63 @@ func _test_a_code_survives_the_round_trip() -> void:
 	_check(CoopCode.encode("not.an.address.here", 45870).is_empty(),
 		"nonsense must not encode")
 	_check(CoopCode.encode("10.0.0.1", 0).is_empty(), "nor a port of zero")
+
+
+## A host on this network is findable without anybody typing anything.
+##
+## Broadcast, bind, hear it, and age it out again. Run in one process because a
+## broadcast reaches the machine that sent it - which is the same reason two
+## copies on one desk can find each other, so this is the real path rather than a
+## stand-in for it.
+func _test_a_beacon_is_heard() -> void:
+	var listener := CoopBeacon.new()
+	var shouter := CoopBeacon.new()
+	add_child(listener)
+	add_child(shouter)
+	listener.listen()
+	shouter.announce("Warden · level 9", Balance.COOP_PORT)
+	# Several beacon intervals, because a packet may be dropped and the point is
+	# that a host keeps saying it rather than saying it once.
+	var deadline: int = Time.get_ticks_msec() + 4000
+	while Time.get_ticks_msec() < deadline and listener.games().is_empty():
+		await get_tree().process_frame
+	var found: Array = listener.games()
+	_check(not found.is_empty(),
+		"a host shouting on this network must be heard, found %d" % found.size())
+	if not found.is_empty():
+		var game: Dictionary = found[0]
+		_check(String(game["name"]) == "Warden · level 9",
+			"and named, got '%s'" % String(game["name"]))
+		_check(int(game["port"]) == Balance.COOP_PORT,
+			"and carry the port to dial, got %d" % int(game["port"]))
+		_check(not String(game["address"]).is_empty(),
+			"and an address to dial it at")
+
+	# And a host that stops is forgotten, or the list fills with games that
+	# ended an hour ago.
+	shouter.stop_announcing()
+	var gone_by: int = Time.get_ticks_msec() + int(
+		(CoopBeacon.BEACON_TIMEOUT + 2.0) * 1000.0)
+	while Time.get_ticks_msec() < gone_by and not listener.games().is_empty():
+		await get_tree().process_frame
+	_check(listener.games().is_empty(),
+		"a game that stopped shouting must age out of the list")
+
+	# Anything else on that port is not ours, and a name from the network is
+	# never drawn as it arrived.
+	_check(CoopBeacon._clean("") == "A warden's camp",
+		"an empty name must still be something to click")
+	_check(not CoopBeacon._clean("a
+b	c").contains("
+"),
+		"a name must not carry line breaks into the row it is drawn in")
+	_check(CoopBeacon._clean("x".repeat(200)).length() <= CoopBeacon.MAX_NAME,
+		"nor run past the panel")
+
+	listener.stop_listening()
+	listener.queue_free()
+	shouter.queue_free()
+	await get_tree().process_frame
 
 
 func _tear_down() -> void:

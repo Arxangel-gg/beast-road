@@ -35,9 +35,9 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.63** from `main`. 32 of 32 local gates green at the tag,
-plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
-processes and are deliberately outside CI.
+Published as **v0.4.64** from `main`. 33 of 33 local gates green at the tag,
+plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
+co-op as two real processes and are deliberately outside CI.
 
 Landed since v0.4.44: the zero-capital start, two-player co-op end to end, the
 co-op lobby, visible weather, beast-scope parallax, eight bugs reported from
@@ -64,6 +64,11 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.64** the seventh play report. **Three doors into a game now**: a
+  lobby that lists games on your network, a code for everyone else, and a typed
+  address for anyone who would rather. Plus the two bugs that made co-op unfair
+  rather than merely awkward — a guest's buildings never reached the host, and a
+  guest could heal on its own screen while dying on its partner's.
 - **v0.4.63** the sixth play report, and the first feature in a while that is
   about *reaching* the game rather than playing it: a **connect code**. Ten
   characters, one Copy button, one paste box. The public address is looked up
@@ -368,6 +373,58 @@ them. The full local suite is 24 of 24 green.
       was re-run rather than trusted once. That is the argument for running
       the whole suite after a change rather than the gate you think is
       relevant.
+
+### Raised 2026-08-26 — the seventh play report
+
+- [x] **A guest's buildings never appeared for the host.** `try_build` acted
+      locally on a guest: it spent a purse the host owns and set a tower the host
+      never heard about. The host had a `BUILD_TOWER` handler from the very first
+      day of co-op and **nothing in the game ever sent one** — the only caller
+      was the transport test. `coop_world_check` passed throughout because it
+      called the handler directly, which is the exact trap
+      `gate-the-road-not-the-destination` describes.
+
+      Seven functions have now needed the same treatment and three were found by
+      play. There is one `_ask_the_host` helper for all of them, so the eighth
+      cannot be forgotten: build, upgrade, trap, barricade, tend, repair.
+- [x] **A guest healed while its partner watched it die.** A relayed knockdown
+      was applied as *damage*, and damage can be refused — invulnerability, a
+      draught, a hit already in flight. When it was refused the guest stayed
+      standing on its own screen while the host had it on the floor. It is
+      applied as a state now: a fact about the world cannot be declined.
+- [x] **Codes did not connect.** The code itself was right; the address in it
+      could not have worked from where they were. A single address cannot serve
+      both cases — the public one is what a friend abroad needs and is exactly
+      the one that fails for a friend in the same house, because most routers
+      will not loop a connection back to themselves.
+
+      A code carries **both** addresses now (sixteen characters), the joining
+      machine tries the public one and falls back to the local one, and ten
+      character codes still decode so nothing already pasted into a chat window
+      stops working.
+
+      Also fixed on the way: the first version of the pair encoding assembled
+      eighty bits into one integer. GDScript integers are 64-bit, so it lost the
+      top two octets of the first address while round-tripping the second one
+      perfectly — the kind of half-right that reads as working.
+- [x] **A lobby.** Hosts shout on the local network once a second and the co-op
+      screen lists what it hears; one click joins. No server, and nothing leaves
+      the local network.
+
+      Two things had to be right for it to work on one desk, which is how
+      everybody tests. Only one program can hold the well-known port, so whoever
+      starts second binds a nearby one and *probes* instead — whoever holds the
+      port answers directly. And every packet goes to loopback as well as to the
+      broadcast address, because Windows will let a program broadcast while
+      quietly dropping what comes back until a firewall prompt is answered.
+
+      Held by `tools/lobby.sh`, which runs it in both orders. The two orders are
+      different code paths and only one of them is the common one.
+- [x] **Everything a beacon says is untrusted.** It arrives from whatever else is
+      on the network: shape-checked, objects refused when decoded, names stripped
+      of control characters and truncated. The worst a hostile beacon can do is
+      put a wrong name in a list. The name a host sends is its hero's class and
+      level — never a machine name or an account name.
 
 ### Raised 2026-08-26 — the sixth play report
 

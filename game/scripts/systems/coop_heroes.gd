@@ -264,11 +264,26 @@ func _watch_deaths() -> void:
 ## player every time.
 func _on_hero_down(host_hero: bool, at: Vector2) -> void:
 	var who: Hero = _mirrored(host_hero)
-	if who != null and who.is_alive():
-		who.global_position = at
-		# Through the normal damage path, so the death animation, the vignette
-		# and the respawn timer all run exactly as they do for a solo death.
-		who.health.take_damage(who.health.max_hp * 2.0, at)
+	if who == null or not who.is_alive():
+		return
+	who.global_position = at
+	# **Put down, not damaged.**
+	#
+	# This used to deal lethal damage and let the local death path take over, so
+	# that the collapse, the vignette and the bar all ran exactly as they do
+	# alone. The trouble is that damage can be *refused*: invulnerability from a
+	# respawn, a resurrection draught, a hit already in flight. When it was
+	# refused the guest stayed standing while the host had them on the floor, and
+	# the two machines then disagreed about whether anybody needed reviving.
+	#
+	# Reported from play in its worst form: a guest tending itself during
+	# Preparation watched its hero heal while the host watched it die and vanish.
+	#
+	# `go_down` runs the same `_collapse` the damage path ends in, so nothing is
+	# lost by saying it outright - and a fact about the world cannot be declined.
+	who.health.current_hp = 0.0
+	who.health.changed.emit(0.0, who.health.max_hp)
+	who.go_down(at)
 
 
 func _on_hero_revived(host_hero: bool, at: Vector2) -> void:

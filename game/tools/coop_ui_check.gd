@@ -31,8 +31,17 @@ var _saw_partner_pointer: bool = false
 var _saw_tower_shot: bool = false
 var _saw_enemy_shot: bool = false
 
+## Set the moment this player's own hero is on the floor. Latched, because the
+## host picks them back up a few seconds later and a sampled check would miss it.
+var _was_downed: bool = false
+
 
 func _process(_delta: float) -> void:
+	if _role == "guest" and not _was_downed:
+		var run: Node = get_node_or_null("Run")
+		var field: Battlefield = run.get("battlefield") as Battlefield if run != null else null
+		if field != null and field.hero != null and field.hero.is_downed():
+			_was_downed = true
 	if _saw_tower_shot and _saw_enemy_shot:
 		return
 	_scan_for_shots(get_tree().root)
@@ -149,6 +158,12 @@ func _run_host() -> void:
 	# just been replaced has no clean exit to give.
 
 
+## The guest joins the way the feature is meant to be used: by pasting a code.
+##
+## The address box is tested by every other harness here. What was not tested is
+## the path a player actually takes now - copy, paste, Join - and "code
+## connecting did not work" was the first thing play found. A code carries the
+## port as well as the address, so this also proves the port survives the trip.
 func _run_guest() -> void:
 	# Claimed before the announcement can arrive, so `GameDirector` leaves the
 	# scene alone: its handler bails on `run_active`, and this harness *is* the
@@ -156,7 +171,11 @@ func _run_guest() -> void:
 	# crossed the wire - which is the property worth checking.
 	GameDirector.run_active = true
 	EventBus.coop_run_started.connect(_on_host_run_started)
-	(_coop.get("_join_field") as LineEdit).text = "127.0.0.1"
+	var code: String = CoopCode.encode("127.0.0.1", Balance.COOP_PORT)
+	_check(not code.is_empty(), "the harness must be able to build a code")
+	_check(CoopCode.looks_like_code(code), "and it must read as one")
+	print("[coop-ui] guest joining by code %s" % code)
+	(_coop.get("_join_field") as LineEdit).text = code
 	(_coop.get("_join_button") as Button).emit_signal("pressed")
 	await get_tree().process_frame
 	_check(Coop.state() == Coop.State.CONNECTING, "Join must start a connection")
@@ -346,7 +365,13 @@ func _enter_run_in_place(role: String) -> void:
 		# whole system silently.
 		var downed: Hero = field.partner_hero()
 		if downed != null and is_instance_valid(downed):
-			downed.go_down(downed.global_position)
+			# Killed through health, the way a wolf kills, rather than by calling
+			# `go_down` outright. The bug reported from play lived between the
+			# two: the host's copy died and the guest's own hero kept standing,
+			# because the knockdown was replicated as *damage* and the guest's
+			# local rules were free to refuse it.
+			downed.health.take_damage(downed.health.max_hp * 4.0,
+				downed.global_position)
 			_check(downed.is_downed(), "the guest's hero must go down")
 			# Stand over them and hold the key.
 			field.hero.global_position = downed.global_position + Vector2(20.0, 0.0)
@@ -560,6 +585,34 @@ func _enter_run_in_place(role: String) -> void:
 			print("[coop-ui] guest tended itself to %.0f%%, Food %d -> %d"
 				% [mine.health.current_hp / mine.health.max_hp * 100.0,
 					before, RunState.currency(RunState.FOOD)])
+
+		# **The guest builds, and the host has to be the one who does it.**
+		#
+		# Nothing in the game ever sent a build request: the host had a handler
+		# for one from the beginning and no caller. So a guest's tower was paid
+		# for out of a purse the host owns, appeared on one screen, and was never
+		# heard of again - reported as "guest built items do not appear for the
+		# host". This asserts the tower comes *back*, which it can only do if the
+		# host built it.
+		var spot: Vector2i = field.free_anchor_near(2)
+		var kinds: Array[TowerData] = ContentDB.base_towers()
+		if not kinds.is_empty() and RunState.can_build_now():
+			field.try_build(spot, kinds[0])
+			_check(RunState.tower_at(spot) == null,
+				"a guest's build must not happen locally - it asks, and the "
+					+ "host answers, or the two hold different cities")
+			await _until(func() -> bool: return RunState.tower_at(spot) != null)
+			_check(RunState.tower_at(spot) != null,
+				"and the host's answer must come back as a tower on this "
+					+ "screen too")
+			print("[coop-ui] guest asked for a tower at %s and got one" % spot)
+
+		# The knockdown, which must not have been refusable.
+		_check(_was_downed,
+			"the guest's own hero must go down when the host says it did - "
+				+ "healing on one screen while dying on the other is the worst "
+				+ "shape this bug takes")
+		print("[coop-ui] guest was put down and got back up")
 
 		# The host put this hero down, revived it, and then wiped the pair. All of
 		# that has happened by now, and the only thing that matters afterwards is

@@ -69,6 +69,32 @@ var port_mapped: bool = false
 ## freezing, so it runs on its own and the result arrives as a signal.
 var _upnp_thread: Thread = null
 
+## The second address from a pasted code, and its port. See `join`.
+var _alternate: String = ""
+var _alternate_port: int = Balance.COOP_PORT
+
+## Local-network discovery, built on demand so a run that never opens the co-op
+## screen never binds a socket.
+var _beacon: CoopBeacon = null
+
+
+## The lobby broadcaster and listener.
+func beacon() -> CoopBeacon:
+	if _beacon == null:
+		_beacon = CoopBeacon.new()
+		_beacon.name = "CoopBeacon"
+		add_child(_beacon)
+	return _beacon
+
+
+## What this game calls itself in somebody else's lobby list.
+##
+## Deliberately not a machine name or an account name. It goes out on the local
+## network to anything listening, and "the hero you have" is the most it needs to
+## say for a friend to recognise it.
+func lobby_name() -> String:
+	return "Warden · level %d" % MetaState.hero_level
+
 ## Asks the internet what this machine looks like from outside, when the router
 ## will not say.
 ##
@@ -189,6 +215,9 @@ func host(port: int = Balance.COOP_PORT) -> bool:
 	multiplayer.multiplayer_peer = peer
 	_set_state(State.HOSTING)
 	_begin_address_lookup(port)
+	# Shout on the local network, so anyone in the same house needs neither an
+	# address nor a code. See `CoopBeacon`.
+	beacon().announce(lobby_name(), port)
 	return true
 
 
@@ -198,11 +227,21 @@ func host(port: int = Balance.COOP_PORT) -> bool:
 ## FAILED. Callers must not treat `true` as connected — a wrong address returns
 ## true here and fails ten seconds later, which is the whole reason the timeout
 ## in `_process` exists.
-func join(address: String, port: int = Balance.COOP_PORT) -> bool:
+func join(address: String, port: int = Balance.COOP_PORT,
+		alternate: String = "") -> bool:
 	leave()
 	var wanted: String = address.strip_edges()
 	if wanted.is_empty():
 		return _fail("Enter the host's address.")
+	# The second address a code carries, tried if the first goes unanswered.
+	#
+	# The public address is the one a friend in another country needs and the one
+	# that fails for a friend in the same house, because most routers will not
+	# loop a connection back to themselves. Rather than ask the player which case
+	# they are in - which they cannot know - the code carries both and this tries
+	# the other before giving up.
+	_alternate = alternate.strip_edges()
+	_alternate_port = port
 	var peer := ENetMultiplayerPeer.new()
 	var made: int = peer.create_client(wanted, port)
 	if made != OK:
@@ -221,6 +260,7 @@ func join(address: String, port: int = Balance.COOP_PORT) -> bool:
 ## there is no second teardown to keep in step with this one.
 func leave() -> void:
 	_connect_left = 0.0
+	beacon().stop_announcing()
 	_join_lookup()
 	if _peer != null:
 		_peer.close()
@@ -348,7 +388,16 @@ func _process(delta: float) -> void:
 		# Deliberately not a silent return to OFFLINE. A join that quietly gives
 		# up looks identical to one still trying, and the player retypes the
 		# address they already had right.
-		var reason: String = "No answer from the host. Check the address and that they are hosting."
+		if not _alternate.is_empty():
+			var second: String = _alternate
+			var second_port: int = _alternate_port
+			_alternate = ""
+			leave()
+			# Not a failure yet. The first address simply did not answer, which
+			# is the expected outcome for exactly half the codes ever pasted.
+			join(second, second_port)
+			return
+		var reason: String = "No answer from the host. If you are on the same " 			+ "network as them, ask for their Same network address. Otherwise " 			+ "they may need to forward UDP %d on their router." % Balance.COOP_PORT
 		leave()
 		_fail(reason)
 

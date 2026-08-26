@@ -33,6 +33,8 @@ var _join_field: LineEdit = null
 var _host_button: Button = null
 var _share_row: HBoxContainer = null
 var _copy_button: Button = null
+var _lobby_title: Label = null
+var _lobby_list: VBoxContainer = null
 var _join_button: Button = null
 var _begin_button: Button = null
 var _leave_button: Button = null
@@ -51,12 +53,21 @@ func _ready() -> void:
 
 func open() -> void:
 	visible = true
+	# Listen while the screen is up and only while it is up. A socket bound for
+	# the whole session would be a socket nobody is looking at.
+	Coop.beacon().listen()
+	if not Coop.beacon().games_changed.is_connected(_on_games_changed):
+		Coop.beacon().games_changed.connect(_on_games_changed)
+	_on_games_changed(Coop.beacon().games())
 	_refresh()
 	_host_button.grab_focus()
 
 
 func close() -> void:
 	visible = false
+	# The host keeps shouting; only the listening stops. Somebody who opened this
+	# screen, hosted, and closed it is still findable by their friend.
+	Coop.beacon().stop_listening()
 	closed.emit()
 
 
@@ -89,6 +100,18 @@ func _build() -> void:
 	blurb.add_theme_font_size_override("font_size", 15)
 	blurb.add_theme_color_override("font_color", Color("aebcb8"))
 	column.add_child(blurb)
+
+	# **The lobby.** Three doors, in the order most people will use them: the
+	# games already on this network, a code for everyone else, and a typed
+	# address for anyone who would rather.
+	_lobby_title = Label.new()
+	_lobby_title.add_theme_font_size_override("font_size", 15)
+	_lobby_title.add_theme_color_override("font_color", Color("9aa8a4"))
+	column.add_child(_lobby_title)
+
+	_lobby_list = VBoxContainer.new()
+	_lobby_list.add_theme_constant_override("separation", 4)
+	column.add_child(_lobby_list)
 
 	_status = Label.new()
 	_status.add_theme_font_size_override("font_size", 17)
@@ -201,7 +224,8 @@ func _on_join() -> void:
 				+ "character and paste it again.")
 			_refresh()
 			return
-		Coop.join(String(parsed["address"]), int(parsed["port"]))
+		Coop.join(String(parsed["address"]), int(parsed["port"]),
+			String(parsed.get("alternate", "")))
 		_refresh()
 		return
 	Coop.join(typed)
@@ -233,7 +257,7 @@ func _refresh() -> void:
 		Coop.State.OFFLINE:
 			_status.text = "Not connected."
 			_address_label.text = ""
-			_hint.text = "Host a game and send your friend the address, or paste theirs and join."
+			_hint.text = "Same network? Pick their game above. Anywhere else? Host, " 				+ "press Copy code, and send them the code."
 		Coop.State.HOSTING:
 			_status.text = "Player 2 is here. Ready when you are." if joined \
 				else "Hosting. Waiting for your friend to join…"
@@ -253,6 +277,8 @@ func _refresh() -> void:
 			_hint.text = "Try again, or host instead."
 
 	_host_button.disabled = state != Coop.State.OFFLINE and state != Coop.State.FAILED
+	# The lobby rows are join buttons, so they follow the same rule.
+	_on_games_changed(Coop.beacon().games())
 	_join_button.disabled = _host_button.disabled
 	_join_field.editable = not _host_button.disabled
 	# Only a host with company may begin, which is the rule the button should
@@ -284,16 +310,57 @@ func _address_text() -> String:
 	return "\n".join(lines)
 
 
+## Redraws the list of games found on this network.
+##
+## Rebuilt wholesale rather than diffed. There are never more than a handful of
+## rows, they change a few times a minute at most, and a list that is rebuilt
+## cannot drift out of step with what was actually heard.
+func _on_games_changed(found: Array) -> void:
+	if _lobby_list == null:
+		return
+	for child: Node in _lobby_list.get_children():
+		child.queue_free()
+	var joinable: Array = []
+	for entry: Variant in found:
+		var game: Dictionary = entry
+		# A full game is listed and not offered: seeing that your friend already
+		# started without you is information, and a Join button that refuses is
+		# not.
+		joinable.append(game)
+	if joinable.is_empty():
+		_lobby_title.text = "No games found on this network yet."
+		return
+	_lobby_title.text = "Games on this network:"
+	for entry: Variant in joinable:
+		var game: Dictionary = entry
+		var full: bool = int(game["players"]) >= 2
+		var row := Button.new()
+		row.text = "%s  ·  %s%s" % [String(game["name"]), String(game["address"]),
+			"   (full)" if full else ""]
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.custom_minimum_size = Vector2(0.0, 34.0)
+		row.add_theme_font_size_override("font_size", 15)
+		row.disabled = full or Coop.state() != Coop.State.OFFLINE 			and Coop.state() != Coop.State.FAILED
+		IconKit.on_button(row, "pressure_arrow", 18)
+		var address: String = String(game["address"])
+		var port: int = int(game["port"])
+		row.pressed.connect(func() -> void:
+			Coop.join(address, port)
+			_refresh())
+		_lobby_list.add_child(row)
+
+
 ## The code a friend pastes, or "" while there is still nothing to encode.
 ##
 ## Prefers the public address, because that is the one a friend anywhere in the
 ## world can reach. Falls back to the local one so a code always works for two
 ## machines in the same house rather than showing nothing until a router answers.
 func _share_code() -> String:
-	var address: String = Coop.external_address if not Coop.external_address.is_empty() 		else Coop.local_address
-	if address.is_empty():
-		return ""
-	return CoopCode.encode(address, Balance.COOP_PORT)
+	# Both addresses in one code. Whoever pastes it tries the public one and
+	# falls back to the local one, so the same code works from the next room and
+	# from another country - which a single address cannot do.
+	return CoopCode.encode_pair(Coop.external_address, Coop.local_address,
+		Balance.COOP_PORT)
 
 
 ## Whether the door is actually open, said plainly.

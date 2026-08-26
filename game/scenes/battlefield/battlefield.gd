@@ -950,11 +950,34 @@ func spawn_ground_zone(at: Vector2, dps: float, duration: float, radius: float,
 ## `anchor` is the top-left tile of the 2x2 footprint. Placement is free: any
 ## four open off-path tiles will do, and there is no cap on how many towers a
 ## run may stand up (GDD §13).
+## Every shared-purse action a guest may want and only a host may carry out.
+##
+## **Seven functions have now needed this and three of them were found by play
+## rather than by a gate.** They all have one shape: a guest that acts locally
+## spends a purse the host owns and changes a world the host never hears about,
+## so the balance is corrected back within the second while the tower, the trap
+## or the healing stays on one screen and not the other. The host had a handler
+## for `BUILD_TOWER` from the beginning; nothing in the game ever sent one, and
+## the gate that was meant to catch it called the handler directly.
+##
+## One helper, so the eighth cannot be forgotten. Returns true when the caller
+## should stop: the answer arrives later as a fact, or as a refusal.
+func _ask_the_host(kind: int, args: Array = []) -> bool:
+	if not Coop.is_guest():
+		return false
+	var relay: CoopRelay = Coop.relay()
+	if relay != null:
+		relay.request(kind, args)
+	return true
+
+
 func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 	if not RunState.can_build_now():
 		return "Construction is locked until Preparation."
 	if tower_data == null:
 		return "No tower selected."
+	if _ask_the_host(CoopRelay.Request.BUILD_TOWER, [anchor, tower_data.id]):
+		return ""
 	var refusal: String = placement_problem(anchor)
 	if not refusal.is_empty():
 		return refusal
@@ -995,6 +1018,8 @@ func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
 		return "Traps are laid during Preparation."
 	if trap_data == null:
 		return "No trap selected."
+	if _ask_the_host(CoopRelay.Request.PLACE_TRAP, [tile, trap_data.id]):
+		return ""
 	if grid == null:
 		return "The battlefield is not ready."
 	if grid.cell_at(tile) != BattleGrid.Cell.ROAD:
@@ -1021,6 +1046,8 @@ func try_raise_barricade(tile: Vector2i, barricade_data: BarricadeData) -> Strin
 		return "Barricades are raised during Preparation."
 	if barricade_data == null:
 		return "No barricade selected."
+	if _ask_the_host(CoopRelay.Request.RAISE_BARRICADE, [tile, barricade_data.id]):
+		return ""
 	if grid == null:
 		return "The battlefield is not ready."
 	if grid.cell_at(tile) != BattleGrid.Cell.ROAD:
@@ -1166,6 +1193,8 @@ func _occupied_anchors_touching(tile: Vector2i) -> Array[Vector2i]:
 func try_upgrade(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Upgrades are locked until Preparation."
+	if _ask_the_host(CoopRelay.Request.UPGRADE_TOWER, [anchor]):
+		return ""
 	var tower_data: TowerData = RunState.tower_at(anchor)
 	if tower_data == null:
 		return "Nothing built there."
@@ -1282,10 +1311,7 @@ func _refund_orphaned_fusions() -> void:
 func try_tend_hero(who: Hero = null) -> String:
 	if not RunState.can_build_now():
 		return "The hero is tended between road battles."
-	if who == null and Coop.is_guest():
-		var relay: CoopRelay = Coop.relay()
-		if relay != null:
-			relay.request(CoopRelay.Request.TEND_HERO)
+	if who == null and _ask_the_host(CoopRelay.Request.TEND_HERO):
 		return ""
 	var patient: Hero = who if who != null else hero
 	if patient == null or patient.health == null:
@@ -1310,10 +1336,7 @@ func try_tend_hero(who: Hero = null) -> String:
 func try_repair_town() -> String:
 	if not RunState.can_build_now():
 		return "Repairs are prepared between road battles."
-	if Coop.is_guest():
-		var relay: CoopRelay = Coop.relay()
-		if relay != null:
-			relay.request(CoopRelay.Request.REPAIR_TOWN)
+	if _ask_the_host(CoopRelay.Request.REPAIR_TOWN):
 		return ""
 	if town == null or town.health == null:
 		return "The town cannot be reached."
