@@ -124,12 +124,24 @@ jobs:
               echo "::error title=$name::Exited $status."
               return 1
             fi
-            if grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$log"; then
+            # A check may declare noise it is allowed to emit, and exactly
+            # one does. The rule that *any* warning fails a check is worth
+            # keeping absolute for this project's own code; a dependency
+            # complaining about the network it is standing in is a different
+            # thing, and suppressing it globally would be paying for one check
+            # out of every other check's pocket.
+            local scan="$log"
+            if [ -n "${IGNORE_WARNINGS:-}" ]; then
+              scan="$(mktemp)"
+              grep -v -E "$IGNORE_WARNINGS" "$log" > "$scan" || true
+            fi
+
+            if grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$scan"; then
               # The first root-cause line, not the cascade: one missing
               # class_name produces a dozen "failed to compile depended scripts"
               # and only the first line says which identifier is actually absent.
               local first
-              first="$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$log" \
+              first="$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$scan" \
                 | grep -v 'depended scripts' | head -1)"
               echo "::error title=$name::${first:-emitted an error or warning}"
               return 1
@@ -225,7 +237,14 @@ jobs:
           # whose data channel was still closed. And the offer was coming from
           # the host, where `WebRTCMultiplayerPeer` puts the data channels on
           # the *higher* peer id and expects the offer to come from there.
-          check "webrtc" --headless --path game res://tools/webrtc_check.tscn
+          # `juice:` is the ICE library reporting a route it could not use -
+          # on a runner, `Send failed, errno=101` is ENETUNREACH from an IPv6
+          # candidate this machine has no path for. It is a dependency
+          # describing the network it is in, the connection succeeds over the
+          # routes that do work, and the harness exits 0. Nothing else in this
+          # file is allowed to emit a warning of any kind.
+          IGNORE_WARNINGS='juice:|rtc::impl' \
+            check "webrtc" --headless --path game res://tools/webrtc_check.tscn
 
       - name: Say what broke
         if: failure()
