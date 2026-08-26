@@ -73,6 +73,27 @@ signal coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2)
 ## Where the host's animals are now, as one batch.
 signal coop_wildlife_batch(entries: Array)
 
+## A crossroad opened — on the host's say-so, with the seed it was drawn from.
+##
+## The *segment* travels rather than the offers themselves: both machines draw
+## from the same seeded stream, so telling the guest which crossroad it is gets
+## it the identical three roads without sending any of them.
+signal coop_crossroad_opened(segment: int)
+
+## A road was taken. Whoever clicked first decided it for both.
+signal coop_road_chosen(road_id: String, difficulty_id: String)
+
+## Where a partner is pointing while the crossroad is open, in screen fractions.
+##
+## Fractions rather than pixels, because the two players are not necessarily
+## looking at the same size of window - and this is the one moment in the game
+## where seeing where somebody else is about to click is the whole point.
+signal coop_pointer_moved(at: Vector2)
+
+## Somebody took the regional relic. One reward, one winner - the fork's relic
+## screen has the same shape as its road screen and needs the same answer.
+signal coop_relic_chosen(relic_id: String)
+
 ## The host's run is over, so the guest's is too.
 ##
 ## A run is one shared thing. Without this the guest stood in its town with no

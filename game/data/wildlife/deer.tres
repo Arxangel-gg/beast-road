@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "deer"
 display_name = "Deer"
 description = "Grazing, until something moves."
+temperament = 0
 acts = Array[int]([1])
 weight = 1.00
 group_min = 2

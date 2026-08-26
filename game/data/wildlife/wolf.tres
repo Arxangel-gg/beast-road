@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "wolf"
+display_name = "Wolf"
+description = "It does not hunt alone, and it does not hurry."
+temperament = 3
+damage = 8.0
+attack_interval = 0.95
+attack_range = 95.0
+aggro_radius = 760.0
+knockback = 70.0
+charge_speed_scale = 1.55
+elite_chance = 0.10
+acts = Array[int]([1, 2])
+weight = 1.40
+group_min = 3
+group_max = 4
+speed = 115.0
+roam = 520.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.45
+max_hp = 95.0
+food_min = 10
+food_max = 18
+xp_reward = 16
+art_faces_right = false
+stay_min = 45.0
+stay_max = 120.0

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "badger"
+display_name = "Badger"
+description = "Small, and entirely unwilling to stop."
+temperament = 2
+damage = 12.0
+attack_interval = 0.60
+attack_range = 80.0
+aggro_radius = 280.0
+knockback = 60.0
+charge_speed_scale = 1.70
+elite_chance = 0.10
+acts = Array[int]([1, 2])
+weight = 1.20
+group_min = 1
+group_max = 1
+speed = 104.0
+roam = 260.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.05
+max_hp = 110.0
+food_min = 9
+food_max = 16
+xp_reward = 14
+art_faces_right = true
+stay_min = 45.0
+stay_max = 120.0

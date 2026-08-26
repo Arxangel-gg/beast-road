@@ -685,7 +685,18 @@ past that is detail nobody will ever be close enough to see. Adding a creature i
 a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 
 `wildlife_raven.png` · `wildlife_fox.png` · `wildlife_rabbit.png` ·
-`wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png`
+`wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png` ·
+`wildlife_wolf.png` · `wildlife_boar.png` · `wildlife_bear.png` ·
+`wildlife_viper.png` · `wildlife_badger.png` · `wildlife_hawk.png`
+
+The last six are the **hostile** roster and read as such: heavier silhouettes,
+teeth and tusks where the ambient six have ears and tails. That contrast is doing
+real work — a player has to be able to tell at a glance whether the thing beside
+the road is a question or an answer.
+
+Facing here: the wolf, viper and hawk face left; the boar, bear and badger face
+right. Read off a 5x sheet *before* any dependent frame was generated, which is
+the order that stops a whole set having to be redone.
 
 **Facing is declared per creature (`art_faces_right`) and must be verified per
 *frame*.** Five face right; the deer and the raccoon face left.
@@ -743,8 +754,36 @@ Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
 Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png`
 Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png`
 Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png`
+Files: `wildlife_wolf_move_01.png`
+Files: `wildlife_boar_move_01.png`
+Files: `wildlife_bear_move_01.png`
+Files: `wildlife_viper_move_01.png`
+Files: `wildlife_badger_move_01.png`
 Files: `wildlife_rabbit_move_01.png`
 Files: `wildlife_squirrel_move_01.png`
+
+### 5.10f Wildlife attack frames — `res://art/wildlife/`
+
+All 64×64, type T, placeholder colour `#7A8B6E`.
+
+The strike pose, for the six that fight. Its own sequence rather than a reuse of
+the walk, because **the wind-up is what the player reads to decide whether to
+move** — an animal that swung with its walking pose would be a hit with no tell
+in front of it.
+
+Each is the same animal committing: the wolf's jaws open, the boar's head down
+and tusks forward, the bear reared with a paw up, the viper uncoiled, the badger
+snarling, the hawk with its wings swept back and talons out.
+
+Files: `wildlife_wolf_attack_01.png` · `wildlife_boar_attack_01.png` ·
+`wildlife_bear_attack_01.png` · `wildlife_viper_attack_01.png` ·
+`wildlife_badger_attack_01.png` · `wildlife_hawk_attack_01.png`
+
+**No death frames, and that is the better answer rather than the cheaper one.**
+Dying is procedural — the body topples, settles and fades. One routine covers six
+creatures with nothing anatomically in common, and it cannot disagree with the
+sprite it started from, which authored frames from this generator repeatedly
+have.
 
 ### 5.10e Wildlife flight frames — `res://art/wildlife/`
 
@@ -759,6 +798,7 @@ Two frames — wings up and wings down — which is the least that reads as a
 wingbeat rather than a bird held in one pose.
 
 Files: `wildlife_raven_fly_01.png` · `wildlife_raven_fly_02.png`
+Files: `wildlife_hawk_fly_01.png` · `wildlife_hawk_fly_02.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 

@@ -68,6 +68,10 @@ enum Fact {
 	WILDLIFE_BATCH = 29,
 	WILDLIFE_REMOVED = 30,
 	RUN_ENDED = 31,
+	CROSSROAD_OPENED = 32,
+	ROAD_CHOSEN = 33,
+	POINTER = 34,
+	RELIC_CHOSEN = 35,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -84,6 +88,8 @@ enum Request {
 	SKIP_CINEMATIC = 8,
 	PLACE_TRAP = 9,
 	RAISE_BARRICADE = 10,
+	CHOOSE_ROAD = 11,
+	CHOOSE_RELIC = 12,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -97,6 +103,20 @@ enum Request {
 ## Kept deliberately short. Everything absent from it is an event, and a guest
 ## originating an event is exactly what the guard exists to catch.
 const ANNOUNCEMENT_FACTS: Array[int] = [Fact.TOWN_HEALTH, Fact.CURRENCY_CHANGED]
+
+## Facts **either** player may author, and therefore either player may receive.
+##
+## The host drops every incoming fact, because a guest claiming an outcome is the
+## thing this layer exists to prevent. A cursor position is not an outcome - it
+## is where somebody's hand is - and there is no version of "whose hand" that has
+## one author. Without this the guest's pointer was sent, arrived, and was thrown
+## away by the guard on the doorstep: the sending side had its exemption and the
+## receiving side did not, which is the kind of half-exemption that looks correct
+## in both files.
+##
+## Kept as short as ANNOUNCEMENT_FACTS and for the same reason. Anything added
+## here is something a guest can make the host believe.
+const SYMMETRIC_FACTS: Array[int] = [Fact.POINTER]
 
 ## Wire tags. A packet is `[tag, kind, args]`.
 ##
@@ -237,6 +257,10 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_run_ended", _on_coop_run_ended],
+		["coop_crossroad_opened", _on_coop_crossroad_opened],
+		["coop_road_chosen", _on_coop_road_chosen],
+		["coop_relic_chosen", _on_coop_relic_chosen],
+		["coop_pointer_moved", _on_coop_pointer_moved],
 	]
 
 
@@ -308,6 +332,31 @@ func _on_coop_wildlife_removed(net_id: int) -> void:
 
 func _on_coop_run_ended(victory: bool) -> void:
 	_relay(Fact.RUN_ENDED, [victory])
+
+
+func _on_coop_crossroad_opened(segment: int) -> void:
+	_relay(Fact.CROSSROAD_OPENED, [segment])
+
+
+func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
+	_relay(Fact.ROAD_CHOSEN, [road_id, difficulty_id])
+
+
+func _on_coop_relic_chosen(relic_id: String) -> void:
+	_relay(Fact.RELIC_CHOSEN, [relic_id])
+
+
+## The pointer is the one fact **either** player may author.
+##
+## It is not a claim about the world - it is where somebody's hand is - so the
+## guard would be wrong to catch it, and the host has as much reason to send it
+## as the guest does. Everything else here has exactly one author; this does not.
+func _on_coop_pointer_moved(at: Vector2) -> void:
+	if _replaying or session == null:
+		return
+	if not bool(session.call("partner_present")):
+		return
+	_send([TAG_FACT, int(Fact.POINTER), [at]])
 
 
 func _on_currency_changed(id: String, amount: int) -> void:
@@ -464,8 +513,9 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 
 	if tag == TAG_FACT:
 		# Only the host authors facts. A packet claiming otherwise is either a
-		# bug or something hostile, and either way it is not obeyed.
-		if session != null and bool(session.call("is_host")):
+		# bug or something hostile, and either way it is not obeyed - except for
+		# the handful that genuinely have two authors.
+		if session != null and bool(session.call("is_host")) 				and not SYMMETRIC_FACTS.has(kind):
 			return
 		_replay(kind, args)
 	elif tag == TAG_REQUEST:
@@ -536,6 +586,18 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.RUN_ENDED:
 			if args.size() == 1:
 				bus.coop_run_ended.emit(bool(args[0]))
+		Fact.CROSSROAD_OPENED:
+			if args.size() == 1:
+				bus.coop_crossroad_opened.emit(int(args[0]))
+		Fact.ROAD_CHOSEN:
+			if args.size() == 2:
+				bus.coop_road_chosen.emit(String(args[0]), String(args[1]))
+		Fact.POINTER:
+			if args.size() == 1:
+				bus.coop_pointer_moved.emit(args[0] as Vector2)
+		Fact.RELIC_CHOSEN:
+			if args.size() == 1:
+				bus.coop_relic_chosen.emit(String(args[0]))
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),

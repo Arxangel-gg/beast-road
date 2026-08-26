@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "boar"
+display_name = "Wild Boar"
+description = "It waits. Then it does not."
+temperament = 2
+damage = 22.0
+attack_interval = 1.60
+attack_range = 110.0
+aggro_radius = 340.0
+knockback = 340.0
+charge_speed_scale = 2.40
+elite_chance = 0.10
+acts = Array[int]([1, 2])
+weight = 1.10
+group_min = 1
+group_max = 2
+speed = 90.0
+roam = 300.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.70
+max_hp = 170.0
+food_min = 16
+food_max = 28
+xp_reward = 22
+art_faces_right = true
+stay_min = 50.0
+stay_max = 140.0

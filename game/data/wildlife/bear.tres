@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bear"
+display_name = "Bear"
+description = "Whatever you were doing, do it somewhere else."
+temperament = 2
+damage = 32.0
+attack_interval = 1.90
+attack_range = 130.0
+aggro_radius = 300.0
+knockback = 520.0
+charge_speed_scale = 2.10
+elite_chance = 0.08
+acts = Array[int]([2, 3])
+weight = 0.50
+group_min = 1
+group_max = 1
+speed = 78.0
+roam = 380.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 2.60
+max_hp = 420.0
+food_min = 34
+food_max = 55
+xp_reward = 48
+art_faces_right = true
+stay_min = 60.0
+stay_max = 170.0

@@ -29,6 +29,10 @@ render_mode unshaded;
 // weather change is a tween on one number rather than a rebuild.
 uniform float amount : hint_range(0.0, 1.0) = 0.0;
 
+// How many drop cells span the quad. Scales with the quad's size so a drop stays
+// the same size in the world however far the veil reaches.
+uniform float cells = 34.0;
+
 // 0 draws falling streaks (rain), 1 draws drifting flakes (snow). Between the
 // two is sleet, which is free and occasionally what a region wants.
 uniform float flake : hint_range(0.0, 1.0) = 0.0;
@@ -62,7 +66,7 @@ float hash(vec2 p) {
 // One layer of precipitation. `depth` makes near layers bigger and faster, which
 // is the only thing separating rain from a moving texture.
 float layer(vec2 uv, float depth, float t) {
-	float scale = mix(26.0, 13.0, depth);
+	float scale = mix(cells, cells * 0.5, depth);
 	vec2 p = uv * scale;
 	// **Subtracted, not added.** Sampling at `p + offset` moves the *pattern* the
 	// opposite way from the offset, so adding to y made the rain drift upwards
@@ -92,9 +96,11 @@ float layer(vec2 uv, float depth, float t) {
 
 	// Rain is a vertical streak; snow is a round dot. Squashing y is what makes
 	// the streak, so mixing the squash between the two gives sleet for free.
-	float squash = mix(0.16, 1.0, flake);
+	// Thinner than it was, and longer with it: rain reported as too heavy to see
+	// through was partly opacity and partly that each streak was a fat dash.
+	float squash = mix(0.11, 1.0, flake);
 	d.y *= squash;
-	float radius = mix(0.035, 0.075, flake) * mix(0.7, 1.3, depth);
+	float radius = mix(0.022, 0.075, flake) * mix(0.7, 1.3, depth);
 	float drop = 1.0 - smoothstep(0.0, radius, length(d));
 	return drop;
 }
@@ -148,7 +154,9 @@ void fragment() {
 
 		// Impacts contribute less than the fall does. They are the detail that
 		// says the rain is hitting something, not the subject.
-		float a = clamp(fall + land * 0.45, 0.0, 1.0) * tint.a * amount;
+		// Ripples contribute less than they did. They are the detail that says
+		// the rain is hitting something, not something to look through.
+		float a = clamp(fall + land * 0.26, 0.0, 1.0) * tint.a * amount;
 		COLOR = vec4(tint.rgb, a);
 	}
 }
@@ -180,7 +188,14 @@ var _melt_scale: float = 1.0
 
 func _ready() -> void:
 	z_as_relative = false
-	var extent: float = BattleGrid.HALF_EXTENT * 1.2
+	# Wide enough to cover everywhere a player can walk.
+	#
+	# It was 1.2x the grid, and the foliage now reaches 2100 units while wildlife
+	# roams to 2000 - so walking out past the city found a hard edge where the
+	# rain simply stopped. Reported from play, and it is the kind of thing that
+	# reads as the sky being a texture.
+	var extent: float = maxf(BattleGrid.HALF_EXTENT * 1.2,
+		Balance.WEATHER_VEIL_REACH)
 	_rect = ColorRect.new()
 	_rect.name = "Veil"
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -192,6 +207,11 @@ func _ready() -> void:
 	shader.code = SHADER_CODE
 	_material.shader = shader
 	_material.set_shader_parameter("aspect", 1.0)
+	# Cells scale with the quad, or widening the sky makes every raindrop bigger.
+	# The count is what keeps a drop the same size in *world* units however far
+	# the veil has to reach.
+	_material.set_shader_parameter("cells",
+		Balance.WEATHER_VEIL_CELLS * (extent / Balance.WEATHER_VEIL_REACH))
 	_apply_quality()
 	_rect.material = _material
 	add_child(_rect)

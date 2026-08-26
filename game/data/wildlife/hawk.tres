@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hawk"
+display_name = "Hawk"
+description = "It comes from where you were not looking."
+temperament = 3
+damage = 11.0
+attack_interval = 1.20
+attack_range = 85.0
+aggro_radius = 900.0
+knockback = 40.0
+charge_speed_scale = 1.15
+elite_chance = 0.09
+acts = Array[int]([1, 2, 3])
+weight = 1.00
+group_min = 1
+group_max = 2
+speed = 175.0
+roam = 700.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = true
+scale = 1.15
+max_hp = 55.0
+food_min = 6
+food_max = 12
+xp_reward = 13
+art_faces_right = false
+stay_min = 35.0
+stay_max = 95.0

@@ -8,6 +8,71 @@ extends GameData
 ## path is derived from the id by the usual convention, so `id = "fox"` loads
 ## `res://art/wildlife/wildlife_fox.png` and its idle frames follow from that.
 
+## How an animal treats whatever comes near it.
+##
+## The whole point of the ladder is that **seeing an animal should not tell you
+## what happens next**. A bear beside the road is a question - can I get round
+## it? - and that question only exists because a bear is not simply an enemy
+## walking at you. Four rungs, and every one behaves differently:
+##
+## * `PASSIVE` runs. Deer, rabbits, squirrels.
+## * `CAUTIOUS` keeps its distance but is drawn to what you leave behind. Foxes,
+##   raccoons, ravens.
+## * `TERRITORIAL` ignores you until you are inside its ground, then commits.
+##   Boar, badger, bear.
+## * `PREDATORY` comes looking. Wolves, vipers, hawks.
+##
+## The two hostile rungs differ in *when* they start, not in how hard they hit,
+## which is what makes walking past a boar a decision and walking past a wolf a
+## race.
+enum Temperament { PASSIVE, CAUTIOUS, TERRITORIAL, PREDATORY }
+
+@export var temperament: Temperament = Temperament.PASSIVE
+
+## Damage per strike. Zero for anything that does not fight.
+##
+## Scaled against the *enemy* roster, whose contact damage runs 6 to 34. Nothing
+## in the wilderness should hit harder than the hardest thing the road sends -
+## the bear was on 54, and an elite bear at 1.45x took a 100 HP hero off the
+## board in two swings, which makes an ambient system the deadliest content in
+## the game.
+@export_range(0.0, 200.0) var damage: float = 0.0
+
+## Seconds between strikes.
+@export_range(0.2, 6.0) var attack_interval: float = 1.1
+
+## How close it must be to strike.
+@export_range(20.0, 400.0) var attack_range: float = 90.0
+
+## How far it notices something worth attacking.
+##
+## For a territorial animal this is the edge of its ground: cross it and it
+## commits. For a predator it is how far it will come looking. The same number
+## means two different things on purpose - one is a boundary, the other a reach.
+@export_range(0.0, 1400.0) var aggro_radius: float = 0.0
+
+## Knockback dealt per strike.
+@export_range(0.0, 800.0) var knockback: float = 0.0
+
+## How fast it moves while hunting, as a multiple of its walking speed.
+##
+## **Keep `speed * charge_speed_scale` under `Balance.HERO_MOVE_SPEED`**, with
+## the boar and the hawk as the deliberate exceptions - the charger and the
+## flier are the two that are *meant* to catch you.
+##
+## Four of the six originally sustained 218-385 units/s against a hero that walks
+## at 200, so a hunt could not be broken by moving: whatever the hunt timer said,
+## the animal stayed in contact until one of them died. A predator you cannot
+## walk away from is not a predator, it is a timer on your health bar.
+@export_range(1.0, 5.0) var charge_speed_scale: float = 1.7
+
+## Chance this one arrives as an elite, 0 to 1.
+##
+## An elite is the same animal grown and scarred rather than a different one:
+## bigger, tougher, hits harder, worth more. The player has to be able to *see*
+## it coming, so the tell is size and colour rather than a name in a tooltip.
+@export_range(0.0, 1.0) var elite_chance: float = 0.0
+
 ## Which acts this creature belongs to. Empty means all of them.
 ##
 ## A deer in the ash wastes of Act III would be saying the wrong thing about the
@@ -77,6 +142,20 @@ extends GameData
 ## Seconds this creature stays before wandering off, as a range.
 @export_range(4.0, 600.0) var stay_min: float = 30.0
 @export_range(4.0, 600.0) var stay_max: float = 90.0
+
+
+## True for anything that gets about in hops rather than strides.
+##
+## Declared rather than inferred from size, because it decides which gait a
+## single authored walk frame is given: a rabbit with one frame should bound,
+## and a bear with one frame absolutely should not.
+@export var hops: bool = false
+
+
+## True for anything that will fight rather than flee.
+func is_hostile() -> bool:
+	return damage > 0.0 and (temperament == Temperament.TERRITORIAL
+		or temperament == Temperament.PREDATORY)
 
 
 func get_sprite_path() -> String:

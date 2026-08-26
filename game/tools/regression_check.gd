@@ -420,6 +420,112 @@ func _test_the_field_is_inhabited() -> void:
 	# decided to stand in one makes the lane look like a mistake. The first was
 	# what an earlier version of this check reported, and it was reporting
 	# correct behaviour.
+	# The hostile roster, and specifically the ladder that makes it interesting.
+	#
+	# The point of four temperaments is that *seeing* an animal does not tell you
+	# what happens next. If they all collapsed to "walks at the player", the
+	# whole design would be six enemies wearing fur - and nothing would error.
+	var hostile: int = 0
+	var predators: int = 0
+	var territorial: int = 0
+	for kind: WildlifeData in ContentDB.wildlife():
+		if not kind.is_hostile():
+			# Anything that does not fight must not be carrying an aggro radius
+			# or damage, or it is a hostile animal that forgot to say so.
+			_check(kind.damage <= 0.0,
+				"%s is passive or cautious but deals damage" % kind.id)
+			continue
+		hostile += 1
+		_check(kind.damage > 0.0, "%s must hit for something" % kind.id)
+		_check(kind.aggro_radius > 0.0,
+			"%s must notice something, or it is hostile in name only" % kind.id)
+		_check(kind.attack_range < kind.aggro_radius,
+			"%s must notice further than it can reach, or it can never close"
+				% kind.id)
+		_check(kind.skittish_radius <= 0.0,
+			"%s must not also flee: two behaviours that cancel out" % kind.id)
+		_check(ResourceLoader.exists(GameData.attack_frame_path(
+			kind.get_sprite_path(), 1)),
+			"%s has no strike pose, so its blow has no tell" % kind.id)
+		if kind.temperament == WildlifeData.Temperament.PREDATORY:
+			predators += 1
+		elif kind.temperament == WildlifeData.Temperament.TERRITORIAL:
+			territorial += 1
+	_check(hostile >= 6, "the hostile roster must ship, found %d" % hostile)
+	# Both rungs, or the ladder is a step.
+	_check(predators > 0 and territorial > 0,
+		"both hostile temperaments must exist: %d predators, %d territorial"
+			% [predators, territorial])
+
+	# A predator reaches further than a territorial animal, because one is a
+	# reach and the other is a boundary. If that inverts, walking past a bear
+	# becomes the same decision as walking past a wolf.
+	var furthest_territory: float = 0.0
+	var shortest_hunt: float = INF
+	for kind: WildlifeData in ContentDB.wildlife():
+		if not kind.is_hostile():
+			continue
+		if kind.temperament == WildlifeData.Temperament.TERRITORIAL:
+			furthest_territory = maxf(furthest_territory, kind.aggro_radius)
+		else:
+			shortest_hunt = minf(shortest_hunt, kind.aggro_radius)
+	_check(shortest_hunt < INF and furthest_territory > 0.0,
+		"the harness needs one of each temperament to compare")
+
+	# **A hunt has to be escapable, and it must not out-hit the road.**
+	#
+	# Both were violated at once and the result was measurable: a hero standing
+	# still with eight towers up and the town on full health was dead in seventy
+	# seconds, killed entirely by ambient wildlife. Four of six predators
+	# sustained 218-385 units/s against a hero that walks at 200, so no hunt
+	# could be broken by moving, and the bear hit for 54 where the hardest enemy
+	# on the road hits for 34.
+	#
+	# Kept as data assertions because that is what they are - two numbers per
+	# species, checkable in a millisecond, and the exact pair that will drift the
+	# next time somebody wants the bear to feel scarier.
+	var hardest_enemy: float = 0.0
+	for value: Variant in ContentDB.enemies.values():
+		var enemy := value as EnemyData
+		if enemy != null:
+			hardest_enemy = maxf(hardest_enemy, enemy.contact_damage)
+	_check(hardest_enemy > 0.0, "the harness needs the enemy roster to compare")
+	for kind: WildlifeData in ContentDB.wildlife():
+		if not kind.is_hostile():
+			continue
+		_check(kind.damage <= hardest_enemy,
+			"%s hits for %.0f, harder than anything the road sends (%.0f) - "
+				% [kind.id, kind.damage, hardest_enemy]
+				+ "ambient wildlife must not be the deadliest content in the game")
+		var pursuit: float = kind.speed * kind.charge_speed_scale
+		# The boar is the charger and the hawk is the flier: those two are meant
+		# to catch you. Everything else must be outrunnable on foot, or the hunt
+		# timer is decoration.
+		var allowed: float = Balance.HERO_MOVE_SPEED * (1.12
+			if kind.id == "boar" or kind.id == "hawk" else 1.0)
+		_check(pursuit <= allowed,
+			"%s pursues at %.0f/s against a hero that walks at %.0f - a hunt "
+				% [kind.id, pursuit, Balance.HERO_MOVE_SPEED]
+				+ "nothing can walk away from is a timer on the health bar")
+
+	# And the hunt ends. Driven rather than read: the counters exist, the
+	# question is whether anything decrements them back to an animal.
+	var hunter: Dictionary = {}
+	for animal: Dictionary in wildlife._living:
+		var kind := animal["data"] as WildlifeData
+		if kind != null and kind.is_hostile():
+			hunter = animal
+			break
+	if not hunter.is_empty():
+		hunter["hunt"] = 0.35
+		hunter["wary"] = 0.0
+		var sprite := hunter["sprite"] as Sprite2D
+		var kind := hunter["data"] as WildlifeData
+		wildlife._tick_hostile(hunter, sprite, kind, 0.5)
+		_check(float(hunter["hunt"]) <= 0.0 and float(hunter["wary"]) > 0.0,
+			"a hunt that runs out must break off and rest, hunt=%.2f wary=%.2f"
+				% [float(hunter["hunt"]), float(hunter["wary"])])
+
 	# Hunting: it has to be possible at all, and it has to pay by size.
 	#
 	# "Possible at all" is the one that was broken and looked fine. Wildlife

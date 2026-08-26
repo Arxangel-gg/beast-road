@@ -14,6 +14,8 @@ var _settings_button: Button
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Findable, so a partner's pause can raise this one too.
+	add_to_group(&"pause_menu")
 	panel.visible = false
 
 	# An arrow for "carry on" and a cross for "leave". The obvious pairing - a
@@ -87,13 +89,27 @@ func toggle() -> void:
 		_show_settings(false)
 		return
 	var showing: bool = not panel.visible
-	panel.visible = showing
+	set_showing(showing)
 	# Through GameDirector, which tells the other player. Setting the tree
 	# directly pauses one machine while the other keeps fighting a wave that is
 	# still walking on a battlefield which has stopped simulating it.
-	#
-	# The panel itself stays local: a player who pauses to read the settings has
-	# not asked their friend to read them too.
 	GameDirector.set_paused(showing)
-	if not showing and _settings != null:
-		_settings.visible = false
+
+
+## Shows or hides the panel without touching the paused state.
+##
+## **The panel is shared**, which reverses an earlier call of mine. I had kept it
+## local on the reasoning that a player reading the settings has not asked their
+## friend to read them too - but a game that stops with no visible cause is worse
+## than a menu you did not open, and either player being able to *resume* means
+## both need something to resume from. Owner's decision, 2026-08-25.
+func set_showing(showing: bool) -> void:
+	panel.visible = showing
+	if showing or _settings == null:
+		return
+	# Resuming closes the settings behind it, and the dim with them - otherwise a
+	# partner's resume leaves this screen dimmed with nothing on it.
+	_settings.visible = false
+	var dim: ColorRect = panel.get_parent().get_node_or_null("SettingsDim") as ColorRect
+	if dim != null:
+		dim.visible = false

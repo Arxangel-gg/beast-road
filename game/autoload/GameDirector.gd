@@ -126,6 +126,12 @@ func _on_coop_paused(paused: bool) -> void:
 	# straight back and leave the two machines telling each other to pause for as
 	# long as anyone cared to watch.
 	get_tree().paused = paused
+	# And the panel comes with it. A game that simply stops, with no menu and no
+	# cause, is worse than a menu somebody else opened - and either player being
+	# able to resume means both need something to resume *from*.
+	for node: Node in get_tree().get_nodes_in_group(&"pause_menu"):
+		if node.has_method("set_showing"):
+			node.call("set_showing", paused)
 
 
 ## The host started a run, so this guest starts the same one.

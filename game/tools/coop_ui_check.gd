@@ -23,6 +23,21 @@ var _coop: CanvasLayer = null
 ## is waiting for, and the scene it lives in is about to be replaced anyway.
 var _entered_run: bool = false
 
+## Set when a partner's cursor arrives over the wire, at the fork.
+var _saw_partner_pointer: bool = false
+
+
+## The host's world, adopted. Guest side.
+func _on_host_run_started(seed_value: int, _endless: bool) -> void:
+	RunState.reset(true, seed_value)
+	print("[coop-ui] guest adopted the host's world, seed %d" % seed_value)
+
+
+func _on_partner_pointer(_at: Vector2) -> void:
+	var relay: CoopRelay = Coop.relay()
+	if relay != null and relay.is_replaying():
+		_saw_partner_pointer = true
+
 
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
@@ -78,6 +93,17 @@ func _run_host() -> void:
 	_check(begin != null and not begin.disabled,
 		"Begin must unlock once a friend has joined")
 	print("[coop-ui] host sees partner; begin enabled")
+	# The seed, announced the way pressing Begin announces it.
+	#
+	# This harness enters the run *in place* rather than by changing scene, so it
+	# used to skip the one line of `start_run` that puts the host's world on the
+	# wire - and the wrapper then compared the host's live seed against whatever
+	# the guest happened to hold from connect time. It reported a mismatch on
+	# every green run, which is the same as reporting nothing.
+	RunState.reset(true, 0)
+	EventBus.coop_run_started.emit(RunState.run_seed, false)
+	await _hold(1.0)
+
 	await _enter_run_in_place("host")
 
 	# The half that matters. Connecting two people who then sit in two menus is
@@ -102,6 +128,12 @@ func _run_host() -> void:
 
 
 func _run_guest() -> void:
+	# Claimed before the announcement can arrive, so `GameDirector` leaves the
+	# scene alone: its handler bails on `run_active`, and this harness *is* the
+	# current scene. The seed is then applied here, from the number that actually
+	# crossed the wire - which is the property worth checking.
+	GameDirector.run_active = true
+	EventBus.coop_run_started.connect(_on_host_run_started)
 	(_coop.get("_join_field") as LineEdit).text = "127.0.0.1"
 	(_coop.get("_join_button") as Button).emit_signal("pressed")
 	await get_tree().process_frame
@@ -148,6 +180,12 @@ func _enter_run_in_place(role: String) -> void:
 		"%s must see the other player's hero - a battlefield built after the "
 		% role + "session began must still find its partner")
 	_check(field.heroes().size() == 2, "%s must count two heroes" % role)
+	# Printed here rather than at connect time, on both sides, at the same point
+	# in the run. The guest used to report the seed it held *before* the host
+	# started the run, so the wrapper compared a stale number against a live one
+	# and declared a mismatch on every green run - a check that always fails is
+	# read as noise within a day.
+	print("[coop-ui] %s in run, seed %d" % [role, RunState.run_seed])
 	if field.partner_hero() != null:
 		print("[coop-ui] %s sees both heroes" % role)
 
@@ -218,6 +256,32 @@ func _enter_run_in_place(role: String) -> void:
 		# the same moment, and a host that leaves first takes the thing being
 		# measured with it.
 		await _hold(6.0)
+
+		# **The fork.** One question, two people, one answer.
+		#
+		# A single process cannot test this at all: there is one RunState, so a
+		# guest that took its own road would be indistinguishable from a guest
+		# that was told which road to take. Here the guest clicks and the host
+		# has to be the thing that settles it.
+		var fork: CrossroadScreen = run.get("crossroad_ui") as CrossroadScreen
+		_check(fork != null, "the run must own a crossroad screen")
+		if fork == null:
+			return
+		EventBus.coop_pointer_moved.connect(_on_partner_pointer)
+		run.call("_open_crossroad", 1)
+		_check(fork.is_open(), "the host must be standing at the fork")
+		print("[coop-ui] host opened the fork")
+		# The guest asks for a road. The host is what turns that into the road.
+		await _until(func() -> bool: return RunState.active_road_id != "")
+		_check(RunState.active_road_id != "",
+			"the host must settle the fork when the guest asks for a road")
+		_check(not fork.is_open(),
+			"the fork must close on the host once it has been answered")
+		print("[coop-ui] host settled the fork on road '%s'"
+			% RunState.active_road_id)
+		_check(_saw_partner_pointer,
+			"the host must see where the guest's cursor is while the fork is up")
+		await _hold(2.0)
 	else:
 		# Drive the local hero, which is what gets sampled and sent.
 		var mine: Hero = field.hero
@@ -252,6 +316,14 @@ func _enter_run_in_place(role: String) -> void:
 
 		# Loot the host dropped. A coin that only one player can see is a coin
 		# they cannot decide about together.
+		#
+		# Waited for rather than sampled. The two processes are launched six
+		# seconds apart and each builds its battlefield on its own clock, so a
+		# single reading at a fixed moment measures the launch offset as often as
+		# it measures replication - it read 1 coin and then 0 across two runs of
+		# identical code.
+		await _until(func() -> bool:
+			return get_tree().get_nodes_in_group(LootDrop.GROUP).size() > 0)
 		var coins: int = get_tree().get_nodes_in_group(LootDrop.GROUP).size()
 		_check(coins > 0, "the guest must see the loot the host dropped")
 		print("[coop-ui] guest sees %d dropped coins" % coins)
@@ -259,6 +331,7 @@ func _enter_run_in_place(role: String) -> void:
 		# Animals, so a hunt can be shared rather than watched.
 		var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
 		if wildlife != null:
+			await _until(func() -> bool: return wildlife.population() > 0)
 			_check(wildlife.population() > 0,
 				"the guest must see the host's wildlife, or a shared hunt is "
 					+ "one player swinging at nothing")
@@ -270,6 +343,11 @@ func _enter_run_in_place(role: String) -> void:
 		# own screen while standing up on the host's.
 		var own: Hero = field.hero
 		if own != null and own.health != null and own.health.max_hp > 0.0:
+			# Waited for, like the loot above. Health rides the periodic hero
+			# batch rather than arriving as an event, so what a single reading
+			# measures is how far apart the two processes were launched.
+			await _until(func() -> bool:
+				return own.health.current_hp < own.health.max_hp * 0.95)
 			var ratio: float = own.health.current_hp / own.health.max_hp
 			_check(ratio < 0.95,
 				"the guest's own hero must show the damage the host dealt it, "
@@ -281,6 +359,35 @@ func _enter_run_in_place(role: String) -> void:
 			print("[coop-ui] guest sees host hero velocity %.0f"
 				% partner.velocity.length())
 		print("[coop-ui] guest pushed its stick for seven seconds")
+
+		# **The fork, from the side that does not decide it.**
+		var fork: CrossroadScreen = run.get("crossroad_ui") as CrossroadScreen
+		_check(fork != null, "the guest's run must own a crossroad screen")
+		if fork == null:
+			return
+		await _until(func() -> bool: return fork.is_open())
+		_check(fork.is_open(),
+			"the guest must be shown the fork the host reached - a crossroad "
+				+ "only one player can see is a decision only one player makes")
+		var offer: PackedStringArray = fork.first_offer()
+		_check(offer.size() == 2, "the guest must be offered the same roads")
+		if offer.size() != 2:
+			return
+		print("[coop-ui] guest sees the fork, first road '%s'" % offer[0])
+		# Where this player is pointing, so the host can draw it.
+		EventBus.coop_pointer_moved.emit(Vector2(0.4, 0.6))
+		fork._choose(offer[0], offer[1])
+		# The click must *ask*, not decide. A guest that applied its own road
+		# would have the two machines walking different ones.
+		_check(RunState.active_road_id == "",
+			"a guest's click must not take the road by itself - it asks, and "
+				+ "the host answers, or 'whoever chose first' has no arbiter")
+		await _until(func() -> bool: return RunState.active_road_id != "")
+		_check(RunState.active_road_id == offer[0],
+			"the guest must end up on the road it asked for, got '%s'"
+				% RunState.active_road_id)
+		print("[coop-ui] guest asked for '%s' and the host granted it"
+			% RunState.active_road_id)
 
 
 ## A stick held right, so the guest has something to send.

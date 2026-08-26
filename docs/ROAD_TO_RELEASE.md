@@ -16,13 +16,18 @@ Status legend: `[ ]` outstanding · `[~]` partially done, detail in the note ·
 
 ## 0. Conformance snapshot
 
-`run_tool.gd -- audit` — **44 / 44 (100%)**. 7 rows need human judgement and are
+`run_tool.gd -- audit` — **44 / 45 (98%)**. 6 rows need human judgement and are
 not counted; they are in section 4.
 
-100% here means every automatable row's file or symbol exists *and*, for
-everything closed in this pass, a gate exercises it. It does not mean the game is
-finished — CLAUDE.md §7 is explicit that the audit cannot tell you whether a
-feature is good, and section 3 is entirely things the audit cannot see.
+The one outstanding automatable row is **60 FPS at 1920x1080**, and it is honest
+that it fails: the minimum spec is declared in `MINIMUM_SPEC.md` but *derived
+rather than verified*, and nothing has been run on a machine of that class. It
+cannot go green from this desk.
+
+A passing row means the automatable part exists *and*, for everything closed in
+this pass, a gate exercises it. It does not mean the game is finished — CLAUDE.md
+§7 is explicit that the audit cannot tell you whether a feature is good, and
+section 3 is entirely things the audit cannot see.
 
 Re-run it after any section below is closed; do not hand-edit this number.
 
@@ -30,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.57** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.61** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
 processes and are deliberately outside CI.
 
@@ -56,6 +61,47 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.56–57** the third play report: wildlife facing, scale, y-sorting,
   flight and walk cycles; barricades that actually block; the revive that wanted
   the wrong button; the guest's stuck build cursor; puppets that swing.
+- **v0.4.58–60** the hostile roster: six predators and territorial animals with
+  idle, walk, strike and death poses, elite variants, drops and experience; the
+  frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.61** the fourth play report: the fork shared between both players, the
+  wildlife crowd on the guest, rain retuned, Q and R bound, wildlife health
+  bars, the shared pause menu — **and a predator rebalance the gates found**.
+
+**The fourth round, and the first bug a gate found before a person did.**
+
+The breather check started hanging instead of passing. It had not been changed;
+what changed was that predatory wildlife existed. Its hero stands still for 150
+seconds by design, and with hunts in the game it was dead in seventy of them —
+town on full health, eight towers up, killed entirely by ambient wildlife. The
+run ended, the ending screen paused the tree, and a headless gate had nobody to
+click it, so it hung rather than failed.
+
+Two real defects behind it, both measured rather than argued:
+
+- **A hunt could not end.** Quarry is measured from wherever the animal has got
+  to, so anything that closed the distance was by definition still inside its own
+  aggro radius. A wolf that noticed you at 760 units chased you for the rest of
+  the run. Hunts now have a length (7–12s) and a rest (13–22s), and breaking off
+  *moves* rather than merely stopping.
+- **Four of six predators outran the hero.** Sustained pursuit was 218–385
+  units/s against a hero that walks at 200, so no hunt could be broken by moving
+  whatever the timer said. And the bear hit for 54 where the hardest enemy on the
+  road hits for 34. Both are now gated as data assertions in
+  `regression_check.tscn`: nothing in the wilderness hits harder than the road,
+  and nothing but the boar and the hawk can outrun you.
+
+Measured after: a hero that walks away from a hunt stops losing health entirely —
+19 HP at t=40, still 19 at t=150 with three to seven predators on the field and
+hunts starting throughout. A hero that walks *into* them still dies in fifty
+seconds. Both ends of that are what the design asks for.
+
+Three gates were also repaired rather than the code they test. The breather check
+now runs while paused, so an ended run is a sentence instead of a six-minute
+hang. The two-process co-op harness compared the guest's connect-time seed
+against the host's live one and reported a mismatch on every green run. And its
+wrapper counted `grep -c`'s "no matches" exit status as a failure, so a clean run
+printed "2 of 2 failed" under two PASSes.
 
 **What three rounds of play have established.** Every round found bugs that every
 loopback gate passed, and the causes were almost always singular rather than
@@ -300,6 +346,48 @@ them. The full local suite is 24 of 24 green.
       was re-run rather than trusted once. That is the argument for running
       the whole suite after a change rather than the gate you think is
       relevant.
+
+### Raised 2026-08-25 — the fourth play report
+
+- [x] **Wildlife was not replicated, and the guest grew a crowd.** Removal was
+      announced by the kill path and by nothing else, so an animal that wandered
+      off or ran out of patience was freed on the host and left standing on the
+      guest forever — no batch mentioned it again, so it stopped moving too.
+      Reported as "wildlife cluster beyond reach and do not appear on the host".
+      There is now one `_retire` choke point and every removal goes through it.
+- [x] **Pausing for one player showed nothing to the other.** Both panels now
+      raise and lower together via the `pause_menu` group.
+- [x] **Wildlife had no health bars.** A bar appears once an animal has been hurt
+      and is always visible on an elite, which is half of what makes an elite
+      readable before it reaches you.
+- [x] **The crossroad opened for the host alone.** Both players now stand at the
+      fork, whoever clicks first decides it for both, each sees the other's
+      cursor while deciding, and the option a partner took is marked before the
+      screen closes.
+
+      Only the *segment* crosses the wire. Both machines draw their offers from
+      the same seeded stream, so naming the crossroad gets the guest the
+      identical pair without sending any of it — and the guest no longer opens
+      its own, because two independent draws would put different cards on the
+      two tables and then the first click would send a road the other player
+      could not see.
+
+      The guest's click *asks*. "Whoever chooses first" needs an arbiter: two
+      clicks half a frame apart look simultaneous from both sides, and both
+      machines would apply their own road. The host answers, and the answer comes
+      back as a fact both apply identically.
+- [x] **The host threw away the guest's cursor.** The pointer is the one fact
+      either player may author, and the sending side had its exemption while the
+      receiving side did not — the packet arrived and the authority guard
+      dropped it on the doorstep. `SYMMETRIC_FACTS` now names the exception in
+      one place, the way `ANNOUNCEMENT_FACTS` does.
+- [x] **Rain was too opaque, too slanted and too slow, and stopped at a visible
+      line.** Retuned and the veil widened past the walkable edge.
+- [x] **Q did not sound the horn and R did not enter the raid.** Both actions
+      existed in the input map and neither was bound in `_unhandled_input`.
+- [x] **Predators were the deadliest content in the game.** See §0b — found by
+      the breather gate rather than by a person, which is the first time that has
+      happened this project.
 
 ---
 

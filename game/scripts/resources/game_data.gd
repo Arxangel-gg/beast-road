@@ -61,6 +61,29 @@ static func idle_frame_path(base_path: String, index: int) -> String:
 ## A third sequence rather than reusing the move one, because a bird walking and
 ## a bird flying are not the same animal doing the same thing at two speeds - a
 ## crow that hopped across the sky was the whole of the report.
+## The authored *attack* convention, for anything that fights.
+##
+## Its own sequence rather than a reuse of the walk, because the wind-up is the
+## thing the player reads to decide whether to move - an animal that swung with
+## its walking pose would be a hit with no tell in front of it.
+static func attack_frame_path(base_path: String, index: int) -> String:
+	if base_path.is_empty() or index <= 0:
+		return base_path
+	return "%s_attack_%02d.png" % [base_path.get_basename(), index]
+
+
+static func load_attack_frames(base_path: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	if base_path.is_empty():
+		return out
+	for index: int in range(1, 9):
+		var path: String = attack_frame_path(base_path, index)
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
+
+
 static func flight_frame_path(base_path: String, index: int) -> String:
 	if base_path.is_empty() or index <= 0:
 		return base_path

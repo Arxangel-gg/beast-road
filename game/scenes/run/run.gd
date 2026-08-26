@@ -48,6 +48,8 @@ func _ready() -> void:
 	EventBus.wave_cleared.connect(_on_wave_cleared)
 
 	crossroad_ui.road_chosen.connect(_on_road_chosen)
+	EventBus.coop_crossroad_opened.connect(_on_coop_crossroad_opened)
+	EventBus.coop_road_chosen.connect(_on_coop_road_chosen)
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
 	town.plot_selected.connect(town_panel.open)
 	hud.scope_requested.connect(switch_scope)
@@ -119,6 +121,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	# Number keys jump between scopes; the whole point of the run layer is that
 	# moving between them is cheap.
+	# The two the buttons offer and the keyboard did not.
+	#
+	# `Q  War Horn` and `R  Raid` have been printed on those buttons since the
+	# bottom bar was built, and neither key was ever bound to anything - the
+	# actions existed in the input map and nothing read them. Routed through the
+	# same handlers the buttons call, so a key and a click cannot diverge.
+	if event.is_action_pressed(&"war_horn"):
+		_on_horn_requested()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed(&"enter_raid"):
+		_on_raid_requested()
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"scope_battlefield"):
 		switch_scope(GameDirector.Scope.BATTLEFIELD)
 	elif event.is_action_pressed(&"scope_town"):
@@ -343,6 +359,15 @@ var _pending_crossroad: int = -1
 
 
 func _on_crossroad_reached(segment_index: int) -> void:
+	# The fork is the host's to declare, even though both machines walk the same
+	# road and both journeys notice the boundary.
+	#
+	# Two independent openings would be two draws from the "roads" stream at two
+	# different moments, and the pair of cards on each screen would disagree -
+	# then whoever clicked first would send the other a road that was not even on
+	# their table. The guest waits for `coop_crossroad_opened`.
+	if Coop.is_guest():
+		return
 	if _road_is_busy():
 		_pending_crossroad = segment_index
 		EventBus.preparation_warning.emit(
@@ -358,6 +383,30 @@ func _open_crossroad(segment_index: int) -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.suspend()
 	crossroad_ui.open(segment_index)
+	# Both players stand at the fork. Only the *segment* travels: the offers are
+	# drawn from a seeded stream both machines share, so naming the crossroad
+	# gets the guest the identical three roads without sending any of them.
+	if Coop.is_host() and Coop.partner_present():
+		EventBus.coop_crossroad_opened.emit(segment_index)
+
+
+## The host reached a fork, so this player stands at it too. Guest side.
+func _on_coop_crossroad_opened(segment: int) -> void:
+	if not Coop.is_guest() or _locked:
+		return
+	_open_crossroad(segment)
+
+
+## Somebody took a road. Whoever clicked first decided it for both.
+##
+## The screen closes on the *other* machine rather than asking it to agree: a
+## fork that both players had to answer would be two answers to one question, and
+## the second one arriving would have to be discarded anyway. First click wins,
+## and the other player watches it happen.
+func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
+	if crossroad_ui == null or not crossroad_ui.is_open():
+		return
+	crossroad_ui.accept_partner_choice(road_id, difficulty_id)
 
 
 ## Anything still to fight: a pack on the field, or one still walking on.
@@ -504,9 +553,20 @@ func _enter_preparation(initial: bool) -> void:
 ## Routed through the same handler a local click uses, so the coverage warning,
 ## the breather skip and every other rule apply identically however the request
 ## arrived. A second path here would be a second set of rules.
-func _on_coop_request(kind: int, _args: Array, _from: int) -> void:
-	if kind == CoopRelay.Request.RIDE_ON and Coop.is_host():
-		_on_ride_on_requested()
+func _on_coop_request(kind: int, args: Array, _from: int) -> void:
+	if not Coop.is_host():
+		return
+	match kind:
+		CoopRelay.Request.RIDE_ON:
+			_on_ride_on_requested()
+		CoopRelay.Request.CHOOSE_ROAD:
+			# The fork has one answer and the host is the one who settles which
+			# click was first. What it decides comes back as a fact.
+			if args.size() == 2 and crossroad_ui != null:
+				crossroad_ui.accept_road_request(String(args[0]), String(args[1]))
+		CoopRelay.Request.CHOOSE_RELIC:
+			if args.size() == 1 and crossroad_ui != null:
+				crossroad_ui.accept_relic_request(String(args[0]))
 
 
 func _on_ride_on_requested() -> void:

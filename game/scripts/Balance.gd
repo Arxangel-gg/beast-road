@@ -1193,10 +1193,57 @@ const WILDLIFE_MOVE_FRAME_RATE: float = 7.5
 
 ## The hop given to walkers that have only one authored frame. Rise, fall, and a
 ## squash at the bottom - which is the right gait for a rabbit anyway. [TUNE]
+## Elite wildlife: the same animal grown and scarred.
+##
+## One number drives the size, and the rest scale from it, so an elite cannot end
+## up bigger without being tougher or worth more. The tint is what makes it
+## readable before it arrives - a name in a tooltip is no use to somebody
+## deciding whether to walk past it. [TUNE]
+## The bar over a wounded animal. Hidden until it is hurt, except on an elite,
+## which shows it from the moment it arrives - that is half of what makes an
+## elite readable before it reaches you. [TUNE]
+const WILDLIFE_BAR_WIDTH: float = 34.0
+const WILDLIFE_BAR_HEIGHT: float = 4.0
+const WILDLIFE_BAR_LIFT: float = 42.0
+
+## How long a predator presses a hunt, and how long it stays off you after.
+##
+## Without these a hunt never ended: aggro is measured from where the animal has
+## got to, so anything that closed the gap stayed inside its own radius forever.
+## The rest window is deliberately longer than the hunt - the player has to get
+## an actual gap out of surviving one, or breaking off is a pause rather than an
+## escape. [TUNE]
+const WILDLIFE_HUNT_MIN: float = 7.0
+const WILDLIFE_HUNT_MAX: float = 12.0
+const WILDLIFE_HUNT_REST_MIN: float = 13.0
+const WILDLIFE_HUNT_REST_MAX: float = 22.0
+
+## The most hostile animals that may share the field at once.
+##
+## Kinds are weighted for *variety*, and by weight the six hostile species are
+## 42% of arrivals - so a cap is what keeps a run of unlucky rolls from turning
+## an ambient system into a second enemy faction. Bounded worst case, one number,
+## and the roster stays as varied as it was authored to be. [TUNE]
+const WILDLIFE_HOSTILE_MAX: int = 7
+
+const WILDLIFE_ELITE_SCALE: float = 1.45
+const WILDLIFE_ELITE_HEALTH: float = 2.6
+const WILDLIFE_ELITE_REWARD: float = 2.4
+const WILDLIFE_ELITE_TINT: Color = Color(1.0, 0.72, 0.62, 1.0)
+
+## How long a killed animal takes to fall over, and how far it rolls doing it.
+const WILDLIFE_DEATH_SECONDS: float = 0.85
+const WILDLIFE_DEATH_ROLL: float = 78.0
+
+## How far a single-frame walker rises through its stride. Much smaller than
+## a hop: this is a gait, not a bound. [TUNE]
+const WILDLIFE_STRIDE_LIFT: float = 3.0
+
 const WILDLIFE_HOP_RATE: float = 9.0
 const WILDLIFE_HOP_HEIGHT: float = 9.0
 const WILDLIFE_HOP_SQUASH: float = 0.16
 const WILDLIFE_FLIGHT_FRAME_RATE: float = 9.5
+const WILDLIFE_ATTACK_FRAME_RATE: float = 8.0
 const WILDLIFE_BOB_RATE: float = 11.0
 const WILDLIFE_BOB_SCALE: float = 0.09
 
@@ -3061,6 +3108,15 @@ const BEAST_FOREGROUND_DARKEN: float = 0.32
 ## How long precipitation takes to arrive or clear, in seconds. Weather that
 ## switches on between two frames reads as a bug in the renderer rather than as
 ## a change in the sky. [TUNE]
+## How far the weather veil reaches, and how finely it is divided.
+##
+## The reach has to cover everywhere a player can walk, not the road grid: the
+## foliage scatter goes to 2100 and wildlife roams to 2000, so a veil sized to
+## the lanes left a visible edge where the rain stopped. The cell count scales
+## with the reach so a raindrop stays the same size in the world. [TUNE]
+const WEATHER_VEIL_REACH: float = 2600.0
+const WEATHER_VEIL_CELLS: float = 34.0
+
 const WEATHER_FADE_SECONDS: float = 3.5
 
 ## How long snow takes to cover the ground from bare, and to melt back, in
@@ -3116,6 +3172,15 @@ const SNOW_SLIP_SECONDS: float = 0.34
 ##
 ## Low enough to be invisible, high enough that a real disagreement is gone
 ## within a few packets. [TUNE]
+## How often a partner's cursor position is sent while a fork is open, and the
+## colour it is drawn in.
+##
+## Only while the crossroad is up: this is the one screen where two people are
+## deciding one thing together and the only other signal is the screen closing.
+## Everywhere else a partner's cursor is noise. [TUNE]
+const COOP_POINTER_INTERVAL: float = 0.06
+const COOP_PARTNER_TINT: Color = Color(0.62, 0.86, 1.0, 1.0)
+
 const COOP_POSITION_CORRECTION: float = 0.25
 
 ## How close a partner must stand to help a downed hero back up, in world units.

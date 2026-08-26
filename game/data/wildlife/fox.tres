@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "fox"
 display_name = "Fox"
 description = "Alone, and keeping its distance."
+temperament = 1
 acts = Array[int]([1, 2])
 weight = 1.20
 group_min = 1

@@ -29,14 +29,18 @@ wait $HOST; wait $GUEST
 fails=0
 for role in host guest; do
   echo "--- $role ---"
-  grep -E '^\[coop-ui\]' "$OUT/coop_ui_$role.log" | head -12
-  bad="$(grep -cE "^\[coop-ui\] $role: " "$OUT/coop_ui_$role.log" 2>/dev/null || echo 0)"
-  [ "$bad" != "0" ] && fails=$((fails+1))
+  grep -E '^\[coop-ui\]' "$OUT/coop_ui_$role.log" | head -24
+  # `grep -c` exits 1 when it counts nothing, so the old `|| echo 0` fallback
+  # appended a *second* zero and the two-line result is not the string "0" - a
+  # clean run reported "2 of 2 failed" while both processes printed PASS.
+  # Counted with the exit status ignored and compared as a number.
+  bad="$(grep -cE "^\[coop-ui\] $role: " "$OUT/coop_ui_$role.log" 2>/dev/null)" || true
+  [ "${bad:-0}" -gt 0 ] && fails=$((fails+1))
 done
 
 # Both sides must have reached the run, and in the same world.
-hs="$(grep -oE 'host run started, seed [0-9]+' "$OUT/coop_ui_host.log" | grep -oE '[0-9]+$')"
-gs="$(grep -oE 'guest carried into run, seed [0-9]+' "$OUT/coop_ui_guest.log" | grep -oE '[0-9]+$')"
+hs="$(grep -oE 'host in run, seed [0-9]+' "$OUT/coop_ui_host.log" | grep -oE '[0-9]+$')"
+gs="$(grep -oE 'guest in run, seed [0-9]+' "$OUT/coop_ui_guest.log" | grep -oE '[0-9]+$')"
 echo
 if [ -n "$hs" ] && [ "$hs" = "$gs" ]; then
   echo "both players entered the same run, seed $hs"

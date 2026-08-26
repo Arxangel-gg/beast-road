@@ -43,6 +43,15 @@ var _proved_auto_start: bool = false
 
 
 func _ready() -> void:
+	# Runs while the tree is paused, so a run that *ends* is a failure with a
+	# sentence rather than a process that never returns.
+	#
+	# The ending screen pauses the tree and waits for a click, and a headless
+	# gate has no one to click it. This check therefore hung for six minutes and
+	# was killed, which reads as "the gate is broken" rather than "the run ended
+	# early" - the most expensive kind of failure to diagnose. Nothing here is
+	# meant to run during a pause; the mode exists so the pause can be *reported*.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--seconds="):
 			_seconds = float(argument.split("=")[1])
@@ -71,6 +80,21 @@ func _ready() -> void:
 			_field.try_build(_field.free_anchor_near(lane), towers[lane % towers.size()])
 	print("[breather] built %d towers during opening preparation"
 		% get_tree().get_nodes_in_group(&"towers").size())
+
+	# **The hero does not have to survive this gate to pass it.**
+	#
+	# Nothing here drives the hero: it stands at its spawn for 150 seconds while
+	# waves arrive and, since predatory wildlife exist, while wolves and bears
+	# hunt it. Three wounds later the run ends, the ending screen pauses the
+	# tree, and a check about *phase transitions* has failed for a reason that
+	# has nothing to do with phases.
+	#
+	# Same shape as the zero-Gold change: a harness whose subject is not the
+	# economy must fund itself, and a harness whose subject is not survival must
+	# survive. Made invulnerable rather than given health, so it cannot become a
+	# slow drain that fails this on a long run.
+	if _field.hero != null and _field.hero.health != null:
+		_field.hero.health.add_invulnerability(_seconds + 60.0)
 	# The hero is intentionally playable during safe planning. It must be the
 	# active battlefield avatar even though towers and the next formation wait.
 	if not _field.hero.is_in_group(Hero.GROUP) \
@@ -118,6 +142,12 @@ func _process(delta: float) -> void:
 				% _breather_age)
 			_bail(1)
 			return
+
+	if RunState.phase == RunState.Phase.ENDED:
+		push_error("The run ended at %.1fs, before the window closed - this gate "
+			% _elapsed + "cannot measure breathers in a run that is over")
+		_bail(1)
+		return
 
 	if RunState.wave_number > _waves:
 		_waves = RunState.wave_number
