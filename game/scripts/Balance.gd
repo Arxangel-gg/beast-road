@@ -1234,7 +1234,7 @@ const WILDLIFE_BAR_LIFT: float = 42.0
 ## one-in-eleven they effectively were not there. [TUNE]
 const FOLIAGE_FLOWER_SHARE: float = 0.42
 
-const TORCH_SNUFF_LATERAL: float = 260.0
+const TORCH_SNUFF_LATERAL: float = 300.0
 
 const ENEMY_PROVOKED_SECONDS: float = 4.0
 
@@ -2477,7 +2477,17 @@ const TORCH_SNUFF_RANGE: float = 120
 ## as an instant binary snuff. One walker takes time; a crowd can overwhelm it.
 ## Elite and boss bodies count as more than one ordinary walker. [TUNE]
 const TORCH_PRESSURE_SAMPLE: float = 0.18
-const TORCH_DIM_PER_ENEMY_SECOND: float = 0.082
+## **Retuned upward when the lateral bound landed**, and the reason is worth
+## keeping. Torches were going out because enemies on *other legs of the same
+## bent road* counted as pressure - three bands of them, measured at 185, 505 and
+## 730 units to the side. Excluding the two that were never near the torch cut
+## real pressure to a third, and 0 of 48 torches went out in a 45-second soak
+## that had always passed.
+##
+## So the mechanic had been working for the wrong reason. This is what it costs
+## to have it work for the right one: roughly a pair of enemies level with a
+## brazier for four seconds. [TUNE]
+const TORCH_DIM_PER_ENEMY_SECOND: float = 0.26
 const TORCH_PRESSURE_MAX_WEIGHT: float = 6.0
 const TORCH_ELITE_PRESSURE: float = 1.55
 const TORCH_BOSS_PRESSURE: float = 2.4

@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.64** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.65** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,7 +64,7 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
-- **v0.4.64** the seventh play report. **Three doors into a game now**: a
+- **v0.4.65** the seventh play report. **Three doors into a game now**: a
   lobby that lists games on your network, a code for everyone else, and a typed
   address for anyone who would rather. Plus the two bugs that made co-op unfair
   rather than merely awkward — a guest's buildings never reached the host, and a
@@ -420,6 +420,19 @@ them. The full local suite is 24 of 24 green.
 
       Held by `tools/lobby.sh`, which runs it in both orders. The two orders are
       different code paths and only one of them is the common one.
+- [x] **Torches stopped going out entirely** — caught by the release job hanging,
+      not by anything on this desk. The lateral bound was correct and the
+      mechanic had been working *because of the bug*: enemies on other legs of a
+      bent road were counted as pressure, three bands of them at 185, 505 and 730
+      units to the side. Excluding the two that were never near the brazier cut
+      real pressure to a third, and 0 of 48 torches went out in a soak that had
+      always passed. `TORCH_DIM_PER_ENEMY_SECOND` is 0.26 now: about a pair of
+      enemies level with a torch for four seconds. 3 of 48 out in 45 seconds.
+
+      **The local suite was missing five checks that only ever ran on a release.**
+      They are in it now — both soaks, the perf budget, the curve report and the
+      launcher pipeline test. A release workflow that hangs for half an hour is
+      the most expensive way to learn that a constant was wrong.
 - [x] **Everything a beacon says is untrusted.** It arrives from whatever else is
       on the network: shape-checked, objects refused when decoded, names stripped
       of control characters and truncated. The worst a hostile beacon can do is
