@@ -236,6 +236,13 @@ func _assert_torches_snuffed() -> void:
 		if not torch.is_lit():
 			dark += 1
 	print("[soak] torches out: %d of %d" % [dark, total])
+	# What the player is actually holding. A currency with more income than sinks
+	# does not fail anything - it just quietly stops being a decision, which is
+	# invisible unless somebody prints it.
+	print("[soak] purse: gold=%d wood=%d food=%d stone=%d  wave=%d" % [
+		RunState.currency(RunState.GOLD), RunState.currency(RunState.WOOD),
+		RunState.currency(RunState.FOOD), RunState.currency(RunState.STONE),
+		RunState.wave_number])
 	if dark == 0:
 		push_error("no torch was snuffed in %.0fs of waves - the mechanic is dead again" % _duration)
 		_failed = true

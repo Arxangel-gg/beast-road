@@ -198,9 +198,14 @@ func _ready() -> void:
 	# Every Preparation opens ready to build, which is what the phase is for.
 	# Staying in fight mode from the last one would have a player click three
 	# times at a tower slot before working out why nothing is happening.
+	# Preparation opens ready to build and *closes* ready to fight.
+	#
+	# Staying in build mode past the horn left a player holding a grid overlay
+	# that swallows clicks, with a wave walking in - reported from play as build
+	# menus still open when the round started. The mode follows the phase in both
+	# directions now, on every machine, because each player holds their own.
 	EventBus.phase_changed.connect(func(now: int, _before: int) -> void:
-		if now == RunState.Phase.PREPARATION:
-			set_build_mode(true))
+		set_build_mode(now == RunState.Phase.PREPARATION))
 	EventBus.coop_request_received.connect(_on_coop_request)
 	EventBus.coop_run_ended.connect(_on_coop_run_ended)
 	CursorKit.apply()
@@ -274,6 +279,10 @@ func start_run(requested_seed: int = 0, endless: bool = false) -> void:
 		RunState.begin_endless(false)
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed, endless)
+	# The party is playing, so it is not looking for anybody. The row goes now
+	# rather than at the end of the run - a table that only empties when somebody
+	# remembers is a table full of games nobody can join.
+	Coop.directory().withdraw()
 
 	await _play_intro()
 

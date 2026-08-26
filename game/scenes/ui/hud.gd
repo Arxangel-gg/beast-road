@@ -757,7 +757,7 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 func _on_build_mode_changed(building: bool) -> void:
 	_update_mode_button()
 	_apply_mode_cursor(building)
-	if building:
+	if building and RunState.can_build_now():
 		return
 	_close_build_panel()
 	if _road_panel != null:

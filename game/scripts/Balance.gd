@@ -1232,7 +1232,17 @@ const WILDLIFE_BAR_LIFT: float = 42.0
 ## a share of the *remainder* rather than of everything. Flowers are the only
 ## foliage carrying a colour that is not green, brown or white, and at a uniform
 ## one-in-eleven they effectively were not there. [TUNE]
-const FOLIAGE_FLOWER_SHARE: float = 0.42
+const FOLIAGE_FLOWER_SHARE: float = 0.55
+
+## How many *extra* flowers stand beside one that was placed, and how far they
+## scatter.
+##
+## A single flower in a field reads as a mistake; a patch reads as a place where
+## something grows. Only flowers cluster - four boulders in a heap would read as
+## a different mistake. [TUNE]
+const FOLIAGE_FLOWER_CLUSTER_MIN: int = 2
+const FOLIAGE_FLOWER_CLUSTER_MAX: int = 5
+const FOLIAGE_FLOWER_CLUSTER_SPREAD: float = 34.0
 
 const TORCH_SNUFF_LATERAL: float = 300.0
 
@@ -1557,7 +1567,17 @@ const STARTING_RESOURCES: int = 350
 ## Wood and Food also pay for town repair and hero tending, which have nothing
 ## to do with tower capital and would be collateral damage.
 const STARTING_WOOD: int = 180
-const STARTING_FOOD: int = 70
+## **Below the price of one tending**, deliberately.
+##
+## Food was the currency nobody had to think about: it started above its only
+## urgent price, accrued while the beast walked, and then twelve species of
+## huntable wildlife arrived - a bear alone paid for a whole tend and change.
+## Players reported stockpiling it long before there was anything to spend it on,
+## which is a currency that has stopped being a decision.
+##
+## Starting below one tend means the first wounded hero is a choice: hunt for it,
+## walk for it, or fight on hurt. [TUNE]
+const STARTING_FOOD: int = 38
 const STARTING_GOLD: int = 0
 const STARTING_STONE: int = 90
 ## Machine-readable v4 contract; RunState owns the runtime typed aliases.

@@ -77,6 +77,10 @@ var _alternate_port: int = Balance.COOP_PORT
 ## screen never binds a socket.
 var _beacon: CoopBeacon = null
 
+## The public lobby list. Built on demand for the same reason: a player who never
+## looks for a game never makes a request.
+var _directory: CoopDirectory = null
+
 
 ## The lobby broadcaster and listener.
 func beacon() -> CoopBeacon:
@@ -92,6 +96,15 @@ func beacon() -> CoopBeacon:
 ## Deliberately not a machine name or an account name. It goes out on the local
 ## network to anything listening, and "the hero you have" is the most it needs to
 ## say for a friend to recognise it.
+## The public lobby list.
+func directory() -> CoopDirectory:
+	if _directory == null:
+		_directory = CoopDirectory.new()
+		_directory.name = "CoopDirectory"
+		add_child(_directory)
+	return _directory
+
+
 func lobby_name() -> String:
 	return "Warden · level %d" % MetaState.hero_level
 
@@ -261,6 +274,10 @@ func join(address: String, port: int = Balance.COOP_PORT,
 func leave() -> void:
 	_connect_left = 0.0
 	beacon().stop_announcing()
+	# Off the public list too. A game nobody is hosting is not one to advertise,
+	# and the row is what keeps that table honest.
+	if _directory != null:
+		_directory.withdraw()
 	_join_lookup()
 	if _peer != null:
 		_peer.close()

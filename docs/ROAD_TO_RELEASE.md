@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.65** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.66** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,12 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.66** the eighth play report, and matchmaking finished: a **public
+  lobby list** on Supabase alongside the local one, so the three doors into a
+  game are now your own network, the whole internet, and a pasted code. Plus a
+  grave marker where a player fell, flowers that are small and grow in patches,
+  Preparation that ends in fight mode, a food economy that is a decision again,
+  and an SFX doc that reads the game rather than its own list.
 - **v0.4.65** the seventh play report. **Three doors into a game now**: a
   lobby that lists games on your network, a code for everyone else, and a typed
   address for anyone who would rather. Plus the two bugs that made co-op unfair
@@ -373,6 +379,50 @@ them. The full local suite is 24 of 24 green.
       was re-run rather than trusted once. That is the argument for running
       the whole suite after a change rather than the gate you think is
       relevant.
+
+### Raised 2026-08-26 — the eighth play report
+
+- [x] **Nothing marked where a player fell.** A collapsed hero hides its own
+      sprite — it has to, or a corpse lies on the field looking alive — so a
+      partner crossing the map had a few pixels of revive bar to aim at. A grave
+      marker stands there now, pulsing slowly, and disappears the instant they
+      are helped up. Never drawn in a solo run: nobody is coming.
+- [x] **Flowers were big, sparse and some were lying down.** All six flower
+      sprites redrawn at 32×40 instead of 48×56 and explicitly upright, checked
+      on a contact sheet. Flowers now arrive in **patches of three to six** at
+      varying sizes rather than one at a time — a single flower in a field reads
+      as a mistake — and take a larger share of the draw. Reeds and a wrecked
+      cart join the shared props.
+- [x] **Build menus stayed open when the wave started.** Build mode followed the
+      phase into Preparation and not out of it. It follows both ways now, on
+      every machine, so the horn puts everybody in fight mode with the panels
+      closed and the cursor changed.
+- [x] **Food was over-abundant.** It had one urgent price (45 to tend), started
+      above it, accrued while the beast walked, and then twelve species of
+      huntable wildlife arrived — a bear alone paid for a whole tend and change.
+      Wildlife yields cut to roughly a third across the roster, and the run
+      starts on 38 Food, below the price of one tending. The first wounded hero
+      is a choice again.
+- [x] **Missing sounds were invisible.** The prompts doc only ever compared its
+      own hand-written list against the folder, so a sound added to the game and
+      never prompted did not appear anywhere — the doc said "nothing
+      outstanding" while the game played silence. It reads the game now: every
+      `sfx_`, `music_` or `ambience_` literal in any script or resource, in a
+      **NEEDS A PROMPT AND A SOUND** section at the top. Currently zero, which is
+      now a fact rather than an assumption.
+- [x] **Matchmaking.** A Supabase table holding one row per open game, reached
+      through three `security definer` functions rather than by writing to the
+      table: anonymous clients have no identity, so any delete policy loose
+      enough for a host to remove its own row is loose enough for anybody to
+      remove every row. Reading goes through a view with no token in it.
+
+      The row is deleted when the run begins, when hosting stops, and when the
+      game closes, and swept by a heartbeat window if all three are missed — so
+      the table is empty whenever nobody is waiting. The SQL is in
+      `docs/MATCHMAKING.md` and has to be run once; **until it is, the public
+      list is simply empty and nothing else changes**, which is verified: the
+      project answers 404 for the missing table and the client treats that as
+      "no games".
 
 ### Raised 2026-08-26 — the seventh play report
 

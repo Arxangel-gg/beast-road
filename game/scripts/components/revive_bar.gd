@@ -1,7 +1,7 @@
 class_name ReviveBar
 extends Node2D
 
-## The bar over a downed hero, filling while their partner holds them up.
+## The marker over a downed hero, and the bar filling while somebody helps.
 ##
 ## Drawn in world space above the body rather than in the HUD, because the thing
 ## the player needs to judge is *distance*: whether they can reach their friend
@@ -16,9 +16,22 @@ const LIFT: float = -78.0
 const WIDTH: float = 64.0
 const HEIGHT: float = 7.0
 
+## Where a body is, once the body itself has stopped being drawn.
+##
+## A collapsed hero hides its sprite - it has to, or a corpse lies on the field
+## looking alive - and the bar alone is a few pixels of outline at a distance.
+## A partner crossing the map to help had nothing to walk *towards*. So a marker
+## stands where they fell: visible from across the field, gone the moment they
+## are up, and never drawn in a solo run because nobody is coming.
+const MARKER_ART: String = "res://art/vfx/fallen_marker.png"
+
 var _hero: Hero = null
 var _last: float = -1.0
 var _was_downed: bool = false
+
+## Built the first time it is needed, so a run where nobody falls pays nothing.
+var _marker: Sprite2D = null
+var _sway: float = 0.0
 
 
 func _init(for_hero: Hero = null) -> void:
@@ -37,7 +50,41 @@ func _process(_delta: float) -> void:
 		return
 	_was_downed = downed
 	_last = progress
+	_show_marker(downed)
 	queue_redraw()
+
+
+## Plants or removes the stone. See `MARKER_ART`.
+func _show_marker(downed: bool) -> void:
+	if not downed:
+		if _marker != null and is_instance_valid(_marker):
+			_marker.queue_free()
+			_marker = null
+		return
+	if _marker != null and is_instance_valid(_marker):
+		_marker.visible = true
+		return
+	if not ResourceLoader.exists(MARKER_ART):
+		return
+	_marker = Sprite2D.new()
+	_marker.texture = load(MARKER_ART) as Texture2D
+	# Sits on the ground the hero fell on rather than at their head height, and
+	# *behind* the bar, which is the thing being read.
+	_marker.centered = false
+	_marker.offset = Vector2(-_marker.texture.get_width() * 0.5,
+		-_marker.texture.get_height())
+	_marker.z_index = -1
+	add_child(_marker)
+
+
+## A slow breath on the stone, so a downed friend reads as urgent rather than as
+## scenery. Cheap: one node, one property, only while somebody is actually down.
+func _physics_process(delta: float) -> void:
+	if _marker == null or not is_instance_valid(_marker) or not _marker.visible:
+		return
+	_sway += delta * 2.4
+	var pulse: float = 0.5 + 0.5 * sin(_sway)
+	_marker.modulate = Color(1.0, 1.0, 1.0).lerp(Color("8fd8a0"), pulse * 0.55)
 
 
 func _draw() -> void:

@@ -474,20 +474,22 @@ point is that a clump is occasionally *not* what you expected.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `plant_jungle_shrub.png` | 56×64 | T | `#2E3A33` |
-| `plant_jungle_flower.png` | 48×56 | T | `#2E3A33` |
+| `plant_jungle_flower.png` | 32×40 | T | `#2E3A33` |
 | `plant_jungle_fern.png` | 64×40 | T | `#2E3A33` |
 | `plant_desert_shrub.png` | 56×64 | T | `#6E5B3C` |
-| `plant_desert_flower.png` | 48×56 | T | `#6E5B3C` |
+| `plant_desert_flower.png` | 32×40 | T | `#6E5B3C` |
 | `plant_desert_fern.png` | 64×40 | T | `#6E5B3C` |
 | `plant_snow_shrub.png` | 56×64 | T | `#7C8A96` |
-| `plant_snow_flower.png` | 48×56 | T | `#7C8A96` |
+| `plant_snow_flower.png` | 32×40 | T | `#7C8A96` |
 | `plant_snow_fern.png` | 64×40 | T | `#7C8A96` |
 | `plant_jungle_bush.png` | 64×56 | T | `#2E3A33` |
-| `plant_jungle_blossom.png` | 48×56 | T | `#2E3A33` |
-| `plant_desert_blossom.png` | 48×56 | T | `#6E5B3C` |
-| `plant_snow_blossom.png` | 48×56 | T | `#7C8A96` |
+| `plant_jungle_blossom.png` | 32×40 | T | `#2E3A33` |
+| `plant_desert_blossom.png` | 32×40 | T | `#6E5B3C` |
+| `plant_snow_blossom.png` | 32×40 | T | `#7C8A96` |
 | `prop_mushrooms.png` | 48×40 | T | `#6B5344` |
 | `prop_bones.png` | 56×32 | T | `#B4AC97` |
+| `prop_reeds.png` | 40×56 | T | `#6E7A4C` |
+| `prop_wreckage.png` | 64×40 | T | `#8A8073` |
 | `plant_desert_bush.png` | 64×56 | T | `#6E5B3C` |
 | `plant_snow_bush.png` | 64×56 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
@@ -1025,6 +1027,18 @@ which is where the tile-order, missing-mask and seam problems are documented.
 | `path_snow_13.png` | 64×64 | T | `#8A8D95` |
 | `path_snow_14.png` | 64×64 | T | `#8A8D95` |
 | `path_snow_15.png` | 64×64 | T | `#8A8D95` |
+
+### 5.17b Fallen marker — `res://art/vfx/`
+
+The stone that stands where a player went down, and disappears the moment they
+are helped up. A collapsed hero hides its own sprite — it has to, or a corpse
+lies on the field looking alive — and a revive bar alone is a few pixels of
+outline at a distance, so a partner crossing the map had nothing to walk
+*towards*. Never drawn in a solo run: nobody is coming.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `fallen_marker.png` | 40×48 | T | `#8A9099` |
 
 ### 5.18 Projectiles — `res://art/vfx/`
 

@@ -84,6 +84,7 @@ func _ready() -> void:
 	await _test_a_bad_address_fails_instead_of_hanging()
 	_test_a_code_survives_the_round_trip()
 	await _test_a_beacon_is_heard()
+	_test_the_public_list_is_not_trusted()
 
 	_tear_down()
 	for _f: int in 4:
@@ -619,6 +620,55 @@ b	c").contains("
 	listener.queue_free()
 	shouter.queue_free()
 	await get_tree().process_frame
+
+
+## Rows from the public lobby table, treated as what they are: text from
+## strangers on the internet, drawn as buttons.
+##
+## No network here. The parsing is the part that has to be right - a bad row must
+## be dropped rather than made into a button that cannot work - and it is exactly
+## the part that can be handed the shapes a hostile or broken table would return.
+func _test_the_public_list_is_not_trusted() -> void:
+	var good: String = CoopCode.encode_pair("203.0.113.9", "192.168.0.4",
+		Balance.COOP_PORT)
+	var rows: Array = CoopDirectory.parse_rows([
+		{"code": good, "name": "Warden · level 9", "players": 1, "age_seconds": 12},
+		# Every one of these must be dropped rather than drawn.
+		{"code": "not-a-code", "name": "junk", "players": 1, "age_seconds": 1},
+		{"code": "", "name": "empty", "players": 1, "age_seconds": 1},
+		{"code": "IIIII-IIIII", "name": "bad letters", "players": 1, "age_seconds": 1},
+		"a bare string, not a row",
+		42,
+	])
+	_check(rows.size() == 1,
+		"only rows carrying a code that parses may be drawn, kept %d of 6"
+			% rows.size())
+	if rows.size() == 1:
+		var row: Dictionary = rows[0]
+		_check(String(row["code"]) == good, "and the code must survive intact")
+		_check(int(row["age"]) == 12, "with the age it was given")
+
+	# A name is drawn in a row on screen and arrived from a stranger.
+	var nasty: Array = CoopDirectory.parse_rows([
+		{"code": good, "name": "line" + "
+" + "break", "players": 9, "age_seconds": -5},
+	])
+	_check(nasty.size() == 1, "a hostile name must not lose the row")
+	if nasty.size() == 1:
+		var row: Dictionary = nasty[0]
+		_check(not String(row["name"]).contains("
+"),
+			"a name must not carry a line break into the row it is drawn in")
+		_check(int(row["players"]) <= 2,
+			"a player count must be clamped, got %d" % int(row["players"]))
+		_check(int(row["age"]) >= 0, "and an age must not be negative")
+	_check(CoopDirectory.parse_rows("not an array").is_empty(),
+		"a reply that is not a list must produce no rows at all")
+
+	# Our own listing is not something to offer to join.
+	var mine: Array = CoopDirectory.parse_rows(
+		[{"code": good, "name": "me", "players": 1, "age_seconds": 3}], good)
+	_check(mine.is_empty(), "a host must not be offered its own game")
 
 
 func _tear_down() -> void:

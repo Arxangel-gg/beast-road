@@ -59,7 +59,7 @@ const FLOWER_KINDS: Array[String] = ["flower", "blossom"]
 ## A rock is a rock in a jungle or a snowfield, and so is a fallen log. These are
 ## the props that carry no regional identity, so one file serves all three acts.
 const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump",
-	"mushrooms", "bones"]
+	"mushrooms", "bones", "reeds", "wreckage"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 
@@ -427,8 +427,25 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 			# around it instead of looking pasted on.
 			var tint: Color = Color.WHITE.lerp(_plant_colour(style, rng),
 				Balance.FOLIAGE_PAINTED_TINT)
-			band.add_plant(art, local, scale * rng.randf_range(0.62, 0.92),
-				tint, rng.randf() < 0.5)
+			var plant_scale: float = scale * rng.randf_range(0.62, 0.92)
+			band.add_plant(art, local, plant_scale, tint, rng.randf() < 0.5)
+			# **Flowers come in patches.** One flower standing alone in a field
+			# reads as a mistake; three or four together read as a place where
+			# something grows. Only flowers, because a patch of four boulders
+			# reads as a mistake of a different kind.
+			if _flower_art.has(art):
+				var extra: int = rng.randi_range(
+					Balance.FOLIAGE_FLOWER_CLUSTER_MIN,
+					Balance.FOLIAGE_FLOWER_CLUSTER_MAX)
+				for _more: int in extra:
+					var spread := Vector2(
+						rng.randf_range(-1.0, 1.0) * Balance.FOLIAGE_FLOWER_CLUSTER_SPREAD,
+						rng.randf_range(-0.45, 0.45) * Balance.FOLIAGE_FLOWER_CLUSTER_SPREAD)
+					# Each one its own size, or a patch reads as one sprite
+					# stamped several times - which is what it is.
+					band.add_plant(art, local + spread,
+						plant_scale * rng.randf_range(0.68, 1.06), tint,
+						rng.randf() < 0.5)
 
 	# Only the tall layer gets a shadow. Ground cover is already a few pixels
 	# high, so a pool under it reads as dirt rather than as shade.

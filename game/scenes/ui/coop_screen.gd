@@ -35,6 +35,8 @@ var _share_row: HBoxContainer = null
 var _copy_button: Button = null
 var _lobby_title: Label = null
 var _lobby_list: VBoxContainer = null
+var _public_title: Label = null
+var _public_list: VBoxContainer = null
 var _join_button: Button = null
 var _begin_button: Button = null
 var _leave_button: Button = null
@@ -58,7 +60,14 @@ func open() -> void:
 	Coop.beacon().listen()
 	if not Coop.beacon().games_changed.is_connected(_on_games_changed):
 		Coop.beacon().games_changed.connect(_on_games_changed)
+	# And the public list, which is the same idea reaching further.
+	Coop.directory().browse()
+	if not Coop.directory().games_changed.is_connected(_on_public_games):
+		Coop.directory().games_changed.connect(_on_public_games)
+		Coop.directory().status_changed.connect(
+			func(_text: String) -> void: _refresh())
 	_on_games_changed(Coop.beacon().games())
+	_on_public_games(Coop.directory().games())
 	_refresh()
 	_host_button.grab_focus()
 
@@ -68,6 +77,9 @@ func close() -> void:
 	# The host keeps shouting; only the listening stops. Somebody who opened this
 	# screen, hosted, and closed it is still findable by their friend.
 	Coop.beacon().stop_listening()
+	# Stops polling; a listing this machine owns stays up, because a host who
+	# closed this screen is still hosting.
+	Coop.directory().stop_browsing()
 	closed.emit()
 
 
@@ -112,6 +124,15 @@ func _build() -> void:
 	_lobby_list = VBoxContainer.new()
 	_lobby_list.add_theme_constant_override("separation", 4)
 	column.add_child(_lobby_list)
+
+	_public_title = Label.new()
+	_public_title.add_theme_font_size_override("font_size", 15)
+	_public_title.add_theme_color_override("font_color", Color("9aa8a4"))
+	column.add_child(_public_title)
+
+	_public_list = VBoxContainer.new()
+	_public_list.add_theme_constant_override("separation", 4)
+	column.add_child(_public_list)
 
 	_status = Label.new()
 	_status.add_theme_font_size_override("font_size", 17)
@@ -279,6 +300,7 @@ func _refresh() -> void:
 	_host_button.disabled = state != Coop.State.OFFLINE and state != Coop.State.FAILED
 	# The lobby rows are join buttons, so they follow the same rule.
 	_on_games_changed(Coop.beacon().games())
+	_on_public_games(Coop.directory().games())
 	_join_button.disabled = _host_button.disabled
 	_join_field.editable = not _host_button.disabled
 	# Only a host with company may begin, which is the rule the button should
@@ -307,6 +329,11 @@ func _address_text() -> String:
 		lines.append("Over internet: looking…")
 	lines.append("Port: %d" % Balance.COOP_PORT)
 	_share_row.visible = not code.is_empty()
+	# Listed publicly the moment there is something worth listing. The code
+	# improves when the public address arrives, and `publish` updates the row
+	# rather than adding a second one.
+	if not code.is_empty() and Coop.is_host() 			and Coop.state() == Coop.State.HOSTING:
+		Coop.directory().publish(code, Coop.lobby_name())
 	return "\n".join(lines)
 
 
@@ -348,6 +375,47 @@ func _on_games_changed(found: Array) -> void:
 			Coop.join(address, port)
 			_refresh())
 		_lobby_list.add_child(row)
+
+
+## Redraws the public list. Same shape as the local one, different reach.
+func _on_public_games(found: Array) -> void:
+	if _public_list == null:
+		return
+	for child: Node in _public_list.get_children():
+		child.queue_free()
+	var joinable: Array = []
+	for entry: Variant in found:
+		var game: Dictionary = entry
+		if int(game["players"]) < 2:
+			joinable.append(game)
+	var note: String = Coop.directory().status()
+	if joinable.is_empty():
+		_public_title.text = note if not note.is_empty() 			else "No public games open right now. Host one and anybody can join."
+		return
+	_public_title.text = "Open to anyone:" if note.is_empty() else note
+	for entry: Variant in joinable:
+		var game: Dictionary = entry
+		var row := Button.new()
+		# The age says whether somebody is still sitting there. A lobby three
+		# seconds old is a person waiting; one four minutes old is usually not.
+		row.text = "%s  ·  waiting %s" % [String(game["name"]),
+			_waited(int(game["age"]))]
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.custom_minimum_size = Vector2(0.0, 34.0)
+		row.add_theme_font_size_override("font_size", 15)
+		row.disabled = Coop.state() != Coop.State.OFFLINE 			and Coop.state() != Coop.State.FAILED
+		IconKit.on_button(row, "pressure_arrow", 18)
+		var code: String = String(game["code"])
+		row.pressed.connect(func() -> void:
+			_join_field.text = code
+			_on_join())
+		_public_list.add_child(row)
+
+
+static func _waited(seconds: int) -> String:
+	if seconds < 60:
+		return "%ds" % maxi(seconds, 0)
+	return "%dm" % int(seconds / 60.0)
 
 
 ## The code a friend pastes, or "" while there is still nothing to encode.
