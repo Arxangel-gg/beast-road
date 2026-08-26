@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.62** from `main`. 32 of 32 local gates green at the tag,
+Published as **v0.4.63** from `main`. 32 of 32 local gates green at the tag,
 plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
 processes and are deliberately outside CI.
 
@@ -64,6 +64,15 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.63** the sixth play report, and the first feature in a while that is
+  about *reaching* the game rather than playing it: a **connect code**. Ten
+  characters, one Copy button, one paste box. The public address is looked up
+  properly now — UPnP first, and when the router will not answer (the common
+  case) the game asks the internet instead, so nobody has to go and find their
+  own IP. Also: separate spawn points, which turned out to be the "stuck at
+  origin" bug; torches that only mind what is actually near them; Tab reaching
+  the mode toggle; the guest able to tend itself; a second walk frame for all
+  seven wildlife that had one; upright jungle flowers and five new plants.
 - **v0.4.62** the fifth play report: the revive that never completed, enemy
   projectiles the guest could not see, the act banner, hawks flying backwards,
   enemies that now bite the wildlife back, mirrored enemies that teleport instead
@@ -359,6 +368,54 @@ them. The full local suite is 24 of 24 green.
       was re-run rather than trusted once. That is the argument for running
       the whole suite after a change rather than the gate you think is
       relevant.
+
+### Raised 2026-08-26 — the sixth play report
+
+- [x] **No easy way to play with a friend.** The public address never populated,
+      because it came only from UPnP and most routers will not answer. There is
+      a **connect code** now — ten characters from an alphabet with no ambiguous
+      shapes, carrying address *and* port — with a Copy button on the host side
+      and one paste box on the join side that takes either a code or an address.
+      When UPnP fails the game asks the internet for the public address instead,
+      which is the step players were being asked to do themselves and did not.
+      Round-tripping is gated in `coop_check.tscn`, including the shapes that
+      must be *refused*: a code that half-parses dials a stranger.
+- [x] **Both players stuck at origin, again.** The cause was the one thing
+      section 1 said had not been reproduced: `_finish_respawn` put every hero on
+      exactly `Vector2.ZERO`, so a wipe arrived two bodies of radius 26 inside
+      one another. Each role has its own spawn point now, assigned by role rather
+      than by machine so the two screens agree. Measured: a host that walked 90
+      units in a second and a half now walks 300, and a guest that walked 29
+      walks 303. That gap *was* the bug.
+- [x] **Tab moved the button highlight instead of switching mode.** Tab is also
+      `ui_focus_next`, and Godot's focus system runs between `_input` and
+      `_unhandled_input`. Caught in `_input` now, and only during Preparation, so
+      everywhere else it goes back to being ordinary focus navigation.
+- [x] **The build cursor stayed on in Fight mode, and the build panels stayed
+      open.** Both swallow clicks, so switching to Fight to deal with a wolf left
+      a player looking at a tower list and unable to swing at anything under it.
+- [x] **Torches snuffed with nothing near them.** Only the *longitudinal*
+      distance was measured, on the reasoning that a torch stands beside the road
+      — true for a straight road. The roads bend, and a bent road doubles back,
+      so an enemy on another leg entirely projects onto the same point along the
+      lane vector. There is a lateral bound now.
+- [x] **The guest could not tend itself** while both players had plenty of Food.
+      Food is a shared purse the host owns, so a guest spending it locally had
+      the balance corrected back while the healing landed on a body the host had
+      never healed. It is a request now, as repairing the town also should have
+      been — same bug, same bar, and fixing one and not the other is how it comes
+      back next week.
+- [x] **Seven wildlife had a single walk frame.** All twelve have two now. The
+      way to get one was `animate_image`, which takes the existing sprite as its
+      first frame and asks only for the *motion* — so palette, scale and facing
+      come from the sprite rather than from a description of it. Every pair was
+      checked on a contact sheet before it shipped.
+- [x] **Flowers were scarce and one was lying down.** `plant_jungle_flower` was
+      drawn as a cut flower on its side; it grows upright now. Three new blossoms
+      (one per region), mushrooms and bleached bones join the roster, and flowers
+      get their own share of the draw rather than competing with ten other kinds
+      for one uniform roll. Nothing in the code ever rotated a plant — the
+      horizontal one was horizontal in the file.
 
 ### Raised 2026-08-26 — the fifth play report
 

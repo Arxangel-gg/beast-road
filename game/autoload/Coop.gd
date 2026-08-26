@@ -69,6 +69,24 @@ var port_mapped: bool = false
 ## freezing, so it runs on its own and the result arrives as a signal.
 var _upnp_thread: Thread = null
 
+## Asks the internet what this machine looks like from outside, when the router
+## will not say.
+##
+## **UPnP answers for a minority of players.** Plenty of routers have it switched
+## off and plenty of connections sit behind carrier-grade NAT, and for all of
+## them `external_address` stayed empty - so the co-op screen showed a local
+## address and nothing else, and a player wanting to play with a friend in
+## another country had to go and find their own public IP. That is the step
+## people do not take.
+##
+## Only ever used when hosting, only when UPnP has already failed, and it sends
+## nothing: the request carries no payload and the reply is this machine's own
+## address. It is a fallback for the *display*, not for the connection.
+var _ip_probe: HTTPRequest = null
+
+## Where to ask. Plain text, one line, no key and no account.
+const PUBLIC_IP_URL: String = "https://api.ipify.org"
+
 
 func _ready() -> void:
 	# ALWAYS, because a co-op session must survive the tree being paused. A
@@ -258,6 +276,45 @@ func _finish_lookup(address: String, mapped: bool) -> void:
 	external_address = address
 	port_mapped = mapped
 	EventBus.coop_address_known.emit(local_address, external_address, port_mapped)
+	# The router did not know, or would not say. Ask the internet instead, so the
+	# player at least has an address to send even if they have to forward the
+	# port themselves.
+	if external_address.is_empty():
+		_ask_the_internet()
+
+
+## The public-address fallback. See `_ip_probe`.
+func _ask_the_internet() -> void:
+	if DisplayServer.get_name() == "headless":
+		# No player to show it to, and a network call from a gate is a gate that
+		# fails when the runner has no route out.
+		return
+	if _ip_probe == null:
+		_ip_probe = HTTPRequest.new()
+		_ip_probe.timeout = 6.0
+		add_child(_ip_probe)
+		_ip_probe.request_completed.connect(_on_public_ip)
+	if _ip_probe.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		return
+	_ip_probe.request(PUBLIC_IP_URL)
+
+
+func _on_public_ip(result: int, code: int, _headers: PackedStringArray,
+		body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		return
+	var text: String = body.get_string_from_utf8().strip_edges()
+	# Checked rather than trusted. This is a reply from a machine on the
+	# internet and it ends up in front of the player as *their* address, so
+	# anything that is not four numbers and three dots is discarded.
+	var parts: PackedStringArray = text.split(".")
+	if parts.size() != 4:
+		return
+	for part: String in parts:
+		if not part.is_valid_int() or int(part) < 0 or int(part) > 255:
+			return
+	external_address = text
+	EventBus.coop_address_known.emit(local_address, external_address, port_mapped)
 
 
 func _join_lookup() -> void:
@@ -351,6 +408,15 @@ func _set_state(to: State) -> void:
 
 ## Records a failure and reports it. Always returns false, so every caller can
 ## `return _fail(...)` and read as one line.
+## Reports a failure that happened before any dialling started.
+##
+## Public because a mistyped code is refused by the *screen* rather than by the
+## transport - there is nothing to dial - and a refusal the player never sees is
+## a Join button that appears to do nothing.
+func report_failure(reason: String) -> void:
+	_fail(reason)
+
+
 func _fail(reason: String) -> bool:
 	last_error = reason
 	_set_state(State.FAILED)

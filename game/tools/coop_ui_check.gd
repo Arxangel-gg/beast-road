@@ -542,6 +542,25 @@ func _enter_run_in_place(role: String) -> void:
 		print("[coop-ui] guest saw tower shots=%s enemy shots=%s"
 			% [str(_saw_tower_shot), str(_saw_enemy_shot)])
 
+		# **Tending, from the seat that cannot pay for it.**
+		#
+		# Food is a shared purse the host owns. A guest that spent it locally had
+		# the balance corrected back a moment later while the healing landed on a
+		# body the host had never healed - so the button did nothing at all, and
+		# was reported as exactly that. It has to be a request.
+		if RunState.can_build_now() and mine.health != null:
+			mine.health.current_hp = mine.health.max_hp * 0.4
+			var before: int = RunState.currency(RunState.FOOD)
+			field.try_tend_hero()
+			await _until(func() -> bool:
+				return mine.health.current_hp > mine.health.max_hp * 0.45)
+			_check(mine.health.current_hp > mine.health.max_hp * 0.45,
+				"the guest must be able to tend its own hero, still at %.0f%%"
+					% (mine.health.current_hp / mine.health.max_hp * 100.0))
+			print("[coop-ui] guest tended itself to %.0f%%, Food %d -> %d"
+				% [mine.health.current_hp / mine.health.max_hp * 100.0,
+					before, RunState.currency(RunState.FOOD)])
+
 		# The host put this hero down, revived it, and then wiped the pair. All of
 		# that has happened by now, and the only thing that matters afterwards is
 		# whether this player can still play - reported from play as both of them

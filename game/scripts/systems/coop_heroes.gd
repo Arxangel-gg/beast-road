@@ -45,9 +45,17 @@ var _host_was_alive: bool = true
 var _wipe_announced: bool = false
 var _partner_was_alive: bool = true
 
-## Where a partner hero appears if nothing better is known. Beside the town,
-## which is the one place on the map guaranteed to be walkable.
-const SPAWN_OFFSET: Vector2 = Vector2(90.0, 0.0)
+## Where each player stands when they arrive, and where they come back to.
+##
+## **By role, not by machine.** The host's hero uses the same spot on both
+## screens and so does the guest's, or the two would disagree about who is
+## standing where every time anybody respawned.
+##
+## Far enough apart that two bodies of radius 26 cannot arrive inside one
+## another: a wipe used to put both players on exactly `Vector2.ZERO` and they
+## came back stuck to each other, which is what "locked at origin" was.
+const HOST_SPAWN: Vector2 = Vector2(-90.0, 30.0)
+const GUEST_SPAWN: Vector2 = Vector2(90.0, -30.0)
 
 
 func _ready() -> void:
@@ -82,6 +90,18 @@ func _ready() -> void:
 	# without depending on an event that has already gone by.
 	if Coop.partner_present():
 		spawn_partner()
+
+
+## Gives this machine's own hero the spot that belongs to its role.
+##
+## Called when a partner appears rather than at start-up, because until then
+## there is nobody to collide with and the origin is the right answer - and a
+## lone player nudged off-centre for no visible reason is a change nobody asked
+## for.
+func _claim_local_spawn(battlefield: Battlefield) -> void:
+	if battlefield.hero == null:
+		return
+	battlefield.hero.spawn_point = battlefield.town_position() 		+ (HOST_SPAWN if Coop.is_host() else GUEST_SPAWN)
 
 
 ## The partner's hero, or null when playing alone.
@@ -139,8 +159,11 @@ func spawn_partner() -> Hero:
 	hero.name = "PartnerHero"
 	hero.field = battlefield
 	hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
-	hero.position = battlefield.town_position() + SPAWN_OFFSET
+	# The partner is whichever role this machine is not.
+	hero.spawn_point = battlefield.town_position() 		+ (GUEST_SPAWN if Coop.is_host() else HOST_SPAWN)
+	hero.position = hero.spawn_point
 	battlefield.entity_root.add_child(hero)
+	_claim_local_spawn(battlefield)
 	# Never claims the hero group. That group answers "which hero does the HUD,
 	# the camera and the damage vignette follow", and the answer is always the
 	# one this player is driving — see `Hero.set_active` for the raid version of

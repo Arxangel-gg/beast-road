@@ -31,6 +31,8 @@ var _address_label: Label = null
 var _hint: Label = null
 var _join_field: LineEdit = null
 var _host_button: Button = null
+var _share_row: HBoxContainer = null
+var _copy_button: Button = null
 var _join_button: Button = null
 var _begin_button: Button = null
 var _leave_button: Button = null
@@ -105,6 +107,19 @@ func _build() -> void:
 	_hint.add_theme_color_override("font_color", Color("9aa8a4"))
 	column.add_child(_hint)
 
+	# One button, and it is the whole feature. Everything a player has to do to
+	# get a friend into their game is press this and paste what it gives them.
+	_share_row = HBoxContainer.new()
+	_share_row.add_theme_constant_override("separation", 8)
+	_share_row.visible = false
+	column.add_child(_share_row)
+	_copy_button = Button.new()
+	_copy_button.text = "Copy code"
+	_copy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_copy_button.pressed.connect(_on_copy)
+	IconKit.on_button(_copy_button, "pressure_arrow", 20)
+	_share_row.add_child(_copy_button)
+
 	_host_button = _button(column, "Host a game", "pressure_arrow")
 	_host_button.pressed.connect(_on_host)
 
@@ -113,7 +128,7 @@ func _build() -> void:
 	column.add_child(join_row)
 
 	_join_field = LineEdit.new()
-	_join_field.placeholder_text = "Friend's address, or 127.0.0.1 on this machine"
+	_join_field.placeholder_text = "Paste your friend's code"
 	_join_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_join_field.text_submitted.connect(func(_v: String) -> void: _on_join())
 	join_row.add_child(_join_field)
@@ -151,14 +166,45 @@ func _on_host() -> void:
 	_refresh()
 
 
+## Puts the code on the clipboard, and says so.
+##
+## The label change is not decoration. A copy button that does nothing visible is
+## one people press three times and then doubt, and there is nothing else on
+## screen to confirm it worked.
+func _on_copy() -> void:
+	var code: String = _share_code()
+	if code.is_empty():
+		return
+	DisplayServer.clipboard_set(code)
+	_copy_button.text = "Copied  %s" % code
+	await get_tree().create_timer(2.5).timeout
+	if is_instance_valid(_copy_button):
+		_copy_button.text = "Copy code"
+
+
+## Joins by code, or by address for anyone who would rather type one.
+##
+## Both, because a code cannot say "the machine next to me" and an address
+## cannot be pasted from a chat window without someone reading out a port. A
+## code has no dots and an address always does, so no guessing is needed.
 func _on_join() -> void:
-	var address: String = _join_field.text.strip_edges()
-	if address.is_empty():
+	var typed: String = _join_field.text.strip_edges()
+	if typed.is_empty():
 		# The single most common case for testing is a second copy on the same
 		# machine, so an empty box means that rather than nothing.
-		address = "127.0.0.1"
-		_join_field.text = address
-	Coop.join(address)
+		typed = "127.0.0.1"
+		_join_field.text = typed
+	if CoopCode.looks_like_code(typed):
+		var parsed: Dictionary = CoopCode.decode(typed)
+		if parsed.is_empty():
+			Coop.report_failure("That code is not right. Check it for a missing "
+				+ "character and paste it again.")
+			_refresh()
+			return
+		Coop.join(String(parsed["address"]), int(parsed["port"]))
+		_refresh()
+		return
+	Coop.join(typed)
 	_refresh()
 
 
@@ -216,8 +262,17 @@ func _refresh() -> void:
 	_leave_button.visible = state != Coop.State.OFFLINE and state != Coop.State.FAILED
 
 
+## The code to send, and the addresses behind it for anyone who wants them.
+##
+## The code comes first and in its own line because it is the only thing most
+## players will ever need: copy, paste into a chat, done. The raw addresses stay
+## underneath for the cases a code cannot cover - a friend on the same network,
+## or somebody checking a port forward.
 func _address_text() -> String:
 	var lines: PackedStringArray = []
+	var code: String = _share_code()
+	lines.append("Send your friend this code:   %s" % code
+		if not code.is_empty() else "Finding your address…")
 	if not Coop.local_address.is_empty():
 		lines.append("Same network:  %s" % Coop.local_address)
 	if not Coop.external_address.is_empty():
@@ -225,7 +280,20 @@ func _address_text() -> String:
 	else:
 		lines.append("Over internet: looking…")
 	lines.append("Port: %d" % Balance.COOP_PORT)
+	_share_row.visible = not code.is_empty()
 	return "\n".join(lines)
+
+
+## The code a friend pastes, or "" while there is still nothing to encode.
+##
+## Prefers the public address, because that is the one a friend anywhere in the
+## world can reach. Falls back to the local one so a code always works for two
+## machines in the same house rather than showing nothing until a router answers.
+func _share_code() -> String:
+	var address: String = Coop.external_address if not Coop.external_address.is_empty() 		else Coop.local_address
+	if address.is_empty():
+		return ""
+	return CoopCode.encode(address, Balance.COOP_PORT)
 
 
 ## Whether the door is actually open, said plainly.
@@ -237,6 +305,8 @@ func _hint_text() -> String:
 	if Coop.external_address.is_empty():
 		return "Asking your router for a public address…"
 	if Coop.port_mapped:
-		return "Your router opened the port automatically. Send your friend the internet address."
-	return "Your router did not open the port. Forward UDP %d to %s, or play on the same network." \
+		return "Your router opened the port. Press Copy code and send it to your friend - " \
+			+ "they paste it into their box and press Join."
+	return "Copy the code and send it. Your router would not open the port on its own, " \
+		+ "so you may also need to forward UDP %d to %s - or play on the same network." \
 		% [Balance.COOP_PORT, Coop.local_address]

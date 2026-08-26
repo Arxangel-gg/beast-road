@@ -1219,6 +1219,23 @@ const WILDLIFE_BAR_LIFT: float = 42.0
 ## that abandoned the road to hunt wolves would be a different game, and the
 ## `_in_reach` condition already stops it walking anywhere. This is only how long
 ## the animal stays worth swinging at when it is standing on top of you. [TUNE]
+## How far to the side of a brazier an enemy may be and still smother it.
+##
+## The longitudinal range answers "is it level with the torch"; this answers "is
+## it on the same piece of road". Without it a bent lane snuffs torches from its
+## other leg, because both project onto the same point along the lane vector.
+## Comfortably wider than the road so a walker on the far verge still counts.
+## [TUNE]
+## How often a painted plant that is not the region's own is a flower.
+##
+## Applied after `FOLIAGE_REGION_PLANT_SHARE` has already had its say, so this is
+## a share of the *remainder* rather than of everything. Flowers are the only
+## foliage carrying a colour that is not green, brown or white, and at a uniform
+## one-in-eleven they effectively were not there. [TUNE]
+const FOLIAGE_FLOWER_SHARE: float = 0.42
+
+const TORCH_SNUFF_LATERAL: float = 260.0
+
 const ENEMY_PROVOKED_SECONDS: float = 4.0
 
 const WILDLIFE_HUNT_MIN: float = 7.0

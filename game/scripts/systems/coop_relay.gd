@@ -91,6 +91,8 @@ enum Request {
 	RAISE_BARRICADE = 10,
 	CHOOSE_ROAD = 11,
 	CHOOSE_RELIC = 12,
+	TEND_HERO = 13,
+	REPAIR_TOWN = 14,
 }
 
 ## Facts that are *state announcements* rather than events.

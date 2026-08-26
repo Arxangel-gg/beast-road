@@ -107,6 +107,19 @@ var _downed: bool = false
 ## bar fill. Decays when the partner lets go or walks away: a revive interrupted
 ## by having to fight is supposed to lose ground.
 var _revive_progress: float = 0.0
+
+## Where this hero comes back to.
+##
+## **Two heroes must not share one**, which is what the origin was. A team wipe
+## put both players on exactly `Vector2.ZERO`, two bodies of radius 26 occupying
+## the same point, and they arrived stuck - reported twice as "locked at origin
+## on the city base". `CoopHeroes` assigns one per *role* rather than per
+## machine, so the host's hero comes back to the same side of the town on both
+## screens.
+##
+## Defaults to the origin, which is correct for a lone player: there is nothing
+## to collide with.
+var spawn_point: Vector2 = Vector2.ZERO
 var _flash_left: float = 0.0
 var _beast_impulse: Vector2 = Vector2.ZERO
 var _beast_stun_left: float = 0.0
@@ -708,7 +721,7 @@ func _tick_respawn(delta: float) -> void:
 ## two machines end up with heroes in different conditions.
 func _finish_respawn(to_spawn: bool = true) -> void:
 	if to_spawn:
-		global_position = Vector2.ZERO
+		global_position = spawn_point
 	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
 	health.revive(_respawn_fraction)

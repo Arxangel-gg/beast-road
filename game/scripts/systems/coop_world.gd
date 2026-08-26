@@ -472,6 +472,19 @@ func _on_request(kind: int, args: Array, from: int) -> void:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_place_trap(args[0] as Vector2i,
 					ContentDB.trap(String(args[1]))))
+		CoopRelay.Request.TEND_HERO:
+			# Against the *guest's* hero, which is this machine's partner. The
+			# same function a local click uses, so there is one set of rules
+			# about cost and phase rather than two that can drift apart.
+			var infirmary := field as Battlefield
+			if infirmary != null:
+				_answer(from, CoopRelay.Request.TEND_HERO,
+					infirmary.try_tend_hero(infirmary.partner_hero()))
+		CoopRelay.Request.REPAIR_TOWN:
+			var arena := field as Battlefield
+			if arena != null:
+				_answer(from, CoopRelay.Request.REPAIR_TOWN,
+					arena.try_repair_town())
 		CoopRelay.Request.RAISE_BARRICADE:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_raise_barricade(

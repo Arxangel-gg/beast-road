@@ -189,13 +189,24 @@ func _tick_strength(delta: float) -> void:
 ## would never reach a walker on the lane centre.
 func _enemy_pressure() -> float:
 	var direction: Vector2 = Battlefield.lane_vector(lane)
-	var torch_along: float = global_position.dot(direction)
 	var total: float = 0.0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
 		if enemy == null or enemy.lane != lane or enemy.is_dying():
 			continue
-		if absf(enemy.global_position.dot(direction) - torch_along) > Balance.TORCH_SNUFF_RANGE:
+		var offset: Vector2 = enemy.global_position - global_position
+		if absf(offset.dot(direction)) > Balance.TORCH_SNUFF_RANGE:
+			continue
+		# **Level with it is not the same as near it.**
+		#
+		# Only the longitudinal distance was measured, on the reasoning that a
+		# torch stands beside the road and a straight-line radius would never
+		# reach a walker on the lane centre. True for a straight road; the roads
+		# bend, and a bent road doubles back - so an enemy on a different leg
+		# entirely projects onto the same point along the lane vector and snuffs
+		# a torch it is nowhere near. Reported from play as torches going out
+		# with nothing on their stretch of road.
+		if absf(offset.dot(direction.orthogonal())) > Balance.TORCH_SNUFF_LATERAL:
 			continue
 		var weight: float = 1.0
 		if enemy.data != null:

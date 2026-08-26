@@ -17,7 +17,14 @@ func _ready() -> void:
 	coop.call("open")
 	if hosting:
 		Coop.host()
-	for _f: int in 40:
+	# Waits for the address rather than counting frames. UPnP takes seconds when
+	# it works at all, and the public-address fallback is a round trip to the
+	# internet - a fixed forty frames photographed the "looking..." state every
+	# time and said nothing about whether either ever answers.
+	var deadline: int = Time.get_ticks_msec() + 12000
+	while Time.get_ticks_msec() < deadline and Coop.external_address.is_empty():
+		await get_tree().process_frame
+	for _f: int in 20:
 		await get_tree().process_frame
 	coop.call("_refresh")
 	for _f: int in 6:

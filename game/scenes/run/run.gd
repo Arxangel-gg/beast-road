@@ -102,6 +102,25 @@ func _process(delta: float) -> void:
 		_end_wave_breather()
 
 
+## Tab, and only Tab.
+##
+## It has to be caught here rather than in `_unhandled_input`, because Tab is
+## also `ui_focus_next`: Godot's focus system runs between the two and moves the
+## highlight to the next button, so the key changed which thing was selected and
+## never reached the mode toggle at all. Reported from play in exactly those
+## words. `_input` runs before the GUI gets a look in.
+func _input(event: InputEvent) -> void:
+	if not event.is_action_pressed(&"toggle_build_mode"):
+		return
+	# Only where the choice exists. Outside Preparation there is nothing to
+	# build, and a key that silently does nothing is worse than an unbound one -
+	# so everywhere else Tab goes back to being ordinary focus navigation.
+	if _locked or not RunState.can_build_now():
+		return
+	GameDirector.toggle_build_mode()
+	get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"pause"):
 		pause_ui.toggle()
@@ -127,14 +146,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	# bottom bar was built, and neither key was ever bound to anything - the
 	# actions existed in the input map and nothing read them. Routed through the
 	# same handlers the buttons call, so a key and a click cannot diverge.
-	if event.is_action_pressed(&"toggle_build_mode"):
-		# Only where the choice exists. Outside Preparation there is nothing to
-		# build, and a key that silently does nothing is worse than one that is
-		# not bound.
-		if RunState.can_build_now():
-			GameDirector.toggle_build_mode()
-			get_viewport().set_input_as_handled()
-		return
 	if event.is_action_pressed(&"war_horn"):
 		_on_horn_requested()
 		get_viewport().set_input_as_handled()

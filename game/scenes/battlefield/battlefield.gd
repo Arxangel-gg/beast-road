@@ -1271,28 +1271,50 @@ func _refund_orphaned_fusions() -> void:
 ## only, a flat amount for a flat price, and paid in Food, which v4's economy
 ## table (§691) already assigns to hero upkeep. It cannot be spammed mid-fight
 ## and it competes with the same Preparation budget as everything else.
-func try_tend_hero() -> String:
+## Feeds a hero. `who` names which one; null means this machine's own.
+##
+## **A guest asks rather than does.** Food is a shared purse the host owns, and a
+## guest that spent it locally had its balance corrected back a moment later
+## while the healing landed on a body the host had never healed - so the button
+## appeared to do nothing at all, which is what was reported. The request goes
+## through the same function a local click uses, against the *guest's* hero,
+## because the answer has to be identical either way.
+func try_tend_hero(who: Hero = null) -> String:
 	if not RunState.can_build_now():
 		return "The hero is tended between road battles."
-	if hero == null or hero.health == null:
+	if who == null and Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.TEND_HERO)
+		return ""
+	var patient: Hero = who if who != null else hero
+	if patient == null or patient.health == null:
 		return "The hero cannot be reached."
-	if hero.health.current_hp >= hero.health.max_hp:
+	if patient.health.current_hp >= patient.health.max_hp:
 		return "The hero is already whole."
 	if not RunState.can_afford_cost({RunState.FOOD: Balance.HERO_TEND_COST}):
 		return "Needs %d Food." % Balance.HERO_TEND_COST
 	RunState.spend_cost({RunState.FOOD: Balance.HERO_TEND_COST})
 	# A fraction of maximum, so it stays worth buying once Wounds have cut the
 	# ceiling and a flat number would be most of a bar.
-	hero.health.heal(hero.health.max_hp * Balance.HERO_TEND_FRACTION)
-	Vfx.ring(hero.global_position, 90.0, Color(0.62, 0.9, 0.72, 0.6), 0.45, 5.0)
-	Vfx.spark(hero.global_position, Color("cdf0d6"), 14, Vector2.UP, 150.0)
+	patient.health.heal(patient.health.max_hp * Balance.HERO_TEND_FRACTION)
+	Vfx.ring(patient.global_position, 90.0, Color(0.62, 0.9, 0.72, 0.6), 0.45, 5.0)
+	Vfx.spark(patient.global_position, Color("cdf0d6"), 14, Vector2.UP, 150.0)
 	Sfx.play("sfx_tower_upgrade", -5.0)
 	return ""
 
 
+## Mends the wall. Host-resolved for the same reason tending is: one town, one
+## purse, and a guest spending either locally is corrected back within the
+## second while the repair lands on a wall the host never repaired.
 func try_repair_town() -> String:
 	if not RunState.can_build_now():
 		return "Repairs are prepared between road battles."
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.REPAIR_TOWN)
+		return ""
 	if town == null or town.health == null:
 		return "The town cannot be reached."
 	if town.health.current_hp >= town.health.max_hp:

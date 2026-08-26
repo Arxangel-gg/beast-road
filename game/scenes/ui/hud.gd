@@ -703,7 +703,7 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 		func() -> void: GameDirector.toggle_build_mode())
 	_mode_button.tooltip_text = "Build lays towers and traps. Fight lets you " 		+ "swing at whatever wandered in. Tab switches."
 	IconKit.on_button(_mode_button, "upgrade", 22)
-	EventBus.build_mode_changed.connect(func(_b: bool) -> void: _update_mode_button())
+	EventBus.build_mode_changed.connect(_on_build_mode_changed)
 	EventBus.phase_changed.connect(func(_n: int, _p: int) -> void: _update_mode_button())
 	_update_mode_button()
 
@@ -748,13 +748,45 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 ## "Build" while you are already building is the version that gets clicked by
 ## mistake. It reads as a state here, with the colour carrying the difference,
 ## because that is what the surrounding bar does.
+## Leaving Build mode has to take the build interface with it.
+##
+## Both panels sit over the battlefield and both swallow clicks, so a player who
+## switched to Fight to deal with a wolf was still looking at a tower list and
+## still could not swing at anything under it. The cursor moves too - a build
+## reticle during a fight says the click will place something, and it will not.
+func _on_build_mode_changed(building: bool) -> void:
+	_update_mode_button()
+	_apply_mode_cursor(building)
+	if building:
+		return
+	_close_build_panel()
+	if _road_panel != null:
+		_road_panel.visible = false
+
+
+## The pointer says which click you are about to make.
+##
+## `CURSOR_CROSS` for a fight and `CURSOR_CAN_DROP` for building: two shapes the
+## OS already draws, rather than a custom texture that would have to be authored
+## at four sizes and would still be wrong on a phone. Cleared entirely outside
+## Preparation, where there is no choice to describe.
+func _apply_mode_cursor(building: bool) -> void:
+	if not RunState.can_build_now():
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		return
+	Input.set_default_cursor_shape(Input.CURSOR_CAN_DROP if building
+		else Input.CURSOR_CROSS)
+
+
 func _update_mode_button() -> void:
 	if _mode_button == null:
 		return
 	var choosing: bool = RunState.can_build_now()
 	_mode_button.visible = choosing
 	if not choosing:
+		_apply_mode_cursor(false)
 		return
+	_apply_mode_cursor(GameDirector.build_mode)
 	var building: bool = GameDirector.build_mode
 	_mode_button.text = ("BUILD" if building else "FIGHT") if touch_ui() 		else ("TAB  Build" if building else "TAB  Fight")
 	_mode_button.add_theme_color_override("font_color",

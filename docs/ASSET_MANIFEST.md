@@ -483,6 +483,11 @@ point is that a clump is occasionally *not* what you expected.
 | `plant_snow_flower.png` | 48×56 | T | `#7C8A96` |
 | `plant_snow_fern.png` | 64×40 | T | `#7C8A96` |
 | `plant_jungle_bush.png` | 64×56 | T | `#2E3A33` |
+| `plant_jungle_blossom.png` | 48×56 | T | `#2E3A33` |
+| `plant_desert_blossom.png` | 48×56 | T | `#6E5B3C` |
+| `plant_snow_blossom.png` | 48×56 | T | `#7C8A96` |
+| `prop_mushrooms.png` | 48×40 | T | `#6B5344` |
+| `prop_bones.png` | 56×32 | T | `#B4AC97` |
 | `plant_desert_bush.png` | 64×56 | T | `#6E5B3C` |
 | `plant_snow_bush.png` | 64×56 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
@@ -734,33 +739,35 @@ one. Standing still and walking are two sequences over one source sprite, so a
 creature can ship with either, both or neither — the animator falls back to a
 transform where a sequence is missing.
 
-**Four of the six have a second frame; the rabbit and the squirrel do not.**
-Text-to-image will not reliably produce "the same animal, a different pose, the
-*same size and shade*" — across three attempts those two came back darker,
-lighter or larger every time. A mismatched pair is exactly the flicker a second
-frame exists to remove.
+**All twelve have a second frame now**, and the way to get one was neither
+hand-editing nor the character rig. Text-to-image genuinely will not produce "the
+same animal, a different pose, the *same size and shade*" — three attempts came
+back darker, lighter or larger every time, which is why seven of these shipped
+with one frame and a procedural hop.
 
-They lose nothing by it. A single-frame walker is given a **procedural hop**
-instead: rise, fall, and a squash at the bottom of the arc. For a rabbit and a
-squirrel that is not a compromise, it is the correct gait — and it is guaranteed
-consistent, because it is the same sprite throughout.
+`animate_image` does. It takes the existing frame as its *first* frame and asks
+only for the motion, so palette, scale and facing come from the sprite rather
+than from a description of it — and facing in particular has been wrong here
+three separate times when it was described rather than carried.
 
-A matching second frame for those two needs hand-editing, or building them
-through PixelLab's character rig (`create_character` + `animate_character`),
-which is made for coherent multi-frame sets in a way the freeform image call is
-not.
+Every pair was checked side by side on a contact sheet before it shipped, which
+is the only way this has ever been established. See
+`build-a-contact-sheet-before-claiming-art-facts`.
+
+The procedural hop stays for anything that ships with one frame: a creature can
+still have either, both or neither.
 
 Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
 Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png`
 Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png`
 Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png`
-Files: `wildlife_wolf_move_01.png`
-Files: `wildlife_boar_move_01.png`
-Files: `wildlife_bear_move_01.png`
-Files: `wildlife_viper_move_01.png`
-Files: `wildlife_badger_move_01.png`
-Files: `wildlife_rabbit_move_01.png`
-Files: `wildlife_squirrel_move_01.png`
+Files: `wildlife_wolf_move_01.png` · `wildlife_wolf_move_02.png`
+Files: `wildlife_boar_move_01.png` · `wildlife_boar_move_02.png`
+Files: `wildlife_bear_move_01.png` · `wildlife_bear_move_02.png`
+Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png`
+Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png`
+Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png`
+Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 

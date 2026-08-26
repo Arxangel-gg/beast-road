@@ -82,6 +82,7 @@ func _ready() -> void:
 	await _test_a_dropped_host_ends_the_guest_run()
 	await _test_guest_leaves_cleanly()
 	await _test_a_bad_address_fails_instead_of_hanging()
+	_test_a_code_survives_the_round_trip()
 
 	_tear_down()
 	for _f: int in 4:
@@ -523,6 +524,43 @@ func _test_a_bad_address_fails_instead_of_hanging() -> void:
 		"a dial with no answer must time out rather than hang in CONNECTING")
 	_guest.leave()
 	await get_tree().process_frame
+
+
+## The connect code, which is the whole of "playing with a friend anywhere".
+##
+## Pure arithmetic and therefore cheap to hold, and worth holding: a code that
+## decodes to the *wrong* address sends somebody dialling a stranger, and a code
+## that half-parses is worse than one that fails. Both directions, both the
+## boundaries, and the shapes that must be refused.
+func _test_a_code_survives_the_round_trip() -> void:
+	for row: Array in [["203.0.113.42", 45870], ["8.8.8.8", 1],
+			["255.255.255.255", 65535], ["10.0.0.237", 45870]]:
+		var address: String = String(row[0])
+		var port: int = int(row[1])
+		var code: String = CoopCode.encode(address, port)
+		_check(not code.is_empty(), "%s:%d must encode" % [address, port])
+		var back: Dictionary = CoopCode.decode(code)
+		_check(String(back.get("address", "")) == address
+				and int(back.get("port", 0)) == port,
+			"%s:%d -> %s must come back the same, got %s"
+				% [address, port, code, back])
+		# However it arrives out of a chat window.
+		_check(CoopCode.decode(code.to_lower()) == back, "case must not matter")
+		_check(CoopCode.decode(code.replace("-", "")) == back,
+			"nor the dash")
+
+	# And the shapes that must not be accepted. A code that half-parses is a
+	# player dialling somebody they have never met.
+	for bad: String in ["", "ABC", "IIIII-IIIII", "0000000000000",
+			"192.168.0.4", "6B01R-JNCS"]:
+		_check(CoopCode.decode(bad).is_empty(),
+			"'%s' must be refused rather than parsed" % bad)
+	_check(CoopCode.looks_like_code("6B01R-JNCSE"), "a code must look like one")
+	_check(not CoopCode.looks_like_code("192.168.0.4"),
+		"and an address must not")
+	_check(CoopCode.encode("not.an.address.here", 45870).is_empty(),
+		"nonsense must not encode")
+	_check(CoopCode.encode("10.0.0.1", 0).is_empty(), "nor a port of zero")
 
 
 func _tear_down() -> void:

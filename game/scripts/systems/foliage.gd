@@ -45,16 +45,29 @@ const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 ## Adding a kind is adding this name and the files it implies - one per region
 ## for a regional kind, one for a shared one. No other code changes, which is the
 ## whole point of deriving the path from the name.
-const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "fern", "bush"]
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "blossom", "fern", "bush"]
+
+## The kinds that read as *flowers*, drawn more often than their share.
+##
+## Asked for directly from play: "there isn't enough flower foliage". With five
+## regional kinds and six shared props a flower is one draw in eleven, which is
+## botanically reasonable and visually drab - the flowers are the only foliage
+## carrying a colour that is not green, brown or white, and they are what makes a
+## verge look alive rather than textured.
+const FLOWER_KINDS: Array[String] = ["flower", "blossom"]
 
 ## A rock is a rock in a jungle or a snowfield, and so is a fallen log. These are
 ## the props that carry no regional identity, so one file serves all three acts.
-const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump"]
+const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump",
+	"mushrooms", "bones"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 
 var _plant_art: Texture2D = null
 var _plant_art_id: String = ""
+
+## The flowering kinds available in this region, rebuilt alongside `_kind_art`.
+var _flower_art: Array[Texture2D] = []
 
 ## Every painted kind available for the current region, the region's own plant
 ## first. Rebuilt when the act changes.
@@ -499,13 +512,18 @@ func _painted_kinds() -> Array[Texture2D]:
 		return _kind_art
 	_kind_art_id = RunState.terrain_id
 	_kind_art = []
+	_flower_art = []
 	var own: Texture2D = _plant_texture()
 	if own != null:
 		_kind_art.append(own)
 	for kind: String in REGIONAL_KINDS:
 		var path: String = REGIONAL_KIND_FORMAT % [RunState.terrain_id, kind]
-		if ResourceLoader.exists(path):
-			_kind_art.append(load(path) as Texture2D)
+		if not ResourceLoader.exists(path):
+			continue
+		var art := load(path) as Texture2D
+		_kind_art.append(art)
+		if FLOWER_KINDS.has(kind):
+			_flower_art.append(art)
 	for kind: String in SHARED_KINDS:
 		var path: String = SHARED_KIND_FORMAT % kind
 		if ResourceLoader.exists(path):
@@ -523,6 +541,10 @@ func _painted_kind(rng: RandomNumberGenerator) -> Texture2D:
 		return null
 	if kinds.size() == 1 or rng.randf() < Balance.FOLIAGE_REGION_PLANT_SHARE:
 		return kinds[0]
+	# Flowers get their own slice rather than competing with ten other kinds for
+	# one uniform draw. See `FLOWER_KINDS`.
+	if not _flower_art.is_empty() and rng.randf() < Balance.FOLIAGE_FLOWER_SHARE:
+		return _flower_art[rng.randi_range(0, _flower_art.size() - 1)]
 	return kinds[rng.randi_range(1, kinds.size() - 1)]
 
 
