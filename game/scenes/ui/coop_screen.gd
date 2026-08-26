@@ -434,7 +434,8 @@ func _on_public_games(found: Array) -> void:
 	var joinable: Array = []
 	for entry: Variant in found:
 		var game: Dictionary = entry
-		if int(game["players"]) < 2:
+		# A party with a free seat, not just an empty one.
+		if int(game["players"]) < Balance.COOP_MAX_PLAYERS:
 			joinable.append(game)
 	var note: String = Coop.directory().status()
 	if joinable.is_empty():
@@ -446,7 +447,10 @@ func _on_public_games(found: Array) -> void:
 		var row := Button.new()
 		# The age says whether somebody is still sitting there. A lobby three
 		# seconds old is a person waiting; one four minutes old is usually not.
-		row.text = "%s  ·  waiting %s" % [String(game["name"]),
+		# The headcount is the first thing anybody wants from a lobby list: a
+		# party of three needs one more, and a party of one may be a long wait.
+		row.text = "%s  ·  %d/%d  ·  waiting %s" % [String(game["name"]),
+			int(game["players"]), Balance.COOP_MAX_PLAYERS,
 			_waited(int(game["age"]))]
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.custom_minimum_size = Vector2(0.0, 34.0)

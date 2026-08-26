@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.67** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.68** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run
 co-op as two real processes and are deliberately outside CI.
 
@@ -64,6 +64,27 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.68** **parties of up to four.** The hero replication layer was built on
+  a `host_hero: bool`, which is two-player by construction: with two people a
+  wrong seat and a right one are the same number. It is keyed on *slots* now -
+  1 to 4, host always 1 - and slot is what picks a colour, a spawn point, a name
+  in the party list and which body a packet is about.
+
+  Verified on three and four real processes by `tools/party.sh`. Every machine
+  sees every hero, in distinct seats, wearing distinct colours: Red, Blue,
+  Yellow, Green.
+
+  **Party-size difficulty is measured rather than asserted.** Mean pressure
+  across a full run is 0.363 / 0.339 / 0.346 / 0.337 for one to four players -
+  an 8% spread - and `curve_report` now fails if any party size drifts out of
+  band. The first attempt judged *peak* pressure and was chasing noise: peak
+  moves with tower-affordability rounding, and sweeping the scaling constant
+  gave 0.71, 0.88, 0.69, 0.87 for four neighbouring values.
+
+  **Still to come, and none of it is built:** text chat has its wire and its
+  relay but no interface; friends lists, passworded lobbies, auto-matchmaking
+  and the party lobby view are not started; and difficulty-tier gating for
+  parties is not wired. The online half of all of that also waits on the SQL.
 - **v0.4.67** **co-op in the browser.** A second transport — WebRTC — so the
   web build can play, and so two desktop players can meet through home routers
   neither of them configured. Nothing above the transport changed: `CoopRelay`

@@ -3026,13 +3026,47 @@ const LEADERBOARD_PENDING_MAX: int = 12
 ## server is already on that port" reads to a player as "co-op is broken".
 const COOP_PORT: int = 45870
 
-## Two, and the transport is told so.
+## Four, and the transport is told so.
 ##
-## Not a soft convention: ENet is given this as its peer limit, so a third
+## Not a soft convention: ENet is given this as its peer limit, so a fifth
 ## connection is refused by the transport rather than by a rule somewhere in
-## GDScript that could be missed. §54's re-cut restored *co-op*, not parties.
-const COOP_MAX_PLAYERS: int = 2
+## GDScript that could be missed.
+##
+## Two until 2026-08-26, when the owner asked for parties. The number is used
+## rather than assumed everywhere it matters - wave size, the party roster, the
+## spawn ring and the colours below all derive from it - so it is a number to
+## change rather than a rewrite, which is the only reason two became four
+## cheaply.
+const COOP_MAX_PLAYERS: int = 4
 const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
+
+## Who is who, at a glance.
+##
+## **Colour is how a player finds themselves in a crowd of four**, so these are
+## picked for distance and for colour blindness rather than for prettiness: red,
+## blue, yellow and green are the four the owner asked for and are also the four
+## that stay distinguishable under the most common deficiencies, because they
+## differ in lightness as well as in hue.
+##
+## Slot 1 is always the host. Nothing reads a colour from anywhere else, so a
+## player is the same colour on every screen in the party.
+const PARTY_COLOURS: Array[Color] = [
+	Color("e05a4a"),
+	Color("4a90e0"),
+	Color("e8c34a"),
+	Color("5bbf6a"),
+]
+const PARTY_COLOUR_NAMES: Array[String] = ["Red", "Blue", "Yellow", "Green"]
+
+## The mark under a player's feet that says which of the four they are.
+##
+## Under the feet rather than on the body: four heroes tinted red, blue, yellow
+## and green would fight the art, the lighting and the damage flash - and the
+## flash is a readout that matters more than the colour. Faint enough to read as
+## ground rather than as an effect. [TUNE]
+const PARTY_MARK_SCALE: float = 0.62
+const PARTY_MARK_LIFT: float = 16.0
+const PARTY_MARK_ALPHA: float = 0.55
 
 ## How long a join attempt may sit before it is called a failure. [TUNE]
 ##

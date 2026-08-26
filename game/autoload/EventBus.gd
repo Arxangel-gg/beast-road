@@ -100,6 +100,16 @@ signal coop_enemy_struck(net_id: int, at: Vector2)
 
 signal build_mode_changed(building: bool)
 
+## Who is in the party and which seat each of them holds. Host-authored.
+##
+## The whole roster every time rather than joins and leaves: four machines
+## reconciling a stream of deltas is four chances to hold a different opinion
+## about who is playing, and the list is four rows.
+signal coop_party_roster(rows: Array)
+
+## Something a player typed, and the seat they typed it from.
+signal coop_chat(slot: int, text: String)
+
 signal coop_pointer_moved(at: Vector2)
 
 ## Somebody took the regional relic. One reward, one winner - the fork's relic
@@ -350,8 +360,7 @@ signal coop_request_received(kind: int, args: Array, from_peer: int)
 ## its own hero's maximum - the two arrive at different levels with different
 ## maximum HP, and an absolute would hand a level-5 host's number to a level-20
 ## guest.
-signal coop_hero_state(host_at: Vector2, host_aim: Vector2, host_hp: float,
-	guest_at: Vector2, guest_aim: Vector2, guest_hp: float)
+signal coop_hero_state(rows: Array)
 
 ## The host dropped loot and gave it an identity.
 signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2)
@@ -402,7 +411,7 @@ signal coop_team_wipe()
 ##
 ## `host_hero` names the role rather than the owner: the host's hero is the
 ## guest's partner, and reading it as "mine" fills the wrong player's bar.
-signal coop_revive_progress(host_hero: bool, progress: float)
+signal coop_revive_progress(slot: int, progress: float)
 
 ## Somebody skipped a cinematic, so everybody skips it — on the host's say-so.
 signal coop_cinematic_skipped()
@@ -465,7 +474,7 @@ signal coop_address_known(local_address: String, external: String, mapped: bool)
 ## from velocity and state. Sending the same snapshot the guest already sends
 ## upward means the mirrored hero walks, swings and dashes through exactly the
 ## code its owner does, with no second animation path to keep in step.
-signal coop_host_input(snapshot: Array)
+signal coop_host_input(slot: int, snapshot: Array)
 
 ## The state of the world that is not a body: how far the beast has walked, what
 ## the sky is doing, and what the weather is.
@@ -487,5 +496,5 @@ signal coop_paused(paused: bool)
 ##
 ## Named by role rather than by "mine", because the two swap across the wire -
 ## exactly the trap `coop_hero_state` names its arguments to avoid.
-signal coop_hero_down(host_hero: bool, at: Vector2)
-signal coop_hero_revived(host_hero: bool, at: Vector2)
+signal coop_hero_down(slot: int, at: Vector2)
+signal coop_hero_revived(slot: int, at: Vector2)

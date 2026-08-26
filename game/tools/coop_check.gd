@@ -661,8 +661,9 @@ func _test_the_public_list_is_not_trusted() -> void:
 		_check(not String(row["name"]).contains("
 "),
 			"a name must not carry a line break into the row it is drawn in")
-		_check(int(row["players"]) <= 2,
-			"a player count must be clamped, got %d" % int(row["players"]))
+		_check(int(row["players"]) <= Balance.COOP_MAX_PLAYERS,
+			"a player count must be clamped to the seat count, got %d"
+				% int(row["players"]))
 		_check(int(row["age"]) >= 0, "and an age must not be negative")
 	_check(CoopDirectory.parse_rows("not an array").is_empty(),
 		"a reply that is not a list must produce no rows at all")

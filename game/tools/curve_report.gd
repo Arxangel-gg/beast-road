@@ -62,12 +62,18 @@ var _earned_gold: float = 0.0
 ## the rule and is asked directly, so this cannot drift from what the director
 ## actually does when two people are playing.
 var _players: int = 1
+var _body_scale: float = 0.0
 
 
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--players="):
 			_players = maxi(int(argument.split("=")[1]), 1)
+		# An override, so a scaling value can be swept without editing Balance
+		# and rebuilding an opinion each time. Reporting only - the game always
+		# reads the table.
+		elif argument.begins_with("--body-scale="):
+			_body_scale = maxf(float(argument.split("=")[1]), 0.01)
 	RunState.reset()
 	var packed: PackedScene = load("res://scenes/run/run.tscn")
 	var run: Run = packed.instantiate() as Run
@@ -104,6 +110,7 @@ func _ready() -> void:
 			break
 
 	_print_table()
+	var bad: int = _judge_party_scaling()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -111,7 +118,7 @@ func _ready() -> void:
 	run.queue_free()
 	for _frame: int in 20:
 		await get_tree().process_frame
-	get_tree().quit(0)
+	get_tree().quit(bad)
 
 
 ## One wave, with the run wound forward to where that wave happens.
@@ -130,7 +137,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	var lanes: int = director._progressive_lane_count(act_wave)
 	var per_lane: int = director._wave_size(act_wave, terrain)
 	var bodies: int = int(round(float(per_lane * lanes)
-		* WaveDirector.body_scale_for(_players)))
+		* (_body_scale if _body_scale > 0.0 else WaveDirector.body_scale_for(_players))))
 	var hp: float = director._hp_scale(0)
 	var damage: float = director._damage_scale(0)
 	var speed: float = director._speed_scale(0)
@@ -232,6 +239,108 @@ func _affordable_dps(earned: float) -> float:
 		return float(towers)
 	var interval: float = maxf(reference.interval_at(level), 0.01)
 	return float(towers) * reference.damage_at(level) / interval
+
+
+## **Does every party size get the same game?**
+##
+## Judged on the *mean* pressure across the run, not the peak. The peak is
+## quantisation noise: capability jumps whenever the purse crosses a tower price,
+## so the highest single wave lands wherever a formation happens to fall just
+## before a purchase, and sweeping the scaling constant moves it up and down at
+## random - 1.60 gave 0.71, 1.75 gave 0.88, 1.90 gave 0.69. Tuning against that
+## is tuning against rounding. The mean over forty waves is stable to the third
+## decimal and is what a player actually experiences.
+##
+## Measured 0.363 / 0.340 / 0.346 / 0.337 for one to four players when this was
+## written, which is flat enough that the linear rule needed no per-size table.
+## The band is here so it stays that way: a change that makes any party size a
+## different game fails rather than being discovered by somebody playing it.
+func _judge_party_scaling() -> int:
+	if _players != 1 or _body_scale > 0.0:
+		# Only the plain run judges. A report asked about one party size or an
+		# overridden constant is a question, not a verdict.
+		return 0
+	var means: Array[float] = []
+	for count: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		means.append(_mean_pressure_for(count))
+	var lowest: float = means[0]
+	var highest: float = means[0]
+	for value: float in means:
+		lowest = minf(lowest, value)
+		highest = maxf(highest, value)
+	var spread: float = (highest / maxf(lowest, 0.001) - 1.0) * 100.0
+	var readout: String = ""
+	for index: int in means.size():
+		readout += "%d:%.3f  " % [index + 1, means[index]]
+	print("")
+	print("[curve] mean pressure by party size   %s spread %.0f%%" % [readout, spread])
+	var failed: int = 0
+	if spread > PARTY_SPREAD_LIMIT:
+		printerr("[curve] party sizes do not get the same game: %.0f%% spread, "
+			% spread + "limit %.0f%%" % PARTY_SPREAD_LIMIT)
+		failed += 1
+	for index: int in means.size():
+		if means[index] < PARTY_PRESSURE_FLOOR or means[index] > PARTY_PRESSURE_CEILING:
+			printerr("[curve] %d players sits at %.3f, outside %.2f-%.2f"
+				% [index + 1, means[index], PARTY_PRESSURE_FLOOR,
+					PARTY_PRESSURE_CEILING])
+			failed += 1
+	if failed == 0:
+		print("[curve] PASS - every party size plays the same curve")
+	return failed
+
+
+## How far apart the easiest and hardest party sizes may be, and the band each
+## must sit in. Wide enough not to trip on model noise, narrow enough that a
+## party size becoming a different game fails. [TUNE]
+const PARTY_SPREAD_LIMIT: float = 22.0
+const PARTY_PRESSURE_FLOOR: float = 0.26
+const PARTY_PRESSURE_CEILING: float = 0.46
+
+
+## Replays the whole curve for one party size and averages the pressure.
+##
+## Rebuilt from the same `_measure` the table uses rather than scaled from the
+## one-player numbers, because capability does not scale linearly - hero damage
+## does, tower damage comes off a shared purse that grows with kills, and the
+## whole question is whether those two cancel.
+func _mean_pressure_for(count: int) -> float:
+	var was: int = _players
+	var banked: float = _earned_gold
+	_players = count
+	# **From an empty purse.** `_measure` accumulates gold as it goes, and a
+	# replay that inherits the main run's total starts every party size rich -
+	# which reported 0.166 where the real run reports 0.363, and would have
+	# shipped a gate that measured its own leftovers.
+	_earned_gold = 0.0
+	var total: float = 0.0
+	var samples: int = 0
+	var director := WaveDirector.new()
+	var wave: int = 0
+	var distance: float = 0.0
+	var act_wave: int = 0
+	var act: int = 1
+	while wave < MAX_WAVES:
+		wave += 1
+		var now: int = clampi(int(floor(distance / Balance.ACT_DISTANCE)) + 1, 1,
+			Balance.ACT_COUNT)
+		if now != act:
+			act = now
+			act_wave = 0
+		act_wave += 1
+		var row: Dictionary = _measure(director, wave, act, act_wave, distance)
+		total += float(row["pressure"])
+		samples += 1
+		var cycle: float = Balance.WAVE_INTERVAL \
+			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
+			+ ENGAGEMENT_SECONDS
+		distance += cycle * Balance.BEAST_BASE_SPEED
+		if distance >= Balance.ACT_DISTANCE * float(Balance.ACT_COUNT):
+			break
+	director.free()
+	_players = was
+	_earned_gold = banked
+	return total / maxf(float(samples), 1.0)
 
 
 func _print_table() -> void:

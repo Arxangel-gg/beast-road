@@ -48,6 +48,21 @@ func tick(delta: float) -> void:
 	_quiet_for += delta
 
 
+## The last thing that arrived, in the shape it arrived in.
+##
+## So a host can pass one guest's hands on to another. With four players a
+## guest's input reaches the host and stops there; without this the other guests
+## animate the host perfectly and watch each other stand still.
+##
+## Presses are *not* included. They are edges, latched until read, and passing on
+## a latch would either fire an attack twice or steal it from the hero it was
+## meant for. What travels is the level: where the stick is, where they are
+## aiming, and what they are holding - which is everything an animation is
+## chosen from.
+func last_snapshot() -> Array:
+	return [_move, _aim, 0, _held]
+
+
 ## Seconds since the last snapshot arrived.
 func quiet_for() -> float:
 	return _quiet_for

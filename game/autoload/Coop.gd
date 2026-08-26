@@ -81,6 +81,9 @@ var _beacon: CoopBeacon = null
 ## looks for a game never makes a request.
 var _directory: CoopDirectory = null
 
+## Who is in the party, and which seat each of them holds.
+var _party: CoopParty = null
+
 ## The shared REST client, and the WebRTC transport that uses it for signalling.
 var _rest: Supabase = null
 var _webrtc: CoopWebRTC = null
@@ -110,6 +113,16 @@ func directory() -> CoopDirectory:
 		_directory.name = "CoopDirectory"
 		add_child(_directory)
 	return _directory
+
+
+## The party roster. Built on demand and never torn down: a run that never opens
+## co-op still asks it for a slot, and the answer is 1.
+func party() -> CoopParty:
+	if _party == null:
+		_party = CoopParty.new()
+		_party.name = "CoopParty"
+		add_child(_party)
+	return _party
 
 
 ## The REST client. One instance, shared by the lobby list and by signalling.
@@ -150,6 +163,8 @@ func host_room() -> String:
 	room_code = code
 	# Hosting, immediately and honestly: a host is playable alone and does not
 	# wait for company, exactly as with ENet.
+	# The host takes seat one, before anybody can join it.
+	party().open(lobby_name())
 	_set_state(State.HOSTING)
 	return code
 
@@ -281,11 +296,19 @@ func relay() -> CoopRelay:
 
 ## How many players the run should be balanced for, right now.
 ##
-## The number the difficulty director will read in step 5. One unless somebody
-## is genuinely connected, which is why it is built on `partner_present` rather
-## than on the session state.
+## **The transport's count, not the roster's**, and the difference matters. The
+## roster is host-authored and arrives a packet late; the peer list is what this
+## machine can actually see. A wave sized from a roster that has not landed yet
+## is a wave sized for a player who is not there - which is exactly the failure
+## `partner_present` was written to avoid, and the reason it is built on peers.
+##
+## Everybody counted, capped at the seat count so a stray connection cannot
+## inflate a wave. One when playing alone.
 func player_count() -> int:
-	return 2 if partner_present() else 1
+	var api: MultiplayerAPI = multiplayer
+	if api == null or not api.has_multiplayer_peer():
+		return 1
+	return clampi(api.get_peers().size() + 1, 1, Balance.COOP_MAX_PLAYERS)
 
 
 # --- Doing -------------------------------------------------------------------
@@ -311,6 +334,8 @@ func host(port: int = Balance.COOP_PORT) -> bool:
 		return _fail("Could not open port %d. Another program may be using it." % port)
 	_peer = peer
 	multiplayer.multiplayer_peer = peer
+	# The host takes seat one, before anybody can join it.
+	party().open(lobby_name())
 	_set_state(State.HOSTING)
 	_begin_address_lookup(port)
 	# Shout on the local network, so anyone in the same house needs neither an
@@ -359,6 +384,8 @@ func join(address: String, port: int = Balance.COOP_PORT,
 func leave() -> void:
 	_connect_left = 0.0
 	room_code = ""
+	if _party != null:
+		_party.clear()
 	if _webrtc != null:
 		_webrtc.cancel()
 	beacon().stop_announcing()
@@ -486,6 +513,13 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
+	# The roster, on repeat, while anybody is there to hear it.
+	if is_host() and partner_present():
+		_roster_clock -= delta
+		if _roster_clock <= 0.0:
+			_roster_clock = ROSTER_INTERVAL
+			_publish_roster()
+
 	if _state != State.CONNECTING:
 		return
 	_connect_left -= delta
@@ -510,11 +544,39 @@ func _process(delta: float) -> void:
 # --- Hearing -----------------------------------------------------------------
 
 func _on_peer_connected(id: int) -> void:
+	# **Seated before anybody is told they arrived.** Everything downstream reads
+	# a slot - the colour, the spawn point, the name in the party list - and a
+	# join announced before the seat exists is a player briefly wearing nobody's
+	# colour on somebody else's screen.
+	if is_host():
+		party().seat(id, "Warden")
+		_publish_roster()
 	EventBus.coop_partner_joined.emit(id)
 
 
 func _on_peer_disconnected(id: int) -> void:
+	if is_host():
+		party().unseat(id)
+		_publish_roster()
 	EventBus.coop_partner_left.emit(id)
+
+
+## Tells everybody who is in the party. Host side.
+##
+## **Repeated, not announced once.** A roster sent on the frame a peer connects
+## races the guest's own relay coming up, and a guest that misses it stays
+## seatless forever - every guest believing it was seat one, wearing red, and
+## standing on the host. Four rows twice a second is nothing, and it also seats
+## anybody who joins later without a second mechanism to get wrong.
+func _publish_roster() -> void:
+	if not is_host():
+		return
+	EventBus.coop_party_roster.emit(party().to_wire())
+
+
+## How often the host re-states the roster while anybody is listening. [TUNE]
+const ROSTER_INTERVAL: float = 0.5
+var _roster_clock: float = 0.0
 
 
 func _on_connected_to_server() -> void:

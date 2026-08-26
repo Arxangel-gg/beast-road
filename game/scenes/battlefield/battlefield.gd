@@ -705,13 +705,19 @@ func partner_hero() -> Hero:
 
 
 ## Both heroes on the field, in a single-player run just the one.
+## Every hero on this field, this machine's own first.
+##
+## **The whole party, not a pair.** Enemy targeting, loot, wildlife and the
+## revive all ask this, so a version that stopped at the second player would make
+## players three and four invisible to everything that matters - which is exactly
+## the bug that made a guest walk through a battle untouched when co-op was two.
 func heroes() -> Array[Hero]:
+	var crew: CoopHeroes = _coop_heroes
+	if crew != null and is_instance_valid(crew):
+		return crew.party_heroes()
 	var found: Array[Hero] = []
 	if hero != null:
 		found.append(hero)
-	var second: Hero = partner_hero()
-	if second != null:
-		found.append(second)
 	return found
 
 

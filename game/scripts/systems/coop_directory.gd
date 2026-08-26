@@ -137,7 +137,7 @@ func _beat() -> void:
 		"p_id": _row_id,
 		"p_token": _token,
 		"p_code": _listed_code,
-		"p_players": 2 if Coop.partner_present() else 1,
+		"p_players": Coop.player_count(),
 	}, func(ok: bool, _data: Variant) -> void:
 		if ok:
 			return
@@ -224,7 +224,7 @@ static func parse_rows(data: Variant, own_code: String = "") -> Array:
 		rows.append({
 			"code": code,
 			"name": _clean(String(row.get("name", ""))),
-			"players": clampi(int(row.get("players", 1)), 1, 2),
+			"players": clampi(int(row.get("players", 1)), 1, Balance.COOP_MAX_PLAYERS),
 			"age": maxi(int(row.get("age_seconds", 0)), 0),
 		})
 	return rows

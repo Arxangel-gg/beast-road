@@ -33,17 +33,23 @@ const STATE_INTERVAL: float = 0.05
 ## The battlefield that owns the heroes. Assigned on creation.
 var field: Node = null
 
-var _partner: Hero = null
-var _remote: RemoteHeroInput = null
+## Everybody else's body, by seat. This machine's own hero is not in here - it
+## is the battlefield's, and it is driven by hands rather than by packets.
+##
+## **Keyed on slot rather than on "partner"**, because with four players there is
+## no such thing as *the* partner. A slot is a seat at the table: stable, agreed
+## by everyone, and the same number that picks a colour and a spawn point.
+var _bodies: Dictionary = {}
+var _inputs: Dictionary = {}
 var _state_timer: float = 0.0
 
 ## What was true last frame, so a death or a revival can be spotted as a change
 ## rather than as a signal that cannot say whose it was.
-var _host_was_alive: bool = true
+## Who was standing last frame, by slot, so a change can be spotted and told.
+var _was_alive: Dictionary = {}
 
 ## Whether the current wipe has already been announced, so it is charged once.
 var _wipe_announced: bool = false
-var _partner_was_alive: bool = true
 
 ## Where each player stands when they arrive, and where they come back to.
 ##
@@ -54,12 +60,32 @@ var _partner_was_alive: bool = true
 ## Far enough apart that two bodies of radius 26 cannot arrive inside one
 ## another: a wipe used to put both players on exactly `Vector2.ZERO` and they
 ## came back stuck to each other, which is what "locked at origin" was.
-const HOST_SPAWN: Vector2 = Vector2(-90.0, 30.0)
-const GUEST_SPAWN: Vector2 = Vector2(90.0, -30.0)
+## Where each seat stands when it arrives, and comes back to.
+##
+## **A ring, one point per seat**, and far enough apart that four bodies of
+## radius 26 cannot arrive inside one another. A wipe used to put both players on
+## exactly `Vector2.ZERO` and they came back stuck to each other; with four that
+## would be worse, not merely twice as bad.
+##
+## By slot, so the same player stands in the same place on every screen.
+const SPAWN_RING: Array[Vector2] = [
+	Vector2(-95.0, 30.0),
+	Vector2(95.0, -30.0),
+	Vector2(-45.0, -85.0),
+	Vector2(45.0, 85.0),
+]
+
+
+## The spot a seat comes back to, in world space.
+static func spawn_for_slot(number: int, town: Vector2) -> Vector2:
+	return town + SPAWN_RING[clampi(number - 1, 0, SPAWN_RING.size() - 1)]
 
 
 func _ready() -> void:
 	EventBus.coop_partner_joined.connect(_on_partner_joined)
+	# The roster is the truth about who is here, and it arrives after the
+	# connection does. Without this a guest keeps whatever it guessed.
+	Coop.party().roster_changed.connect(func() -> void: spawn_partner())
 	EventBus.coop_partner_left.connect(_on_partner_left)
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.coop_state_changed.connect(_on_session_changed)
@@ -101,17 +127,47 @@ func _ready() -> void:
 func _claim_local_spawn(battlefield: Battlefield) -> void:
 	if battlefield.hero == null:
 		return
-	battlefield.hero.spawn_point = battlefield.town_position() 		+ (HOST_SPAWN if Coop.is_host() else GUEST_SPAWN)
+	var number: int = Coop.party().slot()
+	if number <= 0:
+		return
+	battlefield.hero.party_slot = number
+	battlefield.hero.spawn_point = spawn_for_slot(number,
+		battlefield.town_position())
 
 
-## The partner's hero, or null when playing alone.
+## One other player's body, by seat, or null.
+func body_for_slot(number: int) -> Hero:
+	var who: Hero = _bodies.get(number, null) as Hero
+	return who if who != null and is_instance_valid(who) else null
+
+
+## The first other player's body. **Legacy, and only for callers that genuinely
+## mean "somebody else"** - a camera hint, a gate that needs any second hero.
+## Anything that means a specific player must ask for a slot.
 func partner() -> Hero:
-	return _partner
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		var who: Hero = body_for_slot(number)
+		if who != null:
+			return who
+	return null
 
 
-## True when a second hero is on the field.
+## True when anybody else's hero is on the field.
 func has_partner() -> bool:
-	return _partner != null and is_instance_valid(_partner)
+	return partner() != null
+
+
+## Every hero in the party, this machine's own first.
+func party_heroes() -> Array[Hero]:
+	var out: Array[Hero] = []
+	var mine: Hero = _local_hero()
+	if mine != null:
+		out.append(mine)
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		var who: Hero = body_for_slot(number)
+		if who != null:
+			out.append(who)
+	return out
 
 
 # --- Appearing and leaving ---------------------------------------------------
@@ -121,7 +177,10 @@ func _on_partner_joined(_peer_id: int) -> void:
 
 
 func _on_partner_left(_peer_id: int) -> void:
-	despawn_partner()
+	# **Only the seat that emptied.** Tearing down every body because one player
+	# left is what a two-player implementation gets away with and a four-player
+	# one must not.
+	_prune_bodies()
 
 
 ## A guest that has just connected has a partner too — the host.
@@ -136,10 +195,49 @@ func _on_session_changed(state: int) -> void:
 		despawn_partner()
 
 
-## Puts the partner's hero on the field. Safe to call twice.
+## Gives every other seat in the party a body. Safe to call as often as liked.
+##
+## Named `spawn_partner` still because a good deal of the game and several gates
+## call it, and it does the same job: make sure everybody who is here has
+## somewhere to stand. It returns the first one for the same reason.
 func spawn_partner() -> Hero:
-	if has_partner():
-		return _partner
+	# **Nobody has said who is here yet.**
+	#
+	# A guest reaches CONNECTED before the host's roster lands, and a body that
+	# waits for it is a player staring at an empty field for a packet or two -
+	# or forever, if nothing re-runs this. So the old two-player assumption
+	# stands in until better information arrives: one other player, seat two.
+	# `roster_changed` calls this again the moment the truth is known, and the
+	# extra seats appear then.
+	# **Only when there is no session at all.**
+	#
+	# A single-process harness has no roster and genuinely wants the classic
+	# second hero. A *networked* guest that has not been seated yet must wait:
+	# guessing there gave every guest seat one, its own colour, and a body on top
+	# of the host's. The host repeats the roster twice a second, so the wait is
+	# measured in frames.
+	if not Coop.is_networked():
+		return _ensure_body(2)
+	if Coop.party().slot() <= 0 or Coop.party().seats().is_empty():
+		return partner()
+	var made: Hero = null
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		if number == Coop.party().slot():
+			continue
+		if Coop.party().seat_for_slot(number) == null:
+			continue
+		var body: Hero = _ensure_body(number)
+		if made == null:
+			made = body
+	_prune_bodies()
+	return made if made != null else partner()
+
+
+## One seat's body, built if it is not already there.
+func _ensure_body(number: int) -> Hero:
+	var existing: Hero = body_for_slot(number)
+	if existing != null:
+		return existing
 	if field == null or not (field is Battlefield):
 		return null
 	var battlefield := field as Battlefield
@@ -150,17 +248,17 @@ func spawn_partner() -> Hero:
 	var hero := scene.instantiate() as Hero
 	if hero == null:
 		return null
-	_remote = RemoteHeroInput.new(hero)
+	var driver := RemoteHeroInput.new(hero)
 	# Assigned before the node enters the tree, so `Hero._ready` finds a source
-	# already present and does not build a local one first. A partner hero that
-	# reads this machine's keyboard for even one frame is a partner hero that
-	# twitches whenever its owner walks.
-	hero.input = _remote
-	hero.name = "PartnerHero"
+	# already present and does not build a local one first. A remote hero that
+	# reads this machine's keyboard for even one frame is a hero that twitches
+	# whenever the local player walks.
+	hero.input = driver
+	hero.name = "PartyHero%d" % number
 	hero.field = battlefield
+	hero.party_slot = number
 	hero.bounds_extent = Vector2.ONE * (BattleGrid.HALF_EXTENT - BattleGrid.TILE)
-	# The partner is whichever role this machine is not.
-	hero.spawn_point = battlefield.town_position() 		+ (GUEST_SPAWN if Coop.is_host() else HOST_SPAWN)
+	hero.spawn_point = spawn_for_slot(number, battlefield.town_position())
 	hero.position = hero.spawn_point
 	battlefield.entity_root.add_child(hero)
 	_claim_local_spawn(battlefield)
@@ -169,21 +267,40 @@ func spawn_partner() -> Hero:
 	# one this player is driving — see `Hero.set_active` for the raid version of
 	# the same problem.
 	hero.set_active(false)
-	_partner = hero
+	_bodies[number] = hero
+	_inputs[number] = driver
+	_was_alive[number] = true
 	return hero
 
 
-## Takes the partner's hero off the field.
-func despawn_partner() -> void:
-	if _remote != null:
+## Removes bodies for seats nobody occupies any more.
+func _prune_bodies() -> void:
+	for key: Variant in _bodies.keys():
+		var number: int = int(key)
+		if number != Coop.party().slot() 				and Coop.party().seat_for_slot(number) != null:
+			continue
+		_drop_body(number)
+
+
+func _drop_body(number: int) -> void:
+	var driver: RemoteHeroInput = _inputs.get(number, null) as RemoteHeroInput
+	if driver != null:
 		# Cleared before the node goes, so nothing is left holding a direction.
 		# A remote hero still carrying its last move vector walks into a wall
 		# forever, which is exactly what a hidden touch stick used to do.
-		_remote.clear()
-	_remote = null
-	if _partner != null and is_instance_valid(_partner):
-		_partner.queue_free()
-	_partner = null
+		driver.clear()
+	_inputs.erase(number)
+	var body: Hero = _bodies.get(number, null) as Hero
+	if body != null and is_instance_valid(body):
+		body.queue_free()
+	_bodies.erase(number)
+	_was_alive.erase(number)
+
+
+## Takes every other player's hero off the field. For leaving a session.
+func despawn_partner() -> void:
+	for key: Variant in _bodies.keys():
+		_drop_body(int(key))
 
 
 # --- Each frame --------------------------------------------------------------
@@ -191,8 +308,8 @@ func despawn_partner() -> void:
 func _physics_process(delta: float) -> void:
 	if not Coop.is_networked():
 		return
-	if _remote != null:
-		_remote.tick(delta)
+	for driver: Variant in _inputs.values():
+		(driver as RemoteHeroInput).tick(delta)
 
 	var relay: CoopRelay = Coop.relay()
 	if relay == null:
@@ -239,31 +356,26 @@ func _send_input(relay: CoopRelay) -> void:
 func _watch_deaths() -> void:
 	if not _is_authority_with_company():
 		return
-	var mine: Hero = _local_hero()
-	var host_alive: bool = mine != null and mine.is_alive()
-	var partner_alive: bool = has_partner() and _partner.is_alive()
-
-	if host_alive != _host_was_alive:
-		_host_was_alive = host_alive
-		if host_alive:
-			EventBus.coop_hero_revived.emit(true, mine.global_position)
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		var who: Hero = _hero_for_slot(number)
+		if who == null:
+			continue
+		var standing: bool = who.is_alive()
+		if standing == bool(_was_alive.get(number, true)):
+			continue
+		_was_alive[number] = standing
+		if standing:
+			EventBus.coop_hero_revived.emit(number, who.global_position)
 		else:
-			EventBus.coop_hero_down.emit(true, mine.global_position)
-	if partner_alive != _partner_was_alive:
-		_partner_was_alive = partner_alive
-		if partner_alive:
-			EventBus.coop_hero_revived.emit(false, _partner.global_position)
-		else:
-			EventBus.coop_hero_down.emit(false, _partner.global_position)
+			EventBus.coop_hero_down.emit(number, who.global_position)
 
 
 ## A hero went down on the host. Put the matching one down here.
 ##
-## `host_hero` names the role rather than the owner, because the two swap: the
-## host's hero is the guest's partner. Reading it as "mine" would drop the wrong
-## player every time.
-func _on_hero_down(host_hero: bool, at: Vector2) -> void:
-	var who: Hero = _mirrored(host_hero)
+## `slot` names the seat, which every machine agrees on. Reading it as "mine"
+## would drop the wrong player every time.
+func _on_hero_down(slot: int, at: Vector2) -> void:
+	var who: Hero = _mirrored(slot)
 	if who == null or not who.is_alive():
 		return
 	who.global_position = at
@@ -286,8 +398,8 @@ func _on_hero_down(host_hero: bool, at: Vector2) -> void:
 	who.go_down(at)
 
 
-func _on_hero_revived(host_hero: bool, at: Vector2) -> void:
-	var who: Hero = _mirrored(host_hero)
+func _on_hero_revived(slot: int, at: Vector2) -> void:
+	var who: Hero = _mirrored(slot)
 	if who != null and not who.is_alive():
 		who.global_position = at
 		who.revive_in_place()
@@ -307,20 +419,31 @@ func _on_hero_revived(host_hero: bool, at: Vector2) -> void:
 func _tick_revives(delta: float) -> void:
 	if not _is_authority_with_company():
 		return
-	var mine: Hero = _local_hero()
-	if mine == null or not has_partner():
+	var party: Array[Hero] = party_heroes()
+	if party.size() < 2:
 		return
 
-	if mine.is_downed() and _partner.is_downed():
-		# Latched, or a wipe would be announced on every frame the pair spends on
-		# the floor - and each announcement would charge the run another Wound.
+	# **A wipe is everybody down, however many everybody is.** With four players
+	# it is also the rarer event, which is the point: a party of four should be
+	# harder to wipe than a pair, and the Wound is worth the same either way.
+	var standing: int = 0
+	for who: Hero in party:
+		if not who.is_downed():
+			standing += 1
+	if standing == 0:
+		# Latched, or a wipe would be announced on every frame the party spends
+		# on the floor - and each announcement would charge the run a Wound.
 		if not _wipe_announced:
 			_wipe_announced = true
 			EventBus.coop_team_wipe.emit()
 		return
 	_wipe_announced = false
-	_tick_one_revive(mine, _partner, delta, true)
-	_tick_one_revive(_partner, mine, delta, false)
+
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		var downed: Hero = _hero_for_slot(number)
+		if downed == null or not downed.is_downed():
+			continue
+		_tick_one_revive(downed, _best_helper(downed, party), delta, number)
 
 
 ## How close to 1.0 counts as a finished revive.
@@ -330,12 +453,33 @@ func _tick_revives(delta: float) -> void:
 const FULL: float = 0.001
 
 
-## One downed hero, and whatever their partner is doing about it.
+## The nearest standing player who is holding the key, or null.
+##
+## **Nearest rather than first**, because with four players several may be within
+## reach and the bar should belong to whoever actually crossed the field. It also
+## keeps the answer stable: a list order is an implementation detail and would
+## hand the credit around as bodies were rebuilt.
+func _best_helper(downed: Hero, party: Array[Hero]) -> Hero:
+	var best: Hero = null
+	var nearest: float = Balance.COOP_REVIVE_RADIUS
+	for who: Hero in party:
+		if who == downed or not who.is_alive() or not who.is_holding_revive():
+			continue
+		var gap: float = who.global_position.distance_to(downed.global_position)
+		if gap <= nearest:
+			nearest = gap
+			best = who
+	return best
+
+
+## One downed hero, and whatever anybody is doing about it.
 func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
-		host_hero: bool) -> void:
+		slot: int) -> void:
 	if not downed.is_downed():
 		return
-	var reaching: bool = helper.is_alive() and helper.is_holding_revive() 		and helper.global_position.distance_to(downed.global_position) 			<= Balance.COOP_REVIVE_RADIUS
+	# `_best_helper` has already answered the distance and the key. A null here
+	# means nobody is helping, and the bar drains.
+	var reaching: bool = helper != null
 	# Decays when they let go or are driven off. A revive interrupted by having
 	# to fight is meant to lose ground, or standing in the open for three seconds
 	# during a wave would not be the cost it is supposed to be.
@@ -356,7 +500,7 @@ func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 	# is down with a full bar gets up, however the bar came to be full.
 	if reaching and after >= 1.0 - FULL:
 		downed.set_revive_progress(1.0)
-		EventBus.coop_revive_progress.emit(host_hero, 1.0)
+		EventBus.coop_revive_progress.emit(slot, 1.0)
 		# Announced by `_watch_deaths` on the next frame, from the change in who
 		# is alive - the same path a wipe respawn takes. Emitting it here as well
 		# would send the fact twice for one revival.
@@ -366,7 +510,7 @@ func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 	if is_equal_approx(before, after):
 		return
 	downed.set_revive_progress(after)
-	EventBus.coop_revive_progress.emit(host_hero, after)
+	EventBus.coop_revive_progress.emit(slot, after)
 
 
 ## The pair went down together, so the run pays. Applied on both machines.
@@ -381,16 +525,15 @@ func _on_team_wipe() -> void:
 		RunState.hero_deaths += 1
 		GameDirector.end_run(false)
 		return
-	var mine: Hero = _local_hero()
-	if mine != null and mine.is_downed():
-		mine.respawn_from_wipe()
-	if has_partner() and _partner.is_downed():
-		_partner.respawn_from_wipe()
+	# Everybody who is on the floor, which with four players may be four people.
+	for who: Hero in party_heroes():
+		if who.is_downed():
+			who.respawn_from_wipe()
 
 
 ## The host's bar, on the guest's screen.
-func _on_revive_progress(host_hero: bool, progress: float) -> void:
-	var who: Hero = _mirrored(host_hero)
+func _on_revive_progress(slot: int, progress: float) -> void:
+	var who: Hero = _mirrored(slot)
 	if who != null:
 		who.set_revive_progress(progress)
 
@@ -417,11 +560,22 @@ func _apply_health(who: Hero, fraction: float) -> void:
 	who.health.changed.emit(who.health.current_hp, who.health.max_hp)
 
 
-## Which hero here stands for the one the host is talking about.
-func _mirrored(host_hero: bool) -> Hero:
+## Which hero on this machine stands for the seat the host is talking about.
+##
+## A slot rather than a boolean, and that is the whole two-to-four change in one
+## function: with two players "is it the host's" was enough, and with four the
+## question is simply *which seat*, answered the same way on every machine.
+func _mirrored(slot: int) -> Hero:
 	if not Coop.is_guest():
 		return null
-	return _partner if host_hero else _local_hero()
+	return _hero_for_slot(slot)
+
+
+## Any hero in the party by seat, this machine's own included.
+func _hero_for_slot(number: int) -> Hero:
+	if number == Coop.party().slot():
+		return _local_hero()
+	return body_for_slot(number)
 
 
 ## What the host's player is asking for, so the guest can animate it.
@@ -430,6 +584,12 @@ func _mirrored(host_hero: bool) -> Hero:
 ## physics frame rather than on the slower state clock: a button press is an edge
 ## and lives for one frame, so a press sampled at 20Hz is a swing that sometimes
 ## simply never happens.
+## Every player's hands, sent to every machine. Host side.
+##
+## **With four players this is a relay, not a broadcast of one.** A guest's input
+## reaches the host and stops there, so the host passes on what everybody is
+## doing - otherwise two guests animate the host perfectly and stand still to
+## each other. The host's own seat rides along in the same packet.
 func _send_host_input() -> void:
 	var mine: Hero = _local_hero()
 	if mine == null:
@@ -437,13 +597,22 @@ func _send_host_input() -> void:
 	var source := mine.input as LocalHeroInput
 	if source == null:
 		return
-	EventBus.coop_host_input.emit(source.snapshot(mine.aim_direction()))
+	EventBus.coop_host_input.emit(Coop.party().slot(),
+		source.snapshot(mine.aim_direction()))
+	for key: Variant in _inputs.keys():
+		var number: int = int(key)
+		var driver: RemoteHeroInput = _inputs[key] as RemoteHeroInput
+		if driver != null:
+			EventBus.coop_host_input.emit(number, driver.last_snapshot())
 
 
 ## The host's stick and buttons, applied to the hero standing in for them here.
-func _on_host_input(snapshot: Array) -> void:
-	if Coop.is_guest() and _remote != null:
-		_remote.apply(snapshot)
+func _on_host_input(slot: int, snapshot: Array) -> void:
+	if not Coop.is_guest() or slot == Coop.party().slot():
+		return
+	var driver: RemoteHeroInput = _inputs.get(slot, null) as RemoteHeroInput
+	if driver != null:
+		driver.apply(snapshot)
 
 
 ## The host tells the guest where both heroes actually are.
@@ -454,14 +623,16 @@ func _on_host_input(snapshot: Array) -> void:
 ## A guest that tried to author a position would be caught by the same check that
 ## catches one inventing a kill.
 func _send_state() -> void:
-	var mine: Hero = _local_hero()
-	if mine == null:
+	var rows: Array = []
+	for number: int in range(1, Balance.COOP_MAX_PLAYERS + 1):
+		var who: Hero = _hero_for_slot(number)
+		if who == null:
+			continue
+		rows.append([number, who.global_position, who.aim_direction(),
+			_health_of(who)])
+	if rows.is_empty():
 		return
-	var partner_at: Vector2 = _partner.global_position if has_partner() else Vector2.ZERO
-	var partner_aim: Vector2 = _partner.aim_direction() if has_partner() else Vector2.ZERO
-	var partner_hp: float = _health_of(_partner) if has_partner() else 1.0
-	EventBus.coop_hero_state.emit(mine.global_position, mine.aim_direction(),
-		_health_of(mine), partner_at, partner_aim, partner_hp)
+	EventBus.coop_hero_state.emit(rows)
 
 
 ## A hero's health as a fraction of its own maximum.
@@ -491,47 +662,54 @@ func _health_of(who: Hero) -> float:
 ## mirrored hero now runs it from the relayed input like any other, which means
 ## it cannot drift from what its owner sees by construction rather than by
 ## keeping two rules in step.
-func _on_hero_state(host_at: Vector2, _host_aim: Vector2, host_hp: float,
-		guest_at: Vector2, _guest_aim: Vector2, guest_hp: float) -> void:
+func _on_hero_state(rows: Array) -> void:
 	if not Coop.is_guest():
 		return
-	# Health is *assigned*, both heroes, and that is the fix for a guest who
-	# walked through a battle at full health while the host watched them die.
-	#
-	# Nothing damages a guest's heroes locally - puppet enemies never strike -
-	# so there is no local simulation to fight here. The host is simply the only
-	# thing that knows, and until it said so the two machines held two different
-	# opinions about whether anybody was hurt.
-	if has_partner():
-		_apply_health(_partner, host_hp)
-	var local: Hero = _local_hero()
-	if local != null:
-		_apply_health(local, guest_hp)
+	for entry: Variant in rows:
+		var row: Array = entry as Array
+		if row == null or row.size() != 4:
+			continue
+		_apply_one_state(clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS),
+			row[1] as Vector2, float(row[3]))
+
+
+## One seat's authoritative position and health, on a guest.
+func _apply_one_state(number: int, at: Vector2, hp: float) -> void:
+	var who: Hero = _hero_for_slot(number)
+	if who == null:
+		return
+	_apply_health(who, hp)
+	var own: bool = number == Coop.party().slot()
 	# **Corrected toward, not snapped to.**
 	#
-	# Both heroes are already walking here - the partner from the host's relayed
-	# input, this player's own from their hands - so a hard assignment every
-	# packet fights that motion twenty times a second. It reads as a hero that
-	# stutters and, worse, it flattens the velocity the walk cycle is chosen
+	# Every body here is already walking - somebody else's from the host's
+	# relayed input, this player's own from their hands - so a hard assignment
+	# every packet fights that motion twenty times a second. It reads as a hero
+	# that stutters and, worse, it flattens the velocity the walk cycle is chosen
 	# from, so a moving hero plays its idle. Easing onto the authoritative
 	# position keeps the movement continuous and still ends up where the host
 	# says.
-	if has_partner():
-		_partner.global_position = _partner.global_position.lerp(host_at,
-			Balance.COOP_POSITION_CORRECTION)
-	var mine: Hero = _local_hero()
-	if mine != null:
-		# Gentler still for the hero under this player's own hands: a correction
-		# they can feel is worse than a few pixels of disagreement.
-		mine.global_position = mine.global_position.lerp(guest_at,
-			Balance.COOP_POSITION_CORRECTION * 0.5)
+	#
+	# Gentler for the hero under this player's own hands: a correction they can
+	# feel is worse than a few pixels of disagreement.
+	who.global_position = who.global_position.lerp(at,
+		Balance.COOP_POSITION_CORRECTION * (0.5 if own else 1.0))
 
 
-func _on_request(kind: int, args: Array, _from: int) -> void:
+## A guest told the host what its player is asking for. Host side.
+##
+## **Attributed by the peer it arrived on**, which is the only trustworthy answer:
+## a slot carried inside the packet would be a guest naming which body it drives,
+## and naming somebody else's is the whole reason the authority model exists.
+func _on_request(kind: int, args: Array, from: int) -> void:
 	if kind != CoopRelay.Request.HERO_INPUT or not Coop.is_host():
 		return
-	if _remote != null:
-		_remote.apply(args)
+	var number: int = Coop.party().slot_for_peer(from)
+	if number <= 0:
+		return
+	var driver: RemoteHeroInput = _inputs.get(number, null) as RemoteHeroInput
+	if driver != null:
+		driver.apply(args)
 
 
 ## True when this machine decides things *and* somebody is listening.

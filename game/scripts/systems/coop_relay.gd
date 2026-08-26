@@ -73,6 +73,8 @@ enum Fact {
 	POINTER = 34,
 	RELIC_CHOSEN = 35,
 	ENEMY_STRUCK = 36,
+	PARTY_ROSTER = 37,
+	CHAT = 38,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -119,7 +121,13 @@ const ANNOUNCEMENT_FACTS: Array[int] = [Fact.TOWN_HEALTH, Fact.CURRENCY_CHANGED]
 ##
 ## Kept as short as ANNOUNCEMENT_FACTS and for the same reason. Anything added
 ## here is something a guest can make the host believe.
-const SYMMETRIC_FACTS: Array[int] = [Fact.POINTER]
+## Facts with more than one rightful author.
+##
+## The pointer is where somebody's hand is and chat is a person speaking: both
+## describe a *player* rather than the world, so the authority guard would be
+## wrong to catch either. Everything absent from this list has exactly one
+## author, and a guest originating one is what the guard exists to catch.
+const SYMMETRIC_FACTS: Array[int] = [Fact.POINTER, Fact.CHAT]
 
 ## Wire tags. A packet is `[tag, kind, args]`.
 ##
@@ -264,6 +272,8 @@ func _fact_bindings() -> Array:
 		["coop_road_chosen", _on_coop_road_chosen],
 		["coop_relic_chosen", _on_coop_relic_chosen],
 		["coop_enemy_struck", _on_coop_enemy_struck],
+		["coop_party_roster", _on_coop_party_roster],
+		["coop_chat", _on_coop_chat],
 		["coop_pointer_moved", _on_coop_pointer_moved],
 	]
 
@@ -296,8 +306,8 @@ func _on_coop_team_wipe() -> void:
 	_relay(Fact.TEAM_WIPE, [])
 
 
-func _on_coop_revive_progress(host_hero: bool, progress: float) -> void:
-	_relay(Fact.REVIVE_PROGRESS, [host_hero, progress])
+func _on_coop_revive_progress(slot: int, progress: float) -> void:
+	_relay(Fact.REVIVE_PROGRESS, [slot, progress])
 
 
 func _on_coop_trap_state(tile: Vector2i, trap_id: String, triggers_left: int) -> void:
@@ -354,6 +364,23 @@ func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
 	_relay(Fact.ENEMY_STRUCK, [net_id, at])
 
 
+func _on_coop_party_roster(rows: Array) -> void:
+	_relay(Fact.PARTY_ROSTER, [rows])
+
+
+## **Chat is the other fact either player may author**, like the pointer.
+##
+## It is not a claim about the world - it is a person speaking - so the authority
+## guard would be wrong to catch it. The host still relays it onward to everyone
+## else, because in a party of four a guest can only reach the host directly.
+func _on_coop_chat(slot: int, text: String) -> void:
+	if _replaying or session == null:
+		return
+	if not bool(session.call("partner_present")):
+		return
+	_send([TAG_FACT, int(Fact.CHAT), [slot, text]])
+
+
 ## The pointer is the one fact **either** player may author.
 ##
 ## It is not a claim about the world - it is where somebody's hand is - so the
@@ -382,10 +409,8 @@ func _on_town_health_changed(current: float, maximum: float) -> void:
 ## it, exactly as it forwards a death or a wave clearing. One mechanism, and the
 ## guard covers hero state for free - a guest that tried to author a position
 ## would be caught by the same check that catches a guest inventing a kill.
-func _on_coop_hero_state(host_at: Vector2, host_aim: Vector2, host_hp: float,
-		guest_at: Vector2, guest_aim: Vector2, guest_hp: float) -> void:
-	_relay(Fact.HERO_STATE,
-		[host_at, host_aim, host_hp, guest_at, guest_aim, guest_hp])
+func _on_coop_hero_state(rows: Array) -> void:
+	_relay(Fact.HERO_STATE, [rows])
 
 
 func _on_coop_tower_state(anchor: Vector2i, tower_id: String, level: int) -> void:
@@ -418,8 +443,8 @@ func _on_coop_run_started(seed_value: int, endless: bool) -> void:
 	_relay(Fact.RUN_STARTED, [seed_value, endless])
 
 
-func _on_coop_host_input(snapshot: Array) -> void:
-	_relay(Fact.HOST_INPUT, [snapshot])
+func _on_coop_host_input(slot: int, snapshot: Array) -> void:
+	_relay(Fact.HOST_INPUT, [slot, snapshot])
 
 
 func _on_coop_world_clock(distance: float, weather_id: String, act: int) -> void:
@@ -430,12 +455,12 @@ func _on_coop_paused(paused: bool) -> void:
 	_relay(Fact.PAUSED, [paused])
 
 
-func _on_coop_hero_down(host_hero: bool, at: Vector2) -> void:
-	_relay(Fact.HERO_DOWN, [host_hero, at])
+func _on_coop_hero_down(slot: int, at: Vector2) -> void:
+	_relay(Fact.HERO_DOWN, [slot, at])
 
 
-func _on_coop_hero_revived(host_hero: bool, at: Vector2) -> void:
-	_relay(Fact.HERO_REVIVED, [host_hero, at])
+func _on_coop_hero_revived(slot: int, at: Vector2) -> void:
+	_relay(Fact.HERO_REVIVED, [slot, at])
 
 
 # --- Sending -----------------------------------------------------------------
@@ -526,6 +551,12 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 		if session != null and bool(session.call("is_host")) 				and not SYMMETRIC_FACTS.has(kind):
 			return
 		_replay(kind, args)
+		# **In a party of four, a guest can only reach the host.** Everything
+		# host-authored already goes to everybody, but a fact with two authors
+		# arrives at the host addressed to nobody else - so the host passes it
+		# on, or two of the four players never hear the third one speak.
+		if kind == Fact.CHAT and session != null 				and bool(session.call("is_host")):
+			_send([TAG_FACT, kind, args])
 	elif tag == TAG_REQUEST:
 		if session == null or not bool(session.call("is_host")):
 			return
@@ -569,7 +600,7 @@ func _replay(kind: int, args: Array) -> void:
 			bus.coop_team_wipe.emit()
 		Fact.REVIVE_PROGRESS:
 			if args.size() == 2:
-				bus.coop_revive_progress.emit(bool(args[0]), float(args[1]))
+				bus.coop_revive_progress.emit(int(args[0]), float(args[1]))
 		Fact.CURRENCY_CHANGED:
 			if args.size() == 2:
 				bus.currency_changed.emit(String(args[0]), int(args[1]))
@@ -577,10 +608,8 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 2:
 				bus.town_health_changed.emit(float(args[0]), float(args[1]))
 		Fact.HERO_STATE:
-			if args.size() == 6:
-				bus.coop_hero_state.emit(args[0] as Vector2, args[1] as Vector2,
-					float(args[2]), args[3] as Vector2, args[4] as Vector2,
-					float(args[5]))
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_hero_state.emit(args[0] as Array)
 		Fact.WILDLIFE_SPAWNED:
 			if args.size() == 3:
 				bus.coop_wildlife_spawned.emit(int(args[0]), String(args[1]),
@@ -609,6 +638,12 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.ENEMY_STRUCK:
 			if args.size() == 2:
 				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2)
+		Fact.PARTY_ROSTER:
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_party_roster.emit(args[0] as Array)
+		Fact.CHAT:
+			if args.size() == 2:
+				bus.coop_chat.emit(int(args[0]), String(args[1]))
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),
@@ -652,8 +687,8 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 2:
 				bus.coop_run_started.emit(int(args[0]), bool(args[1]))
 		Fact.HOST_INPUT:
-			if args.size() == 1 and args[0] is Array:
-				bus.coop_host_input.emit(args[0] as Array)
+			if args.size() == 2 and args[1] is Array:
+				bus.coop_host_input.emit(int(args[0]), args[1] as Array)
 		Fact.WORLD_CLOCK:
 			if args.size() == 3:
 				bus.coop_world_clock.emit(float(args[0]), String(args[1]), int(args[2]))
@@ -662,10 +697,10 @@ func _replay(kind: int, args: Array) -> void:
 				bus.coop_paused.emit(bool(args[0]))
 		Fact.HERO_DOWN:
 			if args.size() == 2:
-				bus.coop_hero_down.emit(bool(args[0]), args[1] as Vector2)
+				bus.coop_hero_down.emit(int(args[0]), args[1] as Vector2)
 		Fact.HERO_REVIVED:
 			if args.size() == 2:
-				bus.coop_hero_revived.emit(bool(args[0]), args[1] as Vector2)
+				bus.coop_hero_revived.emit(int(args[0]), args[1] as Vector2)
 	_replaying = false
 
 

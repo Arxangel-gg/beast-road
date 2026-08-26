@@ -120,6 +120,16 @@ var _revive_progress: float = 0.0
 ## Defaults to the origin, which is correct for a lone player: there is nothing
 ## to collide with.
 var spawn_point: Vector2 = Vector2.ZERO
+
+## Which seat at the table this hero belongs to, 1 to 4.
+##
+## **Colour comes from here and from nowhere else**, so a player is the same
+## colour on every screen in the party. 1 alone, which is why a solo run is a
+## party of one rather than a case with no colour.
+var party_slot: int = 1:
+	set(value):
+		party_slot = clampi(value, 1, Balance.COOP_MAX_PLAYERS)
+		_apply_party_colour()
 var _flash_left: float = 0.0
 var _beast_impulse: Vector2 = Vector2.ZERO
 var _beast_stun_left: float = 0.0
@@ -741,6 +751,40 @@ func apply_hearthmend() -> void:
 		health.current_hp = health.max_hp
 		health.changed.emit(health.current_hp, health.max_hp)
 	_restore_presence()
+
+
+## Tints the banner that says which player this is.
+##
+## **The body is not tinted.** Four heroes painted red, blue, yellow and green
+## would fight the art, the lighting and the damage flash - and the flash is a
+## readout the player needs more than the colour. The mark sits under the feet
+## where it never covers the character and never leaves the screen.
+func _apply_party_colour() -> void:
+	if not is_inside_tree():
+		return
+	var mark: Node2D = get_node_or_null("PartyMark") as Node2D
+	var wanted: Color = CoopParty.colour_of(party_slot)
+	if mark == null:
+		mark = _build_party_mark()
+	mark.modulate = Color(wanted.r, wanted.g, wanted.b,
+		Balance.PARTY_MARK_ALPHA)
+	# Only ever drawn in company. One player does not need to be told which
+	# player they are.
+	mark.visible = Coop.player_count() > 1
+
+
+func _build_party_mark() -> Node2D:
+	var ring := Sprite2D.new()
+	ring.name = "PartyMark"
+	ring.texture = LightKit.falloff_texture()
+	ring.scale = Vector2.ONE * Balance.PARTY_MARK_SCALE
+	ring.position.y = Balance.PARTY_MARK_LIFT
+	# Under everything, and *relative* so the entity root's y-sorting still
+	# places it against the ground rather than lifting it out of the scene.
+	ring.z_as_relative = true
+	ring.z_index = -3
+	add_child(ring)
+	return ring
 
 
 func _restore_presence() -> void:

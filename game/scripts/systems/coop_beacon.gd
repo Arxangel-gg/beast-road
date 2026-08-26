@@ -199,7 +199,7 @@ func _beacon_packet() -> Dictionary:
 		"id": _id,
 		"name": _name,
 		"port": _port,
-		"players": 2 if Coop.partner_present() else 1,
+		"players": Coop.player_count(),
 	}
 
 
