@@ -285,6 +285,13 @@ func _tick_revives(delta: float) -> void:
 	_tick_one_revive(_partner, mine, delta, false)
 
 
+## How close to 1.0 counts as a finished revive.
+##
+## Wider than float noise and narrower than a frame's worth of progress, so it
+## can only ever swallow the rounding rather than a real step.
+const FULL: float = 0.001
+
+
 ## One downed hero, and whatever their partner is doing about it.
 func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 		host_hero: bool) -> void:
@@ -297,16 +304,31 @@ func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 	var step: float = delta / maxf(Balance.COOP_REVIVE_SECONDS, 0.01)
 	var before: float = downed.revive_progress()
 	var after: float = clampf(before + (step if reaching else -step), 0.0, 1.0)
+
+	# **Full is a state, not the instant of a transition.**
+	#
+	# This used to get a hero up only on the frame the bar *crossed* 1.0, and
+	# that frame never arrived. The last step lands on 0.999995 rather than 1.0 -
+	# and `is_equal_approx` reads that as already equal, so the guard below threw
+	# it away as a no-op, and every frame after it did the same. The bar sat
+	# visibly full, nothing happened, and letting go simply drained it again.
+	# Reported from play twice, in exactly those words.
+	#
+	# Asking about the state instead also makes the rule self-healing: a hero who
+	# is down with a full bar gets up, however the bar came to be full.
+	if reaching and after >= 1.0 - FULL:
+		downed.set_revive_progress(1.0)
+		EventBus.coop_revive_progress.emit(host_hero, 1.0)
+		# Announced by `_watch_deaths` on the next frame, from the change in who
+		# is alive - the same path a wipe respawn takes. Emitting it here as well
+		# would send the fact twice for one revival.
+		downed.revive_in_place()
+		return
+
 	if is_equal_approx(before, after):
 		return
 	downed.set_revive_progress(after)
 	EventBus.coop_revive_progress.emit(host_hero, after)
-	if after < 1.0:
-		return
-	# Announced by `_watch_deaths` on the next frame, from the change in who is
-	# alive - the same path a wipe respawn takes. Emitting it here as well would
-	# send the fact twice for one revival.
-	downed.revive_in_place()
 
 
 ## The pair went down together, so the run pays. Applied on both machines.

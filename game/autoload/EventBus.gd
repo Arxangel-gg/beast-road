@@ -88,6 +88,18 @@ signal coop_road_chosen(road_id: String, difficulty_id: String)
 ## Fractions rather than pixels, because the two players are not necessarily
 ## looking at the same size of window - and this is the one moment in the game
 ## where seeing where somebody else is about to click is the whole point.
+## Preparation is two things now - a build phase and a fightable one - and this
+## says which the local player is currently doing. Local by nature: in co-op each
+## player chooses for themselves, so this never crosses the wire.
+## One enemy landed a blow, and where it aimed it. Carries the net id so a
+## mirrored copy can be found; emitted only for enemies that have one.
+signal enemy_struck(net_id: int, at: Vector2)
+
+## The host's enemy landed a blow, for the guest to draw. Cosmetic only.
+signal coop_enemy_struck(net_id: int, at: Vector2)
+
+signal build_mode_changed(building: bool)
+
 signal coop_pointer_moved(at: Vector2)
 
 ## Somebody took the regional relic. One reward, one winner - the fork's relic

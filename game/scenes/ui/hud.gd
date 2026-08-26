@@ -181,6 +181,10 @@ var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
 var _repair_button: Button
+
+## Build or Fight, during Preparation. Hidden outside it, because outside it
+## there is nothing to build and the question does not arise.
+var _mode_button: Button
 var _tend_button: Button
 var _message: Label
 var _message_left: float = 0.0
@@ -692,6 +696,17 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 	_raid_button.disabled = true
 	# Short labels because the bar has to share the bottom edge with the spell
 	# slots, and both buttons carry an icon and a tooltip that say the rest.
+	# **Build or Fight.** Preparation is both, and the player has to be able to
+	# say which without hunting for a key: a wolf pack arriving mid-build is
+	# exactly when nobody wants to remember a shortcut.
+	_mode_button = _add_button(bar, "TAB  Build",
+		func() -> void: GameDirector.toggle_build_mode())
+	_mode_button.tooltip_text = "Build lays towers and traps. Fight lets you " 		+ "swing at whatever wandered in. Tab switches."
+	IconKit.on_button(_mode_button, "upgrade", 22)
+	EventBus.build_mode_changed.connect(func(_b: bool) -> void: _update_mode_button())
+	EventBus.phase_changed.connect(func(_n: int, _p: int) -> void: _update_mode_button())
+	_update_mode_button()
+
 	_repair_button = _add_button(bar,
 		"Repair",
 		func() -> void: _report(battlefield.try_repair_town()))
@@ -725,6 +740,26 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 	charge_readout.tooltip_text = _charge_bar.tooltip_text
 	charge_readout.add_child(_charge_bar)
 	bar.add_child(charge_readout)
+
+
+## The mode button says what pressing it *gives you*, not what mode you are in.
+##
+## Both readings are defensible and mixing them is the trap - a button labelled
+## "Build" while you are already building is the version that gets clicked by
+## mistake. It reads as a state here, with the colour carrying the difference,
+## because that is what the surrounding bar does.
+func _update_mode_button() -> void:
+	if _mode_button == null:
+		return
+	var choosing: bool = RunState.can_build_now()
+	_mode_button.visible = choosing
+	if not choosing:
+		return
+	var building: bool = GameDirector.build_mode
+	_mode_button.text = ("BUILD" if building else "FIGHT") if touch_ui() 		else ("TAB  Build" if building else "TAB  Fight")
+	_mode_button.add_theme_color_override("font_color",
+		Color("9fd6b0") if building else Color("e8a33d"))
+	IconKit.on_button(_mode_button, "upgrade" if building else "war_horn", 22)
 
 
 func _update_repair_button() -> void:
@@ -1615,6 +1650,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_raid_button.text = "RAID" if showing else "R  Raid"
 	if _repair_button != null:
 		_repair_button.text = "FIX" if showing else "Repair"
+	_update_mode_button()
 	if _tend_button != null:
 		_tend_button.text = "TEND" if showing else "Tend"
 

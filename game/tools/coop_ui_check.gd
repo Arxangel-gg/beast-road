@@ -26,6 +26,28 @@ var _entered_run: bool = false
 ## Set when a partner's cursor arrives over the wire, at the fork.
 var _saw_partner_pointer: bool = false
 
+## Set while watching for projectiles on the guest. Watched rather than sampled:
+## a shot lives for a fraction of a second.
+var _saw_tower_shot: bool = false
+var _saw_enemy_shot: bool = false
+
+
+func _process(_delta: float) -> void:
+	if _saw_tower_shot and _saw_enemy_shot:
+		return
+	_scan_for_shots(get_tree().root)
+
+
+func _scan_for_shots(from: Node) -> void:
+	for child: Node in from.get_children():
+		if child is Projectile:
+			_saw_tower_shot = true
+		elif child is EnemyProjectile:
+			_saw_enemy_shot = true
+		if _saw_tower_shot and _saw_enemy_shot:
+			return
+		_scan_for_shots(child)
+
 
 ## The host's world, adopted. Guest side.
 func _on_host_run_started(seed_value: int, _endless: bool) -> void:
@@ -257,6 +279,121 @@ func _enter_run_in_place(role: String) -> void:
 		# measured with it.
 		await _hold(6.0)
 
+		# **Projectiles.** Reported as missing on the guest entirely - tower
+		# shots, enemy shots and the ground effects that come off their impacts.
+		#
+		# Built and spawned rather than faked: a tower that is told to fire and a
+		# ranged enemy that is told to swing are two different replication paths,
+		# and only one of them existed.
+		RunState.gain_every_currency(99999)
+		var towers: Array[TowerData] = ContentDB.base_towers()
+		var built: String = "no towers in the database"
+		var anchor: Vector2i = field.free_anchor_near(0)
+		var pick: TowerData = towers[0] if not towers.is_empty() else null
+		if pick != null:
+			built = field.try_build(anchor, pick)
+		_check(built.is_empty(), "the harness must be able to build: %s" % built)
+		var post: Vector2 = BattleGrid.tile_to_world(anchor)
+		# Combat, or nothing shoots at anything: towers hold fire outside it and
+		# enemies stand still. Set after the tower is up, because building is
+		# locked to Preparation and that lock is deliberate.
+		RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+		var howler: EnemyData = null
+		for value: Variant in ContentDB.enemies.values():
+			var kind := value as EnemyData
+			if kind != null and kind.role == EnemyData.Role.HOWLER:
+				howler = kind
+				break
+		for n: int in 4:
+			if howler == null:
+				break
+			var mob: Enemy = field.spawn_enemy(howler, 0, 1.0, 1.0, 1.0)
+			if mob != null:
+				# Put down beside the tower rather than at the head of the road.
+				# The road is two thousand units long and eight seconds of
+				# walking does not cover it, so a harness that waits for them to
+				# arrive is measuring patience.
+				#
+				# Half by the tower so it has something to shoot at, half within
+				# their own range of the town so *they* have something to shoot
+				# at. A ranged enemy with no target in reach walks, and walking
+				# was all four of them did.
+				mob.global_position = (post + Vector2(90.0 + 30.0 * float(n), 40.0)) 					if n < 2 else (field.town_position()
+						+ Vector2(Balance.ENEMY_RANGED_RANGE * 0.6, 30.0 * float(n)))
+		print("[coop-ui] host put a tower and %d ranged enemies on road 0"
+			% (4 if howler != null else 0))
+		# Coins again, and away from either hero so nothing collects them.
+		#
+		# The single early drop was still a race, just a slower one: it happens
+		# about four seconds before the guest's battlefield exists, and a fact
+		# with nothing to apply it to is simply gone - the guest then waited out
+		# its whole deadline for a coin that had already been announced. Dropping
+		# more than once removes the race rather than widening the window.
+		for _drop: int in 4:
+			field.spawn_loot(RunState.GOLD, 7,
+				Vector2(-900.0, -900.0) + Vector2(40.0 * float(_drop), 0.0))
+			await _hold(2.0)
+		print("[coop-ui] host saw tower shots=%s enemy shots=%s"
+			% [str(_saw_tower_shot), str(_saw_enemy_shot)])
+
+		# **The revive, driven the way a player drives it.**
+		#
+		# The existing gate called `revive_in_place()` directly and asserted the
+		# hero stood up - it tested the destination, not the road. Everything
+		# that actually decides a revive lives on the road: the hold crossing the
+		# wire, the distance test, the host's tick, and `partner_present()`,
+		# which is false in every single-process harness and therefore skips the
+		# whole system silently.
+		var downed: Hero = field.partner_hero()
+		if downed != null and is_instance_valid(downed):
+			downed.go_down(downed.global_position)
+			_check(downed.is_downed(), "the guest's hero must go down")
+			# Stand over them and hold the key.
+			field.hero.global_position = downed.global_position + Vector2(20.0, 0.0)
+			field.hero.use_input(HoldingInput.new(field.hero))
+			var waited: float = 0.0
+			while waited < Balance.COOP_REVIVE_SECONDS + 4.0 and downed.is_downed():
+				await get_tree().process_frame
+				waited += get_process_delta_time()
+			_check(not downed.is_downed(),
+				"holding the revive key over a downed partner must get them up: "
+					+ "progress reached %.2f in %.1fs"
+					% [downed.revive_progress(), waited])
+			print("[coop-ui] host revived the guest's hero in %.1fs" % waited)
+			# And they must be able to move again. A hero who is standing but
+			# frozen is the same bug wearing a different face.
+			field.hero.use_input(PushedInput.new(field.hero))
+
+			# **And a wipe has to give both of them back.**
+			#
+			# Reported from play as "both locked at origin on the city base":
+			# they come back, and then neither can move. Driven here rather than
+			# announced, so the whole path runs - both down, the wipe latch, the
+			# Wound, and two heroes who have to be able to walk afterwards.
+			RunState.hero_wounds = 0
+			field.hero.go_down(field.hero.global_position)
+			downed.go_down(downed.global_position)
+			await _until(func() -> bool:
+				return field.hero.is_alive() and downed.is_alive())
+			_check(field.hero.is_alive() and downed.is_alive(),
+				"a team wipe must put both players back on their feet: host %s, "
+					% str(field.hero.is_alive()) + "guest %s"
+					% str(downed.is_alive()))
+			_check(RunState.hero_wounds == 1,
+				"and cost exactly one Wound between them, got %d"
+					% RunState.hero_wounds)
+			# Standing is not the same as playable.
+			field.hero.use_input(PushedInput.new(field.hero))
+			var stood_at: Vector2 = field.hero.global_position
+			await _hold(1.5)
+			var walked: float = field.hero.global_position.distance_to(stood_at)
+			_check(walked > 8.0 and field.hero.velocity.length() > 20.0,
+				"and a hero who came back from a wipe must be able to move, "
+					+ "walked %.1f at velocity %.0f"
+					% [walked, field.hero.velocity.length()])
+			print("[coop-ui] host wiped, came back and walked %.1f at velocity %.0f"
+				% [walked, field.hero.velocity.length()])
+
 		# **The fork.** One question, two people, one answer.
 		#
 		# A single process cannot test this at all: there is one RunState, so a
@@ -389,11 +526,58 @@ func _enter_run_in_place(role: String) -> void:
 		print("[coop-ui] guest asked for '%s' and the host granted it"
 			% RunState.active_road_id)
 
+		# Projectiles: the tower's and the ranged enemy's. Counted by watching
+		# rather than sampling - a shot exists for a fraction of a second, and a
+		# single reading would miss every one of them and prove nothing.
+		_check(_saw_tower_shot,
+			"the guest must see its towers' projectiles fly")
+		_check(_saw_enemy_shot,
+			"and a ranged enemy's shot, or damage arrives from an empty field")
+		# The pool an impact leaves is *not* asserted here, deliberately. It is
+		# not a replicated thing: each machine's own projectile spawns its own
+		# zone off its own impact, so what would be tested is whether this
+		# harness managed to stage a hit - and staging one reliably means placing
+		# enemies by hand, which is what made the first attempt measure its own
+		# arithmetic rather than the game.
+		print("[coop-ui] guest saw tower shots=%s enemy shots=%s"
+			% [str(_saw_tower_shot), str(_saw_enemy_shot)])
+
+		# The host put this hero down, revived it, and then wiped the pair. All of
+		# that has happened by now, and the only thing that matters afterwards is
+		# whether this player can still play - reported from play as both of them
+		# standing at the city base unable to move.
+		_check(mine.is_alive(),
+			"the guest must be on its feet after being downed, revived and wiped")
+		mine.use_input(PushedInput.new(mine))
+		var was_at: Vector2 = mine.global_position
+		await _hold(1.5)
+		var went: float = mine.global_position.distance_to(was_at)
+		# Velocity as well as displacement, and velocity is the real assertion.
+		#
+		# Two headless processes do not run at wall-clock speed, so distance
+		# covered in 1.5 seconds measures the machine as much as the hero. What
+		# cannot be explained away is a hero carrying full walking velocity: that
+		# is the difference between "slow harness" and "cannot move".
+		_check(went > 8.0 and mine.velocity.length() > 20.0,
+			"the guest must be able to move after the wipe, walked %.1f at "
+				% went + "velocity %.0f" % mine.velocity.length())
+		print("[coop-ui] guest walked %.1f at velocity %.0f after the wipe"
+			% [went, mine.velocity.length()])
+
 
 ## A stick held right, so the guest has something to send.
 class PushedInput extends LocalHeroInput:
 	func move() -> Vector2:
 		return Vector2.RIGHT
+
+
+## Standing still with the revive key down, which is what a rescue looks like.
+class HoldingInput extends LocalHeroInput:
+	func move() -> Vector2:
+		return Vector2.ZERO
+
+	func held(mask: int) -> bool:
+		return mask == HeroInput.HOLD_REVIVE
 
 
 func _find_button(from: Node, wanted: String) -> Button:

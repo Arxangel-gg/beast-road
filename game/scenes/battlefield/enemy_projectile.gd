@@ -21,6 +21,20 @@ func configure(target: Node2D, damage: float, origin: Vector2) -> void:
 	_direction = (_destination - origin).normalized()
 
 
+## The same shot with nothing to hit, for a guest drawing the host's decision.
+##
+## A puppet resolves nothing, so this carries no target and no damage - the host
+## has already worked out who was hit and reports it as health in the next batch.
+## What was missing was the shot itself: a ranged enemy on the guest's screen
+## simply hurt people from across the field with nothing in between.
+func configure_toward(destination: Vector2, origin: Vector2) -> void:
+	_target = null
+	_damage = 0.0
+	global_position = origin
+	_destination = destination
+	_direction = (destination - origin).normalized() 		if destination.distance_to(origin) > 1.0 else Vector2.RIGHT
+
+
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
 	_trail = Line2D.new()

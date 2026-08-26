@@ -663,6 +663,10 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	var enemy := quarry as Enemy
 	if enemy != null:
 		enemy.take_damage(power, from, kind.knockback, false)
+		# It gets to bite back, if the animal is still standing on top of it when
+		# its next swing comes round. The road is not abandoned for this - see
+		# `Enemy.provoked_by`.
+		enemy.provoked_by(sprite, self)
 	else:
 		var health: Health = Health.of(quarry)
 		if health != null:
@@ -730,15 +734,36 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
 		return
 
 
+## Hits one named animal, for whoever is not the hero.
+##
+## Public because an enemy that has been bitten swings back, and it cannot reach
+## into `_living` to do it - the wildlife system owns those numbers and this is
+## the door. Returns whether anything was actually there.
+##
+## Host-only, like every other way an animal can be hurt: a guest that killed a
+## wolf locally would be paying itself out and disagreeing with the host about
+## what is standing on the field.
+func wound_sprite(sprite: Node2D, damage: float) -> bool:
+	if Coop.is_guest() or sprite == null:
+		return false
+	for index: int in range(_living.size() - 1, -1, -1):
+		if _living[index]["sprite"] != sprite:
+			continue
+		_wound(index, _living[index], damage)
+		return true
+	return false
+
+
 ## Puts damage into one animal, and pays out if that finishes it.
 ##
 ## Health rather than a one-hit kill, because the owner asked for size to matter:
 ## a rabbit should die to a swing and a deer should take a few, which is the only
 ## way "larger gives more" is a decision rather than a lottery.
-func _wound(index: int, animal: Dictionary) -> void:
+func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	var kind := animal["data"] as WildlifeData
 	var sprite := animal["sprite"] as Sprite2D
-	animal["hp"] = float(animal["hp"]) - Balance.HERO_ATTACK_DAMAGE[0]
+	animal["hp"] = float(animal["hp"]) - (Balance.HERO_ATTACK_DAMAGE[0]
+		if damage < 0.0 else damage)
 	# Hurt, so the bar comes out and stays out.
 	var bar := animal["bar"] as ProgressBar
 	if bar != null and is_instance_valid(bar):

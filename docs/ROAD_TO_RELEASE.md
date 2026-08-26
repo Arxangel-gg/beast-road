@@ -35,7 +35,7 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## 0b. Where this stands, 2026-08-25
 
-Published as **v0.4.61** from `main`. 33 of 33 local gates green at the tag,
+Published as **v0.4.62** from `main`. 32 of 32 local gates green at the tag,
 plus `tools/coop_live.sh` and `tools/coop_ui.sh`, which run co-op as two real
 processes and are deliberately outside CI.
 
@@ -64,6 +64,19 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 - **v0.4.58–60** the hostile roster: six predators and territorial animals with
   idle, walk, strike and death poses, elite variants, drops and experience; the
   frame-cost investigation closed in the negative; three more facing errors.
+- **v0.4.62** the fifth play report: the revive that never completed, enemy
+  projectiles the guest could not see, the act banner, hawks flying backwards,
+  enemies that now bite the wildlife back, mirrored enemies that teleport instead
+  of sprinting, a Build/Fight toggle so Preparation can be fought in, and amber
+  for ground that takes a trap rather than a tower.
+
+  **The one worth remembering is a float comparison.** `is_equal_approx(0.999995,
+  1.0)` is true, so the last step of a three-second revive was discarded as a
+  no-op and the bar sat full forever. Two play reports described it precisely and
+  the existing gate could not see it, because that gate called
+  `revive_in_place()` directly — it asserted the destination and the entire bug
+  lived on the road. Driving the thing the way a player drives it found it in one
+  run.
 - **v0.4.61** the fourth play report: the fork shared between both players, the
   wildlife crowd on the guest, rain retuned, Q and R bound, wildlife health
   bars, the shared pause menu — **and a predator rebalance the gates found**.
@@ -346,6 +359,68 @@ them. The full local suite is 24 of 24 green.
       was re-run rather than trusted once. That is the argument for running
       the whole suite after a change rather than the gate you think is
       relevant.
+
+### Raised 2026-08-26 — the fifth play report
+
+- [x] **The revive bar filled and nothing happened.** The single most-reported
+      bug, and the cause is one line. A revive completed only on the frame the
+      bar *crossed* 1.0, and that frame never came: the last step lands on
+      0.999995, and `is_equal_approx` reads that as already equal to 1.0, so the
+      guard meant to skip no-op frames threw the final step away — and every
+      frame after it did the same. The bar sat visibly full for as long as the
+      key was held and drained the moment it was released, which is exactly what
+      was reported, twice.
+
+      Completion is a *state* now, not a transition: a hero who is down with a
+      full bar gets up, however the bar came to be full. Held by
+      `tools/coop_ui.sh`, which drives it the way a player does — the old gate
+      called `revive_in_place()` directly and so tested the destination rather
+      than the road, and the road is where all of it lived.
+- [x] **Enemy projectiles never appeared on the guest.** A puppet resolves
+      nothing and therefore never runs `_strike`, so a ranged enemy on the
+      guest's screen hurt people from across the field with nothing in between.
+      Blows are announced now, the way tower shots already were, and the guest
+      draws the shot without resolving it. Tower shots were checked at the same
+      time and were already working — that half of the report was wrong, and it
+      took a gate to say so.
+- [x] **The act banner appeared for the host alone.** The guest was *assigned*
+      the act number and never *told* it changed, so everything derived stayed
+      right and everything announced was skipped: the "Verdant Maw · Act I"
+      title, the music change, the ambience bed and the region cinematic.
+- [x] **Eagles flew backwards.** All four hawk sprites face right; the data said
+      left. Read off a 6× contact sheet, which is now the only way facing gets
+      claimed here — the other five hostile species were checked in the same
+      pass and were correct.
+- [x] **Enemies ignored the wildlife mauling them.** They bite back now, but only
+      at something already within reach: a target is what `_walk` steers at, so
+      one chosen at a distance would pull the column off the road, and the road
+      is the one thing a lane enemy must never leave.
+- [x] **Mirrored enemies zoomed across the map.** A correction larger than
+      anything that could have happened in one packet window is not a correction,
+      it is a body in the wrong place — and interpolating one draws the enemy
+      sprinting the width of the field in a tenth of a second. It teleports now,
+      which also covers every other way a puppet can end up misplaced rather than
+      only the one that was found.
+- [x] **Mirrored movement was still janky.** Replaced arrive-then-coast with dead
+      reckoning plus continuous correction: the body always moves at the speed it
+      was last told and is eased toward where the host's copy *should be now*,
+      rather than chasing a position that is already a packet old. Nothing has a
+      deadline any more, which is what the stutter was.
+- [x] **No way to fight during Preparation.** Predatory wildlife could open on a
+      hero who was not allowed to swing back. Preparation is now both things,
+      with a per-player Build/Fight toggle on Tab and a button in the action bar.
+      Local to each machine on purpose: one player laying traps while the other
+      clears the wolves is the point.
+- [x] **Red boxes on ground where traps are legal.** Three answers now, not two:
+      green builds, amber is the wrong tool for this tile (a road takes traps and
+      barricades), red is ground nothing can use. Amber carries a sentence as
+      well as a colour.
+- [~] **Both players locked at origin after a wipe.** Not reproduced once the
+      revive was fixed, and the two were almost certainly the same episode — a
+      pair who could not be helped up went down together. The property is gated
+      now anyway: a wipe must put both on their feet, cost exactly one Wound, and
+      leave two heroes who can walk. Left as `[~]` rather than `[x]` because
+      "could not reproduce" is not "fixed".
 
 ### Raised 2026-08-25 — the fourth play report
 

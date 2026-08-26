@@ -47,8 +47,11 @@ var _puppet_last: Vector2 = Vector2.ZERO
 ## the remaining distance at the speed that will arrive exactly as the next one
 ## does, so the motion is continuous and the position is still the host's.
 var _mirror_target: Vector2 = Vector2.ZERO
-var _mirror_left: float = 0.0
 var _mirror_ratio: float = 0.0
+
+## True once a position has actually arrived from the host. A puppet decides
+## nothing, and that includes deciding where it is before it has been told.
+var _mirrored_once: bool = false
 
 ## The speed the last two packets implied, so a puppet keeps moving between them.
 var _mirror_velocity: Vector2 = Vector2.ZERO
@@ -78,6 +81,16 @@ var _field: EnemyField = null
 var _state: State = State.WALKING
 var _state_left: float = 0.0
 var _target: Node2D = null
+
+## The animal that bit this one, and the system that owns its numbers.
+##
+## Held for a few seconds so retaliation is a *reaction* rather than a permanent
+## second allegiance: a wolf that harries a column and moves on should get bitten
+## for it, and a column that then abandoned the road to hunt wolves would be a
+## different game.
+var _provoker: Node2D = null
+var _provoker_source: Node = null
+var _provoked_left: float = 0.0
 
 var _knockback: Vector2 = Vector2.ZERO
 var _hitstun_left: float = 0.0
@@ -209,6 +222,7 @@ func _process(delta: float) -> void:
 	_hitstun_left = maxf(_hitstun_left - delta, 0.0)
 	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
+	_provoked_left = maxf(_provoked_left - delta, 0.0)
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.ENEMY_KNOCKBACK_DECAY * delta)
 
 	var before: Vector2 = global_position
@@ -232,30 +246,40 @@ func _tick_puppet(delta: float) -> void:
 	# Walk toward where the host says to be, rather than teleporting there. The
 	# step is scaled by how much of the remaining window this frame is, so the
 	# body arrives just as the next packet lands however the frame rate varies.
-	if _mirror_left > 0.0:
-		var step: float = minf(delta / _mirror_left, 1.0)
-		global_position = global_position.lerp(_mirror_target, step)
-		_mirror_left -= delta
-	else:
-		# **Keep walking when the packets run out.**
-		#
-		# Arriving exactly as the next packet lands is right only if it lands on
-		# time. One that is late by a single frame left the body standing
-		# perfectly still and then jerking off toward its new target - arrive,
-		# stop, jerk, arrive, stop - which is precisely what "stutter step" looks
-		# like from the other seat.
-		#
-		# So when the window runs out it carries on at the speed it was last
-		# told, and the next packet redirects it rather than restarting it. Being
-		# a little wrong while moving reads as an enemy walking; being exactly
-		# right while stopped does not.
-		global_position += _mirror_velocity * delta
-		_mirror_stale += delta
-		# Unless the host has been quiet long enough that guessing is worse than
-		# waiting - a body that keeps walking on a dropped connection walks off
-		# the map.
-		if _mirror_stale > Balance.COOP_MIRROR_COAST_LIMIT:
-			_mirror_velocity = Vector2.ZERO
+	# **Dead reckoning, corrected continuously.**
+	#
+	# The first version walked to the last position it was told and arrived
+	# exactly as the next packet was due. That is right only when the packet is
+	# on time; one late by a single frame left the body standing still and then
+	# jerking off toward its new target - arrive, stop, jerk, arrive - which is
+	# what "stutter step" looks like from the other seat. Coasting when the
+	# window ran out fixed the standing still and left the jerk, because the body
+	# was still always chasing a position that was already a packet old.
+	#
+	# So it does both, every frame, and neither has a deadline. It moves at the
+	# speed it was last told, and it eases toward where the host's copy should be
+	# *now* - the last position plus that speed times how long ago it arrived.
+	# The error shrinks smoothly instead of being spent in a scheduled arrival,
+	# and the body never stops, which matters because every animation here is
+	# chosen from motion.
+	# Nothing until the host has said something. Without this the projected
+	# position is the default `Vector2.ZERO` and a puppet that has not yet been
+	# told anything walks steadily to the middle of the map - caught by the
+	# co-op gate on the first run, which is what that assertion is for.
+	if not _mirrored_once:
+		return
+	_mirror_stale += delta
+	var window: float = maxf(_mirror_ratio, 0.05)
+	var ahead: float = minf(_mirror_stale, Balance.COOP_MIRROR_COAST_LIMIT)
+	var projected: Vector2 = _mirror_target + _mirror_velocity * ahead
+	global_position += _mirror_velocity * delta
+	global_position = global_position.lerp(projected,
+		clampf(delta / window * Balance.COOP_MIRROR_CATCHUP, 0.0, 1.0))
+	# Unless the host has been quiet long enough that guessing is worse than
+	# waiting - a body that keeps walking on a dropped connection walks off the
+	# map.
+	if _mirror_stale > Balance.COOP_MIRROR_COAST_LIMIT:
+		_mirror_velocity = Vector2.ZERO
 	_motion = (global_position - _puppet_last) / maxf(delta, 0.0001)
 	_puppet_last = global_position
 	if animator != null and data != null:
@@ -299,6 +323,24 @@ func set_mirror_interval(seconds: float) -> void:
 ## Health is assigned rather than damaged: a puppet must not run the death path,
 ## because the host already ran it and will say so with its own message. Two
 ## machines each paying out the same kill is how a shared purse doubles.
+## Plays a blow the host has already resolved. Guest side.
+##
+## Cosmetic by construction: nothing here damages anything, because the host has
+## and reports the result as health in the next batch. What it adds is the part
+## the guest could not derive - a shot leaving a ranged enemy, and the punch that
+## makes a melee swing read as a swing rather than as damage appearing.
+func strike_remote(at: Vector2) -> void:
+	if _state == State.DYING or _field == null or data == null:
+		return
+	if animator != null:
+		animator.punch((at - global_position).normalized(), 1.1)
+	if data.role != EnemyData.Role.HOWLER:
+		return
+	var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
+	shot.configure_toward(at, global_position)
+	_field.add_child(shot)
+
+
 ## Which of the four combat states this is in, for the wire.
 func combat_state() -> int:
 	return int(_state)
@@ -308,18 +350,31 @@ func mirror(at: Vector2, hp_ratio: float, state: int = -1) -> void:
 	# The first packet places it; every one after aims it. Snapping on arrival
 	# would put the body where it *was* when the packet was sent and then leave
 	# it there, which is the stutter this exists to remove.
-	if _mirror_left <= 0.0 and _mirror_target == Vector2.ZERO:
+	var window: float = maxf(_mirror_ratio, 0.05)
+	# **A correction bigger than anything that could have happened is a teleport.**
+	#
+	# Interpolating one draws the enemy sprinting the width of the field in a
+	# tenth of a second, which is what "enemies zoom to the opposite side of the
+	# map" is: a body that is simply in the wrong place, with the trip to the
+	# right one played out in full view. Showing the jump is the lesser lie, and
+	# it covers every way a puppet can end up misplaced - a missed spawn packet,
+	# a late join, a knockback - rather than only the one that was found.
+	var reachable: float = maxf(data.move_speed if data != null else 1.0, 1.0) 		* window * Balance.COOP_MIRROR_SNAP_FACTOR
+	if not _mirrored_once 			or global_position.distance_to(at) > reachable:
 		global_position = at
 		_puppet_last = at
-	# Derived from the *previous* target rather than from where the body actually
-	# is: the body is mid-correction and its own displacement is part
-	# interpolation, which would feed the error back into the guess.
-	var window: float = maxf(_mirror_ratio, 0.05)
-	if _mirror_target != Vector2.ZERO:
-		_mirror_velocity = (at - _mirror_target) / window
+		_mirror_velocity = Vector2.ZERO
+	else:
+		# Derived from the *previous* target rather than from where the body
+		# actually is: the body is mid-correction and its own displacement is
+		# part interpolation, which would feed the error back into the guess.
+		# Blended rather than replaced, because a single late or early packet
+		# makes one estimate wildly wrong and a puppet should not lurch for it.
+		_mirror_velocity = _mirror_velocity.lerp((at - _mirror_target) / window,
+			Balance.COOP_MIRROR_VELOCITY_BLEND)
 	_mirror_stale = 0.0
 	_mirror_target = at
-	_mirror_left = window
+	_mirrored_once = true
 	# The wind-up, the strike and the recovery all read from `_state`: it drives
 	# the tell's pulsing tint and the animator's posture. A puppet given only a
 	# position is an enemy that kills you with no warning, because the telegraph
@@ -564,7 +619,38 @@ func targeting_speed() -> float:
 
 ## Taunting towers pull first, then the hero if they have come close enough to
 ## be worth stopping for, then the town.
+## Remembers whatever just bit this enemy out of the long grass.
+##
+## Called by `Wildlife._strike`. Public because the wilderness is a third party:
+## it attacks enemies as readily as it attacks players, and an enemy that could
+## not answer would make a wolf pack a free demolition tool.
+func provoked_by(animal: Node2D, source: Node) -> void:
+	if _state == State.DYING or puppet:
+		return
+	_provoker = animal
+	_provoker_source = source
+	_provoked_left = Balance.ENEMY_PROVOKED_SECONDS
+
+
+## The animal worth hitting back, or null.
+##
+## **Only while it is already in reach**, and that is the whole design. Returning
+## it from `_pick_target` makes the enemy stop and swing, and `_walk` steers at
+## whatever the target is - so an animal chosen at a distance would pull the
+## column off the road, which is the one thing a lane enemy must never do. In
+## reach means standing on top of it, and the step it takes to close is nothing.
+func _biting_back() -> Node2D:
+	if _provoked_left <= 0.0 or _provoker == null 			or not is_instance_valid(_provoker):
+		return null
+	if not _in_reach(_provoker):
+		return null
+	return _provoker
+
+
 func _pick_target() -> Node2D:
+	var animal: Node2D = _biting_back()
+	if animal != null:
+		return animal
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
 	if taunt != null and is_instance_valid(taunt):
 		return taunt
@@ -609,6 +695,14 @@ func _strike() -> void:
 	var reach: float = (attack_range + contact_radius() + _field.target_radius(_target)) * 1.15
 	if global_position.distance_to(_target.global_position) > reach:
 		return
+	# An animal has no Health node - the wildlife system owns those numbers - so
+	# the blow is handed back to whoever owns it rather than applied here.
+	if _provoker_source != null and _target == _provoker:
+		var bite: float = data.contact_damage * _damage_scale
+		if _provoker_source.call("wound_sprite", _target, bite):
+			Vfx.spark(_target.global_position, Color("c4552e"), 6,
+				(_target.global_position - global_position).normalized(), 190.0)
+		return
 	var target_health: Health = Health.of(_target)
 	if target_health == null:
 		return
@@ -627,6 +721,11 @@ func _strike() -> void:
 		damage *= Balance.WEAKENED_STAT_SCALE
 	if _target == _field.town_node():
 		damage *= Balance.TOWN_DAMAGE_SCALE
+	# Said out loud, so a guest can draw the blow it is not simulating. A puppet
+	# never runs this function, so without the announcement a ranged enemy on the
+	# other screen hurt people from across the field with nothing in between.
+	if net_id != 0:
+		EventBus.enemy_struck.emit(net_id, _target.global_position)
 	if data.role == EnemyData.Role.HOWLER:
 		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
 		shot.configure(_target, damage, global_position)

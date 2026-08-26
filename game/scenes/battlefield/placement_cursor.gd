@@ -31,6 +31,12 @@ const HOVER_INTERVAL: float = 0.05
 var _field: Battlefield = null
 var _hover: Vector2i = Vector2i(-999, -999)
 var _legal: bool = false
+
+## True when a tower cannot go here but *something* can - a road takes traps and
+## barricades. Drawn amber rather than red, because the two are different
+## answers and one colour for both told the player a lie: a red box on a road
+## reads as "nothing here", and then a trap drops onto it happily.
+var _road: bool = false
 var _fusions: Array[Dictionary] = []
 var _timer: float = 0.0
 
@@ -43,6 +49,7 @@ func _ready() -> void:
 	z_index = 5
 	EventBus.tower_changed.connect(func(_a: Vector2i) -> void: queue_redraw())
 	EventBus.phase_changed.connect(func(_n: int, _p: int) -> void: queue_redraw())
+	EventBus.build_mode_changed.connect(func(_b: bool) -> void: queue_redraw())
 
 
 func _process(delta: float) -> void:
@@ -61,6 +68,7 @@ func _process(delta: float) -> void:
 		return
 	_hover = tile
 	_legal = _field.placement_problem(tile).is_empty()
+	_road = not _legal and _field.grid != null 		and _field.grid.cell_at(tile) == BattleGrid.Cell.ROAD
 	_fusions = RunState.combinations_for_tile(tile)
 	queue_redraw()
 
@@ -116,7 +124,11 @@ func _anchor_under_mouse() -> Vector2i:
 ## scope's visibility in here made "can the player build" depend on which scope
 ## happens to be on screen. Input checks visibility separately.
 func _is_active() -> bool:
-	return _field != null and _field.grid != null and RunState.can_build_now()
+	# Build mode as well as the phase. Preparation is now two things - laying
+	# towers down and fighting off whatever wandered in - and a grid overlay that
+	# swallows the left mouse button during the fight half would make the second
+	# one impossible. See `GameDirector.build_mode`.
+	return _field != null and _field.grid != null and RunState.can_build_now() 		and GameDirector.build_mode
 
 
 func _draw() -> void:
@@ -135,10 +147,25 @@ func _draw() -> void:
 		fill = Color(0.85, 0.80, 0.72, 0.16)
 	elif _legal:
 		fill = Color(0.62, 0.90, 0.72, 0.18)
+	elif _road:
+		# Amber: the wrong thing for *this* tool, not forbidden ground.
+		fill = Color(0.92, 0.73, 0.26, 0.20)
 	else:
 		fill = Color(0.78, 0.29, 0.22, 0.20)
 	draw_rect(Rect2(origin, span), fill, true)
 	draw_rect(Rect2(origin, span), Color(fill.r, fill.g, fill.b, 0.85), false, 2.0)
+
+	# Amber deserves a sentence as well as a colour. A player who has not yet
+	# found the trap panel has no way to learn what the second colour means, and
+	# a legend nobody reads is not a legend.
+	if _road and not occupied:
+		var font: Font = ThemeDB.fallback_font
+		if font != null:
+			var say: String = "road - lay a trap or raise a barricade"
+			var width: float = font.get_string_size(say,
+				HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13).x
+			draw_string(font, origin + Vector2(span.x * 0.5 - width * 0.5, -8.0),
+				say, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 13, Color("f0c268"))
 
 	# Fusion tiles are the reason placement is a puzzle rather than a scatter, so
 	# they are called out on the ground and the parents that make them are named

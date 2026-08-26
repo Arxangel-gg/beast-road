@@ -127,6 +127,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	# bottom bar was built, and neither key was ever bound to anything - the
 	# actions existed in the input map and nothing read them. Routed through the
 	# same handlers the buttons call, so a key and a click cannot diverge.
+	if event.is_action_pressed(&"toggle_build_mode"):
+		# Only where the choice exists. Outside Preparation there is nothing to
+		# build, and a key that silently does nothing is worse than one that is
+		# not bound.
+		if RunState.can_build_now():
+			GameDirector.toggle_build_mode()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed(&"war_horn"):
 		_on_horn_requested()
 		get_viewport().set_input_as_handled()

@@ -72,6 +72,7 @@ enum Fact {
 	ROAD_CHOSEN = 33,
 	POINTER = 34,
 	RELIC_CHOSEN = 35,
+	ENEMY_STRUCK = 36,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -260,6 +261,7 @@ func _fact_bindings() -> Array:
 		["coop_crossroad_opened", _on_coop_crossroad_opened],
 		["coop_road_chosen", _on_coop_road_chosen],
 		["coop_relic_chosen", _on_coop_relic_chosen],
+		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_pointer_moved", _on_coop_pointer_moved],
 	]
 
@@ -344,6 +346,10 @@ func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
 
 func _on_coop_relic_chosen(relic_id: String) -> void:
 	_relay(Fact.RELIC_CHOSEN, [relic_id])
+
+
+func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
+	_relay(Fact.ENEMY_STRUCK, [net_id, at])
 
 
 ## The pointer is the one fact **either** player may author.
@@ -598,6 +604,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.RELIC_CHOSEN:
 			if args.size() == 1:
 				bus.coop_relic_chosen.emit(String(args[0]))
+		Fact.ENEMY_STRUCK:
+			if args.size() == 2:
+				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2)
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),

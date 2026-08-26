@@ -25,6 +25,31 @@ var current_scope: Scope = Scope.BATTLEFIELD
 ## True between run_started and run_ended.
 var run_active: bool = false
 
+## Whether this player's Preparation is currently a build phase or a fight.
+##
+## **Local to this machine, deliberately.** In co-op one player can be laying
+## traps while the other clears the wolves off the north road, and a shared flag
+## would make that impossible. Nothing about it crosses the wire and nothing in
+## `RunState` holds it - it is a choice about what your own mouse does, in the
+## same family as `current_scope`.
+##
+## Lives here rather than in the cursor or the hero because both of them ask it
+## and neither owns it, and a rule that two systems have to agree on belongs in
+## one place. See `Hero.can_fight` and `PlacementCursor._is_active`.
+var build_mode: bool = true
+
+
+## Switches between laying things down and swinging at things.
+func set_build_mode(building: bool) -> void:
+	if build_mode == building:
+		return
+	build_mode = building
+	EventBus.build_mode_changed.emit(building)
+
+
+func toggle_build_mode() -> void:
+	set_build_mode(not build_mode)
+
 
 ## Why a run ended without being played to a conclusion.
 ##
@@ -170,6 +195,12 @@ func _ready() -> void:
 	# fully integrated" looked like from the outside, and it was right.
 	EventBus.coop_run_started.connect(_on_coop_run_started)
 	EventBus.coop_paused.connect(_on_coop_paused)
+	# Every Preparation opens ready to build, which is what the phase is for.
+	# Staying in fight mode from the last one would have a player click three
+	# times at a tower slot before working out why nothing is happening.
+	EventBus.phase_changed.connect(func(now: int, _before: int) -> void:
+		if now == RunState.Phase.PREPARATION:
+			set_build_mode(true))
 	EventBus.coop_request_received.connect(_on_coop_request)
 	EventBus.coop_run_ended.connect(_on_coop_run_ended)
 	CursorKit.apply()

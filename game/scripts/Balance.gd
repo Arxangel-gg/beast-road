@@ -1213,6 +1213,14 @@ const WILDLIFE_BAR_LIFT: float = 42.0
 ## The rest window is deliberately longer than the hunt - the player has to get
 ## an actual gap out of surviving one, or breaking off is a pause rather than an
 ## escape. [TUNE]
+## How long an enemy remembers being bitten by something out of the wilderness.
+##
+## Short on purpose. Retaliation is a reaction, not a second allegiance: a column
+## that abandoned the road to hunt wolves would be a different game, and the
+## `_in_reach` condition already stops it walking anywhere. This is only how long
+## the animal stays worth swinging at when it is standing on top of you. [TUNE]
+const ENEMY_PROVOKED_SECONDS: float = 4.0
+
 const WILDLIFE_HUNT_MIN: float = 7.0
 const WILDLIFE_HUNT_MAX: float = 12.0
 const WILDLIFE_HUNT_REST_MIN: float = 13.0
@@ -3180,6 +3188,26 @@ const SNOW_SLIP_SECONDS: float = 0.34
 ## Everywhere else a partner's cursor is noise. [TUNE]
 const COOP_POINTER_INTERVAL: float = 0.06
 const COOP_PARTNER_TINT: Color = Color(0.62, 0.86, 1.0, 1.0)
+
+## How hard a mirrored body is pulled toward where the host's copy should be.
+##
+## Applied per frame as `delta / window * this`, so it is a rate rather than a
+## per-packet step and behaves the same at any frame rate. Around 1.0 erases the
+## error over roughly one packet window; higher is tighter and more likely to
+## show the correction, lower is smoother and further behind. [TUNE]
+const COOP_MIRROR_CATCHUP: float = 1.35
+
+## How much of a fresh velocity estimate to believe.
+##
+## One late or early packet makes a single estimate wildly wrong, and a puppet
+## that lurched for each of them would be jittery in exactly the way the
+## interpolation exists to prevent. [TUNE]
+const COOP_MIRROR_VELOCITY_BLEND: float = 0.45
+
+## How far out of place a mirrored body may be before it is teleported instead
+## of walked. Multiplies the distance the thing could actually have covered in
+## one packet window, so a fast enemy gets more slack than a slow one. [TUNE]
+const COOP_MIRROR_SNAP_FACTOR: float = 6.0
 
 const COOP_POSITION_CORRECTION: float = 0.25
 

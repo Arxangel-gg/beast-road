@@ -116,12 +116,34 @@ func _test_a_puppet_takes_what_it_is_told() -> void:
 		"and show the health it is told, got %.2f" % enemy.health_ratio())
 
 	# Facing is derived from the movement the mirrored positions imply, rather
-	# than sent. Two packets apart on the x axis must turn it.
-	enemy.mirror(told + Vector2(-400.0, 0.0), 0.25)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# than sent. Successive packets on the x axis must turn it.
+	#
+	# Steps the size a packet actually carries, which this used to skip: it moved
+	# the body 400 units in one window and that is not a walk, it is a body in
+	# the wrong place. A puppet teleports for those now - see below - so a test
+	# using one was asking whether an enemy walks while proving it does not.
+	enemy.set_mirror_interval(0.1)
+	var step: Vector2 = Vector2(-maxf(enemy.data.move_speed, 60.0) * 0.1, 0.0)
+	var walking: Vector2 = told
+	for _packet: int in 4:
+		walking += step
+		enemy.mirror(walking, 0.25)
+		await get_tree().process_frame
+		await get_tree().process_frame
 	_check(enemy.sprite.flip_h,
 		"a puppet walking left must face left, from motion the host never sent")
+
+	# **And a correction nothing could have walked is a teleport.**
+	#
+	# Reported from play as enemies "zooming to the opposite side of the map":
+	# interpolating a body that is simply misplaced draws it sprinting the width
+	# of the field in a tenth of a second. Covers every way a puppet can end up
+	# in the wrong place rather than only the one that was found.
+	var far: Vector2 = walking + Vector2(4000.0, -3000.0)
+	enemy.mirror(far, 0.25)
+	_check(enemy.global_position == far,
+		"a puppet must be put down at an impossible correction, not walked to "
+			+ "it - stood at %s, told %s" % [enemy.global_position, far])
 	enemy.queue_free()
 	await get_tree().process_frame
 

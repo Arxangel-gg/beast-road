@@ -290,11 +290,23 @@ func is_alive() -> bool:
 ## Read from `RunState`, which both heroes share, so the phase binds the pair
 ## identically without either being special-cased. Extracted from
 ## `_physics_process` so a test can ask the question rather than re-deriving it -
-## a duplicated condition is one that drifts, and this one drifting would mean a
-## guest able to attack during Preparation, which is a cheat rather than a
-## glitch.
+## a duplicated condition is one that drifts.
+##
+## **Preparation is fightable now, and that is an owner call from play.** The
+## phase used to forbid it outright, which was defensible while nothing could
+## reach you during it - and then predatory wildlife arrived and a wolf pack
+## could open on a hero who was not allowed to swing back. Being mauled while
+## holding a hammer is not a design, it is an oversight.
+##
+## What stops Preparation becoming a free combat round is that there is nothing
+## to fight: the phase only opens on a cleared road. What can be there is
+## wildlife, which is exactly what the player needs to answer.
+##
+## The mode is per-player and local. See `GameDirector.build_mode`.
 func can_fight() -> bool:
-	return RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID
+	if RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID:
+		return true
+	return RunState.is_preparation() and not GameDirector.build_mode
 
 
 func aim_direction() -> Vector2:

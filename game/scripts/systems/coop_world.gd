@@ -83,6 +83,8 @@ func _ready() -> void:
 	EventBus.coop_loot_spawned.connect(_on_coop_loot_spawned)
 	EventBus.coop_loot_taken.connect(_on_coop_loot_taken)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
+	EventBus.enemy_struck.connect(_on_enemy_struck)
+	EventBus.coop_enemy_struck.connect(_on_coop_enemy_struck)
 	# Same reasoning as `CoopHeroes`: the session is established in the menu,
 	# so a system built with the battlefield has already missed every signal
 	# announcing it. Nothing to spawn here, but the identity counter must not
@@ -225,11 +227,28 @@ func _on_world_clock(distance: float, weather_id: String, act: int) -> void:
 	if not Coop.is_guest():
 		return
 	RunState.distance_travelled = distance
-	RunState.act = act
 	EventBus.distance_changed.emit(distance, RunState.distance_to_crossroad())
 	if weather_id != RunState.weather_id:
 		RunState.weather_id = weather_id
 		EventBus.weather_changed.emit(weather_id)
+	# **The act is announced, not just assigned.**
+	#
+	# Writing the number kept every derived value right - difficulty, the
+	# backdrop, the terrain a new road draws from - and silently skipped
+	# everything that is *told*: the "Verdant Maw - Act I" banner, the music
+	# change, the ambience bed and the region's milestone cinematic. Reported
+	# from play as the act title appearing for the host alone, which is the
+	# visible half of a guest that was never told the region had changed.
+	#
+	# The terrain is derived here rather than sent. Both machines hold the same
+	# ContentDB and `journey` derives it from the act on the host, so putting it
+	# on the wire would be sending something the guest can already work out.
+	if act != RunState.act:
+		RunState.act = act
+		var terrain: TerrainData = ContentDB.terrain_for_act(act)
+		if terrain != null:
+			RunState.terrain_id = terrain.id
+		EventBus.act_started.emit(act, RunState.terrain_id)
 
 
 ## A tower appeared, changed tier or went away, on the host's say-so.
@@ -390,6 +409,25 @@ func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 		if tower != null and tower.anchor == anchor:
 			tower.fire_remote(at)
 			return
+
+
+## One of this machine's enemies landed a blow. Host side.
+##
+## Same reasoning as a tower's shot and the same shape: the guest cannot derive
+## it, because a puppet resolves nothing and never runs the strike at all.
+func _on_enemy_struck(net_id: int, at: Vector2) -> void:
+	if not _is_authority_with_company():
+		return
+	EventBus.coop_enemy_struck.emit(net_id, at)
+
+
+## The host's enemy swung, so ours plays it. Guest side.
+func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
+	if not Coop.is_guest():
+		return
+	var enemy: Enemy = _puppets.get(net_id, null) as Enemy
+	if enemy != null and is_instance_valid(enemy):
+		enemy.strike_remote(at)
 
 
 ## Forwards this machine's own tower changes. Host side.
