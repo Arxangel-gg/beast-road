@@ -121,8 +121,9 @@ func host() -> String:
 			if _room.is_empty():
 				_fail("The matchmaking service refused the room.")
 				return
-			# The host does *not* offer. See `join`.
-			_begin_polling())
+			_begin_polling()
+			if offers(_is_host):
+				_connection.create_offer())
 	return _code
 
 
@@ -151,17 +152,12 @@ func join(code: String) -> void:
 			if _room.is_empty():
 				_fail("No game is waiting on that code.")
 				return
-			# **The guest offers, and which side does is not arbitrary.**
-			#
-			# `WebRTCMultiplayerPeer` creates the data channels on the peer with
-			# the higher id and expects the lower one to receive them, so the
-			# offer has to come from the side that made them or it describes a
-			# connection with nothing in it. The guest is 2 and the host is 1.
-			#
-			# A browser and a desktop build negotiate identically from here,
-			# which is the entire reason this works cross-platform.
+			# Which side offers is not arbitrary - see `offers`. A browser and
+			# a desktop build negotiate identically from here, which is the
+			# entire reason this works cross-platform.
 			_begin_polling()
-			_connection.create_offer())
+			if offers(_is_host):
+				_connection.create_offer())
 
 
 ## Builds the peer and this side's half of the connection.
@@ -246,17 +242,13 @@ func _apply(row: Dictionary) -> void:
 	if not (payload is Dictionary):
 		return
 	var body: Dictionary = payload
+	if not consumes(kind, _is_host):
+		return
 	match kind:
 		"offer":
-			# Only a guest has anything to do with an offer. A host that applied
-			# its own would be answering itself.
-			if _is_host:
-				return
 			_connection.set_remote_description("offer", String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"answer":
-			if not _is_host:
-				return
 			_connection.set_remote_description("answer", String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"candidate":
@@ -320,6 +312,39 @@ func _other_side_is_open() -> bool:
 		return false
 	var info: Variant = peers[other]
 	return info is Dictionary and bool((info as Dictionary).get("connected", false))
+
+
+## **Which side makes the offer.** One fact, and everything else derives from it.
+##
+## The guest, because `WebRTCMultiplayerPeer` creates the data channels on the
+## peer with the *higher* id and expects the lower one to receive them - so an
+## offer from the host describes a connection with nothing in it.
+static func offers(is_host: bool) -> bool:
+	return not is_host
+
+
+## Whether this side of the room is the one that acts on a note of this kind.
+##
+## **Derived from `offers`, not written out separately.** These were two
+## independent lists once, and they drifted the moment the offering side changed:
+## the guest began offering and the host went on ignoring offers, so no answer
+## was ever produced and every join timed out with "could not reach the other
+## player" - which reads as a network fault and is not one.
+##
+## `webrtc_check` could not catch it, because that harness hands the two
+## connections straight to each other and never comes through here.
+static func consumes(kind: String, is_host: bool) -> bool:
+	match kind:
+		# Whoever did not make the offer is the one who has to answer it.
+		"offer":
+			return not offers(is_host)
+		# And the answer goes back to whoever asked.
+		"answer":
+			return offers(is_host)
+		# Routes are useful to both sides for as long as they are negotiating.
+		"candidate":
+			return true
+	return false
 
 
 ## Gives up, tears down, and says why.

@@ -156,7 +156,41 @@ func _ready() -> void:
 		listened += get_process_delta_time()
 	_check(returned == back, "with the guest receiving it, got %s" % str(returned))
 
+	_test_signalling_routing()
 	_finish()
+
+
+## **Who acts on which note.** The half this harness could not otherwise see.
+##
+## Everything above hands the two connections straight to each other, which
+## tests the transport and skips the routing entirely - and the routing is where
+## the bug was: the guest began making the offer while the host went on ignoring
+## offers, so no answer was ever produced and every real join timed out with
+## "could not reach the other player". A network-shaped message for a pure
+## dispatch fault, on the one path no test touched.
+func _test_signalling_routing() -> void:
+	# Exactly one side offers.
+	_check(CoopWebRTC.offers(false) != CoopWebRTC.offers(true),
+		"exactly one side of a room may make the offer")
+
+	# And it is never the side that answers one. This is the assertion that
+	# fails if either half is flipped without the other.
+	for is_host: bool in [true, false]:
+		_check(CoopWebRTC.offers(is_host) != CoopWebRTC.consumes("offer", is_host),
+			"the side that offers must not also be the side that answers "
+				+ "(is_host=%s)" % str(is_host))
+		_check(CoopWebRTC.consumes("answer", is_host) == CoopWebRTC.offers(is_host),
+			"an answer must come back to whoever asked (is_host=%s)" % str(is_host))
+		_check(CoopWebRTC.consumes("candidate", is_host),
+			"both sides need routes while they negotiate (is_host=%s)" % str(is_host))
+		_check(not CoopWebRTC.consumes("nonsense", is_host),
+			"and nothing acts on a kind it does not know")
+
+	# Stated absolutely as well as relatively, so a consistent double-flip - both
+	# halves inverted together - still fails rather than passing quietly.
+	_check(CoopWebRTC.offers(false),
+		"the guest offers: the mesh puts the data channels on the higher peer id")
+	_check(CoopWebRTC.consumes("offer", true), "so the host answers")
 
 
 ## Whether one named peer's channel is actually usable.

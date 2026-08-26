@@ -598,15 +598,24 @@ func _refresh() -> void:
 func _address_text() -> String:
 	var lines: PackedStringArray = []
 	var code: String = _share_code()
-	lines.append("Send your friend this code:   %s" % code
-		if not code.is_empty() else "Finding your address…")
-	if not Coop.local_address.is_empty():
-		lines.append("Same network:  %s" % Coop.local_address)
-	if not Coop.external_address.is_empty():
-		lines.append("Over internet: %s" % Coop.external_address)
+	# **A room has no address and no port**, and saying otherwise sent a player
+	# looking at their router for a connection that never goes near it. Rooms
+	# were showing "Over internet: looking…", "Port: 45870" and "asking your
+	# router for a public address" - all of it true of the *port* path and none
+	# of it true of the one they were using.
+	if not Coop.room_code.is_empty():
+		lines.append("Send your friend this code:   %s" % code)
+		lines.append("Works anywhere, including a browser. No port to open.")
 	else:
-		lines.append("Over internet: looking…")
-	lines.append("Port: %d" % Balance.COOP_PORT)
+		lines.append("Send your friend this code:   %s" % code
+			if not code.is_empty() else "Finding your address…")
+		if not Coop.local_address.is_empty():
+			lines.append("Same network:  %s" % Coop.local_address)
+		if not Coop.external_address.is_empty():
+			lines.append("Over internet: %s" % Coop.external_address)
+		else:
+			lines.append("Over internet: looking…")
+		lines.append("Port: %d" % Balance.COOP_PORT)
 	_share_row.visible = not code.is_empty()
 	# Listed publicly the moment there is something worth listing. The code
 	# improves when the public address arrives, and `publish` updates the row
@@ -731,6 +740,9 @@ func _share_code() -> String:
 ## and naming the port to forward — is the difference between a player who can
 ## fix it and two people who fail to connect and blame the game.
 func _hint_text() -> String:
+	# A room needs nothing from the router, so it must not talk about one.
+	if not Coop.room_code.is_empty():
+		return "Anyone with that code can join, on any platform. " 			+ "Nothing to forward, nothing to configure."
 	if Coop.external_address.is_empty():
 		return "Asking your router for a public address…"
 	if Coop.port_mapped:
