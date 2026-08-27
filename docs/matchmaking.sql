@@ -57,7 +57,6 @@ create table if not exists public.rooms (
   id          uuid primary key default gen_random_uuid(),
   code        text        not null unique check (code ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),
   host_token  text        not null,
-  guest_token text,
   created_at  timestamptz not null default now(),
   -- Last time either peer was heard from. The sweep runs on *this*, not on
   -- created_at: a host waiting for a friend to read a code out of a chat window
@@ -70,6 +69,12 @@ create table if not exists public.rooms (
 -- Migration for a database created before seen_at existed.
 alter table public.rooms add column if not exists
   seen_at timestamptz not null default now();
+
+-- **Seats moved to `room_members`, so this column is not merely unused - it is
+-- a second answer to "who is in this room".** Two places to ask a question is
+-- two places to disagree, and the one nothing writes any more is the one that
+-- would be believed by whatever was not updated. Dropped rather than left.
+alter table public.rooms drop column if exists guest_token;
 
 -- **Rebuilt for four, and dropped rather than migrated.** Both of these tables
 -- hold handshakes in flight and nothing else - the sweep deletes everything in
@@ -123,12 +128,20 @@ create table if not exists public.presence (
 
 -- Locked by default. Nothing below grants direct table access to anon: the
 -- functions run as the definer, and the view is the only way in.
-alter table public.lobbies  enable row level security;
-alter table public.rooms    enable row level security;
-alter table public.signals  enable row level security;
-alter table public.presence enable row level security;
-revoke all on public.lobbies, public.rooms, public.signals, public.presence
-  from anon, authenticated;
+alter table public.lobbies      enable row level security;
+alter table public.rooms        enable row level security;
+alter table public.room_members enable row level security;
+alter table public.signals      enable row level security;
+alter table public.presence     enable row level security;
+-- **`room_members` belongs on this list and is the most important entry on it.**
+-- It holds one token per player, and a token is not a name - it is the whole
+-- capability to *be* that player in that room. A table left readable would have
+-- let anyone fetch every token in every live room straight off the REST API and
+-- take any seat they liked. No policies are defined for any of these on purpose:
+-- with RLS on and no policy, direct access returns nothing and the security
+-- definer functions above remain the only way in.
+revoke all on public.lobbies, public.rooms, public.room_members, public.signals,
+  public.presence from anon, authenticated;
 
 -- ================================================================= view ====
 
@@ -284,7 +297,7 @@ end $$;
 drop function if exists public.enter_room(text, text);
 create or replace function public.enter_room(p_code text, p_token text)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare found uuid; taken int; seat int;
+declare found uuid; seat int;
 begin
   perform public.sweep_rooms();
   select id into found from public.rooms where code = p_code
@@ -435,10 +448,8 @@ grant execute on function public.find_party(smallint)                    to anon
 grant execute on function public.release_seat(text)                      to anon;
 grant execute on function public.open_room(text, text)                   to anon;
 grant execute on function public.enter_room(text, text)                  to anon;
-grant execute on function public.post_signal(uuid, text, text, jsonb)    to anon;
 grant execute on function public.read_signals(uuid, text, bigint)        to anon;
 grant execute on function public.post_signal(uuid, text, text, jsonb, int) to anon;
-grant execute on function public.enter_room(text, text)                  to anon;
 grant execute on function public.close_room(uuid, text)                  to anon;
 grant execute on function public.announce_presence(text, text, text)     to anon;
 grant execute on function public.friends_online(text[])                  to anon;
