@@ -51,6 +51,7 @@ var _town_critical: bool = false
 ## Elemental impact art, derived from the element name like every other asset
 ## path in the project.
 const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
+const BLOOD_ART_PATH: String = "res://art/vfx/blood_splatter.png"
 
 
 func _ready() -> void:
@@ -494,6 +495,42 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	tween.chain().tween_callback(burst.queue_free)
 
 
+## Optional character-hit layer. The authored splatter is distinct from the
+## ordinary spark/number language so disabling gore cannot make a landed attack
+## harder to read. Presentation is local on purpose: the guest already derives
+## mirrored-hit reactions from authoritative health and enemy deaths are relayed
+## as facts, so no cosmetic network packet is required.
+func blood(at: Vector2, direction: Vector2, size: float) -> void:
+	if world == null or not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)) \
+			or not ResourceLoader.exists(BLOOD_ART_PATH):
+		return
+	var splatter := Sprite2D.new()
+	splatter.texture = load(BLOOD_ART_PATH)
+	splatter.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	splatter.add_to_group(Graphics.FILTER_GROUP)
+	splatter.modulate = Color(0.88, 0.76, 0.76, 0.92)
+	splatter.z_index = Balance.VFX_Z
+	splatter.rotation = direction.angle() if direction.length_squared() > 0.001 \
+		else randf() * TAU
+	_track(splatter)
+	splatter.global_position = at
+
+	var final_scale: float = size / maxf(float(splatter.texture.get_width()), 1.0)
+	splatter.scale = Vector2.ONE * final_scale * 0.42
+	var tween: Tween = splatter.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(splatter, "scale", Vector2.ONE * final_scale,
+		Balance.VFX_BLOOD_LIFE).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
+	tween.tween_property(splatter, "modulate:a", 0.0,
+		Balance.VFX_BLOOD_LIFE).set_delay(Balance.VFX_BLOOD_LIFE * 0.2)
+	tween.chain().tween_callback(splatter.queue_free)
+
+	# A few directional motes keep a hit moving even when the source sprite is
+	# seen edge-on. This reuses the established transient shard primitive rather
+	# than introducing a second permanent blood asset.
+	spark(at, Color("9b2d32"), Balance.VFX_BLOOD_SPARKS, direction, size * 2.2)
+
+
 func flash_at(at: Vector2, colour: Color, radius: float) -> void:
 	if world == null:
 		return
@@ -597,6 +634,7 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 			_:
 				pass
 	spark(at, colour, spark_count, Vector2.ZERO, 220.0 + radius)
+	blood(at, Vector2.ZERO, maxf(Balance.VFX_BLOOD_DEATH_SIZE, radius * 1.05))
 	dust(at, Color(0.34, 0.22, 0.18, 0.34), 4 + spark_count / 5, radius * 0.9)
 	ring(at, radius, Color(colour, 0.48), 0.28 + radius / 500.0, 3.0 + radius / 35.0)
 	flash_at(at, colour, 14.0 + radius * 0.18)
@@ -605,12 +643,11 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 			radius * 1.25)
 
 
-func _on_hero_damaged(amount: float, from: Vector2) -> void:
-	var hero: Node = get_tree().get_first_node_in_group(&"hero")
-	if hero is Node2D:
-		var pos: Vector2 = (hero as Node2D).global_position
-		number(pos, amount, Color("ff6b5a"), true)
-		spark(pos, Color("ff8a7a"), 8, (pos - from).normalized(), 200.0)
+func _on_hero_damaged(amount: float, from: Vector2, at: Vector2) -> void:
+	number(at, amount, Color("ff6b5a"), true)
+	var direction: Vector2 = (at - from).normalized()
+	spark(at, Color("ff8a7a"), 8, direction, 200.0)
+	blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE)
 	flash(Color(0.75, 0.1, 0.08), Balance.VFX_HURT_FLASH, 0.28)
 
 

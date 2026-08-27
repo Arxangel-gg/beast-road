@@ -519,7 +519,7 @@ func _on_footfall(_at: Vector2, mass: float) -> void:
 		play("sfx_footstep_dirt")
 
 
-func _on_hero_damaged(_amount: float, _from: Vector2) -> void:
+func _on_hero_damaged(_amount: float, _from: Vector2, _at: Vector2) -> void:
 	play("sfx_hero_hurt")
 
 

@@ -37,10 +37,7 @@ func act_is_cleared(act: int) -> bool:
 
 ## Spawns the boss for `act`. Refused if one is already out or that act is done.
 func summon(act: int) -> bool:
-	# Endless re-summons a boss it has already killed. Refusing there would leave
-	# the journey waiting at an act gate for something that can never arrive, and
-	# the run would simply stop walking.
-	if boss_is_out() or (act_is_cleared(act) and not RunState.endless):
+	if boss_is_out() or act_is_cleared(act):
 		return false
 	var data: EnemyData = _boss_for_act(act)
 	if data == null:
@@ -68,7 +65,7 @@ func summon(act: int) -> bool:
 ## leaned on the horn meets a harder boss.
 func _boss_scale(act: int) -> float:
 	return RunState.enemy_escalation_multiplier() * Balance.BOSS_ACT_SCALE[
-		clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)] 		* RunState.endless_scale(Balance.ENDLESS_HP_GROWTH)
+		clampi(act - 1, 0, Balance.BOSS_ACT_SCALE.size() - 1)]
 
 
 func _boss_for_act(act: int) -> EnemyData:

@@ -66,7 +66,7 @@ func _scan_for_shots(from: Node) -> void:
 
 
 ## The host's world, adopted. Guest side.
-func _on_host_run_started(seed_value: int, _endless: bool) -> void:
+func _on_host_run_started(seed_value: int) -> void:
 	RunState.reset(true, seed_value)
 	print("[coop-ui] guest adopted the host's world, seed %d" % seed_value)
 
@@ -149,7 +149,7 @@ func _run_host() -> void:
 	# the guest happened to hold from connect time. It reported a mismatch on
 	# every green run, which is the same as reporting nothing.
 	RunState.reset(true, 0)
-	EventBus.coop_run_started.emit(RunState.run_seed, false)
+	EventBus.coop_run_started.emit(RunState.run_seed)
 	await _hold(1.0)
 
 	await _enter_run_in_place("host")

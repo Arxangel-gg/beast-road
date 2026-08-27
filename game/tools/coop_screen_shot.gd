@@ -7,7 +7,12 @@ extends Node
 func _ready() -> void:
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
-	var hosting: bool = OS.get_cmdline_user_args().has("--hosting")
+	var arguments: PackedStringArray = OS.get_cmdline_user_args()
+	var hosting: bool = arguments.has("--hosting")
+	var port: int = Balance.COOP_PORT
+	for argument: String in arguments:
+		if argument.begins_with("--port="):
+			port = int(argument.trim_prefix("--port="))
 	var menu: MainMenu = (load("res://scenes/ui/main_menu.tscn") as PackedScene) \
 		.instantiate() as MainMenu
 	add_child(menu)
@@ -16,7 +21,7 @@ func _ready() -> void:
 	var coop: CanvasLayer = menu.get("_coop") as CanvasLayer
 	coop.call("open")
 	if hosting:
-		Coop.host()
+		Coop.host(port)
 	# Waits for the address rather than counting frames. UPnP takes seconds when
 	# it works at all, and the public-address fallback is a round trip to the
 	# internet - a fixed forty frames photographed the "looking..." state every

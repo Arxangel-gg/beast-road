@@ -167,6 +167,14 @@ jobs:
           # Every run currency has purpose-built world art, and ordinary raid
           # supplies cannot be mistaken for the premium locked relic cache.
           check "loot art" --headless --path game res://tools/loot_art_check.tscn
+          # Gore is authored and optional: disabling it must suppress only blood,
+          # never ordinary hit readability, and the effect must spawn at the
+          # replicated impact position rather than at the local hero.
+          check "blood VFX" --headless --path game res://tools/blood_vfx_check.tscn
+          # Matchmaking seats show the same south-facing animated, colour-coded
+          # Wardens that enter the battlefield. A static or clipped row is a
+          # lobby regression even though the network can still connect.
+          check "co-op lobby portraits" --headless --path game res://tools/coop_lobby_check.tscn
           # Every path tile connects on the edges its filename claims. The
           # autotiler picks by index, so a mislabelled tile draws a road that
           # stops dead mid-bend, and the generated set arrived in an order that

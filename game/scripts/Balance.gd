@@ -565,7 +565,9 @@ const IMPACT_FRAME_TIME: float = 0.032
 # Hero — health and movement
 # ------------------------------------------------------------------------------
 
-const HERO_MAX_HP: float = 1000
+## Production baseline. Large values belong in local test harness setup, never in
+## the shipped balance contract. [TUNE]
+const HERO_MAX_HP: float = 100.0
 
 ## Movement multiplier while an attack is in its windup/active frames. Not fully
 ## rooted: being able to drift keeps the chain from feeling like a commitment
@@ -576,7 +578,7 @@ const HERO_ATTACK_MOVE_SCALE: float = 0.38
 const HERO_RESPAWN_DELAY: float = 8.0
 
 const HERO_WOUND_HP_PENALTY: float = 0.10
-const HERO_MAX_WOUNDS: int = 10
+const HERO_MAX_WOUNDS: int = 3
 const HERO_WOUND_REVIVE_HP: float = 0.50
 const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 
@@ -1394,14 +1396,6 @@ const WAVE_BASE_COUNT: int = 4
 ## and HP growth both go up, and enemies move faster to claw back some of the
 ## time the bend hands the player. Speed is the honest lever for the road
 ## length; HP and count answer the tower count. [TUNE]
-## Endless escalation, applied per Endless wave on top of the ordinary per-wave
-## growth. Without these, Endless settles at whatever pressure Act 3 ended on and
-## becomes a treadmill the player can never lose - which is the one thing an
-## endless mode must not be. [TUNE]
-const ENDLESS_HP_GROWTH: float = 0.055
-const ENDLESS_DAMAGE_GROWTH: float = 0.032
-const ENDLESS_COUNT_GROWTH: float = 0.11
-
 const WAVE_COUNT_GROWTH: float = 0.285
 const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.14, 1.30]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
@@ -1614,7 +1608,8 @@ const STARTING_WOOD: int = 180
 ## Starting below one tend means the first wounded hero is a choice: hunt for it,
 ## walk for it, or fight on hurt. [TUNE]
 const STARTING_FOOD: int = 38
-const STARTING_GOLD: int = 150
+## The Warden earns the first tower by fighting; see GDD v4 §18. [TUNE]
+const STARTING_GOLD: int = 0
 const STARTING_STONE: int = 90
 ## Machine-readable v4 contract; RunState owns the runtime typed aliases.
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]
@@ -2195,6 +2190,14 @@ const VFX_BOSS_PHASE_SHAKE: float = 11.0
 
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
 const VFX_SLASH_LIFE: float = 0.16
+
+## Authored blood impact sizing. The setting can suppress this entire layer;
+## the ordinary hit spark and number remain so combat never becomes less
+## readable for a player who disables gore. [TUNE]
+const VFX_BLOOD_HIT_SIZE: float = 54.0
+const VFX_BLOOD_DEATH_SIZE: float = 82.0
+const VFX_BLOOD_LIFE: float = 0.30
+const VFX_BLOOD_SPARKS: int = 3
 
 ## Screen wash intensities, 0..1. [TUNE]
 const VFX_HURT_FLASH: float = 0.26
@@ -2862,7 +2865,7 @@ const CITY_SMOKE_ALPHA: float = 0.30
 const SCORE_PER_WAVE: float = 120.0
 const SCORE_PER_ACT: float = 450.0
 
-## Reaching the summit. Large enough that no amount of endless grinding on a lost
+## Reaching the summit. Large enough that no amount of wave grinding on a lost
 ## run out-scores finishing the game.
 const SCORE_VICTORY: float = 1800.0
 
@@ -2878,10 +2881,6 @@ const SCORE_PAR_SECONDS: float = 3000.0
 ## health remaining, because Hearthmend repairs it and a town rebuilt three times
 ## was patched, not defended.
 const SCORE_TOWN_INTACT: float = 1200.0
-
-## Per wave of the victory lap. Worth more than a campaign wave because by then
-## nothing is being unlocked and the only thing left to spend is skill.
-const SCORE_PER_ENDLESS_WAVE: float = 260.0
 
 ## What a hero death costs, and the share of a score deaths can never eat.
 ##
@@ -3061,6 +3060,9 @@ const LEADERBOARD_PENDING_MAX: int = 12
 ## ones already occupied on a machine that plays other games, and "someone else's
 ## server is already on that port" reads to a player as "co-op is broken".
 const COOP_PORT: int = 45870
+## LAN discovery uses its own UDP port so a listener can coexist with the game
+## socket on the same machine. [TUNE]
+const COOP_DISCOVERY_PORT: int = 45871
 
 ## Four, and the transport is told so.
 ##
@@ -3139,6 +3141,18 @@ const PARTY_TINT_STRENGTH: float = 0.46
 ## Stronger than the body tint because a light has no art to fight. It keeps
 ## enough of the warm base that the ground still looks lit rather than gelled.
 const PARTY_LIGHT_STRENGTH: float = 0.62
+
+## The lobby uses the hero's authored south-facing idle rather than a static
+## thumbnail. It deliberately runs at the same rate as the in-world idle so a
+## player who joins the row looks like the Warden who will step onto the road.
+## [TUNE]
+const COOP_LOBBY_IDLE_FPS: float = 8.0
+const COOP_LOBBY_CARD_SIZE: Vector2 = Vector2(132.0, 178.0)
+const COOP_LOBBY_HERO_SIZE: Vector2 = Vector2(116.0, 112.0)
+## Keeps the expanded lobby inside the 1080p design viewport. Shorter windows
+## inherit project stretch and the body scrolls instead of clipping the join and
+## Back controls below the frame. [TUNE]
+const COOP_PANEL_VIEW_HEIGHT: float = 920.0
 
 ## How wide a line in the party feed may run before it wraps. [TUNE]
 const PARTY_LOG_WIDTH: float = 420.0

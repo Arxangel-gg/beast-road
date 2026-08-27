@@ -29,6 +29,9 @@ extends Node
 ## Kept away from `Balance.COOP_PORT` on purpose. The gate must not fail because
 ## the developer happens to be hosting a game on the default port at the time.
 const TEST_PORT: int = 45879
+## Kept off the production LAN discovery port so a developer can validate while
+## a real lobby remains open in another process.
+const TEST_DISCOVERY_PORT: int = 45970
 
 ## Frames to wait for something that involves the network. Generous: a loopback
 ## handshake is fast, but a loaded CI box is not, and a flaky gate is worse than
@@ -578,6 +581,8 @@ func _test_a_code_survives_the_round_trip() -> void:
 func _test_a_beacon_is_heard() -> void:
 	var listener := CoopBeacon.new()
 	var shouter := CoopBeacon.new()
+	listener.discovery_port = TEST_DISCOVERY_PORT
+	shouter.discovery_port = TEST_DISCOVERY_PORT
 	add_child(listener)
 	add_child(shouter)
 	listener.listen()

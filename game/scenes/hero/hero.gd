@@ -641,7 +641,7 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 	animator.impact_frame()
 	animator.recoil(from, global_position, 1.0)
 	_lock_frames("hurt")
-	EventBus.hero_damaged.emit(amount, from)
+	EventBus.hero_damaged.emit(amount, from, global_position)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
 
 

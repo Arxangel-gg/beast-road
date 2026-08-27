@@ -25,7 +25,8 @@ extends Node
 signal hero_health_changed(current_hp: float, max_hp: float)
 
 ## The hero took damage. `amount` is post-mitigation, `from` is world position.
-signal hero_damaged(amount: float, from: Vector2)
+## One hero took damage; `at` keeps co-op feedback on the body that was hit.
+signal hero_damaged(amount: float, from: Vector2, at: Vector2)
 
 ## The hero hit zero HP. The hero node handles its own respawn timer.
 signal hero_died(at: Vector2)
@@ -469,7 +470,7 @@ signal snow_cover_changed(cover: float)
 ## Carries the seed because both machines have to roll the identical world. The
 ## guest's RunState mirrors the host's, and a mirror of a different world is not
 ## a mirror.
-signal coop_run_started(seed: int, endless: bool)
+signal coop_run_started(seed: int)
 
 ## The host's reachable address changed, or the attempt to find one finished.
 ## `external` is empty while unknown; `mapped` says whether UPnP opened the port.

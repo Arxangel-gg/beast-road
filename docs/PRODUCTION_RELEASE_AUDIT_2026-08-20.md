@@ -193,7 +193,7 @@ No automated soak substitutes for the GDD's 55–65 minute uninterrupted run.
 Remaining work:
 
 - Complete fresh-account win and loss paths: splash → menu → all four scopes →
-  three acts → summit → ending/Endless choice → payout → menu.
+  three acts → summit → ending → payout → menu.
 - Run at least one full controller-only session and every scope transition in
   both directions; include pause, rebinding and reconnect.
 - Run the fresh-account Standard clear with no lucky relic or specific unlock.
@@ -328,11 +328,11 @@ reconciled with the dated owner amendment. Structural validation passes, but
 this machine lacks LibreOffice, so the regenerated DOCX still needs a visual
 page render/review in Word or LibreOffice.
 
-The remaining design contradictions are:
+Design contradictions found by this audit:
 
-1. §54 still says Endless is out of scope, while the shipped summit explicitly
-   offers Endless and the road-to-release says the owner requested it. Decide and
-   amend the GDD; do not leave a release feature in permanent exception status.
+1. **Resolved 2026-08-27:** §54 is authoritative. Endless was removed from the
+   1.0 menu, summit, run-state, replication, difficulty, scoring, and debrief
+   paths. It may be reconsidered after launch.
 2. GDD milestone and acceptance checkboxes remain mostly unchecked even where
    code exists. Close them only from evidence and signed human gates, not from
    the 44/44 symbol audit.

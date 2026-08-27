@@ -666,15 +666,7 @@ func _on_command_requested(order_id: String, anchor: Vector2i) -> void:
 
 
 
-## The summit is reached, and the road carries on.
-##
-## Killing the Act 3 boss used to call `end_run(true)` on the spot: a debrief,
-## and the game was over at the exact moment the player had finally assembled a
-## defence worth playing with. The win is banked here instead - `summit_reached`
-## carries it to whenever the run actually ends - and the run rolls into Endless,
-## which is also where the mode is unlocked for the main menu. Earned by
-## finishing, not by a toggle.
-## Act III is behind us; the beast climbs.
+## The summit route begins after the third regional boss.
 ##
 ## No crossroad and no fork: the ascent is one authored road, so this only has to
 ## move the run into the ascent act and let the journey walk it. The Chainmaker
@@ -692,11 +684,8 @@ func _begin_final_ascent() -> void:
 ##
 ## The ending plays first and the debrief follows it, because v4 is explicit that
 ## the final break transitions *directly* into the ending rather than into a
-## post-victory loot menu. Endless then continues from the summit for anyone who
-## wants to keep riding.
+## post-victory loot menu. The ending then leads to the victory debrief.
 func _summit_cleared() -> void:
-	var first_time: bool = not MetaState.act3_cleared
-	RunState.begin_endless(true)
 	MetaState.act3_cleared = true
 	# Clearing the summit is what opens the next campaign tier. Recorded from the
 	# tier actually being played, not from a counter, so replaying Normal after
@@ -705,13 +694,12 @@ func _summit_cleared() -> void:
 	if tier != null:
 		MetaState.record_tier_cleared(tier.order)
 	MetaState.save_game()
-	journey.resume_after_boss()
-	battlefield.refresh_terrain()
-	_enter_preparation(false)
+	journey.stop()
+	battlefield.suspend()
 	if ending_ui != null:
-		ending_ui.play(first_time)
-	EventBus.preparation_warning.emit(
-		"THE CHAINS ARE BROKEN  ·  Endless begins. Ride as far as you can.")
+		ending_ui.play()
+	else:
+		GameDirector.end_run(true)
 
 
 # --- Ending -----------------------------------------------------------------

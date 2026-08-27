@@ -19,10 +19,6 @@ extends Node
 ## stripped of control characters, and objects are refused when it is decoded.
 ## The worst a hostile beacon can do is put a wrong name in a list.
 
-## Its own port, not the game's. A listener must be able to bind while a host on
-## the same machine holds the game port, which is exactly the two-process case.
-const PORT: int = 45871
-
 ## How often a host shouts, and how long a silent game stays listed. The timeout
 ## is several beacons long so one dropped packet does not blink an entry out.
 const BEACON_INTERVAL: float = 1.0
@@ -50,6 +46,9 @@ signal games_changed(games: Array)
 ## both hold it and both channels work; on one machine exactly one holds it and
 ## the direct reply carries the rest.
 var _socket: PacketPeerUDP = null
+## Injectable only so the real-socket gate can coexist with a developer who is
+## actively hosting on the production discovery port.
+@export var discovery_port: int = Balance.COOP_DISCOVERY_PORT
 var _has_well_known: bool = false
 var _announcing: bool = false
 var _listening_now: bool = false
@@ -128,7 +127,7 @@ func _open() -> void:
 		return
 	_socket = PacketPeerUDP.new()
 	_socket.set_broadcast_enabled(true)
-	_has_well_known = _socket.bind(PORT) == OK
+	_has_well_known = _socket.bind(discovery_port) == OK
 	if _has_well_known:
 		return
 	# Somebody else on this machine holds it - the other copy of the game, which
@@ -140,7 +139,7 @@ func _open() -> void:
 	# sent a single probe. It reported "holds the well-known port: false" and was
 	# indistinguishable from one that was simply not being answered.
 	for offset: int in range(1, 9):
-		if _socket.bind(PORT + offset) == OK:
+		if _socket.bind(discovery_port + offset) == OK:
 			return
 	_socket = null
 
@@ -215,8 +214,8 @@ func _beacon_packet() -> Dictionary:
 ## Both, every time. A packet arriving twice is deduplicated by address anyway,
 ## because a game is keyed on where it is rather than on how it was heard.
 func _shout_to_everyone(packet: Dictionary) -> void:
-	_send(packet, "255.255.255.255", PORT)
-	_send(packet, "127.0.0.1", PORT)
+	_send(packet, "255.255.255.255", discovery_port)
+	_send(packet, "127.0.0.1", discovery_port)
 
 
 func _send(packet: Dictionary, address: String, port: int) -> void:

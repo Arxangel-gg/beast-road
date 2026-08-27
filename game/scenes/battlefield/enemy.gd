@@ -437,6 +437,7 @@ func _react_to_mirrored_hit(lost: float) -> void:
 	var from: Vector2 = global_position + facing * 24.0
 	Vfx.number(global_position, lost, Color("ffe3b0"), lost >= data.max_hp * 0.4)
 	Vfx.spark(global_position, Color("ffcf9a"), 4, -facing, 170.0)
+	Vfx.blood(global_position, -facing, Balance.VFX_BLOOD_HIT_SIZE)
 	if animator != null:
 		animator.recoil(from, global_position,
 			clampf(lost / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
@@ -789,7 +790,9 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
 	Vfx.number(global_position, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
-	Vfx.spark(global_position, Color("ffcf9a"), 4, (global_position - from).normalized(), 170.0)
+	var hit_direction: Vector2 = (global_position - from).normalized()
+	Vfx.spark(global_position, Color("ffcf9a"), 4, hit_direction, 170.0)
+	Vfx.blood(global_position, hit_direction, Balance.VFX_BLOOD_HIT_SIZE)
 	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
 	animator.impact_frame()
 	var away: Vector2 = global_position - from

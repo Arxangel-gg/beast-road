@@ -150,6 +150,7 @@ func _build() -> void:
 	game.add_theme_constant_override("separation", 14)
 	game.add_child(_shake_row())
 	game.add_child(_gait_row())
+	game.add_child(_blood_vfx_row())
 	game.add_child(_separator())
 	game.add_child(_tutorial_row())
 	tabs.add_child(game)
@@ -277,6 +278,31 @@ func _gait_row() -> HBoxContainer:
 		UserSettings.number(UserSettings.GAIT_KEY, 0.65),
 		func(v: float) -> String: return "Off" if v <= 0.001 else "%d%%" % int(round(v * 100.0)),
 		func(v: float) -> void: UserSettings.set_value(UserSettings.GAIT_KEY, v))
+
+
+## Gore is optional presentation, never a combat-readability switch. Damage
+## numbers, ordinary hit sparks and hostile red telegraphs stay enabled.
+func _blood_vfx_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label("Blood effects")
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	row.add_child(label)
+
+	var button := Button.new()
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.button_pressed = bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true))
+	button.text = "On" if button.button_pressed else "Off"
+	button.tooltip_text = "Shows restrained blood on character hits. Danger cues and hit feedback stay on."
+	IconKit.on_button(button, "upgrade" if button.button_pressed else "close", 22)
+	button.toggled.connect(func(on: bool) -> void:
+		UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, on)
+		button.text = "On" if on else "Off"
+		IconKit.on_button(button, "upgrade" if on else "close", 22)
+		_queue_save())
+	row.add_child(button)
+	return row
 
 
 ## Two buttons rather than a slider or a dropdown: there are exactly two states,

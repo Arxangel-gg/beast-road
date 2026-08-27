@@ -63,10 +63,6 @@ static func of(summary: Dictionary, tier: CampaignTierData) -> int:
 	var intact: float = clampf(1.0 - taken / maxf(Balance.TOWN_MAX_HP, 1.0), 0.0, 1.0)
 	total += intact * Balance.SCORE_TOWN_INTACT
 
-	# The victory lap. Worth more per wave than the campaign's, because by then
-	# nothing is being unlocked and the only thing left to spend is skill.
-	total += float(_number(summary, "endless_waves")) * Balance.SCORE_PER_ENDLESS_WAVE
-
 	# Deaths cost, but cannot take a run below what its progress earned. A
 	# formula that can reach zero invites a player to stop playing rather than
 	# risk one more death, which is the opposite of what a board is for.

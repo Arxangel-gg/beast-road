@@ -225,8 +225,6 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.
 	menu_button.grab_focus.call_deferred()
-	if victory and int(summary.get("endless_waves", 0)) > 0:
-		title.text = "The sanctuary, and beyond"
 
 	var unlocks: Array = summary.get("unlocks", [])
 	var seconds: int = int(summary.get("time", 0))
@@ -280,12 +278,6 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		"",
 		"Added to the pool: %d" % unlocks.size(),
 	]
-	var endless_waves: int = int(summary.get("endless_waves", 0))
-	if endless_waves > 0:
-		var at: int = lines.find("DEFENCE")
-		if at > 0:
-			lines.insert(at - 1, "Endless   %d waves past the summit" % endless_waves)
-
 	for entry: String in unlocks:
 		lines.append("   " + entry.replace(":", "  "))
 

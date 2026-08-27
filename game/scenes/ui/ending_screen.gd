@@ -7,14 +7,6 @@ extends CanvasLayer
 ## ending without a post-victory loot menu", so this plays the moment the
 ## Chainmaker falls rather than after a debrief.
 ##
-## It ends on a choice, and that choice is the one place this deviates from v4.
-## v4 has the run end at the summit; the owner asked for Endless to continue past
-## it. Both are true here: the ending plays, and then the player either takes the
-## debrief they have earned or keeps riding. Ending the run from this screen is
-## the *same* end as dying in Endless — `RunState.summit_reached` already carries
-## the win, so a player who rides on and falls at wave ninety still files a
-## victory.
-##
 ## Lines are authored here rather than in data because there is exactly one
 ## ending and it is four sentences long. If a second ending ever exists, this
 ## moves to `.tres` like everything else (CLAUDE.md §3).
@@ -34,7 +26,6 @@ const LINE_GAP: float = 1.5
 @export var backdrop: TextureRect
 @export var title: Label
 @export var body: Label
-@export var ride_button: Button
 @export var finish_button: Button
 @export var credits_button: Button
 @export var credits: Label
@@ -78,17 +69,13 @@ func _ready() -> void:
 ".join(CREDITS)
 	credits.visible = false
 	credits_button.pressed.connect(_roll_credits)
-	ride_button.pressed.connect(_dismiss)
 	finish_button.pressed.connect(func() -> void:
 		_dismiss()
-		# The debrief the run has earned. `summit_reached` is already set, so the
-		# victory does not depend on which button was pressed.
 		GameDirector.end_run(true))
 
 
-## Plays the ending. `first_time` is the account's first clear, which is worth
-## saying out loud once and never again.
-func play(first_time: bool) -> void:
+## Plays the ending before the completed run's debrief.
+func play() -> void:
 	if _playing:
 		return
 	_playing = true
@@ -97,7 +84,6 @@ func play(first_time: bool) -> void:
 
 	title.text = "The chains are broken"
 	body.text = ""
-	ride_button.disabled = true
 	finish_button.disabled = true
 
 	for index: int in LINES.size():
@@ -107,10 +93,6 @@ func play(first_time: bool) -> void:
 		fade.tween_property(body, "modulate:a", 1.0, LINE_FADE)
 		await get_tree().create_timer(LINE_GAP, true, false, true).timeout
 
-	if first_time:
-		body.text += "\n\nEndless is open from the menu now."
-
-	ride_button.disabled = false
 	finish_button.disabled = false
 	finish_button.grab_focus()
 

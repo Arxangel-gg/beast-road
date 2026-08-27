@@ -118,9 +118,16 @@ func _build() -> void:
 	_root.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_root)
 
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0.0, Balance.COOP_PANEL_VIEW_HEIGHT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_root.add_child(scroll)
+
 	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 12)
-	_root.add_child(column)
+	scroll.add_child(column)
 
 	var title := Label.new()
 	title.text = "Co-op"
@@ -128,7 +135,7 @@ func _build() -> void:
 	column.add_child(title)
 
 	var blurb := Label.new()
-	blurb.text = "Two players, one city. Both of you fight."
+	blurb.text = "One party, one city. Every Warden fights."
 	blurb.add_theme_font_size_override("font_size", 15)
 	blurb.add_theme_color_override("font_color", Color("aebcb8"))
 	column.add_child(blurb)
@@ -145,9 +152,9 @@ func _build() -> void:
 	_lobby_list.add_theme_constant_override("separation", 4)
 	column.add_child(_lobby_list)
 
-	# **Who is actually here.** A party assembles over a minute or two and the
-	# only thing anybody wants during that is a list of who has arrived, in their
-	# colour, so the party knows when to start.
+	# **Who is actually here.** A party assembles over a minute or two. The
+	# south-facing idle lineup is the visual promise: this is your Warden, this is
+	# their colour, and these are the people who will step onto the road with you.
 	_party_view = VBoxContainer.new()
 	_party_view.add_theme_constant_override("separation", 3)
 	column.add_child(_party_view)
@@ -402,11 +409,12 @@ func _on_friends(rows: Array) -> void:
 		row.add_child(drop)
 
 
-## The party, one row per seat, in each player's own colour.
+## The party in one south-facing row, each Warden wearing their canonical colour.
 func _update_party_view() -> void:
 	if _party_view == null:
 		return
 	for child: Node in _party_view.get_children():
+		_party_view.remove_child(child)
 		child.queue_free()
 	if not Coop.is_networked():
 		return
@@ -417,18 +425,21 @@ func _update_party_view() -> void:
 	header.add_theme_color_override("font_color", Color("9aa8a4"))
 	_party_view.add_child(header)
 
+	var lineup := HBoxContainer.new()
+	lineup.alignment = BoxContainer.ALIGNMENT_CENTER
+	lineup.add_theme_constant_override("separation", 8)
+	_party_view.add_child(lineup)
+
 	for entry: Variant in seats:
 		var seat := entry as CoopParty.Seat
-		var row := Label.new()
-		var mine: String = "  (you)" if seat.slot == Coop.party().slot() else ""
-		# The colour name is written out as well as shown, because "Blue" is what
-		# people say out loud and because a colour alone is no use to a player who
-		# cannot tell two of them apart.
-		row.text = "%d. %s  ·  %s%s" % [seat.slot, seat.name,
-			seat.colour_name(), mine]
-		row.add_theme_font_size_override("font_size", 15)
-		row.add_theme_color_override("font_color", seat.colour())
-		_party_view.add_child(row)
+		if seat == null:
+			continue
+		var portrait := CoopPartyPortrait.new()
+		# The colour name remains written out because a colour alone is no use to
+		# a player who cannot distinguish two of the swatches.
+		portrait.configure(seat.slot, seat.name, seat.colour(),
+			seat.colour_name(), seat.slot == Coop.party().slot())
+		lineup.add_child(portrait)
 
 
 ## The three things that can be wrong, stated plainly.

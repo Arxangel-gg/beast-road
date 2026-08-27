@@ -772,6 +772,9 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
 	Vfx.spark(sprite.global_position, Color("c4552e"), 6,
 		Vector2.UP, 170.0)
+	Vfx.blood(sprite.global_position, Vector2.UP,
+		Balance.VFX_BLOOD_HIT_SIZE if float(animal["hp"]) > 0.0 \
+		else Balance.VFX_BLOOD_DEATH_SIZE * 0.75)
 	if float(animal["hp"]) > 0.0:
 		# Being hit is also a very good reason to leave.
 		animal["state"] = State.FLEEING

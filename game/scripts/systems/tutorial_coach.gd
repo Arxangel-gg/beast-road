@@ -41,9 +41,7 @@ var _enabled: bool = false
 
 func _ready() -> void:
 	name = "TutorialCoach"
-	# Endless is unlocked by finishing the game once, so anybody in it has been
-	# taught already. Explaining Ride On to them would be an insult.
-	_enabled = not bool(MetaState.settings.get(SETTING_KEY, false)) and not RunState.endless
+	_enabled = not bool(MetaState.settings.get(SETTING_KEY, false))
 	visible = false
 	modulate.a = 0.0
 

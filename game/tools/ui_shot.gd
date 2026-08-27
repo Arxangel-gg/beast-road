@@ -11,7 +11,7 @@ func _ready() -> void:
 	for _f: int in 12:
 		await get_tree().process_frame
 
-	await _shot("ending", func() -> void: run.ending_ui.play(true))
+	await _shot("ending", func() -> void: run.ending_ui.play())
 	await _shot("crossroad", func() -> void: run.crossroad_ui.open(1))
 	await _shot("town", func() -> void: run.town_panel.open("forge"))
 	await _shot("pause", func() -> void: run.pause_ui.toggle())

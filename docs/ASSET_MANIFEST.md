@@ -829,6 +829,16 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_resurrection_draught.png` · `ui_scope_battlefield.png` ·
 `ui_scope_town.png` · `ui_scope_beast.png`
 
+Persistent gear uses the same world-object language. Every `GearData.id`
+resolves by convention to `ui_<id>.png`; these are used both in the stash and
+as the readable silhouette inside a rarity-lit battlefield pickup.
+
+`ui_coalpaint_edge.png` · `ui_sunglass_saber.png` ·
+`ui_rimebound_maul.png` · `ui_rootweave_guard.png` ·
+`ui_mirrorscale_plate.png` · `ui_avalanche_harness.png` ·
+`ui_emberwind_charm.png` · `ui_hearthkeeper_sigil.png` ·
+`ui_chainbreaker_seal.png` · `ui_wardens_step.png`
+
 The three `ui_scope_*` icons are final production art, added when the scope bar
 became a column of icons: text that named function keys could not survive on a
 phone. Crossed blades on a shield, a gate keep, and the walking beast in profile
@@ -1066,6 +1076,11 @@ the art only has to carry the element - which is why one frame is enough.
 | `impact_water.png` | 96×96 | T | `#54B8C8` |
 | `impact_earth.png` | 96×96 | T | `#B07A3E` |
 | `impact_air.png` | 96×96 | T | `#BFE6F0` |
+| `blood_splatter.png` | 96×96 | T | `#8E1F25` |
+
+The blood splatter is the optional, teen-rated character-hit layer. It is
+kept separate from elemental impact art so the Blood effects setting can remove
+gore without removing danger telegraphs, hit confirmation, or damage numbers.
 
 Ground pools, one per element. Rotated to any angle, scaled and hue-jittered per
 cast, so four files never read as four stamps — the variety lives in the

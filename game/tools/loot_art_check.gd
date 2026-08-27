@@ -12,6 +12,7 @@ extends Node
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]
 const REWARD_IDS: Array[String] = ["supplies", "relic"]
 const FRAME_SIZE: Vector2i = Vector2i(48, 48)
+const GEAR_FRAME_SIZE: Vector2i = Vector2i(128, 128)
 
 var _failures: int = 0
 var _signatures: Dictionary = {}
@@ -23,6 +24,11 @@ func _ready() -> void:
 		_check_art(reward_id)
 	for currency: String in CURRENCY_IDS:
 		_check_runtime_currency(currency)
+	var gear_kinds: Array[GearData] = ContentDB.gear_sorted()
+	_check(not gear_kinds.is_empty(), "gear content must not be empty")
+	for kind: GearData in gear_kinds:
+		_check_gear_art(kind)
+		_check_runtime_gear(kind)
 
 	var supply := RaidChest.new()
 	var premium := RaidChest.new()
@@ -37,7 +43,8 @@ func _ready() -> void:
 	premium.free()
 
 	if _failures == 0:
-		print("[loot-art] PASS — 4 currency pickups and 2 distinct cache types")
+		print("[loot-art] PASS — 4 currency pickups, 2 cache types and %d gear kinds" \
+			% gear_kinds.size())
 	else:
 		push_error("[loot-art] FAIL — %d problem(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
@@ -79,6 +86,48 @@ func _check_runtime_currency(currency: String) -> void:
 		and sprite.texture != null else ""
 	_check(path == Balance.LOOT_ART_FORMAT % currency,
 		"%s runtime pickup resolved %s" % [currency, path if not path.is_empty() else "no art"])
+	drop.free()
+
+
+## A gear resource without its convention-derived icon otherwise becomes only
+## a coloured pool on the road: rarity is readable, but the item itself is not.
+func _check_gear_art(kind: GearData) -> void:
+	var path: String = kind.get_sprite_path()
+	if not ResourceLoader.exists(path):
+		_fail("%s has no gear art at %s" % [kind.id, path])
+		return
+	var texture := load(path) as Texture2D
+	var image: Image = texture.get_image() if texture != null else null
+	if image == null:
+		_fail("%s cannot be read" % path)
+		return
+	var size := Vector2i(image.get_width(), image.get_height())
+	_check(size == GEAR_FRAME_SIZE, "%s is %s; expected %s" % [
+		path, size, GEAR_FRAME_SIZE])
+
+	var visible_pixels: int = 0
+	for y: int in image.get_height():
+		for x: int in image.get_width():
+			if image.get_pixel(x, y).a > 0.01:
+				visible_pixels += 1
+	_check(visible_pixels >= 144, "%s is empty or too sparse to read" % path)
+
+	var signature: int = hash(image.get_data())
+	if _signatures.has(signature):
+		_fail("%s duplicates %s" % [path, _signatures[signature]])
+	else:
+		_signatures[signature] = path
+
+
+func _check_runtime_gear(kind: GearData) -> void:
+	var drop := LootDrop.new()
+	drop.setup_gear({"kind": kind.id, "rarity": 2, "level": 1}, Vector2.ZERO)
+	add_child(drop)
+	var sprite := drop.get("_sprite") as Sprite2D
+	var path: String = sprite.texture.resource_path if sprite != null \
+		and sprite.texture != null else ""
+	_check(path == kind.get_sprite_path(), "%s runtime pickup resolved %s" % [
+		kind.id, path if not path.is_empty() else "no art"])
 	drop.free()
 
 

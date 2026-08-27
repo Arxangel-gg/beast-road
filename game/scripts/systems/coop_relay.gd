@@ -455,8 +455,8 @@ func _on_coop_xp_awarded(amount: float) -> void:
 	_relay(Fact.XP_AWARDED, [amount])
 
 
-func _on_coop_run_started(seed_value: int, endless: bool) -> void:
-	_relay(Fact.RUN_STARTED, [seed_value, endless])
+func _on_coop_run_started(seed_value: int) -> void:
+	_relay(Fact.RUN_STARTED, [seed_value])
 
 
 func _on_coop_host_input(slot: int, snapshot: Array) -> void:
@@ -703,8 +703,8 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 1:
 				bus.coop_xp_awarded.emit(float(args[0]))
 		Fact.RUN_STARTED:
-			if args.size() == 2:
-				bus.coop_run_started.emit(int(args[0]), bool(args[1]))
+			if args.size() == 1:
+				bus.coop_run_started.emit(int(args[0]))
 		Fact.HOST_INPUT:
 			if args.size() == 2 and args[1] is Array:
 				bus.coop_host_input.emit(int(args[0]), args[1] as Array)

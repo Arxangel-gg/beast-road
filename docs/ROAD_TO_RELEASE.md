@@ -43,6 +43,38 @@ Landed since v0.4.44: the zero-capital start, two-player co-op end to end, the
 co-op lobby, visible weather, beast-scope parallax, eight bugs reported from
 play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
 
+### Unreleased production continuation — 2026-08-27
+
+- [x] **The ten gear kinds now have distinct authored 128×128 icons at their
+      convention paths.** They resolve in both the stash and physical,
+      rarity-lit battlefield drops. `loot_art_check` now enumerates every
+      `GearData`, rejects missing, mis-sized or duplicate art, and instantiates a
+      real drop to prove the runtime texture path.
+- [x] **Matchmaking now assembles the party as an animated Warden lineup.** Each
+      occupied seat uses the authored south-facing idle, the exact battlefield
+      seat tint, and a written colour name. The co-op body is height-bounded and
+      scrollable so the added visual row cannot push Join or Back off-screen.
+      `coop_lobby_check` verifies four staggered south-facing portraits; the
+      hosted screen was also inspected from a real rendered screenshot.
+- [x] **Blood VFX is authored, restrained and optional.** Enemy, hero and
+      wildlife hits use `blood_splatter.png`; enemy deaths scale it by threat.
+      The Game settings toggle suppresses gore locally while retaining ordinary
+      hit sparks, damage numbers and red danger language. Guests derive the
+      layer from mirrored health/death facts, so no cosmetic replication packet
+      was added. The typed hero-damage fact now carries the harmed Warden's
+      position, preventing a remote hit from drawing on the local body.
+      `blood_vfx_check` proves both toggle states, the art path and placement.
+- [x] **The production profile is restored and gated.** Co-op testing had
+      temporarily raised the opening wallet to 150 Gold, hero health to 1000,
+      and the Wound cap to 10. The shipped constants are again 0 Gold, 100 HP,
+      and three Wounds; `balance_test` now names all three so a convenient local
+      testing profile cannot quietly become release balance again.
+- [x] **Launch scope is three acts, the summit, and five tower levels.** The
+      accidental Endless release path has been removed from the main menu,
+      summit, co-op start fact, difficulty scaling, scoring, and debrief. The
+      summit now closes the run exactly as v4 specifies. A gear vendor is not a
+      1.0 requirement; the existing stash/equipment progression remains.
+
 - **v0.4.49** the replication batch — shared Ride On, the world clock (time of
   day, weather, act), enemy combat state and interpolation, shared pause, and
   hero death with partner revive.
@@ -810,14 +842,9 @@ Both surface on the debrief as `Tools N · Legacy rank N of 4`.
       roads. The act→boss fallback used to index a directory listing, which would
       have handed the ascent whichever boss sorted fourth; it looks up by id now.
 - [x] Summit backdrop.
-- [x] Ending sequence. Lines arrive one at a time over a scrim, then the player
-      chooses: keep riding into Endless, or take the debrief.
-
-      One deliberate deviation from v4, which ends the run at the summit: the
-      owner asked for Endless to continue past it, so both are offered. Ending
-      the run from that screen is the *same* end as dying in Endless —
-      `summit_reached` carries the win either way, so riding on and falling at
-      wave ninety still files a victory.
+- [x] Ending sequence. Lines arrive one at a time over a scrim, credits remain
+      skippable, and Continue leads directly to the victory debrief. There is no
+      post-victory loot menu or launch Endless branch.
 
 - [x] Credits. A skippable roll over the summit art rather than on its own
       screen: the art is the last thing the player earned.
@@ -2386,13 +2413,14 @@ has its design settled and written down; no netcode is written yet.
       scaling *for* a second player is tuning - but scaling it *well* is a
       balance question that cannot be answered before the mode exists.
 
-### Locked in §448 - needs a recorded re-cut
+### Locked in §448 - production value restored
 
-- [x] **Start with no gold; earn tower money by killing.** Done and gated on
-      2026-08-25. `Balance.STARTING_GOLD` is 0.
+- [x] **Start with no Gold; earn tower money by killing.** The owner confirmed
+      on 2026-08-27 that the 150-Gold wallet was a co-op development aid, not a
+      design re-cut. `Balance.STARTING_GOLD` is 0 and the measured zero-capital
+      ramp remains the production curve.
 
-      **Wood, Food and Stone were deliberately not zeroed, and that is an
-      interpretation the owner should confirm.** No tower can be built
+      **Wood, Food and Stone remain deliberately seeded.** No tower can be built
       without Gold - every `build_cost_table` entry carries a Gold price - so
       zero Gold already means zero towers, which is the whole of the intent.
       What the secondary wallets decide is *which element* the first
@@ -2550,7 +2578,8 @@ the history.
   published release, not just the code).
 - Chill model for slows; hitstun gated so nothing can be stun-locked.
 - Preparation countdown with the tiered early-departure reward.
-- Endless after the summit, and its unlock.
+- Summit ending flows directly into the victory debrief; Endless remains a
+  post-launch candidate.
 - Boss health bar wired; Act III debrief no longer a dead end.
 - Element rail in the build menu, with per-tower stat tooltips.
 - First-run tutorial: side card, dismissible, per-save, togglable.

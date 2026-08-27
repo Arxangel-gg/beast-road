@@ -45,6 +45,7 @@ func _ready() -> void:
 	_run.journey.stop()
 
 	_test_upgrade_track()
+	_test_production_profile()
 	_test_four_currency_economy()
 	await _test_live_tower_utility()
 	_test_opening_envelope()
@@ -110,18 +111,25 @@ func _test_upgrade_track() -> void:
 		"utility progression must cover every tower level")
 
 
+## Release-defining values must not be replaced by a convenient local playtest
+## profile. Harnesses may fund or fortify themselves after reset; the product
+## contract stays here in one cheap gate.
+func _test_production_profile() -> void:
+	_check(Balance.ACT_COUNT == 3, "the 1.0 campaign must contain exactly three acts")
+	_check(Balance.TOWER_MAX_LEVEL == 5, "the 1.0 tower cap must remain level 5")
+	_check(Balance.STARTING_GOLD == 0, "a production run must start with zero Gold")
+	_check(is_equal_approx(Balance.HERO_MAX_HP, 100.0),
+		"production hero maximum HP must be 100, got %.1f" % Balance.HERO_MAX_HP)
+	_check(Balance.HERO_MAX_WOUNDS == 3,
+		"the third lethal down must end the run, got a %d-Wound cap" % Balance.HERO_MAX_WOUNDS)
+
+
 func _test_four_currency_economy() -> void:
 	_check(RunState.currencies.size() == 4,
 		"the run must have exactly four role-specific economy wallets")
-	# This value has now been ruled on three times - one tower per road in v4
-	# §448, nothing at all on 2026-08-24, and a bounded purse on 2026-08-27 - so
-	# what it asserts is that the wallet *agrees with the constant*, not what the
-	# constant should be. `_test_opening_envelope` owns the design question and
-	# is the one place to argue with. Two gates with opinions about the same
-	# number is how a re-cut turns into an afternoon.
-	_check(RunState.currency(RunState.GOLD) == Balance.STARTING_GOLD,
-		"a fresh run must open with STARTING_GOLD (%d), got %d"
-			% [Balance.STARTING_GOLD, RunState.currency(RunState.GOLD)])
+	_check(RunState.currency(RunState.GOLD) == 0,
+		"a fresh production run must open with no Gold, got %d"
+			% RunState.currency(RunState.GOLD))
 	# Stone is deliberately still seeded. It cannot buy anything on its own -
 	# every tower, Fusion included, carries a Gold price - so this says only that
 	# Stone will not be the thing standing between an earned Gold pile and the
@@ -237,20 +245,11 @@ func _test_opening_envelope() -> void:
 	var ramp: Dictionary = _opening_gold_ramp(director, terrain)
 	var first_tower_wave: int = int(ramp["first_tower_wave"])
 	var baseline_wave: int = int(ramp["baseline_wave"])
-	# **Starting capital is bounded, not forbidden.** Owner re-cut, 2026-08-27:
-	# the run opens with Gold again. What the previous rule was really protecting
-	# was not the zero - it was §448's teaching obligation, that the opening must
-	# ask something of the player before it tests them. A purse that covers every
-	# road hands them a finished defence and asks nothing; a purse that covers
-	# some of it buys a foothold and leaves the rest to be earned.
-	#
-	# Half the roads is where that line sits. Below it the player must still
-	# fight for the rest of the ring, which is the whole of the intent; above it
-	# the opening defends itself and the hero is decoration.
-	var covered: int = Balance.STARTING_GOLD / Balance.TOWER_BUILD_COST
-	_check(covered * 2 <= Balance.LANE_COUNT,
-		"starting capital may cover at most half the roads, %d Gold covers %d of %d"
-			% [Balance.STARTING_GOLD, covered, Balance.LANE_COUNT])
+	_check(Balance.STARTING_GOLD == 0,
+		"the opening envelope requires zero build capital")
+	_check(first_tower_wave >= 2,
+		"wave 1 alone must not pay for a tower; first affordability was wave %d"
+			% first_tower_wave)
 	_check(baseline_wave >= 2,
 		"a tower on every road must be earned, not handed over at the gate")
 	_check(first_tower_wave > 0 and first_tower_wave <= 4,

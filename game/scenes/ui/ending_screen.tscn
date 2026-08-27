@@ -3,13 +3,12 @@
 [ext_resource type="Script" path="res://scenes/ui/ending_screen.gd" id="1_end"]
 [ext_resource type="Texture2D" path="res://art/bg/summit.png" id="2_bg"]
 
-[node name="EndingScreen" type="CanvasLayer" node_paths=PackedStringArray("backdrop", "title", "body", "ride_button", "finish_button", "credits_button", "credits")]
+[node name="EndingScreen" type="CanvasLayer" node_paths=PackedStringArray("backdrop", "title", "body", "finish_button", "credits_button", "credits")]
 layer = 20
 script = ExtResource("1_end")
 backdrop = NodePath("Backdrop")
 title = NodePath("Box/Title")
 body = NodePath("Box/Body")
-ride_button = NodePath("Box/Buttons/Ride")
 finish_button = NodePath("Box/Buttons/Finish")
 credits_button = NodePath("Box/Buttons/Credits")
 credits = NodePath("Credits")
@@ -48,13 +47,9 @@ theme_override_font_sizes/font_size = 22
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Ride" type="Button" parent="Box/Buttons"]
-custom_minimum_size = Vector2(340, 58)
-text = "Ride on"
-
 [node name="Finish" type="Button" parent="Box/Buttons"]
 custom_minimum_size = Vector2(340, 58)
-text = "End the run here"
+text = "Continue to debrief"
 
 [node name="Credits" type="Button" parent="Box/Buttons"]
 custom_minimum_size = Vector2(220, 58)

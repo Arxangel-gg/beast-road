@@ -16,11 +16,11 @@ func _ready() -> void:
 
 	var loss: Dictionary = {
 		"wave": 9, "act": 1, "time": 1200, "town_damage": 400,
-		"deaths": 1, "victory": false, "endless_waves": 0,
+		"deaths": 1, "victory": false,
 	}
 	var win: Dictionary = {
 		"wave": 51, "act": 3, "time": 2400, "town_damage": 100,
-		"deaths": 0, "victory": true, "endless_waves": 0,
+		"deaths": 0, "victory": true,
 	}
 	var loss_score: int = Score.of(loss, normal)
 	var win_score: int = Score.of(win, normal)

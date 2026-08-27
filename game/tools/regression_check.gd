@@ -94,11 +94,11 @@ func _test_lane_is_read_from_position() -> void:
 		"the town's own centre must still answer with a legal lane")
 
 
-## The run starts with no build capital (GDD §448, amended 2026-08-24).
+## The run starts with no build capital (GDD v4 §18).
 ##
 ## Here as well as in `balance_test`, because this one is cheap and the failure
 ## is silent: a reinstated starting cache would not error, it would just quietly
-## delete the design.
+## delete the opening's teaching obligation.
 func _test_starting_capital() -> void:
 	_check(RunState.currency(RunState.GOLD) == 0,
 		"the run must start with no Gold, got %d" % RunState.currency(RunState.GOLD))

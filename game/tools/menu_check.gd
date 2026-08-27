@@ -17,6 +17,7 @@ func _ready() -> void:
 	var panels: int = 0
 	var boards: int = 0
 	var board_buttons: int = 0
+	var endless_buttons: int = 0
 	for node: Node in _all(menu):
 		if node is SettingsPanel:
 			panels += 1
@@ -24,14 +25,21 @@ func _ready() -> void:
 			boards += 1
 		if node is Button and node.name == "Leaderboard":
 			board_buttons += 1
-	print("[menu] instantiated ok, settings panels=%d, boards=%d, board buttons=%d"
-		% [panels, boards, board_buttons])
+		if node is Button and (node.name == "Endless" \
+				or (node as Button).text.to_lower().contains("endless")):
+			endless_buttons += 1
+	print("[menu] instantiated ok, settings panels=%d, boards=%d, board buttons=%d, endless=%d"
+		% [panels, boards, board_buttons, endless_buttons])
 	if panels != 1:
 		push_error("main menu should own exactly one SettingsPanel")
 		get_tree().quit(1)
 		return
 	if boards != 1 or board_buttons != 1:
 		push_error("main menu should own exactly one leaderboard screen and button")
+		get_tree().quit(1)
+		return
+	if endless_buttons != 0:
+		push_error("GDD §54 cuts Endless from 1.0; the main menu must not expose it")
 		get_tree().quit(1)
 		return
 	# Let the instantiated menu release its nodes before shutting down. Quitting

@@ -167,10 +167,10 @@ func _on_coop_paused(paused: bool) -> void:
 ##
 ## Guest-only. On the host `start_run` is what announced this, and acting on it
 ## again would restart the run it just began.
-func _on_coop_run_started(seed_value: int, endless: bool) -> void:
+func _on_coop_run_started(seed_value: int) -> void:
 	if Coop.is_host() or run_active:
 		return
-	start_run(seed_value, endless)
+	start_run(seed_value)
 
 
 ## A co-op session failed while a run was live.
@@ -238,9 +238,6 @@ func goto_menu() -> void:
 	_change(MENU_SCENE)
 
 
-## `endless` starts the run already past its finish line: the three acts still
-## play, but the escalation compounds from the first wave and nothing stops at
-## the summit. Unlocked by finishing the campaign once.
 ## The opening cinematic, played on the way into a player's first run.
 ##
 ## Here rather than in `Run._ready()`, and the distinction is not cosmetic: every
@@ -260,7 +257,7 @@ func _play_intro() -> void:
 	intro.queue_free()
 
 
-func start_run(requested_seed: int = 0, endless: bool = false) -> void:
+func start_run(requested_seed: int = 0) -> void:
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	# The world is rolled and announced **before** the cinematic, not after.
 	#
@@ -275,10 +272,8 @@ func start_run(requested_seed: int = 0, endless: bool = false) -> void:
 	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
 	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
-	if endless:
-		RunState.begin_endless(false)
 	if Coop.is_host() and Coop.partner_present():
-		EventBus.coop_run_started.emit(RunState.run_seed, endless)
+		EventBus.coop_run_started.emit(RunState.run_seed)
 	# The party is playing, so it is not looking for anybody. The row goes now
 	# rather than at the end of the run - a table that only empties when somebody
 	# remembers is a table full of games nobody can join.
@@ -308,10 +303,6 @@ func end_run(victory: bool) -> void:
 	# RunState, and waiting would leave it standing in its town with no report.
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_ended.emit(victory)
-
-	# A run that reached the summit is a win however it ends. Endless is the
-	# victory lap, and the town falling on lap nine does not retract the win.
-	victory = victory or RunState.summit_reached
 
 	var summary: Dictionary = {
 		"victory": victory,
@@ -348,7 +339,6 @@ func end_run(victory: bool) -> void:
 		"command_orders": RunState.command_orders_used.duplicate(true),
 		"wounds": RunState.wounds_suffered,
 		"hearthmends": RunState.hearthmends_used,
-		"endless_waves": RunState.endless_wave,
 		"unlocks": _pay_out_unlocks(victory),
 	}
 
