@@ -88,6 +88,10 @@ jobs:
           run_godot_clean --headless --path game res://tools/loot_art_check.tscn
           run_godot_clean --headless --path game res://tools/blood_vfx_check.tscn
           run_godot_clean --headless --path game res://tools/coop_lobby_check.tscn
+          # Anything meaning "a person is standing here" must see all four of
+          # them. Both hero groups answer correctly with one player, so this is
+          # the class of bug a solo test cannot possibly find.
+          run_godot_clean --headless --path game res://tools/party_reach_check.tscn
           # Every tower and every building tier must carry its exact four-pose
           # PixelLab package. Runtime fallbacks are for damaged installs, not a
           # release excuse; this also gates canvas size and ground-anchor drift.

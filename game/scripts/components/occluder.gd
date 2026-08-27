@@ -51,10 +51,16 @@ func _measure() -> void:
 
 
 func _process(delta: float) -> void:
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
 	var wanted: float = 1.0
 
-	if hero != null and is_instance_valid(hero):
+	# **Every hero, not the player's.** Scenery that only fades for whoever the
+	# HUD is following leaves the other three fighting behind a wall they cannot
+	# see through - and in co-op the hero this used to ask for was often not even
+	# on the same part of the field.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Node2D
+		if hero == null or not is_instance_valid(hero):
+			continue
 		# Everything below is in this sprite's local frame.
 		var offset: Vector2 = hero.global_position - _owner.global_position
 
@@ -66,6 +72,7 @@ func _process(delta: float) -> void:
 
 		if behind and overlapping:
 			wanted = Balance.OCCLUDER_ALPHA
+			break
 
 	if is_equal_approx(_alpha, wanted):
 		return

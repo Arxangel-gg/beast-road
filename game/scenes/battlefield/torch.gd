@@ -219,9 +219,11 @@ func _enemy_pressure() -> float:
 
 
 func _hero_is_near() -> bool:
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
-	return hero != null and is_instance_valid(hero) \
-		and global_position.distance_to(hero.global_position) <= Balance.TORCH_RELIGHT_RANGE
+	# **Any** hero, not the player's. A torch does not care whose boots
+	# these are, and asking for `GROUP` meant only one of four could ever
+	# relight one - the rest walked past in the dark.
+	return Hero.nearest_on_field(get_tree(), global_position,
+		Balance.TORCH_RELIGHT_RANGE) != null
 
 
 ## Snuffed by something walking past.
@@ -254,10 +256,10 @@ func relight() -> void:
 ## Held near a dead torch, the hero rekindles it. Deliberately not instant: it
 ## has to cost a moment of standing still in a lane, or it is not a decision.
 func _tick_relight(delta: float) -> void:
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
-	if hero == null or not is_instance_valid(hero):
-		return
-	if global_position.distance_to(hero.global_position) > Balance.TORCH_RELIGHT_RANGE:
+	# Whoever is standing here. The relight timer used to run only for the
+	# player's own hero, so a guest could hold a dead torch all night.
+	if Hero.nearest_on_field(get_tree(), global_position,
+			Balance.TORCH_RELIGHT_RANGE) == null:
 		_relight = 0.0
 		_show_rekindle(0.0)
 		return

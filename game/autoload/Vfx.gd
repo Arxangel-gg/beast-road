@@ -625,10 +625,13 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
 
 ## The impact. Only on a hit, which is correct - sparks come off something.
 func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
-	var hero: Node = get_tree().get_first_node_in_group(&"hero")
+	# The hero who actually swung, taken as the one nearest the impact rather
+	# than whichever the HUD is following. With four on the field the sparks
+	# used to fly along someone else's aim.
+	var hero: Hero = Hero.nearest_on_field(get_tree(), at)
 	var aim: Vector2 = Vector2.RIGHT
-	if hero is Hero:
-		aim = (hero as Hero).aim_direction()
+	if hero != null:
+		aim = hero.aim_direction()
 	var finisher: bool = chain_step >= Balance.HERO_CHAIN_LENGTH - 1
 
 	spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,

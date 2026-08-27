@@ -24,6 +24,28 @@ const GROUP: StringName = &"hero"
 ## loot ignoring them and the wildlife unbothered.
 const GROUP_ANY: StringName = &"heroes"
 
+
+## The closest hero to a point, or null when nobody is within reach.
+##
+## The answer to "is a person standing there", which is what a torch, a dropped
+## key and a chest all actually want to know. Written once because three call
+## sites asked it by reaching for `GROUP` - the *player's* hero - and so only
+## ever noticed one of four, whichever the active scope had claimed. A guest
+## could stand on a raid key and watch it ignore them.
+static func nearest_on_field(tree: SceneTree, at: Vector2,
+		within: float = INF) -> Hero:
+	var best: Hero = null
+	var best_distance: float = within
+	for node: Node in tree.get_nodes_in_group(GROUP_ANY):
+		var who := node as Hero
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		var distance: float = who.global_position.distance_to(at)
+		if distance <= best_distance:
+			best_distance = distance
+			best = who
+	return best
+
 ## Where this hero's intentions come from.
 ##
 ## A local player, or a partner over the wire. Defaults to local, so a hero that

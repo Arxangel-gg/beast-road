@@ -2228,6 +2228,21 @@ const VFX_BLOOD_SPARKS: int = 3
 ## Below anything that walks, above the road it stains: loot sits at -2 and the
 ## field itself lower still, so -3 puts a stain on the dirt and under the boots
 ## of whoever made it. [TUNE]
+## How a drop announces itself, and how it announces being taken.
+##
+## The scatter already threw drops clear of the corpse, but they arrived at full
+## size with no event - so a wave's worth of loot appeared as inventory rather
+## than as spoils. The pop is short and overshoots: the eye catches the change in
+## size, not the size. [TUNE]
+const LOOT_POP_TIME: float = 0.22
+const LOOT_POP_FROM: float = 0.35
+const LOOT_POP_OVERSHOOT: float = 1.18
+
+## The burst when a drop is taken. Coloured by the drop itself, so a rare piece
+## reads as rare at the moment it matters rather than only while it lies there.
+const LOOT_TAKE_SPARKS: int = 9
+const LOOT_TAKE_SPEED: float = 190.0
+
 const BLOOD_GROUND_Z: int = -3
 
 ## How long a stain lasts, and how much of that it spends at full strength.

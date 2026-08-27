@@ -39,10 +39,9 @@ func _process(delta: float) -> void:
 	if _sprite != null:
 		_sprite.rotation = sin(_life * 1.6) * 0.25
 		_sprite.position.y = sin(_life * 2.6) * 3.0
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
-	if hero == null or not is_instance_valid(hero):
-		return
-	if hero.global_position.distance_to(global_position) > Balance.RAID_REACH:
+	# Whoever reaches it first. This asked for the player's hero, so a guest
+	# could stand on a key and watch it ignore them.
+	if Hero.nearest_on_field(get_tree(), global_position, Balance.RAID_REACH) == null:
 		return
 	RunState.raid_keys += 1
 	Sfx.play_group("loot_collect")

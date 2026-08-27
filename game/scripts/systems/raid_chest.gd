@@ -59,10 +59,8 @@ func _process(delta: float) -> void:
 	_life += delta
 	if _sprite != null:
 		_sprite.position.y = sin(_life * 2.2) * 2.0
-	var hero: Node2D = get_tree().get_first_node_in_group(&"hero") as Node2D
-	if hero == null or not is_instance_valid(hero):
-		return
-	if hero.global_position.distance_to(global_position) > Balance.RAID_REACH:
+	# As the key: whoever is standing there, not whoever the HUD is following.
+	if Hero.nearest_on_field(get_tree(), global_position, Balance.RAID_REACH) == null:
 		return
 	if locked and not RunState.spend_raid_key():
 		return

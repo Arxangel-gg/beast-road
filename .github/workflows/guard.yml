@@ -211,6 +211,7 @@ jobs:
           check "regressions" --headless --path game res://tools/regression_check.tscn
           check "weather"     --headless --path game res://tools/weather_check.tscn
           check "treeline"    --headless --path game res://tools/treeline_check.tscn
+          check "party reach" --headless --path game res://tools/party_reach_check.tscn
           # GDD §57 makes "no unreviewed enslavement language ships" a release
           # requirement. It was a thing somebody remembered to do until the
           # 2026-08-25 review found the seeder still writing v3's "Captive",

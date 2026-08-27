@@ -105,6 +105,18 @@ func _ready() -> void:
 	z_index = Balance.LOOT_Z_INDEX
 	Sfx.play_group("loot_drop")
 
+	# **It arrives, rather than being there.** The scatter already threw drops
+	# clear of the corpse, but each one appeared at full size with no moment of
+	# its own, so a wave's spoils read as inventory materialising. A short pop
+	# that overshoots gives the eye a change in size to catch, which is what
+	# makes a coin land instead of exist.
+	var pop: Tween = create_tween()
+	pop.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	scale = Vector2.ONE * Balance.LOOT_POP_FROM
+	pop.tween_property(self, "scale",
+		Vector2.ONE * Balance.LOOT_POP_OVERSHOOT, Balance.LOOT_POP_TIME * 0.6)
+	pop.tween_property(self, "scale", Vector2.ONE, Balance.LOOT_POP_TIME * 0.4)
+
 
 func _process(delta: float) -> void:
 	_life += delta
@@ -148,6 +160,15 @@ func _process(delta: float) -> void:
 		# already earned by killing the thing teaches a player to stop fighting
 		# and stand on the road hoovering, which is worse than either extreme.
 		_collect()
+
+
+## The spray when a drop is taken, in the drop's own colour.
+##
+## Rarity was visible while a piece lay on the ground and invisible at the moment
+## it was collected, which is the moment the player is actually looking at it.
+func _burst() -> void:
+	Vfx.spark(global_position, _glow_colour, Balance.LOOT_TAKE_SPARKS,
+		Vector2.UP, Balance.LOOT_TAKE_SPEED)
 
 
 ## Whichever hero is closest, of however many there are.
@@ -199,9 +220,14 @@ func _collect() -> void:
 		EventBus.gear_collected.emit(gear, stored, salvaged, global_position)
 		Sfx.play_group("loot_collect")
 		Vfx.ring(global_position, _glow_size * 0.55, _glow_colour, 0.32, 4.0)
+		_burst()
 	elif amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
 		Sfx.play_group("loot_collect")
 		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
+		# Taken, not merely deducted. The number said what was gained and nothing
+		# said it had been picked *up* - so collecting a coin looked the same as
+		# a coin timing out, which is the one distinction a player cares about.
+		_burst()
 		EventBus.loot_collected.emit(currency, amount, global_position)
 	queue_free()
