@@ -1,0 +1,7 @@
+name = "beastroad-turn"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# TURN_KEY_ID and TURN_KEY_API_TOKEN are secrets, not variables. They are set
+# with `wrangler secret put`, or in the dashboard under Settings > Variables,
+# and never appear in this file or in the repository.

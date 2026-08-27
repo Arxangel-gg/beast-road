@@ -123,22 +123,14 @@ friends and not others.
 
 ### Filling it in
 
-Long-term TURN credentials are meant to live in the client, exactly like the
-Supabase anon key: they authorise relaying bytes and nothing else, and every
-provider rate-limits them per account.
+See `tools/turn-worker/README.md`. Short version: Cloudflare mints short-lived
+credentials from a key that must not ship in the client, so a small worker holds
+the key and hands out credentials, and `RELAY_ENDPOINT` in `coop_webrtc.gd`
+points at it.
 
-```gdscript
-const TURN_SERVERS: Array = [
-	{
-		"urls": ["turn:<host>:3478", "turn:<host>:3478?transport=tcp"],
-		"username": "<username>",
-		"credential": "<credential>",
-	},
-]
-```
-
-Include the **TCP** entry as well as UDP. Some networks that block UDP outright
-will still pass TURN over TCP on 443, and that is the case this exists for.
+Cloudflare's relay answers on UDP *and* on TCP/TLS over 443, which matters more
+than it sounds: a network that blocks UDP outright will still pass TURN over
+443, and those are exactly the networks this exists for.
 
 Verify it with `tools/room.sh`, whose diagnostic line ends with candidate counts
 in the form `h1s1r1>h1s1r1`. The third number is relay candidates. **If it is

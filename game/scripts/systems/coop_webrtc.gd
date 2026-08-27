@@ -64,19 +64,77 @@ const STUN_SERVERS: Array = [
 ## letting people discover it as an intermittent failure. See docs/COOP_WEBRTC.md
 ## for where credentials come from; the values are long-term TURN credentials,
 ## which are meant to live in the client exactly like the anon key is.
-const TURN_SERVERS: Array = [
-]
+## Where relay credentials come from, or "" if none is deployed yet.
+##
+## Cloudflare will not issue long-lived TURN credentials, and it is right not
+## to: a secret shipped inside a browser game is not a secret. A small worker
+## holds the key and mints short-lived credentials on request - the whole thing
+## is in `tools/turn-worker/`, and `docs/COOP_WEBRTC.md` says how to deploy it.
+##
+## Empty is a supported state, not a broken one. The game connects over STUN
+## alone for the majority of players whose routers cooperate, and says plainly
+## that it cannot help the rest.
+const RELAY_ENDPOINT: String = ""
+
+## How long minted credentials are kept before asking for more. Comfortably
+## inside the worker's day-long TTL.
+const RELAY_REFRESH: float = 3600.0
+
+## Relays fetched from `RELAY_ENDPOINT`, in the shape WebRTC wants.
+static var _relays: Array = []
+static var _relays_at: float = -1.0
 
 ## What the connection is actually offered.
 static func ice_servers() -> Array:
 	var all: Array = STUN_SERVERS.duplicate(true)
-	all.append_array(TURN_SERVERS)
+	all.append_array(_relays)
 	return all
 
 
-## Whether a relay is configured. Without one, some pairs simply cannot meet.
+## Whether a relay is available. Without one, some pairs simply cannot meet.
 static func has_relay() -> bool:
-	return not TURN_SERVERS.is_empty()
+	return not _relays.is_empty()
+
+
+## Asks the worker for relay credentials, unless the last set is still fresh.
+##
+## Called when the co-op screen opens rather than when a connection starts: it
+## is one request, it can be slow, and needing it *during* a handshake would put
+## a network round trip in the middle of the one thing that must not stall.
+func refresh_relays() -> void:
+	if RELAY_ENDPOINT.is_empty():
+		return
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if _relays_at >= 0.0 and now - _relays_at < RELAY_REFRESH:
+		return
+	var http := HTTPRequest.new()
+	http.accept_gzip = false
+	http.timeout = 10.0
+	add_child(http)
+	http.request_completed.connect(
+		func(result: int, code: int, _headers: PackedStringArray,
+				raw: PackedByteArray) -> void:
+			http.queue_free()
+			if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+				push_warning("[rtc] no relay credentials (result %d, http %d)"
+					% [result, code])
+				return
+			var body: Variant = JSON.parse_string(raw.get_string_from_utf8())
+			if not (body is Dictionary):
+				return
+			# Cloudflare answers {"iceServers": {...}} with a single object, and
+			# other providers answer with a list. Both are accepted, because
+			# guessing wrong here fails as "no relay" with nothing to read.
+			var found: Variant = (body as Dictionary).get("iceServers", null)
+			if found is Dictionary:
+				_relays = [found]
+			elif found is Array:
+				_relays = found
+			if not _relays.is_empty():
+				_relays_at = Time.get_ticks_msec() / 1000.0
+				print("[rtc] relay credentials ready"))
+	if http.request(RELAY_ENDPOINT) != OK:
+		http.queue_free()
 
 ## How often the signalling table is read while a handshake is in progress.
 const POLL_SECONDS: float = 1.0

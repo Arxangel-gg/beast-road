@@ -54,6 +54,10 @@ var _leave_button: Button = null
 
 
 func _ready() -> void:
+	# One request, made now rather than mid-handshake: needing credentials
+	# during a connection would put a round trip inside the one thing that must
+	# not stall.
+	Coop.webrtc().refresh_relays()
 	layer = 60
 	_build()
 	visible = false
