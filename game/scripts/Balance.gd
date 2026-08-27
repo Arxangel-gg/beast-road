@@ -3050,11 +3050,22 @@ const COOP_MAX_GUESTS: int = COOP_MAX_PLAYERS - 1
 ##
 ## Slot 1 is always the host. Nothing reads a colour from anywhere else, so a
 ## player is the same colour on every screen in the party.
+## Who is who, at a glance, in a lane full of enemies.
+##
+## Brighter and further apart than the first set, which was chosen to sit
+## politely inside the game's palette and did exactly that - four muted mid-tones
+## that were hard to tell apart in a crowd, and nearly impossible once a torch
+## was throwing orange over everything.
+##
+## Separated by **value as well as hue**, so they still read when the colour
+## itself is unreliable: the yellow is the brightest, the blue the darkest, and
+## red and green sit between them. That ordering is what carries a colour-blind
+## player, and it is why the yellow is not simply a lighter orange. [TUNE]
 const PARTY_COLOURS: Array[Color] = [
-	Color("e05a4a"),
-	Color("4a90e0"),
-	Color("e8c34a"),
-	Color("5bbf6a"),
+	Color("ff4436"),
+	Color("2f8ff5"),
+	Color("ffd426"),
+	Color("46d95e"),
 ]
 const PARTY_COLOUR_NAMES: Array[String] = ["Red", "Blue", "Yellow", "Green"]
 
@@ -3074,7 +3085,24 @@ const PARTY_COLOUR_NAMES: Array[String] = ["Red", "Blue", "Yellow", "Green"]
 const PARTY_MARK_SCALE: float = 0.86
 const PARTY_MARK_LIFT: float = 16.0
 const PARTY_MARK_ALPHA: float = 0.78
-const PARTY_TINT_STRENGTH: float = 0.30
+## How far the body leans toward the seat colour.
+##
+## Raised from 0.30, which was a lean nobody could see. The character still has
+## to look like itself and a white hurt flash still has to read as a flash, so
+## this is not a repaint - but at 0.30 four heroes in a scrum were four
+## identical silhouettes, which is the one thing the colour exists to prevent.
+const PARTY_TINT_STRENGTH: float = 0.46
+
+## How far the light a player carries leans toward their seat colour.
+##
+## The strongest of the three cues and the one that was missing entirely. A
+## hero's light reaches much further than their body, so at night it says who is
+## where before anyone is close enough to make out a silhouette - and in a game
+## played largely after dark that is most of the time.
+##
+## Stronger than the body tint because a light has no art to fight. It keeps
+## enough of the warm base that the ground still looks lit rather than gelled.
+const PARTY_LIGHT_STRENGTH: float = 0.62
 
 ## How wide a line in the party feed may run before it wraps. [TUNE]
 const PARTY_LOG_WIDTH: float = 420.0

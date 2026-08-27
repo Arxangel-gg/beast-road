@@ -60,6 +60,7 @@ func _ready() -> void:
 	EventBus.tower_fired.connect(_on_tower_fired)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.hero_attack_landed.connect(_on_attack_landed)
+	EventBus.hero_swing_resolved.connect(_on_swing_resolved)
 	EventBus.hero_damaged.connect(_on_hero_damaged)
 	EventBus.town_damaged.connect(_on_town_damaged)
 	EventBus.spell_cast.connect(_on_spell_cast)
@@ -536,6 +537,33 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 	muzzle(origin, (at - origin).normalized(), colour)
 
 
+## The arc of a swing. Drawn for every swing, including the ones that miss.
+##
+## **Driven by the swing, not by the hit**, and in co-op those are very
+## different events. `hero_attack_landed` only fires when an enemy actually took
+## damage, and on a guest no enemy ever does - they belong to the host, so
+## `take_damage` refuses and the swing reports nothing hit. The result was a
+## guest who could see their partner swing and never themselves: the host, where
+## the damage was real, saw both.
+##
+## `hero_swing_resolved` fires either way and carries the aim of the hero that
+## actually swung, which fixes a second bug in the same breath - the aim used to
+## come from the first node in the hero group, and with four heroes on the field
+## that is whichever one happens to be first.
+func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
+	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[0]
+	# Reach identifies the chain step, which is what decides how the arc reads.
+	for step: int in Balance.HERO_ATTACK_RANGE.size():
+		if is_equal_approx(Balance.HERO_ATTACK_RANGE[step], reach):
+			arc = Balance.HERO_ATTACK_ARC_DEGREES[step]
+			break
+	var finisher: bool = is_equal_approx(reach,
+		Balance.HERO_ATTACK_RANGE[Balance.HERO_CHAIN_LENGTH - 1])
+	slash(at, aim, reach, arc,
+		Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
+
+
+## The impact. Only on a hit, which is correct - sparks come off something.
 func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
 	var hero: Node = get_tree().get_first_node_in_group(&"hero")
 	var aim: Vector2 = Vector2.RIGHT
@@ -543,9 +571,6 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
 		aim = (hero as Hero).aim_direction()
 	var finisher: bool = chain_step >= Balance.HERO_CHAIN_LENGTH - 1
 
-	slash(at, aim, Balance.HERO_ATTACK_RANGE[chain_step],
-		Balance.HERO_ATTACK_ARC_DEGREES[chain_step],
-		Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
 	spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,
 		320.0 if finisher else 220.0)
 	if finisher:

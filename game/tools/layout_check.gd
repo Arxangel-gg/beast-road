@@ -59,6 +59,12 @@ func _ready() -> void:
 		get_window().size = viewport_size
 	if _touch_layout:
 		MetaState.settings[TouchInput.TOUCH_KEY] = true
+		# **Refreshed before the run is built, not after.** A real device has its
+		# touch state settled long before a scene loads, and the HUD reads it
+		# while constructing - it decides there whether the action bar is one row
+		# or two. Refreshing afterwards measured a layout built for a mouse and
+		# then told it a thumb had arrived.
+		TouchInput.refresh()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
 	RunState.reset()

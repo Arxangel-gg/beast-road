@@ -129,6 +129,8 @@ var spawn_point: Vector2 = Vector2.ZERO
 ## The seat colour leaned into the sprite, composed with everything else that
 ## writes `modulate`. White when playing alone.
 var _tint: Color = Color.WHITE
+## The light this hero carries, kept so its colour can follow the seat.
+var _light: PointLight2D = null
 
 var party_slot: int = 1:
 	set(value):
@@ -173,8 +175,23 @@ func _ready() -> void:
 	# The hero carries the light the player navigates by after dark. It throws no
 	# shadows: it sits inside the hero, so the only thing it could shadow is the
 	# hero, and a character standing in their own shadow reads as a rendering bug.
-	LightKit.add_light(self, Balance.HERO_LIGHT_COLOUR, Balance.HERO_LIGHT_RADIUS,
-		Balance.HERO_LIGHT_ENERGY, Balance.HERO_LIGHT_FLICKER)
+	_light = LightKit.add_light(self, Balance.HERO_LIGHT_COLOUR,
+		Balance.HERO_LIGHT_RADIUS, Balance.HERO_LIGHT_ENERGY,
+		Balance.HERO_LIGHT_FLICKER)
+	# The party colour is decided before this existed, so it is applied again now
+	# that there is a light to colour.
+	_apply_party_colour()
+
+	# **And again whenever the party changes.** The colour was only ever applied
+	# when `party_slot` was assigned, which happens once, when the body is made.
+	# Everything about how it is drawn depends on how many players there are -
+	# the mark and the tint are hidden entirely when playing alone - so a hero
+	# who was alone when they spawned stayed uncoloured after somebody joined,
+	# and a hero left alone kept a colour that no longer meant anything. That is
+	# the whole of "the colours are not reliable".
+	var party: CoopParty = Coop.party()
+	if party != null and not party.roster_changed.is_connected(_apply_party_colour):
+		party.roster_changed.connect(_apply_party_colour)
 
 	# Torches and the town do shadow the hero, though, which is the cue that
 	# matters: walking past a lit brazier should swing a streak around behind you.
@@ -789,6 +806,15 @@ func _apply_party_colour() -> void:
 		else Color.WHITE
 	if sprite != null:
 		sprite.modulate = _tint
+
+	# **The light too, and it is the cue that carries furthest.** A hero's light
+	# reaches well past their body, so after dark it says who is where long
+	# before a silhouette is readable - and this game is mostly played after
+	# dark. Leaving it the same warm white for everybody threw away the one
+	# identifier that was already on screen.
+	if _light != null and is_instance_valid(_light):
+		_light.color = Balance.HERO_LIGHT_COLOUR.lerp(wanted,
+			Balance.PARTY_LIGHT_STRENGTH) if showing 			else Balance.HERO_LIGHT_COLOUR
 
 
 func _build_party_mark() -> Node2D:

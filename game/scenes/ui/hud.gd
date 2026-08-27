@@ -190,6 +190,23 @@ var _mode_button: Button
 var _party_log: PartyLog = null
 var _chat_box: LineEdit = null
 var _tend_button: Button
+## Breathing room either side of a centred banner, and the narrowest it may get
+## before it simply overflows rather than becoming a column of single words.
+const BANNER_MARGIN: float = 12.0
+const BANNER_MIN_HALF: float = 150.0
+## Below this logical width the nav bar and a centred banner cannot both have
+## the full width, and the banner is the one that gives way.
+const NARROW_WIDTH: float = 1500.0
+## The width the nav bar column occupies, plus a gap.
+const NAV_STRIP: float = 140.0
+## How many action buttons fit across a phone before they have to wrap.
+const ACTION_COLUMNS: int = 3
+## What `_build_action_bar` puts in the bar. Horn, Raid, Build, Repair, Tend.
+const ACTION_BUTTON_COUNT: int = 5
+## The authored height of one, before a thumb grows it.
+const ACTION_BUTTON_HEIGHT: float = 54.0
+const ACTION_ROW_GAP: float = 8.0
+
 var _message: Label
 var _message_left: float = 0.0
 
@@ -255,6 +272,8 @@ var _last_stand_spent: bool = false
 
 
 func _ready() -> void:
+	# The HUD is a CanvasLayer, so the size that matters is the viewport's.
+	get_viewport().size_changed.connect(_refit_banners)
 	_build_top_bar()
 	_build_lane_ring()
 	_build_nav_bar()
@@ -270,6 +289,7 @@ func _ready() -> void:
 	_build_tutorial_coach()
 	_build_preparation_panel()
 	_build_command_panel()
+	_refit_banners()  # once the whole HUD exists
 
 	EventBus.resources_changed.connect(func(v: int) -> void:
 		if _resources != null:
@@ -352,6 +372,49 @@ func _process(delta: float) -> void:
 
 
 # --- Construction -----------------------------------------------------------
+
+## Keeps a centred banner inside the screen it is drawn on.
+##
+## These are laid out as a half-width either side of centre, which is exact and
+## readable and assumes the viewport is at least as wide as the number. On a
+## phone it is not: the message banner is 800 units across and the logical
+## viewport is 720, so it hung 40 units off both edges and the layout gate found
+## it the moment `ScreenFit` stopped shrinking everything to a fifth of its size.
+##
+## Clamped rather than re-anchored, so a desktop keeps the authored width and
+## only a screen too narrow for it gives anything up.
+## Every centred banner, re-fitted. Called when the screen changes size.
+func _refit_banners() -> void:
+	for pair: Array in [[_state_label, 520.0], [_message, 400.0],
+			[_wave_preview, 420.0], [_raid_panel, 280.0],
+			[_preparation_panel, 190.0], [_boss_panel, 420.0]]:
+		var control: Control = pair[0] as Control
+		if control != null and is_instance_valid(control):
+			_fit_centred(control, float(pair[1]))
+
+
+func _fit_centred(control: Control, half: float) -> void:
+	var wide: float = get_viewport().get_visible_rect().size.x
+	if wide <= 0.0:
+		return
+	# **The nav bar is a column down the right edge**, so a banner cannot clear
+	# it by moving down - there is another button under the last one. It has to
+	# stop short of it instead. On a wide screen there is room for both and this
+	# reserves nothing.
+	# A constant rather than the bar's own `size.x`: containers have not laid
+	# themselves out while the HUD is still being built, so asking then reserves
+	# nothing and the banner is placed as if the bar were not there.
+	var reserved: float = NAV_STRIP if wide < NARROW_WIDTH else 0.0
+	var room: float = (wide - reserved) * 0.5 - BANNER_MARGIN
+	var kept: float = minf(half, maxf(room, BANNER_MIN_HALF))
+	# Anchored to the centre of the whole screen, so giving up the right-hand
+	# strip means shifting left by half of it, not just narrowing.
+	var shift: float = reserved * 0.5
+	control.offset_left = -kept - shift
+	control.offset_right = kept - shift
+	if control is Label:
+		(control as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
 
 func _label(text: String, size: int = 18) -> Label:
 	var l := Label.new()
@@ -450,16 +513,14 @@ func _build_top_bar() -> void:
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_state_label.offset_top = STATE_LABEL_TOP
-	_state_label.offset_left = -520.0
-	_state_label.offset_right = 520.0
+	_fit_centred(_state_label, 520.0)
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_state_label)
 
 	_message = _label("", 22)
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message.offset_top = MESSAGE_TOP
-	_message.offset_left = -400.0
-	_message.offset_right = 400.0
+	_fit_centred(_message, 400.0)
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_color", Color("e8a33d"))
 	add_child(_message)
@@ -467,8 +528,7 @@ func _build_top_bar() -> void:
 	_wave_preview = _label("", 15)
 	_wave_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_wave_preview.offset_top = 158.0
-	_wave_preview.offset_left = -420.0
-	_wave_preview.offset_right = 420.0
+	_fit_centred(_wave_preview, 420.0)
 	_wave_preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_wave_preview.add_theme_color_override("font_color", Color("aebcb8"))
 	add_child(_wave_preview)
@@ -693,10 +753,21 @@ func _size_nav_bar() -> void:
 
 
 ## The combat half: what a player reaches for while something is happening.
-func _build_action_bar(bar: HBoxContainer) -> void:
-	_horn_button = _add_button(bar, "Q  War Horn", func() -> void: horn_requested.emit())
+## A button's caption, with its keyboard shortcut only where there is one.
+static func _action_label(key: String, what: String) -> String:
+	return what if touch_ui() else "%s  %s" % [key, what]
+
+
+func _build_action_bar(bar: Container) -> void:
+	# **No key hints on a thumb.** "Q", "R" and "TAB" are instructions for a
+	# keyboard nobody holding a phone has, and on a 720-wide screen the three
+	# labels together are wider than the screen - the last button was pushed off
+	# the right edge entirely. The tooltips still say everything.
+	_horn_button = _add_button(bar, _action_label("Q", "War Horn"),
+		func() -> void: horn_requested.emit())
 	IconKit.on_button(_horn_button, "war_horn", 26)
-	_raid_button = _add_button(bar, "R  Raid", func() -> void: raid_requested.emit())
+	_raid_button = _add_button(bar, _action_label("R", "Raid"),
+		func() -> void: raid_requested.emit())
 	IconKit.on_button(_raid_button, "raid_charge", 26)
 	_raid_button.disabled = true
 	# Short labels because the bar has to share the bottom edge with the spell
@@ -704,7 +775,7 @@ func _build_action_bar(bar: HBoxContainer) -> void:
 	# **Build or Fight.** Preparation is both, and the player has to be able to
 	# say which without hunting for a key: a wolf pack arriving mid-build is
 	# exactly when nobody wants to remember a shortcut.
-	_mode_button = _add_button(bar, "TAB  Build",
+	_mode_button = _add_button(bar, _action_label("TAB", "Build"),
 		func() -> void: GameDirector.toggle_build_mode())
 	_mode_button.tooltip_text = "Build lays towers and traps. Fight lets you " 		+ "swing at whatever wandered in. Tab switches."
 	IconKit.on_button(_mode_button, "upgrade", 22)
@@ -1156,8 +1227,7 @@ func _hide_build_tooltip() -> void:
 func _build_raid_panel() -> void:
 	_raid_panel = PanelContainer.new()
 	_raid_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_raid_panel.offset_left = -280.0
-	_raid_panel.offset_right = 280.0
+	_fit_centred(_raid_panel, 280.0)
 	_raid_panel.offset_top = 130.0
 	_raid_panel.visible = false
 	add_child(_raid_panel)
@@ -1174,8 +1244,7 @@ func _build_raid_panel() -> void:
 func _build_preparation_panel() -> void:
 	_preparation_panel = PanelContainer.new()
 	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_preparation_panel.offset_left = -190.0
-	_preparation_panel.offset_right = 190.0
+	_fit_centred(_preparation_panel, 190.0)
 	# Its ornate skin is taller than the nominal controls. Keep the whole frame
 	# above the persistent scope bar instead of letting the lower rivets clip.
 	# Clear of the scope bar, with a gap rather than a shave.
@@ -1430,9 +1499,22 @@ func _build_bottom_row() -> void:
 	centre.add_theme_constant_override("separation", 26)
 	add_child(centre)
 
-	var actions := HBoxContainer.new()
+	# **Two rows on a phone.** The action bar carries five buttons, each grown to
+	# a thumb-sized target, and five of those in a row is wider than the screen -
+	# the last one hung off the right edge with 18% of it visible. A grid wraps
+	# them instead of shrinking targets that are the size they are for a reason.
+	var actions: Container
+	if touch_ui():
+		var grid := GridContainer.new()
+		grid.columns = ACTION_COLUMNS
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 8)
+		actions = grid
+	else:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		actions = row
 	actions.name = "Actions"
-	actions.add_theme_constant_override("separation", 10)
 	centre.add_child(actions)
 	_build_action_bar(actions)
 
@@ -1458,7 +1540,20 @@ static func _spell_slot_size() -> Vector2:
 
 
 static func _bottom_band_height() -> float:
-	return _spell_slot_size().y + _bottom_row_inset()
+	return _spell_slot_size().y + _bottom_row_inset() + _action_band_height()
+
+
+## How much vertical room the action buttons need.
+##
+## Zero on a desktop, where they sit in the same row as everything else and the
+## band was measured from the spell slots alone. On a phone they wrap to two
+## rows of thumb-sized targets, and a band that does not know that puts the
+## lower row through the bottom of the screen - which is where it went.
+static func _action_band_height() -> float:
+	if not touch_ui():
+		return 0.0
+	var rows: int = int(ceil(float(ACTION_BUTTON_COUNT) / float(ACTION_COLUMNS)))
+	return float(rows) * hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y 		+ float(rows - 1) * ACTION_ROW_GAP
 
 
 static func _bottom_row_inset() -> float:
@@ -1798,8 +1893,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_build_panel.offset_right = -_build_panel_inset()
 	if _wave_preview != null:
 		_wave_preview.offset_top = 214.0 if showing else 158.0
-		_wave_preview.offset_left = -360.0 if showing else -420.0
-		_wave_preview.offset_right = 360.0 if showing else 420.0
+		_fit_centred(_wave_preview, 360.0 if showing else 420.0)
 	if _preparation_panel != null:
 		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
 		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
@@ -1873,8 +1967,7 @@ func _build_tutorial_coach() -> void:
 func _build_boss_bar() -> void:
 	_boss_panel = PanelContainer.new()
 	_boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_boss_panel.offset_left = -420.0
-	_boss_panel.offset_right = 420.0
+	_fit_centred(_boss_panel, 420.0)
 	_boss_panel.offset_top = 54.0
 	_boss_panel.visible = false
 	add_child(_boss_panel)
