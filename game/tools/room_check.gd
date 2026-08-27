@@ -26,6 +26,8 @@ var _role: String = ""
 var _failures: int = 0
 var _handshake: String = ""
 var _busy: bool = false
+## How many players the host should end up with, itself included.
+var _want: int = 2
 
 
 func _ready() -> void:
@@ -36,6 +38,8 @@ func _ready() -> void:
 			_handshake = argument.split("=")[1]
 		elif argument == "--busy":
 			_busy = true
+		elif argument.begins_with("--want="):
+			_want = maxi(2, argument.split("=")[1].to_int())
 
 	Coop.webrtc().progress.connect(func(text: String) -> void:
 		print("[room] %s: %s" % [_role, text]))
@@ -71,8 +75,12 @@ func _run_host() -> void:
 	if file != null:
 		file.store_string(code)
 		file.close()
-	await _until(func() -> bool: return Coop.partner_present())
-	_check(Coop.partner_present(), "the host must see the guest arrive")
+	# **Every guest, not just the first.** A host that accepted one player and
+	# stopped listening is exactly the two-player transport this replaced, and it
+	# passes a check that only waits for `partner_present`.
+	await _until(func() -> bool: return Coop.player_count() >= _want)
+	_check(Coop.player_count() == _want,
+		"the host must see %d players, saw %d" % [_want, Coop.player_count()])
 	_check(Coop.webrtc().status_line() != "", "the diagnostic must read")
 	print("[room] host line: %s" % Coop.webrtc().status_line())
 	# Outlives the guest: it is measuring this session at the same moment.

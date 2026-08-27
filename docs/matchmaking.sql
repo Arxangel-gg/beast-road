@@ -71,14 +71,46 @@ create table if not exists public.rooms (
 alter table public.rooms add column if not exists
   seen_at timestamptz not null default now();
 
-create table if not exists public.signals (
+-- **Rebuilt for four, and dropped rather than migrated.** Both of these tables
+-- hold handshakes in flight and nothing else - the sweep deletes everything in
+-- them after two minutes anyway - so recreating them costs at most one
+-- connection attempt and avoids a column migration that has to be right first
+-- time. Anything joining while this runs simply tries again.
+drop table if exists public.signals cascade;
+
+create table public.signals (
   seq        bigserial primary key,
   room       uuid        not null references public.rooms(id) on delete cascade,
-  sender     text        not null,
+  -- Party slots, 1 to 4, rather than 'host' and 'guest'. With one guest those
+  -- two words were a complete description of the room; with three they are not,
+  -- and every note has to say which peer it is for or three simultaneous
+  -- handshakes read each other's offers.
+  sender     int         not null check (sender between 1 and 4),
+  recipient  int         not null check (recipient between 1 and 4),
   kind       text        not null check (kind in ('offer', 'answer', 'candidate')),
   payload    jsonb       not null,
   created_at timestamptz not null default now()
 );
+
+create index if not exists signals_for_peer
+  on public.signals (room, recipient, seq);
+
+-- Who is in a room, and in which seat.
+--
+-- A column per guest would have worked and would have been wrong: three of them
+-- named guest2/guest3/guest4, three near-identical branches in every function,
+-- and a fourth player meaning another migration. A row per member makes "the
+-- lowest free seat" a query rather than a case statement.
+create table if not exists public.room_members (
+  room    uuid        not null references public.rooms(id) on delete cascade,
+  slot    int         not null check (slot between 1 and 4),
+  token   text        not null,
+  seen_at timestamptz not null default now(),
+  primary key (room, slot)
+);
+
+create index if not exists room_members_by_token
+  on public.room_members (room, token);
 
 create index if not exists signals_room_idx on public.signals (room, seq);
 
@@ -231,86 +263,111 @@ returns uuid language plpgsql security definer set search_path = public as $$
 declare new_id uuid;
 begin
   perform public.sweep_rooms();
-  -- Six characters collide eventually. Taking the code back from a room that is
-  -- already stale is correct; taking it from a live one is not.
   delete from public.rooms
    where code = p_code and seen_at < now() - interval '2 minutes';
   insert into public.rooms (code, host_token) values (p_code, p_token)
     returning id into new_id;
+  -- The host takes seat one, in the same table as everybody else. Keeping the
+  -- host in `rooms.host_token` *and* in the roster would be two places to ask
+  -- who slot one is, and they would disagree eventually.
+  insert into public.room_members (room, slot, token) values (new_id, 1, p_token);
   return new_id;
 exception when unique_violation then
   return null;
 end $$;
 
+-- Returns {"room": uuid, "slot": int}, or null when there is no seat.
+--
+-- The slot has to come back with the room: a guest cannot pick its own seat
+-- without racing every other guest, and it cannot address a single note until
+-- it knows which seat it got.
+drop function if exists public.enter_room(text, text);
 create or replace function public.enter_room(p_code text, p_token text)
-returns uuid language plpgsql security definer set search_path = public as $$
-declare found uuid;
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare found uuid; taken int; seat int;
 begin
   perform public.sweep_rooms();
-  -- First guest wins; a second is refused rather than quietly joining a
-  -- handshake already in progress.
-  --
-  -- `host_token <> p_token` is the important half. Both sides are identified
-  -- by matching their token against this row, so a guest arriving with the
-  -- host's token would be resolved as the host by every function below - and
-  -- `read_signals`, which returns only the *other* side's notes, would then
-  -- hide each peer's messages from the other. That is a silent deadlock: both
-  -- peers poll and post successfully for the full handshake timeout and
-  -- neither hears a thing. Refusing the join says so in one second instead.
-  update public.rooms set guest_token = p_token
-   where code = p_code and guest_token is null and host_token <> p_token
-   returning id into found;
-  return found;
+  select id into found from public.rooms where code = p_code
+    for update;
+  if found is null then
+    return null;
+  end if;
+  -- Already in? Hand back the same seat. A retry after a lost reply must not
+  -- consume a second one, which is how a party of two filled a room of four.
+  select slot into seat from public.room_members
+   where room = found and token = p_token;
+  if seat is not null then
+    update public.room_members set seen_at = now()
+     where room = found and slot = seat;
+    return jsonb_build_object('room', found, 'slot', seat);
+  end if;
+  -- The lowest free seat, decided here rather than by the caller, so two guests
+  -- arriving in the same millisecond cannot both be told seat two.
+  select min(candidate) into seat
+    from generate_series(2, 4) as candidate
+   where not exists (
+     select 1 from public.room_members m
+      where m.room = found and m.slot = candidate);
+  if seat is null then
+    return null;
+  end if;
+  insert into public.room_members (room, slot, token) values (found, seat, p_token);
+  update public.rooms set seen_at = now() where id = found;
+  return jsonb_build_object('room', found, 'slot', seat);
+exception when unique_violation then
+  -- Lost the race for that seat. The caller retries and takes the next one.
+  return null;
 end $$;
 
+-- One note, from the caller's seat to a named one.
+drop function if exists public.post_signal(uuid, text, text, jsonb);
 create or replace function public.post_signal(
-  p_room uuid, p_token text, p_kind text, p_payload jsonb)
+  p_room uuid, p_token text, p_kind text, p_payload jsonb, p_to int)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare who text; new_seq bigint;
+declare mine int; new_seq bigint;
 begin
-  -- The token says which side this is. A caller that owns neither is not in
-  -- this room and cannot write to it.
-  select case when host_token  = p_token then 'host'
-              when guest_token = p_token then 'guest' end
-    into who from public.rooms where id = p_room;
-  if who is null then
+  select slot into mine from public.room_members
+   where room = p_room and token = p_token;
+  if mine is null then
     return null;
   end if;
-  -- A handshake is a dozen messages; past that it is either broken or not a
-  -- handshake.
-  if (select count(*) from public.signals where room = p_room) > 200 then
+  if p_to is null or p_to < 1 or p_to > 4 or p_to = mine then
     return null;
   end if;
-  insert into public.signals (room, sender, kind, payload)
-       values (p_room, who, p_kind, p_payload)
+  -- A handshake is a dozen messages per pair, so four players is at most a few
+  -- dozen. Past that it is either broken or not a handshake.
+  if (select count(*) from public.signals where room = p_room) > 600 then
+    return null;
+  end if;
+  insert into public.signals (room, sender, recipient, kind, payload)
+       values (p_room, mine, p_to, p_kind, p_payload)
     returning seq into new_seq;
   return new_seq;
 end $$;
 
+-- Everything addressed to the caller, oldest first.
+drop function if exists public.read_signals(uuid, text, bigint);
 create or replace function public.read_signals(
   p_room uuid, p_token text, p_after bigint)
 returns setof public.signals language plpgsql security definer
 set search_path = public as $$
-declare who text;
+declare mine int;
 begin
-  select case when host_token  = p_token then 'host'
-              when guest_token = p_token then 'guest' end
-    into who from public.rooms where id = p_room;
-  if who is null then
-    -- Raised rather than returned empty. An empty result is what a quiet room
-    -- looks like, so answering a *deleted* room the same way leaves a peer
-    -- polling a corpse with no way to tell - which is exactly how a swept host
-    -- waited for ever. The client counts these and gives up saying why.
+  select slot into mine from public.room_members
+   where room = p_room and token = p_token;
+  if mine is null then
     raise exception 'room % is not open', p_room using errcode = 'no_data_found';
   end if;
-  -- A poll is a heartbeat. While either peer is still reading the room, the
-  -- room is in use and the sweep must leave it alone.
+  -- A poll is a heartbeat, for the room and for this seat. A member that stops
+  -- reading has gone, and the seat should come back.
   update public.rooms set seen_at = now() where id = p_room;
-  -- Only the other side's notes. Reading your own back would have each peer
-  -- applying its own offer.
+  update public.room_members set seen_at = now()
+   where room = p_room and slot = mine;
+  -- Addressed, not broadcast. With three guests handshaking at once, a peer
+  -- reading everybody's notes would apply two other people's offers.
   return query
     select * from public.signals
-     where room = p_room and seq > coalesce(p_after, 0) and sender <> who
+     where room = p_room and recipient = mine and seq > coalesce(p_after, 0)
      order by seq;
 end $$;
 
@@ -318,24 +375,20 @@ create or replace function public.close_room(p_room uuid, p_token text)
 returns boolean language plpgsql security definer set search_path = public as $$
 declare hit int;
 begin
-  -- **Only the host may end a room.** A guest leaving releases its seat.
-  --
-  -- Letting either side delete the row meant a guest that gave up, retried, or
-  -- pressed anything routed through `leave` took the host's game down with it -
-  -- and `host_room` and `join_room` both call `leave` first, so this fired
-  -- constantly. The host's next poll then failed with "room is not open" and
-  -- the host was told its own room had closed.
-  --
-  -- Releasing the seat is also what makes a second attempt possible at all:
-  -- `enter_room` only matches while `guest_token is null`, so a guest that
-  -- vanished without clearing it locked the room against everybody, including
-  -- itself.
+  -- **Only the host ends a room.** Anybody else leaving frees their seat, so
+  -- somebody can take it - and so a guest who gives up does not end a game
+  -- three other people are still in.
   delete from public.rooms where id = p_room and host_token = p_token;
   get diagnostics hit = row_count;
-  if hit = 0 then
-    update public.rooms set guest_token = null, seen_at = now()
-     where id = p_room and guest_token = p_token;
-    get diagnostics hit = row_count;
+  if hit > 0 then
+    perform public.sweep_rooms();
+    return true;
+  end if;
+  delete from public.room_members
+   where room = p_room and token = p_token and slot > 1;
+  get diagnostics hit = row_count;
+  if hit > 0 then
+    update public.rooms set seen_at = now() where id = p_room;
   end if;
   perform public.sweep_rooms();
   return hit > 0;
@@ -384,6 +437,8 @@ grant execute on function public.open_room(text, text)                   to anon
 grant execute on function public.enter_room(text, text)                  to anon;
 grant execute on function public.post_signal(uuid, text, text, jsonb)    to anon;
 grant execute on function public.read_signals(uuid, text, bigint)        to anon;
+grant execute on function public.post_signal(uuid, text, text, jsonb, int) to anon;
+grant execute on function public.enter_room(text, text)                  to anon;
 grant execute on function public.close_room(uuid, text)                  to anon;
 grant execute on function public.announce_presence(text, text, text)     to anon;
 grant execute on function public.friends_online(text[])                  to anon;

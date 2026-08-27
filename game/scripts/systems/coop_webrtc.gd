@@ -183,8 +183,27 @@ signal progress(text: String)
 
 var rest: Supabase = null
 
+## One negotiation with one other player.
+##
+## **A host runs several of these at once.** With two players "the connection"
+## was a complete description of the session; with four it is three separate
+## handshakes that share a room and nothing else - each with its own offer, its
+## own answer, its own candidates and its own idea of how far along it is.
+## Keeping that per-peer is the whole of the two-to-four change here.
+class Link extends RefCounted:
+	var slot: int = 0
+	var connection: WebRTCPeerConnection = null
+	## Candidates heard before the description they belong to could be applied.
+	var waiting: Array = []
+	## Whether a description has arrived from this peer yet.
+	var heard_desc: bool = false
+
+
 var _peer: WebRTCMultiplayerPeer = null
-var _connection: WebRTCPeerConnection = null
+## Slot to Link, for every player this machine is negotiating with.
+var _links: Dictionary = {}
+## Which seat this machine holds. The host is always 1.
+var _slot: int = 1
 var _room: String = ""
 var _code: String = ""
 var _token: String = ""
@@ -246,26 +265,7 @@ var _mine: Dictionary = {}
 var _theirs: Dictionary = {}
 ## The connection's own last words, kept past the reset that clears it.
 var _ending: String = ""
-## Candidates heard before the description they belong to could be applied.
-##
-## **WebRTC will not take a candidate before the remote description is set**,
-## and one poll routinely returns both: the offer and the two candidates that
-## followed it are all waiting in the same read, in that order. Godot applies a
-## description on its next `poll` rather than inside the setter, so handing the
-## candidates over immediately - which is what walking the rows in order does -
-## gets every one of them refused with "Got a remote candidate without remote
-## description", and the connection then has nothing to try.
-##
-## They are kept and retried instead. `add_ice_candidate` reports refusal, so a
-## candidate stays queued until it is accepted rather than being counted as
-## delivered because it was posted.
-var _waiting: Array = []
-## Whether a description has arrived from the other side yet.
-##
-## Candidates are not even offered before it has. Retrying until one is accepted
-## works, but every refused attempt is an engine error in the log, and a release
-## gate that fails on errors cannot tell those apart from real ones.
-var _heard_desc: bool = false
+
 
 
 func _ready() -> void:
@@ -304,7 +304,8 @@ func room_code() -> String:
 ## and "connecting, then a timeout" was the only evidence available for three
 ## rounds of guessing.
 func status_line() -> String:
-	var link: int = _connection.get_connection_state() if _connection != null else -1
+	var shown: Link = _shown_link()
+	var link: int = shown.connection.get_connection_state() if shown != null else -1
 	var mesh: int = _peer.get_connection_status() if _peer != null else -1
 	# `polls` is what separates "nobody said anything" from "nobody was
 	# listening". Without it, zero heard is two entirely different faults with
@@ -314,9 +315,10 @@ func status_line() -> String:
 	# the writes, or two different rooms each working perfectly. Eight
 	# characters is enough to tell one from the other at a glance.
 	var live: String = ""
-	if _connection != null:
-		live = "%d/%d/%s" % [_connection.get_connection_state(),
-			_connection.get_gathering_state(), _summary(_mine) + ">" + _summary(_theirs)]
+	if shown != null:
+		live = "%d/%d/%s" % [shown.connection.get_connection_state(),
+			shown.connection.get_gathering_state(),
+			_summary(_mine) + ">" + _summary(_theirs)]
 	var state: String = live if not live.is_empty() else _ending
 	var room: String = _room if not _room.is_empty() else _last_room
 	var code: String = _code if not _code.is_empty() else _last_code
@@ -339,7 +341,7 @@ func host() -> String:
 	_is_host = true
 	_code = Supabase.room_code()
 	_token = Supabase.token()
-	if not _build_peer(HOST_ID, GUEST_ID):
+	if not _build_peer(HOST_ID):
 		return ""
 	progress.emit("Opening a room...")
 	rest.call_rpc("open_room", {"p_code": _code, "p_token": _token},
@@ -371,17 +373,29 @@ func join(code: String) -> void:
 	_is_host = false
 	_code = wanted
 	_token = Supabase.token()
-	if not _build_peer(GUEST_ID, HOST_ID):
-		return
+	# The seat is not known until the service assigns one, and a mesh is created
+	# with this machine's own id - so the peer is built in the reply, not here.
 	progress.emit("Looking for the room...")
 	rest.call_rpc("enter_room", {"p_code": _code, "p_token": _token},
 		func(ok: bool, data: Variant) -> void:
 			if not ok:
 				_fail("Could not reach the matchmaking service.")
 				return
-			_room = _text_of(data)
-			if _room.is_empty():
+			# `enter_room` answers {"room": ..., "slot": ...} now: a guest cannot
+			# choose its own seat without racing every other guest, and cannot
+			# address a single note until it knows which seat it got.
+			if not (data is Dictionary):
 				_fail("No game is waiting on that code.")
+				return
+			var seated: Dictionary = data
+			_room = String(seated.get("room", ""))
+			var seat: int = int(seated.get("slot", 0))
+			if _room.is_empty() or seat < 2:
+				_fail("That game is full, or no game is waiting on that code.")
+				return
+			if not _build_peer(seat):
+				return
+			if _link_for(HOST_ID) == null:
 				return
 			# Which side offers is not arbitrary - see `offers`. A browser and
 			# a desktop build negotiate identically from here, which is the
@@ -406,7 +420,13 @@ func _start_offer() -> void:
 		print("[rtc] waiting for an offer")
 		return
 	print("[rtc] asking for an offer")
-	var result: int = _connection.create_offer()
+	# A guest offers to the host and to nobody else: the session is a star, not
+	# a mesh. Guests never talk to each other directly - the host relays, which
+	# is what the authority model already required.
+	var link: Link = _link_for(HOST_ID)
+	if link == null:
+		return
+	var result: int = link.connection.create_offer()
 	if result != OK:
 		print("[rtc] create_offer refused: %d" % result)
 		_fail("This browser would not start a connection (error %d). "
@@ -414,22 +434,11 @@ func _start_offer() -> void:
 
 
 ## Builds the peer and this side's half of the connection.
-func _build_peer(own_id: int, other_id: int) -> bool:
+func _build_peer(own_id: int) -> bool:
+	_slot = own_id
 	_peer = WebRTCMultiplayerPeer.new()
 	if _peer.create_mesh(own_id) != OK:
 		_fail("Could not start a WebRTC session.")
-		return false
-	_connection = WebRTCPeerConnection.new()
-	if _connection.initialize({"iceServers": ice_servers()}) != OK:
-		_fail("Could not start a WebRTC connection.")
-		return false
-	_connection.session_description_created.connect(_on_description)
-	_connection.ice_candidate_created.connect(_on_candidate)
-	# Ordered and reliable, because everything above assumes a stream that
-	# arrives complete and in order - the relay's facts are not idempotent and a
-	# dropped one is a machine holding a stale opinion forever.
-	if _peer.add_peer(_connection, other_id) != OK:
-		_fail("Could not add the other player to the session.")
 		return false
 
 	# **Installed now, not when it connects.**
@@ -448,6 +457,41 @@ func _build_peer(own_id: int, other_id: int) -> bool:
 	return true
 
 
+## The negotiation with one other seat, made on demand.
+##
+## **The host does not know a guest exists until it speaks.** Nothing announces
+## a join - the guest takes a seat in the room and offers, and the offer is the
+## announcement. So a link appears when the first note from that seat arrives,
+## which also means a host serving three guests builds exactly three, in
+## whatever order they turn up.
+func _link_for(other: int) -> Link:
+	if other == _slot or other < 1 or other > Balance.COOP_MAX_PLAYERS:
+		return null
+	if _links.has(other):
+		return _links[other] as Link
+	var link := Link.new()
+	link.slot = other
+	link.connection = WebRTCPeerConnection.new()
+	if link.connection.initialize({"iceServers": ice_servers()}) != OK:
+		_fail("Could not start a WebRTC connection.")
+		return null
+	# Bound, because a signal from one connection has to be answerable to the
+	# right peer. Unbound they were indistinguishable, which is fine with one
+	# connection and silently wrong with three.
+	link.connection.session_description_created.connect(
+		_on_description.bind(other))
+	link.connection.ice_candidate_created.connect(_on_candidate.bind(other))
+	# Ordered and reliable, because everything above assumes a stream that
+	# arrives complete and in order - the relay's facts are not idempotent and a
+	# dropped one is a machine holding a stale opinion forever.
+	if _peer == null or _peer.add_peer(link.connection, other) != OK:
+		_fail("Could not add the other player to the session.")
+		return null
+	_links[other] = link
+	print("[rtc] link to seat %d" % other)
+	return link
+
+
 func _begin_polling() -> void:
 	_live = true
 	_seen = 0
@@ -462,8 +506,6 @@ func _begin_polling() -> void:
 	_poll_busy = false
 	_mine = {}
 	_theirs = {}
-	_waiting = []
-	_heard_desc = false
 	_poll_left = 0.0
 	_misses = 0
 	# **A host has no deadline until somebody arrives.**
@@ -484,13 +526,16 @@ func _begin_polling() -> void:
 # --- The handshake -----------------------------------------------------------
 
 ## This side produced an offer or an answer. Keep it, and post it.
-func _on_description(type: String, sdp: String) -> void:
+func _on_description(type: String, sdp: String, other: int) -> void:
 	# Printed as well as counted. On the web these reach the browser console, so
 	# a failure can be read without attaching a debugger to anything.
-	print("[rtc] made a %s (%d chars)" % [type, sdp.length()])
+	print("[rtc] made a %s for seat %d (%d chars)" % [type, other, sdp.length()])
+	var link: Link = _links.get(other, null) as Link
+	if link == null:
+		return
 	_sent_sdp += 1
-	_connection.set_local_description(type, sdp)
-	_post(type, {"sdp": sdp})
+	link.connection.set_local_description(type, sdp)
+	_post(type, {"sdp": sdp}, other)
 
 
 ## A route this machine might be reachable on.
@@ -514,13 +559,13 @@ static func _tally(into: Dictionary, kind: String) -> void:
 	into[kind] = int(into.get(kind, 0)) + 1
 
 
-func _on_candidate(media: String, index: int, name: String) -> void:
+func _on_candidate(media: String, index: int, name: String, other: int) -> void:
 	_tally(_mine, _kind_of(name))
 	_sent_ice += 1
-	_post("candidate", {"media": media, "index": index, "name": name})
+	_post("candidate", {"media": media, "index": index, "name": name}, other)
 
 
-func _post(kind: String, payload: Dictionary) -> void:
+func _post(kind: String, payload: Dictionary, to: int) -> void:
 	if _room.is_empty():
 		return
 	rest.call_rpc("post_signal", {
@@ -528,6 +573,7 @@ func _post(kind: String, payload: Dictionary) -> void:
 		"p_token": _token,
 		"p_kind": kind,
 		"p_payload": payload,
+		"p_to": to,
 	}, func(ok: bool, data: Variant) -> void:
 		# `post_signal` returns the new sequence number, or null. Null is not a
 		# transport failure - the request succeeded - it means the service
@@ -602,8 +648,6 @@ func _poll() -> void:
 ## handed to WebRTC, and the sequence number only ever moves forward.
 func _apply(row: Dictionary) -> void:
 	_seen = maxi(_seen, int(row.get("seq", 0)))
-	if _connection == null:
-		return
 	var kind: String = String(row.get("kind", ""))
 	var payload: Variant = row.get("payload", null)
 	if not (payload is Dictionary):
@@ -611,22 +655,30 @@ func _apply(row: Dictionary) -> void:
 	var body: Dictionary = payload
 	if not consumes(kind, _is_host):
 		return
+	# **Who sent it decides which negotiation this belongs to.** Three guests
+	# handshaking with one host produce three interleaved conversations in one
+	# room, and applying somebody else's offer to this link would break both.
+	var link: Link = _link_for(int(row.get("sender", 0)))
+	if link == null:
+		return
 	if kind == "candidate":
 		_heard_ice += 1
 	else:
 		_heard_sdp += 1
 	match kind:
 		"offer":
-			_heard_desc = true
-			_connection.set_remote_description("offer", String(body.get("sdp", "")))
+			link.heard_desc = true
+			link.connection.set_remote_description("offer",
+				String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"answer":
-			_heard_desc = true
-			_connection.set_remote_description("answer", String(body.get("sdp", "")))
+			link.heard_desc = true
+			link.connection.set_remote_description("answer",
+				String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"candidate":
 			_tally(_theirs, _kind_of(String(body.get("name", ""))))
-			_waiting.append([String(body.get("media", "")),
+			link.waiting.append([String(body.get("media", "")),
 				int(body.get("index", 0)), String(body.get("name", ""))])
 
 
@@ -638,24 +690,32 @@ func _process(delta: float) -> void:
 	# The connection *and* the mesh. A handshake that is not polled is a
 	# handshake that never happens: polling is what turns gathered routes into
 	# `ice_candidate_created` and what advances the negotiation between them.
-	if _connection != null:
-		_connection.poll()
-		# After the poll, because that is when a description set during the last
-		# frame actually lands.
-		_offer_candidates()
+	for entry: Variant in _links.values():
+		var one: Link = entry as Link
+		if one.connection != null:
+			one.connection.poll()
+			# After the poll, because that is when a description set during the
+			# last frame actually lands.
+			_offer_candidates(one)
 	if _peer != null:
 		_peer.poll()
 		if _other_side_is_open() and not _announced:
 			_announced = true
-			_live = false
-			set_process(false)
 			progress.emit("Connected.")
-			# The room existed to introduce two machines and they have met.
-			# Nothing about a finished handshake is worth keeping, and a table
-			# of stale rooms is a table nobody can trust.
-			_close_room()
 			ready_to_play.emit(_peer)
-			return
+			# **A guest is finished; a host is not.**
+			#
+			# The room used to be deleted the moment two machines met, which was
+			# right when a room could only hold two. It holds four now, and the
+			# host goes on listening for the third and the fourth - so the room
+			# stays, and the host keeps waiting until it leaves or the run
+			# begins.
+			if not _is_host:
+				_live = false
+				set_process(false)
+				_close_room()
+				return
+			_deadline = HOST_WAIT_LIMIT
 
 	if delta > SUSPENDED_FRAME:
 		# The tab was asleep. Everything that failed while it was is noise: the
@@ -686,15 +746,28 @@ func _process(delta: float) -> void:
 ##
 ## Refusals are kept rather than dropped: the only reason to refuse one is that
 ## the description has not landed yet, and that resolves itself a frame later.
-func _offer_candidates() -> void:
-	if _connection == null or _waiting.is_empty() or not _heard_desc:
+func _offer_candidates(link: Link) -> void:
+	if link == null or link.connection == null or link.waiting.is_empty() 			or not link.heard_desc:
 		return
 	var still: Array = []
-	for entry: Variant in _waiting:
+	for entry: Variant in link.waiting:
 		var one: Array = entry
-		if _connection.add_ice_candidate(one[0], one[1], one[2]) != OK:
+		if link.connection.add_ice_candidate(one[0], one[1], one[2]) != OK:
 			still.append(one)
-	_waiting = still
+	link.waiting = still
+
+
+## The one link the diagnostic footer talks about.
+##
+## A host may hold three at once and the line has room for one, so it shows the
+## host link where there is one and otherwise the first - which during a join is
+## the one being negotiated. The candidate tallies beside it are already totals.
+func _shown_link() -> Link:
+	if _links.has(HOST_ID):
+		return _links[HOST_ID] as Link
+	for entry: Variant in _links.values():
+		return entry as Link
+	return null
 
 
 ## Whether the *other player's* channel is open and usable.
@@ -712,7 +785,18 @@ func _offer_candidates() -> void:
 func _other_side_is_open() -> bool:
 	if _peer == null:
 		return false
-	var other: int = GUEST_ID if _is_host else HOST_ID
+	# A guest is waiting for exactly one channel, the host's. A host is waiting
+	# for *any* of them, because the session is playable the moment the first
+	# guest arrives and the rest may be minutes behind.
+	if not _is_host:
+		return _channel_open(HOST_ID)
+	for slot: Variant in _links.keys():
+		if _channel_open(int(slot)):
+			return true
+	return false
+
+
+func _channel_open(other: int) -> bool:
 	var peers: Dictionary = _peer.get_peers()
 	if not peers.has(other):
 		return false
@@ -793,10 +877,12 @@ func _reset() -> void:
 	# handshake got at the exact moment somebody wanted to read it - the guest's
 	# line said 0/0 after every timeout, which is indistinguishable from never
 	# having tried.
-	if _connection != null:
+	var last: Link = _shown_link()
+	if last != null:
 		# Why it ended, taken before the object that knows is thrown away.
-		_ending = "%d/%d/%s" % [_connection.get_connection_state(),
-			_connection.get_gathering_state(), _summary(_mine) + ">" + _summary(_theirs)]
+		_ending = "%d/%d/%s" % [last.connection.get_connection_state(),
+			last.connection.get_gathering_state(),
+			_summary(_mine) + ">" + _summary(_theirs)]
 	if not _room.is_empty():
 		_last_room = _room
 	if not _code.is_empty():
@@ -804,9 +890,11 @@ func _reset() -> void:
 	_room = ""
 	_code = ""
 	set_process(false)
-	if _connection != null:
-		_connection.close()
-		_connection = null
+	for entry: Variant in _links.values():
+		var gone: Link = entry as Link
+		if gone.connection != null:
+			gone.connection.close()
+	_links.clear()
 	if _peer != null:
 		# Uninstalled before it is closed, or the session is left holding a dead
 		# peer - which reads to everything above as a connection that exists and

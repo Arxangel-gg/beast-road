@@ -136,3 +136,39 @@ Verify it with `tools/room.sh`, whose diagnostic line ends with candidate counts
 in the form `h1s1r1>h1s1r1`. The third number is relay candidates. **If it is
 zero the relay is not working**, whatever the configuration says.
 
+## Four players, and why it is a star
+
+A room holds four seats. The host is seat one; guests are handed the lowest free
+seat by `enter_room`, which decides it rather than letting the caller choose -
+two guests arriving in the same millisecond must not both be told seat two.
+
+**Guests connect to the host and to nobody else.** Not a full mesh: six
+connections instead of three, every one of them needing its own hole punched
+through two more routers, to carry traffic that is host-authoritative anyway.
+The host already relays - `_send_host_input` has passed every player's input on
+to every other player since the party layer learned to count past two - so a
+guest-to-guest link would carry nothing that is not already crossing the host.
+
+Each pair is a separate negotiation. Three guests joining one host is three
+offers, three answers and three sets of candidates sharing one room, so every
+note names the seat it is for and `read_signals` returns only what is addressed
+to the caller. Without that, three peers read each other's offers and all three
+handshakes fail together.
+
+The host does not know a guest exists until it speaks. Nothing announces a join:
+a guest takes a seat and offers, and the offer *is* the announcement. So the
+host builds a link when the first note from a new seat arrives, in whatever
+order they turn up.
+
+And the room now outlives the first connection. It used to be deleted the moment
+two machines met, which was right when a room could only hold two - the host
+goes on listening for the third and the fourth, and keeps the room until it
+leaves or the run begins.
+
+### Changing this is a coordinated deployment
+
+`enter_room` answers with a seat as well as a room, and `post_signal` takes the
+seat it is addressed to, so **an old client cannot talk to the new service and a
+new client cannot talk to the old one.** Run `docs/matchmaking.sql` and deploy
+the build together; between the two, co-op is down.
+
