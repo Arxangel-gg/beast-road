@@ -412,7 +412,7 @@ const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.55
 ## failed with "Identifier not found: TouchInput" from a tool that has nothing to
 ## do with zoom. Constants live here; the choice between them belongs where the
 ## answer is already known.
-const CAMERA_TOUCH_ZOOM_GAIN: float = 1.30
+const CAMERA_TOUCH_ZOOM_GAIN: float = 1.55
 
 
 

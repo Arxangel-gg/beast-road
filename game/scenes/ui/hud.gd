@@ -105,6 +105,11 @@ const BUILD_DETAIL_HEIGHT: float = BUILD_DETAIL_LINES * BUILD_DETAIL_LINE_HEIGHT
 ## frame's interior rather than across its border.
 const SPELL_SLOT_SIZE: Vector2 = Vector2(152.0, 72.0)
 
+## The ability's mark, inside its slot. Larger under a thumb for the same reason
+## everything else is: it is being read at arm's length on a small screen.
+const SPELL_ICON_SIZE: float = 26.0
+const SPELL_ICON_TOUCH_SIZE: float = 46.0
+
 ## Gap between the spell bar and the screen edge.
 const SPELL_BAR_MARGIN: float = 24.0
 
@@ -136,6 +141,23 @@ const NAV_ICON_PAD: float = 8.0
 const NAV_BAR_TOP: float = 104.0
 
 ## The command column, top left.
+## The currency marks along the top edge.
+const TOP_BAR_ICON: float = 24.0
+const TOP_BAR_ICON_TOUCH: float = 44.0
+const TOP_BAR_FONT_TOUCH: int = 34
+const TOP_BAR_FONT_MIN: int = 19
+## The two health tracks in the strip, at full size.
+const TOWN_BAR_WIDTH: float = 240.0
+const HERO_BAR_WIDTH: float = 180.0
+## The width at which the strip can be drawn at full touch size.
+##
+## Measured, not guessed: an act name, a level, the weather, four currencies and
+## the boss track come to about 2070 layout units at full touch size, and a
+## little headroom on top of that. A phone held upright gives 1440, so it gets
+## roughly two thirds and everything stays on screen; held sideways it gives
+## 2335 and the strip grows all the way.
+const TOP_BAR_FULL_WIDTH: float = 2200.0
+
 const COMMAND_BAR_WIDTH: float = 236.0
 const COMMAND_BAR_TOP: float = 104.0
 
@@ -164,6 +186,11 @@ const STATE_LABEL_TOUCH_TOP: float = 172.0
 
 var _resources: Label
 var _currency_labels: Dictionary = {}
+## The rows themselves, so their marks can be re-cut when the layout changes.
+var _currency_rows: Dictionary = {}
+## The second line of run telemetry, which has to sit under the first however
+## tall the first has become.
+var _journey_bar: HBoxContainer
 var _level: Label
 var _weather: Label
 var _distance: Label
@@ -211,8 +238,16 @@ const NAV_STRIP: float = 140.0
 ##
 ## Asked of the width instead. A landscape phone gets one row and its field back;
 ## a portrait one still wraps, because there the original reasoning holds.
-## How tall the preparation card is when it is tucked above the touch band.
-const PREPARATION_TOUCH_HEIGHT: float = 188.0
+## The preparation card's corner, when a thumb is driving.
+##
+## Smaller than the desktop card and out of the play area: it is on screen for
+## the whole of every Preparation, so every pixel of it is a pixel of road
+## nobody can see. The RIDE ON button inside it stays a full touch target - the
+## card shrinks around it rather than at its expense.
+const PREPARATION_TOUCH_MARGIN: float = 24.0
+const PREPARATION_TOUCH_TOP: float = 128.0
+const PREPARATION_TOUCH_WIDTH: float = 430.0
+const PREPARATION_TOUCH_HEIGHT: float = 168.0
 
 ## How far above centre an announcement sits when a thumb is driving.
 const REGION_CARD_TOUCH_RISE: float = 240.0
@@ -484,16 +519,20 @@ func _build_top_bar() -> void:
 	bar.add_child(_weather)
 
 	_currency_labels.clear()
+	_currency_rows.clear()
 	for id: String in RunState.CURRENCIES:
 		var resource_row: HBoxContainer = IconKit.labelled(id, "0", 17, 24)
 		resource_row.tooltip_text = RunState.currency_name(id)
 		bar.add_child(resource_row)
 		_currency_labels[id] = IconKit.label_of(resource_row)
+		_currency_rows[id] = resource_row
+	_size_top_bar()
 	_resources = _currency_labels.get(RunState.GOLD, null) as Label
 	# Journey telemetry gets a quiet second line. Keeping it out of this wide
 	# health row prevents four currencies from colliding with the boss tracker at
 	# 1920x1080 and gives every counter a stable place at narrower ratios.
 	var journey_bar := HBoxContainer.new()
+	_journey_bar = journey_bar
 	journey_bar.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	journey_bar.position = Vector2(24.0, 52.0)
 	journey_bar.add_theme_constant_override("separation", 20)
@@ -513,11 +552,11 @@ func _build_top_bar() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.add_child(spacer)
 
-	_town_bar = _make_bar(Color("8a5a3a"), 240.0)
+	_town_bar = _make_bar(Color("8a5a3a"), TOWN_BAR_WIDTH)
 	bar.add_child(_bar_icon("city_health", "Town"))
 	bar.add_child(_town_bar)
 
-	_hero_bar = _make_bar(Color("c4552e"), 180.0)
+	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
 	bar.add_child(_hero_bar)
 	var wound_row := HBoxContainer.new()
@@ -1367,13 +1406,8 @@ func _build_preparation_panel() -> void:
 	# player is trying to look at while deciding whether to ride on.
 	#
 	# Tucked just above the band instead, so the field above it is clear.
-	if touch_ui():
-		_preparation_panel.offset_top = -_bottom_band_height() - PREPARATION_TOUCH_HEIGHT
-		_preparation_panel.offset_bottom = -_bottom_band_height() - 12.0
-	else:
-		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
-		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
 	add_child(_preparation_panel)
+	_place_preparation_panel()
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 3)
@@ -1392,6 +1426,93 @@ func _build_preparation_panel() -> void:
 	_ride_on_button.add_theme_font_size_override("font_size", 12)
 	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ride_on_button.tooltip_text = "Begin the next wave. Leaving during the first 10 seconds earns bonus Gold; waiting is always safe."
+
+
+
+## Where the preparation card sits, which depends on whether a thumb is
+## driving and on how tall the bottom band currently is.
+##
+## A function rather than four lines in the builder, because both of those
+## answers change *after* the HUD is built - the controls can be switched on
+## mid-run, and the band's height moves with them. Computed once at build
+## time, the card kept a desktop placement on a phone.
+func _place_preparation_panel() -> void:
+	if _preparation_panel == null:
+		return
+	if touch_ui():
+		# **Out of the field entirely, into the top left.**
+		#
+		# Above the bottom band was better than across the middle and still not
+		# good: a card sitting anywhere in the play area is a card in front of
+		# whatever the player is trying to watch, and this one is on screen for
+		# the whole of every Preparation. The top left corner already holds the
+		# run's readouts, so it is a corner the eye visits and the thumbs do not.
+		#
+		# Below them rather than among them - the two header rows end at 82 and
+		# the command column starts at 104, so this hangs beneath both.
+		_preparation_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_preparation_panel.grow_horizontal = Control.GROW_DIRECTION_END
+		_preparation_panel.grow_vertical = Control.GROW_DIRECTION_END
+		_preparation_panel.offset_left = PREPARATION_TOUCH_MARGIN
+		_preparation_panel.offset_right = PREPARATION_TOUCH_MARGIN 			+ PREPARATION_TOUCH_WIDTH
+		_preparation_panel.offset_top = PREPARATION_TOUCH_TOP
+		_preparation_panel.offset_bottom = PREPARATION_TOUCH_TOP 			+ PREPARATION_TOUCH_HEIGHT
+	else:
+		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
+		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
+
+
+
+## Grows the run readouts along the top edge for a thumb.
+##
+## `UiMetrics` grows their type and cannot grow their marks - those are textures
+## cut to a size at build time - so on a phone a 28px number sat beside a 24px
+## icon and the whole strip read as small. Both move together here.
+func _size_top_bar() -> void:
+	var mark: float = TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() 		else TOP_BAR_ICON
+	for id: Variant in _currency_rows.keys():
+		IconKit.resize_labelled(_currency_rows[id] as Node, String(id), mark)
+	# Set outright rather than left to the generic floor. `UiMetrics` lifts every
+	# label to a minimum, which keeps small print legible and leaves a readout
+	# the player checks constantly at the same size as a tooltip. This strip is
+	# the run's state - what act, what level, what can be spent - and it is read
+	# at a glance from arm's length.
+	if not touch_ui():
+		return
+	var type_size: int = maxi(int(round(float(TOP_BAR_FONT_TOUCH)
+		* _top_bar_room())), TOP_BAR_FONT_MIN)
+	for label: Label in [_act, _level, _weather]:
+		if label != null:
+			label.add_theme_font_size_override("font_size", type_size)
+	for id: Variant in _currency_labels.keys():
+		var value := _currency_labels[id] as Label
+		if value != null:
+			value.add_theme_font_size_override("font_size", type_size)
+	# The health tracks are authored at a fixed width and are the widest single
+	# things in the row, so they have to give ground too - a strip that shrinks
+	# its type and keeps a 240px bar has not shrunk.
+	var room: float = _top_bar_room()
+	if _town_bar != null:
+		_town_bar.custom_minimum_size.x = maxf(TOWN_BAR_WIDTH * room, 120.0)
+	if _hero_bar != null:
+		_hero_bar.custom_minimum_size.x = maxf(HERO_BAR_WIDTH * room, 96.0)
+	# The line beneath moves with it. Its 52px was measured against 35px type;
+	# grow the type and the two rows share the same pixels.
+	if _journey_bar != null:
+		_journey_bar.position.y = 16.0 + float(type_size) + 22.0
+
+
+
+## How much of the full touch size the top strip can afford, 0.55 to 1.
+##
+## The strip carries an act name, a level, the weather and four currencies in one
+## row across the top. On a phone held sideways there is room to grow all of it;
+## held upright there is not - at full size the boss track was pushed off the
+## right edge with a quarter of it showing. Bigger where bigger fits, rather than
+## one size that is wrong at one of the two orientations.
+func _top_bar_room() -> float:
+	var wide: float = get_viewport().get_visible_rect().size.x
+	return clampf(wide / TOP_BAR_FULL_WIDTH, 0.55, 1.0)
 
 
 func _build_command_panel() -> void:
@@ -1630,6 +1751,12 @@ func _build_bottom_row() -> void:
 		row.add_theme_constant_override("separation", 10)
 		actions = row
 	actions.name = "Actions"
+	# **On the same baseline as the ability slots.** Both halves share one row,
+	# and the row is as tall as its tallest content - so the action buttons sat
+	# at the top of it and the slots, which hug the bottom to keep their own
+	# height, sat well below. Two rails of controls at two different heights read
+	# as a mistake because it is one. Both hug the bottom now.
+	actions.size_flags_vertical = Control.SIZE_SHRINK_END
 	centre.add_child(actions)
 	_build_action_bar(actions)
 
@@ -1785,10 +1912,21 @@ func _rebuild_spell_bar() -> void:
 		frame.add_child(hotkey)
 
 		var icon := TextureRect.new()
-		# ui_slot's authored safe area is x=11..107, y=10..53. Content
-		# remains inside it so neither art nor text paints over the metal rail.
-		icon.position = Vector2(46.0, 9.0)
-		icon.size = Vector2(26.0, 26.0)
+		# **Centred on the slot, and derived rather than typed.**
+		#
+		# It used to sit at a fixed (46, 9), which centred it on the safe area of
+		# the art as drawn at desktop size - 17px left of the slot's own middle,
+		# and nowhere near right once a touch slot is 132 tall instead of 72. The
+		# mark is the thing a player reads at a glance, so it belongs in the
+		# middle of the thing they are looking at.
+		#
+		# Lifted slightly above centre because the ability's name sits along the
+		# bottom edge; splitting the difference puts the pair in the middle
+		# together rather than the icon alone.
+		var icon_side: float = SPELL_ICON_TOUCH_SIZE if touch_ui() 			else SPELL_ICON_SIZE
+		icon.size = Vector2(icon_side, icon_side)
+		icon.position = Vector2((slot_size.x - icon_side) * 0.5,
+			(slot_size.y - icon_side) * 0.5 - inset.y * 0.5)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2030,6 +2168,8 @@ func _on_touch_layout_changed(showing: bool) -> void:
 
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
+	_place_preparation_panel()
+	_size_top_bar()
 
 
 ## The opening beat, before Act I names itself.

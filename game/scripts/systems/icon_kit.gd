@@ -81,6 +81,20 @@ static func labelled(id: String, text: String, font_size: int = 18,
 	return row
 
 
+## Re-cuts a `labelled` row's mark at a new size.
+##
+## The mark is baked at build time from the 128px source, and the top bar is
+## built once - so when the touch layout arrives afterwards `UiMetrics` grows the
+## number beside it and the mark stays whatever it was. A 24px icon next to
+## 28px type is the readout looking half-finished, which is what it looked like.
+static func resize_labelled(row: Node, id: String, icon_size: float) -> void:
+	var icon := row.get_child(0) as TextureRect if row.get_child_count() > 0 		else null
+	if icon == null:
+		return
+	icon.texture = sized(id, int(icon_size))
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
+
+
 ## The label inside a `labelled` row. Named lookup rather than index, so adding
 ## anything to the row later cannot silently retarget every text update.
 static func label_of(row: Node) -> Label:
@@ -126,4 +140,16 @@ static func on_button(button: Button, id: String, size: int = 24) -> void:
 	button.icon = texture
 	# Godot centres text and icon together by default, which reads as ragged in a
 	# column of buttons. Left-aligned puts every icon on the same vertical line.
+	#
+	# **Unless there is no text.** A square button carrying only a mark has no
+	# column to line up with - the mark *is* the button - and left-aligning it
+	# parks it against one edge with a gap on the other. `alignment` positions
+	# the icon and label as a group; `icon_alignment` positions the icon inside
+	# that, and it defaults to LEFT, so centring the group alone left the icon
+	# where it was. Both are needed.
+	if button.text.strip_edges().is_empty():
+		button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+		return
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
