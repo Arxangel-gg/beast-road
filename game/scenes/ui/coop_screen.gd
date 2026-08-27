@@ -446,7 +446,9 @@ func _update_diagnostic() -> void:
 	# faults, and this is what tells them apart.
 	if Coop.state() != Coop.State.OFFLINE or not Coop.room_code.is_empty():
 		_diagnostic.text += "
-" + Coop.webrtc().status_line()
+" + ("" if CoopWebRTC.has_relay() else
+		"no relay configured - players behind strict routers cannot connect
+") 		+ Coop.webrtc().status_line()
 
 
 ## Six characters, no dots. See `_on_join`.

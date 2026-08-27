@@ -39,11 +39,44 @@ const GUEST_ID: int = 2
 ## Several, because one being unreachable should slow a connection down rather
 ## than prevent it - and in the places where this matters most, one of them
 ## being blocked is the likely case rather than the unlucky one.
-const ICE_SERVERS: Array = [
+const STUN_SERVERS: Array = [
 	{"urls": ["stun:stun.l.google.com:19302"]},
 	{"urls": ["stun:stun1.l.google.com:19302"]},
 	{"urls": ["stun:stun.cloudflare.com:3478"]},
 ]
+
+## Relays, for the pairs that cannot reach each other directly.
+##
+## **STUN is not enough and never was.** It tells a peer what address its router
+## is presenting, which is all two cooperative routers need to punch a hole
+## through to each other. Symmetric NAT does not cooperate, and carrier-grade
+## NAT - the normal case on mobile networks and common for whole countries -
+## gives a peer no reachable address at all. For those pairs there is no direct
+## route to find, and a game with only STUN configured does not connect slowly,
+## it does not connect.
+##
+## Measured from a browser on 2026-08-26: STUN yields one `host` and one `srflx`
+## candidate and no `relay`, which is exactly the `ice 2/2` a failing session
+## reports. The free public relay this would otherwise have used
+## (openrelay.metered.ca) answered on none of its three ports.
+##
+## So this list is empty until it is filled in, and the game says so rather than
+## letting people discover it as an intermittent failure. See docs/COOP_WEBRTC.md
+## for where credentials come from; the values are long-term TURN credentials,
+## which are meant to live in the client exactly like the anon key is.
+const TURN_SERVERS: Array = [
+]
+
+## What the connection is actually offered.
+static func ice_servers() -> Array:
+	var all: Array = STUN_SERVERS.duplicate(true)
+	all.append_array(TURN_SERVERS)
+	return all
+
+
+## Whether a relay is configured. Without one, some pairs simply cannot meet.
+static func has_relay() -> bool:
+	return not TURN_SERVERS.is_empty()
 
 ## How often the signalling table is read while a handshake is in progress.
 const POLL_SECONDS: float = 1.0
@@ -144,6 +177,17 @@ var _poll_busy: bool = false
 ## Why the last request failed, for the diagnostic. `ok` alone cannot tell a
 ## timeout from a refusal, and those are opposite problems.
 var _why: String = ""
+## Candidate types gathered here and heard from the other side.
+##
+## A pair holding only `host` and `srflx` has no fallback: if neither a local
+## route nor a hole punched through both routers works, there is nothing else to
+## try. `relay` is the one that always works and the one that needs a TURN
+## server, so counting them is how "these two cannot reach each other" is told
+## apart from "nobody offered them a way".
+var _mine: Dictionary = {}
+var _theirs: Dictionary = {}
+## The connection's own last words, kept past the reset that clears it.
+var _ending: String = ""
 
 
 func _ready() -> void:
@@ -163,7 +207,7 @@ static func available() -> bool:
 	# actually be initialised is. Asked once, cheaply, rather than assumed from
 	# the platform, because the answer is a property of this build.
 	var probe := WebRTCPeerConnection.new()
-	return probe.initialize({"iceServers": ICE_SERVERS}) == OK
+	return probe.initialize({"iceServers": ice_servers()}) == OK
 
 
 func room_code() -> String:
@@ -191,6 +235,11 @@ func status_line() -> String:
 	# anything" has two causes that read identically - the same room refusing
 	# the writes, or two different rooms each working perfectly. Eight
 	# characters is enough to tell one from the other at a glance.
+	var live: String = ""
+	if _connection != null:
+		live = "%d/%d/%s" % [_connection.get_connection_state(),
+			_connection.get_gathering_state(), _summary(_mine) + ">" + _summary(_theirs)]
+	var state: String = live if not live.is_empty() else _ending
 	var room: String = _room if not _room.is_empty() else _last_room
 	var code: String = _code if not _code.is_empty() else _last_code
 	return ("%s %s  sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  "
@@ -198,7 +247,7 @@ func status_line() -> String:
 			"host" if _is_host else "guest", code,
 			_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
 			_polls, _replies, link, mesh, room.substr(0, 8),
-			"" if _why.is_empty() else "  why " + _why]
+			"" if _why.is_empty() else "  why " + _why]  + "  ice " + state
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -293,7 +342,7 @@ func _build_peer(own_id: int, other_id: int) -> bool:
 		_fail("Could not start a WebRTC session.")
 		return false
 	_connection = WebRTCPeerConnection.new()
-	if _connection.initialize({"iceServers": ICE_SERVERS}) != OK:
+	if _connection.initialize({"iceServers": ice_servers()}) != OK:
 		_fail("Could not start a WebRTC connection.")
 		return false
 	_connection.session_description_created.connect(_on_description)
@@ -333,6 +382,8 @@ func _begin_polling() -> void:
 	_stored = 0
 	_refused = 0
 	_poll_busy = false
+	_mine = {}
+	_theirs = {}
 	_poll_left = 0.0
 	_misses = 0
 	# **A host has no deadline until somebody arrives.**
@@ -363,7 +414,28 @@ func _on_description(type: String, sdp: String) -> void:
 
 
 ## A route this machine might be reachable on.
+## Reads `typ host` / `typ srflx` / `typ relay` out of a candidate line.
+## "h2s1r0" - compact on purpose; this sits on one line of a debug footer.
+static func _summary(counts: Dictionary) -> String:
+	return "h%ds%dr%d" % [int(counts.get("host", 0)),
+		int(counts.get("srflx", 0)), int(counts.get("relay", 0))]
+
+
+static func _kind_of(candidate: String) -> String:
+	var marker: int = candidate.find(" typ ")
+	if marker < 0:
+		return "?"
+	var rest: String = candidate.substr(marker + 5)
+	var end: int = rest.find(" ")
+	return rest.substr(0, end) if end > 0 else rest
+
+
+static func _tally(into: Dictionary, kind: String) -> void:
+	into[kind] = int(into.get(kind, 0)) + 1
+
+
 func _on_candidate(media: String, index: int, name: String) -> void:
+	_tally(_mine, _kind_of(name))
 	_sent_ice += 1
 	_post("candidate", {"media": media, "index": index, "name": name})
 
@@ -471,6 +543,7 @@ func _apply(row: Dictionary) -> void:
 			_connection.set_remote_description("answer", String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"candidate":
+			_tally(_theirs, _kind_of(String(body.get("name", ""))))
 			_connection.add_ice_candidate(String(body.get("media", "")),
 				int(body.get("index", 0)), String(body.get("name", "")))
 
@@ -620,6 +693,10 @@ func _reset() -> void:
 	# handshake got at the exact moment somebody wanted to read it - the guest's
 	# line said 0/0 after every timeout, which is indistinguishable from never
 	# having tried.
+	if _connection != null:
+		# Why it ended, taken before the object that knows is thrown away.
+		_ending = "%d/%d/%s" % [_connection.get_connection_state(),
+			_connection.get_gathering_state(), _summary(_mine) + ">" + _summary(_theirs)]
 	if not _room.is_empty():
 		_last_room = _room
 	if not _code.is_empty():

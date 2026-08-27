@@ -96,3 +96,51 @@ Both cost an afternoon, and both present as a handshake that times out:
   the peer on its own. A harness that polls a peer directly and waits for that
   signal waits forever, against two peers that connected in a fifth of a second.
   Read the state, not the announcement.
+
+## Relays (TURN) — required, and currently not configured
+
+`CoopWebRTC.STUN_SERVERS` is filled in. `CoopWebRTC.TURN_SERVERS` is **empty**,
+and until it is not, some pairs of players cannot connect to each other at all.
+
+STUN tells a peer what address its router is presenting. That is enough when
+both routers cooperate — each side learns the other's public address and they
+punch a hole through to each other. It is not enough for **symmetric NAT**,
+which gives every destination a different port, and it is useless behind
+**carrier-grade NAT**, where the player has no reachable public address at all.
+CGNAT is the normal case on mobile networks and the default for entire
+countries. For those pairs there is no direct route to discover, and the only
+thing that works is bouncing the traffic through a relay both sides *can* reach.
+
+Measured from a browser on 2026-08-26: STUN yields one `host` candidate and one
+`srflx` candidate and no `relay`. That is exactly the `ice 2/2` a failing
+session reports — both peers gathered everything they could and none of it was
+a route to the other. The free public relay this would otherwise have borrowed,
+`openrelay.metered.ca`, answered on none of its three ports.
+
+The co-op screen says `no relay configured` while the list is empty, because
+the alternative is players discovering it as a connection that works for some
+friends and not others.
+
+### Filling it in
+
+Long-term TURN credentials are meant to live in the client, exactly like the
+Supabase anon key: they authorise relaying bytes and nothing else, and every
+provider rate-limits them per account.
+
+```gdscript
+const TURN_SERVERS: Array = [
+	{
+		"urls": ["turn:<host>:3478", "turn:<host>:3478?transport=tcp"],
+		"username": "<username>",
+		"credential": "<credential>",
+	},
+]
+```
+
+Include the **TCP** entry as well as UDP. Some networks that block UDP outright
+will still pass TURN over TCP on 443, and that is the case this exists for.
+
+Verify it with `tools/room.sh`, whose diagnostic line ends with candidate counts
+in the form `h1s1r1>h1s1r1`. The third number is relay candidates. **If it is
+zero the relay is not working**, whatever the configuration says.
+

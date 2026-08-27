@@ -248,7 +248,7 @@ static func _peer_is_open(peer: WebRTCMultiplayerPeer, id: int) -> bool:
 
 func _connection() -> WebRTCPeerConnection:
 	var link := WebRTCPeerConnection.new()
-	if link.initialize({"iceServers": CoopWebRTC.ICE_SERVERS}) != OK:
+	if link.initialize({"iceServers": CoopWebRTC.ice_servers()}) != OK:
 		_check(false, "a WebRTC connection must initialise")
 		return null
 	return link
