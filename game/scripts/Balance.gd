@@ -565,7 +565,7 @@ const IMPACT_FRAME_TIME: float = 0.032
 # Hero — health and movement
 # ------------------------------------------------------------------------------
 
-const HERO_MAX_HP: float = 100.0
+const HERO_MAX_HP: float = 1000
 
 ## Movement multiplier while an attack is in its windup/active frames. Not fully
 ## rooted: being able to drift keeps the chain from feeling like a commitment
@@ -576,7 +576,7 @@ const HERO_ATTACK_MOVE_SCALE: float = 0.38
 const HERO_RESPAWN_DELAY: float = 8.0
 
 const HERO_WOUND_HP_PENALTY: float = 0.10
-const HERO_MAX_WOUNDS: int = 3
+const HERO_MAX_WOUNDS: int = 10
 const HERO_WOUND_REVIVE_HP: float = 0.50
 const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 
