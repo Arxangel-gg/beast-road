@@ -22,11 +22,26 @@ extends GameData
 ## a "+40%" turns out to be +95% and nobody can see why from either number.
 @export var element_scale: Array[float] = [1.0, 1.0, 1.0, 1.0]
 
-## Which acts may roll this. Empty means any.
+## Which acts this weather *belongs* to. Empty means it belongs to none in
+## particular and is equally at home anywhere.
+##
+## **A preference, not a gate.** It used to decide eligibility, which meant an
+## act could only ever show the one or two weathers on its list - and with
+## `clear` weighted 3.0 and admitted everywhere, better than half of all roads
+## were clear and Act III could produce exactly two skies. The region still reads
+## as itself, because the weather that belongs here is several times likelier
+## than one that does not; it is just no longer the only thing that can happen.
 @export var acts: Array[int] = []
 
-## Relative likelihood against the others eligible for the act.
+## Relative likelihood, before the act is taken into account.
 @export_range(0.0, 10.0) var weight: float = 1.0
+
+## How much likelier this is in an act it belongs to.
+##
+## Applied only when `acts` names one, so a weather with no region of its own
+## keeps its plain weight everywhere rather than being favoured by default -
+## which is what made `clear` the majority answer.
+@export_range(1.0, 10.0) var favour: float = 4.0
 
 ## World tint while it holds, multiplied over the day/night grade.
 @export var tint: Color = Color.WHITE
@@ -101,5 +116,17 @@ func scale_for(element: int) -> float:
 
 
 ## Whether this weather can appear in the given act.
-func allows_act(act: int) -> bool:
-	return acts.is_empty() or acts.has(act)
+func allows_act(_act: int) -> bool:
+	# Every weather is possible in every act. Kept as a function because the
+	# question is a reasonable one to ask and a future weather may want to answer
+	# it differently - a storm that genuinely cannot happen before the summit,
+	# say. Nothing does today.
+	return true
+
+
+## This weather's likelihood in a given act, against the others.
+func weight_for_act(act: int) -> float:
+	var base: float = maxf(weight, 0.0)
+	if acts.is_empty() or not acts.has(act):
+		return base
+	return base * maxf(favour, 1.0)

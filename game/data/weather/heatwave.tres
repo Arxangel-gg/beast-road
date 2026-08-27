@@ -6,7 +6,7 @@
 script = ExtResource("1_w")
 element_scale = Array[float]([1.25, 0.82, 1.0, 0.94])
 acts = Array[int]([1, 2])
-weight = 1.2
+weight = 0.5
 tint = Color(1.05, 0.97, 0.86, 1)
 gloom = 0.0
 effect_line = "Fire burns hotter. Water and cold thin out."

@@ -70,6 +70,9 @@ enum State {
 
 @export var health: Health
 @export var sprite: Sprite2D
+
+## This enemy's own stain material. See `BloodStain`.
+var _blood: ShaderMaterial = null
 @export var health_bar: HealthBar
 @export var animator: SpriteAnimator
 
@@ -233,6 +236,7 @@ func _process(delta: float) -> void:
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite()
+	_update_blood(delta)
 
 
 ## A mirrored enemy: draw what arrived, decide nothing.
@@ -1101,6 +1105,18 @@ func _nearby_howler() -> Enemy:
 				and global_position.distance_to(enemy.global_position) <= enemy.data.aura_radius:
 			return enemy
 	return null
+
+
+## Blood, in proportion to the damage taken.
+##
+## Enemies bleed for the same reason heroes do: a wounded thing should look
+## wounded. It also does a job a health bar cannot - in a pack of eight, the one
+## that is nearly dead is the one worth finishing, and this says so without
+## making the player read eight bars.
+func _update_blood(delta: float) -> void:
+	if _blood == null:
+		_blood = BloodStain.attach(sprite, get_instance_id())
+	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
 
 
 func _update_sprite() -> void:

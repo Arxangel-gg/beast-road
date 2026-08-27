@@ -6,7 +6,7 @@
 script = ExtResource("1_w")
 element_scale = Array[float]([1.0, 1.0, 1.0, 1.0])
 acts = Array[int]([])
-weight = 3.0
+weight = 1.8
 tint = Color(1, 1, 1, 1)
 gloom = 0.0
 effect_line = "No advantage to anyone."

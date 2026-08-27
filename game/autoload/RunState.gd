@@ -544,12 +544,12 @@ func roll_weather() -> void:
 			pool.append(option)
 	var total: float = 0.0
 	for option: WeatherData in pool:
-		total += maxf(option.weight, 0.0)
+		total += option.weight_for_act(act)
 	if total <= 0.0:
 		return
 	var target: float = rng("weather").randf() * total
 	for option: WeatherData in pool:
-		target -= maxf(option.weight, 0.0)
+		target -= option.weight_for_act(act)
 		if target <= 0.0:
 			weather_id = option.id
 			EventBus.weather_changed.emit(option.id)

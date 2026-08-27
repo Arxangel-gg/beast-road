@@ -1,0 +1,67 @@
+class_name BloodStain
+extends RefCounted
+
+## Blood that stays on a character, in proportion to how badly hurt they are.
+##
+## Driven from health rather than from hits, which is what makes it recover:
+## a hero patched up between roads loses most of it, and one who is nearly down
+## is visibly nearly down from across the field. That second property is the
+## reason to have it at all - a health bar is a number you read, and this is a
+## state you see without looking.
+##
+## The material is per-character, because each carries its own `seed` so two
+## Wardens standing together do not bleed in identical patterns.
+
+const SHADER_PATH: String = "res://scripts/shaders/blood_stain.gdshader"
+
+
+## Gives a sprite its own stain material. Safe to call on a sprite that has one.
+static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
+	if sprite == null or not ResourceLoader.exists(SHADER_PATH):
+		return null
+	if sprite.material is ShaderMaterial \
+			and (sprite.material as ShaderMaterial).shader != null \
+			and (sprite.material as ShaderMaterial).shader.resource_path == SHADER_PATH:
+		return sprite.material as ShaderMaterial
+	# Never over an existing material. Something else wanted that sprite drawn a
+	# particular way and blood is not worth silently undoing it.
+	if sprite.material != null:
+		return null
+	var material := ShaderMaterial.new()
+	material.shader = load(SHADER_PATH)
+	material.set_shader_parameter("seed", float(absi(seed_source) % 997))
+	material.set_shader_parameter("blood_colour", Balance.BLOOD_FRESH)
+	# Set explicitly. An unset uniform reads back as null rather than as its
+	# declared default, so the first `drive` would be doing arithmetic on nothing.
+	material.set_shader_parameter("stain", 0.0)
+	sprite.material = material
+	return material
+
+
+## How stained a material currently is. Reads back as null until first set.
+static func level(material: ShaderMaterial) -> float:
+	if material == null:
+		return 0.0
+	var raw: Variant = material.get_shader_parameter("stain")
+	return float(raw) if raw != null else 0.0
+
+
+## Moves the stain toward what the character's health says it should be.
+##
+## Asymmetric on purpose. A wound shows at once; healing washes off over a few
+## seconds, because a sprite that snaps clean the instant a heal lands reads as a
+## rendering fault rather than as recovery.
+static func drive(material: ShaderMaterial, health_fraction: float,
+		delta: float) -> void:
+	if material == null:
+		return
+	if not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)):
+		material.set_shader_parameter("stain", 0.0)
+		return
+	var wanted: float = clampf(1.0 - clampf(health_fraction, 0.0, 1.0), 0.0, 1.0) \
+		* Balance.BLOOD_STAIN_MAX
+	var current: float = level(material)
+	var rate: float = Balance.BLOOD_STAIN_ON if wanted > current \
+		else Balance.BLOOD_STAIN_OFF
+	material.set_shader_parameter("stain",
+		move_toward(current, wanted, rate * delta))

@@ -26,6 +26,14 @@ var world: Node2D = null
 ## references at all is the fix, not guarding each one with is_instance_valid.
 var _container: Node2D = null
 
+## Blood on the ground. Outlives individual effects, so it is kept apart from
+## them - see `bind_world`.
+var _ground: BloodField = null
+
+## Spatter shapes are cosmetic, so they draw from their own stream rather than
+## the run's seeded one - blood must never move a gameplay roll.
+var _blood_rng := RandomNumberGenerator.new()
+
 var _screen: CanvasLayer
 var _flash: ColorRect
 var _vignette: ColorRect
@@ -162,11 +170,21 @@ func bind_world(node: Node2D) -> void:
 	_container.z_index = Balance.VFX_Z
 	node.add_child(_container)
 
+	# **Its own node, not a child of the effects layer.** `_track` evicts the
+	# oldest child once the layer is full, which is right for transients and
+	# wrong for a stain: a busy wave would quietly delete the blood it had just
+	# spilled to make room for the sparks of the next hit.
+	_ground = BloodField.new()
+	_ground.name = "BloodField"
+	node.add_child(_ground)
+
 
 func clear() -> void:
 	if _container != null and is_instance_valid(_container):
 		for child: Node in _container.get_children():
 			child.queue_free()
+	if _ground != null and is_instance_valid(_ground):
+		_ground.wipe()
 	clear_vignette()
 
 
@@ -529,6 +547,11 @@ func blood(at: Vector2, direction: Vector2, size: float) -> void:
 	# seen edge-on. This reuses the established transient shard primitive rather
 	# than introducing a second permanent blood asset.
 	spark(at, Color("9b2d32"), Balance.VFX_BLOOD_SPARKS, direction, size * 2.2)
+
+	# And the ground keeps it. The splash above is gone in a third of a second;
+	# this is the part that makes a field read as having been fought over.
+	if _ground != null and is_instance_valid(_ground):
+		_ground.splat(at, direction, size, _blood_rng)
 
 
 func flash_at(at: Vector2, colour: Color, radius: float) -> void:

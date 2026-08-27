@@ -6,7 +6,7 @@
 script = ExtResource("1_w")
 element_scale = Array[float]([0.78, 1.28, 1.0, 0.95])
 acts = Array[int]([1])
-weight = 1.4
+weight = 0.5
 tint = Color(0.82, 0.88, 0.96, 1)
 gloom = 0.22
 effect_line = "Water runs strong. Fire gutters in the rain."

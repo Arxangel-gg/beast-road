@@ -919,8 +919,12 @@ func _build_action_bar(bar: Container) -> void:
 	_tend_button = _add_button(bar,
 		"Tend",
 		func() -> void: _report(battlefield.try_tend_hero()))
-	_tend_button.tooltip_text = "Restore %d%% of the hero's health during Preparation. Cost: %d Food." % [
-		int(round(Balance.HERO_TEND_FRACTION * 100.0)), Balance.HERO_TEND_COST]
+	_tend_button.tooltip_text = ("Preparation: restore %d%% of the hero's health for %d Food.\n"
+		+ "Under fire: a field ration restores %d%% for %d Food, once every %ds, "
+		+ "and each one this wave costs %d more.") % [
+			int(round(Balance.HERO_TEND_FRACTION * 100.0)), Balance.HERO_TEND_COST,
+			int(round(Balance.RATION_FRACTION * 100.0)), Balance.RATION_COST,
+			int(Balance.RATION_COOLDOWN), Balance.RATION_ESCALATION]
 	_tend_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_tend_button, "hero_health", 22)
 
@@ -1087,10 +1091,20 @@ func _update_repair_button() -> void:
 	if _tend_button == null:
 		return
 	var hero_health: Health = battlefield.hero.health if battlefield.hero != null else null
+	# **Available under fire now, at ration prices.** It used to be Preparation
+	# only, which meant a hero who mistimed a wave had nothing to do about it
+	# but die - and meant Food had almost nothing to buy, so hunting produced
+	# a wallet that had stopped meaning anything by Act III.
+	var preparing: bool = RunState.is_preparation()
+	var price: int = Balance.HERO_TEND_COST if preparing else battlefield.ration_price()
 	_tend_button.disabled = hero_health == null \
 		or hero_health.current_hp >= hero_health.max_hp \
-		or not RunState.can_afford_cost({RunState.FOOD: Balance.HERO_TEND_COST}) \
-		or not RunState.is_preparation()
+		or not RunState.can_afford_cost({RunState.FOOD: price}) \
+		or (not preparing and not battlefield.ration_blocked().is_empty())
+	# The label carries the price: the two modes cost different amounts, and a
+	# button that quietly charges more than expected is worse than a greyed one.
+	_tend_button.text = _action_label("V", "TEND  %d" % price) if preparing \
+		else _action_label("V", "RATION  %d" % price)
 
 
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:

@@ -67,6 +67,11 @@ var _suspended: bool = false
 ## Lane pressure, 0..1, recomputed on a slow tick rather than every frame.
 var _pressure: Array[float] = []
 var _pressure_timer: float = 0.0
+
+## Field rations: how long until the next one, and how many this fight has
+## already cost. See `Balance.RATION_COST`.
+var _ration_cooldown: float = 0.0
+var _rations_taken: int = 0
 var _feedback_root: Node2D = null
 
 const PRESSURE_INTERVAL: float = 0.2
@@ -197,6 +202,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Counts down in real time rather than on the wave clock, so a ration taken
+	# at the end of one wave still costs the player something at the start of the
+	# next. It is suspended with everything else during a raid, because
+	# `_process` is, which is the behaviour working rule 8 asks for.
+	_ration_cooldown = maxf(_ration_cooldown - delta, 0.0)
 	_pressure_timer -= delta
 	if _pressure_timer <= 0.0:
 		_pressure_timer = PRESSURE_INTERVAL
@@ -277,7 +287,31 @@ func begin_battle() -> void:
 ##
 ## Driven from the phase instead, which is one place and covers every route in:
 ## a click, a relayed fact, a breather ending, or anything added later.
+## How much the next field ration costs.
+##
+## Escalating within a fight, so leaning on rations is a decision with a bill
+## rather than a rotation the player learns once and repeats.
+func ration_price() -> int:
+	return Balance.RATION_COST + _rations_taken * Balance.RATION_ESCALATION
+
+
+## Whether a ration can be taken right now, and why not when it cannot.
+func ration_blocked() -> String:
+	if RunState.is_preparation():
+		return ""
+	if _ration_cooldown > 0.0:
+		return "Rations again in %ds." % int(ceil(_ration_cooldown))
+	if not RunState.can_afford_cost({RunState.FOOD: ration_price()}):
+		return "Needs %d Food." % ration_price()
+	return ""
+
+
 func _on_phase_cursor(_phase: int, _previous: int) -> void:
+	# Back to Preparation: the fight is over and so is its ration bill. The
+	# escalation exists to price a bad wave, not to tax the rest of the run.
+	if RunState.is_preparation():
+		_rations_taken = 0
+		_ration_cooldown = 0.0
 	if not visible:
 		return
 	if RunState.is_preparation():
@@ -1324,12 +1358,24 @@ func try_tend_hero(who: Hero = null) -> String:
 		return "The hero cannot be reached."
 	if patient.health.current_hp >= patient.health.max_hp:
 		return "The hero is already whole."
-	if not RunState.can_afford_cost({RunState.FOOD: Balance.HERO_TEND_COST}):
-		return "Needs %d Food." % Balance.HERO_TEND_COST
-	RunState.spend_cost({RunState.FOOD: Balance.HERO_TEND_COST})
+	# **The same act, priced by when it happens.** In Preparation this is
+	# tending: cheap, generous, unhurried. Under fire it is a field ration -
+	# dearer, thinner, and on a timer - because the useful thing about healing
+	# mid-wave is that it is *possible*, not that it is efficient.
+	var under_fire: bool = not RunState.is_preparation()
+	if under_fire and _ration_cooldown > 0.0:
+		return "Rations again in %ds." % int(ceil(_ration_cooldown))
+	var price: int = ration_price() if under_fire else Balance.HERO_TEND_COST
+	if not RunState.can_afford_cost({RunState.FOOD: price}):
+		return "Needs %d Food." % price
+	RunState.spend_cost({RunState.FOOD: price})
 	# A fraction of maximum, so it stays worth buying once Wounds have cut the
 	# ceiling and a flat number would be most of a bar.
-	patient.health.heal(patient.health.max_hp * Balance.HERO_TEND_FRACTION)
+	var share: float = Balance.RATION_FRACTION if under_fire 		else Balance.HERO_TEND_FRACTION
+	patient.health.heal(patient.health.max_hp * share)
+	if under_fire:
+		_ration_cooldown = Balance.RATION_COOLDOWN
+		_rations_taken += 1
 	Vfx.ring(patient.global_position, 90.0, Color(0.62, 0.9, 0.72, 0.6), 0.45, 5.0)
 	Vfx.spark(patient.global_position, Color("cdf0d6"), 14, Vector2.UP, 150.0)
 	Sfx.play("sfx_tower_upgrade", -5.0)

@@ -34,6 +34,9 @@ var input: HeroInput = null
 @export var health: Health
 @export var attack: HeroAttack
 @export var sprite: Sprite2D
+
+## This hero's own stain material. See `BloodStain`.
+var _blood: ShaderMaterial = null
 @export var health_bar: HealthBar
 @export var spells: SpellCaster
 @export var animator: SpriteAnimator
@@ -880,6 +883,13 @@ func _spawn_dash_ghosts() -> void:
 
 
 func _update_sprite(_delta: float) -> void:
+	# Blood, in proportion to the damage taken. Driven here because this is the
+	# function that already owns how the hero looks, and it runs whether the
+	# hero is this machine's or a mirrored one - a partner across the field
+	# should be visibly hurt too.
+	if _blood == null:
+		_blood = BloodStain.attach(sprite, get_instance_id())
+	BloodStain.drive(_blood, health.ratio(), _delta)
 	# Eight authored facings already point the right way. Flipping on top of
 	# them mirrors the western rows twice and puts the blade in the wrong hand.
 	sprite.flip_h = _facing.x < -0.001 if frames == null or not frames.has_frames() else false

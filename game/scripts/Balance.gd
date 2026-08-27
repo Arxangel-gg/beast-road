@@ -592,6 +592,30 @@ const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 const HERO_TEND_FRACTION: float = 0.34
 const HERO_TEND_COST: int = 45
 
+## Tending under fire: field rations.
+##
+## **This is where the Food surplus goes.** Wildlife pays well and the only
+## sinks were Preparation tending and a couple of town trades, so a player who
+## hunted at all arrived at Act III with Food they could not spend and a wallet
+## that had stopped meaning anything. Rations turn that surplus into the answer
+## to a specific question - "can I survive the next thirty seconds" - which is
+## the moment a resource is worth having.
+##
+## Deliberately worse than tending in every respect except availability. It costs
+## more, heals less, and cannot be repeated quickly; Preparation is still the
+## sensible time to be whole. What this buys is the *option* to be wrong about
+## that and still live, which is the difference between a mistake and a loss.
+## [TUNE]
+const RATION_COST: int = 60
+const RATION_FRACTION: float = 0.18
+const RATION_COOLDOWN: float = 22.0
+
+## What each ration in the same fight adds to the price of the next.
+##
+## Escalating rather than flat, so leaning on rations is a decision with a bill
+## rather than a rotation. The counter resets when the wave does. [TUNE]
+const RATION_ESCALATION: int = 25
+
 ## The guaranteed Hearthmend repairs this fraction of the Town Hall before the
 ## enhanced service choice. [TUNE]
 const HEARTHMEND_TOWN_REPAIR_FRACTION: float = 0.12
@@ -2198,6 +2222,51 @@ const VFX_BLOOD_HIT_SIZE: float = 54.0
 const VFX_BLOOD_DEATH_SIZE: float = 82.0
 const VFX_BLOOD_LIFE: float = 0.30
 const VFX_BLOOD_SPARKS: int = 3
+
+## Blood on the ground.
+##
+## Below anything that walks, above the road it stains: loot sits at -2 and the
+## field itself lower still, so -3 puts a stain on the dirt and under the boots
+## of whoever made it. [TUNE]
+const BLOOD_GROUND_Z: int = -3
+
+## How long a stain lasts, and how much of that it spends at full strength.
+##
+## The hold matters more than the total. A mark that starts fading the instant it
+## lands never reads as a stain at all - it reads as another transient effect,
+## which is the thing blood on the ground exists not to be. It sits, then it
+## goes. [TUNE]
+const BLOOD_GROUND_LIFE: float = 26.0
+const BLOOD_HOLD: float = 0.45
+const BLOOD_GROUND_ALPHA: float = 0.5
+
+## Blobs per mark, and how far a blow throws them.
+##
+## Enough for an irregular shape and no more: the silhouette does the work at
+## this zoom, not the detail inside it. [TUNE]
+const BLOOD_BLOBS_MIN: int = 4
+const BLOOD_BLOBS_MAX: int = 9
+const BLOOD_THROW: float = 0.85
+
+## Fresh, and dried. The second is where a stain ends up, which is what makes an
+## old mark read as old rather than merely faint.
+const BLOOD_FRESH: Color = Color(0.48, 0.06, 0.07)
+const BLOOD_DRY: Color = Color(0.24, 0.07, 0.08)
+
+## How much of a character's sprite is stained at nothing-left health.
+##
+## Not 1.0. A hero about to go down should look badly used, not repainted - the
+## silhouette has to stay readable, and the party tint under it has to stay
+## legible enough to tell four Wardens apart in a crowd. [TUNE]
+const BLOOD_STAIN_MAX: float = 0.34
+
+## How quickly the stain follows the health that drives it.
+##
+## Slower on the way off than on: taking a wound should show at once, and healing
+## should wash it away over a few seconds rather than snapping clean, because an
+## instant change reads as a bug in the sprite. [TUNE]
+const BLOOD_STAIN_ON: float = 7.0
+const BLOOD_STAIN_OFF: float = 0.6
 
 ## Screen wash intensities, 0..1. [TUNE]
 const VFX_HURT_FLASH: float = 0.26
