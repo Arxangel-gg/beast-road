@@ -14,10 +14,31 @@ extends RefCounted
 
 const SHADER_PATH: String = "res://scripts/shaders/blood_stain.gdshader"
 
+## Loaded once for the whole game rather than looked up per character.
+##
+## `attach` is called from a per-frame update, and it answers `null` for any
+## sprite that already has a material - so for those characters it was asked
+## again every frame, and every ask ran `ResourceLoader.exists`. With a field
+## full of enemies that is hundreds of filesystem checks a frame, which is how a
+## 45 second measurement stopped finishing at all.
+##
+## Callers must also remember they have asked. See `Hero._blood_tried`.
+static var _shader: Shader = null
+static var _looked: bool = false
+
+
+## The stain shader, or null when this build has none.
+static func shader() -> Shader:
+	if not _looked:
+		_looked = true
+		if ResourceLoader.exists(SHADER_PATH):
+			_shader = load(SHADER_PATH) as Shader
+	return _shader
+
 
 ## Gives a sprite its own stain material. Safe to call on a sprite that has one.
 static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
-	if sprite == null or not ResourceLoader.exists(SHADER_PATH):
+	if sprite == null or shader() == null:
 		return null
 	if sprite.material is ShaderMaterial \
 			and (sprite.material as ShaderMaterial).shader != null \
@@ -28,7 +49,7 @@ static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
 	if sprite.material != null:
 		return null
 	var material := ShaderMaterial.new()
-	material.shader = load(SHADER_PATH)
+	material.shader = shader()
 	material.set_shader_parameter("seed", float(absi(seed_source) % 997))
 	material.set_shader_parameter("blood_colour", Balance.BLOOD_FRESH)
 	# Set explicitly. An unset uniform reads back as null rather than as its

@@ -37,6 +37,7 @@ var input: HeroInput = null
 
 ## This hero's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
+var _blood_tried: bool = false
 @export var health_bar: HealthBar
 @export var spells: SpellCaster
 @export var animator: SpriteAnimator
@@ -887,7 +888,10 @@ func _update_sprite(_delta: float) -> void:
 	# function that already owns how the hero looks, and it runs whether the
 	# hero is this machine's or a mirrored one - a partner across the field
 	# should be visibly hurt too.
-	if _blood == null:
+	# Asked once, not once a frame. `attach` answers null for a sprite that
+	# already has a material, so retrying on null meant retrying for ever.
+	if not _blood_tried:
+		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
 	BloodStain.drive(_blood, health.ratio(), _delta)
 	# Eight authored facings already point the right way. Flipping on top of

@@ -73,6 +73,7 @@ enum State {
 
 ## This enemy's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
+var _blood_tried: bool = false
 @export var health_bar: HealthBar
 @export var animator: SpriteAnimator
 
@@ -1114,7 +1115,10 @@ func _nearby_howler() -> Enemy:
 ## that is nearly dead is the one worth finishing, and this says so without
 ## making the player read eight bars.
 func _update_blood(delta: float) -> void:
-	if _blood == null:
+	# Asked once, not once a frame. `attach` answers null for a sprite that
+	# already has a material, so retrying on null meant retrying for ever.
+	if not _blood_tried:
+		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
 	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
 
