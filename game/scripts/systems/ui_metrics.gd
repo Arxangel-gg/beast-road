@@ -69,6 +69,19 @@ const PAD_DARK_Y: int = 16
 ## desktop values when the touch override changes at runtime.
 const TOUCH_STATE: StringName = &"beast_road_touch_metrics"
 
+## Set on a control that has already been given its touch size by whoever built
+## it, so this pass leaves its dimensions alone.
+##
+## **Without it, such a control is sized for a thumb twice.** The rule here is
+## `minimum.y * UI_TOUCH_SCALE`, which is right for a control authored at desktop
+## size and wrong for one that already asked for 120 - it becomes 240. The scope
+## rail did: six buttons that should occupy 768px of column took 1480 and ran off
+## the bottom of a phone, and the ability slots came out twice as tall as they
+## were drawn for, eating the view they sit in front of.
+##
+## Fonts and padding are still grown. It is only the size that is already right.
+const SELF_SIZED: StringName = &"beast_road_self_sized"
+
 
 static func apply_touch_tree(root: Node, enabled: bool) -> void:
 	if root is Control:
@@ -91,6 +104,13 @@ static func _apply_touch_control(control: Control, enabled: bool) -> void:
 		control.set_meta(TOUCH_STATE, state)
 
 		var minimum: Vector2 = control.custom_minimum_size
+		if control.has_meta(SELF_SIZED):
+			# Sized by its owner for exactly this case. Grow the type, not the box.
+			if control is BaseButton or control is LineEdit:
+				_grow_font(control, true)
+			elif control is Label or control is RichTextLabel:
+				_grow_font(control)
+			return
 		if control is BaseButton or control is LineEdit:
 			minimum.y = maxf(minimum.y * Balance.UI_TOUCH_SCALE,
 				Balance.UI_TOUCH_MIN_TARGET_HEIGHT)

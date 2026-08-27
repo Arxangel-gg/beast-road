@@ -200,7 +200,40 @@ const NARROW_WIDTH: float = 1500.0
 ## The width the nav bar column occupies, plus a gap.
 const NAV_STRIP: float = 140.0
 ## How many action buttons fit across a phone before they have to wrap.
+## How many action buttons fit across, when a thumb is driving.
+##
+## **Was a flat 3, and that shape cost more screen than the buttons did.** Five
+## thumb-sized targets do not fit a 720-wide phone, so they were wrapped onto two
+## rows - and two rows of 120 plus the charge readout is a 356px band across the
+## bottom of the screen. Worse, the ability slots share that row and stretch to
+## match it, so a 132px slot came out 356 and the whole lower third of a
+## *landscape* phone was interface, on a screen with room for one row twice over.
+##
+## Asked of the width instead. A landscape phone gets one row and its field back;
+## a portrait one still wraps, because there the original reasoning holds.
+## How tall the preparation card is when it is tucked above the touch band.
+const PREPARATION_TOUCH_HEIGHT: float = 188.0
+
+## How far above centre an announcement sits when a thumb is driving.
+const REGION_CARD_TOUCH_RISE: float = 240.0
+
 const ACTION_COLUMNS: int = 3
+## Six, not five: the raid-charge readout is the sixth thing in the grid, and at
+## five columns it wrapped onto a row of its own and took the band back up to
+## 240 to hold a 48px label.
+const ACTION_COLUMNS_WIDE: int = 6
+## Width, in layout units, below which the buttons have to wrap.
+const ACTION_WRAP_BELOW: float = 1500.0
+
+
+static func _action_columns() -> int:
+	if not touch_ui():
+		return ACTION_COLUMNS_WIDE
+	var span: float = 0.0
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	if tree != null and tree.root != null:
+		span = tree.root.get_visible_rect().size.x
+	return ACTION_COLUMNS_WIDE if span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
 ## What `_build_action_bar` puts in the bar. Horn, Raid, Build, Repair, Tend.
 const ACTION_BUTTON_COUNT: int = 5
 ## The authored height of one, before a thumb grows it.
@@ -214,6 +247,8 @@ var _message_left: float = 0.0
 ## has to decide whether it is on screen.
 var _lane_ring: Control
 var _build_panel: PanelContainer
+var _build_scroll: ScrollContainer
+var _build_column: VBoxContainer
 
 ## The road sheet: traps and barricades, for the tile that was clicked.
 var _road_panel: PanelContainer
@@ -661,6 +696,14 @@ func _build_nav_bar() -> void:
 	# the settings, or out of the game.
 	_nav_buttons.append(_add_icon_button(bar, "pause", "Menu  (Esc)",
 		func() -> void: pause_requested.emit()))
+	# **Marked before the touch pass can reach them.**
+	#
+	# `_size_nav_bar` already gives these their thumb size, and `UiMetrics`
+	# multiplies a button's minimum height again on top - so a 120px square came
+	# out 240 and a column of six ran 1490px down a screen 1080 tall. The bottom
+	# three, zoom and the pause menu among them, were simply not on the phone.
+	for button: Button in _nav_buttons:
+		button.set_meta(UiMetrics.SELF_SIZED, true)
 	_size_nav_bar()
 
 
@@ -668,6 +711,46 @@ func _build_nav_bar() -> void:
 func _build_panel_lift() -> float:
 	var base: float = BUILD_PANEL_TOUCH_LIFT if touch_ui() else BUILD_PANEL_LIFT
 	return base + _bottom_band_height()
+
+
+## Holds the build sheet inside the screen, scrolling its contents if it cannot.
+##
+## Called wherever the sheet is shown or rebuilt, because its height is decided
+## by its contents and those change - eight towers, one upgrade, or a road with
+## nothing on it.
+func _fit_build_panel() -> void:
+	if _build_panel == null or _build_scroll == null or _build_column == null:
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var span: float = screen.y
+	var lift: float = _build_panel_lift()
+	# **Across the bottom when the screen is tall, down the side when it is
+	# wide.** A right-hand sheet needs a column of screen beside the field, and a
+	# phone held upright has not got one: the sheet and anything centred - an act
+	# announcement, a wave banner - are simply in the same place. Held sideways
+	# there is room for both, which is where it started.
+	if screen.y > screen.x:
+		_build_panel.offset_left = BUILD_PANEL_MARGIN
+		_build_panel.offset_right = -BUILD_PANEL_MARGIN - _nav_column_width()
+	else:
+		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
+		_build_panel.offset_right = -_build_panel_inset()
+	# Clear of the scope column's top, so the sheet never grows up behind it.
+	var room: float = maxf(span - lift - NAV_BAR_TOP, 160.0)
+	# **The content's height, not the panel's.**
+	#
+	# A ScrollContainer's own minimum is nearly nothing - that is what lets it
+	# scroll - so asking the panel how tall it wants to be now answers "barely
+	# any", and the sheet collapsed to zero with its list spilling out below.
+	# The column inside still knows its real height.
+	var frame: float = 0.0
+	var style: StyleBox = _build_panel.get_theme_stylebox("panel")
+	if style != null:
+		frame = style.get_minimum_size().y
+	var wanted: float = _build_column.get_combined_minimum_size().y + frame
+	var height: float = minf(wanted, room)
+	_build_panel.offset_top = -(lift + height)
+	_build_panel.offset_bottom = -lift
 
 
 ## How far in from the right edge the build sheet has to start.
@@ -1112,9 +1195,27 @@ func _build_tower_panel() -> void:
 	_build_panel.visible = false
 	add_child(_build_panel)
 
+	# **The tower list scrolls.**
+	#
+	# The sheet hangs from the bottom edge and grows upward, which keeps it clear
+	# of the scope column however tall it gets - and "however tall it gets" has
+	# no ceiling. Eight towers on a phone came to 831px hanging off a lift of
+	# nearly 500, so the top of the sheet sat 250px above the top of the screen
+	# and the first two elements could not be reached at all. A list that does
+	# not fit has to scroll; the alternative is a list with items nobody can
+	# press.
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_build_scroll = scroll
+	_build_panel.add_child(scroll)
+
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
-	_build_panel.add_child(column)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_build_column = column
+	scroll.add_child(column)
 
 	var heading := HBoxContainer.new()
 	heading.add_theme_constant_override("separation", 8)
@@ -1256,8 +1357,19 @@ func _build_preparation_panel() -> void:
 	# Shifted up by exactly the band the ability bar now occupies, derived from the
 	# same constants rather than re-typed, so moving the bar again moves these
 	# with it instead of silently re-opening the collision.
-	_preparation_panel.offset_top = -272.0 - _bottom_band_height()
-	_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
+	# **Low, on a phone.** On a desktop this sits comfortably above the bottom
+	# edge and nothing is behind it that matters. With a thumb the bottom band is
+	# far taller, and lifting the panel by that whole band put it across the
+	# middle of the screen - directly over the hero, which is the one thing a
+	# player is trying to look at while deciding whether to ride on.
+	#
+	# Tucked just above the band instead, so the field above it is clear.
+	if touch_ui():
+		_preparation_panel.offset_top = -_bottom_band_height() - PREPARATION_TOUCH_HEIGHT
+		_preparation_panel.offset_bottom = -_bottom_band_height() - 12.0
+	else:
+		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
+		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
 	add_child(_preparation_panel)
 
 	var column := VBoxContainer.new()
@@ -1506,7 +1618,7 @@ func _build_bottom_row() -> void:
 	var actions: Container
 	if touch_ui():
 		var grid := GridContainer.new()
-		grid.columns = ACTION_COLUMNS
+		grid.columns = _action_columns()
 		grid.add_theme_constant_override("h_separation", 10)
 		grid.add_theme_constant_override("v_separation", 8)
 		actions = grid
@@ -1552,7 +1664,7 @@ static func _bottom_band_height() -> float:
 static func _action_band_height() -> float:
 	if not touch_ui():
 		return 0.0
-	var rows: int = int(ceil(float(ACTION_BUTTON_COUNT) / float(ACTION_COLUMNS)))
+	var rows: int = int(ceil(float(ACTION_BUTTON_COUNT) / float(_action_columns())))
 	return float(rows) * hit(Vector2(0.0, ACTION_BUTTON_HEIGHT)).y 		+ float(rows - 1) * ACTION_ROW_GAP
 
 
@@ -1631,6 +1743,11 @@ func _rebuild_spell_bar() -> void:
 		# reads as nothing at all.
 		var frame := Control.new()
 		frame.custom_minimum_size = slot_size
+		# **Its own height, not the row's.** The slots share a row with the action
+		# grid, and a container hands every child the height of its tallest one -
+		# so a 132px slot was drawn 356 tall next to a two-row grid, stretching
+		# the art and eating the field behind it.
+		frame.size_flags_vertical = Control.SIZE_SHRINK_END
 		# Everything below is placed against the art's interior, not the slot's
 		# outer rectangle. "HEMORRHAGE EDGE" in a 92px box on a 118px slot spilled
 		# straight over the ironwork on both sides.
@@ -1785,6 +1902,13 @@ func _build_region_card() -> void:
 	_region_card.set_anchors_preset(Control.PRESET_CENTER)
 	_region_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_region_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+	# Above centre on a phone. Dead centre is where the preparation card now
+	# sits - it had to come down off the hero - and an announcement that lands on
+	# top of the button the player is reaching for is worse than one sitting a
+	# little high.
+	if touch_ui():
+		_region_card.offset_top -= REGION_CARD_TOUCH_RISE
+		_region_card.offset_bottom -= REGION_CARD_TOUCH_RISE
 	_region_card.add_theme_constant_override("separation", 4)
 	add_child(_region_card)
 
@@ -2096,6 +2220,7 @@ func _open_build_panel(anchor: Vector2i) -> void:
 	_refresh_build_panel()
 	_show_selected_range(true)
 	_build_panel.visible = true
+	_fit_build_panel.call_deferred()
 	if _tutorial != null:
 		_tutorial.build_panel_opened()
 	UiSound.confirm()
@@ -2301,6 +2426,7 @@ func _refresh_build_panel() -> void:
 ## Upgrading was a button with a price and no answer to "what do I get". Every
 ## stat that changes is listed as now -> next with the delta, and stats that do
 ## not change are left out entirely so the list is short enough to read mid-wave.
+
 func _add_stat_preview(tower: TowerData, level: int) -> void:
 	var next_level: int = level + 1
 

@@ -43,6 +43,7 @@ const MIN_PANEL_GAP: float = 18.0
 var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
 var _touch_layout: bool = false
+var _dump: bool = false
 
 
 func _ready() -> void:
@@ -50,6 +51,8 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument == "--touch=on":
 			_touch_layout = true
+		elif argument == "--dump":
+			_dump = true
 		elif argument.begins_with("--viewport="):
 			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
 			if dimensions.size() == 2:
@@ -99,6 +102,21 @@ func _ready() -> void:
 	if _touch_layout:
 		_check_touch_targets(widgets)
 	await _check_hover_stability()
+
+	if _dump:
+		# Ground truth for a layout complaint. A screenshot says "cut off"; this
+		# says which control, how tall it is and where its edges are, in the same
+		# units the constants are written in.
+		var screen: Vector2 = get_viewport().get_visible_rect().size
+		print("[layout] viewport %.0fx%.0f" % [screen.x, screen.y])
+		for control: Control in widgets:
+			if not control.is_visible_in_tree():
+				continue
+			var rect: Rect2 = control.get_global_rect()
+			var off: bool = rect.position.y < -1.0 or rect.end.y > screen.y + 1.0 				or rect.position.x < -1.0 or rect.end.x > screen.x + 1.0
+			print("[dump] %-34s %7.1fx%-7.1f at %7.1f,%-7.1f%s" % [
+				_named(control), rect.size.x, rect.size.y,
+				rect.position.x, rect.position.y, "   OFF-SCREEN" if off else ""])
 
 	for note: String in _notes:
 		print("[layout] %s" % note)
@@ -416,8 +434,37 @@ func _visible_widgets() -> Array[Control]:
 			continue
 		if control.size.x <= 0.0 and control.size.y <= 0.0:
 			continue
+		if _clipped_away(control):
+			continue
+		# A label with nothing in it draws nothing. The HUD keeps several
+		# reserved for messages that are not currently showing, and they are
+		# full-width - so an empty one "covers" whatever is beneath it in every
+		# frame where there is no message, which is most of them.
+		if control is Label and (control as Label).text.strip_edges().is_empty():
+			continue
+		if control is RichTextLabel 				and (control as RichTextLabel).get_parsed_text().strip_edges().is_empty():
+			continue
 		found.append(control)
 	return found
+
+
+## Whether an ancestor that clips has scrolled this control out of sight.
+##
+## A `ScrollContainer` keeps its children's layout rectangles wherever the list
+## puts them and simply does not draw the parts outside itself. Read as geometry
+## that is what it looks like when a list overlaps everything below it, so the
+## build sheet's tower list "covered" the ability bar the moment the sheet
+## learned to scroll. Nothing is drawn there and nothing can be pressed there.
+func _clipped_away(control: Control) -> bool:
+	var rect: Rect2 = control.get_global_rect()
+	var parent: Node = control.get_parent()
+	while parent != null:
+		var box := parent as Control
+		if box != null and box.clip_contents:
+			if not box.get_global_rect().intersects(rect):
+				return true
+		parent = parent.get_parent()
+	return false
 
 
 ## Under a CanvasLayer, which is where this project puts its interface.

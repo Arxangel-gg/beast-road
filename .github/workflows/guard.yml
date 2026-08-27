@@ -188,6 +188,12 @@ jobs:
           # none of which the desktop run can see. A layout check that only ever
           # measures the shape it was authored at is checking the easy case.
           check "layout (phone)" --headless --path game res://tools/layout_check.tscn             -- --touch=on --viewport=430x932
+          # **Landscape as well as portrait.** A phone on its side is the shape
+          # most people play a game in, and it is a different layout problem:
+          # 430x932 has height to spare and no width, so it never noticed a
+          # scope rail 1490px tall or an ability slot stretched to 356. Both ran
+          # off a landscape screen for months while this gate said PASS.
+          check "layout (phone landscape)" --headless --path game res://tools/layout_check.tscn   -- --touch=on --viewport=1280x592
           # The bugs the owner reported on 2026-08-24, held so they stay fixed.
           # Every one of them was a quiet failure rather than a crash - an enemy
           # facing the wrong way, a threat readout describing a wave that had
