@@ -246,6 +246,26 @@ var _mine: Dictionary = {}
 var _theirs: Dictionary = {}
 ## The connection's own last words, kept past the reset that clears it.
 var _ending: String = ""
+## Candidates heard before the description they belong to could be applied.
+##
+## **WebRTC will not take a candidate before the remote description is set**,
+## and one poll routinely returns both: the offer and the two candidates that
+## followed it are all waiting in the same read, in that order. Godot applies a
+## description on its next `poll` rather than inside the setter, so handing the
+## candidates over immediately - which is what walking the rows in order does -
+## gets every one of them refused with "Got a remote candidate without remote
+## description", and the connection then has nothing to try.
+##
+## They are kept and retried instead. `add_ice_candidate` reports refusal, so a
+## candidate stays queued until it is accepted rather than being counted as
+## delivered because it was posted.
+var _waiting: Array = []
+## Whether a description has arrived from the other side yet.
+##
+## Candidates are not even offered before it has. Retrying until one is accepted
+## works, but every refused attempt is an engine error in the log, and a release
+## gate that fails on errors cannot tell those apart from real ones.
+var _heard_desc: bool = false
 
 
 func _ready() -> void:
@@ -442,6 +462,8 @@ func _begin_polling() -> void:
 	_poll_busy = false
 	_mine = {}
 	_theirs = {}
+	_waiting = []
+	_heard_desc = false
 	_poll_left = 0.0
 	_misses = 0
 	# **A host has no deadline until somebody arrives.**
@@ -595,15 +617,17 @@ func _apply(row: Dictionary) -> void:
 		_heard_sdp += 1
 	match kind:
 		"offer":
+			_heard_desc = true
 			_connection.set_remote_description("offer", String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"answer":
+			_heard_desc = true
 			_connection.set_remote_description("answer", String(body.get("sdp", "")))
 			progress.emit("Connecting...")
 		"candidate":
 			_tally(_theirs, _kind_of(String(body.get("name", ""))))
-			_connection.add_ice_candidate(String(body.get("media", "")),
-				int(body.get("index", 0)), String(body.get("name", "")))
+			_waiting.append([String(body.get("media", "")),
+				int(body.get("index", 0)), String(body.get("name", ""))])
 
 
 # --- Driving it --------------------------------------------------------------
@@ -616,6 +640,9 @@ func _process(delta: float) -> void:
 	# `ice_candidate_created` and what advances the negotiation between them.
 	if _connection != null:
 		_connection.poll()
+		# After the poll, because that is when a description set during the last
+		# frame actually lands.
+		_offer_candidates()
 	if _peer != null:
 		_peer.poll()
 		if _other_side_is_open() and not _announced:
@@ -653,6 +680,21 @@ func _process(delta: float) -> void:
 	if _poll_left <= 0.0:
 		_poll_left = POLL_SECONDS
 		_poll()
+
+
+## Hands over every candidate the connection will currently accept.
+##
+## Refusals are kept rather than dropped: the only reason to refuse one is that
+## the description has not landed yet, and that resolves itself a frame later.
+func _offer_candidates() -> void:
+	if _connection == null or _waiting.is_empty() or not _heard_desc:
+		return
+	var still: Array = []
+	for entry: Variant in _waiting:
+		var one: Array = entry
+		if _connection.add_ice_candidate(one[0], one[1], one[2]) != OK:
+			still.append(one)
+	_waiting = still
 
 
 ## Whether the *other player's* channel is open and usable.
