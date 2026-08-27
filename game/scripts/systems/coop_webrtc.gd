@@ -270,6 +270,12 @@ var _ending: String = ""
 
 func _ready() -> void:
 	set_process(false)
+	multiplayer.peer_connected.connect(func(id: int) -> void:
+		print("[rtc] api says peer %d joined (now %d)"
+			% [id, multiplayer.get_peers().size()]))
+	multiplayer.peer_disconnected.connect(func(id: int) -> void:
+		print("[rtc] api says peer %d left (now %d)"
+			% [id, multiplayer.get_peers().size()]))
 
 
 ## Whether this build can use WebRTC at all.
@@ -324,10 +330,10 @@ func status_line() -> String:
 	var code: String = _code if not _code.is_empty() else _last_code
 	return ("%s %s  sdp %d/%d  ice %d/%d  put %d/%d  polls %d/%d  link %d  "
 		+ "mesh %d  room %s%s") % [
-			"host" if _is_host else "guest", code,
+			("host" if _is_host else "guest") + " s%d" % _slot, code,
 			_sent_sdp, _heard_sdp, _sent_ice, _heard_ice, _stored, _refused,
 			_polls, _replies, link, mesh, room.substr(0, 8),
-			"" if _why.is_empty() else "  why " + _why]  + "  ice " + state
+			"" if _why.is_empty() else "  why " + _why]  + "  ice " + state 		+ "  links " + _link_states()
 
 
 # --- Opening and joining a room ----------------------------------------------
@@ -434,10 +440,23 @@ func _start_offer() -> void:
 
 
 ## Builds the peer and this side's half of the connection.
+## Builds this machine's half of the session.
+##
+## **A server and clients, not a mesh**, and the difference is invisible with two
+## players and fatal with four. `create_mesh` declares that every peer is
+## connected to every other one, and Godot's bookkeeping believes it: a host in
+## mesh mode waits for guest-to-guest links that this design never builds, so
+## `multiplayer.get_peers()` stayed empty on the host while all three guests
+## reported an open channel to it. With one guest a mesh *is* a star, which is
+## exactly why it worked until there were three.
+##
+## Guests talk to the host and to nobody else - see docs/COOP_WEBRTC.md - so a
+## server and its clients is what this actually is, and now what it says it is.
 func _build_peer(own_id: int) -> bool:
 	_slot = own_id
 	_peer = WebRTCMultiplayerPeer.new()
-	if _peer.create_mesh(own_id) != OK:
+	var started: int = _peer.create_server() if own_id == HOST_ID 		else _peer.create_client(own_id)
+	if started != OK:
 		_fail("Could not start a WebRTC session.")
 		return false
 
@@ -630,7 +649,7 @@ func _poll() -> void:
 			return
 		_misses = 0
 		_replies += 1
-		if _is_host and _deadline > HANDSHAKE_TIMEOUT 				and not (data as Array).is_empty():
+		if _is_host and not _announced and _deadline > HANDSHAKE_TIMEOUT 				and not (data as Array).is_empty():
 			# Somebody is negotiating. From here a clock is fair, and a stalled
 			# handshake should be reported rather than waited on for ever.
 			_deadline = HANDSHAKE_TIMEOUT
@@ -658,9 +677,12 @@ func _apply(row: Dictionary) -> void:
 	# **Who sent it decides which negotiation this belongs to.** Three guests
 	# handshaking with one host produce three interleaved conversations in one
 	# room, and applying somebody else's offer to this link would break both.
-	var link: Link = _link_for(int(row.get("sender", 0)))
+	var from: int = int(row.get("sender", 0))
+	var link: Link = _link_for(from)
 	if link == null:
 		return
+	if kind != "candidate":
+		print("[rtc] %s from seat %d" % [kind, from])
 	if kind == "candidate":
 		_heard_ice += 1
 	else:
@@ -713,7 +735,20 @@ func _process(delta: float) -> void:
 			if not _is_host:
 				_live = false
 				set_process(false)
-				_close_room()
+				# **The seat is kept, not released.**
+				#
+				# A guest used to close the room on its way into the game, which
+				# was right when the room existed only to introduce two machines
+				# and had no further use. It has one now: it is the roster.
+				# `close_room` frees a guest's seat, so a guest calling it on
+				# success handed its seat straight back - and the next player to
+				# join was given the seat somebody was already sitting in. Two
+				# peers on one seat is two offers on one link, and the second one
+				# is refused with "Invalid ICE settings from remote SDP".
+				#
+				# The room is the host's to end. A guest gives up its seat when
+				# it leaves or fails, which is where `_fail` and `cancel` already
+				# call this.
 				return
 			_deadline = HOST_WAIT_LIMIT
 
@@ -724,6 +759,19 @@ func _process(delta: float) -> void:
 		# comes back to a session that gave up on them.
 		_misses = 0
 		return
+
+	# **A host that is already playing has no handshake to time out.**
+	#
+	# The clock exists to report a negotiation that stalled, and until the first
+	# guest arrives that is the only thing happening. Afterwards it is not: the
+	# host is in a game, and the next guest may be minutes away or may never
+	# come. Leaving the clock running failed the whole session forty-five
+	# seconds after the last note from anybody - with two players already
+	# connected and playing - and `_fail` closes the room on its way out, so the
+	# fourth player was told the room no longer existed. Which it did not, by
+	# then, and neither did the game.
+	if _is_host and _announced:
+		_deadline = HOST_WAIT_LIMIT
 
 	_deadline -= delta
 	if _deadline <= 0.0:
@@ -762,6 +810,26 @@ func _offer_candidates(link: Link) -> void:
 ## A host may hold three at once and the line has room for one, so it shows the
 ## host link where there is one and otherwise the first - which during a join is
 ## the one being negotiated. The candidate tallies beside it are already totals.
+## Every link and whether its channel is open, as "2:2o 3:2o 4:5-".
+##
+## One line for a host holding three connections. The single `link` field above
+## can only describe one of them, and with four players the interesting question
+## is which of the three went wrong rather than how the first one is doing.
+func _link_states() -> String:
+	if _links.is_empty():
+		return "none"
+	var parts: PackedStringArray = []
+	var slots: Array = _links.keys()
+	slots.sort()
+	for slot: Variant in slots:
+		var one: Link = _links[slot] as Link
+		parts.append("%d:%d%s" % [int(slot),
+			one.connection.get_connection_state(),
+			"o" if _channel_open(int(slot)) else "-"])
+	return " ".join(parts) + "  peers %d" % (
+		multiplayer.get_peers().size() if multiplayer.has_multiplayer_peer() else -1)
+
+
 func _shown_link() -> Link:
 	if _links.has(HOST_ID):
 		return _links[HOST_ID] as Link
@@ -869,6 +937,8 @@ func _close_room() -> void:
 
 
 func _reset() -> void:
+	if not _links.is_empty():
+		print("[rtc] tearing down %d link(s)" % _links.size())
 	_live = false
 	_announced = false
 	_seen = 0

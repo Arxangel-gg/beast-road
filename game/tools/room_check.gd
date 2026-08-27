@@ -112,6 +112,15 @@ func _run_guest() -> void:
 	# session that cannot carry one is a session that carries no facts at all.
 	var relay: CoopRelay = Coop.relay()
 	_check(relay != null, "a connected session must have a relay")
+
+	# **Wait for the whole party, not just for the host.** Guests are started a
+	# couple of seconds apart, so a guest that checked its own connection and
+	# left was gone before the last one arrived - the host watched players join
+	# and leave and never saw four at once. That looked exactly like a transport
+	# that could not hold four, and was a harness that would not sit still.
+	await _until(func() -> bool: return Coop.player_count() >= _want)
+	_check(Coop.player_count() == _want,
+		"a guest must see %d players, saw %d" % [_want, Coop.player_count()])
 	await _hold(3.0)
 	_check(Coop.partner_present(), "and must still see the host after settling")
 	print("[room] guest line: %s" % Coop.webrtc().status_line())
