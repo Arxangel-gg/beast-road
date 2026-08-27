@@ -21,10 +21,64 @@ func _ready() -> void:
 	_test_launcher_version_gate()
 	_test_corrupt_archive()
 	_test_truncated_archive()
+	_test_uninstall_guard()
+	_test_uninstall_removes_the_build()
 	_cleanup()
 	if _failures == 0:
 		_test_mirrors()
 	print("[launcher test] release pipeline checks passed")
+
+
+## The uninstaller must refuse anything that is not its own.
+##
+## Everything it does walks a tree calling `remove`, and the way that becomes a
+## catastrophe is being handed the wrong root - an empty string, a drive letter,
+## a home directory. The guard is the whole safety of the feature, so it is
+## tested directly rather than inferred from the happy path.
+##
+## **`remove_saves` is never called here.** It would delete this machine's real
+## save: the path comes from the launcher's own `user://`, which no fixture
+## redirects. A release gate must not be able to end somebody's campaign.
+func _test_uninstall_guard() -> void:
+	for forbidden: String in ["", "/", "C:/", "C:/Windows",
+			ProjectSettings.globalize_path("res://"),
+			OS.get_environment("USERPROFILE")]:
+		if forbidden.is_empty():
+			continue
+		var report: Dictionary = Uninstaller._remove_tree(forbidden)
+		_check(not bool(report.get("ok", true)),
+			"the uninstaller must refuse %s" % forbidden)
+		_check(int(report.get("files", 0)) == 0,
+			"and must not have deleted anything from %s" % forbidden)
+
+
+## And it must actually remove the build when it is pointed at one.
+func _test_uninstall_removes_the_build() -> void:
+	var root: String = LauncherConfig.install_dir_static()
+	DirAccess.make_dir_recursive_absolute(root.path_join("data"))
+	for path: String in [root.path_join("BeastRoad.exe"),
+			root.path_join("installed.json"),
+			root.path_join("data/pack.pck")]:
+		var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+		_check(file != null, "the fixture needs %s" % path)
+		if file != null:
+			file.store_string("x")
+			file.close()
+	# The half-finished download sits *beside* the directory, so removing the
+	# tree does not touch it and it would be left behind.
+	var leftover: String = root + ".download.zip"
+	var stray: FileAccess = FileAccess.open(leftover, FileAccess.WRITE)
+	if stray != null:
+		stray.store_string("x")
+		stray.close()
+
+	var report: Dictionary = Uninstaller.remove_build()
+	_check(bool(report.get("ok", false)),
+		"removing the build must succeed: %s" % String(report.get("error", "")))
+	_check(not DirAccess.dir_exists_absolute(root),
+		"the install directory must be gone")
+	_check(not FileAccess.file_exists(leftover),
+		"and so must the half-finished download beside it")
 
 
 ## Where a build may be fetched from, and in what order.

@@ -38,6 +38,10 @@ enum State {
 var _http: HTTPRequest
 var _state: State = State.CHECKING
 var _installed: InstallState
+var _uninstall_button: Button
+var _uninstall_dialog: ConfirmationDialog
+var _uninstall_label: Label
+var _wipe_saves: CheckBox
 var _latest: ReleaseInfo = null
 var _spin_time: float = 0.0
 var _stage_time: float = 0.0
@@ -61,6 +65,7 @@ func _ready() -> void:
 	secondary_button.pressed.connect(_on_secondary)
 	releases_button.pressed.connect(func() -> void: OS.shell_open(LauncherConfig.releases_page_url()))
 	quit_button.pressed.connect(func() -> void: get_tree().quit())
+	_build_uninstall()
 
 	installer.progress.connect(_on_install_progress)
 	installer.finished.connect(_on_install_finished)
@@ -97,6 +102,78 @@ func _process(delta: float) -> void:
 		return
 	_spin_time += delta
 	spinner.text = SPINNER_FRAMES[int(_spin_time * 6.0) % SPINNER_FRAMES.size()]
+
+
+# --- Uninstalling -----------------------------------------------------------
+
+## The button and its confirmation, built here rather than in the scene.
+##
+## A player who no longer wants the game should not have to go looking through
+## AppData for it, and one who wants a clean reinstall should be able to get one
+## without knowing where anything lives.
+func _build_uninstall() -> void:
+	_uninstall_button = Button.new()
+	_uninstall_button.text = "Uninstall"
+	_uninstall_button.tooltip_text = "Remove the installed game from this computer."
+	_uninstall_button.pressed.connect(_on_uninstall)
+	if releases_button.get_parent() != null:
+		releases_button.get_parent().add_child(_uninstall_button)
+		releases_button.get_parent().move_child(_uninstall_button, 0)
+
+	_uninstall_dialog = ConfirmationDialog.new()
+	_uninstall_dialog.title = "Uninstall Beast Road"
+	_uninstall_dialog.ok_button_text = "Uninstall"
+	_uninstall_dialog.confirmed.connect(_do_uninstall)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	_uninstall_label = Label.new()
+	_uninstall_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_uninstall_label.custom_minimum_size = Vector2(420.0, 0.0)
+	column.add_child(_uninstall_label)
+	# **Off by default, and named plainly.** The build is a download; the save is
+	# a campaign. A dialog that treats them as one thing will eventually delete
+	# somebody's hero because they wanted a clean reinstall.
+	_wipe_saves = CheckBox.new()
+	_wipe_saves.text = "Also delete my saved progress (cannot be undone)"
+	column.add_child(_wipe_saves)
+	_uninstall_dialog.add_child(column)
+	add_child(_uninstall_dialog)
+
+
+func _on_uninstall() -> void:
+	_refresh_installed()
+	if not _installed.installed:
+		status_label.text = "There is no installed build to remove."
+		return
+	_wipe_saves.button_pressed = false
+	_wipe_saves.disabled = not Uninstaller.save_exists()
+	_uninstall_label.text = ("This removes the installed game from %s.
+
+"
+		+ "Your saved progress is kept unless you tick the box below, so "
+		+ "reinstalling from here gives you a clean copy of the game with your "
+		+ "campaign intact.") % LauncherConfig.install_dir_static()
+	if not Uninstaller.save_exists():
+		_uninstall_label.text += "
+
+No saved progress was found on this computer."
+	_uninstall_dialog.popup_centered()
+
+
+func _do_uninstall() -> void:
+	var report: Dictionary = Uninstaller.remove_build()
+	var said: String = Uninstaller.describe(report)
+	if _wipe_saves.button_pressed:
+		var saves: Dictionary = Uninstaller.remove_saves()
+		said += "  " + ("Saved progress deleted."
+			if bool(saves.get("ok", false)) else Uninstaller.describe(saves))
+	InstallState.clear()
+	_refresh_installed()
+	# Back to whatever the release check already knows, which after this is
+	# "not installed" - so the primary button becomes Install again rather than
+	# offering Play for something that is no longer there.
+	_evaluate_release()
+	status_label.text = said
 
 
 # --- Checking ---------------------------------------------------------------
