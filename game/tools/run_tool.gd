@@ -96,9 +96,17 @@ func _http_gzip() -> void:
 				offenders.append("%s:%d" % [path, index + 1])
 	if offenders.is_empty():
 		print("[http] PASS - every HTTPRequest declines gzip")
+		# **Explicitly, like every other action here.** Returning instead lets the
+		# script end and the engine tear down by a different path, which emits
+		# "BUG: Unreferenced static string" on the way out - engine noise, but the
+		# load gate fails on any ERROR line and cannot tell whose it is.
+		quit(0)
 		return
+	# Indented, for the same reason the others are: the gate anchors on a line
+	# *starting* with ERROR, and these are this tool's own findings rather than
+	# the engine failing.
 	for where: String in offenders:
-		printerr("[http] FAIL %s makes an HTTPRequest without accept_gzip = false"
+		print("  ERROR: %s makes an HTTPRequest without accept_gzip = false"
 			% where)
 	quit(1)
 
