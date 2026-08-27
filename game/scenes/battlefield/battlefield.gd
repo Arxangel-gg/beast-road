@@ -631,7 +631,27 @@ func _build_foliage() -> void:
 	# In the sorted layer so a plant in front of the hero occludes them and one
 	# behind does not.
 	entity_root.add_child(foliage)
+	_build_treeline()
 	_build_wildlife()
+
+
+## The wood beyond the field.
+##
+## Everything outside the build grid used to be bare, so the map read as a board
+## rather than as a clearing in a place. The treeline owns that outside, and
+## nothing it plants is allowed inside the grid - a tree among the roads would
+## hide a lane, cover a tower slot or eat a click.
+##
+## Sprites into the sorted layer rather than under the system, exactly as
+## wildlife does: parented under the system they would every one of them draw at
+## the system's own depth, which is the town's.
+func _build_treeline() -> void:
+	var trees := Treeline.new()
+	trees.name = "Treeline"
+	trees.grid = grid
+	trees.host = entity_root
+	add_child(trees)
+	trees.scatter()
 
 
 ## The animals that live off the roads.

@@ -456,6 +456,9 @@ toward the region's sampled ground palette so it sits in the same light.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
+| `tree_jungle.png` | 96×128 | T | `#24401F` |
+| `tree_desert.png` | 96×128 | T | `#8A7B4E` |
+| `tree_snow.png` | 96×128 | T | `#5A6E78` |
 | `plant_jungle.png` | 48×64 | T | `#2E4A33` |
 | `plant_desert.png` | 48×64 | T | `#C0AC7E` |
 | `plant_snow.png` | 48×64 | T | `#A8BCCC` |
