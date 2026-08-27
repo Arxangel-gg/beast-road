@@ -406,22 +406,19 @@ const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.55
 ## - the battlefield opens at 0.62 and the raid arena at 0.95 - and replacing
 ## both with one value would throw that away. This moves them together and keeps
 ## the difference between them, which is the part that was designed. [TUNE]
+## **Nothing in this file may reach for an autoload.** It is loaded by tools run
+## with `--script`, which start no autoloads at all - so one call to `TouchInput`
+## here stopped `Balance` compiling for every one of them, and the release gate
+## failed with "Identifier not found: TouchInput" from a tool that has nothing to
+## do with zoom. Constants live here; the choice between them belongs where the
+## answer is already known.
 const CAMERA_TOUCH_ZOOM_GAIN: float = 1.30
 
 
-## A scene's authored zoom, brought closer if this is a phone.
-static func start_zoom(authored: float) -> float:
-	return authored * CAMERA_TOUCH_ZOOM_GAIN if TouchInput.is_showing() 		else authored
 
 
-## How far out the battlefield may be pulled on this device.
-static func battlefield_zoom_min() -> float:
-	return CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN if TouchInput.is_showing() 		else CAMERA_ZOOM_BATTLEFIELD_MIN
 
 
-## And how far in.
-static func battlefield_zoom_max() -> float:
-	return CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX if TouchInput.is_showing() 		else CAMERA_ZOOM_BATTLEFIELD_MAX
 const CAMERA_ZOOM_STEP: float = 0.10
 const CAMERA_ZOOM_LERP_SPEED: float = 12.0
 

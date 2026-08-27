@@ -41,8 +41,7 @@ var _rumble_seed: float = 0.0
 
 func _ready() -> void:
 	_rng.randomize()
-	_wanted_zoom = Balance.start_zoom(
-		zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
+	_wanted_zoom = _start_zoom(zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
 	zoom = Vector2.ONE * _wanted_zoom
 	EventBus.camera_shake_requested.connect(_on_shake_requested)
 	if target != null:
@@ -69,21 +68,36 @@ func _process(delta: float) -> void:
 	_tick_gait(delta)
 
 
+## The zoom band for this device, chosen here because this is where the answer
+## is known. `Balance` holds the numbers and must not ask an autoload for them.
+func _zoom_floor() -> float:
+	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN if TouchInput.is_showing() 		else Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
+
+
+func _zoom_ceiling() -> float:
+	return Balance.CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX if TouchInput.is_showing() 		else Balance.CAMERA_ZOOM_BATTLEFIELD_MAX
+
+
+## A scene's authored framing, brought closer if this is a phone.
+func _start_zoom(authored: float) -> float:
+	return authored * Balance.CAMERA_TOUCH_ZOOM_GAIN if TouchInput.is_showing() 		else authored
+
+
 func zoom_by(steps: int) -> bool:
 	if steps == 0:
 		return false
 	var before: float = _wanted_zoom
 	_wanted_zoom = clampf(_wanted_zoom + Balance.CAMERA_ZOOM_STEP * float(steps),
-		Balance.battlefield_zoom_min(), Balance.battlefield_zoom_max())
+		_zoom_floor(), _zoom_ceiling())
 	return not is_equal_approx(before, _wanted_zoom)
 
 
 func is_fully_zoomed_out() -> bool:
-	return _wanted_zoom <= Balance.battlefield_zoom_min() + 0.001
+	return _wanted_zoom <= _zoom_floor() + 0.001
 
 
 func reset_to_wide() -> void:
-	_wanted_zoom = Balance.battlefield_zoom_min()
+	_wanted_zoom = _zoom_floor()
 
 
 ## Two overlapping decays: the blow, and the ringing it leaves behind.
