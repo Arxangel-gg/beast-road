@@ -512,6 +512,7 @@ func _ask_the_internet() -> void:
 		return
 	if _ip_probe == null:
 		_ip_probe = HTTPRequest.new()
+		_ip_probe.accept_gzip = false
 		_ip_probe.timeout = 6.0
 		add_child(_ip_probe)
 		_ip_probe.request_completed.connect(_on_public_ip)

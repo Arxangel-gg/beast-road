@@ -265,6 +265,7 @@ func _flush_pending() -> void:
 
 func _request() -> HTTPRequest:
 	var request := HTTPRequest.new()
+	request.accept_gzip = false
 	request.timeout = Balance.LEADERBOARD_REQUEST_TIMEOUT
 	# A board is not a reason to keep a paused game ticking, but it is also not
 	# something to freeze mid-flight when one opens.

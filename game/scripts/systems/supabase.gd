@@ -38,7 +38,23 @@ const TIMEOUT: float = 20.0
 ## have two requests in flight, and signalling polls while the lobby refreshes
 ## often enough for that to matter.
 func request(path: String, method: int, body: Dictionary, done: Callable) -> void:
+	# **Never gzip on the web.**
+	#
+	# A browser decompresses `Content-Encoding: gzip` itself, before Godot ever
+	# sees the body - but the header is still there, so `HTTPRequest` tries to
+	# decompress the already-decompressed bytes and hands back
+	# RESULT_BODY_DECOMPRESS_FAILED with an otherwise perfectly good HTTP 200.
+	#
+	# It fails *selectively*, which is what made it so hard to see: a response
+	# too small to be worth compressing arrives intact, so empty polls all
+	# succeeded and only the ones actually carrying an offer failed. The host
+	# polled happily for forty-five seconds and never heard a thing.
+	#
+	# Off everywhere rather than behind a web check: the saving on a few
+	# hundred bytes of JSON is not worth two code paths, and a desktop build
+	# that behaves differently from the browser one is how this hid.
 	var http := HTTPRequest.new()
+	http.accept_gzip = false
 	http.timeout = TIMEOUT
 	add_child(http)
 	http.request_completed.connect(

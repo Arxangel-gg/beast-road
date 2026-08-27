@@ -326,6 +326,7 @@ func _call(path: String, method: int, body: Dictionary, done: Callable) -> void:
 		done.call(false, null)
 		return
 	var request := HTTPRequest.new()
+	request.accept_gzip = false
 	request.timeout = 8.0
 	add_child(request)
 	request.request_completed.connect(

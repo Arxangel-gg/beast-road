@@ -44,6 +44,8 @@ func _init() -> void:
 			_theme()
 		"tool-leak":
 			_tool_leak()
+		"http-gzip":
+			_http_gzip()
 		"road-tiles":
 			_road_tiles()
 		"floor-tiles":
@@ -53,6 +55,72 @@ func _init() -> void:
 		_:
 			print(USAGE)
 			quit(2)
+
+
+## Every HTTPRequest must turn `accept_gzip` off.
+##
+## It defaults to on, and on the web that is a trap: the browser has already
+## decompressed the body by the time Godot sees it, but `Content-Encoding: gzip`
+## is still on the response, so `HTTPRequest` decompresses it a second time and
+## returns RESULT_BODY_DECOMPRESS_FAILED over a perfectly good HTTP 200.
+##
+## It failed *selectively* - responses too small to compress came through fine -
+## so the browser build lost only the replies that actually carried something,
+## and looked like a matchmaking service that answered every poll with nothing.
+## It cost several days.
+##
+## Checked in the source rather than at runtime because the failure is silent
+## and platform-specific: nothing on a desktop machine will ever notice it.
+func _http_gzip() -> void:
+	const SELF: String = "res://tools/run_tool.gd"
+	const NEWLINE: String = "
+"
+	const MADE: String = "HTTPRequest" + ".new()"
+	const DECLINED: String = "accept_gzip" + " = false"
+	var offenders: PackedStringArray = []
+	for path: String in _gd_files("res://"):
+		# This file names the pattern in order to look for it.
+		if path == SELF:
+			continue
+		var text: String = FileAccess.get_file_as_string(path)
+		var lines: PackedStringArray = text.split(NEWLINE)
+		for index: int in lines.size():
+			if not lines[index].contains(MADE):
+				continue
+			# The setter must follow within a couple of lines, on the object
+			# just made. Anything further away is not obviously about this one.
+			var near: String = ""
+			for look: int in range(index, mini(index + 4, lines.size())):
+				near += lines[look]
+			if not near.contains(DECLINED):
+				offenders.append("%s:%d" % [path, index + 1])
+	if offenders.is_empty():
+		print("[http] PASS - every HTTPRequest declines gzip")
+		return
+	for where: String in offenders:
+		printerr("[http] FAIL %s makes an HTTPRequest without accept_gzip = false"
+			% where)
+	quit(1)
+
+
+## Every .gd file under a directory, recursively.
+func _gd_files(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var directory: DirAccess = DirAccess.open(root)
+	if directory == null:
+		return found
+	directory.list_dir_begin()
+	var name: String = directory.get_next()
+	while name != "":
+		var path: String = root.path_join(name)
+		if directory.current_is_dir():
+			if not name.begins_with("."):
+				found.append_array(_gd_files(path))
+		elif name.ends_with(".gd"):
+			found.append(path)
+		name = directory.get_next()
+	directory.list_dir_end()
+	return found
 
 
 func _generate(force: bool) -> void:
