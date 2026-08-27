@@ -731,7 +731,7 @@ func _fit_build_panel() -> void:
 	# there is room for both, which is where it started.
 	if screen.y > screen.x:
 		_build_panel.offset_left = BUILD_PANEL_MARGIN
-		_build_panel.offset_right = -BUILD_PANEL_MARGIN - _nav_column_width()
+		_build_panel.offset_right = -BUILD_PANEL_MARGIN - nav_column_width()
 	else:
 		_build_panel.offset_left = -BUILD_PANEL_WIDTH - _build_panel_inset()
 		_build_panel.offset_right = -_build_panel_inset()
@@ -761,11 +761,14 @@ func _fit_build_panel() -> void:
 ## does not change, so this is the half of "must not overlap" that cannot come
 ## undone.
 func _build_panel_inset() -> float:
-	return BUILD_PANEL_MARGIN + _nav_column_width() + 16.0
+	return BUILD_PANEL_MARGIN + nav_column_width() + 16.0
 
 
 ## The scope column's width, including the margin it holds off the right edge.
-func _nav_column_width() -> float:
+## Static so `TouchInput` can keep its buttons out of the rail without holding a
+## reference to the HUD. The rail's width is a property of the constants, not of
+## any particular HUD instance.
+static func nav_column_width() -> float:
 	return (NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE) + 24.0
 
 

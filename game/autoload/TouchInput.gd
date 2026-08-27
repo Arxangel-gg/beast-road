@@ -55,6 +55,11 @@ var _attacking: bool = false
 
 var _sticks: Array = []
 var _dash: TouchButton = null
+## Held, not tapped, so a thumb drives the same three-second hold a keyboard
+## does. Shown only while somebody is down: a button that does nothing for an
+## entire solo run is a button standing in front of the field.
+var _revive: TouchButton = null
+var _down_count: int = 0
 
 
 func _ready() -> void:
@@ -165,6 +170,20 @@ func _build() -> void:
 	_dash.label = "DASH"
 	add_child(_dash)
 
+	# **There was no way to revive on a phone at all.** The hold is read from
+	# `Input.is_action_pressed("revive")`, which on a desktop is a key held down
+	# and on a phone is nothing - so a fallen partner could not be helped up,
+	# and in a two-player run that is the end of it.
+	_revive = TouchButton.new()
+	_revive.name = "ReviveButton"
+	_revive.label = "REVIVE"
+	_revive.visible = false
+	add_child(_revive)
+	EventBus.coop_hero_down.connect(func(_slot: int, _at: Vector2) -> void:
+		_down_count += 1)
+	EventBus.coop_hero_revived.connect(func(_slot: int, _at: Vector2) -> void:
+		_down_count = maxi(_down_count - 1, 0))
+
 
 ## Whether the on-screen controls should be up *right now*.
 ##
@@ -205,6 +224,8 @@ func _input(event: InputEvent) -> void:
 		stick.release_finger(touch.index)
 	if _dash != null:
 		_dash.release_finger(touch.index)
+	if _revive != null:
+		_revive.release_finger(touch.index)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -214,6 +235,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	# The dash button is checked first: it sits inside the right stick's corner,
 	# and a thumb on it must be a dash rather than an aim.
 	if _dash.consume(event, dash_rect()):
+		get_viewport().set_input_as_handled()
+		return
+	if _revive.visible and _revive.consume(event, revive_rect()):
 		get_viewport().set_input_as_handled()
 		return
 
@@ -249,8 +273,37 @@ func zone(right: bool) -> Rect2:
 ## one part of the frame the interface never claims.
 func dash_rect() -> Rect2:
 	var span: Vector2 = get_viewport().get_visible_rect().size
-	var side: float = minf(span.x, span.y) * 0.11
-	return Rect2(span.x - side * 1.35, span.y * 0.5 - side * 0.5, side, side)
+	var side: float = button_side()
+	# **Inside the scope rail, not under it.** The right edge at half height was
+	# the one part of the frame the interface never claimed - and then the scope
+	# column moved there, six squares from a little below the top bar to well
+	# past the middle. A button drawn beneath a HUD panel is not merely hidden:
+	# the sticks read `_unhandled_input`, so the panel eats the tap.
+	var reserved: float = HUD.nav_column_width()
+	return Rect2(span.x - reserved - side * 1.25, span.y * 0.5 - side * 0.5,
+		side, side)
+
+
+## Where the revive hold sits: directly under the dash, on the same edge.
+##
+## Beside the thumb already there rather than somewhere tidier - reviving means
+## standing still beside a fallen partner for three seconds, so the hand
+## holding this one is not the one steering.
+func revive_rect() -> Rect2:
+	var dash: Rect2 = dash_rect()
+	return Rect2(dash.position + Vector2(0.0, dash.size.y * 1.25), dash.size)
+
+
+## Whether a thumb is on the revive button right now.
+func revive_held() -> bool:
+	return _revive != null and _revive.visible and _revive.is_held()
+
+
+## How big a persistent touch button is. Sized from the shorter screen axis, so
+## a tall viewport does not produce a button a quarter of the screen across.
+func button_side() -> float:
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	return minf(span.x, span.y) * 0.11
 
 
 func _process(_delta: float) -> void:
@@ -281,6 +334,14 @@ func _process(_delta: float) -> void:
 	var where: Rect2 = dash_rect()
 	_dash.position = where.position
 	_dash.size = where.size
+
+	_revive.visible = _down_count > 0
+	if _revive.visible:
+		var spot: Rect2 = revive_rect()
+		_revive.position = spot.position
+		_revive.size = spot.size
+	elif _revive.is_held():
+		_revive.forget()
 
 
 ## Presses the same actions a keyboard would.
@@ -440,6 +501,11 @@ class TouchButton extends Control:
 
 	func holds_emulated_finger() -> bool:
 		return _finger == 0
+
+
+	## Still down. `take_press` is the one-shot a dash wants; a revive is a hold.
+	func is_held() -> bool:
+		return _finger >= 0
 
 
 	## As `TouchStick.release_finger`. The press has already been recorded by the

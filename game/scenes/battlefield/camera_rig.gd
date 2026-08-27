@@ -41,7 +41,8 @@ var _rumble_seed: float = 0.0
 
 func _ready() -> void:
 	_rng.randomize()
-	_wanted_zoom = zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM
+	_wanted_zoom = Balance.start_zoom(
+		zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
 	zoom = Vector2.ONE * _wanted_zoom
 	EventBus.camera_shake_requested.connect(_on_shake_requested)
 	if target != null:
@@ -73,16 +74,16 @@ func zoom_by(steps: int) -> bool:
 		return false
 	var before: float = _wanted_zoom
 	_wanted_zoom = clampf(_wanted_zoom + Balance.CAMERA_ZOOM_STEP * float(steps),
-		Balance.CAMERA_ZOOM_BATTLEFIELD_MIN, Balance.CAMERA_ZOOM_BATTLEFIELD_MAX)
+		Balance.battlefield_zoom_min(), Balance.battlefield_zoom_max())
 	return not is_equal_approx(before, _wanted_zoom)
 
 
 func is_fully_zoomed_out() -> bool:
-	return _wanted_zoom <= Balance.CAMERA_ZOOM_BATTLEFIELD_MIN + 0.001
+	return _wanted_zoom <= Balance.battlefield_zoom_min() + 0.001
 
 
 func reset_to_wide() -> void:
-	_wanted_zoom = Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
+	_wanted_zoom = Balance.battlefield_zoom_min()
 
 
 ## Two overlapping decays: the blow, and the ringing it leaves behind.

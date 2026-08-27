@@ -383,6 +383,45 @@ const CAMERA_ZOOM_RAID: float = 0.95
 ## unreadable postage stamp.
 const CAMERA_ZOOM_BATTLEFIELD_MIN: float = 0.38
 const CAMERA_ZOOM_BATTLEFIELD_MAX: float = 1.00
+
+## The same three numbers, for a screen held in one hand.
+##
+## **Closer, not further.** These constants frame the field against a 1080p
+## monitor a desk away; a phone is a quarter of the size and twice as close, and
+## at 0.52 a hero on it is about nine millimetres tall. Every reason the desktop
+## default is wide - read which lane is collapsing, see the fork the road takes -
+## depends on being able to make out what is there at all, and on a phone that
+## stops being true well before the field stops fitting.
+##
+## So the default sits nearer, and the range moves with it: the far end still
+## pulls back far enough to read the ring of lanes, and the near end goes closer
+## than a desktop ever needs for the moments a thumb is fighting something. [TUNE]
+const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN: float = 0.52
+const CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX: float = 1.55
+
+
+## How much closer every scene starts when a thumb is driving.
+##
+## A gain rather than a fixed number, because each scene authors its own framing
+## - the battlefield opens at 0.62 and the raid arena at 0.95 - and replacing
+## both with one value would throw that away. This moves them together and keeps
+## the difference between them, which is the part that was designed. [TUNE]
+const CAMERA_TOUCH_ZOOM_GAIN: float = 1.30
+
+
+## A scene's authored zoom, brought closer if this is a phone.
+static func start_zoom(authored: float) -> float:
+	return authored * CAMERA_TOUCH_ZOOM_GAIN if TouchInput.is_showing() 		else authored
+
+
+## How far out the battlefield may be pulled on this device.
+static func battlefield_zoom_min() -> float:
+	return CAMERA_ZOOM_BATTLEFIELD_TOUCH_MIN if TouchInput.is_showing() 		else CAMERA_ZOOM_BATTLEFIELD_MIN
+
+
+## And how far in.
+static func battlefield_zoom_max() -> float:
+	return CAMERA_ZOOM_BATTLEFIELD_TOUCH_MAX if TouchInput.is_showing() 		else CAMERA_ZOOM_BATTLEFIELD_MAX
 const CAMERA_ZOOM_STEP: float = 0.10
 const CAMERA_ZOOM_LERP_SPEED: float = 12.0
 

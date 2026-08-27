@@ -131,9 +131,61 @@ func _ready() -> void:
 	_check(not Input.is_action_pressed(&"move_right"),
 		"hiding the controls must release what they were holding, or the hero walks forever")
 
+	_test_revive_hold()
+	_test_dash_clears_the_rail()
+
 	if _failures == 0:
-		print("[touch] PASS - thumbs reach the input map, both sticks work at once, nothing leaks")
+		print("[touch] PASS - thumbs reach the input map, both sticks work at once, "
+			+ "the revive hold reaches the hero, nothing leaks")
 	get_tree().quit(_failures)
+
+
+## A thumb must be able to pick a partner up.
+##
+## There is no `revive` action a thumb can reach - the hold is read straight from
+## `Input.is_action_pressed("revive")` - so on a phone this was always false and
+## a fallen partner stayed down for the rest of the run. In a two-player game
+## that is the end of the run.
+func _test_revive_hold() -> void:
+	# The leak test above ends the run to prove the controls go deaf, which is
+	# exactly what it should check - and leaves them deaf for anything after it.
+	MetaState.settings[TouchInput.TOUCH_KEY] = true
+	GameDirector.run_active = true
+	TouchInput.refresh()
+	_settle()
+	_check(not TouchInput.revive_held(), "nothing is held before anybody falls")
+	# The button only exists while somebody is down, which is what the hero
+	# system announces when it happens.
+	EventBus.coop_hero_down.emit(2, Vector2.ZERO)
+	_settle()
+	var spot: Rect2 = TouchInput.revive_rect()
+	_check(spot.size.x > 0.0, "a downed partner must put a revive button on screen")
+	_touch(spot.get_center(), true, 4)
+	_settle()
+	_check(TouchInput.revive_held(), "a thumb on it must read as held")
+	_check(LocalHeroInput.new().held(HeroInput.HOLD_REVIVE),
+		"and must reach the hero as HOLD_REVIVE")
+	_touch(spot.get_center(), false, 4)
+	_settle()
+	_check(not TouchInput.revive_held(), "lifting the thumb must let go")
+	EventBus.coop_hero_revived.emit(2, Vector2.ZERO)
+	_settle()
+	_check(TouchInput.revive_rect().size.x > 0.0 == false
+			or not TouchInput._revive.visible,
+		"and the button goes away once they are up")
+
+
+## The dash must not sit under the scope rail.
+##
+## A button drawn beneath a HUD panel is not merely hidden - the sticks read
+## `_unhandled_input`, so the panel eats the tap and the dash silently stops
+## working. The rail moved to the right edge after the dash was put there.
+func _test_dash_clears_the_rail() -> void:
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var rail: float = span.x - HUD.nav_column_width()
+	_check(TouchInput.dash_rect().end.x <= rail + 1.0,
+		"dash right edge %.0f must clear the scope rail at %.0f"
+			% [TouchInput.dash_rect().end.x, rail])
 
 
 func _touch(at: Vector2, pressed: bool, finger: int) -> void:

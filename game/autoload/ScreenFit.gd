@@ -45,12 +45,59 @@ const MIN_FACTOR: float = 1.0
 const MAX_FACTOR: float = 3.5
 
 
+## Whether this build should try to take the whole screen.
+##
+## A phone's browser chrome and the system bars below it are perhaps a fifth of
+## an already small screen, and none of it is the game. Asked of the touchscreen
+## rather than of the platform, so a tablet gets it and a touch-capable laptop
+## running windowed does not.
+static func wants_fullscreen() -> bool:
+	if not DisplayServer.is_touchscreen_available():
+		return false
+	return OS.has_feature("mobile") or OS.has_feature("web")
+
+
 func _ready() -> void:
+	# **A browser will not go fullscreen except from a gesture.** Asking at
+	# startup is refused silently, so on the web this waits for the first touch
+	# - which on a game is never far away - and asks then. Native mobile has no
+	# such rule and is done immediately.
+	if wants_fullscreen():
+		if OS.has_feature("web"):
+			_awaiting_gesture = true
+		else:
+			_go_fullscreen()
+
 	# Runs before anything draws, and again whenever the window changes - a
 	# browser tab is resized by rotating the phone, and a desktop window by
 	# dragging it.
 	get_tree().root.size_changed.connect(_fit)
 	_fit()
+
+
+## True until a browser has given us a gesture to spend on going fullscreen.
+var _awaiting_gesture: bool = false
+
+
+func _input(event: InputEvent) -> void:
+	if not _awaiting_gesture:
+		return
+	var gesture: bool = event is InputEventScreenTouch 		and (event as InputEventScreenTouch).pressed
+	gesture = gesture or (event is InputEventMouseButton 		and (event as InputEventMouseButton).pressed)
+	if not gesture:
+		return
+	_awaiting_gesture = false
+	_go_fullscreen()
+
+
+## Takes the screen, and keeps the system bars out of it where that is a choice.
+func _go_fullscreen() -> void:
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	# The size the game is drawn at has just changed. Re-fit rather than waiting
+	# for the resize notification, which does not always arrive on the web.
+	_fit.call_deferred()
 
 
 func _fit() -> void:
