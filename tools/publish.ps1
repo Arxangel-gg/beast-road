@@ -625,6 +625,38 @@ $lblLink.Add_LinkClicked({ Start-Process $lblLink.Text })
 $script:Editors = @{}
 $script:Dirty = $false
 
+# The design contracts a tuned value has to satisfy, run where it was typed.
+#
+# **A number can be well-formed and still wrong.** The Save button already
+# refuses text that is not a number of the right type; it had no opinion about
+# whether the number makes a game. So a value that breaks a balance contract was
+# written happily and only failed at Publish - after the repository check, the
+# validate pass and a wait, in a wall of Godot output, with no obvious link back
+# to the field that caused it.
+#
+# Seven seconds here instead. Same gate the publisher runs, same verdict, next
+# to the box it came from.
+function script:Test-TunedBalance {
+    $godotDir = Join-Path $script:RepoRoot 'Godot_v4.7.1-stable_win64.exe'
+    $godot = Get-ChildItem -LiteralPath $godotDir -Filter '*_console.exe' -File -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $godot) {
+        return @{ Ran = $false; Ok = $true; Detail = 'Godot not found - balance not checked.' }
+    }
+    # Not `$args`: that is an automatic variable and assigning to it inside a
+    # function shadows the one PowerShell maintains.
+    $godotArgs = @('--headless', '--path', (Join-Path $script:RepoRoot 'game'), 'res://tools/balance_test.tscn')
+    $out = & $godot.FullName @godotArgs 2>&1
+    $text = $out -join "`n"
+    # The gate reports its own findings as `[balance] ...` lines through
+    # push_error, so they arrive prefixed with ERROR. Those are the useful ones.
+    $findings = @($out | Select-String -Pattern '^\s*ERROR:\s*\[balance\]' |
+        ForEach-Object { ($_.ToString() -replace '^\s*ERROR:\s*', '').Trim() } |
+        Select-Object -Unique)
+    $ok = ($LASTEXITCODE -eq 0) -and ($findings.Count -eq 0) -and ($text -match 'PASS')
+    return @{ Ran = $true; Ok = $ok; Findings = $findings; Detail = $text }
+}
+
 function script:Load-TuningEntries {
     $entries = @()
     $entries += Read-BalanceEntries
@@ -926,6 +958,42 @@ function New-TuningTab {
         $script:AllEntries = Load-TuningEntries
         if ($null -ne $script:tree.SelectedNode) { Show-Section -Section ([string]$script:tree.SelectedNode.Tag) }
         $script:lblSaved.Text = ("Saved: {0} constants, {1} sounds, {2} content values, {3} settings." -f $n1, $n2, $n3, $project.Count)
+
+        # Only when a constant actually moved. Sounds and window settings have no
+        # balance contract to break, and nobody wants a seven second pause for
+        # changing a volume.
+        if ($n1 -gt 0) {
+            $script:lblSaved.ForeColor = $cAmber
+            $script:lblSaved.Text = 'Saved. Checking balance...'
+            $script:lblSaved.Refresh()
+            $verdict = Test-TunedBalance
+            if (-not $verdict.Ran) {
+                $script:lblSaved.ForeColor = $cAmber
+                $script:lblSaved.Text = $verdict.Detail
+            } elseif ($verdict.Ok) {
+                $script:lblSaved.ForeColor = $cGreen
+                $script:lblSaved.Text = ("Saved {0} constants. Balance checks pass." -f $n1)
+            } else {
+                $script:lblSaved.ForeColor = $cRust
+                $script:lblSaved.Text = 'Saved, but the balance checks fail.'
+                $body = @()
+                $body += 'These values are written to disk, but the game will not publish while a'
+                $body += 'balance contract is broken - the publisher runs this same check.'
+                $body += ''
+                if ($verdict.Findings.Count -gt 0) {
+                    $body += $verdict.Findings
+                } else {
+                    $body += 'The balance test failed without naming a contract. Full output:'
+                    $body += ''
+                    $body += ($verdict.Detail -split "`n" | Select-Object -Last 20)
+                }
+                $body += ''
+                $body += 'Change the value back, or change the contract in'
+                $body += 'game/tools/balance_test.gd if the design has moved.'
+                [System.Windows.Forms.MessageBox]::Show(($body -join "`r`n"),
+                    'Balance contract broken') | Out-Null
+            }
+        }
     })
 
     Rebuild-Tree

@@ -1614,7 +1614,7 @@ const STARTING_WOOD: int = 180
 ## Starting below one tend means the first wounded hero is a choice: hunt for it,
 ## walk for it, or fight on hurt. [TUNE]
 const STARTING_FOOD: int = 38
-const STARTING_GOLD: int = 0
+const STARTING_GOLD: int = 150
 const STARTING_STONE: int = 90
 ## Machine-readable v4 contract; RunState owns the runtime typed aliases.
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]

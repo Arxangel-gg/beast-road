@@ -113,13 +113,15 @@ func _test_upgrade_track() -> void:
 func _test_four_currency_economy() -> void:
 	_check(RunState.currencies.size() == 4,
 		"the run must have exactly four role-specific economy wallets")
-	# Inverted on 2026-08-24 with GDD §448. This asserted that starting Gold
-	# covered one base tower per road; the owner re-cut the envelope, and a run
-	# that hands the player four towers is now the failure rather than the
-	# contract. `_test_opening_envelope` owns the replacement - that the ramp
-	# *earns* those towers on a sane schedule.
-	_check(RunState.currency(RunState.GOLD) == 0,
-		"the run must start with no Gold: tower capital is earned, not issued")
+	# This value has now been ruled on three times - one tower per road in v4
+	# §448, nothing at all on 2026-08-24, and a bounded purse on 2026-08-27 - so
+	# what it asserts is that the wallet *agrees with the constant*, not what the
+	# constant should be. `_test_opening_envelope` owns the design question and
+	# is the one place to argue with. Two gates with opinions about the same
+	# number is how a re-cut turns into an afternoon.
+	_check(RunState.currency(RunState.GOLD) == Balance.STARTING_GOLD,
+		"a fresh run must open with STARTING_GOLD (%d), got %d"
+			% [Balance.STARTING_GOLD, RunState.currency(RunState.GOLD)])
 	# Stone is deliberately still seeded. It cannot buy anything on its own -
 	# every tower, Fusion included, carries a Gold price - so this says only that
 	# Stone will not be the thing standing between an earned Gold pile and the
@@ -235,10 +237,22 @@ func _test_opening_envelope() -> void:
 	var ramp: Dictionary = _opening_gold_ramp(director, terrain)
 	var first_tower_wave: int = int(ramp["first_tower_wave"])
 	var baseline_wave: int = int(ramp["baseline_wave"])
-	_check(Balance.STARTING_GOLD == 0,
-		"the run must start with no build capital, got %d Gold" % Balance.STARTING_GOLD)
-	_check(first_tower_wave >= 2,
-		"the first wave alone must not pay for a tower, or fighting taught nothing")
+	# **Starting capital is bounded, not forbidden.** Owner re-cut, 2026-08-27:
+	# the run opens with Gold again. What the previous rule was really protecting
+	# was not the zero - it was §448's teaching obligation, that the opening must
+	# ask something of the player before it tests them. A purse that covers every
+	# road hands them a finished defence and asks nothing; a purse that covers
+	# some of it buys a foothold and leaves the rest to be earned.
+	#
+	# Half the roads is where that line sits. Below it the player must still
+	# fight for the rest of the ring, which is the whole of the intent; above it
+	# the opening defends itself and the hero is decoration.
+	var covered: int = Balance.STARTING_GOLD / Balance.TOWER_BUILD_COST
+	_check(covered * 2 <= Balance.LANE_COUNT,
+		"starting capital may cover at most half the roads, %d Gold covers %d of %d"
+			% [Balance.STARTING_GOLD, covered, Balance.LANE_COUNT])
+	_check(baseline_wave >= 2,
+		"a tower on every road must be earned, not handed over at the gate")
 	_check(first_tower_wave > 0 and first_tower_wave <= 4,
 		"clearing the opening must pay for a first tower by wave 4, got %s" % (
 			"never" if first_tower_wave == 0 else str(first_tower_wave)))

@@ -46,7 +46,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **DECIDED 2026-08-20: adopt v4's Oathbound framing.** |
 | Run-scoped hero power (v4 §974) | — | **DECIDED 2026-08-20: hero level, attributes and loot now persist. See below.** |
 | Co-op (v4 §54 cut) | cut for 1.0 | **DECIDED 2026-08-24: build two-player co-op. See below.** |
-| Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-24: start with nothing; earn it by killing. See below.** |
+| Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: a bounded purse. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -78,10 +78,18 @@ instead of one. Where co-op genuinely cannot satisfy one of those rules, amend
 the rule here, dated, in the same change - do not leave the codebase disagreeing
 with this file.
 
-**The run starts with no build capital, as of 2026-08-24.** The owner re-cut
-v4 §448's opening protection envelope. `Balance.STARTING_GOLD` is **0** and
-tower money is taken off the enemies the player kills. The intent is that the
-hero has to fight.
+**The run opens with a bounded purse, as of 2026-08-27.** This value has now
+been ruled on three times: one tower per road (v4 §448), nothing at all
+(2026-08-24), and now `Balance.STARTING_GOLD = 150` - enough for two of the four
+roads, with the rest taken off the enemies the player kills.
+
+The bound is the decision, not the number. What §448's teaching obligation was
+ever protecting is that **the opening must ask something of the player before it
+tests them**: a purse that covers every road hands over a finished defence and
+asks nothing. So the gate asserts *at most half the roads*, and that a tower on
+every road is earned rather than issued. Move the constant freely under that
+ceiling; going over it is a design change and should be argued in
+`_test_opening_envelope`, which is the one place with an opinion about it.
 
 **Gold is the only wallet that was zeroed**, and that is a decision rather than
 an omission. Every tower carries a Gold price, so zero Gold already means zero
@@ -91,11 +99,13 @@ them would not harden the opening, it would quietly force Fire for Act I. Wood
 and Food also pay for town repair and hero tending, which are not tower capital.
 If that reading is ever revisited, revisit it as a decision.
 
-**Built and green on 2026-08-25.** The best-case opening ramp puts the first
-tower on wave 3 and the four-road baseline on wave 8, against a lane progression
-that opens the second road on wave 3 and the fourth on wave 10. Peak run
-pressure is unchanged at 0.63 — starting Gold was only about 12% of a run's
-total income — but Act I now ramps 0.06 → 0.48 instead of sitting at 0.02–0.19.
+**Measured at 150 on 2026-08-27.** Two towers are affordable before wave 1 and
+the four-road baseline arrives on wave 4, against a lane progression that opens
+the second road on wave 3 and the fourth on wave 10 - so the ring is covered
+slightly ahead of the roads that need covering. At zero it was wave 3 and wave 8.
+This is a deliberately softer Act I than the 2026-08-24 ruling produced, and the
+owner made the call knowing that; peak run pressure is unaffected either way,
+because starting Gold is around a tenth of a run's total income.
 
 Two things had to learn about the change and both are gates now. `curve_report`
 models hero DPS as part of capability, because with no towers the hero *is* the
