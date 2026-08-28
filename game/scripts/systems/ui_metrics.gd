@@ -82,6 +82,11 @@ const TOUCH_STATE: StringName = &"beast_road_touch_metrics"
 ## Fonts and padding are still grown. It is only the size that is already right.
 const SELF_SIZED: StringName = &"beast_road_self_sized"
 
+## Optional per-control target for dense, owner-sized sheets. Layout checks read
+## the same value, so a deliberately compact row cannot quietly regress below
+## the size its owner designed for.
+const TOUCH_TARGET_HEIGHT: StringName = &"beast_road_touch_target_height"
+
 
 static func apply_touch_tree(root: Node, enabled: bool) -> void:
 	if root is Control:

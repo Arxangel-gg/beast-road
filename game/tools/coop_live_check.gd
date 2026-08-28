@@ -109,7 +109,8 @@ func _run_host() -> void:
 	await _hold(0.5)
 
 	EventBus.enemy_died.emit("bogkin", Vector2(64.0, -32.0))
-	EventBus.coop_enemy_spawned.emit(7, "bogkin", 1, Vector2(500.0, 0.0), 1.0, 1.0, 1.0)
+	EventBus.coop_enemy_spawned.emit(7, "bogkin", 1, Vector2(500.0, 0.0),
+		1.0, 1.0, 1.0, false)
 	EventBus.coop_tower_state.emit(Vector2i(2, 3), "ember_spire", 1)
 	# Awarded through the real path, so this exercises the shared-XP rule rather
 	# than a hand-built signal.

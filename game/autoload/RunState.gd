@@ -43,6 +43,7 @@ const RNG_STREAM_SALTS: Dictionary = {
 	"raids": 350377,
 	"rewards": 479909,
 	"gear": 518363,
+	"mender": 571219,
 	"bosses": 611953,
 	"combat": 746773,
 }
@@ -171,7 +172,24 @@ var hero_attributes: Array[int] = [0, 0, 0, 0]
 ## the town is not a reset. -1 means "start at full".
 var hero_hp: float = -1.0
 var hero_wounds: int = 0
+## Run-only reward from Oath of the Last Scar. Never written to MetaState.
+var hero_max_wounds_bonus: int = 0
 var has_resurrection_draught: bool = false
+
+# --- Run challenges and rare recovery ---------------------------------------
+
+var last_scar_offered: bool = false
+var last_scar_pending: bool = false
+var last_scar_active: bool = false
+var last_scar_resolved: bool = false
+var last_scar_failed: bool = false
+var last_scar_pursuer_spawned: bool = false
+var last_scar_pursuer_defeated: bool = false
+var last_scar_min_town_ratio: float = 1.0
+
+## Act number -> count. Dictionaries make a later act-count change harmless.
+var mender_sparks_claimed_by_act: Dictionary = {}
+var mender_eligible_elites_by_act: Dictionary = {}
 
 # --- Combat state ----------------------------------------------------------
 
@@ -224,6 +242,8 @@ func _ready() -> void:
 	# a raid, on a crossroad, or in a harness with no field simply vanished. Hero
 	# experience is run-level state, and this is where run-level state lives.
 	EventBus.coop_xp_awarded.connect(_on_coop_xp_awarded)
+	EventBus.town_health_changed.connect(_on_town_health_for_last_scar)
+	EventBus.coop_last_scar_resolved.connect(_on_coop_last_scar_resolved)
 
 
 ## The host earned experience, so this player earns the same amount.
@@ -246,6 +266,13 @@ var snow_cover: float = 0.0
 func _on_coop_xp_awarded(amount: float) -> void:
 	if Coop.is_guest():
 		gain_hero_xp(amount)
+
+
+func _on_coop_last_scar_resolved(success: bool, reason: String,
+		maximum: int) -> void:
+	var relay: CoopRelay = Coop.relay()
+	if Coop.is_guest() and relay != null and relay.is_replaying():
+		mirror_last_scar_resolution(success, reason, maximum)
 
 
 func _process(delta: float) -> void:
@@ -385,7 +412,18 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	tier_id = MetaState.last_tier_id
 	hero_hp = -1.0
 	hero_wounds = 0
+	hero_max_wounds_bonus = 0
 	has_resurrection_draught = false
+	last_scar_offered = false
+	last_scar_pending = false
+	last_scar_active = false
+	last_scar_resolved = false
+	last_scar_failed = false
+	last_scar_pursuer_spawned = false
+	last_scar_pursuer_defeated = false
+	last_scar_min_town_ratio = 1.0
+	mender_sparks_claimed_by_act.clear()
+	mender_eligible_elites_by_act.clear()
 
 	wave_number = 0
 	war_horn_uses = 0
@@ -1007,10 +1045,12 @@ func begin_command_battle() -> void:
 
 
 func add_wound() -> int:
-	hero_wounds = mini(hero_wounds + 1, Balance.HERO_MAX_WOUNDS)
+	hero_wounds = mini(hero_wounds + 1, max_wounds())
 	wounds_suffered += 1
+	if last_scar_active:
+		last_scar_failed = true
 	Modifiers.rebuild()
-	EventBus.hero_wounds_changed.emit(hero_wounds, Balance.HERO_MAX_WOUNDS)
+	EventBus.hero_wounds_changed.emit(hero_wounds, max_wounds())
 	return hero_wounds
 
 
@@ -1021,9 +1061,119 @@ func hearthmend() -> void:
 	hero_hp = -1.0
 	var repair: float = town_max_hp * Balance.HEARTHMEND_TOWN_REPAIR_FRACTION
 	town_hp = minf(town_hp + repair, town_max_hp)
-	EventBus.hero_wounds_changed.emit(hero_wounds, Balance.HERO_MAX_WOUNDS)
+	EventBus.hero_wounds_changed.emit(hero_wounds, max_wounds())
 	EventBus.town_health_changed.emit(town_hp, town_max_hp)
 	EventBus.hearthmend_completed.emit(act)
+
+
+func max_wounds() -> int:
+	return Balance.HERO_MAX_WOUNDS + hero_max_wounds_bonus
+
+
+## One authored offer, once per run. Having suffered rather than still carrying
+## a Wound lets Hearthmend work without erasing qualification.
+func can_offer_last_scar() -> bool:
+	return act == Balance.LAST_SCAR_OFFER_ACT and wounds_suffered > 0 \
+		and not last_scar_offered and not last_scar_resolved
+
+
+func accept_last_scar() -> bool:
+	if not can_offer_last_scar():
+		return false
+	last_scar_offered = true
+	last_scar_pending = true
+	EventBus.last_scar_changed.emit("pending")
+	return true
+
+
+func mirror_accept_last_scar() -> void:
+	last_scar_offered = true
+	last_scar_pending = true
+	EventBus.last_scar_changed.emit("pending")
+
+
+## The vow attaches to the road ultimately chosen, not to opening its card.
+func start_last_scar_road() -> void:
+	if not last_scar_pending:
+		return
+	last_scar_pending = false
+	last_scar_active = true
+	last_scar_failed = false
+	last_scar_pursuer_spawned = false
+	last_scar_pursuer_defeated = false
+	last_scar_min_town_ratio = town_hp / town_max_hp if town_max_hp > 0.0 else 0.0
+	EventBus.last_scar_changed.emit("active")
+
+
+func last_scar_locks_rations() -> bool:
+	return last_scar_active
+
+
+func mark_last_scar_pursuer_spawned() -> void:
+	last_scar_pursuer_spawned = true
+
+
+func mark_last_scar_pursuer_defeated() -> void:
+	if last_scar_active:
+		last_scar_pursuer_defeated = true
+		EventBus.last_scar_changed.emit("pursuer_defeated")
+
+
+func _on_town_health_for_last_scar(current: float, maximum: float) -> void:
+	if last_scar_active and maximum > 0.0:
+		last_scar_min_town_ratio = minf(last_scar_min_town_ratio, current / maximum)
+
+
+## Settled at the next road boundary. An empty dictionary means no active oath.
+func resolve_last_scar_road() -> Dictionary:
+	if not last_scar_active:
+		return {}
+	var reason: String = "complete"
+	if last_scar_failed:
+		reason = "wound"
+	elif last_scar_min_town_ratio < Balance.LAST_SCAR_TOWN_MIN_RATIO:
+		reason = "town"
+	elif not last_scar_pursuer_defeated:
+		reason = "pursuer"
+	var success: bool = reason == "complete"
+	last_scar_active = false
+	last_scar_resolved = true
+	if success:
+		hero_max_wounds_bonus = Balance.LAST_SCAR_MAX_WOUND_BONUS
+		EventBus.hero_wounds_changed.emit(hero_wounds, max_wounds())
+	EventBus.last_scar_resolved.emit(success, reason, max_wounds())
+	return {"success": success, "reason": reason, "maximum": max_wounds()}
+
+
+## Applies the authority's settled result on a guest.
+func mirror_last_scar_resolution(success: bool, reason: String, maximum: int) -> void:
+	last_scar_pending = false
+	last_scar_active = false
+	last_scar_resolved = true
+	hero_max_wounds_bonus = maxi(maximum - Balance.HERO_MAX_WOUNDS, 0) if success else 0
+	EventBus.hero_wounds_changed.emit(hero_wounds, max_wounds())
+	EventBus.last_scar_resolved.emit(success, reason, max_wounds())
+
+
+func can_roll_mender_spark() -> bool:
+	return int(mender_sparks_claimed_by_act.get(act, 0)) \
+		< Balance.MENDER_SPARK_MAX_PER_ACT
+
+
+## Pity is per act. The allowance is consumed when the drop appears, so leaving
+## it on the road is a tactical choice rather than a reroll.
+func roll_mender_spark() -> bool:
+	if not can_roll_mender_spark():
+		return false
+	var eligible: int = int(mender_eligible_elites_by_act.get(act, 0)) + 1
+	mender_eligible_elites_by_act[act] = eligible
+	var drops: bool = eligible >= Balance.MENDER_SPARK_PITY_ELITES \
+		or rng("mender").randf() <= Balance.MENDER_SPARK_DROP_CHANCE
+	if drops:
+		mender_sparks_claimed_by_act[act] = \
+			int(mender_sparks_claimed_by_act.get(act, 0)) + 1
+		mender_eligible_elites_by_act[act] = 0
+	return drops
 
 
 func gain_command(amount: float) -> void:

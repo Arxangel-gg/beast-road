@@ -29,6 +29,16 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_check(TouchInput.is_showing(), "the setting must be able to force the controls on")
+	var landscape_factor: float = ScreenFit.factor_for(Vector2(1215.0, 541.0),
+		ScreenFit.base_size(), true)
+	_check(landscape_factor > 1.0,
+		"a landscape phone must receive readable scaling, got %.2f" % landscape_factor)
+	GameDirector.current_scope = GameDirector.Scope.TOWN
+	_settle()
+	_check(not TouchInput.visible, "combat controls must be hidden in the Town scope")
+	GameDirector.current_scope = GameDirector.Scope.BATTLEFIELD
+	_settle()
+	_check(TouchInput.visible, "combat controls must return on the Battlefield")
 
 	# Asked for, not recomputed. A first version worked out the zones itself from
 	# the same fractions the autoload uses, which meant it was checking a copy of

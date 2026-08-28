@@ -35,6 +35,10 @@ var _homing: bool = false
 var _glow: Sprite2D
 var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
 var _glow_size: float = Balance.LOOT_GLOW_SIZE
+var _material: ShaderMaterial = null
+var _taken: bool = false
+
+const LOOT_SHADER: String = "res://scripts/shaders/loot_polish.gdshader"
 
 
 func setup(currency_id: String, value: int, from: Vector2) -> void:
@@ -46,6 +50,9 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 	var angle: float = randf() * TAU
 	_velocity = Vector2.RIGHT.rotated(angle) * randf_range(
 		Balance.LOOT_SCATTER_SPEED * 0.4, Balance.LOOT_SCATTER_SPEED)
+	if currency == Balance.MENDER_SPARK_ID:
+		_glow_colour = Color(0.44, 0.96, 0.62, 0.72)
+		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
 
 
 func setup_gear(piece: Dictionary, from: Vector2) -> void:
@@ -77,7 +84,9 @@ func _ready() -> void:
 			_sprite.texture = load(kind.get_sprite_path())
 		icon_size = Balance.GEAR_DROP_ICON_SIZE
 	else:
-		var painted: String = Balance.LOOT_ART_FORMAT % currency
+		var recovery: Resource = ContentDB.recovery_drop(currency)
+		var painted: String = String(recovery.call("get_sprite_path")) if recovery != null \
+			else Balance.LOOT_ART_FORMAT % currency
 		if ResourceLoader.exists(painted):
 			_sprite.texture = load(painted)
 		else:
@@ -87,6 +96,14 @@ func _ready() -> void:
 			/ maxf(_sprite.texture.get_width(), 1.0))
 	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	_sprite.add_to_group(Graphics.FILTER_GROUP)
+	if Graphics.polish_shaders() and ResourceLoader.exists(LOOT_SHADER):
+		_material = ShaderMaterial.new()
+		_material.shader = load(LOOT_SHADER) as Shader
+		_material.set_shader_parameter("rarity_colour", _glow_colour)
+		_material.set_shader_parameter("shimmer_strength", Balance.LOOT_SHIMMER_STRENGTH)
+		_material.set_shader_parameter("seed", float(get_instance_id() % 997))
+		_material.set_shader_parameter("pickup", 0.0)
+		_sprite.material = _material
 	# A soft pool under the drop, so a coin lying on a lit road still reads.
 	#
 	# Behind the sprite rather than a shader on it: an outline drawn on the sprite
@@ -119,6 +136,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _taken:
+		return
 	_life += delta
 	# The *nearest* hero, not the one holding the hero group.
 	#
@@ -130,7 +149,7 @@ func _process(delta: float) -> void:
 		var to_hero: Vector2 = hero.global_position - global_position
 		var distance: float = to_hero.length()
 		if distance <= Balance.LOOT_COLLECT_RANGE:
-			_collect()
+			_collect(hero as Hero)
 			return
 		# Once homing, always homing. Without the latch a drop at the edge of the
 		# magnet stutters in and out of range as the hero moves, and reads as
@@ -159,7 +178,10 @@ func _process(delta: float) -> void:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
 		# already earned by killing the thing teaches a player to stop fighting
 		# and stand on the road hoovering, which is worse than either extreme.
-		_collect()
+		if currency == Balance.MENDER_SPARK_ID:
+			_expire_special()
+		else:
+			_collect(hero as Hero)
 
 
 ## The spray when a drop is taken, in the drop's own colour.
@@ -192,22 +214,35 @@ func _nearest_hero() -> Node2D:
 ## tells the player their friend picked something up. It does not gain the
 ## currency, because `RunState` already has it from the host.
 func collect_mirrored() -> void:
+	if _taken:
+		return
+	_taken = true
 	Sfx.play_group("loot_collect")
-	if gear.is_empty() and amount > 0:
+	if currency == Balance.MENDER_SPARK_ID:
+		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
+		_burst()
+	elif gear.is_empty() and amount > 0:
 		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
 	else:
 		Vfx.ring(global_position, _glow_size * 0.55, _glow_colour, 0.32, 4.0)
-	queue_free()
+	_dissolve_and_free()
 
 
-func _collect() -> void:
+func _collect(who: Hero = null) -> void:
 	# A guest's drop is a picture. The host decides what was picked up and says
 	# so, or two machines would each bank the same coin.
-	if puppet:
+	if puppet or _taken:
 		return
+	_taken = true
 	if net_id != 0:
 		EventBus.coop_loot_taken.emit(net_id)
-	if not gear.is_empty():
+	if currency == Balance.MENDER_SPARK_ID:
+		if who != null and is_instance_valid(who):
+			who.apply_mender_spark()
+		Sfx.play_group("loot_collect")
+		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
+		_burst()
+	elif not gear.is_empty():
 		var result: Dictionary = MetaState.receive_gear(gear)
 		var stored: bool = bool(result.get("stored", false))
 		var salvaged: int = int(result.get("shards", 0))
@@ -230,4 +265,35 @@ func _collect() -> void:
 		# a coin timing out, which is the one distinction a player cares about.
 		_burst()
 		EventBus.loot_collected.emit(currency, amount, global_position)
-	queue_free()
+	_dissolve_and_free()
+
+
+func _expire_special() -> void:
+	if _taken or puppet:
+		return
+	_taken = true
+	if net_id != 0:
+		EventBus.coop_loot_taken.emit(net_id)
+	_dissolve_and_free()
+
+
+## Shader grain peels away while the node rises and shrinks. Payout already
+## happened, so this is presentation only and cannot be interrupted into a
+## duplicate pickup.
+func _dissolve_and_free() -> void:
+	set_process(false)
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	if _material != null:
+		tween.tween_method(_set_pickup_dissolve, 0.0, 1.0,
+			Balance.LOOT_PICKUP_DISSOLVE_TIME)
+	tween.tween_property(self, "position:y", position.y - 22.0,
+		Balance.LOOT_PICKUP_DISSOLVE_TIME)
+	tween.tween_property(self, "scale", Vector2.ONE * 0.55,
+		Balance.LOOT_PICKUP_DISSOLVE_TIME)
+	tween.chain().tween_callback(queue_free)
+
+
+func _set_pickup_dissolve(value: float) -> void:
+	if _material != null:
+		_material.set_shader_parameter("pickup", value)

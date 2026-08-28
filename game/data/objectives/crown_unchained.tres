@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "crown_unchained"
+display_name = "The Crown Unchained"
+description = "Defeat the Chainmaker and reach the sanctuary."
+order = 70
+metric = 0
+target = 3.0
+minimum_act = 3
+requires_victory = true
+tool_reward = 3

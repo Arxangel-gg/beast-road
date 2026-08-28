@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="RunChallengeData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/run_challenge_data.gd" id="1_oath"]
+
+[resource]
+script = ExtResource("1_oath")
+offer_line = "Swear this over the next road: take no new Wound, keep the Town Hall above 60%, and bring down the marked pursuer. Field rations are forbidden until the vow is settled."
+condition_line = "NO RATIONS  ·  NO NEW WOUND  ·  TOWN 60%+  ·  MARKED ELITE"
+reward_line = "Reward: the Last Scar widens this run's maximum Wounds by 1."
+accepted_line = "The oath is sworn. The next road will remember every scar."
+pursuer_line = "LAST SCAR  ·  the marked pursuer has entered the road"
+success_line = "The road could not take another scar. Maximum Wounds increased for this run."
+button_line = "SWEAR  ·  OATH OF THE LAST SCAR"
+waiting_line = "WAITING FOR THE HOST..."
+sworn_line = "OATH SWORN  ·  APPLIES TO THE NEXT ROAD"
+ration_blocked_line = "The Oath of the Last Scar forbids field rations on this road."
+active_status = "LAST SCAR  ·  %s  ·  TOWN FLOOR %d%%  ·  NO RATIONS"
+pursuer_hunt_status = "PURSUER HUNT"
+pursuer_defeated_status = "PURSUER DOWN"
+failure_lines = {
+"pursuer": "The marked pursuer escaped the sworn road. The Last Scar grants nothing.",
+"town": "The Town Hall fell below the sworn threshold. The Last Scar grants nothing.",
+"wound": "A new Wound broke the vow. The Last Scar grants nothing."
+}
+id = "last_scar"
+display_name = "Oath of the Last Scar"
+description = "A once-per-run Act II vow that risks field recovery for one additional maximum Wound."

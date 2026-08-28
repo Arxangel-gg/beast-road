@@ -327,10 +327,8 @@ func _report() -> void:
 			blended += 1
 			var material := sprite.material as ShaderMaterial
 			if strips == 1:
-				print("[soak] road: core=%s fade=%s half=%s alpha=%.2f" % [
-					str(material.get_shader_parameter("core_radius")),
-					str(material.get_shader_parameter("edge_fade")),
-					str(material.get_shader_parameter("half_width")),
+				print("[soak] road: wet=%s alpha=%.2f" % [
+					str(material.get_shader_parameter("wet_strength")),
 					sprite.modulate.a])
 				print("[soak] road geometry: pos=%s rot=%.2f region=%s tex=%s repeat=%d rect=%s" % [
 					str(sprite.position), sprite.rotation, str(sprite.region_rect),

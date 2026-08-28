@@ -192,6 +192,11 @@ func _settle_completed_road() -> void:
 	var difficulty: RoadDifficultyData = RunState.active_road_difficulty()
 	if road == null or difficulty == null:
 		return
+	if RunState.last_scar_active and not Coop.is_guest():
+		var oath: Dictionary = RunState.resolve_last_scar_road()
+		if not oath.is_empty() and Coop.is_host() and Coop.partner_present():
+			EventBus.coop_last_scar_resolved.emit(bool(oath["success"]),
+				String(oath["reason"]), int(oath["maximum"]))
 	var rolls: int = maxi(difficulty.reward_rolls, 1)
 	for currency: Variant in road.reward_currencies:
 		var base: int = int(road.reward_currencies[currency])

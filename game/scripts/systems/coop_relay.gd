@@ -76,6 +76,10 @@ enum Fact {
 	PARTY_ROSTER = 37,
 	CHAT = 38,
 	ACT_STARTED = 39,
+	LAST_SCAR_ACCEPTED = 40,
+	LAST_SCAR_RESOLVED = 41,
+	BOSS_SPAWNED = 42,
+	BOSS_PHASE_CHANGED = 43,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -97,6 +101,7 @@ enum Request {
 	TEND_HERO = 13,
 	REPAIR_TOWN = 14,
 	DECLARE_TIER = 15,
+	ACCEPT_LAST_SCAR = 16,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -241,6 +246,8 @@ func _fact_bindings() -> Array:
 		["enemy_died", _on_enemy_died],
 		["wave_cleared", _on_wave_cleared],
 		["boss_defeated", _on_boss_defeated],
+		["boss_spawned", _on_boss_spawned],
+		["boss_phase_changed", _on_boss_phase_changed],
 		["lane_pressure_changed", _on_lane_pressure_changed],
 		["coop_phase", _on_coop_phase],
 		["currency_changed", _on_currency_changed],
@@ -277,6 +284,8 @@ func _fact_bindings() -> Array:
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
 		["act_started", _on_act_started],
+		["coop_last_scar_accepted", _on_coop_last_scar_accepted],
+		["coop_last_scar_resolved", _on_coop_last_scar_resolved],
 		["coop_pointer_moved", _on_coop_pointer_moved],
 	]
 
@@ -291,6 +300,14 @@ func _on_wave_cleared(wave: int) -> void:
 
 func _on_boss_defeated(id: String, act: int) -> void:
 	_relay(Fact.BOSS_DEFEATED, [id, act])
+
+
+func _on_boss_spawned(id: String, act: int) -> void:
+	_relay(Fact.BOSS_SPAWNED, [id, act])
+
+
+func _on_boss_phase_changed(id: String, phase: int, phase_name: String) -> void:
+	_relay(Fact.BOSS_PHASE_CHANGED, [id, phase, phase_name])
 
 
 func _on_lane_pressure_changed(lane: int, pressure: float) -> void:
@@ -357,6 +374,15 @@ func _on_coop_crossroad_opened(segment: int) -> void:
 
 func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
 	_relay(Fact.ROAD_CHOSEN, [road_id, difficulty_id])
+
+
+func _on_coop_last_scar_accepted() -> void:
+	_relay(Fact.LAST_SCAR_ACCEPTED, [])
+
+
+func _on_coop_last_scar_resolved(success: bool, reason: String,
+		maximum: int) -> void:
+	_relay(Fact.LAST_SCAR_RESOLVED, [success, reason, maximum])
 
 
 func _on_coop_relic_chosen(relic_id: String) -> void:
@@ -438,9 +464,11 @@ func _on_coop_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 
 
 func _on_coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
-		hp_scale: float, damage_scale: float, speed_scale: float) -> void:
+		hp_scale: float, damage_scale: float, speed_scale: float,
+		oath_pursuer: bool) -> void:
 	_relay(Fact.ENEMY_SPAWNED,
-		[net_id, data_id, lane, at, hp_scale, damage_scale, speed_scale])
+		[net_id, data_id, lane, at, hp_scale, damage_scale, speed_scale,
+			oath_pursuer])
 
 
 func _on_coop_enemy_batch(entries: Array) -> void:
@@ -663,6 +691,19 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.ACT_STARTED:
 			if args.size() == 2:
 				bus.act_started.emit(int(args[0]), String(args[1]))
+		Fact.LAST_SCAR_ACCEPTED:
+			bus.coop_last_scar_accepted.emit()
+		Fact.LAST_SCAR_RESOLVED:
+			if args.size() == 3:
+				bus.coop_last_scar_resolved.emit(bool(args[0]), String(args[1]),
+					int(args[2]))
+		Fact.BOSS_SPAWNED:
+			if args.size() == 2:
+				bus.boss_spawned.emit(String(args[0]), int(args[1]))
+		Fact.BOSS_PHASE_CHANGED:
+			if args.size() == 3:
+				bus.boss_phase_changed.emit(String(args[0]), int(args[1]),
+					String(args[2]))
 		Fact.LOOT_SPAWNED:
 			if args.size() == 4:
 				bus.coop_loot_spawned.emit(int(args[0]), String(args[1]),
@@ -689,10 +730,10 @@ func _replay(kind: int, args: Array) -> void:
 				bus.coop_tower_state.emit(args[0] as Vector2i, String(args[1]),
 					int(args[2]))
 		Fact.ENEMY_SPAWNED:
-			if args.size() == 7:
+			if args.size() == 8:
 				bus.coop_enemy_spawned.emit(int(args[0]), String(args[1]),
 					int(args[2]), args[3] as Vector2, float(args[4]),
-					float(args[5]), float(args[6]))
+					float(args[5]), float(args[6]), bool(args[7]))
 		Fact.ENEMY_BATCH:
 			if args.size() == 1 and args[0] is Array:
 				bus.coop_enemy_batch.emit(args[0] as Array)

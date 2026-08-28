@@ -123,6 +123,7 @@ func refresh() -> void:
 	if wanted == _showing:
 		# A new scene may have arrived since the last refresh.
 		UiMetrics.apply_touch_tree(get_tree().root, wanted)
+		ScreenFit._fit()
 		return
 	_showing = wanted
 	# `_controls_live`, not `wanted`: the setting can enable the controls while
@@ -133,6 +134,7 @@ func refresh() -> void:
 	if not wanted:
 		_release_all()
 	shown_changed.emit(wanted)
+	ScreenFit._fit()
 
 
 ## New modal screens and rebuilt stash/build rows inherit the same mobile
@@ -198,7 +200,9 @@ func _build() -> void:
 ## `_unhandled_input`, the button kept *consuming taps* on the front door - and
 ## an invisible button eats a press exactly as well as a visible one does.
 func _controls_live() -> bool:
-	return _showing and GameDirector.run_active
+	return _showing and GameDirector.run_active and (
+		GameDirector.current_scope == GameDirector.Scope.BATTLEFIELD
+		or GameDirector.current_scope == GameDirector.Scope.RAID)
 
 
 ## Releases are watched here, and *only* releases.

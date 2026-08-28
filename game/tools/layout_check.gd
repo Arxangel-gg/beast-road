@@ -68,6 +68,7 @@ func _ready() -> void:
 		# or two. Refreshing afterwards measured a layout built for a mouse and
 		# then told it a thumb had arrived.
 		TouchInput.refresh()
+		ScreenFit._fit()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
 	RunState.reset()
@@ -148,10 +149,12 @@ func _check_touch_targets(widgets: Array[Control]) -> void:
 		# a 120px minimum measure 118.2 and fail, which is a property of the test
 		# window rather than of the button. The floor is written in the same units
 		# `custom_minimum_size` is, so it is compared against the same units.
-		if control.size.y + 1.0 < Balance.UI_TOUCH_MIN_TARGET_HEIGHT:
+		var target: float = float(control.get_meta(UiMetrics.TOUCH_TARGET_HEIGHT,
+			Balance.UI_TOUCH_MIN_TARGET_HEIGHT))
+		if control.size.y + 1.0 < target:
 			undersized += 1
 			_failures.append("touch target: %s is %.0fpx tall, minimum is %.0fpx" % [
-				_named(control), control.size.y, Balance.UI_TOUCH_MIN_TARGET_HEIGHT])
+				_named(control), control.size.y, target])
 	_notes.append("touch targets: %d checked, %d undersized" % [checked, undersized])
 
 

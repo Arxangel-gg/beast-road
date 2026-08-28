@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "work_worth_remembering"
+display_name = "Work Worth Remembering"
+description = "Complete eight tower upgrades in a single run."
+order = 30
+metric = 3
+target = 8.0
+tool_reward = 1

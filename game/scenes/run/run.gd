@@ -592,6 +592,9 @@ func _on_coop_request(kind: int, args: Array, _from: int) -> void:
 		CoopRelay.Request.CHOOSE_RELIC:
 			if args.size() == 1 and crossroad_ui != null:
 				crossroad_ui.accept_relic_request(String(args[0]))
+		CoopRelay.Request.ACCEPT_LAST_SCAR:
+			if crossroad_ui != null:
+				crossroad_ui.accept_last_scar_request()
 
 
 func _on_ride_on_requested() -> void:

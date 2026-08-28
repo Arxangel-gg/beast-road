@@ -582,6 +582,21 @@ const HERO_MAX_WOUNDS: int = 3
 const HERO_WOUND_REVIVE_HP: float = 0.50
 const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 
+# ------------------------------------------------------------------------------
+# Oath of the Last Scar — run challenge
+# ------------------------------------------------------------------------------
+
+## Offered once, at an Act II crossroad, after the run has suffered a Wound.
+## The reward widens this run's Wound ceiling only; it never enters MetaState.
+const LAST_SCAR_OFFER_ACT: int = 2
+const LAST_SCAR_MAX_WOUND_BONUS: int = 1
+## The protected floor is measured continuously through the sworn road. [TUNE]
+const LAST_SCAR_TOWN_MIN_RATIO: float = 0.60
+## The marked pursuer is an ordinary regional elite with an oath-sized edge.
+## [TUNE]
+const LAST_SCAR_PURSUER_HP_SCALE: float = 1.55
+const LAST_SCAR_PURSUER_DAMAGE_SCALE: float = 1.30
+
 ## Tending the hero during Preparation. The only healing that is not somebody
 ## else's decision - Hearthmend arrives three times a run, a heal spell is a
 ## build choice, and a wound revive costs a Wound.
@@ -615,6 +630,25 @@ const RATION_COOLDOWN: float = 22.0
 ## Escalating rather than flat, so leaning on rations is a decision with a bill
 ## rather than a rotation. The counter resets when the wave does. [TUNE]
 const RATION_ESCALATION: int = 25
+
+# ------------------------------------------------------------------------------
+# Mender's Spark — rare battlefield recovery
+# ------------------------------------------------------------------------------
+
+const MENDER_SPARK_ID: String = "mender_spark"
+## Only an elite kill while somebody is below this health can roll a Spark.
+## [TUNE]
+const MENDER_SPARK_HEALTH_THRESHOLD: float = 0.45
+const MENDER_SPARK_DROP_CHANCE: float = 0.34
+## The third eligible elite guarantees the act's Spark. [TUNE]
+const MENDER_SPARK_PITY_ELITES: int = 3
+const MENDER_SPARK_MAX_PER_ACT: int = 1
+## Small rescue up front, then meaningful recovery that still asks for safety.
+## [TUNE]
+const MENDER_SPARK_IMMEDIATE_FRACTION: float = 0.06
+const MENDER_SPARK_REGEN_PER_SECOND: float = 0.015
+const MENDER_SPARK_DURATION: float = 6.0
+const MENDER_SPARK_BREAK_GRACE: float = 0.75
 
 ## The guaranteed Hearthmend repairs this fraction of the Town Hall before the
 ## enhanced service choice. [TUNE]
@@ -852,6 +886,20 @@ const HIT_FLASH_TIME: float = 0.09
 
 ## Colour a unit flashes when damaged.
 const HIT_FLASH_COLOUR: Color = Color(2.4, 1.6, 1.6)
+
+# ------------------------------------------------------------------------------
+# Readability shaders — actors, loot and impacts
+# ------------------------------------------------------------------------------
+
+## Four neighbouring alpha samples produce one crisp pixel-art silhouette.
+## Medium and above use it; Low avoids the extra texture reads. [TUNE]
+const ACTOR_OUTLINE_STRENGTH: float = 0.82
+const ACTOR_OUTLINE_COLOUR: Color = Color(0.035, 0.045, 0.05, 0.94)
+## Directional rim on the side opposite the incoming blow. [TUNE]
+const IMPACT_RIM_STRENGTH: float = 1.0
+const IMPACT_RIM_COLOUR: Color = Color(1.0, 0.82, 0.62, 1.0)
+const LOOT_SHIMMER_STRENGTH: float = 0.34
+const LOOT_PICKUP_DISSOLVE_TIME: float = 0.18
 
 ## Unit health bars. These sit above the unit in world space — Stage 1 has no
 ## screen-space HUD, but a swing you cannot see landing tells you nothing.
@@ -2251,7 +2299,7 @@ const BLOOD_GROUND_Z: int = -3
 ## lands never reads as a stain at all - it reads as another transient effect,
 ## which is the thing blood on the ground exists not to be. It sits, then it
 ## goes. [TUNE]
-const BLOOD_GROUND_LIFE: float = 42
+const BLOOD_GROUND_LIFE: float = 120.0
 const BLOOD_HOLD: float = 0.45
 const BLOOD_GROUND_ALPHA: float = 0.5
 
@@ -2884,6 +2932,11 @@ const PATH_DARKEN: float = 0.76
 ## Two channels of separation do more than another 10% of darkening. [TUNE]
 const PATH_WARMTH: Color = Color(1.06, 0.94, 0.78)
 
+## Rain catches only the road's brighter texels and moves in long, faint bands.
+## It is part of the existing road pass rather than another full-field layer.
+## [TUNE]
+const PATH_WET_SHEEN: float = 0.24
+
 # ------------------------------------------------------------------------------
 # Lane pressure rosette
 # ------------------------------------------------------------------------------
@@ -3096,6 +3149,14 @@ const UI_TOUCH_MIN_FONT_SIZE: int = 26
 const UI_TOUCH_PANEL_SCALE: float = 1.10
 const UI_TOUCH_GAP_SCALE: float = 1.28
 const UI_TOUCH_SPELL_SLOT_HEIGHT: float = 132.0
+const UI_TOUCH_SPELL_SLOT_WIDTH: float = 122.0
+
+## Dense sheets need compact, still-thumb-safe rows. The generic 120-unit floor
+## is for isolated controls; applying it to eight tower choices leaves only two
+## visible on a landscape phone. [TUNE]
+const UI_TOUCH_BUILD_TARGET_HEIGHT: float = 84.0
+const UI_TOUCH_SCROLLBAR_WIDTH: float = 22.0
+const UI_TOUCH_PREPARATION_BUTTON_HEIGHT: float = 72.0
 
 ## The thin hero-progression strip across battlefield and raid views. [TUNE]
 const UI_XP_BAR_HEIGHT: float = 18.0
@@ -3450,6 +3511,25 @@ const SNOW_COVER_STRENGTH: float = 0.62
 ## a cleared path. The two layers share one noise field, so a drift continues
 ## across the road as a dusting rather than stopping at the kerb.
 const SNOW_PATH_STRENGTH: float = 0.22
+## Sparse points of settled snow catch the light on Medium and above. [TUNE]
+const SNOW_SPARKLE_STRENGTH: float = 0.24
+
+# ------------------------------------------------------------------------------
+# Regional post-processing — high quality only
+# ------------------------------------------------------------------------------
+
+## One optional screen pass combines grading, edge atmosphere and desert heat.
+## High uses the authored grade; Ultra gets the full values. [TUNE]
+const REGION_GRADE_HIGH_SCALE: float = 0.72
+const REGION_GRADE_STRENGTH: float = 0.13
+const REGION_GRADE_VIGNETTE: float = 0.20
+const REGION_EDGE_ATMOSPHERE: float = 0.16
+const DESERT_HEAT_DISTORTION: float = 0.0018
+const DESERT_HEAT_SPEED: float = 0.42
+
+## Boss phase breaks are a transient local shader, never a screen-sized pass.
+const BOSS_PHASE_CRACK_DURATION: float = 0.72
+const BOSS_PHASE_EDGE_PULSES: int = 3
 
 ## Chance per step that an enemy walking on snow slips sideways, at full cover.
 ##

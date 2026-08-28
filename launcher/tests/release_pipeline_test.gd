@@ -23,10 +23,14 @@ func _ready() -> void:
 	_test_truncated_archive()
 	_test_uninstall_guard()
 	_test_uninstall_removes_the_build()
-	_cleanup()
 	if _failures == 0:
 		_test_mirrors()
-	print("[launcher test] release pipeline checks passed")
+	_cleanup()
+	if _failures == 0:
+		print("[launcher test] release pipeline checks passed")
+	else:
+		print("[launcher test] release pipeline checks failed: %d" % _failures)
+	get_tree().quit(_failures)
 
 
 ## The uninstaller must refuse anything that is not its own.
@@ -88,6 +92,9 @@ func _test_uninstall_removes_the_build() -> void:
 ## the problem - a player in a country where GitHub's asset host is unreachable.
 func _test_mirrors() -> void:
 	var github: String = "https://github.com/o/r/releases/download/v1/BeastRoad-windows.zip"
+	# An interrupted prior gate may have left this exact fixture behind. Remove
+	# only the redirected test cache before asserting the no-file baseline.
+	DirAccess.remove_absolute(LauncherConfig.mirror_cache_path())
 
 	# With no mirror file, GitHub and nothing else. It is where the release
 	# actually is; every other entry is a copy somebody has to remember.
@@ -106,8 +113,8 @@ func _test_mirrors() -> void:
 
 	# Only http(s). The mirror list is a file on disk, and a `file://` entry in
 	# one would have the launcher "download" from anywhere on the machine.
-	var written: String = ProjectSettings.globalize_path("user://").path_join(
-		LauncherConfig.MIRROR_FILE)
+	var written: String = LauncherConfig.mirror_cache_path()
+	DirAccess.make_dir_recursive_absolute(written.get_base_dir())
 	var file: FileAccess = FileAccess.open(written, FileAccess.WRITE)
 	_check(file != null, "the test must be able to write a mirror file")
 	if file == null:
@@ -120,6 +127,8 @@ func _test_mirrors() -> void:
 		"not a mirror at all",
 	]))
 	file.close()
+	_check(LauncherConfig.mirrors_for("BeastRoad-windows.zip", "").is_empty(),
+		"cached mirrors must never substitute for an asset absent from the release")
 
 	var listed: Array = LauncherConfig.mirrors_for("BeastRoad-windows.zip", github)
 	var names: Array = []
@@ -146,7 +155,6 @@ func _test_mirrors() -> void:
 		"a cached list must be used when no file sits beside the launcher, "
 			+ "got %s" % str(cached_names))
 	DirAccess.remove_absolute(LauncherConfig.mirror_cache_path())
-	get_tree().quit(_failures)
 
 
 func _test_release_parsing() -> void:

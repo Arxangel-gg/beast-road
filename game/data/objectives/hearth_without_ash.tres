@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "hearth_without_ash"
+display_name = "Hearth Without Ash"
+description = "Reach Act II without the town suffering damage."
+order = 50
+metric = 6
+target = 0.0
+comparison = 1
+minimum_act = 2
+tool_reward = 2

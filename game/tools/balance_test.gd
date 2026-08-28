@@ -792,8 +792,14 @@ func _test_loot_and_weather() -> void:
 	_check(RunState.currency(RunState.GOLD) == banked + 25,
 		"collecting a drop must pay exactly its amount")
 	await get_tree().process_frame
+	# The approved pickup dissolve deliberately leaves a brief visual shell. It
+	# must be inert immediately, then disappear when that presentation finishes.
+	drop.call("_collect")
+	_check(RunState.currency(RunState.GOLD) == banked + 25,
+		"a dissolving drop must not pay a second time")
+	await get_tree().create_timer(Balance.LOOT_PICKUP_DISSOLVE_TIME + 0.05).timeout
 	_check(not is_instance_valid(drop) or drop.is_queued_for_deletion(),
-		"a collected drop must not survive to be collected again")
+		"a collected drop must retire when its pickup dissolve ends")
 
 	# A battlefield gear roll becomes the same persistent reward as a raid chest,
 	# but arrives as a physical pickup rather than silently editing the stash.
@@ -939,8 +945,15 @@ func _test_tiers_and_persistence() -> void:
 		var keys: Array = (parsed as Dictionary).keys()
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
-				"settings", "hero", "stash", "board", "social"],
+				"settings", "hero", "stash", "board", "social", "chronicle"],
 				"unexpected top-level save key \"%s\"" % key)
+		# Chronicle entries are completed content ids only. Their Tool reward is
+		# paid once and stored in the already-sanctioned Tools balance; no live
+		# progress or combat modifier may hide under this block.
+		var chronicle: Dictionary = (parsed as Dictionary).get("chronicle", {}) as Dictionary
+		for key: Variant in chronicle.keys():
+			_check(String(key) == "completed",
+				"unexpected Chronicle save key \"%s\"" % key)
 		# The exception has to stay an address book. A save that starts carrying
 		# power under this name would pass the check above and break the rule it
 		# exists to keep.
@@ -1364,6 +1377,12 @@ func _test_target_priorities() -> void:
 func _test_preparation_and_command() -> void:
 	var field: Battlefield = _run.battlefield
 	RunState.set_phase(RunState.Phase.PREPARATION)
+	var prior_wave: int = RunState.wave_number
+	RunState.wave_number = 0
+	var wildlife: Wildlife = field.entity_root.get_node_or_null("Wildlife") as Wildlife
+	_check(wildlife != null and not wildlife._hostile_arrivals_allowed(),
+		"hostile wildlife must not appear or attack during opening Preparation")
+	RunState.wave_number = prior_wave
 	# The phase rule is the subject, not the price. Funded explicitly because the
 	# run starts with no Gold as of 2026-08-24 - otherwise this reads "you cannot
 	# build in Preparation" when what actually happened is "you cannot afford it",
@@ -1477,10 +1496,6 @@ func _test_draught_is_obtainable() -> void:
 ## timing - Hearthmend three times a run, a spell if the build had one, or a
 ## Wound revive, which costs a Wound.
 func _test_hero_tending(field: Battlefield, hero: Hero) -> void:
-	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
-	_check(not field.try_tend_hero().is_empty(),
-		"tending must be locked during road combat, like every other purchase")
-
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	RunState.hero_wounds = 0
 	RunState.hero_hp = -1.0
@@ -1499,14 +1514,28 @@ func _test_hero_tending(field: Battlefield, hero: Hero) -> void:
 		"a refused tend must not heal anyway")
 
 	RunState.currencies[RunState.FOOD] = Balance.HERO_TEND_COST
-	_check(field.try_tend_hero().is_empty(), "tending must resolve when affordable")
-	_check(hero.health.current_hp > hurt, "tending must actually restore health")
+	Input.action_press(&"tend")
+	_run.hud._process(0.0)
+	Input.action_release(&"tend")
+	_check(hero.health.current_hp > hurt, "pressing V must tend during Preparation")
 	_check(RunState.currency(RunState.FOOD) <= 0,
 		"tending must charge the Food it quoted")
 
 	hero.health.heal(hero.health.max_hp)
 	_check(not field.try_tend_hero().is_empty(),
 		"tending a whole hero must be refused rather than wasting the Food")
+
+	# Under fire the same action becomes the deliberately worse field ration:
+	# less healing, more Food, a cooldown, and an escalating same-wave price.
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	hero.health.take_damage(hero.health.max_hp * 0.5, Vector2.ZERO)
+	var combat_hurt: float = hero.health.current_hp
+	RunState.currencies[RunState.FOOD] = Balance.RATION_COST + Balance.RATION_ESCALATION
+	_check(field.try_tend_hero().is_empty(), "a field ration must work during road combat")
+	_check(hero.health.current_hp > combat_hurt, "a field ration must restore health")
+	_check(not field.try_tend_hero().is_empty(), "a field ration must respect its cooldown")
+	_check(field.ration_price() == Balance.RATION_COST + Balance.RATION_ESCALATION,
+		"the next ration in the fight must carry the escalation")
 
 
 ## Reported: "I was at a crossroads during preparation and enemies had spawned

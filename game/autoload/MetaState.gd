@@ -17,7 +17,7 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
 ## Bumped when the schema changes so an old file can be migrated or discarded.
-const SAVE_VERSION: int = 6
+const SAVE_VERSION: int = 7
 
 ## Terrain ids as they were before v4's regions were adopted. A save records
 ## which terrains a player has unlocked *by id*, so renaming the content renames
@@ -25,7 +25,7 @@ const SAVE_VERSION: int = 6
 ## that no longer name anything, silently losing the unlocks.
 ## Save versions this build can carry forward. Anything else is backed up and
 ## the account starts fresh.
-const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3, 4, 5]
+const MIGRATABLE_VERSIONS: Array[int] = [1, 2, 3, 4, 5, 6]
 
 const TERRAIN_RENAMES_V3: Dictionary = {
 	"ashfen": "jungle",
@@ -150,6 +150,10 @@ var story_intro_seen: bool = false
 ## Legacy rank, one per full clear, capped at Balance.SIGIL_MAX_RANK (v4 §36).
 var sigils: int = 0
 
+## One-time account deeds. The ids point at ChronicleObjectiveData; completing
+## one grants only its horizontal Tool reward and never changes combat stats.
+var completed_objectives: Array[String] = []
+
 # --- Run statistics ---
 ## The name a submitted run is posted under, and this save's own best runs.
 ##
@@ -235,6 +239,34 @@ func award_sigil() -> bool:
 	return true
 
 
+## Records every newly met deed in stable content order and banks its Tools.
+##
+## Evaluated once from the completed run summary. This makes co-op behavior
+## deterministic and keeps objectives from subscribing to a second copy of
+## every combat event merely to reconstruct facts RunState already owns.
+func complete_chronicle(summary: Dictionary) -> Array[String]:
+	var completed_now: Array[String] = []
+	for objective: ChronicleObjectiveData in ContentDB.chronicle_objectives_sorted():
+		if completed_objectives.has(objective.id) or not objective.is_met(summary):
+			continue
+		completed_objectives.append(objective.id)
+		completed_now.append(objective.id)
+		tools = mini(tools + objective.tool_reward, Balance.TOOLS_MAX)
+	return completed_now
+
+
+func objective_completed(id: String) -> bool:
+	return completed_objectives.has(id)
+
+
+func chronicle_completed_count() -> int:
+	var count: int = 0
+	for objective: ChronicleObjectiveData in ContentDB.chronicle_objectives_sorted():
+		if objective_completed(objective.id):
+			count += 1
+	return count
+
+
 ## What the Treasury may carry between runs. Rank 3 raises it (v4 §36).
 func treasury_cap(tier_cap: int) -> int:
 	if sigils >= 3:
@@ -280,6 +312,7 @@ func erase_progress() -> void:
 	runs_won = 0
 	best_distance = 0.0
 	total_enemies_killed = 0
+	completed_objectives.clear()
 	_seed_starting_roster()
 	# The tutorial comes back too. It is a preference and the rest of the
 	# preferences are kept, but somebody erasing their progress is asking for a
@@ -667,6 +700,9 @@ func serialized_save() -> String:
 			"shards": shards,
 		},
 		"resource_cache": resource_cache,
+		"chronicle": {
+			"completed": completed_objectives,
+		},
 		"stats": {
 			"runs_started": runs_started,
 			"runs_won": runs_won,
@@ -737,6 +773,8 @@ func load_save() -> void:
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
 	resource_cache = data.get("resource_cache", {}) as Dictionary
+	completed_objectives = _unique_string_array(
+		(data.get("chronicle", {}) as Dictionary).get("completed", []))
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary
 	runs_started = int(stats.get("runs_started", 0))
@@ -777,6 +815,8 @@ func migrate_save(data: Dictionary, source_text: String = "",
 			unlocked["buildings"] = []
 	if found_version <= 2:
 		unlocked["terrains"] = _renamed_terrains(unlocked.get("terrains", []))
+	if not migrated.has("chronicle"):
+		migrated["chronicle"] = {"completed": []}
 
 	migrated["unlocked"] = unlocked
 	migrated["version"] = SAVE_VERSION
@@ -835,4 +875,16 @@ func _string_array(value: Variant) -> Array[String]:
 	if value is Array:
 		for item: Variant in (value as Array):
 			out.append(str(item))
+	return out
+
+
+## Chronicle ids are counted in the front door, so a duplicated or hand-edited
+## save must not claim more completed deeds than the game contains. Unknown ids
+## are preserved for forward/backward compatibility; only duplicates and empty
+## entries are discarded.
+func _unique_string_array(value: Variant) -> Array[String]:
+	var out: Array[String] = []
+	for id: String in _string_array(value):
+		if not id.is_empty() and not out.has(id):
+			out.append(id)
 	return out

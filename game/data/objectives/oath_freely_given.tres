@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "oath_freely_given"
+display_name = "An Oath Freely Given"
+description = "Return from a raid with an Oathbound leader at the city's side."
+order = 40
+metric = 5
+target = 1.0
+tool_reward = 1

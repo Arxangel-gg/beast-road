@@ -163,12 +163,18 @@ var party_slot: int = 1:
 		party_slot = clampi(value, 1, Balance.COOP_MAX_PLAYERS)
 		_apply_party_colour()
 var _flash_left: float = 0.0
+var _impact_direction: Vector2 = Vector2.UP
 var _beast_impulse: Vector2 = Vector2.ZERO
 var _beast_stun_left: float = 0.0
 
 ## Ash Veil's movement bonus while it lasts.
 var _veil_speed_bonus: float = 0.0
 var _veil_left: float = 0.0
+
+## Mender's Spark is deliberately interruptible: the heal is strongest when the
+## player makes space for it instead of treating it as armour under fire.
+var _mender_left: float = 0.0
+var _mender_grace_left: float = 0.0
 
 
 func _ready() -> void:
@@ -624,6 +630,10 @@ func _tick_timers(delta: float) -> void:
 		_veil_left = maxf(_veil_left - delta, 0.0)
 		if _veil_left <= 0.0:
 			_veil_speed_bonus = 0.0
+	if _mender_left > 0.0 and health != null and not health.is_dead:
+		_mender_left = maxf(_mender_left - delta, 0.0)
+		_mender_grace_left = maxf(_mender_grace_left - delta, 0.0)
+		health.heal(health.max_hp * Balance.MENDER_SPARK_REGEN_PER_SECOND * delta)
 	if _lunge_velocity != Vector2.ZERO:
 		_lunge_velocity = _lunge_velocity.move_toward(Vector2.ZERO, _lunge_decay * delta)
 
@@ -663,12 +673,43 @@ func _on_lunge_requested(direction: Vector2, distance: float) -> void:
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
+	if _mender_left > 0.0 and _mender_grace_left <= 0.0:
+		_mender_left = 0.0
+		var recovery: Resource = ContentDB.recovery_drop(Balance.MENDER_SPARK_ID)
+		if recovery != null:
+			EventBus.preparation_warning.emit(String(recovery.get("broken_line")))
 	_flash_left = Balance.HIT_FLASH_TIME
+	_impact_direction = (global_position - from).normalized()
+	BloodStain.strike(_blood, _impact_direction)
 	animator.impact_frame()
 	animator.recoil(from, global_position, 1.0)
 	_lock_frames("hurt")
 	EventBus.hero_damaged.emit(amount, from, global_position)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
+
+
+## Kindles the rare elite recovery on the hero who physically collected it.
+## The authority runs the healing; ordinary co-op hero snapshots mirror HP.
+func apply_mender_spark() -> void:
+	if health == null or health.is_dead:
+		return
+	health.heal(health.max_hp * Balance.MENDER_SPARK_IMMEDIATE_FRACTION)
+	_mender_left = Balance.MENDER_SPARK_DURATION
+	_mender_grace_left = Balance.MENDER_SPARK_BREAK_GRACE
+	Vfx.ring(global_position, 104.0, Color(0.48, 0.96, 0.66, 0.82), 0.55, 6.0)
+	Vfx.spark(global_position, Color("c8ffe0"), 18, Vector2.UP, 190.0)
+	EventBus.mender_spark_collected.emit(party_slot, global_position)
+	var recovery: Resource = ContentDB.recovery_drop(Balance.MENDER_SPARK_ID)
+	if recovery != null:
+		EventBus.preparation_warning.emit(String(recovery.get("pickup_line")))
+
+
+func mender_active() -> bool:
+	return _mender_left > 0.0
+
+
+func mender_seconds_left() -> float:
+	return _mender_left
 
 
 func _on_beast_step(impulse: Vector2, strength: float) -> void:
@@ -701,7 +742,7 @@ func _on_died(at: Vector2) -> void:
 		go_down(at)
 		return
 	var wounds: int = RunState.add_wound()
-	if wounds >= Balance.HERO_MAX_WOUNDS:
+	if wounds >= RunState.max_wounds():
 		RunState.hero_deaths += 1
 		EventBus.hero_died.emit(at)
 		GameDirector.end_run(false)
@@ -916,6 +957,9 @@ func _update_sprite(_delta: float) -> void:
 		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
 	BloodStain.drive(_blood, health.ratio(), _delta)
+	if _flash_left > 0.0:
+		BloodStain.strike(_blood, _impact_direction)
+	BloodStain.drive_impact(_blood, _flash_left)
 	# Eight authored facings already point the right way. Flipping on top of
 	# them mirrors the western rows twice and puts the blade in the wrong hand.
 	sprite.flip_h = _facing.x < -0.001 if frames == null or not frames.has_frames() else false

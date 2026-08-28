@@ -1,6 +1,8 @@
 class_name Wildlife
 extends Node2D
 
+const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
+
 ## The animals that live off the roads.
 ##
 ## Ambient in the strict sense: nothing here can be killed, hurt, targeted or
@@ -224,7 +226,7 @@ func _consider_arrival() -> void:
 	# quota, while still guaranteeing the field is never empty for long.
 	if _living.size() >= Balance.WILDLIFE_MIN 			and _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
 		return
-	var kind: WildlifeData = _pick_kind()
+	var kind: WildlifeData = _pick_kind(_hostile_arrivals_allowed())
 	if kind == null:
 		return
 	# Predators are capped as a group, not weighted down as six species.
@@ -260,18 +262,29 @@ func _hostile_count() -> int:
 	return count
 
 
-func _pick_kind() -> WildlifeData:
+func _pick_kind(allow_hostile: bool = true) -> WildlifeData:
 	var total: float = 0.0
 	for kind: WildlifeData in _kinds:
+		if kind.is_hostile() and not allow_hostile:
+			continue
 		total += kind.weight
 	if total <= 0.0:
 		return null
 	var roll: float = _rng.randf() * total
 	for kind: WildlifeData in _kinds:
+		if kind.is_hostile() and not allow_hostile:
+			continue
 		roll -= kind.weight
 		if roll <= 0.0:
 			return kind
-	return _kinds[_kinds.size() - 1]
+	return null
+
+
+## The opening Preparation is the player's guaranteed safe read of the board.
+## No predator arrives before wave one; later breathers retain the living-world
+## pressure the travelling party has already encountered.
+func _hostile_arrivals_allowed() -> bool:
+	return not (RunState.is_preparation() and RunState.wave_number == 0)
 
 
 ## True when this machine decides things *and* somebody is listening.
@@ -298,6 +311,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 	if kind.flies:
 		sprite.offset.y = -Balance.WILDLIFE_FLIER_LIFT
 	(host if host != null else self).add_child(sprite)
+	var impact_material: ShaderMaterial = ActorPolishScript.attach(sprite)
 
 
 	# Elite: the same animal grown and scarred, not a different one.
@@ -363,6 +377,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 		"size": size,
 		"swing": 0.0,
 		"bar": bar,
+		"impact": impact_material,
 		"dying": 0.0,
 		"patience": _rng.randf_range(kind.stay_min, kind.stay_max),
 		# A hunt is an event with a start and an end. Both counters below.
@@ -394,6 +409,13 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 
 	animal["patience"] = float(animal["patience"]) - delta
 	animal["swing"] = maxf(float(animal["swing"]) - delta, 0.0)
+
+	# A hostile that survived a phase transition also leaves without taking one
+	# last bite. Arrival filtering handles the normal opening path; this closes
+	# the race at the phase boundary.
+	if kind.is_hostile() and not _hostile_arrivals_allowed():
+		animal["state"] = State.LEAVING
+		animal["goal"] = _bolt_target(sprite.global_position)
 
 	# A hostile animal decides differently, and gets first refusal on the frame.
 	if kind.is_hostile() and int(animal["state"]) != State.LEAVING:
@@ -762,6 +784,13 @@ func wound_sprite(sprite: Node2D, damage: float) -> bool:
 func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	var kind := animal["data"] as WildlifeData
 	var sprite := animal["sprite"] as Sprite2D
+	var impact := animal.get("impact", null) as ShaderMaterial
+	ActorPolishScript.strike(impact, Vector2.UP)
+	if impact != null:
+		var fade: Tween = create_tween()
+		fade.tween_method(func(value: float) -> void:
+			ActorPolishScript.drive(impact, value), Balance.HIT_FLASH_TIME, 0.0,
+			Balance.HIT_FLASH_TIME)
 	animal["hp"] = float(animal["hp"]) - (Balance.HERO_ATTACK_DAMAGE[0]
 		if damage < 0.0 else damage)
 	# Hurt, so the bar comes out and stays out.

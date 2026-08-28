@@ -99,7 +99,7 @@ func _ready() -> void:
 	if _failures == 0:
 		print("[coop] PASS - handshake, relayed facts, the authority guard, "
 			+ "requests and refusals, world facts, cosmetic isolation, "
-			+ "host drop, clean leave, dead address")
+			+ "Oath and boss telegraphs, host drop, clean leave, dead address")
 	get_tree().quit(_failures)
 
 
@@ -250,11 +250,26 @@ func _test_partner_and_player_count() -> void:
 func _test_facts_travel_host_to_guest() -> void:
 	_listen(_guest_bus, _guest_heard)
 	_listen(_host_bus, _host_heard)
+	_guest_bus.coop_last_scar_accepted.connect(func() -> void:
+		_guest_heard.append(["coop_last_scar_accepted", []]))
+	_guest_bus.coop_last_scar_resolved.connect(
+		func(success: bool, reason: String, maximum: int) -> void:
+			_guest_heard.append(["coop_last_scar_resolved",
+				[success, reason, maximum]]))
+	_guest_bus.boss_spawned.connect(func(id: String, act: int) -> void:
+		_guest_heard.append(["boss_spawned", [id, act]]))
+	_guest_bus.boss_phase_changed.connect(
+		func(id: String, phase: int, phase_name: String) -> void:
+			_guest_heard.append(["boss_phase_changed", [id, phase, phase_name]]))
 
 	_host_bus.enemy_died.emit("bogkin", Vector2(120.0, -40.0))
 	_host_bus.wave_cleared.emit(7)
 	_host_bus.currency_changed.emit("gold", 315)
-	await _settle(func() -> bool: return _guest_heard.size() >= 3)
+	_host_bus.coop_last_scar_accepted.emit()
+	_host_bus.coop_last_scar_resolved.emit(true, "complete", 4)
+	_host_bus.boss_spawned.emit("mirrorfang", 2)
+	_host_bus.boss_phase_changed.emit("mirrorfang", 1, "Shattered Reflection")
+	await _settle(func() -> bool: return _guest_heard.size() >= 7)
 
 	_check(_heard(_guest_heard, "enemy_died", ["bogkin", Vector2(120.0, -40.0)]),
 		"the guest must receive enemy_died with its arguments unchanged")
@@ -262,6 +277,15 @@ func _test_facts_travel_host_to_guest() -> void:
 		"the guest must receive wave_cleared")
 	_check(_heard(_guest_heard, "currency_changed", ["gold", 315]),
 		"the guest must receive currency_changed: the pool is shared")
+	_check(_heard(_guest_heard, "coop_last_scar_accepted", []),
+		"the guest must receive the host-authored Last Scar acceptance")
+	_check(_heard(_guest_heard, "coop_last_scar_resolved", [true, "complete", 4]),
+		"the guest must receive the host-authored Last Scar result and reward")
+	_check(_heard(_guest_heard, "boss_spawned", ["mirrorfang", 2]),
+		"the guest must receive the host-authored boss announcement")
+	_check(_heard(_guest_heard, "boss_phase_changed",
+		["mirrorfang", 1, "Shattered Reflection"]),
+		"boss phase telegraphs and fracture VFX must be replicated")
 
 	# And the host does not hear its own traffic come back. An echo would double
 	# every kill and every payment.
@@ -311,7 +335,9 @@ func _test_requests_travel_guest_to_host() -> void:
 	var guest_relay: CoopRelay = _guest.call("relay")
 	_check(guest_relay.request(CoopRelay.Request.BUILD_TOWER, [Vector2i(3, 4), "ember_spire"]),
 		"a guest must be able to ask the host to build")
-	await _settle(func() -> bool: return not _host_requests.is_empty())
+	_check(guest_relay.request(CoopRelay.Request.ACCEPT_LAST_SCAR),
+		"a guest must be able to ask the host to swear the Last Scar")
+	await _settle(func() -> bool: return _host_requests.size() >= 2)
 
 	_check(not _host_requests.is_empty(), "the request must reach the host")
 	if not _host_requests.is_empty():
@@ -321,6 +347,11 @@ func _test_requests_travel_guest_to_host() -> void:
 		_check((got[1] as Array).size() == 2 and (got[1] as Array)[0] == Vector2i(3, 4),
 			"and its arguments, unchanged")
 		_check(int(got[2]) > 0, "and who asked, so it can answer them")
+	var oath_request: bool = false
+	for got: Array in _host_requests:
+		if int(got[0]) == CoopRelay.Request.ACCEPT_LAST_SCAR:
+			oath_request = (got[1] as Array).is_empty() and int(got[2]) > 0
+	_check(oath_request, "the Last Scar request must arrive intact and attributed")
 
 	# The host cannot issue requests: it has nobody to ask.
 	var host_relay: CoopRelay = _host.call("relay")
@@ -354,8 +385,9 @@ func _test_cosmetic_signals_stay_home() -> void:
 func _test_world_facts_cross_the_wire() -> void:
 	_guest_bus.coop_enemy_spawned.connect(
 		func(net_id: int, data_id: String, lane: int, at: Vector2,
-				hp: float, dmg: float, spd: float) -> void:
-			_guest_world.append(["spawned", net_id, data_id, lane, at, hp, dmg, spd]))
+				hp: float, dmg: float, spd: float, oath_pursuer: bool) -> void:
+			_guest_world.append(["spawned", net_id, data_id, lane, at, hp, dmg, spd,
+				oath_pursuer]))
 	_guest_bus.coop_enemy_batch.connect(
 		func(entries: Array) -> void: _guest_world.append(["batch", entries]))
 	_guest_bus.coop_enemy_removed.connect(
@@ -365,7 +397,7 @@ func _test_world_facts_cross_the_wire() -> void:
 			_guest_world.append(["tower", anchor, id, level]))
 
 	_host_bus.coop_enemy_spawned.emit(41, "bogkin", 2, Vector2(300.0, -120.0),
-		1.5, 1.25, 1.1)
+		1.5, 1.25, 1.1, true)
 	_host_bus.coop_enemy_batch.emit([[41, Vector2(280.0, -100.0), 0.5]])
 	_host_bus.coop_tower_state.emit(Vector2i(3, 4), "ember_spire", 2)
 	_host_bus.coop_enemy_removed.emit(41)
@@ -383,7 +415,8 @@ func _test_world_facts_cross_the_wire() -> void:
 			and int(spawned[3]) == 2 and spawned[4] == Vector2(300.0, -120.0)
 			and is_equal_approx(float(spawned[5]), 1.5)
 			and is_equal_approx(float(spawned[6]), 1.25)
-			and is_equal_approx(float(spawned[7]), 1.1),
+			and is_equal_approx(float(spawned[7]), 1.1)
+			and bool(spawned[8]),
 			"a spawn must arrive with every field intact")
 
 	var batch: Array = _row("batch")

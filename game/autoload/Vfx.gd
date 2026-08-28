@@ -60,6 +60,7 @@ var _town_critical: bool = false
 ## path in the project.
 const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
 const BLOOD_ART_PATH: String = "res://art/vfx/blood_splatter.png"
+const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshader"
 
 
 func _ready() -> void:
@@ -424,6 +425,33 @@ func build_burst(at: Vector2, colour: Color, upgrade: bool = false) -> void:
 		Balance.VFX_BUILD_SHAKE * (1.5 if upgrade else 1.0), 0.24)
 
 
+## A local, quality-cheap phase fracture: one 256px sprite, one short shader,
+## then gone. The expanding edge pulses are part of the same fragment pass.
+func boss_phase_break(at: Vector2, colour: Color) -> void:
+	if world == null or not Graphics.polish_shaders() \
+			or not ResourceLoader.exists(BOSS_BREAK_SHADER):
+		return
+	var fracture := Sprite2D.new()
+	fracture.texture = LightKit.falloff_texture()
+	fracture.scale = Vector2.ONE * (360.0 \
+		/ maxf(float(fracture.texture.get_width()), 1.0))
+	fracture.z_index = Balance.VFX_Z + 1
+	var material := ShaderMaterial.new()
+	material.shader = load(BOSS_BREAK_SHADER) as Shader
+	material.set_shader_parameter("crack_colour", colour)
+	material.set_shader_parameter("progress", 0.0)
+	material.set_shader_parameter("pulses", float(Balance.BOSS_PHASE_EDGE_PULSES))
+	fracture.material = material
+	_track(fracture)
+	fracture.global_position = at
+	var drive: Callable = func(value: float) -> void:
+		if is_instance_valid(fracture):
+			material.set_shader_parameter("progress", value)
+	var tween: Tween = fracture.create_tween()
+	tween.tween_method(drive, 0.0, 1.0, Balance.BOSS_PHASE_CRACK_DURATION)
+	tween.tween_callback(fracture.queue_free)
+
+
 ## World-space phase title; short enough to read without covering combat.
 func word(at: Vector2, text: String, colour: Color, size: int = 28) -> void:
 	if world == null or text.is_empty():
@@ -734,6 +762,7 @@ func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> 
 	rays(at, colour.lerp(Color.WHITE, 0.35), 14, 142.0, float(phase) * 0.2)
 	ring(at, 168.0, Color(colour, 0.75), 0.58, 7.0)
 	ring(at, 96.0, Color(1.0, 0.92, 0.78, 0.68), 0.34, 4.0)
+	boss_phase_break(at, colour)
 	dust(at, Color(0.4, 0.18, 0.16, 0.38), 12, 118.0)
 	word(at, phase_name, colour, 31)
 	EventBus.camera_shake_requested.emit(Balance.VFX_BOSS_PHASE_SHAKE, 0.48)

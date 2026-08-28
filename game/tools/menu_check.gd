@@ -1,6 +1,7 @@
 extends Node
 
 const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
+const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
 
 ## Boots the real main menu, so a scene edit cannot break the front door
 ## silently. The settings box used to be authored into main_menu.tscn; removing
@@ -18,6 +19,8 @@ func _ready() -> void:
 	var boards: int = 0
 	var board_buttons: int = 0
 	var endless_buttons: int = 0
+	var chronicles: int = 0
+	var chronicle_buttons: int = 0
 	for node: Node in _all(menu):
 		if node is SettingsPanel:
 			panels += 1
@@ -28,14 +31,22 @@ func _ready() -> void:
 		if node is Button and (node.name == "Endless" \
 				or (node as Button).text.to_lower().contains("endless")):
 			endless_buttons += 1
-	print("[menu] instantiated ok, settings panels=%d, boards=%d, board buttons=%d, endless=%d"
-		% [panels, boards, board_buttons, endless_buttons])
+		if node.get_script() == ChronicleScreenScript:
+			chronicles += 1
+		if node is Button and node.name == "Chronicle":
+			chronicle_buttons += 1
+	print("[menu] instantiated ok, settings=%d, boards=%d/%d, chronicle=%d/%d, endless=%d"
+		% [panels, boards, board_buttons, chronicles, chronicle_buttons, endless_buttons])
 	if panels != 1:
 		push_error("main menu should own exactly one SettingsPanel")
 		get_tree().quit(1)
 		return
 	if boards != 1 or board_buttons != 1:
 		push_error("main menu should own exactly one leaderboard screen and button")
+		get_tree().quit(1)
+		return
+	if chronicles != 1 or chronicle_buttons != 1:
+		push_error("main menu should own exactly one Chronicle screen and button")
 		get_tree().quit(1)
 		return
 	if endless_buttons != 0:
@@ -50,7 +61,16 @@ func _ready() -> void:
 	if OS.get_cmdline_user_args().has("--shot"):
 		# Only when asked. The gate runs headless in CI, where there is no
 		# framebuffer to capture and asking for one is an error, not a picture.
-		menu.call("_show_settings", true) if OS.get_cmdline_user_args().has("--settings") else null
+		if OS.get_cmdline_user_args().has("--compact"):
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_size(Vector2i(1280, 720))
+		if OS.get_cmdline_user_args().has("--settings"):
+			menu.call("_show_settings", true)
+		elif OS.get_cmdline_user_args().has("--chronicle"):
+			for node: Node in _all(menu):
+				if node.get_script() == ChronicleScreenScript:
+					node.call("open")
+					break
 		await RenderingServer.frame_post_draw
 		var image: Image = get_viewport().get_texture().get_image()
 		image.save_png("user://menu_shot.png")

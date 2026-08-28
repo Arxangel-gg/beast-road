@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "beyond_the_green"
+display_name = "Beyond the Green"
+description = "Reach Act II and carry the city into the Saltglass Expanse."
+order = 10
+metric = 0
+target = 2.0
+minimum_act = 2
+tool_reward = 1

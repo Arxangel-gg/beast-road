@@ -72,7 +72,7 @@ const BUILD_PANEL_LIFT: float = 164.0
 ## on touch that box grows past its authored width and the sheet's Close button
 ## lands on it. Cleared rather than narrowed: the box is what a player reads to
 ## decide whether to press Ride On, so it wins the space.
-const BUILD_PANEL_TOUCH_LIFT: float = 300.0
+const BUILD_PANEL_TOUCH_LIFT: float = 24.0
 
 ## The hover figures box, which sits *beside* the build panel rather than over it.
 ##
@@ -125,8 +125,8 @@ const BOTTOM_BAND: float = SPELL_SLOT_SIZE.y + SPELL_BAR_MARGIN
 ## different things.
 const NAV_ICON_SIZE: float = 58.0
 const NAV_ICON_ART: int = 38
-const NAV_TOUCH_ICON_SIZE: float = 120.0
-const NAV_TOUCH_ICON_ART: int = 80
+const NAV_TOUCH_ICON_SIZE: float = 92.0
+const NAV_TOUCH_ICON_ART: int = 72
 
 ## Padding inside a scope button, on all four sides.
 ##
@@ -153,7 +153,7 @@ const HERO_BAR_WIDTH: float = 180.0
 ##
 ## Measured, not guessed: an act name, a level, the weather, four currencies and
 ## the boss track come to about 2070 layout units at full touch size, and a
-## little headroom on top of that. A phone held upright gives 1440, so it gets
+## little headroom on top of that. A phone held upright gives 1680, so it gets
 ## roughly two thirds and everything stays on screen; held sideways it gives
 ## 2335 and the strip grows all the way.
 const TOP_BAR_FULL_WIDTH: float = 2200.0
@@ -246,11 +246,12 @@ const NAV_STRIP: float = 140.0
 ## card shrinks around it rather than at its expense.
 const PREPARATION_TOUCH_MARGIN: float = 24.0
 const PREPARATION_TOUCH_TOP: float = 128.0
-const PREPARATION_TOUCH_WIDTH: float = 430.0
-const PREPARATION_TOUCH_HEIGHT: float = 168.0
+const PREPARATION_TOUCH_WIDTH: float = 360.0
+const PREPARATION_TOUCH_HEIGHT: float = 164.0
 
 ## How far above centre an announcement sits when a thumb is driving.
-const REGION_CARD_TOUCH_RISE: float = 240.0
+const REGION_CARD_TOUCH_RISE: float = 160.0
+const REGION_CARD_TOUCH_LEFT: float = 220.0
 
 const ACTION_COLUMNS: int = 3
 ## Six, not five: the raid-charge readout is the sixth thing in the grid, and at
@@ -268,7 +269,11 @@ static func _action_columns() -> int:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree != null and tree.root != null:
 		span = tree.root.get_visible_rect().size.x
-	return ACTION_COLUMNS_WIDE if span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
+	var landscape: bool = false
+	if tree != null and tree.root != null:
+		var size: Vector2 = tree.root.get_visible_rect().size
+		landscape = size.x > size.y
+	return ACTION_COLUMNS_WIDE if landscape or span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
 ## What `_build_action_bar` puts in the bar. Horn, Raid, Build, Repair, Tend.
 const ACTION_BUTTON_COUNT: int = 5
 ## The authored height of one, before a thumb grows it.
@@ -277,6 +282,7 @@ const ACTION_ROW_GAP: float = 8.0
 
 var _message: Label
 var _message_left: float = 0.0
+var _top_bar: HBoxContainer
 
 ## The rosette listens to EventBus.lane_pressure_changed itself, so the HUD only
 ## has to decide whether it is on screen.
@@ -321,12 +327,14 @@ var _nav_buttons: Array[Button] = []
 var _boss_panel: PanelContainer
 var _boss_name: Label
 var _boss_bar: ProgressBar
+var _boss_id: String = ""
 var _tutorial: TutorialCoach
 var _region_card: VBoxContainer
 var _region_kicker: Label
 var _region_title: Label
 var _region_tween: Tween = null
 var _state_label: Label
+var _recovery_status: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
 var _boss_label: Label
@@ -342,6 +350,8 @@ var _last_stand_spent: bool = false
 
 
 func _ready() -> void:
+	# World post-processing sits on layer 2; interface must remain ungraded.
+	layer = 20
 	# The HUD is a CanvasLayer, so the size that matters is the viewport's.
 	get_viewport().size_changed.connect(_refit_banners)
 	_build_top_bar()
@@ -386,7 +396,7 @@ func _ready() -> void:
 	EventBus.spells_changed.connect(_rebuild_spell_bar)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
-	EventBus.boss_defeated.connect(func(_id: String, _a: int) -> void: _boss_panel.visible = false)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.run_started.connect(_rebuild_spell_bar)
 	EventBus.construction_completed.connect(func(_id: String, _tier: int) -> void:
 		if _build_panel.visible:
@@ -397,6 +407,9 @@ func _ready() -> void:
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)
+	EventBus.last_scar_changed.connect(func(_state: String) -> void:
+		_refresh_recovery_status())
+	EventBus.last_scar_resolved.connect(_on_last_scar_resolved)
 	TouchInput.shown_changed.connect(_on_touch_layout_changed)
 
 	if battlefield != null and battlefield.placement != null:
@@ -411,15 +424,19 @@ func _ready() -> void:
 	_on_phase_changed(int(RunState.phase), int(RunState.phase))
 	_on_preparation_changed(0.0, true)
 	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
-	_on_hero_wounds_changed(RunState.hero_wounds, Balance.HERO_MAX_WOUNDS)
+	_on_hero_wounds_changed(RunState.hero_wounds, RunState.max_wounds())
+	_refresh_recovery_status()
 	_refresh_xp_bar()
 	_on_touch_layout_changed(touch_ui())
 	_on_scope_changed(int(GameDirector.current_scope))
 
 
 func _process(delta: float) -> void:
+	_refresh_recovery_status()
 	if Input.is_action_just_pressed(&"ride_on"):
 		ride_on_requested.emit()
+	if Input.is_action_just_pressed(&"tend") and battlefield != null:
+		_report(battlefield.try_tend_hero())
 	if Input.is_action_just_pressed(&"command_overdrive"):
 		_request_command(CommandSystemScript.OVERDRIVE)
 	if Input.is_action_just_pressed(&"command_rally"):
@@ -461,6 +478,8 @@ func _refit_banners() -> void:
 		var control: Control = pair[0] as Control
 		if control != null and is_instance_valid(control):
 			_fit_centred(control, float(pair[1]))
+	_fit_build_panel()
+	_place_preparation_panel()
 
 
 func _fit_centred(control: Control, half: float) -> void:
@@ -495,6 +514,7 @@ func _label(text: String, size: int = 18) -> Label:
 
 func _build_top_bar() -> void:
 	var bar := HBoxContainer.new()
+	_top_bar = bar
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	bar.offset_left = 24.0
 	bar.offset_top = 16.0
@@ -564,8 +584,8 @@ func _build_top_bar() -> void:
 	var wound_icon: Control = _bar_icon("wounds", "Wounds")
 	wound_icon.custom_minimum_size = Vector2(24.0, 24.0)
 	wound_row.add_child(wound_icon)
-	_wounds_label = _label("0/%d" % Balance.HERO_MAX_WOUNDS, 15)
-	_wounds_label.tooltip_text = "A lethal down adds one Wound and reduces maximum HP by 10%. The third ends the run."
+	_wounds_label = _label("0/%d" % RunState.max_wounds(), 15)
+	_wounds_label.tooltip_text = "A lethal down adds one Wound and reduces maximum HP by 10%. Reaching the limit ends the run."
 	wound_row.tooltip_text = _wounds_label.tooltip_text
 	wound_row.add_child(_wounds_label)
 	bar.add_child(wound_row)
@@ -590,6 +610,14 @@ func _build_top_bar() -> void:
 	_fit_centred(_state_label, 520.0)
 	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_state_label)
+
+	_recovery_status = _label("", 16)
+	_recovery_status.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_recovery_status.offset_top = STATE_LABEL_TOP + 30.0
+	_fit_centred(_recovery_status, 680.0)
+	_recovery_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_recovery_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_recovery_status)
 
 	_message = _label("", 22)
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -743,6 +771,7 @@ func _build_nav_bar() -> void:
 	# three, zoom and the pause menu among them, were simply not on the phone.
 	for button: Button in _nav_buttons:
 		button.set_meta(UiMetrics.SELF_SIZED, true)
+		button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, NAV_TOUCH_ICON_SIZE)
 	_size_nav_bar()
 
 
@@ -874,7 +903,7 @@ func _size_nav_bar() -> void:
 			IconKit.on_button(button, String(button.get_meta(&"nav_icon")), art)
 			button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if button.text.length() > 0:
-			button.add_theme_font_size_override("font_size", int(art * 0.7))
+			button.add_theme_font_size_override("font_size", int(art * 0.36))
 
 
 ## The combat half: what a player reaches for while something is happening.
@@ -1262,10 +1291,12 @@ func _build_tower_panel() -> void:
 	# press.
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.follow_focus = true
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_scroll = scroll
 	_build_panel.add_child(scroll)
+	_size_build_scrollbar()
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -1436,6 +1467,9 @@ func _build_preparation_panel() -> void:
 	_preparation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_preparation_label)
 	_ride_on_button = _add_button(column, "RIDE ON", func() -> void: ride_on_requested.emit())
+	_ride_on_button.set_meta(UiMetrics.SELF_SIZED, true)
+	_ride_on_button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT,
+		Balance.UI_TOUCH_PREPARATION_BUTTON_HEIGHT)
 	_ride_on_button.custom_minimum_size.y = 34.0
 	_ride_on_button.add_theme_font_size_override("font_size", 12)
 	_ride_on_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1471,7 +1505,15 @@ func _place_preparation_panel() -> void:
 		_preparation_panel.offset_right = PREPARATION_TOUCH_MARGIN 			+ PREPARATION_TOUCH_WIDTH
 		_preparation_panel.offset_top = PREPARATION_TOUCH_TOP
 		_preparation_panel.offset_bottom = PREPARATION_TOUCH_TOP 			+ PREPARATION_TOUCH_HEIGHT
+		if _preparation_label != null:
+			_preparation_label.visible = false
+		if _ride_on_button != null:
+			_ride_on_button.custom_minimum_size.y = Balance.UI_TOUCH_PREPARATION_BUTTON_HEIGHT
 	else:
+		if _preparation_label != null:
+			_preparation_label.visible = true
+		if _ride_on_button != null:
+			_ride_on_button.custom_minimum_size.y = 34.0
 		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
 		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
 
@@ -1483,6 +1525,8 @@ func _place_preparation_panel() -> void:
 ## cut to a size at build time - so on a phone a 28px number sat beside a 24px
 ## icon and the whole strip read as small. Both move together here.
 func _size_top_bar() -> void:
+	if _top_bar != null:
+		_top_bar.add_theme_constant_override("separation", 24 if touch_ui() else 32)
 	var mark: float = TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() 		else TOP_BAR_ICON
 	for id: Variant in _currency_rows.keys():
 		IconKit.resize_labelled(_currency_rows[id] as Node, String(id), mark)
@@ -1746,6 +1790,7 @@ func _build_bottom_row() -> void:
 	centre.alignment = BoxContainer.ALIGNMENT_CENTER
 	centre.offset_top = -_bottom_band_height()
 	centre.offset_bottom = -_bottom_row_inset()
+	centre.offset_right = -nav_column_width() if touch_ui() else 0.0
 	centre.add_theme_constant_override("separation", 26)
 	add_child(centre)
 
@@ -1791,7 +1836,7 @@ static func hit(size: Vector2) -> Vector2:
 
 
 static func _spell_slot_size() -> Vector2:
-	return Vector2(SPELL_SLOT_SIZE.x,
+	return Vector2(Balance.UI_TOUCH_SPELL_SLOT_WIDTH if touch_ui() else SPELL_SLOT_SIZE.x,
 		Balance.UI_TOUCH_SPELL_SLOT_HEIGHT if touch_ui() else SPELL_SLOT_SIZE.y)
 
 
@@ -2064,6 +2109,8 @@ func _build_region_card() -> void:
 	if touch_ui():
 		_region_card.offset_top -= REGION_CARD_TOUCH_RISE
 		_region_card.offset_bottom -= REGION_CARD_TOUCH_RISE
+		_region_card.offset_left -= REGION_CARD_TOUCH_LEFT
+		_region_card.offset_right -= REGION_CARD_TOUCH_LEFT
 	_region_card.add_theme_constant_override("separation", 4)
 	add_child(_region_card)
 
@@ -2149,6 +2196,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	if _bottom_row != null:
 		_bottom_row.offset_top = -_bottom_band_height()
 		_bottom_row.offset_bottom = -_bottom_row_inset()
+		_bottom_row.offset_right = -nav_column_width() if showing else 0.0
 	# The column stays where it is and only grows. Moving it to the opposite
 	# corner on touch was a workaround for a *wide* bar that could not share the
 	# right edge with the build sheet; a narrow one can, and one position is one
@@ -2183,6 +2231,9 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	_rebuild_spell_bar()
 	UiMetrics.apply_touch_tree(self, showing)
 	_place_preparation_panel()
+	_size_build_controls(_build_panel)
+	_size_build_scrollbar()
+	_fit_build_panel()
 	_size_top_bar()
 
 
@@ -2263,6 +2314,7 @@ func _build_boss_bar() -> void:
 
 
 func _on_boss_spawned(boss_id: String, act: int) -> void:
+	_boss_id = boss_id
 	var data: EnemyData = ContentDB.enemy(boss_id)
 	_boss_name.text = "%s   ·   Act %d" % [data.display_name if data != null else boss_id, act]
 	_boss_panel.visible = true
@@ -2271,6 +2323,7 @@ func _on_boss_spawned(boss_id: String, act: int) -> void:
 
 
 func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> void:
+	_boss_id = boss_id
 	var data: EnemyData = ContentDB.enemy(boss_id)
 	_message.text = "%s  —  %s\nReinforcements on the other roads." % [
 		data.display_name if data != null else "The boss", phase_name.to_upper()]
@@ -2281,15 +2334,36 @@ func _on_boss_phase_changed(boss_id: String, phase: int, phase_name: String) -> 
 
 
 func _update_boss_bar() -> void:
-	if not _boss_panel.visible or boss_director == null:
+	if not _boss_panel.visible:
 		return
-	var boss: Enemy = boss_director.active_boss()
+	var boss: Enemy = _active_boss_for_ui()
 	if boss == null:
 		_boss_panel.visible = false
 		return
 	var health: Health = Health.of(boss)
 	if health != null:
 		_boss_bar.value = health.ratio()
+
+
+func _active_boss_for_ui() -> Enemy:
+	var directed: Enemy = boss_director.active_boss() if boss_director != null else null
+	if directed != null:
+		return directed
+	if _boss_id.is_empty():
+		return null
+	# Guests do not simulate BossDirector, but CoopWorld does give them the
+	# authoritative boss puppet and health snapshots. The HUD reads that body.
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var candidate := node as Enemy
+		if candidate != null and candidate.data != null \
+				and candidate.data.id == _boss_id and not candidate.is_dying():
+			return candidate
+	return null
+
+
+func _on_boss_defeated(_id: String, _act: int) -> void:
+	_boss_id = ""
+	_boss_panel.visible = false
 
 
 ## One line that says what state the field is in: horn blowing, enemies
@@ -2306,6 +2380,42 @@ func _refresh_state_label() -> void:
 		_state_label.add_theme_color_override("font_color", Color("9b8fc4"))
 	else:
 		_state_label.text = ""
+
+
+func _refresh_recovery_status() -> void:
+	if _recovery_status == null:
+		return
+	var parts: PackedStringArray = []
+	if RunState.last_scar_active:
+		var challenge: Resource = ContentDB.run_challenge("last_scar")
+		if challenge != null:
+			var town_percent: int = int(round(
+				RunState.last_scar_min_town_ratio * 100.0))
+			var hunt_key: String = "pursuer_defeated_status" \
+				if RunState.last_scar_pursuer_defeated else "pursuer_hunt_status"
+			parts.append(String(challenge.get("active_status")) % [
+				String(challenge.get(hunt_key)), town_percent])
+	if _hero != null and is_instance_valid(_hero) and _hero.mender_active():
+		var recovery: Resource = ContentDB.recovery_drop(Balance.MENDER_SPARK_ID)
+		if recovery != null:
+			parts.append(String(recovery.get("active_status")) \
+				% _hero.mender_seconds_left())
+	_recovery_status.text = "     ".join(parts)
+	_recovery_status.add_theme_color_override("font_color",
+		Color("8ff0ac") if parts.size() == 1 and _hero != null \
+			and _hero.mender_active() else Color("ef8065"))
+
+
+func _on_last_scar_resolved(success: bool, reason: String,
+		_maximum: int) -> void:
+	var challenge: Resource = ContentDB.run_challenge("last_scar")
+	if challenge == null:
+		return
+	if success:
+		_show_message(String(challenge.get("success_line")))
+	else:
+		var failures: Dictionary = challenge.get("failure_lines") as Dictionary
+		_show_message(String(failures.get(reason, challenge.get("description"))))
 
 
 # --- Command targeting ------------------------------------------------------
@@ -2438,6 +2548,7 @@ func _pop_in(panel: Control) -> void:
 ## Applied to this subtree rather than the whole HUD, because everything else has
 ## already been converted and `apply_touch_tree` is not free.
 func _refresh_build_panel() -> void:
+	_finish_build_panel_refresh.call_deferred()
 	for child: Node in _build_list.get_children():
 		child.queue_free()
 	# The card the cursor was over has just been freed, so its mouse_exited will
@@ -2576,6 +2687,34 @@ func _refresh_build_panel() -> void:
 	_build_list.add_child(column)
 	_set_build_detail_visible(true)
 	UiMetrics.apply_touch_tree(_build_panel, touch_ui())
+
+
+## Runs after every refresh branch, including the early-return upgrade and lock
+## views, so every version of the sheet receives the same responsive sizing.
+func _finish_build_panel_refresh() -> void:
+	if _build_panel == null or not is_instance_valid(_build_panel):
+		return
+	UiMetrics.apply_touch_tree(_build_panel, touch_ui())
+	_size_build_controls(_build_panel)
+	_size_build_scrollbar()
+	_fit_build_panel()
+
+
+func _size_build_controls(root: Node) -> void:
+	if touch_ui() and root is BaseButton:
+		var button := root as BaseButton
+		button.custom_minimum_size.y = Balance.UI_TOUCH_BUILD_TARGET_HEIGHT
+		button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, Balance.UI_TOUCH_BUILD_TARGET_HEIGHT)
+	for child: Node in root.get_children():
+		_size_build_controls(child)
+
+
+func _size_build_scrollbar() -> void:
+	if _build_scroll == null:
+		return
+	var bar: VScrollBar = _build_scroll.get_v_scroll_bar()
+	if bar != null:
+		bar.custom_minimum_size.x = Balance.UI_TOUCH_SCROLLBAR_WIDTH if touch_ui() else 0.0
 
 
 ## Shows what the next level actually buys, before the player commits.
@@ -2953,6 +3092,8 @@ func _on_hero_wounds_changed(wounds: int, maximum: int) -> void:
 	if _wounds_label == null:
 		return
 	_wounds_label.text = "Wounds %d/%d" % [wounds, maximum]
+	_wounds_label.tooltip_text = ("A lethal down adds one Wound and reduces maximum HP by 10%%. "
+		+ "Reaching %d Wounds ends the run.") % maximum
 	_wounds_label.add_theme_color_override("font_color",
 		Color("dc6548") if wounds > 0 else Color("aebcb8"))
 
@@ -3016,8 +3157,8 @@ func _on_scope_changed(scope: int) -> void:
 		_lane_ring.visible = on_field
 	if _boss_panel != null and not on_field:
 		_boss_panel.visible = false
-	elif _boss_panel != null and boss_director != null:
-		_boss_panel.visible = boss_director.boss_is_out()
+	elif _boss_panel != null:
+		_boss_panel.visible = _active_boss_for_ui() != null
 
 
 func _update_raid_panel() -> void:

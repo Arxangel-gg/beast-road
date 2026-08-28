@@ -521,7 +521,7 @@ func _tick_one_revive(downed: Hero, helper: Hero, delta: float,
 func _on_team_wipe() -> void:
 	_wipe_announced = true
 	var wounds: int = RunState.add_wound()
-	if wounds >= Balance.HERO_MAX_WOUNDS:
+	if wounds >= RunState.max_wounds():
 		RunState.hero_deaths += 1
 		GameDirector.end_run(false)
 		return

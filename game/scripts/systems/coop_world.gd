@@ -106,7 +106,7 @@ func announce_enemy(enemy: Enemy) -> int:
 	_announced[enemy.net_id] = true
 	EventBus.coop_enemy_spawned.emit(enemy.net_id, enemy.data.id, enemy.lane,
 		enemy.global_position, enemy.hp_scale(), enemy.damage_scale(),
-		enemy.speed_scale())
+		enemy.speed_scale(), enemy.oath_pursuer)
 	return enemy.net_id
 
 
@@ -167,14 +167,15 @@ func _send_batch() -> void:
 # --- Guest side --------------------------------------------------------------
 
 func _on_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
-		hp_scale: float, damage_scale: float, speed_scale: float) -> void:
+		hp_scale: float, damage_scale: float, speed_scale: float,
+		oath_pursuer: bool) -> void:
 	if not Coop.is_guest() or _puppets.has(net_id):
 		return
 	var battlefield := field as Battlefield
 	if battlefield == null:
 		return
 	var enemy: Enemy = battlefield.spawn_enemy(ContentDB.enemy(data_id), lane,
-		hp_scale, damage_scale, speed_scale)
+		hp_scale, damage_scale, speed_scale, oath_pursuer)
 	if enemy == null:
 		return
 	enemy.net_id = net_id

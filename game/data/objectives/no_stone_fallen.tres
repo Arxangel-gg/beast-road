@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "no_stone_fallen"
+display_name = "No Stone Fallen"
+description = "Defeat the Chainmaker without the town suffering damage."
+order = 80
+metric = 6
+target = 0.0
+comparison = 1
+minimum_act = 3
+requires_victory = true
+tool_reward = 3

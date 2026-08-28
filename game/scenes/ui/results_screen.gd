@@ -227,6 +227,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	menu_button.grab_focus.call_deferred()
 
 	var unlocks: Array = summary.get("unlocks", [])
+	var chronicle: Array = summary.get("chronicle", [])
 	var seconds: int = int(summary.get("time", 0))
 	var duration: String = "%d:%02d" % [seconds / 60, seconds % 60]
 	var planning_seconds: int = int(summary.get("planning_time", 0))
@@ -280,6 +281,15 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	]
 	for entry: String in unlocks:
 		lines.append("   " + entry.replace(":", "  "))
+	if not chronicle.is_empty():
+		lines.append("")
+		lines.append("CHRONICLE  ·  %d deed%s kept  ·  +%d Tools" % [
+			chronicle.size(), "" if chronicle.size() == 1 else "s",
+			int(summary.get("chronicle_tools", 0))])
+		for id: String in chronicle:
+			var objective: ChronicleObjectiveData = ContentDB.chronicle_objective(id)
+			if objective != null:
+				lines.append("   ◆  " + objective.display_name)
 
 	# GDD §46 wants the version in the debrief as well as in Settings, and this is
 	# the better of the two places: it is the screen somebody is looking at when a

@@ -16,10 +16,11 @@ func _ready() -> void:
 	var save_path: String = fixture_dir.path_join("unreadable.json")
 	var backup: String = fixture_dir.path_join("unreadable.bak.json")
 	var migration_backup: String = fixture_dir.path_join("v1-migration.bak.json")
+	var v6_backup: String = fixture_dir.path_join("v6-migration.bak.json")
 	var marker: String = "escape-hatch-probe"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(fixture_dir))
 
-	for path: String in [save_path, backup, migration_backup]:
+	for path: String in [save_path, backup, migration_backup, v6_backup]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
@@ -90,14 +91,33 @@ func _ready() -> void:
 	v2_valid = v2_valid and renamed and gone and kept_unknown
 	print("[save] v2 terrain rename=%s unknown ids kept=%s"
 		% [str(renamed and gone), str(kept_unknown)])
-	for path: String in [save_path, backup, migration_backup]:
+
+	# v6 is the final public schema before the Chronicle. Its migration is
+	# additive: a returning account begins with no completed deeds and keeps every
+	# prior field intact.
+	var v6_text: String = JSON.stringify({
+		"version": 6,
+		"unlocked": {"towers": [marker], "terrains": []},
+		"stats": {"runs_started": 42},
+	}, "\t")
+	var v6: Dictionary = MetaState.migrate_save(
+		JSON.parse_string(v6_text) as Dictionary, v6_text, v6_backup)
+	var chronicle: Dictionary = v6.get("chronicle", {}) as Dictionary
+	var v6_valid: bool = int(v6.get("version", 0)) == MetaState.SAVE_VERSION \
+		and (chronicle.get("completed", []) as Array).is_empty() \
+		and int((v6.get("stats", {}) as Dictionary).get("runs_started", 0)) == 42 \
+		and FileAccess.file_exists(v6_backup) \
+		and FileAccess.get_file_as_string(v6_backup) == v6_text
+	print("[save] v6 Chronicle migration=%s" % str(v6_valid))
+	for path: String in [save_path, backup, migration_backup, v6_backup]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
-	if not (kept and intact and still and migration_kept and migration_valid and v2_valid):
-		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s v2=%s"
+	if not (kept and intact and still and migration_kept and migration_valid and v2_valid \
+			and v6_valid):
+		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s v2=%s v6=%s"
 			% [str(kept), str(intact), str(still), str(migration_kept),
-				str(migration_valid), str(v2_valid)])
+				str(migration_valid), str(v2_valid), str(v6_valid)])
 		get_tree().quit(1)
 		return
 	for _f: int in 5:

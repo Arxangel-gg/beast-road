@@ -37,6 +37,15 @@ signal hero_respawned(at: Vector2)
 ## Act-long Wounds changed through a lethal down or Hearthmend.
 signal hero_wounds_changed(wounds: int, maximum: int)
 
+## Oath of the Last Scar moved between offered, pending and active states.
+signal last_scar_changed(state: String)
+
+## The sworn road ended; reason is a stable data key, never presentation text.
+signal last_scar_resolved(success: bool, reason: String, maximum_wounds: int)
+
+## A hero took Mender's Spark. Local feedback derives from this fact.
+signal mender_spark_collected(party_slot: int, at: Vector2)
+
 ## The guaranteed pre-boss Hearthmend cleared the hero's act attrition.
 signal hearthmend_completed(act: int)
 
@@ -83,6 +92,12 @@ signal coop_crossroad_opened(segment: int)
 
 ## A road was taken. Whoever clicked first decided it for both.
 signal coop_road_chosen(road_id: String, difficulty_id: String)
+
+## The host accepted the once-per-run Last Scar vow at the open crossroad.
+signal coop_last_scar_accepted()
+
+## The host settled the vow and its run-local Wound ceiling.
+signal coop_last_scar_resolved(success: bool, reason: String, maximum_wounds: int)
 
 ## Where a partner is pointing while the crossroad is open, in screen fractions.
 ##
@@ -436,7 +451,7 @@ signal coop_tower_fired(anchor: Vector2i, at: Vector2)
 
 ## The host put an enemy on the field and gave it an identity.
 signal coop_enemy_spawned(net_id: int, data_id: String, lane: int, at: Vector2,
-	hp_scale: float, damage_scale: float, speed_scale: float)
+	hp_scale: float, damage_scale: float, speed_scale: float, oath_pursuer: bool)
 
 ## Where every living enemy is, in one message. Entries are
 ## `[net_id: int, at: Vector2, health_ratio: float]`.

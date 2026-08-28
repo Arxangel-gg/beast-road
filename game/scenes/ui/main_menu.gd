@@ -3,6 +3,7 @@ extends Control
 
 const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
 const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
+const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -18,6 +19,7 @@ const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
 var _settings: SettingsPanel
 var _leaderboard: CanvasLayer
 var _coop: CanvasLayer
+var _chronicle: CanvasLayer
 
 
 func _ready() -> void:
@@ -37,6 +39,7 @@ func _ready() -> void:
 	_build_tier_row()
 	_build_stash_button()
 	_build_coop_button()
+	_build_chronicle_button()
 	_build_leaderboard_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
@@ -198,6 +201,36 @@ func _build_leaderboard_button() -> void:
 	button.pressed.connect(func() -> void: _leaderboard.open())
 
 
+## The bounded account goals, visible before the player earns one.
+##
+## A result-only achievement is not an objective: the player could not aim for
+## it. Keeping the Chronicle on the front door turns every row into a deliberate
+## challenge while preserving the GDD's no-grind progression ceiling.
+func _build_chronicle_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Chronicle"
+	button.text = "Chronicle  ·  %d / %d" % [MetaState.chronicle_completed_count(),
+		ContentDB.chronicle_objectives.size()]
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "chainbreaker_seal", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+
+	_chronicle = ChronicleScreenScript.new()
+	add_child(_chronicle)
+	_chronicle.closed.connect(func() -> void:
+		button.text = "Chronicle  ·  %d / %d" % [MetaState.chronicle_completed_count(),
+			ContentDB.chronicle_objectives.size()]
+		button.grab_focus())
+	button.pressed.connect(func() -> void: _chronicle.open())
+
+
 func _start_run() -> void:
 	var requested: int = 0
 	var entered: String = seed_input.text.strip_edges()
@@ -239,4 +272,6 @@ func _summary() -> String:
 			MetaState.unlocked_towers.size(),
 			MetaState.unlocked_relics.size(),
 			MetaState.unlocked_terrains.size()],
+		"Chronicle   %d of %d deeds kept" % [MetaState.chronicle_completed_count(),
+			ContentDB.chronicle_objectives.size()],
 	])

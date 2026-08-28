@@ -153,6 +153,10 @@ jobs:
           check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
           check "http gzip"  --headless --path game --script res://tools/run_tool.gd -- http-gzip
           check "main menu" --headless --path game res://tools/menu_check.tscn
+          # Account objectives are finite, one-time and horizontal. This also
+          # proves their save payload without touching the runner's real slot.
+          check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn
+          check "save migration" --headless --path game res://tools/save_backup_check.tscn
           check "leaderboard" --headless --path game res://tools/leaderboard_check.tscn
           check "milestone cinematics" --headless --path game res://tools/milestone_cinematic_check.tscn
           # Every manifest asset exists, is the right size, and is real art
@@ -171,6 +175,9 @@ jobs:
           # never ordinary hit readability, and the effect must spawn at the
           # replicated impact position rather than at the local hero.
           check "blood VFX" --headless --path game res://tools/blood_vfx_check.tscn
+          # Rare recovery stays bounded and run-local; its co-op contract, real
+          # art, shader resources and the two-minute blood memory ship together.
+          check "recovery and shader polish" --headless --path game res://tools/recovery_polish_check.tscn
           # Matchmaking seats show the same south-facing animated, colour-coded
           # Wardens that enter the battlefield. A static or clipped row is a
           # lobby regression even though the network can still connect.

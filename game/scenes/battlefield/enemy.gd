@@ -1,6 +1,9 @@
 class_name Enemy
 extends Node2D
 
+## True only for the one elite demanded by Oath of the Last Scar.
+var oath_pursuer: bool = false
+
 ## One enemy walking a lane (GDD §3). Everything about it comes from an
 ## EnemyData resource, so adding a breed is adding a `.tres`.
 ##
@@ -103,7 +106,10 @@ var _hitstun_left: float = 0.0
 ## refreshes the flinch and a well-covered tile switches an enemy off.
 var _hitstun_refractory: float = 0.0
 var _flash_left: float = 0.0
+var _impact_direction: Vector2 = Vector2.UP
 var _death_left: float = 0.0
+var _oath_mark: Line2D = null
+var _oath_mark_time: float = 0.0
 
 ## Lateral offset from the lane centre line, so a wave reads as a column.
 var _lane_offset: float = 0.0
@@ -187,6 +193,8 @@ func _ready() -> void:
 	health_bar.bind(health)
 	if data.role == EnemyData.Role.HOWLER:
 		_build_aura_readout()
+	if oath_pursuer:
+		_build_oath_mark()
 
 	animator.mass = _mass_for_category()
 	animator.capture_home()
@@ -214,6 +222,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_tick_oath_mark(delta)
 	if _state == State.DYING:
 		_tick_death(delta)
 		return
@@ -238,6 +247,26 @@ func _process(delta: float) -> void:
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite()
 	_update_blood(delta)
+
+
+func _build_oath_mark() -> void:
+	_oath_mark = Line2D.new()
+	var points: PackedVector2Array = []
+	for index: int in 49:
+		points.append(Vector2.RIGHT.rotated(TAU * float(index) / 48.0) * 64.0)
+	_oath_mark.points = points
+	_oath_mark.width = 4.0
+	_oath_mark.default_color = Color(1.0, 0.24, 0.16, 0.82)
+	_oath_mark.z_index = -1
+	add_child(_oath_mark)
+
+
+func _tick_oath_mark(delta: float) -> void:
+	if _oath_mark == null:
+		return
+	_oath_mark_time += delta
+	_oath_mark.modulate.a = 0.48 + sin(_oath_mark_time * 5.2) * 0.25
+	_oath_mark.scale = Vector2.ONE * (1.0 + sin(_oath_mark_time * 3.1) * 0.06)
 
 
 ## A mirrored enemy: draw what arrived, decide nothing.
@@ -938,8 +967,10 @@ func _tick_status(delta: float) -> void:
 		health.heal(terrain.enemy_hp_regen * delta)
 
 
-func _on_damaged(_amount: float, _from: Vector2) -> void:
+func _on_damaged(_amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
+	_impact_direction = (global_position - from).normalized()
+	BloodStain.strike(_blood, _impact_direction)
 
 
 func _on_died(_from: Vector2) -> void:
@@ -962,6 +993,12 @@ func _on_died(_from: Vector2) -> void:
 	_drop_gear()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
+		if _field != null and _field.has_method("try_spawn_mender_spark"):
+			_field.try_spawn_mender_spark(global_position)
+	if oath_pursuer:
+		RunState.mark_last_scar_pursuer_defeated()
+		Vfx.ring(global_position, 154.0, Color(0.96, 0.36, 0.28, 0.9), 0.72, 8.0)
+		Vfx.spark(global_position, Color("ffd0a0"), 28, Vector2.UP, 250.0)
 	EventBus.enemy_died.emit(data.id, global_position)
 
 
@@ -1121,6 +1158,9 @@ func _update_blood(delta: float) -> void:
 		_blood_tried = true
 		_blood = BloodStain.attach(sprite, get_instance_id())
 	BloodStain.drive(_blood, health.ratio() if health != null else 1.0, delta)
+	if _flash_left > 0.0:
+		BloodStain.strike(_blood, _impact_direction)
+	BloodStain.drive_impact(_blood, _flash_left)
 
 
 func _update_sprite() -> void:

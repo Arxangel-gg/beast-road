@@ -547,6 +547,7 @@ locked premium cache, so the detour's value reads before the player reaches it.
 | `loot_stone.png` | 48×48 | T | `#697386` |
 | `loot_supplies.png` | 48×48 | T | `#8B7250` |
 | `loot_relic.png` | 48×48 | T | `#7A5BA8` |
+| `loot_mender_spark.png` | 48×48 | T | `#79D9A0` |
 
 ### 5.8d Sidescroller ground — `res://art/bg/`
 
@@ -828,7 +829,7 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
-`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` ·
+`ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` · `ui_last_scar.png` ·
 `ui_resurrection_draught.png` · `ui_scope_battlefield.png` ·
 `ui_scope_town.png` · `ui_scope_beast.png`
 

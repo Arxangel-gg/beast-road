@@ -1,6 +1,8 @@
 class_name Tower
 extends Node2D
 
+const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
+
 ## An auto-firing tower standing on a 2x2 patch of the battlefield grid (GDD §13).
 ##
 ## All behaviour is read off TowerData: single target, AoE, chains, slows,
@@ -50,6 +52,8 @@ var _health: Health = null
 var _health_bar: HealthBar = null
 var _damage_flames: Array[Flame] = []
 var _step_wobble: float = 0.0
+var _impact_material: ShaderMaterial = null
+var _impact_left: float = 0.0
 
 ## Idle animation state. The phase starts scattered so a row of towers breathes
 ## out of step - in unison it reads as a screen-wide pulse rather than as
@@ -99,6 +103,7 @@ func _ready() -> void:
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
+	_impact_material = ActorPolishScript.attach(sprite)
 	_idle_frames = GameData.load_idle_frames(path)
 	_draw_range_ring()
 	refresh_modifiers()
@@ -184,6 +189,8 @@ func _on_boss_defeated(_id: String, _act: int) -> void:
 
 func _process(delta: float) -> void:
 	_tick_step_wobble(delta)
+	_impact_left = maxf(_impact_left - delta, 0.0)
+	ActorPolishScript.drive(_impact_material, _impact_left)
 	if data == null or _field == null or not RunState.is_command_combat():
 		return
 	_command_overdrive_left = maxf(_command_overdrive_left - delta, 0.0)
@@ -615,6 +622,8 @@ func _refresh_damage_flames() -> void:
 
 func _pulse_impact(from: Vector2) -> void:
 	var away: Vector2 = origin() - from
+	_impact_left = Balance.HIT_FLASH_TIME
+	ActorPolishScript.strike(_impact_material, away)
 	var side: float = signf(away.x) if absf(away.x) > 0.01 else 1.0
 	_step_wobble += side * 1.1
 

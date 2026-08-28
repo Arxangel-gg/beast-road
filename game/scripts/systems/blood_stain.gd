@@ -52,6 +52,11 @@ static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
 	material.shader = shader()
 	material.set_shader_parameter("seed", float(absi(seed_source) % 997))
 	material.set_shader_parameter("blood_colour", Balance.BLOOD_FRESH)
+	material.set_shader_parameter("outline_colour", Balance.ACTOR_OUTLINE_COLOUR)
+	material.set_shader_parameter("outline_strength",
+		Balance.ACTOR_OUTLINE_STRENGTH if Graphics.polish_shaders() else 0.0)
+	material.set_shader_parameter("impact_colour", Balance.IMPACT_RIM_COLOUR)
+	material.set_shader_parameter("impact_strength", 0.0)
 	# Set explicitly. An unset uniform reads back as null rather than as its
 	# declared default, so the first `drive` would be doing arithmetic on nothing.
 	material.set_shader_parameter("stain", 0.0)
@@ -86,3 +91,18 @@ static func drive(material: ShaderMaterial, health_fraction: float,
 		else Balance.BLOOD_STAIN_OFF
 	material.set_shader_parameter("stain",
 		move_toward(current, wanted, rate * delta))
+
+
+static func strike(material: ShaderMaterial, direction: Vector2) -> void:
+	if material == null:
+		return
+	material.set_shader_parameter("impact_direction",
+		direction.normalized() if direction.length() > 0.001 else Vector2.UP)
+	material.set_shader_parameter("impact_strength", Balance.IMPACT_RIM_STRENGTH)
+
+
+static func drive_impact(material: ShaderMaterial, left: float) -> void:
+	if material != null:
+		material.set_shader_parameter("impact_strength",
+			clampf(left / maxf(Balance.HIT_FLASH_TIME, 0.001), 0.0, 1.0)
+			* Balance.IMPACT_RIM_STRENGTH)

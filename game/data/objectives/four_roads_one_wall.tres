@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "four_roads_one_wall"
+display_name = "Four Roads, One Wall"
+description = "Build twelve towers in a single run."
+order = 20
+metric = 2
+target = 12.0
+tool_reward = 1

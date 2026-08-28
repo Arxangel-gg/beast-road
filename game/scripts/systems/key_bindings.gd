@@ -44,6 +44,7 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"command_rally", "label": "Command: Rally Road"},
 	{"action": &"command_last_stand", "label": "Command: Last Stand"},
 	{"action": &"ride_on", "label": "Ride on"},
+	{"action": &"tend", "label": "Tend / field ration"},
 	{"action": &"pause", "label": "Pause"},
 ]
 
@@ -63,6 +64,7 @@ const PAD_BUTTONS: Dictionary = {
 	&"attack": JOY_BUTTON_X,
 	&"dash": JOY_BUTTON_A,
 	&"ride_on": JOY_BUTTON_Y,
+	&"tend": JOY_BUTTON_BACK,
 	&"war_horn": JOY_BUTTON_B,
 	&"pause": JOY_BUTTON_START,
 	&"spell_1": JOY_BUTTON_LEFT_SHOULDER,

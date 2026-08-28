@@ -87,6 +87,7 @@ jobs:
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- report
           run_godot_clean --headless --path game res://tools/loot_art_check.tscn
           run_godot_clean --headless --path game res://tools/blood_vfx_check.tscn
+          run_godot_clean --headless --path game res://tools/recovery_polish_check.tscn
           run_godot_clean --headless --path game res://tools/coop_lobby_check.tscn
           # Anything meaning "a person is standing here" must see all four of
           # them. Both hero groups answer correctly with one player, so this is
@@ -115,6 +116,8 @@ jobs:
           run_godot_clean --headless --path game res://tools/curve_report.tscn
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
+          run_godot_clean --headless --path game res://tools/chronicle_check.tscn
+          run_godot_clean --headless --path game res://tools/save_backup_check.tscn
           run_godot_clean --headless --path game res://tools/leaderboard_check.tscn
           run_godot_clean --headless --path game res://tools/milestone_cinematic_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build

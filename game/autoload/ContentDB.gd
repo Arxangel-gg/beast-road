@@ -32,6 +32,9 @@ var factions: Dictionary = {}
 var roads: Dictionary = {}
 var road_difficulties: Dictionary = {}
 var milestone_cinematics: Dictionary = {}
+var chronicle_objectives: Dictionary = {}
+var run_challenges: Dictionary = {}
+var recovery_drops: Dictionary = {}
 
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
@@ -61,6 +64,9 @@ func _ready() -> void:
 	items = _load_dir("res://data/items")
 	tutorial_steps = _load_dir("res://data/tutorial")
 	milestone_cinematics = _load_dir("res://data/cinematics")
+	chronicle_objectives = _load_dir("res://data/objectives")
+	run_challenges = _load_dir("res://data/challenges")
+	recovery_drops = _load_dir("res://data/recovery_drops")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -228,6 +234,31 @@ func milestone_cinematics_sorted() -> Array[MilestoneCinematicData]:
 		if data != null:
 			out.append(data)
 	out.sort_custom(func(a: MilestoneCinematicData, b: MilestoneCinematicData) -> bool:
+		return a.id < b.id)
+	return out
+
+
+func chronicle_objective(id: String) -> ChronicleObjectiveData:
+	return chronicle_objectives.get(id, null) as ChronicleObjectiveData
+
+
+func run_challenge(id: String) -> Resource:
+	return run_challenges.get(id, null) as Resource
+
+
+func recovery_drop(id: String) -> Resource:
+	return recovery_drops.get(id, null) as Resource
+
+
+func chronicle_objectives_sorted() -> Array[ChronicleObjectiveData]:
+	var out: Array[ChronicleObjectiveData] = []
+	for value: Variant in chronicle_objectives.values():
+		var objective := value as ChronicleObjectiveData
+		if objective != null:
+			out.append(objective)
+	out.sort_custom(func(a: ChronicleObjectiveData, b: ChronicleObjectiveData) -> bool:
+		if a.order != b.order:
+			return a.order < b.order
 		return a.id < b.id)
 	return out
 

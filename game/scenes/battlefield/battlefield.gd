@@ -1,6 +1,8 @@
 class_name Battlefield
 extends EnemyField
 
+const RegionalPolishScript = preload("res://scripts/systems/regional_polish.gd")
+
 ## The tower-defense scope (GDD §3): four cardinal lanes, three build spots on
 ## each, a town in the middle, and the hero.
 ##
@@ -34,6 +36,7 @@ var _coop_heroes: CoopHeroes = null
 
 ## Enemies and towers, made to agree on two machines. Inert when playing alone.
 var _coop_world: CoopWorld = null
+var _regional_polish: CanvasLayer = null
 
 
 func activate() -> void:
@@ -163,6 +166,12 @@ func _ready() -> void:
 	_setup_ground()
 	grid = BattleGrid.new()
 	_build_lanes()
+	PathBlend.set_weather(RunState.weather_id)
+	EventBus.weather_changed.connect(PathBlend.set_weather)
+	_regional_polish = RegionalPolishScript.new() as CanvasLayer
+	_regional_polish.name = "RegionalPolish"
+	_regional_polish.set("field", self)
+	add_child(_regional_polish)
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.trap_changed.connect(_on_trap_changed)
 	EventBus.barricade_changed.connect(_on_barricade_changed)
@@ -273,6 +282,7 @@ func begin_battle() -> void:
 		wave_director._wave_timer = minf(wave_director._wave_timer,
 			Balance.ROAD_START_WARNING_SECONDS)
 	wave_director.start()
+	_spawn_last_scar_pursuer()
 	if hero != null and visible:
 		hero.set_active(true)
 	if visible:
@@ -299,6 +309,8 @@ func ration_price() -> int:
 func ration_blocked() -> String:
 	if RunState.is_preparation():
 		return ""
+	if RunState.last_scar_locks_rations():
+		return _last_scar_ration_blocked_line()
 	if _ration_cooldown > 0.0:
 		return "Rations again in %ds." % int(ceil(_ration_cooldown))
 	if not RunState.can_afford_cost({RunState.FOOD: ration_price()}):
@@ -863,12 +875,14 @@ func lane_armour(lane: int) -> float:
 # --- Spawning ---------------------------------------------------------------
 
 func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
-		damage_scale: float = -1.0, speed_scale: float = 1.0) -> Enemy:
+		damage_scale: float = -1.0, speed_scale: float = 1.0,
+		oath_pursuer: bool = false) -> Enemy:
 	if enemy_scene == null:
 		return null
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return null
+	enemy.oath_pursuer = oath_pursuer
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() \
 		* RunState.rng("combat").randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
@@ -884,6 +898,55 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	if _coop_world != null:
 		_coop_world.announce_enemy(enemy)
 	return enemy
+
+
+## One marked regional elite, spawned by the authority at the start of the
+## sworn road. It uses the ordinary Enemy scene and content-driven AI.
+func _spawn_last_scar_pursuer() -> void:
+	if Coop.is_guest() or not RunState.last_scar_active \
+			or RunState.last_scar_pursuer_spawned:
+		return
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	var candidates: Array[EnemyData] = []
+	if terrain != null:
+		for id: String in terrain.elite_ids:
+			var candidate: EnemyData = ContentDB.enemy(id)
+			if candidate != null:
+				candidates.append(candidate)
+	if candidates.is_empty():
+		candidates = ContentDB.enemies_of_category(EnemyData.Category.ELITE)
+	if candidates.is_empty():
+		return
+	var chosen: EnemyData = candidates[RunState.rng("combat").randi_range(
+		0, candidates.size() - 1)]
+	var lane: int = RunState.rng("combat").randi_range(0, Balance.LANE_COUNT - 1)
+	var pursuer: Enemy = spawn_enemy(chosen, lane,
+		wave_director._hp_scale(lane) * Balance.LAST_SCAR_PURSUER_HP_SCALE,
+		wave_director._damage_scale(lane) * Balance.LAST_SCAR_PURSUER_DAMAGE_SCALE,
+		wave_director._speed_scale(lane), true)
+	if pursuer != null:
+		RunState.mark_last_scar_pursuer_spawned()
+		var challenge: Resource = ContentDB.run_challenge("last_scar")
+		if challenge != null:
+			EventBus.preparation_warning.emit(String(challenge.get("pursuer_line")))
+
+
+## Elite-only recovery roll. Eligibility considers the whole party, while the
+## physical pickup belongs to whichever hero reaches it.
+func try_spawn_mender_spark(at: Vector2) -> bool:
+	if Coop.is_guest() or not RunState.can_roll_mender_spark():
+		return false
+	var needs_recovery: bool = false
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who != null and who.is_alive() and who.health != null \
+				and who.health.ratio() <= Balance.MENDER_SPARK_HEALTH_THRESHOLD:
+			needs_recovery = true
+			break
+	if not needs_recovery or not RunState.roll_mender_spark():
+		return false
+	spawn_loot(Balance.MENDER_SPARK_ID, 1, at)
+	return true
 
 
 ## Placeholder VFX. A line that fades is not art — it is the readout that a
@@ -1369,8 +1432,9 @@ func _refund_orphaned_fusions() -> void:
 ## through the same function a local click uses, against the *guest's* hero,
 ## because the answer has to be identical either way.
 func try_tend_hero(who: Hero = null) -> String:
-	if not RunState.can_build_now():
-		return "The hero is tended between road battles."
+	var preparing: bool = RunState.is_preparation()
+	if not preparing and not RunState.is_command_combat():
+		return "Tending is unavailable here."
 	if who == null and _ask_the_host(CoopRelay.Request.TEND_HERO):
 		return ""
 	var patient: Hero = who if who != null else hero
@@ -1382,7 +1446,9 @@ func try_tend_hero(who: Hero = null) -> String:
 	# tending: cheap, generous, unhurried. Under fire it is a field ration -
 	# dearer, thinner, and on a timer - because the useful thing about healing
 	# mid-wave is that it is *possible*, not that it is efficient.
-	var under_fire: bool = not RunState.is_preparation()
+	var under_fire: bool = not preparing
+	if under_fire and RunState.last_scar_locks_rations():
+		return _last_scar_ration_blocked_line()
 	if under_fire and _ration_cooldown > 0.0:
 		return "Rations again in %ds." % int(ceil(_ration_cooldown))
 	var price: int = ration_price() if under_fire else Balance.HERO_TEND_COST
@@ -1400,6 +1466,11 @@ func try_tend_hero(who: Hero = null) -> String:
 	Vfx.spark(patient.global_position, Color("cdf0d6"), 14, Vector2.UP, 150.0)
 	Sfx.play("sfx_tower_upgrade", -5.0)
 	return ""
+
+
+func _last_scar_ration_blocked_line() -> String:
+	var challenge: Resource = ContentDB.run_challenge("last_scar")
+	return String(challenge.get("ration_blocked_line")) if challenge != null else ""
 
 
 ## Mends the wall. Host-resolved for the same reason tending is: one town, one
@@ -1701,6 +1772,8 @@ func _build_lanes() -> void:
 	# Nearest, or the road stops being pixel art the moment it reaches the screen.
 	surface.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	surface.add_to_group(Graphics.FILTER_GROUP)
+	if Graphics.polish_shaders():
+		surface.material = PathBlend.material_for_surface()
 	lane_root.add_child(surface)
 
 

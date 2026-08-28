@@ -306,8 +306,6 @@ func end_run(victory: bool) -> void:
 
 	var summary: Dictionary = {
 		"victory": victory,
-		"tools": MetaState.tools,
-		"sigils": MetaState.sigils,
 		"seed": RunState.run_seed,
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,
@@ -339,18 +337,28 @@ func end_run(victory: bool) -> void:
 		"command_orders": RunState.command_orders_used.duplicate(true),
 		"wounds": RunState.wounds_suffered,
 		"hearthmends": RunState.hearthmends_used,
-		"unlocks": _pay_out_unlocks(victory),
 	}
+	var unlocks: Array[String] = _pay_out_unlocks(victory)
 
 	MetaState.runs_started += 1
 	if victory:
 		MetaState.runs_won += 1
 		MetaState.act3_cleared = true
+	# Chronicle rewards are one-time Tools. Bank them before ordinary run Tools
+	# are spent so both payouts pass through the same roster purchase path.
+	var completed: Array[String] = MetaState.complete_chronicle(summary)
+	var chronicle_tools: int = 0
+	for id: String in completed:
+		var objective: ChronicleObjectiveData = ContentDB.chronicle_objective(id)
+		if objective != null:
+			chronicle_tools += objective.tool_reward
+		EventBus.unlock_earned.emit("chronicle", id)
 	# Tools for depth, and the roster they buy. Before the statistics, so the
 	# debrief's unlock list already contains anything they paid for.
 	var roster: Array[String] = MetaState.award_tools(RunState.act, victory)
 	for id: String in roster:
 		EventBus.unlock_earned.emit("tower", id)
+		unlocks.append("tower:" + id)
 	if victory:
 		MetaState.award_sigil()
 
@@ -358,6 +366,13 @@ func end_run(victory: bool) -> void:
 	MetaState.total_enemies_killed += RunState.enemies_killed
 	_bank_treasury_cache()
 	MetaState.save_game()
+	# Payout values are captured after payout. Previously the debrief showed the
+	# balance and Legacy rank from before the run and omitted roster purchases.
+	summary["tools"] = MetaState.tools
+	summary["sigils"] = MetaState.sigils
+	summary["unlocks"] = unlocks
+	summary["chronicle"] = completed
+	summary["chronicle_tools"] = chronicle_tools
 
 	EventBus.run_ended.emit(victory, summary)
 

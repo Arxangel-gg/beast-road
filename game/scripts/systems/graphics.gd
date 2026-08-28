@@ -253,6 +253,22 @@ static func cloud_shadows() -> bool:
 	return bool(_value(KEY_CLOUDS))
 
 
+## Four-sample actor outlines and local loot shaders. Low sheds the texture
+## reads; every other tier retains the readability pass.
+static func polish_shaders() -> bool:
+	return preset() != PRESET_LOW
+
+
+## One screen-sized regional pass is reserved for the authored High target and
+## Ultra. Medium keeps every gameplay-readable local shader without this fill.
+static func regional_post_processing() -> bool:
+	return preset() == PRESET_HIGH or preset() == PRESET_ULTRA
+
+
+static func regional_post_scale() -> float:
+	return 1.0 if preset() == PRESET_ULTRA else Balance.REGION_GRADE_HIGH_SCALE
+
+
 ## Scales a count and never returns zero for a non-zero request — a system that
 ## asks for particles and gets none looks broken rather than economical.
 static func scaled(amount: int, scale: float) -> int:

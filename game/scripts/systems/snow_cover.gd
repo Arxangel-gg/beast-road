@@ -50,6 +50,7 @@ uniform vec2 field_size = vec2(4000.0);
 uniform float patch_scale = 420.0;
 
 uniform vec4 snow : source_color = vec4(0.93, 0.96, 1.0, 1.0);
+uniform float sparkle_strength : hint_range(0.0, 1.0) = 0.0;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -80,7 +81,11 @@ void fragment() {
 		// so full cover really is full and bare really is bare.
 		float threshold = mix(1.05, -0.05, cover);
 		float lying = smoothstep(threshold, threshold + 0.22, n);
-		COLOR = vec4(snow.rgb, lying * max_alpha);
+		vec2 crystal = floor(world / 7.0);
+		float rare = step(0.986, hash(crystal));
+		float twinkle = pow(max(sin(TIME * 2.7 + hash(crystal + 19.0) * 6.283), 0.0), 10.0);
+		float sparkle = rare * twinkle * sparkle_strength * lying;
+		COLOR = vec4(snow.rgb + vec3(sparkle), lying * max_alpha);
 	}
 }
 """
@@ -119,6 +124,8 @@ func _build_layer(layer_name: String, z: int, alpha: float, extent: float) -> vo
 	material.shader = shader
 	material.set_shader_parameter("field_size", Vector2(extent * 2.0, extent * 2.0))
 	material.set_shader_parameter("max_alpha", alpha)
+	material.set_shader_parameter("sparkle_strength",
+		Balance.SNOW_SPARKLE_STRENGTH if Graphics.polish_shaders() else 0.0)
 	rect.material = material
 	add_child(rect)
 	_materials.append(material)

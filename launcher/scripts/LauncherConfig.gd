@@ -46,8 +46,12 @@ const MIRROR_FILE: String = "mirrors.json"
 ## Every place to try for one asset, in order. The first is always GitHub.
 static func mirrors_for(asset: String, github_url: String) -> Array:
 	var out: Array = []
-	if not github_url.is_empty():
-		out.append({"name": "GitHub", "url": github_url})
+	# A mirror is only a fallback for a concrete asset in this release. Without
+	# GitHub's asset URL we cannot know that an old cached copy names the same
+	# build, and offering it could install stale content under a new version.
+	if github_url.is_empty():
+		return out
+	out.append({"name": "GitHub", "url": github_url})
 	for entry: Variant in _mirror_file():
 		if not (entry is Dictionary):
 			continue

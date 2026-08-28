@@ -45,6 +45,7 @@ var _open_segment: int = 0
 ## The row the road cards sit in. Rebuilt per crossroad; relic rewards do not use
 ## it and stay in the column, which is the right shape for a list.
 var _road_row: HBoxContainer = null
+var _last_scar_button: Button = null
 
 
 ## The partner's cursor, and this player's, while the fork is open.
@@ -116,6 +117,7 @@ func _ready() -> void:
 	panel.visible = false
 	EventBus.coop_pointer_moved.connect(_on_partner_pointer)
 	EventBus.coop_relic_chosen.connect(_on_coop_relic_chosen)
+	EventBus.coop_last_scar_accepted.connect(_on_coop_last_scar_accepted)
 
 
 func open(segment_index: int) -> void:
@@ -151,6 +153,7 @@ func _open_roads(segment_index: int) -> void:
 	for offer: Dictionary in draw_offers(segment_index):
 		_add_option(offer["road"] as RoadData, offer["difficulty"] as RoadDifficultyData)
 
+	_add_last_scar_offer()
 	_add_reroll()
 	panel.visible = true
 
@@ -169,6 +172,90 @@ func _add_reroll() -> void:
 	button.add_theme_font_size_override("font_size", 18)
 	button.pressed.connect(_reroll)
 	options_box.add_child(button)
+
+
+## Optional vow, not a third road. It changes the cost of whichever road the
+## party chooses and therefore sits beneath the pair rather than competing with
+## either destination.
+func _add_last_scar_offer() -> void:
+	_last_scar_button = null
+	if not RunState.can_offer_last_scar() and not RunState.last_scar_pending:
+		return
+	var challenge: Resource = ContentDB.run_challenge("last_scar")
+	if challenge == null:
+		return
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"InnerPanel"
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	card.add_child(box)
+	_last_scar_button = Button.new()
+	_last_scar_button.text = String(challenge.get("button_line"))
+	_last_scar_button.custom_minimum_size = Vector2(0.0, 48.0)
+	_last_scar_button.add_theme_color_override("font_color", Color("ef8065"))
+	IconKit.on_button(_last_scar_button, "last_scar", 24)
+	_last_scar_button.pressed.connect(_accept_last_scar)
+	box.add_child(_last_scar_button)
+	var line := Label.new()
+	line.text = "%s\n%s" % [String(challenge.get("condition_line")),
+		String(challenge.get("reward_line"))]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_font_size_override("font_size", 15)
+	line.add_theme_color_override("font_color", Color("d8b3aa"))
+	box.add_child(line)
+	options_box.add_child(card)
+	if RunState.last_scar_pending:
+		_show_last_scar_accepted()
+
+
+func _accept_last_scar() -> void:
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.ACCEPT_LAST_SCAR)
+			if _last_scar_button != null:
+				_last_scar_button.disabled = true
+				var challenge: Resource = ContentDB.run_challenge("last_scar")
+				if challenge != null:
+					_last_scar_button.text = String(challenge.get("waiting_line"))
+		return
+	_accept_last_scar_authoritative()
+
+
+func accept_last_scar_request() -> void:
+	if is_open():
+		_accept_last_scar_authoritative()
+
+
+func _accept_last_scar_authoritative() -> void:
+	if not RunState.accept_last_scar():
+		return
+	if Coop.is_host() and Coop.partner_present():
+		EventBus.coop_last_scar_accepted.emit()
+	_show_last_scar_accepted()
+
+
+func _on_coop_last_scar_accepted() -> void:
+	var relay: CoopRelay = Coop.relay()
+	if not Coop.is_guest() or relay == null or not relay.is_replaying():
+		return
+	RunState.mirror_accept_last_scar()
+	if _last_scar_button == null:
+		_add_last_scar_offer()
+	else:
+		_show_last_scar_accepted()
+
+
+func _show_last_scar_accepted() -> void:
+	if _last_scar_button == null:
+		return
+	var challenge: Resource = ContentDB.run_challenge("last_scar")
+	if challenge == null:
+		return
+	_last_scar_button.disabled = true
+	_last_scar_button.text = String(challenge.get("sworn_line"))
+	_last_scar_button.add_theme_color_override("font_color", Color("ffb08d"))
+	EventBus.preparation_warning.emit(String(challenge.get("accepted_line")))
 
 
 func _reroll() -> void:
@@ -459,6 +546,7 @@ func _apply_choice(road_id: String, difficulty_id: String) -> void:
 	_resolving = false
 	RunState.active_road_id = road_id
 	RunState.active_road_difficulty_id = difficulty_id
+	RunState.start_last_scar_road()
 	RunState.record_road_choice(_open_segment, road_id, difficulty_id)
 	panel.visible = false
 	_hide_pointer()
