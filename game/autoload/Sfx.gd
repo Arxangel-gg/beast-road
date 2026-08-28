@@ -109,6 +109,8 @@ const SOUNDS: Dictionary = {
 	"sfx_ui_hover_1": "res://audio/sfx/sfx_ui_hover_1.ogg",
 	"sfx_ui_hover_2": "res://audio/sfx/sfx_ui_hover_2.ogg",
 	"sfx_ui_hover_3": "res://audio/sfx/sfx_ui_hover_3.ogg",
+	"sfx_ui_hover_4": "res://audio/sfx/sfx_ui_hover_4.ogg",
+	"sfx_ui_hover_5": "res://audio/sfx/sfx_ui_hover_5.ogg",
 	"sfx_ui_move_1": "res://audio/sfx/sfx_ui_move_1.ogg",
 	"sfx_ui_move_2": "res://audio/sfx/sfx_ui_move_2.ogg",
 	"sfx_ui_move_3": "res://audio/sfx/sfx_ui_move_3.ogg",
@@ -117,6 +119,62 @@ const SOUNDS: Dictionary = {
 	"sfx_water_shot_2": "res://audio/sfx/sfx_water_shot_2.ogg",
 	"sfx_water_shot_3": "res://audio/sfx/sfx_water_shot_3.ogg",
 	"sfx_wave_incoming": "res://audio/sfx/sfx_wave_incoming.ogg",
+	"sfx_wildlife_badger_1": "res://audio/sfx/sfx_wildlife_badger_1.ogg",
+	"sfx_wildlife_badger_2": "res://audio/sfx/sfx_wildlife_badger_2.ogg",
+	"sfx_wildlife_badger_3": "res://audio/sfx/sfx_wildlife_badger_3.ogg",
+	"sfx_wildlife_badger_4": "res://audio/sfx/sfx_wildlife_badger_4.ogg",
+	"sfx_wildlife_bear_1": "res://audio/sfx/sfx_wildlife_bear_1.ogg",
+	"sfx_wildlife_bear_2": "res://audio/sfx/sfx_wildlife_bear_2.ogg",
+	"sfx_wildlife_bear_3": "res://audio/sfx/sfx_wildlife_bear_3.ogg",
+	"sfx_wildlife_bear_4": "res://audio/sfx/sfx_wildlife_bear_4.ogg",
+	"sfx_wildlife_bear_5": "res://audio/sfx/sfx_wildlife_bear_5.ogg",
+	"sfx_wildlife_bear_6": "res://audio/sfx/sfx_wildlife_bear_6.ogg",
+	"sfx_wildlife_bear_7": "res://audio/sfx/sfx_wildlife_bear_7.ogg",
+	"sfx_wildlife_bear_8": "res://audio/sfx/sfx_wildlife_bear_8.ogg",
+	"sfx_wildlife_boar_1": "res://audio/sfx/sfx_wildlife_boar_1.ogg",
+	"sfx_wildlife_boar_2": "res://audio/sfx/sfx_wildlife_boar_2.ogg",
+	"sfx_wildlife_boar_3": "res://audio/sfx/sfx_wildlife_boar_3.ogg",
+	"sfx_wildlife_boar_4": "res://audio/sfx/sfx_wildlife_boar_4.ogg",
+	"sfx_wildlife_deer_1": "res://audio/sfx/sfx_wildlife_deer_1.ogg",
+	"sfx_wildlife_deer_2": "res://audio/sfx/sfx_wildlife_deer_2.ogg",
+	"sfx_wildlife_deer_3": "res://audio/sfx/sfx_wildlife_deer_3.ogg",
+	"sfx_wildlife_deer_4": "res://audio/sfx/sfx_wildlife_deer_4.ogg",
+	"sfx_wildlife_fox_1": "res://audio/sfx/sfx_wildlife_fox_1.ogg",
+	"sfx_wildlife_fox_2": "res://audio/sfx/sfx_wildlife_fox_2.ogg",
+	"sfx_wildlife_fox_3": "res://audio/sfx/sfx_wildlife_fox_3.ogg",
+	"sfx_wildlife_fox_4": "res://audio/sfx/sfx_wildlife_fox_4.ogg",
+	"sfx_wildlife_hawk_1": "res://audio/sfx/sfx_wildlife_hawk_1.ogg",
+	"sfx_wildlife_hawk_2": "res://audio/sfx/sfx_wildlife_hawk_2.ogg",
+	"sfx_wildlife_hawk_3": "res://audio/sfx/sfx_wildlife_hawk_3.ogg",
+	"sfx_wildlife_hawk_4": "res://audio/sfx/sfx_wildlife_hawk_4.ogg",
+	"sfx_wildlife_rabbit_1": "res://audio/sfx/sfx_wildlife_rabbit_1.ogg",
+	"sfx_wildlife_rabbit_2": "res://audio/sfx/sfx_wildlife_rabbit_2.ogg",
+	"sfx_wildlife_rabbit_3": "res://audio/sfx/sfx_wildlife_rabbit_3.ogg",
+	"sfx_wildlife_rabbit_4": "res://audio/sfx/sfx_wildlife_rabbit_4.ogg",
+	"sfx_wildlife_raccoon_1": "res://audio/sfx/sfx_wildlife_raccoon_1.ogg",
+	"sfx_wildlife_raccoon_2": "res://audio/sfx/sfx_wildlife_raccoon_2.ogg",
+	"sfx_wildlife_raccoon_3": "res://audio/sfx/sfx_wildlife_raccoon_3.ogg",
+	"sfx_wildlife_raccoon_4": "res://audio/sfx/sfx_wildlife_raccoon_4.ogg",
+	"sfx_wildlife_raven_1": "res://audio/sfx/sfx_wildlife_raven_1.ogg",
+	"sfx_wildlife_raven_2": "res://audio/sfx/sfx_wildlife_raven_2.ogg",
+	"sfx_wildlife_raven_3": "res://audio/sfx/sfx_wildlife_raven_3.ogg",
+	"sfx_wildlife_raven_4": "res://audio/sfx/sfx_wildlife_raven_4.ogg",
+	"sfx_wildlife_squirrel_1": "res://audio/sfx/sfx_wildlife_squirrel_1.ogg",
+	"sfx_wildlife_squirrel_2": "res://audio/sfx/sfx_wildlife_squirrel_2.ogg",
+	"sfx_wildlife_squirrel_3": "res://audio/sfx/sfx_wildlife_squirrel_3.ogg",
+	"sfx_wildlife_squirrel_4": "res://audio/sfx/sfx_wildlife_squirrel_4.ogg",
+	"sfx_wildlife_viper_1": "res://audio/sfx/sfx_wildlife_viper_1.ogg",
+	"sfx_wildlife_viper_2": "res://audio/sfx/sfx_wildlife_viper_2.ogg",
+	"sfx_wildlife_viper_3": "res://audio/sfx/sfx_wildlife_viper_3.ogg",
+	"sfx_wildlife_viper_4": "res://audio/sfx/sfx_wildlife_viper_4.ogg",
+	"sfx_wildlife_wolf_1": "res://audio/sfx/sfx_wildlife_wolf_1.ogg",
+	"sfx_wildlife_wolf_2": "res://audio/sfx/sfx_wildlife_wolf_2.ogg",
+	"sfx_wildlife_wolf_3": "res://audio/sfx/sfx_wildlife_wolf_3.ogg",
+	"sfx_wildlife_wolf_4": "res://audio/sfx/sfx_wildlife_wolf_4.ogg",
+	"sfx_wildlife_wolf_5": "res://audio/sfx/sfx_wildlife_wolf_5.ogg",
+	"sfx_wildlife_wolf_6": "res://audio/sfx/sfx_wildlife_wolf_6.ogg",
+	"sfx_wildlife_wolf_7": "res://audio/sfx/sfx_wildlife_wolf_7.ogg",
+	"sfx_wildlife_wolf_8": "res://audio/sfx/sfx_wildlife_wolf_8.ogg",
 }
 
 ## Per-sound mix. `db` trims level, `pitch` is the +/- fraction of pitch drift,
@@ -200,6 +258,8 @@ const MIX: Dictionary = {
 	"sfx_ui_hover_1":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
 	"sfx_ui_hover_2":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
 	"sfx_ui_hover_3":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
+	"sfx_ui_hover_4":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
+	"sfx_ui_hover_5":            {"db": -17.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
 	"sfx_ui_move_1":             {"db": -12.0, "pitch": 0.07, "limit": 1, "gap": 0.04},
 	"sfx_ui_move_2":             {"db": -12.0, "pitch": 0.07, "limit": 1, "gap": 0.04},
 	"sfx_ui_move_3":             {"db": -12.0, "pitch": 0.07, "limit": 1, "gap": 0.04},
@@ -253,9 +313,21 @@ const GROUPS: Dictionary = {
 	"sfx_tower_sell": ["sfx_tower_sell_1", "sfx_tower_sell_2", "sfx_tower_sell_3"],
 	"sfx_tower_upgrade": ["sfx_tower_upgrade_1", "sfx_tower_upgrade_2", "sfx_tower_upgrade_3"],
 	"sfx_ui_click": ["sfx_ui_click_1", "sfx_ui_click_2", "sfx_ui_click_3"],
-	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3"],
+	"sfx_ui_hover": ["sfx_ui_hover_1", "sfx_ui_hover_2", "sfx_ui_hover_3", "sfx_ui_hover_4", "sfx_ui_hover_5"],
 	"sfx_ui_move": ["sfx_ui_move_1", "sfx_ui_move_2", "sfx_ui_move_3"],
 	"sfx_water_shot": ["sfx_water_shot_1", "sfx_water_shot_2", "sfx_water_shot_3"],
+	"sfx_wildlife_badger": ["sfx_wildlife_badger_1", "sfx_wildlife_badger_2", "sfx_wildlife_badger_3", "sfx_wildlife_badger_4"],
+	"sfx_wildlife_bear": ["sfx_wildlife_bear_1", "sfx_wildlife_bear_2", "sfx_wildlife_bear_3", "sfx_wildlife_bear_4", "sfx_wildlife_bear_5", "sfx_wildlife_bear_6", "sfx_wildlife_bear_7", "sfx_wildlife_bear_8"],
+	"sfx_wildlife_boar": ["sfx_wildlife_boar_1", "sfx_wildlife_boar_2", "sfx_wildlife_boar_3", "sfx_wildlife_boar_4"],
+	"sfx_wildlife_deer": ["sfx_wildlife_deer_1", "sfx_wildlife_deer_2", "sfx_wildlife_deer_3", "sfx_wildlife_deer_4"],
+	"sfx_wildlife_fox": ["sfx_wildlife_fox_1", "sfx_wildlife_fox_2", "sfx_wildlife_fox_3", "sfx_wildlife_fox_4"],
+	"sfx_wildlife_hawk": ["sfx_wildlife_hawk_1", "sfx_wildlife_hawk_2", "sfx_wildlife_hawk_3", "sfx_wildlife_hawk_4"],
+	"sfx_wildlife_rabbit": ["sfx_wildlife_rabbit_1", "sfx_wildlife_rabbit_2", "sfx_wildlife_rabbit_3", "sfx_wildlife_rabbit_4"],
+	"sfx_wildlife_raccoon": ["sfx_wildlife_raccoon_1", "sfx_wildlife_raccoon_2", "sfx_wildlife_raccoon_3", "sfx_wildlife_raccoon_4"],
+	"sfx_wildlife_raven": ["sfx_wildlife_raven_1", "sfx_wildlife_raven_2", "sfx_wildlife_raven_3", "sfx_wildlife_raven_4"],
+	"sfx_wildlife_squirrel": ["sfx_wildlife_squirrel_1", "sfx_wildlife_squirrel_2", "sfx_wildlife_squirrel_3", "sfx_wildlife_squirrel_4"],
+	"sfx_wildlife_viper": ["sfx_wildlife_viper_1", "sfx_wildlife_viper_2", "sfx_wildlife_viper_3", "sfx_wildlife_viper_4"],
+	"sfx_wildlife_wolf": ["sfx_wildlife_wolf_1", "sfx_wildlife_wolf_2", "sfx_wildlife_wolf_3", "sfx_wildlife_wolf_4", "sfx_wildlife_wolf_5", "sfx_wildlife_wolf_6", "sfx_wildlife_wolf_7", "sfx_wildlife_wolf_8"],
 	"swing_light": ["sfx_hero_swing_1", "sfx_hero_swing_2"],
 	"impact": ["sfx_hit_flesh", "sfx_hit_armour", "sfx_hit_stone"],
 }
@@ -448,14 +520,23 @@ func play(id: String, extra_db: float = 0.0) -> void:
 			return
 		_blocked_missing += 1
 		return
+	_play_stream(id, stream, id, extra_db)
 
-	var mix: Dictionary = MIX.get(id, DEFAULT_MIX)
+
+## Starts one resolved recording. `mix_id` may be its variation group, allowing
+## all takes to share one loudness, cooldown and polyphony budget. Wildlife
+## calls need this: otherwise four quiet variants each inherit the much louder
+## default and can bypass one another's cooldown.
+func _play_stream(id: String, stream: AudioStream, mix_id: String, extra_db: float) -> void:
+	var mix: Dictionary = MIX.get(mix_id, MIX.get(id, DEFAULT_MIX))
+	var limiter_id: String = mix_id if MIX.has(mix_id) else id
+
 	var now: float = float(Time.get_ticks_msec()) / 1000.0
 
-	if now < float(_next_allowed.get(id, 0.0)):
+	if now < float(_next_allowed.get(limiter_id, 0.0)):
 		_blocked_gap += 1
 		return
-	if int(_active.get(id, 0)) >= int(mix.get("limit", 3)):
+	if int(_active.get(limiter_id, 0)) >= int(mix.get("limit", 3)):
 		_blocked_limit += 1
 		return
 
@@ -473,11 +554,11 @@ func play(id: String, extra_db: float = 0.0) -> void:
 	voice.volume_db = float(mix.get("db", -8.0)) + extra_db
 	voice.play()
 
-	_next_allowed[id] = now + float(mix.get("gap", 0.04))
-	_active[id] = int(_active.get(id, 0)) + 1
+	_next_allowed[limiter_id] = now + float(mix.get("gap", 0.04))
+	_active[limiter_id] = int(_active.get(limiter_id, 0)) + 1
 	# Decrementing on `finished` keeps the count honest without polling.
 	var release: Callable = func() -> void:
-		_active[id] = maxi(int(_active.get(id, 0)) - 1, 0)
+		_active[limiter_id] = maxi(int(_active.get(limiter_id, 0)) - 1, 0)
 	voice.finished.connect(release, CONNECT_ONE_SHOT)
 
 
@@ -486,13 +567,33 @@ func play_group(group: String, extra_db: float = 0.0) -> void:
 	var options: Array = GROUPS.get(group, []) as Array
 	if options.is_empty():
 		return
-	var choice: String = String(options[randi() % options.size()])
+	var index: int = randi() % options.size()
+	var choice: String = String(options[index])
 	if options.size() > 1 and choice == String(_last_variant.get(group, "")):
-		# One re-roll is enough: it removes the obvious back-to-back repeat
-		# without making the sequence feel artificially alternating.
-		choice = String(options[randi() % options.size()])
+		# Select uniformly from every index except the previous one. A simple
+		# re-roll can land on the same take again, contradicting the audible
+		# guarantee this group exists to provide.
+		index = (index + 1 + randi() % (options.size() - 1)) % options.size()
+		choice = String(options[index])
 	_last_variant[group] = choice
-	play(choice, extra_db)
+	if GROUPS.has(choice):
+		play_group(choice, extra_db)
+		return
+	var stream: AudioStream = _streams.get(choice, null) as AudioStream
+	if stream == null:
+		_blocked_missing += 1
+		return
+	# A group-level row is intentional mix policy for every take. Groups without
+	# one retain their established per-variation mix rows.
+	var mix_id: String = variation_mix_id(group, choice)
+	_play_stream(choice, stream, mix_id, extra_db)
+
+
+## Side-effect-free resolution shared with the release gate. Keeping this
+## policy inspectable avoids starting a real decoder merely to prove which
+## cooldown/mix key a variation will use during a short headless validation.
+func variation_mix_id(group: String, choice: String) -> String:
+	return group if MIX.has(group) else choice
 
 
 func _free_voice() -> AudioStreamPlayer:

@@ -20,6 +20,12 @@ func _ready() -> void:
 		var path: String = String(paths[key])
 		if not ResourceLoader.exists(path):
 			failures.append("sfx \"%s\" points at a missing file: %s" % [key, path])
+			continue
+		var stream: AudioStreamOggVorbis = load(path) as AudioStreamOggVorbis
+		if stream == null:
+			failures.append("sfx \"%s\" is not an OGG Vorbis stream" % key)
+		elif stream.loop:
+			failures.append("one-shot sfx \"%s\" must not loop" % key)
 	for group: Variant in Sfx.GROUPS:
 		var options: Array = Sfx.GROUPS[group] as Array
 		if options.is_empty():
@@ -34,14 +40,27 @@ func _ready() -> void:
 				failures.append("group \"%s\" names \"%s\", which is neither a sound nor a group"
 					% [group, option])
 	for key: Variant in Sfx.MIX:
-		if String(key) != "default" and not paths.has(String(key)):
-			failures.append("mix names \"%s\", which is not a sound" % key)
+		if (String(key) != "default" and not paths.has(String(key))
+				and not Sfx.GROUPS.has(String(key))):
+			failures.append("mix names \"%s\", which is neither a sound nor a group" % key)
+		if String(key).begins_with("sfx_wildlife_"):
+			var wildlife_group: Array = Sfx.GROUPS.get(String(key), []) as Array
+			if wildlife_group.size() < 4:
+				failures.append("wildlife mix \"%s\" needs at least four recorded takes" % key)
 
 	# A group that eventually resolves to nothing is the failure nesting could
 	# hide, so every chain is followed to a real sound.
 	for group: Variant in Sfx.GROUPS:
 		if _resolves(String(group), paths, 0) == 0:
 			failures.append("group \"%s\" never reaches a real sound" % group)
+
+	# Variation groups with their own mix row must throttle as one audible event,
+	# not as independent recordings. Inspect the same pure policy playback uses;
+	# starting a decoder in this short test can exit before the audio thread has
+	# released it, which turns a passing gate into a false resource-leak failure.
+	if Sfx.variation_mix_id("sfx_wildlife_badger", "sfx_wildlife_badger_1") \
+			!= "sfx_wildlife_badger":
+		failures.append("wildlife variations do not share the base species mix policy")
 
 	print("[audio] %d sounds, %d groups, %d mix rows"
 		% [paths.size(), Sfx.GROUPS.size(), Sfx.MIX.size()])

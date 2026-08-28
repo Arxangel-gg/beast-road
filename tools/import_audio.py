@@ -17,6 +17,11 @@ Three things happen here, and each of them is load-bearing:
    would break the loop.
 
 Run:  python tools/import_audio.py
+      python tools/import_audio.py sfx_new_take_1.mp3 sfx_new_take_2.wav
+
+Passing filenames limits the conversion to those inbox entries. This keeps a
+new recording batch from needlessly re-encoding every previously imported
+master while preserving the original no-argument full-inbox workflow.
 """
 import io
 import os
@@ -106,8 +111,9 @@ def convert(ffmpeg: str, src: str, dst: str, kind: str) -> tuple:
 
 
 def duration(ffmpeg: str, path: str) -> float:
-    probe = ffmpeg.replace("ffmpeg", "ffprobe")
-    if not os.path.exists(probe) and not shutil.which("ffprobe"):
+    beside = os.path.join(os.path.dirname(ffmpeg), "ffprobe.exe")
+    probe = beside if os.path.exists(beside) else (shutil.which("ffprobe") or "")
+    if not probe:
         return 0.0
     try:
         out = subprocess.run(
@@ -129,7 +135,14 @@ def main() -> int:
     manifest = read_manifest()
     installed, skipped, failed = [], [], []
 
-    for entry in sorted(os.listdir(INBOX)):
+    entries = sorted(sys.argv[1:]) if len(sys.argv) > 1 else sorted(os.listdir(INBOX))
+    for entry in entries:
+        # Arguments are inbox filenames, never arbitrary paths. Keeping the
+        # source root fixed prevents a typo from writing an unrelated recording
+        # into the shipping audio tree.
+        if os.path.basename(entry) != entry:
+            skipped.append((entry, "must be a filename in audio_inbox/"))
+            continue
         path = os.path.join(INBOX, entry)
         if not os.path.isfile(path):
             continue
