@@ -36,10 +36,16 @@ extends Control
 
 ## Where the beast stands, as a fraction of the stage. Right of centre and low,
 ## so it sits on the horizon and clear of the button column on the left.
-const BEAST_AT := Vector2(0.585, 0.705)
+const BEAST_AT := Vector2(0.575, 0.760)
 
 ## How tall the beast is drawn, as a fraction of the stage height.
-const BEAST_HEIGHT: float = 0.44
+##
+## **It is the thing the menu is about.** At 0.44 it stood on the vista as one
+## more element of a landscape; the city rides on its back and the whole game
+## happens up there, so it should dominate the frame rather than decorate it.
+## Its feet sit lower to match, which keeps the top of the silhouette clear of
+## the title. [TUNE]
+const BEAST_HEIGHT: float = 0.66
 
 var _backdrop: TextureRect = null
 var _beast: Sprite2D = null

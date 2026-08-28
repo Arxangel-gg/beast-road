@@ -125,6 +125,19 @@ func _test_production_profile() -> void:
 
 
 func _test_four_currency_economy() -> void:
+	# The wilderness is a third party that happens to you, not a second enemy
+	# faction - and in Act I it was reading as the boss fight. A wolf costs 8 a
+	# bite against a hero with 100 and they arrive in threes, during the phase
+	# the player is meant to be reading the board in.
+	var early: float = Balance.wildlife_bite(1)
+	var late: float = Balance.wildlife_bite(3)
+	_check(early < late,
+		"a predator must bite softer in Act I than Act III, got %.2f and %.2f"
+			% [early, late])
+	_check(early >= 0.4,
+		"and not so soft the wilderness stops mattering, got %.2f" % early)
+	_check(is_equal_approx(late, 1.0),
+		"the late game must be untouched by the ramp, got %.2f" % late)
 	_check(RunState.currencies.size() == 4,
 		"the run must have exactly four role-specific economy wallets")
 	_check(RunState.currency(RunState.GOLD) == 0,

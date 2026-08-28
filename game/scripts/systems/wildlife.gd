@@ -590,6 +590,24 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# off, and it goes back to being an animal for a while. That is also the
 	# shape the design asks for - the wilderness as a third party that *happens*
 	# to you, not a second enemy faction with unlimited stamina.
+	# **Nothing hunts during Preparation.**
+	#
+	# Preparation is the phase the player reads the board in, and it is spent
+	# standing at the town - which is exactly where a predator that has noticed
+	# them will come. Played back as "predators attack the city base and it makes
+	# the hero hurt noise": nothing was attacking the town, a wolf was mauling
+	# the hero standing next to it, over and over, through the one phase that is
+	# supposed to be the quiet one.
+	#
+	# They go docile and drift off rather than freezing. A predator that stops
+	# dead a body-length away has not disengaged in any way the player can read,
+	# and it is on top of them the instant the wave starts.
+	if RunState.is_preparation():
+		if int(animal["state"]) == State.STALKING 				or int(animal["state"]) == State.STRIKING:
+			return _break_off(animal, sprite)
+		_drift_from_town(animal, sprite)
+		return false
+
 	animal["wary"] = maxf(float(animal["wary"]) - delta, 0.0)
 	if float(animal["hunt"]) > 0.0:
 		animal["hunt"] = float(animal["hunt"]) - delta
@@ -651,6 +669,23 @@ func _break_off(animal: Dictionary, sprite: Sprite2D) -> bool:
 	return false
 
 
+## Sends a settled animal a little further out, away from the town.
+##
+## Only when it is already near: an animal halfway across the field has no
+## business walking anywhere on account of a phase, and re-goaling every predator
+## every Preparation would read as the wilderness politely clearing the room.
+func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
+	var out: Vector2 = sprite.global_position
+	if out.length() > Balance.WILDLIFE_TOWN_SPACE:
+		return
+	if not is_zero_approx(float(animal.get("drifted", 0.0))):
+		return
+	var away: Vector2 = out.normalized() if out.length() > 1.0 		else Vector2.from_angle(_rng.randf() * TAU)
+	animal["state"] = State.SETTLED
+	animal["drifted"] = 1.0
+	animal["goal"] = away * Balance.WILDLIFE_TOWN_SPACE 		* _rng.randf_range(1.05, 1.4)
+
+
 ## The nearest thing worth attacking, or null.
 ##
 ## A territorial animal only answers inside its own ground; a predator reaches as
@@ -680,7 +715,11 @@ func _quarry_for(at: Vector2, kind: WildlifeData) -> Node2D:
 ## One blow, against whatever it caught.
 func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		quarry: Node2D) -> void:
-	var power: float = kind.damage * float(animal["size"])
+	# Softer early, at full strength later. A wolf pack costs 8 a bite and the
+	# hero has 100; three of them arriving in Act I read as the wilderness being
+	# the boss fight. The ramp is by act rather than by wave so it is legible to
+	# a player who noticed it, and so the late game is untouched.
+	var power: float = kind.damage * float(animal["size"]) * Balance.wildlife_bite(RunState.act)
 	var from: Vector2 = sprite.global_position
 	var enemy := quarry as Enemy
 	if enemy != null:

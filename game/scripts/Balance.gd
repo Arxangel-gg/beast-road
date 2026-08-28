@@ -1358,6 +1358,41 @@ const TORCH_SNUFF_LATERAL: float = 300.0
 
 const ENEMY_PROVOKED_SECONDS: float = 4.0
 
+## How much of its bite a predator lands, per act.
+##
+## The wilderness is a third party that happens to you, not a second enemy
+## faction - and in Act I it was reading as the boss fight. A wolf costs 8 a bite
+## against a hero with 100, and they arrive in threes. Softer early, whole later:
+## the ramp is by act rather than by wave so a player who notices it can say what
+## it is, and so nothing about the late game moves. [TUNE]
+## Below this share of health, healing lights up in the action bar.
+##
+## A third: high enough that the option is offered while there is still time to
+## take it, low enough that it is not lit for most of a normal fight - a
+## highlight that is always on is decoration. [TUNE]
+const HUD_HEAL_URGENT_FRACTION: float = 0.34
+const HUD_HEAL_PULSE_RATE: float = 3.1
+const HUD_HEAL_URGENT_TINT: Color = Color(1.0, 0.72, 0.55)
+
+
+const WILDLIFE_BITE_BY_ACT: Array[float] = [0.6, 0.85, 1.0]
+
+## How much room a settled animal leaves around the town during Preparation.
+##
+## Only animals already inside this walk anywhere - one halfway across the field
+## has no business moving on account of a phase, and re-goaling every predator
+## every Preparation would read as the wilderness politely clearing the room.
+## [TUNE]
+const WILDLIFE_TOWN_SPACE: float = 520.0
+
+
+## A predator's damage multiplier in a given act.
+static func wildlife_bite(act: int) -> float:
+	if WILDLIFE_BITE_BY_ACT.is_empty():
+		return 1.0
+	return WILDLIFE_BITE_BY_ACT[clampi(act - 1, 0, WILDLIFE_BITE_BY_ACT.size() - 1)]
+
+
 const WILDLIFE_HUNT_MIN: float = 7.0
 const WILDLIFE_HUNT_MAX: float = 12.0
 const WILDLIFE_HUNT_REST_MIN: float = 13.0

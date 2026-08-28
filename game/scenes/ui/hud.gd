@@ -217,6 +217,9 @@ var _mode_button: Button
 var _party_log: PartyLog = null
 var _chat_box: LineEdit = null
 var _tend_button: Button
+## Whether healing is both needed and affordable. Drives the pulse below.
+var _tend_urgent: bool = false
+var _tend_pulse: float = 0.0
 ## Breathing room either side of a centred banner, and the narrowest it may get
 ## before it simply overflows rather than becoming a column of single words.
 const BANNER_MARGIN: float = 12.0
@@ -432,6 +435,14 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# A slow warm breath rather than a flash: the player is being told an
+	# option exists, not alarmed. Driven here because the refresh that
+	# decides urgency runs on events, and a pulse has to run on frames.
+	if _tend_button != null and _tend_urgent:
+		_tend_pulse += delta * Balance.HUD_HEAL_PULSE_RATE
+		var warmth: float = 0.5 + 0.5 * sin(_tend_pulse)
+		_tend_button.modulate = Color.WHITE.lerp(
+			Balance.HUD_HEAL_URGENT_TINT, warmth)
 	_refresh_recovery_status()
 	if Input.is_action_just_pressed(&"ride_on"):
 		ride_on_requested.emit()
@@ -1134,6 +1145,18 @@ func _update_repair_button() -> void:
 	# button that quietly charges more than expected is worse than a greyed one.
 	_tend_button.text = _action_label("V", "TEND  %d" % price) if preparing \
 		else _action_label("V", "RATION  %d" % price)
+	# **Healing announces itself when it is worth taking.**
+	#
+	# A hero on their last third has one button that answers the situation
+	# and it looked exactly like the four beside it. Lit only when it is both
+	# needed and takeable - a glowing button that refuses the press is worse
+	# than a quiet one, so an unaffordable ration stays quiet.
+	var left: float = 1.0
+	if hero_health != null and hero_health.max_hp > 0.0:
+		left = hero_health.current_hp / hero_health.max_hp
+	_tend_urgent = not _tend_button.disabled and left <= Balance.HUD_HEAL_URGENT_FRACTION
+	if not _tend_urgent:
+		_tend_button.modulate = Color.WHITE
 
 
 func _add_button(parent: Node, text: String, on_press: Callable) -> Button:
