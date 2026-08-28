@@ -36,6 +36,8 @@ var _life: float = 0.0
 var _trail: Line2D
 var _filament: Line2D
 var _core: Polygon2D
+## The white heart a high-tier shot carries. Null below `PROJECTILE_HOT_TIER`.
+var _ember: Polygon2D = null
 
 ## Painted head, when the element has art. The authored polygons stay as the
 ## fallback, so a missing file costs nothing and the shot still reads.
@@ -47,7 +49,16 @@ var _spin: float = 0.0
 var _mote_left: float = 0.0
 
 
-func setup(target: Enemy, tower_data: TowerData, hit_damage: float, hit_knockback: float) -> void:
+## Builds the shot. **`fired_at` is a parameter, not a field to assign after.**
+##
+## Everything visual here sizes itself from the tier - head, trail, glow, light -
+## so a caller that set `tier` afterwards got a level 1 shot from a level 5
+## tower, and nothing said so. That is exactly what happened, for as long as the
+## scaling has existed. Taking it as an argument makes the mistake unavailable
+## rather than merely commented against.
+func setup(target: Enemy, tower_data: TowerData, hit_damage: float,
+		hit_knockback: float, fired_at: int = 1) -> void:
+	tier = maxi(fired_at, 1)
 	_target = target
 	data = tower_data
 	damage = hit_damage
@@ -96,7 +107,8 @@ func _ready() -> void:
 	# at a glance without reading the colours.
 	_glow = Polygon2D.new()
 	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
-	_glow.color = Color(colour, 0.30)
+	# Blooms harder with the tier, so the shot reads brighter as well as bigger.
+	_glow.color = Color(colour, _glow_alpha(0.30))
 	add_child(_glow)
 
 	_core = Polygon2D.new()
@@ -105,6 +117,17 @@ func _ready() -> void:
 	# rather than as a coloured shape.
 	_core.color = colour.lerp(Color.WHITE, 0.55)
 	add_child(_core)
+
+	# **An upgraded shot is hotter, not just larger.** Scale already carried the
+	# tier and a bigger shot still reads as the same shot; a white centre turning
+	# against its own shell changes what the projectile is. Only from
+	# `PROJECTILE_HOT_TIER`, so the step is an event rather than a gradient
+	# nobody notices crossing.
+	if tier >= Balance.PROJECTILE_HOT_TIER:
+		_ember = Polygon2D.new()
+		_ember.polygon = _head_shape(_tier_scale() * Balance.PROJECTILE_HOT_SCALE)
+		_ember.color = Color(1.0, 0.97, 0.9, 0.92)
+		add_child(_ember)
 
 	_build_head()
 
@@ -137,11 +160,16 @@ func _process(delta: float) -> void:
 
 	# Earth shots tumble; everything else holds its heading.
 	if data != null and data.element == TowerData.Element.EARTH:
-		_spin += delta * Balance.PROJECTILE_SPIN_RATE
+		_spin += delta * Balance.PROJECTILE_SPIN_RATE * (1.0
+			+ float(_tier_step()) * Balance.PROJECTILE_SPIN_TIER_STEP)
 		_core.rotation = _spin
 		_glow.rotation = _spin
 		if _head != null:
 			_head.rotation = _spin
+		# Against the shell. Two things turning the same way read as one thing
+		# turning; opposed, they read as something being driven.
+		if _ember != null:
+			_ember.rotation = -_spin * 1.6
 
 	_push_trail()
 	_mote_left -= delta
@@ -179,10 +207,40 @@ func _build_head() -> void:
 	_head.modulate = colour.lerp(Color.WHITE, 0.35)
 	add_child(_head)
 	_core.visible = false
-	_glow.color = Color(colour, 0.22)
+	# Still tier-scaled. This used to reset the alpha to a flat value, which
+	# quietly undid the upgrade's bloom for every tower that has painted head
+	# art - which is all of them.
+	_glow.color = Color(colour, _glow_alpha(0.22))
 
 
 ## How much bigger a shot is per level of the tower that fired it.
+## The glow's opacity at this tier, from a base the caller chooses.
+##
+## One place, because two call sites set it and only one of them was scaling -
+## so a painted shot bloomed the same at level 5 as at level 1.
+func _glow_alpha(base: float) -> float:
+	return minf(base + float(_tier_step()) * Balance.PROJECTILE_GLOW_TIER_STEP, 0.72)
+
+
+## Whether this shot carries the white heart of an upgraded tower. For the gate.
+func has_hot_core() -> bool:
+	return _ember != null and is_instance_valid(_ember)
+
+
+## The trail's width and the glow's opacity, for the gate to compare tiers by.
+func look() -> Dictionary:
+	return {
+		"trail": _trail.width if _trail != null else 0.0,
+		"glow_alpha": _glow.color.a if _glow != null else 0.0,
+		"hot": has_hot_core(),
+	}
+
+
+## How many upgrades this shot is above a fresh one, 0 to TOWER_MAX_LEVEL - 1.
+func _tier_step() -> int:
+	return clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1
+
+
 func _tier_scale() -> float:
 	return 1.0 + float(clampi(tier, 1, Balance.TOWER_MAX_LEVEL) - 1) * Balance.PROJECTILE_TIER_SCALE
 

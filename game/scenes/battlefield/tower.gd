@@ -450,9 +450,13 @@ func _launch(enemy: Enemy) -> void:
 	if shot == null:
 		_hit(enemy)
 		return
+	# The level is passed *in*, because the shot builds its head, trail, glow and
+	# light from it. It used to be assigned after `setup` had already run, so
+	# every projectile in the game was built as a level 1 shot no matter what
+	# fired it - the tier scaling existed, was correct, and did nothing.
 	shot.setup(enemy, data, rolled_damage(),
-		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
-	shot.tier = level
+		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK),
+		level)
 	_field.add_projectile(shot, origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
 

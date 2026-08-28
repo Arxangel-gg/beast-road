@@ -2452,6 +2452,24 @@ const TOWER_LEVEL_LIGHT_STEP: float = 0.30
 ## How much bigger a projectile is per level of the tower that fired it. [TUNE]
 const PROJECTILE_TIER_SCALE: float = 0.16
 
+## Where a shot stops being bigger and starts being *hotter*.
+##
+## Scale alone was already carrying the upgrade - a level 5 shot is 1.64 times a
+## level 1 - and a bigger shot still reads as the same shot. From this tier the
+## head gains a white core turning against its own shell, which changes what the
+## projectile *is* rather than how much of it there is. That is the difference
+## between an upgrade the player can measure and one they can see. [TUNE]
+const PROJECTILE_HOT_TIER: int = 3
+const PROJECTILE_HOT_SCALE: float = 0.46
+
+## How much faster the head turns per level, and how much harder the glow burns.
+##
+## Both small per step and cumulative across five: a max-level shot spins at
+## twice the rate of a fresh one and blooms half again as bright, which is
+## legible in a lane full of traffic without any of it being loud. [TUNE]
+const PROJECTILE_SPIN_TIER_STEP: float = 0.25
+const PROJECTILE_GLOW_TIER_STEP: float = 0.12
+
 # ==============================================================================
 # TORCHES, FOLIAGE AND PATH BLENDING
 # ==============================================================================
