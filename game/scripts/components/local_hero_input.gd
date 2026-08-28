@@ -56,6 +56,8 @@ func held(mask: int) -> bool:
 		# action a thumb can reach, so on a phone this was always false and a
 		# fallen partner stayed down for the rest of the run.
 		return Input.is_action_pressed(&"revive") or TouchInput.revive_held()
+	if mask == HOLD_ATTACK:
+		return TouchInput.is_showing() and TouchInput.attacking()
 	# Held attack, for anything that wants to know the button is still down.
 	# Tested *after* the holds, so a future hold sharing this value cannot shadow
 	# it the way this branch once shadowed the revive.
@@ -87,4 +89,6 @@ func snapshot(current_aim: Vector2) -> Array:
 	var holds: int = 0
 	if held(HOLD_REVIVE):
 		holds |= HOLD_REVIVE
+	if held(HOLD_ATTACK):
+		holds |= HOLD_ATTACK
 	return [move(), current_aim, buttons, holds]

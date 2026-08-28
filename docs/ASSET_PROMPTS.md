@@ -3,7 +3,9 @@
 **Generated from `ASSET_MANIFEST.md`.** Do not hand-edit the sizes here - fix the manifest
 and regenerate, or the two will disagree about what the game loads.
 
-122 assets: **111 ChatGPT** (transparent background) and **11 Midjourney** (opaque).
+110 assets: **102 ChatGPT** (transparent background) and **8 Midjourney** (opaque).
+
+**Coverage note:** 577 newer manifest assets do not yet have authored prompt subjects and are intentionally omitted. Run `py -3 tools/gen_prompts.py` without `--known-only` to print that backlog and fail closed.
 
 ---
 
@@ -128,164 +130,6 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: the same warrior in final transformation - towering and monstrous, the mask fully shattered into a crown of bone shards, amber light pouring from every seam, cloak become a mass of trailing ribbons, the blade elongated and burning
 ```
 
-## 5.2 Enemies — `res://art/enemies/`
-
-### `enemy_bogkin.png`
-
-`96 x 96`  ->  `res://art/enemies/enemy_bogkin.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a hunched swamp-dweller creature, waterlogged and bloated, moss and dead reeds hanging from its limbs, dim pale eyes, heavy rounded shoulders, dripping black water
-```
-
-### `enemy_glassborn.png`
-
-`96 x 96`  ->  `res://art/enemies/enemy_glassborn.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a jagged crystalline humanoid made of fractured salt glass, thin sharp limbs, semi-translucent body catching light, hairline fractures across its shoulders
-```
-
-### `enemy_steppehorde.png`
-
-`96 x 96`  ->  `res://art/enemies/enemy_steppehorde.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 96 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a scrappy nomad raider in scavenged rusted iron plates, crude iron spear held upright, wiry underfed frame, cloth-wrapped head
-```
-
-### `elite_warden.png`
-
-`128 x 128`  ->  `res://art/enemies/elite_warden.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a heavily armored bulwark warrior hunched behind an enormous riveted iron shield taller than itself, dense immovable silhouette, minimal visible body
-```
-
-### `elite_howler.png`
-
-`128 x 128`  ->  `res://art/enemies/elite_howler.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a gaunt ritual-caller with an oversized curved bone horn raised to its mouth, ragged banner strapped to its back, throat distended
-```
-
-### `elite_burrower.png`
-
-`128 x 128`  ->  `res://art/enemies/elite_burrower.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 128 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a segmented armored digging creature erupting from broken ground, heavy clawed forelimbs, eyeless armored head plate, broad chitinous back
-```
-
 ## 5.3 Bosses — `res://art/bosses/`
 
 ### `boss_drowned_choir.png`
@@ -370,7 +214,7 @@ SUBJECT: a colossal armored warlord fused to a throne of corroded iron, a crown 
 
 ### `tower_ember_spire.png`
 
-`128 x 192`  ->  `res://art/towers/tower_ember_spire.png`
+`192 x 192`  ->  `res://art/towers/tower_ember_spire.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -388,7 +232,7 @@ SUBJECT: a slender tall stone spire capped with an open burning brazier, narrow 
 
 ### `tower_pyre_cannon.png`
 
-`128 x 192`  ->  `res://art/towers/tower_pyre_cannon.png`
+`192 x 192`  ->  `res://art/towers/tower_pyre_cannon.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -406,7 +250,7 @@ SUBJECT: a squat heavy siege cannon of blackened iron with a glowing fire-chambe
 
 ### `tower_rime_lance.png`
 
-`128 x 192`  ->  `res://art/towers/tower_rime_lance.png`
+`192 x 192`  ->  `res://art/towers/tower_rime_lance.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -424,7 +268,7 @@ SUBJECT: a tall narrow tower of pale stone ending in a single frost-encrusted sp
 
 ### `tower_hoarfrost_bell.png`
 
-`128 x 192`  ->  `res://art/towers/tower_hoarfrost_bell.png`
+`192 x 192`  ->  `res://art/towers/tower_hoarfrost_bell.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -442,7 +286,7 @@ SUBJECT: a heavy stone frame holding a large frost-covered bronze bell, long ici
 
 ### `tower_bulwark.png`
 
-`128 x 192`  ->  `res://art/towers/tower_bulwark.png`
+`192 x 192`  ->  `res://art/towers/tower_bulwark.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -460,7 +304,7 @@ SUBJECT: a squat fortified stone bunker with layered overlapping shield plating,
 
 ### `tower_shard_thrower.png`
 
-`128 x 192`  ->  `res://art/towers/tower_shard_thrower.png`
+`192 x 192`  ->  `res://art/towers/tower_shard_thrower.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -478,7 +322,7 @@ SUBJECT: a mechanical ballista of stone and iron loaded with a single long jagge
 
 ### `tower_arc_coil.png`
 
-`128 x 192`  ->  `res://art/towers/tower_arc_coil.png`
+`192 x 192`  ->  `res://art/towers/tower_arc_coil.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -496,7 +340,7 @@ SUBJECT: a metal tower wrapped in tiered copper coils, arcs of pale violet light
 
 ### `tower_gale_turret.png`
 
-`128 x 192`  ->  `res://art/towers/tower_gale_turret.png`
+`192 x 192`  ->  `res://art/towers/tower_gale_turret.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -734,7 +578,7 @@ SUBJECT: an overgrown derelict building plot behind a barred timber palisade, ch
 
 ### `beast_profile.png`
 
-`1024 x 512`  ->  `res://art/beast/beast_profile.png`
+`1024 x 1024`  ->  `res://art/beast/beast_profile.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1316,14 +1160,14 @@ SUBJECT: a rough hand-drawn ritual sigil representing a cone of exhaled breath w
 
 ### `ui_element_fire.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_element_fire.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_element_fire.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1334,14 +1178,14 @@ SUBJECT: a stylised flame
 
 ### `ui_element_water.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_element_water.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_element_water.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1352,14 +1196,14 @@ SUBJECT: a stylised water droplet
 
 ### `ui_element_earth.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_element_earth.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_element_earth.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1370,14 +1214,14 @@ SUBJECT: a stylised faceted stone
 
 ### `ui_element_air.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_element_air.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_element_air.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1388,14 +1232,14 @@ SUBJECT: a stylised swirling gust
 
 ### `ui_resource.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_resource.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_resource.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1406,14 +1250,14 @@ SUBJECT: a heap of salvaged scrap and bone
 
 ### `ui_blueprint.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_blueprint.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_blueprint.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1424,14 +1268,14 @@ SUBJECT: a rolled schematic scroll
 
 ### `ui_relic.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_relic.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_relic.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1442,14 +1286,14 @@ SUBJECT: a faceted ritual amulet
 
 ### `ui_war_horn.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_war_horn.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_war_horn.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1460,14 +1304,14 @@ SUBJECT: a curved war horn
 
 ### `ui_raid_charge.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_raid_charge.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_raid_charge.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1478,14 +1322,14 @@ SUBJECT: a filling lightning-charged meter
 
 ### `ui_distance.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_distance.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_distance.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1496,14 +1340,14 @@ SUBJECT: a winding road vanishing to a point
 
 ### `ui_city_health.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_city_health.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_city_health.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1514,14 +1358,14 @@ SUBJECT: a fortified gate tower
 
 ### `ui_pressure_arrow.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_pressure_arrow.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_pressure_arrow.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1532,14 +1376,14 @@ SUBJECT: a bold directional arrow
 
 ### `ui_captive.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_captive.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_captive.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1550,14 +1394,14 @@ SUBJECT: a pair of iron shackles
 
 ### `ui_wave.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_wave.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_wave.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1568,14 +1412,14 @@ SUBJECT: three advancing spear silhouettes
 
 ### `ui_upgrade.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_upgrade.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_upgrade.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1586,14 +1430,14 @@ SUBJECT: a chevron arrow pointing up
 
 ### `ui_build.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_build.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_build.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1604,14 +1448,14 @@ SUBJECT: a mason's hammer and chisel
 
 ### `ui_pause.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_pause.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_pause.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1622,14 +1466,14 @@ SUBJECT: two vertical pause bars
 
 ### `ui_settings.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_settings.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_settings.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1640,14 +1484,14 @@ SUBJECT: a toothed iron cog
 
 ### `ui_lock.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_lock.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_lock.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1658,14 +1502,14 @@ SUBJECT: a heavy closed padlock
 
 ### `ui_close.png`
 
-`64 x 64`  ->  `res://art/icons/ui/ui_close.png`
+`128 x 128`  ->  `res://art/icons/ui/ui_close.png`
 
 ```text
 A 2D game UI icon.
 
 VIEW: flat and front-on. No perspective, no camera angle, no three-dimensional staging. One clear symbol, like a printed pictogram.
 
-SIZE: this will be displayed about 64px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
+SIZE: this will be displayed about 128px. Thick bold shapes only - it has to read at thumbnail size. No thin lines, no small parts, no texture detail.
 
 STYLE: limited flat colour - amber (#E8A33D) and bone (#D9CDB8), with near-black (#0B1416) for separation. Slight hand-painted texture is fine; gradients, gloss and realistic rendering are not.
 
@@ -1674,11 +1518,11 @@ FRAMING: the symbol centred and filling most of the frame. Square 1:1. Fully tra
 SUBJECT: a bold X cross
 ```
 
-## 5.12 Combination towers — `res://art/towers/`
+## 5.14 Combination towers — `res://art/towers/`
 
 ### `tower_firestorm.png`
 
-`128 x 192`  ->  `res://art/towers/tower_firestorm.png`
+`192 x 192`  ->  `res://art/towers/tower_firestorm.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1696,7 +1540,7 @@ SUBJECT: a tower of blackened iron and stone with a cyclone of burning embers sp
 
 ### `tower_magma.png`
 
-`128 x 192`  ->  `res://art/towers/tower_magma.png`
+`192 x 192`  ->  `res://art/towers/tower_magma.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1714,7 +1558,7 @@ SUBJECT: a squat cracked-stone tower with molten rock glowing through its fissur
 
 ### `tower_steam_burst.png`
 
-`128 x 192`  ->  `res://art/towers/tower_steam_burst.png`
+`192 x 192`  ->  `res://art/towers/tower_steam_burst.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1732,7 +1576,7 @@ SUBJECT: a riveted copper and stone tower with pressure valves along its flanks 
 
 ### `tower_blizzard.png`
 
-`128 x 192`  ->  `res://art/towers/tower_blizzard.png`
+`192 x 192`  ->  `res://art/towers/tower_blizzard.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1750,7 +1594,7 @@ SUBJECT: a pale ice-sheathed tower with a swirling vortex of snow and violet lig
 
 ### `tower_glacier.png`
 
-`128 x 192`  ->  `res://art/towers/tower_glacier.png`
+`192 x 192`  ->  `res://art/towers/tower_glacier.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1768,7 +1612,7 @@ SUBJECT: a massive block of blue-white glacial ice fused around a stone core, th
 
 ### `tower_quake.png`
 
-`128 x 192`  ->  `res://art/towers/tower_quake.png`
+`192 x 192`  ->  `res://art/towers/tower_quake.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1786,7 +1630,7 @@ SUBJECT: a heavy megalith tower of stacked raw stone with shattered rock and dus
 
 ### `tower_conflagration.png`
 
-`128 x 192`  ->  `res://art/towers/tower_conflagration.png`
+`192 x 192`  ->  `res://art/towers/tower_conflagration.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1804,7 +1648,7 @@ SUBJECT: a tall furnace-tower entirely engulfed in roaring fire, iron ribs glowi
 
 ### `tower_deep_freeze.png`
 
-`128 x 192`  ->  `res://art/towers/tower_deep_freeze.png`
+`192 x 192`  ->  `res://art/towers/tower_deep_freeze.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1822,7 +1666,7 @@ SUBJECT: a jagged spire of solid black-blue ice, razor-sharp frozen shards radia
 
 ### `tower_bastion.png`
 
-`128 x 192`  ->  `res://art/towers/tower_bastion.png`
+`192 x 192`  ->  `res://art/towers/tower_bastion.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1840,7 +1684,7 @@ SUBJECT: an immense squat fortress block of layered granite and iron plating, ut
 
 ### `tower_tempest.png`
 
-`128 x 192`  ->  `res://art/towers/tower_tempest.png`
+`192 x 192`  ->  `res://art/towers/tower_tempest.png`
 
 ```text
 A 2D game sprite of a building or structure for a top-down game, drawn to be seen small.
@@ -1856,7 +1700,7 @@ FRAMING: one structure, centred, upright in frame with a small even margin, noth
 SUBJECT: a skeletal iron lattice tower crowned with a violent storm cloud, multiple violet lightning bolts branching outward simultaneously
 ```
 
-## 5.13 Battlefield — `res://art/battlefield/`
+## 5.15 Battlefield — `res://art/battlefield/`
 
 ### `build_spot.png`
 
@@ -1912,85 +1756,7 @@ FRAMING: one structure, centred, upright in frame with a small even margin, noth
 SUBJECT: a compact fortified keep of tiered stone with a banner mast, heavy gate and a low protective wall, seen from three-quarter above, the heart of a small settlement
 ```
 
-## 5.14 Raid — `res://art/raid/`
-
-### `chieftain_jungle.png`
-
-`256 x 256`  ->  `res://art/raid/chieftain_jungle.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: an enormous bloated marsh warlord crowned with antlers and reeds, draped in waterlogged hides, carrying a heavy bone maul, black water streaming from its bulk
-```
-
-### `chieftain_desert.png`
-
-`256 x 256`  ->  `res://art/raid/chieftain_desert.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a tall crystalline warlord of fused salt glass shards, a mirrored faceless head, jagged blade-limbs, refracting amber light
-```
-
-### `chieftain_snow.png`
-
-`256 x 256`  ->  `res://art/raid/chieftain_snow.png`
-
-```text
-An isometric game character sprite, in the style of a top-down isometric action RPG.
-
-VIEW - describe by what is visible, not by an angle. Degree instructions do not work on these models; a list of what the camera can and cannot see does:
-
-  - You SEE: the top of the head and shoulders, the upper back, the outer sides of the arms, the tops of the feet.
-
-  - You DO NOT SEE: the face, the front of the chest, the underside of a cloak, or the soles of the feet.
-
-  - The head overlaps the chest because you are looking down onto it. The legs are short and foreshortened. The figure looks slightly squashed vertically, and that is correct.
-
-POSE: standing upright and compact, weight settled, facing away from the viewer and slightly down-screen. A calm ready stance. NOT leaping, NOT lunging, NOT sprawled diagonally across the frame, NOT a dramatic action pose.
-
-SIZE: displayed at about 256 pixels in game - roughly a thumbnail. Build it from large flat shapes and one strong silhouette. No fine straps, no small buckles, no cloth folds, no rendered texture. If a detail would be under two pixels, leave it out.
-
-STYLE: flat painterly game art, confident simple brushwork, no black outlines, no realistic rendering, no gloss. Muted desaturated palette (#0B1416 near-black, #1E2E33 slate, #E8A33D amber, #D9CDB8 bone, #8C3A2B rust) with one saturated accent. Warm amber rim light from the upper right against deep teal-black shadow.
-
-FRAMING: one figure, centred, standing vertically and filling most of the square with a small even margin. Square 1:1. Fully transparent background - no ground, no cast shadow, no frame, no text, no border. Export as PNG with a true alpha channel.
-
-SUBJECT: a broad iron-plated nomad warlord in a horned rusted helm, layered scavenged armour, twin curved cleavers, torn clan banners on its back
-```
+## 5.16 Raid — `res://art/raid/`
 
 ### `captive_bogkin.png`
 
@@ -2044,9 +1810,9 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: a defeated crystalline salt-glass humanoid kneeling with its head bowed, heavy iron shackles on its cracked wrists, dulled fractured body
 ```
 
-### `captive_snowhorde.png`
+### `captive_steppehorde.png`
 
-`128 x 128`  ->  `res://art/raid/captive_snowhorde.png`
+`128 x 128`  ->  `res://art/raid/captive_steppehorde.png`
 
 ```text
 An isometric game character sprite, in the style of a top-down isometric action RPG.
@@ -2070,7 +1836,7 @@ FRAMING: one figure, centred, standing vertically and filling most of the square
 SUBJECT: a defeated nomad raider kneeling with its head bowed, heavy iron shackles on its wrists, stripped armour and torn cloth wrappings
 ```
 
-## 5.15 UI frames — `res://art/ui/`
+## 5.17 UI frames — `res://art/ui/`
 
 ### `ui_panel.png`
 
@@ -2110,7 +1876,7 @@ SUBJECT: a rectangular near-black stone interface panel with a thin recessed iro
 
 ### `ui_button.png`
 
-`256 x 64`  ->  `res://art/ui/ui_button.png`
+`256 x 88`  ->  `res://art/ui/ui_button.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2128,7 +1894,7 @@ SUBJECT: a wide horizontal dark iron button plate with bevelled edges and small 
 
 ### `ui_button_hover.png`
 
-`256 x 64`  ->  `res://art/ui/ui_button_hover.png`
+`256 x 88`  ->  `res://art/ui/ui_button_hover.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2146,7 +1912,7 @@ SUBJECT: the same wide horizontal iron button plate lit with a warm amber inner 
 
 ### `ui_slot.png`
 
-`96 x 96`  ->  `res://art/ui/ui_slot.png`
+`128 x 128`  ->  `res://art/ui/ui_slot.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2164,7 +1930,7 @@ SUBJECT: a square recessed inventory socket of dark stone with a worn iron rim a
 
 ### `ui_bar_fill.png`
 
-`64 x 16`  ->  `res://art/ui/ui_bar_fill.png`
+`128 x 16`  ->  `res://art/ui/ui_bar_fill.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2182,7 +1948,7 @@ SUBJECT: a small horizontal bar of solid warm amber-rust light with a soft inner
 
 ### `ui_bar_back.png`
 
-`64 x 16`  ->  `res://art/ui/ui_bar_back.png`
+`128 x 16`  ->  `res://art/ui/ui_bar_back.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2200,7 +1966,7 @@ SUBJECT: a small horizontal empty trough of dark recessed iron, flat, seamless l
 
 ### `ui_logo.png`
 
-`1024 x 256`  ->  `res://art/ui/ui_logo.png`
+`1024 x 512`  ->  `res://art/ui/ui_logo.png`
 
 ```text
 A 2D user-interface panel graphic for a game, built to be stretched.
@@ -2222,37 +1988,11 @@ SUBJECT: the words BEAST ROAD as a wide game logo wordmark in a heavy weathered 
 
 Terrain tiles use `--tile` and should be checked by tiling them 2x2 before use.
 
-## 5.7 Terrain tiles — `res://art/terrain/`
-
-### `terrain_jungle.png`
-
-`512 x 512`  ->  `res://art/terrain/terrain_jungle.png`
-
-```text
-seamless tileable top-down ground texture, dark marsh ground, pools of black standing water, pale dead reeds, ash-grey mud, sunken twisted roots, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
-```
-
-### `terrain_desert.png`
-
-`512 x 512`  ->  `res://art/terrain/terrain_desert.png`
-
-```text
-seamless tileable top-down ground texture, cracked salt flat, pale white-blue crystalline crust, thin fracture lines, scattered glassy shards, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
-```
-
-### `terrain_snow.png`
-
-`512 x 512`  ->  `res://art/terrain/terrain_snow.png`
-
-```text
-seamless tileable top-down ground texture, dry steppe hardpan, red-brown cracked earth, scattered rusted iron debris, sparse dead grass tufts, dark painterly grim-fantasy game art, hand-painted, muted desaturated palette, even lighting with no directional shadow, no objects casting shadow, no text --tile --ar 1:1 --s 150
-```
-
 ## 5.8 Backdrops — `res://art/bg/`
 
 ### `macro_act1.png`
 
-`1920 x 1080`  ->  `res://art/bg/macro_act1.png`
+`688 x 384`  ->  `res://art/bg/macro_act1.png`
 
 ```text
 a vast fog-drowned marsh valley stretching to the horizon, drowned trees, low grey mist, distant water, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 16:9 --s 250
@@ -2260,7 +2000,7 @@ a vast fog-drowned marsh valley stretching to the horizon, drowned trees, low gr
 
 ### `macro_act2.png`
 
-`1920 x 1080`  ->  `res://art/bg/macro_act2.png`
+`688 x 384`  ->  `res://art/bg/macro_act2.png`
 
 ```text
 an endless cracked white salt desert under a bruised sky, distant glass formations catching light, heat shimmer, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 16:9 --s 250
@@ -2268,10 +2008,10 @@ an endless cracked white salt desert under a bruised sky, distant glass formatio
 
 ### `macro_act3.png`
 
-`1920 x 1080`  ->  `res://art/bg/macro_act3.png`
+`688 x 384`  ->  `res://art/bg/macro_act3.png`
 
 ```text
-a red-brown iron steppe under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 16:9 --s 250
+a red-brown iron snow under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 16:9 --s 250
 ```
 
 ### `crossroad_bg.png`
@@ -2292,13 +2032,13 @@ a hostile enemy warcamp seen from directly above, ringed by bone totems and burn
 
 ### `menu_key_art.png`
 
-`1920 x 1080`  ->  `res://art/bg/menu_key_art.png`
+`688 x 384`  ->  `res://art/bg/menu_key_art.png`
 
 ```text
-an immense ancient beast - part serpent, part turtle, part dinosaur - walking away across a wasteland at dusk with a small lit fortified city on its back, seen from behind and below, dramatic scale, cinematic key art, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 16:9 --s 250
+an original colossal ancient road gate at twilight, rugged cyclopean stone and timber braced with jungle roots, restrained amber torchlight opening onto a dangerous road through layered mountains, deep indigo and moss-green shadow, the left third dark and quiet for navigation, upper centre low-detail for a logo, broad uncluttered centre-right stage, no beast or creature because the game draws it at runtime, handcrafted high-end 32-bit pixel art, crisp deliberate pixel clusters, strong silhouettes, deep indigo charcoal and moss green with restrained amber firelight, cinematic 16:9 game-production background, no creature, no characters, no logo, no text, no UI, no recognizable franchise symbols --ar 16:9
 ```
 
-## 5.13 Battlefield — `res://art/battlefield/`
+## 5.15 Battlefield — `res://art/battlefield/`
 
 ### `lane_path.png`
 
@@ -2308,7 +2048,7 @@ an immense ancient beast - part serpent, part turtle, part dinosaur - walking aw
 a trodden dirt road surface, packed earth rutted by cart wheels and footfall, scattered gravel, slightly darker than surrounding ground, dark painterly grim-fantasy game art, hand-painted digital matte painting, visible brushwork, warm amber light against deep teal-black shadow, muted desaturated palette, heavy atmosphere, volumetric haze, no characters, no text, no UI --ar 1:1 --s 250
 ```
 
-## 5.15 UI frames — `res://art/ui/`
+## 5.17 UI frames — `res://art/ui/`
 
 ### `splash_studio.png`
 
@@ -2328,12 +2068,12 @@ a plain dark textured background of deep teal-black with a faint warm amber glow
 | 2 | `build_spot_combo.png` | 128 x 128 | ChatGPT |
 | 3 | `lane_path.png` | 256 x 256 | Midjourney |
 | 4 | `town_core.png` | 384 x 384 | ChatGPT |
-| 5 | `beast_profile.png` | 1024 x 512 | ChatGPT |
+| 5 | `beast_profile.png` | 1024 x 1024 | ChatGPT |
 | 6 | `crossroad_bg.png` | 1920 x 1080 | Midjourney |
-| 7 | `macro_act1.png` | 1920 x 1080 | Midjourney |
-| 8 | `macro_act2.png` | 1920 x 1080 | Midjourney |
-| 9 | `macro_act3.png` | 1920 x 1080 | Midjourney |
-| 10 | `menu_key_art.png` | 1920 x 1080 | Midjourney |
+| 7 | `macro_act1.png` | 688 x 384 | Midjourney |
+| 8 | `macro_act2.png` | 688 x 384 | Midjourney |
+| 9 | `macro_act3.png` | 688 x 384 | Midjourney |
+| 10 | `menu_key_art.png` | 688 x 384 | Midjourney |
 | 11 | `raid_arena_bg.png` | 1920 x 1080 | Midjourney |
 | 12 | `boss_drowned_choir.png` | 384 x 384 | ChatGPT |
 | 13 | `boss_mirrorfang.png` | 384 x 384 | ChatGPT |
@@ -2350,99 +2090,87 @@ a plain dark textured background of deep teal-black with a faint warm amber glow
 | 24 | `city_damage_3.png` | 512 x 512 | ChatGPT |
 | 25 | `plot_empty.png` | 192 x 192 | ChatGPT |
 | 26 | `plot_locked.png` | 192 x 192 | ChatGPT |
-| 27 | `elite_burrower.png` | 128 x 128 | ChatGPT |
-| 28 | `elite_howler.png` | 128 x 128 | ChatGPT |
-| 29 | `elite_warden.png` | 128 x 128 | ChatGPT |
-| 30 | `enemy_bogkin.png` | 96 x 96 | ChatGPT |
-| 31 | `enemy_glassborn.png` | 96 x 96 | ChatGPT |
-| 32 | `enemy_steppehorde.png` | 96 x 96 | ChatGPT |
-| 33 | `hero_ascended_1.png` | 128 x 128 | ChatGPT |
-| 34 | `hero_ascended_2.png` | 128 x 128 | ChatGPT |
-| 35 | `hero_base.png` | 128 x 128 | ChatGPT |
-| 36 | `relic_01.png` | 128 x 128 | ChatGPT |
-| 37 | `relic_02.png` | 128 x 128 | ChatGPT |
-| 38 | `relic_03.png` | 128 x 128 | ChatGPT |
-| 39 | `relic_04.png` | 128 x 128 | ChatGPT |
-| 40 | `relic_05.png` | 128 x 128 | ChatGPT |
-| 41 | `relic_06.png` | 128 x 128 | ChatGPT |
-| 42 | `relic_07.png` | 128 x 128 | ChatGPT |
-| 43 | `relic_08.png` | 128 x 128 | ChatGPT |
-| 44 | `relic_09.png` | 128 x 128 | ChatGPT |
-| 45 | `relic_10.png` | 128 x 128 | ChatGPT |
-| 46 | `relic_11.png` | 128 x 128 | ChatGPT |
-| 47 | `relic_12.png` | 128 x 128 | ChatGPT |
-| 48 | `relic_13.png` | 128 x 128 | ChatGPT |
-| 49 | `relic_14.png` | 128 x 128 | ChatGPT |
-| 50 | `relic_15.png` | 128 x 128 | ChatGPT |
-| 51 | `relic_16.png` | 128 x 128 | ChatGPT |
-| 52 | `relic_17.png` | 128 x 128 | ChatGPT |
-| 53 | `relic_18.png` | 128 x 128 | ChatGPT |
-| 54 | `relic_19.png` | 128 x 128 | ChatGPT |
-| 55 | `relic_20.png` | 128 x 128 | ChatGPT |
-| 56 | `relic_core_drowned_choir.png` | 128 x 128 | ChatGPT |
-| 57 | `relic_core_mirrorfang.png` | 128 x 128 | ChatGPT |
-| 58 | `relic_core_rust_crown.png` | 128 x 128 | ChatGPT |
-| 59 | `spell_ash_veil.png` | 96 x 96 | ChatGPT |
-| 60 | `spell_beasts_breath.png` | 96 x 96 | ChatGPT |
-| 61 | `spell_bulwark_ward.png` | 96 x 96 | ChatGPT |
-| 62 | `spell_chain_hook.png` | 96 x 96 | ChatGPT |
-| 63 | `spell_cinder_nova.png` | 96 x 96 | ChatGPT |
-| 64 | `spell_marrow_drain.png` | 96 x 96 | ChatGPT |
-| 65 | `spell_rift_step.png` | 96 x 96 | ChatGPT |
-| 66 | `spell_tremor.png` | 96 x 96 | ChatGPT |
-| 67 | `ui_blueprint.png` | 64 x 64 | ChatGPT |
-| 68 | `ui_build.png` | 64 x 64 | ChatGPT |
-| 69 | `ui_captive.png` | 64 x 64 | ChatGPT |
-| 70 | `ui_city_health.png` | 64 x 64 | ChatGPT |
-| 71 | `ui_close.png` | 64 x 64 | ChatGPT |
-| 72 | `ui_distance.png` | 64 x 64 | ChatGPT |
-| 73 | `ui_element_air.png` | 64 x 64 | ChatGPT |
-| 74 | `ui_element_earth.png` | 64 x 64 | ChatGPT |
-| 75 | `ui_element_fire.png` | 64 x 64 | ChatGPT |
-| 76 | `ui_element_water.png` | 64 x 64 | ChatGPT |
-| 77 | `ui_lock.png` | 64 x 64 | ChatGPT |
-| 78 | `ui_pause.png` | 64 x 64 | ChatGPT |
-| 79 | `ui_pressure_arrow.png` | 64 x 64 | ChatGPT |
-| 80 | `ui_raid_charge.png` | 64 x 64 | ChatGPT |
-| 81 | `ui_relic.png` | 64 x 64 | ChatGPT |
-| 82 | `ui_resource.png` | 64 x 64 | ChatGPT |
-| 83 | `ui_settings.png` | 64 x 64 | ChatGPT |
-| 84 | `ui_upgrade.png` | 64 x 64 | ChatGPT |
-| 85 | `ui_war_horn.png` | 64 x 64 | ChatGPT |
-| 86 | `ui_wave.png` | 64 x 64 | ChatGPT |
-| 87 | `captive_bogkin.png` | 128 x 128 | ChatGPT |
-| 88 | `captive_glassborn.png` | 128 x 128 | ChatGPT |
-| 89 | `captive_snowhorde.png` | 128 x 128 | ChatGPT |
-| 90 | `chieftain_jungle.png` | 256 x 256 | ChatGPT |
-| 91 | `chieftain_desert.png` | 256 x 256 | ChatGPT |
-| 92 | `chieftain_snow.png` | 256 x 256 | ChatGPT |
-| 93 | `terrain_jungle.png` | 512 x 512 | Midjourney |
-| 94 | `terrain_desert.png` | 512 x 512 | Midjourney |
-| 95 | `terrain_snow.png` | 512 x 512 | Midjourney |
-| 96 | `tower_arc_coil.png` | 128 x 192 | ChatGPT |
-| 97 | `tower_bastion.png` | 128 x 192 | ChatGPT |
-| 98 | `tower_blizzard.png` | 128 x 192 | ChatGPT |
-| 99 | `tower_bulwark.png` | 128 x 192 | ChatGPT |
-| 100 | `tower_conflagration.png` | 128 x 192 | ChatGPT |
-| 101 | `tower_deep_freeze.png` | 128 x 192 | ChatGPT |
-| 102 | `tower_ember_spire.png` | 128 x 192 | ChatGPT |
-| 103 | `tower_firestorm.png` | 128 x 192 | ChatGPT |
-| 104 | `tower_gale_turret.png` | 128 x 192 | ChatGPT |
-| 105 | `tower_glacier.png` | 128 x 192 | ChatGPT |
-| 106 | `tower_hoarfrost_bell.png` | 128 x 192 | ChatGPT |
-| 107 | `tower_magma.png` | 128 x 192 | ChatGPT |
-| 108 | `tower_pyre_cannon.png` | 128 x 192 | ChatGPT |
-| 109 | `tower_quake.png` | 128 x 192 | ChatGPT |
-| 110 | `tower_rime_lance.png` | 128 x 192 | ChatGPT |
-| 111 | `tower_shard_thrower.png` | 128 x 192 | ChatGPT |
-| 112 | `tower_steam_burst.png` | 128 x 192 | ChatGPT |
-| 113 | `tower_tempest.png` | 128 x 192 | ChatGPT |
-| 114 | `splash_studio.png` | 1920 x 1080 | Midjourney |
-| 115 | `ui_bar_back.png` | 64 x 16 | ChatGPT |
-| 116 | `ui_bar_fill.png` | 64 x 16 | ChatGPT |
-| 117 | `ui_button.png` | 256 x 64 | ChatGPT |
-| 118 | `ui_button_hover.png` | 256 x 64 | ChatGPT |
-| 119 | `ui_logo.png` | 1024 x 256 | ChatGPT |
-| 120 | `ui_panel.png` | 256 x 256 | ChatGPT |
-| 121 | `ui_panel_dark.png` | 256 x 256 | ChatGPT |
-| 122 | `ui_slot.png` | 96 x 96 | ChatGPT |
+| 27 | `hero_ascended_1.png` | 128 x 128 | ChatGPT |
+| 28 | `hero_ascended_2.png` | 128 x 128 | ChatGPT |
+| 29 | `hero_base.png` | 128 x 128 | ChatGPT |
+| 30 | `relic_01.png` | 128 x 128 | ChatGPT |
+| 31 | `relic_02.png` | 128 x 128 | ChatGPT |
+| 32 | `relic_03.png` | 128 x 128 | ChatGPT |
+| 33 | `relic_04.png` | 128 x 128 | ChatGPT |
+| 34 | `relic_05.png` | 128 x 128 | ChatGPT |
+| 35 | `relic_06.png` | 128 x 128 | ChatGPT |
+| 36 | `relic_07.png` | 128 x 128 | ChatGPT |
+| 37 | `relic_08.png` | 128 x 128 | ChatGPT |
+| 38 | `relic_09.png` | 128 x 128 | ChatGPT |
+| 39 | `relic_10.png` | 128 x 128 | ChatGPT |
+| 40 | `relic_11.png` | 128 x 128 | ChatGPT |
+| 41 | `relic_12.png` | 128 x 128 | ChatGPT |
+| 42 | `relic_13.png` | 128 x 128 | ChatGPT |
+| 43 | `relic_14.png` | 128 x 128 | ChatGPT |
+| 44 | `relic_15.png` | 128 x 128 | ChatGPT |
+| 45 | `relic_16.png` | 128 x 128 | ChatGPT |
+| 46 | `relic_17.png` | 128 x 128 | ChatGPT |
+| 47 | `relic_18.png` | 128 x 128 | ChatGPT |
+| 48 | `relic_19.png` | 128 x 128 | ChatGPT |
+| 49 | `relic_20.png` | 128 x 128 | ChatGPT |
+| 50 | `relic_core_drowned_choir.png` | 128 x 128 | ChatGPT |
+| 51 | `relic_core_mirrorfang.png` | 128 x 128 | ChatGPT |
+| 52 | `relic_core_rust_crown.png` | 128 x 128 | ChatGPT |
+| 53 | `spell_ash_veil.png` | 96 x 96 | ChatGPT |
+| 54 | `spell_beasts_breath.png` | 96 x 96 | ChatGPT |
+| 55 | `spell_bulwark_ward.png` | 96 x 96 | ChatGPT |
+| 56 | `spell_chain_hook.png` | 96 x 96 | ChatGPT |
+| 57 | `spell_cinder_nova.png` | 96 x 96 | ChatGPT |
+| 58 | `spell_marrow_drain.png` | 96 x 96 | ChatGPT |
+| 59 | `spell_rift_step.png` | 96 x 96 | ChatGPT |
+| 60 | `spell_tremor.png` | 96 x 96 | ChatGPT |
+| 61 | `ui_blueprint.png` | 128 x 128 | ChatGPT |
+| 62 | `ui_build.png` | 128 x 128 | ChatGPT |
+| 63 | `ui_captive.png` | 128 x 128 | ChatGPT |
+| 64 | `ui_city_health.png` | 128 x 128 | ChatGPT |
+| 65 | `ui_close.png` | 128 x 128 | ChatGPT |
+| 66 | `ui_distance.png` | 128 x 128 | ChatGPT |
+| 67 | `ui_element_air.png` | 128 x 128 | ChatGPT |
+| 68 | `ui_element_earth.png` | 128 x 128 | ChatGPT |
+| 69 | `ui_element_fire.png` | 128 x 128 | ChatGPT |
+| 70 | `ui_element_water.png` | 128 x 128 | ChatGPT |
+| 71 | `ui_lock.png` | 128 x 128 | ChatGPT |
+| 72 | `ui_pause.png` | 128 x 128 | ChatGPT |
+| 73 | `ui_pressure_arrow.png` | 128 x 128 | ChatGPT |
+| 74 | `ui_raid_charge.png` | 128 x 128 | ChatGPT |
+| 75 | `ui_relic.png` | 128 x 128 | ChatGPT |
+| 76 | `ui_resource.png` | 128 x 128 | ChatGPT |
+| 77 | `ui_settings.png` | 128 x 128 | ChatGPT |
+| 78 | `ui_upgrade.png` | 128 x 128 | ChatGPT |
+| 79 | `ui_war_horn.png` | 128 x 128 | ChatGPT |
+| 80 | `ui_wave.png` | 128 x 128 | ChatGPT |
+| 81 | `captive_bogkin.png` | 128 x 128 | ChatGPT |
+| 82 | `captive_glassborn.png` | 128 x 128 | ChatGPT |
+| 83 | `captive_steppehorde.png` | 128 x 128 | ChatGPT |
+| 84 | `tower_arc_coil.png` | 192 x 192 | ChatGPT |
+| 85 | `tower_bastion.png` | 192 x 192 | ChatGPT |
+| 86 | `tower_blizzard.png` | 192 x 192 | ChatGPT |
+| 87 | `tower_bulwark.png` | 192 x 192 | ChatGPT |
+| 88 | `tower_conflagration.png` | 192 x 192 | ChatGPT |
+| 89 | `tower_deep_freeze.png` | 192 x 192 | ChatGPT |
+| 90 | `tower_ember_spire.png` | 192 x 192 | ChatGPT |
+| 91 | `tower_firestorm.png` | 192 x 192 | ChatGPT |
+| 92 | `tower_gale_turret.png` | 192 x 192 | ChatGPT |
+| 93 | `tower_glacier.png` | 192 x 192 | ChatGPT |
+| 94 | `tower_hoarfrost_bell.png` | 192 x 192 | ChatGPT |
+| 95 | `tower_magma.png` | 192 x 192 | ChatGPT |
+| 96 | `tower_pyre_cannon.png` | 192 x 192 | ChatGPT |
+| 97 | `tower_quake.png` | 192 x 192 | ChatGPT |
+| 98 | `tower_rime_lance.png` | 192 x 192 | ChatGPT |
+| 99 | `tower_shard_thrower.png` | 192 x 192 | ChatGPT |
+| 100 | `tower_steam_burst.png` | 192 x 192 | ChatGPT |
+| 101 | `tower_tempest.png` | 192 x 192 | ChatGPT |
+| 102 | `splash_studio.png` | 1920 x 1080 | Midjourney |
+| 103 | `ui_bar_back.png` | 128 x 16 | ChatGPT |
+| 104 | `ui_bar_fill.png` | 128 x 16 | ChatGPT |
+| 105 | `ui_button.png` | 256 x 88 | ChatGPT |
+| 106 | `ui_button_hover.png` | 256 x 88 | ChatGPT |
+| 107 | `ui_logo.png` | 1024 x 512 | ChatGPT |
+| 108 | `ui_panel.png` | 256 x 256 | ChatGPT |
+| 109 | `ui_panel_dark.png` | 256 x 256 | ChatGPT |
+| 110 | `ui_slot.png` | 128 x 128 | ChatGPT |

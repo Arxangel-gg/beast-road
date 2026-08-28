@@ -53,7 +53,7 @@ function Get-ValueKind {
     if ($Type -eq 'float') { return 'float' }
     if ($Type -eq 'Color') { return 'color' }
     if ($Type -like 'Array*') { return 'array' }
-    if ($Type -eq 'Vector2') { return 'vector2' }
+    if ($Type -eq 'Vector2') { return 'vector' }
     if ($Raw -match '^-?[0-9]+$') { return 'int' }
     if ($Raw -match '^-?[0-9]*\.[0-9]+$') { return 'float' }
     return 'text'

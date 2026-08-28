@@ -36,7 +36,7 @@ extends Control
 
 ## Where the beast stands, as a fraction of the stage. Right of centre and low,
 ## so it sits on the horizon and clear of the button column on the left.
-const BEAST_AT := Vector2(0.575, 0.760)
+const BEAST_AT := Vector2(0.645, 0.605)
 
 ## How tall the beast is drawn, as a fraction of the stage height.
 ##
@@ -45,7 +45,15 @@ const BEAST_AT := Vector2(0.575, 0.760)
 ## happens up there, so it should dominate the frame rather than decorate it.
 ## Its feet sit lower to match, which keeps the top of the silhouette clear of
 ## the title. [TUNE]
-const BEAST_HEIGHT: float = 0.66
+const BEAST_HEIGHT: float = 0.74
+
+## Normalised positions of the painted gate's fire sources. Runtime light is
+## deliberately separate from the backdrop so the architecture breathes rather
+## than reading as a still wallpaper. No full-screen pass and only five sprites.
+const GATE_LIGHTS: Array[Vector2] = [
+	Vector2(0.465, 0.585), Vector2(0.522, 0.605), Vector2(0.603, 0.603),
+	Vector2(0.700, 0.585), Vector2(0.796, 0.570),
+]
 
 var _backdrop: TextureRect = null
 var _beast: Sprite2D = null
@@ -58,6 +66,7 @@ var _home := Vector2.ZERO
 var _laid_out_at := Vector2.ZERO
 var _shimmer: ColorRect = null
 var _glow: ColorRect = null
+var _gate_lights: Array[Sprite2D] = []
 
 
 func _ready() -> void:
@@ -67,6 +76,7 @@ func _ready() -> void:
 	_build_shimmer()
 	_build_glow()
 	_build_mist()
+	_build_gate_lights()
 	_build_beast()
 	_build_embers()
 	_build_vignette()
@@ -241,6 +251,19 @@ func _build_mist() -> void:
 		band.material = material
 		add_child(band)
 		_mist.append(band)
+
+
+func _build_gate_lights() -> void:
+	var texture: Texture2D = LightKit.falloff_texture()
+	if texture == null:
+		return
+	for index: int in GATE_LIGHTS.size():
+		var light := Sprite2D.new()
+		light.name = "GateFire%d" % index
+		light.texture = texture
+		light.modulate = Color(1.0, 0.48, 0.18, 0.14)
+		add_child(light)
+		_gate_lights.append(light)
 
 
 func _build_beast() -> void:
@@ -434,6 +457,15 @@ func _layout() -> void:
 			_shadow.scale = Vector2(native * grow / 42.0, native * grow / 190.0)
 			_shadow.position = _beast.position + Vector2(0.0, native * grow * 0.47)
 
+	for index: int in _gate_lights.size():
+		var light: Sprite2D = _gate_lights[index]
+		light.position = span * GATE_LIGHTS[index]
+		var diameter: float = span.y * (0.13 if index == 2 else 0.095)
+		var base_scale: Vector2 = Vector2.ONE * (diameter
+			/ maxf(float(light.texture.get_width()), 1.0))
+		light.scale = base_scale
+		light.set_meta(&"base_scale", base_scale)
+
 	if _shimmer != null:
 		_shimmer.position = Vector2.ZERO
 		_shimmer.size = span
@@ -467,10 +499,11 @@ func _process(delta: float) -> void:
 
 	var turn: float = TAU * _time / maxf(Balance.MENU_DRIFT_PERIOD, 1.0)
 	var travel: Vector2 = span * Balance.MENU_DRIFT
+	var backdrop_drift := Vector2(
+		sin(turn) * travel.x, sin(turn * 0.61) * travel.y)
 
 	if _backdrop != null:
-		_backdrop.position = _home + Vector2(
-			sin(turn) * travel.x, sin(turn * 0.61) * travel.y)
+		_backdrop.position = _home + backdrop_drift
 
 	if _beast != null:
 		if not _frames.is_empty():
@@ -497,6 +530,15 @@ func _process(delta: float) -> void:
 		var material: ShaderMaterial = _mist[index].material as ShaderMaterial
 		if material != null:
 			material.set_shader_parameter("drift", _time * rate)
+
+	for index: int in _gate_lights.size():
+		var light: Sprite2D = _gate_lights[index]
+		light.position = span * GATE_LIGHTS[index] + backdrop_drift
+		var pulse: float = 0.86 + 0.14 * sin(_time * (4.1 + index * 0.37)
+			+ float(index) * 1.73)
+		light.modulate.a = 0.10 + pulse * 0.075
+		light.scale = (light.get_meta(&"base_scale", light.scale) as Vector2) \
+			* (0.94 + pulse * 0.08)
 
 
 ## Absence is a supported state: the menu drew fine as a still image before any

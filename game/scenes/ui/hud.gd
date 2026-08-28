@@ -469,6 +469,23 @@ func _process(delta: float) -> void:
 	_update_wave_preview()
 
 
+## End-of-run presentation keeps only the top telemetry strip. Every lower HUD
+## control is both visual clutter over the debrief and an input blocker at the
+## exact place its Return button sits; hiding them also leaves the final battle
+## state visible through the translucent report instead of replacing it.
+func show_end_report() -> void:
+	for control: Control in [
+		_lane_ring, _build_panel, _build_tooltip, _road_panel, _raid_panel,
+		_spell_bar, _bottom_row, _nav_bar, _boss_panel, _region_card,
+		_preparation_panel, _command_panel, _xp_band, _party_log, _chat_box,
+		_boss_track, _message, _state_label, _recovery_status,
+	]:
+		if control != null:
+			control.visible = false
+	if _tutorial != null:
+		_tutorial.visible = false
+
+
 # --- Construction -----------------------------------------------------------
 
 ## Keeps a centred banner inside the screen it is drawn on.

@@ -1,6 +1,8 @@
 class_name TownPanel
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## The town's management surface (GDD §5).
 ##
 ## Opens on whichever plot the player clicked. Everything it does goes through
@@ -12,7 +14,7 @@ extends CanvasLayer
 
 @export var panel: PanelContainer
 @export var title: Label
-@export var body: Label
+@export var body: RichTextLabel
 @export var actions: VBoxContainer
 @export var progress: ProgressBar
 @export var progress_label: Label
@@ -132,7 +134,7 @@ func _refresh() -> void:
 		lines.append("Now: %s" % _effect_text(data, tier))
 	if tier < data.max_tier:
 		lines.append("Next: %s" % _effect_text(data, tier + 1))
-	body.text = "\n".join(lines)
+	KeywordTextScript.apply(body, "\n".join(lines))
 
 	_show_construction(data, tier)
 

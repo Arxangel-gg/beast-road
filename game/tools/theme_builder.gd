@@ -25,6 +25,8 @@ extends RefCounted
 
 const ART: String = "res://art/ui/"
 const OUTPUT: String = "res://ui_theme.tres"
+const BODY_FONT: String = "res://fonts/Alegreya-Variable.ttf"
+const DISPLAY_FONT: String = "res://fonts/AlegreyaSansSC-Bold.ttf"
 
 # --- Palette -----------------------------------------------------------------
 # Kept identical to the previous hand-authored theme: the art changes, the
@@ -45,6 +47,15 @@ static func build() -> Dictionary:
 	theme.default_font_size = 18
 
 	var problems: PackedStringArray = []
+	var body_font: Font = load(BODY_FONT) as Font if ResourceLoader.exists(BODY_FONT) else null
+	var display_font: Font = load(DISPLAY_FONT) as Font \
+		if ResourceLoader.exists(DISPLAY_FONT) else null
+	if body_font == null:
+		problems.append("missing %s" % BODY_FONT)
+	else:
+		theme.default_font = body_font
+	if display_font == null:
+		problems.append("missing %s" % DISPLAY_FONT)
 
 	# --- Buttons -------------------------------------------------------------
 	#
@@ -91,6 +102,8 @@ static func build() -> Dictionary:
 	theme.set_color("font_outline_color", "Button", OUTLINE)
 	theme.set_constant("outline_size", "Button", 4)
 	theme.set_font_size("font_size", "Button", 17)
+	if display_font != null:
+		theme.set_font("font", "Button", display_font)
 
 	# --- Panels --------------------------------------------------------------
 	var panel: StyleBox = _frame("ui_panel", 40, 40, 40, 40, problems)
@@ -143,6 +156,14 @@ static func build() -> Dictionary:
 	theme.set_constant("outline_size", "Label", 5)
 	theme.set_color("font_color", "LineEdit", INK)
 	theme.set_stylebox("normal", "LineEdit", _sunken())
+	if body_font != null:
+		theme.set_font("font", "Label", body_font)
+		theme.set_font("font", "LineEdit", body_font)
+		theme.set_font("normal_font", "RichTextLabel", body_font)
+	if display_font != null:
+		theme.set_font("bold_font", "RichTextLabel", display_font)
+		theme.set_font("font", "TooltipLabel", display_font)
+	theme.set_color("default_color", "RichTextLabel", INK)
 
 	# --- Scrollbars ----------------------------------------------------------
 	#

@@ -73,6 +73,14 @@ func _ready() -> void:
 	_check(TouchInput.aim().is_equal_approx(Vector2.UP),
 		"a thumb pushed up on the right must aim up, got %s" % str(TouchInput.aim()))
 	_check(Input.is_action_pressed(&"attack"), "a full push on the right must attack")
+	var local_input := LocalHeroInput.new()
+	_check(local_input.held(HeroInput.HOLD_ATTACK),
+		"a held attack stick must reach the local hero as HOLD_ATTACK")
+	var held_snapshot: Array = local_input.snapshot(TouchInput.aim())
+	var remote_input := RemoteHeroInput.new()
+	remote_input.apply(held_snapshot)
+	_check(remote_input.held(HeroInput.HOLD_ATTACK),
+		"touch auto-attack must cross the co-op input snapshot as a hold")
 
 	# Aiming without committing has to be possible, or a shot cannot be lined up.
 	_drag(right_thumb + Vector2(0.0, -Balance.TOUCH_STICK_REACH * 0.2), 1)
@@ -146,7 +154,7 @@ func _ready() -> void:
 
 	if _failures == 0:
 		print("[touch] PASS - thumbs reach the input map, both sticks work at once, "
-			+ "the revive hold reaches the hero, nothing leaks")
+			+ "held attack replicates, the revive hold reaches the hero, nothing leaks")
 	get_tree().quit(_failures)
 
 

@@ -59,7 +59,10 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 		"at": at,
 		"blobs": blobs,
 		"age": 0.0,
-		"life": Balance.BLOOD_GROUND_LIFE * rng.randf_range(0.8, 1.25),
+		# Life is an authored promise now: every mark that is not displaced by the
+		# bounded field survives the full ten-minute memory window. Randomising it
+		# below one quietly turned "600 seconds" into as little as eight minutes.
+		"life": Balance.BLOOD_GROUND_LIFE,
 		"tone": rng.randf(),
 	})
 	while _splats.size() > MAX_SPLATS:

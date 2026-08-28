@@ -43,6 +43,11 @@ const SPELL_BIT_OFFSET: int = 2
 ## which leaves room for six more spell slots before anything can collide again.
 const HOLD_REVIVE: int = 1 << 8
 
+## Touch auto-attack is a held intention and must cross the wire as one. Keeping
+## it out of BUTTON_ATTACK preserves keyboard/mouse edge-triggered attacks while
+## a phone's right stick can continue a chain for as long as the thumb is down.
+const HOLD_ATTACK: int = 1 << 9
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

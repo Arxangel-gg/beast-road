@@ -730,4 +730,6 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	MetaState.save_game()
 	summary["marks"] = maxi(1, int(round(earned)))
 
+	if hud != null:
+		hud.show_end_report()
 	results_ui.show_results(victory, summary)

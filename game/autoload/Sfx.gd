@@ -208,6 +208,18 @@ const MIX: Dictionary = {
 	"sfx_water_shot_2":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_water_shot_3":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_wave_incoming":         {"db": -1.0,  "pitch": 0.03, "limit": 1, "gap": 0.5},
+	"sfx_wildlife_badger":       {"db": -11.0, "pitch": 0.08, "limit": 1, "gap": 3.0},
+	"sfx_wildlife_bear":         {"db": -8.0,  "pitch": 0.05, "limit": 1, "gap": 4.0},
+	"sfx_wildlife_boar":         {"db": -9.0,  "pitch": 0.07, "limit": 1, "gap": 3.0},
+	"sfx_wildlife_deer":         {"db": -12.0, "pitch": 0.08, "limit": 1, "gap": 4.0},
+	"sfx_wildlife_fox":          {"db": -13.0, "pitch": 0.10, "limit": 1, "gap": 3.5},
+	"sfx_wildlife_hawk":         {"db": -12.0, "pitch": 0.07, "limit": 1, "gap": 3.0},
+	"sfx_wildlife_rabbit":       {"db": -16.0, "pitch": 0.10, "limit": 1, "gap": 3.5},
+	"sfx_wildlife_raccoon":      {"db": -14.0, "pitch": 0.10, "limit": 1, "gap": 3.5},
+	"sfx_wildlife_raven":        {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 3.0},
+	"sfx_wildlife_squirrel":     {"db": -17.0, "pitch": 0.12, "limit": 1, "gap": 3.5},
+	"sfx_wildlife_viper":        {"db": -13.0, "pitch": 0.10, "limit": 1, "gap": 2.5},
+	"sfx_wildlife_wolf":         {"db": -10.0, "pitch": 0.06, "limit": 1, "gap": 3.0},
 }
 
 ## Defaults for any sound not listed above.

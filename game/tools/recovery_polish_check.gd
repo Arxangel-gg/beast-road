@@ -183,8 +183,8 @@ func _test_shader_budget() -> void:
 	PathBlend.set_weather("clear")
 	_check(is_zero_approx(float(road_material.get_shader_parameter("wet_strength"))),
 		"wet-road sheen must clear with the weather")
-	_check(Balance.BLOOD_GROUND_LIFE >= 120.0,
-		"ground blood must preserve at least the previous two minutes")
+	_check(Balance.BLOOD_GROUND_LIFE >= 600.0,
+		"ground blood must preserve the previous ten minutes")
 	_check(Balance.LOOT_PICKUP_DISSOLVE_TIME > 0.0
 		and Balance.BOSS_PHASE_CRACK_DURATION > 0.0,
 		"pickup dissolve and phase-break polish must have visible lifetimes")

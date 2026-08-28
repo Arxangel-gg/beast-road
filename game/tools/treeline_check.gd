@@ -69,6 +69,8 @@ func _ready() -> void:
 				_check(tree.offset.y < 0.0,
 					"a tree must be anchored at its trunk, offset was %.1f"
 						% tree.offset.y)
+				_check(tree.scale.y >= 0.85,
+					"the perimeter trees must remain large enough to frame the map")
 				break
 		trees.queue_free()
 

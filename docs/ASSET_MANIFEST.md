@@ -1203,7 +1203,7 @@ Drop each `SUBJECT` into the matching stem from §3.
 | `macro_act3` | a red-brown iron snow under a heavy dust sky, the ruined silhouette of an immense fortress on the far horizon |
 | `crossroad_bg` | a fork in an ancient road at dusk, two paths diverging into different distant landscapes, weathered stone waymarker in the foreground |
 | `raid_arena_bg` | a hostile enemy warcamp seen from directly above, ringed by bone totems and burning braziers, packed dirt floor, tents at the edges `--ar 1:1` |
-| `menu_key_art` | a wide dusk vista: a pale road running to a distant vanishing point, layered indigo ridges, deep violet sky warming to amber at the horizon, a lit watchtower on a crag at the right — **the centre left open and no creature in it**, because the game's own beast is drawn onto it at runtime |
+| `menu_key_art` | an original colossal, root-bound road gate at twilight: deep indigo jungle and stone framing a restrained amber road into layered peaks — **left side quiet for navigation, upper centre quiet for the logo, centre-right staged and no creature in it**, because the game's own beast, firelight, mist and embers are drawn onto it at runtime |
 
 ### Icons
 

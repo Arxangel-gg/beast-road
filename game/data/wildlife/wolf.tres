@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "wolf"
 display_name = "Wolf"
 description = "It does not hunt alone, and it does not hurry."
+vocal_sfx = "sfx_wildlife_wolf"
 temperament = 3
 damage = 8.0
 attack_interval = 0.95

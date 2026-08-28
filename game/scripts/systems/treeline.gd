@@ -33,9 +33,9 @@ const TREE_ART_FORMAT: String = "res://art/foliage/tree_%s.png"
 ## a snowfield stands somewhere between with the trees in loose stands. Scale
 ## spread does the rest - uniform trees read as wallpaper. [TUNE]
 const REGIONS: Dictionary = {
-	"jungle": {"density": 1.0, "scale": Vector2(0.85, 1.35), "clump": 0.62},
-	"desert": {"density": 0.34, "scale": Vector2(0.7, 1.05), "clump": 0.16},
-	"snow": {"density": 0.62, "scale": Vector2(0.8, 1.2), "clump": 0.44},
+	"jungle": {"density": 1.0, "clump": 0.62},
+	"desert": {"density": 0.34, "clump": 0.16},
+	"snow": {"density": 0.62, "clump": 0.44},
 }
 
 ## Where a tree's origin sits inside its art, as a fraction of height.
@@ -90,7 +90,7 @@ func scatter() -> void:
 	var mouths: Array[Vector2] = _lane_mouths()
 	var wanted: int = int(round(float(ATTEMPTS) * float(shape["density"])
 		* Graphics.foliage_scale()))
-	var span: Vector2 = shape["scale"] as Vector2
+	var span: Vector2 = _scale_span(region)
 	var placed: int = 0
 	for attempt: int in ATTEMPTS:
 		if placed >= wanted:
@@ -165,13 +165,32 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	# which is what `y_sort_enabled` on this node then sorts by.
 	tree.offset = Vector2(0.0, -float(art.get_height()) * TRUNK_ANCHOR)
 	tree.position = at
-	tree.scale = Vector2.ONE * size
+	tree.scale = Vector2(
+		size * rng.randf_range(Balance.TREELINE_WIDTH_VARIATION.x,
+			Balance.TREELINE_WIDTH_VARIATION.y),
+		size * rng.randf_range(Balance.TREELINE_HEIGHT_VARIATION.x,
+			Balance.TREELINE_HEIGHT_VARIATION.y))
+	tree.rotation = deg_to_rad(rng.randf_range(-Balance.TREELINE_LEAN_DEGREES,
+		Balance.TREELINE_LEAN_DEGREES))
 	# Mirrored half the time, and tinted a shade either way. One silhouette
 	# repeated two hundred times is wallpaper; the same silhouette flipped and
 	# shaded is a wood.
 	tree.flip_h = rng.randf() < 0.5
-	var shade: float = rng.randf_range(0.86, 1.06)
-	tree.modulate = Color(shade, shade, shade)
+	var shade: float = rng.randf_range(Balance.TREELINE_SHADE.x,
+		Balance.TREELINE_SHADE.y)
+	var temperature: float = rng.randf_range(-0.035, 0.035)
+	tree.modulate = Color(shade + temperature, shade,
+		shade - temperature * 0.55)
 	var parent: Node2D = host if host != null and is_instance_valid(host) else self
 	parent.add_child(tree)
 	_trees.append(tree)
+
+
+func _scale_span(region: String) -> Vector2:
+	match region:
+		"desert":
+			return Balance.TREELINE_DESERT_SCALE
+		"snow":
+			return Balance.TREELINE_SNOW_SCALE
+		_:
+			return Balance.TREELINE_JUNGLE_SCALE

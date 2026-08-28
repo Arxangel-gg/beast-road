@@ -1,6 +1,8 @@
 class_name ChronicleScreen
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## The account's finite set of one-time mastery deeds.
 ##
 ## Always reachable from the front door: an objective hidden until it is earned
@@ -134,11 +136,12 @@ func _objective_row(objective: ChronicleObjectiveData) -> PanelContainer:
 	name_label.add_theme_color_override("font_color", tint)
 	copy.add_child(name_label)
 
-	var description := Label.new()
-	description.text = objective.description
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var description := RichTextLabel.new()
+	KeywordTextScript.apply(description, objective.description)
+	description.fit_content = true
+	description.scroll_active = false
 	description.add_theme_font_size_override("font_size", 13)
-	description.add_theme_color_override("font_color", Color("9fa7a2"))
+	description.add_theme_color_override("default_color", Color("9fa7a2"))
 	copy.add_child(description)
 
 	var status := Label.new()

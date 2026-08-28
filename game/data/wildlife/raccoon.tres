@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "raccoon"
 display_name = "Raccoon"
 description = "Turning over whatever the road left behind."
+vocal_sfx = "sfx_wildlife_raccoon"
 temperament = 1
 acts = Array[int]([2, 3])
 weight = 1.10

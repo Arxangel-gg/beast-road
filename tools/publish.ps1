@@ -917,7 +917,7 @@ function New-TuningTab {
                 'int'   { if ($text -notmatch '^-?[0-9]+$') { [void]$bad.Add("$key must be a whole number") } }
                 'float' { if ($text -notmatch '^-?[0-9]*\.?[0-9]+$') { [void]$bad.Add("$key must be a number") } }
                 'bool'  { if ($text -notin @('true','false')) { [void]$bad.Add("$key must be true or false") } }
-                'array' { if ($text -notmatch '^Array(?:\[[A-Za-z0-9_]+\])?\(\[.*\]\)$') { [void]$bad.Add("$key must be a Godot Array(...) value") } }
+                'array' { if ($text -notmatch '^(?:\[.*\]|Array(?:\[[A-Za-z0-9_]+\])?\(\[.*\]\))$') { [void]$bad.Add("$key must be a Godot array literal") } }
                 'vector' { if ($text -notmatch '^Vector[234]\(.+\)$') { [void]$bad.Add("$key must be a Vector2/3/4(...) value") } }
                 'color' { if ($text -notmatch '^Color\(.+\)$') { [void]$bad.Add("$key must be a Color(...) value") } }
             }

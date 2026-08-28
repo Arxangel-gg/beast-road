@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "viper"
 display_name = "Viper"
 description = "You will not see it until it has already bitten."
+vocal_sfx = "sfx_wildlife_viper"
 temperament = 3
 damage = 7.0
 attack_interval = 0.70

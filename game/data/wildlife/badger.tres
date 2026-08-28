@@ -7,6 +7,7 @@ script = ExtResource("1")
 id = "badger"
 display_name = "Badger"
 description = "Small, and entirely unwilling to stop."
+vocal_sfx = "sfx_wildlife_badger"
 temperament = 2
 damage = 12.0
 attack_interval = 0.60

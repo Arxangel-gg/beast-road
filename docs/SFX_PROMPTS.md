@@ -16,9 +16,51 @@ prompt below.
 ---
 
 
-## STILL TO RECORD (0)
+## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (12)
 
-Nothing. Every prompted sound below has a file on disk.
+These calls are already wired to arrivals and hostile strikes. Missing
+files remain safely silent; adding the named OGG enables them without a
+code change. Record these before the general backlog.
+
+| File | Length | Prompt |
+|---|---|---|
+| **`sfx_wildlife_badger.ogg`** | 0.7s | **one isolated badger warning churr, compact and rough, no attack impact, no background** |
+| **`sfx_wildlife_bear.ogg`** | 1.2s | **one restrained brown bear threat huff rising into a short growl, powerful but not a cinematic monster roar, no background** |
+| **`sfx_wildlife_boar.ogg`** | 0.8s | **one wild boar territorial snort and short angry grunt, dry and close, no hoof impact, no background** |
+| **`sfx_wildlife_deer.ogg`** | 0.8s | **one alert deer bark, natural field-recording character, isolated with no forest ambience** |
+| **`sfx_wildlife_fox.ogg`** | 0.7s | **one quiet red fox contact bark, wary rather than distressed, isolated with no background** |
+| **`sfx_wildlife_hawk.ogg`** | 0.9s | **one sharp hawk cry passing overhead, natural and brief, no wing loop, no background** |
+| **`sfx_wildlife_rabbit.ogg`** | 0.35s | **one very soft rabbit alarm squeak with a tiny breath, subtle and natural, no background** |
+| **`sfx_wildlife_raccoon.ogg`** | 0.7s | **one curious raccoon chitter and short trill, natural, isolated, no background** |
+| **`sfx_wildlife_raven.ogg`** | 0.8s | **one dry raven croak, weathered and distant enough to sit in a battlefield mix, isolated, no background** |
+| **`sfx_wildlife_squirrel.ogg`** | 0.5s | **one small squirrel warning chatter, quick and restrained, isolated, no background** |
+| **`sfx_wildlife_viper.ogg`** | 0.6s | **one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background** |
+| **`sfx_wildlife_wolf.ogg`** | 1.0s | **one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background** |
+
+---
+
+
+## STILL TO RECORD (12)
+
+Everything the game asks for and does not have, checked against
+`game/audio/` when this file was generated. The game is *silent* in
+these places rather than broken - `Sfx.play` returns quietly on a
+missing stream - so none of these block a build.
+
+| File | Folder | Length | Tool | Prompt |
+|---|---|---|---|---|
+| `sfx_wildlife_badger.ogg` | `sfx` | 0.7s | ElevenLabs | one isolated badger warning churr, compact and rough, no attack impact, no background |
+| `sfx_wildlife_bear.ogg` | `sfx` | 1.2s | ElevenLabs | one restrained brown bear threat huff rising into a short growl, powerful but not a cinematic monster roar, no background |
+| `sfx_wildlife_boar.ogg` | `sfx` | 0.8s | ElevenLabs | one wild boar territorial snort and short angry grunt, dry and close, no hoof impact, no background |
+| `sfx_wildlife_deer.ogg` | `sfx` | 0.8s | ElevenLabs | one alert deer bark, natural field-recording character, isolated with no forest ambience |
+| `sfx_wildlife_fox.ogg` | `sfx` | 0.7s | ElevenLabs | one quiet red fox contact bark, wary rather than distressed, isolated with no background |
+| `sfx_wildlife_hawk.ogg` | `sfx` | 0.9s | ElevenLabs | one sharp hawk cry passing overhead, natural and brief, no wing loop, no background |
+| `sfx_wildlife_rabbit.ogg` | `sfx` | 0.35s | ElevenLabs | one very soft rabbit alarm squeak with a tiny breath, subtle and natural, no background |
+| `sfx_wildlife_raccoon.ogg` | `sfx` | 0.7s | ElevenLabs | one curious raccoon chitter and short trill, natural, isolated, no background |
+| `sfx_wildlife_raven.ogg` | `sfx` | 0.8s | ElevenLabs | one dry raven croak, weathered and distant enough to sit in a battlefield mix, isolated, no background |
+| `sfx_wildlife_squirrel.ogg` | `sfx` | 0.5s | ElevenLabs | one small squirrel warning chatter, quick and restrained, isolated, no background |
+| `sfx_wildlife_viper.ogg` | `sfx` | 0.6s | ElevenLabs | one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background |
+| `sfx_wildlife_wolf.ogg` | `sfx` | 1.0s | ElevenLabs | one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background |
 
 ---
 
@@ -189,7 +231,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 38 files
+## Sound effects - 50 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -495,6 +537,102 @@ the opening of a story: a deep slow swell of low strings and a distant horn, ris
 
 ```text
 a cinematic panel arriving: a soft low whoosh with a faint paper or parchment turn inside it, understated, plays four times in a row — record 3 takes, saved as _1.._3; they rotate.
+```
+
+### `sfx_wildlife_badger`
+
+`game/audio/sfx/sfx_wildlife_badger.ogg`  -  target length **0.7s**  -  suggested tool: **ElevenLabs**
+
+```text
+one isolated badger warning churr, compact and rough, no attack impact, no background.
+```
+
+### `sfx_wildlife_bear`
+
+`game/audio/sfx/sfx_wildlife_bear.ogg`  -  target length **1.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+one restrained brown bear threat huff rising into a short growl, powerful but not a cinematic monster roar, no background.
+```
+
+### `sfx_wildlife_boar`
+
+`game/audio/sfx/sfx_wildlife_boar.ogg`  -  target length **0.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+one wild boar territorial snort and short angry grunt, dry and close, no hoof impact, no background.
+```
+
+### `sfx_wildlife_deer`
+
+`game/audio/sfx/sfx_wildlife_deer.ogg`  -  target length **0.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+one alert deer bark, natural field-recording character, isolated with no forest ambience.
+```
+
+### `sfx_wildlife_fox`
+
+`game/audio/sfx/sfx_wildlife_fox.ogg`  -  target length **0.7s**  -  suggested tool: **ElevenLabs**
+
+```text
+one quiet red fox contact bark, wary rather than distressed, isolated with no background.
+```
+
+### `sfx_wildlife_hawk`
+
+`game/audio/sfx/sfx_wildlife_hawk.ogg`  -  target length **0.9s**  -  suggested tool: **ElevenLabs**
+
+```text
+one sharp hawk cry passing overhead, natural and brief, no wing loop, no background.
+```
+
+### `sfx_wildlife_rabbit`
+
+`game/audio/sfx/sfx_wildlife_rabbit.ogg`  -  target length **0.35s**  -  suggested tool: **ElevenLabs**
+
+```text
+one very soft rabbit alarm squeak with a tiny breath, subtle and natural, no background.
+```
+
+### `sfx_wildlife_raccoon`
+
+`game/audio/sfx/sfx_wildlife_raccoon.ogg`  -  target length **0.7s**  -  suggested tool: **ElevenLabs**
+
+```text
+one curious raccoon chitter and short trill, natural, isolated, no background.
+```
+
+### `sfx_wildlife_raven`
+
+`game/audio/sfx/sfx_wildlife_raven.ogg`  -  target length **0.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+one dry raven croak, weathered and distant enough to sit in a battlefield mix, isolated, no background.
+```
+
+### `sfx_wildlife_squirrel`
+
+`game/audio/sfx/sfx_wildlife_squirrel.ogg`  -  target length **0.5s**  -  suggested tool: **ElevenLabs**
+
+```text
+one small squirrel warning chatter, quick and restrained, isolated, no background.
+```
+
+### `sfx_wildlife_viper`
+
+`game/audio/sfx/sfx_wildlife_viper.ogg`  -  target length **0.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background.
+```
+
+### `sfx_wildlife_wolf`
+
+`game/audio/sfx/sfx_wildlife_wolf.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background.
 ```
 
 ---

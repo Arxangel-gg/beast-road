@@ -102,6 +102,18 @@ const LOOT_GLOW_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.5)
 const LOOT_GLOW_SIZE: float = 132.0
 const LOOT_GLOW_SPEED: float = 3.1
 
+## Two small lights orbit each reward and a narrow beacon breathes above it.
+## Both are world-space sprites rather than extra full-screen shader passes, so
+## the readability survives Low quality and the cost stays bounded by the
+## handful of live drops. [TUNE]
+const LOOT_ORBIT_COUNT: int = 2
+const LOOT_ORBIT_RADIUS: Vector2 = Vector2(30.0, 12.0)
+const LOOT_ORBIT_SPEED: float = 2.8
+const LOOT_ORBIT_SIZE: float = 13.0
+const LOOT_BEACON_WIDTH: float = 30.0
+const LOOT_BEACON_HEIGHT: float = 150.0
+const LOOT_BEACON_ALPHA: float = 0.17
+
 ## How big a drop is drawn, in world units.
 ##
 ## This was 26.0, which was measured against nothing. The arithmetic that says
@@ -574,6 +586,10 @@ const HERO_MAX_HP: float = 100.0
 ## trap, but the cost has to be legible.
 const HERO_ATTACK_MOVE_SCALE: float = 0.38
 
+## A held right stick on touch chains attacks, but leaves a deliberate travel
+## beat during recovery so the player can kite rather than root in place. [TUNE]
+const TOUCH_AUTOATTACK_MOVE_SCALE: float = 0.84
+
 ## A lethal hit downs the hero before they return with an act-long Wound. [TUNE]
 const HERO_RESPAWN_DELAY: float = 8.0
 
@@ -779,6 +795,14 @@ const HERO_ATTACK_LUNGE: Array[float] = [40.0, 45.0, 110.0]
 ## above and this duration, so tuning the distance is enough.
 const HERO_ATTACK_LUNGE_TIME: float = 0.12
 
+## A lunge stops with room for both silhouettes instead of carrying the hero
+## through a target. A connecting hit then gives a short counter-step without
+## cancelling the chain or its input buffer. [TUNE]
+const HERO_ATTACK_BODY_CLEARANCE: float = 34.0
+const HERO_ATTACK_LUNGE_CORRIDOR: float = 30.0
+const HERO_ATTACK_RECOIL: Array[float] = [16.0, 19.0, 27.0]
+const HERO_ATTACK_RECOIL_TIME: float = 0.10
+
 ## How long after recovery ends the chain stays open for the next click.
 const HERO_CHAIN_WINDOW: float = 0.35
 
@@ -921,6 +945,18 @@ const IMPACT_RIM_STRENGTH: float = 1.0
 const IMPACT_RIM_COLOUR: Color = Color(1.0, 0.82, 0.62, 1.0)
 const LOOT_SHIMMER_STRENGTH: float = 0.34
 const LOOT_PICKUP_DISSOLVE_TIME: float = 0.18
+
+## Treeline silhouette variation. Region ranges are intentionally larger than
+## play-space foliage: these trees begin beyond build reach and frame the map.
+## Non-uniform scale, tiny lean and colour spread make one authored tree read as
+## a stand rather than repeated wallpaper. [TUNE]
+const TREELINE_JUNGLE_SCALE: Vector2 = Vector2(1.15, 1.85)
+const TREELINE_DESERT_SCALE: Vector2 = Vector2(0.95, 1.42)
+const TREELINE_SNOW_SCALE: Vector2 = Vector2(1.05, 1.62)
+const TREELINE_WIDTH_VARIATION: Vector2 = Vector2(0.82, 1.18)
+const TREELINE_HEIGHT_VARIATION: Vector2 = Vector2(0.94, 1.12)
+const TREELINE_LEAN_DEGREES: float = 2.2
+const TREELINE_SHADE: Vector2 = Vector2(0.80, 1.08)
 
 ## Unit health bars. These sit above the unit in world space — Stage 1 has no
 ## screen-space HUD, but a swing you cannot see landing tells you nothing.
@@ -2355,7 +2391,7 @@ const BLOOD_GROUND_Z: int = -3
 ## lands never reads as a stain at all - it reads as another transient effect,
 ## which is the thing blood on the ground exists not to be. It sits, then it
 ## goes. [TUNE]
-const BLOOD_GROUND_LIFE: float = 120.0
+const BLOOD_GROUND_LIFE: float = 600.0
 const BLOOD_HOLD: float = 0.45
 const BLOOD_GROUND_ALPHA: float = 0.5
 
@@ -2409,7 +2445,7 @@ const VFX_VIGNETTE_MAX: float = 0.85
 
 ## Level the ambience bed settles at, in decibels. It is meant to be noticed
 ## only when it stops. [TUNE]
-const AMBIENCE_DB: float = -14.0
+const AMBIENCE_DB: float = -20.0
 
 ## Level the music settles at on its own bus, in decibels. The bus carries the
 ## player's volume slider, so this is purely how loud music sits against the

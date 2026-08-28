@@ -1,6 +1,8 @@
 class_name MilestoneCinematic
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## A single short, pause-safe milestone card.
 ##
 ## The full-screen composition is deliberately separate from HUD layout. It can
@@ -14,7 +16,7 @@ var _backdrop: TextureRect
 var _portrait: TextureRect
 var _eyebrow: Label
 var _title: Label
-var _body: Label
+var _body: RichTextLabel
 var _hint: Label
 var _hold_bar: ProgressBar
 var _running: bool = false
@@ -117,12 +119,13 @@ func _build() -> void:
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	copy.add_child(_title)
 
-	_body = Label.new()
+	_body = RichTextLabel.new()
 	_body.name = "Body"
 	_body.custom_minimum_size = Vector2(0.0, 58.0)
 	_body.add_theme_font_size_override("font_size", 23)
-	_body.add_theme_color_override("font_color", Color("d8cfbd"))
-	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_body.add_theme_color_override("default_color", Color("d8cfbd"))
+	_body.fit_content = true
+	_body.scroll_active = false
 	copy.add_child(_body)
 
 	_hint = Label.new()
@@ -219,7 +222,7 @@ func _apply(data: MilestoneCinematicData) -> void:
 	_portrait.texture = _load_texture(data.get_sprite_path()) if _portrait.visible else null
 	_eyebrow.text = data.eyebrow.to_upper()
 	_title.text = data.display_name
-	_body.text = data.description
+	KeywordTextScript.apply(_body, data.description)
 
 
 func _load_texture(path: String) -> Texture2D:

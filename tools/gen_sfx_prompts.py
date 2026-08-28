@@ -175,7 +175,35 @@ ROWS = [
     ("sfx_story_panel", "sfx", "sfx", "1.4s", "ElevenLabs",
      "a cinematic panel arriving: a soft low whoosh with a faint paper or"
      " parchment turn inside it, understated, plays four times in a row — record 3 takes, saved as _1.._3; they rotate"),
+
+    # ---------------- wildlife: current recording priority ----------------
+    ("sfx_wildlife_badger", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one isolated badger warning churr, compact and rough, no attack impact, no background"),
+    ("sfx_wildlife_bear", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "one restrained brown bear threat huff rising into a short growl, powerful but not a cinematic monster roar, no background"),
+    ("sfx_wildlife_boar", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one wild boar territorial snort and short angry grunt, dry and close, no hoof impact, no background"),
+    ("sfx_wildlife_deer", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one alert deer bark, natural field-recording character, isolated with no forest ambience"),
+    ("sfx_wildlife_fox", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one quiet red fox contact bark, wary rather than distressed, isolated with no background"),
+    ("sfx_wildlife_hawk", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "one sharp hawk cry passing overhead, natural and brief, no wing loop, no background"),
+    ("sfx_wildlife_rabbit", "sfx", "sfx", "0.35s", "ElevenLabs",
+     "one very soft rabbit alarm squeak with a tiny breath, subtle and natural, no background"),
+    ("sfx_wildlife_raccoon", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "one curious raccoon chitter and short trill, natural, isolated, no background"),
+    ("sfx_wildlife_raven", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "one dry raven croak, weathered and distant enough to sit in a battlefield mix, isolated, no background"),
+    ("sfx_wildlife_squirrel", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "one small squirrel warning chatter, quick and restrained, isolated, no background"),
+    ("sfx_wildlife_viper", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "one close viper warning hiss with a tiny dry scale rustle, no bite impact, no background"),
+    ("sfx_wildlife_wolf", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "one low wolf threat growl ending in a short bark, pack animal not fantasy monster, isolated, no background"),
 ]
+
+WILDLIFE_IDS = {row[0] for row in ROWS if row[0].startswith("sfx_wildlife_")}
 
 
 def stem_for(kind: str) -> str:
@@ -333,6 +361,22 @@ def main() -> None:
     a("")
 
     outstanding = still_missing()
+    wildlife = [row for row in outstanding if row[0] in WILDLIFE_IDS]
+    a("")
+    a("## 🔴 PRIORITY — WILDLIFE SFX TO GENERATE NEXT (%d)\n" % len(wildlife))
+    a("These calls are already wired to arrivals and hostile strikes. Missing")
+    a("files remain safely silent; adding the named OGG enables them without a")
+    a("code change. Record these before the general backlog.\n")
+    if wildlife:
+        a("| File | Length | Prompt |")
+        a("|---|---|---|")
+        for name, _kind, _folder, length, _tool, prompt in wildlife:
+            a("| **`%s.ogg`** | %s | **%s** |" % (name, length, prompt))
+    else:
+        a("All wildlife calls are present on disk.")
+    a("")
+    a("---")
+    a("")
     a("")
     a("## STILL TO RECORD (%d)\n" % len(outstanding))
     if not outstanding:

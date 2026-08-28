@@ -1,12 +1,14 @@
 class_name ResultsScreen
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## End of run (GDD §9, §10). Win or lose, the unlock payout has already been
 ## banked by GameDirector; this only reports it.
 
 @export var panel: Control
 @export var title: Label
-@export var body: Label
+@export var body: RichTextLabel
 @export var menu_button: Button
 
 ## The score line, the name field and the submit button.
@@ -51,6 +53,8 @@ func _ready() -> void:
 	# frame. Twelve lines of statistics against riveted ironwork is a lot of
 	# texture behind a lot of small type, and the plate is what makes it legible.
 	_plate_body()
+	panel.add_theme_stylebox_override("panel",
+		_style_with_alpha(panel.get_theme_stylebox("panel"), 0.82))
 	_build_board_row()
 	menu_button.text = "Return to the menu"
 	menu_button.pressed.connect(_leave)
@@ -191,6 +195,8 @@ func _plate_body() -> void:
 	var plate := PanelContainer.new()
 	plate.theme_type_variation = &"InnerPanel"
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	plate.add_theme_stylebox_override("panel",
+		_style_with_alpha(plate.get_theme_stylebox("panel"), 0.68))
 
 	# The statistics scroll and the button does not. Length is content here - a
 	# longer run genuinely has more to say - so the fix is to give the text
@@ -213,6 +219,19 @@ func _plate_body() -> void:
 	# Statistics are read down a column, so they need room between the lines. The
 	# default leading packs them tight enough that the eye loses its place.
 	body.add_theme_constant_override("line_spacing", 6)
+	body.fit_content = true
+	body.scroll_active = false
+
+
+func _style_with_alpha(source: StyleBox, alpha: float) -> StyleBox:
+	var style: StyleBox = source.duplicate() as StyleBox
+	var texture_style := style as StyleBoxTexture
+	if texture_style != null:
+		texture_style.modulate_color.a = alpha
+	var flat_style := style as StyleBoxFlat
+	if flat_style != null:
+		flat_style.bg_color.a = alpha
+	return style
 
 
 ## The summary this screen is showing, held for the submit button.
@@ -296,7 +315,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# run has just gone wrong, which is the moment they screenshot it.
 	lines.append("")
 	lines.append(BuildInfo.diagnostics())
-	body.text = "\n".join(lines)
+	KeywordTextScript.apply(body, "\n".join(lines))
 
 	# Measured after the text is in, so the panel is only as tall as it needs to
 	# be and the scroll only appears when the debrief actually overruns.
@@ -320,7 +339,10 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		var separation: float = float(column.get_theme_constant("separation")) \
 			if column != null else 0.0
 		var viewport_height: float = get_viewport().get_visible_rect().size.y
-		var available: float = viewport_height - 96.0 - fixed_height \
+		# Leave a real top reveal for the one HUD strip that survives the end.
+		# The report is already translucent, but covering the whole frame still
+		# makes the battlefield feel replaced rather than preserved.
+		var available: float = viewport_height - 190.0 - fixed_height \
 			- separation * float(fixed_controls)
 		scroll_box.custom_minimum_size = Vector2(0.0,
 			minf(wanted, maxf(220.0, available)))

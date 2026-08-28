@@ -115,6 +115,7 @@ var _dash_direction: Vector2 = Vector2.RIGHT
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
+var _attack_recoil_ready: bool = false
 
 var _respawn_left: float = 0.0
 var _respawn_fraction: float = Balance.HERO_WOUND_REVIVE_HP
@@ -268,7 +269,9 @@ func _physics_process(delta: float) -> void:
 	_update_facing(delta)
 
 	var combat_input: bool = can_fight()
-	if combat_input and _beast_stun_left <= 0.0 and input.pressed(HeroInput.BUTTON_ATTACK):
+	if combat_input and _beast_stun_left <= 0.0 and (
+			input.pressed(HeroInput.BUTTON_ATTACK)
+			or input.held(HeroInput.HOLD_ATTACK)):
 		attack.request()
 	# Dash is movement, and movement is allowed whenever the hero is on the field.
 	# Gating it behind combat meant a player repositioning during Preparation had
@@ -297,7 +300,10 @@ func _physics_process(delta: float) -> void:
 	elif spells.is_channelling():
 		velocity = Vector2.ZERO
 	else:
-		velocity = move_input * move_speed() * attack.move_scale()
+		var movement_scale: float = attack.move_scale()
+		if input.held(HeroInput.HOLD_ATTACK) and not attack.is_swinging():
+			movement_scale *= Balance.TOUCH_AUTOATTACK_MOVE_SCALE
+		velocity = move_input * move_speed() * movement_scale
 	velocity += _lunge_velocity + _beast_impulse
 
 	move_and_slide()
@@ -659,17 +665,59 @@ func _try_dash() -> void:
 func _on_attack_landed(chain_step: int, _targets: int, _at: Vector2) -> void:
 	# A connecting swing squashes harder than a whiffed one.
 	animator.squash(Balance.ANIM_PUNCH_SQUASH * (1.6 if chain_step == 2 else 1.0))
+	# The blade meets resistance. This replaces any remaining forward lunge with
+	# a short counter-step, but never touches HeroAttack's chain or buffer state.
+	if not _attack_recoil_ready:
+		return
+	_attack_recoil_ready = false
+	var recoil: float = Balance.HERO_ATTACK_RECOIL[clampi(chain_step, 0,
+		Balance.HERO_ATTACK_RECOIL.size() - 1)]
+	_apply_attack_impulse(-attack.swing_direction(), recoil,
+		Balance.HERO_ATTACK_RECOIL_TIME)
 
 
 func _on_lunge_requested(direction: Vector2, distance: float) -> void:
-	var duration: float = Balance.HERO_ATTACK_LUNGE_TIME
-	if duration <= 0.0 or distance <= 0.0:
+	_attack_recoil_ready = true
+	var capped: float = _capped_lunge_distance(direction, distance)
+	_apply_attack_impulse(direction, capped, Balance.HERO_ATTACK_LUNGE_TIME)
+	animator.punch(direction, clampf(capped / 110.0, 0.35, 1.5))
+	_lock_frames(_frame_state_for_swing(attack.current_step()))
+
+
+## Stops a forward step at the first hostile body in its corridor. Enemies are
+## CharacterBody2D nodes and may not physically collide with the hero, so relying
+## on `move_and_slide` alone allowed the finisher to cross straight through.
+func _capped_lunge_distance(direction: Vector2, wanted: float) -> float:
+	var aim: Vector2 = direction.normalized()
+	if aim == Vector2.ZERO:
+		return 0.0
+	var capped: float = wanted
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dying():
+			continue
+		var to_enemy: Vector2 = enemy.global_position - global_position
+		var forward: float = to_enemy.dot(aim)
+		if forward <= 0.0 or forward > wanted + enemy.contact_radius() \
+				+ Balance.HERO_ATTACK_BODY_CLEARANCE:
+			continue
+		var sideways: float = absf(aim.cross(to_enemy))
+		if sideways > enemy.contact_radius() + Balance.HERO_ATTACK_LUNGE_CORRIDOR:
+			continue
+		capped = minf(capped, maxf(0.0, forward - enemy.contact_radius()
+			- Balance.HERO_ATTACK_BODY_CLEARANCE))
+	return capped
+
+
+func _apply_attack_impulse(direction: Vector2, distance: float,
+		duration: float) -> void:
+	if duration <= 0.0 or distance <= 0.0 or direction == Vector2.ZERO:
+		_lunge_velocity = Vector2.ZERO
+		_lunge_decay = 0.0
 		return
 	var speed: float = 2.0 * distance / duration
-	_lunge_velocity = direction * speed
+	_lunge_velocity = direction.normalized() * speed
 	_lunge_decay = speed / duration
-	animator.punch(direction, clampf(distance / 110.0, 0.6, 1.5))
-	_lock_frames(_frame_state_for_swing(attack.current_step()))
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:

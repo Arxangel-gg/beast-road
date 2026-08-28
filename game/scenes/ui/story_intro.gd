@@ -1,6 +1,8 @@
 class_name StoryIntro
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## The opening cinematic, shown once before a player's first run.
 ##
 ## Four panels and four lines: what Yuri is, what is chasing them, who the player
@@ -75,7 +77,7 @@ const SKIP_HOLD: float = 0.9
 var _root: Control
 var _art: TextureRect
 var _title: Label
-var _line: Label
+var _line: RichTextLabel
 var _hint: Label
 var _running: bool = false
 var _skipped: bool = false
@@ -149,11 +151,12 @@ func _build() -> void:
 	_title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_title)
 
-	_line = Label.new()
+	_line = RichTextLabel.new()
 	_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_line.fit_content = true
+	_line.scroll_active = false
 	_line.add_theme_font_size_override("font_size", 21)
-	_line.add_theme_color_override("font_color", Color("cdc3ad"))
+	_line.add_theme_color_override("default_color", Color("cdc3ad"))
 	column.add_child(_line)
 
 	_hint = Label.new()
@@ -235,7 +238,7 @@ func _show(panel: Dictionary) -> void:
 	var path: String = String(panel["art"])
 	_art.texture = load(path) if ResourceLoader.exists(path) else null
 	_title.text = String(panel["title"])
-	_line.text = String(panel["line"])
+	KeywordTextScript.apply(_line, String(panel["line"]))
 
 	var start: float = _title.position.y
 	_title.position.y = start + TITLE_RISE

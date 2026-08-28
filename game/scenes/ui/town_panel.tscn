@@ -31,8 +31,9 @@ theme_override_constants/separation = 10
 text = "Town"
 theme_override_font_sizes/font_size = 26
 
-[node name="Body" type="Label" parent="Panel/Box"]
-autowrap_mode = 3
+[node name="Body" type="RichTextLabel" parent="Panel/Box"]
+fit_content = true
+scroll_active = false
 theme_override_font_sizes/font_size = 15
 
 [node name="Progress" type="ProgressBar" parent="Panel/Box"]

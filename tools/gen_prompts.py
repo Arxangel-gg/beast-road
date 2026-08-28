@@ -99,6 +99,12 @@ MJ_TILE = (
     "hand-painted, muted desaturated palette, even lighting with no directional shadow, no "
     "objects casting shadow, no text --tile --ar 1:1 --s 150"
 )
+MENU_OPAQUE = (
+    "{subject}, handcrafted high-end 32-bit pixel art, crisp deliberate pixel clusters, "
+    "strong silhouettes, deep indigo charcoal and moss green with restrained amber firelight, "
+    "cinematic 16:9 game-production background, no creature, no characters, no logo, no text, "
+    "no UI, no recognizable franchise symbols --ar 16:9"
+)
 
 S = {}
 
@@ -222,9 +228,11 @@ S["crossroad_bg.png"] = ("a fork in an ancient road at dusk, two paths diverging
     "distant landscapes, weathered stone waymarker in the foreground")
 S["raid_arena_bg.png"] = ("a hostile enemy warcamp seen from directly above, ringed by bone "
     "totems and burning braziers, packed dirt floor, tents at the edges")
-S["menu_key_art.png"] = ("an immense ancient beast - part serpent, part turtle, part dinosaur - "
-    "walking away across a wasteland at dusk with a small lit fortified city on its back, seen "
-    "from behind and below, dramatic scale, cinematic key art")
+S["menu_key_art.png"] = ("an original colossal ancient road gate at twilight, rugged cyclopean "
+    "stone and timber braced with jungle roots, restrained amber torchlight opening onto a "
+    "dangerous road through layered mountains, deep indigo and moss-green shadow, the left "
+    "third dark and quiet for navigation, upper centre low-detail for a logo, broad uncluttered "
+    "centre-right stage, no beast or creature because the game draws it at runtime")
 S["splash_studio.png"] = ("a plain dark textured background of deep teal-black with a faint warm "
     "amber glow in the centre, empty, no subject, minimal, for a studio logo to sit on top of")
 
@@ -387,11 +395,14 @@ def parse_manifest():
 def main():
     assets = parse_manifest()
     missing = [a["file"] for a in assets if a["file"] not in S]
-    if missing:
+    known_only = "--known-only" in sys.argv
+    if missing and not known_only:
         print("MISSING SUBJECTS (%d):" % len(missing))
         for m in missing:
             print("   ", m)
         sys.exit(1)
+    if missing:
+        assets = [a for a in assets if a["file"] in S]
 
     chat = [a for a in assets if a["t"]]
     mj = [a for a in assets if not a["t"]]
@@ -405,6 +416,11 @@ def main():
     A("")
     A("%d assets: **%d ChatGPT** (transparent background) and **%d Midjourney** (opaque)."
       % (len(assets), len(chat), len(mj)))
+    if missing:
+        A("")
+        A("**Coverage note:** %d newer manifest assets do not yet have authored prompt subjects "
+          "and are intentionally omitted. Run `py -3 tools/gen_prompts.py` without "
+          "`--known-only` to print that backlog and fail closed." % len(missing))
     A("")
     A("---")
     A("")
@@ -491,6 +507,8 @@ def main():
 
     def mj_builder(a):
         subj = S[a["file"]]
+        if a["file"] == "menu_key_art.png":
+            return MENU_OPAQUE.format(subject=subj)
         if a["path"].startswith("res://art/terrain/"):
             return MJ_TILE.format(subject=subj)
         out = MJ_OPAQUE.format(subject=subj)

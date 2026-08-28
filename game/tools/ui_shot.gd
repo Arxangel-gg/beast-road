@@ -15,10 +15,12 @@ func _ready() -> void:
 	await _shot("crossroad", func() -> void: run.crossroad_ui.open(1))
 	await _shot("town", func() -> void: run.town_panel.open("forge"))
 	await _shot("pause", func() -> void: run.pause_ui.toggle())
-	await _shot("results", func() -> void: run.results_ui.show_results(false, {
-		"seed": 123456789, "act": 2, "kills": 214, "distance": 1400.0,
-		"towers_built": 11, "resources_earned": 900,
-	}))
+	await _shot("results", func() -> void:
+		run.hud.show_end_report()
+		run.results_ui.show_results(false, {
+			"seed": 123456789, "act": 2, "kills": 214, "distance": 1400.0,
+			"towers_built": 11, "resources_earned": 900,
+		}))
 
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
 	run.queue_free()

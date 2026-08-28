@@ -40,12 +40,14 @@ func _ready() -> void:
 	_test_lane_is_read_from_position()
 	_test_starting_capital()
 	_test_loot_reads_at_range()
+	_test_melee_spacing()
 	await _test_enemy_faces_its_travel()
 	await _test_boss_summons_leave_with_the_boss()
 	await _test_weather_can_be_seen()
 	await _test_the_field_is_inhabited()
 	_test_touch_release_always_lands()
 	_test_touch_controls_belong_to_the_run()
+	_test_end_report_hides_lower_hud()
 
 	# Order matters, and this had it backwards. The run leaves the tree *first*,
 	# then the audio autoloads are silenced, then the tree is given enough frames
@@ -66,8 +68,8 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[regression] PASS - facing, threat lane, boss summons, loot scale, "
-			+ "weather, touch ownership, wildlife")
+		print("[regression] PASS - facing, threat lane, boss summons, loot motion, "
+			+ "melee spacing, end report, weather, touch ownership, wildlife")
 	get_tree().quit(_failures)
 
 
@@ -132,6 +134,54 @@ func _test_loot_reads_at_range() -> void:
 	var on_screen: float = Balance.LOOT_ICON_SIZE * Balance.CAMERA_ZOOM_BATTLEFIELD_MIN
 	_check(on_screen >= 20.0,
 		"a drop must clear 20 screen px at the widest zoom, got %.1f" % on_screen)
+	_check(Balance.LOOT_ORBIT_COUNT >= 2 and Balance.LOOT_BEACON_HEIGHT
+			> Balance.LOOT_ICON_SIZE,
+		"pickups must carry animated orbiters and a beacon taller than the icon")
+	var drop := LootDrop.new()
+	drop.setup(RunState.GOLD, 1, Vector2(1200.0, 1200.0))
+	_run.battlefield.entity_root.add_child(drop)
+	_check(drop._orbiters.size() == Balance.LOOT_ORBIT_COUNT,
+		"a live pickup must build every configured attention mote")
+	_check(drop._beacon != null,
+		"a live pickup must build its vertical attention beacon")
+	drop.queue_free()
+
+
+## The attack step is allowed to close distance, never to cross a target. A
+## connecting swing then moves away without touching HeroAttack's chain state.
+func _test_melee_spacing() -> void:
+	var hero: Hero = _run.battlefield.hero
+	var data: EnemyData = ContentDB.enemy("bogkin")
+	if hero == null or data == null:
+		_check(false, "the spacing regression needs the battlefield hero and bogkin")
+		return
+	var enemy: Enemy = _run.battlefield.spawn_enemy(data, 0, 1.0)
+	if enemy == null:
+		_check(false, "the spacing regression must be able to spawn a target")
+		return
+	enemy.global_position = hero.global_position + Vector2(100.0, 0.0)
+	var capped: float = hero._capped_lunge_distance(Vector2.RIGHT, 110.0)
+	_check(capped < 110.0,
+		"a close target must cap the finisher lunge, got %.1f" % capped)
+	hero.attack._swing_aim = Vector2.RIGHT
+	hero._attack_recoil_ready = true
+	var phase_before: int = int(hero.attack._phase)
+	hero._on_attack_landed(0, 1, hero.global_position)
+	_check(hero._lunge_velocity.x < 0.0,
+		"a connecting rightward swing must recoil the hero to the left")
+	_check(int(hero.attack._phase) == phase_before,
+		"hit recoil must not reset or advance the combo state")
+	enemy.queue_free()
+
+
+func _test_end_report_hides_lower_hud() -> void:
+	var hud: HUD = _run.hud
+	hud.show_end_report()
+	_check(hud._top_bar.visible and hud._journey_bar.visible,
+		"the end report must preserve the top run telemetry")
+	_check(not hud._bottom_row.visible and not hud._nav_bar.visible
+		and not hud._xp_band.visible,
+		"the end report must remove every lower HUD band from the Return button")
 
 
 ## A walking enemy faces the way it walks; a fighting one faces its victim.

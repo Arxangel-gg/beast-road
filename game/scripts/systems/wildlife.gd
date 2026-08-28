@@ -385,6 +385,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 		"wary": 0.0,
 		"bob": _rng.randf() * TAU,
 	})
+	if not kind.vocal_sfx.is_empty():
+		Sfx.play(kind.vocal_sfx, -3.0)
 
 
 ## One animal, one frame. False when it should be removed.
@@ -735,6 +737,8 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	Vfx.spark(quarry.global_position, Color("c4552e"), 6,
 		(quarry.global_position - from).normalized(), 190.0)
 	EventBus.camera_shake_requested.emit(3.0, 0.12)
+	if not kind.vocal_sfx.is_empty():
+		Sfx.play(kind.vocal_sfx)
 
 
 ## Whether anything alarming is close enough to matter.

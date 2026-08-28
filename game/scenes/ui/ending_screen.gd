@@ -1,6 +1,8 @@
 class_name EndingScreen
 extends CanvasLayer
 
+const KeywordTextScript = preload("res://scripts/systems/keyword_text.gd")
+
 ## The ending (GDD v4 §"Final Ascent - Crown of the World").
 ##
 ## v4 is explicit that breaking the last chain "transitions directly into the
@@ -25,7 +27,7 @@ const LINE_GAP: float = 1.5
 
 @export var backdrop: TextureRect
 @export var title: Label
-@export var body: Label
+@export var body: RichTextLabel
 @export var finish_button: Button
 @export var credits_button: Button
 @export var credits: Label
@@ -86,8 +88,10 @@ func play() -> void:
 	body.text = ""
 	finish_button.disabled = true
 
+	var shown: PackedStringArray = []
 	for index: int in LINES.size():
-		body.text += ("\n\n" if index > 0 else "") + LINES[index]
+		shown.append(LINES[index])
+		KeywordTextScript.apply(body, "\n\n".join(shown))
 		body.modulate.a = 0.0
 		var fade: Tween = create_tween()
 		fade.tween_property(body, "modulate:a", 1.0, LINE_FADE)

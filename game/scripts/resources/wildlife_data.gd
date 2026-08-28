@@ -107,6 +107,11 @@ enum Temperament { PASSIVE, CAUTIOUS, TERRITORIAL, PREDATORY }
 ## crossing the sky, not the field - and obeys them only while it is down.
 @export var flies: bool = false
 
+## Short isolated call used on arrival and on a committed strike. Kept in the
+## creature resource so adding wildlife also states which recording it needs;
+## a missing file is a supported silent state until the prompt is generated.
+@export var vocal_sfx: String = ""
+
 ## Drawn size, as a multiple of the sprite's own pixels.
 ##
 ## Judge these against the hero, not against each other: the hero is 128px of art

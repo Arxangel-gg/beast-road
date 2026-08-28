@@ -33,6 +33,8 @@ var _velocity: Vector2 = Vector2.ZERO
 var _life: float = 0.0
 var _homing: bool = false
 var _glow: Sprite2D
+var _beacon: Sprite2D
+var _orbiters: Array[Sprite2D] = []
 var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
 var _glow_size: float = Balance.LOOT_GLOW_SIZE
 var _material: ShaderMaterial = null
@@ -117,6 +119,7 @@ func _ready() -> void:
 	glow.z_index = -1
 	add_child(glow)
 	_glow = glow
+	_build_attention_fx()
 
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
@@ -173,6 +176,18 @@ func _process(delta: float) -> void:
 		var pulse: float = 1.0 + sin(_life * Balance.LOOT_GLOW_SPEED) * 0.16
 		_glow.scale = Vector2.ONE * (_glow_size * pulse
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
+	if _beacon != null:
+		var beam_pulse: float = 0.88 + 0.12 * sin(_life * 2.1)
+		_beacon.modulate.a = Balance.LOOT_BEACON_ALPHA * beam_pulse
+		_beacon.scale.x = Balance.LOOT_BEACON_WIDTH * (0.92 + 0.08 * beam_pulse) \
+			/ maxf(float(_beacon.texture.get_width()), 1.0)
+	for index: int in _orbiters.size():
+		var mote: Sprite2D = _orbiters[index]
+		var angle: float = _life * Balance.LOOT_ORBIT_SPEED \
+			+ TAU * float(index) / float(maxi(_orbiters.size(), 1))
+		mote.position = Vector2(cos(angle) * Balance.LOOT_ORBIT_RADIUS.x,
+			sin(angle) * Balance.LOOT_ORBIT_RADIUS.y - 5.0)
+		mote.modulate.a = 0.48 + 0.34 * (0.5 + 0.5 * sin(angle * 1.7))
 
 	if _life >= Balance.LOOT_LIFETIME:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
@@ -182,6 +197,37 @@ func _process(delta: float) -> void:
 			_expire_special()
 		else:
 			_collect(hero as Hero)
+
+
+## Persistent, low-cost motion around the drop. The shimmer lives inside the
+## icon and can disappear into a similarly coloured road; these two motes and a
+## narrow vertical glow change the silhouette around it, which remains readable
+## on Low quality and at the fully zoomed-out camera.
+func _build_attention_fx() -> void:
+	var light: Texture2D = LightKit.falloff_texture()
+	if light == null:
+		return
+	_beacon = Sprite2D.new()
+	_beacon.name = "PickupBeacon"
+	_beacon.texture = light
+	_beacon.modulate = Color(_glow_colour, Balance.LOOT_BEACON_ALPHA)
+	_beacon.scale = Vector2(
+		Balance.LOOT_BEACON_WIDTH / maxf(float(light.get_width()), 1.0),
+		Balance.LOOT_BEACON_HEIGHT / maxf(float(light.get_height()), 1.0))
+	_beacon.position.y = -Balance.LOOT_BEACON_HEIGHT * 0.30
+	_beacon.z_index = -1
+	add_child(_beacon)
+
+	for index: int in Balance.LOOT_ORBIT_COUNT:
+		var mote := Sprite2D.new()
+		mote.name = "PickupMote%d" % index
+		mote.texture = light
+		mote.modulate = Color(_glow_colour, 0.72)
+		mote.scale = Vector2.ONE * (Balance.LOOT_ORBIT_SIZE
+			/ maxf(float(light.get_width()), 1.0))
+		mote.z_index = 1
+		add_child(mote)
+		_orbiters.append(mote)
 
 
 ## The spray when a drop is taken, in the drop's own colour.

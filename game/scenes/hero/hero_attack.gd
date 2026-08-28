@@ -92,6 +92,12 @@ func current_step() -> int:
 	return _step
 
 
+## Locked direction of the current swing. The hero uses this for recoil so an
+## aim stick turning during active frames cannot kick the body sideways.
+func swing_direction() -> Vector2:
+	return _swing_aim
+
+
 func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 	_swing_origin = origin
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
