@@ -116,8 +116,14 @@ func refresh_relays() -> void:
 				raw: PackedByteArray) -> void:
 			http.queue_free()
 			if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
-				push_warning("[rtc] no relay credentials (result %d, http %d)"
-					% [result, code])
+				# **Printed, not warned.** A relay that cannot be reached is a
+				# normal thing on a bad connection - the game falls back to STUN
+				# and plays. `push_warning` would make it an engine WARNING, and
+				# every CI gate fails on one of those, so the day a gate opens
+				# the co-op screen the whole pipeline goes red over a network
+				# blip on a build machine with no route to the worker.
+				print("[rtc] no relay credentials (result %d, http %d) - "
+					% [result, code] + "connecting over STUN alone")
 				return
 			var body: Variant = JSON.parse_string(raw.get_string_from_utf8())
 			if not (body is Dictionary):
