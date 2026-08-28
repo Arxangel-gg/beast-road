@@ -2251,7 +2251,7 @@ const BLOOD_GROUND_Z: int = -3
 ## lands never reads as a stain at all - it reads as another transient effect,
 ## which is the thing blood on the ground exists not to be. It sits, then it
 ## goes. [TUNE]
-const BLOOD_GROUND_LIFE: float = 26.0
+const BLOOD_GROUND_LIFE: float = 42
 const BLOOD_HOLD: float = 0.45
 const BLOOD_GROUND_ALPHA: float = 0.5
 
