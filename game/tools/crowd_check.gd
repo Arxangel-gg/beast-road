@@ -75,10 +75,17 @@ func _ready() -> void:
 	_finish()
 
 
+## A body standing where it is told.
+##
+## Through `setup` rather than by assigning `data` directly: an Enemy that
+## reaches `_ready` without it prints "spawned without data or battlefield", and
+## a gate that emits an ERROR line fails the release check it is part of. Found
+## exactly that way - green locally where only the `[crowd]` lines were read, red
+## in CI where every line is.
 func _place(field: EnemyField, data: EnemyData, at: Vector2) -> Enemy:
 	var scene: PackedScene = load("res://scenes/battlefield/enemy.tscn")
 	var enemy := scene.instantiate() as Enemy
-	enemy.data = data
+	enemy.setup(data, 0, field, 1.0)
 	field.add_child(enemy)
 	enemy.global_position = at
 	return enemy
