@@ -806,6 +806,27 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 const ENEMY_CONTACT_INTERVAL: float = 0.8
 
 ## Radius of the enemy's body for contact and hurt checks.
+## Crowd separation: how bodies keep out of each other.
+##
+## The cell is the broadphase bucket, comfortably wider than any two bodies that
+## could touch, so a body only ever consults its own cell and the eight around
+## it. Strength is how much of a frame's overlap is resolved at once - all of it
+## at once makes a crowd twitch, a fraction of it reads as bodies settling. The
+## cap is the safety rail: whatever the maths says, nothing is displaced faster
+## than a walk, so separation can never fling anything. [TUNE]
+## How much overlap is acceptable once a crowd has settled.
+##
+## Not zero: bodies are pushed apart a fraction of the overlap per frame, so
+## they approach contact rather than snapping to it, and demanding zero would be
+## demanding a stiffness that reads as jitter. A couple of units is touching
+## shoulders. [TUNE]
+const CROWD_RESIDUAL: float = 3.0
+
+const CROWD_CELL: float = 96.0
+const CROWD_STRENGTH: float = 7.0
+const CROWD_MAX_SHOVE: float = 150.0
+
+
 const ENEMY_BODY_RADIUS: float = 22.0
 
 ## Enemies push each other apart at this speed so a crowd does not collapse into

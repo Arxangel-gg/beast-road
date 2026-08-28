@@ -97,6 +97,7 @@ jobs:
           # The scaling existed and did nothing for years because the tier was
           # assigned after the shot had already been built.
           run_godot_clean --headless --path game res://tools/projectile_tier_check.tscn
+          run_godot_clean --headless --path game res://tools/crowd_check.tscn
           # Every tower and every building tier must carry its exact four-pose
           # PixelLab package. Runtime fallbacks are for damaged installs, not a
           # release excuse; this also gates canvas size and ground-anchor drift.

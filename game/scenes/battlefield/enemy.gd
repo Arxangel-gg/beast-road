@@ -771,6 +771,20 @@ func _strike() -> void:
 
 # --- Damage and status ------------------------------------------------------
 
+## Whether the crowd flows around this one instead of jostling it.
+##
+## Bosses, in both directions: a boss that shovelled its own escort down the road
+## would look absurd, and one that could be shoved by a mob of Bogkins would stop
+## reading as a boss. `phases` is the flag the content already uses to mean boss -
+## it is empty for everything else - so this asks the data rather than adding a
+## second answer to the same question.
+##
+## Summons are ordinary bodies. They are a crowd, and a crowd is the thing being
+## separated.
+func ignores_crowd() -> bool:
+	return data != null and not data.phase_thresholds.is_empty()
+
+
 func contact_radius() -> float:
 	return data.body_radius if data != null else Balance.ENEMY_BODY_RADIUS
 

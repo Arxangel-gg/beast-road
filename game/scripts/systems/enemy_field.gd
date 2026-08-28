@@ -116,6 +116,115 @@ func living_enemy_summary() -> String:
 	return ", ".join(names) if not names.is_empty() else "nothing"
 
 
+func _process(delta: float) -> void:
+	# After the enemies have taken their own steps this frame, so the push
+	# resolves the overlap they just created rather than one from last frame.
+	separate_crowd(delta)
+
+
+## Keeps bodies out of each other.
+##
+## **One pass over everything, not a query per enemy.** `enemies_near` walks the
+## whole group, so asking it once per enemy is O(N squared) and a late wave is
+## two hundred enemies. This buckets every body into a coarse grid once, then
+## each body only looks at its own cell and the eight around it.
+##
+## A push rather than a physics body. Enemies are plain `Node2D`s that walk by
+## adding a step to their position - giving several hundred of them collision
+## shapes would be a rewrite with a frame budget attached, and it would fight the
+## lane pathing besides. Displacing them after they have moved achieves the thing
+## the player actually sees, which is that two bodies do not occupy one space.
+##
+## **Bosses are exempt, in both directions.** They neither push nor are pushed,
+## so a boss walks through its own escort rather than shovelling it down the
+## road - which is also what makes one read as unstoppable rather than as a
+## large enemy.
+##
+## Nothing is pushed anywhere it could not have walked. The displacement is
+## offered to `step_is_legal` exactly like a step, so separation cannot post a
+## body through a cliff the pathing spent effort respecting.
+func separate_crowd(delta: float) -> void:
+	var bodies: Array[Enemy] = []
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
+		if enemy.ignores_crowd():
+			continue
+		bodies.append(enemy)
+	if bodies.size() < 2 and get_tree().get_nodes_in_group(Hero.GROUP_ANY).is_empty():
+		return
+
+	var cell: float = Balance.CROWD_CELL
+	var buckets: Dictionary = {}
+	for index: int in bodies.size():
+		var key: Vector2i = Vector2i((bodies[index].global_position / cell).floor())
+		if not buckets.has(key):
+			buckets[key] = PackedInt32Array()
+		var list: PackedInt32Array = buckets[key]
+		list.append(index)
+		buckets[key] = list
+
+	var shove: Array[Vector2] = []
+	shove.resize(bodies.size())
+	for index: int in bodies.size():
+		shove[index] = Vector2.ZERO
+
+	for index: int in bodies.size():
+		var here: Enemy = bodies[index]
+		var at: Vector2 = here.global_position
+		var mine: float = here.contact_radius()
+		var origin: Vector2i = Vector2i((at / cell).floor())
+		for dx: int in range(-1, 2):
+			for dy: int in range(-1, 2):
+				var key: Vector2i = origin + Vector2i(dx, dy)
+				if not buckets.has(key):
+					continue
+				for other_index: int in (buckets[key] as PackedInt32Array):
+					# Each pair once: the higher index does the work for both.
+					if other_index <= index:
+						continue
+					var other: Enemy = bodies[other_index]
+					var apart: Vector2 = other.global_position - at
+					var gap: float = mine + other.contact_radius()
+					var distance: float = apart.length()
+					if distance >= gap:
+						continue
+					# Exactly on top of each other has no direction, so one is
+					# invented rather than dividing by zero.
+					var push: Vector2 = apart / distance if distance > 0.001 						else Vector2.from_angle(float(index) * 2.399)
+					var overlap: float = (gap - distance) * 0.5
+					shove[index] -= push * overlap
+					shove[other_index] += push * overlap
+
+	# Heroes displace enemies and are not displaced themselves. A hero shoved
+	# about by the crowd is a hero whose movement stopped answering their hands,
+	# and that is worse than an overlap.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Hero
+		if hero == null or not hero.is_alive():
+			continue
+		for index: int in bodies.size():
+			var apart: Vector2 = bodies[index].global_position - hero.global_position
+			var gap: float = Balance.HERO_BODY_RADIUS + bodies[index].contact_radius()
+			var distance: float = apart.length()
+			if distance >= gap:
+				continue
+			var push: Vector2 = apart / distance if distance > 0.001 				else Vector2.from_angle(float(index) * 2.399)
+			shove[index] += push * (gap - distance)
+
+	var most: float = Balance.CROWD_MAX_SHOVE * delta
+	for index: int in bodies.size():
+		var move: Vector2 = shove[index] * Balance.CROWD_STRENGTH
+		if move.length() > most:
+			move = move.normalized() * most
+		if move.length_squared() < 0.0001:
+			continue
+		var wanted: Vector2 = bodies[index].global_position + move
+		if step_is_legal(bodies[index].global_position, wanted):
+			bodies[index].global_position = wanted
+
+
 func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var radius_squared: float = radius * radius
