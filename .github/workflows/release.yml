@@ -84,6 +84,7 @@ jobs:
           }
 
           run_godot_clean --headless --path game --quit
+          run_godot_clean --headless --path game res://tools/audio_verify.tscn
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- report
           run_godot_clean --headless --path game res://tools/loot_art_check.tscn
           run_godot_clean --headless --path game res://tools/blood_vfx_check.tscn

@@ -112,11 +112,17 @@ func _ready() -> void:
 	_print_table()
 	var bad: int = _judge_party_scaling()
 
+	# Tear gameplay down before draining audio. The full run owns deferred
+	# wildlife arrivals; stopping Sfx first allowed one of those callbacks to
+	# start a vocal decoder after the stop and immediately before headless exit,
+	# leaking its OGG playback/resource objects in CI.
+	run.queue_free()
+	for _frame: int in 2:
+		await get_tree().process_frame
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
-	run.queue_free()
-	for _frame: int in 20:
+	for _frame: int in 18:
 		await get_tree().process_frame
 	get_tree().quit(bad)
 

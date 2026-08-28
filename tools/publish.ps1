@@ -364,12 +364,21 @@ $btn.Add_Click({
             @{ Name = 'blood VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/blood_vfx_check.tscn') },
             @{ Name = 'recovery and shader polish'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_polish_check.tscn') },
             @{ Name = 'co-op lobby portraits'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/coop_lobby_check.tscn') },
+			@{ Name = 'co-op party reach'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/party_reach_check.tscn') },
+			@{ Name = 'tower projectile tiers'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/projectile_tier_check.tscn') },
             @{ Name = 'structure animation art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_art_check.tscn') },
+			@{ Name = 'shipping tool references'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'tool-leak') },
+			@{ Name = 'v4 migration audit'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'audit') },
+			@{ Name = 'difficulty curve'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/curve_report.tscn') },
             @{ Name = 'milestone cinematics'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/milestone_cinematic_check.tscn') },
             @{ Name = 'Chronicle objectives'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_check.tscn') },
             @{ Name = 'save migration'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_backup_check.tscn') },
             @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
+			@{ Name = 'main menu'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_check.tscn') },
+			@{ Name = 'leaderboard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/leaderboard_check.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
+			@{ Name = 'torch snuff runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=45', '--shots=999', '--expect-snuff') },
+			@{ Name = 'performance growth'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/perf_check.tscn', '--', '--seconds=45', '--build') },
             @{ Name = 'launcher updater'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'launcher'), 'res://tests/release_pipeline_test.tscn') }
         )
         foreach ($check in $checks) {
