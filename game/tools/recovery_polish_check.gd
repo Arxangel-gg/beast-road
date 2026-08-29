@@ -204,6 +204,11 @@ func _test_shader_budget() -> void:
 	var repeat_value: Vector2 = road_material.get_shader_parameter("surface_repeat")
 	_check(repeat_value.x > 1.0 and repeat_value.y > 1.0,
 		"regional road detail must map continuously across the whole baked field")
+	_check(is_equal_approx(float(road_material.get_shader_parameter(
+		"edge_feather_texels")), Balance.PATH_EDGE_FEATHER_TEXELS)
+		and is_equal_approx(float(road_material.get_shader_parameter(
+			"edge_feather_strength")), Balance.PATH_EDGE_FEATHER_STRENGTH),
+		"road shoulders must retain their four-sample ground feather")
 	PathBlend.set_weather("downpour")
 	if Graphics.polish_shaders():
 		_check(is_equal_approx(float(road_material.get_shader_parameter(

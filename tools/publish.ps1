@@ -391,6 +391,12 @@ $btn.Add_Click({
                 throw "$($check.Name) validation failed:`n$($checkOutput -join "`n")"
             }
         }
+		Write-Log 'checking publisher release watcher...'
+		$contractOutput = & powershell.exe -NoProfile -ExecutionPolicy Bypass `
+			-File (Join-Path $PSScriptRoot 'publish_contract_test.ps1') 2>&1
+		if ($LASTEXITCODE -ne 0) {
+			throw "publisher release watcher validation failed:`n$($contractOutput -join "`n")"
+		}
         Write-Log 'local validation passed'
 
         # Anything outstanding gets committed, so the build matches what is on
@@ -536,6 +542,7 @@ $btn.Add_Click({
         $releaseApi = "https://api.github.com/repos/$Owner/$Repo/releases/tags/$tag"
         $releaseReady = $false
         $releaseStatus = $null
+		$releaseError = ''
         for ($i = 0; $i -lt 30; $i++) {
             try {
                 $release = Invoke-RestMethod -Uri $releaseApi -Headers $headers -TimeoutSec 20
@@ -550,9 +557,46 @@ $btn.Add_Click({
                 }
             } catch {
                 # Release creation can trail the successful job by a moment.
+				$releaseError = $_.Exception.Message
             }
             Start-Sleep -Seconds 2
         }
+		# The release API is not the only authority. It is unauthenticated here and
+		# can be rate-limited or briefly stale after Actions has already published
+		# the blobs. v0.4.115 succeeded with every asset live and was still reported
+		# as failed by this watcher. Check the exact canonical downloads with HEAD;
+		# no archive is downloaded and a positive Content-Length proves the file the
+		# installed launcher will request is actually available.
+		if (-not $releaseReady) {
+			Write-Log 'release API has not confirmed the files - checking their download links directly'
+			try {
+				$gameName = 'BeastRoad-windows.zip'
+				$launcherName = 'BeastRoadLauncher.exe'
+				$gameHead = Invoke-WebRequest -Uri `
+					"https://github.com/$Owner/$Repo/releases/download/$tag/$gameName" `
+					-Method Head -MaximumRedirection 8 -UseBasicParsing -TimeoutSec 30
+				$launcherHead = Invoke-WebRequest -Uri `
+					"https://github.com/$Owner/$Repo/releases/download/$tag/$launcherName" `
+					-Method Head -MaximumRedirection 8 -UseBasicParsing -TimeoutSec 30
+				$gameAsset = ConvertTo-BeastRoadReleaseAsset -Response $gameHead -Name $gameName
+				$launcherAsset = ConvertTo-BeastRoadReleaseAsset -Response $launcherHead -Name $launcherName
+				if ($gameAsset -and $launcherAsset) {
+					$releaseStatus = [pscustomobject]@{
+						Ready = $true
+						GameAsset = $gameAsset
+						LauncherAsset = $launcherAsset
+						WebAsset = $null
+						WebReady = $false
+						AuxiliaryWarning = [bool]($workflowConclusion -and $workflowConclusion -ne 'success')
+					}
+					$webAsset = $null
+					$releaseReady = $true
+					Write-Log 'canonical game and launcher downloads are live'
+				}
+			} catch {
+				$releaseError = $_.Exception.Message
+			}
+		}
         if (-not $releaseReady) {
             $detail = if ($workflowConclusion) {
                 "The workflow finished as '$workflowConclusion'."
@@ -560,6 +604,7 @@ $btn.Add_Click({
                 'The workflow did not report a conclusion.'
             }
             if ($workflowUrl) { $detail += "`n$workflowUrl" }
+			if ($releaseError) { $detail += "`nLast verification error: $releaseError" }
             throw ("GitHub did not publish both launcher-facing release files for $tag.`n" + $detail)
         }
 

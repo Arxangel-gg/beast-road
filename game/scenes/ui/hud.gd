@@ -1330,9 +1330,7 @@ func _build_tower_panel() -> void:
 	# not fit has to scroll; the alternative is a list with items nobody can
 	# press.
 	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.follow_focus = true
+	UiMetrics.prepare_scroll(scroll, touch_ui())
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_build_scroll = scroll
 	_build_panel.add_child(scroll)
@@ -2752,9 +2750,7 @@ func _size_build_controls(root: Node) -> void:
 func _size_build_scrollbar() -> void:
 	if _build_scroll == null:
 		return
-	var bar: VScrollBar = _build_scroll.get_v_scroll_bar()
-	if bar != null:
-		bar.custom_minimum_size.x = Balance.UI_TOUCH_SCROLLBAR_WIDTH if touch_ui() else 0.0
+	UiMetrics.prepare_scroll(_build_scroll, touch_ui())
 
 
 ## Shows what the next level actually buys, before the player commits.

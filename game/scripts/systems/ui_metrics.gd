@@ -88,6 +88,29 @@ const SELF_SIZED: StringName = &"beast_road_self_sized"
 const TOUCH_TARGET_HEIGHT: StringName = &"beast_road_touch_target_height"
 
 
+## Gives every long surface the same visible, draggable and focusable route.
+##
+## Wheel scrolling remains native. The exposed bar covers mouse users without a
+## wheel; focus-follow and a focusable Range cover keyboard/controller; and the
+## ScrollContainer's drag path covers touch. Keeping this here prevents the
+## co-op screen, settings and the in-run build sheet from drifting apart again.
+static func prepare_scroll(scroll: ScrollContainer, touch_layout: bool = false) -> void:
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = true
+	scroll.scroll_deadzone = Balance.UI_SCROLL_DRAG_DEADZONE
+	scroll.focus_mode = Control.FOCUS_ALL
+	var bar: VScrollBar = scroll.get_v_scroll_bar()
+	if bar == null:
+		return
+	bar.custom_minimum_size.x = Balance.UI_TOUCH_SCROLLBAR_WIDTH \
+		if touch_layout else Balance.UI_SCROLLBAR_WIDTH
+	bar.step = Balance.UI_SCROLL_STEP
+	bar.focus_mode = Control.FOCUS_ALL
+	bar.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	bar.tooltip_text = "Drag to scroll · Arrow keys and Page Up/Down also work"
+
+
 static func apply_touch_tree(root: Node, enabled: bool) -> void:
 	if root is Control:
 		_apply_touch_control(root as Control, enabled)

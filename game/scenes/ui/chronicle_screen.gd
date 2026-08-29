@@ -55,7 +55,7 @@ func _build() -> void:
 	column.add_child(_note)
 
 	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	# Leaves the heading and the always-visible Close button inside a 720p frame.
 	# The rows are the flexible part and scroll; the only way out never does.
 	scroll.custom_minimum_size = Vector2(0.0, 420.0)

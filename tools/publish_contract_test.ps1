@@ -59,4 +59,20 @@ foreach ($release in @($missingLauncher, $emptyGame)) {
     }
 }
 
-Write-Output '[publisher] PASS - desktop assets are authoritative; web zip is reported but never blocking; auxiliary failure remains visible'
+$head = [pscustomobject]@{
+    StatusCode = 200
+    Headers = @{ 'Content-Length' = @('4096') }
+}
+$direct = ConvertTo-BeastRoadReleaseAsset -Response $head -Name 'BeastRoad-windows.zip'
+if (-not $direct -or $direct.size -ne 4096 -or $direct.state -ne 'uploaded') {
+    throw 'A live canonical download must recover release readiness when the API watcher is stale.'
+}
+$emptyHead = [pscustomobject]@{
+    StatusCode = 200
+    Headers = @{ 'Content-Length' = @('0') }
+}
+if (ConvertTo-BeastRoadReleaseAsset -Response $emptyHead -Name 'empty.zip') {
+    throw 'A zero-byte direct download must never be treated as a published asset.'
+}
+
+Write-Output '[publisher] PASS - desktop assets are authoritative; direct downloads recover stale API reads; web is non-blocking'

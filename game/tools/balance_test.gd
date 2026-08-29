@@ -2094,6 +2094,15 @@ func _test_hostile_projectile() -> void:
 		if child.get_script() != null \
 				and child.get_script().resource_path == "res://scenes/battlefield/enemy_projectile.gd":
 			found = true
+			var shot := child as Node2D
+			_check(shot.global_position.distance_to(howler.combat_origin()) < 0.5,
+				"Howler projectile must originate at the body, not the Y-sort feet")
+			var ribbons: int = 0
+			for layer: Node in shot.get_children():
+				if layer is Line2D:
+					ribbons += 1
+			_check(ribbons >= 2,
+				"hostile projectile must retain its shell and filament presentation")
 			break
 	_check(found, "Howler must release a visible hostile projectile")
 

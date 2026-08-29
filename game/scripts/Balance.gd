@@ -1767,15 +1767,27 @@ const ENEMY_RANGED_RANGE: float = 330.0
 ## Raised alongside the tower shot, but by less: an enemy's shot has to stay
 ## dodgeable, and the hero has more ground to dodge into now. [TUNE]
 const ENEMY_PROJECTILE_SPEED: float = 400.0
-const ENEMY_PROJECTILE_WIDTH: float = 7.0
+## Layered hostile ribbon and head. The dark shell identifies enemy fire before
+## the hot filament is bright enough to compete with tower projectiles. [TUNE]
+const ENEMY_PROJECTILE_WIDTH: float = 11.0
+const ENEMY_PROJECTILE_FILAMENT_WIDTH: float = 3.0
+const ENEMY_PROJECTILE_HEAD_RADIUS: float = 8.0
+const ENEMY_PROJECTILE_RUNE_RADIUS: float = 15.0
+const ENEMY_PROJECTILE_RUNE_WIDTH: float = 2.0
+const ENEMY_PROJECTILE_PULSE_SPEED: float = 9.0
 const ENEMY_PROJECTILE_HIT_RADIUS: float = 18.0
 const ENEMY_PROJECTILE_BLAST_RADIUS: float = 54.0
 const ENEMY_PROJECTILE_MAX_LIFE: float = 2.0
-const ENEMY_PROJECTILE_TRAIL_POINTS: int = 12
-const ENEMY_PROJECTILE_GLOW_SCALE: float = 0.22
+const ENEMY_PROJECTILE_TRAIL_POINTS: int = 16
+const ENEMY_PROJECTILE_GLOW_SCALE: float = 0.30
+const ENEMY_PROJECTILE_MOTE_INTERVAL: float = 0.11
+const ENEMY_PROJECTILE_MOTE_SPEED: float = 58.0
+const ENEMY_PROJECTILE_IMPACT_SPARKS: int = 15
 const ENEMY_PROJECTILE_LIGHT_RADIUS: float = 105.0
 const ENEMY_PROJECTILE_LIGHT_ENERGY: float = 0.75
 const ENEMY_PROJECTILE_COLOUR: Color = Color(0.95, 0.25, 0.12)
+const ENEMY_PROJECTILE_CORE_COLOUR: Color = Color(1.0, 0.82, 0.46)
+const ENEMY_PROJECTILE_SHELL_COLOUR: Color = Color(0.22, 0.025, 0.035)
 const HOWLER_SEARCH_RADIUS: float = 240.0
 
 # ------------------------------------------------------------------------------
@@ -3093,6 +3105,12 @@ const PATH_TINT_ALPHA: float = 0.84
 ## tower-defense map with no lanes on it. [TUNE]
 const PATH_DARKEN: float = 0.76
 
+## Sub-pixel shoulder blend between the baked lane mask and regional ground.
+## Kept near one source texel so it softens the cut-paper edge without turning
+## the pixel-art road itself blurry or widening build geometry. [TUNE]
+const PATH_EDGE_FEATHER_TEXELS: float = 1.15
+const PATH_EDGE_FEATHER_STRENGTH: float = 0.82
+
 ## Rain catches only the road's brighter texels and moves in long, faint bands.
 ## It is part of the existing road pass rather than another full-field layer.
 ## [TUNE]
@@ -3316,7 +3334,12 @@ const UI_TOUCH_SPELL_SLOT_WIDTH: float = 122.0
 ## is for isolated controls; applying it to eight tower choices leaves only two
 ## visible on a landscape phone. [TUNE]
 const UI_TOUCH_BUILD_TARGET_HEIGHT: float = 84.0
-const UI_TOUCH_SCROLLBAR_WIDTH: float = 22.0
+## Every scrolling surface exposes a draggable rail, including desktop users
+## without a wheel. The touch width is deliberately a larger thumb target. [TUNE]
+const UI_SCROLLBAR_WIDTH: float = 20.0
+const UI_TOUCH_SCROLLBAR_WIDTH: float = 30.0
+const UI_SCROLL_STEP: float = 54.0
+const UI_SCROLL_DRAG_DEADZONE: int = 8
 const UI_TOUCH_PREPARATION_BUTTON_HEIGHT: float = 72.0
 
 ## The thin hero-progression strip across battlefield and raid views. [TUNE]
@@ -3473,10 +3496,12 @@ const PARTY_LIGHT_STRENGTH: float = 0.62
 const COOP_LOBBY_IDLE_FPS: float = 8.0
 const COOP_LOBBY_CARD_SIZE: Vector2 = Vector2(132.0, 178.0)
 const COOP_LOBBY_HERO_SIZE: Vector2 = Vector2(116.0, 112.0)
-## Keeps the expanded lobby inside the 1080p design viewport. Shorter windows
-## inherit project stretch and the body scrolls instead of clipping the join and
-## Back controls below the frame. [TUNE]
+## Maximum co-op panel height. Runtime clamps this to the visible viewport so a
+## shorter window creates overflow inside the scroll surface instead of placing
+## the panel's top and bottom beyond the screen. [TUNE]
 const COOP_PANEL_VIEW_HEIGHT: float = 920.0
+const COOP_PANEL_EDGE_MARGIN: float = 24.0
+const COOP_PANEL_MIN_VIEW_HEIGHT: float = 320.0
 
 ## How wide a line in the party feed may run before it wraps. [TUNE]
 const PARTY_LOG_WIDTH: float = 420.0

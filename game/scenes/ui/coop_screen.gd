@@ -60,6 +60,8 @@ func _ready() -> void:
 	Coop.webrtc().refresh_relays()
 	layer = 60
 	_build()
+	_fit_panel_to_viewport()
+	get_viewport().size_changed.connect(_fit_panel_to_viewport)
 	visible = false
 	EventBus.coop_state_changed.connect(_on_state_changed)
 	EventBus.coop_partner_joined.connect(func(_id: int) -> void: _refresh())
@@ -103,6 +105,17 @@ func close() -> void:
 	closed.emit()
 
 
+func _fit_panel_to_viewport() -> void:
+	if _root == null:
+		return
+	var viewport_height: float = get_viewport().get_visible_rect().size.y
+	var available: float = maxf(Balance.COOP_PANEL_MIN_VIEW_HEIGHT,
+		viewport_height - Balance.COOP_PANEL_EDGE_MARGIN * 2.0)
+	var panel_height: float = minf(Balance.COOP_PANEL_VIEW_HEIGHT, available)
+	_root.offset_top = -panel_height * 0.5
+	_root.offset_bottom = panel_height * 0.5
+
+
 func _build() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.03, 0.04, 0.82)
@@ -119,9 +132,9 @@ func _build() -> void:
 	add_child(_root)
 
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0.0, Balance.COOP_PANEL_VIEW_HEIGHT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_root.add_child(scroll)
 
 	var column := VBoxContainer.new()

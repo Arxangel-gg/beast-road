@@ -17,6 +17,8 @@ uniform vec2 surface_repeat = vec2(1.0);
 uniform vec3 surface_tint = vec3(1.0);
 uniform float surface_alpha : hint_range(0.0, 1.0) = 1.0;
 uniform float use_surface : hint_range(0.0, 1.0) = 0.0;
+uniform float edge_feather_texels : hint_range(0.0, 3.0) = 0.0;
+uniform float edge_feather_strength : hint_range(0.0, 1.0) = 0.0;
 uniform float wet_strength : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
@@ -24,9 +26,17 @@ void fragment() {
 	// sampled in canvas space, so bends and junctions cannot create texture seams
 	// and path detail can never spill onto the surrounding terrain.
 	vec4 mask = texture(TEXTURE, UV);
+	vec2 feather_step = TEXTURE_PIXEL_SIZE * edge_feather_texels;
+	float neighbour_alpha = texture(TEXTURE, UV + vec2(feather_step.x, 0.0)).a
+		+ texture(TEXTURE, UV - vec2(feather_step.x, 0.0)).a
+		+ texture(TEXTURE, UV + vec2(0.0, feather_step.y)).a
+		+ texture(TEXTURE, UV - vec2(0.0, feather_step.y)).a;
+	float feather_alpha = smoothstep(0.04, 0.96,
+		(mask.a * 4.0 + neighbour_alpha) / 8.0);
+	float road_alpha = mix(mask.a, feather_alpha, edge_feather_strength);
 	vec3 painted = texture(surface_texture, UV * surface_repeat).rgb;
 	vec3 base = mix(mask.rgb, painted, use_surface) * surface_tint;
-	vec4 source = vec4(base, mask.a * surface_alpha);
+	vec4 source = vec4(base, road_alpha * surface_alpha);
 	vec2 texel = UV / max(TEXTURE_PIXEL_SIZE, vec2(0.0001));
 
 	// Two sparse travelling bands. Their intersection glints on raised stones,
@@ -60,6 +70,8 @@ static func material_for_surface(terrain_id: String = "",
 	material.shader = shader()
 	material.set_shader_parameter("surface_tint", Vector3.ONE * Balance.PATH_DARKEN)
 	material.set_shader_parameter("surface_alpha", Balance.PATH_TINT_ALPHA)
+	material.set_shader_parameter("edge_feather_texels", Balance.PATH_EDGE_FEATHER_TEXELS)
+	material.set_shader_parameter("edge_feather_strength", Balance.PATH_EDGE_FEATHER_STRENGTH)
 	var path: String = "res://art/battlefield/road_surface_%s.png" % terrain_id
 	if not terrain_id.is_empty() and ResourceLoader.exists(path):
 		var texture: Texture2D = load(path) as Texture2D

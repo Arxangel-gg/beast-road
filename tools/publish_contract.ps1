@@ -43,3 +43,27 @@ function Get-BeastRoadDesktopReleaseStatus {
         AuxiliaryWarning = [bool]($WorkflowConclusion -and $WorkflowConclusion -ne 'success')
     }
 }
+
+
+## Converts a successful HEAD response for a canonical release download into
+## the same small asset shape returned by GitHub's release API. This is the
+## publisher's rate-limit/cache fallback: the player-facing file can be live
+## while the API watcher is temporarily unavailable or stale.
+function ConvertTo-BeastRoadReleaseAsset {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Response,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    $status = [int]$Response.StatusCode
+    if ($status -lt 200 -or $status -ge 300) { return $null }
+    $rawLength = @($Response.Headers['Content-Length']) | Select-Object -First 1
+    $size = 0L
+    try { $size = [long]([string]$rawLength) } catch { $size = 0L }
+    if ($size -le 0) { return $null }
+    [pscustomobject]@{ name = $Name; size = $size; state = 'uploaded' }
+}

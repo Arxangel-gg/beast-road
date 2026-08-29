@@ -1317,6 +1317,15 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       drag events through the real autoload and reads the real input map, because
       this machine has no touchscreen and the alternative test is a phone.
       `tools/touch_shot.tscn` renders it with both thumbs down.
+- [x] **Every long UI surface has a visible input-independent scroll route.**
+      Co-op exposed the gap: its content accepted a wheel and touch drag, but its
+      hairline rail was not a usable mouse control and its fixed 920px viewport
+      could put the frame beyond a short screen. `UiMetrics.prepare_scroll`
+      now gives co-op, settings, Chronicle, leaderboard, stash, debrief, build
+      and town screens one wide themed rail, focus-follow, keyboard/controller
+      focus and touch drag. The co-op panel itself shrinks to the viewport before
+      content overflows. `menu_check` gates both the shared contract and the
+      responsive panel height.
 - [ ] Whether the sticks *feel* right under a thumb, on a real phone. Nothing
       headless can answer that, and the check says so.
 - [x] Loot diversity: relic and supply cache types, all four currency pickups,
@@ -2552,6 +2561,9 @@ the history.
 
 - Launcher updates only when the launcher itself changed (verified against the
   published release, not just the code).
+- Update Manager verifies canonical release downloads when GitHub's API is
+  stale or rate-limited; v0.4.115's successful release can no longer be reported
+  as failed merely because the watcher missed its assets.
 - Chill model for slows; hitstun gated so nothing can be stun-locked.
 - Preparation countdown with the tiered early-departure reward.
 - Summit ending flows directly into the victory debrief; Endless remains a
@@ -2560,7 +2572,11 @@ the history.
 - Element rail in the build menu, with per-tower stat tooltips.
 - First-run tutorial: side card, dismissible, per-save, togglable.
 - Erase saved data, in Settings.
-- Per-region roads and Wang ground floors for all three acts.
+- Cohesive per-region road and ground paintings for all three acts; the rejected
+  coarse Wang floor is gone. Road shoulders use a bounded four-sample feather
+  into the ground without blurring the material painting.
+- Hostile Howler shots originate from the enemy's body rather than its Y-sort
+  feet and carry a distinct layered shell, filament, rune head and impact.
 - Towers y-sort on their base anchor; shadows anchor to the sprite, not the node.
 - Health bars draw above world content, so foliage cannot occlude a readout.
 - Foliage sorting bands refined 16 → 32, keeping maximum depth error below one

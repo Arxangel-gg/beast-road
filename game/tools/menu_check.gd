@@ -56,6 +56,50 @@ func _ready() -> void:
 		push_error("GDD §54 cuts Endless from 1.0; the main menu must not expose it")
 		get_tree().quit(1)
 		return
+	# Every long menu surface shares one interaction contract. This catches the
+	# co-op regression where the content technically scrolled but the only
+	# discoverable input was a mouse wheel.
+	var scroll_count: int = 0
+	for node: Node in _all(menu):
+		if not node is ScrollContainer:
+			continue
+		scroll_count += 1
+		var scroll := node as ScrollContainer
+		var bar: VScrollBar = scroll.get_v_scroll_bar()
+		if scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO \
+				or not scroll.follow_focus or scroll.focus_mode != Control.FOCUS_ALL:
+			push_error("every menu scroll surface must support drag and focus-follow")
+			get_tree().quit(1)
+			return
+		if bar == null or bar.focus_mode != Control.FOCUS_ALL \
+				or bar.custom_minimum_size.x < Balance.UI_SCROLLBAR_WIDTH:
+			push_error("every menu scroll surface must expose a focusable draggable rail")
+			get_tree().quit(1)
+			return
+	if scroll_count < 6:
+		push_error("expected the co-op, settings and account screens to expose scroll rails")
+		get_tree().quit(1)
+		return
+	var coop_screen: CanvasLayer = menu.get("_coop") as CanvasLayer
+	var coop_root: Control = null
+	if coop_screen != null:
+		coop_root = coop_screen.get("_root") as Control
+	var viewport_height: float = get_viewport().get_visible_rect().size.y
+	var expected_coop_height: float = minf(Balance.COOP_PANEL_VIEW_HEIGHT,
+		maxf(Balance.COOP_PANEL_MIN_VIEW_HEIGHT,
+			viewport_height - Balance.COOP_PANEL_EDGE_MARGIN * 2.0))
+	if coop_root == null or absf(coop_root.size.y - expected_coop_height) > 1.0:
+		push_error("the co-op panel must shrink into the viewport before its body scrolls")
+		get_tree().quit(1)
+		return
+	var scroll_style: StyleBox = menu.get_theme_stylebox("scroll", "VScrollBar")
+	var pressed_style: StyleBox = menu.get_theme_stylebox("grabber_pressed", "VScrollBar")
+	if scroll_style.get_minimum_size().x < 16.0 \
+			or pressed_style.get_minimum_size().y < 20.0:
+		push_error("the shared scrollbar theme must retain its visible rail and grabber")
+		get_tree().quit(1)
+		return
+	print("[menu] %d scroll surfaces have visible drag, touch and focus paths" % scroll_count)
 	if stage == null or stage._beast == null:
 		push_error("main menu must own its living beast stage")
 		get_tree().quit(1)
@@ -82,11 +126,19 @@ func _ready() -> void:
 	if OS.get_cmdline_user_args().has("--shot"):
 		# Only when asked. The gate runs headless in CI, where there is no
 		# framebuffer to capture and asking for one is an error, not a picture.
-		if OS.get_cmdline_user_args().has("--compact"):
+		if OS.get_cmdline_user_args().has("--short"):
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_size(Vector2i(960, 540))
+		elif OS.get_cmdline_user_args().has("--compact"):
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_size(Vector2i(1280, 720))
 		if OS.get_cmdline_user_args().has("--settings"):
 			menu.call("_show_settings", true)
+		elif OS.get_cmdline_user_args().has("--coop"):
+			var coop: CanvasLayer = menu.get("_coop") as CanvasLayer
+			if coop != null:
+				# A visual capture needs the built screen, not live network polling.
+				coop.visible = true
 		elif OS.get_cmdline_user_args().has("--chronicle"):
 			for node: Node in _all(menu):
 				if node.get_script() == ChronicleScreenScript:

@@ -25,6 +25,9 @@ var _building_id: String = ""
 
 func _ready() -> void:
 	panel.visible = false
+	var scroll: ScrollContainer = actions.get_parent() as ScrollContainer
+	if scroll != null:
+		UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	close_button.pressed.connect(close)
 	EventBus.construction_started.connect(func(_id: String, _t: int) -> void: _refresh())
 	EventBus.construction_progress.connect(_on_progress)

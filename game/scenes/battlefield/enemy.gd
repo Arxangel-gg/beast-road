@@ -376,7 +376,7 @@ func strike_remote(at: Vector2) -> void:
 	if data.role != EnemyData.Role.HOWLER:
 		return
 	var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
-	shot.configure_toward(at, global_position)
+	shot.configure_toward(at, combat_origin())
 	_field.add_child(shot)
 
 
@@ -769,7 +769,7 @@ func _strike() -> void:
 		EventBus.enemy_struck.emit(net_id, _target.global_position)
 	if data.role == EnemyData.Role.HOWLER:
 		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
-		shot.configure(_target, damage, global_position)
+		shot.configure(_target, damage, combat_origin())
 		_field.add_child(shot)
 		return
 	target_health.take_damage(damage, global_position)
@@ -1144,8 +1144,14 @@ func _apply_category_scale() -> void:
 		health_bar.position.y = -float(sprite.texture.get_height()) * visual_scale * 0.92
 
 
-func _visual_origin() -> Vector2:
+## Centre-authored combat position, kept separate from the feet used for depth.
+## Projectiles, blood and hit reactions all originate here.
+func combat_origin() -> Vector2:
 	return global_position + Vector2(0.0, -_depth_lift)
+
+
+func _visual_origin() -> Vector2:
+	return combat_origin()
 
 
 func _build_aura_readout() -> void:

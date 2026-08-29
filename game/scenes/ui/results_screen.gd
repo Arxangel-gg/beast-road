@@ -202,8 +202,8 @@ func _plate_body() -> void:
 	# longer run genuinely has more to say - so the fix is to give the text
 	# somewhere to go, not to trim what a player earned the right to read.
 	var scroll := ScrollContainer.new()
+	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	# Grows with the text up to a ceiling, then scrolls. Expanding to fill
 	# instead is what left a short debrief floating in a void, and a fixed height
 	# would clip the long one - which is the case that had no way out.

@@ -157,7 +157,7 @@ func _build() -> void:
 
 	var video_scroll := ScrollContainer.new()
 	video_scroll.name = "Video"
-	video_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(video_scroll, TouchInput.is_showing())
 	var video := VBoxContainer.new()
 	video.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	video.add_theme_constant_override("separation", 6)
@@ -786,7 +786,7 @@ func _build_controls(column: VBoxContainer) -> void:
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	column.add_child(scroll)
 
 	var list := VBoxContainer.new()

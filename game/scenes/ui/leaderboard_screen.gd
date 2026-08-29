@@ -70,7 +70,7 @@ func _build() -> void:
 	# screen had to learn: a screen whose only way out sits below fifty rows is a
 	# screen with no way out.
 	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	scroll.custom_minimum_size = Vector2(0.0, 520.0)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)

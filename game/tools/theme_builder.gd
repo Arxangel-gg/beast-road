@@ -167,12 +167,14 @@ static func build() -> Dictionary:
 
 	# --- Scrollbars ----------------------------------------------------------
 	#
-	# Still defined even though the build panel no longer scrolls. Something
-	# somewhere will scroll eventually, and an unstyled scrollbar is the fastest
-	# way to make a themed screen look unfinished.
+	# A persistent iron-and-amber rail rather than a hairline that only wheel
+	# users can discover. Pressed and focus states matter here: this control is a
+	# primary navigation path for mouse users without wheels and for controllers.
 	theme.set_stylebox("scroll", "VScrollBar", _bar_slot())
+	theme.set_stylebox("scroll_focus", "VScrollBar", _bar_slot(true))
 	theme.set_stylebox("grabber", "VScrollBar", _bar_grabber(0.55))
 	theme.set_stylebox("grabber_highlight", "VScrollBar", _bar_grabber(0.85))
+	theme.set_stylebox("grabber_pressed", "VScrollBar", _bar_grabber(1.0))
 
 	var error: String = ""
 	if not problems.is_empty():
@@ -230,15 +232,22 @@ static func _sunken() -> StyleBoxFlat:
 	return style
 
 
-static func _bar_slot() -> StyleBoxFlat:
+static func _bar_slot(focused: bool = false) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.04, 0.06, 0.07, 0.85)
-	style.set_corner_radius_all(3)
+	style.border_color = Color(GOLD, 0.72 if focused else 0.30)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	_pad(style, 8, 8, 0, 0)
 	return style
 
 
 static func _bar_grabber(alpha: float) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(GOLD, alpha)
-	style.set_corner_radius_all(3)
+	style.border_color = Color(INK_BRIGHT, minf(1.0, alpha + 0.12))
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(5)
+	# Keeps the handle legible and comfortably draggable even on a long list.
+	_pad(style, 5, 5, 11, 11)
 	return style
