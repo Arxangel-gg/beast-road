@@ -103,10 +103,6 @@ const PATH_TILE_FORMAT: String = "res://art/battlefield/path_tile_%02d.png"
 ## which is how one act can be re-skinned without breaking the other two.
 const PATH_TILE_REGION_FORMAT: String = "res://art/battlefield/path_%s_%02d.png"
 
-## The region's corner (Wang) ground set. Derived from the terrain id, like every
-## other asset path in the project. Absent means the region falls back to a
-## single repeating tile.
-const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
 const PATH_TILE_PIXELS: int = 64
 
 ## The carriageway, three tiles across in the authored layout.
@@ -129,27 +125,13 @@ const ROAD_BAKE_PPU: float = 0.5
 
 var _path_tiles: Array = []
 var _path_variants_cache: Dictionary = {}
-var _road_details_cache: Array[Image] = []
 
 ## Counts torches actually built, so the every-Nth light and shadow rules stay
 ## evenly spread after the minimum-gap filter has removed some.
 var _torch_index: int = 0
-var _ground_tiles_cache: Array = []
-var _ground_variants_cache: Dictionary = {}
-var _ground_cache_id: String = ""
-
 ## How much wider the road is than the walkable lane, so enemies travel on it
 ## rather than beside it.
 const LANE_ROAD_SCALE: float = 1.72
-
-## Road colour. Alpha and darkening both live in Balance because both of them
-## are "can you see the lane", which is a tuning question and was answered wrong
-## once already.
-static func lane_road_tint() -> Color:
-	var shade: float = Balance.PATH_DARKEN
-	var warm: Color = Balance.PATH_WARMTH
-	return Color(warm.r * shade, warm.g * shade, warm.b * shade, Balance.PATH_TINT_ALPHA)
-
 
 ## The tile grid and the four bent roads (GDD §13). Built before anything that
 ## reads geometry, because the road art, the spawn points and enemy pathing all
@@ -1571,139 +1553,14 @@ func _setup_ground() -> void:
 	ground.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	ground.add_to_group(Graphics.FILTER_GROUP)
 
+	# One cohesive seamless terrain per region. The rejected corner-Wang pass
+	# enlarged each 64px material patch into a giant rectangular island; those
+	# islands were the brown/blue blocks reported over the battlefield. Terrain
+	# variation belongs in foliage, weather and authored texture detail, not in a
+	# second coarse grid fighting the learned road layout.
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
-	var baked: ImageTexture = _bake_ground(extent)
-	if baked != null:
-		# A baked floor is already the whole field, so it must not repeat and it
-		# is drawn 1:1 - the tiling happened at bake time.
-		ground.texture = baked
-		ground.region_enabled = false
-		ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_DISABLED
-		ground.material = null
-		ground.scale = Vector2.ONE * Balance.GROUND_UNITS_PER_TEXEL
-	elif terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
+	if terrain != null and ResourceLoader.exists(terrain.get_sprite_path()):
 		ground.texture = load(terrain.get_sprite_path())
-
-
-## Bakes the region's floor from its corner (Wang) tileset.
-##
-## A single tile repeating is wallpaper: the eye finds the period within a second
-## and the whole battlefield reads as graph paper. A corner set gives the region
-## two materials - earth and moss, rock and snow - and sixteen tiles covering
-## every way four corners can be one or the other, so which tile goes where is
-## decided by a noise field rather than by position. The repeat lives in the
-## *pattern* and there is nothing regular left for the eye to lock onto.
-##
-## Baked into one texture for the same reason the road is: as sprites the tiles
-## abut in world space and the rasteriser rounds each quad on its own, so a
-## hairline of background opens along some joins and which joins depends on the
-## camera.
-##
-## Returns null when the region has no set, and the caller falls back to the
-## single repeating tile - which is what every region had before this.
-func _bake_ground(extent: float) -> ImageTexture:
-	var tiles: Array = _ground_tiles()
-	if tiles.is_empty():
-		return null
-
-	var tile_px: int = (tiles[0] as Image).get_width()
-	var cells: int = int(ceil(extent * 2.0 / (float(tile_px) * Balance.GROUND_UNITS_PER_TEXEL)))
-	cells = maxi(cells, 1)
-	var canvas: Image = Image.create_empty(cells * tile_px, cells * tile_px,
-		false, Image.FORMAT_RGBA8)
-
-	# Seeded from the run, so a given seed always grows the same ground - the
-	# debrief promises a seed reproduces the run, and the floor is part of that.
-	var noise := FastNoiseLite.new()
-	noise.seed = RunState.run_seed
-	noise.frequency = Balance.GROUND_PATCH_FREQUENCY
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-
-	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
-	var flipped: bool = terrain != null and terrain.moss_dominant
-
-	for cy: int in cells:
-		for cx: int in cells:
-			# Corners are shared with the neighbouring cells by construction,
-			# which is the whole trick: adjacent tiles agree on the corner they
-			# share, so the two materials interlock instead of butting.
-			var mask: int = 0
-			const OFFSETS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
-				Vector2i(1, 1), Vector2i(0, 1)]
-			for bit: int in 4:
-				var at: Vector2i = Vector2i(cx, cy) + OFFSETS[bit]
-				if noise.get_noise_2d(float(at.x), float(at.y)) > Balance.GROUND_PATCH_THRESHOLD:
-					mask |= 1 << bit
-			# Read the other way round for regions whose upper material is the
-			# common one: the tile for a mask's complement carries the opposite
-			# material on exactly those corners, so this swaps which of the two
-			# covers the field without needing a second tileset.
-			if flipped:
-				mask = 15 - mask
-			# Eight legal rotations/reflections are available for every topology:
-			# transform a different source mask into the requested one. That keeps
-			# shared corners exact while ensuring large same-material patches do not
-			# stamp the identical crack or root motif in one orientation.
-			var transform_id: int = posmod(hash(Vector3i(cx, cy, RunState.run_seed)), 8)
-			var piece: Image = _ground_variant(mask, transform_id)
-			if piece == null:
-				continue
-			canvas.blit_rect(piece, Rect2i(Vector2i.ZERO, piece.get_size()),
-				Vector2i(cx * tile_px, cy * tile_px))
-	return ImageTexture.create_from_image(canvas)
-
-
-## The region's sixteen corner tiles, cached, indexed by corner mask.
-func _ground_tiles() -> Array:
-	if _ground_cache_id == RunState.terrain_id:
-		return _ground_tiles_cache
-	_ground_cache_id = RunState.terrain_id
-	_ground_tiles_cache = []
-	_ground_variants_cache.clear()
-	for mask: int in 16:
-		var path: String = GROUND_TILE_FORMAT % [RunState.terrain_id, mask]
-		if not ResourceLoader.exists(path):
-			_ground_tiles_cache = []
-			return _ground_tiles_cache
-		var image: Image = (load(path) as Texture2D).get_image()
-		image.convert(Image.FORMAT_RGBA8)
-		_ground_tiles_cache.append(image)
-	return _ground_tiles_cache
-
-
-## One of the eight dihedral transforms of a Wang tile, selected so the result's
-## corner mask still equals `wanted_mask`. Cached once per region rather than
-## rotating thousands of pixels every time the field is redrawn.
-func _ground_variant(wanted_mask: int, transform_id: int) -> Image:
-	var key: int = wanted_mask * 8 + transform_id
-	if _ground_variants_cache.has(key):
-		return _ground_variants_cache[key] as Image
-	var source_mask: int = wanted_mask
-	for candidate: int in 16:
-		if _transform_ground_mask(candidate, transform_id) == wanted_mask:
-			source_mask = candidate
-			break
-	var source: Image = _ground_tiles_cache[source_mask] as Image
-	var result: Image = _transform_ground_image(source, transform_id)
-	_ground_variants_cache[key] = result
-	return result
-
-
-static func _transform_ground_mask(mask: int, transform_id: int) -> int:
-	const CORNERS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
-		Vector2i(1, 1), Vector2i(0, 1)]
-	var out: int = 0
-	for bit: int in 4:
-		if (mask & (1 << bit)) == 0:
-			continue
-		var point: Vector2i = CORNERS[bit]
-		for _turn: int in transform_id % 4:
-			point = Vector2i(1 - point.y, point.x)
-		if transform_id >= 4:
-			point.x = 1 - point.x
-		var output_bit: int = CORNERS.find(point)
-		out |= 1 << output_bit
-	return out
 
 
 static func _transform_ground_image(source: Image, transform_id: int) -> Image:
@@ -1777,8 +1634,6 @@ func _build_lanes() -> void:
 		if path.size() >= 2:
 			_bake_corridor(canvas, extent, path[0], path[1])
 
-	_bake_road_details(canvas, extent)
-
 	var surface := Sprite2D.new()
 	surface.name = "RoadSurface"
 	surface.texture = ImageTexture.create_from_image(canvas)
@@ -1787,62 +1642,12 @@ func _build_lanes() -> void:
 	# Nearest, or the road stops being pixel art the moment it reaches the screen.
 	surface.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	surface.add_to_group(Graphics.FILTER_GROUP)
-	if Graphics.polish_shaders():
-		surface.material = PathBlend.material_for_surface()
+	# The material is baseline road art, not optional post-processing: it maps one
+	# coherent regional texture through the existing alpha geometry. Wet sheen is
+	# still quality-gated independently inside PathBlend.
+	surface.material = PathBlend.material_for_surface(
+		RunState.terrain_id, Vector2(canvas.get_size()))
 	lane_root.add_child(surface)
-
-
-## Scatters authored ruts, stones, puddles and hoof wear down the corridor
-## lattice. They are composited into the existing surface: richer roads, still
-## one draw call, and every mark is guaranteed to remain on navigable road.
-func _bake_road_details(canvas: Image, extent: float) -> void:
-	var details: Array[Image] = _road_detail_images()
-	if details.is_empty():
-		return
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash("road-details:%s:%d" % [RunState.terrain_id, RunState.run_seed])
-	var done: Dictionary = {}
-	for node: Vector2i in grid.lattice_nodes():
-		for other: Vector2i in grid.lattice_neighbours(node):
-			var key: String = "%s|%s" % [mini(_key(node), _key(other)),
-				maxi(_key(node), _key(other))]
-			if done.has(key):
-				continue
-			done[key] = true
-			var from: Vector2 = BattleGrid.tile_to_world(node)
-			var to: Vector2 = BattleGrid.tile_to_world(other)
-			var length: float = from.distance_to(to)
-			var count: int = maxi(int(floor(length / Balance.ROAD_DETAIL_SPACING)), 1)
-			for step: int in count:
-				if rng.randf() > Balance.ROAD_DETAIL_CHANCE:
-					continue
-				var ratio: float = (float(step) + rng.randf_range(0.28, 0.72)) \
-					/ float(count)
-				var at: Vector2 = from.lerp(to, clampf(ratio, 0.08, 0.92))
-				var source: Image = details[rng.randi_range(0, details.size() - 1)]
-				var transformed: Image = _transform_ground_image(source,
-					rng.randi_range(0, 7))
-				var pixels: int = maxi(roundi(Balance.ROAD_DETAIL_WORLD_SIZE
-					* ROAD_BAKE_PPU * rng.randf_range(0.78, 1.14)), 1)
-				transformed.resize(pixels, pixels, Image.INTERPOLATE_NEAREST)
-				var centre: Vector2i = Vector2i(((at + Vector2(extent, extent))
-					* ROAD_BAKE_PPU).round())
-				canvas.blend_rect(transformed,
-					Rect2i(Vector2i.ZERO, transformed.get_size()),
-					centre - transformed.get_size() / 2)
-
-
-func _road_detail_images() -> Array[Image]:
-	if not _road_details_cache.is_empty():
-		return _road_details_cache
-	for index: int in range(1, 9):
-		var path: String = "res://art/battlefield/road_detail_%02d.png" % index
-		if not ResourceLoader.exists(path):
-			break
-		var image: Image = (load(path) as Texture2D).get_image()
-		image.convert(Image.FORMAT_RGBA8)
-		_road_details_cache.append(image)
-	return _road_details_cache
 
 
 ## A stable ordering key for a lattice node, so an edge can be deduplicated

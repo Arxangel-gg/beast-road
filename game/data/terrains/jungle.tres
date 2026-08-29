@@ -11,4 +11,3 @@ favoured_element_bonus = 0.25
 enemy_hp_regen = 1.5
 id = "jungle"
 display_name = "The Verdant Maw"
-moss_dominant = true

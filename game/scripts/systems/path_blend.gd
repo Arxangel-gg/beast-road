@@ -1,23 +1,32 @@
 class_name PathBlend
 extends RefCounted
 
-## Weather polish for the battlefield's baked road surface.
+## Regional material and weather polish for the battlefield's baked road mask.
 ##
 ## Roads used to be four rectangular strips, so the old material also had to
 ## hide their edges. They are now composited into one transparent pixel-art
-## surface in `Battlefield._build_lanes()`: the alpha already owns every bend,
-## fork and shoulder. One material on that existing surface is both cheaper and
-## more accurate than trying to reconstruct lane geometry in the shader.
+## mask in `Battlefield._build_lanes()`: the alpha already owns every bend, fork
+## and shoulder. One seamless regional painting is mapped through that mask in
+## canvas space, then the optional wet sheen is added in the same pass.
 
 const CODE: String = """
 shader_type canvas_item;
 
+uniform sampler2D surface_texture : repeat_enable, filter_nearest;
+uniform vec2 surface_repeat = vec2(1.0);
+uniform vec3 surface_tint = vec3(1.0);
+uniform float surface_alpha : hint_range(0.0, 1.0) = 1.0;
+uniform float use_surface : hint_range(0.0, 1.0) = 0.0;
 uniform float wet_strength : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
-	// COLOR already contains the baked texture and the road's CanvasItem tint.
-	// Sampling TEXTURE again would square the art and make the road go black.
-	vec4 source = COLOR;
+	// The baked path art owns geometry only. One seamless regional material is
+	// sampled in canvas space, so bends and junctions cannot create texture seams
+	// and path detail can never spill onto the surrounding terrain.
+	vec4 mask = texture(TEXTURE, UV);
+	vec3 painted = texture(surface_texture, UV * surface_repeat).rgb;
+	vec3 base = mix(mask.rgb, painted, use_surface) * surface_tint;
+	vec4 source = vec4(base, mask.a * surface_alpha);
 	vec2 texel = UV / max(TEXTURE_PIXEL_SIZE, vec2(0.0001));
 
 	// Two sparse travelling bands. Their intersection glints on raised stones,
@@ -45,9 +54,22 @@ static func shader() -> Shader:
 	return _shader
 
 
-static func material_for_surface() -> ShaderMaterial:
+static func material_for_surface(terrain_id: String = "",
+		canvas_size: Vector2 = Vector2.ONE) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = shader()
+	material.set_shader_parameter("surface_tint", Vector3.ONE * Balance.PATH_DARKEN)
+	material.set_shader_parameter("surface_alpha", Balance.PATH_TINT_ALPHA)
+	var path: String = "res://art/battlefield/road_surface_%s.png" % terrain_id
+	if not terrain_id.is_empty() and ResourceLoader.exists(path):
+		var texture: Texture2D = load(path) as Texture2D
+		if texture != null:
+			var source_size: Vector2 = texture.get_size()
+			material.set_shader_parameter("surface_texture", texture)
+			material.set_shader_parameter("surface_repeat", Vector2(
+				canvas_size.x / maxf(source_size.x, 1.0),
+				canvas_size.y / maxf(source_size.y, 1.0)))
+			material.set_shader_parameter("use_surface", 1.0)
 	material.set_shader_parameter("wet_strength", _wet)
 	_materials.append(weakref(material))
 	return material

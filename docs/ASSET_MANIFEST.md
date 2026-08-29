@@ -381,87 +381,9 @@ density (`Balance.GROUND_UNITS_PER_TEXEL`).
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `terrain_jungle.png` | 64×64 | O | `#2E3A33` |
-| `terrain_desert.png` | 64×64 | O | `#8FA8B8` |
-| `terrain_snow.png` | 64×64 | O | `#6B4A3A` |
-
-**Region floors — corner (Wang) sets.**
-
-Each region's floor is sixteen tiles covering every way four corners can be one
-of two materials, indexed by a corner mask (bit0=NW, bit1=NE, bit2=SE, bit3=SW;
-a set bit is the *upper* material). `Battlefield` bakes the floor by sampling a
-seeded noise field at the cell corners, so the two materials interlock in
-organic drifts and the floor never shows a repeat — the periodicity lives in the
-pattern, not in the image.
-
-Sliced from a PixelLab tileset by `tools/build_ground_tiles.py`, which documents
-the two traps: slice by each tile's `bounding_box`, never by its name or grid
-position, and read the corners by name rather than positionally.
-
-`terrain_<id>.png` above remains the fallback for a region with no corner set.
-
-**Act I — The Verdant Maw** (dark jungle earth → deep-green moss)
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `ground_jungle_00.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_01.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_02.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_03.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_04.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_05.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_06.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_07.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_08.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_09.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_10.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_11.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_12.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_13.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_14.png` | 64×64 | O | `#2E3A33` |
-| `ground_jungle_15.png` | 64×64 | O | `#2E3A33` |
-
-**Act II — The Sunglass Waste** (pale salt hardpan → golden sand drifts)
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `ground_desert_00.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_01.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_02.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_03.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_04.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_05.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_06.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_07.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_08.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_09.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_10.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_11.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_12.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_13.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_14.png` | 64×64 | O | `#C9A968` |
-| `ground_desert_15.png` | 64×64 | O | `#C9A968` |
-
-**Act III — The White Teeth** (frozen rock → wind-packed snow)
-
-| File | Size | Type | Placeholder colour |
-|------|------|------|--------------------|
-| `ground_snow_00.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_01.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_02.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_03.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_04.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_05.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_06.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_07.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_08.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_09.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_10.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_11.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_12.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_13.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_14.png` | 64×64 | O | `#8FA8B8` |
-| `ground_snow_15.png` | 64×64 | O | `#8FA8B8` |
+| `terrain_jungle.png` | 512×512 | O | `#342F25` |
+| `terrain_desert.png` | 512×512 | O | `#6B4F36` |
+| `terrain_snow.png` | 512×512 | O | `#4D5B68` |
 
 ### 5.7b Foliage — `res://art/foliage/`
 
@@ -492,6 +414,15 @@ toward the region's sampled ground palette so it sits in the same light.
 | `butterfly_fly_03.png` | 32×32 | T | `#8155B8` |
 | `butterfly_fly_04.png` | 32×32 | T | `#8155B8` |
 | `butterfly_fly_05.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_01.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_02.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_03.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_04.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_05.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_06.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_07.png` | 32×32 | T | `#8155B8` |
+| `butterfly_side_08.png` | 32×32 | T | `#8155B8` |
+| `butterfly_idle_01.png` | 32×32 | T | `#8155B8` |
 | `plant_jungle.png` | 48×64 | T | `#2E4A33` |
 | `plant_desert.png` | 48×64 | T | `#C0AC7E` |
 | `plant_snow.png` | 48×64 | T | `#A8BCCC` |
@@ -851,12 +782,12 @@ frames: a bird walking and a bird flying are not the same animal at two speeds,
 and a crow that hopped across the sky was exactly what shipping only one moving
 sequence looked like.
 
-Five frames — authored pose plus four PixelLab transitions — so the downstroke,
-recovery and glide read as a wingbeat rather than a bird swapping between two
-unrelated silhouettes.
+Eight frames carry the wing all the way from high through level to a sustained,
+clearly low downstroke, then recover to the raised pose. The added temporal room
+keeps the lowest part of the beat visible at gameplay frame rates.
 
-Files: `wildlife_raven_fly_01.png` … `wildlife_raven_fly_05.png`
-Files: `wildlife_hawk_fly_01.png` … `wildlife_hawk_fly_05.png`
+Files: `wildlife_raven_fly_01.png` … `wildlife_raven_fly_08.png`
+Files: `wildlife_hawk_fly_01.png` … `wildlife_hawk_fly_08.png`
 
 Both birds also land between flights. Their grounded loops are perched
 silhouettes with planted feet and restrained breathing/head motion, not frozen
@@ -1030,15 +961,16 @@ which is where the tile-order, missing-mask and seam problems are documented.
 
 `path_tile_NN` remains the fallback for any region without a set.
 
-PixelLab-authored road-wear decals are baked over the connected surface at
-runtime; they never add nodes or leave the navigable road.
+The sixteen sets below own road **shape only**. Their alpha masks define every
+bend, junction, collar and shoulder. One seamless 512×512 regional material is
+mapped continuously across the baked mask, so fine travel wear never restarts at
+a junction and can never appear on open terrain.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `road_detail_01.png` | 64×64 | T | `#6B5A44` |
-| `road_detail_02.png` | 64×64 | T | `#6B5A44` |
-| `road_detail_03.png` | 64×64 | T | `#6B5A44` |
-| `road_detail_04.png` | 64×64 | T | `#6B5A44` |
+| `road_surface_jungle.png` | 512×512 | O | `#4A3E31` |
+| `road_surface_desert.png` | 512×512 | O | `#8B6338` |
+| `road_surface_snow.png` | 512×512 | O | `#657087` |
 
 **Act I — The Verdant Maw**
 
@@ -1141,11 +1073,11 @@ the art only has to carry the element - which is why one frame is enough.
 | `impact_water.png` | 96×96 | T | `#54B8C8` |
 | `impact_earth.png` | 96×96 | T | `#B07A3E` |
 | `impact_air.png` | 96×96 | T | `#BFE6F0` |
-| `blood_splatter.png` | 96×96 | T | `#8E1F25` |
 
-The blood splatter is the optional, teen-rated character-hit layer. It is
-kept separate from elemental impact art so the Blood effects setting can remove
-gore without removing danger telegraphs, hit confirmation, or damage numbers.
+The optional, teen-rated character-hit layer is procedural: short ballistic
+droplets land into the shared ground field. It has no bitmap requirement, and
+the Blood effects setting can remove it without removing danger telegraphs, hit
+confirmation, or damage numbers.
 
 Ground pools, one per element. Rotated to any angle, scaled and hue-jittered per
 cast, so four files never read as four stamps — the variety lives in the

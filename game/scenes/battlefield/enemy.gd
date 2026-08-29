@@ -158,6 +158,11 @@ var _burn_left: float = 0.0
 var _motion: Vector2 = Vector2.ZERO
 var _boss_phase: int = 0
 
+## Distance from the depth/contact root to the centre-authored combat pose.
+## Stored when category scale is applied so hit feedback never originates from
+## the feet merely because the node itself must sort there.
+var _depth_lift: float = 0.0
+
 ## A slide in progress on snow, and how long is left of it.
 ##
 ## Sideways rather than forwards: a slip is losing your footing, not being
@@ -469,9 +474,10 @@ func _react_to_mirrored_hit(lost: float) -> void:
 		return
 	var facing: Vector2 = Vector2.LEFT if sprite.flip_h else Vector2.RIGHT
 	var from: Vector2 = global_position + facing * 24.0
-	Vfx.number(global_position, lost, Color("ffe3b0"), lost >= data.max_hp * 0.4)
-	Vfx.spark(global_position, Color("ffcf9a"), 4, -facing, 170.0)
-	Vfx.blood(global_position, -facing, Balance.VFX_BLOOD_HIT_SIZE)
+	var body_at: Vector2 = _visual_origin()
+	Vfx.number(body_at, lost, Color("ffe3b0"), lost >= data.max_hp * 0.4)
+	Vfx.spark(body_at, Color("ffcf9a"), 4, -facing, 170.0)
+	Vfx.blood(body_at, -facing, Balance.VFX_BLOOD_HIT_SIZE, global_position)
 	if animator != null:
 		animator.recoil(from, global_position,
 			clampf(lost / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
@@ -837,10 +843,11 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	_add_hitstun(Balance.ENEMY_HITSTUN)
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
-	Vfx.number(global_position, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
+	var body_at: Vector2 = _visual_origin()
+	Vfx.number(body_at, incoming, Color("ffe3b0"), incoming >= data.max_hp * 0.4)
 	var hit_direction: Vector2 = (global_position - from).normalized()
-	Vfx.spark(global_position, Color("ffcf9a"), 4, hit_direction, 170.0)
-	Vfx.blood(global_position, hit_direction, Balance.VFX_BLOOD_HIT_SIZE)
+	Vfx.spark(body_at, Color("ffcf9a"), 4, hit_direction, 170.0)
+	Vfx.blood(body_at, hit_direction, Balance.VFX_BLOOD_HIT_SIZE, global_position)
 	animator.recoil(from, global_position, clampf(amount / maxf(data.max_hp, 1.0) * 3.0, 0.5, 1.8))
 	animator.impact_frame()
 	var away: Vector2 = global_position - from
@@ -1013,7 +1020,7 @@ func _on_died(_from: Vector2) -> void:
 		RunState.mark_last_scar_pursuer_defeated()
 		Vfx.ring(global_position, 154.0, Color(0.96, 0.36, 0.28, 0.9), 0.72, 8.0)
 		Vfx.spark(global_position, Color("ffd0a0"), 28, Vector2.UP, 250.0)
-	EventBus.enemy_died.emit(data.id, global_position)
+	EventBus.enemy_died.emit(data.id, _visual_origin())
 
 
 ## Removes this enemy without killing it.
@@ -1128,13 +1135,17 @@ func _apply_category_scale() -> void:
 		visual_scale *= reference_height / maxf(float(sprite.texture.get_height()), 1.0)
 	sprite.scale = Vector2.ONE * visual_scale
 	if health_bar != null and sprite.texture != null:
-		var lift: float = float(sprite.texture.get_height()) * visual_scale \
+		_depth_lift = float(sprite.texture.get_height()) * visual_scale \
 			* Balance.ENEMY_FEET_ANCHOR
 		# Preserve the authored world-space picture while changing the node—the
 		# Y-sort key and combat position—to its feet.
-		global_position.y += lift
-		sprite.position.y -= lift
+		global_position.y += _depth_lift
+		sprite.position.y -= _depth_lift
 		health_bar.position.y = -float(sprite.texture.get_height()) * visual_scale * 0.92
+
+
+func _visual_origin() -> Vector2:
+	return global_position + Vector2(0.0, -_depth_lift)
 
 
 func _build_aura_readout() -> void:

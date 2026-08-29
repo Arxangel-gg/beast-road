@@ -300,12 +300,12 @@ func _physics_process(delta: float) -> void:
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if combat_input and _beast_stun_left <= 0.0 \
 				and input.pressed(HeroInput.spell_button(slot)):
-			spells.try_cast(slot, _aim, global_position)
+			spells.try_cast(slot, _aim, combat_origin())
 
 	attack.damage_multiplier = damage_multiplier()
 	if combat_input:
-		attack.tick(delta, _aim, global_position)
-		spells.tick(delta, _aim, global_position)
+		attack.tick(delta, _aim, combat_origin())
+		spells.tick(delta, _aim, combat_origin())
 	else:
 		# Preparation is playable traversal and construction time, not ten free
 		# seconds of cooldown recovery or a lingering attack/channel state.
@@ -745,13 +745,22 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 		if recovery != null:
 			EventBus.preparation_warning.emit(String(recovery.get("broken_line")))
 	_flash_left = Balance.HIT_FLASH_TIME
-	_impact_direction = (global_position - from).normalized()
+	var body_at: Vector2 = combat_origin()
+	_impact_direction = (body_at - from).normalized()
 	BloodStain.strike(_blood, _impact_direction)
 	animator.impact_frame()
-	animator.recoil(from, global_position, 1.0)
+	animator.recoil(from, body_at, 1.0)
 	_lock_frames("hurt")
-	EventBus.hero_damaged.emit(amount, from, global_position)
+	EventBus.hero_damaged.emit(amount, from, body_at)
 	EventBus.camera_shake_requested.emit(4.0, 0.18)
+
+
+## The root is the hero's ground contact for Y-sorting; combat originates from
+## the centre-authored pose that occupied this world position before that depth
+## correction. Keeping the two meanings explicit prevents future sorting work
+## from moving swings, spells and hit feedback down to the Warden's boots.
+func combat_origin() -> Vector2:
+	return global_position + Vector2(0.0, -_depth_lift)
 
 
 ## Kindles the rare elite recovery on the hero who physically collected it.
@@ -762,7 +771,7 @@ func apply_mender_spark() -> void:
 	health.heal(health.max_hp * Balance.MENDER_SPARK_IMMEDIATE_FRACTION)
 	_mender_left = Balance.MENDER_SPARK_DURATION
 	_mender_grace_left = Balance.MENDER_SPARK_BREAK_GRACE
-	Vfx.ring(global_position, 104.0, Color(0.48, 0.96, 0.66, 0.82), 0.55, 6.0)
+	Vfx.ring(combat_origin(), 104.0, Color(0.48, 0.96, 0.66, 0.82), 0.55, 6.0)
 	Vfx.spark(global_position, Color("c8ffe0"), 18, Vector2.UP, 190.0)
 	EventBus.mender_spark_collected.emit(party_slot, global_position)
 	var recovery: Resource = ContentDB.recovery_drop(Balance.MENDER_SPARK_ID)

@@ -1414,17 +1414,24 @@ const WILDLIFE_ATTACK_LUNGE: float = 11.0
 ## Butterflies animate by day; fireflies replace them at night. They are local,
 ## cosmetic and quality-scaled, so these values tune atmosphere without changing
 ## a seeded run or adding replication traffic. [TUNE]
-const AMBIENT_BUTTERFLY_COUNT: int = 12
-const AMBIENT_BUTTERFLY_SPEED: Vector2 = Vector2(22.0, 48.0)
-const AMBIENT_BUTTERFLY_TURN: float = 1.65
+const AMBIENT_BUTTERFLY_COUNT: int = 10
+const AMBIENT_BUTTERFLY_SPEED: Vector2 = Vector2(20.0, 52.0)
+const AMBIENT_BUTTERFLY_TURN: float = 3.2
 const AMBIENT_BUTTERFLY_ROAM: float = 280.0
-const AMBIENT_BUTTERFLY_FRAME_RATE: float = 9.0
+const AMBIENT_BUTTERFLY_FRAME_RATE: float = 8.0
 const AMBIENT_BUTTERFLY_LIFT: float = 28.0
-const AMBIENT_FIREFLY_AMOUNT: int = 180
+const AMBIENT_BUTTERFLY_LAND_CHANCE: float = 0.42
+const AMBIENT_BUTTERFLY_REST: Vector2 = Vector2(1.4, 4.2)
+const AMBIENT_BUTTERFLY_SWERVE_TIME: Vector2 = Vector2(0.24, 0.82)
+const AMBIENT_BUTTERFLY_SWERVE: float = 0.88
+const AMBIENT_FIREFLY_AMOUNT: int = 84
 const AMBIENT_FIREFLY_FIELD_EXTENT: Vector2 = Vector2(1700.0, 1120.0)
+const AMBIENT_FIREFLY_CLUSTER_COUNT: int = 10
+const AMBIENT_FIREFLY_CLUSTER_EXTENT: Vector2 = Vector2(145.0, 96.0)
+const AMBIENT_FIREFLY_TREE_BIAS: float = 0.8
 const AMBIENT_FIREFLY_LIFETIME: float = 4.8
-const AMBIENT_FIREFLY_SPEED: float = 13.0
-const AMBIENT_FIREFLY_SIZE: float = 1.7
+const AMBIENT_FIREFLY_SPEED: float = 9.0
+const AMBIENT_FIREFLY_SIZE: float = 0.82
 
 ## The hop given to walkers that have only one authored frame. Rise, fall, and a
 ## squash at the bottom - which is the right gait for a rabbit anyway. [TUNE]
@@ -1998,13 +2005,8 @@ const RAID_LOCKED_CHESTS: int = 2
 const RAID_CHEST_SPACING: float = 6.0
 
 ## What a chest pays, before the tier multiplier.
-## The region's sixteen-tile corner set, shared by the battlefield floor and the
-## raid camp's raised ground - an island is different ground, so the region's own
-## upper material is exactly the right texture for it.
-const GROUND_TILE_FORMAT: String = "res://art/terrain/ground_%s_%02d.png"
-
-## Fallback tint when a region has no corner set, so a camp is still readable
-## rather than invisible.
+## Fallback tint when a region has no terrain painting, so a camp is still
+## readable rather than invisible.
 const RAID_LEVEL_TINT: Array[Color] = [
 	Color(0, 0, 0, 0),
 	Color(0.62, 0.60, 0.54, 0.28),
@@ -2110,16 +2112,6 @@ const BEAST_TOWN_LIGHT_LIFT: float = 182.0
 ## so the hero object never disappears into the gate. [TUNE]
 const MENU_BEAST_TINT_STRENGTH: float = 0.62
 const MENU_BEAST_LIGHT_FLOOR: float = 0.58
-
-# ------------------------------------------------------------------------------
-# Road surface detail
-# ------------------------------------------------------------------------------
-
-## Authored road wear is baked into the one road surface, so detail does not add
-## draw calls and cannot drift off its path. [TUNE]
-const ROAD_DETAIL_SPACING: float = 250.0
-const ROAD_DETAIL_CHANCE: float = 0.72
-const ROAD_DETAIL_WORLD_SIZE: float = 122.0
 
 # ------------------------------------------------------------------------------
 # Beast parallax
@@ -2367,46 +2359,11 @@ const ANIM_MASS_BOSS: float = 9.0
 
 ## World units behind one terrain texel.
 ##
-## This was twelve, matched to the road: a road piece is a 32px tile drawn across
-## PIECE (384) world units, and twelve put exactly the same number of world units
-## behind a ground texel as behind a road texel. The reasoning was sound and the
-## number was not. Twelve gives the *entire* 2880-unit battlefield a 256x256
-## floor texture — one texel every eight screen pixels with the camera pulled all
-## the way out, and far coarser than that in play. That is the flat green and tan
-## patchwork with hard stepped edges the environment audit called the largest
-## visual gap in the game.
-##
-## Four is three times the texel density for a 928px bake, and it costs the
-## grain-match with the road, which stays at twelve because its scale is not a
-## choice: half of a road tile has to cover a three-tile carriageway, so 32px art
-## *must* span 384 units. Raising the road needs higher-resolution road art, not
-## a different constant.
-##
-## Losing the match is the right trade and not only the cheap one. A road is a
-## smoother thing than the undergrowth beside it, so a finer verge against a
-## flatter carriageway reads as two materials; equal coarseness read as one
-## blurry photograph of both.
-##
-## Expressed per texel rather than per tile so the floor art can change size -
-## one tile, or a mosaic of four - without the scale needing to be retuned. [TUNE]
-## 64px production Wang tiles replace the former 32px set. Two world units per
-## texel preserves the authored patch scale while doubling visible detail.
+## The cohesive regional terrain texture repeats at this scale. The rejected
+## Wang-floor pass is deliberately gone: alternating materials at this scale
+## became giant rectangular islands and obscured the hand-authored road layout.
+## Two world units per texel keeps the established terrain grain readable. [TUNE]
 const GROUND_UNITS_PER_TEXEL: float = 2.0
-
-## How quickly the floor's two materials trade places, in patches per ground
-## cell. Low enough that moss and earth arrive in broad drifts a player reads as
-## terrain; high enough that a screen holds several of them.
-##
-## Divided by three when the texel scale was, so the drifts stay exactly the size
-## they were tuned to be. The unit is patches per *cell*, and cells got three
-## times smaller — left alone, the same number would have shrunk every patch on
-## the field to a third of its width. [TUNE]
-const GROUND_PATCH_FREQUENCY: float = 0.0733
-
-## Noise above this is the region's *upper* material. Slightly above zero, so the
-## floor is mostly its base material with the second one laid over it in patches
-## rather than the two splitting the field evenly. [TUNE]
-const GROUND_PATCH_THRESHOLD: float = 0.06
 
 ## Sprite scale for units. The battlefield camera has to hold the whole lane
 ## ring, which leaves the hero about 79 screen pixels at source size - too small
@@ -2460,13 +2417,16 @@ const VFX_BOSS_PHASE_SHAKE: float = 11.0
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
 const VFX_SLASH_LIFE: float = 0.16
 
-## Authored blood impact sizing. The setting can suppress this entire layer;
+## Procedural blood impact sizing. The setting can suppress this entire layer;
 ## the ordinary hit spark and number remain so combat never becomes less
 ## readable for a player who disables gore. [TUNE]
 const VFX_BLOOD_HIT_SIZE: float = 54.0
 const VFX_BLOOD_DEATH_SIZE: float = 82.0
-const VFX_BLOOD_LIFE: float = 0.30
-const VFX_BLOOD_SPARKS: int = 3
+const VFX_BLOOD_LIFE: float = 0.52
+const VFX_BLOOD_DROPS_MIN: int = 5
+const VFX_BLOOD_DROPS_MAX: int = 9
+const VFX_BLOOD_ARC: Vector2 = Vector2(18.0, 46.0)
+const VFX_BLOOD_LAND_SPREAD: float = 0.68
 
 ## Blood on the ground.
 ##
@@ -2497,6 +2457,10 @@ const BLOOD_GROUND_Z: int = -3
 ## which is the thing blood on the ground exists not to be. It sits, then it
 ## goes. [TUNE]
 const BLOOD_GROUND_LIFE: float = 600.0
+## Sustained rain ages a stain this many times faster. Ten minutes of dry-field
+## history becomes roughly two minutes under a downpour: visibly washed, never
+## erased in one frame. [TUNE]
+const BLOOD_RAIN_WASH_MULTIPLIER: float = 5.0
 const BLOOD_HOLD: float = 0.45
 const BLOOD_GROUND_ALPHA: float = 0.5
 
@@ -2519,6 +2483,10 @@ const BLOOD_DRY: Color = Color(0.24, 0.07, 0.08)
 ## silhouette has to stay readable, and the party tint under it has to stay
 ## legible enough to tell four Wardens apart in a crowd. [TUNE]
 const BLOOD_STAIN_MAX: float = 0.34
+## Cluster scale and fine scatter for the actor stain shader. Larger clusters
+## read as blood at gameplay zoom; fine noise keeps their edges organic. [TUNE]
+const BLOOD_STAIN_CLUSTER_PIXELS: float = 3.4
+const BLOOD_STAIN_FINE_SCATTER: float = 0.24
 
 ## How quickly the stain follows the health that drives it.
 ##
@@ -3124,10 +3092,6 @@ const PATH_TINT_ALPHA: float = 0.84
 ## road read as a road — and a road the player cannot pick out at a glance is a
 ## tower-defense map with no lanes on it. [TUNE]
 const PATH_DARKEN: float = 0.76
-
-## Warmth pushed into the road, so trodden earth reads brown against grey rock.
-## Two channels of separation do more than another 10% of darkening. [TUNE]
-const PATH_WARMTH: Color = Color(1.06, 0.94, 0.78)
 
 ## Rain catches only the road's brighter texels and moves in long, faint bands.
 ## It is part of the existing road pass rather than another full-field layer.

@@ -482,8 +482,23 @@ func _test_the_field_is_inhabited() -> void:
 	var ambient: AmbientLife = field.find_child("AmbientLife", true, false) as AmbientLife
 	_check(ambient != null and ambient.host == field.entity_root,
 		"local butterflies and fireflies must share the world depth host")
+	var fireflies: Node = field.entity_root.find_child("NightFireflies", true, false)
+	_check(fireflies != null and fireflies.get_child_count() \
+			== Balance.AMBIENT_FIREFLY_CLUSTER_COUNT,
+		"fireflies must be sparse clusters rather than one dense field")
+	var side_butterfly_frames: int = 0
+	for index: int in range(1, 13):
+		if not ResourceLoader.exists("res://art/foliage/butterfly_side_%02d.png" % index):
+			break
+		side_butterfly_frames += 1
+	_check(side_butterfly_frames >= 8,
+		"butterflies need a complete side-view wingbeat as well as the top view")
+	_check(ResourceLoader.exists("res://art/foliage/butterfly_idle_01.png"),
+		"butterflies need a grounded side-profile idle pose")
 	_check(field.hero.sprite.position.y < 0.0,
 		"the hero picture must be lifted above a feet-positioned root")
+	_check(field.hero.combat_origin().y < field.hero.global_position.y,
+		"hero attacks must originate from the body, not the feet depth anchor")
 	_check(field.town.sprite.get_parent() != field.town,
 		"the town picture must sort at the bottom of its walls without moving its target")
 	var town_depth := field.town.sprite.get_parent() as Node2D
@@ -506,8 +521,12 @@ func _test_the_field_is_inhabited() -> void:
 		_check(kind.activity > 0.0 and kind.activity <= 1.0,
 			"%s activity must be a useful 0-1 fraction" % kind.id)
 		if kind.flies:
-			_check(GameData.load_flight_frames(kind.get_sprite_path()).size() >= 5,
+			var flight_count: int = GameData.load_flight_frames(kind.get_sprite_path()).size()
+			_check(flight_count >= 5,
 				"%s needs a coherent authored wingbeat cycle" % kind.id)
+			if kind.id == "raven" or kind.id == "hawk":
+				_check(flight_count >= 8,
+					"%s needs the complete high-to-low production wingbeat" % kind.id)
 			_check(GameData.load_idle_frames(kind.get_sprite_path()).size() >= 5,
 				"%s must land into a grounded idle cycle" % kind.id)
 	_check(not ContentDB.wildlife().is_empty(), "there must be something alive out there")

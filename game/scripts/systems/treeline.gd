@@ -179,6 +179,7 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	tree.texture = art
 	tree.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	tree.add_to_group(Graphics.FILTER_GROUP)
+	tree.add_to_group("ambient_tree")
 	# Origin at the trunk, so the node's own y is where it touches the ground -
 	# which is what `y_sort_enabled` on this node then sorts by.
 	tree.offset = Vector2(0.0, -float(art.get_height()) * TRUNK_ANCHOR)

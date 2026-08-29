@@ -174,7 +174,36 @@ func _test_shader_budget() -> void:
 		_check(actor.code.contains("left_a") and actor.code.contains("right_a")
 			and actor.code.contains("up_a") and actor.code.contains("down_a"),
 			"actor readability must remain the approved four-sample outline")
-	var road_material: ShaderMaterial = PathBlend.material_for_surface()
+	for region: String in ["jungle", "desert", "snow"]:
+		var terrain_path: String = "res://art/terrain/terrain_%s.png" % region
+		_check_asset(terrain_path, Vector2i(512, 512))
+		var road_path: String = "res://art/battlefield/road_surface_%s.png" % region
+		_check_asset(road_path, Vector2i(512, 512))
+		if ResourceLoader.exists(terrain_path):
+			var terrain_image: Image = (load(terrain_path) as Texture2D).get_image()
+			for offset: int in range(0, 512, 17):
+				_check(terrain_image.get_pixel(0, offset).is_equal_approx(
+					terrain_image.get_pixel(511, offset)),
+					"%s must repeat cleanly across its horizontal seam" % terrain_path)
+				_check(terrain_image.get_pixel(offset, 0).is_equal_approx(
+					terrain_image.get_pixel(offset, 511)),
+					"%s must repeat cleanly across its vertical seam" % terrain_path)
+		if ResourceLoader.exists(road_path):
+			var road_image: Image = (load(road_path) as Texture2D).get_image()
+			for offset: int in range(0, 512, 17):
+				_check(road_image.get_pixel(0, offset).is_equal_approx(
+					road_image.get_pixel(511, offset)),
+					"%s must repeat cleanly across its horizontal seam" % road_path)
+				_check(road_image.get_pixel(offset, 0).is_equal_approx(
+					road_image.get_pixel(offset, 511)),
+					"%s must repeat cleanly across its vertical seam" % road_path)
+	var road_material: ShaderMaterial = PathBlend.material_for_surface(
+		"jungle", Vector2(1824.0, 1824.0))
+	_check(is_equal_approx(float(road_material.get_shader_parameter("use_surface")), 1.0),
+		"the baked road mask must receive its regional surface material")
+	var repeat_value: Vector2 = road_material.get_shader_parameter("surface_repeat")
+	_check(repeat_value.x > 1.0 and repeat_value.y > 1.0,
+		"regional road detail must map continuously across the whole baked field")
 	PathBlend.set_weather("downpour")
 	if Graphics.polish_shaders():
 		_check(is_equal_approx(float(road_material.get_shader_parameter(

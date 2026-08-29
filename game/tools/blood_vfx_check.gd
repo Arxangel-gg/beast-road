@@ -1,7 +1,9 @@
 extends Node
 
-## The gore toggle is cosmetic and local: off creates no blood nodes; on resolves
-## the authored manifest asset while leaving the rest of Vfx untouched.
+const BloodBurstScript = preload("res://scripts/systems/blood_burst.gd")
+
+## The gore toggle is cosmetic and local: off creates no blood nodes; on creates
+## a procedural ballistic burst while leaving the rest of Vfx untouched.
 
 var _failures: int = 0
 
@@ -22,15 +24,14 @@ func _ready() -> void:
 		"disabled blood must create no cosmetic nodes")
 
 	UserSettings.set_value(UserSettings.BLOOD_VFX_KEY, true)
-	Vfx.blood(Vector2.ZERO, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE)
-	var authored: bool = false
+	Vfx.blood(Vector2.ZERO, Vector2.RIGHT, Balance.VFX_BLOOD_HIT_SIZE,
+		Vector2(0.0, 42.0))
+	var procedural: bool = false
 	if layer != null:
 		for child: Node in layer.get_children():
-			var sprite := child as Sprite2D
-			if sprite != null and sprite.texture != null \
-					and sprite.texture.resource_path == Vfx.BLOOD_ART_PATH:
-				authored = true
-	_check(authored, "enabled blood must resolve %s" % Vfx.BLOOD_ART_PATH)
+			if child.get_script() == BloodBurstScript:
+				procedural = true
+	_check(procedural, "enabled blood must create a procedural ballistic burst")
 
 	# The damage fact names the body that was hit. Before `at` existed, Vfx
 	# searched the hero group and a remote Warden's impact appeared on the local
@@ -42,10 +43,8 @@ func _ready() -> void:
 	var found_at_target: bool = false
 	if layer != null:
 		for child: Node in layer.get_children():
-			var sprite := child as Sprite2D
-			if sprite != null and sprite.texture != null \
-					and sprite.texture.resource_path == Vfx.BLOOD_ART_PATH \
-					and sprite.global_position.is_equal_approx(harmed_at):
+			if child.get_script() == BloodBurstScript \
+					and (child as Node2D).global_position.is_equal_approx(harmed_at):
 				found_at_target = true
 	_check(found_at_target, "hero blood must appear on the Warden named by the damage fact")
 	_test_persistent_blood()
@@ -68,7 +67,7 @@ func _ready() -> void:
 	# for a leaked resource when this tiny gate exits immediately.
 	await get_tree().create_timer(0.25).timeout
 	if _failures == 0:
-		print("[blood-vfx] PASS — authored blood obeys the local gore toggle")
+		print("[blood-vfx] PASS — procedural blood obeys gore, landing and weather rules")
 	else:
 		push_error("[blood-vfx] FAIL — %d problem(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
@@ -111,6 +110,16 @@ func _test_persistent_blood() -> void:
 		"marks must be capped at %d, got %d" % [BloodField.MAX_SPLATS, field.marks()])
 	field.wipe()
 	_check(field.marks() == 0, "wiping the field must clear it between roads")
+
+	# Rain preserves the ten-minute dry promise while washing existing history at
+	# a deliberate faster rate. This exercises the same weather fact the runtime
+	# receives rather than reaching into private field state.
+	EventBus.weather_changed.emit("downpour")
+	_check(is_equal_approx(field.wash_multiplier(), Balance.BLOOD_RAIN_WASH_MULTIPLIER),
+		"rain must accelerate blood ageing, got %.2f" % field.wash_multiplier())
+	EventBus.weather_changed.emit("clear")
+	_check(is_equal_approx(field.wash_multiplier(), 1.0),
+		"dry weather must restore ordinary blood ageing")
 
 	# The stain follows health, and washes off when health returns.
 	var sprite := Sprite2D.new()

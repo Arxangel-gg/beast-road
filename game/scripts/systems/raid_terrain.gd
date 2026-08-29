@@ -13,11 +13,9 @@ extends Node2D
 ## The first version drew flat tinted plates. It was legible and it looked like
 ## programmer art, which is a fair trade for a prototype and not for a release.
 ##
-## The raised ground is drawn with the **region's own sixteen-tile corner set** —
-## the same Wang art the battlefield floor uses. That is not a shortcut: an
-## island *is* different ground, so the moss on jungle rock or the drift on snow
-## is exactly the right material for it, and it autotiles against the camp floor
-## with proper corner transitions instead of ending on a hard square edge.
+## The raised ground is drawn with the region's cohesive terrain painting. The
+## material is sampled in world order across the whole bake, so a raid island
+## reads as one landform rather than repeating a conspicuous patch per cell.
 ##
 ## Legibility then comes from the **cliff line** drawn over the top rather than
 ## from a colour difference, which is the stronger cue anyway: an edge reads at
@@ -54,10 +52,10 @@ func _ready() -> void:
 
 ## Composites the raised ground into one texture.
 func _bake() -> ImageTexture:
-	var tiles: Array = _ground_tiles()
 	var span: int = int(round(RaidLayout.TILE * BAKE_PPU))
 	var side: int = RaidLayout.SIZE * span
 	var canvas: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+	var material: Image = _regional_material(side)
 
 	for level: int in range(1, RaidLayout.MAX_LEVEL + 1):
 		for y: int in RaidLayout.SIZE:
@@ -65,16 +63,9 @@ func _bake() -> ImageTexture:
 				var tile := Vector2i(x, y)
 				if layout.level_at(tile) < level:
 					continue
-				var piece: Image = null
-				if not tiles.is_empty():
-					piece = tiles[_corner_mask(tile, level)] as Image
 				var at := Vector2i(x * span, y * span)
-				if piece != null:
-					var scaled: Image = piece.duplicate()
-					if scaled.get_width() != span:
-						scaled.resize(span, span, Image.INTERPOLATE_NEAREST)
-					canvas.blend_rect(scaled,
-						Rect2i(Vector2i.ZERO, scaled.get_size()), at)
+				if material != null:
+					canvas.blend_rect(material, Rect2i(at, Vector2i(span, span)), at)
 				else:
 					# No art for the region: fall back to the tint, so a camp is
 					# still readable rather than invisible.
@@ -106,44 +97,25 @@ func _bake() -> ImageTexture:
 	return ImageTexture.create_from_image(canvas)
 
 
-## Which of a tile's four corners are at this level or above.
-##
-## The same corner convention the battlefield ground uses, so the two read as one
-## world: bit 0 is the top-left corner, then clockwise.
-func _corner_mask(tile: Vector2i, level: int) -> int:
-	const OFFSETS: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0),
-		Vector2i(1, 1), Vector2i(0, 1)]
-	var mask: int = 0
-	for bit: int in 4:
-		# A corner counts only when *every* tile meeting it is raised.
-		#
-		# "Any" was the first attempt and it produced a flat island: every edge
-		# tile then has all four corners set, so every tile draws the full upper
-		# piece and the sixteen-tile set never uses the fifteen that are
-		# transitions. Requiring all four pulls the boundary half a tile inward,
-		# which is exactly where the corner art expects it.
-		var all_raised: bool = true
-		for step: Vector2i in [Vector2i(0, 0), Vector2i(-1, 0),
-				Vector2i(0, -1), Vector2i(-1, -1)]:
-			if layout.level_at(tile + OFFSETS[bit] + step) < level:
-				all_raised = false
-				break
-		if all_raised:
-			mask |= 1 << bit
-	return mask
-
-
-## The region's sixteen corner tiles, or empty when the region has no set.
-func _ground_tiles() -> Array:
-	var out: Array = []
-	for mask: int in 16:
-		var path: String = Balance.GROUND_TILE_FORMAT % [RunState.terrain_id, mask]
-		if not ResourceLoader.exists(path):
-			return []
-		var image: Image = (load(path) as Texture2D).get_image()
-		image.convert(Image.FORMAT_RGBA8)
-		out.append(image)
-	return out
+## Repeats the region painting over the raid bake once. Individual raised cells
+## then copy from their matching world position, preserving continuous detail.
+func _regional_material(side: int) -> Image:
+	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
+	if terrain == null or not ResourceLoader.exists(terrain.get_sprite_path()):
+		return null
+	var texture: Texture2D = load(terrain.get_sprite_path()) as Texture2D
+	if texture == null:
+		return null
+	var source: Image = texture.get_image()
+	source.convert(Image.FORMAT_RGBA8)
+	var tiled: Image = Image.create_empty(side, side, false, Image.FORMAT_RGBA8)
+	for y: int in range(0, side, source.get_height()):
+		for x: int in range(0, side, source.get_width()):
+			var copy_size := Vector2i(
+				mini(source.get_width(), side - x),
+				mini(source.get_height(), side - y))
+			tiled.blit_rect(source, Rect2i(Vector2i.ZERO, copy_size), Vector2i(x, y))
+	return tiled
 
 
 ## The cliff outline, drawn over the baked surface.

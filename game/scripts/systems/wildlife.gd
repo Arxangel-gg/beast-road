@@ -216,8 +216,8 @@ func _on_coop_died(net_id: int) -> void:
 		if bar != null and is_instance_valid(bar):
 			bar.visible = false
 		if sprite != null and is_instance_valid(sprite):
-			Vfx.blood(sprite.global_position, Vector2.UP,
-				Balance.VFX_BLOOD_DEATH_SIZE * 0.75)
+			Vfx.blood(_visual_origin(sprite), Vector2.UP,
+				Balance.VFX_BLOOD_DEATH_SIZE * 0.75, sprite.global_position)
 			Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
 		return
 
@@ -611,6 +611,7 @@ func _apply_visual_anchor(sprite: Sprite2D, kind: WildlifeData, size: float,
 func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 		moving: bool) -> void:
 	var kind := animal["data"] as WildlifeData
+	sprite.rotation = 0.0
 	# Two authored sequences, chosen by what the animal is doing. Walking has its
 	# own frames now rather than borrowing the standing pose and bobbing it,
 	# which read as a cut-out being slid along the ground.
@@ -685,9 +686,17 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 	if base != null:
 		sprite.texture = base
 	animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_BOB_RATE
-	var bob: float = absf(sin(float(animal["bob"]))) if moving else 0.0
+	var wave: float = sin(float(animal["bob"]))
+	var bob: float = absf(wave) if moving else 0.0
 	sprite.scale = Vector2(kind.scale * float(animal["size"]),
-		kind.scale * float(animal["size"]) * (1.0 + bob * Balance.WILDLIFE_BOB_SCALE))
+		kind.scale * float(animal["size"]) * (1.0 + (bob * Balance.WILDLIFE_BOB_SCALE
+			if moving else wave * Balance.WILDLIFE_BOB_SCALE * 0.16)))
+	if not moving:
+		# A breathing weight shift gives every missing authored idle an honest
+		# living fallback. It is intentionally subtler than a stride and never
+		# changes the ground-contact anchor.
+		sprite.scale.x *= 1.0 - wave * Balance.WILDLIFE_BOB_SCALE * 0.08
+		sprite.rotation = wave * 0.006
 	_apply_visual_anchor(sprite, kind, float(animal["size"]), kind.flies and moving,
 		bob * Balance.WILDLIFE_STRIDE_LIFT)
 
@@ -1003,11 +1012,12 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 		bar.visible = true
 		var full: float = kind.max_hp 			* (Balance.WILDLIFE_ELITE_HEALTH if bool(animal["elite"]) else 1.0)
 		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
-	Vfx.spark(sprite.global_position, Color("c4552e"), 6,
+	var body_at: Vector2 = _visual_origin(sprite)
+	Vfx.spark(body_at, Color("c4552e"), 6,
 		Vector2.UP, 170.0)
-	Vfx.blood(sprite.global_position, Vector2.UP,
+	Vfx.blood(body_at, Vector2.UP,
 		Balance.VFX_BLOOD_HIT_SIZE if float(animal["hp"]) > 0.0 \
-		else Balance.VFX_BLOOD_DEATH_SIZE * 0.75)
+		else Balance.VFX_BLOOD_DEATH_SIZE * 0.75, sprite.global_position)
 	if float(animal["hp"]) > 0.0:
 		# Being hit is also a very good reason to leave.
 		animal["state"] = State.FLEEING
@@ -1032,6 +1042,12 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	# that deletes its own body reads as the animal never having been there.
 	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
 	animal["state"] = State.LEAVING
+
+
+func _visual_origin(sprite: Sprite2D) -> Vector2:
+	if sprite == null:
+		return Vector2.ZERO
+	return sprite.global_position + Vector2(0.0, sprite.offset.y * sprite.scale.y)
 
 
 ## True when an animal is far enough from every player to stop existing.

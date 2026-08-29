@@ -1,5 +1,7 @@
 extends Node
 
+const BloodBurstScript = preload("res://scripts/systems/blood_burst.gd")
+
 ## Every transient visual in the game: sparks, damage numbers, muzzle flashes,
 ## rings, screen flashes.
 ##
@@ -59,7 +61,6 @@ var _town_critical: bool = false
 ## Elemental impact art, derived from the element name like every other asset
 ## path in the project.
 const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
-const BLOOD_ART_PATH: String = "res://art/vfx/blood_splatter.png"
 const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshader"
 
 
@@ -541,45 +542,21 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	tween.chain().tween_callback(burst.queue_free)
 
 
-## Optional character-hit layer. The authored splatter is distinct from the
-## ordinary spark/number language so disabling gore cannot make a landed attack
-## harder to read. Presentation is local on purpose: the guest already derives
-## mirrored-hit reactions from authoritative health and enemy deaths are relayed
-## as facts, so no cosmetic network packet is required.
-func blood(at: Vector2, direction: Vector2, size: float) -> void:
-	if world == null or not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)) \
-			or not ResourceLoader.exists(BLOOD_ART_PATH):
+## Optional character-hit layer. Procedural droplets leave their persistent
+## marks at their own landing points, so gore is correctly body-anchored and no
+## bitmap stamp appears at an actor's feet. Presentation remains local: co-op
+## machines derive it from the same authoritative health/death facts.
+func blood(at: Vector2, direction: Vector2, size: float,
+		ground_at: Vector2 = Vector2.INF) -> void:
+	if world == null or not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)):
 		return
-	var splatter := Sprite2D.new()
-	splatter.texture = load(BLOOD_ART_PATH)
-	splatter.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	splatter.add_to_group(Graphics.FILTER_GROUP)
-	splatter.modulate = Color(0.88, 0.76, 0.76, 0.92)
-	splatter.z_index = Balance.VFX_Z
-	splatter.rotation = direction.angle() if direction.length_squared() > 0.001 \
-		else randf() * TAU
-	_track(splatter)
-	splatter.global_position = at
-
-	var final_scale: float = size / maxf(float(splatter.texture.get_width()), 1.0)
-	splatter.scale = Vector2.ONE * final_scale * 0.42
-	var tween: Tween = splatter.create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(splatter, "scale", Vector2.ONE * final_scale,
-		Balance.VFX_BLOOD_LIFE).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUART)
-	tween.tween_property(splatter, "modulate:a", 0.0,
-		Balance.VFX_BLOOD_LIFE).set_delay(Balance.VFX_BLOOD_LIFE * 0.2)
-	tween.chain().tween_callback(splatter.queue_free)
-
-	# A few directional motes keep a hit moving even when the source sprite is
-	# seen edge-on. This reuses the established transient shard primitive rather
-	# than introducing a second permanent blood asset.
-	spark(at, Color("9b2d32"), Balance.VFX_BLOOD_SPARKS, direction, size * 2.2)
-
-	# And the ground keeps it. The splash above is gone in a third of a second;
-	# this is the part that makes a field read as having been fought over.
-	if _ground != null and is_instance_valid(_ground):
-		_ground.splat(at, direction, size, _blood_rng)
+	var floor_at: Vector2 = ground_at
+	if floor_at == Vector2.INF:
+		floor_at = at + Vector2(0.0, size * 0.62)
+	var burst: Node2D = BloodBurstScript.new() as Node2D
+	burst.configure(at, floor_at, direction, size, _ground, _blood_rng)
+	_track(burst)
+	burst.global_position = at
 
 
 func flash_at(at: Vector2, colour: Color, radius: float) -> void:
@@ -701,7 +678,9 @@ func _on_hero_damaged(amount: float, from: Vector2, at: Vector2) -> void:
 	number(at, amount, Color("ff6b5a"), true)
 	var direction: Vector2 = (at - from).normalized()
 	spark(at, Color("ff8a7a"), 8, direction, 200.0)
-	blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE)
+	var hero: Hero = Hero.nearest_on_field(get_tree(), at)
+	blood(at, direction, Balance.VFX_BLOOD_HIT_SIZE,
+		hero.global_position if hero != null else Vector2.INF)
 	flash(Color(0.75, 0.1, 0.08), Balance.VFX_HURT_FLASH, 0.28)
 
 

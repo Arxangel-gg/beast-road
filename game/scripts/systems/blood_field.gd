@@ -27,6 +27,7 @@ const REDRAW_HZ: float = 10.0
 ## One mark: where, how big, its blobs, when it was laid down, how long it lasts.
 var _splats: Array[Dictionary] = []
 var _since_redraw: float = 0.0
+var _rain_wash: float = 1.0
 
 
 func _ready() -> void:
@@ -34,6 +35,8 @@ func _ready() -> void:
 	z_index = Balance.BLOOD_GROUND_Z
 	texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	add_to_group(Graphics.FILTER_GROUP)
+	EventBus.weather_changed.connect(_on_weather_changed)
+	_on_weather_changed(RunState.weather_id)
 	set_process(false)
 
 
@@ -71,9 +74,34 @@ func splat(at: Vector2, heading: Vector2, size: float, rng: RandomNumberGenerato
 	queue_redraw()
 
 
+## One procedural droplet, added when its visible ballistic mote reaches the
+## floor. Separate from `splat`: a burst must not stamp a large stain at impact
+## before its particles have actually landed.
+func droplet(at: Vector2, radius: float, rng: RandomNumberGenerator) -> void:
+	if not bool(UserSettings.value(UserSettings.BLOOD_VFX_KEY, true)):
+		return
+	_splats.append({
+		"at": at,
+		"blobs": [{"at": Vector2.ZERO,
+			"r": maxf(radius * rng.randf_range(0.78, 1.22), 1.4)}],
+		"age": 0.0,
+		"life": Balance.BLOOD_GROUND_LIFE,
+		"tone": rng.randf(),
+	})
+	while _splats.size() > MAX_SPLATS:
+		_splats.remove_at(0)
+	set_process(true)
+	queue_redraw()
+
+
 ## How many marks the field is holding. For the gate.
 func marks() -> int:
 	return _splats.size()
+
+
+## Current ageing rate, exposed for the release gate.
+func wash_multiplier() -> float:
+	return _rain_wash
 
 
 ## Clears the field. Called between roads: last week's blood is not this fight.
@@ -86,7 +114,7 @@ func wipe() -> void:
 func _process(delta: float) -> void:
 	var alive: Array[Dictionary] = []
 	for splat: Dictionary in _splats:
-		splat["age"] = float(splat["age"]) + delta
+		splat["age"] = float(splat["age"]) + delta * _rain_wash
 		if float(splat["age"]) < float(splat["life"]):
 			alive.append(splat)
 	_splats = alive
@@ -98,6 +126,13 @@ func _process(delta: float) -> void:
 	if _since_redraw >= 1.0 / REDRAW_HZ:
 		_since_redraw = 0.0
 		queue_redraw()
+
+
+func _on_weather_changed(weather_id: String) -> void:
+	var weather: WeatherData = ContentDB.weather(weather_id)
+	_rain_wash = Balance.BLOOD_RAIN_WASH_MULTIPLIER \
+		if weather != null and weather.precipitation == WeatherData.Precipitation.RAIN \
+		else 1.0
 
 
 func _draw() -> void:

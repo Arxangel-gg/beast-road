@@ -142,7 +142,7 @@ const NAV_BAR_TOP: float = 104.0
 
 ## The command column, top left.
 ## The currency marks along the top edge.
-const TOP_BAR_ICON: float = 24.0
+const TOP_BAR_ICON: float = 28.0
 const TOP_BAR_ICON_TOUCH: float = 44.0
 const TOP_BAR_FONT_TOUCH: int = 34
 const TOP_BAR_FONT_MIN: int = 19

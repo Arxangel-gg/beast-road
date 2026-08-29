@@ -52,6 +52,8 @@ static func attach(sprite: CanvasItem, seed_source: int) -> ShaderMaterial:
 	material.shader = shader()
 	material.set_shader_parameter("seed", float(absi(seed_source) % 997))
 	material.set_shader_parameter("blood_colour", Balance.BLOOD_FRESH)
+	material.set_shader_parameter("cluster_pixels", Balance.BLOOD_STAIN_CLUSTER_PIXELS)
+	material.set_shader_parameter("fine_scatter", Balance.BLOOD_STAIN_FINE_SCATTER)
 	material.set_shader_parameter("outline_colour", Balance.ACTOR_OUTLINE_COLOUR)
 	material.set_shader_parameter("outline_strength",
 		Balance.ACTOR_OUTLINE_STRENGTH if Graphics.polish_shaders() else 0.0)

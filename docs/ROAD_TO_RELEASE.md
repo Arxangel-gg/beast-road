@@ -56,14 +56,19 @@ play, torch shadows, five new foliage assets, and a leaderboard confirmed live.
       scrollable so the added visual row cannot push Join or Back off-screen.
       `coop_lobby_check` verifies four staggered south-facing portraits; the
       hosted screen was also inspected from a real rendered screenshot.
-- [x] **Blood VFX is authored, restrained and optional.** Enemy, hero and
-      wildlife hits use `blood_splatter.png`; enemy deaths scale it by threat.
+- [x] **Blood VFX is procedural, restrained and optional.** Enemy, hero and
+      wildlife hits throw lightweight ballistic droplets from the actor body;
+      each droplet stains the exact ground point where it lands, with no bitmap
+      stamp at the feet. Rain ages those marks five times faster while dry roads
+      retain the ten-minute history window. Character stains use clustered,
+      noisy clots instead of uniform one-pixel speckle.
       The Game settings toggle suppresses gore locally while retaining ordinary
       hit sparks, damage numbers and red danger language. Guests derive the
       layer from mirrored health/death facts, so no cosmetic replication packet
       was added. The typed hero-damage fact now carries the harmed Warden's
       position, preventing a remote hit from drawing on the local body.
-      `blood_vfx_check` proves both toggle states, the art path and placement.
+      `blood_vfx_check` proves both toggle states, procedural placement, bounded
+      ground history, character staining and the weather wash rule.
 - [x] **The production profile is restored and gated.** Co-op testing had
       temporarily raised the opening wallet to 150 Gold, hero health to 1000,
       and the Wound cap to 10. The shipped constants are again 0 Gold, 100 HP,
@@ -1613,49 +1618,20 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       rather than a fixed dark line — a sand road wants a warm shadow and a snow
       road a cold one, and one black outline on both looks like a sticker. Two
       steps of falloff, so it reads as depth rather than as an outline.
-- [x] **The battlefield floor.** The environment audit called this the largest
-      visual gap in the game, and it was three separate faults stacked.
-
-      *Resolution.* Production floors are now sixteen 64px Wang tiles at two
-      world units per texel, giving the battlefield a 3264px-class baked surface
-      with real crack, root and mineral grain. Roads are also 64px sources baked
-      on an exact 3x pixel grid. Both floor and road select deterministic legal
-      dihedral variants per cell, preserving corner/edge topology while changing
-      which roots, scars and wheel ruts face the eye; the repeated stamp from town
-      to map edge is gone without sacrificing seed reproduction.
-
-      *Brightness.* The jungle floor's base material had a **median luminance of
-      19 out of 255** — near black, across most of the battlefield, for months.
-      That is the "black void-like seams". Snow had a near-black lower against a
-      near-white upper, 5.1x apart, reading as holes cut in a snowfield. All
-      three sets regenerated, lineless: outlines on a *floor* gave the earth a
-      repeating waffle and put a purple fringe around the moss.
-
-      *Palette.* The generator does not take a palette, only prose. The jungle
-      set came back with 20% of its pixels outside any hue a jungle floor has —
-      magenta and blue noise that clustered into pink patches. `tools/conform_ground.py`
-      folds out-of-gamut hues to the nearest edge of a region's declared arcs and
-      caps saturation, touching nothing else; it is idempotent, so the committed
-      PNG is reproducible from the generated one.
-
-      Two things came out of it that were not planned. `run_tool.gd -- floor-tiles`
-      is now a CI gate: four rules, each one written because a real regeneration
-      failed it, and it independently reproduces both shipped defects. And which
-      of a region's two materials *dominates* is now per-region data — generated
-      in tileset order, the jungle drew a dry terracotta field with green patches,
-      the right materials in the wrong proportion. `TerrainData.moss_dominant`
-      flips the corner mask to its complement, which reads the same sixteen tiles
-      the other way round and needs no second set.
-
-      Measured effect on night readability, which was the worry: enemy-against-
-      ground separation went from **0.005 against a 0.005 threshold** — exactly
-      on the line — to **0.017**.
-- [x] Higher-resolution regional road art: all three 16-mask sets now ship at
-      64×64 and the manifest/gate derive their seam bands from source size.
+- [x] **The battlefield floor.** The rejected sixteen-tile Wang experiment was
+      removed after real play exposed its coarse material cells as enormous
+      brown and blue rectangles. Each act again uses one cohesive, seamless
+      512×512 regional terrain painting. This removes the old 64px checkerboard,
+      keeps the hand-authored road layout legible, and confines path detail to
+      the road's alpha-masked surface.
+- [x] Detailed regional road art: the three acts now map reviewed seamless
+      512×512 travel-wear materials continuously through the existing 16-mask
+      road geometry. Curves and forks retain exact collars while packed earth,
+      sand grit and compressed snow remain fine-grained across every junction.
 - [x] Snow crosshatch replaced by a restrained dirty steel-blue/oxblood set;
       the production exposure conform caps white rims before import.
-- [x] Deterministic texture variation within roads and floors using legal
-      rotations/reflections that preserve every N/E/S/W or Wang-corner contract.
+- [x] Deterministic texture variation within roads using legal
+      rotations/reflections that preserve every N/E/S/W contract.
 
 ### Foliage
 
