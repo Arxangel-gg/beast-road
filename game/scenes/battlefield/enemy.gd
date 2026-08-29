@@ -1128,7 +1128,13 @@ func _apply_category_scale() -> void:
 		visual_scale *= reference_height / maxf(float(sprite.texture.get_height()), 1.0)
 	sprite.scale = Vector2.ONE * visual_scale
 	if health_bar != null and sprite.texture != null:
-		health_bar.position.y = -sprite.texture.get_height() * visual_scale * 0.46
+		var lift: float = float(sprite.texture.get_height()) * visual_scale \
+			* Balance.ENEMY_FEET_ANCHOR
+		# Preserve the authored world-space picture while changing the node—the
+		# Y-sort key and combat position—to its feet.
+		global_position.y += lift
+		sprite.position.y -= lift
+		health_bar.position.y = -float(sprite.texture.get_height()) * visual_scale * 0.92
 
 
 func _build_aura_readout() -> void:

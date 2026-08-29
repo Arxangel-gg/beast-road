@@ -1392,7 +1392,10 @@ func _test_preparation_and_command() -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	var prior_wave: int = RunState.wave_number
 	RunState.wave_number = 0
-	var wildlife: Wildlife = field.entity_root.get_node_or_null("Wildlife") as Wildlife
+	# Wildlife's controller is a sibling of EntityRoot. Only its sprites are
+	# parented into that shared y-sorted layer, so every animal sorts at its own
+	# feet instead of the controller's origin.
+	var wildlife: Wildlife = field.find_child("Wildlife", true, false) as Wildlife
 	_check(wildlife != null and not wildlife._hostile_arrivals_allowed(),
 		"hostile wildlife must not appear or attack during opening Preparation")
 	RunState.wave_number = prior_wave

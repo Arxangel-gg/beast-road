@@ -59,7 +59,8 @@ const FLOWER_KINDS: Array[String] = ["flower", "blossom"]
 ## A rock is a rock in a jungle or a snowfield, and so is a fallen log. These are
 ## the props that carry no regional identity, so one file serves all three acts.
 const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump",
-	"mushrooms", "bones", "reeds", "wreckage"]
+	"mushrooms", "bones", "reeds", "wreckage", "wildflower_01",
+	"wildflower_02", "wildflower_03", "wildflower_04"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 
@@ -204,10 +205,10 @@ static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
 ## front of something it is standing behind.
 ##
 ## The count then decides how often a plant fails to occlude something it really
-## is in front of, which is the harmless direction. 32 keeps that under one tile
-## on the authored field while avoiding sixteen extra shader/painted-layer canvas
-## items; 16 was visibly coarse even before the sorting was made one-directional.
-const BAND_COUNT: int = 32
+## is in front of. Ninety-six keeps the maximum depth error below 22 world pixels
+## on the authored field: smaller than an actor's foot contact, while still
+## batching roughly fifteen hundred clumps into at most 192 canvas items.
+const BAND_COUNT: int = 96
 
 var _bands: Array[FoliageBand] = []
 
@@ -225,6 +226,11 @@ var _clump_count: int = 0
 ## The battlefield's grid, so the scatter can ask where the roads are. Assigned
 ## before the node enters the tree: the first scatter happens on ready.
 var grid: BattleGrid = null
+
+## The shared y-sorted world layer. Bands must be direct children of this host:
+## if they sit under the Foliage system, the sorter sees only the system at
+## (0, 0) and every plant north/south of town gets the same incorrect depth.
+var host: Node2D = null
 
 
 func _ready() -> void:
@@ -246,7 +252,7 @@ func scatter() -> void:
 	_shadow_layer.z_index = -1
 	_shadow_layer.add_to_group(ShadowKit.GROUP)
 	_shadow_layer.visible = Graphics.contact_shadows()
-	add_child(_shadow_layer)
+	(host if host != null else self).add_child(_shadow_layer)
 
 	var style: Dictionary = STYLES.get(RunState.terrain_id, STYLES["jungle"]).duplicate()
 	style.merge(_terrain_palette(), true)
@@ -266,7 +272,7 @@ func scatter() -> void:
 	# them occludes and one behind does not. A single item sorts at one depth.
 	#
 	# Bands are the middle: each spans a slice of the map and sorts at its own
-	# centre. Thirty-two keep the maximum error below one tile, while each band is
+	# centre. Ninety-six keep the maximum error below one tile, while each band is
 	# now one static mesh draw rather than hundreds of polygon commands.
 	var span: float = Balance.LANE_SPAWN_RADIUS * 1.15
 	for index: int in BAND_COUNT:
@@ -298,7 +304,7 @@ func scatter() -> void:
 		band.position.y = lerpf(-span, span, float(index) / float(BAND_COUNT))
 		band.material = wind_material()
 		band.y_sort_enabled = false
-		add_child(band)
+		(host if host != null else self).add_child(band)
 		_bands.append(band)
 
 	_scattered_at = Graphics.foliage_scale()
@@ -732,7 +738,11 @@ class PaintedLayer extends Node2D:
 			# Anchored at the foot, not the centre: a plant grows up out of the
 			# point it was scattered on, and centring it buries half of it.
 			var rect := Rect2(at - Vector2(size.x * 0.5, size.y), size)
-			draw_texture_rect(texture, rect, false, plant["tint"], bool(plant["flip"]))
+			# `draw_texture_rect`'s final flag transposes X/Y; it is not a mirror.
+			# Feeding the authored random flip into it laid half the flowers sideways.
+			# Keep the upright source orientation. Silhouette variation comes from
+			# scale, tint, placement and wind without rotating a flower onto its stem.
+			draw_texture_rect(texture, rect, false, plant["tint"], false)
 
 
 ## Static foliage contact shadows batched into one draw owner. Shadows do not

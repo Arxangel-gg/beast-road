@@ -27,7 +27,16 @@ extends GameData
 ## race.
 enum Temperament { PASSIVE, CAUTIOUS, TERRITORIAL, PREDATORY }
 
+## How this species occupies space when it is not fighting.
+##
+## Authored in data rather than inferred from an id: a later mountain goat may
+## graze like a deer and a marsh bird may forage on foot even though both are
+## completely different sprites. The system supplies steering; the resource
+## says which natural rhythm belongs to this animal.
+enum MovementStyle { GRAZER, FORAGER, PROWLER, SOARER, SKITTER }
+
 @export var temperament: Temperament = Temperament.PASSIVE
+@export var movement_style: MovementStyle = MovementStyle.FORAGER
 
 ## Damage per strike. Zero for anything that does not fight.
 ##
@@ -85,6 +94,18 @@ enum Temperament { PASSIVE, CAUTIOUS, TERRITORIAL, PREDATORY }
 ## How many arrive together. A fox is alone; deer are not.
 @export_range(1, 8) var group_min: int = 1
 @export_range(1, 8) var group_max: int = 1
+
+## Preferred room between members of the same arrival group. This is a soft
+## steering radius, backed by a harder spawn clearance in Balance.
+@export_range(24.0, 260.0) var social_spacing: float = 82.0
+
+## How strongly a social animal stays near its group's moving centre, 0..1.
+## Solitary creatures leave this at zero.
+@export_range(0.0, 1.0) var group_cohesion: float = 0.0
+
+## Share of an idle pause spent moving. A grazer takes measured steps; a
+## squirrel works in short bursts; a soaring bird almost never freezes aloft.
+@export_range(0.15, 1.0) var activity: float = 0.55
 
 ## World units per second while moving.
 @export_range(4.0, 240.0) var speed: float = 34.0

@@ -151,6 +151,9 @@ signal coop_run_ended(victory: bool)
 ## An animal left, whether hunted or forgotten.
 signal coop_wildlife_removed(net_id: int)
 
+## A host-authored wildlife death starts the same fall on every peer.
+signal coop_wildlife_died(net_id: int)
+
 ## An animal was hunted — on the host's say-so, so both players see it fall.
 signal wildlife_killed(kind_id: String, food: int, at: Vector2)
 

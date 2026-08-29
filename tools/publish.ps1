@@ -370,6 +370,8 @@ $btn.Add_Click({
 			@{ Name = 'shipping tool references'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'tool-leak') },
 			@{ Name = 'v4 migration audit'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'audit') },
 			@{ Name = 'difficulty curve'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/curve_report.tscn') },
+			@{ Name = 'wildlife, world depth and ambient life'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/regression_check.tscn') },
+			@{ Name = 'procedural treeline'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/treeline_check.tscn') },
             @{ Name = 'milestone cinematics'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/milestone_cinematic_check.tscn') },
             @{ Name = 'Chronicle objectives'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_check.tscn') },
             @{ Name = 'save migration'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_backup_check.tscn') },

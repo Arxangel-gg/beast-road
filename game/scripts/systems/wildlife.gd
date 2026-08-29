@@ -5,10 +5,11 @@ const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
 
 ## The animals that live off the roads.
 ##
-## Ambient in the strict sense: nothing here can be killed, hurt, targeted or
-## collided with, and nothing here touches a run. It exists so the ground reads
-## as inhabited rather than merely decorated - a field with a fox crossing it is
-## a place, and the same field without one is a texture.
+## Wildlife is not part of the wave roster and towers never target it, but a hero
+## may hunt it and hostile species may threaten heroes or road enemies. Nothing
+## here can target a structure. It exists so the ground reads as inhabited rather
+## than merely decorated - a field with a fox crossing it is a place, and the
+## same field without one is a texture.
 ##
 ## **The population varies on purpose.** Sometimes almost none, sometimes plenty.
 ## A fixed count reads as decoration however good the sprites are, because the
@@ -16,10 +17,9 @@ const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
 ## are a coin flip rather than a top-up to a target, each animal has its own
 ## patience, and the field is allowed to be empty for a while.
 ##
-## **Nothing here decides anything.** One node with a clock and a list; each
-## animal is a sprite walking toward a point it picked. That is deliberately the
-## cheapest thing that reads as alive - a real steering system would cost more
-## than the battle it is decorating.
+## One system owns the population, steering and small combat seam. Species share
+## the cheap movement core, then use data-authored movement styles and social
+## spacing so their behavior differs without a bespoke node tree per animal.
 
 ## How often an arrival is considered.
 const ARRIVAL_INTERVAL: float = 4.0
@@ -28,8 +28,6 @@ const ARRIVAL_INTERVAL: float = 4.0
 ## on purpose: nothing is being aimed at, so a coarser update is invisible.
 const BATCH_INTERVAL: float = 0.2
 
-## What an animal is doing. Small on purpose: ambient life with a rich state
-## machine is a bug waiting to be found by somebody watching a wave.
 ## What an animal is doing.
 ##
 ## `STALKING` and `STRIKING` are the hostile half. Deliberately only two: an
@@ -57,6 +55,9 @@ var _batch_clock: float = 0.0
 
 ## Rising identity for relayed animals. Host side.
 var _net_id: int = 0
+## Rising identity for one social arrival. Guests mirror positions and do not
+## need it; the authority uses it for loose cohesion without stacking bodies.
+var _group_id: int = 0
 var _kinds: Array[WildlifeData] = []
 var _rng := RandomNumberGenerator.new()
 
@@ -76,6 +77,7 @@ func _ready() -> void:
 	EventBus.coop_wildlife_spawned.connect(_on_coop_spawned)
 	EventBus.coop_wildlife_batch.connect(_on_coop_batch)
 	EventBus.coop_wildlife_removed.connect(_on_coop_removed)
+	EventBus.coop_wildlife_died.connect(_on_coop_died)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
 		_refresh_kinds()
 		# Old residents leave with the old act rather than lingering into ground
@@ -127,9 +129,15 @@ func _process(delta: float) -> void:
 ## repositioned has no velocity, and every animation here is chosen from whether
 ## the thing is moving.
 func _tick_puppets(delta: float) -> void:
-	for animal: Dictionary in _living:
+	for index: int in range(_living.size() - 1, -1, -1):
+		var animal: Dictionary = _living[index]
 		var sprite := animal["sprite"] as Sprite2D
 		if sprite == null or not is_instance_valid(sprite):
+			_living.remove_at(index)
+			continue
+		if float(animal.get("dying", 0.0)) > 0.0:
+			if not _tick_dying(animal, sprite, delta):
+				_retire(index)
 			continue
 		var target := animal["goal"] as Vector2
 		var before: Vector2 = sprite.global_position
@@ -190,6 +198,30 @@ func _on_coop_removed(net_id: int) -> void:
 		return
 
 
+## The host settled a hunt. Start the same authored fall locally instead of
+## leaving an apparently living animal standing until the later removal packet.
+func _on_coop_died(net_id: int) -> void:
+	if not Coop.is_guest():
+		return
+	for animal: Dictionary in _living:
+		if int(animal["net_id"]) != net_id:
+			continue
+		if float(animal.get("dying", 0.0)) > 0.0:
+			return
+		animal["hp"] = 0.0
+		animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
+		animal["state"] = State.LEAVING
+		var sprite := animal["sprite"] as Sprite2D
+		var bar := animal["bar"] as ProgressBar
+		if bar != null and is_instance_valid(bar):
+			bar.visible = false
+		if sprite != null and is_instance_valid(sprite):
+			Vfx.blood(sprite.global_position, Vector2.UP,
+				Balance.VFX_BLOOD_DEATH_SIZE * 0.75)
+			Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
+		return
+
+
 ## Takes one animal off the field, and tells the guest it went.
 ##
 ## **The single place a removal happens**, which it was not: the kill path
@@ -240,16 +272,49 @@ func _consider_arrival() -> void:
 	var at: Vector2 = _clear_point()
 	if at == Vector2.ZERO:
 		return
+	_group_id += 1
+	var social_id: int = _group_id
+	var placed: Array[Vector2] = []
 	for _member: int in _rng.randi_range(kind.group_min, kind.group_max):
 		if _living.size() >= cap:
 			return
-		# Groups are spread rather than stacked: four deer on one pixel is one
-		# deer with a thick outline. The spread is checked too - the *anchor*
-		# being clear says nothing about a point seventy units off it, and that
-		# gap is what put deer in lanes.
-		var spread: Vector2 = at + Vector2(_rng.randf_range(-70.0, 70.0),
-			_rng.randf_range(-52.0, 52.0))
-		_spawn(kind, spread if _is_clear(spread) else at)
+		# Never fall back to the anchor. That fallback put every remaining wolf on
+		# the same pixel whenever the nearby rolls touched a road.
+		var spread: Vector2 = _social_spawn_point(at, kind, placed)
+		if spread == Vector2.INF:
+			continue
+		placed.append(spread)
+		_spawn(kind, spread, 0, social_id)
+
+
+func _social_spawn_point(anchor: Vector2, kind: WildlifeData,
+		placed: Array[Vector2]) -> Vector2:
+	var clearance: float = maxf(Balance.WILDLIFE_GROUP_SPAWN_SPACING,
+		kind.social_spacing)
+	for attempt: int in 18:
+		var ring: int = attempt / 6
+		var radius: float = clearance * (0.82 + float(ring) * 0.52)
+		var candidate: Vector2 = anchor if placed.is_empty() and attempt == 0 \
+			else anchor + Vector2.RIGHT.rotated(_rng.randf() * TAU) \
+				* _rng.randf_range(radius, radius * 1.32)
+		if _is_clear(candidate) and _has_social_room(candidate, clearance, placed):
+			return candidate
+	return Vector2.INF
+
+
+func _has_social_room(at: Vector2, clearance: float,
+		placed: Array[Vector2]) -> bool:
+	for other: Vector2 in placed:
+		if at.distance_to(other) < clearance:
+			return false
+	for animal: Dictionary in _living:
+		if float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		var sprite := animal.get("sprite", null) as Sprite2D
+		if sprite != null and is_instance_valid(sprite) \
+				and at.distance_to(sprite.global_position) < clearance:
+			return false
+	return true
 
 
 ## How many things out there would attack you, right now.
@@ -292,7 +357,8 @@ func _is_authority_with_company() -> bool:
 	return Coop.is_host() and Coop.partner_present()
 
 
-func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
+func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
+		group_id: int = 0) -> void:
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
 		return
@@ -305,11 +371,6 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 		Balance.WILDLIFE_ENTRY_DISTANCE * (1.0 if _rng.randf() < 0.5 else -1.0),
 		-Balance.WILDLIFE_ENTRY_DISTANCE if kind.flies else 0.0)
 	sprite.z_as_relative = false
-	# A flier is drawn above the ground it sorts against: the offset lifts the
-	# picture without moving the body, so a crow passing in front of an enemy
-	# still sorts by where it actually is.
-	if kind.flies:
-		sprite.offset.y = -Balance.WILDLIFE_FLIER_LIFT
 	(host if host != null else self).add_child(sprite)
 	var impact_material: ShaderMaterial = ActorPolishScript.attach(sprite)
 
@@ -361,6 +422,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 	_living.append({
 		"net_id": identity,
 		"data": kind,
+		"group_id": group_id,
 		"sprite": sprite,
 		"state": State.ARRIVING,
 		"home": at,
@@ -384,7 +446,9 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0) -> void:
 		"hunt": 0.0,
 		"wary": 0.0,
 		"bob": _rng.randf() * TAU,
+		"steer_phase": _rng.randf() * TAU,
 	})
+	_apply_visual_anchor(sprite, kind, size, kind.flies)
 	if not kind.vocal_sfx.is_empty():
 		Sfx.play(kind.vocal_sfx, -3.0)
 
@@ -440,7 +504,12 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	var moving: bool = toward.length() > 6.0
 
 	if moving:
-		var step: Vector2 = toward.normalized() * speed * delta
+		var direction: Vector2 = _steered_direction(animal, toward.normalized(), delta)
+		var burst: float = Balance.WILDLIFE_SKITTER_BURST \
+			if kind.movement_style == WildlifeData.MovementStyle.SKITTER else 1.0
+		var step: Vector2 = direction * speed * burst * delta
+		if step.length() > toward.length():
+			step = toward
 		sprite.global_position += step
 		# Facing from motion, against the *art's own* direction rather than a
 		# guess. The sprites are drawn facing left, the flip was written for
@@ -461,12 +530,77 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			State.SETTLED:
 				animal["pause"] = float(animal["pause"]) - delta
 				if float(animal["pause"]) <= 0.0:
+					var pause_scale: float = lerpf(1.65, 0.42, kind.activity)
 					animal["pause"] = _rng.randf_range(
-						Balance.WILDLIFE_PAUSE_MIN, Balance.WILDLIFE_PAUSE_MAX)
+						Balance.WILDLIFE_PAUSE_MIN, Balance.WILDLIFE_PAUSE_MAX) \
+						* pause_scale
 					animal["goal"] = _wander_from(animal["home"] as Vector2, kind)
 
 	_animate(animal, sprite, delta, moving)
 	return true
+
+
+## Separation, loose group cohesion, and a small curved path. With at most 22
+## animals this bounded scan is cheaper than maintaining another spatial index,
+## and it removes the exact-overlap silhouette that made a pack look like one
+## wolf with a thick outline.
+func _steered_direction(animal: Dictionary, wanted: Vector2,
+		delta: float) -> Vector2:
+	var sprite := animal["sprite"] as Sprite2D
+	var kind := animal["data"] as WildlifeData
+	if sprite == null or wanted.is_zero_approx():
+		return wanted
+	var repel := Vector2.ZERO
+	var centre := Vector2.ZERO
+	var group_count: int = 0
+	var social_id: int = int(animal.get("group_id", 0))
+	var radius: float = maxf(Balance.WILDLIFE_SEPARATION_RADIUS,
+		kind.social_spacing)
+	for other: Dictionary in _living:
+		if other == animal or float(other.get("dying", 0.0)) > 0.0:
+			continue
+		var other_sprite := other.get("sprite", null) as Sprite2D
+		if other_sprite == null or not is_instance_valid(other_sprite):
+			continue
+		var apart: Vector2 = sprite.global_position - other_sprite.global_position
+		var distance: float = apart.length()
+		if distance > 0.001 and distance < radius:
+			repel += apart.normalized() * (1.0 - distance / radius)
+		if social_id > 0 and int(other.get("group_id", 0)) == social_id:
+			centre += other_sprite.global_position
+			group_count += 1
+
+	var steer: Vector2 = wanted
+	if not repel.is_zero_approx():
+		steer += repel.normalized() * (Balance.WILDLIFE_SEPARATION_STRENGTH
+			/ maxf(kind.speed, 1.0))
+	if group_count > 0 and kind.group_cohesion > 0.0:
+		centre /= float(group_count)
+		var together: Vector2 = centre - sprite.global_position
+		if together.length() > kind.social_spacing * 1.35:
+			steer += together.normalized() * kind.group_cohesion \
+				* Balance.WILDLIFE_COHESION_STRENGTH
+
+	animal["steer_phase"] = float(animal.get("steer_phase", 0.0)) \
+		+ delta * (1.15 if kind.flies else 0.72)
+	var curve: float = Balance.WILDLIFE_SOAR_CURVE if kind.movement_style \
+		== WildlifeData.MovementStyle.SOARER else Balance.WILDLIFE_WANDER_CURVE
+	steer += wanted.orthogonal() * sin(float(animal["steer_phase"])) * curve
+	return steer.normalized() if not steer.is_zero_approx() else wanted
+
+
+## The node is the animal's ground contact, never its hips. Changing animation
+## frames only changes the picture above that point, so depth remains stable.
+func _apply_visual_anchor(sprite: Sprite2D, kind: WildlifeData, size: float,
+		airborne: bool, extra_lift: float = 0.0) -> void:
+	if sprite.texture == null:
+		return
+	var visual_scale: float = maxf(kind.scale * size, 0.001)
+	sprite.offset.x = 0.0
+	var ground_lift: float = float(sprite.texture.get_height()) \
+		* Balance.WILDLIFE_FEET_ANCHOR
+	var air_lift: float = Balance.WILDLIFE_FLIER_LIFT if airborne else 0.0
+	sprite.offset.y = -ground_lift - (air_lift + extra_lift) / visual_scale
 
 
 ## The idle loop where there is one, a bob where there is not.
@@ -485,11 +619,16 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 	# Striking wins over everything: it is the frame the player is reading.
 	var striking: Array = animal["attack"] as Array
 	if int(animal["state"]) == State.STRIKING and not striking.is_empty():
-		animal["frame_clock"] = float(animal["frame_clock"]) 			+ delta * Balance.WILDLIFE_ATTACK_FRAME_RATE
+		animal["frame_clock"] = float(animal["frame_clock"]) \
+			+ delta * Balance.WILDLIFE_ATTACK_FRAME_RATE
 		var swing: int = int(floor(float(animal["frame_clock"]))) % striking.size()
 		sprite.texture = striking[swing] as Texture2D
-		sprite.offset.y = 0.0
 		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
+		_apply_visual_anchor(sprite, kind, float(animal["size"]), kind.flies)
+		var phase: float = float(swing) / maxf(float(striking.size() - 1), 1.0)
+		var lunge: float = sin(phase * PI) * Balance.WILDLIFE_ATTACK_LUNGE
+		sprite.offset.x = lunge * (-1.0 if sprite.flip_h else 1.0) \
+			/ maxf(sprite.scale.x, 0.001)
 		return
 	var flight := animal["fly"] as Array
 	var frames: Array = animal["idle"] as Array
@@ -497,12 +636,15 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 	if moving:
 		var airborne: bool = kind.flies and not flight.is_empty()
 		frames = flight if airborne else (animal["move"] as Array)
-		rate = Balance.WILDLIFE_FLIGHT_FRAME_RATE if airborne 			else Balance.WILDLIFE_MOVE_FRAME_RATE
+		rate = Balance.WILDLIFE_FLIGHT_FRAME_RATE if airborne \
+			else Balance.WILDLIFE_MOVE_FRAME_RATE
 	if not frames.is_empty():
 		animal["frame_clock"] = float(animal["frame_clock"]) + delta * rate
 		var index: int = int(floor(float(animal["frame_clock"]))) % frames.size()
 		sprite.texture = frames[index] as Texture2D
-		sprite.scale.y = kind.scale * float(animal["size"])
+		sprite.scale = Vector2.ONE * kind.scale * float(animal["size"])
+		_apply_visual_anchor(sprite, kind, float(animal["size"]),
+			kind.flies and moving)
 		# **One authored frame is a pose, not a cycle.**
 		#
 		# Three of the six could not be given a matching second walk frame - the
@@ -516,24 +658,24 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 			animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_HOP_RATE
 			var phase: float = float(animal["bob"])
 			var lift: float = absf(sin(phase))
-			sprite.offset.y = -lift * Balance.WILDLIFE_HOP_HEIGHT
+			_apply_visual_anchor(sprite, kind, float(animal["size"]), false,
+				lift * Balance.WILDLIFE_HOP_HEIGHT)
 			# Squashed at the bottom of the arc, stretched at the top, which is
 			# what makes a hop read as weight rather than as a sprite sliding up
 			# and down.
 			var squash: float = (1.0 - lift) * Balance.WILDLIFE_HOP_SQUASH
-			sprite.scale.y = kind.scale * (1.0 - squash)
-			sprite.scale.x = kind.scale * (1.0 + squash * 0.6)
+			sprite.scale.y = kind.scale * float(animal["size"]) * (1.0 - squash)
+			sprite.scale.x = kind.scale * float(animal["size"]) * (1.0 + squash * 0.6)
 		elif moving and frames.size() == 1 and not kind.flies:
 			# One frame and no hop: a slow rise and fall through the stride, so a
 			# wolf or a bear reads as walking rather than sliding, without ever
 			# leaving the ground.
 			animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_BOB_RATE
 			var sway: float = sin(float(animal["bob"]))
-			sprite.offset.y = -absf(sway) * Balance.WILDLIFE_STRIDE_LIFT
-			sprite.scale.y = kind.scale * float(animal["size"]) 				* (1.0 + sway * Balance.WILDLIFE_BOB_SCALE * 0.5)
-			sprite.scale.x = kind.scale * float(animal["size"])
-		else:
-			sprite.offset.y = 0.0
+			_apply_visual_anchor(sprite, kind, float(animal["size"]), false,
+				absf(sway) * Balance.WILDLIFE_STRIDE_LIFT)
+			sprite.scale.y = kind.scale * float(animal["size"]) \
+				* (1.0 + sway * Balance.WILDLIFE_BOB_SCALE * 0.5)
 			sprite.scale.x = kind.scale * float(animal["size"])
 		return
 	# No authored frames for this state. Back to the resting pose plus a
@@ -544,7 +686,10 @@ func _animate(animal: Dictionary, sprite: Sprite2D, delta: float,
 		sprite.texture = base
 	animal["bob"] = float(animal["bob"]) + delta * Balance.WILDLIFE_BOB_RATE
 	var bob: float = absf(sin(float(animal["bob"]))) if moving else 0.0
-	sprite.scale.y = kind.scale * (1.0 + bob * Balance.WILDLIFE_BOB_SCALE)
+	sprite.scale = Vector2(kind.scale * float(animal["size"]),
+		kind.scale * float(animal["size"]) * (1.0 + bob * Balance.WILDLIFE_BOB_SCALE))
+	_apply_visual_anchor(sprite, kind, float(animal["size"]), kind.flies and moving,
+		bob * Balance.WILDLIFE_STRIDE_LIFT)
 
 
 ## Dying, shown rather than skipped.
@@ -641,6 +786,7 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 			sprite.flip_h = (toward.x > 0.0) != kind.art_faces_right
 		if float(animal["swing"]) <= 0.0:
 			animal["swing"] = kind.attack_interval
+			animal["frame_clock"] = 0.0
 			_strike(animal, sprite, kind, quarry)
 		_animate(animal, sprite, delta, false)
 		return true
@@ -648,7 +794,10 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# Closing. Faster than it walks, because a hunt that moves at grazing pace
 	# is not a hunt.
 	animal["state"] = State.STALKING
-	var step: Vector2 = toward.normalized() 		* kind.speed * kind.charge_speed_scale * delta
+	var step: Vector2 = _steered_direction(animal, toward.normalized(), delta) \
+		* kind.speed * kind.charge_speed_scale * delta
+	if step.length() > distance:
+		step = toward
 	sprite.global_position += step
 	if absf(step.x) > 0.001:
 		sprite.flip_h = (step.x > 0.0) != kind.art_faces_right
@@ -717,6 +866,11 @@ func _quarry_for(at: Vector2, kind: WildlifeData) -> Node2D:
 ## One blow, against whatever it caught.
 func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		quarry: Node2D) -> void:
+	# Wildlife may fight heroes and road enemies, never structures. Keeping the
+	# accepted types explicit makes a future broad target group unable to turn a
+	# wolf into a town attacker by accident.
+	if not (quarry is Hero) and not (quarry is Enemy):
+		return
 	# Softer early, at full strength later. A wolf pack costs 8 a bite and the
 	# hero has 100; three of them arriving in Act I read as the wilderness being
 	# the boss fight. The ramp is by act rather than by wave so it is legible to
@@ -784,6 +938,8 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
 	var forward: Vector2 = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	for index: int in range(_living.size() - 1, -1, -1):
 		var animal: Dictionary = _living[index]
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
 		var sprite := animal["sprite"] as Sprite2D
 		if sprite == null or not is_instance_valid(sprite):
 			continue
@@ -814,6 +970,9 @@ func wound_sprite(sprite: Node2D, damage: float) -> bool:
 	for index: int in range(_living.size() - 1, -1, -1):
 		if _living[index]["sprite"] != sprite:
 			continue
+		if float(_living[index].get("dying", 0.0)) > 0.0 \
+				or float(_living[index].get("hp", 0.0)) <= 0.0:
+			return false
 		_wound(index, _living[index], damage)
 		return true
 	return false
@@ -825,6 +984,8 @@ func wound_sprite(sprite: Node2D, damage: float) -> bool:
 ## a rabbit should die to a swing and a deer should take a few, which is the only
 ## way "larger gives more" is a decision rather than a lottery.
 func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
+	if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+		return
 	var kind := animal["data"] as WildlifeData
 	var sprite := animal["sprite"] as Sprite2D
 	var impact := animal.get("impact", null) as ShaderMaterial
@@ -863,6 +1024,8 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	if field != null and field.has_method("spawn_loot"):
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
 	RunState.gain_hero_xp(float(kind.xp_reward) * bounty)
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
 	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position)
 	# The body stays until it has fallen; `_retire` announces it when it goes.
 	# Left on the field to fall over rather than vanishing on the blow - a kill
@@ -895,10 +1058,20 @@ func _bolt_target(from: Vector2) -> Vector2:
 
 ## A new spot to potter over to, on ground it is allowed to stand on.
 func _wander_from(home: Vector2, kind: WildlifeData) -> Vector2:
+	var roam_scale: float = 1.0
+	match kind.movement_style:
+		WildlifeData.MovementStyle.GRAZER:
+			roam_scale = 0.48
+		WildlifeData.MovementStyle.FORAGER:
+			roam_scale = 0.66
+		WildlifeData.MovementStyle.SOARER:
+			roam_scale = 1.16
+		WildlifeData.MovementStyle.SKITTER:
+			roam_scale = 0.40
 	for _attempt: int in 6:
 		var candidate: Vector2 = home + Vector2(
-			_rng.randf_range(-kind.roam, kind.roam),
-			_rng.randf_range(-kind.roam, kind.roam) * 0.7)
+			_rng.randf_range(-kind.roam, kind.roam) * roam_scale,
+			_rng.randf_range(-kind.roam, kind.roam) * 0.7 * roam_scale)
 		if _is_clear(candidate):
 			return candidate
 	# Six misses means the animal is hemmed in. Staying put is the only answer

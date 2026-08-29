@@ -35,7 +35,10 @@ texture = ExtResource("2_ground")
 [node name="EntityRoot" type="Node2D" parent="."]
 y_sort_enabled = true
 
-[node name="TownCore" parent="EntityRoot" instance=ExtResource("3_town")]
+[node name="TownVisualDepth" type="Node2D" parent="EntityRoot"]
+
+[node name="TownCore" parent="EntityRoot" node_paths=PackedStringArray("visual_host") instance=ExtResource("3_town")]
+visual_host = NodePath("../TownVisualDepth")
 
 [node name="Hero" parent="EntityRoot" instance=ExtResource("4_hero")]
 position = Vector2(0, 260)

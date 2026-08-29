@@ -54,7 +54,8 @@ func _ready() -> void:
 				var along: float = tree.position.dot(outward)
 				if along <= 0.0:
 					continue
-				if (tree.position - outward * along).length() < Treeline.LANE_CLEARANCE:
+				if (tree.position - outward * along).length() \
+						< Balance.TREELINE_LANE_CLEARANCE:
 					near_mouth += 1
 					break
 		_check(inside == 0,

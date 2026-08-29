@@ -245,6 +245,22 @@ Files: `tower_zephyr_needle_idle_01.png` … `tower_zephyr_needle_idle_03.png`
 | `city_damage_1.png` | 512×512 | T | `#7A6A4E` |
 | `city_damage_2.png` | 512×512 | T | `#6A5A3E` |
 | `city_damage_3.png` | 512×512 | T | `#5A4A2E` |
+| `city_base_idle_01.png` | 512×512 | T | `#8A7A5E` |
+| `city_base_idle_02.png` | 512×512 | T | `#8A7A5E` |
+| `city_base_idle_03.png` | 512×512 | T | `#8A7A5E` |
+| `city_base_idle_04.png` | 512×512 | T | `#8A7A5E` |
+| `city_damage_1_idle_01.png` | 512×512 | T | `#7A6A4E` |
+| `city_damage_1_idle_02.png` | 512×512 | T | `#7A6A4E` |
+| `city_damage_1_idle_03.png` | 512×512 | T | `#7A6A4E` |
+| `city_damage_1_idle_04.png` | 512×512 | T | `#7A6A4E` |
+| `city_damage_2_idle_01.png` | 512×512 | T | `#6A5A3E` |
+| `city_damage_2_idle_02.png` | 512×512 | T | `#6A5A3E` |
+| `city_damage_2_idle_03.png` | 512×512 | T | `#6A5A3E` |
+| `city_damage_2_idle_04.png` | 512×512 | T | `#6A5A3E` |
+| `city_damage_3_idle_01.png` | 512×512 | T | `#5A4A2E` |
+| `city_damage_3_idle_02.png` | 512×512 | T | `#5A4A2E` |
+| `city_damage_3_idle_03.png` | 512×512 | T | `#5A4A2E` |
+| `city_damage_3_idle_04.png` | 512×512 | T | `#5A4A2E` |
 | `building_town_hall.png` | 192×192 | T | `#8A7A5E` |
 | `building_forge.png` | 192×192 | T | `#C4552E` |
 | `building_sanctum.png` | 192×192 | T | `#9B8FC4` |
@@ -459,6 +475,23 @@ toward the region's sampled ground palette so it sits in the same light.
 | `tree_jungle.png` | 96×128 | T | `#24401F` |
 | `tree_desert.png` | 96×128 | T | `#8A7B4E` |
 | `tree_snow.png` | 96×128 | T | `#5A6E78` |
+| `tree_jungle_01.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_02.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_03.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_04.png` | 128×128 | T | `#24401F` |
+| `tree_desert_01.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_02.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_03.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_04.png` | 128×128 | T | `#8A7B4E` |
+| `tree_snow_01.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_02.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_03.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_04.png` | 128×128 | T | `#5A6E78` |
+| `butterfly_fly_01.png` | 32×32 | T | `#8155B8` |
+| `butterfly_fly_02.png` | 32×32 | T | `#8155B8` |
+| `butterfly_fly_03.png` | 32×32 | T | `#8155B8` |
+| `butterfly_fly_04.png` | 32×32 | T | `#8155B8` |
+| `butterfly_fly_05.png` | 32×32 | T | `#8155B8` |
 | `plant_jungle.png` | 48×64 | T | `#2E4A33` |
 | `plant_desert.png` | 48×64 | T | `#C0AC7E` |
 | `plant_snow.png` | 48×64 | T | `#A8BCCC` |
@@ -493,6 +526,10 @@ point is that a clump is occasionally *not* what you expected.
 | `prop_bones.png` | 56×32 | T | `#B4AC97` |
 | `prop_reeds.png` | 40×56 | T | `#6E7A4C` |
 | `prop_wreckage.png` | 64×40 | T | `#8A8073` |
+| `prop_wildflower_01.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_02.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_03.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_04.png` | 64×64 | T | `#596B3C` |
 | `plant_desert_bush.png` | 64×56 | T | `#6E5B3C` |
 | `plant_snow_bush.png` | 64×56 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
@@ -729,7 +766,7 @@ structures use — so the animator is the same code, and a creature shipped with
 no continuation frame is a supported state rather than a broken one. Generated
 img2img from the base pose so the palette cannot drift between frames.
 
-Files: `wildlife_raven_idle_01.png`
+Files: `wildlife_raven_idle_01.png` … `wildlife_raven_idle_05.png`
 Files: `wildlife_fox_idle_01.png`
 Files: `wildlife_rabbit_idle_01.png`
 Files: `wildlife_deer_idle_01.png`
@@ -788,9 +825,16 @@ Each is the same animal committing: the wolf's jaws open, the boar's head down
 and tusks forward, the bear reared with a paw up, the viper uncoiled, the badger
 snarling, the hawk with its wings swept back and talons out.
 
-Files: `wildlife_wolf_attack_01.png` · `wildlife_boar_attack_01.png` ·
-`wildlife_bear_attack_01.png` · `wildlife_viper_attack_01.png` ·
-`wildlife_badger_attack_01.png` · `wildlife_hawk_attack_01.png`
+Five frames per fighter, generated from the existing strike pose so palette,
+scale and silhouette stay species-consistent through wind-up, contact and
+recovery.
+
+Files: `wildlife_wolf_attack_01.png` … `wildlife_wolf_attack_05.png`
+Files: `wildlife_boar_attack_01.png` … `wildlife_boar_attack_05.png`
+Files: `wildlife_bear_attack_01.png` … `wildlife_bear_attack_05.png`
+Files: `wildlife_viper_attack_01.png` … `wildlife_viper_attack_05.png`
+Files: `wildlife_badger_attack_01.png` … `wildlife_badger_attack_05.png`
+Files: `wildlife_hawk_attack_01.png` … `wildlife_hawk_attack_05.png`
 
 **No death frames, and that is the better answer rather than the cheaper one.**
 Dying is procedural — the body topples, settles and fades. One routine covers six
@@ -807,11 +851,18 @@ frames: a bird walking and a bird flying are not the same animal at two speeds,
 and a crow that hopped across the sky was exactly what shipping only one moving
 sequence looked like.
 
-Two frames — wings up and wings down — which is the least that reads as a
-wingbeat rather than a bird held in one pose.
+Five frames — authored pose plus four PixelLab transitions — so the downstroke,
+recovery and glide read as a wingbeat rather than a bird swapping between two
+unrelated silhouettes.
 
-Files: `wildlife_raven_fly_01.png` · `wildlife_raven_fly_02.png`
-Files: `wildlife_hawk_fly_01.png` · `wildlife_hawk_fly_02.png`
+Files: `wildlife_raven_fly_01.png` … `wildlife_raven_fly_05.png`
+Files: `wildlife_hawk_fly_01.png` … `wildlife_hawk_fly_05.png`
+
+Both birds also land between flights. Their grounded loops are perched
+silhouettes with planted feet and restrained breathing/head motion, not frozen
+in-flight frames.
+
+Files: `wildlife_hawk_idle_01.png` … `wildlife_hawk_idle_05.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 
@@ -978,6 +1029,16 @@ region without one. Built from a generated set by `tools/build_road_tiles.py`,
 which is where the tile-order, missing-mask and seam problems are documented.
 
 `path_tile_NN` remains the fallback for any region without a set.
+
+PixelLab-authored road-wear decals are baked over the connected surface at
+runtime; they never add nodes or leave the navigable road.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `road_detail_01.png` | 64×64 | T | `#6B5A44` |
+| `road_detail_02.png` | 64×64 | T | `#6B5A44` |
+| `road_detail_03.png` | 64×64 | T | `#6B5A44` |
+| `road_detail_04.png` | 64×64 | T | `#6B5A44` |
 
 **Act I — The Verdant Maw**
 

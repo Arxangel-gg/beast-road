@@ -176,6 +176,7 @@ var _veil_left: float = 0.0
 ## player makes space for it instead of treating it as armour under fire.
 var _mender_left: float = 0.0
 var _mender_grace_left: float = 0.0
+var _depth_lift: float = 0.0
 
 
 func _ready() -> void:
@@ -185,6 +186,21 @@ func _ready() -> void:
 	# be a crash in the most-run function in the game.
 	if input == null:
 		input = LocalHeroInput.new(self)
+
+	# The CharacterBody's position is its feet. Moving the body down while lifting
+	# every centre-authored visual/physical part by the same amount preserves the
+	# picture and collision in world space, but gives the shared Y sorter the only
+	# depth key that is meaningful beside a tree or flower: ground contact.
+	_depth_lift = float(HeroAnimator.CELL_H) * sprite.scale.y \
+		* Balance.HERO_FEET_ANCHOR if sprite != null else 0.0
+	global_position.y += _depth_lift
+	if sprite != null:
+		sprite.position.y -= _depth_lift
+	var body := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if body != null:
+		body.position.y -= _depth_lift
+	if health_bar != null:
+		health_bar.position.y -= _depth_lift
 
 	# NOT added to the group here. There are two Hero instances - one in the
 	# battlefield, one in the raid - and if both join the group then
@@ -211,6 +227,8 @@ func _ready() -> void:
 	_light = LightKit.add_light(self, Balance.HERO_LIGHT_COLOUR,
 		Balance.HERO_LIGHT_RADIUS, Balance.HERO_LIGHT_ENERGY,
 		Balance.HERO_LIGHT_FLICKER)
+	if _light != null:
+		_light.position.y = -_depth_lift
 	# The party colour is decided before this existed, so it is applied again now
 	# that there is a light to colour.
 	_apply_party_colour()
@@ -232,7 +250,7 @@ func _ready() -> void:
 	if sprite != null and sprite.texture != null:
 		var half: Vector2 = sprite.texture.get_size() * 0.5
 		ShadowKit.add_caster(self, half.x * 0.40, half.y * 0.18,
-			Balance.SHADOW_LAYER_UNITS, half.y * 0.40)
+			Balance.SHADOW_LAYER_UNITS, sprite.position.y + half.y * 0.40)
 	animator.mass = Balance.ANIM_MASS_HERO
 	animator.capture_home()
 	attack.landed.connect(_on_attack_landed)

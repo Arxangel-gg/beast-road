@@ -25,6 +25,7 @@ extends Node2D
 
 ## One tree per region. Path derived from the region id, like every other asset.
 const TREE_ART_FORMAT: String = "res://art/foliage/tree_%s.png"
+const TREE_VARIANT_FORMAT: String = "res://art/foliage/tree_%s_%02d.png"
 
 ## How the treeline reads in each region.
 ##
@@ -45,14 +46,6 @@ const REGIONS: Dictionary = {
 ## bottom of the image would sort the tree by the edge of that ground rather than
 ## by where the trunk meets it.
 const TRUNK_ANCHOR: float = 0.94
-
-## How far out the ring reaches past the grid, and how many placements to try.
-const REACH: float = 2600.0
-const ATTEMPTS: int = 520
-
-## Clearance kept around each lane's outward heading, so nothing hides an
-## arrival. Generous: the mouth is where the player looks first.
-const LANE_CLEARANCE: float = 300.0
 
 var grid: BattleGrid = null
 
@@ -76,10 +69,9 @@ func scatter() -> void:
 	_trees.clear()
 
 	var region: String = RunState.terrain_id
-	var art_path: String = TREE_ART_FORMAT % region
-	if not ResourceLoader.exists(art_path):
+	var art: Array[Texture2D] = _region_art(region)
+	if art.is_empty():
 		return
-	var art: Texture2D = load(art_path)
 	var shape: Dictionary = REGIONS.get(region, REGIONS["jungle"])
 
 	var rng := RandomNumberGenerator.new()
@@ -88,18 +80,44 @@ func scatter() -> void:
 	rng.seed = hash("treeline:" + region)
 
 	var mouths: Array[Vector2] = _lane_mouths()
-	var wanted: int = int(round(float(ATTEMPTS) * float(shape["density"])
+	var wanted: int = int(round(float(Balance.TREELINE_ATTEMPTS) * float(shape["density"])
 		* Graphics.foliage_scale()))
 	var span: Vector2 = _scale_span(region)
 	var placed: int = 0
-	for attempt: int in ATTEMPTS:
+	for attempt: int in Balance.TREELINE_ATTEMPTS:
 		if placed >= wanted:
 			break
 		var at: Vector2 = _outside_point(rng, shape)
 		if not _is_clear(at, mouths):
 			continue
-		_plant(art, at, rng.randf_range(span.x, span.y), rng)
+		if not _has_trunk_room(at):
+			continue
+		var tree_scale: float = rng.randf_range(span.x, span.y)
+		if rng.randf() < Balance.TREELINE_GIANT_CHANCE:
+			tree_scale *= rng.randf_range(Balance.TREELINE_GIANT_SCALE.x,
+				Balance.TREELINE_GIANT_SCALE.y)
+		_plant(art[rng.randi_range(0, art.size() - 1)], at, tree_scale, rng)
 		placed += 1
+
+
+func _region_art(region: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	var base_path: String = TREE_ART_FORMAT % region
+	if ResourceLoader.exists(base_path):
+		out.append(load(base_path) as Texture2D)
+	for index: int in range(1, 9):
+		var path: String = TREE_VARIANT_FORMAT % [region, index]
+		if ResourceLoader.exists(path):
+			out.append(load(path) as Texture2D)
+	return out
+
+
+func _has_trunk_room(at: Vector2) -> bool:
+	for tree: Sprite2D in _trees:
+		if is_instance_valid(tree) \
+				and at.distance_to(tree.position) < Balance.TREELINE_TRUNK_SPACING:
+			return false
+	return true
 
 
 ## How many trees are standing. For the gate.
@@ -118,11 +136,11 @@ func _outside_point(rng: RandomNumberGenerator, shape: Dictionary) -> Vector2:
 		# Biased outward from the grid edge, then clumped: trees gather. An even
 		# scatter over a ring reads as a texture rather than as woodland.
 		var lean: float = pow(rng.randf(), 1.0 - float(shape["clump"]) * 0.5)
-		var radius: float = half * 1.02 + lean * (REACH - half)
+		var radius: float = half * 1.02 + lean * (Balance.TREELINE_REACH - half)
 		var at: Vector2 = Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
 		if not BattleGrid.in_bounds(BattleGrid.world_to_tile(at)):
 			return at
-	return Vector2.RIGHT.rotated(rng.randf() * TAU) * REACH
+	return Vector2.RIGHT.rotated(rng.randf() * TAU) * Balance.TREELINE_REACH
 
 
 ## Where each lane meets the edge, pointing outward.
@@ -150,7 +168,7 @@ func _is_clear(at: Vector2, mouths: Array[Vector2]) -> bool:
 		if along <= 0.0:
 			continue
 		var sideways: float = (at - outward * along).length()
-		if sideways < LANE_CLEARANCE:
+		if sideways < Balance.TREELINE_LANE_CLEARANCE:
 			return false
 	return true
 

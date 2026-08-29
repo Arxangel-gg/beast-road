@@ -946,17 +946,37 @@ const IMPACT_RIM_COLOUR: Color = Color(1.0, 0.82, 0.62, 1.0)
 const LOOT_SHIMMER_STRENGTH: float = 0.34
 const LOOT_PICKUP_DISSOLVE_TIME: float = 0.18
 
+# ------------------------------------------------------------------------------
+# Treeline and wilderness frame
+# ------------------------------------------------------------------------------
+
 ## Treeline silhouette variation. Region ranges are intentionally larger than
 ## play-space foliage: these trees begin beyond build reach and frame the map.
 ## Non-uniform scale, tiny lean and colour spread make one authored tree read as
 ## a stand rather than repeated wallpaper. [TUNE]
-const TREELINE_JUNGLE_SCALE: Vector2 = Vector2(1.15, 1.85)
-const TREELINE_DESERT_SCALE: Vector2 = Vector2(0.95, 1.42)
-const TREELINE_SNOW_SCALE: Vector2 = Vector2(1.05, 1.62)
+const TREELINE_JUNGLE_SCALE: Vector2 = Vector2(1.35, 2.15)
+const TREELINE_DESERT_SCALE: Vector2 = Vector2(1.08, 1.70)
+const TREELINE_SNOW_SCALE: Vector2 = Vector2(1.22, 1.94)
 const TREELINE_WIDTH_VARIATION: Vector2 = Vector2(0.82, 1.18)
 const TREELINE_HEIGHT_VARIATION: Vector2 = Vector2(0.94, 1.12)
 const TREELINE_LEAN_DEGREES: float = 2.2
 const TREELINE_SHADE: Vector2 = Vector2(0.80, 1.08)
+
+## A few old trees are much larger than the surrounding stand. The ordinary
+## scale still carries most of the silhouette; this sparse multiplier supplies
+## landmarks without turning the whole perimeter into one solid wall. [TUNE]
+const TREELINE_GIANT_CHANCE: float = 0.14
+const TREELINE_GIANT_SCALE: Vector2 = Vector2(1.35, 1.72)
+## Keeps independently scattered trunks from occupying effectively one pixel.
+## Canopies may overlap naturally; the ground contacts may not. [TUNE]
+const TREELINE_TRUNK_SPACING: float = 92.0
+const TREELINE_REACH: float = 2800.0
+const TREELINE_ATTEMPTS: int = 720
+const TREELINE_LANE_CLEARANCE: float = 320.0
+
+# ------------------------------------------------------------------------------
+# Unit readability feedback
+# ------------------------------------------------------------------------------
 
 ## Unit health bars. These sit above the unit in world space — Stage 1 has no
 ## screen-space HUD, but a swing you cannot see landing tells you nothing.
@@ -1293,6 +1313,10 @@ const TOWN_GAIT_LIFT: float = 5.0
 const TOWN_JOLT_SECONDS: float = 0.28
 const TOWN_JOLT_SCALE: float = 0.022
 const TOWN_JOLT_SHOVE: float = 7.0
+const TOWN_JOLT_VARIANTS: int = 3
+const TOWN_JOLT_TWIST_DEGREES: float = 1.7
+const CITY_FEET_ANCHOR: float = 0.44
+const CITY_IDLE_FRAME_RATE: float = 2.4
 
 ## How close an enemy has to be to a barricade to be held by it, and for how
 ## long the hold is refreshed. [TUNE]
@@ -1323,6 +1347,10 @@ const BARRICADE_AHEAD_DOT: float = 0.45
 
 const BARRICADE_GRIP_RADIUS: float = 90.0
 const BARRICADE_GRIP_SECONDS: float = 0.6
+
+# ------------------------------------------------------------------------------
+# Wildlife behavior and spacing
+# ------------------------------------------------------------------------------
 
 ## The floor and the ceiling on how many animals are about.
 ##
@@ -1357,6 +1385,46 @@ const WILDLIFE_PAUSE_MIN: float = 1.6
 const WILDLIFE_PAUSE_MAX: float = 7.0
 const WILDLIFE_IDLE_FRAME_RATE: float = 2.6
 const WILDLIFE_MOVE_FRAME_RATE: float = 7.5
+
+## Formation steering. The first number is a hard spawn clearance; the latter
+## two are a soft in-motion repulsion, capped below ordinary walking speed so a
+## crowded pack separates instead of exploding apart. [TUNE]
+const WILDLIFE_GROUP_SPAWN_SPACING: float = 96.0
+const WILDLIFE_SEPARATION_RADIUS: float = 104.0
+const WILDLIFE_SEPARATION_STRENGTH: float = 74.0
+const WILDLIFE_COHESION_STRENGTH: float = 0.34
+
+## Small deterministic wander curves keep travel from being ruler-straight.
+## They steer; they never change the destination or combat outcome. [TUNE]
+const WILDLIFE_WANDER_CURVE: float = 0.22
+const WILDLIFE_SOAR_CURVE: float = 0.46
+const WILDLIFE_SKITTER_BURST: float = 1.22
+
+## Sprite origins are ground contacts. Art is lifted above that contact so the
+## Y-sort key stays at the feet regardless of frame dimensions. [TUNE]
+const WILDLIFE_FEET_ANCHOR: float = 0.43
+## A short visual commitment makes authored attack frames read without moving
+## the actual body into or through its target. [TUNE]
+const WILDLIFE_ATTACK_LUNGE: float = 11.0
+
+# ------------------------------------------------------------------------------
+# Local ambient life — cosmetic and intentionally not replicated
+# ------------------------------------------------------------------------------
+
+## Butterflies animate by day; fireflies replace them at night. They are local,
+## cosmetic and quality-scaled, so these values tune atmosphere without changing
+## a seeded run or adding replication traffic. [TUNE]
+const AMBIENT_BUTTERFLY_COUNT: int = 12
+const AMBIENT_BUTTERFLY_SPEED: Vector2 = Vector2(22.0, 48.0)
+const AMBIENT_BUTTERFLY_TURN: float = 1.65
+const AMBIENT_BUTTERFLY_ROAM: float = 280.0
+const AMBIENT_BUTTERFLY_FRAME_RATE: float = 9.0
+const AMBIENT_BUTTERFLY_LIFT: float = 28.0
+const AMBIENT_FIREFLY_AMOUNT: int = 180
+const AMBIENT_FIREFLY_FIELD_EXTENT: Vector2 = Vector2(1700.0, 1120.0)
+const AMBIENT_FIREFLY_LIFETIME: float = 4.8
+const AMBIENT_FIREFLY_SPEED: float = 13.0
+const AMBIENT_FIREFLY_SIZE: float = 1.7
 
 ## The hop given to walkers that have only one authored frame. Rise, fall, and a
 ## squash at the bottom - which is the right gait for a rabbit anyway. [TUNE]
@@ -2025,6 +2093,38 @@ const BEAST_GROUND_LIGHT_FLOOR: float = 0.52
 ## driving the art's own colour past where it was drawn.
 const BEAST_GROUND_LIGHT_HUE: float = 0.35
 
+# ------------------------------------------------------------------------------
+# Beast and menu environment lighting
+# ------------------------------------------------------------------------------
+
+## The beast belongs to the painted light around it instead of retaining the
+## neutral source exposure over a dusk, snow or desert backdrop. [TUNE]
+const BEAST_ENVIRONMENT_TINT: float = 0.58
+const BEAST_TOWN_LIGHT_COLOUR: Color = Color(1.0, 0.58, 0.25)
+const BEAST_TOWN_LIGHT_RADIUS: float = 520.0
+const BEAST_TOWN_LIGHT_ENERGY: float = 1.05
+const BEAST_TOWN_LIGHT_FLICKER: float = 0.08
+const BEAST_TOWN_LIGHT_LIFT: float = 182.0
+
+## Menu art uses its backdrop's sampled hue/exposure, with a readability floor
+## so the hero object never disappears into the gate. [TUNE]
+const MENU_BEAST_TINT_STRENGTH: float = 0.62
+const MENU_BEAST_LIGHT_FLOOR: float = 0.58
+
+# ------------------------------------------------------------------------------
+# Road surface detail
+# ------------------------------------------------------------------------------
+
+## Authored road wear is baked into the one road surface, so detail does not add
+## draw calls and cannot drift off its path. [TUNE]
+const ROAD_DETAIL_SPACING: float = 250.0
+const ROAD_DETAIL_CHANCE: float = 0.72
+const ROAD_DETAIL_WORLD_SIZE: float = 122.0
+
+# ------------------------------------------------------------------------------
+# Beast parallax
+# ------------------------------------------------------------------------------
+
 ## Where the strip sits, and how fast it passes. Faster than the sky, which is
 ## what sells the distance.
 ## How tall the beast scope draws its backdrop, whatever the art's native size.
@@ -2313,6 +2413,11 @@ const GROUND_PATCH_THRESHOLD: float = 0.06
 ## to read the art or the animation on it. [TUNE]
 const HERO_SPRITE_SCALE: float = 1.75
 const ENEMY_SPRITE_SCALE: float = 1.55
+## Actor nodes are positioned at their ground contact. Their art and body are
+## lifted above it, so foliage, torches, wildlife and combatants all compare the
+## same physical point when the shared Y sorter orders them. [TUNE]
+const HERO_FEET_ANCHOR: float = 0.43
+const ENEMY_FEET_ANCHOR: float = 0.43
 const ELITE_SPRITE_SCALE: float = 1.9
 const BOSS_SPRITE_SCALE: float = 2.2
 

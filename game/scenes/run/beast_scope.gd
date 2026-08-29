@@ -63,6 +63,8 @@ var _step_sink: float = 0.0
 var _idle_breath: float = 0.0
 var _step_shake_left: float = 0.0
 var _rng := RandomNumberGenerator.new()
+var _day_tint: CanvasModulate = null
+var _town_light_anchor: Node2D = null
 
 
 func _ready() -> void:
@@ -71,7 +73,42 @@ func _ready() -> void:
 	_setup_backdrop()
 	_setup_ground()
 	_load_frames()
+	_setup_lighting()
 	EventBus.act_started.connect(func(_a: int, _t: String) -> void: _apply_act_backdrop())
+
+
+## Beast scope shares the same clock as the battlefield. A warm light from the
+## carried settlement keeps the beast and its back readable at deep night while
+## the surrounding world remains genuinely dark.
+func _setup_lighting() -> void:
+	_day_tint = CanvasModulate.new()
+	_day_tint.name = "DayTint"
+	_day_tint.color = Graphics.graded(DayNight.tint)
+	_day_tint.add_to_group(Graphics.TINT_GROUP)
+	add_child(_day_tint)
+	DayNight.phase_changed.connect(func(_phase: float, tint: Color, _darkness: float) -> void:
+		_day_tint.color = Graphics.graded(tint))
+
+	_town_light_anchor = Node2D.new()
+	_town_light_anchor.name = "CarriedTownLight"
+	add_child(_town_light_anchor)
+	LightKit.add_light(_town_light_anchor, Balance.BEAST_TOWN_LIGHT_COLOUR,
+		Balance.BEAST_TOWN_LIGHT_RADIUS, Balance.BEAST_TOWN_LIGHT_ENERGY,
+		Balance.BEAST_TOWN_LIGHT_FLICKER)
+	_update_town_light()
+	_apply_beast_environment_tint()
+
+
+func _update_town_light() -> void:
+	if _town_light_anchor != null and beast != null:
+		_town_light_anchor.position = beast.position \
+			+ Vector2(0.0, -Balance.BEAST_TOWN_LIGHT_LIFT)
+
+
+func _apply_beast_environment_tint() -> void:
+	if beast != null:
+		beast.modulate = Color.WHITE.lerp(_ground_tint(),
+			Balance.BEAST_ENVIRONMENT_TINT)
 
 
 ## The ground the beast walks over, from the region's sidescroller tileset.
@@ -433,6 +470,7 @@ func _apply_act_backdrop() -> void:
 	# A new sky is new light and, past Act I, new ground under it.
 	_refresh_ground()
 	_apply_parallax_palette()
+	_apply_beast_environment_tint()
 
 
 ## Two sprites leapfrogging: whichever has scrolled fully off the left is moved
@@ -494,6 +532,7 @@ func _settle_to_idle(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_town_light()
 	# The beast uses the same paired-support cadence as the battlefield camera.
 	# Each alternating plant holds for a beat, then the full body settles under
 	# its weight; at least one support pair is always in stance.
@@ -509,6 +548,7 @@ func _process(delta: float) -> void:
 	if _standing_still():
 		_settle_to_idle(delta)
 		_drive_frames(delta, false, 0.0)
+		_update_town_light()
 		return
 	_drive_frames(delta, true, speed_ratio)
 
@@ -541,6 +581,7 @@ func _process(delta: float) -> void:
 		beast.position.x = Balance.BEAST_PROFILE_BASE_X \
 			+ sin(presentation_phase * 0.5) * Balance.BEAST_PROFILE_HORIZONTAL
 	_update_step_shake(delta, speed_ratio)
+	_update_town_light()
 
 	_scroll_backdrop()
 

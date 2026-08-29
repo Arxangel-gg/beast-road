@@ -115,6 +115,12 @@ jobs:
           # about pacing. Printing it on every release gives the curve a history
           # attached to builds people actually played.
           run_godot_clean --headless --path game res://tools/curve_report.tscn
+          # The wilderness is interactive but is never a structure attacker;
+          # actors, town art, foliage and local ambience also share one
+          # feet-based depth layer. These are visual/behavioral regressions that
+          # a three-second soak can run through without ever noticing.
+          run_godot_clean --headless --path game res://tools/regression_check.tscn
+          run_godot_clean --headless --path game res://tools/treeline_check.tscn
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn

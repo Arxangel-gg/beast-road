@@ -451,6 +451,7 @@ func _layout() -> void:
 		var grow: float = span.y * BEAST_HEIGHT / maxf(native, 1.0)
 		_beast.scale = Vector2.ONE * grow
 		_beast.position = span * BEAST_AT
+		_beast.modulate = _sampled_beast_tint()
 		if _shadow != null:
 			# Wider than the beast and very flat, sitting just under where its
 			# feet now end.
@@ -485,6 +486,40 @@ func _layout() -> void:
 	if embers != null:
 		embers.position = Vector2(span.x * 0.5, span.y * 0.92)
 		embers.emission_rect_extents = Vector2(span.x * 0.5, span.y * 0.06)
+
+
+## Samples the gate painting at the beast's authored location. Hue and exposure
+## therefore keep matching if the backdrop is replaced, while the floor keeps
+## the subject readable over the near-black threshold stones.
+func _sampled_beast_tint() -> Color:
+	if _backdrop == null or _backdrop.texture == null:
+		return Color.WHITE
+	var image: Image = _backdrop.texture.get_image()
+	if image == null or image.is_empty():
+		return Color.WHITE
+	var centre := Vector2i(
+		clampi(roundi(float(image.get_width()) * BEAST_AT.x), 0, image.get_width() - 1),
+		clampi(roundi(float(image.get_height()) * BEAST_AT.y), 0, image.get_height() - 1))
+	var reach: int = maxi(mini(image.get_width(), image.get_height()) / 18, 2)
+	var sum := Color(0.0, 0.0, 0.0, 0.0)
+	var count: int = 0
+	for y: int in range(maxi(centre.y - reach, 0),
+			mini(centre.y + reach + 1, image.get_height()), 3):
+		for x: int in range(maxi(centre.x - reach, 0),
+				mini(centre.x + reach + 1, image.get_width()), 3):
+			var pixel: Color = image.get_pixel(x, y)
+			sum += Color(pixel.r, pixel.g, pixel.b, 0.0)
+			count += 1
+	if count <= 0:
+		return Color.WHITE
+	var sampled := Color(sum.r / float(count), sum.g / float(count),
+		sum.b / float(count))
+	var peak: float = maxf(maxf(sampled.r, sampled.g), maxf(sampled.b, 0.001))
+	var hue := Color(sampled.r / peak, sampled.g / peak, sampled.b / peak)
+	var exposure: float = clampf(sampled.get_luminance() * 1.65,
+		Balance.MENU_BEAST_LIGHT_FLOOR, 0.94)
+	var mixed: Color = Color.WHITE.lerp(hue, Balance.MENU_BEAST_TINT_STRENGTH)
+	return Color(mixed.r * exposure, mixed.g * exposure, mixed.b * exposure, 1.0)
 
 
 func _process(delta: float) -> void:

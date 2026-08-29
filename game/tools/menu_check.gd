@@ -21,7 +21,10 @@ func _ready() -> void:
 	var endless_buttons: int = 0
 	var chronicles: int = 0
 	var chronicle_buttons: int = 0
+	var stage: MenuStage = null
 	for node: Node in _all(menu):
+		if node is MenuStage:
+			stage = node as MenuStage
 		if node is SettingsPanel:
 			panels += 1
 		if node.get_script() == LeaderboardScreenScript:
@@ -51,6 +54,24 @@ func _ready() -> void:
 		return
 	if endless_buttons != 0:
 		push_error("GDD §54 cuts Endless from 1.0; the main menu must not expose it")
+		get_tree().quit(1)
+		return
+	if stage == null or stage._beast == null:
+		push_error("main menu must own its living beast stage")
+		get_tree().quit(1)
+		return
+	var expected_tint: Color = stage._sampled_beast_tint()
+	var actual_tint: Color = stage._beast.modulate
+	if _colour_error(actual_tint, expected_tint) > 0.002:
+		push_error("menu beast must inherit the sampled gate lighting tint")
+		get_tree().quit(1)
+		return
+	var drawn_height: float = float(stage._baseline) * stage._beast.scale.y
+	# MenuStage deliberately lays out from the viewport, not its inherited
+	# Control rect; the latter can still be settling during a headless scene boot.
+	var expected_height: float = stage._span().y * MenuStage.BEAST_HEIGHT
+	if absf(drawn_height - expected_height) > 1.0:
+		push_error("menu beast must retain its authored dominant scale")
 		get_tree().quit(1)
 		return
 	# Let the instantiated menu release its nodes before shutting down. Quitting
@@ -89,3 +110,8 @@ func _all(from: Node) -> Array[Node]:
 	for child: Node in from.get_children():
 		found.append_array(_all(child))
 	return found
+
+
+func _colour_error(a: Color, b: Color) -> float:
+	return maxf(maxf(absf(a.r - b.r), absf(a.g - b.g)),
+		maxf(absf(a.b - b.b), absf(a.a - b.a)))

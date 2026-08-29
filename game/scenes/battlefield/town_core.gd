@@ -11,15 +11,23 @@ const GROUP: StringName = &"town"
 @export var health: Health
 @export var sprite: Sprite2D
 @export var occluder: Occluder
+## Sibling render proxy supplied by the battlefield scene. Keeping it authored
+## in the scene avoids mutating EntityRoot while Godot is still assembling its
+## children, and keeps the gameplay root at the road destination.
+@export var visual_host: Node2D
 
 ## Health fractions at which the town swaps to the next damage stage. The art is
 ## city_base -> city_damage_1 -> _2 -> _3, so the town visibly falls apart as it
 ## is worn down rather than only reporting it on a bar.
 const STAGES: Array[Dictionary] = [
-	{"above": 0.75, "texture": "res://art/city/city_base.png"},
-	{"above": 0.50, "texture": "res://art/city/city_damage_1.png"},
-	{"above": 0.25, "texture": "res://art/city/city_damage_2.png"},
-	{"above": -1.0, "texture": "res://art/city/city_damage_3.png"},
+	{"above": 0.75, "texture": "res://art/city/city_base.png",
+		"idle": "res://art/city/city_base_idle_%02d.png"},
+	{"above": 0.50, "texture": "res://art/city/city_damage_1.png",
+		"idle": "res://art/city/city_damage_1_idle_%02d.png"},
+	{"above": 0.25, "texture": "res://art/city/city_damage_2.png",
+		"idle": "res://art/city/city_damage_2_idle_%02d.png"},
+	{"above": -1.0, "texture": "res://art/city/city_damage_3.png",
+		"idle": "res://art/city/city_damage_3_idle_%02d.png"},
 ]
 
 var _flash_left: float = 0.0
@@ -37,6 +45,9 @@ var _sprite_home: Vector2 = Vector2.ZERO
 var _sprite_scale: Vector2 = Vector2.ONE
 var _ended: bool = false
 var _stage: int = -1
+var _idle_frames: Array[Texture2D] = []
+var _idle_clock: float = 0.0
+var _jolt_variant: int = 0
 
 ## Fires currently alight on the city, and the column of smoke above it. Both are
 ## rebuilt whenever the damage stage changes.
@@ -61,13 +72,15 @@ func _ready() -> void:
 	# Seeded, so the fires do not shuffle to new roofs every time the scope is
 	# entered. A city that rearranges its own damage does not read as a place.
 	_fire_rng.seed = 0x8EA57
+	_setup_visual_depth()
 	_build_smoke()
-	ShadowKit.add_contact(self, sprite, 0.72)
+	_apply_stage(true)
+	ShadowKit.add_contact(visual_host if visual_host != null else self, sprite, 0.72)
 	if sprite != null and sprite.texture != null:
 		var half: Vector2 = sprite.texture.get_size() * 0.5
-		ShadowKit.add_caster(self, half.x * 0.44, half.y * 0.18,
-			Balance.SHADOW_LAYER_SCENERY, half.y * 0.42)
-	_apply_stage(true)
+		ShadowKit.add_caster(visual_host if visual_host != null else self,
+			half.x * 0.44, half.y * 0.18,
+			Balance.SHADOW_LAYER_SCENERY, sprite.position.y + half.y * 0.42)
 	if sprite != null:
 		_sprite_home = sprite.position
 		_sprite_scale = sprite.scale
@@ -80,11 +93,58 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_tick_idle(delta)
 	if _flash_left > 0.0:
 		_flash_left = maxf(_flash_left - delta, 0.0)
 		sprite.modulate = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE,
 			1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	_tick_motion(delta)
+
+
+## The town's gameplay position remains the road destination at the centre, but
+## its rendered city is sorted at the bottom of the walls. A sibling proxy is
+## required because moving TownCore itself would also move every enemy's goal.
+## The proxy is authored in battlefield.tscn: adding a sibling from this
+## child's `_ready` races Godot's own child setup and is rejected by the engine.
+func _setup_visual_depth() -> void:
+	if sprite == null or sprite.texture == null or visual_host == null:
+		return
+	var lift: float = float(sprite.texture.get_height()) * sprite.scale.y \
+		* Balance.CITY_FEET_ANCHOR
+	visual_host.global_position = sprite.global_position + Vector2(0.0, lift)
+	sprite.reparent(visual_host, true)
+	_refresh_visual_depth_anchor()
+
+
+## Stage art is 512px while the scene bootstrap is 384px. Re-measure after
+## every swap and counter-move the picture so its world position stays on the
+## town while only the y-sort key moves to the wall's ground contact.
+func _refresh_visual_depth_anchor() -> void:
+	if sprite == null or sprite.texture == null or visual_host == null:
+		return
+	var lift: float = float(sprite.texture.get_height()) \
+		* maxf(absf(_sprite_scale.y), 0.001) * Balance.CITY_FEET_ANCHOR
+	visual_host.global_position = global_position + Vector2(0.0, lift)
+	sprite.position = Vector2(0.0, -lift)
+	_sprite_home = sprite.position
+
+
+func _tick_idle(delta: float) -> void:
+	if sprite == null or _idle_frames.is_empty():
+		return
+	_idle_clock += delta * Balance.CITY_IDLE_FRAME_RATE
+	var index: int = int(floor(_idle_clock)) % _idle_frames.size()
+	sprite.texture = _idle_frames[index]
+
+
+func _load_idle_frames(format: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for index: int in range(1, 9):
+		var path: String = format % index
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
 
 
 ## The gait and the jolt, summed into one transform.
@@ -103,9 +163,16 @@ func _tick_motion(delta: float) -> void:
 	# Squared, so a blow lands hard and settles rather than sliding back evenly.
 	_jolt = maxf(_jolt - delta / Balance.TOWN_JOLT_SECONDS, 0.0)
 	var shudder: float = _jolt * _jolt
-	sprite.rotation = deg_to_rad(_gait)
-	sprite.scale = _sprite_scale * (1.0 + shudder * Balance.TOWN_JOLT_SCALE)
-	sprite.position = _sprite_home + Vector2(0.0, _gait_lift) 		+ _jolt_from * shudder * Balance.TOWN_JOLT_SHOVE
+	var twist_sign: float = -1.0 if _jolt_variant == 0 else (1.0 if _jolt_variant == 1 else 0.35)
+	var shove: Vector2 = _jolt_from.rotated(
+		(-0.16 if _jolt_variant == 0 else (0.16 if _jolt_variant == 1 else 0.0)))
+	sprite.rotation = deg_to_rad(_gait + shudder * Balance.TOWN_JOLT_TWIST_DEGREES
+		* twist_sign)
+	var squash := Vector2(1.0 + shudder * Balance.TOWN_JOLT_SCALE,
+		1.0 - shudder * Balance.TOWN_JOLT_SCALE * (0.35 if _jolt_variant == 2 else 0.12))
+	sprite.scale = _sprite_scale * squash
+	sprite.position = _sprite_home + Vector2(0.0, _gait_lift) \
+		+ shove * shudder * Balance.TOWN_JOLT_SHOVE
 
 
 ## The beast put a foot down, and the city on its back felt it.
@@ -163,9 +230,12 @@ func _apply_stage(force: bool = false) -> void:
 	var path: String = String(STAGES[wanted]["texture"])
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
+		_refresh_visual_depth_anchor()
 		if occluder != null:
 			occluder.remeasure()
 
+	_idle_frames = _load_idle_frames(String(STAGES[wanted]["idle"]))
+	_idle_clock = 0.0
 	_rebuild_fires()
 
 	# Only announce a stage that got *worse*. Repairing the town back through a
@@ -214,7 +284,8 @@ func _rebuild_fires() -> void:
 		fire.position = Vector2(
 			_fire_rng.randf_range(-extent.x, extent.x),
 			_fire_rng.randf_range(-extent.y, extent.y * 0.35))
-		add_child(fire)
+		(visual_host if visual_host != null else self).add_child(fire)
+		fire.position += sprite.position
 
 		var size: float = _fire_rng.randf_range(
 			Balance.CITY_FIRE_SIZE_MIN, Balance.CITY_FIRE_SIZE_MAX)
@@ -271,7 +342,7 @@ func _build_smoke() -> void:
 	# Above the city, so the column reads as rising off it rather than as a stain
 	# behind it.
 	_smoke.z_index = 2
-	add_child(_smoke)
+	(visual_host if visual_host != null else self).add_child(_smoke)
 
 
 func _update_smoke(fires: int) -> void:
@@ -284,7 +355,7 @@ func _update_smoke(fires: int) -> void:
 	# the fires can never disagree about how bad it is.
 	var share: float = float(fires) / float(maxi(Balance.CITY_FIRES_PER_STAGE.max(), 1))
 	_smoke.amount = maxi(int(round(float(Balance.CITY_SMOKE_AMOUNT) * share)), 1)
-	_smoke.position.y = -60.0
+	_smoke.position.y = sprite.position.y - 60.0 if sprite != null else -60.0
 
 
 func _on_damaged(amount: float, from: Vector2) -> void:
@@ -304,6 +375,7 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 	# hit". They are different sentences and the second one was missing - the town
 	# flashed white and otherwise stood there as though nothing had touched it.
 	_jolt = 1.0
+	_jolt_variant = (_jolt_variant + 1) % maxi(Balance.TOWN_JOLT_VARIANTS, 1)
 	var away: Vector2 = global_position - from
 	_jolt_from = away.normalized() if away.length() > 0.001 else Vector2.UP
 

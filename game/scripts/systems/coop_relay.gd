@@ -80,6 +80,7 @@ enum Fact {
 	LAST_SCAR_RESOLVED = 41,
 	BOSS_SPAWNED = 42,
 	BOSS_PHASE_CHANGED = 43,
+	WILDLIFE_DIED = 44,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -276,6 +277,7 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_spawned", _on_coop_wildlife_spawned],
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
+		["coop_wildlife_died", _on_coop_wildlife_died],
 		["coop_run_ended", _on_coop_run_ended],
 		["coop_crossroad_opened", _on_coop_crossroad_opened],
 		["coop_road_chosen", _on_coop_road_chosen],
@@ -362,6 +364,10 @@ func _on_coop_wildlife_batch(entries: Array) -> void:
 
 func _on_coop_wildlife_removed(net_id: int) -> void:
 	_relay(Fact.WILDLIFE_REMOVED, [net_id])
+
+
+func _on_coop_wildlife_died(net_id: int) -> void:
+	_relay(Fact.WILDLIFE_DIED, [net_id])
 
 
 func _on_coop_run_ended(victory: bool) -> void:
@@ -664,6 +670,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WILDLIFE_REMOVED:
 			if args.size() == 1:
 				bus.coop_wildlife_removed.emit(int(args[0]))
+		Fact.WILDLIFE_DIED:
+			if args.size() == 1:
+				bus.coop_wildlife_died.emit(int(args[0]))
 		Fact.RUN_ENDED:
 			if args.size() == 1:
 				bus.coop_run_ended.emit(bool(args[0]))

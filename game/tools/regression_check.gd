@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _test_boss_summons_leave_with_the_boss()
 	await _test_weather_can_be_seen()
 	await _test_the_field_is_inhabited()
+	_test_beast_scope_lighting()
 	_test_touch_release_always_lands()
 	_test_touch_controls_belong_to_the_run()
 	_test_end_report_hides_lower_hud()
@@ -182,6 +183,28 @@ func _test_end_report_hides_lower_hud() -> void:
 	_check(not hud._bottom_row.visible and not hud._nav_bar.visible
 		and not hud._xp_band.visible,
 		"the end report must remove every lower HUD band from the Return button")
+
+
+## The travelling scope shares the world clock and carries its own readable
+## island of town light. Both are quiet visual regressions if scene ownership
+## changes, so hold the actual runtime nodes rather than just their constants.
+func _test_beast_scope_lighting() -> void:
+	var scope: BeastScope = _run.beast
+	if scope == null:
+		_check(false, "the run must own a beast scope")
+		return
+	_check(scope._day_tint != null and is_instance_valid(scope._day_tint),
+		"beast scope must own a world-clock tint")
+	_check(scope._day_tint != null and scope._day_tint.is_in_group(Graphics.TINT_GROUP),
+		"beast scope tint must follow the graphics grading pipeline")
+	_check(scope._town_light_anchor != null
+		and is_instance_valid(scope._town_light_anchor),
+		"the carried town must light the beast scope at night")
+	if scope._town_light_anchor != null and scope.beast != null:
+		var expected: Vector2 = scope.beast.position \
+			+ Vector2(0.0, -Balance.BEAST_TOWN_LIGHT_LIFT)
+		_check(scope._town_light_anchor.position.distance_to(expected) < 0.1,
+			"the carried-town light must remain anchored behind the beast")
 
 
 ## A walking enemy faces the way it walks; a fighting one faces its victim.
@@ -445,6 +468,31 @@ func _test_the_field_is_inhabited() -> void:
 	_check(wildlife != null, "the battlefield must build its wildlife")
 	if wildlife == null:
 		return
+	var foliage: Foliage = field.find_child("Foliage", true, false) as Foliage
+	_check(foliage != null and foliage.host == field.entity_root,
+		"foliage bands must share the actors' y-sorted host")
+	if foliage != null:
+		_check(foliage._bands.size() == Foliage.BAND_COUNT,
+			"foliage depth must retain all %d narrow bands" % Foliage.BAND_COUNT)
+		for band: Node2D in foliage._bands:
+			_check(band.get_parent() == field.entity_root,
+				"every foliage band must be a direct y-sort peer of actors")
+	_check(wildlife.host == field.entity_root,
+		"wildlife sprites must share the actors' y-sorted host")
+	var ambient: AmbientLife = field.find_child("AmbientLife", true, false) as AmbientLife
+	_check(ambient != null and ambient.host == field.entity_root,
+		"local butterflies and fireflies must share the world depth host")
+	_check(field.hero.sprite.position.y < 0.0,
+		"the hero picture must be lifted above a feet-positioned root")
+	_check(field.town.sprite.get_parent() != field.town,
+		"the town picture must sort at the bottom of its walls without moving its target")
+	var town_depth := field.town.sprite.get_parent() as Node2D
+	if town_depth != null and field.town.sprite.texture != null:
+		var expected_lift: float = float(field.town.sprite.texture.get_height()) \
+			* absf(field.town.sprite.scale.y) * Balance.CITY_FEET_ANCHOR
+		_check(absf((town_depth.global_position.y - field.town.global_position.y)
+				- expected_lift) <= 1.0,
+			"the town y-sort key must use the active 512px stage's wall base")
 
 	for kind: WildlifeData in ContentDB.wildlife():
 		_check(ResourceLoader.exists(kind.get_sprite_path()),
@@ -453,6 +501,15 @@ func _test_the_field_is_inhabited() -> void:
 			"%s has a group range that cannot be rolled" % kind.id)
 		_check(kind.stay_min <= kind.stay_max,
 			"%s has a patience range that cannot be rolled" % kind.id)
+		_check(kind.social_spacing > 0.0,
+			"%s needs explicit social spacing" % kind.id)
+		_check(kind.activity > 0.0 and kind.activity <= 1.0,
+			"%s activity must be a useful 0-1 fraction" % kind.id)
+		if kind.flies:
+			_check(GameData.load_flight_frames(kind.get_sprite_path()).size() >= 5,
+				"%s needs a coherent authored wingbeat cycle" % kind.id)
+			_check(GameData.load_idle_frames(kind.get_sprite_path()).size() >= 5,
+				"%s must land into a grounded idle cycle" % kind.id)
 	_check(not ContentDB.wildlife().is_empty(), "there must be something alive out there")
 
 	# Driven rather than waited out: arrivals are on a four second clock and a
@@ -497,6 +554,8 @@ func _test_the_field_is_inhabited() -> void:
 		_check(ResourceLoader.exists(GameData.attack_frame_path(
 			kind.get_sprite_path(), 1)),
 			"%s has no strike pose, so its blow has no tell" % kind.id)
+		_check(GameData.load_attack_frames(kind.get_sprite_path()).size() >= 5,
+			"%s needs a readable authored attack cycle, not one strike still" % kind.id)
 		if kind.temperament == WildlifeData.Temperament.PREDATORY:
 			predators += 1
 		elif kind.temperament == WildlifeData.Temperament.TERRITORIAL:
@@ -576,6 +635,22 @@ func _test_the_field_is_inhabited() -> void:
 			"a hunt that runs out must break off and rest, hunt=%.2f wary=%.2f"
 				% [float(hunter["hunt"]), float(hunter["wary"])])
 
+	# Structures are deliberately not quarry. Keep this as an executed type gate
+	# so a future broad target group cannot quietly turn wolves into city attackers.
+	var hostile_kind: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind.is_hostile():
+			hostile_kind = kind
+			break
+	if hostile_kind != null:
+		var town_before: float = field.town.health.current_hp
+		var attacker := Sprite2D.new()
+		attacker.global_position = field.town.global_position + Vector2(20.0, 0.0)
+		wildlife._strike({"size": 1.0}, attacker, hostile_kind, field.town)
+		_check(is_equal_approx(field.town.health.current_hp, town_before),
+			"wildlife must never damage the town or any other structure")
+		attacker.free()
+
 	# Hunting: it has to be possible at all, and it has to pay by size.
 	#
 	# "Possible at all" is the one that was broken and looked fine. Wildlife
@@ -605,9 +680,11 @@ func _test_the_field_is_inhabited() -> void:
 	var before_food: int = RunState.currency(RunState.FOOD)
 	var before_xp: float = RunState.hero_xp
 	var hunted: bool = false
-	for child: Node in wildlife.get_children():
-		var animal := child as Sprite2D
-		if animal == null:
+	for entry: Dictionary in wildlife._living:
+		if float(entry.get("dying", 0.0)) > 0.0:
+			continue
+		var animal := entry.get("sprite", null) as Sprite2D
+		if animal == null or not is_instance_valid(animal):
 			continue
 		# Swing at it from close by, the way the hero's attack reports itself.
 		var from: Vector2 = animal.global_position - Vector2(40.0, 0.0)
@@ -626,6 +703,39 @@ func _test_the_field_is_inhabited() -> void:
 		_check(get_tree().get_nodes_in_group(LootDrop.GROUP).size() > 0
 			or RunState.currency(RunState.FOOD) > before_food,
 			"and must drop food")
+
+	# The falling body is feedback, not a target. A second hit during the death
+	# animation must neither land nor repeat its XP/food payout.
+	var corpse: Dictionary = {}
+	for entry: Dictionary in wildlife._living:
+		if float(entry.get("dying", 0.0)) > 0.0:
+			corpse = entry
+			break
+	if not corpse.is_empty():
+		var corpse_sprite := corpse["sprite"] as Sprite2D
+		var xp_after_kill: float = RunState.hero_xp
+		var accepted: bool = wildlife.wound_sprite(corpse_sprite, 99999.0)
+		_check(not accepted, "a dying wildlife body must immediately stop accepting hits")
+		_check(is_equal_approx(RunState.hero_xp, xp_after_kill),
+			"repeated corpse hits must never pay XP twice")
+
+	# Pack/herd members may remain close, but never on the same silhouette.
+	for a_index: int in wildlife._living.size():
+		var first: Dictionary = wildlife._living[a_index]
+		if int(first.get("group_id", 0)) <= 0 or float(first.get("dying", 0.0)) > 0.0:
+			continue
+		var first_sprite := first.get("sprite", null) as Sprite2D
+		if first_sprite == null:
+			continue
+		for b_index: int in range(a_index + 1, wildlife._living.size()):
+			var second: Dictionary = wildlife._living[b_index]
+			if int(second.get("group_id", 0)) != int(first["group_id"]):
+				continue
+			var second_sprite := second.get("sprite", null) as Sprite2D
+			if second_sprite != null:
+				_check(first_sprite.global_position.distance_to(second_sprite.global_position)
+						>= Balance.WILDLIFE_GROUP_SPAWN_SPACING * 0.45,
+					"social wildlife must not collapse into one overlapping silhouette")
 
 	var goals: PackedVector2Array = wildlife.goals()
 	_check(goals.size() > 0, "settled animals must have somewhere to be")

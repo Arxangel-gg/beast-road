@@ -261,6 +261,8 @@ func _test_facts_travel_host_to_guest() -> void:
 	_guest_bus.boss_phase_changed.connect(
 		func(id: String, phase: int, phase_name: String) -> void:
 			_guest_heard.append(["boss_phase_changed", [id, phase, phase_name]]))
+	_guest_bus.coop_wildlife_died.connect(func(net_id: int) -> void:
+		_guest_heard.append(["coop_wildlife_died", [net_id]]))
 
 	_host_bus.enemy_died.emit("bogkin", Vector2(120.0, -40.0))
 	_host_bus.wave_cleared.emit(7)
@@ -269,7 +271,8 @@ func _test_facts_travel_host_to_guest() -> void:
 	_host_bus.coop_last_scar_resolved.emit(true, "complete", 4)
 	_host_bus.boss_spawned.emit("mirrorfang", 2)
 	_host_bus.boss_phase_changed.emit("mirrorfang", 1, "Shattered Reflection")
-	await _settle(func() -> bool: return _guest_heard.size() >= 7)
+	_host_bus.coop_wildlife_died.emit(2718)
+	await _settle(func() -> bool: return _guest_heard.size() >= 8)
 
 	_check(_heard(_guest_heard, "enemy_died", ["bogkin", Vector2(120.0, -40.0)]),
 		"the guest must receive enemy_died with its arguments unchanged")
@@ -286,6 +289,8 @@ func _test_facts_travel_host_to_guest() -> void:
 	_check(_heard(_guest_heard, "boss_phase_changed",
 		["mirrorfang", 1, "Shattered Reflection"]),
 		"boss phase telegraphs and fracture VFX must be replicated")
+	_check(_heard(_guest_heard, "coop_wildlife_died", [2718]),
+		"wildlife death animation state must be replicated")
 
 	# And the host does not hear its own traffic come back. An echo would double
 	# every kill and every payment.

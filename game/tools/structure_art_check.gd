@@ -12,6 +12,9 @@ const FRAME_SIZE: Vector2i = Vector2i(192, 192)
 const CONTINUATION_FRAMES: int = 3
 const ANCHOR_TOLERANCE: int = 2
 const WIDTH_DRIFT_FRACTION: float = 0.20
+const CITY_FRAME_SIZE: Vector2i = Vector2i(512, 512)
+const CITY_IDLE_FRAMES: int = 4
+const CITY_ANCHOR_TOLERANCE: int = 8
 
 var _failures: int = 0
 var _packages: int = 0
@@ -35,8 +38,12 @@ func _ready() -> void:
 					% [building.id, tier, exact_path])
 			_check_package(exact_path,
 				"building %s tier %d" % [building.id, tier])
+	for city_name: String in ["city_base", "city_damage_1", "city_damage_2",
+			"city_damage_3"]:
+		_check_city_package("res://art/city/%s.png" % city_name,
+			"city stage %s" % city_name)
 	if _failures == 0:
-		print("[structure-art] PASS — %d complete four-pose packages" % _packages)
+		print("[structure-art] PASS — %d complete animated structure packages" % _packages)
 	else:
 		push_error("[structure-art] FAIL — %d problem(s) across %d packages"
 			% [_failures, _packages])
@@ -87,6 +94,57 @@ func _check_package(base_path: String, label: String) -> void:
 			/ maxf(float(base_bounds.size.x), 1.0)
 		if width_drift > WIDTH_DRIFT_FRACTION:
 			_fail("%s frame %d changed silhouette width by %.1f%%"
+				% [label, index, width_drift * 100.0])
+
+
+## The defended city uses four dedicated idle frames per damage state. They are
+## larger than ordinary structures, so keep its canvas/anchor contract explicit
+## instead of weakening the tighter 192px package gate above.
+func _check_city_package(base_path: String, label: String) -> void:
+	_packages += 1
+	var runtime_frames: Array[Texture2D] = GameData.load_idle_frames(base_path)
+	if runtime_frames.size() != CITY_IDLE_FRAMES + 1:
+		_fail("%s runtime loaded %d poses; expected base plus %d idle frames"
+			% [label, runtime_frames.size(), CITY_IDLE_FRAMES])
+	var paths: Array[String] = [base_path]
+	for index: int in range(1, CITY_IDLE_FRAMES + 1):
+		paths.append(GameData.idle_frame_path(base_path, index))
+	var images: Array[Image] = []
+	for path: String in paths:
+		if not ResourceLoader.exists(path):
+			_fail("%s is missing %s" % [label, path])
+			return
+		var texture := load(path) as Texture2D
+		var image: Image = texture.get_image() if texture != null else null
+		if image == null:
+			_fail("%s cannot read %s" % [label, path])
+			return
+		if Vector2i(image.get_width(), image.get_height()) != CITY_FRAME_SIZE:
+			_fail("%s has %dx%d frame %s; expected %s"
+				% [label, image.get_width(), image.get_height(), path,
+				CITY_FRAME_SIZE])
+			return
+		images.append(image)
+
+	var base_bounds: Rect2i = _alpha_bounds(images[0])
+	if not base_bounds.has_area():
+		_fail("%s base is fully transparent" % label)
+		return
+	var base_foot := Vector2i(base_bounds.get_center().x, base_bounds.end.y)
+	for index: int in range(1, images.size()):
+		var bounds: Rect2i = _alpha_bounds(images[index])
+		if not bounds.has_area():
+			_fail("%s idle frame %d is fully transparent" % [label, index])
+			continue
+		var frame_foot := Vector2i(bounds.get_center().x, bounds.end.y)
+		if abs(base_foot.x - frame_foot.x) > CITY_ANCHOR_TOLERANCE \
+				or abs(base_foot.y - frame_foot.y) > CITY_ANCHOR_TOLERANCE:
+			_fail("%s idle frame %d moved its ground anchor from %s to %s"
+				% [label, index, base_foot, frame_foot])
+		var width_drift: float = absf(float(bounds.size.x - base_bounds.size.x)) \
+			/ maxf(float(base_bounds.size.x), 1.0)
+		if width_drift > WIDTH_DRIFT_FRACTION:
+			_fail("%s idle frame %d changed silhouette width by %.1f%%"
 				% [label, index, width_drift * 100.0])
 
 

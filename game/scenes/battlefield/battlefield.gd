@@ -2,6 +2,7 @@ class_name Battlefield
 extends EnemyField
 
 const RegionalPolishScript = preload("res://scripts/systems/regional_polish.gd")
+const AmbientLifeScript = preload("res://scripts/systems/ambient_life.gd")
 
 ## The tower-defense scope (GDD §3): four cardinal lanes, three build spots on
 ## each, a town in the middle, and the hero.
@@ -128,6 +129,7 @@ const ROAD_BAKE_PPU: float = 0.5
 
 var _path_tiles: Array = []
 var _path_variants_cache: Dictionary = {}
+var _road_details_cache: Array[Image] = []
 
 ## Counts torches actually built, so the every-Nth light and shadow rules stay
 ## evenly spread after the minimum-gap filter has removed some.
@@ -182,6 +184,7 @@ func _ready() -> void:
 	slot_root.add_child(placement)
 	_build_torches()
 	_build_foliage()
+	_build_ambient_life()
 	wave_director.battlefield = self
 	wave_director.stop()
 	# Spells and the melee arc both need to find enemies, and the hero must not
@@ -640,11 +643,21 @@ func _build_foliage() -> void:
 	# Assigned before it enters the tree: the first scatter runs on ready and has
 	# to know where the roads are.
 	foliage.grid = grid
-	# In the sorted layer so a plant in front of the hero occludes them and one
-	# behind does not.
-	entity_root.add_child(foliage)
+	# The system owns generation and lifecycle; its rendered bands are direct
+	# children of the shared sorted host. Nesting the bands under this origin node
+	# made all foliage sort at the city centre.
+	foliage.host = entity_root
+	add_child(foliage)
 	_build_treeline()
 	_build_wildlife()
+
+
+func _build_ambient_life() -> void:
+	var ambient := AmbientLifeScript.new()
+	ambient.name = "AmbientLife"
+	ambient.grid = grid
+	ambient.host = entity_root
+	add_child(ambient)
 
 
 ## The wood beyond the field.
@@ -680,7 +693,7 @@ func _build_wildlife() -> void:
 	# system: sorted under it they would all draw at *its* position - the origin -
 	# so every animal in the game drew at the town's depth.
 	wildlife.host = entity_root
-	entity_root.add_child(wildlife)
+	add_child(wildlife)
 
 
 ## 0..1, how dark a lane is. Dimming is continuous, so pressure grows before the
@@ -1764,6 +1777,8 @@ func _build_lanes() -> void:
 		if path.size() >= 2:
 			_bake_corridor(canvas, extent, path[0], path[1])
 
+	_bake_road_details(canvas, extent)
+
 	var surface := Sprite2D.new()
 	surface.name = "RoadSurface"
 	surface.texture = ImageTexture.create_from_image(canvas)
@@ -1775,6 +1790,59 @@ func _build_lanes() -> void:
 	if Graphics.polish_shaders():
 		surface.material = PathBlend.material_for_surface()
 	lane_root.add_child(surface)
+
+
+## Scatters authored ruts, stones, puddles and hoof wear down the corridor
+## lattice. They are composited into the existing surface: richer roads, still
+## one draw call, and every mark is guaranteed to remain on navigable road.
+func _bake_road_details(canvas: Image, extent: float) -> void:
+	var details: Array[Image] = _road_detail_images()
+	if details.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("road-details:%s:%d" % [RunState.terrain_id, RunState.run_seed])
+	var done: Dictionary = {}
+	for node: Vector2i in grid.lattice_nodes():
+		for other: Vector2i in grid.lattice_neighbours(node):
+			var key: String = "%s|%s" % [mini(_key(node), _key(other)),
+				maxi(_key(node), _key(other))]
+			if done.has(key):
+				continue
+			done[key] = true
+			var from: Vector2 = BattleGrid.tile_to_world(node)
+			var to: Vector2 = BattleGrid.tile_to_world(other)
+			var length: float = from.distance_to(to)
+			var count: int = maxi(int(floor(length / Balance.ROAD_DETAIL_SPACING)), 1)
+			for step: int in count:
+				if rng.randf() > Balance.ROAD_DETAIL_CHANCE:
+					continue
+				var ratio: float = (float(step) + rng.randf_range(0.28, 0.72)) \
+					/ float(count)
+				var at: Vector2 = from.lerp(to, clampf(ratio, 0.08, 0.92))
+				var source: Image = details[rng.randi_range(0, details.size() - 1)]
+				var transformed: Image = _transform_ground_image(source,
+					rng.randi_range(0, 7))
+				var pixels: int = maxi(roundi(Balance.ROAD_DETAIL_WORLD_SIZE
+					* ROAD_BAKE_PPU * rng.randf_range(0.78, 1.14)), 1)
+				transformed.resize(pixels, pixels, Image.INTERPOLATE_NEAREST)
+				var centre: Vector2i = Vector2i(((at + Vector2(extent, extent))
+					* ROAD_BAKE_PPU).round())
+				canvas.blend_rect(transformed,
+					Rect2i(Vector2i.ZERO, transformed.get_size()),
+					centre - transformed.get_size() / 2)
+
+
+func _road_detail_images() -> Array[Image]:
+	if not _road_details_cache.is_empty():
+		return _road_details_cache
+	for index: int in range(1, 9):
+		var path: String = "res://art/battlefield/road_detail_%02d.png" % index
+		if not ResourceLoader.exists(path):
+			break
+		var image: Image = (load(path) as Texture2D).get_image()
+		image.convert(Image.FORMAT_RGBA8)
+		_road_details_cache.append(image)
+	return _road_details_cache
 
 
 ## A stable ordering key for a lattice node, so an edge can be deduplicated
