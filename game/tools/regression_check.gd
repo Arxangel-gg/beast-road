@@ -541,6 +541,22 @@ func _test_the_field_is_inhabited() -> void:
 		"population %d must stay under the cap of %d"
 			% [wildlife.population(), cap])
 
+	# **An arrow must be able to kill what a sword can.** Wildlife is its own
+	# system with its own bodies, so a projectile only reaches it if something
+	# asks - melee does, through the swing announcement, and the arrow asked
+	# nobody. Shots passed through a wolf standing in the open. Tested here
+	# rather than in `ranged_check` because this is where a live, correctly torn
+	# down population already exists; spawning one for the purpose leaked eight
+	# objects, and a leak is an ERROR line that fails the pipeline.
+	var alive: int = wildlife.population()
+	if alive > 0:
+		var body := wildlife._living[0]["sprite"] as Sprite2D
+		var standing: Vector2 = body.global_position
+		_check(not wildlife.wound_near(standing + Vector2(6000.0, 0.0), 40.0, 5.0),
+			"a shot into empty ground must not report a hit")
+		_check(wildlife.wound_near(standing, 60.0, 99999.0),
+			"an arrow passing through an animal must wound it")
+
 	# Where they are *going*, not where they are. A deer crossing a lane is a
 	# deer crossing a path and is the whole point of having them; a deer that has
 	# decided to stand in one makes the lane look like a mistake. The first was

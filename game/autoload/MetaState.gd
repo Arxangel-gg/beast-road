@@ -827,7 +827,36 @@ func friend_codes() -> Array:
 	return out
 
 
+## Blocks writes to the player's save slot while a gate is mutating this state.
+##
+## **A gate that edits MetaState must never be able to persist it.** Several do -
+## they wipe the stash to simulate a fresh account, drain Tools to prove the
+## economy ends, reset the starting-gear flag - and any `save_game()` reached
+## while that scratch state is live writes it over a real player's file. That is
+## not hypothetical: `weapon_vfx_check` run against a live save destroyed a
+## stash on 2026-08-31, and the stash is the one thing in this project that
+## neither git nor a re-import can restore.
+##
+## A counter rather than a flag so nested gates cannot un-block each other.
+var _saves_held: int = 0
+
+
+## Stops this state from reaching the disk until `resume_saves` is called.
+func hold_saves() -> void:
+	_saves_held += 1
+
+
+func resume_saves() -> void:
+	_saves_held = maxi(_saves_held - 1, 0)
+
+
+func saves_held() -> bool:
+	return _saves_held > 0
+
+
 func save_game() -> void:
+	if _saves_held > 0:
+		return
 	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
 		push_warning("MetaState: could not open save for writing: %s" % SAVE_PATH)

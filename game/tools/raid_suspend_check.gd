@@ -48,6 +48,28 @@ func _ready() -> void:
 		"raid must expose the authored 25s and 50s extraction windows")
 	_check(Balance.LEADER_RESOLUTIONS.size() == 3,
 		"full raid rewards must expose oath, ransom and standard resolutions")
+
+	# **The raid hero has to be findable, not merely present in the tree.**
+	# `GROUP_ANY` means "a hero in play" and is granted by whichever scope owns
+	# the body; the raid never claimed it, so its hero was active and absent -
+	# every enemy asking for a hero in play found none and stood still, and the
+	# camp's interactables had nobody to interact with. Reported from play, and
+	# nothing here noticed because the whole gate was about freezing the
+	# battlefield rather than about the raid being playable.
+	var raid_hero: Hero = _run.raid.hero
+	_check(raid_hero != null, "the raid arena must have a hero")
+	if raid_hero != null:
+		_check(raid_hero.is_in_group(Hero.GROUP_ANY),
+			"the raid hero must be in play, or nothing in the camp can target it")
+		_check(_run.raid.nearest_hero(Vector2.ZERO) == raid_hero,
+			"an enemy asking the arena for the nearest hero must be given it")
+		var in_play: int = 0
+		for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+			if is_instance_valid(node):
+				in_play += 1
+		_check(in_play == 1,
+			"exactly one hero may be in play during a raid, not %d - the frozen "
+				% in_play + "battlefield's body must have handed presence back")
 	_run.raid._elapsed = 25.0
 	_run.raid._tick_windows(0.0)
 	_check(_run.raid.window_is_open(), "first raid extraction window must open at 25s")

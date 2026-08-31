@@ -83,6 +83,14 @@ func begin() -> void:
 		hero.field = self
 		hero.sync_from_run_state()
 		hero.set_active(true)
+		# **Presence, not just activity.** `GROUP_ANY` means "a hero in play" and
+		# it is granted by the scope that owns the body - the battlefield does
+		# this on resume. The raid never did, so its hero was active but absent:
+		# every enemy asking for a hero in play found none and stood still, and
+		# the camp's interactables had nobody to interact with. Both scopes are
+		# in the tree at once, which is why presence has to be claimed rather
+		# than assumed.
+		hero.set_present(true)
 	Vfx.bind_world(effect_root if effect_root != null else self)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.raid_started.emit()
@@ -268,6 +276,9 @@ func _finish(result: Dictionary) -> void:
 	set_process(false)
 	if hero != null:
 		hero.set_active(false)
+		# Handed back when the raid closes, or the battlefield's own hero would
+		# share the field with a body standing in a camp that no longer exists.
+		hero.set_present(false)
 	if EventBus.enemy_died.is_connected(_on_enemy_died):
 		EventBus.enemy_died.disconnect(_on_enemy_died)
 

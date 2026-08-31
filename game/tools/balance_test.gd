@@ -14,6 +14,11 @@ var _equipped_before: Dictionary = {}
 
 
 func _ready() -> void:
+	# **Held for the whole run.** This gate edits MetaState in place - a wiped
+	# stash, a drained Tools purse, a reset flag - and any save reached while
+	# that scratch state is live overwrites a real player's file. One did, on
+	# 2026-08-31, and a stash is the one thing here that cannot be restored.
+	MetaState.hold_saves()
 	# The tester's own equipment is not part of the game's balance.
 	#
 	# `RunState.attribute()` returns placed points *plus* whatever gear the

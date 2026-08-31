@@ -23,6 +23,10 @@ var ammo: AmmoData = null
 var _heading: Vector2 = Vector2.RIGHT
 var _flown: float = 0.0
 var _hit: Dictionary = {}
+
+## The animals in this scope, or null where there are none (a raid camp).
+## Resolved once at launch rather than searched every frame.
+var _wildlife: Wildlife = null
 var _tint: Color = Color("e8d9b0")
 var _trail: Line2D = null
 var _field: EnemyField = null
@@ -31,6 +35,11 @@ var _field: EnemyField = null
 func launch(field: EnemyField, from: Vector2, heading: Vector2,
 		weapon: RangedWeaponData, kind: AmmoData) -> void:
 	_field = field
+	# The animals live beside the enemies in the same scope, under a known name.
+	# Null in a raid camp, which has no wildlife, and that is a supported state
+	# rather than a missing reference.
+	if field != null:
+		_wildlife = field.get_node_or_null("Wildlife") as Wildlife
 	ammo = kind
 	_heading = heading.normalized() if heading.length() > 0.001 else Vector2.RIGHT
 	damage = weapon.damage * kind.damage_scale
@@ -64,6 +73,19 @@ func _process(delta: float) -> void:
 	_trail.add_point(global_position)
 	while _trail.get_point_count() > TRAIL_POINTS:
 		_trail.remove_point(0)
+
+	# Animals are not enemies and live in their own system, so a shot has to ask
+	# them separately - a wolf in the open used to let arrows pass straight
+	# through while a sword killed it. Resolved once per frame like the enemy
+	# sweep above, and it counts against pierce for the same reason: a bolt that
+	# passes through three bodies has passed through three bodies.
+	if _wildlife != null and is_instance_valid(_wildlife):
+		if _wildlife.wound_near(global_position, Balance.HERO_ARROW_HIT_RADIUS, damage):
+			Vfx.spark(global_position, _tint, 5, -_heading, 220.0)
+			_hit[_wildlife.get_instance_id() + _hit.size()] = true
+			if _hit.size() >= pierce:
+				_land()
+				return
 
 	if _field != null:
 		for enemy: Enemy in _field.enemies_near(global_position, Balance.HERO_ARROW_HIT_RADIUS):

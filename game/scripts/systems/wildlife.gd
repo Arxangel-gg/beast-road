@@ -978,6 +978,41 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, _step: int) -> 
 		return
 
 
+## Hits whatever animal is within `radius` of a point. Returns whether one was.
+##
+## The door an arrow comes through. Melee reaches wildlife because the swing is
+## announced and this system resolves it; a shot was announced to nobody, so
+## arrows passed straight through a wolf standing in the open while a sword
+## killed it. Reported from play.
+##
+## Nearest first, so a shot into a herd takes the animal it was actually aimed
+## at rather than whichever happens to sit lowest in the list.
+##
+## Host-only for the same reason as everything else that can kill: a guest
+## dropping a deer locally would pay itself out and disagree with the host about
+## what is standing on the field.
+func wound_near(at: Vector2, radius: float, damage: float) -> bool:
+	if Coop.is_guest():
+		return false
+	var best: int = -1
+	var best_distance: float = radius
+	for index: int in _living.size():
+		var animal: Dictionary = _living[index]
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var distance: float = sprite.global_position.distance_to(at)
+		if distance <= best_distance:
+			best = index
+			best_distance = distance
+	if best < 0:
+		return false
+	_wound(best, _living[best], damage)
+	return true
+
+
 ## Hits one named animal, for whoever is not the hero.
 ##
 ## Public because an enemy that has been bitten swings back, and it cannot reach

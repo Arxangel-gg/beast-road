@@ -4,6 +4,11 @@ var _failures: PackedStringArray = []
 
 
 func _ready() -> void:
+	# **Held for the whole run.** This gate edits MetaState in place - a wiped
+	# stash, a drained Tools purse, a reset flag - and any save reached while
+	# that scratch state is live overwrites a real player's file. One did, on
+	# 2026-08-31, and a stash is the one thing here that cannot be restored.
+	MetaState.hold_saves()
 	RunState.reset()
 	# 27 since the three companion summons joined the roster on 2026-08-25. The
 	# count is asserted rather than derived on purpose: a node that vanishes from

@@ -6,6 +6,11 @@ extends Node
 ## save_game(), so the developer's real save is not read back or overwritten.
 
 func _ready() -> void:
+	# **Held for the whole run.** This gate edits MetaState in place - a wiped
+	# stash, a drained Tools purse, a reset flag - and any save reached while
+	# that scratch state is live overwrites a real player's file. One did, on
+	# 2026-08-31, and a stash is the one thing here that cannot be restored.
+	MetaState.hold_saves()
 	var objectives: Array[ChronicleObjectiveData] = ContentDB.chronicle_objectives_sorted()
 	var ids: Dictionary = {}
 	var orders: Dictionary = {}

@@ -122,6 +122,8 @@ func _ready() -> void:
 	bow.queue_free()
 	for _frame: int in 6:
 		await get_tree().process_frame
+	_test_arrows_reach_wildlife()
+
 	if _failures == 0:
 		print("[ranged] PASS - blueprints gate the recipe, ammunition costs and "
 			+ "resets, the quiver is bounded, and the bow never jams")
@@ -135,3 +137,38 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	printerr("[ranged] FAIL: %s" % why)
+
+
+## An arrow has to be able to kill an animal, because a sword can.
+##
+## Wildlife is not the enemy field - it is its own system with its own bodies -
+## so a shot only reaches it if something deliberately asks. Melee does, through
+## the swing announcement; the arrow asked nobody, and passed straight through a
+## wolf standing in the open while a sword killed it. Reported from play.
+##
+## Driven through `wound_near`, the same door the arrow uses, because the arrow
+## itself needs a live battlefield and a flight to test end to end - and the
+## thing that was missing was the call, not the flying.
+func _test_arrows_reach_wildlife() -> void:
+	# The live half of this - that `wound_near` actually kills - lives in
+	# `regression_check`, which already stands up a real population and tears it
+	# down cleanly. What is checked here is the half that was missing and that a
+	# fixture cannot show: that the arrow asks at all.
+	# Read, not instantiated: `Wildlife.new()` is a Node, and one created here
+	# and never freed is a leaked object - an ERROR line that fails the pipeline
+	# however green this gate's verdict is.
+	_check(_source("res://scripts/systems/wildlife.gd").contains("func wound_near"),
+		"wildlife must expose a way for a projectile to hit it")
+	var arrow: String = _source("res://scenes/battlefield/hero_arrow.gd")
+	_check(not arrow.is_empty(), "the arrow script must exist")
+	_check(arrow.contains("wound_near"),
+		"the arrow must ask wildlife for a hit, or shots pass through animals")
+
+
+func _source(path: String) -> String:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var body: String = file.get_as_text()
+	file.close()
+	return body

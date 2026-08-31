@@ -21,6 +21,11 @@ var _layer: Node2D = null
 
 
 func _ready() -> void:
+	# **Held for the whole run.** This gate edits MetaState in place - a wiped
+	# stash, a drained Tools purse, a reset flag - and any save reached while
+	# that scratch state is live overwrites a real player's file. One did, on
+	# 2026-08-31, and a stash is the one thing here that cannot be restored.
+	MetaState.hold_saves()
 	await get_tree().process_frame
 	_stage = Node2D.new()
 	add_child(_stage)
