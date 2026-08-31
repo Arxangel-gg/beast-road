@@ -26,7 +26,17 @@ extends RefCounted
 const ART: String = "res://art/ui/"
 const OUTPUT: String = "res://ui_theme.tres"
 const BODY_FONT: String = "res://fonts/Alegreya-Variable.ttf"
-const DISPLAY_FONT: String = "res://fonts/AlegreyaSansSC-Bold.ttf"
+## Carved Roman capitals, for everything the game says loudly.
+##
+## Was Alegreya Sans SC, which is a fine face and a neutral one - it said
+## "interface" where the rest of the game says "a city on the back of a walking
+## animal". Cinzel is inscriptional: it reads as cut into something, which is the
+## register the titles, the act names and the buttons want.
+##
+## The body face stays Alegreya. A display face is read a few words at a time and
+## can afford character; body text is read for minutes and cannot, and swapping
+## both at once is how a game ends up beautiful and unreadable.
+const DISPLAY_FONT: String = "res://fonts/Cinzel-Variable.ttf"
 
 # --- Palette -----------------------------------------------------------------
 # Kept identical to the previous hand-authored theme: the art changes, the

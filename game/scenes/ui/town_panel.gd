@@ -147,6 +147,8 @@ func _refresh() -> void:
 			_show_relics()
 		BuildingData.Effect.CAPTIVE_LABOUR:
 			_show_captives()
+		BuildingData.Effect.BLUEPRINTS:
+			_show_crafting()
 		BuildingData.Effect.MARKET:
 			_show_market()
 		BuildingData.Effect.HERO_UPGRADE:
@@ -196,6 +198,46 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 		_note("Already building %s. One at a time." % (other.display_name if other != null else busy_with))
 	elif not MetaState.building_unlocked(data.id):
 		_note("Unlock this plot through its account milestone; it will still begin unbuilt each run.")
+
+
+## Ammunition, made at the Forge (owner decision, 2026-08-31).
+##
+## **Here rather than on the HUD.** A crafting button in the combat bar would
+## have to fit a phone's bottom row beside five others, and making arrows is not
+## a combat decision - it is the same mode of thought as buying a tower, which is
+## why it belongs in the same place.
+##
+## Only what the player knows. An unlearned recipe is not shown greyed out: a
+## list of things you cannot have is a worse advertisement for blueprints than
+## finding one is.
+func _show_crafting() -> void:
+	if RunState.ranged_id.is_empty():
+		return
+	var weapon := ContentDB.ranged_weapons.get(RunState.ranged_id, null) as RangedWeaponData
+	if weapon == null:
+		return
+	_note("%s  ·  quiver %d of %d" % [weapon.display_name,
+		RunState.ammo_bulk_used(), Balance.AMMO_CAPACITY])
+	if not RunState.can_build_now():
+		return
+	for kind: AmmoData in RunState.ammo_for_weapon(RunState.ranged_id):
+		if not kind.known_from_the_start 				and not MetaState.knows_recipe("ammo", kind.id):
+			continue
+		var make := Button.new()
+		make.text = "%s  ·  %d for %s" % [kind.display_name, kind.craft_batch,
+			RunState.format_cost(kind.craft_cost)]
+		make.custom_minimum_size = Vector2(0, 38)
+		make.tooltip_text = kind.description
+		make.disabled = not RunState.can_afford_cost(kind.craft_cost) 			or RunState.ammo_room() < kind.craft_batch * kind.bulk
+		# Held, not captured: a lambda copies the loop variable by value, and
+		# every button would otherwise craft whatever the last one was.
+		var making: String = kind.id
+		make.pressed.connect(func() -> void:
+			var problem: String = RunState.craft_ammo(making, 1)
+			if not problem.is_empty():
+				_note(problem)
+			_refresh())
+		actions.add_child(make)
 
 
 func _show_market() -> void:
