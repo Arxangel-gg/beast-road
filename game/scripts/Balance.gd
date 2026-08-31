@@ -2519,13 +2519,20 @@ const VFX_BUILD_SHAKE: float = 4.0
 const VFX_BOSS_PHASE_SHAKE: float = 11.0
 
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
-## How long a fork waits for everyone before settling on the votes it has.
+## How long a fork waits, after the first vote, before settling on what it has.
 ##
-## A vote that needs every player is a vote one idle player can hold the run
-## hostage with - somebody walks away from the keyboard and the beast never moves
-## again. The timer is the answer to that and nothing else: with everyone
-## present and answering it never fires.
-const CROSSROAD_VOTE_SECONDS: float = 25.0
+## **Measured from the first vote, not from the fork opening**, which is what
+## makes a short number the right one: by the time anybody has voted, everyone
+## has already had the whole approach to the junction to read three road cards.
+## The clock is not reading time, it is the grace a decided party gives an
+## undecided one.
+##
+## Twenty-five seconds was the first figure and it was too long by far. With two
+## players and one of them hesitating, the other watched a dead screen for the
+## better part of half a minute - and the two-process harness failed roughly one
+## run in two because the fork had not settled inside its window, taking every
+## later assertion with it, since a run cannot advance past an open fork.
+const CROSSROAD_VOTE_SECONDS: float = 12.0
 ## How far off its route a body must be before it re-enters at the nearest leg
 ## rather than walking back to the waypoint it was heading for.
 ##
@@ -3209,6 +3216,10 @@ const FOLIAGE_SWAY_REACH_CANOPY: float = 3.4
 ## this is a plant breathing under the shader's bend, not a creature moving, and
 ## it is also the rate at which any texture is reassigned at all.
 const FOLIAGE_IDLE_FRAME_RATE: float = 4.5
+## How fast a Codex entry's idle plays. Slower than the field, because a page is
+## looked at rather than glanced at, and a creature flickering in a book reads as
+## a broken image rather than a living one.
+const CODEX_ART_FRAME_RATE: float = 3.5
 ## How far each painted kind bends, as a multiplier on the painted reach.
 ##
 ## **Tuned per foliage type rather than per material.** One number for every

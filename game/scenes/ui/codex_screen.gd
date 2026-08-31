@@ -38,6 +38,58 @@ func _ready() -> void:
 	_build()
 
 
+## **Sized for the thing it holds, not for the smallest thing that would fit.**
+##
+## The entries were 44px squares beside 12pt body text - sprites drawn at 64 to
+## 192 shown at a third of their size, with no padding inside the rows and six
+## pixels between them. A list of discoveries read as a dense table, which is the
+## opposite of what a codex is for.
+const ART_SIZE: float = 96.0
+const ROW_PAD_X: int = 16
+const ROW_PAD_Y: int = 12
+const ROW_GAP: int = 10
+const FONT_HEADING: int = 26
+const FONT_NOTE: int = 15
+const FONT_NAME: int = 20
+const FONT_BODY: int = 15
+
+## The widest the panel is allowed to be, and the share of the screen it may take
+## on anything narrower. A fixed 940 was wider than a phone in portrait, so the
+## panel ran off both edges of the one platform that needed the care most.
+const PANEL_MAX_WIDTH: float = 1040.0
+const PANEL_SCREEN_SHARE: float = 0.94
+const LIST_SCREEN_SHARE: float = 0.56
+const LIST_SCREEN_SHARE_PORTRAIT: float = 0.74
+
+## Entries whose art has an idle sequence, and the frames to play.
+##
+## Animated here rather than per row, so the whole list steps on one clock and a
+## page of forty creatures costs one integer comparison a frame instead of forty
+## timers.
+var _animated: Array[Dictionary] = []
+var _art_clock: float = 0.0
+var _art_frame: int = 0
+
+## Whether the rows just built should be grown for a thumb.
+var _grow_for_touch: bool = false
+
+
+func _process(delta: float) -> void:
+	if _animated.is_empty() or not visible:
+		return
+	_art_clock += delta * Balance.CODEX_ART_FRAME_RATE
+	var step: int = int(_art_clock)
+	if step == _art_frame:
+		return
+	_art_frame = step
+	for entry: Dictionary in _animated:
+		var rect: TextureRect = entry["rect"]
+		if not is_instance_valid(rect):
+			continue
+		var frames: Array = entry["frames"]
+		rect.texture = frames[(step + int(entry["phase"])) % frames.size()]
+
+
 func _build() -> void:
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.02, 0.03, 0.05, 0.9)
@@ -50,21 +102,26 @@ func _build() -> void:
 	add_child(centre)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(940.0, 0.0)
+	# Measured against the screen rather than fixed: 940 was wider than a phone
+	# held upright, so the panel ran off both edges of the platform that needed
+	# the care most.
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	panel.custom_minimum_size = Vector2(
+		minf(PANEL_MAX_WIDTH, screen.x * PANEL_SCREEN_SHARE), 0.0)
 	centre.add_child(panel)
 
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 14)
 	panel.add_child(column)
 
 	_heading = Label.new()
-	_heading.add_theme_font_size_override("font_size", 22)
+	_heading.add_theme_font_size_override("font_size", FONT_HEADING)
 	_heading.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_heading)
 
 	_note = Label.new()
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_note.add_theme_font_size_override("font_size", 13)
+	_note.add_theme_font_size_override("font_size", FONT_NOTE)
 	_note.add_theme_color_override("font_color", Color("b8ae98"))
 	column.add_child(_note)
 
@@ -72,13 +129,19 @@ func _build() -> void:
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	# Same reasoning as the Chronicle: the entries are the flexible part and
 	# scroll; the only way out is always on screen.
-	scroll.custom_minimum_size = Vector2(0.0, 420.0)
+	# A portrait screen is nearly all height and very little width, so the list
+	# should take much more of it - centred in a tall screen the panel floated in
+	# the middle with empty bands above and below, wasting the one dimension a
+	# phone has to spare.
+	var portrait: bool = screen.y > screen.x
+	var share: float = LIST_SCREEN_SHARE_PORTRAIT if portrait else LIST_SCREEN_SHARE
+	scroll.custom_minimum_size = Vector2(0.0, maxf(320.0, screen.y * share))
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 
 	_rows = VBoxContainer.new()
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_rows.add_theme_constant_override("separation", 6)
+	_rows.add_theme_constant_override("separation", ROW_GAP)
 	scroll.add_child(_rows)
 
 	_close_button = Button.new()
@@ -105,6 +168,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _refresh() -> void:
+	# Rebuilt rows mean the old TextureRects are about to be freed; a stale entry
+	# here would be a freed node walked on every animation step.
+	_animated.clear()
+	# **Grown for a thumb, which this screen never did.** Only the HUD applied
+	# the touch metrics, so on a phone the Codex kept desktop type in a window a
+	# third the width - the platform that needed the sizing most was the one not
+	# getting it. Applied at the end of the build, below.
+	_grow_for_touch = TouchInput.is_showing()
 	for child: Node in _rows.get_children():
 		child.queue_free()
 
@@ -130,6 +201,10 @@ func _refresh() -> void:
 			var entry := table[id] as GameData
 			if entry != null:
 				_rows.add_child(_entry_row(kind, entry))
+
+	# Applied once over the finished list rather than per row: it walks the tree
+	# and is not free, and every row is in place by now.
+	UiMetrics.apply_touch_tree(self, _grow_for_touch)
 
 
 ## The numbers behind an entry, on a second line.
@@ -228,31 +303,63 @@ func _section_heading(text: String) -> Label:
 func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	var found: bool = MetaState.has_seen(kind, entry.id)
 	var panel := PanelContainer.new()
+	# **Padding inside the row.** There was none: art and text ran to the panel's
+	# own edge and rows touched each other, which is most of what made a list of
+	# discoveries read as a spreadsheet.
+	var skin := StyleBoxFlat.new()
+	skin.bg_color = Color(1.0, 1.0, 1.0, 0.028) if found else Color(0.0, 0.0, 0.0, 0.10)
+	skin.border_color = Color(0.86, 0.72, 0.42, 0.16 if found else 0.06)
+	skin.set_border_width_all(1)
+	skin.set_corner_radius_all(6)
+	skin.content_margin_left = ROW_PAD_X
+	skin.content_margin_right = ROW_PAD_X
+	skin.content_margin_top = ROW_PAD_Y
+	skin.content_margin_bottom = ROW_PAD_Y
+	panel.add_theme_stylebox_override("panel", skin)
+
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 18)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_child(row)
 
 	var art := TextureRect.new()
-	art.custom_minimum_size = Vector2(44.0, 44.0)
+	art.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var path: String = entry.get_sprite_path()
-	if found and ResourceLoader.exists(path):
+	if ResourceLoader.exists(path):
 		art.texture = load(path)
-	elif ResourceLoader.exists(path):
-		# A silhouette: the shape is a promise, and blacking it out is what makes
-		# an unfound entry read as something to go and meet rather than a gap.
-		art.texture = load(path)
-		art.modulate = Color(0.0, 0.0, 0.0, 0.55)
+		if not found:
+			# A silhouette: the shape is a promise, and blacking it out is what
+			# makes an unfound entry read as something to go and meet rather
+			# than a gap.
+			art.modulate = Color(0.0, 0.0, 0.0, 0.55)
+		# **Animated, silhouette included.** A creature standing perfectly still
+		# in a book of living things reads as a specimen; the same walk cycle it
+		# has on the field makes the page feel like a record of something met.
+		# The silhouette animates too - a shape that moves is a better promise
+		# than a shape that does not.
+		var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+		if frames.size() >= 1:
+			_animated.append({
+				"rect": art,
+				"frames": frames,
+				# Its own offset, so a page of forty creatures does not breathe
+				# in unison - the same reason the grass carries one.
+				"phase": _animated.size(),
+			})
 	row.add_child(art)
 
 	var text := VBoxContainer.new()
+	text.add_theme_constant_override("separation", 6)
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text)
 
 	var name_label := Label.new()
 	name_label.text = entry.display_name if found else "Not yet met"
-	name_label.add_theme_font_size_override("font_size", 15)
+	name_label.add_theme_font_size_override("font_size", FONT_NAME)
 	name_label.add_theme_color_override("font_color",
 		Color("efe3c6") if found else Color("6d6960"))
 	text.add_child(name_label)
@@ -260,7 +367,7 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	var body := Label.new()
 	body.text = (entry.description + _detail_for(kind, entry)) if found else ""
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.add_theme_font_size_override("font_size", 12)
+	body.add_theme_font_size_override("font_size", FONT_BODY)
 	body.add_theme_color_override("font_color", Color("9d9484"))
 	text.add_child(body)
 	return panel

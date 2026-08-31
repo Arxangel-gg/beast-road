@@ -95,12 +95,23 @@ func _test_nobody_voted() -> void:
 ## The timer answers one player walking away from the keyboard, and nothing
 ## else - so it has to be long enough never to fire on a party that is actually
 ## answering, and short enough that walking away does not end the session.
+##
+## Only the bound is checked here. **Whether the timer actually fires cannot be
+## tested in one process**: `cast_vote` and `_tick_vote` both require
+## `Coop.is_host()`, and a lone instance is neither host nor guest. That property
+## belongs to `tools/coop_ui.sh`, which runs two real games - and a version of
+## this test that stood up a screen and quietly asserted nothing would be the
+## exact failure this gate was built to stop.
 func _test_the_timeout_is_bounded() -> void:
-	_check(Balance.CROSSROAD_VOTE_SECONDS > 10.0,
-		"the fork must wait long enough for a real decision (%.0fs)"
+	_check(Balance.CROSSROAD_VOTE_SECONDS >= 6.0,
+		"the fork must give a hesitating player a real chance to answer (%.0fs)"
 			% Balance.CROSSROAD_VOTE_SECONDS)
-	_check(Balance.CROSSROAD_VOTE_SECONDS <= 60.0,
-		"an idle player must not be able to stall the run for a minute")
+	# Tightened from sixty after the two-process harness showed what waiting
+	# actually costs: an unsettled fork stops the run, so every second here is a
+	# second the other players spend looking at a screen that will not move.
+	_check(Balance.CROSSROAD_VOTE_SECONDS <= 15.0,
+		"a hesitating player must not stall the whole party for %.0fs"
+			% Balance.CROSSROAD_VOTE_SECONDS)
 	_ran += 1
 
 

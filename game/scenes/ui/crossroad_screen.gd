@@ -278,8 +278,9 @@ func _reroll() -> void:
 	if RunState.crossroad_rerolls_left <= 0:
 		return
 	RunState.crossroad_rerolls_left -= 1
-	# Redrawn from the same "roads" stream rather than a fresh one, so a seeded
-	# replay that rerolls stays reproducible.
+	# The reroll count is part of the fork's seed, so spending one redraws the
+	# offers deterministically - the same new set on every machine, and the same
+	# set again on a seeded replay.
 	_open_roads(_open_segment)
 
 
@@ -288,6 +289,25 @@ func _reroll() -> void:
 func draw_offers(segment_index: int) -> Array[Dictionary]:
 	var offers: Array[Dictionary] = []
 	var pool: Array[RoadData] = ContentDB.roads_sorted()
+	# **Seeded per fork, not drawn from a running stream.**
+	#
+	# This used the run's shared "roads" stream, whose position depends on how
+	# many times *this machine* has drawn from it. In co-op that is not the same
+	# number on both sides - the host opens a fork the guest is told about, a
+	# reroll advances one and not the other - and once the two streams part, every
+	# later fork offers different roads to each player.
+	#
+	# It presented as a fork that would not settle: the guest voted for a road the
+	# host's screen did not have, so the vote was dropped and nothing closed. Two
+	# real games caught it about one run in three, with the host showing
+	# `relic_hunt, long_march` while the guest was looking at `chieftain_trail`.
+	#
+	# Derived from the run seed, the segment and the rerolls spent, so it is the
+	# same on every machine however each one got here, still different at every
+	# fork, and still different after a reroll.
+	_rng = RandomNumberGenerator.new()
+	_rng.seed = hash("roads:%d:%d:%d" % [RunState.run_seed, segment_index,
+		RunState.crossroad_rerolls_left])
 	_shuffle_roads(pool)
 	for i: int in mini(Balance.CROSSROAD_OPTIONS_SHOWN, pool.size()):
 		offers.append({
@@ -529,6 +549,12 @@ func cast_vote(voter: int, road_id: String, difficulty_id: String) -> void:
 	if not is_open() or _resolving or not Coop.is_host():
 		return
 	if not _buttons.has(road_id):
+		# **Never silent.** A vote for a road this screen does not have means the
+		# two machines drew different offers, which is a desync rather than a
+		# stray click - and dropped quietly it presents as a fork that simply
+		# never resolves, with nothing anywhere saying why.
+		push_warning("[crossroad] vote for '%s' from %d, which is not on this screen (%s)"
+			% [road_id, voter, ", ".join(PackedStringArray(_buttons.keys()))])
 		return
 	if _votes.is_empty():
 		_vote_left = Balance.CROSSROAD_VOTE_SECONDS

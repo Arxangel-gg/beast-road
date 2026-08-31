@@ -411,12 +411,41 @@ func fire_remote(at: Vector2) -> void:
 			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
 		return
 	var target: Enemy = _nearest_enemy(at)
-	# The enemy died between the host firing and the packet arriving. A homing
-	# shot with nothing to home on flies off the field, which reads worse than a
-	# shot that never appears.
+	if target == null:
+		# **Nothing within the match radius, so take the nearest body anywhere.**
+		# The tight match is right when it succeeds: it identifies the enemy the
+		# host actually meant. But a guest's puppets are a batch behind, so the
+		# body that was under `at` when the host fired is often no longer within
+		# `COOP_SHOT_MATCH_RANGE` of it by the time the packet lands - and this
+		# returned empty-handed, drawing nothing.
+		#
+		# The two-process harness caught it as "the guest must see its towers'
+		# projectiles fly", reproducibly, while the host saw its own shots fine.
+		# A shot homing on a slightly wrong enemy is a cosmetic inaccuracy nobody
+		# can detect at combat speed; a tower that visibly never fires is the
+		# guest watching a different battle.
+		target = _any_enemy()
+	# Only when the field is genuinely empty - the enemy died between the host
+	# firing and the packet arriving - is drawing nothing the right answer. A
+	# homing shot with nothing to home on flies off the field.
 	if target == null:
 		return
 	_launch(target)
+
+
+## The nearest living enemy at any distance, or null when the field is clear.
+func _any_enemy() -> Enemy:
+	var best: Enemy = null
+	var best_distance: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.is_dying():
+			continue
+		var distance: float = enemy.combat_origin().distance_to(origin())
+		if distance < best_distance:
+			best_distance = distance
+			best = enemy
+	return best
 
 
 ## The enemy the host meant, identified by where it said the shot was going.
