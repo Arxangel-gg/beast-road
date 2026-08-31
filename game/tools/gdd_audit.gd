@@ -152,12 +152,59 @@ static func _evaluate(row: Row, index: Dictionary) -> void:
 		var name: String = probe.substr(7).strip_edges()
 		row.passed = _declares(String(index["eventbus"]), "signal %s" % name)
 		row.detail = "EventBus.%s" % name
+	elif probe.begins_with("gate:"):
+		_probe_gate(row, probe.substr(5).strip_edges())
 	elif probe.begins_with("file:"):
 		var path: String = probe.substr(5).strip_edges()
 		row.passed = ResourceLoader.exists(path) or FileAccess.file_exists(path)
 		row.detail = path
 	else:
 		row.detail = "unknown probe '%s'" % probe
+
+
+## `gate:<scene path or run_tool name>` - enforced by a check CI actually runs.
+##
+## **A stronger claim than every other probe here.** The rest answer "does this
+## symbol exist", which is why the footer says so plainly. This one answers "is
+## there a check for this, and does the pipeline run it" - so it fails both when
+## the gate is deleted and, more usefully, when the gate still exists but has
+## been quietly dropped from the workflows. A gate nobody runs is a file, and a
+## row backed by a file nobody runs is worse than an honest `manual`.
+##
+## Reserved for rows where a gate genuinely decides the question. Where the
+## answer needs somebody to read the words - whether a faction name borrows from
+## a franchise, whether the beast is addressed by name - the row stays `manual`.
+## A regex there would manufacture confidence rather than earn it.
+static func _probe_gate(row: Row, name: String) -> void:
+	# A run_tool gate is named with its argument - "run_tool.gd -- report" - so
+	# the path is the part before the argument separator, and the whole string
+	# is what the workflow has to contain.
+	var path: String = name.split(" -- ")[0].strip_edges()
+	var exists: bool = ResourceLoader.exists(path) or FileAccess.file_exists(path)
+	var run_by: PackedStringArray = []
+	for workflow: String in ["res://../.github/workflows/guard.yml",
+			"res://../.github/workflows/release.yml"]:
+		var body: String = _read_text(workflow)
+		if body.is_empty():
+			continue
+		if body.contains(name):
+			run_by.append(workflow.get_file())
+	row.passed = exists and not run_by.is_empty()
+	if not exists:
+		row.detail = "%s is missing" % path
+	elif run_by.is_empty():
+		row.detail = "%s exists but no workflow runs it" % name
+	else:
+		row.detail = "%s, run by %s" % [name, ", ".join(run_by)]
+
+
+static func _read_text(path: String) -> String:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var body: String = file.get_as_text()
+	file.close()
+	return body
 
 
 ## `count:<dir> >= <n>`. Reports the actual number either way, because "12 of 18"

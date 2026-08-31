@@ -295,21 +295,79 @@ func knows_recipe(kind: String, recipe_id: String) -> bool:
 	return true
 
 
-## Returns the tower ids unlocked, so the debrief can name them.
+## Returns what was unlocked as `"kind:id"` - `"tower:tide_caller"`,
+## `"blueprint:plan_shortbow"` - because two shelves means the caller can no
+## longer assume what it was handed. It used to return bare tower ids and the
+## debrief announced every one of them as a tower; the first blueprint bought
+## would have been shown as one.
+##
+## **Tools spend down two shelves, in order.** The eight roster towers cost 32 of
+## the 40 a player may hold, so before this they simply stopped meaning anything
+## once the roster was complete: every later run banked Tools against a cap that
+## bought nothing, and a currency that accumulates toward nothing is worse than
+## no currency, because the player keeps being told they earned some.
+##
+## The second shelf is blueprints, which cost less because a recipe is a smaller
+## thing than a tower. Both shelves are `unlocked` ids, so working rule 7 is
+## untouched - this widens the content pool and grants no combat stat, which is
+## the whole constraint on what Tools are allowed to buy.
+##
+## When both are exhausted the player has everything, and Tools stop being
+## awarded rather than banking silently - see `tools_have_a_sink`.
 func award_tools(act_reached: int, victory: bool) -> Array[String]:
+	var bought: Array[String] = []
+	if not tools_have_a_sink():
+		return bought
+
 	var earned: int = Balance.TOOLS_PER_ACT * maxi(act_reached, 1)
 	if victory:
 		earned += Balance.TOOLS_VICTORY_BONUS
 	tools = mini(tools + earned, Balance.TOOLS_MAX)
 
-	var bought: Array[String] = []
 	while tools >= Balance.TOOLS_PER_ROSTER_TOWER:
 		var id: String = earn_next_roster_tower()
 		if id.is_empty():
 			break                                   # roster complete
 		tools -= Balance.TOOLS_PER_ROSTER_TOWER
-		bought.append(id)
+		bought.append("tower:" + id)
+	while tools >= Balance.TOOLS_PER_BLUEPRINT:
+		var id: String = earn_next_blueprint()
+		if id.is_empty():
+			break                                   # everything is known
+		tools -= Balance.TOOLS_PER_BLUEPRINT
+		bought.append("blueprint:" + id)
 	return bought
+
+
+## The next unknown recipe in stable content order, or an empty string.
+##
+## Ordered by id rather than by a hand-kept list: blueprints are peers, unlike
+## the roster towers, whose order widens one element at a time on purpose.
+func earn_next_blueprint() -> String:
+	var known: Array[String] = []
+	for id: String in ContentDB.blueprints.keys():
+		known.append(id)
+	known.sort()
+	for id: String in known:
+		if not unlocked_blueprints.has(id):
+			unlocked_blueprints.append(id)
+			save_game()
+			return id
+	return ""
+
+
+## Whether Tools can still buy anything at all.
+##
+## Asked before awarding rather than after, so a finished account is told it has
+## everything instead of being handed a currency with nowhere to go.
+func tools_have_a_sink() -> bool:
+	for id: String in ROSTER_UNLOCK_ORDER:
+		if not unlocked_towers.has(id):
+			return true
+	for id: Variant in ContentDB.blueprints.keys():
+		if not unlocked_blueprints.has(String(id)):
+			return true
+	return false
 
 
 ## One Sigil per full clear, until the legacy is complete.

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "nothing_left_standing"
+display_name = "Nothing Left Standing"
+description = "Break three camps before they can march."
+order = 25
+metric = 4
+target = 3.0
+comparison = 0
+minimum_act = 1
+tool_reward = 1

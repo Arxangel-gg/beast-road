@@ -356,10 +356,13 @@ func end_run(victory: bool) -> void:
 		EventBus.unlock_earned.emit("chronicle", id)
 	# Tools for depth, and the roster they buy. Before the statistics, so the
 	# debrief's unlock list already contains anything they paid for.
+	# Already `kind:id` - Tools buy towers and then blueprints, and the debrief
+	# has to say which it was rather than calling a recipe a tower.
 	var roster: Array[String] = MetaState.award_tools(RunState.act, victory)
-	for id: String in roster:
-		EventBus.unlock_earned.emit("tower", id)
-		unlocks.append("tower:" + id)
+	for entry: String in roster:
+		var kind: String = entry.get_slice(":", 0)
+		EventBus.unlock_earned.emit(kind, entry.substr(kind.length() + 1))
+		unlocks.append(entry)
 	if victory:
 		MetaState.award_sigil()
 

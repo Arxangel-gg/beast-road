@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "tide_of_iron"
+display_name = "Tide of Iron"
+description = "Twelve hundred fall against one journey's walls."
+order = 45
+metric = 1
+target = 1200.0
+comparison = 0
+minimum_act = 3
+tool_reward = 2

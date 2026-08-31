@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "three_oaths"
+display_name = "Three Oaths"
+description = "Three leaders swear the road-oath in one journey."
+order = 65
+metric = 5
+target = 3.0
+comparison = 0
+minimum_act = 2
+tool_reward = 2

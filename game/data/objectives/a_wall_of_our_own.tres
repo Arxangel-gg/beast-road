@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "a_wall_of_our_own"
+display_name = "A Wall of Our Own"
+description = "Raise thirty towers around the ring in a single journey."
+order = 35
+metric = 2
+target = 30.0
+comparison = 0
+minimum_act = 2
+tool_reward = 2

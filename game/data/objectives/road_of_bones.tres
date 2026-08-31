@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "road_of_bones"
+display_name = "Road of Bones"
+description = "Leave four hundred of them on the road in a single journey."
+order = 15
+metric = 1
+target = 400.0
+comparison = 0
+minimum_act = 1
+tool_reward = 1

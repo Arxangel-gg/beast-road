@@ -116,7 +116,7 @@ the goal — §52's acceptance checklist and the kill questions are the ceiling.
 |------|--------|-------|
 | Two extraction windows | plus chieftain climax | `const:RAID_EXTRACTION_WINDOWS` |
 | Oathbound / ransom / trophy | three resolutions, no enslavement | `const:LEADER_RESOLUTIONS` |
-| No enslavement language ships | reviewed copy | `manual` |
+| No enslavement language ships | reviewed copy | `gate:res://tools/copy_check.tscn` |
 
 ## 8. Release requirements — GDD §52
 
@@ -132,5 +132,5 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
 | Controller parity | every screen focusable | `manual` |
 | 60 FPS at 1920x1080 | on minimum spec | `manual` — spec now declared in `MINIMUM_SPEC.md`, but **derived rather than verified**: nothing has been run on a machine of that class |
-| No placeholder or orphan assets | manifest clean | `manual` |
+| No placeholder or orphan assets | manifest clean | `gate:res://tools/run_tool.gd -- report` |
 | Night playable at minimum brightness | readability under load | `manual` |

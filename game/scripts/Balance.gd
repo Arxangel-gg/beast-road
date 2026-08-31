@@ -1981,6 +1981,10 @@ const TOOLS_VICTORY_BONUS: int = 3
 ## which is roughly four full runs - the roster widens over a campaign rather
 ## than over an evening. [TUNE]
 const TOOLS_PER_ROSTER_TOWER: int = 4
+## What a recipe costs, against a tower's four. Cheaper because a blueprint is a
+## smaller thing than a tower line - and because this shelf exists to keep Tools
+## meaningful in the late account, not to become a second grind.
+const TOOLS_PER_BLUEPRINT: int = 3
 
 ## Ceiling on the stored balance. Tools are spent automatically at the end of a
 ## run, so a balance only builds up once the roster is complete; the cap stops it

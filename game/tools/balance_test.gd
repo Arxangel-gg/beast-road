@@ -584,10 +584,20 @@ func _test_tools_and_sigils() -> void:
 	# Depth pays, and paying enough buys roster width.
 	var bought: Array[String] = MetaState.award_tools(3, true)
 	_check(MetaState.tools <= Balance.TOOLS_MAX, "Tools must respect their cap")
-	_check(MetaState.unlocked_towers.size() == roster_before + bought.size(),
+	# `kind:id` since Tools gained a second shelf: counting the whole list
+	# against the tower roster would charge blueprint purchases to it.
+	var bought_towers: int = 0
+	for entry: String in bought:
+		var kind: String = entry.get_slice(":", 0)
+		var id: String = entry.substr(kind.length() + 1)
+		if kind == "tower":
+			bought_towers += 1
+			_check(ContentDB.tower(id) != null, "a bought roster id must name a real tower")
+		else:
+			_check(kind == "blueprint", "Tools may only buy towers and blueprints, not %s" % kind)
+			_check(ContentDB.blueprints.has(id), "a bought plan id must name a real blueprint")
+	_check(MetaState.unlocked_towers.size() == roster_before + bought_towers,
 		"every Tool spent on the roster must produce exactly one new tower")
-	for id: String in bought:
-		_check(ContentDB.tower(id) != null, "a bought roster id must name a real tower")
 
 	# The cap is a ceiling, not a soft target: hammer it.
 	for _run: int in 40:
@@ -600,8 +610,16 @@ func _test_tools_and_sigils() -> void:
 	for id: String in MetaState.ROSTER_UNLOCK_ORDER:
 		_check(MetaState.unlocked_towers.has(id),
 			"repeated runs must eventually unlock the whole roster (%s)" % id)
+	# Both shelves, not just the roster. A complete roster used to be the end of
+	# Tools; blueprints are bought after it, so the invariant is that an account
+	# owning *everything* stops consuming them - which is also what stops Tools
+	# banking silently against their cap forever.
+	for _run: int in 40:
+		MetaState.award_tools(3, true)
+	_check(not MetaState.tools_have_a_sink(),
+		"repeated runs must eventually buy every blueprint as well as every tower")
 	_check(MetaState.award_tools(3, true).is_empty(),
-		"a complete roster must stop consuming Tools")
+		"an account that owns everything must stop consuming Tools")
 
 	# Four ranks, and then done.
 	for _win: int in Balance.SIGIL_MAX_RANK + 3:

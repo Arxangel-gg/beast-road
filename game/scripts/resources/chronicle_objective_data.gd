@@ -52,11 +52,14 @@ func is_met(summary: Dictionary) -> bool:
 
 
 func value_from(summary: Dictionary) -> float:
-	var key: String = _summary_key()
+	var key: String = summary_key()
 	return float(summary.get(key, 0.0))
 
 
-func _summary_key() -> String:
+## The run-summary key this deed reads. Public because the Chronicle gate builds
+## a run that satisfies every deed by asking each one what it measures - a list
+## kept anywhere else would go stale the first time a metric was added.
+func summary_key() -> String:
 	match metric:
 		Metric.ACT_REACHED:
 			return "act"
