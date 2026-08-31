@@ -21,6 +21,8 @@ const GROUP: StringName = &"enemies"
 ## frame, summons die on their own all the time, and a list of node references
 ## would need validity-checking on every entry. The group carries the same
 ## information and cannot dangle.
+const ActorPolishScript = preload("res://scripts/systems/actor_polish.gd")
+
 const SUMMON_GROUP: StringName = &"boss_summons"
 
 ## Identity across two machines, assigned by the host when it spawns this.
@@ -286,6 +288,13 @@ func _ready() -> void:
 	if oath_pursuer:
 		_build_oath_mark()
 
+	# Met, and remembered. Recorded on the breed and on every affix it wears, so
+	# the codex learns "Rimewarded" the first time one walks down the road rather
+	# than only when the player goes looking for it.
+	if not puppet:
+		MetaState.record_seen("enemy", data.id)
+		for affix: EnemyAffixData in affixes:
+			MetaState.record_seen("affix", affix.id)
 	animator.mass = _mass_for_category()
 	animator.capture_home()
 
@@ -634,9 +643,19 @@ func _walk(delta: float) -> void:
 	if to.length() <= 1.0:
 		return
 	var direction: Vector2 = to.normalized()
-	# Only enemies still heading for the town hold the road; one that has broken
-	# off to fight the hero moves straight at them.
-	if _target == null or _target == _field.town_node():
+	# **The road is not optional.** One that had noticed the hero used to walk
+	# straight at them, which pulled whole columns off the bends the map is built
+	# around - the player stood on open ground and the formation followed,
+	# undoing the reason the road turns at all.
+	#
+	# The road is held whatever it is looking at. Targeting still decides what it
+	# *swings* at, so a hero who comes within reach is fought; a hero who stays
+	# off the road is simply not reached, which is the trade a player standing
+	# clear of a column should be making.
+	#
+	# An animal biting it is the one exception: `_biting_back` only returns one
+	# already inside reach, so answering it costs no ground.
+	if _provoker == null or _target != _provoker:
 		direction = _road_direction()
 
 	_tick_slip(delta, direction)
@@ -881,6 +900,12 @@ func _strike() -> void:
 		damage *= Balance.WEAKENED_STAT_SCALE
 	if _target == _field.town_node():
 		damage *= Balance.TOWN_DAMAGE_SCALE
+	# Said once the number is final, so the debrief reports the blow that landed
+	# rather than the one that was rolled. `promoted_name` carries the affixes:
+	# being felled by a Rimewarded Ironhide Bogkin is a different story from a
+	# Bogkin, and the death screen should be able to tell it.
+	if _target is Hero:
+		RunState.note_blow(promoted_name(), damage)
 	# Whatever the affixes do to what they touch. Both may apply, and that is the
 	# combination working: Rimewarded and Emberclad chills *and* burns, with
 	# nothing anywhere describing the pair.
@@ -1375,9 +1400,22 @@ func _build_rank_mark() -> void:
 	for index: int in range(1, affixes.size()):
 		tint = tint.lerp(affixes[index].mark_colour, 0.5)
 
+	# **A real outline on the silhouette**, not just a tint. `actor_polish` already
+	# draws one for towers and wildlife; a promoted body wears it in its own
+	# colour, which is what makes it pick out of a crowd at a glance rather than
+	# on inspection.
+	var polish: ShaderMaterial = ActorPolishScript.attach(sprite)
+	if polish != null:
+		polish.set_shader_parameter("outline_colour", Color(tint, 0.95))
+		polish.set_shader_parameter("outline_strength",
+			1.0 if rank == Rank.ELITE else 0.88)
+
 	_mark = Line2D.new()
 	var radius: float = float(sprite.texture.get_width()) * sprite.scale.x * 0.46
-	var centre := Vector2(0.0, -_depth_lift)
+	# **On the ground it stands on.** The ring is a footprint, not a halo - it
+	# marks where the body is on the field, which is the feet, and the node
+	# already sits there since depth sorting moved it.
+	var centre := Vector2.ZERO
 	var points: PackedVector2Array = []
 	for i: int in 33:
 		points.append(centre + Vector2.RIGHT.rotated(TAU * float(i) / 32.0)

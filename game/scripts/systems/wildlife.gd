@@ -357,8 +357,16 @@ func _is_authority_with_company() -> bool:
 	return Coop.is_host() and Coop.partner_present()
 
 
+## Recorded on the host only: a guest's animals are mirrors of the host's, and
+## both machines counting the same deer would be the same discovery twice.
+func _remember(kind: WildlifeData) -> void:
+	if kind != null and Coop.is_host():
+		MetaState.record_seen("wildlife", kind.id)
+
+
 func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		group_id: int = 0) -> void:
+	_remember(kind)
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
 		return
@@ -896,6 +904,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	else:
 		var health: Health = Health.of(quarry)
 		if health != null:
+			RunState.note_blow(kind.display_name, power)
 			health.take_damage(power, from)
 	Vfx.spark(quarry.global_position, Color("c4552e"), 6,
 		(quarry.global_position - from).normalized(), 190.0)

@@ -349,6 +349,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	# The *knowledge* of how to make it persists in MetaState; the arrows
 	# themselves do not, exactly like Gold. A quiver that carried over would make
 	# the first road of every later run trivial for anyone who stockpiled.
+	last_blow.clear()
 	ammo.clear()
 	ranged_id = ""
 	ammo_id = ""
@@ -598,6 +599,7 @@ func roll_weather() -> void:
 		target -= option.weight_for_act(act)
 		if target <= 0.0:
 			weather_id = option.id
+			MetaState.record_seen("weather", option.id)
 			EventBus.weather_changed.emit(option.id)
 			return
 
@@ -1211,6 +1213,32 @@ func spend_command(cost: float, order_id: String) -> bool:
 
 
 # --- Economy helpers --------------------------------------------------------
+
+## The last thing to hurt a hero, and how hard.
+##
+## **Recorded where the blow is dealt, not where it lands.** `Health.take_damage`
+## receives a position and an amount; it has no idea what swung. The attacker is
+## the only one who knows its own name, so each source says so on its way past.
+##
+## Cleared with the run. The debrief reads it to answer the one question a death
+## screen has always owed the player: what killed me, and for how much.
+var last_blow: Dictionary = {}
+
+
+## Notes a blow against a hero. Cheap enough to call from every strike.
+func note_blow(source_name: String, amount: float) -> void:
+	if source_name.is_empty() or amount <= 0.0:
+		return
+	last_blow = {"source": source_name, "amount": amount}
+
+
+## "a Rimewarded Bogkin for 34", or "" when nothing has landed yet.
+func last_blow_line() -> String:
+	if last_blow.is_empty():
+		return ""
+	return "%s for %d" % [String(last_blow.get("source", "?")),
+		int(round(float(last_blow.get("amount", 0.0))))]
+
 
 # --- Ranged combat -----------------------------------------------------------
 #

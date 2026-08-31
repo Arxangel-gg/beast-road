@@ -4,6 +4,7 @@ extends Control
 const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
 const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
 const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
+const CodexScreenScript = preload("res://scenes/ui/codex_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -20,6 +21,7 @@ var _settings: SettingsPanel
 var _leaderboard: CanvasLayer
 var _coop: CanvasLayer
 var _chronicle: CanvasLayer
+var _codex: CanvasLayer
 
 
 func _ready() -> void:
@@ -40,6 +42,7 @@ func _ready() -> void:
 	_build_stash_button()
 	_build_coop_button()
 	_build_chronicle_button()
+	_build_codex_button()
 	_build_leaderboard_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
@@ -206,6 +209,49 @@ func _build_leaderboard_button() -> void:
 ## A result-only achievement is not an objective: the player could not aim for
 ## it. Keeping the Chronicle on the front door turns every row into a deliberate
 ## challenge while preserving the GDD's no-grind progression ceiling.
+## The codex, beside the Chronicle.
+##
+## Always present, unlike the stash button - a codex with nothing in it still
+## says what there is to find, which is the whole reason to open one. That is the
+## opposite of the stash's rule, and deliberately so: an empty stash is a promise
+## the game has not made yet, while an empty codex is the map of the promise.
+func _build_codex_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Codex"
+	button.text = _codex_label()
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "blueprint", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+
+	_codex = CodexScreenScript.new()
+	add_child(_codex)
+	button.pressed.connect(func() -> void:
+		_codex.call("open"))
+	# Refreshed when it closes, so the count on the button is the count inside.
+	_codex.visibility_changed.connect(func() -> void:
+		if not _codex.visible:
+			button.text = _codex_label()
+			button.grab_focus())
+
+
+## "Codex · 14 / 38", counted across every section the screen shows.
+func _codex_label() -> String:
+	var met: int = 0
+	var total: int = 0
+	for section: Dictionary in CodexScreenScript.SECTIONS:
+		var table: Dictionary = ContentDB.get(String(section["source"]))
+		total += table.size()
+		met += MetaState.seen_count(String(section["kind"]))
+	return "Codex  ·  %d / %d" % [met, total]
+
+
 func _build_chronicle_button() -> void:
 	if new_run_button == null:
 		return

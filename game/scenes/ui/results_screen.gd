@@ -275,6 +275,11 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 		"Reached act %d   ·   %s combat   ·   %s planning" % [
 			int(summary.get("act", 1)), duration, planning_duration],
 		"Killed %d   ·   fell %d times" % [int(summary.get("kills", 0)), int(summary.get("deaths", 0))],
+		# **What actually killed you.** A debrief that reports how many times you
+		# fell and never what to has always owed the player this line; being
+		# felled by a Rimewarded Ironhide Bogkin for 41 is the story of the run,
+		# and "fell 3 times" is a statistic about it.
+		"Last blow   %s" % String(summary.get("last_blow", "")) 			if not String(summary.get("last_blow", "")).is_empty() else "",
 		"Raids %d   ·   Oathbound leaders %d" % [int(summary.get("raids", 0)), int(summary.get("chieftains", 0))],
 		"",
 		"DEFENCE",

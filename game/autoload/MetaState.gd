@@ -76,6 +76,15 @@ var unlocked_terrains: Array[String] = []
 ## never an item, never consumed, and never sits in a bag once read.
 var unlocked_blueprints: Array[String] = []
 
+## Everything the player has met, as "kind:id" - "enemy:bogkin", "affix:cruel".
+##
+## **In the `unlocked` block, because that is what a discovery is.** Having met a
+## thing is permanent knowledge in exactly the way an unlocked tower is, so this
+## needs no new save shape and working rule 7 is untouched. One flat list rather
+## than a dictionary per kind: the codex reads it by prefix, and a new kind of
+## discoverable costs nothing here.
+var codex_seen: Array[String] = []
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -216,6 +225,38 @@ var settings: Dictionary = {
 ## in the authored order, because a shop for one currency with one thing to buy
 ## is a menu standing in front of a decision nobody makes.
 ##
+## Records having met something. True when it is the first time.
+##
+## **Deliberately cheap to call.** It is invoked from spawn paths that run
+## hundreds of times a wave, so the common case - already known - is one
+## dictionary-free array lookup and a return. Saving happens on the rare first
+## sighting, not on every enemy that walks down the road.
+func record_seen(kind: String, thing_id: String) -> bool:
+	if thing_id.is_empty():
+		return false
+	var key: String = "%s:%s" % [kind, thing_id]
+	if codex_seen.has(key):
+		return false
+	codex_seen.append(key)
+	save_game()
+	return true
+
+
+## Whether something has been met.
+func has_seen(kind: String, thing_id: String) -> bool:
+	return codex_seen.has("%s:%s" % [kind, thing_id])
+
+
+## How many of one kind have been met, for a heading.
+func seen_count(kind: String) -> int:
+	var prefix: String = kind + ":"
+	var total: int = 0
+	for entry: String in codex_seen:
+		if entry.begins_with(prefix):
+			total += 1
+	return total
+
+
 ## Learns a recipe. True when it was new, so the caller can announce it.
 ##
 ## Announcing matters more here than for most unlocks: a blueprint is the moment
@@ -322,6 +363,7 @@ func erase_progress() -> void:
 	unlocked_relics.clear()
 	unlocked_spells.clear()
 	unlocked_blueprints.clear()
+	codex_seen.clear()
 	unlocked_terrains.clear()
 	unlocked_buildings.clear()
 	resource_cache.clear()
@@ -708,6 +750,7 @@ func serialized_save() -> String:
 			"relics": unlocked_relics,
 			"spells": unlocked_spells,
 			"blueprints": unlocked_blueprints,
+			"codex": codex_seen,
 			"terrains": unlocked_terrains,
 			"buildings": unlocked_buildings,
 			"tools": tools,
@@ -801,6 +844,7 @@ func load_save() -> void:
 	# Absent in saves written before 2026-08-31, which read as knowing nothing -
 	# correct, because those runs never had a blueprint to find.
 	unlocked_blueprints = _string_array(unlocked.get("blueprints", []))
+	codex_seen = _string_array(unlocked.get("codex", []))
 	unlocked_terrains = _string_array(unlocked.get("terrains", []))
 	unlocked_buildings = _string_array(unlocked.get("buildings", []))
 	act3_cleared = bool(unlocked.get("act3_cleared", false))

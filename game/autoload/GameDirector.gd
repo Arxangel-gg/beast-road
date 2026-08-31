@@ -315,6 +315,7 @@ func end_run(victory: bool) -> void:
 		# not the same run.
 		"wave": RunState.wave_number,
 		"kills": RunState.enemies_killed,
+		"last_blow": RunState.last_blow_line(),
 		"deaths": RunState.hero_deaths,
 		"raids": RunState.raids_completed,
 		"chieftains": RunState.chieftains_taken,
