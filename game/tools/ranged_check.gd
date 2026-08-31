@@ -91,6 +91,30 @@ func _ready() -> void:
 	_check(MetaState.knows_recipe("ammo", locked),
 		"but the recipe must survive the run")
 
+	# --- 6. the player can actually reach it -----------------------------------
+	#
+	# **Shipped without this once.** The bow arrived only by learning its plan,
+	# and only if the hero held none already - so a player who learned a second
+	# plan could never switch to it, and a player who found no plan at all never
+	# met the system. A weapon you cannot equip from a menu is not finished.
+	MetaState.unlocked_blueprints.clear()
+	var reachable: int = 0
+	for value: Variant in ContentDB.ranged_weapons.values():
+		var weapon := value as RangedWeaponData
+		if weapon != null and weapon.starting_kit:
+			reachable += 1
+	_check(reachable == 1,
+		"exactly one weapon must be reachable without a discovery, got %d" % reachable)
+
+	# And switching must leave the quiver holding something the new weapon fires.
+	RunState.ranged_id = "shortbow"
+	RunState.ammo_id = "plain_arrow"
+	var crossbow_ammo: Array[AmmoData] = RunState.ammo_for_weapon("heavy_crossbow")
+	_check(not crossbow_ammo.is_empty(), "a crossbow must have ammunition it fits")
+	for fits: AmmoData in crossbow_ammo:
+		_check(fits.family == "bolt",
+			"and must never be offered %s, which is an arrow" % fits.id)
+
 	print("[ranged] capacity %d, batch %d, %d weapons, %d ammunitions, %d plans"
 		% [Balance.AMMO_CAPACITY, kind.craft_batch, ContentDB.ranged_weapons.size(),
 			ContentDB.ammo_kinds.size(), ContentDB.blueprints.size()])

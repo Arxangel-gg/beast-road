@@ -15,3 +15,4 @@ projectile_speed = 980.0
 pierce = 1
 knockback = 70.0
 draw_move_scale = 0.72
+starting_kit = true

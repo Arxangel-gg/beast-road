@@ -45,6 +45,11 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"command_last_stand", "label": "Command: Last Stand"},
 	{"action": &"ride_on", "label": "Ride on"},
 	{"action": &"tend", "label": "Tend / field ration"},
+	# Added with ranged combat. Bound since it was written and absent from this
+	# list, which meant the settings panel offered no way to see or move it -
+	# a control the player cannot find is a control they do not have.
+	{"action": &"ranged", "label": "Loose an arrow"},
+	{"action": &"ammo_cycle", "label": "Change ammunition"},
 	{"action": &"pause", "label": "Pause"},
 ]
 
@@ -75,6 +80,13 @@ const PAD_BUTTONS: Dictionary = {
 	&"command_overdrive": JOY_BUTTON_DPAD_DOWN,
 	&"command_rally": JOY_BUTTON_LEFT_STICK,
 	&"command_last_stand": JOY_BUTTON_RIGHT_STICK,
+	# The awkward two, and deliberately the two that can afford it: a fourth
+	# ability is situational, and changing ammunition is a decision made between
+	# fights rather than during one. Present on most modern pads, and both are
+	# the first things a controller player will want to move - which the settings
+	# panel now lets them do.
+	&"spell_4": JOY_BUTTON_MISC1,
+	&"ammo_cycle": JOY_BUTTON_TOUCHPAD,
 }
 
 ## The left stick, bound to the four movement actions as well as read directly.
@@ -96,7 +108,13 @@ const PAD_MOVE: Dictionary = {
 ## for. An axis, so they need a threshold rather than a button index.
 const PAD_AXES: Dictionary = {
 	&"spell_3": JOY_AXIS_TRIGGER_LEFT,
-	&"spell_4": JOY_AXIS_TRIGGER_RIGHT,
+	# **The bow takes the right trigger**, which is where a hand expects to find
+	# one. The pad was full when ranged combat arrived - every face button,
+	# shoulder, stick and D-pad direction spoken for - so something had to give,
+	# and a trigger is worth more to a weapon fired constantly than to the fourth
+	# ability slot. Displaced rather than squeezed: `spell_4` moves to the share
+	# button below, and both are rebindable.
+	&"ranged": JOY_AXIS_TRIGGER_RIGHT,
 }
 
 ## Menus have to be usable without a mouse or the pad is only half supported.

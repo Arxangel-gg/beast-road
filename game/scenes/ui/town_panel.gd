@@ -200,6 +200,69 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 		_note("Unlock this plot through its account milestone; it will still begin unbuilt each run.")
 
 
+## Which bow is in hand.
+##
+## **A weapon system you cannot equip from a menu is not finished**, and this was
+## missing: a bow arrived only by learning its plan, and only if the hero held
+## none already, so a player who learned a second plan could never reach it.
+##
+## At the Forge because that is where the plan became an object. Only what is
+## known is listed - an unlearned weapon is not a locked row to covet, it is a
+## discovery that has not happened yet.
+func _show_armoury() -> void:
+	var known: Array[RangedWeaponData] = []
+	var ids: Array = ContentDB.ranged_weapons.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var weapon := ContentDB.ranged_weapons[id] as RangedWeaponData
+		if weapon != null and (weapon.starting_kit
+				or MetaState.knows_recipe("ranged", weapon.id)):
+			known.append(weapon)
+	if known.is_empty():
+		return
+	if not RunState.can_build_now():
+		return
+	for weapon: RangedWeaponData in known:
+		var row := Button.new()
+		var held: bool = RunState.ranged_id == weapon.id
+		# The numbers that distinguish them, because "Shortbow" and "Heavy
+		# Crossbow" say nothing about which one answers the situation.
+		row.text = "%s%s  ·  %d dmg  ·  %.2fs draw  ·  %d reach" % [
+			"✦ " if held else "", weapon.display_name, int(weapon.damage),
+			weapon.draw_time, int(weapon.effective_range)]
+		row.custom_minimum_size = Vector2(0, 40)
+		row.tooltip_text = weapon.description
+		row.disabled = held
+		var wanted: String = weapon.id
+		row.pressed.connect(func() -> void:
+			RunState.ranged_id = wanted
+			# The nocked ammunition must fit the new weapon: a crossbow holding
+			# arrows fires nothing and reads as a broken button.
+			var fits: Array[AmmoData] = RunState.ammo_for_weapon(wanted)
+			var still_good: bool = false
+			for kind: AmmoData in fits:
+				if kind.id == RunState.ammo_id:
+					still_good = true
+			if not still_good:
+				RunState.ammo_id = fits[0].id if not fits.is_empty() else ""
+			EventBus.ammo_changed.emit(RunState.ammo_id,
+				RunState.ammo_count(RunState.ammo_id))
+			_refresh())
+		actions.add_child(row)
+	# Putting it down is a real choice: a bow slows the draw and the quiver is
+	# room that could hold something else.
+	if not RunState.ranged_id.is_empty():
+		var stow := Button.new()
+		stow.text = "Sling it across your back"
+		stow.custom_minimum_size = Vector2(0, 36)
+		stow.tooltip_text = "Fight with the chain alone. The quiver keeps what it holds."
+		stow.pressed.connect(func() -> void:
+			RunState.ranged_id = ""
+			EventBus.ammo_changed.emit("", 0)
+			_refresh())
+		actions.add_child(stow)
+
+
 ## Ammunition, made at the Forge (owner decision, 2026-08-31).
 ##
 ## **Here rather than on the HUD.** A crafting button in the combat bar would
@@ -211,6 +274,7 @@ func _show_construction(data: BuildingData, tier: int) -> void:
 ## list of things you cannot have is a worse advertisement for blueprints than
 ## finding one is.
 func _show_crafting() -> void:
+	_show_armoury()
 	if RunState.ranged_id.is_empty():
 		return
 	var weapon := ContentDB.ranged_weapons.get(RunState.ranged_id, null) as RangedWeaponData

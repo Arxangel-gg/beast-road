@@ -39,5 +39,14 @@ extends GameData
 @export_range(0.2, 1.0) var draw_move_scale: float = 0.62
 
 
+## Available from the first Preparation, without finding anything.
+##
+## **Exactly one weapon should be**, for the same reason exactly one ammunition
+## is: a system the player cannot reach is a system they cannot form an opinion
+## about, and ranged combat that waits on an 18% elite drop may never happen at
+## all in a short run. The crossbow and every elemental arrow stay discoveries.
+@export var starting_kit: bool = false
+
+
 func get_sprite_path() -> String:
 	return GameData.derive_path("ranged", "ranged_", id)
