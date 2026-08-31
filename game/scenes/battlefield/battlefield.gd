@@ -871,13 +871,20 @@ func lane_armour(lane: int) -> float:
 
 func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 		damage_scale: float = -1.0, speed_scale: float = 1.0,
-		oath_pursuer: bool = false) -> Enemy:
+		oath_pursuer: bool = false,
+		promoted_rank: Enemy.Rank = Enemy.Rank.COMMON,
+		worn_affixes: Array[EnemyAffixData] = []) -> Enemy:
 	if enemy_scene == null:
 		return null
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return null
 	enemy.oath_pursuer = oath_pursuer
+	# **Promoted before setup**, because the rank multiplies the health the next
+	# line fills in. A promotion applied afterwards leaves a champion with a
+	# common's hit points and nothing reports it.
+	if promoted_rank != Enemy.Rank.COMMON:
+		enemy.promote(promoted_rank, worn_affixes)
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() \
 		* RunState.rng("combat").randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5

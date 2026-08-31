@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "dreadful"
+display_name = "Dreadful"
+description = "Bigger, slower, and it does not stop."
+health_scale = 2.4
+damage_scale = 1.35
+speed_scale = 0.78
+damage_resistance = 0.18
+mark_colour = Color(0.55, 0.35, 0.72, 1)
+from_act = 3

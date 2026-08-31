@@ -1563,6 +1563,44 @@ const HERO_ARROW_HIT_RADIUS: float = 34.0
 
 const AMMO_CAPACITY: int = 48
 
+## Promoted enemies (owner decision, 2026-08-31).
+##
+## **A champion is a pack and an elite is an encounter.** The champion's own
+## numbers are modest because there are four of them wearing the same affix; the
+## elite's are large because there is one, and it is meant to be the thing the
+## wave is about. Size is the tell before the outline is: a body half again as
+## wide reads as different from across the field. [TUNE]
+## How much of the affix colour is laid over a promoted sprite.
+##
+## Restrained: the breed has to stay recognisable. A Bogkin that is entirely
+## purple is a new enemy the player has to learn, when the useful information is
+## "a Bogkin, and something else as well". [TUNE]
+const RANK_TINT_STRENGTH: float = 0.38
+
+const CHAMPION_HEALTH_SCALE: float = 2.2
+const CHAMPION_DAMAGE_SCALE: float = 1.25
+const CHAMPION_SIZE_SCALE: float = 1.18
+const CHAMPION_PACK_MIN: int = 3
+const CHAMPION_PACK_MAX: int = 4
+
+const ELITE_HEALTH_SCALE: float = 6.5
+const ELITE_DAMAGE_SCALE: float = 1.6
+const ELITE_SIZE_SCALE: float = 1.42
+const ELITE_AFFIX_MIN: int = 2
+const ELITE_AFFIX_MAX: int = 3
+
+## How often a wave produces one, per spawn.
+##
+## Rare on purpose. A champion pack every wave is not a champion pack, it is the
+## wave - and the whole value of a promotion is that the player notices it and
+## changes what they were doing. [TUNE]
+const CHAMPION_SPAWN_CHANCE: float = 0.085
+const ELITE_SPAWN_CHANCE: float = 0.03
+
+## What a promoted enemy pays out, against an ordinary one.
+const CHAMPION_REWARD_SCALE: float = 2.5
+const ELITE_REWARD_SCALE: float = 6.0
+
 const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
 
 const WILDLIFE_TOWN_SPACE: float = 520.0

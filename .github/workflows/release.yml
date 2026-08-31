@@ -100,6 +100,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/projectile_tier_check.tscn
           run_godot_clean --headless --path game res://tools/wildlife_spawn_check.tscn
           run_godot_clean --headless --path game res://tools/ranged_check.tscn
+          run_godot_clean --headless --path game res://tools/elite_check.tscn
           # Every tower and every building tier must carry its exact four-pose
           # PixelLab package. Runtime fallbacks are for damaged installs, not a
           # release excuse; this also gates canvas size and ground-anchor drift.

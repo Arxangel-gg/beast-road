@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "emberclad"
+display_name = "Emberclad"
+description = "It burns from the inside and shares."
+health_scale = 1.0
+damage_scale = 1.0
+speed_scale = 1.0
+on_hit_burn = 22.0
+on_hit_burn_duration = 3.5
+mark_colour = Color(0.95, 0.45, 0.18, 1)
+from_act = 1

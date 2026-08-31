@@ -42,6 +42,10 @@ var ranged_weapons: Dictionary = {}
 var ammo_kinds: Dictionary = {}
 var blueprints: Dictionary = {}
 
+## What a promoted enemy can be (owner decision, 2026-08-31). A champion carries
+## one; an elite carries several, and the combination is whatever both do.
+var affixes: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -76,6 +80,7 @@ func _ready() -> void:
 	ranged_weapons = _load_dir("res://data/ranged")
 	ammo_kinds = _load_dir("res://data/ammo")
 	blueprints = _load_dir("res://data/blueprints")
+	affixes = _load_dir("res://data/affixes")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData

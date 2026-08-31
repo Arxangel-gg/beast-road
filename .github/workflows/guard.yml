@@ -220,6 +220,7 @@ jobs:
           check "treeline"    --headless --path game res://tools/treeline_check.tscn
           check "wildlife"    --headless --path game res://tools/wildlife_spawn_check.tscn
           check "ranged"      --headless --path game res://tools/ranged_check.tscn
+          check "elites"      --headless --path game res://tools/elite_check.tscn
           check "party reach" --headless --path game res://tools/party_reach_check.tscn
           check "projectile tiers" --headless --path game res://tools/projectile_tier_check.tscn
           # GDD §57 makes "no unreviewed enslavement language ships" a release

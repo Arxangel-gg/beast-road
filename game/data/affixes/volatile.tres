@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "volatile"
+display_name = "Volatile"
+description = "Killing it is only most of the problem."
+health_scale = 0.9
+damage_scale = 1.0
+speed_scale = 1.05
+death_blast_radius = 170.0
+death_blast_damage = 34.0
+mark_colour = Color(0.98, 0.72, 0.25, 1)
+from_act = 1

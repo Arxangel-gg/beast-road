@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rimewarded"
+display_name = "Rimewarded"
+description = "The cold came with it. Whatever it touches slows."
+health_scale = 1.0
+damage_scale = 1.0
+speed_scale = 0.92
+on_hit_slow = 0.55
+on_hit_slow_duration = 2.6
+mark_colour = Color(0.42, 0.72, 0.92, 1)
+from_act = 1

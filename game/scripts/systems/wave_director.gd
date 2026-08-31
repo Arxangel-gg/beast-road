@@ -513,6 +513,41 @@ func _archetype_wave_size(act_wave: int, terrain: TerrainData,
 	return maxi(int(round(float(_wave_size(act_wave, terrain)) * scale)), 1)
 
 
+## Whether this spawn is anything special. Usually not.
+##
+## Its own RNG stream, like gear and plans: retuning damage or adding a spark
+## must not quietly change which waves produce a champion. Elites are checked
+## first because they are rarer - checking the common case first would make the
+## rarer one rarer still by the width of the other.
+func _roll_rank() -> Enemy.Rank:
+	var roll: float = RunState.rng("rank").randf()
+	if roll < Balance.ELITE_SPAWN_CHANCE:
+		return Enemy.Rank.ELITE
+	if roll < Balance.ELITE_SPAWN_CHANCE + Balance.CHAMPION_SPAWN_CHANCE:
+		return Enemy.Rank.CHAMPION
+	return Enemy.Rank.COMMON
+
+
+## Distinct affixes this act allows, in a stable order.
+##
+## Never the same one twice on one body: "Cruel Cruel Bogkin" is a bug the player
+## can read. Act-gated so the opening is not answering the summit.
+func _roll_affixes(count: int) -> Array[EnemyAffixData]:
+	var pool: Array[EnemyAffixData] = []
+	var ids: Array = ContentDB.affixes.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var affix := ContentDB.affixes[id] as EnemyAffixData
+		if affix != null and affix.from_act <= RunState.act:
+			pool.append(affix)
+	var worn: Array[EnemyAffixData] = []
+	for i: int in mini(count, pool.size()):
+		var pick: int = RunState.rng("rank").randi() % pool.size()
+		worn.append(pool[pick])
+		pool.remove_at(pick)
+	return worn
+
+
 func _spawn_next() -> void:
 	if _spawn_queue.is_empty():
 		return
@@ -529,10 +564,30 @@ func _spawn_next() -> void:
 	var data: EnemyData = ContentDB.enemy(enemy_id) if not enemy_id.is_empty() \
 		else _pick_enemy(bool(entry.get("elite", false)))
 	if data != null:
-		battlefield.spawn_enemy(data, lane,
-			_hp_scale(lane) * float(entry.get("hp_scale", 1.0)),
-			_damage_scale(lane) * float(entry.get("damage_scale", 1.0)),
-			_speed_scale(lane) * float(entry.get("speed_scale", 1.0)))
+		var hp: float = _hp_scale(lane) * float(entry.get("hp_scale", 1.0))
+		var dmg: float = _damage_scale(lane) * float(entry.get("damage_scale", 1.0))
+		var spd: float = _speed_scale(lane) * float(entry.get("speed_scale", 1.0))
+		var rank: Enemy.Rank = _roll_rank()
+		if rank == Enemy.Rank.CHAMPION:
+			# **A pack, and all of it the same.** One champion is a slightly
+			# tougher enemy; three wearing the same affix is a situation. The
+			# shared affix is what makes it readable - the player learns the pack
+			# by learning one of them.
+			var shared: Array[EnemyAffixData] = _roll_affixes(1)
+			var pack: int = RunState.rng("rank").randi_range(
+				Balance.CHAMPION_PACK_MIN, Balance.CHAMPION_PACK_MAX)
+			for member: int in pack:
+				battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, shared)
+		else:
+			# Declared with its element type rather than built inline. A ternary
+			# whose other branch is a bare `[]` produces an untyped array, and
+			# the typed parameter refuses it at runtime - which is an error per
+			# spawn, in a function that runs hundreds of times a wave.
+			var worn: Array[EnemyAffixData] = []
+			if rank == Enemy.Rank.ELITE:
+				worn = _roll_affixes(RunState.rng("rank").randi_range(
+					Balance.ELITE_AFFIX_MIN, Balance.ELITE_AFFIX_MAX))
+			battlefield.spawn_enemy(data, lane, hp, dmg, spd, false, rank, worn)
 
 	var spacing: float = Balance.WAVE_SPAWN_SPACING * float(entry.get("spacing_scale", 1.0))
 	if RunState.horn_active:

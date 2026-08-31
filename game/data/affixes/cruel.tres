@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyAffixData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_affix_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cruel"
+display_name = "Cruel"
+description = "It hits like something twice its size."
+health_scale = 1.0
+damage_scale = 1.85
+speed_scale = 0.95
+
+mark_colour = Color(0.86, 0.24, 0.28, 1)
+from_act = 2

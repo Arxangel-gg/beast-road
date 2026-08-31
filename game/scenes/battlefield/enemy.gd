@@ -173,6 +173,89 @@ var _slip: Vector2 = Vector2.ZERO
 var _slip_left: float = 0.0
 
 
+## What a promoted enemy is (owner decision, 2026-08-31).
+##
+## Orthogonal to `EnemyData.Category`, which is a *breed* - a Bogkin is rank and
+## file, a Chainmaker is a boss. Rank is what happened to this particular one on
+## its way down the road, so any breed can wear it.
+enum Rank {
+	## The ordinary case, and it stays the overwhelming one.
+	COMMON,
+	## Three or four of a kind, all carrying the same single affix. The pack is
+	## the threat; no one of them is.
+	CHAMPION,
+	## One of a kind, carrying several. It is the encounter.
+	ELITE,
+}
+
+var rank: Rank = Rank.COMMON
+var affixes: Array[EnemyAffixData] = []
+
+## The outline that says "this one is different", kept so it can follow the
+## sprite's own size.
+var _mark: Line2D = null
+
+
+## Raises this one and applies everything its affixes say.
+##
+## **Called before `setup`**, because the health scale it produces has to be in
+## hand when the health node is filled - promoting afterwards would leave a
+## champion with a common's hit points and no error anywhere.
+##
+## The affixes are simply multiplied together and their effects all apply. That
+## is what makes combinations free: Rimewarded and Volatile is a body that chills
+## what it touches and detonates when it dies, and nothing anywhere describes
+## that pair. A table of every combination is a table that has to be maintained;
+## multiplication is not.
+func promote(to_rank: Rank, worn: Array[EnemyAffixData]) -> void:
+	rank = to_rank
+	affixes = worn
+
+
+## The combined multiplier for one stat across every affix worn.
+func _affix_product(field_name: StringName) -> float:
+	var total: float = 1.0
+	for affix: EnemyAffixData in affixes:
+		total *= float(affix.get(field_name))
+	return total
+
+
+## The largest value any worn affix contributes. Used where stacking would be
+## absurd - two sources of resistance should not approach immunity.
+func _affix_best(field_name: StringName) -> float:
+	var best: float = 0.0
+	for affix: EnemyAffixData in affixes:
+		best = maxf(best, float(affix.get(field_name)))
+	return best
+
+
+## The rank's own multiplier, before any affix.
+func _rank_scale() -> Vector3:
+	match rank:
+		Rank.CHAMPION:
+			return Vector3(Balance.CHAMPION_HEALTH_SCALE,
+				Balance.CHAMPION_DAMAGE_SCALE, Balance.CHAMPION_SIZE_SCALE)
+		Rank.ELITE:
+			return Vector3(Balance.ELITE_HEALTH_SCALE,
+				Balance.ELITE_DAMAGE_SCALE, Balance.ELITE_SIZE_SCALE)
+		_:
+			return Vector3.ONE
+
+
+## The name the player reads: "Rimewarded Emberclad Bogkin".
+##
+## Built from the affixes rather than authored, so a new affix needs no strings
+## and a combination names itself.
+func promoted_name() -> String:
+	if rank == Rank.COMMON or data == null:
+		return data.display_name if data != null else ""
+	var parts: PackedStringArray = []
+	for affix: EnemyAffixData in affixes:
+		parts.append(affix.display_name)
+	parts.append(data.display_name)
+	return " ".join(parts)
+
+
 func setup(enemy_data: EnemyData, lane_index: int, field: EnemyField,
 		hp_scale: float, damage_scale: float = -1.0, speed_scale: float = 1.0) -> void:
 	data = enemy_data
@@ -191,7 +274,11 @@ func _ready() -> void:
 		queue_free()
 		return
 
-	health.max_hp = data.max_hp * _hp_scale
+	# The rank and its affixes multiply into the authored number. Applied here
+	# rather than after `setup` because the health node is filled on this line -
+	# a promotion that arrived a moment later left a champion with a common's
+	# hit points and nothing said so.
+	health.max_hp = data.max_hp * _hp_scale * _rank_scale().x 		* _affix_product(&"health_scale")
 	health.revive()
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -214,6 +301,7 @@ func _ready() -> void:
 	# not.
 	if data.role == EnemyData.Role.HOWLER:
 		_build_aura_readout()
+	_build_rank_mark()
 	animator.capture_home()
 
 	# Shadows are added after the texture, because both are measured from it.
@@ -234,6 +322,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_oath_mark(delta)
+	# Famished and its kind, closing its own wounds.
+	if not affixes.is_empty() and _state != State.DYING and health != null:
+		var mend: float = _affix_best(&"regeneration")
+		if mend > 0.0 and health.current_hp < health.max_hp:
+			health.heal(health.max_hp * mend * delta)
 	if _state == State.DYING:
 		_tick_death(delta)
 		return
@@ -776,7 +869,8 @@ func _strike() -> void:
 	# time reads as arithmetic; the average is unchanged, so nothing balanced
 	# against it moves.
 	var damage: float = TowerData.roll_damage(
-		data.contact_damage * _damage_scale, RunState.rng("combat"))
+		data.contact_damage * _damage_scale * _rank_scale().y
+			* _affix_product(&"damage_scale"), RunState.rng("combat"))
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	if data.role != EnemyData.Role.HOWLER:
@@ -787,6 +881,15 @@ func _strike() -> void:
 		damage *= Balance.WEAKENED_STAT_SCALE
 	if _target == _field.town_node():
 		damage *= Balance.TOWN_DAMAGE_SCALE
+	# Whatever the affixes do to what they touch. Both may apply, and that is the
+	# combination working: Rimewarded and Emberclad chills *and* burns, with
+	# nothing anywhere describing the pair.
+	var struck := _target as Enemy
+	for affix: EnemyAffixData in affixes:
+		if affix.on_hit_slow_duration > 0.0 and struck != null:
+			struck.apply_slow(affix.on_hit_slow, affix.on_hit_slow_duration)
+		if affix.on_hit_burn_duration > 0.0 and struck != null:
+			struck.apply_burn(affix.on_hit_burn, affix.on_hit_burn_duration)
 	# Said out loud, so a guest can draw the blow it is not simulating. A puppet
 	# never runs this function, so without the announcement a ranged enemy on the
 	# other screen hurt people from across the field with nothing in between.
@@ -853,6 +956,10 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	var incoming: float = amount
 	if RunState.enemies_are_weakened():
 		incoming /= Balance.WEAKENED_STAT_SCALE
+	# Ironhide and its kind. The *best* share rather than the product, because
+	# two sources multiplying would approach immunity, and an enemy nothing can
+	# hurt is not an affix, it is a wall.
+	incoming *= 1.0 - _affix_best(&"damage_resistance")
 	if not health.take_damage(incoming, from):
 		return false
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
@@ -1019,13 +1126,45 @@ func _on_damaged(_amount: float, from: Vector2) -> void:
 	BloodStain.strike(_blood, _impact_direction)
 
 
+## Whatever it leaves behind. Volatile and its kin.
+##
+## Hurts enemies rather than the hero, which is deliberate: the blast is the
+## *player's* problem to stand clear of, and making it friendly fire would turn
+## a threat into a tool. It reads as a threat because it kills things.
+func _burst_on_death() -> void:
+	if _field == null:
+		return
+	for affix: EnemyAffixData in affixes:
+		if affix.death_blast_radius <= 0.0:
+			continue
+		Vfx.ring(combat_origin(), affix.death_blast_radius,
+			Color(affix.mark_colour, 0.65), 0.34, 6.0)
+		for hero: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+			var who := hero as Hero
+			if who == null or not who.is_alive():
+				continue
+			if combat_origin().distance_to(who.global_position) > affix.death_blast_radius:
+				continue
+			var hurt: Health = Health.of(who)
+			if hurt != null:
+				hurt.take_damage(affix.death_blast_damage, combat_origin())
+
+
 func _on_died(_from: Vector2) -> void:
 	_enter(State.DYING, 0.0)
 	_death_left = Balance.ENEMY_DEATH_FADE
 	remove_from_group(GROUP)
 	health_bar.visible = false
 	RunState.enemies_killed += 1
-	RunState.gain_kill_resources(data.resource_value)
+	# A promoted body is worth what it cost to bring down.
+	var spoils: float = float(data.resource_value)
+	match rank:
+		Rank.CHAMPION:
+			spoils *= Balance.CHAMPION_REWARD_SCALE
+		Rank.ELITE:
+			spoils *= Balance.ELITE_REWARD_SCALE
+	RunState.gain_kill_resources(int(round(spoils)))
+	_burst_on_death()
 	# XP scales with the enemy's health rather than an authored per-enemy number,
 	# so an elite is worth more than a runner with no second table to maintain,
 	# and act scaling carries the curve forward on its own.
@@ -1210,6 +1349,51 @@ func combat_origin() -> Vector2:
 
 func _visual_origin() -> Vector2:
 	return combat_origin()
+
+
+## The ring that says this one is not ordinary.
+##
+## **A promotion nobody can see is a promotion that does not exist.** Three tells,
+## because one is not enough across a busy field: the body is larger, it stands
+## in a coloured ring, and the ring's colour is the affix's own - so a player who
+## has met Rimewarded twice recognises the third before it reaches them.
+##
+## Built after the scale for the same reason the aura ring is: `_depth_lift` does
+## not exist before then, and a ring drawn without it sits on the floor.
+func _build_rank_mark() -> void:
+	if rank == Rank.COMMON or sprite == null or sprite.texture == null:
+		return
+	# Bigger, first and most legible. Read from across the field before any
+	# colour is.
+	var grow: float = _rank_scale().z
+	sprite.scale *= grow
+	_depth_lift *= grow
+
+	var tint: Color = affixes[0].mark_colour if not affixes.is_empty() 		else Color(0.95, 0.82, 0.45)
+	# An elite wears every colour it carries, blended, so a two-affix body is
+	# visibly not either of its parts.
+	for index: int in range(1, affixes.size()):
+		tint = tint.lerp(affixes[index].mark_colour, 0.5)
+
+	_mark = Line2D.new()
+	var radius: float = float(sprite.texture.get_width()) * sprite.scale.x * 0.46
+	var centre := Vector2(0.0, -_depth_lift)
+	var points: PackedVector2Array = []
+	for i: int in 33:
+		points.append(centre + Vector2.RIGHT.rotated(TAU * float(i) / 32.0)
+			* Vector2(1.0, 0.42) * radius)
+	_mark.points = points
+	_mark.width = 3.0 if rank == Rank.ELITE else 2.0
+	_mark.default_color = Color(tint, 0.85 if rank == Rank.ELITE else 0.6)
+	# Under the body: a ring drawn over it would read as a status effect rather
+	# than as the ground it stands on.
+	_mark.z_index = -1
+	add_child(_mark)
+	# The sprite carries the colour too, faintly. The ring says "promoted"; the
+	# tint says which kind, and it survives the ring being hidden behind a body.
+	sprite.self_modulate = Color.WHITE.lerp(tint,
+		Balance.RANK_TINT_STRENGTH if rank == Rank.ELITE
+			else Balance.RANK_TINT_STRENGTH * 0.6)
 
 
 func _build_aura_readout() -> void:
