@@ -15,6 +15,13 @@ config/description="A 2D action tower-defense roguelite. One hero, four lanes, c
 run/main_scene="res://scenes/ui/splash.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
+; Required for an Android export - the export refuses outright without it, which
+; is what the APK build failed on once ETC2 was sorted. Yuri with the city on its
+; back is the game's identity and the sprite is already square, so the icon is
+; derived from it rather than from the wordmark, which is 1024x512 and would sit
+; in empty bands.
+config/icon="res://art/ui/ui_app_icon.png"
+
 [autoload]
 
 Balance="*res://scripts/Balance.gd"

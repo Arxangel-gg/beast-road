@@ -1216,6 +1216,21 @@ a non-square target just letterboxes the art and shrinks it.
 | `ui_bar_fill.png` | 128×16 | T | `#C4552E` |
 | `ui_bar_back.png` | 128×16 | T | `#141C1F` |
 | `ui_logo.png` | 1024×512 | T | `#E8A33D` |
+| `ui_app_icon.png` | 512×512 | T | `#181A1C` |
+| `ui_app_icon_192.png` | 192×192 | T | `#181A1C` |
+| `ui_app_icon_fore.png` | 432×432 | T | `#181A1C` |
+| `ui_app_icon_back.png` | 432×432 | T | `#181A1C` |
+
+The four icons are the **application** icon, not artwork in the game. Android
+refuses to export without one, and modern launchers show the adaptive pair - a
+foreground the launcher masks to its own shape over a flat background - rather
+than the square. All four are derived from the beast's first idle frame, because Yuri
+carrying the city is the game's identity and that sprite is already square; the
+wordmark is 1024×512 and would have sat in empty bands. The foreground is inset
+further than the square, since a launcher crops up to a third of the edge away.
+
+Replacing them is overwriting the files, like any other art. They are opaque on
+purpose: a transparent icon becomes a silhouette on some launchers.
 | `splash_studio.png` | 1920×1080 | O | `#0B1416` |
 
 ---
