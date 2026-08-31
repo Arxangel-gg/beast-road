@@ -80,6 +80,16 @@ enum Fact {
 	LAST_SCAR_RESOLVED = 41,
 	BOSS_SPAWNED = 42,
 	BOSS_PHASE_CHANGED = 43,
+	## Live crossroad tallies, host to everyone.
+	##
+	## **Purely cosmetic, and deliberately a Fact rather than a Request.** The
+	## vote itself still travels as `CHOOSE_ROAD`, which every build already
+	## speaks - so a guest on an older build casts a perfectly good vote and
+	## merely does not see the running count, and a guest on a newer build
+	## talking to an older host falls back to that host's first-click-wins
+	## instead of waiting forever for a tally that will never come. Adding a
+	## Request kind would have made both of those a hang.
+	ROAD_VOTES = 45,
 	WILDLIFE_DIED = 44,
 }
 
@@ -382,6 +392,11 @@ func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
 	_relay(Fact.ROAD_CHOSEN, [road_id, difficulty_id])
 
 
+## Who is currently voting for what, as road id -> count.
+func road_votes(tally: Dictionary, voters: int) -> void:
+	_relay(Fact.ROAD_VOTES, [tally, voters])
+
+
 func _on_coop_last_scar_accepted() -> void:
 	_relay(Fact.LAST_SCAR_ACCEPTED, [])
 
@@ -682,6 +697,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.ROAD_CHOSEN:
 			if args.size() == 2:
 				bus.coop_road_chosen.emit(String(args[0]), String(args[1]))
+		Fact.ROAD_VOTES:
+			if args.size() == 2:
+				bus.coop_road_votes.emit(args[0] as Dictionary, int(args[1]))
 		Fact.POINTER:
 			if args.size() == 1:
 				bus.coop_pointer_moved.emit(args[0] as Vector2)

@@ -113,6 +113,9 @@ signal coop_crossroad_opened(segment: int)
 
 ## A road was taken. Whoever clicked first decided it for both.
 signal coop_road_chosen(road_id: String, difficulty_id: String)
+## Running crossroad tally, host to everyone. `tally` is road id -> votes,
+## `voters` is how many players are expected to answer.
+signal coop_road_votes(tally: Dictionary, voters: int)
 
 ## The host accepted the once-per-run Last Scar vow at the open crossroad.
 signal coop_last_scar_accepted()

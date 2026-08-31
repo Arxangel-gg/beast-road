@@ -578,17 +578,19 @@ func _enter_preparation(initial: bool) -> void:
 ## Routed through the same handler a local click uses, so the coverage warning,
 ## the breather skip and every other rule apply identically however the request
 ## arrived. A second path here would be a second set of rules.
-func _on_coop_request(kind: int, args: Array, _from: int) -> void:
+func _on_coop_request(kind: int, args: Array, from: int) -> void:
 	if not Coop.is_host():
 		return
 	match kind:
 		CoopRelay.Request.RIDE_ON:
 			_on_ride_on_requested()
 		CoopRelay.Request.CHOOSE_ROAD:
-			# The fork has one answer and the host is the one who settles which
-			# click was first. What it decides comes back as a fact.
+			# The fork has one answer and the host is the one who counts the
+			# votes for it. Attributed to `from`, so four players cast four votes
+			# and one player clicking four times casts one. What the count
+			# decides comes back as a fact.
 			if args.size() == 2 and crossroad_ui != null:
-				crossroad_ui.accept_road_request(String(args[0]), String(args[1]))
+				crossroad_ui.accept_road_request(String(args[0]), String(args[1]), from)
 		CoopRelay.Request.CHOOSE_RELIC:
 			if args.size() == 1 and crossroad_ui != null:
 				crossroad_ui.accept_relic_request(String(args[0]))

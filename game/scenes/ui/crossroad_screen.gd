@@ -7,6 +7,16 @@ extends CanvasLayer
 ## independent danger/reward tier, so the player compares both destination and
 ## commitment rather than choosing among three hardcoded legacy buttons.
 
+## The host's own vote, under an id no transport can produce.
+const HOST_VOTER: int = 0
+
+## voter id -> road id, and road id -> the difficulty that came with it.
+var _votes: Dictionary = {}
+var _vote_difficulty: Dictionary = {}
+
+## Seconds left before the fork settles on the votes it has. Zero when idle.
+var _vote_left: float = 0.0
+
 signal road_chosen(option_id: String)
 signal relic_chosen(relic_id: String)
 
@@ -60,6 +70,7 @@ var _last_scar_button: Button = null
 ## necessarily looking at the same size of window, and a pixel position would put
 ## the pointer somewhere else entirely on a different display.
 func _process(delta: float) -> void:
+	_tick_vote(delta)
 	if not is_open() or not Coop.partner_present():
 		return
 	_pointer_clock -= delta
@@ -113,6 +124,7 @@ func _hide_pointer() -> void:
 
 
 func _ready() -> void:
+	EventBus.coop_road_votes.connect(_on_coop_road_votes)
 	_rng = RunState.rng("roads")
 	panel.visible = false
 	EventBus.coop_pointer_moved.connect(_on_partner_pointer)
@@ -130,6 +142,10 @@ func open(segment_index: int) -> void:
 func _open_roads(segment_index: int) -> void:
 	_open_segment = segment_index
 	_buttons.clear()
+	# A fork carries no votes from the last one.
+	_votes.clear()
+	_vote_difficulty.clear()
+	_vote_left = 0.0
 	_offers.clear()
 	_sent_pointer = Vector2.ZERO
 	_resolving = false
@@ -488,22 +504,133 @@ func _choose(road_id: String, difficulty_id: String) -> void:
 		var relay: CoopRelay = Coop.relay()
 		if relay == null:
 			return
+		# Still `CHOOSE_ROAD` on the wire. The host reads it as a vote now, but
+		# an older host reads it as a choice and settles the fork immediately -
+		# which is the behaviour that shipped, so a mixed party degrades rather
+		# than deadlocking. See `CoopRelay.Fact.ROAD_VOTES`.
 		relay.request(CoopRelay.Request.CHOOSE_ROAD, [road_id, difficulty_id])
 		_await_answer(road_id)
 		return
-	# Announced before it is applied, so the partner's screen closes on the same
-	# click rather than a frame later with the road already changed under it.
-	if Coop.partner_present():
-		EventBus.coop_road_chosen.emit(road_id, difficulty_id)
-	_apply_choice(road_id, difficulty_id)
+	if not Coop.partner_present():
+		_apply_choice(road_id, difficulty_id)
+		return
+	# The host votes like everybody else rather than deciding by clicking.
+	cast_vote(HOST_VOTER, road_id, difficulty_id)
+	_await_answer(road_id)
 
 
-## The guest asked for a road. Host side; the fork answers for both.
-func accept_road_request(road_id: String, difficulty_id: String) -> void:
+## One player's vote. Host side; `voter` is the transport id, or `HOST_VOTER`.
+##
+## **A fork used to be settled by whoever clicked first**, which meant the faster
+## player decided every road for the whole party and the slower one never had a
+## say in where their own run went. Votes are counted instead, and the count is
+## shown while it is happening so the decision is visible rather than reported.
+func cast_vote(voter: int, road_id: String, difficulty_id: String) -> void:
+	if not is_open() or _resolving or not Coop.is_host():
+		return
+	if not _buttons.has(road_id):
+		return
+	if _votes.is_empty():
+		_vote_left = Balance.CROSSROAD_VOTE_SECONDS
+	_votes[voter] = road_id
+	_vote_difficulty[road_id] = difficulty_id
+	if voter != HOST_VOTER:
+		_flash_partner_pick(road_id)
+	_publish_tally()
+	if _votes.size() >= _expected_voters():
+		_resolve_votes()
+
+
+## How many players the fork is waiting for.
+func _expected_voters() -> int:
+	return maxi(Coop.party().size(), 1) if Coop.is_host() else 1
+
+
+## Which road a set of votes elects. `votes` is voter id -> road id.
+##
+## Static and free of the screen, the party and the network on purpose: the rule
+## for settling a fork is the part that has to be *identical* everywhere and the
+## part worth testing, and neither is true of a function that needs a live socket
+## and a built UI to call. `crossroad_vote_check` drives this directly.
+##
+## Ties go to the host - not because the host deserves the road, but because a
+## tie has to break the same way on every machine, and the host is the only
+## participant every machine agrees exists. A tie the host did not vote in falls
+## to the first road that reached the winning count, which is the only other
+## ordering all machines share.
+static func winning_road(votes: Dictionary) -> String:
+	if votes.is_empty():
+		return ""
+	var tally: Dictionary = {}
+	for voter: Variant in votes:
+		var road: String = String(votes[voter])
+		tally[road] = int(tally.get(road, 0)) + 1
+
+	var best: String = ""
+	var best_count: int = -1
+	# Iterated over the votes rather than the tally so "first to reach the count"
+	# means first *cast*, which every machine sees in the same order.
+	for voter: Variant in votes:
+		var road: String = String(votes[voter])
+		if int(tally[road]) > best_count:
+			best = road
+			best_count = int(tally[road])
+	if votes.has(HOST_VOTER):
+		var host_road: String = String(votes[HOST_VOTER])
+		if int(tally.get(host_road, 0)) == best_count:
+			return host_road
+	return best
+
+
+func _tally() -> Dictionary:
+	var out: Dictionary = {}
+	for voter: Variant in _votes:
+		var road: String = String(_votes[voter])
+		out[road] = int(out.get(road, 0)) + 1
+	return out
+
+
+func _publish_tally() -> void:
+	var tally: Dictionary = _tally()
+	var voters: int = _expected_voters()
+	_show_tally(tally, voters)
+	var relay: CoopRelay = Coop.relay()
+	if relay != null:
+		relay.road_votes(tally, voters)
+
+
+## Settles the fork on the votes cast.
+##
+## Ties go to the host. Not because the host deserves the road, but because a
+## tie has to break the same way on every machine and the host is the only
+## participant every other machine agrees exists - and it is already the one that
+## declares the fork and owns the seeded stream the offers came from. A tie with
+## no host vote falls to the first road that reached the tied count, which is
+## the only other ordering all machines share.
+func _resolve_votes() -> void:
+	if _resolving or _votes.is_empty():
+		return
+	var best: String = winning_road(_votes)
+	if best.is_empty():
+		return
+	var difficulty: String = String(_vote_difficulty.get(best, ""))
+	_vote_left = 0.0
+	_votes.clear()
+	# Announced before it is applied, so every screen closes on the same result
+	# rather than a frame later with the road already changed under it.
+	EventBus.coop_road_chosen.emit(best, difficulty)
+	_apply_choice(best, difficulty)
+
+
+## A guest voted. Host side.
+##
+## `voter` is the transport id the request arrived on, so four players cast four
+## votes and one player clicking four times casts one. It was ignored entirely
+## while the fork was first-click-wins, because a single click ended the question.
+func accept_road_request(road_id: String, difficulty_id: String, voter: int = 0) -> void:
 	if not is_open() or _resolving:
 		return
-	_flash_partner_pick(road_id)
-	_choose(road_id, difficulty_id)
+	cast_vote(voter, road_id, difficulty_id)
 
 
 ## The guest asked for the relic. Host side.
@@ -599,3 +726,36 @@ func _flash_partner_pick(picked_id: String) -> void:
 	fade.tween_property(mark, "position", mark.position - Vector2(0.0, 34.0), 0.9)		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	fade.tween_property(mark, "modulate:a", 0.0, 0.9).set_delay(0.35)
 	fade.chain().tween_callback(mark.queue_free)
+
+
+## Runs down the fork's patience. Host side only - a guest counts nothing,
+## because the host is the one that settles it and two clocks would disagree.
+func _tick_vote(delta: float) -> void:
+	if _vote_left <= 0.0 or _resolving or not Coop.is_host():
+		return
+	_vote_left -= delta
+	if _vote_left <= 0.0:
+		_resolve_votes()
+
+
+## Paints the running count onto the road cards.
+##
+## Shown on every machine, including the one that is only watching: the point of
+## counting votes rather than racing clicks is that the party can see where the
+## party stands before it is decided.
+func _show_tally(tally: Dictionary, voters: int) -> void:
+	for id: Variant in _buttons:
+		var button: Button = _buttons[id] as Button
+		if button == null or not is_instance_valid(button):
+			continue
+		var count: int = int(tally.get(String(id), 0))
+		var base: String = String(button.get_meta("vote_base_text", button.text))
+		if not button.has_meta("vote_base_text"):
+			button.set_meta("vote_base_text", base)
+		button.text = base if count <= 0 else "%s   (%d/%d)" % [base, count, voters]
+
+
+func _on_coop_road_votes(tally: Dictionary, voters: int) -> void:
+	if not is_open():
+		return
+	_show_tally(tally, voters)

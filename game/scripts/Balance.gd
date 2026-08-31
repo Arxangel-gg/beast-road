@@ -2519,6 +2519,13 @@ const VFX_BUILD_SHAKE: float = 4.0
 const VFX_BOSS_PHASE_SHAKE: float = 11.0
 
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
+## How long a fork waits for everyone before settling on the votes it has.
+##
+## A vote that needs every player is a vote one idle player can hold the run
+## hostage with - somebody walks away from the keyboard and the beast never moves
+## again. The timer is the answer to that and nothing else: with everyone
+## present and answering it never fires.
+const CROSSROAD_VOTE_SECONDS: float = 25.0
 const VFX_SLASH_LIFE: float = 0.16
 ## The blade rides a little inside the wedge's outer edge, so the arc still
 ## reads as the reach and the weapon reads as being held rather than thrown.
