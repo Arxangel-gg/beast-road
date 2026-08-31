@@ -1515,6 +1515,20 @@ const WILDLIFE_BITE_BY_ACT: Array[float] = [0.6, 0.85, 1.0]
 ## has no business moving on account of a phase, and re-goaling every predator
 ## every Preparation would read as the wilderness politely clearing the room.
 ## [TUNE]
+## How far from the city a wild animal may first appear.
+##
+## **Not the foliage margin.** Wildlife inherited the rule that keeps plants off
+## the town - 340 units, which is a reed's distance and nothing like an animal's.
+## Deer and wolves arrived close enough to the base to read as attacking it, and
+## a predator that noticed the hero standing there was on them immediately.
+##
+## Out past the build grid's inner half instead, which puts arrivals among the
+## treeline rather than on the doorstep - the forest is where animals come from,
+## and it is off the edge of what the player is watching. They may still walk in
+## afterwards; that is a journey the player can see, not a spawn on top of them.
+## [TUNE]
+const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
+
 const WILDLIFE_TOWN_SPACE: float = 520.0
 
 

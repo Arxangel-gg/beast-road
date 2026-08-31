@@ -1099,9 +1099,18 @@ func _wander_from(home: Vector2, kind: WildlifeData) -> Vector2:
 ## A place to arrive at, or zero when the field is too built up to find one.
 func _clear_point() -> Vector2:
 	var span: float = Balance.WILDLIFE_FIELD_SPAN
-	for _attempt: int in 12:
-		var candidate := Vector2(_rng.randf_range(-span, span),
-			_rng.randf_range(-span, span) * 0.66)
+	var floor_out: float = Balance.WILDLIFE_SPAWN_CLEARANCE
+	for _attempt: int in 18:
+		# **A ring, not the whole field.** Sampling the square uniformly put most
+		# candidates near the middle, which is the town - so animals arrived on
+		# the doorstep and the rejects were wasted attempts. Drawing an angle and
+		# a distance outside the clearance puts arrivals where animals come from,
+		# out among the trees and off the edge of what the player is watching.
+		var angle: float = _rng.randf() * TAU
+		var reach: float = _rng.randf_range(floor_out, span)
+		var candidate := Vector2(cos(angle) * reach, sin(angle) * reach * 0.66)
+		if candidate.length() < floor_out:
+			continue
 		if _is_clear(candidate):
 			return candidate
 	return Vector2.ZERO
@@ -1112,7 +1121,12 @@ func _clear_point() -> Vector2:
 ## Asked of the grid rather than measured against lane centre lines: the lanes
 ## bend, and a centre-line test would let a deer graze in the middle of a U-turn.
 func _is_clear(point: Vector2) -> bool:
-	if point.length() < Balance.TOWN_RADIUS + Balance.FOLIAGE_TOWN_MARGIN:
+	# The town keeps an animal's distance, not a plant's. This used to be the
+	# foliage margin, which is 340 units - close enough that a deer read as
+	# standing in the city and a wolf that noticed the hero there was already on
+	# them. Every placement path runs through here, including the social spread
+	# that puts the rest of a pack down.
+	if point.length() < Balance.WILDLIFE_SPAWN_CLEARANCE:
 		return false
 	if grid == null:
 		return true
