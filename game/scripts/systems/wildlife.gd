@@ -953,7 +953,7 @@ func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 ## Heard rather than hunted. Wildlife stays out of the enemy group - towers would
 ## shoot rabbits and waves would never end - so the hero's blow is picked up from
 ## the bus and resolved here, where it cannot reach the combat systems at all.
-func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
+func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, _step: int) -> void:
 	# The host decides what died, like everything else that pays out. A guest
 	# swinging kills nothing locally and is told what happened.
 	if Coop.is_guest():

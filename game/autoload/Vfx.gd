@@ -773,15 +773,13 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 ## actually swung, which fixes a second bug in the same breath - the aim used to
 ## come from the first node in the hero group, and with four heroes on the field
 ## that is whichever one happens to be first.
-func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
-	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[0]
-	# Reach identifies the chain step, which is what decides how the arc reads.
-	for step: int in Balance.HERO_ATTACK_RANGE.size():
-		if is_equal_approx(Balance.HERO_ATTACK_RANGE[step], reach):
-			arc = Balance.HERO_ATTACK_ARC_DEGREES[step]
-			break
-	var finisher: bool = is_equal_approx(reach,
-		Balance.HERO_ATTACK_RANGE[Balance.HERO_CHAIN_LENGTH - 1])
+func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> void:
+	# The step is told, not inferred. It used to be recovered by matching `reach`
+	# against the range table, which a weapon's own reach scale defeats
+	# completely - every swing would have read as a first step.
+	var index: int = clampi(step, 0, Balance.HERO_ATTACK_ARC_DEGREES.size() - 1)
+	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[index]
+	var finisher: bool = index >= Balance.HERO_CHAIN_LENGTH - 1
 	slash(at, aim, reach, arc,
 		Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
 	var blade: Array = _worn_blade()

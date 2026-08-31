@@ -33,6 +33,7 @@ func _ready() -> void:
 	var old_ranged: String = RunState.ranged_id
 
 	_test_unarmed_draws_nothing()
+	_test_weapon_variety()
 	await _test_blade_sweep()
 	await _test_bow_loose()
 
@@ -52,6 +53,32 @@ func _ready() -> void:
 	else:
 		push_error("[weapon-vfx] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
+
+
+## Weapon character is bought with cadence, never given away.
+##
+## Working rule 7 keeps hero power on one capped scale: gear grants attribute
+## points, not raw stats. A weapon that simply reached further would be raw
+## power under another name, and the cap would stop meaning anything. So reach
+## and swing speed must multiply to 1 - a maul reaches and is slow, a short
+## blade is quick and must be close, and over a second neither out-damages the
+## other. This is the assertion that keeps it that way; without it the pair
+## would drift into a stat line one tuning pass at a time.
+func _test_weapon_variety() -> void:
+	var weapons: int = 0
+	var reaches: Dictionary = {}
+	for kind: GearData in ContentDB.gear_kinds.values():
+		if kind.slot != GearData.Slot.WEAPON:
+			continue
+		weapons += 1
+		reaches[kind.reach_scale] = true
+		var product: float = kind.reach_scale * kind.swing_scale
+		_check(absf(product - 1.0) < 0.01,
+			"%s reaches %.2f and swings %.2f, which is %.3f of a baseline weapon - reach must be paid for"
+				% [kind.id, kind.reach_scale, kind.swing_scale, product])
+	_check(weapons >= 2, "there must be more than one weapon for variety to mean anything")
+	_check(reaches.size() >= 2,
+		"every weapon reaches the same distance, so the slot is a stat and not a choice")
 
 
 ## An empty weapon slot still swings. It must not swing a phantom.
@@ -75,7 +102,7 @@ func _test_blade_sweep() -> void:
 
 	var aim := Vector2.RIGHT
 	var reach: float = Balance.HERO_ATTACK_RANGE[0]
-	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach)
+	EventBus.hero_swing_resolved.emit(Vector2.ZERO, aim, reach, 0)
 	await get_tree().process_frame
 
 	var blades: Array[Sprite2D] = _sprites()

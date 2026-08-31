@@ -30,6 +30,18 @@ enum Slot { WEAPON, ARMOUR, CHARM }
 ## Earliest campaign tier that may drop it, by order.
 @export var min_tier: int = 0
 
+## How far this weapon reaches, and how fast it swings, against the baseline.
+##
+## **Deliberately zero-sum: the product of the two is 1.** Working rule 7 keeps
+## hero power on one capped scale - gear grants attribute points, never raw
+## stats - and a weapon that simply reached further would be raw power wearing a
+## different word. These two are not power. A maul reaches and is slow, a short
+## blade is quick and must be close, and neither out-damages the other over a
+## second; what changes is which fight each one wants. `weapon_variety_check`
+## holds the product to 1, so this cannot quietly become a stat line.
+@export_range(0.5, 2.0) var reach_scale: float = 1.0
+@export_range(0.5, 2.0) var swing_scale: float = 1.0
+
 
 func slot_name() -> String:
 	match slot:

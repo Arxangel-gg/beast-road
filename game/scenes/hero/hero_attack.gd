@@ -77,6 +77,31 @@ func _swiftness_scale() -> float:
 	return 1.0 / (1.0 + float(points) * Balance.HERO_SWIFTNESS_ATTACK_PER_POINT)
 
 
+## The weapon in hand, or null when the slot is empty. Read per swing rather
+## than cached: equipment cannot change mid-combat, so there is nothing to gain
+## by holding a copy, and a copy is one more thing that can go stale.
+func _weapon() -> GearData:
+	var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+	if piece.is_empty():
+		return null
+	return ContentDB.gear(String(piece.get("kind", "")))
+
+
+## How far this swing reaches, as a multiplier. A bare fist is the baseline.
+func reach_scale() -> float:
+	var weapon: GearData = _weapon()
+	return 1.0 if weapon == null else weapon.reach_scale
+
+
+## How much faster the weapon swings. Folded into the same phase scale as
+## Swiftness, and for the same reason: every phase moves together, because
+## shortening the recovery alone would make the swing read as faster without
+## the telegraph shortening with it.
+func _weapon_scale() -> float:
+	var weapon: GearData = _weapon()
+	return 1.0 if weapon == null else 1.0 / maxf(weapon.swing_scale, 0.01)
+
+
 func is_swinging() -> bool:
 	return _phase == Phase.WINDUP or _phase == Phase.ACTIVE
 
@@ -124,10 +149,10 @@ func _advance_phase() -> void:
 	match _phase:
 		Phase.WINDUP:
 			_phase = Phase.ACTIVE
-			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale()
+			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale() * _weapon_scale()
 		Phase.ACTIVE:
 			_phase = Phase.RECOVERY
-			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale()
+			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale() * _weapon_scale()
 		Phase.RECOVERY:
 			_phase = Phase.READY
 			_phase_left = 0.0
@@ -140,7 +165,7 @@ func _advance_phase() -> void:
 func _begin_swing(step: int, aim: Vector2) -> void:
 	_step = clampi(step, 0, Balance.HERO_CHAIN_LENGTH - 1)
 	_phase = Phase.WINDUP
-	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale()
+	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale() * _weapon_scale()
 	_swing_aim = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	_buffer_left = 0.0
 	_chain_left = 0.0
@@ -152,7 +177,7 @@ func _begin_swing(step: int, aim: Vector2) -> void:
 
 
 func _strike() -> void:
-	var reach: float = Balance.HERO_ATTACK_RANGE[_step]
+	var reach: float = Balance.HERO_ATTACK_RANGE[_step] * reach_scale()
 	var half_arc: float = deg_to_rad(Balance.HERO_ATTACK_ARC_DEGREES[_step] * 0.5)
 	var damage: float = Balance.HERO_ATTACK_DAMAGE[_step] * damage_multiplier
 	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * Modifiers.multiplier(Modifiers.KNOCKBACK)
@@ -183,7 +208,7 @@ func _strike() -> void:
 	# Announced whether or not it connected, and *before* the early return: a
 	# swing that touched no enemy is still a swing, and something small standing
 	# in front of the hero should know about it.
-	EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach)
+	EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach, _step)
 	if hits == 0:
 		return
 	landed.emit(_step, hits, _swing_origin)

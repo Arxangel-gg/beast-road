@@ -92,7 +92,11 @@ signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
 ## is not in the enemy group - towers would shoot rabbits and waves would never
 ## end - so hunting listens for this instead, and a swing at a rabbit standing
 ## alone in a field emitted nothing at all until it existed.
-signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float)
+## `step` is the chain index. It used to be inferred by matching `reach`
+## against `Balance.HERO_ATTACK_RANGE`, which stopped working the moment a
+## weapon could scale the reach - the arc silently fell back to the first
+## step's and the finisher never flashed.
+signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int)
 
 ## The host put an animal on the field and gave it an identity.
 signal coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2)
