@@ -259,6 +259,13 @@ jobs:
           # hand when touching crowd separation; do not re-add it here until
           # somebody knows what the Linux failure actually is.
           # check "crowd" --headless --path game res://tools/crowd_check.tscn
+          #
+          # night_check is absent for a different and better reason: it reads
+          # pixels, and the runners are headless. Run headless it sampled the
+          # dummy renderer, got null from every grab, measured nothing and
+          # printed PASS - it refuses now instead. Run it on a machine with a
+          # renderer, without --headless, when touching lighting or torches:
+          #   godot --path game res://tools/night_check.tscn
           check "party reach" --headless --path game res://tools/party_reach_check.tscn
           check "projectile tiers" --headless --path game res://tools/projectile_tier_check.tscn
           # GDD §57 makes "no unreviewed enslavement language ships" a release

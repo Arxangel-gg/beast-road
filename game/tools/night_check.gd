@@ -97,9 +97,22 @@ func _ready() -> void:
 
 	var frames: Array[Image] = []
 	for _f: int in SETTLE_FRAMES:
-		frames.append(get_viewport().get_texture().get_image())
+		var shot: Image = _grab()
+		if shot != null:
+			frames.append(shot)
 		await get_tree().process_frame
-	_measure(frames, run.battlefield, enemy)
+	# **Refuses rather than passes when it cannot see.** Run headless this gate
+	# read from the dummy renderer, which has no textures: `texture_2d_get`
+	# returned null two dozen times, `_measure` was handed an empty array, and it
+	# printed PASS having measured nothing at all. A brightness check that cannot
+	# sample a pixel has to say so - this is the same failure that let the
+	# discipline rotation ship, an assertion satisfied by the absence of data.
+	if frames.is_empty():
+		_failures += 1
+		printerr("[night] FAIL: no frame could be captured - this gate needs a real "
+			+ "renderer, so run it without --headless")
+	else:
+		_measure(frames, run.battlefield, enemy)
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -283,3 +296,15 @@ func _world_to_image_scale() -> float:
 	var viewport: Viewport = get_viewport()
 	var transform: Transform2D = viewport.get_screen_transform() * viewport.get_canvas_transform()
 	return (transform.x.length() + transform.y.length()) * 0.5
+
+
+## One frame, or null when the renderer cannot give one.
+##
+## The dummy renderer used headless answers `get_texture()` with a texture whose
+## image is null, so this has to be checked rather than assumed - assuming it is
+## exactly how the gate came to pass on nothing.
+func _grab() -> Image:
+	var texture: ViewportTexture = get_viewport().get_texture()
+	if texture == null:
+		return null
+	return texture.get_image()
