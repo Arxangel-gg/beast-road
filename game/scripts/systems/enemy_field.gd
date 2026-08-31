@@ -232,7 +232,16 @@ func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:
 		var enemy := node as Enemy
 		if enemy == null or enemy.is_dying():
 			continue
-		if enemy.global_position.distance_squared_to(point) <= radius_squared:
+		# **Measured to the body, not the feet.** Depth sorting moved the enemy
+		# node down to its ground contact point, and everything that asks "what
+		# is near here" is asking about the body - a swing, an arrow, a tower's
+		# target, a blast. Measuring to the feet made attacks miss unless they
+		# were aimed at the floor, which is exactly how it was reported.
+		#
+		# Fixed here rather than at each caller because this is the one
+		# broadphase they all share: towers, spells, arrows, barricades,
+		# companions and wildlife every one of them arrive through this list.
+		if enemy.combat_origin().distance_squared_to(point) <= radius_squared:
 			found.append(enemy)
 	return found
 

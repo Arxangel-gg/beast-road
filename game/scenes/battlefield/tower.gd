@@ -424,7 +424,7 @@ func _nearest_enemy(at: Vector2) -> Enemy:
 	var best: Enemy = null
 	var best_distance: float = Balance.COOP_SHOT_MATCH_RANGE
 	for enemy: Enemy in _field.enemies_near(at, Balance.COOP_SHOT_MATCH_RANGE):
-		var distance: float = enemy.global_position.distance_to(at)
+		var distance: float = enemy.combat_origin().distance_to(at)
 		if distance < best_distance:
 			best_distance = distance
 			best = enemy

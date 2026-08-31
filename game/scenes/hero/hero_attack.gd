@@ -165,7 +165,9 @@ func _strike() -> void:
 		var id: int = enemy.get_instance_id()
 		if _hit_ids.has(id):
 			continue
-		var to: Vector2 = enemy.global_position - _swing_origin
+		# The body, not the feet - see `EnemyField.enemies_near`. A swing arc
+		# measured to the floor meant aiming at an enemy's chest missed them.
+		var to: Vector2 = enemy.combat_origin() - _swing_origin
 		var distance: float = to.length()
 		if distance > reach + enemy.contact_radius():
 			continue

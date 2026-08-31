@@ -719,11 +719,31 @@ func _pick_target() -> Node2D:
 	return town
 
 
+## How far this one can hit, and **exactly what its ring shows**.
+##
+## The ring used to be `aura_radius` while the shot travelled
+## `ENEMY_RANGED_RANGE` plus the target's own radius - so a Howler drew a circle
+## of 210 and reached the town from beyond 500. A telegraph that lies is worse
+## than no telegraph: the player reads it, stands outside it, and dies anyway.
+##
+## One number now, drawn and obeyed. Where a ranged breed authored an aura, that
+## aura *is* its reach - the circle was always what the player was reading.
+func attack_reach() -> float:
+	if data.role != EnemyData.Role.HOWLER:
+		return Balance.ENEMY_ATTACK_RANGE + contact_radius()
+	var authored: float = data.aura_radius
+	return (authored if authored > 0.0 else Balance.ENEMY_RANGED_RANGE) 		+ contact_radius()
+
+
+## Whether the ring touches the target.
+##
+## Measured body-to-surface: from this one's centre - not its feet, which is
+## where the node has sat since depth sorting moved it - to the nearest point of
+## the target. A big target is in reach when the circle reaches its edge, which
+## is what the circle looks like it means.
 func _in_reach(target: Node2D) -> bool:
-	var attack_range: float = Balance.ENEMY_RANGED_RANGE \
-		if data.role == EnemyData.Role.HOWLER else Balance.ENEMY_ATTACK_RANGE
-	var reach: float = attack_range + contact_radius() + _field.target_radius(target)
-	return global_position.distance_to(target.global_position) <= reach
+	var gap: float = combat_origin().distance_to(target.global_position) 		- _field.target_radius(target)
+	return gap <= attack_reach()
 
 
 func _strike() -> void:
@@ -731,10 +751,9 @@ func _strike() -> void:
 		return
 	# Re-checked at the moment of the blow, slightly generously: stepping out
 	# during the wind-up is supposed to work, but not by a single pixel.
-	var attack_range: float = Balance.ENEMY_RANGED_RANGE \
-		if data.role == EnemyData.Role.HOWLER else Balance.ENEMY_ATTACK_RANGE
-	var reach: float = (attack_range + contact_radius() + _field.target_radius(_target)) * 1.15
-	if global_position.distance_to(_target.global_position) > reach:
+	var gap: float = combat_origin().distance_to(_target.global_position) \
+		- _field.target_radius(_target)
+	if gap > attack_reach() * 1.15:
 		return
 	# An animal has no Health node - the wildlife system owns those numbers - so
 	# the blow is handed back to whoever owns it rather than applied here.
@@ -1191,9 +1210,15 @@ func _build_aura_readout() -> void:
 	if data.aura_radius <= 0.0:
 		return
 	var ring := Line2D.new()
+	# **Centred on the body, not the feet.** Depth sorting moved the node down to
+	# the ground contact point; a ring drawn at local zero since then has sat a
+	# sprite-height below the thing it describes.
+	var centre := Vector2(0.0, -_depth_lift)
+	# The radius is the reach, so the circle and the rule are the same number.
+	var shown: float = attack_reach() if data.role == EnemyData.Role.HOWLER 		else data.aura_radius
 	var points: PackedVector2Array = []
 	for i: int in 49:
-		points.append(Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * data.aura_radius)
+		points.append(centre + Vector2.RIGHT.rotated(TAU * float(i) / 48.0) * shown)
 	ring.points = points
 	ring.width = 2.0
 	ring.default_color = Color(0.95, 0.42, 0.22, 0.22)

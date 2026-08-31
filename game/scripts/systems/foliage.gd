@@ -219,6 +219,14 @@ var _bands: Array[FoliageBand] = []
 ## every one using the same texture, material and visibility switch.
 var _shadow_layer: FoliageShadowLayer = null
 
+## Painted plants, held individually because each sorts on its own.
+var _painted_plants: Array[Sprite2D] = []
+
+## Where a painted plant's origin sits inside its art, as a fraction of height.
+## Just above the bottom edge, matching the treeline, so a plant and a tree and a
+## hero are all compared by the pixel that touches the ground.
+const PAINTED_ANCHOR: float = 0.94
+
 ## The density this scatter was built at, so a re-scatter only happens on change.
 var _scattered_at: float = -1.0
 var _clump_count: int = 0
@@ -243,6 +251,10 @@ func scatter() -> void:
 	for node: Node2D in _bands:
 		if is_instance_valid(node):
 			node.queue_free()
+	for plant: Sprite2D in _painted_plants:
+		if is_instance_valid(plant):
+			plant.queue_free()
+	_painted_plants.clear()
 	if _shadow_layer != null and is_instance_valid(_shadow_layer):
 		_shadow_layer.queue_free()
 	_bands.clear()
@@ -394,6 +406,37 @@ func _is_clear(point: Vector2) -> bool:
 	return true
 
 
+## A painted plant as its own sprite, sorted by where it meets the ground.
+##
+## **Not batched into the band.** Bands quantise depth: every plant in one sorts
+## at the band's edge, so with 32 of them across the field a plant could sit up
+## to a tile from where it actually stands - and a hero walking through a verge
+## was drawn behind plants they were clearly in front of. That is the whole of
+## the reported bug, and no amount of extra bands makes it exact.
+##
+## The blades stay banded, because they are ground cover: they are low, there are
+## hundreds of them, and a tile of error on something at ankle height is not
+## visible. It is the plants the eye stops on that have to be right.
+##
+## Anchored just above the bottom edge, exactly like a tree trunk, so the
+## comparison against a character is bottom-pixel to bottom-pixel.
+func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
+		flip: bool) -> void:
+	var parent: Node2D = host if host != null else self
+	var plant := Sprite2D.new()
+	plant.texture = art
+	plant.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	plant.add_to_group(Graphics.FILTER_GROUP)
+	plant.material = Foliage.painted_material()
+	plant.offset = Vector2(0.0, -float(art.get_height()) * PAINTED_ANCHOR)
+	plant.position = at
+	plant.scale = Vector2.ONE * plant_scale
+	plant.modulate = tint
+	plant.flip_h = flip
+	parent.add_child(plant)
+	_painted_plants.append(plant)
+
+
 func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 		ground: bool, span: float) -> void:
 	var band: FoliageBand = _band_for(at.y, span)
@@ -434,7 +477,7 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 			var tint: Color = Color.WHITE.lerp(_plant_colour(style, rng),
 				Balance.FOLIAGE_PAINTED_TINT)
 			var plant_scale: float = scale * rng.randf_range(0.62, 0.92)
-			band.add_plant(art, local, plant_scale, tint, rng.randf() < 0.5)
+			_add_painted(art, at, plant_scale, tint, rng.randf() < 0.5)
 			# **Flowers come in patches.** One flower standing alone in a field
 			# reads as a mistake; three or four together read as a place where
 			# something grows. Only flowers, because a patch of four boulders
@@ -449,7 +492,7 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 						rng.randf_range(-0.45, 0.45) * Balance.FOLIAGE_FLOWER_CLUSTER_SPREAD)
 					# Each one its own size, or a patch reads as one sprite
 					# stamped several times - which is what it is.
-					band.add_plant(art, local + spread,
+					_add_painted(art, at + spread,
 						plant_scale * rng.randf_range(0.68, 1.06), tint,
 						rng.randf() < 0.5)
 
