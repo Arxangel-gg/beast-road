@@ -156,6 +156,10 @@ static var _wind_material: ShaderMaterial = null
 static var _painted_material: ShaderMaterial = null
 static var _canopy_material: ShaderMaterial = null
 
+## One wind material per painted kind, so a fern and a bush can disagree about
+## how much they move. Keyed by the suffix `kind_of` reads off the sprite name.
+static var _kind_materials: Dictionary = {}
+
 ## Idle sequences, keyed by the plant sprite's own path.
 ##
 ## Cached because a populated field holds hundreds of plants drawn from a dozen
@@ -187,6 +191,39 @@ static func painted_material() -> ShaderMaterial:
 	if _painted_material == null:
 		_painted_material = _make_material(1.0, Balance.FOLIAGE_SWAY_REACH_PAINTED)
 	return _painted_material
+
+
+## The material for one painted kind, bending by however much that kind should.
+##
+## One material per kind rather than per plant: a field holds hundreds of plants
+## drawn from about a dozen kinds, so this is a dozen materials and a dozen
+## parameter writes when the weather turns - the same cost the single shared
+## material had, with the tuning the single material could not express.
+##
+## A kind with no sway at all - a rock, a log - gets no material and keeps its
+## texture perfectly still, which is cheaper than a shader that multiplies by
+## zero and is what a prop should do.
+static func kind_material(kind: String) -> ShaderMaterial:
+	var scale: float = float(Balance.FOLIAGE_KIND_SWAY.get(kind, 1.0))
+	if scale <= 0.0:
+		return null
+	if not _kind_materials.has(kind):
+		_kind_materials[kind] = _make_material(1.0,
+			Balance.FOLIAGE_SWAY_REACH_PAINTED * scale)
+	return _kind_materials[kind]
+
+
+## The kind suffix of a plant sprite, from `plant_<region>_<kind>.png` or
+## `prop_<kind>.png`. Empty for a region's own plant, which is the baseline.
+static func kind_of(path: String) -> String:
+	var name: String = path.get_file().get_basename()
+	if name.begins_with("prop_"):
+		return name.substr(5)
+	if not name.begins_with("plant_"):
+		return ""
+	var rest: String = name.substr(6)
+	var cut: int = rest.find("_")
+	return "" if cut < 0 else rest.substr(cut + 1)
 
 
 ## The material for trees, which had no motion at all.
@@ -234,8 +271,11 @@ static func set_wind(weather: WeatherData) -> void:
 	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
 	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
 	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES
-	for material: ShaderMaterial in [wind_material(), painted_material(),
-			canopy_material()]:
+	var reached: Array[ShaderMaterial] = [wind_material(), painted_material(),
+		canopy_material()]
+	for kind: Variant in _kind_materials:
+		reached.append(_kind_materials[kind] as ShaderMaterial)
+	for material: ShaderMaterial in reached:
 		material.set_shader_parameter("sway_degrees", degrees)
 		material.set_shader_parameter("sway_speed", speed)
 		material.set_shader_parameter("wind_bias", bias)
@@ -511,7 +551,9 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	plant.texture = art
 	plant.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	plant.add_to_group(Graphics.FILTER_GROUP)
-	plant.material = Foliage.painted_material()
+	# The kind decides how hard it leans - a fern whips, a bush barely breathes,
+	# a rock does not move and gets no material at all.
+	plant.material = Foliage.kind_material(Foliage.kind_of(art.resource_path))
 	plant.offset = Vector2(0.0, -float(art.get_height()) * PAINTED_ANCHOR)
 	plant.position = at
 	plant.scale = Vector2.ONE * plant_scale

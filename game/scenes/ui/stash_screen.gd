@@ -120,6 +120,11 @@ func _refresh() -> void:
 		_list.add_child(_row(index))
 
 
+## Big enough that a 128px icon still reads at a glance, small enough that a
+## full stash does not turn into a gallery.
+const ICON_SIZE: float = 44.0
+
+
 func _row(index: int) -> HBoxContainer:
 	var piece: Dictionary = MetaState.stash[index]
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
@@ -127,6 +132,23 @@ func _row(index: int) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 8)
 
 	var is_worn: bool = int(MetaState.equipped.get(kind.slot if kind else -1, -1)) == index
+
+	# **The icon, which this list never had.** Every gear kind has authored art at
+	# `icons/ui/ui_<id>.png` - the same file the blade in the hero's hand is drawn
+	# from - and the stash showed none of it, so a screen full of loot read as a
+	# spreadsheet. Tinted by rarity so the tier is legible before the text is.
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if kind != null:
+		var art: String = kind.get_sprite_path()
+		if ResourceLoader.exists(art):
+			icon.texture = load(art) as Texture2D
+		icon.modulate = Stash.rarity_colour(piece).lerp(Color.WHITE, 0.45)
+		icon.tooltip_text = kind.description
+	row.add_child(icon)
 
 	var label := Label.new()
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -140,6 +162,8 @@ func _row(index: int) -> HBoxContainer:
 			ATTRIBUTE_NAMES[clampi(kind.attribute, 0, ATTRIBUTE_NAMES.size() - 1)],
 			"   ◆ worn" if is_worn else ""]
 		label.tooltip_text = kind.description
+		label.add_theme_color_override("font_color",
+			Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.35))
 	row.add_child(label)
 
 	var equip := Button.new()

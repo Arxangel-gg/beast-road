@@ -733,6 +733,16 @@ func _road_direction() -> Vector2:
 	#
 	# Asking "am I past the end of this leg" cannot be missed, however wide the
 	# column runs or however hard something was knocked sideways.
+	#
+	# **Re-anchored first when something has thrown it clear of the road.** The
+	# advance below only ever moves forward, so a body knocked hard - a finisher,
+	# a Tremor, a boss shove - kept aiming at the waypoint it had been walking
+	# to, which after a big displacement can be behind it or across a bend. It
+	# walked diagonally back over ground the road does not cover. Finding the
+	# nearest point on the route instead is both shorter and correct: it is the
+	# same decision a person makes when they are knocked off a path.
+	_reanchor_if_thrown(path)
+
 	while _path_index < path.size() - 1:
 		var from: Vector2 = path[_path_index]
 		var segment: Vector2 = path[_path_index + 1] - from
@@ -752,6 +762,49 @@ func _road_direction() -> Vector2:
 	var aim: Vector2 = path[_path_index + 1] + leg.normalized().orthogonal() * _lane_offset
 	var toward: Vector2 = aim - global_position
 	return toward.normalized() if toward.length() > 1.0 else leg.normalized()
+
+
+## Snaps the route cursor to whichever leg this body is actually nearest.
+##
+## Only when it is properly off the road: a formation holds a lateral offset of
+## up to half a lane width by design, and re-anchoring on that would fight the
+## column's own shape every frame. The threshold is what separates "walking wide
+## around a corner" from "thrown into the trees".
+func _reanchor_if_thrown(path: PackedVector2Array) -> void:
+	if path.size() < 2:
+		return
+	# **Measured against the leg being followed, not the nearest one.** Gating on
+	# the nearest leg is the same mistake in a different shape: a body standing
+	# exactly on the first leg while its cursor still says the eighth is as lost
+	# as a body can be, and its distance to the nearest leg is zero. What decides
+	# whether it is thrown is how far it is from the road it thinks it is on.
+	var following: int = clampi(_path_index, 0, path.size() - 2)
+	var strayed: float = _distance_to_leg(path[following], path[following + 1])
+	if strayed < Balance.ENEMY_REANCHOR_DISTANCE:
+		return
+
+	var nearest: int = following
+	var nearest_distance: float = INF
+	for index: int in path.size() - 1:
+		var distance: float = _distance_to_leg(path[index], path[index + 1])
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest = index
+	# Never rewind past ground already walked *unless* the nearest leg really is
+	# behind: an enemy shoved backwards should re-enter the road behind itself
+	# rather than sprinting to a waypoint it has passed, but one merely knocked
+	# wide must not lose the progress it made.
+	_path_index = nearest
+
+
+## Distance from this body to a single leg of the route.
+func _distance_to_leg(from: Vector2, to: Vector2) -> float:
+	var segment: Vector2 = to - from
+	var length_squared: float = segment.length_squared()
+	if length_squared <= 0.01:
+		return global_position.distance_to(from)
+	var along: float = clampf((global_position - from).dot(segment) / length_squared, 0.0, 1.0)
+	return global_position.distance_to(from + segment * along)
 
 
 func current_speed() -> float:
@@ -1409,6 +1462,24 @@ func _build_rank_mark() -> void:
 		polish.set_shader_parameter("outline_colour", Color(tint, 0.95))
 		polish.set_shader_parameter("outline_strength",
 			1.0 if rank == Rank.ELITE else 0.88)
+		# **The band moves.** A flat coloured line said "this one is promoted"
+		# and nothing else; a glow that licks and breathes says it is dangerous,
+		# which is the thing the player actually needs to read across a field.
+		# Champions burn wider and slower than elites - at the same speed the two
+		# are one effect at two volumes, and the eye separates rhythm long before
+		# it separates colour.
+		var champion: bool = rank != Rank.ELITE
+		polish.set_shader_parameter("aura_colour", Color(tint, 1.0))
+		polish.set_shader_parameter("aura_strength",
+			Balance.RANK_AURA_STRENGTH_CHAMPION if champion
+				else Balance.RANK_AURA_STRENGTH_ELITE)
+		polish.set_shader_parameter("aura_speed",
+			Balance.RANK_AURA_SPEED_CHAMPION if champion
+				else Balance.RANK_AURA_SPEED_ELITE)
+		polish.set_shader_parameter("aura_width",
+			Balance.RANK_AURA_WIDTH_CHAMPION if champion
+				else Balance.RANK_AURA_WIDTH_ELITE)
+		polish.set_shader_parameter("aura_scale", Balance.RANK_AURA_SCALE)
 
 	_mark = Line2D.new()
 	var radius: float = float(sprite.texture.get_width()) * sprite.scale.x * 0.46

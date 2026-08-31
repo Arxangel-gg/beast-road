@@ -105,6 +105,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/weapon_vfx_check.tscn
           run_godot_clean --headless --path game res://tools/crossroad_vote_check.tscn
           run_godot_clean --headless --path game res://tools/save_guard_check.tscn
+          run_godot_clean --headless --path game res://tools/reanchor_check.tscn
           run_godot_clean --headless --path game res://tools/discipline_check.tscn
           run_godot_clean --headless --path game res://tools/raid_suspend_check.tscn
           run_godot_clean --headless --path game res://tools/seed_reproduction_check.tscn
@@ -442,6 +443,34 @@ jobs:
           echo 'beastroad.arxangel.gg' > build/web/CNAME
 
           test -s build/web/index.wasm
+
+          # **The Download button, injected rather than authored.** The page is
+          # Godot's own exported shell - written at export time and overwritten
+          # by every build - so there is no index.html in the repository to add
+          # a button to. Patching it here keeps the button in one place instead
+          # of forking the shell.
+          #
+          # The href is the releases/latest/download alias, which GitHub resolves
+          # to the newest release's asset, so it never needs updating. It is added
+          # whether or not an APK exists yet: the Android build is a separate
+          # workflow that may not have run, and a button that 404s is better than
+          # a publish step that fails because an asset is missing.
+          apk="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/BeastRoad.apk"
+          {
+            printf '<a id="br-apk" href="%s" rel="noopener" style="' "$apk"
+            printf 'position:fixed;right:14px;bottom:14px;z-index:99;'
+            printf 'font:600 14px/1 system-ui,sans-serif;color:#f2e6cd;'
+            printf 'background:rgba(24,26,32,.88);border:1px solid #6c5a3a;'
+            printf 'border-radius:8px;padding:11px 15px;text-decoration:none;'
+            printf 'box-shadow:0 2px 10px rgba(0,0,0,.45)">Download for Android</a>'
+          } > /tmp/br-apk.html
+          # Inserted *before* the closing body tag. `sed r` appends after the
+          # matched line, which puts the anchor outside the document - browsers
+          # reparent it, but only by forgiving the mistake. awk reads the file in
+          # whole, so nothing in the markup needs escaping either way.
+          awk 'index($0,"</body>") && !done { while ((getline line < "/tmp/br-apk.html") > 0) print line; done=1 } { print }'             build/web/index.html > build/web/index.patched
+          mv build/web/index.patched build/web/index.html
+          grep -q "br-apk" build/web/index.html
 
       - name: Upload the Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -476,14 +476,16 @@ by having files dropped in and stops animating by having them removed. Foliage
 reads them through `GameData.load_idle_frames` and falls back to the shader sway
 alone when a sequence is absent, which is a supported state rather than a gap.
 
-**Only the ferns have one, and that is a finding rather than a shortfall.** Every
-kind was generated and looked at on a contact sheet. At 64×40 the generator moves
-what is already drawn — fronds shift and ripple and the silhouette holds. At
-32×40 it does not move a flower, it *invents* one: the desert blossom sprouted
-cream-coloured growths that are not part of the plant, and the desert flower grew
-extra petals and lost them again. Those were discarded rather than shipped. A
-flower's motion comes from the wind shader, which bends what is drawn and cannot
-add to it.
+**Every kind except the flowers has one, and that exception is a finding rather
+than a shortfall.** All of them were generated and looked at on a contact sheet.
+At 48×64 and above the generator moves what is already drawn — fronds ripple,
+branches shift, snow settles, and the silhouette holds. At 32×40 it does not move
+a flower, it *invents* one: the desert blossom sprouted cream-coloured growths
+that are not part of the plant, and the desert flower grew extra petals and lost
+them again. Those were discarded rather than shipped — twice, the second time
+with the loop pinned. A flower's motion comes from the wind shader, which bends
+what is drawn and cannot add to it, and the shader leans a flower harder than a
+bush precisely because it is the flower's only motion.
 
 Generated with the source pinned as **both** endpoints, exactly as the tower idle
 frames are, and for the same reason: left open-ended the sequence drifts and the
@@ -502,6 +504,33 @@ is only the loop target.
 | `plant_desert_fern_idle_01.png` | 64×40 | T | `#6E5B3C` |
 | `plant_desert_fern_idle_02.png` | 64×40 | T | `#6E5B3C` |
 | `plant_desert_fern_idle_03.png` | 64×40 | T | `#6E5B3C` |
+| `plant_jungle_shrub_idle_01.png` | 56×64 | T | `#2E3A33` |
+| `plant_jungle_shrub_idle_02.png` | 56×64 | T | `#2E3A33` |
+| `plant_jungle_shrub_idle_03.png` | 56×64 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_01.png` | 64×56 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_02.png` | 64×56 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_03.png` | 64×56 | T | `#2E3A33` |
+| `plant_jungle_idle_01.png` | 48×64 | T | `#2E3A33` |
+| `plant_jungle_idle_02.png` | 48×64 | T | `#2E3A33` |
+| `plant_jungle_idle_03.png` | 48×64 | T | `#2E3A33` |
+| `plant_snow_shrub_idle_01.png` | 56×64 | T | `#7C8A96` |
+| `plant_snow_shrub_idle_02.png` | 56×64 | T | `#7C8A96` |
+| `plant_snow_shrub_idle_03.png` | 56×64 | T | `#7C8A96` |
+| `plant_snow_bush_idle_01.png` | 64×56 | T | `#7C8A96` |
+| `plant_snow_bush_idle_02.png` | 64×56 | T | `#7C8A96` |
+| `plant_snow_bush_idle_03.png` | 64×56 | T | `#7C8A96` |
+| `plant_snow_idle_01.png` | 48×64 | T | `#7C8A96` |
+| `plant_snow_idle_02.png` | 48×64 | T | `#7C8A96` |
+| `plant_snow_idle_03.png` | 48×64 | T | `#7C8A96` |
+| `plant_desert_shrub_idle_01.png` | 56×64 | T | `#6E5B3C` |
+| `plant_desert_shrub_idle_02.png` | 56×64 | T | `#6E5B3C` |
+| `plant_desert_shrub_idle_03.png` | 56×64 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_01.png` | 64×56 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_02.png` | 64×56 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_03.png` | 64×56 | T | `#6E5B3C` |
+| `plant_desert_idle_01.png` | 48×64 | T | `#6E5B3C` |
+| `plant_desert_idle_02.png` | 48×64 | T | `#6E5B3C` |
+| `plant_desert_idle_03.png` | 48×64 | T | `#6E5B3C` |
 
 **Generated with the loop pinned to its own first frame.** Left open-ended, the
 generator does not produce an idle at all — it produces *growth*: the first pass

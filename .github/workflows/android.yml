@@ -1,0 +1,128 @@
+name: Android
+
+# **Deliberately its own workflow, not a job inside Release.**
+#
+# The Android export is the one target that cannot be verified before it runs:
+# it needs the Android SDK, a JDK and Godot's Android export templates, none of
+# which exist on the machine this was written on. A wrong preset key or a missing
+# template therefore shows up here for the first time - and if that lived inside
+# the release pipeline, getting it wrong would stop the game shipping at all.
+#
+# Here it can go red on its own, attach nothing, and leave the Windows, web and
+# launcher builds untouched. It also skips itself cleanly when the signing
+# secrets are absent, so the repository keeps releasing normally until somebody
+# adds them.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.1
+  ANDROID_PRESET: Android
+
+jobs:
+  apk:
+    name: Build the APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Checked before anything expensive, and reported as a notice rather than
+      # a failure: an unsigned repository has not done anything wrong, it simply
+      # has not been given a key yet. See docs/ANDROID.md.
+      - name: Do we have a signing key
+        id: key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Android::No ANDROID_KEYSTORE_BASE64 secret, so no APK was built. See docs/ANDROID.md."
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java
+        if: steps.key.outputs.have == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up the Android SDK
+        if: steps.key.outputs.have == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Godot and its Android export templates
+        if: steps.key.outputs.have == 'true'
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          unzip -q templates.tpz -d /tmp/templates
+          mv /tmp/templates/templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+      # Godot finds the SDK through its editor settings, which do not exist on a
+      # runner - so they are written here rather than assumed.
+      - name: Point Godot at the SDK
+        if: steps.key.outputs.have == 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+          export/android/debug_keystore = ""
+          export/android/debug_keystore_user = ""
+          export/android/debug_keystore_pass = ""
+          EOF
+
+      - name: Restore the signing key
+        if: steps.key.outputs.have == 'true'
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/keys"
+          # Written outside the workspace so it cannot be picked up by an export
+          # filter or committed by a later step.
+          echo "$KEYSTORE" | base64 -d > "$HOME/keys/release.keystore"
+          test -s "$HOME/keys/release.keystore"
+
+      - name: Import assets
+        if: steps.key.outputs.have == 'true'
+        run: godot --headless --path game --import
+
+      - name: Export the APK
+        if: steps.key.outputs.have == 'true'
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /home/runner/keys/release.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/android
+          godot --headless --path game --export-release "$ANDROID_PRESET" \
+            ../build/android/BeastRoad.apk
+          test -s build/android/BeastRoad.apk
+          ls -la build/android
+
+      - name: Attach the APK to the release
+        if: steps.key.outputs.have == 'true' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "${GITHUB_REF_NAME}" build/android/BeastRoad.apk --clobber

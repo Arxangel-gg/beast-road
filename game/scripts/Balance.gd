@@ -2526,6 +2526,27 @@ const VFX_BOSS_PHASE_SHAKE: float = 11.0
 ## again. The timer is the answer to that and nothing else: with everyone
 ## present and answering it never fires.
 const CROSSROAD_VOTE_SECONDS: float = 25.0
+## How far off its route a body must be before it re-enters at the nearest leg
+## rather than walking back to the waypoint it was heading for.
+##
+## Comfortably wider than a lane's own lateral spread: a column holds an offset
+## of up to half a lane width on purpose, and re-anchoring on that would fight
+## the formation's shape every frame. This is the distance that means *thrown*.
+const ENEMY_REANCHOR_DISTANCE: float = 260.0
+## How brightly a promoted body burns, and how fast the band moves over it.
+##
+## A champion is not merely a brighter elite: it is slower and wider, because at
+## equal speed the two read as the same thing at different volumes. The eye
+## separates them on rhythm long before it reads a colour.
+const RANK_AURA_STRENGTH_ELITE: float = 1.35
+const RANK_AURA_STRENGTH_CHAMPION: float = 1.9
+const RANK_AURA_SPEED_ELITE: float = 1.35
+const RANK_AURA_SPEED_CHAMPION: float = 0.85
+const RANK_AURA_WIDTH_ELITE: float = 5.5
+const RANK_AURA_WIDTH_CHAMPION: float = 8.0
+## Noise cells across the sprite. Fewer, larger cells read as flame; many small
+## ones read as static crawling on the silhouette.
+const RANK_AURA_SCALE: float = 6.5
 const VFX_SLASH_LIFE: float = 0.16
 ## The blade rides a little inside the wedge's outer edge, so the arc still
 ## reads as the reach and the weapon reads as being held rather than thrown.
@@ -3188,6 +3209,37 @@ const FOLIAGE_SWAY_REACH_CANOPY: float = 3.4
 ## this is a plant breathing under the shader's bend, not a creature moving, and
 ## it is also the rate at which any texture is reassigned at all.
 const FOLIAGE_IDLE_FRAME_RATE: float = 4.5
+## How far each painted kind bends, as a multiplier on the painted reach.
+##
+## **Tuned per foliage type rather than per material.** One number for every
+## painted plant meant a fern and a boulder-sized bush leaned by the same amount,
+## which reads as wrong in opposite directions: the fern looked stiff and the
+## bush looked like it was about to fall over. Thin things with long leaves move
+## most; dense masses barely move at all; props do not move, which is what a zero
+## here means and why rocks are listed.
+##
+## Keyed by the kind suffix in the sprite name - `plant_<region>_<kind>.png` -
+## so a new kind is a row here and a file on disk, never a branch in Foliage.
+const FOLIAGE_KIND_SWAY: Dictionary = {
+	"fern": 1.35,      # long fronds, the most mobile thing on the ground
+	"flower": 1.15,    # a light head on a thin stem
+	"blossom": 1.10,
+	"shrub": 0.75,     # woody, and only the tips move
+	"bush": 0.55,      # a dense mass; it breathes rather than sways
+	"": 1.0,           # the region's own plant, the baseline
+	"rock": 0.0,       # props do not move at all
+	"boulder": 0.0,
+	"log": 0.0,
+	"stump": 0.0,
+	"bones": 0.0,
+	"wreckage": 0.0,
+	"mushrooms": 0.35,
+	"reeds": 1.5,      # the most mobile thing in the set
+	"wildflower_01": 1.2,
+	"wildflower_02": 1.2,
+	"wildflower_03": 1.2,
+	"wildflower_04": 1.2,
+}
 
 ## Foliage moves slowly enough that 30 transform updates per second are visually
 ## continuous, while updating hundreds of off-road clumps at the render rate
