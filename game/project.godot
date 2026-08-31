@@ -204,3 +204,15 @@ revive={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+; Required for an Android export - Godot refuses the preset outright without it,
+; which is what the first real APK build failed on:
+;
+;   ETC2/ASTC texture compression is required for Android export.
+;
+; It adds an ETC2/ASTC variant alongside the desktop one for any texture
+; imported with VRAM compression. This project's art is pixel art imported
+; lossless, so almost nothing is VRAM compressed and the cost is close to
+; nothing - but it is a real import setting, so every texture is re-imported
+; once when it changes.
+rendering_device/vram_compression/import_etc2_astc=true
