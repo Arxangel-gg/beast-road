@@ -1527,6 +1527,42 @@ const WILDLIFE_BITE_BY_ACT: Array[float] = [0.6, 0.85, 1.0]
 ## and it is off the edge of what the player is watching. They may still walk in
 ## afterwards; that is a journey the player can see, not a spawn on top of them.
 ## [TUNE]
+## How much the quiver holds, counted in ammunition bulk.
+##
+## One number rather than a capacity per family, because the player carries one
+## quiver and the interesting decision is *what* fills it - forty plain arrows,
+## or twelve blast bolts and room for nothing else. [TUNE]
+## How close an arrow has to pass to count as a hit.
+##
+## Generous, and deliberately so. A bow aimed with a thumb on a phone cannot be
+## pixel-accurate, and a shot that visibly passes through a body without
+## registering reads as the game cheating rather than as the player missing.
+## [TUNE]
+## How far in front of the hero a shot appears.
+##
+## Clear of their own body, so an arrow never looks like it spawned inside the
+## person firing it. [TUNE]
+## Arrows handed over with a first bow.
+##
+## Enough to form an opinion with and not enough to live on. A bow and no
+## ammunition is a bow the player cannot evaluate; a bow and forty arrows is a
+## bow that never has to be fed. [TUNE]
+## How often something worth killing leaves a plan behind.
+##
+## Elites are a prospect and bosses are close to a promise. Ordinary breeds drop
+## none at all: a recipe that falls out of a Bogkin is not a discovery, it is a
+## grind with a certificate. [TUNE]
+const BLUEPRINT_ELITE_CHANCE: float = 0.18
+const BLUEPRINT_BOSS_CHANCE: float = 0.85
+
+const RANGED_STARTING_SHOTS: int = 12
+
+const HERO_ARROW_MUZZLE: float = 38.0
+
+const HERO_ARROW_HIT_RADIUS: float = 34.0
+
+const AMMO_CAPACITY: int = 48
+
 const WILDLIFE_SPAWN_CLEARANCE: float = 1000.0
 
 const WILDLIFE_TOWN_SPACE: float = 520.0

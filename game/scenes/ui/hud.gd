@@ -191,6 +191,9 @@ var _currency_rows: Dictionary = {}
 ## The second line of run telemetry, which has to sit under the first however
 ## tall the first has become.
 var _journey_bar: HBoxContainer
+## Weapon, shots left and what is nocked. Null until a bow is found.
+var _quiver_row: HBoxContainer
+var _quiver_label: Label
 var _level: Label
 var _weather: Label
 var _distance: Label
@@ -410,6 +413,10 @@ func _ready() -> void:
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)
+	EventBus.ammo_changed.connect(func(_id: String, _held: int) -> void:
+		_refresh_quiver())
+	EventBus.blueprint_learned.connect(func(_id: String, _fresh: bool) -> void:
+		_refresh_quiver())
 	EventBus.last_scar_changed.connect(func(_state: String) -> void:
 		_refresh_recovery_status())
 	EventBus.last_scar_resolved.connect(_on_last_scar_resolved)
@@ -576,6 +583,7 @@ func _build_top_bar() -> void:
 		_currency_rows[id] = resource_row
 	_size_top_bar()
 	_resources = _currency_labels.get(RunState.GOLD, null) as Label
+	_refresh_quiver()
 	# Journey telemetry gets a quiet second line. Keeping it out of this wide
 	# health row prevents four currencies from colliding with the boss tracker at
 	# 1920x1080 and gives every counter a stable place at narrower ratios.
@@ -589,6 +597,17 @@ func _build_top_bar() -> void:
 	var wave_row: HBoxContainer = IconKit.labelled("wave", "0", 15, 21)
 	for row: HBoxContainer in [distance_row, wave_row]:
 		journey_bar.add_child(row)
+	# The quiver, shown only once there is one.
+	#
+	# **Hidden until the hero is armed**, which is most of every run: a readout
+	# for a system the player has not met yet is clutter, and it also means the
+	# layout gates - which run a fresh, melee-only state - see exactly the HUD
+	# they saw before this existed.
+	_quiver_row = IconKit.labelled("gold", "", 15, 21)
+	_quiver_row.visible = false
+	journey_bar.add_child(_quiver_row)
+	_quiver_label = IconKit.label_of(_quiver_row)
+
 	_distance = IconKit.label_of(distance_row)
 	_wave = IconKit.label_of(wave_row)
 	var seed_label: Label = _label("SEED  " + RunState.seed_code(), 12)
@@ -1562,6 +1581,28 @@ func _place_preparation_panel() -> void:
 ## `UiMetrics` grows their type and cannot grow their marks - those are textures
 ## cut to a size at build time - so on a phone a 28px number sat beside a 24px
 ## icon and the whole strip read as small. Both move together here.
+## What the bow is carrying, or nothing at all.
+##
+## Reads the ammunition's own icon, so a Rime Arrow and an Ember Arrow are told
+## apart at a glance rather than by reading a word - which is the same reason the
+## currencies carry marks rather than labels.
+func _refresh_quiver() -> void:
+	if _quiver_row == null or _quiver_label == null:
+		return
+	var weapon := ContentDB.ranged_weapons.get(RunState.ranged_id, null) as RangedWeaponData
+	if weapon == null:
+		_quiver_row.visible = false
+		return
+	_quiver_row.visible = true
+	var kind := ContentDB.ammo_kinds.get(RunState.ammo_id, null) as AmmoData
+	if kind == null:
+		_quiver_label.text = "%s  ·  empty" % weapon.display_name
+		return
+	IconKit.resize_labelled(_quiver_row, kind.id,
+		TOP_BAR_ICON_TOUCH * _top_bar_room() if touch_ui() else TOP_BAR_ICON)
+	_quiver_label.text = "%d  %s" % [RunState.ammo_count(kind.id), kind.display_name]
+
+
 func _size_top_bar() -> void:
 	if _top_bar != null:
 		_top_bar.add_theme_constant_override("separation", 24 if touch_ui() else 32)

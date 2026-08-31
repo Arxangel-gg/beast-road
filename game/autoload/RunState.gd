@@ -345,6 +345,14 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	pending_road_relics.clear()
 	road_history.clear()
 
+	# **Ammunition is a run resource and resets with the run** (working rule 7).
+	# The *knowledge* of how to make it persists in MetaState; the arrows
+	# themselves do not, exactly like Gold. A quiver that carried over would make
+	# the first road of every later run trivial for anyone who stockpiled.
+	ammo.clear()
+	ranged_id = ""
+	ammo_id = ""
+
 	currencies = {
 		WOOD: Balance.STARTING_WOOD,
 		FOOD: Balance.STARTING_FOOD,
@@ -1203,6 +1211,118 @@ func spend_command(cost: float, order_id: String) -> bool:
 
 
 # --- Economy helpers --------------------------------------------------------
+
+# --- Ranged combat -----------------------------------------------------------
+#
+# Owner decision, 2026-08-31. Three pieces of run state and one rule.
+
+## Ammunition held, by ammo id. **Its own purse, not the four currencies and not
+## the stash.**
+##
+## Kept apart deliberately. Ammunition in the normal inventory would make every
+## arrow compete with loot for room, which is how players come to resent a system
+## meant to give them options - and a decision about arrows must never compete
+## with the wall about to be overrun, the same reasoning that keeps Marks off the
+## tower economy.
+var ammo: Dictionary = {}
+
+## What the hero has drawn, and what is nocked. Empty means melee only, which is
+## where every run starts.
+var ranged_id: String = ""
+var ammo_id: String = ""
+
+
+## How much room the quiver has left, counting each shot's bulk.
+##
+## Bulk is the whole of the scarcity model: no rarity tiers, no encumbrance, no
+## second currency. A quiver simply holds fewer bombs than arrows.
+func ammo_bulk_used() -> int:
+	var used: int = 0
+	for id: Variant in ammo.keys():
+		var kind := ContentDB.ammo_kinds.get(id, null) as AmmoData
+		if kind != null:
+			used += int(ammo[id]) * kind.bulk
+	return used
+
+
+func ammo_room() -> int:
+	return maxi(Balance.AMMO_CAPACITY - ammo_bulk_used(), 0)
+
+
+func ammo_count(id: String) -> int:
+	return int(ammo.get(id, 0))
+
+
+## Adds ammunition, refusing what will not fit. Returns how many actually went in.
+##
+## Refuses rather than silently discarding: a pickup that vanishes into a full
+## quiver reads as the game losing it.
+func gain_ammo(id: String, amount: int) -> int:
+	var kind := ContentDB.ammo_kinds.get(id, null) as AmmoData
+	if kind == null or amount <= 0:
+		return 0
+	var fits: int = ammo_room() / maxi(kind.bulk, 1)
+	var taken: int = mini(amount, fits)
+	if taken <= 0:
+		return 0
+	ammo[id] = ammo_count(id) + taken
+	EventBus.ammo_changed.emit(id, ammo_count(id))
+	return taken
+
+
+## Spends one shot. False when the quiver is empty, which is the caller's cue to
+## fall back rather than to fire nothing.
+func spend_one_ammo(id: String) -> bool:
+	var held: int = ammo_count(id)
+	if held <= 0:
+		return false
+	if held == 1:
+		ammo.erase(id)
+	else:
+		ammo[id] = held - 1
+	EventBus.ammo_changed.emit(id, ammo_count(id))
+	return true
+
+
+## The ammunition this weapon can fire, in a stable order, known recipes only.
+func ammo_for_weapon(weapon_id: String) -> Array[AmmoData]:
+	var out: Array[AmmoData] = []
+	var weapon := ContentDB.ranged_weapons.get(weapon_id, null) as RangedWeaponData
+	if weapon == null:
+		return out
+	var ids: Array = ContentDB.ammo_kinds.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind := ContentDB.ammo_kinds[id] as AmmoData
+		if kind != null and kind.family == weapon.family:
+			out.append(kind)
+	return out
+
+
+## Makes a batch. Returns "" on success, or the reason it refused.
+##
+## **Blueprint first, then cost, then room.** Checked in that order because they
+## are three different answers: one says learn it, one says gather more, and one
+## says you are already carrying as much as you can.
+func craft_ammo(id: String, batches: int = 1) -> String:
+	var kind := ContentDB.ammo_kinds.get(id, null) as AmmoData
+	if kind == null:
+		return "Nothing is made to that pattern."
+	if not kind.known_from_the_start and not MetaState.knows_recipe("ammo", id):
+		return "You do not know how to make %s." % kind.display_name
+	var runs: int = maxi(batches, 1)
+	var cost: Dictionary = {}
+	for currency_id: Variant in kind.craft_cost.keys():
+		cost[currency_id] = int(kind.craft_cost[currency_id]) * runs
+	if not can_afford_cost(cost):
+		return "Needs %s." % format_cost(cost)
+	var made: int = kind.craft_batch * runs
+	if ammo_room() < made * kind.bulk:
+		return "No room for that many %s." % kind.display_name
+	spend_cost(cost)
+	gain_ammo(id, made)
+	return ""
+
 
 func currency(id: String) -> int:
 	return int(currencies.get(id, 0))

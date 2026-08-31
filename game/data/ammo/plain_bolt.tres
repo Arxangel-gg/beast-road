@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plain_bolt"
+display_name = "Bolt"
+description = "Short, heavy, and unbothered by armour."
+family = "bolt"
+element = -1
+damage_scale = 1.0
+craft_batch = 8
+craft_cost = {
+"stone": 8,
+"wood": 6
+}
+bulk = 1

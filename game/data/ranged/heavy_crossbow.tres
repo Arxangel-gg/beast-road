@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RangedWeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ranged_weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "heavy_crossbow"
+display_name = "Heavy Crossbow"
+description = "Slow, loud, and it goes through two of them. Worth the wind-up when the road is a queue."
+family = "bolt"
+damage = 34.0
+draw_time = 1.45
+effective_range = 820.0
+projectile_speed = 1240.0
+pierce = 3
+knockback = 210.0
+draw_move_scale = 0.45

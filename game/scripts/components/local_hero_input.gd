@@ -47,6 +47,10 @@ func pressed(button: int) -> bool:
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if button == HeroInput.spell_button(slot):
 			return Input.is_action_just_pressed(&"spell_%d" % (slot + 1))
+	if button == BUTTON_RANGED:
+		return Input.is_action_just_pressed(&"ranged")
+	if button == BUTTON_AMMO_CYCLE:
+		return Input.is_action_just_pressed(&"ammo_cycle")
 	return false
 
 
@@ -84,6 +88,11 @@ func snapshot(current_aim: Vector2) -> Array:
 		buttons |= BUTTON_DASH
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		var bit: int = HeroInput.spell_button(slot)
+		if pressed(bit):
+			buttons |= bit
+	# Packed like every other button, so a guest's shot is the host's shot. A
+	# ranged attack that only existed locally would fire on one screen.
+	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE]:
 		if pressed(bit):
 			buttons |= bit
 	var holds: int = 0

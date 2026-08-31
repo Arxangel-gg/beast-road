@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_shortbow"
+display_name = "Plan: Shortbow"
+description = "A hunter drew this in charcoal on the back of a hide, then annotated it twice in a different hand."
+unlocks_kind = "ranged"
+unlocks_id = "shortbow"
+rarity = "common"
+source_line = "Left in a hunter's camp along the first road."

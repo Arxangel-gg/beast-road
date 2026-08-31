@@ -68,6 +68,14 @@ var unlocked_relics: Array[String] = []
 var unlocked_spells: Array[String] = []
 var unlocked_terrains: Array[String] = []
 
+## Recipes the player knows (owner decision, 2026-08-31).
+##
+## **In the `unlocked` block, because that is what a blueprint is.** Learning one
+## is permanent knowledge, exactly like a tower or a spell becoming available -
+## so it needs no new save shape and working rule 7 is untouched. A blueprint is
+## never an item, never consumed, and never sits in a bag once read.
+var unlocked_blueprints: Array[String] = []
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -208,6 +216,31 @@ var settings: Dictionary = {
 ## in the authored order, because a shop for one currency with one thing to buy
 ## is a menu standing in front of a decision nobody makes.
 ##
+## Learns a recipe. True when it was new, so the caller can announce it.
+##
+## Announcing matters more here than for most unlocks: a blueprint is the moment
+## the game promises your *next* run will be different, and a discovery that
+## slides past in a loot toast has not made that promise.
+func learn_blueprint(blueprint_id: String) -> bool:
+	if blueprint_id.is_empty() or unlocked_blueprints.has(blueprint_id):
+		return false
+	unlocked_blueprints.append(blueprint_id)
+	save_game()
+	return true
+
+
+## Whether a recipe is known. Ammunition marked `known_from_the_start` needs no
+## blueprint - a bow the player cannot feed is a bow they cannot evaluate.
+func knows_recipe(kind: String, recipe_id: String) -> bool:
+	for value: Variant in ContentDB.blueprints.values():
+		var plan := value as BlueprintData
+		if plan == null or plan.unlocks_kind != kind or plan.unlocks_id != recipe_id:
+			continue
+		return unlocked_blueprints.has(plan.id)
+	# No blueprint teaches it, so nothing is gating it.
+	return true
+
+
 ## Returns the tower ids unlocked, so the debrief can name them.
 func award_tools(act_reached: int, victory: bool) -> Array[String]:
 	var earned: int = Balance.TOOLS_PER_ACT * maxi(act_reached, 1)
@@ -288,6 +321,7 @@ func erase_progress() -> void:
 	unlocked_towers.clear()
 	unlocked_relics.clear()
 	unlocked_spells.clear()
+	unlocked_blueprints.clear()
 	unlocked_terrains.clear()
 	unlocked_buildings.clear()
 	resource_cache.clear()
@@ -673,6 +707,7 @@ func serialized_save() -> String:
 			"towers": unlocked_towers,
 			"relics": unlocked_relics,
 			"spells": unlocked_spells,
+			"blueprints": unlocked_blueprints,
 			"terrains": unlocked_terrains,
 			"buildings": unlocked_buildings,
 			"tools": tools,
@@ -763,6 +798,9 @@ func load_save() -> void:
 	_seed_starting_roster()
 	unlocked_relics = _string_array(unlocked.get("relics", []))
 	unlocked_spells = _string_array(unlocked.get("spells", []))
+	# Absent in saves written before 2026-08-31, which read as knowing nothing -
+	# correct, because those runs never had a blueprint to find.
+	unlocked_blueprints = _string_array(unlocked.get("blueprints", []))
 	unlocked_terrains = _string_array(unlocked.get("terrains", []))
 	unlocked_buildings = _string_array(unlocked.get("buildings", []))
 	act3_cleared = bool(unlocked.get("act3_cleared", false))

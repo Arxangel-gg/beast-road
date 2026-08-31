@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_blast_bolt"
+display_name = "Plan: Blast Bolt"
+description = "Clay, powder, and a sealing technique the author clearly died improving."
+unlocks_kind = "ammo"
+unlocks_id = "blast_bolt"
+rarity = "legendary"
+source_line = "Held by a chieftain who would not explain where it came from."

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rime_arrow"
+display_name = "Rime Arrow"
+description = "The head is a splinter of river ice that never finished melting. Whatever it touches slows."
+family = "arrow"
+element = 1
+damage_scale = 0.8
+slow_factor = 0.55
+slow_duration = 3.2
+craft_batch = 6
+craft_cost = {
+"stone": 10,
+"wood": 8
+}
+bulk = 2

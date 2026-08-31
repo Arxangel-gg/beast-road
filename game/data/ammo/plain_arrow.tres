@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plain_arrow"
+display_name = "Arrow"
+description = "Ash shaft, iron head. Nothing clever, always available."
+family = "arrow"
+element = -1
+damage_scale = 1.0
+craft_batch = 10
+craft_cost = {
+"wood": 6
+}
+bulk = 1
+known_from_the_start = true

@@ -36,6 +36,12 @@ var chronicle_objectives: Dictionary = {}
 var run_challenges: Dictionary = {}
 var recovery_drops: Dictionary = {}
 
+## Ranged combat and what feeds it (owner decision, 2026-08-31). Blueprints are
+## the knowledge; ammo and ranged weapons are what the knowledge makes.
+var ranged_weapons: Dictionary = {}
+var ammo_kinds: Dictionary = {}
+var blueprints: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -67,6 +73,9 @@ func _ready() -> void:
 	chronicle_objectives = _load_dir("res://data/objectives")
 	run_challenges = _load_dir("res://data/challenges")
 	recovery_drops = _load_dir("res://data/recovery_drops")
+	ranged_weapons = _load_dir("res://data/ranged")
+	ammo_kinds = _load_dir("res://data/ammo")
+	blueprints = _load_dir("res://data/blueprints")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData

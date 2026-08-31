@@ -48,6 +48,16 @@ const HOLD_REVIVE: int = 1 << 8
 ## a phone's right stick can continue a chain for as long as the thumb is down.
 const HOLD_ATTACK: int = 1 << 9
 
+## Ranged combat (owner decision, 2026-08-31).
+##
+## **Bit 12 and up, clear of both namespaces.** Bits 2 to 7 are spoken for by
+## spell slots and 8 to 11 by holds; putting a button in either range is the
+## collision the comment above is about, and it was found the hard way once
+## already. There is no shortage of bits, so the fix is to leave the ranges
+## alone rather than to reuse the gaps in them.
+const BUTTON_RANGED: int = 1 << 12
+const BUTTON_AMMO_CYCLE: int = 1 << 13
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

@@ -994,6 +994,15 @@ func take_mirrored_loot(net_id: int) -> void:
 			return
 
 
+## Puts a plan on the ground, on the same path as every other drop.
+func spawn_blueprint(plan_id: String, at: Vector2) -> void:
+	if plan_id.is_empty():
+		return
+	var drop := LootDrop.new()
+	drop.setup_blueprint(plan_id, at)
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
 func spawn_gear(piece: Dictionary, at: Vector2) -> void:
 	if piece.is_empty():
 		return

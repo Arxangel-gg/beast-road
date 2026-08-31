@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_heavy_crossbow"
+display_name = "Plan: Heavy Crossbow"
+description = "Siege drawings, scaled down by somebody who understood what they were shrinking."
+unlocks_kind = "ranged"
+unlocks_id = "heavy_crossbow"
+rarity = "rare"
+source_line = "Taken from the Rust Crown."

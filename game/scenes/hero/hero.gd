@@ -62,6 +62,12 @@ var _blood: ShaderMaterial = null
 var _blood_tried: bool = false
 @export var health_bar: HealthBar
 @export var spells: SpellCaster
+
+## The bow, when there is one. Built in code rather than exported from the scene
+## because a run starts melee-only and most of them stay that way - a node in
+## every hero scene for a weapon most heroes never pick up is a node that has to
+## be understood by everyone reading the scene.
+var ranged: HeroRanged = null
 @export var animator: SpriteAnimator
 
 ## Eight-direction frame playback. Null-safe throughout: a build with no sheets
@@ -95,6 +101,8 @@ var field: EnemyField = null:
 		field = value
 		if spells != null:
 			spells.field = value
+		if ranged != null:
+			ranged.field = value
 
 var _aim: Vector2 = Vector2.RIGHT
 
@@ -256,6 +264,14 @@ func _ready() -> void:
 	attack.landed.connect(_on_attack_landed)
 
 	spells.field = field
+
+	ranged = HeroRanged.new()
+	ranged.name = "Ranged"
+	ranged.hero = self
+	ranged.field = field
+	ranged.loosed.connect(_on_loosed)
+	ranged.dry.connect(func() -> void: EventBus.hero_out_of_ammo.emit())
+	add_child(ranged)
 	spells.hero = self
 	spells.blink_requested.connect(_on_blink)
 	spells.veil_requested.connect(_on_veil)
@@ -297,6 +313,14 @@ func _physics_process(delta: float) -> void:
 	# the map. It still costs its cooldown, so nothing is gained by spamming it.
 	if _beast_stun_left <= 0.0 and input.pressed(HeroInput.BUTTON_DASH):
 		_try_dash()
+	if ranged != null:
+		ranged.tick(delta)
+		if input.pressed(HeroInput.BUTTON_AMMO_CYCLE):
+			ranged.cycle_ammo()
+		# Gated behind the same `can_fight` as the swing: a bow is a weapon, and
+		# the phases that forbid fighting forbid all of it.
+		if combat_input and _beast_stun_left <= 0.0 				and input.pressed(HeroInput.BUTTON_RANGED):
+			ranged.request(_aim, global_position)
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if combat_input and _beast_stun_left <= 0.0 \
 				and input.pressed(HeroInput.spell_button(slot)):
@@ -321,6 +345,10 @@ func _physics_process(delta: float) -> void:
 		var movement_scale: float = attack.move_scale()
 		if input.held(HeroInput.HOLD_ATTACK) and not attack.is_swinging():
 			movement_scale *= Balance.TOUCH_AUTOATTACK_MOVE_SCALE
+		# Drawing slows the walk. Not a stop - standing still to shoot should be
+		# a decision the player feels making, not one the game makes for them.
+		if ranged != null:
+			movement_scale *= ranged.move_scale()
 		velocity = move_input * move_speed() * movement_scale
 	velocity += _lunge_velocity + _beast_impulse
 
@@ -447,6 +475,23 @@ func move_speed() -> float:
 	bonus += _veil_speed_bonus
 	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
+
+
+## Puts the hero's shot in the world.
+##
+## Parented to the battlefield rather than to the hero, so an arrow already in
+## the air is not recalled when its archer dies. The same reasoning the tower
+## uses for selling a tower mid-flight.
+func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
+	if field == null or ranged == null or not ranged.armed():
+		return
+	var arrow := HeroArrow.new()
+	arrow.launch(field, from + direction * Balance.HERO_ARROW_MUZZLE, direction,
+		ranged.weapon(), kind)
+	field.add_child(arrow)
+	_facing = direction
+	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
+	EventBus.hero_loosed.emit(from, direction, kind.id)
 
 
 ## Damage multiplier the attack chain applies to every swing.

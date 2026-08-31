@@ -28,6 +28,12 @@ var currency: String = ""
 var amount: int = 0
 var gear: Dictionary = {}
 
+## The plan this drop teaches, or "". Blueprints ride the ordinary loot path
+## rather than getting a system of their own: they scatter, glow, magnetise and
+## are picked up exactly like everything else, because a discovery the player has
+## to walk over is a discovery they notice.
+var blueprint: String = ""
+
 var _sprite: Sprite2D
 var _velocity: Vector2 = Vector2.ZERO
 var _life: float = 0.0
@@ -55,6 +61,22 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 	if currency == Balance.MENDER_SPARK_ID:
 		_glow_colour = Color(0.44, 0.96, 0.62, 0.72)
 		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+
+
+## A plan on the ground. Rarity drives the glow, so a legendary recipe announces
+## itself across the field the way a legendary weapon would.
+func setup_blueprint(plan_id: String, from: Vector2) -> void:
+	blueprint = plan_id
+	position = from
+	var plan := ContentDB.blueprints.get(plan_id, null) as BlueprintData
+	var rank: int = ["common", "uncommon", "rare", "legendary"].find(
+		plan.rarity if plan != null else "common")
+	_glow_colour = Balance.GEAR_RARITY_COLOURS[clampi(rank, 0,
+		Balance.GEAR_RARITY_COLOURS.size() - 1)]
+	_glow_colour.a = 0.62
+	_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	_velocity = Vector2.RIGHT.rotated(randf() * TAU) * randf_range(
+		Balance.LOOT_SCATTER_SPEED * 0.55, Balance.LOOT_SCATTER_SPEED * 1.15)
 
 
 func setup_gear(piece: Dictionary, from: Vector2) -> void:
@@ -288,6 +310,8 @@ func _collect(who: Hero = null) -> void:
 		Sfx.play_group("loot_collect")
 		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 		_burst()
+	elif not blueprint.is_empty():
+		_learn_it()
 	elif not gear.is_empty():
 		var result: Dictionary = MetaState.receive_gear(gear)
 		var stored: bool = bool(result.get("stored", false))
@@ -312,6 +336,49 @@ func _collect(who: Hero = null) -> void:
 		_burst()
 		EventBus.loot_collected.emit(currency, amount, global_position)
 	_dissolve_and_free()
+
+
+## Reads the plan, and hands over the first bow.
+##
+## **A weapon blueprint gives you the weapon.** Learning how to make a bow and
+## then being unable to hold one is a joke at the player's expense; a bow is one
+## object, not a batch, so knowing the plan and owning it are the same moment.
+## Ammunition works the other way round, which is the whole distinction: the
+## knowledge is permanent and the arrows are spent.
+func _learn_it() -> void:
+	var plan := ContentDB.blueprints.get(blueprint, null) as BlueprintData
+	if plan == null:
+		return
+	var fresh: bool = MetaState.learn_blueprint(plan.id)
+	if plan.unlocks_kind == "ranged" and RunState.ranged_id.is_empty():
+		RunState.ranged_id = plan.unlocks_id
+		# Enough to try it with. A first bow and no arrows is a first bow the
+		# player cannot form an opinion about.
+		var opener: AmmoData = _first_ammo_for(plan.unlocks_id)
+		if opener != null:
+			RunState.gain_ammo(opener.id, Balance.RANGED_STARTING_SHOTS)
+			RunState.ammo_id = opener.id
+	EventBus.preparation_warning.emit("%s  ·  %s" % [plan.display_name,
+		"recipe learned" if fresh else "already known"])
+	EventBus.blueprint_learned.emit(plan.id, fresh)
+	Sfx.play_group("loot_collect")
+	Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
+	_burst()
+
+
+## The plainest ammunition this weapon can fire, which is the one that needs no
+## plan of its own.
+func _first_ammo_for(weapon_id: String) -> AmmoData:
+	var weapon := ContentDB.ranged_weapons.get(weapon_id, null) as RangedWeaponData
+	if weapon == null:
+		return null
+	var ids: Array = ContentDB.ammo_kinds.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind := ContentDB.ammo_kinds[id] as AmmoData
+		if kind != null and kind.family == weapon.family and kind.known_from_the_start:
+			return kind
+	return null
 
 
 func _expire_special() -> void:

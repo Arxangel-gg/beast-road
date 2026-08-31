@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RangedWeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ranged_weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "shortbow"
+display_name = "Shortbow"
+description = "Fast to draw and honest about it. Reaches the archer at the back of a pack before the pack reaches you."
+family = "arrow"
+damage = 13.0
+draw_time = 0.62
+effective_range = 660.0
+projectile_speed = 980.0
+pierce = 1
+knockback = 70.0
+draw_move_scale = 0.72

@@ -28,6 +28,23 @@ signal hero_health_changed(current_hp: float, max_hp: float)
 ## One hero took damage; `at` keeps co-op feedback on the body that was hit.
 signal hero_damaged(amount: float, from: Vector2, at: Vector2)
 
+## How much of one ammunition the hero now holds. Cosmetic and HUD only; the
+## authoritative count lives on RunState.
+signal ammo_changed(ammo_id: String, held: int)
+
+
+## The hero loosed a shot. Presentation only - sound, and a co-op partner's
+## screen showing an arrow leave a bow it cannot see the ammunition of.
+signal hero_loosed(from: Vector2, direction: Vector2, ammo_id: String)
+
+## The trigger came down on an empty quiver. Said out loud, because a button
+## that does nothing reads as broken rather than as empty.
+signal hero_out_of_ammo()
+
+## A plan was read. `fresh` is false for one already known, so the interface can
+## say so rather than celebrating twice.
+signal blueprint_learned(blueprint_id: String, fresh: bool)
+
 ## The hero hit zero HP. The hero node handles its own respawn timer.
 signal hero_died(at: Vector2)
 

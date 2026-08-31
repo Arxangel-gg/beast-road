@@ -1123,6 +1123,32 @@ a non-square target just letterboxes the art and shrinks it.
 
 ---
 
+
+### 5.7e Ranged weapons — `res://art/ranged/`
+
+Owner decision, 2026-08-31. One icon per weapon. A blueprint needs no art of its
+own: it wears the icon of whatever it teaches, so adding a plan costs nothing
+here.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ranged_shortbow.png` | 128×128 | T | `#7A5A32` |
+| `ranged_heavy_crossbow.png` | 128×128 | T | `#5A5A5E` |
+
+### 5.7f Ammunition — `res://art/ammo/`
+
+Silhouette first. An Ember Arrow and a Rime Arrow are told apart at a glance in
+the quiver readout, which is the whole reason they carry marks rather than
+labels.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ammo_plain_arrow.png` | 128×128 | T | `#8A7B57` |
+| `ammo_ember_arrow.png` | 128×128 | T | `#B4471F` |
+| `ammo_rime_arrow.png` | 128×128 | T | `#6FA8C4` |
+| `ammo_plain_bolt.png` | 128×128 | T | `#6E6A60` |
+| `ammo_blast_bolt.png` | 128×128 | T | `#9C6A34` |
+
 ## 6. Subject prompts
 
 Drop each `SUBJECT` into the matching stem from §3.

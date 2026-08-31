@@ -47,6 +47,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Run-scoped hero power (v4 §974) | — | **DECIDED 2026-08-20: hero level, attributes and loot now persist. See below.** |
 | Co-op (v4 §54 cut) | cut for 1.0 | **DECIDED 2026-08-24: build two-player co-op. See below.** |
 | Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: a bounded purse. See below.** |
+| Ranged weapons, ammo, blueprints, crafting (not in v4) | absent from the spec | **DECIDED 2026-08-31: build them. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -115,6 +116,34 @@ pay for a tower, and a first tower must be affordable by wave 4. Any harness
 that wants to build without the economy being its subject must fund itself with
 `RunState.gain_every_currency` — three of them were silently leaning on the old
 390-Gold cache.
+
+**Ranged combat, ammunition, blueprints and crafting are in scope, as of
+2026-08-31.** None of them appears in v4. The owner asked for all four after
+being told they were outside the spec, which makes this an addition to the
+design rather than a misreading of it.
+
+What that buys, and what it costs, stated plainly so the next argument about it
+starts from the same place:
+
+- **The hero gains an answer at range.** Every fight currently resolves by
+  walking at something. A bow changes which enemy you deal with first, and that
+  is the whole reason to build it.
+- **Ammunition is the price.** Range without a cost is simply a better melee
+  attack, so ammo is a run resource that is spent, found and crafted. It is
+  *not* an inventory of stacks competing with loot — it has its own pool, per
+  the same reasoning that keeps Marks off the tower economy (working rule 7).
+- **Blueprints are permanent knowledge**, and the only thing in this group that
+  touches `MetaState`. They unlock *recipes*, and are covered by the existing
+  `unlocked` list rather than a new save shape — so working rule 7 is unchanged
+  and no new persistence was sanctioned by this decision.
+- **Crafting is bounded to what a blueprint names.** There is no research, no
+  recipe modification and no ingredient sprawl; the materials are the four run
+  currencies plus what enemies already drop.
+
+The bound worth defending is that **melee remains the reliable default**. If a
+run can be completed at range without ever closing, the trade this system exists
+to create has collapsed and the ammo economy is decoration. `balance_test` owns
+that question.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

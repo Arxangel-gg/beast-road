@@ -1012,6 +1012,7 @@ func _on_died(_from: Vector2) -> void:
 	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
 	_drop_loot()
 	_drop_gear()
+	_drop_blueprint()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 		if _field != null and _field.has_method("try_spawn_mender_spark"):
@@ -1097,6 +1098,38 @@ func _drop_gear() -> void:
 		RunState.rng("gear"))
 	if not piece.is_empty():
 		_field.spawn_gear(piece, global_position)
+
+
+## A plan, from something that was worth killing.
+##
+## **Only what is not already known**, and only from elites and bosses. A
+## blueprint the player has read is not a reward, and a common breed dropping
+## recipes would turn permanent knowledge into a grind - the whole appeal is that
+## a specific fight changed what your next run can do.
+##
+## Its own RNG stream, like gear, so adding a spark or retuning damage cannot
+## quietly rewrite what a boss teaches.
+func _drop_blueprint() -> void:
+	if _field == null or not (_field is Battlefield) 			or not _field.has_method("spawn_blueprint"):
+		return
+	var chance: float = 0.0
+	match data.category:
+		EnemyData.Category.ELITE:
+			chance = Balance.BLUEPRINT_ELITE_CHANCE
+		EnemyData.Category.BOSS:
+			chance = Balance.BLUEPRINT_BOSS_CHANCE
+	if chance <= 0.0 or RunState.rng("plans").randf() > chance:
+		return
+	var unread: Array[String] = []
+	var ids: Array = ContentDB.blueprints.keys()
+	ids.sort()
+	for id: Variant in ids:
+		if not MetaState.unlocked_blueprints.has(String(id)):
+			unread.append(String(id))
+	if unread.is_empty():
+		return
+	_field.spawn_blueprint(unread[RunState.rng("plans").randi() % unread.size()],
+		global_position)
 
 
 func _tick_death(delta: float) -> void:

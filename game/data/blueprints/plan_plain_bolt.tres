@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_plain_bolt"
+display_name = "Plan: Bolt"
+description = "Head, shaft, fletching, and the jig for making forty of them."
+unlocks_kind = "ammo"
+unlocks_id = "plain_bolt"
+rarity = "common"
+source_line = "Common knowledge, once somebody writes it down."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "blast_bolt"
+display_name = "Blast Bolt"
+description = "A sealed clay head that does not survive the impact, and neither does much else nearby."
+family = "bolt"
+element = 0
+damage_scale = 0.6
+blast_radius = 150.0
+craft_batch = 4
+craft_cost = {
+"gold": 26,
+"stone": 14
+}
+bulk = 3
