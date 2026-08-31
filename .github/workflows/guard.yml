@@ -234,6 +234,11 @@ jobs:
           # differently on two machines walks them down different roads, and a
           # vote waiting on everybody lets one idle player stall the run.
           check "crossroad vote" --headless --path game res://tools/crossroad_vote_check.tscn
+          # This gate existed and passed for months without any workflow
+          # running it, which is how the discipline rotation shipped offering
+          # three of twenty-seven nodes: every assertion asked for three
+          # unique offers and got three unique offers - the same three.
+          check "disciplines" --headless --path game res://tools/discipline_check.tscn
           check "party reach" --headless --path game res://tools/party_reach_check.tscn
           check "projectile tiers" --headless --path game res://tools/projectile_tier_check.tscn
           # GDD §57 makes "no unreviewed enslavement language ships" a release

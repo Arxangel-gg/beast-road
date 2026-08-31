@@ -534,9 +534,20 @@ func refresh_discipline_offers() -> void:
 			eligible.append(node)
 	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
 	# the panel, while the next road still produces a new set.
+	#
+	# **The seed goes in front of the id, not behind it.** Godot hashes a string
+	# by running a multiply-accumulate over its characters, so a *shared suffix*
+	# scales both operands by the same factor and leaves the sign of their
+	# difference intact: `hash(a + seed) < hash(b + seed)` gave the same ordering
+	# for almost every seed. Twenty-seven nodes rotated through three.
+	#
+	# Nothing noticed because every assertion asked for three unique offers and
+	# always got three unique offers - the same three. `discipline_check` counts
+	# how many distinct nodes the rotation can actually reach now.
+	var offer_seed: int = run_seed + segment * 97 + wave_number * 31 + act * 13
+	var stamp: String = str(offer_seed) + "|"
 	eligible.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
-		var offer_seed: int = run_seed + segment * 97 + wave_number * 31 + act * 13
-		return hash(a.id + str(offer_seed)) < hash(b.id + str(offer_seed)))
+		return hash(stamp + a.id) < hash(stamp + b.id))
 	for node: DisciplineNodeData in eligible:
 		if discipline_offers.size() >= 3:
 			break

@@ -29,6 +29,8 @@ func _ready() -> void:
 	_check(seen.size() == RunState.discipline_offers.size(),
 		"Mansion offers must not contain duplicates")
 
+	_test_every_node_can_be_offered()
+
 	var power: DisciplineNodeData = ContentDB.discipline_node("marrow_drain")
 	RunState.trained_discipline_nodes.append(power.id)
 	_check(not RunState.try_equip_discipline(power.id).is_empty(),
@@ -62,3 +64,62 @@ func _ready() -> void:
 func _check(condition: bool, failure: String) -> void:
 	if not condition:
 		_failures.append(failure)
+
+
+## Every authored node has to be reachable through the offer rotation.
+##
+## The tree is a *choice*: 27 nodes and a maxed hero trains eleven, drawn three
+## at a time from a deterministic per-road shuffle. That is a good shape, and it
+## has one silent failure - a node that the rotation never surfaces is content
+## nobody can take, and it looks exactly like a node nobody happened to pick.
+## Nothing else in the project would notice: the count assertion above sees it in
+## the data, the icon assertion below sees its art, and the offer assertion sees
+## three ids without caring which.
+##
+## Swept over roads rather than reasoned about, because the ordering is a hash
+## and hashes do not answer arguments.
+func _test_every_node_can_be_offered() -> void:
+	var before_seed: int = RunState.run_seed
+	var before_segment: int = RunState.segment
+	var before_wave: int = RunState.wave_number
+	var before_act: int = RunState.act
+	var before_trained: Array[String] = RunState.trained_discipline_nodes.duplicate()
+
+	# The Mansion at its ceiling, so tier is not what is excluding anything -
+	# that is the assertion below, and mixing the two would hide it.
+	RunState.building_tiers["sanctum"] = 3
+	RunState.trained_discipline_nodes = []
+
+	var offered: Dictionary = {}
+	for seed_index: int in 40:
+		RunState.run_seed = 1000 + seed_index * 7919
+		for segment: int in 12:
+			RunState.segment = segment
+			RunState.wave_number = segment * 3
+			RunState.act = 1 + (segment % 3)
+			RunState.refresh_discipline_offers()
+			for id: String in RunState.discipline_offers:
+				offered[id] = true
+
+	var missing: PackedStringArray = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if not offered.has(node.id):
+			missing.append(node.id)
+	_check(missing.is_empty(),
+		"never offered across 480 roads, so nobody can train them: %s"
+			% ", ".join(missing))
+	print("[discipline] %d of %d nodes reachable through the rotation"
+		% [offered.size(), ContentDB.discipline_nodes.size()])
+
+	# A tree the player can finish is a checklist, not a build.
+	RunState.hero_level = Balance.HERO_MAX_LEVEL
+	_check(RunState.discipline_cap() < ContentDB.discipline_nodes.size(),
+		"a maxed hero may train %d of %d nodes - at parity the tree stops being a choice"
+			% [RunState.discipline_cap(), ContentDB.discipline_nodes.size()])
+
+	RunState.run_seed = before_seed
+	RunState.segment = before_segment
+	RunState.wave_number = before_wave
+	RunState.act = before_act
+	RunState.trained_discipline_nodes = before_trained
+	RunState.refresh_discipline_offers()
