@@ -50,6 +50,20 @@ exports/
 # secrets into their own file; that one never gets committed.
 export_credentials.cfg
 
+# **Signing keys, wherever somebody puts them.**
+#
+# The Android release key is permanent - every future update must be signed with
+# the same one or Android refuses to install over the existing app - and a key in
+# a public repository is a key anybody can sign a fake Beast Road with. It was
+# briefly sitting untracked in APK_Secrets/, one `git add -A` away from being
+# published, which is why this matches by extension as well as by folder: the
+# next person will put it somewhere else.
+APK_Secrets/
+*.keystore
+*.jks
+*.b64
+keystore*
+
 # ------------------------------------------------------------------------------
 # Android / iOS build templates, only present if a mobile export is set up
 # ------------------------------------------------------------------------------

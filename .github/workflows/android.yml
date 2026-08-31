@@ -98,8 +98,23 @@ jobs:
           mkdir -p "$HOME/keys"
           # Written outside the workspace so it cannot be picked up by an export
           # filter or committed by a later step.
-          echo "$KEYSTORE" | base64 -d > "$HOME/keys/release.keystore"
+          #
+          # **All whitespace stripped before decoding.** The base64 is produced on
+          # a desktop and pasted into a secret by a person, so it arrives with
+          # whatever the editor left on it - Notepad appends a CRLF, and GNU
+          # `base64 -d` rejects a carriage return as a non-alphabet character
+          # rather than ignoring it. Stripping is free and turns a confusing
+          # "invalid input" into a non-event.
+          printf '%s' "$KEYSTORE" | tr -d '[:space:]' | base64 -d > "$HOME/keys/release.keystore"
           test -s "$HOME/keys/release.keystore"
+          # A PKCS12 or JKS keystore starts with a known magic; anything else
+          # means the secret is not a keystore at all - a truncated paste, or the
+          # wrong file - and saying so here beats a Gradle error ten minutes on.
+          magic=$(head -c 2 "$HOME/keys/release.keystore" | xxd -p)
+          case "$magic" in
+            3082|feed) echo "keystore looks well formed ($magic)" ;;
+            *) echo "::error title=Android::ANDROID_KEYSTORE_BASE64 did not decode to a keystore (starts $magic). Re-copy the base64; see docs/ANDROID.md."; exit 1 ;;
+          esac
 
       - name: Import assets
         if: steps.key.outputs.have == 'true'
