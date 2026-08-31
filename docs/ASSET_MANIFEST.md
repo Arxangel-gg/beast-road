@@ -676,10 +676,12 @@ able to tell at a glance whether the thing beside the road is a question or an
 answer.
 
 Each species also carries a **rarity** in its `.tres`, and the rarity is the
-thing the eye should be able to check. `wildlife_stag.png` is the harmless
-Legendary and `wildlife_bear.png` the hostile one, so both are drawn larger and
-stranger than their tier-mates: a player who sees one should know before being
-told that this is not a rabbit.
+thing the eye should be able to check. The Pale Stag is the harmless Legendary
+and the bear the hostile one, so both are drawn larger and stranger than their
+tier-mates: a player who sees one should know before being told that this is not
+a rabbit. Name them in prose rather than by filename here — the report parser
+reads every backticked path in this document as a listing, and a file mentioned
+twice fails the production-art gate.
 
 Facing here: the wolf, viper and hawk face left; the boar, bear and badger face
 right. Read off a 5x sheet *before* any dependent frame was generated, which is

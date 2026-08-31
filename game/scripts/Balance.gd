@@ -3156,6 +3156,11 @@ const FOLIAGE_MAX_SCALE: float = 2.35
 ## Sway. Degrees of lean, and how fast the wind moves. [TUNE]
 const FOLIAGE_SWAY_DEGREES: float = 5.5
 const FOLIAGE_SWAY_SPEED: float = 1.15
+## How much of its own phase each blade keeps, in turns. At 0 the field moves as
+## one travelling wave, which is what it did; at 1 every blade is independent and
+## the meadow stops reading as wind at all. A little under half keeps the gust
+## legible while breaking up the lockstep.
+const FOLIAGE_PHASE_JITTER: float = 0.42
 
 ## How far a blade's tip travels at full lean, in world units.
 const FOLIAGE_SWAY_REACH: float = 34.0

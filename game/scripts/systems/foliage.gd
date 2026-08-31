@@ -120,6 +120,15 @@ uniform float root_at_top = 0.0;
 // sway alone reads as agitated calm, which is not the same picture.
 uniform float wind_bias = 0.0;
 
+// How much of its own phase each blade gets, in turns.
+//
+// The travelling wave below is a function of position, so neighbours were
+// always within a hair of each other's phase and a clump moved as one object.
+// Real undergrowth does not. UV.x carries a per-blade random number - it was
+// hardcoded to 0.5 and read by nothing, which is why there is no new vertex
+// attribute here - and this decides how far that number is allowed to push.
+uniform float phase_jitter = 0.0;
+
 void vertex() {
 	// Root to tip. Zero at the base means the plant stays where it grew.
 	float up = mix(UV.y, 1.0 - UV.y, root_at_top);
@@ -127,7 +136,12 @@ void vertex() {
 	// One travelling wave over the field, plus a slow gust that swells and eases
 	// so the whole meadow breathes rather than every blade fidgeting on its own
 	// clock.
-	float phase = TIME * sway_speed + (VERTEX.x + VERTEX.y) * 0.012;
+	// Painted plants are pinned to the middle of the range rather than reading
+	// UV.x: their UVs come from a texture rect, so U runs 0..1 across the
+	// sprite and using it here would shear one plant into two phases.
+	float own = mix(UV.x, 0.5, root_at_top);
+	float phase = TIME * sway_speed + (VERTEX.x + VERTEX.y) * 0.012
+		+ own * phase_jitter * TAU;
 	float gust = 0.6 + 0.4 * sin(TIME * gust_speed);
 	float lean = sin(phase) * radians(sway_degrees) * gust + radians(wind_bias);
 
@@ -192,6 +206,7 @@ static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
 	material.set_shader_parameter("sway_speed", Balance.FOLIAGE_SWAY_SPEED)
 	material.set_shader_parameter("sway_reach", reach)
 	material.set_shader_parameter("root_at_top", root_at_top)
+	material.set_shader_parameter("phase_jitter", Balance.FOLIAGE_PHASE_JITTER)
 	return material
 
 
@@ -711,14 +726,28 @@ class FoliageBand extends Node2D:
 			highest = minf(highest, point.y)
 		var reach: float = maxf(lowest - highest, 0.001)
 
+		# U is the blade's own phase, V is its sway weight. U was a constant 0.5
+		# that nothing read; giving each blade a number here is what stops a
+		# clump moving as one piece, and it costs no extra vertex data.
+		var own_phase: float = _phase_for(at)
 		for point: Vector2 in shape:
 			points.append(transform * point)
-			uvs.append(Vector2(0.5,
+			uvs.append(Vector2(own_phase,
 				clampf((lowest - point.y) / reach, 0.0, 1.0) if sways else 0.0))
 
 		_shapes.append(points)
 		_uvs.append(uvs)
 		_colours.append(colour)
+
+	## A stable 0..1 phase for a blade rooted here.
+	##
+	## Derived from the position rather than drawn from an rng so that a field
+	## rebuilt at the same quality setting sways identically - a blade that
+	## jumped to a new phase every time the graphics menu was touched would
+	## flicker on a setting change.
+	static func _phase_for(at: Vector2) -> float:
+		var raw: float = sin(at.x * 127.1 + at.y * 311.7) * 43758.5453
+		return raw - floorf(raw)
 
 	## Turns every blade polygon in this depth slice into one indexed mesh.
 	## `draw_polygon` records one canvas command per blade even when all of them
