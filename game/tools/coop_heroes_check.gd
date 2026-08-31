@@ -35,6 +35,12 @@ func _ready() -> void:
 	for _f: int in 16:
 		await get_tree().process_frame
 	_field = _run.get("battlefield") as Battlefield
+	# A live scope marks its own hero present when it activates. This harness
+	# drives the field directly without entering a phase that does, so it says
+	# so itself - being in the world is something a scope grants now, not
+	# something a hero has merely by existing.
+	if _field != null and _field.hero != null:
+		_field.hero.set_present(true)
 
 	_test_alone_there_is_one_hero()
 	await _test_a_partner_appears_and_is_remote()

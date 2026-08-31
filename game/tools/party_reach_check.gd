@@ -77,10 +77,22 @@ func _test_helper_finds_a_partner() -> void:
 	var partner := scene.instantiate() as Hero
 	add_child(partner)
 	partner.global_position = Vector2(500.0, 0.0)
-	# A partner is in GROUP_ANY from `_ready` and never in GROUP - which is
-	# exactly the case every site above used to miss.
+	# **Present, not merely instantiated.** This used to assert that a hero joins
+	# `GROUP_ANY` on entering the tree, which is the bug it was written beside:
+	# both scopes keep a Hero and both live in the tree, so the raid arena's hero
+	# stood in play at the raid's origin for the whole of every battlefield.
+	# Being in the world is now something a scope grants, and a partner is
+	# granted it by whoever built it.
+	partner.set_present(true)
 	_check(partner.is_in_group(Hero.GROUP_ANY),
-		"a hero must join the party group on entering the tree")
+		"a hero marked present must be in the party group")
+	# Freed, not left dangling: an unparented CharacterBody2D holds a physics
+	# body and shape, and Godot reports both as leaks at exit - which fails the
+	# release check however green the gate's own verdict is.
+	var unplaced := scene.instantiate() as Hero
+	_check(not unplaced.is_in_group(Hero.GROUP_ANY),
+		"and one nobody has put in play must not be")
+	unplaced.free()
 	_check(not partner.is_in_group(Hero.GROUP),
 		"and must not claim to be the player's hero")
 	_check(get_tree().get_first_node_in_group(Hero.GROUP) == null,

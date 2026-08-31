@@ -48,6 +48,7 @@ func activate() -> void:
 	else:
 		CursorKit.use_attack()
 	if hero != null:
+		hero.set_present(not _suspended)
 		# Preparation is safe construction time, but it is still a playable view.
 		# The hero remains the active local avatar so the player can inspect roads,
 		# brace torches and move between build sites while the formation is paused.
@@ -217,6 +218,12 @@ func suspend() -> void:
 	_suspended = true
 	if hero != null:
 		hero.set_active(false)
+		# **And out of the world.** A suspended scope's hero is not somewhere
+		# anything can reach: it stood in `GROUP_ANY` at this scope's origin for
+		# the whole of the other scope, and wildlife walked over and mauled it.
+		hero.set_present(false)
+	for body: Hero in heroes():
+		body.set_present(false)
 	process_mode = Node.PROCESS_MODE_DISABLED
 	visible = false
 
@@ -225,6 +232,8 @@ func resume() -> void:
 	if not _suspended:
 		return
 	_suspended = false
+	if hero != null:
+		hero.set_present(true)
 	process_mode = Node.PROCESS_MODE_INHERIT
 	visible = true
 

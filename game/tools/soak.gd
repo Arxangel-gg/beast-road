@@ -44,6 +44,25 @@ var _output_dir: String = "user://"
 var _scope_name: String = ""
 
 
+## Heroes seen in play at once, over the whole run. Solo means one.
+var _most_heroes: int = 0
+
+
+## **The one harness that boots the real run, so the one that can see this.**
+##
+## Both scopes keep their own Hero and both live in the tree at once. `GROUP_ANY`
+## used to be joined on `_ready`, so the raid arena's hero stood in play at the
+## raid's origin for the whole of every battlefield - wildlife walked to the city
+## and mauled it, and any Hero taking damage emits `hero_damaged`, which plays
+## the hurt sound and blood vignette wherever the real hero is standing.
+##
+## Every stubbed harness said one hero, because a stub only ever builds one
+## scope. This counts them in the running game.
+func _watch_heroes() -> void:
+	_most_heroes = maxi(_most_heroes,
+		get_tree().get_nodes_in_group(Hero.GROUP_ANY).size())
+
+
 func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--seconds="):
@@ -135,6 +154,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_watch_heroes()
 	_elapsed += delta
 
 	if _forced_phase >= 0.0:
@@ -214,6 +234,12 @@ func _process(delta: float) -> void:
 		_report()
 		if _expect_snuff:
 			_assert_torches_snuffed()
+		print("[soak] heroes in play at once, most seen: %d" % _most_heroes)
+		if _most_heroes > 1:
+			# Loud, because this is the shape of a bug that took five reports to
+			# find: a hero from a suspended scope standing in play, being hit by
+			# things it cannot see, and hurting a player who is nowhere near it.
+			printerr("[soak] FAIL: %d heroes in play in a solo run" % _most_heroes)
 		print("[soak] done")
 		_finish.call_deferred()
 

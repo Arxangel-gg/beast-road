@@ -272,6 +272,9 @@ func _ensure_body(number: int) -> Hero:
 	hero.spawn_point = spawn_for_slot(number, battlefield.town_position())
 	hero.position = hero.spawn_point
 	battlefield.entity_root.add_child(hero)
+	# A partner is in play without claiming the hero group - it is a body the
+	# world can hit, and it is not whose health the HUD shows.
+	hero.set_present(true)
 	_claim_local_spawn(battlefield)
 	# Never claims the hero group. That group answers "which hero does the HUD,
 	# the camera and the damage vignette follow", and the answer is always the

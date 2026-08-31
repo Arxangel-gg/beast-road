@@ -222,7 +222,10 @@ func _ready() -> void:
 	health.died.connect(_on_died)
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
-	add_to_group(GROUP_ANY)
+	# **Not joined here.** Presence is owned by `set_present`, which the scope
+	# calls when it becomes the live one. Joining on `_ready` put every scope's
+	# hero in play at once - and the raid's hero then stood at the raid's origin,
+	# inside the running battlefield, for wildlife to walk over and maul.
 	health_bar.bind(health)
 	# Built here rather than placed in the scene: it is co-op furniture, it draws
 	# nothing at all in a solo run, and adding it in code keeps one hero scene
@@ -363,7 +366,36 @@ func _physics_process(delta: float) -> void:
 
 ## Called by the scope that owns this hero when it becomes, or stops being, the
 ## active one. Claiming the group makes exactly one hero findable at a time.
+## Whether the world may touch this hero at all.
+##
+## **`GROUP_ANY` is not "every hero node", it is "every hero in play"**, and the
+## difference cost weeks. Both scopes keep their own Hero and both live in the
+## tree at once, so the raid arena's hero stood in `GROUP_ANY` at the raid's
+## origin for the whole of every battlefield. Wildlife found it, walked to the
+## city and mauled it - and any Hero taking damage emits `hero_damaged`, which
+## plays the hurt sound and the blood vignette wherever the real hero is.
+##
+## That is the "invisible thing at the origin that hurts me no matter where I
+## am", reported five times. It was a hero in another scope entirely.
+##
+## Separate from `set_active` because the two questions differ for a partner: a
+## co-op partner is emphatically in play and must never claim `GROUP`, which
+## answers "whose health does the HUD show".
+func set_present(present: bool) -> void:
+	if present == is_in_group(GROUP_ANY):
+		return
+	if present:
+		add_to_group(GROUP_ANY)
+	else:
+		remove_from_group(GROUP_ANY)
+
+
 func set_active(active: bool) -> void:
+	# **Presence is not this question.** `set_active` follows the *phase* - a
+	# hero is the active avatar during Preparation and combat and not during a
+	# cinematic - while presence follows the *scope*, which is what decides
+	# whether the world can touch it at all. Tying them made a hero vanish from
+	# the world every time the phase changed.
 	if active:
 		if not is_in_group(GROUP):
 			add_to_group(GROUP)
