@@ -215,4 +215,11 @@ renderer/rendering_method.mobile="gl_compatibility"
 ; lossless, so almost nothing is VRAM compressed and the cost is close to
 ; nothing - but it is a real import setting, so every texture is re-imported
 ; once when it changes.
-rendering_device/vram_compression/import_etc2_astc=true
+;
+; The first attempt wrote this under `rendering_device/` instead of `textures/`,
+; and checking it with `ProjectSettings.get_setting` said `true` - because
+; writing an unknown key into this file makes Godot register it as a custom
+; setting, so the check confirmed the typo rather than the setting. A key that
+; Godot actually owns appears in `ProjectSettings.get_property_list()`; an
+; invented one does not. That is the way to tell them apart.
+textures/vram_compression/import_etc2_astc=true
