@@ -35,6 +35,42 @@ enum Temperament { PASSIVE, CAUTIOUS, TERRITORIAL, PREDATORY }
 ## says which natural rhythm belongs to this animal.
 enum MovementStyle { GRAZER, FORAGER, PROWLER, SOARER, SKITTER }
 
+## How often this species turns up, against the others.
+##
+## **The tier decides the order of magnitude; `weight` only nudges within it.**
+## The two multiply, and the tiers are spaced far enough apart that no nudge in
+## the authored range can lift a Rare above an Uncommon - which is the property
+## that makes a second number safe here. Reach for `weight` to say "commoner
+## than the other commons", and for `rarity` to say anything larger.
+enum Rarity { COMMON, UNCOMMON, RARE, LEGENDARY }
+
+@export var rarity: Rarity = Rarity.COMMON
+
+
+## How likely this is in a given act, against everything else.
+##
+## Rarity sets the base; the act it belongs to multiplies it. **A preference, not
+## a gate** - the same reasoning weather got: an act that admits only its own
+## list has character by having nothing else to offer, which is not the same as
+## having character. A bear in Act I is a story; a bear that is impossible there
+## is a rule nobody can see.
+func roll_weight(act: int) -> float:
+	var base: float = 1.0
+	match rarity:
+		Rarity.COMMON:
+			base = 2.4
+		Rarity.UNCOMMON:
+			base = 1.2
+		Rarity.RARE:
+			base = 0.45
+		Rarity.LEGENDARY:
+			base = 0.12
+	base *= maxf(weight, 0.0)
+	if acts.is_empty() or acts.has(act):
+		return base
+	# Out of its own region, and much rarer for it, but never impossible.
+	return base * 0.22
+
 @export var temperament: Temperament = Temperament.PASSIVE
 @export var movement_style: MovementStyle = MovementStyle.FORAGER
 

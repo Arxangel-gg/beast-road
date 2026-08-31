@@ -132,6 +132,89 @@ func _refresh() -> void:
 				_rows.add_child(_entry_row(kind, entry))
 
 
+## The numbers behind an entry, on a second line.
+##
+## **Only what a player could have worked out by fighting it**, which is the rule
+## that keeps a codex from becoming a spoiler sheet. Health, damage and speed are
+## observable; so is the fact that something ignores knockback or targets your
+## towers. Drop *chances* are not listed as percentages, because a number turns
+## a discovery into a farm - the entry says what a thing can leave behind, and
+## the player finds out how often by playing.
+func _detail_for(kind: String, entry: GameData) -> String:
+	match kind:
+		"enemy":
+			return _enemy_detail(entry as EnemyData)
+		"affix":
+			return _affix_detail(entry as EnemyAffixData)
+		"wildlife":
+			var animal := entry as WildlifeData
+			if animal == null:
+				return ""
+			return "
+%s  ·  %d health  ·  %s" % [
+				"Predator" if animal.is_hostile() else "Harmless",
+				int(animal.max_hp),
+				"drops food and hide" if animal.max_hp > 0.0 else "ambient"]
+		_:
+			return ""
+
+
+func _enemy_detail(foe: EnemyData) -> String:
+	if foe == null:
+		return ""
+	var facts: PackedStringArray = [
+		"%d health" % int(foe.max_hp),
+		"%d damage" % int(foe.contact_damage),
+		"%d speed" % int(foe.move_speed),
+	]
+	# The traits worth knowing before you meet the next one.
+	var traits: PackedStringArray = []
+	if foe.role == EnemyData.Role.HOWLER:
+		traits.append("strikes at range")
+	if foe.targets_towers:
+		traits.append("breaks towers")
+	if foe.knockback_resistance >= 0.5:
+		traits.append("hard to move")
+	elif foe.knockback_resistance <= 0.05:
+		traits.append("staggers easily")
+	if foe.hp_regen > 0.0:
+		traits.append("closes its own wounds")
+	if foe.aura_radius > 0.0 and foe.aura_strength > 0.0:
+		traits.append("strengthens what stands near it")
+	if not foe.phase_thresholds.is_empty():
+		traits.append("fights in %d stages" % (foe.phase_thresholds.size() + 1))
+	var line: String = "
+" + "  ·  ".join(facts)
+	if not traits.is_empty():
+		line += "
+" + "  ·  ".join(traits)
+	return line
+
+
+func _affix_detail(affix: EnemyAffixData) -> String:
+	if affix == null:
+		return ""
+	var effects: PackedStringArray = []
+	if not is_equal_approx(affix.health_scale, 1.0):
+		effects.append("%d%% health" % int(round(affix.health_scale * 100.0)))
+	if not is_equal_approx(affix.damage_scale, 1.0):
+		effects.append("%d%% damage" % int(round(affix.damage_scale * 100.0)))
+	if not is_equal_approx(affix.speed_scale, 1.0):
+		effects.append("%d%% speed" % int(round(affix.speed_scale * 100.0)))
+	if affix.damage_resistance > 0.0:
+		effects.append("takes %d%% less" % int(round(affix.damage_resistance * 100.0)))
+	if affix.on_hit_slow_duration > 0.0:
+		effects.append("chills what it strikes")
+	if affix.on_hit_burn_duration > 0.0:
+		effects.append("burns what it strikes")
+	if affix.death_blast_radius > 0.0:
+		effects.append("bursts when killed")
+	if affix.regeneration > 0.0:
+		effects.append("mends itself")
+	return "
+" + "  ·  ".join(effects) if not effects.is_empty() else ""
+
+
 func _section_heading(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
@@ -175,7 +258,7 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	text.add_child(name_label)
 
 	var body := Label.new()
-	body.text = entry.description if found else ""
+	body.text = (entry.description + _detail_for(kind, entry)) if found else ""
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", 12)
 	body.add_theme_color_override("font_color", Color("9d9484"))

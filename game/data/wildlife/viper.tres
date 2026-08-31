@@ -8,6 +8,7 @@ id = "viper"
 display_name = "Viper"
 description = "You will not see it until it has already bitten."
 vocal_sfx = "sfx_wildlife_viper"
+rarity = 0
 temperament = 3
 movement_style = 2
 damage = 7.0

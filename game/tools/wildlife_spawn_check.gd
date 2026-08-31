@@ -12,6 +12,11 @@ extends Node
 
 const DRAWS: int = 600
 
+## The least share of an act's roll a tier may hold and still count as present.
+## A Legendary out of its own region sits near this; anything below it is
+## content nobody will meet, which is the same as content that is not there.
+const MIN_TIER_SHARE: float = 0.002
+
 var _failures: int = 0
 
 
@@ -39,8 +44,10 @@ func _ready() -> void:
 	print("[wildlife] %d of %d points offered, closest %.0f (floor %.0f)"
 		% [offered, DRAWS, closest, Balance.WILDLIFE_SPAWN_CLEARANCE])
 
+	_test_rarity_coverage()
+
 	if _failures == 0:
-		print("[wildlife] PASS - arrivals keep their distance from the city")
+		print("[wildlife] PASS - arrivals keep their distance, and every tier is reachable everywhere")
 	else:
 		printerr("[wildlife] FAIL - %d problem(s)" % _failures)
 
@@ -53,6 +60,50 @@ func _ready() -> void:
 	for _frame: int in 8:
 		await get_tree().process_frame
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## Four tiers, both temperaments, all three acts (owner request, 2026-08-31).
+##
+## The interesting half is that the acts are a *preference*, not a gate. Before
+## this, `_refresh_kinds` dropped every species whose `acts` list omitted the
+## current act, so Act III's roster was whatever happened to list a 3 - and a
+## tier could simply be absent from a whole act with nothing to say so. The
+## weighting replaced the filter, and this is what holds the replacement honest:
+## it asserts reachability, which is the property the filter destroyed, rather
+## than asserting frequency, which is a tuning question.
+func _test_rarity_coverage() -> void:
+	var kinds: Array = ContentDB.wildlife()
+	_check(not kinds.is_empty(), "there must be wildlife to roll")
+	for kind: WildlifeData in kinds:
+		_check(ResourceLoader.exists(kind.get_sprite_path()),
+			"%s has no sprite at %s" % [kind.id, kind.get_sprite_path()])
+
+	# A share of the act's roll, not merely a weight above zero. `roll_weight`
+	# never returns zero for anything in the roster, so "> 0.0" would have been
+	# three identical assertions wearing an act number - it would pass on a
+	# species one player in ten thousand would ever meet.
+	for act: int in [1, 2, 3]:
+		var total: float = 0.0
+		for kind: WildlifeData in kinds:
+			total += kind.roll_weight(act)
+		_check(total > 0.0, "act %d can roll nothing at all" % act)
+		if total <= 0.0:
+			continue
+		for hostile: bool in [false, true]:
+			var share: Dictionary = {}
+			for kind: WildlifeData in kinds:
+				# Territorial and predatory are the two that will start a fight.
+				var dangerous: bool = kind.temperament >= WildlifeData.Temperament.TERRITORIAL
+				if dangerous != hostile:
+					continue
+				share[kind.rarity] = float(share.get(kind.rarity, 0.0)) 					+ kind.roll_weight(act) / total
+			var side: String = "dangerous" if hostile else "harmless"
+			for tier: int in [WildlifeData.Rarity.COMMON, WildlifeData.Rarity.UNCOMMON,
+					WildlifeData.Rarity.RARE, WildlifeData.Rarity.LEGENDARY]:
+				var seen: float = float(share.get(tier, 0.0))
+				_check(seen >= MIN_TIER_SHARE,
+					"act %d gives %s tier %d only %.2f%% of the roll (floor %.2f%%)"
+						% [act, side, tier, seen * 100.0, MIN_TIER_SHARE * 100.0])
 
 
 func _check(condition: bool, why: String) -> void:

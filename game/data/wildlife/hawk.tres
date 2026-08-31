@@ -8,6 +8,7 @@ id = "hawk"
 display_name = "Hawk"
 description = "It comes from where you were not looking."
 vocal_sfx = "sfx_wildlife_hawk"
+rarity = 2
 temperament = 3
 movement_style = 3
 damage = 11.0

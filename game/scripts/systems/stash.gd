@@ -98,6 +98,22 @@ static func rarity_name(piece: Dictionary) -> String:
 	return RARITY_NAMES[clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)]
 
 
+## The colour a rarity reads as, anywhere it is drawn. Kept here rather than in
+## whichever screen happens to need it first, so the stash list, the loot beam
+## and the blade in the hero's hand cannot drift apart.
+const RARITY_COLOURS: Array[Color] = [
+	Color("b7ada0"),  # Worn
+	Color("dfe4e8"),  # Sound
+	Color("6fbf7d"),  # Fine
+	Color("6f8fdf"),  # Runed
+	Color("e0a94f"),  # Oathbound
+]
+
+
+static func rarity_colour(piece: Dictionary) -> Color:
+	return RARITY_COLOURS[clampi(int(piece.get("rarity", 0)), 0, RARITY_COLOURS.size() - 1)]
+
+
 ## Marks paid for selling a piece. Levels are refunded at a loss, because an
 ## upgrade is a commitment: getting it all back would make upgrading free to
 ## undo and the decision meaningless.

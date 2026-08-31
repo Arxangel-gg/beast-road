@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "stag"
+display_name = "Pale Stag"
+description = "Moss on its back and no fear in it. Older than the road."
+vocal_sfx = "sfx_wildlife_deer"
+rarity = 3
+temperament = 0
+movement_style = 0
+acts = Array[int]([1, 2, 3])
+weight = 0.60
+group_min = 1
+group_max = 1
+social_spacing = 160.0
+group_cohesion = 0.5
+activity = 0.22
+speed = 96.0
+roam = 620.0
+skittish_radius = 300.0
+flee_speed_scale = 2.6
+flies = false
+scale = 2.85
+max_hp = 460.0
+food_min = 18
+food_max = 26
+xp_reward = 130
+art_faces_right = false
+stay_min = 60.0
+stay_max = 140.0

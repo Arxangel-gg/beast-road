@@ -47,6 +47,12 @@ extends GameData
 ## all in a short run. The crossbow and every elemental arrow stay discoveries.
 @export var starting_kit: bool = false
 
+## Which way this weapon's sprite is painted, in degrees, so the fire animation
+## can turn it to face the shot. Data rather than a constant because the two
+## weapons genuinely disagree: the shortbow is drawn level, the crossbow on the
+## up-right diagonal. Measure a new weapon's art before filling this in.
+@export_range(-180.0, 180.0) var art_degrees: float = 0.0
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("ranged", "ranged_", id)

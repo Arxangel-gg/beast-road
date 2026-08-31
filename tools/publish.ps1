@@ -362,6 +362,7 @@ $btn.Add_Click({
             @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
             @{ Name = 'loot and cache art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/loot_art_check.tscn') },
             @{ Name = 'blood VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/blood_vfx_check.tscn') },
+            @{ Name = 'weapon VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/weapon_vfx_check.tscn') },
             @{ Name = 'recovery and shader polish'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_polish_check.tscn') },
             @{ Name = 'co-op lobby portraits'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/coop_lobby_check.tscn') },
 			@{ Name = 'co-op party reach'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/party_reach_check.tscn') },

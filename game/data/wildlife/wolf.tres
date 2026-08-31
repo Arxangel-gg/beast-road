@@ -8,6 +8,7 @@ id = "wolf"
 display_name = "Wolf"
 description = "It does not hunt alone, and it does not hurry."
 vocal_sfx = "sfx_wildlife_wolf"
+rarity = 1
 temperament = 3
 movement_style = 2
 damage = 8.0

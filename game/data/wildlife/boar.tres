@@ -8,6 +8,7 @@ id = "boar"
 display_name = "Wild Boar"
 description = "It waits. Then it does not."
 vocal_sfx = "sfx_wildlife_boar"
+rarity = 2
 temperament = 2
 movement_style = 2
 damage = 22.0

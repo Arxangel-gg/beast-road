@@ -8,6 +8,7 @@ id = "badger"
 display_name = "Badger"
 description = "Small, and entirely unwilling to stop."
 vocal_sfx = "sfx_wildlife_badger"
+rarity = 1
 temperament = 2
 movement_style = 1
 damage = 12.0

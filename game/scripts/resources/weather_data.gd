@@ -90,6 +90,14 @@ enum Precipitation {
 ## the two read differently at a glance.
 @export_range(0.0, 6.0) var precipitation_speed: float = 1.5
 
+## Mote size against rain's or snow's. Below 1 for anything that should read as
+## carried in the air rather than falling through it.
+@export_range(0.2, 2.5) var precipitation_size: float = 1.0
+
+## How far the depth layers' drift diverges from the prevailing wind. Zero for
+## anything that falls; a storm is not one wind.
+@export_range(0.0, 1.0) var precipitation_scatter: float = 0.0
+
 ## Colour and opacity of what falls.
 @export var precipitation_tint: Color = Color(0.78, 0.85, 0.96, 0.55)
 

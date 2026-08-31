@@ -72,6 +72,7 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.hero_attack_landed.connect(_on_attack_landed)
 	EventBus.hero_swing_resolved.connect(_on_swing_resolved)
+	EventBus.hero_loosed.connect(_on_hero_loosed)
 	EventBus.hero_damaged.connect(_on_hero_damaged)
 	EventBus.town_damaged.connect(_on_town_damaged)
 	EventBus.spell_cast.connect(_on_spell_cast)
@@ -504,6 +505,163 @@ func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, co
 	tween.chain().tween_callback(wedge.queue_free)
 
 
+## The weapon itself, carried through the arc with its edge trailing behind it.
+##
+## Drawn *with* `slash`, not instead of it, because the two say different
+## things: the wedge is the area the swing covered, the blade is the object that
+## covered it. The wedge alone reads as an area effect centred on the hero; the
+## blade alone reads as a sprite sliding through the air.
+##
+## Degrades silently to nothing when no weapon is worn or its icon is missing.
+## A hero with an empty weapon slot still swings, and an unarmed swing that drew
+## a phantom blade would be worse than one that draws none.
+func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: float,
+		texture: Texture2D, tint: Color) -> void:
+	if world == null or texture == null:
+		return
+	var half: float = deg_to_rad(arc_degrees * 0.5)
+	var from: float = direction.angle() - half * 0.85
+	var to: float = direction.angle() + half * 0.85
+	var life: float = Balance.VFX_SLASH_LIFE * Balance.VFX_BLADE_LIFE_SCALE
+	var radius: float = reach * Balance.VFX_BLADE_RADIUS
+
+	var pivot := Node2D.new()
+	pivot.z_index = Balance.VFX_Z + 1
+	_track(pivot)
+	pivot.global_position = at
+	pivot.rotation = from
+
+	# The trail belongs to the world, not to the pivot: it records where the
+	# edge has been, so it must not turn with the thing that is still moving.
+	var trail := Line2D.new()
+	trail.width = maxf(4.0, radius * Balance.VFX_BLADE_TRAIL_WIDTH)
+	trail.default_color = Color(tint, 0.55)
+	trail.z_index = Balance.VFX_Z
+	trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+	# Tapered to a point at the tail, which is what makes it read as speed
+	# rather than as a drawn ribbon.
+	var taper := Curve.new()
+	taper.add_point(Vector2(0.0, 0.15))
+	taper.add_point(Vector2(1.0, 1.0))
+	trail.width_curve = taper
+	_track(trail)
+	trail.global_position = at
+
+	var blade := Sprite2D.new()
+	blade.texture = texture
+	blade.modulate = tint
+	# The icon is drawn on the up-right diagonal, not upright - checked against
+	# the actual sprites rather than assumed. Turning it back by that much makes
+	# the point lead along the radius it rides.
+	blade.rotation = -deg_to_rad(Balance.VFX_BLADE_ART_DEGREES)
+	blade.position = Vector2.RIGHT * radius
+	var longest: float = float(maxi(texture.get_width(), texture.get_height()))
+	if longest > 0.0:
+		blade.scale = Vector2.ONE * (reach * Balance.VFX_BLADE_SIZE / longest)
+	pivot.add_child(blade)
+
+	var tween: Tween = pivot.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(pivot, "rotation", to, life).set_ease(Tween.EASE_OUT)
+	tween.tween_method(_draw_blade_trail.bind(trail, at, radius, from, to),
+		0.0, 1.0, life)
+	tween.tween_property(blade, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(pivot.queue_free)
+
+	var fade: Tween = trail.create_tween()
+	fade.tween_interval(life)
+	fade.tween_property(trail, "modulate:a", 0.0, life * 1.4)
+	fade.tween_callback(trail.queue_free)
+
+
+## Lays the arc down behind the edge as it travels. Called by a tween, so it has
+## to survive the node being freed underneath it - a tween step can land on the
+## same frame as the free.
+func _draw_blade_trail(progress: float, trail: Line2D, at: Vector2, radius: float,
+		from: float, to: float) -> void:
+	if not is_instance_valid(trail):
+		return
+	var points := PackedVector2Array()
+	var steps: int = 10
+	for i: int in steps + 1:
+		var t: float = progress * float(i) / float(steps)
+		points.append(Vector2.RIGHT.rotated(lerpf(from, to, t)) * radius)
+	trail.points = points
+	trail.global_position = at
+
+
+## The icon of the weapon the player is wearing, and the colour of its rarity.
+## Returns a null texture when the slot is empty, which every caller reads as
+## "draw no blade".
+func _worn_blade() -> Array:
+	var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+	if piece.is_empty():
+		return [null, Color.WHITE]
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if kind == null:
+		return [null, Color.WHITE]
+	var path: String = kind.get_sprite_path()
+	if not ResourceLoader.exists(path):
+		return [null, Color.WHITE]
+	return [load(path) as Texture2D, Stash.rarity_colour(piece)]
+
+
+## The bow, shown for the length of one release and then gone.
+##
+## **No arrow is drawn here.** The arrow is a real projectile with real damage
+## that the hero spawns and the field owns; painting a second one into the
+## animation would put a shaft on screen that hits nothing, and the two would
+## disagree the moment the real one was blocked.
+##
+## Driven by `hero_loosed` rather than by the hero, for the same reason the
+## blade is driven by `hero_swing_resolved`: in co-op a guest's own shots are
+## the ones it must never miss seeing.
+func bow_loose(at: Vector2, direction: Vector2) -> void:
+	if world == null:
+		return
+	var weapon: RangedWeaponData = ContentDB.ranged_weapons.get(RunState.ranged_id, null)
+	if weapon == null:
+		return
+	var path: String = weapon.get_sprite_path()
+	if not ResourceLoader.exists(path):
+		return
+	var texture := load(path) as Texture2D
+	if texture == null:
+		return
+
+	var heading: Vector2 = direction.normalized() if direction.length() > 0.001 else Vector2.RIGHT
+	var bow := Sprite2D.new()
+	bow.texture = texture
+	bow.z_index = Balance.VFX_Z + 1
+	# Turned back by however its own art was painted, then aimed. Two weapons,
+	# two conventions - see `RangedWeaponData.art_degrees`.
+	bow.rotation = heading.angle() - deg_to_rad(weapon.art_degrees)
+	var longest: float = float(maxi(texture.get_width(), texture.get_height()))
+	if longest > 0.0:
+		bow.scale = Vector2.ONE * (Balance.VFX_BOW_SIZE / longest)
+	_track(bow)
+	bow.global_position = at + heading * Balance.VFX_BOW_OFFSET
+
+	# The kick is backwards along the shot, which is the whole read: the arrow
+	# left, and the thing that threw it moved the other way.
+	var kicked: Vector2 = bow.global_position - heading * Balance.VFX_BOW_RECOIL
+	var tween: Tween = bow.create_tween()
+	tween.tween_property(bow, "global_position", kicked, Balance.VFX_BOW_LIFE * 0.25)		.set_ease(Tween.EASE_OUT)
+	tween.tween_property(bow, "global_position", bow.global_position,
+		Balance.VFX_BOW_LIFE * 0.4).set_ease(Tween.EASE_IN_OUT)
+	tween.parallel().tween_property(bow, "modulate:a", 0.0, Balance.VFX_BOW_LIFE * 0.75)		.set_delay(Balance.VFX_BOW_LIFE * 0.25)
+	tween.tween_callback(bow.queue_free)
+
+	# The string letting go, at the bow rather than at the arrow.
+	spark(bow.global_position, Color("ffe6b4"), 4, heading, 260.0)
+
+
+func _on_hero_loosed(from: Vector2, direction: Vector2, _ammo_id: String) -> void:
+	bow_loose(from, direction)
+
+
 ## A brief bloom at a world position. Distinct from `spark`: this is the light
 ## of an impact rather than its debris, and it is what makes a hit feel hot.
 ## A painted impact burst, scaled and spun in.
@@ -626,6 +784,9 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float) -> void:
 		Balance.HERO_ATTACK_RANGE[Balance.HERO_CHAIN_LENGTH - 1])
 	slash(at, aim, reach, arc,
 		Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
+	var blade: Array = _worn_blade()
+	blade_sweep(at, aim, reach, arc, blade[0] as Texture2D,
+		(blade[1] as Color).lerp(Color.WHITE, 0.35))
 
 
 ## The impact. Only on a hit, which is correct - sparks come off something.

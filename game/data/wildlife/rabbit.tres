@@ -8,6 +8,7 @@ id = "rabbit"
 display_name = "Rabbit"
 description = "Gone before you have finished looking at it."
 vocal_sfx = "sfx_wildlife_rabbit"
+rarity = 0
 temperament = 0
 movement_style = 4
 acts = Array[int]([1, 2])

@@ -92,10 +92,15 @@ func _ready() -> void:
 ## A deer in the ash of Act III would be saying the wrong thing about the place,
 ## and describing the place is the entire job.
 func _refresh_kinds() -> void:
+	# **Every species, every act.** The act used to be a gate, which meant a
+	# region had character by having nothing else to offer - and the whole
+	# roster of an act was three or four animals. It is a preference now:
+	# `roll_weight` makes the ones that belong here several times likelier and
+	# the ones that do not merely rare, so a bear in Act I is a story rather
+	# than an impossibility.
 	_kinds.clear()
 	for data: WildlifeData in ContentDB.wildlife():
-		if data.acts.is_empty() or data.acts.has(RunState.act):
-			_kinds.append(data)
+		_kinds.append(data)
 
 
 func _process(delta: float) -> void:
@@ -332,14 +337,14 @@ func _pick_kind(allow_hostile: bool = true) -> WildlifeData:
 	for kind: WildlifeData in _kinds:
 		if kind.is_hostile() and not allow_hostile:
 			continue
-		total += kind.weight
+		total += kind.roll_weight(RunState.act)
 	if total <= 0.0:
 		return null
 	var roll: float = _rng.randf() * total
 	for kind: WildlifeData in _kinds:
 		if kind.is_hostile() and not allow_hostile:
 			continue
-		roll -= kind.weight
+		roll -= kind.roll_weight(RunState.act)
 		if roll <= 0.0:
 			return kind
 	return null

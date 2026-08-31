@@ -8,6 +8,7 @@ id = "squirrel"
 display_name = "Squirrel"
 description = "Busy, and never for long."
 vocal_sfx = "sfx_wildlife_squirrel"
+rarity = 0
 temperament = 0
 movement_style = 4
 acts = Array[int]([1, 2])

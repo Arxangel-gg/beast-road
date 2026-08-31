@@ -51,6 +51,21 @@ uniform vec4 tint : source_color = vec4(0.78, 0.85, 0.96, 1.0);
 // The quad's aspect, so drops are not stretched into diagonals on a wide view.
 uniform float aspect = 1.777;
 
+// Mote size, as a multiplier on whatever rain or snow would have been. Dust is
+// the reason it exists: at snow's radius a duststorm reads as a blizzard of
+// pebbles rather than as air with grit in it.
+uniform float mote_scale = 1.0;
+
+// How much each depth layer's drift diverges from the prevailing wind, 0..1.
+//
+// Rain and snow want zero - weather that falls in visibly different directions
+// at once reads as broken. Dust wants a lot: a storm is not one wind, and the
+// near and far layers pulling apart is what separates it from a moving texture.
+// Applied per layer and on a slow sway rather than per mote, because a mote's
+// own cell is derived from the drifted position and cannot vary the drift that
+// produced it without chasing its own tail.
+uniform float scatter : hint_range(0.0, 1.0) = 0.0;
+
 // How many of the three depth layers actually run, 1..3.
 //
 // The cheapest real saving available here. Density costs nothing in a shader -
@@ -76,8 +91,13 @@ float layer(vec2 uv, float depth, float t) {
 	// Wind and fall are applied in cell space so they stay consistent whatever
 	// the scale of the layer, and positive wind now blows to the right, which is
 	// what a positive number in a `.tres` ought to mean.
-	p.x -= wind * t * scale * mix(0.7, 1.4, depth);
-	p.y -= fall_speed * t * scale * mix(0.35, 1.0, depth) * 0.12;
+	// Each layer leans off the prevailing wind by its own amount, and sways on
+	// its own slow phase, so a storm curls instead of sliding.
+	float lean = 1.0 + scatter * (depth - 0.5) * 2.4;
+	float sway = scatter * sin(t * 0.37 + depth * 5.1) * 0.45;
+	p.x -= (wind * lean + sway) * t * scale * mix(0.7, 1.4, depth);
+	p.y -= fall_speed * t * scale * mix(0.35, 1.0, depth) * 0.12
+		* (1.0 - scatter * (depth - 0.5));
 
 	vec2 cell = floor(p);
 	vec2 f = fract(p);
@@ -100,7 +120,7 @@ float layer(vec2 uv, float depth, float t) {
 	// through was partly opacity and partly that each streak was a fat dash.
 	float squash = mix(0.11, 1.0, flake);
 	d.y *= squash;
-	float radius = mix(0.022, 0.075, flake) * mix(0.7, 1.3, depth);
+	float radius = mix(0.022, 0.075, flake) * mix(0.7, 1.3, depth) * mote_scale;
 	float drop = 1.0 - smoothstep(0.0, radius, length(d));
 	return drop;
 }
@@ -297,6 +317,8 @@ func _apply(weather: WeatherData) -> void:
 	_material.set_shader_parameter("impact",
 		1.0 if weather.precipitation == WeatherData.Precipitation.RAIN else 0.0)
 	_material.set_shader_parameter("tint", weather.precipitation_tint)
+	_material.set_shader_parameter("mote_scale", weather.precipitation_size)
+	_material.set_shader_parameter("scatter", weather.precipitation_scatter)
 	if weather.precipitation == WeatherData.Precipitation.NONE:
 		_wanted = 0.0
 

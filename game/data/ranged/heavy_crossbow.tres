@@ -15,3 +15,4 @@ projectile_speed = 1240.0
 pierce = 3
 knockback = 210.0
 draw_move_scale = 0.45
+art_degrees = -45.0

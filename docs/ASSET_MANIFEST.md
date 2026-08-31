@@ -666,12 +666,20 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_raven.png` · `wildlife_fox.png` · `wildlife_rabbit.png` ·
 `wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png` ·
 `wildlife_wolf.png` · `wildlife_boar.png` · `wildlife_bear.png` ·
-`wildlife_viper.png` · `wildlife_badger.png` · `wildlife_hawk.png`
+`wildlife_viper.png` · `wildlife_badger.png` · `wildlife_hawk.png` ·
+`wildlife_stag.png`
 
-The last six are the **hostile** roster and read as such: heavier silhouettes,
-teeth and tusks where the ambient six have ears and tails. That contrast is doing
-real work — a player has to be able to tell at a glance whether the thing beside
-the road is a question or an answer.
+Six of these are the **hostile** roster — wolf, boar, bear, viper, badger, hawk —
+and they read as such: heavier silhouettes, teeth and tusks where the ambient
+seven have ears and tails. That contrast is doing real work — a player has to be
+able to tell at a glance whether the thing beside the road is a question or an
+answer.
+
+Each species also carries a **rarity** in its `.tres`, and the rarity is the
+thing the eye should be able to check. `wildlife_stag.png` is the harmless
+Legendary and `wildlife_bear.png` the hostile one, so both are drawn larger and
+stranger than their tier-mates: a player who sees one should know before being
+told that this is not a rabbit.
 
 Facing here: the wolf, viper and hawk face left; the boar, bear and badger face
 right. Read off a 5x sheet *before* any dependent frame was generated, which is
@@ -701,6 +709,7 @@ Files: `wildlife_raven_idle_01.png` … `wildlife_raven_idle_05.png`
 Files: `wildlife_fox_idle_01.png`
 Files: `wildlife_rabbit_idle_01.png`
 Files: `wildlife_deer_idle_01.png`
+Files: `wildlife_stag_idle_01.png`
 Files: `wildlife_squirrel_idle_01.png`
 Files: `wildlife_raccoon_idle_01.png`
 
@@ -742,6 +751,7 @@ Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png`
 Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png`
 Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png`
 Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
+Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 

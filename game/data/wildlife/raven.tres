@@ -8,6 +8,7 @@ id = "raven"
 display_name = "Raven"
 description = "Comes for the battle, not despite it."
 vocal_sfx = "sfx_wildlife_raven"
+rarity = 0
 temperament = 1
 movement_style = 3
 acts = Array[int]([])

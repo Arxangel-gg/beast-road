@@ -2516,6 +2516,26 @@ const VFX_BOSS_PHASE_SHAKE: float = 11.0
 
 ## The wedge that sweeps through the hero's swing arc. [TUNE]
 const VFX_SLASH_LIFE: float = 0.16
+## The blade rides a little inside the wedge's outer edge, so the arc still
+## reads as the reach and the weapon reads as being held rather than thrown.
+const VFX_BLADE_RADIUS: float = 0.72
+## Longer than the wedge: the wedge is a flash, the blade is a movement, and a
+## movement the eye cannot follow is not worth drawing.
+const VFX_BLADE_LIFE_SCALE: float = 1.9
+## Blade length as a fraction of the swing's reach.
+const VFX_BLADE_SIZE: float = 0.62
+const VFX_BLADE_TRAIL_WIDTH: float = 0.18
+## Which way the gear icons are actually drawn. Every melee icon in `art/icons/ui`
+## is painted on the up-right diagonal - hilt low-left, point high-right - so a
+## blade meant to lead along the swing has to be turned back by this much first.
+## Measured off the sprites; if new weapon art breaks the convention, this is
+## the one number that has to move.
+const VFX_BLADE_ART_DEGREES: float = -45.0
+## How far the bow kicks back on release, and how long the recoil reads for.
+const VFX_BOW_RECOIL: float = 26.0
+const VFX_BOW_LIFE: float = 0.26
+const VFX_BOW_SIZE: float = 150.0
+const VFX_BOW_OFFSET: float = 34.0
 
 ## Procedural blood impact sizing. The setting can suppress this entire layer;
 ## the ordinary hit spark and number remain so combat never becomes less

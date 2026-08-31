@@ -323,7 +323,10 @@ func _physics_process(delta: float) -> void:
 		# Gated behind the same `can_fight` as the swing: a bow is a weapon, and
 		# the phases that forbid fighting forbid all of it.
 		if combat_input and _beast_stun_left <= 0.0 				and input.pressed(HeroInput.BUTTON_RANGED):
-			ranged.request(_aim, global_position)
+			# The body, like the swing and the spells beside it. The root is
+			# the hero's ground contact for depth sorting, so passing it here
+			# loosed every arrow from the Warden's boots.
+			ranged.request(_aim, combat_origin())
 	for slot: int in Balance.HERO_MAX_SPELL_SLOTS:
 		if combat_input and _beast_stun_left <= 0.0 \
 				and input.pressed(HeroInput.spell_button(slot)):

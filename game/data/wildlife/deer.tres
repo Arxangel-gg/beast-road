@@ -8,6 +8,7 @@ id = "deer"
 display_name = "Deer"
 description = "Grazing, until something moves."
 vocal_sfx = "sfx_wildlife_deer"
+rarity = 1
 temperament = 0
 movement_style = 0
 acts = Array[int]([1])
