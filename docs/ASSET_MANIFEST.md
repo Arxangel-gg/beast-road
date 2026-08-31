@@ -468,6 +468,49 @@ point is that a clump is occasionally *not* what you expected.
 | `prop_log.png` | 72×40 | T | `#4A4A46` |
 | `prop_stump.png` | 40×40 | T | `#4A4A46` |
 
+#### Idle sequences
+
+Painted plants carry the same `_idle_NN` convention as everything else: frame
+zero is the ordinary sprite and continuations sit beside it, so a plant animates
+by having files dropped in and stops animating by having them removed. Foliage
+reads them through `GameData.load_idle_frames` and falls back to the shader sway
+alone when a sequence is absent, which is a supported state rather than a gap.
+
+**Only the ferns have one, and that is a finding rather than a shortfall.** Every
+kind was generated and looked at on a contact sheet. At 64×40 the generator moves
+what is already drawn — fronds shift and ripple and the silhouette holds. At
+32×40 it does not move a flower, it *invents* one: the desert blossom sprouted
+cream-coloured growths that are not part of the plant, and the desert flower grew
+extra petals and lost them again. Those were discarded rather than shipped. A
+flower's motion comes from the wind shader, which bends what is drawn and cannot
+add to it.
+
+Generated with the source pinned as **both** endpoints, exactly as the tower idle
+frames are, and for the same reason: left open-ended the sequence drifts and the
+loop snaps back — the snow fern's last frame sat four times further from the base
+pose than one step of its own animation. Poses 01–03 ship; the terminal duplicate
+is only the loop target.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `plant_jungle_fern_idle_01.png` | 64×40 | T | `#2E3A33` |
+| `plant_jungle_fern_idle_02.png` | 64×40 | T | `#2E3A33` |
+| `plant_jungle_fern_idle_03.png` | 64×40 | T | `#2E3A33` |
+| `plant_snow_fern_idle_01.png` | 64×40 | T | `#7C8A96` |
+| `plant_snow_fern_idle_02.png` | 64×40 | T | `#7C8A96` |
+| `plant_snow_fern_idle_03.png` | 64×40 | T | `#7C8A96` |
+| `plant_desert_fern_idle_01.png` | 64×40 | T | `#6E5B3C` |
+| `plant_desert_fern_idle_02.png` | 64×40 | T | `#6E5B3C` |
+| `plant_desert_fern_idle_03.png` | 64×40 | T | `#6E5B3C` |
+
+**Generated with the loop pinned to its own first frame.** Left open-ended, the
+generator does not produce an idle at all — it produces *growth*: the first pass
+turned the snow and desert blossoms into taller, differently-shaped plants by
+frame four, which is a new plant rather than a breathing one. Passing the source
+sprite as the last frame as well forces the cycle to return to where it started.
+Anything added here should be checked on a contact sheet against its own base
+before it ships, for exactly that reason.
+
 ### 5.8 Backdrops — `res://art/bg/`
 
 > The three `macro_act*` backdrops are **688×384 pixel art**, scaled to fill the
@@ -712,6 +755,19 @@ Files: `wildlife_fox_idle_01.png`
 Files: `wildlife_rabbit_idle_01.png`
 Files: `wildlife_deer_idle_01.png`
 Files: `wildlife_stag_idle_01.png`
+Files: `wildlife_badger_idle_01.png` … `wildlife_badger_idle_04.png`
+Files: `wildlife_bear_idle_01.png` … `wildlife_bear_idle_04.png`
+Files: `wildlife_boar_idle_01.png` … `wildlife_boar_idle_04.png`
+Files: `wildlife_viper_idle_01.png` … `wildlife_viper_idle_04.png`
+Files: `wildlife_wolf_idle_01.png` … `wildlife_wolf_idle_04.png`
+
+The five predators had **no** idle sequence until 2026-08-31, so a wolf waiting
+by the road stood as a single frozen frame while every harmless animal breathed —
+which read as the predators being decoration rather than the thing you have to
+watch. `animate_image` produced all five from their own base sprites, so palette
+and facing carry rather than being described. `wildlife_spawn_check` now asserts
+the whole matrix, because this gap was invisible: a missing sequence is a
+supported state that falls back to the static pose without a warning.
 Files: `wildlife_squirrel_idle_01.png`
 Files: `wildlife_raccoon_idle_01.png`
 

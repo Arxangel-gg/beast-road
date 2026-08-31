@@ -44,6 +44,19 @@ signal save_loaded()
 ##
 ## What unlocks is the *roster*: the eight later towers that widen each element
 ## from two roles to four (GDD §21, §35). Elements are never gated.
+## The weapon the hero begins holding (owner decision, 2026-08-31).
+##
+## The blade the swing draws comes from the equipped weapon, and a new account
+## equipped nothing - so the first fight of a new player's first run showed an
+## empty-handed hero, and stayed that way until a boss dropped gear. The opening
+## should show the weapon it is teaching you to use.
+##
+## **Granted once, not re-seeded like the towers.** A tower id is knowledge and
+## cannot be sold; a weapon is an object with a sale price, so re-granting it on
+## every launch would be a Marks printer. The flag below is what makes it once.
+const STARTING_WEAPON: String = "coalpaint_edge"
+const STARTING_GEAR_KEY: String = "starting_gear_granted"
+
 const STARTING_TOWERS: Array[String] = [
 	"ember_spire", "pyre_cannon",
 	"rime_lance", "hoarfrost_bell",
@@ -390,6 +403,10 @@ func erase_progress() -> void:
 	total_enemies_killed = 0
 	completed_objectives.clear()
 	_seed_starting_roster()
+	# Cleared before re-seeding: somebody erasing their progress is asking for a
+	# first run, and a first run starts with a weapon in hand.
+	settings[STARTING_GEAR_KEY] = false
+	_seed_starting_gear()
 	# The tutorial comes back too. It is a preference and the rest of the
 	# preferences are kept, but somebody erasing their progress is asking for a
 	# first run, and a first run includes being shown how the game works.
@@ -438,6 +455,26 @@ func _seed_starting_roster() -> void:
 			unlocked_towers.append(id)
 
 
+## Puts the tier-0 weapon in the hero's hand, once per account.
+##
+## Deliberately not idempotent the way `_seed_starting_roster` is - see
+## `STARTING_WEAPON`. The flag is only set on success, so an account that somehow
+## reaches this before the content is loaded gets its weapon on the next launch
+## rather than losing it forever to a flag set too early.
+func _seed_starting_gear() -> void:
+	if bool(settings.get(STARTING_GEAR_KEY, false)):
+		return
+	if ContentDB.gear(STARTING_WEAPON) == null:
+		return
+	if stash.size() < Balance.STASH_CAPACITY:
+		stash.append(Stash.make(STARTING_WEAPON, 0))
+		# Equipped, not merely owned: the decision was that the first fight shows
+		# a weapon, and one sitting in the stash shows nothing.
+		if not equipped.has(GearData.Slot.WEAPON):
+			equipped[GearData.Slot.WEAPON] = stash.size() - 1
+	settings[STARTING_GEAR_KEY] = true
+
+
 ## Fells an act boss and widens the roster by one, in a fixed order.
 ##
 ## Returns the tower id earned, or "" when the roster is already complete.
@@ -455,6 +492,9 @@ func earn_next_roster_tower() -> String:
 func _ready() -> void:
 	load_save()
 	_seed_starting_roster()
+	# After `load_save`, never inside it: the stash is parsed late, so a piece
+	# appended mid-parse would be overwritten by the save's own list.
+	_seed_starting_gear()
 	# Applied here rather than left to whoever happens to read a setting first.
 	# The buses had exactly that bug once already, and display mode has no other
 	# owner at all - without this a windowed player is put back into fullscreen

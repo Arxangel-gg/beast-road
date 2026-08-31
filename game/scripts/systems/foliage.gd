@@ -154,6 +154,21 @@ void vertex() {
 static var _wind_shader: Shader = null
 static var _wind_material: ShaderMaterial = null
 static var _painted_material: ShaderMaterial = null
+static var _canopy_material: ShaderMaterial = null
+
+## Idle sequences, keyed by the plant sprite's own path.
+##
+## Cached because a populated field holds hundreds of plants drawn from a dozen
+## textures: loading the sequence per plant would re-walk the same four files
+## two hundred times for nothing.
+static var _idle_cache: Dictionary = {}
+
+## Plants with a sequence, and where each one is in it. Held as a flat list
+## rather than a group lookup because it is walked every animation step and a
+## group query allocates.
+var _animated: Array[Dictionary] = []
+var _idle_clock: float = 0.0
+var _idle_frame: int = 0
 
 
 ## One material for every blade in the game.
@@ -174,6 +189,35 @@ static func painted_material() -> ShaderMaterial:
 	return _painted_material
 
 
+## The material for trees, which had no motion at all.
+##
+## A third material rather than reusing the painted one, because a tree is not a
+## big shrub: it is drawn several times taller, so the same angular sway throws
+## its crown far further, and it must lean *less* per degree rather than more.
+## Sharing `painted_material` would have coupled a tuning number that wants to
+## differ - and the shader is the same one, so this costs one more material and
+## nothing per tree.
+##
+## Trees are `Sprite2D`, whose V runs from the top of the sprite, so the root is
+## at the top of the UV range exactly as it is for a painted plant.
+## The idle sequence for a plant texture, or an empty array. Cached per path.
+static func _idle_sequence(art: Texture2D) -> Array[Texture2D]:
+	if art == null:
+		return []
+	var path: String = art.resource_path
+	if path.is_empty():
+		return []
+	if not _idle_cache.has(path):
+		_idle_cache[path] = GameData.load_idle_frames(path)
+	return _idle_cache[path]
+
+
+static func canopy_material() -> ShaderMaterial:
+	if _canopy_material == null:
+		_canopy_material = _make_material(1.0, Balance.FOLIAGE_SWAY_REACH_CANOPY)
+	return _canopy_material
+
+
 ## Bends every blade in the game to the weather.
 ##
 ## The veil and the foliage used to know nothing about each other, so a downpour
@@ -190,7 +234,8 @@ static func set_wind(weather: WeatherData) -> void:
 	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
 	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
 	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES
-	for material: ShaderMaterial in [wind_material(), painted_material()]:
+	for material: ShaderMaterial in [wind_material(), painted_material(),
+			canopy_material()]:
 		material.set_shader_parameter("sway_degrees", degrees)
 		material.set_shader_parameter("sway_speed", speed)
 		material.set_shader_parameter("wind_bias", bias)
@@ -256,6 +301,27 @@ var grid: BattleGrid = null
 var host: Node2D = null
 
 
+## Steps every animated plant on one shared clock.
+##
+## The whole field advances on the same index, offset per plant, so this is one
+## integer comparison per frame and a texture assignment only on the steps where
+## the index actually changes - roughly five times a second rather than sixty.
+func _process(delta: float) -> void:
+	if _animated.is_empty():
+		return
+	_idle_clock += delta * Balance.FOLIAGE_IDLE_FRAME_RATE
+	var step: int = int(_idle_clock)
+	if step == _idle_frame:
+		return
+	_idle_frame = step
+	for entry: Dictionary in _animated:
+		var sprite: Sprite2D = entry["sprite"]
+		if not is_instance_valid(sprite):
+			continue
+		var frames: Array = entry["frames"]
+		sprite.texture = frames[(step + int(entry["phase"])) % frames.size()]
+
+
 func _ready() -> void:
 	scatter()
 	EventBus.act_started.connect(func(_a: int, _t: String) -> void: scatter())
@@ -263,6 +329,9 @@ func _ready() -> void:
 
 ## Rebuilds the whole scatter for the current terrain.
 func scatter() -> void:
+	# Cleared first: the nodes these point at are freed by the rebuild below, and
+	# a stale entry would be a freed sprite walked every frame.
+	_animated.clear()
 	for node: Node2D in _bands:
 		if is_instance_valid(node):
 			node.queue_free()
@@ -449,6 +518,18 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	plant.modulate = tint
 	plant.flip_h = flip
 	parent.add_child(plant)
+	# A plant with authored frames breathes; one without keeps the shader sway
+	# it already had. Both are supported, so adding a sequence is dropping files
+	# in beside the sprite - no code and no manifest of its own.
+	var frames: Array[Texture2D] = _idle_sequence(art)
+	if not frames.is_empty():
+		_animated.append({
+			"sprite": plant,
+			"frames": frames,
+			# Its own offset into the cycle, so a bed of the same flower does not
+			# nod in unison - the same reason the blades carry a phase.
+			"phase": _idle_cache.size() + _animated.size(),
+		})
 	_painted_plants.append(plant)
 
 

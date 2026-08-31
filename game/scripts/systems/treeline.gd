@@ -178,6 +178,9 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	var tree := Sprite2D.new()
 	tree.texture = art
 	tree.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	# Shared, so two hundred trees cost one material and the weather reaches all
+	# of them in a single parameter write.
+	tree.material = Foliage.canopy_material()
 	tree.add_to_group(Graphics.FILTER_GROUP)
 	tree.add_to_group("ambient_tree")
 	# Origin at the trunk, so the node's own y is where it touches the ground -

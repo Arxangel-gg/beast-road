@@ -34,6 +34,7 @@ func _ready() -> void:
 
 	_test_unarmed_draws_nothing()
 	_test_weapon_variety()
+	_test_starting_weapon()
 	await _test_blade_sweep()
 	await _test_bow_loose()
 
@@ -53,6 +54,40 @@ func _ready() -> void:
 	else:
 		push_error("[weapon-vfx] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(0 if _failures == 0 else 1)
+
+
+## A new account starts holding the tier-0 weapon, and only once.
+##
+## Two failures to keep apart. Granting nothing puts a new player through their
+## first act empty-handed, which is the bug this was added to fix. Granting it
+## every launch is worse: a weapon has a sale price, so a re-seed on load would
+## be a Marks printer, and that kind of exploit is invisible until somebody has
+## already farmed it.
+func _test_starting_weapon() -> void:
+	var kind: GearData = ContentDB.gear(MetaState.STARTING_WEAPON)
+	_check(kind != null, "the starting weapon %s must exist" % MetaState.STARTING_WEAPON)
+	if kind == null:
+		return
+	_check(kind.slot == GearData.Slot.WEAPON, "the starting weapon must be a weapon")
+	_check(kind.min_tier == 0, "the starting weapon must be reachable at the first tier")
+
+	# A fresh account, simulated the way `_ready` builds one.
+	MetaState.stash = []
+	MetaState.equipped = {}
+	MetaState.settings[MetaState.STARTING_GEAR_KEY] = false
+	MetaState._seed_starting_gear()
+	_check(MetaState.stash.size() == 1, "a new account must be given exactly one piece")
+	var worn: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+	_check(not worn.is_empty(), "the starting weapon must be worn, not merely owned")
+	_check(String(worn.get("kind", "")) == MetaState.STARTING_WEAPON,
+		"the worn piece must be the starting weapon")
+
+	# Every launch after the first must change nothing.
+	MetaState._seed_starting_gear()
+	MetaState._seed_starting_gear()
+	_check(MetaState.stash.size() == 1,
+		"the starting weapon must be granted once, not once per launch (stash held %d)"
+			% MetaState.stash.size())
 
 
 ## Weapon character is bought with cadence, never given away.

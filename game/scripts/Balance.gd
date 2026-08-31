@@ -3169,6 +3169,14 @@ const FOLIAGE_SWAY_REACH: float = 34.0
 ## succulent is a stiff thing with a woody base, and giving it a blade of grass's
 ## whip is what makes scattered sprites read as cardboard flapping in a breeze.
 const FOLIAGE_SWAY_REACH_PAINTED: float = 9.0
+## How far a tree's crown travels. Smaller than a plant's despite the tree being
+## far larger: the sway is applied in the sprite's own space and scales with it,
+## so matching the plants' figure threw whole canopies across the road.
+const FOLIAGE_SWAY_REACH_CANOPY: float = 3.4
+## How fast a plant's idle sequence runs, in frames per second. Slow on purpose:
+## this is a plant breathing under the shader's bend, not a creature moving, and
+## it is also the rate at which any texture is reassigned at all.
+const FOLIAGE_IDLE_FRAME_RATE: float = 4.5
 
 ## Foliage moves slowly enough that 30 transform updates per second are visually
 ## continuous, while updating hundreds of off-road clumps at the render rate

@@ -45,9 +45,10 @@ func _ready() -> void:
 		% [offered, DRAWS, closest, Balance.WILDLIFE_SPAWN_CLEARANCE])
 
 	_test_rarity_coverage()
+	_test_animation_coverage()
 
 	if _failures == 0:
-		print("[wildlife] PASS - arrivals keep their distance, and every tier is reachable everywhere")
+		print("[wildlife] PASS - arrivals keep their distance, every tier is reachable, every species animates")
 	else:
 		printerr("[wildlife] FAIL - %d problem(s)" % _failures)
 
@@ -60,6 +61,35 @@ func _ready() -> void:
 	for _frame: int in 8:
 		await get_tree().process_frame
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## Every species has the sequences its own data says it needs.
+##
+## **A missing sequence is silent.** `_load_sequence` returns an empty array for
+## a creature with no frames and the animator falls back to the static pose, so
+## nothing errors and nothing warns - the animal simply stands there. Five of the
+## six predators shipped that way for months while every harmless animal
+## breathed, and it was found by counting files, not by playing.
+##
+## What is required is read from the resource rather than listed here, so adding
+## a species adds its own requirements: everything needs an idle pose and a walk
+## pair, anything that will fight needs an attack, and anything that leaves the
+## ground needs a flight cycle. A flier is excused its walk - it is airborne
+## whenever it is moving, so those frames would never be drawn.
+func _test_animation_coverage() -> void:
+	for kind: WildlifeData in ContentDB.wildlife():
+		var base: String = kind.get_sprite_path()
+		var idle: int = GameData.load_idle_frames(base).size()
+		var move: int = GameData.load_move_frames(base).size()
+		var fly: int = GameData.load_flight_frames(base).size()
+		var attack: int = GameData.load_attack_frames(base).size()
+		_check(idle >= 1, "%s has no idle frame, so it stands frozen" % kind.id)
+		if kind.flies:
+			_check(fly >= 2, "%s flies but has no flight cycle" % kind.id)
+		else:
+			_check(move >= 2, "%s has no walk cycle (%d frames)" % [kind.id, move])
+		if kind.temperament >= WildlifeData.Temperament.TERRITORIAL:
+			_check(attack >= 1, "%s will fight but has no attack frames" % kind.id)
 
 
 ## Four tiers, both temperaments, all three acts (owner request, 2026-08-31).
