@@ -127,11 +127,28 @@ jobs:
           GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS }}
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p build/android
-          godot --headless --path game --export-release "$ANDROID_PRESET" \
-            ../build/android/BeastRoad.apk
-          test -s build/android/BeastRoad.apk
+          # **Output captured and echoed back as an annotation.** Job logs need a
+          # token to read, and whoever is iterating on this export does not have
+          # one - so the first failure was "exit code 1" and nothing else. The
+          # tail of Godot's own complaint is what names the missing template or
+          # the wrong preset key.
+          set +e
+          godot --headless --path game --export-release "$ANDROID_PRESET"             ../build/android/BeastRoad.apk 2>&1 | tee /tmp/export.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -ne 0 ] || [ ! -s build/android/BeastRoad.apk ]; then
+            echo "::group::Godot export output"
+            cat /tmp/export.log
+            echo "::endgroup::"
+            # Folded onto one line: an annotation cannot contain newlines, and
+            # truncating to the first line loses the part that says why.
+            detail=$(tail -n 25 /tmp/export.log | tr '
+' '~' | cut -c1-900)
+            echo "::error title=Android export failed::${detail}"
+            exit 1
+          fi
           ls -la build/android
 
       - name: Attach the APK to the release
