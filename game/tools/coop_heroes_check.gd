@@ -73,6 +73,25 @@ func _test_alone_there_is_one_hero() -> void:
 	_check(_field.hero.input is LocalHeroInput,
 		"a solo hero must be driven locally, not by an empty source")
 
+	# **The roster speaks in single player too**, and that is the path the game
+	# actually takes. This harness used to build a field and count heroes
+	# without ever letting the roster fire, so it agreed with a friendlier
+	# version of the game than the one people play - and a phantom second hero
+	# stood at the town for weeks, taking wildlife bites and emitting
+	# `hero_damaged`, which plays the hurt sound and the blood vignette no matter
+	# which hero it came from. Reported repeatedly as "something invisible at the
+	# city hurts me wherever I stand".
+	# **No await.** The signal is synchronous, and awaiting here yields to
+	# `_ready`, which runs the next test and spawns the partner this check would
+	# then blame on the roster. A gate that races the suite it belongs to reports
+	# whichever finished first.
+	Coop.party().roster_changed.emit()
+	_check(_field.heroes().size() == 1,
+		"a roster change in a solo run must not conjure a second hero, saw %d"
+			% _field.heroes().size())
+	_check(_field.partner_hero() == null,
+		"and must not leave a partner standing at the town")
+
 
 ## The partner's hero is an ordinary hero with a different source.
 func _test_a_partner_appears_and_is_remote() -> void:

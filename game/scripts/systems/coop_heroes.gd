@@ -85,7 +85,18 @@ func _ready() -> void:
 	EventBus.coop_partner_joined.connect(_on_partner_joined)
 	# The roster is the truth about who is here, and it arrives after the
 	# connection does. Without this a guest keeps whatever it guessed.
-	Coop.party().roster_changed.connect(func() -> void: spawn_partner())
+	# **Only when there is a session.** The roster changes in single player too -
+	# the local seat is registered like any other - and the fallback below hands
+	# out seat two to anything that asks without a network. So a solo run built a
+	# phantom hero at the town, which wildlife then attacked: it is a live Hero,
+	# and any Hero taking damage emits `hero_damaged`, which plays the hurt sound
+	# and the blood vignette wherever the real hero happens to be standing.
+	#
+	# Guarded here rather than inside `spawn_partner`, because the harness calls
+	# that directly and legitimately wants the classic second body.
+	Coop.party().roster_changed.connect(func() -> void:
+		if Coop.is_networked():
+			spawn_partner())
 	EventBus.coop_partner_left.connect(_on_partner_left)
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.coop_state_changed.connect(_on_session_changed)

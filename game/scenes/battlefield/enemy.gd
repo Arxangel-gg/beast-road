@@ -196,8 +196,6 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health_bar.bind(health)
-	if data.role == EnemyData.Role.HOWLER:
-		_build_aura_readout()
 	if oath_pursuer:
 		_build_oath_mark()
 
@@ -208,6 +206,14 @@ func _ready() -> void:
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
 	_apply_category_scale()
+	# **After the scale, because the ring is drawn around `_depth_lift`** and
+	# that is where it is computed. Built before it, the offset read zero and the
+	# circle sat a sprite-height low - on the feet, describing the ground rather
+	# than the archer. Reported twice as the range circle still being wrong after
+	# it had supposedly been recentred; the offset was right and the ordering was
+	# not.
+	if data.role == EnemyData.Role.HOWLER:
+		_build_aura_readout()
 	animator.capture_home()
 
 	# Shadows are added after the texture, because both are measured from it.

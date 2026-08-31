@@ -70,7 +70,62 @@ func _ready() -> void:
 		% [float(looks[0]["trail"]), float(looks[looks.size() - 1]["trail"]),
 			float(looks[0]["glow_alpha"]),
 			float(looks[looks.size() - 1]["glow_alpha"]), first_hot])
+	_check_ranged_ring()
 	_finish()
+
+
+## A ranged enemy's ring must sit on its body and mean its reach.
+##
+## Both halves failed in the field and neither errored. The ring was built
+## before `_depth_lift` existed, so its offset read zero and it drew on the feet;
+## and its radius was the breed's aura while the shot travelled a different
+## number entirely, so enemies hit the town from well outside the circle the
+## player was reading. A telegraph that lies is worse than none.
+func _check_ranged_ring() -> void:
+	var breed: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var one := value as EnemyData
+		if one != null and one.role == EnemyData.Role.HOWLER and one.aura_radius > 0.0:
+			breed = one
+			break
+	if breed == null:
+		return
+	var scene: PackedScene = load("res://scenes/battlefield/enemy.tscn")
+	var field := EnemyField.new()
+	add_child(field)
+	var foe := scene.instantiate() as Enemy
+	foe.setup(breed, 0, field, 1.0)
+	field.add_child(foe)
+
+	var lifted: bool = not is_equal_approx(
+		foe.combat_origin().y, foe.global_position.y)
+	_check(lifted, "a ranged enemy's body must sit above its feet")
+	var ring: Line2D = null
+	for child: Node in foe.get_children():
+		var line := child as Line2D
+		if line != null and line.points.size() > 8:
+			ring = line
+			break
+	_check(ring != null, "and must carry a range ring")
+	if ring != null:
+		# **From the extents, not an average of the points.** The loop closes with
+		# a duplicate vertex at angle zero, so averaging pulls the centre toward
+		# it and reports a radius several units short - which is a fact about the
+		# arithmetic, not about the ring.
+		var low := Vector2(INF, INF)
+		var high := Vector2(-INF, -INF)
+		for point: Vector2 in ring.points:
+			low = low.min(point)
+			high = high.max(point)
+		var middle: Vector2 = (low + high) * 0.5
+		_check(middle.y < -1.0,
+			"the ring must be centred on the body, its centre sat at y=%.1f" % middle.y)
+		var radius: float = (high.x - low.x) * 0.5
+		_check(is_equal_approx(radius, foe.attack_reach()),
+			"and its radius must be the reach: ring %.0f against reach %.0f"
+				% [radius, foe.attack_reach()])
+	foe.queue_free()
+	field.queue_free()
 
 
 func _finish() -> void:
