@@ -105,6 +105,13 @@ jobs:
           run_godot_clean --headless --path game res://tools/weapon_vfx_check.tscn
           run_godot_clean --headless --path game res://tools/crossroad_vote_check.tscn
           run_godot_clean --headless --path game res://tools/discipline_check.tscn
+          run_godot_clean --headless --path game res://tools/raid_suspend_check.tscn
+          run_godot_clean --headless --path game res://tools/seed_reproduction_check.tscn
+          run_godot_clean --headless --path game res://tools/boot_check.tscn
+          run_godot_clean --headless --path game res://tools/breather_check.tscn
+          run_godot_clean --headless --path game res://tools/live_settings_check.tscn
+          run_godot_clean --headless --path game res://tools/structure_check.tscn
+          run_godot_clean --headless --path game res://tools/torch_check.tscn
           # Every tower and every building tier must carry its exact four-pose
           # PixelLab package. Runtime fallbacks are for damaged installs, not a
           # release excuse; this also gates canvas size and ground-anchor drift.

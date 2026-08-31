@@ -126,8 +126,8 @@ These are the ones that get skipped because nothing breaks when they are missing
 |------|--------|-------|
 | Save migration from every public version | never destroys the source save | `method:MetaState.migrate_save` |
 | Unreadable save is preserved | backed up, never overwritten | `method:MetaState._back_up_save` |
-| Raid pause resumes exact state | verified, not assumed | `file:res://tools/raid_suspend_check.tscn` |
-| Seed reproduction | same seed, same run | `method:RunState.set_seed` |
+| Raid pause resumes exact state | verified, not assumed | `gate:res://tools/raid_suspend_check.tscn` |
+| Seed reproduction | same seed, same run | `gate:res://tools/seed_reproduction_check.tscn` |
 | Key rebinding | all actions | `class:KeyBindings` |
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
 | Controller parity | every screen focusable | `manual` |

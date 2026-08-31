@@ -239,6 +239,26 @@ jobs:
           # three of twenty-seven nodes: every assertion asked for three
           # unique offers and got three unique offers - the same three.
           check "disciplines" --headless --path game res://tools/discipline_check.tscn
+          # Seven gates that existed, passed, and were run by nothing. The
+          # discipline rotation shipped broken behind one of these, and two of
+          # them back release requirements: raid_suspend is the probe
+          # V4_CONFORMANCE cites for GDD 52's "raid pause resumes exact
+          # state", and seed_reproduction is the one it cites for seed
+          # determinism. A requirement whose only evidence is that a file
+          # exists is not evidenced.
+          check "raid suspend" --headless --path game res://tools/raid_suspend_check.tscn
+          check "seed reproduction" --headless --path game res://tools/seed_reproduction_check.tscn
+          check "boot" --headless --path game res://tools/boot_check.tscn
+          check "breather" --headless --path game res://tools/breather_check.tscn
+          check "live settings" --headless --path game res://tools/live_settings_check.tscn
+          check "structures" --headless --path game res://tools/structure_check.tscn
+          check "torches" --headless --path game res://tools/torch_check.tscn
+          # Deliberately absent, and this is the record of why: crowd_check
+          # passes on Windows and goes red on this runner for reasons nobody
+          # has explained. It was bisected out rather than debugged. Run it by
+          # hand when touching crowd separation; do not re-add it here until
+          # somebody knows what the Linux failure actually is.
+          # check "crowd" --headless --path game res://tools/crowd_check.tscn
           check "party reach" --headless --path game res://tools/party_reach_check.tscn
           check "projectile tiers" --headless --path game res://tools/projectile_tier_check.tscn
           # GDD §57 makes "no unreviewed enslavement language ships" a release
