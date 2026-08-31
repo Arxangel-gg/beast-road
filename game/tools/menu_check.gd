@@ -76,8 +76,22 @@ func _ready() -> void:
 			push_error("every menu scroll surface must expose a focusable draggable rail")
 			get_tree().quit(1)
 			return
-	if scroll_count < 6:
-		push_error("expected the co-op, settings and account screens to expose scroll rails")
+	# **Five, because the sixth requires a save.**
+	#
+	# The stash screen is only built once the player has marks, shards or gear -
+	# `_build_stash_button` returns early otherwise, on the grounds that a button
+	# leading to an empty screen is a promise the game has not made yet. So a
+	# developer with a campaign counts six surfaces and a fresh CI machine counts
+	# five, and asking for six failed every build on a machine that had never
+	# played. It cost a release: v0.4.116 carried the scrollbars this check was
+	# written to protect, and never shipped because of this line.
+	#
+	# The contract above is what actually matters and it is checked on every
+	# surface that exists, however many that is. This is only here to catch a
+	# screen losing its rail entirely.
+	if scroll_count < 5:
+		push_error("expected the co-op, settings and account screens to expose "
+			+ "scroll rails, found %d" % scroll_count)
 		get_tree().quit(1)
 		return
 	var coop_screen: CanvasLayer = menu.get("_coop") as CanvasLayer
