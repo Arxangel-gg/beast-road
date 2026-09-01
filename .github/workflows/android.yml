@@ -121,34 +121,56 @@ jobs:
       # is invalid" - which leaves the owner guessing which of two secrets to
       # re-enter. keytool can distinguish them, and an alias is not a secret, so
       # the ones actually in the keystore can be named.
-      - name: Check the signing credentials
+      # **Works out the credentials from the keystore instead of trusting
+      # what it was told.**
+      #
+      # The `||` default only applies when a secret is *absent*, so a stale
+      # ANDROID_KEY_PASSWORD left over from an earlier key silently overrode the
+      # right one and the build failed on a key that was perfectly good. Asking
+      # the owner to go and delete secrets is a worse answer than not depending
+      # on them: the passwords are tried in turn and the alias is read out of the
+      # keystore, so any leftover secret is simply outvoted by the file itself.
+      - name: Work out the signing credentials
+        id: creds
         if: steps.key.outputs.have == 'true'
         env:
-          # **Defaults, overridable.** An alias and a password are only worth
-          # protecting alongside the key they open, and the key is the secret.
-          # Making these secrets too meant three values to paste into a web form
-          # and three chances to mistype one - which is exactly how this first
-          # failed, on a message that would not say which of them was wrong.
-          # A different key can still override them.
-          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'beastroad' }}
-          PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'beastroad-dev' }}
+          SECRET_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SECRET_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -uo pipefail
           ks="$HOME/keys/release.keystore"
-          if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" > /tmp/ks.txt 2>&1; then
-            echo "::error title=Android signing::The password does not open this keystore. If you made the key with tools/new_signing_key.ps1, re-run it and paste the new ANDROID_KEYSTORE_BASE64."
+          password=""
+          for candidate in "${SECRET_PASSWORD:-}" "beastroad-dev" "android"; do
+            [ -z "$candidate" ] && continue
+            if keytool -list -keystore "$ks" -storepass "$candidate" > /tmp/ks.txt 2>&1; then
+              password="$candidate"
+              break
+            fi
+          done
+          if [ -z "$password" ]; then
+            echo "::error title=Android signing::No known password opens this keystore. Run tools/new_signing_key.ps1 and paste the ANDROID_KEYSTORE_BASE64 it puts on your clipboard - the secret currently holds a different key."
             exit 1
           fi
-          have=$(grep -oE '^[^,]+, .*PrivateKeyEntry' /tmp/ks.txt | cut -d, -f1 | xargs)
-          if [ -z "${ALIAS:-}" ]; then
-            echo "::error title=Android signing::No alias resolved. The keystore contains: ${have}"
+
+          # The alias is read from the keystore rather than taken on trust. A
+          # keystore this project made holds exactly one key, so there is nothing
+          # to choose between; a secret still wins if it names a real entry.
+          aliases=$(grep -oE '^[^,]+, .*PrivateKeyEntry' /tmp/ks.txt | cut -d, -f1 | xargs)
+          alias=""
+          if [ -n "${SECRET_ALIAS:-}" ] && keytool -list -keystore "$ks" -storepass "$password" -alias "$SECRET_ALIAS" > /dev/null 2>&1; then
+            alias="$SECRET_ALIAS"
+          else
+            alias=$(printf '%s' "$aliases" | awk '{print $1}')
+          fi
+          if [ -z "$alias" ]; then
+            echo "::error title=Android signing::The keystore holds no private key entry."
             exit 1
           fi
-          if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" -alias "$ALIAS" > /dev/null 2>&1; then
-            echo "::error title=Android signing::Alias '$ALIAS' is not in this keystore, which contains: ${have}. Re-run tools/new_signing_key.ps1 and paste the new ANDROID_KEYSTORE_BASE64."
-            exit 1
-          fi
-          echo "credentials open the keystore and the alias is present"
+
+          echo "::add-mask::$password"
+          echo "password=$password" >> "$GITHUB_OUTPUT"
+          echo "alias=$alias" >> "$GITHUB_OUTPUT"
+          echo "signing as '$alias'; keystore holds: $aliases"
 
       - name: Import assets
         if: steps.key.outputs.have == 'true'
@@ -158,8 +180,8 @@ jobs:
         if: steps.key.outputs.have == 'true'
         env:
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /home/runner/keys/release.keystore
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS || 'beastroad' }}
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'beastroad-dev' }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ steps.creds.outputs.alias }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ steps.creds.outputs.password }}
         run: |
           set -uo pipefail
           mkdir -p build/android
