@@ -116,6 +116,34 @@ jobs:
             *) echo "::error title=Android::ANDROID_KEYSTORE_BASE64 did not decode to a keystore (starts $magic). Re-copy the base64; see docs/ANDROID.md."; exit 1 ;;
           esac
 
+      # **Checked before the export, and told apart.** Godot reports a bad alias
+      # and a bad password with one message - "Release Username and/or Password
+      # is invalid" - which leaves the owner guessing which of two secrets to
+      # re-enter. keytool can distinguish them, and an alias is not a secret, so
+      # the ones actually in the keystore can be named.
+      - name: Check the signing credentials
+        if: steps.key.outputs.have == 'true'
+        env:
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -uo pipefail
+          ks="$HOME/keys/release.keystore"
+          if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" > /tmp/ks.txt 2>&1; then
+            echo "::error title=Android signing::ANDROID_KEY_PASSWORD does not open the keystore. It is the password given to keytool -genkeypair; see docs/ANDROID.md."
+            exit 1
+          fi
+          have=$(grep -oE '^[^,]+, .*PrivateKeyEntry' /tmp/ks.txt | cut -d, -f1 | xargs)
+          if [ -z "${ALIAS:-}" ]; then
+            echo "::error title=Android signing::ANDROID_KEY_ALIAS is empty. The keystore contains: ${have}"
+            exit 1
+          fi
+          if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" -alias "$ALIAS" > /dev/null 2>&1; then
+            echo "::error title=Android signing::ANDROID_KEY_ALIAS is not in this keystore. It contains: ${have}"
+            exit 1
+          fi
+          echo "credentials open the keystore and the alias is present"
+
       - name: Import assets
         if: steps.key.outputs.have == 'true'
         run: godot --headless --path game --import
