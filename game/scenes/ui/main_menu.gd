@@ -26,6 +26,15 @@ var _codex: CanvasLayer
 
 func _ready() -> void:
 	MusicPlayer.play("menu")
+	# **The menu column scrolls.** It used to sit in a fixed 310px box anchored
+	# to the middle of the screen while holding far more than that - on a tall
+	# desktop the overflow happened to land on screen and nobody noticed, and on
+	# a phone held sideways the first and last buttons ran off the top and bottom
+	# with no way to reach them. Reported from an installed APK, where "Take the
+	# road" itself was one of the buttons off the screen.
+	var scroll := get_node_or_null("MenuScroll") as ScrollContainer
+	if scroll != null:
+		UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	new_run_button.pressed.connect(_start_run)
 	quit_button.pressed.connect(GameDirector.quit_game)
 	seed_input.text_submitted.connect(func(_value: String) -> void: _start_run())

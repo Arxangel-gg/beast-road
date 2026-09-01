@@ -10,11 +10,11 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_menu")
-new_run_button = NodePath("Buttons/NewRun")
-settings_button = NodePath("Buttons/Settings")
-quit_button = NodePath("Buttons/Quit")
+new_run_button = NodePath("MenuScroll/Buttons/NewRun")
+settings_button = NodePath("MenuScroll/Buttons/Settings")
+quit_button = NodePath("MenuScroll/Buttons/Quit")
 stats_label = NodePath("Stats")
-seed_input = NodePath("Buttons/Seed/Value")
+seed_input = NodePath("MenuScroll/Buttons/Seed/Value")
 
 [node name="Art" type="TextureRect" parent="."]
 layout_mode = 1
@@ -38,44 +38,48 @@ texture = ExtResource("3_logo")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Buttons" type="VBoxContainer" parent="."]
+[node name="MenuScroll" type="ScrollContainer" parent="."]
 layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
+anchors_preset = 9
+anchor_bottom = 1.0
 offset_left = 140.0
-offset_top = -155.0
-offset_right = 500.0
-offset_bottom = 155.0
+offset_top = 24.0
+offset_right = 520.0
+offset_bottom = -24.0
+horizontal_scroll_mode = 0
+
+[node name="Buttons" type="VBoxContainer" parent="MenuScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="NewRun" type="Button" parent="Buttons"]
+[node name="NewRun" type="Button" parent="MenuScroll/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(380, 72)
 text = "Take the road"
 
-[node name="Seed" type="HBoxContainer" parent="Buttons"]
+[node name="Seed" type="HBoxContainer" parent="MenuScroll/Buttons"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Label" type="Label" parent="Buttons/Seed"]
+[node name="Label" type="Label" parent="MenuScroll/Buttons/Seed"]
 layout_mode = 2
 text = "RUN SEED"
 theme_override_font_sizes/font_size = 15
 
-[node name="Value" type="LineEdit" parent="Buttons/Seed"]
+[node name="Value" type="LineEdit" parent="MenuScroll/Buttons/Seed"]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Leave blank for a fresh road, or enter a debrief seed to reproduce its gameplay rolls."
 placeholder_text = "Random — or enter 9 digits"
 max_length = 9
 
-[node name="Settings" type="Button" parent="Buttons"]
+[node name="Settings" type="Button" parent="MenuScroll/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(380, 66)
 text = "Settings"
 
-[node name="Quit" type="Button" parent="Buttons"]
+[node name="Quit" type="Button" parent="MenuScroll/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(380, 66)
 text = "Quit"
