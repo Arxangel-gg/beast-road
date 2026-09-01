@@ -778,33 +778,45 @@ func _reanchor_if_thrown(path: PackedVector2Array) -> void:
 	# exactly on the first leg while its cursor still says the eighth is as lost
 	# as a body can be, and its distance to the nearest leg is zero. What decides
 	# whether it is thrown is how far it is from the road it thinks it is on.
-	var following: int = clampi(_path_index, 0, path.size() - 2)
-	var strayed: float = _distance_to_leg(path[following], path[following + 1])
-	if strayed < Balance.ENEMY_REANCHOR_DISTANCE:
-		return
+	_path_index = reanchor_index(path, global_position, _path_index)
 
-	var nearest: int = following
+
+## Which leg a body at `at` should be following, given the one it thinks it is on.
+##
+## **Static, and free of the node.** Deciding where a thrown body rejoins the
+## road is arithmetic over a polyline; testing it was costing a whole `Run` -
+## a battlefield, a director, a hero - built and torn down to ask one question,
+## which leaked twelve objects on the CI runner and none here. The rule is the
+## part worth checking and it needs none of that.
+static func reanchor_index(path: PackedVector2Array, at: Vector2, following: int) -> int:
+	if path.size() < 2:
+		return following
+	var current: int = clampi(following, 0, path.size() - 2)
+	# Measured against the leg being followed, not the nearest one. Gating on the
+	# nearest is the same mistake in a different shape: a body standing exactly
+	# on the first leg while its cursor still says the eighth is as lost as a
+	# body can be, and its distance to the nearest leg is zero.
+	if distance_to_leg(at, path[current], path[current + 1]) 			< Balance.ENEMY_REANCHOR_DISTANCE:
+		return current
+
+	var nearest: int = current
 	var nearest_distance: float = INF
 	for index: int in path.size() - 1:
-		var distance: float = _distance_to_leg(path[index], path[index + 1])
+		var distance: float = distance_to_leg(at, path[index], path[index + 1])
 		if distance < nearest_distance:
 			nearest_distance = distance
 			nearest = index
-	# Never rewind past ground already walked *unless* the nearest leg really is
-	# behind: an enemy shoved backwards should re-enter the road behind itself
-	# rather than sprinting to a waypoint it has passed, but one merely knocked
-	# wide must not lose the progress it made.
-	_path_index = nearest
+	return nearest
 
 
-## Distance from this body to a single leg of the route.
-func _distance_to_leg(from: Vector2, to: Vector2) -> float:
+## Distance from a point to one leg of a route.
+static func distance_to_leg(at: Vector2, from: Vector2, to: Vector2) -> float:
 	var segment: Vector2 = to - from
 	var length_squared: float = segment.length_squared()
 	if length_squared <= 0.01:
-		return global_position.distance_to(from)
-	var along: float = clampf((global_position - from).dot(segment) / length_squared, 0.0, 1.0)
-	return global_position.distance_to(from + segment * along)
+		return at.distance_to(from)
+	var along: float = clampf((at - from).dot(segment) / length_squared, 0.0, 1.0)
+	return at.distance_to(from + segment * along)
 
 
 func current_speed() -> float:
