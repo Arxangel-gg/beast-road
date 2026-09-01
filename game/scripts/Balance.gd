@@ -2837,6 +2837,44 @@ const VFX_TOWN_FLASH_COOLDOWN: float = 0.85
 ## Town health fraction below which its damage flash doubles up. [TUNE]
 const VFX_TOWN_CRITICAL: float = 0.35
 
+# --- Kill momentum -----------------------------------------------------------
+#
+# A rising crescendo as the hero cuts through a pack, and nothing more than that.
+#
+# **Cosmetic by construction.** It lives in `Vfx`, which has no path to damage,
+# health or the economy, and that placement is the guarantee rather than a
+# comment: a streak that quietly buffed damage would be a difficulty change the
+# curve was never tuned against, and would need arguing in the GDD rather than
+# here. What escalates is how a kill *sounds and looks*, which is free.
+
+## How long a streak survives without a kill feeding it. Short enough that
+## walking away ends it, long enough to carry across the gap between two bodies
+## in the same formation. [TUNE]
+const MOMENTUM_WINDOW: float = 2.6
+
+## Kill counts at which the feedback steps up, and the word shown at each. The
+## thresholds are deliberately far apart: a tier every three kills is a number
+## that never stops changing and therefore never means anything.
+const MOMENTUM_TIERS: Array[int] = [5, 12, 24, 40]
+const MOMENTUM_WORDS: Array[String] = ["CUTTING", "CARVING", "UNBROKEN", "THE ROAD IS YOURS"]
+
+## The colour each tier's word and sparks take, warming as it climbs.
+const MOMENTUM_COLOURS: Array[Color] = [
+	Color("d8c9a4"),
+	Color("e8a33d"),
+	Color("f2762f"),
+	Color("ff5b4a"),
+]
+
+## How much the top tier multiplies the death burst by. Applied to spark counts
+## and ring sizes, never to numbers the player is scored on. [TUNE]
+const MOMENTUM_BURST_SCALE: float = 1.85
+
+## Extra screen shake at the top tier, in the same units as every other request.
+## Small: this fires on every kill, and a shake that stacks with the swing's own
+## becomes nausea rather than force. [TUNE]
+const MOMENTUM_SHAKE: float = 3.2
+
 ## Hero health fraction at which the red edge starts, and how dark the edge gets
 ## at zero health. This is edge opacity, not screen opacity - the centre of the
 ## screen always stays clear. [TUNE]

@@ -932,6 +932,7 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 	var colour := Color("c96a4a")
 	var spark_count: int = 10
 	var radius: float = 34.0
+	var swell: float = _feed_momentum(at)
 	if data != null:
 		match data.category:
 			EnemyData.Category.ELITE:
@@ -944,6 +945,10 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 				radius = 104.0
 			_:
 				pass
+	# The streak swells the burst rather than adding a second one beside it: one
+	# louder death reads as momentum, two deaths reads as a bug.
+	spark_count = int(round(float(spark_count) * swell))
+	radius *= lerpf(1.0, 1.25, clampf(swell - 1.0, 0.0, 1.0))
 	spark(at, colour, spark_count, Vector2.ZERO, 220.0 + radius)
 	blood(at, Vector2.ZERO, maxf(Balance.VFX_BLOOD_DEATH_SIZE, radius * 1.05))
 	dust(at, Color(0.34, 0.22, 0.18, 0.34), 4 + spark_count / 5, radius * 0.9)
@@ -1128,3 +1133,72 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	var material: ShaderMaterial = _vignette.material as ShaderMaterial
 	if material != null:
 		material.set_shader_parameter("strength", danger * Balance.VFX_VIGNETTE_MAX)
+
+
+# --- Kill momentum -----------------------------------------------------------
+#
+# A rising crescendo as the hero cuts through a pack.
+#
+# **It lives here because `Vfx` cannot reach anything that matters.** This node
+# has no path to damage, health, currency or the wave director, so a streak
+# implemented in it is cosmetic by construction rather than by discipline. A
+# momentum system that quietly buffed damage would be a difficulty change the
+# three-act curve was never tuned against, and would belong in the GDD rather
+# than in a polish pass.
+#
+# Deaths from every source feed it - a tower kill counts. The player is watching
+# one road, not their own hit count, and a streak that ignored the towers would
+# go quiet during exactly the moments the defence is working.
+
+## Kills in the current streak, and when the last one landed.
+var _streak: int = 0
+var _streak_at_ms: int = 0
+
+## The highest tier announced so far this streak, so a word is shown once when it
+## is crossed rather than on every kill above it.
+var _streak_tier: int = -1
+
+
+## Records a kill and returns how much to swell its death burst by.
+##
+## Returns 1.0 at rest, so every existing caller is unchanged when nothing is
+## streaking. The window is checked against the wall clock rather than a delta:
+## hitstop sets `Engine.time_scale` to zero, and a streak timed with the frame
+## delta would stop decaying during exactly the freezes that kills cause.
+func _feed_momentum(at: Vector2) -> float:
+	var now: int = Time.get_ticks_msec()
+	if now - _streak_at_ms > int(Balance.MOMENTUM_WINDOW * 1000.0):
+		_streak = 0
+		_streak_tier = -1
+	_streak_at_ms = now
+	_streak += 1
+
+	var tier: int = -1
+	for index: int in Balance.MOMENTUM_TIERS.size():
+		if _streak >= Balance.MOMENTUM_TIERS[index]:
+			tier = index
+	if tier < 0:
+		return 1.0
+
+	var colour: Color = Balance.MOMENTUM_COLOURS[tier]
+	if tier > _streak_tier:
+		# Announced once, on the kill that crossed it. Said every kill above the
+		# threshold it would be a word sitting permanently on the screen, which
+		# is wallpaper rather than an event.
+		_streak_tier = tier
+		word(at + Vector2(0.0, -70.0), Balance.MOMENTUM_WORDS[tier], colour, 30 + tier * 4)
+		EventBus.camera_shake_requested.emit(
+			Balance.MOMENTUM_SHAKE * (float(tier + 1) / float(Balance.MOMENTUM_TIERS.size())),
+			0.22)
+		rays(at, colour, 10 + tier * 4, 90.0 + float(tier) * 26.0)
+
+	var reach: float = float(tier + 1) / float(Balance.MOMENTUM_TIERS.size())
+	return lerpf(1.0, Balance.MOMENTUM_BURST_SCALE, reach)
+
+
+## Where the streak stands, for anything that wants to read it. Nothing in
+## gameplay does, and nothing should - see the note above.
+func momentum_streak() -> int:
+	if Time.get_ticks_msec() - _streak_at_ms > int(Balance.MOMENTUM_WINDOW * 1000.0):
+		return 0
+	return _streak

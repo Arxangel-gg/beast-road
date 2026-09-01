@@ -246,6 +246,11 @@ jobs:
           # load. Five blueprints were missing this way and ranged_check still
           # printed a healthy number.
           check "content" --headless --path game res://tools/content_check.tscn
+          # Kill momentum escalates the feedback and nothing else. The bound is
+          # the point: a streak that raised damage would be a difficulty change
+          # the three-act curve was never tuned against, and it would read as
+          # polish in review.
+          check "momentum" --headless --path game res://tools/momentum_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one
