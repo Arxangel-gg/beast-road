@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_windcarver"
+display_name = "Plan: Windcarver"
+description = "How the Windcarver is built, and why the limbs are shaped that way."
+unlocks_kind = "ranged"
+unlocks_id = "windcarver"
+rarity = "uncommon"
+source_line = "Bone and sinew, and lighter than it has any right to be."

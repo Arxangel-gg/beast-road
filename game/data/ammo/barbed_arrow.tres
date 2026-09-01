@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "barbed_arrow"
+display_name = "Barbed Arrow"
+description = "The head is shaped so it does not come out again. Whatever carries one carries it slowly, and keeps bleeding."
+family = "arrow"
+element = -1
+damage_scale = 1.15
+burn_damage = 4.0
+burn_duration = 4.5
+slow_factor = 0.78
+slow_duration = 2.4
+craft_batch = 6
+craft_cost = {
+"stone": 6,
+"wood": 12
+}
+bulk = 2

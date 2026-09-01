@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RangedWeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ranged_weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hand_ballista"
+display_name = "Hand Ballista"
+description = "A siege engine you can just about carry. It throws whatever it hits back down the road it came up."
+family = "bolt"
+damage = 52.0
+draw_time = 2.10
+effective_range = 640.0
+projectile_speed = 1050.0
+pierce = 2
+knockback = 420.0
+draw_move_scale = 0.32
+art_degrees = -45.0

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AmmoData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ammo_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "thunder_bolt"
+display_name = "Thunder Bolt"
+description = "Copper-headed and badly earthed. It finds the next one along whether you aimed at them or not."
+family = "bolt"
+element = 3
+damage_scale = 0.85
+chain_targets = 3
+craft_batch = 4
+craft_cost = {
+"gold": 14,
+"stone": 12
+}
+bulk = 3

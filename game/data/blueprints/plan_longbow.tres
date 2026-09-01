@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_longbow"
+display_name = "Plan: Longbow"
+description = "How the Longbow is built, and why the limbs are shaped that way."
+unlocks_kind = "ranged"
+unlocks_id = "longbow"
+rarity = "rare"
+source_line = "A stave long enough that nobody carried it by choice."

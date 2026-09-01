@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_hand_ballista"
+display_name = "Plan: Hand Ballista"
+description = "How the Hand Ballista is built, and why the limbs are shaped that way."
+unlocks_kind = "ranged"
+unlocks_id = "hand_ballista"
+rarity = "legendary"
+source_line = "The drawings were folded inside a siege engine's stock."

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RangedWeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ranged_weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "longbow"
+display_name = "Longbow"
+description = "Reaches the standard-bearer at the back before the front rank is a problem. One body at a time, and the right body."
+family = "arrow"
+damage = 21.0
+draw_time = 0.98
+effective_range = 1180.0
+projectile_speed = 1150.0
+pierce = 1
+knockback = 95.0
+draw_move_scale = 0.55
+art_degrees = -45.0

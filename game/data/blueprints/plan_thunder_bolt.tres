@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_thunder_bolt"
+display_name = "Plan: Thunder Bolt"
+description = "The method for making Thunder Bolt that hold together at the draw."
+unlocks_kind = "ammo"
+unlocks_id = "thunder_bolt"
+rarity = "rare"
+source_line = "Taken from a storm-caller who no longer needed it."

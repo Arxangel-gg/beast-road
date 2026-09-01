@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BlueprintData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/blueprint_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "plan_barbed_arrow"
+display_name = "Plan: Barbed Arrow"
+description = "The method for making Barbed Arrow that hold together at the draw."
+unlocks_kind = "ammo"
+unlocks_id = "barbed_arrow"
+rarity = "uncommon"
+source_line = "The trick is in the reverse hook; the rest is patience."

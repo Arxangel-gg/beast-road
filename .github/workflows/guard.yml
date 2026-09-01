@@ -240,6 +240,12 @@ jobs:
           # Consumables are content. The gate that matters is the last one: an
           # effect nothing reads would be taken, drawn, and do nothing.
           check "items" --headless --path game res://tools/item_check.tscn
+          # Every authored .tres actually became content. ContentDB warns and
+          # carries on when one will not parse, so the dictionary goes quietly
+          # short and every gate over that content keeps passing on what did
+          # load. Five blueprints were missing this way and ranged_check still
+          # printed a healthy number.
+          check "content" --headless --path game res://tools/content_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

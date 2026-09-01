@@ -1416,6 +1416,9 @@ here.
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `ranged_shortbow.png` | 128×128 | T | `#7A5A32` |
+| `ranged_longbow.png` | 128×128 | T | `#7A5A32` |
+| `ranged_windcarver.png` | 128×128 | T | `#8FA07A` |
+| `ranged_hand_ballista.png` | 128×128 | T | `#6E6A62` |
 | `ranged_heavy_crossbow.png` | 128×128 | T | `#5A5A5E` |
 
 ### 5.7f Ammunition — `res://art/ammo/`
@@ -1429,6 +1432,8 @@ labels.
 | `ammo_plain_arrow.png` | 128×128 | T | `#8A7B57` |
 | `ammo_ember_arrow.png` | 128×128 | T | `#B4471F` |
 | `ammo_rime_arrow.png` | 128×128 | T | `#6FA8C4` |
+| `ammo_barbed_arrow.png` | 128×128 | T | `#8A7B57` |
+| `ammo_thunder_bolt.png` | 128×128 | T | `#6FA8C4` |
 | `ammo_plain_bolt.png` | 128×128 | T | `#6E6A60` |
 | `ammo_blast_bolt.png` | 128×128 | T | `#9C6A34` |
 
