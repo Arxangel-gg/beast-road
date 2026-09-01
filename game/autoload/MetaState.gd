@@ -98,6 +98,41 @@ var unlocked_blueprints: Array[String] = []
 ## discoverable costs nothing here.
 var codex_seen: Array[String] = []
 
+# --- Wildlife Spirit Companions ----------------------------------------------
+#
+# Owner decision, 2026-09-01. Every wildlife species can be bonded as a Spirit
+# Companion at each rarity, and again as a Shiny of each; the progression is
+# permanent and survives runs.
+#
+# **This is an amendment to working rule 7 and it is deliberate.** That rule
+# lists exactly what may persist, and companion progression was not on it. The
+# owner asked for a persistent collection system in detail, which is the same
+# shape of decision as the hero re-cut on 2026-08-20 - so it is recorded in
+# CLAUDE.md with its date rather than smuggled in here.
+#
+# **The bound that keeps it honest**: what persists is *which spirits you have
+# met and bonded*, and nothing else. No spirit carries a level, no run currency
+# is banked, and a bonded spirit is not stronger for having been owned longer -
+# its power comes entirely from the variant's rarity, which is fixed the moment
+# the animal was placed. Collection, not accumulation.
+
+## Encounters banked per variant, keyed by `SpiritBond.key`. Uncapped counts are
+## kept past the threshold: the journal shows "12 / 10" rather than pretending
+## the last two sightings did not happen.
+var spirit_encounters: Dictionary = {}
+
+## Which variants are bonded. Derived from the counts, but stored, because the
+## moment a bond completes is a thing to celebrate exactly once.
+var spirit_bonded: Dictionary = {}
+
+## The one spirit walking with the hero, as a `SpiritBond` key, or "".
+##
+## One slot to begin with, per the owner's brief. The storage is a single string
+## rather than an array only because a second slot is a change to what is
+## *equipped*, not to how a bond is earned - and the earning is the part that
+## would be painful to migrate.
+var equipped_spirit: String = ""
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -904,6 +939,14 @@ func serialized_save() -> String:
 			"marks": marks,
 			"shards": shards,
 		},
+		# Additive and optional: a save written before spirits existed simply
+		# has no "spirits" key and reads back as an empty collection, so this
+		# needed no SAVE_VERSION bump and no migration path.
+		"spirits": {
+			"encounters": spirit_encounters,
+			"bonded": spirit_bonded,
+			"equipped": equipped_spirit,
+		},
 		"resource_cache": resource_cache,
 		"chronicle": {
 			"completed": completed_objectives,
@@ -978,6 +1021,7 @@ func load_save() -> void:
 	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
+	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
@@ -1097,3 +1141,98 @@ func _unique_string_array(value: Variant) -> Array[String]:
 		if not id.is_empty() and not out.has(id):
 			out.append(id)
 	return out
+
+
+# --- Wildlife Spirit Companions ----------------------------------------------
+
+## Records one encounter with a variant and reports what changed.
+##
+## Returns a dictionary the caller can announce from: `discovered` for the first
+## sighting of a variant, `bonded` for the encounter that completes it, and the
+## counts either way. Both are wanted - meeting a Rare Fox for the first time is
+## worth saying out loud, and so is the fifth one.
+##
+## **A shiny encounter also feeds the plain variant of the same rarity.** Finding
+## something rare must never be worth *less* than finding something ordinary, and
+## without this a player chasing the normal Rare Wolf would groan at a shiny one.
+func record_spirit_encounter(species_id: String, rarity: int, shiny: bool) -> Dictionary:
+	var result: Dictionary = {"keys": [], "discovered": [], "bonded": []}
+	if species_id.is_empty():
+		return result
+	# Built rather than written as a ternary: a conditional expression yields an
+	# untyped Array, which will not assign to Array[bool] and fails at runtime
+	# rather than at parse time.
+	var wanted: Array[bool] = [false]
+	if shiny:
+		wanted = [true, false]
+	for is_shiny: bool in wanted:
+		var key: String = SpiritBond.key(species_id, rarity, is_shiny)
+		var before: int = int(spirit_encounters.get(key, 0))
+		if before == 0:
+			result["discovered"].append(key)
+		spirit_encounters[key] = before + 1
+		result["keys"].append(key)
+		if not spirit_bonded.has(key) \
+				and before + 1 >= SpiritBond.needed(rarity, is_shiny):
+			spirit_bonded[key] = true
+			result["bonded"].append(key)
+	save_game()
+	return result
+
+
+func spirit_encounter_count(bond_key: String) -> int:
+	return int(spirit_encounters.get(bond_key, 0))
+
+
+func spirit_is_bonded(bond_key: String) -> bool:
+	return spirit_bonded.has(bond_key)
+
+
+## Whether a variant has ever been met. Drives the journal's silhouettes: an
+## unmet variant is a question mark rather than a row of zeroes, because the
+## discovery is meant to be part of the reward.
+func spirit_is_known(bond_key: String) -> bool:
+	return spirit_encounter_count(bond_key) > 0
+
+
+## Equips a bonded spirit, or clears the slot with "".
+func equip_spirit(bond_key: String) -> bool:
+	if bond_key.is_empty():
+		equipped_spirit = ""
+		save_game()
+		EventBus.spirit_equipped.emit("")
+		return true
+	if not spirit_is_bonded(bond_key):
+		return false
+	equipped_spirit = bond_key
+	save_game()
+	EventBus.spirit_equipped.emit(bond_key)
+	return true
+
+
+## How many variants are bonded, for a heading.
+func spirit_bond_count() -> int:
+	return spirit_bonded.size()
+
+
+## Reads the spirit collection, defaulting to empty.
+##
+## Every field is optional. A save from before this system existed has no
+## "spirits" key at all, and one written by a future build with more in it loses
+## only what this version cannot read - neither is corruption, and neither
+## needed a SAVE_VERSION bump.
+func _read_spirits(block: Dictionary) -> void:
+	spirit_encounters = {}
+	for key: Variant in (block.get("encounters", {}) as Dictionary):
+		var count: int = int((block["encounters"] as Dictionary)[key])
+		if count > 0:
+			spirit_encounters[String(key)] = count
+	spirit_bonded = {}
+	for key: Variant in (block.get("bonded", {}) as Dictionary):
+		spirit_bonded[String(key)] = true
+	equipped_spirit = String(block.get("equipped", ""))
+	# A spirit that is equipped but not bonded is a save somebody edited, or one
+	# written by a build whose thresholds were different. Clearing it is safer
+	# than summoning something the collection does not contain.
+	if not equipped_spirit.is_empty() and not spirit_bonded.has(equipped_spirit):
+		equipped_spirit = ""

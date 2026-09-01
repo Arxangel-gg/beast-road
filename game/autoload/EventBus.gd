@@ -307,6 +307,21 @@ signal captive_unassigned(captive_id: String)
 ## what is held (working rule 6).
 signal items_changed()
 
+## A wildlife variant was met for the first time, or its bond completed.
+##
+## `bond_key` is a `SpiritBond` key. Two signals rather than one with a flag,
+## because they are announced differently: a discovery is a quiet line, a bond is
+## an event - and a shiny of either is louder again.
+signal spirit_discovered(bond_key: String, count: int, needed: int)
+signal spirit_bonded(bond_key: String)
+
+## The active spirit changed. Empty means the slot was cleared.
+signal spirit_equipped(bond_key: String)
+
+## A spirit companion was defeated and began re-forming, or has returned.
+signal spirit_downed(bond_key: String, seconds: float)
+signal spirit_returned(bond_key: String)
+
 ## A relic was socketed or unsocketed in the Town Hall.
 signal relic_socketed(relic_id: String)
 signal relic_unsocketed(relic_id: String)

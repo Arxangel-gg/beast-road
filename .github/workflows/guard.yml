@@ -251,6 +251,10 @@ jobs:
           # the three-act curve was never tuned against, and it would read as
           # polish in review.
           check "momentum" --headless --path game res://tools/momentum_check.tscn
+          # The spirit collection: rarer must need fewer encounters, the power
+          # ladder must never invert, and a shiny must never be worth less than
+          # a plain variant. Also that an old save loads as an empty collection.
+          check "spirits" --headless --path game res://tools/spirit_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

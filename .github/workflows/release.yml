@@ -110,6 +110,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/item_check.tscn
           run_godot_clean --headless --path game res://tools/content_check.tscn
           run_godot_clean --headless --path game res://tools/momentum_check.tscn
+          run_godot_clean --headless --path game res://tools/spirit_check.tscn
           run_godot_clean --headless --path game res://tools/codex_check.tscn
           run_godot_clean --headless --path game res://tools/weapon_vfx_check.tscn
           run_godot_clean --headless --path game res://tools/crossroad_vote_check.tscn

@@ -640,6 +640,68 @@ const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 ## consumable's effect rather than a stat. [TUNE]
 const HEALTH_SHIELD_CEILING: float = 0.60
 
+# --- Wildlife Spirit Companions ----------------------------------------------
+#
+# Owner decision, 2026-09-01. Every wildlife species can be bonded as a Spirit
+# Companion at each of the four wildlife rarities, and again as a Shiny of each.
+# `SpiritBond` holds the rules; these are the numbers it reads.
+
+## Encounters needed to bond one variant, by rarity.
+##
+## Rarer needs fewer. That is the design decision rather than a curve: the tier
+## that is hard to *find* must not also be hard to *finish*, or a Legendary
+## sighting becomes the first of ten chores instead of an event. [TUNE]
+const SPIRIT_ENCOUNTERS: Array[int] = [10, 8, 5, 1]
+
+## The same, for Shinies. Lower throughout, because finding the shiny is already
+## the grind - nobody should have to meet ten Shiny Common Wolves. [TUNE]
+const SPIRIT_SHINY_ENCOUNTERS: Array[int] = [3, 3, 2, 1]
+
+## Chance one placed animal of each rarity shines. Rolled once, when it is put on
+## the field, so nothing the player does afterwards can reroll it.
+##
+## Legendary is deliberately the most generous: a Legendary sighting is already
+## rare enough that stacking a 2% roll on top would make the Shiny Legendary an
+## effectively unreachable row in the journal. [TUNE]
+const SPIRIT_SHINY_CHANCE: Array[float] = [0.02, 0.02, 0.03, 0.10]
+
+## How much stronger the apex variant is than the base one.
+##
+## Bounded on purpose. A higher tier has to feel like a real upgrade without
+## making everything under it worthless, so the Shiny Legendary is a little over
+## twice a plain Common rather than ten times it. Rarity decides power *within* a
+## species; species decides what the companion is *for*. [TUNE]
+const SPIRIT_APEX_POWER: float = 2.15
+
+## Seconds a defeated spirit spends re-forming, by rarity, and what a Shiny
+## takes off that.
+##
+## Higher rarity recovers *faster*. Punishing the best companion with the longest
+## absence would make owning it worse; a Legendary is balanced by its ability
+## cooldowns instead. The Shiny bonus is small except at the top, where it lands
+## the apex on 35 seconds exactly. [TUNE]
+const SPIRIT_RECOVERY_SECONDS: Array[float] = [45.0, 42.0, 40.0, 38.0]
+const SPIRIT_SHINY_RECOVERY_BONUS: Array[float] = [1.0, 1.0, 1.0, 3.0]
+
+## Names and colours, shared by every surface that draws a variant.
+const SPIRIT_RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Legendary"]
+const SPIRIT_RARITY_COLOURS: Array[Color] = [
+	Color("b7ada0"),
+	Color("9fd48a"),
+	Color("6f8fdf"),
+	Color("e0a94f"),
+]
+
+## Shiny gets its own colour rather than a tint of the rarity's: the point is
+## that it is recognisable across a field at a glance. [TUNE]
+const SPIRIT_SHINY_COLOUR: Color = Color("6fe8e0")
+
+## How far a shiny animal's own sprite is pushed toward that colour, and how
+## strongly it pulses. Low: the pixel art has to stay readable, and a creature
+## that strobes is a creature nobody wants to look at. [TUNE]
+const SPIRIT_SHINY_TINT_STRENGTH: float = 0.34
+const SPIRIT_SHINY_PULSE_HZ: float = 1.4
+
 # ------------------------------------------------------------------------------
 # Oath of the Last Scar — run challenge
 # ------------------------------------------------------------------------------

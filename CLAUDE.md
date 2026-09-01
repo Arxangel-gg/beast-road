@@ -49,6 +49,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: a bounded purse. See below.** |
 | Ranged weapons, ammo, blueprints, crafting (not in v4) | absent from the spec | **DECIDED 2026-08-31: build them. See below.** |
 | Gear as the reason to replay (no loot loop in v4) | not in the spec | **DECIDED 2026-09-01: farm gear. See below.** |
+| Companions as temporary spell effects (§54 cuts "party roster") | v4 keeps the cut | **DECIDED 2026-09-01: Wildlife Spirit Companions persist. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -167,6 +168,37 @@ because a Nightmare run that costs more and pays the same makes farming Normal
 forever the correct play. `balance_test._test_gear_farming` holds the four
 properties this rests on: a hundred kills usually pays, the top rarity stays an
 event, every slot has real choices, and the stash outlives a haul.
+
+**Wildlife Spirit Companions are a persistent collection, as of 2026-09-01.**
+The owner asked, in detail, for every wildlife species to be bondable as a
+companion at each rarity, with shiny variants, permanent progression, and no
+lifetime timer. That is two amendments and both are recorded here rather than
+left implicit in the code.
+
+**It re-cuts §54's "multiple heroes, party roster".** `CompanionData` argued -
+correctly, at the time - that a summon with a duration is a *spell effect* and
+one that persists is a party member, which §54 cuts. A Spirit Companion has no
+duration: it stays until defeated, unequipped or replaced. That is the cut being
+reversed, and it was flagged three times before the owner ruled.
+
+The bound that keeps §54 meaningful is **one active slot**. What was cut is a
+*roster* the player commands - swapping between several bodies, ordering them
+about. One companion that follows and fights on its own is a second presence,
+not a second hero, and the player remains the character. The storage is a single
+key rather than an array so that adding a slot later stays a deliberate decision
+rather than a natural consequence.
+
+**It amends working rule 7**, which lists what `MetaState` may persist and did
+not include this. What persists is *which spirits have been met and bonded* and
+nothing else: no spirit carries a level, no run currency is banked, and a bonded
+spirit is no stronger for having been owned longer. Its power comes entirely
+from the variant's rarity, which was fixed the moment the animal was placed.
+Collection, not accumulation - the same distinction that keeps gear on the
+capped attribute scale.
+
+The save is additive: a file written before this has no `spirits` key and reads
+as an empty collection, so `SAVE_VERSION` did not move and no migration exists
+to get wrong.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

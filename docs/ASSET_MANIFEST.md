@@ -958,9 +958,16 @@ was already even — it was **Act III**, which had five species against nine and
 ten in the other two, so a snowfield read as emptier than a jungle for reasons
 nobody chose. Four of the ten are Act III alone.
 
-**Nine of the ten face right and the hedgehog faces left**, which was read off
-a contact sheet rather than assumed. `art_faces_right` is per-sprite for
-exactly this reason, and getting it wrong makes a creature moonwalk.
+**Eight of the ten face right; the hedgehog and the snow lynx face left.**
+`art_faces_right` is per-sprite for exactly this reason, and getting it wrong
+makes a creature moonwalk.
+
+Read off individual sprites at full size, not off a contact sheet. The first
+pass used a 3x sheet, called the snow lynx right-facing, and shipped it
+backwards - the owner spotted it. A pixel-mass heuristic was then tried as a
+cross-check and was worse: it scored that sprite 389 against 397, a coin toss on
+an animal whose face is plainly on the left. **There is no substitute for
+looking at each one**, and no gate can do it.
 
 Six of these are the **hostile** roster — wolf, boar, bear, viper, badger, hawk —
 and they read as such: heavier silhouettes, teeth and tusks where the ambient

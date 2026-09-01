@@ -34,7 +34,7 @@ max_hp = 92.0
 food_min = 3
 food_max = 7
 xp_reward = 19
-art_faces_right = true
+art_faces_right = false
 
 stay_min = 30.0
 stay_max = 90.0
