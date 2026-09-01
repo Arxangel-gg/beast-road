@@ -16,61 +16,56 @@ review time.
 
 ## What the owner has to do, once
 
-**Everything else is automated. This is the only manual part, and it exists
-because the signing key must belong to a person rather than to a build.**
+Run this, then paste three values into GitHub. That is the whole job.
 
-### 1. Generate a keystore
-
-Run this on your own machine, not in CI. `keytool` comes with any JDK.
-
-```bash
-keytool -genkeypair -v -keystore beastroad-release.keystore -alias beastroad -keyalg RSA -keysize 4096 -validity 10000
+```powershell
+.\tools\new_signing_key.ps1
 ```
 
-It asks for a password and some identifying details. The details are cosmetic;
-the password is not.
-
-### 2. Back it up somewhere you will not lose it
-
-**The signing key is permanent.** Every future update must be signed with the
-same key, or Android refuses to install it over an existing copy — users would
-have to uninstall first, losing their local data. Losing this file means losing
-the ability to update the app for everyone who has it.
-
-Keep it out of the repository. It is deliberately not in `.gitignore` as a
-reminder that it should never be near the working tree at all.
-
-### 3. Add four repository secrets
-
-In GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
+It makes the key, **verifies the alias and password actually open it**, and puts
+the base64 on your clipboard. Then, in GitHub under
+**Settings → Secrets and variables → Actions**:
 
 | Secret | Value |
 |---|---|
-| `ANDROID_KEYSTORE_BASE64` | the keystore file, base64-encoded (below) |
-| `ANDROID_KEY_ALIAS` | `beastroad`, or whatever `-alias` you used |
-| `ANDROID_KEY_PASSWORD` | the password you chose |
-| `ANDROID_KEYSTORE_PASSWORD` | the same password, unless you set a separate one |
+| `ANDROID_KEY_ALIAS` | `beastroad` |
+| `ANDROID_KEY_PASSWORD` | whatever the script printed |
+| `ANDROID_KEYSTORE_BASE64` | paste — it is already on your clipboard |
 
-To produce the base64 blob:
+Push any version tag and the APK attaches to that release.
 
-```bash
-base64 -w0 beastroad-release.keystore > keystore.b64
-```
+`ANDROID_KEYSTORE_PASSWORD` is not read by the build: a PKCS12 keystore has one
+password and Godot takes one. Harmless if it is set.
 
-On Windows PowerShell:
+### Why a script rather than instructions
 
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("beastroad-release.keystore")) | Set-Content keystore.b64
-```
+The first attempt failed with Godot's single message for two different mistakes:
 
-Paste the contents of `keystore.b64` as the secret value, then delete that file.
+    Release Username and/or Password is invalid for the given Release Keystore
 
-### 4. Push a tag
+which leaves you guessing which of two hand-typed values to re-enter. The script
+chooses both, so there is nothing to remember, and it proves the pair opens the
+keystore before printing anything. Two specific traps it removes:
 
-`tools/release.ps1 -Version 0.4.x` as usual. The Android workflow runs alongside
-the normal release and attaches `BeastRoad.apk` to it.
+* PKCS12 needs the store and key passwords to **match**. `keytool` lets you set
+  two different ones at the prompts, and Godot then cannot open the result.
+* The base64 must be one line with no trailing newline. Producing it and copying
+  from Notepad appends a CRLF, which GNU `base64` rejects outright. The
+  clipboard copy avoids the file entirely.
 
----
+### Redoing it
+
+Run the script again with `-Force`. **Read this first:** replacing the key means
+anyone who installed the old APK has to uninstall before they can update, because
+Android refuses an update signed by a different key. The script refuses to
+overwrite without `-Force` for that reason.
+
+### Where the key lives
+
+`signing/`, which `.gitignore` keeps out of the repository - by folder and by
+extension, after the first key spent a while sitting one `git add -A` away from
+being published. **Back it up somewhere you will not lose it.** It is not in git
+on purpose, so nothing else will.
 
 ## Until those secrets exist
 
