@@ -14,58 +14,54 @@ review time.
 
 ---
 
-## What the owner has to do, once
+## Setting it up
 
-Run this, then paste three values into GitHub. That is the whole job.
+Run this:
 
 ```powershell
-.\tools\new_signing_key.ps1
+powershell -ExecutionPolicy Bypass -File tools/new_signing_key.ps1
 ```
 
-It makes the key, **verifies the alias and password actually open it**, and puts
-the base64 on your clipboard. Then, in GitHub under
-**Settings → Secrets and variables → Actions**:
+It makes the signing key if there is not one, puts its base64 on your clipboard,
+and opens your repository's secrets page. Then:
 
-| Secret | Value |
-|---|---|
-| `ANDROID_KEY_ALIAS` | `beastroad` |
-| `ANDROID_KEY_PASSWORD` | whatever the script printed |
-| `ANDROID_KEYSTORE_BASE64` | paste — it is already on your clipboard |
+1. **New repository secret** (or Update, if it is already there)
+2. Name: `ANDROID_KEYSTORE_BASE64`
+3. Secret: **Ctrl+V**
 
-Push any version tag and the APK attaches to that release.
+Push any version tag. That is the whole setup.
 
-`ANDROID_KEYSTORE_PASSWORD` is not read by the build: a PKCS12 keystore has one
-password and Godot takes one. Harmless if it is set.
+Run the same command again whenever you need that value back on the clipboard -
+it reuses the existing key rather than making a new one.
 
-### Why a script rather than instructions
+### Why only one secret
 
-The first attempt failed with Godot's single message for two different mistakes:
+An alias and a password are worth protecting alongside the key they open, and
+the key is the secret. Making them secrets too meant three values to paste into
+a web form and three chances to mistype one - which is how this failed the first
+time, on Godot's single message for two different mistakes:
 
     Release Username and/or Password is invalid for the given Release Keystore
 
-which leaves you guessing which of two hand-typed values to re-enter. The script
-chooses both, so there is nothing to remember, and it proves the pair opens the
-keystore before printing anything. Two specific traps it removes:
+They live in the workflow now, and `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`
+still override them if a different key is ever used.
 
-* PKCS12 needs the store and key passwords to **match**. `keytool` lets you set
-  two different ones at the prompts, and Godot then cannot open the result.
-* The base64 must be one line with no trailing newline. Producing it and copying
-  from Notepad appends a CRLF, which GNU `base64` rejects outright. The
-  clipboard copy avoids the file entirely.
+### Replacing the key
 
-### Redoing it
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/new_signing_key.ps1
+```
 
-Run the script again with `-Force`. **Read this first:** replacing the key means
-anyone who installed the old APK has to uninstall before they can update, because
-Android refuses an update signed by a different key. The script refuses to
-overwrite without `-Force` for that reason.
+**Read this first.** Android refuses an update signed by a different key, so
+everyone who installed the old APK has to uninstall before they can update. The
+script will not replace a key without `-Force` for that reason.
 
 ### Where the key lives
 
 `signing/`, which `.gitignore` keeps out of the repository - by folder and by
-extension, after the first key spent a while sitting one `git add -A` away from
-being published. **Back it up somewhere you will not lose it.** It is not in git
-on purpose, so nothing else will.
+extension, after an earlier key spent a while sitting one `git add -A` away from
+being published. **Back it up somewhere you will not lose it**, because it is
+deliberately not in git and nothing else is keeping a copy.
 
 ## Until those secrets exist
 

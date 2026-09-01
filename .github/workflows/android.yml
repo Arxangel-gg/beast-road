@@ -124,22 +124,28 @@ jobs:
       - name: Check the signing credentials
         if: steps.key.outputs.have == 'true'
         env:
-          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # **Defaults, overridable.** An alias and a password are only worth
+          # protecting alongside the key they open, and the key is the secret.
+          # Making these secrets too meant three values to paste into a web form
+          # and three chances to mistype one - which is exactly how this first
+          # failed, on a message that would not say which of them was wrong.
+          # A different key can still override them.
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'beastroad' }}
+          PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'beastroad-dev' }}
         run: |
           set -uo pipefail
           ks="$HOME/keys/release.keystore"
           if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" > /tmp/ks.txt 2>&1; then
-            echo "::error title=Android signing::ANDROID_KEY_PASSWORD does not open the keystore. It is the password given to keytool -genkeypair; see docs/ANDROID.md."
+            echo "::error title=Android signing::The password does not open this keystore. If you made the key with tools/new_signing_key.ps1, re-run it and paste the new ANDROID_KEYSTORE_BASE64."
             exit 1
           fi
           have=$(grep -oE '^[^,]+, .*PrivateKeyEntry' /tmp/ks.txt | cut -d, -f1 | xargs)
           if [ -z "${ALIAS:-}" ]; then
-            echo "::error title=Android signing::ANDROID_KEY_ALIAS is empty. The keystore contains: ${have}"
+            echo "::error title=Android signing::No alias resolved. The keystore contains: ${have}"
             exit 1
           fi
           if ! keytool -list -keystore "$ks" -storepass "$PASSWORD" -alias "$ALIAS" > /dev/null 2>&1; then
-            echo "::error title=Android signing::ANDROID_KEY_ALIAS is not in this keystore. It contains: ${have}"
+            echo "::error title=Android signing::Alias '$ALIAS' is not in this keystore, which contains: ${have}. Re-run tools/new_signing_key.ps1 and paste the new ANDROID_KEYSTORE_BASE64."
             exit 1
           fi
           echo "credentials open the keystore and the alias is present"
@@ -152,8 +158,8 @@ jobs:
         if: steps.key.outputs.have == 'true'
         env:
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /home/runner/keys/release.keystore
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS }}
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS || 'beastroad' }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'beastroad-dev' }}
         run: |
           set -uo pipefail
           mkdir -p build/android
