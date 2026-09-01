@@ -238,6 +238,12 @@ jobs:
           # played stash is the only thing here that neither git nor a
           # re-import can bring back.
           check "save guard" --headless --path game res://tools/save_guard_check.tscn
+          # An extension with no library for a platform the game ships to
+          # constructs happily and then fails at runtime, on that platform
+          # only. WebRTC shipped without an Android binary and co-op could
+          # never have worked on a phone; nothing here noticed, because the
+          # export succeeds and the game runs.
+          check "extension platforms" --headless --path game res://tools/extension_platform_check.tscn
           # A body knocked clear of the road used to keep aiming at the
           # waypoint it left, which after a hard shove is behind it or across
           # a bend - so it walked diagonally over ground the road does not

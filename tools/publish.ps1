@@ -365,6 +365,7 @@ $btn.Add_Click({
             @{ Name = 'weapon VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/weapon_vfx_check.tscn') },
             @{ Name = 'crossroad vote'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/crossroad_vote_check.tscn') },
             @{ Name = 'save guard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_guard_check.tscn') },
+            @{ Name = 'extension platforms'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/extension_platform_check.tscn') },
             @{ Name = 'reanchor'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/reanchor_check.tscn') },
             @{ Name = 'disciplines'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/discipline_check.tscn') },
             @{ Name = 'raid suspend'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_suspend_check.tscn') },

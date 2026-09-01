@@ -105,6 +105,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/weapon_vfx_check.tscn
           run_godot_clean --headless --path game res://tools/crossroad_vote_check.tscn
           run_godot_clean --headless --path game res://tools/save_guard_check.tscn
+          run_godot_clean --headless --path game res://tools/extension_platform_check.tscn
           run_godot_clean --headless --path game res://tools/reanchor_check.tscn
           run_godot_clean --headless --path game res://tools/discipline_check.tscn
           run_godot_clean --headless --path game res://tools/raid_suspend_check.tscn

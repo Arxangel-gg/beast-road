@@ -125,8 +125,16 @@ func _build() -> void:
 
 	_root = PanelContainer.new()
 	_root.set_anchors_preset(Control.PRESET_CENTER)
-	_root.offset_left = -PANEL_WIDTH * 0.5
-	_root.offset_right = PANEL_WIDTH * 0.5
+	# **Bounded by the screen, not fixed at 620.** Touch metrics grow this panel
+	# and everything in it, and on a narrow display the result can be wider than
+	# there is room for - at which point the frame is drawn over the first inch
+	# of every line and the text reads as cut off. Reported from a phone, with
+	# "Co-op" showing as "o-op".
+	var wide: float = minf(PANEL_WIDTH,
+		get_viewport().get_visible_rect().size.x * 0.92)
+	_root.offset_left = -wide * 0.5
+	_root.offset_right = wide * 0.5
+	_root.clip_contents = false
 	_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_root.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_root)

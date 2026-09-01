@@ -3,7 +3,15 @@
 entry_symbol = "webrtc_extension_init"
 compatibility_minimum = 4.3
 
-; Windows because that is what ships, and Linux because that is what proves it.
+; Windows because that is what ships on desktop, Linux because that is what
+; proves it, and Android because the phone build is a shipping platform too.
+;
+; **Android was the missing one, and its absence was invisible until a phone
+; tried to connect.** Without a binary for the platform, `WebRTCPeerConnection`
+; is an interface with nothing behind it: it constructs, and then `add_peer`
+; fails with "Could not add the other player to the session" - which reads like
+; a networking problem and is actually a missing file. Two phones failed that
+; way in both directions.
 ;
 ; The desktop build is Windows only, so the Linux libraries never reach a
 ; player - Godot exports only the ones matching the target platform. They are
@@ -11,6 +19,9 @@ compatibility_minimum = 4.3
 ; machine that tests everything else is a transport nobody is checking. The
 ; alternative was fetching them in the workflow, which makes the repository
 ; describe binaries it does not contain.
+;
+; arm64 only for Android, matching `architectures/arm64-v8a` in the export
+; preset. Adding an architecture there means adding its binary here.
 ;
 ; The *web* build needs nothing here at all: a browser implements WebRTC itself
 ; and the engine binds straight to it. Adding a platform means adding its binary
@@ -22,3 +33,5 @@ windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_debug.x86_64.dll"
 windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"
 linux.debug.x86_64 = "lib/libwebrtc_native.linux.template_debug.x86_64.so"
 linux.release.x86_64 = "lib/libwebrtc_native.linux.template_release.x86_64.so"
+android.debug.arm64 = "lib/libwebrtc_native.android.template_debug.arm64.so"
+android.release.arm64 = "lib/libwebrtc_native.android.template_release.arm64.so"
