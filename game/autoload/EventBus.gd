@@ -99,7 +99,11 @@ signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
 signal hero_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int)
 
 ## The host put an animal on the field and gave it an identity.
-signal coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2)
+## `shiny` is carried rather than re-rolled. Both machines roll from their own
+## stream, so a guest left to decide for itself would see a different animal
+## shine than the host did - two players looking at the same rabbit, one of them
+## excited. The host's roll is the fact.
+signal coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2, shiny: bool)
 
 ## Where the host's animals are now, as one batch.
 signal coop_wildlife_batch(entries: Array)

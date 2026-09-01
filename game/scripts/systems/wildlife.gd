@@ -168,12 +168,13 @@ func _send_batch() -> void:
 
 
 ## The host put an animal down, so one appears here. Guest side.
-func _on_coop_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
+func _on_coop_spawned(net_id: int, kind_id: String, at: Vector2,
+		shiny: bool) -> void:
 	if not Coop.is_guest():
 		return
 	for data: WildlifeData in ContentDB.wildlife():
 		if data.id == kind_id:
-			_spawn(data, at, net_id)
+			_spawn(data, at, net_id, 0, 1 if shiny else 0)
 			return
 
 
@@ -216,6 +217,10 @@ func _on_coop_died(net_id: int) -> void:
 		animal["hp"] = 0.0
 		animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
 		animal["state"] = State.LEAVING
+		# The guest collects too. Each player has their own save and their own
+		# spirits, so a kill both of them watched is a kill both of them earn -
+		# and a guest whose journal never moved would have no reason to hunt.
+		_credit_encounter(animal, SpiritBond.Kind.SLAIN)
 		var sprite := animal["sprite"] as Sprite2D
 		var bar := animal["bar"] as ProgressBar
 		if bar != null and is_instance_valid(bar):
@@ -370,7 +375,7 @@ func _remember(kind: WildlifeData) -> void:
 
 
 func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
-		group_id: int = 0) -> void:
+		group_id: int = 0, told_shiny: int = -1) -> void:
 	_remember(kind)
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
@@ -404,11 +409,20 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		Vfx.ring(at, 90.0 * size, Color(Balance.WILDLIFE_ELITE_TINT, 0.55),
 			0.7, 3.0)
 
+	# -1 means "decide for yourself"; anything else is the host having
+	# already decided. A guest must never roll - it draws from its own
+	# stream and would disagree with the host about which animal shone.
+	var shiny: bool = told_shiny == 1
+	if told_shiny < 0:
+		shiny = SpiritBond.rolls_shiny(kind.rarity, _rng)
+	if shiny:
+		_dress_as_shiny(sprite, kind)
+
 	var identity: int = mirrored_id
 	if identity == 0 and _is_authority_with_company():
 		_net_id += 1
 		identity = _net_id
-		EventBus.coop_wildlife_spawned.emit(identity, kind.id, at)
+		EventBus.coop_wildlife_spawned.emit(identity, kind.id, at, shiny)
 
 	# A bar over anything that can be hurt, hidden until it has been.
 	#
@@ -435,10 +449,6 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# **Rolled once, here, and never again.** A shiny is decided when the animal
 	# is placed, so nothing the player does to one already on the field can
 	# reroll it - no walking away and back, no save-scumming a sighting.
-	var shiny: bool = SpiritBond.rolls_shiny(kind.rarity, _rng)
-	if shiny:
-		_dress_as_shiny(sprite, kind)
-
 	_living.append({
 		"net_id": identity,
 		"data": kind,
