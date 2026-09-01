@@ -142,17 +142,50 @@ const LOOT_Z_INDEX: int = -2
 ## Finite on purpose. An unlimited stash means a player never chooses what to
 ## keep, and "which of these do I break for shards" is the decision the
 ## blacksmith exists to pose. [TUNE]
-const STASH_CAPACITY: int = 40
+##
+## **Raised from 40 to 96 with the drop rates below** (owner direction,
+## 2026-09-01: "the game needs way more loot... players should be mostly playing
+## to farm better gear"). Capacity is inventory, not power - three pieces are
+## worn and the rest are shard stock - so this does not touch the bound working
+## rule 7 actually cares about, which is that gear grants capped attribute
+## points. What it does is stop a farming run from spending its second half
+## auto-breaking drops the player never got to look at.
+const STASH_CAPACITY: int = 96
 
 ## Chance a raid chest also yields a piece of gear.
-const GEAR_CHEST_CHANCE: float = 0.34
+const GEAR_CHEST_CHANCE: float = 0.55
 
-## Battlefield gear is rarer than a currency pickup, but no longer raid-only.
-## A normal wave should occasionally surprise the player without filling forty
-## stash slots in a single run; elites and bosses are the reliable hunts. [TUNE]
-const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.006
-const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.18
+## Battlefield gear odds, by what died.
+##
+## **Retuned upward, 2026-09-01.** At 0.6% a breed kill the battlefield hunt was
+## a rumour: a whole act could pass without a single piece, so the loop the owner
+## wants - fight, find, compare, break, upgrade, go further - never got to start.
+## The economics that argued for rarity were about a forty-slot stash, and the
+## stash is 96 now.
+##
+## The ordering is the part that must not move: a breed is a surprise, an elite
+## is a prospect worth chasing across the field, and a boss always pays.
+## `balance_test` holds the ordering and the floor. [TUNE]
+const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.024
+const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.45
 const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
+
+## Extra pieces a boss leaves beyond the guaranteed one.
+##
+## A boss is the end of an act and the reason to have survived it; one piece was
+## the same reward an elite could roll. Rolled separately, so the two can be
+## different kinds and different rarities - a handful of loot is a moment, and
+## one item is a line of text. [TUNE]
+const GEAR_BOSS_EXTRA_PIECES: int = 2
+
+## How much a campaign tier multiplies the gear odds, on top of its `loot_scale`
+## for currency.
+##
+## This is what makes Nightmare and Hell worth farming rather than merely worth
+## beating: the tiers already scale enemy health and damage, and without a
+## matching reward the correct play is to farm the easiest tier forever. Bounded
+## so a Hell run cannot fill the stash in one act. [TUNE]
+const GEAR_TIER_ODDS_CEILING: float = 2.2
 
 ## Gear is a more important silhouette than a coin and earns a larger pickup.
 ## Scaled up alongside `LOOT_ICON_SIZE` and by slightly more, so the rarer drop
@@ -1559,6 +1592,20 @@ const RANGED_STARTING_SHOTS: int = 12
 
 const HERO_ARROW_MUZZLE: float = 38.0
 
+## The line a drawn bow puts on the ground in front of the hero. [TUNE]
+##
+## Not decoration. A thumb stick states a *direction* and nothing else, so
+## without this a phone player is aiming at a number they cannot see - and on a
+## desktop it confirms that the shot really does leave along the cursor, which
+## is the thing that was wrong. Short on purpose: a full-range laser reads as a
+## targeting weapon rather than as a bow being drawn.
+const HERO_AIM_GUIDE_LENGTH: float = 230.0
+const HERO_AIM_GUIDE_START: float = 46.0
+const HERO_AIM_GUIDE_WIDTH: float = 5.0
+const HERO_AIM_GUIDE_ALPHA: float = 0.34
+## Brighter while the draw is still running, so the line also says "not ready".
+const HERO_AIM_GUIDE_DRAWING_ALPHA: float = 0.62
+
 const HERO_ARROW_HIT_RADIUS: float = 34.0
 
 const AMMO_CAPACITY: int = 48
@@ -2560,10 +2607,46 @@ const VFX_SLASH_LIFE: float = 0.16
 const VFX_BLADE_RADIUS: float = 0.72
 ## Longer than the wedge: the wedge is a flash, the blade is a movement, and a
 ## movement the eye cannot follow is not worth drawing.
-const VFX_BLADE_LIFE_SCALE: float = 1.9
+##
+## **Cut from 1.9 to 0.85** (owner report, 2026-09-01): "melee weapon attack
+## sweeps feel a little clunky and slow in comparison to the original quick trail
+## only that would happen before". At 1.9 the blade was still travelling long
+## after the swing had already resolved its damage, so the picture lagged the
+## fight - and a strike whose feedback arrives late reads as heavy input, not as
+## a heavy weapon. Below the wedge's own life now, so the edge outruns the flash.
+const VFX_BLADE_LIFE_SCALE: float = 0.85
 ## Blade length as a fraction of the swing's reach.
 const VFX_BLADE_SIZE: float = 0.62
-const VFX_BLADE_TRAIL_WIDTH: float = 0.18
+
+## The ribbon the edge lays down, measured from the hilt to the point.
+##
+## Two radii rather than one width. The trail used to be a `Line2D` drawn along a
+## single radius - the arc the middle of the blade happened to ride - which reads
+## as a rope being swung rather than as a blade cutting: a real sword trail is
+## the *area* the edge swept, wide at the point and pinched at the hand.
+##
+## Fractions of the swing's reach, so a maul with a longer reach lays down a
+## proportionally longer ribbon without a second table of numbers. [TUNE]
+const VFX_BLADE_TRAIL_HILT: float = 0.30
+const VFX_BLADE_TRAIL_TIP: float = 0.95
+## How much of the ribbon is still visible at its tail. Zero would taper to
+## nothing, which is correct for the shape and reads as a smear; a little floor
+## keeps the start of the arc legible.
+const VFX_BLADE_TRAIL_TAIL_ALPHA: float = 0.0
+const VFX_BLADE_TRAIL_HEAD_ALPHA: float = 0.66
+## Segments along the arc. Ten was enough for a line; a filled ribbon shows its
+## own facets, and under twenty the leading edge is visibly polygonal.
+const VFX_BLADE_TRAIL_STEPS: int = 22
+## How long the ribbon lingers after the edge has passed, as a multiple of the
+## sweep. Short: this is the part that must not feel slow.
+const VFX_BLADE_TRAIL_FADE: float = 0.75
+## How much of the ribbon nearest the edge burns toward white, and how hot.
+##
+## A trail in one flat colour reads as a painted crescent. What sells a cut is
+## that the metal is *ahead* of its own smear - so the last fifth heats up and
+## everything behind it stays the weapon's colour. [TUNE]
+const VFX_BLADE_TRAIL_HOT: float = 0.22
+const VFX_BLADE_TRAIL_HEAT: float = 0.72
 ## Which way the gear icons are actually drawn. Every melee icon in `art/icons/ui`
 ## is painted on the up-right diagonal - hilt low-left, point high-right - so a
 ## blade meant to lead along the swing has to be turned back by this much first.
@@ -3257,6 +3340,118 @@ const FOLIAGE_KIND_SWAY: Dictionary = {
 ## spends CPU on sub-pixel changes the player cannot see. [TUNE]
 const FOLIAGE_UPDATE_INTERVAL: float = 1.0 / 30.0
 
+## Foliage that deliberately has no authored idle sequence.
+##
+## Everything with a sway above zero should also carry frames (owner direction,
+## 2026-09-01) - the wind shader bends what is drawn, and the frames are what
+## makes a plant *breathe* rather than merely lean. One asset is not going to
+## get them.
+##
+## `plant_desert_flower` is 32x40 and a single bloom on a single stem. Asked to
+## move it, the generator invents a second bloom instead - twice, once on the
+## ordinary prompt and once with the bloom count named explicitly in it. Both
+## attempts were looked at on a contact sheet and discarded. The manifest carries
+## the full account; this is the machine-readable half, so `foliage_art_check`
+## can hold every other kind to the rule without failing on the one exception.
+const FOLIAGE_IDLE_EXEMPT: Array[String] = ["plant_desert_flower"]
+
+# ------------------------------------------------------------------------------
+# Falling leaves
+# ------------------------------------------------------------------------------
+#
+# Owner request, 2026-09-01: "would be nice if sometimes trees had leaf falling
+# particle system effects that procedurally randomly have leaves occasionally
+# falling and blowing with the wind a bit and landing on the ground somewhere
+# naturally and randomly and aesthetically, and fading out after an appropriate
+# amount of time without being distracting."
+#
+# "Without being distracting" is the constraint that shapes every number below.
+# A leaf every second from every tree is weather; the intent is that the eye
+# catches one occasionally and the field reads as alive rather than as a
+# particle demo. So: a handful of leaves alive at once across the whole
+# treeline, long gaps between falls, and a slow enough drift that nothing in
+# the air competes with an enemy for attention.
+
+## Seconds between one fall and the next, across the whole treeline. [TUNE]
+const LEAFFALL_INTERVAL: Vector2 = Vector2(1.6, 5.4)
+
+## How many leaves one fall releases. Usually one; sometimes a small flurry,
+## which is what stops the effect reading as a metronome. [TUNE]
+const LEAFFALL_BURST: Vector2i = Vector2i(1, 3)
+
+## Live leaves, hard ceiling. Above about thirty the field starts to read as
+## autumn rather than as a tree shedding. [TUNE]
+const LEAFFALL_MAX: int = 30
+
+## Downward speed, and how far a leaf swings either side of its fall line.
+## Leaves do not drop; they hesitate. [TUNE]
+const LEAFFALL_FALL_SPEED: Vector2 = Vector2(26.0, 54.0)
+const LEAFFALL_SWAY_PIXELS: float = 24.0
+const LEAFFALL_SWAY_SPEED: Vector2 = Vector2(0.8, 1.9)
+const LEAFFALL_SPIN: Vector2 = Vector2(-2.4, 2.4)
+const LEAFFALL_SIZE: Vector2 = Vector2(5.0, 9.5)
+
+## How far down the canopy a leaf starts, and how far it falls before it lands,
+## as fractions of the tree's drawn height. Landing short of the trunk's own
+## base is what makes it look like it settled on the ground beside the tree
+## rather than sinking into it. [TUNE]
+const LEAFFALL_START_HEIGHT: Vector2 = Vector2(0.45, 0.85)
+const LEAFFALL_DROP: Vector2 = Vector2(0.55, 1.0)
+
+## Sideways drift per unit of the weather's own wind, in pixels per second. The
+## same `WeatherData.wind` the grass leans to, so a duststorm carries leaves the
+## way it bends reeds. [TUNE]
+const LEAFFALL_WIND_DRIFT: float = 46.0
+
+## How long a landed leaf lies there, and how long it takes to go. Long enough
+## that the player sees it land; short enough that the ground never accumulates.
+## [TUNE]
+const LEAFFALL_REST: float = 3.2
+const LEAFFALL_FADE: float = 1.8
+
+## Per-region shedding, because a conifer under snow is not a jungle canopy.
+##
+## The snowfield's "leaves" are pale and rare - what comes off a laden branch
+## there is snow, not foliage - and the desert sheds least of all. Tuned per
+## region for the same reason the wind is: an asset should move like the thing
+## it is a picture of. [TUNE]
+const LEAFFALL_REGION_RATE: Dictionary = {
+	"jungle": 1.0,
+	"desert": 0.45,
+	"snow": 0.30,
+}
+
+## The two colours a region's leaves are drawn between.
+const LEAFFALL_REGION_COLOURS: Dictionary = {
+	"jungle": [Color("6f8f42"), Color("c2a33e")],
+	"desert": [Color("b9954e"), Color("8a6a38")],
+	"snow": [Color("d7e2ea"), Color("9fb3bf")],
+}
+
+## How opaque a leaf is in the air. Below the foliage it falls from, so it
+## reads as something small rather than as a UI marker. [TUNE]
+const LEAFFALL_ALPHA: float = 0.82
+
+## Drawn just above the ground stains and far below anything readable. [TUNE]
+const LEAFFALL_Z: int = -2
+
+## How far beyond the camera a tree may be and still shed, as a share of the view
+## height. A tree just off the edge drops leaves that drift into frame, which is
+## what stops the effect from starting exactly at the screen border. [TUNE]
+const LEAFFALL_VIEW_MARGIN: float = 0.12
+
+## Per-region tree sway, multiplying `FOLIAGE_SWAY_REACH_CANOPY`.
+##
+## Owner request, 2026-09-01: "each asset's wind shader should be tuned for what
+## it is". One canopy material for every tree in the game meant a snow-laden
+## conifer and a jungle broadleaf leaned by exactly the same angle, which is the
+## foliage equivalent of giving every enemy the same walk. [TUNE]
+const FOLIAGE_TREE_SWAY: Dictionary = {
+	"jungle": 1.30,   # broad leaves on long boughs, the most mobile canopy
+	"desert": 0.85,   # sparse and stiff, little sail area
+	"snow": 0.50,     # conifer, and weighted down by what is sitting on it
+}
+
 # ------------------------------------------------------------------------------
 # Path blending
 # ------------------------------------------------------------------------------
@@ -3536,6 +3731,35 @@ const UI_TOUCH_SCROLLBAR_WIDTH: float = 30.0
 const UI_SCROLL_STEP: float = 54.0
 const UI_SCROLL_DRAG_DEADZONE: int = 8
 const UI_TOUCH_PREPARATION_BUTTON_HEIGHT: float = 72.0
+
+## Floating panels - the town sheet, the pause menu, the leaderboard.
+##
+## Every one of these was authored as a fixed rectangle and every one of them
+## overflowed a phone. The screen is the bound, not the number the panel was
+## drawn at: a panel asks for a share of the viewport and never exceeds what is
+## actually there.
+##
+## `UI_PANEL_MARGIN` is the clear space kept between a panel and the screen edge
+## on every side. Below about 16 the frame's corner ironwork touches the bezel
+## and the panel reads as clipped even when it is not. [TUNE]
+const UI_PANEL_MARGIN: float = 22.0
+
+## The widest a side-docked building sheet may be, as a share of the screen, and
+## the narrowest it is allowed to become. The share matters more than the pixels:
+## on a phone 0.42 leaves the battlefield readable beside it, and on a desktop it
+## stops the sheet from becoming a billboard. [TUNE]
+const UI_SIDE_PANEL_SHARE: float = 0.42
+const UI_SIDE_PANEL_MIN_WIDTH: float = 360.0
+const UI_SIDE_PANEL_MAX_WIDTH: float = 680.0
+
+## The narrowest a wrapped action row inside a side sheet may ask to be. Rows
+## wrap rather than widen, so this is what stops a long cost line from pushing
+## the whole sheet off the screen. [TUNE]
+const UI_PANEL_ROW_MIN_WIDTH: float = 240.0
+
+## Centre-floating panels (pause, leaderboard) as a share of the screen. [TUNE]
+const UI_CENTRE_PANEL_WIDTH_SHARE: float = 0.86
+const UI_CENTRE_PANEL_HEIGHT_SHARE: float = 0.92
 
 ## The thin hero-progression strip across battlefield and raid views. [TUNE]
 const UI_XP_BAR_HEIGHT: float = 18.0

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 0
+attribute = 0
+base_points = 3
+weight = 0.85
+min_tier = 1
+reach_scale = 0.720
+swing_scale = 1.389
+description = "Two blades, no reach at all, and more strikes than anything else in the run."
+id = "twinfang_dirks"
+display_name = "Twinfang Dirks"

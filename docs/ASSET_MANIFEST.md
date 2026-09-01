@@ -540,6 +540,113 @@ sprite as the last frame as well forces the cycle to return to where it started.
 Anything added here should be checked on a contact sheet against its own base
 before it ships, for exactly that reason.
 
+**The second pass, 2026-09-01.** Owner direction: "not all foliage has idle
+animations + wind shader combo active but should unless they're a static foliage
+asset like a rock or something that does not get animated. Flowers should be
+animated both ways, same for trees but each asset's wind shader should be tuned
+for what it is."
+
+Everything that should move now does, and the wind materials are split per kind
+and per region so a snow conifer, a jungle broadleaf and a bed of reeds no longer
+lean by the same angle (`Balance.FOLIAGE_KIND_SWAY`, `Balance.FOLIAGE_TREE_SWAY`).
+
+Deliberately still: `prop_rock`, `prop_boulder`, `prop_log`, `prop_stump`,
+`prop_bones` and `prop_wreckage`. A rock that breathes is a bug.
+
+**One flower was rejected again, and the reason is the one written above.** At
+32×40 the generator invents rather than moves: the desert flower grew a second
+bloom beside the first, twice - once on the ordinary prompt and once with the
+bloom count and silhouette named explicitly in it. Both attempts were looked at
+on a contact sheet and discarded. It keeps the wind shader as its only motion,
+which is what every flower had before this pass.
+
+The snow flower failed the same way on the first attempt - its rounded head
+flattened into a fan and back - and passed on the second, once the prompt said
+the bloom must not open, split or flatten. The jungle flower passed immediately;
+the difference is that it is three blooms on three stems, so leaning them is a
+motion the generator can find without inventing geometry.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `plant_jungle_flower_idle_01.png` | 32×40 | T | `#2E3A33` |
+| `plant_jungle_flower_idle_02.png` | 32×40 | T | `#2E3A33` |
+| `plant_jungle_flower_idle_03.png` | 32×40 | T | `#2E3A33` |
+| `plant_snow_flower_idle_01.png` | 32×40 | T | `#7C8A96` |
+| `plant_snow_flower_idle_02.png` | 32×40 | T | `#7C8A96` |
+| `plant_snow_flower_idle_03.png` | 32×40 | T | `#7C8A96` |
+| `plant_jungle_blossom_idle_01.png` | 32×40 | T | `#2E3A33` |
+| `plant_jungle_blossom_idle_02.png` | 32×40 | T | `#2E3A33` |
+| `plant_jungle_blossom_idle_03.png` | 32×40 | T | `#2E3A33` |
+| `plant_desert_blossom_idle_01.png` | 32×40 | T | `#6E5B3C` |
+| `plant_desert_blossom_idle_02.png` | 32×40 | T | `#6E5B3C` |
+| `plant_desert_blossom_idle_03.png` | 32×40 | T | `#6E5B3C` |
+| `plant_snow_blossom_idle_01.png` | 32×40 | T | `#7C8A96` |
+| `plant_snow_blossom_idle_02.png` | 32×40 | T | `#7C8A96` |
+| `plant_snow_blossom_idle_03.png` | 32×40 | T | `#7C8A96` |
+| `prop_wildflower_01_idle_01.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_01_idle_02.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_01_idle_03.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_02_idle_01.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_02_idle_02.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_02_idle_03.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_03_idle_01.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_03_idle_02.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_03_idle_03.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_04_idle_01.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_04_idle_02.png` | 64×64 | T | `#596B3C` |
+| `prop_wildflower_04_idle_03.png` | 64×64 | T | `#596B3C` |
+| `prop_reeds_idle_01.png` | 40×56 | T | `#6E7A4C` |
+| `prop_reeds_idle_02.png` | 40×56 | T | `#6E7A4C` |
+| `prop_reeds_idle_03.png` | 40×56 | T | `#6E7A4C` |
+| `prop_mushrooms_idle_01.png` | 48×40 | T | `#6B5344` |
+| `prop_mushrooms_idle_02.png` | 48×40 | T | `#6B5344` |
+| `prop_mushrooms_idle_03.png` | 48×40 | T | `#6B5344` |
+| `tree_jungle_idle_01.png` | 96×128 | T | `#24401F` |
+| `tree_jungle_idle_02.png` | 96×128 | T | `#24401F` |
+| `tree_jungle_idle_03.png` | 96×128 | T | `#24401F` |
+| `tree_desert_idle_01.png` | 96×128 | T | `#8A7B4E` |
+| `tree_desert_idle_02.png` | 96×128 | T | `#8A7B4E` |
+| `tree_desert_idle_03.png` | 96×128 | T | `#8A7B4E` |
+| `tree_snow_idle_01.png` | 96×128 | T | `#5A6E78` |
+| `tree_snow_idle_02.png` | 96×128 | T | `#5A6E78` |
+| `tree_snow_idle_03.png` | 96×128 | T | `#5A6E78` |
+| `tree_jungle_01_idle_01.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_01_idle_02.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_01_idle_03.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_02_idle_01.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_02_idle_02.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_02_idle_03.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_03_idle_01.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_03_idle_02.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_03_idle_03.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_04_idle_01.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_04_idle_02.png` | 128×128 | T | `#24401F` |
+| `tree_jungle_04_idle_03.png` | 128×128 | T | `#24401F` |
+| `tree_desert_01_idle_01.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_01_idle_02.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_01_idle_03.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_02_idle_01.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_02_idle_02.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_02_idle_03.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_03_idle_01.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_03_idle_02.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_03_idle_03.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_04_idle_01.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_04_idle_02.png` | 128×128 | T | `#8A7B4E` |
+| `tree_desert_04_idle_03.png` | 128×128 | T | `#8A7B4E` |
+| `tree_snow_01_idle_01.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_01_idle_02.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_01_idle_03.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_02_idle_01.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_02_idle_02.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_02_idle_03.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_03_idle_01.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_03_idle_02.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_03_idle_03.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_04_idle_01.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_04_idle_02.png` | 128×128 | T | `#5A6E78` |
+| `tree_snow_04_idle_03.png` | 128×128 | T | `#5A6E78` |
+
 ### 5.8 Backdrops — `res://art/bg/`
 
 > The three `macro_act*` backdrops are **688×384 pixel art**, scaled to fill the
@@ -920,7 +1027,14 @@ as the readable silhouette inside a rarity-lit battlefield pickup.
 `ui_rimebound_maul.png` · `ui_rootweave_guard.png` ·
 `ui_mirrorscale_plate.png` · `ui_avalanche_harness.png` ·
 `ui_emberwind_charm.png` · `ui_hearthkeeper_sigil.png` ·
-`ui_chainbreaker_seal.png` · `ui_wardens_step.png`
+`ui_chainbreaker_seal.png` · `ui_wardens_step.png` ·
+`ui_tanners_cleaver.png` · `ui_pilgrims_spear.png` ·
+`ui_twinfang_dirks.png` · `ui_lanternhook.png` ·
+`ui_ashfall_glaive.png` · `ui_oathbreakers_axe.png` ·
+`ui_roadmenders_coat.png` · `ui_kilnforged_hauberk.png` ·
+`ui_stormwake_mantle.png` · `ui_pelt_of_long_watch.png` ·
+`ui_tollkeepers_bell.png` · `ui_feathercut_talisman.png` ·
+`ui_quiet_ledger.png` · `ui_bloodroot_knot.png`
 
 The three `ui_scope_*` icons are final production art, added when the scope bar
 became a column of icons: text that named function keys could not survive on a

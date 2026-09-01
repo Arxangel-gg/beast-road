@@ -171,6 +171,11 @@ jobs:
           # Every run currency has purpose-built world art, and ordinary raid
           # supplies cannot be mistaken for the premium locked relic cache.
           check "loot art" --headless --path game res://tools/loot_art_check.tscn
+          # Everything that should move, moves; and rocks do not. The sway table
+          # says which kinds animate, so a kind that leans without breathing - or
+          # a boulder that breathes - is a mismatch between two files that used to
+          # be nobody's job to compare.
+          check "foliage animation" --headless --path game res://tools/foliage_art_check.tscn
           # Gore is authored and optional: disabling it must suppress only blood,
           # never ordinary hit readability, and the effect must spawn at the
           # replicated impact position rather than at the local hero.

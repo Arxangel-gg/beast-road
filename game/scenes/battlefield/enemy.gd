@@ -1344,14 +1344,26 @@ func _drop_gear() -> void:
 			chance = Balance.GEAR_BATTLEFIELD_ELITE_CHANCE
 		EnemyData.Category.BOSS:
 			chance = Balance.GEAR_BATTLEFIELD_BOSS_CHANCE
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		# A harder tier drops more, not merely bigger numbers. Without this the
+		# correct play is to farm Normal forever, because Nightmare costs more and
+		# pays the same. Bounded, so Hell cannot fill the stash in one act.
+		chance *= minf(maxf(tier.loot_scale, 1.0), Balance.GEAR_TIER_ODDS_CEILING)
 	if RunState.rng("gear").randf() > chance:
 		return
-	var tier: CampaignTierData = RunState.tier()
 	var tier_order: int = tier.order if tier != null else 0
-	var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
-		RunState.rng("gear"))
-	if not piece.is_empty():
-		_field.spawn_gear(piece, global_position)
+	# A boss ends an act and is the reason to have survived it; one piece was the
+	# same reward an elite could roll. Rolled separately, so a handful of loot can
+	# be different kinds at different rarities rather than one line of text.
+	var pieces: int = 1
+	if data.category == EnemyData.Category.BOSS:
+		pieces += Balance.GEAR_BOSS_EXTRA_PIECES
+	for _piece: int in pieces:
+		var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(), tier_order,
+			RunState.rng("gear"))
+		if not piece.is_empty():
+			_field.spawn_gear(piece, global_position)
 
 
 ## A plan, from something that was worth killing.

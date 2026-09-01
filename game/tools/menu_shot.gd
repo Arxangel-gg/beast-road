@@ -10,6 +10,22 @@ extends Node
 ## to exist, and the menu deliberately does not.
 
 func _ready() -> void:
+	var viewport_size := Vector2i.ZERO
+	var touch_layout: bool = false
+	for argument: String in OS.get_cmdline_user_args():
+		if argument == "--touch=on":
+			touch_layout = true
+		elif argument.begins_with("--viewport="):
+			var dimensions: PackedStringArray = argument.trim_prefix("--viewport=").split("x")
+			if dimensions.size() == 2:
+				viewport_size = Vector2i(dimensions[0].to_int(), dimensions[1].to_int())
+	if viewport_size.x > 0 and viewport_size.y > 0:
+		get_window().mode = Window.MODE_WINDOWED
+		get_window().size = viewport_size
+	if touch_layout:
+		MetaState.settings[TouchInput.TOUCH_KEY] = true
+		TouchInput.refresh()
+		ScreenFit._fit()
 	var menu: Control = (load("res://scenes/ui/main_menu.tscn") as PackedScene) \
 		.instantiate() as Control
 	add_child(menu)
@@ -47,6 +63,37 @@ func _ready() -> void:
 	for _f: int in 12:
 		await get_tree().process_frame
 	await _shot("menu_leaderboard")
+
+	# The stash over the menu, with something in it.
+	#
+	# Seeded rather than shown empty: the screen that needed checking is the one a
+	# farming player actually sees - forty-odd rows, a filter strip and two bulk
+	# actions - and an empty stash exercises none of it.
+	# Closed first. The stash and the leaderboard are both on layer 64, so a
+	# leaderboard left open is drawn over the screen being photographed.
+	for node: Node in _all(menu):
+		if node is LeaderboardScreen:
+			(node as LeaderboardScreen).hide_screen()
+	for _f: int in 4:
+		await get_tree().process_frame
+	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	var seed_rng := RandomNumberGenerator.new()
+	seed_rng.seed = 90120
+	MetaState.hold_saves()
+	MetaState.stash = []
+	for _piece: int in 26:
+		MetaState.stash.append(Stash.roll(kinds, 1, seed_rng))
+	MetaState.equipped = {GearData.Slot.WEAPON: 0}
+	# The screen itself, not the button. The button is built without a name and
+	# only when the account already has something, so matching on either is a
+	# test of the menu rather than of the stash.
+	for node: Node in _all(menu):
+		if node is StashScreen:
+			(node as StashScreen).open()
+	for _f: int in 12:
+		await get_tree().process_frame
+	await _shot("menu_stash")
+	MetaState.resume_saves()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()

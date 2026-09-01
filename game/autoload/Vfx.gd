@@ -515,6 +515,27 @@ func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, co
 ## Degrades silently to nothing when no weapon is worn or its icon is missing.
 ## A hero with an empty weapon slot still swings, and an unarmed swing that drew
 ## a phantom blade would be worse than one that draws none.
+##
+## ## The ribbon, and why it is not a line
+##
+## Reported as "melee weapon attack sweeps feel a little clunky and slow in
+## comparison to the original quick trail only that would happen before... that
+## trail with the weapon would be better, with the trail following the weapon's
+## tip to hilt, and matching its color" (owner, 2026-09-01). Three separate
+## faults, and only one of them was the timing:
+##
+## * **It was slow.** `VFX_BLADE_LIFE_SCALE` was 1.9, so the blade was still
+##   travelling long after the swing had resolved its damage. Now 0.85 - the
+##   edge outruns the wedge instead of trailing it.
+## * **The trail was a rope.** A single `Line2D` along one radius draws the path
+##   of one point on the blade, which reads as something being swung on a chain.
+##   A sword's trail is the *area the edge swept*: wide at the point, pinched at
+##   the hand. That is a filled strip between two radii, which is what this
+##   builds.
+## * **It was the wrong colour.** The tint came from the rarity band, so every
+##   Fine weapon cut green whatever it was made of. It is sampled from the
+##   weapon's own art now, and the rarity band is only the fallback for art that
+##   has no colour of its own to give.
 func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: float,
 		texture: Texture2D, tint: Color) -> void:
 	if world == null or texture == null:
@@ -531,21 +552,14 @@ func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: flo
 	pivot.global_position = at
 	pivot.rotation = from
 
-	# The trail belongs to the world, not to the pivot: it records where the
+	# The ribbon belongs to the world, not to the pivot: it records where the
 	# edge has been, so it must not turn with the thing that is still moving.
-	var trail := Line2D.new()
-	trail.width = maxf(4.0, radius * Balance.VFX_BLADE_TRAIL_WIDTH)
-	trail.default_color = Color(tint, 0.55)
+	var trail := Polygon2D.new()
+	# Named so a gate can tell it from the wedge `slash` draws, which is also a
+	# Polygon2D centred on the same point.
+	trail.name = "BladeRibbon"
 	trail.z_index = Balance.VFX_Z
-	trail.joint_mode = Line2D.LINE_JOINT_ROUND
-	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
-	# Tapered to a point at the tail, which is what makes it read as speed
-	# rather than as a drawn ribbon.
-	var taper := Curve.new()
-	taper.add_point(Vector2(0.0, 0.15))
-	taper.add_point(Vector2(1.0, 1.0))
-	trail.width_curve = taper
+	trail.color = Color.WHITE
 	_track(trail)
 	trail.global_position = at
 
@@ -564,33 +578,129 @@ func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: flo
 
 	var tween: Tween = pivot.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(pivot, "rotation", to, life).set_ease(Tween.EASE_OUT)
-	tween.tween_method(_draw_blade_trail.bind(trail, at, radius, from, to),
-		0.0, 1.0, life)
+	# Eased out, so the edge is fastest at the start of the arc. A linear sweep
+	# reads as a machine; a swing decelerates into its follow-through.
+	tween.tween_property(pivot, "rotation", to, life)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_method(_draw_blade_trail.bind(trail, at, reach, from, to, tint),
+		0.0, 1.0, life).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(blade, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(pivot.queue_free)
 
 	var fade: Tween = trail.create_tween()
 	fade.tween_interval(life)
-	fade.tween_property(trail, "modulate:a", 0.0, life * 1.4)
+	fade.tween_property(trail, "modulate:a", 0.0,
+		life * Balance.VFX_BLADE_TRAIL_FADE)
 	fade.tween_callback(trail.queue_free)
 
 
-## Lays the arc down behind the edge as it travels. Called by a tween, so it has
-## to survive the node being freed underneath it - a tween step can land on the
-## same frame as the free.
-func _draw_blade_trail(progress: float, trail: Line2D, at: Vector2, radius: float,
-		from: float, to: float) -> void:
+## Lays the swept area down behind the edge as it travels. Called by a tween, so
+## it has to survive the node being freed underneath it - a tween step can land
+## on the same frame as the free.
+##
+## Built as a closed strip: the outer edge runs from the start of the arc to
+## wherever the point is now, and the inner edge comes back along the hilt
+## radius. Vertex colours fade it toward the tail, which is what makes the shape
+## read as speed rather than as a painted crescent.
+func _draw_blade_trail(progress: float, trail: Polygon2D, at: Vector2,
+		reach: float, from: float, to: float, tint: Color) -> void:
 	if not is_instance_valid(trail):
 		return
-	var points := PackedVector2Array()
-	var steps: int = 10
+	var hilt: float = reach * Balance.VFX_BLADE_TRAIL_HILT
+	var tip: float = reach * Balance.VFX_BLADE_TRAIL_TIP
+	var steps: int = Balance.VFX_BLADE_TRAIL_STEPS
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	var outer_tint := PackedColorArray()
+	var inner_tint := PackedColorArray()
 	for i: int in steps + 1:
-		var t: float = progress * float(i) / float(steps)
-		points.append(Vector2.RIGHT.rotated(lerpf(from, to, t)) * radius)
-	trail.points = points
+		var along: float = float(i) / float(steps)
+		var angle: float = lerpf(from, to, progress * along)
+		var arm: Vector2 = Vector2.RIGHT.rotated(angle)
+		outer.append(arm * tip)
+		inner.append(arm * hilt)
+		var shade: Color = tint
+		# The leading edge burns toward white: the steel is ahead of its own
+		# smear, and that contrast is what reads as a cut rather than a fan.
+		if along > 1.0 - Balance.VFX_BLADE_TRAIL_HOT:
+			var heat: float = (along - (1.0 - Balance.VFX_BLADE_TRAIL_HOT)) \
+				/ Balance.VFX_BLADE_TRAIL_HOT
+			shade = shade.lerp(Color.WHITE, heat * Balance.VFX_BLADE_TRAIL_HEAT)
+		shade.a = lerpf(Balance.VFX_BLADE_TRAIL_TAIL_ALPHA,
+			Balance.VFX_BLADE_TRAIL_HEAD_ALPHA, along)
+		outer_tint.append(shade)
+		# The hilt side is dimmer at every step: the hand moves slowly and the
+		# point moves fast, and the trail should say so.
+		var near: Color = shade
+		near.a *= 0.35
+		inner_tint.append(near)
+
+	# Down the outer edge and back along the inner one, so the two arcs close
+	# into one strip rather than crossing themselves.
+	inner.reverse()
+	inner_tint.reverse()
+	var shape := PackedVector2Array(outer)
+	shape.append_array(inner)
+	var shades := PackedColorArray(outer_tint)
+	shades.append_array(inner_tint)
+	trail.polygon = shape
+	trail.vertex_colors = shades
 	trail.global_position = at
 
+
+## The colour a weapon actually is, averaged from its own art.
+##
+## The blade trail used to be tinted by *rarity*, which meant every Fine weapon
+## cut green and every Runed one cut blue whatever it was made of - so the one
+## piece of feedback that could have said "you are holding a rime maul" said
+## "this drop was a good one", a fact the player already knew.
+##
+## Averaged over the opaque pixels and weighted toward the saturated ones, so a
+## mostly-grey blade with a red grip does not come out grey: the eye names a
+## weapon by its accent, not by its bulk. Cached per texture - this reads an
+## image, and a swing happens three times a second.
+var _blade_tints: Dictionary = {}
+
+
+func blade_tint(texture: Texture2D, fallback: Color) -> Color:
+	if texture == null:
+		return fallback
+	var key: String = texture.resource_path
+	if key.is_empty():
+		return fallback
+	if _blade_tints.has(key):
+		return _blade_tints[key]
+	var image: Image = texture.get_image()
+	if image == null:
+		_blade_tints[key] = fallback
+		return fallback
+	var total := Vector3.ZERO
+	var weight: float = 0.0
+	# A grid rather than every pixel: an icon is 128 square and the answer does
+	# not change between neighbours.
+	var step: int = maxi(1, image.get_width() / 24)
+	for x: int in range(0, image.get_width(), step):
+		for y: int in range(0, image.get_height(), step):
+			var pixel: Color = image.get_pixel(x, y)
+			if pixel.a < 0.5:
+				continue
+			# Saturation plus a floor: a pure steel blade has almost none, and
+			# weighting only by saturation would divide by nothing.
+			var pull: float = 0.25 + pixel.s * pixel.v
+			total += Vector3(pixel.r, pixel.g, pixel.b) * pull
+			weight += pull
+	if weight <= 0.0:
+		_blade_tints[key] = fallback
+		return fallback
+	var mean := Color(total.x / weight, total.y / weight, total.z / weight)
+	# Lifted toward white. An average is always duller than the thing it
+	# averages, and a trail the colour of the blade's shadow reads as smoke.
+	mean = mean.lerp(Color.WHITE, 0.28)
+	if mean.s > 0.02:
+		mean.s = minf(mean.s * 1.35, 1.0)
+	mean.v = maxf(mean.v, 0.55)
+	_blade_tints[key] = mean
+	return mean
 
 ## The icon of the weapon the player is wearing, and the colour of its rarity.
 ## Returns a null texture when the slot is empty, which every caller reads as
@@ -780,11 +890,22 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> v
 	var index: int = clampi(step, 0, Balance.HERO_ATTACK_ARC_DEGREES.size() - 1)
 	var arc: float = Balance.HERO_ATTACK_ARC_DEGREES[index]
 	var finisher: bool = index >= Balance.HERO_CHAIN_LENGTH - 1
-	slash(at, aim, reach, arc,
-		Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
 	var blade: Array = _worn_blade()
-	blade_sweep(at, aim, reach, arc, blade[0] as Texture2D,
-		(blade[1] as Color).lerp(Color.WHITE, 0.35))
+	var texture := blade[0] as Texture2D
+	# **The wedge only when there is no blade.** It is the area the swing
+	# covered, which is exactly the information the ribbon now carries - and
+	# carries better, because it is the shape of the weapon rather than a fan
+	# from the hero's chest. Drawn together they read as one heavy grey flash
+	# with a sword inside it, which is the whole of "melee weapon attack sweeps
+	# feel a little clunky" (owner, 2026-09-01). An unarmed hero still swings,
+	# and still needs to see something.
+	if texture == null:
+		slash(at, aim, reach, arc,
+			Color(0.95, 0.88, 0.72, 0.28 if finisher else 0.18))
+	# The blade's own colour, sampled from its art, with the rarity band kept as
+	# the fallback for a weapon whose icon has nothing to say.
+	blade_sweep(at, aim, reach, arc, texture,
+		blade_tint(texture, (blade[1] as Color).lerp(Color.WHITE, 0.35)))
 
 
 ## The impact. Only on a hit, which is correct - sparks come off something.

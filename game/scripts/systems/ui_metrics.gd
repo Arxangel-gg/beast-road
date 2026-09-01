@@ -190,3 +190,120 @@ static func _grow_font(control: Control, enforce_button_floor: bool = false) -> 
 	control.add_theme_font_size_override("font_size",
 		maxi(floor_size,
 			maxi(current + 1, int(round(float(current) * Balance.UI_TOUCH_FONT_SCALE)))))
+
+
+# --- Floating panels ---------------------------------------------------------
+#
+# Four separate reports - a pause menu sitting low and off the bottom, a
+# building sheet running off the right edge, a Close button that could not be
+# pressed, a leaderboard whose only way out was above the top of the screen -
+# were one mistake made four times: a panel authored as a fixed rectangle at
+# 1920x1080 and then drawn on a phone, where `ScreenFit` hands the layout a
+# canvas around 1680x775.
+#
+# Two things went wrong every time, and both are fixed here rather than in each
+# screen. A `Control` whose content needs more room than its offsets describe
+# **grows from its top-left**, because `grow_horizontal`/`grow_vertical` default
+# to `GROW_DIRECTION_END` and only `set_anchors_preset` sets them otherwise -
+# which a `.tscn` storing bare anchor values never does. And nothing clamped the
+# result to the screen, so the overflow simply left.
+
+## Docks a panel against one side of the screen, bounded by it.
+##
+## The panel is given a real rect rather than a minimum: its height is the
+## screen less two margins, its width a share of the screen within bounds. That
+## makes the panel's size an input to its children instead of an output of them,
+## which is the whole reason the building sheet could run off the edge.
+##
+## `right` docks it against the trailing edge; the default is the left, which is
+## where the building sheets now live (owner decision, 2026-09-01) so they no
+## longer sit under the combat rail on the right of the screen.
+static func dock_panel(panel: Control, right: bool = false) -> void:
+	if panel.get_viewport() == null:
+		return
+	var screen: Vector2 = panel.get_viewport_rect().size
+	if screen.x <= 1.0 or screen.y <= 1.0:
+		return
+	var margin: float = Balance.UI_PANEL_MARGIN
+	var width: float = clampf(screen.x * Balance.UI_SIDE_PANEL_SHARE,
+		minf(Balance.UI_SIDE_PANEL_MIN_WIDTH, screen.x - margin * 2.0),
+		Balance.UI_SIDE_PANEL_MAX_WIDTH)
+	var height: float = maxf(screen.y - margin * 2.0, 120.0)
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
+	panel.grow_vertical = Control.GROW_DIRECTION_END
+	panel.offset_left = screen.x - width - margin if right else margin
+	panel.offset_top = margin
+	panel.offset_right = panel.offset_left + width
+	panel.offset_bottom = margin + height
+	# Belt and braces: a child that still insists on more room is cut off at the
+	# panel's edge rather than being allowed to drag the panel past the screen.
+	panel.clip_contents = true
+
+
+## Centres a panel on the screen and keeps it there whatever its content asks
+## for. `PRESET_CENTER` alone does not: it sets the anchors and leaves the grow
+## directions pointing down and right, so a panel that outgrows its authored
+## offsets slides off the bottom-right corner - which is exactly what the pause
+## menu did once a third button joined it.
+static func centre_panel(panel: Control) -> void:
+	if panel.get_viewport() == null:
+		return
+	var screen: Vector2 = panel.get_viewport_rect().size
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	if screen.x <= 1.0 or screen.y <= 1.0:
+		return
+	# A ceiling, not a size. The panel still shrinks to its content; it simply
+	# may not grow past the screen it is drawn on.
+	panel.size = panel.size.min(Vector2(
+		screen.x * Balance.UI_CENTRE_PANEL_WIDTH_SHARE - Balance.UI_PANEL_MARGIN,
+		screen.y * Balance.UI_CENTRE_PANEL_HEIGHT_SHARE - Balance.UI_PANEL_MARGIN))
+
+
+## The tallest a scrolling region may be inside a centred panel, given whatever
+## else that panel has to show. Screens used to hardcode this - the leaderboard
+## asked for 520 - and a fixed number is right at one screen height and wrong at
+## every other.
+static func scroll_room(node: Control, reserved: float) -> float:
+	if node.get_viewport() == null:
+		return 260.0
+	var screen: Vector2 = node.get_viewport_rect().size
+	if screen.y <= 1.0:
+		return 260.0
+	return maxf(160.0, screen.y * Balance.UI_CENTRE_PANEL_HEIGHT_SHARE
+		- Balance.UI_PANEL_MARGIN * 2.0 - reserved)
+
+
+## A row inside a side sheet: wraps rather than widens.
+##
+## This is the other half of `dock_panel`. Bounding the panel achieves nothing
+## while a single button inside it reports a 412-unit minimum width for its cost
+## line, because a `ScrollContainer` with horizontal scrolling disabled passes
+## its child's minimum width straight through. Wrapping turns that 412 into the
+## floor below, and the sheet keeps the width the screen gave it.
+static func wrap_row(control: Control) -> void:
+	control.custom_minimum_size.x = Balance.UI_PANEL_ROW_MIN_WIDTH
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if control is Button:
+		(control as Button).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		(control as Button).clip_text = true
+	elif control is Label:
+		(control as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+## Puts an icon on a button at a size that is actually applied.
+##
+## `icon_max_width` is a **theme constant on Button, not a property**, so every
+## `button.icon_max_width = 38` in this codebase raised
+## "Invalid assignment of property or key 'icon_max_width'" at runtime, aborted
+## the function that set it, and drew the icon at its natural 128px - which on a
+## 44px row means the icon is the row. `IconKit` had already written the reason
+## down; the assignments were made anyway. This is the one call site now.
+static func row_icon(button: Button, texture: Texture2D, pixels: int) -> void:
+	if texture == null:
+		return
+	button.icon = texture
+	button.expand_icon = false
+	button.add_theme_constant_override("icon_max_width", pixels)

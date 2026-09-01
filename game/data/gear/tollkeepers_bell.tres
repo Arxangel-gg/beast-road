@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 2
+attribute = 3
+base_points = 2
+weight = 1.25
+min_tier = 0
+description = "Rung at the crossing for two hundred years. The road still answers it."
+id = "tollkeepers_bell"
+display_name = "Tollkeeper's Bell"

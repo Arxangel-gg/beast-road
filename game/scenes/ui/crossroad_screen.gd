@@ -340,9 +340,7 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var path: String = relic.get_sprite_path()
 		if ResourceLoader.exists(path):
-			button.icon = load(path)
-			button.expand_icon = true
-			button.icon_max_width = 44
+			UiMetrics.row_icon(button, load(path), 44)
 		button.tooltip_text = "%s\n%s" % [relic.display_name, relic.description]
 		button.pressed.connect(_choose_relic.bind(relic.id))
 		_buttons[relic.id] = button

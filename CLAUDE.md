@@ -48,6 +48,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Co-op (v4 §54 cut) | cut for 1.0 | **DECIDED 2026-08-24: build two-player co-op. See below.** |
 | Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: a bounded purse. See below.** |
 | Ranged weapons, ammo, blueprints, crafting (not in v4) | absent from the spec | **DECIDED 2026-08-31: build them. See below.** |
+| Gear as the reason to replay (no loot loop in v4) | not in the spec | **DECIDED 2026-09-01: farm gear. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -144,6 +145,28 @@ The bound worth defending is that **melee remains the reliable default**. If a
 run can be completed at range without ever closing, the trade this system exists
 to create has collapsed and the ammo economy is decoration. `balance_test` owns
 that question.
+
+**Gear is what the player comes back for, as of 2026-09-01.** The owner's words:
+"the game needs way more loot! Players should be farming a bunch of gear and
+mostly playing to farm better gear to be able to get further in the game."
+
+That is a statement about what the game *is between runs*, and v4 does not make
+it - v4's between-run layer is unlocks and Sigils. It changes no rule; it changes
+the volume. Battlefield gear went from 0.6% a kill to 2.4%, elites from 18% to
+45%, a boss now leaves three pieces rather than one, and the stash holds 96
+instead of 40. Fourteen new kinds were authored, so every slot has at least seven
+and gear can raise all four attributes rather than three.
+
+**The bound that must not move is working rule 7**, and it does not: gear still
+grants *attribute points* on the same capped scale as levelling, so four times the
+drops is four times the choosing and not four times the power. Capacity is
+inventory, not power - three pieces are worn and the rest is shard stock.
+
+The tiers now scale the odds as well as the numbers (`GEAR_TIER_ODDS_CEILING`),
+because a Nightmare run that costs more and pays the same makes farming Normal
+forever the correct play. `balance_test._test_gear_farming` holds the four
+properties this rests on: a hundred kills usually pays, the top rarity stays an
+event, every slot has real choices, and the stash outlives a haul.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

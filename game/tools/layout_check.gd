@@ -103,6 +103,8 @@ func _ready() -> void:
 	if _touch_layout:
 		_check_touch_targets(widgets)
 	await _check_hover_stability()
+	await _check_town_panel(run)
+	_check_modal_layers(run)
 
 	if _dump:
 		# Ground truth for a layout complaint. A screenshot says "cut off"; this
@@ -537,3 +539,107 @@ func _named(control: Control) -> String:
 	if text.is_empty():
 		return _path_of(control)
 	return "%s \"%s\"" % [_path_of(control), text.substr(0, 32)]
+
+
+## The building sheet, on every page, measured against the screen.
+##
+## Added after four layout reports arrived in one message, three of them about
+## this sheet: it ran off the right edge, its Close button could not be pressed,
+## and the Hero Mansion page "doesn't even show everything as it's cutoff on the
+## right side". None of it was visible to this gate, because the sheet only opens
+## when a plot is clicked and nothing here clicked one.
+##
+## The Mansion is the case worth checking: it is the busiest page in the game -
+## level, four attributes, four ability slots, this road's offers and a browsable
+## list of twenty-seven nodes - and each of its three pages is a different shape.
+func _check_town_panel(run: Node) -> void:
+	var sheet := run.get("town_panel") as TownPanel
+	if sheet == null:
+		_failures.append("no town panel on the run, so the building sheet was never checked")
+		return
+	sheet.open("sanctum")
+	for page: int in 3:
+		sheet.set("_mansion_page", page)
+		sheet.call("_refresh")
+		for _f: int in 6:
+			await get_tree().process_frame
+		_measure_branch(sheet, "town sheet page %d" % page)
+	sheet.close()
+
+
+## Overflow and clipping for one branch of the tree, so a second pass can look at
+## a panel that was closed during the first without re-reporting the whole screen.
+func _measure_branch(root: Node, label: String) -> void:
+	var screen: Rect2 = Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	var overflowed: int = 0
+	var clipped: int = 0
+	for node: Node in _all(root):
+		var control := node as Control
+		if control == null or not control.is_visible_in_tree():
+			continue
+		var needed: Vector2 = control.get_combined_minimum_size()
+		if needed.x - control.size.x > 1.0 or needed.y - control.size.y > 1.0:
+			overflowed += 1
+			_failures.append("%s overflow: %s needs %.0fx%.0f, has %.0fx%.0f" % [
+				label, _named(control), needed.x, needed.y,
+				control.size.x, control.size.y])
+		# Content inside a ScrollContainer is *meant* to be taller than the window
+		# it looks through. Measuring it against the screen reports every long
+		# list in the game as clipped, which is the fastest way to make a gate
+		# nobody trusts.
+		if _inside_scroll(control, root):
+			continue
+		var rect: Rect2 = control.get_global_rect()
+		if rect.size.x <= 0.0 or rect.size.y <= 0.0 or not screen.intersects(rect):
+			continue
+		var inside: Rect2 = screen.intersection(rect)
+		var shown: float = (inside.size.x * inside.size.y) \
+			/ maxf(rect.size.x * rect.size.y, 1.0)
+		if shown < 0.995:
+			clipped += 1
+			_failures.append("%s off screen: %s at %s size %s - only %.0f%% visible"
+				% [label, _named(control), rect.position, rect.size, shown * 100.0])
+	_notes.append("%s: %d overflowing, %d clipped" % [label, overflowed, clipped])
+
+
+## A modal sheet must sit above the interface it is modal over.
+##
+## This one cannot be seen by measuring rectangles, and it is what actually broke
+## the Close button: the building sheet was on `layer 8` and the combat HUD on
+## `layer 20`, so the HUD drew over the sheet and - because Godot searches canvas
+## layers from the top down for whatever a click lands on - took the taps as
+## well. Every rectangle was in exactly the right place and the button was still
+## dead.
+func _check_modal_layers(run: Node) -> void:
+	var hud := run.get("hud") as CanvasLayer
+	if hud == null:
+		_failures.append("no HUD, so modal layering was never checked")
+		return
+	var modals: Dictionary = {
+		"town_panel": run.get("town_panel"),
+		"pause_ui": run.get("pause_ui"),
+		"crossroad_ui": run.get("crossroad_ui"),
+		"results_ui": run.get("results_ui"),
+		"ending_ui": run.get("ending_ui"),
+	}
+	var checked: int = 0
+	for name: String in modals:
+		var modal := modals[name] as CanvasLayer
+		if modal == null:
+			continue
+		checked += 1
+		if modal.layer <= hud.layer:
+			_failures.append(("%s is on canvas layer %d and the HUD is on %d, so the "
+				+ "HUD draws over it and takes its clicks") % [name, modal.layer, hud.layer])
+	_notes.append("modal layers: %d checked against HUD layer %d" % [checked, hud.layer])
+
+
+## Whether a control is looked at through a scrolling window somewhere between it
+## and `root`.
+static func _inside_scroll(control: Control, root: Node) -> bool:
+	var walk: Node = control
+	while walk != null and walk != root:
+		if walk is ScrollContainer:
+			return true
+		walk = walk.get_parent()
+	return false

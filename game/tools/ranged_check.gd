@@ -123,6 +123,7 @@ func _ready() -> void:
 	for _frame: int in 6:
 		await get_tree().process_frame
 	_test_arrows_reach_wildlife()
+	_test_the_shot_goes_where_it_is_aimed()
 
 	if _failures == 0:
 		print("[ranged] PASS - blueprints gate the recipe, ammunition costs and "
@@ -172,3 +173,52 @@ func _source(path: String) -> String:
 	var body: String = file.get_as_text()
 	file.close()
 	return body
+
+
+## An arrow must pass through the cursor, not near it.
+##
+## Reported as "the ranged weapons do not shoot exactly where the mouse cursor
+## was aiming", and it was geometry rather than accuracy: the aim direction was
+## measured from the hero's *feet* and the arrow left from the hero's *chest*.
+## Two parallel lines a little over fifty units apart, which is nothing when the
+## target is far away and most of the screen when it is close.
+##
+## Checked as arithmetic and as a call site, and it needs both. The arithmetic
+## says the rule is right; the call site is where the wrong point was passed in,
+## and a correct rule fed the wrong origin is exactly the bug that shipped.
+func _test_the_shot_goes_where_it_is_aimed() -> void:
+	var feet := Vector2(400.0, 800.0)
+	var lift := Vector2(0.0, -52.0)
+	var body: Vector2 = feet + lift
+	var cursor := Vector2(700.0, 790.0)
+
+	var heading: Vector2 = HeroInput.aim_at(body, cursor, Vector2.RIGHT)
+	# The shot leaves from `body` and flies along `heading`. Projecting the cursor
+	# onto that ray must land on the cursor itself.
+	var along: float = (cursor - body).dot(heading)
+	var closest: Vector2 = body + heading * along
+	_check(closest.distance_to(cursor) < 0.01,
+		"a shot aimed from the body must pass through the cursor, missed by %.2f"
+			% closest.distance_to(cursor))
+
+	# And the bug it replaces, stated as a number so nobody reintroduces it by
+	# reasoning that fifty units cannot matter.
+	var from_feet: Vector2 = HeroInput.aim_at(feet, cursor, Vector2.RIGHT)
+	var error: float = absf(rad_to_deg(from_feet.angle_to(heading)))
+	_check(error > 5.0,
+		"aiming from the feet must measurably miss, or this test proves nothing "
+			+ "(%.1f degrees)" % error)
+
+	# Zero-length is a real state - the cursor sits on the hero every time they
+	# walk under it - and must hold the previous direction rather than snap east.
+	_check(HeroInput.aim_at(body, body, Vector2.UP) == Vector2.UP,
+		"a cursor on top of the hero must keep the previous aim")
+
+	var source: String = _source("res://scripts/components/local_hero_input.gd")
+	_check(source.contains("combat_origin"),
+		"the local aim must be measured from combat_origin, or the rule above is "
+			+ "correct and unused")
+	var hero_source: String = _source("res://scenes/hero/hero.gd")
+	_check(hero_source.contains("ranged.request(_aim, combat_origin())"),
+		"the shot must leave from combat_origin, the same point the aim is "
+			+ "measured from")

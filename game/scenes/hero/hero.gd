@@ -186,6 +186,9 @@ var _mender_left: float = 0.0
 var _mender_grace_left: float = 0.0
 var _depth_lift: float = 0.0
 
+## The line a drawn bow puts in front of the hero. Built once, moved every frame.
+var _aim_guide: Line2D = null
+
 
 func _ready() -> void:
 	# Local unless something says otherwise, which is every hero in a
@@ -293,6 +296,7 @@ func _ready() -> void:
 		frames.play("idle")
 
 	_apply_permanent_bonuses()
+	_build_aim_guide()
 
 
 func _physics_process(delta: float) -> void:
@@ -304,6 +308,7 @@ func _physics_process(delta: float) -> void:
 
 	_aim = _compute_aim()
 	_update_facing(delta)
+	_update_aim_guide()
 
 	var combat_input: bool = can_fight()
 	if combat_input and _beast_stun_left <= 0.0 and (
@@ -1191,3 +1196,54 @@ func _frame_state_for_swing(step: int) -> String:
 	if step == 0:
 		return "attack_1a" if RunState.rng("combat").randf() < 0.5 else "attack_1b"
 	return "attack_%d" % (step + 1)
+
+
+## The line a drawn bow puts in front of the hero.
+##
+## **A thumb stick has no cursor.** Aim on a phone is a direction and nothing
+## else, so a player firing a bow was pointing at something they could not see -
+## which is half of "ensure that mobile users are able to use ranged weapons and
+## aim perfectly accurately". The other half was that there was no way to fire at
+## all; `TouchInput` grew a trigger for that.
+##
+## Drawn for the mouse too, because it is the visible proof of the fix beside it:
+## the guide leaves `combat_origin()` along the same vector the arrow does, so if
+## the two ever disagree again it is on screen rather than in a bug report.
+func _build_aim_guide() -> void:
+	_aim_guide = Line2D.new()
+	_aim_guide.name = "AimGuide"
+	_aim_guide.width = Balance.HERO_AIM_GUIDE_WIDTH
+	_aim_guide.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	_aim_guide.end_cap_mode = Line2D.LINE_CAP_ROUND
+	# Tapered to nothing at the far end: a line of even weight reads as a laser
+	# sight, and the hero is holding a bow.
+	var taper := Curve.new()
+	taper.add_point(Vector2(0.0, 1.0))
+	taper.add_point(Vector2(1.0, 0.05))
+	_aim_guide.width_curve = taper
+	_aim_guide.z_index = Balance.VFX_Z - 1
+	_aim_guide.visible = false
+	add_child(_aim_guide)
+
+
+func _update_aim_guide() -> void:
+	if _aim_guide == null:
+		return
+	# Only for the hero this player is driving. A partner's aim line across the
+	# field would be four lines in a full party and none of them yours.
+	var wanted: bool = ranged != null and ranged.armed() and is_alive() \
+		and can_fight() and input != null and input.is_local()
+	_aim_guide.visible = wanted
+	if not wanted:
+		return
+	var body: Vector2 = combat_origin() - global_position
+	_aim_guide.points = PackedVector2Array([
+		body + _aim * Balance.HERO_AIM_GUIDE_START,
+		body + _aim * Balance.HERO_AIM_GUIDE_LENGTH,
+	])
+	var kind: AmmoData = ranged.nocked()
+	var tint: Color = TowerData.element_colour(kind.element) if kind != null \
+		and kind.element >= 0 else Color("e8d9b0")
+	tint.a = Balance.HERO_AIM_GUIDE_DRAWING_ALPHA if ranged.is_drawing() \
+		else Balance.HERO_AIM_GUIDE_ALPHA
+	_aim_guide.default_color = tint

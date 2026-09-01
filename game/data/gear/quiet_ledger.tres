@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 2
+attribute = 3
+base_points = 4
+weight = 0.55
+min_tier = 2
+description = "Every debt the city is owed, written small. Command comes easier holding it."
+id = "quiet_ledger"
+display_name = "Quiet Ledger"

@@ -61,6 +61,23 @@ var _dash: TouchButton = null
 var _revive: TouchButton = null
 var _down_count: int = 0
 
+## The bow, for a thumb.
+##
+## **There was no way to shoot on a phone at all.** `BUTTON_RANGED` is read from
+## `Input.is_action_just_pressed("ranged")`, which on a desktop is a key and on a
+## phone was nothing - so the whole ranged system, its ammunition, its blueprints
+## and its crafting menu were unreachable on the platform the owner ships an APK
+## for. The same shape of hole the revive button was.
+##
+## Shown only while a bow is actually in hand, for the reason the revive button
+## is conditional: a control that does nothing for a whole run is a control
+## standing in front of the battlefield.
+var _loose: TouchButton = null
+## Cycling ammunition, shown only when there is more than one kind to cycle
+## between. Aiming is a direction and firing is a tap; *which arrow* is the third
+## decision a bow asks for, and on a phone it had no answer either.
+var _ammo: TouchButton = null
+
 
 func _ready() -> void:
 	layer = 48
@@ -107,7 +124,10 @@ func owns_pointer() -> bool:
 	for stick: TouchStick in _sticks:
 		if stick.holds_emulated_finger():
 			return true
-	return _dash.holds_emulated_finger()
+	for button: TouchButton in [_dash, _loose, _ammo, _revive]:
+		if button != null and button.visible and button.holds_emulated_finger():
+			return true
+	return false
 
 
 ## Decides whether to show, and does.
@@ -181,6 +201,18 @@ func _build() -> void:
 	_revive.label = "REVIVE"
 	_revive.visible = false
 	add_child(_revive)
+
+	_loose = TouchButton.new()
+	_loose.name = "LooseButton"
+	_loose.label = "LOOSE"
+	_loose.visible = false
+	add_child(_loose)
+
+	_ammo = TouchButton.new()
+	_ammo.name = "AmmoButton"
+	_ammo.label = "AMMO"
+	_ammo.visible = false
+	add_child(_ammo)
 	EventBus.coop_hero_down.connect(func(_slot: int, _at: Vector2) -> void:
 		_down_count += 1)
 	EventBus.coop_hero_revived.connect(func(_slot: int, _at: Vector2) -> void:
@@ -230,6 +262,10 @@ func _input(event: InputEvent) -> void:
 		_dash.release_finger(touch.index)
 	if _revive != null:
 		_revive.release_finger(touch.index)
+	if _loose != null:
+		_loose.release_finger(touch.index)
+	if _ammo != null:
+		_ammo.release_finger(touch.index)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -242,6 +278,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if _revive.visible and _revive.consume(event, revive_rect()):
+		get_viewport().set_input_as_handled()
+		return
+	# Above the dash, and checked before the sticks for the same reason it is:
+	# they sit in the right stick's corner, and a thumb on a button must be that
+	# button rather than an aim.
+	if _loose.visible and _loose.consume(event, loose_rect()):
+		get_viewport().set_input_as_handled()
+		return
+	if _ammo.visible and _ammo.consume(event, ammo_rect()):
 		get_viewport().set_input_as_handled()
 		return
 
@@ -298,6 +343,41 @@ func revive_rect() -> Rect2:
 	return Rect2(dash.position + Vector2(0.0, dash.size.y * 1.25), dash.size)
 
 
+## Where the bow's trigger sits: directly above the dash, on the same edge.
+##
+## The right edge at mid height is the one column the HUD never claims - the
+## dash proved that - and the three ranged controls stack up it from the dash
+## rather than being scattered, so a player finds all of them by finding one.
+func loose_rect() -> Rect2:
+	var dash: Rect2 = dash_rect()
+	return Rect2(dash.position - Vector2(0.0, dash.size.y * 1.25), dash.size)
+
+
+## Where cycling ammunition sits: above the trigger, drawn only when there is
+## more than one kind held.
+func ammo_rect() -> Rect2:
+	var dash: Rect2 = dash_rect()
+	return Rect2(dash.position - Vector2(0.0, dash.size.y * 2.5), dash.size)
+
+
+## Whether a bow is in hand at all, which is what the two ranged buttons follow.
+func _bow_in_hand() -> bool:
+	return not RunState.ranged_id.is_empty() \
+		and ContentDB.ranged_weapons.has(RunState.ranged_id)
+
+
+## How many kinds of ammunition the nocked weapon can fire and the player holds.
+## Below two there is nothing to cycle between and the button stays away.
+func _ammo_choices() -> int:
+	if not _bow_in_hand():
+		return 0
+	var held: int = 0
+	for kind: AmmoData in RunState.ammo_for_weapon(RunState.ranged_id):
+		if RunState.ammo_count(kind.id) > 0:
+			held += 1
+	return held
+
+
 ## Whether a thumb is on the revive button right now.
 func revive_held() -> bool:
 	return _revive != null and _revive.visible and _revive.is_held()
@@ -347,6 +427,23 @@ func _process(_delta: float) -> void:
 	elif _revive.is_held():
 		_revive.forget()
 
+	# The bow's controls follow what is actually in hand, checked every frame
+	# because a bow can be picked up, put down or run dry mid-battle.
+	_loose.visible = _bow_in_hand()
+	if _loose.visible:
+		var trigger: Rect2 = loose_rect()
+		_loose.position = trigger.position
+		_loose.size = trigger.size
+	elif _loose.is_held():
+		_loose.forget()
+	_ammo.visible = _ammo_choices() > 1
+	if _ammo.visible:
+		var quiver: Rect2 = ammo_rect()
+		_ammo.position = quiver.position
+		_ammo.size = quiver.size
+	elif _ammo.is_held():
+		_ammo.forget()
+
 
 ## Presses the same actions a keyboard would.
 ##
@@ -368,6 +465,19 @@ func _drive_actions() -> void:
 	elif Input.is_action_pressed(&"dash"):
 		Input.action_release(&"dash")
 
+	# A tap, not a hold. A bow already has its own rhythm - the draw timer - so a
+	# held trigger that auto-repeated would empty a quiver in a second and read as
+	# the button being stuck.
+	if _loose.take_press():
+		Input.action_press(&"ranged")
+	elif Input.is_action_pressed(&"ranged"):
+		Input.action_release(&"ranged")
+
+	if _ammo.take_press():
+		Input.action_press(&"ammo_cycle")
+	elif Input.is_action_pressed(&"ammo_cycle"):
+		Input.action_release(&"ammo_cycle")
+
 
 func _axis(action: StringName, strength: float) -> void:
 	if strength > 0.01:
@@ -384,7 +494,7 @@ func _release_all() -> void:
 	_move = Vector2.ZERO
 	_attacking = false
 	for action: StringName in [&"move_left", &"move_right", &"move_up",
-			&"move_down", &"attack", &"dash"]:
+			&"move_down", &"attack", &"dash", &"ranged", &"ammo_cycle"]:
 		if Input.is_action_pressed(action):
 			Input.action_release(action)
 	for stick: TouchStick in _sticks:
@@ -394,6 +504,9 @@ func _release_all() -> void:
 	# controls that no longer existed.
 	if _dash != null:
 		_dash.forget()
+	for button: TouchButton in [_loose, _ammo, _revive]:
+		if button != null:
+			button.forget()
 
 
 ## One thumb stick: a ring where the thumb landed and a knob where it is now.

@@ -34,8 +34,20 @@ func aim(previous: Vector2) -> Vector2:
 		return pad.normalized()
 	if hero == null:
 		return previous
-	var to_mouse: Vector2 = hero.get_global_mouse_position() - hero.global_position
-	return to_mouse.normalized() if to_mouse.length() > 1.0 else previous
+	# **From the body, not from the boots.** A `CharacterBody2D`'s position is its
+	# feet - `Hero` deliberately moves the node down to its ground contact so the
+	# shared Y sorter has something meaningful to sort by - but every shot, swing
+	# and spell leaves from `combat_origin()`, which is that same point lifted
+	# back up to the chest.
+	#
+	# Measuring the aim from one and firing from the other put the arrow on a
+	# parallel line about fifty units above the one the player drew with the
+	# cursor: nearly ten degrees of error at mid range and far worse up close.
+	# Reported as "the ranged weapons do not shoot exactly where the mouse cursor
+	# was aiming". Both ends of the line come from the same point now.
+	var from: Vector2 = hero.combat_origin() if hero.has_method("combat_origin") \
+		else hero.global_position
+	return HeroInput.aim_at(from, hero.get_global_mouse_position(), previous)
 
 
 func pressed(button: int) -> bool:

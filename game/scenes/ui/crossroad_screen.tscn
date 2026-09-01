@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://art/bg/crossroad_bg.png" id="2_bg"]
 
 [node name="CrossroadScreen" type="CanvasLayer" node_paths=PackedStringArray("panel", "title", "options_box")]
-layer = 10
+layer = 28
 script = ExtResource("1_cross")
 panel = NodePath("Panel")
 title = NodePath("Panel/Art/Box/Title")

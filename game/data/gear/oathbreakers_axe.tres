@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 0
+attribute = 0
+base_points = 4
+weight = 0.55
+min_tier = 2
+reach_scale = 1.080
+swing_scale = 0.926
+description = "Taken from a chieftain who would not be sworn. It remembers the argument."
+id = "oathbreakers_axe"
+display_name = "Oathbreaker's Axe"

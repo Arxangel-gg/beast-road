@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 0
+attribute = 0
+base_points = 4
+weight = 0.60
+min_tier = 2
+reach_scale = 1.300
+swing_scale = 0.769
+description = "Forged where the road burns. It keeps the host at arm's length."
+id = "ashfall_glaive"
+display_name = "Ashfall Glaive"

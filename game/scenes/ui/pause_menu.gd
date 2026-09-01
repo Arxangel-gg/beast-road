@@ -25,6 +25,15 @@ func _ready() -> void:
 	IconKit.on_button(menu_button, "close", 24)
 
 	_build_settings()
+	# **Grown from the centre, and bounded by the screen.** Reported as the pause
+	# menu sitting low and running off the bottom of a phone. `anchors_preset = 8`
+	# in a `.tscn` writes the anchors and nothing else - the grow directions stay
+	# at their default of `GROW_DIRECTION_END` - so once Settings joined Resume and
+	# Abandon the panel needed more height than its authored 240 and took it all
+	# downward from a fixed top edge. Only `set_anchors_preset()` in code sets the
+	# grow directions, which is exactly what this does.
+	UiMetrics.centre_panel(panel)
+	get_viewport().size_changed.connect(func() -> void: UiMetrics.centre_panel(panel))
 	resume_button.pressed.connect(toggle)
 	menu_button.pressed.connect(func() -> void:
 		# Leaving unpauses the other player as well: quitting is not a reason to
@@ -105,6 +114,11 @@ func toggle() -> void:
 ## both need something to resume from. Owner's decision, 2026-08-25.
 func set_showing(showing: bool) -> void:
 	panel.visible = showing
+	# Re-measured on every open. The settings button is added at runtime and the
+	# touch pass can grow all three, so the panel this centres is not the one the
+	# scene file described.
+	if showing:
+		UiMetrics.centre_panel(panel)
 	if showing or _settings == null:
 		return
 	# Resuming closes the settings behind it, and the dim with them - otherwise a

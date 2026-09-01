@@ -23,6 +23,7 @@ var _note: Label
 var _tabs: HBoxContainer
 var _close_button: Button
 var _tier_id: String = "normal"
+var _scroll: ScrollContainer
 
 
 func _ready() -> void:
@@ -30,6 +31,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 	Leaderboard.board_loaded.connect(_on_board_loaded)
+	get_viewport().size_changed.connect(_refit)
 	visible = false
 
 
@@ -45,7 +47,8 @@ func _build() -> void:
 	add_child(centre)
 
 	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(980.0, 0.0)
+	_panel.custom_minimum_size = Vector2(minf(980.0,
+		get_viewport().get_visible_rect().size.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
 	centre.add_child(_panel)
 
 	var column := VBoxContainer.new()
@@ -71,9 +74,16 @@ func _build() -> void:
 	# screen with no way out.
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
-	scroll.custom_minimum_size = Vector2(0.0, 520.0)
+	# Measured against the screen, not against 1080. A fixed 520 plus a heading,
+	# three tier tabs, a note line and the Close button came to more than a
+	# landscape phone is tall - and a CenterContainer overflows a child it cannot
+	# fit *equally in both directions*, so the way out went above the top edge
+	# while the list ran off the bottom. Reported as a leaderboard that could not
+	# be closed.
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
+	_scroll = scroll
+	_refit()
 
 	_rows = VBoxContainer.new()
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -89,6 +99,11 @@ func _build() -> void:
 
 func open() -> void:
 	visible = true
+	# Re-measured on every open, not only when the window changes size. A
+	# screen built before the viewport settled measured itself against the
+	# default 1920x1080 and came out taller than the phone it was drawn on -
+	# and no `size_changed` follows, because the resize already happened.
+	_refit()
 	_build_tabs()
 	_select(MetaState.last_tier_id)
 	_close_button.grab_focus()
@@ -236,3 +251,19 @@ func _grouped(value: int) -> String:
 			out += ","
 		out += digits[index]
 	return ("-" if value < 0 else "") + out
+
+
+## Re-measures the list against the screen it is actually on.
+##
+## Called at build time and on every resize, because a phone changes viewport
+## when it rotates and a desktop window when it is dragged - and a panel that was
+## the right height once is the wrong height afterwards.
+func _refit() -> void:
+	if _panel == null or _scroll == null:
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	_panel.custom_minimum_size = Vector2(minf(980.0,
+		screen.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
+	# Reserved: heading, the three tier tabs, the note line, the Close button,
+	# their separations and the frame's own padding.
+	_scroll.custom_minimum_size = Vector2(0.0, UiMetrics.scroll_room(_scroll, 312.0))

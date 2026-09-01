@@ -39,8 +39,10 @@ func _ready() -> void:
 
 	_test_unarmed_draws_nothing()
 	_test_weapon_variety()
+	_test_weapon_art_faces_the_same_way()
 	_test_starting_weapon()
 	await _test_blade_sweep()
+	_test_blade_tint()
 	await _test_bow_loose()
 
 	MetaState.stash = old_stash
@@ -174,11 +176,19 @@ func _test_blade_sweep() -> void:
 		"the blade must point along the radius it rides, not sit at its art angle (off by %.0f deg)"
 			% rad_to_deg(off_by))
 
-	var trails: int = 0
+	# The ribbon, not a rope. A `Line2D` along one radius draws the path of a
+	# single point on the blade and reads as something swung on a chain; a
+	# sword's trail is the area the edge swept, from the hilt out to the point.
+	# Owner report, 2026-09-01.
+	var ribbons: Array[Polygon2D] = []
 	for child: Node in _layer.get_children():
-		if child is Line2D:
-			trails += 1
-	_check(trails > 0, "the swing must leave a trail behind the edge")
+		if child is Polygon2D and child.name == &"BladeRibbon":
+			ribbons.append(child as Polygon2D)
+	_check(not ribbons.is_empty(), "the swing must leave a swept ribbon behind the edge")
+	_check(_line_trails() == 0,
+		"the old single-radius line trail must be gone, found %d" % _line_trails())
+	for ribbon: Polygon2D in ribbons:
+		_measure_ribbon(ribbon, reach)
 
 	await _settle()
 	_check(_sprites().is_empty(), "the blade must free itself when the swing ends")
@@ -251,3 +261,150 @@ func _check(condition: bool, message: String) -> void:
 		return
 	_failures += 1
 	print("[weapon-vfx] %s" % message)
+
+
+## How many single-radius line trails the effect layer holds. Zero is the answer:
+## `slash` draws a wedge and `blade_sweep` draws a ribbon, and a `Line2D` here
+## would mean the old rope-shaped trail had come back.
+func _line_trails() -> int:
+	var found: int = 0
+	for child: Node in _layer.get_children():
+		if child is Line2D:
+			found += 1
+	return found
+
+
+## The ribbon must actually span the blade, hilt to point.
+##
+## Checked as a measurement rather than as "a polygon exists", because the shape
+## is the whole complaint: a strip with no width between its two radii is a line
+## with extra vertices, and would look exactly like the trail being replaced.
+func _measure_ribbon(ribbon: Polygon2D, reach: float) -> void:
+	var shape: PackedVector2Array = ribbon.polygon
+	_check(shape.size() >= 8,
+		"the ribbon needs both edges, got %d points" % shape.size())
+	if shape.size() < 8:
+		return
+	var nearest: float = INF
+	var furthest: float = 0.0
+	for point: Vector2 in shape:
+		nearest = minf(nearest, point.length())
+		furthest = maxf(furthest, point.length())
+	var hilt: float = reach * Balance.VFX_BLADE_TRAIL_HILT
+	var tip: float = reach * Balance.VFX_BLADE_TRAIL_TIP
+	_check(absf(nearest - hilt) < reach * 0.08,
+		"the inner edge must sit at the hilt radius %.0f, sits at %.0f" % [hilt, nearest])
+	_check(absf(furthest - tip) < reach * 0.08,
+		"the outer edge must reach the point at %.0f, reaches %.0f" % [tip, furthest])
+	_check(furthest - nearest > reach * 0.3,
+		"the ribbon must have real width between hilt and point, has %.0f"
+			% (furthest - nearest))
+	# Faded toward the tail, which is what makes the shape read as speed rather
+	# than as a painted crescent.
+	var shades: PackedColorArray = ribbon.vertex_colors
+	_check(shades.size() == shape.size(),
+		"every ribbon vertex needs its own shade, %d colours for %d points"
+			% [shades.size(), shape.size()])
+	if shades.size() == shape.size() and shades.size() > 2:
+		_check(shades[0].a < shades[shades.size() / 2 - 1].a,
+			"the tail of the ribbon must be fainter than its leading edge")
+
+
+## The trail must be the colour of the weapon, not the colour of its rarity.
+##
+## Reported as "matching its color" (owner, 2026-09-01). The tint used to come
+## from the rarity band, so a Fine maul and a Fine sabre cut identical green -
+## the one piece of feedback that could have said what is in the hero's hand
+## instead repeated a fact the player learned when they picked it up.
+func _test_blade_tint() -> void:
+	var kinds: Array[GearData] = []
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind != null and kind.slot == GearData.Slot.WEAPON \
+				and ResourceLoader.exists(kind.get_sprite_path()):
+			kinds.append(kind)
+	_check(kinds.size() >= 2,
+		"the gate needs two weapons with art to tell their colours apart")
+	if kinds.size() < 2:
+		return
+	var seen: Dictionary = {}
+	for kind: GearData in kinds:
+		var texture := load(kind.get_sprite_path()) as Texture2D
+		var tint: Color = Vfx.blade_tint(texture, Color.MAGENTA)
+		_check(tint != Color.MAGENTA,
+			"%s must yield a colour from its art rather than the fallback" % kind.id)
+		_check(tint.v >= 0.55,
+			"%s must yield a colour bright enough to read as a trail (v %.2f)"
+				% [kind.id, tint.v])
+		seen[tint.to_html(false)] = true
+	# Not every weapon has to differ, but they cannot all be the same colour or
+	# the sampling has collapsed to a constant and the rarity bug is back in a
+	# new costume.
+	_check(seen.size() > 1,
+		"%d weapons must not all sample to one colour" % kinds.size())
+
+	# And it must be cached: this reads an image, and a swing happens three
+	# times a second.
+	var first := load(kinds[0].get_sprite_path()) as Texture2D
+	var once: Color = Vfx.blade_tint(first, Color.MAGENTA)
+	var twice: Color = Vfx.blade_tint(first, Color.MAGENTA)
+	_check(once == twice, "the sampled colour must be stable between swings")
+
+
+## Every weapon icon is drawn on the same diagonal.
+##
+## `Vfx.blade_sweep` turns the sprite back by `VFX_BLADE_ART_DEGREES` so its
+## point leads along the arc, and that single number is only correct because
+## every melee icon in the set is painted hilt-low-left, point-high-right. A
+## weapon drawn the other way swings backwards - hilt first - and nothing else
+## in the project would notice.
+##
+## Measured rather than eyeballed. This gate exists because a contact sheet was
+## read wrong *in both directions* on 2026-09-01: an axe that was already correct
+## looked mirrored, was flipped, and the flip is what broke it. The alpha
+## centroid does not have an opinion.
+##
+## A perfectly symmetric design - crossed dirks, an X - has no diagonal to get
+## wrong and reads the same at any rotation, so equality passes.
+func _test_weapon_art_faces_the_same_way() -> void:
+	var checked: int = 0
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind == null or kind.slot != GearData.Slot.WEAPON:
+			continue
+		var path: String = kind.get_sprite_path()
+		if not ResourceLoader.exists(path):
+			continue
+		var texture := load(path) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		checked += 1
+		var top: float = 0.0
+		var bottom: float = 0.0
+		var top_count: int = 0
+		var bottom_count: int = 0
+		var half: int = image.get_height() / 2
+		for y: int in image.get_height():
+			for x: int in image.get_width():
+				if image.get_pixel(x, y).a < 0.5:
+					continue
+				if y < half:
+					top += float(x)
+					top_count += 1
+				else:
+					bottom += float(x)
+					bottom_count += 1
+		if top_count == 0 or bottom_count == 0:
+			_check(false, "%s has nothing drawn in half its canvas" % kind.id)
+			continue
+		var top_x: float = top / float(top_count)
+		var bottom_x: float = bottom / float(bottom_count)
+		_check(top_x >= bottom_x - 0.5,
+			("%s is painted with its point low-left and its hilt high-right, which "
+				+ "is the mirror of every other weapon - it will swing hilt-first "
+				+ "(top %.1f, bottom %.1f)") % [kind.id, top_x, bottom_x])
+	_check(checked >= 4,
+		"only %d weapon icons were measured, so the convention is barely held" % checked)

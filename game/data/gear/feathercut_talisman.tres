@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_g"]
+
+[resource]
+script = ExtResource("1_g")
+slot = 2
+attribute = 2
+base_points = 3
+weight = 0.90
+min_tier = 1
+description = "Bone and flight feather. Whatever it belonged to did not walk anywhere."
+id = "feathercut_talisman"
+display_name = "Feathercut Talisman"

@@ -60,6 +60,16 @@ var host: Node2D = null
 
 var _trees: Array[Sprite2D] = []
 
+## Trees with an authored idle sequence, and where each is in it. Stepped on one
+## shared clock, like the foliage field's - a texture assignment five times a
+## second rather than a transform sixty times a second on two hundred nodes.
+var _animated: Array[Dictionary] = []
+var _idle_clock: float = 0.0
+var _idle_frame: int = 0
+
+## Leaves coming off this treeline. Owned here because it needs the canopies.
+var _leaves: Leaffall = null
+
 
 ## Re-grows the treeline for the current region.
 func scatter() -> void:
@@ -67,6 +77,9 @@ func scatter() -> void:
 		if is_instance_valid(tree):
 			tree.queue_free()
 	_trees.clear()
+	# Cleared with the trees they belonged to. A stale entry here is a freed
+	# sprite walked every animation step.
+	_animated.clear()
 
 	var region: String = RunState.terrain_id
 	var art: Array[Texture2D] = _region_art(region)
@@ -98,6 +111,7 @@ func scatter() -> void:
 				Balance.TREELINE_GIANT_SCALE.y)
 		_plant(art[rng.randi_range(0, art.size() - 1)], at, tree_scale, rng)
 		placed += 1
+	_refresh_leaves(region)
 
 
 func _region_art(region: String) -> Array[Texture2D]:
@@ -178,9 +192,10 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	var tree := Sprite2D.new()
 	tree.texture = art
 	tree.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	# Shared, so two hundred trees cost one material and the weather reaches all
-	# of them in a single parameter write.
-	tree.material = Foliage.canopy_material()
+	# Per region: a snow conifer and a jungle broadleaf must not lean by the same
+	# angle. Still one material per region rather than one per tree, so two hundred
+	# trees cost one material and the weather reaches all of them in one write.
+	tree.material = Foliage.canopy_material(RunState.terrain_id)
 	tree.add_to_group(Graphics.FILTER_GROUP)
 	tree.add_to_group("ambient_tree")
 	# Origin at the trunk, so the node's own y is where it touches the ground -
@@ -206,6 +221,13 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	var parent: Node2D = host if host != null and is_instance_valid(host) else self
 	parent.add_child(tree)
 	_trees.append(tree)
+	# A tree with authored frames breathes as well as leaning. Both are supported
+	# and neither is required: dropping `_idle_01.png` beside the sprite is the
+	# whole of adding an animation, exactly as it is for a painted plant.
+	var frames: Array[Texture2D] = Foliage.idle_sequence(art)
+	if not frames.is_empty():
+		_animated.append({"sprite": tree, "frames": frames,
+			"phase": _animated.size()})
 
 
 func _scale_span(region: String) -> Vector2:
@@ -216,3 +238,48 @@ func _scale_span(region: String) -> Vector2:
 			return Balance.TREELINE_SNOW_SCALE
 		_:
 			return Balance.TREELINE_JUNGLE_SCALE
+
+
+## Steps every animated tree on one shared clock.
+##
+## The same rule the foliage field uses, and for the same reason: two hundred
+## trees advancing on one integer index cost one comparison per frame and a
+## texture assignment only on the steps where the index actually changes.
+func _process(delta: float) -> void:
+	if _animated.is_empty():
+		return
+	_idle_clock += delta * Balance.FOLIAGE_IDLE_FRAME_RATE
+	var step: int = int(_idle_clock)
+	if step == _idle_frame:
+		return
+	_idle_frame = step
+	for entry: Dictionary in _animated:
+		var sprite: Sprite2D = entry["sprite"]
+		if not is_instance_valid(sprite):
+			continue
+		var frames: Array = entry["frames"]
+		sprite.texture = frames[(step + int(entry["phase"])) % frames.size()]
+
+
+## Hands the leaf system the canopies it sheds from.
+##
+## Told rather than searched: a group query per fall would build an array of two
+## hundred nodes to pick one of them, and this list already exists.
+##
+## The canopy point is the crown, not the node position - the node sits at the
+## trunk's ground contact, and a leaf that appears there and falls has fallen
+## from the roots.
+func _refresh_leaves(region: String) -> void:
+	if _leaves == null:
+		_leaves = Leaffall.new()
+		_leaves.name = "Leaffall"
+		var parent: Node2D = host if host != null and is_instance_valid(host) else self
+		parent.add_child(_leaves)
+	var canopies: Array[Array] = []
+	for tree: Sprite2D in _trees:
+		if not is_instance_valid(tree) or tree.texture == null:
+			continue
+		var height: float = float(tree.texture.get_height()) * tree.scale.y
+		var half_width: float = float(tree.texture.get_width()) * tree.scale.x * 0.35
+		canopies.append([tree.position, height, half_width])
+	_leaves.set_canopies(canopies, region)

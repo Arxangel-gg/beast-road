@@ -102,3 +102,23 @@ func held(_mask: int) -> bool:
 ## worth sending anywhere.
 func is_local() -> bool:
 	return false
+
+
+## Where the player is pointing, from the point a shot actually leaves.
+##
+## Static and taking its origin as an argument, because **the origin is the part
+## that was wrong**. Aim used to be measured from `hero.global_position`, which
+## is the hero's *feet* - the node is deliberately moved down to its ground
+## contact so the shared Y sorter has a meaningful depth key - while every arrow,
+## swing and spell leaves from `combat_origin()`, the same point lifted back up
+## to the chest. Two parallel lines about fifty units apart: at three hundred
+## units of range that is nearly ten degrees, and much worse up close.
+##
+## Written here, once, so a second caller cannot make the same choice again, and
+## so `ranged_check` can hold the rule without standing up a battlefield.
+static func aim_at(origin: Vector2, cursor: Vector2, previous: Vector2) -> Vector2:
+	var delta: Vector2 = cursor - origin
+	# Below a unit the cursor is on top of the hero and there is no direction to
+	# read; snapping east there would spin the hero every time it passed under
+	# the pointer.
+	return delta.normalized() if delta.length() > 1.0 else previous

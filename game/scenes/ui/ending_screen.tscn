@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://art/bg/summit.png" id="2_bg"]
 
 [node name="EndingScreen" type="CanvasLayer" node_paths=PackedStringArray("backdrop", "title", "body", "finish_button", "credits_button", "credits")]
-layer = 20
+layer = 30
 script = ExtResource("1_end")
 backdrop = NodePath("Backdrop")
 title = NodePath("Box/Title")

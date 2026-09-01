@@ -361,6 +361,7 @@ $btn.Add_Click({
 			@{ Name = 'audio streams and variation groups'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/audio_verify.tscn') },
             @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
             @{ Name = 'loot and cache art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/loot_art_check.tscn') },
+            @{ Name = 'foliage animation'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/foliage_art_check.tscn') },
             @{ Name = 'blood VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/blood_vfx_check.tscn') },
             @{ Name = 'weapon VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/weapon_vfx_check.tscn') },
             @{ Name = 'crossroad vote'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/crossroad_vote_check.tscn') },

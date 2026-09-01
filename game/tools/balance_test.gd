@@ -65,6 +65,7 @@ func _ready() -> void:
 	await _test_loot_and_weather()
 	_test_tiers_and_persistence()
 	_test_stash_economy()
+	_test_gear_farming()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -2145,3 +2146,81 @@ func _test_live_relic_updates() -> void:
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
+
+
+## Gear farming is the reason to play a second run.
+##
+## Owner direction, 2026-09-01: "the game needs way more loot... players should
+## be farming a bunch of gear and mostly playing to farm better gear to be able
+## to get further in the game". Four properties hold that up, and every one of
+## them was false or nearly false before:
+##
+## 1. **A piece falls often enough to be a loop.** At 0.6% a breed kill an entire
+##    act could pass without one, which makes the battlefield hunt a rumour
+##    rather than a reason.
+## 2. **The top rarity stays an event.** Volume without a ladder is noise: if
+##    Oathbound is common there is nothing to farm toward.
+## 3. **Every slot has real choices**, or the "which of these" question the
+##    blacksmith exists to pose has one answer.
+## 4. **The stash outlives a haul.** Capacity below what an act drops turns the
+##    reward into an auto-break notification.
+func _test_gear_farming() -> void:
+	# 1. Odds. Stated as "a hundred kills is very likely to pay", which is the
+	# player-facing claim, rather than as the constant itself - the number may
+	# move, the promise may not.
+	var miss: float = pow(1.0 - Balance.GEAR_BATTLEFIELD_DROP_CHANCE, 100.0)
+	_check(miss < 0.15,
+		"a hundred ordinary kills must pay a piece more often than not (misses %.0f%% of the time)"
+			% (miss * 100.0))
+	_check(Balance.GEAR_BATTLEFIELD_DROP_CHANCE < Balance.GEAR_BATTLEFIELD_ELITE_CHANCE
+		and Balance.GEAR_BATTLEFIELD_ELITE_CHANCE < Balance.GEAR_BATTLEFIELD_BOSS_CHANCE,
+		"battlefield gear odds must climb from breed to elite to boss")
+	_check(Balance.GEAR_BOSS_EXTRA_PIECES >= 1,
+		"a boss must leave more than an elite does, or the act's end is an anticlimax")
+
+	# 2. The ladder. Rolled rather than reasoned about, because the curve is
+	# `while randf() < step`, and the odds of four consecutive successes are not
+	# something to work out in a comment.
+	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	_check(not kinds.is_empty(), "there must be gear to farm")
+	if kinds.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260901
+	var counts: Array[int] = [0, 0, 0, 0, 0]
+	const ROLLS: int = 4000
+	for _roll: int in ROLLS:
+		var piece: Dictionary = Stash.roll(kinds, 0, rng)
+		counts[clampi(int(piece.get("rarity", 0)), 0, 4)] += 1
+	var top: float = float(counts[4]) / float(ROLLS)
+	_check(top < 0.05,
+		"Oathbound must stay an event at the first tier, rolled %.1f%%" % (top * 100.0))
+	_check(counts[0] > counts[4],
+		"the common rarity must be the common one (%d Worn against %d Oathbound)"
+			% [counts[0], counts[4]])
+
+	# 3. Choice within a slot, and the zero-sum rule that keeps weapon choice
+	# about *shape* rather than about power.
+	var per_slot: Array[int] = [0, 0, 0]
+	var reaches: Dictionary = {}
+	var attributes: Dictionary = {}
+	for kind: GearData in kinds:
+		per_slot[clampi(int(kind.slot), 0, 2)] += 1
+		attributes[kind.attribute] = true
+		if kind.slot == GearData.Slot.WEAPON:
+			reaches[snappedf(kind.reach_scale, 0.01)] = true
+	for slot: int in 3:
+		_check(per_slot[slot] >= 4,
+			"slot %d has %d kinds, which is not a wardrobe" % [slot, per_slot[slot]])
+	_check(reaches.size() >= 4,
+		"weapons must reach %d different distances, found %d" % [4, reaches.size()])
+	_check(attributes.size() == 4,
+		"gear must be able to raise all four attributes, reaches %d" % attributes.size())
+
+	# 4. Room to hold a haul. A boss alone now leaves three pieces, and an act has
+	# elites in every wave; a stash that fills in one act is a stash the player
+	# never chooses from.
+	_check(Balance.STASH_CAPACITY >= 64,
+		"a stash of %d fills in one farming act" % Balance.STASH_CAPACITY)
+	_check(Balance.STASH_CAPACITY > kinds.size() * 2,
+		"the stash must hold more than two of everything, or duplicates cannot be compared")

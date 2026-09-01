@@ -154,7 +154,8 @@ void vertex() {
 static var _wind_shader: Shader = null
 static var _wind_material: ShaderMaterial = null
 static var _painted_material: ShaderMaterial = null
-static var _canopy_material: ShaderMaterial = null
+## One canopy material per region, keyed by terrain id.
+static var _canopy_materials: Dictionary = {}
 
 ## One wind material per painted kind, so a fern and a bush can disagree about
 ## how much they move. Keyed by the suffix `kind_of` reads off the sprite name.
@@ -226,19 +227,9 @@ static func kind_of(path: String) -> String:
 	return "" if cut < 0 else rest.substr(cut + 1)
 
 
-## The material for trees, which had no motion at all.
-##
-## A third material rather than reusing the painted one, because a tree is not a
-## big shrub: it is drawn several times taller, so the same angular sway throws
-## its crown far further, and it must lean *less* per degree rather than more.
-## Sharing `painted_material` would have coupled a tuning number that wants to
-## differ - and the shader is the same one, so this costs one more material and
-## nothing per tree.
-##
-## Trees are `Sprite2D`, whose V runs from the top of the sprite, so the root is
-## at the top of the UV range exactly as it is for a painted plant.
-## The idle sequence for a plant texture, or an empty array. Cached per path.
-static func _idle_sequence(art: Texture2D) -> Array[Texture2D]:
+## The idle sequence for a plant or tree texture, or an empty array. Cached per
+## path, and public because `Treeline` animates on the same convention.
+static func idle_sequence(art: Texture2D) -> Array[Texture2D]:
 	if art == null:
 		return []
 	var path: String = art.resource_path
@@ -249,10 +240,32 @@ static func _idle_sequence(art: Texture2D) -> Array[Texture2D]:
 	return _idle_cache[path]
 
 
-static func canopy_material() -> ShaderMaterial:
-	if _canopy_material == null:
-		_canopy_material = _make_material(1.0, Balance.FOLIAGE_SWAY_REACH_CANOPY)
-	return _canopy_material
+## The material for one region's trees, bending by however much that canopy
+## should.
+##
+## A third material family rather than a reuse of the painted one, because a tree
+## is not a big shrub: it is drawn several times taller, so the same angular sway
+## throws its crown far further, and it must lean *less* per degree rather than
+## more. Sharing `painted_material` would have coupled a tuning number that wants
+## to differ.
+##
+## **Per region, not one for every tree in the game.** Owner request, 2026-09-01:
+## "each asset's wind shader should be tuned for what it is". A snow-laden
+## conifer and a jungle broadleaf leaned by exactly the same angle, which is the
+## foliage equivalent of giving every enemy the same walk.
+##
+## Three materials rather than two hundred: the cost of a material is per *item*,
+## and the trees in one act share one. `set_wind` reaches all of them in three
+## parameter writes when the weather turns.
+##
+## Trees are `Sprite2D`, whose V runs from the top of the sprite, so the root is
+## at the top of the UV range exactly as it is for a painted plant.
+static func canopy_material(region: String = "") -> ShaderMaterial:
+	var scale: float = float(Balance.FOLIAGE_TREE_SWAY.get(region, 1.0))
+	if not _canopy_materials.has(region):
+		_canopy_materials[region] = _make_material(1.0,
+			Balance.FOLIAGE_SWAY_REACH_CANOPY * scale)
+	return _canopy_materials[region]
 
 
 ## Bends every blade in the game to the weather.
@@ -271,8 +284,9 @@ static func set_wind(weather: WeatherData) -> void:
 	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
 	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
 	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES
-	var reached: Array[ShaderMaterial] = [wind_material(), painted_material(),
-		canopy_material()]
+	var reached: Array[ShaderMaterial] = [wind_material(), painted_material()]
+	for region: Variant in _canopy_materials:
+		reached.append(_canopy_materials[region] as ShaderMaterial)
 	for kind: Variant in _kind_materials:
 		reached.append(_kind_materials[kind] as ShaderMaterial)
 	for material: ShaderMaterial in reached:
@@ -563,7 +577,7 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	# A plant with authored frames breathes; one without keeps the shader sway
 	# it already had. Both are supported, so adding a sequence is dropping files
 	# in beside the sprite - no code and no manifest of its own.
-	var frames: Array[Texture2D] = _idle_sequence(art)
+	var frames: Array[Texture2D] = idle_sequence(art)
 	if not frames.is_empty():
 		_animated.append({
 			"sprite": plant,
