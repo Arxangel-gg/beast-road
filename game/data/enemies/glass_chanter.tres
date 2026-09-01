@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+id = "glass_chanter"
+display_name = "Glass Chanter"
+description = "Holds a shard up to the sun and the whole line hardens behind it."
+category = 0
+role = 3
+max_hp = 58.0
+contact_damage = 11.0
+move_speed = 50.0
+body_radius = 26.0
+knockback_resistance = 0.1
+raid_charge_value = 1.5
+resource_value = 4
+spawn_distance_scale = 1.0
+targets_towers = false
+aura_radius = 195.0
+aura_strength = 0.15

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+id = "cinder_runner"
+display_name = "Cinder Runner"
+description = "Fast, thin, and there are always more of them than you counted."
+category = 0
+role = 0
+max_hp = 34.0
+contact_damage = 7.0
+move_speed = 96.0
+body_radius = 22.0
+knockback_resistance = 0.0
+raid_charge_value = 1.0
+resource_value = 1
+spawn_distance_scale = 1.0
+targets_towers = false
+

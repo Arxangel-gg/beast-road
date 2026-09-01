@@ -169,6 +169,12 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `enemy_storm_caller.png` | 192×192 | T | `#9CB9D8` |
 | `elite_avalanche_warden.png` | 192×192 | T | `#9CB9D8` |
 | `elite_white_maw_giant.png` | 192×192 | T | `#9CB9D8` |
+| `enemy_loam_lurker.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_cinder_runner.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_glass_chanter.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_salt_marcher.png` | 192×192 | T | `#6B8A9E` |
+| `enemy_crevasse_stalker.png` | 192×192 | T | `#9CB9D8` |
+| `enemy_frost_herald.png` | 192×192 | T | `#9CB9D8` |
 
 ### 5.2a Enemy walk frames — `res://art/enemies/`
 
@@ -201,6 +207,8 @@ Files: `enemy_coalpaint_raider_move_01.png` · `enemy_coalpaint_raider_move_02.p
 Files: `enemy_ember_shaman_move_01.png` · `enemy_ember_shaman_move_02.png` · `enemy_ember_shaman_move_03.png` · `enemy_ember_shaman_move_04.png`
 Files: `enemy_rootshield_move_01.png` · `enemy_rootshield_move_02.png` · `enemy_rootshield_move_03.png` · `enemy_rootshield_move_04.png`
 Files: `enemy_wolf_rider_move_01.png` · `enemy_wolf_rider_move_02.png` · `enemy_wolf_rider_move_03.png` · `enemy_wolf_rider_move_04.png`
+Files: `enemy_loam_lurker_move_01.png` · `enemy_loam_lurker_move_02.png` · `enemy_loam_lurker_move_03.png` · `enemy_loam_lurker_move_04.png`
+Files: `enemy_cinder_runner_move_01.png` · `enemy_cinder_runner_move_02.png` · `enemy_cinder_runner_move_03.png` · `enemy_cinder_runner_move_04.png`
 
 
 #### Desert walk frames
@@ -213,6 +221,8 @@ Files: `enemy_dune_burrower_move_01.png` · `enemy_dune_burrower_move_02.png` ·
 Files: `enemy_glassguard_move_01.png` · `enemy_glassguard_move_02.png` · `enemy_glassguard_move_03.png` · `enemy_glassguard_move_04.png`
 Files: `enemy_scale_rider_move_01.png` · `enemy_scale_rider_move_02.png` · `enemy_scale_rider_move_03.png` · `enemy_scale_rider_move_04.png`
 Files: `enemy_veiled_skirmisher_move_01.png` · `enemy_veiled_skirmisher_move_02.png` · `enemy_veiled_skirmisher_move_03.png` · `enemy_veiled_skirmisher_move_04.png`
+Files: `enemy_glass_chanter_move_01.png` · `enemy_glass_chanter_move_02.png` · `enemy_glass_chanter_move_03.png` · `enemy_glass_chanter_move_04.png`
+Files: `enemy_salt_marcher_move_01.png` · `enemy_salt_marcher_move_02.png` · `enemy_salt_marcher_move_03.png` · `enemy_salt_marcher_move_04.png`
 
 
 #### Snow walk frames
@@ -225,6 +235,8 @@ Files: `enemy_ice_hauler_move_01.png` · `enemy_ice_hauler_move_02.png` · `enem
 Files: `enemy_rime_marauder_move_01.png` · `enemy_rime_marauder_move_02.png` · `enemy_rime_marauder_move_03.png` · `enemy_rime_marauder_move_04.png`
 Files: `enemy_snowhide_brute_move_01.png` · `enemy_snowhide_brute_move_02.png` · `enemy_snowhide_brute_move_03.png` · `enemy_snowhide_brute_move_04.png`
 Files: `enemy_storm_caller_move_01.png` · `enemy_storm_caller_move_02.png` · `enemy_storm_caller_move_03.png` · `enemy_storm_caller_move_04.png`
+Files: `enemy_crevasse_stalker_move_01.png` · `enemy_crevasse_stalker_move_02.png` · `enemy_crevasse_stalker_move_03.png` · `enemy_crevasse_stalker_move_04.png`
+Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `enemy_frost_herald_move_03.png` · `enemy_frost_herald_move_04.png`
 
 ### 5.3 Bosses — `res://art/bosses/`
 

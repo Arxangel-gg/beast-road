@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+id = "frost_herald"
+display_name = "Frost Herald"
+description = "It runs ahead to sound the horn, and the rest arrive knowing where you are."
+category = 0
+role = 1
+max_hp = 84.0
+contact_damage = 14.0
+move_speed = 92.0
+body_radius = 27.0
+knockback_resistance = 0.2
+raid_charge_value = 1.5
+resource_value = 4
+spawn_distance_scale = 0.88
+targets_towers = false
+aura_radius = 150.0
+aura_strength = 0.10

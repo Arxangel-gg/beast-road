@@ -10,6 +10,20 @@ extends Node
 ## in `coop_heroes_check.tscn` and `coop_world_check.tscn`, which need a real Run
 ## and have nothing to say about sockets.
 ##
+## ## A rare crash at teardown, recorded rather than fixed
+##
+## Observed once on 2026-09-01: every assertion printed PASS and the process
+## then exited **139** — a crash after the work was done, not a failed check.
+## Three immediate re-runs and a full sweep were clean, and Guard had no failure
+## in its previous twelve runs, so it is rare rather than latent-and-constant.
+##
+## It is written down because an intermittent crash is the worst kind of gate
+## failure: it reds a release at random, it will be re-run until green by
+## whoever meets it, and the second sighting is the one that makes it
+## diagnosable. If you are that second sighting - it is a teardown fault, so
+## look at what the WebRTC native peers hold when the scene tree goes away, not
+## at the assertions above.
+##
 ## The row that matters most is `_test_a_guest_cannot_author_a_fact`. Everything
 ## else here would still look fine if the authority model were quietly broken;
 ## that one is the invariant the whole design rests on, and it only has to fail

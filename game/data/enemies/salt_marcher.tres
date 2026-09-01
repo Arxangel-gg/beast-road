@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+id = "salt_marcher"
+display_name = "Salt Marcher"
+description = "Wrapped against the glare, and it does not stop for it either."
+category = 0
+role = 0
+max_hp = 76.0
+contact_damage = 13.0
+move_speed = 58.0
+body_radius = 27.0
+knockback_resistance = 0.15
+raid_charge_value = 1.0
+resource_value = 2
+spawn_distance_scale = 1.0
+targets_towers = false
+
