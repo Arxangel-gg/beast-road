@@ -36,7 +36,13 @@ func _ready() -> void:
 		_test_a_thrown_body_rejoins_at_the_nearest_leg(route)
 
 	GameDirector.run_active = false
-	_run.queue_free()
+	# Detached and freed rather than queued: `queue_free` lands whenever the tree
+	# next gets to it, and this gate went green on Windows while leaking twelve
+	# objects on the Linux runner - purely on how many frames each allowed before
+	# quitting. A leaked object is an ERROR line and fails the pipeline whatever
+	# the gate's own verdict was.
+	remove_child(_run)
+	_run.free()
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
@@ -64,7 +70,7 @@ func _test_a_wide_column_keeps_its_progress(route: PackedVector2Array) -> void:
 	_check(enemy._path_index >= 1,
 		"a body walking wide must keep its progress, not re-anchor backwards (index %d)"
 			% enemy._path_index)
-	enemy.queue_free()
+	_release(enemy)
 
 
 func _test_a_thrown_body_rejoins_at_the_nearest_leg(route: PackedVector2Array) -> void:
@@ -86,7 +92,7 @@ func _test_a_thrown_body_rejoins_at_the_nearest_leg(route: PackedVector2Array) -
 	var leg: Vector2 = (route[1] - route[0]).normalized()
 	_check(heading.dot(leg) > 0.2,
 		"after rejoining, the body must walk along the road rather than across it")
-	enemy.queue_free()
+	_release(enemy)
 
 
 func _spawn() -> Enemy:
@@ -108,3 +114,16 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	print("[reanchor] %s" % why)
+
+
+## Takes a body off the field immediately.
+##
+## The battlefield spawned it, so it is detached from whatever parent it was
+## given rather than assumed to be a child of this gate.
+func _release(enemy: Enemy) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var parent: Node = enemy.get_parent()
+	if parent != null:
+		parent.remove_child(enemy)
+	enemy.free()
