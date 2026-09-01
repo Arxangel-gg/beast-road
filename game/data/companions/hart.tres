@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CompanionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/companion_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hart"
+display_name = "Spirit Hart"
+description = "It stays near you and turns aside whatever comes close."
+duration = 22.0
+damage = 24.0
+attack_interval = 1.10
+attack_range = 104.0
+hunt_range = 300.0
+speed = 260.0
+follow_distance = 132.0
+knockback = 210.0
+flies = false
+scale = 1.05
+colour = Color(0.96, 0.86, 0.52, 1)

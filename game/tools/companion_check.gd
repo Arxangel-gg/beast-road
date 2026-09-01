@@ -45,21 +45,28 @@ func _ready() -> void:
 	for _f: int in 20:
 		await get_tree().process_frame
 	if _failures == 0:
-		print("[companion] PASS - three summons, one at a time, and all of them leave")
+		print("[companion] PASS - every summon named in the data, one at a time, and all of them leave")
 	get_tree().quit(_failures)
 
 
 ## Every summon spell names a companion that exists.
+##
+## **Derived from the data, not from a list written here.** This used to iterate
+## `["call_wolf", "call_crow", "call_bear"]`, so it checked exactly the three
+## summons that existed when it was written and silently ignored every one added
+## afterwards - three new companions shipped past it with no sprite check, no
+## duration check and no complaint. A gate that only examines what somebody
+## remembered to name is a gate that gets weaker every time the game grows.
 func _test_the_data_is_whole() -> void:
 	var found: int = 0
-	for id: String in ["call_wolf", "call_crow", "call_bear"]:
+	var ids: Array = ContentDB.spells.keys()
+	ids.sort()
+	for key: Variant in ids:
+		var id: String = String(key)
 		var spell: SpellData = ContentDB.spells.get(id, null) as SpellData
-		_check(spell != null, "%s must exist" % id)
-		if spell == null:
+		if spell == null or spell.kind != SpellData.Kind.COMPANION:
 			continue
 		found += 1
-		_check(spell.kind == SpellData.Kind.COMPANION,
-			"%s must be a COMPANION spell" % id)
 		var data: CompanionData = ContentDB.companion(spell.companion_id)
 		_check(data != null, "%s names companion '%s', which does not exist"
 			% [id, spell.companion_id])
@@ -70,7 +77,10 @@ func _test_the_data_is_whole() -> void:
 		# The bound that keeps a summon a spell.
 		_check(data.duration > 0.0,
 			"%s must expire: a companion that does not is a party member" % data.id)
-	_check(found == 3, "all three summons must ship")
+	# A tripwire against loss, like the discipline node count: raise it when
+	# summons are deliberately added, never lower it to match a roster that
+	# shrank by accident.
+	_check(found == 6, "expected 6 companion summons, found %d" % found)
 
 
 ## It turns up, and it hurts something.

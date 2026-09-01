@@ -541,19 +541,30 @@ func refresh_discipline_offers() -> void:
 	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
 	# the panel, while the next road still produces a new set.
 	#
-	# **The seed goes in front of the id, not behind it.** Godot hashes a string
-	# by running a multiply-accumulate over its characters, so a *shared suffix*
-	# scales both operands by the same factor and leaves the sign of their
-	# difference intact: `hash(a + seed) < hash(b + seed)` gave the same ordering
-	# for almost every seed. Twenty-seven nodes rotated through three.
+	# **A seeded shuffle, not a hash ordering**, and this is the second lesson on
+	# the same line. The first version sorted by `hash(id + seed)`, and Godot
+	# hashes a string with a multiply-accumulate - so a shared *suffix* scaled
+	# both operands equally and preserved the sign of their difference. Twenty-
+	# seven nodes rotated through the same three for almost every seed.
 	#
-	# Nothing noticed because every assertion asked for three unique offers and
-	# always got three unique offers - the same three. `discipline_check` counts
-	# how many distinct nodes the rotation can actually reach now.
+	# Moving the seed to the front fixed that instance and left the shape: an
+	# ordering derived from a hash gives no guarantee that every id reaches the
+	# top three, only that no obvious correlation remains. Adding three nodes for
+	# the new companions pushed `call_wolf` out of reach across 480 roads, which
+	# `discipline_check` caught.
+	#
+	# A Fisher-Yates shuffle from a seeded RNG has the property the hash never
+	# did: every eligible node is equally likely to land in any position, so
+	# coverage follows from the arithmetic rather than from luck. Still perfectly
+	# deterministic - same seed, same road, same three offers.
 	var offer_seed: int = run_seed + segment * 97 + wave_number * 31 + act * 13
-	var stamp: String = str(offer_seed) + "|"
-	eligible.sort_custom(func(a: DisciplineNodeData, b: DisciplineNodeData) -> bool:
-		return hash(stamp + a.id) < hash(stamp + b.id))
+	var shuffler := RandomNumberGenerator.new()
+	shuffler.seed = offer_seed
+	for index: int in range(eligible.size() - 1, 0, -1):
+		var swap: int = shuffler.randi_range(0, index)
+		var held: DisciplineNodeData = eligible[index]
+		eligible[index] = eligible[swap]
+		eligible[swap] = held
 	for node: DisciplineNodeData in eligible:
 		if discipline_offers.size() >= 3:
 			break

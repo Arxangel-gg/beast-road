@@ -926,7 +926,8 @@ enemies, because they read at the same distance and against the same ground — 
 tinted toward the summon's pale blue so a Spirit Wolf is not mistaken for
 something that turned up on its own.
 
-`companion_wolf.png` · `companion_crow.png` · `companion_bear.png`
+`companion_wolf.png` · `companion_crow.png` · `companion_bear.png` ·
+`companion_serpent.png` · `companion_hart.png` · `companion_ram.png`
 
 No attack pose. One authored strike frame per companion is three more sprites for
 something on screen ten seconds at a time; the lunge toward the target is a
@@ -1244,6 +1245,8 @@ All 192×192, type T, placeholder colour `#8C3A2B`.
 `discipline_rising_fury.png` · `discipline_no_ground_given.png` ·
 `discipline_beasts_breath.png` · `discipline_break_the_host.png` ·
 `discipline_call_wolf.png` · `discipline_call_crow.png` ·
+`discipline_call_serpent.png` · `discipline_call_hart.png` ·
+`discipline_call_ram.png` ·
 `discipline_call_bear.png`
 
 The three families share blackened iron and aged brass; Blood uses controlled

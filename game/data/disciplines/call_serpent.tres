@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 0
+role = 2
+mansion_tier = 3
+food_cost = 80
+spell_id = "call_serpent"
+effect_id = ""
+effect_value = 0.0
+id = "call_serpent"
+display_name = "Call the Serpent"
+description = "Summons a Spirit Serpent to worry the road."
