@@ -138,3 +138,47 @@ static func variants_of(species_id: String) -> PackedStringArray:
 		for shiny: bool in [false, true]:
 			out.append(key(species_id, rarity, shiny))
 	return out
+
+
+## The `CompanionData` one variant walks as.
+##
+## Built from the species rather than authored, which is the whole reason there
+## is no resource per variant: a spirit's numbers are its animal's numbers, put
+## on the companion's scale and multiplied by where the variant sits on the
+## ladder. Twenty-three species times eight variants is 184 companions that
+## nobody had to write down.
+##
+## The archetype comes from the animal's own temperament and gait, so a wolf
+## hunts, a bear holds ground and a hare stays near - which is what the player
+## already believes about them from watching them on the road.
+static func companion_form(kind: WildlifeData, bond_key: String) -> CompanionData:
+	if kind == null:
+		return null
+	var rarity: int = rarity_of(bond_key)
+	var shiny: bool = shiny_of(bond_key)
+	var scale: float = power_scale(rarity, shiny)
+
+	var form := CompanionData.new()
+	form.id = kind.id
+	form.display_name = display_name(kind, rarity, shiny)
+	form.description = kind.description
+	# No duration. A spirit is not a spell effect - see CLAUDE.md, 2026-09-01.
+	form.duration = INF
+	form.colour = tint(rarity, shiny)
+	form.flies = kind.flies
+	form.scale = kind.scale * Balance.SPIRIT_DRAW_SCALE
+
+	# A harmless animal still fights as a spirit - that is what being a spirit
+	# *is* - but it fights as what it was. A hare harries; a bear does not.
+	var bite: float = maxf(kind.damage, Balance.SPIRIT_MINIMUM_DAMAGE)
+	form.damage = bite * scale
+	form.attack_interval = maxf(kind.attack_interval, 0.30)
+	form.attack_range = maxf(kind.attack_range, 70.0)
+	# `aggro_radius` is how far the living animal looks for trouble, and it is
+	# zero for everything harmless - a rabbit hunts nothing. Its spirit does, so
+	# the floor is what gives a harmless species a hunting range at all.
+	form.hunt_range = maxf(kind.aggro_radius, Balance.SPIRIT_MINIMUM_HUNT)
+	form.speed = maxf(kind.speed * Balance.SPIRIT_SPEED_SCALE, 180.0)
+	form.follow_distance = clampf(kind.social_spacing, 70.0, 160.0)
+	form.knockback = kind.knockback * scale
+	return form

@@ -711,6 +711,41 @@ const SPIRIT_SHINY_PULSE_HZ: float = 1.4
 ## rather than needing a new stat. [TUNE]
 const SPIRIT_BOND_RADIUS: float = 70.0
 
+## How much health a spirit has, per point of its species' damage.
+##
+## Derived from damage rather than authored so that every species is
+## proportionate without a second number per animal: a Frost Elk spirit is
+## tougher than a Rabbit spirit because it hits harder, which is the same
+## ordering a player already expects from the animals themselves. [TUNE]
+const SPIRIT_HEALTH_PER_DAMAGE: float = 9.0
+
+## How close an enemy has to be to hurt a spirit, and how often it can.
+##
+## Enemies never *target* a spirit - it stays out of threat and targeting, which
+## is what keeps it a companion rather than a unit. It simply costs something to
+## stand in a crowd. The interval stops six bodies deleting a spirit in one
+## frame and makes the damage readable as a rhythm. [TUNE]
+const SPIRIT_CONTACT_RADIUS: float = 72.0
+const SPIRIT_CONTACT_INTERVAL: float = 0.9
+
+## How a spirit is drawn against the living animal, and how it moves.
+##
+## Slightly larger and faster than the creature it echoes: a spirit that was
+## exactly its animal would read as the animal having wandered over, and a
+## companion that cannot keep up with the hero is a companion nobody equips.
+const SPIRIT_DRAW_SCALE: float = 1.15
+const SPIRIT_SPEED_SCALE: float = 1.30
+
+## What a harmless animal's spirit hits for, since the animal itself does no
+## damage at all. Small: a Rabbit Spirit is a presence and a nuisance, not a
+## Wolf Spirit with different art - the difference between species is meant to
+## be what they are *for*. [TUNE]
+const SPIRIT_MINIMUM_DAMAGE: float = 6.0
+
+## How far a spirit looks for something to fight when its animal looked for
+## nothing at all. Every harmless species uses this, which is most of them. [TUNE]
+const SPIRIT_MINIMUM_HUNT: float = 380.0
+
 # ------------------------------------------------------------------------------
 # Oath of the Last Scar — run challenge
 # ------------------------------------------------------------------------------

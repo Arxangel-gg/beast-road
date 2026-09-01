@@ -103,6 +103,9 @@ var field: EnemyField = null:
 			spells.field = value
 		if ranged != null:
 			ranged.field = value
+		# The bonded spirit follows the hero between scopes rather than being
+		# left on the battlefield when the raid opens.
+		_refresh_spirit()
 
 var _aim: Vector2 = Vector2.RIGHT
 
@@ -280,6 +283,9 @@ func _ready() -> void:
 	add_child(ranged)
 	spells.hero = self
 	spells.blink_requested.connect(_on_blink)
+	# Changing the equipped spirit at the shrine takes effect on the road, not
+	# on the next run.
+	EventBus.spirit_equipped.connect(func(_key: String) -> void: _refresh_spirit())
 	spells.veil_requested.connect(_on_veil)
 	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))
 	EventBus.relic_socketed.connect(_on_relic_changed)
@@ -1300,3 +1306,49 @@ func use_carried_item() -> bool:
 		EventBus.preparation_warning.emit(kind.display_name)
 		return true
 	return false
+
+
+# --- The bonded spirit -------------------------------------------------------
+
+## The Wildlife Spirit walking with this hero, or null.
+##
+## A child of the hero's concerns rather than of the battlefield's, for the same
+## reason `attack`, `ranged` and `spells` are: it belongs to *this* hero, and in
+## co-op two heroes each have their own. It is parented to the field so it sorts
+## and draws with everything else standing on the ground.
+var spirit: Companion = null
+
+
+## Brings the equipped spirit onto whatever field the hero is standing on.
+##
+## Called when the field changes and when the equipment does, so a spirit
+## follows the hero into a raid and a change made at the shrine takes effect on
+## the road rather than on the next run.
+##
+## Only the local player's own hero summons one. A partner's spirit is their
+## business and their save; mirroring it would mean sending a whole second
+## companion's state across the wire for something cosmetic to the other player.
+func _refresh_spirit() -> void:
+	# The local player's own hero only. A partner's spirit is their save and
+	# their business; mirroring it would put a second companion on the wire
+	# for something the other player only ever sees.
+	if not is_inside_tree() or input == null or not input.is_local():
+		return
+	var wanted: String = MetaState.equipped_spirit
+	if spirit != null and is_instance_valid(spirit):
+		if spirit.spirit_key == wanted and spirit.field == field:
+			return
+		spirit.dismiss()
+		spirit = null
+	if wanted.is_empty() or field == null:
+		return
+	var kind := ContentDB.wildlife_kinds.get(
+		SpiritBond.species_of(wanted), null) as WildlifeData
+	if kind == null:
+		return
+	spirit = Companion.new()
+	spirit.spirit_key = wanted
+	spirit.setup(SpiritBond.companion_form(kind, wanted), self, field)
+	spirit.global_position = global_position \
+		+ Vector2.RIGHT.rotated(randf() * TAU) * 90.0
+	field.add_child(spirit)

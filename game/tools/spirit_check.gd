@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_keys_round_trip()
 	_test_one_animal_is_one_encounter()
 	_test_shiny_odds_are_reachable()
+	await _test_a_spirit_fights_falls_and_returns()
 	_finish()
 
 
@@ -236,9 +237,9 @@ func _test_keys_round_trip() -> void:
 
 
 func _finish() -> void:
-	if _ran != 8:
+	if _ran != 9:
 		_failures += 1
-		print("[spirit] only %d of 8 tests ran" % _ran)
+		print("[spirit] only %d of 9 tests ran" % _ran)
 	if _failures == 0:
 		print("[spirit] PASS - rarer needs fewer, the ladder never inverts, a shiny "
 			+ "is never worth less, and the collection survives a save")
@@ -329,4 +330,71 @@ func _test_shiny_odds_are_reachable() -> void:
 	# function it happens in, so a counter incremented at the top marks a
 	# test that never ran as having run - which is exactly how this gate
 	# printed PASS while an Invalid call skipped every assertion below it.
+	_ran += 1
+
+
+## A spirit is summoned, can be hurt, falls, and comes back beside the hero.
+##
+## The whole point of a spirit rather than a summon is what happens at the end,
+## so that is what this drives: it is put on a field with something that hurts,
+## beaten down, and watched until it re-forms.
+##
+## **`companion_form` is exercised rather than asserted about.** Every one of the
+## 184 variants is built by that function at runtime, so a mistake in it is a
+## mistake in every spirit in the game at once.
+func _test_a_spirit_fights_falls_and_returns() -> void:
+	var wolf := ContentDB.wildlife_kinds.get("wolf", null) as WildlifeData
+	_check(wolf != null, "the wolf is needed to test a spirit")
+	if wolf == null:
+		_ran += 1
+		return
+
+	var apex: String = SpiritBond.key("wolf", 3, true)
+	var base: String = SpiritBond.key("wolf", 0, false)
+	var strong: CompanionData = SpiritBond.companion_form(wolf, apex)
+	var weak: CompanionData = SpiritBond.companion_form(wolf, base)
+	_check(strong != null and weak != null, "every variant must produce a form")
+	if strong == null or weak == null:
+		_ran += 1
+		return
+	_check(strong.damage > weak.damage,
+		"the apex variant must hit harder than the base: %.1f against %.1f"
+			% [strong.damage, weak.damage])
+	_check(strong.duration == INF,
+		"a spirit must not expire - that is the whole difference from a summon")
+	_check(not strong.display_name.is_empty()
+			and strong.display_name.contains("Shiny"),
+		"a shiny variant must say so in its name, got '%s'" % strong.display_name)
+
+	var field := EnemyField.new()
+	add_child(field)
+	var spirit := Companion.new()
+	spirit.spirit_key = base
+	spirit.setup(weak, null, field)
+	field.add_child(spirit)
+	await get_tree().process_frame
+	_check(spirit.spirit_health_ratio() > 0.99, "a fresh spirit starts whole")
+	_check(is_zero_approx(spirit.recovery_left()),
+		"and is present rather than recovering")
+
+	# Beaten down, then watched until it re-forms. The recovery is driven rather
+	# than waited out: this is a forty-five second clock and a gate must not take
+	# forty-five seconds to check it.
+	spirit._hp = 0.0
+	spirit._go_down()
+	_check(spirit.recovery_left() > 0.0,
+		"a defeated spirit must begin re-forming rather than being freed")
+	_check(is_equal_approx(spirit.recovery_left(),
+			SpiritBond.recovery_seconds(0, false)),
+		"and must take its variant's own recovery, %.0fs"
+			% SpiritBond.recovery_seconds(0, false))
+	spirit._tick_recovery(SpiritBond.recovery_seconds(0, false) + 1.0)
+	_check(is_zero_approx(spirit.recovery_left()), "the clock must run out")
+	_check(spirit.spirit_health_ratio() > 0.99,
+		"and it must come back whole rather than at the health it fell on")
+
+	field.queue_free()
+	await get_tree().process_frame
+	_check(not is_instance_valid(spirit),
+		"the spirit must be freed with its field, or this gate leaks")
 	_ran += 1
