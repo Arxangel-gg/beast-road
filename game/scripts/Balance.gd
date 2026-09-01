@@ -715,9 +715,34 @@ const PREPARATION_MIN_SECONDS: float = 0.0
 ##
 ## It used to wait indefinitely for Ride On. That made the start of every wave a
 ## decision with nothing pressing it, so a run stopped dead between formations
-## and the pacing of the whole road came apart. Fifteen seconds is long enough to
-## build, upgrade and reposition, and short enough to feel like a breath. [TUNE]
-const PREPARATION_BETWEEN_WAVES: float = 15.0
+## and the pacing of the whole road came apart. The countdown fixed that.
+##
+## **Thirty seconds, raised from fifteen on 2026-09-01.** Reported from play:
+## it "feels too short and doesn't give enough time to do everything necessary".
+## That is a fair report and the reason is measurable rather than a matter of
+## taste - fifteen seconds is less than one town interaction takes. Opening the
+## Hero Mansion, reading a page, and training a node is twenty to thirty seconds
+## on a phone by itself, before any tower is placed. The breather was sized
+## against "place a tower", and the sheets it competes with have since grown.
+##
+## The ceiling is what stops this becoming sixty. A breather is a *breath*: it
+## has to end while the player still feels the road waiting for them. Past about
+## forty seconds the pressure that the countdown exists to create is gone and
+## the pacing complaint the fifteen was solving comes back wearing the opposite
+## coat. Thirty covers a full town interaction and still ends too soon to relax
+## into, which is the property worth holding.
+##
+## **Lengthening this is close to free in world terms, and that is not luck.**
+## `Journey.stop()` runs when a breather opens, so the beast does not walk: no
+## distance accrues, which means no walking resources, no construction progress
+## and no movement of an act boundary. What a longer breather actually costs is
+## real-world minutes - see `SCORE_PAR_SECONDS`, which is adjusted with it - and
+## nothing else. Spell cooldowns are unaffected in practice: the longest is 34
+## seconds and the shortest wave cycle is over forty, so every cooldown already
+## recovered inside a cycle without help from the breather.
+##
+## `balance_test._test_preparation_envelope` holds both ends of this. [TUNE]
+const PREPARATION_BETWEEN_WAVES: float = 30.0
 
 ## Gold for riding on the instant a between-wave breather opens. [TUNE]
 const PREPARATION_EARLY_GOLD_MAX: int = 10
@@ -725,34 +750,63 @@ const PREPARATION_EARLY_GOLD_MAX: int = 10
 ## The award stops falling here, and holds. [TUNE]
 const PREPARATION_EARLY_GOLD_FLOOR: int = 5
 
-## The award falls a gold a second across this window, MAX down to FLOOR. [TUNE]
-const PREPARATION_EARLY_GOLD_DECAY: float = 5.0
-
-## After this the award is gone entirely, though the breather still has time left
-## on it. [TUNE]
-const PREPARATION_EARLY_GOLD_DEADLINE: float = 10.0
+## When the award stops falling, and when it disappears, as **fractions of the
+## breather** rather than as absolute seconds.
+##
+## Shares, so the shape of the decision survives a change to the breather's
+## length. At the old fifteen seconds these resolve to exactly the five and ten
+## that were written there literally, so this is a refactor at the old value and
+## a scaling at the new one.
+##
+## They also fix a latent trap. The slope used to be hardcoded at one gold per
+## second while the decay length was a separate constant that happened to equal
+## `MAX - FLOOR`; the two branches agreed by coincidence, and anyone changing the
+## decay window would have found the slope ignoring them entirely. The slope is
+## derived from the window now, so the two cannot disagree. [TUNE]
+const PREPARATION_EARLY_GOLD_DECAY_SHARE: float = 1.0 / 3.0
+const PREPARATION_EARLY_GOLD_DEADLINE_SHARE: float = 2.0 / 3.0
 
 
 ## The early-departure award for riding on with `seconds_left` on the clock.
 ##
-## Falls a gold a second to a floor, holds there, then vanishes at a deadline -
-## three steps rather than one ramp, and deliberately. A linear fade to zero
-## gives a number that is never quite worth hurrying for and never quite worth
-## waiting out. Two cliffs give two real decisions: go now for the most, or go
-## before the bonus disappears at all.
+## Falls to a floor, holds there, then vanishes at a deadline - three steps
+## rather than one ramp, and deliberately. A linear fade to zero gives a number
+## that is never quite worth hurrying for and never quite worth waiting out. Two
+## cliffs give two real decisions: go now for the most, or go before the bonus
+## disappears at all.
+##
+## **The amounts did not rise with the breather**, which is a decision rather
+## than an omission. Ten Gold across roughly forty wave breathers is already a
+## fifth of a run's Gold income if it is always taken; paying more for giving up
+## thirty seconds instead of fifteen would make the tempo reward a primary income
+## source. A longer breather also means the bonus is *taken* less often, because
+## the time is now worth using - so if anything this drifts income down, well
+## inside noise.
 static func preparation_early_gold(seconds_left: float) -> int:
 	var elapsed: float = maxf(PREPARATION_BETWEEN_WAVES - seconds_left, 0.0)
-	if elapsed >= PREPARATION_EARLY_GOLD_DEADLINE:
+	var decay: float = preparation_early_gold_decay_seconds()
+	if elapsed >= preparation_early_gold_deadline_seconds():
 		return 0
-	if elapsed >= PREPARATION_EARLY_GOLD_DECAY:
+	if elapsed >= decay:
 		return PREPARATION_EARLY_GOLD_FLOOR
-	return maxi(PREPARATION_EARLY_GOLD_MAX - int(floor(elapsed)),
+	var fall: float = float(PREPARATION_EARLY_GOLD_MAX - PREPARATION_EARLY_GOLD_FLOOR)
+	return maxi(
+		PREPARATION_EARLY_GOLD_MAX - int(floor(elapsed * fall / maxf(decay, 0.01))),
 		PREPARATION_EARLY_GOLD_FLOOR)
+
+
+static func preparation_early_gold_decay_seconds() -> float:
+	return PREPARATION_BETWEEN_WAVES * PREPARATION_EARLY_GOLD_DECAY_SHARE
+
+
+static func preparation_early_gold_deadline_seconds() -> float:
+	return PREPARATION_BETWEEN_WAVES * PREPARATION_EARLY_GOLD_DEADLINE_SHARE
 
 
 ## Seconds left before the early-departure award disappears entirely.
 static func preparation_bonus_seconds_left(seconds_left: float) -> float:
-	return maxf(seconds_left 		- (PREPARATION_BETWEEN_WAVES - PREPARATION_EARLY_GOLD_DEADLINE), 0.0)
+	return maxf(seconds_left
+		- (PREPARATION_BETWEEN_WAVES - preparation_early_gold_deadline_seconds()), 0.0)
 
 ## How long a formation may fail to clear before the run moves on anyway.
 ##
@@ -3596,10 +3650,25 @@ const SCORE_VICTORY: float = 1800.0
 ## Awarded on a win, scaled by how far under par the run came in.
 const SCORE_SPEED: float = 900.0
 
-## The clear that speed is measured against, in seconds. Fifty minutes: about
-## what an unhurried full run takes, so the bonus rewards a defence that holds
-## without nursing rather than one that rushes.
-const SCORE_PAR_SECONDS: float = 3000.0
+## The clear that speed is measured against, in seconds.
+##
+## **Sixty minutes, raised from fifty on 2026-09-01** alongside
+## `PREPARATION_BETWEEN_WAVES`. A full run is 51 waves (`curve_report`), and
+## roughly forty of those clear into a between-wave breather rather than into a
+## crossroad or a boss - so doubling the breather from fifteen seconds to thirty
+## adds about ten minutes of wall clock to an unhurried run that plays exactly
+## the same.
+##
+## Without moving par with it, every player's speed bonus would have quietly
+## fallen for a change that has nothing to do with how well they played, and
+## runs recorded before the change would have become permanently unbeatable.
+## Par means "about what an unhurried full run takes"; when that number moves,
+## this one has to move with it or it means something else.
+##
+## The speed term is 900 of roughly 8,000 on a perfect fast clear, so the board
+## is not sensitive to this - but "not very wrong" is not a reason to leave a
+## number wrong. [TUNE]
+const SCORE_PAR_SECONDS: float = 3600.0
 
 ## An untouched town, at full value. Measured from damage taken rather than
 ## health remaining, because Hearthmend repairs it and a town rebuilt three times

@@ -54,6 +54,7 @@ func _ready() -> void:
 	_test_four_currency_economy()
 	await _test_live_tower_utility()
 	_test_opening_envelope()
+	_test_preparation_envelope()
 	_test_coop_scaling()
 	_test_act_curves()
 	_test_sequential_waves()
@@ -2224,3 +2225,61 @@ func _test_gear_farming() -> void:
 		"a stash of %d fills in one farming act" % Balance.STASH_CAPACITY)
 	_check(Balance.STASH_CAPACITY > kinds.size() * 2,
 		"the stash must hold more than two of everything, or duplicates cannot be compared")
+
+
+## The between-wave breather, at both ends.
+##
+## Reported from play as too short: it "doesn't give enough time to do everything
+## necessary". Raised from fifteen seconds to thirty on 2026-09-01. The number is
+## a tuning value and should move freely between these bounds; what must not move
+## is the shape, which is why this holds four properties rather than an equality.
+##
+## The floor is the honest version of the report. A breather has to outlast one
+## complete town interaction - open a sheet, read a page, act on it - or the
+## phase that exists for making decisions is a phase for making one decision
+## badly. The ceiling is the reason the countdown exists at all: past about forty
+## seconds the road stops feeling like it is waiting, and the pacing that the
+## fifteen-second timer originally fixed comes apart again from the other side.
+func _test_preparation_envelope() -> void:
+	_check(Balance.PREPARATION_BETWEEN_WAVES >= 25.0,
+		"a breather of %.0fs is under the 25s a town interaction takes - opening the "
+			% Balance.PREPARATION_BETWEEN_WAVES
+			+ "Mansion, reading a page and training a node is most of that alone")
+	_check(Balance.PREPARATION_BETWEEN_WAVES <= 40.0,
+		"a breather of %.0fs is long enough that the road stops pressing, which is "
+			% Balance.PREPARATION_BETWEEN_WAVES
+			+ "the pacing failure the countdown was added to fix")
+
+	# The tempo reward keeps its shape as a fraction of the window, so changing
+	# the window cannot silently delete the decision. At any length: full award
+	# the instant it opens, floor by a third, gone by two thirds, and the last
+	# third carries nothing.
+	var window: float = Balance.PREPARATION_BETWEEN_WAVES
+	_check(Balance.preparation_early_gold(window) == Balance.PREPARATION_EARLY_GOLD_MAX,
+		"riding on the instant a breather opens must pay the full award")
+	_check(Balance.preparation_early_gold(window * (1.0 - 1.0 / 3.0) - 0.01)
+			== Balance.PREPARATION_EARLY_GOLD_FLOOR,
+		"the award must have reached its floor a third of the way through, not "
+			+ "earlier and not later - the slope is derived from the window")
+	_check(Balance.preparation_early_gold(window * (1.0 - 2.0 / 3.0) - 0.01) == 0,
+		"the award must be gone two thirds of the way through the breather")
+	_check(Balance.preparation_early_gold(0.0) == 0,
+		"a breather that ran out must pay nothing")
+
+	# **The award did not rise with the window, and must not.** Ten Gold across
+	# roughly forty wave breathers is already a fifth of a run's Gold income; a
+	# tempo nudge that pays more than a wave of kills is not a nudge.
+	_check(Balance.PREPARATION_EARLY_GOLD_MAX <= 12,
+		"the early-departure award has grown into an income source rather than a "
+			+ "tempo reward")
+
+	# Par is the one number a longer breather genuinely invalidates. A full run is
+	# 51 waves and roughly forty of them clear into a breather rather than into a
+	# crossroad or a boss, so the wall clock moves by about (40 x breather). Par
+	# has to contain that or every speed bonus falls for a change in pacing rather
+	# than in play - and runs recorded before the change become unbeatable.
+	var breather_minutes: float = 40.0 * Balance.PREPARATION_BETWEEN_WAVES
+	_check(Balance.SCORE_PAR_SECONDS > breather_minutes * 2.0,
+		"par (%.0fs) must leave real room for play beyond the %.0fs a run now "
+			% [Balance.SCORE_PAR_SECONDS, breather_minutes]
+			+ "spends in breathers, or the speed bonus is measuring menu time")

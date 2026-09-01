@@ -31,7 +31,12 @@ var _elapsed: float = 0.0
 ## Two full wave cycles with room to spare. 60 was the old default and sat right
 ## on the edge: a wave that took a legal 63 seconds to clear failed a gate that
 ## has no opinion about how long a wave takes.
-var _seconds: float = 150.0
+##
+## Raised 150 -> 210 on 2026-09-01, when the breather itself went from fifteen
+## seconds to thirty. This gate has to watch two *complete* cycles, and a cycle
+## now contains fifteen seconds more of legal waiting - so the old window would
+## have started failing on the change it was meant to be indifferent to.
+var _seconds: float = 210.0
 var _run: Node = null
 var _field: Battlefield = null
 var _started: bool = false

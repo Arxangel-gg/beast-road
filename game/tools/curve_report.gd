@@ -42,6 +42,18 @@ const SLOTS_PER_LANE: int = 10
 ## waves an act contains. Getting it wrong moves every act boundary. [TUNE]
 const ENGAGEMENT_SECONDS: float = 16.0
 
+## Why the between-wave breather is **not** in the wave cycle.
+##
+## It looks like an omission and it is not. `Journey.stop()` runs the moment a
+## breather opens, so the beast stops walking and no distance accrues for as long
+## as the player stands there. Distance is what advances acts, so a breather -
+## at fifteen seconds or at thirty - moves no act boundary and changes nothing
+## this report measures.
+##
+## Adding `PREPARATION_BETWEEN_WAVES` to the cycle here would be a plausible
+## "fix" that silently made every act shorter in the model than it is in the
+## game. Written down so the next person to notice the gap does not close it.
+
 ## Hard stop, in case a pacing change ever makes a run much longer than intended.
 const MAX_WAVES: int = 200
 
