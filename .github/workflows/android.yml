@@ -209,5 +209,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
+          # **Waits for the release to exist.** This workflow and Release run in
+          # parallel off the same tag, and the APK finishes first - so the upload
+          # went looking for a release that had not been created yet and failed
+          # having successfully built the thing it was trying to attach.
+          #
+          # Waiting rather than creating it: whoever creates the release decides
+          # its title and notes, and that is the Release workflow's job. Creating
+          # a bare one here would race it into a worse outcome than a late APK.
+          for attempt in $(seq 1 60); do
+            if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "::error title=Android::Release ${GITHUB_REF_NAME} never appeared, so the APK could not be attached. It built fine - download it from this run's artifacts."
+              exit 1
+            fi
+            sleep 10
+          done
           gh release upload "${GITHUB_REF_NAME}" build/android/BeastRoad.apk --clobber
+          echo "::notice title=Android::APK attached to ${GITHUB_REF_NAME}."
+
+      # Kept regardless of whether the upload worked. An APK that built but could
+      # not be attached is still a working build, and throwing it away because of
+      # a race in the step after it would be the wrong way round.
+      - name: Keep the APK as an artifact
+        if: always() && steps.key.outputs.have == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeastRoad-apk
+          path: build/android/BeastRoad.apk
+          if-no-files-found: ignore
