@@ -127,10 +127,15 @@ func _build() -> void:
 	# players most need - the graphics ones, when the game is running badly - would
 	# be the furthest down.
 	var tabs := TabContainer.new()
-	# Tall enough for the full Video accessibility preview at 1080p; the Video
-	# page still scrolls on shorter displays instead of clipping its controls.
-	tabs.custom_minimum_size = Vector2(0.0, 700.0)
+	# **Measured against the screen, not fixed at 700.** Tall enough for the full
+	# Video accessibility preview at 1080p, and on anything shorter it gives way
+	# rather than pushing the panel past the bottom of the display - a fixed 700
+	# plus a title, a version line and a Back button does not fit a phone held
+	# sideways, and what fell off was the way out.
+	var canvas: float = get_viewport().get_visible_rect().size.y
+	tabs.custom_minimum_size = Vector2(0.0, minf(700.0, maxf(260.0, canvas * 0.62)))
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.clip_contents = true
 	column.add_child(tabs)
 
 	var audio := VBoxContainer.new()
@@ -153,7 +158,13 @@ func _build() -> void:
 	game.add_child(_blood_vfx_row())
 	game.add_child(_separator())
 	game.add_child(_tutorial_row())
-	tabs.add_child(game)
+	var game_scroll := ScrollContainer.new()
+	game_scroll.name = game.name
+	UiMetrics.prepare_scroll(game_scroll, TouchInput.is_showing())
+	game.name = "GameRows"
+	game.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	game_scroll.add_child(game)
+	tabs.add_child(game_scroll)
 
 	var video_scroll := ScrollContainer.new()
 	video_scroll.name = "Video"
@@ -165,17 +176,33 @@ func _build() -> void:
 	video_scroll.add_child(video)
 	tabs.add_child(video_scroll)
 
+	# **Every tab scrolls, not just Video.**
+	#
+	# Video was wrapped and the other two were not, so on any screen shorter than
+	# their content - which on a phone held sideways is all of them - the bottom
+	# of Controls and Data was simply unreachable. Data measured 5,353px against
+	# a 1,080px canvas. The Game tab above is short enough to fit today, and is
+	# wrapped anyway: a tab that fits is one row away from not fitting, and the
+	# cost of a scroll that never scrolls is nothing.
+	var controls_scroll := ScrollContainer.new()
+	controls_scroll.name = "Controls"
+	UiMetrics.prepare_scroll(controls_scroll, TouchInput.is_showing())
 	var controls := VBoxContainer.new()
-	controls.name = "Controls"
+	controls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	controls.add_theme_constant_override("separation", 14)
 	_build_controls(controls)
-	tabs.add_child(controls)
+	controls_scroll.add_child(controls)
+	tabs.add_child(controls_scroll)
 
+	var data_scroll := ScrollContainer.new()
+	data_scroll.name = "Data"
+	UiMetrics.prepare_scroll(data_scroll, TouchInput.is_showing())
 	var data := VBoxContainer.new()
-	data.name = "Data"
+	data.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	data.add_theme_constant_override("separation", 14)
 	_build_data(data)
-	tabs.add_child(data)
+	data_scroll.add_child(data)
+	tabs.add_child(data_scroll)
 
 	_refresh_video()
 	_refresh_fps_buttons()
