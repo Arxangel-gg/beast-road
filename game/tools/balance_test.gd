@@ -13,6 +13,12 @@ var _run: Run = null
 var _equipped_before: Dictionary = {}
 
 
+## Far below the real count on purpose - see `_check`.
+const MINIMUM_CHECKS: int = 240
+
+var _ran: int = 0
+
+
 func _ready() -> void:
 	# **Held for the whole run.** This gate edits MetaState in place - a wiped
 	# stash, a drained Tools purse, a reset flag - and any save reached while
@@ -84,8 +90,13 @@ func _ready() -> void:
 	await _test_boss_phases()
 	_test_run_telemetry()
 
+	if _ran < MINIMUM_CHECKS:
+		_failures.append(("only %d assertions ran, at least %d were expected - a "
+			+ "runtime error aborts the function it happens in and every check "
+			+ "below it is skipped in silence") % [_ran, MINIMUM_CHECKS])
+
 	if _failures.is_empty():
-		print("[balance] PASS — mastery economy and three-act pressure curve")
+		print("[balance] PASS — %d assertions, mastery economy and three-act pressure curve" % _ran)
 	else:
 		for failure: String in _failures:
 			push_error("[balance] " + failure)
@@ -1483,13 +1494,14 @@ func _test_preparation_and_command() -> void:
 		"Hearthmend must clear Wounds and fully restore the hero")
 	_check(RunState.town_hp > RunState.town_max_hp * 0.5,
 		"Hearthmend must provide its bounded Town Hall repair")
-	RunState.has_resurrection_draught = true
+	RunState.take_item("resurrection_draught")
 	var deaths_before: int = RunState.hero_deaths
 	hero.health.take_damage(hero.health.max_hp * 2.0, Vector2.ZERO)
-	_check(hero.is_alive() and not RunState.has_resurrection_draught \
+	_check(hero.is_alive() and RunState.item_count("resurrection_draught") == 0 \
 			and RunState.hero_deaths == deaths_before,
 		"Resurrection Draught must prevent, not merely delay, the next lethal down")
 	_test_draught_is_obtainable()
+	_test_carried_items_do_something(hero)
 	_test_hero_tending(field, hero)
 	await _test_crossroad_waits_for_the_road(field)
 	_test_build_spots_yield_to_the_fight(field)
@@ -1516,18 +1528,23 @@ func _test_draught_is_obtainable() -> void:
 
 	# The producer, at the odds the resource declares. A hundred clears of a
 	# 34% drop failing every time is not a run of bad luck.
-	RunState.has_resurrection_draught = false
+	RunState.held_items.clear()
 	var arena: RaidArena = _run.raid
 	var granted: int = 0
 	for _attempt: int in 100:
-		if not arena._pick_draught().is_empty():
+		if not arena._pick_item().is_empty():
 			granted += 1
-	_check(granted > 0, "a full raid clear must be able to yield a Draught")
+	_check(granted > 0, "a full raid clear must be able to yield a consumable")
 
-	RunState.has_resurrection_draught = true
-	_check(arena._pick_draught().is_empty(),
+	# The carry limit is what stops a reward roll from handing out a second of
+	# something the player may only hold one of. Asked through the generic
+	# holding rather than a per-item bool, so a second consumable inherits it.
+	RunState.held_items.clear()
+	while RunState.take_item("resurrection_draught"):
+		pass
+	_check(arena._pick_item().is_empty(),
 		"the carry limit must stop a second Draught being granted")
-	RunState.has_resurrection_draught = false
+	RunState.held_items.clear()
 
 
 ## Healing the player can actually choose to do.
@@ -2144,7 +2161,21 @@ func _test_live_relic_updates() -> void:
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 
 
+## Counted, not just evaluated.
+##
+## **A gate that reports PASS while its assertions never ran is worse than no
+## gate.** A GDScript runtime error aborts the enclosing function and nothing
+## else notices: during the consumable refactor one bad assignment silently
+## skipped an entire test and this file still printed PASS. The harness caught it
+## by grepping stderr, which means the safety net was outside the gate rather
+## than in it.
+##
+## The floor below is deliberately far under the real count. It is here to catch
+## a whole block of tests vanishing, not to be updated every time an assertion is
+## added - a threshold that has to be maintained is a threshold that gets raised
+## to whatever the broken run produced.
 func _check(condition: bool, message: String) -> void:
+	_ran += 1
 	if not condition:
 		_failures.append(message)
 
@@ -2283,3 +2314,65 @@ func _test_preparation_envelope() -> void:
 		"par (%.0fs) must leave real room for play beyond the %.0fs a run now "
 			% [Balance.SCORE_PAR_SECONDS, breather_minutes]
 			+ "spends in breathers, or the speed bonus is measuring menu time")
+
+
+## The consumables do what their data says, through the path a player takes.
+##
+## `item_check` proves the roster is consistent - reachable, carry-limited, and
+## never authored against an effect nothing reads. It cannot prove the effects
+## *work*, because that needs a live hero. This does, and it drives
+## `use_carried_item` rather than calling the healing directly: a test that calls
+## `health.heal` proves `heal` exists.
+func _test_carried_items_do_something(hero: Hero) -> void:
+	RunState.held_items.clear()
+
+	# MEND raises health, and refuses to be spent at full health rather than
+	# evaporating on a mis-press.
+	hero.health.revive(1.0)
+	_check(not hero.use_carried_item(),
+		"pressing use with nothing held must do nothing rather than erroring")
+	RunState.take_item("hearthroot_tonic")
+	_check(not hero.use_carried_item(),
+		"a tonic must be refused at full health, not spent for nothing")
+	_check(RunState.item_count("hearthroot_tonic") == 1,
+		"and refusing it must leave it in the pack")
+	hero.health.take_damage(hero.health.max_hp * 0.7, Vector2.ZERO)
+	var hurt: float = hero.health.current_hp
+	_check(hero.use_carried_item(), "a tonic must be drinkable when hurt")
+	_check(hero.health.current_hp > hurt,
+		"drinking a tonic must restore health: %.0f -> %.0f"
+			% [hurt, hero.health.current_hp])
+	_check(RunState.item_count("hearthroot_tonic") == 0,
+		"and must spend the tonic")
+
+	# WARD puts a pool in front of health, and that pool is what pays.
+	hero.health.revive(1.0)
+	RunState.held_items.clear()
+	RunState.take_item("rimeglass_ward")
+	_check(hero.use_carried_item(), "a ward must be usable at full health")
+	_check(hero.health.shield() > 0.0,
+		"using a ward must raise a shield, got %.1f" % hero.health.shield())
+	var full: float = hero.health.current_hp
+	var shield_before: float = hero.health.shield()
+	hero.health.take_damage(shield_before * 0.5, Vector2.ZERO)
+	_check(is_equal_approx(hero.health.current_hp, full),
+		"a blow smaller than the shield must cost no health at all: %.0f -> %.0f"
+			% [full, hero.health.current_hp])
+	_check(hero.health.shield() < shield_before,
+		"and must spend the shield instead")
+
+	# The pool is bounded, or it becomes a second health bar the curve was never
+	# tuned against.
+	for _stack: int in 12:
+		hero.health.add_shield(hero.health.max_hp)
+	_check(hero.health.shield() <= hero.health.max_hp * Balance.HEALTH_SHIELD_CEILING + 0.01,
+		"the shield must be capped at %.0f%% of health, got %.0f of %.0f"
+			% [Balance.HEALTH_SHIELD_CEILING * 100.0, hero.health.shield(),
+				hero.health.max_hp])
+
+	# And death clears it, so it can never be carried into the next life.
+	hero.health.kill(Vector2.ZERO)
+	_check(is_zero_approx(hero.health.shield()),
+		"death must clear the shield rather than banking it")
+	hero.health.revive(1.0)
+	RunState.held_items.clear()

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/item_data.gd" id="1_tonic"]
+
+[resource]
+script = ExtResource("1_tonic")
+effect = 1
+effect_value = 0.45
+automatic = false
+carry_limit = 2
+acquire_line = "Hearthroot, boiled down and stoppered. It tastes of the road."
+raid_clear_chance = 0.30
+id = "hearthroot_tonic"
+display_name = "Hearthroot Tonic"
+description = "Restores 45% health when drunk. You may carry two."

@@ -300,6 +300,13 @@ signal construction_completed(building_id: String, tier: int)
 signal captive_assigned(captive_id: String, building_id: String)
 signal captive_unassigned(captive_id: String)
 
+## What the hero is carrying changed - one taken, or one spent.
+##
+## Carries nothing: the HUD reads `RunState.held_items` for the whole picture,
+## and a signal that carried a delta would be a second source of truth about
+## what is held (working rule 6).
+signal items_changed()
+
 ## A relic was socketed or unsocketed in the Town Hall.
 signal relic_socketed(relic_id: String)
 signal relic_unsocketed(relic_id: String)

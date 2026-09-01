@@ -174,7 +174,13 @@ var hero_hp: float = -1.0
 var hero_wounds: int = 0
 ## Run-only reward from Oath of the Last Scar. Never written to MetaState.
 var hero_max_wounds_bonus: int = 0
-var has_resurrection_draught: bool = false
+## Carried consumables, id -> how many. Run state, so it resets like everything
+## else here; v4 §698 is explicit that an item is a thing held rather than a
+## number in a wallet, and this is the holding.
+##
+## Replaces `has_resurrection_draught`, a bool that made the Draught the only
+## consumable the game could ever have.
+var held_items: Dictionary = {}
 
 # --- Run challenges and rare recovery ---------------------------------------
 
@@ -422,7 +428,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	hero_hp = -1.0
 	hero_wounds = 0
 	hero_max_wounds_bonus = 0
-	has_resurrection_draught = false
+	held_items.clear()
 	last_scar_offered = false
 	last_scar_pending = false
 	last_scar_active = false
@@ -1587,3 +1593,64 @@ func final_ascent_target() -> float:
 func begin_final_ascent() -> void:
 	act = Balance.FINAL_ASCENT_ACT
 	set_phase(Phase.FINAL_ASCENT)
+
+
+# --- Carried consumables -----------------------------------------------------
+#
+# `ItemData` promised that "a second consumable is a new file rather than
+# another branch", and until now that was not true: the Draught's entire
+# behaviour was one bool, read by an `if item_id == "resurrection_draught"`.
+# These five functions are what make the promise good.
+
+func item_count(item_id: String) -> int:
+	return int(held_items.get(item_id, 0))
+
+
+## Whether there is room for one more, against that item's own carry limit.
+func can_take_item(item_id: String) -> bool:
+	var kind: ItemData = ContentDB.item(item_id)
+	if kind == null:
+		return false
+	return item_count(item_id) < maxi(kind.carry_limit, 1)
+
+
+## Takes one if there is room. Returns whether it was taken, so the caller can
+## decide whether to announce it - a reward silently discarded for being at the
+## carry limit is worse than one that was never offered.
+func take_item(item_id: String) -> bool:
+	if not can_take_item(item_id):
+		return false
+	held_items[item_id] = item_count(item_id) + 1
+	EventBus.items_changed.emit()
+	return true
+
+
+## Spends one. Returns whether there was one to spend.
+func spend_item(item_id: String) -> bool:
+	if item_count(item_id) <= 0:
+		return false
+	var left: int = item_count(item_id) - 1
+	if left <= 0:
+		held_items.erase(item_id)
+	else:
+		held_items[item_id] = left
+	EventBus.items_changed.emit()
+	return true
+
+
+## The first held item with a given effect, or null.
+##
+## By effect rather than by id, which is the whole point: the hero asks "do I
+## hold anything that stops a death" and never learns what a Draught is. A
+## second revive item is then a file.
+func item_with_effect(effect: int, automatic_only: bool = false) -> ItemData:
+	var ids: Array = held_items.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind: ItemData = ContentDB.item(String(id))
+		if kind == null or int(kind.effect) != effect:
+			continue
+		if automatic_only and not kind.automatic:
+			continue
+		return kind
+	return null

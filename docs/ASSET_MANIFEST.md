@@ -1072,7 +1072,8 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
 `ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` · `ui_last_scar.png` ·
-`ui_resurrection_draught.png` · `ui_scope_battlefield.png` ·
+`ui_resurrection_draught.png` · `ui_hearthroot_tonic.png` ·
+`ui_rimeglass_ward.png` · `ui_scope_battlefield.png` ·
 `ui_scope_town.png` · `ui_scope_beast.png`
 
 Persistent gear uses the same world-object language. Every `GearData.id`

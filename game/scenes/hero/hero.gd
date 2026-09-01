@@ -327,6 +327,12 @@ func _physics_process(delta: float) -> void:
 			ranged.cycle_ammo()
 		# Gated behind the same `can_fight` as the swing: a bow is a weapon, and
 		# the phases that forbid fighting forbid all of it.
+		if input.pressed(HeroInput.BUTTON_USE_ITEM):
+			# Not gated behind `can_fight`. Drinking a tonic is not an attack,
+			# and the phases that forbid fighting - Preparation with the build
+			# sheet open, a crossroad - are exactly when a player wants to patch
+			# themselves up before the next formation arrives.
+			use_carried_item()
 		if combat_input and _beast_stun_left <= 0.0 				and input.pressed(HeroInput.BUTTON_RANGED):
 			# The body, like the swing and the spells beside it. The root is
 			# the hero's ground contact for depth sorting, so passing it here
@@ -887,9 +893,12 @@ func _on_health_changed(current: float, maximum: float) -> void:
 
 
 func _on_died(at: Vector2) -> void:
-	if RunState.has_resurrection_draught:
-		RunState.has_resurrection_draught = false
-		health.revive(Balance.HERO_DRAUGHT_REVIVE_HP)
+	# Asked by *effect*, never by id. The hero's question is "do I hold anything
+	# that stops a death"; what a Draught is happens to be the answer today and
+	# a second revive item is now a file rather than another branch here.
+	var saviour: ItemData = RunState.item_with_effect(ItemData.Effect.REVIVE, true)
+	if saviour != null and RunState.spend_item(saviour.id):
+		health.revive(saviour.effect_value)
 		health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
 		EventBus.hero_respawned.emit(global_position)
 		return
@@ -1247,3 +1256,47 @@ func _update_aim_guide() -> void:
 	tint.a = Balance.HERO_AIM_GUIDE_DRAWING_ALPHA if ranged.is_drawing() \
 		else Balance.HERO_AIM_GUIDE_ALPHA
 	_aim_guide.default_color = tint
+
+
+## Drinks the first thing being carried that is meant to be drunk.
+##
+## **Dispatched on the effect, never on the id.** The whole point of the
+## consumable rework is that this function does not know what a Draught is; a new
+## tonic is a `.tres` and, at most, one arm here. `item_check` fails the build if
+## anything is authored against an effect this does not answer.
+##
+## Automatic items are skipped: a Draught is an insurance policy that spends
+## itself when it is needed, and letting a player waste one on a button is a
+## worse outcome than the button doing nothing.
+func use_carried_item() -> bool:
+	if health == null or health.is_dead:
+		return false
+	var ids: Array = RunState.held_items.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind: ItemData = ContentDB.item(String(id))
+		if kind == null or kind.automatic:
+			continue
+		match kind.effect:
+			ItemData.Effect.MEND:
+				if health.current_hp >= health.max_hp:
+					# Refused rather than spent. A full-health player pressing
+					# the button by accident should not lose the tonic.
+					EventBus.preparation_warning.emit("Already at full health.")
+					return false
+				if not RunState.spend_item(kind.id):
+					return false
+				health.heal(health.max_hp * kind.effect_value)
+				Vfx.ring(combat_origin(), 92.0, Color(0.52, 0.94, 0.60, 0.80), 0.45, 6.0)
+				Vfx.spark(global_position, Color("bdffcf"), 14, Vector2.UP, 170.0)
+			ItemData.Effect.WARD:
+				if not RunState.spend_item(kind.id):
+					return false
+				health.add_shield(health.max_hp * kind.effect_value)
+				Vfx.ring(combat_origin(), 104.0, Color(0.60, 0.78, 1.0, 0.82), 0.55, 7.0)
+				Vfx.spark(global_position, Color("cfe2ff"), 16, Vector2.UP, 150.0)
+			_:
+				continue
+		EventBus.preparation_warning.emit(kind.display_name)
+		return true
+	return false

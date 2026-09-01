@@ -55,6 +55,7 @@ var _attacking: bool = false
 
 var _sticks: Array = []
 var _dash: TouchButton = null
+var _use: TouchButton = null
 ## Held, not tapped, so a thumb drives the same three-second hold a keyboard
 ## does. Shown only while somebody is down: a button that does nothing for an
 ## entire solo run is a button standing in front of the field.
@@ -124,7 +125,7 @@ func owns_pointer() -> bool:
 	for stick: TouchStick in _sticks:
 		if stick.holds_emulated_finger():
 			return true
-	for button: TouchButton in [_dash, _loose, _ammo, _revive]:
+	for button: TouchButton in [_dash, _loose, _ammo, _revive, _use]:
 		if button != null and button.visible and button.holds_emulated_finger():
 			return true
 	return false
@@ -213,6 +214,17 @@ func _build() -> void:
 	_ammo.label = "AMMO"
 	_ammo.visible = false
 	add_child(_ammo)
+
+	# Drawn only while something drinkable is held, which today is never - the
+	# only consumable in the game spends itself. That is the correct resting
+	# state rather than a stub: the right-hand column already stacks four
+	# buttons on a landscape phone and a fifth permanent one would run off the
+	# bottom. It appears the day a tonic is authored.
+	_use = TouchButton.new()
+	_use.name = "UseButton"
+	_use.label = "USE"
+	_use.visible = false
+	add_child(_use)
 	EventBus.coop_hero_down.connect(func(_slot: int, _at: Vector2) -> void:
 		_down_count += 1)
 	EventBus.coop_hero_revived.connect(func(_slot: int, _at: Vector2) -> void:
@@ -260,6 +272,8 @@ func _input(event: InputEvent) -> void:
 		stick.release_finger(touch.index)
 	if _dash != null:
 		_dash.release_finger(touch.index)
+	if _use != null:
+		_use.release_finger(touch.index)
 	if _revive != null:
 		_revive.release_finger(touch.index)
 	if _loose != null:
@@ -287,6 +301,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if _ammo.visible and _ammo.consume(event, ammo_rect()):
+		get_viewport().set_input_as_handled()
+		return
+	if _use.visible and _use.consume(event, use_rect()):
 		get_viewport().set_input_as_handled()
 		return
 
@@ -429,6 +446,14 @@ func _process(_delta: float) -> void:
 
 	# The bow's controls follow what is actually in hand, checked every frame
 	# because a bow can be picked up, put down or run dry mid-battle.
+	_use.visible = _has_a_drinkable_item()
+	if _use.visible:
+		var cup: Rect2 = use_rect()
+		_use.position = cup.position
+		_use.size = cup.size
+	elif _use.is_held():
+		_use.forget()
+
 	_loose.visible = _bow_in_hand()
 	if _loose.visible:
 		var trigger: Rect2 = loose_rect()
@@ -477,6 +502,11 @@ func _drive_actions() -> void:
 		Input.action_press(&"ammo_cycle")
 	elif Input.is_action_pressed(&"ammo_cycle"):
 		Input.action_release(&"ammo_cycle")
+
+	if _use.take_press():
+		Input.action_press(&"use_item")
+	elif Input.is_action_pressed(&"use_item"):
+		Input.action_release(&"use_item")
 
 
 func _axis(action: StringName, strength: float) -> void:
@@ -681,3 +711,21 @@ class TouchButton extends Control:
 			centre - Vector2(extent.x * 0.5, -extent.y * 0.26), label,
 			HORIZONTAL_ALIGNMENT_CENTER, -1.0, size_px,
 			Color(1.0, 0.90, 0.70, minf(alpha * 1.2, 1.0)))
+
+
+## Where the USE button sits: below the revive, continuing the same right-edge
+## column the dash established. Only ever drawn when there is something to drink,
+## so it costs no room in the resting layout.
+func use_rect() -> Rect2:
+	var dash: Rect2 = dash_rect()
+	return Rect2(dash.position + Vector2(0.0, dash.size.y * 2.5), dash.size)
+
+
+## Whether a drinkable consumable is held at all, which is what the button
+## follows. Automatic items spend themselves and are never drunk by hand.
+func _has_a_drinkable_item() -> bool:
+	for id: Variant in RunState.held_items.keys():
+		var kind: ItemData = ContentDB.item(String(id))
+		if kind != null and not kind.automatic:
+			return true
+	return false

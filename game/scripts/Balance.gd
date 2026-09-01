@@ -631,6 +631,15 @@ const HERO_MAX_WOUNDS: int = 3
 const HERO_WOUND_REVIVE_HP: float = 0.50
 const HERO_DRAUGHT_REVIVE_HP: float = 0.40
 
+## The most shield a hero may be standing behind at once, as a fraction of
+## maximum health.
+##
+## A ceiling rather than a per-source cap, so two wards running together are
+## worth more than one and a stack of them is not worth a second health bar. The
+## pool never regenerates and is cleared by death, which is what keeps it a
+## consumable's effect rather than a stat. [TUNE]
+const HEALTH_SHIELD_CEILING: float = 0.60
+
 # ------------------------------------------------------------------------------
 # Oath of the Last Scar — run challenge
 # ------------------------------------------------------------------------------

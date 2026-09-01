@@ -297,11 +297,10 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 	# The Draught is a carried item rather than a currency (v4 §698), and holding
 	# one is the whole of its state - the carry limit is one.
 	var item_id: String = String(reward.get("item_id", ""))
-	if item_id == "resurrection_draught" and not RunState.has_resurrection_draught:
-		RunState.has_resurrection_draught = true
-		var draught: ItemData = ContentDB.item(item_id)
-		if draught != null:
-			EventBus.preparation_warning.emit(draught.acquire_line)
+	if not item_id.is_empty() and RunState.take_item(item_id):
+		var taken: ItemData = ContentDB.item(item_id)
+		if taken != null:
+			EventBus.preparation_warning.emit(taken.acquire_line)
 
 
 # --- Act bosses -------------------------------------------------------------

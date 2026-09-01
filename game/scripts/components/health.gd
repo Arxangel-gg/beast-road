@@ -67,6 +67,23 @@ func take_damage(amount: float, from: Vector2) -> bool:
 	if is_dead or amount <= 0.0 or is_invulnerable():
 		return false
 	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20)
+	# Shield first, and it can absorb a blow whole.
+	#
+	# **After mitigation, not before.** `flat_damage_reduction` is armour, and
+	# armour still works while a ward is up; spending the shield against the raw
+	# number would make wearing armour under a ward worth nothing. The shield
+	# pays for what armour did not stop.
+	if _shield > 0.0:
+		var absorbed: float = minf(_shield, applied)
+		_shield -= absorbed
+		applied -= absorbed
+		shield_changed.emit(_shield)
+		if applied <= 0.0:
+			# The blow landed - it was simply paid for. Still reported as a hit,
+			# because a ward that made attacks silent would read as the enemy
+			# having missed.
+			damaged.emit(0.0, from)
+			return true
 	current_hp = maxf(current_hp - applied, 0.0)
 	damaged.emit(applied, from)
 	changed.emit(current_hp, max_hp)
@@ -89,6 +106,8 @@ func heal(amount: float) -> void:
 func kill(from: Vector2) -> void:
 	if is_dead:
 		return
+	_shield = 0.0
+	shield_changed.emit(0.0)
 	current_hp = 0.0
 	is_dead = true
 	changed.emit(current_hp, max_hp)
@@ -98,6 +117,8 @@ func kill(from: Vector2) -> void:
 ## Alive and vulnerable at the requested health fraction.
 func revive(fraction: float = 1.0) -> void:
 	is_dead = false
+	_shield = 0.0
+	shield_changed.emit(0.0)
 	current_hp = max_hp * clampf(fraction, 0.01, 1.0)
 	_invulnerable_left = 0.0
 	changed.emit(current_hp, max_hp)
@@ -105,3 +126,34 @@ func revive(fraction: float = 1.0) -> void:
 
 func ratio() -> float:
 	return current_hp / max_hp if max_hp > 0.0 else 0.0
+
+
+# --- Shield ------------------------------------------------------------------
+#
+# A pool spent before health that never regenerates on its own. Added for the
+# WARD consumable, and deliberately the smallest thing that could earn that
+# effect a place in `ItemData.Effect`: an enum arm the game has no concept for is
+# a promise to a designer that nothing keeps.
+#
+# Not a stat. It does not scale with anything, it is never persisted, and death
+# or revival clears it - so it cannot quietly become a second health bar that the
+# difficulty curve has to be re-tuned around.
+
+## Emitted whenever the pool changes, so a bar can draw it.
+signal shield_changed(remaining: float)
+
+## How much of the shield is left. Zero is the ordinary state.
+var _shield: float = 0.0
+
+
+func shield() -> float:
+	return _shield
+
+
+## Adds to the pool rather than replacing it, but never past a ceiling: two
+## wards running should be worth more than one and not worth unlimited.
+func add_shield(amount: float) -> void:
+	if is_dead or amount <= 0.0:
+		return
+	_shield = minf(_shield + amount, max_hp * Balance.HEALTH_SHIELD_CEILING)
+	shield_changed.emit(_shield)

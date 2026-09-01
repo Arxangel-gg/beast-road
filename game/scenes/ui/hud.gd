@@ -206,7 +206,11 @@ var _xp_band: Control
 var _xp_bar: ProgressBar
 var _xp_label: Label
 var _wounds_label: Label
-var _draught_icon: Control
+var _item_row: HBoxContainer
+
+## What the carried-item row was last built from, so a row of icons is not
+## freed and rebuilt sixty times a second to draw the same two things.
+var _items_signature: String = ""
 var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
@@ -469,8 +473,7 @@ func _process(delta: float) -> void:
 		_update_raid_panel()
 	_update_spell_bar()
 	_update_boss_bar()
-	if _draught_icon != null:
-		_draught_icon.visible = RunState.has_resurrection_draught
+	_update_carried_items()
 	_update_boss_track()
 	_update_repair_button()
 	_update_wave_preview()
@@ -637,19 +640,18 @@ func _build_top_bar() -> void:
 	wound_row.add_child(_wounds_label)
 	bar.add_child(wound_row)
 
-	# A carried item nobody can see is an item nobody plays around. The Draught
-	# changes how much risk is worth taking, so it has to be on screen next to
-	# the Wounds it exists to prevent - hidden until one is held, because an
-	# empty slot in the top bar reads as a thing that is broken.
-	# The item follows the same id-derived icon convention as every resource. It
-	# used to borrow the relic icon while art was pending, which made a carried
-	# extra life visually indistinguishable from the locked raid cache.
-	_draught_icon = _bar_icon("resurrection_draught", "Draught")
-	_draught_icon.custom_minimum_size = Vector2(26.0, 26.0)
-	_draught_icon.tooltip_text = "Resurrection Draught. Prevents the next lethal down and restores %d%% health, then is consumed." % \
-		int(round(Balance.HERO_DRAUGHT_REVIVE_HP * 100.0))
-	_draught_icon.visible = false
-	bar.add_child(_draught_icon)
+	# A carried item nobody can see is an item nobody plays around. A consumable
+	# changes how much risk is worth taking, so it sits beside the Wounds it
+	# exists to prevent - and the row stays empty until something is held,
+	# because an empty slot in the top bar reads as a thing that is broken.
+	#
+	# **A row rather than one icon.** It used to be a single hardcoded Draught,
+	# which was the visible half of the same assumption that made the Draught the
+	# only consumable this game could ever have. Icons follow the same id-derived
+	# convention as every resource, so a new item appears here by existing.
+	_item_row = HBoxContainer.new()
+	_item_row.add_theme_constant_override("separation", 4)
+	bar.add_child(_item_row)
 
 	_state_label = _label("", 19)
 	_state_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -3249,3 +3251,38 @@ func _update_raid_panel() -> void:
 	else:
 		_raid_status.text = "Next way out in %.0fs   ·   %d killed   ·   %d refused" % [
 			raid.time_to_next_window(), raid.kills(), raid.refusals()]
+
+
+## The consumables the hero is carrying, one icon each.
+##
+## Rebuilt only when the holding actually changes. This runs inside the HUD's
+## per-frame refresh, and freeing and rebuilding a row of icons sixty times a
+## second to draw the same two things would be a real cost for no change on
+## screen - so the signature of what is held is compared first.
+func _update_carried_items() -> void:
+	if _item_row == null:
+		return
+	var signature: String = ""
+	var ids: Array = RunState.held_items.keys()
+	ids.sort()
+	for id: Variant in ids:
+		signature += "%s:%d|" % [String(id), RunState.item_count(String(id))]
+	if signature == _items_signature:
+		return
+	_items_signature = signature
+
+	for child: Node in _item_row.get_children():
+		_item_row.remove_child(child)
+		child.queue_free()
+	for id: Variant in ids:
+		var kind: ItemData = ContentDB.item(String(id))
+		if kind == null:
+			continue
+		var held: int = RunState.item_count(kind.id)
+		var icon: Control = _bar_icon(kind.id, kind.display_name)
+		icon.custom_minimum_size = Vector2(26.0, 26.0)
+		# The count only when there is more than one, so a carry-limit-of-one
+		# item is not labelled with a number that can never change.
+		icon.tooltip_text = "%s%s\n%s" % [kind.display_name,
+			"  x%d" % held if held > 1 else "", kind.effect_line()]
+		_item_row.add_child(icon)

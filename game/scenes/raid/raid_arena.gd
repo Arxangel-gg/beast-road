@@ -309,7 +309,7 @@ func _build_reward(result: Dictionary) -> Dictionary:
 		reward["captive_id"] = _captive_id()
 		reward["leader_resolution"] = Balance.LEADER_RESOLUTIONS[0]
 		reward["relic_id"] = _pick_relic()
-		reward["item_id"] = _pick_draught()
+		reward["item_id"] = _pick_item()
 		RunState.raids_completed += 1
 		return reward
 
@@ -330,15 +330,23 @@ func _build_reward(result: Dictionary) -> Dictionary:
 ## "A rare Resurrection Draught... Carry limit: one"), and a chieftain fight is
 ## the run's optional risk. The odds live in the resource, so a second consumable
 ## is a new file rather than another branch here.
-func _pick_draught() -> String:
-	if RunState.has_resurrection_draught:
-		return ""  # Carry limit: one.
-	var draught: ItemData = ContentDB.item("resurrection_draught")
-	if draught == null:
-		return ""
-	if RunState.rng("reward").randf() > draught.raid_clear_chance:
-		return ""
-	return draught.id
+func _pick_item() -> String:
+	# Every consumable the roster holds, in id order so the draw is reproducible
+	# from a seed, and each rolled against its own odds. Anything already at its
+	# carry limit is skipped rather than rolled and discarded - a reward the
+	# player cannot take is not a reward, and rolling it would quietly eat the
+	# chance that something else drops.
+	var ids: Array = ContentDB.items.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind: ItemData = ContentDB.item(String(id))
+		if kind == null or kind.raid_clear_chance <= 0.0:
+			continue
+		if not RunState.can_take_item(kind.id):
+			continue
+		if RunState.rng("reward").randf() <= kind.raid_clear_chance:
+			return kind.id
+	return ""
 
 
 func _pick_relic() -> String:

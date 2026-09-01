@@ -237,6 +237,9 @@ jobs:
           # silently: frames that exist but are not found by convention, and a
           # loader "fixed" to include the resting pose in the cycle.
           check "enemy walk" --headless --path game res://tools/enemy_walk_check.tscn
+          # Consumables are content. The gate that matters is the last one: an
+          # effect nothing reads would be taken, drawn, and do nothing.
+          check "items" --headless --path game res://tools/item_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

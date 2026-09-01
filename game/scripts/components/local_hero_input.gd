@@ -63,6 +63,12 @@ func pressed(button: int) -> bool:
 		return Input.is_action_just_pressed(&"ranged")
 	if button == BUTTON_AMMO_CYCLE:
 		return Input.is_action_just_pressed(&"ammo_cycle")
+	if button == BUTTON_USE_ITEM:
+		# No touch branch, deliberately. The USE button presses the *action*, the
+		# way the dash and the bow's trigger do, so a thumb and a key arrive here
+		# by the same route. Asking `TouchInput` again here would consume the
+		# press twice.
+		return Input.is_action_just_pressed(&"use_item")
 	return false
 
 
@@ -104,7 +110,7 @@ func snapshot(current_aim: Vector2) -> Array:
 			buttons |= bit
 	# Packed like every other button, so a guest's shot is the host's shot. A
 	# ranged attack that only existed locally would fire on one screen.
-	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE]:
+	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE, BUTTON_USE_ITEM]:
 		if pressed(bit):
 			buttons |= bit
 	var holds: int = 0

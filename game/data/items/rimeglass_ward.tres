@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/item_data.gd" id="1_ward"]
+
+[resource]
+script = ExtResource("1_ward")
+effect = 2
+effect_value = 0.35
+automatic = false
+carry_limit = 2
+acquire_line = "A shard of rime glass, cold enough to ache. It will take one blow for you."
+raid_clear_chance = 0.24
+id = "rimeglass_ward"
+display_name = "Rimeglass Ward"
+description = "Raises a shield worth 35% of your health, spent before your own. You may carry two."

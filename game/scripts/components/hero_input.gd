@@ -58,6 +58,11 @@ const HOLD_ATTACK: int = 1 << 9
 const BUTTON_RANGED: int = 1 << 12
 const BUTTON_AMMO_CYCLE: int = 1 << 13
 
+## Drinking what you are carrying. Bit 14, continuing the same rule: bits 2-7
+## belong to spell slots and 8-11 to holds, and the fix for a collision is to
+## leave those ranges alone rather than reuse their gaps.
+const BUTTON_USE_ITEM: int = 1 << 14
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null
