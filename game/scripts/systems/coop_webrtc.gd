@@ -289,15 +289,41 @@ func _ready() -> void:
 ## True in a browser, which implements it natively, and true on desktop when the
 ## `webrtc_native` extension is present. False is not an error to shout about -
 ## it means "offer ENet and say so", which is what the co-op screen does.
+## Cached, because the answer is a property of the build and cannot change while
+## it runs - and because *asking* is expensive in a way the old comment claimed
+## it was not.
+##
+## `-1` is "not yet asked"; 0 and 1 are the answer.
+static var _available: int = -1
+
+
 static func available() -> bool:
+	if _available >= 0:
+		return _available == 1
 	if not ClassDB.class_exists("WebRTCPeerConnection"):
+		_available = 0
 		return false
-	# The class exists in the engine as an interface even when nothing
-	# implements it, so existence is not the question - whether a connection can
-	# actually be initialised is. Asked once, cheaply, rather than assumed from
-	# the platform, because the answer is a property of this build.
+	# The class exists in the engine as an interface even when nothing implements
+	# it, so existence is not the question - whether a connection can actually be
+	# initialised is.
+	#
+	# **The probe is closed, and the answer is kept.** This used to initialise a
+	# peer connection and drop it on the floor: `initialize` starts the native
+	# ICE machinery and its threads, and destroying the object without `close`
+	# leaves that tearing down asynchronously. One of those is survivable. The
+	# co-op screen asks twice per `_refresh`, and `_refresh` runs on every state
+	# change *and every keystroke in the address field* - so typing an address
+	# abandoned two initialised connections per character.
+	#
+	# That is what `coop_check` exiting 139 was: a crash after every assertion
+	# had passed, one run in fifteen, depending on whether a gathering thread had
+	# started before the destructor ran. It was never really a flaky test - it
+	# was a real fault in shipping code that a test happened to trip over.
 	var probe := WebRTCPeerConnection.new()
-	return probe.initialize({"iceServers": ice_servers()}) == OK
+	var ok: bool = probe.initialize({"iceServers": ice_servers()}) == OK
+	probe.close()
+	_available = 1 if ok else 0
+	return ok
 
 
 func room_code() -> String:

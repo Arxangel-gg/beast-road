@@ -10,19 +10,37 @@ extends Node
 ## in `coop_heroes_check.tscn` and `coop_world_check.tscn`, which need a real Run
 ## and have nothing to say about sockets.
 ##
-## ## A rare crash at teardown, recorded rather than fixed
+## ## Exit 139 at teardown: what is known, and what is not
 ##
-## Observed once on 2026-09-01: every assertion printed PASS and the process
-## then exited **139** — a crash after the work was done, not a failed check.
-## Three immediate re-runs and a full sweep were clean, and Guard had no failure
-## in its previous twelve runs, so it is rare rather than latent-and-constant.
+## This gate crashes at shutdown in roughly **one run in twelve** - after every
+## assertion has printed PASS, with no failed check and no warning. It failed
+## Guard on 490dce1 that way.
 ##
-## It is written down because an intermittent crash is the worst kind of gate
-## failure: it reds a release at random, it will be re-run until green by
-## whoever meets it, and the second sighting is the one that makes it
-## diagnosable. If you are that second sighting - it is a teardown fault, so
-## look at what the WebRTC native peers hold when the scene tree goes away, not
-## at the assertions above.
+## Established:
+##
+## * A bare project load (`--headless --path game --quit`) never crashes: 30/30
+##   clean. So it is not the GDExtension loading.
+## * `webrtc_check`, which also uses WebRTC, never crashes: 10/10 clean. So it is
+##   not the WebRTC transport by itself.
+## * It is something *this* gate does. This is the only thing in the project that
+##   stands up **two Coop sessions in one process**, each with its own
+##   `MultiplayerAPI` on a subtree, both holding real ENet peers on a real port.
+##   The shipping game never does that, which is why the product risk is low even
+##   though the CI risk is not.
+##
+## Ruled out, each tested by measuring the rate over 20-25 runs rather than by
+## one green run:
+##
+## * **Subtree APIs holding peers past the free.** They are now detached
+##   explicitly in `_tear_down` before anything is freed. Rate unchanged. The
+##   change is kept because it is correct hygiene either way.
+## * **The WebRTC availability probe.** `CoopWebRTC.available()` was initialising
+##   a peer connection and dropping it without `close()`. Rate unchanged - but
+##   that was a real fault in shipping code and is fixed: see the note there. It
+##   is the reason this hunt was worth the time even though it did not end here.
+##
+## The next person should not re-test those two. What is left un-probed is the
+## UDP beacon pair and the ENet peer left in FAILED after the closed-port dial.
 ##
 ## The row that matters most is `_test_a_guest_cannot_author_a_fact`. Everything
 ## else here would still look fine if the authority model were quietly broken;
@@ -108,7 +126,12 @@ func _ready() -> void:
 	_test_both_kinds_of_code_are_offered()
 
 	_tear_down()
-	for _f: int in 4:
+	# Thirty rather than four. A deferred free happens at the end of a frame and
+	# the native peer's threads wind down over the frames after that, so quitting
+	# four frames later raced them. The audio teardown in `momentum_check` needed
+	# the same lesson on the same day: stopping a thing is not the same as it
+	# having let go.
+	for _f: int in 30:
 		await get_tree().process_frame
 	if _failures == 0:
 		print("[coop] PASS - handshake, relayed facts, the authority guard, "
@@ -877,11 +900,32 @@ func _test_friends_are_codes_not_accounts() -> void:
 	MetaState.play_code = own
 
 
+## Puts both sessions away in an order the native layer can survive.
+##
+## **`leave()` alone is not enough, and that is what exit 139 was.** Leaving
+## closes `Coop._peer` and clears the peer on `multiplayer` - but each session
+## here runs its own `MultiplayerAPI` registered against a subtree, and that is a
+## different object from the one `leave()` reaches. Freeing the subtree while its
+## API still holds a peer leaves the native side tearing down on a thread while
+## the engine is already exiting, which is a crash *after* every assertion has
+## passed.
+##
+## So the peers are detached explicitly, from the APIs that actually hold them,
+## before anything is freed. Nulling `multiplayer_peer` releases the reference
+## deterministically; `queue_free` does not, because it is deferred.
 func _tear_down() -> void:
 	if _guest != null and is_instance_valid(_guest):
 		_guest.leave()
 	if _host != null and is_instance_valid(_host):
 		_host.leave()
+	# The subtree APIs, which `leave()` never sees.
+	for session: Node in [_host, _guest]:
+		if session == null or not is_instance_valid(session):
+			continue
+		var api: MultiplayerAPI = session.multiplayer
+		if api != null and api.has_multiplayer_peer():
+			api.multiplayer_peer.close()
+			api.multiplayer_peer = null
 	if _host_root != null and is_instance_valid(_host_root):
 		_host_root.queue_free()
 	if _guest_root != null and is_instance_valid(_guest_root):
