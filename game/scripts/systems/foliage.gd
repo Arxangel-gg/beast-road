@@ -45,7 +45,8 @@ const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
 ## Adding a kind is adding this name and the files it implies - one per region
 ## for a regional kind, one for a shared one. No other code changes, which is the
 ## whole point of deriving the path from the name.
-const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "blossom", "fern", "bush"]
+const REGIONAL_KINDS: Array[String] = ["shrub", "flower", "blossom", "fern",
+	"bush", "tallgrass", "creeper"]
 
 ## The kinds that read as *flowers*, drawn more often than their share.
 ##
@@ -60,7 +61,12 @@ const FLOWER_KINDS: Array[String] = ["flower", "blossom"]
 ## the props that carry no regional identity, so one file serves all three acts.
 const SHARED_KINDS: Array[String] = ["rock", "boulder", "log", "stump",
 	"mushrooms", "bones", "reeds", "wreckage", "wildflower_01",
-	"wildflower_02", "wildflower_03", "wildflower_04"]
+	"wildflower_02", "wildflower_03", "wildflower_04",
+	# Added 2026-09-01. `cairn` and `signpost` are the first foliage that is
+	# obviously *made* rather than grown - somebody marked this road once - and
+	# they carry a vertical silhouette the prop set was short of. All four are
+	# static by design: a rock does not sway, and neither does a pile of them.
+	"cairn", "signpost", "driftwood", "burrow"]
 const REGIONAL_KIND_FORMAT: String = "res://art/foliage/plant_%s_%s.png"
 const SHARED_KIND_FORMAT: String = "res://art/foliage/prop_%s.png"
 

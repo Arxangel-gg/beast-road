@@ -3456,6 +3456,18 @@ const FOLIAGE_KIND_SWAY: Dictionary = {
 	"wildflower_02": 1.2,
 	"wildflower_03": 1.2,
 	"wildflower_04": 1.2,
+	# Added 2026-09-01. Tall grass is the second most mobile thing in the set -
+	# it is nothing but blades, and blades are what wind is visible in. The
+	# creeper is the opposite and is the reason this table is per-kind: it lies
+	# flat on the ground, so a sway that looks right on a fern makes it slide
+	# across the soil like a decal.
+	"tallgrass": 1.42,
+	"creeper": 0.28,
+	# Made rather than grown, and stone rather than either. All four are still.
+	"cairn": 0.0,
+	"signpost": 0.0,
+	"driftwood": 0.0,
+	"burrow": 0.0,
 }
 
 ## Foliage moves slowly enough that 30 transform updates per second are visually
