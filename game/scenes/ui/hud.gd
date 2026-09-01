@@ -414,6 +414,15 @@ func _ready() -> void:
 	EventBus.phase_changed.connect(_on_phase_changed)
 	EventBus.preparation_changed.connect(_on_preparation_changed)
 	EventBus.preparation_warning.connect(_show_message)
+	# The spirit collection, said out loud on the road. A discovery the player
+	# only finds later in a menu is a discovery that did not happen when it
+	# happened - and the shiny is the whole reason to look up from the fight.
+	EventBus.spirit_discovered.connect(_on_spirit_discovered)
+	EventBus.spirit_bonded.connect(_on_spirit_bonded)
+	EventBus.spirit_downed.connect(func(_key: String, seconds: float) -> void:
+		_show_message("Your spirit is re-forming  ·  %ds" % int(ceil(seconds))))
+	EventBus.spirit_returned.connect(func(_key: String) -> void:
+		_show_message("Your spirit has returned."))
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)
@@ -3286,3 +3295,36 @@ func _update_carried_items() -> void:
 		icon.tooltip_text = "%s%s\n%s" % [kind.display_name,
 			"  x%d" % held if held > 1 else "", kind.effect_line()]
 		_item_row.add_child(icon)
+
+
+## A variant met for the first time, or its bond completed.
+##
+## Written from the key rather than passed a sentence, so the wording lives in
+## one place and a new rarity needs no new string. Shiny is louder because a
+## shiny is the moment the system exists for.
+func _spirit_words(bond_key: String) -> String:
+	var kind := ContentDB.wildlife_kinds.get(
+		SpiritBond.species_of(bond_key), null) as WildlifeData
+	if kind == null:
+		return ""
+	return SpiritBond.display_name(kind, SpiritBond.rarity_of(bond_key),
+		SpiritBond.shiny_of(bond_key)).to_upper()
+
+
+func _on_spirit_discovered(bond_key: String, count: int, needed: int) -> void:
+	var words: String = _spirit_words(bond_key)
+	if words.is_empty():
+		return
+	_show_message("%s DISCOVERED  ·  Spirit Bond %d / %d" % [words, count, needed])
+	if SpiritBond.shiny_of(bond_key):
+		Vfx.word(Vector2.ZERO, "SHINY", Balance.SPIRIT_SHINY_COLOUR, 40)
+		EventBus.camera_shake_requested.emit(3.0, 0.25)
+
+
+func _on_spirit_bonded(bond_key: String) -> void:
+	var words: String = _spirit_words(bond_key)
+	if words.is_empty():
+		return
+	_show_message("%s UNLOCKED" % words)
+	Vfx.flash(SpiritBond.tint(SpiritBond.rarity_of(bond_key),
+		SpiritBond.shiny_of(bond_key)), 0.10, 0.45)

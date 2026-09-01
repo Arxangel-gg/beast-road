@@ -67,6 +67,9 @@ const LIST_SCREEN_SHARE_PORTRAIT: float = 0.74
 ## page of forty creatures costs one integer comparison a frame instead of forty
 ## timers.
 var _animated: Array[Dictionary] = []
+
+## Which species' variants are showing in the journal, or "".
+var _spirit_open: String = ""
 var _art_clock: float = 0.0
 var _art_frame: int = 0
 
@@ -201,6 +204,8 @@ func _refresh() -> void:
 			var entry := table[id] as GameData
 			if entry != null:
 				_rows.add_child(_entry_row(kind, entry))
+
+	_build_spirit_journal()
 
 	# Applied once over the finished list rather than per row: it walks the tree
 	# and is not free, and every row is in place by now.
@@ -371,3 +376,113 @@ func _entry_row(kind: String, entry: GameData) -> PanelContainer:
 	body.add_theme_color_override("font_color", Color("9d9484"))
 	text.add_child(body)
 	return panel
+
+
+# --- The Wildlife Spirit Journal ---------------------------------------------
+#
+# Owner decision, 2026-09-01. Here rather than on a screen of its own, and that
+# is the brief's own preference: the Codex is already "everything the road has
+# shown you", and a bonded spirit is exactly that. A second screen would have
+# meant two places to look for the same fact.
+#
+# **One row per species, opened to show its eight variants.** Twenty-three
+# species times eight is 184 rows, and a list that long is not a journal, it is
+# a spreadsheet. Collapsed, the player sees which animals they have made
+# progress on; opened, they see precisely what is left.
+
+func _build_spirit_journal() -> void:
+	var species: Array[WildlifeData] = ContentDB.wildlife()
+	species.sort_custom(func(a: WildlifeData, b: WildlifeData) -> bool:
+		return a.display_name < b.display_name)
+	var bonded: int = 0
+	var total: int = 0
+	for kind: WildlifeData in species:
+		for variant: String in SpiritBond.variants_of(kind.id):
+			total += 1
+			if MetaState.spirit_is_bonded(variant):
+				bonded += 1
+	_rows.add_child(_section_heading("Wildlife Spirits  ·  %d / %d bonded"
+		% [bonded, total]))
+	_rows.add_child(_spirit_note())
+
+	for kind: WildlifeData in species:
+		_rows.add_child(_spirit_species_row(kind))
+		if _spirit_open == kind.id:
+			for variant: String in SpiritBond.variants_of(kind.id):
+				_rows.add_child(_spirit_variant_row(kind, variant))
+
+
+func _spirit_note() -> Label:
+	var label := Label.new()
+	label.text = ("Meet an animal enough times and its spirit walks with you. "
+		+ "Rarer needs fewer. Shinies are rarer still, and count for both.")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_color_override("font_color", Color("9b917f"))
+	return label
+
+
+## One species, closed: how far along it is, and whether anything is equipped.
+func _spirit_species_row(kind: WildlifeData) -> Button:
+	var bonded: int = 0
+	var met: int = 0
+	var equipped: bool = false
+	for variant: String in SpiritBond.variants_of(kind.id):
+		if MetaState.spirit_is_bonded(variant):
+			bonded += 1
+		if MetaState.spirit_is_known(variant):
+			met += 1
+		if MetaState.equipped_spirit == variant:
+			equipped = true
+	var row := Button.new()
+	row.text = "%s%s  ·  %d of 8 bonded%s" % [
+		"▾ " if _spirit_open == kind.id else "▸ ", kind.display_name, bonded,
+		"  ·  WALKING WITH YOU" if equipped else ""]
+	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	row.custom_minimum_size.y = 42.0
+	UiMetrics.wrap_row(row)
+	if met == 0:
+		# Never seen at all. Named, because knowing the animal exists is what
+		# makes looking for it a thing to do - but nothing else is given away.
+		row.text = "▸ %s  ·  not yet met" % kind.display_name
+		row.add_theme_color_override("font_color", Color("6d6556"))
+	if ResourceLoader.exists(kind.get_sprite_path()) and met > 0:
+		UiMetrics.row_icon(row, load(kind.get_sprite_path()), 30)
+	row.pressed.connect(func() -> void:
+		_spirit_open = "" if _spirit_open == kind.id else kind.id
+		_refresh())
+	return row
+
+
+## One variant, open: its progress, and the button that equips it.
+func _spirit_variant_row(kind: WildlifeData, variant: String) -> Button:
+	var rarity: int = SpiritBond.rarity_of(variant)
+	var shiny: bool = SpiritBond.shiny_of(variant)
+	var have: int = MetaState.spirit_encounter_count(variant)
+	var want: int = SpiritBond.needed(rarity, shiny)
+	var row := Button.new()
+	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	row.custom_minimum_size.y = 38.0
+	UiMetrics.wrap_row(row)
+
+	var label: String = "%s%s" % ["Shiny " if shiny else "",
+		Balance.SPIRIT_RARITY_NAMES[rarity]]
+	if MetaState.spirit_is_bonded(variant):
+		var here: bool = MetaState.equipped_spirit == variant
+		row.text = "      %s  ·  %s" % [label, "walking with you" if here else "bonded — equip"]
+		row.add_theme_color_override("font_color", SpiritBond.tint(rarity, shiny))
+		row.disabled = here
+		row.pressed.connect(func() -> void:
+			MetaState.equip_spirit(variant)
+			_refresh())
+	elif have > 0:
+		row.text = "      %s  ·  %d / %d" % [label, have, want]
+		row.disabled = true
+	else:
+		# Unmet variants are a question mark rather than a row of zeroes: the
+		# discovery is meant to be part of the reward, and a journal that lists
+		# every shiny you have never seen tells you the answer in advance.
+		row.text = "      %s  ·  ???" % label
+		row.add_theme_color_override("font_color", Color("4a443a"))
+		row.disabled = true
+	return row
