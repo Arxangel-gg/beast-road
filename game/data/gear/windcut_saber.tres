@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+attribute = 2
+base_points = 4
+weight = 0.80
+min_tier = 2
+reach_scale = 0.860
+swing_scale = 1.163
+description = "A curved edge that finishes the stroke before the arm does."
+id = "windcut_saber"
+display_name = "Windcut Saber"

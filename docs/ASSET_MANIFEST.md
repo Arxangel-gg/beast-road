@@ -1163,6 +1163,12 @@ resolves by convention to `ui_<id>.png`; these are used both in the stash and
 as the readable silhouette inside a rarity-lit battlefield pickup.
 
 `ui_coalpaint_edge.png` · `ui_sunglass_saber.png` ·
+`ui_bulwark_pike.png` · `ui_stonewarden_hammer.png` ·
+`ui_whisper_fang.png` · `ui_windcut_saber.png` ·
+`ui_sigil_brand.png` · `ui_tally_knife.png` ·
+`ui_berserkers_harness.png` · `ui_scholars_mantle.png` ·
+`ui_warpriests_plate.png` · `ui_skirmishers_leathers.png` ·
+`ui_hearthstone_pendant.png` · `ui_bloodoath_band.png` ·
 `ui_rimebound_maul.png` · `ui_rootweave_guard.png` ·
 `ui_mirrorscale_plate.png` · `ui_avalanche_harness.png` ·
 `ui_emberwind_charm.png` · `ui_hearthkeeper_sigil.png` ·

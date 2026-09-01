@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+attribute = 1
+base_points = 4
+weight = 0.70
+min_tier = 2
+reach_scale = 1.220
+swing_scale = 0.820
+description = "Quarry iron on an ash haft. Whoever carried it last was not in a hurry either."
+id = "stonewarden_hammer"
+display_name = "Stonewarden Hammer"

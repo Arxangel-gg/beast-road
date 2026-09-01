@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+attribute = 2
+base_points = 3
+weight = 1.05
+min_tier = 1
+reach_scale = 0.740
+swing_scale = 1.351
+description = "Short, light, and it wants you close. That is the whole bargain."
+id = "whisper_fang"
+display_name = "Whisper Fang"
