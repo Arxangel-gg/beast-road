@@ -76,6 +76,19 @@ enum State {
 @export var health: Health
 @export var sprite: Sprite2D
 
+## Authored walk frames, and the resting pose they are played instead of.
+##
+## Empty for anything whose art has none, and that is a supported state rather
+## than a gap: `SpriteAnimator` moved every enemy in this game convincingly for
+## months on a single static PNG. Frames are an upgrade on top of that, not a
+## replacement for it - see `Balance.ENEMY_FRAME_WALK_DAMPING`.
+var _walk_frames: Array[Texture2D] = []
+var _rest_texture: Texture2D = null
+
+## Advanced by ground covered, never by time, so a chilled or slowed enemy takes
+## slower steps rather than moon-walking at full cadence over frozen ground.
+var _walk_phase: float = 0.0
+
 ## This enemy's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
 var _blood_tried: bool = false
@@ -301,6 +314,14 @@ func _ready() -> void:
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		sprite.texture = load(path)
+		_rest_texture = sprite.texture
+		# Frame zero is deliberately *not* part of the loop - `load_move_frames`
+		# excludes it, because the base sprite is a standing pose and a two-frame
+		# cycle alternating between standing and mid-stride reads as the sprite
+		# being swapped rather than animated. That was learned on the wildlife.
+		_walk_frames = GameData.load_move_frames(path)
+	if not _walk_frames.is_empty():
+		animator.walk_cycle_scale = Balance.ENEMY_FRAME_WALK_DAMPING
 	_apply_category_scale()
 	# **After the scale, because the ring is drawn around `_depth_lift`** and
 	# that is where it is computed. Built before it, the offset read zero and the
@@ -358,7 +379,7 @@ func _process(delta: float) -> void:
 	global_position += _knockback * delta
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
-	_update_sprite()
+	_update_sprite(delta)
 	_update_blood(delta)
 
 
@@ -431,7 +452,7 @@ func _tick_puppet(delta: float) -> void:
 	_puppet_last = global_position
 	if animator != null and data != null:
 		animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
-	_update_sprite()
+	_update_sprite(delta)
 
 
 ## The scaling this enemy was spawned with, so a mirror can be built to match.
@@ -1581,7 +1602,7 @@ func _update_blood(delta: float) -> void:
 	BloodStain.drive_impact(_blood, _flash_left)
 
 
-func _update_sprite() -> void:
+func _update_sprite(delta: float = 0.0) -> void:
 	# A walking enemy faces the way it is walking. A fighting enemy faces what it
 	# is hitting. Those are different questions and the state answers which one
 	# applies, because the two only agree on a straight approach.
@@ -1603,6 +1624,8 @@ func _update_sprite() -> void:
 	elif _target != null and is_instance_valid(_target):
 		sprite.flip_h = _target.global_position.x < global_position.x
 
+	_advance_walk_frames(delta)
+
 	var tint: Color = Color.WHITE
 	if _freeze_left > 0.0:
 		tint = Color(0.55, 0.80, 1.0)
@@ -1620,3 +1643,32 @@ func _update_sprite() -> void:
 	if _flash_left > 0.0:
 		tint = Balance.HIT_FLASH_COLOUR.lerp(tint, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	sprite.modulate = tint
+
+
+## Steps the authored walk cycle, or leaves the resting pose alone.
+##
+## **Driven by ground covered rather than by elapsed time.** A Chill that halves
+## an enemy's speed has to halve its cadence too; a time-driven cycle keeps
+## striding at full rate while the body crawls, which reads as skating and is
+## precisely what the frames were added to stop. The procedural stride in
+## `SpriteAnimator` has always worked this way and the two now agree.
+##
+## Only WALKING animates. The windup, the strike and the recovery are the frames
+## a player reads to decide whether to step back, and a walk cycle playing
+## through them would bury the tell - the same reasoning that makes the striking
+## sequence outrank everything on the wildlife.
+func _advance_walk_frames(delta: float) -> void:
+	if _walk_frames.is_empty() or sprite == null:
+		return
+	var walking: bool = _state == State.WALKING and _freeze_left <= 0.0 \
+		and _hitstun_left <= 0.0
+	if not walking:
+		# Back to the standing pose rather than freezing mid-stride: an enemy
+		# stopped with one leg forward reads as a bug, and the windup animation
+		# is drawn from the rest pose.
+		_walk_phase = 0.0
+		if _rest_texture != null:
+			sprite.texture = _rest_texture
+		return
+	_walk_phase += _motion.length() * delta * Balance.ENEMY_WALK_FRAMES_PER_PIXEL
+	sprite.texture = _walk_frames[int(_walk_phase) % _walk_frames.size()]

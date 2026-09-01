@@ -170,6 +170,62 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `elite_avalanche_warden.png` | 192×192 | T | `#9CB9D8` |
 | `elite_white_maw_giant.png` | 192×192 | T | `#9CB9D8` |
 
+### 5.2a Enemy walk frames — `res://art/enemies/`
+
+Owner request, 2026-09-01: "give all enemies walking pixellab animations too".
+Every enemy in the game was a single static PNG slid along the road, with all of
+its apparent motion coming from `SpriteAnimator`'s bounce and lean. That is a
+good fallback — it carried the game for months — and it is not legs.
+
+**Frame zero is deliberately absent from these lists.** The convention
+`GameData.load_move_frames` implements excludes the base sprite from the walk
+loop, because the base is a standing pose: a cycle alternating between standing
+and mid-stride reads as the sprite being *replaced* rather than animated. That
+was learned on the wildlife and the same rule applies here.
+
+Eighteen sprites cover twenty-two enemies. Six enemies carry a `sprite_id`
+pointing at another's art, so they inherit its walk for free — the frames are
+found by deriving the path from the sprite, exactly as the resting pose is.
+
+Split by region so each group can state its own placeholder colour, matching how
+the enemy table above is grouped.
+
+
+#### Jungle walk frames
+
+All 192×192, type T, placeholder colour `#4A6B4F`.
+
+Files: `elite_pack_howler_move_01.png` · `elite_pack_howler_move_02.png` · `elite_pack_howler_move_03.png` · `elite_pack_howler_move_04.png`
+Files: `elite_wolf_standard_bearer_move_01.png` · `elite_wolf_standard_bearer_move_02.png` · `elite_wolf_standard_bearer_move_03.png` · `elite_wolf_standard_bearer_move_04.png`
+Files: `enemy_coalpaint_raider_move_01.png` · `enemy_coalpaint_raider_move_02.png` · `enemy_coalpaint_raider_move_03.png` · `enemy_coalpaint_raider_move_04.png`
+Files: `enemy_ember_shaman_move_01.png` · `enemy_ember_shaman_move_02.png` · `enemy_ember_shaman_move_03.png` · `enemy_ember_shaman_move_04.png`
+Files: `enemy_rootshield_move_01.png` · `enemy_rootshield_move_02.png` · `enemy_rootshield_move_03.png` · `enemy_rootshield_move_04.png`
+Files: `enemy_wolf_rider_move_01.png` · `enemy_wolf_rider_move_02.png` · `enemy_wolf_rider_move_03.png` · `enemy_wolf_rider_move_04.png`
+
+
+#### Desert walk frames
+
+All 192×192, type T, placeholder colour `#6B8A9E`.
+
+Files: `elite_mirage_seer_move_01.png` · `elite_mirage_seer_move_02.png` · `elite_mirage_seer_move_03.png` · `elite_mirage_seer_move_04.png`
+Files: `elite_siege_lizard_move_01.png` · `elite_siege_lizard_move_02.png` · `elite_siege_lizard_move_03.png` · `elite_siege_lizard_move_04.png`
+Files: `enemy_dune_burrower_move_01.png` · `enemy_dune_burrower_move_02.png` · `enemy_dune_burrower_move_03.png` · `enemy_dune_burrower_move_04.png`
+Files: `enemy_glassguard_move_01.png` · `enemy_glassguard_move_02.png` · `enemy_glassguard_move_03.png` · `enemy_glassguard_move_04.png`
+Files: `enemy_scale_rider_move_01.png` · `enemy_scale_rider_move_02.png` · `enemy_scale_rider_move_03.png` · `enemy_scale_rider_move_04.png`
+Files: `enemy_veiled_skirmisher_move_01.png` · `enemy_veiled_skirmisher_move_02.png` · `enemy_veiled_skirmisher_move_03.png` · `enemy_veiled_skirmisher_move_04.png`
+
+
+#### Snow walk frames
+
+All 192×192, type T, placeholder colour `#9CB9D8`.
+
+Files: `elite_avalanche_warden_move_01.png` · `elite_avalanche_warden_move_02.png` · `elite_avalanche_warden_move_03.png` · `elite_avalanche_warden_move_04.png`
+Files: `elite_white_maw_giant_move_01.png` · `elite_white_maw_giant_move_02.png` · `elite_white_maw_giant_move_03.png` · `elite_white_maw_giant_move_04.png`
+Files: `enemy_ice_hauler_move_01.png` · `enemy_ice_hauler_move_02.png` · `enemy_ice_hauler_move_03.png` · `enemy_ice_hauler_move_04.png`
+Files: `enemy_rime_marauder_move_01.png` · `enemy_rime_marauder_move_02.png` · `enemy_rime_marauder_move_03.png` · `enemy_rime_marauder_move_04.png`
+Files: `enemy_snowhide_brute_move_01.png` · `enemy_snowhide_brute_move_02.png` · `enemy_snowhide_brute_move_03.png` · `enemy_snowhide_brute_move_04.png`
+Files: `enemy_storm_caller_move_01.png` · `enemy_storm_caller_move_02.png` · `enemy_storm_caller_move_03.png` · `enemy_storm_caller_move_04.png`
+
 ### 5.3 Bosses — `res://art/bosses/`
 
 | File | Size | Type | Placeholder colour |

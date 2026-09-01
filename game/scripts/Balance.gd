@@ -2484,6 +2484,28 @@ const ANIM_WALK_SWAY: float = 2.2
 ## How fast the cycle settles back to neutral on stopping. [TUNE]
 const ANIM_SETTLE_SPEED: float = 12.0
 
+## Enemy walk frames (owner request, 2026-09-01: "give all enemies walking
+## pixellab animations too").
+##
+## Every enemy in the game was one static PNG slid along the ground, with all of
+## its apparent motion coming from `SpriteAnimator`'s bounce and lean. That is a
+## good fallback and it is not legs.
+##
+## Frames advance on **distance travelled**, not on time, for the same reason
+## the procedural stride does: a chilled or slowed enemy must take slower steps
+## rather than moon-walk. This is radians-equivalent - one full cycle per this
+## many pixels of ground covered. [TUNE]
+const ENEMY_WALK_FRAMES_PER_PIXEL: float = 0.030
+
+## How much of the procedural walk survives once real frames are playing.
+##
+## **Not zero, and not one.** Authored frames add to the transform juice, they
+## do not replace it - the bounce, lean and sway are what give an enemy weight
+## and what carry the recoil and hitstop that the frames know nothing about. But
+## a sprite whose legs already move and whose whole body also rocks at full
+## amplitude reads as seasick. Damped, both are doing their own job. [TUNE]
+const ENEMY_FRAME_WALK_DAMPING: float = 0.42
+
 ## Vertical compress applied when a foot lands. [TUNE]
 const ANIM_STEP_SQUASH: float = 0.055
 

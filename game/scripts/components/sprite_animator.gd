@@ -22,6 +22,15 @@ extends Node
 ## 1.0 is a human. Higher is heavier: slower bounce, deeper landing, more shake.
 @export var mass: float = 1.0
 
+## How much of the *walk cycle* channels survive - bounce, lean and sway only.
+##
+## Set below 1 by anything that has authored walk frames of its own. The frames
+## already move the legs, so a body also rocking at full amplitude reads as
+## seasick; damped, the frames do the stepping and the transform keeps the
+## weight. Every other channel - recoil, punch, squash, dash stretch - is
+## untouched, because those carry hits and the frames know nothing about hits.
+@export var walk_cycle_scale: float = 1.0
+
 ## Where the sprite sits at rest. Captured on ready so the offsets are relative.
 var _home: Vector2 = Vector2.ZERO
 var _home_scale: Vector2 = Vector2.ONE
@@ -162,15 +171,15 @@ func _process(delta: float) -> void:
 		# The bounce is a *rectified* sine: the body rises on each step rather
 		# than dipping below the ground on alternate ones.
 		var bounce: float = absf(sin(_stride)) * Balance.ANIM_BOUNCE_HEIGHT
-		bounce *= _speed_ratio * _mass_scale()
+		bounce *= _speed_ratio * _mass_scale() * walk_cycle_scale
 		offset.y -= bounce
 
 		# The lean runs at half the stride rate, so the body sways once per two
 		# steps instead of twitching on every one.
-		rotation_now += sin(_stride * Balance.ANIM_TILT_RATE) * deg_to_rad(Balance.ANIM_WALK_TILT) * _speed_ratio
+		rotation_now += sin(_stride * Balance.ANIM_TILT_RATE) * deg_to_rad(Balance.ANIM_WALK_TILT) * _speed_ratio * walk_cycle_scale
 
 		# Slight horizontal drift with the sway sells weight shifting between feet.
-		offset.x += cos(_stride * Balance.ANIM_TILT_RATE) * Balance.ANIM_WALK_SWAY * _speed_ratio
+		offset.x += cos(_stride * Balance.ANIM_TILT_RATE) * Balance.ANIM_WALK_SWAY * _speed_ratio * walk_cycle_scale
 
 	offset += _recoil + _punch
 

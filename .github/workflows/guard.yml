@@ -233,6 +233,10 @@ jobs:
           check "wildlife"    --headless --path game res://tools/wildlife_spawn_check.tscn
           check "ranged"      --headless --path game res://tools/ranged_check.tscn
           check "elites"      --headless --path game res://tools/elite_check.tscn
+          # Enemies walk on their own legs rather than sliding. Both halves fail
+          # silently: frames that exist but are not found by convention, and a
+          # loader "fixed" to include the resting pose in the cycle.
+          check "enemy walk" --headless --path game res://tools/enemy_walk_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one
