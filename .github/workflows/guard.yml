@@ -150,6 +150,13 @@ jobs:
 
           check "game" --headless --path game --quit
           check "launcher" --headless --path launcher --quit
+          # The download-mirror fallback, which Release ran and Guard did not.
+          # It is the only gate over the path a player behind a national filter
+          # takes, and that path was broken for as long as it existed: the mirror
+          # list was published only as a release asset, on the same CDN the
+          # mirrors route around. A regression here is invisible to everyone who
+          # can reach GitHub, which is everyone who would notice.
+          check "launcher pipeline" --headless --path launcher res://tests/release_pipeline_test.tscn
           check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
           check "http gzip"  --headless --path game --script res://tools/run_tool.gd -- http-gzip
           check "main menu" --headless --path game res://tools/menu_check.tscn

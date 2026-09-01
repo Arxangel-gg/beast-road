@@ -16,6 +16,22 @@ var asset_url: String = ""
 ## fetch, because the one moment it is needed is the moment GitHub cannot be
 ## reached - and a list that only exists on GitHub is no use then.
 var mirrors_url: String = ""
+
+## The mirror list carried *in the release notes*, or "".
+##
+## **This is the one that actually reaches a filtered player**, and the asset
+## above is not. `mirrors_url` points at `release-assets.githubusercontent.com`
+## - the same host the mirror list exists to route around - so the player who
+## needed it was the one player who could never fetch it. Reported from a friend
+## of the owner's behind a national filter: their launcher read the API fine,
+## displayed "Latest v0.5.1" and the changelog, and then retried GitHub forever
+## because its mirror list was empty.
+##
+## The release *body* arrives in the same `api.github.com` response as the tag
+## and the asset list. If the launcher knows there is an update at all, it has
+## already received this. No second request, no second host, nothing further to
+## be blocked.
+var mirrors_inline: String = ""
 var asset_name: String = ""
 var asset_size: int = 0
 var asset_sha256: String = ""
@@ -50,7 +66,9 @@ static func from_json(text: String) -> ReleaseInfo:
 	var info := ReleaseInfo.new()
 	info.tag = String(data.get("tag_name", ""))
 	info.title = String(data.get("name", info.tag))
-	info.notes = String(data.get("body", "")).strip_edges()
+	var body: String = String(data.get("body", "")).strip_edges()
+	info.mirrors_inline = mirrors_in_notes(body)
+	info.notes = notes_without_mirrors(body)
 
 	var assets: Array = data.get("assets", []) as Array
 	for entry: Variant in assets:
@@ -139,3 +157,41 @@ func size_text() -> String:
 	if asset_size <= 0:
 		return "unknown size"
 	return "%.1f MB" % (float(asset_size) / 1048576.0)
+
+
+## The marker CI wraps the mirror list in, inside an HTML comment so it is
+## invisible in the rendered release notes but present in the API's `body`.
+const MIRROR_OPEN: String = "<!--beast-road-mirrors"
+const MIRROR_CLOSE: String = "beast-road-mirrors-->"
+
+
+## Pulls the mirror list out of a release body, or "" when there is none.
+##
+## Returns the raw text rather than a parsed array: `LauncherConfig` already
+## validates and caches, and two places deciding what a valid mirror list looks
+## like is how the two come to disagree.
+static func mirrors_in_notes(notes: String) -> String:
+	var open_at: int = notes.find(MIRROR_OPEN)
+	if open_at < 0:
+		return ""
+	var from: int = open_at + MIRROR_OPEN.length()
+	var close_at: int = notes.find(MIRROR_CLOSE, from)
+	if close_at < 0:
+		return ""
+	return notes.substr(from, close_at - from).strip_edges()
+
+
+## The notes with the mirror block taken out, for display.
+##
+## An HTML comment renders as nothing on GitHub's own page, but the launcher
+## shows `notes` as plain text in a panel - so without this the player reads a
+## block of JSON above the changelog.
+static func notes_without_mirrors(notes: String) -> String:
+	var open_at: int = notes.find(MIRROR_OPEN)
+	if open_at < 0:
+		return notes
+	var close_at: int = notes.find(MIRROR_CLOSE, open_at)
+	if close_at < 0:
+		return notes
+	var tail: int = close_at + MIRROR_CLOSE.length()
+	return (notes.substr(0, open_at) + notes.substr(tail)).strip_edges()

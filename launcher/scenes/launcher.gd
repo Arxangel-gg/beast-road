@@ -220,14 +220,35 @@ func _on_release_fetched(result: int, code: int, _headers: PackedStringArray, bo
 
 ## Fetches the release's mirror list and keeps a copy.
 ##
-## **Nothing waits for this.** It is a few hundred bytes of "where else could
-## this come from", and the download it informs is minutes away; blocking the
-## interface on it would trade a certain delay for an uncertain benefit. If it
-## never arrives, the cached copy from last time is used, and if there is no
-## cache the launcher simply has GitHub - which is where it was before mirrors
-## existed.
+## **The list in the release body is used first, and it is the one that works.**
+## The `mirrors.json` asset is served from
+## `release-assets.githubusercontent.com` - the very host the mirror list exists
+## to route around - so fetching it was a request that could only succeed for
+## players who did not need it. A friend of the owner's behind a national filter
+## sat on "Retrying... no data from GitHub for 20 seconds" indefinitely: their
+## launcher had read the API perfectly, knew the latest tag, rendered the
+## changelog, and still had an empty mirror list, because the only copy it knew
+## how to reach was behind the block.
+##
+## The body arrives in the same `api.github.com` response as the tag. If the
+## launcher knows an update exists, it already has this.
+##
+## **Nothing waits for the fallback.** It is a few hundred bytes and the download
+## it informs is minutes away; blocking the interface on it would trade a certain
+## delay for an uncertain benefit. If it never arrives, the cached copy from last
+## time is used, and if there is no cache the launcher simply has GitHub - which
+## is where it was before mirrors existed.
 func _refresh_mirrors() -> void:
-	if _latest == null or _latest.mirrors_url.is_empty():
+	if _latest == null:
+		return
+	# In the release notes: already in hand, nothing to fetch, nothing to block.
+	if not _latest.mirrors_inline.is_empty():
+		if LauncherConfig.remember_mirrors(_latest.mirrors_inline):
+			return
+	# Older releases carried the list only as an asset. Still worth trying: a
+	# player who can reach the CDN is not harmed by one small request, and a
+	# player who cannot is no worse off than before.
+	if _latest.mirrors_url.is_empty():
 		return
 	var request := HTTPRequest.new()
 	request.timeout = 10.0

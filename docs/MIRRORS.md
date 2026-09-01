@@ -135,3 +135,40 @@ warning page that a launcher cannot answer. `BeastRoad-windows.zip` is 88 MB
 today and rising, and a mirror that stops working at some unannounced future
 size is worse than no mirror — it fails on exactly the release nobody tested.
 Dropbox has no such limit.
+
+## How the list reaches the launcher
+
+**In the release body, not as a file the launcher downloads.** This is the part
+that was wrong for as long as mirrors existed, and it made the whole system
+useless to precisely the people it was built for.
+
+`mirrors.json` is published as a release asset, and release assets are served
+from `release-assets.githubusercontent.com` — *the same host the mirrors exist
+to route around*. So the launcher fetched its mirror list from the blocked CDN:
+the request succeeded for everybody who did not need it and failed for everybody
+who did. A player behind a national filter saw their launcher read the API
+perfectly, display the latest tag and the changelog, and then retry GitHub
+forever with an empty mirror list.
+
+CI therefore also embeds the list in the release **body**, wrapped in an HTML
+comment so it is invisible on the rendered release page:
+
+```
+<!--beast-road-mirrors
+[{"name":"Dropbox","assets":{"BeastRoad-windows.zip":"https://..."}}]
+beast-road-mirrors-->
+```
+
+The body arrives in the same `api.github.com` response the launcher already
+reads to learn there is an update at all. If it knows a patch exists, it has the
+mirror list — no second request, no second host, nothing further to be blocked.
+
+The asset is still published and still fetched as a fallback, for launchers old
+enough to predate this.
+
+### Rescuing a player who is already stuck
+
+An old launcher will never learn about a mirror on its own. It does read a
+`mirrors.json` sitting **beside `BeastRoadLauncher.exe`**, ahead of everything
+else, so a stuck player can be sent the file directly — by any channel that
+works — and drop it there. `%LOCALAPPDATA%\BeastRoad\mirrors.json` works too.

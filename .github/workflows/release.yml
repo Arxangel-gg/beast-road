@@ -356,6 +356,9 @@ jobs:
           DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
         run: |
           set -euo pipefail
+          # Always present, even on the skip path below: `body_path` must never
+          # dangle, and an empty body simply means the generated notes stand alone.
+          : > release_body.md
           if [ -z "${DROPBOX_REFRESH_TOKEN:-}" ]; then
             echo "::notice title=Mirror::No Dropbox secrets set; skipping the backup mirror."
             exit 0
@@ -422,6 +425,25 @@ jobs:
 
           jq -n --arg url "$DIRECT" '[{name:"Dropbox",assets:{"BeastRoad-windows.zip":$url}}]'             > mirrors.json
           cat mirrors.json
+
+          # **And into the release body**, which is the copy that reaches a
+          # filtered player.
+          #
+          # The asset above is served from `release-assets.githubusercontent.com`
+          # - the same host the mirror exists to route around - so a launcher
+          # behind a national filter could never fetch the list telling it where
+          # else to go. The body travels in the `api.github.com` response the
+          # launcher already reads to learn the tag, so if it knows there is an
+          # update it has this too.
+          #
+          # Wrapped in an HTML comment: invisible on the rendered release page,
+          # present in the API payload.
+          {
+            printf '%s\n' '<!--beast-road-mirrors'
+            cat mirrors.json
+            printf '%s\n' 'beast-road-mirrors-->'
+          } > release_body.md
+          echo "Release body carries the mirror list."
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -491,6 +513,7 @@ jobs:
         with:
           name: Beast Road ${{ github.ref_name }}
           generate_release_notes: true
+          body_path: release_body.md
           files: |
             BeastRoad-windows.zip
             BeastRoad-web.zip

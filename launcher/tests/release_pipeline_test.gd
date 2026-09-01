@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_uninstall_removes_the_build()
 	if _failures == 0:
 		_test_mirrors()
+		_test_mirrors_in_release_notes()
 	_cleanup()
 	if _failures == 0:
 		print("[launcher test] release pipeline checks passed")
@@ -428,3 +429,76 @@ func _cleanup() -> void:
 	OS.set_environment("LOCALAPPDATA", _previous_local_app_data)
 	if DirAccess.dir_exists_absolute(_fixture_base):
 		DirAccess.remove_absolute(_fixture_base)
+
+
+## The mirror list carried in the release notes.
+##
+## **This is the path that reaches a filtered player**, and the reason it exists
+## is a bug that made the whole mirror system useless to the only people it was
+## built for. `mirrors.json` was published as a release asset, and release assets
+## are served from `release-assets.githubusercontent.com` - the same host the
+## mirrors exist to route around. A launcher behind a national filter read the
+## API perfectly, knew the latest tag, drew the changelog, and then retried
+## GitHub forever with an empty mirror list, because the only copy of that list
+## it knew how to fetch was on the far side of the block.
+##
+## Reported by a friend of the owner's, on a VPN, stuck at "No data from GitHub
+## for 20 seconds" while the screen behind the dialog cheerfully read
+## "Latest v0.5.1".
+func _test_mirrors_in_release_notes() -> void:
+	var mirrors: String = JSON.stringify([
+		{"name": "Dropbox", "assets": {"BeastRoad-windows.zip": "https://example.invalid/m.zip"}}])
+	var notes: String = "## What changed\n\nThings.\n\n" \
+		+ ReleaseInfo.MIRROR_OPEN + "\n" + mirrors + "\n" + ReleaseInfo.MIRROR_CLOSE \
+		+ "\n\n**Full Changelog**: https://example.invalid/compare"
+
+	_check(ReleaseInfo.mirrors_in_notes(notes) == mirrors,
+		"the mirror block must come back out of a release body exactly as it "
+			+ "went in")
+	_check(not ReleaseInfo.notes_without_mirrors(notes).contains("beast-road-mirrors"),
+		"and must be stripped from what the player reads - the launcher shows "
+			+ "these notes as plain text, where an HTML comment is not invisible")
+	_check(ReleaseInfo.notes_without_mirrors(notes).contains("What changed")
+			and ReleaseInfo.notes_without_mirrors(notes).contains("Full Changelog"),
+		"stripping the block must leave the rest of the notes intact on both "
+			+ "sides of it")
+
+	# Releases published before this existed, and any body somebody edits by
+	# hand, must pass through untouched rather than being mangled.
+	_check(ReleaseInfo.mirrors_in_notes("just some notes").is_empty(),
+		"a body with no mirror block must yield no mirrors")
+	_check(ReleaseInfo.notes_without_mirrors("just some notes") == "just some notes",
+		"and must be left exactly as it was")
+	# An unterminated marker is corruption, not a list. Reading to the end of the
+	# body would hand `remember_mirrors` a half-written array.
+	_check(ReleaseInfo.mirrors_in_notes(ReleaseInfo.MIRROR_OPEN + "\n[{}").is_empty(),
+		"an unclosed mirror block must be refused rather than read to the end "
+			+ "of the notes")
+
+	# The whole point, end to end: a release whose body carries mirrors must
+	# produce a usable mirror list without any second request.
+	DirAccess.remove_absolute(LauncherConfig.mirror_cache_path())
+	var info: ReleaseInfo = ReleaseInfo.from_json(JSON.stringify({
+		"tag_name": "v9.9.9",
+		"body": notes,
+		"assets": [{
+			"name": "BeastRoad-windows.zip",
+			"browser_download_url": "https://example.invalid/gh.zip",
+			"size": 123,
+		}],
+	}))
+	_check(info != null and info.mirrors_inline == mirrors,
+		"a release carrying mirrors in its body must expose them without a "
+			+ "second request to a host that may be blocked")
+	if info == null:
+		return
+	_check(LauncherConfig.remember_mirrors(info.mirrors_inline),
+		"and that list must be well-formed enough to cache")
+	var names: Array = []
+	for entry: Variant in LauncherConfig.mirrors_for(
+			"BeastRoad-windows.zip", "https://example.invalid/gh.zip"):
+		names.append(String((entry as Dictionary)["name"]))
+	_check(names == ["GitHub", "Dropbox"],
+		"a filtered player must end up with somewhere to go after GitHub - "
+			+ "got %s" % str(names))
+	DirAccess.remove_absolute(LauncherConfig.mirror_cache_path())
