@@ -52,7 +52,6 @@ func _ready() -> void:
 
 
 func _test_the_roster_is_reachable() -> void:
-	_ran += 1
 	_check(not ContentDB.items.is_empty(), "there must be at least one consumable")
 	for value: Variant in ContentDB.items.values():
 		var kind := value as ItemData
@@ -70,12 +69,16 @@ func _test_the_roster_is_reachable() -> void:
 		# odds live on the resource precisely so this can be asked generically.
 		_check(kind.raid_clear_chance > 0.0,
 			"%s can never be obtained: nothing rolls for it" % kind.id)
+	# Counted here rather than on entry. A runtime error aborts the function it
+	# happens in, so a counter incremented at the top marks a test that never
+	# ran as having run - which is how spirit_check printed PASS while an
+	# Invalid call skipped every assertion below it.
+	_ran += 1
 
 
 ## The holding, and the limit on it. Asked through the generic API so a second
 ## consumable inherits the behaviour rather than reimplementing it.
 func _test_carry_limits_hold() -> void:
-	_ran += 1
 	RunState.held_items.clear()
 	for value: Variant in ContentDB.items.values():
 		var kind := value as ItemData
@@ -102,11 +105,11 @@ func _test_carry_limits_hold() -> void:
 			"spending %s that is not held must fail rather than going negative"
 				% kind.id)
 	RunState.held_items.clear()
+	_ran += 1
 
 
 ## The lookup the hero actually uses: by effect, never by id.
 func _test_effects_are_asked_for_by_effect() -> void:
-	_ran += 1
 	RunState.held_items.clear()
 	_check(RunState.item_with_effect(ItemData.Effect.REVIVE) == null,
 		"holding nothing must find nothing")
@@ -127,10 +130,10 @@ func _test_effects_are_asked_for_by_effect() -> void:
 	var automatic: ItemData = RunState.item_with_effect(ItemData.Effect.REVIVE, true)
 	_check(automatic != null, "%s is automatic and must be found as one" % revive.id)
 	RunState.held_items.clear()
+	_ran += 1
 
 
 func _test_every_authored_effect_is_wired() -> void:
-	_ran += 1
 	for value: Variant in ContentDB.items.values():
 		var kind := value as ItemData
 		if kind == null:
@@ -140,6 +143,7 @@ func _test_every_authored_effect_is_wired() -> void:
 				+ "taken, drawn in the HUD, and do nothing. Wire it where the "
 				+ "game asks, then add it to item_check.WIRED.")
 				% [kind.id, int(kind.effect)])
+	_ran += 1
 
 
 func _finish() -> void:

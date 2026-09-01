@@ -31,7 +31,6 @@ func _ready() -> void:
 ## The core behaviour, driven through the signal an actual kill emits rather than
 ## by calling the counter: a gate that calls `_feed_momentum` proves it exists.
 func _test_a_streak_builds_and_decays() -> void:
-	_ran += 1
 	# `Vfx.world` is null in a headless tool, which makes every drawing call
 	# return on its first line — the counter still runs, which is the half being
 	# measured here.
@@ -41,13 +40,17 @@ func _test_a_streak_builds_and_decays() -> void:
 	_check(Vfx.momentum_streak() == 6,
 		"six kills in a row must read as a streak of six, got %d"
 			% Vfx.momentum_streak())
+	# Counted here rather than on entry. A runtime error aborts the function it
+	# happens in, so a counter incremented at the top marks a test that never
+	# ran as having run - which is how spirit_check printed PASS while an
+	# Invalid call skipped every assertion below it.
+	_ran += 1
 
 
 ## A tier the player never reaches is a tier that does not exist, and one they
 ## cross constantly is wallpaper. Both ends are checked against the roster the
 ## waves actually produce.
 func _test_tiers_are_worth_crossing() -> void:
-	_ran += 1
 	var tiers: Array[int] = Balance.MOMENTUM_TIERS
 	_check(tiers.size() >= 3, "there should be several steps to climb")
 	_check(tiers.size() == Balance.MOMENTUM_WORDS.size()
@@ -69,10 +72,10 @@ func _test_tiers_are_worth_crossing() -> void:
 	_check(Balance.MOMENTUM_WINDOW >= 1.5 and Balance.MOMENTUM_WINDOW <= 6.0,
 		"the streak window of %.1fs is either too tight to survive a walk "
 			% Balance.MOMENTUM_WINDOW + "between bodies or so loose it never ends")
+	_ran += 1
 
 
 func _test_the_swell_is_bounded() -> void:
-	_ran += 1
 	_check(Balance.MOMENTUM_BURST_SCALE > 1.0,
 		"a streak that swells nothing is not escalation")
 	# The burst is particle counts. Unbounded, a long streak is a frame-rate
@@ -83,6 +86,7 @@ func _test_the_swell_is_bounded() -> void:
 	_check(Balance.MOMENTUM_SHAKE <= 6.0,
 		"%.1f of extra shake on every kill stacks with the swing's own and "
 			% Balance.MOMENTUM_SHAKE + "becomes nausea rather than force")
+	_ran += 1
 
 
 ## **The one that matters.** Momentum must not be able to touch anything the
@@ -93,7 +97,6 @@ func _test_the_swell_is_bounded() -> void:
 ## this is what notices - the structural guarantee is that `Vfx` cannot reach
 ## these, and this is the assertion that the guarantee still holds.
 func _test_momentum_cannot_reach_the_economy() -> void:
-	_ran += 1
 	var gold_before: int = RunState.currency(RunState.GOLD)
 	var xp_before: float = RunState.hero_xp
 	var level_before: int = RunState.hero_level
@@ -116,6 +119,7 @@ func _test_momentum_cannot_reach_the_economy() -> void:
 	_check(is_equal_approx(damage_after, damage_before),
 		"a kill streak must not change hero damage: %.3f -> %.3f"
 			% [damage_before, damage_after])
+	_ran += 1
 
 
 func _finish() -> void:

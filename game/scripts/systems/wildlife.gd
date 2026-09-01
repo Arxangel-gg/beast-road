@@ -432,9 +432,19 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	bar.modulate = Balance.WILDLIFE_ELITE_TINT if elite else Color.WHITE
 	sprite.add_child(bar)
 
+	# **Rolled once, here, and never again.** A shiny is decided when the animal
+	# is placed, so nothing the player does to one already on the field can
+	# reroll it - no walking away and back, no save-scumming a sighting.
+	var shiny: bool = SpiritBond.rolls_shiny(kind.rarity, _rng)
+	if shiny:
+		_dress_as_shiny(sprite, kind)
+
 	_living.append({
 		"net_id": identity,
 		"data": kind,
+		"shiny": shiny,
+		# One animal is one encounter, however many times it is hit or approached.
+		"credited": false,
 		"group_id": group_id,
 		"sprite": sprite,
 		"state": State.ARRIVING,
@@ -472,6 +482,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	if sprite == null or not is_instance_valid(sprite):
 		return false
 	var kind := animal["data"] as WildlifeData
+
+	# Asked before the dying check, and only while the animal is still whole: a
+	# corpse is not a bond, and neither is standing next to one.
+	if not kind.is_hostile() and float(animal["dying"]) <= 0.0:
+		_offer_bond(animal)
 
 	# A body already on its way down is not doing anything else.
 	if float(animal["dying"]) > 0.0:
@@ -1086,6 +1101,10 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	if _is_authority_with_company():
 		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
 	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position)
+	# A hostile animal is bonded by besting it. The harmless ones are bonded by
+	# getting close instead - see `_offer_bond` - because a collection system
+	# that required slaughtering rabbits would be a different game.
+	_credit_encounter(animal, SpiritBond.Kind.SLAIN)
 	# The body stays until it has fallen; `_retire` announces it when it goes.
 	# Left on the field to fall over rather than vanishing on the blow - a kill
 	# that deletes its own body reads as the animal never having been there.
@@ -1216,3 +1235,90 @@ func clear() -> void:
 		if sprite != null and is_instance_valid(sprite):
 			sprite.queue_free()
 	_living.clear()
+
+
+# --- Wildlife Spirit Companions ----------------------------------------------
+#
+# Owner decision, 2026-09-01. Meeting an animal is what earns its spirit, so this
+# is where the collection is actually fed. `SpiritBond` owns the rules; this owns
+# the moments.
+
+## Marks a shiny so it is recognisable across a field at a glance.
+##
+## A tint and a slow pulse rather than particles or an outline: the sprites are
+## 64px of pixel art and anything drawn *around* them at that size covers the
+## animal up. Kept deliberately low - a creature that strobes is a creature
+## nobody wants to look at, and the point is "that one is different", not
+## "that one is a light show".
+func _dress_as_shiny(sprite: Sprite2D, kind: WildlifeData) -> void:
+	sprite.modulate = Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+		Balance.SPIRIT_SHINY_TINT_STRENGTH)
+	var pulse: Tween = sprite.create_tween().set_loops()
+	var half: float = 0.5 / maxf(Balance.SPIRIT_SHINY_PULSE_HZ, 0.1)
+	pulse.tween_property(sprite, "modulate",
+		Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+			Balance.SPIRIT_SHINY_TINT_STRENGTH * 0.35), half)
+	pulse.tween_property(sprite, "modulate",
+		Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+			Balance.SPIRIT_SHINY_TINT_STRENGTH), half)
+	# Said out loud the moment it is placed, because a shiny nobody noticed is a
+	# shiny that did not happen.
+	Vfx.ring(sprite.global_position, 78.0 * kind.scale,
+		Color(Balance.SPIRIT_SHINY_COLOUR, 0.7), 0.6, 5.0)
+	Vfx.spark(sprite.global_position, Balance.SPIRIT_SHINY_COLOUR, 14,
+		Vector2.UP, 150.0)
+
+
+## Banks one encounter with this animal, at most once per animal.
+##
+## **The `credited` flag is the anti-farm rule.** Without it a player could bond
+## a Legendary by hitting the same deer repeatedly, or by walking in and out of
+## a tortoise's bond radius. One animal is one encounter however many times it
+## is touched; a second encounter needs a second animal.
+func _credit_encounter(animal: Dictionary, _how: SpiritBond.Kind) -> void:
+	if bool(animal.get("credited", false)):
+		return
+	var kind := animal["data"] as WildlifeData
+	if kind == null:
+		return
+	animal["credited"] = true
+	var shiny: bool = bool(animal.get("shiny", false))
+	var result: Dictionary = MetaState.record_spirit_encounter(kind.id, kind.rarity, shiny)
+	for key: Variant in (result["discovered"] as Array):
+		EventBus.spirit_discovered.emit(String(key),
+			MetaState.spirit_encounter_count(String(key)),
+			SpiritBond.needed(SpiritBond.rarity_of(String(key)),
+				SpiritBond.shiny_of(String(key))))
+	for key: Variant in (result["bonded"] as Array):
+		EventBus.spirit_bonded.emit(String(key))
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite != null and is_instance_valid(sprite) and not (result["bonded"] as Array).is_empty():
+		Vfx.ring(sprite.global_position, 96.0, Color(SpiritBond.tint(kind.rarity, shiny), 0.8),
+			0.7, 6.0)
+
+
+## Offers a bond to a harmless animal the hero has got close to.
+##
+## **Approach, not slaughter.** The owner's rule: harmless wildlife must not have
+## to be killed to be collected. What counts is getting near one before it bolts,
+## which is already a real skill check because `skittish_radius` and
+## `flee_speed_scale` are authored per species - a tortoise is a formality and a
+## snow hare is genuinely difficult. No new stat, no minigame, and the difficulty
+## curve came free with the animals.
+func _offer_bond(animal: Dictionary) -> void:
+	if bool(animal.get("credited", false)):
+		return
+	var kind := animal["data"] as WildlifeData
+	if kind == null or kind.is_hostile():
+		return
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var at: Vector2 = sprite.global_position
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Node2D
+		if hero == null:
+			continue
+		if at.distance_to(hero.global_position) <= Balance.SPIRIT_BOND_RADIUS:
+			_credit_encounter(animal, SpiritBond.Kind.BONDED)
+			return

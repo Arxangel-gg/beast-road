@@ -702,6 +702,15 @@ const SPIRIT_SHINY_COLOUR: Color = Color("6fe8e0")
 const SPIRIT_SHINY_TINT_STRENGTH: float = 0.34
 const SPIRIT_SHINY_PULSE_HZ: float = 1.4
 
+## How close the hero must get to a harmless animal to bond with it.
+##
+## Deliberately shorter than any species' `skittish_radius`, which is what makes
+## approaching a nervous animal a real thing to do: the hare bolts at 260 and
+## bonds at 70, so the last stretch has to be earned. A tortoise, which barely
+## flees at all, is a formality - and that difference came free with the animals
+## rather than needing a new stat. [TUNE]
+const SPIRIT_BOND_RADIUS: float = 70.0
+
 # ------------------------------------------------------------------------------
 # Oath of the Last Scar — run challenge
 # ------------------------------------------------------------------------------
