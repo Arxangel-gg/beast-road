@@ -374,6 +374,16 @@ func _test_a_spirit_fights_falls_and_returns() -> void:
 	field.add_child(spirit)
 	await get_tree().process_frame
 	_check(spirit.spirit_health_ratio() > 0.99, "a fresh spirit starts whole")
+	# **The translucency has to survive the animation tick.**  drives
+	# alpha from the remaining lifetime, which for a spirit is INF and clamps to
+	# fully opaque - so a spirit would look exactly like the living animal, every
+	# frame, with nothing reporting it.
+	for _frame: int in 3:
+		await get_tree().process_frame
+	var drawn: Sprite2D = spirit._sprite
+	_check(drawn != null and drawn.modulate.a < 0.95,
+		"a spirit must stay translucent while it walks, alpha is %.2f"
+			% (drawn.modulate.a if drawn != null else -1.0))
 	_check(is_zero_approx(spirit.recovery_left()),
 		"and is present rather than recovering")
 

@@ -1171,6 +1171,12 @@ resolves by convention to `ui_<id>.png`; these are used both in the stash and
 as the readable silhouette inside a rarity-lit battlefield pickup.
 
 `ui_coalpaint_edge.png` · `ui_sunglass_saber.png` ·
+`ui_shieldbearers_vow.png` · `ui_gutterfang.png` ·
+`ui_reckoners_rod.png` · `ui_warmarked_jack.png` ·
+`ui_reaver_plate.png` · `ui_driftrunners_wrap.png` ·
+`ui_reliquary_harness.png` · `ui_hearthiron_torc.png` ·
+`ui_deepwell_charm.png` · `ui_oathiron_ring.png` ·
+`ui_coursers_feather.png` · `ui_ledgerkeepers_seal.png` ·
 `ui_bulwark_pike.png` · `ui_stonewarden_hammer.png` ·
 `ui_whisper_fang.png` · `ui_windcut_saber.png` ·
 `ui_sigil_brand.png` · `ui_tally_knife.png` ·

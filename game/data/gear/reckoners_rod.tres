@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+attribute = 3
+base_points = 2
+weight = 1.15
+min_tier = 0
+reach_scale = 1.060
+swing_scale = 0.943
+description = "A road-warden's measure, weighted at one end. It does count things."
+id = "reckoners_rod"
+display_name = "Reckoner's Rod"

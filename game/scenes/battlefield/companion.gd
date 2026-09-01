@@ -91,6 +91,8 @@ func _ready() -> void:
 	_sprite.scale = Vector2.ONE * data.scale
 	add_child(_sprite)
 	_bob = randf() * TAU
+	if not spirit_key.is_empty():
+		_dress_as_spirit()
 
 	Vfx.ring(global_position, 84.0, Color(data.colour, 0.75), 0.45, 4.0)
 	Vfx.spark(global_position, data.colour, 12, Vector2.UP, 210.0)
@@ -184,7 +186,13 @@ func _animate(delta: float) -> void:
 	_sprite.position = _sprite.position.lerp(
 		Vector2(0.0, lift + sin(_bob) * (5.0 if data.flies else 2.0)), 0.25)
 	# The last second is a fade, so it reads as leaving rather than as popping.
-	_sprite.modulate.a = clampf(_left, 0.0, 1.0)
+	#
+	# **Spell summons only.** A spirit has no clock - `_left` is INF, which clamps
+	# to 1.0 and would overwrite the translucency that makes it read as a spirit
+	# at all, every frame, silently. It would also fight the breath tween for
+	# ownership of the same property.
+	if spirit_key.is_empty():
+		_sprite.modulate.a = clampf(_left, 0.0, 1.0)
 
 
 ## Goes back where it came from.
@@ -267,3 +275,30 @@ func recovery_left() -> float:
 
 func spirit_health_ratio() -> float:
 	return clampf(_hp / maxf(_max_hp, 1.0), 0.0, 1.0) if _max_hp > 0.0 else 1.0
+
+
+## Makes a spirit read as a manifestation rather than as the animal wandering in.
+##
+## **Translucency and a tint, and nothing drawn on top.** These are the same
+## 64px wildlife sprites; an outline, a particle system or a bloom pass at that
+## size covers the animal up, and the owner's brief is explicit that the pixel
+## art must stay readable. Alpha plus a colour is enough to say "this is not
+## flesh" while leaving every pixel visible.
+##
+## The tint is the variant's own, so rarity and shine are legible on the field
+## rather than only in the journal - a Shiny Legendary Wolf walking beside you
+## should be recognisable as one without opening a menu.
+func _dress_as_spirit() -> void:
+	if _sprite == null:
+		return
+	var hue: Color = data.colour
+	hue.a = Balance.SPIRIT_DRAW_ALPHA
+	_sprite.modulate = hue
+	# A slow breath rather than a flicker: it has to survive being looked at for
+	# a whole run, which is a much harder test than looking good for a second.
+	var breath: Tween = _sprite.create_tween().set_loops()
+	var dim: Color = hue
+	dim.a = Balance.SPIRIT_DRAW_ALPHA * 0.78
+	var half: float = 0.5 / maxf(Balance.SPIRIT_BREATH_HZ, 0.05)
+	breath.tween_property(_sprite, "modulate", dim, half)
+	breath.tween_property(_sprite, "modulate", hue, half)

@@ -736,6 +736,16 @@ const SPIRIT_CONTACT_INTERVAL: float = 0.9
 const SPIRIT_DRAW_SCALE: float = 1.15
 const SPIRIT_SPEED_SCALE: float = 1.30
 
+## How solid a spirit is drawn, and how slowly it breathes.
+##
+## High enough that the animal is still plainly readable - the brief's rule is
+## that the pixel art must not be obscured - and low enough that nobody mistakes
+## it for the living creature. The breath is deliberately slow: it has to survive
+## being looked at for a whole run, which is a harder test than looking good for
+## a second. [TUNE]
+const SPIRIT_DRAW_ALPHA: float = 0.82
+const SPIRIT_BREATH_HZ: float = 0.45
+
 ## What a harmless animal's spirit hits for, since the animal itself does no
 ## damage at all. Small: a Rabbit Spirit is a presence and a nuisance, not a
 ## Wolf Spirit with different art - the difference between species is meant to

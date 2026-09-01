@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 2
+attribute = 2
+base_points = 2
+weight = 1.20
+min_tier = 0
+description = "Light enough to forget you are carrying it, which is the point."
+id = "coursers_feather"
+display_name = "Courser's Feather"

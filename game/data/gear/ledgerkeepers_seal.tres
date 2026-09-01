@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 2
+attribute = 3
+base_points = 3
+weight = 0.90
+min_tier = 1
+description = "Every debt on the road is written somewhere. This one signs them off."
+id = "ledgerkeepers_seal"
+display_name = "Ledgerkeeper's Seal"
