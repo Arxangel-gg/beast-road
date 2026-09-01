@@ -78,7 +78,12 @@ jobs:
             status=${PIPESTATUS[0]}
             set -e
             if [ "$status" -ne 0 ] || grep -Eq '^(SCRIPT )?ERROR:|^WARNING:' "$log"; then
-              echo "::error::Godot validation failed or emitted an error/warning."
+              echo "::group::Output of: godot $*"
+              cat "$log"
+              echo "::endgroup::"
+              detail=$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$log" | head -n 8 | tr '\n' '~')
+              if [ -z "$detail" ]; then detail="exited $status with no error line"; fi
+              echo "::error title=Godot validation::[$*] ${detail}"
               return 1
             fi
           }
