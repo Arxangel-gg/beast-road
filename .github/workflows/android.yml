@@ -140,7 +140,9 @@ jobs:
           set -e
           if [ "$status" -ne 0 ] || [ ! -s build/android/BeastRoad.apk ]; then
             cat /tmp/export.log
-            detail=$(tail -n 25 /tmp/export.log | tr '\n' '~' | cut -c1-900)
+            errors=$(grep -iE '^(script )?error|failed|cannot|missing' /tmp/export.log | tail -n 12 | tr '\n' '~')
+            if [ -z "$errors" ]; then errors=$(tail -n 12 /tmp/export.log | tr "\n" "~"); fi
+            detail=$(printf "%s" "$errors" | cut -c1-900)
             echo "::error title=Android export failed::${detail}"
             exit 1
           fi
