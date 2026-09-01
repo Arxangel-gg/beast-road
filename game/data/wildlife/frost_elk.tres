@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "frost_elk"
+display_name = "Frost Elk"
+description = "It has broken a road open before. The antlers are how you know."
+rarity = 3
+temperament = 2
+movement_style = 0
+damage = 22.0
+attack_interval = 1.60
+attack_range = 118.0
+aggro_radius = 480.0
+knockback = 190.0
+charge_speed_scale = 2.00
+elite_chance = 0.18
+acts = Array[int]([3])
+weight = 0.55
+group_min = 1
+group_max = 1
+social_spacing = 150.0
+group_cohesion = 0.0
+activity = 0.50
+speed = 96.0
+roam = 420.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.75
+max_hp = 165.0
+food_min = 6
+food_max = 11
+xp_reward = 34
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

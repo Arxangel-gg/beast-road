@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ptarmigan"
+display_name = "Ptarmigan"
+description = "It holds its nerve far longer than seems wise, and breaks all at once."
+rarity = 1
+temperament = 1
+movement_style = 1
+
+acts = Array[int]([3])
+weight = 1.05
+group_min = 2
+group_max = 4
+social_spacing = 78.0
+group_cohesion = 0.34
+activity = 0.52
+speed = 74.0
+roam = 240.0
+skittish_radius = 280.0
+flee_speed_scale = 2.80
+flies = false
+scale = 0.88
+max_hp = 26.0
+food_min = 2
+food_max = 4
+xp_reward = 8
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

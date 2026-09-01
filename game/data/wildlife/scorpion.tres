@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "scorpion"
+display_name = "Pale Scorpion"
+description = "It does not chase. It simply does not move, and then it is on your boot."
+rarity = 1
+temperament = 2
+movement_style = 4
+damage = 13.0
+attack_interval = 1.35
+attack_range = 74.0
+aggro_radius = 300.0
+knockback = 40.0
+charge_speed_scale = 1.40
+elite_chance = 0.10
+acts = Array[int]([2, 3])
+weight = 0.95
+group_min = 1
+group_max = 3
+social_spacing = 80.0
+group_cohesion = 0.20
+activity = 0.44
+speed = 58.0
+roam = 210.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 0.80
+max_hp = 40.0
+food_min = 2
+food_max = 4
+xp_reward = 11
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

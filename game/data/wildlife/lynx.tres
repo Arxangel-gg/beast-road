@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "lynx"
+display_name = "Forest Lynx"
+description = "One set of tracks, and they only go one way."
+rarity = 2
+temperament = 3
+movement_style = 2
+damage = 11.0
+attack_interval = 1.05
+attack_range = 92.0
+aggro_radius = 620.0
+knockback = 60.0
+charge_speed_scale = 1.52
+elite_chance = 0.12
+acts = Array[int]([1, 2])
+weight = 0.70
+group_min = 1
+group_max = 1
+social_spacing = 120.0
+group_cohesion = 0.0
+activity = 0.72
+speed = 128.0
+roam = 560.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.15
+max_hp = 78.0
+food_min = 3
+food_max = 6
+xp_reward = 15
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "jackal"
+display_name = "Dune Jackal"
+description = "They wait for the wave to break on somebody else, then come for what is left."
+rarity = 1
+temperament = 3
+movement_style = 2
+damage = 7.0
+attack_interval = 0.90
+attack_range = 88.0
+aggro_radius = 700.0
+knockback = 55.0
+charge_speed_scale = 1.55
+elite_chance = 0.08
+acts = Array[int]([2, 3])
+weight = 1.05
+group_min = 3
+group_max = 4
+social_spacing = 122.0
+group_cohesion = 0.62
+activity = 0.80
+speed = 122.0
+roam = 540.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.10
+max_hp = 62.0
+food_min = 2
+food_max = 5
+xp_reward = 13
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

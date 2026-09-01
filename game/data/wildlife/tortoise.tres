@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tortoise"
+display_name = "Sand Tortoise"
+description = "Older than the road. It has seen this before and was not impressed then either."
+rarity = 0
+temperament = 0
+movement_style = 0
+
+acts = Array[int]([2])
+weight = 0.85
+group_min = 1
+group_max = 1
+social_spacing = 90.0
+group_cohesion = 0.0
+activity = 0.30
+speed = 22.0
+roam = 120.0
+skittish_radius = 90.0
+flee_speed_scale = 1.20
+flies = false
+scale = 0.95
+max_hp = 46.0
+food_min = 2
+food_max = 5
+xp_reward = 8
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0

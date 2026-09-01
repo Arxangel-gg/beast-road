@@ -627,6 +627,9 @@ motion the generator can find without inventing geometry.
 | `plant_jungle_flower_idle_01.png` | 32×40 | T | `#2E3A33` |
 | `plant_jungle_flower_idle_02.png` | 32×40 | T | `#2E3A33` |
 | `plant_jungle_flower_idle_03.png` | 32×40 | T | `#2E3A33` |
+| `plant_desert_flower_idle_01.png` | 32×40 | T | `#6E5B3C` |
+| `plant_desert_flower_idle_02.png` | 32×40 | T | `#6E5B3C` |
+| `plant_desert_flower_idle_03.png` | 32×40 | T | `#6E5B3C` |
 | `plant_snow_flower_idle_01.png` | 32×40 | T | `#7C8A96` |
 | `plant_snow_flower_idle_02.png` | 32×40 | T | `#7C8A96` |
 | `plant_snow_flower_idle_03.png` | 32×40 | T | `#7C8A96` |
@@ -902,7 +905,21 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_deer.png` · `wildlife_squirrel.png` · `wildlife_raccoon.png` ·
 `wildlife_wolf.png` · `wildlife_boar.png` · `wildlife_bear.png` ·
 `wildlife_viper.png` · `wildlife_badger.png` · `wildlife_hawk.png` ·
-`wildlife_stag.png`
+`wildlife_stag.png` ·
+`wildlife_heron.png` · `wildlife_hedgehog.png` · `wildlife_lynx.png` ·
+`wildlife_tortoise.png` · `wildlife_jackal.png` · `wildlife_scorpion.png` ·
+`wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
+`wildlife_snow_lynx.png` · `wildlife_frost_elk.png`
+
+The ten added on 2026-09-01 answer "more wildlife variety for all rarities of
+both harmless and predators for all regions". The gap was not rarity — that
+was already even — it was **Act III**, which had five species against nine and
+ten in the other two, so a snowfield read as emptier than a jungle for reasons
+nobody chose. Four of the ten are Act III alone.
+
+**Nine of the ten face right and the hedgehog faces left**, which was read off
+a contact sheet rather than assumed. `art_faces_right` is per-sprite for
+exactly this reason, and getting it wrong makes a creature moonwalk.
 
 Six of these are the **hostile** roster — wolf, boar, bear, viper, badger, hawk —
 and they read as such: heavier silhouettes, teeth and tusks where the ambient
@@ -947,6 +964,16 @@ Files: `wildlife_fox_idle_01.png`
 Files: `wildlife_rabbit_idle_01.png`
 Files: `wildlife_deer_idle_01.png`
 Files: `wildlife_stag_idle_01.png`
+Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png` · `wildlife_heron_idle_04.png`
+Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png` · `wildlife_hedgehog_idle_04.png`
+Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
+Files: `wildlife_tortoise_idle_01.png` · `wildlife_tortoise_idle_02.png` · `wildlife_tortoise_idle_03.png` · `wildlife_tortoise_idle_04.png`
+Files: `wildlife_jackal_idle_01.png` · `wildlife_jackal_idle_02.png` · `wildlife_jackal_idle_03.png` · `wildlife_jackal_idle_04.png`
+Files: `wildlife_scorpion_idle_01.png` · `wildlife_scorpion_idle_02.png` · `wildlife_scorpion_idle_03.png` · `wildlife_scorpion_idle_04.png`
+Files: `wildlife_snow_hare_idle_01.png` · `wildlife_snow_hare_idle_02.png` · `wildlife_snow_hare_idle_03.png` · `wildlife_snow_hare_idle_04.png`
+Files: `wildlife_ptarmigan_idle_01.png` · `wildlife_ptarmigan_idle_02.png` · `wildlife_ptarmigan_idle_03.png` · `wildlife_ptarmigan_idle_04.png`
+Files: `wildlife_snow_lynx_idle_01.png` · `wildlife_snow_lynx_idle_02.png` · `wildlife_snow_lynx_idle_03.png` · `wildlife_snow_lynx_idle_04.png`
+Files: `wildlife_frost_elk_idle_01.png` · `wildlife_frost_elk_idle_02.png` · `wildlife_frost_elk_idle_03.png` · `wildlife_frost_elk_idle_04.png`
 Files: `wildlife_badger_idle_01.png` … `wildlife_badger_idle_04.png`
 Files: `wildlife_bear_idle_01.png` … `wildlife_bear_idle_04.png`
 Files: `wildlife_boar_idle_01.png` … `wildlife_boar_idle_04.png`
@@ -1002,6 +1029,16 @@ Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png`
 Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png`
 Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
 Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png`
+Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png`
+Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png`
+Files: `wildlife_lynx_move_01.png` · `wildlife_lynx_move_02.png`
+Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png`
+Files: `wildlife_jackal_move_01.png` · `wildlife_jackal_move_02.png`
+Files: `wildlife_scorpion_move_01.png` · `wildlife_scorpion_move_02.png`
+Files: `wildlife_snow_hare_move_01.png` · `wildlife_snow_hare_move_02.png`
+Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png`
+Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png`
+Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 
@@ -1024,6 +1061,11 @@ Files: `wildlife_wolf_attack_01.png` … `wildlife_wolf_attack_05.png`
 Files: `wildlife_boar_attack_01.png` … `wildlife_boar_attack_05.png`
 Files: `wildlife_bear_attack_01.png` … `wildlife_bear_attack_05.png`
 Files: `wildlife_viper_attack_01.png` … `wildlife_viper_attack_05.png`
+Files: `wildlife_lynx_attack_01.png` … `wildlife_lynx_attack_05.png`
+Files: `wildlife_jackal_attack_01.png` … `wildlife_jackal_attack_05.png`
+Files: `wildlife_scorpion_attack_01.png` … `wildlife_scorpion_attack_05.png`
+Files: `wildlife_snow_lynx_attack_01.png` … `wildlife_snow_lynx_attack_05.png`
+Files: `wildlife_frost_elk_attack_01.png` … `wildlife_frost_elk_attack_05.png`
 Files: `wildlife_badger_attack_01.png` … `wildlife_badger_attack_05.png`
 Files: `wildlife_hawk_attack_01.png` … `wildlife_hawk_attack_05.png`
 
