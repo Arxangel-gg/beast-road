@@ -49,6 +49,41 @@ static func make(kind_id: String, rarity: int, level: int = 1) -> Dictionary:
 	}
 
 
+## Whether the player has marked this piece to be left alone.
+##
+## Owner request, 2026-09-02. The stash holds 160 and has two bulk-break buttons
+## in it; the one thing those must never do is take the piece somebody was
+## saving. Read through a function rather than the raw key so nothing has to
+## remember that an unmarked piece has no key at all.
+static func is_favourite(piece: Dictionary) -> bool:
+	return bool(piece.get("favourite", false))
+
+
+## Marks or unmarks a piece. Returns what it now is.
+static func set_favourite(piece: Dictionary, wanted: bool) -> bool:
+	if wanted:
+		piece["favourite"] = true
+	else:
+		piece.erase("favourite")
+	return wanted
+
+
+## Whether a bulk sweep may take this piece.
+##
+## **One function, asked by the button and by the gate.** The rules were three
+## conditions written inline in the stash screen, which is exactly the shape that
+## cannot be tested - and the thing being decided is permanent destruction of a
+## player's gear. Wornness stays with the caller because it is a question about
+## an index rather than about a piece.
+static func may_break(piece: Dictionary, rarity_ceiling: int) -> bool:
+	if is_favourite(piece):
+		return false
+	if int(piece.get("rarity", 0)) > rarity_ceiling:
+		return false
+	# An upgraded piece is one somebody spent on. Never swept, marked or not.
+	return int(piece.get("level", 1)) <= 1
+
+
 ## Rolls a piece for a tier, weighted toward the common.
 ##
 ## Rarity is drawn against a curve rather than a flat table so the top rarity

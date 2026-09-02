@@ -1146,6 +1146,54 @@ func _test_stash_economy() -> void:
 		_check(RunState.attribute(RunState.Attribute.MIGHT) > base,
 			"equipped gear must reach the hero's attributes")
 
+	# **A marked piece survives a bulk sweep.**
+	#
+	# The stash holds 160 and has two break-everything buttons in it. The one
+	# thing those must never do is take the piece somebody was saving - and the
+	# failure is silent and permanent, which is the worst combination a save can
+	# have. Asked through the same `is_favourite` the sweep asks, so a mark that
+	# stopped being read would fail here rather than in somebody's stash.
+	MetaState.stash = []
+	MetaState.equipped = {}
+	var kept: Dictionary = Stash.make(kinds[0].id, 0)
+	Stash.set_favourite(kept, true)
+	MetaState.take_gear(kept)
+	for _spare: int in 4:
+		MetaState.take_gear(Stash.make(kinds[0].id, 0))
+	_check(Stash.is_favourite(MetaState.stash[0]),
+		"a marked piece must read back as marked")
+	var survivors: int = 0
+	for entry: Variant in MetaState.stash:
+		if Stash.is_favourite(entry as Dictionary):
+			survivors += 1
+	_check(survivors == 1, "exactly one piece is marked, found %d" % survivors)
+	# And the mark rides the save, or it protects nothing across a session.
+	var stash_text: String = MetaState.serialized_save()
+	MetaState.stash = []
+	MetaState.call("_read_stash",
+		(JSON.parse_string(stash_text) as Dictionary).get("stash", {}) as Dictionary)
+	_check(MetaState.stash.size() > 0 and Stash.is_favourite(MetaState.stash[0]),
+		"a mark must survive a save and load")
+	# An unmarked piece carries no key at all, so an old save reads as unmarked.
+	_check(not Stash.is_favourite(Stash.make(kinds[0].id, 0)),
+		"a piece nobody marked must read as unmarked")
+
+	# And the sweep itself refuses it. Asked of the same `may_break` the button
+	# asks, so a rule that stopped being read fails here rather than in a stash.
+	var chaff: Dictionary = Stash.make(kinds[0].id, 0)
+	_check(Stash.may_break(chaff, 0),
+		"an ordinary unmarked piece must be sweepable, or the button does nothing")
+	Stash.set_favourite(chaff, true)
+	_check(not Stash.may_break(chaff, 0),
+		"a marked piece must never be swept")
+	Stash.set_favourite(chaff, false)
+	_check(Stash.may_break(chaff, 0), "and unmarking must give it back")
+	var upgraded: Dictionary = Stash.make(kinds[0].id, 0, 2)
+	_check(not Stash.may_break(upgraded, 0),
+		"a piece somebody spent shards on must never be swept either")
+	_check(not Stash.may_break(Stash.make(kinds[0].id, 3), 0),
+		"and a sweep must not reach above the rarity it was asked for")
+
 	# Capacity is a ceiling, not a suggestion.
 	MetaState.stash = []
 	MetaState.equipped = {}

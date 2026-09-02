@@ -269,6 +269,12 @@ jobs:
           # personality from the same animal without a packet, which is the
           # desync the shiny roll had.
           check "spirit traits" --headless --path game res://tools/spirit_trait_check.tscn
+          # Enemies break when their champion falls. The bound is that morale
+          # changes the shape of a fight and never its size: a routed body comes
+          # back, still counts and still pays out. If breaking one removed it,
+          # every wave in the game would quietly get shorter and the three-act
+          # curve would be measuring something that no longer happens.
+          check "morale" --headless --path game res://tools/morale_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

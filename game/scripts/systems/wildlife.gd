@@ -414,7 +414,7 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# stream and would disagree with the host about which animal shone.
 	var shiny: bool = told_shiny == 1
 	if told_shiny < 0:
-		shiny = SpiritBond.rolls_shiny(kind.rarity, _rng)
+		shiny = SpiritBond.rolls_shiny(kind.id, kind.rarity, _rng)
 	if shiny:
 		_dress_as_shiny(sprite, kind, impact_material)
 

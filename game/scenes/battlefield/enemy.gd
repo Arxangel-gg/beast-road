@@ -71,6 +71,9 @@ enum State {
 	STRIKE,
 	RECOVER,
 	DYING,
+	## Broken and running. Appended rather than inserted: the state travels over
+	## the wire as its integer, so every value before this has to keep its place.
+	ROUTED,
 }
 
 @export var health: Health
@@ -110,6 +113,20 @@ var _blood_tried: bool = false
 ## promoted body afterwards. Combat state has to reach both. See `ActorState`.
 var _polish: ShaderMaterial = null
 var _state_seeded: bool = false
+
+## Nerve, 1 whole and 0 broken.
+##
+## Owner request, 2026-09-02, under "the Road is always telling you something":
+## a line that breaks when its champion falls is information the player can read
+## off the field without a single number being displayed.
+##
+## **Only the shape of a fight, never its size.** A routed body runs for a few
+## seconds and comes back; it does not despawn, does not stop counting toward the
+## wave, and pays out exactly what it always did. That is what keeps morale out
+## of the three-act pressure curve - the curve is tuned against how many bodies
+## arrive, and this changes none of them. `morale_check` holds that.
+var _morale: float = 1.0
+var _rout_left: float = 0.0
 @export var health_bar: HealthBar
 @export var animator: SpriteAnimator
 
@@ -661,6 +678,17 @@ func _tick_state(delta: float) -> void:
 			_state_left -= delta
 			if _state_left <= 0.0:
 				_enter(State.WALKING, 0.0)
+		State.ROUTED:
+			_rout_left -= delta
+			if _rout_left <= 0.0:
+				# **It comes back.** A body that fled the field would be a free
+				# kill the wave never had to pay for, and the pressure curve is
+				# tuned against how many arrive. Nerve returns part-way rather
+				# than whole, so a second shock breaks it again sooner.
+				_morale = Balance.ENEMY_MORALE_RALLIED
+				_enter(State.WALKING, 0.0)
+			else:
+				_rout(delta)
 		_:
 			pass
 
@@ -698,6 +726,16 @@ func _walk(delta: float) -> void:
 	if _provoker == null or _target != _provoker:
 		direction = _road_direction()
 
+	_advance(direction, delta)
+
+
+## One step in a direction, sliding off whatever it cannot walk through.
+##
+## Shared by the advance and the rout. Extracted when routing was added, because
+## a retreat that did not honour the cliffs would walk bodies through the island
+## faces the ramps exist to funnel them around - and a second copy of this is
+## exactly the copy that would not be fixed the next time the first one was.
+func _advance(direction: Vector2, delta: float) -> void:
 	_tick_slip(delta, direction)
 	var step: Vector2 = (direction * current_speed() + _slip) * delta
 	var wanted: Vector2 = global_position + step
@@ -714,6 +752,61 @@ func _walk(delta: float) -> void:
 		if _field.step_is_legal(global_position, slide):
 			global_position = slide
 			return
+
+
+## Running, away from the town rather than merely away from the hero.
+##
+## **Never toward the wall.** "Away from whatever frightened me" would send a
+## body that broke on the town side straight at the gate, which would make
+## breaking an enemy's nerve a way of *helping* it arrive - the exact opposite of
+## what the player just earned. Retreat is back up the road, always.
+func _rout(delta: float) -> void:
+	if _field == null:
+		return
+	_advance(-_road_direction(), delta)
+
+
+## Nerve, and what shakes it.
+##
+## Called on the bodies near something that just died badly. Elites, champions
+## and bosses are excluded by the caller rather than here, so this stays a plain
+## number and the rule about who can break lives in one place.
+func shake_morale(amount: float) -> void:
+	if amount <= 0.0 or _state == State.DYING or puppet:
+		return
+	if rank != Rank.COMMON:
+		return
+	# A living champion nearby holds the line. This is the rally half of the
+	# system and it is why killing the leader *first* is the readable play: with
+	# one still standing, breaking the bodies around it does nothing.
+	if _rallied():
+		return
+	_morale = maxf(_morale - amount, 0.0)
+	if _morale > 0.0 or _state == State.ROUTED:
+		return
+	_rout_left = Balance.ENEMY_ROUT_SECONDS
+	_enter(State.ROUTED, 0.0)
+	# Said out loud, because a body that turns and runs is the whole point and a
+	# player looking at the other side of the field would otherwise miss it.
+	Vfx.spark(_visual_origin(), Balance.ENEMY_ROUT_COLOUR, 9, Vector2.UP, 150.0)
+
+
+## Whether something is holding this body's nerve together.
+func _rallied() -> bool:
+	if _field == null or not _field.has_method("enemies_near"):
+		return false
+	for other: Enemy in _field.enemies_near(global_position, Balance.ENEMY_RALLY_RADIUS):
+		if other == self or other.is_dying():
+			continue
+		if other.rank != Rank.COMMON:
+			return true
+	return false
+
+
+## True while this body is running rather than fighting. For the interface and
+## for anything that wants to know the line is breaking.
+func is_routed() -> bool:
+	return _state == State.ROUTED
 
 
 ## Losing your footing on snow.
@@ -1315,6 +1408,16 @@ func _on_died(_from: Vector2) -> void:
 		RunState.mark_last_scar_pursuer_defeated()
 		Vfx.ring(global_position, 154.0, Color(0.96, 0.36, 0.28, 0.9), 0.72, 8.0)
 		Vfx.spark(global_position, Color("ffd0a0"), 28, Vector2.UP, 250.0)
+	# **A leader falling breaks the bodies around it.**
+	#
+	# Only a promoted body does this, and only ordinary ones answer, so the
+	# readable play is to kill the champion first and watch its line come apart.
+	# Nothing here changes what the wave costs - see `_morale`.
+	if rank != Rank.COMMON and _field != null and _field.has_method("enemies_near"):
+		for other: Enemy in _field.enemies_near(global_position,
+				Balance.ENEMY_MORALE_RADIUS):
+			if other != self:
+				other.shake_morale(Balance.ENEMY_MORALE_LEADER_LOSS)
 	EventBus.enemy_died.emit(data.id, _visual_origin())
 
 
@@ -1689,7 +1792,9 @@ func _update_sprite(delta: float = 0.0) -> void:
 	# make it shudder between facings every frame. Below the threshold the facing
 	# is left alone rather than reset, so a road running straight up the screen
 	# does not blank it.
-	if _state == State.WALKING and absf(_motion.x) > Balance.FACING_DEADZONE:
+	# A body running away faces the way it is running, like any other.
+	if (_state == State.WALKING or _state == State.ROUTED) \
+			and absf(_motion.x) > Balance.FACING_DEADZONE:
 		sprite.flip_h = _motion.x < 0.0
 	elif _target != null and is_instance_valid(_target):
 		sprite.flip_h = _target.global_position.x < global_position.x
@@ -1749,8 +1854,12 @@ func _advance_walk_frames(delta: float) -> void:
 		return
 	if _walk_frames.is_empty():
 		return
-	var walking: bool = _state == State.WALKING and _freeze_left <= 0.0 \
-		and _hitstun_left <= 0.0
+	# A routed body is walking too - it is simply walking the other way.
+	# Left out of this, a fleeing enemy slid backwards up the road in its
+	# standing pose, which reads as a body being dragged rather than one
+	# running away.
+	var walking: bool = (_state == State.WALKING or _state == State.ROUTED) \
+		and _freeze_left <= 0.0 and _hitstun_left <= 0.0
 	if not walking:
 		# Back to the standing pose rather than freezing mid-stride: an enemy
 		# stopped with one leg forward reads as a bug, and it is where the

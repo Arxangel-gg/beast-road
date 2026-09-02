@@ -190,7 +190,10 @@ func _break_all(rarity: int) -> int:
 		if worn.has(index):
 			continue
 		var piece: Dictionary = MetaState.stash[index]
-		if int(piece.get("rarity", 0)) > rarity or int(piece.get("level", 1)) > 1:
+		# Asked of `Stash` rather than decided here. A marked piece is never
+		# swept - that is the entire reason the mark exists - and a bulk action
+		# that can take the thing you were saving is one nobody presses twice.
+		if not Stash.may_break(piece, rarity):
 			continue
 		gained += Stash.salvage_yield(piece)
 		MetaState.drop_gear(index)
@@ -327,8 +330,8 @@ func _row(index: int) -> Container:
 			Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.35))
 	row.add_child(label)
 
-	# The four actions in a box of their own, fixed width, each filling a
-	# quarter of it. Sized individually they were four different widths per row
+	# The actions in a box of their own, fixed width, each filling a share of
+	# it. Sized individually they were four different widths per row
 	# - "Sell 120" is wider than "Sell 12" - so every row started its buttons at
 	# a different x and a list of ninety-six read as ragged.
 	# **Stacked on a phone, side by side on a desktop.**
@@ -344,7 +347,7 @@ func _row(index: int) -> Container:
 	if stacked:
 		actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
-		actions.custom_minimum_size.x = ACTION_WIDTH * 4.0
+		actions.custom_minimum_size.x = ACTION_WIDTH * 5.0
 	var outer: Container = row
 	if stacked:
 		var column := VBoxContainer.new()
@@ -391,8 +394,26 @@ func _row(index: int) -> Container:
 	_size_action(upgrade)
 	actions.add_child(upgrade)
 
+	# The mark, beside the actions it protects against rather than buried in a
+	# menu - it has to be one press from the thing it is guarding.
+	var marked: bool = Stash.is_favourite(piece)
+	var keep := Button.new()
+	keep.text = "♥" if marked else "♡"
+	keep.tooltip_text = ("Kept: bulk breaking will not take this."
+		if marked else "Mark as kept, so bulk breaking leaves it alone.")
+	_size_action(keep)
+	keep.pressed.connect(func() -> void:
+		Stash.set_favourite(piece, not Stash.is_favourite(piece))
+		MetaState.save_game()
+		EventBus.stash_changed.emit()
+		_refresh())
+	actions.add_child(keep)
+
 	var sell := Button.new()
 	sell.text = "Sell %d✦" % Stash.sell_price(piece)
+	sell.disabled = marked
+	if marked:
+		sell.tooltip_text = "Kept. Unmark it first."
 	_size_action(sell)
 	sell.pressed.connect(func() -> void:
 		MetaState.marks += Stash.sell_price(piece)

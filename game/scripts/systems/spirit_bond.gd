@@ -123,12 +123,49 @@ static func tint(rarity: int, shiny: bool) -> Color:
 	return Balance.SPIRIT_RARITY_COLOURS[clampi(rarity, 0, 3)]
 
 
-## Whether a shiny appears, for one animal of this rarity.
+## The odds a fresh animal of this species and rarity shines, this player.
+##
+## Owner request, 2026-09-02: bad luck should not be able to produce "a hundred
+## and fifty hours and I still have not seen one". A Common shiny is a one-in-
+## fifty sighting, which means a perfectly ordinary player is somewhere around a
+## one-in-a-thousand chance of going four hundred sightings without one - and
+## that player has done nothing wrong.
+##
+## **Derived from what the save already holds, so nothing new persists.** The
+## collection already counts every encounter with every variant, and the gap
+## between "ordinary ones met" and "shiny ones met" *is* the dry streak. No pity
+## counter, no new key, no owner question about working rule 7 - the correction
+## falls out of data that was already there for the journal.
+##
+## The rare thing stays rare. Nothing happens at all until a player is well past
+## the expected gap, the ramp is gentle after that, and it is capped: a Common
+## shiny can reach four times its base and no further. A player is never told any
+## of this, which is the point.
+static func shiny_chance(species_id: String, rarity: int) -> float:
+	var tier: int = clampi(rarity, 0, 3)
+	var base: float = Balance.SPIRIT_SHINY_CHANCE[tier]
+	if species_id.is_empty() or base <= 0.0:
+		return base
+	# A shiny encounter credits the plain variant too, so the plain count is
+	# every sighting and the difference is the ordinary ones.
+	var seen: int = MetaState.spirit_encounter_count(key(species_id, tier, false))
+	var shone: int = MetaState.spirit_encounter_count(key(species_id, tier, true))
+	var expected: float = 1.0 / base
+	var unlucky: float = float(maxi(seen - shone, 0)) \
+		- expected * Balance.SPIRIT_PITY_GRACE
+	if unlucky <= 0.0:
+		return base
+	var lift: float = 1.0 + (unlucky / expected) * Balance.SPIRIT_PITY_SLOPE
+	return base * minf(lift, Balance.SPIRIT_PITY_CEILING)
+
+
+## Whether a shiny appears, for one animal of this species and rarity.
 ##
 ## Rolled once when the animal is placed and never again, so nothing the player
 ## does to an animal already on the field can reroll it.
-static func rolls_shiny(rarity: int, rng: RandomNumberGenerator) -> bool:
-	return rng.randf() < Balance.SPIRIT_SHINY_CHANCE[clampi(rarity, 0, 3)]
+static func rolls_shiny(species_id: String, rarity: int,
+		rng: RandomNumberGenerator) -> bool:
+	return rng.randf() < shiny_chance(species_id, rarity)
 
 
 ## The personality the animal with this serial is wearing.

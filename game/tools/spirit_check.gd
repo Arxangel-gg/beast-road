@@ -33,6 +33,7 @@ func _ready() -> void:
 	_test_keys_round_trip()
 	_test_one_animal_is_one_encounter()
 	_test_shiny_odds_are_reachable()
+	_test_pity_lifts_a_dry_streak()
 	await _test_a_spirit_fights_falls_and_returns()
 	_finish()
 
@@ -237,9 +238,9 @@ func _test_keys_round_trip() -> void:
 
 
 func _finish() -> void:
-	if _ran != 9:
+	if _ran != 10:
 		_failures += 1
-		print("[spirit] only %d of 9 tests ran" % _ran)
+		print("[spirit] only %d of 10 tests ran" % _ran)
 	if _failures == 0:
 		print("[spirit] PASS - rarer needs fewer, the ladder never inverts, a shiny "
 			+ "is never worth less, and the collection survives a save")
@@ -302,6 +303,54 @@ func _test_one_animal_is_one_encounter() -> void:
 
 
 ## The odds have to make every row of the journal reachable in a lifetime.
+## Bad luck is corrected, and the rare thing stays rare.
+##
+## Owner request, 2026-09-02. Four properties, and the last two are the bound:
+## a player with no history sees the quoted odds, a very unlucky one sees better
+## ones, the correction is capped, and finding one puts them back where they
+## started. Nothing about this is stored - see `SpiritBond.shiny_chance`.
+func _test_pity_lifts_a_dry_streak() -> void:
+	MetaState.spirit_encounters.clear()
+	MetaState.spirit_bonded.clear()
+	var species: String = "pity_probe"
+	for tier: int in 4:
+		var base: float = Balance.SPIRIT_SHINY_CHANCE[tier]
+		_check(is_equal_approx(SpiritBond.shiny_chance(species, tier), base),
+			"a player with no history must see the quoted odds at rarity %d" % tier)
+
+	# Long past the expected gap, and still nothing shiny.
+	var tier_probe: int = 0
+	var expected: int = int(1.0 / Balance.SPIRIT_SHINY_CHANCE[tier_probe])
+	var plain: String = SpiritBond.key(species, tier_probe, false)
+	MetaState.spirit_encounters[plain] = expected * 3
+	var lifted: float = SpiritBond.shiny_chance(species, tier_probe)
+	_check(lifted > Balance.SPIRIT_SHINY_CHANCE[tier_probe],
+		"three expected gaps without one must improve the odds, still %.3f%%"
+			% (lifted * 100.0))
+
+	# And it is capped, however long the streak runs.
+	MetaState.spirit_encounters[plain] = expected * 500
+	var capped: float = SpiritBond.shiny_chance(species, tier_probe)
+	_check(capped <= Balance.SPIRIT_SHINY_CHANCE[tier_probe]
+			* Balance.SPIRIT_PITY_CEILING + 0.0001,
+		"pity must stay under its ceiling, reached %.3f%%" % (capped * 100.0))
+	_check(capped < 0.5,
+		"and must never make a shiny ordinary, reached %.0f%%" % (capped * 100.0))
+
+	# Finding one resets it. The dry streak is the *gap* between the counts, so
+	# crediting the shiny closes it without anything being cleared.
+	MetaState.spirit_encounters[plain] = expected * 3
+	MetaState.spirit_encounters[SpiritBond.key(species, tier_probe, true)] = \
+		expected * 3
+	_check(is_equal_approx(SpiritBond.shiny_chance(species, tier_probe),
+			Balance.SPIRIT_SHINY_CHANCE[tier_probe]),
+		"a player who has found them must be back at the quoted odds")
+
+	MetaState.spirit_encounters.clear()
+	MetaState.spirit_bonded.clear()
+	_ran += 1
+
+
 func _test_shiny_odds_are_reachable() -> void:
 	for tier: int in 4:
 		var chance: float = Balance.SPIRIT_SHINY_CHANCE[tier]

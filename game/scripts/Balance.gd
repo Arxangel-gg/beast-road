@@ -1242,6 +1242,62 @@ const STATE_TELEGRAPH_FLOOR: float = 0.38
 ## source applies, so a plain hit still looks like a hit. [TUNE]
 const STATE_BURN_FADE_SECONDS: float = 1.5
 
+# --- Shiny pity ---------------------------------------------------------------
+#
+# Owner request, 2026-09-02. Nothing here is stored: `SpiritBond.shiny_chance`
+# derives the dry streak from the encounter counts the journal already keeps.
+
+## How many expected gaps a player goes through before anything changes at all.
+##
+## Two, so a player who is merely unlucky gets no help and the odds a Codex or a
+## wiki would quote stay true for almost everybody. [TUNE]
+const SPIRIT_PITY_GRACE: float = 2.0
+
+## How fast the odds climb past that, per further expected gap. [TUNE]
+const SPIRIT_PITY_SLOPE: float = 0.5
+
+## The most the odds may ever be multiplied by.
+##
+## The bound: a Common shiny is 2% and may reach 8%, never more. Past that the
+## rare thing stops being rare, which costs every player something to spare a
+## few from a bad streak. [TUNE]
+const SPIRIT_PITY_CEILING: float = 4.0
+
+# --- Enemy morale -------------------------------------------------------------
+#
+# Owner request, 2026-09-02: enemies that feel like creatures with survival
+# instincts rather than units executing AI paths.
+#
+# **The bound is that morale changes the shape of a fight and never its size.** A
+# routed body runs for a moment and comes back; it does not despawn, does not
+# stop counting toward the wave, and pays out what it always did. The three-act
+# pressure curve is tuned against how many bodies arrive, and this changes none
+# of them. `morale_check` holds that end of it.
+
+## How long a broken body runs before it finds its nerve again. Short: this is
+## punctuation in a fight, not a phase of one. [TUNE]
+const ENEMY_ROUT_SECONDS: float = 2.4
+
+## What a promoted body's death does to the ordinary ones near it. One, so a
+## champion falling breaks its line outright - that is the readable play the
+## whole system exists to reward. [TUNE]
+const ENEMY_MORALE_LEADER_LOSS: float = 1.0
+
+## How far that carries. [TUNE]
+const ENEMY_MORALE_RADIUS: float = 270.0
+
+## How close a living promoted body has to be to hold the line together. Wider
+## than the break radius on purpose: with a champion still standing, breaking the
+## bodies around it should do nothing at all. [TUNE]
+const ENEMY_RALLY_RADIUS: float = 330.0
+
+## Nerve a body comes back with. Under one, so a second shock breaks it sooner
+## than the first did and a collapsing line stays collapsed. [TUNE]
+const ENEMY_MORALE_RALLIED: float = 0.6
+
+## The spark on a body that turns and runs. [TUNE]
+const ENEMY_ROUT_COLOUR: Color = Color(0.98, 0.92, 0.62, 1.0)
+
 ## How far a predator will look for prey, against how far it looks for a fight.
 ##
 ## Under one on purpose. A hunting animal should notice the player and the

@@ -227,6 +227,39 @@ everything else, which is what stops the ecology from quietly eating a Spirit
 Companion the player was three encounters from bonding. That bound is the whole
 design and `wildlife_spawn_check` holds it.
 
+**Enemies have nerve, as of 2026-09-02.** The owner's framing for a batch of
+ideas was *"the Road is always telling you something - if you're paying
+attention"*, and this is the clearest thing on the field under it: an ordinary
+body breaks when the champion near it falls, runs back up the road for a couple
+of seconds, and returns. A line coming apart is information the player reads
+without a number being shown, and it makes killing the leader **first** the
+readable play rather than a tip in a menu. A living champion holds the line,
+which is the other half of the same sentence.
+
+**The bound is that morale changes the shape of a fight and never its size.** A
+routed body does not despawn, does not leave the group a wave is waiting on, and
+pays out exactly what it always did. The three-act pressure curve is tuned
+against how many bodies arrive; if breaking one removed it, every wave in the
+game would quietly get easier and the curve would be measuring something that no
+longer happens. Retreat is also always *back up the road* rather than away from
+whatever caused it - "away from what frightened me" sends a body that broke on
+the town side straight at the gate, which would turn breaking its nerve into
+helping it arrive. `morale_check` holds all of it.
+
+**Shiny odds now correct for a dry streak, as of the same date**, and nothing
+new persists to do it. `SpiritBond.shiny_chance` derives the streak from the
+encounter counts the journal already keeps - the gap between ordinary sightings
+and shiny ones *is* the streak - so there is no pity counter and no new save key.
+Nothing happens until a player is well past twice the expected gap, and the lift
+is capped at four times base: a Common shiny is 2% and may reach 8%, never more.
+The rare thing stays rare; what is prevented is only the tail where somebody
+sees nothing for hundreds of sightings and has done nothing wrong.
+
+**Gear can be marked kept.** A stash of 160 with two break-everything buttons in
+it needed one, and the failure it prevents is silent and permanent. The rule
+lives in `Stash.may_break`, asked by the button and by the gate, rather than as
+conditions written inline where nothing could test them.
+
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.
 

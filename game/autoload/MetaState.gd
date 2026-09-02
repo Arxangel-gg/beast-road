@@ -695,8 +695,13 @@ func _read_stash(data: Dictionary) -> void:
 		var kind: String = String(piece.get("kind", ""))
 		if ContentDB.gear(kind) == null:
 			continue
-		stash.append(Stash.make(kind, int(piece.get("rarity", 0)),
-			int(piece.get("level", 1))))
+		var restored: Dictionary = Stash.make(kind, int(piece.get("rarity", 0)),
+			int(piece.get("level", 1)))
+		# Additive: a piece saved before favourites existed simply has no flag
+		# and reads back unmarked, so `SAVE_VERSION` did not move for this.
+		if bool(piece.get("favourite", false)):
+			restored["favourite"] = true
+		stash.append(restored)
 		if stash.size() >= Balance.STASH_CAPACITY:
 			break
 
