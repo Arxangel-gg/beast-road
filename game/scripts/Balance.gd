@@ -1298,6 +1298,14 @@ const ENEMY_MORALE_RALLIED: float = 0.6
 ## The spark on a body that turns and runs. [TUNE]
 const ENEMY_ROUT_COLOUR: Color = Color(0.98, 0.92, 0.62, 1.0)
 
+## How long the road stays empty of wildlife once a boss is due.
+##
+## A ceiling rather than a duration: `boss_defeated` is what actually ends it,
+## and this is only the guard against a run where that never arrives. Long
+## enough to cover a boss fight, short enough that the worst case is animals
+## returning early rather than a wilderness that stays dead. [TUNE]
+const WILDLIFE_HUSH_SECONDS: float = 210.0
+
 ## How far a predator will look for prey, against how far it looks for a fight.
 ##
 ## Under one on purpose. A hunting animal should notice the player and the

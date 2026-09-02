@@ -40,7 +40,9 @@ var _ran: int = 0
 
 
 func _ready() -> void:
-	RunState.reset()
+	# Seeded: `reset()` draws a random seed, and anything measuring
+	# where a body ended up is measuring the weather without one.
+	RunState.reset(false, 20260901)
 	RunState.act = 1
 	await _test_both_shaders_declare_it()
 	await _test_burning_body()
@@ -437,11 +439,11 @@ func _finish() -> void:
 			+ "apart are material on every body including promoted ones, cost "
 			+ "nothing on a quiet one, and still read on Low")
 	elif _failures == 0:
-		printerr("[state-shader] FAIL - only %d of 9 tests ran" % _ran)
+		push_error("[state-shader] FAIL - only %d of 9 tests ran" % _ran)
 		get_tree().quit(1)
 		return
 	else:
-		printerr("[state-shader] FAIL - %d problem(s)" % _failures)
+		push_error("[state-shader] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -449,4 +451,8 @@ func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[state-shader] FAIL: %s" % why)
+	# `push_error`, not `printerr`: Guard titles its annotation from the
+	# first line matching `^ERROR:`, and `printerr` emits no such prefix.
+	# A gate that fails invisibly in CI is a gate that cannot be fixed
+	# from the outside - which cost a red main and a wrong diagnosis.
+	push_error("[state-shader] FAIL: %s" % why)

@@ -31,7 +31,9 @@ var _ran: int = 0
 
 
 func _ready() -> void:
-	RunState.reset()
+	# Seeded: `reset()` draws a random seed, and anything measuring
+	# where a body ended up is measuring the weather without one.
+	RunState.reset(false, 20260902)
 	RunState.act = 1
 	_test_traits_are_content()
 	_test_none_is_simply_better()
@@ -284,11 +286,11 @@ func _finish() -> void:
 			+ "better, every one is reachable, two machines agree without a "
 			+ "packet, and bias reaches the field")
 	elif _failures == 0:
-		printerr("[spirit-trait] FAIL - only %d of 7 tests ran" % _ran)
+		push_error("[spirit-trait] FAIL - only %d of 7 tests ran" % _ran)
 		get_tree().quit(1)
 		return
 	else:
-		printerr("[spirit-trait] FAIL - %d problem(s)" % _failures)
+		push_error("[spirit-trait] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -296,4 +298,8 @@ func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[spirit-trait] FAIL: %s" % why)
+	# `push_error`, not `printerr`: Guard titles its annotation from the
+	# first line matching `^ERROR:`, and `printerr` emits no such prefix.
+	# A gate that fails invisibly in CI is a gate that cannot be fixed
+	# from the outside - which cost a red main and a wrong diagnosis.
+	push_error("[spirit-trait] FAIL: %s" % why)

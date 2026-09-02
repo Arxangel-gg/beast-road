@@ -47,13 +47,14 @@ func _ready() -> void:
 	_test_rarity_coverage()
 	_test_animation_coverage()
 	_test_ecology(wildlife)
+	_test_the_road_goes_quiet(wildlife)
 
 	if _failures == 0:
 		print("[wildlife] PASS - arrivals keep their distance, every tier is "
-			+ "reachable, every species animates, and predators hunt without "
-			+ "eating the collection")
+			+ "reachable, every species animates, predators hunt without eating "
+			+ "the collection, and the road goes quiet before a boss")
 	else:
-		printerr("[wildlife] FAIL - %d problem(s)" % _failures)
+		push_error("[wildlife] FAIL - %d problem(s)" % _failures)
 
 	# **Torn down before quitting.** Quitting on top of a live system reports
 	# "resources still in use at exit", which is an ERROR line, and the release
@@ -61,7 +62,14 @@ func _ready() -> void:
 	# belongs to however green its own verdict is.
 	wildlife.grid = null
 	wildlife.queue_free()
-	for _frame: int in 8:
+	# The hush test emits `act_boss_due` and `boss_defeated` on the real bus, and
+	# whatever else is listening answers - eight frames is not enough for what
+	# that wakes up to be collected again, which showed as leaked instances at
+	# exit. Silence first, then give it room, the same way `momentum_check` does.
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	for _frame: int in 40:
 		await get_tree().process_frame
 	get_tree().quit(1 if _failures > 0 else 0)
 
@@ -209,8 +217,58 @@ func _test_ecology(wildlife: Wildlife) -> void:
 	wolf.queue_free()
 
 
+## The road empties before a boss, and fills again once it is down.
+##
+## Owner request, 2026-09-02. **The warning is the absence**, so what this holds
+## is that the absence actually happens and actually ends:
+##
+## 1. Wildlife stops arriving while something is coming.
+## 2. Harmless animals already out there leave.
+## 3. The boss falling brings them back - a warning that never lifts is not a
+##    warning, it is a wilderness that died.
+## 4. It is capped, so a run where `boss_defeated` never arrives cannot leave the
+##    road silent for the rest of the act with nothing to say why.
+func _test_the_road_goes_quiet(wildlife: Wildlife) -> void:
+	var living: Array[Dictionary] = wildlife.get("_living")
+	living.clear()
+	var prey: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if not kind.is_hostile():
+			prey = kind
+			break
+	if prey == null:
+		_check(false, "the road needs something harmless to leave it")
+		return
+
+	# Deliberately not parented into the tree. This is the last test the gate
+	# runs, so a `queue_free` here never gets a frame to happen in and the
+	# release check reports the sprite as a leaked instance. Unparented, it can
+	# be freed outright the moment it is done with.
+	var deer := Sprite2D.new()
+	deer.global_position = Vector2(700.0, 0.0)
+	living.append({"data": prey, "sprite": deer, "dying": 0.0, "state": 1})
+
+	_check(not wildlife.is_hushed(), "the road is not holding its breath yet")
+	EventBus.act_boss_due.emit(RunState.act)
+	_check(wildlife.is_hushed(), "a boss falling due must empty the road")
+	_check(int(living[0]["state"]) == 3,
+		"and everything harmless on it must leave, state is %d"
+			% int(living[0]["state"]))
+	_check(Balance.WILDLIFE_HUSH_SECONDS > 0.0
+			and Balance.WILDLIFE_HUSH_SECONDS < 900.0,
+		"the hush must be capped at something a run can outlive, is %.0fs"
+			% Balance.WILDLIFE_HUSH_SECONDS)
+
+	EventBus.boss_defeated.emit("probe", RunState.act)
+	_check(not wildlife.is_hushed(),
+		"and the road must come back to life once the boss is down")
+
+	living.clear()
+	deer.free()
+
+
 func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[wildlife] FAIL: %s" % why)
+	push_error("[wildlife] FAIL: %s" % why)

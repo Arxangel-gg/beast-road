@@ -51,6 +51,19 @@ var field: Node = null
 
 var _living: Array[Dictionary] = []
 var _arrival_clock: float = 0.0
+
+## Seconds the road stays empty of wildlife, because something is coming.
+##
+## Owner request, 2026-09-02, under "the Road is always telling you something":
+## before a boss, the wildlife leaves. Animals on the field bolt and none arrive
+## until it is over, so a player who notices the road has gone quiet has been
+## warned by the world rather than by a banner.
+##
+## **The warning is the absence.** Nothing is drawn, nothing is announced and no
+## UI appears; the information is that the thing which is normally there is not.
+## That only works because the road is otherwise busy - it is the ecology and the
+## ambient life that give this its meaning.
+var _hush_left: float = 0.0
 var _batch_clock: float = 0.0
 
 ## Rising identity for relayed animals. Host side.
@@ -72,6 +85,10 @@ func _ready() -> void:
 	# towers shooting rabbits and waves never ending, which is a far worse bug
 	# than not being able to hunt.
 	EventBus.hero_swing_resolved.connect(_on_swing_resolved)
+	# The road empties before a boss and fills again once it is down.
+	EventBus.act_boss_due.connect(func(_act: int) -> void: _hush())
+	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
+		_hush_left = 0.0)
 	# Replicated so a hunt is shared. A guest whose field held different animals
 	# could not help farm one, and would watch its partner swing at nothing.
 	EventBus.coop_wildlife_spawned.connect(_on_coop_spawned)
@@ -118,10 +135,12 @@ func _process(delta: float) -> void:
 		if _batch_clock <= 0.0:
 			_batch_clock = BATCH_INTERVAL
 			_send_batch()
+	_hush_left = maxf(_hush_left - delta, 0.0)
 	_arrival_clock -= delta
 	if _arrival_clock <= 0.0:
 		_arrival_clock = ARRIVAL_INTERVAL
-		_consider_arrival()
+		if _hush_left <= 0.0:
+			_consider_arrival()
 	for index: int in range(_living.size() - 1, -1, -1):
 		if _tick_one(_living[index], delta):
 			continue
@@ -360,6 +379,36 @@ func _pick_kind(allow_hostile: bool = true) -> WildlifeData:
 ## pressure the travelling party has already encountered.
 func _hostile_arrivals_allowed() -> bool:
 	return not (RunState.is_preparation() and RunState.wave_number == 0)
+
+
+## Empties the road, and keeps it empty until the boss is down.
+##
+## Capped rather than open-ended. Clearing it is `boss_defeated`, and a run where
+## that never arrives - a boss removed by something else, a state nobody thought
+## about - would otherwise leave the wilderness silent for the rest of the act
+## with nothing to say why. A cap makes the worst case "the animals came back
+## early" instead of "the world died".
+func _hush() -> void:
+	_hush_left = Balance.WILDLIFE_HUSH_SECONDS
+	# A guest mirrors the host's animals, so making them bolt locally would fight
+	# the positions arriving over the wire. The host emptying the road empties it
+	# for both, which is the same rule the spawner already follows.
+	if Coop.is_guest():
+		return
+	for animal: Dictionary in _living:
+		var kind := animal.get("data", null) as WildlifeData
+		var sprite := animal.get("sprite", null) as Sprite2D
+		if kind == null or sprite == null or not is_instance_valid(sprite):
+			continue
+		if kind.is_hostile() or float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		animal["state"] = State.LEAVING
+		animal["goal"] = _bolt_target(sprite.global_position)
+
+
+## True while the road is holding its breath. For anything that wants to know.
+func is_hushed() -> bool:
+	return _hush_left > 0.0
 
 
 ## True when this machine decides things *and* somebody is listening.

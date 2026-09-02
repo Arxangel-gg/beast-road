@@ -31,7 +31,15 @@ var _ran: int = 0
 
 
 func _ready() -> void:
-	RunState.reset()
+	# **Seeded, because `reset()` is not.**
+	#
+	# `RunState.reset()` draws a fresh random seed every launch, and the combat
+	# stream that seed feeds decides snow slip - which nudges a walking body
+	# sideways. A gate that measures where something ended up is therefore
+	# measuring the weather unless it pins the seed. This one passed eighteen
+	# times locally and failed in CI, which is exactly what an unpinned seed
+	# looks like.
+	RunState.reset(false, 20260902)
 	RunState.act = 2
 	await _test_leader_death_breaks_the_line()
 	await _test_promoted_bodies_hold()
@@ -137,17 +145,27 @@ func _test_retreat_is_away_from_the_town() -> void:
 	var town: Vector2 = field.town_position()
 	# Deliberately placed *beyond* the town from the road's point of view, which
 	# is the case a naive "run from what scared me" gets wrong.
-	var footman: Enemy = _make(field, breed, town + Vector2(360.0, 0.0),
-		Enemy.Rank.COMMON)
+	var start: Vector2 = town + Vector2(360.0, 0.0)
+	var footman: Enemy = _make(field, breed, start, Enemy.Rank.COMMON)
 	await _settle()
-	var before: float = footman.global_position.distance_to(town)
 	footman.shake_morale(1.0)
 	for _frame: int in 30:
 		await get_tree().physics_frame
-	var after: float = footman.global_position.distance_to(town)
+
+	# **Asked as a direction, not as a distance.**
+	#
+	# Distance-to-town is the obvious measure and the wrong one: a body sliding
+	# on snow drifts sideways, so a retreat that is behaving perfectly can still
+	# end up a few units nearer the wall on some weather. What must never happen
+	# is *travelling toward* it, which is a question about the direction moved
+	# and is true whatever the ground is doing underfoot.
+	var moved: Vector2 = footman.global_position - start
+	var townward: Vector2 = (town - start).normalized()
 	_check(footman.is_routed(), "the body must actually be running")
-	_check(after >= before - 1.0,
-		"a retreat must never close on the town: %.0f -> %.0f" % [before, after])
+	_check(moved.length() > 1.0, "and must have moved at all")
+	_check(moved.dot(townward) <= 0.0,
+		"a retreat must never travel toward the town: moved %s, %.1f of it "
+			% [str(moved.round()), moved.dot(townward)] + "townward")
 	field.queue_free()
 	await _settle()
 	_ran += 1
@@ -193,17 +211,30 @@ func _test_a_routed_body_returns_and_still_counts() -> void:
 	# first version of this did exactly that and blamed the code.
 	var frames: Array = line[0].get("_walk_frames") as Array
 	if not frames.is_empty():
+		# **Sampled only while it is still running.**
+		#
+		# A fixed window can outlive the rout, and a body that has found its
+		# nerve turns round and walks back - so the net displacement collapses
+		# and the gate blames the animation for a timing accident. How many
+		# frames fit inside 2.4 seconds is not something a headless run on an
+		# unknown machine should have to agree with this file about.
 		var poses: Dictionary = {}
 		var from: Vector2 = line[0].global_position
-		for _frame: int in 90:
+		var sampled: int = 0
+		while sampled < 90 and line[0].is_routed():
 			await get_tree().physics_frame
 			poses[line[0].sprite.texture] = true
+			sampled += 1
 		var travelled: float = from.distance_to(line[0].global_position)
-		_check(travelled > 30.0,
-			"a running body must cover ground, moved %.0f" % travelled)
+		_check(sampled >= 20,
+			"the rout must last long enough to watch, sampled %d frames" % sampled)
+		_check(travelled > 20.0,
+			"a running body must cover ground, moved %.0f over %d frames"
+				% [travelled, sampled])
 		_check(poses.size() > 1,
 			"a running body must animate rather than slide in its standing "
-				+ "pose - covered %.0f across %d poses" % [travelled, poses.size()])
+				+ "pose - covered %.0f across %d poses in %d frames"
+				% [travelled, poses.size(), sampled])
 
 	field.queue_free()
 	await _settle()
@@ -254,11 +285,11 @@ func _finish() -> void:
 			+ "while one stands, retreats up the road, comes back, and never "
 			+ "changes how many bodies a wave costs")
 	elif _failures == 0:
-		printerr("[morale] FAIL - only %d of 5 tests ran" % _ran)
+		push_error("[morale] FAIL - only %d of 5 tests ran" % _ran)
 		get_tree().quit(1)
 		return
 	else:
-		printerr("[morale] FAIL - %d problem(s)" % _failures)
+		push_error("[morale] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -266,4 +297,8 @@ func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[morale] FAIL: %s" % why)
+	# `push_error`, not `printerr`: Guard titles its annotation from the
+	# first line matching `^ERROR:`, and `printerr` emits no such prefix.
+	# A gate that fails invisibly in CI is a gate that cannot be fixed
+	# from the outside - which cost a red main and a wrong diagnosis.
+	push_error("[morale] FAIL: %s" % why)
