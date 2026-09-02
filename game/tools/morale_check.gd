@@ -46,6 +46,7 @@ func _ready() -> void:
 	await _test_a_living_champion_rallies()
 	await _test_retreat_is_away_from_the_town()
 	await _test_a_routed_body_returns_and_still_counts()
+	await _test_a_running_body_covers_ground()
 	_finish()
 
 
@@ -218,28 +219,62 @@ func _test_a_routed_body_returns_and_still_counts() -> void:
 	# so a chilled body takes slower steps - which means a short sample can watch
 	# a running enemy for a quarter of a second and correctly see one pose. The
 	# first version of this did exactly that and blamed the code.
-	var frames: Array = line[0].get("_walk_frames") as Array
+	field.queue_free()
+	await _freed(field)
+	_ran += 1
+
+
+## 6. A running body covers ground and animates while it does it.
+##
+## **Measured on a body standing on its own**, which is the whole reason this is
+## a separate test rather than another assertion on the line above.
+##
+## `EnemyField` separates a crowd, and six bodies packed forty units apart all
+## routing the same way spend most of their speed pushing each other. How much
+## gets through depends on the order the separation resolves in, which is not
+## something two machines have to agree about - so the same code covered thirty
+## units here and eighteen on the runner, and the gate called that an animation
+## bug. It was a crowd.
+func _test_a_running_body_covers_ground() -> void:
+	var field := EnemyField.new()
+	add_child(field)
+	var breed: EnemyData = _breed()
+	if breed == null:
+		field.queue_free()
+		return
+	var loner: Enemy = _make(field, breed, Vector2(900.0, -700.0),
+		Enemy.Rank.COMMON)
+	await _settle()
+	var frames: Array = loner.get("_walk_frames") as Array
+	loner.shake_morale(1.0)
+	_check(loner.is_routed(), "the body must be running to be watched")
+
+	# Sampled only while it is still running: a fixed window can outlive the
+	# rout, and a body that has found its nerve turns round and walks back,
+	# collapsing the displacement being measured.
+	var poses: Dictionary = {}
+	var from: Vector2 = loner.global_position
+	var sampled: int = 0
+	# Up to most of the rout rather than a fraction of it. The walk phase turns
+	# over on *ground covered*, so a short window can be a body running correctly
+	# and showing one pose - and one pose is indistinguishable from a body that
+	# is not animating at all. A longer look costs nothing headless.
+	while sampled < 130 and loner.is_routed():
+		await get_tree().physics_frame
+		poses[loner.sprite.texture] = true
+		sampled += 1
+	var travelled: float = from.distance_to(loner.global_position)
+	# Printed, not just asserted. The number this gate is closest to failing on
+	# is the one worth seeing in a passing log - it is how a margin that has
+	# quietly shrunk gets noticed before the runner notices it.
+	print("[morale] a lone routed body covered %.0f units over %d frames, %d poses"
+		% [travelled, sampled, poses.size()])
+	_check(sampled >= 20,
+		"the rout must last long enough to watch, sampled %d frames" % sampled)
+	_check(travelled > 20.0,
+		"a running body must cover ground, moved %.0f over %d frames"
+			% [travelled, sampled])
 	if not frames.is_empty():
-		# **Sampled only while it is still running.**
-		#
-		# A fixed window can outlive the rout, and a body that has found its
-		# nerve turns round and walks back - so the net displacement collapses
-		# and the gate blames the animation for a timing accident. How many
-		# frames fit inside 2.4 seconds is not something a headless run on an
-		# unknown machine should have to agree with this file about.
-		var poses: Dictionary = {}
-		var from: Vector2 = line[0].global_position
-		var sampled: int = 0
-		while sampled < 90 and line[0].is_routed():
-			await get_tree().physics_frame
-			poses[line[0].sprite.texture] = true
-			sampled += 1
-		var travelled: float = from.distance_to(line[0].global_position)
-		_check(sampled >= 20,
-			"the rout must last long enough to watch, sampled %d frames" % sampled)
-		_check(travelled > 20.0,
-			"a running body must cover ground, moved %.0f over %d frames"
-				% [travelled, sampled])
 		_check(poses.size() > 1,
 			"a running body must animate rather than slide in its standing "
 				+ "pose - covered %.0f across %d poses in %d frames"
@@ -312,12 +347,12 @@ func _finish() -> void:
 	Sfx.stop_immediately()
 	for _frame: int in 30:
 		await get_tree().process_frame
-	if _failures == 0 and _ran == 5:
+	if _failures == 0 and _ran == 6:
 		print("[morale] PASS - a line breaks when its champion falls, holds "
 			+ "while one stands, retreats up the road, comes back, and never "
 			+ "changes how many bodies a wave costs")
 	elif _failures == 0:
-		push_error("[morale] FAIL - only %d of 5 tests ran" % _ran)
+		push_error("[morale] FAIL - only %d of 6 tests ran" % _ran)
 		get_tree().quit(1)
 		return
 	else:
