@@ -348,6 +348,22 @@ jobs:
           # has explained. It was bisected out rather than debugged. Run it by
           # hand when touching crowd separation; do not re-add it here until
           # somebody knows what the Linux failure actually is.
+          #
+          # 2026-09-02, two things changed that make finding out cheap:
+          #
+          #   - The gate now tears itself down before quitting. It used to build
+          #     fourteen enemies and a field and quit on top of them, and live
+          #     objects at exit print `WARNING: N ObjectDB instances were
+          #     leaked` - which fails a check on any machine that still held
+          #     them when the tree came down. That is one candidate removed, not
+          #     a diagnosis: it does not reproduce on Windows either way.
+          #   - `check()` above now quotes the failing line. The reason this was
+          #     bisected instead of debugged is that a failing gate annotated
+          #     "Exited 1." and nothing else; it will now say what broke.
+          #
+          # So re-enabling is a one-push experiment that answers the question
+          # permanently. Still an owner's call, because the cost of being wrong
+          # is a red main - which is why it is still commented out here.
           # check "crowd" --headless --path game res://tools/crowd_check.tscn
           #
           # night_check is absent for a different and better reason: it reads

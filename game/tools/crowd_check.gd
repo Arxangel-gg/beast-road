@@ -72,7 +72,7 @@ func _ready() -> void:
 	_check(monarch.ignores_crowd(), "and must declare itself exempt")
 	_check(not escort[0].ignores_crowd(), "while a summon is an ordinary body")
 
-	_finish()
+	await _finish()
 
 
 ## A body standing where it is told.
@@ -103,11 +103,26 @@ func _worst_overlap(crowd: Array[Enemy]) -> float:
 	return worst
 
 
+## **Torn down before quitting, and it never used to be.**
+##
+## This gate built fourteen enemies and a field and then quit on top of them.
+## Godot reports live objects at exit as `WARNING: N ObjectDB instances were
+## leaked`, and Guard fails a check on any warning at all - so the gate could
+## pass every assertion and still turn the run red, on whichever machine happened
+## to still be holding them when the tree came down.
+##
+## That is not proof of the Linux failure this gate was disabled for; it is one
+## candidate that costs nothing to remove. See the note in `guard.yml`.
 func _finish() -> void:
+	for child: Node in get_children():
+		child.queue_free()
+	Sfx.stop_immediately()
+	for _frame: int in 40:
+		await get_tree().process_frame
 	if _failures == 0:
 		print("[crowd] PASS - bodies push apart, bosses stand their ground")
 	else:
-		printerr("[crowd] FAIL - %d problem(s)" % _failures)
+		push_error("[crowd] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
 
@@ -115,4 +130,4 @@ func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[crowd] FAIL: %s" % why)
+	push_error("[crowd] FAIL: %s" % why)
