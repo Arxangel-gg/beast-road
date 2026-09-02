@@ -51,6 +51,11 @@ signal hero_died(at: Vector2)
 ## The hero is alive and controllable again.
 signal hero_respawned(at: Vector2)
 
+## A blow arrived within the first moments of a dash's i-frames - the player
+## dashed as it landed rather than a second early. Carries where it happened so
+## feedback can be drawn there; nothing about the reward travels on this.
+signal hero_perfect_evade(at: Vector2)
+
 ## Act-long Wounds changed through a lethal down or Hearthmend.
 signal hero_wounds_changed(wounds: int, maximum: int)
 

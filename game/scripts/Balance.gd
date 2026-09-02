@@ -37,6 +37,40 @@ const TOWER_RANGE: float = 350
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
 
+# --- Perfect Evade ------------------------------------------------------------
+#
+# Owner request, 2026-09-02. A dash that answers a blow is worth more than one
+# thrown early, and the difference is *when* - so the window is measured from
+# the moment the i-frames began, not from the input.
+#
+# **The reward is tempo, never damage.** Working rule 7 keeps hero power on one
+# capped scale; a dodge that hit harder would be a second scale nobody is tuning
+# against. What a read earns is the chance to act on it.
+
+## How far into the i-frames a blow may arrive and still count as read.
+##
+## Well under half of `HERO_DASH_IFRAMES`: a player who dashed early and stood
+## in the window has not done the thing this rewards. [TUNE]
+const HERO_PERFECT_EVADE_WINDOW: float = 0.12
+
+## The share of the dash cooldown a perfect evade gives back. Once per dash -
+## see `Hero._dash_refunded`, without which standing in a crowd refunds it
+## several times over and dashing becomes free for being in the worst place on
+## the field. [TUNE]
+const HERO_EVADE_REFUND: float = 0.35
+
+## How long the swings stay quickened afterwards. Short: this is a window to
+## answer with, not a buff to carry into the next fight. [TUNE]
+const HERO_EVADE_HASTE_SECONDS: float = 2.0
+
+## How much quicker every phase of the swing runs during it. Below one because
+## it scales the phase *durations*. [TUNE]
+const HERO_EVADE_HASTE_SCALE: float = 0.78
+
+## The flourish. Pale and cold, so it reads against the warm hit flash rather
+## than joining it. [TUNE]
+const HERO_EVADE_COLOUR: Color = Color(0.78, 0.94, 1.0, 0.9)
+
 ## Dash cooldown. [TUNE]
 const HERO_DASH_COOLDOWN: float = 4.0
 

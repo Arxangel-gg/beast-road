@@ -28,6 +28,9 @@ var flat_damage_reduction: float = 0.0
 
 var _invulnerable_left: float = 0.0
 
+## The length of the window currently running, so elapsed time can be derived.
+var _invulnerable_granted: float = 0.0
+
 
 ## Finds the Health belonging to `node`, or null. Keeps callers from having to
 ## know where in a unit's scene the component sits.
@@ -58,13 +61,21 @@ func is_invulnerable() -> bool:
 
 func add_invulnerability(seconds: float) -> void:
 	_invulnerable_left = maxf(_invulnerable_left, seconds)
+	# Kept so `evaded` can say *how far into* the window a blow arrived. Without
+	# it the listener knows only that something was dodged, and a dodge the
+	# player scraped is indistinguishable from one they had a second to spare on.
+	_invulnerable_granted = _invulnerable_left
 
 
 ## Returns true if the damage landed. Callers use the return value to decide
 ## whether to play an impact — a swing that hits an i-framing target should not
 ## shake the screen.
 func take_damage(amount: float, from: Vector2) -> bool:
-	if is_dead or amount <= 0.0 or is_invulnerable():
+	if is_dead or amount <= 0.0:
+		return false
+	if is_invulnerable():
+		# Said out loud rather than swallowed. See `evaded`.
+		evaded.emit(_invulnerable_granted - _invulnerable_left, from)
 		return false
 	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20)
 	# Shield first, and it can absorb a blow whole.
@@ -141,6 +152,19 @@ func ratio() -> float:
 
 ## Emitted whenever the pool changes, so a bar can draw it.
 signal shield_changed(remaining: float)
+
+## A blow arrived and the i-frames ate it.
+##
+## Distinct from `damaged`, which only fires when something got through. Until
+## 2026-09-02 a dodged hit was silent: `take_damage` returned false and nothing
+## anywhere could tell the difference between "you evaded that" and "no attack
+## happened". Perfect Evade is built on knowing which.
+##
+## `into` is how much of the invulnerability had already elapsed when the blow
+## landed. A hit that arrives in the first moments of it is one the player
+## dashed *at the last instant*, which is the whole skill being rewarded; one
+## that arrives late is a player who dashed early and got lucky.
+signal evaded(into: float, from: Vector2)
 
 ## How much of the shield is left. Zero is the ordinary state.
 var _shield: float = 0.0

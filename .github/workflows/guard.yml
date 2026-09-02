@@ -286,6 +286,11 @@ jobs:
           # every wave in the game would quietly get shorter and the three-act
           # curve would be measuring something that no longer happens.
           check "morale" --headless --path game res://tools/morale_check.tscn
+          # A dash that answers a blow beats one thrown early. The bound is that
+          # the reward is tempo and never damage - hero power is on one capped
+          # scale - and that a crowd cannot refund the same dash repeatedly,
+          # which would make dashing free for standing in the worst place.
+          check "perfect evade" --headless --path game res://tools/evade_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

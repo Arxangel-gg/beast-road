@@ -122,6 +122,14 @@ var _facing_hold: float = 0.0
 
 var _dash_left: float = 0.0
 var _dash_cooldown_left: float = 0.0
+
+## Whether the dash now running has already been paid for by a perfect evade.
+##
+## One refund per dash. Without it a hero standing in a crowd dodges four blows
+## in one window and gets the cooldown back four times over, which is not a
+## skill ceiling - it is free dashing for standing in the worst place on the
+## field.
+var _dash_refunded: bool = false
 var _dash_direction: Vector2 = Vector2.RIGHT
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
@@ -226,6 +234,7 @@ func _ready() -> void:
 
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
+	health.evaded.connect(_on_evaded)
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	# **Not joined here.** Presence is owned by `set_present`, which the scope
@@ -692,6 +701,44 @@ func respawn_from_wipe() -> void:
 
 
 ## 0..1, for a cooldown readout in a later stage.
+## A blow arrived and the dash ate it.
+##
+## Owner request, 2026-09-02: the dash exists, and a well-timed one should be
+## worth more than an early one. **Perfect Evade is about *when*, not whether.**
+## A player who dashed a full second early and happened to be invulnerable did
+## not read anything; one who dashed as the blow landed did, and that is the
+## only difference between the two - so the window is measured from the start of
+## the i-frames rather than from the dash input.
+##
+## The reward is tempo and nothing else: part of the dash back, and a few
+## quickened swings. Hero power is on one capped scale (working rule 7), so a
+## dodge that hit harder would be a second scale nobody is tuning against - what
+## a good dodge earns is the *chance to act*, which is what it opens in the
+## fiction too.
+func _on_evaded(into: float, from: Vector2) -> void:
+	if into > Balance.HERO_PERFECT_EVADE_WINDOW:
+		return
+	EventBus.hero_perfect_evade.emit(global_position)
+	if attack != null:
+		attack.grant_haste(Balance.HERO_EVADE_HASTE_SECONDS)
+	# One refund per dash. See `_dash_refunded`.
+	if not _dash_refunded:
+		_dash_refunded = true
+		_dash_cooldown_left = maxf(_dash_cooldown_left
+			- Balance.HERO_DASH_COOLDOWN * Balance.HERO_EVADE_REFUND, 0.0)
+	# Drawn toward whatever swung, so the flourish reads as an answer to *that*
+	# blow rather than as something the hero did on their own.
+	var away: Vector2 = (global_position - from).normalized()
+	if away.length() < 0.001:
+		away = Vector2.UP
+	Vfx.ring(global_position, 92.0, Balance.HERO_EVADE_COLOUR, 0.34, 5.0)
+	Vfx.spark(global_position, Balance.HERO_EVADE_COLOUR, 10, away, 260.0)
+	# Not the dash whoosh, which already played when the dash started - a reward
+	# that sounds like the thing it rewards is a reward nobody hears. The blink
+	# cue is crisp, short, and already means "you were not there".
+	Sfx.play("sfx_spell_blink", -4.0)
+
+
 func dash_cooldown_ratio() -> float:
 	if Balance.HERO_DASH_COOLDOWN <= 0.0:
 		return 0.0
@@ -768,6 +815,7 @@ func _try_dash() -> void:
 	_dash_direction = move_input.normalized() if move_input.length() > 0.1 else _aim
 	_dash_left = Balance.HERO_DASH_DURATION
 	_dash_cooldown_left = Balance.HERO_DASH_COOLDOWN
+	_dash_refunded = false
 	health.add_invulnerability(Balance.HERO_DASH_IFRAMES)
 	animator.dash(_dash_direction, Balance.HERO_DASH_DURATION)
 	_lock_frames("dash")

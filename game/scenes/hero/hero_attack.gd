@@ -72,6 +72,28 @@ func cancel() -> void:
 ## Every phase scales together - wind-up, active and recovery - because
 ## shortening only the recovery would make the swing read as faster without the
 ## telegraph shortening with it, and the telegraph is what the enemy reads.
+## Seconds of quickened swinging owed to a perfect evade. See `Hero`.
+var _evade_haste_left: float = 0.0
+
+
+## Grants the reward for a perfect evade: the next swings come faster.
+##
+## **Speed, never damage.** Hero power is on one capped scale (working rule 7)
+## and a dodge that hit harder would be a second one. What this buys is tempo -
+## the window a good dodge opens is a window to *act*, and the reward is being
+## able to.
+func grant_haste(seconds: float) -> void:
+	_evade_haste_left = maxf(_evade_haste_left, seconds)
+
+
+## Folded in with Swiftness and the weapon, so every phase of the swing shortens
+## together. Shortening the recovery alone would make the swing read as faster
+## without its own telegraph shortening with it, which is the same mistake the
+## weapon scale's comment warns about.
+func _haste_scale() -> float:
+	return Balance.HERO_EVADE_HASTE_SCALE if _evade_haste_left > 0.0 else 1.0
+
+
 func _swiftness_scale() -> float:
 	var points: int = RunState.attribute(RunState.Attribute.SWIFTNESS)
 	return 1.0 / (1.0 + float(points) * Balance.HERO_SWIFTNESS_ATTACK_PER_POINT)
@@ -124,6 +146,7 @@ func swing_direction() -> Vector2:
 
 
 func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
+	_evade_haste_left = maxf(_evade_haste_left - delta, 0.0)
 	_swing_origin = origin
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
 	if _phase == Phase.READY:
@@ -149,10 +172,10 @@ func _advance_phase() -> void:
 	match _phase:
 		Phase.WINDUP:
 			_phase = Phase.ACTIVE
-			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale() * _weapon_scale()
+			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
 		Phase.ACTIVE:
 			_phase = Phase.RECOVERY
-			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale() * _weapon_scale()
+			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
 		Phase.RECOVERY:
 			_phase = Phase.READY
 			_phase_left = 0.0
@@ -165,7 +188,7 @@ func _advance_phase() -> void:
 func _begin_swing(step: int, aim: Vector2) -> void:
 	_step = clampi(step, 0, Balance.HERO_CHAIN_LENGTH - 1)
 	_phase = Phase.WINDUP
-	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale() * _weapon_scale()
+	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
 	_swing_aim = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	_buffer_left = 0.0
 	_chain_left = 0.0
