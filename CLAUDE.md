@@ -200,6 +200,33 @@ The save is additive: a file written before this has no `spirits` key and reads
 as an empty collection, so `SAVE_VERSION` did not move and no migration exists
 to get wrong.
 
+**A bonded spirit also carries a personality, as of 2026-09-01.** The owner asked
+that "two legendary foxes can actually feel different". Six traits live in
+`data/spirit_traits/`; the living animal wears one, decided from its own serial
+number, and bonding it banks *that animal's* temperament against the variant.
+
+This is still collection rather than accumulation, which is what keeps it inside
+the amendment above. A personality is fixed the moment the bond is made, never
+levels, and is a property of the animal you happened to meet - exactly as its
+rarity is. It rides the value of the existing `spirit_bonded` entry rather than
+adding a key, so a bond written before this reads `true`, which loads as a bonded
+spirit with no personality. `SAVE_VERSION` still has not moved.
+
+**The bound is that no personality may be a damage upgrade.** A spirit's power is
+already capped by `SPIRIT_APEX_POWER`; a trait that simply hit harder would be a
+third scale beside levelling and gear that nobody is tuning against, and the best
+trait would become the only one worth keeping. So every trait's damage is an
+envelope that trades - stronger at your shoulder and weaker away from it,
+stronger hurt and weaker whole - and the two that find things pay for it out of
+the same envelope. `spirit_trait_check` holds the mean at one.
+
+**And the road hunts, as of the same date.** Predators notice harmless wildlife
+inside a fraction of their aggro radius, and prey bolts from predators. It is a
+chase and never a meal: `Wildlife._strike` accepts a Hero or an Enemy and refuses
+everything else, which is what stops the ecology from quietly eating a Spirit
+Companion the player was three encounters from bonding. That bound is the whole
+design and `wildlife_spawn_check` holds it.
+
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.
 

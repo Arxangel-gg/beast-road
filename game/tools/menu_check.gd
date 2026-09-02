@@ -163,6 +163,46 @@ func _ready() -> void:
 		image.save_png("user://menu_shot.png")
 		print("[menu] shot -> user://menu_shot.png")
 
+	# The stash offers a filter for every slot gear can occupy.
+	#
+	# Opened and counted rather than trusted. The filter row was a written-out
+	# list of three names, and when five slots were added on 2026-09-01 a helm
+	# became reachable only through "All" - the screen did not know the slot
+	# existed and nothing failed to say so. A layout gate cannot catch this: the
+	# rectangles were the right size, they were just the wrong buttons.
+	var stash: Node = null
+	for node: Node in _all(menu):
+		if node is StashScreen:
+			stash = node
+			break
+	if stash == null:
+		push_error("the main menu must own a stash screen")
+		get_tree().quit(1)
+		return
+	stash.call("open")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var tools: Node = stash.get("_tools") as Node
+	var offered: Dictionary = {}
+	if tools != null:
+		for child: Node in tools.get_children():
+			var tab := child as Button
+			if tab != null and tab.toggle_mode:
+				offered[tab.text] = true
+	var wanted: int = GearData.Slot.size() + 1
+	if offered.size() != wanted:
+		push_error("the stash must filter by every slot: %d tabs for %d slots plus All"
+			% [offered.size(), GearData.Slot.size()])
+		get_tree().quit(1)
+		return
+	for slot: int in GearData.Slot.size():
+		if not offered.has(GearData.name_of_slot(slot)):
+			push_error("the stash has no filter for %s, so that gear is only "
+				% GearData.name_of_slot(slot) + "reachable through All")
+			get_tree().quit(1)
+			return
+	print("[menu] stash filters %d slots and All" % GearData.Slot.size())
+
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
 	Ambience.stop_immediately()

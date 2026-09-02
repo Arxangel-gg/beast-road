@@ -179,7 +179,13 @@ func _process(delta: float) -> void:
 		# Once homing, always homing. Without the latch a drop at the edge of the
 		# magnet stutters in and out of range as the hero moves, and reads as
 		# broken rather than as out of reach.
-		if _homing or distance <= Balance.LOOT_MAGNET_RANGE:
+		# A Curious spirit is a second magnet with the hero's address.
+		#
+		# It nudges the *latch* rather than the destination: what it finds still
+		# flies to the player, so the trait widens the net without changing who
+		# gets paid - which matters in co-op, where each machine already homes
+		# loot to its own hero.
+		if _homing or distance <= Balance.LOOT_MAGNET_RANGE 				or _noticed_by_companion():
 			_homing = true
 			_velocity = _velocity.move_toward(
 				to_hero.normalized() * Balance.LOOT_MAGNET_SPEED,
@@ -410,3 +416,20 @@ func _dissolve_and_free() -> void:
 func _set_pickup_dissolve(value: float) -> void:
 	if _material != null:
 		_material.set_shader_parameter("pickup", value)
+
+
+## Whether a companion with the Curious temperament is standing near enough to
+## have spotted this.
+##
+## Asked only while the drop is not already homing, and there is at most one
+## companion per player - so this is a handful of distance checks a frame in the
+## worst case, on things that already exist in a group.
+func _noticed_by_companion() -> bool:
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var friend := node as Companion
+		if friend == null or not is_instance_valid(friend):
+			continue
+		var reach: float = friend.reveal_radius()
+		if reach > 0.0 and friend.global_position.distance_to(global_position) <= reach:
+			return true
+	return false

@@ -83,6 +83,15 @@ enum State {
 ## months on a single static PNG. Frames are an upgrade on top of that, not a
 ## replacement for it - see `Balance.ENEMY_FRAME_WALK_DAMPING`.
 var _walk_frames: Array[Texture2D] = []
+
+## The swing, drawn rather than implied.
+##
+## `_advance_walk_frames` has said since it was written that "the windup
+## animation is drawn from the rest pose" - and there was no windup animation.
+## An enemy about to hit you stood perfectly still in its standing pose for the
+## entire 0.45s tell, which is the one moment in the fight the player is reading
+## the body hardest. Authored 2026-09-01 for all twenty-four walkers.
+var _attack_frames: Array[Texture2D] = []
 var _rest_texture: Texture2D = null
 
 ## Advanced by ground covered, never by time, so a chilled or slowed enemy takes
@@ -92,6 +101,15 @@ var _walk_phase: float = 0.0
 ## This enemy's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
 var _blood_tried: bool = false
+
+## A promoted body's polish material, kept rather than dropped on the floor.
+##
+## An elite claims the sprite's material slot at spawn, which makes `_blood` null
+## for the rest of its life - so before 2026-09-01 this reference was created,
+## configured and discarded, and there was no way to write anything to a
+## promoted body afterwards. Combat state has to reach both. See `ActorState`.
+var _polish: ShaderMaterial = null
+var _state_seeded: bool = false
 @export var health_bar: HealthBar
 @export var animator: SpriteAnimator
 
@@ -320,6 +338,7 @@ func _ready() -> void:
 		# cycle alternating between standing and mid-stride reads as the sprite
 		# being swapped rather than animated. That was learned on the wildlife.
 		_walk_frames = GameData.load_move_frames(path)
+		_attack_frames = GameData.load_attack_frames(path)
 	if not _walk_frames.is_empty():
 		animator.walk_cycle_scale = Balance.ENEMY_FRAME_WALK_DAMPING
 	_apply_category_scale()
@@ -1419,13 +1438,34 @@ func _drop_blueprint() -> void:
 		global_position)
 
 
+## Coming apart, rather than becoming see-through.
+##
+## This was `modulate.a` counting down, and a body that fades is a body that
+## turns into a ghost of itself and then is not there. Since 2026-09-01 it
+## dissolves texel by texel from the feet up, flaring as it goes, in the colour
+## of whatever condition it died in - see `state_dissolve`.
+##
+## The fade survives as the fallback for a body with no material, because the
+## alternative there is an enemy that vanishes between one frame and the next.
 func _tick_death(delta: float) -> void:
 	_death_left -= delta
 	if _death_left <= 0.0:
 		queue_free()
 		return
 	var t: float = _death_left / Balance.ENEMY_DEATH_FADE
-	sprite.modulate = Color(1.0, 1.0, 1.0, t)
+	var material: ShaderMaterial = _state_material()
+	if ActorState.carried(material):
+		var alight: float = ActorState.burn_level(_burn_left)
+		var iced: float = 1.0 if _freeze_left > 0.0 else _chill
+		# A corpse still burns while it comes apart, and still wears its rime -
+		# but it is not about to hit anyone, and a wind-up rim on a dying body
+		# is a tell that lies. `_update_state_shader` does not run during death,
+		# so whatever the rim was at the moment of the kill would otherwise sit
+		# there for the whole dissolve.
+		ActorState.drive(material, alight, iced, 0.0)
+		ActorState.dissolve(material, 1.0 - t, alight, iced)
+	else:
+		sprite.modulate = Color(1.0, 1.0, 1.0, t)
 
 
 ## Mass drives how heavily this thing moves. Derived rather than authored, so
@@ -1503,6 +1543,7 @@ func _build_rank_mark() -> void:
 	# colour, which is what makes it pick out of a crowd at a glance rather than
 	# on inspection.
 	var polish: ShaderMaterial = ActorPolishScript.attach(sprite)
+	_polish = polish
 	if polish != null:
 		polish.set_shader_parameter("outline_colour", Color(tint, 0.95))
 		polish.set_shader_parameter("outline_strength",
@@ -1600,6 +1641,35 @@ func _update_blood(delta: float) -> void:
 	if _flash_left > 0.0:
 		BloodStain.strike(_blood, _impact_direction)
 	BloodStain.drive_impact(_blood, _flash_left)
+	_update_state_shader()
+
+
+## Burning, freezing and winding up, written to whichever material this body has.
+##
+## `_state_material()` answers null only in a build whose actor shader failed to
+## load - the Low preset still gets a stain material, it just gets one with its
+## outline turned off. When it *is* null, `_update_sprite` tints instead; see the
+## tint block for why that fallback is a gameplay promise rather than a look.
+func _update_state_shader() -> void:
+	var material: ShaderMaterial = _state_material()
+	if material == null:
+		return
+	if not _state_seeded:
+		_state_seeded = true
+		ActorState.seed_pattern(material, get_instance_id())
+	# Frozen solid is frost at full rather than a fourth effect: it is the same
+	# ice, arrived. The chill meter is already 0..1 and needs no conversion.
+	var frozen: float = 1.0 if _freeze_left > 0.0 else _chill
+	ActorState.drive(material,
+		ActorState.burn_level(_burn_left),
+		frozen,
+		ActorState.telegraph_level(_state_left, Balance.ENEMY_ATTACK_WINDUP)
+			if _state == State.WINDUP else 0.0)
+
+
+## Whichever of this body's two possible materials it actually wears.
+func _state_material() -> ShaderMaterial:
+	return _blood if _blood != null else _polish
 
 
 func _update_sprite(delta: float = 0.0) -> void:
@@ -1627,19 +1697,31 @@ func _update_sprite(delta: float = 0.0) -> void:
 	_advance_walk_frames(delta)
 
 	var tint: Color = Color.WHITE
-	if _freeze_left > 0.0:
-		tint = Color(0.55, 0.80, 1.0)
-	elif _chill > 0.02:
-		# Deepens with the meter rather than being on or off, so a player can see
-		# a shatter building and read a second frost tower as doing something.
-		tint = Color.WHITE.lerp(Color(0.62, 0.84, 1.0), _chill)
-	if _burn_left > 0.0:
-		tint = tint.lerp(Color(1.0, 0.55, 0.25), 0.5)
-	# The wind-up tell overrides every other tint, because it is the one the
-	# player has to read.
-	if _state == State.WINDUP:
-		var pulse: float = 0.5 + 0.5 * sin(_state_left * 34.0)
-		tint = Color(1.0, 0.45, 0.35).lerp(Color(1.0, 0.95, 0.7), pulse)
+	# **The tint is the fallback, not the effect.** Since 2026-09-01 fire, ice
+	# and the wind-up are drawn as material by `actor_state.gdshaderinc`, which
+	# is a far better language for all three - see its header. But a machine with
+	# polish shaders off has no material at all, and a player who cannot see a
+	# wind-up is playing a harder game, not a plainer-looking one. So this stays,
+	# and runs only when the shader is not carrying it.
+	#
+	# The colours come from Balance rather than from here so the two paths cannot
+	# describe the same state differently, which they did while these were magic
+	# numbers in this function and the shader had defaults of its own.
+	if not ActorState.carried(_state_material()):
+		if _freeze_left > 0.0:
+			tint = Balance.STATE_FROST_COLOUR
+		elif _chill > 0.02:
+			# Deepens with the meter rather than being on or off, so a player can
+			# see a shatter building and read a second frost tower as doing
+			# something.
+			tint = Color.WHITE.lerp(Balance.STATE_FROST_COLOUR, _chill)
+		if _burn_left > 0.0:
+			tint = tint.lerp(Balance.STATE_BURN_COLOUR, 0.5)
+		# The wind-up tell overrides every other tint, because it is the one the
+		# player has to read.
+		if _state == State.WINDUP:
+			var pulse: float = 0.5 + 0.5 * sin(_state_left * 34.0)
+			tint = Balance.STATE_TELEGRAPH_COLOUR.lerp(Color(1.0, 0.95, 0.7), pulse)
 	if _flash_left > 0.0:
 		tint = Balance.HIT_FLASH_COLOUR.lerp(tint, 1.0 - _flash_left / Balance.HIT_FLASH_TIME)
 	sprite.modulate = tint
@@ -1658,17 +1740,74 @@ func _update_sprite(delta: float = 0.0) -> void:
 ## through them would bury the tell - the same reasoning that makes the striking
 ## sequence outrank everything on the wildlife.
 func _advance_walk_frames(delta: float) -> void:
-	if _walk_frames.is_empty() or sprite == null:
+	if sprite == null:
+		return
+	# The swing outranks the walk, exactly as it does on the wildlife. A body
+	# mid-attack is not walking, and a walk cycle playing through the wind-up
+	# would bury the tell it exists to show.
+	if _advance_attack_frames():
+		return
+	if _walk_frames.is_empty():
 		return
 	var walking: bool = _state == State.WALKING and _freeze_left <= 0.0 \
 		and _hitstun_left <= 0.0
 	if not walking:
 		# Back to the standing pose rather than freezing mid-stride: an enemy
-		# stopped with one leg forward reads as a bug, and the windup animation
-		# is drawn from the rest pose.
+		# stopped with one leg forward reads as a bug, and it is where the
+		# attack sequence starts from.
 		_walk_phase = 0.0
 		if _rest_texture != null:
 			sprite.texture = _rest_texture
 		return
 	_walk_phase += _motion.length() * delta * Balance.ENEMY_WALK_FRAMES_PER_PIXEL
 	sprite.texture = _walk_frames[int(_walk_phase) % _walk_frames.size()]
+
+
+## The attack pose for this instant, or false if this body is not attacking.
+##
+## **Driven by where the state machine actually is, not by a timer of its own.**
+## The whole value of an authored swing is that the blow lands on the frame that
+## looks like the blow - so the sequence is mapped onto the three states rather
+## than played at a fixed rate beside them:
+##
+##   WINDUP  -> the first half, coiling, at the speed the tell actually runs
+##   STRIKE  -> the impact pose, held for the whole 0.12s the hit exists
+##   RECOVER -> the rest, settling back toward standing
+##
+## A frame rate of its own would drift out of step the moment any of the three
+## durations was tuned, and the failure would be a hit that lands before the
+## weapon does - which reads as the enemy cheating rather than as an animation
+## being wrong.
+func _advance_attack_frames() -> bool:
+	if _attack_frames.is_empty():
+		return false
+	var count: int = _attack_frames.size()
+	# **The last frame is the blow.**
+	#
+	# The authored sequences build toward their action rather than peaking in the
+	# middle - looked at on a contact sheet, the final frame is the hammer down,
+	# the jaws shut, the lunge extended. Mapping the strike to the middle put the
+	# coil on screen at the moment of impact and the blow during the recovery,
+	# which reads as a hit landing before the weapon does.
+	var impact: int = count - 1
+	var frame: int = -1
+	match _state:
+		State.WINDUP:
+			# Everything before the blow, spread across the tell.
+			var through: float = clampf(
+				1.0 - _state_left / maxf(Balance.ENEMY_ATTACK_WINDUP, 0.001),
+				0.0, 1.0)
+			frame = clampi(int(through * float(impact)), 0, maxi(impact - 1, 0))
+		State.STRIKE:
+			frame = impact
+		State.RECOVER:
+			# Back to standing rather than a fourth pose. Recovery is the longest
+			# of the three states by far, and holding an extreme swing through it
+			# leaves the body frozen mid-blow for three quarters of a second -
+			# which reads as a stutter. Settling to rest is what a body does.
+			return false
+		_:
+			return false
+	sprite.texture = _attack_frames[clampi(frame, 0, count - 1)]
+	_walk_phase = 0.0
+	return true

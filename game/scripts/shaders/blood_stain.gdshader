@@ -1,5 +1,10 @@
 shader_type canvas_item;
 
+// Fire, ice and the wind-up tell, shared with `actor_polish`. Every enemy that
+// has not been promoted wears this material rather than that one, so the state a
+// player reads off a body has to live in both - see the include's header.
+#include "res://scripts/shaders/actor_state.gdshaderinc"
+
 // Blood on a character, as speckle rather than tint.
 //
 // A flat red wash over a wounded sprite reads as a status effect. What reads as
@@ -55,6 +60,25 @@ void fragment() {
 		COLOR.rgb = mix(COLOR.rgb, impact_colour.rgb,
 			rim * impact_strength * impact_colour.a);
 	}
+	// Fire and ice before blood, so a burning enemy's embers sit under its
+	// wounds rather than over them. Blood is the newest thing to have happened
+	// to the body and reads as the top layer; fire is a condition it is in.
+	//
+	// **Weighted by the sprite's own alpha, not by `COLOR.a`.** By this point
+	// `COLOR` has been overwritten with the outline on every transparent texel,
+	// so its alpha is no longer "how much body is here" - and passing it would
+	// set the *rim* alight. `actor_polish` reaches this with `COLOR` still the
+	// sprite, so it never could, and a promoted body would have burned
+	// differently at its edges from an ordinary one for no reason anybody could
+	// have found later.
+	float body_a = texture(TEXTURE, UV).a;
+	if (body_a > 0.001 && (burn > 0.001 || frost > 0.001)) {
+		float near = min(min(left_a, right_a), min(up_a, down_a));
+		COLOR.rgb = state_body(COLOR.rgb, UV, px, body_a, near);
+	}
+	if (body_a > 0.001) {
+		COLOR.rgb = state_shine(COLOR.rgb, UV, px, body_a);
+	}
 	if (stain > 0.001) {
 		// Texel coordinates, not UV, so the speckle lands on the art's own
 		// pixels and stays crisp at every zoom.
@@ -71,4 +95,9 @@ void fragment() {
 		// silhouette - blood belongs on the character, not in its bounding box.
 		COLOR.rgb = mix(COLOR.rgb, blood_colour, mask * 0.88 * COLOR.a);
 	}
+	// Over everything, including the outline this shader may have written into
+	// a transparent texel: the tell is what has to survive.
+	STATE_APPLY_TELEGRAPH(COLOR, UV, px, body_a)
+	// Last, so a dissolving body takes its outline and its wounds with it.
+	COLOR = state_dissolve(COLOR, UV, px);
 }

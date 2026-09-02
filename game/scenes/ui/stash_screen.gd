@@ -13,14 +13,17 @@ extends CanvasLayer
 
 signal closed()
 
-const SLOT_NAMES: Array[String] = ["Weapon", "Armour", "Charm"]
+## Filter tabs per row. Three keeps every button wide enough to hit on a phone
+## once the eight gear slots and "All" are laid out.
+const TOOL_COLUMNS: int = 3
+
 const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
 
 var _panel: PanelContainer
 var _list: VBoxContainer
 var _header: Label
 var _note: Label
-var _tools: HBoxContainer
+var _tools: GridContainer
 var _scroll: ScrollContainer
 
 ## Which slot the list is filtered to, or -1 for all. A stash of ninety-six is
@@ -75,8 +78,15 @@ func _build() -> void:
 	# needs way more loot"). Four times the drops means four times the sorting,
 	# and a farming loop where clearing the chaff costs one press per piece is a
 	# farming loop nobody runs twice. These never touch what is worn.
-	_tools = HBoxContainer.new()
-	_tools.add_theme_constant_override("separation", 6)
+	# **A grid rather than a row, since the slots went from three to eight.**
+	# Nine filters in one line is nine buttons about forty pixels wide on a
+	# phone, which is under the thumb floor the layout gate enforces and
+	# unreadable besides. Three columns wraps them into three rows and every
+	# button keeps its width.
+	_tools = GridContainer.new()
+	_tools.columns = TOOL_COLUMNS
+	_tools.add_theme_constant_override("h_separation", 6)
+	_tools.add_theme_constant_override("v_separation", 6)
 	column.add_child(_tools)
 
 	# The list scrolls and the close button does not. A full stash is forty rows,
@@ -198,7 +208,13 @@ func _build_tools() -> void:
 		_tools.remove_child(child)
 		child.queue_free()
 
-	var names: Array[String] = ["All", "Weapon", "Armour", "Charm"]
+	# Built from the enum rather than from a list. The list said Weapon, Armour
+	# and Charm, and when five slots were added on 2026-09-01 a helm was
+	# reachable only through "All" - the filter did not know it existed, and
+	# nothing failed to say so.
+	var names: Array[String] = ["All"]
+	for slot: int in GearData.Slot.size():
+		names.append(GearData.name_of_slot(slot))
 	for which: int in names.size():
 		var index: int = which - 1
 		var tab := Button.new()
@@ -224,6 +240,9 @@ func _build_tools() -> void:
 		sweep.custom_minimum_size = Vector2(0.0, 36.0)
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sweep.add_theme_font_size_override("font_size", 13)
+		# A full row each: "Break all Worn" beside a slot filter reads as another
+		# filter, and it is the one control on this screen that destroys things.
+		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var threshold: int = rarity
 		sweep.pressed.connect(func() -> void:
 			var broken: int = _break_all(threshold)

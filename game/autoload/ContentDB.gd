@@ -18,6 +18,10 @@ var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
 var wildlife_kinds: Dictionary = {}
+
+## Spirit Companion personalities. Adding one is adding a `.tres`, and every
+## animal in the game can then be met wearing it.
+var spirit_traits: Dictionary = {}
 var companions: Dictionary = {}
 var traps: Dictionary = {}
 var barricades: Dictionary = {}
@@ -59,6 +63,7 @@ func _ready() -> void:
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
 	wildlife_kinds = _load_dir("res://data/wildlife")
+	spirit_traits = _load_dir("res://data/spirit_traits")
 	companions = _load_dir("res://data/companions")
 	traps = _load_dir("res://data/traps")
 	barricades = _load_dir("res://data/barricades")
@@ -176,6 +181,26 @@ func trap_kinds() -> Array[TrapData]:
 
 func companion(id: String) -> CompanionData:
 	return companions.get(id, null) as CompanionData
+
+
+## Every personality, in a stable order.
+##
+## Sorted rather than in dictionary order, because a trait is chosen by index
+## from a serial number: an unstable order would give the same animal a different
+## personality on two machines, which is exactly the desync the shiny roll had.
+func spirit_trait_list() -> Array[SpiritTraitData]:
+	var out: Array[SpiritTraitData] = []
+	for value: Variant in spirit_traits.values():
+		var trait_kind := value as SpiritTraitData
+		if trait_kind != null:
+			out.append(trait_kind)
+	out.sort_custom(func(a: SpiritTraitData, b: SpiritTraitData) -> bool:
+		return a.id < b.id)
+	return out
+
+
+func spirit_trait(id: String) -> SpiritTraitData:
+	return spirit_traits.get(id, null) as SpiritTraitData
 
 
 func wildlife() -> Array[WildlifeData]:

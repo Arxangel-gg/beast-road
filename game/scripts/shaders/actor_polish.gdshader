@@ -1,5 +1,10 @@
 shader_type canvas_item;
 
+// Fire, ice and the wind-up tell. Shared with `blood_stain`, which every
+// unpromoted enemy wears - see the include's header for why neither shader may
+// own that state alone.
+#include "res://scripts/shaders/actor_state.gdshaderinc"
+
 uniform vec4 outline_colour : source_color = vec4(0.035, 0.045, 0.05, 0.94);
 uniform float outline_strength : hint_range(0.0, 1.0) = 0.82;
 uniform vec4 impact_colour : source_color = vec4(1.0, 0.82, 0.62, 1.0);
@@ -66,25 +71,16 @@ void fragment() {
 		? max(dot(normalize(gradient), normalize(impact_direction)), 0.0) : 0.0;
 	vec3 body = mix(source.rgb, impact_colour.rgb,
 		edge * impact_strength * impact_colour.a * source.a);
+	float near = min(min(left_a, right_a), min(up_a, down_a));
+	body = state_body(body, UV, px, source.a, near);
+	body = state_shine(body, UV, px, source.a);
 	vec4 composed = vec4(body, source.a);
 	vec4 rim = vec4(outline_colour.rgb, outline * outline_colour.a);
 	vec4 painted = mix(rim, composed, composed.a);
 
 	if (aura_strength > 0.001) {
-		// The silhouette widened by a diagonal ring as well as the cardinals -
-		// four samples alone leave visible corners on a diagonal edge, which on
-		// a glow reads as a sprite with notches cut out of it.
 		vec2 w = px * aura_width;
-		float far_a = max(
-			max(texture(TEXTURE, UV - vec2(w.x, 0.0)).a,
-				texture(TEXTURE, UV + vec2(w.x, 0.0)).a),
-			max(texture(TEXTURE, UV - vec2(0.0, w.y)).a,
-				texture(TEXTURE, UV + vec2(0.0, w.y)).a));
-		vec2 d = w * 0.7071;
-		far_a = max(far_a, max(
-			max(texture(TEXTURE, UV - d).a, texture(TEXTURE, UV + d).a),
-			max(texture(TEXTURE, UV + vec2(d.x, -d.y)).a,
-				texture(TEXTURE, UV + vec2(-d.x, d.y)).a)));
+		float far_a = STATE_WIDENED_ALPHA(UV, w);
 
 		// The band outside the body, faded by how far out it sits so the glow
 		// falls off instead of ending on a hard line.
@@ -108,5 +104,8 @@ void fragment() {
 			tex.a * flame * 0.16 * aura_strength);
 	}
 
-	COLOR = painted;
+	STATE_APPLY_TELEGRAPH(painted, UV, px, tex.a)
+	// Last: a body that is coming apart takes its outline, its aura and its
+	// wind-up with it. Anything applied after this would survive the death.
+	COLOR = state_dissolve(painted, UV, px);
 }

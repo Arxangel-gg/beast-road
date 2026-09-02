@@ -54,6 +54,12 @@ var _sprite: Sprite2D = null
 var _bob: float = 0.0
 var _power: float = 0.0
 
+## This spirit's personality, or null. See `SpiritTraitData`.
+##
+## Read once at summon rather than per frame: it belongs to the bond, and the
+## bond cannot change while the companion is standing on the field.
+var _temperament: SpiritTraitData = null
+
 
 func setup(companion: CompanionData, hero: Node2D, arena: Node) -> void:
 	data = companion
@@ -83,6 +89,7 @@ func _ready() -> void:
 	if not spirit_key.is_empty():
 		_power *= SpiritBond.power_scale(SpiritBond.rarity_of(spirit_key),
 			SpiritBond.shiny_of(spirit_key))
+		_temperament = SpiritBond.trait_of_bond(spirit_key)
 
 	_sprite = Sprite2D.new()
 	var path: String = data.get_sprite_path()
@@ -146,20 +153,74 @@ func _goal(quarry: Enemy) -> Vector2:
 	return global_position
 
 
-## The closest living enemy worth crossing to.
+## The living enemy worth crossing to, by this companion's own lights.
+##
+## **Scored rather than sorted by distance**, since 2026-09-01, because that is
+## where a personality actually lives: a Protective spirit and a Hunter standing
+## in the same crowd should walk at different bodies. Distance is still the base
+## of the score, so a companion with no personality behaves exactly as it always
+## did and every trait remains a *preference* rather than a rule - none of them
+## will cross the whole field past something already biting it.
 func _nearest_enemy() -> Enemy:
 	if field == null or not field.has_method("enemies_near"):
 		return null
+	var bias: int = SpiritTraitData.Bias.NEAREST
+	if _temperament != null:
+		bias = int(_temperament.bias)
+	var hero_at: Vector2 = global_position
+	if owner_hero != null and is_instance_valid(owner_hero):
+		hero_at = owner_hero.global_position
+
 	var best: Enemy = null
-	var best_distance: float = data.hunt_range
+	var best_score: float = -INF
 	for enemy: Enemy in field.enemies_near(global_position, data.hunt_range):
 		if enemy.is_dying():
 			continue
 		var distance: float = global_position.distance_to(enemy.global_position)
-		if distance < best_distance:
-			best_distance = distance
+		if distance >= data.hunt_range:
+			continue
+		var score: float = -distance
+		match bias:
+			SpiritTraitData.Bias.ATTACKER:
+				# Whatever is closest to *you*, and most of all whatever is
+				# already winding up at you. There is no "who hit the hero last"
+				# on record and there does not need to be: a body at your
+				# shoulder mid-swing is the thing a protective animal goes for.
+				score -= enemy.global_position.distance_to(hero_at) \
+					* Balance.SPIRIT_TRAIT_GUARD_WEIGHT
+				if enemy.is_telegraphing():
+					score += Balance.SPIRIT_TRAIT_TELEGRAPH_BONUS
+			SpiritTraitData.Bias.PROMOTED:
+				if enemy.rank != Enemy.Rank.COMMON:
+					score += Balance.SPIRIT_TRAIT_PROMOTED_BONUS
+			_:
+				pass
+		if score > best_score:
+			best_score = score
 			best = enemy
 	return best
+
+
+## The damage this swing lands, personality included.
+##
+## Both envelopes average to one (`SpiritTraitData.resting_worth`, held by the
+## gate), so this can change *where* a companion is dangerous and never how
+## dangerous it is overall.
+func _swing_power() -> float:
+	if _temperament == null:
+		return _power
+	var closeness: float = 1.0
+	if owner_hero != null and is_instance_valid(owner_hero):
+		closeness = 1.0 - clampf(
+			global_position.distance_to(owner_hero.global_position)
+			/ maxf(data.hunt_range, 1.0), 0.0, 1.0)
+	var health: float = spirit_health_ratio() if _max_hp > 0.0 else 1.0
+	return _power * _temperament.damage_scale(closeness, health)
+
+
+## How far this companion draws loose pickups in. Zero for most of them.
+func reveal_radius() -> float:
+	return 0.0 if _temperament == null else _temperament.reveal_radius
 
 
 func _strike(quarry: Enemy) -> void:
@@ -167,14 +228,37 @@ func _strike(quarry: Enemy) -> void:
 	# `active_hero` false: this is the hero's damage at one remove, not the
 	# hero's swing, and the discipline nodes that key off a finisher must not
 	# fire for it.
-	quarry.take_damage(_power, global_position, data.knockback, false)
+	quarry.take_damage(_swing_power(), global_position, data.knockback, false)
 	Vfx.spark(quarry.global_position, data.colour, 5,
 		(quarry.global_position - global_position).normalized(), 200.0)
+	_scavenge(quarry)
 	if _sprite != null:
 		# A lunge rather than a swing animation: one authored attack pose per
 		# companion is three more sprites for something on screen ten seconds at
 		# a time, and a shove toward the target reads at any zoom.
 		_sprite.position = (quarry.global_position - global_position).normalized() * 9.0
+
+
+## A Scavenger's finder's fee, on a body it brought down itself.
+##
+## Only on a kill, and only its own: a trait that paid out on every hit would be
+## an income multiplier rather than a personality, and the drop economy is tuned
+## against kills. Paid for out of the same damage envelope everything else is -
+## Scavenger swings a little softer than the others, which is the whole trade.
+func _scavenge(quarry: Enemy) -> void:
+	if _temperament == null or _temperament.scavenge_chance <= 0.0:
+		return
+	if not quarry.is_dying():
+		return
+	if field == null or not field.has_method("spawn_loot"):
+		return
+	if RunState.rng("combat").randf() > _temperament.scavenge_chance:
+		return
+	var currency: String = RunState.CURRENCIES[
+		RunState.rng("combat").randi_range(0, RunState.CURRENCIES.size() - 1)]
+	field.spawn_loot(currency, Balance.SPIRIT_TRAIT_SCAVENGE_AMOUNT,
+		quarry.global_position)
+	Vfx.spark(quarry.global_position, data.colour, 8, Vector2.UP, 170.0)
 
 
 ## A drift for a flier, a bob for anything that walks.
@@ -291,6 +375,18 @@ func spirit_health_ratio() -> float:
 func _dress_as_spirit() -> void:
 	if _sprite == null:
 		return
+	# A spirit wears the actor outline like everything else that stands on the
+	# battlefield, and a shiny one also shines: the same travelling band the
+	# living animal wore, so a player who hunted a Shiny Legendary sees the thing
+	# they hunted walking beside them rather than a differently-tinted version of
+	# it. The translucency below is what says "spirit"; this says "the rare one".
+	#
+	# Attached for every spirit rather than only the shiny ones. One material on
+	# a single companion is nothing, and giving only the rare variants a
+	# silhouette would make the *outline* read as part of the rarity.
+	var polish: ShaderMaterial = ActorPolish.attach(_sprite)
+	if SpiritBond.shiny_of(spirit_key):
+		ActorState.shine(polish, true)
 	var hue: Color = data.colour
 	hue.a = Balance.SPIRIT_DRAW_ALPHA
 	_sprite.modulate = hue

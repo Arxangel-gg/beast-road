@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 4
+attribute = 0
+base_points = 3
+weight = 0.95
+min_tier = 1
+description = "Made for holding things that did not want to be held."
+id = "quarry_gauntlets"
+display_name = "Quarry Gauntlets"

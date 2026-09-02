@@ -161,6 +161,7 @@ func _test_mender_pity_and_healing() -> void:
 func _test_shader_budget() -> void:
 	var shader_paths: PackedStringArray = [
 		"res://scripts/shaders/actor_polish.gdshader",
+		"res://scripts/shaders/blood_stain.gdshader",
 		"res://scripts/shaders/loot_polish.gdshader",
 		"res://scripts/shaders/boss_phase_break.gdshader",
 	]
@@ -174,6 +175,22 @@ func _test_shader_budget() -> void:
 		_check(actor.code.contains("left_a") and actor.code.contains("right_a")
 			and actor.code.contains("up_a") and actor.code.contains("down_a"),
 			"actor readability must remain the approved four-sample outline")
+
+	# The include both actor shaders share since 2026-09-01. It is a single file
+	# behind five effects on every body in the game, and a missing include is a
+	# *compile* failure rather than a load failure - the shader resource still
+	# exists, so a check that only asks whether it loaded says nothing.
+	const STATE_INCLUDE: String = "res://scripts/shaders/actor_state.gdshaderinc"
+	_check(ResourceLoader.exists(STATE_INCLUDE),
+		"missing the shared actor state include: %s" % STATE_INCLUDE)
+	for path: String in ["res://scripts/shaders/actor_polish.gdshader",
+			"res://scripts/shaders/blood_stain.gdshader"]:
+		var wearer: Shader = load(path) as Shader
+		_check(wearer != null and wearer.code.contains(STATE_INCLUDE),
+			"%s must include the shared state, or fire, ice, the wind-up, a "
+				% path.get_file()
+				+ "shiny and a death all stop at whichever material a body "
+				+ "happens to be wearing")
 	for region: String in ["jungle", "desert", "snow"]:
 		var terrain_path: String = "res://art/terrain/terrain_%s.png" % region
 		_check_asset(terrain_path, Vector2i(512, 512))

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 5
+attribute = 0
+base_points = 4
+weight = 0.75
+min_tier = 2
+description = "Heavy enough that the ground remembers you passed."
+id = "ironshod_treads"
+display_name = "Ironshod Treads"

@@ -987,6 +987,16 @@ func _test_tiers_and_persistence() -> void:
 	# *address book*: nothing in it makes a hero stronger, a run easier or a tier
 	# reachable that was not, and deleting the whole block costs a player their
 	# contacts and nothing else. Added 2026-08-26 with the friends list.
+	#
+	# `spirits` is the wildlife collection: which variants have been met, which
+	# have been bonded, and which one is equipped. Added 2026-09-01 with the
+	# Spirit Companion system, under the same owner amendment to working rule 7
+	# that sanctioned the hero - and for the same reason, stated in CLAUDE.md as
+	# *collection, not accumulation*. It records **what has been found**, not a
+	# stat: a bonded spirit's power is derived from its species and its place on
+	# the ladder every time it is summoned, so nothing in this block can be
+	# edited into a stronger companion, and the ladder itself is capped at
+	# `SPIRIT_APEX_POWER`. `spirit_check` holds that end of it.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -994,7 +1004,8 @@ func _test_tiers_and_persistence() -> void:
 		var keys: Array = (parsed as Dictionary).keys()
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
-				"settings", "hero", "stash", "board", "social", "chronicle"],
+				"settings", "hero", "stash", "board", "social", "chronicle",
+				"spirits"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live
@@ -1539,11 +1550,34 @@ func _test_draught_is_obtainable() -> void:
 	# The carry limit is what stops a reward roll from handing out a second of
 	# something the player may only hold one of. Asked through the generic
 	# holding rather than a per-item bool, so a second consumable inherits it.
+	#
+	# **Every consumable is filled, not just the Draught.** Filling one and
+	# asserting the picker comes back empty was only ever true while the Draught
+	# was the only consumable: with three authored, the picker can legitimately
+	# offer one of the other two, and whether it did came down to where the
+	# reward stream happened to be. It passed on luck for two of them and failed
+	# on luck for the third. Filling all of them asks the question that was
+	# meant - *nothing takeable is left, so nothing is offered* - and the answer
+	# does not depend on a die.
+	RunState.held_items.clear()
+	for value: Variant in ContentDB.items.values():
+		var consumable := value as ItemData
+		if consumable == null:
+			continue
+		while RunState.take_item(consumable.id):
+			pass
+	_check(arena._pick_item().is_empty(),
+		"the carry limit must stop a reward being granted when nothing can be held")
+	# And the limit is per kind, so one that is full must stay full while the
+	# others are empty - the case a full sweep cannot see.
 	RunState.held_items.clear()
 	while RunState.take_item("resurrection_draught"):
 		pass
-	_check(arena._pick_item().is_empty(),
-		"the carry limit must stop a second Draught being granted")
+	_check(RunState.item_count("resurrection_draught") == 1,
+		"v4 caps the Draught at one carried, holds %d"
+			% RunState.item_count("resurrection_draught"))
+	_check(not RunState.can_take_item("resurrection_draught"),
+		"a full Draught slot must refuse a second")
 	RunState.held_items.clear()
 
 
@@ -2233,21 +2267,61 @@ func _test_gear_farming() -> void:
 
 	# 3. Choice within a slot, and the zero-sum rule that keeps weapon choice
 	# about *shape* rather than about power.
-	var per_slot: Array[int] = [0, 0, 0]
+	#
+	# **Sized off the enum rather than off three.** This counted exactly three
+	# slots and clamped everything else into the third, so the five slots opened
+	# on 2026-09-01 were not merely unchecked - their kinds were being counted as
+	# Charms, and the gate would have gone on agreeing that a wardrobe existed
+	# for slots that were empty.
+	var slot_count: int = GearData.Slot.size()
+	var per_slot: Array[int] = []
+	per_slot.resize(slot_count)
+	per_slot.fill(0)
+	var per_slot_attributes: Array[Dictionary] = []
+	for _slot: int in slot_count:
+		per_slot_attributes.append({})
 	var reaches: Dictionary = {}
 	var attributes: Dictionary = {}
 	for kind: GearData in kinds:
-		per_slot[clampi(int(kind.slot), 0, 2)] += 1
+		var slot: int = clampi(int(kind.slot), 0, slot_count - 1)
+		per_slot[slot] += 1
 		attributes[kind.attribute] = true
+		per_slot_attributes[slot][kind.attribute] = true
 		if kind.slot == GearData.Slot.WEAPON:
 			reaches[snappedf(kind.reach_scale, 0.01)] = true
-	for slot: int in 3:
+	for slot: int in slot_count:
 		_check(per_slot[slot] >= 4,
-			"slot %d has %d kinds, which is not a wardrobe" % [slot, per_slot[slot]])
+			"%s has %d kinds, which is not a wardrobe"
+				% [GearData.name_of_slot(slot), per_slot[slot]])
+		# And the choice has to be a *choice*. A slot whose every piece pushes
+		# the same attribute is a slot the player reads once and then equips by
+		# points forever, which is the single-answer problem this section exists
+		# to prevent, one level down.
+		_check(per_slot_attributes[slot].size() >= 2,
+			"%s only ever raises %d attribute, so there is nothing to weigh"
+				% [GearData.name_of_slot(slot), per_slot_attributes[slot].size()])
 	_check(reaches.size() >= 4,
 		"weapons must reach %d different distances, found %d" % [4, reaches.size()])
 	_check(attributes.size() == 4,
 		"gear must be able to raise all four attributes, reaches %d" % attributes.size())
+
+	# 3b. The loadout's total worth, which is the bound the eight slots were
+	# added under. `GEAR_TOTAL_SLOT_CEILING` said so from the day it was written
+	# and nothing asked - and `Stash.points` treats a slot with no weight as a
+	# *weapon*, so appending to the enum without extending the table is a silent
+	# doubling rather than an error. Both halves are held here.
+	_check(Balance.GEAR_SLOT_WEIGHT.size() == GearData.Slot.size(),
+		"every slot needs a weight: %d weights for %d slots, and a slot without "
+			% [Balance.GEAR_SLOT_WEIGHT.size(), GearData.Slot.size()]
+			+ "one is worth a weapon")
+	var loadout: float = 0.0
+	for weight: float in Balance.GEAR_SLOT_WEIGHT:
+		loadout += weight
+	_check(loadout <= Balance.GEAR_TOTAL_SLOT_CEILING,
+		"a full loadout is worth %.2f weapons against a ceiling of %.2f - working "
+			% [loadout, Balance.GEAR_TOTAL_SLOT_CEILING]
+			+ "rule 7 keeps hero power on one capped scale, and more sockets "
+			+ "must mean more choosing rather than more power")
 
 	# 4. Room to hold a haul. A boss alone now leaves three pieces, and an act has
 	# elites in every wave; a stash that fills in one act is a stash the player

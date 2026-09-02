@@ -131,6 +131,24 @@ static func rolls_shiny(rarity: int, rng: RandomNumberGenerator) -> bool:
 	return rng.randf() < Balance.SPIRIT_SHINY_CHANCE[clampi(rarity, 0, 3)]
 
 
+## The personality the animal with this serial is wearing.
+##
+## **Derived, never rolled.** A trait decided by a random draw would have to be
+## carried in the co-op spawn packet or the two machines would disagree about the
+## same fox - which is precisely the bug the shiny roll had before it was told by
+## the host. Both machines already know the species and the serial, so both can
+## work this out and neither has to be told.
+##
+## The serial is mixed with the species so that the first animal of every kind is
+## not always the same personality, which is what a bare `serial % count` gives.
+static func trait_for(species_id: String, serial: int) -> SpiritTraitData:
+	var kinds: Array[SpiritTraitData] = ContentDB.spirit_trait_list()
+	if kinds.is_empty():
+		return null
+	var mixed: int = absi(hash(species_id) ^ (serial * 2654435761))
+	return kinds[mixed % kinds.size()]
+
+
 ## Every variant key a species can offer, in ladder order. For the journal.
 static func variants_of(species_id: String) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -182,3 +200,13 @@ static func companion_form(kind: WildlifeData, bond_key: String) -> CompanionDat
 	form.follow_distance = clampf(kind.social_spacing, 70.0, 160.0)
 	form.knockback = kind.knockback * scale
 	return form
+
+
+## The personality a bonded variant is carrying, or null.
+##
+## Looked up through `MetaState` rather than stored on the form, because the form
+## is rebuilt every time a spirit is summoned and the personality belongs to the
+## bond rather than to the summon.
+static func trait_of_bond(bond_key: String) -> SpiritTraitData:
+	var id: String = MetaState.spirit_trait(bond_key)
+	return null if id.is_empty() else ContentDB.spirit_trait(id)

@@ -176,6 +176,54 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `enemy_crevasse_stalker.png` | 192×192 | T | `#9CB9D8` |
 | `enemy_frost_herald.png` | 192×192 | T | `#9CB9D8` |
 
+### 5.2b Enemy attack frames — `res://art/enemies/`
+
+Owner request, 2026-09-01: any animation every enemy should have and does not.
+This was the one, and it had been promised in code for months — `enemy.gd` said
+"the windup animation is drawn from the rest pose" beside a state machine with
+no windup animation at all. An enemy about to hit you stood perfectly still in
+its standing pose for the whole 0.45s tell, which is the moment in a fight the
+player reads a body hardest.
+
+**Four frames, mapped onto the three attack states rather than played at a rate
+of their own.** `Enemy._advance_attack_frames` puts the first half across the
+wind-up, holds the impact pose for the whole strike, and settles through the
+rest during recovery. A sequence with its own frame rate would drift out of step
+the first time any of those three durations was tuned, and the failure would be
+a blow that lands before the weapon does — which reads as the enemy cheating.
+
+Frame zero is absent for the same reason it is absent from the walk lists: the
+base sprite is the standing pose the swing starts from, not part of the swing.
+
+All 192×192, type T, placeholder colour `#8E8A86`. Twenty-four sprites; the
+enemies that borrow another's art inherit its swing by the same path convention.
+
+Files: `elite_avalanche_warden_attack_01.png` · `elite_avalanche_warden_attack_02.png` · `elite_avalanche_warden_attack_03.png` · `elite_avalanche_warden_attack_04.png`
+Files: `elite_mirage_seer_attack_01.png` · `elite_mirage_seer_attack_02.png` · `elite_mirage_seer_attack_03.png` · `elite_mirage_seer_attack_04.png`
+Files: `elite_pack_howler_attack_01.png` · `elite_pack_howler_attack_02.png` · `elite_pack_howler_attack_03.png` · `elite_pack_howler_attack_04.png`
+Files: `elite_siege_lizard_attack_01.png` · `elite_siege_lizard_attack_02.png` · `elite_siege_lizard_attack_03.png` · `elite_siege_lizard_attack_04.png`
+Files: `elite_white_maw_giant_attack_01.png` · `elite_white_maw_giant_attack_02.png` · `elite_white_maw_giant_attack_03.png` · `elite_white_maw_giant_attack_04.png`
+Files: `elite_wolf_standard_bearer_attack_01.png` · `elite_wolf_standard_bearer_attack_02.png` · `elite_wolf_standard_bearer_attack_03.png` · `elite_wolf_standard_bearer_attack_04.png`
+Files: `enemy_cinder_runner_attack_01.png` · `enemy_cinder_runner_attack_02.png` · `enemy_cinder_runner_attack_03.png` · `enemy_cinder_runner_attack_04.png`
+Files: `enemy_coalpaint_raider_attack_01.png` · `enemy_coalpaint_raider_attack_02.png` · `enemy_coalpaint_raider_attack_03.png` · `enemy_coalpaint_raider_attack_04.png`
+Files: `enemy_crevasse_stalker_attack_01.png` · `enemy_crevasse_stalker_attack_02.png` · `enemy_crevasse_stalker_attack_03.png` · `enemy_crevasse_stalker_attack_04.png`
+Files: `enemy_dune_burrower_attack_01.png` · `enemy_dune_burrower_attack_02.png` · `enemy_dune_burrower_attack_03.png` · `enemy_dune_burrower_attack_04.png`
+Files: `enemy_ember_shaman_attack_01.png` · `enemy_ember_shaman_attack_02.png` · `enemy_ember_shaman_attack_03.png` · `enemy_ember_shaman_attack_04.png`
+Files: `enemy_frost_herald_attack_01.png` · `enemy_frost_herald_attack_02.png` · `enemy_frost_herald_attack_03.png` · `enemy_frost_herald_attack_04.png`
+Files: `enemy_glass_chanter_attack_01.png` · `enemy_glass_chanter_attack_02.png` · `enemy_glass_chanter_attack_03.png` · `enemy_glass_chanter_attack_04.png`
+Files: `enemy_glassguard_attack_01.png` · `enemy_glassguard_attack_02.png` · `enemy_glassguard_attack_03.png` · `enemy_glassguard_attack_04.png`
+Files: `enemy_ice_hauler_attack_01.png` · `enemy_ice_hauler_attack_02.png` · `enemy_ice_hauler_attack_03.png` · `enemy_ice_hauler_attack_04.png`
+Files: `enemy_loam_lurker_attack_01.png` · `enemy_loam_lurker_attack_02.png` · `enemy_loam_lurker_attack_03.png` · `enemy_loam_lurker_attack_04.png`
+Files: `enemy_rime_marauder_attack_01.png` · `enemy_rime_marauder_attack_02.png` · `enemy_rime_marauder_attack_03.png` · `enemy_rime_marauder_attack_04.png`
+Files: `enemy_rootshield_attack_01.png` · `enemy_rootshield_attack_02.png` · `enemy_rootshield_attack_03.png` · `enemy_rootshield_attack_04.png`
+Files: `enemy_salt_marcher_attack_01.png` · `enemy_salt_marcher_attack_02.png` · `enemy_salt_marcher_attack_03.png` · `enemy_salt_marcher_attack_04.png`
+Files: `enemy_scale_rider_attack_01.png` · `enemy_scale_rider_attack_02.png` · `enemy_scale_rider_attack_03.png` · `enemy_scale_rider_attack_04.png`
+Files: `enemy_snowhide_brute_attack_01.png` · `enemy_snowhide_brute_attack_02.png` · `enemy_snowhide_brute_attack_03.png` · `enemy_snowhide_brute_attack_04.png`
+Files: `enemy_storm_caller_attack_01.png` · `enemy_storm_caller_attack_02.png` · `enemy_storm_caller_attack_03.png` · `enemy_storm_caller_attack_04.png`
+Files: `enemy_veiled_skirmisher_attack_01.png` · `enemy_veiled_skirmisher_attack_02.png` · `enemy_veiled_skirmisher_attack_03.png` · `enemy_veiled_skirmisher_attack_04.png`
+Files: `enemy_wolf_rider_attack_01.png` · `enemy_wolf_rider_attack_02.png` · `enemy_wolf_rider_attack_03.png` · `enemy_wolf_rider_attack_04.png`
+
+
 ### 5.2a Enemy walk frames — `res://art/enemies/`
 
 Owner request, 2026-09-01: "give all enemies walking pixellab animations too".
@@ -1194,6 +1242,37 @@ as the readable silhouette inside a rarity-lit battlefield pickup.
 `ui_stormwake_mantle.png` · `ui_pelt_of_long_watch.png` ·
 `ui_tollkeepers_bell.png` · `ui_feathercut_talisman.png` ·
 `ui_quiet_ledger.png` · `ui_bloodroot_knot.png`
+
+Five more slots were opened on 2026-09-01 — head, hands, feet, and two
+jewellery sockets. Their icons follow the same rule: a worn object drawn as an
+object, so that a piece is recognisable in a stash row without reading its name.
+The jewellery is drawn small and lit, because at 40px a band and a pendant are
+otherwise the same grey ring.
+
+`ui_roadwardens_helm.png` · `ui_ashplate_greathelm.png` ·
+`ui_seers_circlet.png` · `ui_quarry_gauntlets.png` ·
+`ui_surehand_wraps.png` · `ui_lodestone_grips.png` ·
+`ui_marchers_boots.png` · `ui_windstep_sandals.png` ·
+`ui_ironshod_treads.png` · `ui_band_of_the_watch.png` ·
+`ui_emberloop.png` · `ui_tidewrack_ring.png` ·
+`ui_pilgrims_amulet.png` · `ui_nightglass_pendant.png` ·
+`ui_harriers_token.png`
+
+Each of the five went to five kinds rather than three, so that every slot can
+raise any of the four attributes and the question a slot poses is which
+attribute this loadout wants rather than which piece scores highest.
+
+`ui_watchers_coif.png` · `ui_kilnglass_visor.png` ·
+`ui_tanners_mitts.png` · `ui_sootcloth_gloves.png` ·
+`ui_stillstep_boots.png` · `ui_ashwalk_greaves.png` ·
+`ui_harebone_band.png` · `ui_quarryman_signet.png` ·
+`ui_boarstooth_amulet.png` · `ui_deepglass_torc.png`
+
+Four of these were drawn twice. Hand armour generates as leg armour unless the
+prompt insists on fingers, and a ring generates as a slab unless it insists on
+the hole; the first pass put boots in the Gloves slot and a paving stone in the
+Rings slot, and both were only visible on a contact sheet. Look at gear icons
+side by side before believing the filenames.
 
 The three `ui_scope_*` icons are final production art, added when the scope bar
 became a column of icons: text that named function keys could not survive on a

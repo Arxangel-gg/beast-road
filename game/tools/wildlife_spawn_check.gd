@@ -46,9 +46,12 @@ func _ready() -> void:
 
 	_test_rarity_coverage()
 	_test_animation_coverage()
+	_test_ecology(wildlife)
 
 	if _failures == 0:
-		print("[wildlife] PASS - arrivals keep their distance, every tier is reachable, every species animates")
+		print("[wildlife] PASS - arrivals keep their distance, every tier is "
+			+ "reachable, every species animates, and predators hunt without "
+			+ "eating the collection")
 	else:
 		printerr("[wildlife] FAIL - %d problem(s)" % _failures)
 
@@ -134,6 +137,76 @@ func _test_rarity_coverage() -> void:
 				_check(seen >= MIN_TIER_SHARE,
 					"act %d gives %s tier %d only %.2f%% of the roll (floor %.2f%%)"
 						% [act, side, tier, seen * 100.0, MIN_TIER_SHARE * 100.0])
+
+
+## Predators notice the small things, and cannot touch them.
+##
+## Owner request, 2026-09-01: the world should carry on when the player is not
+## involved. The whole design rests on one bound, and it is the bound this tests:
+## **a chase, never a meal.**
+##
+## `Wildlife._strike` accepts a Hero or an Enemy and refuses everything else. If
+## that check is ever loosened - broadened to "anything with health", say, or
+## given a group instead of two types - predators immediately start eating the
+## wildlife, and the first thing a player loses is a Spirit Companion they were
+## three encounters away from bonding. Nothing would report it; the animals would
+## simply stop being there.
+##
+## Also that prey is not helpless: a predator inside the skittish radius has to
+## start a bolt, or the chase is one animal walking at another that ignores it.
+func _test_ecology(wildlife: Wildlife) -> void:
+	var predator: WildlifeData = null
+	var prey: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if predator == null and kind.is_hostile() and kind.aggro_radius > 0.0:
+			predator = kind
+		if prey == null and not kind.is_hostile() and kind.skittish_radius > 0.0:
+			prey = kind
+	_check(predator != null and prey != null,
+		"the road needs something that hunts and something that runs")
+	if predator == null or prey == null:
+		return
+
+	# A rabbit standing in front of a wolf.
+	# Placed as a fraction of the predator's own reach rather than at a fixed
+	# distance, so the test does not depend on which species happened to sort
+	# first in the content directory.
+	var rabbit := Sprite2D.new()
+	rabbit.global_position = Vector2(
+		predator.aggro_radius * Balance.WILDLIFE_PREY_INTEREST * 0.5, 0.0)
+	wildlife.add_child(rabbit)
+	var living: Array[Dictionary] = wildlife.get("_living")
+	living.append({
+		"data": prey, "sprite": rabbit, "dying": 0.0, "state": 1,
+	})
+
+	var noticed: Node2D = wildlife.call("_quarry_for", Vector2.ZERO, predator, null)
+	_check(noticed == rabbit,
+		"a predator with nothing else in reach must notice prey")
+
+	# **The bound.** Pointed at it, the predator must be unable to hurt it.
+	var before: int = living.size()
+	wildlife.call("_strike", living[0], rabbit, predator, rabbit)
+	_check(float(living[0].get("dying", 0.0)) <= 0.0,
+		"a predator must not be able to kill wildlife - `_strike` accepts a Hero "
+			+ "or an Enemy and nothing else, and that is what keeps the ecology "
+			+ "atmosphere rather than a second attrition system")
+	_check(living.size() == before, "and must not remove it from the field")
+
+	# And prey runs. Asked at the rabbit's own position with the wolf beside it.
+	var wolf := Sprite2D.new()
+	wolf.global_position = rabbit.global_position 		+ Vector2(prey.skittish_radius * 0.4, 0.0)
+	wildlife.add_child(wolf)
+	living.append({
+		"data": predator, "sprite": wolf, "dying": 0.0, "state": 1,
+	})
+	_check(bool(wildlife.call("_frightened", rabbit.global_position, prey)),
+		"prey must bolt from a predator inside its skittish radius, or the hunt "
+			+ "is one animal walking at another that has not noticed")
+
+	living.clear()
+	rabbit.queue_free()
+	wolf.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

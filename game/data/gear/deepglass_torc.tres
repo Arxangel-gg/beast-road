@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 7
+attribute = 1
+base_points = 4
+weight = 0.80
+min_tier = 2
+description = "Cold to the touch in any weather. The smiths who make these will not say from what."
+id = "deepglass_torc"
+display_name = "Deepglass Torc"

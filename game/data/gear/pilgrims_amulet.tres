@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 7
+attribute = 1
+base_points = 3
+weight = 1.05
+min_tier = 0
+description = "Worn smooth at the thumb. Somebody held it a great deal."
+id = "pilgrims_amulet"
+display_name = "Pilgrim's Amulet"

@@ -255,6 +255,20 @@ jobs:
           # ladder must never invert, and a shiny must never be worth less than
           # a plain variant. Also that an old save loads as an empty collection.
           check "spirits" --headless --path game res://tools/spirit_check.tscn
+          # Fire, ice and the wind-up tell are material rather than tint since
+          # 2026-09-01, and every one of them fails silently: a shader that
+          # stops being driven still draws, it just draws nothing, and the game
+          # plays exactly as it did with the state invisible. Both actor
+          # shaders have to carry it, because a promoted body wears the other
+          # one - which is how champions were unreachable to begin with.
+          check "state shader" --headless --path game res://tools/state_shader_check.tscn
+          # A Spirit Companion's personality. The bound is that none of them is
+          # simply better - a trait that raised damage would be a third power
+          # scale beside levelling and gear, and the best trait would become the
+          # only one worth keeping. Also that both machines derive the same
+          # personality from the same animal without a packet, which is the
+          # desync the shiny roll had.
+          check "spirit traits" --headless --path game res://tools/spirit_trait_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

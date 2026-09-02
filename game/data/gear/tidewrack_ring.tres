@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 6
+attribute = 1
+base_points = 3
+weight = 0.95
+min_tier = 1
+description = "Salt-pitted and stubborn, like the thing it was taken from."
+id = "tidewrack_ring"
+display_name = "Tidewrack Ring"

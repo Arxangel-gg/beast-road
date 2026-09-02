@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 4
+attribute = 3
+base_points = 4
+weight = 0.75
+min_tier = 2
+description = "Cold, and they steady more than the hands."
+id = "lodestone_grips"
+display_name = "Lodestone Grips"

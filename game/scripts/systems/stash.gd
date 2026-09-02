@@ -89,8 +89,16 @@ static func points(piece: Dictionary, kind: GearData) -> int:
 		return 0
 	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_POINTS.size() - 1)
 	var level: int = clampi(int(piece.get("level", 1)), 1, MAX_LEVEL)
+	# The slot's own worth. A ring is not a breastplate, and this is where
+	# that is stated rather than being implied by whichever numbers happened
+	# to get authored.
+	var worn: float = 1.0
+	if kind.slot >= 0 and kind.slot < Balance.GEAR_SLOT_WEIGHT.size():
+		worn = Balance.GEAR_SLOT_WEIGHT[kind.slot]
 	var scaled: float = float(kind.base_points) * RARITY_POINTS[rarity] \
-		* (1.0 + float(level - 1) * LEVEL_POINTS)
+		* (1.0 + float(level - 1) * LEVEL_POINTS) * worn
+	# Never zero. A minor slot grants less; it never grants nothing, or
+	# wearing something would be indistinguishable from wearing nothing.
 	return maxi(1, int(round(scaled)))
 
 

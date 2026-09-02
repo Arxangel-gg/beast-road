@@ -1155,7 +1155,13 @@ func _unique_string_array(value: Variant) -> Array[String]:
 ## **A shiny encounter also feeds the plain variant of the same rarity.** Finding
 ## something rare must never be worth *less* than finding something ordinary, and
 ## without this a player chasing the normal Rare Wolf would groan at a shiny one.
-func record_spirit_encounter(species_id: String, rarity: int, shiny: bool) -> Dictionary:
+## `trait_id` is the personality of the *particular animal* this encounter was
+## with. It is banked only on the encounter that completes the bond, because that
+## is the animal you actually took - meeting nine foxes and bonding the tenth
+## gives you the tenth one's temperament, which is the one you were standing next
+## to when it agreed to come.
+func record_spirit_encounter(species_id: String, rarity: int, shiny: bool,
+		trait_id: String = "") -> Dictionary:
 	var result: Dictionary = {"keys": [], "discovered": [], "bonded": []}
 	if species_id.is_empty():
 		return result
@@ -1174,7 +1180,11 @@ func record_spirit_encounter(species_id: String, rarity: int, shiny: bool) -> Di
 		result["keys"].append(key)
 		if not spirit_bonded.has(key) \
 				and before + 1 >= SpiritBond.needed(rarity, is_shiny):
-			spirit_bonded[key] = true
+			# The value carries the personality. Storing it here rather than in
+			# a second dictionary is what keeps this save additive: a file
+			# written before traits existed has `true` in this slot, which reads
+			# back as "no personality" and costs nothing to have.
+			spirit_bonded[key] = trait_id
 			result["bonded"].append(key)
 	save_game()
 	return result
@@ -1186,6 +1196,15 @@ func spirit_encounter_count(bond_key: String) -> int:
 
 func spirit_is_bonded(bond_key: String) -> bool:
 	return spirit_bonded.has(bond_key)
+
+
+## The personality this bonded variant carries, or "" for none.
+##
+## Empty is a supported answer, not a bug: every bond made before 2026-09-01 has
+## no personality and must keep working exactly as it did.
+func spirit_trait(bond_key: String) -> String:
+	var stored: Variant = spirit_bonded.get(bond_key, "")
+	return String(stored) if stored is String else ""
 
 
 ## Whether a variant has ever been met. Drives the journal's silhouettes: an
@@ -1229,7 +1248,10 @@ func _read_spirits(block: Dictionary) -> void:
 			spirit_encounters[String(key)] = count
 	spirit_bonded = {}
 	for key: Variant in (block.get("bonded", {}) as Dictionary):
-		spirit_bonded[String(key)] = true
+		# `true` from a save written before personalities existed; a string from
+		# any save since. Both mean "bonded"; only the second means anything more.
+		var stored: Variant = (block["bonded"] as Dictionary)[key]
+		spirit_bonded[String(key)] = String(stored) if stored is String else ""
 	equipped_spirit = String(block.get("equipped", ""))
 	# A spirit that is equipped but not bonded is a save somebody edited, or one
 	# written by a build whose thresholds were different. Clearing it is safer

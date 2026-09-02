@@ -12,7 +12,19 @@ extends GameData
 ## Distinct from `ItemData`, which is a consumable the player carries for a run.
 ## Gear persists (owner ruling, 2026-08-20) and is worn.
 
-enum Slot { WEAPON, ARMOUR, CHARM }
+## The eight places a piece can be worn.
+##
+## Owner request, 2026-09-01. Three slots meant three decisions a run; eight
+## means a loadout has a shape. **The first three keep their ordinal values** so
+## every save written before this reads back with its weapon, armour and charm
+## exactly where it left them - `equipped` is keyed by this enum's integers.
+##
+## Two families, and the split is what keeps the reward honest: WEAPON and
+## ARMOUR are the *major* pieces and are worth what they always were. The six
+## added around them are minor by design - a ring is not a breastplate - and
+## `Balance.GEAR_SLOT_WEIGHT` is where that is stated rather than being implied
+## by whatever numbers happened to get authored.
+enum Slot { WEAPON, ARMOUR, CHARM, HELMET, GLOVES, BOOTS, RING, AMULET }
 
 @export var slot: Slot = Slot.WEAPON
 
@@ -43,14 +55,30 @@ enum Slot { WEAPON, ARMOUR, CHARM }
 @export_range(0.5, 2.0) var swing_scale: float = 1.0
 
 
-func slot_name() -> String:
-	match slot:
+## The player-facing name of a slot. Static so the interface can name a slot it
+## has no piece for - an empty Boots row still has to say "Boots".
+static func name_of_slot(which: int) -> String:
+	match which:
 		Slot.WEAPON:
 			return "Weapon"
 		Slot.ARMOUR:
 			return "Armour"
-		_:
+		Slot.CHARM:
 			return "Charm"
+		Slot.HELMET:
+			return "Helmet"
+		Slot.GLOVES:
+			return "Gloves"
+		Slot.BOOTS:
+			return "Boots"
+		Slot.RING:
+			return "Ring"
+		_:
+			return "Amulet"
+
+
+func slot_name() -> String:
+	return name_of_slot(slot)
 
 
 func get_sprite_path() -> String:

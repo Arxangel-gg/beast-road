@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 3
+attribute = 3
+base_points = 3
+weight = 0.90
+min_tier = 1
+description = "Thin iron, and it makes the road ahead easier to think about."
+id = "seers_circlet"
+display_name = "Seer's Circlet"

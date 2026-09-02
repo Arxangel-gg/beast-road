@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 5
+attribute = 1
+base_points = 2
+weight = 1.20
+min_tier = 0
+description = "Resoled four times. The uppers have outlived three owners."
+id = "marchers_boots"
+display_name = "Marcher's Boots"

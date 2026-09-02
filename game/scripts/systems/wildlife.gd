@@ -416,13 +416,22 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	if told_shiny < 0:
 		shiny = SpiritBond.rolls_shiny(kind.rarity, _rng)
 	if shiny:
-		_dress_as_shiny(sprite, kind)
+		_dress_as_shiny(sprite, kind, impact_material)
 
+	# **Every animal gets a serial, co-op or not.**
+	#
+	# It used to be assigned only when there was somebody to tell, so in a solo
+	# run every animal in the game had serial zero. That was harmless while the
+	# number was only an address; it stopped being harmless when personalities
+	# started being derived from it, because zero for everything is one
+	# personality for everything. The guest still takes the host's number, so
+	# both machines agree without a packet.
 	var identity: int = mirrored_id
-	if identity == 0 and _is_authority_with_company():
+	if identity == 0:
 		_net_id += 1
 		identity = _net_id
-		EventBus.coop_wildlife_spawned.emit(identity, kind.id, at, shiny)
+		if _is_authority_with_company():
+			EventBus.coop_wildlife_spawned.emit(identity, kind.id, at, shiny)
 
 	# A bar over anything that can be hurt, hidden until it has been.
 	#
@@ -453,6 +462,10 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		"net_id": identity,
 		"data": kind,
 		"shiny": shiny,
+		# Fixed when the animal is placed, and readable off it from that moment.
+		# Nothing the player does can reroll a temperament, for the same reason
+		# nothing can reroll a shiny.
+		"trait": SpiritBond.trait_for(kind.id, identity),
 		# One animal is one encounter, however many times it is hit or approached.
 		"credited": false,
 		"group_id": group_id,
@@ -810,7 +823,7 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	elif float(animal["wary"]) > 0.0:
 		return false
 
-	var quarry: Node2D = _quarry_for(sprite.global_position, kind)
+	var quarry: Node2D = _quarry_for(sprite.global_position, kind, sprite)
 	if quarry == null:
 		# Nothing worth attacking. A territorial animal goes back to standing
 		# about; a predator keeps looking while it wanders.
@@ -888,7 +901,7 @@ func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
 ##
 ## A territorial animal only answers inside its own ground; a predator reaches as
 ## far as it can see. Same number, two meanings - see `aggro_radius`.
-func _quarry_for(at: Vector2, kind: WildlifeData) -> Node2D:
+func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null) -> Node2D:
 	var best: Node2D = null
 	var best_distance: float = kind.aggro_radius
 	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
@@ -907,6 +920,43 @@ func _quarry_for(at: Vector2, kind: WildlifeData) -> Node2D:
 			if distance < best_distance:
 				best_distance = distance
 				best = enemy
+
+	# **And the small things living out here.**
+	#
+	# Owner request, 2026-09-01: the world should carry on when the player is not
+	# involved. A fox that walks past a rabbit to reach a soldier is a fox that
+	# only exists for the fight, and the road is supposed to be somewhere the
+	# fight is happening rather than the only thing there is.
+	#
+	# **A chase, never a meal.** `_strike` accepts a Hero or an Enemy and refuses
+	# everything else - deliberately, and it says so - which means a predator can
+	# be pointed at a rabbit and simply cannot hurt it. That bound is what keeps
+	# this pure atmosphere: nothing here can eat a Spirit Companion the player
+	# was three encounters away from bonding, and the ecology cannot quietly
+	# become a second attrition system nobody is balancing.
+	#
+	# The rabbit is not helpless either. `_frightened` now counts predators, so
+	# what the player sees is a hunt that the prey usually wins by leaving.
+	# Deliberately the shorter reach, and stated as its own number rather than
+	# folded into the comparison: a predator should notice the player and the
+	# soldiers first, and turn to prey only when something small is well inside
+	# its radius. Written once as `distance < best_distance * interest` it was
+	# comparing against whatever had already been found, which is a different
+	# rule that happens to look like this one.
+	var prey_reach: float = kind.aggro_radius * Balance.WILDLIFE_PREY_INTEREST
+	for other: Dictionary in _living:
+		var prey_kind := other.get("data", null) as WildlifeData
+		var prey := other.get("sprite", null) as Sprite2D
+		if prey_kind == null or prey == null or not is_instance_valid(prey):
+			continue
+		if prey_kind.is_hostile() or prey == self_sprite:
+			continue
+		if float(other.get("dying", 0.0)) > 0.0:
+			continue
+		var distance: float = at.distance_to(prey.global_position)
+		if distance < prey_reach and distance < best_distance:
+			best_distance = distance
+			best = prey
 	return best
 
 
@@ -970,6 +1020,17 @@ func _frightened(at: Vector2, kind: WildlifeData) -> bool:
 		for enemy: Enemy in field.enemies_near(at, kind.skittish_radius):
 			if not enemy.is_dying():
 				return true
+	# And whatever hunts out here. A deer that bolted from a soldier and grazed
+	# beside a wolf was the world only reacting to the war.
+	for other: Dictionary in _living:
+		var hunter_kind := other.get("data", null) as WildlifeData
+		var hunter := other.get("sprite", null) as Sprite2D
+		if hunter_kind == null or hunter == null or not is_instance_valid(hunter):
+			continue
+		if not hunter_kind.is_hostile() or float(other.get("dying", 0.0)) > 0.0:
+			continue
+		if at.distance_to(hunter.global_position) < kind.skittish_radius:
+			return true
 	return false
 
 
@@ -1255,22 +1316,35 @@ func clear() -> void:
 
 ## Marks a shiny so it is recognisable across a field at a glance.
 ##
-## A tint and a slow pulse rather than particles or an outline: the sprites are
-## 64px of pixel art and anything drawn *around* them at that size covers the
-## animal up. Kept deliberately low - a creature that strobes is a creature
-## nobody wants to look at, and the point is "that one is different", not
-## "that one is a light show".
-func _dress_as_shiny(sprite: Sprite2D, kind: WildlifeData) -> void:
-	sprite.modulate = Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
-		Balance.SPIRIT_SHINY_TINT_STRENGTH)
-	var pulse: Tween = sprite.create_tween().set_loops()
-	var half: float = 0.5 / maxf(Balance.SPIRIT_SHINY_PULSE_HZ, 0.1)
-	pulse.tween_property(sprite, "modulate",
-		Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
-			Balance.SPIRIT_SHINY_TINT_STRENGTH * 0.35), half)
-	pulse.tween_property(sprite, "modulate",
-		Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
-			Balance.SPIRIT_SHINY_TINT_STRENGTH), half)
+## **Iridescence rather than a tint, since 2026-09-01.** A colour wash was what
+## marked these when the system shipped, and it had two problems that only show
+## up in play: a tinted rabbit reads as a rabbit in odd lighting rather than as a
+## rarity, and an *elite* shiny had two things fighting for `modulate`, so
+## whichever tween ran last won and the other tell vanished.
+##
+## `state_shine` in the actor shaders draws it as a travelling band and a
+## scattering of glints on the sprite's own texels, which is a surface catching
+## light rather than a filter over the animal - and it leaves `modulate` free, so
+## an elite shiny is now visibly both.
+##
+## The tint survives as the fallback for a build with no material, unchanged. Its
+## reasoning still holds there: nothing is drawn *around* a 64px animal, because
+## at that size anything around it covers it up.
+func _dress_as_shiny(sprite: Sprite2D, kind: WildlifeData,
+		material: ShaderMaterial) -> void:
+	if ActorState.carried(material):
+		ActorState.shine(material, true)
+	else:
+		sprite.modulate = Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+			Balance.SPIRIT_SHINY_TINT_STRENGTH)
+		var pulse: Tween = sprite.create_tween().set_loops()
+		var half: float = 0.5 / maxf(Balance.SPIRIT_SHINY_PULSE_HZ, 0.1)
+		pulse.tween_property(sprite, "modulate",
+			Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+				Balance.SPIRIT_SHINY_TINT_STRENGTH * 0.35), half)
+		pulse.tween_property(sprite, "modulate",
+			Color.WHITE.lerp(Balance.SPIRIT_SHINY_COLOUR,
+				Balance.SPIRIT_SHINY_TINT_STRENGTH), half)
 	# Said out loud the moment it is placed, because a shiny nobody noticed is a
 	# shiny that did not happen.
 	Vfx.ring(sprite.global_position, 78.0 * kind.scale,
@@ -1293,7 +1367,9 @@ func _credit_encounter(animal: Dictionary, _how: SpiritBond.Kind) -> void:
 		return
 	animal["credited"] = true
 	var shiny: bool = bool(animal.get("shiny", false))
-	var result: Dictionary = MetaState.record_spirit_encounter(kind.id, kind.rarity, shiny)
+	var temperament := animal.get("trait", null) as SpiritTraitData
+	var result: Dictionary = MetaState.record_spirit_encounter(kind.id, kind.rarity,
+		shiny, "" if temperament == null else temperament.id)
 	for key: Variant in (result["discovered"] as Array):
 		EventBus.spirit_discovered.emit(String(key),
 			MetaState.spirit_encounter_count(String(key)),

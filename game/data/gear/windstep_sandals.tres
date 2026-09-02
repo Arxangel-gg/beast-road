@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 5
+attribute = 2
+base_points = 3
+weight = 0.95
+min_tier = 1
+description = "Barely there, and they never once slid on wet stone."
+id = "windstep_sandals"
+display_name = "Windstep Sandals"

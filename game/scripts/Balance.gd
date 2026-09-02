@@ -150,7 +150,48 @@ const LOOT_Z_INDEX: int = -2
 ## rule 7 actually cares about, which is that gear grants capped attribute
 ## points. What it does is stop a farming run from spending its second half
 ## auto-breaking drops the player never got to look at.
-const STASH_CAPACITY: int = 96
+##
+## **Raised 96 -> 160 on 2026-09-01, with the five new slots.** The rule the
+## stash is held to is that it must hold more than two of everything, so a
+## duplicate can be kept beside the piece it might replace instead of being
+## broken on sight - and 73 kinds is 146 before the stash has any slack at all.
+## Ninety-six never actually satisfied that rule; it was written down and not
+## met. Capacity is inventory rather than power (see above), so meeting it costs
+## the curve nothing and costs the release gate one number.
+const STASH_CAPACITY: int = 160
+
+# --- Gear slots --------------------------------------------------------------
+
+## What each slot is worth, against a weapon.
+##
+## Owner request, 2026-09-01: eight slots rather than three. More slots is more
+## collecting and more identity, and it must not also be a hero twice as strong -
+## working rule 7 puts gear on the same capped scale as levelling, and eight
+## pieces at a weapon's value each would put it well past that.
+##
+## So the six added slots are *minor* by design, which is also how they read: a
+## ring is not a breastplate. The weights sum to 4.55 against the old three slots'
+## 3.0, so filling a full loadout is worth about half again as much as the old
+## one - a real reward for collecting, comfortably short of doubling.
+##
+## Indexed by `GearData.Slot`. [TUNE]
+const GEAR_SLOT_WEIGHT: Array[float] = [
+	1.00,  # Weapon
+	1.00,  # Armour
+	0.55,  # Charm
+	0.55,  # Helmet
+	0.40,  # Gloves
+	0.40,  # Boots
+	0.30,  # Ring
+	0.35,  # Amulet
+]
+
+## The most the whole loadout may be worth, against one weapon.
+##
+## A ceiling on the *sum* rather than on any one slot, because the failure this
+## guards against is adding slots rather than inflating one. Nobody should be
+## able to double hero power by appending to an enum. [TUNE]
+const GEAR_TOTAL_SLOT_CEILING: float = 5.0
 
 ## Chance a raid chest also yields a piece of gear.
 const GEAR_CHEST_CHANCE: float = 0.55
@@ -1157,6 +1198,93 @@ const IMPACT_RIM_STRENGTH: float = 1.0
 const IMPACT_RIM_COLOUR: Color = Color(1.0, 0.82, 0.62, 1.0)
 const LOOT_SHIMMER_STRENGTH: float = 0.34
 const LOOT_PICKUP_DISSOLVE_TIME: float = 0.18
+
+# --- Combat state on a body ---------------------------------------------------
+#
+# Burning, freezing and winding up to strike, as material rather than as tint.
+# See `actor_state.gdshaderinc` for why, and `ActorState` for how they are
+# driven. These three colours are also what the tint fallback uses when polish
+# shaders are off, so the two paths cannot describe the same state differently -
+# which they did until 2026-09-01, when the tints were magic numbers inside
+# `enemy.gd` and the shader had defaults of its own.
+
+## Ember colour on a burning body. Hotter than the fire VFX on purpose: this is
+## seen through a sprite's own colours and loses saturation doing it. [TUNE]
+const STATE_BURN_COLOUR: Color = Color(1.0, 0.54, 0.16, 1.0)
+
+## Rime on a chilled or frozen body. [TUNE]
+const STATE_FROST_COLOUR: Color = Color(0.72, 0.90, 1.0, 1.0)
+
+## The wind-up rim. Warm and pale so it separates from both of the above - the
+## three states can be on one body at once and must not blend into each other.
+## [TUNE]
+const STATE_TELEGRAPH_COLOUR: Color = Color(1.0, 0.88, 0.58, 1.0)
+
+## How far past the silhouette the wind-up rim reaches at full charge, in source
+## pixels. Wider than the elite aura, because the tell has to win when a body is
+## wearing both.
+##
+## **Source pixels, which shrink with the sprite.** An enemy is drawn well under
+## its texture's size, so 2.6 texels was under two screen pixels at the scale a
+## body actually walks at - measured, on a rendered sheet, at 158 lit texels.
+## [TUNE]
+const STATE_TELEGRAPH_WIDTH: float = 3.6
+
+## Where the rim starts, as a fraction of full.
+##
+## Not zero. A tell that fades in is a tell the player reads late, and late is
+## the entire failure it communicates against - so it appears at once and grows
+## from there. [TUNE]
+const STATE_TELEGRAPH_FLOOR: float = 0.38
+
+## Seconds of remaining burn that read as fully alight; below this the fire
+## visibly goes out rather than switching off. Under the shortest burn any
+## source applies, so a plain hit still looks like a hit. [TUNE]
+const STATE_BURN_FADE_SECONDS: float = 1.5
+
+## How far a predator will look for prey, against how far it looks for a fight.
+##
+## Under one on purpose. A hunting animal should notice the player and the
+## soldiers first and turn to the small things only when nothing more pressing is
+## inside its radius - otherwise a wolf ignores a Warden to chase a hare, which
+## reads as broken rather than as wild. [TUNE]
+const WILDLIFE_PREY_INTEREST: float = 0.65
+
+# --- Spirit Companion personalities -------------------------------------------
+#
+# Owner request, 2026-09-01: "two legendary foxes can actually feel different".
+# These weight a *preference*, never a rule - see `Companion._nearest_enemy` for
+# why distance stays the base of the score.
+
+## How hard a Protective spirit is pulled toward whatever is nearest the hero,
+## against its own distance. Below one, so it will still take the thing biting
+## it rather than walking away across the field. [TUNE]
+const SPIRIT_TRAIT_GUARD_WEIGHT: float = 0.75
+
+## What a body already winding up at the hero is worth to a Protective spirit,
+## in pixels of preference. Roughly a screen's width: this is the one case where
+## crossing ground is the point. [TUNE]
+const SPIRIT_TRAIT_TELEGRAPH_BONUS: float = 420.0
+
+## What a promoted body is worth to a Hunter, in pixels of preference. [TUNE]
+const SPIRIT_TRAIT_PROMOTED_BONUS: float = 520.0
+
+## What one Scavenger find is worth. Deliberately small: the trait is meant to
+## pay out often and lightly, and it already costs 6% of the damage envelope.
+## [TUNE]
+const SPIRIT_TRAIT_SCAVENGE_AMOUNT: int = 3
+
+## The most any personality may be worth at rest, against having none.
+##
+## One means "different, not better". The gate holds every authored trait at or
+## under this, which is what stops a personality becoming a third power scale
+## beside levelling and gear. [TUNE]
+const SPIRIT_TRAIT_WORTH_CEILING: float = 1.0
+
+## The flare on the texels of an ordinary death, one that was neither burning
+## nor frozen. Warm ash rather than white: a body coming apart in white reads as
+## a teleport. [TUNE]
+const STATE_DISSOLVE_COLOUR: Color = Color(1.0, 0.72, 0.42, 1.0)
 
 # ------------------------------------------------------------------------------
 # Treeline and wilderness frame
