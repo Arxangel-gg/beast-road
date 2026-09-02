@@ -79,7 +79,7 @@ func _test_leader_death_breaks_the_line() -> void:
 		"a broken body must come back rather than leave the field")
 
 	field.queue_free()
-	await _settle()
+	await _freed(field)
 	_ran += 1
 
 
@@ -99,7 +99,7 @@ func _test_promoted_bodies_hold() -> void:
 		_check(not promoted.is_routed(),
 			"a promoted body must never run - rank %d did" % int(rank))
 	field.queue_free()
-	await _settle()
+	await _freed(field)
 	_ran += 1
 
 
@@ -123,14 +123,19 @@ func _test_a_living_champion_rallies() -> void:
 			+ "leader first stops being the readable play")
 
 	# Take the champion away and the same shock lands.
+	#
+	# Waited for rather than assumed. `_rallied` asks the enemy group, and a
+	# `queue_free` that has not been processed yet leaves the champion in it -
+	# so on a machine slow enough to need more than a few frames, the footman
+	# correctly refuses to break and the gate calls that a bug.
 	champion.queue_free()
-	await _settle()
+	await _freed(champion)
 	footman.shake_morale(1.0)
 	await _settle()
 	_check(footman.is_routed(),
 		"and must break once nothing is holding it together")
 	field.queue_free()
-	await _settle()
+	await _freed(field)
 	_ran += 1
 
 
@@ -167,7 +172,7 @@ func _test_retreat_is_away_from_the_town() -> void:
 		"a retreat must never travel toward the town: moved %s, %.1f of it "
 			% [str(moved.round()), moved.dot(townward)] + "townward")
 	field.queue_free()
-	await _settle()
+	await _freed(field)
 	_ran += 1
 
 
@@ -188,7 +193,10 @@ func _test_a_routed_body_returns_and_still_counts() -> void:
 		line.append(_make(field, breed, Vector2(300.0 + index * 40.0, 0.0),
 			Enemy.Rank.COMMON))
 	await _settle()
-	var before: int = get_tree().get_nodes_in_group(Enemy.GROUP).size()
+	var before: int = _still_counted(line)
+	_check(before == line.size(),
+		"all %d must be on the field to start with, %d are"
+			% [line.size(), before])
 	for foe: Enemy in line:
 		foe.shake_morale(1.0)
 	await _settle()
@@ -198,9 +206,10 @@ func _test_a_routed_body_returns_and_still_counts() -> void:
 			broke += 1
 	_check(broke == line.size(), "the whole line must break, %d of %d did"
 		% [broke, line.size()])
-	_check(get_tree().get_nodes_in_group(Enemy.GROUP).size() == before,
-		"and the field must still hold the same number of enemies - a wave "
-			+ "cannot get shorter because its nerve failed")
+	_check(_still_counted(line) == before,
+		"and every one of them must still be an enemy the wave is waiting on - "
+			+ "a wave cannot get shorter because its nerve failed (%d of %d)"
+			% [_still_counted(line), before])
 
 	# It animates while it runs, if the breed has frames to animate with.
 	#
@@ -237,7 +246,7 @@ func _test_a_routed_body_returns_and_still_counts() -> void:
 				% [travelled, poses.size(), sampled])
 
 	field.queue_free()
-	await _settle()
+	await _freed(field)
 	_ran += 1
 
 
@@ -268,6 +277,29 @@ func _make(field: EnemyField, breed: EnemyData, at: Vector2,
 	field.add_child(foe)
 	foe.global_position = at
 	return foe
+
+
+## How many of these are still enemies the wave is waiting on.
+func _still_counted(bodies: Array[Enemy]) -> int:
+	var alive: int = 0
+	for foe: Enemy in bodies:
+		if is_instance_valid(foe) and foe.is_in_group(Enemy.GROUP) \
+				and not foe.is_dying():
+			alive += 1
+	return alive
+
+
+## Waits until a node is actually gone, rather than a fixed number of frames.
+##
+## Bounded, so a node that somehow never frees fails the test it belongs to
+## instead of hanging the gate - a check that times out tells CI "something is
+## hanging, not failing", which is a worse message than any assertion.
+func _freed(node: Node) -> void:
+	for _frame: int in 120:
+		if not is_instance_valid(node):
+			return
+		await get_tree().process_frame
+	_check(false, "%s was never freed" % node.name)
 
 
 func _settle() -> void:

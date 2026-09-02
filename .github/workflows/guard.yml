@@ -121,7 +121,18 @@ jobs:
               return 1
             fi
             if [ "$status" -ne 0 ]; then
-              echo "::error title=$name::Exited $status."
+              # **Say what it said, not just that it failed.**
+              #
+              # A gate that exits non-zero used to annotate "Exited 1." and
+              # nothing else, because the log was only scanned on a *zero* exit.
+              # Every gate here quits non-zero when it fails, so in practice the
+              # reason was never quoted - and a failure that reproduces on the
+              # runner and nowhere else is then unfixable without pulling the
+              # log by hand. Cost a red main and a wrong diagnosis to find.
+              local why
+              why="$(grep -E '^(SCRIPT )?ERROR:|FAIL' "$log" \
+                | grep -v 'depended scripts' | head -1)"
+              echo "::error title=$name::Exited $status. ${why:-no reason printed}"
               return 1
             fi
             # A check may declare noise it is allowed to emit, and exactly
