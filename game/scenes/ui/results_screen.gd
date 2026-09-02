@@ -268,7 +268,31 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	var route_lines: PackedStringArray = []
 	for start: int in range(0, road_names.size(), 3):
 		route_lines.append("  →  ".join(road_names.slice(start, mini(start + 3, road_names.size()))))
-	var lines: PackedStringArray = [
+	# **The build, named, above the telemetry.**
+	#
+	# Owner request, 2026-09-02: the screenshot people share is the one that says
+	# what they built, not the one that says how many enemies died. Everything
+	# here is read back off the run rather than recorded during it - see
+	# `RunRecap` - so the name and the numbers cannot disagree.
+	var recap: Dictionary = RunRecap.build()
+	var recap_lines: PackedStringArray = []
+	if not String(recap.get("title", "")).is_empty():
+		recap_lines.append(String(recap["title"]).to_upper())
+		recap_lines.append("  %s" % String(recap.get("flavour", "")))
+	var kit: PackedStringArray = []
+	var worn: PackedStringArray = recap.get("worn", PackedStringArray())
+	if not worn.is_empty():
+		kit.append("   ".join(worn))
+	if not String(recap.get("companion", "")).is_empty():
+		kit.append(String(recap["companion"]))
+	kit.append("%d tower%s standing" % [int(recap.get("towers", 0)),
+		"" if int(recap.get("towers", 0)) == 1 else "s"])
+	kit.append("Warden level %d" % int(recap.get("level", 1)))
+	recap_lines.append("  " + "   ·   ".join(kit))
+	recap_lines.append("")
+
+	var lines: PackedStringArray = recap_lines
+	lines.append_array([
 		"Run seed   %09d" % int(summary.get("seed", 0)),
 		"Route   %s" % ("\n        ".join(route_lines) if not route_lines.is_empty() else "—"),
 		"Distance   %d of %d" % [int(summary.get("distance", 0)), int(Balance.JOURNEY_TOTAL_DISTANCE)],
@@ -302,7 +326,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 			Balance.SIGIL_MAX_RANK],
 		"",
 		"Added to the pool: %d" % unlocks.size(),
-	]
+	])
 	for entry: String in unlocks:
 		lines.append("   " + entry.replace(":", "  "))
 	if not chronicle.is_empty():

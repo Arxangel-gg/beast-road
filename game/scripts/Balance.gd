@@ -37,6 +37,13 @@ const TOWER_RANGE: float = 350
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
 
+## How many towers standing at the end make a run a *tower* run.
+##
+## The threshold is what separates "enough of them to be the plan" from "any at
+## all" - a player with one tower and a spirit built around the spirit. Four is
+## one per road, which is the point at which the ring was the strategy. [TUNE]
+const RECAP_TOWER_AXIS_MINIMUM: int = 4
+
 # --- Perfect Evade ------------------------------------------------------------
 #
 # Owner request, 2026-09-02. A dash that answers a blow is worth more than one

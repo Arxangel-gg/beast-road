@@ -22,6 +22,9 @@ var wildlife_kinds: Dictionary = {}
 ## Spirit Companion personalities. Adding one is adding a `.tres`, and every
 ## animal in the game can then be met wearing it.
 var spirit_traits: Dictionary = {}
+
+## Names for a finished run, chosen from what the player actually built.
+var run_titles: Dictionary = {}
 var companions: Dictionary = {}
 var traps: Dictionary = {}
 var barricades: Dictionary = {}
@@ -64,6 +67,7 @@ func _ready() -> void:
 	weathers = _load_dir("res://data/weather")
 	wildlife_kinds = _load_dir("res://data/wildlife")
 	spirit_traits = _load_dir("res://data/spirit_traits")
+	run_titles = _load_dir("res://data/run_titles")
 	companions = _load_dir("res://data/companions")
 	traps = _load_dir("res://data/traps")
 	barricades = _load_dir("res://data/barricades")

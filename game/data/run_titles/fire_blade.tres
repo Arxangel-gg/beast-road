@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RunTitleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/run_title_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+element = 0
+axis = 2
+id = "fire_blade"
+display_name = "The Cinder Warden"
+description = "No wall worth the name. You met it all yourself."

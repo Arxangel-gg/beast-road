@@ -291,6 +291,11 @@ jobs:
           # scale - and that a crowd cannot refund the same dash repeatedly,
           # which would make dashing free for standing in the worst place.
           check "perfect evade" --headless --path game res://tools/evade_check.tscn
+          # The end-of-run build recap. Every corner a run can finish in has to
+          # resolve to a name, and the name has to describe what happened - a
+          # tie between two elements settled on neither, and saying otherwise is
+          # the recap flattering the player rather than describing them.
+          check "run recap" --headless --path game res://tools/recap_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one
