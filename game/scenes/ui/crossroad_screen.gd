@@ -106,7 +106,7 @@ func _on_partner_pointer(at: Vector2) -> void:
 
 func _build_pointer() -> Control:
 	var mark := Label.new()
-	mark.text = "⌖"
+	mark.text = "◆"
 	mark.add_theme_font_size_override("font_size", 34)
 	mark.add_theme_color_override("font_color", Balance.COOP_PARTNER_TINT)
 	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE

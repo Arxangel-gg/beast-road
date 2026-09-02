@@ -62,12 +62,11 @@ func _build() -> void:
 
 	_tabs = HBoxContainer.new()
 	_tabs.add_theme_constant_override("separation", 6)
-	column.add_child(_tabs)
 
 	_note = Label.new()
 	_note.add_theme_font_size_override("font_size", 13)
 	_note.add_theme_color_override("font_color", Color("b8ae98"))
-	column.add_child(_note)
+
 
 	# The list scrolls and the close button does not — the same rule the results
 	# screen had to learn: a screen whose only way out sits below fifty rows is a
@@ -85,10 +84,24 @@ func _build() -> void:
 	_scroll = scroll
 	_refit()
 
+	# **Tabs and note scroll with the rows; heading and Close stay pinned.**
+	#
+	# A landscape phone is 775 units tall and the pinned parts alone came to more
+	# than that once a minimum scroll was insisted on - so no arithmetic could
+	# have made this fit, and the panel overflowed however the reservation was
+	# computed. Bounding the panel by construction is the only version of this
+	# that cannot come back. Same fault, same fix, as the stash.
+	var inner := VBoxContainer.new()
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_theme_constant_override("separation", 10)
+	scroll.add_child(inner)
+	inner.add_child(_tabs)
+	inner.add_child(_note)
+
 	_rows = VBoxContainer.new()
 	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_rows.add_theme_constant_override("separation", 2)
-	scroll.add_child(_rows)
+	inner.add_child(_rows)
 
 	_close_button = Button.new()
 	_close_button.text = "Close"
@@ -264,6 +277,12 @@ func _refit() -> void:
 	var screen: Vector2 = get_viewport().get_visible_rect().size
 	_panel.custom_minimum_size = Vector2(minf(980.0,
 		screen.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
-	# Reserved: heading, the three tier tabs, the note line, the Close button,
-	# their separations and the frame's own padding.
-	_scroll.custom_minimum_size = Vector2(0.0, UiMetrics.scroll_room(_scroll, 312.0))
+	# **Measured, not guessed.** This reserved a flat 312 for the heading, the
+	# tier tabs, the note and Close - a number that was right when it was written
+	# and drifts silently every time the panel gains a line. On a landscape phone
+	# it was eight units out, which is enough to put the bottom of the panel past
+	# the bottom of the display. Measuring the column's other children cannot
+	# drift; the stash had the same fault and the same fix.
+	var column: Control = _scroll.get_parent() as Control
+	_scroll.custom_minimum_size = Vector2(0.0,
+		UiMetrics.scroll_room_measured(_scroll, column, Balance.UI_PANEL_MARGIN))

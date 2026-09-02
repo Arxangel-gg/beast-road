@@ -83,12 +83,6 @@ func _build() -> void:
 	# phone, which is under the thumb floor the layout gate enforces and
 	# unreadable besides. Three columns wraps them into three rows and every
 	# button keeps its width.
-	_tools = GridContainer.new()
-	_tools.columns = TOOL_COLUMNS
-	_tools.add_theme_constant_override("h_separation", 6)
-	_tools.add_theme_constant_override("v_separation", 6)
-	column.add_child(_tools)
-
 	# The list scrolls and the close button does not. A full stash is forty rows,
 	# and a screen whose only way out is below forty rows is the results screen
 	# bug again.
@@ -97,12 +91,31 @@ func _build() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 	_scroll = scroll
-	_refit()
+
+	# **The filters scroll with the list.**
+	#
+	# They used to sit above it, pinned. Eleven of them wrap to four rows at 120
+	# units each, which is 480 of the 775 a landscape phone has - so the panel
+	# could not fit whatever else it needed however small the list was made, and
+	# the Close button went off the bottom. Pinning only the heading and the way
+	# out bounds the panel by construction rather than by arithmetic that has to
+	# be right.
+	var inner := VBoxContainer.new()
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inner.add_theme_constant_override("separation", 8)
+	scroll.add_child(inner)
+
+	_tools = GridContainer.new()
+	_tools.columns = TOOL_COLUMNS
+	_tools.add_theme_constant_override("h_separation", 6)
+	_tools.add_theme_constant_override("v_separation", 6)
+	inner.add_child(_tools)
 
 	_list = VBoxContainer.new()
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 4)
-	scroll.add_child(_list)
+	inner.add_child(_list)
+	_refit()
 
 	var close := Button.new()
 	close.text = "Close"
@@ -113,8 +126,14 @@ func _build() -> void:
 
 func open() -> void:
 	visible = true
-	_refit()
+	# **Refresh first, then fit.** `_refit` measures the column's other children
+	# to decide what the scroll may take, and the filter grid is *populated* by
+	# `_refresh` - so fitting first measured an empty grid, under-reserved by the
+	# four rows of filters, and handed the scroll room the panel did not have.
+	# The panel then stood 3846 units tall in a 3641 screen and the Close button
+	# was below the bottom edge. Reported from a phone as a stash with no way out.
 	_refresh()
+	_refit()
 
 
 func hide_screen() -> void:
@@ -134,11 +153,16 @@ func _refit() -> void:
 	var screen: Vector2 = get_viewport().get_visible_rect().size
 	_panel.custom_minimum_size = Vector2(minf(940.0,
 		screen.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
-	# Reserved: heading, note, the tool row, the Close button and the frame's own
-	# padding. A fixed 520 was taller than a landscape phone once the rest was
-	# added, and a `CenterContainer` overflows equally in both directions - so the
-	# way out went off the top of the screen. The same fault the leaderboard had.
-	_scroll.custom_minimum_size = Vector2(0.0, UiMetrics.scroll_room(_scroll, 300.0))
+	# **Measured, not guessed.** This reserved a flat 300 for "heading, note, the
+	# tool row and Close" - written when the filters were one row of three. They
+	# became a three-column grid of nine plus two sweep buttons on 2026-09-01 and
+	# this number was not revisited, so the column grew past the screen; a
+	# `CenterContainer` overflows equally in both directions, and the Close
+	# button went off the bottom. Reported from a phone as a stash that cannot be
+	# closed. Measuring the column's other children cannot drift that way again.
+	var column: Control = _scroll.get_parent() as Control
+	_scroll.custom_minimum_size = Vector2(0.0,
+		UiMetrics.scroll_room_measured(_scroll, column, Balance.UI_PANEL_MARGIN))
 
 
 ## The list, best first within each slot.
@@ -378,7 +402,7 @@ func _row(index: int) -> Container:
 		upgrade.text = "Max"
 		upgrade.disabled = true
 	else:
-		upgrade.text = "%d◇ %d✦" % [int(cost["shards"]), int(cost["marks"])]
+		upgrade.text = "%d◇ %d◆" % [int(cost["shards"]), int(cost["marks"])]
 		upgrade.tooltip_text = "Upgrade to level %d: %d shards and %d marks." % [
 			int(piece.get("level", 1)) + 1, int(cost["shards"]), int(cost["marks"])]
 		upgrade.disabled = MetaState.shards < int(cost["shards"]) \
@@ -398,7 +422,10 @@ func _row(index: int) -> Container:
 	# menu - it has to be one press from the thing it is guarding.
 	var marked: bool = Stash.is_favourite(piece)
 	var keep := Button.new()
-	keep.text = "♥" if marked else "♡"
+	# Words, not hearts. No bundled font has U+2665 or U+2661, so on Android
+	# both states drew the same empty box - and a two-state control whose
+	# states look identical is worse than no control.
+	keep.text = "Kept" if marked else "Keep"
 	keep.tooltip_text = ("Kept: bulk breaking will not take this."
 		if marked else "Mark as kept, so bulk breaking leaves it alone.")
 	_size_action(keep)
@@ -410,7 +437,7 @@ func _row(index: int) -> Container:
 	actions.add_child(keep)
 
 	var sell := Button.new()
-	sell.text = "Sell %d✦" % Stash.sell_price(piece)
+	sell.text = "Sell %d◆" % Stash.sell_price(piece)
 	sell.disabled = marked
 	if marked:
 		sell.tooltip_text = "Kept. Unmark it first."

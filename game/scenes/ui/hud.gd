@@ -348,6 +348,9 @@ var _recovery_status: Label
 var _hero: Hero = null
 var _boss_track: ProgressBar
 var _boss_label: Label
+
+## The road action bar, so the scope handler can hide it away from the road.
+var _action_row: Container = null
 var _preparation_panel: PanelContainer
 var _preparation_label: Label
 var _ride_on_button: Button
@@ -1348,6 +1351,7 @@ func _build_tower_panel() -> void:
 	_build_panel.offset_bottom = -_build_panel_lift()
 	_build_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_build_panel.visible = false
+	TouchInput.set_actions_visible(true)
 	add_child(_build_panel)
 
 	# **The tower list scrolls.**
@@ -1907,6 +1911,11 @@ func _build_bottom_row() -> void:
 	# as a mistake because it is one. Both hug the bottom now.
 	actions.size_flags_vertical = Control.SIZE_SHRINK_END
 	centre.add_child(actions)
+	# Kept, so the scope handler can take it away. Horn, Raid, Build, Repair and
+	# Tend are all road actions; left on screen in the town they sat over the
+	# southern building plots and swallowed the taps meant for them. Reported
+	# from a phone as town buildings that could not be interacted with.
+	_action_row = actions
 	_build_action_bar(actions)
 
 	_build_spell_bar(centre)
@@ -2577,6 +2586,8 @@ func _open_build_panel(anchor: Vector2i) -> void:
 	_refresh_build_panel()
 	_show_selected_range(true)
 	_build_panel.visible = true
+	# The dash button lives under the right-hand sheet. See `set_actions_visible`.
+	TouchInput.set_actions_visible(false)
 	_fit_build_panel.call_deferred()
 	if _tutorial != null:
 		_tutorial.build_panel_opened()
@@ -2602,6 +2613,7 @@ func _close_build_panel() -> void:
 		return
 	_show_selected_range(false)
 	_build_panel.visible = false
+	TouchInput.set_actions_visible(true)
 	_show_build_detail("")
 	_hide_build_tooltip()
 
@@ -3247,6 +3259,17 @@ func _on_scope_changed(scope: int) -> void:
 		_boss_panel.visible = false
 	elif _boss_panel != null:
 		_boss_panel.visible = _active_boss_for_ui() != null
+	# **The road's controls belong to the road.**
+	#
+	# The action bar and the boss-distance readout describe what is happening out
+	# there; over the town they are furniture the player cannot use, and worse
+	# than furniture - the bar covers the southern plots and the readout covers
+	# the northern ones, so buildings under them could not be tapped at all.
+	# Reported from a phone, 2026-09-02.
+	if _action_row != null:
+		_action_row.visible = on_field
+	if _boss_box != null:
+		_boss_box.visible = on_field
 
 
 func _update_raid_panel() -> void:

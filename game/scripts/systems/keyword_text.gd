@@ -88,4 +88,7 @@ static func apply(label: RichTextLabel, source: String) -> void:
 ## BBCode. Player names and future translated text can therefore be highlighted
 ## without opening an accidental markup path.
 static func _safe(text: String) -> String:
-	return text.replace("[", "［").replace("]", "］")
+	# Fullwidth brackets are absent from every bundled font, so escaping a
+	# literal bracket drew two boxes on Android. BBCode understands [lb]
+	# and [rb] for exactly this and they need no glyph at all.
+	return text.replace("[", "[lb]").replace("]", "[rb]")

@@ -26,6 +26,10 @@ signal closed()
 const PANEL_WIDTH: float = 620.0
 
 var _root: Control = null
+
+## The pinned frame the scroll and the way out share. Back lives here so it
+## cannot end up below the fold.
+var _exit_row: BoxContainer = null
 var _status: Label = null
 var _address_label: Label = null
 var _hint: Label = null
@@ -139,11 +143,22 @@ func _build() -> void:
 	_root.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_root)
 
+	# **The way out is pinned, not scrolled to.**
+	#
+	# This is the rule the stash states and this screen did not follow: Back sat
+	# at the bottom of the scrolling column, so on a landscape phone a player had
+	# to know it was there and drag to it. A screen whose only exit is below the
+	# fold is the results-screen bug wearing a different name.
+	var frame := VBoxContainer.new()
+	frame.add_theme_constant_override("separation", 10)
+	_root.add_child(frame)
+
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_root.add_child(scroll)
+	frame.add_child(scroll)
+	_exit_row = frame
 
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -305,7 +320,8 @@ func _build() -> void:
 	_diagnostic.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_diagnostic)
 
-	var back: Button = _button(column, "Back", "close")
+	# Added to the pinned frame rather than to the scrolling column.
+	var back: Button = _button(_exit_row, "Back", "close")
 	back.pressed.connect(close)
 
 
@@ -421,7 +437,7 @@ func _on_friends(rows: Array) -> void:
 		row.add_child(who)
 
 		var drop := Button.new()
-		drop.text = "✕"
+		drop.text = "×"
 		drop.tooltip_text = "Forget this friend"
 		var forget: String = String(friend["code"])
 		drop.pressed.connect(func() -> void:
@@ -735,7 +751,7 @@ func _on_public_games(found: Array) -> void:
 		# party of three needs one more, and a party of one may be a long wait.
 		var locked: bool = bool(game.get("locked", false))
 		row.text = "%s%s  ·  %d/%d  ·  waiting %s" % [
-			"🔒 " if locked else "", String(game["name"]),
+			"Locked · " if locked else "", String(game["name"]),
 			int(game["players"]), Balance.COOP_MAX_PLAYERS,
 			_waited(int(game["age"]))]
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT

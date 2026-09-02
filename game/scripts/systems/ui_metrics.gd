@@ -266,6 +266,35 @@ static func centre_panel(panel: Control) -> void:
 ## else that panel has to show. Screens used to hardcode this - the leaderboard
 ## asked for 520 - and a fixed number is right at one screen height and wrong at
 ## every other.
+## The room a scroll may take, with everything *else* in its column measured
+## rather than guessed.
+##
+## `scroll_room` takes the reservation as a number, and a number written down
+## once drifts the moment the panel gains a row. The stash's was 300, chosen
+## when its filter row was one row of three buttons; it became a 3x3 grid plus
+## two sweep buttons on 2026-09-01 and the reservation was not revisited - so the
+## column grew past the screen, and because a `CenterContainer` overflows equally
+## in both directions the Close button went off the bottom edge. On a phone that
+## is a screen with no way out of it.
+##
+## Measuring cannot drift. Add a row and the scroll gives up exactly that row.
+static func scroll_room_measured(scroll: Control, column: Control,
+		extra: float = 0.0) -> float:
+	var reserved: float = extra
+	var separation: float = 0.0
+	if column is BoxContainer:
+		separation = float(column.get_theme_constant("separation"))
+	var counted: int = 0
+	for child: Node in column.get_children():
+		var control := child as Control
+		if control == null or control == scroll or not control.visible:
+			continue
+		reserved += control.get_combined_minimum_size().y
+		counted += 1
+	reserved += separation * float(maxi(counted, 1))
+	return scroll_room(scroll, reserved)
+
+
 static func scroll_room(node: Control, reserved: float) -> float:
 	if node.get_viewport() == null:
 		return 260.0

@@ -89,6 +89,24 @@ func _ready() -> void:
 
 
 ## Whether the on-screen controls are up.
+## Stands the thumb actions down while a sheet is open over them.
+##
+## The build sheet docks against the right edge and the dash button sits just
+## inside it, so with the sheet open the two share the same glass - reported from
+## a phone as the trap menu being unusable, with DASH on top of Close. Moving the
+## sheet would shrink it on the shape with least room; the controls are the thing
+## not being used while a sheet is open, so they are what gives way.
+##
+## **The sticks are untouched.** Standing those down is a different and much
+## riskier change - `GameDirector.build_mode` defaults to true, so the obvious
+## version of it disables touch control globally. See `touch_check`.
+func set_actions_visible(shown: bool) -> void:
+	if _dash != null:
+		_dash.visible = shown
+	if _revive != null and not shown:
+		_revive.visible = false
+
+
 func is_showing() -> bool:
 	return _showing
 

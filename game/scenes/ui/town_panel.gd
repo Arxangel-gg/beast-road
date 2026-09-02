@@ -285,7 +285,7 @@ func _show_armoury() -> void:
 		# The numbers that distinguish them, because "Shortbow" and "Heavy
 		# Crossbow" say nothing about which one answers the situation.
 		var row := _row("%s%s\n%d dmg  ·  %.2fs draw  ·  %d reach" % [
-			"✦ " if held else "", weapon.display_name, int(weapon.damage),
+			"◆ " if held else "", weapon.display_name, int(weapon.damage),
 			weapon.draw_time, int(weapon.effective_range)], 50.0)
 		row.tooltip_text = weapon.description
 		row.disabled = held
@@ -571,7 +571,7 @@ func _mansion_training(tier: int) -> void:
 		var equipped: bool = RunState.equipped_discipline_slots.has(id)
 		var where: String = "equipped" if equipped else (
 			trained.slot_name().to_lower() if trained.is_active_slot() else "always on")
-		var row := _row("%s%s  ·  %s" % ["✦ " if equipped else "",
+		var row := _row("%s%s  ·  %s" % ["◆ " if equipped else "",
 			trained.display_name, where], 44.0)
 		if ResourceLoader.exists(trained.get_sprite_path()):
 			UiMetrics.row_icon(row, load(trained.get_sprite_path()), 30)
@@ -611,7 +611,7 @@ func _mansion_slot_picker() -> void:
 			continue
 		found += 1
 		var here: bool = RunState.equipped_discipline_slots[slot] == id
-		var row := _row("%s%s\n%s" % ["✦ " if here else "", node.display_name,
+		var row := _row("%s%s\n%s" % ["◆ " if here else "", node.display_name,
 			node.description], 60.0)
 		if ResourceLoader.exists(node.get_sprite_path()):
 			UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
@@ -734,7 +734,7 @@ func _show_relics() -> void:
 	for core_id: String in RunState.boss_cores:
 		var core: RelicData = ContentDB.relics.get(core_id, null) as RelicData
 		if core != null:
-			_note("★ %s  —  always active" % core.display_name)
+			_note("◆ %s  —  always active" % core.display_name)
 
 
 ## Oathbound leaders won from war camps and assigned a one-run duty. Internal

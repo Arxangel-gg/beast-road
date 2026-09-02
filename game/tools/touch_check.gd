@@ -151,6 +151,7 @@ func _ready() -> void:
 
 	_test_revive_hold()
 	_test_dash_clears_the_rail()
+	_test_build_mode_frees_the_screen()
 
 	if _failures == 0:
 		print("[touch] PASS - thumbs reach the input map, both sticks work at once, "
@@ -224,6 +225,44 @@ func _drag(to: Vector2, finger: int) -> void:
 ## Runs the frame that turns stick positions into pressed actions.
 func _settle() -> void:
 	TouchInput._process(0.016)
+
+
+## Build mode gives the screen back.
+##
+## The stick zones are 42% of the width by 62% of the height *each*, anchored to
+## the bottom - together the whole lower two-thirds of the screen bar a narrow
+## centre strip. A press inside one is claimed and marked handled, so while they
+## are live a tap on a buildable tile in that area never reaches the placement
+## cursor and the tower sheet does not open. Reported from a phone as the build
+## menu working "sometimes", which is what a rule about *where* you tapped looks
+## like from the outside.
+##
+## Held here rather than in the input code because the failure is a silent one:
+## nothing errors, the tap simply goes nowhere, and the only symptom is a player
+## pressing the same tile twice.
+func _test_build_mode_frees_the_screen() -> void:
+	var was: bool = GameDirector.build_mode
+	var span: Vector2 = get_viewport().get_visible_rect().size
+	var left: Rect2 = TouchInput.zone(false)
+	var right: Rect2 = TouchInput.zone(true)
+	_check(left.size.x > 0.0 and left.size.y > 0.0, "the sticks must have zones")
+	# The two of them really do own most of the glass - stated so the number is
+	# in front of whoever changes it next.
+	var covered: float = (left.get_area() + right.get_area()) 		/ maxf(span.x * span.y, 1.0)
+	_check(covered > 0.4,
+		"the stick zones cover %.0f%% of the screen; if that has shrunk this "
+			% (covered * 100.0) + "test is guarding something that moved")
+
+	# **Not asserted, deliberately.** The obvious fix - stand the sticks down in
+	# build mode - is wrong: `GameDirector.build_mode` defaults to *true*, so it
+	# disables them globally and this gate went from clean to twelve failures.
+	# The right fix is tap-versus-drag (claim the finger only once it moves past
+	# the deadzone), which changes how every touch in the game is routed and
+	# wants a device to test on rather than a headless runner.
+	#
+	# What is recorded here is the measurement, so whoever does it starts from a
+	# number instead of a guess.
+	GameDirector.build_mode = was
 
 
 func _check(condition: bool, why: String) -> void:

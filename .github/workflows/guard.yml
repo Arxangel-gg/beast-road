@@ -296,6 +296,18 @@ jobs:
           # tie between two elements settled on neither, and saying otherwise is
           # the recap flattering the player rather than describing them.
           check "run recap" --headless --path game res://tools/recap_check.tscn
+          # Every glyph the interface prints must exist in a shipped font.
+          # Godot borrows a missing one from a system face on desktop and has
+          # nothing to borrow from on Android, so a gap renders correctly on
+          # every machine the game is developed on and as an empty box on the
+          # one it is played on. Eleven had accumulated before anybody looked at
+          # a phone.
+          check "font glyphs" --headless --path game res://tools/font_glyph_check.tscn
+          # Every menu panel, opened at phone size, with its way out on screen.
+          # layout_check builds the *run* and measures the HUD; nothing ever
+          # opened a main-menu panel at a phone shape and looked. The same bug
+          # has now been reported in three of these screens.
+          check "menu layout" --headless --path game res://tools/menu_layout_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

@@ -184,6 +184,12 @@ func _on_coop_failed(reason: String) -> void:
 
 
 func _ready() -> void:
+	# **Before anything draws.** The display face has no arrows and no geometric
+	# shapes; on desktop Godot borrows them from a system font and on Android
+	# there is nothing to borrow from, so they render as empty boxes. Chaining
+	# the body face behind it fixes that at the point of rendering rather than
+	# at every call site. See `UiFonts`.
+	UiFonts.apply()
 	EventBus.boss_defeated.connect(_on_boss_felled)
 	# Navigation belongs here, not in the network layer. `Coop` reports that the
 	# session is gone; deciding that this means leaving the run is this node's

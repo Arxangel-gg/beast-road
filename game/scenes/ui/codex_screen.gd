@@ -436,7 +436,7 @@ func _spirit_species_row(kind: WildlifeData) -> Button:
 			equipped = true
 	var row := Button.new()
 	row.text = "%s%s  ·  %d of 8 bonded%s" % [
-		"▾ " if _spirit_open == kind.id else "▸ ", kind.display_name, bonded,
+		"v " if _spirit_open == kind.id else "> ", kind.display_name, bonded,
 		"  ·  WALKING WITH YOU" if equipped else ""]
 	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	row.custom_minimum_size.y = 42.0
@@ -444,7 +444,7 @@ func _spirit_species_row(kind: WildlifeData) -> Button:
 	if met == 0:
 		# Never seen at all. Named, because knowing the animal exists is what
 		# makes looking for it a thing to do - but nothing else is given away.
-		row.text = "▸ %s  ·  not yet met" % kind.display_name
+		row.text = "> %s  ·  not yet met" % kind.display_name
 		row.add_theme_color_override("font_color", Color("6d6556"))
 	if ResourceLoader.exists(kind.get_sprite_path()) and met > 0:
 		UiMetrics.row_icon(row, load(kind.get_sprite_path()), 30)
