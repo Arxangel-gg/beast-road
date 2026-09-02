@@ -308,6 +308,12 @@ jobs:
           # opened a main-menu panel at a phone shape and looked. The same bug
           # has now been reported in three of these screens.
           check "menu layout" --headless --path game res://tools/menu_layout_check.tscn
+          # Every content resource's derived sprite exists. The manifest and
+          # `report` both work outward from what is *declared*, so an asset
+          # nobody remembered to declare is missing from the manifest, from disk
+          # and from every check at once. Six spell icons shipped that way: the
+          # spells worked, their sockets rendered, and each drew nothing.
+          check "content art" --headless --path game res://tools/content_art_check.tscn
           check "codex"       --headless --path game res://tools/codex_check.tscn
           # A cosmetic gate has to bind a world before it looks for the
           # effect, or it agrees with a game that draws nothing. This one

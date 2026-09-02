@@ -295,6 +295,33 @@ Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `
 | `boss_rust_crown.png` | 384×384 | T | `#8C3A2B` |
 | `boss_chainmaker.png` | 384×384 | T | `#2A3140` |
 
+#### 5.3a Boss walk and attack frames
+
+The bosses were the last things in the game with no legs. Every walker got a
+walk cycle on 2026-09-01 and a swing on 2026-09-02; the four bosses got neither,
+because the generator caps a frame at 256 and these are 384.
+
+**They are 192-native art upscaled**, which is what makes this work: halving to
+192, animating, and doubling back with nearest-neighbour lands on exactly the
+lattice the base sprites already sit on. That was checked by eye against the
+originals rather than by a difference count — the count says 7-9% of texels move
+and every one of them is edge antialiasing, which is why the first look at this
+concluded, wrongly, that it could not be done.
+
+No code changed. A boss's frames are found by the same convention as everything
+else, so putting the files at the derived paths was the whole integration.
+
+All 384×384, type T, placeholder colour `#2E4A52`.
+
+Files: `boss_chainmaker_move_01.png` … `boss_chainmaker_move_04.png` ·
+`boss_chainmaker_attack_01.png` … `boss_chainmaker_attack_04.png`
+Files: `boss_drowned_choir_move_01.png` … `boss_drowned_choir_move_04.png` ·
+`boss_drowned_choir_attack_01.png` … `boss_drowned_choir_attack_04.png`
+Files: `boss_mirrorfang_move_01.png` … `boss_mirrorfang_move_04.png` ·
+`boss_mirrorfang_attack_01.png` … `boss_mirrorfang_attack_04.png`
+Files: `boss_rust_crown_move_01.png` … `boss_rust_crown_move_04.png` ·
+`boss_rust_crown_attack_01.png` … `boss_rust_crown_attack_04.png`
+
 ### 5.4 Towers — `res://art/towers/`
 
 All 192×192, type T. Placeholder colour by element.
@@ -927,6 +954,18 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_rift_step.png` · `spell_cinder_nova.png` · `spell_bulwark_ward.png` ·
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
+
+The six summoning calls. **These were missing entirely** — the spells shipped, the
+sockets showed them, and each drew nothing because the icon its id derives to did
+not exist. Found by walking every content resource's derived path against the
+disk rather than by looking at the manifest, which only ever knows about assets
+somebody remembered to declare.
+
+Drawn as spirit heads rather than as animals: they are a *call*, not a creature,
+and the companion sprites already carry the animal itself.
+
+`spell_call_wolf.png` · `spell_call_bear.png` · `spell_call_crow.png` ·
+`spell_call_hart.png` · `spell_call_ram.png` · `spell_call_serpent.png`
 
 ### 5.9d Barricades — `res://art/barricades/`
 
