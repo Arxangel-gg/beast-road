@@ -404,6 +404,9 @@ signal preparation_warning(message: String)
 signal run_started()
 signal run_ended(victory: bool, summary: Dictionary)
 
+## Host-authored Chronicle counters; final snapshot precedes the run-end fact.
+signal coop_chronicle_progress(summary: Dictionary)
+
 ## Something was added to the persistent unlock pool.
 signal unlock_earned(kind: String, id: String)
 

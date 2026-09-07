@@ -374,6 +374,7 @@ $btn.Add_Click({
             @{ Name = 'boot'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/boot_check.tscn') },
             @{ Name = 'breather'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/breather_check.tscn') },
             @{ Name = 'live settings'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/live_settings_check.tscn') },
+            @{ Name = 'support diagnostics privacy and preview'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/support_diagnostics_check.tscn') },
             @{ Name = 'structures'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_check.tscn') },
             @{ Name = 'torches'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/torch_check.tscn') },
             @{ Name = 'recovery and shader polish'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_polish_check.tscn') },
@@ -383,14 +384,17 @@ $btn.Add_Click({
             @{ Name = 'structure animation art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_art_check.tscn') },
 			@{ Name = 'shipping tool references'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'tool-leak') },
 			@{ Name = 'v4 migration audit'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'audit') },
+            @{ Name = 'v4 audit evidence classification'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/gdd_audit_check.tscn') },
 			@{ Name = 'difficulty curve'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/curve_report.tscn') },
 			@{ Name = 'wildlife, world depth and ambient life'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/regression_check.tscn') },
 			@{ Name = 'procedural treeline'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/treeline_check.tscn') },
             @{ Name = 'milestone cinematics'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/milestone_cinematic_check.tscn') },
             @{ Name = 'Chronicle objectives'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_check.tscn') },
+            @{ Name = 'pinned Chronicle goals'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_goal_check.tscn') },
             @{ Name = 'save migration'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_backup_check.tscn') },
             @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
 			@{ Name = 'main menu'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_check.tscn') },
+			@{ Name = 'mobile menus and draggable scrollbars'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_layout_check.tscn') },
 			@{ Name = 'leaderboard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/leaderboard_check.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
 			@{ Name = 'torch snuff runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=45', '--shots=999', '--expect-snuff') },
@@ -644,18 +648,23 @@ $btn.Add_Click({
             Write-Log ("{0:+#,0.0;-#,0.0;0} MB against {1}" -f $delta, $script:LastSizes.Tag)
         }
 
-        # The web build is built by the same workflow on the same tag, but
-        # nothing downloads it on its own - it is a zip a person uploads. Said
-        # out loud every time, because the alternative is remembering.
+        # The tag workflow also deploys Pages. The zip remains available for
+        # alternate hosts, but desktop verification alone cannot prove that
+        # either the archive or the Pages deployment succeeded.
         Write-Log ''
         if ($webAsset) {
             Write-Log ("web build ready: BeastRoad-web.zip ({0:N1} MB)" -f ($webAsset.size / 1MB))
-            Write-Log 'Upload it to Netlify to update the browser version - drag the zip'
-            Write-Log 'straight onto the site, its index.html is already at the root:'
+            Write-Log 'Optional archive for alternate hosting:'
             Write-Log "https://github.com/$Owner/$Repo/releases/download/$tag/BeastRoad-web.zip"
         } else {
-            Write-Log 'NOTE: this release carries no BeastRoad-web.zip, so the browser'
-            Write-Log 'version is unchanged. Installed launchers are unaffected.'
+            Write-Log 'NOTE: the browser archive was not verified. Installed launchers are unaffected.'
+        }
+        if ($workflowConclusion -eq 'success') {
+            Write-Log 'The browser deployment completed automatically:'
+            Write-Log 'https://beastroad.arxangel.gg'
+        } else {
+            Write-Log 'Browser deployment is not confirmed. Check the Publish the browser build job.'
+            if ($workflowUrl) { Write-Log $workflowUrl }
         }
 
         Write-Log ''

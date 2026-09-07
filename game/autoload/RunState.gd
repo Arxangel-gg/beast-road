@@ -213,6 +213,9 @@ var last_stand_used: bool = false
 # --- Statistics ------------------------------------------------------------
 
 var enemies_killed: int = 0
+## Authoritative Chronicle measurements on a guest; empty until synchronized.
+## Lives with the run and is never persisted or reconstructed from puppet hits.
+var chronicle_host_progress: Dictionary = {}
 var hero_deaths: int = 0
 var raids_completed: int = 0
 var chieftains_taken: int = 0
@@ -450,6 +453,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	last_stand_used = false
 
 	enemies_killed = 0
+	chronicle_host_progress.clear()
 	hero_deaths = 0
 	raids_completed = 0
 	chieftains_taken = 0

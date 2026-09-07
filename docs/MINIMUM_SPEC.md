@@ -9,7 +9,7 @@ Written 2026-08-25 from measurements taken with `tools/perf_check.tscn`.
 
 ---
 
-## The declaration
+## Provisional test targets — not verified requirements
 
 | | Minimum | Recommended |
 |---|---|---|
@@ -50,8 +50,8 @@ far separates them.
 
 ### What is solid
 
-**Physics is free.** 0.1 ms, consistently. Whatever the frame is doing, it is not
-that.
+**Measured physics cost was small.** Approximately 0.1 ms in these runs; this
+does not establish its cost on lower-end devices or in every encounter.
 
 **Nothing disabled so far moves the frame time out of the 13–15 ms band** —
 including cast shadows, contact shadows, clouds, particles, foliage and every 2D
@@ -74,22 +74,20 @@ game rendering roughly a thousand batched draws through OpenGL 3.3. Almost any
 GPU that can present 1080p will do; the minimum GPU column above is really a
 statement about which OpenGL version the driver exposes.
 
-**Headroom on high-end hardware is about 4×, and that is less than it sounds.**
-13–15 ms against a 16.7 ms budget is comfortable on a 5800X and not generous. A
-CPU with roughly a quarter of its single-thread throughput lands on the budget
-with nothing spare, and that — rather than any measurement of such a machine — is
-what sets the 2015-era floor in the table.
+**These measurements do not establish a lower-end hardware floor.**
+13–15 ms against a 16.7 ms budget leaves approximately 1.7–3.7 ms, not 4×
+headroom. It is not valid to infer that a CPU with a quarter of the throughput
+will meet the budget. The older hardware above remains a proposed test target.
 
 ---
 
 ## What this declaration is not
 
 **Nothing has been measured on minimum-spec hardware.** Every number above comes
-from one modern desktop. The minimum column is *derived* — from the renderer's
-OpenGL requirement, from the measured fixed frame cost, and from the ratio a
-weaker CPU would need to stay inside the budget.
+from one modern desktop. OpenGL compatibility alone does not establish frame
+rate, and these runs cannot predict performance on the listed weaker hardware.
 
-That derivation is a reasonable engineering estimate and it is not a test. Until
+Until
 the game has been run on a machine of roughly the declared class, the honest
 status of §47's row is "declared, not verified". `V4_CONFORMANCE.md` should say
 so rather than showing it green.
@@ -138,13 +136,12 @@ it — including after the owner reported it as too sparse. Interleaved, foliage
 and off are 16.8 ms and 16.8 ms at 1350 clumps, rising to about +0.7 ms at 2100.
 The density is set on look now, at 1500.
 
-**A consequence worth stating plainly.** The 60 FPS assertion in `perf_check` is
-currently marginal on the reference machine for reasons that have nothing to do
-with the game: an idle field with every effect disabled measures 16.8 ms, which
-is 59.5 fps. `perf_check` is deliberately **not** in the gate suite or in
-`guard.yml`, and this is why — a throughput budget that fails on a warm machine
-would be a build break with no defect behind it. It is a tool to be run and read,
-not a gate.
+**Current gate behavior (2026-09-07).** `perf_check` is included in both the guard
+and release workflows. Its headless run gates resource growth and isolated
+checkpoint timing, not rendered FPS. With a real renderer it also checks frame
+and recurring-hitch budgets. The historical 16.8 ms observation is close to the
+60 FPS boundary, but neither its cause nor minimum-spec performance has been
+established. A clean headless publish check is not performance certification.
 
 ---
 

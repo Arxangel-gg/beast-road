@@ -25,8 +25,10 @@ templates on your machine** — CI downloads them.
    git push -u origin main
    ```
 
-That is the whole setup. `GITHUB_TOKEN` is provided to Actions automatically —
-there is no secret to configure.
+That completes desktop release setup. `GITHUB_TOKEN` is provided to Actions
+automatically; the standard release needs no additional secret. Enable Pages
+as described below for automatic browser deployment. Optional Dropbox mirrors
+and the separate Android workflow have their own configuration.
 
 ---
 
@@ -45,7 +47,7 @@ That triggers `.github/workflows/release.yml`, which:
 4. Writes `launcher-version-<n>.txt`, naming the launcher's own version
 5. Creates a GitHub Release named after the tag and attaches all four
 
-Hosting the web build is a separate, manual step — see below.
+6. Deploys the browser build to GitHub Pages in a separate job
 
 The launcher notices the new tag on its next start and offers **Update** — and
 updates *the game only*, unless the launcher version changed too.
@@ -70,12 +72,9 @@ deployment should carry everything that decides where it is served, so no
 redeploy can lose it. `https://arxangel-gg.github.io/beast-road/` keeps working
 as well.
 
-so hosting the browser build is no longer a manual step and no longer costs
-anything. Pages has no deploy quota, which is the reason it is here: a metered
-host ran out of credits in the middle of debugging web co-op and took the only
-way of testing it down with it. Nothing about the drag-a-zip route below has
-stopped working — it is the fallback and the way to put a build somewhere
-private, and the release still attaches the zip either way.
+Browser hosting therefore needs no manual deployment after a successful tag
+workflow. The drag-a-zip route below remains an alternate-host fallback, and
+the release still attaches the zip either way.
 
 This works **only because the export is single-threaded**. Pages cannot send
 COOP/COEP headers, so a threaded build would load and then refuse to start; the
@@ -87,13 +86,13 @@ Pages → Source → GitHub Actions**. Until that is done the `pages` job fails 
 the rest of the release still succeeds — the desktop build, the launcher and the
 zip are all unaffected.
 
-Every release builds one, and the Update Manager says so when it finishes —
-it prints the size and the direct download link, because the web build reaches
-nobody on its own and the alternative signal is remembering that there is always
-a new one. A release without a web zip is reported too, and neither case ever
-blocks a desktop update: the launcher does not read that file.
+Update Manager prints the archive size and direct download link when it can
+verify the web zip. A successful tag workflow also confirms the Pages
+deployment. If the workflow fails after publishing the desktop assets, the
+manager reports the installed update as available and directs you to the
+browser job; desktop readiness does not prove browser readiness.
 
-To deploy it:
+To deploy to an alternate host:
 
 1. Download `BeastRoad-web.zip` from the release.
 2. Netlify → **Sites** → drag the zip onto the drop area (or `netlify deploy
@@ -102,11 +101,11 @@ To deploy it:
 4. In Carrd, add an **Embed** element, set it to *Code*, and paste an iframe
    pointing at that URL.
 
-Nothing else has to be configured. `_headers` is written into the bundle by the
-release job, so caching rules travel with the build instead of living in a host
-dashboard where a redeploy can lose them: the wasm, pck and js cache for a year
-because they belong to the release they were built from, and `index.html` is
-`no-cache` because it is what points at the other three.
+`_headers` is written into the bundle for hosts such as Netlify that read it.
+All files use `Cache-Control: no-cache`: browsers may store them but must
+revalidate before reuse. The exported filenames are fixed across releases, so
+year-long immutable caching could serve an old wasm or pck beside a new shell.
+Pages ignores this host-specific file and uses its own caching policy.
 
 An iframe that runs the game wants its own size and the keyboard:
 
@@ -120,11 +119,6 @@ An iframe that runs the game wants its own size and the keyboard:
 A canvas only receives key events once it has focus, and inside an iframe that
 means the player has to click the game before typing — which they do anyway to
 start it, because browsers will not begin audio without a gesture either.
-
-**GitHub Pages was tried and removed.** Publishing there needs a Pages site, and
-creating one is an admin operation a workflow token cannot perform — three
-releases failed on it. It also needs a domain to be worth having. The Netlify
-route needs neither, so the Pages job is gone rather than left failing.
 
 Two constraints are load-bearing and are asserted in CI rather than remembered:
 
@@ -157,7 +151,8 @@ one from someone who opened a tab.
 The Update Manager runs the game, a short gameplay soak, and the launcher
 release-contract test before it commits or tags anything. It then watches the
 workflow for that exact tag and does not report desktop success until both
-launcher-facing release assets are visible through GitHub's API. The web deploy
+launcher-facing release assets are verified through GitHub's API or their
+canonical download links. The web deploy
 is a separate job: if only Pages fails, the manager reports the installed update
 as published and shows a web-publishing warning instead of telling the owner to
 spend another tag on files that are already live.
@@ -172,10 +167,18 @@ The workflow retries transient GitHub/CDN download failures automatically. If
 it still fails, open the build link shown by Update Manager and read the first
 failed step before publishing another tag.
 
+The Dropbox mirror is optional and runs only for tag releases. If it fails,
+the workflow discards that attempt's generated mirror metadata and warns in
+Actions while continuing to publish the GitHub downloads. Branch rehearsals
+never overwrite the production mirror. Repair the mirror separately; do not
+spend another game version merely because the backup mirror was unavailable.
+
 ### Rehearsing without publishing
 
-Actions tab -> Release -> *Run workflow*. It builds and uploads artifacts but
-does not create a release.
+Actions tab -> Release -> *Run workflow*, with a branch selected. It builds and
+uploads artifacts without creating a release or deploying Pages. The current
+workflow publishes only when its selected ref is a `v*` tag; the optional `tag`
+text input does not select or check out a tag.
 
 ---
 
@@ -194,14 +197,13 @@ update no longer drags a launcher download along with it. See below.
 > for anything without a code-signing certificate; "More info" -> "Run anyway".
 > Signing costs a few hundred a year and is worth it only near a store release.
 
-Or send them the browser link, which needs no download and no SmartScreen
-conversation — whatever Netlify URL the current `BeastRoad-web.zip` was deployed
-to, or the Carrd page embedding it.
+Or send them [the browser game](https://beastroad.arxangel.gg), which needs no
+download, or the Carrd page embedding it.
 
 Saves live in the browser's storage for that site, so a web save and an
 installed save are separate games. Clearing site data erases it, and so does
-deploying to a *different* Netlify URL — the storage is per-origin, so keep the
-site rather than making a new one each release.
+switching to a different domain or host URL — storage is per-origin, so keep
+the site address across releases.
 
 ---
 

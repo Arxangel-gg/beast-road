@@ -16,13 +16,14 @@ Status legend: `[ ]` outstanding · `[~]` partially done, detail in the note ·
 
 ## 0. Conformance snapshot
 
-`run_tool.gd -- audit` — **44 / 45 (98%)**. 6 rows need human judgement and are
-not counted; they are in section 4.
+`run_tool.gd -- audit`, rerun 2026-09-07 — **46 / 46 automatic probes**.
+**5 manual acceptance rows** are excluded from that count. The audit now
+correctly recognizes annotated manual requirements; this is evidence
+classification, not a new claim that the game is finished.
 
-The one outstanding automatable row is **60 FPS at 1920x1080**, and it is honest
-that it fails: the minimum spec is declared in `MINIMUM_SPEC.md` but *derived
-rather than verified*, and nothing has been run on a machine of that class. It
-cannot go green from this desk.
+In particular, **60 FPS at 1920x1080 on minimum-spec hardware remains
+unverified**. `MINIMUM_SPEC.md` lists provisional test targets. A headless
+growth/timing check does not certify rendering performance on those machines.
 
 A passing row means the automatable part exists *and*, for everything closed in
 this pass, a gate exercises it. It does not mean the game is finished — CLAUDE.md
@@ -33,7 +34,28 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ---
 
-## 0b. Where this stands, 2026-08-25
+## Latest local continuation — 2026-09-07 (unpublished)
+
+See `PRODUCTION_CONTINUATION_2026-09-07.md` for the complete verification and
+handoff. Local baseline remains v0.6.1; no new tag was published in this pass.
+
+- [x] Pinned Chronicle progress and persistent selection, including host-final
+  guest reward settlement and terminal-event race regressions.
+- [x] Explicit, previewable support diagnostics in Settings → Data, with a
+  strict privacy allowlist and no automatic transmission.
+- [x] Pixel-accurate shared focus scrolling, mouse pin/unpin and scrollbar-drag
+  coverage, and matching new gates in Update Manager and both CI workflows.
+- [x] Optional-mirror isolation, correct reused-web-file caching policy, and
+  publishing messages reconciled to automatic Pages deployment.
+- [ ] Unpublished GitHub Actions rehearsal of this patch before tagging.
+- [ ] Portrait typography/scaling acceptance: geometry passes, but rendered
+  text is still too small. Real devices and controller play remain necessary.
+- [ ] Minimum-spec rendered FPS and Linux crowd verification. Headless growth
+  checks passed; their result does not close either acceptance requirement.
+
+The dated sections below retain earlier release history.
+
+## 0b. Where this stood, 2026-08-25
 
 Published as **v0.4.73** from `main`. 33 of 33 local gates green at the tag,
 plus `tools/coop_live.sh`, `tools/coop_ui.sh` and `tools/lobby.sh`, which run

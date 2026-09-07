@@ -31,6 +31,7 @@ const LINE_GAP: float = 1.5
 @export var finish_button: Button
 @export var credits_button: Button
 @export var credits: Label
+@export var waiting_for_host_text: String
 
 ## The roll itself. Authored here for the same reason the ending lines are: there
 ## is one of it, it is short, and a `.tres` for a single block of text is filing
@@ -71,9 +72,20 @@ func _ready() -> void:
 ".join(CREDITS)
 	credits.visible = false
 	credits_button.pressed.connect(_roll_credits)
-	finish_button.pressed.connect(func() -> void:
+	finish_button.pressed.connect(_finish)
+	EventBus.run_ended.connect(_on_run_ended)
+
+
+func _finish() -> void:
+	if Coop.is_guest():
+		return
+	_dismiss()
+	GameDirector.end_run(true)
+
+
+func _on_run_ended(_victory: bool, _summary: Dictionary) -> void:
+	if _playing:
 		_dismiss()
-		GameDirector.end_run(true))
 
 
 ## Plays the ending before the completed run's debrief.
@@ -87,6 +99,8 @@ func play() -> void:
 	title.text = "The chains are broken"
 	body.text = ""
 	finish_button.disabled = true
+	if Coop.is_guest():
+		finish_button.text = waiting_for_host_text
 
 	var shown: PackedStringArray = []
 	for index: int in LINES.size():
@@ -96,9 +110,14 @@ func play() -> void:
 		var fade: Tween = create_tween()
 		fade.tween_property(body, "modulate:a", 1.0, LINE_FADE)
 		await get_tree().create_timer(LINE_GAP, true, false, true).timeout
+		if not _playing:
+			return
 
-	finish_button.disabled = false
-	finish_button.grab_focus()
+	finish_button.disabled = Coop.is_guest()
+	if Coop.is_guest():
+		credits_button.grab_focus()
+	else:
+		finish_button.grab_focus()
 
 
 ## Rolls the credits over the ending, and stops on a second press.

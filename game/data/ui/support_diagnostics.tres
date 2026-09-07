@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="DiagnosticCopyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/diagnostic_copy_data.gd" id="1_copy"]
+
+[resource]
+script = ExtResource("1_copy")
+id = "support_diagnostics"
+display_name = "Support diagnostics"
+heading = "Support diagnostics"
+description = "Prepare a small report to share with a bug report: build, platform and renderer, screen and quality settings, and the current or last run's seed and totals. Review it before copying. No names, room codes, addresses, account identifiers, logs or save files are included. Nothing is sent automatically."
+prepare_label = "Prepare report"
+copy_label = "Copy report"
+ready_note = "Report ready. Review below, then copy and paste it with a description of what happened. Preparing again refreshes this snapshot."
+copy_requested_note = "Copy requested. If your device blocks the clipboard, select the report below and copy it manually. Nothing has been sent."
+clipboard_unavailable_note = "Clipboard access is unavailable here. Select the report below and copy it manually."

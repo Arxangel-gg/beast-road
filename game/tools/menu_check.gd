@@ -72,7 +72,8 @@ func _ready() -> void:
 			get_tree().quit(1)
 			return
 		if bar == null or bar.focus_mode != Control.FOCUS_ALL \
-				or bar.custom_minimum_size.x < Balance.UI_SCROLLBAR_WIDTH:
+				or bar.custom_minimum_size.x < Balance.UI_SCROLLBAR_WIDTH \
+				or bar.step > 1.0 or not is_equal_approx(bar.custom_step, Balance.UI_SCROLL_STEP):
 			push_error("every menu scroll surface must expose a focusable draggable rail")
 			get_tree().quit(1)
 			return

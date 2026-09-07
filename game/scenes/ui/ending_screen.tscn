@@ -12,6 +12,7 @@ body = NodePath("Box/Body")
 finish_button = NodePath("Box/Buttons/Finish")
 credits_button = NodePath("Box/Buttons/Credits")
 credits = NodePath("Credits")
+waiting_for_host_text = "Waiting for host to continue"
 
 [node name="Backdrop" type="TextureRect" parent="."]
 texture = ExtResource("2_bg")

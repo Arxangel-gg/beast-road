@@ -91,6 +91,7 @@ enum Fact {
 	## Request kind would have made both of those a hang.
 	ROAD_VOTES = 45,
 	WILDLIFE_DIED = 44,
+	CHRONICLE_PROGRESS = 46,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -272,6 +273,7 @@ func _fact_bindings() -> Array:
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
 		["coop_world_clock", _on_coop_world_clock],
+		["coop_chronicle_progress", _on_chronicle_progress],
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
 		["coop_hero_revived", _on_coop_hero_revived],
@@ -516,6 +518,10 @@ func _on_coop_world_clock(distance: float, weather_id: String, act: int) -> void
 	_relay(Fact.WORLD_CLOCK, [distance, weather_id, act])
 
 
+func _on_chronicle_progress(summary: Dictionary) -> void:
+	_relay(Fact.CHRONICLE_PROGRESS, [summary])
+
+
 func _on_coop_paused(paused: bool) -> void:
 	_relay(Fact.PAUSED, [paused])
 
@@ -603,13 +609,19 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 	if not (decoded is Array):
 		return
 	var message: Array = decoded
-	if message.size() != 3 or not (message[2] is Array):
+	if message.size() != 3 or not (message[2] is Array) \
+			or not (message[0] is int) or not (message[1] is int):
 		return
 	var tag: int = int(message[0])
 	var kind: int = int(message[1])
 	var args: Array = message[2]
 
 	if tag == TAG_FACT:
+		# Guests may receive forwarded chat, but only peer 1 owns run facts.
+		# Transport topology is not a substitute for validating their author.
+		if session != null and bool(session.call("is_guest")) \
+				and from != 1 and not SYMMETRIC_FACTS.has(kind):
+			return
 		# Only the host authors facts. A packet claiming otherwise is either a
 		# bug or something hostile, and either way it is not obeyed - except for
 		# the handful that genuinely have two authors.
@@ -627,6 +639,8 @@ func _on_packet(from: int, packet: PackedByteArray) -> void:
 			return
 		bus.coop_request_received.emit(kind, args, from)
 	elif tag == TAG_REFUSAL:
+		if from != 1:
+			return
 		# Only a host refuses. A packet telling the host it was refused is either a
 		# bug or something hostile, and either way it is not believed.
 		if session != null and bool(session.call("is_host")):
@@ -689,8 +703,11 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 1:
 				bus.coop_wildlife_died.emit(int(args[0]))
 		Fact.RUN_ENDED:
-			if args.size() == 1:
+			if args.size() == 1 and args[0] is bool:
 				bus.coop_run_ended.emit(bool(args[0]))
+		Fact.CHRONICLE_PROGRESS:
+			if args.size() == 1 and args[0] is Dictionary:
+				bus.coop_chronicle_progress.emit(args[0] as Dictionary)
 		Fact.CROSSROAD_OPENED:
 			if args.size() == 1:
 				bus.coop_crossroad_opened.emit(int(args[0]))

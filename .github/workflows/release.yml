@@ -123,6 +123,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/boot_check.tscn
           run_godot_clean --headless --path game res://tools/breather_check.tscn
           run_godot_clean --headless --path game res://tools/live_settings_check.tscn
+          run_godot_clean --headless --path game res://tools/support_diagnostics_check.tscn
           run_godot_clean --headless --path game res://tools/structure_check.tscn
           run_godot_clean --headless --path game res://tools/torch_check.tscn
           # Every tower and every building tier must carry its exact four-pose
@@ -137,6 +138,9 @@ jobs:
           # be incomplete. Logging it on every release gives the v4 burndown a
           # history attached to real builds rather than to memory.
           run_godot_clean --headless --path game --script res://tools/run_tool.gd -- audit
+          # Manual acceptance remains manual; this gates only honest evidence
+          # classification and catches malformed/unknown audit probes.
+          run_godot_clean --headless --path game res://tools/gdd_audit_check.tscn
           # Also reporting only, for the same reason: the difficulty curve is a
           # judgement call, and a red build is the wrong way to hold an opinion
           # about pacing. Printing it on every release gives the curve a history
@@ -150,7 +154,9 @@ jobs:
           run_godot_clean --headless --path game res://tools/treeline_check.tscn
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
+          run_godot_clean --headless --path game res://tools/menu_layout_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
+          run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn
           run_godot_clean --headless --path game res://tools/save_backup_check.tscn
           run_godot_clean --headless --path game res://tools/leaderboard_check.tscn
           run_godot_clean --headless --path game res://tools/milestone_cinematic_check.tscn
@@ -269,18 +275,11 @@ jobs:
           # dashboard, so a redeploy cannot lose them. Netlify reads `_headers`
           # from the root of whatever is deployed; other static hosts ignore it.
           #
-          # The wasm and the pck belong to the release they were built from and
-          # are tens of megabytes, so they cache for a year. index.html must not:
-          # it is what points at the others, and a cached copy of it is how a
-          # player ends up running last month's game against this month's data.
+          # Export filenames stay the same across releases. Cached files must
+          # revalidate together; immutable caching here can pair a new shell
+          # with last release's wasm or pck on an alternate host.
           {
-            echo '/index.wasm'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.pck'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.js'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.html'
+            echo '/*'
             echo '  Cache-Control: no-cache'
           } > build/web/_headers
           test -s build/web/_headers
@@ -355,6 +354,11 @@ jobs:
       # absent: a mirror is a convenience and a release must not depend on one.
       - name: Mirror to Dropbox
         id: dropbox
+        # Branch rehearsals must not replace the fixed production mirror.
+        if: startsWith(github.ref, 'refs/tags/v')
+        # GitHub assets remain the primary release. A mirror outage must not
+        # consume a version without publishing those already-built assets.
+        continue-on-error: true
         env:
           DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
           DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
@@ -449,6 +453,16 @@ jobs:
             printf '%s\n' 'beast-road-mirrors-->'
           } > release_body.md
           echo "Release body carries the mirror list."
+
+      - name: Discard incomplete optional mirror metadata
+        if: steps.dropbox.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          # Only this attempt's generated metadata is discarded. A partially
+          # written mirror must never be offered to players as a working URL.
+          rm -f mirrors.json
+          : > release_body.md
+          echo "::warning title=Dropbox mirror::The optional mirror failed. Publishing GitHub downloads without a mirror; inspect the Mirror to Dropbox step."
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

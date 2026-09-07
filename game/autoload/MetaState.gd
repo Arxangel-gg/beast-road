@@ -245,6 +245,7 @@ var total_enemies_killed: int = 0
 const MILESTONE_CINEMATICS_SEEN_KEY: String = "milestone_cinematics_seen"
 
 var settings: Dictionary = {
+	"chronicle_goal": "",
 	"master_volume": 1.0,
 	"music_volume": 0.8,
 	"sfx_volume": 1.0,
@@ -1040,12 +1041,16 @@ func load_save() -> void:
 	best_distance = float(stats.get("best_distance", 0.0))
 	total_enemies_killed = int(stats.get("total_enemies_killed", 0))
 
-	var loaded_settings: Dictionary = data.get("settings", {}) as Dictionary
+	_read_settings(data.get("settings", {}) as Dictionary)
+
+	save_loaded.emit()
+
+
+## Merge only supported preferences so old saves inherit newly added defaults.
+func _read_settings(loaded_settings: Dictionary) -> void:
 	for key: Variant in loaded_settings:
 		if settings.has(key):
 			settings[key] = loaded_settings[key]
-
-	save_loaded.emit()
 
 
 ## Migrates a known public schema without ever mutating its source file first.

@@ -725,6 +725,8 @@ func _refresh_colourblind_buttons() -> void:
 ## changes back after a few seconds cannot be dismissed by reflex the way a
 ## dialog can, and it cannot be clicked through by somebody who is not reading.
 func _build_data(column: VBoxContainer) -> void:
+	column.add_child(SupportDiagnosticsPanel.new())
+	column.add_child(_separator())
 	column.add_child(_label("Tutorial", 22))
 	var coach_note: Label = _label(
 		"Short prompts that explain the game as you meet each part of it. They "

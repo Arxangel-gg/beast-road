@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ChronicleText" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_text.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "chronicle_text"
+display_name = "Chronicle"
+heading = "Chronicle  ·  %d of %d deeds kept"
+note = "Pin one deed to follow on the road. Every deed can still be earned; pinning changes no rules or rewards. Tools widen future choices, never combat stats. Rewards settle when the run ends."
+close = "Close"
+pin = "Track"
+unpin = "Untrack"
+kept = "KEPT"
+reward = "+%d Tools"
+reward_one = "+%d Tool"
+tracking = "TRACKED"
+waiting = "Waiting for host progress"
+progress = "%d / %d"
+act_gate = "Reach Act %d"
+intact = "Condition intact"
+failed = "Try next run"
+eligible = "Eligible at run end"
+victory_required = "Victory required"
+hud = "GOAL · %s · %s"

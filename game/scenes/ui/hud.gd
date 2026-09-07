@@ -500,7 +500,7 @@ func show_end_report() -> void:
 		_lane_ring, _build_panel, _build_tooltip, _road_panel, _raid_panel,
 		_spell_bar, _bottom_row, _nav_bar, _boss_panel, _region_card,
 		_preparation_panel, _command_panel, _xp_band, _party_log, _chat_box,
-		_boss_track, _message, _state_label, _recovery_status,
+		_boss_track, _message, _state_label, _recovery_status, _wave_preview,
 	]:
 		if control != null:
 			control.visible = false
@@ -701,6 +701,15 @@ func _update_wave_preview() -> void:
 	if _wave_preview == null or battlefield == null or battlefield.wave_director == null:
 		return
 	_wave_preview.text = battlefield.wave_director.preview_text()
+	var goal: String = Chronicle.hud_text()
+	# Deed progress is secondary to a build decision or a region reveal. Yield
+	# this line while those panels occupy its space, especially on a phone.
+	for overlay: Control in [_build_panel, _road_panel, _region_card]:
+		if overlay != null and overlay.visible:
+			goal = ""
+			break
+	if not goal.is_empty():
+		_wave_preview.text += ("\n" if not _wave_preview.text.is_empty() else "") + goal
 
 
 ## An icon if the art exists, the word if it does not. The fallback protects the
@@ -3241,6 +3250,8 @@ func _on_act(act: int, terrain_id: String) -> void:
 func _on_scope_changed(scope: int) -> void:
 	var in_raid: bool = scope == int(GameDirector.Scope.RAID)
 	var on_field: bool = scope == int(GameDirector.Scope.BATTLEFIELD)
+	if _wave_preview != null:
+		_wave_preview.visible = on_field and GameDirector.run_active
 	if _xp_band != null:
 		_xp_band.visible = on_field or in_raid
 	_raid_panel.visible = in_raid

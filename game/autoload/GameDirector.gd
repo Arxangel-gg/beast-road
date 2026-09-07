@@ -105,13 +105,13 @@ func set_paused(paused: bool) -> void:
 
 ## The host's run ended, so this one does too.
 ##
-## The guest builds its own summary from its own `RunState` rather than being
-## sent one: the two mirror each other, and a summary that travelled would have
-## to carry a hero, a stash and a tier the guest already has better copies of.
+## Personal state stays local; shared deed measurements come from the preceding
+## final snapshot. Only a terminal fact replayed from the host may settle it.
 func _on_coop_run_ended(victory: bool) -> void:
-	if not Coop.is_guest():
+	var relay: CoopRelay = Coop.relay()
+	if not Coop.is_guest() or relay == null or not relay.is_replaying():
 		return
-	end_run(victory)
+	_settle_run(victory)
 
 
 ## Somebody skipped a cinematic, so both of us skip it.
@@ -299,8 +299,16 @@ func start_run(requested_seed: int = 0) -> void:
 
 
 ## Ends the run, pays out unlocks, and records statistics. `victory` is true
-## only when the Act 3 boss died.
+## only after completing the Final Ascent ending.
 func end_run(victory: bool) -> void:
+	# TEAM_WIPE is replayed before the final Chronicle snapshot. A guest must
+	# wait for RUN_ENDED, even while replaying a different authoritative fact.
+	if Coop.is_guest():
+		return
+	_settle_run(victory)
+
+
+func _settle_run(victory: bool) -> void:
 	if not run_active:
 		return
 	run_active = false
@@ -308,6 +316,7 @@ func end_run(victory: bool) -> void:
 	# summary is built: the guest has its own summary to build from its own
 	# RunState, and waiting would leave it standing in its town with no report.
 	if Coop.is_host() and Coop.partner_present():
+		Chronicle.publish_progress(victory, true)
 		EventBus.coop_run_ended.emit(victory)
 
 	var summary: Dictionary = {
@@ -353,7 +362,19 @@ func end_run(victory: bool) -> void:
 		MetaState.act3_cleared = true
 	# Chronicle rewards are one-time Tools. Bank them before ordinary run Tools
 	# are spent so both payouts pass through the same roster purchase path.
-	var completed: Array[String] = MetaState.complete_chronicle(summary)
+	# Puppet deaths/builds deliberately do not increment guest gameplay counters.
+	# A final reliable snapshot supplies the shared deed measurements instead.
+	var deed_summary: Dictionary = ChronicleGoals.reward_summary(summary,
+		Coop.is_guest(), RunState.chronicle_host_progress)
+	# A guest's recap must describe the same shared measurements that earned
+	# its deeds, not display zero puppet kills beside a slayer reward.
+	if Coop.is_guest() and not deed_summary.is_empty():
+		for key: String in ChronicleGoals.COUNTERS:
+			summary[key] = deed_summary[key]
+		summary["town_damage"] = deed_summary["town_damage"]
+		summary["act"] = deed_summary["act"]
+	var completed: Array[String] = MetaState.complete_chronicle(deed_summary) \
+		if not deed_summary.is_empty() else []
 	var chronicle_tools: int = 0
 	for id: String in completed:
 		var objective: ChronicleObjectiveData = ContentDB.chronicle_objective(id)
@@ -373,7 +394,7 @@ func end_run(victory: bool) -> void:
 		MetaState.award_sigil()
 
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
-	MetaState.total_enemies_killed += RunState.enemies_killed
+	MetaState.total_enemies_killed += int(summary["kills"])
 	_bank_treasury_cache()
 	MetaState.save_game()
 	# Payout values are captured after payout. Previously the debrief showed the

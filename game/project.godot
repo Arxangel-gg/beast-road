@@ -42,6 +42,7 @@ Coop="*res://autoload/Coop.gd"
 ScreenFit="*res://autoload/ScreenFit.gd"
 TouchInput="*res://autoload/TouchInput.gd"
 MilestoneCinematics="*res://autoload/MilestoneCinematics.gd"
+Chronicle="*res://scripts/systems/chronicle_goals.gd"
 
 [display]
 

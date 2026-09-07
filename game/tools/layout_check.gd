@@ -44,9 +44,23 @@ var _failures: PackedStringArray = []
 var _notes: PackedStringArray = []
 var _touch_layout: bool = false
 var _dump: bool = false
+var _before_settings: Dictionary = {}
+var _before_completed: Array[String] = []
 
 
 func _ready() -> void:
+	MetaState.hold_saves()
+	_before_settings = MetaState.settings.duplicate(true)
+	_before_completed = MetaState.completed_objectives.duplicate()
+	MetaState.completed_objectives.clear()
+	# Exercise the widest authored pinned line, not only an empty default HUD.
+	var widest: String = ""
+	for deed: ChronicleObjectiveData in ContentDB.chronicle_objectives_sorted():
+		var line: String = ChronicleGoals.COPY.hud % [deed.display_name,
+			ChronicleGoals.status_for(deed, {"act": 1, "victory": false})]
+		if line.length() > widest.length():
+			widest = line
+			MetaState.settings[ChronicleGoals.SETTING] = deed.id
 	var viewport_size := Vector2i.ZERO
 	for argument: String in OS.get_cmdline_user_args():
 		if argument == "--touch=on":
@@ -105,6 +119,7 @@ func _ready() -> void:
 	await _check_hover_stability()
 	await _check_town_panel(run)
 	_check_modal_layers(run)
+	await _check_goal_scope(run)
 
 	if _dump:
 		# Ground truth for a layout complaint. A screenshot says "cut off"; this
@@ -515,7 +530,52 @@ func _bail(code: int) -> void:
 		child.queue_free()
 	for _frame: int in 40:
 		await get_tree().process_frame
+	MetaState.settings = _before_settings
+	MetaState.completed_objectives = _before_completed
 	get_tree().quit(code)
+
+
+func _check_goal_scope(run: Node) -> void:
+	var hud: Node = run.get("hud")
+	var preview: Label = hud.get("_wave_preview") as Label
+	if preview == null:
+		_failures.append("Chronicle goal has no HUD label")
+		return
+	hud.call("_update_wave_preview")
+	if preview.text.contains(Chronicle.hud_text()):
+		_failures.append("Chronicle goal overlaps an open build sheet or region reveal")
+	for key: String in ["_build_panel", "_road_panel", "_region_card"]:
+		var overlay: Control = hud.get(key) as Control
+		overlay.visible = false
+	hud.call("_update_wave_preview")
+	for _frame: int in 6:
+		await get_tree().process_frame
+	if not preview.text.contains(Chronicle.hud_text()) or Chronicle.hud_text().is_empty():
+		_failures.append("selected Chronicle goal is absent during the run")
+	_check_overflow([preview])
+	_check_on_screen([preview])
+	_check_overlap(_visible_widgets())
+	if OS.get_cmdline_user_args().has("--capture") and DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		var destination: String = "user://chronicle_hud_%dx%d.png" % [
+			get_window().size.x, get_window().size.y]
+		get_viewport().get_texture().get_image().save_png(destination)
+		print("[layout] capture -> " + ProjectSettings.globalize_path(destination))
+	for scope: int in [GameDirector.Scope.TOWN, GameDirector.Scope.BEAST,
+			GameDirector.Scope.RAID]:
+		hud.call("_on_scope_changed", scope)
+		if preview.visible:
+			_failures.append("battlefield goal leaked into scope %d" % scope)
+	hud.call("_on_scope_changed", GameDirector.Scope.BATTLEFIELD)
+	if not preview.visible:
+		_failures.append("battlefield goal did not return with its scope")
+	hud.call("show_end_report")
+	if preview.visible:
+		_failures.append("battlefield goal covers the end report")
+	GameDirector.run_active = false
+	if not Chronicle.hud_text().is_empty():
+		_failures.append("Chronicle goal outlived its run")
+	_notes.append("Chronicle goal: active, scoped to battlefield, cleared at end")
 
 
 func _all(from: Node) -> Array[Node]:

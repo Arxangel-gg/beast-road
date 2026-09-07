@@ -35,10 +35,18 @@ humans.
 | `file:<res path>` | that file exists |
 | `method:<Class>.<name>` | that script declares `func name` |
 | `manual` | needs a human. Always reported separately, never counted as done. |
+| `manual` — explanation | the same manual requirement, with its explanation preserved in the report. An em dash separates the probe from a nonempty note. |
+
+Unknown or malformed probes remain visible as unfinished automatable rows; they
+are never silently treated as manual or passing. Count probes accept only `>=`
+and `==` with a nonnegative integer target. The audit is a progress report, not a
+release gate: a missing implementation does not itself make this command fail.
 
 A probe is a *smoke test*, not proof. `count:enemies >= 18` says eighteen files
 exist; it cannot say they are good enemies. Passing the audit is the floor, not
 the goal — §52's acceptance checklist and the kill questions are the ceiling.
+Even 100% of automatable probes passing does not complete the manual acceptance
+requirements or establish production readiness.
 
 ---
 
@@ -131,6 +139,6 @@ These are the ones that get skipped because nothing breaks when they are missing
 | Key rebinding | all actions | `class:KeyBindings` |
 | Colourblind support | not hue alone | `const:COLOURBLIND_MODES` |
 | Controller parity | every screen focusable | `manual` |
-| 60 FPS at 1920x1080 | on minimum spec | `manual` — spec now declared in `MINIMUM_SPEC.md`, but **derived rather than verified**: nothing has been run on a machine of that class |
+| 60 FPS at 1920x1080 | on minimum spec | `manual` — provisional targets in `MINIMUM_SPEC.md` remain **unverified**: nothing has been run on a machine of that class |
 | No placeholder or orphan assets | manifest clean | `gate:res://tools/run_tool.gd -- report` |
 | Night playable at minimum brightness | readability under load — `night_check.tscn` measures it, but needs a renderer so it cannot run on a headless runner | `manual` |

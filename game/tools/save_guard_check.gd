@@ -16,6 +16,11 @@ extends Node
 const MUTATING_GATES: Array[String] = [
 	"res://tools/balance_test.gd",
 	"res://tools/chronicle_check.gd",
+	"res://tools/chronicle_goal_check.gd",
+	"res://tools/crowd_check.gd",
+	"res://tools/layout_check.gd",
+	"res://tools/menu_layout_check.gd",
+	"res://tools/support_diagnostics_check.gd",
 	"res://tools/weapon_vfx_check.gd",
 	"res://tools/discipline_check.gd",
 ]

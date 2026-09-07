@@ -42,6 +42,8 @@ var milestone_cinematics: Dictionary = {}
 var chronicle_objectives: Dictionary = {}
 var run_challenges: Dictionary = {}
 var recovery_drops: Dictionary = {}
+## Localized interface copy uses the same ID-based authored content contract.
+var ui_texts: Dictionary = {}
 
 ## Ranged combat and what feeds it (owner decision, 2026-08-31). Blueprints are
 ## the knowledge; ammo and ranged weapons are what the knowledge makes.
@@ -86,6 +88,7 @@ func _ready() -> void:
 	chronicle_objectives = _load_dir("res://data/objectives")
 	run_challenges = _load_dir("res://data/challenges")
 	recovery_drops = _load_dir("res://data/recovery_drops")
+	ui_texts = _load_dir("res://data/ui")
 	ranged_weapons = _load_dir("res://data/ranged")
 	ammo_kinds = _load_dir("res://data/ammo")
 	blueprints = _load_dir("res://data/blueprints")

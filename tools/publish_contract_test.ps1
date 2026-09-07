@@ -75,4 +75,17 @@ if (ConvertTo-BeastRoadReleaseAsset -Response $emptyHead -Name 'empty.zip') {
     throw 'A zero-byte direct download must never be treated as a published asset.'
 }
 
-Write-Output '[publisher] PASS - desktop assets are authoritative; direct downloads recover stale API reads; web is non-blocking'
+# A green local publisher must cover the new gates that would otherwise fail
+# only after consuming a tag on GitHub. Read source; never open the manager UI.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+foreach ($source in @('tools/publish.ps1', '.github/workflows/guard.yml', '.github/workflows/release.yml')) {
+    $body = Get-Content -LiteralPath (Join-Path $repoRoot $source) -Raw
+    foreach ($gate in @('chronicle_goal_check', 'support_diagnostics_check', 'gdd_audit_check', 'menu_layout_check')) {
+        $count = [regex]::Matches($body, [regex]::Escape("res://tools/$gate.tscn")).Count
+        if ($count -ne 1) {
+            throw "$source must run $gate exactly once; found $count."
+        }
+    }
+}
+
+Write-Output '[publisher] PASS - desktop asset contract, stale API recovery, non-blocking web, and new gate parity'

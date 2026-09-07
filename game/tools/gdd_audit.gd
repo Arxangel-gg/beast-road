@@ -63,7 +63,10 @@ static func run(todo_only: bool = false) -> Dictionary:
 # --- Checklist ---------------------------------------------------------------
 
 static func _parse() -> Array:
-	var text: String = _read(CHECKLIST)
+	return _parse_text(_read(CHECKLIST))
+
+
+static func _parse_text(text: String) -> Array:
 	if text.is_empty():
 		return []
 
@@ -127,12 +130,26 @@ static func _build_index() -> Dictionary:
 
 
 static func _evaluate(row: Row, index: Dictionary) -> void:
-	var probe: String = row.probe
+	var probe: String = row.probe.strip_edges()
+	row.passed = false
+	row.manual = false
+	row.detail = ""
 
 	if probe == "manual":
 		row.manual = true
 		row.detail = "human judgement"
 		return
+	# Notes belong to the manual requirement, not to an invented probe name.
+	# Require the separator and a real note so typos such as "manualish" or a
+	# dangling "manual —" still appear as unknown probes in the report.
+	if probe.begins_with("manual"):
+		var annotation: String = probe.substr(6).strip_edges()
+		if annotation.begins_with("—"):
+			var reason: String = annotation.substr(1).strip_edges()
+			if not reason.is_empty():
+				row.manual = true
+				row.detail = "human judgement — %s" % reason
+				return
 
 	if probe.begins_with("count:"):
 		_probe_count(row, probe.substr(6))
@@ -214,6 +231,14 @@ static func _probe_count(row: Row, expression: String) -> void:
 	if parts.size() != 3:
 		row.detail = "malformed count probe"
 		return
+	# int("typo") becomes zero, and an unknown operator used to fall through
+	# to equality. Neither must accidentally turn a broken checklist green.
+	if parts[1] not in [">=", "=="] or not parts[2].is_valid_int():
+		row.detail = "malformed count probe"
+		return
+	if int(parts[2]) < 0:
+		row.detail = "malformed count probe"
+		return
 
 	var directory: String = DATA_DIR + parts[0].strip_edges() + "/"
 	var wanted: int = int(parts[2])
@@ -286,6 +311,7 @@ static func _report(rows: Array, todo_only: bool) -> Dictionary:
 		"",
 		"  A passing probe means the file or symbol exists. It does not mean the",
 		"  feature is good, tuned, or fun - see GDD SS52 and the kill questions.",
+		"  This percentage is not release readiness; manual acceptance remains separate.",
 	]
 
 	return {

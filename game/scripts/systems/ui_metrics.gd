@@ -105,7 +105,10 @@ static func prepare_scroll(scroll: ScrollContainer, touch_layout: bool = false) 
 		return
 	bar.custom_minimum_size.x = Balance.UI_TOUCH_SCROLLBAR_WIDTH \
 		if touch_layout else Balance.UI_SCROLLBAR_WIDTH
-	bar.step = Balance.UI_SCROLL_STEP
+	# Range.step quantizes programmatic focus scrolling too. A coarse step can
+	# round down ensure_control_visible(), clipping the last pixels of a button.
+	bar.step = 1.0
+	bar.custom_step = Balance.UI_SCROLL_STEP
 	bar.focus_mode = Control.FOCUS_ALL
 	bar.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	bar.tooltip_text = "Drag to scroll · Arrow keys and Page Up/Down also work"

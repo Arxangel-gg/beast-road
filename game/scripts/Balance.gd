@@ -2450,6 +2450,10 @@ const TOOLS_PER_BLUEPRINT: int = 3
 ## growing into a meaningless number on the debrief. [TUNE]
 const TOOLS_MAX: int = 40
 
+## Shared Chronicle progress, not simulation. Final progress is always sent
+## before the run-end fact regardless of this interval. [TUNE]
+const CHRONICLE_SYNC_INTERVAL: float = 1.0
+
 ## Legacy ranks, and the cap v4 SS36 fixes at four. "Four clears expose the
 ## complete bounded legacy" - the point of the cap is that the ceiling is
 ## reachable and then done, not a ladder without a top.

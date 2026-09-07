@@ -169,11 +169,14 @@ jobs:
           # can reach GitHub, which is everyone who would notice.
           check "launcher pipeline" --headless --path launcher res://tests/release_pipeline_test.tscn
           check "tool leak" --headless --path game --script res://tools/run_tool.gd -- tool-leak
+          # Test the audit's evidence classification, not subjective completion.
+          check "audit evidence" --headless --path game res://tools/gdd_audit_check.tscn
           check "http gzip"  --headless --path game --script res://tools/run_tool.gd -- http-gzip
           check "main menu" --headless --path game res://tools/menu_check.tscn
           # Account objectives are finite, one-time and horizontal. This also
           # proves their save payload without touching the runner's real slot.
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn
+          check "pinned Chronicle goals" --headless --path game res://tools/chronicle_goal_check.tscn
           check "save migration" --headless --path game res://tools/save_backup_check.tscn
           check "leaderboard" --headless --path game res://tools/leaderboard_check.tscn
           check "milestone cinematics" --headless --path game res://tools/milestone_cinematic_check.tscn
@@ -359,11 +362,12 @@ jobs:
           check "boot" --headless --path game res://tools/boot_check.tscn
           check "breather" --headless --path game res://tools/breather_check.tscn
           check "live settings" --headless --path game res://tools/live_settings_check.tscn
+          check "support diagnostics" --headless --path game res://tools/support_diagnostics_check.tscn
           check "structures" --headless --path game res://tools/structure_check.tscn
           check "torches" --headless --path game res://tools/torch_check.tscn
-          # Deliberately absent, and this is the record of why: crowd_check
-          # passes on Windows and goes red on this runner for reasons nobody
-          # has explained. It was bisected out rather than debugged. Run it by
+          # Deliberately absent: the old crowd_check passed on Windows but
+          # failed on Linux. The 2026-09-07 harness uses seeded, fixed-step,
+          # sorted fixtures; that revision still needs Linux verification. Run it by
           # hand when touching crowd separation; do not re-add it here until
           # somebody knows what the Linux failure actually is.
           #
@@ -528,19 +532,11 @@ jobs:
           # from the root of whatever is deployed; other static hosts ignore the
           # file harmlessly.
           #
-          # The wasm and the pck are content-addressed by the release they came
-          # from and are tens of megabytes, so they cache for a year. index.html
-          # is the one file that must not: it is what points at the others, and a
-          # cached copy of it is how a player ends up running last month's game
-          # against this month's data.
+          # These filenames are reused on every release. Revalidate stored
+          # files so an alternate host cannot serve an old wasm or pck beside
+          # the updated shell. Keep this identical to the release bundle.
           {
-            echo '/index.wasm'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.pck'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.js'
-            echo '  Cache-Control: public, max-age=31536000, immutable'
-            echo '/index.html'
+            echo '/*'
             echo '  Cache-Control: no-cache'
           } > build/web/_headers
           test -s build/web/_headers

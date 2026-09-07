@@ -87,6 +87,8 @@ var _host_heard: Array = []
 var _host_requests: Array = []
 var _guest_world: Array = []
 var _guest_refusals: Array = []
+var _guest_chronicle: Array = []
+var _host_chronicle: Array = []
 
 ## Signals seen, recorded from the callbacks rather than inferred afterwards.
 ## Members rather than captured locals: a GDScript lambda captures a local **by
@@ -110,6 +112,7 @@ func _ready() -> void:
 	await _test_partner_and_player_count()
 	await _test_facts_travel_host_to_guest()
 	await _test_a_guest_cannot_author_a_fact()
+	await _test_chronicle_facts_are_ordered_and_host_authored()
 	await _test_requests_travel_guest_to_host()
 	await _test_cosmetic_signals_stay_home()
 	await _test_world_facts_cross_the_wire()
@@ -136,7 +139,8 @@ func _ready() -> void:
 	if _failures == 0:
 		print("[coop] PASS - handshake, relayed facts, the authority guard, "
 			+ "requests and refusals, world facts, cosmetic isolation, "
-			+ "Oath and boss telegraphs, host drop, clean leave, dead address")
+			+ "Oath and boss telegraphs, Chronicle final ordering, "
+			+ "host drop, clean leave, dead address")
 	get_tree().quit(_failures)
 
 
@@ -366,6 +370,80 @@ func _test_a_guest_cannot_author_a_fact() -> void:
 	await _settle(func() -> bool: return _guest_heard.size() > before + 1)
 	_check(not guest_relay.violations().has("WAVE_CLEARED"),
 		"a fact the guest was *told* must not be counted as one it invented")
+
+
+## Deed rewards depend on the final measurements arriving before RUN_ENDED.
+## Isolated recordings keep this traffic out of the other tests' event counts.
+func _test_chronicle_facts_are_ordered_and_host_authored() -> void:
+	_guest_bus.coop_chronicle_progress.connect(func(summary: Dictionary) -> void:
+		_guest_chronicle.append(["progress", [summary.duplicate(true)]]))
+	_guest_bus.coop_run_ended.connect(func(victory: bool) -> void:
+		_guest_chronicle.append(["ended", [victory]]))
+	_host_bus.coop_chronicle_progress.connect(func(summary: Dictionary) -> void:
+		_host_chronicle.append(["progress", [summary.duplicate(true)]]))
+	var guest_relay: CoopRelay = _guest.call("relay")
+	var host_relay: CoopRelay = _host.call("relay")
+	var violations_before: int = guest_relay.violations().size()
+	var live: Dictionary = {
+		"seed": 193807, "act": 3, "victory": false, "final": false,
+		"kills": 999, "towers_built": 8, "tower_upgrades": 13,
+		"raids": 2, "chieftains": 1, "wounds": 0, "town_damage": 0.0,
+	}
+	_host_bus.coop_chronicle_progress.emit(live)
+	await _settle(func() -> bool: return _count(_guest_chronicle, "progress") >= 1)
+	_check(_heard(_guest_chronicle, "progress", [live]),
+		"Chronicle progress must cross host to guest with every measurement intact")
+	if not _guest_chronicle.is_empty():
+		var received: Dictionary = _guest_chronicle[0][1][0]
+		for key: String in live:
+			_check(received.has(key) and typeof(received.get(key)) == typeof(live[key]),
+				"Chronicle wire types must survive for %s" % key)
+
+	# The last hit is intentionally different from the periodic snapshot, and
+	# the summit is a fourth act value even though the campaign has three acts.
+	var final_summary: Dictionary = live.duplicate(true)
+	final_summary["act"] = Balance.FINAL_ASCENT_ACT
+	final_summary["victory"] = true
+	final_summary["final"] = true
+	final_summary["kills"] = 1000
+	final_summary["town_damage"] = 11.5
+	_host_bus.coop_chronicle_progress.emit(final_summary)
+	_host_bus.coop_run_ended.emit(true)
+	await _settle(func() -> bool: return _count(_guest_chronicle, "ended") >= 1)
+	_check(_guest_chronicle.size() == 3,
+		"the guest must hear two Chronicle snapshots and exactly one run end")
+	if _guest_chronicle.size() == 3:
+		_check(_guest_chronicle[1] == ["progress", [final_summary]]
+			and _guest_chronicle[2] == ["ended", [true]],
+			"the final Chronicle snapshot must arrive immediately before run-end payout")
+	_check(_count(_host_chronicle, "progress") == 2,
+		"Chronicle replication must not echo progress back to its author")
+	_check(guest_relay.violations().size() == violations_before,
+		"received Chronicle progress must not count as a guest authority violation")
+
+	# Bypass the sending guard to exercise the receiving boundary itself. A
+	# packet marked 'fact' is not proof of its sender's authority.
+	var forged: Dictionary = final_summary.duplicate(true)
+	forged["kills"] = 9001
+	var packet: PackedByteArray = var_to_bytes([
+		CoopRelay.TAG_FACT, int(CoopRelay.Fact.CHRONICLE_PROGRESS), [forged]])
+	var guest_before: int = _guest_chronicle.size()
+	var host_before: int = _host_chronicle.size()
+	guest_relay._on_packet(2, packet)
+	host_relay._on_packet(2, packet)
+	_check(_guest_chronicle.size() == guest_before,
+		"a guest must reject Chronicle facts received from a non-host peer")
+	_check(_host_chronicle.size() == host_before,
+		"a host must reject Chronicle facts received from a guest")
+	_check(not guest_relay.is_replaying() and not host_relay.is_replaying(),
+		"rejected Chronicle packets must not leave either relay in replay mode")
+
+	_guest_bus.coop_chronicle_progress.emit(forged)
+	await _settle_frames(8)
+	_check(guest_relay.violations().has("CHRONICLE_PROGRESS"),
+		"a guest originating Chronicle progress must be caught and named")
+	_check(_host_chronicle.size() == host_before,
+		"guest-authored Chronicle progress must never reach the host")
 
 
 ## A request travels the other way, and stays a request.
