@@ -1121,15 +1121,29 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       yet being verifiable. See `docs/LEADERBOARD.md`.
 - [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
       on the same tag as the Windows build, attached to the release as
-      `BeastRoad-web.zip`. Hosting is Netlify, not GitHub Pages: publishing to
-      Pages needs a Pages site, creating one is an admin operation a workflow
-      token cannot perform (three releases failed on it), and it needs a domain
-      to be worth having. The zip's `index.html` sits at its root, which is the
-      shape Netlify deploys directly, and `_headers` is written into the bundle
-      so caching travels with the build rather than living in a host dashboard.
-      The page is embedded in a Carrd iframe, which is also why the build stays
-      single-threaded — a cross-origin-isolated document will not embed in an
-      iframe that is not.
+      `BeastRoad-web.zip`. **Both hosts now work, and this paragraph used to say
+      one of them could not.**
+
+      **GitHub Pages is live**, and was verified from outside the workflow on
+      2026-09-07: `https://arxangel-gg.github.io/beast-road/` returns the real
+      Godot shell (`<title>Beast Road</title>`), and `index.js`, `index.wasm`
+      and `index.pck` all return 200. `index.worker.js` returns **404**, which is
+      the single-thread constraint below holding in production rather than only
+      in a gate. The `Publish the browser build` job succeeded on the v0.6.2 tag.
+
+      This row previously read "Hosting is Netlify, not GitHub Pages", on the
+      grounds that creating a Pages site is an admin operation a workflow token
+      cannot perform — which cost three releases and was true when written. The
+      site exists now, so the `pages` job in `release.yml` deploys to it on every
+      tag. (The REST `/pages` endpoint still 404s unauthenticated; that is the
+      endpoint needing admin, not the site being absent. Fetch the site itself.)
+
+      **Netlify remains supported and is still the better host for an iframe.**
+      The zip's `index.html` sits at its root, which is the shape Netlify deploys
+      directly, and `_headers` is written into the bundle so caching travels with
+      the build rather than living in a host dashboard. The page is embedded in a
+      Carrd iframe, which is also why the build stays single-threaded — a
+      cross-origin-isolated document will not embed in an iframe that is not.
 
       Two things made this cheap: the project already renders through
       `gl_compatibility`, which is the only path to WebGL2, and it owns no
@@ -1643,6 +1657,20 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Windowed, so it cannot run on CI. By hand, like the save-backup check:
 
           godot --path game res://tools/night_check.tscn
+
+      **Run on developer hardware 2026-09-07 — PASS, with margin.** RTX 3070 Ti,
+      OpenGL 3.3 compatibility, 2560×1440 frame against a 1920×1080 visible
+      rect:
+
+          lit road 0.130 vs unlit ground 0.023   separation 0.107, need 0.025
+          enemy    0.050 vs the ring around it 0.010   separation 0.040, need 0.005
+
+      Both sit well clear of their floors — 4.3× and 8× — rather than scraping
+      them, which is the result this row wanted and had never actually recorded
+      against a real renderer. This is the manual acceptance evidence for
+      `V4_CONFORMANCE.md`'s "Night playable at minimum brightness"; it stays a
+      `manual` row there because no runner can reproduce it, not because it is
+      unanswered.
 
 ### VFX
 
