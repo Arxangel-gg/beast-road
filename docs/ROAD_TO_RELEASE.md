@@ -85,6 +85,19 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 - [x] **The Actions rehearsal is done and Guard is green on Linux** — PR #1,
   run `34187635225`, both jobs (`Does it load`, `Does it export`) successful.
   This is the first green Guard since v0.6.2.
+- [x] **v0.7.0 published and smoke-tested as a player would get it** — the
+  release `BeastRoad-windows.zip` was downloaded, extracted and run: it boots to
+  a fully rendered main menu with **zero errors or warnings** in its log, and
+  writes its profile and shader cache correctly. All six assets serve real bytes
+  (HTTP 206), `releases/latest` resolves unauthenticated, and the Dropbox mirror
+  serves the game zip. Nobody had ever run a published artifact before; CI only
+  ever proved it *exported*.
+- [ ] **The browser build hangs on the splash and has done for at least two
+  releases.** Found by loading it, which had never been done — the checks behind
+  the old "web build is live" claim were `curl` status codes, and a hung game
+  returns 200 for every file. Full evidence in §2b's Web build row. Its
+  reachability bug (Pages serving http, which Godot refuses as an insecure
+  context) is separately fixed.
 - [~] **The `menu_layout_check` segfault did not reproduce on that run** — it
   printed `[menu-layout] PASS` and the job went on. **This is not proof it is
   fixed.** Commit `69eb59f` rewrote large parts of that gate (rotation,
@@ -1200,17 +1213,60 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Production remains blocked by the Supabase project being service-restricted
       for storage quota and by the table/RLS deployment and live round-trip not
       yet being verifiable. See `docs/LEADERBOARD.md`.
-- [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
-      on the same tag as the Windows build, attached to the release as
-      `BeastRoad-web.zip`. **Both hosts now work, and this paragraph used to say
-      one of them could not.**
+- [~] **Web build** — exported, hosted, reachable, and **it does not run.**
+      §54 amended to bring it into scope; exported from a `Web` preset on the
+      same tag as the Windows build and attached as `BeastRoad-web.zip`.
 
-      **GitHub Pages is live**, and was verified from outside the workflow on
-      2026-09-07: `https://arxangel-gg.github.io/beast-road/` returns the real
-      Godot shell (`<title>Beast Road</title>`), and `index.js`, `index.wasm`
-      and `index.pck` all return 200. `index.worker.js` returns **404**, which is
-      the single-thread constraint below holding in production rather than only
-      in a gate. The `Publish the browser build` job succeeded on the v0.6.2 tag.
+      > ### The browser build hangs on the splash — found 2026-09-08
+      >
+      > Loaded in a browser for the first time. It boots, renders the splash
+      > scene, completes its 0.4s fade — and never reaches the menu.
+      >
+      >     all assets      index.js / index.wasm / index.pck -> 200, nothing pending
+      >     canvas          1280x720, isSecureContext true, WebGL2 initialised
+      >     frame           8 samples over 35s, byte-identical
+      >     splash duration 1.25s, and input also skips it - clicking does nothing
+      >     v0.6.2          identically broken
+      >
+      > **Not a v0.7.0 regression.** v0.6.2's `BeastRoad-web.zip` behaves the
+      > same, served locally, so the web platform has been shipping broken for
+      > at least two releases. Reproduces on the live host and on `localhost`.
+      >
+      > **Root cause not established.** The JS thread stays responsive, so
+      > nothing is spinning in wasm — the main loop simply stops being driven,
+      > which is what an uncaught wasm exception looks like from outside. One
+      > run on the live host logged `RangeError: Maximum call stack size
+      > exceeded` from `wasm-function[3984]`; local runs threw nothing catchable.
+      >
+      > The leading hypothesis, unconfirmed: `splash.gd` waits 1.25s then calls
+      > `GameDirector.goto_menu()`, which is `Coop.leave()` plus a deferred
+      > `change_scene_to_file(main_menu.tscn)`. Loading the menu pulls in the
+      > Codex, Chronicle, stash and settings panels at once, and a deep
+      > resource-dependency load is the kind of thing that blows a wasm stack.
+      > `menu_check` loads the same scene headless on Linux and passes, so
+      > whatever this is, it is web-only.
+      >
+      > **Confirming or fixing it needs web-export round trips through CI** —
+      > export templates are deliberately not on the developer machine, so the
+      > edit/test loop is a tag or a workflow run, not a local build.
+
+      **Reachability was a separate bug, and it is fixed.** Pages had a valid,
+      approved certificate with `https_enforced: false`, so `http://` visitors
+      got Godot's "Secure Context" error instead of the game — and
+      `https://arxangel-gg.github.io/beast-road/` *redirected them to http*.
+      Enabled 2026-09-08; both now land on `https://beastroad.arxangel.gg/`.
+
+      **How this row was wrong, because the method matters.** It previously read
+      "verified from outside the workflow: index.js, index.wasm and index.pck all
+      return 200". Those checks were done with `curl`, which does not enforce a
+      secure context and does not execute anything — so it happily fetched files
+      from a page no browser could run, and would have reported the same 200s
+      for a build that hangs. **HTTP status codes are not evidence that a game
+      runs.** `index.worker.js` returning 404 is still real, and still the
+      single-thread constraint holding in production.
+
+      The `Publish the browser build` job succeeds on every tag, and that is
+      also not evidence: it deploys the artifact without ever loading it.
 
       This row previously read "Hosting is Netlify, not GitHub Pages", on the
       grounds that creating a Pages site is an admin operation a workflow token
