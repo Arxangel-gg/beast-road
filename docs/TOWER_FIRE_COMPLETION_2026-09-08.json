@@ -1,0 +1,148 @@
+{
+  "purpose": "Remaining tower firing and activation poses; PixelLab animate_image, original base pinned at both endpoints, interior frames 1-3.",
+  "source_revision": "22d40d30df45088a584cf61ed599d67f89765e89",
+  "jobs": [
+    {
+      "id": "tower_ashen_censer",
+      "job_id": "721c7e1c-72a1-4228-9d1f-6c2f31ad684c",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The hanging ember bowl swings a little on its chain as its flame flares once, then the bowl settles. Only bowl, flame and chain move. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_bastion",
+      "job_id": "4de6806f-4008-4f18-9b6c-3cd29040bac6",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The metal reinforcement bands briefly glow amber in one protective pulse, then cool. All stones and bands remain perfectly fixed. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_blizzard",
+      "job_id": "d25d6b28-8505-48de-a8fe-5ad8a80ab6cd",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The small icy crown spins its inner blue light into a brief concentrated white-blue discharge, then fades. Only the magic at the crown moves. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_bulwark",
+      "job_id": "c2afe51b-2d55-4948-9f48-b06fad737800",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. A short amber protective glow travels around the inside rim, then disappears. Keep the hollow center hollow and all stones perfectly stationary. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_cinder_lance",
+      "job_id": "74e7cc84-381c-45e5-b41a-9ed6fa9d3aa8",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The orange energy in the recessed crown gathers into one small bright lance of light just above the mouth, then collapses back inside. No detached projectile. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_conflagration",
+      "job_id": "dad0ea2a-fc3f-4ff8-b47c-4f470ebf484c",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The contained lava pool brightens from orange to yellow-white, ripples once, then cools back to orange. Only liquid inside the rim moves. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_deep_freeze",
+      "job_id": "da43879d-159b-47a2-b269-ca05f0b97c0b",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. A single white-blue glint travels from the crown down the existing ice facets then fades. Preserve every icicle and the exact frozen column shape. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_ember_spire",
+      "job_id": "e581d4c1-9ab9-4fc4-97a8-39698ade6131",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The existing crown flame briefly contracts, flares brightly once, then settles to its original size. Keep the masonry absolutely motionless. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_firestorm",
+      "job_id": "a0e19487-1334-4cd2-b69e-84649ddc015e",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The existing crown flame twists once into a compact fiery swirl, flashes bright orange, then relaxes. The tower remains absolutely motionless. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_gale_turret",
+      "job_id": "911c9867-f3d0-4d95-98f2-8e3dd16c21ef",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The concentric mechanism on the roof makes one short spin and bright violet pulse, then settles. No rotation of the building itself. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    }
+    ,
+    {
+      "id": "tower_glacier",
+      "job_id": "061f8ca1-a404-494e-a102-7d18c8aaac77",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. A white-blue glint travels across the frosted crenellations in one short cold discharge, then fades. All bricks and ice edges remain stationary. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_hoarfrost_bell",
+      "job_id": "f98feee9-bbb0-446b-adaf-39e4f1682075",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The bronze bell rocks gently once on its support as a pale blue highlight flashes across it, then returns to rest. All masonry and icicles remain stationary. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_magma",
+      "job_id": "55786dfb-5ba8-4b33-8c7c-c3c3ac43146f",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The orange lava pool ripples and glows yellow at its center while the existing lava seams brighten once, then cool. No change to rock geometry. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_quake",
+      "job_id": "c5c86015-e5aa-463e-81ee-ef672316970c",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The recessed purple crown rings make one tight amber-purple pulse then settle. Keep all masonry still and do not draw ground shockwaves. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_rime_lance",
+      "job_id": "1dce56b3-30bb-4520-b3ab-15710ea3e810",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The tall fixed icy needle at the crown briefly glows white-blue from its base to its point, then cools. Preserve its exact straight shape. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_shard_thrower",
+      "job_id": "9b4d5bfc-79cb-4401-adc2-cf1c22cb04a1",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The central crystal makes one short vertical recoil inside its collar as its tip glows amber, then returns to rest. No flying shards. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    }
+    ,
+    {
+      "id": "tower_steam_burst",
+      "job_id": "c1aaeca0-e285-4bd1-853b-fd733774df09",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The existing small steam wisp puffs briefly from the contained glowing mouth then dissipates. The pool ripples once. Keep all masonry stationary. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_stonewatch",
+      "job_id": "f346acca-79e6-4a46-8734-655a562dffd5",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The central stone orb sinks a few pixels into its crown socket, rises back to rest and gives one restrained amber glint. No detached projectile. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_stormvane",
+      "job_id": "696f2e0f-82c8-4eb1-b733-47418ca2ee19",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The existing spoked wheel makes one small rotation and recoils to rest while its upper fork glints yellow briefly. The supporting lattice stays fixed. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_tempest",
+      "job_id": "3b3fbd7c-cc88-41e4-a7c8-cd6d3669b38b",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing or activation and recovery cycle. The existing violet electric filaments tighten and brighten white briefly around the crown, then fade back. No arcs outside the original silhouette. Preserve the original architecture, pixel palette, perspective, canvas placement and ground anchor. No added objects, no ground effects, no camera motion, no flying projectiles, no expanding rings outside the silhouette. End in the exact original resting pose."
+    }
+  ]
+}

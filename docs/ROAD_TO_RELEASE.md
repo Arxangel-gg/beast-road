@@ -123,6 +123,49 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 
 The dated sections below retain earlier release history.
 
+## Every tower fires — 2026-09-08
+
+- **All 26 towers have authored firing/recovery poses**, played on the existing
+  host/guest firing event. Shots keep their existing timing and damage; the
+  cosmetic duration is `TOWER_FIRE_ANIMATION_SECONDS`, editable through Update
+  Manager. Runtime and art assertions extend the existing structure gates rather
+  than adding a parallel validation list.
+- **The gate demanded all 26 before the art existed.** `structure_art_check`
+  gained a `_check_firing_package` that fails any tower without three poses, and
+  four towers were shipped against it — so the tree arrived failing on 22
+  towers, which is what would have reddened `main`. The other 20 packages had
+  already been *generated*; their ledger was written and the frames were never
+  downloaded. Two towers, `tide_caller` and `zephyr_needle`, were absent from
+  every ledger and had to be generated from scratch.
+- **Nine of the 26 packages were rejected on review and regenerated**, which is
+  the part worth keeping in mind next time. What the eye caught:
+  `shard_thrower` replaced its crystal with a white starburst, `glacier` changed
+  the shape of its crenellations between frames, `tempest` bleached its upper
+  third, `conflagration` ran yellow streaks down the walls, and `gale_turret`
+  threw a violet ring well outside its silhouette. What only measurement caught:
+  `bastion` added ground debris that put a frame 5px below its anchor,
+  `deep_freeze` drew a side halo that moved its centre 4px, and a second
+  `conflagration` attempt rendered **garbled text** below the base, 11px outside
+  the anchor. `deep_freeze` took three attempts.
+- **The reviewing gate cannot see most of that.** `structure_art_check` checks
+  size, ground anchor and the placeholder marker; every one of the aesthetic
+  faults above would have passed it. CLAUDE.md §7 is the rule here — a passing
+  probe says nothing about whether the art is good — so the contact sheet is
+  not optional and neither is the anchor/centre sweep that caught the other
+  three.
+- Provenance is three ledgers, one per pass: `TOWER_FIRE_BATCH_2026-09-08.json`,
+  `TOWER_FIRE_COMPLETION_2026-09-08.json` and
+  `TOWER_FIRE_REMEDIAL_2026-09-08.json`, the last recording *why* each package
+  was regenerated.
+- `tools/stage_animation_batch.py` no longer treats an existing staged frame as
+  a cache hit. It compares the job id written beside the file, because
+  regenerating a rejected package left the old frames at exactly the paths the
+  replacement wanted — so the first remedial contact sheet was the rejected art
+  again, and looked like the model ignoring the prompt.
+- **The recorded 1080p frame-rate failure is not resolved by this patch**, and
+  78 more textures do not help it. Firing poses are texture swaps on existing
+  sprites: no new nodes, materials, shaders, lights or particles.
+
 ## 0b. Where this stood, 2026-08-25
 
 Published as **v0.4.73** from `main`. 33 of 33 local gates green at the tag,

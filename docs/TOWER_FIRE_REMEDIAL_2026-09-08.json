@@ -1,0 +1,63 @@
+{
+  "purpose": "The last seven tower firing packages. Two were never generated; five replace frames rejected at contact-sheet review. Base pinned at both endpoints, ship interior frames 1-3.",
+  "source_revision": "22d40d30df45088a584cf61ed599d67f89765e89",
+  "review_note": "TOWER_FIRE_COMPLETION_2026-09-08.json generated 20 packages; 15 were installed as generated. The five below were rejected on review and regenerated with prompts naming the specific fault, which is why their wording differs from the batch style.",
+  "jobs": [
+    {
+      "id": "tower_tide_caller",
+      "job_id": "8b8ab695-fe54-4743-ab42-9103e38ff4f4",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "never generated - absent from both earlier ledgers",
+      "prompt": "The cyan water in the basin at the crown swells and swirls once with a white-blue glint, then settles back to its original level. Only the water inside the basin moves. The stone column, its rim and its base stay perfectly motionless. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. No splash outside the basin, no added objects, no ground effects, no camera movement. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_zephyr_needle",
+      "job_id": "8cf2a211-42d8-4e4a-9471-7eeb6eceddd7",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "never generated - absent from both earlier ledgers",
+      "prompt": "The violet needle of light at the spire tightens and flares brighter once, then relaxes to its original size. Only the violet light moves. The dark stone column and its stepped base stay perfectly motionless. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. No arcs beyond the original silhouette, no added objects, no ground effects, no camera movement. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_shard_thrower",
+      "job_id": "10b9aa1e-d1b7-4c9c-9d61-768339950b26",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "rejected: frame 1 replaced the crystal with a large white starburst, the same failure the pilot batch rejected",
+      "prompt": "The central crystal dips a few pixels down into its collar and rises back to rest, with one small amber glint at its very tip. CRITICAL: no flash, no burst, no starburst, no bloom, no white shape covering the crystal. The crystal must stay clearly visible and keep its exact shape and colour in every frame. No flying shards, no added objects, no ground effects. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_glacier",
+      "job_id": "0e4a37d2-8857-49bb-8022-6a89e4d2115d",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "rejected: crenellation and snow geometry changed shape between frames",
+      "prompt": "A pale white-blue glint travels once across the frosted top, then fades. CRITICAL: every brick, crenellation and snow edge keeps its exact shape and position in every frame - only the brightness of the light moves across them. Do not add, remove, reshape or spike any part of the snow or stonework. No added objects, no ground effects, no camera movement. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_tempest",
+      "job_id": "5b65ca1c-cc06-4b33-a993-d08b80248da3",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "rejected: the upper third of the tower washed out to white, losing the stonework",
+      "prompt": "The thin violet electric filaments around the crown tighten and brighten briefly, then fade back. CRITICAL: the stonework must stay fully visible and keep its own grey and violet colours in every frame - do not wash, bleach or white out the tower or any part of it. Only the thin filaments change brightness. No arcs outside the original silhouette, no added objects, no ground effects. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_conflagration",
+      "job_id": "14178387-e8ef-48ac-9f4c-4fc2d8d45313",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "rejected: yellow streaks ran down the outside walls, which the prompt had forbidden",
+      "prompt": "The contained lava pool brightens from orange toward yellow, ripples once, then cools back. CRITICAL: nothing may run, drip or streak down the outside walls - the masonry below the rim keeps its exact original colours and stays completely unchanged. All light and liquid stays inside the rim. No added objects, no ground effects, no camera movement. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. End in the exact original resting pose."
+    },
+    {
+      "id": "tower_gale_turret",
+      "job_id": "9da9aee1-48f0-48ed-9796-6a2fcdf6bd87",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "reason": "rejected: a violet ring extended well outside the silhouette, which the prompt had forbidden",
+      "prompt": "The concentric mechanism on the roof pulses violet once and settles. CRITICAL: the glow must stay strictly within the roof mechanism's own width - no halo, ring, disc or aura may extend past the outline of the building at any point. Nothing is drawn outside the original silhouette. The building itself does not rotate and the masonry stays motionless. No added objects, no ground effects, no camera movement. Preserve the exact architecture, silhouette, pixel palette, camera angle, canvas placement and ground anchor. End in the exact original resting pose."
+    }
+  ]
+}

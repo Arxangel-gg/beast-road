@@ -45,7 +45,23 @@ def main() -> None:
         pending = False
         for index in range(1, count + 1):
             target = stage / f"{asset}_{sequence}_{index:02}.png"
-            if not target.exists():
+            # **A staged frame is only a cache hit if it came from *this* job.**
+            #
+            # This used to be a bare `if not target.exists()`, which is right
+            # for resuming an interrupted download and silently wrong the moment
+            # a package is regenerated: the rejected frames sit at exactly the
+            # paths the replacement wants, so the new job is never fetched and
+            # the contact sheet shows the art you just rejected. That happened
+            # on 2026-09-08 to five tower packages, and the sheet was identical
+            # enough to the first one to look like the model had ignored the
+            # prompt rather than like nothing had downloaded.
+            #
+            # The job id is written beside each frame and compared. A stale
+            # sidecar, or none at all, re-fetches.
+            stamp = target.with_suffix(".job")
+            fresh = (target.exists() and stamp.exists()
+                     and stamp.read_text(encoding="utf-8").strip() == job["job_id"])
+            if not fresh:
                 url = f'https://api.pixellab.ai/mcp/images/{job["job_id"]}/download?index={index}'
                 try:
                     with urlopen(url, timeout=60) as response:
@@ -56,6 +72,7 @@ def main() -> None:
                     print(f"Still processing: {asset}")
                     pending = True
                     break
+                stamp.write_text(job["job_id"], encoding="utf-8")
             with Image.open(target) as source:
                 frame = source.convert("RGBA")
             if frame.size != base.size:

@@ -2111,6 +2111,8 @@ const FOLIAGE_WIND_SPEED_GAIN: float = 0.85
 const FOLIAGE_WIND_BIAS_DEGREES: float = 7.0
 
 const TOWER_FIRE_KICK_SECONDS: float = 0.17
+## Authored discharge/recovery duration; cosmetic only, never delays a shot. [TUNE]
+const TOWER_FIRE_ANIMATION_SECONDS: float = 0.24
 const TOWER_FIRE_KICK_SCALE: float = 0.08
 const TOWER_FIRE_KICK_PUSH: float = 5.0
 

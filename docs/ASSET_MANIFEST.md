@@ -425,6 +425,48 @@ Files: `tower_tempest_idle_01.png` … `tower_tempest_idle_03.png`
 Files: `tower_tide_caller_idle_01.png` … `tower_tide_caller_idle_03.png`
 Files: `tower_zephyr_needle_idle_01.png` … `tower_zephyr_needle_idle_03.png`
 
+### 5.4c Tower firing frames — `res://art/towers/`
+
+All 192×192, type T, placeholder colour `#6E667A`.
+
+**Every tower fires.** Three authored discharge/recovery poses each,
+played once on the existing host/guest firing event before the ordinary
+idle resumes. `structure_art_check` requires all three for every tower, so
+this section and `data/towers/` cannot drift apart without a red gate.
+
+Provenance is split across three ledgers because the set was built in three
+passes: `TOWER_FIRE_BATCH_2026-09-08.json` (the four-tower pilot),
+`TOWER_FIRE_COMPLETION_2026-09-08.json` (the next twenty) and
+`TOWER_FIRE_REMEDIAL_2026-09-08.json` (two never generated, plus the
+packages regenerated after contact-sheet review rejected them).
+
+Files: `tower_pyre_cannon_attack_01.png` … `tower_pyre_cannon_attack_03.png`
+Files: `tower_arc_coil_attack_01.png` … `tower_arc_coil_attack_03.png`
+Files: `tower_glacial_mortar_attack_01.png` … `tower_glacial_mortar_attack_03.png`
+Files: `tower_grit_sling_attack_01.png` … `tower_grit_sling_attack_03.png`
+Files: `tower_ashen_censer_attack_01.png` … `tower_ashen_censer_attack_03.png`
+Files: `tower_bastion_attack_01.png` … `tower_bastion_attack_03.png`
+Files: `tower_blizzard_attack_01.png` … `tower_blizzard_attack_03.png`
+Files: `tower_bulwark_attack_01.png` … `tower_bulwark_attack_03.png`
+Files: `tower_cinder_lance_attack_01.png` … `tower_cinder_lance_attack_03.png`
+Files: `tower_conflagration_attack_01.png` … `tower_conflagration_attack_03.png`
+Files: `tower_deep_freeze_attack_01.png` … `tower_deep_freeze_attack_03.png`
+Files: `tower_ember_spire_attack_01.png` … `tower_ember_spire_attack_03.png`
+Files: `tower_firestorm_attack_01.png` … `tower_firestorm_attack_03.png`
+Files: `tower_gale_turret_attack_01.png` … `tower_gale_turret_attack_03.png`
+Files: `tower_glacier_attack_01.png` … `tower_glacier_attack_03.png`
+Files: `tower_hoarfrost_bell_attack_01.png` … `tower_hoarfrost_bell_attack_03.png`
+Files: `tower_magma_attack_01.png` … `tower_magma_attack_03.png`
+Files: `tower_quake_attack_01.png` … `tower_quake_attack_03.png`
+Files: `tower_rime_lance_attack_01.png` … `tower_rime_lance_attack_03.png`
+Files: `tower_shard_thrower_attack_01.png` … `tower_shard_thrower_attack_03.png`
+Files: `tower_steam_burst_attack_01.png` … `tower_steam_burst_attack_03.png`
+Files: `tower_stonewatch_attack_01.png` … `tower_stonewatch_attack_03.png`
+Files: `tower_stormvane_attack_01.png` … `tower_stormvane_attack_03.png`
+Files: `tower_tempest_attack_01.png` … `tower_tempest_attack_03.png`
+Files: `tower_tide_caller_attack_01.png` … `tower_tide_caller_attack_03.png`
+Files: `tower_zephyr_needle_attack_01.png` … `tower_zephyr_needle_attack_03.png`
+
 ### 5.5 City — `res://art/city/`
 
 | File | Size | Type | Placeholder colour |

@@ -1,0 +1,34 @@
+{
+  "purpose": "Reviewed tower firing pilot. Existing idle and recoil remain the fallback for other towers.",
+  "source_revision": "22d40d30df45088a584cf61ed599d67f89765e89",
+  "jobs": [
+    {
+      "id": "tower_pyre_cannon",
+      "job_id": "cda6d2f1-0cbb-46c0-9b91-126ffc1131d7",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short firing and recovery cycle: the recessed central cannon muzzle flashes hot orange once, the upper barrel mechanism kicks back slightly then settles, and the round furnace port briefly brightens then cools. Keep the entire stone plinth and masonry perfectly fixed; preserve exact architecture, silhouette, pixel palette, original camera angle and centered ground anchor. No projectile leaving the sprite, no blast covering the tower, no new objects, no camera movement, no smoke obscuring structure. End in the original resting pose."
+    },
+    {
+      "id": "tower_arc_coil",
+      "job_id": "5343350d-83cb-4ad1-ac3f-24da35dac7d5",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing and recovery cycle. Its existing violet electrical filaments briefly gather and flare along the coils in a single discharge, then fade to their original intensity. No arcs beyond the original silhouette. Preserve exact structure geometry, proportions, palette, pixel art style, camera angle and canvas placement. No rotating building, no new objects, no camera movement, no ground effects. End at the original resting pose."
+    },
+    {
+      "id": "tower_glacial_mortar",
+      "job_id": "4405e57e-6768-4734-942f-2759687ace17",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing and recovery cycle. The cyan water inside its recessed mortar mouth swells and glints white-blue once, then settles to the original level. No ice spikes or large splashes outside the mouth. Preserve exact structure geometry, proportions, palette, pixel art style, camera angle and canvas placement. No rotating building, no new objects, no camera movement, no ground effects. End at the original resting pose."
+    },
+    {
+      "id": "tower_grit_sling",
+      "job_id": "a9af9e31-e11b-467f-bf58-a868fe180572",
+      "sequence": "attack",
+      "frames_to_ship": 3,
+      "prompt": "A short single firing and recovery cycle. The hanging sling basket swings forward in a short release then swings back to rest, with slight cord flex. The two support posts and stone base stay motionless. No detached rock. Preserve exact structure geometry, proportions, palette, pixel art style, camera angle and canvas placement. No rotating building, no new objects, no camera movement, no ground effects. End at the original resting pose."
+    }
+  ]
+}

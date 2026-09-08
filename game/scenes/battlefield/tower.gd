@@ -61,6 +61,8 @@ var _impact_left: float = 0.0
 var _idle_phase: float = 0.0
 var _idle_frame_clock: float = 0.0
 var _idle_frames: Array[Texture2D] = []
+var _attack_frames: Array[Texture2D] = []
+var _attack_left: float = 0.0
 var _level_scale: Vector2 = Vector2.ONE
 
 ## How much of the firing kick is left: 1 at the shot, 0 at rest.
@@ -105,6 +107,7 @@ func _ready() -> void:
 		sprite.texture = load(path)
 	_impact_material = ActorPolishScript.attach(sprite)
 	_idle_frames = GameData.load_idle_frames(path)
+	_attack_frames = GameData.load_attack_frames(path)
 	_draw_range_ring()
 	refresh_modifiers()
 	_light = LightKit.add_light(self, TowerData.element_colour(data.element),
@@ -467,6 +470,9 @@ func _nearest_enemy(at: Vector2) -> Enemy:
 ## that chose the shot would read as broken on the other one.
 func kick(toward: Vector2) -> void:
 	_fire_kick = 1.0
+	_attack_left = Balance.TOWER_FIRE_ANIMATION_SECONDS
+	if not _attack_frames.is_empty():
+		sprite.texture = _attack_frames[0]
 	var away: Vector2 = origin() - toward
 	_fire_recoil = away.normalized() if away.length() > 0.001 else Vector2.UP
 
@@ -680,14 +686,27 @@ func _tick_step_wobble(delta: float) -> void:
 	_step_wobble = move_toward(_step_wobble, 0.0, 12.0 * delta)
 	var breathe: float = 0.0
 	var sway: float = 0.0
+	var pose: Texture2D = sprite.texture
 	if not _idle_frames.is_empty():
 		_idle_frame_clock += delta * Balance.STRUCTURE_IDLE_FRAME_RATE
 		var frame: int = int(floor(_idle_frame_clock)) % _idle_frames.size()
-		sprite.texture = _idle_frames[frame]
+		pose = _idle_frames[frame]
 	else:
 		_idle_phase += delta * Balance.STRUCTURE_IDLE_RATE * TAU
 		breathe = sin(_idle_phase)
 		sway = sin(_idle_phase * 0.63)
+	# Authored discharge overrides the idle texture, not the shared transform.
+	# The same kick starts it on host and guest; no gameplay timing is delayed.
+	_attack_left = maxf(_attack_left - delta, 0.0)
+	if _attack_left > 0.0 and not _attack_frames.is_empty():
+		var progress: float = 1.0 - _attack_left / Balance.TOWER_FIRE_ANIMATION_SECONDS
+		var attack_frame: int = mini(int(progress * _attack_frames.size()),
+			_attack_frames.size() - 1)
+		pose = _attack_frames[attack_frame]
+	# Choose once; changing to idle and immediately back to discharge every
+	# frame would needlessly invalidate the sprite's render state twice.
+	if sprite.texture != pose:
+		sprite.texture = pose
 	# Squared, so the kick is sharp at the shot and settles rather than sliding
 	# back at a constant rate. A linear recoil reads as the tower being dragged.
 	_fire_kick = maxf(_fire_kick - delta / Balance.TOWER_FIRE_KICK_SECONDS, 0.0)

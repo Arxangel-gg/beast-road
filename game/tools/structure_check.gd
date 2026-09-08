@@ -41,6 +41,7 @@ func _ready() -> void:
 			and health.current_hp > before,
 		"Preparation repair did not restore tower durability")
 
+	await _check_firing_poses()
 	var burrower: Enemy = _run.battlefield.spawn_enemy(ContentDB.enemy("burrower"), 0, 1.0)
 	await get_tree().process_frame
 	_check(burrower._pick_target() == tower,
@@ -111,7 +112,7 @@ func _ready() -> void:
 
 	if _failures.is_empty():
 		print("[structure] PASS — durability, repair, siege targeting, damage fires, "
-			+ "step impulse, firing recoil and a city that rocks and shudders")
+			+ "step impulse, host/guest firing poses, recoil and a city that rocks and shudders")
 	else:
 		for failure: String in _failures:
 			push_error("[structure] " + failure)
@@ -127,3 +128,50 @@ func _ready() -> void:
 func _check(condition: bool, failure: String) -> void:
 	if not condition:
 		_failures.append(failure)
+
+
+## Exercise the host's shared kick and the actual guest notification path. The
+## puppet has an empty field, as happens when the target dies before delivery.
+func _check_firing_poses() -> void:
+	var scene := load("res://scenes/battlefield/tower.tscn") as PackedScene
+	for value: Variant in ContentDB.towers.values():
+		var data := value as TowerData
+		if data == null:
+			continue
+		var id: String = data.id
+		var one := scene.instantiate() as Tower
+		one.setup(data, 1, Vector2i(40, 40), _run.battlefield)
+		add_child(one)
+		one.set_process(false)
+		var poses: Array[Texture2D] = GameData.load_attack_frames(one.data.get_sprite_path())
+		_check(poses.size() == 3, "%s needs three firing poses" % id)
+		if poses.size() == 3:
+			for remote: bool in [false, true]:
+				one.puppet = remote
+				if remote:
+					one.fire_remote(one.origin() + Vector2.RIGHT * 200.0)
+				else:
+					one.kick(one.origin() + Vector2.RIGHT * 200.0)
+				_check(one.sprite.texture == poses[0], "%s discharge must start immediately" % id)
+				var frozen_left: float = one._attack_left
+				await get_tree().process_frame
+				await get_tree().process_frame
+				_check(one._attack_left == frozen_left and one.sprite.texture == poses[0],
+					"a suspended tower's discharge must not advance on a detached timer")
+				one._tick_step_wobble(Balance.TOWER_FIRE_ANIMATION_SECONDS * 0.5)
+				_check(one.sprite.texture == poses[1], "%s discharge must advance" % id)
+				one._tick_step_wobble(Balance.TOWER_FIRE_ANIMATION_SECONDS * 0.3)
+				_check(one.sprite.texture == poses[2], "%s must show the recovery pose" % id)
+				one.kick(one.origin())
+				_check(one.sprite.texture == poses[0], "%s rapid fire must restart the discharge" % id)
+				one._tick_step_wobble(Balance.TOWER_FIRE_ANIMATION_SECONDS + 0.01)
+				_check(one._idle_frames.has(one.sprite.texture), "%s must return to idle" % id)
+			# Simulate a not-yet-authored tower without tying this fallback to an
+			# id that the next art batch may legitimately upgrade.
+			one._attack_frames.clear()
+			one.kick(one.origin())
+			one._tick_step_wobble(0.01)
+			_check(one._idle_frames.has(one.sprite.texture),
+				"missing discharge art must retain the authored idle fallback")
+		one.queue_free()
+		await get_tree().process_frame

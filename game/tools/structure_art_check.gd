@@ -30,6 +30,7 @@ func _ready() -> void:
 	towers.sort_custom(func(a: TowerData, b: TowerData) -> bool: return a.id < b.id)
 	for tower: TowerData in towers:
 		_check_package(tower.get_sprite_path(), "tower %s" % tower.id)
+		_check_firing_package(tower.get_sprite_path())
 	for building: BuildingData in ContentDB.buildings_sorted():
 		for tier: int in range(1, building.max_tier + 1):
 			var exact_path: String = building.get_tier_sprite_path(tier)
@@ -164,6 +165,23 @@ func _alpha_bounds(image: Image) -> Rect2i:
 	if right < left or bottom < top:
 		return Rect2i()
 	return Rect2i(left, top, right - left + 1, bottom - top + 1)
+
+
+func _check_firing_package(base_path: String) -> void:
+	var poses: Array[Texture2D] = GameData.load_attack_frames(base_path)
+	if poses.size() != CONTINUATION_FRAMES:
+		_fail("%s requires three authored firing poses" % base_path)
+		return
+	var base := load(base_path) as Texture2D
+	var base_bounds: Rect2i = _alpha_bounds(base.get_image())
+	for pose: Texture2D in poses:
+		var image: Image = pose.get_image()
+		if image.get_size() != FRAME_SIZE or image.get_pixel(0, 0) == Color.MAGENTA:
+			_fail("%s firing pose has invalid size or placeholder marker" % base_path)
+			continue
+		var bounds: Rect2i = _alpha_bounds(image)
+		if not bounds.has_area() or abs(bounds.end.y - base_bounds.end.y) > ANCHOR_TOLERANCE:
+			_fail("%s firing pose moved its ground anchor" % base_path)
 
 
 func _fail(message: String) -> void:
