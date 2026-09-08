@@ -73,8 +73,18 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   local Guard/Release sweeps are green but they run on Windows.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
-- [ ] Minimum-spec rendered FPS. Headless growth checks passed; their result
-  does not close that acceptance requirement.
+- [ ] **60 FPS at 1920×1080 is FAILING — 48 and 49 FPS measured on the developer
+  RTX 3070 Ti on 2026-09-08, against 62 FPS on the same machine on 2026-08-20.**
+  Growth is clean (+0 orphans), so this is steady-state frame cost rather than a
+  leak, and the cleaner of the two runs had zero hitches. Detail, evidence and
+  the two commands that would separate CPU from GPU are in §4. Recorded rather
+  than investigated, on the owner's instruction. Minimum-spec hardware remains
+  separately unverified; the release workflow's headless run is green on the
+  growth half alone and says nothing about this.
+- [x] Night playable at minimum brightness — measured on a real renderer for the
+  first time (road 0.107 against a 0.025 floor, enemy 0.040 against 0.005).
+  Stays a `manual` row in `V4_CONFORMANCE.md` because no headless runner can
+  reproduce it, which is not the same as unanswered.
 - [~] Linux crowd verification. `crowd_check` now runs on every Guard push as a
   **reporting-only step that cannot fail the build** — `continue-on-error`, and
   it annotates a notice either way. That removes the objection CLAUDE.md records
@@ -2000,10 +2010,59 @@ is a horizontal bar at all.
       *also* bound to the four move actions, so anything else reading movement
       gets it free. Gated by a test that every rebindable and every `ui_*` action
       carries a pad event, and that re-applying does not duplicate bindings.
-- [~] 60 FPS at 1920×1080. `tools/perf_check.tscn` measures it, asserts growth
-      always and asserts frame timing **only when a real renderer is present** —
-      the dummy renderer does no GPU work, so a headless frame rate says nothing
-      about a real one. It runs in the release workflow every publish.
+- [ ] **60 FPS at 1920×1080 — FAILING. Release blocker as of 2026-09-08.**
+
+      **Measured 48 and 49 FPS on the developer machine, against a 60 FPS
+      budget.** The same machine recorded 62 FPS on 2026-08-20 (below). This is
+      a regression of roughly a fifth of the frame budget, and GDD §52 makes the
+      number a release requirement, so this row is no longer partial.
+
+          run 1  avg 21.0 ms (48 fps)  p99 23.6 ms  worst 137.3 ms  4 hitches
+          run 2  avg 20.4 ms (49 fps)  p99 22.7 ms  worst  32.0 ms  0 hitches
+
+      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, 120 measured seconds
+      each, vsync confirmed off. **Run 2 is the cleaner of the two** — zero
+      hitches and a 32 ms worst frame — so the result is steady-state cost and
+      not a stutter artefact. Contamination was checked before believing it: no
+      browser open, and TeamViewer measured at **0% CPU across a 12-second
+      sample** (its large cumulative CPU figure is uptime, not active capture).
+
+      **Growth is healthy**, which is what rules out a leak: +0 orphans, +1.1%
+      memory, +0.7% nodes between the first and last third. This is not
+      something accumulating during a run; it is what a frame now costs.
+
+      Two clues, recorded so the next session does not start from zero. Neither
+      is a diagnosis — no profiling was done, on the owner's instruction to
+      record and move on:
+
+      - **`frame split process 22.2 ms`.** That is CPU script time, against a
+        16.7 ms total budget for 60 FPS — on that sample the CPU alone could not
+        reach 60 with an idle GPU. It is one instantaneous reading taken at
+        report time rather than an average, so treat it as a pointer, not proof.
+      - **1362 draw calls for 2143 render objects.** `ActorPolish.attach` gives
+        every sprite its own `ShaderMaterial`, which prevents 2D batching. That
+        is long-standing; what changed on 2026-09-01 is that fire, ice and the
+        wind-up tell moved *into* those materials, so every actor's fragment
+        work got more expensive at the same time.
+
+      **Do not repeat the elimination that has already been done.** The comment
+      in `perf_check.gd` records that turning individual effects off never moved
+      the frame time, which is why `--idle` exists. The tool has the flags to
+      settle CPU-versus-GPU cheaply:
+
+          godot --path game res://tools/perf_check.tscn -- --seconds=45 --build --quality=low
+          godot --path game res://tools/perf_check.tscn -- --seconds=45 --idle
+
+      One caveat on the comparison with 2026-08-20: that run is documented as
+      1920×1080, and the window size was not pinned for these two. If the
+      window came up larger, part of the gap is resolution rather than
+      regression — worth eliminating first, and cheap to do.
+
+      `tools/perf_check.tscn` asserts growth always and asserts frame timing
+      **only when a real renderer is present** — the dummy renderer does no GPU
+      work, so a headless frame rate says nothing about a real one. It runs in
+      the release workflow every publish, where it is therefore green on the
+      growth half alone and silent about this failure.
 
       **The frame-rate number still has to come from a windowed run on real
       hardware:**
