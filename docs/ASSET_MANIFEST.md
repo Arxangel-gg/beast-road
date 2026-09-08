@@ -1179,11 +1179,22 @@ one. Standing still and walking are two sequences over one source sprite, so a
 creature can ship with either, both or neither — the animator falls back to a
 transform where a sequence is missing.
 
-**All twelve have a second frame now**, and the way to get one was neither
-hand-editing nor the character rig. Text-to-image genuinely will not produce "the
-same animal, a different pose, the *same size and shade*" — three attempts came
-back darker, lighter or larger every time, which is why seven of these shipped
-with one frame and a procedural hop.
+**Twenty-one now carry a full seven-frame gait**, upgraded 2026-09-08 from the
+two-frame pairs below. Two frames is a shuffle: it alternates between two leg
+positions and reads as a sprite being swapped. Seven is a stride. The raven is
+the exception and stays on two, because it flies and its flight cycle is the
+sequence that matters. Provenance in `WILDLIFE_MOVE_BATCH_2026-09-07.json`.
+
+Ground anchor was measured across all 147 frames rather than assumed: drift is
+0-3px against each base, and the largest is the rabbit, which hops. Move frames
+are deliberately *not* passed through `lock_animation_region.py` the way idle
+frames are — vertical travel is the gait, and flattening it would remove the
+thing being animated.
+
+The way to get a frame was neither hand-editing nor the character rig.
+Text-to-image genuinely will not produce "the same animal, a different pose, the
+*same size and shade*" — three attempts came back darker, lighter or larger every
+time, which is why seven of these shipped with one frame and a procedural hop.
 
 `animate_image` does. It takes the existing frame as its *first* frame and asks
 only for the motion, so palette, scale and facing come from the sprite rather
@@ -1198,27 +1209,27 @@ The procedural hop stays for anything that ships with one frame: a creature can
 still have either, both or neither.
 
 Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
-Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png`
-Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png`
-Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png`
-Files: `wildlife_wolf_move_01.png` · `wildlife_wolf_move_02.png`
-Files: `wildlife_boar_move_01.png` · `wildlife_boar_move_02.png`
-Files: `wildlife_bear_move_01.png` · `wildlife_bear_move_02.png`
-Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png`
-Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png`
-Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png`
-Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
-Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png`
-Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png`
-Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png`
-Files: `wildlife_lynx_move_01.png` · `wildlife_lynx_move_02.png`
-Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png`
-Files: `wildlife_jackal_move_01.png` · `wildlife_jackal_move_02.png`
-Files: `wildlife_scorpion_move_01.png` · `wildlife_scorpion_move_02.png`
-Files: `wildlife_snow_hare_move_01.png` · `wildlife_snow_hare_move_02.png`
-Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png`
-Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png`
-Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png`
+Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png` · `wildlife_fox_move_03.png` · `wildlife_fox_move_04.png` · `wildlife_fox_move_05.png` · `wildlife_fox_move_06.png` · `wildlife_fox_move_07.png`
+Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png` · `wildlife_raccoon_move_03.png` · `wildlife_raccoon_move_04.png` · `wildlife_raccoon_move_05.png` · `wildlife_raccoon_move_06.png` · `wildlife_raccoon_move_07.png`
+Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png` · `wildlife_deer_move_03.png` · `wildlife_deer_move_04.png` · `wildlife_deer_move_05.png` · `wildlife_deer_move_06.png` · `wildlife_deer_move_07.png`
+Files: `wildlife_wolf_move_01.png` · `wildlife_wolf_move_02.png` · `wildlife_wolf_move_03.png` · `wildlife_wolf_move_04.png` · `wildlife_wolf_move_05.png` · `wildlife_wolf_move_06.png` · `wildlife_wolf_move_07.png`
+Files: `wildlife_boar_move_01.png` · `wildlife_boar_move_02.png` · `wildlife_boar_move_03.png` · `wildlife_boar_move_04.png` · `wildlife_boar_move_05.png` · `wildlife_boar_move_06.png` · `wildlife_boar_move_07.png`
+Files: `wildlife_bear_move_01.png` · `wildlife_bear_move_02.png` · `wildlife_bear_move_03.png` · `wildlife_bear_move_04.png` · `wildlife_bear_move_05.png` · `wildlife_bear_move_06.png` · `wildlife_bear_move_07.png`
+Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png` · `wildlife_viper_move_03.png` · `wildlife_viper_move_04.png` · `wildlife_viper_move_05.png` · `wildlife_viper_move_06.png` · `wildlife_viper_move_07.png`
+Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png` · `wildlife_badger_move_03.png` · `wildlife_badger_move_04.png` · `wildlife_badger_move_05.png` · `wildlife_badger_move_06.png` · `wildlife_badger_move_07.png`
+Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildlife_rabbit_move_03.png` · `wildlife_rabbit_move_04.png` · `wildlife_rabbit_move_05.png` · `wildlife_rabbit_move_06.png` · `wildlife_rabbit_move_07.png`
+Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png` · `wildlife_squirrel_move_03.png` · `wildlife_squirrel_move_04.png` · `wildlife_squirrel_move_05.png` · `wildlife_squirrel_move_06.png` · `wildlife_squirrel_move_07.png`
+Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png` · `wildlife_stag_move_03.png` · `wildlife_stag_move_04.png` · `wildlife_stag_move_05.png` · `wildlife_stag_move_06.png` · `wildlife_stag_move_07.png`
+Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png` · `wildlife_heron_move_03.png` · `wildlife_heron_move_04.png` · `wildlife_heron_move_05.png` · `wildlife_heron_move_06.png` · `wildlife_heron_move_07.png`
+Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png`
+Files: `wildlife_lynx_move_01.png` · `wildlife_lynx_move_02.png` · `wildlife_lynx_move_03.png` · `wildlife_lynx_move_04.png` · `wildlife_lynx_move_05.png` · `wildlife_lynx_move_06.png` · `wildlife_lynx_move_07.png`
+Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png` · `wildlife_tortoise_move_03.png` · `wildlife_tortoise_move_04.png` · `wildlife_tortoise_move_05.png` · `wildlife_tortoise_move_06.png` · `wildlife_tortoise_move_07.png`
+Files: `wildlife_jackal_move_01.png` · `wildlife_jackal_move_02.png` · `wildlife_jackal_move_03.png` · `wildlife_jackal_move_04.png` · `wildlife_jackal_move_05.png` · `wildlife_jackal_move_06.png` · `wildlife_jackal_move_07.png`
+Files: `wildlife_scorpion_move_01.png` · `wildlife_scorpion_move_02.png` · `wildlife_scorpion_move_03.png` · `wildlife_scorpion_move_04.png` · `wildlife_scorpion_move_05.png` · `wildlife_scorpion_move_06.png` · `wildlife_scorpion_move_07.png`
+Files: `wildlife_snow_hare_move_01.png` · `wildlife_snow_hare_move_02.png` · `wildlife_snow_hare_move_03.png` · `wildlife_snow_hare_move_04.png` · `wildlife_snow_hare_move_05.png` · `wildlife_snow_hare_move_06.png` · `wildlife_snow_hare_move_07.png`
+Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png` · `wildlife_ptarmigan_move_03.png` · `wildlife_ptarmigan_move_04.png` · `wildlife_ptarmigan_move_05.png` · `wildlife_ptarmigan_move_06.png` · `wildlife_ptarmigan_move_07.png`
+Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png` · `wildlife_snow_lynx_move_03.png` · `wildlife_snow_lynx_move_04.png` · `wildlife_snow_lynx_move_05.png` · `wildlife_snow_lynx_move_06.png` · `wildlife_snow_lynx_move_07.png`
+Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png` · `wildlife_frost_elk_move_03.png` · `wildlife_frost_elk_move_04.png` · `wildlife_frost_elk_move_05.png` · `wildlife_frost_elk_move_06.png` · `wildlife_frost_elk_move_07.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 
