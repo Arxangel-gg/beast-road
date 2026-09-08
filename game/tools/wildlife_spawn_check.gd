@@ -94,7 +94,7 @@ func _test_animation_coverage() -> void:
 		var move: int = GameData.load_move_frames(base).size()
 		var fly: int = GameData.load_flight_frames(base).size()
 		var attack: int = GameData.load_attack_frames(base).size()
-		_check(idle >= 1, "%s has no idle frame, so it stands frozen" % kind.id)
+		_check(idle >= 4, "%s needs at least four idle poses" % kind.id)
 		if kind.flies:
 			_check(fly >= 2, "%s flies but has no flight cycle" % kind.id)
 		else:

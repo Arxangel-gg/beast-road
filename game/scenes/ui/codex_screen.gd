@@ -30,12 +30,15 @@ var _heading: Label
 var _note: Label
 var _rows: VBoxContainer
 var _close_button: Button
+var _panel: PanelContainer
+var _scroll: ScrollContainer
 
 
 func _ready() -> void:
 	layer = 90
 	visible = false
 	_build()
+	get_viewport().size_changed.connect(_refit)
 
 
 ## **Sized for the thing it holds, not for the smallest thing that would fit.**
@@ -105,6 +108,8 @@ func _build() -> void:
 	add_child(centre)
 
 	var panel := PanelContainer.new()
+	_panel = panel
+	panel.set_meta(UiMetrics.SELF_SIZED, true)
 	# Measured against the screen rather than fixed: 940 was wider than a phone
 	# held upright, so the panel ran off both edges of the platform that needed
 	# the care most.
@@ -129,6 +134,7 @@ func _build() -> void:
 	column.add_child(_note)
 
 	var scroll := ScrollContainer.new()
+	_scroll = scroll
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	# Same reasoning as the Chronicle: the entries are the flexible part and
 	# scroll; the only way out is always on screen.
@@ -157,7 +163,20 @@ func _build() -> void:
 func open() -> void:
 	visible = true
 	_refresh()
+	_refit()
+	_refit.call_deferred()
 	_close_button.grab_focus()
+
+
+func _refit() -> void:
+	if not is_inside_tree() or _panel == null or _scroll == null:
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	_panel.custom_minimum_size.x = minf(PANEL_MAX_WIDTH, screen.x * PANEL_SCREEN_SHARE)
+	var share: float = LIST_SCREEN_SHARE_PORTRAIT if screen.y > screen.x else LIST_SCREEN_SHARE
+	_scroll.custom_minimum_size.y = minf(screen.y * share,
+		UiMetrics.scroll_room_measured(_scroll, _scroll.get_parent() as Control,
+			Balance.UI_PANEL_MARGIN))
 
 
 func hide_screen() -> void:

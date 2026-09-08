@@ -86,6 +86,7 @@ desktop.ini
 # Isolated user:// profiles created by local headless validation. They keep test
 # logs and screenshots away from the player's real save directory.
 .codex-godot-*/
+.codex-art-*/
 .codex-launcher-*/
 
 # Pixellab's raw per-frame export. 648 PNGs for the hero alone, and the packed

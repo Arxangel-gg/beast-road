@@ -46,7 +46,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Chieftain capture → captive labour | replaced by Oathbound / ransom / standard | **DECIDED 2026-08-20: adopt v4's Oathbound framing.** |
 | Run-scoped hero power (v4 §974) | — | **DECIDED 2026-08-20: hero level, attributes and loot now persist. See below.** |
 | Co-op (v4 §54 cut) | cut for 1.0 | **DECIDED 2026-08-24: build two-player co-op. See below.** |
-| Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: a bounded purse. See below.** |
+| Starting build capital (v4 §448) | one tower per road at start | **DECIDED 2026-08-27: no build capital. See below.** |
 | Ranged weapons, ammo, blueprints, crafting (not in v4) | absent from the spec | **DECIDED 2026-08-31: build them. See below.** |
 | Gear as the reason to replay (no loot loop in v4) | not in the spec | **DECIDED 2026-09-01: farm gear. See below.** |
 | Companions as temporary spell effects (§54 cuts "party roster") | v4 keeps the cut | **DECIDED 2026-09-01: Wildlife Spirit Companions persist. See below.** |
@@ -81,18 +81,30 @@ instead of one. Where co-op genuinely cannot satisfy one of those rules, amend
 the rule here, dated, in the same change - do not leave the codebase disagreeing
 with this file.
 
-**The run opens with a bounded purse, as of 2026-08-27.** This value has now
-been ruled on three times: one tower per road (v4 §448), nothing at all
-(2026-08-24), and now `Balance.STARTING_GOLD = 150` - enough for two of the four
-roads, with the rest taken off the enemies the player kills.
+**The run opens with no build capital, as of 2026-08-27.** This value has been
+ruled on three times: one tower per road (v4 §448), nothing at all
+(2026-08-24), and briefly a 150-Gold purse — which the owner then confirmed the
+same day had been a co-op development aid rather than a design re-cut.
+`Balance.STARTING_GOLD` is **0**, and tower money is taken off the enemies the
+player kills. The confirmation is recorded in `ROAD_TO_RELEASE.md` §4b under
+"Locked in §448 - production value restored".
+
+**This paragraph said 150 until 2026-09-07**, and described a ceiling to move
+the constant freely beneath. It was stale in the expensive direction:
+`_test_opening_envelope` asserts `Balance.STARTING_GOLD == 0` outright, so an
+agent following this file would have changed a constant a gate forbids and had
+to work out why from the failure rather than from here. Recorded rather than
+quietly overwritten, because this file is the first thing every session reads
+and it is worth knowing it can be wrong.
 
 The bound is the decision, not the number. What §448's teaching obligation was
 ever protecting is that **the opening must ask something of the player before it
 tests them**: a purse that covers every road hands over a finished defence and
-asks nothing. So the gate asserts *at most half the roads*, and that a tower on
-every road is earned rather than issued. Move the constant freely under that
-ceiling; going over it is a design change and should be argued in
-`_test_opening_envelope`, which is the one place with an opinion about it.
+asks nothing. So the gate asserts the two ends rather than a figure — wave 1
+alone must not pay for a tower, and clearing the opening must pay for one by
+wave 4, with every road covered by wave 12. Changing any of that is a design
+change and should be argued in `_test_opening_envelope`, which is the one place
+with an opinion about it.
 
 **Gold is the only wallet that was zeroed**, and that is a decision rather than
 an omission. Every tower carries a Gold price, so zero Gold already means zero
@@ -102,20 +114,19 @@ them would not harden the opening, it would quietly force Fire for Act I. Wood
 and Food also pay for town repair and hero tending, which are not tower capital.
 If that reading is ever revisited, revisit it as a decision.
 
-**Measured at 150 on 2026-08-27.** Two towers are affordable before wave 1 and
-the four-road baseline arrives on wave 4, against a lane progression that opens
-the second road on wave 3 and the fourth on wave 10 - so the ring is covered
-slightly ahead of the roads that need covering. At zero it was wave 3 and wave 8.
-This is a deliberately softer Act I than the 2026-08-24 ruling produced, and the
-owner made the call knowing that; peak run pressure is unaffected either way,
-because starting Gold is around a tenth of a run's total income.
+**Measured at zero.** The first tower lands on wave 3, which is when the second
+road opens, and the four-road baseline on wave 8 — so the player fights alone
+through the two single-road teaching waves and then buys a road at roughly the
+rate roads arrive. Peak run pressure is unchanged either way, because starting
+Gold was only around a tenth of a run's total income; what changed is the shape
+of Act I, which used to sit at 0.02-0.19 through the opening and now ramps
+0.06 → 0.48. The opening stopped being a formality.
 
 Two things had to learn about the change and both are gates now. `curve_report`
 models hero DPS as part of capability, because with no towers the hero *is* the
 defence for the opening waves and a tower-only model divides by nothing there.
-`balance_test` asserts the new contract at both ends: wave 1 alone must **not**
-pay for a tower, and a first tower must be affordable by wave 4. Any harness
-that wants to build without the economy being its subject must fund itself with
+`balance_test` asserts the contract at both ends. Any harness that wants to
+build without the economy being its subject must fund itself with
 `RunState.gain_every_currency` — three of them were silently leaning on the old
 390-Gold cache.
 

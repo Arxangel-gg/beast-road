@@ -36,8 +36,11 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## Latest local continuation — 2026-09-07 (unpublished)
 
-See `PRODUCTION_CONTINUATION_2026-09-07.md` for the complete verification and
-handoff. Local baseline remains v0.6.1; no new tag was published in this pass.
+The earlier `PRODUCTION_CONTINUATION_2026-09-07.md` patch is now published in
+v0.6.2. Release and Android workflows succeeded, but the separate Guard job
+failed. Its full failed-job log is still needed; uploaded assets do not prove
+that Guard passed. The new, unpublished readability/CI-diagnostics patch is
+documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 
 - [x] Pinned Chronicle progress and persistent selection, including host-final
   guest reward settlement and terminal-event race regressions.
@@ -47,11 +50,76 @@ handoff. Local baseline remains v0.6.1; no new tag was published in this pass.
   coverage, and matching new gates in Update Manager and both CI workflows.
 - [x] Optional-mirror isolation, correct reused-web-file caching policy, and
   publishing messages reconciled to automatic Pages deployment.
-- [ ] Unpublished GitHub Actions rehearsal of this patch before tagging.
-- [ ] Portrait typography/scaling acceptance: geometry passes, but rendered
-  text is still too small. Real devices and controller play remain necessary.
-- [ ] Minimum-spec rendered FPS and Linux crowd verification. Headless growth
-  checks passed; their result does not close either acceptance requirement.
+- [x] Portrait menu canvas, rich-text font scaling, main-menu reflow and live
+  Codex rotation fixes: rendered phone layouts and interaction gates pass.
+- [x] CI failure reporters retain useful annotations for silent failures,
+  warnings and long logs; 16 strict-shell fixtures pass.
+- [x] **The v0.6.2 Guard failure is identified: `menu_layout_check` segfaults on
+  Linux during engine shutdown, after passing.** `gh` was authenticated on
+  2026-09-08 and the job log confirms it — a `Segmentation fault` on the same
+  process that had just printed `[menu-layout] PASS`, with no Godot banner
+  between them. It passes on Windows every time. **The crash itself is still
+  open and needs a Linux machine**; `crowd_check` has the same
+  passes-here/dies-there shape and was fixed by tearing down before quitting.
+  Note that commit `69eb59f` changed this gate substantially, so the next Guard
+  run is not a clean re-test of the code that crashed.
+- [x] Reporters now name a signal death: `timeout` returns 128+N, so a crash
+  read as "Exited 139" and now reads
+  `Crashed with SIGSEGV (segmentation fault), not an assertion. Last output: …`.
+  A crash and a failed assertion are different investigations.
+- [x] The 2026-09-07 diagnosis of the *mechanism* — reached before the log —
+  was correct, and its attribution was not. Step timings and check-run
+  annotations were enough. Full working in
+  `GUARD_FAILURE_DIAGNOSIS_2026-09-07.md`; in short, the step died *inside* the
+  reporter (a command substitution whose pipeline failed under `errexit`), so
+  the annotation that would have named the gate was never printed. Both death
+  modes are reproduced, and the observed exit code says the failing gate printed
+  no anchored diagnostic — which is the `run_tool.gd` family, whose findings are
+  indented on purpose. **Which gate, and why only on Linux, is still open.**
+- [x] Reporters now quote an indented tool finding as well as an anchored one,
+  so that family can no longer fail with "no reason printed". Held by a
+  `tool_finding` fixture that fails without the change.
+- [x] `ContentDB._load_dir` sorts its listing. Directory order is not the same
+  on NTFS and ext4, so every content dictionary had a different insertion order
+  on the runners than on the machine the game is verified on.
+- [x] **The Actions rehearsal is done and Guard is green on Linux** — PR #1,
+  run `34187635225`, both jobs (`Does it load`, `Does it export`) successful.
+  This is the first green Guard since v0.6.2.
+- [~] **The `menu_layout_check` segfault did not reproduce on that run** — it
+  printed `[menu-layout] PASS` and the job went on. **This is not proof it is
+  fixed.** Commit `69eb59f` rewrote large parts of that gate (rotation,
+  scrollbar dragging, physical touch targets), so this was never a clean re-test
+  of the code that crashed, and a shutdown crash can be intermittent besides.
+  Treat it as unreproduced, not resolved; if it returns, the reporter now names
+  it `Crashed with SIGSEGV` instead of `Exited 1`.
+- [ ] Portrait typography/scaling acceptance on real devices and controller
+  play. Rendered desktop-hosted phone checks do not close device acceptance.
+- [ ] **60 FPS at 1920×1080 is FAILING — 55 FPS measured on the developer
+  RTX 3070 Ti on 2026-09-08 at a pinned 1080p, against 62 FPS on the same
+  machine on 2026-08-20.** Growth is clean (+0 orphans), so this is steady-state
+  frame cost rather than a leak. **Pin the resolution before comparing**: the
+  window opens at 2560×1440 by default and unpinned runs read 48–49 FPS, which
+  would have been recorded as a 13 FPS regression instead of about 7. Detail,
+  all three runs and the commands that would separate CPU from GPU are in §4.
+  Recorded rather than investigated, on the owner's instruction. Minimum-spec
+  hardware remains separately unverified; the release workflow's headless run is
+  green on the growth half alone and says nothing about this.
+- [x] Night playable at minimum brightness — measured on a real renderer for the
+  first time (road 0.107 against a 0.025 floor, enemy 0.040 against 0.005).
+  Stays a `manual` row in `V4_CONFORMANCE.md` because no headless runner can
+  reproduce it, which is not the same as unanswered.
+- [x] **Linux crowd verification — done, and `crowd_check` is back in the load
+  gate as of 2026-09-08.** Five days out of it, settled in one push. It ran
+  first as a reporting-only step that could not redden main, which removed the
+  objection rather than accepting it, and answered on its first run — not merely
+  green but **numerically identical to Windows**, all seven cases:
+
+      [crowd] platform=Linux   ... overlap 42.000 -> 0.000 over 90 steps, max step 2.500 / 2.500
+      [crowd] platform=Windows ... overlap 42.000 -> 0.000 over 90 steps, max step 2.500 / 2.500
+
+  That is the cross-platform determinism the seeded fixed-step rewrite existed
+  to produce, and much stronger evidence than a single pass. The reporting-only
+  step has been removed; the gate is the gate again.
 
 The dated sections below retain earlier release history.
 
@@ -1092,15 +1160,29 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       yet being verifiable. See `docs/LEADERBOARD.md`.
 - [x] **Web build** — now in scope (§54 amended). Exported from a `Web` preset
       on the same tag as the Windows build, attached to the release as
-      `BeastRoad-web.zip`. Hosting is Netlify, not GitHub Pages: publishing to
-      Pages needs a Pages site, creating one is an admin operation a workflow
-      token cannot perform (three releases failed on it), and it needs a domain
-      to be worth having. The zip's `index.html` sits at its root, which is the
-      shape Netlify deploys directly, and `_headers` is written into the bundle
-      so caching travels with the build rather than living in a host dashboard.
-      The page is embedded in a Carrd iframe, which is also why the build stays
-      single-threaded — a cross-origin-isolated document will not embed in an
-      iframe that is not.
+      `BeastRoad-web.zip`. **Both hosts now work, and this paragraph used to say
+      one of them could not.**
+
+      **GitHub Pages is live**, and was verified from outside the workflow on
+      2026-09-07: `https://arxangel-gg.github.io/beast-road/` returns the real
+      Godot shell (`<title>Beast Road</title>`), and `index.js`, `index.wasm`
+      and `index.pck` all return 200. `index.worker.js` returns **404**, which is
+      the single-thread constraint below holding in production rather than only
+      in a gate. The `Publish the browser build` job succeeded on the v0.6.2 tag.
+
+      This row previously read "Hosting is Netlify, not GitHub Pages", on the
+      grounds that creating a Pages site is an admin operation a workflow token
+      cannot perform — which cost three releases and was true when written. The
+      site exists now, so the `pages` job in `release.yml` deploys to it on every
+      tag. (The REST `/pages` endpoint still 404s unauthenticated; that is the
+      endpoint needing admin, not the site being absent. Fetch the site itself.)
+
+      **Netlify remains supported and is still the better host for an iframe.**
+      The zip's `index.html` sits at its root, which is the shape Netlify deploys
+      directly, and `_headers` is written into the bundle so caching travels with
+      the build rather than living in a host dashboard. The page is embedded in a
+      Carrd iframe, which is also why the build stays single-threaded — a
+      cross-origin-isolated document will not embed in an iframe that is not.
 
       Two things made this cheap: the project already renders through
       `gl_compatibility`, which is the only path to WebGL2, and it owns no
@@ -1615,6 +1697,20 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
 
           godot --path game res://tools/night_check.tscn
 
+      **Run on developer hardware 2026-09-07 — PASS, with margin.** RTX 3070 Ti,
+      OpenGL 3.3 compatibility, 2560×1440 frame against a 1920×1080 visible
+      rect:
+
+          lit road 0.130 vs unlit ground 0.023   separation 0.107, need 0.025
+          enemy    0.050 vs the ring around it 0.010   separation 0.040, need 0.005
+
+      Both sit well clear of their floors — 4.3× and 8× — rather than scraping
+      them, which is the result this row wanted and had never actually recorded
+      against a real renderer. This is the manual acceptance evidence for
+      `V4_CONFORMANCE.md`'s "Night playable at minimum brightness"; it stays a
+      `manual` row there because no runner can reproduce it, not because it is
+      unanswered.
+
 ### VFX
 
 - [x] Painted projectile heads over the existing procedural flight.
@@ -1943,10 +2039,81 @@ is a horizontal bar at all.
       *also* bound to the four move actions, so anything else reading movement
       gets it free. Gated by a test that every rebindable and every `ui_*` action
       carries a pad event, and that re-applying does not duplicate bindings.
-- [~] 60 FPS at 1920×1080. `tools/perf_check.tscn` measures it, asserts growth
-      always and asserts frame timing **only when a real renderer is present** —
-      the dummy renderer does no GPU work, so a headless frame rate says nothing
-      about a real one. It runs in the release workflow every publish.
+- [ ] **60 FPS at 1920×1080 — FAILING. Release blocker as of 2026-09-08.**
+
+      **Measured 55 FPS at a pinned 1920×1080, against a 60 FPS budget.** The
+      same machine recorded 62 FPS on 2026-08-20 (below). GDD §52 makes the
+      number a release requirement, so this row is no longer partial.
+
+          2560x1440   avg 21.0 ms (48 fps)  p99 23.6 ms  worst 137.3 ms  4 hitches
+          2560x1440   avg 20.4 ms (49 fps)  p99 22.7 ms  worst  32.0 ms  0 hitches
+          1920x1080   avg 18.3 ms (55 fps)  p99 20.1 ms  worst  51.7 ms  2 hitches
+
+      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, vsync confirmed off;
+      120 measured seconds for the 1440p pair, 60 for the pinned run.
+
+      **Read the resolution before reading the regression.** The first two runs
+      were taken at 2560×1440 and were nearly recorded as a 13 FPS regression.
+      They are not comparable to the 2026-08-20 baseline: `project.godot`
+      declares a 1920×1080 *viewport*, but the window opens at the monitor's
+      2560×1440 and the logical rect is stretched to it — 3.7M pixels rendered
+      against 2.07M. `night_check` prints both (`frame=` and `visible=`) and is
+      the quickest way to see which you are measuring. Pin it explicitly:
+
+          godot --path game --resolution 1920x1080 res://tools/perf_check.tscn -- --seconds=60 --build
+
+      **At matched resolution the gap is about 7 FPS, not 13** — real, and worth
+      an owner's attention, but a third of what the unpinned runs implied.
+
+      Contamination was checked before believing any of it: no browser open, and
+      TeamViewer measured at **0% CPU across a 12-second sample** (its large
+      cumulative CPU figure is uptime, not active capture). The cleanest run of
+      the three had zero hitches, so this is steady-state cost rather than a
+      stutter artefact.
+
+      One honest limit on all three numbers: the field is not identical between
+      runs — render objects varied 2143 / 2166 / 2419 — so a few FPS of the
+      spread is how many bodies happened to be alive, not resolution or code.
+      Comparisons at this precision want more than one run per configuration.
+
+      **Growth is healthy**, which is what rules out a leak: +0 orphans, +1.1%
+      memory, +0.7% nodes between the first and last third. This is not
+      something accumulating during a run; it is what a frame now costs.
+
+      Two clues, recorded so the next session does not start from zero. Neither
+      is a diagnosis — no profiling was done, on the owner's instruction to
+      record and move on:
+
+      - **`frame split process` was 19.1 ms even at 1080p**, and 22.2 ms at
+        1440p. That is CPU script time against a 16.7 ms *total* budget for 60
+        FPS — on those samples the CPU alone could not reach 60 with an idle
+        GPU, and it barely moved when a third of the pixels went away. That is
+        the strongest single indication the cost is CPU-side rather than fill.
+        Each is one instantaneous reading taken at report time rather than an
+        average, so treat them as a pointer, not proof.
+      - **1362 draw calls for 2143 render objects.** `ActorPolish.attach` gives
+        every sprite its own `ShaderMaterial`, which prevents 2D batching. That
+        is long-standing; what changed on 2026-09-01 is that fire, ice and the
+        wind-up tell moved *into* those materials, so every actor's fragment
+        work got more expensive at the same time.
+
+      **Do not repeat the elimination that has already been done.** The comment
+      in `perf_check.gd` records that turning individual effects off never moved
+      the frame time, which is why `--idle` exists. The tool has the flags to
+      settle CPU-versus-GPU cheaply:
+
+          godot --path game res://tools/perf_check.tscn -- --seconds=45 --build --quality=low
+          godot --path game res://tools/perf_check.tscn -- --seconds=45 --idle
+
+      The resolution caveat that would have gone here has been eliminated — see
+      the pinned 1920×1080 run above. It cost 6 FPS of the apparent gap and did
+      not account for the rest.
+
+      `tools/perf_check.tscn` asserts growth always and asserts frame timing
+      **only when a real renderer is present** — the dummy renderer does no GPU
+      work, so a headless frame rate says nothing about a real one. It runs in
+      the release workflow every publish, where it is therefore green on the
+      growth half alone and silent about this failure.
 
       **The frame-rate number still has to come from a windowed run on real
       hardware:**

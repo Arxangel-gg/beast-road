@@ -84,6 +84,11 @@ jobs:
         shell: pwsh
         run: ./tools/publish_contract_test.ps1
 
+      - name: Validate CI failure diagnostics
+        # Failure diagnostics must work even when Godot prints no error line.
+        # Covered before importing or spending time on the gameplay suite.
+        run: bash tools/ci_validation_test.sh
+
       - name: Import assets
         # A cold checkout has no .godot/ directory and Godot must import once
         # before anything can load. The editor exits non-zero on some headless
@@ -112,12 +117,51 @@ jobs:
             local log status
             log="$(mktemp)"
             set +e
-            timeout 240 godot "$@" 2>&1 | tee "$log"
+            # 240s suits a gate that boots, asserts and quits, which is nearly
+            # all of them. It does *not* suit one that has to watch the clock:
+            # `breather` measures two complete wave cycles and so spends 210
+            # real seconds by construction, leaving about 11% margin on a shared
+            # runner. That is a timeout waiting to fire on a busy afternoon and
+            # report a hang that never happened.
+            #
+            # Overridable per call, like IGNORE_WARNINGS below, rather than
+            # raised for everybody: the ceiling is what turns a hang into a
+            # named failure instead of a silent twelve-minute wait, and it is
+            # worth keeping tight everywhere it can be.
+            timeout "${CHECK_TIMEOUT:-240}" godot "$@" 2>&1 | tee "$log"
             status=${PIPESTATUS[0]}
             set -e
 
             if [ "$status" -eq 124 ]; then
               echo "::error title=$name::Timed out. Something is hanging, not failing."
+              return 1
+            fi
+            # **A crash is not an assertion, and the difference is the whole
+            # diagnosis.**
+            #
+            # This is what actually broke the v0.6.2 run. `menu_layout_check`
+            # ran, passed, printed its PASS line - and then segfaulted inside
+            # engine shutdown, on Linux only. The log therefore held no `ERROR:`
+            # and no `FAIL`, because a crash prints neither, and every scan
+            # below it had nothing to find.
+            #
+            # `timeout` returns 128+N when the child dies on signal N, so the
+            # status was 139. "Exited 139" is true and tells you nothing; 139 is
+            # 128+11 and 11 is SIGSEGV. Naming it turns "some gate failed" into
+            # "that gate crashed rather than failed an assertion", which is a
+            # completely different investigation - and quoting the last line
+            # says *where*, which here was after a PASS.
+            if [ "$status" -gt 128 ]; then
+              local signal_name
+              case "$((status - 128))" in
+                4)  signal_name="SIGILL (illegal instruction)" ;;
+                6)  signal_name="SIGABRT (abort - often a failed engine assertion)" ;;
+                8)  signal_name="SIGFPE (arithmetic fault)" ;;
+                9)  signal_name="SIGKILL (killed - suspect the runner running out of memory)" ;;
+                11) signal_name="SIGSEGV (segmentation fault)" ;;
+                *)  signal_name="signal $((status - 128))" ;;
+              esac
+              echo "::error title=$name::Crashed with $signal_name, not an assertion. Last output: $(tail -n 1 "$log")"
               return 1
             fi
             if [ "$status" -ne 0 ]; then
@@ -130,8 +174,31 @@ jobs:
               # runner and nowhere else is then unfixable without pulling the
               # log by hand. Cost a red main and a wrong diagnosis to find.
               local why
-              why="$(grep -E '^(SCRIPT )?ERROR:|FAIL' "$log" \
-                | grep -v 'depended scripts' | head -1)"
+              # awk returns success even with no match and consumes no pipe.
+              # grep/head under pipefail could abort this reporter before the
+              # annotation, hiding the original failure behind exit code 1.
+              why="$(awk '/^(SCRIPT )?ERROR:|^WARNING:|FAIL/ && !/depended scripts/ { print; exit }' "$log")"
+              # **Second look, for the gates that indent on purpose.**
+              #
+              # Everything under tools/ that reports its own findings prints
+              # them as "  ERROR: ..." rather than at the start of a line, so
+              # that a tool describing a problem can never be mistaken for the
+              # engine failing and fail an otherwise clean run. `run_tool.gd`
+              # says so in as many words.
+              #
+              # The consequence nobody had joined up: that also hides the
+              # finding from the scan above, which anchors. A failing
+              # report/road-tiles/floor-tiles/tool-leak gate therefore exits 1
+              # having printed exactly what was wrong, and annotated "no reason
+              # printed" - the useless annotation this reporter exists to stop,
+              # on the one family of gates that had already done the work.
+              #
+              # Safe because it only runs on an already-failing status and only
+              # when the anchored scan found nothing. The scan that *decides*
+              # whether a clean run is dirty stays anchored, below.
+              if [ -z "$why" ]; then
+                why="$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { print; exit }' "$log")"
+              fi
               echo "::error title=$name::Exited $status. ${why:-no reason printed}"
               return 1
             fi
@@ -152,8 +219,7 @@ jobs:
               # class_name produces a dozen "failed to compile depended scripts"
               # and only the first line says which identifier is actually absent.
               local first
-              first="$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$scan" \
-                | grep -v 'depended scripts' | head -1)"
+              first="$(awk '/^(SCRIPT )?ERROR:|^WARNING:/ && !/depended scripts/ { print; exit }' "$scan")"
               echo "::error title=$name::${first:-emitted an error or warning}"
               return 1
             fi
@@ -360,33 +426,39 @@ jobs:
           check "raid suspend" --headless --path game res://tools/raid_suspend_check.tscn
           check "seed reproduction" --headless --path game res://tools/seed_reproduction_check.tscn
           check "boot" --headless --path game res://tools/boot_check.tscn
-          check "breather" --headless --path game res://tools/breather_check.tscn
+          # Spends 210 real seconds watching two complete wave cycles, so the
+          # default 240s ceiling is 11% margin rather than a hang detector.
+          CHECK_TIMEOUT=420 \
+            check "breather" --headless --path game res://tools/breather_check.tscn
           check "live settings" --headless --path game res://tools/live_settings_check.tscn
           check "support diagnostics" --headless --path game res://tools/support_diagnostics_check.tscn
           check "structures" --headless --path game res://tools/structure_check.tscn
           check "torches" --headless --path game res://tools/torch_check.tscn
-          # Deliberately absent: the old crowd_check passed on Windows but
-          # failed on Linux. The 2026-09-07 harness uses seeded, fixed-step,
-          # sorted fixtures; that revision still needs Linux verification. Run it by
-          # hand when touching crowd separation; do not re-add it here until
-          # somebody knows what the Linux failure actually is.
+          # **Back in the gate on 2026-09-08, after five days out of it.**
           #
-          # 2026-09-02, two things changed that make finding out cheap:
+          # The old crowd_check passed on Windows and failed on Linux, and was
+          # commented out here because nobody knew why - re-adding it risked a
+          # red main, which made it an owner's call rather than an agent's.
           #
-          #   - The gate now tears itself down before quitting. It used to build
-          #     fourteen enemies and a field and quit on top of them, and live
-          #     objects at exit print `WARNING: N ObjectDB instances were
-          #     leaked` - which fails a check on any machine that still held
-          #     them when the tree came down. That is one candidate removed, not
-          #     a diagnosis: it does not reproduce on Windows either way.
-          #   - `check()` above now quotes the failing line. The reason this was
-          #     bisected instead of debugged is that a failing gate annotated
-          #     "Exited 1." and nothing else; it will now say what broke.
+          # The 2026-09-07 rewrite (seeded, fixed-step, sorted fixtures, and
+          # tearing itself down before quitting rather than quitting on top of
+          # fourteen live enemies) was believed to fix it, but "believed" is not
+          # a Linux result. So it ran first as a reporting-only step that could
+          # not fail the build - the cost of being wrong removed rather than
+          # accepted - and that step answered the question on its first push:
           #
-          # So re-enabling is a one-push experiment that answers the question
-          # permanently. Still an owner's call, because the cost of being wrong
-          # is a red main - which is why it is still commented out here.
-          # check "crowd" --headless --path game res://tools/crowd_check.tscn
+          #     [crowd] platform=Linux  ... overlap 42.000 -> 0.000 over 90 steps
+          #     [crowd] platform=Windows ... overlap 42.000 -> 0.000 over 90 steps
+          #
+          # Not merely a pass. **Identical numbers on both platforms**, all seven
+          # cases, which is the determinism the rewrite existed to produce and a
+          # far stronger result than "it went green once". The reporting-only
+          # step is gone; this is the gate again.
+          #
+          # If it ever reddens main, the reporter above now names a crash as
+          # SIGSEGV rather than "Exited 1", so the next failure will say what it
+          # is instead of costing another bisect.
+          check "crowd" --headless --path game res://tools/crowd_check.tscn
           #
           # night_check is absent for a different and better reason: it reads
           # pixels, and the runners are headless. Run headless it sampled the

@@ -24,7 +24,59 @@ var _chronicle: CanvasLayer
 var _codex: CanvasLayer
 
 
+func _exit_tree() -> void:
+	ScreenFit.set_menu_layout(false, true)
+
+
+## Portrait puts the wordmark above the menu instead of behind its first
+## buttons. The scrollable middle keeps both the title and statistics clear.
+func _fit_menu() -> void:
+	if not is_inside_tree():
+		return
+	var scroll := get_node_or_null("MenuScroll") as ScrollContainer
+	var title := get_node_or_null("Title") as TextureRect
+	if scroll == null or title == null or stats_label == null:
+		return
+	var screen: Vector2 = get_viewport_rect().size
+	if TouchInput.is_showing() and screen.y > screen.x:
+		var margin: float = Balance.UI_PANEL_MARGIN
+		var width: float = screen.x - margin * 2.0
+		var logo_height: float = width / title.texture.get_size().aspect()
+		title.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		title.position = Vector2(margin, margin)
+		title.size = Vector2(width, logo_height)
+		var stats_height: float = stats_label.get_combined_minimum_size().y
+		stats_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		stats_label.position = Vector2(margin, screen.y - margin - stats_height)
+		stats_label.size = Vector2(width, stats_height)
+		scroll.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		scroll.position = Vector2(margin, title.position.y + logo_height + margin)
+		scroll.size = Vector2(width, maxf(0.0,
+			stats_label.position.y - margin - scroll.position.y))
+	else:
+		# Restore the authored desktop/landscape layout after rotation.
+		title.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		title.offset_left = -420.0
+		title.offset_top = 54.0
+		title.offset_right = 420.0
+		title.offset_bottom = 474.0
+		scroll.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		scroll.offset_left = 140.0
+		scroll.offset_top = 24.0
+		scroll.offset_right = 520.0
+		scroll.offset_bottom = -24.0
+		stats_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		stats_label.offset_left = -640.0
+		stats_label.offset_top = -190.0
+		stats_label.offset_right = -40.0
+		stats_label.offset_bottom = -40.0
+
+
 func _ready() -> void:
+	ScreenFit.set_menu_layout(true)
+	get_viewport().size_changed.connect(_fit_menu)
+	TouchInput.shown_changed.connect(func(_showing: bool) -> void: _fit_menu.call_deferred())
+	_fit_menu.call_deferred()
 	MusicPlayer.play("menu")
 	# **The menu column scrolls.** It used to sit in a fixed 310px box anchored
 	# to the middle of the screen while holding far more than that - on a tall

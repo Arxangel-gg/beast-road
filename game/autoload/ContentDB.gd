@@ -396,28 +396,48 @@ func enemies_of_category(category: EnemyData.Category) -> Array[EnemyData]:
 	return out
 
 
+## **Sorted, because a directory is not.** `get_next()` hands back whatever
+## order the filesystem happens to hold, and that order is not the same on two
+## platforms: NTFS keeps its index roughly alphabetical, ext4 returns a hash
+## order that looks random. Every dictionary built here therefore had a
+## different insertion order on the Linux runners than on the Windows machine
+## the game is developed and verified on.
+##
+## Most callers already sort what they take out of these dictionaries, and the
+## ones that do not are the expensive kind of bug: not a crash, but a *different
+## answer* on one platform - the first match of a scan, the order a list is
+## drawn in, which of two equal candidates wins. That is a class of failure that
+## passes every local check and can only be found on the machine it breaks on.
+##
+## Sorting the listing costs nothing and closes the class. It also makes the
+## Linux order equal to the Windows one rather than merely stable, so what CI
+## exercises is what was verified by hand.
 func _load_dir(path: String) -> Dictionary:
 	var out: Dictionary = {}
 	var dir: DirAccess = DirAccess.open(path)
 	if dir == null:
 		return out
+	var names: Array[String] = []
 	dir.list_dir_begin()
 	var name: String = dir.get_next()
 	while name != "":
 		# Exported builds rename .tres to .remap; ResourceLoader wants the
 		# original path either way.
 		if not dir.current_is_dir() and (name.ends_with(".tres") or name.ends_with(".tres.remap")):
-			var file: String = path.path_join(name.trim_suffix(".remap"))
-			var res: Resource = load(file)
-			var data := res as GameData
-			if data == null:
-				push_warning("ContentDB: %s is not a GameData resource" % file)
-			elif data.id.is_empty():
-				push_warning("ContentDB: %s has an empty id" % file)
-			elif out.has(data.id):
-				push_warning("ContentDB: duplicate id '%s' in %s" % [data.id, path])
-			else:
-				out[data.id] = data
+			names.append(name)
 		name = dir.get_next()
 	dir.list_dir_end()
+	names.sort()
+	for entry: String in names:
+		var file: String = path.path_join(entry.trim_suffix(".remap"))
+		var res: Resource = load(file)
+		var data := res as GameData
+		if data == null:
+			push_warning("ContentDB: %s is not a GameData resource" % file)
+		elif data.id.is_empty():
+			push_warning("ContentDB: %s has an empty id" % file)
+		elif out.has(data.id):
+			push_warning("ContentDB: duplicate id '%s' in %s" % [data.id, path])
+		else:
+			out[data.id] = data
 	return out

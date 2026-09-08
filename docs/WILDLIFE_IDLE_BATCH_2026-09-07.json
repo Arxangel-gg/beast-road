@@ -1,0 +1,29 @@
+{
+  "purpose": "Replace short wildlife idles with base plus frames 1-3; preserve shipped species identity.",
+  "jobs": [
+    {
+      "id": "wildlife_fox",
+      "job_id": "6f749e4b-fb83-46ba-8697-ab049c208688"
+    },
+    {
+      "id": "wildlife_rabbit",
+      "job_id": "e919980b-ca58-4b83-82e4-ef94d6aa5da3"
+    },
+    {
+      "id": "wildlife_deer",
+      "job_id": "06ef2811-7d7f-44c4-8d27-329df1f3a8c3"
+    },
+    {
+      "id": "wildlife_stag",
+      "job_id": "b18e902b-4ca5-497d-8eb4-f85c6777646c"
+    },
+    {
+      "id": "wildlife_squirrel",
+      "job_id": "03ec61ac-6dd9-4104-9c2c-786b59c01348"
+    },
+    {
+      "id": "wildlife_raccoon",
+      "job_id": "b9b7b7bb-cea5-465e-a482-ca9bf6ee9fa7"
+    }
+  ]
+}

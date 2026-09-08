@@ -2858,6 +2858,8 @@ const ANIM_SETTLE_SPEED: float = 12.0
 ## rather than moon-walk. This is radians-equivalent - one full cycle per this
 ## many pixels of ground covered. [TUNE]
 const ENEMY_WALK_FRAMES_PER_PIXEL: float = 0.030
+## Authored breathing at rest; attacks and crowd-control always override it. [TUNE]
+const ENEMY_IDLE_FRAME_RATE: float = 3.0
 
 ## How much of the procedural walk survives once real frames are playing.
 ##
@@ -4217,6 +4219,8 @@ const UI_TOUCH_SCALE: float = 2.0
 const UI_TOUCH_MIN_TARGET_HEIGHT: float = 120.0
 const UI_TOUCH_MIN_TARGET_WIDTH: float = 76.0
 const UI_TOUCH_FONT_SCALE: float = 1.40
+## Portrait menus can enlarge text without shrinking the combat HUD canvas. [TUNE]
+const UI_PORTRAIT_MENU_WIDTH: float = 900.0
 const UI_TOUCH_MIN_FONT_SIZE: int = 26
 const UI_TOUCH_PANEL_SCALE: float = 1.10
 const UI_TOUCH_GAP_SCALE: float = 1.28
