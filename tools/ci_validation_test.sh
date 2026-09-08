@@ -3,9 +3,26 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 
-godot() { printf '%s\n' "$FIXTURE_OUTPUT"; return "$FIXTURE_STATUS"; }
+# **The fixture output goes through a file, not the environment.**
+#
+# It used to be `printf '%s\n' "$FIXTURE_OUTPUT"`, with the text passed as an
+# environment variable. That works on Windows and fails on Linux - the exact
+# class of bug this file exists to catch, caught here on this step's first ever
+# run on a runner.
+#
+# Linux caps a *single* env string at MAX_ARG_STRLEN (32 pages, 128 KiB). The
+# `many` fixture is 12000 error lines, roughly 480 KiB, so execve returned E2BIG
+# and bash exited 126 - "cannot execute" - before a line of reporter logic ran.
+# The test then read 126 against an expected 1 and looked like a reporter fault.
+#
+# A file has no such limit, and is closer to the real thing anyway: the
+# reporters read a log off disk, not out of the environment.
+godot() { cat "$FIXTURE_OUTPUT_FILE"; return "$FIXTURE_STATUS"; }
 timeout() { shift; "$@"; }
 export -f godot timeout
+FIXTURE_OUTPUT_FILE="$(mktemp)"
+export FIXTURE_OUTPUT_FILE
+trap 'rm -f "$FIXTURE_OUTPUT_FILE"' EXIT
 
 cases=0
 for workflow in guard release; do
@@ -43,7 +60,8 @@ for workflow in guard release; do
       crash) status=139; output='[menu-layout] PASS - 10 screen openings across 2 phone shapes' ;;
     esac
     set +e
-    result=$(FIXTURE_OUTPUT="$output" FIXTURE_STATUS="$status" bash -c "set -euo pipefail
+    printf '%s\n' "$output" > "$FIXTURE_OUTPUT_FILE"
+    result=$(FIXTURE_STATUS="$status" bash -c "set -euo pipefail
 $helper
 $invocation" 2>&1)
     actual=$?
