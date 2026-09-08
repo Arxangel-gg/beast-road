@@ -3,6 +3,24 @@
 Everything is built by GitHub Actions. **You do not need Godot's export
 templates on your machine** — CI downloads them.
 
+Release and Guard are separate workflows. Uploaded desktop assets establish
+download readiness, not a clean Guard result; check both before declaring a
+production candidate. Both workflows test their error reporters with
+`tools/ci_validation_test.sh`, including silent nonzero exits, warnings, large
+error cascades and indented tool findings, under strict shell settings.
+
+**You do not need the job log to diagnose a red workflow, and you cannot fetch
+it without admin rights.** These are public, and between them they located the
+2026-09-07 Guard failure — see `GUARD_FAILURE_DIAGNOSIS_2026-09-07.md`:
+
+    /repos/{owner}/{repo}/actions/runs/{run_id}/jobs        per-step timings
+    /repos/{owner}/{repo}/commits/{sha}/check-runs          annotation counts
+    /repos/{owner}/{repo}/check-runs/{id}/annotations       the ::error text
+
+Read the annotations first: every gate names itself and quotes its failing line.
+A step that failed with *no* `::error title=` annotation is itself the finding —
+it means the reporter died rather than a gate.
+
 ---
 
 ## One-time setup

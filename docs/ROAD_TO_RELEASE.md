@@ -36,8 +36,11 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ## Latest local continuation — 2026-09-07 (unpublished)
 
-See `PRODUCTION_CONTINUATION_2026-09-07.md` for the complete verification and
-handoff. Local baseline remains v0.6.1; no new tag was published in this pass.
+The earlier `PRODUCTION_CONTINUATION_2026-09-07.md` patch is now published in
+v0.6.2. Release and Android workflows succeeded, but the separate Guard job
+failed. Its full failed-job log is still needed; uploaded assets do not prove
+that Guard passed. The new, unpublished readability/CI-diagnostics patch is
+documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 
 - [x] Pinned Chronicle progress and persistent selection, including host-final
   guest reward settlement and terminal-event race regressions.
@@ -47,11 +50,37 @@ handoff. Local baseline remains v0.6.1; no new tag was published in this pass.
   coverage, and matching new gates in Update Manager and both CI workflows.
 - [x] Optional-mirror isolation, correct reused-web-file caching policy, and
   publishing messages reconciled to automatic Pages deployment.
-- [ ] Unpublished GitHub Actions rehearsal of this patch before tagging.
-- [ ] Portrait typography/scaling acceptance: geometry passes, but rendered
-  text is still too small. Real devices and controller play remain necessary.
-- [ ] Minimum-spec rendered FPS and Linux crowd verification. Headless growth
-  checks passed; their result does not close either acceptance requirement.
+- [x] Portrait menu canvas, rich-text font scaling, main-menu reflow and live
+  Codex rotation fixes: rendered phone layouts and interaction gates pass.
+- [x] CI failure reporters retain useful annotations for silent failures,
+  warnings and long logs; 16 strict-shell fixtures pass.
+- [x] **The v0.6.2 Guard failure is diagnosed** — without the log, which needs
+  admin rights the session does not have. Step timings and check-run
+  annotations were enough. Full working in
+  `GUARD_FAILURE_DIAGNOSIS_2026-09-07.md`; in short, the step died *inside* the
+  reporter (a command substitution whose pipeline failed under `errexit`), so
+  the annotation that would have named the gate was never printed. Both death
+  modes are reproduced, and the observed exit code says the failing gate printed
+  no anchored diagnostic — which is the `run_tool.gd` family, whose findings are
+  indented on purpose. **Which gate, and why only on Linux, is still open.**
+- [x] Reporters now quote an indented tool finding as well as an anchored one,
+  so that family can no longer fail with "no reason printed". Held by a
+  `tool_finding` fixture that fails without the change.
+- [x] `ContentDB._load_dir` sorts its listing. Directory order is not the same
+  on NTFS and ext4, so every content dictionary had a different insertion order
+  on the runners than on the machine the game is verified on.
+- [ ] Rehearse this patch in GitHub Actions before tagging. **Needs a push**;
+  local Guard/Release sweeps are green but they run on Windows.
+- [ ] Portrait typography/scaling acceptance on real devices and controller
+  play. Rendered desktop-hosted phone checks do not close device acceptance.
+- [ ] Minimum-spec rendered FPS. Headless growth checks passed; their result
+  does not close that acceptance requirement.
+- [~] Linux crowd verification. `crowd_check` now runs on every Guard push as a
+  **reporting-only step that cannot fail the build** — `continue-on-error`, and
+  it annotates a notice either way. That removes the objection CLAUDE.md records
+  (the cost of being wrong was a red main), so the next push answers the
+  question. Promoting it back into the load gate stays a deliberate decision,
+  made once there is a Linux result to read. It passes locally on Windows.
 
 The dated sections below retain earlier release history.
 

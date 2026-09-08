@@ -52,6 +52,10 @@ jobs:
         shell: pwsh
         run: ./tools/publish_contract_test.ps1
 
+      - name: Validate CI failure diagnostics
+        # The reporter itself is exercised before gameplay validation below.
+        run: bash tools/ci_validation_test.sh
+
       - name: Import assets
         # Godot must import once before it can export; a cold checkout has no
         # .godot/ directory. The editor exits non-zero on some headless
@@ -81,7 +85,14 @@ jobs:
               echo "::group::Output of: godot $*"
               cat "$log"
               echo "::endgroup::"
-              detail=$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$log" | head -n 8 | tr '\n' '~')
+              detail=$(awk '/^(SCRIPT )?ERROR:|^WARNING:/ { printf "%s~", $0; if (++count == 8) exit }' "$log")
+              # Tools under tools/ indent their own findings so an indented line
+              # can never fail a clean run; that also hid them from the scan
+              # above, so a failing tool annotated no reason at all. Only
+              # consulted once the anchored scan has come back empty.
+              if [ -z "$detail" ]; then
+                detail=$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { printf "%s~", $0; if (++count == 8) exit }' "$log")
+              fi
               if [ -z "$detail" ]; then detail="exited $status with no error line"; fi
               echo "::error title=Godot validation::[$*] ${detail}"
               return 1

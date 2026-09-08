@@ -84,6 +84,11 @@ jobs:
         shell: pwsh
         run: ./tools/publish_contract_test.ps1
 
+      - name: Validate CI failure diagnostics
+        # Failure diagnostics must work even when Godot prints no error line.
+        # Covered before importing or spending time on the gameplay suite.
+        run: bash tools/ci_validation_test.sh
+
       - name: Import assets
         # A cold checkout has no .godot/ directory and Godot must import once
         # before anything can load. The editor exits non-zero on some headless
@@ -112,7 +117,18 @@ jobs:
             local log status
             log="$(mktemp)"
             set +e
-            timeout 240 godot "$@" 2>&1 | tee "$log"
+            # 240s suits a gate that boots, asserts and quits, which is nearly
+            # all of them. It does *not* suit one that has to watch the clock:
+            # `breather` measures two complete wave cycles and so spends 210
+            # real seconds by construction, leaving about 11% margin on a shared
+            # runner. That is a timeout waiting to fire on a busy afternoon and
+            # report a hang that never happened.
+            #
+            # Overridable per call, like IGNORE_WARNINGS below, rather than
+            # raised for everybody: the ceiling is what turns a hang into a
+            # named failure instead of a silent twelve-minute wait, and it is
+            # worth keeping tight everywhere it can be.
+            timeout "${CHECK_TIMEOUT:-240}" godot "$@" 2>&1 | tee "$log"
             status=${PIPESTATUS[0]}
             set -e
 
@@ -130,8 +146,31 @@ jobs:
               # runner and nowhere else is then unfixable without pulling the
               # log by hand. Cost a red main and a wrong diagnosis to find.
               local why
-              why="$(grep -E '^(SCRIPT )?ERROR:|FAIL' "$log" \
-                | grep -v 'depended scripts' | head -1)"
+              # awk returns success even with no match and consumes no pipe.
+              # grep/head under pipefail could abort this reporter before the
+              # annotation, hiding the original failure behind exit code 1.
+              why="$(awk '/^(SCRIPT )?ERROR:|^WARNING:|FAIL/ && !/depended scripts/ { print; exit }' "$log")"
+              # **Second look, for the gates that indent on purpose.**
+              #
+              # Everything under tools/ that reports its own findings prints
+              # them as "  ERROR: ..." rather than at the start of a line, so
+              # that a tool describing a problem can never be mistaken for the
+              # engine failing and fail an otherwise clean run. `run_tool.gd`
+              # says so in as many words.
+              #
+              # The consequence nobody had joined up: that also hides the
+              # finding from the scan above, which anchors. A failing
+              # report/road-tiles/floor-tiles/tool-leak gate therefore exits 1
+              # having printed exactly what was wrong, and annotated "no reason
+              # printed" - the useless annotation this reporter exists to stop,
+              # on the one family of gates that had already done the work.
+              #
+              # Safe because it only runs on an already-failing status and only
+              # when the anchored scan found nothing. The scan that *decides*
+              # whether a clean run is dirty stays anchored, below.
+              if [ -z "$why" ]; then
+                why="$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { print; exit }' "$log")"
+              fi
               echo "::error title=$name::Exited $status. ${why:-no reason printed}"
               return 1
             fi
@@ -152,8 +191,7 @@ jobs:
               # class_name produces a dozen "failed to compile depended scripts"
               # and only the first line says which identifier is actually absent.
               local first
-              first="$(grep -E '^(SCRIPT )?ERROR:|^WARNING:' "$scan" \
-                | grep -v 'depended scripts' | head -1)"
+              first="$(awk '/^(SCRIPT )?ERROR:|^WARNING:/ && !/depended scripts/ { print; exit }' "$scan")"
               echo "::error title=$name::${first:-emitted an error or warning}"
               return 1
             fi
@@ -360,7 +398,10 @@ jobs:
           check "raid suspend" --headless --path game res://tools/raid_suspend_check.tscn
           check "seed reproduction" --headless --path game res://tools/seed_reproduction_check.tscn
           check "boot" --headless --path game res://tools/boot_check.tscn
-          check "breather" --headless --path game res://tools/breather_check.tscn
+          # Spends 210 real seconds watching two complete wave cycles, so the
+          # default 240s ceiling is 11% margin rather than a hang detector.
+          CHECK_TIMEOUT=420 \
+            check "breather" --headless --path game res://tools/breather_check.tscn
           check "live settings" --headless --path game res://tools/live_settings_check.tscn
           check "support diagnostics" --headless --path game res://tools/support_diagnostics_check.tscn
           check "structures" --headless --path game res://tools/structure_check.tscn
@@ -384,8 +425,16 @@ jobs:
           #     "Exited 1." and nothing else; it will now say what broke.
           #
           # So re-enabling is a one-push experiment that answers the question
-          # permanently. Still an owner's call, because the cost of being wrong
-          # is a red main - which is why it is still commented out here.
+          # permanently. It was an owner's call only because the cost of being
+          # wrong was a red main - and 2026-09-07 removed that cost rather than
+          # accepting it: the gate now runs in a **reporting-only step of its
+          # own**, below this one, which annotates a notice and cannot fail the
+          # build. So the experiment happens on every push and nobody has to
+          # bet main on it.
+          #
+          # It stays commented out *here* because promoting it into this list is
+          # the part that can turn main red, and that is still a decision to make
+          # against a Linux result rather than in advance of one.
           # check "crowd" --headless --path game res://tools/crowd_check.tscn
           #
           # night_check is absent for a different and better reason: it reads
@@ -447,6 +496,51 @@ jobs:
           # file is allowed to emit a warning of any kind.
           IGNORE_WARNINGS='juice:|rtc::impl' \
             check "webrtc" --headless --path game res://tools/webrtc_check.tscn
+
+      # **The crowd question, asked without betting main on the answer.**
+      #
+      # `crowd_check` passed on Windows and failed on Linux, and it has been
+      # commented out of the list above ever since. CLAUDE.md records why
+      # re-enabling it was left as an owner's call: re-adding it to that step
+      # risks a red main, and nobody knows yet what the Linux failure actually
+      # is.
+      #
+      # That cost is the whole of the objection, and a step of its own that
+      # cannot fail removes it. This runs the gate on Linux, on every push,
+      # and reports the answer as a notice - so the question gets answered
+      # permanently by the next push instead of waiting for somebody to accept
+      # the risk. Promoting it back into the list above stays a deliberate
+      # decision, made once there is a Linux result to read.
+      #
+      # Deliberately no `set -e`: the gate is expected to exit non-zero and
+      # that must not end the step before it has been reported. `$?` is read
+      # straight off the command for the same reason - appending `|| true`
+      # would swallow the status this step exists to print. `continue-on-error`
+      # is the belt to that braces.
+      - name: Crowd separation on Linux (reporting only, never a gate)
+        # Runs even when the step above went red, because that is exactly when
+        # the answer is worth having - a red main is the state this repository
+        # keeps ending up in, and skipping the experiment there would mean it
+        # only ever runs on the pushes that had nothing to tell us. `!cancelled`
+        # rather than `always`, because `cancel-in-progress` is on above and a
+        # superseded run has no answer to give.
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          log="$(mktemp)"
+          timeout 240 godot --headless --path game res://tools/crowd_check.tscn > "$log" 2>&1
+          status=$?
+          cat "$log"
+          why="$(awk '/^(SCRIPT )?ERROR:|^WARNING:|FAIL/ && !/depended scripts/ { print; exit }' "$log")"
+          if [ -z "$why" ]; then
+            why="$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { print; exit }' "$log")"
+          fi
+          if [ "$status" -eq 0 ] && [ -z "$why" ]; then
+            echo "::notice title=crowd (Linux)::PASS - the 2026-09-07 harness is clean on Linux; it can be promoted into the load gate."
+          else
+            echo "::notice title=crowd (Linux)::STILL RED - exited $status. ${why:-no reason printed}"
+          fi
 
       - name: Say what broke
         if: failure()
