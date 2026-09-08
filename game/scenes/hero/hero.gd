@@ -552,6 +552,12 @@ func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 	field.add_child(arrow)
 	_facing = direction
 	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD
+	# Locked like a sword swing, for the same reason: the loose has to survive
+	# the player still walking. `_lock_frames` answers to `has_state`, so a build
+	# without the sheet keeps whatever it was already showing rather than
+	# blanking - which is how the whole ranged system shipped before this frame
+	# art existed.
+	_lock_frames("shoot")
 	EventBus.hero_loosed.emit(from, direction, kind.id)
 
 

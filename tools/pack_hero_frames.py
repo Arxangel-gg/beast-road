@@ -84,6 +84,10 @@ STATES = {
     "A_game_character_sprite-hurt_flinch_in_plac": "hurt",
     "A_game_character_sprite-dash_starting_frame": "dash",
     "A_game_character_sprite-collapsing_for_death": "death",
+    # Added 2026-09-08. Named plainly rather than after a prompt because it was
+    # fetched per-frame from the animation API instead of the bulk export, which
+    # is where the prose folder names above come from.
+    "shoot": "shoot",
 }
 
 
@@ -135,6 +139,7 @@ def main() -> int:
         frame_count = counts.pop()
 
         sheet = Image.new("RGBA", (frame_count * CELL_W, len(DIRECTIONS) * CELL_H), (0, 0, 0, 0))
+        skipped = False
         for row, direction in enumerate(DIRECTIONS):
             for col, path in enumerate(per_direction[direction]):
                 with Image.open(path) as raw:
@@ -153,8 +158,26 @@ def main() -> int:
                             "%s/%s frame %d content reaches %dpx up and %.0fpx wide, "
                             "past the %dx%d cell"
                             % (state_id, direction, col, reach_up, half * 2, CELL_W, CELL_H))
+                        skipped = True
                         continue
                 place(sheet, frame, col, row)
+
+        # **A skipped frame is a hole, so the sheet is not written.**
+        #
+        # `continue` above leaves that cell empty, and an empty cell is not a
+        # visible defect in the PNG - it is one frame of an invisible character,
+        # for a twentieth of a second, in one of eight directions. The exit code
+        # already said so, but the broken sheet was written first and it is the
+        # sheet that gets committed. `hero_shoot` south-east frame 8 shipped
+        # exactly this way for as long as it took to measure the cells by hand.
+        #
+        # Leaving the previous sheet in place is the safer of the two wrong
+        # states: the old art is stale, a hole is a bug.
+        if skipped:
+            problems.append(
+                "hero_%s.png NOT written: a frame was skipped and the sheet "
+                "would have had an empty cell" % state_id)
+            continue
 
         out = os.path.join(DEST, "hero_%s.png" % state_id)
         sheet.save(out)

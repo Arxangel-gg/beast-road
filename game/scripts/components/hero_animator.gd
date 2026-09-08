@@ -48,6 +48,17 @@ const STATES: Dictionary = {
 	"hurt":      {"fps": 18.0, "loop": false},
 	"dash":      {"fps": 56.0, "loop": false},
 	"death":     {"fps": 7.0,  "loop": false},
+	# The loose, paced off the *fastest* bow rather than the slowest.
+	#
+	# `hero_ranged.request()` emits the shot immediately and then sets
+	# `draw_time` as the cooldown, so this animation is never what the arrow
+	# waits for. What matters is the other end: the shortbow's 0.54s is the
+	# shortest gap between two shots, and an animation slower than that would
+	# still be lowering the bow when the next arrow left it. Nine frames at 20
+	# fps is 0.45s, which clears the shortbow and simply plays again on the
+	# slower weapons - the hand ballista's 2.10s is a pause between shots, not
+	# a longer draw to fill.
+	"shoot":     {"fps": 20.0, "loop": false},
 }
 
 ## A one-shot state finished. The hero uses this to fall back to idle or walk.

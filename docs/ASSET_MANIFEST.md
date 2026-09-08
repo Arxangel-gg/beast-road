@@ -146,6 +146,20 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `hero_hurt.png` | 1512×1280 | T | `#E8A33D` |
 | `hero_dash.png` | 1512×1280 | T | `#E8A33D` |
 | `hero_death.png` | 1512×1280 | T | `#E8A33D` |
+| `hero_shoot.png` | 1512×1280 | T | `#E8A33D` |
+
+**`hero_shoot` is the tenth sheet, added 2026-09-08.** Ranged combat shipped on
+2026-08-31 with no firing animation at all — `hero_ranged.gd` made no animator
+call and `hero_animator.STATES` had no entry, so the Warden loosed arrows while
+standing in its idle pose. Nothing caught it: the sheets are named by state and
+a state nobody asks for is not a missing file, so `report` was right that every
+declared asset existed.
+
+Generated as a **state of the existing PixelLab hero**
+(`create_character_state`, group `7913682d-163d-4440-82cd-acc3f6f416cb`) rather
+than as new art, with the source palette snapped, so the skull, hood, red
+banner, armour and colours carry from idle unchanged. The lantern is stowed in
+this state and that is correct — both hands are on the bow.
 
 ### 5.2 Enemies — `res://art/enemies/`
 
