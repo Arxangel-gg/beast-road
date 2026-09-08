@@ -1,4 +1,43 @@
-# The v0.6.2 Guard failure, diagnosed without the log — 2026-09-07
+# The v0.6.2 Guard failure — 2026-09-07, answered 2026-09-08
+
+> ## ANSWERED, and one conclusion below was wrong
+>
+> `gh` was authenticated on 2026-09-08 and the job log fetched. **The failing
+> gate is `menu_layout_check`, and it did not fail — it crashed.**
+>
+> ```
+> [menu-layout] PASS - 10 screen openings across 2 phone shapes, ...
+> timeout: the monitored command dumped core
+> line 6:  2721 Segmentation fault      timeout 240 godot "$@" 2>&1
+> ```
+>
+> There is no Godot banner between that PASS and the segfault, so it is the same
+> process: the gate ran, passed, printed its PASS line, and then **segfaulted
+> inside engine shutdown**. Linux only — it passes on Windows, every time.
+>
+> **What the reasoning below got right:** the mechanism (the reporter died in its
+> own command substitution), and the deduction that the failing gate printed no
+> anchored `ERROR:`/`FAIL` line.
+>
+> **What it got wrong:** *why* there was no such line. It argued the culprit was
+> the `run_tool.gd` family, whose findings are indented on purpose. The real
+> reason is simpler and was not on the list — **a crash prints nothing at all.**
+> The indented-finding gap is real and worth having fixed, but it was not this.
+>
+> A third fix followed from the log: `timeout` returns 128+N when the child dies
+> on signal N, so the status was 139. Even the corrected reporter would have said
+> "Exited 139. no reason printed". It now says
+> `Crashed with SIGSEGV (segmentation fault), not an assertion. Last output: …`,
+> which distinguishes a crash from a failed assertion at a glance and says the
+> crash came *after* a PASS.
+>
+> **Still open: the segfault itself.** `menu_layout_check` frees its menu and
+> waits 30 frames before quitting, so the obvious teardown mistake is not it.
+> The repo has form here — `crowd_check` was disabled for the same
+> passes-on-Windows/dies-on-Linux reason, and was fixed by tearing down before
+> quitting. Reproducing needs Linux.
+
+## The original 2026-09-07 reasoning, kept because the method was sound
 
 `PRODUCTION_READABILITY_2026-09-07.md` closed with the failed Guard job's log
 still needed, and the log endpoint refused: downloading a job log requires admin
@@ -98,7 +137,23 @@ that the failing gate printed no anchored diagnostic.
 
 ## What is still not known
 
-Which gate failed, and why it failed on Linux and not on Windows. All 66 Guard
-checks pass on Windows at this working tree, so the reproduction has to come
-from the runner. The next push is what answers it — and now it will say what
-broke rather than "Process completed with exit code 1."
+**Superseded — see the box at the top.** The gate is `menu_layout_check` and it
+segfaults during shutdown on Linux after passing. What remains unknown is the
+cause of that segfault, which needs a Linux machine to reproduce.
+
+Two candidates worth trying first, both from this repo's own history:
+
+- **Quitting on live objects.** `crowd_check` had exactly this shape — clean on
+  Windows, dead on Linux — and was fixed by tearing itself down before quitting.
+  `menu_layout_check` does free its menu and wait 30 frames, so it is not the
+  naive version of this bug, but it also resizes the window, calls
+  `ScreenFit._fit()` and stops three audio systems in `_finish()`, any of which
+  could leave something half-torn-down at `quit()`.
+- **Font and TextServer teardown.** This gate opens every menu panel at two
+  phone shapes, which is the heaviest dynamic-font workload of any check, and
+  the run also changed how RichTextLabel scales its five faces.
+
+Note the readability patch (commit `69eb59f`) **changed this gate substantially**
+— rotation, scrollbar dragging and physical touch targets were added after the
+failing run. So the next Guard run is not a clean re-test of the same code: it
+may crash differently, or not at all.

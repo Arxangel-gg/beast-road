@@ -136,6 +136,34 @@ jobs:
               echo "::error title=$name::Timed out. Something is hanging, not failing."
               return 1
             fi
+            # **A crash is not an assertion, and the difference is the whole
+            # diagnosis.**
+            #
+            # This is what actually broke the v0.6.2 run. `menu_layout_check`
+            # ran, passed, printed its PASS line - and then segfaulted inside
+            # engine shutdown, on Linux only. The log therefore held no `ERROR:`
+            # and no `FAIL`, because a crash prints neither, and every scan
+            # below it had nothing to find.
+            #
+            # `timeout` returns 128+N when the child dies on signal N, so the
+            # status was 139. "Exited 139" is true and tells you nothing; 139 is
+            # 128+11 and 11 is SIGSEGV. Naming it turns "some gate failed" into
+            # "that gate crashed rather than failed an assertion", which is a
+            # completely different investigation - and quoting the last line
+            # says *where*, which here was after a PASS.
+            if [ "$status" -gt 128 ]; then
+              local signal_name
+              case "$((status - 128))" in
+                4)  signal_name="SIGILL (illegal instruction)" ;;
+                6)  signal_name="SIGABRT (abort - often a failed engine assertion)" ;;
+                8)  signal_name="SIGFPE (arithmetic fault)" ;;
+                9)  signal_name="SIGKILL (killed - suspect the runner running out of memory)" ;;
+                11) signal_name="SIGSEGV (segmentation fault)" ;;
+                *)  signal_name="signal $((status - 128))" ;;
+              esac
+              echo "::error title=$name::Crashed with $signal_name, not an assertion. Last output: $(tail -n 1 "$log")"
+              return 1
+            fi
             if [ "$status" -ne 0 ]; then
               # **Say what it said, not just that it failed.**
               #

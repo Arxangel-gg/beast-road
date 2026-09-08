@@ -54,8 +54,21 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   Codex rotation fixes: rendered phone layouts and interaction gates pass.
 - [x] CI failure reporters retain useful annotations for silent failures,
   warnings and long logs; 16 strict-shell fixtures pass.
-- [x] **The v0.6.2 Guard failure is diagnosed** — without the log, which needs
-  admin rights the session does not have. Step timings and check-run
+- [x] **The v0.6.2 Guard failure is identified: `menu_layout_check` segfaults on
+  Linux during engine shutdown, after passing.** `gh` was authenticated on
+  2026-09-08 and the job log confirms it — a `Segmentation fault` on the same
+  process that had just printed `[menu-layout] PASS`, with no Godot banner
+  between them. It passes on Windows every time. **The crash itself is still
+  open and needs a Linux machine**; `crowd_check` has the same
+  passes-here/dies-there shape and was fixed by tearing down before quitting.
+  Note that commit `69eb59f` changed this gate substantially, so the next Guard
+  run is not a clean re-test of the code that crashed.
+- [x] Reporters now name a signal death: `timeout` returns 128+N, so a crash
+  read as "Exited 139" and now reads
+  `Crashed with SIGSEGV (segmentation fault), not an assertion. Last output: …`.
+  A crash and a failed assertion are different investigations.
+- [x] The 2026-09-07 diagnosis of the *mechanism* — reached before the log —
+  was correct, and its attribution was not. Step timings and check-run
   annotations were enough. Full working in
   `GUARD_FAILURE_DIAGNOSIS_2026-09-07.md`; in short, the step died *inside* the
   reporter (a command substitution whose pipeline failed under `errexit`), so
