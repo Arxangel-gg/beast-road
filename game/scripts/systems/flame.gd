@@ -145,25 +145,36 @@ func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
 	var base_width: float = size * float(layer["width"]) * 0.52
 
 	var segments: int = maxi(Balance.FLAME_SEGMENTS, 3)
-	var previous_x: float = _centre_at(0.0, speed, lick, phase, height)
-	var previous_half: float = _half_width_at(0.0, base_width, speed, phase)
 
-	for i: int in segments:
-		var u: float = float(i + 1) / float(segments)
+	# **One polygon for the layer, not one per segment.**
+	#
+	# This drew a separate quad between each pair of slices, which is the
+	# obvious way to write it and was the single most expensive thing in the
+	# game. Nine segments times three layers times forty-eight lit flames is
+	# **1,296 `draw_colored_polygon` calls every frame**, each one a four-point
+	# polygon rebuilt from scratch - and in the compatibility renderer a draw
+	# call is CPU work whether or not the GPU cares.
+	#
+	# `perf_bisect` measured `flame.gd` at 14.8 ms of a 21.5 ms frame, against a
+	# ~2.5 ms noise floor that every other script in the game sat at. It is also
+	# why the quality presets looked innocent: flames are not foliage, lights,
+	# clouds, particles or shadows, so every `--off=` combination left them
+	# running and the cost looked like an immovable floor.
+	#
+	# The quads shared their edges exactly, so their union is a simple strip and
+	# the same filled area can be expressed as one polygon: up the left edge,
+	# back down the right. Identical pixels, nine times fewer draw calls.
+	var outline: PackedVector2Array = PackedVector2Array()
+	outline.resize((segments + 1) * 2)
+	var last: int = outline.size() - 1
+	for i: int in segments + 1:
+		var u: float = float(i) / float(segments)
 		var x: float = _centre_at(u, speed, lick, phase, height)
 		var half: float = _half_width_at(u, base_width, speed, phase)
-		var y0: float = -height * (float(i) / float(segments))
-		var y1: float = -height * u
-
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(previous_x - previous_half, y0),
-			Vector2(previous_x + previous_half, y0),
-			Vector2(x + half, y1),
-			Vector2(x - half, y1),
-		]), colour)
-
-		previous_x = x
-		previous_half = half
+		var y: float = -height * u
+		outline[i] = Vector2(x - half, y)
+		outline[last - i] = Vector2(x + half, y)
+	draw_colored_polygon(outline, colour)
 
 
 ## Sideways displacement of the slice `u` of the way up the flame.

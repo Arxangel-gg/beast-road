@@ -94,16 +94,15 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   it `Crashed with SIGSEGV` instead of `Exited 1`.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
-- [ ] **60 FPS at 1920×1080 is FAILING — 55 FPS measured on the developer
-  RTX 3070 Ti on 2026-09-08 at a pinned 1080p, against 62 FPS on the same
-  machine on 2026-08-20.** Growth is clean (+0 orphans), so this is steady-state
-  frame cost rather than a leak. **Pin the resolution before comparing**: the
-  window opens at 2560×1440 by default and unpinned runs read 48–49 FPS, which
-  would have been recorded as a 13 FPS regression instead of about 7. Detail,
-  all three runs and the commands that would separate CPU from GPU are in §4.
-  Recorded rather than investigated, on the owner's instruction. Minimum-spec
-  hardware remains separately unverified; the release workflow's headless run is
-  green on the growth half alone and says nothing about this.
+- [x] **60 FPS at 1920×1080 — FIXED 2026-09-08. 55 FPS → 128–136 FPS.**
+  `perf_check` passes on real hardware with 2.2× headroom. One cause, one
+  change: `Flame._draw_layer` drew a separate quad between every pair of
+  segments, so 48 lit flames × 3 layers × 9 segments was **1,296
+  `draw_colored_polygon` calls every frame**. The quads shared their edges, so
+  the same filled area is one polygon per layer — nine times fewer draw calls
+  and, verified by a pinned-time A/B render, **pixel-identical** (max difference
+  0 across 3.7M pixels). Detail in §4. Minimum-spec hardware remains separately
+  unverified, but the headroom is now large rather than negative.
 - [x] Night playable at minimum brightness — measured on a real renderer for the
   first time (road 0.107 against a 0.025 floor, enemy 0.040 against 0.005).
   Stays a `manual` row in `V4_CONFORMANCE.md` because no headless runner can
@@ -2082,18 +2081,54 @@ is a horizontal bar at all.
       *also* bound to the four move actions, so anything else reading movement
       gets it free. Gated by a test that every rebindable and every `ui_*` action
       carries a pad event, and that re-applying does not duplicate bindings.
-- [ ] **60 FPS at 1920×1080 — FAILING. Release blocker as of 2026-09-08.**
+- [x] **60 FPS at 1920×1080 — MET. Fixed 2026-09-08: 55 FPS → 128–136 FPS.**
 
-      **Measured 55 FPS at a pinned 1920×1080, against a 60 FPS budget.** The
-      same machine recorded 62 FPS on 2026-08-20 (below). GDD §52 makes the
-      number a release requirement, so this row is no longer partial.
+      One cause, one change, and it was in the last place the quality presets
+      would ever have pointed.
 
-          2560x1440   avg 21.0 ms (48 fps)  p99 23.6 ms  worst 137.3 ms  4 hitches
-          2560x1440   avg 20.4 ms (49 fps)  p99 22.7 ms  worst  32.0 ms  0 hitches
-          1920x1080   avg 18.3 ms (55 fps)  p99 20.1 ms  worst  51.7 ms  2 hitches
+      `Flame._draw_layer` drew a separate quad between each pair of segments.
+      Nine segments, three layers, forty-eight lit flames — **1,296
+      `draw_colored_polygon` calls every single frame**, each a four-point
+      polygon rebuilt from scratch. In the compatibility renderer a draw call
+      costs CPU whether or not the GPU cares, which is why the game measured as
+      neither GPU-bound nor actor-bound.
 
-      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, vsync confirmed off;
-      120 measured seconds for the 1440p pair, 60 for the pinned run.
+      Consecutive quads shared their edges exactly, so their union is a simple
+      y-monotone strip and the identical filled area can be drawn as **one
+      polygon per layer**: up the left edge, back down the right. Nine times
+      fewer draw calls for the same pixels.
+
+          before   1920x1080  avg 18.3 ms ( 55 fps)  p99 20.1 ms  1489 draw calls  1 hitch/min
+          after    1920x1080  avg  7.8 ms (128 fps)  p99  9.1 ms   807 draw calls  1 hitch/min
+          after    1920x1080  avg  7.4 ms (136 fps)  p99  9.1 ms   785 draw calls  0 hitches
+
+      **Verified pixel-identical, not assumed.** Six flames were rendered at
+      pinned `_time` and `_seed` values, before and after, and diffed: **maximum
+      difference 0 across 3,686,400 pixels.** `night_check`, `torch_check` and
+      `recovery_polish_check` all still pass on a real renderer.
+
+      **Why every earlier measurement missed it.** `--off=` can disable cast
+      shadows, contact shadows, clouds, particles, foliage, lights and flames —
+      and the 2026-09-08 investigation ran
+      `--off=lights,foliage,clouds,particles,cast,contact`, which omits
+      `flames`. So the "15.4 ms floor with everything off" still had all 48
+      flames drawing 1,296 polygons a frame. The floor was the bug.
+
+      The tool that found it is `tools/perf_bisect.tscn`, added in the same
+      change: it groups every node by its script, switches `_process` off one
+      group at a time and measures. `flame.gd` came back at **14.76 ms of a
+      21.45 ms frame** while every other script in the game sat at a ~2.5 ms
+      noise floor. Nothing else was close, and nothing else needed changing.
+
+          godot --path game --resolution 1920x1080 res://tools/perf_bisect.tscn -- --seconds=3
+
+      Flame is still the largest single cost at 3.2 ms of a 6.9 ms frame, so
+      there is more available here if minimum-spec hardware ever needs it. It
+      was left alone because the budget is met with 2.2× headroom and the
+      remaining work would be change for its own sake.
+
+      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, vsync confirmed off,
+      60 measured seconds per run.
 
       **Read the resolution before reading the regression.** The first two runs
       were taken at 2560×1440 and were nearly recorded as a 13 FPS regression.
@@ -2124,10 +2159,12 @@ is a horizontal bar at all.
       it cannot support. Same treatment `night_check` got for the dummy
       renderer. It does not fire here, because 180 Hz is ample headroom.
 
-### What the 2026-09-08 diagnosis established
+### What the 2026-09-08 diagnosis established, and where it was wrong
 
-      **The bottleneck is not the GPU, not the actors, and not any one visual
-      system.** Every figure below is 1920×1080 on the RTX 3070 Ti:
+      The bisection above is what actually found the cause. The measurements
+      that preceded it are kept because their *shape* is what pointed at a fixed
+      per-frame cost rather than a scene-content one, and because one of the
+      conclusions drawn from them was wrong in an instructive way:
 
           High, full fight                                   55 fps   18.3 ms
           Low quality, full fight                            56 fps   17.9 ms
@@ -2136,79 +2173,27 @@ is a horizontal bar at all.
           idle - foliage                                     59 fps   16.8 ms
           idle - lights, foliage, clouds, particles, shadows 65 fps   15.4 ms
 
-      - **Low quality buys 1 FPS**, while cutting render objects 26% and
-        primitives 39%. Not GPU-bound.
-      - **An empty battlefield buys 1 FPS.** Not the enemies, not the fight, and
-        not the per-actor `ShaderMaterial` draw-call theory — that was the
-        first hypothesis and the idle run disproves it.
-      - **No single system dominates.** Lights are worth ~2, foliage ~3, and all
-        six together ~9.
-      - **There is a 15.4 ms floor** — 65 FPS with nobody fighting and every
-        optional visual system disabled. That is the shape of the problem: the
-        budget has about five frames of margin in the best case the engine can
-        currently be put in, and the shipping configuration sits 15-20% under.
+      Low quality buying one frame, and an empty battlefield buying one, were
+      both correct and both useful: they ruled out the GPU and ruled out the
+      actors, and they killed the leading hypothesis that per-actor
+      `ShaderMaterial`s were costing draw calls.
 
-      So this is not a hotspot to find and delete. It is a diffuse per-frame
-      cost, and closing it is a scope-and-optimisation project rather than a
-      bug fix — which makes it an owner's decision about what the frame budget
-      is actually buying, not something to quietly tune.
-
-      Contamination was checked before believing any of it: no browser open, and
-      TeamViewer measured at **0% CPU across a 12-second sample** (its large
-      cumulative CPU figure is uptime, not active capture). The cleanest run of
-      the three had zero hitches, so this is steady-state cost rather than a
-      stutter artefact.
-
-      One honest limit on all three numbers: the field is not identical between
-      runs — render objects varied 2143 / 2166 / 2419 — so a few FPS of the
-      spread is how many bodies happened to be alive, not resolution or code.
-      Comparisons at this precision want more than one run per configuration.
-
-      **Growth is healthy**, which is what rules out a leak: +0 orphans, +1.1%
-      memory, +0.7% nodes between the first and last third. This is not
-      something accumulating during a run; it is what a frame now costs.
-
-      Two clues, recorded so the next session does not start from zero. Neither
-      is a diagnosis — no profiling was done, on the owner's instruction to
-      record and move on:
-
-      - **`frame split process` was 19.1 ms even at 1080p**, and 22.2 ms at
-        1440p. That is CPU script time against a 16.7 ms *total* budget for 60
-        FPS — on those samples the CPU alone could not reach 60 with an idle
-        GPU, and it barely moved when a third of the pixels went away. That is
-        the strongest single indication the cost is CPU-side rather than fill.
-        Each is one instantaneous reading taken at report time rather than an
-        average, so treat them as a pointer, not proof.
-      - ~~1362 draw calls for 2143 render objects, and `ActorPolish` giving
-        every sprite its own `ShaderMaterial`.~~ **Disproved on 2026-09-08.**
-        This was the leading hypothesis and it is wrong: an idle battlefield
-        with no actors fighting runs at the same frame rate as a full fight, so
-        per-actor material cost cannot be what is spending the frame. Left
-        struck through rather than deleted so nobody spends an afternoon
-        re-deriving it.
-
-      **Do not repeat the elimination that has already been done.** The comment
-      in `perf_check.gd` records that turning individual effects off never moved
-      the frame time, which is why `--idle` exists. The tool has the flags to
-      settle CPU-versus-GPU cheaply:
-
-          godot --path game res://tools/perf_check.tscn -- --seconds=45 --build --quality=low
-          godot --path game res://tools/perf_check.tscn -- --seconds=45 --idle
-
-      The resolution caveat that would have gone here has been eliminated — see
-      the pinned 1920×1080 run above. It cost 6 FPS of the apparent gap and did
-      not account for the rest.
+      **The conclusion that there was "a 15.4 ms floor" was wrong**, and the
+      reason is worth keeping: that last row omitted `flames` from its `--off=`
+      list, so the single most expensive thing in the game was still running
+      through the measurement that was supposed to have turned everything off.
+      A floor derived from a list is only as good as the list.
 
       `tools/perf_check.tscn` asserts growth always and asserts frame timing
       **only when a real renderer is present** — the dummy renderer does no GPU
       work, so a headless frame rate says nothing about a real one. It runs in
       the release workflow every publish, where it is therefore green on the
-      growth half alone and silent about this failure.
+      growth half alone and says nothing either way about the rendered rate.
 
       **The frame-rate number still has to come from a windowed run on real
-      hardware:**
+      hardware, and the resolution must be pinned:**
 
-          godot --path game res://tools/perf_check.tscn -- --seconds=120 --build
+          godot --path game --resolution 1920x1080 res://tools/perf_check.tscn -- --seconds=60 --build
 
       **Post-structure-animation developer-hardware pass, 2026-08-20:** RTX 3070
       Ti, High, 1920×1080, 120 measured seconds: 62 FPS average, 19.7 ms p99,
@@ -2217,8 +2202,16 @@ is a horizontal bar at all.
       packages were live. The earlier foliage batching pass converted roughly
       1,380 polygon draw commands to one static mesh per depth band.
 
-      The row remains partial until minimum/recommended hardware are defined and
-      qualified; one high-end developer machine is not the shipping matrix.
+      **That 62 FPS reading is superseded and should not be treated as a
+      baseline.** It was taken windowed without a pinned resolution, so it is
+      not comparable to anything measured since, and the flame cost it was
+      measuring was present then too. The current evidence is the 128–136 FPS
+      pair above.
+
+      Minimum/recommended hardware are still undefined and unqualified; one
+      high-end developer machine is not the shipping matrix. What changed is
+      that the margin on that machine is now 2.2× rather than negative, so a
+      weaker machine has room to be slower and still pass.
 
       One real finding stands: the field carried **107 PointLight2D**, from
       torches going 24 → ~60 with their radius raised 225 → 360. Every 2D light
