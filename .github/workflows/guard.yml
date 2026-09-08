@@ -434,36 +434,31 @@ jobs:
           check "support diagnostics" --headless --path game res://tools/support_diagnostics_check.tscn
           check "structures" --headless --path game res://tools/structure_check.tscn
           check "torches" --headless --path game res://tools/torch_check.tscn
-          # Deliberately absent: the old crowd_check passed on Windows but
-          # failed on Linux. The 2026-09-07 harness uses seeded, fixed-step,
-          # sorted fixtures; that revision still needs Linux verification. Run it by
-          # hand when touching crowd separation; do not re-add it here until
-          # somebody knows what the Linux failure actually is.
+          # **Back in the gate on 2026-09-08, after five days out of it.**
           #
-          # 2026-09-02, two things changed that make finding out cheap:
+          # The old crowd_check passed on Windows and failed on Linux, and was
+          # commented out here because nobody knew why - re-adding it risked a
+          # red main, which made it an owner's call rather than an agent's.
           #
-          #   - The gate now tears itself down before quitting. It used to build
-          #     fourteen enemies and a field and quit on top of them, and live
-          #     objects at exit print `WARNING: N ObjectDB instances were
-          #     leaked` - which fails a check on any machine that still held
-          #     them when the tree came down. That is one candidate removed, not
-          #     a diagnosis: it does not reproduce on Windows either way.
-          #   - `check()` above now quotes the failing line. The reason this was
-          #     bisected instead of debugged is that a failing gate annotated
-          #     "Exited 1." and nothing else; it will now say what broke.
+          # The 2026-09-07 rewrite (seeded, fixed-step, sorted fixtures, and
+          # tearing itself down before quitting rather than quitting on top of
+          # fourteen live enemies) was believed to fix it, but "believed" is not
+          # a Linux result. So it ran first as a reporting-only step that could
+          # not fail the build - the cost of being wrong removed rather than
+          # accepted - and that step answered the question on its first push:
           #
-          # So re-enabling is a one-push experiment that answers the question
-          # permanently. It was an owner's call only because the cost of being
-          # wrong was a red main - and 2026-09-07 removed that cost rather than
-          # accepting it: the gate now runs in a **reporting-only step of its
-          # own**, below this one, which annotates a notice and cannot fail the
-          # build. So the experiment happens on every push and nobody has to
-          # bet main on it.
+          #     [crowd] platform=Linux  ... overlap 42.000 -> 0.000 over 90 steps
+          #     [crowd] platform=Windows ... overlap 42.000 -> 0.000 over 90 steps
           #
-          # It stays commented out *here* because promoting it into this list is
-          # the part that can turn main red, and that is still a decision to make
-          # against a Linux result rather than in advance of one.
-          # check "crowd" --headless --path game res://tools/crowd_check.tscn
+          # Not merely a pass. **Identical numbers on both platforms**, all seven
+          # cases, which is the determinism the rewrite existed to produce and a
+          # far stronger result than "it went green once". The reporting-only
+          # step is gone; this is the gate again.
+          #
+          # If it ever reddens main, the reporter above now names a crash as
+          # SIGSEGV rather than "Exited 1", so the next failure will say what it
+          # is instead of costing another bisect.
+          check "crowd" --headless --path game res://tools/crowd_check.tscn
           #
           # night_check is absent for a different and better reason: it reads
           # pixels, and the runners are headless. Run headless it sampled the
@@ -524,51 +519,6 @@ jobs:
           # file is allowed to emit a warning of any kind.
           IGNORE_WARNINGS='juice:|rtc::impl' \
             check "webrtc" --headless --path game res://tools/webrtc_check.tscn
-
-      # **The crowd question, asked without betting main on the answer.**
-      #
-      # `crowd_check` passed on Windows and failed on Linux, and it has been
-      # commented out of the list above ever since. CLAUDE.md records why
-      # re-enabling it was left as an owner's call: re-adding it to that step
-      # risks a red main, and nobody knows yet what the Linux failure actually
-      # is.
-      #
-      # That cost is the whole of the objection, and a step of its own that
-      # cannot fail removes it. This runs the gate on Linux, on every push,
-      # and reports the answer as a notice - so the question gets answered
-      # permanently by the next push instead of waiting for somebody to accept
-      # the risk. Promoting it back into the list above stays a deliberate
-      # decision, made once there is a Linux result to read.
-      #
-      # Deliberately no `set -e`: the gate is expected to exit non-zero and
-      # that must not end the step before it has been reported. `$?` is read
-      # straight off the command for the same reason - appending `|| true`
-      # would swallow the status this step exists to print. `continue-on-error`
-      # is the belt to that braces.
-      - name: Crowd separation on Linux (reporting only, never a gate)
-        # Runs even when the step above went red, because that is exactly when
-        # the answer is worth having - a red main is the state this repository
-        # keeps ending up in, and skipping the experiment there would mean it
-        # only ever runs on the pushes that had nothing to tell us. `!cancelled`
-        # rather than `always`, because `cancel-in-progress` is on above and a
-        # superseded run has no answer to give.
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        run: |
-          set -uo pipefail
-          log="$(mktemp)"
-          timeout 240 godot --headless --path game res://tools/crowd_check.tscn > "$log" 2>&1
-          status=$?
-          cat "$log"
-          why="$(awk '/^(SCRIPT )?ERROR:|^WARNING:|FAIL/ && !/depended scripts/ { print; exit }' "$log")"
-          if [ -z "$why" ]; then
-            why="$(awk '/^[[:space:]]+(SCRIPT )?ERROR:/ { print; exit }' "$log")"
-          fi
-          if [ "$status" -eq 0 ] && [ -z "$why" ]; then
-            echo "::notice title=crowd (Linux)::PASS - the 2026-09-07 harness is clean on Linux; it can be promoted into the load gate."
-          else
-            echo "::notice title=crowd (Linux)::STILL RED - exited $status. ${why:-no reason printed}"
-          fi
 
       - name: Say what broke
         if: failure()

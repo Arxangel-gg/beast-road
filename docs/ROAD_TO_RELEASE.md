@@ -82,8 +82,16 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 - [x] `ContentDB._load_dir` sorts its listing. Directory order is not the same
   on NTFS and ext4, so every content dictionary had a different insertion order
   on the runners than on the machine the game is verified on.
-- [ ] Rehearse this patch in GitHub Actions before tagging. **Needs a push**;
-  local Guard/Release sweeps are green but they run on Windows.
+- [x] **The Actions rehearsal is done and Guard is green on Linux** — PR #1,
+  run `34187635225`, both jobs (`Does it load`, `Does it export`) successful.
+  This is the first green Guard since v0.6.2.
+- [~] **The `menu_layout_check` segfault did not reproduce on that run** — it
+  printed `[menu-layout] PASS` and the job went on. **This is not proof it is
+  fixed.** Commit `69eb59f` rewrote large parts of that gate (rotation,
+  scrollbar dragging, physical touch targets), so this was never a clean re-test
+  of the code that crashed, and a shutdown crash can be intermittent besides.
+  Treat it as unreproduced, not resolved; if it returns, the reporter now names
+  it `Crashed with SIGSEGV` instead of `Exited 1`.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
 - [ ] **60 FPS at 1920×1080 is FAILING — 55 FPS measured on the developer
@@ -100,12 +108,18 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   first time (road 0.107 against a 0.025 floor, enemy 0.040 against 0.005).
   Stays a `manual` row in `V4_CONFORMANCE.md` because no headless runner can
   reproduce it, which is not the same as unanswered.
-- [~] Linux crowd verification. `crowd_check` now runs on every Guard push as a
-  **reporting-only step that cannot fail the build** — `continue-on-error`, and
-  it annotates a notice either way. That removes the objection CLAUDE.md records
-  (the cost of being wrong was a red main), so the next push answers the
-  question. Promoting it back into the load gate stays a deliberate decision,
-  made once there is a Linux result to read. It passes locally on Windows.
+- [x] **Linux crowd verification — done, and `crowd_check` is back in the load
+  gate as of 2026-09-08.** Five days out of it, settled in one push. It ran
+  first as a reporting-only step that could not redden main, which removed the
+  objection rather than accepting it, and answered on its first run — not merely
+  green but **numerically identical to Windows**, all seven cases:
+
+      [crowd] platform=Linux   ... overlap 42.000 -> 0.000 over 90 steps, max step 2.500 / 2.500
+      [crowd] platform=Windows ... overlap 42.000 -> 0.000 over 90 steps, max step 2.500 / 2.500
+
+  That is the cross-platform determinism the seeded fixed-step rewrite existed
+  to produce, and much stronger evidence than a single pass. The reporting-only
+  step has been removed; the gate is the gate again.
 
 The dated sections below retain earlier release history.
 
