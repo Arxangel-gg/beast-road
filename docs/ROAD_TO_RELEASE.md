@@ -2065,6 +2065,51 @@ is a horizontal bar at all.
       **At matched resolution the gap is about 7 FPS, not 13** — real, and worth
       an owner's attention, but a third of what the unpinned runs implied.
 
+      **It is not a refresh-rate artefact, and that was checked properly.** Six
+      runs landing within a couple of milliseconds of each other across wildly
+      different loads is exactly the signature `perf_check.gd` warns about — a
+      compositor holding the swap so every number lands near the refresh
+      interval. `Win32_VideoController` reported 60 Hz and the whole result was
+      nearly withdrawn. That 60 Hz belongs to a *secondary* monitor;
+      `DisplayServer.screen_get_refresh_rate` on the window's own screen says
+      **180 Hz**. There is no ceiling and the frame rate is real. Ask the
+      display server about the screen the window is on — the OS-level query
+      answers about a different one.
+
+      `perf_check` now refuses to *judge* timing when the window's screen
+      refreshes at or near the budget, rather than reporting a confident number
+      it cannot support. Same treatment `night_check` got for the dummy
+      renderer. It does not fire here, because 180 Hz is ample headroom.
+
+### What the 2026-09-08 diagnosis established
+
+      **The bottleneck is not the GPU, not the actors, and not any one visual
+      system.** Every figure below is 1920×1080 on the RTX 3070 Ti:
+
+          High, full fight                                   55 fps   18.3 ms
+          Low quality, full fight                            56 fps   17.9 ms
+          High, idle battlefield (nobody fighting)           56 fps   17.9 ms
+          idle - lights                                      58 fps   17.3 ms
+          idle - foliage                                     59 fps   16.8 ms
+          idle - lights, foliage, clouds, particles, shadows 65 fps   15.4 ms
+
+      - **Low quality buys 1 FPS**, while cutting render objects 26% and
+        primitives 39%. Not GPU-bound.
+      - **An empty battlefield buys 1 FPS.** Not the enemies, not the fight, and
+        not the per-actor `ShaderMaterial` draw-call theory — that was the
+        first hypothesis and the idle run disproves it.
+      - **No single system dominates.** Lights are worth ~2, foliage ~3, and all
+        six together ~9.
+      - **There is a 15.4 ms floor** — 65 FPS with nobody fighting and every
+        optional visual system disabled. That is the shape of the problem: the
+        budget has about five frames of margin in the best case the engine can
+        currently be put in, and the shipping configuration sits 15-20% under.
+
+      So this is not a hotspot to find and delete. It is a diffuse per-frame
+      cost, and closing it is a scope-and-optimisation project rather than a
+      bug fix — which makes it an owner's decision about what the frame budget
+      is actually buying, not something to quietly tune.
+
       Contamination was checked before believing any of it: no browser open, and
       TeamViewer measured at **0% CPU across a 12-second sample** (its large
       cumulative CPU figure is uptime, not active capture). The cleanest run of
@@ -2091,11 +2136,13 @@ is a horizontal bar at all.
         the strongest single indication the cost is CPU-side rather than fill.
         Each is one instantaneous reading taken at report time rather than an
         average, so treat them as a pointer, not proof.
-      - **1362 draw calls for 2143 render objects.** `ActorPolish.attach` gives
-        every sprite its own `ShaderMaterial`, which prevents 2D batching. That
-        is long-standing; what changed on 2026-09-01 is that fire, ice and the
-        wind-up tell moved *into* those materials, so every actor's fragment
-        work got more expensive at the same time.
+      - ~~1362 draw calls for 2143 render objects, and `ActorPolish` giving
+        every sprite its own `ShaderMaterial`.~~ **Disproved on 2026-09-08.**
+        This was the leading hypothesis and it is wrong: an idle battlefield
+        with no actors fighting runs at the same frame rate as a full fight, so
+        per-actor material cost cannot be what is spending the frame. Left
+        struck through rather than deleted so nobody spends an afternoon
+        re-deriving it.
 
       **Do not repeat the elimination that has already been done.** The comment
       in `perf_check.gd` records that turning individual effects off never moved

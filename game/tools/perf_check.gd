@@ -35,6 +35,16 @@ extends Node
 ## stalled frame is the hitch budget's job, not the throughput budget's.
 const MIN_AVERAGE_FPS: float = 60.0
 
+## How far above the budget a display must refresh before this gate will judge a
+## frame rate at all.
+##
+## Not zero, and not a round number for its own sake. A panel refreshing at
+## exactly the budget can only ever *equal* it, so a passing measurement would be
+## indistinguishable from a throttled one; a little headroom is what makes the
+## two separable. 15 Hz is enough that the common 75, 120 and 144 Hz panels all
+## qualify while 60 Hz does not, which is the distinction that matters here.
+const REFRESH_HEADROOM: float = 15.0
+
 ## GDD §47: no recurring gameplay hitch above 33 ms.
 ##
 ## "Recurring" is the operative word. One long frame while a scope builds is not
@@ -307,6 +317,44 @@ func _check_timing() -> void:
 	if not _has_renderer():
 		_notes.append("timing NOT asserted: the dummy renderer does no GPU work, "
 			+ "so a headless frame rate says nothing about a real one")
+		return
+
+	# **You cannot measure a 60 FPS budget on a 60 Hz screen.**
+	#
+	# The comment in `_ready` warns that a compositor can hold the swap whatever
+	# vsync says, and that every number then "lands near the refresh interval and
+	# looks like a fixed cost in the game". It warns; it did not check.
+	#
+	# This guard exists because on 2026-09-08 that warning nearly claimed a
+	# second victim. Six runs produced 48-56 FPS across loads that should have
+	# differed wildly - Low quality, an idle battlefield with nobody on it, and a
+	# full fight all landed within a couple of milliseconds - which is exactly
+	# the signature the warning describes. `Win32_VideoController` reported
+	# 60 Hz, and the whole result was almost withdrawn as a measurement artefact.
+	#
+	# It was not. That 60 Hz belonged to a *secondary* monitor;
+	# `DisplayServer.screen_get_refresh_rate` on the window's own screen says
+	# 180 Hz, there was no ceiling, and the frame rate was real. Ask the display
+	# server about the screen the window is actually on - the OS-level query
+	# answers about a different one, and the two disagreeing is how an hour went.
+	#
+	# The check stays because the trap is real for anyone measuring on a 60 Hz
+	# panel: with a refresh at or below the budget there is no headroom in which
+	# to *demonstrate* the budget, and a pass would mean the display presented
+	# more frames than it can present. Report the number and refuse to judge it,
+	# exactly as the headless branch above does. A gate that cannot answer must
+	# say so - `night_check` was given the same treatment when it turned out to
+	# be sampling the dummy renderer and confidently printing PASS.
+	var refresh: float = DisplayServer.screen_get_refresh_rate(
+		DisplayServer.window_get_current_screen())
+	if refresh > 0.0 and refresh < MIN_AVERAGE_FPS + REFRESH_HEADROOM:
+		_notes.append(("timing NOT asserted: this screen refreshes at %.0f Hz and "
+			+ "the budget is %.0f FPS, so there is no headroom to measure it in. "
+			+ "Windowed OpenGL is throttled by the desktop compositor whatever "
+			+ "vsync reports, so every load lands near %.1f ms and looks like a "
+			+ "fixed cost. Measure on a display above %.0f Hz.")
+			% [refresh, MIN_AVERAGE_FPS, 1000.0 / refresh,
+				MIN_AVERAGE_FPS + REFRESH_HEADROOM])
 		return
 
 	if fps < MIN_AVERAGE_FPS:
