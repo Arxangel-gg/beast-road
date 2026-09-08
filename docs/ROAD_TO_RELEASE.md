@@ -92,12 +92,17 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   (HTTP 206), `releases/latest` resolves unauthenticated, and the Dropbox mirror
   serves the game zip. Nobody had ever run a published artifact before; CI only
   ever proved it *exported*.
-- [ ] **The browser build hangs on the splash and has done for at least two
-  releases.** Found by loading it, which had never been done — the checks behind
-  the old "web build is live" claim were `curl` status codes, and a hung game
-  returns 200 for every file. Full evidence in §2b's Web build row. Its
-  reachability bug (Pages serving http, which Godot refuses as an insecure
-  context) is separately fixed.
+- [x] **The "browser build hangs on the splash" blocker was my testing error and
+  is retracted** (2026-09-08). It was recorded here as a `[ ]` blocker on
+  evidence that turned out to have one cause outside the game: the browser pane
+  used for the test reports `visibilityState: "hidden"`, and browsers deliver
+  **zero `requestAnimationFrame` callbacks to hidden tabs**. Godot's web loop is
+  driven by rAF, so it renders the frames already queued and then stops. The
+  same test freezes any Godot web game, and it also voids the v0.6.2 comparison
+  that made it look long-standing. Full retraction in §2b's Web build row.
+  The owner reports the build works, which is consistent; I could not reproduce
+  that *or* the failure here, because this environment cannot show a visible tab.
+  The secure-context/HTTPS bug found alongside it was real and is fixed.
 - [~] **The `menu_layout_check` segfault did not reproduce on that run** — it
   printed `[menu-layout] PASS` and the job went on. **This is not proof it is
   fixed.** Commit `69eb59f` rewrote large parts of that gate (rotation,
@@ -134,6 +139,16 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   step has been removed; the gate is the gate again.
 
 The dated sections below retain earlier release history.
+
+## Ranged hit reliability — 2026-09-08 (local, unpublished)
+
+Hero arrows sweep their finite flight segments rather than testing only frame
+endpoints. Enemies and wildlife share first-contact ordering, each body can be
+hit only once per arrow, and a frame hitch cannot extend weapon range. Wildlife
+queries use body anchors and exclude corpses; damage remains host-guarded.
+Executable collision and broader wildlife/co-op gates pass. Details and exact
+validation scope: `PRODUCTION_RANGED_SWEEP_2026-09-08.md`. Hero ranged animation
+sheets remain outstanding.
 
 ## Every tower fires — 2026-09-08
 
@@ -1213,67 +1228,53 @@ copied to `game/data/maps/battlefield_layout.json` and loaded at build.
       Production remains blocked by the Supabase project being service-restricted
       for storage quota and by the table/RLS deployment and live round-trip not
       yet being verifiable. See `docs/LEADERBOARD.md`.
-- [~] **Web build** — exported, hosted, reachable, and **it does not run.**
-      §54 amended to bring it into scope; exported from a `Web` preset on the
-      same tag as the Windows build and attached as `BeastRoad-web.zip`.
+- [x] **Web build** — exported, hosted and reachable. §54 amended to bring it
+      into scope; exported from a `Web` preset on the same tag as the Windows
+      build and attached as `BeastRoad-web.zip`.
 
-      > ### The browser build hangs on the splash — found 2026-09-08
+      > ### RETRACTED: "the browser build hangs on the splash" (2026-09-08)
       >
-      > Loaded in a browser for the first time. It boots, renders the splash
-      > scene, completes its 0.4s fade — and never reaches the menu.
+      > I recorded this as a blocker and it was **my testing error**, corrected
+      > the same day. The evidence looked strong — splash rendered, fade
+      > completed, menu never reached, frame byte-identical over 35s, input
+      > ignored, and v0.6.2 apparently identical — but every one of those
+      > observations has one cause that is not the game:
       >
-      >     all assets      index.js / index.wasm / index.pck -> 200, nothing pending
-      >     canvas          1280x720, isSecureContext true, WebGL2 initialised
-      >     frame           8 samples over 35s, byte-identical
-      >     splash duration 1.25s, and input also skips it - clicking does nothing
-      >     v0.6.2          identically broken
+      >     requestAnimationFrame calls in 6s: 0
+      >     document.visibilityState:          "hidden"
       >
-      > **Not a v0.7.0 regression.** v0.6.2's `BeastRoad-web.zip` behaves the
-      > same, served locally, so the web platform has been shipping broken for
-      > at least two releases. Reproduces on the live host and on `localhost`.
+      > The browser pane I tested in is **hidden**, and browsers stop delivering
+      > `requestAnimationFrame` to hidden tabs. Godot's web main loop is driven
+      > by rAF, so it never ran a frame after the ones already queued. **The same
+      > test would freeze any Godot web game**, which also voids the v0.6.2
+      > comparison — both were hidden, so "identically broken" meant nothing.
       >
-      > **Root cause not established.** The JS thread stays responsive, so
-      > nothing is spinning in wasm — the main loop simply stops being driven,
-      > which is what an uncaught wasm exception looks like from outside. One
-      > run on the live host logged `RangeError: Maximum call stack size
-      > exceeded` from `wasm-function[3984]`; local runs threw nothing catchable.
+      > `CLAUDE.md`-adjacent memory already carried this exact lesson from an
+      > earlier session ("a hidden browser tab stops Godot") and I walked into it
+      > anyway. **A frozen canvas is not evidence until `visibilityState` is
+      > "visible" and rAF is ticking.** Check those two values first, every time.
       >
-      > The leading hypothesis, unconfirmed: `splash.gd` waits 1.25s then calls
-      > `GameDirector.goto_menu()`, which is `Coop.leave()` plus a deferred
-      > `change_scene_to_file(main_menu.tscn)`. Loading the menu pulls in the
-      > Codex, Chronicle, stash and settings panels at once, and a deep
-      > resource-dependency load is the kind of thing that blows a wasm stack.
-      > `menu_check` loads the same scene headless on Linux and passes, so
-      > whatever this is, it is web-only.
-      >
-      > **Confirming or fixing it needs web-export round trips through CI** —
-      > export templates are deliberately not on the developer machine, so the
-      > edit/test loop is a tag or a workflow run, not a local build.
+      > The owner reports the browser build works, which is consistent with all
+      > of the above. It remains unverified *by me*: this environment cannot
+      > present a visible tab, so the honest status is "works per the owner, not
+      > independently reproduced here" rather than either "broken" or "verified".
 
-      **Reachability was a separate bug, and it is fixed.** Pages had a valid,
-      approved certificate with `https_enforced: false`, so `http://` visitors
-      got Godot's "Secure Context" error instead of the game — and
-      `https://arxangel-gg.github.io/beast-road/` *redirected them to http*.
+      **One real bug did come out of that investigation, and it is fixed.**
+      Pages had a valid, approved certificate with `https_enforced: false`, so
+      `http://` visitors got Godot's own "Secure Context is missing" error
+      instead of the game — and `https://arxangel-gg.github.io/beast-road/`
+      *redirected them to http*, so the link in the release notes led to it.
       Enabled 2026-09-08; both now land on `https://beastroad.arxangel.gg/`.
+      This one is independent of the rAF mistake: Godot printed the error
+      itself, and the Pages API reported the flag directly.
 
-      **How this row was wrong, because the method matters.** It previously read
-      "verified from outside the workflow: index.js, index.wasm and index.pck all
-      return 200". Those checks were done with `curl`, which does not enforce a
-      secure context and does not execute anything — so it happily fetched files
-      from a page no browser could run, and would have reported the same 200s
-      for a build that hangs. **HTTP status codes are not evidence that a game
-      runs.** `index.worker.js` returning 404 is still real, and still the
-      single-thread constraint holding in production.
-
-      The `Publish the browser build` job succeeds on every tag, and that is
-      also not evidence: it deploys the artifact without ever loading it.
-
-      This row previously read "Hosting is Netlify, not GitHub Pages", on the
-      grounds that creating a Pages site is an admin operation a workflow token
-      cannot perform — which cost three releases and was true when written. The
-      site exists now, so the `pages` job in `release.yml` deploys to it on every
-      tag. (The REST `/pages` endpoint still 404s unauthenticated; that is the
-      endpoint needing admin, not the site being absent. Fetch the site itself.)
+      **A weaker claim that also needed correcting.** This row previously read
+      "verified from outside the workflow: index.js, index.wasm and index.pck
+      all return 200". Those were `curl` checks, and `curl` executes nothing —
+      it would report the same 200s for a page no browser can run, which is
+      exactly what the http/secure-context bug was. Status codes establish
+      *reachability* and nothing else. `index.worker.js` returning 404 is still
+      real, and still the single-thread constraint holding in production.
 
       **Netlify remains supported and is still the better host for an iframe.**
       The zip's `index.html` sits at its root, which is the shape Netlify deploys

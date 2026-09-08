@@ -552,6 +552,11 @@ func _test_the_field_is_inhabited() -> void:
 	if alive > 0:
 		var body := wildlife._living[0]["sprite"] as Sprite2D
 		var standing: Vector2 = body.global_position
+		var arrow_origin: Vector2 = wildlife._visual_origin(body)
+		var candidates: Array[Dictionary] = wildlife.projectile_bodies(arrow_origin, 0.1)
+		_check(candidates.any(func(candidate: Dictionary) -> bool:
+			return candidate["body"] == body and candidate["at"] == arrow_origin),
+			"projectile candidates must identify the live animal at its body anchor")
 		_check(not wildlife.wound_near(standing + Vector2(6000.0, 0.0), 40.0, 5.0),
 			"a shot into empty ground must not report a hit")
 		_check(wildlife.wound_near(standing, 60.0, 99999.0),
@@ -748,6 +753,11 @@ func _test_the_field_is_inhabited() -> void:
 			break
 	if not corpse.is_empty():
 		var corpse_sprite := corpse["sprite"] as Sprite2D
+		var corpse_candidates: Array[Dictionary] = wildlife.projectile_bodies(
+			wildlife._visual_origin(corpse_sprite), 99999.0)
+		_check(not corpse_candidates.any(func(candidate: Dictionary) -> bool:
+			return candidate["body"] == corpse_sprite),
+			"a dying animal must not intercept a projectile sweep")
 		var xp_after_kill: float = RunState.hero_xp
 		var accepted: bool = wildlife.wound_sprite(corpse_sprite, 99999.0)
 		_check(not accepted, "a dying wildlife body must immediately stop accepting hits")

@@ -66,40 +66,73 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	var step: Vector2 = _heading * speed * delta
-	global_position += step
-	_flown += step.length()
-
+	if is_queued_for_deletion():
+		return
+	var start: Vector2 = global_position
+	var distance: float = minf(maxf(speed * delta, 0.0), maxf(travel - _flown, 0.0))
+	var middle: Vector2 = start + _heading * distance * 0.5
+	var radius: float = Balance.HERO_ARROW_HIT_RADIUS
+	var candidates: Array[Dictionary] = []
+	if is_instance_valid(_wildlife):
+		candidates.append_array(_wildlife.projectile_bodies(middle, distance * 0.5 + radius))
+	if is_instance_valid(_field):
+		for enemy: Enemy in _field.enemies_near(middle, distance * 0.5 + radius):
+			if not enemy.is_dying():
+				candidates.append({"body": enemy, "at": enemy.combat_origin()})
+	var impacts: Array[Dictionary] = []
+	for candidate: Dictionary in candidates:
+		var body := candidate["body"] as Node2D
+		if not is_instance_valid(body) or _hit.has(body.get_instance_id()):
+			continue
+		var along: float = contact_distance(start, _heading, distance, candidate["at"], radius)
+		if along >= 0.0:
+			impacts.append({"body": body, "distance": along})
+	# One ordered sweep for both populations: a wolf in front of an enemy must
+	# stop the same arrow, regardless of which system supplied its candidate.
+	impacts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["distance"]) < float(b["distance"]))
+	for impact: Dictionary in impacts:
+		var body := impact["body"] as Node2D
+		if not is_instance_valid(body):
+			continue
+		global_position = start + _heading * float(impact["distance"])
+		if body is Enemy:
+			if (body as Enemy).is_dying():
+				continue
+			_strike(body as Enemy)
+		else:
+			var accepted: bool = _wildlife.wound_sprite(body, damage)
+			if not accepted and not Coop.is_guest():
+				continue
+			Vfx.spark(global_position, _tint, 5, -_heading, 220.0)
+		_hit[body.get_instance_id()] = true
+		if _hit.size() >= pierce:
+			_flown += float(impact["distance"])
+			_land()
+			return
+	global_position = start + _heading * distance
+	_flown += distance
 	_trail.add_point(global_position)
 	while _trail.get_point_count() > TRAIL_POINTS:
 		_trail.remove_point(0)
-
-	# Animals are not enemies and live in their own system, so a shot has to ask
-	# them separately - a wolf in the open used to let arrows pass straight
-	# through while a sword killed it. Resolved once per frame like the enemy
-	# sweep above, and it counts against pierce for the same reason: a bolt that
-	# passes through three bodies has passed through three bodies.
-	if _wildlife != null and is_instance_valid(_wildlife):
-		if _wildlife.wound_near(global_position, Balance.HERO_ARROW_HIT_RADIUS, damage):
-			Vfx.spark(global_position, _tint, 5, -_heading, 220.0)
-			_hit[_wildlife.get_instance_id() + _hit.size()] = true
-			if _hit.size() >= pierce:
-				_land()
-				return
-
-	if _field != null:
-		for enemy: Enemy in _field.enemies_near(global_position, Balance.HERO_ARROW_HIT_RADIUS):
-			var id: int = enemy.get_instance_id()
-			if enemy.is_dying() or _hit.has(id):
-				continue
-			_hit[id] = true
-			_strike(enemy)
-			if _hit.size() >= pierce:
-				_land()
-				return
-
 	if _flown >= travel:
 		_land()
+
+
+## Entry into a body's hit circle along a finite flight segment, or -1. This
+## cannot skip a target on a slow frame or extend flight beyond weapon range.
+static func contact_distance(start: Vector2, heading: Vector2, distance: float,
+		body: Vector2, radius: float) -> float:
+	var relative: Vector2 = body - start
+	var along: float = relative.dot(heading)
+	var perpendicular_squared: float = maxf(relative.length_squared() - along * along, 0.0)
+	if perpendicular_squared > radius * radius:
+		return -1.0
+	var half_chord: float = sqrt(maxf(radius * radius - perpendicular_squared, 0.0))
+	if along + half_chord < 0.0:
+		return -1.0
+	var entry: float = maxf(along - half_chord, 0.0)
+	return entry if entry <= distance else -1.0
 
 
 func _strike(enemy: Enemy) -> void:

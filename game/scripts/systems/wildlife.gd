@@ -1171,6 +1171,22 @@ func wound_sprite(sprite: Node2D, damage: float) -> bool:
 	return false
 
 
+## Read-only projectile candidates, with stable identities and body anchors.
+## Guests may resolve cosmetic impacts; wound_sprite still guards all damage.
+func projectile_bodies(at: Vector2, radius: float) -> Array[Dictionary]:
+	var found: Array[Dictionary] = []
+	for animal: Dictionary in _living:
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var body := animal.get("sprite") as Sprite2D
+		if not is_instance_valid(body):
+			continue
+		var origin: Vector2 = _visual_origin(body)
+		if origin.distance_squared_to(at) <= radius * radius:
+			found.append({"body": body, "at": origin})
+	return found
+
+
 ## Puts damage into one animal, and pays out if that finishes it.
 ##
 ## Health rather than a one-hit kill, because the owner asked for size to matter:

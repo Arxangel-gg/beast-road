@@ -22,6 +22,21 @@ var _failures: int = 0
 var _shots: int = 0
 
 
+class ArrowWildlife extends Wildlife:
+	var bodies: Array[Node2D] = []
+	var hits: Dictionary = {}
+	func _ready() -> void:
+		set_process(false)
+	func projectile_bodies(_at: Vector2, _radius: float) -> Array[Dictionary]:
+		var found: Array[Dictionary] = []
+		for body: Node2D in bodies:
+			found.append({"body": body, "at": body.global_position})
+		return found
+	func wound_sprite(body: Node2D, _damage: float) -> bool:
+		hits[body.get_instance_id()] = int(hits.get(body.get_instance_id(), 0)) + 1
+		return true
+
+
 func _ready() -> void:
 	RunState.reset()
 	RunState.gain_every_currency(400)
@@ -124,6 +139,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_test_arrows_reach_wildlife()
 	_test_the_shot_goes_where_it_is_aimed()
+	await _test_swept_flight()
 
 	if _failures == 0:
 		print("[ranged] PASS - blueprints gate the recipe, ammunition costs and "
@@ -162,7 +178,7 @@ func _test_arrows_reach_wildlife() -> void:
 		"wildlife must expose a way for a projectile to hit it")
 	var arrow: String = _source("res://scenes/battlefield/hero_arrow.gd")
 	_check(not arrow.is_empty(), "the arrow script must exist")
-	_check(arrow.contains("wound_near"),
+	_check(arrow.contains("projectile_bodies") and arrow.contains("wound_sprite"),
 		"the arrow must ask wildlife for a hit, or shots pass through animals")
 
 
@@ -222,3 +238,80 @@ func _test_the_shot_goes_where_it_is_aimed() -> void:
 	_check(hero_source.contains("ranged.request(_aim, combat_origin())"),
 		"the shot must leave from combat_origin, the same point the aim is "
 			+ "measured from")
+
+
+func _test_swept_flight() -> void:
+	_check(is_equal_approx(HeroArrow.contact_distance(Vector2.ZERO, Vector2.RIGHT,
+		180.0, Vector2(90.0, 0.0), 12.0), 78.0), "sweep must detect a skipped body at entry")
+	_check(HeroArrow.contact_distance(Vector2.ZERO, Vector2.RIGHT,
+		50.0, Vector2(90.0, 0.0), 12.0) < 0.0, "sweep must respect the range endpoint")
+	_check(HeroArrow.contact_distance(Vector2.ZERO, Vector2.RIGHT,
+		180.0, Vector2(90.0, 13.0), 12.0) < 0.0, "sweep must not widen the hit radius")
+	var field := EnemyField.new()
+	add_child(field)
+	var wildlife := ArrowWildlife.new()
+	wildlife.name = "Wildlife"
+	field.add_child(wildlife)
+	for x: float in [70.0, 140.0]:
+		var body := Node2D.new()
+		body.position = Vector2(x, 0.0)
+		wildlife.add_child(body)
+		wildlife.bodies.append(body)
+	var weapon := RangedWeaponData.new()
+	weapon.pierce = 2
+	weapon.projectile_speed = 900.0
+	var ammo := AmmoData.new()
+	var shot := HeroArrow.new()
+	shot.launch(field, Vector2.ZERO, Vector2.RIGHT, weapon, ammo)
+	field.add_child(shot)
+	shot.set_process(false)
+	shot._process(0.2)
+	_check(wildlife.hits.size() == 2 and shot.is_queued_for_deletion(),
+		"a hitch must hit both animals crossed and exhaust two-body pierce")
+	wildlife.hits.clear()
+	wildlife.bodies[0].position = Vector2(5.0, 0.0)
+	weapon.pierce = 3
+	weapon.projectile_speed = 20.0
+	shot = HeroArrow.new()
+	shot.launch(field, Vector2.ZERO, Vector2.RIGHT, weapon, ammo)
+	field.add_child(shot)
+	shot.set_process(false)
+	for _frame: int in 5:
+		shot._process(0.05)
+	_check(int(wildlife.hits.get(wildlife.bodies[0].get_instance_id(), 0)) == 1,
+		"one piercing arrow must not hurt the same animal on five successive frames")
+	shot.queue_free()
+	wildlife.hits.clear()
+	wildlife.bodies[0].position = Vector2(140.0, 0.0)
+	wildlife.bodies[1].position = Vector2(240.0, 0.0)
+	var enemy := load("res://scenes/battlefield/enemy.tscn").instantiate() as Enemy
+	enemy.setup(ContentDB.enemy("bogkin"), 0, field, 1.0)
+	field.add_child(enemy)
+	enemy.set_process(false)
+	enemy.global_position += Vector2(70.0, 0.0) - enemy.combat_origin()
+	var health: Health = Health.of(enemy)
+	var before: float = health.current_hp
+	weapon.pierce = 1
+	weapon.projectile_speed = 900.0
+	weapon.damage = 1.0
+	shot = HeroArrow.new()
+	shot.launch(field, Vector2.ZERO, Vector2.RIGHT, weapon, ammo)
+	field.add_child(shot)
+	shot.set_process(false)
+	shot._process(0.2)
+	_check(health.current_hp < before and wildlife.hits.is_empty(),
+		"the nearer enemy must intercept before a farther animal")
+	_check(shot.global_position.x < 70.0,
+		"impact VFX must originate at first contact, not the frame endpoint")
+	before = health.current_hp
+	weapon.effective_range = 30.0
+	shot = HeroArrow.new()
+	shot.launch(field, Vector2.ZERO, Vector2.RIGHT, weapon, ammo)
+	field.add_child(shot)
+	shot.set_process(false)
+	shot._process(1.0)
+	_check(is_equal_approx(shot.global_position.x, 30.0) and health.current_hp == before,
+		"a long frame must stop at weapon range, not hit a target beyond it")
+	field.queue_free()
+	for _frame: int in 30:
+		await get_tree().process_frame
