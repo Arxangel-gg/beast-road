@@ -39,6 +39,19 @@ const REAL_DISPLAY_WIDTH: float = 240.0
 const MIN_FACTOR: float = 1.0
 const MAX_FACTOR: float = 3.5
 const TOUCH_LAYOUT_KEY: String = "touch_controls"
+var _menu_layout: bool = false
+
+
+## Menus have no combat rail to fit. Keep the battlefield's established width
+## while letting portrait menu text use more of the glass.
+func set_menu_layout(enabled: bool, defer_refit: bool = false) -> void:
+	_menu_layout = enabled
+	# During scene removal the children still have viewport signal connections
+	# but no viewport. Let them leave before broadcasting a size change.
+	if defer_refit:
+		_fit.call_deferred()
+	else:
+		_fit()
 
 
 ## Whether this build should try to take the whole screen.
@@ -103,7 +116,8 @@ func _fit() -> void:
 	var forced: Variant = MetaState.settings.get(TOUCH_LAYOUT_KEY, null)
 	var touch_layout: bool = DisplayServer.is_touchscreen_available() if forced == null \
 		else bool(forced)
-	window.content_scale_factor = factor_for(Vector2(window.size), base_size(), touch_layout)
+	window.content_scale_factor = factor_for(Vector2(window.size), base_size(),
+		touch_layout, _menu_layout)
 
 
 ## The size the project is authored against.
@@ -120,7 +134,8 @@ static func base_size() -> Vector2:
 ## The multiplier that gives a small screen a sane logical size.
 ##
 ## Static and pure so a test can ask it about a screen nobody is holding.
-static func factor_for(real: Vector2, base: Vector2, touch_layout: bool = false) -> float:
+static func factor_for(real: Vector2, base: Vector2, touch_layout: bool = false,
+		menu_layout: bool = false) -> float:
 	if real.x <= 0.0 or real.y <= 0.0 or base.x <= 0.0 or base.y <= 0.0:
 		return 1.0
 	# **A display is never this small.** Headless runs on a dummy 64x64 window,
@@ -139,5 +154,7 @@ static func factor_for(real: Vector2, base: Vector2, touch_layout: bool = false)
 	if fitted <= 0.0:
 		return 1.0
 	# Solve `real.x / (fitted * factor) == PHONE_LOGICAL_WIDTH`.
-	var wanted: float = real.x / (fitted * PHONE_LOGICAL_WIDTH)
+	var logical_width: float = Balance.UI_PORTRAIT_MENU_WIDTH \
+		if touch_layout and menu_layout and real.y > real.x else PHONE_LOGICAL_WIDTH
+	var wanted: float = real.x / (fitted * logical_width)
 	return clampf(wanted, MIN_FACTOR, MAX_FACTOR)

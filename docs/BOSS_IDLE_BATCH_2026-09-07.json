@@ -1,0 +1,21 @@
+{
+  "purpose": "Boss idles: 192-native source, restore 384px canvas using nearest neighbour; frames 1-3.",
+  "jobs": [
+    {
+      "id": "boss_drowned_choir",
+      "job_id": "2b6e165b-18a1-47da-9bc9-0e7b7179df0b"
+    },
+    {
+      "id": "boss_mirrorfang",
+      "job_id": "53c37e82-bbef-4e1e-bef2-321002fba4a2"
+    },
+    {
+      "id": "boss_rust_crown",
+      "job_id": "48fa7c60-7acc-4493-9624-bfcd80ee327e"
+    },
+    {
+      "id": "boss_chainmaker",
+      "job_id": "2bb56a2d-1329-475d-81b8-a1c3905fa9b9"
+    }
+  ]
+}

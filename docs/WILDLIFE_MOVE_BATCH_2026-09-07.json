@@ -1,0 +1,131 @@
+{
+  "purpose": "Natural wildlife movement upgrades; ship generated frames 1-7, not static bookends.",
+  "jobs": [
+    {
+      "id": "wildlife_wolf",
+      "job_id": "ca0a1ef1-312e-4823-9a85-5e8182a4a0c5",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_deer",
+      "job_id": "32bbf8d1-1585-45ed-bd31-d7a6fc2af4e8",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_stag",
+      "job_id": "18538734-e7ee-4312-a4db-da2b99ee7f0a",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_bear",
+      "job_id": "9e994972-fe51-43b7-9fa2-065c10e5ed45",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_lynx",
+      "job_id": "33f357de-ab13-46fb-817f-4e8d22aa52ba",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_snow_lynx",
+      "job_id": "f9889d96-8519-4fae-be3c-34a917620770",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_jackal",
+      "job_id": "4baae6b4-1ab1-4621-8cf5-11ae1372316f",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_frost_elk",
+      "job_id": "1fa693c2-dd84-48d8-a544-bbbf5be9a38d",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_fox",
+      "job_id": "fc13a94d-1f20-43c5-95c3-45bbea861df3",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_boar",
+      "job_id": "899234f9-8ae2-4df1-825a-172440329d18",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_badger",
+      "job_id": "5628f7be-da4e-43c2-a154-b1229f9621f7",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_hedgehog",
+      "job_id": "06c0a3fc-58ba-4bd6-9e02-4af7cfeabb87",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_tortoise",
+      "job_id": "dfc359ab-5073-47fc-85ba-e40e476c115e",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_rabbit",
+      "job_id": "af65d0e0-7c9b-440b-bfd5-b50597f69bed",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_raccoon",
+      "job_id": "a8ff3129-4a8b-410e-9485-c55727e827d8",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_scorpion",
+      "job_id": "2a08d9c0-66f7-43da-82dd-1d4db58756f1",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_snow_hare",
+      "job_id": "d8db426a-ee33-4335-b821-b5764df28b6a",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_squirrel",
+      "job_id": "4846afa8-1892-481b-9049-21771c0e5576",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_viper",
+      "job_id": "9b0ab58e-364b-49f0-a32b-1cb35d4578be",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_heron",
+      "job_id": "8e7dd305-03ee-4e1a-afc3-b52b1ff2833b",
+      "sequence": "move",
+      "frames_to_ship": 7
+    },
+    {
+      "id": "wildlife_ptarmigan",
+      "job_id": "a9aa755d-e15f-494b-a495-35fdf15a7d8b",
+      "sequence": "move",
+      "frames_to_ship": 7
+    }
+  ]
+}

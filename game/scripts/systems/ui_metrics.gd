@@ -86,6 +86,10 @@ const SELF_SIZED: StringName = &"beast_road_self_sized"
 ## the same value, so a deliberately compact row cannot quietly regress below
 ## the size its owner designed for.
 const TOUCH_TARGET_HEIGHT: StringName = &"beast_road_touch_target_height"
+const RICH_FONT_SIZES: Array[StringName] = [
+	&"normal_font_size", &"bold_font_size", &"italics_font_size",
+	&"bold_italics_font_size", &"mono_font_size",
+]
 
 
 ## Gives every long surface the same visible, draggable and focusable route.
@@ -132,6 +136,12 @@ static func _apply_touch_control(control: Control, enabled: bool) -> void:
 			"separation_override": control.has_theme_constant_override("separation"),
 			"separation": control.get_theme_constant("separation"),
 		}
+		if control is RichTextLabel:
+			var rich_sizes: Dictionary = {}
+			for key: StringName in RICH_FONT_SIZES:
+				rich_sizes[key] = [control.has_theme_font_size_override(key),
+					control.get_theme_font_size(key)]
+			state["rich_sizes"] = rich_sizes
 		control.set_meta(TOUCH_STATE, state)
 
 		var minimum: Vector2 = control.custom_minimum_size
@@ -173,6 +183,13 @@ static func _apply_touch_control(control: Control, enabled: bool) -> void:
 	if not control.has_meta(TOUCH_STATE):
 		return
 	var state: Dictionary = control.get_meta(TOUCH_STATE) as Dictionary
+	var rich_sizes: Dictionary = state.get("rich_sizes", {}) as Dictionary
+	for key: StringName in rich_sizes:
+		var saved: Array = rich_sizes[key]
+		if bool(saved[0]):
+			control.add_theme_font_size_override(key, int(saved[1]))
+		else:
+			control.remove_theme_font_size_override(key)
 	control.custom_minimum_size = state.get("minimum", Vector2.ZERO) as Vector2
 	if bool(state.get("font_override", false)):
 		control.add_theme_font_size_override("font_size", int(state.get("font_size", 16)))
@@ -186,6 +203,15 @@ static func _apply_touch_control(control: Control, enabled: bool) -> void:
 
 
 static func _grow_font(control: Control, enforce_button_floor: bool = false) -> void:
+	# RichTextLabel does not render the Label/Button font_size property. Scale
+	# every face so emphasis and inline code remain proportionate to body text.
+	if control is RichTextLabel:
+		for key: StringName in RICH_FONT_SIZES:
+			var size: int = control.get_theme_font_size(key)
+			if size > 0:
+				control.add_theme_font_size_override(key,
+					maxi(size + 1, int(round(float(size) * Balance.UI_TOUCH_FONT_SCALE))))
+		return
 	var current: int = control.get_theme_font_size("font_size")
 	if current <= 0:
 		return

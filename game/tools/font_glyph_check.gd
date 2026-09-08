@@ -32,7 +32,7 @@ const FACES: PackedStringArray = [
 ]
 
 ## Where player-facing strings are written.
-const ROOTS: PackedStringArray = ["res://scenes", "res://scripts", "res://autoload"]
+const ROOTS: PackedStringArray = ["res://scenes", "res://scripts", "res://autoload", "res://data"]
 
 ## Codepoints below this are Latin-1 and in every face here.
 const PLAIN: int = 0x00FF
@@ -84,7 +84,9 @@ func _walk(path: String, covered: Dictionary) -> void:
 		var full: String = "%s/%s" % [path, name]
 		if dir.current_is_dir():
 			_walk(full, covered)
-		elif name.ends_with(".gd"):
+		# Scene labels and authored data are player-facing copy too. Checking
+		# scripts alone missed exactly the strings moved out of UI logic.
+		elif name.ends_with(".gd") or name.ends_with(".tres") or name.ends_with(".tscn"):
 			_scan(full, covered)
 		name = dir.get_next()
 	dir.list_dir_end()

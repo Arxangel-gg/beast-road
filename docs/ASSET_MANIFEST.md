@@ -176,6 +176,39 @@ Nine sheets of 192-square cells cost the entire frame-hitch budget on a 3070 Ti.
 | `enemy_crevasse_stalker.png` | 192×192 | T | `#9CB9D8` |
 | `enemy_frost_herald.png` | 192×192 | T | `#9CB9D8` |
 
+### 5.2c Enemy idle frames — `res://art/enemies/`
+
+All 192×192, type T, placeholder colour `#8E8A86`.
+
+Base plus three PixelLab continuation poses. Idle fills stationary movement
+and recovery; attack tells, freeze, stun and death take priority. Generation
+provenance is in `ASSET_BATCH_2026-09-07.json`.
+
+Files: `elite_avalanche_warden_idle_01.png` · `elite_avalanche_warden_idle_02.png` · `elite_avalanche_warden_idle_03.png`
+Files: `elite_mirage_seer_idle_01.png` · `elite_mirage_seer_idle_02.png` · `elite_mirage_seer_idle_03.png`
+Files: `elite_pack_howler_idle_01.png` · `elite_pack_howler_idle_02.png` · `elite_pack_howler_idle_03.png`
+Files: `elite_siege_lizard_idle_01.png` · `elite_siege_lizard_idle_02.png` · `elite_siege_lizard_idle_03.png`
+Files: `elite_white_maw_giant_idle_01.png` · `elite_white_maw_giant_idle_02.png` · `elite_white_maw_giant_idle_03.png`
+Files: `elite_wolf_standard_bearer_idle_01.png` · `elite_wolf_standard_bearer_idle_02.png` · `elite_wolf_standard_bearer_idle_03.png`
+Files: `enemy_cinder_runner_idle_01.png` · `enemy_cinder_runner_idle_02.png` · `enemy_cinder_runner_idle_03.png`
+Files: `enemy_coalpaint_raider_idle_01.png` · `enemy_coalpaint_raider_idle_02.png` · `enemy_coalpaint_raider_idle_03.png`
+Files: `enemy_crevasse_stalker_idle_01.png` · `enemy_crevasse_stalker_idle_02.png` · `enemy_crevasse_stalker_idle_03.png`
+Files: `enemy_dune_burrower_idle_01.png` · `enemy_dune_burrower_idle_02.png` · `enemy_dune_burrower_idle_03.png`
+Files: `enemy_ember_shaman_idle_01.png` · `enemy_ember_shaman_idle_02.png` · `enemy_ember_shaman_idle_03.png`
+Files: `enemy_frost_herald_idle_01.png` · `enemy_frost_herald_idle_02.png` · `enemy_frost_herald_idle_03.png`
+Files: `enemy_glass_chanter_idle_01.png` · `enemy_glass_chanter_idle_02.png` · `enemy_glass_chanter_idle_03.png`
+Files: `enemy_glassguard_idle_01.png` · `enemy_glassguard_idle_02.png` · `enemy_glassguard_idle_03.png`
+Files: `enemy_ice_hauler_idle_01.png` · `enemy_ice_hauler_idle_02.png` · `enemy_ice_hauler_idle_03.png`
+Files: `enemy_loam_lurker_idle_01.png` · `enemy_loam_lurker_idle_02.png` · `enemy_loam_lurker_idle_03.png`
+Files: `enemy_rime_marauder_idle_01.png` · `enemy_rime_marauder_idle_02.png` · `enemy_rime_marauder_idle_03.png`
+Files: `enemy_rootshield_idle_01.png` · `enemy_rootshield_idle_02.png` · `enemy_rootshield_idle_03.png`
+Files: `enemy_salt_marcher_idle_01.png` · `enemy_salt_marcher_idle_02.png` · `enemy_salt_marcher_idle_03.png`
+Files: `enemy_scale_rider_idle_01.png` · `enemy_scale_rider_idle_02.png` · `enemy_scale_rider_idle_03.png`
+Files: `enemy_snowhide_brute_idle_01.png` · `enemy_snowhide_brute_idle_02.png` · `enemy_snowhide_brute_idle_03.png`
+Files: `enemy_storm_caller_idle_01.png` · `enemy_storm_caller_idle_02.png` · `enemy_storm_caller_idle_03.png`
+Files: `enemy_veiled_skirmisher_idle_01.png` · `enemy_veiled_skirmisher_idle_02.png` · `enemy_veiled_skirmisher_idle_03.png`
+Files: `enemy_wolf_rider_idle_01.png` · `enemy_wolf_rider_idle_02.png` · `enemy_wolf_rider_idle_03.png`
+
 ### 5.2b Enemy attack frames — `res://art/enemies/`
 
 Owner request, 2026-09-01: any animation every enemy should have and does not.
@@ -294,6 +327,18 @@ Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `
 | `boss_mirrorfang.png` | 384×384 | T | `#8FA8B8` |
 | `boss_rust_crown.png` | 384×384 | T | `#8C3A2B` |
 | `boss_chainmaker.png` | 384×384 | T | `#2A3140` |
+
+#### 5.3b Boss idle frames
+
+All 384×384, type T, placeholder colour `#8E8A86`.
+
+Generated on the shipped 192-native lattice, restored with nearest-neighbour
+scaling; base plus three poses. See `BOSS_IDLE_BATCH_2026-09-07.json`.
+
+Files: `boss_drowned_choir_idle_01.png` · `boss_drowned_choir_idle_02.png` · `boss_drowned_choir_idle_03.png`
+Files: `boss_mirrorfang_idle_01.png` · `boss_mirrorfang_idle_02.png` · `boss_mirrorfang_idle_03.png`
+Files: `boss_rust_crown_idle_01.png` · `boss_rust_crown_idle_02.png` · `boss_rust_crown_idle_03.png`
+Files: `boss_chainmaker_idle_01.png` · `boss_chainmaker_idle_02.png` · `boss_chainmaker_idle_03.png`
 
 #### 5.3a Boss walk and attack frames
 
@@ -1095,10 +1140,10 @@ no continuation frame is a supported state rather than a broken one. Generated
 img2img from the base pose so the palette cannot drift between frames.
 
 Files: `wildlife_raven_idle_01.png` … `wildlife_raven_idle_05.png`
-Files: `wildlife_fox_idle_01.png`
-Files: `wildlife_rabbit_idle_01.png`
-Files: `wildlife_deer_idle_01.png`
-Files: `wildlife_stag_idle_01.png`
+Files: `wildlife_fox_idle_01.png` · `wildlife_fox_idle_02.png` · `wildlife_fox_idle_03.png`
+Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildlife_rabbit_idle_03.png`
+Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
+Files: `wildlife_stag_idle_01.png` · `wildlife_stag_idle_02.png` · `wildlife_stag_idle_03.png`
 Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png` · `wildlife_heron_idle_04.png`
 Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png` · `wildlife_hedgehog_idle_04.png`
 Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
@@ -1122,8 +1167,8 @@ watch. `animate_image` produced all five from their own base sprites, so palette
 and facing carry rather than being described. `wildlife_spawn_check` now asserts
 the whole matrix, because this gap was invisible: a missing sequence is a
 supported state that falls back to the static pose without a warning.
-Files: `wildlife_squirrel_idle_01.png`
-Files: `wildlife_raccoon_idle_01.png`
+Files: `wildlife_squirrel_idle_01.png` · `wildlife_squirrel_idle_02.png` · `wildlife_squirrel_idle_03.png`
+Files: `wildlife_raccoon_idle_01.png` · `wildlife_raccoon_idle_02.png` · `wildlife_raccoon_idle_03.png`
 
 ### 5.10d Wildlife move frames — `res://art/wildlife/`
 

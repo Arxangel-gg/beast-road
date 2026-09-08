@@ -40,6 +40,7 @@ func _ready() -> void:
 	# Pinning and leaving Settings normally save. The test uses scratch state,
 	# never a fresh-account reset that might overwrite the player's real slot.
 	MetaState.hold_saves()
+	_test_rich_text_scaling()
 	_saved_settings = MetaState.settings.duplicate(true)
 	_saved_completed = MetaState.completed_objectives.duplicate()
 	_saved_window_size = get_window().size
@@ -66,6 +67,16 @@ func _sweep(shape: Vector2i) -> void:
 	var menu: Control = load("res://scenes/ui/main_menu.tscn").instantiate() as Control
 	add_child(menu)
 	await _settle()
+	await _capture_screen("main", shape)
+	if shape.y > shape.x:
+		_check(absf(get_viewport().get_visible_rect().size.x - Balance.UI_PORTRAIT_MENU_WIDTH) < 3.0,
+			"portrait menus must use their readable canvas, not the combat HUD width")
+		var title := menu.get_node("Title") as Control
+		var navigation := menu.get_node("MenuScroll") as Control
+		var stats := menu.get_node("Stats") as Control
+		_check(not title.get_global_rect().intersects(navigation.get_global_rect())
+			and not stats.get_global_rect().intersects(navigation.get_global_rect()),
+			"portrait navigation must not cover the wordmark or statistics")
 
 	# **Found by shape, not by name.** Only some of these are held in a field -
 	# the stash is a local inside `_build` - so a list of property names finds
@@ -77,9 +88,55 @@ func _sweep(shape: Vector2i) -> void:
 			continue
 		await _open_and_measure(node, _name_of(node), shape)
 	await _test_diagnostics(menu as MainMenu, shape)
+	await _test_codex_rotation(menu as MainMenu, shape)
 
 	menu.queue_free()
 	await _settle()
+	_check(not ScreenFit._menu_layout, "leaving the menu must restore the combat canvas")
+
+
+func _test_codex_rotation(menu: MainMenu, original: Vector2i) -> void:
+	var codex := menu._codex as CodexScreen
+	if codex == null:
+		_check(false, "main menu must expose the Codex")
+		return
+	codex.open()
+	get_window().size = Vector2i(original.y, original.x)
+	ScreenFit._fit()
+	await _settle()
+	var view := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	_check(view.encloses(codex._panel.get_global_rect()),
+		"an open Codex must refit when the phone rotates")
+	codex.hide_screen()
+	get_window().size = original
+	ScreenFit._fit()
+	await _settle()
+
+
+func _test_rich_text_scaling() -> void:
+	var label := RichTextLabel.new()
+	add_child(label)
+	label.add_theme_font_size_override("normal_font_size", 19)
+	label.add_theme_font_size_override("bold_font_size", 23)
+	var before: Dictionary = {}
+	for key: StringName in UiMetrics.RICH_FONT_SIZES:
+		before[key] = [label.has_theme_font_size_override(key), label.get_theme_font_size(key)]
+	UiMetrics.apply_touch_tree(label, true)
+	for key: StringName in UiMetrics.RICH_FONT_SIZES:
+		var original: int = int(before[key][1])
+		_check(label.get_theme_font_size(key) == maxi(original + 1,
+			int(round(float(original) * Balance.UI_TOUCH_FONT_SCALE))),
+			"touch scaling must enlarge the rendered rich-text face: %s" % key)
+	var enlarged: int = label.get_theme_font_size("normal_font_size")
+	UiMetrics.apply_touch_tree(label, true)
+	_check(label.get_theme_font_size("normal_font_size") == enlarged,
+		"refreshing touch metrics must not compound rich-text enlargement")
+	UiMetrics.apply_touch_tree(label, false)
+	for key: StringName in UiMetrics.RICH_FONT_SIZES:
+		_check(label.has_theme_font_size_override(key) == bool(before[key][0])
+			and label.get_theme_font_size(key) == int(before[key][1]),
+			"returning to desktop must restore authored and inherited face sizes: %s" % key)
+	label.free()
 
 
 func _open_and_measure(screen: Node, name: String, shape: Vector2i) -> void:
@@ -176,6 +233,13 @@ func _test_chronicle(screen: ChronicleScreen, shape: Vector2i) -> void:
 	scroll.ensure_control_visible(pin)
 	await _settle()
 	_check_control_visible(pin, scroll, "Chronicle first pin at %s" % shape)
+	var pixel_scale: float = float(shape.x) / get_viewport().get_visible_rect().size.x
+	_check(pin.size.y * pixel_scale >= 44.0,
+		"Chronicle Track must retain a 44-pixel target in the tested window")
+	for node: Node in _all(screen):
+		if node is RichTextLabel and node.is_visible_in_tree():
+			_check((node as RichTextLabel).get_theme_font_size("normal_font_size") * pixel_scale >= 11.5,
+				"Chronicle body must remain readable at the tested physical window scale")
 	_click(pin)
 	await _settle()
 	_check(Chronicle.selected_id() == objectives[0].id and pin.button_pressed

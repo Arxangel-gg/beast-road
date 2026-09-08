@@ -86,6 +86,8 @@ enum State {
 ## months on a single static PNG. Frames are an upgrade on top of that, not a
 ## replacement for it - see `Balance.ENEMY_FRAME_WALK_DAMPING`.
 var _walk_frames: Array[Texture2D] = []
+var _idle_frames: Array[Texture2D] = []
+var _idle_phase: float = 0.0
 
 ## The swing, drawn rather than implied.
 ##
@@ -355,6 +357,7 @@ func _ready() -> void:
 		# cycle alternating between standing and mid-stride reads as the sprite
 		# being swapped rather than animated. That was learned on the wildlife.
 		_walk_frames = GameData.load_move_frames(path)
+		_idle_frames = GameData.load_idle_frames(path)
 		_attack_frames = GameData.load_attack_frames(path)
 	if not _walk_frames.is_empty():
 		animator.walk_cycle_scale = Balance.ENEMY_FRAME_WALK_DAMPING
@@ -1840,33 +1843,38 @@ func _update_sprite(delta: float = 0.0) -> void:
 ## precisely what the frames were added to stop. The procedural stride in
 ## `SpriteAnimator` has always worked this way and the two now agree.
 ##
-## Only WALKING animates. The windup, the strike and the recovery are the frames
-## a player reads to decide whether to step back, and a walk cycle playing
-## through them would bury the tell - the same reasoning that makes the striking
-## sequence outrank everything on the wildlife.
+## Attack tells outrank idle and walk. Idle only fills recovery and stationary
+## walking states; a frozen, stunned or dying body must never keep breathing.
 func _advance_walk_frames(delta: float) -> void:
 	if sprite == null:
+		return
+	if _state == State.DYING or _freeze_left > 0.0 or _hitstun_left > 0.0:
 		return
 	# The swing outranks the walk, exactly as it does on the wildlife. A body
 	# mid-attack is not walking, and a walk cycle playing through the wind-up
 	# would bury the tell it exists to show.
 	if _advance_attack_frames():
 		return
-	if _walk_frames.is_empty():
-		return
 	# A routed body is walking too - it is simply walking the other way.
 	# Left out of this, a fleeing enemy slid backwards up the road in its
 	# standing pose, which reads as a body being dragged rather than one
 	# running away.
 	var walking: bool = (_state == State.WALKING or _state == State.ROUTED) \
-		and _freeze_left <= 0.0 and _hitstun_left <= 0.0
+		and _motion.length_squared() > 0.0
 	if not walking:
 		# Back to the standing pose rather than freezing mid-stride: an enemy
 		# stopped with one leg forward reads as a bug, and it is where the
 		# attack sequence starts from.
 		_walk_phase = 0.0
-		if _rest_texture != null:
+		if not _idle_frames.is_empty() and _state in [State.WALKING, State.RECOVER]:
+			_idle_phase = fmod(_idle_phase + delta * Balance.ENEMY_IDLE_FRAME_RATE,
+				float(_idle_frames.size()))
+			sprite.texture = _idle_frames[int(_idle_phase)]
+		elif _rest_texture != null:
 			sprite.texture = _rest_texture
+		return
+	_idle_phase = 0.0
+	if _walk_frames.is_empty():
 		return
 	_walk_phase += _motion.length() * delta * Balance.ENEMY_WALK_FRAMES_PER_PIXEL
 	sprite.texture = _walk_frames[int(_walk_phase) % _walk_frames.size()]
