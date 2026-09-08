@@ -73,14 +73,16 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   local Guard/Release sweeps are green but they run on Windows.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
-- [ ] **60 FPS at 1920×1080 is FAILING — 48 and 49 FPS measured on the developer
-  RTX 3070 Ti on 2026-09-08, against 62 FPS on the same machine on 2026-08-20.**
-  Growth is clean (+0 orphans), so this is steady-state frame cost rather than a
-  leak, and the cleaner of the two runs had zero hitches. Detail, evidence and
-  the two commands that would separate CPU from GPU are in §4. Recorded rather
-  than investigated, on the owner's instruction. Minimum-spec hardware remains
-  separately unverified; the release workflow's headless run is green on the
-  growth half alone and says nothing about this.
+- [ ] **60 FPS at 1920×1080 is FAILING — 55 FPS measured on the developer
+  RTX 3070 Ti on 2026-09-08 at a pinned 1080p, against 62 FPS on the same
+  machine on 2026-08-20.** Growth is clean (+0 orphans), so this is steady-state
+  frame cost rather than a leak. **Pin the resolution before comparing**: the
+  window opens at 2560×1440 by default and unpinned runs read 48–49 FPS, which
+  would have been recorded as a 13 FPS regression instead of about 7. Detail,
+  all three runs and the commands that would separate CPU from GPU are in §4.
+  Recorded rather than investigated, on the owner's instruction. Minimum-spec
+  hardware remains separately unverified; the release workflow's headless run is
+  green on the growth half alone and says nothing about this.
 - [x] Night playable at minimum brightness — measured on a real renderer for the
   first time (road 0.107 against a 0.025 floor, enemy 0.040 against 0.005).
   Stays a `manual` row in `V4_CONFORMANCE.md` because no headless runner can
@@ -2012,20 +2014,40 @@ is a horizontal bar at all.
       carries a pad event, and that re-applying does not duplicate bindings.
 - [ ] **60 FPS at 1920×1080 — FAILING. Release blocker as of 2026-09-08.**
 
-      **Measured 48 and 49 FPS on the developer machine, against a 60 FPS
-      budget.** The same machine recorded 62 FPS on 2026-08-20 (below). This is
-      a regression of roughly a fifth of the frame budget, and GDD §52 makes the
+      **Measured 55 FPS at a pinned 1920×1080, against a 60 FPS budget.** The
+      same machine recorded 62 FPS on 2026-08-20 (below). GDD §52 makes the
       number a release requirement, so this row is no longer partial.
 
-          run 1  avg 21.0 ms (48 fps)  p99 23.6 ms  worst 137.3 ms  4 hitches
-          run 2  avg 20.4 ms (49 fps)  p99 22.7 ms  worst  32.0 ms  0 hitches
+          2560x1440   avg 21.0 ms (48 fps)  p99 23.6 ms  worst 137.3 ms  4 hitches
+          2560x1440   avg 20.4 ms (49 fps)  p99 22.7 ms  worst  32.0 ms  0 hitches
+          1920x1080   avg 18.3 ms (55 fps)  p99 20.1 ms  worst  51.7 ms  2 hitches
 
-      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, 120 measured seconds
-      each, vsync confirmed off. **Run 2 is the cleaner of the two** — zero
-      hitches and a 32 ms worst frame — so the result is steady-state cost and
-      not a stutter artefact. Contamination was checked before believing it: no
-      browser open, and TeamViewer measured at **0% CPU across a 12-second
-      sample** (its large cumulative CPU figure is uptime, not active capture).
+      RTX 3070 Ti, OpenGL 3.3 compatibility, High quality, vsync confirmed off;
+      120 measured seconds for the 1440p pair, 60 for the pinned run.
+
+      **Read the resolution before reading the regression.** The first two runs
+      were taken at 2560×1440 and were nearly recorded as a 13 FPS regression.
+      They are not comparable to the 2026-08-20 baseline: `project.godot`
+      declares a 1920×1080 *viewport*, but the window opens at the monitor's
+      2560×1440 and the logical rect is stretched to it — 3.7M pixels rendered
+      against 2.07M. `night_check` prints both (`frame=` and `visible=`) and is
+      the quickest way to see which you are measuring. Pin it explicitly:
+
+          godot --path game --resolution 1920x1080 res://tools/perf_check.tscn -- --seconds=60 --build
+
+      **At matched resolution the gap is about 7 FPS, not 13** — real, and worth
+      an owner's attention, but a third of what the unpinned runs implied.
+
+      Contamination was checked before believing any of it: no browser open, and
+      TeamViewer measured at **0% CPU across a 12-second sample** (its large
+      cumulative CPU figure is uptime, not active capture). The cleanest run of
+      the three had zero hitches, so this is steady-state cost rather than a
+      stutter artefact.
+
+      One honest limit on all three numbers: the field is not identical between
+      runs — render objects varied 2143 / 2166 / 2419 — so a few FPS of the
+      spread is how many bodies happened to be alive, not resolution or code.
+      Comparisons at this precision want more than one run per configuration.
 
       **Growth is healthy**, which is what rules out a leak: +0 orphans, +1.1%
       memory, +0.7% nodes between the first and last third. This is not
@@ -2035,10 +2057,13 @@ is a horizontal bar at all.
       is a diagnosis — no profiling was done, on the owner's instruction to
       record and move on:
 
-      - **`frame split process 22.2 ms`.** That is CPU script time, against a
-        16.7 ms total budget for 60 FPS — on that sample the CPU alone could not
-        reach 60 with an idle GPU. It is one instantaneous reading taken at
-        report time rather than an average, so treat it as a pointer, not proof.
+      - **`frame split process` was 19.1 ms even at 1080p**, and 22.2 ms at
+        1440p. That is CPU script time against a 16.7 ms *total* budget for 60
+        FPS — on those samples the CPU alone could not reach 60 with an idle
+        GPU, and it barely moved when a third of the pixels went away. That is
+        the strongest single indication the cost is CPU-side rather than fill.
+        Each is one instantaneous reading taken at report time rather than an
+        average, so treat them as a pointer, not proof.
       - **1362 draw calls for 2143 render objects.** `ActorPolish.attach` gives
         every sprite its own `ShaderMaterial`, which prevents 2D batching. That
         is long-standing; what changed on 2026-09-01 is that fire, ice and the
@@ -2053,10 +2078,9 @@ is a horizontal bar at all.
           godot --path game res://tools/perf_check.tscn -- --seconds=45 --build --quality=low
           godot --path game res://tools/perf_check.tscn -- --seconds=45 --idle
 
-      One caveat on the comparison with 2026-08-20: that run is documented as
-      1920×1080, and the window size was not pinned for these two. If the
-      window came up larger, part of the gap is resolution rather than
-      regression — worth eliminating first, and cheap to do.
+      The resolution caveat that would have gone here has been eliminated — see
+      the pinned 1920×1080 run above. It cost 6 FPS of the apparent gap and did
+      not account for the rest.
 
       `tools/perf_check.tscn` asserts growth always and asserts frame timing
       **only when a real renderer is present** — the dummy renderer does no GPU
