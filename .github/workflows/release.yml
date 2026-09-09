@@ -166,6 +166,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/balance_test.tscn
           run_godot_clean --headless --path game res://tools/menu_check.tscn
           run_godot_clean --headless --path game res://tools/menu_layout_check.tscn
+          run_godot_clean --headless --path game res://tools/town_click_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn
           run_godot_clean --headless --path game res://tools/save_backup_check.tscn

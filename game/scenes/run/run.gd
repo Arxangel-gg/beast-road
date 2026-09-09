@@ -51,7 +51,14 @@ func _ready() -> void:
 	EventBus.coop_crossroad_opened.connect(_on_coop_crossroad_opened)
 	EventBus.coop_road_chosen.connect(_on_coop_road_chosen)
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
-	town.plot_selected.connect(town_panel.open)
+	# The sheet docks over the left of the screen, which is where part of the
+	# plot ring is. The town slides out from under it rather than the sheet
+	# shrinking; `run` wires it because it owns both and the scope must not hold
+	# a reference to the UI (working rule 5).
+	town.plot_selected.connect(func(building_id: String) -> void:
+		town_panel.open(building_id)
+		town.set_view_inset(town_panel.docked_width()))
+	town_panel.closed.connect(func() -> void: town.set_view_inset(0.0))
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
 	hud.pause_requested.connect(func() -> void: pause_ui.toggle())

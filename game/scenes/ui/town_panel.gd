@@ -95,8 +95,21 @@ func open(building_id: String) -> void:
 	_refresh()
 
 
+## Emitted when the sheet stops covering the screen, so the town can slide back.
+signal closed
+
+
 func close() -> void:
 	panel.visible = false
+	closed.emit()
+
+
+## How much screen the docked sheet is taking, or 0 when it is not showing.
+## The town uses this to move the plot ring out from under it.
+func docked_width() -> float:
+	if panel == null or not panel.visible:
+		return 0.0
+	return panel.size.x + panel.position.x
 
 
 func is_open() -> bool:

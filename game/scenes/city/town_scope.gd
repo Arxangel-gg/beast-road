@@ -36,6 +36,30 @@ var _plot_idle_frames: Dictionary = {}
 var _hall_idle_frames: Array[Texture2D] = []
 var _idle_time: float = 0.0
 
+## **How far to slide the view so the open panel does not sit on the ring.**
+##
+## `UiMetrics.dock_panel` docks the building sheet down the *left* of the screen
+## at `UI_SIDE_PANEL_*` width - 680x1036 of a 1920x1080 screen, by design, not by
+## accident. The plot ring is centred on the viewport, so the left of the ring
+## lands underneath it: measured 2026-09-08, the watchtower plot sits at x
+## 564-756 against a panel reaching x 702, and a click on it is swallowed by the
+## panel rather than opening the building.
+##
+## Reported from play as buildings that cannot be selected. It reads as "some of
+## them" because it depends on which plot the ring rotation happens to put on the
+## left, and on how wide the dock is at that resolution - so a player sees a
+## couple of dead buildings rather than an obvious layout fault.
+##
+## The camera slides instead of the panel shrinking: the sheet is a reading
+## surface and narrowing it to clear the ring would cost the thing it is for.
+var _view_inset: float = 0.0
+
+
+## Called by the run when the building sheet opens or closes. Pixels of screen
+## the sheet has taken, or 0.
+func set_view_inset(pixels: float) -> void:
+	_view_inset = maxf(pixels, 0.0)
+
 
 func _ready() -> void:
 	_setup_ground()
@@ -73,6 +97,13 @@ func _setup_ground() -> void:
 ## SpriteAnimator's model, the way the tower's did when the beast step arrived.
 func _process(delta: float) -> void:
 	_idle_time += delta
+	# Half the inset, so the ring ends up centred in what is left of the screen
+	# rather than shoved against the right edge. Eased rather than snapped: the
+	# panel opens on a click and a hard jump reads as the town teleporting.
+	if camera != null:
+		var wanted: float = -_view_inset * 0.5
+		camera.offset.x = move_toward(camera.offset.x, wanted,
+			maxf(absf(camera.offset.x - wanted), 60.0) * delta * 6.0)
 	var swing: float = _idle_time * Balance.STRUCTURE_IDLE_RATE * TAU
 	for id: Variant in _plots:
 		var plot: Node2D = _plots[id] as Node2D

@@ -377,6 +377,13 @@ jobs:
           # opened a main-menu panel at a phone shape and looked. The same bug
           # has now been reported in three of these screens.
           check "menu layout" --headless --path game res://tools/menu_layout_check.tscn
+          # Every town plot answers a click, including while a building sheet is
+          # open. The sheet docks full-height down the left of the screen and the
+          # plot ring is centred on the viewport, so the left of the ring used to
+          # sit underneath it and go dead. Reported from play as "buildings on
+          # the bottom half are not selectable"; menu_layout_check opens *menu*
+          # panels and had no opinion about the world beneath a docked one.
+          check "town clicks" --headless --path game res://tools/town_click_check.tscn
           # Every content resource's derived sprite exists. The manifest and
           # `report` both work outward from what is *declared*, so an asset
           # nobody remembered to declare is missing from the manifest, from disk

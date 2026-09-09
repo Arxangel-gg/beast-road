@@ -395,6 +395,7 @@ $btn.Add_Click({
             @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
 			@{ Name = 'main menu'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_check.tscn') },
 			@{ Name = 'mobile menus and draggable scrollbars'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_layout_check.tscn') },
+			@{ Name = 'town plots answer a click under an open sheet'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/town_click_check.tscn') },
 			@{ Name = 'leaderboard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/leaderboard_check.tscn') },
             @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
 			@{ Name = 'torch snuff runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=45', '--shots=999', '--expect-snuff') },
