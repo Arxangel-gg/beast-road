@@ -66,6 +66,8 @@ func _ready() -> void:
 			"missing discipline icon: %s" % node.get_sprite_path())
 
 	await _test_mercy_under_fire()
+	_test_synergies_are_real()
+	await _test_second_wind_fires()
 
 	if _failures.is_empty():
 		print("[discipline] PASS — %d nodes, role gates, offers, respec and icons"
@@ -158,6 +160,138 @@ func _test_mercy_under_fire() -> void:
 	await get_tree().process_frame
 	field.queue_free()
 	for _f: int in 12:
+		await get_tree().process_frame
+
+
+## Every authored synergy is accounted for, buildable, and points at real
+## effects.
+##
+## Four separate ways a synergy can be a lie, and all four have precedent in
+## this codebase:
+##
+## 1. **Authored and read by nothing.** Twenty-one discipline effects shipped
+##    like that. `Synergies.IMPLEMENTED` is the same registry answer, and this
+##    fails the build when a synergy is in neither list or in both.
+## 2. **Requiring an effect that does not exist.** A typo in a `.tres` array is
+##    silent - `trained()` simply always answers false and the synergy can never
+##    fire, which is indistinguishable from a player who has not built for it.
+## 3. **Requiring an effect nothing implements.** Seventeen are still owed. A
+##    synergy resting on one of those is buildable and inert.
+## 4. **Requiring effects a hero cannot hold at once.** The three finisher
+##    effects are all Attack-slot, and only one node sits in a slot - so a
+##    synergy between two of them could never fire, by construction. This is the
+##    one that would have been hardest to notice by playing.
+func _test_synergies_are_real() -> void:
+	var listed: Dictionary = {}
+	for id: String in Synergies.IMPLEMENTED:
+		listed[id] = "implemented"
+	for id: String in Synergies.DECLARED_ONLY:
+		_check(not listed.has(id), "%s is in both synergy registries" % id)
+		listed[id] = "declared"
+
+	var authored: Dictionary = {}
+	for data: SynergyData in Synergies.all_sorted():
+		authored[data.id] = true
+		_check(listed.has(data.id),
+			"synergy %s is authored and in neither registry, so nothing says "
+				% data.id + "whether anything reads it")
+		_check(data.requires.size() >= 2,
+			"synergy %s requires %d effect(s); a synergy of one is a node"
+				% [data.id, data.requires.size()])
+		for effect_id: String in data.requires:
+			_check(_effect_is_authored(effect_id),
+				"synergy %s requires effect '%s', which no node carries"
+					% [data.id, effect_id])
+			_check(DisciplineEffects.IMPLEMENTED.has(effect_id),
+				"synergy %s rests on '%s', which is authored and still owed"
+					% [data.id, effect_id])
+		_check(_can_hold_together(data),
+			"synergy %s needs two effects that cannot both be live at once"
+				% data.id)
+	for id: Variant in listed:
+		_check(authored.has(String(id)),
+			"%s is registered as a synergy and no .tres authors it" % String(id))
+	print("[discipline] %d synergies, %d implemented"
+		% [Synergies.all_sorted().size(), Synergies.IMPLEMENTED.size()])
+
+
+func _effect_is_authored(effect_id: String) -> bool:
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.effect_id == effect_id:
+			return true
+	return false
+
+
+## Whether one hero could have every effect this synergy wants working at once.
+##
+## `DisciplineEffects.trained` reads the trained list, not the slots, so any
+## number of PASSIVE effects coexist freely. The trap is the effects that are
+## only ever read off an equipped node: two of those in the same slot can never
+## both be live. Slot is a property of the node, so this asks the nodes.
+func _can_hold_together(data: SynergyData) -> bool:
+	var slot_used: Dictionary = {}
+	for effect_id: String in data.requires:
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.effect_id != effect_id:
+				continue
+			# Read from the trained list, so the slot does not constrain it.
+			if not _effect_is_slot_bound(effect_id):
+				continue
+			var slot: int = int(node.slot)
+			if slot_used.has(slot) and slot_used[slot] != effect_id:
+				return false
+			slot_used[slot] = effect_id
+	return true
+
+
+## The effects the game reads off `discipline_node_in_slot` rather than off the
+## trained list. Listed rather than derived, because "how is this effect read"
+## is a fact about the consuming code and nothing in the data knows it.
+func _effect_is_slot_bound(effect_id: String) -> bool:
+	return effect_id in ["bleed_finisher", "defense_radiant_finisher",
+		"crowd_finisher_force"]
+
+
+## Second Wind actually refills Rising Fury on a Howler kill.
+##
+## Driven through the real signal rather than by calling `fill_fury`, for the
+## reason the whole session keeps running into: the wiring is the part that
+## breaks, and a test that calls the effect directly passes on a synergy nothing
+## triggers. Both halves are trained, a Howler dies on the bus, and the hero's
+## attack interval is measured before and after.
+func _test_second_wind_fires() -> void:
+	RunState.reset()
+	RunState.act = 3
+	for effect_id: String in ["active_attack_speed", "support_kill_speed"]:
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.effect_id == effect_id:
+				RunState.trained_discipline_nodes.append(node.id)
+	_check(Synergies.active("second_wind"),
+		"training both halves did not make Second Wind active")
+
+	var howler: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed != null and breed.role == EnemyData.Role.HOWLER:
+			howler = breed
+			break
+	_check(howler != null, "no authored breed is a Howler, so nothing can trigger it")
+	if howler == null:
+		return
+
+	var hero := (load("res://scenes/hero/hero.tscn") as PackedScene).instantiate() as Hero
+	add_child(hero)
+	await get_tree().process_frame
+	var cold: float = hero.attack.fury_ramp()
+	_check(is_zero_approx(cold),
+		"a hero who has not swung is already at %.2f fury" % cold)
+	EventBus.enemy_died.emit(howler.id, Vector2.ZERO)
+	await get_tree().process_frame
+	var hot: float = hero.attack.fury_ramp()
+	_check(hot >= 0.99,
+		"a Howler kill left Rising Fury at %.2f rather than its cap" % hot)
+	hero.queue_free()
+	for _f: int in 6:
 		await get_tree().process_frame
 
 

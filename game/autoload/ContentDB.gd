@@ -59,6 +59,10 @@ var affixes: Dictionary = {}
 ## enough business settles them; see `MerchantData`.
 var merchants: Dictionary = {}
 
+## Pairs of trained discipline effects that do something together (owner brief,
+## 2026-09-08, stage two). See `SynergyData` for why none of them is a number.
+var synergies: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -98,6 +102,7 @@ func _ready() -> void:
 	blueprints = _load_dir("res://data/blueprints")
 	affixes = _load_dir("res://data/affixes")
 	merchants = _load_dir("res://data/merchants")
+	synergies = _load_dir("res://data/synergies")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -115,6 +120,10 @@ func enemy(id: String) -> EnemyData:
 
 func relic(id: String) -> RelicData:
 	return relics.get(id, null) as RelicData
+
+
+func synergy(id: String) -> SynergyData:
+	return synergies.get(id, null) as SynergyData
 
 
 func merchant(id: String) -> MerchantData:

@@ -847,6 +847,8 @@ func _mansion_tree(tier: int) -> void:
 	_note("Blood trades health for damage. Holy shields and cleanses. Berserk "
 		+ "breaks formations. Mix them freely — nothing locks you to one.")
 
+	_show_synergies()
+
 	var last: int = -1
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
 		if _tree_filter >= 0 and int(node.discipline) != _tree_filter:
@@ -866,6 +868,46 @@ func _mansion_tree(tier: int) -> void:
 			tint = Color("e8a33d")
 		actions.add_child(_line("%s  ·  %s\n%s\n%s" % [node.display_name,
 			node.slot_name(), node.description, state], 13, tint))
+
+
+## Pairs of nodes that do something together, and how close the hero is to each.
+##
+## **On the page, not in a tooltip, and not a surprise.** A synergy the player
+## discovers by accident is not a build - it is a coincidence. The whole reason
+## stage two exists is to give a reason to take a *particular* path rather than
+## the deepest one, and that only works if the paths are legible before they are
+## walked. So every synergy is listed from the first visit, with its
+## requirements named and its progress counted.
+##
+## Sorted by how close it is. A player two nodes away wants to see the one they
+## are one node away from first.
+func _show_synergies() -> void:
+	var all: Array[SynergyData] = Synergies.all_sorted()
+	if all.is_empty():
+		return
+	actions.add_child(_heading("Synergies"))
+	_note("Two trained nodes doing something together. None of them raises a "
+		+ "number — they change when an effect fires, or what it fires on.")
+	var rows: Array[SynergyData] = all.duplicate()
+	rows.sort_custom(func(a: SynergyData, b: SynergyData) -> bool:
+		var mine: int = Synergies.progress(a.id)
+		var theirs: int = Synergies.progress(b.id)
+		if mine != theirs:
+			return mine > theirs
+		return a.id < b.id)
+	for data: SynergyData in rows:
+		var done: int = Synergies.progress(data.id)
+		var need: int = data.requires.size()
+		var live: bool = Synergies.active(data.id)
+		var tint: Color = Color("9fd48a") if live else (
+			Color("e8a33d") if done > 0 else Color("8f877a"))
+		var state: String = "ACTIVE" if live else "%d of %d trained" % [done, need]
+		var body: String = "%s  ·  %s
+%s" % [data.display_name, state, data.description]
+		if not live and not data.hint.is_empty():
+			body += "
+%s" % data.hint
+		actions.add_child(_line(body, 13, tint))
 
 
 ## The one requirement standing in the way, in the order the rules are checked,

@@ -109,6 +109,25 @@ func _haste_scale() -> float:
 	return scale * _fury_scale()
 
 
+## Snaps Rising Fury to its cap. Second Wind's whole effect.
+##
+## A method rather than the hero writing `_fury_seconds` from outside: the ramp
+## and its reset window belong to this file, and a caller setting the timer
+## directly would be a second place that knows how fury is measured.
+func fill_fury() -> void:
+	_fury_seconds = maxf(_fury_seconds, Balance.RISING_FURY_RAMP_SECONDS)
+	_fury_idle = 0.0
+
+
+## How far up the ramp Rising Fury currently is, 0 to 1.
+##
+## Public because it is the one number Second Wind changes, and a gate that had
+## to infer it from a swing interval would be measuring three other multipliers
+## at the same time.
+func fury_ramp() -> float:
+	return clampf(_fury_seconds / maxf(Balance.RISING_FURY_RAMP_SECONDS, 0.001), 0.0, 1.0)
+
+
 ## Rising Fury's share, as a phase multiplier: 1.0 cold, and at the cap the
 ## authored fraction faster. Multiplied with the evade haste rather than
 ## replacing it, so a perfect dodge inside a long fight still reads as an event.

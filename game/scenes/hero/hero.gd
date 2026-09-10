@@ -750,6 +750,13 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 		return
 	_pulse_left = Balance.HUNTERS_PULSE_SECONDS
 	Vfx.ring(global_position, 96.0, Balance.HERO_EVADE_COLOUR, 0.22, 3.0)
+	# **Second Wind.** Rising Fury ebbs the moment you stop swinging, and killing
+	# a Howler usually means the knot around it comes apart and there is nothing
+	# to swing at - so the reward for the play the game most wants you to make
+	# was, in practice, losing your attack speed. This hands it straight back at
+	# the cap. No number changes: the ramp is the ramp, it simply starts full.
+	if Synergies.active("second_wind") and attack != null:
+		attack.fill_fury()
 
 
 func _on_evaded(into: float, from: Vector2) -> void:
@@ -1135,6 +1142,7 @@ func _mercy_under_fire() -> void:
 	var push: float = DisciplineEffects.trained_value("revive_knockback")
 	if push <= 0.0:
 		return
+	_synergies_on_standing_up()
 	var pushed: int = 0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
@@ -1147,6 +1155,34 @@ func _mercy_under_fire() -> void:
 	Vfx.ring(global_position, Balance.MERCY_RADIUS, Balance.HERO_EVADE_COLOUR, 0.34, 5.0)
 	if pushed > 0:
 		EventBus.camera_shake_requested.emit(4.0, 0.22)
+
+
+## The two synergies that fire on getting up.
+##
+## Both are the same idea from opposite sides: the shove clears the crowd, and
+## on its own that is a moment of space you cannot use. `break_their_grip` gives
+## you the legs to leave, and `the_watch_answers` pays the town for having stood
+## up inside its shadow - the same reward Vigil pays for a perfect dodge there,
+## on the reasonable ground that going down near home is at least as noteworthy.
+##
+## Neither raises a number. `SynergyData` records why that is a hard rule rather
+## than restraint: the paths decision is bounded by "depth buys access, never
+## power", and a synergy that multiplied something would be that bound going out
+## through a side door.
+func _synergies_on_standing_up() -> void:
+	if Synergies.active("break_their_grip"):
+		_pulse_left = Balance.HUNTERS_PULSE_SECONDS
+	if not Synergies.active("the_watch_answers"):
+		return
+	# Same guard as Vigil's, and for the same reason: `town_position` answers
+	# with the origin when there is no town, so the raid arena would pay this to
+	# anyone who went down near its centre.
+	if field == null or field.town_node() == null:
+		return
+	if global_position.distance_to(field.town_position()) > Balance.VIGIL_COMMAND_RADIUS:
+		return
+	RunState.gain_command(DisciplineEffects.trained_value("town_dodge_command"))
+	Vfx.ring(global_position, 132.0, Balance.HERO_EVADE_COLOUR, 0.36, 4.0)
 
 
 func apply_hearthmend() -> void:

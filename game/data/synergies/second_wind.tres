@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SynergyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+requires = Array[String](["active_attack_speed", "support_kill_speed"])
+hint = "Rising Fury and Hunter's Pulse. Both are about what a kill is worth."
+id = "second_wind"
+display_name = "Second Wind"
+description = "Killing a Howler snaps Rising Fury straight to its cap instead of letting it ebb."

@@ -170,9 +170,33 @@ the same nodes, on the same capped scales as levelling and gear (working rule 7)
 If depth ever starts granting magnitude, that is a third power scale beside
 levelling and gear and it needs its own decision.
 
-Two further stages were asked for in the same breath and are **not** built:
-node-to-node synergies, and whether the per-road draft should be replaced by
-freely spending skill points. Do not treat the paths above as either of those.
+**Stage two: synergies, as of 2026-09-10.** Pairs of trained effects that do
+something together they do not do apart. Three ship: a Howler kill refills
+Rising Fury, standing up near the Town Hall pays Command, and the revive shove
+grants Hunter's Pulse.
+
+**None of them raises a number, and that is a hard rule rather than restraint.**
+The bound above says depth buys access and never magnitude; a synergy reading
+"four Blood nodes, so Blood hits harder" is that same third power scale arriving
+through a side door. So every synergy changes *when* an existing effect fires or
+*what it fires on*, and the magnitudes stay the ones the nodes authored. The
+price is still real - a synergy costs both its nodes, two skill points and two
+lots of Food that could have bought breadth.
+
+They are listed on the Mansion tree page from the first visit, with progress
+counted, because a synergy discovered by accident is a coincidence rather than a
+build.
+
+`synergy_check` (inside `discipline_check`) holds four ways one can be a lie,
+all with precedent here: authored and read by nothing, requiring an effect no
+node carries, resting on one of the seventeen effects still owed, or requiring
+two effects a hero cannot hold at once - the three finishers are all Attack-slot
+and only one node sits in a slot, so a synergy between two of them could never
+fire at all.
+
+**Stage three is still open.** Whether the per-road draft should be replaced by
+freely spending skill points has not been decided or built. Do not treat the
+paths or the synergies above as that decision.
 
 **Ranged combat, ammunition, blueprints and crafting are in scope, as of
 2026-08-31.** None of them appears in v4. The owner asked for all four after

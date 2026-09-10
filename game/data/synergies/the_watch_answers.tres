@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SynergyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+requires = Array[String](["town_dodge_command", "revive_knockback"])
+hint = "Vigil and Mercy Under Fire. The town notices when you go down near it."
+id = "the_watch_answers"
+display_name = "The Watch Answers"
+description = "Getting back on your feet within sight of the Town Hall grants Command, as a perfect dodge there would."

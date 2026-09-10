@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SynergyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+requires = Array[String](["revive_knockback", "support_kill_speed"])
+hint = "Mercy Under Fire and Hunter's Pulse. Room to move is only useful if you can move."
+id = "break_their_grip"
+display_name = "Break Their Grip"
+description = "The shove that clears the crowd when you stand up also grants Hunter's Pulse, so you can leave."
