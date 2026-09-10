@@ -21,7 +21,15 @@ extends EnemyField
 @export var camera: Camera2D
 
 
+## Takes ownership of the effect world while the camp is open. The battlefield
+## claims it back in its own `activate`; see the note there for what it cost to
+## have only one half of this.
+func claim_effects() -> void:
+	Vfx.bind_world(effect_root if effect_root != null else self)
+
+
 func activate() -> void:
+	claim_effects()
 	if camera != null:
 		camera.make_current()
 	CursorKit.use_attack()
@@ -91,7 +99,7 @@ func begin() -> void:
 		# in the tree at once, which is why presence has to be claimed rather
 		# than assumed.
 		hero.set_present(true)
-	Vfx.bind_world(effect_root if effect_root != null else self)
+	claim_effects()
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.raid_started.emit()
 
@@ -389,6 +397,23 @@ func hero_is_alive() -> bool:
 ## in an arena where the hero is the only objective would stand still.
 func nearest_hero(_from: Vector2) -> Node2D:
 	return hero if hero != null and hero.is_alive() else null
+
+
+## **In a camp the objective is the hero, not the middle.**
+##
+## The base answers the origin, which is correct for a scope built around a town
+## at its centre and exactly wrong here - this arena has no town, and every body
+## that lost track of the hero walked to `Vector2.ZERO` and milled about there.
+## Reported from play on 2026-09-10: "enemies only go to the center of the map
+## instead of heading towards the player".
+##
+## Falls back to the centre when the hero is gone, rather than to the enemy's own
+## position: a raid whose hero is down still has bodies that need somewhere to
+## be, and asking them to walk to where they already stand is a stall by a
+## different route.
+func objective_position(from: Vector2) -> Vector2:
+	var target: Node2D = nearest_hero(from)
+	return target.global_position if target != null else town_position()
 
 
 func target_radius(node: Node2D) -> float:

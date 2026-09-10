@@ -975,6 +975,26 @@ func combat_origin() -> Vector2:
 
 ## Kindles the rare elite recovery on the hero who physically collected it.
 ## The authority runs the healing; ordinary co-op hero snapshots mirror HP.
+## Drinks one healing orb. `points` is health, decided by the body that dropped
+## it and capped there.
+##
+## Announced rather than silent. A heal the player does not notice is a heal
+## that did not happen as far as they are concerned, and the floating number is
+## the only thing that tells an orb from a coin at a glance.
+func drink_healing_orb(points: float) -> void:
+	if health == null or health.is_dead or points <= 0.0:
+		return
+	var before: float = health.current_hp
+	health.heal(points)
+	var gained: int = int(round(health.current_hp - before))
+	if gained <= 0:
+		return
+	Vfx.number(combat_origin(), float(gained), Balance.HEALING_ORB_COLOUR, false)
+	var drop := ContentDB.recovery_drops.get(Balance.HEALING_ORB_ID, null) 		as RecoveryDropData
+	if drop != null and not drop.pickup_line.is_empty():
+		EventBus.preparation_warning.emit(drop.pickup_line % gained)
+
+
 func apply_mender_spark() -> void:
 	if health == null or health.is_dead:
 		return

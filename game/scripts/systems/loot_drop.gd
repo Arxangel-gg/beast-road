@@ -61,6 +61,15 @@ func setup(currency_id: String, value: int, from: Vector2) -> void:
 	if currency == Balance.MENDER_SPARK_ID:
 		_glow_colour = Color(0.44, 0.96, 0.62, 0.72)
 		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	elif currency == Balance.HEALING_ORB_ID:
+		# Crimson against the Spark's green. Two recoveries that glowed alike
+		# would teach the player that one of them is the other, and they are
+		# deliberately opposite halves of the same idea.
+		_glow_colour = Balance.HEALING_ORB_COLOUR
+		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
+	elif currency == Balance.SUPPLY_CRATE_ID:
+		_glow_colour = Balance.SUPPLY_CRATE_COLOUR
+		_glow_size = Balance.GEAR_DROP_GLOW_SIZE
 
 
 ## A plan on the ground. Rarity drives the glow, so a legendary recipe announces
@@ -221,7 +230,12 @@ func _process(delta: float) -> void:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
 		# already earned by killing the thing teaches a player to stop fighting
 		# and stand on the road hoovering, which is worse than either extreme.
-		if currency == Balance.MENDER_SPARK_ID:
+		if currency == Balance.MENDER_SPARK_ID 				or currency == Balance.HEALING_ORB_ID:
+			# **Recoveries expire; they are not paid out.** Everything else is a
+			# reward already earned by the kill, and taking it back would teach
+			# the player to stop fighting and hoover. A heal is different: it is
+			# earned by *going and getting it*, and one that arrived by itself
+			# would remove the only decision an orb poses.
 			_expire_special()
 		else:
 			_collect(hero as Hero)
@@ -292,7 +306,7 @@ func collect_mirrored() -> void:
 		return
 	_taken = true
 	Sfx.play_group("loot_collect")
-	if currency == Balance.MENDER_SPARK_ID:
+	if currency == Balance.MENDER_SPARK_ID or currency == Balance.HEALING_ORB_ID:
 		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 		_burst()
 	elif gear.is_empty() and amount > 0:
@@ -310,7 +324,18 @@ func _collect(who: Hero = null) -> void:
 	_taken = true
 	if net_id != 0:
 		EventBus.coop_loot_taken.emit(net_id)
-	if currency == Balance.MENDER_SPARK_ID:
+	if currency == Balance.SUPPLY_CRATE_ID:
+		_break_open()
+	elif currency == Balance.HEALING_ORB_ID:
+		# `amount` is health, decided by the body that dropped it. Read from the
+		# drop rather than recomputed, so an orb lying on the road for twenty
+		# seconds is still worth what the thing that died was worth.
+		if who != null and is_instance_valid(who):
+			who.drink_healing_orb(float(amount))
+		Sfx.play_group("loot_collect")
+		Vfx.ring(global_position, _glow_size * 0.6, _glow_colour, 0.36, 4.0)
+		_burst()
+	elif currency == Balance.MENDER_SPARK_ID:
 		if who != null and is_instance_valid(who):
 			who.apply_mender_spark()
 		Sfx.play_group("loot_collect")
@@ -383,6 +408,46 @@ func _celebrate_gear() -> void:
 		# the raid both own one, and a drop has no business knowing which scope
 		# it is lying in (working rule 5).
 		EventBus.camera_shake_requested.emit(shake, 0.38)
+
+
+## Bursts the crate and scatters what was inside.
+##
+## **The crate is a roll you had to walk to.** It breaks on contact rather than
+## needing to be attacked, which is deliberate: the decision it poses is the one
+## every drop on this road poses - leave the line or leave the reward - and
+## making it a second thing to hit would have needed a health component, a hit
+## test and a new combat verb to say something the walk already says.
+##
+## What falls out is spawned as ordinary drops rather than granted directly, so
+## the spill is magnetised, replicated and collected by exactly the machinery
+## that carries every other reward. In co-op that means the partner can take a
+## piece of your crate, which is the same rule that already governs a coin.
+##
+## Rolled on the host only. `_collect` has already refused for a puppet by the
+## time this runs, so a guest never invents contents its host does not have.
+func _break_open() -> void:
+	var field: Node = get_parent()
+	while field != null and not field.has_method("spawn_loot"):
+		field = field.get_parent()
+	Sfx.play_group("loot_collect")
+	Vfx.ring(global_position, _glow_size * 0.85, Balance.SUPPLY_CRATE_COLOUR, 0.42, 5.0)
+	Vfx.spark(global_position, Balance.SUPPLY_CRATE_COLOUR, 12, Vector2.ZERO, 240.0)
+	Vfx.rays(global_position, Balance.SUPPLY_CRATE_COLOUR, 10, 74.0, randf() * TAU)
+	_burst()
+	if field == null:
+		return
+	var rng: RandomNumberGenerator = RunState.rng("recovery")
+	var spills: int = rng.randi_range(Balance.SUPPLY_CRATE_MIN_SPILLS,
+		Balance.SUPPLY_CRATE_MAX_SPILLS)
+	for _spill: int in spills:
+		if rng.randf() < Balance.SUPPLY_CRATE_ORB_SHARE:
+			field.call("spawn_loot", Balance.HEALING_ORB_ID,
+				maxi(int(round(Balance.HERO_MAX_HP
+					* Balance.HEALING_ORB_BASE_FRACTION)), 1), global_position)
+		else:
+			var which: String = RunState.CURRENCIES[
+				rng.randi_range(0, RunState.CURRENCIES.size() - 1)]
+			field.call("spawn_loot", which, maxi(amount, 1), global_position)
 
 
 ## Reads the plan, and hands over the first bow.

@@ -985,6 +985,15 @@ run currency has a dedicated road-scale silhouette. The supplies silhouette is
 the ordinary raid provision cache; the relic silhouette is reserved for the
 locked premium cache, so the detour's value reads before the player reaches it.
 
+The healing orb is crimson against the Mender's Spark's green, because two
+recoveries that glowed alike would teach the player that one of them is the
+other, and they are deliberately opposite halves of one idea. Both of those
+generations arrived with the artefact reported from play: the orb standing on a
+cast shadow and the crate on a patch of grass. The shadow was a *detached* blob
+and came off by connected component; the grass was attached and came off by
+colour, which was only safe because the crate had first been shown to contain no
+green at all.
+
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `loot_wood.png` | 48×48 | T | `#8D5A32` |
@@ -994,6 +1003,8 @@ locked premium cache, so the detour's value reads before the player reaches it.
 | `loot_supplies.png` | 48×48 | T | `#8B7250` |
 | `loot_relic.png` | 48×48 | T | `#7A5BA8` |
 | `loot_mender_spark.png` | 48×48 | T | `#79D9A0` |
+| `loot_healing_orb.png` | 48×48 | T | `#E64857` |
+| `loot_supply_crate.png` | 48×48 | T | `#7A5B3C` |
 
 ### 5.8d Sidescroller ground — `res://art/bg/`
 

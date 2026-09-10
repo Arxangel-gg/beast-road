@@ -46,6 +46,10 @@ const RNG_STREAM_SALTS: Dictionary = {
 	"mender": 571219,
 	"bosses": 611953,
 	"combat": 746773,
+	# Healing orbs and supply crates. Their own stream for the reason the gear
+	# roll has one: retuning how often a sip drops must not rewrite what a seeded
+	# run's gear or waves do.
+	"recovery": 812273,
 }
 
 # --- Economy ---------------------------------------------------------------

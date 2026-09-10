@@ -948,6 +948,90 @@ const RATION_ESCALATION: int = 25
 # Mender's Spark — rare battlefield recovery
 # ------------------------------------------------------------------------------
 
+# --- Healing orbs -------------------------------------------------------------
+#
+# Owner brief, 2026-09-10: "a small chance for enemies to drop healing orbs
+# similar to kingdom hearts style and diablo style, while maintaining game's
+# balance, and also tuning it to each enemy's rarity and power while still being
+# rare and being just an extra small helping hand here and there beside the
+# mender's spark which is not enough by itself".
+#
+# **The orb is the opposite half of the Spark, deliberately.** The Spark is one
+# per act, elite-only, gated on being under 45% health, and pays a regeneration
+# that breaks when you are hit. It is an *event*. An orb is a sip: common
+# enemies can drop one, it needs no permission, and it heals a little the
+# instant you walk over it. Neither replaces the other, and an orb that healed
+# enough to matter in a fight would have made the Spark pointless.
+#
+# The bound is the cap below. Every scaling term feeds into a heal that cannot
+# exceed `HEALING_ORB_MAX_FRACTION` of maximum health however hard the thing was
+# that dropped it, so an act-three elite cannot pay for a mistake the curve is
+# tuned to punish.
+
+## Chance an ordinary breed leaves one.
+const HEALING_ORB_BREED_CHANCE: float = 0.035
+
+## Chance a promoted body does. Rarity is what the owner asked to tune against,
+## and this is the larger half of it: the thing that was hard to kill is the
+## thing worth killing.
+const HEALING_ORB_ELITE_CHANCE: float = 0.22
+const HEALING_ORB_BOSS_CHANCE: float = 1.0
+
+## What one orb restores, as a fraction of maximum health, before power scaling.
+const HEALING_ORB_BASE_FRACTION: float = 0.035
+
+## How much the dropping enemy's own worth adds on top. Read off
+## `resource_value`, which is the game's existing statement of how much an enemy
+## is worth killing, so a new breed is tuned by the field it already fills in.
+const HEALING_ORB_POWER_PER_VALUE: float = 0.0016
+
+## The ceiling that keeps all of the above honest.
+const HEALING_ORB_MAX_FRACTION: float = 0.09
+
+# --- Supply crates ------------------------------------------------------------
+#
+# Owner brief, 2026-09-10: "some enemies have a rare chance to drop loot crates
+# that can be broken for a chance at random loot or resources or healing orbs
+# with tuned rarity that also considers the enemy that dropped it's power".
+#
+# **A crate is a roll you have to walk to.** It breaks when a hero reaches it and
+# scatters what was inside, so the decision it poses is the same one every drop
+# on this road poses - leave the line, or leave the reward - and it needs no new
+# combat verb, no health component and no second way to hit something.
+#
+# Rarer than an orb by design. An orb is a sip; a crate is a small event, and the
+# spread of what falls out is what makes it one.
+
+const SUPPLY_CRATE_ID: String = "supply_crate"
+
+const SUPPLY_CRATE_BREED_CHANCE: float = 0.012
+const SUPPLY_CRATE_ELITE_CHANCE: float = 0.09
+const SUPPLY_CRATE_BOSS_CHANCE: float = 0.55
+
+## How many things fall out. The low end is the common case; a crate that always
+## paid three would be a bigger coin rather than a different event.
+const SUPPLY_CRATE_MIN_SPILLS: int = 1
+const SUPPLY_CRATE_MAX_SPILLS: int = 3
+
+## Chance any one spill is a healing orb rather than currency. The rest of the
+## time it is a run currency, sized against what the body was worth.
+const SUPPLY_CRATE_ORB_SHARE: float = 0.3
+
+## Currency in a crate, as a multiple of what the same body's ordinary bonus
+## drop would have been. The crate is rarer, so each spill is worth more.
+const SUPPLY_CRATE_VALUE_SCALE: float = 1.8
+
+## Colour of the break, and of the crate's glow on the ground.
+const SUPPLY_CRATE_COLOUR: Color = Color(0.85, 0.70, 0.38, 0.85)
+
+const HEALING_ORB_ID: String = "healing_orb"
+
+## Read by the pickup ring, the ground glow and the floating number, so all three
+## say the same thing. Crimson rather than the Spark's green: two recoveries that
+## looked alike would teach the player that one of them is the other, and they
+## are deliberately opposite halves of one idea.
+const HEALING_ORB_COLOUR: Color = Color(0.90, 0.28, 0.34, 0.88)
+
 const MENDER_SPARK_ID: String = "mender_spark"
 ## Only an elite kill while somebody is below this health can roll a Spark.
 ## [TUNE]

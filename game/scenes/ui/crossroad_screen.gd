@@ -532,9 +532,24 @@ func _choose(road_id: String, difficulty_id: String) -> void:
 	if not Coop.partner_present():
 		_apply_choice(road_id, difficulty_id)
 		return
-	# The host votes like everybody else rather than deciding by clicking.
+	host_vote(road_id, difficulty_id)
+
+
+## The host taking its turn in the fork: one vote, then a wait.
+##
+## Its own function rather than two lines inside `_choose`, because those two
+## lines are where the co-op deadlock lived and `_choose` cannot be driven
+## without a live peer - it branches on `Coop.partner_present()`. A bug that can
+## only be reached through a socket is a bug no gate will ever hold.
+##
+## The wait is `_await_votes`, which greys the buttons, and **not**
+## `_await_answer`, which also sets `_resolving`. That flag means "this machine
+## can no longer decide anything", and three functions honour it: `cast_vote`,
+## `_tick_vote` and `_resolve_votes`. A host that set it by voting had closed its
+## own fork against the partner it was waiting for.
+func host_vote(road_id: String, difficulty_id: String) -> void:
 	cast_vote(HOST_VOTER, road_id, difficulty_id)
-	_await_answer(road_id)
+	_await_votes(road_id)
 
 
 ## One player's vote. Host side; `voter` is the transport id, or `HOST_VOTER`.
@@ -563,6 +578,41 @@ func cast_vote(voter: int, road_id: String, difficulty_id: String) -> void:
 	_publish_tally()
 	if _votes.size() >= _expected_voters():
 		_resolve_votes()
+
+
+# --- What the fork looks like from outside ----------------------------------
+#
+# Four readers, added for `crossroad_vote_check`. The rule for electing a road
+# was already testable - `winning_road` is static and pure for that reason - and
+# the *sequencing* around it was not, which is where the deadlock lived and why
+# six green tests said nothing about it.
+
+## The roads currently on offer, in the order they are drawn.
+func road_ids() -> Array:
+	var out: Array = []
+	for id: Variant in _buttons:
+		out.append(String(id))
+	return out
+
+
+## How many votes are in, before any of them are counted into a tally.
+func vote_count() -> int:
+	return _votes.size()
+
+
+## True once the fork has produced an answer and closed.
+func is_settled() -> bool:
+	return not RunState.active_road_id.is_empty()
+
+
+## Whether this machine has stopped accepting answers.
+##
+## Named rather than inferred, because it is the mechanism of the co-op deadlock
+## rather than a symptom of it: `cast_vote`, `_tick_vote` and `_resolve_votes`
+## all refuse while it is set, so a host that set it by voting had shut its own
+## fork.
+func is_resolving() -> bool:
+	return _resolving
 
 
 ## How many players the fork is waiting for.
@@ -673,6 +723,36 @@ func accept_relic_request(relic_id: String) -> void:
 ## the host would answer the first while the player believes they chose the last.
 func _await_answer(picked_id: String) -> void:
 	_resolving = true
+	_dim_to(picked_id)
+
+
+## Locks the *host's* fork after it has voted, without locking the vote itself.
+##
+## **This is the deadlock that stopped co-op runs**, reported from play on
+## 2026-09-10: "voting at crossroads got stuck with only 1 of the 2 player's
+## votes and not allowing for the other player to vote".
+##
+## The host used to call `_await_answer` after casting its own vote, which sets
+## `_resolving`. Three separate things test that flag before doing anything:
+## `cast_vote` refuses while it is set, `_tick_vote` refuses, and
+## `_resolve_votes` refuses. So the moment the host voted, the partner's vote was
+## dropped on arrival, the countdown that exists to settle a fork nobody finishes
+## stopped counting, and the resolution that would have ended it declined to run.
+## One vote in, two players waiting, and no way forward.
+##
+## It only happened when the **host** clicked first. Guest-first works: the
+## guest's own `_resolving` is local to its machine, the host is still open when
+## the request lands, and the host's later click completes the count. So the fork
+## deadlocked on roughly half of all forks, which is exactly how it reads in a
+## report - intermittent, and fatal when it happens.
+##
+## The fix is to separate "this player has committed" from "this machine cannot
+## decide anything further". Only the second belongs to `_resolving`.
+func _await_votes(picked_id: String) -> void:
+	_dim_to(picked_id)
+
+
+func _dim_to(picked_id: String) -> void:
 	for id: Variant in _buttons:
 		var button: Button = _buttons[id] as Button
 		if button == null or not is_instance_valid(button):

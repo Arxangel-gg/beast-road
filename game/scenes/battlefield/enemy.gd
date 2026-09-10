@@ -709,7 +709,7 @@ func _enter(state: State, duration: float) -> void:
 ## formation over the open ground the player is meant to be building on, which
 ## is the entire point of the bend.
 func _walk(delta: float) -> void:
-	var destination: Vector2 = _target.global_position if _target != null else _field.town_position()
+	var destination: Vector2 = _target.global_position if _target != null else _field.objective_position(global_position)
 	var to: Vector2 = destination - global_position
 	if to.length() <= 1.0:
 		return
@@ -858,7 +858,7 @@ func _tick_slip(delta: float, heading: Vector2) -> void:
 func _road_direction() -> Vector2:
 	var path: PackedVector2Array = _route
 	if path.size() < 2:
-		return (_field.town_position() - global_position).normalized()
+		return (_field.objective_position(global_position) - global_position).normalized()
 
 	# Advance by *projection along the segment*, not by distance to the waypoint.
 	#
@@ -892,7 +892,7 @@ func _road_direction() -> Vector2:
 			break
 
 	if _path_index >= path.size() - 1:
-		return (_field.town_position() - global_position).normalized()
+		return (_field.objective_position(global_position) - global_position).normalized()
 
 	var leg: Vector2 = path[_path_index + 1] - path[_path_index]
 	var aim: Vector2 = path[_path_index + 1] + leg.normalized().orthogonal() * _lane_offset
@@ -1423,6 +1423,8 @@ func _on_died(_from: Vector2) -> void:
 	_drop_loot()
 	_drop_gear()
 	_drop_blueprint()
+	_drop_healing_orb()
+	_drop_supply_crate()
 	if data.category == EnemyData.Category.ELITE:
 		RunState.gain_currency(RunState.STONE, Balance.ELITE_STONE_REWARD)
 		if _field != null and _field.has_method("try_spawn_mender_spark"):
@@ -1494,6 +1496,81 @@ func _drop_loot() -> void:
 	var currency: String = RunState.CURRENCIES[
 		RunState.rng("combat").randi_range(0, RunState.CURRENCIES.size() - 1)]
 	_field.spawn_loot(currency, amount, global_position)
+
+
+## A sip of life, from something that died hard.
+##
+## Owner brief, 2026-09-10, and the design is stated in `Balance` beside the
+## constants: the orb is the *opposite half* of the Mender's Spark. The Spark is
+## one per act, elite-only, gated on being badly hurt, and pays a regeneration
+## that breaks when you are hit - an event. An orb is common, needs no
+## permission, and heals a little the instant you reach it.
+##
+## Scaled by rarity and by the enemy's own worth, which is what the brief asked
+## for, and capped so that neither can add up to a mistake being paid for.
+##
+## Rolled on its own RNG stream. The gear roll's comment says why: a separate
+## deterministic stream means adding a cosmetic spark cannot rewrite what a
+## seeded run drops, and an orb is the kind of thing that gets retuned often.
+func _drop_healing_orb() -> void:
+	if _field == null or not _field.has_method("spawn_loot") or puppet:
+		return
+	var chance: float = Balance.HEALING_ORB_BREED_CHANCE
+	match data.category:
+		EnemyData.Category.ELITE:
+			chance = Balance.HEALING_ORB_ELITE_CHANCE
+		EnemyData.Category.BOSS:
+			chance = Balance.HEALING_ORB_BOSS_CHANCE
+	if RunState.rng("recovery").randf() > chance:
+		return
+	# The amount rides on the drop, not on whoever picks it up, so a partner
+	# collecting an orb in co-op gets the orb that was dropped rather than one
+	# recomputed from an enemy that no longer exists.
+	_field.spawn_loot(Balance.HEALING_ORB_ID, healing_orb_amount(), global_position)
+
+
+## What one orb from this body is worth, as a whole number of health points on
+## the ordinary hero scale. Capped, and the cap is the whole balance argument.
+func healing_orb_amount() -> int:
+	var fraction: float = Balance.HEALING_ORB_BASE_FRACTION 		+ float(data.resource_value) * Balance.HEALING_ORB_POWER_PER_VALUE
+	fraction = minf(fraction, Balance.HEALING_ORB_MAX_FRACTION)
+	return maxi(int(round(Balance.HERO_MAX_HP * fraction)), 1)
+
+
+## A crate, rarely, from something worth killing.
+##
+## Shares the orb's stream and the orb's reasoning about rarity and power. What
+## makes it a different reward is the *spread*: a crate can pay currency, or
+## health, or several of both, and which it pays is not known until it breaks.
+func _drop_supply_crate() -> void:
+	if _field == null or not _field.has_method("spawn_loot") or puppet:
+		return
+	var chance: float = Balance.SUPPLY_CRATE_BREED_CHANCE
+	match data.category:
+		EnemyData.Category.ELITE:
+			chance = Balance.SUPPLY_CRATE_ELITE_CHANCE
+		EnemyData.Category.BOSS:
+			chance = Balance.SUPPLY_CRATE_BOSS_CHANCE
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		chance *= minf(maxf(tier.loot_scale, 1.0), Balance.GEAR_TIER_ODDS_CEILING)
+	if RunState.rng("recovery").randf() > chance:
+		return
+	# The crate carries the *worth of the body that dropped it*, not a fixed
+	# figure: what falls out is decided when it breaks, and by then the enemy is
+	# gone. Same reasoning as the orb carrying its own healing amount.
+	_field.spawn_loot(Balance.SUPPLY_CRATE_ID, crate_value(), global_position)
+
+
+## What a crate from this body carries, as the currency value of one spill.
+func crate_value() -> int:
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE
+	if data.category != EnemyData.Category.BREED:
+		share *= Balance.LOOT_ELITE_MULTIPLIER
+	var tier: CampaignTierData = RunState.tier()
+	if tier != null:
+		share *= tier.loot_scale
+	return maxi(1, int(round(share)))
 
 
 ## Gear used to exist only behind a raid chest. The battlefield now has its own

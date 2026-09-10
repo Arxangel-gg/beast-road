@@ -40,7 +40,29 @@ var _coop_world: CoopWorld = null
 var _regional_polish: CanvasLayer = null
 
 
+## Takes ownership of the effect world.
+##
+## **Claimed on activation, not once at construction.** Transient effects are
+## parented into the scope that owns them so that leaving a scope takes its
+## sparks with it - which is right, and was half-implemented: the raid claimed
+## the world when it opened and nothing ever claimed it back. After a single
+## raid, `Vfx.world` pointed at `raid.effect_root` for the rest of the run, and
+## the raid is left `visible = false` and `PROCESS_MODE_DISABLED` when it closes.
+##
+## So every effect after the first raid was parented into an invisible, disabled
+## node: no swing arcs, no hit sparks, no damage numbers, no muzzle flashes.
+## Reported from play as "weapon swings do not show their visuals after raids",
+## and it is very likely also why a working arrow read as one that did nothing -
+## an arrow taking 7% off an elite with no number and no spark looks like a miss.
+##
+## Claiming it in `activate` rather than in `resume` means every route back into
+## this scope goes through the same line, including ones that do not exist yet.
+func claim_effects() -> void:
+	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
+
+
 func activate() -> void:
+	claim_effects()
 	if camera != null:
 		camera.make_current()
 	if RunState.is_preparation():
@@ -191,9 +213,7 @@ func _ready() -> void:
 	_coop_world.name = "CoopWorld"
 	_coop_world.field = self
 	add_child(_coop_world)
-	# Transient effects are parented into the scope that owns them, so leaving
-	# the battlefield takes its sparks with it.
-	Vfx.bind_world(_feedback_root if _feedback_root != null else self)
+	claim_effects()
 
 
 func _process(delta: float) -> void:

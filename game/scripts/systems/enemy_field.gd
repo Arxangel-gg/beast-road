@@ -21,6 +21,23 @@ func town_node() -> Node2D:
 	return null
 
 
+## Where a body with nothing else to chase should be heading.
+##
+## Distinct from `town_position()`, and the distinction is a bug report. The base
+## answers the origin, which is right for a scope with a town at the middle of it
+## and **wrong for one without**: a raid camp has "no lanes, no town, the hero is
+## the only objective", so every enemy in it fell back to `Vector2.ZERO` and
+## walked to the centre of the map. Reported from play on 2026-09-10 as enemies
+## going to the middle instead of coming for the player.
+##
+## Kept separate from `town_node()` on purpose. That one answering non-null in a
+## raid would silently re-arm every rule written as "near the Town Hall" - Vigil
+## pays Command inside a radius of it, and its guard exists precisely because the
+## arena would otherwise pay out for dodging near its own centre.
+func objective_position(_from: Vector2) -> Vector2:
+	return town_position()
+
+
 func hero_node() -> Node2D:
 	return null
 
