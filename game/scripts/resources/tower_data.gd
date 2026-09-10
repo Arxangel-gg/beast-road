@@ -186,7 +186,7 @@ func utility_at(level: int) -> float:
 
 
 func range_at(level: int) -> float:
-	return attack_range * Balance.TOWER_LEVEL_RANGE[_level_index(level)]
+	return attack_range * Balance.TOWER_LEVEL_RANGE[_level_index(level)] 		* Balance.TOWER_RANGE_SCALE
 
 
 ## The rest of what a level buys, per tower.

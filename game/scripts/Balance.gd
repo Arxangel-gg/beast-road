@@ -34,6 +34,33 @@ const ENEMY_WALK_SPEED: float = 33
 ## have no dead zones. [TUNE]
 const TOWER_RANGE: float = 350
 
+## One multiplier over every tower's reach, at every level. [TUNE]
+##
+## Owner request, 2026-09-09: "all towers need increased range appropriately".
+## Applied here rather than by editing each `attack_range` so the authored spread
+## survives - `grit_sling` at 285 is a brawler and `zephyr_needle` at 615 is a
+## sniper, and that relationship is the design. One knob also means the Update
+## Manager can tune it without a data migration.
+##
+## **Why 1.15 and not more.** A build spot stands `TOWER_SLOT_OFFSET` (158) to
+## the side of the lane, so a tower with reach R covers `2*sqrt(R^2 - 158^2)` of
+## road: 624px at 350, and 734px at 402. Spots are 200px apart along the lane
+## (TOWER_SLOT_RADII 320/520/720), so coverage already overlapped roughly
+## threefold and the outer spot already reached past the 900 spawn radius. What
+## this buys is *time on target* - more shots at each body - rather than reach
+## the road was short of.
+##
+## The ceiling is the lane structure. Lanes are ~735px apart at the middle spot,
+## and `zephyr_needle` at level 5 already reaches 873, so it crosses. Pushing the
+## global scale much past this would make every tower cover every lane and quietly
+## delete the choice of which road to defend, which is what the four lanes are
+## for. That is a design decision and would need an owner, not a constant.
+##
+## **`curve_report` cannot see this.** Its capability column is tower DPS, so a
+## range change moves real difficulty without moving the reported pressure. Do
+## not read an unchanged curve as evidence that this was free.
+const TOWER_RANGE_SCALE: float = 1.15
+
 ## Duration of the dash's invulnerability window. [TUNE]
 const HERO_DASH_IFRAMES: float = 0.3
 
@@ -1119,6 +1146,27 @@ const HERO_ATTACK_HITSTOP: Array[float] = [0.035, 0.04, 0.09]
 const ENEMY_MAX_HP: float = 28
 
 const ENEMY_CONTACT_DAMAGE: float = 8.5
+
+## One multiplier over every contact blow any enemy lands. [TUNE]
+##
+## Owner request, 2026-09-09: "enemies do a bit too much damage."
+##
+## It has to be a scale rather than a smaller `ENEMY_CONTACT_DAMAGE`, because
+## that constant is only the *default*: `snowhide_brute` overrides it to 15,
+## `white_maw_giant` to 22 and `chainmaker` to 34, so lowering it would leave
+## everything that actually kills the player untouched. Applied at the single
+## place a blow is rolled, where the act, rank and affix multipliers already
+## meet, so nothing can route around it.
+##
+## The arithmetic it is answering: 8.5 every 0.8s is 10.6 DPS against 100 hero
+## HP, and by wave 51 the act scale is 2.85 and elites multiply 1.6 again - two
+## elites in contact killed a full-health hero in about 2.3 seconds.
+##
+## **This does not move the difficulty curve, and that is the point.**
+## `curve_report`'s pressure is threat over *tower DPS* - whether the player can
+## kill a formation, not whether it can kill them. Contact damage appears nowhere
+## in it, so this buys survivability without flattening the ramp.
+const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.85
 
 ## Minimum time between two contact hits from the same enemy.
 const ENEMY_CONTACT_INTERVAL: float = 0.8

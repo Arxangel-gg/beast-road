@@ -1077,7 +1077,8 @@ func _strike() -> void:
 	# An animal has no Health node - the wildlife system owns those numbers - so
 	# the blow is handed back to whoever owns it rather than applied here.
 	if _provoker_source != null and _target == _provoker:
-		var bite: float = data.contact_damage * _damage_scale
+		var bite: float = data.contact_damage * _damage_scale \
+			* Balance.ENEMY_CONTACT_DAMAGE_SCALE
 		if _provoker_source.call("wound_sprite", _target, bite):
 			Vfx.spark(_target.global_position, Color("c4552e"), 6,
 				(_target.global_position - global_position).normalized(), 190.0)
@@ -1090,7 +1091,8 @@ func _strike() -> void:
 	# against it moves.
 	var damage: float = TowerData.roll_damage(
 		data.contact_damage * _damage_scale * _rank_scale().y
-			* _affix_product(&"damage_scale"), RunState.rng("combat"))
+			* _affix_product(&"damage_scale")
+			* Balance.ENEMY_CONTACT_DAMAGE_SCALE, RunState.rng("combat"))
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	if data.role != EnemyData.Role.HOWLER:
