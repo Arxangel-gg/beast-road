@@ -1528,6 +1528,25 @@ const LANE_SPAWN_RADIUS: float = 900.0
 ## Radius of the town core. Enemies that reach it deal damage. [TUNE]
 const TOWN_RADIUS: float = 160.0
 
+## How close to the Town Hall a perfect dodge has to be for `vigil` to pay. [TUNE]
+##
+## The node's authored sentence is "Perfect dodges near the Town Hall grant
+## Command", and "near" had no number because nothing read the effect. Sized off
+## the hall itself rather than picked: three town radii is the ground a player
+## defending the gate is actually standing on, and it is comfortably inside
+## `TOWN_LIGHT_RADIUS` so the lit area reads as the area that pays.
+const VIGIL_COMMAND_RADIUS: float = TOWN_RADIUS * 3.0
+
+## Seconds of unbroken combat before `rising_fury` reaches its authored cap, and
+## the idle gap that resets it. [TUNE]
+##
+## "Sustained active combat raises attack speed to a hard cap" - so it has to
+## ramp rather than switch on, or it is a flat buff with a delay. Four seconds is
+## about two exchanges; a second and a half of nobody swinging ends it, which is
+## short enough that leaving a fight loses it and long enough to survive a dash.
+const RISING_FURY_RAMP_SECONDS: float = 4.0
+const RISING_FURY_RESET_SECONDS: float = 1.5
+
 ## Build spots along each lane, town-outward, for both flanks of the road.
 ##
 ## Six per road rather than three: the same inner/middle/outer trio, mirrored to

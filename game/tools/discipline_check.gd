@@ -40,6 +40,7 @@ func _ready() -> void:
 	_check(seen.size() == RunState.discipline_offers.size(),
 		"Mansion offers must not contain duplicates")
 
+	_test_every_effect_is_accounted_for()
 	_test_every_node_can_be_offered()
 
 	var power: DisciplineNodeData = ContentDB.discipline_node("marrow_drain")
@@ -90,6 +91,57 @@ func _check(condition: bool, failure: String) -> void:
 ##
 ## Swept over roads rather than reasoned about, because the ordering is a hash
 ## and hashes do not answer arguments.
+## **Every authored effect is either implemented or listed as not implemented.**
+##
+## A sweep on 2026-09-09 found `.effect_id` read in exactly three places in the
+## whole codebase: twenty-one of the twenty-four authored discipline effects had
+## no consumer, and ten nodes had no `spell_id` either - so a third of the skill
+## tree cost a skill point and its Food, drew an icon, printed a sentence saying
+## what it did, and did nothing.
+##
+## Nothing could have caught it, because "no consumer" is invisible to a gate
+## that only reads data. `DisciplineEffects` makes it declarative instead: this
+## asserts the two lists cover every authored key exactly once, so a new inert
+## node cannot be added without someone writing its key into `DECLARED_ONLY` on
+## purpose, in a diff a reviewer sees.
+##
+## It deliberately does *not* fail on the outstanding nineteen. A gate that is
+## red for a week is a gate people stop reading, and those cannot be written in
+## one change - the count is printed instead so the debt is visible and its
+## direction is obvious.
+func _test_every_effect_is_accounted_for() -> void:
+	var implemented: Array[String] = DisciplineEffects.IMPLEMENTED
+	var declared: Array[String] = DisciplineEffects.DECLARED_ONLY
+	var missing: PackedStringArray = []
+	var doubled: PackedStringArray = []
+	var authored: Dictionary = {}
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.effect_id.is_empty():
+			continue
+		authored[node.effect_id] = true
+		var known: bool = implemented.has(node.effect_id)
+		var owed: bool = declared.has(node.effect_id)
+		if not known and not owed:
+			missing.append("%s (%s)" % [node.effect_id, node.id])
+		if known and owed:
+			doubled.append(node.effect_id)
+	_check(missing.is_empty(),
+		"authored effects in neither DisciplineEffects list, so nobody can tell "
+			+ "whether they do anything: %s" % ", ".join(missing))
+	_check(doubled.is_empty(),
+		"effects claimed as both implemented and outstanding: %s" % ", ".join(doubled))
+	# A key listed but no longer authored is dead weight that makes the debt
+	# look larger than it is.
+	var stale: PackedStringArray = []
+	for key: String in implemented + declared:
+		if not authored.has(key):
+			stale.append(key)
+	_check(stale.is_empty(),
+		"listed in DisciplineEffects but no node authors them: %s" % ", ".join(stale))
+	print("[discipline] %d effects implemented, %d authored and still owed"
+		% [implemented.size(), declared.size()])
+
+
 func _test_every_node_can_be_offered() -> void:
 	var before_seed: int = RunState.run_seed
 	var before_segment: int = RunState.segment

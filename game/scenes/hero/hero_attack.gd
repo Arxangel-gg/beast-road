@@ -75,6 +75,20 @@ func cancel() -> void:
 ## Seconds of quickened swinging owed to a perfect evade. See `Hero`.
 var _evade_haste_left: float = 0.0
 
+## **Rising Fury.** "Sustained active combat raises attack speed to a hard cap."
+##
+## The node has promised that since it was authored and did nothing:
+## `active_attack_speed` was one of twenty-one discipline effects with no
+## consumer anywhere. Seconds of unbroken swinging, and the gap since the last
+## one - both here rather than on the hero, because this is the object that
+## already owns every other thing that shortens a swing.
+##
+## It ramps rather than switching on. A cap reached instantly is a flat buff
+## wearing a condition, and the sentence says *sustained*: the reward is for
+## staying in a fight, so it has to be earned across one.
+var _fury_seconds: float = 0.0
+var _fury_idle: float = 0.0
+
 
 ## Grants the reward for a perfect evade: the next swings come faster.
 ##
@@ -91,7 +105,24 @@ func grant_haste(seconds: float) -> void:
 ## without its own telegraph shortening with it, which is the same mistake the
 ## weapon scale's comment warns about.
 func _haste_scale() -> float:
-	return Balance.HERO_EVADE_HASTE_SCALE if _evade_haste_left > 0.0 else 1.0
+	var scale: float = Balance.HERO_EVADE_HASTE_SCALE if _evade_haste_left > 0.0 else 1.0
+	return scale * _fury_scale()
+
+
+## Rising Fury's share, as a phase multiplier: 1.0 cold, and at the cap the
+## authored fraction faster. Multiplied with the evade haste rather than
+## replacing it, so a perfect dodge inside a long fight still reads as an event.
+##
+## Capped by construction - the ramp is clamped at 1 - because the node says
+## "to a hard cap" and an attack speed that kept climbing while the player kept
+## swinging would be a second power scale beside levelling and gear.
+func _fury_scale() -> float:
+	var gain: float = DisciplineEffects.trained_value("active_attack_speed")
+	if gain <= 0.0:
+		return 1.0
+	var ramp: float = clampf(_fury_seconds / maxf(Balance.RISING_FURY_RAMP_SECONDS, 0.001),
+		0.0, 1.0)
+	return 1.0 / (1.0 + gain * ramp)
 
 
 func _swiftness_scale() -> float:
@@ -147,6 +178,15 @@ func swing_direction() -> Vector2:
 
 func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 	_evade_haste_left = maxf(_evade_haste_left - delta, 0.0)
+	# Swinging counts as combat; standing still does not. The idle gap is what
+	# ends it, so leaving a fight loses the ramp and a dash mid-fight does not.
+	if _phase == Phase.READY:
+		_fury_idle += delta
+		if _fury_idle >= Balance.RISING_FURY_RESET_SECONDS:
+			_fury_seconds = 0.0
+	else:
+		_fury_idle = 0.0
+		_fury_seconds += delta
 	_swing_origin = origin
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
 	if _phase == Phase.READY:

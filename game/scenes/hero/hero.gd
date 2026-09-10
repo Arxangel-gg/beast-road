@@ -739,6 +739,26 @@ func _on_evaded(into: float, from: Vector2) -> void:
 		away = Vector2.UP
 	Vfx.ring(global_position, 92.0, Balance.HERO_EVADE_COLOUR, 0.34, 5.0)
 	Vfx.spark(global_position, Balance.HERO_EVADE_COLOUR, 10, away, 260.0)
+	# **Vigil.** "Perfect dodges near the Town Hall grant Command."
+	#
+	# The node has said that to the player since it was authored and did nothing:
+	# `town_dodge_command` was one of twenty-one discipline effects with no
+	# consumer anywhere in the codebase. Trained rather than equipped, because
+	# Vigil is a PASSIVE and never occupies a slot.
+	#
+	# Command and not damage, exactly as written - a dodge that hit harder would
+	# be a second power scale beside levelling and gear (working rule 7). What it
+	# buys is the chance to *order* something, which is the same currency the
+	# rest of the evade reward is paid in.
+	# `town_node()` rather than a null check on the field: `EnemyField` answers
+	# `town_position()` with the origin when there is no town, so the raid arena
+	# would have paid Vigil to anyone dodging near its centre.
+	if DisciplineEffects.trained("town_dodge_command") 			and field != null and field.town_node() != null:
+		var hall: Vector2 = field.town_position()
+		if global_position.distance_to(hall) <= Balance.VIGIL_COMMAND_RADIUS:
+			RunState.gain_command(
+				DisciplineEffects.trained_value("town_dodge_command"))
+			Vfx.ring(global_position, 118.0, Balance.HERO_EVADE_COLOUR, 0.28, 4.0)
 	# Not the dash whoosh, which already played when the dash started - a reward
 	# that sounds like the thing it rewards is a reward nobody hears. The blink
 	# cue is crisp, short, and already means "you were not there".
