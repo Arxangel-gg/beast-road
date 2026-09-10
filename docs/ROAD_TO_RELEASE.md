@@ -130,6 +130,16 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   of the code that crashed, and a shutdown crash can be intermittent besides.
   Treat it as unreproduced, not resolved; if it returns, the reporter now names
   it `Crashed with SIGSEGV` instead of `Exited 1`.
+  **It returned, 2026-09-10, run `34453243176`** — the reporter did its job and
+  named it: `menu layout · Crashed with SIGSEGV (segmentation fault), not an
+  assertion. Last output: timeout: the monitored command dumped core`. Two facts
+  worth having. First, it is **intermittent and not a regression**: a bare
+  re-run of the identical commit passed, and the commit it failed on touches no
+  menu code. Second, the failure is a **hang first** — the gate ran past the
+  240-second ceiling and the core dump is the timeout killing it, which is a
+  different animal from the shutdown segfault this row assumed. Still open, and
+  still not reproducible on Windows: the local sweep passes this check every
+  time.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
 - [x] **60 FPS at 1920×1080 — FIXED 2026-09-08. 55 FPS → 128–136 FPS.**
