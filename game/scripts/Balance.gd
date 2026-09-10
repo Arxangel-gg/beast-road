@@ -3766,6 +3766,16 @@ const TORCH_DARK_LANE_BIAS: float = 2.2
 
 ## Horizontal slices per flame layer. More is smoother and costs draw calls; the
 ## additive glow behind hides a surprising amount of blockiness. [TUNE]
+## Below this the flame is not drawn at all.
+##
+## Not a look decision - a correctness one. The layer polygon takes its whole
+## height from `intensity`, so a guttering torch passes through sizes where all
+## thirty-eight vertices sit on one line and the canvas server refuses to
+## triangulate them, which fails a release build on an error line. Half a pixel
+## of flame is invisible either way, so nothing is lost by declining to draw it.
+const FLAME_MIN_INTENSITY: float = 0.02
+const FLAME_MIN_SIZE: float = 0.5
+
 const FLAME_SEGMENTS: int = 9
 
 ## How fast the tongues travel up the flame. [TUNE]

@@ -135,6 +135,39 @@ func _draw() -> void:
 
 
 func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
+	var outline: PackedVector2Array = outline_for(layer, phase)
+	if outline.is_empty():
+		return
+	draw_colored_polygon(outline, colour)
+
+
+## The filled shape of one layer, or an empty array when there is nothing to
+## draw.
+##
+## Split out of `_draw_layer` so a gate can look at it. The bug this exists to
+## prevent is invisible from outside: a polygon with the right number of points
+## and no area is a canvas-server error, not a wrong-looking flame, and the only
+## symptom is a red release build.
+##
+## **One polygon for the layer, not one per segment.**
+##
+## This drew a separate quad between each pair of slices, which is the obvious
+## way to write it and was the single most expensive thing in the game. Nine
+## segments times three layers times forty-eight lit flames is **1,296
+## `draw_colored_polygon` calls every frame**, each one a four-point polygon
+## rebuilt from scratch - and in the compatibility renderer a draw call is CPU
+## work whether or not the GPU cares.
+##
+## `perf_bisect` measured `flame.gd` at 14.8 ms of a 21.5 ms frame, against a
+## ~2.5 ms noise floor that every other script in the game sat at. It is also
+## why the quality presets looked innocent: flames are not foliage, lights,
+## clouds, particles or shadows, so every `--off=` combination left them running
+## and the cost looked like an immovable floor.
+##
+## The quads shared their edges exactly, so their union is a simple strip and
+## the same filled area can be expressed as one polygon: up the left edge, back
+## down the right. Identical pixels, nine times fewer draw calls.
+func outline_for(layer: Dictionary, phase: float) -> PackedVector2Array:
 	var speed: float = float(layer["speed"])
 	var lick: float = float(layer["lick"])
 
@@ -144,26 +177,30 @@ func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
 	var height: float = size * float(layer["height"]) * breath * intensity
 	var base_width: float = size * float(layer["width"]) * 0.52
 
-	var segments: int = maxi(Balance.FLAME_SEGMENTS, 3)
+	# **A flame with no size is not a thin flame, it is an invalid polygon.**
+	#
+	# Every point below takes its y from `-height * u`, so at height zero all
+	# `(segments + 1) * 2` of them land on one horizontal line: the right number
+	# of vertices enclosing no area at all. Godot answers
+	# `ERROR: Invalid polygon data, triangulation failed`, and an error line
+	# fails a release build even on a clean exit.
+	#
+	# `intensity` reaches zero legitimately - a torch guttering out ramps its
+	# strength down through it - so this is an ordinary frame in an ordinary
+	# run, and that is exactly why it was intermittent enough to survive this
+	# long. It failed a release on 2026-09-10 having never failed one before.
+	#
+	# Guarded on intensity as well as on the computed size, because "height is
+	# above zero" is not the same as "this shape has area": at intensity 0.005 a
+	# torch still produced twenty points enclosing 0.15 square pixels, which is
+	# degenerate in every sense that matters and was still passing a height
+	# check written in absolute units.
+	if intensity <= Balance.FLAME_MIN_INTENSITY \
+			or height <= Balance.FLAME_MIN_SIZE \
+			or base_width <= Balance.FLAME_MIN_SIZE:
+		return PackedVector2Array()
 
-	# **One polygon for the layer, not one per segment.**
-	#
-	# This drew a separate quad between each pair of slices, which is the
-	# obvious way to write it and was the single most expensive thing in the
-	# game. Nine segments times three layers times forty-eight lit flames is
-	# **1,296 `draw_colored_polygon` calls every frame**, each one a four-point
-	# polygon rebuilt from scratch - and in the compatibility renderer a draw
-	# call is CPU work whether or not the GPU cares.
-	#
-	# `perf_bisect` measured `flame.gd` at 14.8 ms of a 21.5 ms frame, against a
-	# ~2.5 ms noise floor that every other script in the game sat at. It is also
-	# why the quality presets looked innocent: flames are not foliage, lights,
-	# clouds, particles or shadows, so every `--off=` combination left them
-	# running and the cost looked like an immovable floor.
-	#
-	# The quads shared their edges exactly, so their union is a simple strip and
-	# the same filled area can be expressed as one polygon: up the left edge,
-	# back down the right. Identical pixels, nine times fewer draw calls.
+	var segments: int = maxi(Balance.FLAME_SEGMENTS, 3)
 	var outline: PackedVector2Array = PackedVector2Array()
 	outline.resize((segments + 1) * 2)
 	var last: int = outline.size() - 1
@@ -174,7 +211,7 @@ func _draw_layer(layer: Dictionary, colour: Color, phase: float) -> void:
 		var y: float = -height * u
 		outline[i] = Vector2(x - half, y)
 		outline[last - i] = Vector2(x + half, y)
-	draw_colored_polygon(outline, colour)
+	return outline
 
 
 ## Sideways displacement of the slice `u` of the way up the flame.

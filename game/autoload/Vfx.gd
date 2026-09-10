@@ -778,6 +778,29 @@ func _draw_blade_trail(progress: float, trail: Polygon2D, at: Vector2,
 		reach: float, from: float, to: float, tint: Color) -> void:
 	if not is_instance_valid(trail):
 		return
+	# **Nothing has been swept yet, so there is no strip to draw.**
+	#
+	# Every point below is placed at `lerpf(from, to, progress * along)`. At
+	# progress zero that is `from` for every one of them, so the outer arc
+	# collapses onto a single point, the inner arc onto another, and the polygon
+	# has thirty-four vertices and no area. Godot cannot triangulate that and
+	# says so: `ERROR: Invalid polygon data, triangulation failed.`
+	#
+	# It failed a release build on 2026-09-10 and had never failed one before,
+	# which is what took the diagnosis to the wrong place first. `tween_method`
+	# calls with its start value, so the fault is in *every* swing - but whether
+	# the degenerate strip actually reaches the triangulator depends on where the
+	# first tween step lands, and on this machine it never did in three full
+	# runs of `breather_check`. An error line fails a release even at exit zero,
+	# so an intermittent one is a build that fails for nobody's reason.
+	#
+	# Cleared rather than skipped: an empty polygon is a legal polygon and draws
+	# nothing, while leaving the previous frame's shape would freeze the last
+	# swing's trail on screen for the length of the next one.
+	if progress <= 0.0 or is_equal_approx(from, to):
+		trail.polygon = PackedVector2Array()
+		trail.vertex_colors = PackedColorArray()
+		return
 	var hilt: float = reach * Balance.VFX_BLADE_TRAIL_HILT
 	var tip: float = reach * Balance.VFX_BLADE_TRAIL_TIP
 	var steps: int = Balance.VFX_BLADE_TRAIL_STEPS

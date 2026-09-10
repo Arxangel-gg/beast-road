@@ -42,6 +42,7 @@ func _ready() -> void:
 	_test_weapon_art_faces_the_same_way()
 	_test_starting_weapon()
 	await _test_blade_sweep()
+	_test_blade_trail_is_never_degenerate()
 	_test_blade_tint()
 	await _test_bow_loose()
 
@@ -192,6 +193,59 @@ func _test_blade_sweep() -> void:
 
 	await _settle()
 	_check(_sprites().is_empty(), "the blade must free itself when the swing ends")
+
+
+## The swept ribbon must never be a polygon with no area.
+##
+## Every vertex is placed at `lerpf(from, to, progress * along)`, so at progress
+## zero all of them collapse onto two points: thirty-four vertices, zero area,
+## and Godot answering `Invalid polygon data, triangulation failed`. The tween
+## that drives it calls with its start value, so this was in every swing the
+## game has ever drawn.
+##
+## It surfaced as a **failed release build** on 2026-09-10 and had never failed
+## one before, because an error line only reaches the log if the degenerate
+## strip actually gets as far as the triangulator - which depends on where the
+## first tween step lands. Three full local runs of `breather_check` never
+## produced it. An error line fails a release even on a clean exit, so an
+## intermittent one is a build that fails for no reason anybody can see.
+##
+## Measured as area rather than as a point count, because the bug's whole
+## signature is the right number of points enclosing nothing.
+func _test_blade_trail_is_never_degenerate() -> void:
+	var ribbon := Polygon2D.new()
+	_layer.add_child(ribbon)
+	var reach: float = Balance.HERO_ATTACK_RANGE[0]
+	Vfx._draw_blade_trail(0.0, ribbon, Vector2.ZERO, reach, 0.0, 1.2, Color.WHITE)
+	_check(ribbon.polygon.is_empty(),
+		"at progress zero the ribbon must be empty, had %d points enclosing %.2f"
+			% [ribbon.polygon.size(), _area(ribbon.polygon)])
+
+	# A swing with no arc at all is the same shape by a different route.
+	Vfx._draw_blade_trail(0.5, ribbon, Vector2.ZERO, reach, 0.7, 0.7, Color.WHITE)
+	_check(ribbon.polygon.is_empty(),
+		"a zero-degree swing must draw no ribbon, had %d points" % ribbon.polygon.size())
+
+	# And once there is an arc it has to be a real shape, or the guard above has
+	# simply switched the trail off.
+	for progress: float in [0.15, 0.5, 1.0]:
+		Vfx._draw_blade_trail(progress, ribbon, Vector2.ZERO, reach, 0.0, 1.2, Color.WHITE)
+		_check(_area(ribbon.polygon) > reach * reach * 0.002,
+			"at progress %.2f the ribbon encloses %.2f, which is nothing"
+				% [progress, _area(ribbon.polygon)])
+	ribbon.queue_free()
+
+
+## Shoelace. Sign is irrelevant here - what matters is that it is not zero.
+func _area(shape: PackedVector2Array) -> float:
+	if shape.size() < 3:
+		return 0.0
+	var total: float = 0.0
+	for i: int in shape.size():
+		var a: Vector2 = shape[i]
+		var b: Vector2 = shape[(i + 1) % shape.size()]
+		total += a.x * b.y - b.x * a.y
+	return absf(total) * 0.5
 
 
 func _test_bow_loose() -> void:

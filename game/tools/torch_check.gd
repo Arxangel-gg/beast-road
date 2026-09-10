@@ -102,7 +102,64 @@ func _ready() -> void:
 		push_error("a torch the hero is standing on top of did not relight")
 		_bail(1)
 		return
+	if not _check_flame_shape(torch):
+		_bail(1)
+		return
 	_bail(0)
+
+
+## A flame never hands the canvas a polygon with no area.
+##
+## The shape is right by inspection at any normal intensity and *wrong* at zero,
+## which is a state every torch passes through on its way out: all thirty-eight
+## vertices land on one horizontal line, the canvas server answers
+## `Invalid polygon data, triangulation failed`, and an error line fails a
+## release build even on a clean exit. It took a red release to find, having
+## survived every green one before it, because whether the guttering frame gets
+## drawn at all is a matter of timing.
+##
+## Measured as area rather than as a point count: the whole signature of the bug
+## is the right number of points enclosing nothing.
+func _check_flame_shape(torch: Node) -> bool:
+	var flame: Flame = null
+	for child: Node in torch.get_children():
+		if child is Flame:
+			flame = child as Flame
+	if flame == null:
+		push_error("a lit torch has no flame to measure")
+		return false
+
+	var ok: bool = true
+	for intensity: float in [0.0, 0.005, 1.0]:
+		flame.set_intensity(intensity)
+		for index: int in Flame.LAYERS.size():
+			var outline: PackedVector2Array = flame.outline_for(
+				Flame.LAYERS[index], float(index) * 2.7)
+			var area: float = _area(outline)
+			if intensity <= 0.01:
+				if not outline.is_empty():
+					push_error(("a flame at intensity %.3f offered %d points "
+						+ "enclosing %.4f; a degenerate polygon is a canvas error")
+						% [intensity, outline.size(), area])
+					ok = false
+			elif area <= 0.5:
+				push_error("a lit flame's layer %d encloses %.4f, which is nothing"
+					% [index, area])
+				ok = false
+	flame.set_intensity(1.0)
+	return ok
+
+
+## Shoelace. The sign does not matter; being non-zero does.
+func _area(shape: PackedVector2Array) -> float:
+	if shape.size() < 3:
+		return 0.0
+	var total: float = 0.0
+	for i: int in shape.size():
+		var a: Vector2 = shape[i]
+		var b: Vector2 = shape[(i + 1) % shape.size()]
+		total += a.x * b.y - b.x * a.y
+	return absf(total) * 0.5
 
 
 ## The field's torches must be spread, symmetric, and off the road.
