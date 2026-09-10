@@ -59,7 +59,30 @@ func _ready() -> void:
 	EventBus.coop_request_received.connect(_on_request)
 	EventBus.coop_trade_state.connect(_on_state_from_host)
 	EventBus.coop_trade_settled.connect(_on_settled_by_host)
+	# **A trade needs two players, so it ends when there is one.** Without this
+	# the window stays open against nobody: the remaining player can still tick
+	# pieces onto a table that will never settle, and on the host the gear is
+	# still locked against being broken.
+	EventBus.coop_partner_left.connect(func(_peer: int) -> void:
+		if is_trading():
+			_close_locally("Your partner left. The trade is off."))
 	changed.connect(_show_when_running)
+
+
+## Ends the trade on this machine without asking anybody.
+##
+## For the cases where there is nobody left to ask - a partner who disconnected,
+## a settlement this machine could not honour. The host still announces, because
+## a host that closed silently would leave a guest holding a table.
+func _close_locally(reason: String) -> void:
+	if _session == null:
+		return
+	_session.close(reason)
+	if Coop.is_host():
+		EventBus.coop_trade_state.emit(_session.to_wire())
+	_session = null
+	EventBus.preparation_warning.emit("TRADE  ·  %s" % reason)
+	changed.emit()
 
 
 func _show_when_running() -> void:
@@ -139,14 +162,27 @@ func answer_invite(yes: bool) -> String:
 ## Takes stash *indices* from the screen and turns them into named pieces here,
 ## because the screen is the one place that legitimately thinks in positions and
 ## everything past this point must not.
-func offer_indices(indices: Array) -> String:
+## Puts a set of named pieces on the table.
+##
+## **Named, not positioned.** The screen picks from a list and therefore knows
+## indices, and it converts them to names the instant it has them - because a
+## stash can change while the window is open. A run ending delivers a drop, a
+## partner's settlement removes a piece, and every index after it moves. An
+## offer held as positions would then be an offer of whatever slid into those
+## positions, which is the exact fault this system's `uid` exists to prevent and
+## it would be embarrassing to reintroduce in the screen that uses it.
+##
+## Names that no longer resolve are dropped rather than refused: a piece that
+## left the stash is not an error the player made, and refusing the whole offer
+## would strand them with a table they cannot change.
+func offer_uids(uids: Array) -> String:
 	if _session == null:
 		return "There is no trade open."
 	var pieces: Array = []
-	for entry: Variant in indices:
-		var index: int = int(entry)
-		if index < 0 or index >= MetaState.stash.size():
-			return "That piece is no longer in your stash."
+	for entry: Variant in uids:
+		var index: int = Stash.index_of(MetaState.stash, int(entry))
+		if index < 0:
+			continue
 		var piece: Dictionary = MetaState.stash[index]
 		# **Worn gear is not on the table.** `drop_gear` silently unequips
 		# whatever it removes, so trading a worn sword would take it off the hero

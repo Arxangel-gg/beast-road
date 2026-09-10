@@ -36,7 +36,7 @@ var _checked: int = 0
 ## gate has enough moving parts to hide one. `crossroad_vote_check` grew the
 ## same counter after going green on a subject that would not compile.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 10
+const EXPECTED_TESTS: int = 12
 
 ## The player's real stash, put back exactly as it was.
 var _stash_before: Array = []
@@ -58,6 +58,8 @@ func _ready() -> void:
 	_test_a_whole_swap_conserves_every_piece()
 	_test_a_colliding_name_is_renamed_on_arrival()
 	_test_a_refused_half_moves_nothing()
+	await _test_an_offer_is_named_not_positioned()
+	await _test_a_partner_leaving_ends_the_trade()
 
 	if _finished != EXPECTED_TESTS:
 		_check(false, "only %d of %d tests ran to completion" % [_finished, EXPECTED_TESTS])
@@ -336,6 +338,70 @@ func _test_a_refused_half_moves_nothing() -> void:
 		_check(Stash.same_gear(MetaState.stash[index] as Dictionary,
 				before[index] as Dictionary),
 			"the stash changed while a refused half was being checked")
+	_finished += 1
+
+
+## An offer survives the stash moving underneath it.
+##
+## **This is the fault the whole `uid` design exists for, at the one layer that
+## could still have reintroduced it.** The screen picks from a list and therefore
+## knows positions; if it kept them, a stash that changed between the pick and
+## the settlement would silently turn the offer into whatever slid into those
+## slots. A run ending and delivering a drop does exactly that.
+##
+## Two properties: the offer still names the same piece after the stash is
+## disturbed, and a name that has genuinely left is dropped rather than being
+## allowed to refuse a table the player can no longer edit.
+func _test_an_offer_is_named_not_positioned() -> void:
+	var kind: String = _any_gear_kind()
+	MetaState.stash = [Stash.make(kind, 0), Stash.make(kind, 3), Stash.make(kind, 1)]
+	MetaState.equipped = {}
+	var wanted: int = Stash.uid(MetaState.stash[1] as Dictionary)
+
+	TradeBooth.set("_session", _open())
+	TradeBooth.set("_side", TradeSession.HOST)
+	_checked += 1
+	_check(TradeBooth.offer_uids([wanted]).is_empty(), "a plain offer was refused")
+
+	# Something arrives ahead of it, so every position after index 0 moves.
+	MetaState.stash.insert(0, Stash.make(kind, 2))
+	var table: Array = (TradeBooth.session() as TradeSession).offer(TradeSession.HOST)
+	_checked += 1
+	if _check(table.size() == 1, "the offer lost its piece when the stash moved"):
+		_checked += 1
+		_check(int((table[0] as Dictionary).get("uid", 0)) == wanted,
+			("the offer now names a different piece; it was holding a position "
+				+ "rather than a name"))
+
+	# And a name that has genuinely gone is dropped, leaving a table the player
+	# can still change rather than one stuck behind a refusal.
+	MetaState.stash = [Stash.make(kind, 0)]
+	_checked += 1
+	_check(TradeBooth.offer_uids([wanted]).is_empty(),
+		"an offer naming a piece that has left the stash was refused outright")
+	_checked += 1
+	_check((TradeBooth.session() as TradeSession).offer(TradeSession.HOST).is_empty(),
+		"a piece that has left the stash was still put on the table")
+	TradeBooth.set("_session", null)
+	_finished += 1
+	await get_tree().process_frame
+
+
+## A trade needs two players, so it ends when there is one.
+##
+## Without this the window stays open against nobody: the remaining player can
+## still put pieces on a table that will never settle, and the stash stays locked
+## against being broken for the rest of the session.
+func _test_a_partner_leaving_ends_the_trade() -> void:
+	TradeBooth.set("_session", _open())
+	TradeBooth.set("_side", TradeSession.HOST)
+	_checked += 1
+	_check(TradeBooth.is_trading(), "the probe trade did not open")
+	EventBus.coop_partner_left.emit(77)
+	await get_tree().process_frame
+	_checked += 1
+	_check(not TradeBooth.is_trading(),
+		"the trade survived the partner leaving, and the stash stays locked")
 	_finished += 1
 
 

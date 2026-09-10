@@ -20,7 +20,9 @@ extends CanvasLayer
 ## that had gone stale would let somebody offer a piece by a position that had
 ## moved under them.
 
-const MAX_ROWS: int = 40
+const MAX_ROWS: int = 60
+const ICON_SIZE: float = 40.0
+const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
 
 var _panel: PanelContainer
 var _header: Label
@@ -31,9 +33,32 @@ var _stash: VBoxContainer
 var _actions: HBoxContainer
 var _scroll: ScrollContainer
 
-## Stash indices this player has put on the table, in the order they were added.
-var _picked: Array[int] = []
 var _message: String = ""
+
+
+## What this player currently has on the table, by name.
+##
+## **Derived, not remembered.** This was a local array kept in step with the
+## session by hand, and the screenshot that found the fault showed a piece
+## sitting under "You give" while its row in the list below still offered to add
+## it: the table had come from the host and the local copy knew nothing about it.
+##
+## Every route that sets an offer without going through this screen has that
+## shape - reopening the window, a partner's change arriving, a settlement
+## failing and rolling the table back. Reading it out of the session removes the
+## whole class rather than the one instance, and it is the same reasoning that
+## put names on pieces in the first place: one fact, in one place.
+##
+## Names rather than stash positions throughout, because a stash can change while
+## this window is open and every index after the change moves.
+func _on_table() -> Array[int]:
+	var out: Array[int] = []
+	var trade: TradeSession = TradeBooth.session()
+	if trade == null:
+		return out
+	for entry: Variant in trade.offer(TradeBooth.side()):
+		out.append(int((entry as Dictionary).get("uid", 0)))
+	return out
 
 
 func _ready() -> void:
@@ -42,6 +67,12 @@ func _ready() -> void:
 	visible = false
 	_build()
 	TradeBooth.changed.connect(_on_trade_changed)
+	# The stash can move while this is open: a run ends and delivers a drop, a
+	# settlement lands. The list is redrawn from `MetaState` every refresh, so
+	# this only has to ask for one.
+	EventBus.stash_changed.connect(func() -> void:
+		if visible:
+			_refresh())
 
 
 func _build() -> void:
@@ -133,7 +164,6 @@ func _on_trade_changed() -> void:
 	if trade == null or not trade.is_running():
 		if visible:
 			_message = ""
-			_picked.clear()
 			visible = false
 		return
 	visible = true
@@ -168,6 +198,7 @@ func _refresh() -> void:
 	if not _message.is_empty():
 		_note.text = _message
 
+	_prune_picked()
 	_fill(_mine, trade.offer(me))
 	_fill(_theirs, trade.offer(them))
 	_draw_stash(trade)
@@ -193,6 +224,96 @@ func _draw_invitation(trade: TradeSession, me: String) -> void:
 		_say(TradeBooth.answer_invite(false))))
 
 
+## One piece, drawn the way the stash draws it.
+##
+## **The same presentation on both sides of the table and in the list below.**
+## A trade is a judgement about value, and a player cannot make it from a name:
+## they need the art they recognise the item by, the slot it competes for, the
+## level it has been taken to, and the attribute it actually grants. The stash
+## screen already shows all of that, and showing it differently here would mean
+## reading the same sword two ways in one session.
+##
+## Works for the partner's pieces as well as your own, because everything it
+## needs is derivable: the wire carries kind, rarity, level and name, and the
+## receiving machine looks the rest up in its own `ContentDB`. Nothing about the
+## other player's gear has to be trusted in order to be *described*.
+func _piece_row(piece: Dictionary) -> Control:
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	# A little air on the left, so a 40px icon in a column that starts at the
+	# panel's own padding does not read as sitting on the frame.
+	var pad := Control.new()
+	pad.custom_minimum_size = Vector2(4.0, 0.0)
+	row.add_child(pad)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if kind != null:
+		var art: String = kind.get_sprite_path()
+		if ResourceLoader.exists(art):
+			icon.texture = load(art) as Texture2D
+		icon.modulate = Stash.rarity_colour(piece).lerp(Color.WHITE, 0.45)
+	row.add_child(icon)
+
+	var text := VBoxContainer.new()
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.add_theme_constant_override("separation", 0)
+	row.add_child(text)
+
+	var title := Label.new()
+	title.add_theme_font_size_override("font_size", 14)
+	title.text = "%s %s" % [Stash.rarity_name(piece),
+		kind.display_name if kind != null else "Unknown"]
+	title.add_theme_color_override("font_color",
+		Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.3))
+	text.add_child(title)
+
+	var detail := Label.new()
+	detail.add_theme_font_size_override("font_size", 12)
+	detail.add_theme_color_override("font_color", Color("9d9484"))
+	if kind == null:
+		detail.text = "gear this build does not know"
+	else:
+		# Marks are on the row because they are the only number in the game that
+		# says what a piece is *worth*, and a trade is the one screen where that
+		# is the question being asked.
+		detail.text = "%s  ·  Lv%d  ·  +%d %s  ·  %d Marks%s" % [
+			kind.slot_name(), int(piece.get("level", 1)),
+			Stash.points(piece, kind),
+			ATTRIBUTE_NAMES[clampi(kind.attribute, 0, ATTRIBUTE_NAMES.size() - 1)],
+			Stash.sell_price(piece),
+			"  ·  KEPT" if Stash.is_favourite(piece) else ""]
+		row.tooltip_text = kind.description
+	text.add_child(detail)
+	return row
+
+
+## What a side's offer adds up to, for the line under it.
+##
+## Two numbers, because they answer different questions. The attribute total is
+## what the gear will *do* for whoever ends up wearing it; the Marks total is
+## what it is worth if they never wear it at all. A trade that is good by one and
+## bad by the other is a trade worth thinking about, and a player cannot notice
+## that from a list of names.
+func _summarise(pieces: Array) -> String:
+	if pieces.is_empty():
+		return "nothing offered"
+	var points: int = 0
+	var marks: int = 0
+	for entry: Variant in pieces:
+		var piece := entry as Dictionary
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		if kind != null:
+			points += Stash.points(piece, kind)
+		marks += Stash.sell_price(piece)
+	return "%d piece%s  ·  +%d attribute points  ·  %d Marks" % [
+		pieces.size(), "" if pieces.size() == 1 else "s", points, marks]
+
+
 func _fill(into: VBoxContainer, pieces: Array) -> void:
 	_clear(into)
 	if pieces.is_empty():
@@ -203,12 +324,12 @@ func _fill(into: VBoxContainer, pieces: Array) -> void:
 		into.add_child(empty)
 		return
 	for entry: Variant in pieces:
-		var piece := entry as Dictionary
-		var line := Label.new()
-		line.text = _describe(piece)
-		line.add_theme_font_size_override("font_size", 13)
-		line.add_theme_color_override("font_color", Stash.rarity_colour(piece))
-		into.add_child(line)
+		into.add_child(_piece_row(entry as Dictionary))
+	var total := Label.new()
+	total.text = _summarise(pieces)
+	total.add_theme_font_size_override("font_size", 12)
+	total.add_theme_color_override("font_color", Color("cbb682"))
+	into.add_child(total)
 
 
 ## The player's own stash, with what is already on the table marked.
@@ -226,6 +347,7 @@ func _draw_stash(trade: TradeSession) -> void:
 	_scroll.visible = trade.stage == TradeSession.Stage.OFFERING
 	if not _scroll.visible:
 		return
+	var table: Array[int] = _on_table()
 	var rows: int = 0
 	for index: int in MetaState.stash.size():
 		if rows >= MAX_ROWS:
@@ -235,18 +357,43 @@ func _draw_stash(trade: TradeSession) -> void:
 		if kind == null:
 			continue
 		rows += 1
-		var on_table: bool = _picked.has(index)
-		var row := Button.new()
-		# **ASCII, because a tick is not a glyph every bundled font has.**
-		# `font_glyph_check` caught U+2713 here: it draws correctly on this
-		# machine and as an empty box on Android, which is the worst kind of
-		# wrong - it looks finished to whoever wrote it.
-		row.text = "%s  %s" % ["*" if on_table else "   ", _describe(piece)]
-		row.custom_minimum_size = Vector2(0.0, 34.0)
-		row.add_theme_font_size_override("font_size", 13)
-		row.add_theme_color_override("font_color", Stash.rarity_colour(piece))
-		var at: int = index
-		row.pressed.connect(func() -> void: _toggle(at))
+		var uid: int = Stash.uid(piece)
+		var on_table: bool = table.has(uid)
+		var worn: bool = int(MetaState.equipped.get(kind.slot, -1)) == index
+
+		# **A row with a button on it, not a row inside a button.**
+		#
+		# The first version wrapped the whole thing in a `Button` and laid the
+		# icon and text out with `PRESET_FULL_RECT` inside it. A Button positions
+		# its own content within its frame, and an anchored child ignores that
+		# entirely - so the art sat on the carved border and the name floated
+		# above the top edge. It looked like a styling problem and was a
+		# structural one.
+		#
+		# One explicit control per row is also the better screen: the stash
+		# already reads as a list of pieces with actions beside them, and a
+		# whole row that silently means "click me to give this away" is a wide
+		# target for a decision that hands over gear.
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.modulate = Color(1.0, 1.0, 1.0, 0.45) if worn else Color.WHITE
+
+		var body: Control = _piece_row(piece)
+		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(body)
+
+		var action := Button.new()
+		action.custom_minimum_size = Vector2(120.0, 38.0)
+		action.add_theme_font_size_override("font_size", 13)
+		if worn:
+			action.text = "Worn"
+			action.disabled = true
+			action.tooltip_text = "Worn gear cannot be traded. Take it off first."
+		else:
+			action.text = "Take back" if on_table else "Offer"
+			var named: int = uid
+			action.pressed.connect(func() -> void: _toggle(named))
+		row.add_child(action)
 		_stash.add_child(row)
 
 
@@ -272,31 +419,42 @@ func _draw_actions(trade: TradeSession, me: String, them: String) -> void:
 			# Re-offering the same list is a change as far as the rules are
 			# concerned, which is exactly what going back should be: everybody
 			# agrees again from the first screen.
-			_say(TradeBooth.offer_indices(_picked.duplicate())))
+			_say(TradeBooth.offer_uids(_on_table())))
 		)
 	_actions.add_child(_button("Cancel", func() -> void:
 		TradeBooth.cancel("%s cancelled the trade." % _own_name())))
 
 
-func _toggle(index: int) -> void:
-	if _picked.has(index):
-		_picked.erase(index)
-	elif _picked.size() >= Balance.TRADE_MAX_PIECES:
+func _toggle(uid: int) -> void:
+	var wanted: Array[int] = _on_table()
+	if wanted.has(uid):
+		wanted.erase(uid)
+	elif wanted.size() >= Balance.TRADE_MAX_PIECES:
 		_say("You cannot put more than %d pieces on the table."
 			% Balance.TRADE_MAX_PIECES)
 		return
 	else:
-		_picked.append(index)
-	var refusal: String = TradeBooth.offer_indices(_picked.duplicate())
-	if not refusal.is_empty():
-		# Put back, so what is ticked and what is on the table never disagree.
-		if _picked.has(index):
-			_picked.erase(index)
-		else:
-			_picked.append(index)
-		_say(refusal)
-		return
-	_say("")
+		wanted.append(uid)
+	# Nothing is put back when this is refused, because nothing was changed
+	# locally to put back: the table is whatever the session says it is, and a
+	# refused change simply never became one.
+	_say(TradeBooth.offer_uids(wanted))
+
+
+## Drops names that are no longer in this stash.
+##
+## A piece can leave while the window is open - the settlement of a previous
+## trade, a bulk break from another screen - and a mark against something that
+## is gone is a table the player cannot clear, because the row that would clear
+## it is not there any more.
+func _prune_picked() -> void:
+	var wanted: Array[int] = _on_table()
+	var kept: Array[int] = []
+	for uid: int in wanted:
+		if Stash.index_of(MetaState.stash, uid) >= 0:
+			kept.append(uid)
+	if kept.size() != wanted.size():
+		TradeBooth.offer_uids(kept)
 
 
 func _describe(piece: Dictionary) -> String:
