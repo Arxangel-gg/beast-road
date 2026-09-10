@@ -52,6 +52,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Companions as temporary spell effects (§54 cuts "party roster") | v4 keeps the cut | **DECIDED 2026-09-01: Wildlife Spirit Companions persist. See below.** |
 | Disciplines as an anti-specialisation draft | every node open to everyone at once | **DECIDED 2026-09-09: the trees have paths. See below.** |
 | Gear as a solo find (no player-to-player exchange in v4) | not in the spec | **DECIDED 2026-09-10: two players may trade. See below.** |
+| Gear as a solo find, continued | no marketplace of any kind | **DECIDED 2026-09-10: the Long Ledger. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -362,10 +363,55 @@ with no half-applied state, the stash locked against destruction while a trade
 is open, and a received piece renamed on arrival. `trade_check` holds all of it
 and each protection has been checked by removing it.
 
-The second half - a persistent marketplace where offers outlive the session -
-is **not** built and is a larger decision than this one. It needs somewhere for
-gear to live while it is neither player's, which is the first thing in this
-project that would persist outside an account.
+**And the marketplace is built, as of the same date.** The owner asked for it
+directly - "build the grand exchange marketplace now" - after having asked for
+it as an eventual want alongside the trade window.
+
+**Prices are shared; custody is not.** That is the whole design and it is the
+answer to the paragraph this one replaces, which said a marketplace "needs
+somewhere for gear to live while it is neither player's". It turns out it does
+not. There is no account server: the Supabase project behind the leaderboard
+answers to an anonymous key every copy of the game carries, so anything a client
+can write, any client can forge - and a forged *item* would end the loot economy
+in an afternoon. So the Long Ledger publishes what pieces **sold for** and never
+the pieces. The counterparty is the Ledger's own caravans, the escrow is local,
+and the worst a forged row can do is make a guide price wrong for a day.
+
+That is not the design cut down to fit. Posting at a price, walking away, and
+coming back to money while the price moves because of what everybody else did is
+what a grand exchange *is* to the people using one, and all of it survives.
+
+**Two bounds keep it from eating the game, and both are gated.**
+
+- **Buying is always dearer than vendoring.** The stash already sells a piece for
+  Marks. If the Ledger could ever be bought from below that, buy-vendor-repeat
+  prints Marks forever. `exchange_check` checks the cheapest reachable purchase
+  against the vendor price for every rarity and level in the game, at both ends
+  of what the price feed may ever do.
+- **The Ledger cannot sell what nobody sold it.** Gear is "the reason to replay"
+  (2026-09-01), and a shop with an infinite catalogue makes the road optional.
+  Supply falls away steeply with rarity, and an Oathbound piece stays something
+  you find.
+
+**It adds one thing to the save, and it is gear.** A listed piece leaves the
+stash and is carried by its order, so a save that did not write the board would
+destroy everything a player had listed the moment they quit. This is not a new
+*kind* of persistence - working rule 7 already sanctions owned gear and Marks,
+and escrow is those two things parked in a second list while a caravan is on its
+way - but it is a second place gear can be, and that is worth knowing about
+before anything else iterates a stash and assumes it has found all of it.
+Additive, so `SAVE_VERSION` did not move.
+
+**Orders fill on road travelled and on nothing else.** Word travels with the
+caravans, so distance is the clock: standing in town settles nothing and a long
+run settles a lot. The Ledger pays for playing, never for leaving the game open,
+and the screen is careful to say "about half a run of road left" rather than any
+number of minutes.
+
+Operations, the table's SQL and what every constant decides are in
+`docs/EXCHANGE.md`. **A true player-to-player order book is still not built**,
+and it is the same blocker as before: it needs real accounts and server-side
+logic. If the project ever gains those, that is the decision to revisit first.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

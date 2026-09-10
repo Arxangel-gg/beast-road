@@ -334,6 +334,11 @@ jobs:
           # Two players swapping gear. Every failure here is silent and
           # permanent, so the duplication cases are gated before anything else.
           check "trading" --headless --path game res://tools/trade_check.tscn
+          # The Long Ledger holds gear in escrow and pays Marks for it. A
+          # marketplace that duplicates a piece, eats one, or leaves a gap
+          # between its buy price and the stash's sell price fails nothing and
+          # ruins the between-run economy over weeks.
+          check "exchange" --headless --path game res://tools/exchange_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
           # carries on when one will not parse, so the dictionary goes quietly
           # short and every gate over that content keeps passing on what did

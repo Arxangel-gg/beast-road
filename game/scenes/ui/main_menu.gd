@@ -156,6 +156,54 @@ func _build_stash_button() -> void:
 		button.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 		new_run_button.grab_focus())
 	button.pressed.connect(func() -> void: screen.open())
+	_build_exchange_button(column, button, new_run_button)
+
+
+## The Long Ledger, under the stash, because it is the stash's other half.
+##
+## Same rule as the stash button and for the same reason: an exchange with
+## nothing to list and nothing to spend is a promise the game has not made yet.
+## It appears the moment there is either gear or Marks - which is exactly when a
+## player first has a decision to make about what a piece is worth.
+func _build_exchange_button(column: Node, stash_button: Button,
+		new_run_button: Button) -> void:
+	var button := Button.new()
+	button.text = "The Long Ledger"
+	# The ledger charm's own icon: a closed book of accounts, which is exactly
+	# what this is. Reused rather than authored, so the manifest is unchanged.
+	IconKit.on_button(button, "quiet_ledger", 24)
+	column.add_child(button)
+	column.move_child(button, stash_button.get_index() + 1)
+
+	var screen := ExchangeScreen.new()
+	add_child(screen)
+	screen.closed.connect(func() -> void:
+		stash_button.text = "Stash  ·  %d Marks  ·  %d Shards" % [
+			MetaState.marks, MetaState.shards]
+		button.text = _ledger_caption()
+		new_run_button.grab_focus())
+	button.pressed.connect(func() -> void: screen.open())
+	button.text = _ledger_caption()
+
+
+## What the button says: silent when the board is empty, and counting when it is.
+##
+## A line that has been met is the one thing worth interrupting a player for -
+## Marks or gear are sitting there - so it is said on the menu rather than only
+## behind a click.
+func _ledger_caption() -> String:
+	var waiting: int = 0
+	var standing: int = 0
+	for order: ExchangeOrder in Exchange.orders():
+		if order.stage == ExchangeOrder.Stage.FILLED:
+			waiting += 1
+		elif order.is_open():
+			standing += 1
+	if waiting > 0:
+		return "The Long Ledger  ·  %d met" % waiting
+	if standing > 0:
+		return "The Long Ledger  ·  %d standing" % standing
+	return "The Long Ledger"
 
 
 ## The campaign tier, chosen before a run and shown with the hero it will be

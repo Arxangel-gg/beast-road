@@ -236,6 +236,82 @@ const STASH_CAPACITY: int = 160
 ## ones they agreed to.
 const TRADE_MAX_PIECES: int = 6
 
+# --- The Long Ledger ----------------------------------------------------------
+#
+# Owner brief, 2026-09-10: a grand exchange "for players to be able to create a
+# trading economy for all of the loot in the game". `ExchangeMarket` carries the
+# argument; these are the numbers it is made of.
+#
+# **Two of them are load-bearing and the rest are feel.** `EXCHANGE_BID_FLOOR`
+# against `EXCHANGE_GUIDE_OVER_VENDOR` is what stops buy-low-vendor-high from
+# printing Marks, and `EXCHANGE_BASELINE_SUPPLY` is what stops the Ledger from
+# replacing the road as the place gear comes from. `exchange_check` holds both
+# against every rarity and level in the game, so moving either is a red gate
+# rather than a slow economic collapse nobody notices for a month.
+
+## Lines a player may have in the ledger at once.
+##
+## Six, matching the trade table, and small for the same reason: a board you can
+## read at a glance is a board you make decisions about. It is also the number
+## that keeps the Ledger a *decision* - with twenty slots you list everything and
+## the choosing goes away.
+const EXCHANGE_SLOTS: int = 6
+
+## What a caravan pays over what your own hold would give you.
+##
+## The entire reason to wait rather than press Sell in the stash. Under about
+## 1.3 nobody would ever use the Ledger; far over 2.0 nobody would ever press
+## Sell, and the stash's immediate-money option stops being a real choice.
+const EXCHANGE_GUIDE_OVER_VENDOR: float = 1.6
+
+## The least a bid may be, as a fraction of the guide, and still ever fill.
+##
+## **This is the anti-laundering bound.** 0.72 x 1.6 = 1.152, so the cheapest
+## possible purchase still costs about fifteen percent more than the stash would
+## pay for the same piece: buying to vendor always loses. `ExchangeMarket.min_bid`
+## also floors at vendor+1 outright, so the two constants cannot be retuned into
+## each other by accident.
+const EXCHANGE_BID_FLOOR: float = 0.72
+
+## The most an ask may be, as a fraction of the guide, and still ever fill.
+const EXCHANGE_ASK_CEILING: float = 1.5
+
+## How far the feed may move a guide price, either way.
+##
+## Bounded hard because this is the one number a stranger can influence: the
+## price feed is written with the same anonymous key every copy of the game
+## carries. A forged run of rows is worth a third off or half again, and never a
+## piece.
+const EXCHANGE_DEMAND_FLOOR: float = 0.65
+const EXCHANGE_DEMAND_CEILING: float = 1.6
+
+## Rows the feed needs before it is allowed an opinion at all.
+const EXCHANGE_DEMAND_MIN_SAMPLES: int = 8
+
+## Recent community sales the price feed asks for.
+const EXCHANGE_FEED_ROWS: int = 120
+
+## Fraction of an order closed per unit of road, at exactly the guide price.
+##
+## A run is `JOURNEY_TOTAL_DISTANCE` long, so at the guide an order takes about
+## a fifth of a full journey to find a caravan and a well-priced one rather less.
+## Orders progress on the road and nowhere else, which is the design: the Ledger
+## pays you for playing, not for leaving the game open.
+const EXCHANGE_FILL_AT_GUIDE: float = 1.0 / 540.0
+
+## How much faster the best possible price is than the guide.
+const EXCHANGE_FILL_BEST_MULTIPLIER: float = 3.0
+
+## How much of each rarity the road carries when the feed has said nothing.
+##
+## Steeply down, on purpose. Commons are what caravans have crates of; an
+## Oathbound piece is something a Warden found and mostly keeps. This is what
+## makes the Ledger a place to round out a build rather than to buy one.
+const EXCHANGE_BASELINE_SUPPLY: Array[float] = [1.0, 0.82, 0.5, 0.22, 0.07]
+
+## How far the community's actual listings pull supply off that baseline.
+const EXCHANGE_SUPPLY_FEED_WEIGHT: float = 0.6
+
 # --- Gear slots --------------------------------------------------------------
 
 ## What each slot is worth, against a weapon.

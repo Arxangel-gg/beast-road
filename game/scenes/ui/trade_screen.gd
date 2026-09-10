@@ -21,8 +21,6 @@ extends CanvasLayer
 ## moved under them.
 
 const MAX_ROWS: int = 60
-const ICON_SIZE: float = 40.0
-const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
 
 var _panel: PanelContainer
 var _header: Label
@@ -174,6 +172,29 @@ func _table(into: HBoxContainer, title: String) -> VBoxContainer:
 	return box
 
 
+## Sizes the panel to the display it is actually on.
+##
+## **A fixed panel width is a phone that cannot close the window.** The stash
+## screen learned this the expensive way - a `CenterContainer` overflows equally
+## in both directions, so a panel wider or taller than the screen pushes its
+## Close button off the edge, and it was reported from a phone. `menu_layout_check`
+## catches it now, which is how this one was found before anybody had to.
+##
+## The scroll's height is *measured* against the column's other children rather
+## than reserving a guessed constant, for the same reason: a reserved number is
+## wrong the moment a row is added above it.
+func _refit() -> void:
+	if _panel == null or _scroll == null:
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	_panel.custom_minimum_size = Vector2(minf(940.0,
+		screen.x - Balance.UI_PANEL_MARGIN * 2.0), 0.0)
+	var column: Control = _panel.get_child(0) as Control
+	if column != null:
+		_scroll.custom_minimum_size = Vector2(0.0,
+			UiMetrics.scroll_room_measured(_scroll, column, Balance.UI_PANEL_MARGIN))
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not event.is_action_pressed(&"ui_cancel"):
 		return
@@ -225,6 +246,8 @@ func _refresh() -> void:
 	_fill(_theirs, trade.offer(them))
 	_draw_stash(trade)
 	_draw_actions(trade, me, them)
+	# Draw first, then fit: `_refit` measures the column's other children.
+	_refit()
 
 
 func _draw_invitation(trade: TradeSession, me: String) -> void:
@@ -246,103 +269,16 @@ func _draw_invitation(trade: TradeSession, me: String) -> void:
 		_say(TradeBooth.answer_invite(false))))
 
 
-## One piece, drawn the way the stash draws it.
+## One piece, drawn the way the stash and the ledger draw it.
 ##
-## **The same presentation on both sides of the table and in the list below.**
-## A trade is a judgement about value, and a player cannot make it from a name:
-## they need the art they recognise the item by, the slot it competes for, the
-## level it has been taken to, and the attribute it actually grants. The stash
-## screen already shows all of that, and showing it differently here would mean
-## reading the same sword two ways in one session.
-##
-## Works for the partner's pieces as well as your own, because everything it
-## needs is derivable: the wire carries kind, rarity, level and name, and the
-## receiving machine looks the rest up in its own `ContentDB`. Nothing about the
-## other player's gear has to be trusted in order to be *described*.
+## `GearRow` owns the layout now: three screens show the same sword and a player
+## has to recognise it in all three. See that file for why it is shared.
 func _piece_row(piece: Dictionary) -> Control:
-	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# Centred rather than filled: the row is two lines of text tall and a top
-	# aligned icon hangs off the bottom of the shorter ones.
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if kind != null:
-		var art: String = kind.get_sprite_path()
-		if ResourceLoader.exists(art):
-			icon.texture = load(art) as Texture2D
-		icon.modulate = Stash.rarity_colour(piece).lerp(Color.WHITE, 0.45)
-	row.add_child(icon)
-
-	var text := VBoxContainer.new()
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_theme_constant_override("separation", 0)
-	row.add_child(text)
-
-	var title := Label.new()
-	title.add_theme_font_size_override("font_size", 14)
-	title.text = "%s %s" % [Stash.rarity_name(piece),
-		kind.display_name if kind != null else "Unknown"]
-	title.add_theme_color_override("font_color",
-		Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.3))
-	text.add_child(title)
-
-	var detail := Label.new()
-	detail.add_theme_font_size_override("font_size", 12)
-	detail.add_theme_color_override("font_color", Color("9d9484"))
-	if kind == null:
-		detail.text = "gear this build does not know"
-	else:
-		# Marks are on the row because they are the only number in the game that
-		# says what a piece is *worth*, and a trade is the one screen where that
-		# is the question being asked.
-		detail.text = "%s  ·  Lv%d  ·  +%d %s  ·  %d Marks%s" % [
-			kind.slot_name(), int(piece.get("level", 1)),
-			Stash.points(piece, kind),
-			ATTRIBUTE_NAMES[clampi(kind.attribute, 0, ATTRIBUTE_NAMES.size() - 1)],
-			Stash.sell_price(piece),
-			"  ·  KEPT" if Stash.is_favourite(piece) else ""]
-		row.tooltip_text = kind.description
-	text.add_child(detail)
-	return row
+	return GearRow.build(piece)
 
 
-## A row on a band, edged in the piece's rarity.
-##
-## **The band is what joins a piece to the button that offers it.** The panel is
-## 940 wide and the action sits at the right end of it, so the screenshot that
-## found this showed a glaive on the left and an Offer button most of a screen
-## away with nothing between them saying they were the same row. A background
-## that runs the full width says it.
-##
-## The rarity edge is the second half: a stash of forty is scanned for what is
-## worth trading before any of the words are read, and a coloured margin answers
-## that at a glance the way the name alone cannot.
 func _band(inner: Control, piece: Dictionary, lit: bool) -> PanelContainer:
-	var box := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	var rarity: Color = Stash.rarity_colour(piece)
-	style.bg_color = Color(0.13, 0.16, 0.19, 0.9) if lit \
-		else Color(0.07, 0.09, 0.11, 0.55)
-	style.border_width_left = 4
-	style.border_color = rarity.lerp(Color.WHITE, 0.35) if lit else rarity
-	style.corner_radius_top_left = 3
-	style.corner_radius_top_right = 3
-	style.corner_radius_bottom_left = 3
-	style.corner_radius_bottom_right = 3
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 4.0
-	style.content_margin_bottom = 4.0
-	box.add_theme_stylebox_override("panel", style)
-	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(inner)
-	return box
+	return GearRow.band(inner, piece, lit)
 
 
 ## What a side's offer adds up to, for the line under it.

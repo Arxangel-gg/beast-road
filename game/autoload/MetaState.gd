@@ -207,6 +207,22 @@ var equipped: Dictionary = {}
 
 ## The account's currency, and what salvage yields.
 var marks: int = 0
+
+## Lines standing in the Long Ledger, as `ExchangeOrder.to_record` wrote them.
+##
+## **This holds gear, and that is why it has to be here.** A listed piece is out
+## of the stash and carried by its order - see `ExchangeOrder` for why a flag on
+## a stash entry would not do - so a save that did not write these would destroy
+## everything a player had listed the moment they quit.
+##
+## It is not new *kinds* of persistence. Working rule 7 already sanctions owned
+## gear and Marks; this is the same two things parked in a second list while a
+## caravan is on its way, which is exactly what escrow is. The owner decision is
+## recorded in CLAUDE.md with its date.
+##
+## Additive: a save written before the Ledger has no key and reads as an empty
+## board, so `SAVE_VERSION` did not move.
+var exchange_orders: Array = []
 var shards: int = 0
 
 
@@ -501,6 +517,7 @@ func erase_progress() -> void:
 	stash.clear()
 	equipped.clear()
 	marks = 0
+	exchange_orders = []
 	shards = 0
 	player_name = ""
 	best_runs.clear()
@@ -701,6 +718,19 @@ func _read_hero(hero: Dictionary) -> void:
 ## that surfaces later as a null in the equip screen.
 func _read_stash(data: Dictionary) -> void:
 	marks = maxi(int(data.get("marks", 0)), 0)
+	# Read through `ExchangeOrder`, which refuses anything malformed rather than
+	# repairing it: an order restored half-way is an order holding a piece that
+	# is also in the stash, and duplicated gear is the one outcome the whole
+	# escrow design exists to prevent.
+	exchange_orders = []
+	for entry: Variant in data.get("orders", []) as Array:
+		if not (entry is Dictionary):
+			continue
+		if ExchangeOrder.from_record(entry as Dictionary) == null:
+			continue
+		exchange_orders.append((entry as Dictionary).duplicate(true))
+		if exchange_orders.size() >= Balance.EXCHANGE_SLOTS:
+			break
 	shards = maxi(int(data.get("shards", 0)), 0)
 	stash = []
 	for entry: Variant in data.get("gear", []) as Array:
@@ -965,6 +995,7 @@ func serialized_save() -> String:
 			"gear": stash,
 			"equipped": equipped,
 			"marks": marks,
+			"orders": exchange_orders,
 			"shards": shards,
 		},
 		# Additive and optional: a save written before spirits existed simply
