@@ -1585,6 +1585,13 @@ const RISING_FURY_RESET_SECONDS: float = 1.5
 ## burst is for: the reward for killing the leader is reaching the next one.
 const HUNTERS_PULSE_SECONDS: float = 3.0
 
+## How far Mercy Under Fire reaches when the hero stands back up.
+##
+## Sized to clear the ring that killed them rather than to control a lane: it is
+## a little wider than the crowd that can actually be in contact at once, and
+## far short of anything that would function as an area attack.
+const MERCY_RADIUS: float = 170.0
+
 ## Build spots along each lane, town-outward, for both flanks of the road.
 ##
 ## Six per road rather than three: the same inner/middle/outer trio, mirrored to

@@ -1010,9 +1010,7 @@ func _on_died(at: Vector2) -> void:
 	# a second revive item is now a file rather than another branch here.
 	var saviour: ItemData = RunState.item_with_effect(ItemData.Effect.REVIVE, true)
 	if saviour != null and RunState.spend_item(saviour.id):
-		health.revive(saviour.effect_value)
-		health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
-		EventBus.hero_respawned.emit(global_position)
+		_stand_back_up(saviour.effect_value)
 		return
 	# In co-op, going down is not by itself the end of anything.
 	#
@@ -1103,10 +1101,52 @@ func _finish_respawn(to_spawn: bool = true) -> void:
 		global_position = spawn_point
 	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
-	health.revive(_respawn_fraction)
-	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
 	_restore_presence()
+	_stand_back_up(_respawn_fraction)
+
+
+## The one way the hero gets back on their feet in the field.
+##
+## Both revives - the Draught spending itself and the respawn clock running out -
+## used to write out the same four lines separately, and Mercy Under Fire was
+## added to only one of them. That is precisely the failure this session spent a
+## day on: an effect wired into one of two call sites looks implemented and is
+## half-inert, and no gate can see the half that is missing. One function, so a
+## third way to stand up cannot quietly skip a step.
+func _stand_back_up(fraction: float) -> void:
+	health.revive(fraction)
+	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
+	_mercy_under_fire()
 	EventBus.hero_respawned.emit(global_position)
+
+
+## Mercy Under Fire: getting up shoves the crowd off you.
+##
+## The one moment in the game where the player has no agency at all is the frame
+## they stand back up - inside a ring of whatever killed them, with respawn
+## invulnerability that runs out before they can walk out of it. The discipline
+## node has promised exactly this since it was authored ("Reviving from a down
+## emits a non-damaging knockback") and, like twenty other effect ids, nothing
+## read it.
+##
+## Non-damaging is the whole design and is why `shove` exists. A revive that
+## killed things would make dying a play.
+func _mercy_under_fire() -> void:
+	var push: float = DisciplineEffects.trained_value("revive_knockback")
+	if push <= 0.0:
+		return
+	var pushed: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or not enemy.is_inside_tree():
+			continue
+		if enemy.global_position.distance_to(global_position) > Balance.MERCY_RADIUS:
+			continue
+		enemy.shove(global_position, push)
+		pushed += 1
+	Vfx.ring(global_position, Balance.MERCY_RADIUS, Balance.HERO_EVADE_COLOUR, 0.34, 5.0)
+	if pushed > 0:
+		EventBus.camera_shake_requested.emit(4.0, 0.22)
 
 
 func apply_hearthmend() -> void:

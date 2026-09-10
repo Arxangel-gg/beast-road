@@ -50,6 +50,7 @@ func _ready() -> void:
 	# the sheet now covers stop answering.
 	await _sweep("with a sheet open", "forge")
 	await _check_stash_reachable()
+	await _check_merchants_answer_a_click()
 	_finish()
 
 
@@ -86,6 +87,66 @@ func _check_stash_reachable() -> void:
 		screen.call("hide_screen")
 		for _s: int in 10:
 			await get_tree().process_frame
+
+
+## A merchant standing in the town answers a click, in both sheet states.
+##
+## Added with the merchants on 2026-09-09, and the reason is the fault this
+## whole file was written for: a thing drawn in the town that a click never
+## reaches. Merchants stand *inside* the plot ring at radius 150, which is a
+## different piece of screen from the eight plots and therefore a different
+## chance to be sitting under the docked sheet - the panel is 680 wide on a
+## 1920 screen and the inner circle is closer to the middle, not further from
+## it. Nothing about the plots passing says anything about the visitors.
+func _check_merchants_answer_a_click() -> void:
+	_panel.call("close")
+	RunState.act = 3
+	RunState.wave_number = 4
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	for data: MerchantData in MerchantYard.all_sorted():
+		MerchantYard._open_visit(data, false)
+	_town.call("refresh")
+	var picked: Array[String] = []
+	_town.connect("merchant_selected", func(who: String) -> void: picked.append(who))
+	for _s: int in 20:
+		await get_tree().process_frame
+
+	for open_first: String in ["", "forge"]:
+		for id: String in MerchantYard.in_town():
+			if open_first.is_empty():
+				_panel.call("close")
+			else:
+				_panel.call("open", open_first)
+			for _s: int in 40:
+				await get_tree().process_frame
+			var node: Node2D = _town.get("_merchant_nodes").get(id, null) as Node2D
+			_checked += 1
+			if not _check(node != null, "merchant %s is in town and is not drawn" % id):
+				continue
+			picked.clear()
+			await _click_at(_town.get_viewport().get_canvas_transform()
+				* node.global_position)
+			_checked += 1
+			_check(picked.has(id), "%s: clicking %s selected %s" % [
+				"with a sheet open" if not open_first.is_empty() else "with no sheet open",
+				id, ", ".join(picked) if not picked.is_empty() else "nothing"])
+
+
+func _click_at(point: Vector2) -> void:
+	var move := InputEventMouseMotion.new()
+	move.position = point
+	move.global_position = point
+	get_viewport().push_input(move, true)
+	await get_tree().process_frame
+	for pressed: bool in [true, false]:
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = pressed
+		click.position = point
+		click.global_position = point
+		get_viewport().push_input(click, true)
+		await get_tree().process_frame
+	await get_tree().process_frame
 
 
 func _all(from: Node) -> Array[Node]:
@@ -133,17 +194,20 @@ func _sweep(label: String, open_first: String) -> void:
 				got if not got.is_empty() else "nothing"])
 
 
-func _check(condition: bool, why: String) -> void:
+## Returns what it was told, so a caller can stop rather than pile a second
+## failure on top of the first one it already reported.
+func _check(condition: bool, why: String) -> bool:
 	if condition:
-		return
+		return true
 	_failures += 1
 	push_error("[town-click] %s" % why)
+	return false
 
 
 func _finish() -> void:
 	if _failures == 0:
-		print("[town-click] PASS - %d plot clicks across both sheet states land on "
-			% _checked + "the building under the cursor")
+		print("[town-click] PASS - %d clicks across both sheet states land on the "
+			% _checked + "building or merchant under the cursor")
 	else:
 		push_error("[town-click] FAIL - %d of %d clicks did not reach their plot"
 			% [_failures, _checked])

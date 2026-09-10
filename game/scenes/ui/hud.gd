@@ -179,6 +179,16 @@ const BOSS_TRACK_TOP: float = 14.0
 const BOSS_TRACK_TOUCH_TOP: float = 78.0
 const MESSAGE_TOP: float = 90.0
 const MESSAGE_TOUCH_TOP: float = 130.0
+
+## How wide the banner is allowed to be, as a half-width, in each layout.
+##
+## Narrower on touch because the build sheet's element list lives down the right
+## at that size and the banner was reaching into it. Found by `layout (phone
+## landscape)` on the runner rather than locally, because the thing that put a
+## message on screen at that moment - a merchant arriving - is random, so the
+## collision had been there and unmeasured.
+const MESSAGE_HALF: float = 400.0
+const MESSAGE_TOUCH_HALF: float = 288.0
 const STATE_LABEL_TOP: float = 132.0
 const STATE_LABEL_TOUCH_TOP: float = 172.0
 
@@ -433,8 +443,13 @@ func _ready() -> void:
 		var data: MerchantData = ContentDB.merchant(merchant_id)
 		if data == null:
 			return
-		_show_message("%s has come to town  ·  leaving in %d waves"
-			% [data.display_name, data.stay_waves])
+		# Short on purpose. The banner is a content-sized label in the touch
+		# layout and the right-hand quiver strip is only a few hundred pixels
+		# away; the first wording ran into it, and into the region card below.
+		# Caught by `layout (phone landscape)` on the runner and not locally,
+		# because an arrival is a *random* event and the gate had only ever
+		# measured a screen where none had happened.
+		_show_message("%s is in town" % data.display_name)
 		Sfx.play("sfx_ui_confirm", -2.0))
 	EventBus.merchant_departed.connect(func(merchant_id: String) -> void:
 		var data: MerchantData = ContentDB.merchant(merchant_id)
@@ -705,7 +720,7 @@ func _build_top_bar() -> void:
 	_message = _label("", 22)
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message.offset_top = MESSAGE_TOP
-	_fit_centred(_message, 400.0)
+	_fit_centred(_message, MESSAGE_HALF)
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.add_theme_color_override("font_color", Color("e8a33d"))
 	add_child(_message)
@@ -1846,9 +1861,28 @@ func _on_command_order_used(order_id: String, _lane: int, _slot: int, _at: Vecto
 	_on_command_changed(RunState.command, Balance.COMMAND_MAX)
 
 
+## The banner and the region card are the same piece of screen, and the newer
+## one takes it.
+##
+## They used to be able to show at once, stacked, in the touch layout - a
+## merchant arriving over the top of "THE ROAD BEGINS". Neither was readable and
+## the layout gate called it what it was. Yielding rather than repositioning,
+## because there is no third place for either of them to go at 1280x592 and two
+## lines of centred gold text on top of each other is not a layout problem that
+## moving one of them 40 pixels solves.
 func _show_message(text: String) -> void:
 	_message.text = text
 	_message_left = 3.0
+	_clear_region_card()
+
+
+func _clear_region_card() -> void:
+	if _region_card == null or not _region_card.visible:
+		return
+	if _region_tween != null and _region_tween.is_valid():
+		_region_tween.kill()
+	_region_card.visible = false
+	_region_card.modulate.a = 0.0
 
 
 ## Four slots along the bottom. A spell you cannot cast still shows, greyed —
@@ -2336,6 +2370,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_boss_box.offset_top = BOSS_TRACK_TOUCH_TOP if showing else BOSS_TRACK_TOP
 	if _message != null:
 		_message.offset_top = MESSAGE_TOUCH_TOP if showing else MESSAGE_TOP
+		_fit_centred(_message, MESSAGE_TOUCH_HALF if showing else MESSAGE_HALF)
 	if _state_label != null:
 		_state_label.offset_top = STATE_LABEL_TOUCH_TOP if showing else STATE_LABEL_TOP
 	if _xp_band != null:
@@ -2402,6 +2437,11 @@ func _on_boss_announced(boss_id: String, act: int) -> void:
 func announce(kicker: String, title: String) -> void:
 	if _region_card == null:
 		return
+	# The other direction of the same rule: a card arriving takes the centre back
+	# from whatever line was sitting there.
+	if _message != null:
+		_message.text = ""
+	_message_left = 0.0
 	_region_kicker.text = kicker.to_upper()
 	_region_title.text = title
 	_region_card.visible = true

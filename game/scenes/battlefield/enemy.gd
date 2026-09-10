@@ -1234,6 +1234,24 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	animator.beast_step(impulse, strength / sqrt(maxf(_mass_for_category(), 1.0)))
 
 
+## Pushed away from a point without being hurt.
+##
+## Its own operation rather than `take_damage` with zero damage, because damage
+## is not a side channel: a zero-damage hit still counts as a hit, still feeds
+## the hit reaction, still wakes whatever is listening for the hero landing a
+## blow, and would have made Mercy Under Fire read as a free attack that dealt
+## nothing. Knockback resistance still applies - a Bulwark is not moved by pity.
+func shove(from: Vector2, strength: float) -> void:
+	if _state == State.DYING:
+		return
+	var away: Vector2 = global_position - from
+	if away.length() < 1.0:
+		away = Vector2.RIGHT.rotated(randf() * TAU)
+	var resistance: float = data.knockback_resistance if data != null else 0.0
+	_knockback += away.normalized() * strength * (1.0 - resistance)
+	_add_hitstun(Balance.ENEMY_HITSTUN)
+
+
 ## Chain Hook drags things in. Expressed as its own operation rather than as
 ## negative knockback, so knockback resistance does not accidentally make an
 ## enemy immune to being pulled.

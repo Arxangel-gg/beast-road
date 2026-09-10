@@ -43,6 +43,7 @@ const IMPLEMENTED: Array[String] = [
 	"town_dodge_command",
 	"active_attack_speed",
 	"support_kill_speed",
+	"revive_knockback",
 ]
 
 ## Authored, described to the player, and not yet read by anything.
@@ -63,7 +64,6 @@ const DECLARED_ONLY: Array[String] = [
 	"marked_dash_refund",
 	"recoverable_wound",
 	"repair_blocker_shields",
-	"revive_knockback",
 	"road_line_disrupt",
 	"selected_road_shockwave",
 	"tempest_heal_cap",
