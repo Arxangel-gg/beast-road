@@ -557,7 +557,7 @@ func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 		return
 	var arrow := HeroArrow.new()
 	arrow.launch(field, from + direction * Balance.HERO_ARROW_MUZZLE, direction,
-		ranged.weapon(), kind)
+		ranged.weapon(), kind, damage_multiplier())
 	field.add_child(arrow)
 	_facing = direction
 	_facing_hold = Balance.HERO_ATTACK_FACING_HOLD

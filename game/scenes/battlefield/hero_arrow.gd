@@ -32,8 +32,22 @@ var _trail: Line2D = null
 var _field: EnemyField = null
 
 
+## Puts an arrow in the air.
+##
+## `power` is the archer's own damage multiplier - Might, worn gear, relics, the
+## Command bonus - and it is a parameter rather than something read from a hero
+## here, because an arrow already in the air belongs to the world rather than to
+## whoever loosed it. The shot keeps the strength of the archer at the moment of
+## release, which is also what stops it changing mid-flight when a relic ticks.
+##
+## **It used to be absent entirely.** A bow dealt its authored damage and nothing
+## else, while every melee swing went through `Hero.damage_multiplier`. By Act
+## III a hero has attributes, gear and relics behind every sword blow and had
+## none of them behind an arrow, so the bow quietly stopped being a weapon while
+## reading as one. Reported from play as arrows that "hit enemies but do not seem
+## to hurt them".
 func launch(field: EnemyField, from: Vector2, heading: Vector2,
-		weapon: RangedWeaponData, kind: AmmoData) -> void:
+		weapon: RangedWeaponData, kind: AmmoData, power: float = 1.0) -> void:
 	_field = field
 	# The animals live beside the enemies in the same scope, under a known name.
 	# Null in a raid camp, which has no wildlife, and that is a supported state
@@ -42,7 +56,7 @@ func launch(field: EnemyField, from: Vector2, heading: Vector2,
 		_wildlife = field.get_node_or_null("Wildlife") as Wildlife
 	ammo = kind
 	_heading = heading.normalized() if heading.length() > 0.001 else Vector2.RIGHT
-	damage = weapon.damage * kind.damage_scale
+	damage = weapon.damage * kind.damage_scale * maxf(power, 0.0)
 	knockback = weapon.knockback
 	speed = weapon.projectile_speed
 	pierce = weapon.pierce

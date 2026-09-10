@@ -140,6 +140,15 @@ func _ready() -> void:
 	_test_arrows_reach_wildlife()
 	_test_the_shot_goes_where_it_is_aimed()
 	await _test_swept_flight()
+	_test_a_bow_is_carried_by_its_archer()
+	_test_melee_is_still_the_default()
+	# **A script error aborts the function it happens in and nothing else.**
+	# This gate printed PASS while a bad constant name silently killed the melee
+	# comparison mid-way, which is the exact failure `crossroad_vote_check`
+	# grew its own counter for. Two of these tests are new; both count
+	# themselves, and the pair has already caught one of its own bugs.
+	if _finished_tests != 2:
+		_check(false, "only %d of 2 counted tests ran to completion" % _finished_tests)
 
 	if _failures == 0:
 		print("[ranged] PASS - blueprints gate the recipe, ammunition costs and "
@@ -238,6 +247,96 @@ func _test_the_shot_goes_where_it_is_aimed() -> void:
 	_check(hero_source.contains("ranged.request(_aim, combat_origin())"),
 		"the shot must leave from combat_origin, the same point the aim is "
 			+ "measured from")
+
+
+## An arrow carries the archer's strength, the same way a sword swing does.
+##
+## **It did not, and nothing noticed.** `Hero.damage_multiplier` folds in Might,
+## worn gear, relics and the Command bonus, and every melee swing goes through
+## it; a bow dealt `weapon.damage * ammo.damage_scale` and nothing else. By Act
+## III a hero has all of that behind a sword blow and had none of it behind an
+## arrow, so the bow quietly stopped being a weapon while still reading as one.
+## Reported from play as arrows that "hit enemies but do not seem to hurt them".
+##
+## This gate had six tests over crafting, capacity, aim and flight and not one
+## over what an arrow is worth when it lands.
+## How many of the counted tests below reached their end.
+var _finished_tests: int = 0
+
+
+func _test_a_bow_is_carried_by_its_archer() -> void:
+	var weapon: RangedWeaponData = null
+	for value: Variant in ContentDB.ranged_weapons.values():
+		weapon = value as RangedWeaponData
+		break
+	var kind := ContentDB.ammo_kinds.get("plain_arrow", null) as AmmoData
+	if weapon == null or kind == null:
+		_check(false, "no weapon or ammunition to measure")
+		return
+	var plain := HeroArrow.new()
+	plain.launch(null, Vector2.ZERO, Vector2.RIGHT, weapon, kind, 1.0)
+	var strong := HeroArrow.new()
+	strong.launch(null, Vector2.ZERO, Vector2.RIGHT, weapon, kind, 2.0)
+	_check(strong.damage > plain.damage * 1.9,
+		("an archer twice as strong looses an arrow worth %.1f against %.1f; "
+			+ "the bow is ignoring Might, gear and relics")
+			% [strong.damage, plain.damage])
+	plain.free()
+	strong.free()
+	_finished_tests += 1
+
+
+## And melee stays the reliable default, which CLAUDE.md makes the bound of the
+## whole ranged decision: "if a run can be completed at range without ever
+## closing, the trade this system exists to create has collapsed".
+##
+## That bound was written down and never gated - this is the gate. Compared as
+## sustained damage per second at equal archer strength, because a bow that beat
+## a sword *per shot* is fine and one that beats it per second is not.
+func _test_melee_is_still_the_default() -> void:
+	var melee: float = 0.0
+	for step: float in Balance.HERO_ATTACK_DAMAGE:
+		melee += step
+	# The whole chain's own timing, summed from the three phases each step
+	# actually spends. There is no single interval constant for melee - the
+	# swing is a state machine - and inventing one here would be a second
+	# statement of the same fact for the balance to drift away from.
+	var chain_seconds: float = 0.0
+	for step: int in Balance.HERO_CHAIN_LENGTH:
+		chain_seconds += Balance.HERO_ATTACK_WINDUP[step] 			+ Balance.HERO_ATTACK_ACTIVE[step] + Balance.HERO_ATTACK_RECOVERY[step]
+	var melee_dps: float = melee / maxf(chain_seconds, 0.001)
+
+	var best: float = 0.0
+	var best_id: String = ""
+	for value: Variant in ContentDB.ranged_weapons.values():
+		var bow := value as RangedWeaponData
+		if bow == null or bow.draw_time <= 0.0:
+			continue
+		# The strongest ammunition a bow can hold, which is the fairest case to
+		# put against a sword that has no ammunition to choose.
+		var scale: float = 1.0
+		for other: Variant in ContentDB.ammo_kinds.values():
+			var ammo := other as AmmoData
+			if ammo != null and ammo.family == bow.family:
+				scale = maxf(scale, ammo.damage_scale)
+		# **Single target on both sides, and pierce is deliberately not counted.**
+		# The first version multiplied a bow's damage by its pierce and reported
+		# the heavy crossbow at 70 against melee's 38 - a violation that was
+		# entirely the model's. Pierce pays on a line of bodies; melee's arc
+		# catches everything in front of it and pays on exactly the same shape of
+		# situation. Crediting one and not the other measures the comparison
+		# rather than the weapons.
+		var dps: float = bow.damage * scale / bow.draw_time
+		if dps > best:
+			best = dps
+			best_id = bow.id
+	_check(best <= melee_dps,
+		("%s sustains %.1f damage a second against melee's %.1f; a run that can "
+			+ "be finished at range without ever closing has lost the trade the "
+			+ "bow exists to create") % [best_id, best, melee_dps])
+	print("[ranged] melee %.1f dps single target, best bow %s at %.1f"
+		% [melee_dps, best_id, best])
+	_finished_tests += 1
 
 
 func _test_swept_flight() -> void:
