@@ -49,7 +49,50 @@ func _ready() -> void:
 	# The state the bug lives in: the player opens one building, and the plots
 	# the sheet now covers stop answering.
 	await _sweep("with a sheet open", "forge")
+	await _check_stash_reachable()
 	_finish()
+
+
+## The stash is reachable from inside a run, and reaching it does not stop the
+## road. Added 2026-09-09 with the feature: `StashScreen` was menu-only, and the
+## reason recorded in its own docstring was that "a run does not pause for
+## shopping" - so the thing worth holding is not just that the button exists but
+## that opening it leaves the battlefield running.
+func _check_stash_reachable() -> void:
+	_panel.call("open", "sanctum")
+	for _s: int in 30:
+		await get_tree().process_frame
+	var button: Button = null
+	for node: Node in _all(_panel):
+		var b := node as Button
+		if b != null and b.text.begins_with("Open the stash"):
+			button = b
+	_checked += 1
+	_check(button != null, "the Hero Mansion offers no way into the stash")
+	if button == null:
+		return
+	button.emit_signal("pressed")
+	for _s: int in 30:
+		await get_tree().process_frame
+	var screen: CanvasLayer = null
+	for node: Node in _all(_panel):
+		if node is StashScreen:
+			screen = node as CanvasLayer
+	_checked += 1
+	_check(screen != null and screen.visible, "the stash did not open in a run")
+	_checked += 1
+	_check(not get_tree().paused, "opening the stash paused the run")
+	if screen != null:
+		screen.call("hide_screen")
+		for _s: int in 10:
+			await get_tree().process_frame
+
+
+func _all(from: Node) -> Array[Node]:
+	var out: Array[Node] = [from]
+	for c: Node in from.get_children():
+		out.append_array(_all(c))
+	return out
 
 
 func _sweep(label: String, open_first: String) -> void:

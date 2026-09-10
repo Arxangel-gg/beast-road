@@ -99,6 +99,21 @@ func open(building_id: String) -> void:
 signal closed
 
 
+## Made on first use and kept: the stash is ninety-six rows and rebuilding it
+## every visit is a stutter in the middle of a wave.
+var _stash: StashScreen = null
+
+
+func _open_stash() -> void:
+	if _stash == null or not is_instance_valid(_stash):
+		_stash = StashScreen.new()
+		add_child(_stash)
+		# The sheet under it is showing worn attributes that the stash can
+		# change, so it has to be redrawn when the stash closes.
+		_stash.closed.connect(_refresh)
+	_stash.open()
+
+
 func close() -> void:
 	panel.visible = false
 	closed.emit()
@@ -499,6 +514,28 @@ func _mansion_hero(tier: int) -> void:
 		row.pressed.connect(func() -> void:
 			_attempt(RunState.spend_attribute_point(index)))
 		actions.add_child(row)
+
+	# **The stash, reachable from inside a run.**
+	#
+	# `StashScreen` said in as many words that it was "reached from the main
+	# menu, not from a run: gear persists and a run does not pause for shopping".
+	# The objection was the *pause*, and the town already answers it: the
+	# battlefield keeps simulating while a scope is open, so shopping here costs
+	# the same road time as building here does. Owner request, 2026-09-09.
+	#
+	# In the Mansion rather than on the combat bar for the same reason: the
+	# Mansion is where the hero is edited, and putting a full gear screen one
+	# click from the fight would invite swapping between waves as a routine
+	# rather than as a visit.
+	actions.add_child(_heading("Gear"))
+	var worn_pieces: int = MetaState.equipped.size()
+	_note("%d worn, %d in the stash. Changing gear here costs road time, the "
+		% [worn_pieces, MetaState.stash.size()]
+		+ "same as building does — the road does not stop for it.")
+	var stash_row := _row("Open the stash  ·  %d Marks  ·  %d Shards"
+		% [MetaState.marks, MetaState.shards], 54.0)
+	stash_row.pressed.connect(_open_stash)
+	actions.add_child(stash_row)
 
 	actions.add_child(_heading("Abilities"))
 	_note("Four slots. What sits in one is cast from the combat bar.")

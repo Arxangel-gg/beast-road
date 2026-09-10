@@ -8,8 +8,20 @@ extends CanvasLayer
 ## are the same question asked from either end, and putting a wall between them
 ## makes a player walk back and forth to answer it.
 ##
-## Reached from the main menu, not from a run: gear persists and a run does not
-## pause for shopping.
+## Reached from the main menu, and — since 2026-09-09, at the owner's request —
+## from the Hero Mansion inside a run.
+##
+## This paragraph used to say "not from a run: gear persists and a run does not
+## pause for shopping", and the second half of that is still true and is why the
+## Mansion is where it hangs. The town does not stop the battlefield: a scope is
+## a window onto a fight that carries on without you, so shopping there costs
+## exactly the road time that building there costs. Nothing was made to pause.
+##
+## What is deliberately *not* done is a stash button on the combat bar. Gear
+## grants attribute points on the same capped scale as levelling (working rule
+## 7), so swapping cannot out-run the curve — but a full gear screen one click
+## from the fight turns a visit into a between-waves routine, and the Mansion is
+## where the hero is edited.
 
 signal closed()
 
