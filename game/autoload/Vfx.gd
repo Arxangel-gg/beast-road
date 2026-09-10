@@ -61,6 +61,7 @@ var _town_critical: bool = false
 ## Elemental impact art, derived from the element name like every other asset
 ## path in the project.
 const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
+const MUZZLE_ART_FORMAT: String = "res://art/vfx/muzzle_%s.png"
 const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshader"
 
 
@@ -438,20 +439,42 @@ func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> voi
 	tween.chain().tween_callback(label.queue_free)
 
 
-## A short bright cone where a tower fired from.
-func muzzle(at: Vector2, direction: Vector2, colour: Color) -> void:
+## A short bright cone where a tower fired from, plus the element's own flash.
+##
+## The third beat of the shot, and the one that had no art. A tower firing is
+## the most repeated event in the game and it read as: nothing at the barrel, a
+## painted bolt in flight, a painted burst on arrival. The origin was a flat
+## coloured triangle.
+##
+## `element` is optional and defaults to none, because two of the three callers
+## of a flash like this are not elemental. Given one, the authored frames play
+## once *under* the cone - the cone is the instantaneous white-hot stab that
+## sells the timing, the sprite is the material.
+func muzzle(at: Vector2, direction: Vector2, colour: Color,
+		element: int = -1) -> void:
 	if world == null:
 		return
+	# Drawn first, because whether there is art changes what the cone should be.
+	var painted: bool = _muzzle_art(at, direction, colour, element)
+
 	var flash := Polygon2D.new()
-	var length: float = Balance.VFX_MUZZLE_LENGTH
-	var spread: float = Balance.VFX_MUZZLE_WIDTH
+	# **The cone shrinks and goes white when there is art behind it.**
+	#
+	# At full size in the element's own colour it was not an accent, it was a
+	# flat coloured wedge sitting on top of the flash and winning - a triangle
+	# with texture behind it, which reads worse than either alone. What the cone
+	# is actually good at is the instant: a hard white stab at the barrel on the
+	# frame the shot leaves. So with art it becomes exactly that, and without it
+	# stays the whole effect it has always been.
+	var length: float = Balance.VFX_MUZZLE_LENGTH * (0.45 if painted else 1.0)
+	var spread: float = Balance.VFX_MUZZLE_WIDTH * (0.5 if painted else 1.0)
 	flash.polygon = PackedVector2Array([
 		Vector2.ZERO,
 		Vector2(length, -spread),
 		Vector2(length * 1.15, 0.0),
 		Vector2(length, spread),
 	])
-	flash.color = colour
+	flash.color = colour.lerp(Color.WHITE, 0.75) if painted else colour
 	flash.rotation = direction.angle()
 	flash.z_index = Balance.VFX_Z
 	_track(flash)
@@ -462,6 +485,46 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color) -> void:
 	tween.tween_property(flash, "modulate:a", 0.0, Balance.VFX_MUZZLE_LIFE)
 	tween.tween_property(flash, "scale", Vector2(1.35, 0.5), Balance.VFX_MUZZLE_LIFE)
 	tween.chain().tween_callback(flash.queue_free)
+
+
+## Elemental art for the barrel flash, played once.
+##
+## A *sibling* rather than a child of the cone, unlike the ring's bloom: the cone
+## squashes to (1.35, 0.5) as it fades, and a child would be squashed with it -
+## which is right for a stretching cone and wrong for a puff of dust. It carries
+## its own life instead, and `_track` counts it against the same cap.
+##
+## Rotated to the shot so a flash reads as coming *out* of the tower, and given
+## a random flip so a lane of one tower firing does not stamp the same picture.
+func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int) -> bool:
+	if element < 0 or world == null:
+		return false
+	var path: String = MUZZLE_ART_FORMAT % TowerData.element_name(element).to_lower()
+	if not ResourceLoader.exists(path):
+		return false
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+	var art := Sprite2D.new()
+	art.texture = load(path)
+	art.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	art.add_to_group(Graphics.FILTER_GROUP)
+	art.modulate = Color(colour.lerp(Color.WHITE, 0.4), 0.9)
+	art.rotation = direction.angle()
+	art.scale = Vector2(1.0, 1.0 if randf() < 0.5 else -1.0) 		* (Balance.VFX_MUZZLE_LENGTH * 2.0
+			/ maxf(float(art.texture.get_width()), 1.0))
+	art.z_index = Balance.VFX_Z - 1
+	_track(art)
+	art.global_position = at + direction * Balance.VFX_MUZZLE_LENGTH * 0.35
+
+	var life: float = Balance.VFX_MUZZLE_LIFE * 2.2
+	if frames.size() > 1:
+		var step: Callable = func(index: float) -> void:
+			if is_instance_valid(art):
+				art.texture = frames[clampi(int(index), 0, frames.size() - 1)]
+		art.create_tween().tween_method(step, 0.0, float(frames.size()), life)
+	var fade: Tween = art.create_tween()
+	fade.tween_property(art, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
+	fade.tween_callback(art.queue_free)
+	return true
 
 
 ## Fast radial strokes: the readable white-hot frame between a bloom and its
@@ -916,7 +979,29 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(burst, "scale", Vector2.ONE * start, 0.14).set_ease(Tween.EASE_OUT)
 	tween.tween_property(burst, "modulate:a", 0.0, 0.26).set_delay(0.06)
+	_play_burst_frames(burst, path)
 	tween.chain().tween_callback(burst.queue_free)
+
+
+## Steps an impact through its authored frames, once, over the life of the
+## burst.
+##
+## Played through rather than looped: an impact happens, it does not idle. A
+## loop on a 0.3-second sprite would show the same second frame twice and read
+## as a stutter rather than as a hit.
+##
+## Frame zero is the ordinary texture, so an element that ships one drawing has
+## an empty sequence here and keeps exactly the behaviour it had before any of
+## this existed.
+func _play_burst_frames(burst: Sprite2D, path: String) -> void:
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+	if frames.size() < 2:
+		return
+	var step: Callable = func(index: float) -> void:
+		if is_instance_valid(burst):
+			burst.texture = frames[clampi(int(index), 0, frames.size() - 1)]
+	burst.create_tween().tween_method(step, 0.0, float(frames.size()),
+		float(frames.size()) / Balance.VFX_ART_FRAME_RATE)
 
 
 ## Optional character-hit layer. Procedural droplets leave their persistent
@@ -976,7 +1061,7 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 		return
 	var origin: Vector2 = BattleGrid.footprint_centre(anchor)
 	var colour: Color = TowerData.element_colour(tower.element)
-	muzzle(origin, (at - origin).normalized(), colour)
+	muzzle(origin, (at - origin).normalized(), colour, tower.element)
 
 
 ## The arc of a swing. Drawn for every swing, including the ones that miss.

@@ -1800,6 +1800,15 @@ const SAME_ELEMENT_LANE_BONUS: float = 0.25
 ## heading left every shot pointing about 45 degrees off its own travel. [TUNE]
 const PROJECTILE_ART_SCALE: float = 0.40
 
+## Frames a second for the painted VFX loops - projectile heads and, played
+## once rather than looped, impact bursts.
+##
+## Twelve rather than the sixty the game runs at, because these are eight-frame
+## hand-authored loops and stepping one per rendered frame would blur them into
+## a shimmer. Slow enough to read the flicker, fast enough that a shot crossing
+## the screen in half a second still shows most of the cycle.
+const VFX_ART_FRAME_RATE: float = 12.0
+
 ## How wide a painted impact burst is drawn for a shot with no blast radius. An
 ## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
 const PROJECTILE_IMPACT_ART_SIZE: float = 86.0

@@ -42,6 +42,14 @@ var _ember: Polygon2D = null
 ## Painted head, when the element has art. The authored polygons stay as the
 ## fallback, so a missing file costs nothing and the shot still reads.
 var _head: Sprite2D = null
+
+## The head's own animation, when the element has authored continuation frames.
+##
+## Empty is the normal case for any element that ships one drawing, and costs
+## nothing: the sprite simply keeps the single texture it was given. Frame zero
+## of the sequence *is* that texture, by the same convention every animated
+## structure and creature in the project uses.
+var _head_frames: Array[Texture2D] = []
 var _glow: Polygon2D
 var _light: PointLight2D
 var _history: PackedVector2Array = []
@@ -157,6 +165,9 @@ func _process(delta: float) -> void:
 
 	global_position += _direction * speed * delta
 	rotation = _direction.angle()
+	if not _head_frames.is_empty() and _head != null:
+		var frame: int = int(_life * Balance.VFX_ART_FRAME_RATE) % _head_frames.size()
+		_head.texture = _head_frames[frame]
 
 	# Earth shots tumble; everything else holds its heading.
 	if data != null and data.element == TowerData.Element.EARTH:
@@ -199,6 +210,11 @@ func _build_head() -> void:
 		return
 	_head = Sprite2D.new()
 	_head.texture = load(path)
+	# The bolt animates *in place* while this node does the travelling. That
+	# split is deliberate and is what keeps one drawing reusable: the sprite
+	# carries flicker, heat and trailing embers, and the scene carries speed,
+	# homing and where the thing actually is.
+	_head_frames = GameData.load_idle_frames(path)
 	_head.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	_head.add_to_group(Graphics.FILTER_GROUP)
 	_head.scale = Vector2.ONE * Balance.PROJECTILE_ART_SCALE * _tier_scale()

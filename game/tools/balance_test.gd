@@ -562,6 +562,28 @@ func _test_projectile_art_resolves() -> void:
 		var burst: String = Vfx.IMPACT_ART_FORMAT % name
 		_check(ResourceLoader.exists(burst),
 			"%s impact art must resolve at %s" % [TowerData.element_name(element), burst])
+		var flash: String = Vfx.MUZZLE_ART_FORMAT % name
+		_check(ResourceLoader.exists(flash),
+			"%s muzzle art must resolve at %s" % [TowerData.element_name(element), flash])
+
+		# **And the loops actually have frames in them.**
+		#
+		# `load_idle_frames` stops at the first gap and returns what it has, so a
+		# missing `_idle_01` is not an error - it is a sequence of length one,
+		# which plays as a still image. The shot keeps firing, the flash keeps
+		# flashing, and nothing anywhere says the animation stopped existing.
+		# That is the same silent-fallback failure the check above was written
+		# for, one level further in.
+		for loop: String in [path, flash]:
+			var frames: Array[Texture2D] = GameData.load_idle_frames(loop)
+			_check(frames.size() >= 2,
+				"%s has %d frame(s); an animated VFX loop needs at least two"
+					% [loop, frames.size()])
+			var base: Texture2D = load(loop) as Texture2D
+			for index: int in frames.size():
+				var frame: Texture2D = frames[index]
+				_check(frame != null and frame.get_size() == base.get_size(),
+					"%s frame %d is a different size from frame zero" % [loop, index])
 
 
 ## The named adjacency lookup has to agree with the offer it came from.

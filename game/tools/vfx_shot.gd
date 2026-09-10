@@ -13,6 +13,10 @@ extends Node2D
 ## radius inside the polyline, reading as two rings; and the spark mote, sized
 ## the same wrong way, came out two pixels across and simply was not there.
 ##
+## The muzzle flashes are here too, fired three frames before the capture: they
+## decay to nothing in about a quarter of a second, so anything later is an
+## empty floor and anything earlier is four identical peak frames.
+##
 ## Timing is the whole trick. Sparks live about a third of a second, so they are
 ## fired eight frames before the capture; rings live as long as they are told, so
 ## they are given four seconds and caught mid-flight where both layers overlap.
@@ -35,6 +39,15 @@ func _ready() -> void:
 		Vfx.spark(Vector2(300 + i * 300, 700), Color(1.0, 0.75, 0.25) if i % 2 == 0
 			else Color(0.45, 0.8, 1.0), 10, Vector2.ZERO, 200.0)
 	for _f: int in 8:
+		await get_tree().process_frame
+
+	# The four elemental muzzle flashes, mid-decay, one per element and aimed
+	# four different ways so the rotation can be judged as well as the art.
+	for i: int in 4:
+		Vfx.muzzle(Vector2(300 + i * 300, 940),
+			Vector2.RIGHT.rotated(TAU * float(i) / 8.0),
+			TowerData.element_colour(i), i)
+	for _f: int in 3:
 		await get_tree().process_frame
 
 	await RenderingServer.frame_post_draw

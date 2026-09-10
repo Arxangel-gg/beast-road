@@ -1741,6 +1741,50 @@ run, exactly as they did before this art existed.
 | `vfx_ring.png` | 128×128 | T | `#FFFFFF` |
 | `vfx_spark.png` | 32×32 | T | `#FFFFFF` |
 
+### 5.18c Muzzle flashes — `res://art/vfx/`
+
+All 80×80, type T, placeholder colour `#D8B47A`.
+
+The third beat of a shot, and the one that had no art: a tower firing read as
+nothing at the origin, a painted bolt in flight, and a painted burst on arrival.
+The procedural cone is still drawn on top — it is the instantaneous white-hot
+stab that sells the timing — and these carry the material underneath it.
+
+Each is a decay sequence rather than a loop: frame zero is the peak and the
+continuation frames collapse to almost nothing, because a muzzle flash happens
+once. They are rotated to the shot and randomly flipped, so a lane of one tower
+firing does not stamp the same picture over and over.
+
+Files: `muzzle_fire.png` `muzzle_water.png` `muzzle_earth.png` `muzzle_air.png`
+Files: `muzzle_fire_idle_01.png` … `muzzle_fire_idle_08.png`
+Files: `muzzle_water_idle_01.png` … `muzzle_water_idle_08.png`
+Files: `muzzle_earth_idle_01.png` … `muzzle_earth_idle_08.png`
+Files: `muzzle_air_idle_01.png` … `muzzle_air_idle_08.png`
+
+### 5.18d Projectile flight loops — `res://art/vfx/`
+
+All 96×48, type T, placeholder colour `#D8B47A`.
+
+Continuation frames for the projectile heads above, on the same `_idle_NN`
+convention every animated structure uses. Frame zero is the ordinary drawing in
+5.18 and is not repeated here.
+
+**The bolt animates in place and the scene does the travelling.** That split is
+what keeps one drawing reusable — the sprite carries flicker, heat and trailing
+embers while the game carries speed, homing and position — and it is the thing
+most easily got wrong, because a generated animation will happily fly the
+subject across its own canvas unless told not to.
+
+Frame counts differ on purpose. Fire, water and earth run the full eight. Air
+ships five, and they are frames 1, 2, 3, 2, 1 of its generated run: that run
+faded 32% from end to end, so looping it straight strobed at the seam, while the
+bright half ping-ponged holds to within 7%.
+
+Files: `projectile_fire_idle_01.png` … `projectile_fire_idle_08.png`
+Files: `projectile_water_idle_01.png` … `projectile_water_idle_08.png`
+Files: `projectile_earth_idle_01.png` … `projectile_earth_idle_08.png`
+Files: `projectile_air_idle_01.png` … `projectile_air_idle_05.png`
+
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |
