@@ -102,6 +102,8 @@ enum Fact {
 	TRADE_STATE = 47,
 	## The settlement: what the guest gives, and what it gets.
 	TRADE_SETTLED = 48,
+	## The portent the party read, host to guest.
+	OMEN_CHOSEN = 49,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -124,6 +126,8 @@ enum Request {
 	REPAIR_TOWN = 14,
 	DECLARE_TIER = 15,
 	ACCEPT_LAST_SCAR = 16,
+	## A portent read at the end of an act. One for the party, like the relic.
+	CHOOSE_OMEN = 23,
 	# --- Trading (owner brief, 2026-09-10) -----------------------------------
 	#
 	# Six verbs rather than one, because a trade is a conversation and the
@@ -318,6 +322,7 @@ func _fact_bindings() -> Array:
 		["coop_crossroad_opened", _on_coop_crossroad_opened],
 		["coop_road_chosen", _on_coop_road_chosen],
 		["coop_relic_chosen", _on_coop_relic_chosen],
+		["coop_omen_chosen", _on_coop_omen_chosen],
 		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
@@ -434,6 +439,10 @@ func _on_coop_last_scar_resolved(success: bool, reason: String,
 
 func _on_coop_relic_chosen(relic_id: String) -> void:
 	_relay(Fact.RELIC_CHOSEN, [relic_id])
+
+
+func _on_coop_omen_chosen(omen_id: String) -> void:
+	_relay(Fact.OMEN_CHOSEN, [omen_id])
 
 
 func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
@@ -767,6 +776,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.RELIC_CHOSEN:
 			if args.size() == 1:
 				bus.coop_relic_chosen.emit(String(args[0]))
+		Fact.OMEN_CHOSEN:
+			if args.size() == 1:
+				bus.coop_omen_chosen.emit(String(args[0]))
 		Fact.ENEMY_STRUCK:
 			if args.size() == 2:
 				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2)

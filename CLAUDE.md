@@ -413,6 +413,44 @@ Operations, the table's SQL and what every constant decides are in
 and it is the same blocker as before: it needs real accounts and server-side
 logic. If the project ever gains those, that is the decision to revisit first.
 
+**The road announces itself between acts, as of 2026-09-10.** The owner asked
+for the best of a large ideas document to be adapted; this is the one taken from
+it, and it comes from Diablo IV's Infernal Hordes by way of that document.
+
+When an act boss falls, three **portents** are offered and one is read. Each has
+a bane and a boon, and it is **kept for the rest of the run and stacks with the
+ones before it**. Ten are authored in `data/omens/`.
+
+**Why this and not the twenty other things in that document.** Most of what was
+proposed already exists here under other names - enemy affixes, branching roads
+with voted difficulty, seeds, a chronicle, a run recap, weather, day and night,
+traps, wildlife, travelling merchants, campaign tiers. Of what was genuinely
+missing, this is the piece that multiplies what is already built rather than
+adding a system beside it: it reaches every tower, every wave and every wallet
+through numbers the game already has an opinion about, and it costs one resource
+type and one screen path.
+
+**The bound is that a portent may only move a number `Modifiers` already
+resolves.** Both halves land in the same flat table relics and boss cores feed,
+so nothing downstream learns that omens exist. A portent that added a *mechanic*
+would be a content system wearing a card's clothes, and it would not be testable
+against the curve the acts are tuned to.
+
+**It is run-scoped and nothing persists.** Working rule 7 is untouched: an omen
+is a modifier on the current road exactly as a socketed relic is, and
+`omen_check` asserts that a fresh run clears them - portents that survived into
+the next run would be an account-level difficulty setting nobody chose.
+
+**The failure worth gating is a portent that charges nothing.** A misspelt effect
+key lands in the table under a name nothing reads: the card still draws, still
+says the words, and hands out the boon for free, so the run gets *easier* the
+more you read. `omen_check` takes every omen for real, rebuilds the table and
+reads the number back - and it caught one authored with its halves the wrong way
+round on the first run.
+
+The rest of that document is triaged in `docs/IDEAS_REVIEW_2026-09-10.md`, with
+what is already built, what is worth building next, and what should be refused.
+
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.
 

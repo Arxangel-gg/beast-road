@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "enemy_damage"
+bane_magnitude = 0.25
+boon_effect = "raid_charge"
+boon_magnitude = 0.45
+bane_text = "Whatever survived it is in no mood."
+boon_text = "But it left its holdings wide open behind it."
+portent = "A furrow through the forest a hundred paces wide, and every camp along it kicked over and left."
+first_act = 3
+id = "the_wake"
+display_name = "The Wake"
+description = "Something enormous went through here first."

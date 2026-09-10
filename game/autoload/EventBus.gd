@@ -170,6 +170,13 @@ signal party_notice(slot: int, text: String)
 
 signal coop_pointer_moved(at: Vector2)
 
+## An omen was read, and the road is worse and better for the rest of the run.
+signal omen_taken(omen_id: String)
+
+## The other player read the omen — on the host's say-so.
+signal coop_omen_chosen(omen_id: String)
+
+
 ## Somebody took the regional relic. One reward, one winner - the fork's relic
 ## screen has the same shape as its road screen and needs the same answer.
 signal coop_relic_chosen(relic_id: String)

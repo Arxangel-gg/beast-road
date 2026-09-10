@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "resource_rate"
+bane_magnitude = -0.25
+boon_effect = "tower_damage"
+boon_magnitude = 0.22
+bane_text = "The land gives up a quarter less of everything."
+boon_text = "What you have already built hits considerably harder."
+portent = "Three abandoned camps in a day, all of them stripped, none of them burned. Somebody left in a hurry and took the food."
+first_act = 1
+id = "lean_season"
+display_name = "Lean Season"
+description = "The road has been picked over before you reached it."

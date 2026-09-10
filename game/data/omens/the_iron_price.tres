@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "build_cost"
+bane_magnitude = 0.30
+boon_effect = "tower_damage"
+boon_magnitude = 0.40
+bane_text = "Building costs a third again."
+boon_text = "And what you do build is worth every mark of it."
+portent = "The forge on the ridge was still lit and the smith would not haggle. He had seen what was coming and priced it in."
+first_act = 2
+id = "the_iron_price"
+display_name = "The Iron Price"
+description = "Everything on this road costs what it is worth."

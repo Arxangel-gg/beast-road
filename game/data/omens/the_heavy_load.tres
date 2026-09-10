@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "beast_speed"
+bane_magnitude = -0.20
+boon_effect = "town_max_hp"
+boon_magnitude = 0.28
+bane_text = "The road goes past more slowly than you would like."
+boon_text = "But there is a great deal more wall between you and it."
+portent = "The beast set down harder with each step, and the masons had not stopped working since the last act."
+first_act = 2
+id = "the_heavy_load"
+display_name = "The Heavy Load"
+description = "The beast is carrying more than it was built to."

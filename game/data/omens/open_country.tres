@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "town_max_hp"
+bane_magnitude = -0.12
+boon_effect = "hero_speed"
+boon_magnitude = 0.22
+bane_text = "There is less between the road and the gate."
+boon_text = "And nothing between you and anywhere you need to be."
+portent = "No treeline, no rise, no cover. You can see them coming from a long way off, which is the only good thing about it."
+first_act = 2
+id = "open_country"
+display_name = "Open Country"
+description = "Nothing out here will slow anything down."

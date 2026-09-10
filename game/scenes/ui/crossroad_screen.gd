@@ -129,6 +129,7 @@ func _ready() -> void:
 	panel.visible = false
 	EventBus.coop_pointer_moved.connect(_on_partner_pointer)
 	EventBus.coop_relic_chosen.connect(_on_coop_relic_chosen)
+	EventBus.coop_omen_chosen.connect(_on_coop_omen_chosen)
 	EventBus.coop_last_scar_accepted.connect(_on_coop_last_scar_accepted)
 
 
@@ -346,6 +347,85 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 		_buttons[relic.id] = button
 		options_box.add_child(button)
 	panel.visible = true
+
+
+## The portents, at the end of an act. One cost, one reward, kept for the run.
+##
+## Built on the relic reward rather than beside it, deliberately: this is the
+## same moment, the same panel and the same one-choice-for-the-party rule, and a
+## second flow would be a second place for the co-op handshake to be subtly
+## wrong. The card leads with the **cost**, because the cost is the decision.
+func open_omen_choice() -> void:
+	_road_row = null
+	_relic_followup_segment = -1
+	_buttons.clear()
+	_sent_pointer = Vector2.ZERO
+	_resolving = false
+	for child: Node in options_box.get_children():
+		child.queue_free()
+	title.text = "THE ROAD AHEAD  ·  read one portent"
+	for omen_id: String in RunState.pending_omens:
+		var omen: OmenData = ContentDB.omen(omen_id)
+		if omen == null:
+			continue
+		var button := Button.new()
+		button.text = "%s\n%s\n%s" % [omen.display_name.to_upper(),
+			omen.bane_text, omen.boon_text]
+		button.custom_minimum_size = Vector2(CARD_WIDTH, 92.0)
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.tooltip_text = omen.portent
+		button.pressed.connect(_choose_omen.bind(omen.id))
+		_buttons[omen.id] = button
+		options_box.add_child(button)
+	panel.visible = true
+
+
+func _choose_omen(omen_id: String) -> void:
+	if _resolving or not RunState.pending_omens.has(omen_id):
+		return
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay == null:
+			return
+		relay.request(CoopRelay.Request.CHOOSE_OMEN, [omen_id])
+		_await_answer(omen_id)
+		return
+	if Coop.partner_present():
+		EventBus.coop_omen_chosen.emit(omen_id)
+	_apply_omen(omen_id)
+
+
+## The other player read it. One portent, one road, both screens close.
+func accept_partner_omen(omen_id: String) -> void:
+	if not RunState.pending_omens.has(omen_id):
+		return
+	_flash_partner_pick(omen_id)
+	_apply_omen(omen_id)
+
+
+func _apply_omen(omen_id: String) -> void:
+	_resolving = false
+	RunState.taken_omens.append(omen_id)
+	RunState.pending_omens.clear()
+	# Rebuilt here rather than by a signal handler somewhere else, because the
+	# next thing that happens is a wave being priced against these numbers.
+	Modifiers.rebuild()
+	EventBus.omen_taken.emit(omen_id)
+	panel.visible = false
+
+
+## A guest asked for a portent. Host side only, like every other request.
+func accept_omen_request(omen_id: String) -> void:
+	if _resolving or not RunState.pending_omens.has(omen_id):
+		return
+	if Coop.partner_present():
+		EventBus.coop_omen_chosen.emit(omen_id)
+	_apply_omen(omen_id)
+
+
+func _on_coop_omen_chosen(omen_id: String) -> void:
+	accept_partner_omen(omen_id)
 
 
 func _choose_relic(relic_id: String) -> void:

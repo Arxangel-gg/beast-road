@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "hero_max_hp"
+bane_magnitude = -0.22
+boon_effect = "tower_damage"
+boon_magnitude = 0.30
+bane_text = "No relief is coming, and you feel it."
+boon_text = "The wall knows it too, and it is not planning to be taken."
+portent = "The last waystation had its lamps lit, its gate open, and nobody in it. They had gone on ahead, or they had gone."
+first_act = 3
+id = "the_last_watch"
+display_name = "The Last Watch"
+description = "There is nobody left ahead of you on this road."

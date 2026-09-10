@@ -63,6 +63,9 @@ var merchants: Dictionary = {}
 ## 2026-09-08, stage two). See `SynergyData` for why none of them is a number.
 var synergies: Dictionary = {}
 
+## Portents read at the end of an act: one cost, one reward, kept for the run.
+var omens: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -103,6 +106,7 @@ func _ready() -> void:
 	affixes = _load_dir("res://data/affixes")
 	merchants = _load_dir("res://data/merchants")
 	synergies = _load_dir("res://data/synergies")
+	omens = _load_dir("res://data/omens")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -124,6 +128,10 @@ func relic(id: String) -> RelicData:
 
 func synergy(id: String) -> SynergyData:
 	return synergies.get(id, null) as SynergyData
+
+
+func omen(id: String) -> OmenData:
+	return omens.get(id, null) as OmenData
 
 
 func merchant(id: String) -> MerchantData:

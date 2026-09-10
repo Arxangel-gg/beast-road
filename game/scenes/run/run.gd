@@ -367,7 +367,26 @@ func _on_boss_defeated(_boss_id: String, act: int) -> void:
 	journey.resume_after_boss()
 	# A new act means new ground underfoot.
 	battlefield.refresh_terrain()
+	# **And the road ahead announces itself.** A portent is read between acts
+	# rather than at a crossroad, because it is kept for the rest of the run and
+	# a decision that stays needs a moment that is already about what comes next.
+	_offer_omens()
 	_enter_preparation(false)
+
+
+## Three portents the road has not shown yet.
+##
+## `OmenData.offer` owns the draw so that a gate can ask what a seed would show
+## without building a run. This only decides whether to ask, and opens the panel.
+func _offer_omens() -> void:
+	if crossroad_ui == null or not RunState.pending_omens.is_empty():
+		return
+	var drawn: Array[String] = OmenData.offer(RunState.taken_omens, RunState.act,
+		Balance.OMEN_OFFER_COUNT)
+	if drawn.is_empty():
+		return
+	RunState.pending_omens = drawn
+	crossroad_ui.open_omen_choice()
 
 
 # --- Crossroads -------------------------------------------------------------
@@ -603,6 +622,9 @@ func _on_coop_request(kind: int, args: Array, from: int) -> void:
 		CoopRelay.Request.CHOOSE_RELIC:
 			if args.size() == 1 and crossroad_ui != null:
 				crossroad_ui.accept_relic_request(String(args[0]))
+		CoopRelay.Request.CHOOSE_OMEN:
+			if args.size() == 1 and crossroad_ui != null:
+				crossroad_ui.accept_omen_request(String(args[0]))
 		CoopRelay.Request.ACCEPT_LAST_SCAR:
 			if crossroad_ui != null:
 				crossroad_ui.accept_last_scar_request()

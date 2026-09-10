@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "hero_max_hp"
+bane_magnitude = -0.15
+boon_effect = "hero_damage"
+boon_magnitude = 0.30
+bane_text = "You carry less of yourself onto the road."
+boon_text = "And you swing like something that has stopped being careful."
+portent = "The water at the crossing ran warm, and it ran red, and it had been doing both for days."
+first_act = 1
+id = "the_red_ford"
+display_name = "The Red Ford"
+description = "Something upstream has been bleeding for a long time."

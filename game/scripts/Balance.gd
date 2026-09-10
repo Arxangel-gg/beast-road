@@ -255,6 +255,14 @@ const TRADE_MAX_PIECES: int = 6
 ## read at a glance is a board you make decisions about. It is also the number
 ## that keeps the Ledger a *decision* - with twenty slots you list everything and
 ## the choosing goes away.
+## Portents offered at the end of an act.
+##
+## Three, matching every other card choice in the game. Two is a coin toss and
+## four is a spreadsheet; the reason to hold it here rather than inline is that
+## `_offer_omens` refuses to open at all when the pool has run below it, and
+## that rule and this number have to move together.
+const OMEN_OFFER_COUNT: int = 3
+
 const EXCHANGE_SLOTS: int = 6
 
 ## What a caravan pays over what your own hold would give you.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "enemy_damage"
+bane_magnitude = 0.18
+boon_effect = "kill_resources"
+boon_magnitude = 0.40
+bane_text = "Everything that finds you in the dark hits harder."
+boon_text = "What the dark hides is worth more to whoever takes it."
+portent = "The light went out of the east and stayed out. Nothing on the road looked surprised."
+first_act = 1
+id = "the_long_night"
+display_name = "The Long Night"
+description = "Dawn does not come again on this road."

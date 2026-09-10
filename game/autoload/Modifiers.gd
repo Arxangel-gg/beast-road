@@ -73,6 +73,11 @@ func rebuild() -> void:
 		_add(ContentDB.relics.get(relic_id, null) as RelicData)
 	for core_id: String in RunState.boss_cores:
 		_add(ContentDB.relics.get(core_id, null) as RelicData)
+	# Omens land in the same table as relics and for the same reason: a tower
+	# asks for `TOWER_DAMAGE` and gets a number, and nothing downstream has to
+	# learn that a third source of modifiers now exists.
+	for omen_id: String in RunState.taken_omens:
+		_add_omen(ContentDB.omens.get(omen_id, null) as OmenData)
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
 
@@ -81,6 +86,22 @@ func _add(relic: RelicData) -> void:
 	if relic == null or relic.effect_id.is_empty():
 		return
 	_totals[relic.effect_id] = float(_totals.get(relic.effect_id, 0.0)) + relic.effect_magnitude
+
+
+## Both halves of a portent, cost first.
+##
+## An omen with only one half authored is still added: the missing side simply
+## does nothing. `omen_check` is what refuses that, because a card promising a
+## price and charging none is a free upgrade in a costume.
+func _add_omen(omen: OmenData) -> void:
+	if omen == null:
+		return
+	if not omen.bane_effect.is_empty():
+		_totals[omen.bane_effect] = float(_totals.get(omen.bane_effect, 0.0)) \
+			+ omen.bane_magnitude
+	if not omen.boon_effect.is_empty():
+		_totals[omen.boon_effect] = float(_totals.get(omen.boon_effect, 0.0)) \
+			+ omen.boon_magnitude
 
 
 ## Every regional socket adds a bounded situational rule. Verdant stabilizes a

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "town_max_hp"
+bane_magnitude = -0.18
+boon_effect = "tower_range"
+boon_magnitude = 0.25
+bane_text = "The wall is thinner than it was."
+boon_text = "But your towers see a long way through clear air."
+portent = "Glass dust on every surface by morning, and the horizon sharp enough to read a banner at two miles."
+first_act = 2
+id = "glassfall"
+display_name = "Glassfall"
+description = "The wind carries something that cuts."

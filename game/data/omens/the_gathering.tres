@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "enemy_damage"
+bane_magnitude = 0.10
+boon_effect = "kill_resources"
+boon_magnitude = 0.55
+bane_text = "Bigger bodies, and they come in numbers."
+boon_text = "Every one of them is worth over half again."
+portent = "The tracks come in fours now, and they are not going around us."
+first_act = 1
+id = "the_gathering"
+display_name = "The Gathering"
+description = "They are not moving in ones any more."

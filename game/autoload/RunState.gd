@@ -17,6 +17,16 @@ enum Phase {
 }
 
 var distance_travelled: float = 0.0
+
+## Omens read so far, in the order they were taken.
+##
+## Run-scoped and nothing else. Working rule 7 is untouched: an omen is a
+## modifier on the current road, exactly as a socketed relic is, and none of it
+## survives the run. `Modifiers` resolves both into the same table.
+var taken_omens: Array[String] = []
+
+## Omens on offer right now, or empty. Cleared the moment one is read.
+var pending_omens: Array[String] = []
 var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
@@ -357,6 +367,8 @@ func _fresh_seed() -> int:
 func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	set_seed(requested_seed if requested_seed != 0 else _fresh_seed())
 	distance_travelled = 0.0
+	taken_omens.clear()
+	pending_omens.clear()
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
