@@ -373,6 +373,7 @@ $btn.Add_Click({
             @{ Name = 'the battlefield takes its effects back after a raid'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_return_check.tscn') },
             @{ Name = 'healing orbs and supply crates'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_drop_check.tscn') },
             @{ Name = 'healing wells'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/healing_well_check.tscn') },
+            @{ Name = 'trading never makes a piece twice'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/trade_check.tscn') },
             @{ Name = 'raid suspend'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_suspend_check.tscn') },
             @{ Name = 'seed reproduction'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/seed_reproduction_check.tscn') },
             @{ Name = 'boot'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/boot_check.tscn') },

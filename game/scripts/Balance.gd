@@ -228,6 +228,14 @@ const LOOT_Z_INDEX: int = -2
 ## the curve nothing and costs the release gate one number.
 const STASH_CAPACITY: int = 160
 
+## How many pieces one side may put on the trade table at once.
+##
+## Small on purpose. A trade window the size of a stash is a spreadsheet, and
+## the second screen - which is the thing that stops a last-second swap - only
+## works if a player can read both offers at a glance and see that they are the
+## ones they agreed to.
+const TRADE_MAX_PIECES: int = 6
+
 # --- Gear slots --------------------------------------------------------------
 
 ## What each slot is worth, against a weapon.

@@ -51,6 +51,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Gear as the reason to replay (no loot loop in v4) | not in the spec | **DECIDED 2026-09-01: farm gear. See below.** |
 | Companions as temporary spell effects (§54 cuts "party roster") | v4 keeps the cut | **DECIDED 2026-09-01: Wildlife Spirit Companions persist. See below.** |
 | Disciplines as an anti-specialisation draft | every node open to everyone at once | **DECIDED 2026-09-09: the trees have paths. See below.** |
+| Gear as a solo find (no player-to-player exchange in v4) | not in the spec | **DECIDED 2026-09-10: two players may trade. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -338,6 +339,33 @@ sees nothing for hundreds of sightings and has done nothing wrong.
 it needed one, and the failure it prevents is silent and permanent. The rule
 lives in `Stash.may_break`, asked by the button and by the gate, rather than as
 conditions written inline where nothing could test them.
+
+**Two players may trade gear, as of 2026-09-10.** The owner asked for
+RuneScape-style trading between two players, and later for a marketplace built
+on top of it. This is the first half only.
+
+**It adds no persistence and it does change the economy.** Nothing new is saved
+- a traded piece is a stash entry, which working rule 7 already sanctions, and
+the only new field on one is a `uid` so that an offer can name a piece rather
+than a position. What *is* new is that gear can now arrive from another player
+rather than only from a drop, which is a change to the thing the owner called
+"the reason to replay" on 2026-09-01. Recorded here rather than left implicit,
+because a marketplace would multiply it and that decision should start from this
+one being visible.
+
+**The bound is that gear is never created.** A trade may fail, and a failed one
+may cost a side what it offered - the failure direction is documented on
+`TradeBooth.settle` - but no sequence of packets, disconnections or races may
+end with a piece existing twice. Everything in the design is that invariant
+being paid for: one authority, names rather than positions, validate-then-move
+with no half-applied state, the stash locked against destruction while a trade
+is open, and a received piece renamed on arrival. `trade_check` holds all of it
+and each protection has been checked by removing it.
+
+The second half - a persistent marketplace where offers outlive the session -
+is **not** built and is a larger decision than this one. It needs somewhere for
+gear to live while it is neither player's, which is the first thing in this
+project that would persist outside an account.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.

@@ -283,12 +283,45 @@ func _build_tools() -> void:
 		# filter, and it is the one control on this screen that destroys things.
 		sweep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var threshold: int = rarity
+		# **Nothing is destroyed while a trade is open.** A piece broken while it
+		# sits on the trade table is a race whose loser is a player's gear: the
+		# offer still names it, the settlement resolves the name, and what it
+		# finds is whatever moved into that position. Refused with words rather
+		# than greyed out, because a disabled button on a screen the player did
+		# not open the trade from explains nothing.
 		sweep.pressed.connect(func() -> void:
+			if TradeBooth.is_trading():
+				_message = "Not while a trade is open."
+				_refresh()
+				return
 			var broken: int = _break_all(threshold)
 			_message = "Broke %d piece%s for shards." % [broken,
 				"" if broken == 1 else "s"]
 			_refresh())
 		_tools.add_child(sweep)
+
+	# The way into a trade, and the only one. Drawn beside the bulk tools
+	# because that is where a player is already standing when they decide a
+	# piece is somebody else's problem.
+	if Coop.partner_present():
+		var trade := Button.new()
+		trade.text = "Trade with %s" % _partner_name()
+		trade.custom_minimum_size = Vector2(0.0, 36.0)
+		trade.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		trade.add_theme_font_size_override("font_size", 13)
+		trade.pressed.connect(func() -> void:
+			var refusal: String = TradeBooth.invite()
+			_message = refusal if not refusal.is_empty() 				else "Asked to trade. Waiting for an answer."
+			_refresh())
+		_tools.add_child(trade)
+
+
+func _partner_name() -> String:
+	for seat: Variant in Coop.party().seats():
+		var person := seat as CoopParty.Seat
+		if person != null and person.slot != Coop.party().slot():
+			return person.name
+	return "your partner"
 
 
 func _refresh() -> void:

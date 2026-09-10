@@ -549,6 +549,22 @@ signal coop_enemy_removed(net_id: int)
 ## written for a player to read. Guest-side.
 signal coop_request_refused(kind: int, reason: String)
 
+# --- Trading -----------------------------------------------------------------
+#
+# Two players swapping stash gear (owner brief, 2026-09-10). `TradeBooth` owns
+# the machinery; these are how the wire reaches it and how the rest of the game
+# hears that something changed hands.
+
+## The host's account of the trade table, replayed on the guest.
+signal coop_trade_state(wire: Array)
+
+## The settlement, in the receiving machine's own terms: what it gives, what it
+## gets. Host to guest, once, and only after both sides have confirmed.
+signal coop_trade_settled(given: Array, received: Array)
+
+## A trade actually completed on this machine. Both sides emit their own.
+signal trade_completed(given: int, received: int)
+
 ## Experience was earned, and both players get it (owner ruling, 2026-08-25).
 ##
 ## The amount awarded, never a running total. Heroes persist per account and

@@ -706,6 +706,14 @@ func _read_stash(data: Dictionary) -> void:
 		# and reads back unmarked, so `SAVE_VERSION` did not move for this.
 		if bool(piece.get("favourite", false)):
 			restored["favourite"] = true
+		# Additive in the same way, and for a system that did not exist when
+		# these were written: a piece saved before trading has no name and is
+		# given one here. `Stash.make` has already put a fresh one on `restored`,
+		# so this keeps the saved name when there is one rather than renaming
+		# every piece in the stash on every load - which would break an offer
+		# that was open across a save.
+		if piece.has("uid"):
+			restored["uid"] = int(piece["uid"])
 		stash.append(restored)
 		if stash.size() >= Balance.STASH_CAPACITY:
 			break

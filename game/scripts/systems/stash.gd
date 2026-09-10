@@ -46,7 +46,63 @@ static func make(kind_id: String, rarity: int, level: int = 1) -> Dictionary:
 		"kind": kind_id,
 		"rarity": clampi(rarity, 0, RARITY_NAMES.size() - 1),
 		"level": clampi(level, 1, MAX_LEVEL),
+		"uid": new_uid(),
 	}
+
+
+# --- Identity -----------------------------------------------------------------
+#
+# **A stash index is not a name for a piece**, and trading is the first system
+# that needed one.
+#
+# Indices shift the moment anything is removed - `drop_gear` exists to fix up
+# the equipped map for exactly that reason. During a trade both stashes can move
+# under the offer: a partner breaks a duplicate, a run ends and delivers a drop.
+# An offer recorded as "index 7" is then an offer of whatever happens to be at
+# index 7 when it settles, which is how a player ends up handing over the sword
+# they were wearing.
+#
+# So a piece carries its own name. The offer is a list of those, the settlement
+# resolves them back to positions at the moment it commits, and a name that no
+# longer resolves aborts the trade rather than taking the nearest thing.
+#
+# Additive to the save, like `favourite` before it: a piece written before this
+# has no `uid` and is given one when it loads, so `SAVE_VERSION` did not move.
+
+## A name no other piece will share.
+##
+## Random rather than sequential, because two accounts assign these
+## independently and a counter on each machine would hand out the same names.
+## Sixty-two bits of randomness makes a collision between two stashes of a
+## hundred and sixty vanishingly unlikely, and the settlement re-checks the
+## piece's contents anyway.
+static func new_uid() -> int:
+	return absi(randi()) << 31 | absi(randi())
+
+
+## This piece's name, assigned in place if it has never had one.
+static func uid(piece: Dictionary) -> int:
+	if not piece.has("uid"):
+		piece["uid"] = new_uid()
+	return int(piece["uid"])
+
+
+## Where a named piece sits in a stash, or -1.
+static func index_of(pieces: Array, wanted_uid: int) -> int:
+	for index: int in pieces.size():
+		var piece := pieces[index] as Dictionary
+		if piece != null and int(piece.get("uid", 0)) == wanted_uid:
+			return index
+	return -1
+
+
+## Whether two pieces are the same gear, ignoring their names.
+##
+## The settlement asks this as well as the name, so a trade cannot be completed
+## against a piece that was named correctly and then changed - upgraded a level,
+## say - between the offer and the confirmation.
+static func same_gear(a: Dictionary, b: Dictionary) -> bool:
+	return String(a.get("kind", "")) == String(b.get("kind", "")) 		and int(a.get("rarity", -1)) == int(b.get("rarity", -2)) 		and int(a.get("level", -1)) == int(b.get("level", -2))
 
 
 ## Whether the player has marked this piece to be left alone.

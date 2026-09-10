@@ -92,6 +92,16 @@ enum Fact {
 	ROAD_VOTES = 45,
 	WILDLIFE_DIED = 44,
 	CHRONICLE_PROGRESS = 46,
+	## The whole trade table, host to guest, after every change.
+	##
+	## The entire state each time rather than the edit that caused it. Both
+	## machines then hold the same table because they were told the same table,
+	## not because they replayed the same edits in the same order - and a
+	## dropped edit in a screen that moves permanent gear is a desync nobody
+	## would notice until the wrong sword changed hands.
+	TRADE_STATE = 47,
+	## The settlement: what the guest gives, and what it gets.
+	TRADE_SETTLED = 48,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -114,6 +124,18 @@ enum Request {
 	REPAIR_TOWN = 14,
 	DECLARE_TIER = 15,
 	ACCEPT_LAST_SCAR = 16,
+	# --- Trading (owner brief, 2026-09-10) -----------------------------------
+	#
+	# Six verbs rather than one, because a trade is a conversation and the
+	# whole safety of it is that each step is separately agreed. Collapsing
+	# them into a single "here is my trade" would remove the second screen,
+	# which is the thing that stops a last-second swap.
+	TRADE_INVITE = 17,
+	TRADE_ANSWER = 18,
+	TRADE_OFFER = 19,
+	TRADE_ACCEPT = 20,
+	TRADE_CONFIRM = 21,
+	TRADE_CANCEL = 22,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -278,6 +300,8 @@ func _fact_bindings() -> Array:
 		["coop_hero_down", _on_coop_hero_down],
 		["coop_hero_revived", _on_coop_hero_revived],
 		["coop_tower_fired", _on_coop_tower_fired],
+		["coop_trade_state", _on_coop_trade_state],
+		["coop_trade_settled", _on_coop_trade_settled],
 		["coop_cinematic_skipped", _on_coop_cinematic_skipped],
 		["coop_team_wipe", _on_coop_team_wipe],
 		["coop_revive_progress", _on_coop_revive_progress],
@@ -526,6 +550,20 @@ func _on_coop_paused(paused: bool) -> void:
 	_relay(Fact.PAUSED, [paused])
 
 
+## The trade table, host to guest, after every change.
+##
+## Relayed through the bus like every other fact rather than sent directly, so
+## `_guard` covers it: a guest that somehow authored a trade table would be
+## caught by the same rule that catches a guest inventing an enemy death, and
+## the whole point of one authority is that the exceptions are visible.
+func _on_coop_trade_state(wire: Array) -> void:
+	_relay(Fact.TRADE_STATE, [wire])
+
+
+func _on_coop_trade_settled(given: Array, received: Array) -> void:
+	_relay(Fact.TRADE_SETTLED, [given, received])
+
+
 func _on_coop_hero_down(slot: int, at: Vector2) -> void:
 	_relay(Fact.HERO_DOWN, [slot, at])
 
@@ -673,6 +711,12 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.PHASE_CHANGED:
 			if args.size() == 2:
 				bus.coop_phase.emit(int(args[0]), int(args[1]))
+		Fact.TRADE_STATE:
+			if args.size() == 1 and args[0] is Array:
+				bus.coop_trade_state.emit(args[0] as Array)
+		Fact.TRADE_SETTLED:
+			if args.size() == 2 and args[0] is Array and args[1] is Array:
+				bus.coop_trade_settled.emit(args[0] as Array, args[1] as Array)
 		Fact.CINEMATIC_SKIPPED:
 			bus.coop_cinematic_skipped.emit()
 		Fact.TEAM_WIPE:
