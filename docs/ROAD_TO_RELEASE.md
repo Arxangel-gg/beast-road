@@ -140,6 +140,15 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   different animal from the shutdown segfault this row assumed. Still open, and
   still not reproducible on Windows: the local sweep passes this check every
   time.
+  **Twice more the same day** (runs `34461219162`'s sibling and `34486258801`),
+  both on commits touching no menu code, both green on a bare re-run. Three
+  occurrences in one day against none in the fortnight before it is a rate
+  worth naming: the surrounding work has got slower - two new gates and a
+  hundred and thirty new art files - and the failure is a *timeout* first, so
+  the most likely reading is that this check is close enough to the 240-second
+  ceiling that a busy runner tips it over. That is a hypothesis, not a finding;
+  it predicts that raising this check's ceiling would make it stop, which is
+  the cheap experiment to run next and has not been run.
 - [ ] Portrait typography/scaling acceptance on real devices and controller
   play. Rendered desktop-hosted phone checks do not close device acceptance.
 - [x] **60 FPS at 1920×1080 — FIXED 2026-09-08. 55 FPS → 128–136 FPS.**
