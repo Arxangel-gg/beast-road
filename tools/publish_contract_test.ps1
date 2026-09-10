@@ -80,7 +80,7 @@ if (ConvertTo-BeastRoadReleaseAsset -Response $emptyHead -Name 'empty.zip') {
 $repoRoot = Split-Path -Parent $PSScriptRoot
 foreach ($source in @('tools/publish.ps1', '.github/workflows/guard.yml', '.github/workflows/release.yml')) {
     $body = Get-Content -LiteralPath (Join-Path $repoRoot $source) -Raw
-    foreach ($gate in @('chronicle_goal_check', 'support_diagnostics_check', 'gdd_audit_check', 'menu_layout_check', 'town_click_check')) {
+    foreach ($gate in @('chronicle_goal_check', 'support_diagnostics_check', 'gdd_audit_check', 'menu_layout_check', 'town_click_check', 'merchant_check')) {
         $count = [regex]::Matches($body, [regex]::Escape("res://tools/$gate.tscn")).Count
         if ($count -ne 1) {
             throw "$source must run $gate exactly once; found $count."

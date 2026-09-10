@@ -27,6 +27,9 @@ func activate() -> void:
 ## Emitted when the player picks a plot, so the town UI can open on it.
 signal plot_selected(building_id: String)
 
+## Emitted when the player picks a merchant standing in the town.
+signal merchant_selected(merchant_id: String)
+
 var _plots: Dictionary = {}
 
 ## Per-building idle phase, so no two plots swell together. Keyed by building id
@@ -65,7 +68,16 @@ func _ready() -> void:
 	_setup_ground()
 	_build_plots()
 	EventBus.construction_completed.connect(_on_construction_completed)
+	# A merchant is drawn only while they are actually standing there, so every
+	# signal that changes who is present has to redraw the yard. Through the bus
+	# rather than a call from the run: the town does not know `MerchantYard`
+	# exists and does not need to (working rule 5).
+	EventBus.merchant_arrived.connect(func(_id: String) -> void: _refresh_merchants())
+	EventBus.merchant_departed.connect(func(_id: String) -> void: _refresh_merchants())
+	EventBus.merchant_stock_changed.connect(func(_id: String) -> void: _refresh_merchants())
+	EventBus.merchant_settled.connect(func(_id: String) -> void: _refresh_merchants())
 	_refresh_hall()
+	_refresh_merchants()
 
 
 ## The town sits on the beast's back, so it gets the same ground as the field.
@@ -183,8 +195,132 @@ func _make_plot(data: BuildingData) -> Node2D:
 	return root
 
 
+# --- The merchants' corner ---------------------------------------------------
+#
+# Visitors stand *inside* the ring rather than taking a plot on it. Three
+# reasons, in order of how much they cost to get wrong:
+#
+# 1. There are eight plots and nine buildings, and the ring is laid out by
+#    dividing the circle by however many buildings exist. A merchant on the ring
+#    would move every building in town every time one arrived.
+# 2. A plot is a thing you commission and keep. A merchant is a thing that
+#    turns up and leaves. Drawing them the same way says the wrong thing about
+#    both.
+# 3. The building sheet docks down the left of the screen, which is the fault
+#    `set_view_inset` exists to correct. Standing the visitors on the right of
+#    the inner circle keeps them clear of it even before the camera slides.
+
+## The clear annulus between the Town Hall and the plot ring.
+##
+## Measured rather than chosen: the hall is a 192px sprite at the centre, so it
+## reaches radius 96; the plots sit at radius 300 with 192px sprites, so they
+## begin at radius 204. That leaves a band a hundred pixels wide, and a 128px
+## merchant centred in it clears both. The first placement used 178 and put the
+## Alchemist through the Woodcutter's roof.
+const MERCHANT_RADIUS: float = 150.0
+
+## Where each visitor stands, by arrival order.
+##
+## Along the bottom of the inner circle, for two reasons that are both about
+## what else is on the screen. The building sheet docks down the *left* and the
+## camera slides the town right to clear it - so anything parked on the right
+## can be pushed toward the edge, and anything on the left starts underneath the
+## panel. The bottom is the one arc neither thing touches.
+##
+## Fixed angles rather than a division of the arc, so the second merchant
+## arriving never moves the first. A shop that walks across the screen when its
+## neighbour turns up is the ring's own layout problem, one radius in.
+const MERCHANT_ANGLES: Array[float] = [48.0, 90.0, 132.0]
+
+## Vertical offset of each visitor's caption, by the same index.
+##
+## Staggered because the captions are 192px wide and three merchants on a
+## 150-radius arc are only about 100px apart: at one height they overprint into
+## an unreadable smear, which is what the first screenshot of three visitors
+## showed. Three rows is the cheapest fix that keeps every name legible and
+## still leaves each caption under its own merchant.
+const MERCHANT_LABEL_ROWS: Array[float] = [58.0, 86.0, 114.0]
+
+var _merchant_nodes: Dictionary = {}
+
+
+func _refresh_merchants() -> void:
+	var here: Array[String] = MerchantYard.in_town()
+	for key: Variant in _merchant_nodes.keys():
+		if not here.has(String(key)):
+			var gone := _merchant_nodes[key] as Node2D
+			if is_instance_valid(gone):
+				gone.queue_free()
+			_merchant_nodes.erase(key)
+
+	for i: int in here.size():
+		var id: String = here[i]
+		var data: MerchantData = ContentDB.merchant(id)
+		if data == null:
+			continue
+		var node := _merchant_nodes.get(id, null) as Node2D
+		if node == null or not is_instance_valid(node):
+			node = _make_merchant(data)
+			plot_root.add_child(node)
+			_merchant_nodes[id] = node
+		node.position = Vector2.RIGHT.rotated(
+			deg_to_rad(MERCHANT_ANGLES[i % MERCHANT_ANGLES.size()])) * MERCHANT_RADIUS
+		var tag := node.get_node_or_null("Tag") as Label
+		if tag != null:
+			tag.position = Vector2(-96.0,
+				MERCHANT_LABEL_ROWS[i % MERCHANT_LABEL_ROWS.size()])
+		_dress_merchant(id, node)
+
+
+func _make_merchant(data: MerchantData) -> Node2D:
+	var root := Node2D.new()
+	root.name = "merchant_%s" % data.id
+
+	var sprite := Sprite2D.new()
+	sprite.name = "Sprite"
+	if ResourceLoader.exists(data.get_sprite_path()):
+		sprite.texture = load(data.get_sprite_path())
+	root.add_child(sprite)
+
+	var button := Button.new()
+	button.name = "Hit"
+	button.flat = true
+	button.size = Vector2(128, 128)
+	button.position = Vector2(-64, -64)
+	button.tooltip_text = data.display_name
+	button.pressed.connect(func() -> void: merchant_selected.emit(data.id))
+	root.add_child(button)
+
+	var label := Label.new()
+	label.name = "Tag"
+	label.size = Vector2(192, 28)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(label)
+
+	_idle_phases[root.name] = randf() * TAU
+	return root
+
+
+func _dress_merchant(id: String, node: Node2D) -> void:
+	var label := node.get_node_or_null("Tag") as Label
+	if label == null:
+		return
+	var data: MerchantData = ContentDB.merchant(id)
+	var left: int = MerchantYard.waves_left(id)
+	if left < 0:
+		label.text = "%s  ·  resident" % data.display_name
+		label.modulate = Color("cbb682")
+	else:
+		# The countdown is the whole reason a traveller is interesting, so it is
+		# on the sprite rather than inside the sheet. An offer you have to open a
+		# panel to discover is expiring is an offer that expires unnoticed.
+		label.text = "%s  ·  leaves in %d" % [data.display_name, left]
+		label.modulate = Color("d98f5a") if left <= 1 else Color("b8ae98")
+
+
 func refresh() -> void:
 	_refresh_all()
+	_refresh_merchants()
 
 
 func _refresh_all() -> void:

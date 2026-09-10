@@ -58,6 +58,9 @@ func _ready() -> void:
 	town.plot_selected.connect(func(building_id: String) -> void:
 		town_panel.open(building_id)
 		town.set_view_inset(town_panel.docked_width()))
+	town.merchant_selected.connect(func(merchant_id: String) -> void:
+		town_panel.open_merchant(merchant_id)
+		town.set_view_inset(town_panel.docked_width()))
 	town_panel.closed.connect(func() -> void: town.set_view_inset(0.0))
 	hud.scope_requested.connect(switch_scope)
 	hud.zoom_requested.connect(_zoom_ladder)
@@ -508,7 +511,7 @@ func _enter_wave_breather(wave: int) -> bool:
 	if _breather or wave <= _breather_after_wave:
 		return false
 	_breather = true
-	RunState.begin_preparation_market()
+	RunState.begin_preparation_trade()
 	_breather_after_wave = wave
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()
@@ -569,7 +572,7 @@ func _on_wave_cleared(wave: int) -> void:
 
 func _enter_preparation(initial: bool) -> void:
 	_breather = false
-	RunState.begin_preparation_market()
+	RunState.begin_preparation_trade()
 	_breather_after_wave = RunState.wave_number
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.enter_preparation()

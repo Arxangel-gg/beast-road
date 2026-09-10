@@ -517,6 +517,30 @@ Files: `tower_zephyr_needle_attack_01.png` … `tower_zephyr_needle_attack_03.pn
 | `plot_empty.png` | 192×192 | T | `#4A4438` |
 | `plot_locked.png` | 192×192 | T | `#33302A` |
 
+### 5.5a Merchants — `res://art/city/`
+
+Whoever is in town selling things. Travellers until enough business settles
+them, at which point the same sprite simply stops leaving; there is no second
+"resident" drawing, because the person is the same person and the shop is the
+same shop.
+
+128x128 rather than the buildings' 192x192: a merchant is a figure standing
+inside the plot ring, not a structure on it, and drawing them the same size
+would make a man with a handcart the equal of the Forge.
+
+They stand on a small cobblestone plinth, which is the town's own convention -
+every building sits on one. The first generation put each of them on a patch of
+sand and grass instead, which is precisely the artefact reported from play on
+towers and enemies, so all three were regenerated rather than trimmed. Colour
+alone cannot separate grass from a green hood or a green potion bottle, and this
+merchant has both.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `merchant_alchemist.png` | 128×128 | T | `#4C6B45` |
+| `merchant_relic_peddler.png` | 128×128 | T | `#48557A` |
+| `merchant_quartermaster.png` | 128×128 | T | `#6B6258` |
+
 ### 5.5b Building tiers and idle frames — `res://art/city/`
 
 All 192×192, type T, placeholder colour `#62584B`.

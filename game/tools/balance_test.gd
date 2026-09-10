@@ -183,7 +183,7 @@ func _test_four_currency_economy() -> void:
 	RunState.building_tiers["market"] = 1
 	var prior_phase: RunState.Phase = RunState.phase
 	RunState.set_phase(RunState.Phase.PREPARATION)
-	RunState.begin_preparation_market()
+	RunState.begin_preparation_trade()
 	var source: String = RunState.GOLD
 	var target: String = RunState.FOOD
 	var market_problem: String = TownScope.try_market_trade(source, target)

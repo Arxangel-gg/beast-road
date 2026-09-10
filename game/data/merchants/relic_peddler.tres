@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MerchantData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merchant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trade = 1
+greeting = "Roads you have already walked left things behind. I picked them up. You may have them back, at a price."
+settle_line = "You keep buying my dead men's luck. I will keep a stall here and stop chasing you down the road."
+stock_size = 3
+settle_trades = 3
+arrival_weight = 1.6
+first_act = 2
+stay_waves = 3
+price_gold = 168
+price_currency = "stone"
+price_amount = 40
+id = "relic_peddler"
+display_name = "The Relic Peddler"
+description = "Deals in what the older roads left behind. Expensive, and the only place a passed-over relic turns up twice."

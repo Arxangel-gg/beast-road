@@ -320,6 +320,7 @@ jobs:
           # Consumables are content. The gate that matters is the last one: an
           # effect nothing reads would be taken, drawn, and do nothing.
           check "items" --headless --path game res://tools/item_check.tscn
+          check "merchants" --headless --path game res://tools/merchant_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
           # carries on when one will not parse, so the dictionary goes quietly
           # short and every gate over that content keeps passing on what did

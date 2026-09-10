@@ -72,6 +72,15 @@ var kill_resource_remainder: float = 0.0
 var crossroad_rerolls_left: int = 0
 var blueprints: Array[String] = []
 var market_trades_remaining: int = 0
+
+## Who is currently in town selling, keyed by merchant id:
+## `{"stock": Array, "sold": Array, "until_wave": int}`.
+##
+## Here rather than in `MerchantYard` because of working rule 6 - a system that
+## kept its own copy of who was in town would be a second source of truth for
+## run state, and co-op has a standing rule against exactly that. `MerchantYard`
+## is all static functions over this dictionary and holds nothing itself.
+var merchant_visits: Dictionary = {}
 var market_service_act: int = 0
 var market_service_id: String = ""
 
@@ -387,6 +396,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 		MetaState.resource_cache.clear()
 	kill_resource_remainder = 0.0
 	blueprints.clear()
+	merchant_visits.clear()
 	market_trades_remaining = Balance.MARKET_TRADES_PER_PREPARATION
 	market_service_act = 0
 	market_service_id = ""
@@ -1527,8 +1537,14 @@ func resource_rate() -> float:
 	return production_rate(WOOD) + production_rate(FOOD)
 
 
-func begin_preparation_market() -> void:
+## Everything the town's trade layer does at the top of a Preparation.
+##
+## Renamed from `begin_preparation_trade` when merchants arrived: the Market is
+## now one of two things that reset on this beat, and a function called after
+## only one of them is a name that will be wrong again the next time.
+func begin_preparation_trade() -> void:
 	market_trades_remaining = Balance.MARKET_TRADES_PER_PREPARATION
+	MerchantYard.begin_preparation()
 
 
 func market_service_bought_this_act() -> bool:

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MerchantData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merchant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trade = 2
+greeting = "I do not ask what you are shooting at. I ask how many, and whether you want them lit."
+settle_line = "Your quiver has paid for my roof twice over. I am staying. Come by before every road."
+stock_size = 3
+settle_trades = 3
+arrival_weight = 2.2
+first_act = 1
+stay_waves = 4
+price_gold = 48
+price_currency = ""
+price_amount = 0
+id = "quartermaster"
+display_name = "The Quartermaster"
+description = "Sells arrows and bolts by the bundle, including the kinds you have no blueprint for."

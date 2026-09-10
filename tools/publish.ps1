@@ -369,6 +369,7 @@ $btn.Add_Click({
             @{ Name = 'extension platforms'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/extension_platform_check.tscn') },
             @{ Name = 'reanchor'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/reanchor_check.tscn') },
             @{ Name = 'disciplines'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/discipline_check.tscn') },
+            @{ Name = 'merchants'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/merchant_check.tscn') },
             @{ Name = 'raid suspend'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_suspend_check.tscn') },
             @{ Name = 'seed reproduction'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/seed_reproduction_check.tscn') },
             @{ Name = 'boot'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/boot_check.tscn') },

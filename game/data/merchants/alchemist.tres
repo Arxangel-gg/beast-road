@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MerchantData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/merchant_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trade = 0
+greeting = "Everything on this cart was boiled by someone who has been where you are going. Take what you can carry."
+settle_line = "I have seen enough of your custom to stop packing the cart. Find me by the well from now on."
+stock_size = 3
+settle_trades = 3
+arrival_weight = 3.0
+first_act = 1
+stay_waves = 4
+price_gold = 64
+price_currency = "food"
+price_amount = 18
+id = "alchemist"
+display_name = "The Alchemist"
+description = "Sells what keeps a hero standing. Tonics, wards and the draught nobody wants to need."

@@ -426,6 +426,28 @@ func _ready() -> void:
 		_show_message("Your spirit is re-forming  ·  %ds" % int(ceil(seconds))))
 	EventBus.spirit_returned.connect(func(_key: String) -> void:
 		_show_message("Your spirit has returned."))
+	# A traveller who turns up in silence is a traveller nobody meets. The town
+	# is a scope the player is usually not looking at when the arrival happens,
+	# so the road has to say it.
+	EventBus.merchant_arrived.connect(func(merchant_id: String) -> void:
+		var data: MerchantData = ContentDB.merchant(merchant_id)
+		if data == null:
+			return
+		_show_message("%s has come to town  ·  leaving in %d waves"
+			% [data.display_name, data.stay_waves])
+		Sfx.play("sfx_ui_confirm", -2.0))
+	EventBus.merchant_departed.connect(func(merchant_id: String) -> void:
+		var data: MerchantData = ContentDB.merchant(merchant_id)
+		if data != null:
+			_show_message("%s has moved on." % data.display_name))
+	# Settling is the payoff of the whole system and happens exactly once per
+	# merchant, ever, so it gets the treatment a spirit bond gets.
+	EventBus.merchant_settled.connect(func(merchant_id: String) -> void:
+		var data: MerchantData = ContentDB.merchant(merchant_id)
+		if data == null:
+			return
+		_show_message("%s HAS SETTLED IN TOWN" % data.display_name.to_upper())
+		Vfx.flash(Color("d9b45a"), 0.10, 0.45))
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.command_order_used.connect(_on_command_order_used)
 	EventBus.currency_changed.connect(_on_currency_changed)

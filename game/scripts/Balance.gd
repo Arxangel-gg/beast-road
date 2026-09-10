@@ -2490,6 +2490,39 @@ const STARTING_STONE: int = 90
 const CURRENCY_IDS: Array[String] = ["wood", "food", "gold", "stone"]
 
 const BUILD_WOOD_COSTS: Array[int] = [80, 145, 230, 340]
+# --- Merchants ---------------------------------------------------------------
+#
+# The travelling shelf (owner brief, 2026-09-08). Prices are quoted in
+# `TOWER_BUILD_COST` because a tower not built is the thing actually given up;
+# see `MerchantYard` for why nothing here is permanent power.
+
+## Chance a traveller turns up in any one Preparation, when none is already in
+## town. Roughly one visit every three breathers: often enough that checking the
+## ring is a habit, rare enough that an arrival is still news.
+const MERCHANT_ARRIVAL_CHANCE: float = 0.34
+
+## Price spread per visit, either side of the authored figure. Wide enough to
+## notice a good day, narrow enough that a bad one is never a locked shelf.
+const MERCHANT_PRICE_JITTER: float = 0.18
+
+## What a merchant charges over the forge for the same batch of ammunition.
+## Convenience has to cost, or blueprints stop being worth learning.
+const MERCHANT_AMMO_MARKUP: float = 1.55
+
+## How many crafting batches a quartermaster sells in one bundle.
+##
+## Two batches, not one, because a merchant deals in bulk and because it makes
+## the cart worth more than a tower - three bundles at a single batch each came
+## to 62 Gold, which is a shop nobody has to think about. It also creates the
+## property the shelf wants: two bundles of the heavier ammunition will not fit
+## in a 48-bulk quiver at once, so the cart offers more than the player can
+## carry and buying becomes choosing.
+const MERCHANT_AMMO_BUNDLE: int = 2
+
+## Multiplier for a consumable you may only hold one of. The carry limit is the
+## game already saying the thing is rare; this makes the price agree with it.
+const MERCHANT_SCARCE_ITEM_SCALE: float = 2.4
+
 const MARKET_TRADES_PER_PREPARATION: int = 2
 const MARKET_MAX_EXCHANGE: int = MARKET_TRADES_PER_PREPARATION
 const MARKET_TRADE_LOT: int = 30

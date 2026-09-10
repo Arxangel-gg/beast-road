@@ -55,6 +55,10 @@ var blueprints: Dictionary = {}
 ## one; an elite carries several, and the combination is whatever both do.
 var affixes: Dictionary = {}
 
+## Who comes to town to sell things (owner brief, 2026-09-08). A traveller until
+## enough business settles them; see `MerchantData`.
+var merchants: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -93,6 +97,7 @@ func _ready() -> void:
 	ammo_kinds = _load_dir("res://data/ammo")
 	blueprints = _load_dir("res://data/blueprints")
 	affixes = _load_dir("res://data/affixes")
+	merchants = _load_dir("res://data/merchants")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -110,6 +115,10 @@ func enemy(id: String) -> EnemyData:
 
 func relic(id: String) -> RelicData:
 	return relics.get(id, null) as RelicData
+
+
+func merchant(id: String) -> MerchantData:
+	return merchants.get(id, null) as MerchantData
 
 
 func item(id: String) -> ItemData:

@@ -401,6 +401,28 @@ signal preparation_changed(seconds_left: float, ready: bool)
 ## Ride On was refused until the player acknowledges a coverage warning.
 signal preparation_warning(message: String)
 
+# --- Merchants ---------------------------------------------------------------
+#
+# The town's trade layer talks through here like everything else (working rule
+# 5). The town scope draws whoever is present, the HUD announces arrivals, and
+# neither holds a reference to the other or to `MerchantYard`.
+
+## A traveller has set up in town this Preparation.
+signal merchant_arrived(merchant_id: String)
+
+## A traveller's welcome ran out and they moved on. Never fired for a resident.
+signal merchant_departed(merchant_id: String)
+
+## A shelf changed: restocked at the top of a Preparation, or one row bought.
+signal merchant_stock_changed(merchant_id: String)
+
+## One good changed hands. `good_id` is the item, relic or ammunition bought.
+signal merchant_traded(merchant_id: String, good_id: String)
+
+## Enough distinct business has been done that this merchant now lives in town,
+## in this run and every run after it. Fires exactly once, ever, per merchant.
+signal merchant_settled(merchant_id: String)
+
 signal run_started()
 signal run_ended(victory: bool, summary: Dictionary)
 

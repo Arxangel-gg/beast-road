@@ -80,7 +80,28 @@ func _fit() -> void:
 	UiMetrics.dock_panel(panel)
 
 
+## Which merchant this sheet is showing, or "" when it is showing a building.
+##
+## A separate field rather than a prefixed building id. The whole sheet keys off
+## `ContentDB.building(_building_id)`, and smuggling a merchant through that
+## lookup as `"merchant:alchemist"` would mean every one of those callers now has
+## a string it has to know not to trust.
+var _merchant_id: String = ""
+
+
+## Opens a merchant's shelf. Same panel, same dock, same close button - a
+## visitor is a thing in the town, not a modal that takes the screen.
+func open_merchant(merchant_id: String) -> void:
+	_merchant_id = merchant_id
+	_building_id = ""
+	panel.visible = true
+	_fit()
+	_clear_notice()
+	_refresh()
+
+
 func open(building_id: String) -> void:
+	_merchant_id = ""
 	if building_id != _building_id:
 		# A different plot is a different subject: the page, the slot being
 		# chosen for and any complaint about the last one all belong to the sheet
@@ -208,6 +229,10 @@ func _refresh() -> void:
 	for child: Node in actions.get_children():
 		actions.remove_child(child)
 		child.queue_free()
+
+	if not _merchant_id.is_empty():
+		_show_merchant()
+		return
 
 	var data: BuildingData = ContentDB.building(_building_id)
 	if data == null:
@@ -381,6 +406,85 @@ func _show_crafting() -> void:
 		var making: String = kind.id
 		make.pressed.connect(func() -> void: _attempt(RunState.craft_ammo(making, 1)))
 		actions.add_child(make)
+
+
+# --- Merchants ---------------------------------------------------------------
+#
+# Three things a shop has to say, and the reason each is on the page rather than
+# in a tooltip:
+#
+# - **What it costs**, on the row, before it is pressed. A price the player finds
+#   out by being refused is the Hero Mansion fault again.
+# - **How long they are here.** A traveller who leaves is the only pressure this
+#   screen has; hiding the countdown makes the whole system a shop that happens
+#   to be closed sometimes.
+# - **How close they are to staying.** The settle threshold is the progression
+#   the owner asked for - things unlocked by playing - and progress towards it
+#   that the player cannot see is progress they cannot aim at.
+
+func _show_merchant() -> void:
+	var data: MerchantData = ContentDB.merchant(_merchant_id)
+	if data == null:
+		title.text = "—"
+		subtitle.text = ""
+		body.text = ""
+		return
+
+	var resident: bool = MerchantYard.settled(_merchant_id)
+	var left: int = MerchantYard.waves_left(_merchant_id)
+	title.text = data.display_name
+	subtitle.text = "Lives here" if resident else "Leaves in %d wave%s" % [
+		left, "" if left == 1 else "s"]
+
+	var lines: PackedStringArray = [data.description]
+	if not data.greeting.is_empty():
+		lines.append("
+\"%s\"" % data.greeting)
+	if resident:
+		lines.append("
+Settled in town. Restocks every Preparation, every run.")
+	else:
+		var done: int = MerchantYard.trades_done(_merchant_id)
+		lines.append("
+Business done: %d of %d different goods. Buy %d more and they stay for good."
+			% [done, data.settle_trades, maxi(data.settle_trades - done, 0)])
+	KeywordTextScript.apply(body, "
+".join(lines))
+
+	actions.add_child(_heading("On the cart"))
+	if not RunState.can_build_now():
+		_note("The road is moving. Trade happens in Preparation.")
+	var shelf: Array = MerchantYard.stock(_merchant_id)
+	if shelf.is_empty():
+		_note("The cart is empty. Come back next Preparation.")
+		return
+	for index: int in shelf.size():
+		_merchant_row(shelf[index] as Dictionary, index)
+
+
+func _merchant_row(offer: Dictionary, index: int) -> void:
+	var cost: Dictionary = offer.get("cost", {}) as Dictionary
+	var taken: bool = MerchantYard.sold(_merchant_id, index)
+	var row := _row("%s%s  —  %s" % [
+		"SOLD  ·  " if taken else "", String(offer.get("label", "")),
+		RunState.format_cost(cost)], 48.0)
+	row.tooltip_text = String(offer.get("detail", ""))
+	row.disabled = taken or not RunState.can_build_now() 		or not RunState.can_afford_cost(cost)
+	# Disabled buttons carry no tooltip in Godot, and an unaffordable row is
+	# exactly the one a player wants explained. The price is already in the
+	# label, so the row still says why - which the four silent refusals above
+	# did not.
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	var merchant: String = _merchant_id
+	row.pressed.connect(func() -> void:
+		var problem: String = MerchantYard.buy(merchant, index)
+		if problem.is_empty():
+			_flash("Bought: %s" % String(offer.get("label", "")))
+			Sfx.play("sfx_ui_confirm", 2.0)
+		else:
+			_attempt(problem)
+		_refresh())
+	actions.add_child(row)
 
 
 func _show_market() -> void:
