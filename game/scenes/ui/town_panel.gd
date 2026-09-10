@@ -124,6 +124,9 @@ signal closed
 ## every visit is a stutter in the middle of a wave.
 var _stash: StashScreen = null
 
+## Kept for the same reason, and reached from the same place.
+var _ledger: ExchangeScreen = null
+
 
 func _open_stash() -> void:
 	if _stash == null or not is_instance_valid(_stash):
@@ -133,6 +136,24 @@ func _open_stash() -> void:
 		# change, so it has to be redrawn when the stash closes.
 		_stash.closed.connect(_refresh)
 	_stash.open()
+
+
+## **The Ledger, reachable from inside a run - which is where it matters most.**
+##
+## Orders fill on road travelled and on nothing else, so the middle of a journey
+## is exactly when a line gets met. A marketplace that could only be opened from
+## the main menu would mean quitting to the menu to find out, which is the one
+## thing the design is arranged to avoid: the Ledger pays you for playing.
+##
+## Beside the stash rather than anywhere else because it is the stash's other
+## half. "Is this sword worth keeping", "should I break it", and "what would a
+## caravan give me for it" are one decision asked from three directions.
+func _open_ledger() -> void:
+	if _ledger == null or not is_instance_valid(_ledger):
+		_ledger = ExchangeScreen.new()
+		add_child(_ledger)
+		_ledger.closed.connect(_refresh)
+	_ledger.open()
 
 
 func close() -> void:
@@ -640,6 +661,26 @@ func _mansion_hero(tier: int) -> void:
 		% [MetaState.marks, MetaState.shards], 54.0)
 	stash_row.pressed.connect(_open_stash)
 	actions.add_child(stash_row)
+
+	var standing: int = 0
+	var met: int = 0
+	for order: ExchangeOrder in Exchange.orders():
+		if order.stage == ExchangeOrder.Stage.FILLED:
+			met += 1
+		elif order.is_open():
+			standing += 1
+	# The count is on the button because a met line is the one thing worth
+	# interrupting a player for: Marks or gear are sitting there unclaimed.
+	var ledger_caption: String = "The Long Ledger"
+	if met > 0:
+		ledger_caption += "  ·  %d met" % met
+	elif standing > 0:
+		ledger_caption += "  ·  %d standing" % standing
+	else:
+		ledger_caption += "  ·  sell gear to passing caravans"
+	var ledger_row := _row(ledger_caption, 54.0)
+	ledger_row.pressed.connect(_open_ledger)
+	actions.add_child(ledger_row)
 
 	actions.add_child(_heading("Abilities"))
 	_note("Four slots. What sits in one is cast from the combat bar.")
