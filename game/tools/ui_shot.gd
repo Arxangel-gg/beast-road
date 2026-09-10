@@ -11,6 +11,10 @@ extends Node
 ## see that here is to open a window that shape.
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	var viewport_size := Vector2i.ZERO
 	var touch_layout: bool = false
 	for argument: String in OS.get_cmdline_user_args():

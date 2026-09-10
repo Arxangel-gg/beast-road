@@ -5,6 +5,10 @@ extends Node
 ## Diagnostic only, never a gate.
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	# `-- --touch=off` captures the same interface without the thumb controls, so
 	# the desktop and mobile layouts can be compared as two pictures of one HUD
 	# rather than described to each other.

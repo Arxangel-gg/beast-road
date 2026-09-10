@@ -26,6 +26,18 @@ extends Node
 ## stash. Both halves of a swap are applied and the pieces are counted before
 ## and after. This is the one that would catch a duplication bug the other two
 ## families missed, and it is the reason it exists.
+##
+## **The window**, built for real and walked. This family exists because three
+## separate structural faults in it were found by *looking at a screenshot* -
+## headings that were cleared along with the rows they captioned, a row laid out
+## inside a Button that positions its own content, and a local copy of the table
+## that disagreed with the session. None of them failed anything. A window whose
+## faults are only visible to a person is a window that ships broken the first
+## time nobody looks, so the shapes that went wrong are asserted here.
+##
+## Headless has no real font, so nothing below measures a pixel: these are
+## questions about what exists and what it says, which is where all three faults
+## actually lived.
 
 var _failures: int = 0
 var _checked: int = 0
@@ -36,7 +48,7 @@ var _checked: int = 0
 ## gate has enough moving parts to hide one. `crossroad_vote_check` grew the
 ## same counter after going green on a subject that would not compile.
 var _finished: int = 0
-const EXPECTED_TESTS: int = 12
+const EXPECTED_TESTS: int = 16
 
 ## The player's real stash, put back exactly as it was.
 var _stash_before: Array = []
@@ -44,6 +56,13 @@ var _equipped_before: Dictionary = {}
 
 
 func _ready() -> void:
+	# **Held before anything is touched.** This gate rewrites `MetaState.stash`
+	# a dozen times, and putting it back at the end is not the same as never
+	# having written it: any push_error path, any script error, any early quit
+	# leaves the player holding probe gear. `save_guard_check` exists for exactly
+	# this and did not catch it, because its list of mutating gates was kept by
+	# hand and this one was written after it.
+	MetaState.hold_saves()
 	await get_tree().process_frame
 	_stash_before = MetaState.stash.duplicate(true)
 	_equipped_before = MetaState.equipped.duplicate(true)
@@ -60,6 +79,10 @@ func _ready() -> void:
 	_test_a_refused_half_moves_nothing()
 	await _test_an_offer_is_named_not_positioned()
 	await _test_a_partner_leaving_ends_the_trade()
+	await _test_the_headings_survive_a_refresh()
+	await _test_every_row_carries_its_own_action()
+	await _test_the_confirmation_screen_says_where_the_partner_is()
+	_test_a_name_survives_the_save_file()
 
 	if _finished != EXPECTED_TESTS:
 		_check(false, "only %d of %d tests ran to completion" % [_finished, EXPECTED_TESTS])
@@ -405,6 +428,172 @@ func _test_a_partner_leaving_ends_the_trade() -> void:
 	_finished += 1
 
 
+## A piece's name means the same thing after the game has been closed.
+##
+## **The save is JSON, and JSON has no integers.** Every number in it comes back
+## as a double, so a name larger than 2^53 is quietly rounded on load - and a
+## name that changes is not a name. This was real: uids were sixty-two bits, and
+## a piece written as ...900427813 came back as ...900427264. Nothing failed and
+## nothing printed; it was found by diffing a save either side of a tool run.
+##
+## The consequence is not hypothetical either. `index_of` and `same_gear` are
+## both equality on this number, and a stash whose names are reshuffled on every
+## load is a stash where an offer made before a restart names something else
+## afterwards.
+func _test_a_name_survives_the_save_file() -> void:
+	var mangled: int = 0
+	var worst: int = 0
+	for _try: int in 400:
+		var made: int = Stash.new_uid()
+		# Exactly the round trip `MetaState` performs: written with the rest of
+		# the save, parsed back on the next launch.
+		var text: String = JSON.stringify({"uid": made})
+		var back: int = int((JSON.parse_string(text) as Dictionary).get("uid", 0))
+		if back != made:
+			mangled += 1
+			worst = made
+	_checked += 1
+	_check(mangled == 0,
+		("%d of 400 piece names did not survive being written to the save and "
+			+ "read back (for instance %d); JSON has no integers and these are "
+			+ "past what a double holds") % [mangled, worst])
+	_finished += 1
+
+
+# --- The window ---------------------------------------------------------------
+
+## A caption that survives the list it captions being rebuilt.
+##
+## `_refresh` empties and refills every box on the screen. The first screenshot
+## of this window showed two offers under no headings at all, because the
+## headings were inside the boxes being emptied - so they survived exactly until
+## the first redraw, which happens before a player ever sees it.
+func _test_the_headings_survive_a_refresh() -> void:
+	var kinds: Array[String] = _gear_kinds(2)
+	MetaState.stash = []
+	for id: String in kinds:
+		MetaState.stash.append(Stash.make(id, 1))
+	MetaState.equipped = {}
+	var trade: TradeSession = _open()
+	_offer(trade, TradeSession.HOST, [MetaState.stash[0]])
+	TradeBooth.set("_session", trade)
+	TradeBooth.set("_side", TradeSession.HOST)
+	var screen: CanvasLayer = _window()
+	await get_tree().process_frame
+	# Three times, because a caption that survives one redraw and not the next is
+	# the same bug with a longer fuse.
+	for _again: int in 3:
+		screen.call("_on_trade_changed")
+		await get_tree().process_frame
+	var said: PackedStringArray = _words(screen)
+	for wanted: String in ["You give", "You get"]:
+		_checked += 1
+		_check(said.has(wanted),
+			"the window lost its '%s' heading when the list under it was rebuilt"
+				% wanted)
+	_checked += 1
+	_check(_says_starting_with(said, "Your stash"),
+		("the list below the offers has no heading, so its first row reads as a "
+			+ "third thing being given away"))
+	screen.queue_free()
+	TradeBooth.set("_session", null)
+	_finished += 1
+	await get_tree().process_frame
+
+
+## Every piece in the list has its own action, and the action tells the truth.
+##
+## Two faults in one assertion, because they have one cause. The offer is set
+## directly on the session here - never through the screen - so a window that
+## remembered its own copy of the table would draw "Offer" against a piece it is
+## already giving away. That is exactly what a screenshot caught, and it is
+## reachable in play by the partner's change arriving, by reopening the window,
+## and by a settlement rolling back.
+func _test_every_row_carries_its_own_action() -> void:
+	var kinds: Array[String] = _gear_kinds(3)
+	if not _check(kinds.size() >= 2, "not enough gear kinds to draw a list with"):
+		_finished += 1
+		return
+	MetaState.stash = []
+	for id: String in kinds:
+		MetaState.stash.append(Stash.make(id, 1))
+	MetaState.equipped = {}
+	var worn: GearData = ContentDB.gear(kinds[0])
+	MetaState.equipped[worn.slot] = 0
+
+	var trade: TradeSession = _open()
+	# Straight onto the session, behind the screen's back.
+	_offer(trade, TradeSession.HOST, [MetaState.stash[1]])
+	TradeBooth.set("_session", trade)
+	TradeBooth.set("_side", TradeSession.HOST)
+	var screen: CanvasLayer = _window()
+	screen.call("_on_trade_changed")
+	await get_tree().process_frame
+
+	var labels: Dictionary = {}
+	for button: Button in _buttons(screen.get("_stash")):
+		labels[button.text] = int(labels.get(button.text, 0)) + 1
+	_checked += 1
+	_check(int(labels.get("Take back", 0)) == 1,
+		("a piece already on the table did not offer to be taken back; the "
+			+ "window is keeping its own copy of the offer (%s)") % [labels])
+	_checked += 1
+	_check(int(labels.get("Offer", 0)) == MetaState.stash.size() - 2,
+		"the rows that can be offered do not each have an Offer button (%s)" % [labels])
+	_checked += 1
+	_check(int(labels.get("Equipped", 0)) == 1,
+		"worn gear is missing its disabled row, so it looks tradeable (%s)" % [labels])
+	_checked += 1
+	_check(not labels.has("Worn"),
+		("the equipped row says 'Worn', which is also the name of the lowest "
+			+ "rarity - beside a Worn Ashfall Glaive it says nothing"))
+	screen.queue_free()
+	TradeBooth.set("_session", null)
+	_finished += 1
+	await get_tree().process_frame
+
+
+## The screen a player waits on has to say what they are waiting for.
+##
+## The confirmation screen is where somebody sits after pressing Confirm, and it
+## shipped without any word about the other player at all - so waiting and the
+## window having hung looked identical. The stash is deliberately gone from this
+## screen, and that is asserted here too: a list you can click is an invitation
+## to change the deal, on the one screen whose whole purpose is to read it.
+func _test_the_confirmation_screen_says_where_the_partner_is() -> void:
+	var kinds: Array[String] = _gear_kinds(2)
+	MetaState.stash = []
+	for id: String in kinds:
+		MetaState.stash.append(Stash.make(id, 1))
+	MetaState.equipped = {}
+	var trade: TradeSession = _open()
+	_offer(trade, TradeSession.HOST, [MetaState.stash[0]])
+	trade.set_accepted(TradeSession.HOST, true)
+	trade.set_accepted(TradeSession.GUEST, true)
+	TradeBooth.set("_session", trade)
+	TradeBooth.set("_side", TradeSession.HOST)
+	var screen: CanvasLayer = _window()
+	screen.call("_on_trade_changed")
+	await get_tree().process_frame
+
+	_checked += 1
+	_check(trade.stage == TradeSession.Stage.CONFIRMING,
+		"two acceptances did not reach the confirmation screen")
+	var said: PackedStringArray = _words(screen.get("_actions"))
+	_checked += 1
+	_check(_says_containing(said, "confirmed"),
+		("the confirmation screen never says whether the other player has "
+			+ "confirmed, so waiting looks like the window having hung (%s)")
+			% [said])
+	_checked += 1
+	_check(_buttons(screen.get("_stash")).is_empty(),
+		"the stash is still clickable on the screen whose job is to be read")
+	screen.queue_free()
+	TradeBooth.set("_session", null)
+	_finished += 1
+	await get_tree().process_frame
+
+
 # --- Helpers ------------------------------------------------------------------
 
 ## Runs one machine's half of a swap through the real code, on a given stash.
@@ -441,6 +630,72 @@ func _piece(kind: String) -> Dictionary:
 	return {"kind": kind, "rarity": 0, "level": 1, "uid": Stash.new_uid()}
 
 
+## A real trade window, built the way the booth builds it.
+func _window() -> CanvasLayer:
+	var screen := (load("res://scenes/ui/trade_screen.gd") as GDScript).new() as CanvasLayer
+	add_child(screen)
+	return screen
+
+
+## Every word the window is currently showing.
+func _words(from: Node) -> PackedStringArray:
+	var out := PackedStringArray()
+	if from == null:
+		return out
+	for node: Node in _walk(from):
+		var label := node as Label
+		if label != null and not label.text.strip_edges().is_empty():
+			out.append(label.text)
+	return out
+
+
+func _says_starting_with(said: PackedStringArray, prefix: String) -> bool:
+	for line: String in said:
+		if line.begins_with(prefix):
+			return true
+	return false
+
+
+func _says_containing(said: PackedStringArray, needle: String) -> bool:
+	for line: String in said:
+		if line.contains(needle):
+			return true
+	return false
+
+
+func _buttons(from: Node) -> Array[Button]:
+	var out: Array[Button] = []
+	if from == null:
+		return out
+	for node: Node in _walk(from):
+		var button := node as Button
+		if button != null:
+			out.append(button)
+	return out
+
+
+func _walk(from: Node) -> Array[Node]:
+	var out: Array[Node] = [from]
+	for child: Node in from.get_children():
+		out.append_array(_walk(child))
+	return out
+
+
+## Distinct gear kinds, one per slot, so a drawn list has rows worth comparing.
+func _gear_kinds(wanted: int) -> Array[String]:
+	var out: Array[String] = []
+	var slots: Dictionary = {}
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind == null or slots.has(kind.slot):
+			continue
+		slots[kind.slot] = true
+		out.append(kind.id)
+		if out.size() >= wanted:
+			break
+	return out
+
+
 func _any_gear_kind() -> String:
 	for value: Variant in ContentDB.gear_kinds.values():
 		var kind := value as GearData
@@ -461,9 +716,10 @@ func _finish() -> void:
 	# The player's own gear, put back exactly as it was found. This gate rewrites
 	# `MetaState.stash` several times, and a gate that eats a stash is precisely
 	# the failure it was written to prevent.
+	print("[probe] at finish ", MetaState.stash.size(), " restoring to ", _stash_before.size())
 	MetaState.stash = _stash_before
 	MetaState.equipped = _equipped_before
-	MetaState.save_game()
+	MetaState.resume_saves()
 	if _failures == 0:
 		print("[trade] PASS - %d checks; offers cannot be swapped late and gear is never made twice"
 			% _checked)

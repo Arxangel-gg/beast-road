@@ -61,6 +61,10 @@ var _departures: int = 0
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	await get_tree().process_frame
 	_codex_before = []
 	for entry: String in MetaState.codex_seen:

@@ -17,6 +17,10 @@ var _failures: int = 0
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	# Forced on: this machine has no touchscreen, and the point is to exercise
 	# the controls rather than the decision about whether to show them.
 	MetaState.settings[TouchInput.TOUCH_KEY] = true

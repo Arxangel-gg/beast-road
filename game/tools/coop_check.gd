@@ -101,6 +101,10 @@ var _failure_reasons: PackedStringArray = []
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	EventBus.coop_partner_joined.connect(func(id: int) -> void: _joined_peers.append(id))
 	EventBus.coop_partner_left.connect(func(id: int) -> void: _left_peers.append(id))
 	EventBus.coop_failed.connect(func(why: String) -> void: _failure_reasons.append(why))

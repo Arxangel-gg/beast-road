@@ -73,11 +73,19 @@ static func make(kind_id: String, rarity: int, level: int = 1) -> Dictionary:
 ##
 ## Random rather than sequential, because two accounts assign these
 ## independently and a counter on each machine would hand out the same names.
-## Sixty-two bits of randomness makes a collision between two stashes of a
-## hundred and sixty vanishingly unlikely, and the settlement re-checks the
-## piece's contents anyway.
+##
+## **Fifty-two bits, because a name has to survive the save file.** The save is
+## JSON, and every number in JSON comes back as a double: anything past 2^53 is
+## silently rounded on load. This was sixty-two bits, and a piece written as
+## ...900427813 read back as ...900427264 - found by diffing a save either side
+## of a tool run, not by anything failing. Fifty-two bits still leaves a
+## collision between two stashes of a hundred and sixty vanishingly unlikely,
+## and it is a number that means the same thing on both sides of a write.
+##
+## `randi` is a full unsigned 32 bits, so both halves are masked: the old shift
+## also let the two draws overlap in bit 31 and reach the sign bit.
 static func new_uid() -> int:
-	return absi(randi()) << 31 | absi(randi())
+	return ((absi(randi()) & 0x7FFFFFFF) << 21) | (absi(randi()) & 0x1FFFFF)
 
 
 ## This piece's name, assigned in place if it has never had one.
@@ -102,7 +110,9 @@ static func index_of(pieces: Array, wanted_uid: int) -> int:
 ## against a piece that was named correctly and then changed - upgraded a level,
 ## say - between the offer and the confirmation.
 static func same_gear(a: Dictionary, b: Dictionary) -> bool:
-	return String(a.get("kind", "")) == String(b.get("kind", "")) 		and int(a.get("rarity", -1)) == int(b.get("rarity", -2)) 		and int(a.get("level", -1)) == int(b.get("level", -2))
+	return String(a.get("kind", "")) == String(b.get("kind", "")) \
+		and int(a.get("rarity", -1)) == int(b.get("rarity", -2)) \
+		and int(a.get("level", -1)) == int(b.get("level", -2))
 
 
 ## Whether the player has marked this piece to be left alone.

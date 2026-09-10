@@ -5,6 +5,10 @@ extends Node
 ##   godot --path game res://tools/coop_screen_shot.tscn -- --hosting
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
 	var arguments: PackedStringArray = OS.get_cmdline_user_args()

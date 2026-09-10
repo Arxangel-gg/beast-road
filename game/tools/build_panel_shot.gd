@@ -4,6 +4,10 @@ extends Node
 ## Diagnostic only, never a gate.
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	# Force a first-time account, so the shot shows the coach card as a new
 	# player meets it rather than as a returning one never does.
 	MetaState.settings["tutorial_seen"] = false

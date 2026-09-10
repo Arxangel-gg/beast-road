@@ -268,6 +268,16 @@ var settings: Dictionary = {
 	"tutorial_seen": false,
 	## First-view milestone ids. The HUD's light title cards remain on replays.
 	MILESTONE_CINEMATICS_SEEN_KEY: [],
+	## Whether this account has already been given its opening weapon.
+	##
+	## **Missing from here until 2026-09-10, and it granted a free sword on every
+	## launch.** `_read_settings` drops keys this dictionary does not declare, so
+	## `_seed_starting_gear` set the flag, `save_game` wrote it, and the next
+	## load threw it away and handed out another Coalpaint Edge. Found by
+	## diffing a save either side of a tool run - a played account had seven of
+	## them - and it is the third time this exact dictionary has caused it, after
+	## Video and the colourblind modes.
+	STARTING_GEAR_KEY: false,
 }
 
 

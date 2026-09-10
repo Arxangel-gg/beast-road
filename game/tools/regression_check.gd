@@ -23,6 +23,10 @@ var _run: Run = null
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
 	# Seeded, so a failure here is reproducible rather than a thing that happened

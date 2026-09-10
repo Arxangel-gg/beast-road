@@ -9,6 +9,10 @@ var _failures: int = 0
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	await get_tree().process_frame
 	var had_value: bool = MetaState.settings.has(UserSettings.BLOOD_VFX_KEY)
 	var old_value: Variant = MetaState.settings.get(UserSettings.BLOOD_VFX_KEY, true)

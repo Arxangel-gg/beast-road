@@ -78,6 +78,10 @@ func _on_partner_pointer(_at: Vector2) -> void:
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--role="):
 			_role = argument.split("=")[1]

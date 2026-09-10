@@ -4,6 +4,10 @@ extends Node
 ## Diagnostic only, never a gate.
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	RunState.reset()
 	MetaState.story_intro_seen = false
 	var intro := StoryIntro.new()

@@ -22,6 +22,10 @@ var _ran: int = 0
 
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	RunState.reset(false, 20260902)
 	_test_titles_are_content()
 	_test_no_run_ends_unnamed()

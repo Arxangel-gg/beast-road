@@ -32,6 +32,7 @@ var _theirs: VBoxContainer
 var _stash: VBoxContainer
 var _actions: HBoxContainer
 var _scroll: ScrollContainer
+var _stash_heading: Label
 
 var _message: String = ""
 
@@ -112,17 +113,38 @@ func _build() -> void:
 	_mine = _table(tables, "You give")
 	_theirs = _table(tables, "You get")
 
+	# **The list below the offers needs to say what it is.**
+	# Without this the panel ran the offer totals straight into the stash rows,
+	# and the first row read as a third thing being given away. It lives beside
+	# the scroll rather than inside it for the same reason the column headings
+	# do: `_draw_stash` empties the box every refresh.
+	_stash_heading = Label.new()
+	_stash_heading.add_theme_font_size_override("font_size", 15)
+	_stash_heading.add_theme_color_override("font_color", Color("cbb682"))
+	column.add_child(_stash_heading)
+
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0.0, 260.0)
+	# Tall enough that the stash reads as a list rather than a peephole. The rows
+	# grew when they gained art and a second line, and 260 showed four and a half
+	# of them.
+	scroll.custom_minimum_size = Vector2(0.0, 360.0)
 	column.add_child(scroll)
 	_scroll = scroll
+
+	# The scrollbar is drawn inside the scroll's own rect, so rows that fill the
+	# width end underneath it. A margin the width of the bar keeps the action
+	# button at the end of each row clear of it.
+	var gutter := MarginContainer.new()
+	gutter.add_theme_constant_override("margin_right", 14)
+	gutter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(gutter)
 
 	_stash = VBoxContainer.new()
 	_stash.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_stash.add_theme_constant_override("separation", 4)
-	scroll.add_child(_stash)
+	gutter.add_child(_stash)
 
 	_actions = HBoxContainer.new()
 	_actions.add_theme_constant_override("separation", 8)
@@ -241,17 +263,15 @@ func _piece_row(piece: Dictionary) -> Control:
 	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	# A little air on the left, so a 40px icon in a column that starts at the
-	# panel's own padding does not read as sitting on the frame.
-	var pad := Control.new()
-	pad.custom_minimum_size = Vector2(4.0, 0.0)
-	row.add_child(pad)
 
 	var icon := TextureRect.new()
 	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Centred rather than filled: the row is two lines of text tall and a top
+	# aligned icon hangs off the bottom of the shorter ones.
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if kind != null:
 		var art: String = kind.get_sprite_path()
 		if ResourceLoader.exists(art):
@@ -292,6 +312,39 @@ func _piece_row(piece: Dictionary) -> Control:
 	return row
 
 
+## A row on a band, edged in the piece's rarity.
+##
+## **The band is what joins a piece to the button that offers it.** The panel is
+## 940 wide and the action sits at the right end of it, so the screenshot that
+## found this showed a glaive on the left and an Offer button most of a screen
+## away with nothing between them saying they were the same row. A background
+## that runs the full width says it.
+##
+## The rarity edge is the second half: a stash of forty is scanned for what is
+## worth trading before any of the words are read, and a coloured margin answers
+## that at a glance the way the name alone cannot.
+func _band(inner: Control, piece: Dictionary, lit: bool) -> PanelContainer:
+	var box := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	var rarity: Color = Stash.rarity_colour(piece)
+	style.bg_color = Color(0.13, 0.16, 0.19, 0.9) if lit \
+		else Color(0.07, 0.09, 0.11, 0.55)
+	style.border_width_left = 4
+	style.border_color = rarity.lerp(Color.WHITE, 0.35) if lit else rarity
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_left = 3
+	style.corner_radius_bottom_right = 3
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
+	box.add_theme_stylebox_override("panel", style)
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(inner)
+	return box
+
+
 ## What a side's offer adds up to, for the line under it.
 ##
 ## Two numbers, because they answer different questions. The attribute total is
@@ -324,12 +377,19 @@ func _fill(into: VBoxContainer, pieces: Array) -> void:
 		into.add_child(empty)
 		return
 	for entry: Variant in pieces:
-		into.add_child(_piece_row(entry as Dictionary))
+		var piece := entry as Dictionary
+		into.add_child(_band(_piece_row(piece), piece, false))
+	# Indented to the band's own text, so the sum reads as belonging to the list
+	# above it rather than to the heading below.
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_top", 2)
+	into.add_child(margin)
 	var total := Label.new()
 	total.text = _summarise(pieces)
 	total.add_theme_font_size_override("font_size", 12)
 	total.add_theme_color_override("font_color", Color("cbb682"))
-	into.add_child(total)
+	margin.add_child(total)
 
 
 ## The player's own stash, with what is already on the table marked.
@@ -345,9 +405,12 @@ func _draw_stash(trade: TradeSession) -> void:
 	# up around the two offers instead of leaving a pane of nothing between the
 	# deal and the button that agrees to it.
 	_scroll.visible = trade.stage == TradeSession.Stage.OFFERING
+	_stash_heading.visible = _scroll.visible
 	if not _scroll.visible:
 		return
 	var table: Array[int] = _on_table()
+	_stash_heading.text = "Your stash  ·  %d held  ·  %d of %d offered" % [
+		MetaState.stash.size(), table.size(), Balance.TRADE_MAX_PIECES]
 	var rows: int = 0
 	for index: int in MetaState.stash.size():
 		if rows >= MAX_ROWS:
@@ -376,25 +439,33 @@ func _draw_stash(trade: TradeSession) -> void:
 		# target for a decision that hands over gear.
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
-		row.modulate = Color(1.0, 1.0, 1.0, 0.45) if worn else Color.WHITE
 
 		var body: Control = _piece_row(piece)
 		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(body)
 
 		var action := Button.new()
-		action.custom_minimum_size = Vector2(120.0, 38.0)
+		action.custom_minimum_size = Vector2(120.0, 36.0)
 		action.add_theme_font_size_override("font_size", 13)
+		action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if worn:
-			action.text = "Worn"
+			# Not "Worn": that is the name of the lowest rarity, and this list is
+			# full of pieces actually called Worn Something. A button reading
+			# "Worn" beside "Worn Ashfall Glaive" says nothing.
+			action.text = "Equipped"
 			action.disabled = true
-			action.tooltip_text = "Worn gear cannot be traded. Take it off first."
+			action.tooltip_text = "Equipped gear cannot be traded. Take it off first."
 		else:
 			action.text = "Take back" if on_table else "Offer"
 			var named: int = uid
 			action.pressed.connect(func() -> void: _toggle(named))
 		row.add_child(action)
-		_stash.add_child(row)
+
+		var band: PanelContainer = _band(row, piece, on_table)
+		# Dimmed enough to read as unavailable, not so far that its own label
+		# stops being legible - a disabled Button is already faded once.
+		band.modulate = Color(1.0, 1.0, 1.0, 0.68) if worn else Color.WHITE
+		_stash.add_child(band)
 
 
 func _draw_actions(trade: TradeSession, me: String, them: String) -> void:
@@ -404,13 +475,9 @@ func _draw_actions(trade: TradeSession, me: String, them: String) -> void:
 	if trade.stage == TradeSession.Stage.OFFERING:
 		_actions.add_child(_button("Accepted" if mine_yes else "Accept",
 			func() -> void: _say(TradeBooth.set_accepted(not mine_yes))))
-		var status := Label.new()
-		status.text = "%s has accepted." % TradeBooth.partner_name() if theirs_yes \
-			else "%s has not accepted." % TradeBooth.partner_name()
-		status.add_theme_font_size_override("font_size", 13)
-		status.add_theme_color_override("font_color",
-			Color("9fd48a") if theirs_yes else Color("b8ae98"))
-		_actions.add_child(status)
+		_actions.add_child(_status(theirs_yes,
+			"%s has accepted." % TradeBooth.partner_name(),
+			"%s has not accepted." % TradeBooth.partner_name()))
 	else:
 		var mine_done: bool = trade.has_confirmed(me)
 		_actions.add_child(_button("Confirmed" if mine_done else "Confirm",
@@ -421,6 +488,14 @@ func _draw_actions(trade: TradeSession, me: String, them: String) -> void:
 			# agrees again from the first screen.
 			_say(TradeBooth.offer_uids(_on_table())))
 		)
+		# **The same standing question as the first screen, and it was missing
+		# here.** This is the screen where a player waits, and waiting without
+		# being told what for reads as the window having hung. It also tells you
+		# the one thing worth knowing before pressing Confirm: whether pressing
+		# it settles the trade or only starts the wait.
+		_actions.add_child(_status(trade.has_confirmed(them),
+			"%s has confirmed." % TradeBooth.partner_name(),
+			"%s has not confirmed." % TradeBooth.partner_name()))
 	_actions.add_child(_button("Cancel", func() -> void:
 		TradeBooth.cancel("%s cancelled the trade." % _own_name())))
 
@@ -462,6 +537,17 @@ func _describe(piece: Dictionary) -> String:
 	var name: String = kind.display_name if kind != null else "Gear"
 	return "%s %s  ·  level %d" % [Stash.rarity_name(piece), name,
 		int(piece.get("level", 1))]
+
+
+## Where the other player is, in the one line the actions row has room for.
+func _status(done: bool, yes: String, no: String) -> Label:
+	var status := Label.new()
+	status.text = yes if done else no
+	status.add_theme_font_size_override("font_size", 13)
+	status.add_theme_color_override("font_color",
+		Color("9fd48a") if done else Color("b8ae98"))
+	status.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return status
 
 
 func _button(text: String, action: Callable) -> Button:

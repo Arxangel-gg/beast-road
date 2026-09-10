@@ -9,6 +9,10 @@ extends Node
 ## which is how it shipped invisible for as long as it did.
 
 func _ready() -> void:
+	# Held for the whole run: this tool edits `MetaState`, and a tool that
+	# edits the account must never be able to write it to the player's disk.
+	# See `save_guard_check`, which finds these by reading them.
+	MetaState.hold_saves()
 	MetaState.settings["tutorial_seen"] = true
 	MetaState.story_intro_seen = true
 	RunState.reset(false, 271828182)

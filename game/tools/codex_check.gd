@@ -10,8 +10,27 @@ extends Node
 
 var _failures: int = 0
 
+## The player's save file, byte for byte, put back before this exits.
+var _save_before: String = ""
+var _save_existed: bool = false
+
 
 func _ready() -> void:
+	# **The one tool that may not hold saves, and so has to clean up instead.**
+	#
+	# Every other gate that edits `MetaState` calls `hold_saves()` and is done -
+	# see `save_guard_check`. This one cannot: the promise it exists to check is
+	# that a discovery survives *being written to disk and read back*, and a held
+	# save would make the reload return whatever was already in the file. So it
+	# does the real round trip and hands the player their own bytes back
+	# afterwards, on every exit path.
+	_save_existed = FileAccess.file_exists(MetaState.SAVE_PATH)
+	if _save_existed:
+		var file: FileAccess = FileAccess.open(MetaState.SAVE_PATH, FileAccess.READ)
+		if file != null:
+			_save_before = file.get_as_text()
+			file.close()
+
 	MetaState.codex_seen.clear()
 	_check(MetaState.seen_count("enemy") == 0, "a cleared codex must know nothing")
 
@@ -50,12 +69,37 @@ func _ready() -> void:
 	_check(total > 20, "there must be something to find, counted %d" % total)
 	print("[codex] %d sections, %d entries to find" % [CodexScreen.SECTIONS.size(), total])
 
+	_restore_the_save()
 	if _failures == 0:
 		print("[codex] PASS - discoveries record once, keep their kinds, and "
 			+ "survive a reload")
 	else:
 		printerr("[codex] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## Puts the player's file back exactly as it was found.
+##
+## Held from here on as well, so nothing that runs during shutdown - an autosave
+## on exit, a settings write - can put the probe entries back after this.
+func _restore_the_save() -> void:
+	MetaState.hold_saves()
+	if not _save_existed:
+		if FileAccess.file_exists(MetaState.SAVE_PATH):
+			DirAccess.remove_absolute(
+				ProjectSettings.globalize_path(MetaState.SAVE_PATH))
+		return
+	if _save_before.is_empty():
+		return
+	var file: FileAccess = FileAccess.open(MetaState.SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		_failures += 1
+		printerr("[codex] FAIL: could not put the player's save back")
+		return
+	file.store_string(_save_before)
+	file.close()
+	# And back into memory, so nothing downstream is looking at probe state.
+	MetaState.load_save()
 
 
 func _check(condition: bool, why: String) -> void:
