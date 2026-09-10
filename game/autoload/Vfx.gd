@@ -66,6 +66,7 @@ const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshad
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_load_particle_art()
 	_build_screen_layer()
 
 	EventBus.tower_fired.connect(_on_tower_fired)
@@ -163,6 +164,31 @@ func _process(delta: float) -> void:
 
 
 ## Called by a scope when it becomes the active world.
+## Authored particle art, loaded once. Missing files leave every effect exactly
+## as it was - this layer is an addition, so a damaged install degrades to the
+## procedural shapes rather than to nothing.
+const RING_TEXTURE_PATH: String = "res://art/vfx/vfx_ring.png"
+const SPARK_TEXTURE_PATH: String = "res://art/vfx/vfx_spark.png"
+
+## How much of the ring texture's width the drawn ring actually covers: 98 of
+## 128 pixels. Measured rather than assumed, and kept beside the path so that
+## redrawing the art means updating one number here.
+const RING_ART_FILL: float = 98.0 / 128.0
+
+## And how much of the spark texture's width its teardrop covers: 8 of 32.
+const SPARK_ART_FILL: float = 8.0 / 32.0
+
+var _ring_texture: Texture2D = null
+var _spark_texture: Texture2D = null
+
+
+func _load_particle_art() -> void:
+	if ResourceLoader.exists(RING_TEXTURE_PATH):
+		_ring_texture = load(RING_TEXTURE_PATH) as Texture2D
+	if ResourceLoader.exists(SPARK_TEXTURE_PATH):
+		_spark_texture = load(SPARK_TEXTURE_PATH) as Texture2D
+
+
 func bind_world(node: Node2D) -> void:
 	world = node
 	_container = null
@@ -254,6 +280,42 @@ func spark(at: Vector2, colour: Color, count: int = 8, direction: Vector2 = Vect
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		tween.tween_property(shard, "modulate:a", 0.0, life)
 		tween.chain().tween_callback(shard.queue_free)
+		_spark_mote(shard, dir * length, colour, life)
+
+
+## The hot head of a shard. Same additive contract as `_ring_bloom`: a child of
+## the streak, tinted by `self_modulate`, carried and faded by the parent's tween.
+##
+## The streak is what reads as *speed*; the mote is what reads as *matter*. Sat
+## at the leading end rather than the origin, because a shard that fades from its
+## own tail is what debris does and a lit dot at the back is what a bug looks like.
+func _spark_mote(shard: Line2D, tip: Vector2, colour: Color, life: float) -> void:
+	if _spark_texture == null:
+		return
+	var mote := Sprite2D.new()
+	mote.texture = _spark_texture
+	mote.centered = true
+	mote.position = tip
+	# The drawn shape is a teardrop with its fat, bright end at local +Y and its
+	# taper at -Y, so the head faces the direction of travel at angle - 90deg.
+	# Facing it along +X instead - the obvious guess - lays the droplet broadside
+	# to its own flight, which reads as tumbling debris rather than a hot mote.
+	mote.rotation = tip.angle() - PI * 0.5
+	mote.self_modulate = Color(colour.r, colour.g, colour.b, 0.9)
+	# Sized against the *drawn* width, not the canvas: the art fills 8 of 32
+	# pixels across, so measuring the file would have made every mote a quarter
+	# of its intended size - which is exactly what the first version did, and it
+	# was invisible on screen rather than wrong-looking.
+	var span: float = maxf(float(_spark_texture.get_width()), 1.0) * SPARK_ART_FILL
+	# 1.8x the streak's own width. Wider and the head swallows the line that is
+	# carrying the sense of speed; the streak is the motion, this is only the
+	# matter at the front of it.
+	var born: float = shard.width * 1.8 / span
+	mote.scale = Vector2.ONE * born
+	shard.add_child(mote)
+	# Shrinking rather than growing: the piece is cooling as it flies, and a mote
+	# that swelled while its streak faded would read as an approaching object.
+	mote.create_tween().tween_property(mote, "scale", Vector2.ONE * born * 0.35, life)		.set_ease(Tween.EASE_IN)
 
 
 ## An expanding ring. Reads as force in a way a flash does not.
@@ -298,6 +360,53 @@ func ring(at: Vector2, to_radius: float, colour: Color, life: float = 0.35, widt
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(line, "modulate:a", 0.0, life)
 	tween.chain().tween_callback(line.queue_free)
+	_ring_bloom(line, to_radius, colour, life)
+
+
+## The authored rim, laid *under* the procedural ring rather than instead of it.
+##
+## `ring` and `spark` are the two workhorses of this file - 38 and 35 call sites
+## between them, most of what a player ever sees - and both drew bare geometry: a
+## polyline circle and coloured line segments. The sprite gives the shockwave a
+## soft body and a falloff a one-pixel line cannot have, while the polyline keeps
+## the crisp leading edge that reads as the *front* of the wave.
+##
+## Deliberately additive rather than a replacement. Frames on top of procedural
+## motion is how the rest of this project animates: the transform sells the
+## movement and the art sells the material. A sprite scaled on its own would just
+## be a fading disc.
+##
+## It is a *child* of the ring, for three reasons that each cost a bug elsewhere:
+## the `VFX_MAX_LIVE` cap counts direct children of the container, so a tracked
+## sibling would have halved the effective budget; a child dies with its parent,
+## so there is no second lifetime to leak; and `modulate` is inherited, so the
+## ring's own fade carries the bloom out with it and the two can never desync.
+##
+## Scaling is safe here in a way it explicitly is not for the Line2D above - a
+## Sprite2D has no width in local units to be multiplied by the transform.
+##
+## The texture is drawn white so `modulate` can tint it to whatever the caller
+## asked for. A coloured source multiplies into mud the moment somebody asks for
+## blue.
+func _ring_bloom(line: Line2D, to_radius: float, colour: Color, life: float) -> void:
+	if _ring_texture == null:
+		return
+	var glow := Sprite2D.new()
+	glow.texture = _ring_texture
+	glow.centered = true
+	# Behind the polyline, so the crisp edge stays the thing the eye lands on.
+	glow.z_index = -1
+	glow.self_modulate = Color(colour.r, colour.g, colour.b, 0.55)
+	# The drawn ring does not reach the edge of its own canvas - it occupies 98 of
+	# the texture's 128 pixels - so scaling by diameter alone lands the bloom
+	# inside the polyline by about a fifth of the radius, which reads as two
+	# separate rings rather than one with a body. The first version did exactly
+	# that. Scale by the *visible* span instead.
+	var span: float = maxf(float(_ring_texture.get_width()), 1.0) / RING_ART_FILL
+	glow.scale = Vector2.ONE * (8.0 / span)
+	line.add_child(glow)
+	var tween: Tween = glow.create_tween()
+	tween.tween_property(glow, "scale", Vector2.ONE * (to_radius * 2.0 / span), life)		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 
 ## Floating damage text. Rises, drifts and fades.

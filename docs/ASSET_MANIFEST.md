@@ -1692,6 +1692,31 @@ placement, the same way it does in the ground tiles.
 | `pool_earth.png` | 128×128 | T | `#B07A3E` |
 | `pool_air.png` | 128×128 | T | `#BFE6F0` |
 
+### 5.18b Shared particle art — `res://art/vfx/`
+
+The two shapes the whole game is built out of. A caller count across the effects
+autoload put the expanding ring at 38 sites and the outward spark burst at 35 -
+between them roughly three quarters of every effect a player ever sees - and
+both were drawing bare geometry: a polyline circle and coloured line segments.
+Every element-specific asset above sits on top of those two, so this is the
+cheapest square inch of art in the project.
+
+Both are drawn white and tinted at runtime by the caller's colour, which is why
+there is one of each rather than one per element. A coloured source multiplies
+into mud the moment somebody asks for blue, and the callers ask for blue, green,
+red, gold and the four elements.
+
+They add to the procedural motion rather than replacing it. The polyline still
+draws the crisp leading edge of the wave and the sprite gives it a body; the
+line segment still carries the streak of a shard and the sprite gives it a hot
+head. A missing file costs the softness and nothing else - both effects still
+run, exactly as they did before this art existed.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `vfx_ring.png` | 128×128 | T | `#FFFFFF` |
+| `vfx_spark.png` | 32×32 | T | `#FFFFFF` |
+
 ### 5.16 Raid — `res://art/raid/`
 
 | File | Size | Type | Placeholder colour |
