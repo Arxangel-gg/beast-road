@@ -73,6 +73,7 @@ func _ready() -> void:
 	_test_tiers_and_persistence()
 	_test_stash_economy()
 	_test_gear_farming()
+	_test_gear_pickup_escalates()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
 	_test_tools_and_sigils()
@@ -2278,6 +2279,42 @@ func _check(condition: bool, message: String) -> void:
 ##    blacksmith exists to pose has one answer.
 ## 4. **The stash outlives a haul.** Capacity below what an act drops turns the
 ##    reward into an auto-break notification.
+## Finding a better piece has to *feel* better, and the tables that make it so
+## have to cover every rarity.
+##
+## Five parallel arrays indexed by rarity is a shape that breaks silently: one
+## short array is an out-of-range crash at the exact moment a player picks up
+## the best thing they have ever found, which is the worst possible time and the
+## hardest to reproduce. The escalation itself is the design claim - a Runed
+## piece must land harder than a Fine one - and the quiet bottom is the other
+## half of it, because a celebration that fires on every Worn buckle trains the
+## player to ignore the one that matters.
+func _test_gear_pickup_escalates() -> void:
+	var tiers: int = Stash.RARITY_NAMES.size()
+	var tables: Dictionary = {
+		"ring radius": Balance.GEAR_PICKUP_RING,
+		"ring life": Balance.GEAR_PICKUP_RING_LIFE,
+		"rays": Balance.GEAR_PICKUP_RAYS,
+		"flash": Balance.GEAR_PICKUP_FLASH,
+		"shake": Balance.GEAR_PICKUP_SHAKE,
+	}
+	for name: String in tables:
+		var table: Array = tables[name] as Array
+		_check(table.size() == tiers,
+			"gear pickup %s has %d entries for %d rarities" % [name, table.size(), tiers])
+		for i: int in table.size() - 1:
+			_check(float(table[i + 1]) >= float(table[i]),
+				"gear pickup %s falls from rarity %d to %d" % [name, i, i + 1])
+	# The two loudest channels stay off for the two commonest finds.
+	_check(Balance.GEAR_PICKUP_FLASH[0] <= 0.0 and Balance.GEAR_PICKUP_FLASH[1] <= 0.0,
+		"a common gear drop flashes the screen")
+	_check(Balance.GEAR_PICKUP_SHAKE[0] <= 0.0 and Balance.GEAR_PICKUP_SHAKE[1] <= 0.0,
+		"a common gear drop shakes the camera")
+	# And the best find is unmistakably the loudest thing the loot system does.
+	_check(Balance.GEAR_PICKUP_SHAKE[tiers - 1] > 0.0,
+		"the top rarity does not move the camera, so nothing in loot ever does")
+
+
 func _test_gear_farming() -> void:
 	# 1. Odds. Stated as "a hundred kills is very likely to pay", which is the
 	# player-facing claim, rather than as the constant itself - the number may

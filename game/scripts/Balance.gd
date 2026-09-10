@@ -306,6 +306,36 @@ const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
 	Color("b486d9"), Color("e8b85c")]
 
+# --- What finding a piece feels like -----------------------------------------
+#
+# Rarity already drove the *glow on the ground*: a legendary lies there shining
+# gold and a Worn one barely registers. What it did not drive was the moment of
+# picking it up - every rarity got the same ring, the same sound and the same
+# grey line of text. The best thing that can happen while farming gear looked
+# identical to the most ordinary, which is the one place in a loot game the
+# feedback must not be flat.
+#
+# Everything below is indexed by the five rarities, and the shape of every array
+# is the same argument: the bottom two are deliberately unremarkable, because a
+# celebration that fires on every Worn buckle is not a celebration, it is noise
+# with a colour.
+
+## Ring radius at the pickup, per rarity.
+const GEAR_PICKUP_RING: Array[float] = [58.0, 70.0, 96.0, 140.0, 210.0]
+
+## How long that ring takes to open. Slower reads as bigger.
+const GEAR_PICKUP_RING_LIFE: Array[float] = [0.30, 0.32, 0.40, 0.52, 0.70]
+
+## Rays thrown off the pickup. Zero for the bottom two: nothing happened.
+const GEAR_PICKUP_RAYS: Array[int] = [0, 0, 8, 14, 22]
+
+## Peak screen flash in the rarity's own colour. The top two only.
+const GEAR_PICKUP_FLASH: Array[float] = [0.0, 0.0, 0.0, 0.07, 0.16]
+
+## Camera kick. Reserved for the top rarity, so the screen moves for exactly one
+## thing in the loot system and the player learns what that thing is.
+const GEAR_PICKUP_SHAKE: Array[float] = [0.0, 0.0, 0.0, 0.0, 7.0]
+
 ## Marks paid for finishing a run, before the tier multiplier.
 const RUN_MARKS_REWARD: int = 45
 

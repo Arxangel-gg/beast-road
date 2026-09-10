@@ -326,11 +326,20 @@ func _collect(who: Hero = null) -> void:
 		var title: String = kind.display_name if kind != null else "Gear"
 		var outcome: String = "taken to the stash" if stored \
 			else "stash full  ·  broken into %d Shards" % salvaged
-		EventBus.preparation_warning.emit("%s  %s  ·  %s" % [
-			Stash.rarity_name(gear), title, outcome])
+		# The banner escalates with the ring, so the words and the light agree.
+		# A Runed find that the screen flashes for and the text mentions in the
+		# same grey sentence as a Worn buckle reads as a bug in one of the two.
+		var rarity: int = clampi(int(gear.get("rarity", 0)), 0,
+			Stash.RARITY_NAMES.size() - 1)
+		if rarity >= 3:
+			EventBus.preparation_warning.emit("%s %s  ·  %s" % [
+				Stash.rarity_name(gear).to_upper(), title.to_upper(), outcome])
+		else:
+			EventBus.preparation_warning.emit("%s  %s  ·  %s" % [
+				Stash.rarity_name(gear), title, outcome])
 		EventBus.gear_collected.emit(gear, stored, salvaged, global_position)
 		Sfx.play_group("loot_collect")
-		Vfx.ring(global_position, _glow_size * 0.55, _glow_colour, 0.32, 4.0)
+		_celebrate_gear()
 		_burst()
 	elif amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
@@ -342,6 +351,38 @@ func _collect(who: Hero = null) -> void:
 		_burst()
 		EventBus.loot_collected.emit(currency, amount, global_position)
 	_dissolve_and_free()
+
+
+## The pickup, sized to what was picked up.
+##
+## Every rarity used to get the same 0.32-second ring. The glow on the ground
+## already said "this one is gold" and then the moment of taking it said nothing
+## at all - so the single best event in a loot game landed with the same weight
+## as a Worn buckle, and a player farming for hours had no beat to farm *for*.
+##
+## The bottom two rarities are deliberately left almost alone. A flash and a
+## camera kick on every common drop is not celebration, it is a screen that
+## twitches constantly and teaches the player to ignore it. Rays start at Fine,
+## the flash at Runed, and the camera moves for Oathbound and nothing else in
+## this system - so when it does move, it means one thing.
+func _celebrate_gear() -> void:
+	var rarity: int = clampi(int(gear.get("rarity", 0)), 0,
+		Balance.GEAR_PICKUP_RING.size() - 1)
+	Vfx.ring(global_position, Balance.GEAR_PICKUP_RING[rarity], _glow_colour,
+		Balance.GEAR_PICKUP_RING_LIFE[rarity], 4.0)
+	var rays: int = Balance.GEAR_PICKUP_RAYS[rarity]
+	if rays > 0:
+		Vfx.rays(global_position, _glow_colour, rays,
+			Balance.GEAR_PICKUP_RING[rarity] * 0.7, randf() * TAU)
+	var flash: float = Balance.GEAR_PICKUP_FLASH[rarity]
+	if flash > 0.0:
+		Vfx.flash(_glow_colour, flash, 0.42)
+	var shake: float = Balance.GEAR_PICKUP_SHAKE[rarity]
+	if shake > 0.0:
+		# Through the bus rather than by finding a camera. The battlefield and
+		# the raid both own one, and a drop has no business knowing which scope
+		# it is lying in (working rule 5).
+		EventBus.camera_shake_requested.emit(shake, 0.38)
 
 
 ## Reads the plan, and hands over the first bow.
