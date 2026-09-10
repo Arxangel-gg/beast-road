@@ -95,10 +95,19 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
 - [x] **v0.8.0 published** (2026-09-10, tag `v0.8.0`, commit `6a00d2b`). Both
   Release jobs green; six assets attached; `releases/latest` resolves
   unauthenticated to v0.8.0 and the launcher and Windows zip both serve real
-  bytes (HTTP 206). **Not yet smoke-tested as a player would get it** - the
-  v0.7.0 row above is the standard, and nobody has downloaded, extracted and
-  run *this* build. That is the next thing to do, not something this row
-  claims.
+  bytes (HTTP 206). **Smoke-tested as a player would get it**: the release
+  `BeastRoad-windows.zip` was downloaded, extracted and run, and it boots to a
+  fully rendered main menu with **zero errors and zero warnings** across 1,327
+  log lines and empty stderr. The three merchant resources and both new VFX
+  textures load from the exported pack, so the build contains what this tag
+  says it does.
+  Two of the launches exited within ten seconds before this was pinned down.
+  That was the harness, not the game: those runs were killed when a preceding
+  `Get-Process` failure terminated the PowerShell pipeline under
+  `ErrorActionPreference = 'Stop'`, taking the child with it. A clean launch
+  survives its whole watch and writes the full startup log. Noted because
+  "it quit after six seconds" is exactly the kind of observation that should
+  either be a blocker or be explained, and it is explained.
   What it contains: the merchant system (three vendors, travelling until
   enough business settles them permanently), authored art for the two effect
   primitives that carry three quarters of the game's VFX, rarity-scaled gear
