@@ -85,6 +85,32 @@ enum TargetPriority {
 ## Flat armour granted to other towers in the same lane.
 @export var lane_armour_bonus: float = 0.0
 
+# --- Healing wells ------------------------------------------------------------
+#
+# Owner brief, 2026-09-10: "players should also be able to build healing wells
+# that fill up over time and can grant players who drink from them a bit of
+# healing similar to the ones in diablo, placed as towers".
+#
+# **Two fields rather than a new `Role`.** The role enum is read in a dozen
+# places - targeting doctrines, the build sheet, the codex - and adding an arm
+# to it would mean every one of them growing a branch for a thing that does not
+# fight. Every other behaviour a tower can have that is not shooting is already
+# expressed the same way: `taunts`, `ground_zone_dps`, `lane_armour_bonus` are
+# fields, not roles, and adding a field is what working rule 3 means by "adding
+# content must mean adding a file".
+#
+# **What a well costs is a tower.** It occupies a slot on a road that could have
+# held something that kills, and that is the whole balance of it: no separate
+# currency, no cooldown to tune against the wave table. A player who builds two
+# is a player who has chosen to defend with fewer guns.
+
+## Health one draught restores, or 0 for a tower that shoots instead.
+@export var well_heal: float = 0.0
+
+## Seconds to draw one draught. A well that refilled quickly would be a
+## regeneration aura with a roof on it.
+@export var well_refill_seconds: float = 18.0
+
 
 ## Borrow another tower's art. Same escape hatch `EnemyData` already has, and
 ## used for the same reason: eight new towers shipped as data before their
@@ -183,6 +209,12 @@ func interval_at(level: int) -> float:
 
 func utility_at(level: int) -> float:
 	return Balance.TOWER_LEVEL_UTILITY[_level_index(level)]
+
+
+## Whether this tower heals rather than shoots. Asked in one place so the answer
+## cannot drift between the tower, the build sheet and the gate.
+func is_well() -> bool:
+	return well_heal > 0.0
 
 
 func range_at(level: int) -> float:

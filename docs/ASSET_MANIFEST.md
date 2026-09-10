@@ -391,6 +391,7 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_pyre_cannon.png` | Fire | `#C4552E` |
 | `tower_rime_lance.png` | Frost | `#7FA6BF` |
 | `tower_hoarfrost_bell.png` | Frost | `#7FA6BF` |
+| `tower_healing_well.png` | Frost | `#7FA6BF` |
 | `tower_bulwark.png` | Stone | `#7A6E5C` |
 | `tower_shard_thrower.png` | Stone | `#7A6E5C` |
 | `tower_arc_coil.png` | Storm | `#9B8FC4` |
@@ -426,6 +427,7 @@ Files: `tower_gale_turret_idle_01.png` … `tower_gale_turret_idle_03.png`
 Files: `tower_glacial_mortar_idle_01.png` … `tower_glacial_mortar_idle_03.png`
 Files: `tower_glacier_idle_01.png` … `tower_glacier_idle_03.png`
 Files: `tower_grit_sling_idle_01.png` … `tower_grit_sling_idle_03.png`
+Files: `tower_healing_well_idle_01.png` … `tower_healing_well_idle_03.png`
 Files: `tower_hoarfrost_bell_idle_01.png` … `tower_hoarfrost_bell_idle_03.png`
 Files: `tower_magma_idle_01.png` … `tower_magma_idle_03.png`
 Files: `tower_pyre_cannon_idle_01.png` … `tower_pyre_cannon_idle_03.png`
@@ -469,6 +471,7 @@ Files: `tower_ember_spire_attack_01.png` … `tower_ember_spire_attack_03.png`
 Files: `tower_firestorm_attack_01.png` … `tower_firestorm_attack_03.png`
 Files: `tower_gale_turret_attack_01.png` … `tower_gale_turret_attack_03.png`
 Files: `tower_glacier_attack_01.png` … `tower_glacier_attack_03.png`
+Files: `tower_healing_well_attack_01.png` … `tower_healing_well_attack_03.png`
 Files: `tower_hoarfrost_bell_attack_01.png` … `tower_hoarfrost_bell_attack_03.png`
 Files: `tower_magma_attack_01.png` … `tower_magma_attack_03.png`
 Files: `tower_quake_attack_01.png` … `tower_quake_attack_03.png`

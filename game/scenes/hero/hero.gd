@@ -995,6 +995,23 @@ func drink_healing_orb(points: float) -> void:
 		EventBus.preparation_warning.emit(drop.pickup_line % gained)
 
 
+## Drinks a draught from a healing well.
+##
+## Separate from the orb because the two are different objects with different
+## costs - an orb is found, a well is built - and a player should be able to
+## tell which one just healed them from the colour and the line alone.
+func drink_from_well(points: float) -> void:
+	if health == null or health.is_dead or points <= 0.0:
+		return
+	var before: float = health.current_hp
+	health.heal(points)
+	var gained: int = int(round(health.current_hp - before))
+	if gained <= 0:
+		return
+	Vfx.number(combat_origin(), float(gained), Balance.WELL_COLOUR, false)
+	EventBus.preparation_warning.emit("HEALING WELL  ·  +%d health" % gained)
+
+
 func apply_mender_spark() -> void:
 	if health == null or health.is_dead:
 		return

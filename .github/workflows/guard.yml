@@ -328,6 +328,9 @@ jobs:
           # Healing orbs and supply crates: rare, scaled to what dropped them,
           # and capped so neither can pay for a mistake the curve punishes.
           check "recovery drops" --headless --path game res://tools/recovery_drop_check.tscn
+          # A healing well fills, pours once for somebody genuinely hurt, and
+          # does not become a regeneration aura the wave curve is blind to.
+          check "healing wells" --headless --path game res://tools/healing_well_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
           # carries on when one will not parse, so the dictionary goes quietly
           # short and every gate over that content keeps passing on what did

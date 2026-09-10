@@ -211,11 +211,93 @@ func _process(delta: float) -> void:
 	# on different cooldowns - the same drift the enemies themselves used to have.
 	if puppet:
 		return
+	if data.is_well():
+		_pour(delta)
+		return
 	var targets: Array[Enemy] = _acquire_targets()
 	if targets.is_empty():
 		return
 	_cooldown = data.interval_at(level)
 	_fire(targets)
+
+
+# --- Healing wells ------------------------------------------------------------
+#
+# Owner brief, 2026-09-10. A well fills over time and a hero who comes to it
+# drinks; see `TowerData` for why it is two fields rather than a new role, and
+# what the design says it costs.
+#
+# **The refill runs on the same `_cooldown` every other tower uses.** It is
+# already decremented above at the Command Overdrive rate, already paused
+# outside command combat, and already reset by the same upgrade path - so a well
+# inherits every rule about when a tower is allowed to act rather than inventing
+# a parallel set that would drift from them.
+
+var _draught_ready: bool = false
+
+
+## Fills the well, and pours for whoever comes to it.
+##
+## Called only once the shared cooldown has elapsed, which is what "filled"
+## means here. Nothing pours while nobody needs it: the draught waits, so a
+## player who arrives hurt gets the one that has been standing ready rather than
+## one that timed out into an empty basin.
+func _pour(delta: float) -> void:
+	if not _draught_ready:
+		_draught_ready = true
+		Vfx.ring(global_position, 54.0, Balance.WELL_COLOUR, 0.5, 3.0)
+	var thirsty: Hero = _thirstiest_hero()
+	if thirsty == null:
+		return
+	var healed: float = data.well_heal * (1.0
+		+ float(maxi(level - 1, 0)) * Balance.WELL_HEAL_PER_LEVEL)
+	thirsty.drink_from_well(healed)
+	_draught_ready = false
+	# **The pour is the well's firing pose.** Every tower authors three, and the
+	# art gate demands them from a well too - which looked at first like a rule
+	# that did not fit, and is actually the right one: a well that healed you
+	# without visibly doing anything is a tower that never animates. `kick` is
+	# the one place that starts the sequence, so the well uses it and inherits
+	# the timing, the recoil direction and the frame stepping unchanged.
+	kick(thirsty.combat_origin())
+	_cooldown = well_refill_seconds()
+	Vfx.ring(global_position, data.range_at(level) * Balance.WELL_DRINK_RANGE_SHARE,
+		Balance.WELL_COLOUR, 0.42, 4.0)
+	Vfx.spark(global_position, Balance.WELL_COLOUR, 8,
+		(thirsty.combat_origin() - global_position).normalized(), 190.0)
+
+
+## Seconds this well takes to draw its next draught, bounded below so a maxed
+## one is still a well rather than a fountain.
+func well_refill_seconds() -> float:
+	var share: float = 1.0 - float(maxi(level - 1, 0)) * Balance.WELL_REFILL_PER_LEVEL
+	return maxf(data.well_refill_seconds * maxf(share, 0.1), Balance.WELL_MIN_REFILL)
+
+
+## The hero in reach who has actually lost something worth pouring for.
+##
+## The *most* hurt of them, so in co-op a full draught is not spent on whichever
+## partner happened to walk past first while the other is nearly down.
+func _thirstiest_hero() -> Hero:
+	var reach: float = data.range_at(level) * Balance.WELL_DRINK_RANGE_SHARE
+	var best: Hero = null
+	var worst: float = 1.0 - Balance.WELL_MIN_MISSING_FRACTION
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not who.is_alive() or who.health == null:
+			continue
+		if who.combat_origin().distance_to(global_position) > reach:
+			continue
+		var ratio: float = who.health.ratio()
+		if ratio < worst:
+			worst = ratio
+			best = who
+	return best
+
+
+## Whether the next draught is drawn. For the HUD and the gate.
+func draught_ready() -> bool:
+	return _draught_ready
 
 
 func effective_damage() -> float:

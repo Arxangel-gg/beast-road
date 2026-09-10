@@ -1804,6 +1804,30 @@ const TOWER_ELEMENT_SECONDARY_COST: Array[int] = [0, 6, 10, 8]
 
 ## Fallback for anything without a role, and the figure the opening-economy
 ## checks are written against.
+## How much a well's draught grows per tower level, as a share of the authored
+## figure. Upgrading a well should be worth doing and must not out-run the curve,
+## so it uses the same shape as every other tower upgrade rather than a new one.
+const WELL_HEAL_PER_LEVEL: float = 0.22
+
+## How much faster a well refills per level, as a share taken off the wait.
+## Bounded below by `WELL_MIN_REFILL` so a maxed well is still a well.
+const WELL_REFILL_PER_LEVEL: float = 0.10
+const WELL_MIN_REFILL: float = 6.0
+
+## A hero has to be this close to drink, as a share of the tower's range. Wells
+## use the range field for the same reason towers do, but a drink is an arm's
+## length rather than a shot.
+const WELL_DRINK_RANGE_SHARE: float = 0.42
+
+## A well will not pour for somebody who has barely been scratched. Without it a
+## hero standing beside one is permanently topped up, which is a regeneration
+## aura rather than a well.
+const WELL_MIN_MISSING_FRACTION: float = 0.12
+
+## The pale blue of drawn water, used by every flourish a well makes so they all
+## read as the same object.
+const WELL_COLOUR: Color = Color(0.56, 0.84, 0.94, 0.85)
+
 const TOWER_BUILD_COST: int = 70
 
 ## Combination towers cost more than either parent. [TUNE]

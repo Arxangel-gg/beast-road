@@ -74,6 +74,10 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"cinder_lance", "glacial_mortar",
 	"stonewatch", "zephyr_needle",
 	"ashen_censer", "stormvane",
+	# The well is last on purpose. It is the only tower that does not shoot, and
+	# a player offered one before they have learned what a road costs them will
+	# read it as a worse gun rather than as a trade.
+	"healing_well",
 ]
 
 var unlocked_towers: Array[String] = []

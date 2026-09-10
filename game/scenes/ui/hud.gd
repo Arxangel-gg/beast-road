@@ -189,6 +189,11 @@ const MESSAGE_TOUCH_TOP: float = 130.0
 ## collision had been there and unmeasured.
 const MESSAGE_HALF: float = 400.0
 const MESSAGE_TOUCH_HALF: float = 288.0
+
+## How long a banner line may be. Measured rather than guessed: at font size 22
+## the narrowest layout gives the banner 576 pixels, and a line of this many
+## characters fits inside it with room for the ones that are all capitals.
+const MESSAGE_MAX_CHARS: int = 52
 const STATE_LABEL_TOP: float = 132.0
 const STATE_LABEL_TOUCH_TOP: float = 172.0
 
@@ -718,6 +723,20 @@ func _build_top_bar() -> void:
 	add_child(_recovery_status)
 
 	_message = _label("", 22)
+	# **The banner must never be wider than the space it was given.**
+	#
+	# A `Label`'s minimum size is its text, and a Control is never laid out
+	# smaller than its minimum - so a long enough line pushes the box past the
+	# offsets `_fit_centred` set and out into whatever is down the right-hand
+	# side. It has now done that twice on the phone-landscape gate, first with a
+	# merchant arriving and then with a spirit discovery, and each time the fix
+	# looked like "shorten that one string".
+	#
+	# It is not that. Any feature can add a long line, and the next one will.
+	# Clipping makes the minimum width zero, which is what actually bounds the
+	# box; `_show_message` keeps the text short enough that the clip is a
+	# backstop rather than something a player ever sees.
+	_message.clip_text = true
 	_message.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_message.offset_top = MESSAGE_TOP
 	_fit_centred(_message, MESSAGE_HALF)
@@ -1871,9 +1890,25 @@ func _on_command_order_used(order_id: String, _lane: int, _slot: int, _at: Vecto
 ## lines of centred gold text on top of each other is not a layout problem that
 ## moving one of them 40 pixels solves.
 func _show_message(text: String) -> void:
-	_message.text = text
+	_message.text = _trimmed(text)
 	_message_left = 3.0
 	_clear_region_card()
+
+
+## The banner's text, cut to something that fits the banner.
+##
+## Trimmed at a word rather than mid-syllable, and only when it has to be. The
+## cap is generous - most lines in the game are well inside it - and exists so
+## that a new feature's announcement cannot silently push the box into the
+## quiver strip the way a merchant arrival and a spirit discovery both did.
+func _trimmed(text: String) -> String:
+	if text.length() <= MESSAGE_MAX_CHARS:
+		return text
+	var cut: String = text.substr(0, MESSAGE_MAX_CHARS)
+	var space: int = cut.rfind(" ")
+	if space > MESSAGE_MAX_CHARS / 2:
+		cut = cut.substr(0, space)
+	return cut + "…"
 
 
 func _clear_region_card() -> void:
