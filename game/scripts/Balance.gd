@@ -1547,6 +1547,14 @@ const VIGIL_COMMAND_RADIUS: float = TOWN_RADIUS * 3.0
 const RISING_FURY_RAMP_SECONDS: float = 4.0
 const RISING_FURY_RESET_SECONDS: float = 1.5
 
+## How long `hunters_pulse` speeds the hero after a support kill. [TUNE]
+##
+## "Marked support kills grant a short speed burst" - short, and the support is
+## the Howler, the body that buffs the ones around it. Three seconds is about
+## the time it takes to cross to the next knot of enemies, which is what the
+## burst is for: the reward for killing the leader is reaching the next one.
+const HUNTERS_PULSE_SECONDS: float = 3.0
+
 ## Build spots along each lane, town-outward, for both flanks of the road.
 ##
 ## Six per road rather than three: the same inner/middle/outer trio, mirrored to

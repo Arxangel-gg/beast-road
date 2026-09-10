@@ -154,6 +154,9 @@ var _downed: bool = false
 ## by having to fight is supposed to lose ground.
 var _revive_progress: float = 0.0
 
+## Seconds left on Hunter's Pulse. See `move_speed`.
+var _pulse_left: float = 0.0
+
 ## Where this hero comes back to.
 ##
 ## **Two heroes must not share one**, which is what the origin was. A team wipe
@@ -235,6 +238,7 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health.evaded.connect(_on_evaded)
+	EventBus.enemy_died.connect(_on_enemy_died)
 	health.changed.connect(_on_health_changed)
 	attack.lunge_requested.connect(_on_lunge_requested)
 	# **Not joined here.** Presence is owned by `set_present`, which the scope
@@ -534,6 +538,11 @@ func move_speed() -> float:
 		bonus += sanctum.effect_at(RunState.building_tier("sanctum"))
 	bonus += Modifiers.value(Modifiers.HERO_SPEED)
 	bonus += _veil_speed_bonus
+	# **Hunter's Pulse.** "Marked support kills grant a short speed burst."
+	# Summed with the others rather than multiplied, so it cannot compound with
+	# Swiftness or a relic into a number nobody predicted.
+	if _pulse_left > 0.0:
+		bonus += DisciplineEffects.trained_value("support_kill_speed")
 	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
 
@@ -721,6 +730,28 @@ func respawn_from_wipe() -> void:
 ## dodge that hit harder would be a second scale nobody is tuning against - what
 ## a good dodge earns is the *chance to act*, which is what it opens in the
 ## fiction too.
+## **Hunter's Pulse**, which promised "marked support kills grant a short speed
+## burst" and did nothing: `support_kill_speed` was one of twenty-one discipline
+## effects with no consumer anywhere in the codebase.
+##
+## The Howler is the support - it is the body that buffs the ones around it, and
+## `enemy.gd` already asks `_nearby_howler()` before every blow. So this pays for
+## the same play the morale system teaches: kill the one holding the others
+## together, and the reward is the tempo to reach the next knot.
+##
+## The role is read from the breed rather than carried on the signal, because
+## `enemy_died(id, at)` is a typed EventBus fact and widening it for one node
+## would be a contract change (working rule 5).
+func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
+	if not is_alive() or not DisciplineEffects.trained("support_kill_speed"):
+		return
+	var breed: EnemyData = ContentDB.enemy(enemy_id)
+	if breed == null or breed.role != EnemyData.Role.HOWLER:
+		return
+	_pulse_left = Balance.HUNTERS_PULSE_SECONDS
+	Vfx.ring(global_position, 96.0, Balance.HERO_EVADE_COLOUR, 0.22, 3.0)
+
+
 func _on_evaded(into: float, from: Vector2) -> void:
 	if into > Balance.HERO_PERFECT_EVADE_WINDOW:
 		return
@@ -820,6 +851,7 @@ func _tick_timers(delta: float) -> void:
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_beast_stun_left = maxf(_beast_stun_left - delta, 0.0)
 	_beast_impulse = _beast_impulse.move_toward(Vector2.ZERO, 260.0 * delta)
+	_pulse_left = maxf(_pulse_left - delta, 0.0)
 	if _veil_left > 0.0:
 		_veil_left = maxf(_veil_left - delta, 0.0)
 		if _veil_left <= 0.0:

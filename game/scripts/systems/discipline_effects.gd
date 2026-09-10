@@ -42,6 +42,7 @@ const IMPLEMENTED: Array[String] = [
 	"defense_radiant_finisher",
 	"town_dodge_command",
 	"active_attack_speed",
+	"support_kill_speed",
 ]
 
 ## Authored, described to the player, and not yet read by anything.
@@ -65,7 +66,6 @@ const DECLARED_ONLY: Array[String] = [
 	"revive_knockback",
 	"road_line_disrupt",
 	"selected_road_shockwave",
-	"support_kill_speed",
 	"tempest_heal_cap",
 	"tower_damage_brand",
 	"tower_haste",
