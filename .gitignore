@@ -93,3 +93,7 @@ desktop.ini
 # sheets in game/art/hero/ are what the game loads. Kept out of the repo so the
 # clone stays small; re-pack with tools/pack_hero_frames.py.
 art_inbox/Pixellab/
+
+# Editor lock artefacts: Windows leaves a ~-prefixed copy of a DLL it could
+# not replace while the editor had it open.
+~*
