@@ -50,6 +50,7 @@ decision being made a second time, so it needs an owner, not an agent.
 | Ranged weapons, ammo, blueprints, crafting (not in v4) | absent from the spec | **DECIDED 2026-08-31: build them. See below.** |
 | Gear as the reason to replay (no loot loop in v4) | not in the spec | **DECIDED 2026-09-01: farm gear. See below.** |
 | Companions as temporary spell effects (§54 cuts "party roster") | v4 keeps the cut | **DECIDED 2026-09-01: Wildlife Spirit Companions persist. See below.** |
+| Disciplines as an anti-specialisation draft | every node open to everyone at once | **DECIDED 2026-09-09: the trees have paths. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -129,6 +130,49 @@ defence for the opening waves and a tower-only model divides by nothing there.
 build without the economy being its subject must fund itself with
 `RunState.gain_every_currency` — three of them were silently leaning on the old
 390-Gold cache.
+
+**The discipline trees have paths, as of 2026-09-09.** The owner reported the
+skill tree as "not interesting or smart/intuitive" and asked for something closer
+to a Diablo tree. That is a re-cut of a decision the code was making
+deliberately, so it is recorded rather than quietly built.
+
+**What it was.** Three disciplines of ten nodes, gated only by `mansion_tier` —
+a *building* level, not anything the player chose. So all thirty were available
+to everybody at the same time, and `refresh_discipline_offers` went further and
+forced at least one off-discipline offer "rather than letting synergy turn into
+a forced mono-build". A Blood hero differed from a Holy one only by which four
+things happened to be slotted. There was no path, so no commitment, so no build.
+
+**What it is.** A node now also wants *depth in its own discipline*: tier 1 opens
+a tree, tier 2 wants one node already in it, tier 3 wants two. Nine nodes are
+open at the start — three per tree — and training in one opens that one. Measured:
+one Blood node takes Blood from 3 eligible to 6, two takes it to 8, while Holy
+and Berserk stay at 3.
+
+**The anti-mono-build rule stays, and stops being a straitjacket.** It was there
+to prevent specialisation from being forced; now specialisation is *bought*, and
+the rule only guarantees a visible alternative. Breadth is a real choice with a
+real cost — three shallow trees instead of one deep one — rather than the only
+option.
+
+**Counted, not graphed.** A node names a depth rather than particular
+predecessors. A count cannot author an unreachable node the way a hand-drawn
+graph can, and this project has already lost `call_wolf` to exactly that failure
+once. `discipline_check` no longer samples from a standing start either — it
+*walks* each seed, taking an offer and seeing what the next road opens, favouring
+each discipline in turn. Sampling from zero trained would have asserted the tree
+away, because a tier-3 node is now supposed to be out of reach to a player who
+has trained nothing.
+
+**The bound is that depth buys access, never power.** Nothing here raises a
+number. A deep tree opens *more nodes to choose from*; the nodes themselves are
+the same nodes, on the same capped scales as levelling and gear (working rule 7).
+If depth ever starts granting magnitude, that is a third power scale beside
+levelling and gear and it needs its own decision.
+
+Two further stages were asked for in the same breath and are **not** built:
+node-to-node synergies, and whether the per-road draft should be replaced by
+freely spending skill points. Do not treat the paths above as either of those.
 
 **Ranged combat, ammunition, blueprints and crafting are in scope, as of
 2026-08-31.** None of them appears in v4. The owner asked for all four after

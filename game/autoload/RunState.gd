@@ -533,15 +533,37 @@ func discipline_node_in_slot(slot: int) -> DisciplineNodeData:
 	return ContentDB.discipline_node(equipped_discipline_slots[slot])
 
 
+## How many nodes are trained in each discipline, keyed by
+## `DisciplineNodeData.Discipline`. What a node's `required_depth` is measured
+## against, and what the Mansion shows when a node is still out of reach.
+func discipline_depth() -> Dictionary:
+	var depth: Dictionary = {}
+	for id: String in trained_discipline_nodes:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node == null:
+			continue
+		depth[node.discipline] = int(depth.get(node.discipline, 0)) + 1
+	return depth
+
+
 func refresh_discipline_offers() -> void:
 	discipline_offers.clear()
 	var mansion_tier: int = building_tier("sanctum")
 	if mansion_tier <= 0:
 		return
+	var depth: Dictionary = discipline_depth()
 	var eligible: Array[DisciplineNodeData] = []
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.mansion_tier <= mansion_tier and not trained_discipline_nodes.has(node.id):
-			eligible.append(node)
+		if node.mansion_tier > mansion_tier or trained_discipline_nodes.has(node.id):
+			continue
+		# **Depth in the node's own discipline, which is what makes this a tree.**
+		# The Mansion tier says what the *building* has unlocked; this says what
+		# the player has committed to. Without it all thirty nodes were available
+		# to everyone at once and no run's hero differed from another's except by
+		# which four happened to be slotted.
+		if int(depth.get(node.discipline, 0)) < node.required_depth():
+			continue
+		eligible.append(node)
 	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
 	# the panel, while the next road still produces a new set.
 	#

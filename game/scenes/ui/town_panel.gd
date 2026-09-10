@@ -589,6 +589,40 @@ func _mansion_training(tier: int) -> void:
 		+ "Food. Only the three offers below can be trained on this road; the "
 		+ "next road offers three more.")
 
+	# **What committing to a discipline has bought.**
+	#
+	# Depth gates which nodes can be offered at all, and a rule the player cannot
+	# see is a rule they experience as the game being arbitrary - the offers
+	# simply look different this road and nothing says why. Reported as the tree
+	# being unintuitive, so the standing is shown before the offers that it
+	# decided.
+	var depth: Dictionary = RunState.discipline_depth()
+	var tree_names: Array[String] = ["Blood", "Holy", "Berserk"]
+	actions.add_child(_heading("Your disciplines"))
+	var deepest: int = 0
+	for which: int in tree_names.size():
+		deepest = maxi(deepest, int(depth.get(which, 0)))
+	for which: int in tree_names.size():
+		var have: int = int(depth.get(which, 0))
+		var locked: int = 0
+		var open_now: int = 0
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.discipline != which or RunState.trained_discipline_nodes.has(node.id):
+				continue
+			if have < node.required_depth():
+				locked += 1
+			else:
+				open_now += 1
+		var line: String = "%s  ·  %d trained  ·  %d open" % [
+			tree_names[which], have, open_now]
+		if locked > 0:
+			line += "  ·  %d deeper node%s need%s more here" % [
+				locked, "" if locked == 1 else "s", "s" if locked == 1 else ""]
+		_note(line)
+	if deepest == 0:
+		_note("Every discipline starts with three nodes open. Training in one "
+			+ "opens its deeper nodes; spreading wide keeps all three shallow.")
+
 	if RunState.discipline_offers.is_empty():
 		RunState.refresh_discipline_offers()
 	actions.add_child(_heading("This road's offers"))

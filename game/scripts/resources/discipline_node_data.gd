@@ -21,6 +21,34 @@ enum Role { ATTACK, DEFENSE, POWER, PASSIVE, ULTIMATE, AUGMENT }
 @export var effect_id: String = ""
 @export var effect_value: float = 0.0
 
+## **How deep into this node's own discipline the player must already be.**
+##
+## The trees used to be three flat lists gated only by Mansion tier, which is a
+## *building* level rather than anything the player chose - so every node was
+## available to everyone at the same time and a Blood hero differed from a Holy
+## one only by which four things happened to be slotted. There was no path, and
+## so no commitment and no build identity. Reported as the tree being
+## "not interesting or smart/intuitive"; owner asked for Diablo-style paths on
+## 2026-09-09.
+##
+## Counted rather than graphed: a node needs N nodes of the *same* discipline
+## trained before it can be offered, instead of naming particular predecessors.
+## Two reasons. A count cannot author an unreachable node the way a hand-drawn
+## graph can - `discipline_check` caught exactly that failure once already, when
+## a hash rotation left `call_wolf` unofferable across 480 roads. And it leaves
+## the shape of a tree to the tiers that already exist rather than inventing a
+## second structure to keep in step with them.
+##
+## -1 derives it from the tier, which is the intended shape: tier 1 opens a
+## discipline, tier 2 wants one node in it, tier 3 wants two. Authoring a value
+## overrides that for a node that should sit deeper or shallower than its tier.
+@export var requires_depth: int = -1
+
+
+## Nodes of this discipline that must already be trained before this is offered.
+func required_depth() -> int:
+	return requires_depth if requires_depth >= 0 else maxi(mansion_tier - 1, 0)
+
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("icons/disciplines", "discipline_", id)

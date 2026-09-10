@@ -102,16 +102,42 @@ func _test_every_node_can_be_offered() -> void:
 	RunState.building_tiers["sanctum"] = 3
 	RunState.trained_discipline_nodes = []
 
+	# **Walked, not sampled from a standing start.**
+	#
+	# This used to clear the trained list once and read the offers, which was the
+	# right test while the trees were flat: every node was available to everybody
+	# from the first road. Since 2026-09-09 a node also wants depth in its own
+	# discipline, so a tier-3 Blood node is *supposed* to be unreachable to a
+	# player who has trained nothing - asserting otherwise would assert the tree
+	# away.
+	#
+	# So each seed now plays a run instead: take an offer, which deepens that
+	# discipline, and see what the next road opens. A node counts as reachable if
+	# some path of choices reaches it. Every discipline is walked as the
+	# preferred one in turn, because a Blood specialist must not be what proves
+	# the Holy ultimate reachable.
 	var offered: Dictionary = {}
 	for seed_index: int in 40:
-		RunState.run_seed = 1000 + seed_index * 7919
-		for segment: int in 12:
-			RunState.segment = segment
-			RunState.wave_number = segment * 3
-			RunState.act = 1 + (segment % 3)
-			RunState.refresh_discipline_offers()
-			for id: String in RunState.discipline_offers:
-				offered[id] = true
+		for favour: int in 3:
+			RunState.run_seed = 1000 + seed_index * 7919
+			RunState.trained_discipline_nodes = []
+			for segment: int in 12:
+				RunState.segment = segment
+				RunState.wave_number = segment * 3
+				RunState.act = 1 + (segment % 3)
+				RunState.refresh_discipline_offers()
+				var take: String = ""
+				for id: String in RunState.discipline_offers:
+					offered[id] = true
+					var node: DisciplineNodeData = ContentDB.discipline_node(id)
+					# Prefer the favoured discipline, so depth actually accrues
+					# somewhere rather than spreading one node per tree.
+					if node != null and node.discipline == favour:
+						take = id
+					elif take.is_empty():
+						take = id
+				if not take.is_empty():
+					RunState.trained_discipline_nodes.append(take)
 
 	var missing: PackedStringArray = []
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
