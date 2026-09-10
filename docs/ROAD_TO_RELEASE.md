@@ -92,6 +92,17 @@ documented in `PRODUCTION_READABILITY_2026-09-07.md`.
   (HTTP 206), `releases/latest` resolves unauthenticated, and the Dropbox mirror
   serves the game zip. Nobody had ever run a published artifact before; CI only
   ever proved it *exported*.
+- [x] **v0.8.0 published** (2026-09-10, tag `v0.8.0`, commit `6a00d2b`). Both
+  Release jobs green; six assets attached; `releases/latest` resolves
+  unauthenticated to v0.8.0 and the launcher and Windows zip both serve real
+  bytes (HTTP 206). **Not yet smoke-tested as a player would get it** - the
+  v0.7.0 row above is the standard, and nobody has downloaded, extracted and
+  run *this* build. That is the next thing to do, not something this row
+  claims.
+  What it contains: the merchant system (three vendors, travelling until
+  enough business settles them permanently), authored art for the two effect
+  primitives that carry three quarters of the game's VFX, rarity-scaled gear
+  pickups, Mercy Under Fire, and the town/HUD layout fixes those exposed.
 - [x] **The "browser build hangs on the splash" blocker was my testing error and
   is retracted** (2026-09-08). It was recorded here as a `[ ]` blocker on
   evidence that turned out to have one cause outside the game: the browser pane
