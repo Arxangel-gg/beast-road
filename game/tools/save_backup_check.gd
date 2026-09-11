@@ -109,15 +109,73 @@ func _ready() -> void:
 		and FileAccess.file_exists(v6_backup) \
 		and FileAccess.get_file_as_string(v6_backup) == v6_text
 	print("[save] v6 Chronicle migration=%s" % str(v6_valid))
-	for path: String in [save_path, backup, migration_backup, v6_backup]:
+
+	# The write itself. The save used to be opened in place, which truncates it
+	# before the new contents land, so a crash inside the write left a file the
+	# loader could not parse - and the loader then let the next save overwrite
+	# it. Four properties close that, and each is asserted on its own so a
+	# regression names which one went.
+	var atomic_path: String = fixture_dir.path_join("atomic.json")
+	var atomic_temp: String = atomic_path + MetaState.SAVE_TEMP_SUFFIX
+	var first_text: String = JSON.stringify({"version": MetaState.SAVE_VERSION, "n": 1})
+	var second_text: String = JSON.stringify({"version": MetaState.SAVE_VERSION, "n": 2})
+	var wrote_new: bool = MetaState.write_text_atomically(atomic_path, first_text) \
+			and FileAccess.get_file_as_string(atomic_path) == first_text \
+			and not FileAccess.file_exists(atomic_temp)
+	var wrote_over: bool = MetaState.write_text_atomically(atomic_path, second_text) \
+			and FileAccess.get_file_as_string(atomic_path) == second_text \
+			and not FileAccess.file_exists(atomic_temp)
+	print("[save] atomic write: fresh=%s replaces=%s" % [str(wrote_new), str(wrote_over)])
+
+	# A finished sibling with no committed file beside it is the instant between
+	# the engine's remove and its rename. It is the newest complete save, and it
+	# is adopted rather than lost.
+	var orphan_path: String = fixture_dir.path_join("orphan.json")
+	var orphan_temp: String = orphan_path + MetaState.SAVE_TEMP_SUFFIX
+	var orphan_file: FileAccess = FileAccess.open(orphan_temp, FileAccess.WRITE)
+	orphan_file.store_string(first_text)
+	orphan_file.close()
+	var adopted: bool = MetaState.read_committed_text(orphan_path) == first_text \
+			and FileAccess.file_exists(orphan_path) and not FileAccess.file_exists(orphan_temp)
+	print("[save] orphaned temp adopted=%s" % str(adopted))
+
+	# A sibling beside a committed file may be half-written. The committed one
+	# wins and the sibling goes, so it cannot be mistaken for a newer save later.
+	var stale_temp_file: FileAccess = FileAccess.open(atomic_temp, FileAccess.WRITE)
+	stale_temp_file.store_string("{\"version\": 7, \"unl")
+	stale_temp_file.close()
+	var committed_wins: bool = MetaState.read_committed_text(atomic_path) == second_text \
+			and not FileAccess.file_exists(atomic_temp)
+	print("[save] committed file wins over a leftover temp=%s" % str(committed_wins))
+
+	# A save that cannot be parsed is kept, byte for byte, before it is ignored.
+	# Through the instance parser, which stays silent: the static one prints an
+	# engine ERROR, and every gate here fails on that line.
+	var broken: String = "{\"version\": 7, \"unlocked\": {\"towers\": [\"" + marker
+	var unreadable_backup: String = fixture_dir.path_join("unreadable.corrupt.bak.json")
+	var parsed_quietly: bool = MetaState.parse_save_text(broken).is_empty() \
+			and MetaState.parse_save_text("").is_empty() \
+			and int(MetaState.parse_save_text(first_text).get("n", 0)) == 1
+	var kept_broken: bool = MetaState.back_up_unreadable(broken, unreadable_backup) == unreadable_backup \
+			and FileAccess.get_file_as_string(unreadable_backup) == broken
+	# And never overwritten by a later, different corruption.
+	MetaState.back_up_unreadable("something else", unreadable_backup)
+	var kept_first_broken: bool = FileAccess.get_file_as_string(unreadable_backup) == broken
+	print("[save] unreadable save parsed quietly=%s kept=%s first copy kept=%s"
+		% [str(parsed_quietly), str(kept_broken), str(kept_first_broken)])
+	var write_valid: bool = wrote_new and wrote_over and adopted and committed_wins \
+			and parsed_quietly and kept_broken and kept_first_broken
+
+	for path: String in [save_path, backup, migration_backup, v6_backup, atomic_path,
+			atomic_temp, orphan_path, orphan_temp, unreadable_backup]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 	if not (kept and intact and still and migration_kept and migration_valid and v2_valid \
-			and v6_valid):
-		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s v2=%s v6=%s"
+			and v6_valid and write_valid):
+		push_error("save backup failed: kept=%s intact=%s survived=%s migration=%s/%s v2=%s v6=%s write=%s"
 			% [str(kept), str(intact), str(still), str(migration_kept),
-				str(migration_valid), str(v2_valid), str(v6_valid)])
+				str(migration_valid), str(v2_valid), str(v6_valid), str(write_valid)])
 		get_tree().quit(1)
 		return
 	for _f: int in 5:

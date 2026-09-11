@@ -16,6 +16,16 @@ const SAVE_PATH: String = "user://beast_road_save.json"
 ## each rather than each overwriting the last.
 const SAVE_BACKUP_PATH: String = "user://beast_road_save.v%d.bak.json"
 
+## Where a save this build cannot even *parse* is preserved before the account
+## starts fresh. Stamped with the time rather than a version, because a broken
+## file has no version to read - and each one is kept, since the second corrupt
+## copy tells support something the first did not.
+const SAVE_UNREADABLE_BACKUP_PATH: String = "user://beast_road_save.unreadable.%d.bak.json"
+
+## The sibling a save is written to before it replaces the real one. See
+## `write_text_atomically` for why the save is never written in place.
+const SAVE_TEMP_SUFFIX: String = ".tmp"
+
 ## Bumped when the schema changes so an old file can be migrated or discarded.
 const SAVE_VERSION: int = 7
 
@@ -950,13 +960,98 @@ func saves_held() -> bool:
 func save_game() -> void:
 	if _saves_held > 0:
 		return
-	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		push_warning("MetaState: could not open save for writing: %s" % SAVE_PATH)
+	if not write_text_atomically(SAVE_PATH, serialized_save()):
+		push_warning("MetaState: could not write the save: %s" % SAVE_PATH)
 		return
-	file.store_string(serialized_save())
-	file.close()
 	save_written.emit()
+
+
+## Writes `text` to `path` without ever leaving a half-written file there.
+##
+## The save used to be opened for writing in place, which truncates it to zero
+## bytes before the first byte of the new contents lands. A crash, a power cut
+## or the browser tab closing inside that window left a file the loader could
+## not parse - and it is written dozens of times a run, on every first codex
+## sighting and every piece of gear picked up. The next launch would then have
+## started a fresh account over it, which for this game means the stash, the
+## hero and every Ledger order, none of it recoverable from anywhere.
+##
+## So the contents go to a sibling first and are renamed over the original only
+## once they are complete. On Windows the engine's rename is a remove followed
+## by a rename, so there is still one instant with no committed file and a
+## finished sibling; `read_committed_text` adopts the sibling in that case.
+static func write_text_atomically(path: String, text: String) -> bool:
+	var temp: String = path + SAVE_TEMP_SUFFIX
+	var file: FileAccess = FileAccess.open(temp, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(text)
+	file.close()
+	if DirAccess.rename_absolute(temp, path) != OK:
+		# The original is untouched; the sibling would only confuse the next
+		# read, so it goes rather than being left to look like a newer save.
+		DirAccess.remove_absolute(temp)
+		return false
+	return true
+
+
+## The committed contents of `path`, or "" when there is no save at all.
+##
+## Two leftovers are possible from `write_text_atomically`, and they mean
+## opposite things. A sibling with **no** committed file beside it is a write
+## that finished and a rename that did not: the sibling is the newest complete
+## save and is adopted. A sibling **beside** a committed file is a write that
+## did not get as far as the rename, and may be incomplete: the committed file
+## wins and the sibling is removed.
+static func read_committed_text(path: String) -> String:
+	var temp: String = path + SAVE_TEMP_SUFFIX
+	if not FileAccess.file_exists(path):
+		if not FileAccess.file_exists(temp):
+			return ""
+		if DirAccess.rename_absolute(temp, path) != OK:
+			return ""
+	elif FileAccess.file_exists(temp):
+		DirAccess.remove_absolute(temp)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var text: String = file.get_as_text()
+	file.close()
+	return text
+
+
+## Parses save text into its dictionary, or an empty one if it is not a save.
+##
+## A `JSON` instance rather than `JSON.parse_string`, because the static call
+## prints an engine ERROR line on bad input. A corrupt save is a condition this
+## code handles, not an engine failure, and every gate in this project fails on
+## that line.
+static func parse_save_text(text: String) -> Dictionary:
+	if text.is_empty():
+		return {}
+	var json: JSON = JSON.new()
+	if json.parse(text) != OK or not (json.data is Dictionary):
+		return {}
+	return json.data as Dictionary
+
+
+## Keeps a copy of a save that could not be parsed, and names where it went.
+##
+## Never overwrites: each copy is stamped, so a player whose file breaks twice
+## keeps both. Returns "" if nothing could be written, which the caller reports
+## rather than treating as success.
+static func back_up_unreadable(text: String, test_path: String = "") -> String:
+	var path: String = test_path
+	if path.is_empty():
+		path = SAVE_UNREADABLE_BACKUP_PATH % int(Time.get_unix_time_from_system())
+	if FileAccess.file_exists(path):
+		return path
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_string(text)
+	file.close()
+	return path
 
 
 ## The exact payload written by save_game(). Release gates use this to time an
@@ -1027,20 +1122,24 @@ func serialized_save() -> String:
 
 
 func load_save() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	var text: String = read_committed_text(SAVE_PATH)
+	if text.is_empty():
+		if FileAccess.file_exists(SAVE_PATH):
+			push_warning("MetaState: the save is empty; starting fresh.")
 		return
-	var file: FileAccess = FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		push_warning("MetaState: could not open save for reading: %s" % SAVE_PATH)
-		return
-	var text: String = file.get_as_text()
-	file.close()
 
-	var parsed: Variant = JSON.parse_string(text)
-	if not (parsed is Dictionary):
-		push_warning("MetaState: save file is not a JSON object; ignoring it.")
+	var data: Dictionary = parse_save_text(text)
+	if data.is_empty():
+		# Kept before it is ignored. The old behaviour warned and returned, and
+		# the next save_game() then wrote a fresh account over the only copy of
+		# what the player had - the one loss in this project nothing can undo.
+		var kept: String = back_up_unreadable(text)
+		if kept.is_empty():
+			push_warning("MetaState: the save could not be read and no copy could be kept; starting fresh.")
+		else:
+			push_warning("MetaState: the save could not be read; kept a copy at %s and started fresh."
+				% kept)
 		return
-	var data: Dictionary = parsed
 
 	# An unknown version is discarded rather than half-read - but never before a
 	# copy is kept.
