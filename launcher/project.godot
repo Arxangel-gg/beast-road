@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Beast Road Launcher"
-config/description="Installs, updates and runs Beast Road."
+config/name="Wilderhold Launcher"
+config/description="Installs, updates and runs Wilderhold."
 run/main_scene="res://scenes/launcher.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/show_image=false

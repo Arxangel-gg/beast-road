@@ -121,7 +121,7 @@ func _build_uninstall() -> void:
 		releases_button.get_parent().move_child(_uninstall_button, 0)
 
 	_uninstall_dialog = ConfirmationDialog.new()
-	_uninstall_dialog.title = "Uninstall Beast Road"
+	_uninstall_dialog.title = "Uninstall Wilderhold"
 	_uninstall_dialog.ok_button_text = "Uninstall"
 	_uninstall_dialog.confirmed.connect(_do_uninstall)
 	var column := VBoxContainer.new()

@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Beast Road"
+config/name="Wilderhold"
 config/description="A 2D action tower-defense roguelite. One hero, four lanes, can't be everywhere."
 
 ; The save directory, pinned so the title can change without moving it.

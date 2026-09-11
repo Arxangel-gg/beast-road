@@ -37,7 +37,7 @@ const LINE_GAP: float = 1.5
 ## is one of it, it is short, and a `.tres` for a single block of text is filing
 ## rather than data-driving.
 const CREDITS: Array[String] = [
-	"BEAST ROAD",
+	"WILDERHOLD",
 	"",
 	"Design and direction",
 	"Arxangel",

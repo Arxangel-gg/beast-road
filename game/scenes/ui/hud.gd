@@ -2444,7 +2444,7 @@ func _on_touch_layout_changed(showing: bool) -> void:
 ## the second tween simply overwrites the first and the title is never seen.
 func _on_run_opened() -> void:
 	await get_tree().process_frame
-	announce("The road begins", "BEAST ROAD")
+	announce("The road begins", "WILDERHOLD")
 
 
 func _on_act_started(act: int, terrain_id: String) -> void:

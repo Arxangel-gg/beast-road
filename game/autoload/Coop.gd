@@ -487,7 +487,7 @@ func _lookup_external(port: int) -> void:
 		address = upnp.query_external_address()
 		# UDP: ENet is a UDP protocol, and mapping TCP would open the wrong door
 		# and report success while nothing could connect.
-		mapped = upnp.add_port_mapping(port, port, "Beast Road co-op",
+		mapped = upnp.add_port_mapping(port, port, "Wilderhold co-op",
 			"UDP") == UPNP.UPNP_RESULT_SUCCESS
 	_finish_lookup.call_deferred(address, mapped)
 

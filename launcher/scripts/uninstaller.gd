@@ -18,6 +18,12 @@ extends RefCounted
 ## Where the game keeps its saves. Godot's own layout, and the launcher's `user://`
 ## is the sibling directory - which is why this is derived from the launcher's
 ## rather than guessed at from an environment variable.
+##
+## **Still "Beast Road" after the rename to Wilderhold, on purpose.** The game
+## pins its user directory to the folder every save has ever lived in
+## (`use_custom_user_dir` in the game's project.godot), so the title changed and
+## the folder did not. Renaming this would point the uninstaller at an empty
+## folder and leave the real saves behind - harmless, but a lie in the dialog.
 const GAME_USER_DIR: String = "Beast Road"
 
 
