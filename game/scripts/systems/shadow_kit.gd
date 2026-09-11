@@ -187,6 +187,11 @@ static func add_contact_sized(target: Node2D, width: float,
 	return shadow
 
 
+## Below this, an occluder has no area worth triangulating. Half a pixel: large
+## enough to catch a collapsed shape, small enough that nothing real is refused.
+const MIN_CASTER_EXTENT: float = 0.5
+
+
 ## Adds a real light blocker, so shadow-casting lights throw a streak of this
 ## thing across the ground.
 ##
@@ -198,6 +203,22 @@ static func add_caster(target: Node2D, half_width: float, half_height: float,
 	# where most of the saving actually comes from - the light still runs its pass
 	# either way, but an empty one is nearly free.
 	if not Balance.SHADOW_CAST_ENABLED or target == null:
+		return null
+
+	# **An occluder with no area is a triangulation failure waiting for the right
+	# frame.**
+	#
+	# Every caller sizes this from a sprite - `texture.get_size() * scale` - and
+	# `scale` is animated. A body caught on the frame a spawn or squash tween has
+	# it at zero produces eight points on top of each other, and Godot reports
+	# "Invalid polygon data, triangulation failed", which fails CI as hard as an
+	# assertion does. That exact error has twice been a zero-sized shape in this
+	# project: the blade ribbon, and `Flame` at zero intensity.
+	#
+	# Refused rather than clamped. A shadow is decoration and the thing casting
+	# it is invisible at zero scale anyway, so the honest answer is not to make
+	# one - and skipping it means the next frame, at a real size, still gets one.
+	if absf(half_width) < MIN_CASTER_EXTENT or absf(half_height) < MIN_CASTER_EXTENT:
 		return null
 
 	var polygon := OccluderPolygon2D.new()

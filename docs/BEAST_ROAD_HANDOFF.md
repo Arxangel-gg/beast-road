@@ -467,12 +467,23 @@ GitHub Actions does the rest. Never build locally.
 
 ## 10. Known bugs, debt and risks
 
-**Open and unexplained:**
+**Open and unexplained — two intermittent CI failures, both in the same job:**
 
 - **`menu_layout_check` has SIGSEGV'd and timed out on Linux CI**, three times
   in one day, on commits touching no menu code. Bare re-runs pass. Recorded as
   *a timeout first*, with the hypothesis that it sits near the 240s ceiling.
   **The experiment to confirm that has not been run.**
+- **`breather` failed once with `Invalid polygon data, triangulation failed`**
+  and passed on a bare re-run of the same commit. That exact error has been a
+  real, reproducible bug here twice — the blade ribbon and `Flame` at zero
+  intensity — so it is worth chasing rather than dismissing. A third degenerate
+  path was found and closed while looking for it (`ShadowKit.add_caster` builds
+  an eight-point occluder from `texture.get_size() * sprite.scale`, and `scale`
+  is tweened through zero), but **that is a guard, not a confirmed fix**: the
+  source of this particular failure was never identified.
+
+  Both of these are 200-second-plus gates in the same job on a shared runner.
+  Whether that is a coincidence is the first thing worth checking.
 
 **Found this session, not fixed, and worth an hour each.** Both are frame
 confusions between an actor's *feet* (`global_position`) and its *body*

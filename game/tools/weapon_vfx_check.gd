@@ -43,6 +43,7 @@ func _ready() -> void:
 	_test_starting_weapon()
 	await _test_blade_sweep()
 	_test_blade_trail_is_never_degenerate()
+	_test_shadow_casters_are_never_degenerate()
 	_test_blade_tint()
 	await _test_bow_loose()
 
@@ -234,6 +235,44 @@ func _test_blade_trail_is_never_degenerate() -> void:
 			"at progress %.2f the ribbon encloses %.2f, which is nothing"
 				% [progress, _area(ribbon.polygon)])
 	ribbon.queue_free()
+
+
+## A shadow caster is sized from an animated sprite, so it can be asked for zero.
+##
+## **The third shape in this project to reach Godot's triangulator with no area.**
+## The blade ribbon was the first and `Flame` at zero intensity was the second;
+## both produced the same `Invalid polygon data, triangulation failed`, and the
+## second one failed a release. Every `add_caster` caller sizes the occluder from
+## `texture.get_size() * sprite.scale`, and `scale` is tweened - a body caught on
+## the frame a spawn or squash animation has it at zero asks for eight points on
+## top of each other.
+##
+## **This is a guard rather than a confirmed fix.** `breather` failed once on CI
+## with that error and passed on a bare re-run of the same commit, so the actual
+## source was never identified; this closes a real degenerate path of exactly the
+## right shape without claiming to be the one that fired.
+func _test_shadow_casters_are_never_degenerate() -> void:
+	var host := Node2D.new()
+	_layer.add_child(host)
+	for extent: Vector2 in [Vector2.ZERO, Vector2(0.0, 12.0), Vector2(12.0, 0.0)]:
+		var made: LightOccluder2D = ShadowKit.add_caster(host, extent.x, extent.y)
+		_check(made == null,
+			("a caster of %s was built; eight points with no area between them "
+				+ "is the triangulation failure that has cost this project a "
+				+ "release once already") % [extent])
+		if made != null:
+			made.queue_free()
+
+	# And a real size still gets a real occluder, or the guard has simply turned
+	# shadow casting off.
+	if Balance.SHADOW_CAST_ENABLED:
+		var real: LightOccluder2D = ShadowKit.add_caster(host, 14.0, 6.0)
+		_check(real != null, "an ordinary body no longer casts a shadow at all")
+		if real != null:
+			_check(_area(real.occluder.polygon) > 1.0,
+				"the occluder encloses %.2f, which is nothing"
+					% _area(real.occluder.polygon))
+	host.queue_free()
 
 
 ## Shoelace. Sign is irrelevant here - what matters is that it is not zero.
