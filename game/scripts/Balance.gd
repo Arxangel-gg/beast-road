@@ -1633,6 +1633,51 @@ const DISCIPLINE_TEMPEST_LIFESTEAL: float = 0.22
 ## not a downgrade - it is the same button doing the only useful thing left.
 const DISCIPLINE_HEAVY_RESISTANCE: float = 0.5
 
+# --- The seven spell riders (2026-09-11) -------------------------------------
+#
+# Each rides a spell that already worked and adds what its card said. None of
+# them raises a number the node did not author: magnitudes come off the node's
+# `effect_value`, and what lives here is shape - radii, windows, widths.
+
+## Iron Roar. How far the radial stagger reaches, how long it holds, and how
+## hard it shoves. The armour it grants lasts the veil plus this tail, because
+## the veil itself is already invulnerable and armour under it would be nothing.
+## [TUNE]
+const DISCIPLINE_ROAR_RADIUS: float = 200.0
+const DISCIPLINE_ROAR_STAGGER: float = 0.8
+const DISCIPLINE_ROAR_SHOVE: float = 340.0
+const DISCIPLINE_ROAR_ARMOR_TAIL: float = 4.0
+
+## Aegis Step. The shield field left where the hero stepped from: its reach,
+## and the share of a hero's health it wards each one who stands in it, once.
+## The node's `effect_value` is how long the field lasts. [TUNE]
+const DISCIPLINE_AEGIS_RADIUS: float = 140.0
+const DISCIPLINE_AEGIS_SHIELD_FRACTION: float = 0.12
+
+## Sanguine Guard. How long the recoverable window stays open after the veil,
+## and how much of the banked wound a landed swing wins back. [TUNE]
+const DISCIPLINE_WOUND_SECONDS: float = 6.0
+const DISCIPLINE_WOUND_RECOVER_PER_HIT: float = 0.35
+
+## Tremor's ground line. Reach as a multiple of the spell's own radius, the
+## half-width of the road it splits, and what a body on it suffers. [TUNE]
+const DISCIPLINE_LINE_REACH_SCALE: float = 2.0
+const DISCIPLINE_LINE_HALF_WIDTH: float = 90.0
+const DISCIPLINE_LINE_STAGGER: float = 0.9
+const DISCIPLINE_LINE_SHOVE: float = 300.0
+
+## Beast's Breath down the selected road. How far along the lane it carries,
+## how wide the road counts as, and how much of the damage is left at the far
+## end. [TUNE]
+const DISCIPLINE_ROAD_SHOCK_REACH: float = 900.0
+const DISCIPLINE_ROAD_SHOCK_HALF_WIDTH: float = 150.0
+const DISCIPLINE_ROAD_SHOCK_FALLOFF: float = 0.5
+const DISCIPLINE_ROAD_SHOCK_SHOVE: float = 420.0
+
+## Red Pursuit. How close to the line of a Rift Step a marked body must stand
+## to count as stepped through. [TUNE]
+const DISCIPLINE_PURSUIT_WIDTH: float = 70.0
+
 ## How far a predator will look for prey, against how far it looks for a fight.
 ##
 ## Under one on purpose. A hunting animal should notice the player and the

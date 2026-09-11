@@ -2257,8 +2257,11 @@ func _spell_in_slot(slot: int) -> SpellData:
 
 
 func _cast(slot: int) -> void:
+	# The body, exactly as `hero.gd` casts from. This passed the feet, so the
+	# same spell cast from the touch bar and from the keyboard originated a
+	# body-height apart and picked up slightly different targets.
 	if _hero != null and _hero.is_alive():
-		_hero.spells.try_cast(slot, _hero.aim_direction(), _hero.global_position)
+		_hero.spells.try_cast(slot, _hero.aim_direction(), _hero.combat_origin())
 
 
 func _update_spell_bar() -> void:

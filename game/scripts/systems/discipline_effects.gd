@@ -48,6 +48,15 @@ const IMPLEMENTED: Array[String] = [
 	"active_attack_speed",
 	"support_kill_speed",
 	"revive_knockback",
+	# The seven spell riders, wired 2026-09-11. Each rides a spell that already
+	# worked and adds the extra its card promised; `SpellCaster._rider` is where.
+	"armor_stagger",
+	"dash_shield_field",
+	"lane_cleanse",
+	"marked_dash_refund",
+	"recoverable_wound",
+	"road_line_disrupt",
+	"selected_road_shockwave",
 ]
 
 ## Authored, described to the player, and not yet read by anything.
@@ -56,18 +65,11 @@ const IMPLEMENTED: Array[String] = [
 ## `effect_value` sized for it. They are not design questions — they are unwritten
 ## implementations. Shortening this list is the work.
 const DECLARED_ONLY: Array[String] = [
-	"armor_stagger",
 	"block_finisher",
 	"consume_marks_burst",
-	"dash_shield_field",
 	"elite_extend_ultimate",
 	"isolated_crit",
-	"lane_cleanse",
-	"marked_dash_refund",
-	"recoverable_wound",
 	"repair_blocker_shields",
-	"road_line_disrupt",
-	"selected_road_shockwave",
 	"tower_haste",
 ]
 

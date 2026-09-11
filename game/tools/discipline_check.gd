@@ -8,8 +8,14 @@ var _finished: int = 0
 ## What the riders under test moved. Members rather than locals because the
 ## handlers that fill them are lambdas, and those capture by value.
 var _healed: float = 0.0
+var _armor_asked: Vector2 = Vector2.ZERO
+var _wound_asked: Vector3 = Vector3.ZERO
+var _refund_asked: float = 0.0
+
+## A stand-in hero for the cleanse test: it only has to say it was cleansed.
+const RECORDER_SOURCE: String = "extends Node2D\nvar cleansed: bool = false\nfunc cleanse_disables() -> void:\n\tcleansed = true\n"
 var _blinked_to: Vector2 = Vector2.INF
-const EXPECTED_TESTS: int = 4
+const EXPECTED_TESTS: int = 5
 
 
 func _ready() -> void:
@@ -79,6 +85,7 @@ func _ready() -> void:
 	await _test_second_wind_fires()
 	await _test_the_brand_reaches_the_towers()
 	await _test_the_riders_fire()
+	_test_the_wound_pool_recovers()
 
 	# **A script error aborts its own function and nothing else.**
 	# This gate printed PASS with three SCRIPT ERRORs above it, because the two
@@ -414,8 +421,42 @@ func _test_the_brand_reaches_the_towers() -> void:
 ## did nothing. A test that passes against the bug it was written for is worse
 ## than no test, and this project has shipped one before.
 func _test_the_riders_fire() -> void:
-	for effect_id: String in ["drain_command", "tempest_heal_cap", "heavy_reverse_pull"]:
+	for effect_id: String in ["drain_command", "tempest_heal_cap", "heavy_reverse_pull",
+			"armor_stagger", "dash_shield_field", "lane_cleanse", "recoverable_wound",
+			"road_line_disrupt", "selected_road_shockwave", "marked_dash_refund"]:
 		await _drive_rider(effect_id)
+	_finished += 1
+
+
+## Sanguine Guard's pool, on its own: harm is banked, a swing wins some back,
+## and the window closing takes the rest. The rider test above proves the node
+## asks for it; this proves the thing it asks for does what the card says.
+func _test_the_wound_pool_recovers() -> void:
+	var pool: Health = Health.new()
+	pool.max_hp = 100.0
+	add_child(pool)
+	pool.deferred_fraction = 0.28
+	pool.take_damage(50.0, Vector2.ZERO)
+	_check(is_equal_approx(pool.current_hp, 64.0),
+		"a 28%% guard should take 36 of a 50 blow, took %.1f" % (100.0 - pool.current_hp))
+	_check(is_equal_approx(pool.deferred(), 14.0),
+		"and bank the other 14, banked %.1f" % pool.deferred())
+	var won: float = pool.recover_deferred(0.5)
+	_check(is_equal_approx(won, 7.0) and is_equal_approx(pool.deferred(), 7.0),
+		"a landed blow should win back half the bank")
+	var owed: float = pool.settle_deferred()
+	_check(is_equal_approx(owed, 7.0) and is_equal_approx(pool.current_hp, 57.0),
+		"closing the window should take the rest, %.1f left" % pool.current_hp)
+	_check(pool.deferred_fraction == 0.0 and pool.deferred() == 0.0,
+		"and leave nothing banked and nothing guarded")
+	# Armour: a share turned away before the shield, so a ward pays only for
+	# what armour let by.
+	pool.damage_scale = 0.7
+	pool.add_shield(10.0)
+	pool.take_damage(50.0, Vector2.ZERO)
+	_check(is_equal_approx(pool.current_hp, 57.0 - 25.0),
+		"30%% armour under a 10 shield should let 25 of 50 through, hp %.1f" % pool.current_hp)
+	pool.queue_free()
 	_finished += 1
 
 
@@ -455,8 +496,16 @@ func _drive_rider(effect_id: String) -> void:
 	# an afternoon to this same line.
 	_healed = 0.0
 	_blinked_to = Vector2.INF
+	_armor_asked = Vector2.ZERO
+	_wound_asked = Vector3.ZERO
+	_refund_asked = 0.0
 	caster.heal_requested.connect(func(amount: float) -> void: _healed += amount)
 	caster.blink_requested.connect(func(to: Vector2) -> void: _blinked_to = to)
+	caster.armor_requested.connect(func(fraction: float, seconds: float) -> void:
+		_armor_asked = Vector2(fraction, seconds))
+	caster.wound_guard_requested.connect(func(fraction: float, delay: float, seconds: float) -> void:
+		_wound_asked = Vector3(fraction, delay, seconds))
+	caster.dash_refund_requested.connect(func(fraction: float) -> void: _refund_asked = fraction)
 
 	var body: Enemy = await _rider_body(field, effect_id)
 	if not _checked(body != null,
@@ -464,20 +513,52 @@ func _drive_rider(effect_id: String) -> void:
 		caster.queue_free()
 		field.queue_free()
 		return
-	body.global_position = Vector2(60.0, 0.0)
+	# Most riders want a body beside the cast. The two that run down the road
+	# want one *past* the spell's own reach, along the lane - which in a bare
+	# field is straight up - so the assertion cannot be satisfied by the spell
+	# the rider rides.
+	var offset: Vector2 = Vector2(60.0, 0.0)
+	if effect_id == "road_line_disrupt":
+		offset = Vector2(0.0, -400.0)
+	elif effect_id == "selected_road_shockwave":
+		offset = Vector2(0.0, -600.0)
+	body.global_position = offset
 	await get_tree().process_frame
 	# **Cast from where the game casts from.** `hero.gd` passes
 	# `combat_origin()`, which on a large body sits hundreds of pixels above its
 	# feet - and `enemies_near` measures to that same point. An origin taken from
 	# the feet frame put every target out of range and read exactly like three
 	# riders that never fired.
-	var from: Vector2 = body.combat_origin() - Vector2(60.0, 0.0)
+	var from: Vector2 = body.combat_origin() - offset
+
+	# The two riders that act on heroes rather than bodies need a hero to act
+	# on. A bare node in the heroes group is enough: one with a health pool for
+	# the shield field, one that records being cleansed.
+	var stand_in: Node2D = null
+	var stand_in_pool: Health = null
+	if effect_id == "dash_shield_field" or effect_id == "lane_cleanse":
+		stand_in = Node2D.new()
+		if effect_id == "lane_cleanse":
+			var recorder := GDScript.new()
+			recorder.source_code = RECORDER_SOURCE
+			recorder.reload()
+			stand_in.set_script(recorder)
+		else:
+			stand_in_pool = Health.new()
+			stand_in_pool.max_hp = 100.0
+			stand_in.add_child(stand_in_pool)
+		stand_in.add_to_group(Hero.GROUP_ANY)
+		add_child(stand_in)
+		stand_in.global_position = from
+		await get_tree().process_frame
 
 	var command_before: float = RunState.command
+	var body_hp_before: float = body.health.current_hp
 	caster.clear_cooldowns()
 	var went_off: bool = caster.try_cast(0, Vector2.RIGHT, from)
 	_check(went_off, "%s: the spell it rides would not cast at all" % effect_id)
 	await get_tree().process_frame
+	caster.tick(0.1, Vector2.RIGHT, from)
 
 	match effect_id:
 		"drain_command":
@@ -511,7 +592,49 @@ func _drive_rider(effect_id: String) -> void:
 						+ "against a body at y=%.0f - the body frame and the foot "
 						+ "frame have been mixed")
 						% [_blinked_to.y, body.global_position.y])
+		"armor_stagger":
+			_check(is_equal_approx(_armor_asked.x, node.effect_value),
+				"armor_stagger: asked for %.2f armour, the card says %.2f"
+					% [_armor_asked.x, node.effect_value])
+			_check(_armor_asked.y > spell.duration,
+				"armor_stagger: the armour must outlast the veil it rides, or it is nothing")
+			_check(body._hitstun_left > 0.0,
+				"armor_stagger: the body beside the roar was not staggered")
+		"dash_shield_field":
+			_check(caster.aegis_field_count() == 1,
+				"dash_shield_field: the step left no field behind it")
+			_check(stand_in_pool != null and stand_in_pool.shield() > 0.0,
+				"dash_shield_field: a hero standing in the field was not warded")
+			if stand_in_pool != null:
+				_check(is_equal_approx(stand_in_pool.shield(),
+						100.0 * Balance.DISCIPLINE_AEGIS_SHIELD_FRACTION),
+					"dash_shield_field: the ward is %.1f, not the authored share" % stand_in_pool.shield())
+		"lane_cleanse":
+			_check(stand_in != null and bool(stand_in.get("cleansed")),
+				"lane_cleanse: a hero on the warded ground was not cleansed")
+		"recoverable_wound":
+			_check(is_equal_approx(_wound_asked.x, node.effect_value),
+				"recoverable_wound: asked to bank %.2f, the card says %.2f"
+					% [_wound_asked.x, node.effect_value])
+			_check(is_equal_approx(_wound_asked.y, spell.duration) and _wound_asked.z > 0.0,
+				"recoverable_wound: the window must open when the veil ends and last a while")
+		"road_line_disrupt":
+			_check(body._hitstun_left > 0.0,
+				("road_line_disrupt: a body on the road past the tremor's own reach "
+					+ "was not disrupted, so the line is only the nova"))
+		"selected_road_shockwave":
+			_check(body.health.current_hp < body_hp_before,
+				("selected_road_shockwave: a body down the road past the nova's reach "
+					+ "took nothing, so the shockwave stops where the spell did"))
+		"marked_dash_refund":
+			_check(is_equal_approx(_refund_asked, node.effect_value),
+				"marked_dash_refund: stepping through priority prey refunded %.2f, the card says %.2f"
+					% [_refund_asked, node.effect_value])
+			_check(_blinked_to != Vector2.INF and is_equal_approx(_blinked_to.y, from.y),
+				"marked_dash_refund: the step itself must land level with where it left")
 
+	if stand_in != null:
+		stand_in.queue_free()
 	caster.queue_free()
 	body.queue_free()
 	await get_tree().process_frame

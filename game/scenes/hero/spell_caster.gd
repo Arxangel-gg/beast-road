@@ -17,6 +17,17 @@ signal veil_requested(duration: float, speed_bonus: float)
 ## The hero should be healed (Marrow Drain).
 signal heal_requested(amount: float)
 
+## Iron Roar: the hero should turn away `fraction` of harm for `seconds`.
+signal armor_requested(fraction: float, seconds: float)
+
+## Sanguine Guard: once the veil ends (`delay`), bank `fraction` of each blow
+## as a recoverable wound for `seconds`.
+signal wound_guard_requested(fraction: float, delay: float, seconds: float)
+
+## Red Pursuit: the hero stepped through marked prey and gets this share of the
+## dash cooldown back.
+signal dash_refund_requested(fraction: float)
+
 ## A spell resolved, for feedback and the HUD.
 signal spell_cast(slot: int, spell_id: String, at: Vector2)
 
@@ -43,6 +54,11 @@ var _beam_left: float = 0.0
 var _beam_spell: SpellData = null
 var _beam_aim: Vector2 = Vector2.RIGHT
 
+## Shield fields left by Aegis Step: where, how long, and who has already been
+## warded by it. Each hero is warded once per field, so standing in one is not
+## a regenerating pool - it is a thing you step into on the way past.
+var _aegis_fields: Array[Dictionary] = []
+
 
 func _ready() -> void:
 	_cooldowns.resize(Balance.HERO_MAX_SPELL_SLOTS)
@@ -68,6 +84,46 @@ func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 			_beam_spell = null
 	else:
 		_beam_aim = aim
+
+	_tick_aegis(delta)
+
+
+## Wards each hero standing in a live shield field, once per field.
+func _tick_aegis(delta: float) -> void:
+	if _aegis_fields.is_empty():
+		return
+	var heroes: Array[Node] = get_tree().get_nodes_in_group(Hero.GROUP_ANY)
+	for index: int in range(_aegis_fields.size() - 1, -1, -1):
+		var zone: Dictionary = _aegis_fields[index]
+		zone["left"] = float(zone["left"]) - delta
+		if float(zone["left"]) <= 0.0:
+			_aegis_fields.remove_at(index)
+			continue
+		var granted: Array = zone["granted"]
+		for node: Node in heroes:
+			var body := node as Node2D
+			if body == null or granted.has(body):
+				continue
+			if body.global_position.distance_to(zone["at"]) > Balance.DISCIPLINE_AEGIS_RADIUS:
+				continue
+			var pool: Health = Health.of(body)
+			if pool == null or pool.is_dead:
+				continue
+			pool.add_shield(pool.max_hp * Balance.DISCIPLINE_AEGIS_SHIELD_FRACTION)
+			granted.append(body)
+
+
+## How many shield fields are live. For the gate.
+func aegis_field_count() -> int:
+	return _aegis_fields.size()
+
+
+## The hero's feet, or the cast origin when there is no hero (the gates cast
+## from a bare caster). Ground effects and destinations live in this frame;
+## `origin` is the body, which `enemies_near` measures to.
+func _foot(origin: Vector2) -> Vector2:
+	var body := hero as Node2D
+	return body.global_position if body != null else origin
 
 
 ## True while a channelled spell is resolving; the hero is rooted.
@@ -165,6 +221,110 @@ func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			_tempest_heal(origin, spell, node.effect_value)
 		"heavy_reverse_pull":
 			_reverse_hook(origin, spell)
+		"armor_stagger":
+			_roar(origin, spell, node.effect_value)
+		"dash_shield_field":
+			_aegis_fields.append({"at": _foot(origin), "left": node.effect_value, "granted": []})
+			Vfx.ring(_foot(origin), Balance.DISCIPLINE_AEGIS_RADIUS, Color("9fd3ff"), 0.5, 4.0)
+		"lane_cleanse":
+			_cleanse(origin, spell)
+		"recoverable_wound":
+			wound_guard_requested.emit(node.effect_value, spell.duration,
+				Balance.DISCIPLINE_WOUND_SECONDS)
+		"road_line_disrupt":
+			_line_disrupt(origin, spell, node.effect_value)
+		"selected_road_shockwave":
+			_road_shockwave(origin, spell, node.effect_value)
+		"marked_dash_refund":
+			_pursuit(origin, aim, spell, node.effect_value)
+
+
+## Iron Roar: a radial stagger on the cast, and armour that outlasts the veil.
+##
+## The veil is already invulnerable for its duration, so armour *under* it would
+## be nothing; it runs for the veil plus a tail, which is when it matters.
+func _roar(origin: Vector2, spell: SpellData, fraction: float) -> void:
+	var feet: Vector2 = _foot(origin)
+	for enemy: Enemy in field.enemies_near(origin, Balance.DISCIPLINE_ROAR_RADIUS):
+		if enemy.is_dying():
+			continue
+		enemy.apply_stagger(Balance.DISCIPLINE_ROAR_STAGGER)
+		enemy.shove(feet, Balance.DISCIPLINE_ROAR_SHOVE)
+	armor_requested.emit(fraction, spell.duration + Balance.DISCIPLINE_ROAR_ARMOR_TAIL)
+	Vfx.ring(origin, Balance.DISCIPLINE_ROAR_RADIUS, Color("ffb35c"), 0.4, 5.0)
+
+
+## Bulwark Ward also clears a disable off every hero standing on the warded
+## ground - the caster included, and the partner if they are close.
+func _cleanse(origin: Vector2, spell: SpellData) -> void:
+	var centre: Vector2 = _foot(origin)
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var body := node as Node2D
+		if body == null or not body.has_method("cleanse_disables"):
+			continue
+		if body.global_position.distance_to(centre) <= spell.effect_radius:
+			body.call("cleanse_disables")
+
+
+## Tremor's ground line: a corridor along the road, both ways, that staggers
+## what stands on it and shoves it off the line - so a dense road splits rather
+## than merely stepping back.
+func _line_disrupt(origin: Vector2, spell: SpellData, scale: float) -> void:
+	var along: Vector2 = field.lane_direction(_lane_at(origin))
+	var reach: float = spell.effect_radius * Balance.DISCIPLINE_LINE_REACH_SCALE * scale
+	var feet: Vector2 = _foot(origin)
+	for enemy: Enemy in field.enemies_near(origin, reach):
+		if enemy.is_dying():
+			continue
+		var offset: Vector2 = enemy.global_position - feet
+		if absf(offset.cross(along)) > Balance.DISCIPLINE_LINE_HALF_WIDTH:
+			continue
+		enemy.apply_stagger(Balance.DISCIPLINE_LINE_STAGGER)
+		var on_line: Vector2 = feet + along * offset.dot(along)
+		enemy.shove(on_line, Balance.DISCIPLINE_LINE_SHOVE)
+
+
+## Beast's Breath carries on down the selected road past the nova's reach,
+## thinning with distance. Only bodies the nova did not already hit.
+func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
+	var along: Vector2 = field.lane_direction(_lane_at(origin))
+	var reach: float = Balance.DISCIPLINE_ROAD_SHOCK_REACH * scale
+	var feet: Vector2 = _foot(origin)
+	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var centre: Vector2 = origin + along * (reach * 0.5)
+	var sweep: float = reach * 0.5 + Balance.DISCIPLINE_ROAD_SHOCK_HALF_WIDTH
+	for enemy: Enemy in field.enemies_near(centre, sweep):
+		if enemy.is_dying():
+			continue
+		if origin.distance_to(enemy.combat_origin()) <= spell.effect_radius:
+			continue
+		var offset: Vector2 = enemy.global_position - feet
+		var ahead: float = offset.dot(along)
+		if ahead <= 0.0 or ahead > reach:
+			continue
+		if absf(offset.cross(along)) > Balance.DISCIPLINE_ROAD_SHOCK_HALF_WIDTH:
+			continue
+		var falloff: float = 1.0 - Balance.DISCIPLINE_ROAD_SHOCK_FALLOFF * (ahead / reach)
+		enemy.take_damage(power * falloff, feet, spell.knockback, true)
+		enemy.shove(feet, Balance.DISCIPLINE_ROAD_SHOCK_SHOVE)
+
+
+## Red Pursuit: a Rift Step whose line passes through marked prey - branded, or
+## the priority bodies the read is about - gives back part of the dash.
+func _pursuit(origin: Vector2, aim: Vector2, spell: SpellData, fraction: float) -> void:
+	var middle: Vector2 = origin + aim * (spell.cast_range * 0.5)
+	var sweep: float = spell.cast_range * 0.5 + Balance.DISCIPLINE_PURSUIT_WIDTH
+	for enemy: Enemy in field.enemies_near(middle, sweep):
+		if enemy.is_dying():
+			continue
+		if not (enemy.is_branded() or enemy.is_priority()):
+			continue
+		var body: Vector2 = enemy.combat_origin()
+		var t: float = clampf((body - origin).dot(aim), 0.0, spell.cast_range)
+		if body.distance_to(origin + aim * t) <= Balance.DISCIPLINE_PURSUIT_WIDTH:
+			dash_refund_requested.emit(fraction)
+			Vfx.ring(enemy.global_position, 40.0, Color("ff6a5c"), 0.3, 4.0)
+			return
 
 
 ## Marrow Drain pays Command for channelling on something that mattered.
@@ -234,7 +394,10 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
 	match spell.kind:
 		SpellData.Kind.BLINK:
-			blink_requested.emit(origin + aim * spell.cast_range)
+			# The destination is a place to stand, so it is built from the feet.
+			# `origin` is the body, a head-height above them; adding the step to
+			# it landed the hero that much up-screen on every Rift Step.
+			blink_requested.emit(_foot(origin) + aim * spell.cast_range)
 		SpellData.Kind.NOVA:
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin)
 			EventBus.camera_shake_requested.emit(7.0, 0.25)

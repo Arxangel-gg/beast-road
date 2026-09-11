@@ -132,6 +132,15 @@ var _dash_cooldown_left: float = 0.0
 var _dash_refunded: bool = false
 var _dash_direction: Vector2 = Vector2.RIGHT
 
+## Iron Roar: seconds of armour left. The share it turns away sits on `health`.
+var _armor_left: float = 0.0
+
+## Sanguine Guard: the recoverable window opens when the veil ends and closes
+## a while after; what is still banked when it closes is taken then.
+var _wound_delay_left: float = 0.0
+var _wound_left: float = 0.0
+var _wound_fraction: float = 0.0
+
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
 var _attack_recoil_ready: bool = false
@@ -301,6 +310,9 @@ func _ready() -> void:
 	EventBus.spirit_equipped.connect(func(_key: String) -> void: _refresh_spirit())
 	spells.veil_requested.connect(_on_veil)
 	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))
+	spells.armor_requested.connect(_on_armor_requested)
+	spells.wound_guard_requested.connect(_on_wound_guard_requested)
+	spells.dash_refund_requested.connect(refund_dash)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
@@ -641,6 +653,42 @@ func _on_veil(duration: float, speed_bonus: float) -> void:
 	_veil_left = duration
 
 
+## Iron Roar. Armour is a share of harm turned away, applied on `health` where
+## every blow already passes, and timed here where the hero's clocks live.
+func _on_armor_requested(fraction: float, seconds: float) -> void:
+	if health == null or seconds <= 0.0:
+		return
+	_armor_left = maxf(_armor_left, seconds)
+	health.damage_scale = minf(health.damage_scale, 1.0 - clampf(fraction, 0.0, 0.9))
+
+
+## Sanguine Guard. Opens after `delay` - the veil, during which nothing lands
+## anyway - and stays open for `seconds`.
+func _on_wound_guard_requested(fraction: float, delay: float, seconds: float) -> void:
+	if health == null or seconds <= 0.0:
+		return
+	_wound_fraction = clampf(fraction, 0.0, 1.0)
+	_wound_left = seconds
+	_wound_delay_left = maxf(delay, 0.0)
+	if _wound_delay_left <= 0.0:
+		health.deferred_fraction = _wound_fraction
+
+
+## Clears every disable on this hero. Bulwark Ward's cleanse, for the caster
+## and for a partner standing on the warded ground.
+func cleanse_disables() -> void:
+	_beast_stun_left = 0.0
+	Vfx.ring(global_position, 60.0, Color("dff5ff"), 0.3, 4.0)
+
+
+## Gives back a share of the dash cooldown. Red Pursuit, and any later node
+## that wants the same currency.
+func refund_dash(fraction: float) -> void:
+	if fraction <= 0.0:
+		return
+	_dash_cooldown_left = maxf(_dash_cooldown_left - Balance.HERO_DASH_COOLDOWN * fraction, 0.0)
+
+
 ## Hands this hero over to a different source of intentions.
 ##
 ## The partner's hero is given a `RemoteHeroInput` when it spawns. Nothing else
@@ -863,6 +911,22 @@ func _tick_timers(delta: float) -> void:
 		_veil_left = maxf(_veil_left - delta, 0.0)
 		if _veil_left <= 0.0:
 			_veil_speed_bonus = 0.0
+	if _armor_left > 0.0:
+		_armor_left = maxf(_armor_left - delta, 0.0)
+		if _armor_left <= 0.0 and health != null:
+			health.damage_scale = 1.0
+	if _wound_delay_left > 0.0:
+		_wound_delay_left = maxf(_wound_delay_left - delta, 0.0)
+		if _wound_delay_left <= 0.0 and health != null:
+			health.deferred_fraction = _wound_fraction
+	elif _wound_left > 0.0:
+		_wound_left = maxf(_wound_left - delta, 0.0)
+		if _wound_left <= 0.0 and health != null:
+			# The window closed. Whatever was not won back is taken now, and
+			# said out loud so the player knows why they just lost health.
+			var owed: float = health.settle_deferred(global_position)
+			if owed >= 1.0:
+				Vfx.number(combat_origin(), owed, Color("ff7a6a"), false)
 	if _mender_left > 0.0 and health != null and not health.is_dead:
 		_mender_left = maxf(_mender_left - delta, 0.0)
 		_mender_grace_left = maxf(_mender_grace_left - delta, 0.0)
@@ -891,6 +955,11 @@ func _try_dash() -> void:
 ## Sized so the lunge covers `distance` while decaying linearly to zero over
 ## HERO_ATTACK_LUNGE_TIME. Tuning the distance is enough; the speed follows.
 func _on_attack_landed(chain_step: int, _targets: int, _at: Vector2) -> void:
+	# Sanguine Guard: a landed blow wins back part of the banked wound.
+	if _wound_left > 0.0 and health != null:
+		var won: float = health.recover_deferred(Balance.DISCIPLINE_WOUND_RECOVER_PER_HIT)
+		if won >= 1.0:
+			Vfx.number(combat_origin(), won, Balance.HEALING_ORB_COLOUR, false)
 	# A connecting swing squashes harder than a whiffed one.
 	animator.squash(Balance.ANIM_PUNCH_SQUASH * (1.6 if chain_step == 2 else 1.0))
 	# The blade meets resistance. This replaces any remaining forward lunge with
@@ -1096,6 +1165,9 @@ func go_down(at: Vector2) -> void:
 ## looks like.
 func _collapse(at: Vector2) -> void:
 	_dash_left = 0.0
+	_armor_left = 0.0
+	_wound_left = 0.0
+	_wound_delay_left = 0.0
 	_lunge_velocity = Vector2.ZERO
 	velocity = Vector2.ZERO
 	attack.cancel()

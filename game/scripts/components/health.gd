@@ -26,6 +26,20 @@ var is_dead: bool = false
 ## rapid weak horde cannot be made permanently irrelevant by one armour aura.
 var flat_damage_reduction: float = 0.0
 
+## Multiplies what gets past the flat reduction. One is the ordinary state;
+## Iron Roar sets it below one for a few seconds. Applied before the shield,
+## like the flat reduction, so a ward still pays only for what armour let by.
+var damage_scale: float = 1.0
+
+## The share of each blow held back as a recoverable wound instead of taken.
+##
+## Sanguine Guard: harm that got past armour and shield is not all applied at
+## once. A fraction is banked, landing a swing wins some of the bank back, and
+## whatever is left when the window closes is taken then. Zero is the ordinary
+## state and nothing below this changes while it is.
+var deferred_fraction: float = 0.0
+var _deferred: float = 0.0
+
 var _invulnerable_left: float = 0.0
 
 ## The length of the window currently running, so elapsed time can be derived.
@@ -77,7 +91,7 @@ func take_damage(amount: float, from: Vector2) -> bool:
 		# Said out loud rather than swallowed. See `evaded`.
 		evaded.emit(_invulnerable_granted - _invulnerable_left, from)
 		return false
-	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20)
+	var applied: float = maxf(amount - flat_damage_reduction, amount * 0.20) * damage_scale
 	# Shield first, and it can absorb a blow whole.
 	#
 	# **After mitigation, not before.** `flat_damage_reduction` is armour, and
@@ -95,6 +109,10 @@ func take_damage(amount: float, from: Vector2) -> bool:
 			# having missed.
 			damaged.emit(0.0, from)
 			return true
+	if deferred_fraction > 0.0:
+		var held: float = applied * clampf(deferred_fraction, 0.0, 1.0)
+		_deferred += held
+		applied -= held
 	current_hp = maxf(current_hp - applied, 0.0)
 	damaged.emit(applied, from)
 	changed.emit(current_hp, max_hp)
@@ -109,6 +127,39 @@ func heal(amount: float) -> void:
 		return
 	current_hp = minf(current_hp + amount, max_hp)
 	changed.emit(current_hp, max_hp)
+
+
+## How much harm is currently banked as a recoverable wound.
+func deferred() -> float:
+	return _deferred
+
+
+## Wins back a share of the banked wound - a landed blow, for Sanguine Guard.
+## Returns what was recovered, so the caller can say so out loud.
+func recover_deferred(fraction: float) -> float:
+	if _deferred <= 0.0 or fraction <= 0.0:
+		return 0.0
+	var won: float = minf(_deferred, _deferred * fraction)
+	_deferred -= won
+	return won
+
+
+## Applies whatever is still banked. The window closed and the wound is real.
+## Returns what was taken. Goes straight to the pool: it was already mitigated
+## and shielded on the way in, and paying it twice would make the node a trap.
+func settle_deferred(from: Vector2 = Vector2.ZERO) -> float:
+	var owed: float = _deferred
+	_deferred = 0.0
+	deferred_fraction = 0.0
+	if is_dead or owed <= 0.0:
+		return 0.0
+	current_hp = maxf(current_hp - owed, 0.0)
+	damaged.emit(owed, from)
+	changed.emit(current_hp, max_hp)
+	if current_hp <= 0.0:
+		is_dead = true
+		died.emit(from)
+	return owed
 
 
 ## Resolves a system-level softlock without being defeated by temporary
@@ -127,6 +178,10 @@ func kill(from: Vector2) -> void:
 
 ## Alive and vulnerable at the requested health fraction.
 func revive(fraction: float = 1.0) -> void:
+	# A wound owed by the body that died is not owed by the one standing up.
+	_deferred = 0.0
+	deferred_fraction = 0.0
+	damage_scale = 1.0
 	is_dead = false
 	_shield = 0.0
 	shield_changed.emit(0.0)
