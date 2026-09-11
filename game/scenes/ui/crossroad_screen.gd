@@ -105,7 +105,8 @@ func _on_partner_pointer(at: Vector2) -> void:
 	if _pointer == null or not is_instance_valid(_pointer):
 		_pointer = _build_pointer()
 	_pointer.visible = true
-	_pointer.position = at * get_viewport().get_visible_rect().size 		- _pointer.size * 0.5
+	_pointer.position = at * get_viewport().get_visible_rect().size \
+			- _pointer.size * 0.5
 
 
 func _build_pointer() -> Control:
@@ -926,7 +927,8 @@ func _flash_partner_pick(picked_id: String) -> void:
 	mark.position = button.get_global_rect().get_center() - Vector2(58.0, 14.0)
 	var fade: Tween = mark.create_tween()
 	fade.set_parallel(true)
-	fade.tween_property(mark, "position", mark.position - Vector2(0.0, 34.0), 0.9)		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	fade.tween_property(mark, "position", mark.position - Vector2(0.0, 34.0), 0.9) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	fade.tween_property(mark, "modulate:a", 0.0, 0.9).set_delay(0.35)
 	fade.chain().tween_callback(mark.queue_free)
 

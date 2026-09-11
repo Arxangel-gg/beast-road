@@ -316,7 +316,8 @@ func _spark_mote(shard: Line2D, tip: Vector2, colour: Color, life: float) -> voi
 	shard.add_child(mote)
 	# Shrinking rather than growing: the piece is cooling as it flies, and a mote
 	# that swelled while its streak faded would read as an approaching object.
-	mote.create_tween().tween_property(mote, "scale", Vector2.ONE * born * 0.35, life)		.set_ease(Tween.EASE_IN)
+	mote.create_tween().tween_property(mote, "scale", Vector2.ONE * born * 0.35, life) \
+			.set_ease(Tween.EASE_IN)
 
 
 ## An expanding ring. Reads as force in a way a flash does not.
@@ -407,10 +408,18 @@ func _ring_bloom(line: Line2D, to_radius: float, colour: Color, life: float) -> 
 	glow.scale = Vector2.ONE * (8.0 / span)
 	line.add_child(glow)
 	var tween: Tween = glow.create_tween()
-	tween.tween_property(glow, "scale", Vector2.ONE * (to_radius * 2.0 / span), life)		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(glow, "scale", Vector2.ONE * (to_radius * 2.0 / span), life) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 
-## Floating damage text. Rises, drifts and fades.
+## Floating damage text. Pops in, arcs upward, hangs and fades.
+##
+## Procedural rather than a fixed rise: the number leaves the body fast, slows
+## as it climbs, and lingers at the top of its arc, which is where the eye
+## catches it. A big hit climbs further, hangs longer, tilts a few degrees and
+## punches past its own size before settling. Every hit pops a little, because a
+## number that appears at full size and floats off is a receipt, and the old
+## ones were receipts.
 func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> void:
 	if world == null or amount < 1.0:
 		return
@@ -419,23 +428,39 @@ func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> voi
 	label.add_theme_font_size_override("font_size", Balance.VFX_NUMBER_SIZE_BIG if big else Balance.VFX_NUMBER_SIZE)
 	label.add_theme_color_override("font_color", colour)
 	label.add_theme_color_override("font_outline_color", Color(0.02, 0.04, 0.05, 0.9))
-	label.add_theme_constant_override("outline_size", 6)
+	label.add_theme_constant_override("outline_size", 8 if big else 6)
 	label.z_index = Balance.VFX_Z + 1
 	_track(label)
-	label.global_position = at + Vector2(randf_range(-14.0, 14.0), -20.0)
+	# Scaled and tilted about its own centre rather than its top-left corner,
+	# or the pop swings the text sideways instead of growing it in place.
+	label.pivot_offset = label.get_minimum_size() * 0.5
+	label.global_position = at + Vector2(randf_range(-14.0, 14.0), -20.0) - label.pivot_offset
+	var pop: float = Balance.VFX_NUMBER_POP * (1.15 if big else 1.0)
+	label.scale = Vector2.ONE * 0.35
+	if big:
+		label.rotation_degrees = randf_range(-Balance.VFX_NUMBER_TILT_DEGREES,
+			Balance.VFX_NUMBER_TILT_DEGREES)
 
-	var drift: Vector2 = Vector2(randf_range(-26.0, 26.0), -Balance.VFX_NUMBER_RISE)
-	var life: float = Balance.VFX_NUMBER_LIFE
+	var rise: float = Balance.VFX_NUMBER_RISE \
+			* (1.0 + (Balance.VFX_NUMBER_BIG_RISE_BONUS if big else 0.0))
+	var life: float = Balance.VFX_NUMBER_LIFE * (1.25 if big else 1.0)
+	var start: Vector2 = label.global_position
+	var sideways: float = randf_range(-26.0, 26.0)
+	# Two legs: a fast climb that decelerates into a hang, then a short settle
+	# back down while it fades - the arc a thrown thing makes, not a lift.
 	var tween: Tween = label.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(label, "global_position", label.global_position + drift, life)\
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	tween.tween_property(label, "modulate:a", 0.0, life).set_delay(life * 0.45)
-	if big:
-		# A crit punches up before settling, so it reads before you can count it.
-		tween.tween_property(label, "scale", Vector2.ONE * 1.45, life * 0.18)\
-			.set_ease(Tween.EASE_OUT)
-		tween.chain().tween_property(label, "scale", Vector2.ONE, life * 0.3)
+	tween.tween_property(label, "global_position",
+			start + Vector2(sideways * 0.7, -rise), life * 0.55) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.chain().tween_property(label, "global_position",
+			start + Vector2(sideways, -rise * 0.82), life * 0.45) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(label, "scale", Vector2.ONE * pop, life * 0.16) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.chain().tween_property(label, "scale", Vector2.ONE, life * 0.24) \
+			.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, life * 0.5).set_delay(life * 0.5)
 	tween.chain().tween_callback(label.queue_free)
 
 
@@ -509,7 +534,8 @@ func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int) -
 	art.add_to_group(Graphics.FILTER_GROUP)
 	art.modulate = Color(colour.lerp(Color.WHITE, 0.4), 0.9)
 	art.rotation = direction.angle()
-	art.scale = Vector2(1.0, 1.0 if randf() < 0.5 else -1.0) 		* (Balance.VFX_MUZZLE_LENGTH * 2.0
+	art.scale = Vector2(1.0, 1.0 if randf() < 0.5 else -1.0) \
+			* (Balance.VFX_MUZZLE_LENGTH * 2.0
 			/ maxf(float(art.texture.get_width()), 1.0))
 	art.z_index = Balance.VFX_Z - 1
 	_track(art)
@@ -953,10 +979,12 @@ func bow_loose(at: Vector2, direction: Vector2) -> void:
 	# left, and the thing that threw it moved the other way.
 	var kicked: Vector2 = bow.global_position - heading * Balance.VFX_BOW_RECOIL
 	var tween: Tween = bow.create_tween()
-	tween.tween_property(bow, "global_position", kicked, Balance.VFX_BOW_LIFE * 0.25)		.set_ease(Tween.EASE_OUT)
+	tween.tween_property(bow, "global_position", kicked, Balance.VFX_BOW_LIFE * 0.25) \
+			.set_ease(Tween.EASE_OUT)
 	tween.tween_property(bow, "global_position", bow.global_position,
 		Balance.VFX_BOW_LIFE * 0.4).set_ease(Tween.EASE_IN_OUT)
-	tween.parallel().tween_property(bow, "modulate:a", 0.0, Balance.VFX_BOW_LIFE * 0.75)		.set_delay(Balance.VFX_BOW_LIFE * 0.25)
+	tween.parallel().tween_property(bow, "modulate:a", 0.0, Balance.VFX_BOW_LIFE * 0.75) \
+			.set_delay(Balance.VFX_BOW_LIFE * 0.25)
 	tween.tween_callback(bow.queue_free)
 
 	# The string letting go, at the bow rather than at the arrow.

@@ -3380,6 +3380,17 @@ const VFX_NUMBER_SIZE: int = 22
 const VFX_NUMBER_SIZE_BIG: int = 32
 const VFX_NUMBER_RISE: float = 64.0
 const VFX_NUMBER_LIFE: float = 0.85
+## How far a number overshoots on arrival before settling to its true size.
+## Every number pops now, not only the big ones: a hit that appears at full size
+## and merely floats is a receipt, and a receipt is what the old numbers were.
+## [TUNE]
+const VFX_NUMBER_POP: float = 1.3
+## The biggest hits tilt a few degrees either way so a burst of them reads as
+## a scatter of blows rather than a column of print. [TUNE]
+const VFX_NUMBER_TILT_DEGREES: float = 7.0
+## Rise and hang scale with how big the hit was, so the number a player wants
+## to read stays up longest. Fraction of the base rise added at full size. [TUNE]
+const VFX_NUMBER_BIG_RISE_BONUS: float = 0.55
 
 ## Tower muzzle flash. [TUNE]
 const VFX_MUZZLE_LENGTH: float = 44.0
