@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "silt_minnow"
+display_name = "Silt Minnow"
+description = "Barely a mouthful, and there are thousands of them. Boiled, it is still supper."
+rarity = 0
+regions = Array[String](["jungle"])
+weight = 3.00
+patience = 4.0
+food = 5
+heal_fraction = 0.06
+shield_fraction = 0.00
+mana_fraction = 0.00

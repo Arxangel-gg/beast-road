@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "sunglass_ray"
+display_name = "Sunglass Ray"
+description = "It lies flat under the sand of the shallows and takes the shape of the shade."
+rarity = 2
+regions = Array[String](["desert"])
+weight = 0.45
+patience = 15.0
+food = 24
+heal_fraction = 0.12
+shield_fraction = 0.34
+mana_fraction = 0.00

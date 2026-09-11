@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "deepwinter_pike"
+display_name = "Deepwinter Pike"
+description = "Old enough to have watched the beast pass before. It does not hurry."
+rarity = 2
+regions = Array[String](["snow"])
+weight = 0.45
+patience = 16.0
+food = 26
+heal_fraction = 0.20
+shield_fraction = 0.14
+mana_fraction = 0.24

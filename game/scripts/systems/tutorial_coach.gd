@@ -129,6 +129,8 @@ func _ready() -> void:
 			_fire(TutorialStepData.Trigger.TOWN_OPENED))
 	EventBus.spirit_discovered.connect(func(_key: String, _count: int, _needed: int) -> void:
 		_fire(TutorialStepData.Trigger.SPIRIT_MET))
+	EventBus.fish_caught.connect(func(_fish_id: String, _food: int) -> void:
+		_fire(TutorialStepData.Trigger.FISH_CAUGHT))
 
 
 ## Sorted once, so two steps sharing a trigger keep their authored order rather

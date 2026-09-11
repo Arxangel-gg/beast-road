@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "roadkeeper_carp"
+display_name = "Roadkeeper Carp"
+description = "Every water on the road holds one, and no two people agree that it is the same fish."
+rarity = 3
+regions = Array[String]([])
+weight = 0.11
+patience = 26.0
+food = 60
+heal_fraction = 0.45
+shield_fraction = 0.30
+mana_fraction = 0.45

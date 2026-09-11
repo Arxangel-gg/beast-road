@@ -45,6 +45,8 @@ enum Trigger {
 	TOWN_OPENED,
 	## A wild animal's spirit was met for the first time.
 	SPIRIT_MET,
+	## Something was pulled out of a pond for the first time.
+	FISH_CAUGHT,
 }
 
 @export var trigger: Trigger = Trigger.RUN_STARTED

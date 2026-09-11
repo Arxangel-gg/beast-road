@@ -519,13 +519,13 @@ recorded here so it is neither forgotten nor quietly built as a re-cut.
 - **Damage numbers** pop, arc, hang and tilt. **Seven more discipline nodes**
   do what their cards say. **Two builds refuse to play co-op together.** The
   **Update Manager** derives its pre-flight from the workflows.
+- **Fishing**, with eleven fish and three ponds. See the note above; it is the
+  one item in this batch that amends working rule 7.
 
 **Staged - compatible with v4, not built yet, in the order they should go:**
 
-1. Fishing ponds: authored pond spots beside the roads, a cast-and-wait catch,
-   fish as consumables in the stash. Needs fish art (PixelLab) and a consumables
-   tab; a clean data-driven system, and the first thing to build once the new
-   PixelLab account is connected.
+1. ~~Fishing ponds.~~ **Built 2026-09-11** - see the note above. Eleven fish,
+   three ponds, a Consumables tab, and `fishing_check`.
 2. Gear affixes, up to three stat bonuses a piece, and more gear kinds. Stays
    inside working rule 7 only if affixes remain attribute points on the capped
    scale; a fourth power scale is the thing to refuse.
@@ -553,6 +553,53 @@ above requires:
   system beside raids, and needs a decision on what it may persist.
 - **Card-style upgrades and Infernal-Hordes choices** are what disciplines and
   omens already are; grow those rather than add a third draft.
+
+**There are ponds off the roads, and fishing keeps a consumable between runs,
+as of 2026-09-11.** The owner asked for procedurally placed ponds outside the
+battlefield's paths, a catch that pays Food and health, fish of different
+rarities with different effects, and a consumables tab in the stash. All of it
+is built; two things about it are decisions rather than details.
+
+**It amends working rule 7.** A fish is the first *consumable* in this project
+that survives a run. The Tonic and the Draught live in `RunState` and are lost
+with everything else; the pantry (`MetaState.fish`) is not. That is a new kind
+of persistence and it is sanctioned here rather than left implicit in the code.
+
+**The bound is `Balance.FISH_MEALS_PER_RUN`: the pantry persists, the appetite
+does not.** A run allows three meals however deep the larder, so an hour of
+fishing buys a deeper *choice* of meal and never more of them. Without that cap
+a player with a full pantry cannot be killed, and the wounds, the Tonic and the
+entire recovery economy become decoration. `fishing_check` asserts the cap
+first and hardest, and it has been checked by removing it.
+
+**And no fish grants a stat.** Levelling and gear are the two capped scales the
+campaign tiers are tuned against; a consumable that raised an attribute would be
+a third that nobody is tuning - the same objection that bounded spirit traits
+and discipline depth. Every effect a fish carries is a *fraction of something
+the hero already has*: health, a ward, mana. The gate reads the resource and
+fails on any field that looks like a stat.
+
+**"Procedural" here is placement, not layout.** v4 §54 cuts procedural
+battlefield *layouts* and that cut stands: the map is still hand-authored and
+the ponds are scattered on it, exactly as the treeline and the wildlife already
+are. A pond may only sit on open ground, clear of every road by more than a
+tower's inner reach - so water never takes a build spot that was worth having -
+and **inside** the grid, which is where it differs from a tree: the hero is
+clamped to the grid, so a pond outside it would be visible and unreachable.
+
+**The cost of fishing is standing still on a battlefield.** There is no key to
+press. Walk to a pond, stop, and the line goes in; move or take a blow and it
+comes out. That is what makes a catch worth anything, it is the same tension
+raids are built on, and it is why fishing works on a phone and on a controller
+without a line of input plumbing. A pond holds four fish and then reads as
+fished out, so the correct play is never "stand in a corner for the act".
+
+**Both machines dig the same ponds and neither is told about them.** The scatter
+comes from the run's own seeded stream, like the relic and omen offers, because
+a fact that can be relayed is a fact that can be subtly wrong. One thing does
+cross the wire: a guest's catch asks the host for its Food **by fish id, never
+by amount**, so the host reads the number off its own content. A number in that
+message would have been a currency printer.
 
 ### The three escape hatches — and why there are only three
 
@@ -676,6 +723,13 @@ works."
    Gold, Wood, Food and Stone are still run currencies and still reset. Marks and
    Shards are account currencies and deliberately do not exchange with them: a
    stash purchase must never compete with the wall about to be overrun.
+
+   **Amended 2026-09-11 (owner): the pantry persists.** Fish caught from the
+   ponds are kept in `MetaState.fish` between runs - the first consumable in
+   this project that survives one. Its bound is `Balance.FISH_MEALS_PER_RUN`,
+   a run-scoped allowance spent from a persistent store, and no fish may grant
+   an attribute point. See the fishing note in §1. Held items, ammunition and
+   everything else listed above are unchanged and still reset.
 8. **The battlefield freezes during a raid and resumes exactly as it was**
    (GDD §52, "Raid pause resumes the exact battlefield state"). It must
    therefore be suspendable as a unit — no system may keep ticking off a timer

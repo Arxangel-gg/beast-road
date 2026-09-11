@@ -1767,6 +1767,66 @@ const TREELINE_GIANT_SCALE: Vector2 = Vector2(1.35, 1.72)
 const TREELINE_TRUNK_SPACING: float = 92.0
 const TREELINE_REACH: float = 2800.0
 const TREELINE_ATTEMPTS: int = 720
+
+# --- Fishing (2026-09-11) ------------------------------------------------------
+#
+# Ponds off the roads, and a line you put in by standing still. The cost of a
+# catch is the seconds you were not defending, so every number here is really
+# about how long that is and how far you had to walk. [TUNE]
+
+## How close the hero stands to fish, and how slowly they must be moving to
+## count as still. The speed is well under a walk and above the drift a beast
+## step leaves behind, so being shoved takes the line out and breathing does not.
+const FISHING_RADIUS: float = 120.0
+const FISHING_STILL_SPEED: float = 12.0
+
+## Where a pond may be dug: clear of every road, clear of the town, and spaced
+## so two never overlap into one puddle.
+##
+## **The road clearance is the one number that decides whether fishing is a
+## detour or an expedition.** The roads are a maze across most of the field, so
+## every metre of clearance pushes the only legal water further out; at 330 the
+## first version put all of it in the outer band. 240 is about a pond's own
+## width off the tarmac - far enough that water is never *on* the road or in the
+## first rank of a tower's firing lane, close enough that the pockets between
+## road segments qualify. A pond can now take ground a tower might have wanted,
+## and that is the trade: placement is freeform, so the player routes around it.
+const FISHING_ROAD_CLEARANCE: float = 240.0
+const FISHING_TOWN_CLEARANCE: float = 420.0
+const FISHING_POND_SPACING: float = 300.0
+const FISHING_PLACEMENT_ATTEMPTS: int = 260
+
+## How many fish one pond holds before it is fished out.
+##
+## Finite, and that is the bound that matters: an inexhaustible pond makes the
+## correct play "stand in a corner for the whole act", which is the opposite of
+## what a tower defence is. Four is enough to be worth the walk and not enough
+## to be a job.
+const FISHING_POND_STOCK: int = 4
+
+## How a fished-out pond reads. Flat and dull rather than gone: a pond that
+## vanished would have the player walking back to water that is not there.
+const FISHING_SPENT_TINT: Color = Color(0.62, 0.66, 0.68, 0.85)
+
+## The float on the water, and the splash when something is landed.
+const FISHING_FLOAT_SIZE: float = 22.0
+const FISHING_FLOAT_LIFT: float = 26.0
+const FISHING_SPLASH_RADIUS: float = 64.0
+
+## How many fish may be eaten in one run.
+##
+## The bound on the whole system. Fish persist between runs, so without this a
+## player with a full pantry simply cannot be killed - the wounds, the Tonic and
+## the whole recovery economy would be decoration. Three is one bad moment an
+## act, which is a real gift and not a replacement for playing well. The shape
+## is `MARKET_TRADES_PER_PREPARATION`'s: a run-scoped allowance, spent from a
+## persistent store.
+const FISH_MEALS_PER_RUN: int = 3
+
+## How many fish the stash holds. Inventory, not power - see above for what
+## actually bounds the effect - but a pantry of nine hundred is a list nobody
+## reads and a save nobody wants to parse.
+const FISH_STASH_CAPACITY: int = 40
 const TREELINE_LANE_CLEARANCE: float = 320.0
 
 # ------------------------------------------------------------------------------

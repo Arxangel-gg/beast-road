@@ -37,6 +37,9 @@ var _coop_heroes: CoopHeroes = null
 
 ## Enemies and towers, made to agree on two machines. Inert when playing alone.
 var _coop_world: CoopWorld = null
+
+## The ponds, kept so a region change can re-lay them. See `refresh_terrain`.
+var _ponds: Fishing = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -661,6 +664,7 @@ func _build_foliage() -> void:
 	add_child(foliage)
 	_build_treeline()
 	_build_wildlife()
+	_build_ponds()
 
 
 func _build_ambient_life() -> void:
@@ -688,6 +692,21 @@ func _build_treeline() -> void:
 	trees.host = entity_root
 	add_child(trees)
 	trees.scatter()
+
+
+## The water off the roads, and the fish in it.
+##
+## In the same sorted layer as the trees and the animals, and placed by the same
+## rule: derived from the grid, never typed. See `Fishing` for why a pond has to
+## be inside the grid when a tree does not.
+func _build_ponds() -> void:
+	_ponds = Fishing.new()
+	_ponds.name = "Fishing"
+	_ponds.grid = grid
+	_ponds.field = self
+	_ponds.host = entity_root
+	add_child(_ponds)
+	_ponds.scatter()
 
 
 ## The animals that live off the roads.
@@ -1566,6 +1585,16 @@ func refresh_terrain() -> void:
 	for piece: Node in lane_root.get_children():
 		piece.queue_free()
 	_build_lanes()
+	# And the water, which is regional in both directions: the Waste's pools do
+	# not look like the Maw's, and they do not hold the same fish.
+	#
+	# Here rather than on `act_started`, so there is one function that re-lays
+	# the region and everything regional is in it. A second path listening to a
+	# signal is a second path that can be right when this one is wrong -
+	# `road_shot` calls this directly and showed exactly that: a snowfield with
+	# green jungle ponds in it.
+	if _ponds != null:
+		_ponds.scatter()
 
 
 func _setup_ground() -> void:

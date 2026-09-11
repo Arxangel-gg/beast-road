@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "chainmaker_koi"
+display_name = "Chainmaker's Koi"
+description = "Scaled in links. Somebody down there is still making them, and it got out."
+rarity = 3
+regions = Array[String]([])
+weight = 0.07
+patience = 30.0
+food = 75
+heal_fraction = 0.55
+shield_fraction = 0.40
+mana_fraction = 0.55

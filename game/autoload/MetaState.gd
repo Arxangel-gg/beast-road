@@ -112,6 +112,65 @@ var unlocked_blueprints: Array[String] = []
 ## discoverable costs nothing here.
 var codex_seen: Array[String] = []
 
+# --- The pantry ---------------------------------------------------------------
+
+## Reads the larder back, dropping anything that no longer names a fish.
+##
+## Unknown ids are discarded rather than carried, which is the opposite of what
+## the terrain migration does - and deliberately. A stale *unlock* is harmless
+## and might name content that comes back; a stale consumable is a row in a list
+## with no name, no icon and no effect, which a player would try to eat.
+func _read_pantry(pantry: Dictionary) -> void:
+	fish.clear()
+	var stored: Variant = pantry.get("fish", {})
+	if not (stored is Dictionary):
+		return
+	for key: Variant in (stored as Dictionary):
+		var id: String = String(key)
+		if ContentDB.fish(id) == null:
+			continue
+		var count: int = int((stored as Dictionary)[key])
+		if count > 0:
+			fish[id] = count
+
+
+func fish_count(id: String) -> int:
+	return int(fish.get(id, 0))
+
+
+## How many fish are kept in total, against `Balance.FISH_STASH_CAPACITY`.
+func fish_total() -> int:
+	var held: int = 0
+	for id: Variant in fish:
+		held += int(fish[id])
+	return held
+
+
+## Keeps one. False when the larder is full, so the caller can say so rather
+## than silently dropping a catch the player stood still for.
+func take_fish(id: String) -> bool:
+	if id.is_empty() or ContentDB.fish(id) == null:
+		return false
+	if fish_total() >= Balance.FISH_STASH_CAPACITY:
+		return false
+	fish[id] = fish_count(id) + 1
+	save_game()
+	return true
+
+
+## Eats one. False when there was none.
+func spend_fish(id: String) -> bool:
+	var held: int = fish_count(id)
+	if held <= 0:
+		return false
+	if held <= 1:
+		fish.erase(id)
+	else:
+		fish[id] = held - 1
+	save_game()
+	return true
+
+
 # --- Wildlife Spirit Companions ----------------------------------------------
 #
 # Owner decision, 2026-09-01. Every wildlife species can be bonded as a Spirit
@@ -273,6 +332,24 @@ var total_enemies_killed: int = 0
 
 # --- Settings ---
 const MILESTONE_CINEMATICS_SEEN_KEY: String = "milestone_cinematics_seen"
+
+## The pantry: fish id to how many are kept. Persists between runs.
+##
+## **This is an amendment to working rule 7 and it is recorded in CLAUDE.md.**
+## What is new is that a *consumable* survives a run, which no previous rule
+## sanctioned - the Tonic and the Draught are held in `RunState` and lost with
+## everything else. The owner asked for fish to be kept in the stash and eaten
+## from it, which is a between-runs store by definition.
+##
+## The bound that keeps it from being a fourth power scale is not here: it is
+## `RunState.meals_eaten`, capped at `Balance.FISH_MEALS_PER_RUN`. The pantry
+## persists; the appetite does not. A player who fished for an hour carries a
+## deeper choice of meals into the next run, never more of them.
+##
+## Additive: a save written before fishing has no `pantry` key and reads back as
+## an empty larder, so `SAVE_VERSION` did not move and there is no migration to
+## get wrong.
+var fish: Dictionary = {}
 
 var settings: Dictionary = {
 	"chronicle_goal": "",
@@ -1096,6 +1173,9 @@ func serialized_save() -> String:
 		# Additive and optional: a save written before spirits existed simply
 		# has no "spirits" key and reads back as an empty collection, so this
 		# needed no SAVE_VERSION bump and no migration path.
+		"pantry": {
+			"fish": fish,
+		},
 		"spirits": {
 			"encounters": spirit_encounters,
 			"bonded": spirit_bonded,
@@ -1179,6 +1259,7 @@ func load_save() -> void:
 	tools = clampi(int(unlocked.get("tools", 0)), 0, Balance.TOOLS_MAX)
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
+	_read_pantry(data.get("pantry", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)

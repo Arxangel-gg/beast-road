@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "saltglass_bream"
+display_name = "Saltglass Bream"
+description = "Scales like flaked glass. The Waste's fish drink light and keep some of it."
+rarity = 1
+regions = Array[String](["desert"])
+weight = 1.40
+patience = 8.5
+food = 14
+heal_fraction = 0.10
+shield_fraction = 0.16
+mana_fraction = 0.00

@@ -1020,6 +1020,19 @@ func _test_tiers_and_persistence() -> void:
 	# the ladder every time it is summoned, so nothing in this block can be
 	# edited into a stronger companion, and the ladder itself is capped at
 	# `SPIRIT_APEX_POWER`. `spirit_check` holds that end of it.
+	#
+	# `pantry` is the fish. Added 2026-09-11 with fishing, under an owner
+	# amendment to working rule 7 recorded in CLAUDE.md, and it is the first
+	# *consumable* in this project that survives a run - the Tonic and the
+	# Draught are held in `RunState` and lost with everything else.
+	#
+	# It is allowed here for one reason: **what it stores cannot be spent more
+	# than three times a run**, whatever is in it. The cap is
+	# `Balance.FISH_MEALS_PER_RUN`, it is run-scoped in `RunState.meals_eaten`,
+	# and it is what stops a deep larder from making a hero unkillable and the
+	# whole wound economy decoration. No fish grants an attribute point, so
+	# nothing in this block can be edited into a stronger hero either.
+	# `fishing_check` holds both ends, and has been checked by removing them.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1028,7 +1041,7 @@ func _test_tiers_and_persistence() -> void:
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
-				"spirits"],
+				"spirits", "pantry"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

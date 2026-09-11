@@ -128,6 +128,12 @@ enum Request {
 	ACCEPT_LAST_SCAR = 16,
 	## A portent read at the end of an act. One for the party, like the relic.
 	CHOOSE_OMEN = 23,
+	## A guest landed a fish and wants the Food it pays.
+	##
+	## **By id, never by amount.** The host looks the Food up itself, so the
+	## worst a forged packet can carry is the name of a fish that does not
+	## exist. A number in this message would have been a currency printer.
+	LAND_FISH = 24,
 	# --- Trading (owner brief, 2026-09-10) -----------------------------------
 	#
 	# Six verbs rather than one, because a trade is a conversation and the

@@ -60,6 +60,10 @@ const RNG_STREAM_SALTS: Dictionary = {
 	# roll has one: retuning how often a sip drops must not rewrite what a seeded
 	# run's gear or waves do.
 	"recovery": 812273,
+	# Ponds and what is in them. Its own stream so that digging one more pond in
+	# a jungle cannot move a seeded run's waves, and so both machines in co-op
+	# derive the identical water without a packet.
+	"fishing": 941083,
 }
 
 # --- Economy ---------------------------------------------------------------
@@ -196,6 +200,13 @@ var hero_attributes: Array[int] = [0, 0, 0, 0]
 var hero_hp: float = -1.0
 ## The hero's mana, carried across scopes the same way. -1 means full.
 var hero_mana: float = -1.0
+
+## Fish eaten out of the stash this run, against `Balance.FISH_MEALS_PER_RUN`.
+##
+## Run-scoped on purpose, and it is the bound the whole fishing system rests on:
+## the pantry persists, the appetite does not. Same shape as
+## `market_trades_remaining` and the crossroad rerolls.
+var meals_eaten: int = 0
 var hero_wounds: int = 0
 ## Run-only reward from Oath of the Last Scar. Never written to MetaState.
 var hero_max_wounds_bonus: int = 0
@@ -416,6 +427,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	blueprints.clear()
 	merchant_visits.clear()
 	market_trades_remaining = Balance.MARKET_TRADES_PER_PREPARATION
+	meals_eaten = 0
 	market_service_act = 0
 	market_service_id = ""
 
@@ -755,6 +767,39 @@ func _store_hero() -> void:
 	MetaState.hero_attributes = hero_attributes.duplicate()
 	MetaState.last_tier_id = tier_id
 	MetaState.save_game()
+
+
+## Eats a fish out of the pantry, or says why not.
+##
+## Here rather than on `MetaState` because every reason it can fail is about the
+## *run*: there has to be one, there has to be a hero to feed, and the run's
+## three meals have to not be spent. `MetaState` owns the larder; this owns the
+## appetite, and keeping them apart is what stops the cap being bypassed by any
+## other caller that happens to hold a fish id.
+##
+## Returns "" when the fish was eaten, and a sentence fit to show otherwise.
+func eat_fish(id: String) -> String:
+	if not GameDirector.run_active:
+		return "Fish are eaten on the road, not between runs."
+	var kind: FishData = ContentDB.fish(id)
+	if kind == null:
+		return "No such fish."
+	if MetaState.fish_count(id) <= 0:
+		return "You have none of those."
+	if meals_eaten >= Balance.FISH_MEALS_PER_RUN:
+		return "You have eaten all you can stomach this run."
+	if not MetaState.spend_fish(id):
+		return "You have none of those."
+	meals_eaten += 1
+	# Announced rather than applied here: the hero is the thing with health, a
+	# ward and mana, and `RunState` holds no reference to it (working rule 5).
+	EventBus.fish_eaten.emit(id)
+	return ""
+
+
+## How many meals this run has left.
+func meals_left() -> int:
+	return maxi(Balance.FISH_MEALS_PER_RUN - meals_eaten, 0)
 
 
 ## The campaign tier this run is on.

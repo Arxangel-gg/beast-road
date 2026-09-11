@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "white_teeth_trout"
+display_name = "White Teeth Trout"
+description = "Named for the mountains, not for its mouth, though the mouth would earn it."
+rarity = 1
+regions = Array[String](["snow"])
+weight = 1.40
+patience = 9.0
+food = 15
+heal_fraction = 0.14
+shield_fraction = 0.00
+mana_fraction = 0.16

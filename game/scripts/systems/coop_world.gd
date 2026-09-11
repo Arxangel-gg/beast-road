@@ -488,6 +488,21 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 		# DECLARE_TIER is answered by `Coop` itself: it arrives in the menu, the
 		# moment a guest connects, when there is no battlefield for this router
 		# to have been built under.
+		CoopRelay.Request.LAND_FISH:
+			# A guest landed a fish. The fish itself is already in that player's
+			# own account and never crosses the wire; only the Food is the
+			# *run's*, and the run is the host's to pay out.
+			#
+			# The request names the fish, so the host reads the amount off its
+			# own content rather than off the packet. A number here would have
+			# been a currency printer for anyone who could send a message.
+			if args.size() >= 1:
+				var caught: FishData = ContentDB.fish(String(args[0]))
+				if caught != null:
+					var angler: Hero = battlefield.partner_hero()
+					battlefield.spawn_loot(RunState.FOOD, caught.food,
+						angler.global_position if angler != null
+							else battlefield.town_position())
 		CoopRelay.Request.TEND_HERO:
 			# Against the *guest's* hero, which is this machine's partner. The
 			# same function a local click uses, so there is one set of rules

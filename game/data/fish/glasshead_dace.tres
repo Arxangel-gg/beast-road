@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="FishData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/fish_data.gd" id="1_fish"]
+
+[resource]
+script = ExtResource("1_fish")
+id = "glasshead_dace"
+display_name = "Glasshead Dace"
+description = "Clear through, so you can watch it decide to bite. Waste nothing out here."
+rarity = 0
+regions = Array[String](["desert"])
+weight = 3.00
+patience = 4.5
+food = 6
+heal_fraction = 0.05
+shield_fraction = 0.05
+mana_fraction = 0.00

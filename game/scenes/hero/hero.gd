@@ -318,6 +318,7 @@ func _ready() -> void:
 	spells.armor_requested.connect(_on_armor_requested)
 	spells.wound_guard_requested.connect(_on_wound_guard_requested)
 	spells.dash_refund_requested.connect(refund_dash)
+	EventBus.fish_eaten.connect(_on_fish_eaten)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
@@ -728,6 +729,39 @@ func _on_wound_guard_requested(fraction: float, delay: float, seconds: float) ->
 	_wound_delay_left = maxf(delay, 0.0)
 	if _wound_delay_left <= 0.0:
 		health.deferred_fraction = _wound_fraction
+
+
+## A fish was eaten. Restores whatever it carried, as fractions of this hero's
+## own maximums - so a meal is worth the same share of a fresh hero as of a
+## wounded one, and never a flat number the curve would have to be retuned for.
+##
+## The partner does not eat this one: a fish comes out of one account's pantry
+## and feeds the person who kept it.
+func _on_fish_eaten(fish_id: String) -> void:
+	if health == null or health.is_dead or not is_local_player():
+		return
+	var kind: FishData = ContentDB.fish(fish_id)
+	if kind == null:
+		return
+	if kind.heal_fraction > 0.0:
+		health.heal(health.max_hp * kind.heal_fraction)
+	if kind.shield_fraction > 0.0:
+		health.add_shield(health.max_hp * kind.shield_fraction)
+	if kind.mana_fraction > 0.0:
+		mana = minf(mana + mana_max() * kind.mana_fraction, mana_max())
+		RunState.hero_mana = mana
+		EventBus.hero_mana_changed.emit(mana, mana_max())
+	Vfx.ring(combat_origin(), 54.0, kind.rarity_colour(), 0.4, 4.0)
+	Sfx.play("sfx_ui_confirm", -2.0)
+
+
+## Whether this body is the one under this machine's hands.
+##
+## In a solo run there is one hero and it is always this one. In co-op the
+## partner's body is in the same tree, and a good deal depends on telling them
+## apart - who a fish feeds, whose line is in the water.
+func is_local_player() -> bool:
+	return not Coop.is_networked() or party_slot == Coop.party().slot()
 
 
 ## Clears every disable on this hero. Bulwark Ward's cleanse, for the caster

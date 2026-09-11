@@ -66,6 +66,9 @@ var synergies: Dictionary = {}
 ## Portents read at the end of an act: one cost, one reward, kept for the run.
 var omens: Dictionary = {}
 
+## Every kind of fish, by id. See `Fishing` for the ponds they come out of.
+var fish_kinds: Dictionary = {}
+
 ## Combination towers, kept separately because they are looked up by element
 ## pair rather than by id.
 var combinations: Array[TowerData] = []
@@ -107,6 +110,7 @@ func _ready() -> void:
 	merchants = _load_dir("res://data/merchants")
 	synergies = _load_dir("res://data/synergies")
 	omens = _load_dir("res://data/omens")
+	fish_kinds = _load_dir("res://data/fish")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -140,6 +144,22 @@ func merchant(id: String) -> MerchantData:
 
 func item(id: String) -> ItemData:
 	return items.get(id, null) as ItemData
+
+
+## One kind of fish by id.
+func fish(id: String) -> FishData:
+	return fish_kinds.get(id, null) as FishData
+
+
+## Every kind of fish, in a stable order so a weighted roll is reproducible.
+func fish_sorted() -> Array[FishData]:
+	var out: Array[FishData] = []
+	for value: Variant in fish_kinds.values():
+		var kind := value as FishData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: FishData, b: FishData) -> bool: return a.id < b.id)
+	return out
 
 
 ## One kind of gear by id.

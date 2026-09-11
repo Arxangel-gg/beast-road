@@ -38,8 +38,15 @@ var _note: Label
 var _tools: GridContainer
 var _scroll: ScrollContainer
 
-## Which slot the list is filtered to, or -1 for all. A stash of ninety-six is
-## not a list you read; it is one you search.
+## The pantry, which is not a gear slot at all.
+##
+## A separate value rather than a separate screen: fish are kept in the stash,
+## the owner asked for them "under a consumables tab", and a second window for
+## eleven rows would be a menu standing in front of a decision nobody makes.
+const FILTER_PANTRY: int = -2
+
+## Which slot the list is filtered to, -1 for all gear, or `FILTER_PANTRY` for
+## the fish. A stash of ninety-six is not a list you read; it is one you search.
 var _filter: int = -1
 
 ## The last thing a bulk action had to say. Kept in a field rather than written
@@ -254,8 +261,22 @@ func _build_tools() -> void:
 	var names: Array[String] = ["All"]
 	for slot: int in GearData.Slot.size():
 		names.append(GearData.name_of_slot(slot))
+	# Last rather than first: the eight slots are what this screen is for, and a
+	# tab that pushes them along by one is a tab that moved every button a
+	# returning player already knew the position of.
+	#
+	# **"Fish" rather than "Consumables", and the width is the reason.** The
+	# tabs sit in a three-column grid whose minimum width is three times the
+	# widest button, so an eleven-character label against the six-character
+	# slot names pushed the whole stash panel off a 430-wide phone -
+	# `menu_layout_check` caught it at exactly that size. The tooltip carries
+	# the longer word; if a second kind of consumable is ever kept here, this
+	# becomes "Items", which still fits.
+	names.append("Fish")
 	for which: int in names.size():
 		var index: int = which - 1
+		if which == names.size() - 1:
+			index = FILTER_PANTRY
 		var tab := Button.new()
 		tab.text = names[which]
 		tab.toggle_mode = true
@@ -263,6 +284,9 @@ func _build_tools() -> void:
 		tab.custom_minimum_size = Vector2(0.0, 36.0)
 		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tab.add_theme_font_size_override("font_size", 13)
+		if index == FILTER_PANTRY:
+			tab.tooltip_text = ("Consumables. What came out of the ponds, and the "
+				+ "meals left this run.")
 		tab.pressed.connect(func() -> void:
 			_filter = index
 			_refresh())
@@ -342,6 +366,10 @@ func _refresh() -> void:
 		_note.text += "   ·   " + _message
 		_message = ""
 
+	if _filter == FILTER_PANTRY:
+		_build_pantry()
+		return
+
 	if MetaState.stash.is_empty():
 		var empty := Label.new()
 		empty.text = "Nothing yet. Gear can fall on the battlefield or come out of raid chests."
@@ -351,6 +379,87 @@ func _refresh() -> void:
 
 	for index: int in _sorted_indices():
 		_list.add_child(_row(index))
+
+
+## The pantry: what was pulled out of the ponds, and the button that eats it.
+##
+## The note says how many meals are left rather than how many fish are held,
+## because the meals are the scarce thing. A larder of forty that can be eaten
+## three times a run is three decisions, not forty.
+func _build_pantry() -> void:
+	var meals: String = "%d meal%s left this run" % [RunState.meals_left(),
+		"" if RunState.meals_left() == 1 else "s"]
+	if not GameDirector.run_active:
+		meals = "Fish are eaten on the road"
+	_note.text = "%d of %d kept  ·  %s" % [MetaState.fish_total(),
+		Balance.FISH_STASH_CAPACITY, meals]
+	if not _message.is_empty():
+		_note.text += "   ·   " + _message
+		_message = ""
+
+	if MetaState.fish.is_empty():
+		var empty := Label.new()
+		empty.text = ("Nothing in the larder. Stand still beside a pond off the "
+			+ "roads and the line goes in by itself.")
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty.add_theme_color_override("font_color", Color("8f9b98"))
+		_list.add_child(empty)
+		return
+
+	var ids: Array = MetaState.fish.keys()
+	ids.sort()
+	for value: Variant in ids:
+		var kind: FishData = ContentDB.fish(String(value))
+		if kind != null:
+			_list.add_child(_fish_row(kind))
+
+
+func _fish_row(kind: FishData) -> Container:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var art: String = kind.get_sprite_path()
+	if ResourceLoader.exists(art):
+		icon.texture = load(art) as Texture2D
+	icon.tooltip_text = kind.description
+	row.add_child(icon)
+
+	var label := Label.new()
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var restores: PackedStringArray = []
+	if kind.heal_fraction > 0.0:
+		restores.append("%d%% health" % int(round(kind.heal_fraction * 100.0)))
+	if kind.shield_fraction > 0.0:
+		restores.append("%d%% ward" % int(round(kind.shield_fraction * 100.0)))
+	if kind.mana_fraction > 0.0:
+		restores.append("%d%% mana" % int(round(kind.mana_fraction * 100.0)))
+	label.text = "%s  ×%d\n%s  ·  %s" % [kind.display_name,
+		MetaState.fish_count(kind.id), kind.rarity_name(),
+		"restores " + ", ".join(restores) if not restores.is_empty()
+			else "caught for the Food alone"]
+	label.tooltip_text = kind.description
+	label.add_theme_color_override("font_color",
+		kind.rarity_colour().lerp(Color.WHITE, 0.35))
+	row.add_child(label)
+
+	var eat := Button.new()
+	eat.text = "Eat"
+	eat.custom_minimum_size = Vector2(96.0, ACTION_HEIGHT)
+	# Asked of `RunState`, which owns every reason this can fail, rather than
+	# tested here - so the meal cap cannot be bypassed by a second caller.
+	eat.pressed.connect(func() -> void:
+		_message = RunState.eat_fish(kind.id)
+		if _message.is_empty():
+			_message = "Ate the %s." % kind.display_name
+		_refresh())
+	row.add_child(eat)
+	return row
 
 
 ## Big enough that a 128px icon still reads at a glance, small enough that a

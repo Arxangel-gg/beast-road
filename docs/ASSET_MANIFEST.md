@@ -1559,6 +1559,45 @@ Glassfall is cold silver and The Long Night is black against pale corona, becaus
 both portents are about the light changing and a warm version of either would
 read as one more piece of luggage.
 
+### 5.13c Fish — `res://art/fish/`
+
+All 64×64, type T, placeholder colour `#7FA9C4`.
+
+`fish_chainmaker_koi.png` · `fish_deepwinter_pike.png` · `fish_frostgill_char.png` ·
+`fish_glasshead_dace.png` · `fish_greenback_perch.png` · `fish_mirebell_eel.png` ·
+`fish_roadkeeper_carp.png` · `fish_saltglass_bream.png` · `fish_silt_minnow.png` ·
+`fish_sunglass_ray.png` · `fish_white_teeth_trout.png`
+
+One per kind pulled out of the ponds, drawn as a single fish on transparency and
+seen from the side — the shape a thing makes lying on a bank, which is where the
+player meets it. They are icons rather than creatures: nothing here animates, and
+the only place one is drawn at size is the stash's Consumables list.
+
+Three per region and two that swim in every water. The regional nine are ordinary
+animals, coloured to their act — the Maw's are green and fat, the Waste's are pale
+and glassy, the White Teeth's are dark-flanked and spotted. The two that go
+everywhere are not ordinary: the Roadkeeper is an enormous scarred bronze carp and
+the Chainmaker's Koi is scaled in iron links edged with gold, because a Legendary
+that merely had better numbers would be a rarity nobody could see.
+
+### 5.13d Ponds — `res://art/battlefield/`
+
+All 192×192, type T, placeholder colour `#3E6C74`.
+
+`pond_desert.png` · `pond_jungle.png` · `pond_snow.png`
+
+The water itself, one per region, dug on the open ground away from the roads. Seen
+from a high angle like the rest of the battlefield furniture, with the surface
+filling most of the shape and a narrow rim of bank around it — a stone kerb and a
+reed in the Waste, mud and flat stones in the Maw, broken ice plates in the White
+Teeth.
+
+**The water has to be opaque.** The first pass of all three was prompted as a
+scene and came back as a *ring*: the generator read the surface as background and
+cut it out, leaving a circle of stones with a hole in the middle. Asking for "a
+disc of dark water filling the whole shape" is what fixed it, and it is the note
+worth keeping for the next thing whose subject is a flat surface.
+
 ### 5.14 Combination towers — `res://art/towers/`
 
 All 192×192, type T. Built in the middle slot of a lane from the two elements

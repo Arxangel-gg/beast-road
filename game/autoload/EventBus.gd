@@ -27,6 +27,21 @@ signal hero_health_changed(current_hp: float, max_hp: float)
 ## The local hero's mana moved. Throttled by the hero to a few times a second.
 signal hero_mana_changed(current: float, maximum: float)
 
+## A line went into a pond, and how long it will be there.
+signal fishing_started(seconds: float)
+
+## How far along that wait is, 0..1. Emitted while a line is in the water.
+signal fishing_progress(ratio: float)
+
+## The line came out, caught or not.
+signal fishing_ended()
+
+## Something was landed.
+signal fish_caught(fish_id: String, food: int)
+
+## A fish was eaten out of the stash.
+signal fish_eaten(fish_id: String)
+
 ## The hero took damage. `amount` is post-mitigation, `from` is world position.
 ## One hero took damage; `at` keeps co-op feedback on the body that was hit.
 signal hero_damaged(amount: float, from: Vector2, at: Vector2)
