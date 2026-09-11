@@ -135,6 +135,10 @@ In commit order, most recent last.
 15. **Both trade and Ledger windows fit the display they are on.**
     `menu_layout_check` caught the Ledger overflowing a 430-tall phone.
 16. **`tools/sweep.sh`**, which had been living in a session scratchpad.
+18. **Ten omen icons and four upgraded loot drops**, spending the last of the
+    PixelLab budget. The healing orb and supply crate were the weakest icons in
+    the game and were built in this same session; fixing the crate then made the
+    relic drop and the supplies crate wrong, and both were fixed too.
 17. **Four discipline effects implemented** — `drain_command`,
     `tempest_heal_cap`, `heavy_reverse_pull` and `tower_damage_brand` — plus
     `Enemy.is_priority()`, an enemy brand, `SpellCaster._rider`, and a
@@ -444,7 +448,7 @@ GitHub Actions does the rest. Never build locally.
 
 ## 9. Art and PixelLab
 
-- **1678 manifest assets, all present, all real.** `run_tool.gd -- report`
+- **1688 manifest assets, all present, all real.** `run_tool.gd -- report`
   reports zero placeholders and zero orphans, and it runs in CI.
 - **Conventions:** every path derives from a resource `id`
   (`TowerData id = "ember_spire"` → `art/towers/tower_ember_spire.png`).
@@ -459,9 +463,12 @@ GitHub Actions does the rest. Never build locally.
 - **The art is painterly, not pixel art.** A pixel-art tool means restyling all
   of it. PixelLab is used for VFX sheets and specific sprites, not a global
   restyle.
-- **Remaining PixelLab budget was around 96 generations** at the time of
-  writing, resetting 2026-09-18. Omens deliberately have no icons partly for
-  this reason.
+- **The PixelLab subscription is spent and the account is being replaced.** 7
+  generations remain on it; the owner is moving to a new Architect account, so
+  treat the old one as gone. Anything further needs new credentials.
+- **Omens now have icons** (`res://art/icons/omens/`, manifest §5.13b), so the
+  "no art, deliberately" note in `omen_data.gd` is history — the reasoning it
+  records is still the right test to apply to the next batch of anything.
 
 ---
 
