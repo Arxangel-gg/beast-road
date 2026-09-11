@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "town"
+display_name = "The town"
+trigger = 15
+order = 0
+body = "The town rides on Yuri's back. Wood, Food and Stone raise its buildings, and each one changes the run: the Hero Mansion trains disciplines, the Forge deepens towers, the Market trades resources."
+seconds = 10.0

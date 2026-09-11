@@ -27,6 +27,24 @@ enum Trigger {
 	BREATHER_OPENED,
 	## The first crossroad.
 	CROSSROAD_REACHED,
+	## The road is weakened and a raid may be entered.
+	RAID_AVAILABLE,
+	## The first piece of gear has dropped.
+	GEAR_FOUND,
+	## The hero levelled for the first time this account.
+	LEVEL_UP,
+	## The first spell went off.
+	SPELL_CAST,
+	## The first arrow was loosed.
+	ARROW_LOOSED,
+	## A travelling merchant arrived.
+	MERCHANT_ARRIVED,
+	## An act boss fell; portents are about to be offered.
+	BOSS_FELLED,
+	## The town scope was opened for the first time.
+	TOWN_OPENED,
+	## A wild animal's spirit was met for the first time.
+	SPIRIT_MET,
 }
 
 @export var trigger: Trigger = Trigger.RUN_STARTED

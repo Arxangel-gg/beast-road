@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "bow"
+display_name = "The bow"
+trigger = 12
+order = 0
+body = "Press F to loose an arrow at the cursor. Arrows are spent: find more on the road, or craft them in town from blueprints you have learned."
+seconds = 10.0

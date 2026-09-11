@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "raid"
+display_name = "The road is weakened"
+trigger = 8
+order = 0
+body = "The road is weakened: press R to freeze the battlefield exactly as it stands and raid the camp beyond it. Extract with what you carry, or stay for the chieftain."
+seconds = 10.0

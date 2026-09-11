@@ -108,6 +108,27 @@ func _ready() -> void:
 		_fire(TutorialStepData.Trigger.CROSSROAD_REACHED))
 	EventBus.command_changed.connect(_on_command_changed)
 	EventBus.preparation_changed.connect(_on_preparation_changed)
+	# The systems a first run meets after the opening. Each fires once, when
+	# its subject first becomes real to this player, and never before.
+	EventBus.raid_available.connect(func(_weakened_for: float) -> void:
+		_fire(TutorialStepData.Trigger.RAID_AVAILABLE))
+	EventBus.gear_collected.connect(func(_piece: Dictionary, _stored: bool, _shards: int, _at: Vector2) -> void:
+		_fire(TutorialStepData.Trigger.GEAR_FOUND))
+	EventBus.hero_levelled.connect(func(_level: int, _points: int, _skill: int) -> void:
+		_fire(TutorialStepData.Trigger.LEVEL_UP))
+	EventBus.spell_cast.connect(func(_spell_id: String, _slot: int, _at: Vector2) -> void:
+		_fire(TutorialStepData.Trigger.SPELL_CAST))
+	EventBus.hero_loosed.connect(func(_from: Vector2, _direction: Vector2, _ammo_id: String) -> void:
+		_fire(TutorialStepData.Trigger.ARROW_LOOSED))
+	EventBus.merchant_arrived.connect(func(_merchant_id: String) -> void:
+		_fire(TutorialStepData.Trigger.MERCHANT_ARRIVED))
+	EventBus.boss_defeated.connect(func(_boss_id: String, _act: int) -> void:
+		_fire(TutorialStepData.Trigger.BOSS_FELLED))
+	EventBus.scope_changed.connect(func(scope: int) -> void:
+		if scope == GameDirector.Scope.TOWN:
+			_fire(TutorialStepData.Trigger.TOWN_OPENED))
+	EventBus.spirit_discovered.connect(func(_key: String, _count: int, _needed: int) -> void:
+		_fire(TutorialStepData.Trigger.SPIRIT_MET))
 
 
 ## Sorted once, so two steps sharing a trigger keep their authored order rather
@@ -171,7 +192,7 @@ func _hide_card() -> void:
 
 
 ## Every lesson has been shown, or the player asked for them to stop. Written
-## immediately: somebody who saw all seven and then crashed should not be taught
+## immediately: somebody who saw every one of them and then crashed should not be taught
 ## the game a second time.
 func _retire() -> void:
 	MetaState.settings[SETTING_KEY] = true

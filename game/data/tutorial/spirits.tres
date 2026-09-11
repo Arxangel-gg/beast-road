@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "spirits"
+display_name = "A wild spirit"
+trigger = 16
+order = 0
+body = "You met a wild animal. Meet enough of its kind and its spirit bonds to you: one companion that follows you into every run. Most bond by getting close, not by the kill."
+seconds = 10.0

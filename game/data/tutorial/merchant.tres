@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "merchant"
+display_name = "A merchant"
+trigger = 13
+order = 0
+body = "A travelling merchant has stopped by the road. Trade during Preparation. Visit them often enough across runs and they settle in your town for good."
+seconds = 10.0

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "gear"
+display_name = "Gear"
+trigger = 9
+order = 0
+body = "Gear. Between runs it lives in your stash: wear the best, break the rest for shards. Every worn piece grants attribute points, the same capped scale as levelling."
+seconds = 10.0
