@@ -22,10 +22,11 @@ a value a gate forbids outright, and the lesson is in the memory file
 defends four lanes around a city riding on the back of a walking beast. Windows,
 web and Android builds ship from GitHub Actions.
 
-**It is a finished, released, playable game**, not a prototype. v0.10.1 is
-published, downloadable, and has been smoke-tested by downloading the release
-zip and playing it. The loop closes: splash → menu → run → all scopes → three
-acts → a final ascent → win or lose → payout → menu.
+**It is a finished, released, playable game**, not a prototype. v0.11.0 is
+published, downloadable, and has been smoke-tested the way a player gets it:
+the release zip downloaded, extracted, launched, and driven to the new screens.
+The loop closes: splash → menu → run → all scopes → three acts → a final ascent
+→ win or lose → payout → menu.
 
 **The numbers, as of this writing:**
 
@@ -35,7 +36,7 @@ acts → a final ascent → win or lose → payout → menu.
 | Guard gates | 76, green locally and on CI |
 | Release gates | 57, green |
 | Manifest assets | 1678, all present, all real art, no placeholders |
-| Latest release | v0.10.1 |
+| Latest release | v0.11.0 |
 
 ### Implemented and working
 
@@ -147,13 +148,12 @@ because `set_seed` seeds the global stream too.
 
 ## 3. In-progress work
 
-**One uncommitted change at the time of writing:** `game/scenes/ui/town_panel.gd`
-adds the Long Ledger to the Hero Mansion's Gear section, beside "Open the stash".
-It compiles, boots clean and passes `menu_layout_check`. It is being committed
-with the release below; if `git status` shows it modified, it did not land.
+**Nothing is in progress. The tree is clean.** Everything listed in §2 is
+complete, gated, committed and published in v0.11.0.
 
-**Nothing else is half-done.** Every system listed in §2 is complete, gated and
-committed.
+The last change to land was the Long Ledger appearing in the Hero Mansion's Gear
+section beside "Open the stash" — the marketplace had been reachable only from
+the main menu, which defeats a system whose orders fill on road travelled.
 
 ### Dangerous to redo
 
@@ -355,6 +355,37 @@ Full reasoning per item: `docs/IDEAS_REVIEW_2026-09-10.md`.
 
 ---
 
+## 7b. Running the gates
+
+**`tools/sweep.sh` runs CI's gates locally and derives the list from the
+workflows**, so it cannot fall behind CI:
+
+```bash
+tools/sweep.sh /some/scratch/dir guard      # 76 gates
+tools/sweep.sh /some/scratch/dir release    # 57 gates
+```
+
+It points `APPDATA` at the scratch directory, so **a gate cannot touch the
+owner's real save**. Run both before publishing. A hand-kept list of what to run
+has killed three publishes in this project; that is the entire reason this script
+parses the workflow instead.
+
+A single gate, the way CI runs it:
+
+```
+"<godot folder>/<Godot console exe>" --headless --path game res://tools/<name>.tscn
+```
+
+**Exit 0 is not a pass.** CI fails on any `ERROR:` or `WARNING:` in the output,
+and several gates here have printed their own PASS line while a script error
+scrolled past above them. The sweep holds the same bar.
+
+**Publishing** is `tools
+elease.ps1 -Version X.Y.Z`, which tags and pushes;
+GitHub Actions does the rest. Never build locally.
+
+---
+
 ## 8. Save and persistence
 
 - One file: `user://beast_road_save.json`, `SAVE_VERSION = 7`, migratable from
@@ -439,8 +470,8 @@ Full reasoning per item: `docs/IDEAS_REVIEW_2026-09-10.md`.
 ## 11. Git
 
 - Branch **`main`**, and the project releases from tags on it.
-- Last commit at the time of writing: `492b5dd` "The road announces itself, and
-  the ideas documents are triaged".
+- Released at `v0.11.0`. The tree was clean at handoff; run `git status` and
+  `git log -1` rather than trusting a hash written here.
 - **`v3-final` (at `v0.3.7`) is a photograph of the last working v3 game.**
   Never commit to it.
 - `game/addons/webrtc_native/lib/` can accumulate `~`-prefixed DLL copies when
@@ -483,6 +514,7 @@ Full reasoning per item: `docs/IDEAS_REVIEW_2026-09-10.md`.
 | `docs/ChatGPT_TransitionHandoff` | The owner's model-strategy conversation and the spec this document answers |
 | `docs/EXCHANGE.md` | The Long Ledger: table SQL, constants, what each decides |
 | `docs/RELEASING.md` | How a build is published |
+| `tools/sweep.sh` | Runs CI's gates locally, derived from the workflows. Run both before publishing |
 | `docs/ASSET_MANIFEST.md` | Every asset, its path and its pixel dimensions |
 | `docs/ROAD_TO_RELEASE.md` | Release history and locked-in values |
 | `docs/MINIMUM_SPEC.md` | Provisional performance targets — **unverified** |
