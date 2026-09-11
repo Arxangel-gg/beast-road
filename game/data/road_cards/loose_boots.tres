@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "hero_speed"
+effect_magnitude = 0.08
+rarity = 0
+first_act = 1
+card_text = "Laces let out. You have a long way to go."
+id = "loose_boots"
+display_name = "Loose Boots"
+description = "Common card. Laces let out. You have a long way to go."

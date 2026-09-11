@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "town_max_hp"
+effect_magnitude = 0.08
+rarity = 0
+first_act = 1
+card_text = "One more beam across the gate, and it was the right beam."
+id = "propped_gate"
+display_name = "The Propped Gate"
+description = "Common card. One more beam across the gate, and it was the right beam."

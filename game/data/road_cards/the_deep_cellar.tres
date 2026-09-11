@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "town_max_hp"
+effect_magnitude = 0.22
+rarity = 2
+first_act = 4
+card_text = "Everything that matters is already underground."
+id = "the_deep_cellar"
+display_name = "The Deep Cellar"
+description = "Rare card. Everything that matters is already underground."

@@ -135,6 +135,7 @@ func _ready() -> void:
 	EventBus.coop_pointer_moved.connect(_on_partner_pointer)
 	EventBus.coop_relic_chosen.connect(_on_coop_relic_chosen)
 	EventBus.coop_omen_chosen.connect(_on_coop_omen_chosen)
+	EventBus.coop_road_card_chosen.connect(_on_coop_road_card_chosen)
 	EventBus.coop_last_scar_accepted.connect(_on_coop_last_scar_accepted)
 
 
@@ -446,6 +447,153 @@ func accept_omen_request(omen_id: String) -> void:
 
 func _on_coop_omen_chosen(omen_id: String) -> void:
 	accept_partner_omen(omen_id)
+
+
+## The card a player has settled on while the panel asks what to leave behind.
+## Empty at every other moment, and cleared on both the apply and the reopen so
+## a cancelled draft cannot carry a stale take into the next crossroad.
+var _pending_take: String = ""
+
+
+## The draft at a crossroad. Three cards, a hand of five, one choice.
+##
+## Built on the portent flow rather than beside it, for the reason that flow was
+## built on the relic reward: this is the same panel and the same
+## one-choice-for-the-party rule, and a second handshake is a second place for
+## co-op to be subtly wrong.
+##
+## **Two stages, one message.** Taking a card whose effect key the hand already
+## holds is a swap and settles at once. Taking a new key with five cards in hand
+## has to give something up, so the panel asks which - and only then does the
+## pair travel, as one request. Sending the take and the drop separately would
+## have made a disconnect between them leave a hand of four.
+func open_road_card_choice() -> void:
+	_road_row = null
+	_relic_followup_segment = -1
+	_buttons.clear()
+	_sent_pointer = Vector2.ZERO
+	_resolving = false
+	_pending_take = ""
+	for child: Node in options_box.get_children():
+		child.queue_free()
+	title.text = "WHAT THE ROAD TAUGHT  ·  keep one"
+	for card_id: String in RunState.pending_road_cards:
+		var card: RoadCardData = ContentDB.road_card(card_id)
+		if card == null:
+			continue
+		var button: Button = _card_button(card, _replacement_for(card))
+		button.pressed.connect(_choose_road_card.bind(card.id))
+		_buttons[card.id] = button
+		options_box.add_child(button)
+	panel.visible = true
+
+
+## The line under a card's text: what it does, and what it costs the hand.
+func _replacement_for(card: RoadCardData) -> String:
+	for held: String in RunState.road_cards:
+		var other: RoadCardData = ContentDB.road_card(held)
+		if other != null and other.effect_id == card.effect_id:
+			return other.display_name
+	return ""
+
+
+func _card_button(card: RoadCardData, replaces: String) -> Button:
+	var button := Button.new()
+	var note: String = ""
+	if not replaces.is_empty():
+		note = "\nReplaces %s." % replaces
+	elif RunState.road_card_hand_is_full():
+		note = "\nYour hand is full. You will choose what to leave."
+	button.text = "%s\n%s%s" % [card.display_name.to_upper(), card.card_text, note]
+	var art: String = card.get_sprite_path()
+	if ResourceLoader.exists(art):
+		button.icon = load(art) as Texture2D
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", OMEN_ICON)
+		button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	button.custom_minimum_size = Vector2(CARD_WIDTH, 112.0)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.tooltip_text = card.description
+	return button
+
+
+func _choose_road_card(card_id: String) -> void:
+	if _resolving or not RunState.pending_road_cards.has(card_id):
+		return
+	var card: RoadCardData = ContentDB.road_card(card_id)
+	if card == null:
+		return
+	if RunState.road_card_hand_is_full() and _replacement_for(card).is_empty():
+		_pending_take = card_id
+		_open_drop_choice(card)
+		return
+	_send_road_card(card_id, "")
+
+
+## Stage two: five cards in hand, and one of them is not coming any further.
+func _open_drop_choice(card: RoadCardData) -> void:
+	_buttons.clear()
+	for child: Node in options_box.get_children():
+		child.queue_free()
+	title.text = "%s  ·  leave one behind" % card.display_name.to_upper()
+	for held: String in RunState.road_cards:
+		var other: RoadCardData = ContentDB.road_card(held)
+		if other == null:
+			continue
+		var button: Button = _card_button(other, "")
+		button.text = "LEAVE %s\n%s" % [other.display_name.to_upper(), other.card_text]
+		button.pressed.connect(_send_road_card.bind(_pending_take, held))
+		_buttons[held] = button
+		options_box.add_child(button)
+	panel.visible = true
+
+
+func _send_road_card(card_id: String, drop: String) -> void:
+	if _resolving:
+		return
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay == null:
+			return
+		relay.request(CoopRelay.Request.CHOOSE_ROAD_CARD, [card_id, drop])
+		_await_answer(card_id)
+		return
+	if Coop.partner_present():
+		EventBus.coop_road_card_chosen.emit(card_id, drop)
+	_apply_road_card(card_id, drop)
+
+
+## The other player kept one. One card, one road, both screens close.
+func accept_partner_road_card(card_id: String, drop: String) -> void:
+	if not RunState.pending_road_cards.has(card_id):
+		return
+	_flash_partner_pick(card_id)
+	_apply_road_card(card_id, drop)
+
+
+func _apply_road_card(card_id: String, drop: String) -> void:
+	_resolving = false
+	_pending_take = ""
+	# `RunState` owns both hand rules so that one function decides and the gate
+	# can drive the real one.
+	var dropped: String = RunState.take_road_card(card_id, drop)
+	RunState.pending_road_cards.clear()
+	EventBus.road_card_taken.emit(card_id, dropped)
+	panel.visible = false
+
+
+## A guest asked for a card. Host side only, like every other request.
+func accept_road_card_request(card_id: String, drop: String) -> void:
+	if _resolving or not RunState.pending_road_cards.has(card_id):
+		return
+	if Coop.partner_present():
+		EventBus.coop_road_card_chosen.emit(card_id, drop)
+	_apply_road_card(card_id, drop)
+
+
+func _on_coop_road_card_chosen(card_id: String, drop: String) -> void:
+	accept_partner_road_card(card_id, drop)
 
 
 func _choose_relic(relic_id: String) -> void:

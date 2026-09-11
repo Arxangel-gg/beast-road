@@ -188,6 +188,13 @@ signal party_notice(slot: int, text: String)
 
 signal coop_pointer_moved(at: Vector2)
 
+## A Road Card was kept, and `dropped` is what left the hand to make room for
+## it - empty when the hand had space or the card upgraded a key in place.
+signal road_card_taken(card_id: String, dropped: String)
+
+## The other player kept one - on the host's say-so.
+signal coop_road_card_chosen(card_id: String, dropped: String)
+
 ## An omen was read, and the road is worse and better for the rest of the run.
 signal omen_taken(omen_id: String)
 

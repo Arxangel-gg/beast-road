@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "beast_speed"
+effect_magnitude = 0.14
+rarity = 1
+first_act = 2
+card_text = "Paved, level, and going the right way for once."
+id = "the_good_road"
+display_name = "The Good Road"
+description = "Uncommon card. Paved, level, and going the right way for once."

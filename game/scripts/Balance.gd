@@ -270,6 +270,24 @@ const TRADE_MAX_PIECES: int = 6
 ## that rule and this number have to move together.
 const OMEN_OFFER_COUNT: int = 3
 
+## Road Cards, drafted at every crossroad (owner ruling, 2026-09-11).
+##
+## Three offered, five kept. Twenty crossroads over ten acts deal sixty cards
+## and the player keeps five of them, so the draft is mostly refusal - which is
+## what makes it a decision rather than an accumulation. With one card per
+## effect key on top of that (`RunState.take_road_card`), the most a hand can
+## ever be worth is five cards on five different numbers. [TUNE]
+const ROAD_CARD_OFFER_COUNT: int = 3
+const ROAD_CARD_HAND: int = 5
+
+## The largest a single card's magnitude may be, for keys read as a fraction.
+##
+## Not a balance lever so much as a typo net: 2.2 where 0.22 was meant is a card
+## that ends the run it is drawn in, and it looks exactly like every other line
+## in the file. Keys the game reads as a whole number of things are exempt and
+## are checked the other way round - see `road_card_check`. [TUNE]
+const ROAD_CARD_MAX_MAGNITUDE: float = 0.60
+
 const EXCHANGE_SLOTS: int = 6
 
 ## What a caravan pays over what your own hold would give you.

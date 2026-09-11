@@ -1624,6 +1624,29 @@ families, because what they have in common is being a *spirit* rather than
 belonging to a school. One is offered per discipline, so any hero can reach a
 companion and no hero can hold all three.
 
+### 5.13e Road Card icons — `res://art/icons/road_cards/`
+
+All 128×128, type T, placeholder colour `#B8863A`.
+
+`card_whetstone_hour.png` · `card_cleared_sightlines.png` · `card_banked_earth.png` ·
+`card_the_forager.png` · `card_picked_clean.png` · `card_loose_boots.png` ·
+`card_short_rations.png` · `card_propped_gate.png` · `card_dry_powder.png` ·
+`card_cold_iron_stakes.png` · `card_the_long_lever.png` · `card_set_stance.png` ·
+`card_the_good_road.png` · `card_the_standing_order.png` · `card_counted_the_fires.png` ·
+`card_the_quartermaster.png` · `card_the_master_founder.png` · `card_the_watchtower_eye.png` ·
+`card_riveted_plate.png` · `card_the_conductor.png` · `card_the_open_hand.png` ·
+`card_second_wind.png` · `card_the_deep_cellar.png` · `card_the_quiet_approach.png`
+
+One per card, drawn on the face that offers it, and the same rule as the omen
+icons: a **single object the road left behind** rather than a symbol. A card is
+one of three read in a few seconds, and three silhouettes separate faster than
+three sentences do - which is the argument that bought the omens their art and
+applies here with twenty crossroads' worth of repetition behind it.
+
+Warm bone, rust and amber, like the relics and the portents. Two came back
+wrong on the first pass and were regenerated: the ranging glass arrived as a
+chalice and the tally stick as a plank, neither of which any gate can see.
+
 ### 5.13b Omen icons — `res://art/icons/omens/`
 
 All 128×128, type T, placeholder colour `#B8863A`.

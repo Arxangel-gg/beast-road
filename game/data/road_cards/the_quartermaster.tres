@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "build_cost"
+effect_magnitude = -0.14
+rarity = 1
+first_act = 2
+card_text = "She has seen this invoice before and she is not paying it."
+id = "the_quartermaster"
+display_name = "The Quartermaster"
+description = "Uncommon card. She has seen this invoice before and she is not paying it."

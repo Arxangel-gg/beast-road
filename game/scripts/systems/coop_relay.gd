@@ -104,6 +104,8 @@ enum Fact {
 	TRADE_SETTLED = 48,
 	## The portent the party read, host to guest.
 	OMEN_CHOSEN = 49,
+	## The card the party kept, host to everyone.
+	ROAD_CARD_CHOSEN = 50,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -128,6 +130,12 @@ enum Request {
 	ACCEPT_LAST_SCAR = 16,
 	## A portent read at the end of an act. One for the party, like the relic.
 	CHOOSE_OMEN = 23,
+	## A Road Card kept at a crossroad, and what was left behind for it.
+	##
+	## **One message carrying both ids**, not two. A take and a drop sent
+	## separately leave a hand of four if the connection dies between them, and
+	## a hand of four is not a state any screen can explain.
+	CHOOSE_ROAD_CARD = 25,
 	## A guest landed a fish and wants the Food it pays.
 	##
 	## **By id, never by amount.** The host looks the Food up itself, so the
@@ -329,6 +337,7 @@ func _fact_bindings() -> Array:
 		["coop_road_chosen", _on_coop_road_chosen],
 		["coop_relic_chosen", _on_coop_relic_chosen],
 		["coop_omen_chosen", _on_coop_omen_chosen],
+		["coop_road_card_chosen", _on_coop_road_card_chosen],
 		["coop_enemy_struck", _on_coop_enemy_struck],
 		["coop_party_roster", _on_coop_party_roster],
 		["coop_chat", _on_coop_chat],
@@ -449,6 +458,10 @@ func _on_coop_relic_chosen(relic_id: String) -> void:
 
 func _on_coop_omen_chosen(omen_id: String) -> void:
 	_relay(Fact.OMEN_CHOSEN, [omen_id])
+
+
+func _on_coop_road_card_chosen(card_id: String, dropped: String) -> void:
+	_relay(Fact.ROAD_CARD_CHOSEN, [card_id, dropped])
 
 
 func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
@@ -782,6 +795,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.RELIC_CHOSEN:
 			if args.size() == 1:
 				bus.coop_relic_chosen.emit(String(args[0]))
+		Fact.ROAD_CARD_CHOSEN:
+			if args.size() >= 2:
+				bus.coop_road_card_chosen.emit(String(args[0]), String(args[1]))
 		Fact.OMEN_CHOSEN:
 			if args.size() == 1:
 				bus.coop_omen_chosen.emit(String(args[0]))

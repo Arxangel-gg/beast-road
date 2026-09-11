@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "wave_foresight"
+effect_magnitude = 1.0
+rarity = 1
+first_act = 2
+card_text = "Count the fires at dusk and you know what morning brings."
+id = "counted_the_fires"
+display_name = "Counted the Fires"
+description = "Uncommon card. Count the fires at dusk and you know what morning brings."

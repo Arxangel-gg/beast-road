@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "tower_damage"
+effect_magnitude = 0.22
+rarity = 2
+first_act = 4
+card_text = "Cast properly, for once, by somebody who has done it before."
+id = "the_master_founder"
+display_name = "The Master Founder"
+description = "Rare card. Cast properly, for once, by somebody who has done it before."

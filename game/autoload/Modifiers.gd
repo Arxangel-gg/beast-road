@@ -78,6 +78,9 @@ func rebuild() -> void:
 	# learn that a third source of modifiers now exists.
 	for omen_id: String in RunState.taken_omens:
 		_add_omen(ContentDB.omens.get(omen_id, null) as OmenData)
+	# And the hand, into the same table for the same reason.
+	for card_id: String in RunState.road_cards:
+		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData)
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
 
@@ -86,6 +89,14 @@ func _add(relic: RelicData) -> void:
 	if relic == null or relic.effect_id.is_empty():
 		return
 	_totals[relic.effect_id] = float(_totals.get(relic.effect_id, 0.0)) + relic.effect_magnitude
+
+
+## One Road Card. No halves: a card's price is the hand slot it occupies.
+func _add_card(card: RoadCardData) -> void:
+	if card == null or card.effect_id.is_empty():
+		return
+	_totals[card.effect_id] = float(_totals.get(card.effect_id, 0.0)) \
+		+ card.effect_magnitude
 
 
 ## Both halves of a portent, cost first.

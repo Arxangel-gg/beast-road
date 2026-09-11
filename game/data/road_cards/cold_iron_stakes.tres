@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "slow_strength"
+effect_magnitude = 0.26
+rarity = 1
+first_act = 2
+card_text = "Driven in overnight. Nothing crosses that ground quickly."
+id = "cold_iron_stakes"
+display_name = "Cold Iron Stakes"
+description = "Uncommon card. Driven in overnight. Nothing crosses that ground quickly."

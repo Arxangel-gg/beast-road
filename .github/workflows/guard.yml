@@ -347,6 +347,11 @@ jobs:
           # card still draws, still says the words, and the run gets easier the
           # more you read. Nothing errors.
           check "omens" --headless --path game res://tools/omen_check.tscn
+          # A third draft pool is the thing IDEAS_REVIEW refused, so what
+          # makes it safe is that the hand is bounded and the bound is in one
+          # function. If the cap or the one-card-per-key rule can be walked
+          # around, twenty crossroads become twenty upgrades and nothing errors.
+          check "road cards" --headless --path game res://tools/road_card_check.tscn
           # Every authored .tres actually became content. ContentDB warns and
           # carries on when one will not parse, so the dictionary goes quietly
           # short and every gate over that content keeps passing on what did

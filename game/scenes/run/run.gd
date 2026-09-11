@@ -51,6 +51,7 @@ func _ready() -> void:
 	EventBus.coop_crossroad_opened.connect(_on_coop_crossroad_opened)
 	EventBus.coop_road_chosen.connect(_on_coop_road_chosen)
 	crossroad_ui.relic_chosen.connect(_on_road_relic_chosen)
+	EventBus.road_card_taken.connect(_on_road_card_taken)
 	# The sheet docks over the left of the screen, which is where part of the
 	# plot ring is. The town slides out from under it rather than the sheet
 	# shrinking; `run` wires it because it owns both and the scope must not hold
@@ -378,6 +379,20 @@ func _on_boss_defeated(_boss_id: String, act: int) -> void:
 ##
 ## `OmenData.offer` owns the draw so that a gate can ask what a seed would show
 ## without building a run. This only decides whether to ask, and opens the panel.
+## The draft, at every crossroad. Offered after the road is chosen rather than
+## beside it: the road is a decision about where to go and the card is what the
+## last one taught, and putting both on one screen makes neither land.
+func _offer_road_cards() -> void:
+	if crossroad_ui == null or not RunState.pending_road_cards.is_empty():
+		return
+	var drawn: Array[String] = RoadCardData.offer(RunState.road_cards,
+		RunState.act, Balance.ROAD_CARD_OFFER_COUNT)
+	if drawn.is_empty():
+		return
+	RunState.pending_road_cards = drawn
+	crossroad_ui.open_road_card_choice()
+
+
 func _offer_omens() -> void:
 	if crossroad_ui == null or not RunState.pending_omens.is_empty():
 		return
@@ -479,11 +494,31 @@ func _on_road_chosen(option_id: String) -> void:
 	# the player can build for it rather than discover it mid-wave.
 	RunState.roll_weather()
 	RunState.refresh_discipline_offers()
+	# The draft comes after the road rather than beside it: the road is a
+	# decision about where to go and the card is what the last one taught, and
+	# on one screen neither lands. The battlefield stays suspended while the
+	# panel is up, exactly as it does for the road itself.
+	_offer_road_cards()
+	if not RunState.pending_road_cards.is_empty():
+		return
+	_leave_the_crossroad()
+
+
+## Everything that happens once the crossroad's screens are done with.
+##
+## Extracted because there are two ways out of a crossroad now - straight
+## through, or by way of the card draft - and a second copy of this would be a
+## second place for the battlefield to be resumed twice or not at all.
+func _leave_the_crossroad() -> void:
 	battlefield.resume()
 	_locked = false
 	_scope = GameDirector.Scope.CROSSROAD
 	switch_scope(GameDirector.Scope.BATTLEFIELD)
 	_enter_preparation(false)
+
+
+func _on_road_card_taken(_card_id: String, _dropped: String) -> void:
+	_leave_the_crossroad()
 
 
 func _on_road_relic_chosen(_relic_id: String) -> void:
@@ -625,6 +660,10 @@ func _on_coop_request(kind: int, args: Array, from: int) -> void:
 		CoopRelay.Request.CHOOSE_OMEN:
 			if args.size() == 1 and crossroad_ui != null:
 				crossroad_ui.accept_omen_request(String(args[0]))
+		CoopRelay.Request.CHOOSE_ROAD_CARD:
+			if args.size() >= 2 and crossroad_ui != null:
+				crossroad_ui.accept_road_card_request(
+					String(args[0]), String(args[1]))
 		CoopRelay.Request.ACCEPT_LAST_SCAR:
 			if crossroad_ui != null:
 				crossroad_ui.accept_last_scar_request()

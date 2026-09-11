@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "resource_rate"
+effect_magnitude = 0.15
+rarity = 0
+first_act = 1
+card_text = "Somebody knows which of these you can eat."
+id = "the_forager"
+display_name = "The Forager"
+description = "Common card. Somebody knows which of these you can eat."

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "tower_armour"
+effect_magnitude = 0.22
+rarity = 2
+first_act = 4
+card_text = "Plated where it matters, which is lower than you would think."
+id = "riveted_plate"
+display_name = "Riveted Plate"
+description = "Rare card. Plated where it matters, which is lower than you would think."

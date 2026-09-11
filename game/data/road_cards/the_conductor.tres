@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "chain_targets"
+effect_magnitude = 1.0
+rarity = 2
+first_act = 4
+card_text = "It wants to go somewhere. Give it three places to go."
+id = "the_conductor"
+display_name = "The Conductor"
+description = "Rare card. It wants to go somewhere. Give it three places to go."

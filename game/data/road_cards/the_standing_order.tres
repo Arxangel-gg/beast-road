@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoadCardData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/road_card_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+effect_id = "raid_charge"
+effect_magnitude = 0.3
+rarity = 1
+first_act = 2
+card_text = "The order stands. Nobody has to be told twice."
+id = "the_standing_order"
+display_name = "The Standing Order"
+description = "Uncommon card. The order stands. Nobody has to be told twice."

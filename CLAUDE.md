@@ -811,6 +811,42 @@ and twenty a run, and two constants had been quietly wrong in both directions.
 They are derived from `SEGMENTS_PER_ACT` now rather than deleted, because
 `V4_CONFORMANCE` probes one of them by name.
 
+**Road Cards are built, as of 2026-09-11.** The owner asked for card-style
+upgrades in the manner of Megabonk, Vampire Survivors and ARAM augments, and
+`IDEAS_REVIEW` §4 had refused them on the grounds that disciplines and omens
+already are a draft. That objection is correct, and it is what shapes the answer
+rather than what blocks it.
+
+**Twenty-four cards, three offered at every crossroad, a hand of five.** A card
+carries one entry for `Modifiers` - the same flat table relics, boss cores and
+portents feed - so nothing downstream learns that cards exist. That is the bound
+the ruling names: a card may only move a number the game already has an opinion
+about.
+
+**What stops twenty crossroads from being twenty upgrades is two rules, and both
+live in `RunState.take_road_card`** so that one function owns them and the gate
+drives the real one rather than a copy:
+
+- **The hand holds five.** Twenty crossroads deal sixty cards and five are kept,
+  so the draft is mostly refusal - which is what makes it a decision. Once the
+  hand is full, every later draw is a *replacement*, and the panel asks which
+  card to leave behind.
+- **One card per effect key.** Five Rare tower-damage cards would be +110% on one
+  number; one is +22%. A better card for a key you already hold swaps it, so
+  rarity is an upgrade path rather than a stack.
+
+Between them the most a hand can ever be worth is five cards on five different
+numbers - a quantity the curve can be read against, unlike an open-ended sum.
+**Nothing persists**: a hand is run-scoped exactly as a socketed relic is, and
+`road_card_check` asserts a fresh run deals a fresh one.
+
+**The draft is a separate moment from the road, deliberately.** It opens after
+the road is chosen rather than beside it, because the road is a decision about
+where to go and the card is what the last one taught; on one screen neither
+lands. Both travel as one co-op message carrying the take and the drop together
+- sent separately, a disconnect between them leaves a hand of four, which is not
+a state any screen can explain.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

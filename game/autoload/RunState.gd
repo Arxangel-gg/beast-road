@@ -27,6 +27,17 @@ var taken_omens: Array[String] = []
 
 ## Omens on offer right now, or empty. Cleared the moment one is read.
 var pending_omens: Array[String] = []
+
+## The Road Card hand, in the order the cards were taken.
+##
+## Run-scoped, like the portents above and for the same reason: a hand that
+## survived the run would be an account-level difficulty setting nobody chose,
+## and working rule 7 does not sanction one. `Modifiers` resolves cards,
+## portents and socketed relics into the same table.
+var road_cards: Array[String] = []
+
+## The three on offer at this crossroad, or empty.
+var pending_road_cards: Array[String] = []
 var beast_speed: float = Balance.BEAST_BASE_SPEED
 var act: int = 1
 var segment: int = 0
@@ -382,6 +393,8 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	distance_travelled = 0.0
 	taken_omens.clear()
 	pending_omens.clear()
+	road_cards.clear()
+	pending_road_cards.clear()
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
@@ -1576,6 +1589,46 @@ func gain_kill_resources(base_amount: int) -> void:
 		return
 	kill_resource_remainder -= float(whole)
 	gain_resources(whole)
+
+
+## Takes a card into the hand, and owns both rules that keep the hand bounded.
+##
+## **One card per effect key.** A second card naming a key the hand already
+## holds replaces it rather than adding to it, so rarity is an upgrade path and
+## never a stack. Returns the id that left the hand, or "" if nothing did.
+##
+## **Five slots.** When the hand is full and the card is on a new key, `drop`
+## names what the player chose to give up. A `drop` that is not in the hand is
+## refused rather than guessed at: a silent fallback here would quietly discard
+## whatever happened to be first, which is the kind of loss a player notices and
+## cannot undo.
+##
+## Both rules live in this one function so that `road_card_check` can drive the
+## real thing rather than a copy of it.
+func take_road_card(card_id: String, drop: String = "") -> String:
+	var card: RoadCardData = ContentDB.road_card(card_id)
+	if card == null or road_cards.has(card_id):
+		return ""
+	var replaced: String = ""
+	for held: String in road_cards:
+		var other: RoadCardData = ContentDB.road_card(held)
+		if other != null and other.effect_id == card.effect_id:
+			replaced = held
+			break
+	if replaced.is_empty() and road_cards.size() >= Balance.ROAD_CARD_HAND:
+		if not road_cards.has(drop):
+			return ""
+		replaced = drop
+	if not replaced.is_empty():
+		road_cards.erase(replaced)
+	road_cards.append(card_id)
+	Modifiers.rebuild()
+	return replaced
+
+
+## True when taking a new-key card would cost the player one they hold.
+func road_card_hand_is_full() -> bool:
+	return road_cards.size() >= Balance.ROAD_CARD_HAND
 
 
 ## Maximum tower level the current Forge tier supports. Tier 0 permits the

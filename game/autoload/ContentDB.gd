@@ -65,6 +65,7 @@ var synergies: Dictionary = {}
 
 ## Portents read at the end of an act: one cost, one reward, kept for the run.
 var omens: Dictionary = {}
+var road_cards: Dictionary = {}
 
 ## Every kind of fish, by id. See `Fishing` for the ponds they come out of.
 var fish_kinds: Dictionary = {}
@@ -110,6 +111,7 @@ func _ready() -> void:
 	merchants = _load_dir("res://data/merchants")
 	synergies = _load_dir("res://data/synergies")
 	omens = _load_dir("res://data/omens")
+	road_cards = _load_dir("res://data/road_cards")
 	fish_kinds = _load_dir("res://data/fish")
 
 	for value: Variant in towers.values():
@@ -136,6 +138,10 @@ func synergy(id: String) -> SynergyData:
 
 func omen(id: String) -> OmenData:
 	return omens.get(id, null) as OmenData
+
+
+func road_card(id: String) -> RoadCardData:
+	return road_cards.get(id, null) as RoadCardData
 
 
 func merchant(id: String) -> MerchantData:
