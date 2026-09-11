@@ -1,7 +1,7 @@
 # Beast Road — handoff
 
-Written 2026-09-10, at the end of a long Claude Code session, for a fresh
-session picking the project up cold.
+Written 2026-09-10 and finalised 2026-09-11, at the end of a long Claude Code
+session, for a fresh session picking the project up cold.
 
 **Read `CLAUDE.md` first, not this.** That file is the project's working rules
 and its record of owner decisions, it is checked into the repo, and it is
@@ -35,7 +35,7 @@ The loop closes: splash → menu → run → all scopes → three acts → a fin
 | v4 conformance audit | 46 of 46 automatable checks (5 rows need a human) |
 | Guard gates | 76, green locally and on CI |
 | Release gates | 57, green |
-| Manifest assets | 1678, all present, all real art, no placeholders |
+| Manifest assets | 1688, all present, all real art, no placeholders |
 | Latest release | v0.11.0 |
 
 ### Implemented and working
@@ -135,15 +135,23 @@ In commit order, most recent last.
 15. **Both trade and Ledger windows fit the display they are on.**
     `menu_layout_check` caught the Ledger overflowing a 430-tall phone.
 16. **`tools/sweep.sh`**, which had been living in a session scratchpad.
-18. **Ten omen icons and four upgraded loot drops**, spending the last of the
-    PixelLab budget. The healing orb and supply crate were the weakest icons in
-    the game and were built in this same session; fixing the crate then made the
-    relic drop and the supplies crate wrong, and both were fixed too.
-17. **Four discipline effects implemented** — `drain_command`,
+17. **Ten omen icons and four upgraded loot drops**, spending the last of the
+    old PixelLab budget. The healing orb and supply crate were the weakest icons
+    in the game and were built in this same session; fixing the crate then made
+    the relic drop and the supplies crate wrong, and both were fixed too.
+18. **Four discipline effects implemented** — `drain_command`,
     `tempest_heal_cap`, `heavy_reverse_pull` and `tower_damage_brand` — plus
     `Enemy.is_priority()`, an enemy brand, `SpellCaster._rider`, and a
     completed-test counter on `discipline_check`, which had printed PASS over
     three of its own script errors.
+
+19. **`structure_check` stopped measuring machine load.** It failed once in a
+    full sweep and passed three bare re-runs. The tower's fire-kick decays over
+    0.17s and the shove is squared, so two real frames totalling 116ms leave it
+    under the half pixel the test asserts — which a sweep running 76 gates back
+    to back produces regularly. It now drives `_tick_step_wobble` with a fixed
+    delta instead of awaiting frames: same function, same assertions, no wall
+    clock. Negative control confirmed (removing the kick still fails it).
 
 **Two faults my own gates caught before they shipped**, worth knowing because
 they show what these gates are for: an omen authored with its halves reversed
@@ -316,8 +324,10 @@ a new session knows what *not* to reopen.
 - Whether players should be able to open a road *early* for a reward. Compatible
   with the design, but it moves the wave-pressure curve three acts are tuned
   against, so it is a balance project.
-- Whether omens deserve icons. They currently have none, deliberately — see
-  `omen_data.gd`.
+- ~~Whether omens deserve icons.~~ **Settled 2026-09-10: they have ten**, in
+  `res://art/icons/omens/`. Left visible rather than deleted because the reasoning
+  for *not* drawing them is still the right reasoning for the next ten of
+  anything — see `omen_data.gd`, which records why the note changed.
 
 ---
 
@@ -523,6 +533,16 @@ less:
   in one day, on commits touching no menu code. Bare re-runs pass. Recorded as
   *a timeout first*, with the hypothesis that it sits near the 240s ceiling.
   **The experiment to confirm that has not been run.**
+
+  **New evidence, 2026-09-11, and it supports the timeout reading.**
+  `structure_check` showed the identical signature — one failure inside a full
+  sweep, three bare re-runs green — and the cause was diagnosed exactly: a
+  wall-clock assertion that a loaded machine defeats (§2, item 19). That is a
+  second gate in this project failing on *load* rather than on code. Before
+  hunting a segfault in `menu_layout_check`, look for the same shape: what in it
+  depends on elapsed time or frame count, and what happens to that when 75 other
+  gates have just run. A gate that measures the machine will fail a publish
+  eventually, and this one has already cost three.
 - **`breather` failed once with `Invalid polygon data, triangulation failed`**
   and passed on a bare re-run of the same commit. That exact error has been a
   real, reproducible bug here twice — the blade ribbon and `Flame` at zero
@@ -607,8 +627,11 @@ asserts it, so it is the one place that currently gets this right on purpose.
 3. **Do the release-readiness audit the owner is asking for**, without modifying
    anything: blockers, must-have, polish, post-launch, and specifically *what
    will become painful or expensive in the final month if not fixed now*.
-4. **Then, if implementing, start with the 17 inert discipline effects.** It is
-   the one item in the backlog that is a promise the game currently breaks.
+4. **Then, if implementing, start with the 13 inert discipline effects** — and
+   read §4's three groups first. They are not one job, and treating them as one
+   is why the number sat at seventeen for months. Group A is roughly a day; Group
+   C needs core mechanics the game does not have (crit, marks, timed modifiers)
+   and is a design conversation before it is an implementation.
 5. **Reproduce the `menu_layout_check` Linux failure before touching it.** The
    hypothesis is written down and unrun.
 

@@ -64,10 +64,20 @@ func _ready() -> void:
 	# never fully decays leaves every tower on the field permanently a few pixels
 	# off its own base, which nobody notices for months and then reads as the art
 	# being misaligned.
+	#
+	# **Driven with a fixed delta rather than by awaiting real frames.** The kick
+	# decays over `TOWER_FIRE_KICK_SECONDS` (0.17s) and the shove is squared, so
+	# two frames totalling 116ms leave it under the half pixel asserted below.
+	# A sweep running seventy-six gates back to back produces frames that long
+	# regularly, and this gate failed once in a full sweep and passed three bare
+	# re-runs — it was measuring machine load, not the code.
+	#
+	# Ticking the real function by hand keeps the subject identical and makes the
+	# arithmetic the only variable.
+	const STEP: float = 1.0 / 60.0
 	var home: Vector2 = tower.sprite.position
 	tower.kick(tower.origin() + Vector2(200.0, 0.0))
-	await get_tree().process_frame
-	await get_tree().process_frame
+	tower.call("_tick_step_wobble", STEP)
 	_check(tower.sprite.position.distance_to(home) > 0.5,
 		"firing must shove the tower off its rest position")
 	_check(tower.sprite.position.x < home.x,
@@ -75,8 +85,8 @@ func _ready() -> void:
 	var settle: float = Balance.TOWER_FIRE_KICK_SECONDS + 0.2
 	var waited: float = 0.0
 	while waited < settle:
-		waited += get_process_delta_time()
-		await get_tree().process_frame
+		tower.call("_tick_step_wobble", STEP)
+		waited += STEP
 	_check(tower.sprite.position.distance_to(home) < 0.5,
 		"and the shove must settle back, %.2f off"
 			% tower.sprite.position.distance_to(home))
