@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_rarity_coverage()
 	_test_animation_coverage()
 	_test_ecology(wildlife)
+	_test_hoarders(wildlife)
 	_test_the_road_goes_quiet(wildlife)
 
 	if _failures == 0:
@@ -228,6 +229,58 @@ func _test_ecology(wildlife: Wildlife) -> void:
 ##    warning, it is a wilderness that died.
 ## 4. It is capped, so a run where `boss_defeated` never arrives cannot leave the
 ##    road silent for the rest of the act with nothing to say why.
+## A hoarder is a prize with a clock: it drops the Gold it carried when it is
+## killed, a shiny one always drops gear, and when its patience runs out it
+## rifts away rather than walking off the field.
+func _test_hoarders(wildlife: Wildlife) -> void:
+	var hoarder: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind.hoards:
+			hoarder = kind
+			break
+	_check(hoarder != null, "the road needs at least one animal that hoards")
+	if hoarder == null:
+		return
+	_check(hoarder.hoard_gold_max >= hoarder.hoard_gold_min and hoarder.hoard_gold_max > 0,
+		"a hoarder must carry Gold, or the chase pays nothing")
+	_check(not hoarder.is_hostile() and hoarder.skittish_radius > 0.0,
+		"a hoarder runs from the hero rather than fighting; that is the whole chase")
+	_check(hoarder.flee_speed_scale * hoarder.speed > Balance.HERO_MOVE_SPEED,
+		"a hoarder must outrun a walking hero, or the bow has no reason here")
+
+	var ledger := GDScript.new()
+	ledger.source_code = LEDGER_SOURCE
+	ledger.reload()
+	var stub := EnemyField.new()
+	stub.set_script(ledger)
+	add_child(stub)
+	var previous_field: Node = wildlife.field
+	wildlife.field = stub
+	var body := Sprite2D.new()
+	body.global_position = Vector2(200.0, 0.0)
+	wildlife.add_child(body)
+
+	wildlife.call("_drop_the_hoard", {"elite": false, "shiny": false}, hoarder, body.global_position)
+	var gold: int = int(stub.get("gold"))
+	_check(gold >= hoarder.hoard_gold_min and gold <= hoarder.hoard_gold_max,
+		"a killed hoarder must drop the Gold it carried; dropped %d" % gold)
+	wildlife.call("_drop_the_hoard", {"elite": false, "shiny": true}, hoarder, body.global_position)
+	_check(int(stub.get("gear")) >= 1, "a shiny hoarder must always drop gear")
+
+	var animal: Dictionary = {
+		"data": hoarder, "sprite": body, "dying": 0.0, "state": 1,
+		"patience": 0.0, "swing": 0.0, "goal": body.global_position,
+		"pause": 1.0, "home": body.global_position, "elite": false,
+	}
+	var alive: bool = bool(wildlife.call("_tick_one", animal, 0.016))
+	_check(not alive and bool(animal.get("rifted", false)),
+		"a hoarder out of patience must rift away rather than walk off the field")
+
+	wildlife.field = previous_field
+	body.queue_free()
+	stub.queue_free()
+
+
 func _test_the_road_goes_quiet(wildlife: Wildlife) -> void:
 	var living: Array[Dictionary] = wildlife.get("_living")
 	living.clear()
@@ -265,6 +318,10 @@ func _test_the_road_goes_quiet(wildlife: Wildlife) -> void:
 
 	living.clear()
 	deer.free()
+
+
+## A field that only counts what lands on it, for the hoarder test.
+const LEDGER_SOURCE: String = "extends \"res://scripts/systems/enemy_field.gd\"\nvar gold: int = 0\nvar gear: int = 0\nfunc spawn_loot(currency: String, amount: int, _at: Vector2) -> void:\n\tif currency == \"gold\":\n\t\tgold += amount\nfunc spawn_gear(_piece: Dictionary, _at: Vector2) -> void:\n\tgear += 1\n"
 
 
 func _check(condition: bool, why: String) -> void:

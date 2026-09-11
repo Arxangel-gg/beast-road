@@ -201,6 +201,18 @@ func roll_weight(act: int) -> float:
 @export_range(0, 90) var food_max: int = 8
 @export_range(0, 400) var xp_reward: int = 6
 
+## Whether this animal carries stolen goods.
+##
+## The road's answer to a loot goblin, adapted rather than borrowed: a hoarder
+## drops Gold and may drop gear when it is killed, and when its patience runs
+## out it does not walk off - it bolts through a rift and is gone, goods and
+## all. That makes it a prize with a clock on it: worth leaving the line for,
+## and worth the bow, since it runs faster than the hero walks.
+@export var hoards: bool = false
+@export_range(0, 400) var hoard_gold_min: int = 0
+@export_range(0, 400) var hoard_gold_max: int = 0
+@export_range(0.0, 1.0) var hoard_gear_chance: float = 0.0
+
 ## Seconds this creature stays before wandering off, as a range.
 @export_range(4.0, 600.0) var stay_min: float = 30.0
 @export_range(4.0, 600.0) var stay_max: float = 90.0

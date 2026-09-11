@@ -440,6 +440,8 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	sprite.z_as_relative = false
 	(host if host != null else self).add_child(sprite)
 	var impact_material: ShaderMaterial = ActorPolishScript.attach(sprite)
+	if kind.hoards:
+		_hang_sack(sprite, kind)
 
 
 	# Elite: the same animal grown and scarred, not a different one.
@@ -575,6 +577,20 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 
 	animal["patience"] = float(animal["patience"]) - delta
 	animal["swing"] = maxf(float(animal["swing"]) - delta, 0.0)
+
+	# A hoarder's clock runs whatever it is doing, and when it runs out the
+	# animal does not walk to the edge - it rifts, because the walk would be
+	# the window it just ran out of.
+	if kind.hoards:
+		var left: float = float(animal["patience"])
+		var sack: CanvasItem = sprite.get_node_or_null("Sack") as CanvasItem
+		if sack != null:
+			var warning: bool = left <= Balance.WILDLIFE_HOARD_WARNING_SECONDS
+			var lit: bool = warning and fmod(left, 0.3) < 0.15
+			sack.modulate = Color(1.0, 0.55, 0.45) if lit else Color.WHITE
+		if left <= 0.0:
+			_rift_out(animal, sprite)
+			return false
 
 	# A hostile that survived a phase transition also leaves without taking one
 	# last bite. Arrival filtering handles the normal opening path; this closes
@@ -1233,6 +1249,8 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
 	if field != null and field.has_method("spawn_loot"):
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
+	if kind.hoards:
+		_drop_the_hoard(animal, kind, sprite.global_position)
 	RunState.gain_hero_xp(float(kind.xp_reward) * bounty)
 	if _is_authority_with_company():
 		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
@@ -1246,6 +1264,62 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0) -> void:
 	# that deletes its own body reads as the animal never having been there.
 	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
 	animal["state"] = State.LEAVING
+
+
+## The sack a hoarder carries: the tell that this animal is worth chasing, and
+## the thing that flashes when it is about to leave. Drawn from the Gold drop
+## art so it reads as the same thing it will become.
+func _hang_sack(sprite: Sprite2D, kind: WildlifeData) -> void:
+	var path: String = Balance.LOOT_ART_FORMAT % RunState.GOLD
+	if not ResourceLoader.exists(path):
+		return
+	var sack := Sprite2D.new()
+	sack.name = "Sack"
+	sack.texture = load(path)
+	var art: float = maxf(float(sack.texture.get_width()), 1.0)
+	var body_scale: float = maxf(kind.scale, 0.01)
+	sack.scale = Vector2.ONE * (Balance.WILDLIFE_HOARD_SACK_SIZE / art) / body_scale
+	sack.position = Vector2(0.0, -Balance.WILDLIFE_HOARD_SACK_LIFT / body_scale)
+	sack.z_index = 1
+	sprite.add_child(sack)
+	var bob: Tween = sack.create_tween().set_loops()
+	bob.tween_property(sack, "position:y", sack.position.y - 5.0, 0.55) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	bob.tween_property(sack, "position:y", sack.position.y, 0.55) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## A hoarder's exit: a tear in the air and it is gone, goods and all.
+func _rift_out(animal: Dictionary, sprite: Sprite2D) -> void:
+	var at: Vector2 = _visual_origin(sprite)
+	Vfx.ring(at, 70.0, Color("b48cff"), 0.45, 5.0)
+	Vfx.dust(sprite.global_position, Color("7a5cc4"), 12, 80.0)
+	animal["rifted"] = true
+
+
+## What a hoarder was carrying. Gold on top of the food, rolled on the wildlife
+## stream; gear on the gear stream, so a seeded run's drops do not move because
+## somebody stopped to chase a raccoon. A shiny one always carries gear - the
+## rare thing pays like a rare thing - and an elite carries more of both.
+func _drop_the_hoard(animal: Dictionary, kind: WildlifeData, at: Vector2) -> void:
+	if field == null or not field.has_method("spawn_loot"):
+		return
+	var bounty: float = Balance.WILDLIFE_ELITE_REWARD if bool(animal.get("elite", false)) else 1.0
+	var gold: int = int(round(float(_rng.randi_range(kind.hoard_gold_min, kind.hoard_gold_max)) * bounty))
+	if gold > 0:
+		field.spawn_loot(RunState.GOLD, gold, at)
+	var chance: float = kind.hoard_gear_chance * bounty
+	if bool(animal.get("shiny", false)):
+		chance = 1.0
+	if chance <= 0.0 or _rng.randf() > minf(chance, 1.0):
+		return
+	if not field.has_method("spawn_gear"):
+		return
+	var tier: CampaignTierData = RunState.tier()
+	var piece: Dictionary = Stash.roll(ContentDB.gear_sorted(),
+		tier.order if tier != null else 0, RunState.rng("gear"))
+	if not piece.is_empty():
+		field.spawn_gear(piece, at)
 
 
 func _visual_origin(sprite: Sprite2D) -> Vector2:

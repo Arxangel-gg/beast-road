@@ -2486,6 +2486,13 @@ const WILDLIFE_HOSTILE_MAX: int = 7
 const WILDLIFE_ELITE_SCALE: float = 1.45
 const WILDLIFE_ELITE_HEALTH: float = 2.6
 const WILDLIFE_ELITE_REWARD: float = 2.4
+
+## Hoarders. The sack drawn above one, in world units, and how high above the
+## feet it floats; and how many seconds before it rifts away the sack flashes,
+## so a player looking elsewhere is told the clock is nearly out. [TUNE]
+const WILDLIFE_HOARD_SACK_SIZE: float = 30.0
+const WILDLIFE_HOARD_SACK_LIFT: float = 70.0
+const WILDLIFE_HOARD_WARNING_SECONDS: float = 4.0
 const WILDLIFE_ELITE_TINT: Color = Color(1.0, 0.72, 0.62, 1.0)
 
 ## How long a killed animal takes to fall over, and how far it rolls doing it.
