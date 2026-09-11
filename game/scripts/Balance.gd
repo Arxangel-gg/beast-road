@@ -1827,6 +1827,36 @@ const FISH_MEALS_PER_RUN: int = 3
 ## actually bounds the effect - but a pantry of nine hundred is a list nobody
 ## reads and a save nobody wants to parse.
 const FISH_STASH_CAPACITY: int = 40
+
+# --- Gear affixes (2026-09-11) --------------------------------------------------
+#
+# A piece grants up to three attribute bonuses instead of one - the owner asked
+# for Astonia's shape - and **the total is exactly what it always was**.
+#
+# That is the bound, not a compromise. Gear and levelling are the two capped
+# scales the campaign tiers are tuned against (working rule 7), and points are
+# how gear is measured, so a second and third bonus *on top* of the first would
+# raise the scale rather than enrich it. What rarity buys here is **breadth**:
+# an Oathbound piece spreads the same budget across three attributes, so it
+# dresses more of a hero rather than hitting harder. `balance_test` holds the
+# total against `Stash.points` for every kind, rarity and level in the game.
+
+## How many attributes a piece bonuses, by rarity. Worn and Sound are one, as
+## every piece was before this; Fine and Runed are two; Oathbound is three - so
+## the number of bonuses is a rarity tell you can read without the label. [TUNE]
+const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3]
+
+## How the budget divides across those bonuses. Each row sums to one, which is
+## what keeps the total identical to a single-bonus piece of the same rarity.
+##
+## The primary keeps most of it in every case: a piece that split evenly would
+## have no identity, and the kind's authored attribute is what a sword *is*.
+## [TUNE]
+const GEAR_AFFIX_SPLIT: Array[Array] = [
+	[1.0],
+	[0.72, 0.28],
+	[0.62, 0.24, 0.14],
+]
 const TREELINE_LANE_CLEARANCE: float = 320.0
 
 # ------------------------------------------------------------------------------

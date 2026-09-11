@@ -203,6 +203,91 @@ static func points(piece: Dictionary, kind: GearData) -> int:
 	return maxi(1, int(round(scaled)))
 
 
+## How many attributes a hero has. Here rather than reached for through an
+## autoload, because this class is deliberately checkable without a scene.
+const ATTRIBUTE_COUNT: int = 4
+
+
+## Every attribute this piece bonuses, and by how much.
+##
+## Returns one entry per bonus as `{"attribute": int, "points": int}`, the
+## kind's own attribute first. A Worn piece has one, exactly as every piece did
+## before affixes; an Oathbound has three.
+##
+## **Derived, never stored.** The secondaries come from the piece's own `uid` -
+## the name it already carries so a trade can refer to it - so a piece is still
+## `{kind, rarity, level, uid}` on disk. Nothing was added to the save, there is
+## no migration to get wrong, and a piece that existed before affixes grows them
+## the moment it is read. The alternative was a fourth field that every trade,
+## every Ledger order and every round trip would have had to carry.
+##
+## **And derived arithmetically, not with an RNG.** `RunState.attribute` asks
+## `MetaState.gear_attribute_points` on every call, and the hero asks that for
+## movement, damage and mana several times a frame - so this runs a few hundred
+## times a second with eight pieces worn. A `RandomNumberGenerator` per piece
+## per call would have been an allocation in the hot path; a couple of integer
+## operations is not, and it is exactly as deterministic.
+##
+## The *total* is `points()` and the split is authored in `Balance`, so this
+## function cannot inflate a piece however the numbers move.
+static func affixes(piece: Dictionary, kind: GearData) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if kind == null:
+		return out
+	var budget: int = points(piece, kind)
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0,
+		Balance.GEAR_AFFIX_COUNT.size() - 1)
+	# **Never more bonuses than the budget can pay for.** Every share has a
+	# floor of one point - a bonus of nothing is not a bonus - so a piece worth
+	# two points split three ways would have granted three, which is the exact
+	# inflation this whole design exists to avoid. A cheap piece simply has
+	# fewer bonuses; found by arithmetic before it ever ran.
+	var wanted: int = clampi(mini(Balance.GEAR_AFFIX_COUNT[rarity], budget), 1,
+		mini(Balance.GEAR_AFFIX_SPLIT.size(), ATTRIBUTE_COUNT))
+	var split: Array = Balance.GEAR_AFFIX_SPLIT[wanted - 1]
+	var primary: int = clampi(kind.attribute, 0, ATTRIBUTE_COUNT - 1)
+
+	# The attributes this piece does *not* already bonus, in order, then drawn
+	# from by index. Choosing by removal rather than by rejection means no loop
+	# can spin, and the same name always draws the same hand.
+	var pool: Array[int] = []
+	for which: int in ATTRIBUTE_COUNT:
+		if which != primary:
+			pool.append(which)
+	var draw: int = _mixed(uid(piece))
+	var chosen: Array[int] = [primary]
+	while chosen.size() < wanted and not pool.is_empty():
+		var at: int = draw % pool.size()
+		chosen.append(pool[at])
+		pool.remove_at(at)
+		draw /= maxi(pool.size(), 1)
+
+	# Handed out smallest-first and the remainder given to the primary, so the
+	# parts always sum to the budget however the fractions round. Without this a
+	# three-way split quietly loses a point or gains one, and the totals the
+	# gate compares would drift by rarity.
+	var spent: int = 0
+	var tail: Array[Dictionary] = []
+	for index: int in range(chosen.size() - 1, 0, -1):
+		var share: int = maxi(1, int(round(float(budget) * float(split[index]))))
+		spent += share
+		tail.push_front({"attribute": chosen[index], "points": share})
+	out.append({"attribute": primary, "points": maxi(1, budget - spent)})
+	out.append_array(tail)
+	return out
+
+
+## Stirs a name into something whose low digits are not its low digits.
+##
+## A uid is two random draws stitched together, so its bottom bits are already
+## well distributed - but `% 3` on a raw id ties the second attribute to the
+## bottom of the second draw, and the third to the same bits again. Knuth's
+## multiplicative constant spreads the whole word before any of it is used, and
+## the mask keeps the result positive so `%` cannot return a negative index.
+static func _mixed(name: int) -> int:
+	return absi((name * 2654435761) & 0x3FFFFFFF)
+
+
 static func rarity_name(piece: Dictionary) -> String:
 	return RARITY_NAMES[clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)]
 

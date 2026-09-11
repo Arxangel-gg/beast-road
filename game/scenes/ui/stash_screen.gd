@@ -498,10 +498,9 @@ func _row(index: int) -> Container:
 	if kind == null:
 		label.text = "Unknown"
 	else:
-		label.text = "%s %s  ·  %s  ·  Lv%d  ·  +%d %s%s" % [
+		label.text = "%s %s  ·  %s  ·  Lv%d  ·  %s%s" % [
 			Stash.rarity_name(piece), kind.display_name, kind.slot_name(),
-			int(piece.get("level", 1)), Stash.points(piece, kind),
-			ATTRIBUTE_NAMES[clampi(kind.attribute, 0, ATTRIBUTE_NAMES.size() - 1)],
+			int(piece.get("level", 1)), GearRow.bonus_text(piece, kind),
 			"   ◆ worn" if is_worn else ""]
 		label.tooltip_text = kind.description
 		label.add_theme_color_override("font_color",

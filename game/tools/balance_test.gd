@@ -73,6 +73,7 @@ func _ready() -> void:
 	_test_tiers_and_persistence()
 	_test_stash_economy()
 	_test_gear_farming()
+	_test_gear_affixes()
 	_test_gear_pickup_escalates()
 	_test_projectile_art_resolves()
 	_test_fusion_pair_lookup()
@@ -2348,6 +2349,98 @@ func _test_gear_pickup_escalates() -> void:
 	# And the best find is unmistakably the loudest thing the loot system does.
 	_check(Balance.GEAR_PICKUP_SHAKE[tiers - 1] > 0.0,
 		"the top rarity does not move the camera, so nothing in loot ever does")
+
+
+## Affixes spread a piece's points; they never add any.
+##
+## **This is the bound the whole affix idea rests on.** Gear and levelling are
+## the two capped scales the campaign tiers are tuned against (working rule 7),
+## and points are how gear is measured - so a second and third bonus *on top* of
+## the first would raise the scale rather than enrich it. What rarity buys is
+## breadth: the same budget across more attributes.
+##
+## Checked over every kind at every rarity and level, because the failure this
+## catches is arithmetic and would appear at one combination and not another.
+func _test_gear_affixes() -> void:
+	_check(Balance.GEAR_AFFIX_COUNT.size() == Stash.RARITY_NAMES.size(),
+		"every rarity needs an affix count")
+	for row: Array in Balance.GEAR_AFFIX_SPLIT:
+		var sum: float = 0.0
+		for share: float in row:
+			sum += share
+		_check(absf(sum - 1.0) < 0.001,
+			"an affix split must sum to one, not %.3f - anything else is a "
+				% sum + "quiet change to how much gear is worth")
+
+	var kinds: Array[GearData] = ContentDB.gear_sorted()
+	_check(not kinds.is_empty(), "there must be gear to affix")
+	var seen_counts: Dictionary = {}
+	for kind: GearData in kinds:
+		for rarity: int in Stash.RARITY_NAMES.size():
+			for level: int in range(1, Stash.MAX_LEVEL + 1):
+				var piece: Dictionary = Stash.make(kind.id, rarity, level)
+				var budget: int = Stash.points(piece, kind)
+				var spread: Array[Dictionary] = Stash.affixes(piece, kind)
+				var total: int = 0
+				var attributes: Dictionary = {}
+				for affix: Dictionary in spread:
+					total += int(affix["points"])
+					attributes[int(affix["attribute"])] = true
+					_check(int(affix["points"]) >= 1,
+						"%s at %s granted a bonus of nothing"
+							% [kind.id, Stash.RARITY_NAMES[rarity]])
+				_check(total == budget,
+					("%s %s Lv%d spreads %d points against a budget of %d - "
+						+ "affixes must divide the budget, never add to it")
+						% [kind.id, Stash.RARITY_NAMES[rarity], level, total, budget])
+				_check(attributes.size() == spread.size(),
+					"%s %s bonused the same attribute twice"
+						% [kind.id, Stash.RARITY_NAMES[rarity]])
+				# At most what the rarity buys, and fewer only when the piece
+				# is too cheap to pay a floor of one point per bonus.
+				var affordable: int = mini(Balance.GEAR_AFFIX_COUNT[rarity], budget)
+				_check(spread.size() == maxi(affordable, 1),
+					"%s %s Lv%d has %d bonuses against a budget of %d, not the %d it can afford"
+						% [kind.id, Stash.RARITY_NAMES[rarity], level,
+							spread.size(), budget, maxi(affordable, 1)])
+				_check(int(spread[0]["attribute"]) == kind.attribute,
+					("%s leads with %d rather than its own attribute %d - a "
+						+ "sword has to still be a sword")
+						% [kind.id, int(spread[0]["attribute"]), kind.attribute])
+				seen_counts[spread.size()] = true
+
+	# Rarity has to actually buy breadth, or the table is decoration.
+	_check(seen_counts.size() > 1,
+		"every rarity grants the same number of bonuses, so affixes change nothing")
+	_check(seen_counts.has(Balance.GEAR_AFFIX_COUNT[Stash.RARITY_NAMES.size() - 1]),
+		"nothing in the game reaches the top rarity's bonus count, so the "
+			+ "budgets are too small for the table to mean anything")
+
+	# And the same piece spreads the same way every time it is asked - a trade,
+	# a reload and a partner's screen must agree about what a sword grants.
+	var sample: Dictionary = Stash.make(kinds[0].id, Stash.RARITY_NAMES.size() - 1, 3)
+	var first: Array[Dictionary] = Stash.affixes(sample, kinds[0])
+	var again: Array[Dictionary] = Stash.affixes(sample, kinds[0])
+	_check(first == again, "a piece's bonuses must not change between two readings")
+	# Different names draw different hands.
+	#
+	# **Over named pieces rather than over two random ones.** The first version
+	# of this made two fresh pieces and asserted they differed - and with four
+	# attributes there are six hands an Oathbound can draw, so it failed one run
+	# in six. A gate that is right most of the time is worse than no gate; this
+	# project has a note about exactly that shape. Fixed names make it a fact.
+	var hands: Dictionary = {}
+	for name: int in [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233]:
+		var named: Dictionary = Stash.make(kinds[0].id, Stash.RARITY_NAMES.size() - 1, 3)
+		named["uid"] = name
+		var hand: PackedStringArray = []
+		for affix: Dictionary in Stash.affixes(named, kinds[0]):
+			hand.append("%d:%d" % [int(affix["attribute"]), int(affix["points"])])
+		hands["|".join(hand)] = true
+	_check(hands.size() > 1 or first.size() <= 1,
+		("twelve differently named pieces of the same kind and rarity rolled %d "
+			+ "distinct sets of bonuses - the roll is not reading the piece's "
+			+ "own name") % hands.size())
 
 
 func _test_gear_farming() -> void:

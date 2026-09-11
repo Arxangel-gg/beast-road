@@ -65,15 +65,27 @@ static func build(piece: Dictionary) -> HBoxContainer:
 		# Marks are on the row because they are the only number in the game that
 		# says what a piece is *worth*, and both the trade table and the ledger
 		# exist to ask exactly that.
-		detail.text = "%s  ·  Lv%d  ·  +%d %s  ·  %d Marks%s" % [
+		detail.text = "%s  ·  Lv%d  ·  %s  ·  %d Marks%s" % [
 			kind.slot_name(), int(piece.get("level", 1)),
-			Stash.points(piece, kind),
-			ATTRIBUTE_NAMES[clampi(kind.attribute, 0, ATTRIBUTE_NAMES.size() - 1)],
+			bonus_text(piece, kind),
 			Stash.sell_price(piece),
 			"  ·  KEPT" if Stash.is_favourite(piece) else ""]
 		row.tooltip_text = kind.description
 	text.add_child(detail)
 	return row
+
+
+## What a piece grants, as a sentence: "+7 Might, +3 Focus".
+##
+## One function rather than one per screen, for the reason `GearRow` exists at
+## all: a piece has to read identically in the stash, the trade window and the
+## Ledger, and three call sites formatting their own is three chances to drift.
+static func bonus_text(piece: Dictionary, kind: GearData) -> String:
+	var parts: PackedStringArray = []
+	for affix: Dictionary in Stash.affixes(piece, kind):
+		var which: int = clampi(int(affix["attribute"]), 0, ATTRIBUTE_NAMES.size() - 1)
+		parts.append("+%d %s" % [int(affix["points"]), ATTRIBUTE_NAMES[which]])
+	return ", ".join(parts)
 
 
 ## A band behind a row, edged in the piece's rarity.

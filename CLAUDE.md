@@ -521,14 +521,16 @@ recorded here so it is neither forgotten nor quietly built as a re-cut.
   **Update Manager** derives its pre-flight from the workflows.
 - **Fishing**, with eleven fish and three ponds. See the note above; it is the
   one item in this batch that amends working rule 7.
+- **Gear affixes**: one, two or three attribute bonuses by rarity, dividing the
+  budget a piece already had.
 
 **Staged - compatible with v4, not built yet, in the order they should go:**
 
 1. ~~Fishing ponds.~~ **Built 2026-09-11** - see the note above. Eleven fish,
    three ponds, a Consumables tab, and `fishing_check`.
-2. Gear affixes, up to three stat bonuses a piece, and more gear kinds. Stays
-   inside working rule 7 only if affixes remain attribute points on the capped
-   scale; a fourth power scale is the thing to refuse.
+2. ~~Gear affixes, up to three stat bonuses a piece.~~ **Built 2026-09-11** -
+   see the note above; the budget is divided, never added to. **More gear kinds
+   is still outstanding** and is data plus art.
 3. More towers and more wildlife: data plus art, gated by PixelLab budget.
 4. More ranged spells: `SpellData` kinds already cover it; content and icons.
 5. The skills revamp: discipline stage three (freely spent skill points) is
@@ -600,6 +602,46 @@ a fact that can be relayed is a fact that can be subtly wrong. One thing does
 cross the wire: a guest's catch asks the host for its Food **by fish id, never
 by amount**, so the host reads the number off its own content. A number in that
 message would have been a currency printer.
+
+**Gear carries up to three bonuses, as of 2026-09-11.** The owner asked for
+Astonia's shape: "more item affixes, and up to 3 stat bonuses". A piece now
+bonuses one, two or three attributes by rarity rather than always one.
+
+**The total is exactly what it was, and that is the whole design.** Gear and
+levelling are the two capped scales the campaign tiers are tuned against
+(working rule 7), and `Stash.points` is how gear is measured - so a second and
+third bonus *on top* of the first would raise the scale rather than enrich it.
+`Stash.affixes` **divides** that budget; it can never add to it. What rarity
+buys is breadth: an Oathbound piece dresses three attributes rather than
+hitting harder, and the number of bonuses becomes a rarity tell a player reads
+without the label.
+
+`balance_test._test_gear_affixes` checks the total against the budget for every
+kind at every rarity and every level, because the failure it catches is
+arithmetic and would show at one combination and not another. It caught one
+before the code ever ran: with a floor of one point per bonus, a piece worth two
+points split three ways granted three. A piece too cheap to pay for its bonuses
+now has fewer.
+
+**Nothing was added to the save.** The secondary attributes are derived from the
+piece's own `uid` - the name it already carries so a trade can refer to it - so
+a piece is still `{kind, rarity, level, uid}` on disk, there is no migration,
+and gear written before affixes grows them the moment it is read.
+
+Two consequences of deriving them that are worth knowing:
+
+- **The roll is arithmetic, not an RNG.** `RunState.attribute` asks
+  `MetaState.gear_attribute_points` on every call and the hero asks that for
+  movement, damage and mana several times a frame, so a
+  `RandomNumberGenerator` per worn piece per call would have been an allocation
+  in the hot path. A multiply and two remainders is not, and is exactly as
+  deterministic.
+- **A piece that had never been named is now named permanently.** `Stash.uid`
+  assigns one in place when a piece lacks it, and `MetaState` used to leave that
+  only in memory - so gear from before trading was renamed on every launch. That
+  was survivable while a name meant "which piece is on the trade table"; it
+  stopped being survivable when the bonuses started being rolled from it. The
+  load now writes the names it hands out, once.
 
 ### The three escape hatches — and why there are only three
 

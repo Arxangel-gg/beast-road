@@ -190,10 +190,14 @@ func _ready() -> void:
 			var tab := child as Button
 			if tab != null and tab.toggle_mode:
 				offered[tab.text] = true
-	var wanted: int = GearData.Slot.size() + 1
+	# Every slot, plus All, plus the pantry. The count is asserted as well as
+	# the names so that a tab appearing from nowhere is noticed too - this gate
+	# exists because five slots were once added and the filter did not know,
+	# leaving a helmet reachable only through All.
+	var wanted: int = GearData.Slot.size() + 2
 	if offered.size() != wanted:
-		push_error("the stash must filter by every slot: %d tabs for %d slots plus All"
-			% [offered.size(), GearData.Slot.size()])
+		push_error(("the stash must filter by every slot: %d tabs for %d slots "
+			+ "plus All and the pantry") % [offered.size(), GearData.Slot.size()])
 		get_tree().quit(1)
 		return
 	for slot: int in GearData.Slot.size():
@@ -202,7 +206,13 @@ func _ready() -> void:
 				% GearData.name_of_slot(slot) + "reachable through All")
 			get_tree().quit(1)
 			return
-	print("[menu] stash filters %d slots and All" % GearData.Slot.size())
+	# Named rather than counted: a pantry the player cannot open is a larder
+	# they fill and never eat from, and the tab is the only way in.
+	if not offered.has("Fish"):
+		push_error("the stash has no pantry tab, so caught fish cannot be eaten")
+		get_tree().quit(1)
+		return
+	print("[menu] stash filters %d slots, All and the pantry" % GearData.Slot.size())
 
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()

@@ -803,7 +803,13 @@ func _read_hero(hero: Dictionary) -> void:
 ## content that actually exists rather than trusted, because a piece naming a
 ## kind this build no longer ships is not an error anywhere — it is a silent hole
 ## that surfaces later as a null in the equip screen.
+## Set while reading a stash when a piece had never been named, so `load_save`
+## can write the names it just handed out. See `_read_stash`.
+var _named_a_piece: bool = false
+
+
 func _read_stash(data: Dictionary) -> void:
+	_named_a_piece = false
 	marks = maxi(int(data.get("marks", 0)), 0)
 	# Read through `ExchangeOrder`, which refuses anything malformed rather than
 	# repairing it: an order restored half-way is an order holding a piece that
@@ -841,6 +847,16 @@ func _read_stash(data: Dictionary) -> void:
 		# that was open across a save.
 		if piece.has("uid"):
 			restored["uid"] = int(piece["uid"])
+		else:
+			# **And it is written back at the end of the load.** `Stash.make`
+			# gave it a fresh name a moment ago, and without this that name is
+			# only in memory - so the next launch names it again, differently.
+			#
+			# That was survivable while a name meant nothing but "which piece is
+			# on the trade table". It stopped being survivable when affixes
+			# started being rolled from it: a sword from an old save would have
+			# granted different attributes every time the game was opened.
+			_named_a_piece = true
 		stash.append(restored)
 		if stash.size() >= Balance.STASH_CAPACITY:
 			break
@@ -899,9 +915,16 @@ func gear_attribute_points() -> Array[int]:
 		if piece.is_empty():
 			continue
 		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
-		if kind == null or kind.attribute < 0 or kind.attribute >= out.size():
+		if kind == null:
 			continue
-		out[kind.attribute] += Stash.points(piece, kind)
+		# Every bonus on the piece, not only the kind's own attribute. The total
+		# is unchanged - `Stash.affixes` divides `Stash.points` rather than
+		# adding to it - so this widens what a piece dresses without moving the
+		# scale the campaign tiers are tuned against.
+		for affix: Dictionary in Stash.affixes(piece, kind):
+			var which: int = int(affix["attribute"])
+			if which >= 0 and which < out.size():
+				out[which] += int(affix["points"])
 	return out
 
 
@@ -1275,6 +1298,12 @@ func load_save() -> void:
 	total_enemies_killed = int(stats.get("total_enemies_killed", 0))
 
 	_read_settings(data.get("settings", {}) as Dictionary)
+
+	# A piece that had never been named now has one, and it has to survive the
+	# session that gave it. Once: the flag is cleared by the next `_read_stash`.
+	if _named_a_piece:
+		_named_a_piece = false
+		save_game()
 
 	save_loaded.emit()
 
