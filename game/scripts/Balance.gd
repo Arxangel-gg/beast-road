@@ -4742,6 +4742,10 @@ const LEADERBOARD_PENDING_MAX: int = 12
 ## ones already occupied on a machine that plays other games, and "someone else's
 ## server is already on that port" reads to a player as "co-op is broken".
 const COOP_PORT: int = 45870
+
+## How long a host waits after refusing a guest's build before dropping it, so
+## the refusal is delivered and the guest can show the reason. [TUNE]
+const COOP_REFUSED_PEER_GRACE: float = 0.6
 ## LAN discovery uses its own UDP port so a listener can coexist with the game
 ## socket on the same machine. [TUNE]
 const COOP_DISCOVERY_PORT: int = 45871

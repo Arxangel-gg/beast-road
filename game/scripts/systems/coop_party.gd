@@ -46,6 +46,23 @@ class Seat extends RefCounted:
 
 signal roster_changed()
 
+## The host is running a different build from this one. Guest side, once.
+signal build_mismatch(host_build: String)
+
+## The session this party belongs to, so a party can tell whether it is the
+## host's without asking the shipping singleton - which is what lets the
+## co-op harness stand two of them up in one process.
+var session: Node = null
+
+## The build this machine publishes in its roster. Host side. A variable
+## rather than a read of `BuildInfo.VERSION` so the gate can publish a
+## foreign one and prove the guest refuses it.
+var build: String = BuildInfo.VERSION
+
+## The build the host reported, or "" for a host too old to say. Guest side.
+var host_build: String = ""
+var _mismatch_reported: bool = false
+
 ## Slot number to Seat, for every player in the party including this one.
 var _seats: Dictionary = {}
 
@@ -205,6 +222,8 @@ func blocked_from(tier: CampaignTierData) -> String:
 func clear() -> void:
 	_seats.clear()
 	_own_slot = 0
+	host_build = ""
+	_mismatch_reported = false
 	roster_changed.emit()
 
 
@@ -213,7 +232,11 @@ func to_wire() -> Array:
 	var rows: Array = []
 	for occupant: Variant in seats():
 		var person := occupant as Seat
-		rows.append([person.slot, person.peer, person.name, person.cleared])
+		# The fifth column is the host's build. Every row carries it so a guest
+		# needs no rule about which row is the host's, and a launcher-updated
+		# desktop beside an instantly-updated browser cannot silently play two
+		# different games on one socket: the guest reads it and leaves.
+		rows.append([person.slot, person.peer, person.name, person.cleared, build])
 	return rows
 
 
@@ -226,7 +249,12 @@ func to_wire() -> Array:
 ## `own_peer` is this machine's transport id, which is how it finds itself in a
 ## list that describes everybody.
 func _on_roster(rows: Array) -> void:
-	if Coop.is_host():
+	# Only a *networked* host ignores rosters - it wrote this one. An offline
+	# session also answers "host" (a lone player is their own authority), and
+	# treating that as a reason to skip would silence the gate that drives a
+	# roster into a guest that has just left.
+	var mine: Node = session if session != null else Coop
+	if bool(mine.call("is_host")) and bool(mine.call("is_networked")):
 		return
 	var own_peer: int = multiplayer.get_unique_id() if multiplayer.multiplayer_peer != null else 0
 	_seats.clear()
@@ -244,10 +272,16 @@ func _on_roster(rows: Array) -> void:
 		person.peer = int(row[1])
 		person.name = _clean(String(row[2]))
 		person.cleared = int(row[3]) if row.size() > 3 else -1
+		# Four was the shape before builds were declared; a row without one is a
+		# host from before this handshake, which is itself a mismatch.
+		host_build = String(row[4]) if row.size() > 4 else ""
 		_seats[number] = person
 		if person.peer == own_peer:
 			_own_slot = number
 	roster_changed.emit()
+	if host_build != build and not _mismatch_reported:
+		_mismatch_reported = true
+		build_mismatch.emit(host_build)
 
 
 ## A name fit to draw, from a string that arrived over the wire.

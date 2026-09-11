@@ -129,6 +129,7 @@ func _ready() -> void:
 	_test_the_public_list_is_not_trusted()
 	_test_webrtc_is_actually_available()
 	_test_a_party_is_gated_by_what_it_has_cleared()
+	await _test_two_builds_refuse_each_other()
 	_test_friends_are_codes_not_accounts()
 	_test_both_kinds_of_code_are_offered()
 
@@ -891,6 +892,85 @@ func _test_both_kinds_of_code_are_offered() -> void:
 ## themselves into a fight they will lose. What this prevents is the real case -
 ## somebody joining a Nightmare party by accident and wondering why everything
 ## kills them in one hit.
+## Two different builds must not play together, in either direction.
+##
+## Nothing used to check. The relay's facts are hand-numbered and never
+## renumbered, so a mismatch did not fail loudly - it desynced quietly, and the
+## report that came back could not be reproduced. The browser build updates the
+## moment a tag lands and the desktop build waits for a click, so during a month
+## of releases the two friends most likely to play together are the two most
+## likely to differ.
+##
+## Run after both sessions have gone offline: the guest side of this leaves the
+## session, and the earlier rows want a connected pair.
+func _test_two_builds_refuse_each_other() -> void:
+	# The host publishes its build in every roster row.
+	var host_party: CoopParty = _host.call("party")
+	host_party.clear()
+	host_party.open("Host")
+	var rows: Array = host_party.to_wire()
+	_check(not rows.is_empty() and (rows[0] as Array).size() >= 5,
+		"a roster row must carry the host's build as its fifth column")
+	if not rows.is_empty():
+		_check(String((rows[0] as Array)[4]) == BuildInfo.VERSION,
+			"and it must be this build's version")
+
+	# A guest that reads a foreign build in the roster leaves, with a reason
+	# that names both builds. A row too short to carry one is an older host and
+	# is refused the same way.
+	var guest_party: CoopParty = _guest.call("party")
+	var failures_before: int = _failure_reasons.size()
+	var own: int = 0
+	var foreign: Array = [[1, 1, "Host", -1, "v0.0.0-elsewhere"], [2, own, "Warden", -1, "v0.0.0-elsewhere"]]
+	guest_party.clear()
+	guest_party._on_roster(foreign)
+	await get_tree().process_frame
+	_check(_failure_reasons.size() > failures_before,
+		"a guest shown a foreign build must fail with a reason")
+	if _failure_reasons.size() > failures_before:
+		var why: String = _failure_reasons[-1]
+		_check(why.contains("v0.0.0-elsewhere") and why.contains(BuildInfo.VERSION),
+			"and the reason must name both builds: %s" % why)
+	failures_before = _failure_reasons.size()
+	guest_party.clear()
+	guest_party._on_roster([[1, 1, "Host", -1]])
+	await get_tree().process_frame
+	_check(_failure_reasons.size() > failures_before,
+		"a host too old to declare a build must be refused too")
+	if _failure_reasons.size() > failures_before:
+		_check(_failure_reasons[-1].contains("older build"),
+			"and be named as an older build: %s" % _failure_reasons[-1])
+	# The same build, twice, is not a mismatch - or nobody could ever play.
+	failures_before = _failure_reasons.size()
+	guest_party.clear()
+	guest_party._on_roster([[1, 1, "Host", -1, BuildInfo.VERSION], [2, own, "Warden", -1, BuildInfo.VERSION]])
+	await get_tree().process_frame
+	_check(_failure_reasons.size() == failures_before,
+		"matching builds must seat without complaint")
+
+	# The host refuses a guest that declares a foreign build, and only records
+	# the tier of one that matches.
+	host_party.clear()
+	host_party.open("Host")
+	var stranger: int = 4242
+	host_party.seat(stranger, "Stranger")
+	_host.call("_on_coop_request", CoopRelay.Request.DECLARE_TIER, [2, "v0.0.0-elsewhere"], stranger)
+	var stranger_seat: CoopParty.Seat = host_party.seat_for_slot(2)
+	_check(stranger_seat != null and stranger_seat.cleared == -1,
+		"a foreign build's tier declaration must not be recorded")
+	_host.call("_on_coop_request", CoopRelay.Request.DECLARE_TIER, [2], stranger)
+	_check(stranger_seat != null and stranger_seat.cleared == -1,
+		"nor an older build's, which cannot declare one at all")
+	_host.call("_on_coop_request", CoopRelay.Request.DECLARE_TIER, [2, BuildInfo.VERSION], stranger)
+	_check(stranger_seat != null and stranger_seat.cleared == 2,
+		"a matching build's declaration must be recorded")
+	host_party.clear()
+	guest_party.clear()
+	# The deferred drop looks for a peer that was never connected and does
+	# nothing; let it run out before the harness tears the sessions down.
+	await get_tree().create_timer(Balance.COOP_REFUSED_PEER_GRACE + 0.2).timeout
+
+
 func _test_a_party_is_gated_by_what_it_has_cleared() -> void:
 	var party := CoopParty.new()
 	party.open("Host")

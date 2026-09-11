@@ -485,11 +485,9 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_place_trap(args[0] as Vector2i,
 					ContentDB.trap(String(args[1]))))
-		CoopRelay.Request.DECLARE_TIER:
-			# What this player says they have cleared, so the host can tell
-			# whether the party may play the tier it has chosen.
-			if args.size() == 1:
-				Coop.party().declare(from, int(args[0]))
+		# DECLARE_TIER is answered by `Coop` itself: it arrives in the menu, the
+		# moment a guest connects, when there is no battlefield for this router
+		# to have been built under.
 		CoopRelay.Request.TEND_HERO:
 			# Against the *guest's* hero, which is this machine's partner. The
 			# same function a local click uses, so there is one set of rules

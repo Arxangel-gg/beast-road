@@ -131,8 +131,84 @@ func party() -> CoopParty:
 	if _party == null:
 		_party = CoopParty.new()
 		_party.name = "CoopParty"
+		_party.session = self
+		_party.build_mismatch.connect(_on_build_mismatch)
 		add_child(_party)
 	return _party
+
+
+# --- The build handshake ------------------------------------------------------
+#
+# Nothing checked that two players were running the same game. The relay's
+# facts are hand-numbered and never renumbered, so a mismatch did not fail
+# loudly: it desynced quietly, one machine acting on a fact the other did not
+# send, and the report that came back could not be reproduced by anybody. The
+# browser build updates the moment a tag lands and the desktop build waits for
+# a click on Update, so during a month of frequent releases the two friends
+# most likely to play together are the two most likely to differ.
+#
+# Both directions are covered. The guest declares its build with its tier and
+# the host refuses and drops a guest that does not match; the host publishes
+# its build in every roster row and a guest that sees a foreign one leaves.
+# A build too old to say either is treated as a mismatch, which it is.
+
+## Why two builds cannot play together, in a sentence fit for a player.
+static func build_mismatch_reason(theirs: String, mine: String = BuildInfo.VERSION) -> String:
+	var them: String = theirs if not theirs.is_empty() else "an older build"
+	return "You are on %s and the host is on %s. Update so you both match." % [mine, them]
+
+
+## The host published a build that is not this one. Guest side.
+func _on_build_mismatch(host_build: String) -> void:
+	# A networked host cannot mismatch itself. An offline session is left
+	# through so the co-op gate can drive a foreign roster into it.
+	if is_host() and is_networked():
+		return
+	var reason: String = build_mismatch_reason(host_build)
+	leave()
+	_fail(reason)
+
+
+## A guest declared itself. Host side.
+##
+## The tier declaration used to be answered by `CoopWorld`, which only exists
+## while a battlefield does - and the declaration arrives in the menu, the
+## moment the guest connects. Here it is answered by the thing that is always
+## present while a session is.
+func _on_coop_request(kind: int, args: Array, from: int) -> void:
+	if not is_host() or kind != CoopRelay.Request.DECLARE_TIER or args.is_empty():
+		return
+	var theirs: String = String(args[1]) if args.size() > 1 else ""
+	if theirs != BuildInfo.VERSION:
+		var reason: String = build_mismatch_reason(BuildInfo.VERSION, theirs)
+		var line: CoopRelay = relay()
+		if line != null:
+			line.refuse(from, CoopRelay.Request.DECLARE_TIER, reason)
+		_drop_peer.call_deferred(from)
+		return
+	party().declare(from, int(args[0]))
+
+
+## A guest whose declaration was refused has been told why; it leaves rather
+## than wait to be dropped, so the message it shows is the reason and not
+## "the host ended the session". Guest side.
+func _on_request_refused(kind: int, reason: String) -> void:
+	if is_host() or kind != CoopRelay.Request.DECLARE_TIER:
+		return
+	leave()
+	_fail(reason)
+
+
+## Disconnects a peer the host will not seat, a moment after refusing it so
+## the refusal is delivered first. A guest from before the handshake does not
+## know to leave on its own, and one that does has already gone.
+func _drop_peer(peer: int) -> void:
+	await get_tree().create_timer(Balance.COOP_REFUSED_PEER_GRACE).timeout
+	if multiplayer == null or multiplayer.multiplayer_peer == null:
+		return
+	if not multiplayer.get_peers().has(peer):
+		return
+	multiplayer.multiplayer_peer.disconnect_peer(peer)
 
 
 ## Who this player knows, and which of them is online.
@@ -210,7 +286,8 @@ func _declare_tier() -> void:
 		return
 	var line: CoopRelay = relay()
 	if line != null:
-		line.request(CoopRelay.Request.DECLARE_TIER, [MetaState.tier_cleared])
+		line.request(CoopRelay.Request.DECLARE_TIER,
+			[MetaState.tier_cleared, BuildInfo.VERSION])
 
 
 ## Why this party cannot play the run's chosen tier, or "" if it can.
@@ -265,6 +342,8 @@ func _ready() -> void:
 	# pause menu that also stops answering the network drops the other player.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bind()
+	EventBus.coop_request_received.connect(_on_coop_request)
+	EventBus.coop_request_refused.connect(_on_request_refused)
 	_relay = CoopRelay.new()
 	_relay.name = "Relay"
 	_relay.session = self

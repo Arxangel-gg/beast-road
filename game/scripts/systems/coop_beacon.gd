@@ -199,6 +199,9 @@ func _beacon_packet() -> Dictionary:
 		"name": _name,
 		"port": _port,
 		"players": Coop.player_count(),
+		# So a lobby list never offers a game this build cannot join. The
+		# session handshake would refuse it anyway; this stops it being drawn.
+		"build": BuildInfo.VERSION,
 	}
 
 
@@ -252,6 +255,10 @@ func _collect() -> void:
 				_send(_beacon_packet(), from, from_port)
 			continue
 		if not _listening_now:
+			continue
+		# A host on another build, or one too old to say. Not listed: a game
+		# that cannot be joined is a button that must fail.
+		if String(beacon.get("build", "")) != BuildInfo.VERSION:
 			continue
 		var port: int = int(beacon.get("port", 0))
 		if port <= 0 or port > 65535 or from.is_empty():
