@@ -30,7 +30,7 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 Write-Host ""
-Write-Host "Beast Road release $tag" -ForegroundColor Yellow
+Write-Host "Wilderhold release $tag" -ForegroundColor Yellow
 Write-Host ""
 
 # A tag is a promise about a commit. Publishing one from a dirty tree means the
@@ -75,7 +75,7 @@ if ($DryRun) {
     exit 0
 }
 
-git tag -a $tag -m "Beast Road $Version"
+git tag -a $tag -m "Wilderhold $Version"
 git push origin $branch
 git push origin $tag
 
