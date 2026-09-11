@@ -490,6 +490,70 @@ an omission:
   the support-diagnostics format tag) and historical `docs/` prose are not
   player-facing and were left alone.
 
+**The owner's directions of 2026-09-11, and where each one stands.** Alongside
+the rename the owner asked for a large expansion: enhanced tutorials, ten acts,
+more towers with ten upgrade levels, more wildlife, fishing ponds with consumable
+fish, Ravenswatch- and Infernal-Hordes-style choices, card-style upgrades, a mana
+bar with Focus governing it, more ranged spells, loot goblins, juicier damage
+numbers, a skills revamp, Astonia-style dungeons, rifts, professions, a
+gatekeeper ascension and a hub town, a maximum juice pass, optimisation, more
+gear, more rarities and gear affixes with up to three stat bonuses. That is
+months of work, and the owner's own advisor's rule for this month is the right
+one: only what materially improves the launch is built now, and the rest is
+recorded here so it is neither forgotten nor quietly built as a re-cut.
+
+**Built in the 2026-09-11 session**, each gated and committed on its own:
+
+- **Mana, governed by Focus.** Spells cost mana (`SpellData.mana_cost`, every
+  spell authored), the pool refills slowly, and Focus deepens it, refills it
+  faster, sharpens spell damage and shortens cooldowns up to a cap. This also
+  closes a placebo: the Mansion had promised "spell power" for Focus since the
+  attribute was authored and `HERO_FOCUS_SPELL_PER_POINT` was never read.
+  `mana_check` holds it. Mana is a run resource on the hero, like health;
+  nothing persists.
+- **Loot goblins, as raccoons.** A hoarder flag on `WildlifeData`; the raccoon
+  carries a sack of Gold, often gear, outruns a walking hero, and rifts away
+  when its clock runs out. No new art. `wildlife_spawn_check` holds it.
+- **Enhanced tutorials.** Nine more steps on nine new triggers (raid, gear,
+  level, spells, bow, merchant, portents, town, spirits), all data.
+- **Damage numbers** pop, arc, hang and tilt. **Seven more discipline nodes**
+  do what their cards say. **Two builds refuse to play co-op together.** The
+  **Update Manager** derives its pre-flight from the workflows.
+
+**Staged - compatible with v4, not built yet, in the order they should go:**
+
+1. Fishing ponds: authored pond spots beside the roads, a cast-and-wait catch,
+   fish as consumables in the stash. Needs fish art (PixelLab) and a consumables
+   tab; a clean data-driven system, and the first thing to build once the new
+   PixelLab account is connected.
+2. Gear affixes, up to three stat bonuses a piece, and more gear kinds. Stays
+   inside working rule 7 only if affixes remain attribute points on the capped
+   scale; a fourth power scale is the thing to refuse.
+3. More towers and more wildlife: data plus art, gated by PixelLab budget.
+4. More ranged spells: `SpellData` kinds already cover it; content and icons.
+5. The skills revamp: discipline stage three (freely spent skill points) is
+   still an open owner question and should be answered before a revamp.
+
+**Need an owner ruling before any code, because each re-cuts something v4
+LOCKED or a working rule** - flagged rather than built, exactly as the table
+above requires:
+
+- **Ten acts.** v4 §8 is three acts and a final ascent, and the pressure curve,
+  the boss roster, the regional factions and the campaign tiers are all tuned
+  against that shape. Ten acts is a second game's worth of regions, bosses and
+  balance, not a constant.
+- **Ten upgrade levels per tower.** `TOWER_BASE_LEVEL_CAP` and the Forge's
+  mastery levels 3 to 5 are the design; ten levels changes the cost model in
+  v4 §20 and the whole curve.
+- **A hub town for matchmaking, trade and the exchange.** The town already
+  rides the beast; a standing hub is the map grammar `IDEAS_REVIEW` §4 refused,
+  and it needs the accounts the Ledger deliberately does without.
+- **Dungeons, rifts, professions, a gatekeeper ascension, more rarities.** Each
+  is a new persistent progression axis under working rule 7, or a new content
+  system beside raids, and needs a decision on what it may persist.
+- **Card-style upgrades and Infernal-Hordes choices** are what disciplines and
+  omens already are; grow those rather than add a third draft.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
