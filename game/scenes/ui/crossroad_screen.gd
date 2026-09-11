@@ -44,6 +44,10 @@ var _resolving: bool = false
 ## a floor rather than a size - it stops a single offer collapsing to its text.
 const CARD_WIDTH: float = 460.0
 
+## How wide a portent's icon is drawn on its card. Sized against the three lines
+## of text beside it rather than against the source art, which is 128.
+const OMEN_ICON: int = 64
+
 ## Matches the theme's button text inset, so a description lines up under the
 ## name it belongs to instead of starting somewhere near it.
 const TEXT_INDENT: int = 34
@@ -371,7 +375,22 @@ func open_omen_choice() -> void:
 		var button := Button.new()
 		button.text = "%s\n%s\n%s" % [omen.display_name.to_upper(),
 			omen.bane_text, omen.boon_text]
-		button.custom_minimum_size = Vector2(CARD_WIDTH, 92.0)
+		# **The Button's own `icon`, not a child laid out inside it.**
+		#
+		# A Button positions its own content within its frame, so an anchored
+		# child ignores that entirely - which is exactly how the first trade
+		# window put gear art on top of the carved border. `icon` is the native
+		# slot and the only one that cooperates with `alignment` and autowrap.
+		var art: String = omen.get_sprite_path()
+		if ResourceLoader.exists(art):
+			button.icon = load(art) as Texture2D
+			button.expand_icon = true
+			button.add_theme_constant_override("icon_max_width", OMEN_ICON)
+			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+		# 92 clipped the third line once the icon set a floor on the row height:
+		# the name, the bane and the boon are three lines, and the boon is the
+		# one a player is deciding on.
+		button.custom_minimum_size = Vector2(CARD_WIDTH, 112.0)
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.tooltip_text = omen.portent

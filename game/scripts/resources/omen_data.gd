@@ -29,11 +29,19 @@ extends GameData
 ## content system wearing a card's clothes, and it would not be testable against
 ## the curve the acts are tuned to.
 ##
-## **No art, deliberately.** Working rule 4 says an asset a resource requires
-## must be in `ASSET_MANIFEST.md` with a placeholder generated in the same
-## change, and ten new icons is a real cost for a card that already carries a
-## name, a cost, a promise and a portent line. If omens ever earn icons, this is
-## where the path convention goes, and the manifest rows go in with it.
+## **Art, as of 2026-09-10.** This note used to say omens deliberately had none,
+## on the grounds that ten icons were a real cost for a card already carrying a
+## name, a cost, a promise and a portent line. The cost was paid; the reasoning
+## is kept because it is the right test to apply to the next ten of anything.
+##
+## What changed the answer is that the portent screen is a *choice* between three
+## cards read under time pressure, and three blocks of prose differ from each
+## other far more slowly than three silhouettes do.
+
+## `id = "the_long_night"` -> `res://art/icons/omens/omen_the_long_night.png`
+func get_sprite_path() -> String:
+	return GameData.derive_path("icons/omens", "omen_", id)
+
 
 ## What the road takes. An effect key from `Modifiers`, and how much.
 ##

@@ -99,6 +99,14 @@ func _test_every_half_is_authored() -> void:
 		_check(not omen.portent.strip_edges().is_empty(),
 			("%s has no portent line. The road is supposed to be telling you "
 				+ "something, and a number is not it") % omen.id)
+		# **And the card has a face.** Omens deliberately had no art until
+		# 2026-09-10; now that they do, a new portent authored without one draws
+		# a blank card, and the portent screen is a choice between three of them
+		# read under time pressure. The asset report catches a manifest row with
+		# no file; nothing but this catches a `.tres` with no row.
+		_checked += 1
+		_check(ResourceLoader.exists(omen.get_sprite_path()),
+			"%s has no icon at %s" % [omen.id, omen.get_sprite_path()])
 	_finished += 1
 
 

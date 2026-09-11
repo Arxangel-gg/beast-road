@@ -1539,6 +1539,26 @@ families, because what they have in common is being a *spirit* rather than
 belonging to a school. One is offered per discipline, so any hero can reach a
 companion and no hero can hold all three.
 
+### 5.13b Omen icons — `res://art/icons/omens/`
+
+All 128×128, type T, placeholder colour `#B8863A`.
+
+`omen_glassfall.png` · `omen_lean_season.png` · `omen_open_country.png` ·
+`omen_the_gathering.png` · `omen_the_heavy_load.png` · `omen_the_iron_price.png` ·
+`omen_the_last_watch.png` · `omen_the_long_night.png` · `omen_the_red_ford.png` ·
+`omen_the_wake.png`
+
+One per portent, drawn on the card that offers it. Each is a **single object the
+road left behind** rather than a symbol or a scene: an emptied cooking pot, a
+lantern still lit in an abandoned waystation, a snapped trunk shoved aside. The
+portent line is written as something a traveller noticed, and the icon is the
+thing they noticed.
+
+Warm bone, rust and amber like the relic icons, with two deliberate exceptions —
+Glassfall is cold silver and The Long Night is black against pale corona, because
+both portents are about the light changing and a warm version of either would
+read as one more piece of luggage.
+
 ### 5.14 Combination towers — `res://art/towers/`
 
 All 192×192, type T. Built in the middle slot of a lane from the two elements

@@ -56,6 +56,19 @@ func _ready() -> void:
 	get_tree().paused = false
 	await _shot("crossroad", func() -> void: run.crossroad_ui.open(1))
 	run.crossroad_ui.visible = false
+	# The portent screen shares the crossroad's panel and its one-choice rule,
+	# so it is one line away and it is the only screen omen art appears on.
+	await _shot("portents", func() -> void:
+		RunState.pending_omens.clear()
+		var offered: int = 0
+		for id: Variant in ContentDB.omens:
+			if offered >= Balance.OMEN_OFFER_COUNT:
+				break
+			RunState.pending_omens.append(String(id))
+			offered += 1
+		run.crossroad_ui.visible = true
+		run.crossroad_ui.open_omen_choice())
+	run.crossroad_ui.visible = false
 	await _shot("results", func() -> void:
 		run.hud.show_end_report()
 		run.results_ui.show_results(false, {
