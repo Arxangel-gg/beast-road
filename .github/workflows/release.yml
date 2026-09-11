@@ -248,7 +248,7 @@ jobs:
           esac
           MARKER="launcher-version-${LAUNCHER_VERSION}.txt"
           {
-            echo "Beast Road launcher version ${LAUNCHER_VERSION}."
+            echo "Wilderhold launcher version ${LAUNCHER_VERSION}."
             echo
             echo "The launcher reads this filename to decide whether it needs replacing."
             echo "Game-only releases carry the same launcher version and leave the"
@@ -548,7 +548,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: Beast Road ${{ github.ref_name }}
+          name: Wilderhold ${{ github.ref_name }}
           generate_release_notes: true
           body_path: release_body.md
           files: |

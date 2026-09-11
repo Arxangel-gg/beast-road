@@ -1,5 +1,9 @@
 # Beast Road — handoff
 
+> **Renamed 2026-09-11.** The game is now **Wilderhold**. This file is the
+> snapshot it was written as and keeps the old name throughout; `CLAUDE.md`
+> §1 records what the rename changed and what it deliberately kept.
+
 Written 2026-09-10 and finalised 2026-09-11, at the end of a long Claude Code
 session, for a fresh session picking the project up cold.
 

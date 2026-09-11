@@ -1,4 +1,4 @@
-# CLAUDE.md — BEAST ROAD
+# CLAUDE.md — WILDERHOLD (formerly Beast Road)
 
 Project instructions. Read this at the start of every session, before touching
 any code.
@@ -453,6 +453,42 @@ what is already built, what is worth building next, and what should be refused.
 
 **Otherwise: do not silently implement a re-cut of anything in v3 §14.** Ask, or
 leave the v3 behaviour in place and flag it.
+
+**The game is called Wilderhold, as of 2026-09-11.** The owner renamed it from
+Beast Road. What changed: the title (`config/name`), the export product names,
+the wordmark art, the launcher's name and strings, the in-game title card and
+credits, and the release title on GitHub.
+
+What deliberately did **not** change, and why each is a decision rather than
+an omission:
+
+- **`user://` is pinned to `godot/app_userdata/Beast Road`** with
+  `application/config/use_custom_user_dir`. Godot derives the user directory
+  from the title, so an unpinned rename moves every existing save into a folder
+  the game no longer reads, with no error and a fresh account on the menu. The
+  lowercase `godot` is what makes one spelling match both Windows (which is
+  case-insensitive) and the web build (which is not). `user_dir_check` holds
+  the pin in both workflows. `MetaState.SAVE_PATH` is unchanged for the same
+  reason.
+- **The GitHub repository, the web origin `beastroad.arxangel.gg`, the Android
+  package id and the launcher's install folder** stay as they are (owner
+  ruling, 2026-09-11: dev-testing identifiers for now). Web saves are
+  per-origin and an Android package id is the app's identity, so each of these
+  is its own sequenced migration if it is ever revisited.
+- **The release asset names** (`BeastRoad-windows.zip`, `BeastRoadLauncher.exe`,
+  `BeastRoad-web.zip`, `BeastRoad.apk`) stay. The permanent launcher link and
+  the Update Manager resolve them by exact name; renaming them breaks updates
+  for everyone already installed unless the old names are published beside the
+  new ones for at least one release.
+- **The game executable inside the zip is still `BeastRoad.exe` this release.**
+  Launcher 4 runs whichever of `Wilderhold.exe` / `BeastRoad.exe` it finds, and
+  a launcher updates itself before it installs a game, so the export path may
+  switch once every installed launcher has had one release to update.
+- **The run title "The Beast Road" stays**, as fiction: the road the beast
+  walks keeps its name. The game does not.
+- Internal identifiers (`beast_road_*` metadata keys, the LAN beacon magic,
+  the support-diagnostics format tag) and historical `docs/` prose are not
+  player-facing and were left alone.
 
 ### The three escape hatches — and why there are only three
 
