@@ -59,13 +59,11 @@ marketplace, and Road Omens. See §2.
 
 ### Partially implemented
 
-- **Discipline effects: 7 of 24 are real.** `discipline_effects.gd` holds
-  `IMPLEMENTED` (7 keys) and `DECLARED_ONLY` (17). Every one of the seventeen
-  has a sentence in its `.tres` promising a behaviour and an `effect_value`
-  sized for it, and **nothing reads them**. These are not design questions;
-  they are unwritten implementations. This is the single largest honest gap in
-  the game and `discipline_check` enforces that a key sits in exactly one list,
-  so nothing new can quietly join the inert pile.
+- **Discipline effects: 11 of 24 are real** (was 7). `discipline_effects.gd`
+  holds `IMPLEMENTED` and `DECLARED_ONLY`, and `discipline_check` fails if a key
+  is in neither or both, so nothing new can quietly join the inert pile.
+  **The thirteen that remain are not equally cheap**, and the difference is the
+  useful part — see §4.
 - **The Long Ledger's price feed** works offline and has never talked to a live
   table, because the table does not exist yet. `docs/EXCHANGE.md` has the SQL.
   The offline path is the one every gate exercises and the one most players will
@@ -136,6 +134,12 @@ In commit order, most recent last.
     the Ledger.
 15. **Both trade and Ledger windows fit the display they are on.**
     `menu_layout_check` caught the Ledger overflowing a 430-tall phone.
+16. **`tools/sweep.sh`**, which had been living in a session scratchpad.
+17. **Four discipline effects implemented** — `drain_command`,
+    `tempest_heal_cap`, `heavy_reverse_pull` and `tower_damage_brand` — plus
+    `Enemy.is_priority()`, an enemy brand, `SpellCaster._rider`, and a
+    completed-test counter on `discipline_check`, which had printed PASS over
+    three of its own script errors.
 
 **Two faults my own gates caught before they shipped**, worth knowing because
 they show what these gates are for: an omen authored with its halves reversed
@@ -182,9 +186,37 @@ Nothing is currently blocking. The game builds, ships, runs and completes.
 
 ### MUST HAVE for 1.0
 
-- **The 17 inert discipline effects.** Every one is described to the player in
-  its own `.tres` and does nothing. This is a promise the game makes and does not
-  keep, seventeen times, and it is the clearest 1.0 obligation on the list.
+**The 13 remaining inert discipline effects.** Each is described to the player
+in its own `.tres` and does nothing — a promise the game makes and does not keep.
+Four were paid off in this session; the rest are *not* one job, and grouping them
+as one is why the number sat still for so long:
+
+**Group A — riders on spells that already work (cheap, ~1 each).** The spell
+fires correctly today and only the described extra is missing. Follow
+`SpellCaster._rider`, which exists now and is where these belong:
+`armor_stagger` (Ash Veil also grants armour and a radial stagger),
+`dash_shield_field` (Rift Step leaves a shield), `lane_cleanse` (Bulwark Ward
+also cleanses a disable), `recoverable_wound` (Ash Veil converts harm to a
+delayed wound), `road_line_disrupt` and `selected_road_shockwave` (both largely
+satisfied by their spell — decide whether `effect_value` should scale it, then
+move the key or write the scaling).
+
+**Group B — blocked on a core mechanic that does not exist.** Building the
+mechanic is the work; the effect is an afternoon afterwards:
+
+| Missing mechanic | Unblocks |
+|---|---|
+| Critical hits — **the game has none at all** | `isolated_crit` |
+| Temporary modifiers (`Modifiers` has no transient entries) | `tower_haste` |
+| Blocking | `block_finisher` |
+| A "marks" resource the descriptions already name | `consume_marks_burst` |
+| Ultimate duration tracking (Beast's Breath is instant) | `elite_extend_ultimate` |
+| Barricade shield HP distinct from tower HP | `repair_blocker_shields` |
+
+**Do Group A first.** It is six nodes for a day's work and needs no design
+decisions. Group B's mechanics each want an owner ruling on shape before code,
+and at least two of them (crit, marks) are new power scales — working rule 7 and
+the discipline bound in `CLAUDE.md` both apply.
 
 ### STRONG CANDIDATE for 1.0
 
@@ -442,9 +474,31 @@ GitHub Actions does the rest. Never build locally.
   *a timeout first*, with the hypothesis that it sits near the 240s ceiling.
   **The experiment to confirm that has not been run.**
 
+**Found this session, not fixed, and worth an hour each.** Both are frame
+confusions between an actor's *feet* (`global_position`) and its *body*
+(`combat_origin()`, which is the feet lifted by roughly 69px for the hero and by
+several hundred for a large elite). `enemies_near` measures to the body, so the
+distinction is load-bearing:
+
+- **The two spell-cast call sites disagree with each other.** `hero.gd:363`
+  passes `combat_origin()`; `hud.gd:2261` passes `global_position`. So the same
+  spell, cast from the touch HUD and from the desktop path, originates about 69px
+  apart and therefore picks up slightly different targets. One of them is wrong
+  and I did not determine which.
+- **`SpellData.Kind.BLINK` mixes the frames within one operation.** It emits
+  `origin + aim * cast_range` — where `origin` is the body — and `Hero._on_blink`
+  assigns that to `global_position`, which is the feet. By the arithmetic that
+  drifts the hero about 69px up-screen on every Rift Step, on top of the aim.
+  **I did not reproduce this in play**, only read it; it is possible the value
+  was tuned around. Confirm before changing it.
+
+`SpellCaster._reverse_hook` is written to take the direction in the body frame
+and the destination in the foot frame deliberately, and `discipline_check`
+asserts it, so it is the one place that currently gets this right on purpose.
+
 **Known and bounded:**
 
-- **17 inert discipline effects** (§1, §4).
+- **13 inert discipline effects** (§1, §4), six of them cheap.
 - **112 GDScript lines have flattened line continuations** — a `\` + newline
   replaced by two literal tabs mid-line, damage from shell heredocs in past
   agent sessions. It all compiles; it reads badly. Scan for mid-line `\t\t`
