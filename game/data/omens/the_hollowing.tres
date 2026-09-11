@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "hero_max_hp"
+bane_magnitude = -0.15
+boon_effect = "hero_damage"
+boon_magnitude = 0.28
+bane_text = "You are carrying less of yourself than you were."
+boon_text = "What is left of you hits like something with nothing to lose."
+portent = "The fog took something on the way through and did not say what."
+first_act = 4
+id = "the_hollowing"
+display_name = "The Hollowing"
+description = "Something was left in the Marches."

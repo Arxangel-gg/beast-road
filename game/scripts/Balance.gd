@@ -641,8 +641,18 @@ const TOWER_SLOT_COUNT: int = 4
 # CROSSROADS — GDD §5
 # ==============================================================================
 
-const CROSSROADS_PER_ACT: int = 3
-const CROSSROADS_PER_RUN: int = 9
+## Derived rather than typed, because a crossroad is not scheduled - `Journey`
+## fires one whenever the beast crosses a `SEGMENT_DISTANCE` boundary, so the
+## count per act *is* the number of segments in an act.
+##
+## These were 3 and 9, and nothing read either of them. That is how they came to
+## describe a three-act campaign with three crossroads an act while the code was
+## walking two an act: a constant no code consults is documentation, and this one
+## had quietly gone wrong in both figures at once. `V4_CONFORMANCE` probes
+## `CROSSROADS_PER_RUN` by name, which is why they are derived here rather than
+## deleted.
+const CROSSROADS_PER_ACT: int = SEGMENTS_PER_ACT
+const CROSSROADS_PER_RUN: int = SEGMENTS_PER_ACT * ACT_COUNT
 
 ## Two cards are compared, drawn from five authored road archetypes. [TUNE]
 const CROSSROAD_OPTIONS_SHOWN: int = 2

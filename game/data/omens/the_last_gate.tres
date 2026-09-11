@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "hero_speed"
+bane_magnitude = -0.18
+boon_effect = "tower_armour"
+boon_magnitude = 0.30
+bane_text = "The climb is in your legs and it stays there."
+boon_text = "But the stone up here was cut by people who expected a siege."
+portent = "A ring in a door older than the road, and the chain through it never opened."
+first_act = 9
+id = "the_last_gate"
+display_name = "The Last Gate"
+description = "Somebody built for this a very long time ago."

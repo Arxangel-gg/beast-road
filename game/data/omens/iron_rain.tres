@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "tower_armour"
+bane_magnitude = -0.20
+boon_effect = "tower_damage"
+boon_magnitude = 0.22
+bane_text = "Everything you built is thinner than it was."
+boon_text = "And everything you built bites deeper."
+portent = "Flakes coming off the trees all night, and every one of them an edge."
+first_act = 5
+id = "iron_rain"
+display_name = "Iron Rain"
+description = "The Rustwood sheds, and what it sheds cuts."

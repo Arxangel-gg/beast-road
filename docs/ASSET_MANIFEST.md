@@ -1633,6 +1633,14 @@ All 128×128, type T, placeholder colour `#B8863A`.
 `omen_the_last_watch.png` · `omen_the_long_night.png` · `omen_the_red_ford.png` ·
 `omen_the_wake.png`
 
+Ten more since 2026-09-11, because ten acts read ten portents and a pool of ten
+runs out at the ninth:
+
+`omen_ashfall.png` · `omen_iron_rain.png` · `omen_salt_in_the_wounds.png` ·
+`omen_the_far_horn.png` · `omen_the_hollowing.png` · `omen_the_last_gate.png` ·
+`omen_the_long_thaw.png` · `omen_the_quiet_road.png` · `omen_the_shatter.png` ·
+`omen_the_stone_tithe.png`
+
 One per portent, drawn on the card that offers it. Each is a **single object the
 road left behind** rather than a symbol or a scene: an emptied cooking pot, a
 lantern still lit in an abandoned waystation, a snapped trunk shoved aside. The

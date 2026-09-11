@@ -71,7 +71,10 @@ func get_sprite_path() -> String:
 @export_multiline var portent: String = ""
 
 ## Earliest act this may be read in. Some omens are too heavy for Act I.
-@export_range(1, 3) var first_act: int = 1
+##
+## The range was 1 to 3 while the campaign was. Ten acts read ten portents, and
+## a heavy one wants somewhere late to belong.
+@export_range(1, 10) var first_act: int = 1
 
 
 ## The three portents a given run offers at a given act.

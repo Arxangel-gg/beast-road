@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "build_cost"
+bane_magnitude = 0.20
+boon_effect = "tower_range"
+boon_magnitude = 0.20
+bane_text = "The masons have heard what is coming and priced it in."
+boon_text = "What they raise, they raise tall."
+portent = "Ashlar stacked at every milestone, and a tally cut into the top block."
+first_act = 5
+id = "the_stone_tithe"
+display_name = "The Stone Tithe"
+description = "Nobody works the stone for free this far out."

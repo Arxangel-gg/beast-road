@@ -19,7 +19,19 @@ extends Node
 var _failures: int = 0
 var _checked: int = 0
 var _finished: int = 0
-const EXPECTED_TESTS: int = 7
+const EXPECTED_TESTS: int = 8
+
+## Effect keys the game reads as a whole number of things rather than as a
+## fraction of something.
+##
+## `Tower` does `int(Modifiers.value(CHAIN_TARGETS))` and `RunState` rounds
+## `WAVE_FORESIGHT`, so a portent granting 0.6 of a chain target grants exactly
+## nothing - a card that says the words, draws the art, charges its bane and
+## hands out silence. That is this gate's founding failure wearing a different
+## hat, and it caught two entries authored that way on the first run.
+const COUNTED_KEYS: Array[String] = [
+	Modifiers.CHAIN_TARGETS, Modifiers.WAVE_FORESIGHT,
+]
 
 ## Which direction each effect key helps the player.
 ##
@@ -48,6 +60,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_test_there_are_enough_to_choose_from()
+	_test_counted_effects_are_whole()
 	_test_every_half_is_authored()
 	_test_every_effect_key_is_real()
 	_test_the_bane_actually_costs_something()
@@ -65,14 +78,13 @@ func _ready() -> void:
 ## `Run._offer_omens` refuses to open at all rather than showing two cards, so a
 ## thin pool is a feature that silently never appears - which is the quietest
 ## way for content to be missing.
+##
+## **It had already happened.** Ten omens were authored for three acts. At ten
+## acts a portent is read at every act boss, an omen already read leaves the
+## pool, and by the ninth reading the pool held two - so Acts IX and X offered
+## nothing at all, with no error anywhere. Counting the pool against a constant
+## could not see that; walking the run can, so that is what this does now.
 func _test_there_are_enough_to_choose_from() -> void:
-	_checked += 1
-	_check(ContentDB.omens.size() >= Balance.OMEN_OFFER_COUNT * 2,
-		("%d omens is not enough to offer %d of them across three acts without "
-			+ "repeating the whole pool") % [ContentDB.omens.size(),
-			Balance.OMEN_OFFER_COUNT])
-	# Three acts are read, and an omen already taken is out of the pool, so the
-	# third act needs the pool to still hold a full offer.
 	var earliest: int = 0
 	for id: Variant in ContentDB.omens:
 		if _omen(String(id)).first_act <= 1:
@@ -81,6 +93,39 @@ func _test_there_are_enough_to_choose_from() -> void:
 	_check(earliest >= Balance.OMEN_OFFER_COUNT,
 		"only %d omens may be read in Act I, and %d are offered at once"
 			% [earliest, Balance.OMEN_OFFER_COUNT])
+
+	# One portent per act boss, taken, for the length of the campaign.
+	var taken: Array[String] = []
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var drawn: Array[String] = OmenData.offer(taken, act,
+			Balance.OMEN_OFFER_COUNT)
+		_checked += 1
+		_check(drawn.size() == Balance.OMEN_OFFER_COUNT,
+			("Act %d offers %d portents of %d: the pool ran out, so the card "
+				+ "never appears and nothing says why")
+				% [act, drawn.size(), Balance.OMEN_OFFER_COUNT])
+		if drawn.is_empty():
+			break
+		taken.append(drawn[0])
+	_finished += 1
+
+
+## A portent that grants a fraction of a countable thing grants nothing.
+func _test_counted_effects_are_whole() -> void:
+	for id: Variant in ContentDB.omens:
+		var omen: OmenData = _omen(String(id))
+		for pair: Array in [[omen.bane_effect, omen.bane_magnitude],
+				[omen.boon_effect, omen.boon_magnitude]]:
+			var key: String = String(pair[0])
+			var magnitude: float = float(pair[1])
+			if not COUNTED_KEYS.has(key):
+				continue
+			_checked += 1
+			_check(is_equal_approx(magnitude, round(magnitude))
+					and absf(magnitude) >= 1.0,
+				("%s moves '%s' by %+.2f, and the game reads that key as a whole "
+					+ "number - so anything under one is silently zero")
+					% [omen.id, key, magnitude])
 	_finished += 1
 
 

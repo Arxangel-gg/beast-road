@@ -784,6 +784,33 @@ out of Gold or out of levels and those two want opposite fixes. Reading that
 column is what turned "ten acts fails the curve" into "the economy is flat", which
 is a different bug with a different answer.
 
+**Ten more portents, and two constants that had stopped describing the game, as
+of 2026-09-11.** Ten acts read ten portents. Ten were authored, one leaves the
+pool each time it is read, and `Run._offer_omens` refuses to open on fewer than
+three cards - so by the ninth reading the pool held two and **Acts IX and X
+offered no portent at all**, silently. That is the exact failure
+`omen_check`'s own comment warns about: "a thin pool is a feature that silently
+never appears".
+
+The pool is twenty now, with `first_act` spread from 1 to 9 so the heavy ones
+have somewhere late to belong, and `OmenData.first_act` may name any act rather
+than only the first three. **The gate walks the campaign instead of counting the
+pool**, taking one portent per act, because counting is what missed it: ten
+looks ample until you notice that what is dealt leaves.
+
+**And a portent may no longer grant a fraction of a countable thing.** `Tower`
+reads `chain_targets` with `int()` and `RunState` rounds `wave_foresight`, so a
+card granting 0.6 of a chain target charges its bane and hands out nothing. Two
+entries were authored that way here before either reached disk;
+`omen_check.COUNTED_KEYS` now refuses them.
+
+`CROSSROADS_PER_ACT` and `CROSSROADS_PER_RUN` were 3 and 9 and **nothing read
+either of them**. A crossroad is not scheduled - `Journey` fires one whenever the
+beast crosses a `SEGMENT_DISTANCE` boundary - so the real figures were two an act
+and twenty a run, and two constants had been quietly wrong in both directions.
+They are derived from `SEGMENTS_PER_ACT` now rather than deleted, because
+`V4_CONFORMANCE` probes one of them by name.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

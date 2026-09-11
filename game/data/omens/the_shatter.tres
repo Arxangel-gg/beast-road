@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "town_max_hp"
+bane_magnitude = -0.20
+boon_effect = "chain_targets"
+boon_magnitude = 1.00
+bane_text = "The wall rings when it is struck, and rings wrong."
+boon_text = "So does everything else. A shot finds the next one on its own."
+portent = "A pane a mile wide, and every crack in it carrying a sound to somewhere else."
+first_act = 8
+id = "the_shatter"
+display_name = "The Shatter"
+description = "The Glass Fields carry what happens on them."

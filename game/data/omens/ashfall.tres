@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "slow_strength"
+bane_magnitude = -0.25
+boon_effect = "burn_damage"
+boon_magnitude = 0.45
+bane_text = "Nothing holds. The ash fills every trap you set."
+boon_text = "And nothing that catches goes out."
+portent = "Grey coming down like snow, warm where it lands on the back of your hand."
+first_act = 7
+id = "ashfall"
+display_name = "Ashfall"
+description = "The Reach is still burning somewhere upwind."

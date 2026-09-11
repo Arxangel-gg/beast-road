@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "kill_resources"
+bane_magnitude = -0.20
+boon_effect = "enemy_damage"
+boon_magnitude = -0.12
+bane_text = "The dead are carrying nothing worth taking."
+boon_text = "Nor are they swinging like they mean it."
+portent = "Whoever these are, they were sent rather than raised."
+first_act = 4
+id = "the_quiet_road"
+display_name = "The Quiet Road"
+description = "Levies, not warriors, and paid in nothing."

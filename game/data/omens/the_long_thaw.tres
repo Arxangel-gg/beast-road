@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "beast_speed"
+bane_magnitude = -0.16
+boon_effect = "resource_rate"
+boon_magnitude = 0.30
+bane_text = "The ground gives under the beast and it slows."
+boon_text = "But everything the thaw uncovers is yours to take."
+portent = "Water where there was ice, and the wheel ruts filling in behind you."
+first_act = 3
+id = "the_long_thaw"
+display_name = "The Long Thaw"
+description = "The cold breaks early, and nothing is where it was."

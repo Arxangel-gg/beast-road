@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "enemy_damage"
+bane_magnitude = 0.18
+boon_effect = "raid_charge"
+boon_magnitude = 0.35
+bane_text = "Whatever answered that horn arrives angry."
+boon_text = "But you know exactly where it came from."
+portent = "One note, a long way off, and then the camps answering it in turn."
+first_act = 6
+id = "the_far_horn"
+display_name = "The Far Horn"
+description = "Someone called, and the road heard it."

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="OmenData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/omen_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+bane_effect = "dash_cooldown"
+bane_magnitude = 0.25
+boon_effect = "hero_max_hp"
+boon_magnitude = 0.20
+bane_text = "Everything stiffens. You will not move like that again today."
+boon_text = "But what closes, closes hard."
+portent = "The mire gets into every cut, and every cut stops bleeding."
+first_act = 6
+id = "salt_in_the_wounds"
+display_name = "Salt in the Wounds"
+description = "The Saltpan does not heal you kindly."
