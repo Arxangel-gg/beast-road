@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 6
+attribute = 1
+base_points = 2
+weight = 1.15
+min_tier = 0
+id = "harelip_band"
+display_name = "Drover's Band"
+description = "Brass, and green where it has sat against a thumb for forty years."

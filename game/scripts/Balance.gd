@@ -226,7 +226,14 @@ const LOOT_Z_INDEX: int = -2
 ## Ninety-six never actually satisfied that rule; it was written down and not
 ## met. Capacity is inventory rather than power (see above), so meeting it costs
 ## the curve nothing and costs the release gate one number.
-const STASH_CAPACITY: int = 160
+##
+## **Raised 160 -> 216 on 2026-09-11, with twenty-five more kinds.** The same
+## rule, applied again: 98 kinds is 196 before the stash has any slack, and the
+## gate caught it the moment the kinds landed. The slack is a tenth on top,
+## which is what 160 was to 73 kinds. This number is a *consequence* of the
+## roster rather than a decision of its own - if kinds are ever cut, it should
+## come back down.
+const STASH_CAPACITY: int = 216
 
 ## How many pieces one side may put on the trade table at once.
 ##

@@ -1417,6 +1417,19 @@ as the readable silhouette inside a rarity-lit battlefield pickup.
 `ui_bulwark_pike.png` · `ui_stonewarden_hammer.png` ·
 `ui_whisper_fang.png` · `ui_windcut_saber.png` ·
 `ui_sigil_brand.png` · `ui_tally_knife.png` ·
+`ui_tollgate_barbute.png` · `ui_kettle_of_the_ninth.png` ·
+`ui_hollow_crown_cap.png` · `ui_riverwake_hood.png` ·
+`ui_lantern_mask.png` · `ui_nailed_mitts.png` ·
+`ui_ropeburn_wraps.png` · `ui_drovers_gloves.png` ·
+`ui_counting_gloves.png` · `ui_forgescarred_grips.png` ·
+`ui_ditchwalker_boots.png` · `ui_nailsole_clogs.png` ·
+`ui_marchwarden_greaves.png` · `ui_quietstep_slippers.png` ·
+`ui_frostbound_treads.png` · `ui_tally_ring.png` ·
+`ui_harelip_band.png` · `ui_splitknuckle_ring.png` ·
+`ui_widows_iron.png` · `ui_oathbreakers_loop.png` ·
+`ui_road_token.png` · `ui_tooth_on_a_cord.png` ·
+`ui_waystation_bell.png` · `ui_cartographers_pendant.png` ·
+`ui_chainlink_reliquary.png` ·
 `ui_berserkers_harness.png` · `ui_scholars_mantle.png` ·
 `ui_warpriests_plate.png` · `ui_skirmishers_leathers.png` ·
 `ui_hearthstone_pendant.png` · `ui_bloodoath_band.png` ·

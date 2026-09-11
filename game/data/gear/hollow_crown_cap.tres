@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 3
+attribute = 3
+base_points = 3
+weight = 0.95
+min_tier = 1
+id = "hollow_crown_cap"
+display_name = "Hollow Crown Cap"
+description = "Padded flat where a circlet used to sit. Nobody says whose."

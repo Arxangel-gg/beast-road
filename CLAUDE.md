@@ -523,14 +523,16 @@ recorded here so it is neither forgotten nor quietly built as a re-cut.
   one item in this batch that amends working rule 7.
 - **Gear affixes**: one, two or three attribute bonuses by rarity, dividing the
   budget a piece already had.
+- **Twenty-five more gear kinds** in the five thin slots, which also lifts the
+  rarest slot from 6.8% of drops to 10.1%.
 
 **Staged - compatible with v4, not built yet, in the order they should go:**
 
 1. ~~Fishing ponds.~~ **Built 2026-09-11** - see the note above. Eleven fish,
    three ponds, a Consumables tab, and `fishing_check`.
-2. ~~Gear affixes, up to three stat bonuses a piece.~~ **Built 2026-09-11** -
-   see the note above; the budget is divided, never added to. **More gear kinds
-   is still outstanding** and is data plus art.
+2. ~~Gear affixes, up to three stat bonuses a piece, and more gear kinds.~~
+   **Built 2026-09-11** - see the two notes above. The budget is divided, never
+   added to, and the five thin slots went from five kinds each to ten.
 3. More towers and more wildlife: data plus art, gated by PixelLab budget.
 4. More ranged spells: `SpellData` kinds already cover it; content and icons.
 5. The skills revamp: discipline stage three (freely spent skill points) is
@@ -642,6 +644,32 @@ Two consequences of deriving them that are worth knowing:
   was survivable while a name meant "which piece is on the trade table"; it
   stopped being survivable when the bonuses started being rolled from it. The
   load now writes the names it hands out, once.
+
+**Twenty-five more gear kinds, as of 2026-09-11**, all in the five slots that
+were thin. Helmets, gloves, boots, rings and amulets go from five kinds each to
+ten; weapons, armour and charms are unchanged.
+
+**It is a drop-rate fix as much as a content addition, and that is why these
+five slots and not the others.** `Stash.roll` picks by weight across *every*
+kind rather than per slot, so how often a helmet drops is decided by how many
+helmets exist relative to everything else. The five slots added on 2026-09-01
+arrived with five kinds each against eighteen weapons, and the arithmetic of
+that was a helmet on **6.8%** of drops against a weapon on 24.9% - so a player
+hunting one waited nearly four times as long and nothing said why. The thinnest
+slot is now **10.1%**, against an even share of 12.5%.
+
+`balance_test` holds a floor at two thirds of an even share, as a share of the
+*pool* rather than a count of kinds - that is the number a player feels, and a
+slot can be starved either by having few kinds or by having light ones.
+
+**The art is cold, and the first pass was not.** These were generated with the
+warm painterly suffix the handoff records as "the style that matched this game",
+which is true of omen icons and loot drops and false of gear: the 73 shipped
+gear icons are blue-grey steel and near-black leather. The first 25 were
+internally consistent, readable, and obviously from a different game the moment
+they were put beside the existing ones. Caught by a three-row contact sheet -
+new, corrected, shipped - and by nothing else, because no gate can see a
+palette. The suffix that matches gear is recorded in the memory directory.
 
 ### The three escape hatches — and why there are only three
 

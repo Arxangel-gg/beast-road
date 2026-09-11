@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 5
+attribute = 0
+base_points = 3
+weight = 0.95
+min_tier = 1
+id = "marchwarden_greaves"
+display_name = "Marchwarden Greaves"
+description = "Issued to whoever was still standing at the end of a watch."

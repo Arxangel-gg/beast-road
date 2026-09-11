@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 7
+attribute = 0
+base_points = 2
+weight = 1.15
+min_tier = 0
+id = "tooth_on_a_cord"
+display_name = "Tooth on a Cord"
+description = "Somebody's. It is a good tooth."

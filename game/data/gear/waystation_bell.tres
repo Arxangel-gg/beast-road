@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 7
+attribute = 1
+base_points = 3
+weight = 0.95
+min_tier = 1
+id = "waystation_bell"
+display_name = "Waystation Bell"
+description = "Rung to say the road is clear. It is rung less than it was."

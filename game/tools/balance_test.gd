@@ -2515,6 +2515,37 @@ func _test_gear_farming() -> void:
 				% [GearData.name_of_slot(slot), per_slot_attributes[slot].size()])
 	_check(reaches.size() >= 4,
 		"weapons must reach %d different distances, found %d" % [4, reaches.size()])
+
+	# 3a. And no slot may be starved in the drop pool.
+	#
+	# `Stash.roll` picks by weight across *every* kind, not per slot, so how
+	# often a helmet drops is decided by how many helmets exist relative to
+	# everything else. The five slots added on 2026-09-01 arrived with five
+	# kinds each against eighteen weapons, and the arithmetic of that was a
+	# helmet on 6.8% of drops against a weapon on 24.9% - so a player hunting
+	# one waited nearly four times as long without anything saying why.
+	#
+	# Two thirds of an even share is the floor. It is deliberately a share of
+	# the *pool* rather than a count of kinds, because that is the number a
+	# player actually feels, and a slot can be starved either by having few
+	# kinds or by having light ones.
+	var pool_weight: float = 0.0
+	var slot_weight: Array[float] = []
+	slot_weight.resize(slot_count)
+	slot_weight.fill(0.0)
+	for kind: GearData in kinds:
+		var which: int = clampi(int(kind.slot), 0, slot_count - 1)
+		slot_weight[which] += maxf(kind.weight, 0.0)
+		pool_weight += maxf(kind.weight, 0.0)
+	var even_share: float = 1.0 / float(slot_count)
+	var floor_share: float = even_share * 0.66
+	for slot: int in slot_count:
+		var share: float = slot_weight[slot] / maxf(pool_weight, 0.001)
+		_check(share >= floor_share,
+			("%s is %.1f%% of the drop pool against an even share of %.1f%% - "
+				+ "below two thirds of even, a player hunting that slot waits "
+				+ "without being told why")
+				% [GearData.name_of_slot(slot), share * 100.0, even_share * 100.0])
 	_check(attributes.size() == 4,
 		"gear must be able to raise all four attributes, reaches %d" % attributes.size())
 

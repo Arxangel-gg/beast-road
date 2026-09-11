@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+slot = 6
+attribute = 3
+base_points = 3
+weight = 1.00
+min_tier = 0
+id = "tally_ring"
+display_name = "Tally Ring"
+description = "Notched once a road. It has run out of ring."
