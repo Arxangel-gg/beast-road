@@ -12,6 +12,19 @@ config_version=5
 
 config/name="Beast Road"
 config/description="A 2D action tower-defense roguelite. One hero, four lanes, can't be everywhere."
+
+; The save directory, pinned so the title can change without moving it.
+;
+; Godot derives user:// from config/name, so renaming the game would leave every
+; existing save - the one thing git cannot restore - in a folder the game no
+; longer looks in. These two lines fix user:// to the folder the game has always
+; used. Lowercase "godot" on purpose: Windows resolves it case-insensitively to
+; the existing "Godot/app_userdata/Beast Road", and the web build's default path
+; is lowercase and case-sensitive, so one spelling matches both. Android ignores
+; config/name entirely and keys the save on the package id, which does not
+; change either. res://tools/user_dir_check.tscn holds all of this.
+config/use_custom_user_dir=true
+config/custom_user_dir_name="godot/app_userdata/Beast Road"
 run/main_scene="res://scenes/ui/splash.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 

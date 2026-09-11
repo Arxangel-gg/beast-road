@@ -244,6 +244,10 @@ jobs:
           check "Chronicle objectives" --headless --path game res://tools/chronicle_check.tscn
           check "pinned Chronicle goals" --headless --path game res://tools/chronicle_goal_check.tscn
           check "save migration" --headless --path game res://tools/save_backup_check.tscn
+          # The rename must never move user://. Every existing save lives in the
+          # folder this pins, and a title change that carried the folder with it
+          # would show every player a fresh account without a single error.
+          check "user dir" --headless --path game res://tools/user_dir_check.tscn
           check "leaderboard" --headless --path game res://tools/leaderboard_check.tscn
           check "milestone cinematics" --headless --path game res://tools/milestone_cinematic_check.tscn
           # Every manifest asset exists, is the right size, and is real art

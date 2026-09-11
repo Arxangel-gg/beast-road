@@ -175,6 +175,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/chronicle_check.tscn
           run_godot_clean --headless --path game res://tools/chronicle_goal_check.tscn
           run_godot_clean --headless --path game res://tools/save_backup_check.tscn
+          run_godot_clean --headless --path game res://tools/user_dir_check.tscn
           run_godot_clean --headless --path game res://tools/leaderboard_check.tscn
           run_godot_clean --headless --path game res://tools/milestone_cinematic_check.tscn
           run_godot_clean --headless --path game res://tools/soak.tscn -- --seconds=3 --shots=100 --build
