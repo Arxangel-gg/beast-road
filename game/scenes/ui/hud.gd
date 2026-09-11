@@ -217,6 +217,7 @@ var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
+var _mana_bar: ProgressBar
 var _xp_band: Control
 var _xp_bar: ProgressBar
 var _xp_label: Label
@@ -407,6 +408,7 @@ func _ready() -> void:
 	EventBus.distance_changed.connect(_on_distance)
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
+	EventBus.hero_mana_changed.connect(_on_hero_mana)
 	EventBus.hero_wounds_changed.connect(_on_hero_wounds_changed)
 	EventBus.hero_xp_changed.connect(_on_hero_xp_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
@@ -485,6 +487,8 @@ func _ready() -> void:
 		battlefield.placement.road_tile_clicked.connect(_open_road_panel)
 
 	_hero = battlefield.hero if battlefield != null else null
+	if _hero != null and _hero.spells != null and not _hero.spells.cast_starved.is_connected(_on_cast_starved):
+		_hero.spells.cast_starved.connect(_on_cast_starved)
 	_refresh_currencies()
 	_on_act(RunState.act, RunState.terrain_id)
 	_rebuild_spell_bar()
@@ -682,7 +686,17 @@ func _build_top_bar() -> void:
 
 	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
-	bar.add_child(_hero_bar)
+	# Health over mana, in the width health had alone. The top bar is already
+	# full at phone widths, and a second full-width bar beside it pushed the
+	# wound count off the screen - layout_check caught it at 430 and 1280 wide.
+	var pools := VBoxContainer.new()
+	pools.add_theme_constant_override("separation", 2)
+	pools.add_child(_hero_bar)
+	_mana_bar = _make_bar(Color("5b8fd9"), HERO_BAR_WIDTH)
+	_mana_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 8.0)
+	_mana_bar.tooltip_text = "Mana. Spells draw on it; Focus deepens it and refills it faster."
+	pools.add_child(_mana_bar)
+	bar.add_child(pools)
 	var wound_row := HBoxContainer.new()
 	wound_row.add_theme_constant_override("separation", 5)
 	var wound_icon: Control = _bar_icon("wounds", "Wounds")
@@ -2273,13 +2287,21 @@ func _update_spell_bar() -> void:
 			_spell_cooldowns[slot].text = ""
 			continue
 		var left: float = _hero.spells.cooldown_ratio(slot)
+		# A spell the pool cannot pay for reads as cold blue rather than dim
+		# grey, so "not yet" and "not enough" are told apart at a glance.
+		var starved: bool = _hero.mana < spell.cost()
 		var button: Button = _spell_buttons[slot]
 		button.disabled = left > 0.0
 		_spell_cooldowns[slot].text = "" if left <= 0.0 else "%.1f" % (left * spell.cooldown)
-		_spell_icons[slot].modulate = Color.WHITE if left <= 0.0 \
-			else Color(0.35, 0.35, 0.38, 0.45)
-		_spell_labels[slot].modulate = Color.WHITE if left <= 0.0 \
-			else Color(0.55, 0.55, 0.58)
+		if left > 0.0:
+			_spell_icons[slot].modulate = Color(0.35, 0.35, 0.38, 0.45)
+			_spell_labels[slot].modulate = Color(0.55, 0.55, 0.58)
+		elif starved:
+			_spell_icons[slot].modulate = Color(0.45, 0.6, 0.95, 0.7)
+			_spell_labels[slot].modulate = Color(0.6, 0.7, 0.95)
+		else:
+			_spell_icons[slot].modulate = Color.WHITE
+			_spell_labels[slot].modulate = Color.WHITE
 
 
 ## A boss is the only enemy that gets its own bar. Everything else reads off the
@@ -3295,6 +3317,22 @@ func _on_town_health(current: float, maximum: float) -> void:
 
 func _on_hero_health(current: float, maximum: float) -> void:
 	_hero_bar.value = current / maximum if maximum > 0.0 else 0.0
+
+
+func _on_hero_mana(current: float, maximum: float) -> void:
+	if _mana_bar == null:
+		return
+	_mana_bar.value = current / maximum if maximum > 0.0 else 0.0
+	_mana_bar.tooltip_text = "Mana %d / %d" % [int(floor(current)), int(ceil(maximum))]
+
+
+## A cast refused for want of mana: the bar says so, since the button did not.
+func _on_cast_starved(_slot: int) -> void:
+	if _mana_bar == null:
+		return
+	var flash: Tween = _mana_bar.create_tween()
+	flash.tween_property(_mana_bar, "modulate", Color(1.6, 0.7, 0.7), 0.08)
+	flash.tween_property(_mana_bar, "modulate", Color.WHITE, 0.32)
 
 
 func _on_hero_wounds_changed(wounds: int, maximum: int) -> void:

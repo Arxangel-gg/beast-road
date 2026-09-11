@@ -194,6 +194,8 @@ var hero_attributes: Array[int] = [0, 0, 0, 0]
 ## Carried between scopes so a raid is not a free heal and the walk back from
 ## the town is not a reset. -1 means "start at full".
 var hero_hp: float = -1.0
+## The hero's mana, carried across scopes the same way. -1 means full.
+var hero_mana: float = -1.0
 var hero_wounds: int = 0
 ## Run-only reward from Oath of the Last Scar. Never written to MetaState.
 var hero_max_wounds_bonus: int = 0
@@ -455,6 +457,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	hero_attributes = MetaState.hero_attributes.duplicate()
 	tier_id = MetaState.last_tier_id
 	hero_hp = -1.0
+	hero_mana = -1.0
 	hero_wounds = 0
 	hero_max_wounds_bonus = 0
 	held_items.clear()
@@ -1149,6 +1152,7 @@ func hearthmend() -> void:
 	hearthmends_used += 1
 	Modifiers.rebuild()
 	hero_hp = -1.0
+	hero_mana = -1.0
 	var repair: float = town_max_hp * Balance.HEARTHMEND_TOWN_REPAIR_FRACTION
 	town_hp = minf(town_hp + repair, town_max_hp)
 	EventBus.hero_wounds_changed.emit(hero_wounds, max_wounds())

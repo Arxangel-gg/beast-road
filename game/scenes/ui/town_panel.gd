@@ -625,7 +625,7 @@ func _mansion_hero(tier: int) -> void:
 		"Damage on every swing and every shot.",
 		"Maximum health.",
 		"Movement and swing speed.",
-		"Command generation and spell power.",
+		"Spell damage, mana, cooldowns and Command.",
 	]
 	var spendable: bool = RunState.hero_attribute_points > 0
 	for index: int in names.size():

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_cdeek")
+mana_cost = 30.0
 kind = 6
 cooldown = 16.0
 effect_radius = 240.0

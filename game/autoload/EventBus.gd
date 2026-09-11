@@ -24,6 +24,9 @@ extends Node
 ## The hero's health changed for any reason, including respawn.
 signal hero_health_changed(current_hp: float, max_hp: float)
 
+## The local hero's mana moved. Throttled by the hero to a few times a second.
+signal hero_mana_changed(current: float, maximum: float)
+
 ## The hero took damage. `amount` is post-mitigation, `from` is world position.
 ## One hero took damage; `at` keeps co-op feedback on the body that was hit.
 signal hero_damaged(amount: float, from: Vector2, at: Vector2)

@@ -456,6 +456,8 @@ jobs:
           # three of twenty-seven nodes: every assertion asked for three
           # unique offers and got three unique offers - the same three.
           check "disciplines" --headless --path game res://tools/discipline_check.tscn
+          # Spells cost mana and Focus delivers what the Mansion promises.
+          check "mana" --headless --path game res://tools/mana_check.tscn
           # Seven gates that existed, passed, and were run by nothing. The
           # discipline rotation shipped broken behind one of these, and two of
           # them back release requirements: raid_suspend is the probe

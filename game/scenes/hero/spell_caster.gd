@@ -28,6 +28,9 @@ signal wound_guard_requested(fraction: float, delay: float, seconds: float)
 ## dash cooldown back.
 signal dash_refund_requested(fraction: float)
 
+## A cast was refused for want of mana. The HUD flashes the bar.
+signal cast_starved(slot: int)
+
 ## A spell resolved, for feedback and the HUD.
 signal spell_cast(slot: int, spell_id: String, at: Vector2)
 
@@ -177,6 +180,12 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	var spell: SpellData = spell_in_slot(slot)
 	if spell == null:
 		return false
+	# Paid before it resolves, and refused if it cannot be. A bare caster with
+	# no hero - the gates - casts for free, which is what they need.
+	if hero != null and hero.has_method("spend_mana"):
+		if not bool(hero.call("spend_mana", spell.cost())):
+			cast_starved.emit(slot)
+			return false
 
 	_cooldowns[slot] = _effective_cooldown(spell)
 	cooldown_changed.emit(slot, 1.0)
@@ -194,7 +203,18 @@ func _effective_cooldown(spell: SpellData) -> float:
 	if sanctum != null:
 		reduction = sanctum.effect_at(RunState.building_tier("sanctum"))
 	var flat: float = Modifiers.value(Modifiers.DASH_COOLDOWN)
-	return maxf(spell.cooldown * (1.0 - reduction) + flat, 0.5)
+	# Focus shortens every cooldown, up to a cap, so it cannot be spent into
+	# a spell with no cooldown at all.
+	var focus_cut: float = minf(float(RunState.attribute(RunState.Attribute.FOCUS))
+		* Balance.HERO_FOCUS_COOLDOWN_PER_POINT, Balance.HERO_FOCUS_COOLDOWN_CAP)
+	return maxf(spell.cooldown * (1.0 - reduction) * (1.0 - focus_cut) + flat, 0.5)
+
+
+## What Focus multiplies spell damage by. The Mansion has said "spell power"
+## since the attribute was authored; this is where it happens.
+static func focus_power() -> float:
+	return 1.0 + float(RunState.attribute(RunState.Attribute.FOCUS)) \
+		* Balance.HERO_FOCUS_SPELL_PER_POINT
 
 
 ## What the discipline node in this slot adds on top of the spell it adapts.
@@ -290,7 +310,7 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 	var along: Vector2 = field.lane_direction(_lane_at(origin))
 	var reach: float = Balance.DISCIPLINE_ROAD_SHOCK_REACH * scale
 	var feet: Vector2 = _foot(origin)
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
 	var centre: Vector2 = origin + along * (reach * 0.5)
 	var sweep: float = reach * 0.5 + Balance.DISCIPLINE_ROAD_SHOCK_HALF_WIDTH
 	for enemy: Enemy in field.enemies_near(centre, sweep):
@@ -391,7 +411,7 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 
 
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
 	match spell.kind:
 		SpellData.Kind.BLINK:
 			# The destination is a place to stand, so it is built from the feet.
@@ -470,7 +490,8 @@ func _tick_beam(delta: float, origin: Vector2) -> void:
 	if _beam_spell == null:
 		return
 	var reach: float = maxf(_beam_spell.effect_radius, 120.0)
-	var tick_damage: float = _beam_spell.damage * delta * Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var tick_damage: float = _beam_spell.damage * delta \
+		* Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
 	# A line, approximated by walking spheres along the aim — cheap, and exact
 	# enough for something that is already a cone of fire.
 	var steps: int = 6

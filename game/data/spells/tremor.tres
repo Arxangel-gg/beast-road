@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_71r8l")
+mana_cost = 30.0
 kind = 4
 cooldown = 11.0
 damage = 34.0

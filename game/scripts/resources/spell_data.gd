@@ -42,6 +42,15 @@ enum Kind {
 
 @export var cooldown: float = 6.0
 
+## What a cast draws from the hero's mana. Zero means "not authored", which
+## pays `Balance.SPELL_MANA_COST_DEFAULT` rather than nothing.
+@export var mana_cost: float = 0.0
+
+
+## The mana a cast actually costs.
+func cost() -> float:
+	return mana_cost if mana_cost > 0.0 else Balance.SPELL_MANA_COST_DEFAULT
+
 @export var damage: float = 0.0
 
 ## Effect radius, or beam width for BEAM. 0 means self-targeted.

@@ -494,6 +494,25 @@ const HERO_SWIFTNESS_MOVE_PER_POINT: float = 0.0055
 const HERO_SWIFTNESS_ATTACK_PER_POINT: float = 0.006
 const HERO_FOCUS_COMMAND_PER_POINT: float = 0.009
 const HERO_FOCUS_SPELL_PER_POINT: float = 0.008
+
+# --- Mana (2026-09-11) ---------------------------------------------------------
+#
+# Spells draw on a pool that refills slowly. Focus deepens the pool, refills
+# it faster, sharpens spell damage and shortens cooldowns - so the attribute
+# the Mansion had promised "spell power" for since it was authored finally
+# delivers it (HERO_FOCUS_SPELL_PER_POINT above was defined and never read).
+# Mana is a run resource on the hero, like health: it survives a scope change
+# and refills on a revive, and nothing about it persists. [TUNE]
+const HERO_MANA_BASE: float = 100.0
+const HERO_MANA_PER_FOCUS: float = 6.0
+const HERO_MANA_REGEN: float = 3.5
+const HERO_MANA_REGEN_PER_FOCUS: float = 0.30
+## Cooldown taken off per Focus point, and the most Focus may ever take.
+const HERO_FOCUS_COOLDOWN_PER_POINT: float = 0.006
+const HERO_FOCUS_COOLDOWN_CAP: float = 0.35
+## A spell authored without a cost pays this, so a new .tres is never free by
+## omission.
+const SPELL_MANA_COST_DEFAULT: float = 20.0
 const DISCIPLINE_RESPEC_BASE_COST: int = 45
 const DISCIPLINE_RESPEC_COST_STEP: int = 30
 

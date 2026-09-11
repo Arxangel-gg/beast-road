@@ -643,10 +643,17 @@ func _send_state() -> void:
 		if who == null:
 			continue
 		rows.append([number, who.global_position, who.aim_direction(),
-			_health_of(who)])
+			_health_of(who), _mana_of(who)])
 	if rows.is_empty():
 		return
 	EventBus.coop_hero_state.emit(rows)
+
+
+## A hero's mana as a fraction of its own maximum.
+func _mana_of(who: Hero) -> float:
+	if who == null or who.mana_max() <= 0.0:
+		return 1.0
+	return clampf(who.mana / who.mana_max(), 0.0, 1.0)
 
 
 ## A hero's health as a fraction of its own maximum.
@@ -681,18 +688,20 @@ func _on_hero_state(rows: Array) -> void:
 		return
 	for entry: Variant in rows:
 		var row: Array = entry as Array
-		if row == null or row.size() != 4:
+		if row == null or row.size() < 4:
 			continue
 		_apply_one_state(clampi(int(row[0]), 1, Balance.COOP_MAX_PLAYERS),
-			row[1] as Vector2, float(row[3]))
+			row[1] as Vector2, float(row[3]), float(row[4]) if row.size() > 4 else -1.0)
 
 
 ## One seat's authoritative position and health, on a guest.
-func _apply_one_state(number: int, at: Vector2, hp: float) -> void:
+func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0) -> void:
 	var who: Hero = _hero_for_slot(number)
 	if who == null:
 		return
 	_apply_health(who, hp)
+	if mana >= 0.0:
+		who.mana = clampf(mana, 0.0, 1.0) * who.mana_max()
 	var own: bool = number == Coop.party().slot()
 	# **Corrected toward, not snapped to.**
 	#

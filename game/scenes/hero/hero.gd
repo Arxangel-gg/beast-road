@@ -141,6 +141,11 @@ var _wound_delay_left: float = 0.0
 var _wound_left: float = 0.0
 var _wound_fraction: float = 0.0
 
+## Mana: what spells draw on. Refills slowly, faster with Focus; carried across
+## scopes through RunState like health; full again on a revive.
+var mana: float = 0.0
+var _mana_announce_left: float = 0.0
+
 var _lunge_velocity: Vector2 = Vector2.ZERO
 var _lunge_decay: float = 0.0
 var _attack_recoil_ready: bool = false
@@ -462,6 +467,7 @@ func sync_from_run_state() -> void:
 		var saved_fraction: float = health.current_hp / health.max_hp \
 			if health.max_hp > 0.0 else 1.0
 		health.revive(saved_fraction)
+		refill_mana()
 		_restore_presence()
 
 
@@ -473,6 +479,7 @@ func apply_raid_wound() -> void:
 	_apply_permanent_bonuses()
 	if health.is_dead:
 		health.revive(Balance.HERO_WOUND_REVIVE_HP)
+		refill_mana()
 	else:
 		health.current_hp = health.max_hp * Balance.HERO_WOUND_REVIVE_HP
 		health.changed.emit(health.current_hp, health.max_hp)
@@ -618,6 +625,10 @@ func _apply_permanent_bonuses() -> void:
 	else:
 		health.current_hp = health.max_hp
 	health.changed.emit(health.current_hp, health.max_hp)
+	# Mana comes back the same way health does: what the last scope left, or
+	# full when there was no last scope.
+	mana = clampf(RunState.hero_mana, 0.0, mana_max()) if RunState.hero_mana >= 0.0 else mana_max()
+	EventBus.hero_mana_changed.emit(mana, mana_max())
 
 
 func _on_relic_changed(_id: String) -> void:
@@ -645,6 +656,51 @@ func _on_construction_completed(id: String, _tier: int) -> void:
 func _on_blink(to: Vector2) -> void:
 	global_position = _inside_bounds(to)
 	health.add_invulnerability(Balance.BLINK_IFRAMES)
+
+
+## The pool's size and refill, both deepened by Focus.
+func mana_max() -> float:
+	return Balance.HERO_MANA_BASE \
+		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_PER_FOCUS
+
+
+func mana_regen() -> float:
+	return Balance.HERO_MANA_REGEN \
+		+ float(RunState.attribute(RunState.Attribute.FOCUS)) * Balance.HERO_MANA_REGEN_PER_FOCUS
+
+
+## Pays for a cast. False, and nothing spent, when the pool cannot cover it.
+func spend_mana(cost: float) -> bool:
+	if cost <= 0.0:
+		return true
+	if mana < cost:
+		return false
+	mana -= cost
+	RunState.hero_mana = mana
+	EventBus.hero_mana_changed.emit(mana, mana_max())
+	return true
+
+
+## Full again. A revive, a hearthmend - the moments health comes back whole.
+func refill_mana() -> void:
+	mana = mana_max()
+	RunState.hero_mana = mana
+	EventBus.hero_mana_changed.emit(mana, mana_max())
+
+
+func _tick_mana(delta: float) -> void:
+	if health == null or health.is_dead:
+		return
+	var cap: float = mana_max()
+	if mana < cap:
+		mana = minf(mana + mana_regen() * delta, cap)
+		RunState.hero_mana = mana
+	# The HUD is told a few times a second rather than every frame; a bar
+	# cannot show sixty updates a second and the bus does not need them.
+	_mana_announce_left -= delta
+	if _mana_announce_left <= 0.0:
+		_mana_announce_left = 0.1
+		EventBus.hero_mana_changed.emit(mana, cap)
 
 
 func _on_veil(duration: float, speed_bonus: float) -> void:
@@ -902,6 +958,7 @@ func _compute_aim() -> Vector2:
 
 func _tick_timers(delta: float) -> void:
 	_dash_left = maxf(_dash_left - delta, 0.0)
+	_tick_mana(delta)
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_beast_stun_left = maxf(_beast_stun_left - delta, 0.0)
@@ -1231,6 +1288,7 @@ func _finish_respawn(to_spawn: bool = true) -> void:
 ## third way to stand up cannot quietly skip a step.
 func _stand_back_up(fraction: float) -> void:
 	health.revive(fraction)
+	refill_mana()
 	health.add_invulnerability(Balance.HERO_RESPAWN_INVULN)
 	_mercy_under_fire()
 	EventBus.hero_respawned.emit(global_position)
@@ -1301,6 +1359,7 @@ func apply_hearthmend() -> void:
 	if health.is_dead:
 		global_position = Vector2.ZERO
 		health.revive()
+		refill_mana()
 	else:
 		health.current_hp = health.max_hp
 		health.changed.emit(health.current_hp, health.max_hp)

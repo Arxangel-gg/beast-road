@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hvmtf")
+mana_cost = 20.0
 kind = 2
 damage = 18.0
 cast_range = 420.0
