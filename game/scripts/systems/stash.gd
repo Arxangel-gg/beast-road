@@ -26,14 +26,30 @@ extends RefCounted
 ## real decision precisely because the two cannot be exchanged.
 
 ## Rarity names, in order. The index is stored, not the name.
-const RARITY_NAMES: Array[String] = ["Worn", "Sound", "Fine", "Runed", "Oathbound"]
+##
+## Seven since 2026-09-11 (owner request for more rarities). Chainbroken and
+## Beastcalled sit above Oathbound: the chain is what the Chainmaker binds the
+## beast with, and what the beast itself has answered to is the last thing on
+## the ladder.
+const RARITY_NAMES: Array[String] = [
+	"Worn", "Sound", "Fine", "Runed", "Oathbound", "Chainbroken", "Beastcalled",
+]
 
 ## Multiplier on a kind's base points, per rarity.
-const RARITY_POINTS: Array[float] = [1.0, 1.35, 1.8, 2.4, 3.2]
+##
+## **The steps get smaller, not larger, and that is the bound.** Gear and
+## levelling are the two capped scales the campaign tiers are tuned against
+## (working rule 7), so a longer ladder must not become a steeper one. The first
+## four steps are about 1.34 each; the two new ones are 1.22 and 1.18, so the
+## top of the ladder is 44% above Oathbound rather than the 80% a continued
+## geometric run would have given. What the new rarities mostly buy is breadth -
+## see `Balance.GEAR_AFFIX_COUNT`, where they are the only pieces that dress
+## three and four attributes.
+const RARITY_POINTS: Array[float] = [1.0, 1.35, 1.8, 2.4, 3.2, 3.9, 4.6]
 
 ## What each rarity is worth when sold, and yields when broken.
-const RARITY_MARKS: Array[int] = [12, 26, 55, 120, 260]
-const RARITY_SHARDS: Array[int] = [1, 2, 5, 11, 24]
+const RARITY_MARKS: Array[int] = [12, 26, 55, 120, 260, 560, 1200]
+const RARITY_SHARDS: Array[int] = [1, 2, 5, 11, 24, 52, 112]
 
 ## Levels a piece may be upgraded through, and what each level adds.
 const MAX_LEVEL: int = 5

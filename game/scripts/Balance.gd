@@ -340,7 +340,9 @@ const EXCHANGE_FILL_BEST_MULTIPLIER: float = 3.0
 ## Steeply down, on purpose. Commons are what caravans have crates of; an
 ## Oathbound piece is something a Warden found and mostly keeps. This is what
 ## makes the Ledger a place to round out a build rather than to buy one.
-const EXCHANGE_BASELINE_SUPPLY: Array[float] = [1.0, 0.82, 0.5, 0.22, 0.07]
+const EXCHANGE_BASELINE_SUPPLY: Array[float] = [
+	1.0, 0.82, 0.5, 0.22, 0.07, 0.02, 0.005,
+]
 
 ## How far the community's actual listings pull supply off that baseline.
 const EXCHANGE_SUPPLY_FEED_WEIGHT: float = 0.6
@@ -421,7 +423,7 @@ const GEAR_DROP_ICON_SIZE: float = 76.0
 const GEAR_DROP_GLOW_SIZE: float = 168.0
 const GEAR_RARITY_COLOURS: Array[Color] = [
 	Color("aeb4ad"), Color("82b68a"), Color("6fa8d8"),
-	Color("b486d9"), Color("e8b85c")]
+	Color("b486d9"), Color("e8b85c"), Color("e0663f"), Color("f4efd9")]
 
 # --- What finding a piece feels like -----------------------------------------
 #
@@ -438,20 +440,20 @@ const GEAR_RARITY_COLOURS: Array[Color] = [
 # with a colour.
 
 ## Ring radius at the pickup, per rarity.
-const GEAR_PICKUP_RING: Array[float] = [58.0, 70.0, 96.0, 140.0, 210.0]
+const GEAR_PICKUP_RING: Array[float] = [58.0, 70.0, 96.0, 140.0, 210.0, 258.0, 312.0]
 
 ## How long that ring takes to open. Slower reads as bigger.
-const GEAR_PICKUP_RING_LIFE: Array[float] = [0.30, 0.32, 0.40, 0.52, 0.70]
+const GEAR_PICKUP_RING_LIFE: Array[float] = [0.30, 0.32, 0.40, 0.52, 0.70, 0.82, 0.96]
 
 ## Rays thrown off the pickup. Zero for the bottom two: nothing happened.
-const GEAR_PICKUP_RAYS: Array[int] = [0, 0, 8, 14, 22]
+const GEAR_PICKUP_RAYS: Array[int] = [0, 0, 8, 14, 22, 28, 36]
 
 ## Peak screen flash in the rarity's own colour. The top two only.
-const GEAR_PICKUP_FLASH: Array[float] = [0.0, 0.0, 0.0, 0.07, 0.16]
+const GEAR_PICKUP_FLASH: Array[float] = [0.0, 0.0, 0.0, 0.07, 0.16, 0.22, 0.30]
 
 ## Camera kick. Reserved for the top rarity, so the screen moves for exactly one
 ## thing in the loot system and the player learns what that thing is.
-const GEAR_PICKUP_SHAKE: Array[float] = [0.0, 0.0, 0.0, 0.0, 7.0]
+const GEAR_PICKUP_SHAKE: Array[float] = [0.0, 0.0, 0.0, 0.0, 7.0, 9.5, 12.0]
 
 ## Marks paid for finishing a run, before the tier multiplier.
 const RUN_MARKS_REWARD: int = 45
@@ -1889,9 +1891,15 @@ const FISH_STASH_CAPACITY: int = 40
 # total against `Stash.points` for every kind, rarity and level in the game.
 
 ## How many attributes a piece bonuses, by rarity. Worn and Sound are one, as
-## every piece was before this; Fine and Runed are two; Oathbound is three - so
-## the number of bonuses is a rarity tell you can read without the label. [TUNE]
-const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3]
+## every piece was before this; Fine and Runed are two; Oathbound and
+## Chainbroken are three, and a Beastcalled piece dresses all four - so the
+## number of bonuses is a rarity tell you can read without the label.
+##
+## This is what the two rarities added on 2026-09-11 mostly buy. The budget is
+## divided rather than added to (`Stash.affixes`), so a fourth bonus is breadth
+## and never magnitude - the same bound the affixes themselves were built under.
+## Four is the ceiling because a hero has four attributes. [TUNE]
+const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3, 3, 4]
 
 ## How the budget divides across those bonuses. Each row sums to one, which is
 ## what keeps the total identical to a single-bonus piece of the same rarity.
@@ -1903,6 +1911,7 @@ const GEAR_AFFIX_SPLIT: Array[Array] = [
 	[1.0],
 	[0.72, 0.28],
 	[0.62, 0.24, 0.14],
+	[0.55, 0.22, 0.14, 0.09],
 ]
 const TREELINE_LANE_CLEARANCE: float = 320.0
 

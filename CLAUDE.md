@@ -847,6 +847,35 @@ lands. Both travel as one co-op message carrying the take and the drop together
 - sent separately, a disconnect between them leaves a hand of four, which is not
 a state any screen can explain.
 
+**Two more gear rarities, as of 2026-09-11.** Chainbroken and Beastcalled sit
+above Oathbound - the chain is what the Chainmaker binds the beast with, and
+what the beast itself has answered to is the last thing on the ladder.
+
+**A longer ladder, deliberately not a steeper one.** Gear and levelling are the
+two capped scales the campaign tiers are tuned against (working rule 7), so the
+question a new top rarity has to answer is what it may add. The first four steps
+of `Stash.RARITY_POINTS` are about 1.34 each; the two new ones are 1.22 and
+1.18, so the top is 44% above Oathbound rather than the 80% a continued
+geometric run would have handed over.
+
+**What they mostly buy is breadth.** They are the only pieces that dress three
+and four attributes (`GEAR_AFFIX_COUNT` ends `3, 4`), and the affix budget is
+still *divided* rather than added to - the bound the affixes themselves were
+built under on the same day. Four is the ceiling because a hero has four
+attributes.
+
+**And they must stay findable rather than buyable.** `EXCHANGE_BASELINE_SUPPLY`
+falls to 0.02 and 0.005, and `exchange_check` already refuses a top rarity the
+Ledger stocks often enough that finding one stops mattering.
+
+**The failure worth gating was not the numbers but the tables.** Every array
+keyed by rarity is read through a clamp, so a short one does not crash - it
+silently gives the new rarity whatever the one below it was worth, and a rarity
+that means nothing is indistinguishable from one that was never added.
+`balance_test` now checks all nine tables against `RARITY_NAMES.size()`, that
+value and sale price rise with rarity, that the Ledger's stock falls, and that
+no rarity asks for more bonuses than a hero has places to put them.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -2376,6 +2376,43 @@ func _test_gear_pickup_escalates() -> void:
 	_check(Balance.GEAR_PICKUP_SHAKE[tiers - 1] > 0.0,
 		"the top rarity does not move the camera, so nothing in loot ever does")
 
+	# **Every other table keyed by rarity, for the same reason.** All of them are
+	# read through a clamp, so a short one does not crash - it silently gives the
+	# top rarity whatever the one below it was worth, which is the quietest way
+	# for a new rarity to be added and mean nothing. Adding a rarity now fails
+	# here by name instead.
+	var keyed: Dictionary = {
+		"rarity points": Stash.RARITY_POINTS,
+		"sale value": Stash.RARITY_MARKS,
+		"shard yield": Stash.RARITY_SHARDS,
+		"drop colour": Balance.GEAR_RARITY_COLOURS,
+		"affix count": Balance.GEAR_AFFIX_COUNT,
+		"ledger supply": Balance.EXCHANGE_BASELINE_SUPPLY,
+	}
+	for name: String in keyed:
+		var table: Array = keyed[name] as Array
+		_check(table.size() == tiers,
+			"gear %s has %d entries for %d rarities" % [name, table.size(), tiers])
+	# A rarer piece is worth more of everything a player can measure.
+	for index: int in mini(tiers, Stash.RARITY_POINTS.size()) - 1:
+		_check(Stash.RARITY_POINTS[index + 1] > Stash.RARITY_POINTS[index]
+				and Stash.RARITY_MARKS[index + 1] > Stash.RARITY_MARKS[index]
+				and Stash.RARITY_SHARDS[index + 1] > Stash.RARITY_SHARDS[index],
+			"rarity %d is not worth more than %d" % [index + 1, index])
+	# And the road stays where gear comes from: the Ledger's stock falls away.
+	for index: int in mini(tiers, Balance.EXCHANGE_BASELINE_SUPPLY.size()) - 1:
+		_check(Balance.EXCHANGE_BASELINE_SUPPLY[index + 1]
+				< Balance.EXCHANGE_BASELINE_SUPPLY[index],
+			"the Ledger carries as much rarity %d as %d" % [index + 1, index])
+	# Affixes may broaden with rarity and may never exceed the attributes a hero
+	# has, or `Stash.affixes` would be asked to split a budget four ways into a
+	# hero with three places to put it.
+	for index: int in Balance.GEAR_AFFIX_COUNT.size():
+		_check(Balance.GEAR_AFFIX_COUNT[index] <= Stash.ATTRIBUTE_COUNT
+				and Balance.GEAR_AFFIX_COUNT[index] <= Balance.GEAR_AFFIX_SPLIT.size(),
+			"rarity %d wants %d bonuses, past what a hero or the split table has"
+				% [index, Balance.GEAR_AFFIX_COUNT[index]])
+
 
 ## Affixes spread a piece's points; they never add any.
 ##
