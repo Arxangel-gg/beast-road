@@ -463,9 +463,52 @@ GitHub Actions does the rest. Never build locally.
 - **The art is painterly, not pixel art.** A pixel-art tool means restyling all
   of it. PixelLab is used for VFX sheets and specific sprites, not a global
   restyle.
-- **The PixelLab subscription is spent and the account is being replaced.** 7
-  generations remain on it; the owner is moving to a new Architect account, so
-  treat the old one as gone. Anything further needs new credentials.
+### PixelLab — connecting and using it
+
+**A new Architect account was bought on 2026-09-10 and the old one is gone.**
+Do not look for credits on the old subscription; it ended at 7 generations.
+
+**The token is not in this repo and must never be.** This repository is public —
+the launcher depends on that (see `CLAUDE.md` §8) — so a bearer token committed
+here is a published token. It lives in the owner's local Claude Code MCP config.
+To connect, the owner runs, with their own key:
+
+```
+claude mcp add pixellab https://api.pixellab.ai/mcp -t http -H "Authorization: Bearer <token>"
+```
+
+If the tools are not listed in a session, ask the owner to re-run that; do not
+ask them to paste the token into the conversation.
+
+- Tool reference: `https://api.pixellab.ai/mcp/docs` · site: `https://www.pixellab.ai/mcp`
+- `get_balance` first. Architect allowances reset monthly and the number in any
+  document here is stale the day after it is written.
+
+**What was learned spending the last 100 generations**, so the next batch costs
+less:
+
+| | |
+|---|---|
+| `create_image_pixflux` | **1 generation.** Right for a first pass and for retries |
+| `create_image_pro` | **20 generations**, and returns 16 candidates at ≤85px. Only worth it when you want to *choose* |
+| `animate_image` | scales with pixels — 64×64×8 is 1, 128×128×16 is 4 |
+
+- **Contact-sheet before judging.** Build one grid of every candidate and look at
+  it at the size the game draws it, next to the art it will sit beside. Three of
+  ten omen icons and the choice among 16 loot candidates were all decided that
+  way, and none of them was obvious from the single inline preview.
+- **Fetch by URL, never inline base64.** PixelLab returns no-auth download URLs
+  (`.../images/<job_id>/download`, plus `?index=N` for candidates). MCP clients
+  silently truncate large arguments, so passing art as base64 corrupts it.
+- **The prompt suffix that matched this game's painterly style:** *"Painterly
+  hand-painted game icon, single object centred, warm palette of bone white, rust
+  orange and amber over dark brown, soft dramatic shading, grimdark medieval
+  fantasy"* — plus `detail="highly detailed"`, `shading="detailed shading"`,
+  `outline="selective outline"`, `no_background=True`.
+- **Sizes are fixed by convention**: loot 48×48, relic/omen icons 128×128,
+  discipline icons and towers 192×192. `docs/ASSET_MANIFEST.md` is authoritative.
+- **After writing any PNG, run `--import`.** The runtime never re-imports, so
+  every screenshot until you do is of the previous art.
 - **Omens now have icons** (`res://art/icons/omens/`, manifest §5.13b), so the
   "no art, deliberately" note in `omen_data.gd` is history — the reasoning it
   records is still the right test to apply to the next batch of anything.
