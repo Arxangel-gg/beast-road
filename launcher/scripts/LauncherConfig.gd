@@ -144,7 +144,7 @@ const VERSION: String = "dev"
 ## `releases/latest/download/BeastRoadLauncher.exe` is the permanent link testers
 ## install from and it resolves by exact filename - versioning the exe would break
 ## it on the release that fixed the update, which is the worst possible timing.
-const LAUNCHER_VERSION: String = "3"
+const LAUNCHER_VERSION: String = "4"
 
 ## Names the marker asset that carries LAUNCHER_VERSION.
 const LAUNCHER_VERSION_ASSET_PREFIX: String = "launcher-version-"
@@ -176,7 +176,18 @@ func launcher_version_in(asset_name: String) -> String:
 	return found
 
 ## The executable to run once installed, relative to the install directory.
-const GAME_EXECUTABLE: String = "BeastRoad.exe"
+##
+## Two names, because the game was renamed to Wilderhold on 2026-09-11 and the
+## archive cannot change what it contains until every installed launcher can
+## find the new name. A launcher that only knew the old name would extract a
+## fresh build, fail to find BeastRoad.exe, and leave the player with an
+## install that does not start - so the first name that exists on disk wins,
+## and the new one is preferred when both are there.
+const GAME_EXECUTABLES: Array[String] = ["Wilderhold.exe", "BeastRoad.exe"]
+
+## The name to use in messages and manifests: whichever candidate is installed,
+## or the preferred one when nothing is.
+const GAME_EXECUTABLE: String = "Wilderhold.exe"
 
 ## Written next to the game so the launcher knows what it installed.
 const MANIFEST_FILE: String = "installed.json"
@@ -202,7 +213,17 @@ func install_dir() -> String:
 
 
 func game_exe_path() -> String:
-	return install_dir().path_join(GAME_EXECUTABLE)
+	return game_exe_path_in(install_dir())
+
+
+## The installed executable inside `root`, or the preferred name when none of
+## the candidates is there yet.
+static func game_exe_path_in(root: String) -> String:
+	for candidate: String in GAME_EXECUTABLES:
+		var path: String = root.path_join(candidate)
+		if FileAccess.file_exists(path):
+			return path
+	return root.path_join(GAME_EXECUTABLES[0])
 
 
 func manifest_path() -> String:

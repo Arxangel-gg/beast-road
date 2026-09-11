@@ -42,7 +42,7 @@ static func write(tag: String) -> Error:
 	var data: Dictionary = {
 		"tag": tag,
 		"installed_at": Time.get_datetime_string_from_system(true),
-		"executable": LauncherConfig.GAME_EXECUTABLE,
+		"executable": LauncherConfig.game_exe_path().get_file(),
 	}
 	var file: FileAccess = FileAccess.open(LauncherConfig.manifest_path(), FileAccess.WRITE)
 	if file == null:

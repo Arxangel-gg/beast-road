@@ -351,7 +351,8 @@ func _unpack() -> void:
 	DirAccess.remove_absolute(LauncherConfig.download_path())
 
 	if not FileAccess.file_exists(LauncherConfig.game_exe_path()):
-		_fail("Installed, but %s is not in the archive." % LauncherConfig.GAME_EXECUTABLE)
+		_fail("Installed, but neither %s nor %s is in the archive."
+			% [LauncherConfig.GAME_EXECUTABLES[0], LauncherConfig.GAME_EXECUTABLES[1]])
 		return
 
 	# Written last: this is what makes the install count as finished.

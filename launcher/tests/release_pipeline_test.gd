@@ -19,6 +19,7 @@ func _ready() -> void:
 	_test_unusable_release()
 	_test_self_update_gate()
 	_test_launcher_version_gate()
+	_test_either_executable_name()
 	_test_corrupt_archive()
 	_test_truncated_archive()
 	_test_uninstall_guard()
@@ -58,6 +59,31 @@ func _test_uninstall_guard() -> void:
 
 
 ## And it must actually remove the build when it is pointed at one.
+## The game was renamed, and the archive will carry the new executable name one
+## release after every launcher has learned it. Until then a launcher has to
+## run whichever of the two is installed, and prefer the new one when both are.
+func _test_either_executable_name() -> void:
+	var root: String = LauncherConfig.install_dir_static().path_join("exe-names")
+	DirAccess.make_dir_recursive_absolute(root)
+	_check(LauncherConfig.game_exe_path_in(root).get_file() == "Wilderhold.exe",
+		"an empty install must name the preferred executable")
+	var old_exe: FileAccess = FileAccess.open(root.path_join("BeastRoad.exe"), FileAccess.WRITE)
+	if old_exe != null:
+		old_exe.store_string("x")
+		old_exe.close()
+	_check(LauncherConfig.game_exe_path_in(root).get_file() == "BeastRoad.exe",
+		"an install carrying only the old name must still be found")
+	var new_exe: FileAccess = FileAccess.open(root.path_join("Wilderhold.exe"), FileAccess.WRITE)
+	if new_exe != null:
+		new_exe.store_string("x")
+		new_exe.close()
+	_check(LauncherConfig.game_exe_path_in(root).get_file() == "Wilderhold.exe",
+		"and the new name must win when both are present")
+	for name: String in ["BeastRoad.exe", "Wilderhold.exe"]:
+		DirAccess.remove_absolute(root.path_join(name))
+	DirAccess.remove_absolute(root)
+
+
 func _test_uninstall_removes_the_build() -> void:
 	var root: String = LauncherConfig.install_dir_static()
 	DirAccess.make_dir_recursive_absolute(root.path_join("data"))
