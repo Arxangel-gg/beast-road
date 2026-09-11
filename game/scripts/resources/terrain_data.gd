@@ -19,6 +19,16 @@ extends GameData
 ## Which act this terrain belongs to, 1-based.
 @export var act: int = 1
 
+## The boss that ends this act, by enemy id.
+##
+## **Here rather than in a match statement**, which is where it used to be:
+## `BossDirector._expected_boss_id` mapped act to boss in code, with a comment
+## saying a field "would only ever have three values". Ten acts is the version
+## of that argument failing. Working rule 3 is the general form - adding a
+## region is adding a file, and a region that could not name its own boss would
+## have needed a code change to finish it.
+@export var boss_id: String = ""
+
 ## Element that gets a bonus here, and how much. Ashfen favours Fire, Steppe
 ## favours Earth armour, and so on.
 @export var favoured_element: TowerData.Element = TowerData.Element.FIRE

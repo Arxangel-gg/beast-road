@@ -53,6 +53,11 @@ decision being made a second time, so it needs an owner, not an agent.
 | Disciplines as an anti-specialisation draft | every node open to everyone at once | **DECIDED 2026-09-09: the trees have paths. See below.** |
 | Gear as a solo find (no player-to-player exchange in v4) | not in the spec | **DECIDED 2026-09-10: two players may trade. See below.** |
 | Gear as a solo find, continued | no marketplace of any kind | **DECIDED 2026-09-10: the Long Ledger. See below.** |
+| Three acts and a final ascent (v4 §8) | LOCKED at three | **DECIDED 2026-09-11: ten acts. See below.** |
+| Tower levels 1-2, Forge to 5 (v4 §20, §23) | LOCKED | **DECIDED 2026-09-11: ten levels. See below.** |
+| The town rides the beast; no standing hub (§54, IDEAS_REVIEW §4) | no hub | **DECIDED 2026-09-11: build the hub. See below.** |
+| No dungeons, rifts, professions or ascension | absent | **DECIDED 2026-09-11: build them. See below.** |
+| Disciplines are the card draft (IDEAS_REVIEW §4) | refuse a second pool | **DECIDED 2026-09-11: build Road Cards. See below.** |
 
 **Mid-combat tower placement is settled.** Construction and upgrades belong to
 Preparation; Command orders, doctrines, the horn and the hero carry in-combat
@@ -538,9 +543,9 @@ recorded here so it is neither forgotten nor quietly built as a re-cut.
 5. The skills revamp: discipline stage three (freely spent skill points) is
    still an open owner question and should be answered before a revamp.
 
-**Need an owner ruling before any code, because each re-cuts something v4
-LOCKED or a working rule** - flagged rather than built, exactly as the table
-above requires:
+**~~Need an owner ruling before any code~~ - RULED ON 2026-09-11: build them
+all.** See the note below for the ruling and the order. The list is kept as
+written because the reasoning is what each one has to be built *against*:
 
 - **Ten acts.** v4 §8 is three acts and a final ascent, and the pressure curve,
   the boss roster, the regional factions and the campaign tiers are all tuned
@@ -670,6 +675,114 @@ internally consistent, readable, and obviously from a different game the moment
 they were put beside the existing ones. Caught by a three-row contact sheet -
 new, corrected, shipped - and by nothing else, because no gate can see a
 palette. The suffix that matches gear is recorded in the memory directory.
+
+**The five held items are approved, as of 2026-09-11.** On 2026-09-11 this
+file recorded five of the owner's requests as needing a ruling because each
+re-cuts something v4 LOCKED or a working rule. The owner was shown that list
+with the reasoning for each and answered: *"Continue with everything, build
+them all."* That is the ruling. It is recorded here rather than acted on
+silently, because the table above exists precisely so that a decision made
+twice is visible the second time.
+
+**What each one costs, stated plainly so the next argument about scope starts
+from the same place.** None of these is a constant to flip; each is a body of
+content and a curve to re-tune.
+
+1. **Ten acts** (v4 §8 was three plus the ascent). Seven more regions, each
+   wanting ground art, a backdrop, a faction, an enemy mix and a boss - and the
+   three-act pressure curve re-derived over ten. The structural half is
+   `Balance.ACT_COUNT` and the arrays keyed to it; the expensive half is the
+   content, and it lands region by region.
+2. **Ten tower levels** (v4 §20, §23 were 1-2 with the Forge reaching 5). The
+   cost model and the per-level scaling both grow, and every tower's curve has
+   to stay under the ceiling the acts are tuned against.
+3. **A hub town** for matchmaking, trade and the Ledger. `IDEAS_REVIEW` §4
+   refused this as "the grammar of a map you hold, and this map walks". The
+   owner's version is a *lobby* rather than a second battlefield, which is the
+   reading that keeps the walking town intact.
+4. **Dungeons, rifts, professions and a gatekeeper ascension.** Each adds a
+   persistent progression axis, so each needs its own answer to working rule 7
+   about what it may save. They are built one at a time, each with its bound
+   written down, exactly as spirits, gear and the pantry were.
+5. **Road Cards.** Disciplines and omens already are a draft, which is why this
+   was refused before. Built as a *third* pool it must not become a third power
+   scale: the bound is the omen bound - a card may only move a number
+   `Modifiers` already resolves.
+
+**The order is dependency-first, not want-first.** Ten acts comes first because
+regions, bosses, rarities and card pools all hang off how many acts there are;
+the hub comes last because it is the largest piece of UI and nothing else waits
+on it.
+
+**And one thing does not move.** Every one of these is still held to working
+rule 7 and to the capped scales: levelling and gear. If any of them starts
+granting magnitude outside those, that is a new power scale and it needs its own
+decision - the same bound that has held for spirit traits, discipline depth,
+synergies, omens and fish.
+
+**The road is ten acts long, as of 2026-09-11.** Seven regions were added after
+the three that shipped - Hollow Marches, Rustwood, Saltpan, Iron Steppe, Glass
+Fields, Ashen Reach and the Last Terrace, as acts 4 to 10. Jungle, desert and
+snow keep acts 1 to 3 and were not renumbered, so every seed, save and screenshot
+of the old campaign still means what it meant.
+
+Each region brought a faction, a boss, eight relics and its own ground: that is
+seven terrains, seven backdrops, seven boss sprites and fifty-six relic icons.
+`Balance.ACT_COUNT` is the structural half and the arrays keyed to it -
+`WAVE_ACT_COUNT_SCALE` and `BOSS_ACT_SCALE` - carry the curve out to ten.
+
+**Eight relics per region is a rule, not a coincidence.** `balance_test` asserts
+it, so adding an act means adding eight relics with it or failing the gate. That
+assertion had been quietly dead: it counted into a hand-written `[0, 0, 0, 0]`,
+so with ten acts it went out of bounds on region 4, aborted the function, and the
+gate printed PASS having checked nothing. The array is now sized from
+`ACT_COUNT`, and the sixty-five assertions it was skipping run again.
+
+**Ten tower levels, as of the same date - and they are the same journey, not a
+second one.** Every multiplier in `TOWER_LEVEL_DAMAGE`, `_RATE`, `_UTILITY` and
+`_RANGE` was re-derived by reading the old four-step curve at the new cumulative
+costs. So 280 Gold still buys about 1.88 damage and 1180 still buys about 3.20:
+power per Gold is preserved, the acts already balanced did not have to be
+re-tuned, and what changed is that the player now passes ten doors on the way
+rather than four. The ladder continues a little past where it stopped - 1950 Gold
+reaches level 10 at 3.97 damage.
+
+**The obvious alternative was the wrong one, and the curve report says why.** Five
+more levels each a further thirty percent would have been a second power scale
+nobody tuned against, and unreachable besides: a whole ten-act run earns about
+four thousand Gold in `curve_report`'s best case, so a level priced at a thousand
+is a level nobody buys. The visual steps were halved with the level count too, so
+a maxed tower is the size a maxed tower has always been rather than twice it.
+
+**The Forge opens bands rather than single levels.** `TOWER_LEVEL_CAP_BY_FORGE`
+is `[3, 5, 7, 10]` - a table, because `base + tier` with three Forge tiers could
+only ever reach 6 and would have left four levels authored and unreachable. That
+is the failure this project has already paid for once, with a discipline node no
+seed could offer, so `balance_test` now walks every level and checks some
+buildable Forge tier unlocks it.
+
+**And later acts pay more, which is a change to the economy and not a tuning
+nudge.** Kill spoils were `resource_value` and nothing multiplied them, while
+enemy health rises sixteenfold across ten acts. Over three acts that was a
+defensible simplification - `Enemy._on_died` says so in as many words, and hands
+act scaling to experience instead. Over ten it is something the player feels:
+`curve_report` showed capability dead flat from wave 62 to the end, because by
+then the purse had bought every emplacement it would ever buy and each further
+act paid exactly what Act I paid while asking four times as much. Gold stopped
+being a decision halfway through the game.
+
+`Balance.KILL_ACT_VALUE_SCALE` rises to 3.2 by Act 10 and is **1.0 for Acts 1 and
+2 on purpose**: the opening envelope - wave 1 must not pay for a tower, clearing
+the opening must, every road covered by wave 12 - is the one stretch of this
+economy measured against a player learning the game, and
+`balance_test._test_opening_envelope` owns it. Mean pressure over the ten-act run
+is 0.426 against a band of 0.26-0.46, and the last wave sits at 0.72.
+
+**`curve_report` now prints the purse.** It reports Gold earned, towers bought and
+the level that purse reached, because a capability that stops climbing is either
+out of Gold or out of levels and those two want opposite fixes. Reading that
+column is what turned "ten acts fails the curve" into "the economy is flat", which
+is a different bug with a different answer.
 
 ### The three escape hatches — and why there are only three
 

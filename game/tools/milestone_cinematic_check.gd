@@ -2,9 +2,16 @@ extends Node
 
 ## Release gate for milestone data, first-view routing, assets and input safety.
 
+## Every card the campaign is supposed to own, in load order.
+##
+## Kept as a literal rather than counted, because the failure worth catching is
+## one going *missing* - a region that arrives in silence looks like a region
+## with nothing to say, and no other gate can tell the difference.
 const EXPECTED_IDS: Array[String] = [
-	"act2", "act3", "chainmaker", "drowned_choir", "mirrorfang",
-	"rust_crown", "summit",
+	"act10", "act2", "act3", "act4", "act5", "act6", "act7", "act8", "act9",
+	"brinefather", "chainmaker", "cinder_titan", "drowned_choir", "gatekeeper",
+	"glass_colossus", "horde_warlord", "mirrorfang", "mistwarden", "rust_crown",
+	"rustmother", "summit",
 ]
 
 var _failures: PackedStringArray = []
@@ -27,7 +34,9 @@ func _ready() -> void:
 			"%s must resolve its convention sprite" % data.id)
 		_check(ResourceLoader.exists(data.get_backdrop_path()),
 			"%s must resolve its convention backdrop" % data.id)
-	_check(ids == EXPECTED_IDS, "the seven authored milestone ids must load in stable order")
+	_check(ids == EXPECTED_IDS,
+		"the %d authored milestone ids must load in stable order, got %s"
+			% [EXPECTED_IDS.size(), str(ids)])
 
 	var total_seconds: float = Balance.MILESTONE_CINEMATIC_FADE_IN_SECONDS \
 		+ Balance.MILESTONE_CINEMATIC_HOLD_SECONDS \
@@ -36,15 +45,28 @@ func _ready() -> void:
 	_check(Balance.MILESTONE_CINEMATIC_SKIP_HOLD_SECONDS <= 1.0,
 		"deliberate skip must answer within one second")
 
-	_check(_match_count(MilestoneCinematicData.Trigger.ACT_STARTED, "desert") == 1,
-		"Act II must have one regional transition")
-	_check(_match_count(MilestoneCinematicData.Trigger.ACT_STARTED, "snow") == 1,
-		"Act III must have one regional transition")
-	_check(_match_count(MilestoneCinematicData.Trigger.BOSS_DEFEATED, "rust_crown") == 1,
-		"Mogrun's defeat must open one Final Ascent transition")
-	for boss_id: String in ["drowned_choir", "mirrorfang", "rust_crown", "chainmaker"]:
-		_check(_match_count(MilestoneCinematicData.Trigger.BOSS_SPAWNED, boss_id) == 1,
-			"%s must have one boss introduction" % boss_id)
+	# Derived from the terrain data rather than named here, so an eleventh act
+	# would fail this gate instead of arriving unannounced. Act I is the start
+	# of the run and has no arrival.
+	var last_boss: String = ""
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var ground: TerrainData = ContentDB.terrain_for_act(act)
+		_check(ground != null, "act %d must have ground to arrive on" % act)
+		if ground == null:
+			continue
+		if act > 1:
+			_check(_match_count(MilestoneCinematicData.Trigger.ACT_STARTED,
+				ground.id) == 1,
+				"act %d must have one regional transition" % act)
+		_check(not ground.boss_id.is_empty(), "act %d must name a boss" % act)
+		_check(_match_count(MilestoneCinematicData.Trigger.BOSS_SPAWNED,
+			ground.boss_id) == 1,
+			"%s must have one boss introduction" % ground.boss_id)
+		last_boss = ground.boss_id
+	_check(_match_count(MilestoneCinematicData.Trigger.BOSS_DEFEATED, last_boss) == 1,
+		"the last act's boss (%s) must open one Final Ascent transition" % last_boss)
+	_check(_match_count(MilestoneCinematicData.Trigger.BOSS_SPAWNED, "chainmaker") == 1,
+		"the true final boss must have one introduction")
 
 	# Headless suites must never pause on a cinematic unless this focused gate
 	# explicitly opts in.
@@ -138,7 +160,8 @@ func _check(condition: bool, message: String) -> void:
 
 func _finish() -> void:
 	if _failures.is_empty():
-		print("[milestone-cinematics] PASS — 3 transitions, 4 bosses, persistence, skip and headless isolation")
+		print("[milestone-cinematics] PASS — %d cards, persistence, skip and headless isolation"
+			% EXPECTED_IDS.size())
 	else:
 		for failure: String in _failures:
 			push_error("[milestone-cinematics] " + failure)

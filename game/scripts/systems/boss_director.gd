@@ -82,20 +82,20 @@ func _boss_for_act(act: int) -> EnemyData:
 	return null
 
 
-## Act to boss id. The mapping is in the GDD's act table; keeping it here rather
-## than on TerrainData avoids a field that only ever has three values.
+## Act to boss id, read off the region that act is played in.
+##
+## **It used to be a match statement here**, on the argument that a field on
+## `TerrainData` "would only ever have three values". Ten acts is that argument
+## failing: adding a region now means adding files, not editing this function,
+## which is working rule 3 in its ordinary form.
+##
+## The Final Ascent reports one act past `ACT_COUNT` and has no region, so it
+## falls through to the summit - which is the only thing out there.
 func _expected_boss_id(act: int) -> String:
-	match act:
-		1:
-			return "drowned_choir"
-		2:
-			return "mirrorfang"
-		3:
-			return "rust_crown"
-		_:
-			# The Final Ascent reports one act past ACT_COUNT, and the summit is
-			# the only thing out there.
-			return "chainmaker"
+	var region: TerrainData = ContentDB.terrain_for_act(act)
+	if region != null and not region.boss_id.is_empty():
+		return region.boss_id
+	return "chainmaker"
 
 
 func _on_boss_health_changed(current: float, maximum: float) -> void:

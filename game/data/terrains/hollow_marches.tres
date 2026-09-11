@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "rootshield"
+enemy_ids = Array[String](["rootshield", "glassguard", "burrower", "bogkin", "loam_lurker"])
+elite_ids = Array[String](["warden", "howler"])
+act = 4
+favoured_element = 2
+favoured_element_bonus = 0.22
+enemy_hp_regen = 1.20
+bonus_chain_targets = 0
+wave_size_multiplier = 1.00
+wave_interval_multiplier = 1.00
+boss_id = "mistwarden"
+id = "hollow_marches"
+display_name = "The Hollow Marches"

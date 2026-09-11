@@ -61,6 +61,11 @@ var _rows: Array[Dictionary] = []
 
 ## Cumulative Gold from kills, carried across waves.
 var _earned_gold: float = 0.0
+## What the last _affordable_dps call managed to buy. Reported rather than
+## inferred: a capability that stops climbing is either out of Gold or out of
+## levels, and those two want opposite fixes.
+var _bought_towers: int = 0
+var _bought_level: int = 1
 
 ## How many players the run is being measured for.
 ##
@@ -166,7 +171,10 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# already dealt with rather than of the clock. Modelling it as time-based
 	# reported a flat capability for the whole run, which would have made every
 	# ratio below meaningless.
-	_earned_gold += float(bodies) * _gold_per_body()
+	# Later acts pay more, which is what keeps Gold a decision for ten acts
+	# rather than three. Modelled here as well as banked in `gain_kill_resources`,
+	# or this report would go on reading the flat economy it was what caught.
+	_earned_gold += float(bodies) * _gold_per_body() * Balance.kill_act_scale(act)
 	# The hero counts toward the defence now, and has to.
 	#
 	# While the run began with four towers up, leaving the hero out was a
@@ -182,6 +190,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
+		"gold": _earned_gold, "towers": _bought_towers, "level": _bought_level,
 		"lanes": lanes, "per_lane": per_lane, "bodies": bodies,
 		"hp": hp, "damage": damage, "speed": speed,
 		"threat": threat, "capability": capability,
@@ -243,7 +252,9 @@ func _affordable_dps(earned: float) -> float:
 	var spent: float = float(towers) * float(Balance.TOWER_BUILD_COST)
 	var level: int = 1
 	var cap: int = Balance.TOWER_MAX_LEVEL
-	while level < cap:
+	# A round of upgrades across no towers is free, so an unguarded loop would
+	# report a purse of six Gold standing at level 10.
+	while towers > 0 and level < cap:
 		var step: int = Balance.TOWER_UPGRADE_COSTS[mini(level - 1,
 			Balance.TOWER_UPGRADE_COSTS.size() - 1)]
 		var round_cost: float = float(step) * float(towers)
@@ -252,6 +263,8 @@ func _affordable_dps(earned: float) -> float:
 		spent += round_cost
 		level += 1
 
+	_bought_towers = towers
+	_bought_level = level
 	var reference: TowerData = ContentDB.tower("ember_spire")
 	if reference == null:
 		return float(towers)
@@ -363,19 +376,20 @@ func _mean_pressure_for(count: int) -> float:
 
 func _print_table() -> void:
 	print("")
-	print("BEAST ROAD — difficulty curve, %d waves, daylight, best-case spending, %d player%s"
+	print("WILDERHOLD — difficulty curve, %d waves, daylight, best-case spending, %d player%s"
 		% [_rows.size(), _players, "" if _players == 1 else "s"])
 	print("")
-	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat   capable   pressure  step")
+	print("  wave  act  lanes  pack  bodies     hp   dmg   spd     threat      gold  twr  lvl   capable   pressure  step")
 	var previous: float = 0.0
 	for row: Dictionary in _rows:
 		var pressure: float = float(row["pressure"])
 		var step: String = "" if previous <= 0.0 \
 			else "%+5.0f%%" % ((pressure / previous - 1.0) * 100.0)
-		print("  %4d  %3d  %5d  %4d  %6d  %5.2f %5.2f %5.2f  %9.0f %9.0f  %9.2f  %s" % [
+		print("  %4d  %3d  %5d  %4d  %6d  %5.2f %5.2f %5.2f  %9.0f %9.0f  %3d  %3d %9.0f  %9.2f  %s" % [
 			row["wave"], row["act"], row["lanes"], row["per_lane"], row["bodies"],
 			row["hp"], row["damage"], row["speed"],
-			row["threat"], row["capability"], pressure, step])
+			row["threat"], row["gold"], row["towers"], row["level"],
+			row["capability"], pressure, step])
 		previous = pressure
 
 	print("")

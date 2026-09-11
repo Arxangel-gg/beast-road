@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "four_thousand"
+display_name = "Four Thousand"
+description = "Four thousand fall against one journey's walls."
+order = 58
+metric = 1
+target = 4000.0
+comparison = 0
+minimum_act = 8
+tool_reward = 2

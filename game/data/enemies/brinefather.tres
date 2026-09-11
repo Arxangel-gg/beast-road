@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+category = 2
+role = 1
+max_hp = 9200.0
+contact_damage = 34.0
+move_speed = 48.0
+body_radius = 102.0
+knockback_resistance = 1.0
+resource_value = 170
+phase_thresholds = Array[float]([0.68, 0.34])
+phase_names = Array[String](["The Tide Remembers", "Everything Drowns Eventually"])
+phase_reinforcement_enemy_id = "salt_marcher"
+phase_reinforcements_per_lane = 1
+phase_reinforcement_lanes = 2
+phase_speed_bonus = 0.14
+phase_damage_bonus = 0.10
+id = "brinefather"
+display_name = "The Brinefather"
+description = "Salt does not rot what it takes. He has had a very long time to think about that."

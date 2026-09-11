@@ -34,6 +34,34 @@ Re-run it after any section below is closed; do not hand-edit this number.
 
 ---
 
+## Launch scope re-cut — 2026-09-11
+
+The owner ruled on five items this file and CLAUDE.md had both been holding
+open. Two of them change what "launch scope" means and are recorded here because
+§0's bullet at "Launch scope is three acts, the summit, and five tower levels"
+is now historical rather than current. That bullet is left as written: it was
+true when it was ticked, and rewriting a finished entry hides that the scope
+moved.
+
+- [x] **The campaign is ten acts.** Seven regions after the three that shipped,
+      each with a faction, a boss, eight relics, ground, a backdrop and a boss
+      sprite. Acts 1-3 keep their regions and their numbering.
+- [x] **Towers reach level 10.** The same power-per-Gold curve, read at nine
+      cumulative costs instead of four, so the acts already balanced did not
+      have to be re-tuned. The Forge opens bands - `[3, 5, 7, 10]` - rather than
+      one level a tier.
+- [x] **Kill income scales with the act.** It never did: spoils were
+      `resource_value` and nothing multiplied them, so `curve_report` showed
+      capability dead flat from wave 62 to the end of a ten-act run. Acts 1 and
+      2 are unchanged, so the opening envelope still holds.
+
+Mean pressure over the ten-act run is 0.426 against a band of 0.26-0.46, and
+one Normal clear now leaves a hero at level 92 rather than 73 - and spread
+across the campaign rather than dumped in Act I, which used to hand over 62
+levels before the second region.
+
+---
+
 ## Latest local continuation — 2026-09-07 (unpublished)
 
 The earlier `PRODUCTION_CONTINUATION_2026-09-07.md` patch is now published in

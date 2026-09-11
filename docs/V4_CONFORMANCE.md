@@ -71,7 +71,7 @@ requirements or establish production readiness.
 
 | Item | Target | Probe |
 |------|--------|-------|
-| Three acts plus a final summit | Final Ascent is a real state | `const:FINAL_ASCENT_DISTANCE` |
+| Three acts plus a final summit — **ten acts since 2026-09-11** (owner re-cut, CLAUDE.md) | Final Ascent is a real state | `const:FINAL_ASCENT_DISTANCE` |
 | Nine road battles, six crossroads | six, not nine, crossroads | `const:CROSSROADS_PER_RUN` |
 | True final boss | Kharok the Chainmaker exists | `file:res://data/enemies/chainmaker.tres` |
 | Preparation is an explicit state | typed phase state, not a mode flag | `method:RunState.set_phase` |

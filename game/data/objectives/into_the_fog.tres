@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ChronicleObjectiveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/chronicle_objective_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+id = "into_the_fog"
+display_name = "Into the Fog"
+description = "Reach Act IV and take the city into the Hollow Marches."
+order = 12
+metric = 0
+target = 4.0
+comparison = 0
+minimum_act = 4
+tool_reward = 1

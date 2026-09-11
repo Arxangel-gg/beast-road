@@ -1562,6 +1562,7 @@ func gain_kill_resources(base_amount: int) -> void:
 	if base_amount <= 0:
 		return
 	var earned: float = float(base_amount) * Balance.KILL_RESOURCE_SCALE \
+		* Balance.kill_act_scale(act) \
 		* Modifiers.multiplier(Modifiers.KILL_RESOURCES)
 	# Twice the bodies into one shared pool is twice the income, and the tower
 	# curve was tuned against one player earning. The trim is 1.0 today because
@@ -1577,10 +1578,10 @@ func gain_kill_resources(base_amount: int) -> void:
 	gain_resources(whole)
 
 
-## Maximum tower level the current Forge tier supports. Tier 0 still permits
-## the opening two levels; each Forge tier unlocks one additional mastery tier.
+## Maximum tower level the current Forge tier supports. Tier 0 permits the
+## opening three levels; each Forge tier opens the next band.
 func tower_level_cap() -> int:
-	return clampi(Balance.TOWER_BASE_LEVEL_CAP + building_tier("forge"),
+	return clampi(Balance.tower_level_cap_for_forge(building_tier("forge")),
 		Balance.TOWER_BASE_LEVEL_CAP, Balance.TOWER_MAX_LEVEL)
 
 
@@ -1697,7 +1698,7 @@ func most_common_wave_archetype() -> String:
 	return best_id
 
 
-## True while the run is climbing to the summit, past the three acts.
+## True while the run is climbing to the summit, past the last act.
 func is_final_ascent() -> bool:
 	return act >= Balance.FINAL_ASCENT_ACT
 
@@ -1707,7 +1708,7 @@ func final_ascent_target() -> float:
 	return Balance.JOURNEY_TOTAL_DISTANCE + Balance.FINAL_ASCENT_DISTANCE
 
 
-## Leaves the three acts behind and starts the climb.
+## Leaves the campaign behind and starts the climb.
 func begin_final_ascent() -> void:
 	act = Balance.FINAL_ASCENT_ACT
 	set_phase(Phase.FINAL_ASCENT)

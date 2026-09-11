@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+category = 2
+role = 1
+max_hp = 10200.0
+contact_damage = 36.0
+move_speed = 62.0
+body_radius = 94.0
+knockback_resistance = 1.0
+resource_value = 185
+phase_thresholds = Array[float]([0.68, 0.34])
+phase_names = Array[String](["The Horn Sounds", "She Rides"])
+phase_reinforcement_enemy_id = "steppehorde"
+phase_reinforcements_per_lane = 1
+phase_reinforcement_lanes = 2
+phase_speed_bonus = 0.14
+phase_damage_bonus = 0.10
+id = "horde_warlord"
+display_name = "Khatun Var, Who Rides Last"
+description = "She sends everyone else first. That is not cowardice; it is arithmetic."

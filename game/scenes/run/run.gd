@@ -355,7 +355,7 @@ func _begin_boss_preparation(act: int) -> void:
 
 
 func _on_boss_defeated(_boss_id: String, act: int) -> void:
-	# The Chainmaker is the run's actual end. Act III's boss now opens the climb
+	# The Chainmaker is the run's actual end. The last act's boss opens the climb
 	# to him rather than finishing the campaign, which is what v4 asks for and
 	# what the enum has always described.
 	if act >= Balance.FINAL_ASCENT_ACT:

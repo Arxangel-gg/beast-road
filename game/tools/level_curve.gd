@@ -21,6 +21,11 @@ extends Node
 
 const WAVES_PER_ACT: int = 10
 
+## What one act costs in wall-clock minutes, for the hours-of-play line.
+## `Balance.BEAST_SPEED`'s own comment is the source: about fifteen minutes
+## an act at full walking speed. [TUNE]
+const MINUTES_PER_ACT: int = 15
+
 var _level: int = 1
 var _xp: float = 0.0
 var _attribute_points: int = 0
@@ -58,11 +63,14 @@ func _ready() -> void:
 
 
 func _walk_campaign(director: WaveDirector) -> void:
-	var terrains: Array[String] = ["jungle", "desert", "snow"]
-	for act: int in 3:
+	# Read from the content rather than named here. A hand-written list of three
+	# regions reported a three-act campaign for as long as one existed, and
+	# would have gone on doing it silently after the road grew to ten.
+	for act: int in Balance.ACT_COUNT:
+		var ground: TerrainData = ContentDB.terrain_for_act(act + 1)
 		for wave: int in WAVES_PER_ACT:
 			RunState.act = act + 1
-			RunState.terrain_id = terrains[act]
+			RunState.terrain_id = ground.id if ground != null else "jungle"
 			RunState.wave_number = act * WAVES_PER_ACT + wave + 1
 			director._act_wave = wave + 1
 			var per_lane: int = director._archetype_wave_size(
@@ -85,9 +93,12 @@ func _report() -> void:
 		% [_attribute_points, _skill_points,
 			Balance.DISCIPLINE_MAX_TRAINED
 				+ int(_level / Balance.HERO_DISCIPLINE_CAP_EVERY)])
+	# A run is as long as the road is: fifteen minutes an act, which was 45
+	# minutes when there were three acts and is two and a half hours at ten.
+	var minutes: int = Balance.ACT_COUNT * MINUTES_PER_ACT
 	print("[level] %.1f hours of play at %d minutes a run"
-		% [float(Balance.LEVEL_CURVE_RUNS_PER_TIER * 3) * 60.0 / 60.0,
-			60])
+		% [float(Balance.LEVEL_CURVE_RUNS_PER_TIER * 3 * minutes) / 60.0,
+			minutes])
 	# A single-attribute build's ceiling: the number that decides whether
 	# levelling is a nice bonus or the thing that carries the run.
 	print("[level] all-in: Might +%.0f%%  Vigour +%.0f%%  Swiftness +%.0f%% move  Focus +%.0f%% command"

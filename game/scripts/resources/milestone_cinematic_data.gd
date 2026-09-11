@@ -30,8 +30,13 @@ enum Presentation {
 ## The visual composition and, by convention, the sprite folder/prefix.
 @export var presentation: Presentation = Presentation.REGION
 
-## Act backdrop used behind a boss portrait. Act 4 resolves to summit art.
-@export_range(1, 4, 1) var act: int = 1
+## Act backdrop used behind a boss portrait. Anything past the last act
+## resolves to summit art - which is why the ascent's own cards carry
+## `FINAL_ASCENT_ACT` rather than an act number. The range was 1 to 4 while the
+## campaign was three acts long, and 4 meant "the summit"; with ten acts that
+## same 4 is the Hollow Marches, so the boundary is read from `ACT_COUNT` now
+## instead of being spelled twice.
+@export_range(1, 11, 1) var act: int = 1
 
 
 func get_sprite_path() -> String:
@@ -47,7 +52,7 @@ func get_sprite_path() -> String:
 func get_backdrop_path() -> String:
 	if presentation != Presentation.BOSS:
 		return get_sprite_path()
-	if act >= 4:
+	if act > Balance.ACT_COUNT:
 		return derive_path("bg", "", "summit")
 	return derive_path("bg", "macro_", "act%d" % act)
 

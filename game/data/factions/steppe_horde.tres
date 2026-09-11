@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 7
+terrain_id = "iron_steppe"
+regular_enemy_ids = Array[String](["steppehorde", "wolf_rider", "scale_rider", "cinder_runner", "storm_caller"])
+elite_enemy_ids = Array[String](["wolf_standard_bearer", "siege_lizard"])
+visual_identity = "Dun grass to the horizon, dust plumes, lamellar and horsehair."
+mechanical_identity = "Speed and numbers. The widest waves in the campaign, arriving soonest."
+id = "steppe_horde"
+display_name = "The Iron Horde"
+description = "Open country, and nothing on it that does not ride."

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "snowhide_brute"
+enemy_ids = Array[String](["snowhide_brute", "ice_hauler", "glassguard", "crevasse_stalker", "frost_herald"])
+elite_ids = Array[String](["white_maw_giant", "warden"])
+act = 10
+favoured_element = 2
+favoured_element_bonus = 0.30
+enemy_hp_regen = 0.00
+bonus_chain_targets = 0
+wave_size_multiplier = 1.12
+wave_interval_multiplier = 0.94
+boss_id = "gatekeeper"
+id = "last_terrace"
+display_name = "The Last Terrace"

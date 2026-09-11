@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "scale_rider"
+enemy_ids = Array[String](["scale_rider", "salt_marcher", "storm_caller", "glassguard", "burrower"])
+elite_ids = Array[String](["siege_lizard", "wolf_standard_bearer"])
+act = 5
+favoured_element = 0
+favoured_element_bonus = 0.20
+enemy_hp_regen = 0.00
+bonus_chain_targets = 1
+wave_size_multiplier = 1.05
+wave_interval_multiplier = 0.96
+boss_id = "rustmother"
+id = "rustwood"
+display_name = "The Rustwood"

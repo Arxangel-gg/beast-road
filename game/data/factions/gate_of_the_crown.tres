@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 10
+terrain_id = "last_terrace"
+regular_enemy_ids = Array[String](["snowhide_brute", "ice_hauler", "glassguard", "crevasse_stalker", "frost_herald"])
+elite_enemy_ids = Array[String](["white_maw_giant", "warden"])
+visual_identity = "Cut flagstones, thin snow in the joints, a mountain filling the sky."
+mechanical_identity = "Everything at once, slowly, and all of it heavier than it was."
+id = "gate_of_the_crown"
+display_name = "The Gate of the Crown"
+description = "Cut steps, a wind that never stops, and something that was set here to wait."

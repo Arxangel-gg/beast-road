@@ -1057,7 +1057,7 @@ func _effect_text(data: BuildingData, tier: int) -> String:
 			return "%d dut%s" % [details, "y" if details == 1 else "ies"]
 		BuildingData.Effect.BLUEPRINTS:
 			return "tower mastery level %d unlocked" % clampi(
-				Balance.TOWER_BASE_LEVEL_CAP + tier, 1, Balance.TOWER_MAX_LEVEL)
+				Balance.tower_level_cap_for_forge(tier), 1, Balance.TOWER_MAX_LEVEL)
 		BuildingData.Effect.WAVE_FORESIGHT:
 			match tier:
 				1:

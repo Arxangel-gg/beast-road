@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "glass_colossus"
+eyebrow = "Act VIII Boss  ·  The field stands up"
+presentation = 1
+act = 8
+id = "glass_colossus"
+display_name = "The Shatterfather"
+description = "Every piece of him was part of the ice and can be again. Break him where he is thin, and mind what the pieces do afterwards."

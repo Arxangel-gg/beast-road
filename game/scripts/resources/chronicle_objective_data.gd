@@ -35,7 +35,12 @@ enum Comparison {
 @export var comparison: Comparison = Comparison.AT_LEAST
 
 ## Additional gates for compound feats such as a flawless Act II arrival.
-@export_range(1, 3) var minimum_act: int = 1
+##
+## The range was 1 to 3 while the campaign was, so no deed could ask for
+## anything past the third act - which would have made the seven regions added
+## on 2026-09-11 invisible to the Chronicle as well as ungoaled. Eleven is the
+## Final Ascent, one past the last act.
+@export_range(1, 11) var minimum_act: int = 1
 @export var requires_victory: bool = false
 
 ## One-time horizontal reward. Intentionally small beside ordinary run payout.

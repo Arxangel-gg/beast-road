@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "steppehorde"
+enemy_ids = Array[String](["steppehorde", "wolf_rider", "scale_rider", "cinder_runner", "storm_caller"])
+elite_ids = Array[String](["wolf_standard_bearer", "siege_lizard"])
+act = 7
+favoured_element = 3
+favoured_element_bonus = 0.22
+enemy_hp_regen = 0.00
+bonus_chain_targets = 0
+wave_size_multiplier = 1.18
+wave_interval_multiplier = 0.88
+boss_id = "horde_warlord"
+id = "iron_steppe"
+display_name = "The Iron Steppe"

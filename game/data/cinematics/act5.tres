@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "rustwood"
+eyebrow = "Act V  ·  The trees are iron now"
+act = 5
+id = "act5"
+display_name = "The Rustwood"
+description = "Metal grew here instead of bark. The Corroded March comes apart as it walks and the pieces keep coming, and every wound is a wound that rusts."

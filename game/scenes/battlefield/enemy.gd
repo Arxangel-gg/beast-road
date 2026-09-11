@@ -1555,7 +1555,7 @@ func _drop_loot() -> void:
 		chance = 1.0
 	if RunState.rng("combat").randf() > chance:
 		return
-	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.kill_act_scale(RunState.act)
 	if elite:
 		share *= Balance.LOOT_ELITE_MULTIPLIER
 	var tier: CampaignTierData = RunState.tier()
@@ -1633,7 +1633,7 @@ func _drop_supply_crate() -> void:
 
 ## What a crate from this body carries, as the currency value of one spill.
 func crate_value() -> int:
-	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE
+	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE 		* Balance.kill_act_scale(RunState.act)
 	if data.category != EnemyData.Category.BREED:
 		share *= Balance.LOOT_ELITE_MULTIPLIER
 	var tier: CampaignTierData = RunState.tier()

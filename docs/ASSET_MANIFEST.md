@@ -341,6 +341,19 @@ Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `
 | `boss_mirrorfang.png` | 384×384 | T | `#8FA8B8` |
 | `boss_rust_crown.png` | 384×384 | T | `#8C3A2B` |
 | `boss_chainmaker.png` | 384×384 | T | `#2A3140` |
+| `boss_mistwarden.png` | 384×384 | T | `#5A6A5E` |
+| `boss_rustmother.png` | 384×384 | T | `#7A4326` |
+| `boss_brinefather.png` | 384×384 | T | `#7E9691` |
+| `boss_horde_warlord.png` | 384×384 | T | `#6B5A34` |
+| `boss_glass_colossus.png` | 384×384 | T | `#6FA4C8` |
+| `boss_cinder_titan.png` | 384×384 | T | `#6B3320` |
+| `boss_gatekeeper.png` | 384×384 | T | `#78797B` |
+
+> The seven added on 2026-09-11 are base sprites only. The four that shipped
+> before them also carry idle, move and attack sequences; a boss with no
+> authored sequence holds its pose, which the frame loader already handles.
+> Declaring frames that have not been drawn would fail the art report, so they
+> are not declared until they exist.
 
 #### 5.3b Boss idle frames
 
@@ -353,12 +366,21 @@ Files: `boss_drowned_choir_idle_01.png` · `boss_drowned_choir_idle_02.png` · `
 Files: `boss_mirrorfang_idle_01.png` · `boss_mirrorfang_idle_02.png` · `boss_mirrorfang_idle_03.png`
 Files: `boss_rust_crown_idle_01.png` · `boss_rust_crown_idle_02.png` · `boss_rust_crown_idle_03.png`
 Files: `boss_chainmaker_idle_01.png` · `boss_chainmaker_idle_02.png` · `boss_chainmaker_idle_03.png`
+Files: `boss_mistwarden_idle_01.png` · `boss_mistwarden_idle_02.png` · `boss_mistwarden_idle_03.png`
+Files: `boss_rustmother_idle_01.png` · `boss_rustmother_idle_02.png` · `boss_rustmother_idle_03.png`
+Files: `boss_brinefather_idle_01.png` · `boss_brinefather_idle_02.png` · `boss_brinefather_idle_03.png`
+Files: `boss_horde_warlord_idle_01.png` · `boss_horde_warlord_idle_02.png` · `boss_horde_warlord_idle_03.png`
+Files: `boss_glass_colossus_idle_01.png` · `boss_glass_colossus_idle_02.png` · `boss_glass_colossus_idle_03.png`
+Files: `boss_cinder_titan_idle_01.png` · `boss_cinder_titan_idle_02.png` · `boss_cinder_titan_idle_03.png`
+Files: `boss_gatekeeper_idle_01.png` · `boss_gatekeeper_idle_02.png` · `boss_gatekeeper_idle_03.png`
 
 #### 5.3a Boss walk and attack frames
 
 The bosses were the last things in the game with no legs. Every walker got a
 walk cycle on 2026-09-01 and a swing on 2026-09-02; the four bosses got neither,
-because the generator caps a frame at 256 and these are 384.
+because the generator caps a frame at 256 and these are 384. Seven more bosses
+arrived with the ten-act campaign on 2026-09-11 and needed the same treatment;
+see the note below them for why theirs came out differently.
 
 **They are 192-native art upscaled**, which is what makes this work: halving to
 192, animating, and doubling back with nearest-neighbour lands on exactly the
@@ -380,6 +402,37 @@ Files: `boss_mirrorfang_move_01.png` … `boss_mirrorfang_move_04.png` ·
 `boss_mirrorfang_attack_01.png` … `boss_mirrorfang_attack_04.png`
 Files: `boss_rust_crown_move_01.png` … `boss_rust_crown_move_04.png` ·
 `boss_rust_crown_attack_01.png` … `boss_rust_crown_attack_04.png`
+
+**The seven Act IV-X bosses are posed, not generated**, and that is worth
+knowing before anyone compares them. `animate_image` wants the source frame as
+base64 or as a public URL, and these sprites were not published when their
+frames were needed; asked for the same boss by description instead,
+`create_1_direction_object` returned a stone archway rather than a figure.
+
+So each frame is the boss's own art deformed by height: the horizontal offset
+and the vertical lift are functions of how far up the sprite a row sits, which
+shears the legs against the torso, sways the head further than the hips, and
+leaves the foot row exactly where it was. That is articulation rather than the
+whole-sprite bob `Enemy` already applies every frame, which is the bar a frame
+has to clear to be worth having at all.
+
+They are replaceable in place, by convention, the moment the art is fetchable by
+URL - which it is as soon as this lands on the public repository.
+
+Files: `boss_mistwarden_move_01.png` … `boss_mistwarden_move_04.png` ·
+`boss_mistwarden_attack_01.png` … `boss_mistwarden_attack_04.png`
+Files: `boss_rustmother_move_01.png` … `boss_rustmother_move_04.png` ·
+`boss_rustmother_attack_01.png` … `boss_rustmother_attack_04.png`
+Files: `boss_brinefather_move_01.png` … `boss_brinefather_move_04.png` ·
+`boss_brinefather_attack_01.png` … `boss_brinefather_attack_04.png`
+Files: `boss_horde_warlord_move_01.png` … `boss_horde_warlord_move_04.png` ·
+`boss_horde_warlord_attack_01.png` … `boss_horde_warlord_attack_04.png`
+Files: `boss_glass_colossus_move_01.png` … `boss_glass_colossus_move_04.png` ·
+`boss_glass_colossus_attack_01.png` … `boss_glass_colossus_attack_04.png`
+Files: `boss_cinder_titan_move_01.png` … `boss_cinder_titan_move_04.png` ·
+`boss_cinder_titan_attack_01.png` … `boss_cinder_titan_attack_04.png`
+Files: `boss_gatekeeper_move_01.png` … `boss_gatekeeper_move_04.png` ·
+`boss_gatekeeper_attack_01.png` … `boss_gatekeeper_attack_04.png`
 
 ### 5.4 Towers — `res://art/towers/`
 
@@ -655,6 +708,13 @@ density (`Balance.GROUND_UNITS_PER_TEXEL`).
 | `terrain_jungle.png` | 512×512 | O | `#342F25` |
 | `terrain_desert.png` | 512×512 | O | `#6B4F36` |
 | `terrain_snow.png` | 512×512 | O | `#4D5B68` |
+| `terrain_hollow_marches.png` | 512×512 | O | `#44503F` |
+| `terrain_rustwood.png` | 512×512 | O | `#54301C` |
+| `terrain_saltpan.png` | 512×512 | O | `#7E8A84` |
+| `terrain_iron_steppe.png` | 512×512 | O | `#6E5C34` |
+| `terrain_glass_fields.png` | 512×512 | O | `#486E94` |
+| `terrain_ashen_reach.png` | 512×512 | O | `#3E3836` |
+| `terrain_last_terrace.png` | 512×512 | O | `#606264` |
 
 ### 5.7b Foliage — `res://art/foliage/`
 
@@ -963,6 +1023,13 @@ motion the generator can find without inventing geometry.
 | `macro_act1.png` | 688×384 | O | `#1E2E33` |
 | `macro_act2.png` | 688×384 | O | `#2E3A42` |
 | `macro_act3.png` | 688×384 | O | `#3A2E2E` |
+| `macro_act4.png` | 688×384 | O | `#2B3430` |
+| `macro_act5.png` | 688×384 | O | `#33201A` |
+| `macro_act6.png` | 688×384 | O | `#3C4744` |
+| `macro_act7.png` | 688×384 | O | `#3E3524` |
+| `macro_act8.png` | 688×384 | O | `#26384A` |
+| `macro_act9.png` | 688×384 | O | `#241F1E` |
+| `macro_act10.png` | 688×384 | O | `#32353A` |
 | `crossroad_bg.png` | 1920×1080 | O | `#1E2E33` |
 | `raid_arena_bg.png` | 1920×1080 | O | `#160E12` |
 | `menu_key_art.png` | 688×384 | O | `#0B1416` |
@@ -1080,11 +1147,16 @@ of the screen would be a downgrade on both.
 
 All 128×128, type T, placeholder colour `#E8A33D`.
 
-Files: `relic_01.png` … `relic_24.png`, plus `relic_core_drowned_choir.png`,
+Files: `relic_01.png` … `relic_80.png`, plus `relic_core_drowned_choir.png`,
 `relic_core_mirrorfang.png`, `relic_core_rust_crown.png`.
 
 > Rename these to match final relic `id`s once relics are designed in Stage 5.
 > Until then the numbered placeholders are correct.
+
+> Eight per region, and there are ten regions since 2026-09-11. The count is not
+> decorative: `balance_test` requires every region to ship exactly eight, so that
+> no act's relic pool is poorer than another's, and adding an act means adding
+> eight relics with it.
 
 ### 5.10 Spell icons — `res://art/icons/spells/`
 

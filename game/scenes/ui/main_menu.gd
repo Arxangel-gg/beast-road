@@ -244,9 +244,13 @@ func _build_tier_row() -> void:
 		var button := Button.new()
 		button.toggle_mode = true
 		button.text = tier.display_name
+		# The ends rather than the whole array: ten numbers in a tooltip is a
+		# wall of digits, and what the player is deciding is how far above their
+		# level the road starts and where it finishes.
 		button.tooltip_text = "%s
-Expects level %s at its act bosses." % [
-			tier.summary, str(tier.boss_levels)]
+Expects level %d at the first act boss, %d at the last." % [
+			tier.summary, tier.expected_level(1),
+			tier.expected_level(Balance.ACT_COUNT)]
 		button.button_pressed = tier.id == MetaState.last_tier_id
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(func() -> void:

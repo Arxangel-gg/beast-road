@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vp5e3")
+boss_id = "mirrorfang"
 breed_id = "glassborn"
 enemy_ids = Array[String](["glassborn", "scale_rider", "glassguard", "burrower"])
 elite_ids = Array[String](["mirage_seer", "siege_lizard"])

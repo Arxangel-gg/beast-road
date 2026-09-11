@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 6
+terrain_id = "saltpan"
+regular_enemy_ids = Array[String](["salt_marcher", "glassborn", "burrower", "glass_chanter", "bogkin"])
+elite_enemy_ids = Array[String](["mirage_seer", "howler"])
+visual_identity = "Bone-white crust, mirror pools, teal brine under everything."
+mechanical_identity = "Slows, drowned crowds and seers that read the lane before you do."
+id = "brine_choir"
+display_name = "The Brine Choir"
+description = "A sea died here. Some of what lived in it did not get the news."

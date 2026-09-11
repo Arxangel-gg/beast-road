@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 5
+terrain_id = "rustwood"
+regular_enemy_ids = Array[String](["scale_rider", "salt_marcher", "storm_caller", "glassguard", "burrower"])
+elite_enemy_ids = Array[String](["siege_lizard", "wolf_standard_bearer"])
+visual_identity = "Black trunks, rust-red canopy, corroded metal grown into the bark."
+mechanical_identity = "Armoured pressure, burning that spreads, and a siege line that does not stop."
+id = "corroded_march"
+display_name = "The Corroded March"
+description = "Everything here rusted into everything else and then kept walking."

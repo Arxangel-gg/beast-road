@@ -2841,7 +2841,8 @@ func _refresh_build_panel() -> void:
 		var level_cap: int = RunState.tower_level_cap()
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(
-				"Forge tier %d required for level %d." % [level - Balance.TOWER_BASE_LEVEL_CAP + 1, level + 1], 14))
+				"Forge tier %d required for level %d."
+					% [Balance.forge_tier_for_level(level + 1), level + 1], 14))
 		elif level < Balance.TOWER_MAX_LEVEL:
 			var cost: int = Battlefield.upgrade_cost_of(level)
 			_add_stat_preview(existing, level)

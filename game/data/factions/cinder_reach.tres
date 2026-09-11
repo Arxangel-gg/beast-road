@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 9
+terrain_id = "ashen_reach"
+regular_enemy_ids = Array[String](["cinder_runner", "ember_shaman", "loam_lurker", "bogkin", "storm_caller"])
+elite_enemy_ids = Array[String](["howler", "siege_lizard"])
+visual_identity = "Grey ash falling on black ground, ember cracks, no green at all."
+mechanical_identity = "Burning, ember shamans and a wave that keeps its damage after it dies."
+id = "cinder_reach"
+display_name = "The Long Burning"
+description = "It has been on fire for longer than the road has been a road."

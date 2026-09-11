@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 4
+terrain_id = "hollow_marches"
+regular_enemy_ids = Array[String](["rootshield", "glassguard", "burrower", "bogkin", "loam_lurker"])
+elite_enemy_ids = Array[String](["warden", "howler"])
+visual_identity = "Wet grey stone, pale lichen, standing fog and things that do not move."
+mechanical_identity = "Heavy bodies, regeneration and wardens that hold a lane rather than rush it."
+id = "fogbound_watch"
+display_name = "The Fogbound Watch"
+description = "Stone wardens that were here before the road and did not agree to it."

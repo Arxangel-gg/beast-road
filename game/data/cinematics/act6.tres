@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "saltpan"
+eyebrow = "Act VI  ·  Nothing rots this far out"
+act = 6
+id = "act6"
+display_name = "The Saltpan Mire"
+description = "White crust over black water, and the Brine Choir singing under both. What the salt takes, it keeps - including the things it took a long time ago."

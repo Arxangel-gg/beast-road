@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "glass_fields"
+eyebrow = "Act VIII  ·  The ice took a shape"
+act = 8
+id = "act8"
+display_name = "The Glass Fields"
+description = "A glacier ground over a city and kept the edges. The Shatter Choir moves between reflections, and every one of them is carrying something sharp."

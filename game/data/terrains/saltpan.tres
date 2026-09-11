@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "salt_marcher"
+enemy_ids = Array[String](["salt_marcher", "glassborn", "burrower", "glass_chanter", "bogkin"])
+elite_ids = Array[String](["mirage_seer", "howler"])
+act = 6
+favoured_element = 1
+favoured_element_bonus = 0.24
+enemy_hp_regen = 1.80
+bonus_chain_targets = 0
+wave_size_multiplier = 1.00
+wave_interval_multiplier = 1.02
+boss_id = "brinefather"
+id = "saltpan"
+display_name = "The Saltpan Mire"

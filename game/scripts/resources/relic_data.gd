@@ -15,7 +15,7 @@ extends GameData
 
 ## Regional launch set: 1 Verdant, 2 Sunglass, 3 Rimebound. Boss cores use
 ## source_act and leave this at zero. Drop pools filter this field explicitly.
-@export_range(0, 3) var region: int = 0
+@export_range(0, 10) var region: int = 0
 
 ## Effect key resolved by the relic system, plus its magnitude. Keeping the
 ## effect as data rather than a script per relic keeps the full twenty-four

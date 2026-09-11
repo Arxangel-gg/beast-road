@@ -558,17 +558,29 @@ const TOWN_HALL_RELIC_SLOTS: Array[int] = [1, 2, 3, 4]
 # MACRO / THE JOURNEY — GDD §3.3
 # ==============================================================================
 
-const ACT_COUNT: int = 3
-const SEGMENTS_PER_ACT: int = 3
+## Ten acts (owner ruling, 2026-09-11, re-cutting v4 §8's three).
+##
+## **The run's length had to be re-derived, not just multiplied.** Ten acts at
+## the old 900 units each is 9000 units, which at the beast's base speed is two
+## and a half hours - far outside v4 §9's budget and outside what anybody
+## finishes in a sitting. So an act is shorter and there are more of them: two
+## segments of 200 rather than three of 300.
+##
+## What that buys is the thing ten acts was asked for. Total road goes 2700 to
+## 4000 - about seventy minutes rather than forty-five, which is long but is a
+## run - while crossroads go from nine to twenty, so the player makes more than
+## twice as many route choices in one campaign than they used to.
+const ACT_COUNT: int = 10
+const SEGMENTS_PER_ACT: int = 2
 
 ## Distance units in one segment; segment boundaries are crossroads.
-const SEGMENT_DISTANCE: float = 300.0
+const SEGMENT_DISTANCE: float = 200.0
 
-## 3 segments per act.
-const ACT_DISTANCE: float = 900.0
+## 2 segments per act.
+const ACT_DISTANCE: float = 400.0
 
-## 3 acts. Filling this bar is the win condition (GDD §2, decision 1).
-const JOURNEY_TOTAL_DISTANCE: float = 2700.0
+## 10 acts. Filling this bar is the win condition (GDD §2, decision 1).
+const JOURNEY_TOTAL_DISTANCE: float = 4000.0
 
 ## The Final Ascent (GDD v4 §"Final Ascent - Crown of the World").
 ##
@@ -576,11 +588,11 @@ const JOURNEY_TOTAL_DISTANCE: float = 2700.0
 ## no fork, one road to the summit. v4 budgets 6-8 minutes for the ascent and the
 ## Chainmaker together, and 600 is about two segments of walking with the boss at
 ## the end of it. [TUNE]
-const FINAL_ASCENT_DISTANCE: float = 600.0
+const FINAL_ASCENT_DISTANCE: float = 400.0
 
 ## The act index the ascent reports. One past ACT_COUNT on purpose: every
-## per-act table clamps to its last entry, so the ascent inherits Act III's
-## scaling rather than needing a fourth column in each of them.
+## per-act table clamps to its last entry, so the ascent inherits the last act's
+## scaling rather than needing one more column in each of them.
 const FINAL_ASCENT_ACT: int = ACT_COUNT + 1
 
 ## Beast walking speed in distance units per second. At full speed this is
@@ -2056,17 +2068,55 @@ const LANE_WIDTH: float = 125
 # Towers — GDD §4
 # ------------------------------------------------------------------------------
 
-## Five levels keep resources relevant through Acts 2 and 3. The Forge gates
-## access above the early-game cap, so this is a progression track rather than
-## five buttons available on the opening screen.
-const TOWER_MAX_LEVEL: int = 5
+## Ten levels since 2026-09-11 (owner ruling, recorded in CLAUDE.md), and the
+## ten are the *same journey* rather than five more on top of it.
+##
+## That distinction is the whole design. A tower's power is a function of the
+## Gold poured into it, and that function is unchanged: every multiplier below
+## was re-derived by reading the old four-step curve at the new cumulative
+## costs, so 280 Gold still buys about 1.88 damage and 1180 still buys about
+## 3.20. What changed is that the player passes through ten doors instead of
+## four on the way there, and the road continues a little past where it used to
+## stop - 1950 Gold reaches level 10 at 3.97.
+##
+## Doing it the other way round - five more levels each a further 30% - would
+## have been a second power scale nobody tuned against, and unreachable besides:
+## a whole ten-act run earns about four thousand Gold in `curve_report`'s best
+## case, so a level that costs a thousand is a level nobody buys.
+const TOWER_MAX_LEVEL: int = 10
 
 ## Every emplacement is a structure now, not only Bulwarks. Specialist blockers
 ## override this in their TowerData; ordinary towers inherit it. [TUNE]
 const TOWER_BASE_MAX_HP: float = 520.0
 const TOWER_REPAIR_FRACTION: float = 0.34
 const TOWER_REPAIR_WOOD_COST: int = 32
-const TOWER_BASE_LEVEL_CAP: int = 2
+## What a run may reach with no Forge. Three rather than two because the levels
+## are smaller now: the old cap of 2 was 90 Gold of upgrade, and level 3 is 140,
+## which is the nearest the new ladder comes to standing where the old one did.
+const TOWER_BASE_LEVEL_CAP: int = 3
+
+## The level cap each Forge tier unlocks, indexed by tier (0 is no Forge).
+##
+## A table rather than `base + tier` because the bands are not equal: the Forge
+## opens two levels, then two, then the last three. Straight addition with ten
+## levels and three tiers could only ever reach 6, which would leave four levels
+## authored and unreachable - the failure this project has already paid for once
+## with a discipline node no seed could offer. [TUNE]
+const TOWER_LEVEL_CAP_BY_FORGE: Array[int] = [3, 5, 7, 10]
+
+
+## The cap a Forge of this tier supports. One reader for RunState, the town
+## panel and the build tooltip, so the three cannot drift apart.
+static func tower_level_cap_for_forge(tier: int) -> int:
+	return TOWER_LEVEL_CAP_BY_FORGE[clampi(tier, 0, TOWER_LEVEL_CAP_BY_FORGE.size() - 1)]
+
+
+## The lowest Forge tier that unlocks `level`, or 0 when the base cap covers it.
+static func forge_tier_for_level(level: int) -> int:
+	for tier: int in TOWER_LEVEL_CAP_BY_FORGE.size():
+		if TOWER_LEVEL_CAP_BY_FORGE[tier] >= level:
+			return tier
+	return TOWER_LEVEL_CAP_BY_FORGE.size() - 1
 
 ## Resource cost to build a base tower at level 1. [TUNE]
 ## Tower price, as two independent decisions (GDD §20).
@@ -2120,15 +2170,26 @@ const TOWER_COMBO_BUILD_COST: int = 160
 
 ## Cost of upgrading to level N, indexed by the level being bought (1 -> 2 is
 ## index 0). [TUNE]
-const TOWER_UPGRADE_COSTS: Array[int] = [90, 190, 340, 560]
+##
+## Cumulative: 60, 140, 250, 400, 590, 830, 1130, 1500, 1950. Those nine numbers
+## are the spine of the ten-level ladder - every multiplier below is the old
+## five-level curve read at these totals, so power per Gold is preserved and the
+## acts already balanced did not have to be re-tuned. Was [90, 190, 340, 560].
+const TOWER_UPGRADE_COSTS: Array[int] = [60, 80, 110, 150, 190, 240, 300, 370, 450]
 
 ## Damage and rate multipliers per level, indexed by level - 1. [TUNE]
-const TOWER_LEVEL_DAMAGE: Array[float] = [1.0, 1.38, 1.88, 2.48, 3.20]
-const TOWER_LEVEL_RATE: Array[float] = [1.0, 1.10, 1.22, 1.36, 1.52]
+const TOWER_LEVEL_DAMAGE: Array[float] = [
+	1.0, 1.25, 1.51, 1.80, 2.09, 2.43, 2.75, 3.14, 3.55, 3.97,
+]
+const TOWER_LEVEL_RATE: Array[float] = [
+	1.0, 1.07, 1.13, 1.20, 1.27, 1.35, 1.42, 1.51, 1.60, 1.69,
+]
 
 ## Status, reach, area and durability also improve. Utility towers used to gain
 ## almost nothing from an upgrade because only raw damage and rate scaled.
-const TOWER_LEVEL_UTILITY: Array[float] = [1.0, 1.10, 1.22, 1.37, 1.55]
+const TOWER_LEVEL_UTILITY: Array[float] = [
+	1.0, 1.07, 1.13, 1.20, 1.27, 1.36, 1.45, 1.53, 1.65, 1.77,
+]
 ## Reach per level. Was [1.0, 1.02, 1.05, 1.08, 1.12] - twelve percent across
 ## four upgrades, which is under nine pixels a level on a 270-unit tower and so
 ## is not a thing a player can see happening. An upgrade the player cannot see is
@@ -2136,9 +2197,13 @@ const TOWER_LEVEL_UTILITY: Array[float] = [1.0, 1.10, 1.22, 1.37, 1.55]
 ##
 ## Held below the damage curve on purpose: reach decides *how many* enemies a
 ## tower ever gets to shoot, so it compounds with everything else a level buys.
-## 42% at level 5 is clearly visible on the range ring without letting one corner
-## tower cover two roads. [TUNE]
-const TOWER_LEVEL_RANGE: Array[float] = [1.0, 1.09, 1.19, 1.30, 1.42]
+## 42% at the old level 5 is clearly visible on the range ring without letting
+## one corner tower cover two roads. Ten levels reach 56% for nearly twice the
+## Gold, and reach is the one stat held *below* its own re-derived curve past
+## that point, for exactly the reason above. [TUNE]
+const TOWER_LEVEL_RANGE: Array[float] = [
+	1.0, 1.06, 1.12, 1.17, 1.23, 1.29, 1.35, 1.41, 1.49, 1.56,
+]
 
 # ------------------------------------------------------------------------------
 # Command — GDD v4 §15
@@ -2706,7 +2771,16 @@ const WAVE_BASE_COUNT: int = 4
 ## time the bend hands the player. Speed is the honest lever for the road
 ## length; HP and count answer the tower count. [TUNE]
 const WAVE_COUNT_GROWTH: float = 0.285
-const WAVE_ACT_COUNT_SCALE: Array[float] = [1.0, 1.14, 1.30]
+## How many bodies an act sends, relative to Act I. One entry per act.
+##
+## Extended from three to ten with the ramp the first three already had -
+## roughly a seventh more each act - rather than being stretched to reach the
+## same ceiling over ten. An act has to be harder than the one before it or
+## there is no reason to have walked; the hero grows across ten acts too, and
+## `curve_report` is where the two are read against each other. [TUNE]
+const WAVE_ACT_COUNT_SCALE: Array[float] = [
+	1.0, 1.14, 1.30, 1.46, 1.62, 1.78, 1.94, 2.10, 2.26, 2.42,
+]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
 ## Enemy HP and damage multiplier added per wave. [TUNE]
@@ -2878,6 +2952,31 @@ const RESOURCE_PER_DISTANCE: float = 0.25
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
 const KILL_RESOURCE_SCALE: float = 0.5
+
+## What a body is worth, by the act it dies in. [TUNE]
+##
+## Kill income was flat across the whole campaign: spoils are `resource_value`
+## and nothing multiplied it, while enemy health rises sixteenfold across ten
+## acts. Over three acts that was a defensible simplification - the comment in
+## `Enemy._on_died` says so, and hands the act scaling to experience instead.
+## Over ten it is something the player feels: `curve_report` showed capability
+## dead flat from wave 62 to the end, because by then the purse had bought every
+## emplacement it was ever going to and each further act paid exactly what Act I
+## paid while asking four times as much. Gold stopped being a decision halfway
+## through the game.
+##
+## Acts 1 and 2 are deliberately 1.0. The opening envelope - wave 1 must not pay
+## for a tower, clearing the opening must, every road covered by wave 12 - is
+## the one stretch of this economy measured against a player learning the game,
+## and `balance_test._test_opening_envelope` owns it.
+const KILL_ACT_VALUE_SCALE: Array[float] = [
+	1.0, 1.0, 1.10, 1.25, 1.45, 1.70, 2.00, 2.35, 2.75, 3.20,
+]
+
+
+## The multiplier on everything a body pays, for the act it died in.
+static func kill_act_scale(act: int) -> float:
+	return KILL_ACT_VALUE_SCALE[clampi(act - 1, 0, KILL_ACT_VALUE_SCALE.size() - 1)]
 
 ## Extra resource rate per Granary tier. [TUNE]
 const GRANARY_TIER_BONUS: float = 0.30
@@ -3335,7 +3434,15 @@ const WARD_ABSORB: float = 260.0
 
 ## Resources paid out by an act boss, on top of the reward package. [TUNE]
 const BOSS_RESOURCE_REWARD: int = 180
-const BOSS_ACT_SCALE: Array[float] = [1.25, 2.10, 3.20]
+## What an act's boss is worth against the baseline. One entry per act.
+##
+## The first three are unchanged, so Acts I-III are exactly the fight they
+## were. Beyond them it climbs more gently than the 1.6x-per-act the first
+## three set: ten acts of that would end at ninety times Act I, which is not a
+## boss, it is a wall. [TUNE]
+const BOSS_ACT_SCALE: Array[float] = [
+	1.25, 2.10, 3.20, 4.20, 5.30, 6.50, 7.80, 9.20, 10.70, 12.30,
+]
 
 ## Boss-phase reinforcements use the current wave curve, softened so the boss
 ## remains the centre of the encounter while the other lanes demand attention.
@@ -3940,17 +4047,19 @@ const CLOUD_COVERAGE: float = 0.46
 # An upgrade the player paid for has to be visible from across the map without
 # clicking anything.
 
-## Sprite growth per level above the first. [TUNE]
-const TOWER_LEVEL_SCALE_STEP: float = 0.10
+## Sprite growth per level above the first. Halved along with the level count,
+## so a maxed tower is the size a maxed tower has always been rather than twice
+## it. The same reasoning applies to the three constants below. [TUNE]
+const TOWER_LEVEL_SCALE_STEP: float = 0.05
 
 ## How far the sprite tints toward its element colour per level, 0..1. [TUNE]
-const TOWER_LEVEL_TINT_STEP: float = 0.18
+const TOWER_LEVEL_TINT_STEP: float = 0.09
 
 ## Extra brazier energy per level. [TUNE]
-const TOWER_LEVEL_LIGHT_STEP: float = 0.30
+const TOWER_LEVEL_LIGHT_STEP: float = 0.15
 
 ## How much bigger a projectile is per level of the tower that fired it. [TUNE]
-const PROJECTILE_TIER_SCALE: float = 0.16
+const PROJECTILE_TIER_SCALE: float = 0.08
 
 ## Where a shot stops being bigger and starts being *hotter*.
 ##
@@ -3959,7 +4068,7 @@ const PROJECTILE_TIER_SCALE: float = 0.16
 ## head gains a white core turning against its own shell, which changes what the
 ## projectile *is* rather than how much of it there is. That is the difference
 ## between an upgrade the player can measure and one they can see. [TUNE]
-const PROJECTILE_HOT_TIER: int = 3
+const PROJECTILE_HOT_TIER: int = 5
 const PROJECTILE_HOT_SCALE: float = 0.46
 
 ## How much faster the head turns per level, and how much harder the glow burns.

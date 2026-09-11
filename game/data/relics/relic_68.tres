@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+region = 9
+effect_id = "resource_rate"
+effect_magnitude = 0.12
+id = "68"
+display_name = "Scorched Ledger"
+description = "The road pays better."

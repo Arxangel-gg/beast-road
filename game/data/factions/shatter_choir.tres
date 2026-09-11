@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="FactionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/faction_data.gd" id="1_faction"]
+
+[resource]
+script = ExtResource("1_faction")
+act = 8
+terrain_id = "glass_fields"
+regular_enemy_ids = Array[String](["glassborn", "glassguard", "frost_herald", "crevasse_stalker", "glass_chanter"])
+elite_enemy_ids = Array[String](["mirage_seer", "white_maw_giant"])
+visual_identity = "Tilted blue ice, black meltwater, edges everywhere."
+mechanical_identity = "Chilling, chaining and brittle bodies that break into more of themselves."
+id = "shatter_choir"
+display_name = "The Shatter Choir"
+description = "A glacier broke and the pieces learned to stand up."

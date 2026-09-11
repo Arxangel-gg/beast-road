@@ -5,10 +5,10 @@
 [resource]
 script = ExtResource("1")
 trigger = 2
-trigger_id = "rust_crown"
+trigger_id = "gatekeeper"
 eyebrow = "Final Ascent  ·  One road remains"
 presentation = 2
-act = 4
+act = 11
 id = "summit"
 display_name = "The Crown of the World"
-description = "Three war hosts lie behind you. Above waits the beacon, the Chainmaker, and the last chain binding Yuri."
+description = "Ten war hosts lie behind you. Above waits the beacon, the Chainmaker, and the last chain binding Yuri."

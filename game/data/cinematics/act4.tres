@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "hollow_marches"
+eyebrow = "Act IV  ·  The road goes quiet"
+act = 4
+id = "act4"
+display_name = "The Hollow Marches"
+description = "Fog stands where the map says there is nothing. The Fogbound Watch does not advance so much as arrive, and the ground gives underfoot."

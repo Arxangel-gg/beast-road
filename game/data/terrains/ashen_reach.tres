@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="TerrainData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/terrain_data.gd" id="1_terrain"]
+
+[resource]
+script = ExtResource("1_terrain")
+breed_id = "cinder_runner"
+enemy_ids = Array[String](["cinder_runner", "ember_shaman", "loam_lurker", "bogkin", "storm_caller"])
+elite_ids = Array[String](["howler", "siege_lizard"])
+act = 9
+favoured_element = 0
+favoured_element_bonus = 0.28
+enemy_hp_regen = 0.00
+bonus_chain_targets = 1
+wave_size_multiplier = 1.10
+wave_interval_multiplier = 0.92
+boss_id = "cinder_titan"
+id = "ashen_reach"
+display_name = "The Ashen Reach"

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "rustmother"
+eyebrow = "Act V Boss  ·  The forest has a mother"
+presentation = 1
+act = 5
+id = "rustmother"
+display_name = "The Rustmother"
+description = "Iron grew through her and she let it. What comes off her comes off in flakes and keeps moving, so killing her body is only half the work."

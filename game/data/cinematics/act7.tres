@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger_id = "iron_steppe"
+eyebrow = "Act VII  ·  Open ground, at last"
+act = 7
+id = "act7"
+display_name = "The Iron Steppe"
+description = "Grass to the horizon and no cover on any road. The Iron Horde has been waiting for exactly this, and they send everyone else first."

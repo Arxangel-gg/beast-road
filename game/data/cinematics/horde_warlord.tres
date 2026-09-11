@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneCinematicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/milestone_cinematic_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+trigger = 1
+trigger_id = "horde_warlord"
+eyebrow = "Act VII Boss  ·  She rides last on purpose"
+presentation = 1
+act = 7
+id = "horde_warlord"
+display_name = "Khatun Var, Who Rides Last"
+description = "Everyone else went first, and that was arithmetic rather than cowardice. What is left of the Horde arrives with her, all at once."

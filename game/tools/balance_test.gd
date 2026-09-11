@@ -98,7 +98,7 @@ func _ready() -> void:
 			+ "below it is skipped in silence") % [_ran, MINIMUM_CHECKS])
 
 	if _failures.is_empty():
-		print("[balance] PASS — %d assertions, mastery economy and three-act pressure curve" % _ran)
+		print("[balance] PASS — %d assertions, mastery economy and ten-act pressure curve" % _ran)
 	else:
 		for failure: String in _failures:
 			push_error("[balance] " + failure)
@@ -118,11 +118,22 @@ func _ready() -> void:
 
 
 func _test_upgrade_track() -> void:
-	_check(RunState.tower_level_cap() == 2, "towers must begin capped at level 2")
-	_check(ContentDB.building("forge").effect_at(1) == 3.0,
-		"Forge tier 1 must communicate mastery level 3")
+	_check(RunState.tower_level_cap() == 3, "towers must begin capped at level 3")
+	_check(ContentDB.building("forge").effect_at(1) == 5.0,
+		"Forge tier 1 must communicate mastery level 5")
 	RunState.building_tiers["forge"] = 3
-	_check(RunState.tower_level_cap() == 5, "Forge tier 3 must unlock level 5")
+	_check(RunState.tower_level_cap() == Balance.TOWER_MAX_LEVEL,
+		"a fully built Forge must reach the top of the ladder")
+	# Every authored level must be reachable by some Forge tier a town can
+	# actually build. Levels nobody can buy would be the unreachable-content
+	# failure this project has already paid for once.
+	var forge: BuildingData = ContentDB.building("forge")
+	for level: int in range(1, Balance.TOWER_MAX_LEVEL + 1):
+		var needed: int = Balance.forge_tier_for_level(level)
+		_check(Balance.tower_level_cap_for_forge(needed) >= level,
+			"level %d must be unlocked by some Forge tier" % level)
+		_check(needed <= forge.effect_per_tier.size(),
+			"level %d must not need a Forge tier the town cannot build" % level)
 	var full_cost: int = Balance.TOWER_BUILD_COST
 	for cost: int in Balance.TOWER_UPGRADE_COSTS:
 		full_cost += cost
@@ -135,8 +146,12 @@ func _test_upgrade_track() -> void:
 ## profile. Harnesses may fund or fortify themselves after reset; the product
 ## contract stays here in one cheap gate.
 func _test_production_profile() -> void:
-	_check(Balance.ACT_COUNT == 3, "the 1.0 campaign must contain exactly three acts")
-	_check(Balance.TOWER_MAX_LEVEL == 5, "the 1.0 tower cap must remain level 5")
+	# Ten since 2026-09-11 (owner ruling, recorded in CLAUDE.md). The number is
+	# asserted rather than left open for the same reason it was when it was
+	# three: this is the product contract, and a convenient local playtest
+	# profile must not be able to ship as one.
+	_check(Balance.ACT_COUNT == 10, "the 1.0 campaign must contain exactly ten acts")
+	_check(Balance.TOWER_MAX_LEVEL == 10, "the 1.0 tower cap must remain level 10")
 	_check(Balance.STARTING_GOLD == 0, "a production run must start with zero Gold")
 	_check(is_equal_approx(Balance.HERO_MAX_HP, 100.0),
 		"production hero maximum HP must be 100, got %.1f" % Balance.HERO_MAX_HP)
@@ -966,12 +981,22 @@ func _test_tiers_and_persistence() -> void:
 			"%s must be tougher than %s" % [tiers[i].id, tiers[i - 1].id])
 		_check(tiers[i].xp_scale > tiers[i - 1].xp_scale,
 			"%s must pay better than %s" % [tiers[i].id, tiers[i - 1].id])
-		_check(tiers[i].expected_level(1) > tiers[i - 1].expected_level(3),
+		_check(tiers[i].expected_level(1)
+				> tiers[i - 1].expected_level(Balance.ACT_COUNT),
 			"%s should open above where %s ended" % [tiers[i].id, tiers[i - 1].id])
 	for tier: CampaignTierData in tiers:
-		for act: int in [1, 2, 3]:
+		# One column per act. `expected_level` clamps to the last entry, so a
+		# short table does not fail - it quietly tells the player Act X expects
+		# what Act 3 expected, for every act after the third.
+		_check(tier.boss_levels.size() == Balance.ACT_COUNT,
+			"%s must expect a level at each of the %d acts, has %d"
+				% [tier.id, Balance.ACT_COUNT, tier.boss_levels.size()])
+		for act: int in range(1, Balance.ACT_COUNT + 1):
 			_check(tier.expected_level(act) <= Balance.HERO_MAX_LEVEL,
 				"%s expects a level above the cap at act %d" % [tier.id, act])
+			if act > 1:
+				_check(tier.expected_level(act) >= tier.expected_level(act - 1),
+					"%s must not expect less of a later act" % tier.id)
 		_check(not tier.summary.is_empty(), "%s must describe itself" % tier.id)
 
 	# Only the next tier up is ever open.
@@ -1492,7 +1517,8 @@ func _test_road_archetypes() -> void:
 		var offered: RelicData = ContentDB.relic(relic_id)
 		_check(offered != null and offered.region == 3,
 			"Relic Hunt offer '%s' must belong to the active region" % relic_id)
-	var region_counts: Array[int] = [0, 0, 0, 0]
+	var region_counts: Array[int] = []
+	region_counts.resize(Balance.ACT_COUNT + 1)
 	for value: Variant in ContentDB.relics.values():
 		var relic := value as RelicData
 		if relic != null and not relic.is_boss_core:
