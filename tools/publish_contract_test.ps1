@@ -75,12 +75,39 @@ if (ConvertTo-BeastRoadReleaseAsset -Response $emptyHead -Name 'empty.zip') {
     throw 'A zero-byte direct download must never be treated as a published asset.'
 }
 
-# A green local publisher must cover the new gates that would otherwise fail
-# only after consuming a tag on GitHub. Read source; never open the manager UI.
+# A green local publisher must cover every gate that would otherwise fail
+# only after consuming a tag on GitHub. The manager no longer lists gates by
+# hand - a hand-kept list rots while CI grows - it runs tools/sweep.sh, which
+# derives the list from the workflows. So what is asserted here is that it
+# still does, for both sweeps, and that it lists no gate of its own that could
+# drift out of step with them. Read source; never open the manager UI.
 $repoRoot = Split-Path -Parent $PSScriptRoot
-foreach ($source in @('tools/publish.ps1', '.github/workflows/guard.yml', '.github/workflows/release.yml')) {
+$manager = Get-Content -LiteralPath (Join-Path $repoRoot 'tools/publish.ps1') -Raw
+if ($manager -notmatch "tools/sweep\.sh") {
+    throw 'tools/publish.ps1 must run tools/sweep.sh before tagging.'
+}
+foreach ($which in @('release', 'guard')) {
+    if ($manager -notmatch "'$which'") {
+        throw "tools/publish.ps1 must run the $which sweep."
+    }
+}
+# Only the publish path is held to that. The Tuning tab runs balance_test on
+# its own, which is a feature rather than a pre-flight list.
+$publishStart = $manager.IndexOf('$btn.Add_Click({')
+$publishEnd = $manager.IndexOf("Write-Log 'local validation passed'")
+if ($publishStart -lt 0 -or $publishEnd -le $publishStart) {
+    throw 'tools/publish.ps1 no longer has the publish block this test reads.'
+}
+$publishBlock = $manager.Substring($publishStart, $publishEnd - $publishStart)
+if ([regex]::Matches($publishBlock, [regex]::Escape('res://tools/')).Count -ne 0) {
+    throw 'tools/publish.ps1 must not name gates in its pre-flight; the sweep derives them from the workflows.'
+}
+if (-not (Test-Path (Join-Path $repoRoot 'tools/sweep.sh'))) {
+    throw 'tools/sweep.sh is missing.'
+}
+foreach ($source in @('.github/workflows/guard.yml', '.github/workflows/release.yml')) {
     $body = Get-Content -LiteralPath (Join-Path $repoRoot $source) -Raw
-    foreach ($gate in @('chronicle_goal_check', 'support_diagnostics_check', 'gdd_audit_check', 'menu_layout_check', 'town_click_check', 'merchant_check')) {
+    foreach ($gate in @('chronicle_goal_check', 'support_diagnostics_check', 'gdd_audit_check', 'menu_layout_check', 'town_click_check', 'merchant_check', 'user_dir_check', 'save_backup_check')) {
         $count = [regex]::Matches($body, [regex]::Escape("res://tools/$gate.tscn")).Count
         if ($count -ne 1) {
             throw "$source must run $gate exactly once; found $count."
@@ -88,4 +115,4 @@ foreach ($source in @('tools/publish.ps1', '.github/workflows/guard.yml', '.gith
     }
 }
 
-Write-Output '[publisher] PASS - desktop asset contract, stale API recovery, non-blocking web, and new gate parity'
+Write-Output '[publisher] PASS - desktop asset contract, stale API recovery, non-blocking web, and the sweep-derived pre-flight'

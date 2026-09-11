@@ -1,4 +1,4 @@
-# Beast Road - Update Manager
+# Wilderhold - Update Manager
 #
 # A small window for publishing a game update. Type a version, write a note,
 # press Publish. It commits anything outstanding, tags, pushes, then watches the
@@ -29,7 +29,7 @@ $cRust   = [System.Drawing.Color]::FromArgb(140, 58, 43)
 $cGreen  = [System.Drawing.Color]::FromArgb(122, 168, 108)
 
 $form                 = New-Object System.Windows.Forms.Form
-$form.Text            = 'Beast Road - Update Manager'
+$form.Text            = 'Wilderhold - Update Manager'
 $form.Size            = New-Object System.Drawing.Size(776, 700)
 $form.StartPosition   = 'CenterScreen'
 $form.BackColor       = $cVoid
@@ -60,7 +60,7 @@ function New-Label($text, $x, $y, $w, $size, $color) {
     $pagePublish.Controls.Add($l); return $l
 }
 
-New-Label 'BEAST ROAD' 24 18 400 20 $cAmber | Out-Null
+New-Label 'WILDERHOLD' 24 18 400 20 $cAmber | Out-Null
 New-Label 'Publish an update to every installed launcher' 26 62 520 10 $cBone | Out-Null
 
 # --- current state -----------------------------------------------------------
@@ -88,10 +88,25 @@ $txtNotes.ForeColor   = $cBone
 $txtNotes.BorderStyle = 'FixedSingle'
 $pagePublish.Controls.Add($txtNotes)
 
+# --- pre-flight scope --------------------------------------------------------
+#
+# The release sweep always runs: it is the exact list the tag workflow will
+# run, and a gate that fails here costs nothing while one that fails there
+# costs a version number. The guard sweep is the push workflow's list and
+# overlaps it; it is on by default and can be skipped when the same tree has
+# just gone green on a push.
+$chkGuard             = New-Object System.Windows.Forms.CheckBox
+$chkGuard.Text        = 'Also run the guard sweep before tagging (about ten minutes more)'
+$chkGuard.Location    = New-Object System.Drawing.Point(26, 316)
+$chkGuard.Size        = New-Object System.Drawing.Size(690, 22)
+$chkGuard.ForeColor   = $cBone
+$chkGuard.Checked     = $true
+$pagePublish.Controls.Add($chkGuard)
+
 # --- publish button ----------------------------------------------------------
 $btn                  = New-Object System.Windows.Forms.Button
 $btn.Text             = 'PUBLISH UPDATE'
-$btn.Location         = New-Object System.Drawing.Point(26, 328)
+$btn.Location         = New-Object System.Drawing.Point(26, 346)
 $btn.Size             = New-Object System.Drawing.Size(240, 48)
 $btn.BackColor        = $cRust
 $btn.ForeColor        = $cBone
@@ -100,7 +115,7 @@ $btn.Font             = New-Object System.Drawing.Font('Segoe UI', 11, [System.D
 $btn.FlatAppearance.BorderColor = $cAmber
 $pagePublish.Controls.Add($btn)
 
-$lblStage = New-Label '' 286 340 430 10 $cAmber
+$lblStage = New-Label '' 286 358 430 10 $cAmber
 
 # --- progress ----------------------------------------------------------------
 #
@@ -329,7 +344,7 @@ $btn.Add_Click({
     $version = $txtVersion.Text.Trim().TrimStart('v')
     if ($version -notmatch '^\d+\.\d+\.\d+$') {
         [System.Windows.Forms.MessageBox]::Show(
-            "Version must look like 0.2.0", 'Beast Road') | Out-Null
+            "Version must look like 0.2.0", 'Wilderhold') | Out-Null
         return
     }
     $tag = "v$version"
@@ -348,71 +363,60 @@ $btn.Add_Click({
         $remoteTag = Invoke-Git @('ls-remote', '--tags', 'origin', "refs/tags/$tag")
         if ($remoteTag.Text.Trim()) { throw "$tag already exists on GitHub. Pick a higher version." }
 
+        # The launcher's own version has to move when the launcher does, or the
+        # release ships a launcher nobody installs. Checked against the last
+        # tag rather than the last commit, because the bump is per release.
+        Set-Stage 'Checking the launcher version' 5 'check'
+        $lastTag = (Invoke-Git @('describe', '--tags', '--abbrev=0', '--match', 'v*')).Text.Trim()
+        if ($lastTag) {
+            $launcherChanged = (Invoke-Git @('diff', '--name-only', $lastTag, '--', 'launcher/')).Text.Trim()
+            if ($launcherChanged) {
+                $configPath = Join-Path $RepoRoot 'launcher\scripts\LauncherConfig.gd'
+                $current = ''
+                $previous = ''
+                if ((Get-Content -Raw $configPath) -match '(?m)^const LAUNCHER_VERSION: String = "(.*)"$') { $current = $Matches[1] }
+                $shown = Invoke-Git @('show', "${lastTag}:launcher/scripts/LauncherConfig.gd")
+                if ($shown.Text -match '(?m)^const LAUNCHER_VERSION: String = "(.*)"$') { $previous = $Matches[1] }
+                if ($current -and $current -eq $previous) {
+                    throw ("launcher/ changed since $lastTag but LAUNCHER_VERSION is still `"$current`". " +
+                        "Bump it in launcher/scripts/LauncherConfig.gd, or nobody receives the new launcher.")
+                }
+                Write-Log "launcher changed since $lastTag; LAUNCHER_VERSION $previous -> $current"
+            }
+        }
+
         # Validate the exact working tree before it is committed and before an
-        # immutable version tag is spent. These must run sequentially: two
-        # local Godot processes can race while rotating the same AppData log.
+        # immutable version tag is spent.
+        #
+        # **Derived from the workflows, never listed here.** This used to be a
+        # hand-kept list of fifty gates, and a hand-kept list rots silently: it
+        # goes on passing while CI grows a gate it has never heard of, and the
+        # publish fails on the tag. Three publishes died that way. tools/sweep.sh
+        # reads guard.yml and release.yml and runs exactly what they run, against
+        # an isolated profile so no gate can touch the player's real save.
         Set-Stage 'Validating the game and launcher' 8 'validate'
-        $godotDir = Join-Path $RepoRoot 'Godot_v4.7.1-stable_win64.exe'
-        $godot = Get-ChildItem -LiteralPath $godotDir -Filter '*_console.exe' -File -ErrorAction SilentlyContinue |
-            Select-Object -First 1
-        if (-not $godot) { throw "Godot console executable not found in $godotDir" }
-        $checks = @(
-            @{ Name = 'game'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--quit') },
-			@{ Name = 'audio streams and variation groups'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/audio_verify.tscn') },
-            @{ Name = 'production art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'report') },
-            @{ Name = 'loot and cache art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/loot_art_check.tscn') },
-            @{ Name = 'foliage animation'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/foliage_art_check.tscn') },
-            @{ Name = 'blood VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/blood_vfx_check.tscn') },
-            @{ Name = 'weapon VFX'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/weapon_vfx_check.tscn') },
-            @{ Name = 'crossroad vote'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/crossroad_vote_check.tscn') },
-            @{ Name = 'save guard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_guard_check.tscn') },
-            @{ Name = 'extension platforms'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/extension_platform_check.tscn') },
-            @{ Name = 'reanchor'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/reanchor_check.tscn') },
-            @{ Name = 'disciplines'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/discipline_check.tscn') },
-            @{ Name = 'merchants'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/merchant_check.tscn') },
-            @{ Name = 'the battlefield takes its effects back after a raid'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_return_check.tscn') },
-            @{ Name = 'healing orbs and supply crates'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_drop_check.tscn') },
-            @{ Name = 'healing wells'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/healing_well_check.tscn') },
-            @{ Name = 'trading never makes a piece twice'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/trade_check.tscn') },
-            @{ Name = 'raid suspend'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/raid_suspend_check.tscn') },
-            @{ Name = 'seed reproduction'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/seed_reproduction_check.tscn') },
-            @{ Name = 'boot'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/boot_check.tscn') },
-            @{ Name = 'breather'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/breather_check.tscn') },
-            @{ Name = 'live settings'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/live_settings_check.tscn') },
-            @{ Name = 'support diagnostics privacy and preview'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/support_diagnostics_check.tscn') },
-            @{ Name = 'structures'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_check.tscn') },
-            @{ Name = 'torches'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/torch_check.tscn') },
-            @{ Name = 'recovery and shader polish'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/recovery_polish_check.tscn') },
-            @{ Name = 'co-op lobby portraits'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/coop_lobby_check.tscn') },
-			@{ Name = 'co-op party reach'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/party_reach_check.tscn') },
-			@{ Name = 'tower projectile tiers'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/projectile_tier_check.tscn') },
-            @{ Name = 'structure animation art'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/structure_art_check.tscn') },
-			@{ Name = 'shipping tool references'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'tool-leak') },
-			@{ Name = 'v4 migration audit'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), '--script', 'res://tools/run_tool.gd', '--', 'audit') },
-            @{ Name = 'v4 audit evidence classification'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/gdd_audit_check.tscn') },
-			@{ Name = 'difficulty curve'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/curve_report.tscn') },
-			@{ Name = 'wildlife, world depth and ambient life'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/regression_check.tscn') },
-			@{ Name = 'procedural treeline'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/treeline_check.tscn') },
-            @{ Name = 'milestone cinematics'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/milestone_cinematic_check.tscn') },
-            @{ Name = 'Chronicle objectives'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_check.tscn') },
-            @{ Name = 'pinned Chronicle goals'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/chronicle_goal_check.tscn') },
-            @{ Name = 'save migration'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/save_backup_check.tscn') },
-            @{ Name = 'balance'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/balance_test.tscn') },
-			@{ Name = 'main menu'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_check.tscn') },
-			@{ Name = 'mobile menus and draggable scrollbars'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/menu_layout_check.tscn') },
-			@{ Name = 'town plots answer a click under an open sheet'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/town_click_check.tscn') },
-			@{ Name = 'leaderboard'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/leaderboard_check.tscn') },
-            @{ Name = 'game runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=3', '--shots=100', '--build') },
-			@{ Name = 'torch snuff runtime'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/soak.tscn', '--', '--seconds=45', '--shots=999', '--expect-snuff') },
-			@{ Name = 'performance growth'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'game'), 'res://tools/perf_check.tscn', '--', '--seconds=45', '--build') },
-            @{ Name = 'launcher updater'; Args = @('--headless', '--path', (Join-Path $RepoRoot 'launcher'), 'res://tests/release_pipeline_test.tscn') }
-        )
-        foreach ($check in $checks) {
-            Write-Log "checking $($check.Name)..."
-            $checkOutput = & $godot.FullName @($check.Args) 2>&1
-            $checkText = $checkOutput -join "`n"
-            if ($LASTEXITCODE -ne 0 -or $checkText -match '(?m)^(SCRIPT )?ERROR:|^WARNING:') {
-                throw "$($check.Name) validation failed:`n$($checkOutput -join "`n")"
+        $bash = $null
+        $bashCmd = Get-Command bash.exe -ErrorAction SilentlyContinue
+        if ($bashCmd) { $bash = $bashCmd.Source }
+        if (-not $bash) {
+            $gitCmd = Get-Command git.exe -ErrorAction SilentlyContinue
+            if ($gitCmd) {
+                $candidate = Join-Path (Split-Path -Parent (Split-Path -Parent $gitCmd.Source)) 'bin\bash.exe'
+                if (Test-Path $candidate) { $bash = $candidate }
+            }
+        }
+        if (-not $bash) { throw 'Git Bash was not found. tools/sweep.sh needs it; install Git for Windows.' }
+        $sweepRoot = Join-Path $env:TEMP ('wilderhold-publish-' + [DateTime]::Now.ToString('yyyyMMdd-HHmmss'))
+        $repoPosix = $RepoRoot -replace '\\', '/'
+        $sweepPosix = $sweepRoot -replace '\\', '/'
+        $sweeps = @('release')
+        if ($chkGuard.Checked) { $sweeps += 'guard' }
+        foreach ($which in $sweeps) {
+            Write-Log "running the $which sweep (tools/sweep.sh)..."
+            $sweepOutput = & $bash -c "cd '$repoPosix' && tools/sweep.sh '$sweepPosix/$which' $which" 2>&1
+            foreach ($line in $sweepOutput) { Write-Log ([string]$line) }
+            if ($LASTEXITCODE -ne 0) {
+                throw "the $which sweep failed. Logs: $sweepRoot\$which\logs"
             }
         }
 		Write-Log 'checking publisher release watcher...'
@@ -497,7 +501,7 @@ $btn.Add_Click({
 
         Set-Stage 'Tagging the release' 38 'tag'
         $notes = $txtNotes.Text.Trim()
-        if (-not $notes) { $notes = "Beast Road $tag" }
+        if (-not $notes) { $notes = "Wilderhold $tag" }
         $t = Invoke-Git @('tag', '-a', $tag, '-m', $notes)
         if ($t.Code -ne 0) { throw "tag failed:`n$($t.Text)" }
         $tp = Invoke-Git @('push', 'origin', $tag)
