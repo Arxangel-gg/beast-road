@@ -1235,6 +1235,41 @@ transform and reads at any zoom.
 
 All 64×64, type T, placeholder colour `#7A8B6E`.
 
+Seven more since 2026-09-11, one for each region the road gained, each carrying
+the same package the others do - a base pose, three idle poses, a seven-frame
+forward cycle, and four attack poses for the three that will start a fight. The
+moth's forward cycle is `_fly_` rather than `_move_`, because a flier has no
+walk and the gate asks for the one it has.
+
+`wildlife_bog_crane.png` · `wildlife_iron_beetle.png` ·
+`wildlife_salt_crab.png` · `wildlife_steppe_horse.png` ·
+`wildlife_glass_moth.png` · `wildlife_ash_hound.png` ·
+`wildlife_cliff_goat.png`
+
+**Two of the seven face right and five face left**, and that was decided by
+looking at them rather than by what the prompt asked for - `art_faces_right` is
+set per species, and this project has already shipped a manifest that had four
+of six backwards.
+
+Files: `wildlife_bog_crane_idle_01.png` · `wildlife_bog_crane_idle_02.png` · `wildlife_bog_crane_idle_03.png`
+Files: `wildlife_bog_crane_move_01.png` · `wildlife_bog_crane_move_02.png` · `wildlife_bog_crane_move_03.png` · `wildlife_bog_crane_move_04.png` · `wildlife_bog_crane_move_05.png` · `wildlife_bog_crane_move_06.png` · `wildlife_bog_crane_move_07.png`
+Files: `wildlife_iron_beetle_idle_01.png` · `wildlife_iron_beetle_idle_02.png` · `wildlife_iron_beetle_idle_03.png`
+Files: `wildlife_iron_beetle_move_01.png` · `wildlife_iron_beetle_move_02.png` · `wildlife_iron_beetle_move_03.png` · `wildlife_iron_beetle_move_04.png` · `wildlife_iron_beetle_move_05.png` · `wildlife_iron_beetle_move_06.png` · `wildlife_iron_beetle_move_07.png`
+Files: `wildlife_salt_crab_idle_01.png` · `wildlife_salt_crab_idle_02.png` · `wildlife_salt_crab_idle_03.png`
+Files: `wildlife_salt_crab_move_01.png` · `wildlife_salt_crab_move_02.png` · `wildlife_salt_crab_move_03.png` · `wildlife_salt_crab_move_04.png` · `wildlife_salt_crab_move_05.png` · `wildlife_salt_crab_move_06.png` · `wildlife_salt_crab_move_07.png`
+Files: `wildlife_salt_crab_attack_01.png` · `wildlife_salt_crab_attack_02.png` · `wildlife_salt_crab_attack_03.png` · `wildlife_salt_crab_attack_04.png` · `wildlife_salt_crab_attack_05.png`
+Files: `wildlife_steppe_horse_idle_01.png` · `wildlife_steppe_horse_idle_02.png` · `wildlife_steppe_horse_idle_03.png`
+Files: `wildlife_steppe_horse_move_01.png` · `wildlife_steppe_horse_move_02.png` · `wildlife_steppe_horse_move_03.png` · `wildlife_steppe_horse_move_04.png` · `wildlife_steppe_horse_move_05.png` · `wildlife_steppe_horse_move_06.png` · `wildlife_steppe_horse_move_07.png`
+Files: `wildlife_glass_moth_idle_01.png` · `wildlife_glass_moth_idle_02.png` · `wildlife_glass_moth_idle_03.png` · `wildlife_glass_moth_idle_04.png`
+Files: `wildlife_glass_moth_fly_01.png` · `wildlife_glass_moth_fly_02.png` · `wildlife_glass_moth_fly_03.png` · `wildlife_glass_moth_fly_04.png` · `wildlife_glass_moth_fly_05.png` · `wildlife_glass_moth_fly_06.png` · `wildlife_glass_moth_fly_07.png`
+Files: `wildlife_ash_hound_idle_01.png` · `wildlife_ash_hound_idle_02.png` · `wildlife_ash_hound_idle_03.png`
+Files: `wildlife_ash_hound_move_01.png` · `wildlife_ash_hound_move_02.png` · `wildlife_ash_hound_move_03.png` · `wildlife_ash_hound_move_04.png` · `wildlife_ash_hound_move_05.png` · `wildlife_ash_hound_move_06.png` · `wildlife_ash_hound_move_07.png`
+Files: `wildlife_ash_hound_attack_01.png` · `wildlife_ash_hound_attack_02.png` · `wildlife_ash_hound_attack_03.png` · `wildlife_ash_hound_attack_04.png` · `wildlife_ash_hound_attack_05.png`
+Files: `wildlife_cliff_goat_idle_01.png` · `wildlife_cliff_goat_idle_02.png` · `wildlife_cliff_goat_idle_03.png`
+Files: `wildlife_cliff_goat_move_01.png` · `wildlife_cliff_goat_move_02.png` · `wildlife_cliff_goat_move_03.png` · `wildlife_cliff_goat_move_04.png` · `wildlife_cliff_goat_move_05.png` · `wildlife_cliff_goat_move_06.png` · `wildlife_cliff_goat_move_07.png`
+Files: `wildlife_cliff_goat_attack_01.png` · `wildlife_cliff_goat_attack_02.png` · `wildlife_cliff_goat_attack_03.png` · `wildlife_cliff_goat_attack_04.png` · `wildlife_cliff_goat_attack_05.png`
+
+
 Deliberately small and few. These are ambient animals seen at combat zoom across
 a field: what has to survive is the silhouette and the colour, and detail spent
 past that is detail nobody will ever be close enough to see. Adding a creature is

@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "cliff_goat"
+display_name = "Terrace Goat"
+description = "It stands on the part of the step that is not there any more."
+rarity = 1
+temperament = 2
+movement_style = 1
+damage = 6.0
+attack_interval = 1.20
+attack_range = 84.0
+aggro_radius = 300.0
+knockback = 70.0
+acts = Array[int]([10])
+weight = 0.90
+group_min = 2
+group_max = 4
+social_spacing = 110.0
+group_cohesion = 0.45
+activity = 0.58
+speed = 96.0
+roam = 420.0
+skittish_radius = 0.0
+flee_speed_scale = 1.00
+flies = false
+scale = 1.00
+max_hp = 58.0
+food_min = 3
+food_max = 5
+xp_reward = 12
+art_faces_right = false
+
+stay_min = 30.0
+stay_max = 90.0

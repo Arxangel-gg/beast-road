@@ -876,6 +876,38 @@ that means nothing is indistinguishable from one that was never added.
 value and sale price rise with rarity, that the Ledger's stock falls, and that
 no rarity asks for more bonuses than a hero has places to put them.
 
+**Seven more species, and an ecology that reaches Act X, as of 2026-09-11.**
+Bog Crane, Iron Beetle, Saltpan Crab, Steppe Horse, Glass Moth, Ash Hound and
+Terrace Goat, one for each region the road gained.
+
+**The gap was not that the new regions were empty.** `WildlifeData.acts` is a
+*preference*, not a gate - `roll_weight` makes a species several times likelier
+in an act it lists and merely rare elsewhere - so nothing was missing in the way
+a missing thing usually is. What was missing is that **no species listed an act
+past 3**, so seven consecutive regions had no animal that belonged to them: the
+same undifferentiated scatter each time, and a Marsh that reads exactly like a
+Steppe. The twenty-three existing species now name the later acts they suit, and
+the seven new ones give each region something that is only really at home there.
+
+The raccoon matters more than the rest of that list. It is the loot goblin
+(2026-09-11) and it was scoped to Acts I to III, so the one piece of the
+wildlife system with treasure attached stopped appearing two thirds of the way
+through the campaign it was built for.
+
+**`wildlife_spawn_check` walked `[1, 2, 3]`**, which is the fourth hardcoded
+three-act loop this campaign turned up, after the relic counter, the Chronicle's
+`minimum_act` range and the campaign tiers' boss table. It walks `ACT_COUNT` now
+and holds the same floor per rarity, per side, for every act on the road.
+
+**The art is generated rather than posed**, unlike the boss frames of the same
+day, and the difference is worth recording because it is a technique rather than
+a preference: `animate_image` accepts a *URL* for its source frame, and every
+PixelLab job already has a public no-auth download URL. So a sprite PixelLab
+made can be fed straight back into PixelLab's animator by job id, with no image
+data passing through an agent's context at all. That is what made eighty-two
+frames across seven species a routine batch. The same route retires the caveat
+on the boss frames whenever that is worth doing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

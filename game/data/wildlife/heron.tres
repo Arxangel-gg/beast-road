@@ -11,7 +11,7 @@ rarity = 0
 temperament = 1
 movement_style = 0
 
-acts = Array[int]([1])
+acts = Array[int]([1, 4, 6])
 weight = 0.95
 group_min = 1
 group_max = 1

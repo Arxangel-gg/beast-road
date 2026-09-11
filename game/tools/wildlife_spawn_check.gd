@@ -124,7 +124,13 @@ func _test_rarity_coverage() -> void:
 	# never returns zero for anything in the roster, so "> 0.0" would have been
 	# three identical assertions wearing an act number - it would pass on a
 	# species one player in ten thousand would ever meet.
-	for act: int in [1, 2, 3]:
+	# Every act on the road, not the first three. The seven regions added on
+	# 2026-09-11 had no species listing them, and because `roll_weight` treats
+	# the act list as a preference rather than a gate, that did not read as
+	# missing content - it read as seven regions with no ecology of their own,
+	# every animal equally unlikely in each. A loop over [1, 2, 3] could not
+	# have seen it.
+	for act: int in range(1, Balance.ACT_COUNT + 1):
 		var total: float = 0.0
 		for kind: WildlifeData in kinds:
 			total += kind.roll_weight(act)

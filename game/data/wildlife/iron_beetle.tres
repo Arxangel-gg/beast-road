@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "iron_beetle"
+display_name = "Iron Beetle"
+description = "Its shell is the same rust as the trees. Nothing in the Rustwood grew its armour anywhere else."
+rarity = 0
+temperament = 0
+movement_style = 0
+acts = Array[int]([5])
+weight = 1.15
+group_min = 2
+group_max = 4
+social_spacing = 64.0
+group_cohesion = 0.30
+activity = 0.55
+speed = 42.0
+roam = 200.0
+skittish_radius = 180.0
+flee_speed_scale = 1.80
+flies = false
+scale = 0.85
+max_hp = 30.0
+food_min = 1
+food_max = 3
+xp_reward = 5
+art_faces_right = false
+
+stay_min = 30.0
+stay_max = 90.0

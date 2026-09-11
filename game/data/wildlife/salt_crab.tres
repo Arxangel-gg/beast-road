@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "salt_crab"
+display_name = "Saltpan Crab"
+description = "It carries one claw it cannot use and one it very much can."
+rarity = 0
+temperament = 2
+movement_style = 0
+damage = 5.0
+attack_interval = 1.10
+attack_range = 76.0
+aggro_radius = 280.0
+knockback = 40.0
+acts = Array[int]([6])
+weight = 1.05
+group_min = 2
+group_max = 5
+social_spacing = 72.0
+group_cohesion = 0.35
+activity = 0.50
+speed = 54.0
+roam = 240.0
+skittish_radius = 0.0
+flee_speed_scale = 1.00
+flies = false
+scale = 0.90
+max_hp = 34.0
+food_min = 2
+food_max = 4
+xp_reward = 7
+art_faces_right = true
+
+stay_min = 30.0
+stay_max = 90.0
