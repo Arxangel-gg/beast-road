@@ -1166,6 +1166,12 @@ All 96×96, type T, placeholder colour `#9B8FC4`.
 `spell_marrow_drain.png` · `spell_chain_hook.png` · `spell_ash_veil.png` ·
 `spell_tremor.png` · `spell_beasts_breath.png`
 
+Five more since 2026-09-11, the first spells that strike a place the hero only
+pointed at rather than the ground they are standing on:
+
+`spell_ember_fall.png` · `spell_stonefall.png` · `spell_thorn_volley.png` ·
+`spell_frost_lance.png` · `spell_sky_lance.png`
+
 The six summoning calls. **These were missing entirely** — the spells shipped, the
 sockets showed them, and each drew nothing because the icon its id derives to did
 not exist. Found by walking every content resource's derived path against the

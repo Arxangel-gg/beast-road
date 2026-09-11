@@ -30,6 +30,17 @@ enum Kind {
 	## Appended, never renumbered: a saved loadout stores the kind, and an older
 	## save must not read a newer build's spell as a different one.
 	COMPANION,
+	## Falls on a point `cast_range` away after a short delay, damaging
+	## everything within `effect_radius` of where it lands.
+	##
+	## The delay is the whole design: a strike that lands instantly where the
+	## player pointed is a nova with a longer arm, and the thing that makes a
+	## ranged area spell interesting is that the enemies get a moment to walk
+	## out of it.
+	METEOR,
+	## Scatters `Balance.SPELL_VOLLEY_STRIKES` small hits inside `effect_radius`
+	## of a point `cast_range` away, spread over `duration`.
+	VOLLEY,
 }
 
 ## Which companion a COMPANION spell calls. Ignored by every other kind.

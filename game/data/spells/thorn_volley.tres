@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 10
+mana_cost = 28.0
+cooldown = 11.0
+damage = 24.0
+effect_radius = 220.0
+duration = 1.60
+cast_range = 460.0
+knockback = 40.0
+id = "thorn_volley"
+display_name = "Thorn Volley"
+description = "Six of them, over a few seconds, wherever you aimed."

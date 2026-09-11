@@ -57,6 +57,19 @@ var _beam_left: float = 0.0
 var _beam_spell: SpellData = null
 var _beam_aim: Vector2 = Vector2.RIGHT
 
+## Strikes that have been aimed and have not landed yet.
+##
+## A list rather than one slot, because both ranged kinds put several in the air
+## at once - a volley is six of them on one cast - and because a second cast
+## must not cancel the first one's damage after the player has already paid the
+## mana for it.
+##
+## Each entry is `{at, radius, power, knockback, left}`. They carry their own
+## power rather than their spell, so a strike already in the air is unaffected
+## by anything that happens to the hero between the cast and the landing: the
+## number was decided when the player committed to it.
+var _falling: Array[Dictionary] = []
+
 ## Shield fields left by Aegis Step: where, how long, and who has already been
 ## warded by it. Each hero is warded once per field, so standing in one is not
 ## a regenerating pool - it is a thing you step into on the way past.
@@ -88,6 +101,7 @@ func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 	else:
 		_beam_aim = aim
 
+	_tick_falling(delta)
 	_tick_aegis(delta)
 
 
@@ -159,14 +173,24 @@ func clear_cooldowns() -> void:
 		cooldown_changed.emit(i, 0.0)
 	_beam_left = 0.0
 	_beam_spell = null
+	_falling.clear()
 
 
 ## Preparation keeps locomotion live but cancels combat commitments. In
 ## particular, a beam begun on the final enemy may not root the hero for the
 ## first seconds of the construction window.
+##
+## **Strikes still in the air are cancelled too**, for the same reason and by
+## the same argument the beam is: Preparation is the one phase that is supposed
+## to be safe, and a meteor aimed during the last second of a wave would
+## otherwise land on the construction screen. `spell_strike_check` caught this
+## on its first run - `clear_cooldowns` emptied the list and this did not, so a
+## fight that ended with a cast in the air behaved differently from one that
+## ended any other way.
 func cancel_channel() -> void:
 	_beam_left = 0.0
 	_beam_spell = null
+	_falling.clear()
 
 
 func is_ready(slot: int) -> bool:
@@ -439,6 +463,12 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			_beam_aim = aim
 		SpellData.Kind.COMPANION:
 			_summon(spell, origin, aim)
+		SpellData.Kind.METEOR:
+			_aim_strike(_foot(origin) + aim * spell.cast_range,
+				spell.effect_radius, power, spell.knockback,
+				Balance.SPELL_METEOR_DELAY)
+		SpellData.Kind.VOLLEY:
+			_volley(_foot(origin) + aim * spell.cast_range, spell, power)
 
 
 ## Calls a companion in beside the hero.
@@ -462,6 +492,60 @@ func _summon(spell: SpellData, origin: Vector2, aim: Vector2) -> void:
 	companion.setup(data, hero, field)
 	companion.global_position = origin + aim.normalized() * 70.0
 	field.add_child(companion)
+
+
+## Puts one strike in the air. The telegraph is drawn where it will land, so
+## the warning and the damage cannot disagree about the place.
+func _aim_strike(at: Vector2, radius: float, power: float, knockback: float,
+		delay: float) -> void:
+	_falling.append({
+		"at": at, "radius": radius, "power": power,
+		"knockback": knockback, "left": maxf(delay, 0.01),
+	})
+	# The telegraph is `Vfx.ring` rather than a new effect: a ring that grows to
+	# exactly the radius the damage will use, over exactly the delay before it
+	# lands, is the warning - and building it from the same two numbers is what
+	# stops the tell and the blow from ever disagreeing.
+	Vfx.ring(at, radius, Balance.SPELL_STRIKE_WARNING_COLOUR,
+		maxf(delay, 0.01), 3.0)
+
+
+## Six small hits inside one circle, spread across the spell's duration.
+##
+## Scattered from the run's own stream rather than a fresh generator, so a
+## seeded run lands its volley in the same places twice and a host and a guest
+## watching the same cast see the same thing.
+func _volley(at: Vector2, spell: SpellData, power: float) -> void:
+	var strikes: int = maxi(Balance.SPELL_VOLLEY_STRIKES, 1)
+	var rng: RandomNumberGenerator = RunState.rng("combat")
+	var small: float = spell.effect_radius / sqrt(float(strikes))
+	for index: int in strikes:
+		var angle: float = rng.randf() * TAU
+		var spread: float = spell.effect_radius * Balance.SPELL_VOLLEY_SCATTER
+		# Square-rooted so the hits spread evenly over the circle's area
+		# rather than clustering in the middle of it.
+		var reach: float = spread * sqrt(rng.randf())
+		var spot: Vector2 = at + Vector2(cos(angle), sin(angle)) * reach
+		var when: float = spell.duration * float(index) / float(strikes)
+		_aim_strike(spot, small, power, spell.knockback, when + 0.12)
+
+
+## Lands everything whose moment has come.
+func _tick_falling(delta: float) -> void:
+	if _falling.is_empty():
+		return
+	for index: int in range(_falling.size() - 1, -1, -1):
+		var strike: Dictionary = _falling[index]
+		strike["left"] = float(strike["left"]) - delta
+		if float(strike["left"]) > 0.0:
+			continue
+		var at: Vector2 = strike["at"]
+		_damage_area(at, float(strike["radius"]), float(strike["power"]),
+			float(strike["knockback"]), at)
+		Vfx.ring(at, float(strike["radius"]),
+			Balance.SPELL_STRIKE_LANDED_COLOUR, 0.30, 7.0)
+		EventBus.camera_shake_requested.emit(6.0, 0.18)
+		_falling.remove_at(index)
 
 
 func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2) -> float:

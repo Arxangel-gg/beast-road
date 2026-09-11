@@ -540,6 +540,24 @@ const HERO_FOCUS_COOLDOWN_CAP: float = 0.35
 ## A spell authored without a cost pays this, so a new .tres is never free by
 ## omission.
 const SPELL_MANA_COST_DEFAULT: float = 20.0
+
+## How long a METEOR hangs before it lands. [TUNE]
+##
+## The delay is what separates a ranged area spell from a nova with a longer
+## arm: the bodies under it get a moment to walk out, so aiming one is a
+## prediction rather than a click. Long enough to read, short enough that it is
+## not a trap the player has forgotten about by the time it lands.
+const SPELL_METEOR_DELAY: float = 0.85
+
+## How many hits a VOLLEY scatters over its duration, and how far from its
+## centre each one may fall as a share of `effect_radius`. [TUNE]
+const SPELL_VOLLEY_STRIKES: int = 6
+const SPELL_VOLLEY_SCATTER: float = 0.85
+
+## The tell and the blow. Warm amber going in, hot white coming down, so a
+## player reads "something is about to land here" and then "it landed".
+const SPELL_STRIKE_WARNING_COLOUR: Color = Color(0.96, 0.68, 0.26, 0.70)
+const SPELL_STRIKE_LANDED_COLOUR: Color = Color(1.0, 0.93, 0.74, 0.95)
 const DISCIPLINE_RESPEC_BASE_COST: int = 45
 const DISCIPLINE_RESPEC_COST_STEP: int = 30
 

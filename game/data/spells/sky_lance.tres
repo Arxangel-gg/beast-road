@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 7
+mana_cost = 24.0
+cooldown = 9.0
+damage = 170.0
+effect_radius = 760.0
+duration = 0.40
+id = "sky_lance"
+display_name = "Sky Lance"
+description = "The longest reach the hero has, and it lasts an instant."

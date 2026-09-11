@@ -463,6 +463,10 @@ jobs:
           check "disciplines" --headless --path game res://tools/discipline_check.tscn
           # Spells cost mana and Focus delivers what the Mansion promises.
           check "mana" --headless --path game res://tools/mana_check.tscn
+          # A ranged spell that lands on the caster, lands instantly, or never
+          # lands at all costs mana and draws its ring either way. Nothing
+          # errors; it is simply a different spell than the one described.
+          check "ranged spells" --headless --path game res://tools/spell_strike_check.tscn
           # Ponds, the meal cap, and the pantry that outlives a run.
           check "fishing" --headless --path game res://tools/fishing_check.tscn
           # Seven gates that existed, passed, and were run by nothing. The

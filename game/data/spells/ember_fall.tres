@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 9
+mana_cost = 30.0
+cooldown = 12.0
+damage = 95.0
+effect_radius = 190.0
+cast_range = 520.0
+knockback = 90.0
+id = "ember_fall"
+display_name = "Ember Fall"
+description = "A burning stone answers where you pointed. It takes its time."

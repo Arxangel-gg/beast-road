@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spell_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 9
+mana_cost = 26.0
+cooldown = 10.0
+damage = 62.0
+effect_radius = 165.0
+cast_range = 430.0
+knockback = 260.0
+id = "stonefall"
+display_name = "Stonefall"
+description = "Less of a blow than a shove from above."

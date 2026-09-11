@@ -908,6 +908,40 @@ data passing through an agent's context at all. That is what made eighty-two
 frames across seven species a routine batch. The same route retires the caveat
 on the boss frames whenever that is worth doing.
 
+**Five ranged spells, and the two kinds that make them ranged, as of
+2026-09-11.** Ember Fall and Stonefall are METEOR, Thorn Volley is VOLLEY, and
+Frost Lance and Sky Lance are BEAM with a very short duration - a flash along
+the aim rather than the channelled cone `beasts_breath` is.
+
+**Every kind the game had resolved at the hero.** A nova, a drain, a shockwave
+and a ward all happen where the caster is standing, and a beam is a line out of
+their hands. Nothing struck a place the player had merely *pointed at*, which is
+what "ranged" means in a game whose default answer to anything is to walk at it.
+
+**The delay is the design, not a flourish.** A METEOR that resolved on the frame
+it was cast would be a nova with a longer arm; the second it hangs is what the
+bodies underneath it get to walk out of, and it is what makes aiming one a
+prediction. Both kinds resolve through `_damage_area`, the helper the nova and
+the shockwave already use, so nothing downstream learns they exist - the same
+bound omens and Road Cards are built under.
+
+**The telegraph is built from the damage's own numbers.** `Vfx.ring` is drawn at
+exactly the radius the strike will use, over exactly the delay before it lands,
+so the tell and the blow cannot disagree about where or when.
+
+`spell_strike_check` holds five ways a ranged spell can be a lie, and **caught a
+real one on its first run**: `clear_cooldowns` emptied the strikes in the air
+and `cancel_channel` did not, so a fight that ended with a cast still falling
+behaved differently from one that ended any other way - and the strike landed
+on the Preparation screen, which is the one phase that is supposed to be safe.
+
+Two things about that gate are worth knowing before writing another like it.
+`EnemyField.enemies_near` casts every node in the group with `as Enemy`, so a
+scripted stand-in in that group is skipped **in silence** - it reported three
+working spells as dealing nothing. And a body at the aim point is hit by a
+scattered volley about four times in five, which is a coin toss wearing a gate's
+clothes; it stands under the first scattered strike instead.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
