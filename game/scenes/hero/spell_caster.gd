@@ -125,6 +125,7 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	_cooldowns[slot] = _effective_cooldown(spell)
 	cooldown_changed.emit(slot, 1.0)
 	_resolve(spell, aim, origin)
+	_rider(slot, spell, aim, origin)
 	spell_cast.emit(slot, spell.id, origin)
 	EventBus.spell_cast.emit(spell.id, slot, origin)
 	return true
@@ -138,6 +139,95 @@ func _effective_cooldown(spell: SpellData) -> float:
 		reduction = sanctum.effect_at(RunState.building_tier("sanctum"))
 	var flat: float = Modifiers.value(Modifiers.DASH_COOLDOWN)
 	return maxf(spell.cooldown * (1.0 - reduction) + flat, 0.5)
+
+
+## What the discipline node in this slot adds on top of the spell it adapts.
+##
+## **A node is not only its spell.** Eleven of the authored nodes name an
+## existing `spell_id` *and* an `effect_id` describing something more - Marrow
+## Drain generates Command, Crimson Tempest returns health, Chain Hook works on
+## things too heavy to pull. The spell half was wired up and the rider half was
+## not, so those nodes cast correctly and quietly failed to do the thing their
+## own description promised.
+##
+## Read off the equipped node rather than a global table, because a rider belongs
+## to the node that bought it: unequipping Marrow Drain has to stop paying
+## Command, and a lookup by `spell_id` alone would keep paying it for anyone who
+## happened to cast the same spell.
+func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
+	var node: DisciplineNodeData = RunState.discipline_node_in_slot(slot)
+	if node == null or node.spell_id != spell.id:
+		return
+	match node.effect_id:
+		"drain_command":
+			_drain_command(origin, aim, spell, node.effect_value)
+		"tempest_heal_cap":
+			_tempest_heal(origin, spell, node.effect_value)
+		"heavy_reverse_pull":
+			_reverse_hook(origin, spell)
+
+
+## Marrow Drain pays Command for channelling on something that mattered.
+##
+## Priority prey only. Command is the resource that buys orders, and a drain that
+## paid out on any body in range would make the cheapest possible cast the best
+## way to earn it - which is the opposite of what "channel on priority prey"
+## asks for.
+func _drain_command(origin: Vector2, aim: Vector2, spell: SpellData,
+		amount: float) -> void:
+	var centre: Vector2 = origin + aim * (spell.effect_radius * 0.5)
+	for enemy: Enemy in field.enemies_near(centre, spell.effect_radius):
+		if enemy.is_priority():
+			RunState.gain_command(amount)
+			return
+
+
+## Crimson Tempest returns health, up to the node's hard cap.
+##
+## The cap is the whole balance argument - an area nuke that healed in proportion
+## to how many things it hit would make a crowd safer than an empty road - so it
+## is applied here rather than trusted to the fraction.
+func _tempest_heal(origin: Vector2, spell: SpellData, cap: float) -> void:
+	var struck: float = 0.0
+	for enemy: Enemy in field.enemies_near(origin, spell.effect_radius):
+		if not enemy.is_dying():
+			struck += 1.0
+	if struck <= 0.0:
+		return
+	var healed: float = minf(
+		spell.damage * struck * Balance.DISCIPLINE_TEMPEST_LIFESTEAL, cap)
+	if healed > 0.0:
+		heal_requested.emit(healed)
+
+
+## Chain Hook against something that was never going to move.
+##
+## The node promises both directions and only one was built. A heavy target
+## simply absorbed the pull and the cast was wasted; now the hook reels the hero
+## in instead, which turns the worst case for the spell into its opening.
+func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
+	var heaviest: Enemy = null
+	var best: float = Balance.DISCIPLINE_HEAVY_RESISTANCE
+	for enemy: Enemy in field.enemies_near(origin, spell.cast_range):
+		if enemy.data == null or enemy.is_dying():
+			continue
+		if enemy.data.knockback_resistance >= best:
+			best = enemy.data.knockback_resistance
+			heaviest = enemy
+	if heaviest == null:
+		return
+	# **Two frames, and they must not be mixed.** A cast arrives at
+	# `combat_origin()` - the body, which is what `enemies_near` measures to -
+	# while `blink_requested` sets the hero's `global_position`, which is its
+	# feet. Taking the direction in one frame and the destination in the other
+	# lands the hero a body-height off the ground.
+	var approach: Vector2 = heaviest.combat_origin() - origin
+	if approach.length() < 1.0:
+		return
+	# Stopped short of the body rather than on top of it, so the hero arrives in
+	# swinging range instead of inside something's hitbox.
+	var stand_off: float = Balance.HERO_ATTACK_RANGE[0] * 0.5
+	blink_requested.emit(heaviest.global_position - approach.normalized() * stand_off)
 
 
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:

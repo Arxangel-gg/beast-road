@@ -38,6 +38,10 @@ extends RefCounted
 ## until something reads it.
 const IMPLEMENTED: Array[String] = [
 	"bleed_finisher",
+	"drain_command",
+	"heavy_reverse_pull",
+	"tempest_heal_cap",
+	"tower_damage_brand",
 	"crowd_finisher_force",
 	"defense_radiant_finisher",
 	"town_dodge_command",
@@ -56,9 +60,7 @@ const DECLARED_ONLY: Array[String] = [
 	"block_finisher",
 	"consume_marks_burst",
 	"dash_shield_field",
-	"drain_command",
 	"elite_extend_ultimate",
-	"heavy_reverse_pull",
 	"isolated_crit",
 	"lane_cleanse",
 	"marked_dash_refund",
@@ -66,8 +68,6 @@ const DECLARED_ONLY: Array[String] = [
 	"repair_blocker_shields",
 	"road_line_disrupt",
 	"selected_road_shockwave",
-	"tempest_heal_cap",
-	"tower_damage_brand",
 	"tower_haste",
 ]
 

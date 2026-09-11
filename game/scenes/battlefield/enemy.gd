@@ -1176,6 +1176,69 @@ func apply_boss_phase(phase: int) -> void:
 ## A puppet ignores damage. The host decides what hurt it and by how much, and
 ## the answer arrives as health in `mirror`. Applying local damage as well would
 ## make a guest's enemies die early and then be resurrected by the next packet.
+## Whether this body is worth the hero's attention over the ones beside it.
+##
+## **Extracted from the one `emit` that used to compute it inline.** Three
+## discipline nodes describe themselves in terms of "priority prey" - Marrow
+## Drain channels on it, Chain Hook pulls it - and each of those reimplementing
+## the rule is how the three of them end up disagreeing about what prey is. It is
+## also now a thing a gate can ask about, which an expression inside an argument
+## list was not.
+##
+## Elites and champions qualify because they are the fight; Howlers and Burrowers
+## qualify despite being ordinary bodies, because one buffs a swarm and the other
+## goes round the line at the towers. Killing either first is the read.
+func is_priority() -> bool:
+	if data == null:
+		return false
+	return data.category != EnemyData.Category.BREED \
+		or data.role == EnemyData.Role.HOWLER \
+		or data.role == EnemyData.Role.BURROWER
+
+
+## Seconds of brand left, and what it multiplies tower damage by.
+##
+## Judgment Brand paints an elite and the towers finish it. The amplifier is
+## carried *on the brand* rather than looked up by the tower, so nothing in
+## `tower.gd` has to know that disciplines exist - it asks the body in front of
+## it how badly it has been marked and multiplies.
+var _brand_left: float = 0.0
+var _brand_amplifier: float = 0.0
+
+
+## Paints this body for the towers. The longest-lasting brand wins rather than
+## the newest, so re-branding something cannot shorten a mark already on it.
+func brand(seconds: float, amplifier: float) -> void:
+	if _state == State.DYING or seconds <= 0.0 or amplifier <= 0.0:
+		return
+	var fresh: bool = _brand_left <= 0.0
+	_brand_left = maxf(_brand_left, seconds)
+	_brand_amplifier = maxf(_brand_amplifier, amplifier)
+	if fresh:
+		# A mark nobody can see is a number in a log. The player has to be able
+		# to pick the branded body out of a line at a glance, because choosing
+		# what to brand is the whole decision the node asks for.
+		Vfx.ring(_visual_origin(), Balance.DISCIPLINE_BRAND_RING, Color("ffd27a"))
+
+
+func is_branded() -> bool:
+	return _brand_left > 0.0
+
+
+## What a tower's damage is multiplied by against this body. 1.0 when unbranded,
+## so every caller can multiply unconditionally.
+func brand_multiplier() -> float:
+	return 1.0 + _brand_amplifier if _brand_left > 0.0 else 1.0
+
+
+func _tick_brand(delta: float) -> void:
+	if _brand_left <= 0.0:
+		return
+	_brand_left = maxf(_brand_left - delta, 0.0)
+	if _brand_left <= 0.0:
+		_brand_amplifier = 0.0
+
+
 func take_damage(amount: float, from: Vector2, knockback: float,
 		active_hero: bool = false) -> bool:
 	if _state == State.DYING or data == null or puppet:
@@ -1192,6 +1255,13 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 		return false
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
 		if active_hero else null
+	if attack_node != null and attack_node.effect_id == "tower_damage_brand" \
+			and is_priority():
+		# Judgment Brand. Priority prey only, which is what stops it being a free
+		# damage multiplier on everything the hero touches: the node asks you to
+		# pick the body the towers should finish, and a brand you cannot help but
+		# apply is not a choice.
+		brand(Balance.DISCIPLINE_BRAND_SECONDS, attack_node.effect_value)
 	if attack_node != null and attack_node.effect_id == "bleed_finisher":
 		# The finisher is the only hit whose authored base damage reaches the last
 		# chain value. Apply a bounded three-second bleed; it uses the shared status
@@ -1218,9 +1288,7 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	if knockback > 0.0 and _state == State.WINDUP:
 		_enter(State.RECOVER, Balance.ENEMY_ATTACK_RECOVERY * 0.5)
 	if active_hero:
-		var priority: bool = data.category != EnemyData.Category.BREED \
-			or data.role == EnemyData.Role.HOWLER or data.role == EnemyData.Role.BURROWER
-		EventBus.hero_enemy_hit.emit(data.id, lane, priority,
+		EventBus.hero_enemy_hit.emit(data.id, lane, is_priority(),
 			was_telegraphing and knockback > 0.0, global_position)
 	return true
 
@@ -1348,6 +1416,7 @@ func apply_burn(dps: float, duration: float) -> void:
 
 
 func _tick_status(delta: float) -> void:
+	_tick_brand(delta)
 	_freeze_refractory = maxf(_freeze_refractory - delta, 0.0)
 	if _chill_hold > 0.0:
 		_chill_hold -= delta

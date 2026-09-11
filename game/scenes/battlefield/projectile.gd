@@ -351,7 +351,10 @@ func _apply(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if damage > 0.0:
-		enemy.take_damage(damage, global_position, knockback)
+		# The brand is read at impact rather than at the muzzle: a shot in flight
+		# toward an elite that gets branded on the way should land the amplified
+		# hit, and one aimed at a body whose mark expired mid-flight should not.
+		enemy.take_damage(damage * enemy.brand_multiplier(), global_position, knockback)
 	var utility: float = data.utility_at(tier)
 	if data.slow_factor < 1.0:
 		var slow: float = 1.0 - (1.0 - data.slow_factor) * utility

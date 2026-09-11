@@ -1601,6 +1601,38 @@ const ENEMY_ROUT_COLOUR: Color = Color(0.98, 0.92, 0.62, 1.0)
 ## returning early rather than a wilderness that stays dead. [TUNE]
 const WILDLIFE_HUSH_SECONDS: float = 210.0
 
+## --- Discipline effects -------------------------------------------------------
+##
+## The nodes carry their own magnitudes in `effect_value`; these are the shape
+## of the effect around that magnitude, which a single authored float cannot say.
+
+## How long Judgment Brand's mark stays on an elite.
+##
+## Long enough for towers to actually spend it - a mark that expires before the
+## nearest tower has reloaded is a number that never gets multiplied - and short
+## enough that branding is a decision rather than a thing you did once.
+const DISCIPLINE_BRAND_SECONDS: float = 6.0
+
+## The radius of the ring drawn when a body is branded, so the player can see it.
+const DISCIPLINE_BRAND_RING: float = 34.0
+
+## What share of Crimson Tempest's damage comes back as health, before the node's
+## own hard cap is applied.
+##
+## The cap is the balance argument and it lives on the node; this only decides
+## how quickly a cast reaches it. Set so a tempest into a crowd reaches the cap
+## and a tempest into one body does not, which is what makes it an area heal
+## rather than a lifesteal.
+const DISCIPLINE_TEMPEST_LIFESTEAL: float = 0.22
+
+## Knockback resistance at or above which Chain Hook reels the hero in instead of
+## dragging the target out.
+##
+## The node promises both directions; this is the line between them. Anything
+## this immovable was never going to be pulled anywhere, so the alternative is
+## not a downgrade - it is the same button doing the only useful thing left.
+const DISCIPLINE_HEAVY_RESISTANCE: float = 0.5
+
 ## How far a predator will look for prey, against how far it looks for a fight.
 ##
 ## Under one on purpose. A hunting animal should notice the player and the

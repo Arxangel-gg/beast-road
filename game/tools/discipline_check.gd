@@ -2,6 +2,15 @@ extends Node
 
 var _failures: PackedStringArray = []
 
+## How many of the awaited tests reached their last line.
+var _finished: int = 0
+
+## What the riders under test moved. Members rather than locals because the
+## handlers that fill them are lambdas, and those capture by value.
+var _healed: float = 0.0
+var _blinked_to: Vector2 = Vector2.INF
+const EXPECTED_TESTS: int = 4
+
 
 func _ready() -> void:
 	# **Held for the whole run.** This gate edits MetaState in place - a wiped
@@ -68,6 +77,18 @@ func _ready() -> void:
 	await _test_mercy_under_fire()
 	_test_synergies_are_real()
 	await _test_second_wind_fires()
+	await _test_the_brand_reaches_the_towers()
+	await _test_the_riders_fire()
+
+	# **A script error aborts its own function and nothing else.**
+	# This gate printed PASS with three SCRIPT ERRORs above it, because the two
+	# tests that died had simply stopped running and left no failures behind.
+	# `ranged_check` and `trade_check` both grew this counter after exactly the
+	# same thing; it is the cheapest assertion in the file and the only one that
+	# can notice a test that never happened.
+	if _finished != EXPECTED_TESTS:
+		_check(false, ("only %d of %d awaited tests ran to completion - look for "
+			+ "a SCRIPT ERROR above") % [_finished, EXPECTED_TESTS])
 
 	if _failures.is_empty():
 		print("[discipline] PASS — %d nodes, role gates, offers, respec and icons"
@@ -161,6 +182,7 @@ func _test_mercy_under_fire() -> void:
 	field.queue_free()
 	for _f: int in 12:
 		await get_tree().process_frame
+	_finished += 1
 
 
 ## Every authored synergy is accounted for, buildable, and points at real
@@ -293,6 +315,247 @@ func _test_second_wind_fires() -> void:
 	hero.queue_free()
 	for _f: int in 6:
 		await get_tree().process_frame
+	_finished += 1
+
+
+## Judgment Brand paints priority prey, and the towers spend it.
+##
+## **Two halves that can each be true alone and useless.** A brand nothing reads
+## is the whole failure `DisciplineEffects` exists for; a tower multiplier with
+## nothing applying it is the same failure facing the other way. So this drives
+## the real hero attack path into a real body and then asks a real tower what it
+## would do to it.
+##
+## The ordinary-breed case is the one worth having. Without it the node is a flat
+## damage multiplier on everything the hero touches, which is not what it says
+## and not what it was priced at.
+func _test_the_brand_reaches_the_towers() -> void:
+	RunState.reset()
+	var brand_node: DisciplineNodeData = null
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.effect_id == "tower_damage_brand":
+			brand_node = node
+	if not _checked(brand_node != null, "no node authors tower_damage_brand"):
+		return
+	RunState.trained_discipline_nodes.append(brand_node.id)
+	RunState.equipped_discipline_slots[0] = brand_node.id
+
+	var field := EnemyField.new()
+	add_child(field)
+	var elite: Enemy = await _body(field, func(breed: EnemyData) -> bool:
+		return breed.category != EnemyData.Category.BREED)
+	var common: Enemy = await _body(field, func(breed: EnemyData) -> bool:
+		return breed.category == EnemyData.Category.BREED \
+			and breed.role != EnemyData.Role.HOWLER \
+			and breed.role != EnemyData.Role.BURROWER)
+	if elite == null or common == null:
+		_check(false, "no authored pair of an elite and an ordinary breed to test with")
+		field.queue_free()
+		return
+
+	_check(is_equal_approx(elite.brand_multiplier(), 1.0),
+		"a body was branded before anything hit it")
+	elite.take_damage(1.0, Vector2.ZERO, 0.0, true)
+	common.take_damage(1.0, Vector2.ZERO, 0.0, true)
+	await get_tree().process_frame
+
+	_check(elite.is_branded(),
+		"the hero's attack slot did not brand priority prey, so the towers get nothing")
+	_check(elite.brand_multiplier() > 1.0 + brand_node.effect_value - 0.001,
+		"the brand is worth %.3f rather than the authored %.3f"
+			% [elite.brand_multiplier() - 1.0, brand_node.effect_value])
+	_check(not common.is_branded(),
+		("an ordinary breed was branded too, so the node is a flat damage "
+			+ "multiplier on everything rather than a choice of target"))
+
+	# And it lets go. A brand that never expires is a permanent multiplier bought
+	# with one swing.
+	elite.call("_tick_brand", Balance.DISCIPLINE_BRAND_SECONDS + 0.1)
+	_check(not elite.is_branded(), "the brand never expires")
+	_check(is_equal_approx(elite.brand_multiplier(), 1.0),
+		"an expired brand still multiplies tower damage")
+	# **And something actually spends it.**
+	#
+	# Everything above proves the mark goes on and comes off. None of it proves a
+	# tower ever multiplies by it - and a brand nothing reads is precisely the
+	# failure `DisciplineEffects` exists to catch, arriving one layer further in.
+	#
+	# Checked by reading the two damage call sites rather than by building a
+	# tower and a projectile, which is blunt but catches the regression that
+	# matters: somebody simplifying the multiplication away. Both paths are
+	# named, because the direct hit and the projectile are separate code and
+	# fixing one has already meant forgetting the other elsewhere in this file.
+	for spender: String in ["res://scenes/battlefield/tower.gd",
+			"res://scenes/battlefield/projectile.gd"]:
+		var source: String = FileAccess.get_file_as_string(spender)
+		_check(source.contains("brand_multiplier()"),
+			("%s no longer multiplies by the brand, so Judgment Brand marks a "
+				+ "body that nothing treats differently") % spender.get_file())
+
+	elite.queue_free()
+	common.queue_free()
+	await get_tree().process_frame
+	field.queue_free()
+	for _f: int in 12:
+		await get_tree().process_frame
+	_finished += 1
+
+
+## The three riders that ride an existing spell actually fire.
+##
+## Each of these nodes casts a spell that was already implemented, so the node
+## *looked* like it worked: the effect went off, the numbers appeared, and the
+## sentence on the card describing the extra was simply not true. That is the
+## hardest version of this failure to notice by playing, which is why it is here.
+##
+## **Cast for real, and watch the thing the rider is supposed to move.** An
+## earlier draft of this test asserted that the node existed, named a real spell
+## and carried a magnitude - all of which were true the entire time the riders
+## did nothing. A test that passes against the bug it was written for is worse
+## than no test, and this project has shipped one before.
+func _test_the_riders_fire() -> void:
+	for effect_id: String in ["drain_command", "tempest_heal_cap", "heavy_reverse_pull"]:
+		await _drive_rider(effect_id)
+	_finished += 1
+
+
+func _drive_rider(effect_id: String) -> void:
+	RunState.reset()
+	RunState.act = 3
+	# Command is only earned in a fight, so a rider that pays it cannot be tested
+	# outside one. This is the phase, not a flag: `gain_command` asks
+	# `is_command_combat()` and silently returns otherwise.
+	RunState.phase = RunState.Phase.ROAD_BATTLE
+	var node: DisciplineNodeData = null
+	for one: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if one.effect_id == effect_id:
+			node = one
+	if not _checked(node != null, "no node authors %s" % effect_id):
+		return
+	var spell := ContentDB.spells.get(node.spell_id, null) as SpellData
+	if not _checked(spell != null,
+			"%s names spell '%s', which does not exist" % [effect_id, node.spell_id]):
+		return
+
+	var field := EnemyField.new()
+	add_child(field)
+	var caster: SpellCaster = SpellCaster.new()
+	caster.field = field
+	add_child(caster)
+	await get_tree().process_frame
+
+	# Equipped, not merely trained: these riders belong to the node in the slot.
+	RunState.equipped_spells[0] = spell.id
+	RunState.trained_discipline_nodes.append(node.id)
+	RunState.equipped_discipline_slots[0] = node.id
+
+	# **Members, not locals.** A GDScript lambda captures by value, so a local
+	# `healed` incremented inside the handler stays zero outside it - and the
+	# test reads exactly as though the rider never fired. `merchant_check` lost
+	# an afternoon to this same line.
+	_healed = 0.0
+	_blinked_to = Vector2.INF
+	caster.heal_requested.connect(func(amount: float) -> void: _healed += amount)
+	caster.blink_requested.connect(func(to: Vector2) -> void: _blinked_to = to)
+
+	var body: Enemy = await _rider_body(field, effect_id)
+	if not _checked(body != null,
+			"%s: no authored breed can stand in front of it" % effect_id):
+		caster.queue_free()
+		field.queue_free()
+		return
+	body.global_position = Vector2(60.0, 0.0)
+	await get_tree().process_frame
+	# **Cast from where the game casts from.** `hero.gd` passes
+	# `combat_origin()`, which on a large body sits hundreds of pixels above its
+	# feet - and `enemies_near` measures to that same point. An origin taken from
+	# the feet frame put every target out of range and read exactly like three
+	# riders that never fired.
+	var from: Vector2 = body.combat_origin() - Vector2(60.0, 0.0)
+
+	var command_before: float = RunState.command
+	caster.clear_cooldowns()
+	var went_off: bool = caster.try_cast(0, Vector2.RIGHT, from)
+	_check(went_off, "%s: the spell it rides would not cast at all" % effect_id)
+	await get_tree().process_frame
+
+	match effect_id:
+		"drain_command":
+			_check(RunState.command > command_before,
+				("drain_command: channelling on priority prey paid no Command, "
+					+ "which is the whole sentence on the card"))
+		"tempest_heal_cap":
+			_check(_healed > 0.0,
+				"tempest_heal_cap: a tempest into a body returned no health")
+			_check(_healed <= node.effect_value + 0.001,
+				("tempest_heal_cap: returned %.1f health against an authored cap "
+					+ "of %.1f, so the cap is not being applied")
+					% [_healed, node.effect_value])
+		"heavy_reverse_pull":
+			_check(_blinked_to != Vector2.INF,
+				("heavy_reverse_pull: a target too heavy to drag did not reel the "
+					+ "hero in either, so the cast is still wasted on it"))
+			if _blinked_to != Vector2.INF:
+				# Landed on the ground, beside the body rather than inside it.
+				var gap: float = _blinked_to.distance_to(body.global_position)
+				_check(gap > 1.0 and gap < Balance.HERO_ATTACK_RANGE[0],
+					("heavy_reverse_pull: the hook left the hero %.0f from the "
+						+ "body, which is either inside it or nowhere near it")
+						% gap)
+				# Loose on purpose: the body is walking, so it drifts a few
+				# pixels between the cast being aimed and resolved. What this
+				# catches is a frame mix, which is a body-height out - hundreds
+				# of pixels on a large elite, never single digits.
+				_check(absf(_blinked_to.y - body.global_position.y) < 40.0,
+					("heavy_reverse_pull: the hook landed the hero at y=%.0f "
+						+ "against a body at y=%.0f - the body frame and the foot "
+						+ "frame have been mixed")
+						% [_blinked_to.y, body.global_position.y])
+
+	caster.queue_free()
+	body.queue_free()
+	await get_tree().process_frame
+	field.queue_free()
+	for _f: int in 12:
+		await get_tree().process_frame
+
+
+## The body each rider needs in front of it.
+##
+## `heavy_reverse_pull` needs something immovable and the other two need priority
+## prey; a breed that is neither proves nothing.
+func _rider_body(into: EnemyField, effect_id: String) -> Enemy:
+	if effect_id == "heavy_reverse_pull":
+		return await _body(into, func(breed: EnemyData) -> bool:
+			return breed.knockback_resistance >= Balance.DISCIPLINE_HEAVY_RESISTANCE)
+	return await _body(into, func(breed: EnemyData) -> bool:
+		return breed.category != EnemyData.Category.BREED)
+
+
+## A spawned body of the first breed matching `wanted`, or null.
+##
+## **Set up into a field, not merely added to the tree.** A bare `add_child`
+## leaves `_field` null and the body throws on its first physics frame - which is
+## exactly what the first version of this did, printing a wall of SCRIPT ERRORs
+## while the gate went on to say PASS.
+func _body(into: EnemyField, wanted: Callable) -> Enemy:
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or not wanted.call(breed):
+			continue
+		var body := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) \
+			.instantiate() as Enemy
+		body.setup(breed, 0, into, 1.0)
+		into.add_child(body)
+		await get_tree().process_frame
+		return body
+	return null
+
+
+## `_check` that also answers, so a guard clause can read as one line.
+func _checked(condition: bool, failure: String) -> bool:
+	_check(condition, failure)
+	return condition
 
 
 func _check(condition: bool, failure: String) -> void:

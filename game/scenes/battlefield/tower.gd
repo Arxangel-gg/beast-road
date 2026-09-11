@@ -588,7 +588,7 @@ func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		enemy.take_damage(rolled_damage(), origin(),
+		enemy.take_damage(rolled_damage() * enemy.brand_multiplier(), origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
