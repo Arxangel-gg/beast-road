@@ -76,8 +76,16 @@ if ($DryRun) {
 }
 
 git tag -a $tag -m "Wilderhold $Version"
-git push origin $branch
-git push origin $tag
+# git reports on stderr even when it succeeds ("Everything up-to-date"), and
+# under 'Stop' Windows PowerShell 5.1 turns that line into a terminating
+# NativeCommandError - which aborted a release after the tag was made and
+# before it was pushed (2026-09-12). Exit codes are the truth here.
+$ErrorActionPreference = 'Continue'
+git push origin $branch 2>&1 | ForEach-Object { "$_" }
+if ($LASTEXITCODE -ne 0) { Write-Host "Pushing $branch failed." -ForegroundColor Red; exit 1 }
+git push origin $tag 2>&1 | ForEach-Object { "$_" }
+if ($LASTEXITCODE -ne 0) { Write-Host "Pushing $tag failed." -ForegroundColor Red; exit 1 }
+$ErrorActionPreference = 'Stop'
 
 $slug = $remote -replace '^.*github\.com[:/]', '' -replace '\.git$', ''
 Write-Host ""
