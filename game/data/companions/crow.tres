@@ -18,3 +18,4 @@ knockback = 14.0
 flies = true
 scale = 0.60
 colour = Color(0.7, 0.76, 1, 1)
+wildlife_id = "raven"

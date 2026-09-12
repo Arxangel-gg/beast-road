@@ -1072,6 +1072,129 @@ player reached it, and `--script` cannot stand in because it has no autoloads.
 The gate loads every `.gd` under the real autoloads and asks each whether it
 can be instantiated.
 
+**The road has outskirts, and camps on them, as of 2026-09-12.** The owner
+asked for the paths extended to the map's cardinal edges, camps split off
+each entry path that patrol, leash and regenerate like a MOBA's jungle, a
+fork that opens when both camps on a road fall, a war camp between the forks
+that opens a dungeon, and the jungle expanded to cover it all.
+
+**The core map is untouched; the outskirts are laid around it.** `BattleGrid`
+pastes the authored 45x45 core at an offset inside a 75x75 grid, and lays the
+outskirts from a template in lane-local coordinates - so every authored
+route, build spot and pond rule still means what it meant, and the map grew
+rather than changed. The near spawn of every road is its fork junction; the
+two far spawns are the ends of the legs beyond it, barred until the fork
+opens. **A route ends at the gate ring**, one node before the town, which is
+what put the wall back in reach: a body at the gate hits the gate.
+
+**A camp is a body in camp mode** (`Enemy.make_camp_mob`): no route, a full
+aggro circle, a leash back to its home, regeneration while it walks back, a
+patrol while nothing is near. It is not counted by `enemy_count`, so a wave
+is never waiting on a camp to be cleared, and it pays more than a road body
+and drops better - which is the reason to go and look for it. `Camps` owns
+the state machine (locked, alive, razed, respawning), the props on the
+ground, the barriers, the fork, and the war camp's dungeon mouth.
+`camps_check` walks all of it through the real battlefield.
+
+**Fishing's third cut, and swimming, as of the same date.** The owner played
+the second cut and wanted a hold-to-cast that can miss the pond, depth that
+matters, a band that drifts, bubbles that hold the rarer fish and bite a
+swimmer, and a hero who swims rather than walks on water. All built: the
+pond's depth is a field (`PondTiles.depth_at`, blue in the mask) deeper at
+the middle, the safe band drifts by the fish's rarity against the Angler's
+skill, bubble spots are a `PondBubbles` layer with their own rarer draws, and
+the hero reads `Battlefield.water_depth_at` every frame. **The hero asks the
+field, never the ponds**, because it stands in an arena as often as on the
+road and an arena is dry. A swimmer draws over the water because every pond
+root sits below the sorted layer; the submerged half is a `SwimCover` band
+rather than a second sprite, because `animate_image` from a standing frame
+does not swim - it was tried and it stood there waving. `swim_check` and
+`fishing_check` hold it.
+
+**Legendary gear wears affixes, as of the same date.** `GearAffixData` moves
+one `Modifiers` key by one amount - the bound omens and Road Cards are built
+under - and a piece rolls them from its own `uid`, so the same sword wears
+the same affixes on every read and nothing was added to the save. The count
+is by rarity (`GEAR_LEGENDARY_COUNT`) and the ordinary rarities wear none;
+`GEAR_LEGENDARY_CEILING` bounds how far any one affix may move a scaled key.
+`gear_affix_check` refuses a key `Modifiers` has no constant for, a fraction
+on a counted key, and a roll that changes between reads.
+
+**Achievements are statistics with thresholds, as of the same date, and this
+is why they add nothing to working rule 7.** `MetaState.stat` is the one
+reader; an `AchievementData` names a key and a number and grants nothing - no
+power, no unlock, no currency. The statistics themselves (camps razed, forks
+opened, swims, and the rest) are run statistics, which rule 7 already
+sanctions. `guide_check` keeps a mirror of the reader's keys and refuses an
+achievement naming one it does not answer, because a misspelt key reads zero
+forever and nobody would ever know.
+
+**The Guide, as of the same date.** A section of the main menu with the
+lore, the how-tos with pictures, the resources, the items, a glossary, the
+progress and the achievements - all `GuideSectionData`, `LoreEntryData` and
+`AchievementData` in `data/`. **The pictures are photographs, not drawings**:
+`tools/guide_shots.gd` drives the real run through every state a section
+explains and writes `art/guide/<id>.png`, so a screen that changes is a tool
+run away from a picture that matches. `guide_check` refuses a section whose
+picture is not on disk.
+
+**New players run the tutorial before co-op opens.** `tutorial_done` is set
+when the coach reaches the first crossroad; the co-op button waits for it.
+
+**Raids and rifts are a party decision in co-op, as of the same date.** The
+owner's brief: a player taking a raid or a rift prompts the rest with a
+timer; declining keeps them where they are; everyone is told who accepted and
+who declined; the proposer decides when it is not unanimous; those who accept
+enter together; when everyone goes the battlefield stays paused until the
+first returns; otherwise the event runs beside the road, which goes on for
+those who stayed.
+
+**The host counts the votes and announces the outcome** (`PartyEvents`). A
+guest proposes, votes, decides, returns and steps away by *asking* the host
+(Requests 26-31), and what happened comes back as facts (53-58), so four
+machines agree on who went because they were all told the same thing. Alone,
+none of this happens: a solo raid is entered on the press.
+
+**The field runs on with a hero absent.** This is the one place co-op touched
+working rule 8, and it is an amendment rather than a break: the raid freeze
+still resumes exactly *when everyone went*; when some stayed, the field is
+not frozen at all - the absent hero is taken out of the world
+(`Battlefield.set_hero_away`), hidden and stilled on every other machine, and
+put back when its event ends. A fork waits for the party to be whole
+(`_road_is_busy` counts an absent seat as a pack on the field), because a
+road is a decision for everyone on it. A guest's event is its own arena, and
+its reward is asked of the host **by result, never by amount**: kills capped,
+stages capped, the numbers read off the host's own tables.
+`party_events_check` drives the conversation with three seats and no network.
+
+**The maze under a rift, as of the same date.** The owner asked for
+Astonia's mazes and Diablo's rifts, a timed collapse with damage and a way
+out, a progress bar, a chest with a loot burst and an exit portal.
+`DungeonLayout` cuts corridors and rooms through rock on the raid's own
+lattice - a wall is a `Cell.WALL` at the top level, so the raid's terrain,
+cliffs and stepping rule draw and enforce it unchanged - with the vault at
+the end of the longest walk. A rift is the same cut looser. Bodies appear on
+floor a walk away and are steered by a flow field from the hero's tile
+(`RiftArena.route_hint`), because a body told to walk at the hero through
+rock stands against it. **A body's feet land on the tile they were dealt**:
+`Enemy._ready` lowers the node by its feet anchor after the position is set,
+which on a plain is harmless and in a maze puts the feet in the rock under a
+corridor, from where no step is legal. `RiftArena._spawn` puts them back.
+
+The clock no longer ends a stage on the frame it runs out: the stage
+**collapses** - the exit opens where the hero came in, the ground bites a
+fraction of their health a second, and they have `DUNGEON_COLLAPSE_SECONDS`
+to reach it with what is banked. A fallen guardian leaves a **chest**: the
+stage's currency bursts on the floor as drops, its gear is named and banked,
+and the exit then pays that stage's currency *no second time* - the chest
+changes where a stage is paid, never how much (working rule 7 is untouched).
+`dungeon_check` holds the floor and the steering; `rift_check` the clock, the
+chest, the doors and the reward.
+
+**The well is drunk from, as of the same date.** A full well shows a gauge
+and prompts; the draught is taken with Interact by a hero who is hurt, and
+a hero who is fine walks past a full well and leaves it full.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

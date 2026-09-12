@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "loop"
+display_name = "The loop"
+title = "The loop"
+category = "Basics"
+order = 0
+image = "res://art/guide/loop.png"
+body = "Yuri walks. Between stretches of road the game pauses in Preparation: build towers on the roads, repair, tend the Warden, then Ride On. A wave arrives from the roads, you hold it, and the beast walks again. Crossroads offer a choice of road and a Road Card; the act ends when its boss falls. Ten acts, then the summit."

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearAffixData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_affix_data.gd" id="1_affix"]
+
+[resource]
+script = ExtResource("1_affix")
+id = "quickstep"
+display_name = "Quickstep"
+description = "%s faster dash"
+effect_id = "dash_cooldown"
+magnitude = -0.08
+min_rarity = 3
+slots = Array[int]([5, 4])
+weight = 0.9

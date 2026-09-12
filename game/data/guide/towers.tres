@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "towers"
+display_name = "Towers"
+title = "Towers"
+category = "Building"
+order = 8
+image = "res://art/guide/towers.png"
+body = "Towers stand two tiles square on open ground beside the roads. Each has an element and a role - Warden, Siege, Skirmisher, Sniper - and ten levels; the Forge in town opens the higher bands. Two towers of the right elements standing together can be fused."

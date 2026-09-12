@@ -106,6 +106,18 @@ enum Fact {
 	OMEN_CHOSEN = 49,
 	## The card the party kept, host to everyone.
 	ROAD_CARD_CHOSEN = 50,
+	## A camp's state on the outskirts, host to guest. See `Camps`.
+	CAMP_STATE = 51,
+	## A road's fork opened, host to guest.
+	FORK_OPENED = 52,
+	## The party events, host to everyone. See `PartyEvents`.
+	PARTY_EVENT_PROPOSED = 53,
+	PARTY_EVENT_VOTES = 54,
+	PARTY_EVENT_DECIDE_ASK = 55,
+	PARTY_EVENT_RESOLVED = 56,
+	PARTY_EVENT_RETURNED = 57,
+	## A seat stepped off the road into an event, or came back to it.
+	PARTY_EVENT_AWAY = 58,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -154,6 +166,16 @@ enum Request {
 	TRADE_ACCEPT = 20,
 	TRADE_CONFIRM = 21,
 	TRADE_CANCEL = 22,
+	## The party events (2026-09-12): a guest proposes a raid or a rift, votes
+	## on one, decides one it proposed, reports its return, and asks for the
+	## reward of an event it ran alone - by *result*, never by amount.
+	PARTY_EVENT_PROPOSE = 26,
+	PARTY_EVENT_VOTE = 27,
+	PARTY_EVENT_DECIDE = 28,
+	PARTY_EVENT_RETURN = 29,
+	PARTY_EVENT_REWARD = 30,
+	## A guest stepped off the road into its own event, or came back.
+	PARTY_EVENT_AWAY = 31,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -332,6 +354,14 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_wildlife_died", _on_coop_wildlife_died],
+		["coop_camp_state", _on_coop_camp_state],
+		["coop_fork_opened", _on_coop_fork_opened],
+		["coop_party_event_proposed", _on_coop_party_event_proposed],
+		["coop_party_event_votes", _on_coop_party_event_votes],
+		["coop_party_event_decide_ask", _on_coop_party_event_decide_ask],
+		["coop_party_event_resolved", _on_coop_party_event_resolved],
+		["coop_party_event_returned", _on_coop_party_event_returned],
+		["coop_party_event_away", _on_coop_party_event_away],
 		["coop_run_ended", _on_coop_run_ended],
 		["coop_crossroad_opened", _on_coop_crossroad_opened],
 		["coop_road_chosen", _on_coop_road_chosen],
@@ -424,6 +454,38 @@ func _on_coop_wildlife_removed(net_id: int) -> void:
 
 func _on_coop_wildlife_died(net_id: int) -> void:
 	_relay(Fact.WILDLIFE_DIED, [net_id])
+
+
+func _on_coop_camp_state(lane: int, tier: int, state: int) -> void:
+	_relay(Fact.CAMP_STATE, [lane, tier, state])
+
+
+func _on_coop_fork_opened(lane: int) -> void:
+	_relay(Fact.FORK_OPENED, [lane])
+
+
+func _on_coop_party_event_proposed(kind: int, subkind: int, by_slot: int, seconds: float) -> void:
+	_relay(Fact.PARTY_EVENT_PROPOSED, [kind, subkind, by_slot, seconds])
+
+
+func _on_coop_party_event_votes(accepted: Array, declined: Array) -> void:
+	_relay(Fact.PARTY_EVENT_VOTES, [accepted, declined])
+
+
+func _on_coop_party_event_decide_ask(slot: int, seconds: float) -> void:
+	_relay(Fact.PARTY_EVENT_DECIDE_ASK, [slot, seconds])
+
+
+func _on_coop_party_event_resolved(kind: int, subkind: int, goers: Array) -> void:
+	_relay(Fact.PARTY_EVENT_RESOLVED, [kind, subkind, goers])
+
+
+func _on_coop_party_event_returned(slot: int) -> void:
+	_relay(Fact.PARTY_EVENT_RETURNED, [slot])
+
+
+func _on_coop_party_event_away(slot: int, away: bool) -> void:
+	_relay(Fact.PARTY_EVENT_AWAY, [slot, away])
 
 
 func _on_coop_run_ended(victory: bool) -> void:
@@ -801,6 +863,30 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.OMEN_CHOSEN:
 			if args.size() == 1:
 				bus.coop_omen_chosen.emit(String(args[0]))
+		Fact.CAMP_STATE:
+			if args.size() == 3:
+				bus.coop_camp_state.emit(int(args[0]), int(args[1]), int(args[2]))
+		Fact.FORK_OPENED:
+			if args.size() == 1:
+				bus.coop_fork_opened.emit(int(args[0]))
+		Fact.PARTY_EVENT_PROPOSED:
+			if args.size() == 4:
+				bus.coop_party_event_proposed.emit(int(args[0]), int(args[1]), int(args[2]), float(args[3]))
+		Fact.PARTY_EVENT_VOTES:
+			if args.size() == 2:
+				bus.coop_party_event_votes.emit(args[0] as Array, args[1] as Array)
+		Fact.PARTY_EVENT_DECIDE_ASK:
+			if args.size() == 2:
+				bus.coop_party_event_decide_ask.emit(int(args[0]), float(args[1]))
+		Fact.PARTY_EVENT_RESOLVED:
+			if args.size() == 3:
+				bus.coop_party_event_resolved.emit(int(args[0]), int(args[1]), args[2] as Array)
+		Fact.PARTY_EVENT_RETURNED:
+			if args.size() == 1:
+				bus.coop_party_event_returned.emit(int(args[0]))
+		Fact.PARTY_EVENT_AWAY:
+			if args.size() == 2:
+				bus.coop_party_event_away.emit(int(args[0]), bool(args[1]))
 		Fact.ENEMY_STRUCK:
 			if args.size() == 2:
 				bus.coop_enemy_struck.emit(int(args[0]), args[1] as Vector2)

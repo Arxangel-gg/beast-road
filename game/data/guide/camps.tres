@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "camps"
+display_name = "Camps on the outskirts"
+title = "Camps on the outskirts"
+category = "Camps & Rifts"
+order = 28
+image = "res://art/guide/camps.png"
+body = "Past where the roads begin, camps branch off each road: an easier one and a harder one. Their bodies patrol, chase you only so far, and walk home healing when you leave. Raze one for currency, gear rolled at a better tier, and Shards; it stands again on a timer."

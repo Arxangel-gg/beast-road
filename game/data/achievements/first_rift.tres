@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "first_rift"
+display_name = "Through the Rift"
+title = "Through the Rift"
+description = "Close a rift stage."
+stat = "rifts_closed"
+threshold = 1.0
+icon = "quiet_ledger"
+order = 13

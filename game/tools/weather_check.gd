@@ -62,6 +62,13 @@ func _ready() -> void:
 			+ "led by its own")
 	else:
 		printerr("[weather] FAIL - %d problem(s)" % _failures)
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	Vfx.clear()
+	for _f: int in 10:
+		await get_tree().process_frame
+	Sfx.stop_immediately()
 	get_tree().quit(1 if _failures > 0 else 0)
 
 

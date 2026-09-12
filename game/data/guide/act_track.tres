@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "act_track"
+display_name = "The act track"
+title = "The act track"
+category = "The Road"
+order = 13
+image = "res://art/guide/act_track.png"
+body = "In the beast view a track shows the act's road from its start to its boss, with a tick at each crossroad and Yuri where he is now. The words say what is next and how far."

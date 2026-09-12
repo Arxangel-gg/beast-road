@@ -18,3 +18,4 @@ knockback = 210.0
 flies = false
 scale = 1.05
 colour = Color(0.96, 0.86, 0.52, 1)
+wildlife_id = "stag"

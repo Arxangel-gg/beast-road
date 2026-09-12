@@ -398,6 +398,12 @@ func _settle_run(victory: bool) -> void:
 
 	MetaState.best_distance = maxf(MetaState.best_distance, RunState.distance_travelled)
 	MetaState.total_enemies_killed += int(summary["kills"])
+	MetaState.highest_act = maxi(MetaState.highest_act, RunState.act)
+	# A run that reached its sixth wave taught everything the coach has to
+	# teach, whether or not the road reached a crossroad.
+	if RunState.wave_number >= 6:
+		MetaState.mark_tutorial_done()
+	MetaState.check_achievements()
 	_bank_treasury_cache()
 	MetaState.save_game()
 	# Payout values are captured after payout. Previously the debrief showed the

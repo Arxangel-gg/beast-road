@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act01"
+display_name = "Act 1  ·  The Road Begins"
+title = "Act 1  ·  The Road Begins"
+category = 1
+unlock_act = 1
+order = 1
+art = ""
+body = "The Verdant Maw closes over the road like a mouth. The Coalpaint Raiders come out of the green in columns, and Rakka Coal-Eye's horn turns each column into a charge. The Warden learns the four roads here, and what a wall is for. When the Wolf Marshal falls, the green lets go."

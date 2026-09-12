@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "fishing"
+display_name = "How to fish"
+title = "How to fish"
+category = "Fishing & Water"
+order = 14
+image = "res://art/guide/fishing.png"
+body = "Stand by a pond, on dry ground, still. Hold Interact to charge and let go to cast - a tap puts the line in the nearest water, a long hold throws it far, and a throw past the pond lands on the bank and comes back. Wait. The float bobs on its own; a nibble is different, and the readout says which. On the bite, press Interact within the window."

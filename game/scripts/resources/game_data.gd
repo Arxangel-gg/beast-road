@@ -133,6 +133,20 @@ static func load_idle_frames(base_path: String) -> Array[Texture2D]:
 	return _load_sequence(base_path, idle_frame_path)
 
 
+## Any named state's frames - `_graze_01`, `_swim_01` - by the same
+## convention as idle and move. Empty when the state has none.
+static func load_state_frames(base_path: String, state: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	if base_path.is_empty() or state.is_empty():
+		return out
+	for index: int in range(1, 17):
+		var path: String = "%s_%s_%02d.png" % [base_path.get_basename(), state, index]
+		if not ResourceLoader.exists(path):
+			break
+		out.append(load(path) as Texture2D)
+	return out
+
+
 ## One sequence loader for both conventions.
 ##
 ## Shared rather than copied, because the awkward parts - frame zero being the

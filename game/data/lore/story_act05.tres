@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act05"
+display_name = "Act 5  ·  Iron in the Wood"
+title = "Act 5  ·  Iron in the Wood"
+category = 1
+unlock_act = 5
+order = 5
+art = ""
+body = "The Rustwood is a forest that rusted. The iron went in through the wounds of the trees and kept going, and the Rustmother let it in through hers. What comes off her comes off in flakes and keeps moving. The Warden learns that not everything that falls apart stops."

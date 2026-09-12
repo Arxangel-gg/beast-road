@@ -409,9 +409,142 @@ var pending_runs: Array = []
 var runs_started: int = 0
 ## Rift and dungeon stages closed, all time. A statistic, like the kills.
 var rifts_closed: int = 0
+## Camps razed on the outskirts, across every run. A statistic (working rule
+## 7), like the rift stages.
+var camps_razed: int = 0
 var runs_won: int = 0
 var best_distance: float = 0.0
 var total_enemies_killed: int = 0
+
+# --- More statistics, and what they unlock (2026-09-12) ------------------------
+#
+# Owner brief: a clear view of the account's progress, and achievements. Every
+# one of these is a count the account keeps anyway; an achievement is a count
+# with a threshold and a name (working rule 7: statistics are sanctioned, and
+# an achievement grants nothing). `stat` is the single read for all of them,
+# derived ones included, so an achievement file names a key and nothing else.
+
+## The furthest act this account has reached, across every run.
+var highest_act: int = 0
+var bosses_felled: int = 0
+var forks_opened: int = 0
+var war_camps_razed: int = 0
+var dungeons_finished: int = 0
+var fish_caught_total: int = 0
+var swims: int = 0
+var coop_runs: int = 0
+## Achievement ids unlocked, in the order they were earned.
+var achievements: Array[String] = []
+## Whether the first road has been walked to a crossroad. Co-op waits for it
+## (owner brief: new players run through the tutorial before co-op unlocks).
+var tutorial_done: bool = false
+
+
+## One read for every statistic an achievement may name. Unknown keys read
+## zero, so a misspelt key can never unlock - `guide_check` refuses them.
+func stat(key: String) -> float:
+	match key:
+		"runs_started": return float(runs_started)
+		"runs_won": return float(runs_won)
+		"highest_act": return float(highest_act)
+		"bosses_felled": return float(bosses_felled)
+		"total_enemies_killed": return float(total_enemies_killed)
+		"camps_razed": return float(camps_razed)
+		"forks_opened": return float(forks_opened)
+		"war_camps_razed": return float(war_camps_razed)
+		"rifts_closed": return float(rifts_closed)
+		"dungeons_finished": return float(dungeons_finished)
+		"fish_caught_total": return float(fish_caught_total)
+		"swims": return float(swims)
+		"coop_runs": return float(coop_runs)
+		"spirits_bonded": return float(spirit_bonded.size())
+		"hero_level": return float(hero_level)
+		"ascension": return float(ascension)
+		"best_distance": return best_distance
+		"codex_share":
+			var total: int = 0
+			for source: String in ["enemies", "affixes", "wildlife_kinds", "weathers"]:
+				total += (ContentDB.get(source) as Dictionary).size()
+			return float(codex_seen.size()) / float(maxi(total, 1))
+		_:
+			return 0.0
+
+
+## Whether a key names a statistic this account keeps. For the gate.
+func has_stat(key: String) -> bool:
+	return key in ["runs_started", "runs_won", "highest_act", "bosses_felled",
+		"total_enemies_killed", "camps_razed", "forks_opened", "war_camps_razed",
+		"rifts_closed", "dungeons_finished", "fish_caught_total", "swims", "coop_runs",
+		"spirits_bonded", "hero_level", "ascension", "best_distance", "codex_share"]
+
+
+## Compares every achievement to its statistic and says so once for each
+## newly met. Cheap - two dozen comparisons - so it runs after any count moves.
+func check_achievements() -> void:
+	var earned: bool = false
+	for achievement: AchievementData in ContentDB.achievements_sorted():
+		if achievements.has(achievement.id) or not achievement.is_met():
+			continue
+		achievements.append(achievement.id)
+		earned = true
+		EventBus.achievement_unlocked.emit(achievement.id)
+	if earned:
+		save_game()
+
+
+## The first road walked to its crossroad. Said once.
+func mark_tutorial_done() -> void:
+	if tutorial_done:
+		return
+	tutorial_done = true
+	save_game()
+
+
+## Renames the Warden. The name is cleaned the way the board cleans it, so a
+## name that cannot be posted cannot be worn either.
+func rename_player(wanted: String) -> void:
+	var cleaned: String = Score.clean_name(wanted)
+	if cleaned == player_name:
+		return
+	player_name = cleaned
+	save_game()
+	EventBus.player_renamed.emit(player_name)
+
+
+func _wire_statistics() -> void:
+	EventBus.boss_defeated.connect(func(_id: String, _act: int) -> void:
+		bosses_felled += 1
+		check_achievements())
+	EventBus.act_started.connect(func(act: int, _terrain: String) -> void:
+		if act > highest_act:
+			highest_act = act
+			check_achievements())
+	EventBus.fish_caught.connect(func(_id: String, _food: int) -> void:
+		fish_caught_total += 1
+		check_achievements())
+	EventBus.camp_cleared.connect(func(_lane: int, tier: int) -> void:
+		if tier == BattleGrid.CampTier.BARON:
+			war_camps_razed += 1
+		check_achievements())
+	EventBus.fork_opened.connect(func(_lane: int) -> void:
+		forks_opened += 1
+		check_achievements())
+	EventBus.hero_swim_changed.connect(func(swimming: bool) -> void:
+		if swimming:
+			swims += 1
+			check_achievements())
+	EventBus.rift_ended.connect(func(reward: Dictionary) -> void:
+		if int(reward.get("kind", 0)) == RiftArena.Kind.DUNGEON \
+				and int(reward.get("stages", 0)) >= Balance.DUNGEON_STAGES \
+				and not bool(reward.get("died", false)):
+			dungeons_finished += 1
+		check_achievements())
+	EventBus.spirit_bonded.connect(func(_key: String) -> void: check_achievements())
+	EventBus.hero_levelled.connect(func(_level: int, _points: int, _skill: int) -> void: check_achievements())
+	EventBus.run_started.connect(func() -> void:
+		if Coop.partner_present():
+			coop_runs += 1
+		check_achievements())
 
 # --- Settings ---
 const MILESTONE_CINEMATICS_SEEN_KEY: String = "milestone_cinematics_seen"
@@ -457,6 +590,8 @@ var settings: Dictionary = {
 	"master_volume": 1.0,
 	"music_volume": 0.8,
 	"sfx_volume": 1.0,
+	"ambience_volume": 0.9,
+	"weather_volume": 0.9,
 	"screen_shake": 1.0,
 	"beast_gait": 0.65,
 	"display_mode": UserSettings.DISPLAY_FULLSCREEN,
@@ -714,6 +849,17 @@ func erase_progress() -> void:
 	pending_runs.clear()
 	runs_started = 0
 	rifts_closed = 0
+	camps_razed = 0
+	highest_act = 0
+	bosses_felled = 0
+	forks_opened = 0
+	war_camps_razed = 0
+	dungeons_finished = 0
+	fish_caught_total = 0
+	swims = 0
+	coop_runs = 0
+	achievements.clear()
+	tutorial_done = false
 	runs_won = 0
 	best_distance = 0.0
 	total_enemies_killed = 0
@@ -807,6 +953,7 @@ func earn_next_roster_tower() -> String:
 
 func _ready() -> void:
 	load_save()
+	_wire_statistics()
 	_seed_starting_roster()
 	# After `load_save`, never inside it: the stash is parsed late, so a piece
 	# appended mid-parse would be overwritten by the save's own list.
@@ -1336,9 +1483,20 @@ func serialized_save() -> String:
 		"stats": {
 			"runs_started": runs_started,
 			"rifts_closed": rifts_closed,
+			"camps_razed": camps_razed,
 			"runs_won": runs_won,
 			"best_distance": best_distance,
 			"total_enemies_killed": total_enemies_killed,
+			"highest_act": highest_act,
+			"bosses_felled": bosses_felled,
+			"forks_opened": forks_opened,
+			"war_camps_razed": war_camps_razed,
+			"dungeons_finished": dungeons_finished,
+			"fish_caught_total": fish_caught_total,
+			"swims": swims,
+			"coop_runs": coop_runs,
+			"achievements": achievements,
+			"tutorial_done": tutorial_done,
 		},
 		"board": {
 			"name": player_name,
@@ -1421,9 +1579,20 @@ func load_save() -> void:
 	var stats: Dictionary = data.get("stats", {}) as Dictionary
 	runs_started = int(stats.get("runs_started", 0))
 	rifts_closed = maxi(int(stats.get("rifts_closed", 0)), 0)
+	camps_razed = maxi(int(stats.get("camps_razed", 0)), 0)
 	runs_won = int(stats.get("runs_won", 0))
 	best_distance = float(stats.get("best_distance", 0.0))
 	total_enemies_killed = int(stats.get("total_enemies_killed", 0))
+	highest_act = maxi(int(stats.get("highest_act", 0)), 0)
+	bosses_felled = maxi(int(stats.get("bosses_felled", 0)), 0)
+	forks_opened = maxi(int(stats.get("forks_opened", 0)), 0)
+	war_camps_razed = maxi(int(stats.get("war_camps_razed", 0)), 0)
+	dungeons_finished = maxi(int(stats.get("dungeons_finished", 0)), 0)
+	fish_caught_total = maxi(int(stats.get("fish_caught_total", 0)), 0)
+	swims = maxi(int(stats.get("swims", 0)), 0)
+	coop_runs = maxi(int(stats.get("coop_runs", 0)), 0)
+	achievements = _unique_string_array(stats.get("achievements", []))
+	tutorial_done = bool(stats.get("tutorial_done", false))
 
 	_read_settings(data.get("settings", {}) as Dictionary)
 

@@ -218,7 +218,9 @@ func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	# The cast, and the flight.
 	angler.call("press_interact")
 	ponds._process(0.05)
-	_check(ponds.state() == Fishing.State.CASTING, "a press must cast")
+	# The second cut (2026-09-12): a press charges and the release casts.
+	ponds._process(0.05)
+	_check(ponds.state() == Fishing.State.CASTING, "a press and a release must cast (state %d)" % ponds.state())
 	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
 	_check(ponds.state() == Fishing.State.WAITING, "the float must land and the wait begin")
 	_check(ponds.is_fishing(), "a cast line is fishing")
@@ -232,6 +234,8 @@ func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	# Again, and this time wait it out to a bite - and miss it.
 	ponds._process(0.05)
 	angler.call("press_interact")
+	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
 	ponds._process(0.05)
 	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
 	var reached_bite: bool = _tick_until(ponds, Fishing.State.BITE, 120.0)
@@ -247,6 +251,8 @@ func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	reached_bite = _tick_until(ponds, Fishing.State.BITE, 120.0)
 	_check(reached_bite, "the second wait must end in a bite too")
 	angler.call("press_interact")
+	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
 	ponds._process(0.05)
 	_check(ponds.state() == Fishing.State.REELING, "a press inside the window hooks the fish")
 	var before_food: int = int((field.get("paid") as Dictionary).get(RunState.FOOD, 0))
@@ -288,9 +294,13 @@ func _test_a_slack_or_snapped_line_pays_nothing() -> void:
 	ponds._process(0.05)
 	angler.call("press_interact")
 	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
+	ponds._process(0.05)
 	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
 	_check(_tick_until(ponds, Fishing.State.BITE, 120.0), "the wait must end in a bite")
 	angler.call("press_interact")
+	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
 	ponds._process(0.05)
 	# Hold and never let go.
 	angler.call("hold_interact", true)
@@ -307,15 +317,20 @@ func _test_a_slack_or_snapped_line_pays_nothing() -> void:
 	ponds._process(0.05)
 	angler.call("press_interact")
 	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
+	ponds._process(0.05)
 	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
 	_check(_tick_until(ponds, Fishing.State.BITE, 120.0), "the wait must end in a bite")
 	angler.call("press_interact")
+	ponds._process(0.05)
+	# The second cut (2026-09-12): a press charges and the release casts.
 	ponds._process(0.05)
 	for _step: int in 600:
 		ponds._process(0.05)
 		if ponds.state() != Fishing.State.REELING:
 			break
-	_check(_failed_reasons.has("It threw the hook."), "a slack line loses the fish: %s" % str(_failed_reasons))
+	_check(_failed_reasons.has("It threw the hook.") or _failed_reasons.has("It slipped away."),
+		"a slack line loses the fish: %s" % str(_failed_reasons))
 	_check(_caught.is_empty() and MetaState.fish_total() == 0, "a lost fish pays nothing")
 
 	angler.queue_free()

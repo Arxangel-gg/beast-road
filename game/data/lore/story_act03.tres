@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act03"
+display_name = "Act 3  ·  The White Teeth"
+title = "Act 3  ·  The White Teeth"
+category = 1
+unlock_act = 3
+order = 3
+art = ""
+body = "The snow comes down over everything and the White Teeth come down with it. Mogrun White-Maw, the Avalanche King, is armoured against the cold and against everything else; an unfocused defence will not outlast him. Here the Warden learns to choose what to kill first."

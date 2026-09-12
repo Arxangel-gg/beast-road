@@ -1819,6 +1819,17 @@ const STATE_DISSOLVE_COLOUR: Color = Color(1.0, 0.72, 0.42, 1.0)
 const TREELINE_JUNGLE_SCALE: Vector2 = Vector2(1.35, 2.15)
 const TREELINE_DESERT_SCALE: Vector2 = Vector2(1.08, 1.70)
 const TREELINE_SNOW_SCALE: Vector2 = Vector2(1.22, 1.94)
+## The later regions' stands (2026-09-12), by region id. A region not here
+## falls back to the three above.
+const TREELINE_REGION_SCALE: Dictionary = {
+	"hollow_marches": Vector2(1.25, 2.0),
+	"rustwood": Vector2(1.3, 2.1),
+	"saltpan": Vector2(1.0, 1.6),
+	"iron_steppe": Vector2(1.05, 1.7),
+	"glass_fields": Vector2(1.1, 1.8),
+	"ashen_reach": Vector2(1.05, 1.75),
+	"last_terrace": Vector2(1.2, 1.95),
+}
 const TREELINE_WIDTH_VARIATION: Vector2 = Vector2(0.82, 1.18)
 const TREELINE_HEIGHT_VARIATION: Vector2 = Vector2(0.94, 1.12)
 const TREELINE_LEAN_DEGREES: float = 2.2
@@ -1832,8 +1843,8 @@ const TREELINE_GIANT_SCALE: Vector2 = Vector2(1.35, 1.72)
 ## Keeps independently scattered trunks from occupying effectively one pixel.
 ## Canopies may overlap naturally; the ground contacts may not. [TUNE]
 const TREELINE_TRUNK_SPACING: float = 92.0
-const TREELINE_REACH: float = 2800.0
-const TREELINE_ATTEMPTS: int = 720
+const TREELINE_REACH: float = 3400.0
+const TREELINE_ATTEMPTS: int = 1100
 
 # --- Fishing (2026-09-11) ------------------------------------------------------
 #
@@ -2031,6 +2042,13 @@ const TREELINE_LANE_CLEARANCE: float = 320.0
 ## screen-space HUD, but a swing you cannot see landing tells you nothing.
 const HEALTH_BAR_WIDTH: float = 54.0
 const HEALTH_BAR_HEIGHT: float = 7.0
+## The pale trail a hit leaves on a bar, and how fast it drains (fraction of
+## the bar per second). The ranked wear a wider bar.
+const HEALTH_BAR_TRAIL_COLOUR: Color = Color(1.0, 0.86, 0.5, 0.95)
+const HEALTH_BAR_TRAIL_RATE: float = 0.45
+const HEALTH_BAR_CHAMPION_WIDTH: float = 1.3
+const HEALTH_BAR_ELITE_WIDTH: float = 1.6
+const HEALTH_BAR_BOSS_WIDTH: float = 2.2
 
 ## How fast the blink cycles while the hero is invulnerable, in cycles/sec.
 const INVULN_BLINK_RATE: float = 12.0
@@ -4136,6 +4154,9 @@ const VFX_VIGNETTE_MAX: float = 0.85
 ## Level the ambience bed settles at, in decibels. It is meant to be noticed
 ## only when it stops. [TUNE]
 const AMBIENCE_DB: float = -20.0
+## The weather bed's level, on its own bus and slider. A touch under the
+## ambience: rain sits beside the birds, never over them.
+const WEATHER_DB: float = -22.0
 
 ## Level the music settles at on its own bus, in decibels. The bus carries the
 ## player's volume slider, so this is purely how loud music sits against the
@@ -4618,7 +4639,7 @@ const SHADOW_LAYER_UNITS: int = 2
 ## Comfortably past the lane network at 900. The scatter used to stop at 1.15x
 ## that, so everything grew among the roads and the ground beyond them was empty
 ## - which reads as a map that stops rather than a place that continues. [TUNE]
-const FOLIAGE_REACH: float = 2100.0
+const FOLIAGE_REACH: float = 3300.0
 
 ## Set by what the field should look like, because the cost turned out to be
 ## nothing at all.
@@ -4634,7 +4655,7 @@ const FOLIAGE_REACH: float = 2100.0
 ## zero and it scales with the count. 1500 buys most of the density back for
 ## about a fifth of a millisecond. Reported as too thin inside the roads on
 ## 2026-08-25. [TUNE]
-const FOLIAGE_COUNT: int = 1500
+const FOLIAGE_COUNT: int = 3200
 
 ## How strongly the scatter crowds inward. 0.5 is uniform by area; lower packs
 ## more of it near the roads and leaves the outer ground sparse.
@@ -4823,6 +4844,13 @@ const LEAFFALL_REGION_RATE: Dictionary = {
 	"jungle": 1.0,
 	"desert": 0.45,
 	"snow": 0.30,
+	"hollow_marches": 0.7,
+	"rustwood": 1.4,
+	"saltpan": 0.15,
+	"iron_steppe": 0.5,
+	"glass_fields": 0.35,
+	"ashen_reach": 0.6,
+	"last_terrace": 0.55,
 }
 
 ## The two colours a region's leaves are drawn between.
@@ -4830,6 +4858,13 @@ const LEAFFALL_REGION_COLOURS: Dictionary = {
 	"jungle": [Color("6f8f42"), Color("c2a33e")],
 	"desert": [Color("b9954e"), Color("8a6a38")],
 	"snow": [Color("d7e2ea"), Color("9fb3bf")],
+	"hollow_marches": [Color("5f7a4a"), Color("8a9a5a")],
+	"rustwood": [Color("c2531f"), Color("d9942b")],
+	"saltpan": [Color("d8d4c4"), Color("a8b09a")],
+	"iron_steppe": [Color("9a9450"), Color("c7b56a")],
+	"glass_fields": [Color("bfe6ff"), Color("e8f6ff")],
+	"ashen_reach": [Color("6a6a6a"), Color("ff8a3a")],
+	"last_terrace": [Color("a9c9b5"), Color("f0f4ee")],
 }
 
 ## How opaque a leaf is in the air. Below the foliage it falls from, so it
@@ -5656,3 +5691,293 @@ const COOP_SHOT_MATCH_RANGE: float = 96.0
 ## Long enough to ride out a late packet or two, short enough that a dropped
 ## connection does not march the whole field off the map. [TUNE]
 const COOP_MIRROR_COAST_LIMIT: float = 0.75
+
+
+# ==============================================================================
+# THE OUTSKIRTS: CAMPS, FORKS AND THE WAR CAMP (2026-09-12)
+# ==============================================================================
+#
+# Owner brief: the roads run on past the old edge to the enemies' spawn, camps
+# branch off each road (an easier one, then a harder one) that stay where they
+# are, patrol, leash back and heal like a jungle camp, pay better loot at
+# better rarity, and come back on a timer; clearing both opens the fork - two
+# spawn points instead of one, and a war camp between the legs whose fall opens
+# a dungeon. `BattleGrid._lay_outskirts` is the shape; `Camps` is the life.
+#
+# **The bound is that a camp pays what the road already pays**: run currency,
+# gear rolled on the same tables (at a better tier order, which is odds, not a
+# new kind), Shards. Nothing new persists; `MetaState.camps_razed` is a
+# statistic. A camp's bodies are ordinary breeds of the region at a scale, so
+# ten acts of camps needed no eleventh roster. [TUNE]
+
+## Bodies per camp, by tier (easy, hard, war camp). The war camp is its
+## champion and this many escorts.
+const CAMP_MOBS_MIN: Array[int] = [2, 3, 2]
+const CAMP_MOBS_MAX: Array[int] = [3, 4, 3]
+## Health and damage against a wave body of the same act, by tier. The war
+## camp's champion is scaled again by `CAMP_BARON_SCALE` on top.
+const CAMP_HP_SCALE: Array[float] = [1.7, 2.6, 2.2]
+const CAMP_DAMAGE_SCALE: Array[float] = [1.15, 1.45, 1.6]
+const CAMP_BARON_SCALE: float = 4.5
+## Chance a camp body is promoted, by tier. The war camp's champion is always.
+const CAMP_ELITE_CHANCE: Array[float] = [0.25, 0.55, 1.0]
+## How far from its home a camp body notices a hero, and how far it will
+## follow before it turns back. A hero who leaves the leash is left alone -
+## the League rule - and the body walks home healing.
+const CAMP_AGGRO: float = 360.0
+const CAMP_LEASH: float = 620.0
+## How far a body wanders from home while nothing is happening, and how often.
+const CAMP_PATROL_RADIUS: float = 130.0
+const CAMP_PATROL_PAUSE: Vector2 = Vector2(1.2, 3.4)
+## Health regained per second while walking home, as a share of the maximum.
+const CAMP_RETURN_REGEN: float = 0.45
+## Seconds until a razed camp stands again, by tier.
+const CAMP_RESPAWN_SECONDS: Array[float] = [150.0, 200.0, 300.0]
+## What razing a camp pays, by tier: run currency (split like a raid's), gear
+## pieces, the tier-order bonus those pieces roll at (odds of rarity, never a
+## new kind), and Shards.
+const CAMP_CURRENCY: Array[int] = [90, 170, 360]
+const CAMP_GEAR_DROPS: Array[int] = [1, 2, 3]
+const CAMP_GEAR_TIER_BONUS: Array[int] = [1, 2, 3]
+const CAMP_SHARDS: Array[int] = [0, 3, 10]
+## Hero experience for a camp body, against the same body on the road.
+const CAMP_XP_SCALE: float = 1.5
+## A camp body's kill spoils against the same body on the road.
+const CAMP_SPOILS_SCALE: float = 1.4
+## Props scattered on a camp's ground, and how far in from its edge.
+const CAMP_PROP_COUNT: Vector2i = Vector2i(4, 7)
+const CAMP_PROP_INSET: float = 40.0
+## Seconds a razed camp's ground stays scorched before the props stand again.
+const CAMP_RAZE_FADE: float = 1.6
+## The fork barrier: how thick its body is across the leg, and how long its
+## fall takes.
+const FORK_BARRIER_THICKNESS: float = 48.0
+const FORK_BARRIER_FALL: float = 1.1
+## Seconds after a dungeon closes before the war camp begins to respawn.
+const CAMP_BARON_DUNGEON_GRACE: float = 45.0
+
+
+# ==============================================================================
+# FISHING, THE THIRD CUT: THE CAST, THE DEPTHS AND THE WATER (2026-09-12)
+# ==============================================================================
+#
+# Owner brief: hold to cast further (and miss the pond); ponds have depth and
+# the deep middle holds the rarer, harder fish; a slippery band the player has
+# to keep the line inside while it drifts; nibbles and idle bobs told apart;
+# bubble patches that are a chance at something rare, or at startling it, or
+# at being bitten; a hero who walks in swims, and can drown. [TUNE]
+
+## Seconds a held cast takes to reach full power, and the distance a cast
+## reaches at none and at all of it.
+const FISHING_CHARGE_SECONDS: float = 1.3
+const FISHING_CAST_MIN: float = 70.0
+const FISHING_CAST_MAX: float = 300.0
+## A press shorter than this is a tap: the line goes to the nearest water.
+const FISHING_TAP_CHARGE: float = 0.12
+## Seconds the float lies on dry ground before the line comes back.
+const FISHING_MISS_SECONDS: float = 0.8
+## How much the deep middle tilts the roll toward the rare fish, and how much
+## harder a deep fish fights. Both scale with the depth the float landed on.
+const FISHING_DEPTH_RARE_BONUS: float = 0.9
+const FISHING_DEPTH_FIGHT_BONUS: float = 0.4
+## Bubble patches per pond, their radius, and what casting into one is worth:
+## the rare tilt, the chance the thing below is startled off by a nibble, the
+## harder fight.
+const FISHING_BUBBLE_SPOTS: Vector2i = Vector2i(0, 2)
+const FISHING_BUBBLE_RADIUS: float = 46.0
+const FISHING_BUBBLE_RARE_BONUS: float = 1.3
+const FISHING_BUBBLE_STARTLE: float = 0.3
+const FISHING_BUBBLE_FIGHT_BONUS: float = 0.3
+## Seconds between a patch moving to a new part of the pond.
+const FISHING_BUBBLE_DRIFT: Vector2 = Vector2(4.0, 9.0)
+## What the thing below does to a swimmer in its patch: damage, and how
+## often.
+const FISHING_BUBBLE_BITE_DAMAGE: float = 9.0
+const FISHING_BUBBLE_BITE_INTERVAL: float = 1.1
+## Seconds between idle bobs of the float - the ones that mean nothing.
+const FISHING_BOB_INTERVAL: Vector2 = Vector2(1.1, 2.8)
+## How fast the safe band drifts while a fish fights, by rarity, and how far
+## the Angler damps that at the cap.
+const FISHING_BAND_DRIFT_BY_RARITY: Array[float] = [0.05, 0.09, 0.14, 0.2]
+const FISHING_SKILL_DRIFT_FLOOR: float = 0.5
+## Grip: drains while the line is outside the band, by rarity; refills inside.
+## At zero the fish slips away.
+const FISHING_GRIP_DRAIN_BY_RARITY: Array[float] = [0.26, 0.34, 0.44, 0.58]
+const FISHING_GRIP_REFILL: float = 0.22
+## Swimming: how deep the water must be under the hero to count, how fast a
+## swimmer moves against walking, how often a stroke stirs the water, and
+## where the waterline sits on the sprite.
+const SWIM_THRESHOLD: float = 0.12
+const SWIM_SPEED_SCALE: float = 0.55
+const SWIM_RIPPLE_INTERVAL: float = 0.38
+const SWIM_COVER_ALPHA: float = 0.58
+const SWIM_WATERLINE: float = 0.42
+## Seconds a drowned hero takes to go under.
+const DROWN_SECONDS: float = 1.5
+
+
+# ==============================================================================
+# THE BEAST'S TAIL AND THE ROAD BESIDE IT (2026-09-12)
+# ==============================================================================
+#
+# Owner brief: the beast's tail was cut off by the generated frames; the beast
+# scope wants sidescroller parallax in the background and foreground, and a
+# readout of how far into the act the beast is. [TUNE]
+
+## The tail's frames, by the same convention as the body's.
+const BEAST_TAIL_WALK_FRAME_FORMAT: String = "res://art/beast/beast_tail_walk_%02d.png"
+const BEAST_TAIL_IDLE_FRAME_FORMAT: String = "res://art/beast/beast_tail_idle_%02d.png"
+## Where the tail's root sits on the body frame, in the frame's own pixels
+## from its centre, and where the root sits on the tail art as a fraction of
+## its width and height.
+const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 28.0)
+const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.56)
+## The tail's idle sway rate, in frames a second.
+const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
+## The far woods: the region's trees on the ridge, hazed and slow.
+const BEAST_WOODS_Z: int = -9
+const BEAST_WOODS_SCROLL: float = 0.42
+const BEAST_WOODS_BASELINE: float = 392.0
+const BEAST_WOODS_COUNT: int = 34
+const BEAST_WOODS_SCALE: Vector2 = Vector2(1.1, 1.9)
+const BEAST_WOODS_HAZE: float = 0.55
+## The near brush: the region's plants passing in front of the beast, dark
+## and fast.
+const BEAST_BRUSH_Z: int = 42
+const BEAST_BRUSH_SCROLL: float = 1.35
+const BEAST_BRUSH_BASELINE: float = 604.0
+const BEAST_BRUSH_COUNT: int = 26
+const BEAST_BRUSH_SCALE: Vector2 = Vector2(2.4, 3.6)
+const BEAST_BRUSH_DARKEN: float = 0.55
+## Where the act track sits, from the bottom of the screen.
+const BEAST_TRACK_BOTTOM_MARGIN: float = 26.0
+## Grass tufts in the foliage field: how often a clump carries a painted tuft
+## from the region's sheet, and how the polygon blades thin out beside it.
+const FOLIAGE_TUFT_CHANCE: float = 0.75
+const FOLIAGE_TUFT_SCALE: Vector2 = Vector2(1.5, 2.2)
+const FOLIAGE_TUFT_BLADE_SHARE: float = 0.55
+
+
+# ==============================================================================
+# COMPANIONS THAT MOVE, AND DEER THAT GRAZE (2026-09-12)
+# ==============================================================================
+#
+# Owner brief: companions faced the wrong way and used no animations; they
+# need full animation and sound, health bars once hurt, and a readout of the
+# re-forming clock. Deer should graze, and be pulled out of it by threats -
+# subtle cues about the field. Predators that chase prey should actually bite
+# it. [TUNE]
+
+## Seconds a companion holds its attack frames after a strike.
+const COMPANION_STRIKE_FRAMES_SECONDS: float = 0.4
+## The companion's bar, sized like the wildlife's.
+const COMPANION_BAR_LIFT: float = 54.0
+## A grazer's odds of putting its head down when it stops, how long it stays
+## down, how much longer while nothing is near, and how long it stays alert
+## afterwards before deciding what to do about what it noticed.
+const WILDLIFE_GRAZE_CHANCE: float = 0.65
+const WILDLIFE_GRAZE_SECONDS: Vector2 = Vector2(4.0, 11.0)
+const WILDLIFE_GRAZE_SAFE_BONUS: float = 5.0
+const WILDLIFE_ALERT_SECONDS: float = 1.4
+## How far past its skittish radius a grazer notices something, as a scale.
+const WILDLIFE_NOTICE_SCALE: float = 1.6
+## How far a nervous grazer walks off from a thing it noticed but did not flee.
+const WILDLIFE_RELOCATE_DISTANCE: float = 220.0
+## A predator's bite on prey, as a share of the prey's health, and the frames
+## it uses to say so.
+const WILDLIFE_PREY_BITE_SHARE: float = 0.55
+
+
+# ==============================================================================
+# LEGENDARY AFFIXES (2026-09-12)
+# ==============================================================================
+#
+# Owner brief: "legendary gear with affixes similar to Diablo". A piece from
+# Runed up carries one, and the two top rarities carry two. Each moves a
+# number `Modifiers` already resolves by a few percent - the omen bound - so
+# the acts' curve can be read with them in it, and gear's capped attribute
+# scale (working rule 7) stays the scale. [TUNE]
+
+## Legendary affixes per rarity, indexed like `Stash.RARITY_NAMES`.
+const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2]
+## The largest fraction any single affix may move a scaled key by. The gate
+## refuses an affix above it.
+const GEAR_LEGENDARY_CEILING: float = 0.12
+
+
+## Where a hero's nameplate sits above the feet, in co-op. [TUNE]
+const HERO_NAMEPLATE_LIFT: float = 128.0
+
+
+## The well's gauge: its radius around the basin, and its colours empty and
+## full. The prompt reaches as far as the pour does. [TUNE]
+const WELL_GAUGE_RADIUS: float = 34.0
+const WELL_GAUGE_EMPTY: Color = Color(0.35, 0.45, 0.55, 0.55)
+const WELL_GAUGE_FULL: Color = Color(0.55, 0.9, 1.0, 0.95)
+
+
+# --- Party events (2026-09-12) --------------------------------------------------
+#
+# Owner brief: a raid or a rift in co-op asks the party first, with a timer;
+# declines are allowed, everyone is told who said what, and the one who asked
+# decides when it is not unanimous. [TUNE]
+const PARTY_EVENT_VOTE_SECONDS: float = 20.0
+const PARTY_EVENT_DECIDE_SECONDS: float = 12.0
+## The most kills a guest's own arena may report for its reward. A kill count
+## past this is a forged packet, not a good raid.
+const PARTY_EVENT_KILL_CAP: int = 400
+
+
+# --- The maze under a rift (2026-09-12) -------------------------------------------
+#
+# Owner brief: "Astonia mazes + Diablo rifts", a timed collapse with damage and
+# a way out, a chest with a loot burst, an exit portal. The floor is
+# `DungeonLayout`; a dungeon is the tight cut and a rift the loose one. [TUNE]
+const DUNGEON_ROOMS: int = 5
+const RIFT_ROOMS: int = 8
+const DUNGEON_ROOM_MIN: int = 4
+const DUNGEON_ROOM_MAX: int = 7
+const RIFT_ROOM_MAX: int = 10
+## Extra doors between lattice cells, so the maze loops rather than dead-ends.
+const DUNGEON_LOOP_CHANCE: float = 0.08
+const RIFT_LOOP_CHANCE: float = 0.3
+## Bodies appear at least this many tiles' walk from the hero, and the
+## walking distances that steer them are refreshed this often.
+const DUNGEON_SPAWN_MIN_TILES: int = 7
+const DUNGEON_FLOW_REFRESH: float = 0.2
+const DUNGEON_FIRST_SPAWN_DELAY: float = 1.5
+## The collapse: seconds to reach the exit once the clock runs out, and the
+## bite each second as a fraction of the hero's health.
+const DUNGEON_COLLAPSE_SECONDS: float = 20.0
+const DUNGEON_COLLAPSE_DAMAGE: float = 0.06
+## The chest: how many drops a stage's currency bursts into, how close to
+## open it, and the extra piece the bottom of a dungeon holds.
+const DUNGEON_CHEST_PIECES: int = 12
+const DUNGEON_CHEST_REACH: float = 74.0
+const DUNGEON_CHEST_SCALE: float = 1.15
+const DUNGEON_LAST_STAGE_BONUS_GEAR: int = 1
+## The doors on the floor: reach, art scale and glow.
+const DUNGEON_PORTAL_REACH: float = 90.0
+const DUNGEON_PORTAL_SCALE: float = 0.7
+const DUNGEON_PORTAL_GLOW: float = 150.0
+const DUNGEON_EXIT_GLOW: Color = Color(0.55, 0.85, 1.0, 0.7)
+const DUNGEON_STAIRS_GLOW: Color = Color(0.6, 1.0, 0.7, 0.7)
+
+
+# --- The raid, polished (2026-09-12) --------------------------------------------
+#
+# Owner brief: "raids need way more polish". The camp is furnished with the
+# war camp's own props, its fires glow, and the windows, the chieftain and the
+# extraction each say what they are. [TUNE]
+const RAID_PROP_COUNT: int = 26
+const RAID_PROP_SPACING: float = 88.0
+const RAID_FIRE_GLOW: Color = Color(1.0, 0.62, 0.28, 0.55)
+const RAID_FIRE_GLOW_RADIUS: float = 170.0
+## Every so many kills the count is called out over the hero.
+const RAID_KILL_CALLOUT: int = 10
+## The cut floor under a rift: the rock is dark and the floor is lit, so the
+## maze reads the right way round. A dungeon's props are fewer and grimmer.
+const DUNGEON_WALL_TINT: Color = Color(0.36, 0.34, 0.4, 1.0)
+const RIFT_WALL_TINT: Color = Color(0.42, 0.34, 0.5, 1.0)
+const DUNGEON_PROP_COUNT: int = 14
+const DUNGEON_PROP_KINDS: Array[String] = ["bones", "crates", "pot", "cage", "rack"]

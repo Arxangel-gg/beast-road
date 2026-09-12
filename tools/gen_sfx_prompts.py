@@ -507,6 +507,68 @@ ROWS = [
      "a boss arrival stinger: one enormous low orchestral hit with a long dark tail and a deep drum under it, for a crossfade to begin under"),
     ("sfx_boss_fall", "sfx", "sfx", "2.5s", "ElevenLabs",
      "a boss defeated fanfare: a short solemn brass and choir resolution, three rising notes, restrained rather than triumphant"),
+    # ---------------- weather (2026-09-12) ----------------
+    ("weather_downpour", "ambience", "ambience", "0:60-2:00", "Suno",
+     "heavy rain on leaves and packed earth, steady, with the occasional distant roll of thunder and water running off a roof; no wind howl"),
+    ("weather_snowfall", "ambience", "ambience", "0:60-2:00", "Suno",
+     "a snowfall: a muffled, hushed wind, the faint hiss of falling snow, an occasional creak of frozen wood; very quiet and soft"),
+    ("weather_duststorm", "ambience", "ambience", "0:60-2:00", "Suno",
+     "a duststorm: a dry rushing wind full of grit, sand hissing against stone, gusts rising and falling; harsh and airy"),
+    ("weather_heatwave", "ambience", "ambience", "0:60-2:00", "Suno",
+     "a heatwave: a shimmering high drone, cicadas, a very slow hot breath of wind, the crack of drying ground; oppressive stillness"),
+    # ---------------- swimming and the water (2026-09-12) ----------------
+    ("sfx_swim_enter", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "a person falling into a pond: a full body splash with a deep plunge and the water closing over"),
+    ("sfx_swim_exit", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "a person climbing out of water: a wet surge and heavy dripping off cloth"),
+    ("sfx_swim_stroke", "sfx", "sfx", "0.3s", "ElevenLabs",
+     "one swimming stroke: an arm pulling through calm water with a small wash, for repeating"),
+    ("sfx_water_bite", "sfx", "sfx", "0.4s", "ElevenLabs",
+     "something under the water biting a swimmer: a sudden churn, a wet snap and a short pained gasp"),
+    ("sfx_drown", "sfx", "sfx", "1.8s", "ElevenLabs",
+     "a drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink"),
+    ("sfx_fish_cast_charge", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "a fishing rod drawing back for a long cast: the line tightening and the rod creaking under tension, rising"),
+    ("sfx_fish_miss", "sfx", "sfx", "0.3s", "ElevenLabs",
+     "a fishing float landing on dry ground instead of water: a dull little thump and a rattle of line"),
+    # ---------------- camps and the fork (2026-09-12) ----------------
+    ("sfx_camp_razed", "sfx", "sfx", "1.4s", "ElevenLabs",
+     "a raider camp falling: a collapsing tent, scattered embers, a low satisfied drum hit and a short brass note"),
+    ("sfx_fork_open", "sfx", "sfx", "1.6s", "ElevenLabs",
+     "a road barrier of logs and stakes tumbling apart: heavy timber crashing, rope snapping, rocks rolling, then a deep open chord"),
+    # ---------------- companions (2026-09-12) ----------------
+    ("sfx_companion_summon", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "a spirit animal arriving: a soft rush of wind with a warm three-note chime and a faint animal breath"),
+    ("sfx_companion_down", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "a spirit animal beaten and dissolving: a falling two-note sigh and a scatter of soft sparks"),
+    ("sfx_companion_return", "sfx", "sfx", "0.8s", "ElevenLabs",
+     "a spirit animal re-forming beside its keeper: a rising three-note chime, bright and quick"),
+    ("sfx_companion_strike", "sfx", "sfx", "0.2s", "ElevenLabs",
+     "an animal's bite landing: a short snap of teeth with a small impact thud, for repeating"),
+    # ---------------- the well, the party, achievements (2026-09-12) ----------------
+    ("sfx_well_drink", "sfx", "sfx", "0.9s", "ElevenLabs",
+     "drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief"),
+    ("sfx_party_prompt", "sfx", "sfx", "0.7s", "ElevenLabs",
+     "a party invitation arriving: two clear ascending notes on a hunting horn, close and polite"),
+    ("sfx_party_accept", "sfx", "sfx", "0.6s", "ElevenLabs",
+     "a party member accepting: a bright three-note affirmative chime"),
+    ("sfx_party_decline", "sfx", "sfx", "0.5s", "ElevenLabs",
+     "a party member declining: a single soft falling note, not unkind"),
+    ("sfx_achievement", "sfx", "sfx", "1.4s", "ElevenLabs",
+     "an achievement earned: a warm four-note fanfare on bells and low brass with a short shimmering tail"),
+    # ---------------- the dungeon and the raid (2026-09-12) ----------------
+    ("sfx_dungeon_collapse", "sfx", "sfx", "2.2s", "ElevenLabs",
+     "a dungeon collapsing: stone grinding and cracking, a deep rumble building to a crash, dust settling"),
+    ("sfx_chest_open", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "a heavy iron-bound chest opening: a lock clunk, the lid creaking wide, a bright spill of coins and a chime"),
+    ("sfx_dungeon_exit", "sfx", "sfx", "1.1s", "ElevenLabs",
+     "stepping through a rift back to daylight: a rising whoosh of air, a soft chord opening, birdsong arriving"),
+    ("sfx_raid_window", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "an extraction window opening: a war horn's two-note call answered by a second horn, urgent"),
+    ("sfx_chieftain_roar", "sfx", "sfx", "1.2s", "ElevenLabs",
+     "a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing"),
+    ("sfx_raid_extract", "sfx", "sfx", "1.0s", "ElevenLabs",
+     "extracting from a raid: a rush of wind through a gap, a rising note, then quiet"),
 ]
 
 WILDLIFE_IDS = {row[0] for row in ROWS if row[0].startswith("sfx_wildlife_")}
@@ -519,6 +581,14 @@ PLACEHOLDER_IDS = {
     "sfx_fish_cast", "sfx_fish_splash", "sfx_fish_nibble", "sfx_fish_bite", "sfx_fish_hook",
     "sfx_fish_reel", "sfx_fish_land", "sfx_fish_snap", "sfx_fish_escape", "sfx_profession_level",
     "sfx_boss_stinger", "sfx_boss_fall",
+    # 2026-09-12
+    "weather_downpour", "weather_snowfall", "weather_duststorm", "weather_heatwave",
+    "sfx_swim_enter", "sfx_swim_exit", "sfx_swim_stroke", "sfx_water_bite", "sfx_drown",
+    "sfx_fish_cast_charge", "sfx_fish_miss", "sfx_camp_razed", "sfx_fork_open",
+    "sfx_companion_summon", "sfx_companion_down", "sfx_companion_return", "sfx_companion_strike",
+    "sfx_well_drink", "sfx_party_prompt", "sfx_party_accept", "sfx_party_decline",
+    "sfx_achievement", "sfx_dungeon_collapse", "sfx_chest_open", "sfx_dungeon_exit",
+    "sfx_raid_window", "sfx_chieftain_roar", "sfx_raid_extract",
 }
 
 
@@ -561,7 +631,7 @@ def _present(sound_id: str, have: set) -> bool:
 # Names that match the sound pattern and are not sounds. Kept as an explicit
 # list rather than by making the scan cleverer: two settings keys are the entire
 # problem, and a deny-list somebody can read beats a regex nobody can.
-NOT_SOUNDS = {"sfx_volume", "music_volume"}
+NOT_SOUNDS = {"sfx_volume", "music_volume", "ambience_volume", "weather_volume"}
 
 
 def named_by_the_game() -> dict:

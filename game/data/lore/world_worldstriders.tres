@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_worldstriders"
+display_name = "The Worldstriders"
+title = "The Worldstriders"
+category = 0
+unlock_act = 0
+order = 0
+art = "res://art/story/story_worldstrider.png"
+body = "Before the roads there were the Worldstriders: beasts so large that soil settled on their backs, water pooled in the folds of their hide, and the first people who climbed them never climbed down. A town on a Worldstrider does not stand still. It walks, and the world comes to it.\n\nYuri is one of the last. The others were caught, chained and ridden into the earth by the Chainmaker's host, or simply lay down somewhere far from any road and were forgotten. Yuri has not lain down. Yuri is walking to the top of the world, and the town on his back is going with him."

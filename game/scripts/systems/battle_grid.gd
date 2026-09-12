@@ -17,29 +17,42 @@ extends RefCounted
 ##
 ## Convert with `tile_to_world` / `world_to_tile`, never by hand.
 ##
-## ## The map is authored, not generated
+## ## The core is authored; the outskirts are laid
 ##
-## The layout comes from `LAYOUT_PATH`, exported by the owner's map tool. It
-## replaced four procedural U-bends, and the reason is not that the bends were
-## wrong — it is that a generator can only produce the shape it was written for.
-## The authored map **forks and rejoins**, so there is more than one way from a
-## spawn to the town, and that is a thing no amount of tuning to a single
-## polyline could have produced.
+## The centre of the field - `CORE_SIZE` tiles a side - comes from `LAYOUT_PATH`,
+## exported by the owner's map tool. It replaced four procedural U-bends, and
+## the reason is not that the bends were wrong — it is that a generator can only
+## produce the shape it was written for. The authored map **forks and rejoins**,
+## so there is more than one way from a spawn to the town, and that is a thing
+## no amount of tuning to a single polyline could have produced.
 ##
-## The consequence runs deep enough to be worth stating plainly: a lane is no
-## longer *a path*. It is a set of routes that share corridors with each other
-## and with the other three lanes. `lane_paths` keeps the shortest one so old
-## callers still work, but anything asking "where will this enemy be" has to ask
-## the enemy, not the lane.
+## Around it, since 2026-09-12, lie the **outskirts** (owner brief: "extend the
+## pathing ... camps ... fork splits"). Each of the four roads now runs on past
+## the old edge: past two camps that branch off it, to a junction where the
+## road forks into two legs that reach the map's edge with a war camp between
+## them. The outskirts are *laid* rather than authored - one template applied
+## to each cardinal with the run's seed choosing which side the camps sit -
+## because they are the same shape four times over and a tool export would be
+## four copies of one drawing. v4 §54's cut of procedural battlefield *layouts*
+## stands: the roads the waves walk are the authored core plus a fixed
+## extension, and what the seed decides is a mirror.
+##
+## The consequence of forking runs deep enough to be worth stating plainly: a
+## lane is no longer *a path*. It is a set of routes that share corridors with
+## each other and with the other three lanes. `lane_paths` keeps the shortest
+## one so old callers still work, but anything asking "where will this enemy
+## be" has to ask the enemy, not the lane.
 
 ## Where the authored layout lives. JSON rather than a `.tres` because it is
 ## produced by an external tool and diffed by eye.
 const LAYOUT_PATH: String = "res://data/maps/battlefield_layout.json"
 
-## 45x45 tiles at 64 units is a 2880x2880 field. Read from the layout at load and
-## asserted against it; the constant is here so callers that size things against
-## the field do not all have to hold a grid.
-const SIZE: int = 45
+## The authored core: 45x45 tiles at 64 units.
+const CORE_SIZE: int = 45
+## Tiles laid beyond the core on every side.
+const OUTSKIRTS: int = 15
+## The whole field. 75x75 tiles at 64 units is a 4800x4800 world.
+const SIZE: int = CORE_SIZE + OUTSKIRTS * 2
 const TILE: float = 64.0
 
 ## A tower covers 2x2 tiles. Its anchor is the top-left tile of that square.
@@ -59,6 +72,8 @@ const ROAD_WIDTH_TILES: int = 3
 
 ## Half the field in world units, used to move the origin to the centre.
 const HALF_EXTENT: float = float(SIZE) * TILE * 0.5
+## Half the authored core, in world units: where "beyond the paths" begins.
+const CORE_HALF_EXTENT: float = float(CORE_SIZE) * TILE * 0.5
 
 ## Tile ids as the map tool writes them.
 const TILE_EMPTY: int = 0
@@ -70,7 +85,30 @@ const TILE_SPAWN: int = 5
 const TILE_BLOCKED: int = 7
 const TILE_CITY: int = 9
 
-enum Cell { OPEN, ROAD, TOWN, BORDER }
+## CAMP is ground a raider camp stands on: walked over like open ground, never
+## built on, never dug for water, and never road - the lattice does not see it.
+enum Cell { OPEN, ROAD, TOWN, BORDER, CAMP }
+
+## The outskirts template, in lane-local tiles. `d` runs outward from the old
+## edge (0 is the core's outermost row, `OUTSKIRTS` is the map's edge); `v`
+## runs sideways from the road's centre line. See `_lay_outskirts`.
+const CORRIDOR_DEPTH: int = 9
+const FORK_DEPTH: int = 9
+const FORK_BAR_HALF: int = 5
+const LEG_CENTRE: int = 4
+const CAMP_BRANCH_NEAR: int = 2
+const CAMP_BRANCH_FAR: int = 5
+const CAMP_CLEARING_NEAR: int = 6
+const CAMP_CLEARING_FAR: int = 10
+const CAMP_A_DEPTH: int = 2
+const CAMP_B_DEPTH: int = 6
+const BARON_HALF: int = 2
+const BARON_DEPTH_FROM: int = 12
+## Where the barrier stands across each leg while the fork is closed.
+const BARRIER_DEPTH: int = 12
+
+## Camp tiers, outermost last.
+enum CampTier { EASY, HARD, BARON }
 
 var cells: Array[int] = []
 
@@ -78,28 +116,59 @@ var cells: Array[int] = []
 ## town. The *shortest* route for that lane; see `routes` for the rest.
 var lane_paths: Array = []
 
-## Every route per lane, shortest first. Enemies pick from here, which is what
-## makes two enemies from the same spawn take different ways in.
+## Every route per lane, shortest first, from the lane's near spawn. Enemies
+## pick from here, which is what makes two enemies from the same spawn take
+## different ways in.
 var routes: Array = []
 
-## Where each lane's enemies enter the map, in world space.
+## Every route per lane from the far spawns - the two legs of the fork - used
+## once the fork is open. Same shape as `routes`.
+var far_routes: Array = []
+
+## Where each lane's enemies enter the map while its fork is closed, in world
+## space: the mouth of the fork junction.
 var spawn_points: Array = []
+
+## Where each lane's enemies enter once its fork is open: one point per leg.
+var far_spawn_points: Array = []
+
+## Whether each lane's fork is open. Closed until both of its camps fall.
+var fork_open: Array[bool] = []
+
+## The camps, one record each: {lane, tier, centre, rect, tiles}. `rect` and
+## `centre` are world space; `tiles` the CAMP cells.
+var camps: Array[Dictionary] = []
+
+## Where the barriers stand while a fork is closed: per lane, two records
+## {at, along} in world space, `along` the leg's own direction.
+var barriers: Array = []
+
+## Which side of each road its first camp branches to, +1 or -1. The same for
+## all four lanes so the field stays four-fold symmetric under a quarter turn -
+## the torches and the lane ring depend on that - and the seed picks which.
+var camp_side: int = 1
 
 var _lattice: Dictionary = {}
 var _centre_cols: Array[int] = []
 var _centre_rows: Array[int] = []
 
 
-func _init() -> void:
+func _init(layout_seed: int = 0) -> void:
 	cells.resize(SIZE * SIZE)
 	cells.fill(Cell.OPEN)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = layout_seed
+	camp_side = 1 if rng.randf() < 0.5 else -1
 	_load_layout()
+	_lay_outskirts()
 	_seal_border()
 	_build_lattice()
 	for lane: int in Balance.LANE_COUNT:
+		fork_open.append(false)
 		var found: Array = _routes_for(lane)
 		routes.append(found)
 		lane_paths.append(found[0] if not found.is_empty() else PackedVector2Array())
+		far_routes.append(_far_routes_for(lane, found))
 
 
 ## The direction a lane runs, out from the town.
@@ -111,6 +180,24 @@ func _init() -> void:
 ## checkable without a scene, so it owns the one line it needs.
 static func lane_vector(lane: int) -> Vector2:
 	return Vector2.UP.rotated(TAU * float(lane) / float(Balance.LANE_COUNT))
+
+
+## A lane's frame in tiles: outward and sideways unit steps.
+static func lane_frame(lane: int) -> Array[Vector2i]:
+	var outward: Vector2 = lane_vector(lane)
+	var o := Vector2i(roundi(outward.x), roundi(outward.y))
+	# A quarter turn, the same way round for every lane, so the four outskirts
+	# are one shape rotated rather than one shape and its mirror.
+	var s := Vector2i(-o.y, o.x)
+	return [o, s]
+
+
+## The tile at lane-local (d, v): `d` outward from the core's outermost row,
+## `v` sideways from the road's centre line.
+static func local_tile(lane: int, d: int, v: int) -> Vector2i:
+	var frame: Array[Vector2i] = lane_frame(lane)
+	var centre: int = SIZE / 2
+	return Vector2i(centre, centre) + frame[0] * (CORE_SIZE / 2 + d) + frame[1] * v
 
 
 # --- Coordinates -------------------------------------------------------------
@@ -137,6 +224,18 @@ static func footprint_centre(tile: Vector2i) -> Vector2:
 
 static func in_bounds(tile: Vector2i) -> bool:
 	return tile.x >= 0 and tile.y >= 0 and tile.x < SIZE and tile.y < SIZE
+
+
+## Whether a tile lies in the authored core rather than the laid outskirts.
+static func in_core(tile: Vector2i) -> bool:
+	return tile.x >= OUTSKIRTS and tile.y >= OUTSKIRTS \
+		and tile.x < OUTSKIRTS + CORE_SIZE and tile.y < OUTSKIRTS + CORE_SIZE
+
+
+## Whether a world point is beyond the authored core - "past where the paths
+## begin", which is where the water and the gates go.
+static func beyond_core(at: Vector2) -> bool:
+	return absf(at.x) > CORE_HALF_EXTENT or absf(at.y) > CORE_HALF_EXTENT
 
 
 func cell_at(tile: Vector2i) -> int:
@@ -181,25 +280,99 @@ func _load_layout() -> void:
 		push_error("BattleGrid: %s is not a map blueprint" % LAYOUT_PATH)
 		return
 	var rows: Array = (parsed as Dictionary).get("tiles", []) as Array
-	if rows.size() != SIZE:
-		push_error("BattleGrid: layout is %d rows, expected %d" % [rows.size(), SIZE])
+	if rows.size() != CORE_SIZE:
+		push_error("BattleGrid: layout is %d rows, expected %d" % [rows.size(), CORE_SIZE])
 		return
 
-	for y: int in SIZE:
+	for y: int in CORE_SIZE:
 		var row: Array = rows[y] as Array
-		for x: int in mini(row.size(), SIZE):
-			cells[y * SIZE + x] = _cell_for(int(row[x]))
+		for x: int in mini(row.size(), CORE_SIZE):
+			_put(Vector2i(x + OUTSKIRTS, y + OUTSKIRTS), _cell_for(int(row[x])))
+
+
+func _put(tile: Vector2i, cell: int) -> void:
+	if in_bounds(tile):
+		cells[tile.y * SIZE + tile.x] = cell
+
+
+## Lays the outskirts around the core: the road on past the old edge, two camps
+## branching off it, and the fork with the war camp between its legs.
+##
+## One template per lane in lane-local coordinates, so the four cardinals are
+## one shape rotated. Every corridor is three tiles wide so the lattice finds
+## it by the same rule that finds the authored ones - a branch two tiles wide
+## would be road the renderer never drew and enemies never walked.
+func _lay_outskirts() -> void:
+	camps.clear()
+	barriers.clear()
+	for lane: int in Balance.LANE_COUNT:
+		# The old blocked tiles at the spawn mouth become road: the corridor
+		# now runs on through them.
+		for d: int in range(0, CORRIDOR_DEPTH + 1):
+			for v: int in range(-1, 2):
+				_put(local_tile(lane, d, v), Cell.ROAD)
+		# The fork: a bar across the road, and two legs out to the edge.
+		for d: int in range(FORK_DEPTH, FORK_DEPTH + 3):
+			for v: int in range(-FORK_BAR_HALF, FORK_BAR_HALF + 1):
+				_put(local_tile(lane, d, v), Cell.ROAD)
+		for d: int in range(FORK_DEPTH, OUTSKIRTS + 1):
+			for v: int in range(LEG_CENTRE - 1, LEG_CENTRE + 2):
+				_put(local_tile(lane, d, v), Cell.ROAD)
+				_put(local_tile(lane, d, -v), Cell.ROAD)
+		# The camps. The first branches to the seed's side, the second to the
+		# other, so the road reads as a road with things off it rather than as
+		# a corridor with a mirror.
+		_lay_camp(lane, CampTier.EASY, CAMP_A_DEPTH, camp_side)
+		_lay_camp(lane, CampTier.HARD, CAMP_B_DEPTH, -camp_side)
+		# The war camp between the legs, beyond the bar.
+		var baron_tiles: Array[Vector2i] = []
+		for d: int in range(BARON_DEPTH_FROM, OUTSKIRTS + 1):
+			for v: int in range(-BARON_HALF, BARON_HALF + 1):
+				var tile: Vector2i = local_tile(lane, d, v)
+				_put(tile, Cell.CAMP)
+				baron_tiles.append(tile)
+		camps.append(_camp_record(lane, CampTier.BARON, baron_tiles))
+		# The barriers, one across each leg, standing while the fork is closed.
+		var frame: Array[Vector2i] = lane_frame(lane)
+		var along: Vector2 = Vector2(frame[0])
+		var pair: Array = []
+		for side: int in [-1, 1]:
+			pair.append({
+				"at": tile_to_world(local_tile(lane, BARRIER_DEPTH, LEG_CENTRE * side)),
+				"along": along,
+			})
+		barriers.append(pair)
+
+
+func _lay_camp(lane: int, tier: int, depth: int, side: int) -> void:
+	for d: int in range(depth - 1, depth + 2):
+		for v: int in range(CAMP_BRANCH_NEAR, CAMP_BRANCH_FAR + 1):
+			_put(local_tile(lane, d, v * side), Cell.ROAD)
+	var tiles: Array[Vector2i] = []
+	for d: int in range(depth - 2, depth + 3):
+		for v: int in range(CAMP_CLEARING_NEAR, CAMP_CLEARING_FAR + 1):
+			var tile: Vector2i = local_tile(lane, d, v * side)
+			_put(tile, Cell.CAMP)
+			tiles.append(tile)
+	camps.append(_camp_record(lane, tier, tiles))
+
+
+func _camp_record(lane: int, tier: int, tiles: Array[Vector2i]) -> Dictionary:
+	var low := Vector2(INF, INF)
+	var high := Vector2(-INF, -INF)
+	for tile: Vector2i in tiles:
+		var at: Vector2 = tile_to_world(tile)
+		low = Vector2(minf(low.x, at.x - TILE * 0.5), minf(low.y, at.y - TILE * 0.5))
+		high = Vector2(maxf(high.x, at.x + TILE * 0.5), maxf(high.y, at.y + TILE * 0.5))
+	var rect := Rect2(low, high - low)
+	return {"lane": lane, "tier": tier, "centre": rect.get_center(), "rect": rect,
+		"tiles": tiles}
 
 
 ## Closes the outermost ring to building, without touching authored tiles.
 ##
-## The blueprint marks the whole outer ring Background, which is buildable, and a
-## tower flush against the edge is drawn half off the visible field. The old grid
-## carved a border ring outright; that cannot be done here because the ring also
-## carries the twelve spawn tiles, and carving those would delete the entrances.
-##
-## So only open ground is sealed. Road stays road, and the author's topology
-## comes through unchanged.
+## The ring carries the spawn tiles at the ends of the fork legs, so only open
+## ground is sealed: road stays road, and the entrances come through unchanged.
 func _seal_border() -> void:
 	for i: int in SIZE:
 		for tile: Vector2i in [Vector2i(i, 0), Vector2i(i, SIZE - 1),
@@ -212,7 +385,9 @@ func _seal_border() -> void:
 ##
 ## Start, end and spawn tiles are all road: they mark *roles* on the network for
 ## the tool's benefit, and a tile an enemy walks over is a tile nothing may be
-## built on, whatever it is called.
+## built on, whatever it is called. The tool's blocked tiles sat beyond the
+## spawn mouths to close the old edge; the road runs through them now, and
+## `_lay_outskirts` overwrites them.
 func _cell_for(id: int) -> int:
 	match id:
 		TILE_PATH, TILE_START, TILE_END, TILE_SPAWN:
@@ -220,7 +395,7 @@ func _cell_for(id: int) -> int:
 		TILE_CITY:
 			return Cell.TOWN
 		TILE_BLOCKED, TILE_EMPTY:
-			return Cell.BORDER
+			return Cell.OPEN
 		_:
 			return Cell.OPEN
 
@@ -235,8 +410,8 @@ func _is_road(tile: Vector2i) -> bool:
 # Corridors are three tiles wide. Their centre lines fall on a small set of rows
 # and columns, and every junction in the map sits where one of those rows crosses
 # one of those columns — so the whole road network reduces to a lattice of about
-# fifty nodes. That is what routes are enumerated over, and what the renderer
-# stamps tiles along.
+# a hundred nodes. That is what routes are enumerated over, and what the
+# renderer stamps tiles along.
 #
 # Found rather than hard-coded, so re-exporting the map from the tool does not
 # also mean editing a table in here.
@@ -322,11 +497,12 @@ func lattice_neighbours(node: Vector2i) -> Array[Vector2i]:
 
 # --- Routes ------------------------------------------------------------------
 
-## Where a lane's enemies come in, as a lattice node.
+## Where a lane's enemies come in while its fork is closed: the junction node
+## at the mouth of the fork, which is the outermost lattice node on the lane's
+## own axis.
 func _entry_node(lane: int) -> Vector2i:
 	var direction: Vector2 = lane_vector(lane)
 	var centre: int = SIZE / 2
-	# The entry is the outermost lattice node on the lane's own axis.
 	var best := Vector2i(centre, centre)
 	var furthest: float = -INF
 	for key: Variant in _lattice:
@@ -341,66 +517,98 @@ func _entry_node(lane: int) -> Vector2i:
 	return best
 
 
-## Where a lane's enemies come onto the map, just outside the edge.
-##
-## Taken from the authored spawn tiles rather than derived from the entry node.
-## The first version worked back from the lattice with an arithmetic guess at how
-## far the edge was and put the spawn inside the field - in one case inside a
-## build pocket, which the balance test caught.
-func _spawn_point(lane: int) -> Vector2:
-	var direction: Vector2 = lane_vector(lane)
-	var total := Vector2.ZERO
-	var count: int = 0
-	for y: int in SIZE:
-		for x: int in SIZE:
-			if not (x == 0 or y == 0 or x == SIZE - 1 or y == SIZE - 1):
-				continue
-			if cells[y * SIZE + x] != Cell.ROAD:
-				continue
-			var at: Vector2 = tile_to_world(Vector2i(x, y))
-			# The edge tiles belonging to this lane: the ones furthest out along
-			# its own axis.
-			if at.dot(direction) < HALF_EXTENT - TILE * 1.5:
-				continue
-			total += at
-			count += 1
-	if count == 0:
-		return direction * (HALF_EXTENT + TILE)
-	# One tile beyond the edge, so enemies walk on rather than appear on the map.
-	return total / float(count) + direction * TILE
+## The lattice node where one fork leg meets the bar.
+func _leg_node(lane: int, side: int) -> Vector2i:
+	var wanted: Vector2i = local_tile(lane, FORK_DEPTH + 1, LEG_CENTRE * side)
+	if _lattice.has(wanted):
+		return wanted
+	# The bar's centre row and the leg's centre column are both found by the
+	# corridor rule, so this is the node; falling back to the nearest node on
+	# the bar keeps a re-tuned template from routing through nothing.
+	var best: Vector2i = wanted
+	var nearest: float = INF
+	for key: Variant in _lattice:
+		var node: Vector2i = key
+		var gap: float = Vector2(node - wanted).length()
+		if gap < nearest:
+			nearest = gap
+			best = node
+	return best
 
 
-## Every simple route from a lane's entry to the town, shortest first.
+## Every simple route from a lane's entry to the town wall, shortest first.
 ##
 ## Simple — no node visited twice — because a route that loops is not a decision,
 ## it is a mistake the player watches an enemy make.
 func _routes_for(lane: int) -> Array:
+	var entry: Vector2i = _entry_node(lane)
+	var found: Array = _walk_routes(entry)
+	# The near spawn: one tile out from the junction into the bar, so enemies
+	# walk on to the mouth rather than appear on it.
+	var frame: Array[Vector2i] = lane_frame(lane)
+	var spawn: Vector2 = tile_to_world(entry + frame[0])
+	spawn_points.append(spawn)
+	return _finish_routes(found, spawn)
+
+
+## The routes from the far spawns: each leg's own end at the map's edge, down
+## the leg to where it meets the bar, then whichever way in from there.
+func _far_routes_for(lane: int, _near: Array) -> Array:
+	var frame: Array[Vector2i] = lane_frame(lane)
+	var spawns: Array = []
+	var out: Array = []
+	for side: int in [-1, 1]:
+		var node: Vector2i = _leg_node(lane, side)
+		# One tile beyond the edge, so enemies walk on rather than appear.
+		var spawn: Vector2 = tile_to_world(local_tile(lane, OUTSKIRTS + 1, LEG_CENTRE * side))
+		spawns.append(spawn)
+		var found: Array = _walk_routes(node)
+		for path: PackedVector2Array in _finish_routes(found, spawn):
+			out.append(path)
+	far_spawn_points.append(spawns)
+	# Shortest first across both legs, like the near routes.
+	out.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+		return _world_length(a) < _world_length(b))
+	return out
+
+
+func _walk_routes(entry: Vector2i) -> Array:
 	var centre: int = SIZE / 2
 	var goal := Vector2i(centre, centre)
-	var entry: Vector2i = _entry_node(lane)
 	var found: Array = []
 	_walk(entry, goal, {entry: true}, [entry], found)
-
 	found.sort_custom(func(a: Array, b: Array) -> bool:
 		return _tile_length(a) < _tile_length(b))
+	return found
 
-	var spawn: Vector2 = _spawn_point(lane)
-	spawn_points.append(spawn)
 
-	# Routes far longer than the direct way in are dropped rather than merely made
-	# unlikely. A weighting still rolls them occasionally, and an enemy that walks
-	# for two and a half minutes arrives long after its wave is over - which reads
-	# as a stuck enemy, not as a flanker.
+## Turns lattice walks into world polylines from `spawn`, dropping the ones far
+## longer than the direct way in and the final step onto the town itself.
+##
+## Routes far longer than the direct way in are dropped rather than merely made
+## unlikely. A weighting still rolls them occasionally, and an enemy that walks
+## for two and a half minutes arrives long after its wave is over - which reads
+## as a stuck enemy, not as a flanker.
+##
+## **A route ends at the wall, not at the origin.** The goal node is the town's
+## own tile, and a body that walked to it stood in the middle of the square
+## before it swung; the last node before the goal is the gate ring, three tiles
+## out, which is inside a melee reach of the wall and is where a besieger
+## stands. Owner report, 2026-09-12: "melee units should not head all the way
+## into the city base at origin but rather attack it from just outside its
+## walls on their cardinal direction."
+func _finish_routes(found: Array, spawn: Vector2) -> Array:
 	var shortest: int = _tile_length(found[0]) if not found.is_empty() else 0
 	var out: Array = []
 	for path: Array in found:
-		if shortest > 0 and float(_tile_length(path)) 				> float(shortest) * Balance.ROUTE_LENGTH_MAX_RATIO:
+		if shortest > 0 and float(_tile_length(path)) \
+				> float(shortest) * Balance.ROUTE_LENGTH_MAX_RATIO:
 			continue
 		var points: PackedVector2Array = PackedVector2Array()
-		# Enemies walk in from off-map, so the route starts outside the edge.
 		points.append(spawn)
-		for node: Vector2i in path:
-			points.append(tile_to_world(node))
+		var last: int = path.size() - 1 if path.size() <= 2 else path.size() - 2
+		for index: int in range(0, last + 1):
+			points.append(tile_to_world(path[index]))
 		out.append(points)
 	return out
 
@@ -431,6 +639,13 @@ static func _tile_length(path: Array) -> int:
 	return total
 
 
+## Opens or closes a lane's fork. Open, the lane's waves come from the two legs
+## at the map's edge; closed, from the junction.
+func set_fork_open(lane: int, open: bool) -> void:
+	if lane >= 0 and lane < fork_open.size():
+		fork_open[lane] = open
+
+
 ## A route for an enemy to take, biased toward the shorter ways in.
 ##
 ## Not uniform. The longest route on this map is three times the shortest, and a
@@ -440,7 +655,8 @@ static func _tile_length(path: Array) -> int:
 ## round, which is the point: an enemy that takes the far corridor should be a
 ## thing the player notices, not the thing they expect.
 func route_for(lane: int, roll: float) -> PackedVector2Array:
-	var options: Array = routes[lane] if lane < routes.size() else []
+	var pool: Array = far_routes if lane < fork_open.size() and fork_open[lane] else routes
+	var options: Array = pool[lane] if lane < pool.size() else []
 	if options.is_empty():
 		return PackedVector2Array()
 	var weights: Array[float] = []
@@ -458,6 +674,14 @@ func route_for(lane: int, roll: float) -> PackedVector2Array:
 	return options[0]
 
 
+## Where a lane's enemies come in right now: one point, or two once the fork
+## is open.
+func active_spawn_points(lane: int) -> Array:
+	if lane < fork_open.size() and fork_open[lane] and lane < far_spawn_points.size():
+		return far_spawn_points[lane]
+	return [spawn_points[lane]] if lane < spawn_points.size() else []
+
+
 static func _world_length(path: PackedVector2Array) -> float:
 	var total: float = 0.0
 	for i: int in path.size() - 1:
@@ -465,16 +689,41 @@ static func _world_length(path: PackedVector2Array) -> float:
 	return total
 
 
+# --- Camps -------------------------------------------------------------------
+
+## The camp records for one lane, easy first.
+func camps_of(lane: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for camp: Dictionary in camps:
+		if int(camp["lane"]) == lane:
+			out.append(camp)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["tier"]) < int(b["tier"]))
+	return out
+
+
+## The camp a world point stands in, or an empty record.
+func camp_at(at: Vector2) -> Dictionary:
+	for camp: Dictionary in camps:
+		if (camp["rect"] as Rect2).has_point(at):
+			return camp
+	return {}
+
+
 # --- What callers ask --------------------------------------------------------
 
 ## A buildable anchor in the lane's own quarter of the field, for hints and tools.
+##
+## Inside the core: the outskirts are open ground too, but a hint that pointed
+## a new player at a tower slot beside a raider camp would be a hint that got
+## them killed.
 func lane_pocket_centre(lane: int) -> Vector2:
 	var direction: Vector2 = lane_vector(lane)
-	var target: Vector2 = direction * (HALF_EXTENT * 0.45)
+	var target: Vector2 = direction * (CORE_HALF_EXTENT * 0.45)
 	var best: Vector2 = target
 	var nearest: float = INF
-	for y: int in SIZE - FOOTPRINT:
-		for x: int in SIZE - FOOTPRINT:
+	for y: int in range(OUTSKIRTS, OUTSKIRTS + CORE_SIZE - FOOTPRINT):
+		for x: int in range(OUTSKIRTS, OUTSKIRTS + CORE_SIZE - FOOTPRINT):
 			var anchor := Vector2i(x, y)
 			if not footprint_is_open(anchor):
 				continue

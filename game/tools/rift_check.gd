@@ -11,8 +11,9 @@ extends Node
 ##   the roads - and only from the act rifts open; a dungeon mouth only every
 ##   so many acts; a gate taken is a gate spent;
 ## - kills fill the rift and the guardian steps through at full; the guardian
-##   falling closes a rift and opens a dungeon's door; the door offers down or
-##   out; the clock collapses a stage and pays only what was banked;
+##   falling opens the door - out of a rift, down or out of a dungeon - with
+##   a chest beside it; the clock starts a collapse, and a collapse that runs
+##   out pays only what was banked while an exit taken in time keeps it;
 ## - **the reward is currency, gear and Shards and nothing else.** Every key
 ##   on it is named here, so a future "and a permanent +1" cannot arrive
 ##   without failing this file.
@@ -132,10 +133,16 @@ func _test_a_rift_fills_and_closes() -> void:
 	_check(bool(rift.status()["guardian_out"]), "the last kill brings the guardian through")
 	_check(rift._guardian != null and is_instance_valid(rift._guardian), "and it is a real body on the field")
 	_check(_rewards.is_empty(), "the rift must not close while the guardian stands")
-	# The guardian falls.
+	# The guardian falls: the door opens with the chest beside it (2026-09-12),
+	# and leaving is what closes the rift.
 	_fell(rift)
 	rift._process(0.1)
-	_check(_rewards.size() == 1, "the guardian falling closes the rift")
+	_check(_rewards.is_empty() and bool(rift.status()["at_door"]),
+		"the guardian falling opens the rift's door rather than closing it")
+	_check(bool(rift.status()["chest"]) and bool(rift.status()["exit_open"]),
+		"a chest lands and the exit opens when the guardian falls")
+	_check(not rift.descend(), "a rift has no way down")
+	_check(rift.leave(), "and leaving through the door closes it")
 	if _rewards.size() == 1:
 		var reward: Dictionary = _rewards[0]
 		_check(int(reward["stages"]) == 1, "one stage banked")
@@ -172,14 +179,29 @@ func _test_a_dungeon_has_a_door() -> void:
 	_check(rift._escalation() > escalation_first, "deeper is harder")
 	_fill_and_clear(rift)
 	_check(_doors.size() == 2, "the second guardian opens the second door")
+	# The chest: the stage's currency bursts on the floor and its gear is
+	# banked, and the exit then pays the stage's currency *no second time*.
+	var chest: DungeonChest = rift._chest
+	_check(chest != null and is_instance_valid(chest), "the vault holds a chest")
+	if chest != null and is_instance_valid(chest):
+		rift.open_chest(chest)
+		var entry: Dictionary = rift._banked_stage(2)
+		_check(bool(entry.get("chest_opened", false)), "the chest marks its stage paid")
+		_check((entry.get("gear", []) as Array).size() == Balance.RIFT_GEAR_PER_STAGE,
+			"the chest holds the stage's gear")
+		rift.open_chest(chest)
+		_check((entry.get("gear", []) as Array).size() == Balance.RIFT_GEAR_PER_STAGE,
+			"a chest opens once")
 	_check(rift.leave(), "leaving is allowed at the door")
 	_check(_rewards.size() == 1, "leaving closes the dungeon")
 	if _rewards.size() == 1:
 		var reward: Dictionary = _rewards[0]
 		_check(int(reward["stages"]) == 2, "two stages banked; got %d" % int(reward["stages"]))
-		_check(int(reward["resources"]) > Balance.RIFT_RESOURCES_PER_STAGE * 2,
-			"two stages pay more than twice one: deeper pays more of the same")
-		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE * 2, "two stages of gear")
+		# Stage two's currency burst from its chest; only stage one is paid here.
+		_check(int(reward["resources"]) == Balance.RIFT_RESOURCES_PER_STAGE,
+			"a stage whose chest was opened is not paid twice: got %d" % int(reward["resources"]))
+		_check((reward["gear"] as Array).size() == Balance.RIFT_GEAR_PER_STAGE * 2,
+			"two stages of gear, one rolled at the exit and one carried from the chest")
 		_check(String(reward["relic_id"]).is_empty(), "a relic waits at the bottom, not the second door")
 		_check(bool(reward["left"]), "and it says the player left")
 	rift.queue_free()
@@ -196,13 +218,35 @@ func _test_a_collapse_pays_only_what_was_banked() -> void:
 	for _kill: int in 3:
 		EventBus.enemy_died.emit("bogkin", Vector2.ZERO)
 	rift._process(Balance.RIFT_TIME_LIMIT + 1.0)
-	_check(_rewards.size() == 1, "the clock running out closes the rift")
+	_check(_rewards.is_empty() and bool(rift.status()["collapsing"]),
+		"the clock running out starts a collapse rather than ending the stage")
+	_check(bool(rift.status()["exit_open"]), "the exit opens for the collapse")
+	var hp_before: float = rift.hero.health.current_hp
+	rift._process(1.05)
+	_check(rift.hero.health.current_hp < hp_before, "the collapse bites")
+	rift._process(Balance.DUNGEON_COLLAPSE_SECONDS)
+	_check(_rewards.size() == 1, "a collapse that runs out ends the stage")
 	if _rewards.size() == 1:
 		var reward: Dictionary = _rewards[0]
 		_check(bool(reward["collapsed"]), "and says it collapsed")
 		_check(int(reward["stages"]) == 0 and int(reward["resources"]) == 0
 			and int(reward["shards"]) == 0 and (reward["gear"] as Array).is_empty(),
 			"a collapsed stage pays nothing: %s" % str(reward))
+	# An exit taken during the collapse keeps what was banked.
+	_rewards.clear()
+	var escape: RiftArena = await _arena()
+	escape.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
+	escape.set_process(false)
+	_fill_and_clear(escape)
+	_check(escape.descend(), "down to the second stage")
+	escape.set_process(false)
+	escape._process(Balance.RIFT_TIME_LIMIT + 1.0)
+	_check(bool(escape.status()["collapsing"]), "the second stage collapses")
+	_check(escape.take_exit(), "the exit can be taken while it collapses")
+	_check(_rewards.size() == 1 and bool(_rewards[0]["escaped"]) and int(_rewards[0]["stages"]) == 1,
+		"escaping keeps the banked stage: %s" % str(_rewards[0] if not _rewards.is_empty() else {}))
+	escape.queue_free()
+	await get_tree().process_frame
 	# Dying pays nothing either, banked or not.
 	var dead: Dictionary = rift._build_rift_reward({"died": true})
 	_check(int(dead["resources"]) == 0 and (dead["gear"] as Array).is_empty() and int(dead["shards"]) == 0,
@@ -214,7 +258,7 @@ func _test_a_collapse_pays_only_what_was_banked() -> void:
 ## The bound: every key a reward may carry, so a new kind of payment cannot
 ## arrive without being argued for here.
 func _test_the_reward_is_only_what_the_road_pays() -> void:
-	var allowed: Array[String] = ["kind", "stages", "died", "collapsed", "left",
+	var allowed: Array[String] = ["kind", "stages", "died", "collapsed", "left", "escaped",
 		"resources", "gear", "shards", "relic_id", "at"]
 	for reward: Dictionary in _rewards:
 		for key: Variant in reward.keys():

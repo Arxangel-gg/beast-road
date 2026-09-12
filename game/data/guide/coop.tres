@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "coop"
+display_name = "Playing together"
+title = "Playing together"
+category = "Co-op"
+order = 32
+image = "res://art/guide/coop.png"
+body = "Two to four Wardens, one beast. The host's world is the one that counts; everyone else sees it. Roads are voted on; relics, portents and cards are one choice for the party. Co-op unlocks after your first road reaches a crossroad."

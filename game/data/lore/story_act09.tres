@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act09"
+display_name = "Act 9  ·  The Fire Is the Shape"
+title = "Act 9  ·  The Fire Is the Shape"
+category = 1
+unlock_act = 9
+order = 9
+art = ""
+body = "The Ashen Reach burns without ever having burned down. The Long Burning calls the fire back up out of the ground it came from, and Ashgild the Unquenched has no body under the fire; the fire is the shape he has instead. The Warden learns that some things are put out, not killed."

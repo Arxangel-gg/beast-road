@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_saltpan"
+display_name = "The Saltpan Mire"
+title = "The Saltpan Mire"
+category = 2
+unlock_act = 6
+order = 6
+art = "res://art/bg/macro_act6.png"
+body = "A dead sea's floor, white and cracked. The Brine Choir holds the drowned together with a song, and the crabs are the size of dogs."

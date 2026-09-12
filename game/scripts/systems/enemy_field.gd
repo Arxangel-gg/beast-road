@@ -115,8 +115,13 @@ func enemy_count() -> int:
 	var total: int = 0
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if enemy != null and is_instance_valid(enemy) and not enemy.is_dying():
-			total += 1
+		if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+			continue
+		# A camp body is not a wave: alive on the outskirts it must not hold a
+		# wave open, or the road would wait on a camp nobody has visited.
+		if enemy.is_camp_mob():
+			continue
+		total += 1
 	return total
 
 

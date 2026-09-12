@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearAffixData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_affix_data.gd" id="1_affix"]
+
+[resource]
+script = ExtResource("1_affix")
+id = "provident"
+display_name = "Provident"
+description = "+%s resource rate"
+effect_id = "resource_rate"
+magnitude = 0.06
+min_rarity = 3
+slots = Array[int]([2, 6, 7])
+weight = 0.9

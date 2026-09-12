@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearAffixData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_affix_data.gd" id="1_affix"]
+
+[resource]
+script = ExtResource("1_affix")
+id = "embers"
+display_name = "of Embers"
+description = "+%s tower damage"
+effect_id = "tower_damage"
+magnitude = 0.06
+min_rarity = 3
+slots = Array[int]([])
+weight = 1.0

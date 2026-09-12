@@ -655,6 +655,21 @@ func _signature_enemy(archetype: WaveArchetypeData) -> EnemyData:
 	return ContentDB.enemy(archetype.signature_enemy_id)
 
 
+## The wave's own scales, for anything else that puts a body on the field at
+## the act's strength - the camps. Public wrappers rather than callers reaching
+## the private ones, so the scale a camp body gets is the wave's by contract.
+func act_hp_scale(lane: int) -> float:
+	return _hp_scale(lane)
+
+
+func act_damage_scale(lane: int) -> float:
+	return _damage_scale(lane)
+
+
+func act_speed_scale(lane: int) -> float:
+	return _speed_scale(lane)
+
+
 func _hp_scale(lane: int) -> float:
 	var tier: CampaignTierData = RunState.tier()
 	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * float(RunState.wave_number - 1)

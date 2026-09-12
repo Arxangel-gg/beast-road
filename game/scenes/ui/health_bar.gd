@@ -15,6 +15,15 @@ extends Node2D
 @export var hide_until_damaged: bool = true
 
 var _bound: Health = null
+## The pale trail behind the fill: a hit leaves it where the health was and
+## it drains after, so a blow that takes one percent off a huge body is still
+## a visible bite rather than a bar that reads as full (owner brief,
+## 2026-09-12: "it always showed a full health bar despite being hit").
+var _trail: ColorRect = null
+var _trail_ratio: float = 1.0
+var _ratio: float = 1.0
+## Width against the ordinary bar; the ranked wear a wider one.
+var _width_scale: float = 1.0
 
 
 func _ready() -> void:
@@ -25,6 +34,13 @@ func _ready() -> void:
 	z_index = Balance.HEALTH_BAR_Z
 	z_as_relative = false
 
+	if fill != null:
+		_trail = ColorRect.new()
+		_trail.name = "Trail"
+		_trail.color = Balance.HEALTH_BAR_TRAIL_COLOUR
+		_trail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_trail)
+		move_child(_trail, fill.get_index())
 	_apply_size()
 	visible = not hide_until_damaged
 
@@ -40,19 +56,48 @@ func bind(health: Health) -> void:
 
 
 func _apply_size() -> void:
-	var w: float = Balance.HEALTH_BAR_WIDTH
+	var w: float = Balance.HEALTH_BAR_WIDTH * _width_scale
 	var h: float = Balance.HEALTH_BAR_HEIGHT
 	if background != null:
 		background.position = Vector2(-w * 0.5, 0.0)
 		background.size = Vector2(w, h)
 	if fill != null:
 		fill.position = Vector2(-w * 0.5, 0.0)
-		fill.size = Vector2(w, h)
+		fill.size = Vector2(w * _ratio, h)
+	if _trail != null:
+		_trail.position = Vector2(-w * 0.5, 0.0)
+		_trail.size = Vector2(w * _trail_ratio, h)
+
+
+## A wider bar, for a body worth reading: elites and bosses. Shown at once
+## rather than on the first hit, so the rank is visible before it matters.
+func set_ranked(scale_width: float) -> void:
+	_width_scale = maxf(scale_width, 1.0)
+	hide_until_damaged = false
+	visible = true
+	_apply_size()
 
 
 func _on_changed(current: float, maximum: float) -> void:
-	var ratio: float = current / maximum if maximum > 0.0 else 0.0
-	if fill != null:
-		fill.size = Vector2(Balance.HEALTH_BAR_WIDTH * clampf(ratio, 0.0, 1.0), Balance.HEALTH_BAR_HEIGHT)
+	var ratio: float = clampf(current / maximum if maximum > 0.0 else 0.0, 0.0, 1.0)
+	if ratio < _ratio:
+		# A bite: the trail stays where the health was and drains after.
+		_trail_ratio = maxf(_trail_ratio, _ratio)
+		set_process(true)
+	elif ratio > _trail_ratio:
+		_trail_ratio = ratio
+	_ratio = ratio
+	_apply_size()
 	if hide_until_damaged:
 		visible = ratio < 1.0
+
+
+func _process(delta: float) -> void:
+	if _trail_ratio <= _ratio + 0.0005:
+		_trail_ratio = _ratio
+		_apply_size()
+		set_process(false)
+		return
+	# A short hold, then a drain: the eye catches the pale bite before it goes.
+	_trail_ratio = maxf(_trail_ratio - delta * Balance.HEALTH_BAR_TRAIL_RATE, _ratio)
+	_apply_size()

@@ -28,11 +28,12 @@ const PANEL_SCREEN_SHARE: float = 0.94
 const BODY_SCREEN_SHARE: float = 0.52
 const BODY_SCREEN_SHARE_PORTRAIT: float = 0.66
 const PORTRAIT_SIZE: float = 128.0
-const PORTRAIT_ART: Array[String] = [
-	"res://art/hero/hero_base.png",
-	"res://art/hero/hero_ascended_1.png",
-	"res://art/hero/hero_ascended_2.png",
-]
+## The Warden's own idle sheet - the current art, not the old reference
+## (owner report, 2026-09-12). The south row, cycled.
+const PORTRAIT_SHEET: String = "res://art/hero/hero_idle.png"
+const PORTRAIT_ROW: int = 2
+const PORTRAIT_FPS: float = 8.0
+const RANK_TINTS: Array[Color] = [Color.WHITE, Color(1.0, 0.94, 0.8), Color(1.0, 0.86, 0.6)]
 
 var _panel: PanelContainer
 var _scroll: ScrollContainer
@@ -41,6 +42,13 @@ var _card: VBoxContainer
 var _grid: GridContainer
 var _close_button: Button
 var _first_button: Button = null
+var _portrait: TextureRect = null
+var _portrait_frames: int = 1
+var _portrait_clock: float = 0.0
+## True while a door from this room is open over it. The room hides so the
+## door's screen is on top, and comes back when the door closes.
+var _suspended: bool = false
+var _rename_edit: LineEdit = null
 
 
 func _ready() -> void:
@@ -119,7 +127,9 @@ func _build() -> void:
 
 
 ## A door from the front door, moved into the room. The button keeps its
-## handler and its focus return; only its parent changes.
+## handler and its focus return; only its parent changes - and the room steps
+## aside when it is pressed, so the screen it opens is on top rather than
+## underneath (owner report, 2026-09-12).
 func adopt(button: Button) -> void:
 	if button == null:
 		return
@@ -128,12 +138,37 @@ func adopt(button: Button) -> void:
 		parent.remove_child(button)
 	button.custom_minimum_size = Vector2(0.0, 60.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(suspend)
 	_grid.add_child(button)
 	if _first_button == null:
 		_first_button = button
 
 
+## Hides the room for a door, remembering to come back.
+func suspend() -> void:
+	if not visible:
+		return
+	_suspended = true
+	visible = false
+
+
+func is_suspended() -> bool:
+	return _suspended
+
+
+func _process(delta: float) -> void:
+	if not visible or _portrait == null or _portrait_frames <= 1:
+		return
+	_portrait_clock += delta * PORTRAIT_FPS
+	var atlas := _portrait.texture as AtlasTexture
+	if atlas == null:
+		return
+	var frame: int = int(_portrait_clock) % _portrait_frames
+	atlas.region.position.x = float(frame * HeroAnimator.CELL_W)
+
+
 func open() -> void:
+	_suspended = false
 	_build_card()
 	visible = true
 	_refit()
@@ -159,20 +194,47 @@ func _build_card() -> void:
 		child.queue_free()
 
 	var portrait := TextureRect.new()
-	var art: String = PORTRAIT_ART[clampi(MetaState.ascension, 0, PORTRAIT_ART.size() - 1)]
-	if ResourceLoader.exists(art):
-		portrait.texture = load(art)
+	_portrait = portrait
+	_portrait_frames = 1
+	if ResourceLoader.exists(PORTRAIT_SHEET):
+		var sheet: Texture2D = load(PORTRAIT_SHEET)
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(0.0, float(PORTRAIT_ROW * HeroAnimator.CELL_H),
+			float(HeroAnimator.CELL_W), float(HeroAnimator.CELL_H))
+		portrait.texture = atlas
+		_portrait_frames = maxi(int(sheet.get_width() / HeroAnimator.CELL_W), 1)
 	portrait.custom_minimum_size = Vector2(PORTRAIT_SIZE, PORTRAIT_SIZE)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	# The rank is a warmth on the same Warden rather than a different picture.
+	portrait.modulate = RANK_TINTS[clampi(MetaState.ascension, 0, RANK_TINTS.size() - 1)]
 	_card.add_child(portrait)
 
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 8)
+	_card.add_child(name_row)
 	var name_line := Label.new()
 	name_line.text = MetaState.player_name if not MetaState.player_name.is_empty() else "Oathless"
 	name_line.add_theme_font_size_override("font_size", 22)
 	name_line.add_theme_color_override("font_color", Color("f2e6d0"))
-	_card.add_child(name_line)
+	name_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(name_line)
+	var rename := Button.new()
+	rename.text = "Rename"
+	rename.custom_minimum_size = Vector2(0.0, 32.0)
+	rename.pressed.connect(_toggle_rename)
+	name_row.add_child(rename)
+	_rename_edit = LineEdit.new()
+	_rename_edit.placeholder_text = "A name for the Warden"
+	_rename_edit.max_length = Balance.SCORE_NAME_MAX
+	_rename_edit.text = MetaState.player_name
+	_rename_edit.visible = false
+	_rename_edit.text_submitted.connect(func(text: String) -> void:
+		MetaState.rename_player(text)
+		_build_card())
+	_card.add_child(_rename_edit)
 
 	_line("%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level], Color("e8a33d"))
 	if MetaState.ascension > 0:
@@ -197,6 +259,16 @@ func _build_card() -> void:
 	_card.add_child(spacer)
 	_line("%d runs  ·  %d won  ·  %d rift stages closed" % [MetaState.runs_started,
 		MetaState.runs_won, MetaState.rifts_closed], Color("8f9b98"))
+
+
+func _toggle_rename() -> void:
+	if _rename_edit == null:
+		return
+	_rename_edit.visible = not _rename_edit.visible
+	if _rename_edit.visible:
+		_rename_edit.text = MetaState.player_name
+		_rename_edit.grab_focus()
+		_rename_edit.select_all()
 
 
 func _line(text: String, colour: Color) -> void:

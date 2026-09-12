@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "healing"
+display_name = "Staying alive"
+title = "Staying alive"
+category = "Healing"
+order = 19
+image = "res://art/guide/healing.png"
+body = "Health does not come back on its own. Tend the Warden in Preparation for Food; drink from a Healing Well you built by walking to it and pressing Interact when it is full; eat a fish; pick up the orbs some enemies drop. Wounds are the run's lives: three, and the fourth death ends the road."

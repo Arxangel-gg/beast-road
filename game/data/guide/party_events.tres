@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "party_events"
+display_name = "Raids and dungeons together"
+title = "Raids and dungeons together"
+category = "Co-op"
+order = 33
+image = "res://art/guide/party_events.png"
+body = "When one of you takes a raid or a rift, the rest are asked to come, with a timer. Accept and you go in together; decline and you stay on the field. If not everyone accepts, the one who asked decides whether to go anyway. When everyone goes, the battlefield waits as it was until the first of you returns."

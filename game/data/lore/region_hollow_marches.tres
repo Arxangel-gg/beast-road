@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_hollow_marches"
+display_name = "The Hollow Marches"
+title = "The Hollow Marches"
+category = 2
+unlock_act = 4
+order = 4
+art = "res://art/bg/macro_act4.png"
+body = "A drowned road under a fog that does not lift. The Fogbound Watch carries lanterns that are traps; whatever holds one is only there to hold it."

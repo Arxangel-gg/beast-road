@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "wells"
+display_name = "Healing Wells"
+title = "Healing Wells"
+category = "Healing"
+order = 20
+image = "res://art/guide/wells.png"
+body = "A well is a tower that heals instead of shooting. It fills over time - the ring around it shows how full - and pours for a Warden who comes to it and drinks. A higher level fills faster and pours more."

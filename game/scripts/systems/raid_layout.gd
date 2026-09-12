@@ -58,6 +58,13 @@ func _init(rng: RandomNumberGenerator = null) -> void:
 	cells.fill(Cell.OPEN)
 	levels.resize(SIZE * SIZE)
 	levels.fill(0)
+	_generate()
+
+
+## The shape itself, behind one method so a floor cut differently
+## (`DungeonLayout`) replaces the shape and keeps the coordinates, the
+## stepping rule and the reachability walk.
+func _generate() -> void:
 	_carve_edge()
 	_raise_islands()
 	_clear_arrival()

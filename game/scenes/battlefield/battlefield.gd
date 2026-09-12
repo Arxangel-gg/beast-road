@@ -34,6 +34,10 @@ const AmbientLifeScript = preload("res://scripts/systems/ambient_life.gd")
 ## The partner's hero, when a second player is here. Null-safe everywhere: in a
 ## single-player run this exists and does nothing.
 var _coop_heroes: CoopHeroes = null
+## Whether the local hero has stepped off the road into an event of its own
+## while the road runs on (see `PartyEvents`). Away, it is out of the world
+## and no phase change puts it back until it returns.
+var _hero_away: bool = false
 
 ## Enemies and towers, made to agree on two machines. Inert when playing alone.
 var _coop_world: CoopWorld = null
@@ -42,6 +46,8 @@ var _coop_world: CoopWorld = null
 var _ponds: Fishing = null
 ## The rift gates and dungeon mouths, re-laid with the ponds.
 var _rifts: RiftGates = null
+## The raider camps on the outskirts, and the fork barriers.
+var _camps: Camps = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -74,7 +80,7 @@ func activate() -> void:
 		CursorKit.use_build()
 	else:
 		CursorKit.use_attack()
-	if hero != null:
+	if hero != null and not _hero_away:
 		hero.set_present(not _suspended)
 		# Preparation is safe construction time, but it is still a playable view.
 		# The hero remains the active local avatar so the player can inspect roads,
@@ -176,7 +182,9 @@ func _ready() -> void:
 	_build_feedback_root()
 	_setup_lighting()
 	_setup_ground()
-	grid = BattleGrid.new()
+	# Seeded from the run, so the outskirts' mirror is the run's and both
+	# machines in co-op lay the same camps.
+	grid = BattleGrid.new(RunState.run_seed)
 	_build_lanes()
 	PathBlend.set_weather(RunState.weather_id)
 	EventBus.weather_changed.connect(PathBlend.set_weather)
@@ -257,7 +265,7 @@ func resume() -> void:
 	if not _suspended:
 		return
 	_suspended = false
-	if hero != null:
+	if hero != null and not _hero_away:
 		hero.set_present(true)
 	process_mode = Node.PROCESS_MODE_INHERIT
 	visible = true
@@ -265,6 +273,25 @@ func resume() -> void:
 
 func is_suspended() -> bool:
 	return _suspended
+
+
+## The local hero steps off the road into an event while the road runs on,
+## or comes back to it. Away, it is inactive and out of the world; back, it
+## takes whatever the phase would give it.
+func set_hero_away(away: bool) -> void:
+	_hero_away = away
+	if hero == null:
+		return
+	if away:
+		hero.set_active(false)
+		hero.set_present(false)
+	elif not _suspended:
+		hero.set_present(true)
+		hero.set_active(RunState.is_command_combat() or RunState.is_preparation())
+
+
+func hero_is_away() -> bool:
+	return _hero_away
 
 
 func enter_preparation() -> void:
@@ -288,7 +315,7 @@ func enter_preparation() -> void:
 	# live restores movement without allowing a hidden formation to advance.
 	entity_root.process_mode = Node.PROCESS_MODE_INHERIT
 	effect_root.process_mode = Node.PROCESS_MODE_DISABLED
-	if hero != null:
+	if hero != null and not _hero_away:
 		hero.set_active(true)
 	if visible:
 		CursorKit.use_build()
@@ -302,7 +329,7 @@ func begin_battle() -> void:
 			Balance.ROAD_START_WARNING_SECONDS)
 	wave_director.start()
 	_spawn_last_scar_pursuer()
-	if hero != null and visible:
+	if hero != null and visible and not _hero_away:
 		hero.set_active(true)
 	if visible:
 		CursorKit.use_attack()
@@ -668,6 +695,7 @@ func _build_foliage() -> void:
 	_build_wildlife()
 	_build_ponds()
 	_build_rift_gates()
+	_build_camps()
 
 
 func _build_ambient_life() -> void:
@@ -717,6 +745,44 @@ func _build_rift_gates() -> void:
 
 func rift_gates() -> RiftGates:
 	return _rifts
+
+
+## The camps on the outskirts. Built after the ponds and the gates so their
+## ground is already spoken for.
+func _build_camps() -> void:
+	_camps = Camps.new()
+	_camps.name = "Camps"
+	_camps.grid = grid
+	_camps.field = self
+	_camps.host = entity_root
+	add_child(_camps)
+	_camps.scatter()
+
+
+## The water, for the hero's swim and anything else that asks the field
+## rather than the ponds: how deep it is under a point, what colour it is,
+## and a stir where something moved in it. The hero asks the *field* because
+## it stands in an arena as often as on the road, and an arena has no ponds -
+## so an answer of "dry" is the right one there.
+func water_depth_at(at: Vector2) -> float:
+	return _ponds.water_depth_at(at) if _ponds != null else 0.0
+
+
+func water_colour() -> Color:
+	return _ponds.water_colour() if _ponds != null else Color(0.16, 0.36, 0.5)
+
+
+func stir(at: Vector2, strength: float = 0.5) -> void:
+	if _ponds != null:
+		_ponds.stir(at, strength)
+
+
+func ponds() -> Fishing:
+	return _ponds
+
+
+func camps() -> Camps:
+	return _camps
 
 
 func _build_ponds() -> void:
@@ -956,10 +1022,11 @@ func spawn_enemy(data: EnemyData, lane: int, hp_scale: float,
 	enemy.setup(data, lane, self, hp_scale, damage_scale, speed_scale)
 	var spread: Vector2 = lane_vector(lane).orthogonal() \
 		* RunState.rng("combat").randf_range(-Balance.LANE_WIDTH, Balance.LANE_WIDTH) * 0.5
-	# Spawn on the head of the road. `spawn_distance_scale` still pulls certain
-	# breeds in closer, but it now slides them *along the road* rather than along
-	# a straight line that the road no longer follows.
-	enemy.position = road_spawn_point(lane) * data.spawn_distance_scale + spread
+	# Spawn on the head of *its own* road: the route it drew begins at the
+	# spawn it will come from, which with the fork open is one of two legs.
+	# `spawn_distance_scale` pulls certain breeds in closer, sliding them along
+	# that road rather than along a straight line the road does not follow.
+	enemy.position = enemy.route_point_at(1.0 - data.spawn_distance_scale) + spread
 	entity_root.add_child(enemy)
 	# Announced *after* it is in the tree, so the position the guest is told is
 	# the one it actually spawned at. Does nothing in a single-player run, and
@@ -1618,6 +1685,9 @@ func refresh_terrain() -> void:
 	if _rifts != null:
 		_rifts.avoid = _ponds.pond_positions() if _ponds != null else PackedVector2Array()
 		_rifts.scatter()
+	# And the camps, which close the forks again with the act.
+	if _camps != null:
+		_camps.scatter()
 
 
 func _setup_ground() -> void:
@@ -1992,7 +2062,7 @@ func _update_pressure() -> void:
 
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
-		if enemy == null or enemy.is_dying():
+		if enemy == null or enemy.is_dying() or enemy.is_camp_mob():
 			continue
 		# The lane the enemy is in *now*, not the one it spawned in.
 		#

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "first_road"
+display_name = "The Road Begins"
+title = "The Road Begins"
+description = "Start a run."
+stat = "runs_started"
+threshold = 1.0
+icon = "pressure_arrow"
+order = 0

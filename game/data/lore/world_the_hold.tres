@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_the_hold"
+display_name = "The Hold"
+title = "The Hold"
+category = 0
+unlock_act = 0
+order = 5
+art = ""
+body = "The town rides the beast, but between runs the road's people meet somewhere that does not move: the Hold. It is where a Warden keeps their stash, reads the Long Ledger, looks over the Chronicle and the Codex, and sees who they have become - their title, their professions, their rank.\n\nThe Ledger's caravans carry what one Warden sold to what another will buy, and its prices are the prices of every road walked by everyone. Custody never changes hands through it; only word does."

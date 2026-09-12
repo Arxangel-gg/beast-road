@@ -82,6 +82,8 @@ static func spawn_for_slot(number: int, town: Vector2) -> Vector2:
 
 
 func _ready() -> void:
+	EventBus.coop_party_roster.connect(func(_rows: Array) -> void: refresh_nameplates.call_deferred())
+	EventBus.player_renamed.connect(func(_name: String) -> void: refresh_nameplates())
 	EventBus.coop_partner_joined.connect(_on_partner_joined)
 	# The roster is the truth about who is here, and it arrives after the
 	# connection does. Without this a guest keeps whatever it guessed.
@@ -99,6 +101,7 @@ func _ready() -> void:
 			spawn_partner())
 	EventBus.coop_partner_left.connect(_on_partner_left)
 	EventBus.coop_request_received.connect(_on_request)
+	EventBus.coop_party_event_away.connect(_on_party_away)
 	EventBus.coop_state_changed.connect(_on_session_changed)
 	EventBus.coop_hero_state.connect(_on_hero_state)
 	EventBus.coop_host_input.connect(_on_host_input)
@@ -182,6 +185,20 @@ func party_heroes() -> Array[Hero]:
 
 
 # --- Appearing and leaving ---------------------------------------------------
+
+## Every hero in the party wears its seat's name while there is a party to
+## read it. Called on every roster and every body change; cheap.
+func refresh_nameplates() -> void:
+	var party: CoopParty = Coop.party()
+	var showing: bool = Coop.is_networked() and Coop.partner_present()
+	for who: Hero in party_heroes():
+		if who == null or not is_instance_valid(who):
+			continue
+		var text: String = party.name_of(who.party_slot) if showing else ""
+		if showing and text.is_empty():
+			text = "Warden %d" % who.party_slot
+		who.set_nameplate(text)
+
 
 func _on_partner_joined(_peer_id: int) -> void:
 	spawn_partner()
@@ -717,6 +734,21 @@ func _apply_one_state(number: int, at: Vector2, hp: float, mana: float = -1.0) -
 	# feel is worse than a few pixels of disagreement.
 	who.global_position = who.global_position.lerp(at,
 		Balance.COOP_POSITION_CORRECTION * (0.5 if own else 1.0))
+
+
+## A seat stepped off the road into an event of its own, or came back. Every
+## machine: its body here is hidden, out of the world and still while away, so
+## nothing on the road can reach a hero who is not on it. The local hero is
+## not this code's - `Battlefield.set_hero_away` handles it.
+func _on_party_away(slot: int, away: bool) -> void:
+	if slot == Coop.party().slot():
+		return
+	var who: Hero = body_for_slot(slot)
+	if who == null:
+		return
+	who.set_present(not away)
+	who.visible = not away
+	who.process_mode = Node.PROCESS_MODE_DISABLED if away else Node.PROCESS_MODE_INHERIT
 
 
 ## A guest told the host what its player is asking for. Host side.

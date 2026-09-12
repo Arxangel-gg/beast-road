@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "account"
+display_name = "Marks and Shards"
+title = "Marks and Shards"
+category = "Resources"
+order = 22
+image = "res://art/guide/account.png"
+body = "Marks and Shards are account currencies: they survive runs and buy from the stash and the Ledger. They never exchange with the run's four, so a stash purchase can never compete with the wall about to be overrun."

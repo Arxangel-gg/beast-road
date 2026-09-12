@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "hundred_kills"
+display_name = "A Hundred"
+title = "A Hundred"
+description = "Slay a hundred enemies."
+stat = "total_enemies_killed"
+threshold = 100.0
+icon = "wave"
+order = 7

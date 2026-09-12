@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_snow"
+display_name = "The White Teeth"
+title = "The White Teeth"
+category = 2
+unlock_act = 3
+order = 3
+art = "res://art/bg/macro_act3.png"
+body = "Mountains named for what they do. The White Teeth clan run sleds chained to hauler beasts and sound horns that carry for miles. The ponds are half ice."

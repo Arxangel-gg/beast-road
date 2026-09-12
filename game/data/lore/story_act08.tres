@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act08"
+display_name = "Act 8  ·  The Note Above Hearing"
+title = "Act 8  ·  The Note Above Hearing"
+category = 1
+unlock_act = 8
+order = 8
+art = ""
+body = "The Glass Fields ring. Everything of glass answers the Shatter Choir's note, and the Shatterfather was once part of the ice and can be again. Every blow the Warden lands comes back in colours, and the Warden learns which of them to stand in front of."

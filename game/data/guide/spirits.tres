@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "spirits"
+display_name = "Wildlife Spirit Companions"
+title = "Wildlife Spirit Companions"
+category = "Companions"
+order = 26
+image = "res://art/guide/spirits.png"
+body = "Meet an animal enough times - approach the harmless ones, best the hostile - and its spirit is bonded. Equip one at the stash and it walks beside you: it fights, it has health, it goes down and re-forms beside you. Each carries a personality that changes where it is dangerous, never how dangerous."

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "cards"
+display_name = "Road Cards and portents"
+title = "Road Cards and portents"
+category = "The Road"
+order = 12
+image = "res://art/guide/cards.png"
+body = "A card moves one number for the rest of the run - tower damage, resource rate, hero speed. The hand holds five; a sixth replaces one. A portent, read when a boss falls, is a bane and a boon together, and it stacks with the ones before."

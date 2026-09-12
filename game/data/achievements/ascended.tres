@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "ascended"
+display_name = "Through the Gate"
+title = "Through the Gate"
+description = "Ascend once."
+stat = "ascension"
+threshold = 1.0
+icon = "upgrade"
+order = 21

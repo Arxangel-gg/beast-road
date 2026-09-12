@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_jungle"
+display_name = "The Verdant Maw"
+title = "The Verdant Maw"
+category = 2
+unlock_act = 1
+order = 1
+art = "res://art/bg/macro_act1.png"
+body = "A jungle that grows faster than a road can be cut through it. The Coalpaint Raiders paint themselves with ash so the green cannot see them. Ponds here are warm and full; the fish are common and the frogs are loud."

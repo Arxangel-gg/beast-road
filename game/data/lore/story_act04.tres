@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act04"
+display_name = "Act 4  ·  The Fog Holds Its Breath"
+title = "Act 4  ·  The Fog Holds Its Breath"
+category = 1
+unlock_act = 4
+order = 4
+art = ""
+body = "Past the snow the ground goes soft and the light goes grey. The Hollow Marches were a road once; the fog cut it and nobody has argued with the fog since. Hollow Ard, the Mistwarden, stood here before the road and has not agreed to move. Things come up through the wet ground behind the line, where the towers are not looking."

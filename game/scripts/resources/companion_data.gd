@@ -44,6 +44,17 @@ extends GameData
 ## True for anything that ignores the ground and drifts over it.
 @export var flies: bool = false
 
+## The wildlife species whose animation frames this companion borrows: a Spirit
+## Wolf runs with the wolf's cycle. Empty draws the companion's own single
+## sprite. A summon is a spell effect and needs no frames of its own - the
+## animals already move.
+@export var wildlife_id: String = ""
+
+## Which way the companion's own sprite faces. The painted companions face
+## left, like the wildlife; a summon that flipped for right-facing art ran
+## backwards down the road.
+@export var art_faces_right: bool = false
+
 ## Drawn size, as a multiple of the sprite's own pixels.
 @export_range(0.2, 3.0) var scale: float = 1.0
 

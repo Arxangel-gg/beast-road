@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "glossary_c"
+display_name = "Words of the account"
+title = "Words of the account"
+category = "Glossary"
+order = 37
+image = "res://art/guide/glossary_c.png"
+body = "Marks and Shards: account currencies. Sigil: a rank earned by winning. Ascension: the Gate's rank, a title and a portrait. Profession: a skill at a thing - the Angler is the first. Codex: everything the road has shown you. Chronicle: the objectives across runs."

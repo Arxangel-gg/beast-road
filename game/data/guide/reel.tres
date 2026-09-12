@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "reel"
+display_name = "Reeling"
+title = "Reeling"
+category = "Fishing & Water"
+order = 15
+image = "res://art/guide/reel.png"
+body = "Hold to take line in, let go to give it. Keep the line inside the band while the fish fights - the band drifts as the fish darts. Outside the band the grip drains; at nothing the fish is gone. Too much tension and the line snaps. The Angler level widens the band and steadies it."

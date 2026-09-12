@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "rifts"
+display_name = "Rifts and dungeons"
+title = "Rifts and dungeons"
+category = "Camps & Rifts"
+order = 30
+image = "res://art/guide/rifts.png"
+body = "A rift is one stage: kills fill it, its guardian steps through at full, and the guardian falling closes it. A dungeon is stages with a door between them. Both are timed - run out and it collapses on you. A dungeon's end holds a chest."

@@ -136,34 +136,112 @@ static func node_px(node: Vector2i) -> Vector2:
 	return Vector2(float(node.x + 1) * TILE, float(node.y + 1) * TILE)
 
 
-## The blend mask the water shader reads: red fades the generated bank into the
-## painted field, green marks the deep water the light may land on.
+## The blend mask the water shader reads, and the fishing code samples: red
+## fades the generated bank into the painted field, green marks the deep water
+## the light may land on, **blue is depth** - how far from the bank a texel
+## is, 0 at the rim and 1 at the deepest node - which is what tints the middle
+## darker and decides where the rare fish live.
 ##
 ## Built at an eighth of the pond's resolution. The sampler is linear, so an
 ## eight-pixel ramp is smooth on screen, and it keeps the distance field to a
 ## few thousand operations per pond rather than a few hundred thousand - this
 ## runs on every region change, on a phone, for every pond at once.
+const MASK_STEP: int = 8
+
+
 static func mask(nodes: Array[Vector2i], width: int, height: int) -> ImageTexture:
-	const STEP: int = 8
+	return ImageTexture.create_from_image(mask_image(nodes, width, height))
+
+
+static func mask_image(nodes: Array[Vector2i], width: int, height: int) -> Image:
 	var px_w: int = (width + 1) * TILE
 	var px_h: int = (height + 1) * TILE
 	@warning_ignore("integer_division")
-	var image: Image = Image.create(px_w / STEP, px_h / STEP, false, Image.FORMAT_RG8)
+	var image: Image = Image.create(px_w / MASK_STEP, px_h / MASK_STEP, false, Image.FORMAT_RGB8)
 	var centres: PackedVector2Array = []
+	var depths: PackedFloat32Array = []
+	var by_node: Dictionary = node_depths(nodes)
 	for node: Vector2i in nodes:
 		centres.append(node_px(node))
+		depths.append(float(by_node.get(node, 0.0)))
 	for y: int in image.get_height():
 		for x: int in image.get_width():
-			var at := Vector2(float(x) * STEP + STEP * 0.5, float(y) * STEP + STEP * 0.5)
+			var at := Vector2(float(x) * MASK_STEP + MASK_STEP * 0.5,
+				float(y) * MASK_STEP + MASK_STEP * 0.5)
 			var nearest: float = INF
-			for centre: Vector2 in centres:
-				nearest = minf(nearest, at.distance_to(centre))
+			var depth: float = 0.0
+			# Depth is the inverse-distance blend of the two nearest nodes'
+			# own depths, so it ramps between lattice points rather than
+			# stepping at the midline between them.
+			var best_a: float = INF
+			var best_b: float = INF
+			var depth_a: float = 0.0
+			var depth_b: float = 0.0
+			for index: int in centres.size():
+				var gap: float = at.distance_to(centres[index])
+				nearest = minf(nearest, gap)
+				if gap < best_a:
+					best_b = best_a
+					depth_b = depth_a
+					best_a = gap
+					depth_a = depths[index]
+				elif gap < best_b:
+					best_b = gap
+					depth_b = depths[index]
+			if best_a < INF:
+				var wa: float = 1.0 / maxf(best_a, 1.0)
+				var wb: float = 1.0 / maxf(best_b, 1.0) if best_b < INF else 0.0
+				depth = (depth_a * wa + depth_b * wb) / (wa + wb)
 			# The bank is drawn in the half-tile around a water node; past a
 			# full tile it is gone. Deep water is the inner third.
 			var edge: float = 1.0 - smoothstep(20.0, float(TILE), nearest)
 			var deep: float = 1.0 - smoothstep(11.0, 17.0, nearest)
-			image.set_pixel(x, y, Color(edge, deep, 0.0))
-	return ImageTexture.create_from_image(image)
+			image.set_pixel(x, y, Color(edge, deep, depth * deep))
+	return image
+
+
+## How deep each water node is: steps to the nearest node that is not water,
+## normalised so the deepest node in the pond is 1. A rim node is 0.
+static func node_depths(nodes: Array[Vector2i]) -> Dictionary:
+	var water: Dictionary = {}
+	for node: Vector2i in nodes:
+		water[node] = true
+	var steps: Dictionary = {}
+	var frontier: Array[Vector2i] = []
+	for node: Vector2i in nodes:
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			if not water.has(node + step):
+				steps[node] = 0
+				frontier.append(node)
+				break
+	var deepest: int = 0
+	while not frontier.is_empty():
+		var node: Vector2i = frontier.pop_front()
+		var here: int = int(steps[node])
+		for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+			var next: Vector2i = node + step
+			if water.has(next) and not steps.has(next):
+				steps[next] = here + 1
+				deepest = maxi(deepest, here + 1)
+				frontier.append(next)
+	var out: Dictionary = {}
+	for node: Vector2i in nodes:
+		out[node] = float(int(steps.get(node, 0))) / float(maxi(deepest, 1))
+	return out
+
+
+## The depth under a point in the layer's own pixels, 0 on dry ground.
+static func depth_at(image: Image, local_px: Vector2) -> float:
+	if image == null:
+		return 0.0
+	var x: int = int(floor(local_px.x / MASK_STEP))
+	var y: int = int(floor(local_px.y / MASK_STEP))
+	if x < 0 or y < 0 or x >= image.get_width() or y >= image.get_height():
+		return 0.0
+	var texel: Color = image.get_pixel(x, y)
+	# Wet at all is the green channel; how deep is the blue. A swimmer wants
+	# "am I in water" more than "how deep", so the shallows count a little.
+	return maxf(texel.b, texel.g * 0.35)
 
 
 ## A polished `smoothstep` for the mask; GDScript has no built-in.

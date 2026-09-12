@@ -1573,8 +1573,8 @@ Files: `wildlife_boar_move_01.png` · `wildlife_boar_move_02.png` · `wildlife_b
 Files: `wildlife_bear_move_01.png` · `wildlife_bear_move_02.png` · `wildlife_bear_move_03.png` · `wildlife_bear_move_04.png` · `wildlife_bear_move_05.png` · `wildlife_bear_move_06.png` · `wildlife_bear_move_07.png`
 Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png` · `wildlife_viper_move_03.png` · `wildlife_viper_move_04.png` · `wildlife_viper_move_05.png` · `wildlife_viper_move_06.png` · `wildlife_viper_move_07.png`
 Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png` · `wildlife_badger_move_03.png` · `wildlife_badger_move_04.png` · `wildlife_badger_move_05.png` · `wildlife_badger_move_06.png` · `wildlife_badger_move_07.png`
-Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildlife_rabbit_move_03.png` · `wildlife_rabbit_move_04.png` · `wildlife_rabbit_move_05.png` · `wildlife_rabbit_move_06.png` · `wildlife_rabbit_move_07.png`
-Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png` · `wildlife_squirrel_move_03.png` · `wildlife_squirrel_move_04.png` · `wildlife_squirrel_move_05.png` · `wildlife_squirrel_move_06.png` · `wildlife_squirrel_move_07.png`
+Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildlife_rabbit_move_03.png` · `wildlife_rabbit_move_04.png` · `wildlife_rabbit_move_05.png`
+Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
 Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png` · `wildlife_stag_move_03.png` · `wildlife_stag_move_04.png` · `wildlife_stag_move_05.png` · `wildlife_stag_move_06.png` · `wildlife_stag_move_07.png`
 Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png` · `wildlife_heron_move_03.png` · `wildlife_heron_move_04.png` · `wildlife_heron_move_05.png` · `wildlife_heron_move_06.png` · `wildlife_heron_move_07.png`
 Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png`
@@ -2310,6 +2310,374 @@ labels.
 | `ammo_thunder_bolt.png` | 128×128 | T | `#6FA8C4` |
 | `ammo_plain_bolt.png` | 128×128 | T | `#6E6A60` |
 | `ammo_blast_bolt.png` | 128×128 | T | `#9C6A34` |
+
+### 5.15 Foliage of acts IV to X — `res://art/foliage/`
+
+The seven later regions grew their own wood on 2026-09-12: one base tree
+and four variants each, with four idle frames apiece beside them, eight
+painted plant kinds per region, and a sheet of four grass tufts per region
+(`grass_<region>.png`, four tufts across a 128×32 strip, batched by the
+painted layer). Generated with PixelLab and animated by job URL.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `grass_ashen_reach.png` | 128×32 | T | `#4E6A3A` |
+| `grass_desert.png` | 128×32 | T | `#4E6A3A` |
+| `grass_glass_fields.png` | 128×32 | T | `#4E6A3A` |
+| `grass_hollow_marches.png` | 128×32 | T | `#4E6A3A` |
+| `grass_iron_steppe.png` | 128×32 | T | `#4E6A3A` |
+| `grass_jungle.png` | 128×32 | T | `#4E6A3A` |
+| `grass_last_terrace.png` | 128×32 | T | `#4E6A3A` |
+| `grass_rustwood.png` | 128×32 | T | `#4E6A3A` |
+| `grass_saltpan.png` | 128×32 | T | `#4E6A3A` |
+| `grass_snow.png` | 128×32 | T | `#4E6A3A` |
+| `tree_ashen_reach.png` | 96×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_ashen_reach_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_glass_fields.png` | 96×128 | T | `#2E4A2A` |
+| `tree_glass_fields_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_glass_fields_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_glass_fields_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_glass_fields_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_glass_fields_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_hollow_marches.png` | 96×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_hollow_marches_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_iron_steppe.png` | 96×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_iron_steppe_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_last_terrace.png` | 96×128 | T | `#2E4A2A` |
+| `tree_last_terrace_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_last_terrace_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_last_terrace_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_last_terrace_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_last_terrace_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_rustwood.png` | 96×128 | T | `#2E4A2A` |
+| `tree_rustwood_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_rustwood_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_rustwood_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_rustwood_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_rustwood_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `tree_saltpan.png` | 96×128 | T | `#2E4A2A` |
+| `tree_saltpan_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_01_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_01_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_01_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_01_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_02_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_02_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_02_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_02_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_03_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_03_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_03_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_03_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_04_idle_01.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_04_idle_02.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_04_idle_03.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_04_idle_04.png` | 128×128 | T | `#2E4A2A` |
+| `tree_saltpan_idle_01.png` | 96×128 | T | `#2E4A2A` |
+| `tree_saltpan_idle_02.png` | 96×128 | T | `#2E4A2A` |
+| `tree_saltpan_idle_03.png` | 96×128 | T | `#2E4A2A` |
+| `tree_saltpan_idle_04.png` | 96×128 | T | `#2E4A2A` |
+| `plant_ashen_reach.png` | 48×64 | T | `#3A5A3A` |
+| `plant_ashen_reach_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_ashen_reach_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_ashen_reach_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_ashen_reach_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_ashen_reach_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_ashen_reach_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_ashen_reach_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_glass_fields.png` | 48×64 | T | `#3A5A3A` |
+| `plant_glass_fields_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_glass_fields_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_glass_fields_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_glass_fields_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_glass_fields_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_glass_fields_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_glass_fields_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_hollow_marches.png` | 48×64 | T | `#3A5A3A` |
+| `plant_hollow_marches_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_hollow_marches_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_hollow_marches_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_hollow_marches_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_hollow_marches_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_hollow_marches_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_hollow_marches_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_iron_steppe.png` | 48×64 | T | `#3A5A3A` |
+| `plant_iron_steppe_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_iron_steppe_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_iron_steppe_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_iron_steppe_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_iron_steppe_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_iron_steppe_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_iron_steppe_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_last_terrace.png` | 48×64 | T | `#3A5A3A` |
+| `plant_last_terrace_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_last_terrace_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_last_terrace_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_last_terrace_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_last_terrace_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_last_terrace_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_last_terrace_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_rustwood.png` | 48×64 | T | `#3A5A3A` |
+| `plant_rustwood_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_rustwood_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_rustwood_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_rustwood_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_rustwood_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_rustwood_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_rustwood_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_saltpan.png` | 48×64 | T | `#3A5A3A` |
+| `plant_saltpan_blossom.png` | 32×40 | T | `#3A5A3A` |
+| `plant_saltpan_bush.png` | 64×56 | T | `#3A5A3A` |
+| `plant_saltpan_creeper.png` | 64×40 | T | `#3A5A3A` |
+| `plant_saltpan_fern.png` | 64×40 | T | `#3A5A3A` |
+| `plant_saltpan_flower.png` | 32×40 | T | `#3A5A3A` |
+| `plant_saltpan_shrub.png` | 56×64 | T | `#3A5A3A` |
+| `plant_saltpan_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+
+### 5.16 Camps and forks — `res://art/battlefield/`
+
+The war camps on the outskirts (2026-09-12): props scattered on a camp's
+ground, the totem of a baron's camp, and the barrier across a fork that
+falls when both camps on its road do. The raid arena and the dungeons
+furnish themselves from the same props.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `camp_banner.png` | 47×76 | T | `#5A4A3A` |
+| `camp_bones.png` | 74×46 | T | `#5A4A3A` |
+| `camp_cage.png` | 58×71 | T | `#5A4A3A` |
+| `camp_crates.png` | 71×66 | T | `#5A4A3A` |
+| `camp_fire.png` | 63×67 | T | `#5A4A3A` |
+| `camp_palisade.png` | 64×66 | T | `#5A4A3A` |
+| `camp_pot.png` | 63×75 | T | `#5A4A3A` |
+| `camp_rack.png` | 70×73 | T | `#5A4A3A` |
+| `camp_tent.png` | 79×75 | T | `#5A4A3A` |
+| `fork_barrier.png` | 185×93 | T | `#5A4A3A` |
+| `war_totem.png` | 96×160 | T | `#5A4A3A` |
+
+### 5.17 The beast's tail — `res://art/beast/`
+
+The tail the generated beast lost off the edge of its canvas, drawn on
+its own and driven in step with the walk and the idle (2026-09-12):
+the base pose, six idle frames and eight walk frames.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `beast_tail.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_00.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_01.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_02.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_03.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_04.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_idle_05.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_00.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_01.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_02.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_03.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_04.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_05.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_06.png` | 160×96 | T | `#4A4A3A` |
+| `beast_tail_walk_07.png` | 160×96 | T | `#4A4A3A` |
+
+### 5.18 Wildlife frames of 2026-09-12 — `res://art/wildlife/`
+
+Grazing deer, running rabbits and squirrels, and clean bases with idle and
+move frames for the species whose first art carried baked ground.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `wildlife_ash_hound_idle_04.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_ash_hound_move_08.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_cliff_goat_idle_04.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_cliff_goat_move_08.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_01.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_02.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_03.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_04.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_05.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_06.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_07.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_deer_graze_08.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_hedgehog_move_08.png` | 64×64 | T | `#6A5A3A` |
+| `wildlife_tortoise_move_08.png` | 64×64 | T | `#6A5A3A` |
+
+### 5.19 Guide pictures — `res://art/guide/`
+
+The demonstration pictures the Guide shows beside each section, one per
+`GuideSectionData.image`. Not drawn: photographed from the real game by
+`tools/guide_shots.gd`, at 640×360, and re-taken whenever a screen changes.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `account.png` | 640×360 | O | `#1E2E33` |
+| `act_track.png` | 640×360 | O | `#1E2E33` |
+| `bow.png` | 640×360 | O | `#1E2E33` |
+| `camps.png` | 640×360 | O | `#1E2E33` |
+| `cards.png` | 640×360 | O | `#1E2E33` |
+| `controls.png` | 640×360 | O | `#1E2E33` |
+| `coop.png` | 640×360 | O | `#1E2E33` |
+| `crossroads.png` | 640×360 | O | `#1E2E33` |
+| `currencies.png` | 640×360 | O | `#1E2E33` |
+| `depth.png` | 640×360 | O | `#1E2E33` |
+| `fishing.png` | 640×360 | O | `#1E2E33` |
+| `forks.png` | 640×360 | O | `#1E2E33` |
+| `gear.png` | 640×360 | O | `#1E2E33` |
+| `glossary_a.png` | 640×360 | O | `#1E2E33` |
+| `glossary_b.png` | 640×360 | O | `#1E2E33` |
+| `glossary_c.png` | 640×360 | O | `#1E2E33` |
+| `healing.png` | 640×360 | O | `#1E2E33` |
+| `hud.png` | 640×360 | O | `#1E2E33` |
+| `loop.png` | 640×360 | O | `#1E2E33` |
+| `night.png` | 640×360 | O | `#1E2E33` |
+| `pantry.png` | 640×360 | O | `#1E2E33` |
+| `party_events.png` | 640×360 | O | `#1E2E33` |
+| `preparation.png` | 640×360 | O | `#1E2E33` |
+| `raids.png` | 640×360 | O | `#1E2E33` |
+| `reel.png` | 640×360 | O | `#1E2E33` |
+| `relics.png` | 640×360 | O | `#1E2E33` |
+| `rifts.png` | 640×360 | O | `#1E2E33` |
+| `spells.png` | 640×360 | O | `#1E2E33` |
+| `spirits.png` | 640×360 | O | `#1E2E33` |
+| `stash.png` | 640×360 | O | `#1E2E33` |
+| `summons.png` | 640×360 | O | `#1E2E33` |
+| `swimming.png` | 640×360 | O | `#1E2E33` |
+| `towers.png` | 640×360 | O | `#1E2E33` |
+| `town.png` | 640×360 | O | `#1E2E33` |
+| `trading.png` | 640×360 | O | `#1E2E33` |
+| `traps.png` | 640×360 | O | `#1E2E33` |
+| `waves.png` | 640×360 | O | `#1E2E33` |
+| `wells.png` | 640×360 | O | `#1E2E33` |
+
+---
 
 ## 6. Subject prompts
 

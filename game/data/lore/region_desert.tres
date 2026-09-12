@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_desert"
+display_name = "The Sunglass Waste"
+title = "The Sunglass Waste"
+category = 2
+unlock_act = 2
+order = 2
+art = "res://art/bg/macro_act2.png"
+body = "Sand fused to glass by something that happened long ago. The Sunglass clan mirror their shields and their seer mirrors the road. Water is rare and the fish in it are strange."

@@ -55,7 +55,7 @@ signal fishing_bite(window: float)
 
 ## The reel: line tension 0..1, the band it must stay in, and how far in the
 ## fish is. Emitted every frame while reeling.
-signal fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float)
+signal fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float, grip: float)
 
 ## The line came back empty, and why - a snap, a slip, a step.
 signal fishing_failed(reason: String)
@@ -687,3 +687,65 @@ signal coop_paused(paused: bool)
 ## exactly the trap `coop_hero_state` names its arguments to avoid.
 signal coop_hero_down(slot: int, at: Vector2)
 signal coop_hero_revived(slot: int, at: Vector2)
+
+# --- The outskirts (2026-09-12) --------------------------------------------
+
+## A camp's bodies all fell. `tier` is `BattleGrid.CampTier`.
+signal camp_cleared(lane: int, tier: int)
+## A razed camp stood back up.
+signal camp_respawned(lane: int, tier: int)
+## Both of a lane's camps fell and the fork past them opened: the lane's waves
+## now come from two spawns at the map's edge, and the war camp is awake.
+signal fork_opened(lane: int)
+## The war camp fell and a dungeon mouth opened on its ground.
+signal war_camp_razed(lane: int, at: Vector2)
+## Host to guest: a camp's state, so the guest's props and barriers agree.
+## `state` is `Camps.State`.
+signal coop_camp_state(lane: int, tier: int, state: int)
+signal coop_fork_opened(lane: int)
+
+# --- Fishing, the third cut, and swimming (2026-09-12) ----------------------
+
+## A held cast is charging: 0 at the press, 1 at full power.
+signal fishing_charge(ratio: float)
+## The float moved. `real` is a nibble - something is interested - against an
+## idle bob that means nothing; both are shown so a player learns the tell.
+signal fishing_nibble(real: bool)
+## The hero went into, or came out of, the water.
+signal hero_swim_changed(swimming: bool)
+## The hero died in the water.
+signal hero_drowned(at: Vector2)
+
+
+# --- The guide, achievements and the name (2026-09-12) ----------------------
+
+## A statistic crossed its threshold. See `AchievementData`.
+signal achievement_unlocked(achievement_id: String)
+## The Warden was renamed at the Hold.
+signal player_renamed(new_name: String)
+
+
+# --- Party events (2026-09-12) --------------------------------------------------
+#
+# The conversation before a raid or a rift in co-op. Host to everyone: a
+# proposal, the running tally, a request for the proposer's decision, the
+# outcome, and the first return that unfreezes the field.
+signal coop_party_event_proposed(kind: int, subkind: int, by_slot: int, seconds: float)
+signal coop_party_event_votes(accepted: Array, declined: Array)
+signal coop_party_event_decide_ask(slot: int, seconds: float)
+signal coop_party_event_resolved(kind: int, subkind: int, goers: Array)
+signal coop_party_event_returned(slot: int)
+signal coop_party_event_away(slot: int, away: bool)
+## Local, for the HUD: the prompt to show, the tally line, the proposer's
+## decision prompt, and the prompt going away.
+signal party_event_prompt(kind: int, subkind: int, by_name: String, seconds: float, mine: bool)
+signal party_event_votes_changed(text: String)
+signal party_event_decision_prompt(seconds: float)
+signal party_event_prompt_closed()
+
+
+# --- The maze under a rift (2026-09-12) -------------------------------------------
+## The clock ran out and the stage is coming down: seconds to reach the exit.
+signal rift_collapsing(seconds: float)
+## A stage's chest was opened: which stage, and how many pieces it held.
+signal rift_chest_opened(stage: int, pieces: int)

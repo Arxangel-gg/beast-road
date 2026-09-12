@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "hud"
+display_name = "Reading the screen"
+title = "Reading the screen"
+category = "Basics"
+order = 3
+image = "res://art/guide/hud.png"
+body = "Top left: act, level, weather, the four currencies and how far to the next crossroad. The sundial beside them is the time of day - the sun sets where the moon rises. Top centre: the boss tracker. Right: the town's health, your health, Wounds. Bottom: your actions and spells."

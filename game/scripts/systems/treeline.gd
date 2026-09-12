@@ -37,6 +37,15 @@ const REGIONS: Dictionary = {
 	"jungle": {"density": 1.0, "clump": 0.62},
 	"desert": {"density": 0.34, "clump": 0.16},
 	"snow": {"density": 0.62, "clump": 0.44},
+	# Acts IV to X (2026-09-12): each region grew its own wood, five trees a
+	# region, so its treeline is no longer the jungle's fallback.
+	"hollow_marches": {"density": 0.78, "clump": 0.55},
+	"rustwood": {"density": 0.92, "clump": 0.58},
+	"saltpan": {"density": 0.22, "clump": 0.12},
+	"iron_steppe": {"density": 0.28, "clump": 0.20},
+	"glass_fields": {"density": 0.40, "clump": 0.30},
+	"ashen_reach": {"density": 0.36, "clump": 0.26},
+	"last_terrace": {"density": 0.58, "clump": 0.46},
 }
 
 ## Where a tree's origin sits inside its art, as a fraction of height.
@@ -90,7 +99,10 @@ func scatter() -> void:
 	var rng := RandomNumberGenerator.new()
 	# Seeded per region, so an act looks the same every time it is entered rather
 	# than reshuffling its forest whenever the scope is left and returned to.
-	rng.seed = hash("treeline:" + region)
+	# And the run's: the same region grew the same wood every run, which the
+	# owner read as "maps seem somewhat repetitive". Stable within a run so a
+	# scope left and returned to shows the same trees.
+	rng.seed = hash("treeline:" + region) ^ RunState.run_seed
 
 	var mouths: Array[Vector2] = _lane_mouths()
 	var wanted: int = int(round(float(Balance.TREELINE_ATTEMPTS) * float(shape["density"])
@@ -200,7 +212,9 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 	tree.add_to_group("ambient_tree")
 	# Origin at the trunk, so the node's own y is where it touches the ground -
 	# which is what `y_sort_enabled` on this node then sorts by.
-	tree.offset = Vector2(0.0, -float(art.get_height()) * TRUNK_ANCHOR)
+	# Measured from the art rather than a fixed fraction; see
+	# `Foliage.ground_anchor` for the half-sprite error the fraction carried.
+	tree.offset = Foliage.foot_offset(art)
 	tree.position = at
 	tree.scale = Vector2(
 		size * rng.randf_range(Balance.TREELINE_WIDTH_VARIATION.x,
@@ -231,6 +245,8 @@ func _plant(art: Texture2D, at: Vector2, size: float,
 
 
 func _scale_span(region: String) -> Vector2:
+	if Balance.TREELINE_REGION_SCALE.has(region):
+		return Balance.TREELINE_REGION_SCALE[region]
 	match region:
 		"desert":
 			return Balance.TREELINE_DESERT_SCALE

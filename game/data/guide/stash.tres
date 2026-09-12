@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "stash"
+display_name = "The stash"
+title = "The stash"
+category = "Items & Gear"
+order = 24
+image = "res://art/guide/stash.png"
+body = "The stash holds your gear between runs. Wear three pieces; break the rest for Shards or sell them for Marks. Mark a piece kept and the break-all buttons leave it alone. The pantry tab holds your fish."

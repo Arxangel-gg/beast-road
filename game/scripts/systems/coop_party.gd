@@ -100,6 +100,13 @@ func colour_name_here() -> String:
 		Balance.PARTY_COLOUR_NAMES.size() - 1)]
 
 
+## The name in a seat, or "" for an empty one. For the nameplates.
+func name_of(number: int) -> String:
+	if not _seats.has(number):
+		return ""
+	return String((_seats[number] as Seat).name)
+
+
 ## Every seat, lowest slot first. Ordered because it is drawn.
 func seats() -> Array:
 	var out: Array = []

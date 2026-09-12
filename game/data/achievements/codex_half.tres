@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "codex_half"
+display_name = "Half the Book"
+title = "Half the Book"
+description = "Find half of the codex."
+stat = "codex_share"
+threshold = 0.5
+icon = "quiet_ledger"
+order = 23

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "trading"
+display_name = "Trading and the Ledger"
+title = "Trading and the Ledger"
+category = "Co-op"
+order = 34
+image = "res://art/guide/trading.png"
+body = "Two players may trade gear at the trade table; both confirm and no piece is ever created. The Long Ledger publishes what pieces sold for across every player; its caravans are the counterparty, and orders fill with road travelled."

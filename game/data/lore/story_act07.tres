@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act07"
+display_name = "Act 7  ·  Who Rides Last"
+title = "Act 7  ·  Who Rides Last"
+category = 1
+unlock_act = 7
+order = 7
+art = ""
+body = "The Iron Steppe is open ground and the Iron Horde crosses it fast. Khatun Var sends everyone else first; that is not cowardice, it is arithmetic. The Warden learns the roads here can fork, and that a fork is two mouths instead of one."

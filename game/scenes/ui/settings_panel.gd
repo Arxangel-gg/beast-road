@@ -27,6 +27,8 @@ const VOLUME_ROWS: Array[Dictionary] = [
 	{"key": "master_volume", "label": "Master", "default": 1.0},
 	{"key": "music_volume", "label": "Music", "default": 0.8},
 	{"key": "sfx_volume", "label": "Sound", "default": 1.0},
+	{"key": "ambience_volume", "label": "Ambience", "default": 0.9},
+	{"key": "weather_volume", "label": "Weather", "default": 0.9},
 ]
 
 ## Written to disk this long after the last change, rather than on every frame of
@@ -138,13 +140,7 @@ func _build() -> void:
 	tabs.clip_contents = true
 	column.add_child(tabs)
 
-	var audio := VBoxContainer.new()
-	audio.name = "Audio"
-	audio.add_theme_constant_override("separation", 14)
-	for row: Dictionary in VOLUME_ROWS:
-		audio.add_child(_volume_row(row))
-	tabs.add_child(audio)
-
+	# **Game, Video, Audio, Controls, Data** - the owner's order (2026-09-12).
 	# Screen shake and beast motion used to live on the Audio page, under the
 	# volume sliders. They are not audio settings by any reading; they were there
 	# because Audio was the page that already had sliders on it. A player turning
@@ -175,6 +171,19 @@ func _build() -> void:
 	_build_video(video)
 	video_scroll.add_child(video)
 	tabs.add_child(video_scroll)
+
+	var audio := VBoxContainer.new()
+	audio.name = "Audio"
+	audio.add_theme_constant_override("separation", 14)
+	for row: Dictionary in VOLUME_ROWS:
+		audio.add_child(_volume_row(row))
+	var audio_scroll := ScrollContainer.new()
+	audio_scroll.name = audio.name
+	UiMetrics.prepare_scroll(audio_scroll, TouchInput.is_showing())
+	audio.name = "AudioRows"
+	audio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	audio_scroll.add_child(audio)
+	tabs.add_child(audio_scroll)
 
 	# **Every tab scrolls, not just Video.**
 	#
@@ -813,15 +822,16 @@ func _build_controls(column: VBoxContainer) -> void:
 	_binding_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_binding_note)
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
-	column.add_child(scroll)
-
+	# **Not a second scroll.** The Controls tab is already wrapped in one, and
+	# a ScrollContainer inside a ScrollContainer takes the height its parent
+	# offers - which for a scrolling parent is nothing - so the fifteen rows
+	# collapsed to a zero-height box and the tab showed the note and the reset
+	# button with no keys between them. Owner report, 2026-09-12: "Controls is
+	# missing the ability to set the keybinds like it used to."
 	var list := VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 4)
-	scroll.add_child(list)
+	column.add_child(list)
 
 	_binding_buttons = {}
 	for entry: Dictionary in KeyBindings.REBINDABLE:

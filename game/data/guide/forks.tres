@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "forks"
+display_name = "The fork and the war camp"
+title = "The fork and the war camp"
+category = "Camps & Rifts"
+order = 29
+image = "res://art/guide/forks.png"
+body = "Raze both of a road's camps and the fork past them opens: the road's waves now come from two mouths at the map's edge, and the war camp between them wakes. Its champion is the hardest thing on the outskirts. Raze it and a dungeon mouth opens on its ground."

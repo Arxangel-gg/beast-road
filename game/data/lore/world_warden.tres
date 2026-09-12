@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_warden"
+display_name = "The Warden"
+title = "The Warden"
+category = 0
+unlock_act = 0
+order = 3
+art = "res://art/story/story_warden.png"
+body = "One defender, bound to one beast. The Warden carries a lantern because Yuri walks through the night as readily as the day, and a blade because the roads are never empty for long. They build on the roads during Preparation and hold them during the fight; they raid the camps that harry the beast, fish the ponds beyond the paths, bond the animals that live off them, and come back to the town between runs a little more than they were.\n\nLevelling and gear are the two ways a Warden grows, and both are capped. Everything else the Warden finds - relics, cards, portents - belongs to a run and is lost with it. That is the shape of the game: the road is long, and you walk it more than once."

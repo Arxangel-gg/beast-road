@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_rustwood"
+display_name = "The Rustwood"
+title = "The Rustwood"
+category = 2
+unlock_act = 5
+order = 5
+art = "res://art/bg/macro_act5.png"
+body = "Trees that rusted standing up. The Corroded March walks under them, and its bell priests ring a note that comes loose somewhere inside you."

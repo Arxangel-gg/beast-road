@@ -55,6 +55,16 @@ var blueprints: Dictionary = {}
 ## one; an elite carries several, and the combination is whatever both do.
 var affixes: Dictionary = {}
 
+## What a rare piece of gear does beyond its points (owner brief, 2026-09-12).
+## See `GearAffixData`.
+var gear_affixes: Dictionary = {}
+
+## The world's pages, the guide's sections and the account's achievements
+## (owner brief, 2026-09-12). Data, like every string a player reads.
+var lore: Dictionary = {}
+var guide_sections: Dictionary = {}
+var achievements: Dictionary = {}
+
 ## Who comes to town to sell things (owner brief, 2026-09-08). A traveller until
 ## enough business settles them; see `MerchantData`.
 var merchants: Dictionary = {}
@@ -108,6 +118,10 @@ func _ready() -> void:
 	ammo_kinds = _load_dir("res://data/ammo")
 	blueprints = _load_dir("res://data/blueprints")
 	affixes = _load_dir("res://data/affixes")
+	gear_affixes = _load_dir("res://data/gear_affixes")
+	lore = _load_dir("res://data/lore")
+	guide_sections = _load_dir("res://data/guide")
+	achievements = _load_dir("res://data/achievements")
 	merchants = _load_dir("res://data/merchants")
 	synergies = _load_dir("res://data/synergies")
 	omens = _load_dir("res://data/omens")
@@ -171,6 +185,52 @@ func fish_sorted() -> Array[FishData]:
 ## One kind of gear by id.
 func gear(id: String) -> GearData:
 	return gear_kinds.get(id, null) as GearData
+
+
+## The lore, in its authored order.
+func lore_sorted() -> Array[LoreEntryData]:
+	var out: Array[LoreEntryData] = []
+	for value: Variant in lore.values():
+		var entry := value as LoreEntryData
+		if entry != null:
+			out.append(entry)
+	out.sort_custom(func(a: LoreEntryData, b: LoreEntryData) -> bool:
+		return a.order < b.order if a.order != b.order else a.id < b.id)
+	return out
+
+
+func guide_sections_sorted() -> Array[GuideSectionData]:
+	var out: Array[GuideSectionData] = []
+	for value: Variant in guide_sections.values():
+		var section := value as GuideSectionData
+		if section != null:
+			out.append(section)
+	out.sort_custom(func(a: GuideSectionData, b: GuideSectionData) -> bool:
+		return a.order < b.order if a.order != b.order else a.id < b.id)
+	return out
+
+
+func achievements_sorted() -> Array[AchievementData]:
+	var out: Array[AchievementData] = []
+	for value: Variant in achievements.values():
+		var achievement := value as AchievementData
+		if achievement != null:
+			out.append(achievement)
+	out.sort_custom(func(a: AchievementData, b: AchievementData) -> bool:
+		return a.order < b.order if a.order != b.order else a.id < b.id)
+	return out
+
+
+## Every legendary affix, in a stable order, so a roll from a uid lands on
+## the same one on every machine and every launch.
+func gear_affixes_sorted() -> Array[GearAffixData]:
+	var out: Array[GearAffixData] = []
+	for value: Variant in gear_affixes.values():
+		var affix := value as GearAffixData
+		if affix != null:
+			out.append(affix)
+	out.sort_custom(func(a: GearAffixData, b: GearAffixData) -> bool: return a.id < b.id)
+	return out
 
 
 ## Every kind of gear, for rolling a drop.

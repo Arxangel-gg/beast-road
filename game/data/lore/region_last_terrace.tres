@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_last_terrace"
+display_name = "The Last Terrace"
+title = "The Last Terrace"
+category = 2
+unlock_act = 10
+order = 10
+art = "res://art/bg/macro_act10.png"
+body = "Stairs cut into the top of the world. The Gate of the Crown holds them, and the goats that live on the terraces have never seen a road."

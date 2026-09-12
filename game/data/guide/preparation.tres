@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "preparation"
+display_name = "Preparation"
+title = "Preparation"
+category = "Basics"
+order = 2
+image = "res://art/guide/preparation.png"
+body = "Nothing attacks during Preparation, and it lasts as long as you need. Building and upgrading belong here and only here: once the wave is walking, the roads are what they are. Ride On early for a small bonus; wait for the next wave's preview if you would rather know what is coming."

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "town"
+display_name = "The town"
+title = "The town"
+category = "Building"
+order = 10
+image = "res://art/guide/town.png"
+body = "The town rides Yuri's back. Its buildings - Forge, Granary, Market, Sanctum, Watchtower and the rest - are commissioned one at a time and finish with distance walked. Merchants visit; enough business settles them."

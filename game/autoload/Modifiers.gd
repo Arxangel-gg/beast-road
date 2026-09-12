@@ -39,6 +39,7 @@ var _base_totals: Dictionary = {}
 
 
 func _ready() -> void:
+	EventBus.stash_changed.connect(rebuild)
 	EventBus.relic_socketed.connect(_on_relics_changed)
 	EventBus.relic_unsocketed.connect(_on_relics_changed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
@@ -81,6 +82,18 @@ func rebuild() -> void:
 	# And the hand, into the same table for the same reason.
 	for card_id: String in RunState.road_cards:
 		_add_card(ContentDB.road_cards.get(card_id, null) as RoadCardData)
+	# And what the Warden wears. A legendary affix is a relic the player found
+	# on a sword rather than in a boss's chest, and it lands where a relic
+	# lands - so a tower asking for `tower_damage` gets one number.
+	for slot: Variant in MetaState.equipped:
+		var piece: Dictionary = MetaState.equipped_piece(int(slot))
+		if piece.is_empty():
+			continue
+		var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+		for affix: GearAffixData in Stash.legendary_affixes(piece, kind):
+			if affix.effect_id.is_empty():
+				continue
+			_totals[affix.effect_id] = float(_totals.get(affix.effect_id, 0.0)) + affix.magnitude
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
 

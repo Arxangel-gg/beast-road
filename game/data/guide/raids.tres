@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "raids"
+display_name = "Raids"
+title = "Raids"
+category = "Camps & Rifts"
+order = 31
+image = "res://art/guide/raids.png"
+body = "The war horn opens a raid on the camp harrying the beast. Windows to extract open and close; the chieftain comes at the end. Leaders you bring down are sworn, ransomed or memorialised."

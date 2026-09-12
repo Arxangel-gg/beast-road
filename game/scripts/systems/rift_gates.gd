@@ -68,6 +68,18 @@ func scatter() -> void:
 const FOOTPRINT: Vector2i = Vector2i(2, 2)
 
 
+## Opens a gate of `kind` at a given point - the war camp's ground, once its
+## champion has fallen. Not placed by the scatter: it is the reward for a
+## thing the player did, and it goes where the thing happened.
+func dig_at(kind: int, at: Vector2) -> void:
+	var art: String = RIFT_ART if kind == RiftArena.Kind.RIFT else DUNGEON_ART
+	if not ResourceLoader.exists(art):
+		return
+	_dig(kind, at, load(art) as Texture2D)
+	Vfx.ring(at, 120.0, Color(0.6, 0.85, 0.7, 0.8), 0.7, 5.0)
+	Vfx.spark(at, Color("9fe8b8"), 18, Vector2.UP, 200.0)
+
+
 func _is_good_ground(at: Vector2) -> bool:
 	var half: Vector2 = Vector2(FOOTPRINT) * BattleGrid.TILE * 0.5
 	var rim := Rect2(at - half, half * 2.0)

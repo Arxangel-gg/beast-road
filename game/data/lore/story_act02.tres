@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act02"
+display_name = "Act 2  ·  Into the Glare"
+title = "Act 2  ·  Into the Glare"
+category = 1
+unlock_act = 2
+order = 2
+art = ""
+body = "The Sunglass Waste is a sheet of mirrored sand under a white sky. Veyr, the Dune Seer, reads the road before it happens and turns a volley back down the lane it came from. The Warden learns that a tower's range is a promise, and that some promises are reflected."

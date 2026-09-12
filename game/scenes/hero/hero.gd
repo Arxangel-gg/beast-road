@@ -202,6 +202,21 @@ var party_slot: int = 1:
 var _flash_left: float = 0.0
 var _impact_direction: Vector2 = Vector2.UP
 var _beast_impulse: Vector2 = Vector2.ZERO
+
+# --- Swimming (2026-09-12) ---------------------------------------------------
+#
+# Owner brief: a hero who walks into a pond falls in and swims - slower, no
+# weapon, the legs under a band of water - and comes out with a splash. The
+# water is asked, not assumed: `Fishing.water_depth_at` is the one place that
+# knows where the ponds are, and the hero reads it every frame.
+
+## How deep the water under the feet is, 0 on dry ground.
+var _swim_depth: float = 0.0
+var _swimming: bool = false
+var _swim_ripple_in: float = 0.0
+var _swim_cover: SwimCover = null
+## True from the moment a hero drowns until it stands again.
+var _drowned: bool = false
 var _beast_stun_left: float = 0.0
 
 ## Ash Veil's movement bonus while it lasts.
@@ -297,6 +312,12 @@ func _ready() -> void:
 			Balance.SHADOW_LAYER_UNITS, sprite.position.y + half.y * 0.40)
 	animator.mass = Balance.ANIM_MASS_HERO
 	animator.capture_home()
+	# The water over the legs while swimming. A sibling of the sprite rather
+	# than a material on it: the sprite already wears the blood material.
+	_swim_cover = SwimCover.new()
+	_swim_cover.name = "SwimCover"
+	_swim_cover.sprite = sprite
+	add_child(_swim_cover)
 	attack.landed.connect(_on_attack_landed)
 
 	spells.field = field
@@ -346,8 +367,10 @@ func _physics_process(delta: float) -> void:
 	_aim = _compute_aim()
 	_update_facing(delta)
 	_update_aim_guide()
+	_tick_swim(delta)
 
-	var combat_input: bool = can_fight()
+	# No weapon in the water: a swimmer has both hands full staying up.
+	var combat_input: bool = can_fight() and not _swimming
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
 			or input.held(HeroInput.HOLD_ATTACK)):
@@ -356,7 +379,7 @@ func _physics_process(delta: float) -> void:
 	# Gating it behind combat meant a player repositioning during Preparation had
 	# to walk, which is the one phase where they are most likely to want to cross
 	# the map. It still costs its cooldown, so nothing is gained by spamming it.
-	if _beast_stun_left <= 0.0 and input.pressed(HeroInput.BUTTON_DASH):
+	if _beast_stun_left <= 0.0 and not _swimming and input.pressed(HeroInput.BUTTON_DASH):
 		_try_dash()
 	if ranged != null:
 		ranged.tick(delta)
@@ -403,6 +426,8 @@ func _physics_process(delta: float) -> void:
 		# a decision the player feels making, not one the game makes for them.
 		if ranged != null:
 			movement_scale *= ranged.move_scale()
+		if _swimming:
+			movement_scale *= Balance.SWIM_SPEED_SCALE
 		velocity = move_input * move_speed() * movement_scale
 	velocity += _lunge_velocity + _beast_impulse
 
@@ -413,6 +438,83 @@ func _physics_process(delta: float) -> void:
 	animator.set_motion(velocity, move_speed(), delta)
 	_drive_frames()
 	_update_sprite(delta)
+
+
+## Reads the water under the feet and moves the hero in or out of it.
+##
+## Hysteresis on the threshold, so a hero standing on a bank does not flicker
+## between wading and walking on every ripple of the depth field.
+func _tick_swim(delta: float) -> void:
+	_swim_depth = 0.0
+	if field != null and field.has_method("water_depth_at") and is_in_group(GROUP_ANY):
+		_swim_depth = float(field.call("water_depth_at", global_position))
+	var wet: bool = _swim_depth >= (Balance.SWIM_THRESHOLD * 0.6 if _swimming else Balance.SWIM_THRESHOLD)
+	if wet != _swimming:
+		_swimming = wet
+		_swim_ripple_in = 0.0
+		if _swim_cover != null:
+			_swim_cover.visible = wet
+			_swim_cover.waterline = Balance.SWIM_WATERLINE
+			if wet and field.has_method("water_colour"):
+				var colour: Color = field.call("water_colour") as Color
+				colour.a = Balance.SWIM_COVER_ALPHA
+				_swim_cover.water = colour
+		if wet:
+			attack.cancel()
+			spells.cancel_channel()
+			Vfx.sheet_burst(global_position, "res://art/vfx/splash.png", Balance.FISHING_SPLASH_SIZE * 1.3)
+			Vfx.sheet_burst(global_position, "res://art/vfx/ripple.png", Balance.FISHING_SPLASH_SIZE * 1.8,
+				Color(1.0, 1.0, 1.0, 0.8), true)
+			if field.has_method("stir"):
+				field.call("stir", global_position, 1.0)
+			Sfx.play("sfx_swim_enter")
+			EventBus.camera_shake_requested.emit(2.5, 0.12)
+		else:
+			Vfx.spark(global_position, Color(0.72, 0.86, 0.98), 10, Vector2.UP, 120.0)
+			Sfx.play("sfx_swim_exit")
+		if is_local_player():
+			EventBus.hero_swim_changed.emit(wet)
+	if not _swimming:
+		return
+	# Strokes stir the water while the body moves.
+	_swim_ripple_in -= delta
+	if _swim_ripple_in <= 0.0 and own_speed() > Balance.FISHING_STILL_SPEED:
+		_swim_ripple_in = Balance.SWIM_RIPPLE_INTERVAL
+		if field.has_method("stir"):
+			field.call("stir", global_position, 0.45)
+		Sfx.play("sfx_swim_stroke", -6.0)
+
+
+## Whether this hero is in the water.
+func is_swimming() -> bool:
+	return _swimming
+
+
+## How deep the water under the hero is, for the readouts.
+func swim_depth() -> float:
+	return _swim_depth
+
+
+## Going under. The body sinks beneath the band of water rather than
+## collapsing on it: the cover rises to the crown over the drowning time and
+## the sprite fades with it.
+func _drown(at: Vector2) -> void:
+	_drowned = true
+	if _swim_cover != null:
+		_swim_cover.visible = true
+		var sink: Tween = _swim_cover.create_tween()
+		sink.tween_property(_swim_cover, "waterline", 1.05, Balance.DROWN_SECONDS) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		sink.tween_callback(func() -> void:
+			sprite.visible = false
+			_swim_cover.visible = false)
+	for _bubble: int in 3:
+		Vfx.spark(at + Vector2(randf_range(-10.0, 10.0), -20.0), Color(0.86, 0.94, 1.0), 6,
+			Vector2.UP, 90.0)
+	if field != null and field.has_method("stir"):
+		field.call("stir", at, 1.0)
+	Sfx.play("sfx_drown")
+	EventBus.hero_drowned.emit(at)
 
 
 ## Called by the scope that owns this hero when it becomes, or stops being, the
@@ -518,6 +620,11 @@ func is_alive() -> bool:
 ## The mode is per-player and local. See `GameDirector.build_mode`.
 func can_fight() -> bool:
 	if RunState.is_command_combat() or RunState.phase == RunState.Phase.RAID:
+		return true
+	# In a camp or a rift the fight is the whole of the place, whatever phase
+	# the road outside is in - a guest raiding alone while the host's road
+	# reaches a crossroad must not lose its sword to the host's phase.
+	if field is RaidArena:
 		return true
 	return RunState.is_preparation() and not GameDirector.build_mode
 
@@ -1279,8 +1386,11 @@ func _collapse(at: Vector2) -> void:
 	health_bar.visible = false
 	# With a death sheet the body collapses on screen and is hidden when the
 	# animation ends. Without one it vanishes immediately, as it always did -
-	# the respawn timer is eight seconds either way.
-	if frames != null and frames.has_state("death"):
+	# the respawn timer is eight seconds either way. In the water there is no
+	# collapse: the body goes under.
+	if _swimming:
+		_drown(at)
+	elif frames != null and frames.has_state("death"):
 		_lock_frames("death")
 	else:
 		sprite.visible = false
@@ -1455,6 +1565,34 @@ func _apply_party_colour() -> void:
 	if _light != null and is_instance_valid(_light):
 		_light.color = Balance.HERO_LIGHT_COLOUR.lerp(wanted,
 			Balance.PARTY_LIGHT_STRENGTH) if showing 			else Balance.HERO_LIGHT_COLOUR
+
+
+## The name over the head, in co-op. Owner brief, 2026-09-12: the Warden's
+## name displayed above players' heads in multiplayer games. Empty hides it.
+var _nameplate: Label = null
+
+
+func set_nameplate(text: String) -> void:
+	if text.is_empty():
+		if _nameplate != null:
+			_nameplate.visible = false
+		return
+	if _nameplate == null:
+		_nameplate = Label.new()
+		_nameplate.name = "Nameplate"
+		_nameplate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_nameplate.add_theme_font_size_override("font_size", 13)
+		_nameplate.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+		_nameplate.add_theme_constant_override("outline_size", 4)
+		_nameplate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_nameplate.z_as_relative = false
+		_nameplate.z_index = Balance.HEALTH_BAR_Z
+		_nameplate.size = Vector2(200.0, 20.0)
+		_nameplate.position = Vector2(-100.0, -Balance.HERO_NAMEPLATE_LIFT)
+		add_child(_nameplate)
+	_nameplate.text = text
+	_nameplate.add_theme_color_override("font_color", _tint.lerp(Color.WHITE, 0.45))
+	_nameplate.visible = true
 
 
 func _build_party_mark() -> Node2D:

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "relics"
+display_name = "Relics"
+title = "Relics"
+category = "Items & Gear"
+order = 25
+image = "res://art/guide/relics.png"
+body = "Relics are found on the road and socketed at the Town Hall. A held relic does nothing; a socketed one moves a number for the rest of the run."

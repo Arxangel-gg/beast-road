@@ -23,6 +23,9 @@ signal pause_requested()
 signal horn_requested()
 signal raid_requested()
 signal extract_requested()
+## The party prompt's answers. See `PartyEvents`.
+signal party_event_answered(accept: bool)
+signal party_event_decided(go: bool)
 ## The dungeon's door: down, or out with what is banked.
 signal descend_requested()
 signal leave_rift_requested()
@@ -344,7 +347,9 @@ var _selected: Vector2i = Vector2i(-999, -999)
 
 var _raid_panel: PanelContainer
 var _raid_status: Label
+var _raid_bar: ProgressBar
 var _extract_button: Button
+var _raid_pulse: float = 0.0
 @export var raid: RaidArena
 ## Set by the run rather than exported: the rift arrived after the scene was
 ## authored and one assignment is smaller than a node path.
@@ -352,6 +357,8 @@ var rift: RiftArena = null
 var _rift_panel: PanelContainer
 var _rift_status: Label
 var _rift_bar: ProgressBar
+var _rift_clock: ProgressBar
+var _rift_collapsing: bool = false
 var _descend_button: Button
 var _leave_button: Button
 @export var boss_director: BossDirector
@@ -366,7 +373,23 @@ var _bottom_row: HBoxContainer
 ## The fishing readout: the pond's prompt, the tension bar with its safe band,
 ## and how far in the fish is. Built once, shown only while water is asking.
 var _fishing_panel: VBoxContainer
+var _party_panel: PanelContainer
+var _party_title: Label
+var _party_votes: Label
+var _party_clock: ProgressBar
+var _party_accept: Button
+var _party_decline: Button
+var _party_seconds: float = 0.0
+var _party_total: float = 0.0
+var _party_deciding: bool = false
+var _spirit_panel: VBoxContainer
+var _spirit_label: Label
+var _spirit_bar: ProgressBar
+var _spirit_clock_left: float = 0.0
+var _spirit_clock_total: float = 0.0
+var _sundial: Sundial
 var _fishing_prompt: Label
+var _grip_bar: ProgressBar
 var _tension_bar: ProgressBar
 var _tension_band: ColorRect
 var _reel_bar: ProgressBar
@@ -417,6 +440,13 @@ func _ready() -> void:
 	_build_boss_track()
 	_build_bottom_row()
 	_build_fishing_panel()
+	_build_spirit_panel()
+	_build_party_panel()
+	EventBus.achievement_unlocked.connect(func(id: String) -> void:
+		var achievement := ContentDB.achievements.get(id, null) as AchievementData
+		if achievement != null:
+			_show_message("Achievement  \u00b7  %s" % achievement.title)
+			Sfx.play("sfx_achievement"))
 	_build_party_feed()
 	_build_xp_bar()
 	_build_boss_bar()
@@ -530,6 +560,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_spirit_panel(delta)
+	_tick_party_prompt(delta)
 	# A slow warm breath rather than a flash: the player is being told an
 	# option exists, not alarmed. Driven here because the refresh that
 	# decides urgency runs on events, and a pulse has to run on frames.
@@ -697,6 +729,11 @@ func _build_top_bar() -> void:
 	_quiver_row.visible = false
 	journey_bar.add_child(_quiver_row)
 	_quiver_label = IconKit.label_of(_quiver_row)
+	# The time of day, as a dial beside the distance: sun by day, moon by
+	# night, sunrise and sunset marked. See `Sundial`.
+	_sundial = Sundial.new()
+	_sundial.name = "Sundial"
+	journey_bar.add_child(_sundial)
 
 	_distance = IconKit.label_of(distance_row)
 	_wave = IconKit.label_of(wave_row)
@@ -1605,6 +1642,12 @@ func _build_raid_panel() -> void:
 	_raid_status = _label("", 20)
 	_raid_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_raid_status)
+	# The clock to the next way out as a bar, so the rhythm of a raid is seen
+	# rather than counted; it turns green and drains while a window is open.
+	_raid_bar = _make_bar(Color("e0a44a"), 240.0)
+	_raid_bar.custom_minimum_size = Vector2(240.0, 8.0)
+	_raid_bar.value = 0.0
+	column.add_child(_raid_bar)
 	_extract_button = _add_button(column, "Extract", func() -> void: extract_requested.emit())
 	_extract_button.disabled = true
 
@@ -1629,6 +1672,12 @@ func _build_rift_panel() -> void:
 	_rift_bar.custom_minimum_size = Vector2(260.0, 12.0)
 	_rift_bar.value = 0.0
 	column.add_child(_rift_bar)
+	# The clock as a bar under the progress: time and progress to the guardian
+	# are the two numbers a rift is about, and both read at a glance.
+	_rift_clock = _make_bar(Color("e0a44a"), 260.0)
+	_rift_clock.custom_minimum_size = Vector2(260.0, 6.0)
+	_rift_clock.value = 1.0
+	column.add_child(_rift_clock)
 	_descend_button = _add_button(column, "Go deeper", func() -> void: descend_requested.emit())
 	_leave_button = _add_button(column, "Leave with the spoils", func() -> void: leave_rift_requested.emit())
 	_descend_button.visible = false
@@ -1636,13 +1685,26 @@ func _build_rift_panel() -> void:
 
 	EventBus.rift_started.connect(func(_kind: int, _stage: int, _stages: int) -> void:
 		_rift_panel.visible = true
+		_rift_collapsing = false
+		_rift_clock.modulate = Color.WHITE
 		_descend_button.visible = false
 		_leave_button.visible = false)
 	EventBus.rift_stage_cleared.connect(func(stage: int, stages: int) -> void:
-		_rift_status.text = "Stage %d of %d cleared. The way down is open." % [stage, stages]
-		_descend_button.visible = true
+		_rift_collapsing = false
+		_rift_clock.modulate = Color.WHITE
+		if stage >= stages:
+			_rift_status.text = "Cleared. Open the chest, then take the exit."
+			_descend_button.visible = false
+		else:
+			_rift_status.text = "Stage %d of %d cleared. The chest is yours; the stairs go down." % [stage, stages]
+			_descend_button.visible = true
 		_leave_button.visible = true
-		_descend_button.grab_focus())
+		(_descend_button if _descend_button.visible else _leave_button).grab_focus())
+	EventBus.rift_collapsing.connect(func(_seconds: float) -> void:
+		_rift_collapsing = true
+		_rift_clock.modulate = Color("ff6a4a")
+		_descend_button.visible = false
+		_leave_button.visible = false)
 	EventBus.rift_ended.connect(func(_reward: Dictionary) -> void:
 		_rift_panel.visible = false)
 
@@ -1652,14 +1714,21 @@ func _update_rift_panel() -> void:
 		return
 	var state: Dictionary = rift.status()
 	_rift_bar.value = float(state.get("fill", 0.0))
+	if bool(state.get("collapsing", false)):
+		var left: float = float(state.get("collapse_left", 0.0))
+		_rift_clock.value = left / maxf(float(state.get("collapse_seconds", 1.0)), 0.01)
+		_rift_status.text = "IT IS COMING DOWN   ·   %.0fs to the exit" % left
+		return
+	_rift_clock.value = float(state.get("time_left", 0.0)) / maxf(float(state.get("time_limit", 1.0)), 0.01)
 	if bool(state.get("at_door", false)):
+		_rift_clock.value = 1.0
 		return
 	if bool(state.get("guardian_out", false)):
-		_rift_status.text = "The guardian is through.   ·   %d killed" % int(state.get("kills", 0))
+		_rift_status.text = "The guardian wakes in the deep.   ·   %d killed" % int(state.get("kills", 0))
 		return
 	var stages: int = int(state.get("stages", 1))
 	var where: String = "Stage %d of %d   ·   " % [int(state.get("stage", 1)), stages] if stages > 1 else ""
-	_rift_status.text = "%s%d%% open   ·   %.0fs" % [where,
+	_rift_status.text = "%s%d%% to the guardian   ·   %.0fs" % [where,
 		int(round(float(state.get("fill", 0.0)) * 100.0)), float(state.get("time_left", 0.0))]
 
 
@@ -2080,6 +2149,164 @@ func _update_boss_track() -> void:
 ## the band it must stay in), and how much longer (the reel bar). The band is
 ## drawn on the bar itself rather than described, because "keep it in the
 ## middle" is a sentence and a green stripe is a target.
+## The spirit's readout: its health once it has been hurt, and the re-forming
+## clock once it is down. Owner brief, 2026-09-12: "companion healthbars should
+## be visible once they're not full HP" and "some sort of hud indicator for
+## their cooldown timer once they're dead".
+func _build_spirit_panel() -> void:
+	_spirit_panel = VBoxContainer.new()
+	_spirit_panel.name = "SpiritPanel"
+	_spirit_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_spirit_panel.offset_left = -(NAV_STRIP + 250.0)
+	_spirit_panel.offset_right = -(NAV_STRIP + 10.0)
+	_spirit_panel.offset_top = 108.0
+	_spirit_panel.offset_bottom = 152.0
+	_spirit_panel.add_theme_constant_override("separation", 3)
+	_spirit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spirit_panel.visible = false
+	add_child(_spirit_panel)
+	_spirit_label = _label("", 14)
+	_spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_spirit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spirit_panel.add_child(_spirit_label)
+	_spirit_bar = _make_bar(Color("8fc8ff"), 240.0)
+	_spirit_bar.custom_minimum_size = Vector2(240.0, 8.0)
+	_spirit_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_spirit_panel.add_child(_spirit_bar)
+	EventBus.spirit_downed.connect(func(_key: String, seconds: float) -> void:
+		_spirit_clock_left = seconds
+		_spirit_clock_total = maxf(seconds, 0.01))
+	EventBus.spirit_returned.connect(func(_key: String) -> void:
+		_spirit_clock_left = 0.0)
+
+
+## Reads the spirit every frame it is on the field. Cheap: one node lookup.
+func _update_spirit_panel(delta: float) -> void:
+	if _spirit_panel == null:
+		return
+	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
+	if spirit == null or not is_instance_valid(spirit):
+		_spirit_panel.visible = false
+		return
+	var recovering: float = spirit.recovery_left()
+	if recovering > 0.0:
+		_spirit_clock_left = recovering
+		_spirit_panel.visible = true
+		_spirit_label.text = "%s re-forming  \u00b7  %ds" % [spirit.data.display_name, int(ceil(recovering))]
+		_spirit_bar.value = 1.0 - recovering / maxf(maxf(_spirit_clock_total, recovering), 0.01)
+		_spirit_bar.modulate = Color(0.75, 0.75, 0.85)
+		return
+	var ratio: float = spirit.spirit_health_ratio()
+	if ratio >= 0.999:
+		_spirit_panel.visible = false
+		return
+	_spirit_panel.visible = true
+	_spirit_label.text = "%s  \u00b7  %d%%" % [spirit.data.display_name, int(round(ratio * 100.0))]
+	_spirit_bar.value = ratio
+	_spirit_bar.modulate = Color(1.0, 0.45, 0.4).lerp(Color.WHITE, clampf(ratio * 1.5, 0.0, 1.0))
+	_spirit_clock_left = maxf(_spirit_clock_left - delta, 0.0)
+
+
+## The party's question: who is going in, with a clock, and two answers.
+## The proposer sees the tally and, when it is not unanimous, the decision.
+func _build_party_panel() -> void:
+	_party_panel = PanelContainer.new()
+	_party_panel.name = "PartyEventPanel"
+	_party_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_fit_centred(_party_panel, 420.0)
+	_party_panel.offset_top = 190.0
+	_party_panel.visible = false
+	add_child(_party_panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	_party_panel.add_child(column)
+	_party_title = _label("", 18)
+	_party_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_party_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_party_title.add_theme_color_override("font_color", Color("f2c14e"))
+	column.add_child(_party_title)
+	_party_votes = _label("", 14)
+	_party_votes.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_party_votes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(_party_votes)
+	_party_clock = _make_bar(Color("e0a44a"), 380.0)
+	_party_clock.custom_minimum_size = Vector2(380.0, 8.0)
+	column.add_child(_party_clock)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	column.add_child(row)
+	_party_accept = _add_button(row, "Join", func() -> void: _answer_party(true))
+	_party_decline = _add_button(row, "Stay", func() -> void: _answer_party(false))
+	EventBus.party_event_prompt.connect(_on_party_prompt)
+	EventBus.party_event_votes_changed.connect(func(text: String) -> void:
+		if _party_votes != null:
+			_party_votes.text = text)
+	EventBus.party_event_decision_prompt.connect(_on_party_decision_prompt)
+	EventBus.party_event_prompt_closed.connect(_close_party_prompt)
+
+
+func _on_party_prompt(kind: int, _subkind: int, by_name: String, seconds: float, mine: bool) -> void:
+	_party_deciding = false
+	_party_seconds = seconds
+	_party_total = maxf(seconds, 0.01)
+	_party_panel.visible = true
+	_party_votes.text = ""
+	if mine:
+		_party_title.text = "Waiting for the party..."
+		_party_accept.visible = false
+		_party_decline.visible = false
+	else:
+		_party_title.text = PartyEvents.invitation(kind, by_name)
+		_party_accept.text = "Join  [%s]" % KeyBindings.label_for(&"interact") if not touch_ui() else "Join"
+		_party_decline.text = "Stay"
+		_party_accept.visible = true
+		_party_decline.visible = true
+		_party_accept.grab_focus()
+
+
+func _on_party_decision_prompt(seconds: float) -> void:
+	_party_deciding = true
+	_party_seconds = seconds
+	_party_total = maxf(seconds, 0.01)
+	_party_panel.visible = true
+	_party_title.text = "Not everyone is coming. Go anyway?"
+	_party_accept.text = "Go"
+	_party_decline.text = "Call it off"
+	_party_accept.visible = true
+	_party_decline.visible = true
+	_party_accept.grab_focus()
+
+
+func _answer_party(yes: bool) -> void:
+	if _party_deciding:
+		party_event_decided.emit(yes)
+	else:
+		party_event_answered.emit(yes)
+	_party_accept.visible = false
+	_party_decline.visible = false
+	if _party_deciding or not yes:
+		_close_party_prompt()
+
+
+func _close_party_prompt() -> void:
+	if _party_panel != null:
+		_party_panel.visible = false
+	_party_deciding = false
+
+
+func _tick_party_prompt(delta: float) -> void:
+	if _party_panel == null or not _party_panel.visible:
+		return
+	_party_seconds = maxf(_party_seconds - delta, 0.0)
+	_party_clock.value = _party_seconds / _party_total
+	# Interact accepts, so a keyboard player answers without reaching for the
+	# mouse. Only while the buttons are up: a proposer waiting has no answer to
+	# give.
+	if _party_accept.visible and Input.is_action_just_pressed(&"interact"):
+		_answer_party(true)
+
+
 func _build_fishing_panel() -> void:
 	_fishing_panel = VBoxContainer.new()
 	_fishing_panel.name = "FishingPanel"
@@ -2118,9 +2345,20 @@ func _build_fishing_panel() -> void:
 	_reel_bar.visible = false
 	_fishing_panel.add_child(_reel_bar)
 
+	# The grip: how much hold the angler still has on the fish. Drains while
+	# the line is out of the band, and at nothing the fish is gone.
+	_grip_bar = _make_bar(Color("6fd36f"), FISHING_BAR_WIDTH)
+	_grip_bar.custom_minimum_size = Vector2(FISHING_BAR_WIDTH, 5.0)
+	_grip_bar.value = 1.0
+	_grip_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_grip_bar.visible = false
+	_fishing_panel.add_child(_grip_bar)
+
 	EventBus.fishing_prompt.connect(_on_fishing_prompt)
 	EventBus.interact_prompt.connect(_on_fishing_prompt)
 	EventBus.fishing_reel.connect(_on_fishing_reel)
+	EventBus.fishing_charge.connect(_on_fishing_charge)
+	EventBus.fishing_nibble.connect(_on_fishing_nibble)
 	EventBus.fishing_bite.connect(func(_window: float) -> void:
 		_flash_fishing_prompt())
 	EventBus.fishing_ended.connect(_on_fishing_ended)
@@ -2140,15 +2378,22 @@ func _on_fishing_prompt(text: String, _button: String) -> void:
 	_fishing_panel.visible = not text.is_empty() or _reel_showing
 
 
-func _on_fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float) -> void:
+func _on_fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float,
+		grip: float) -> void:
 	if _tension_bar == null:
 		return
 	_reel_showing = true
 	_tension_bar.visible = true
+	_tension_band.visible = true
 	_reel_bar.visible = true
+	_grip_bar.visible = true
 	_fishing_panel.visible = true
 	_tension_bar.value = tension
 	_reel_bar.value = progress
+	_grip_bar.value = grip
+	# Green while there is hold, red as it goes: the number a player has no
+	# time to read, said as a colour.
+	_grip_bar.modulate = Color(1.0, 0.4, 0.35).lerp(Color.WHITE, clampf(grip * 1.6, 0.0, 1.0))
 	var width: float = maxf(_tension_bar.size.x, FISHING_BAR_WIDTH)
 	_tension_band.position = Vector2(safe_low * width, 0.0)
 	_tension_band.size = Vector2((safe_high - safe_low) * width, _tension_bar.size.y)
@@ -2158,11 +2403,54 @@ func _on_fishing_reel(tension: float, safe_low: float, safe_high: float, progres
 	_tension_bar.modulate = Color.WHITE.lerp(Color(1.0, 0.45, 0.35), strain)
 
 
+## A held cast: the tension bar doubles as the charge, in the cast's own
+## colour, and goes away when the line flies (`ratio` below zero).
+func _on_fishing_charge(ratio: float) -> void:
+	if _tension_bar == null:
+		return
+	if ratio < 0.0:
+		if not _reel_showing:
+			_tension_bar.visible = false
+		_tension_bar.modulate = Color.WHITE
+		_tension_band.visible = true
+		return
+	_fishing_panel.visible = true
+	_tension_bar.visible = true
+	_tension_band.visible = false
+	_tension_bar.value = ratio
+	_tension_bar.modulate = Color(1.0, 0.82, 0.45).lerp(Color(1.0, 0.55, 0.3), ratio)
+	if _fishing_prompt != null:
+		_fishing_prompt.text = "Let go to cast  \u00b7  %d%%" % int(round(ratio * 100.0))
+
+
+## The float moved. A nibble is said in gold; an idle bob in grey, so a
+## player learns which is which without a manual.
+func _on_fishing_nibble(real: bool) -> void:
+	if _fishing_prompt == null or _reel_showing:
+		return
+	var held: String = _fishing_prompt.text
+	if real:
+		_fishing_prompt.text = "Something nibbles..."
+		_fishing_prompt.add_theme_color_override("font_color", Balance.FISHING_BITE_COLOUR)
+		_flash_fishing_prompt()
+	else:
+		_fishing_prompt.text = "the float bobs"
+		_fishing_prompt.add_theme_color_override("font_color", Color(0.62, 0.66, 0.64, 0.85))
+	var restore: Tween = _fishing_prompt.create_tween()
+	restore.tween_interval(0.75 if real else 0.5)
+	restore.tween_callback(func() -> void:
+		if _fishing_prompt.text.begins_with("Something") or _fishing_prompt.text.begins_with("the float"):
+			_fishing_prompt.text = held
+		_fishing_prompt.add_theme_color_override("font_color", Balance.FISHING_BITE_COLOUR))
+
+
 func _on_fishing_ended() -> void:
 	_reel_showing = false
 	if _tension_bar != null:
 		_tension_bar.visible = false
+		_tension_band.visible = true
 		_reel_bar.visible = false
+		_grip_bar.visible = false
 		_tension_bar.modulate = Color.WHITE
 	if _fishing_panel != null:
 		_fishing_panel.visible = not _fishing_prompt.text.is_empty()
@@ -3614,13 +3902,37 @@ func _update_raid_panel() -> void:
 	if raid == null:
 		return
 	_extract_button.disabled = not raid.window_is_open()
+	_raid_pulse += get_process_delta_time() * 9.0
 	if raid.chieftain_is_out():
 		_raid_status.text = "The chieftain is here. No way out but through."
+		_raid_status.add_theme_color_override("font_color", Color("ff7a5a"))
+		_raid_bar.value = 0.0
+		_extract_button.text = "Extract"
+		_extract_button.modulate = Color.WHITE
 	elif raid.window_is_open():
 		_raid_status.text = "WAY OUT OPEN — %.1fs   ·   %d killed" % [raid.window_time_left(), raid.kills()]
+		_raid_status.add_theme_color_override("font_color", Color("8cf59a"))
+		_raid_bar.modulate = Color("8cf59a")
+		_raid_bar.value = raid.window_time_left() / maxf(Balance.RAID_WINDOW_DURATION, 0.01)
+		_extract_button.text = "EXTRACT NOW  [%s]" % KeyBindings.label_for(&"interact") if not touch_ui() else "EXTRACT NOW"
+		_extract_button.modulate = Color.WHITE.lerp(Color("8cf59a"), 0.5 + 0.5 * sin(_raid_pulse))
+		if Input.is_action_just_pressed(&"interact"):
+			extract_requested.emit()
 	else:
 		_raid_status.text = "Next way out in %.0fs   ·   %d killed   ·   %d refused" % [
 			raid.time_to_next_window(), raid.kills(), raid.refusals()]
+		_raid_status.add_theme_color_override("font_color", Color.WHITE)
+		_raid_bar.modulate = Color.WHITE
+		var span: float = Balance.RAID_EXTRACTION_WINDOWS[0]
+		var next: int = raid.refusals()
+		if next < Balance.RAID_EXTRACTION_WINDOWS.size():
+			var previous: float = Balance.RAID_EXTRACTION_WINDOWS[next - 1] if next > 0 else 0.0
+			span = maxf(Balance.RAID_EXTRACTION_WINDOWS[next] - previous, 0.01)
+		else:
+			span = maxf(Balance.RAID_CHIEFTAIN_TIME - Balance.RAID_EXTRACTION_WINDOWS.back(), 0.01)
+		_raid_bar.value = 1.0 - clampf(raid.time_to_next_window() / span, 0.0, 1.0)
+		_extract_button.text = "Extract"
+		_extract_button.modulate = Color.WHITE
 
 
 ## The consumables the hero is carrying, one icon each.

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearAffixData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_affix_data.gd" id="1_affix"]
+
+[resource]
+script = ExtResource("1_affix")
+id = "thrifty"
+display_name = "Thrifty"
+description = "%s cheaper towers"
+effect_id = "build_cost"
+magnitude = -0.04
+min_rarity = 4
+slots = Array[int]([2, 7])
+weight = 0.7

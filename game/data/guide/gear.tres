@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "gear"
+display_name = "Gear"
+title = "Gear"
+category = "Items & Gear"
+order = 23
+image = "res://art/guide/gear.png"
+body = "Gear drops from enemies, camps, rifts and raids. A piece has a slot, a rarity and a level; it grants attribute points on the same capped scale as levelling. From Runed up a piece carries a legendary affix - of Embers, Fleetfoot, Chainlit - that moves one number of the game by a few percent. The two top rarities carry two."

@@ -31,6 +31,59 @@ const BROADLEAF_CHANCE: float = 0.18
 
 ## Painted plant art, one per region.
 const PLANT_ART_FORMAT: String = "res://art/foliage/plant_%s.png"
+## The region's grass tufts: a sheet of four, side by side.
+const GRASS_ART_FORMAT: String = "res://art/foliage/grass_%s.png"
+const GRASS_TUFTS_ACROSS: int = 4
+
+## Where a texture's visible base is, as a fraction of its height from the
+## top, measured from its alpha and cached by path.
+##
+## **Measured, not assumed.** Every foot-anchored sprite here used a fixed
+## fraction, and the sprites are `centered`, so the offset it produced put
+## the sort point almost half a sprite *below* the drawn base - a hero standing
+## in front of a fern was drawn behind it. Owner report, 2026-09-12: "y-sorting
+## anchoring to be placed at the bottom part of the foliage". The base is
+## wherever the last opaque row is, which is the one fact the art itself
+## carries.
+static var _anchors: Dictionary = {}
+
+
+static func ground_anchor(texture: Texture2D) -> float:
+	if texture == null:
+		return 0.94
+	var key: String = texture.resource_path
+	if not key.is_empty() and _anchors.has(key):
+		return float(_anchors[key])
+	var anchor: float = 0.94
+	var image: Image = texture.get_image()
+	if image != null and image.get_height() > 0:
+		var height: int = image.get_height()
+		var width: int = image.get_width()
+		var found: int = -1
+		for y: int in range(height - 1, -1, -1):
+			var opaque: int = 0
+			for x: int in range(0, width, 2):
+				if image.get_pixel(x, y).a > 0.35:
+					opaque += 1
+					if opaque >= 2:
+						break
+			if opaque >= 2:
+				found = y
+				break
+		if found >= 0:
+			# The base, less a hair, so a plant with a painted dirt patch under
+			# it sorts by the plant rather than by the patch's shadow.
+			anchor = clampf(float(found + 1) / float(height) - 0.015, 0.4, 1.0)
+	if not key.is_empty():
+		_anchors[key] = anchor
+	return anchor
+
+
+## The offset that puts a *centered* sprite's visible base on its node.
+static func foot_offset(texture: Texture2D) -> Vector2:
+	if texture == null:
+		return Vector2.ZERO
+	return Vector2(0.0, float(texture.get_height()) * (0.5 - ground_anchor(texture)))
 
 ## Extra painted kinds, drawn from alongside the region's own plant.
 ##
@@ -328,7 +381,7 @@ static func _make_material(root_at_top: float, reach: float) -> ShaderMaterial:
 ## is in front of. Ninety-six keeps the maximum depth error below 22 world pixels
 ## on the authored field: smaller than an actor's foot contact, while still
 ## batching roughly fifteen hundred clumps into at most 192 canvas items.
-const BAND_COUNT: int = 96
+const BAND_COUNT: int = 160
 
 var _bands: Array[FoliageBand] = []
 
@@ -415,7 +468,7 @@ func scatter() -> void:
 	var rng := RandomNumberGenerator.new()
 	# Seeded per terrain, so a given act always looks the same rather than
 	# reshuffling every time the scope is entered.
-	rng.seed = hash(RunState.terrain_id)
+	rng.seed = hash(RunState.terrain_id) ^ RunState.run_seed
 
 	# Depth bands, not one canvas item per clump.
 	#
@@ -430,7 +483,9 @@ func scatter() -> void:
 	# Bands are the middle: each spans a slice of the map and sorts at its own
 	# centre. Ninety-six keep the maximum error below one tile, while each band is
 	# now one static mesh draw rather than hundreds of polygon commands.
-	var span: float = Balance.LANE_SPAWN_RADIUS * 1.15
+	# The whole field, outskirts and all: a band span that stopped at the old
+	# lane radius left every plant beyond it sorting at the last band's edge.
+	var span: float = BattleGrid.HALF_EXTENT
 	for index: int in BAND_COUNT:
 		var band := FoliageBand.new()
 		band.name = "Band%d" % index
@@ -545,7 +600,8 @@ func _is_clear(point: Vector2) -> bool:
 	for dx: int in range(-1, 2):
 		for dy: int in range(-1, 2):
 			var cell: int = grid.cell_at(tile + Vector2i(dx, dy))
-			if cell == BattleGrid.Cell.ROAD or cell == BattleGrid.Cell.TOWN:
+			if cell == BattleGrid.Cell.ROAD or cell == BattleGrid.Cell.TOWN \
+					or cell == BattleGrid.Cell.CAMP:
 				return false
 	return true
 
@@ -574,7 +630,7 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	# The kind decides how hard it leans - a fern whips, a bush barely breathes,
 	# a rock does not move and gets no material at all.
 	plant.material = Foliage.kind_material(Foliage.kind_of(art.resource_path))
-	plant.offset = Vector2(0.0, -float(art.get_height()) * PAINTED_ANCHOR)
+	plant.offset = Foliage.foot_offset(art)
 	plant.position = at
 	plant.scale = Vector2.ONE * plant_scale
 	plant.modulate = tint
@@ -605,6 +661,19 @@ func _add_clump(at: Vector2, style: Dictionary, rng: RandomNumberGenerator,
 		scale *= Balance.FOLIAGE_GROUND_SCALE
 	var blades: int = rng.randi_range(5, 8) if ground else rng.randi_range(3, 6)
 	var blade_span: float = 19.0 if ground else 13.0
+	# A painted tuft from the region's own sheet, with the polygon blades
+	# thinned beside it: the tuft is what the eye reads as grass now, and the
+	# blades are the filler that keeps the ground looking covered.
+	var tufts: Texture2D = _grass_sheet()
+	if tufts != null and rng.randf() < Balance.FOLIAGE_TUFT_CHANCE:
+		var which: int = rng.randi_range(0, GRASS_TUFTS_ACROSS - 1)
+		var cell: float = float(tufts.get_width()) / float(GRASS_TUFTS_ACROSS)
+		var region := Rect2(float(which) * cell, 0.0, cell, float(tufts.get_height()))
+		var tint: Color = Color.WHITE.lerp(_plant_colour(style, rng), Balance.FOLIAGE_PAINTED_TINT * 0.6)
+		band.add_tuft(tufts, region, local, scale * rng.randf_range(
+			Balance.FOLIAGE_TUFT_SCALE.x, Balance.FOLIAGE_TUFT_SCALE.y) * (0.75 if ground else 1.0),
+			tint, rng.randf() < 0.5)
+		blades = maxi(int(round(float(blades) * Balance.FOLIAGE_TUFT_BLADE_SHARE)), 2)
 
 	# The skirt that roots the clump. Drawn first so blades overlap it.
 	band.add_blade(PackedVector2Array([
@@ -719,6 +788,20 @@ func _terrain_palette() -> Dictionary:
 ## jitter is enough to make a field look grown rather than stamped, and it is
 ## deliberately small - the palette is sampled from the ground so the field stays
 ## in tint with its region, and a wide jitter would throw plants out of it.
+## The region's grass sheet, or null. Cached per region like the plant.
+var _grass_art: Texture2D = null
+var _grass_art_id: String = ""
+
+
+func _grass_sheet() -> Texture2D:
+	if _grass_art_id == RunState.terrain_id:
+		return _grass_art
+	_grass_art_id = RunState.terrain_id
+	var path: String = GRASS_ART_FORMAT % RunState.terrain_id
+	_grass_art = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	return _grass_art
+
+
 ## The current region's painted plant, cached. Derived from the terrain id like
 ## every other asset path here; a region without one simply grows no sprites.
 func _plant_texture() -> Texture2D:
@@ -853,6 +936,19 @@ class FoliageBand extends Node2D:
 		_painted.plants.append({"texture": texture, "at": at, "scale": plant_scale,
 			"tint": tint, "flip": flip})
 
+	## A grass tuft from a sheet, batched with the painted plants of this
+	## band so it sways under the same wind.
+	func add_tuft(sheet: Texture2D, region: Rect2, at: Vector2, tuft_scale: float,
+			tint: Color, flip: bool) -> void:
+		if sheet == null:
+			return
+		if _painted == null:
+			_painted = PaintedLayer.new()
+			_painted.material = Foliage.painted_material()
+			add_child(_painted)
+		_painted.plants.append({"texture": sheet, "region": region, "at": at,
+			"scale": tuft_scale, "tint": tint, "flip": flip})
+
 	func add_blade(shape: PackedVector2Array, colour: Color, at: Vector2,
 			angle: float, blade_scale: float, sways: bool) -> void:
 		var transform := Transform2D(angle, at).scaled(Vector2.ONE * blade_scale)
@@ -948,8 +1044,21 @@ class PaintedLayer extends Node2D:
 	func _draw() -> void:
 		for plant: Dictionary in plants:
 			var texture: Texture2D = plant["texture"]
-			var size: Vector2 = texture.get_size() * float(plant["scale"])
 			var at: Vector2 = plant["at"]
+			if plant.has("region"):
+				# A tuft cut from a sheet: the region is the cell, and a flipped
+				# one is drawn by a mirrored rect, which is what a horizontal
+				# flip is for a rect draw.
+				var region: Rect2 = plant["region"]
+				var tuft_size: Vector2 = region.size * float(plant["scale"])
+				var foot: float = tuft_size.y * (1.0 - Foliage.ground_anchor(texture))
+				var tuft_rect := Rect2(at - Vector2(tuft_size.x * 0.5, tuft_size.y - foot), tuft_size)
+				if bool(plant.get("flip", false)):
+					tuft_rect.position.x += tuft_rect.size.x
+					tuft_rect.size.x = -tuft_rect.size.x
+				draw_texture_rect_region(texture, tuft_rect, region, plant["tint"], false)
+				continue
+			var size: Vector2 = texture.get_size() * float(plant["scale"])
 			# Anchored at the foot, not the centre: a plant grows up out of the
 			# point it was scattered on, and centring it buries half of it.
 			var rect := Rect2(at - Vector2(size.x * 0.5, size.y), size)

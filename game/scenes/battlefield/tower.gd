@@ -138,6 +138,7 @@ func _ready() -> void:
 		_idle_frame_clock = _idle_phase / TAU * float(_idle_frames.size())
 	_apply_level_look()
 	_build_health()
+	_build_gauge()
 	call_deferred("refresh_modifiers")
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
@@ -234,24 +235,36 @@ func _process(delta: float) -> void:
 # a parallel set that would drift from them.
 
 var _draught_ready: bool = false
+## The gauge over the basin, and whether this well is the one prompting.
+var _gauge: WellGauge = null
+var _prompting: bool = false
 
 
-## Fills the well, and pours for whoever comes to it.
+## The draught is drawn; a hero who comes and drinks takes it.
 ##
-## Called only once the shared cooldown has elapsed, which is what "filled"
-## means here. Nothing pours while nobody needs it: the draught waits, so a
-## player who arrives hurt gets the one that has been standing ready rather than
-## one that timed out into an empty basin.
-func _pour(delta: float) -> void:
+## **A drink is taken, not poured** (owner brief, 2026-09-12: "players should
+## need to do something to interact with it to heal", and the well shows how
+## full it is). The draught waits until somebody hurt walks up and presses
+## Interact, so a player who arrives hurt gets the one that has been standing
+## ready rather than one that timed out into an empty basin - and a player who
+## is fine walks past a full well and leaves it full.
+func _pour(_delta: float) -> void:
 	if not _draught_ready:
 		_draught_ready = true
 		Vfx.ring(global_position, 54.0, Balance.WELL_COLOUR, 0.5, 3.0)
 	var thirsty: Hero = _thirstiest_hero()
-	if thirsty == null:
+	if thirsty == null or not thirsty.is_local_player():
+		_say("", "")
+		return
+	_say("Drink from the well", "DRINK")
+	var source := thirsty.get("input") as HeroInput
+	if source == null or not source.pressed(HeroInput.BUTTON_INTERACT):
 		return
 	var healed: float = data.well_heal * (1.0
 		+ float(maxi(level - 1, 0)) * Balance.WELL_HEAL_PER_LEVEL)
 	thirsty.drink_from_well(healed)
+	Sfx.play("sfx_well_drink")
+	_say("", "")
 	_draught_ready = false
 	# **The pour is the well's firing pose.** Every tower authors three, and the
 	# art gate demands them from a well too - which looked at first like a rule
@@ -265,6 +278,35 @@ func _pour(delta: float) -> void:
 		Balance.WELL_COLOUR, 0.42, 4.0)
 	Vfx.spark(global_position, Balance.WELL_COLOUR, 8,
 		(thirsty.combat_origin() - global_position).normalized(), 190.0)
+
+
+## The prompt, said once per change through the same road the ponds and the
+## gates use.
+func _say(text: String, button: String) -> void:
+	var wanted: bool = not text.is_empty()
+	if wanted == _prompting and not wanted:
+		return
+	_prompting = wanted
+	EventBus.interact_prompt.emit(text, button)
+
+
+## How full the well is, 0..1. For the gauge and the gate.
+func well_fill() -> float:
+	if _draught_ready:
+		return 1.0
+	var refill: float = maxf(well_refill_seconds(), 0.01)
+	return clampf(1.0 - _cooldown / refill, 0.0, 1.0)
+
+
+## The gauge over the basin: an arc that fills as the draught draws. Built
+## once the tower knows it is a well.
+func _build_gauge() -> void:
+	if _gauge != null or data == null or not data.is_well():
+		return
+	_gauge = WellGauge.new()
+	_gauge.name = "Gauge"
+	_gauge.well = self
+	add_child(_gauge)
 
 
 ## Seconds this well takes to draw its next draught, bounded below so a maxed

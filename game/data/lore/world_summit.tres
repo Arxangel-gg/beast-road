@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_summit"
+display_name = "The Crown of the World"
+title = "The Crown of the World"
+category = 0
+unlock_act = 0
+order = 4
+art = "res://art/story/story_summit.png"
+body = "There is a beacon at the top of the world. Lit, it breaks the chain: every clan the Chainmaker holds goes free at once, and the Worldstriders that are left stop being hunted. The Gatekeeper stands at the last step, set there and told to wait, and it has waited a very long time.\n\nTen regions lie between the Verdant Maw and that step. Yuri will walk all of them."

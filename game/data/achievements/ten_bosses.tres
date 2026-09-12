@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "ten_bosses"
+display_name = "Ten Crowns"
+title = "Ten Crowns"
+description = "Fell ten act bosses."
+stat = "bosses_felled"
+threshold = 10.0
+icon = "wave"
+order = 6

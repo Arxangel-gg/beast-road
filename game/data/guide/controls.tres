@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "controls"
+display_name = "Moving and fighting"
+title = "Moving and fighting"
+category = "Basics"
+order = 1
+image = "res://art/guide/controls.png"
+body = "Walk with the stick or keys, aim with the mouse or the right stick. Attack chains three swings; the third is the heavy one. Dash has brief invulnerability and a cooldown. Interact (T, or Y on a pad) casts a line, enters a gate, drinks from a well. Every key can be changed under Settings, Controls."

@@ -25,6 +25,8 @@ var _codex: CanvasLayer
 ## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
 ## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
 var _hub: HubScreen
+var _guide: GuideScreen
+var _coop_button: Button
 
 
 func _exit_tree() -> void:
@@ -109,6 +111,7 @@ func _ready() -> void:
 	_build_codex_button()
 	_build_leaderboard_button()
 	_build_hold()
+	_build_guide_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
@@ -120,7 +123,8 @@ func _ready() -> void:
 ## Where focus lands when a screen closes: the room if it is open, else the
 ## front door's first button.
 func _focus_home() -> void:
-	if _hub != null and _hub.visible:
+	# The room comes back when a door closes over it.
+	if _hub != null and (_hub.visible or _hub.is_suspended()):
 		_hub.open()
 		return
 	new_run_button.grab_focus()
@@ -337,8 +341,52 @@ func _build_coop_button() -> void:
 
 	_coop = CoopScreenScript.new()
 	add_child(_coop)
+	_coop_button = button
 	_coop.closed.connect(func() -> void: button.grab_focus())
-	button.pressed.connect(func() -> void: _coop.open())
+	button.pressed.connect(func() -> void:
+		if not MetaState.tutorial_done:
+			# Owner brief, 2026-09-12: a new player runs the road once before
+			# playing it with somebody. The button says so rather than hiding.
+			button.text = "Co-op  \u00b7  finish your first road"
+			return
+		_coop.open())
+	_refresh_coop_gate()
+
+
+## Co-op waits for the first road to reach a crossroad, and says so.
+func _refresh_coop_gate() -> void:
+	if _coop_button == null:
+		return
+	if MetaState.tutorial_done:
+		_coop_button.text = "Co-op"
+		_coop_button.tooltip_text = ""
+		_coop_button.modulate = Color.WHITE
+	else:
+		_coop_button.text = "Co-op  \u00b7  locked"
+		_coop_button.tooltip_text = "Walk your first road to its crossroad, and the door opens."
+		_coop_button.modulate = Color(0.72, 0.72, 0.75)
+
+
+## The guide: every section in one place, on the front door beside Settings.
+func _build_guide_button() -> void:
+	if settings_button == null:
+		return
+	var column: Node = settings_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Guide"
+	button.text = "Guide"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "quiet_ledger", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+	_guide = GuideScreen.new()
+	_guide.name = "Guide"
+	add_child(_guide)
+	_guide.closed.connect(func() -> void: button.grab_focus())
+	button.pressed.connect(func() -> void: _guide.open())
 
 
 func _build_leaderboard_button() -> void:

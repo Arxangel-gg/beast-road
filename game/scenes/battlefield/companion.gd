@@ -54,11 +54,29 @@ var _sprite: Sprite2D = null
 var _bob: float = 0.0
 var _power: float = 0.0
 
+# --- Frames (2026-09-12) -----------------------------------------------------
+#
+# Owner report: companions faced the wrong way and used no animations. A
+# companion borrows a species' frames - a Spirit Wolf is the wolf's own idle,
+# run and bite - so nothing was drawn for this, and a spirit runs exactly like
+# the animal the player bonded. The facing comes from the art rather than a
+# guess about it.
+var _frames_idle: Array[Texture2D] = []
+var _frames_move: Array[Texture2D] = []
+var _frames_attack: Array[Texture2D] = []
+var _base_texture: Texture2D = null
+var _faces_right: bool = false
+var _frame_clock: float = 0.0
+var _striking_left: float = 0.0
+var _vocal: String = ""
+var _bar: ProgressBar = null
+
 ## This spirit's personality, or null. See `SpiritTraitData`.
 ##
 ## Read once at summon rather than per frame: it belongs to the bond, and the
 ## bond cannot change while the companion is standing on the field.
 var _temperament: SpiritTraitData = null
+var _moving: bool = false
 
 
 func setup(companion: CompanionData, hero: Node2D, arena: Node) -> void:
@@ -92,17 +110,75 @@ func _ready() -> void:
 		_temperament = SpiritBond.trait_of_bond(spirit_key)
 
 	_sprite = Sprite2D.new()
-	var path: String = data.get_sprite_path()
-	if ResourceLoader.exists(path):
-		_sprite.texture = load(path)
+	_load_frames()
 	_sprite.scale = Vector2.ONE * data.scale
+	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	add_child(_sprite)
 	_bob = randf() * TAU
 	if not spirit_key.is_empty():
 		_dress_as_spirit()
+		_build_bar()
 
 	Vfx.ring(global_position, 84.0, Color(data.colour, 0.75), 0.45, 4.0)
 	Vfx.spark(global_position, data.colour, 12, Vector2.UP, 210.0)
+	Sfx.play("sfx_companion_summon")
+	if not _vocal.is_empty():
+		Sfx.play(_vocal, -4.0)
+
+
+## The frames this companion wears: a species' own, or its single sprite.
+func _load_frames() -> void:
+	var species: String = SpiritBond.species_of(spirit_key) if not spirit_key.is_empty() \
+		else data.wildlife_id
+	var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
+	var path: String = kind.get_sprite_path() if kind != null else data.get_sprite_path()
+	if kind != null and ResourceLoader.exists(path):
+		_faces_right = kind.art_faces_right
+		_vocal = kind.vocal_sfx
+		_frames_idle = GameData.load_idle_frames(path)
+		_frames_move = GameData.load_move_frames(path)
+		if kind.flies:
+			var flight: Array[Texture2D] = GameData.load_flight_frames(path)
+			if not flight.is_empty():
+				_frames_move = flight
+		_frames_attack = GameData.load_attack_frames(path)
+	else:
+		path = data.get_sprite_path()
+		_faces_right = data.art_faces_right
+	if ResourceLoader.exists(path):
+		_base_texture = load(path)
+		_sprite.texture = _base_texture
+		# Sorted by the feet: the node is the ground contact, the sprite stands
+		# up from it.
+		_sprite.offset = Foliage.foot_offset(_base_texture)
+
+
+## A bar over a spirit, hidden until it has been hurt. A summon has no health
+## and no bar.
+func _build_bar() -> void:
+	_bar = ProgressBar.new()
+	_bar.show_percentage = false
+	_bar.min_value = 0.0
+	_bar.max_value = 1.0
+	_bar.value = 1.0
+	_bar.custom_minimum_size = Vector2(Balance.WILDLIFE_BAR_WIDTH, Balance.WILDLIFE_BAR_HEIGHT)
+	_bar.size = _bar.custom_minimum_size
+	_bar.position = Vector2(-Balance.WILDLIFE_BAR_WIDTH * 0.5, -Balance.COMPANION_BAR_LIFT * data.scale)
+	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bar.visible = false
+	_bar.modulate = data.colour
+	_bar.z_index = Balance.HEALTH_BAR_Z
+	_bar.z_as_relative = false
+	add_child(_bar)
+
+
+func _refresh_bar() -> void:
+	if _bar == null:
+		return
+	var ratio: float = spirit_health_ratio()
+	_bar.value = ratio
+	_bar.visible = ratio < 0.999 and _recovering <= 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -125,11 +201,20 @@ func _physics_process(delta: float) -> void:
 	var quarry: Enemy = _nearest_enemy()
 	var goal: Vector2 = _goal(quarry)
 	var toward: Vector2 = goal - global_position
-	if toward.length() > 8.0:
+	var moving: bool = toward.length() > 8.0
+	if moving:
 		var step: Vector2 = toward.normalized() * data.speed * delta
 		global_position += step
+		# Facing from motion, against the art's own direction: the painted
+		# animals face left, and a flip written for right-facing art ran every
+		# one of them backwards.
 		if _sprite != null and absf(step.x) > 0.001:
-			_sprite.flip_h = step.x < 0.0
+			_sprite.flip_h = (step.x > 0.0) != _faces_right
+	elif quarry != null and _sprite != null:
+		var facing: float = quarry.global_position.x - global_position.x
+		if absf(facing) > 0.001:
+			_sprite.flip_h = (facing > 0.0) != _faces_right
+	_moving = moving
 
 	if quarry != null and global_position.distance_to(quarry.global_position) \
 			<= data.attack_range and _cooldown <= 0.0:
@@ -232,10 +317,13 @@ func _strike(quarry: Enemy) -> void:
 	Vfx.spark(quarry.global_position, data.colour, 5,
 		(quarry.global_position - global_position).normalized(), 200.0)
 	_scavenge(quarry)
+	# The bite's frames, where the species has them, over a lunge either way.
+	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
+	_frame_clock = 0.0
+	Sfx.play("sfx_companion_strike")
+	if not _vocal.is_empty():
+		Sfx.play(_vocal, -9.0)
 	if _sprite != null:
-		# A lunge rather than a swing animation: one authored attack pose per
-		# companion is three more sprites for something on screen ten seconds at
-		# a time, and a shove toward the target reads at any zoom.
 		_sprite.position = (quarry.global_position - global_position).normalized() * 9.0
 
 
@@ -261,14 +349,33 @@ func _scavenge(quarry: Enemy) -> void:
 	Vfx.spark(quarry.global_position, data.colour, 8, Vector2.UP, 170.0)
 
 
-## A drift for a flier, a bob for anything that walks.
+## The species' frames where they exist - the bite, the run, the stand - and
+## a drift or a bob over them, so a companion never stands perfectly still.
 func _animate(delta: float) -> void:
 	if _sprite == null:
 		return
+	_striking_left = maxf(_striking_left - delta, 0.0)
+	var frames: Array[Texture2D] = _frames_idle
+	var rate: float = Balance.WILDLIFE_IDLE_FRAME_RATE
+	if _striking_left > 0.0 and not _frames_attack.is_empty():
+		frames = _frames_attack
+		rate = Balance.WILDLIFE_ATTACK_FRAME_RATE
+	elif _moving and not _frames_move.is_empty():
+		frames = _frames_move
+		rate = Balance.WILDLIFE_FLIGHT_FRAME_RATE if data.flies else Balance.WILDLIFE_MOVE_FRAME_RATE
+	if not frames.is_empty():
+		_frame_clock += delta * rate
+		_sprite.texture = frames[int(floor(_frame_clock)) % frames.size()]
+	elif _base_texture != null:
+		_sprite.texture = _base_texture
+	_refresh_bar()
 	_bob += delta * 9.0
 	var lift: float = -26.0 if data.flies else 0.0
+	# A walker with a real cycle keeps its feet on the ground; the bob is for
+	# the flier's drift and the single-sprite fallback.
+	var sway: float = 5.0 if data.flies else (0.0 if not _frames_move.is_empty() else 2.0)
 	_sprite.position = _sprite.position.lerp(
-		Vector2(0.0, lift + sin(_bob) * (5.0 if data.flies else 2.0)), 0.25)
+		Vector2(0.0, lift + sin(_bob) * sway), 0.25)
 	# The last second is a fade, so it reads as leaving rather than as popping.
 	#
 	# **Spell summons only.** A spirit has no clock - `_left` is INF, which clamps
@@ -326,8 +433,11 @@ func _go_down() -> void:
 		SpiritBond.shiny_of(spirit_key))
 	if _sprite != null:
 		_sprite.visible = false
+	if _bar != null:
+		_bar.visible = false
 	Vfx.ring(global_position, 92.0, Color(data.colour, 0.7), 0.5, 5.0)
 	Vfx.spark(global_position, data.colour, 18, Vector2.UP, 190.0)
+	Sfx.play("sfx_companion_down")
 	EventBus.spirit_downed.emit(spirit_key, _recovering)
 
 
@@ -349,6 +459,9 @@ func _tick_recovery(delta: float) -> void:
 		_sprite.visible = true
 	Vfx.ring(global_position, 84.0, Color(data.colour, 0.8), 0.45, 4.0)
 	Vfx.spark(global_position, data.colour, 14, Vector2.UP, 200.0)
+	Sfx.play("sfx_companion_return")
+	if not _vocal.is_empty():
+		Sfx.play(_vocal, -4.0)
 	EventBus.spirit_returned.emit(spirit_key)
 
 

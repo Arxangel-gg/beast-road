@@ -56,6 +56,8 @@ var layout: RaidLayout = null
 
 ## Nodes rebuilt with the terrain, torn down between raids.
 var _terrain_root: Node2D = null
+## The camp's furniture, in the sorted layer with the bodies.
+var _dressing: RaidDressing = null
 
 
 func _ready() -> void:
@@ -133,6 +135,12 @@ func _tick_windows(delta: float) -> void:
 			_window_open = false
 			_refusals += 1
 			_next_window += 1
+			# Refused: the camp answers. A darker flash and a shake, so the
+			# escalation is felt rather than read off a counter.
+			Vfx.flash(Color(0.9, 0.35, 0.2, 0.28), 0.28, 0.5)
+			EventBus.camera_shake_requested.emit(7.0, 0.35)
+			if hero != null:
+				Vfx.word(hero.global_position + Vector2(0.0, -90.0), "THE CAMP STIRS", Color(1.0, 0.55, 0.4), 26)
 			EventBus.raid_window_closed.emit()
 			EventBus.raid_escalated.emit(_refusals)
 		return
@@ -147,6 +155,11 @@ func _tick_windows(delta: float) -> void:
 	if _window_timer <= 0.0:
 		_window_open = true
 		_window_left = Balance.RAID_WINDOW_DURATION
+		Sfx.play("sfx_raid_window")
+		Vfx.flash(Color(0.55, 0.95, 0.6, 0.3), 0.3, 0.5)
+		if hero != null:
+			Vfx.ring(hero.global_position, 140.0, Color(0.55, 0.95, 0.6, 0.9), 0.6, 5.0)
+			Vfx.word(hero.global_position + Vector2(0.0, -90.0), "WAY OUT", Color(0.6, 1.0, 0.65), 30)
 		EventBus.raid_window_opened.emit(Balance.RAID_WINDOW_DURATION)
 
 
@@ -178,6 +191,8 @@ func chieftain_is_out() -> bool:
 func extract() -> bool:
 	if not _window_open or _finished:
 		return false
+	Sfx.play("sfx_raid_extract")
+	Vfx.flash(Color(0.8, 0.95, 1.0, 0.5), 0.5, 0.6)
 	_finish({"partial": true, "died": false, "kills": _kills})
 	return true
 
@@ -256,6 +271,12 @@ func _spawn_chieftain() -> void:
 	if data == null:
 		return
 	_chieftain = _spawn(data, _edge_point(), _escalation() * 4.0)
+	Sfx.play("sfx_chieftain_roar")
+	Vfx.flash(Color(0.95, 0.25, 0.2, 0.4), 0.4, 0.8)
+	if _chieftain != null:
+		Vfx.ring(_chieftain.global_position, 220.0, Color(1.0, 0.35, 0.3, 0.9), 0.9, 7.0)
+	if hero != null:
+		Vfx.word(hero.global_position + Vector2(0.0, -96.0), "THE CHIEFTAIN", Color(1.0, 0.4, 0.35), 34)
 	EventBus.chieftain_spawned.emit(_captive_id())
 	EventBus.camera_shake_requested.emit(14.0, 0.6)
 
@@ -269,6 +290,10 @@ func _captive_id() -> String:
 
 func _on_enemy_died(_id: String, _at: Vector2) -> void:
 	_kills += 1
+	# The count called out every so often, over the hero, so a good raid is
+	# felt as one while it happens.
+	if _kills % Balance.RAID_KILL_CALLOUT == 0 and hero != null:
+		Vfx.word(hero.global_position + Vector2(0.0, -84.0), "%d KILLS" % _kills, Color(1.0, 0.85, 0.4), 24)
 	if _chieftain_out and (_chieftain == null or not is_instance_valid(_chieftain) or _chieftain.is_dying()):
 		if not _finished:
 			_finish({"partial": false, "died": false, "kills": _kills, "chieftain": true})
@@ -293,6 +318,14 @@ func _finish(result: Dictionary) -> void:
 	var reward: Dictionary = _build_reward(result)
 	_clear_enemies()
 	EventBus.raid_ended.emit(reward)
+
+
+## A reward for a partner's own raid, from the result it reported. The kill
+## count is capped, so a report can be generous but never absurd.
+func reward_for_partner(result: Dictionary) -> Dictionary:
+	var capped: Dictionary = result.duplicate()
+	capped["kills"] = clampi(int(result.get("kills", 0)), 0, Balance.PARTY_EVENT_KILL_CAP)
+	return _build_reward(capped)
 
 
 func _build_reward(result: Dictionary) -> Dictionary:
@@ -440,7 +473,7 @@ func _build_camp() -> void:
 	add_child(_terrain_root)
 	move_child(_terrain_root, 0)
 
-	layout = RaidLayout.new(_rng)
+	layout = _make_layout()
 	RunState.raid_keys = 0
 
 	var terrain := RaidTerrain.new()
@@ -450,12 +483,31 @@ func _build_camp() -> void:
 
 	_build_cliffs()
 	_place_treasure()
+	_dress_camp()
 
 	if hero != null:
 		# The camp is a square field now, so the hero is bounded by its edge
 		# rather than by the old circle.
 		hero.bounds_extent = Vector2.ONE * (RaidLayout.HALF_EXTENT - RaidLayout.TILE)
 		hero.global_position = Vector2.ZERO
+
+
+## The camp's furniture. A rift furnishes differently; see `RiftArena`.
+func _dress_camp() -> void:
+	_dressing_root().dress(layout, _rng, Balance.RAID_PROP_COUNT)
+
+
+func _dressing_root() -> RaidDressing:
+	if _dressing == null or not is_instance_valid(_dressing):
+		_dressing = RaidDressing.new()
+		_dressing.name = "Dressing"
+		(entity_root if entity_root != null else self).add_child(_dressing)
+	return _dressing
+
+
+## The camp's shape. A rift cuts a maze instead; see `RiftArena._make_layout`.
+func _make_layout() -> RaidLayout:
+	return RaidLayout.new(_rng)
 
 
 ## Static bodies along every cliff face, so the hero cannot walk up one.

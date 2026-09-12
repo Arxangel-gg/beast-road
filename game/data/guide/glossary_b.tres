@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "glossary_b"
+display_name = "Words of the fight"
+title = "Words of the fight"
+category = "Glossary"
+order = 36
+image = "res://art/guide/glossary_b.png"
+body = "Champion: a promoted enemy that carries an affix. Elite: a bigger promotion with several. Howler: a caller that strengthens the bodies beside it. Burrower: it surfaces inside the ring. Telegraph: the wind-up you dodge. Leash: how far a camp body follows before it turns home."

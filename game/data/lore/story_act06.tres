@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act06"
+display_name = "Act 6  ·  Salt Keeps Everything"
+title = "Act 6  ·  Salt Keeps Everything"
+category = 1
+unlock_act = 6
+order = 6
+art = ""
+body = "The Saltpan Mire is white to the horizon and it keeps what it takes. The Brine Choir sings the drowned back onto their feet, and the Brinefather has had a very long time to think about salt. Kill the singer, the Warden learns, and the song stops holding them together."

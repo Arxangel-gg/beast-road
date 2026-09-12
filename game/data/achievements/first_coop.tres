@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "first_coop"
+display_name = "Two Wardens"
+title = "Two Wardens"
+description = "Play a run in co-op."
+stat = "coop_runs"
+threshold = 1.0
+icon = "pressure_arrow"
+order = 22

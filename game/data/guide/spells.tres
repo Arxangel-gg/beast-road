@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "spells"
+display_name = "Spells and mana"
+title = "Spells and mana"
+category = "Fighting"
+order = 6
+image = "res://art/guide/spells.png"
+body = "Spells cost mana, which refills slowly. Focus deepens the pool and sharpens the spells. Ranged spells strike where you point, after a delay you can see: the ring on the ground is exactly where and when the blow lands."

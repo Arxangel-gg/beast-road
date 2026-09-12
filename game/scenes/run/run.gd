@@ -30,6 +30,22 @@ var _scope: GameDirector.Scope = GameDirector.Scope.BATTLEFIELD
 ## Set while a raid or crossroad has taken over, so scope switching is refused
 ## rather than silently leaving a frozen battlefield behind.
 var _locked: bool = false
+
+## The party's conversation before a raid or a rift, in co-op. See
+## `PartyEvents`.
+var party_events: PartyEvents = null
+## Whether the battlefield was frozen for the event this machine is in. When
+## it was not, the road carries on underneath and the hero simply steps off
+## it for a while.
+var _event_froze_field: bool = false
+## Which event this machine is in, so a guest can ask the host to pay it.
+var _event_kind: int = 0
+## Whether this machine is inside an event right now, and whether its hero
+## has stepped off the road (and told the party so).
+var _event_active: bool = false
+var _away: bool = false
+## The phase the road goes back to when this machine's event ends.
+var _event_return_phase: int = RunState.Phase.ROAD_BATTLE
 var _preparation_left: float = 0.0
 var _coverage_warning_acknowledged: bool = false
 var _pending_boss_act: int = 0
@@ -81,6 +97,12 @@ func _ready() -> void:
 	hud.rift = rift
 	hud.descend_requested.connect(func() -> void: rift.descend())
 	hud.leave_rift_requested.connect(func() -> void: rift.leave())
+	party_events = PartyEvents.new()
+	party_events.name = "PartyEvents"
+	party_events.run = self
+	add_child(party_events)
+	hud.party_event_answered.connect(func(accept: bool) -> void: party_events.answer(accept))
+	hud.party_event_decided.connect(func(go: bool) -> void: party_events.decide(go))
 	hud.ride_on_requested.connect(_on_ride_on_requested)
 	# A guest pressing Ride On arrives here as a request rather than as a click.
 	EventBus.coop_request_received.connect(_on_coop_request)
@@ -229,6 +251,8 @@ func switch_scope(scope: GameDirector.Scope) -> void:
 	battlefield.visible = scope == GameDirector.Scope.BATTLEFIELD
 	town.visible = scope == GameDirector.Scope.TOWN
 	beast.visible = scope == GameDirector.Scope.BEAST
+	# The act track lives on a canvas layer, which a hidden scope does not hide.
+	beast.set_track_visible(scope == GameDirector.Scope.BEAST)
 
 	# The battlefield keeps running while you are in the town or on the beast.
 	# That is deliberate: leaving the fight to manage something has to cost.
@@ -253,17 +277,81 @@ func _on_horn_requested() -> void:
 
 
 func _on_raid_requested() -> void:
-	if not RunState.is_command_combat() or not war_horn.raid_available() or _locked:
+	if not party_event_allowed(PartyEvents.Kind.RAID, 0):
 		return
-	if battlefield.hero == null or not battlefield.hero.is_alive():
+	# In a party the raid is asked for, not taken; the answer arrives as
+	# `enter_party_event`.
+	if PartyEvents.party_is_present() and party_events != null:
+		party_events.propose(PartyEvents.Kind.RAID, 0)
 		return
-	_locked = true
-	RunState.set_phase(RunState.Phase.RAID)
-	war_horn.consume_charge()
+	_enter_raid(true)
 
-	# Frozen, not stopped: the wave resumes mid-flight exactly as it was.
-	battlefield.suspend()
-	journey.stop()
+
+## Whether this machine may take, or propose, an event right now.
+func party_event_allowed(kind: int, _subkind: int) -> bool:
+	if _locked or battlefield.hero == null or not battlefield.hero.is_alive():
+		return false
+	if party_events != null and party_events.is_proposing():
+		return false
+	if kind == PartyEvents.Kind.RAID:
+		return RunState.is_command_combat() and war_horn.raid_available()
+	return RunState.phase == RunState.Phase.ROAD_BATTLE or RunState.is_preparation()
+
+
+## The party decided: this machine goes in. `freeze` when everyone went.
+func enter_party_event(kind: int, subkind: int, freeze: bool) -> void:
+	if not party_event_allowed(kind, subkind):
+		return
+	if kind == PartyEvents.Kind.RAID:
+		_enter_raid(freeze)
+	else:
+		_enter_rift(subkind, freeze)
+
+
+## Steps the hero off the road without stopping it: the field keeps
+## simulating for the partners still on it, and the hero is simply absent -
+## out of the world here, hidden and still on every other machine.
+func _leave_field_running() -> void:
+	battlefield.set_hero_away(true)
+	battlefield.visible = false
+	_send_away(true)
+
+
+func _rejoin_field() -> void:
+	battlefield.set_hero_away(false)
+	_send_away(false)
+
+
+## Tells the party this hero left the road, or came back. A guest asks the
+## host to say so; the host says so itself.
+func _send_away(away: bool) -> void:
+	if _away == away:
+		return
+	_away = away
+	if not PartyEvents.party_is_present() or party_events == null:
+		return
+	if Coop.is_guest():
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.PARTY_EVENT_AWAY, [away])
+	else:
+		party_events.mark_away(Coop.party().slot(), away)
+
+
+func _enter_raid(freeze: bool) -> void:
+	_locked = true
+	_event_active = true
+	_event_froze_field = freeze
+	_event_kind = PartyEvents.Kind.RAID
+	_event_return_phase = RunState.Phase.ROAD_BATTLE
+	war_horn.consume_charge()
+	if freeze:
+		RunState.set_phase(RunState.Phase.RAID)
+		# Frozen, not stopped: the wave resumes mid-flight exactly as it was.
+		battlefield.suspend()
+		journey.stop()
+	else:
+		_leave_field_running()
 	town.visible = false
 	beast.visible = false
 
@@ -282,7 +370,18 @@ func _on_extract_requested() -> void:
 
 
 func _on_raid_ended(reward: Dictionary) -> void:
-	_apply_raid_reward(reward)
+	# A guest who raided alone asks the host to pay, by result. The host reads
+	# the numbers off its own tables.
+	if Coop.is_guest() and not _event_froze_field:
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.PARTY_EVENT_REWARD, [PartyEvents.Kind.RAID,
+				{"kills": int(reward.get("kills", 0)), "died": bool(reward.get("died", false)),
+				"partial": bool(reward.get("partial", false)),
+				"chieftain": bool(reward.get("chieftain", false)),
+				"timed_out": bool(reward.get("timed_out", false))}])
+	else:
+		_apply_raid_reward(reward)
 
 	raid.visible = false
 	raid.process_mode = Node.PROCESS_MODE_DISABLED
@@ -294,12 +393,69 @@ func _on_raid_ended(reward: Dictionary) -> void:
 			battlefield.hero.apply_raid_wound()
 		else:
 			battlefield.hero.sync_from_run_state()
-	battlefield.resume()
-	journey.start()
-	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_return_to_field()
 	_locked = false
 	_scope = GameDirector.Scope.RAID  # forces the switch below to take effect
 	switch_scope(GameDirector.Scope.BATTLEFIELD)
+	_after_event_return()
+
+
+## Back on the road. A frozen field resumes when its first player returns -
+## which, in a party, `PartyEvents` announces so every machine resumes at
+## once; a field that was never frozen just takes its hero back.
+func _return_to_field() -> void:
+	_event_active = false
+	if _event_froze_field:
+		if party_events != null and PartyEvents.party_is_present():
+			party_events.returned()
+		# The host resumes on its own return at once; a guest waits for the
+		# fact - unless the field already resumed for somebody else's return.
+		if battlefield.is_suspended() and (party_events == null
+				or not party_events.frozen_for_all()):
+			_resume_frozen_field()
+	_rejoin_field()
+	_event_froze_field = false
+
+
+func _resume_frozen_field() -> void:
+	battlefield.resume()
+	if RunState.phase == RunState.Phase.RAID:
+		RunState.set_phase(_event_return_phase as RunState.Phase)
+	if RunState.phase == RunState.Phase.ROAD_BATTLE:
+		journey.start()
+
+
+## The first of the party came back: the field everyone left resumes, here
+## too, whether or not this machine is still inside its own event.
+func resume_after_party_event(_slot: int) -> void:
+	if not battlefield.is_suspended():
+		return
+	_resume_frozen_field()
+	# Still inside the event: the hero stays off the field until it ends,
+	# and the road now runs underneath.
+	if _event_active:
+		_leave_field_running()
+
+
+## The end of an event on this machine, once the road is visible again: a
+## fork that waited for the party to be whole opens now.
+func _after_event_return() -> void:
+	if Coop.is_networked() and not Coop.is_host():
+		return
+	if _pending_crossroad < 0 or _locked or _road_is_busy():
+		return
+	if RunState.phase == RunState.Phase.ROAD_BATTLE or RunState.is_preparation():
+		_open_crossroad(_pending_crossroad)
+
+
+## Host side: pays a guest for the event it ran alone, from its result.
+func pay_party_event(kind: int, result: Dictionary, _slot: int) -> void:
+	if not Coop.is_host():
+		return
+	if kind == PartyEvents.Kind.RAID:
+		_apply_raid_reward(raid.reward_for_partner(result))
+	else:
+		_apply_rift_reward(rift.reward_for_partner(result))
 
 
 func _apply_raid_reward(reward: Dictionary) -> void:
@@ -332,21 +488,36 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 ## a horn, and allowed during Preparation as well as a fight - a rift is a
 ## detour, and Preparation is when a player has the time for one.
 func _on_rift_requested(kind: int) -> void:
-	if _locked or battlefield.hero == null or not battlefield.hero.is_alive():
+	var party_kind: int = PartyEvents.Kind.DUNGEON if kind == RiftArena.Kind.DUNGEON \
+		else PartyEvents.Kind.RIFT
+	if not party_event_allowed(party_kind, kind):
 		return
-	if RunState.phase != RunState.Phase.ROAD_BATTLE and not RunState.is_preparation():
+	if battlefield.rift_gates() == null:
 		return
+	if PartyEvents.party_is_present() and party_events != null:
+		party_events.propose(party_kind, kind)
+		return
+	_enter_rift(kind, true)
+
+
+func _enter_rift(kind: int, freeze: bool) -> void:
 	var gates: RiftGates = battlefield.rift_gates()
 	if gates == null:
 		return
 	var at: Vector2 = gates.spend(kind)
 	_locked = true
+	_event_active = true
+	_event_froze_field = freeze
+	_event_kind = PartyEvents.Kind.DUNGEON if kind == RiftArena.Kind.DUNGEON else PartyEvents.Kind.RIFT
 	_rift_return_phase = RunState.phase
-	RunState.set_phase(RunState.Phase.RAID)
-
-	# Frozen, not stopped: the wave resumes mid-flight exactly as it was.
-	battlefield.suspend()
-	journey.stop()
+	_event_return_phase = RunState.phase
+	if freeze:
+		RunState.set_phase(RunState.Phase.RAID)
+		# Frozen, not stopped: the wave resumes mid-flight exactly as it was.
+		battlefield.suspend()
+		journey.stop()
+	else:
+		_leave_field_running()
 	town.visible = false
 	beast.visible = false
 
@@ -369,14 +540,21 @@ func _on_rift_ended(reward: Dictionary) -> void:
 			battlefield.hero.apply_raid_wound()
 		else:
 			battlefield.hero.sync_from_run_state()
-	battlefield.resume()
-	_apply_rift_reward(reward)
-	if _rift_return_phase == RunState.Phase.ROAD_BATTLE:
-		journey.start()
-	RunState.set_phase(_rift_return_phase as RunState.Phase)
+	if Coop.is_guest() and not _event_froze_field:
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.PARTY_EVENT_REWARD, [_event_kind,
+				{"kind": int(reward.get("kind", 0)), "stages": int(reward.get("stages", 0)),
+				"died": bool(reward.get("died", false)),
+				"collapsed": bool(reward.get("collapsed", false)),
+				"left": bool(reward.get("left", false)), "at": reward.get("at", Vector2.ZERO)}])
+	else:
+		_apply_rift_reward(reward)
+	_return_to_field()
 	_locked = false
 	_scope = GameDirector.Scope.RAID  # forces the switch below to take effect
 	switch_scope(GameDirector.Scope.BATTLEFIELD)
+	_after_event_return()
 
 
 ## What the rift paid, put where the road's own spoils go: currency to the
@@ -584,6 +762,10 @@ func _on_coop_road_chosen(road_id: String, difficulty_id: String) -> void:
 func _road_is_busy() -> bool:
 	if battlefield == null:
 		return false
+	# A fork is the whole party's decision: it waits for anyone off in an
+	# event of their own, as it waits for a pack still on the field.
+	if party_events != null and party_events.anyone_away():
+		return true
 	if battlefield.wave_director != null and battlefield.wave_director.is_deploying():
 		return true
 	return battlefield.enemy_count() > 0
@@ -707,6 +889,11 @@ func _on_wave_cleared(wave: int) -> void:
 	# takes precedence over the breather rather than following it: both are
 	# Preparation, and stacking one on the other is two stops at one junction.
 	if _pending_crossroad >= 0:
+		if party_events != null and party_events.anyone_away():
+			# Somebody is off in their own event; the road breathes here
+			# and the fork opens when they are back.
+			_enter_wave_breather(wave)
+			return
 		_open_crossroad(_pending_crossroad)
 		return
 	if _enter_wave_breather(wave):

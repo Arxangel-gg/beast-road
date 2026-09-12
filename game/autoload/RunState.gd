@@ -53,6 +53,10 @@ var pending_road_relics: Array[String] = []
 ## stream derived from this value, so adding a spark or audio variation cannot
 ## silently change tomorrow's formation or crossroad.
 var run_seed: int = 1
+
+## Which lanes' forks are open this act (both camps razed). Run-scoped and
+## re-closed every act with the camps; nothing persists. See `Camps`.
+var forks_open: Array[bool] = [false, false, false, false]
 var road_history: Array[Dictionary] = []
 var _rng_streams: Dictionary = {}
 
@@ -398,6 +402,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	beast_speed = Balance.BEAST_BASE_SPEED
 	act = 1
 	segment = 0
+	forks_open = []
+	for _lane: int in Balance.LANE_COUNT:
+		forks_open.append(false)
 	terrain_id = ""
 	phase = Phase.PREPARATION
 	active_road_id = ""

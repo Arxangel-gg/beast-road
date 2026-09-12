@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "story_act10"
+display_name = "Act 10  ·  The Last Terrace"
+title = "Act 10  ·  The Last Terrace"
+category = 1
+unlock_act = 10
+order = 10
+art = ""
+body = "Stone stairs to the sky. The Gate of the Crown holds the last step, set there and told to wait, and the Gatekeeper has waited longer than the Warden has been alive. Past it is the beacon, and past the beacon is a world with no chain in it. Yuri stops here. This is where the walk was going."

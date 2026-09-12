@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "bow"
+display_name = "The bow"
+title = "The bow"
+category = "Fighting"
+order = 7
+image = "res://art/guide/bow.png"
+body = "A bow gives you an answer at range, and ammunition is the price. Ammo is found, dropped and crafted from blueprints. Drawing slows the walk; standing still to shoot is a decision you feel making."

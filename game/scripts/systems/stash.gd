@@ -300,6 +300,70 @@ static func affixes(piece: Dictionary, kind: GearData) -> Array[Dictionary]:
 ## bottom of the second draw, and the third to the same bits again. Knuth's
 ## multiplicative constant spreads the whole word before any of it is used, and
 ## the mask keeps the result positive so `%` cannot return a negative index.
+## The legendary affixes a piece wears, rolled from its uid.
+##
+## Deterministic arithmetic rather than an RNG, for the same reason the
+## attribute bonuses are: `Modifiers.rebuild` asks on every stash change and
+## a table that could disagree with itself between two reads would be a piece
+## that changed what it did. Eligible affixes are those the piece's rarity and
+## slot allow; the count comes from `Balance.GEAR_LEGENDARY_COUNT`.
+static func legendary_affixes(piece: Dictionary, kind: GearData) -> Array[GearAffixData]:
+	var out: Array[GearAffixData] = []
+	if kind == null or piece.is_empty():
+		return out
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, RARITY_NAMES.size() - 1)
+	var wanted: int = Balance.GEAR_LEGENDARY_COUNT[clampi(rarity, 0,
+		Balance.GEAR_LEGENDARY_COUNT.size() - 1)]
+	if wanted <= 0:
+		return out
+	var pool: Array[GearAffixData] = []
+	for affix: GearAffixData in ContentDB.gear_affixes_sorted():
+		if affix.min_rarity > rarity:
+			continue
+		if not affix.slots.is_empty() and not affix.slots.has(int(kind.slot)):
+			continue
+		pool.append(affix)
+	if pool.is_empty():
+		return out
+	var seed_value: int = _mixed(uid(piece) ^ hash(kind.id))
+	for pick: int in wanted:
+		if pool.is_empty():
+			break
+		var total: float = 0.0
+		for affix: GearAffixData in pool:
+			total += maxf(affix.weight, 0.0)
+		var roll: float = float(_mixed(seed_value + pick * 7919) % 100000) / 100000.0 * total
+		var chosen: GearAffixData = pool[pool.size() - 1]
+		for affix: GearAffixData in pool:
+			roll -= maxf(affix.weight, 0.0)
+			if roll <= 0.0:
+				chosen = affix
+				break
+		out.append(chosen)
+		pool.erase(chosen)
+	return out
+
+
+## The piece's whole name: rarity, kind, and its affixes' words - "Runed
+## Ashfall Glaive of Embers", "Chainlit Hearty Oathbound Helm".
+static func display_name(piece: Dictionary, kind: GearData) -> String:
+	if kind == null:
+		return String(piece.get("kind", "gear"))
+	var prefixes: PackedStringArray = []
+	var suffixes: PackedStringArray = []
+	for affix: GearAffixData in legendary_affixes(piece, kind):
+		if affix.display_name.begins_with("of "):
+			suffixes.append(affix.display_name)
+		else:
+			prefixes.append(affix.display_name)
+	var words: String = kind.display_name
+	if not prefixes.is_empty():
+		words = " ".join(prefixes) + " " + words
+	if not suffixes.is_empty():
+		words += " " + " ".join(suffixes)
+	return words
+
+
 static func _mixed(name: int) -> int:
 	return absi((name * 2654435761) & 0x3FFFFFFF)
 

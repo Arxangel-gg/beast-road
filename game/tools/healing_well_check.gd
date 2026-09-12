@@ -125,13 +125,22 @@ func _test_it_does_not_pour_twice_without_refilling() -> void:
 ## `until_above` is given and the hero's health passes it.
 func _wait_beside(frames: int, until_above: float = INF) -> void:
 	var beside: Vector2 = _tower.global_position + Vector2(20.0, 0.0)
-	for _f: int in frames:
+	for frame: int in frames:
+		# A drink is taken, not poured (2026-09-12): the hero presses Interact
+		# at the well. Pressed on alternate frames so each press is an edge.
+		if frame % 2 == 0:
+			Input.action_press(&"interact")
+		else:
+			Input.action_release(&"interact")
 		await get_tree().process_frame
 		if not is_instance_valid(_hero) or not is_instance_valid(_tower):
+			Input.action_release(&"interact")
 			return
 		_hero.global_position = beside
 		if _hero.health.current_hp > until_above:
+			Input.action_release(&"interact")
 			return
+	Input.action_release(&"interact")
 
 
 ## One real battlefield with one well built into it.

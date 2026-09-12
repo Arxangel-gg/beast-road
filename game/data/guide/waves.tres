@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "waves"
+display_name = "Waves and roads"
+title = "Waves and roads"
+category = "Fighting"
+order = 4
+image = "res://art/guide/waves.png"
+body = "Enemies walk the roads from the outskirts to the town wall and attack it from outside. The lane ring around the town shows which road is under pressure. A champion's death breaks the nerve of the bodies around it - kill leaders first."

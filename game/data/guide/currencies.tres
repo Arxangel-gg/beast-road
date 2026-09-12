@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "currencies"
+display_name = "Gold, Wood, Food and Stone"
+title = "Gold, Wood, Food and Stone"
+category = "Resources"
+order = 21
+image = "res://art/guide/currencies.png"
+body = "Gold buys towers and comes off enemies you kill. Wood and Food come from walking and pay for repair, tending and buildings. Stone pays for traps, barricades and the heavier towers. All four reset with the run."

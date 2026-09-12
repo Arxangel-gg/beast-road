@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "summons"
+display_name = "Summons"
+title = "Summons"
+category = "Companions"
+order = 27
+image = "res://art/guide/summons.png"
+body = "Some spells call a companion for a while - a wolf, a bear, a crow. A summon cannot be hurt and fades when its time is up."

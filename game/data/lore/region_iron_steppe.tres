@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_iron_steppe"
+display_name = "The Iron Steppe"
+title = "The Iron Steppe"
+category = 2
+unlock_act = 7
+order = 7
+art = "res://art/bg/macro_act7.png"
+body = "Open grass, iron stones, and horses that were never chained. The Iron Horde crosses it in lines, and its drummers set the pace the whole line keeps."

@@ -66,6 +66,15 @@ func set_view_inset(pixels: float) -> void:
 
 func _ready() -> void:
 	_setup_ground()
+	_grounds = TownGrounds.new()
+	_grounds.name = "Grounds"
+	add_child(_grounds)
+	move_child(_grounds, 1)
+	_grounds.rebuild()
+	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
+		_setup_ground()
+		if _grounds != null:
+			_grounds.rebuild())
 	_build_plots()
 	EventBus.construction_completed.connect(_on_construction_completed)
 	# A merchant is drawn only while they are actually standing there, so every
@@ -242,6 +251,9 @@ const MERCHANT_ANGLES: Array[float] = [48.0, 90.0, 132.0]
 const MERCHANT_LABEL_ROWS: Array[float] = [58.0, 86.0, 114.0]
 
 var _merchant_nodes: Dictionary = {}
+## The land around the ring: the region's trees, plants and a worn circle
+## of ground, laid from the seed. See `TownGrounds`.
+var _grounds: TownGrounds = null
 
 
 func _refresh_merchants() -> void:

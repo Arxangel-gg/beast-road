@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_host"
+display_name = "The Chainbound Host"
+title = "The Chainbound Host"
+category = 0
+unlock_act = 0
+order = 2
+art = "res://art/story/story_host.png"
+body = "They are not evil. They are compelled. Kharok the Chainmaker holds the summit, and his chain-magic runs down the world like veins: the clans it touches march, and the marching does not stop. The Coalpaint Raiders of the Maw, the mirror-shielded Sunglass, the White Teeth of the snow - each was a people once, and each is still, somewhere under the chain.\n\nThat is why a leader you bring down is sworn, ransomed or memorialised, and never owned. The chain is the enemy. The people on it are what the chain has done."

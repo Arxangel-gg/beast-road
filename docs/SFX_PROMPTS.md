@@ -31,7 +31,7 @@ All wildlife calls are present on disk.
 ---
 
 
-## STILL TO RECORD (149)
+## STILL TO RECORD (177)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -189,16 +189,44 @@ missing stream - so none of these block a build.
 | `sfx_profession_level.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.2s | ElevenLabs | a skill level gained: a warm four-note rising chime on wood and bell, modest and pleased |
 | `sfx_boss_stinger.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.0s | ElevenLabs | a boss arrival stinger: one enormous low orchestral hit with a long dark tail and a deep drum under it, for a crossfade to begin under |
 | `sfx_boss_fall.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.5s | ElevenLabs | a boss defeated fanfare: a short solemn brass and choir resolution, three rising notes, restrained rather than triumphant |
+| `weather_downpour.ogg` **(synthesised placeholder on disk - replace)** | `ambience` | 0:60-2:00 | Suno | heavy rain on leaves and packed earth, steady, with the occasional distant roll of thunder and water running off a roof; no wind howl |
+| `weather_snowfall.ogg` **(synthesised placeholder on disk - replace)** | `ambience` | 0:60-2:00 | Suno | a snowfall: a muffled, hushed wind, the faint hiss of falling snow, an occasional creak of frozen wood; very quiet and soft |
+| `weather_duststorm.ogg` **(synthesised placeholder on disk - replace)** | `ambience` | 0:60-2:00 | Suno | a duststorm: a dry rushing wind full of grit, sand hissing against stone, gusts rising and falling; harsh and airy |
+| `weather_heatwave.ogg` **(synthesised placeholder on disk - replace)** | `ambience` | 0:60-2:00 | Suno | a heatwave: a shimmering high drone, cicadas, a very slow hot breath of wind, the crack of drying ground; oppressive stillness |
+| `sfx_swim_enter.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.7s | ElevenLabs | a person falling into a pond: a full body splash with a deep plunge and the water closing over |
+| `sfx_swim_exit.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a person climbing out of water: a wet surge and heavy dripping off cloth |
+| `sfx_swim_stroke.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.3s | ElevenLabs | one swimming stroke: an arm pulling through calm water with a small wash, for repeating |
+| `sfx_water_bite.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.4s | ElevenLabs | something under the water biting a swimmer: a sudden churn, a wet snap and a short pained gasp |
+| `sfx_drown.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.8s | ElevenLabs | a drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink |
+| `sfx_fish_cast_charge.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a fishing rod drawing back for a long cast: the line tightening and the rod creaking under tension, rising |
+| `sfx_fish_miss.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.3s | ElevenLabs | a fishing float landing on dry ground instead of water: a dull little thump and a rattle of line |
+| `sfx_camp_razed.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.4s | ElevenLabs | a raider camp falling: a collapsing tent, scattered embers, a low satisfied drum hit and a short brass note |
+| `sfx_fork_open.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.6s | ElevenLabs | a road barrier of logs and stakes tumbling apart: heavy timber crashing, rope snapping, rocks rolling, then a deep open chord |
+| `sfx_companion_summon.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.9s | ElevenLabs | a spirit animal arriving: a soft rush of wind with a warm three-note chime and a faint animal breath |
+| `sfx_companion_down.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.8s | ElevenLabs | a spirit animal beaten and dissolving: a falling two-note sigh and a scatter of soft sparks |
+| `sfx_companion_return.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.8s | ElevenLabs | a spirit animal re-forming beside its keeper: a rising three-note chime, bright and quick |
+| `sfx_companion_strike.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.2s | ElevenLabs | an animal's bite landing: a short snap of teeth with a small impact thud, for repeating |
+| `sfx_well_drink.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.9s | ElevenLabs | drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief |
+| `sfx_party_prompt.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.7s | ElevenLabs | a party invitation arriving: two clear ascending notes on a hunting horn, close and polite |
+| `sfx_party_accept.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a party member accepting: a bright three-note affirmative chime |
+| `sfx_party_decline.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.5s | ElevenLabs | a party member declining: a single soft falling note, not unkind |
+| `sfx_achievement.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.4s | ElevenLabs | an achievement earned: a warm four-note fanfare on bells and low brass with a short shimmering tail |
+| `sfx_dungeon_collapse.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.2s | ElevenLabs | a dungeon collapsing: stone grinding and cracking, a deep rumble building to a crash, dust settling |
+| `sfx_chest_open.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | a heavy iron-bound chest opening: a lock clunk, the lid creaking wide, a bright spill of coins and a chime |
+| `sfx_dungeon_exit.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.1s | ElevenLabs | stepping through a rift back to daylight: a rising whoosh of air, a soft chord opening, birdsong arriving |
+| `sfx_raid_window.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | an extraction window opening: a war horn's two-note call answered by a second horn, urgent |
+| `sfx_chieftain_roar.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.2s | ElevenLabs | a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing |
+| `sfx_raid_extract.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 1.0s | ElevenLabs | extracting from a raid: a rush of wind through a gap, a rising note, then quiet |
 
 ---
 
-## PROMPTED BUT NEVER PLAYED (151)
+## PROMPTED BUT NEVER PLAYED (155)
 
 Prompts for sounds nothing in the game names by literal. Not a fault - a
 few are chosen from data rather than written into code - but worth a
 glance before recording one, in case it is for something that was cut.
 
-`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`
+`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
 
 ---
 
@@ -1361,7 +1389,7 @@ Instrumental game soundtrack, no vocals, no lyrics, no singing. Dark grim-fantas
 
 ---
 
-## Ambience - 11 files
+## Ambience - 15 files
 
 Quiet beds under the music, one per region. Suno, but ask for no melody.
 
@@ -1453,9 +1481,41 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 Ambient background loop for a video game, no melody, no drums, no vocals. Texture and atmosphere only, at low volume, meant to sit far underneath gameplay. Seamless loop with no fade at either end. the Last Terrace: mountain wind around stone, a deep hum from the gate, distant bells, very high altitude.
 ```
 
+### `weather_downpour`
+
+`game/audio/ambience/weather_downpour.ogg`  -  target length **0:60-2:00**  -  suggested tool: **Suno**
+
+```text
+Ambient background loop for a video game, no melody, no drums, no vocals. Texture and atmosphere only, at low volume, meant to sit far underneath gameplay. Seamless loop with no fade at either end. heavy rain on leaves and packed earth, steady, with the occasional distant roll of thunder and water running off a roof; no wind howl.
+```
+
+### `weather_snowfall`
+
+`game/audio/ambience/weather_snowfall.ogg`  -  target length **0:60-2:00**  -  suggested tool: **Suno**
+
+```text
+Ambient background loop for a video game, no melody, no drums, no vocals. Texture and atmosphere only, at low volume, meant to sit far underneath gameplay. Seamless loop with no fade at either end. a snowfall: a muffled, hushed wind, the faint hiss of falling snow, an occasional creak of frozen wood; very quiet and soft.
+```
+
+### `weather_duststorm`
+
+`game/audio/ambience/weather_duststorm.ogg`  -  target length **0:60-2:00**  -  suggested tool: **Suno**
+
+```text
+Ambient background loop for a video game, no melody, no drums, no vocals. Texture and atmosphere only, at low volume, meant to sit far underneath gameplay. Seamless loop with no fade at either end. a duststorm: a dry rushing wind full of grit, sand hissing against stone, gusts rising and falling; harsh and airy.
+```
+
+### `weather_heatwave`
+
+`game/audio/ambience/weather_heatwave.ogg`  -  target length **0:60-2:00**  -  suggested tool: **Suno**
+
+```text
+Ambient background loop for a video game, no melody, no drums, no vocals. Texture and atmosphere only, at low volume, meant to sit far underneath gameplay. Seamless loop with no fade at either end. a heatwave: a shimmering high drone, cicadas, a very slow hot breath of wind, the crack of drying ground; oppressive stillness.
+```
+
 ---
 
-## Sound effects - 62 files
+## Sound effects - 86 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -1953,6 +2013,198 @@ a boss arrival stinger: one enormous low orchestral hit with a long dark tail an
 
 ```text
 a boss defeated fanfare: a short solemn brass and choir resolution, three rising notes, restrained rather than triumphant.
+```
+
+### `sfx_swim_enter`
+
+`game/audio/sfx/sfx_swim_enter.ogg`  -  target length **0.7s**  -  suggested tool: **ElevenLabs**
+
+```text
+a person falling into a pond: a full body splash with a deep plunge and the water closing over.
+```
+
+### `sfx_swim_exit`
+
+`game/audio/sfx/sfx_swim_exit.ogg`  -  target length **0.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+a person climbing out of water: a wet surge and heavy dripping off cloth.
+```
+
+### `sfx_swim_stroke`
+
+`game/audio/sfx/sfx_swim_stroke.ogg`  -  target length **0.3s**  -  suggested tool: **ElevenLabs**
+
+```text
+one swimming stroke: an arm pulling through calm water with a small wash, for repeating.
+```
+
+### `sfx_water_bite`
+
+`game/audio/sfx/sfx_water_bite.ogg`  -  target length **0.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+something under the water biting a swimmer: a sudden churn, a wet snap and a short pained gasp.
+```
+
+### `sfx_drown`
+
+`game/audio/sfx/sfx_drown.ogg`  -  target length **1.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+a drowning: a choked gasp, water rushing over, bubbles rising and going quiet, a slow sink.
+```
+
+### `sfx_fish_cast_charge`
+
+`game/audio/sfx/sfx_fish_cast_charge.ogg`  -  target length **0.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+a fishing rod drawing back for a long cast: the line tightening and the rod creaking under tension, rising.
+```
+
+### `sfx_fish_miss`
+
+`game/audio/sfx/sfx_fish_miss.ogg`  -  target length **0.3s**  -  suggested tool: **ElevenLabs**
+
+```text
+a fishing float landing on dry ground instead of water: a dull little thump and a rattle of line.
+```
+
+### `sfx_camp_razed`
+
+`game/audio/sfx/sfx_camp_razed.ogg`  -  target length **1.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+a raider camp falling: a collapsing tent, scattered embers, a low satisfied drum hit and a short brass note.
+```
+
+### `sfx_fork_open`
+
+`game/audio/sfx/sfx_fork_open.ogg`  -  target length **1.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+a road barrier of logs and stakes tumbling apart: heavy timber crashing, rope snapping, rocks rolling, then a deep open chord.
+```
+
+### `sfx_companion_summon`
+
+`game/audio/sfx/sfx_companion_summon.ogg`  -  target length **0.9s**  -  suggested tool: **ElevenLabs**
+
+```text
+a spirit animal arriving: a soft rush of wind with a warm three-note chime and a faint animal breath.
+```
+
+### `sfx_companion_down`
+
+`game/audio/sfx/sfx_companion_down.ogg`  -  target length **0.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+a spirit animal beaten and dissolving: a falling two-note sigh and a scatter of soft sparks.
+```
+
+### `sfx_companion_return`
+
+`game/audio/sfx/sfx_companion_return.ogg`  -  target length **0.8s**  -  suggested tool: **ElevenLabs**
+
+```text
+a spirit animal re-forming beside its keeper: a rising three-note chime, bright and quick.
+```
+
+### `sfx_companion_strike`
+
+`game/audio/sfx/sfx_companion_strike.ogg`  -  target length **0.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+an animal's bite landing: a short snap of teeth with a small impact thud, for repeating.
+```
+
+### `sfx_well_drink`
+
+`game/audio/sfx/sfx_well_drink.ogg`  -  target length **0.9s**  -  suggested tool: **ElevenLabs**
+
+```text
+drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief.
+```
+
+### `sfx_party_prompt`
+
+`game/audio/sfx/sfx_party_prompt.ogg`  -  target length **0.7s**  -  suggested tool: **ElevenLabs**
+
+```text
+a party invitation arriving: two clear ascending notes on a hunting horn, close and polite.
+```
+
+### `sfx_party_accept`
+
+`game/audio/sfx/sfx_party_accept.ogg`  -  target length **0.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+a party member accepting: a bright three-note affirmative chime.
+```
+
+### `sfx_party_decline`
+
+`game/audio/sfx/sfx_party_decline.ogg`  -  target length **0.5s**  -  suggested tool: **ElevenLabs**
+
+```text
+a party member declining: a single soft falling note, not unkind.
+```
+
+### `sfx_achievement`
+
+`game/audio/sfx/sfx_achievement.ogg`  -  target length **1.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+an achievement earned: a warm four-note fanfare on bells and low brass with a short shimmering tail.
+```
+
+### `sfx_dungeon_collapse`
+
+`game/audio/sfx/sfx_dungeon_collapse.ogg`  -  target length **2.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+a dungeon collapsing: stone grinding and cracking, a deep rumble building to a crash, dust settling.
+```
+
+### `sfx_chest_open`
+
+`game/audio/sfx/sfx_chest_open.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+a heavy iron-bound chest opening: a lock clunk, the lid creaking wide, a bright spill of coins and a chime.
+```
+
+### `sfx_dungeon_exit`
+
+`game/audio/sfx/sfx_dungeon_exit.ogg`  -  target length **1.1s**  -  suggested tool: **ElevenLabs**
+
+```text
+stepping through a rift back to daylight: a rising whoosh of air, a soft chord opening, birdsong arriving.
+```
+
+### `sfx_raid_window`
+
+`game/audio/sfx/sfx_raid_window.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+an extraction window opening: a war horn's two-note call answered by a second horn, urgent.
+```
+
+### `sfx_chieftain_roar`
+
+`game/audio/sfx/sfx_chieftain_roar.ogg`  -  target length **1.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+a raider chieftain's roar: a huge guttural bellow with a metallic edge, echoing.
+```
+
+### `sfx_raid_extract`
+
+`game/audio/sfx/sfx_raid_extract.ogg`  -  target length **1.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+extracting from a raid: a rush of wind through a gap, a rising note, then quiet.
 ```
 
 ---

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "region_glass_fields"
+display_name = "The Glass Fields"
+title = "The Glass Fields"
+category = 2
+unlock_act = 8
+order = 8
+art = "res://art/bg/macro_act8.png"
+body = "Ice that became glass and learned to sing. The Shatter Choir hardens the line with a note; the moths here are made of the same stuff as the ground."

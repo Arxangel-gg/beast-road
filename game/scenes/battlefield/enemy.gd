@@ -136,6 +136,28 @@ var _rout_left: float = 0.0
 var data: EnemyData = null
 var lane: int = 0
 
+# --- Camp mode (2026-09-12) ------------------------------------------------
+#
+# A camp body belongs to a place rather than to a wave. It has no route and
+# no interest in the town: it patrols its ground, goes for a hero who comes
+# close, follows only so far, and walks home healing when the hero leaves -
+# the jungle-camp rule. Everything else about it - health, damage, the swing,
+# the death payout - is the ordinary enemy at a scale, so ten acts of camps
+# needed no second roster. `Camps` owns the placing and the paying.
+
+## The group a camp body also joins, so the wave and the pressure readout can
+## leave it out: a camp is not a wave, and a camp mob alive on the outskirts
+## must not hold a wave open or light a lane.
+const CAMP_GROUP: StringName = &"camp_mobs"
+
+## Where this body lives, or INF for a wave body.
+var camp_home: Vector2 = Vector2.INF
+## How far from home it will follow a hero before turning back.
+var camp_leash: float = 0.0
+var _camp_goal: Vector2 = Vector2.INF
+var _camp_pause: float = 0.0
+var _camp_returning: bool = false
+
 var _field: EnemyField = null
 var _state: State = State.WALKING
 var _state_left: float = 0.0
@@ -262,6 +284,11 @@ var _mark: Line2D = null
 func promote(to_rank: Rank, worn: Array[EnemyAffixData]) -> void:
 	rank = to_rank
 	affixes = worn
+	# A ranked body wears a wider bar from the first frame, so the thing that
+	# takes forty hits is seen to be that before the first one lands.
+	if health_bar != null and to_rank != Rank.COMMON:
+		health_bar.set_ranked(Balance.HEALTH_BAR_ELITE_WIDTH if to_rank == Rank.ELITE \
+			else Balance.HEALTH_BAR_CHAMPION_WIDTH)
 
 
 ## The combined multiplier for one stat across every affix worn.
@@ -298,6 +325,47 @@ func _rank_scale() -> Vector3:
 ##
 ## Built from the affixes rather than authored, so a new affix needs no strings
 ## and a combination names itself.
+## Makes this body a camp body: home, leash, no route. Called by `Camps`
+## after the spawn, once the node is in the tree.
+func make_camp_mob(home: Vector2, leash: float) -> void:
+	camp_home = home
+	camp_leash = leash
+	_route = PackedVector2Array()
+	_path_index = 0
+	_lane_offset = 0.0
+	_camp_goal = home
+	_camp_pause = 0.0
+	add_to_group(CAMP_GROUP)
+
+
+## A point along this body's route, by fraction of its length from the spawn.
+## Zero is the spawn itself. Used to place a breed that surfaces closer in.
+func route_point_at(fraction: float) -> Vector2:
+	if _route.size() < 2:
+		return _route[0] if _route.size() == 1 else global_position
+	var total: float = 0.0
+	for index: int in _route.size() - 1:
+		total += _route[index].distance_to(_route[index + 1])
+	var wanted: float = clampf(fraction, 0.0, 1.0) * total
+	for index: int in _route.size() - 1:
+		var leg: float = _route[index].distance_to(_route[index + 1])
+		if wanted <= leg or index == _route.size() - 2:
+			_path_index = index
+			return _route[index].lerp(_route[index + 1], clampf(wanted / maxf(leg, 0.001), 0.0, 1.0))
+		wanted -= leg
+	return _route[0]
+
+
+func is_camp_mob() -> bool:
+	return camp_home != Vector2.INF
+
+
+## True while it is walking home to heal; the camp reads this to know a fight
+## was broken off rather than won.
+func is_camp_returning() -> bool:
+	return _camp_returning
+
+
 func promoted_name() -> String:
 	if rank == Rank.COMMON or data == null:
 		return data.display_name if data != null else ""
@@ -335,6 +403,8 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health_bar.bind(health)
+	if data != null and data.category == EnemyData.Category.BOSS:
+		health_bar.set_ranked(Balance.HEALTH_BAR_BOSS_WIDTH)
 	if oath_pursuer:
 		_build_oath_mark()
 
@@ -709,6 +779,9 @@ func _enter(state: State, duration: float) -> void:
 ## formation over the open ground the player is meant to be building on, which
 ## is the entire point of the bend.
 func _walk(delta: float) -> void:
+	if is_camp_mob():
+		_walk_camp(delta)
+		return
 	var destination: Vector2 = _target.global_position if _target != null else _field.objective_position(global_position)
 	var to: Vector2 = destination - global_position
 	if to.length() <= 1.0:
@@ -730,6 +803,49 @@ func _walk(delta: float) -> void:
 		direction = _road_direction()
 
 	_advance(direction, delta)
+
+
+## A camp body's step: at its quarry, home when it has strayed, or about its
+## ground when nothing is happening.
+func _walk_camp(delta: float) -> void:
+	var from_home: float = global_position.distance_to(camp_home)
+	if _target != null and is_instance_valid(_target) and not _camp_returning:
+		if from_home > camp_leash:
+			# Followed as far as it will. Home, and healing on the way.
+			_camp_returning = true
+			_target = null
+		else:
+			var to: Vector2 = _target.global_position - global_position
+			if to.length() > 1.0:
+				_advance(to.normalized(), delta)
+			return
+	if _camp_returning:
+		if from_home <= Balance.CAMP_PATROL_RADIUS * 0.5:
+			_camp_returning = false
+			_camp_goal = global_position
+			_camp_pause = 0.4
+			return
+		_advance((camp_home - global_position).normalized(), delta)
+		return
+	# Patrol: a slow potter between points on its own ground.
+	_camp_pause -= delta
+	var to_goal: Vector2 = _camp_goal - global_position
+	if to_goal.length() <= 6.0 or _camp_goal == Vector2.INF:
+		if _camp_pause > 0.0:
+			return
+		var turn: RandomNumberGenerator = RunState.rng("camps")
+		_camp_goal = camp_home + Vector2.RIGHT.rotated(turn.randf() * TAU) \
+			* turn.randf_range(Balance.CAMP_PATROL_RADIUS * 0.3, Balance.CAMP_PATROL_RADIUS)
+		_camp_pause = turn.randf_range(Balance.CAMP_PATROL_PAUSE.x, Balance.CAMP_PATROL_PAUSE.y)
+		return
+	# Half pace on patrol: a camp that paced at charging speed reads as agitated
+	# rather than as at home.
+	_tick_slip(delta, to_goal.normalized())
+	var step: Vector2 = to_goal.normalized() * current_speed() * 0.5 * delta
+	if step.length() > to_goal.length():
+		step = to_goal
+	if _field.step_is_legal(global_position, global_position + step):
+		global_position += step
 
 
 ## One step in a direction, sliding off whatever it cannot walk through.
@@ -1011,6 +1127,8 @@ func _pick_target() -> Node2D:
 	var animal: Node2D = _biting_back()
 	if animal != null:
 		return animal
+	if is_camp_mob():
+		return _camp_target()
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
 	if taunt != null and is_instance_valid(taunt):
 		return taunt
@@ -1031,11 +1149,46 @@ func _pick_target() -> Node2D:
 	if hero != null and is_instance_valid(hero) and _field.hero_is_alive():
 		# With no town to march on — the raid arena — the hero is the only
 		# objective there is, at any distance.
-		if town == null or global_position.distance_to(hero.global_position) <= Balance.ENEMY_HERO_AGGRO_RANGE:
+		if town == null:
 			return hero
+		if global_position.distance_to(hero.global_position) <= Balance.ENEMY_HERO_AGGRO_RANGE:
+			# **A body at the gate hits the gate.** A hero merely *near* used to
+			# take the target from a wall already in reach, so a besieger at the
+			# town with the Warden dashing around it stood there swinging at
+			# nothing - reported as "once the melee units reached the base they
+			# still did not attack it". The hero is fought when it can be hit;
+			# when it cannot and the wall can, the wall is.
+			if _in_reach(hero) or not _in_reach(town):
+				return hero
 	if wall != null and is_instance_valid(wall):
 		return wall
 	return town
+
+
+## What a camp body will fight: a living hero inside its aggro, and only
+## while both it and the hero are inside its leash of home. Never the town,
+## never a tower, never a wall - a camp that marched on the city would be a
+## fifth lane nobody tuned.
+##
+## Once it is walking home it ignores everything until it arrives: a body
+## that could be re-pulled a step from home would never get to heal, and the
+## League rule this copies is that a reset camp is a reset camp.
+func _camp_target() -> Node2D:
+	if _camp_returning:
+		return null
+	var hero: Node2D = _field.nearest_hero(global_position)
+	if hero == null or not is_instance_valid(hero) or not _field.hero_is_alive():
+		return null
+	var reach: float = Balance.CAMP_AGGRO
+	if _target == hero:
+		# Already on it: keep it to the leash rather than the aggro, so a
+		# fight that started close does not end the moment the hero steps back.
+		reach = camp_leash
+	if global_position.distance_to(hero.global_position) > reach:
+		return null
+	if hero.global_position.distance_to(camp_home) > camp_leash:
+		return null
+	return hero
 
 
 ## How far this one can hit, and **exactly what its ring shows**.
@@ -1430,6 +1583,11 @@ func _tick_status(delta: float) -> void:
 		health.take_damage(_burn_dps * delta, global_position)
 	if data.hp_regen > 0.0:
 		health.heal(data.hp_regen * delta)
+	# Walking home is where a camp body heals: fast, and only then, so the
+	# choice a hero makes at the leash is a real one - press and finish it, or
+	# leave and face it whole.
+	if _camp_returning and health != null:
+		health.heal(health.max_hp * Balance.CAMP_RETURN_REGEN * delta)
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	if terrain != null and terrain.enemy_hp_regen > 0.0:
 		health.heal(terrain.enemy_hp_regen * delta)
@@ -1473,6 +1631,8 @@ func _on_died(_from: Vector2) -> void:
 	RunState.enemies_killed += 1
 	# A promoted body is worth what it cost to bring down.
 	var spoils: float = float(data.resource_value)
+	if is_camp_mob():
+		spoils *= Balance.CAMP_SPOILS_SCALE
 	match rank:
 		Rank.CHAMPION:
 			spoils *= Balance.CHAMPION_REWARD_SCALE
@@ -1488,6 +1648,8 @@ func _on_died(_from: Vector2) -> void:
 	# tougher, once for the tier being worth running.
 	var tier: CampaignTierData = RunState.tier()
 	var payout: float = data.max_hp * _hp_scale * Balance.HERO_XP_PER_HP
+	if is_camp_mob():
+		payout *= Balance.CAMP_XP_SCALE
 	RunState.gain_hero_xp(payout * (tier.xp_scale if tier != null else 1.0))
 	_drop_loot()
 	_drop_gear()

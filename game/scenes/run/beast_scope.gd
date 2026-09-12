@@ -66,6 +66,21 @@ var _rng := RandomNumberGenerator.new()
 var _day_tint: CanvasModulate = null
 var _town_light_anchor: Node2D = null
 
+## The tail, a child of the body so it inherits the gait and the scale, drawn
+## behind the body from the rear hip. Its frames run on the body's own gait
+## phase while walking - the two are one animal - and on their own slow clock
+## at rest.
+var _tail: Sprite2D = null
+var _tail_walk: Array[Texture2D] = []
+var _tail_idle: Array[Texture2D] = []
+var _tail_clock: float = 0.0
+## The far woods and the near brush: the region's own trees and plants,
+## scattered once a period and slid past at their own rates.
+var _woods: ParallaxScatter = null
+var _brush: ParallaxScatter = null
+## How far into the act, with the crossroads marked.
+var _track: ActTrack = null
+
 
 func _ready() -> void:
 	_rng.randomize()
@@ -73,7 +88,9 @@ func _ready() -> void:
 	_setup_backdrop()
 	_setup_ground()
 	_load_frames()
+	_load_tail()
 	_setup_lighting()
+	_setup_track()
 	EventBus.act_started.connect(func(_a: int, _t: String) -> void: _apply_act_backdrop())
 
 
@@ -343,6 +360,70 @@ func _frame_series(format: String) -> Array[Texture2D]:
 	return out
 
 
+## The tail: loaded by the same convention as the body, attached at the rear
+## hip, and absent without complaint when the frames are not there.
+func _load_tail() -> void:
+	_tail_walk = _frame_series(Balance.BEAST_TAIL_WALK_FRAME_FORMAT)
+	_tail_idle = _frame_series(Balance.BEAST_TAIL_IDLE_FRAME_FORMAT)
+	if beast == null or (_tail_walk.is_empty() and _tail_idle.is_empty()):
+		return
+	_tail = Sprite2D.new()
+	_tail.name = "Tail"
+	_tail.texture = _tail_walk[0] if not _tail_walk.is_empty() else _tail_idle[0]
+	_tail.centered = true
+	# The root of the tail sits on the anchor: the art's root fraction decides
+	# where in the tail image that is.
+	var size: Vector2 = _tail.texture.get_size()
+	_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
+		size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
+	_tail.position = Balance.BEAST_TAIL_ANCHOR
+	_tail.show_behind_parent = true
+	_tail.texture_filter = beast.texture_filter
+	beast.add_child(_tail)
+
+
+## The tail's frame: on the gait while walking, on its own clock at rest.
+func _drive_tail(delta: float, walking: bool) -> void:
+	if _tail == null:
+		return
+	var series: Array[Texture2D] = _tail_walk if walking else _tail_idle
+	if series.is_empty():
+		series = _tail_idle if walking else _tail_walk
+	if series.is_empty():
+		return
+	var index: int = 0
+	if walking and not _tail_walk.is_empty():
+		index = int(floor(_bob / TAU * float(series.size()))) % series.size()
+	else:
+		_tail_clock += delta * Balance.BEAST_TAIL_IDLE_FRAME_RATE
+		index = int(floor(_tail_clock)) % series.size()
+	_tail.texture = series[maxi(index, 0)]
+
+
+## The act track, on its own layer so the scope's camera never moves it.
+func _setup_track() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "TrackLayer"
+	layer.layer = 8
+	add_child(layer)
+	_track = ActTrack.new()
+	_track.name = "ActTrack"
+	_track.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_track.offset_left = -ActTrack.WIDTH * 0.5
+	_track.offset_right = ActTrack.WIDTH * 0.5
+	_track.offset_bottom = -Balance.BEAST_TRACK_BOTTOM_MARGIN
+	_track.offset_top = _track.offset_bottom - ActTrack.HEIGHT
+	layer.add_child(_track)
+	layer.visible = camera != null and camera.is_current()
+
+
+## Whether the act track is showing. The run calls this with the scope, so
+## the track never draws over another scope's screen.
+func set_track_visible(showing: bool) -> void:
+	if _track != null and _track.get_parent() != null:
+		(_track.get_parent() as CanvasLayer).visible = showing
+
+
 ## Picks the frame for this moment, from whichever series is playing.
 ##
 ## Driven by the *gait phase* for the walk rather than by a timer, so the frames
@@ -351,6 +432,7 @@ func _frame_series(format: String) -> Array[Texture2D]:
 func _drive_frames(delta: float, walking: bool, speed_ratio: float) -> void:
 	if beast == null:
 		return
+	_drive_tail(delta, walking)
 	var series: Array[Texture2D] = _walk_frames if walking else _idle_frames
 	if series.is_empty():
 		return
@@ -413,6 +495,30 @@ func _build_parallax() -> void:
 	_foreground.z_index = Balance.BEAST_FOREGROUND_Z
 	add_child(_foreground)
 
+	# The region's trees on the ridge and its plants in the near ground: the
+	# sidescroller's parallax, made of the battlefield's own art.
+	_woods = ParallaxScatter.new()
+	_woods.name = "Woods"
+	_woods.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0) * 1.2
+	_woods.baseline = Balance.BEAST_WOODS_BASELINE
+	_woods.count = Balance.BEAST_WOODS_COUNT
+	_woods.scale_range = Balance.BEAST_WOODS_SCALE
+	_woods.depth_jitter = 22.0
+	_woods.z_index = Balance.BEAST_WOODS_Z
+	_woods.filter_group = Graphics.FILTER_GROUP
+	add_child(_woods)
+
+	_brush = ParallaxScatter.new()
+	_brush.name = "Brush"
+	_brush.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0) * 0.9
+	_brush.baseline = Balance.BEAST_BRUSH_BASELINE
+	_brush.count = Balance.BEAST_BRUSH_COUNT
+	_brush.scale_range = Balance.BEAST_BRUSH_SCALE
+	_brush.depth_jitter = 30.0
+	_brush.z_index = Balance.BEAST_BRUSH_Z
+	_brush.filter_group = Graphics.FILTER_GROUP
+	add_child(_brush)
+
 
 ## Colours and reshapes the bands for the act that just began.
 ##
@@ -441,6 +547,49 @@ func _apply_parallax_palette() -> void:
 	_foreground.colour = Color(horizon.r, horizon.g, horizon.b, 1.0) 		.darkened(1.0 - Balance.BEAST_FOREGROUND_DARKEN)
 	_foreground.shape_seed = hash(RunState.terrain_id + "near")
 	_foreground.rebuild()
+	_rebuild_scatter(horizon)
+
+
+## Lays the woods and the brush from the region's own art, hazed and shaded
+## to their depths, reseeded per region and per run.
+func _rebuild_scatter(horizon: Color) -> void:
+	if _woods == null or _brush == null:
+		return
+	var region: String = RunState.terrain_id
+	var trees: Array[Texture2D] = []
+	var base: String = Treeline.TREE_ART_FORMAT % region
+	if ResourceLoader.exists(base):
+		trees.append(load(base))
+	for index: int in range(1, 9):
+		var path: String = Treeline.TREE_VARIANT_FORMAT % [region, index]
+		if ResourceLoader.exists(path):
+			trees.append(load(path))
+	if trees.is_empty():
+		var fallback: String = Treeline.TREE_ART_FORMAT % "jungle"
+		if ResourceLoader.exists(fallback):
+			trees.append(load(fallback))
+	_woods.tint = horizon.lightened(0.2)
+	_woods.tint.a = 1.0
+	_woods.tint_strength = Balance.BEAST_WOODS_HAZE
+	_woods.shape_seed = hash(region + "woods") ^ RunState.run_seed
+	_woods.rebuild(trees)
+
+	var plants: Array[Texture2D] = []
+	var own: String = Foliage.PLANT_ART_FORMAT % region
+	if ResourceLoader.exists(own):
+		plants.append(load(own))
+	for kind: String in Foliage.REGIONAL_KINDS:
+		var path: String = Foliage.REGIONAL_KIND_FORMAT % [region, kind]
+		if ResourceLoader.exists(path):
+			plants.append(load(path))
+	for kind: String in ["rock", "boulder", "log", "stump"]:
+		var path: String = Foliage.SHARED_KIND_FORMAT % kind
+		if ResourceLoader.exists(path):
+			plants.append(load(path))
+	_brush.tint = Color(horizon.r, horizon.g, horizon.b, 1.0).darkened(0.7)
+	_brush.tint_strength = Balance.BEAST_BRUSH_DARKEN
+	_brush.shape_seed = hash(region + "brush") ^ RunState.run_seed
+	_brush.rebuild(plants)
 
 
 ## Each act has its own sky. Falls back to act 1 rather than going blank if a
@@ -490,8 +639,12 @@ func _scroll_backdrop() -> void:
 	# ground, then the band that overtakes the beast.
 	if _ridge != null:
 		_ridge.scroll_to(RunState.distance_travelled, Balance.BEAST_RIDGE_SCROLL)
+	if _woods != null:
+		_woods.scroll_to(RunState.distance_travelled, Balance.BEAST_WOODS_SCROLL)
 	if _foreground != null:
 		_foreground.scroll_to(RunState.distance_travelled, FOREGROUND_SCROLL)
+	if _brush != null:
+		_brush.scroll_to(RunState.distance_travelled, Balance.BEAST_BRUSH_SCROLL)
 
 
 ## The ground scrolls faster than the sky, which is what sells the distance.

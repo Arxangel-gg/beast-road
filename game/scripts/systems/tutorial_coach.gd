@@ -184,6 +184,10 @@ func _fire(trigger: int) -> void:
 
 
 func _show(step: TutorialStepData) -> void:
+	# The first road walked to its crossroad is the tutorial run; co-op waits
+	# for it (owner brief, 2026-09-12).
+	if step.trigger == TutorialStepData.Trigger.CROSSROAD_REACHED:
+		MetaState.mark_tutorial_done()
 	_label.text = step.body
 	_left = step.seconds
 	visible = true

@@ -246,6 +246,15 @@ func _finish() -> void:
 			+ "is never worth less, and the collection survives a save")
 	else:
 		push_error("[spirit] FAIL - %d problem(s)" % _failures)
+	# Silence, clear, wait, silence: a companion's summon or strike still
+	# playing at quit is four leaked stream objects and a dirty gate.
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	Vfx.clear()
+	for _f: int in 10:
+		await get_tree().process_frame
+	Sfx.stop_immediately()
 	get_tree().quit(1 if _failures > 0 else 0)
 
 

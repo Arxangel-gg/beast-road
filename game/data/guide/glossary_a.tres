@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "glossary_a"
+display_name = "Words of the road"
+title = "Words of the road"
+category = "Glossary"
+order = 35
+image = "res://art/guide/glossary_a.png"
+body = "Act: one region and its boss. Crossroad: the fork at the end of a stretch of road. Preparation: the pause before a wave. Wound: a life lost this run. Warden: you. Yuri: the beast. The Hold: the room between runs."

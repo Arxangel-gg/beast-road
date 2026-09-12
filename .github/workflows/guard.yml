@@ -472,6 +472,26 @@ jobs:
           # Rifts and dungeons: the gates on the field, the fill, the guardian,
           # the door, and a reward that is only ever what the road already pays.
           check "rifts" --headless --path game res://tools/rift_check.tscn
+          # The maze under a rift (2026-09-12): one connected floor from the
+          # entry, a vault at a real depth, bodies that appear on floor and are
+          # steered by the maze rather than into rock.
+          check "dungeon maze" --headless --path game res://tools/dungeon_check.tscn
+          # The party's conversation before a raid or a rift: unanimous goes and
+          # freezes, a mixed answer is the proposer's call, silence is a no, and
+          # the first return thaws the field once.
+          check "party events" --headless --path game res://tools/party_events_check.tscn
+          # Every guide section has a tab and a picture on disk; every
+          # achievement names a statistic the account actually keeps.
+          check "guide" --headless --path game res://tools/guide_check.tscn
+          # A legendary affix moves a key Modifiers resolves, by a bounded
+          # amount, deterministically from the piece's own name.
+          check "gear affixes" --headless --path game res://tools/gear_affix_check.tscn
+          # The camps on the outskirts: three a road, camp-mode bodies, the
+          # fork that both razed camps open, the respawn, and the war camp's
+          # dungeon mouth.
+          check "camps" --headless --path game res://tools/camps_check.tscn
+          # Ponds draw under the hero and the hero swims in them.
+          check "swimming" --headless --path game res://tools/swim_check.tscn
           # The battlefield playlist deals what is on disk, advances on the end
           # of a song, holds for a boss and hands back. Missing songs are quiet.
           check "music" --headless --path game res://tools/music_check.tscn

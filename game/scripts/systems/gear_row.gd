@@ -51,7 +51,7 @@ static func build(piece: Dictionary) -> HBoxContainer:
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", 14)
 	title.text = "%s %s" % [Stash.rarity_name(piece),
-		kind.display_name if kind != null else "Unknown"]
+		Stash.display_name(piece, kind) if kind != null else "Unknown"]
 	title.add_theme_color_override("font_color",
 		Stash.rarity_colour(piece).lerp(Color("e8e2d4"), 0.3))
 	text.add_child(title)
@@ -85,6 +85,11 @@ static func bonus_text(piece: Dictionary, kind: GearData) -> String:
 	for affix: Dictionary in Stash.affixes(piece, kind):
 		var which: int = clampi(int(affix["attribute"]), 0, ATTRIBUTE_NAMES.size() - 1)
 		parts.append("+%d %s" % [int(affix["points"]), ATTRIBUTE_NAMES[which]])
+	# The legendary affixes after the points, so the line reads "+7 Might, +3
+	# Focus, +6% tower damage" and a player learns what the word on the name
+	# means by reading it once.
+	for legend: GearAffixData in Stash.legendary_affixes(piece, kind):
+		parts.append(legend.line())
 	return ", ".join(parts)
 
 

@@ -14,7 +14,8 @@ extends RefCounted
 ## and the boot path read, which is what stops the two drifting apart again.
 
 ## Keys, in the order they should be presented.
-const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume"]
+const VOLUME_KEYS: Array[String] = ["master_volume", "music_volume", "sfx_volume",
+	"ambience_volume", "weather_volume"]
 
 const DISPLAY_KEY: String = "display_mode"
 const SHAKE_KEY: String = "screen_shake"

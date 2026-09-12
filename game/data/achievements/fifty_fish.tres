@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "fifty_fish"
+display_name = "Angler"
+title = "Angler"
+description = "Land fifty fish."
+stat = "fish_caught_total"
+threshold = 50.0
+icon = "gold"
+order = 16

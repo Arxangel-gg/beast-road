@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LoreEntryData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lore_entry_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "world_yuri"
+display_name = "Yuri"
+title = "Yuri"
+category = 0
+unlock_act = 0
+order = 1
+art = ""
+body = "He is old past counting and patient past reason. Moss grows on him; whole gardens have. He does not hurry, and he does not stop for anything short of the boss that stands at the end of each region - he will not leave a land with that thing still standing in it.\n\nThe Warden and Yuri are bound. When the Warden sleeps, Yuri walks. When the Warden fights, Yuri feels each footfall land. The four roads that climb his flanks are the only way onto his back, and the only way the Chainbound Host can reach the town."

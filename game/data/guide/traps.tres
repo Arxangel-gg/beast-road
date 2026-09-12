@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "traps"
+display_name = "Traps and barricades"
+title = "Traps and barricades"
+category = "Building"
+order = 9
+image = "res://art/guide/traps.png"
+body = "Traps sit on the road and fire on whatever crosses them. Barricades block a road for a while and draw the line's attention. Both are built in Preparation and both cost Stone and Wood."

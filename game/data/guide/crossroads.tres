@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "crossroads"
+display_name = "Crossroads"
+title = "Crossroads"
+category = "The Road"
+order = 11
+image = "res://art/guide/crossroads.png"
+body = "Every stretch of road ends at a fork. Each way has a difficulty and a reward: harder roads pay better. The choice is the party's; in co-op it is a vote. After the road is chosen, a Road Card is dealt."

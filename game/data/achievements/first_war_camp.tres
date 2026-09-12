@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AchievementData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/achievement_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "first_war_camp"
+display_name = "Totem Down"
+title = "Totem Down"
+description = "Raze a war camp."
+stat = "war_camps_razed"
+threshold = 1.0
+icon = "close"
+order = 12

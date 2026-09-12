@@ -2992,3 +2992,15 @@ the history.
   Worldstrider, a generated title, PixelLab UI frames, sheet-made VFX and a
   tapered additive blade trail; and `script_check`, `rift_check` and
   `music_check` in both workflows.
+- 2026-09-12, the polish push: the road has outskirts with camps that
+  patrol, leash and regenerate, forks that open when both fall, and war camps
+  that open dungeons; the dungeon is a maze with a flow-steered horde, a timed
+  collapse, a chest and doors on the floor; raids are furnished and say what
+  they are; the beast has its tail, the beast scope a parallax wood and an
+  act track, the HUD a sundial; fishing's third cut with depth, bubbles, a
+  drifting band and a hero who swims; legendary affixes; a Guide with lore,
+  photographed how-tos, glossary, progress and achievements; companions
+  animated and facing; wildlife grazing and fleeing; trees, plants and grass
+  for all ten regions; wells drunk from; raids and rifts a party vote in
+  co-op with the road running on for those who stay; and six new gates in
+  both workflows.
