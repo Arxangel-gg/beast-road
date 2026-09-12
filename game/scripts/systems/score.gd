@@ -73,6 +73,8 @@ static func of(summary: Dictionary, tier: CampaignTierData) -> int:
 	# Boards are still read per tier; this only keeps a Hell run from sorting
 	# under a Normal one on an all-tiers view.
 	total *= tier.score_scale if tier != null else 1.0
+	# Ascension is read on the board and nowhere else: a tenth more a rank.
+	total *= 1.0 + Balance.ASCENSION_SCORE_BONUS * float(_number(summary, "ascension"))
 	return clampi(int(round(total)), 0, Balance.LEADERBOARD_SCORE_MAX)
 
 

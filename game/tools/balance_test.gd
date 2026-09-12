@@ -1067,7 +1067,7 @@ func _test_tiers_and_persistence() -> void:
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
-				"spirits", "pantry"],
+				"spirits", "pantry", "professions"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live
@@ -1095,7 +1095,9 @@ func _test_tiers_and_persistence() -> void:
 		var hero: Dictionary = (parsed as Dictionary).get("hero", {}) as Dictionary
 		for key: Variant in hero.keys():
 			_check(String(key) in ["level", "xp", "attributes", "attribute_points",
-				"skill_points", "tier_cleared", "last_tier", "story_seen"],
+				"skill_points", "tier_cleared", "last_tier", "story_seen",
+				# The Gate's rank (2026-09-11): prestige, capped, and read by the board.
+				"ascension"],
 				"unexpected hero save key \"%s\" - only the amendment's fields persist" % key)
 
 	# The migration every existing player will actually hit: a v3 save has no hero
@@ -2190,6 +2192,10 @@ func _test_beast_gait() -> void:
 	var previous: float = UserSettings.number(UserSettings.GAIT_KEY, 0.65)
 	UserSettings.set_value(UserSettings.GAIT_KEY, 1.0)
 	RunState.beast_speed = Balance.BEAST_BASE_SPEED
+	# The gait follows the journey now (owner, 2026-09-11): a beast in
+	# Preparation stands still, so the walk is measured on the road.
+	var phase_before: int = RunState.phase
+	RunState.phase = RunState.Phase.ROAD_BATTLE
 	rig._tick_gait(0.25)
 	_check(rig.offset.length() > 0.1, "enabled beast gait must visibly move the battlefield")
 	# Force a support-pair transfer and prove it creates the planted pause, body
@@ -2203,6 +2209,15 @@ func _test_beast_gait() -> void:
 		"each alternating support plant must pause and settle under Yuri's mass")
 	_check(rig._shake_left > 0.0,
 		"a planted beast step must produce a brief impact shake")
+	# And in Preparation it does not walk at all - the owner's report was Yuri
+	# "still walking with the beast motion and shake during preparation".
+	RunState.phase = RunState.Phase.PREPARATION
+	rig._gait_strength = 0.0
+	for _settle: int in 40:
+		rig._tick_gait(0.1)
+	_check(rig._gait_strength < 0.05,
+		"the beast must stand still in Preparation; gait strength was %.2f" % rig._gait_strength)
+	RunState.phase = phase_before as RunState.Phase
 	_test_step_shake_shape(rig)
 	UserSettings.set_value(UserSettings.GAIT_KEY, 0.0)
 	rig._tick_gait(0.016)

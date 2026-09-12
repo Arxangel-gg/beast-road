@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+role = 0
+element = 3
+damage = 10.0
+attack_interval = 0.48
+attack_range = 340.0
+extra_targets = 2
+knockback = 70.0
+id = "squall_vane"
+display_name = "Squall Vane"
+description = "Skirmisher. A quick gust that jumps between bodies and pushes each one back a step."

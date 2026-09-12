@@ -61,6 +61,13 @@ var _town_critical: bool = false
 ## Elemental impact art, derived from the element name like every other asset
 ## path in the project.
 const IMPACT_ART_FORMAT: String = "res://art/vfx/impact_%s.png"
+## The drawn hit sheets (2026-09-11): a cut for the chain's fast steps, a burst
+## for the finisher, embers for a death in a burning region.
+const HIT_CUT_ART: String = "res://art/vfx/cut.png"
+const HIT_BURST_ART: String = "res://art/vfx/burst.png"
+const EMBERS_ART: String = "res://art/vfx/embers.png"
+## Regions whose dead go up in embers rather than dust.
+const EMBER_TERRAINS: Array[String] = ["ashen_reach", "rustwood"]
 const MUZZLE_ART_FORMAT: String = "res://art/vfx/muzzle_%s.png"
 const BOSS_BREAK_SHADER: String = "res://scripts/shaders/boss_phase_break.gdshader"
 
@@ -739,8 +746,14 @@ func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: flo
 	if world == null or texture == null:
 		return
 	var half: float = deg_to_rad(arc_degrees * 0.5)
-	var from: float = direction.angle() - half * 0.85
-	var to: float = direction.angle() + half * 0.85
+	# **The same extent the wedge covers, and the same clock.** `slash` turns
+	# a +-half wedge through +-0.6*half, so its far edge reaches 1.6*half each
+	# side; the blade used to travel 0.85*half and finish a fifth of a second
+	# earlier, which read as the weapon falling short of its own trail
+	# (owner, 2026-09-11). Both ends are Balance now, and the ribbon is drawn
+	# every frame rather than on tween steps, so it no longer tears.
+	var from: float = direction.angle() - half * Balance.VFX_BLADE_ARC_SCALE
+	var to: float = direction.angle() + half * Balance.VFX_BLADE_ARC_SCALE
 	var life: float = Balance.VFX_SLASH_LIFE * Balance.VFX_BLADE_LIFE_SCALE
 	var radius: float = reach * Balance.VFX_BLADE_RADIUS
 
@@ -758,6 +771,14 @@ func blade_sweep(at: Vector2, direction: Vector2, reach: float, arc_degrees: flo
 	trail.name = "BladeRibbon"
 	trail.z_index = Balance.VFX_Z
 	trail.color = Color.WHITE
+	# **Soft across its width, and added rather than painted.** Photographed
+	# mid-swing (`blade_shot`, 2026-09-11) the strip had a hard outer rim and a
+	# hard straight edge where the swing began, and it multiplied a dark steel
+	# colour over the ground so it read as a shadow with a sword in it. The
+	# gradient feathers both edges of the strip, the taper in `_draw_blade_trail`
+	# removes the straight edge, and additive blending makes it light.
+	trail.texture = _ribbon_gradient()
+	trail.material = _ribbon_material()
 	_track(trail)
 	trail.global_position = at
 
@@ -834,12 +855,23 @@ func _draw_blade_trail(progress: float, trail: Polygon2D, at: Vector2,
 	var inner := PackedVector2Array()
 	var outer_tint := PackedColorArray()
 	var inner_tint := PackedColorArray()
+	var outer_uv := PackedVector2Array()
+	var inner_uv := PackedVector2Array()
 	for i: int in steps + 1:
 		var along: float = float(i) / float(steps)
 		var angle: float = lerpf(from, to, progress * along)
 		var arm: Vector2 = Vector2.RIGHT.rotated(angle)
+		# **The strip tapers to its tail.** The inner edge starts a couple of
+		# pixels inside the outer one and opens to the hilt radius at the head,
+		# so the swing begins as a point rather than a straight cut across the
+		# arc. Never to zero width: a strip with coincident edges is the
+		# degenerate polygon the comment above is about.
+		var spread: float = pow(along, Balance.VFX_BLADE_TRAIL_TAPER)
+		var edge: float = lerpf(tip - 2.0, hilt, spread)
 		outer.append(arm * tip)
-		inner.append(arm * hilt)
+		inner.append(arm * edge)
+		outer_uv.append(Vector2(0.0, 0.0))
+		inner_uv.append(Vector2(0.0, RIBBON_GRADIENT_HEIGHT))
 		var shade: Color = tint
 		# The leading edge burns toward white: the steel is ahead of its own
 		# smear, and that contrast is what reads as a cut rather than a fan.
@@ -860,13 +892,48 @@ func _draw_blade_trail(progress: float, trail: Polygon2D, at: Vector2,
 	# into one strip rather than crossing themselves.
 	inner.reverse()
 	inner_tint.reverse()
+	inner_uv.reverse()
 	var shape := PackedVector2Array(outer)
 	shape.append_array(inner)
 	var shades := PackedColorArray(outer_tint)
 	shades.append_array(inner_tint)
+	var uvs := PackedVector2Array(outer_uv)
+	uvs.append_array(inner_uv)
 	trail.polygon = shape
 	trail.vertex_colors = shades
+	trail.uv = uvs
 	trail.global_position = at
+
+
+## The ribbon's cross-width gradient: clear at both edges, full in the middle.
+## A `Polygon2D` reads its texture in pixels, so the strip's outer vertices sit
+## at v = 0 and its inner ones at v = RIBBON_GRADIENT_HEIGHT.
+const RIBBON_GRADIENT_HEIGHT: float = 64.0
+var _ribbon_texture: GradientTexture2D = null
+var _ribbon_glow: CanvasItemMaterial = null
+
+
+func _ribbon_gradient() -> GradientTexture2D:
+	if _ribbon_texture != null:
+		return _ribbon_texture
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.3, 0.7, 1.0])
+	ramp.colors = PackedColorArray([Color(1, 1, 1, 0), Color.WHITE, Color.WHITE, Color(1, 1, 1, 0)])
+	_ribbon_texture = GradientTexture2D.new()
+	_ribbon_texture.gradient = ramp
+	_ribbon_texture.width = 4
+	_ribbon_texture.height = int(RIBBON_GRADIENT_HEIGHT)
+	_ribbon_texture.fill_from = Vector2(0.0, 0.0)
+	_ribbon_texture.fill_to = Vector2(0.0, 1.0)
+	return _ribbon_texture
+
+
+func _ribbon_material() -> CanvasItemMaterial:
+	if _ribbon_glow != null:
+		return _ribbon_glow
+	_ribbon_glow = CanvasItemMaterial.new()
+	_ribbon_glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	return _ribbon_glow
 
 
 ## The colour a weapon actually is, averaged from its own art.
@@ -916,10 +983,10 @@ func blade_tint(texture: Texture2D, fallback: Color) -> Color:
 	var mean := Color(total.x / weight, total.y / weight, total.z / weight)
 	# Lifted toward white. An average is always duller than the thing it
 	# averages, and a trail the colour of the blade's shadow reads as smoke.
-	mean = mean.lerp(Color.WHITE, 0.28)
+	mean = mean.lerp(Color.WHITE, 0.4)
 	if mean.s > 0.02:
 		mean.s = minf(mean.s * 1.35, 1.0)
-	mean.v = maxf(mean.v, 0.55)
+	mean.v = maxf(mean.v, 0.72)
 	_blade_tints[key] = mean
 	return mean
 
@@ -1030,6 +1097,37 @@ func impact(at: Vector2, element: int, colour: Color, size: float) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(burst, "scale", Vector2.ONE * start, 0.14).set_ease(Tween.EASE_OUT)
 	tween.tween_property(burst, "modulate:a", 0.0, 0.26).set_delay(0.06)
+	_play_burst_frames(burst, path)
+	tween.chain().tween_callback(burst.queue_free)
+
+
+## A drawn burst at a point: any authored frame sequence, played once.
+##
+## `impact` is this for the four elements; this is the general one, for the
+## splash a cast makes, the rings a bite spreads, the sparks a blow throws.
+## Additive for light on water and on steel, mixed for water itself.
+func sheet_burst(at: Vector2, path: String, size: float, tint: Color = Color.WHITE,
+		additive: bool = false, rotation_radians: float = 0.0) -> void:
+	if world == null or not ResourceLoader.exists(path):
+		return
+	var burst := Sprite2D.new()
+	burst.texture = load(path)
+	burst.rotation = rotation_radians
+	burst.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	burst.add_to_group(Graphics.FILTER_GROUP)
+	burst.modulate = tint
+	burst.z_index = Balance.VFX_Z
+	if additive:
+		var glow := CanvasItemMaterial.new()
+		glow.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		burst.material = glow
+	_track(burst)
+	burst.global_position = at
+	burst.scale = Vector2.ONE * (size / maxf(float(burst.texture.get_width()), 1.0))
+	var frames: Array[Texture2D] = GameData.load_idle_frames(path)
+	var life: float = float(maxi(frames.size(), 3)) / Balance.VFX_ART_FRAME_RATE
+	var tween: Tween = burst.create_tween()
+	tween.tween_property(burst, "modulate:a", 0.0, life * 0.35).set_delay(life * 0.65)
 	_play_burst_frames(burst, path)
 	tween.chain().tween_callback(burst.queue_free)
 
@@ -1166,6 +1264,14 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
 
 	spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,
 		320.0 if finisher else 220.0)
+	# **Drawn steel over the procedural sparks** (2026-09-11). The sparks carry
+	# direction and count; the sheet carries the look of a blow - a thin bright
+	# cut for the fast steps, a white-hot burst for the finisher - and both
+	# were made from the same PixelLab concept sheet so they belong together.
+	# Added rather than mixed, so they read on a dark road and a bright one.
+	sheet_burst(at + aim * 56.0, HIT_CUT_ART if not finisher else HIT_BURST_ART,
+		Balance.VFX_HIT_SHEET_SIZE * (1.35 if finisher else 1.0),
+		Color(1.0, 0.95, 0.85, 0.95), true, aim.angle() if not finisher else 0.0)
 	if finisher:
 		ring(at, 70.0, Color(1.0, 0.82, 0.5, 0.55), 0.3, 5.0)
 		rays(at + aim * 46.0, Color(1.0, 0.9, 0.67, 0.85), 9, 68.0, aim.angle())
@@ -1202,6 +1308,11 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 	if data != null and data.category != EnemyData.Category.BREED:
 		rays(at, colour.lerp(Color.WHITE, 0.42), 8 if data.category == EnemyData.Category.ELITE else 16,
 			radius * 1.25)
+	# In a burning region the dead go up in embers rather than dust: the same
+	# death, dressed for where it happened.
+	if EMBER_TERRAINS.has(RunState.terrain_id):
+		sheet_burst(at + Vector2(0.0, -radius * 0.4), EMBERS_ART, radius * 2.4,
+			Color(1.0, 0.9, 0.75, 0.9), true)
 
 
 func _on_hero_damaged(amount: float, from: Vector2, at: Vector2) -> void:

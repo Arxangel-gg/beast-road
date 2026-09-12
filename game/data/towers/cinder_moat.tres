@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+role = 3
+element = 0
+damage = 8.0
+attack_interval = 1.1
+attack_range = 290.0
+aoe_radius = 170.0
+burn_dps = 6.0
+burn_duration = 2.4
+ground_zone_dps = 5.0
+ground_zone_duration = 2.0
+max_hp = 420.0
+id = "cinder_moat"
+display_name = "Cinder Moat"
+description = "Warden. A ring of embers that never quite goes out: everything crossing it burns, and keeps burning after it has crossed."

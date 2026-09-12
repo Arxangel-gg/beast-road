@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "glass_singer"
+display_name = "Glass Singer"
+description = "The note is just above hearing, and everything of glass answers it."
+role = 3
+max_hp = 128.0
+contact_damage = 9.0
+move_speed = 38.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 4
+aura_radius = 240.0
+aura_strength = 0.24

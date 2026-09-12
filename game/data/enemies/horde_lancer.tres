@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "horde_lancer"
+display_name = "Horde Lancer"
+description = "First across the grass and first through the gate, if you let it."
+role = 1
+max_hp = 66.0
+contact_damage = 14.0
+move_speed = 92.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 3

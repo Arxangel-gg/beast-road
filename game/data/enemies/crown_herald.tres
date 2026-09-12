@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "crown_herald"
+display_name = "Crown Herald"
+description = "It announces the gate. The gate, unfortunately, listens."
+role = 3
+max_hp = 134.0
+contact_damage = 10.0
+move_speed = 40.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 4
+aura_radius = 250.0
+aura_strength = 0.24

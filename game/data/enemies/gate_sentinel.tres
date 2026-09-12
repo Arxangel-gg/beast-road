@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "gate_sentinel"
+display_name = "Gate Sentinel"
+description = "Set on the stair and told to hold it. It is still holding it."
+role = 2
+max_hp = 250.0
+contact_damage = 18.0
+move_speed = 34.0
+body_radius = 34.0
+knockback_resistance = 0.50
+resource_value = 5

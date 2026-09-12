@@ -15,6 +15,15 @@ const BEDS: Dictionary = {
 	"beast_walk": "res://audio/ambience/ambience_beast_walk.ogg",
 	"desert": "res://audio/ambience/ambience_desert.ogg",
 	"snow": "res://audio/ambience/ambience_snow.ogg",
+	# The seven regions of 2026-09-11. Named so the file can be dropped in;
+	# until it is, `play` finds nothing and the region is quiet.
+	"hollow_marches": "res://audio/ambience/ambience_hollow_marches.ogg",
+	"rustwood": "res://audio/ambience/ambience_rustwood.ogg",
+	"saltpan": "res://audio/ambience/ambience_saltpan.ogg",
+	"iron_steppe": "res://audio/ambience/ambience_iron_steppe.ogg",
+	"glass_fields": "res://audio/ambience/ambience_glass_fields.ogg",
+	"ashen_reach": "res://audio/ambience/ambience_ashen_reach.ogg",
+	"last_terrace": "res://audio/ambience/ambience_last_terrace.ogg",
 }
 
 const FADE_TIME: float = 2.5
@@ -39,7 +48,7 @@ func play(bed_id: String) -> void:
 	var key: String = bed_id.trim_prefix("ambience_")
 	if key == _current:
 		return
-	if not BEDS.has(key):
+	if not BEDS.has(key) or not ResourceLoader.exists(String(BEDS[key])):
 		stop()
 		return
 	_current = key

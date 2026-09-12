@@ -1847,21 +1847,30 @@ const TREELINE_ATTEMPTS: int = 720
 const FISHING_RADIUS: float = 120.0
 const FISHING_STILL_SPEED: float = 12.0
 
-## Where a pond may be dug: clear of every road, clear of the town, and spaced
-## so two never overlap into one puddle.
-##
-## **The road clearance is the one number that decides whether fishing is a
-## detour or an expedition.** The roads are a maze across most of the field, so
-## every metre of clearance pushes the only legal water further out; at 330 the
-## first version put all of it in the outer band. 240 is about a pond's own
-## width off the tarmac - far enough that water is never *on* the road or in the
-## first rank of a tower's firing lane, close enough that the pockets between
-## road segments qualify. A pond can now take ground a tower might have wanted,
-## and that is the trade: placement is freeform, so the player routes around it.
-const FISHING_ROAD_CLEARANCE: float = 240.0
+## Where a pond may be dug (owner ruling, 2026-09-11): **around the edge of
+## the map, beyond where the roads begin**. `FISHING_EDGE_BAND` is the fraction
+## of the field's reach a pond's centre must lie outside - the roads run from
+## the rim to the town, so the outer band is where the ground between them is
+## widest and where the walk to water is a real detour rather than a step off
+## the lane. The clearances are measured from the pond's *rim* now, because a
+## pond is the size of a pond: a road may not pass within a tower's inner reach
+## of the water, and no spawn mouth may sit beside it, so the first wave never
+## walks out of a lake.
+const FISHING_EDGE_BAND: float = 0.6
+## Tiles of open ground that must ring a pond: measured on the grid's own
+## cells rather than on the lane waypoints, because a lane has forty
+## waypoints and a road has hundreds of tiles. One tile keeps water out of
+## every road and off the border.
+const FISHING_ROAD_CLEARANCE_TILES: int = 1
+const FISHING_SPAWN_CLEARANCE: float = 420.0
 const FISHING_TOWN_CLEARANCE: float = 420.0
-const FISHING_POND_SPACING: float = 300.0
-const FISHING_PLACEMENT_ATTEMPTS: int = 260
+const FISHING_POND_SPACING: float = 96.0
+const FISHING_PLACEMENT_ATTEMPTS: int = 400
+
+## The water is a tilemap of 32px Wang tiles drawn at twice size, so a tile is
+## one battlefield grid tile across. A pond of six by four nodes is then about
+## 450 by 320 world units - a pond, not a puddle.
+const FISHING_TILE_SCALE: float = 2.0
 
 ## How many fish one pond holds before it is fished out.
 ##
@@ -1876,9 +1885,90 @@ const FISHING_POND_STOCK: int = 4
 const FISHING_SPENT_TINT: Color = Color(0.62, 0.66, 0.68, 0.85)
 
 ## The float on the water, and the splash when something is landed.
-const FISHING_FLOAT_SIZE: float = 22.0
+const FISHING_FLOAT_SIZE: float = 26.0
 const FISHING_FLOAT_LIFT: float = 26.0
 const FISHING_SPLASH_RADIUS: float = 64.0
+const FISHING_SPLASH_SIZE: float = 84.0
+const FISHING_CAST_ARC: float = 70.0
+const FISHING_LINE_COLOUR: Color = Color(0.92, 0.9, 0.82, 0.75)
+const FISHING_BITE_COLOUR: Color = Color("f2c14e")
+
+# --- The catch is a thing you do (2026-09-11) ----------------------------------
+#
+# The owner asked that fishing "not be entirely automatic with no input but
+# rather require some degree of skill". Cast, wait, hook the bite inside a
+# window, then reel: hold to take line, let go to give it, keep the tension in
+# the band while the fish fights. Every number here is a second or a fraction
+# of the tension bar, and the Angler level moves them between the two ends
+# named "SKILL" - never past them. [TUNE]
+
+## The cast's flight, and the window a bite stays on the hook.
+const FISHING_CAST_TIME: float = 0.5
+const FISHING_BITE_WINDOW: float = 0.6
+## Seconds between the false nibbles that keep a waiting player honest.
+const FISHING_NIBBLE_INTERVAL: Vector2 = Vector2(1.6, 4.2)
+## Tension per second while reeling, and lost per second while not.
+const FISHING_REEL_RATE: float = 0.55
+const FISHING_SLACK_RATE: float = 0.7
+## How hard a fish pulls, per rarity, and the rate its pull adds tension.
+const FISHING_FIGHT_BY_RARITY: Array[float] = [0.35, 0.5, 0.68, 0.85]
+const FISHING_PULL_RATE: float = 0.85
+## The band the tension must sit in to bring the fish in: its centre and the
+## half-width at level 1 and at the cap.
+const FISHING_SAFE_BAND_CENTRE: float = 0.6
+const FISHING_SAFE_BAND_MIN: float = 0.11
+const FISHING_SAFE_BAND_MAX: float = 0.24
+## Seconds in the band a fish of each rarity takes to land.
+const FISHING_REEL_SECONDS_BY_RARITY: Array[float] = [3.5, 5.0, 7.0, 10.0]
+## How long a line may hang fully slack before the fish throws the hook.
+const FISHING_SLACK_GRACE: float = 1.4
+## The reel's click, so a held button sounds like a reel.
+const FISHING_REEL_CLICK: float = 0.22
+
+## What the Angler level buys, each stated as the far end of a lerp from 1.0.
+## The wait shortens, the bite window widens, the fight weakens, and the rarer
+## fish are a little more willing. Nothing here leaves the pond.
+const FISHING_SKILL_WAIT_FLOOR: float = 0.55
+const FISHING_SKILL_BITE_CEILING: float = 2.0
+const FISHING_SKILL_FIGHT_FLOOR: float = 0.6
+const FISHING_SKILL_RARE_BONUS: float = 0.5
+## Angler experience for a landed fish, by rarity, and for one that got away.
+## Losing one teaches a little: the player who keeps trying is the one who
+## improves, and a fail that paid nothing would teach them to stop.
+const FISHING_XP_BY_RARITY: Array[int] = [8, 14, 24, 40]
+const FISHING_XP_LOST: int = 2
+
+## The water's own stir: seconds between ambient ripples, and how many rings
+## a pond's shader tracks at once.
+const FISHING_AMBIENT_RIPPLE: Vector2 = Vector2(2.2, 5.5)
+const FISHING_RIPPLE_SLOTS: int = 8
+
+# --- Professions (2026-09-11) --------------------------------------------------
+#
+# Skills at things, persisted between runs (working rule 7, amended in
+# MetaState). **A profession is never a power scale.** Levelling and gear are
+# the two capped scales the campaign tiers are tuned against; a profession
+# may only change how well the hero does the thing the profession is - the
+# Angler fishes better and fights exactly as they did. The Angler is the first.
+const PROFESSIONS: Array[String] = ["angler"]
+const PROFESSION_MAX_LEVEL: int = 20
+## XP needed to leave level L is PROFESSION_XP_BASE * L^PROFESSION_XP_CURVE:
+## 30 for the first level, about 1,700 in total to reach the cap - roughly
+## a hundred and twenty fish, which is a player who fishes every act.
+const PROFESSION_XP_BASE: float = 30.0
+const PROFESSION_XP_CURVE: float = 1.35
+
+# --- The Gatekeeper's ascension (2026-09-11) ------------------------------------
+#
+# Clearing the summit lets the Warden *ascend*: a rank, kept with the hero,
+# that the ending offers once per clear. **It is prestige and nothing else.**
+# The rank names the Warden, changes how they are drawn on the front door and
+# multiplies the leaderboard score - a number that is read, never played
+# against. It grants no level, no attribute, no card, no relic; levelling and
+# gear stay the only two scales the tiers are tuned against (working rule 7).
+const ASCENSION_MAX: int = 2
+const ASCENSION_SCORE_BONUS: float = 0.1
+const ASCENSION_TITLES: Array[String] = ["Warden", "Ascended Warden", "Gatekeeper's Warden"]
 
 ## How many fish may be eaten in one run.
 ##
@@ -2321,6 +2411,9 @@ const PROJECTILE_ART_SCALE: float = 0.40
 ## a shimmer. Slow enough to read the flicker, fast enough that a shot crossing
 ## the screen in half a second still shows most of the cycle.
 const VFX_ART_FRAME_RATE: float = 12.0
+## How large a drawn hit sheet is played, in world units, at the chain's fast
+## steps; the finisher plays it larger. [TUNE]
+const VFX_HIT_SHEET_SIZE: float = 72.0
 
 ## How wide a painted impact burst is drawn for a shot with no blast radius. An
 ## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
@@ -2876,8 +2969,26 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## gate exists to catch. The per-wave rate carries the increase instead - growth
 ## is linear, so a higher rate lifts wave 51 far more than wave 5 and arrives as
 ## a ramp rather than a step. [TUNE]
-const WAVE_ACT_HP_SCALE: Array[float] = [1.0, 1.28, 1.60]
-const WAVE_ACT_DAMAGE_SCALE: Array[float] = [1.0, 1.12, 1.28]
+## Ten entries now (2026-09-11), and **measured rather than extrapolated**.
+## The three-act ramp was 28% and 25% a step; the first ten-entry table
+## carried it on at 17% a step and `curve_report` refused it at once - mean
+## pressure 0.70 against a band of 0.26-0.46, and a last wave at 1.87 that
+## no purse pays for. The per-wave growth underneath is linear and already
+## lifts wave 72 far above wave 24, and `WAVE_ACT_COUNT_SCALE` adds a seventh
+## more bodies an act; the act multiplier only has to keep each region's
+## first formation readable as *harder*, so past Act III it moves a percent
+## a step. Damage holds at Act III's multiplier: a hit that took a third of
+## the bar there must not take all of it in Act X, or every late-run mistake
+## is a death - the extra bodies are the late acts' teeth. The kill values of
+## the new breeds sit on the shipped roster's average (3.7 a body) because
+## `curve_report` earns Gold from that average and eleven percent less of it
+## read as a harder game everywhere. [TUNE]
+const WAVE_ACT_HP_SCALE: Array[float] = [
+	1.0, 1.28, 1.60, 1.61, 1.62, 1.63, 1.64, 1.65, 1.66, 1.67,
+]
+const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
+	1.0, 1.12, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28,
+]
 
 ## The final stretch of an act becomes a visible pressure peak instead of only
 ## changing the label above the boss track.
@@ -2892,7 +3003,13 @@ const ACT_BOSS_RAMP_STATS: float = 0.18
 
 ## Later regions remain dominated by their own breed while veterans from
 ## earlier terrain occasionally break up a predictable procession.
-const WAVE_INVADER_CHANCE: Array[float] = [0.0, 0.12, 0.22]
+## Ten entries. Past Act III the chance holds at a fifth rather than climbing:
+## every later region already lists two veterans in its own `enemy_ids`, so
+## an invader roll on top of that is punctuation, and a roll that kept rising
+## would have Act X fought against Act I's roster with Act X's numbers.
+const WAVE_INVADER_CHANCE: Array[float] = [
+	0.0, 0.12, 0.22, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20,
+]
 
 ## Elites arrive as an increasing number of squad leaders, not one lottery roll
 ## per wave for the entire 45-minute run.
@@ -3240,6 +3357,47 @@ const LEADER_RESOLUTIONS: Array[String] = ["accept_oath", "ransom", "take_standa
 
 ## Raid horde pacing. [TUNE]
 const RAID_SPAWN_INTERVAL: float = 0.55
+
+# --- Rifts and dungeons (2026-09-11) ------------------------------------------
+#
+# The raid's arena put to a second use (owner: Astonia-style dungeons and
+# rifts). A **rift** is one stage: kills fill it, a guardian steps through when
+# it is full, and it closes when the guardian falls or the clock runs out. A
+# **dungeon** is a rift with stages, each harder than the last, with a door
+# between them where the player chooses to go deeper or leave with what they
+# have. Both freeze the battlefield exactly as a raid does.
+#
+# **The bound is that a rift pays what the road already pays**: run currency,
+# gear rolled on the same tables at the same tier, Shards - and nothing new
+# persists (working rule 7). Deeper pays more of the same, never a new kind.
+# [TUNE]
+## Rifts open from this act; a dungeon mouth every so many acts, so the deep
+## places are rare enough to be an event.
+const RIFT_FIRST_ACT: int = 2
+const DUNGEON_EVERY_ACTS: int = 3
+## Seconds a stage may last before the rift collapses, and how many kills
+## fill it (each kill adds this fraction).
+const RIFT_TIME_LIMIT: float = 75.0
+const RIFT_FILL_PER_KILL: float = 0.04
+## The guardian's scale against a rank-and-file body, and how much harder each
+## dungeon stage is than the one before.
+const RIFT_GUARDIAN_SCALE: float = 3.5
+const RIFT_BASE_ESCALATION: float = 1.1
+const DUNGEON_STAGES: int = 3
+const DUNGEON_STAGE_ESCALATION: float = 0.45
+const RIFT_SPAWN_INTERVAL: float = 0.5
+const RIFT_MAX_ENEMIES: int = 60
+## What a closed stage pays: run resources split like a raid's, gear pieces
+## rolled at the tier, and Shards. A collapsed stage pays nothing.
+const RIFT_RESOURCES_PER_STAGE: int = 180
+const RIFT_GEAR_PER_STAGE: int = 1
+const RIFT_SHARDS_PER_STAGE: int = 6
+## How close the hero stands to a gate to enter it.
+const RIFT_GATE_RADIUS: float = 110.0
+## Where a gate sits: the outer band, like a pond, and clear of the water.
+const RIFT_GATE_EDGE_BAND: float = 0.55
+const RIFT_GATE_CLEARANCE: float = 180.0
+const RIFT_GATE_CLEARANCE_TILES: int = 1
 const RAID_MAX_ENEMIES: int = 72
 ## The old circular arena. Kept only as the fallback bound for a raid whose
 ## layout failed to build; the camp is a 40x40 tile field now (RaidLayout).
@@ -3783,7 +3941,13 @@ const VFX_BLADE_RADIUS: float = 0.72
 ## after the swing had already resolved its damage, so the picture lagged the
 ## fight - and a strike whose feedback arrives late reads as heavy input, not as
 ## a heavy weapon. Below the wedge's own life now, so the edge outruns the flash.
-const VFX_BLADE_LIFE_SCALE: float = 0.85
+const VFX_BLADE_LIFE_SCALE: float = 1.0
+
+## How far each side of the aim the blade travels, as a multiple of half the
+## swing arc. 1.6 is exactly the extent the wedge's far edge reaches, so the
+## weapon and the area it swept always agree; 0.85 stopped the blade short of
+## its own trail. [TUNE]
+const VFX_BLADE_ARC_SCALE: float = 1.6
 ## Blade length as a fraction of the swing's reach.
 const VFX_BLADE_SIZE: float = 0.62
 
@@ -3802,10 +3966,14 @@ const VFX_BLADE_TRAIL_TIP: float = 0.95
 ## nothing, which is correct for the shape and reads as a smear; a little floor
 ## keeps the start of the arc legible.
 const VFX_BLADE_TRAIL_TAIL_ALPHA: float = 0.0
-const VFX_BLADE_TRAIL_HEAD_ALPHA: float = 0.66
+const VFX_BLADE_TRAIL_HEAD_ALPHA: float = 0.8
 ## Segments along the arc. Ten was enough for a line; a filled ribbon shows its
 ## own facets, and under twenty the leading edge is visibly polygonal.
-const VFX_BLADE_TRAIL_STEPS: int = 22
+const VFX_BLADE_TRAIL_STEPS: int = 44
+## How the strip opens from its tail: an exponent on the distance along the
+## arc. Below one it widens early and reads as a fan; above one it stays thin
+## for most of the swing and flares at the steel. [TUNE]
+const VFX_BLADE_TRAIL_TAPER: float = 0.55
 ## How long the ribbon lingers after the edge has passed, as a multiple of the
 ## sweep. Short: this is the part that must not feel slow.
 const VFX_BLADE_TRAIL_FADE: float = 0.75
@@ -3973,6 +4141,11 @@ const AMBIENCE_DB: float = -20.0
 ## player's volume slider, so this is purely how loud music sits against the
 ## sound effects. [TUNE]
 const MUSIC_DB: float = -8.0
+## The battlefield playlist (2026-09-11): how many songs an act may hold, and
+## the slower crossfade a boss arrives and leaves on. Twelve is the owner's
+## number; a slot without a file is simply not in the shuffle.
+const MUSIC_PLAYLIST_SLOTS: int = 12
+const MUSIC_BOSS_FADE: float = 2.4
 
 # ==============================================================================
 # DAY / NIGHT AND LIGHTING

@@ -42,6 +42,30 @@ signal fish_caught(fish_id: String, food: int)
 ## A fish was eaten out of the stash.
 signal fish_eaten(fish_id: String)
 
+## Something on the field is asking for a press - a rift gate, a dungeon mouth.
+## Same shape as `fishing_prompt`; the HUD and the touch button read both.
+signal interact_prompt(text: String, button: String)
+
+## What the nearest water is asking of the player, or "" for nothing. `button`
+## is the label a touch button wears for it - "CAST", "HOOK", "REEL" - or "".
+signal fishing_prompt(text: String, button: String)
+
+## Something took the line. `window` is how long the player has to hook it.
+signal fishing_bite(window: float)
+
+## The reel: line tension 0..1, the band it must stay in, and how far in the
+## fish is. Emitted every frame while reeling.
+signal fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float)
+
+## The line came back empty, and why - a snap, a slip, a step.
+signal fishing_failed(reason: String)
+
+## A profession gained a level. `profession_id` is one of `Balance.PROFESSIONS`.
+signal profession_levelled(profession_id: String, level: int)
+
+## The Warden ascended at the Gate. `rank` is the new rank.
+signal warden_ascended(rank: int)
+
 ## The hero took damage. `amount` is post-mitigation, `from` is world position.
 ## One hero took damage; `at` keeps co-op feedback on the body that was hit.
 signal hero_damaged(amount: float, from: Vector2, at: Vector2)
@@ -416,6 +440,15 @@ signal chieftain_spawned(captive_id: String)
 
 ## The raid ended. `reward` carries what was taken out, if anything.
 signal raid_ended(reward: Dictionary)
+
+## The hero asked to enter a rift gate (`kind` is `RiftArena.Kind`).
+signal rift_requested(kind: int)
+## A rift or dungeon stage opened: which kind, and which stage of how many.
+signal rift_started(kind: int, stage: int, stages: int)
+## A stage's guardian fell. A dungeon now waits at the door between stages.
+signal rift_stage_cleared(stage: int, stages: int)
+## The rift closed, with everything it paid.
+signal rift_ended(reward: Dictionary)
 
 # ==============================================================================
 # RUN AND SCOPE FLOW (GDD §9)

@@ -84,6 +84,13 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"cinder_lance", "glacial_mortar",
 	"stonewatch", "zephyr_needle",
 	"ashen_censer", "stormvane",
+	# The eight of 2026-09-11, two per element in the same pairing the rest of
+	# the ladder uses: a Warden and a Siege, then a Skirmisher and a Sniper -
+	# each a combination the roster did not have rather than a bigger number.
+	"cinder_moat", "rime_ward",
+	"scree_gun", "squall_vane",
+	"ash_thrower", "hailcaster",
+	"barrow_stake", "gale_lance",
 	# The well is last on purpose. It is the only tower that does not shoot, and
 	# a player offered one before they have learned what a road costs them will
 	# read it as a worse gun rather than as a trade.
@@ -171,6 +178,76 @@ func spend_fish(id: String) -> bool:
 	return true
 
 
+# --- Professions --------------------------------------------------------------
+
+## Reads the professions back, keeping only the ones the game names.
+func _read_professions(block: Dictionary) -> void:
+	profession_xp.clear()
+	var stored: Variant = block.get("xp", {})
+	if not (stored is Dictionary):
+		return
+	for key: Variant in (stored as Dictionary):
+		var id: String = String(key)
+		if not Balance.PROFESSIONS.has(id):
+			continue
+		var xp: float = maxf(float((stored as Dictionary)[key]), 0.0)
+		if xp > 0.0:
+			profession_xp[id] = minf(xp, profession_xp_to_cap())
+
+
+## Experience needed to leave `level`.
+static func profession_xp_to_leave(level: int) -> float:
+	return Balance.PROFESSION_XP_BASE * pow(float(maxi(level, 1)), Balance.PROFESSION_XP_CURVE)
+
+
+## The experience that reaches the cap; nothing past it is kept.
+static func profession_xp_to_cap() -> float:
+	var total: float = 0.0
+	for level: int in range(1, Balance.PROFESSION_MAX_LEVEL):
+		total += profession_xp_to_leave(level)
+	return total
+
+
+## The level a profession's experience amounts to, 1 at nothing.
+func profession_level(id: String) -> int:
+	var xp: float = float(profession_xp.get(id, 0.0))
+	var level: int = 1
+	# A hair of slack: the cap is a sum of these terms, and subtracting them
+	# back one at a time lands a rounding error short of the last threshold.
+	while level < Balance.PROFESSION_MAX_LEVEL and xp + 0.001 >= profession_xp_to_leave(level):
+		xp -= profession_xp_to_leave(level)
+		level += 1
+	return level
+
+
+## How far into the current level a profession is: (earned, needed). At the
+## cap both are the last level's cost, so a bar drawn from them reads full.
+func profession_progress(id: String) -> Vector2:
+	var xp: float = float(profession_xp.get(id, 0.0))
+	var level: int = 1
+	while level < Balance.PROFESSION_MAX_LEVEL and xp + 0.001 >= profession_xp_to_leave(level):
+		xp -= profession_xp_to_leave(level)
+		level += 1
+	if level >= Balance.PROFESSION_MAX_LEVEL:
+		var last: float = profession_xp_to_leave(Balance.PROFESSION_MAX_LEVEL - 1)
+		return Vector2(last, last)
+	return Vector2(xp, profession_xp_to_leave(level))
+
+
+## Trains a profession. Returns the level afterwards; announces a new one.
+func gain_profession_xp(id: String, amount: int) -> int:
+	if not Balance.PROFESSIONS.has(id) or amount <= 0:
+		return profession_level(id)
+	var before: int = profession_level(id)
+	profession_xp[id] = minf(float(profession_xp.get(id, 0.0)) + float(amount),
+		profession_xp_to_cap())
+	var after: int = profession_level(id)
+	if after > before:
+		EventBus.profession_levelled.emit(id, after)
+	save_game()
+	return after
+
+
 # --- Wildlife Spirit Companions ----------------------------------------------
 #
 # Owner decision, 2026-09-01. Every wildlife species can be bonded as a Spirit
@@ -239,6 +316,10 @@ var hero_xp: float = 0.0
 var hero_attributes: Array[int] = [0, 0, 0, 0]
 var hero_attribute_points: int = 0
 var hero_skill_points: int = 0
+## The Warden's ascension rank, 0 to `Balance.ASCENSION_MAX` (owner request,
+## 2026-09-11). Prestige: a title, a portrait and a score multiplier, never
+## power. See the note in Balance.
+var ascension: int = 0
 
 ## Highest campaign tier order fully cleared. -1 means none, so only the first
 ## tier is open.
@@ -326,6 +407,8 @@ var best_runs: Array = []
 var pending_runs: Array = []
 
 var runs_started: int = 0
+## Rift and dungeon stages closed, all time. A statistic, like the kills.
+var rifts_closed: int = 0
 var runs_won: int = 0
 var best_distance: float = 0.0
 var total_enemies_killed: int = 0
@@ -350,6 +433,24 @@ const MILESTONE_CINEMATICS_SEEN_KEY: String = "milestone_cinematics_seen"
 ## an empty larder, so `SAVE_VERSION` did not move and there is no migration to
 ## get wrong.
 var fish: Dictionary = {}
+
+## Professions: id to experience, kept between runs (owner request, 2026-09-11).
+##
+## **New persistent data, and an amendment to working rule 7.** What persists
+## is how *practised* the hero is at a thing - the Angler, first - and the
+## bound is `Balance.PROFESSIONS`: a profession that is not on that list is
+## not read from a save and cannot be trained, so this block can never grow a
+## key by accident. The level is derived from the experience rather than
+## stored beside it, so the two cannot disagree.
+##
+## **A profession may not touch the fight.** It changes how well the hero does
+## the thing the profession is and nothing else; levelling and gear stay the
+## only two scales the campaign tiers are tuned against. `fishing_check` reads
+## the Angler's effects and fails on any that reaches past the pond.
+##
+## Additive: a save without a `professions` key reads back as level 1 in all
+## of them, so `SAVE_VERSION` did not move.
+var profession_xp: Dictionary = {}
 
 var settings: Dictionary = {
 	"chronicle_goal": "",
@@ -599,8 +700,10 @@ func erase_progress() -> void:
 	hero_attributes = [0, 0, 0, 0]
 	hero_attribute_points = 0
 	hero_skill_points = 0
+	ascension = 0
 	tier_cleared = -1
 	last_tier_id = "normal"
+	profession_xp.clear()
 	stash.clear()
 	equipped.clear()
 	marks = 0
@@ -610,6 +713,7 @@ func erase_progress() -> void:
 	best_runs.clear()
 	pending_runs.clear()
 	runs_started = 0
+	rifts_closed = 0
 	runs_won = 0
 	best_distance = 0.0
 	total_enemies_killed = 0
@@ -768,6 +872,7 @@ func _read_hero(hero: Dictionary) -> void:
 	hero_level = clampi(int(hero.get("level", 1)), 1, Balance.HERO_MAX_LEVEL)
 	hero_xp = maxf(float(hero.get("xp", 0.0)), 0.0)
 	hero_attribute_points = maxi(int(hero.get("attribute_points", 0)), 0)
+	ascension = clampi(int(hero.get("ascension", 0)), 0, Balance.ASCENSION_MAX)
 	hero_skill_points = maxi(int(hero.get("skill_points", 0)), 0)
 	tier_cleared = clampi(int(hero.get("tier_cleared", -1)), -1, 8)
 	last_tier_id = String(hero.get("last_tier", "normal"))
@@ -982,6 +1087,22 @@ func tier_is_unlocked(tier: CampaignTierData) -> bool:
 
 
 ## Records a full clear, which is what opens the next tier.
+## The Warden's title, by rank.
+func warden_title() -> String:
+	return Balance.ASCENSION_TITLES[clampi(ascension, 0, Balance.ASCENSION_TITLES.size() - 1)]
+
+
+## Ascends, once per summit clear, up to the cap. Returns the new rank, or the
+## old one when nothing changed.
+func ascend() -> int:
+	if ascension >= Balance.ASCENSION_MAX:
+		return ascension
+	ascension += 1
+	save_game()
+	EventBus.warden_ascended.emit(ascension)
+	return ascension
+
+
 func record_tier_cleared(order: int) -> void:
 	if order > tier_cleared:
 		tier_cleared = order
@@ -1177,6 +1298,7 @@ func serialized_save() -> String:
 			"xp": hero_xp,
 			"attributes": hero_attributes,
 			"attribute_points": hero_attribute_points,
+			"ascension": ascension,
 			"skill_points": hero_skill_points,
 			"tier_cleared": tier_cleared,
 			"last_tier": last_tier_id,
@@ -1199,6 +1321,9 @@ func serialized_save() -> String:
 		"pantry": {
 			"fish": fish,
 		},
+		"professions": {
+			"xp": profession_xp,
+		},
 		"spirits": {
 			"encounters": spirit_encounters,
 			"bonded": spirit_bonded,
@@ -1210,6 +1335,7 @@ func serialized_save() -> String:
 		},
 		"stats": {
 			"runs_started": runs_started,
+			"rifts_closed": rifts_closed,
 			"runs_won": runs_won,
 			"best_distance": best_distance,
 			"total_enemies_killed": total_enemies_killed,
@@ -1283,6 +1409,7 @@ func load_save() -> void:
 	sigils = clampi(int(unlocked.get("sigils", 0)), 0, Balance.SIGIL_MAX_RANK)
 	_read_hero(data.get("hero", {}) as Dictionary)
 	_read_pantry(data.get("pantry", {}) as Dictionary)
+	_read_professions(data.get("professions", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
@@ -1293,6 +1420,7 @@ func load_save() -> void:
 
 	var stats: Dictionary = data.get("stats", {}) as Dictionary
 	runs_started = int(stats.get("runs_started", 0))
+	rifts_closed = maxi(int(stats.get("rifts_closed", 0)), 0)
 	runs_won = int(stats.get("runs_won", 0))
 	best_distance = float(stats.get("best_distance", 0.0))
 	total_enemies_killed = int(stats.get("total_enemies_killed", 0))

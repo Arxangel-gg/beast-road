@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "salt_crawler"
+display_name = "Salt Crawler"
+description = "It comes across the crust sideways and much too quickly."
+role = 1
+max_hp = 56.0
+contact_damage = 12.0
+move_speed = 80.0
+body_radius = 24.0
+knockback_resistance = 0.05
+resource_value = 3

@@ -162,6 +162,15 @@ func _tick_gait(delta: float) -> void:
 		rotation = 0.0
 		return
 	var speed_ratio: float = clampf(RunState.beast_speed / Balance.BEAST_BASE_SPEED, 0.0, 1.5)
+	# **Standing still means standing still.** `beast_speed` is the speed the
+	# beast *would* walk at, and the journey simply stops advancing during
+	# Preparation - so the gait kept rolling, the deck kept pitching, and every
+	# footfall kept shoving the hero, who therefore played a walk cycle on a
+	# beast that was not moving. Reported by the owner as Yuri "still walking
+	# with the beast motion and shake during preparation". The gait follows the
+	# journey now: no distance walked, no step taken.
+	if RunState.is_preparation() or RunState.phase == RunState.Phase.ENDED:
+		speed_ratio = 0.0
 	var target_strength: float = setting * speed_ratio
 	if RunState.horn_active:
 		target_strength *= Balance.BEAST_GAIT_HORN_SCALE

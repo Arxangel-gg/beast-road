@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "reed_stalker"
+display_name = "Reed Stalker"
+description = "You hear the reeds move once. The second time it is already on you."
+role = 1
+max_hp = 52.0
+contact_damage = 11.0
+move_speed = 84.0
+body_radius = 22.0
+knockback_resistance = 0.00
+resource_value = 3

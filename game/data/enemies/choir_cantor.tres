@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "choir_cantor"
+display_name = "Choir Cantor"
+description = "The song is what holds the drowned together. Kill the singer."
+role = 3
+max_hp = 130.0
+contact_damage = 9.0
+move_speed = 36.0
+body_radius = 26.0
+knockback_resistance = 0.10
+resource_value = 4
+aura_radius = 240.0
+aura_strength = 0.24

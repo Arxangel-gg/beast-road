@@ -116,7 +116,9 @@ static func build() -> Dictionary:
 		theme.set_font("font", "Button", display_font)
 
 	# --- Panels --------------------------------------------------------------
-	var panel: StyleBox = _frame("ui_panel", 40, 40, 40, 40, problems)
+	# Re-measured for the 2026-09-11 art: the stone frame runs 22-28px into
+	# the 256 square and the corner plates a little further, so 30 clears them.
+	var panel: StyleBox = _frame("ui_panel", 30, 30, 30, 30, problems)
 	_pad(panel, UiMetrics.PAD_PANEL_X, UiMetrics.PAD_PANEL_X, UiMetrics.PAD_PANEL_Y, UiMetrics.PAD_PANEL_Y)
 	theme.set_stylebox("panel", "PanelContainer", panel)
 	theme.set_stylebox("panel", "Panel", panel)

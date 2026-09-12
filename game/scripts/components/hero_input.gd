@@ -63,6 +63,12 @@ const BUTTON_AMMO_CYCLE: int = 1 << 13
 ## leave those ranges alone rather than reuse their gaps.
 const BUTTON_USE_ITEM: int = 1 << 14
 
+## Fishing (owner request, 2026-09-11): the cast and the hook are a press, the
+## reel is a hold. Bit 15 for the button, continuing past the item; bit 10 for
+## the hold, inside the hold range and clear of the revive and the auto-attack.
+const BUTTON_INTERACT: int = 1 << 15
+const HOLD_INTERACT: int = 1 << 10
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

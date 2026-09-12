@@ -50,6 +50,7 @@ const REBINDABLE: Array[Dictionary] = [
 	# a control the player cannot find is a control they do not have.
 	{"action": &"ranged", "label": "Loose an arrow"},
 	{"action": &"ammo_cycle", "label": "Change ammunition"},
+	{"action": &"interact", "label": "Cast / hook / reel"},
 	{"action": &"pause", "label": "Pause"},
 ]
 
@@ -87,6 +88,10 @@ const PAD_BUTTONS: Dictionary = {
 	# panel now lets them do.
 	&"spell_4": JOY_BUTTON_MISC1,
 	&"ammo_cycle": JOY_BUTTON_TOUCHPAD,
+	# Fishing shares Y with "ride on". Both are a press, and they can never be
+	# wanted at once: a line is cast on the battlefield beside a pond, and the
+	# ride-on is answered from the beast's back.
+	&"interact": JOY_BUTTON_Y,
 }
 
 ## The left stick, bound to the four movement actions as well as read directly.

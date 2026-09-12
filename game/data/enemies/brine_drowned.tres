@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "brine_drowned"
+display_name = "Brine Drowned"
+description = "Salt kept it. Salt keeps everything it takes."
+role = 0
+max_hp = 92.0
+contact_damage = 13.0
+move_speed = 44.0
+body_radius = 28.0
+knockback_resistance = 0.25
+resource_value = 3

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "stair_runner"
+display_name = "Stair Runner"
+description = "It has climbed this stair every day of its life, and it is not tired."
+role = 1
+max_hp = 60.0
+contact_damage = 13.0
+move_speed = 90.0
+body_radius = 24.0
+knockback_resistance = 0.05
+resource_value = 3

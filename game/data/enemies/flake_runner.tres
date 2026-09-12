@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "flake_runner"
+display_name = "Flake Runner"
+description = "Most of it has already come off. What is left is fast."
+role = 1
+max_hp = 48.0
+contact_damage = 10.0
+move_speed = 88.0
+body_radius = 22.0
+knockback_resistance = 0.00
+resource_value = 3

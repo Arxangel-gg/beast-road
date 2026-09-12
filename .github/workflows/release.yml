@@ -136,6 +136,9 @@ jobs:
           run_godot_clean --headless --path game res://tools/discipline_check.tscn
           run_godot_clean --headless --path game res://tools/mana_check.tscn
           run_godot_clean --headless --path game res://tools/fishing_check.tscn
+          run_godot_clean --headless --path game res://tools/rift_check.tscn
+          run_godot_clean --headless --path game res://tools/music_check.tscn
+          run_godot_clean --headless --path game res://tools/script_check.tscn
           run_godot_clean --headless --path game res://tools/raid_suspend_check.tscn
           run_godot_clean --headless --path game res://tools/seed_reproduction_check.tscn
           run_godot_clean --headless --path game res://tools/boot_check.tscn

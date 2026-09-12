@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+role = 3
+element = 1
+damage = 7.0
+attack_interval = 1.0
+attack_range = 280.0
+aoe_radius = 160.0
+slow_factor = 0.7
+slow_duration = 0.7
+freeze_chance = 0.08
+lane_armour_bonus = 4.0
+max_hp = 460.0
+id = "rime_ward"
+display_name = "Rime Ward"
+description = "Warden. A standing frost that armours the towers beside it and now and then locks a body solid."

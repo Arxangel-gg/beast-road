@@ -40,6 +40,8 @@ var _coop_world: CoopWorld = null
 
 ## The ponds, kept so a region change can re-lay them. See `refresh_terrain`.
 var _ponds: Fishing = null
+## The rift gates and dungeon mouths, re-laid with the ponds.
+var _rifts: RiftGates = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -665,6 +667,7 @@ func _build_foliage() -> void:
 	_build_treeline()
 	_build_wildlife()
 	_build_ponds()
+	_build_rift_gates()
 
 
 func _build_ambient_life() -> void:
@@ -699,6 +702,23 @@ func _build_treeline() -> void:
 ## In the same sorted layer as the trees and the animals, and placed by the same
 ## rule: derived from the grid, never typed. See `Fishing` for why a pond has to
 ## be inside the grid when a tree does not.
+## The gates into the rifts, dug after the ponds so they can keep clear of the
+## water. See `RiftGates` for where one may stand.
+func _build_rift_gates() -> void:
+	_rifts = RiftGates.new()
+	_rifts.name = "RiftGates"
+	_rifts.grid = grid
+	_rifts.field = self
+	_rifts.host = entity_root
+	_rifts.avoid = _ponds.pond_positions() if _ponds != null else PackedVector2Array()
+	add_child(_rifts)
+	_rifts.scatter()
+
+
+func rift_gates() -> RiftGates:
+	return _rifts
+
+
 func _build_ponds() -> void:
 	_ponds = Fishing.new()
 	_ponds.name = "Fishing"
@@ -1595,6 +1615,9 @@ func refresh_terrain() -> void:
 	# green jungle ponds in it.
 	if _ponds != null:
 		_ponds.scatter()
+	if _rifts != null:
+		_rifts.avoid = _ponds.pond_positions() if _ponds != null else PackedVector2Array()
+		_rifts.scatter()
 
 
 func _setup_ground() -> void:

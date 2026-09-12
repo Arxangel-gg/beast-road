@@ -69,6 +69,8 @@ func pressed(button: int) -> bool:
 		# by the same route. Asking `TouchInput` again here would consume the
 		# press twice.
 		return Input.is_action_just_pressed(&"use_item")
+	if button == BUTTON_INTERACT:
+		return Input.is_action_just_pressed(&"interact")
 	return false
 
 
@@ -80,6 +82,10 @@ func held(mask: int) -> bool:
 		return Input.is_action_pressed(&"revive") or TouchInput.revive_held()
 	if mask == HOLD_ATTACK:
 		return TouchInput.is_showing() and TouchInput.attacking()
+	# The reel. The touch button drives the action itself, so one read serves
+	# a key, a pad button and a thumb.
+	if mask == HOLD_INTERACT:
+		return Input.is_action_pressed(&"interact")
 	# Held attack, for anything that wants to know the button is still down.
 	# Tested *after* the holds, so a future hold sharing this value cannot shadow
 	# it the way this branch once shadowed the revive.
@@ -110,7 +116,7 @@ func snapshot(current_aim: Vector2) -> Array:
 			buttons |= bit
 	# Packed like every other button, so a guest's shot is the host's shot. A
 	# ranged attack that only existed locally would fire on one screen.
-	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE, BUTTON_USE_ITEM]:
+	for bit: int in [BUTTON_RANGED, BUTTON_AMMO_CYCLE, BUTTON_USE_ITEM, BUTTON_INTERACT]:
 		if pressed(bit):
 			buttons |= bit
 	var holds: int = 0
@@ -118,4 +124,6 @@ func snapshot(current_aim: Vector2) -> Array:
 		holds |= HOLD_REVIVE
 	if held(HOLD_ATTACK):
 		holds |= HOLD_ATTACK
+	if held(HOLD_INTERACT):
+		holds |= HOLD_INTERACT
 	return [move(), current_aim, buttons, holds]

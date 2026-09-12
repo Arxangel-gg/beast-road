@@ -47,6 +47,10 @@ enum Trigger {
 	SPIRIT_MET,
 	## Something was pulled out of a pond for the first time.
 	FISH_CAUGHT,
+	## The hero first stood by water that could be fished (2026-09-11).
+	POND_NEAR,
+	## The hero first stood by a rift gate or a dungeon mouth.
+	GATE_NEAR,
 }
 
 @export var trigger: Trigger = Trigger.RUN_STARTED

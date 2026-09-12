@@ -184,6 +184,27 @@ this state and that is correct — both hands are on the bow.
 | `elite_avalanche_warden.png` | 192×192 | T | `#9CB9D8` |
 | `elite_white_maw_giant.png` | 192×192 | T | `#9CB9D8` |
 | `enemy_loam_lurker.png` | 192×192 | T | `#4A6B4F` |
+| `enemy_mire_shambler.png` | 192×192 | T | `#4F6350` |
+| `enemy_fog_lantern.png` | 192×192 | T | `#4F6350` |
+| `enemy_reed_stalker.png` | 192×192 | T | `#4F6350` |
+| `enemy_rust_hulk.png` | 192×192 | T | `#7A4A3A` |
+| `enemy_bell_priest.png` | 192×192 | T | `#7A4A3A` |
+| `enemy_flake_runner.png` | 192×192 | T | `#7A4A3A` |
+| `enemy_brine_drowned.png` | 192×192 | T | `#B9B3A5` |
+| `enemy_salt_crawler.png` | 192×192 | T | `#B9B3A5` |
+| `enemy_choir_cantor.png` | 192×192 | T | `#B9B3A5` |
+| `enemy_horde_lancer.png` | 192×192 | T | `#8A7B55` |
+| `enemy_horde_shieldman.png` | 192×192 | T | `#8A7B55` |
+| `enemy_horde_drummer.png` | 192×192 | T | `#8A7B55` |
+| `enemy_shard_wight.png` | 192×192 | T | `#7FA6C4` |
+| `enemy_prism_warden.png` | 192×192 | T | `#7FA6C4` |
+| `enemy_glass_singer.png` | 192×192 | T | `#7FA6C4` |
+| `enemy_ember_husk.png` | 192×192 | T | `#5A4A48` |
+| `enemy_cinder_hound.png` | 192×192 | T | `#5A4A48` |
+| `enemy_ash_caller.png` | 192×192 | T | `#5A4A48` |
+| `enemy_gate_sentinel.png` | 192×192 | T | `#7A7C80` |
+| `enemy_stair_runner.png` | 192×192 | T | `#7A7C80` |
+| `enemy_crown_herald.png` | 192×192 | T | `#7A7C80` |
 | `enemy_cinder_runner.png` | 192×192 | T | `#4A6B4F` |
 | `enemy_glass_chanter.png` | 192×192 | T | `#6B8A9E` |
 | `enemy_salt_marcher.png` | 192×192 | T | `#6B8A9E` |
@@ -222,6 +243,32 @@ Files: `enemy_snowhide_brute_idle_01.png` · `enemy_snowhide_brute_idle_02.png` 
 Files: `enemy_storm_caller_idle_01.png` · `enemy_storm_caller_idle_02.png` · `enemy_storm_caller_idle_03.png`
 Files: `enemy_veiled_skirmisher_idle_01.png` · `enemy_veiled_skirmisher_idle_02.png` · `enemy_veiled_skirmisher_idle_03.png`
 Files: `enemy_wolf_rider_idle_01.png` · `enemy_wolf_rider_idle_02.png` · `enemy_wolf_rider_idle_03.png`
+
+The seven regions of 2026-09-11 (acts IV to X) were fed back through
+PixelLab's animator by job URL rather than posed, and ship the same base
+plus three every other breed does - the walk gate holds that contract.
+
+Files: `enemy_mire_shambler_idle_01.png` · `enemy_mire_shambler_idle_02.png` · `enemy_mire_shambler_idle_03.png`
+Files: `enemy_fog_lantern_idle_01.png` · `enemy_fog_lantern_idle_02.png` · `enemy_fog_lantern_idle_03.png`
+Files: `enemy_reed_stalker_idle_01.png` · `enemy_reed_stalker_idle_02.png` · `enemy_reed_stalker_idle_03.png`
+Files: `enemy_rust_hulk_idle_01.png` · `enemy_rust_hulk_idle_02.png` · `enemy_rust_hulk_idle_03.png`
+Files: `enemy_bell_priest_idle_01.png` · `enemy_bell_priest_idle_02.png` · `enemy_bell_priest_idle_03.png`
+Files: `enemy_flake_runner_idle_01.png` · `enemy_flake_runner_idle_02.png` · `enemy_flake_runner_idle_03.png`
+Files: `enemy_brine_drowned_idle_01.png` · `enemy_brine_drowned_idle_02.png` · `enemy_brine_drowned_idle_03.png`
+Files: `enemy_salt_crawler_idle_01.png` · `enemy_salt_crawler_idle_02.png` · `enemy_salt_crawler_idle_03.png`
+Files: `enemy_choir_cantor_idle_01.png` · `enemy_choir_cantor_idle_02.png` · `enemy_choir_cantor_idle_03.png`
+Files: `enemy_horde_lancer_idle_01.png` · `enemy_horde_lancer_idle_02.png` · `enemy_horde_lancer_idle_03.png`
+Files: `enemy_horde_shieldman_idle_01.png` · `enemy_horde_shieldman_idle_02.png` · `enemy_horde_shieldman_idle_03.png`
+Files: `enemy_horde_drummer_idle_01.png` · `enemy_horde_drummer_idle_02.png` · `enemy_horde_drummer_idle_03.png`
+Files: `enemy_shard_wight_idle_01.png` · `enemy_shard_wight_idle_02.png` · `enemy_shard_wight_idle_03.png`
+Files: `enemy_prism_warden_idle_01.png` · `enemy_prism_warden_idle_02.png` · `enemy_prism_warden_idle_03.png`
+Files: `enemy_glass_singer_idle_01.png` · `enemy_glass_singer_idle_02.png` · `enemy_glass_singer_idle_03.png`
+Files: `enemy_ember_husk_idle_01.png` · `enemy_ember_husk_idle_02.png` · `enemy_ember_husk_idle_03.png`
+Files: `enemy_cinder_hound_idle_01.png` · `enemy_cinder_hound_idle_02.png` · `enemy_cinder_hound_idle_03.png`
+Files: `enemy_ash_caller_idle_01.png` · `enemy_ash_caller_idle_02.png` · `enemy_ash_caller_idle_03.png`
+Files: `enemy_gate_sentinel_idle_01.png` · `enemy_gate_sentinel_idle_02.png` · `enemy_gate_sentinel_idle_03.png`
+Files: `enemy_stair_runner_idle_01.png` · `enemy_stair_runner_idle_02.png` · `enemy_stair_runner_idle_03.png`
+Files: `enemy_crown_herald_idle_01.png` · `enemy_crown_herald_idle_02.png` · `enemy_crown_herald_idle_03.png`
 
 ### 5.2b Enemy attack frames — `res://art/enemies/`
 
@@ -268,6 +315,27 @@ Files: `enemy_scale_rider_attack_01.png` · `enemy_scale_rider_attack_02.png` ·
 Files: `enemy_snowhide_brute_attack_01.png` · `enemy_snowhide_brute_attack_02.png` · `enemy_snowhide_brute_attack_03.png` · `enemy_snowhide_brute_attack_04.png`
 Files: `enemy_storm_caller_attack_01.png` · `enemy_storm_caller_attack_02.png` · `enemy_storm_caller_attack_03.png` · `enemy_storm_caller_attack_04.png`
 Files: `enemy_veiled_skirmisher_attack_01.png` · `enemy_veiled_skirmisher_attack_02.png` · `enemy_veiled_skirmisher_attack_03.png` · `enemy_veiled_skirmisher_attack_04.png`
+Files: `enemy_mire_shambler_attack_01.png` · `enemy_mire_shambler_attack_02.png` · `enemy_mire_shambler_attack_03.png` · `enemy_mire_shambler_attack_04.png`
+Files: `enemy_fog_lantern_attack_01.png` · `enemy_fog_lantern_attack_02.png` · `enemy_fog_lantern_attack_03.png` · `enemy_fog_lantern_attack_04.png`
+Files: `enemy_reed_stalker_attack_01.png` · `enemy_reed_stalker_attack_02.png` · `enemy_reed_stalker_attack_03.png` · `enemy_reed_stalker_attack_04.png`
+Files: `enemy_rust_hulk_attack_01.png` · `enemy_rust_hulk_attack_02.png` · `enemy_rust_hulk_attack_03.png` · `enemy_rust_hulk_attack_04.png`
+Files: `enemy_bell_priest_attack_01.png` · `enemy_bell_priest_attack_02.png` · `enemy_bell_priest_attack_03.png` · `enemy_bell_priest_attack_04.png`
+Files: `enemy_flake_runner_attack_01.png` · `enemy_flake_runner_attack_02.png` · `enemy_flake_runner_attack_03.png` · `enemy_flake_runner_attack_04.png`
+Files: `enemy_brine_drowned_attack_01.png` · `enemy_brine_drowned_attack_02.png` · `enemy_brine_drowned_attack_03.png` · `enemy_brine_drowned_attack_04.png`
+Files: `enemy_salt_crawler_attack_01.png` · `enemy_salt_crawler_attack_02.png` · `enemy_salt_crawler_attack_03.png` · `enemy_salt_crawler_attack_04.png`
+Files: `enemy_choir_cantor_attack_01.png` · `enemy_choir_cantor_attack_02.png` · `enemy_choir_cantor_attack_03.png` · `enemy_choir_cantor_attack_04.png`
+Files: `enemy_horde_lancer_attack_01.png` · `enemy_horde_lancer_attack_02.png` · `enemy_horde_lancer_attack_03.png` · `enemy_horde_lancer_attack_04.png`
+Files: `enemy_horde_shieldman_attack_01.png` · `enemy_horde_shieldman_attack_02.png` · `enemy_horde_shieldman_attack_03.png` · `enemy_horde_shieldman_attack_04.png`
+Files: `enemy_horde_drummer_attack_01.png` · `enemy_horde_drummer_attack_02.png` · `enemy_horde_drummer_attack_03.png` · `enemy_horde_drummer_attack_04.png`
+Files: `enemy_shard_wight_attack_01.png` · `enemy_shard_wight_attack_02.png` · `enemy_shard_wight_attack_03.png` · `enemy_shard_wight_attack_04.png`
+Files: `enemy_prism_warden_attack_01.png` · `enemy_prism_warden_attack_02.png` · `enemy_prism_warden_attack_03.png` · `enemy_prism_warden_attack_04.png`
+Files: `enemy_glass_singer_attack_01.png` · `enemy_glass_singer_attack_02.png` · `enemy_glass_singer_attack_03.png` · `enemy_glass_singer_attack_04.png`
+Files: `enemy_ember_husk_attack_01.png` · `enemy_ember_husk_attack_02.png` · `enemy_ember_husk_attack_03.png` · `enemy_ember_husk_attack_04.png`
+Files: `enemy_cinder_hound_attack_01.png` · `enemy_cinder_hound_attack_02.png` · `enemy_cinder_hound_attack_03.png` · `enemy_cinder_hound_attack_04.png`
+Files: `enemy_ash_caller_attack_01.png` · `enemy_ash_caller_attack_02.png` · `enemy_ash_caller_attack_03.png` · `enemy_ash_caller_attack_04.png`
+Files: `enemy_gate_sentinel_attack_01.png` · `enemy_gate_sentinel_attack_02.png` · `enemy_gate_sentinel_attack_03.png` · `enemy_gate_sentinel_attack_04.png`
+Files: `enemy_stair_runner_attack_01.png` · `enemy_stair_runner_attack_02.png` · `enemy_stair_runner_attack_03.png` · `enemy_stair_runner_attack_04.png`
+Files: `enemy_crown_herald_attack_01.png` · `enemy_crown_herald_attack_02.png` · `enemy_crown_herald_attack_03.png` · `enemy_crown_herald_attack_04.png`
 Files: `enemy_wolf_rider_attack_01.png` · `enemy_wolf_rider_attack_02.png` · `enemy_wolf_rider_attack_03.png` · `enemy_wolf_rider_attack_04.png`
 
 
@@ -332,6 +400,63 @@ Files: `enemy_snowhide_brute_move_01.png` · `enemy_snowhide_brute_move_02.png` 
 Files: `enemy_storm_caller_move_01.png` · `enemy_storm_caller_move_02.png` · `enemy_storm_caller_move_03.png` · `enemy_storm_caller_move_04.png`
 Files: `enemy_crevasse_stalker_move_01.png` · `enemy_crevasse_stalker_move_02.png` · `enemy_crevasse_stalker_move_03.png` · `enemy_crevasse_stalker_move_04.png`
 Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `enemy_frost_herald_move_03.png` · `enemy_frost_herald_move_04.png`
+
+
+#### Hollow Marches walk frames
+
+All 192×192, type T, placeholder colour `#4F6350`.
+
+Files: `enemy_mire_shambler_move_01.png` · `enemy_mire_shambler_move_02.png` · `enemy_mire_shambler_move_03.png` · `enemy_mire_shambler_move_04.png`
+Files: `enemy_fog_lantern_move_01.png` · `enemy_fog_lantern_move_02.png` · `enemy_fog_lantern_move_03.png` · `enemy_fog_lantern_move_04.png`
+Files: `enemy_reed_stalker_move_01.png` · `enemy_reed_stalker_move_02.png` · `enemy_reed_stalker_move_03.png` · `enemy_reed_stalker_move_04.png`
+
+#### Rustwood walk frames
+
+All 192×192, type T, placeholder colour `#7A4A3A`.
+
+Files: `enemy_rust_hulk_move_01.png` · `enemy_rust_hulk_move_02.png` · `enemy_rust_hulk_move_03.png` · `enemy_rust_hulk_move_04.png`
+Files: `enemy_bell_priest_move_01.png` · `enemy_bell_priest_move_02.png` · `enemy_bell_priest_move_03.png` · `enemy_bell_priest_move_04.png`
+Files: `enemy_flake_runner_move_01.png` · `enemy_flake_runner_move_02.png` · `enemy_flake_runner_move_03.png` · `enemy_flake_runner_move_04.png`
+
+#### Saltpan walk frames
+
+All 192×192, type T, placeholder colour `#B9B3A5`.
+
+Files: `enemy_brine_drowned_move_01.png` · `enemy_brine_drowned_move_02.png` · `enemy_brine_drowned_move_03.png` · `enemy_brine_drowned_move_04.png`
+Files: `enemy_salt_crawler_move_01.png` · `enemy_salt_crawler_move_02.png` · `enemy_salt_crawler_move_03.png` · `enemy_salt_crawler_move_04.png`
+Files: `enemy_choir_cantor_move_01.png` · `enemy_choir_cantor_move_02.png` · `enemy_choir_cantor_move_03.png` · `enemy_choir_cantor_move_04.png`
+
+#### Iron Steppe walk frames
+
+All 192×192, type T, placeholder colour `#8A7B55`.
+
+Files: `enemy_horde_lancer_move_01.png` · `enemy_horde_lancer_move_02.png` · `enemy_horde_lancer_move_03.png` · `enemy_horde_lancer_move_04.png`
+Files: `enemy_horde_shieldman_move_01.png` · `enemy_horde_shieldman_move_02.png` · `enemy_horde_shieldman_move_03.png` · `enemy_horde_shieldman_move_04.png`
+Files: `enemy_horde_drummer_move_01.png` · `enemy_horde_drummer_move_02.png` · `enemy_horde_drummer_move_03.png` · `enemy_horde_drummer_move_04.png`
+
+#### Glass Fields walk frames
+
+All 192×192, type T, placeholder colour `#7FA6C4`.
+
+Files: `enemy_shard_wight_move_01.png` · `enemy_shard_wight_move_02.png` · `enemy_shard_wight_move_03.png` · `enemy_shard_wight_move_04.png`
+Files: `enemy_prism_warden_move_01.png` · `enemy_prism_warden_move_02.png` · `enemy_prism_warden_move_03.png` · `enemy_prism_warden_move_04.png`
+Files: `enemy_glass_singer_move_01.png` · `enemy_glass_singer_move_02.png` · `enemy_glass_singer_move_03.png` · `enemy_glass_singer_move_04.png`
+
+#### Ashen Reach walk frames
+
+All 192×192, type T, placeholder colour `#5A4A48`.
+
+Files: `enemy_ember_husk_move_01.png` · `enemy_ember_husk_move_02.png` · `enemy_ember_husk_move_03.png` · `enemy_ember_husk_move_04.png`
+Files: `enemy_cinder_hound_move_01.png` · `enemy_cinder_hound_move_02.png` · `enemy_cinder_hound_move_03.png` · `enemy_cinder_hound_move_04.png`
+Files: `enemy_ash_caller_move_01.png` · `enemy_ash_caller_move_02.png` · `enemy_ash_caller_move_03.png` · `enemy_ash_caller_move_04.png`
+
+#### Last Terrace walk frames
+
+All 192×192, type T, placeholder colour `#7A7C80`.
+
+Files: `enemy_gate_sentinel_move_01.png` · `enemy_gate_sentinel_move_02.png` · `enemy_gate_sentinel_move_03.png` · `enemy_gate_sentinel_move_04.png`
+Files: `enemy_stair_runner_move_01.png` · `enemy_stair_runner_move_02.png` · `enemy_stair_runner_move_03.png` · `enemy_stair_runner_move_04.png`
+Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `enemy_crown_herald_move_03.png` · `enemy_crown_herald_move_04.png`
 
 ### 5.3 Bosses — `res://art/bosses/`
 
@@ -457,6 +582,14 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_stonewatch.png` | Stone | `#7A6E5C` |
 | `tower_zephyr_needle.png` | Storm | `#9B8FC4` |
 | `tower_stormvane.png` | Storm | `#9B8FC4` |
+| `tower_cinder_moat.png` | Fire | `#C4552E` |
+| `tower_ash_thrower.png` | Fire | `#C4552E` |
+| `tower_rime_ward.png` | Frost | `#7FA6BF` |
+| `tower_hailcaster.png` | Frost | `#7FA6BF` |
+| `tower_scree_gun.png` | Stone | `#7A6E5C` |
+| `tower_barrow_stake.png` | Stone | `#7A6E5C` |
+| `tower_squall_vane.png` | Storm | `#9B8FC4` |
+| `tower_gale_lance.png` | Storm | `#9B8FC4` |
 
 ### 5.4b Tower idle frames — `res://art/towers/`
 
@@ -493,6 +626,14 @@ Files: `tower_stormvane_idle_01.png` … `tower_stormvane_idle_03.png`
 Files: `tower_tempest_idle_01.png` … `tower_tempest_idle_03.png`
 Files: `tower_tide_caller_idle_01.png` … `tower_tide_caller_idle_03.png`
 Files: `tower_zephyr_needle_idle_01.png` … `tower_zephyr_needle_idle_03.png`
+Files: `tower_cinder_moat_idle_01.png` … `tower_cinder_moat_idle_03.png`
+Files: `tower_ash_thrower_idle_01.png` … `tower_ash_thrower_idle_03.png`
+Files: `tower_rime_ward_idle_01.png` … `tower_rime_ward_idle_03.png`
+Files: `tower_hailcaster_idle_01.png` … `tower_hailcaster_idle_03.png`
+Files: `tower_scree_gun_idle_01.png` … `tower_scree_gun_idle_03.png`
+Files: `tower_barrow_stake_idle_01.png` … `tower_barrow_stake_idle_03.png`
+Files: `tower_squall_vane_idle_01.png` … `tower_squall_vane_idle_03.png`
+Files: `tower_gale_lance_idle_01.png` … `tower_gale_lance_idle_03.png`
 
 ### 5.4c Tower firing frames — `res://art/towers/`
 
@@ -528,6 +669,14 @@ Files: `tower_healing_well_attack_01.png` … `tower_healing_well_attack_03.png`
 Files: `tower_hoarfrost_bell_attack_01.png` … `tower_hoarfrost_bell_attack_03.png`
 Files: `tower_magma_attack_01.png` … `tower_magma_attack_03.png`
 Files: `tower_quake_attack_01.png` … `tower_quake_attack_03.png`
+Files: `tower_cinder_moat_attack_01.png` … `tower_cinder_moat_attack_03.png`
+Files: `tower_ash_thrower_attack_01.png` … `tower_ash_thrower_attack_03.png`
+Files: `tower_rime_ward_attack_01.png` … `tower_rime_ward_attack_03.png`
+Files: `tower_hailcaster_attack_01.png` … `tower_hailcaster_attack_03.png`
+Files: `tower_scree_gun_attack_01.png` … `tower_scree_gun_attack_03.png`
+Files: `tower_barrow_stake_attack_01.png` … `tower_barrow_stake_attack_03.png`
+Files: `tower_squall_vane_attack_01.png` … `tower_squall_vane_attack_03.png`
+Files: `tower_gale_lance_attack_01.png` … `tower_gale_lance_attack_03.png`
 Files: `tower_rime_lance_attack_01.png` … `tower_rime_lance_attack_03.png`
 Files: `tower_shard_thrower_attack_01.png` … `tower_shard_thrower_attack_03.png`
 Files: `tower_steam_burst_attack_01.png` … `tower_steam_burst_attack_03.png`
@@ -1739,21 +1888,46 @@ that merely had better numbers would be a rarity nobody could see.
 
 ### 5.13d Ponds — `res://art/battlefield/`
 
-All 192×192, type T, placeholder colour `#3E6C74`.
+All 128×128, type T, placeholder colour `#3E6C74`.
 
-`pond_desert.png` · `pond_jungle.png` · `pond_snow.png`
+`pond_tiles_jungle.png` · `pond_tiles_desert.png` · `pond_tiles_snow.png` ·
+`pond_tiles_hollow_marches.png` · `pond_tiles_rustwood.png` · `pond_tiles_saltpan.png` ·
+`pond_tiles_iron_steppe.png` · `pond_tiles_glass_fields.png` · `pond_tiles_ashen_reach.png` ·
+`pond_tiles_last_terrace.png`
 
-The water itself, one per region, dug on the open ground away from the roads. Seen
-from a high angle like the rest of the battlefield furniture, with the surface
-filling most of the shape and a narrow rim of bank around it — a stone kerb and a
-reed in the Waste, mud and flat stones in the Maw, broken ice plates in the White
-Teeth.
+**The water is a tilemap now (2026-09-11), not a picture.** One sixteen-tile
+Wang sheet per region, 32px tiles drawn at twice size, in canonical corner
+order - tile index NW·8 + NE·4 + SW·2 + SE, four across, a set bit meaning
+water in that corner. `tools/install_pond_tiles.py` repacks PixelLab's sheet
+into that order, so `PondTiles` reads a texture and no per-region metadata. A
+pond is a blob of water nodes on a lattice, so every pond is its own shape and
+size, and `pond_water.gdshader` puts the light on it.
 
-**The water has to be opaque.** The first pass of all three was prompted as a
-scene and came back as a *ring*: the generator read the surface as background and
-cut it out, leaving a circle of stones with a hole in the middle. Asking for "a
-disc of dark water filling the whole shape" is what fixed it, and it is the note
-worth keeping for the next thing whose subject is a flat surface.
+#### The float
+
+The float on the line, cast from the hand to the water.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `fishing_float.png` | 32×32 | T | `#C4552E` |
+
+### 5.13f Rift gates — `res://art/battlefield/`
+
+The gates into the rifts and dungeons (2026-09-11), dug in the outer band
+beside the ponds by `RiftGates`. The rift is a tear of violet light on a
+plinth; the dungeon mouth is a broken stair down under a carved arch.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `rift_gate.png` | 160×160 | T | `#7A5FC4` |
+| `dungeon_mouth.png` | 192×160 | T | `#7A5FC4` |
+
+#### Rift gate frames
+
+All 160×160, type T, placeholder colour `#7A5FC4`. The light pulses and the
+shards drift; a spent gate stops on its base frame.
+
+Files: `rift_gate_idle_01.png` … `rift_gate_idle_06.png`
 
 ### 5.14 Combination towers — `res://art/towers/`
 
@@ -1929,6 +2103,49 @@ the art only has to carry the element - which is why one frame is enough.
 | `impact_water.png` | 96×96 | T | `#54B8C8` |
 | `impact_earth.png` | 96×96 | T | `#B07A3E` |
 | `impact_air.png` | 96×96 | T | `#BFE6F0` |
+
+### 5.18a Drawn bursts — `res://art/vfx/`
+
+Frame zero is the ordinary drawing and the `_idle_NN` frames play through
+once, on the same convention the impacts use; `Vfx.sheet_burst` plays any of
+them at a point. The ripple is rings out from a cast, a bite and a landed
+fish; the splash is the float going in and the fish coming out; the sparks are
+a blow landing on steel; the slash is the crescent of a finisher; the burst is
+a radial impact, white-hot to gone; the cut is the chain's fast steps; the
+embers are an ember spray for fire and for deaths in a burning region.
+
+Made the way PixelLab's own VFX workflow suggests (2026-09-11): a Pro sprite
+sheet of nine concepts per family, the winners cropped and centred, then
+animated with the constraint that the effect stays inside its own frame. The
+ripple is the one that had to be redone for exactly that reason - an
+open-ended "rings expanding" animation walks straight off the canvas.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ripple.png` | 96×96 | T | `#BFE6F0` |
+| `splash.png` | 96×96 | T | `#BFE6F0` |
+| `sparks.png` | 96×96 | T | `#E8752B` |
+| `slash.png` | 160×160 | T | `#BFE6F0` |
+| `burst.png` | 96×96 | T | `#E8752B` |
+| `cut.png` | 96×96 | T | `#BFE6F0` |
+| `embers.png` | 96×96 | T | `#E8752B` |
+
+#### Drawn burst frames
+
+All 96×96, type T, placeholder colour `#BFE6F0`.
+
+Files: `ripple_idle_01.png` … `ripple_idle_06.png`
+Files: `splash_idle_01.png` … `splash_idle_06.png`
+Files: `sparks_idle_01.png` … `sparks_idle_06.png`
+Files: `burst_idle_01.png` … `burst_idle_06.png`
+Files: `cut_idle_01.png` … `cut_idle_06.png`
+Files: `embers_idle_01.png` … `embers_idle_06.png`
+
+#### Slash frames
+
+All 160×160, type T, placeholder colour `#BFE6F0`.
+
+Files: `slash_idle_01.png` … `slash_idle_06.png`
 
 The optional, teen-rated character-hit layer is procedural: short ballistic
 droplets land into the shared ground field. It has no bitmap requirement, and

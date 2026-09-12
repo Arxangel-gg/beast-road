@@ -12,6 +12,8 @@ extends Node
 @export var town: TownScope
 @export var beast: BeastScope
 @export var raid: RaidArena
+## The rift arena beside the raid's: same freeze, a different reason to be away.
+@export var rift: RiftArena
 @export var journey: Journey
 @export var war_horn: WarHorn
 @export var boss_director: BossDirector
@@ -31,12 +33,17 @@ var _locked: bool = false
 var _preparation_left: float = 0.0
 var _coverage_warning_acknowledged: bool = false
 var _pending_boss_act: int = 0
+## The phase the field was in when a rift gate was taken, so the road only
+## resumes if it was moving.
+var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
 
 
 func _ready() -> void:
 	MusicPlayer.follow_situation()
 	raid.visible = false
 	raid.process_mode = Node.PROCESS_MODE_DISABLED
+	rift.visible = false
+	rift.process_mode = Node.PROCESS_MODE_DISABLED
 	town.visible = false
 	beast.visible = false
 
@@ -44,6 +51,8 @@ func _ready() -> void:
 	EventBus.act_boss_due.connect(_on_act_boss_due)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.raid_ended.connect(_on_raid_ended)
+	EventBus.rift_requested.connect(_on_rift_requested)
+	EventBus.rift_ended.connect(_on_rift_ended)
 	EventBus.run_ended.connect(_on_run_ended)
 	EventBus.wave_cleared.connect(_on_wave_cleared)
 
@@ -69,6 +78,9 @@ func _ready() -> void:
 	hud.horn_requested.connect(_on_horn_requested)
 	hud.raid_requested.connect(_on_raid_requested)
 	hud.extract_requested.connect(_on_extract_requested)
+	hud.rift = rift
+	hud.descend_requested.connect(func() -> void: rift.descend())
+	hud.leave_rift_requested.connect(func() -> void: rift.leave())
 	hud.ride_on_requested.connect(_on_ride_on_requested)
 	# A guest pressing Ride On arrives here as a request rather than as a click.
 	EventBus.coop_request_received.connect(_on_coop_request)
@@ -312,6 +324,95 @@ func _apply_raid_reward(reward: Dictionary) -> void:
 		var taken: ItemData = ContentDB.item(item_id)
 		if taken != null:
 			EventBus.preparation_warning.emit(taken.acquire_line)
+
+
+# --- Rifts and dungeons -----------------------------------------------------
+
+## A gate was taken. The same freeze as a raid, entered from a gate rather than
+## a horn, and allowed during Preparation as well as a fight - a rift is a
+## detour, and Preparation is when a player has the time for one.
+func _on_rift_requested(kind: int) -> void:
+	if _locked or battlefield.hero == null or not battlefield.hero.is_alive():
+		return
+	if RunState.phase != RunState.Phase.ROAD_BATTLE and not RunState.is_preparation():
+		return
+	var gates: RiftGates = battlefield.rift_gates()
+	if gates == null:
+		return
+	var at: Vector2 = gates.spend(kind)
+	_locked = true
+	_rift_return_phase = RunState.phase
+	RunState.set_phase(RunState.Phase.RAID)
+
+	# Frozen, not stopped: the wave resumes mid-flight exactly as it was.
+	battlefield.suspend()
+	journey.stop()
+	town.visible = false
+	beast.visible = false
+
+	rift.visible = true
+	rift.process_mode = Node.PROCESS_MODE_INHERIT
+	rift.open(kind as RiftArena.Kind, at)
+	rift.activate()
+
+	_scope = GameDirector.Scope.RAID
+	GameDirector.current_scope = _scope
+	EventBus.scope_changed.emit(int(_scope))
+
+
+func _on_rift_ended(reward: Dictionary) -> void:
+	rift.visible = false
+	rift.process_mode = Node.PROCESS_MODE_DISABLED
+
+	if battlefield.hero != null:
+		if bool(reward.get("died", false)):
+			battlefield.hero.apply_raid_wound()
+		else:
+			battlefield.hero.sync_from_run_state()
+	battlefield.resume()
+	_apply_rift_reward(reward)
+	if _rift_return_phase == RunState.Phase.ROAD_BATTLE:
+		journey.start()
+	RunState.set_phase(_rift_return_phase as RunState.Phase)
+	_locked = false
+	_scope = GameDirector.Scope.RAID  # forces the switch below to take effect
+	switch_scope(GameDirector.Scope.BATTLEFIELD)
+
+
+## What the rift paid, put where the road's own spoils go: currency to the
+## purse, gear on the ground beside the gate, Shards to the account.
+func _apply_rift_reward(reward: Dictionary) -> void:
+	var at: Vector2 = reward.get("at", Vector2.ZERO)
+	var stages: int = int(reward.get("stages", 0))
+	if bool(reward.get("died", false)):
+		EventBus.preparation_warning.emit("Lost in the rift. The Wound is yours to carry.")
+		return
+	var value: int = int(reward.get("resources", 0))
+	RunState.gain_currency(RunState.GOLD, int(round(value * 0.55)))
+	RunState.gain_currency(RunState.FOOD, int(round(value * 0.30)))
+	RunState.gain_currency(RunState.STONE, int(round(value * 0.15)))
+	var gear: Array = reward.get("gear", [])
+	var spread: RandomNumberGenerator = RunState.rng("gear")
+	for piece: Variant in gear:
+		if piece is Dictionary:
+			battlefield.spawn_gear(piece as Dictionary,
+				at + Vector2.RIGHT.rotated(spread.randf() * TAU) * spread.randf_range(30.0, 90.0))
+	var shards: int = int(reward.get("shards", 0))
+	if shards > 0:
+		MetaState.shards += shards
+		MetaState.save_game()
+	var relic_id: String = String(reward.get("relic_id", ""))
+	if not relic_id.is_empty():
+		RunState.held_relics.append(relic_id)
+	var what: String = "dungeon" if int(reward.get("kind", 0)) == RiftArena.Kind.DUNGEON else "rift"
+	if stages <= 0:
+		EventBus.preparation_warning.emit("The %s collapsed. Nothing came out of it." % what)
+	elif bool(reward.get("collapsed", false)):
+		EventBus.preparation_warning.emit("The %s collapsed  ·  %d stage%s banked  ·  +%d Shards"
+			% [what, stages, "" if stages == 1 else "s", shards])
+	else:
+		EventBus.preparation_warning.emit("The %s closed  ·  +%d Gold  ·  +%d Shards"
+			% [what, int(round(value * 0.55)), shards])
 
 
 # --- Act bosses -------------------------------------------------------------
@@ -785,6 +886,7 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	journey.stop()
 	battlefield.suspend()
 	raid.process_mode = Node.PROCESS_MODE_DISABLED
+	rift.process_mode = Node.PROCESS_MODE_DISABLED
 
 	# Marks for the run, scaled by how far it got and which tier it was on.
 	#

@@ -23,6 +23,9 @@ signal pause_requested()
 signal horn_requested()
 signal raid_requested()
 signal extract_requested()
+## The dungeon's door: down, or out with what is banked.
+signal descend_requested()
+signal leave_rift_requested()
 signal ride_on_requested()
 signal command_requested(order_id: String, anchor: Vector2i)
 
@@ -194,6 +197,10 @@ const MESSAGE_TOUCH_HALF: float = 288.0
 ## the narrowest layout gives the banner 576 pixels, and a line of this many
 ## characters fits inside it with room for the ones that are all capitals.
 const MESSAGE_MAX_CHARS: int = 52
+## The fishing readout sits above the action bar, centred, in the width of a
+## tension bar a thumb can read across a phone.
+const FISHING_BAR_WIDTH: float = 280.0
+const FISHING_PANEL_LIFT: float = 26.0
 const STATE_LABEL_TOP: float = 132.0
 const STATE_LABEL_TOUCH_TOP: float = 172.0
 
@@ -339,6 +346,14 @@ var _raid_panel: PanelContainer
 var _raid_status: Label
 var _extract_button: Button
 @export var raid: RaidArena
+## Set by the run rather than exported: the rift arrived after the scene was
+## authored and one assignment is smaller than a node path.
+var rift: RiftArena = null
+var _rift_panel: PanelContainer
+var _rift_status: Label
+var _rift_bar: ProgressBar
+var _descend_button: Button
+var _leave_button: Button
 @export var boss_director: BossDirector
 
 var _spell_buttons: Array[Button] = []
@@ -347,6 +362,15 @@ var _spell_labels: Array[Label] = []
 var _spell_cooldowns: Array[Label] = []
 var _spell_bar: HBoxContainer
 var _bottom_row: HBoxContainer
+
+## The fishing readout: the pond's prompt, the tension bar with its safe band,
+## and how far in the fish is. Built once, shown only while water is asking.
+var _fishing_panel: VBoxContainer
+var _fishing_prompt: Label
+var _tension_bar: ProgressBar
+var _tension_band: ColorRect
+var _reel_bar: ProgressBar
+var _reel_showing: bool = false
 var _nav_bar: VBoxContainer
 var _boss_box: VBoxContainer
 var _nav_buttons: Array[Button] = []
@@ -389,8 +413,10 @@ func _ready() -> void:
 	_build_tower_panel()
 	_build_road_panel()
 	_build_raid_panel()
+	_build_rift_panel()
 	_build_boss_track()
 	_build_bottom_row()
+	_build_fishing_panel()
 	_build_party_feed()
 	_build_xp_bar()
 	_build_boss_bar()
@@ -529,6 +555,8 @@ func _process(delta: float) -> void:
 			_message.text = ""
 	if _raid_panel.visible:
 		_update_raid_panel()
+	if _rift_panel != null and _rift_panel.visible:
+		_update_rift_panel()
 	_update_spell_bar()
 	_update_boss_bar()
 	_update_carried_items()
@@ -543,10 +571,11 @@ func _process(delta: float) -> void:
 ## state visible through the translucent report instead of replacing it.
 func show_end_report() -> void:
 	for control: Control in [
-		_lane_ring, _build_panel, _build_tooltip, _road_panel, _raid_panel,
+		_lane_ring, _build_panel, _build_tooltip, _road_panel, _raid_panel, _rift_panel,
 		_spell_bar, _bottom_row, _nav_bar, _boss_panel, _region_card,
 		_preparation_panel, _command_panel, _xp_band, _party_log, _chat_box,
 		_boss_track, _message, _state_label, _recovery_status, _wave_preview,
+		_fishing_panel,
 	]:
 		if control != null:
 			control.visible = false
@@ -569,7 +598,7 @@ func show_end_report() -> void:
 ## Every centred banner, re-fitted. Called when the screen changes size.
 func _refit_banners() -> void:
 	for pair: Array in [[_state_label, 520.0], [_message, 400.0],
-			[_wave_preview, 420.0], [_raid_panel, 280.0],
+			[_wave_preview, 420.0], [_raid_panel, 280.0], [_rift_panel, 300.0],
 			[_preparation_panel, 190.0], [_boss_panel, 420.0]]:
 		var control: Control = pair[0] as Control
 		if control != null and is_instance_valid(control):
@@ -1580,6 +1609,60 @@ func _build_raid_panel() -> void:
 	_extract_button.disabled = true
 
 
+## The rift's readout: the stage, how full the rift is, the clock, and - at a
+## dungeon's door - the two buttons that are the whole decision.
+func _build_rift_panel() -> void:
+	_rift_panel = PanelContainer.new()
+	_rift_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_fit_centred(_rift_panel, 300.0)
+	_rift_panel.offset_top = 130.0
+	_rift_panel.visible = false
+	add_child(_rift_panel)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	_rift_panel.add_child(column)
+	_rift_status = _label("", 18)
+	_rift_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_rift_status)
+	_rift_bar = _make_bar(Color("9b7fe0"), 260.0)
+	_rift_bar.custom_minimum_size = Vector2(260.0, 12.0)
+	_rift_bar.value = 0.0
+	column.add_child(_rift_bar)
+	_descend_button = _add_button(column, "Go deeper", func() -> void: descend_requested.emit())
+	_leave_button = _add_button(column, "Leave with the spoils", func() -> void: leave_rift_requested.emit())
+	_descend_button.visible = false
+	_leave_button.visible = false
+
+	EventBus.rift_started.connect(func(_kind: int, _stage: int, _stages: int) -> void:
+		_rift_panel.visible = true
+		_descend_button.visible = false
+		_leave_button.visible = false)
+	EventBus.rift_stage_cleared.connect(func(stage: int, stages: int) -> void:
+		_rift_status.text = "Stage %d of %d cleared. The way down is open." % [stage, stages]
+		_descend_button.visible = true
+		_leave_button.visible = true
+		_descend_button.grab_focus())
+	EventBus.rift_ended.connect(func(_reward: Dictionary) -> void:
+		_rift_panel.visible = false)
+
+
+func _update_rift_panel() -> void:
+	if rift == null:
+		return
+	var state: Dictionary = rift.status()
+	_rift_bar.value = float(state.get("fill", 0.0))
+	if bool(state.get("at_door", false)):
+		return
+	if bool(state.get("guardian_out", false)):
+		_rift_status.text = "The guardian is through.   ·   %d killed" % int(state.get("kills", 0))
+		return
+	var stages: int = int(state.get("stages", 1))
+	var where: String = "Stage %d of %d   ·   " % [int(state.get("stage", 1)), stages] if stages > 1 else ""
+	_rift_status.text = "%s%d%% open   ·   %.0fs" % [where,
+		int(round(float(state.get("fill", 0.0)) * 100.0)), float(state.get("time_left", 0.0))]
+
+
 func _build_preparation_panel() -> void:
 	_preparation_panel = PanelContainer.new()
 	_preparation_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
@@ -1990,6 +2073,111 @@ func _update_boss_track() -> void:
 ## that must not collide is a sum nobody can hold in their head - and the last
 ## attempt at it ended with the ability bar a quarter off the right of the
 ## screen. A single HBox cannot overlap itself.
+## The fishing readout.
+##
+## Three things, each the answer to a question a player at the water has: what
+## can I do here (the prompt), am I about to snap the line (the tension bar and
+## the band it must stay in), and how much longer (the reel bar). The band is
+## drawn on the bar itself rather than described, because "keep it in the
+## middle" is a sentence and a green stripe is a target.
+func _build_fishing_panel() -> void:
+	_fishing_panel = VBoxContainer.new()
+	_fishing_panel.name = "FishingPanel"
+	_fishing_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_fishing_panel.offset_left = -FISHING_BAR_WIDTH * 0.5
+	_fishing_panel.offset_right = FISHING_BAR_WIDTH * 0.5
+	_fishing_panel.offset_bottom = -_bottom_band_height() - FISHING_PANEL_LIFT
+	_fishing_panel.offset_top = _fishing_panel.offset_bottom - 76.0
+	_fishing_panel.alignment = BoxContainer.ALIGNMENT_END
+	_fishing_panel.add_theme_constant_override("separation", 4)
+	_fishing_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fishing_panel.visible = false
+	add_child(_fishing_panel)
+
+	_fishing_prompt = _label("", 18)
+	_fishing_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_fishing_prompt.add_theme_color_override("font_color", Balance.FISHING_BITE_COLOUR)
+	_fishing_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fishing_panel.add_child(_fishing_prompt)
+
+	_tension_bar = _make_bar(Color("e0a44a"), FISHING_BAR_WIDTH)
+	_tension_bar.custom_minimum_size = Vector2(FISHING_BAR_WIDTH, 16.0)
+	_tension_bar.value = 0.0
+	_tension_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tension_bar.visible = false
+	_tension_band = ColorRect.new()
+	_tension_band.color = Color(0.38, 0.82, 0.46, 0.42)
+	_tension_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tension_bar.add_child(_tension_band)
+	_fishing_panel.add_child(_tension_bar)
+
+	_reel_bar = _make_bar(Color("5b8fd9"), FISHING_BAR_WIDTH)
+	_reel_bar.custom_minimum_size = Vector2(FISHING_BAR_WIDTH, 7.0)
+	_reel_bar.value = 0.0
+	_reel_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reel_bar.visible = false
+	_fishing_panel.add_child(_reel_bar)
+
+	EventBus.fishing_prompt.connect(_on_fishing_prompt)
+	EventBus.interact_prompt.connect(_on_fishing_prompt)
+	EventBus.fishing_reel.connect(_on_fishing_reel)
+	EventBus.fishing_bite.connect(func(_window: float) -> void:
+		_flash_fishing_prompt())
+	EventBus.fishing_ended.connect(_on_fishing_ended)
+	EventBus.fishing_failed.connect(_show_message)
+
+
+func _on_fishing_prompt(text: String, _button: String) -> void:
+	if _fishing_prompt == null:
+		return
+	var line: String = text
+	if not text.is_empty() and text.begins_with("Cast"):
+		var key: String = KeyBindings.label_for(&"interact")
+		if not key.is_empty() and not touch_ui():
+			line = "%s  [%s]" % [text, key]
+		line += "  \u00b7  Angler %d" % MetaState.profession_level("angler")
+	_fishing_prompt.text = line
+	_fishing_panel.visible = not text.is_empty() or _reel_showing
+
+
+func _on_fishing_reel(tension: float, safe_low: float, safe_high: float, progress: float) -> void:
+	if _tension_bar == null:
+		return
+	_reel_showing = true
+	_tension_bar.visible = true
+	_reel_bar.visible = true
+	_fishing_panel.visible = true
+	_tension_bar.value = tension
+	_reel_bar.value = progress
+	var width: float = maxf(_tension_bar.size.x, FISHING_BAR_WIDTH)
+	_tension_band.position = Vector2(safe_low * width, 0.0)
+	_tension_band.size = Vector2((safe_high - safe_low) * width, _tension_bar.size.y)
+	# The bar warms as the line nears breaking - the number a player has no
+	# time to read, said as a colour they cannot miss.
+	var strain: float = clampf((tension - safe_high) / maxf(1.0 - safe_high, 0.01), 0.0, 1.0)
+	_tension_bar.modulate = Color.WHITE.lerp(Color(1.0, 0.45, 0.35), strain)
+
+
+func _on_fishing_ended() -> void:
+	_reel_showing = false
+	if _tension_bar != null:
+		_tension_bar.visible = false
+		_reel_bar.visible = false
+		_tension_bar.modulate = Color.WHITE
+	if _fishing_panel != null:
+		_fishing_panel.visible = not _fishing_prompt.text.is_empty()
+
+
+## The bite's prompt jumps, once, so a player watching the float sees it.
+func _flash_fishing_prompt() -> void:
+	if _fishing_prompt == null:
+		return
+	_fishing_prompt.pivot_offset = _fishing_prompt.size * 0.5
+	_fishing_prompt.scale = Vector2.ONE * 1.35
+	var tween: Tween = _fishing_prompt.create_tween()
+	tween.tween_property(_fishing_prompt, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
 func _build_bottom_row() -> void:
 	var centre := HBoxContainer.new()
 	_bottom_row = centre

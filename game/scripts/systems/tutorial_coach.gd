@@ -131,6 +131,15 @@ func _ready() -> void:
 		_fire(TutorialStepData.Trigger.SPIRIT_MET))
 	EventBus.fish_caught.connect(func(_fish_id: String, _food: int) -> void:
 		_fire(TutorialStepData.Trigger.FISH_CAUGHT))
+	# The prompts: the first time water or a gate asks for a press, the coach
+	# says what the press does. Fired on the text arriving, not on the button,
+	# because a desktop has no button.
+	EventBus.fishing_prompt.connect(func(text: String, _button: String) -> void:
+		if not text.is_empty():
+			_fire(TutorialStepData.Trigger.POND_NEAR))
+	EventBus.interact_prompt.connect(func(text: String, _button: String) -> void:
+		if not text.is_empty():
+			_fire(TutorialStepData.Trigger.GATE_NEAR))
 
 
 ## Sorted once, so two steps sharing a trigger keep their authored order rather

@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_terrain")
-breed_id = "snowhide_brute"
-enemy_ids = Array[String](["snowhide_brute", "ice_hauler", "glassguard", "crevasse_stalker", "frost_herald"])
+breed_id = "gate_sentinel"
+enemy_ids = Array[String](["gate_sentinel", "stair_runner", "crown_herald", "snowhide_brute", "ice_hauler"])
 elite_ids = Array[String](["white_maw_giant", "warden"])
 act = 10
 favoured_element = 2

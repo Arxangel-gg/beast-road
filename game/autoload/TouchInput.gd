@@ -62,6 +62,15 @@ var _use: TouchButton = null
 var _revive: TouchButton = null
 var _down_count: int = 0
 
+## The fishing button, and what it says. Shown only while water is asking for
+## something: the pond's prompt names the label, so one button is the cast,
+## the hook and the reel in turn.
+var _cast: TouchButton = null
+var _cast_label: String = ""
+## Whether the `interact` action is currently pressed *by this thumb*, so the
+## release path never lets go of a key the player is holding.
+var _cast_driving: bool = false
+
 ## The bow, for a thumb.
 ##
 ## **There was no way to shoot on a phone at all.** `BUTTON_RANGED` is read from
@@ -243,6 +252,19 @@ func _build() -> void:
 	_use.label = "USE"
 	_use.visible = false
 	add_child(_use)
+
+	_cast = TouchButton.new()
+	_cast.name = "CastButton"
+	_cast.label = "CAST"
+	_cast.visible = false
+	add_child(_cast)
+	var on_prompt: Callable = func(_text: String, button: String) -> void:
+		_cast_label = button
+		if _cast != null:
+			_cast.label = button
+			_cast.queue_redraw()
+	EventBus.fishing_prompt.connect(on_prompt)
+	EventBus.interact_prompt.connect(on_prompt)
 	EventBus.coop_hero_down.connect(func(_slot: int, _at: Vector2) -> void:
 		_down_count += 1)
 	EventBus.coop_hero_revived.connect(func(_slot: int, _at: Vector2) -> void:
@@ -298,6 +320,8 @@ func _input(event: InputEvent) -> void:
 		_loose.release_finger(touch.index)
 	if _ammo != null:
 		_ammo.release_finger(touch.index)
+	if _cast != null:
+		_cast.release_finger(touch.index)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -322,6 +346,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if _use.visible and _use.consume(event, use_rect()):
+		get_viewport().set_input_as_handled()
+		return
+	if _cast.visible and _cast.consume(event, cast_rect()):
 		get_viewport().set_input_as_handled()
 		return
 
@@ -472,6 +499,14 @@ func _process(_delta: float) -> void:
 	elif _use.is_held():
 		_use.forget()
 
+	_cast.visible = not _cast_label.is_empty()
+	if _cast.visible:
+		var rod: Rect2 = cast_rect()
+		_cast.position = rod.position
+		_cast.size = rod.size
+	elif _cast.is_held():
+		_cast.forget()
+
 	_loose.visible = _bow_in_hand()
 	if _loose.visible:
 		var trigger: Rect2 = loose_rect()
@@ -526,6 +561,18 @@ func _drive_actions() -> void:
 	elif Input.is_action_pressed(&"use_item"):
 		Input.action_release(&"use_item")
 
+	# A hold rather than a tap: the reel is held, and the cast and the hook are
+	# the first frame of the same press. Released only when this thumb pressed
+	# it, so a key the player is holding on a desktop is never let go of here.
+	if _cast.visible and _cast.is_held():
+		if not Input.is_action_pressed(&"interact"):
+			Input.action_press(&"interact")
+			_cast_driving = true
+	elif _cast_driving:
+		if Input.is_action_pressed(&"interact"):
+			Input.action_release(&"interact")
+		_cast_driving = false
+
 
 func _axis(action: StringName, strength: float) -> void:
 	if strength > 0.01:
@@ -542,7 +589,7 @@ func _release_all() -> void:
 	_move = Vector2.ZERO
 	_attacking = false
 	for action: StringName in [&"move_left", &"move_right", &"move_up",
-			&"move_down", &"attack", &"dash", &"ranged", &"ammo_cycle"]:
+			&"move_down", &"attack", &"dash", &"ranged", &"ammo_cycle", &"interact"]:
 		if Input.is_action_pressed(action):
 			Input.action_release(action)
 	for stick: TouchStick in _sticks:
@@ -552,7 +599,8 @@ func _release_all() -> void:
 	# controls that no longer existed.
 	if _dash != null:
 		_dash.forget()
-	for button: TouchButton in [_loose, _ammo, _revive]:
+	_cast_driving = false
+	for button: TouchButton in [_loose, _ammo, _revive, _cast]:
 		if button != null:
 			button.forget()
 
@@ -734,6 +782,14 @@ class TouchButton extends Control:
 ## Where the USE button sits: below the revive, continuing the same right-edge
 ## column the dash established. Only ever drawn when there is something to drink,
 ## so it costs no room in the resting layout.
+## Left of the dash, on its own: the column above and below it is spoken for,
+## and a reel is held for seconds at a time, which wants a target the thumb
+## can rest on without brushing the dash.
+func cast_rect() -> Rect2:
+	var dash: Rect2 = dash_rect()
+	return Rect2(dash.position - Vector2(dash.size.x * 1.3, 0.0), dash.size)
+
+
 func use_rect() -> Rect2:
 	var dash: Rect2 = dash_rect()
 	return Rect2(dash.position + Vector2(0.0, dash.size.y * 2.5), dash.size)

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "horde_shieldman"
+display_name = "Horde Shieldman"
+description = "It walks behind a wall it brought with it."
+role = 2
+max_hp = 224.0
+contact_damage = 15.0
+move_speed = 40.0
+body_radius = 32.0
+knockback_resistance = 0.40
+resource_value = 5

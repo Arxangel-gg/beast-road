@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+role = 1
+element = 1
+damage = 24.0
+attack_interval = 1.6
+attack_range = 340.0
+aoe_radius = 110.0
+slow_factor = 0.55
+slow_duration = 1.0
+freeze_chance = 0.12
+id = "hailcaster"
+display_name = "Hailcaster"
+description = "Siege. Drops a sheet of hail on a patch of road; everything under it slows, and some of it stops."

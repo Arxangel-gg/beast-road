@@ -23,6 +23,8 @@ var _score_label: Label
 var _name_field: LineEdit
 var _submit_button: Button
 var _submit_note: Label
+## The Gate's offer, shown once on a summit victory.
+var _ascend_button: Button
 var _pending_row: Dictionary = {}
 
 
@@ -100,6 +102,37 @@ func _build_board_row() -> void:
 	_submit_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_submit_note)
 	column.move_child(_submit_note, at + 2)
+
+
+## Clearing the summit lets the Warden ascend (owner request, 2026-09-11).
+## Offered here, on the screen the clear lands on, and only while there is a
+## rank left to take. Prestige only - see `Balance.ASCENSION_MAX`.
+func _offer_ascension(victory: bool) -> void:
+	if _ascend_button != null and is_instance_valid(_ascend_button):
+		_ascend_button.queue_free()
+		_ascend_button = null
+	if not victory or not RunState.is_final_ascent():
+		return
+	if MetaState.ascension >= Balance.ASCENSION_MAX:
+		return
+	var column: Node = menu_button.get_parent()
+	if column == null:
+		return
+	_ascend_button = Button.new()
+	_ascend_button.text = "Ascend the Gate"
+	_ascend_button.tooltip_text = ("The Gatekeeper offers the Warden a place beyond the gate. "
+		+ "A title and a mark on the board; the road asks the same of an ascended Warden.")
+	_ascend_button.custom_minimum_size = Vector2(0.0, 44.0)
+	column.add_child(_ascend_button)
+	column.move_child(_ascend_button, menu_button.get_index())
+	_ascend_button.pressed.connect(func() -> void:
+		var rank: int = MetaState.ascend()
+		_ascend_button.disabled = true
+		_ascend_button.text = "%s  ·  rank %d" % [MetaState.warden_title(), rank]
+		Sfx.play("sfx_profession_level")
+		if not _pending_summary.is_empty():
+			_pending_summary["ascension"] = rank
+			_show_score(_pending_summary))
 
 
 func _submit() -> void:
@@ -240,6 +273,7 @@ var _pending_summary: Dictionary = {}
 
 func show_results(victory: bool, summary: Dictionary) -> void:
 	_show_score(summary)
+	_offer_ascension(victory)
 	title.text = "The sanctuary" if victory else "The road ends here"
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.

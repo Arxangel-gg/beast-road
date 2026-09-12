@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "pond"
+display_name = "Water"
+trigger = 18
+order = 0
+body = "A pond. Stand still at its edge and cast. When the float goes under, press again to hook it, then hold to reel - keep the line in the green band. Too tight snaps it; slack loses the fish."
+seconds = 12.0

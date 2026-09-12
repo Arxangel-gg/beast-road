@@ -1129,6 +1129,16 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 ## the centre-authored pose that occupied this world position before that depth
 ## correction. Keeping the two meanings explicit prevents future sorting work
 ## from moving swings, spells and hit feedback down to the Warden's boots.
+## How fast the hero is moving under their own power.
+##
+## The beast's footfall shoves the body through `_beast_impulse`, and that
+## shove is real motion the physics sees - but it is not the hero going
+## anywhere. Fishing reads this: the first cut read `velocity` and a hero on a
+## walking beast was never still enough to cast.
+func own_speed() -> float:
+	return (velocity - _beast_impulse).length()
+
+
 func combat_origin() -> Vector2:
 	return global_position + Vector2(0.0, -_depth_lift)
 
@@ -1197,6 +1207,10 @@ func mender_seconds_left() -> float:
 func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	if field is RaidArena or not is_alive():
 		return
+	# The camera rig owns the guard: a beast in Preparation takes no step, so
+	# no footfall arrives here. A second guard on this side made a stray step
+	# - which `structure_check` sends on purpose - do nothing, and the physical
+	# recipients of a plant must all answer the same event.
 	_beast_impulse += impulse * clampf(strength, 0.0, 1.2)
 	_beast_stun_left = maxf(_beast_stun_left, Balance.BEAST_STEP_STUN * strength)
 	animator.beast_step(impulse, strength)
@@ -1562,7 +1576,13 @@ func _drive_frames() -> void:
 	frames.set_facing(_facing)
 	if not _locked_state.is_empty():
 		return
-	var speed: float = velocity.length()
+	# The beast's footfall shoves the hero through `_beast_impulse`, and that
+	# shove is real motion - the body slides - but it is not a stride. Reading
+	# it as one played the walk cycle every time the deck pitched, and on a
+	# stopped beast the impulse decays over most of a second, so the hero was
+	# walking on the spot for the first second of every Preparation.
+	var own: Vector2 = velocity - _beast_impulse
+	var speed: float = own.length()
 	if speed > 4.0:
 		frames.set_speed_scale(speed / maxf(move_speed(), 1.0))
 		frames.play("walk")

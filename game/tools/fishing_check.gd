@@ -1,6 +1,7 @@
 extends Node
 
-## Ponds, what comes out of them, and the one bound the whole system rests on.
+## Ponds, what comes out of them, the skill it takes, and the two bounds the
+## system rests on.
 ##
 ## Fishing is the first thing in this project that lets a **consumable** survive
 ## a run, which is an amendment to working rule 7. The amendment is recorded in
@@ -9,45 +10,56 @@ extends Node
 ## full larder cannot be killed and the wounds, the Tonic and the whole recovery
 ## economy become decoration - so it is asserted here first and hardest.
 ##
-## The other four failures this holds are ones the project has hit before in
-## other systems: content authored and drawn by nothing, a procedural placement
-## that puts a thing where the player cannot reach it, two machines deriving
-## different worlds from the same seed, and a catch that quietly grants power.
+## The second cut (2026-09-11) added the Angler, the first profession, and its
+## bound is the other thing held here: **a profession touches nothing but its
+## own craft**. A maxed Angler fishes better and fights exactly as they did.
+##
+## The rest is the road a catch travels - cast, wait, hook, reel - driven
+## through the real `Fishing` with a scripted input, because the owner's report
+## on the first cut was that the automatic version "did not happen", and a gate
+## that called the landing function directly would have passed on that build.
 
 var _failures: int = 0
 var _ran: int = 0
+var _caught: Array[String] = []
+var _failed_reasons: Array[String] = []
 
 
 func _ready() -> void:
 	MetaState.hold_saves()
 	RunState.reset(false, 20260911)
+	RunState.phase = RunState.Phase.ROAD_BATTLE
+	EventBus.fish_caught.connect(func(fish_id: String, _food: int) -> void:
+		_caught.append(fish_id))
+	EventBus.fishing_failed.connect(func(reason: String) -> void:
+		_failed_reasons.append(reason))
 
 	_test_every_fish_is_real()
 	_test_no_fish_grants_power()
-	await _test_ponds_are_reachable_and_off_the_roads()
+	await _test_ponds_sit_at_the_edge_off_the_roads_in_every_region()
 	await _test_the_same_seed_digs_the_same_ponds()
-	await _test_a_line_needs_stillness()
+	await _test_a_catch_is_cast_hooked_and_reeled()
+	await _test_a_slack_or_snapped_line_pays_nothing()
+	_test_the_angler_only_fishes()
 	_test_the_meal_cap_holds()
 	_test_the_pantry_survives_a_round_trip()
 
 	Sfx.stop_immediately()
+	Vfx.clear()
 	for _f: int in 10:
 		await get_tree().process_frame
+	Sfx.stop_immediately()
+	MetaState.resume_saves()
 	if _failures > 0:
 		push_error("[fishing] FAIL - %d problem(s) across %d tests" % [_failures, _ran])
 		get_tree().quit(1)
 		return
-	print("[fishing] PASS - %d tests: ponds, stillness, the seed, the meal cap and the pantry"
+	print("[fishing] PASS - %d tests: ponds, the cast, the reel, the Angler, the meal cap and the pantry"
 		% _ran)
 	get_tree().quit(0)
 
 
 ## Every authored fish is complete, drawn, and reachable from somewhere.
-##
-## The last clause is the one worth having. A fish whose `regions` names a
-## terrain that does not exist is authored, listed, priced and can never be
-## caught - the same failure `call_wolf` had in the discipline tree, which
-## nothing noticed for months because "no consumer" is invisible.
 func _test_every_fish_is_real() -> void:
 	var roster: Array[FishData] = ContentDB.fish_sorted()
 	_check(roster.size() >= 6, "the ponds need a roster; found %d" % roster.size())
@@ -73,19 +85,12 @@ func _test_every_fish_is_real() -> void:
 		_check(homes > 0,
 			("%s lives in %s, which is not a region in this game - so it is "
 				+ "authored, priced and uncatchable") % [kind.id, str(kind.regions)])
-	# And every region holds something, or a whole act has dry ponds.
 	for region: String in terrains:
 		_check(reachable.has(region), "no fish lives in %s" % region)
 	_ran += 1
 
 
 ## A fish restores; it never raises a stat.
-##
-## Working rule 7's bound, checked against the resource rather than argued
-## about: levelling and gear are the two capped scales the campaign tiers are
-## tuned against, and a consumable that granted attribute points would be a
-## third that nobody is tuning. Every effect a fish can carry is a fraction of
-## something the hero already has.
 func _test_no_fish_grants_power() -> void:
 	for kind: FishData in ContentDB.fish_sorted():
 		for field: String in ["attribute", "attribute_points", "points", "base_points",
@@ -99,43 +104,51 @@ func _test_no_fish_grants_power() -> void:
 	_ran += 1
 
 
-## Water is dug where the player can walk to it and where nobody was building.
+## Water is dug at the edge of the field, on open ground, off the roads and
+## off the spawn mouths - in every region, because a region without ponds is
+## an act without fishing and nothing else would notice.
 ##
-## Both halves have bitten this project in other systems. `Treeline` puts trees
-## *outside* the grid, which is right for a tree and would be fatal here: the
-## hero is clamped to the grid, so a pond out there is a thing you can see and
-## can never reach. And a pond across a road would be decor sitting in the one
-## place the game is played.
-func _test_ponds_are_reachable_and_off_the_roads() -> void:
-	var ponds: Fishing = await _dug("jungle")
-	_check(ponds.pond_count() > 0, "a jungle act must dig at least one pond")
+## The owner's ruling put ponds "around the edges of the playable map, beyond
+## where the paths start", and the first version put them in the middle; the
+## band is asserted so the ruling cannot drift back.
+func _test_ponds_sit_at_the_edge_off_the_roads_in_every_region() -> void:
 	var reach: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
-	for at: Vector2 in ponds.pond_positions():
-		_check(absf(at.x) <= reach and absf(at.y) <= reach,
-			("a pond at %s is outside the hero's own bounds, so it can be seen "
-				+ "and never fished") % str(at))
-		_check(ponds.grid.cell_at(BattleGrid.world_to_tile(at)) == BattleGrid.Cell.OPEN,
-			"a pond at %s is not on open ground" % str(at))
-		var nearest: float = INF
-		for path: Variant in ponds.grid.lane_paths:
-			for point: Vector2 in (path as PackedVector2Array):
-				nearest = minf(nearest, at.distance_to(point))
-		_check(nearest >= Balance.FISHING_ROAD_CLEARANCE,
-			("a pond at %s sits %.0f from a road, inside the %.0f clearance - "
-				+ "water must not take ground somebody was defending")
-				% [str(at), nearest, Balance.FISHING_ROAD_CLEARANCE])
-	ponds.queue_free()
-	await get_tree().process_frame
+	for value: Variant in ContentDB.terrains.values():
+		var region := value as TerrainData
+		if region == null:
+			continue
+		_check(ResourceLoader.exists(Fishing.TILES_ART_FORMAT % region.id),
+			"%s has no pond tile sheet at %s" % [region.id, Fishing.TILES_ART_FORMAT % region.id])
+		var ponds: Fishing = await _dug(region.id)
+		_check(ponds.pond_count() > 0, "%s must dig at least one pond" % region.id)
+		var wanted: int = int((Fishing.REGIONS.get(region.id, Fishing.REGIONS["jungle"]) as Dictionary)["ponds"])
+		_check(ponds.pond_count() >= mini(wanted, 2),
+			"%s asked for %d ponds and dug %d - the field has no room for water at its edge"
+				% [region.id, wanted, ponds.pond_count()])
+		var centres: PackedVector2Array = ponds.pond_positions()
+		var halves: PackedVector2Array = ponds.pond_extents()
+		var cells: PackedInt32Array = ponds.pond_cell_counts()
+		for index: int in centres.size():
+			var at: Vector2 = centres[index]
+			var half: Vector2 = halves[index]
+			_check(absf(at.x) + half.x <= reach and absf(at.y) + half.y <= reach,
+				"%s: a pond at %s reaches past the hero's own bounds" % [region.id, str(at)])
+			_check(at.length() >= Balance.FISHING_EDGE_BAND * (BattleGrid.HALF_EXTENT - BattleGrid.TILE * 2.0) * 0.98,
+				"%s: a pond at %s is %.0f from the town, inside the edge band the owner asked for"
+					% [region.id, str(at), at.length()])
+			_check(cells[index] >= 4,
+				"%s: the pond at %s drew %d water cells - a puddle, or nothing" % [region.id, str(at), cells[index]])
+			var rim := Rect2(at - half, half * 2.0)
+			_check(Fishing.ground_is_open(ponds.grid, rim, Balance.FISHING_ROAD_CLEARANCE_TILES),
+				("%s: a pond at %s lies on, or within %d tile(s) of, ground that is not open - "
+					+ "water must not take a road or the border") % [region.id, str(at),
+					Balance.FISHING_ROAD_CLEARANCE_TILES])
+		ponds.queue_free()
+		await get_tree().process_frame
 	_ran += 1
 
 
 ## Two machines dig the same ponds, because neither is told about them.
-##
-## `Fishing` derives its scatter from the run's own seeded stream rather than
-## relaying it, which is what CLAUDE.md asks for - "adding a fact is adding a
-## thing that can be subtly wrong". The property that makes that safe is this
-## one, and it is exactly the property `seed_reproduction_check` holds for the
-## rest of the run.
 func _test_the_same_seed_digs_the_same_ponds() -> void:
 	var first: Fishing = await _dug("snow", 771234)
 	var one: PackedVector2Array = first.pond_positions()
@@ -153,8 +166,21 @@ func _test_the_same_seed_digs_the_same_ponds() -> void:
 			("pond %d landed at %s and then at %s - a guest would be fishing "
 				+ "water the host has not got") % [index, str(one[index]), str(two[index])])
 
-	# And a different seed is a different lake. Without this the test above
-	# passes just as well against a hard-coded list of positions.
+	# The dig must not move when the catches do. The first cut drew both from
+	# one stream, so a host that had landed three fish dug different ponds
+	# from a guest that had landed none.
+	var fished: Fishing = await _dug("snow", 771234)
+	for _draw: int in 7:
+		RunState.rng("fishing").randf()
+	fished.scatter()
+	var three: PackedVector2Array = fished.pond_positions()
+	fished.queue_free()
+	await get_tree().process_frame
+	_check(three.size() == one.size(), "catching fish moved the ponds")
+	for index: int in mini(three.size(), one.size()):
+		_check(three[index].is_equal_approx(one[index]),
+			"pond %d moved after the fishing stream was drawn on" % index)
+
 	var elsewhere: Fishing = await _dug("snow", 993311)
 	var third: PackedVector2Array = elsewhere.pond_positions()
 	elsewhere.queue_free()
@@ -166,45 +192,173 @@ func _test_the_same_seed_digs_the_same_ponds() -> void:
 	_ran += 1
 
 
-## The line goes in when you stand still and comes out when you do not.
+## The road a catch travels: stand still, cast, wait, hook the bite, reel.
 ##
-## The whole cost of fishing is the seconds you were not defending, so this is
-## the design rather than a detail. Driven through `_process` with a real body,
-## because the thing under test is what the system reads off that body.
-func _test_a_line_needs_stillness() -> void:
+## Driven with a scripted input through `_process`, the way a player drives it.
+## The owner's report on the first cut was that fishing "did not happen"; the
+## thing this holds is that it happens, and only when asked.
+func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	var ponds: Fishing = await _dug("jungle")
 	if ponds.pond_count() <= 0:
 		ponds.queue_free()
 		_ran += 1
 		return
-	var angler := CharacterBody2D.new()
-	angler.set_script(load("res://tools/fishing_check_angler.gd"))
-	add_child(angler)
-	ponds.field = _stub_field(angler)
-	angler.global_position = ponds.pond_positions()[0]
+	var angler: CharacterBody2D = _angler(ponds)
+	var field: Node = ponds.field
+	MetaState.fish.clear()
+	MetaState.profession_xp.clear()
+	_caught.clear()
 
+	# Standing still beside water is an offer, not a line in the water.
 	angler.velocity = Vector2.ZERO
 	ponds._process(0.05)
-	_check(ponds.is_fishing(), "standing still beside a pond must put the line in")
+	_check(ponds.state() == Fishing.State.READY, "standing by a pond must make the cast available")
+	_check(not ponds.is_fishing(), "the first cut put the line in by itself; this one must wait to be asked")
 
+	# The cast, and the flight.
+	angler.call("press_interact")
+	ponds._process(0.05)
+	_check(ponds.state() == Fishing.State.CASTING, "a press must cast")
+	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
+	_check(ponds.state() == Fishing.State.WAITING, "the float must land and the wait begin")
+	_check(ponds.is_fishing(), "a cast line is fishing")
+
+	# Walking away takes the line out.
 	angler.velocity = Vector2.RIGHT * Balance.HERO_MOVE_SPEED
 	ponds._process(0.05)
 	_check(not ponds.is_fishing(), "walking away must take the line out")
-
-	# Far from any water, standing still is just standing still.
 	angler.velocity = Vector2.ZERO
-	angler.global_position = Vector2(BattleGrid.HALF_EXTENT * 4.0, 0.0)
-	ponds._process(0.05)
-	_check(not ponds.is_fishing(), "there is no fishing away from water")
 
-	# A pond is exhaustible, and that is what stops the correct play being
-	# "stand in a corner for the whole act".
-	_check(Balance.FISHING_POND_STOCK > 0 and Balance.FISHING_POND_STOCK <= 10,
-		"a pond holds %d fish, which is either nothing or a job"
-			% Balance.FISHING_POND_STOCK)
+	# Again, and this time wait it out to a bite - and miss it.
+	ponds._process(0.05)
+	angler.call("press_interact")
+	ponds._process(0.05)
+	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
+	var reached_bite: bool = _tick_until(ponds, Fishing.State.BITE, 120.0)
+	_check(reached_bite, "the wait must end in a bite")
+	_tick(ponds, Balance.FISHING_BITE_WINDOW * Balance.FISHING_SKILL_BITE_CEILING + 0.2)
+	_check(ponds.state() == Fishing.State.WAITING,
+		"an unanswered bite slips the hook and the line stays in; state is %d" % ponds.state())
+	_check(_failed_reasons.has("It slipped the hook."), "and it must say so")
+	_check(MetaState.profession_xp.get("angler", 0.0) > 0.0,
+		"a slipped bite still teaches the Angler something")
+
+	# The bite, hooked, and reeled with the tension kept in the band.
+	reached_bite = _tick_until(ponds, Fishing.State.BITE, 120.0)
+	_check(reached_bite, "the second wait must end in a bite too")
+	angler.call("press_interact")
+	ponds._process(0.05)
+	_check(ponds.state() == Fishing.State.REELING, "a press inside the window hooks the fish")
+	var before_food: int = int((field.get("paid") as Dictionary).get(RunState.FOOD, 0))
+	var landed: bool = false
+	for _step: int in 3000:
+		var reel: Vector2 = ponds.reel_state()
+		angler.call("hold_interact", reel.x < Balance.FISHING_SAFE_BAND_CENTRE)
+		ponds._process(0.05)
+		if ponds.state() != Fishing.State.REELING:
+			landed = _caught.size() > 0
+			break
+	_check(landed, "keeping the tension in the band must land the fish (state %d, reasons %s)"
+		% [ponds.state(), str(_failed_reasons)])
+	_check(int((field.get("paid") as Dictionary).get(RunState.FOOD, 0)) > before_food,
+		"a landed fish must pay Food")
+	_check(MetaState.fish_total() == 1, "and put itself in the pantry: %d there" % MetaState.fish_total())
+	_check(ponds.stocked_count() <= ponds.pond_count(), "a catch counts against the pond's stock")
+	_check(MetaState.profession_xp.get("angler", 0.0) >= float(Balance.FISHING_XP_BY_RARITY[0]),
+		"a landed fish trains the Angler")
+
 	angler.queue_free()
 	ponds.queue_free()
 	await get_tree().process_frame
+	_ran += 1
+
+
+## Holding the line tight snaps it; a slack line loses the fish. Neither pays.
+func _test_a_slack_or_snapped_line_pays_nothing() -> void:
+	var ponds: Fishing = await _dug("jungle", 4242)
+	if ponds.pond_count() <= 0:
+		ponds.queue_free()
+		_ran += 1
+		return
+	var angler: CharacterBody2D = _angler(ponds)
+	MetaState.fish.clear()
+	_caught.clear()
+	_failed_reasons.clear()
+	angler.velocity = Vector2.ZERO
+	ponds._process(0.05)
+	angler.call("press_interact")
+	ponds._process(0.05)
+	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
+	_check(_tick_until(ponds, Fishing.State.BITE, 120.0), "the wait must end in a bite")
+	angler.call("press_interact")
+	ponds._process(0.05)
+	# Hold and never let go.
+	angler.call("hold_interact", true)
+	for _step: int in 600:
+		ponds._process(0.05)
+		if ponds.state() != Fishing.State.REELING:
+			break
+	_check(_failed_reasons.has("The line snapped."), "a line held tight must snap: %s" % str(_failed_reasons))
+	_check(_caught.is_empty() and MetaState.fish_total() == 0, "a snapped line pays nothing")
+	angler.call("hold_interact", false)
+
+	# And slack: hook it, then never reel.
+	_failed_reasons.clear()
+	ponds._process(0.05)
+	angler.call("press_interact")
+	ponds._process(0.05)
+	_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
+	_check(_tick_until(ponds, Fishing.State.BITE, 120.0), "the wait must end in a bite")
+	angler.call("press_interact")
+	ponds._process(0.05)
+	for _step: int in 600:
+		ponds._process(0.05)
+		if ponds.state() != Fishing.State.REELING:
+			break
+	_check(_failed_reasons.has("It threw the hook."), "a slack line loses the fish: %s" % str(_failed_reasons))
+	_check(_caught.is_empty() and MetaState.fish_total() == 0, "a lost fish pays nothing")
+
+	angler.queue_free()
+	ponds.queue_free()
+	await get_tree().process_frame
+	_ran += 1
+
+
+## The Angler's bound: a profession touches nothing but its craft.
+##
+## Levelling and gear are the two capped scales the campaign tiers are tuned
+## against. A maxed Angler must have exactly the attributes they had at level
+## one, and the level must be capped and derived rather than stored.
+func _test_the_angler_only_fishes() -> void:
+	MetaState.profession_xp.clear()
+	var before: Array[int] = []
+	for attribute: int in 4:
+		before.append(RunState.attribute(attribute))
+	_check(MetaState.profession_level("angler") == 1, "a fresh account is an Angler of level 1")
+	MetaState.gain_profession_xp("angler", int(MetaState.profession_xp_to_cap()) + 500)
+	_check(MetaState.profession_level("angler") == Balance.PROFESSION_MAX_LEVEL,
+		"the Angler must cap at %d, not %d" % [Balance.PROFESSION_MAX_LEVEL, MetaState.profession_level("angler")])
+	_check(float(MetaState.profession_xp.get("angler", 0.0)) <= MetaState.profession_xp_to_cap() + 0.01,
+		"experience past the cap must not be kept")
+	for attribute: int in 4:
+		_check(RunState.attribute(attribute) == before[attribute],
+			"a maxed Angler changed attribute %d - a profession must not touch the fight" % attribute)
+	_check(MetaState.gain_profession_xp("smith", 10) == 1 and not MetaState.profession_xp.has("smith"),
+		"a profession the game does not name must not be trained")
+	# Round trip, with a stale profession dropped.
+	var written: String = MetaState.serialized_save()
+	var parsed: Dictionary = MetaState.parse_save_text(written)
+	_check(parsed.has("professions"), "the save must carry the professions")
+	MetaState.profession_xp.clear()
+	MetaState._read_professions(parsed.get("professions", {}) as Dictionary)
+	_check(MetaState.profession_level("angler") == Balance.PROFESSION_MAX_LEVEL,
+		"the Angler's level must survive a load")
+	MetaState._read_professions({"xp": {"angler": 45.0, "a_craft_that_was_cut": 900.0}})
+	_check(not MetaState.profession_xp.has("a_craft_that_was_cut"),
+		"a profession that no longer exists must not survive a load")
+	_check(MetaState.profession_level("angler") == 2, "45 experience is level 2, not %d"
+		% MetaState.profession_level("angler"))
+	MetaState.profession_xp.clear()
 	_ran += 1
 
 
@@ -232,23 +386,20 @@ func _test_the_meal_cap_holds() -> void:
 	_check(MetaState.fish_count(kind.id) > 0,
 		"a refused meal must not eat the fish anyway")
 
-	# A fresh run is a fresh appetite, and the larder is untouched by it.
 	var kept: int = MetaState.fish_count(kind.id)
 	RunState.reset()
+	RunState.phase = RunState.Phase.ROAD_BATTLE
 	_check(RunState.meals_eaten == 0, "a new run must restore the appetite")
 	_check(MetaState.fish_count(kind.id) == kept,
 		"and must not empty the larder: %d became %d"
 			% [kept, MetaState.fish_count(kind.id)])
 
-	# Out of a run there is nothing to feed, and it says so rather than
-	# silently spending a fish against a hero that does not exist.
 	GameDirector.run_active = false
 	_check(not RunState.eat_fish(kind.id).is_empty(),
 		"eating between runs must be refused")
 	_check(MetaState.fish_count(kind.id) == kept,
 		"and must not spend the fish while refusing")
 
-	# The larder is finite too, or a long session writes a save nobody can read.
 	MetaState.fish.clear()
 	for _flood: int in Balance.FISH_STASH_CAPACITY + 12:
 		MetaState.take_fish(kind.id)
@@ -271,10 +422,6 @@ func _test_the_pantry_survives_a_round_trip() -> void:
 	MetaState._read_pantry(parsed.get("pantry", {}) as Dictionary)
 	_check(MetaState.fish_count(kind.id) == 2,
 		"two fish went in and %d came back" % MetaState.fish_count(kind.id))
-
-	# A fish that no longer exists is dropped rather than carried. A stale
-	# unlock is harmless; a stale consumable is a row with no name that a
-	# player would try to eat.
 	MetaState._read_pantry({"fish": {"a_fish_that_was_cut": 4, kind.id: 1}})
 	_check(MetaState.fish_count("a_fish_that_was_cut") == 0,
 		"a fish that no longer exists must not survive a load")
@@ -288,6 +435,7 @@ func _test_the_pantry_survives_a_round_trip() -> void:
 func _dug(region: String, run_seed: int = 20260911) -> Fishing:
 	RunState.set_seed(run_seed)
 	RunState.terrain_id = region
+	RunState.phase = RunState.Phase.ROAD_BATTLE
 	var grid := BattleGrid.new()
 	var ponds := Fishing.new()
 	ponds.grid = grid
@@ -297,13 +445,38 @@ func _dug(region: String, run_seed: int = 20260911) -> Fishing:
 	return ponds
 
 
-## A scope that answers the two questions `Fishing` asks of one.
-func _stub_field(angler: Node2D) -> Node:
+## A body standing at the first pond's edge, with a scripted input.
+func _angler(ponds: Fishing) -> CharacterBody2D:
+	var angler := CharacterBody2D.new()
+	angler.set_script(load("res://tools/fishing_check_angler.gd"))
+	add_child(angler)
 	var stub := Node.new()
 	stub.set_script(load("res://tools/fishing_check_field.gd"))
 	stub.set("hero", angler)
 	add_child(stub)
-	return stub
+	ponds.field = stub
+	var at: Vector2 = ponds.pond_positions()[0]
+	var half: Vector2 = ponds.pond_extents()[0]
+	angler.global_position = at + Vector2(half.x + 20.0, 0.0)
+	return angler
+
+
+func _tick(ponds: Fishing, seconds: float) -> void:
+	var left: float = seconds
+	while left > 0.0:
+		ponds._process(0.05)
+		left -= 0.05
+
+
+## Ticks until the pond reaches `state`, or gives up after `limit` seconds.
+func _tick_until(ponds: Fishing, state: int, limit: float) -> bool:
+	var left: float = limit
+	while left > 0.0:
+		if ponds.state() == state:
+			return true
+		ponds._process(0.05)
+		left -= 0.05
+	return ponds.state() == state
 
 
 func _check(condition: bool, why: String) -> void:

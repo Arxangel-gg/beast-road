@@ -324,7 +324,10 @@ func _find_baseline(texture: Texture2D) -> int:
 		# row of the beast itself has highlights in it.
 		if opaque > width / 2 and dark > opaque * 9 / 10:
 			return y
-		return 0
+		# No line - the 2026-09-11 frames were drawn without one - so the
+		# baseline is the row under the feet: the same crop, with nothing to
+		# cut, and the same height for the layout to grow to.
+		return y + 1
 	return 0
 
 

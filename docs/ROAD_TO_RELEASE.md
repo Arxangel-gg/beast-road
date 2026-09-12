@@ -2981,3 +2981,14 @@ the history.
 - Tower range rings shown on selection (`Tower.show_range` had no caller at all).
 - Beast scope reads as one world: pixel-art skies, ground lit from the horizon,
   and the parallax wrap no longer visible.
+- 2026-09-11, the production push: fishing is a cast, a hook and a reel over
+  tilemap ponds at the edge of every region, with the Angler as the first
+  profession; rifts and dungeons reuse the raid's arena behind gates dug beside
+  the ponds; the Gate offers an ascension rank on a summit clear; the Hold is
+  the menu's room for the stash, the Ledger, the Chronicle, the codex and the
+  board; twenty-one breeds and eight towers for acts IV to X, each animated;
+  the ten-act pressure curve re-measured; per-act shuffled playlists with
+  per-act boss themes and a prompt sheet for all 140 recordings; a new
+  Worldstrider, a generated title, PixelLab UI frames, sheet-made VFX and a
+  tapered additive blade trail; and `script_check`, `rift_check` and
+  `music_check` in both workflows.

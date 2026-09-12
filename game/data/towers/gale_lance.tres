@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tower"]
+
+[resource]
+script = ExtResource("1_tower")
+role = 2
+element = 3
+damage = 46.0
+attack_interval = 2.1
+attack_range = 520.0
+extra_targets = 2
+id = "gale_lance"
+display_name = "Gale Lance"
+description = "Sniper. One long bolt of wind that passes through the first body and carries on into the next two."

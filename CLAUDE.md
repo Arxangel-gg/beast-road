@@ -596,12 +596,11 @@ tower's inner reach - so water never takes a build spot that was worth having -
 and **inside** the grid, which is where it differs from a tree: the hero is
 clamped to the grid, so a pond outside it would be visible and unreachable.
 
-**The cost of fishing is standing still on a battlefield.** There is no key to
-press. Walk to a pond, stop, and the line goes in; move or take a blow and it
-comes out. That is what makes a catch worth anything, it is the same tension
-raids are built on, and it is why fishing works on a phone and on a controller
-without a line of input plumbing. A pond holds four fish and then reads as
-fished out, so the correct play is never "stand in a corner for the act".
+**The cost of fishing was standing still on a battlefield** - and as of the
+second cut (see below) it is standing still *and* a cast, a hook and a reel.
+Moving or taking a blow still takes the line out, which is the tension raids
+are built on. A pond holds four fish and then reads as fished out, so the
+correct play is never "stand in a corner for the act".
 
 **Both machines dig the same ponds and neither is told about them.** The scatter
 comes from the run's own seeded stream, like the relic and omen offers, because
@@ -942,6 +941,137 @@ working spells as dealing nothing. And a body at the aim point is hit by a
 scattered volley about four times in five, which is a coin toss wearing a gate's
 clothes; it stands under the first scattered strike instead.
 
+**The second cut of fishing, and the first profession, as of 2026-09-11.**
+The owner played the first cut and reported that it "did not happen
+automatically while standing idle next to a fishing pond" and, in the same
+breath, that it "should not be entirely automatic with no input but rather
+require some degree of skill". Both are answered, and the second answer
+retires a paragraph above: **the cost of fishing is no longer only standing
+still.** It is a press to cast, a wait, a window to hook the bite, and a reel
+held in a band while the fish fights - too tight and the line snaps, slack too
+long and it is gone. `interact` is the action (T; Y on a pad; a thumb button
+that wears the pond's own prompt), and it is the same action the rift gates
+read.
+
+Why the first cut "did not happen" is worth keeping: the beast's footfall
+shoves the hero through `_beast_impulse`, the fishing code read the body's
+whole velocity, and on a walking beast that never settled under the stillness
+threshold. `Hero.own_speed` subtracts the shove. The same shove was playing
+the hero's walk cycle on a stopped beast during Preparation, and the gait
+itself kept rolling during Preparation - both fixed in the same change.
+
+**Ponds are tilemaps now, at the edge of the field.** One sixteen-tile Wang
+sheet per region, repacked into corner order by `tools/install_pond_tiles.py`
+so `PondTiles` reads a texture and no metadata; a pond is a blob of water
+nodes on a lattice, so every one is its own shape and size; and
+`pond_water.gdshader` puts glints and rings on the water for a few sines and
+a mask. The owner's ruling on placement - "beyond the city's paths, around
+the edges of the playable map" - replaced the first cut's middle-of-the-field
+bias, and it taught a lesson: **a random point in the outer band lands on
+open ground about once in five hundred throws**, because that ground is four
+corner pockets. Candidates are drawn from the band's open tiles now
+(`Fishing.band_tiles`), and the clearance ring tolerates the border row - a
+ring that refused it refused every corner, and the first run dug nothing in
+any region. `fishing_check` digs every region and asserts the band.
+
+**The Angler is the first profession, and it amends working rule 7.**
+`MetaState.profession_xp` persists; the level is derived from it, capped at
+`Balance.PROFESSION_MAX_LEVEL`, and only ids in `Balance.PROFESSIONS` are
+read from a save or trained. **The bound is that a profession touches nothing
+but its own craft**: the Angler waits less, hooks a wider window, reels a
+wider band and tilts the rare fish a little. `fishing_check` maxes the Angler
+and asserts every attribute is exactly what it was. More professions come one
+at a time, each with its bound written here, exactly as this one is.
+
+**Rifts and dungeons, as of 2026-09-11.** The raid's arena put to a second
+use: `RiftArena extends RaidArena`. A rift is one stage - kills fill it, its
+guardian steps through at full, the guardian falling closes it; a dungeon is
+`Balance.DUNGEON_STAGES` of that with a door between them, where the player
+goes deeper or leaves with what is banked; the clock collapses a stage and
+pays only what was banked, and dying pays nothing, as it does in a camp.
+Gates (`RiftGates`) are dug beside the ponds from `RIFT_FIRST_ACT`, with a
+dungeon mouth every `DUNGEON_EVERY_ACTS`, and the run freezes the field for a
+rift exactly as it does for a raid - allowed during Preparation as well,
+because a rift is a detour and Preparation is when a player has time for one.
+
+**The bound is that a rift pays what the road already pays**: run currency,
+gear rolled on the same tables at the same tier, Shards, and a relic at the
+bottom of a dungeon. Nothing new persists; `MetaState.rifts_closed` is a
+statistic. `rift_check` names every key a reward may carry, so "and a
+permanent +1" cannot arrive without failing it.
+
+**The Gatekeeper's ascension, as of 2026-09-11.** Clearing the summit offers
+the Warden a rank (`MetaState.ascension`, capped at `ASCENSION_MAX`) on the
+results screen. **It is prestige and nothing else**: a title, a portrait on
+the Hold's card, and a leaderboard multiplier read from the run summary. It
+grants no level, no attribute, no card and no relic - levelling and gear stay
+the only two scales. The score reads `summary["ascension"]` rather than the
+autoload because `Score` is loaded by the headless tools.
+
+**The Hold, as of 2026-09-11.** The hub the ruling approved, built as the
+lobby reading rather than the second-battlefield one: a room with the
+Warden's card - name, code, title, professions, Marks and Shards - and the
+doors to the stash, the Ledger, the Chronicle, the codex and the board.
+`HubScreen.adopt` moves each existing button into the room with its handler
+intact, so the front door is New run, Co-op, The Hold, Settings, Quit and
+nothing that worked stops working. Matchmaking is still the co-op screen and
+the Ledger is still the Ledger; there are no accounts, so there is nothing
+more a hub could honestly do.
+
+**Twenty-one breeds for acts IV to X, and eight towers, as of 2026-09-11.**
+Three breeds a region - a marcher, a vanguard, a warden or howler - with base,
+four idle, four move and four attack frames each, every animation fed back
+through PixelLab's animator by job URL. Each region's `enemy_ids` lists its
+own three first and two veterans after, so the invader roll has something
+familiar to reach; `WAVE_ACT_HP_SCALE`, `_DAMAGE_SCALE` and
+`WAVE_INVADER_CHANCE` reach ten entries. **The first ten-entry table was
+extrapolated and `curve_report` refused it** - mean pressure 0.70 against a
+band of 0.26-0.46 - and the second was measured: the act multiplier past
+III moves a percent a step, damage holds, and the extra bodies are the late
+acts' teeth. The other half of that failure was the roster itself: the
+report earns Gold from the average kill value of every breed, and twenty-one
+new ones authored below the shipped average read as a harder game in every
+act. Their values sit on that average now. Measured: mean 0.433 for one
+player and 0.446 for four, last wave 0.75. The towers are two an element in the same Warden/Siege and
+Skirmisher/Sniper pairing the ladder uses, each a combination the roster did
+not have, and they join `ROSTER_UNLOCK_ORDER` ahead of the well.
+
+**The soundtrack is a playlist, as of 2026-09-11.** Up to twelve songs an act
+at `MusicPlayer.PLAYLIST_FORMAT`, dealt shuffled when the act opens and played
+end to end, resumed from where they were on a scope change; a boss theme an
+act at `BOSS_FORMAT`, arriving on a slow crossfade under a stinger and handing
+back when the boss falls. **A slot with no file is not in the shuffle and
+says nothing** - the soundtrack grows by dropping a file in - and an act with
+no songs plays the regional track it always had. `docs/SFX_PROMPTS.md` names
+all 140 recordings and marks the twelve synthesised placeholders that stand
+in for the fishing and boss cues until they are recorded. `music_check` deals
+through a documented seam (`MusicPlayer.test_slots`) because copying audio
+around to prove the playlist would be a test of the importer.
+
+**Yuri is the beast, and was redrawn, as of 2026-09-11.** The owner asked for
+no baked shadows, a better-looking beast, and an idle beast during
+Preparation. The new Worldstrider was generated from the owner's Scope 3
+reference with PixelLab Pro, animated by URL, and installed with the feet on
+the old ground line so `BEAST_FRAME_BASE_Y` did not have to move. A lesson
+cost two template animations: **the Warden is the player and Yuri is the
+beast**, and a session that confuses them spends generations on the wrong
+subject. Read the design before generating a character.
+
+**VFX are made the way PixelLab suggests, as of the same date.** A Pro sprite
+sheet of concepts per family, the winners cropped and centred, then animated
+with the constraint that the effect stays inside its own frame. The first
+ripple was generated the naive way and walked off its canvas; the sheet route
+gave the ripple, the splash, the cut, the burst and the embers in two calls.
+The blade sweep is a tapered, feathered, additive strip now - `blade_shot`
+photographed the old one and it had a hard straight edge where the swing
+began and read as a shadow with a sword in it.
+
+**`script_check` is a gate.** `--quit` compiles the autoloads and the main
+scene; a parse error in a screen the menu has not opened sat there until a
+player reached it, and `--script` cannot stand in because it has no autoloads.
+The gate loads every `.gd` under the real autoloads and asks each whether it
+can be instantiated.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
@@ -1071,6 +1201,14 @@ works."
    a run-scoped allowance spent from a persistent store, and no fish may grant
    an attribute point. See the fishing note in §1. Held items, ammunition and
    everything else listed above are unchanged and still reset.
+
+   **Amended 2026-09-11 (owner): professions persist, and the ascension
+   rank.** `MetaState.profession_xp` keeps how practised the Warden is at a
+   craft, bounded by `Balance.PROFESSIONS` (only named crafts are read or
+   trained) and `PROFESSION_MAX_LEVEL`; a profession may change how well the
+   hero does its own thing and nothing about the fight. `MetaState.ascension`
+   is a prestige rank capped at `ASCENSION_MAX`: a title, a portrait and a
+   score multiplier, never power. Both notes are in §1.
 8. **The battlefield freezes during a raid and resumes exactly as it was**
    (GDD §52, "Raid pause resumes the exact battlefield state"). It must
    therefore be suspendable as a unit — no system may keep ticking off a timer

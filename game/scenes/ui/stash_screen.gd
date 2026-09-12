@@ -391,16 +391,18 @@ func _build_pantry() -> void:
 		"" if RunState.meals_left() == 1 else "s"]
 	if not GameDirector.run_active:
 		meals = "Fish are eaten on the road"
-	_note.text = "%d of %d kept  ·  %s" % [MetaState.fish_total(),
-		Balance.FISH_STASH_CAPACITY, meals]
+	var progress: Vector2 = MetaState.profession_progress("angler")
+	_note.text = "Angler %d  ·  %d / %d  ·  %d of %d kept  ·  %s" % [
+		MetaState.profession_level("angler"), int(progress.x), int(progress.y),
+		MetaState.fish_total(), Balance.FISH_STASH_CAPACITY, meals]
 	if not _message.is_empty():
 		_note.text += "   ·   " + _message
 		_message = ""
 
 	if MetaState.fish.is_empty():
 		var empty := Label.new()
-		empty.text = ("Nothing in the larder. Stand still beside a pond off the "
-			+ "roads and the line goes in by itself.")
+		empty.text = ("Nothing in the larder. Find a pond at the edge of the field, "
+			+ "cast, hook the bite, and reel it in.")
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_color_override("font_color", Color("8f9b98"))
 		_list.add_child(empty)

@@ -332,6 +332,9 @@ func _settle_run(victory: bool) -> void:
 		"kills": RunState.enemies_killed,
 		"last_blow": RunState.last_blow_line(),
 		"deaths": RunState.hero_deaths,
+		# Read by the board (`Score`), which the headless tools also load and so
+		# cannot ask the autoload itself.
+		"ascension": MetaState.ascension,
 		"raids": RunState.raids_completed,
 		"chieftains": RunState.chieftains_taken,
 		"time": RunState.run_time_seconds,

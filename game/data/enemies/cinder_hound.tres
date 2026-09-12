@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "cinder_hound"
+display_name = "Cinder Hound"
+description = "It hunts what the fire left. There is always something the fire left."
+role = 1
+max_hp = 58.0
+contact_damage = 12.0
+move_speed = 96.0
+body_radius = 24.0
+knockback_resistance = 0.00
+resource_value = 3

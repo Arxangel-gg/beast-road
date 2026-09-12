@@ -469,6 +469,16 @@ jobs:
           check "ranged spells" --headless --path game res://tools/spell_strike_check.tscn
           # Ponds, the meal cap, and the pantry that outlives a run.
           check "fishing" --headless --path game res://tools/fishing_check.tscn
+          # Rifts and dungeons: the gates on the field, the fill, the guardian,
+          # the door, and a reward that is only ever what the road already pays.
+          check "rifts" --headless --path game res://tools/rift_check.tscn
+          # The battlefield playlist deals what is on disk, advances on the end
+          # of a song, holds for a boss and hands back. Missing songs are quiet.
+          check "music" --headless --path game res://tools/music_check.tscn
+          # Every script compiles. `--quit` compiles the autoloads and the main
+          # scene and nothing else; a parse error in a screen the menu has not
+          # opened sat there until a player reached it.
+          check "scripts" --headless --path game res://tools/script_check.tscn
           # Seven gates that existed, passed, and were run by nothing. The
           # discipline rotation shipped broken behind one of these, and two of
           # them back release requirements: raid_suspend is the probe

@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scenes/ui/audio_debug.gd" id="98_adbg"]
 [ext_resource type="Script" path="res://scenes/run/run.gd" id="1_run"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/city/town_scope.tscn" id="3_town"]
 [ext_resource type="PackedScene" path="res://scenes/run/beast_scope.tscn" id="4_beast"]
 [ext_resource type="PackedScene" path="res://scenes/raid/raid_arena.tscn" id="5_raid"]
+[ext_resource type="PackedScene" path="res://scenes/rift/rift_arena.tscn" id="5_rift"]
 [ext_resource type="Script" path="res://scripts/systems/journey.gd" id="6_journey"]
 [ext_resource type="Script" path="res://scripts/systems/war_horn.gd" id="7_horn"]
 [ext_resource type="Script" path="res://scripts/systems/boss_director.gd" id="12_boss"]
@@ -17,12 +18,13 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/results_screen.tscn" id="10_res"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="11_pause"]
 
-[node name="Run" type="Node" node_paths=PackedStringArray("battlefield", "town", "beast", "raid", "journey", "war_horn", "boss_director", "command_system", "hud", "crossroad_ui", "results_ui", "ending_ui", "pause_ui", "town_panel")]
+[node name="Run" type="Node" node_paths=PackedStringArray("battlefield", "town", "beast", "raid", "rift", "journey", "war_horn", "boss_director", "command_system", "hud", "crossroad_ui", "results_ui", "ending_ui", "pause_ui", "town_panel")]
 script = ExtResource("1_run")
 battlefield = NodePath("Battlefield")
 town = NodePath("Town")
 beast = NodePath("Beast")
 raid = NodePath("Raid")
+rift = NodePath("Rift")
 journey = NodePath("Journey")
 war_horn = NodePath("WarHorn")
 boss_director = NodePath("BossDirector")
@@ -41,6 +43,8 @@ town_panel = NodePath("TownPanel")
 [node name="Beast" parent="." instance=ExtResource("4_beast")]
 
 [node name="Raid" parent="." instance=ExtResource("5_raid")]
+
+[node name="Rift" parent="." instance=ExtResource("5_rift")]
 
 [node name="Journey" type="Node" parent="."]
 script = ExtResource("6_journey")

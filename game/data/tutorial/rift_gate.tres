@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "rift_gate"
+display_name = "A rift"
+trigger = 19
+order = 0
+body = "A way off the road. Enter, and every kill fills the rift; at full its guardian steps through. Kill it and the rift pays gear, Gold and Shards. Run out of time and it collapses; fall and it pays nothing. A dungeon is three of these, with a door between."
+seconds = 12.0

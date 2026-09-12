@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "mire_shambler"
+display_name = "Mire Shambler"
+description = "It was a man, and the marsh has been finishing the job for years."
+role = 0
+max_hp = 84.0
+contact_damage = 12.0
+move_speed = 46.0
+body_radius = 28.0
+knockback_resistance = 0.20
+resource_value = 3

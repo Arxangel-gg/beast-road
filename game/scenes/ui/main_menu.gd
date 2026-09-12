@@ -22,6 +22,9 @@ var _leaderboard: CanvasLayer
 var _coop: CanvasLayer
 var _chronicle: CanvasLayer
 var _codex: CanvasLayer
+## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
+## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
+var _hub: HubScreen
 
 
 func _exit_tree() -> void:
@@ -105,12 +108,52 @@ func _ready() -> void:
 	_build_chronicle_button()
 	_build_codex_button()
 	_build_leaderboard_button()
+	_build_hold()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
 	_setup_stage()
+
+
+## Where focus lands when a screen closes: the room if it is open, else the
+## front door's first button.
+func _focus_home() -> void:
+	if _hub != null and _hub.visible:
+		_hub.open()
+		return
+	new_run_button.grab_focus()
+
+
+## The Hold. Every door that is not "play" moves off the front door and into
+## the room, so the menu is New run, Co-op, The Hold, Settings, Quit - and the
+## room is where the account lives. `HubScreen.adopt` keeps each button's own
+## handler, so nothing that opened before opens differently now.
+func _build_hold() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	_hub = HubScreen.new()
+	_hub.name = "Hold"
+	add_child(_hub)
+	var button := Button.new()
+	button.name = "Hold"
+	button.text = "The Hold"
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "quiet_ledger", 24)
+	column.add_child(button)
+	var coop: Node = column.get_node_or_null("Coop")
+	column.move_child(button, (coop.get_index() + 1) if coop != null else new_run_button.get_index() + 1)
+	_hub.closed.connect(func() -> void: button.grab_focus())
+	button.pressed.connect(func() -> void: _hub.open())
+	for door: String in ["Stash", "Ledger", "Chronicle", "Codex", "Leaderboard"]:
+		var found: Node = column.get_node_or_null(door)
+		if found is Button:
+			_hub.adopt(found as Button)
 
 
 ## Swaps the still key art for the living one.
@@ -145,6 +188,7 @@ func _build_stash_button() -> void:
 	if column == null:
 		return
 	var button := Button.new()
+	button.name = "Stash"
 	button.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
 	IconKit.on_button(button, "relic", 24)
 	column.add_child(button)
@@ -154,7 +198,7 @@ func _build_stash_button() -> void:
 	add_child(screen)
 	screen.closed.connect(func() -> void:
 		button.text = "Stash  ·  %d Marks  ·  %d Shards" % [MetaState.marks, MetaState.shards]
-		new_run_button.grab_focus())
+		_focus_home())
 	button.pressed.connect(func() -> void: screen.open())
 	_build_exchange_button(column, button, new_run_button)
 
@@ -168,6 +212,7 @@ func _build_stash_button() -> void:
 func _build_exchange_button(column: Node, stash_button: Button,
 		new_run_button: Button) -> void:
 	var button := Button.new()
+	button.name = "Ledger"
 	button.text = "The Long Ledger"
 	# The ledger charm's own icon: a closed book of accounts, which is exactly
 	# what this is. Reused rather than authored, so the manifest is unchanged.
@@ -181,7 +226,7 @@ func _build_exchange_button(column: Node, stash_button: Button,
 		stash_button.text = "Stash  ·  %d Marks  ·  %d Shards" % [
 			MetaState.marks, MetaState.shards]
 		button.text = _ledger_caption()
-		new_run_button.grab_focus())
+		_focus_home())
 	button.pressed.connect(func() -> void: screen.open())
 	button.text = _ledger_caption()
 
@@ -220,7 +265,7 @@ func _build_tier_row() -> void:
 		return
 
 	var hero := Label.new()
-	hero.text = "Warden  ·  level %d" % MetaState.hero_level
+	hero.text = "%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level]
 	if MetaState.hero_attribute_points > 0:
 		hero.text += "  ·  %d unspent" % MetaState.hero_attribute_points
 	hero.add_theme_font_size_override("font_size", 15)
