@@ -571,6 +571,21 @@ func apply_volume() -> void:
 ## Test and shutdown path: release any decoder still owned by a pooled voice.
 ## Finished voices intentionally retain their stream during play so they can be
 ## reused cheaply; a soak exits too quickly for the audio server to do this.
+## The tree coming down takes every voice with it. A sound started by the
+## last thing a headless gate did - a blood hit, a companion's strike - was
+## still decoding at quit and read as four leaked ObjectDB instances, only
+## on the runs where it had not finished (2026-09-12). Every gate cannot be
+## trusted to remember; the autoload can.
+func _exit_tree() -> void:
+	stop_immediately()
+	# The audio thread releases a stopped playback on its next mix step. A
+	# quit that tears the server down before that step reports the playback
+	# as four leaked ObjectDB instances, and it is a coin toss (2026-09-12:
+	# five of eight verbose runs of a gate that never stopped the music).
+	# A short blocking pause here, at process exit only, lets the step run.
+	OS.delay_msec(Balance.AUDIO_EXIT_SETTLE_MSEC)
+
+
 func stop_immediately() -> void:
 	for voice: AudioStreamPlayer in _voices:
 		voice.stop()

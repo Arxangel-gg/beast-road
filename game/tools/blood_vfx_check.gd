@@ -64,12 +64,19 @@ func _ready() -> void:
 	# Effects own active tweens. Give deferred frees two frames before exit so the
 	# gate measures runtime cleanup rather than reporting its own abrupt teardown
 	# as leaked game objects.
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# Audio decoding is released on its server thread after the voice is stopped;
-	# a short wall-clock turn prevents that in-flight decoder from being mistaken
-	# for a leaked resource when this tiny gate exits immediately.
-	await get_tree().create_timer(0.25).timeout
+	for _f: int in 10:
+		await get_tree().process_frame
+	# Audio decoding is released on its server thread after the voice is
+	# stopped; a wall-clock turn prevents that in-flight decoder from being
+	# mistaken for a leaked resource when this tiny gate exits immediately.
+	# A quarter second lost the race about once in two runs under --verbose
+	# and once on CI (2026-09-12); the hurt sound this gate triggers is the
+	# last thing decoding when it quits.
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	await get_tree().create_timer(0.75).timeout
+	Sfx.stop_immediately()
 	if _failures == 0:
 		print("[blood-vfx] PASS — procedural blood obeys gore, landing and weather rules")
 	else:

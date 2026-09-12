@@ -5981,3 +5981,9 @@ const DUNGEON_WALL_TINT: Color = Color(0.36, 0.34, 0.4, 1.0)
 const RIFT_WALL_TINT: Color = Color(0.42, 0.34, 0.5, 1.0)
 const DUNGEON_PROP_COUNT: int = 14
 const DUNGEON_PROP_KINDS: Array[String] = ["bones", "crates", "pot", "cage", "rack"]
+
+
+## Milliseconds each audio autoload waits at process exit after stopping its
+## players, so the audio thread releases their playbacks before the server
+## is torn down. Exit only; nothing in play reads it. [TUNE]
+const AUDIO_EXIT_SETTLE_MSEC: int = 80

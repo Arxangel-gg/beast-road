@@ -327,6 +327,17 @@ func stop() -> void:
 
 ## Test and shutdown path: release decoder resources now instead of waiting for
 ## a fade that will never finish once the scene tree begins quitting.
+## As `Sfx._exit_tree`: the decoders go with the tree.
+func _exit_tree() -> void:
+	stop_immediately()
+	# The audio thread releases a stopped playback on its next mix step. A
+	# quit that tears the server down before that step reports the playback
+	# as four leaked ObjectDB instances, and it is a coin toss (2026-09-12:
+	# five of eight verbose runs of a gate that never stopped the music).
+	# A short blocking pause here, at process exit only, lets the step run.
+	OS.delay_msec(Balance.AUDIO_EXIT_SETTLE_MSEC)
+
+
 func stop_immediately() -> void:
 	_current = ""
 	_in_playlist = false

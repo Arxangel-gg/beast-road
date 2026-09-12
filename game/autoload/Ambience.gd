@@ -135,6 +135,12 @@ func _kill_weather_tween() -> void:
 ## finished, which is what made it intermittent (2026-09-12).
 func _exit_tree() -> void:
 	stop_immediately()
+	# The audio thread releases a stopped playback on its next mix step. A
+	# quit that tears the server down before that step reports the playback
+	# as four leaked ObjectDB instances, and it is a coin toss (2026-09-12:
+	# five of eight verbose runs of a gate that never stopped the music).
+	# A short blocking pause here, at process exit only, lets the step run.
+	OS.delay_msec(Balance.AUDIO_EXIT_SETTLE_MSEC)
 
 
 ## Test and shutdown path: drop the decoder immediately when no fade can be
