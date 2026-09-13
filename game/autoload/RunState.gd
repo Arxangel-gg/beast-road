@@ -735,6 +735,14 @@ func refresh_discipline_offers() -> void:
 ## a player in exactly the reported state was still never offered a Power node.
 ## Each role takes its own place from the back now.
 ##
+## **And a place is claimed by whatever already fills it.** The same overwrite
+## came back one layer in: a Power node the shuffle had already dealt satisfied
+## the "this role is covered" check, and a covered role did not advance the
+## write position, so the Ultimate offer was written over it. It needed the
+## shuffle to deal a Power node into the last place, which is about one road in
+## six - so it passed here and failed on CI. See `claimed` below: the two ways a
+## role gets served have to agree about which index is spent.
+##
 ## Index 0 is never taken, so the draft always keeps one offer that is not
 ## dictated by a dead slot. With three offers and two dead slots that is two
 ## fixed and one free, which is the right trade for a state the player has to
@@ -742,22 +750,40 @@ func refresh_discipline_offers() -> void:
 func _offer_an_empty_slot(eligible: Array[DisciplineNodeData]) -> void:
 	if discipline_offers.is_empty():
 		return
-	var at: int = discipline_offers.size() - 1
+	# Which dead slots there are to serve at all.
+	var wanted: Array[int] = []
 	for role: int in [DisciplineNodeData.Role.POWER, DisciplineNodeData.Role.ULTIMATE]:
-		if at <= 0 or _slot_is_filled(role):
+		if not _slot_is_filled(role):
+			wanted.append(role)
+	# **An offer that already serves a dead slot claims its place.**
+	#
+	# This is the third cut of the same line and the second time the Power offer
+	# was the casualty. The second cut noticed when a role was already covered by
+	# the shuffle's own three and skipped it - correctly - but skipped it
+	# *without taking its index out of play*, so the write position stayed on the
+	# back offer and the Ultimate write landed on top of the very Power node that
+	# had satisfied the check.
+	var claimed: Dictionary = {}
+	for index: int in discipline_offers.size():
+		var offered: DisciplineNodeData = ContentDB.discipline_node(
+			discipline_offers[index])
+		if offered == null or not wanted.has(int(offered.role)):
 			continue
-		var already: bool = false
-		for id: String in discipline_offers:
-			var offered: DisciplineNodeData = ContentDB.discipline_node(id)
-			already = already or (offered != null and offered.role == role)
-		if already:
-			continue
+		claimed[index] = true
+		wanted.erase(int(offered.role))
+	var at: int = discipline_offers.size() - 1
+	for role: int in wanted:
+		while at > 0 and claimed.has(at):
+			at -= 1
+		if at <= 0:
+			break
 		for node: DisciplineNodeData in eligible:
 			if node.role != role or not node.is_slot_unlocked(act):
 				continue
 			if discipline_offers.has(node.id):
 				continue
 			discipline_offers[at] = node.id
+			claimed[at] = true
 			at -= 1
 			break
 

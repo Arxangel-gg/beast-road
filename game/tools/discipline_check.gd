@@ -837,37 +837,64 @@ func _test_a_spell_can_always_be_cast() -> void:
 
 
 func _test_a_dead_slot_is_offered_a_way_out() -> void:
-	RunState.reset()
-	RunState.act = 5
-	RunState.building_tiers["sanctum"] = 3
-	# **The reported state, not an empty one.** The player had been training for
-	# five acts - just never into Power or Ultimate - and depth is what makes
-	# the deeper nodes eligible at all. A hero with nothing trained has depth
-	# zero everywhere and genuinely cannot be offered a tier-three Ultimate,
-	# which is the tree working rather than the slot being dead.
-	RunState.trained_discipline_nodes.clear()
-	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
-		if node.role in [DisciplineNodeData.Role.ATTACK,
-				DisciplineNodeData.Role.DEFENSE] 				and node.discipline == DisciplineNodeData.Discipline.BLOOD:
-			RunState.trained_discipline_nodes.append(node.id)
-	RunState.equipped_discipline_slots = ["", "", "", ""]
-	RunState.refresh_discipline_offers()
-	var roles: Dictionary = {}
-	for id: String in RunState.discipline_offers:
-		var node: DisciplineNodeData = ContentDB.discipline_node(id)
-		if node != null:
-			roles[node.role] = true
-	_check(RunState.discipline_offers.size() == 3,
-		"the draft is three offers, not %d" % RunState.discipline_offers.size())
-	_check(roles.has(DisciplineNodeData.Role.POWER),
+	# **Twenty-four roads, not one.**
+	#
+	# This called `RunState.reset()`, which rolls a *fresh* seed - so the three
+	# offers were a different three every run and the gate was a coin toss
+	# wearing a gate's clothes. It passed here and failed on CI with
+	# `["vigil", "consecrated_chain", "crimson_tempest"]`, which is the second
+	# overwrite documented on `_offer_an_empty_slot`. A guarantee is a property
+	# of every road or it is not a guarantee, so this walks a fixed spread of
+	# them and names every road that broke it.
+	var no_power: PackedStringArray = []
+	var no_ultimate: PackedStringArray = []
+	var doubled: PackedStringArray = []
+	var short_draft: PackedStringArray = []
+	for trial: int in 24:
+		RunState.reset(false, 1000 + trial * 7919)
+		RunState.act = 5
+		RunState.building_tiers["sanctum"] = 3
+		# **The reported state, not an empty one.** The player had been training
+		# for five acts - just never into Power or Ultimate - and depth is what
+		# makes the deeper nodes eligible at all. A hero with nothing trained has
+		# depth zero everywhere and genuinely cannot be offered a tier-three
+		# Ultimate, which is the tree working rather than the slot being dead.
+		RunState.trained_discipline_nodes.clear()
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.discipline != DisciplineNodeData.Discipline.BLOOD:
+				continue
+			if node.role in [DisciplineNodeData.Role.ATTACK,
+					DisciplineNodeData.Role.DEFENSE]:
+				RunState.trained_discipline_nodes.append(node.id)
+		RunState.equipped_discipline_slots = ["", "", "", ""]
+		RunState.refresh_discipline_offers()
+		var where: String = "seed %d %s" % [RunState.run_seed,
+			str(RunState.discipline_offers)]
+		if RunState.discipline_offers.size() != 3:
+			short_draft.append(where)
+			continue
+		var roles: Dictionary = {}
+		var seen: Dictionary = {}
+		for id: String in RunState.discipline_offers:
+			var node: DisciplineNodeData = ContentDB.discipline_node(id)
+			if node != null:
+				roles[node.role] = true
+			seen[id] = true
+		if not roles.has(DisciplineNodeData.Role.POWER):
+			no_power.append(where)
+		if not roles.has(DisciplineNodeData.Role.ULTIMATE):
+			no_ultimate.append(where)
+		if seen.size() != RunState.discipline_offers.size():
+			doubled.append(where)
+	_check(short_draft.is_empty(),
+		"the draft is three offers: %s" % ", ".join(short_draft))
+	_check(no_power.is_empty(),
 		"a Power slot standing empty in Act V must be offered a way out: %s"
-			% str(RunState.discipline_offers))
-	_check(roles.has(DisciplineNodeData.Role.ULTIMATE),
-		"and so must an empty Ultimate slot: %s" % str(RunState.discipline_offers))
-	_check(RunState.discipline_offers[0] != RunState.discipline_offers[1]
-			and RunState.discipline_offers[1] != RunState.discipline_offers[2]
-			and RunState.discipline_offers[0] != RunState.discipline_offers[2],
-		"the same node must not be offered twice: %s" % str(RunState.discipline_offers))
+			% ", ".join(no_power))
+	_check(no_ultimate.is_empty(),
+		"and so must an empty Ultimate slot: %s" % ", ".join(no_ultimate))
+	_check(doubled.is_empty(),
+		"the same node must not be offered twice: %s" % ", ".join(doubled))
 	RunState.reset()
 
 
