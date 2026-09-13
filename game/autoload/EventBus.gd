@@ -42,6 +42,11 @@ signal fish_caught(fish_id: String, food: int)
 ## A fish was eaten out of the stash.
 signal fish_eaten(fish_id: String)
 
+## A fish handed to somebody else: `to` is "spirit" or "ally" (owner
+## brief, 2026-09-13). The hero answers it, because the hero is the thing
+## that knows what is standing next to it.
+signal fish_given(fish_id: String, to: String)
+
 ## Something on the field is asking for a press - a rift gate, a dungeon mouth.
 ## Same shape as `fishing_prompt`; the HUD and the touch button read both.
 signal interact_prompt(text: String, button: String)
@@ -295,6 +300,14 @@ signal discipline_respecced(food_spent: int, use_count: int)
 
 ## Something wants the camera shaken — decoupled so any system can ask.
 signal camera_shake_requested(magnitude: float, duration: float)
+
+## **A blow landed somewhere, with a weight.** The rig turns it into a
+## shake scaled by how far it is from what the camera is watching, so a
+## tower firing across the map is felt as a tremor and something hitting
+## the hero is felt as a hit (owner brief, 2026-09-13). `power` is 0..1 of
+## a full-strength impact; anything emitting one works that out from its
+## own numbers rather than guessing a magnitude.
+signal camera_impact(at: Vector2, power: float)
 
 ## Something wants a brief global freeze on impact. Highest request wins.
 signal hitstop_requested(duration: float)

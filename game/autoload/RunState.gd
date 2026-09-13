@@ -842,6 +842,43 @@ func _store_hero() -> void:
 ## other caller that happens to hold a fish id.
 ##
 ## Returns "" when the fish was eaten, and a sentence fit to show otherwise.
+## Gives a fish to the spirit at your shoulder. The same cap, because the cap
+## counts fish rather than mouths - feeding the bear must not be a way round
+## the one bound the pantry has.
+func feed_spirit(id: String) -> String:
+	var refusal: String = _take_a_fish(id)
+	if not refusal.is_empty():
+		return refusal
+	EventBus.fish_given.emit(id, "spirit")
+	return ""
+
+
+## Gives a fish to a player standing beside you who is hurt.
+func feed_ally(id: String) -> String:
+	var refusal: String = _take_a_fish(id)
+	if not refusal.is_empty():
+		return refusal
+	EventBus.fish_given.emit(id, "ally")
+	return ""
+
+
+## Everything that can refuse a meal, and the spending, in one place.
+func _take_a_fish(id: String) -> String:
+	if not GameDirector.run_active:
+		return "Fish are shared on the road, not between runs."
+	var kind: FishData = ContentDB.fish(id)
+	if kind == null:
+		return "No such fish."
+	if MetaState.fish_count(id) <= 0:
+		return "You have none of those."
+	if meals_eaten >= Balance.FISH_MEALS_PER_RUN:
+		return "Nothing left to share this run."
+	if not MetaState.spend_fish(id):
+		return "You have none of those."
+	meals_eaten += 1
+	return ""
+
+
 func eat_fish(id: String) -> String:
 	if not GameDirector.run_active:
 		return "Fish are eaten on the road, not between runs."
@@ -1944,6 +1981,8 @@ var spirit_called: bool = true
 ## The fraction of a Food unit the companion has eaten but not yet been
 ## charged, so a slow drain is a drain rather than a rounding error.
 var spirit_upkeep_carry: float = 0.0
+## Seconds a fed spirit is not hungry for. A meal buys a while out.
+var spirit_full_left: float = 0.0
 
 
 ## What this spirit eats a minute, from its own size. A bear eats like a bear.
@@ -1987,6 +2026,9 @@ func send_spirit_away() -> void:
 func tick_spirit_upkeep(kind: CompanionData, delta: float) -> void:
 	if not spirit_called or kind == null:
 		return
+	if spirit_full_left > 0.0:
+		spirit_full_left = maxf(spirit_full_left - delta, 0.0)
+		return
 	spirit_upkeep_carry += spirit_upkeep(kind) * delta / 60.0
 	var whole: int = int(floor(spirit_upkeep_carry))
 	if whole <= 0:
@@ -1997,3 +2039,8 @@ func tick_spirit_upkeep(kind: CompanionData, delta: float) -> void:
 		EventBus.preparation_warning.emit("Your spirit went home: nothing left to feed it.")
 		return
 	spend_cost({FOOD: whole})
+
+
+## A fed spirit stops eating for a while.
+func feed_the_spirit(seconds: float) -> void:
+	spirit_full_left = maxf(spirit_full_left, seconds)

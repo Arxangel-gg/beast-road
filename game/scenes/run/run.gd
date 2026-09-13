@@ -640,7 +640,12 @@ func _begin_boss_preparation(act: int) -> void:
 		"FINAL PREPARATION  ·  the Act %d boss waits beyond this road." % act)
 
 
-func _on_boss_defeated(_boss_id: String, act: int) -> void:
+func _on_boss_defeated(boss_id: String, act: int) -> void:
+	# **The act ends on a card.** The kill lands, the field is wiped away and
+	# the thing that was killed is held up before the road ahead is offered
+	# (owner brief, 2026-09-13). Awaited, so a portent does not open behind it.
+	await _show_the_fallen(boss_id, act)
+	var _boss_id: String = boss_id
 	# The Chainmaker is the run's actual end. The last act's boss opens the climb
 	# to him rather than finishing the campaign, which is what v4 asks for and
 	# what the enum has always described.
@@ -1100,3 +1105,19 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	if hud != null:
 		hud.show_end_report()
 	results_ui.show_results(victory, summary)
+
+
+## Holds the fallen boss up, full screen, between the kill and the road.
+##
+## Every act, not once a boss: `MilestoneCinematics` already owns the
+## once-ever story beats and marks them seen, and this is the opposite kind of
+## thing - the punctuation at the end of every act, which has to land every
+## time or it is not punctuation.
+func _show_the_fallen(boss_id: String, act: int) -> void:
+	var boss: EnemyData = ContentDB.enemy(boss_id)
+	if boss == null or DisplayServer.get_name() == "headless":
+		return
+	var card := BossFallCard.new()
+	add_child(card)
+	await card.play(boss, act)
+	card.queue_free()

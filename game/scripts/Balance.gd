@@ -6315,3 +6315,86 @@ const TRAP_LEVEL_TRIGGERS: Array[int] = [0, 1, 2, 3, 5]
 const TRAP_LEVEL_RADIUS: Array[float] = [1.0, 1.06, 1.12, 1.18, 1.26]
 ## What the next level costs, as a share of the trap's own build price.
 const TRAP_UPGRADE_COST_SCALE: Array[float] = [0.0, 0.9, 1.35, 2.0, 3.0]
+
+# --- Impacts you feel (2026-09-13) ---------------------------------------------------------
+## **A blow shakes the picture by its weight and its distance.**
+##
+## Every shake in the game was a fixed magnitude wherever it happened, so a
+## tower firing on the far road rattled the screen exactly as hard as
+## something hitting the hero. `EventBus.camera_impact` carries a position and
+## a power instead, and the rig reads both. [TUNE]
+const IMPACT_SHAKE_MAX: float = 11.0
+const IMPACT_SHAKE_MIN_POWER: float = 0.06
+const IMPACT_SHAKE_SECONDS: Vector2 = Vector2(0.1, 0.34)
+## Full strength at the camera, nothing past this. A road is about 1400 units
+## end to end, so a fight two roads away is felt faintly and no further.
+const IMPACT_SHAKE_REACH: float = 1250.0
+## How much of a body's health a blow has to take to be worth feeling at all,
+## and what share of its health counts as a full-strength impact.
+const IMPACT_FULL_SHARE: float = 0.32
+
+
+# --- The road notices a hunter (2026-09-13) ------------------------------------------------
+## **Kill enough of one animal and its worst comes looking for you.**
+##
+## The owner asked for a RuneScape-shaped answer to over-farming: heavy
+## hunting of one species inside a window is met by a savage elite of that
+## species, sent to hunt the hunter. It is a *consequence*, not a punishment
+## - it drops well, and a player who wants the fight can farm on purpose to
+## start it.
+##
+## The window is what makes it about farming rather than about a long run: a
+## dozen deer over an act is a road lived on, a dozen in two minutes is a
+## cull. Kills age out at `HUNT_DECAY` a second. [TUNE]
+const HUNT_TALLY_TRIGGER: float = 8.0
+const HUNT_DECAY: float = 0.055
+## How long before the same species can send another, so clearing one savage
+## does not immediately summon the next.
+const HUNT_COOLDOWN: float = 150.0
+## What a savage is: bigger, tougher, harder-hitting and faster than its kind,
+## on top of whatever an elite already is.
+const HUNT_SAVAGE_SCALE: float = 1.55
+const HUNT_SAVAGE_HEALTH: float = 5.5
+const HUNT_SAVAGE_DAMAGE: float = 2.4
+const HUNT_SAVAGE_SPEED: float = 1.25
+const HUNT_SAVAGE_REWARD: float = 6.0
+const HUNT_SAVAGE_TINT: Color = Color(1.0, 0.72, 0.62)
+const HUNT_SAVAGE_AURA: Color = Color(1.0, 0.34, 0.2, 0.5)
+const HUNT_SAVAGE_AURA_RADIUS: float = 96.0
+
+# --- The act ends (2026-09-13) ---------------------------------------------------------------
+## **A boss falling is the end of an act, and it should feel like one.**
+##
+## Over the HUD and over the crossroad screens: what the card is doing is
+## stopping everything else from being read, and a portent opening behind it
+## would be dismissed by a click meant for this. [TUNE]
+const BOSS_FALL_LAYER: int = 12
+const BOSS_FALL_SHAKE: float = 16.0
+const BOSS_FALL_SHAKE_SECONDS: float = 0.8
+## The beat straight after the kill, where time nearly stops.
+const BOSS_FALL_SLOW: float = 0.32
+const BOSS_FALL_SLOW_SECONDS: float = 0.7
+const BOSS_FALL_WIPE_SECONDS: float = 0.9
+const BOSS_FALL_HOLD_SECONDS: float = 3.4
+
+
+# --- A fish given rather than eaten (2026-09-13) ------------------------------------
+## **A meal is a meal whoever eats it.**
+##
+## The owner asked for a caught fish to be shareable: given to the spirit at
+## your shoulder, or to a player standing beside you who is hurt. The cap
+## (`FISH_MEALS_PER_RUN`) counts the *fish*, not the mouth - otherwise
+## feeding the bear would be a way round the one bound the pantry has, and
+## the whole recovery economy goes with it.
+##
+## What the rarer fish add is a buff carried by whoever ate it, scaled by
+## rarity. A fed spirit also stops being hungry for a while, which is what
+## makes a full larder worth spending on something other than yourself. [TUNE]
+const FISH_SHARE_RANGE: float = 190.0
+const FISH_BUFF_SECONDS: Array[float] = [12.0, 18.0, 26.0, 36.0]
+const FISH_BUFF_DAMAGE: Array[float] = [0.06, 0.11, 0.18, 0.28]
+const FISH_BUFF_SPEED: Array[float] = [0.04, 0.07, 0.11, 0.16]
+## How long a fed spirit stops eating for, by the fish's rarity.
+const FISH_SPIRIT_FULL_SECONDS: Array[float] = [25.0, 45.0, 75.0, 120.0]
+## And how much of its health a fish puts back into a spirit.
+const FISH_SPIRIT_HEAL: Array[float] = [0.25, 0.4, 0.6, 0.85]

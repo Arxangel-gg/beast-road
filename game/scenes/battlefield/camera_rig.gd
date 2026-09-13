@@ -44,6 +44,7 @@ func _ready() -> void:
 	_wanted_zoom = _start_zoom(zoom_level if zoom_level > 0.0 else Balance.CAMERA_ZOOM)
 	zoom = Vector2.ONE * _wanted_zoom
 	EventBus.camera_shake_requested.connect(_on_shake_requested)
+	EventBus.camera_impact.connect(_on_impact)
 	if target != null:
 		global_position = target.global_position
 
@@ -249,6 +250,25 @@ func _plant_step() -> void:
 ## which carries only a magnitude and a duration and is used by a dozen unrelated
 ## systems. Those get a random direction, which is what they had before. The
 ## beast's footfall calls this directly and does know which way it shoved.
+## A blow landed at `at` with `power` in 0..1. Turned into a shake scaled by
+## how far it is from what the camera is watching, and aimed away from it, so
+## the picture moves the way the blow did.
+func _on_impact(at: Vector2, power: float) -> void:
+	if power < Balance.IMPACT_SHAKE_MIN_POWER:
+		return
+	var away: Vector2 = global_position - at
+	var reach: float = maxf(Balance.IMPACT_SHAKE_REACH, 1.0)
+	var near: float = clampf(1.0 - away.length() / reach, 0.0, 1.0)
+	if near <= 0.0:
+		return
+	# Squared, so the falloff reads as "that was over there" rather than as a
+	# flat rumble everywhere inside the radius.
+	var weight: float = clampf(power, 0.0, 1.0) * near * near
+	_on_shake_requested(Balance.IMPACT_SHAKE_MAX * weight,
+		lerpf(Balance.IMPACT_SHAKE_SECONDS.x, Balance.IMPACT_SHAKE_SECONDS.y, weight),
+		away.normalized() if not away.is_zero_approx() else Vector2.ZERO)
+
+
 func _on_shake_requested(magnitude: float, duration: float,
 		direction: Vector2 = Vector2.ZERO) -> void:
 	var scaled: float = magnitude * float(MetaState.settings.get("screen_shake", 1.0))

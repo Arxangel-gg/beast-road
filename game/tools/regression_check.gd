@@ -227,6 +227,14 @@ func _test_enemy_faces_its_travel() -> void:
 		return
 	await get_tree().process_frame
 
+	# **The test breed is posed for the test.** Since 2026-09-13 a breed says
+	# which way its art faces, and a front-facing one is deliberately never
+	# mirrored - flipping art drawn head-on swaps the props into the wrong
+	# hands. `bogkin` is front-facing, so the motion rule this regression
+	# exists to protect is exercised by posing it in profile for the duration.
+	var posed: int = data.art_facing
+	data.art_facing = EnemyData.Facing.RIGHT
+
 	# Walking left. No target, so this is the plain motion case.
 	enemy._state = Enemy.State.WALKING
 	enemy._target = null
@@ -256,7 +264,19 @@ func _test_enemy_faces_its_travel() -> void:
 		enemy._motion = Vector2.ZERO
 		enemy._update_sprite()
 		_check(enemy.sprite.flip_h, "an attacking enemy must face what it is hitting")
+
 		victim.queue_free()
+	# And the rule the posing was hiding: a front-facing breed is never
+	# mirrored, whichever way it walks or looks.
+	data.art_facing = EnemyData.Facing.FRONT
+	enemy.sprite.flip_h = false
+	enemy._state = Enemy.State.WALKING
+	enemy._target = null
+	enemy._motion = Vector2(-Balance.FACING_DEADZONE * 4.0, 0.0)
+	enemy._update_sprite()
+	_check(not enemy.sprite.flip_h,
+		"front-facing art must never be mirrored - it swaps the props into the wrong hands")
+	data.art_facing = posed
 	enemy.queue_free()
 	await get_tree().process_frame
 

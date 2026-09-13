@@ -1307,6 +1307,43 @@ offers now fills an empty unlocked slot whenever the pool holds one.
 300 MB game. Under combat, weather and a war horn, q1 is not the thing anybody
 hears; sound effects stay at q5 because they are short and exposed.
 
+**And the second half of that report.** An act now *ends*: the kill flashes
+and slows, `boss_fall.gdshader` drains the colour and inks the field away, and
+the thing that was killed is held up full-screen with its name and its act
+before the road ahead is offered. Every act, not once a boss -
+`MilestoneCinematics` already owns the once-ever beats and marks them seen,
+and this is the punctuation at the end of every act, which has to land every
+time or it is not punctuation.
+
+**A blow is felt where it lands.** Every shake in the game was a fixed
+magnitude wherever it happened, so a tower firing on the far road rattled the
+screen as hard as something hitting the hero. `EventBus.camera_impact` carries
+a position and a weight, and the rig scales it by distance from what the
+camera is watching. It is emitted from `Enemy.take_damage` - the one funnel
+every blow in the game goes through - with the weight taken from what the blow
+removed, so a shot that chips a boss is a tremor and one that halves a runner
+is a hit.
+
+**Over-farming is answered by the species.** Kill enough of one animal inside
+a window and a savage elite of that kind is sent to hunt the hunter: bigger,
+tougher, rabid-behaved, and worth six times the bounty. It is a consequence
+rather than a punishment - a player who wants the fight can start one on
+purpose. The window is what makes it about farming: a dozen deer over an act
+is a road lived on, a dozen in two minutes is a cull.
+
+**A fish can be given away.** To the spirit at your shoulder, which heals it
+and stops it eating for a while, or to a player beside you who is hurt. **The
+meal cap counts fish rather than mouths** - otherwise feeding the bear is a
+way round the one bound the pantry has, and the recovery economy goes with
+it. The rarer fish carry a short damage-and-speed buff for whoever ate it.
+
+**Rustwood and Ashen Reach were fishing in lava.** Their pond tilesets were
+generated as molten rock, which against Rustwood's red autumn ground is
+invisible - reported as "Act 5's ponds aren't there but their foliage is".
+Both are water now. `tools/install_pond_tiles.py` is back and documents the
+rule the lost version got wrong: a tile's place on the sheet comes from its
+own `bounding_box`, never from its `wang_N` name or its `original_position`.
+
 **The well is drunk from, as of the same date.** A full well shows a gauge
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.

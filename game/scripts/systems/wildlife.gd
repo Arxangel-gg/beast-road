@@ -121,6 +121,7 @@ func _refresh_kinds() -> void:
 
 
 func _process(delta: float) -> void:
+	_tick_hunt(delta)
 	if Graphics.foliage_scale() <= 0.0:
 		clear()
 		return
@@ -1488,6 +1489,13 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# two deer are not worth exactly the same. Its own stream, so a seeded replay
 	# is not changed by whether somebody stopped to hunt.
 	var bounty: float = Balance.WILDLIFE_ELITE_REWARD if bool(animal["elite"]) else 1.0
+	if bool(animal.get("savage", false)):
+		bounty = Balance.HUNT_SAVAGE_REWARD
+	else:
+		# One more of this kind on the tally; enough of them and its worst
+		# comes looking (owner brief, 2026-09-13). A savage does not count
+		# towards the next one - clearing the consequence is not more farming.
+		_tally_hunt(kind)
 	var food: int = int(round(float(_rng.randi_range(kind.food_min, kind.food_max))
 		* bounty))
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
@@ -2008,4 +2016,116 @@ func threat_to(who: Node2D, radius: float) -> Vector2:
 		if distance < best_distance:
 			best_distance = distance
 			best = sprite.global_position
+	return best
+
+
+# --- The road notices a hunter (2026-09-13) ----------------------------------------------
+
+## Kills of each species, decaying. See `Balance.HUNT_TALLY_TRIGGER`.
+var _hunt_tally: Dictionary = {}
+## Seconds before each species may send another savage.
+var _hunt_cooldown: Dictionary = {}
+
+
+## Ages the tallies and the cooldowns. Called from `_process`.
+func _tick_hunt(delta: float) -> void:
+	for id: Variant in _hunt_tally.keys():
+		var left: float = float(_hunt_tally[id]) - Balance.HUNT_DECAY * delta
+		if left <= 0.0:
+			_hunt_tally.erase(id)
+		else:
+			_hunt_tally[id] = left
+	for id: Variant in _hunt_cooldown.keys():
+		var left: float = float(_hunt_cooldown[id]) - delta
+		if left <= 0.0:
+			_hunt_cooldown.erase(id)
+		else:
+			_hunt_cooldown[id] = left
+
+
+## One more of this species killed by a player. When the tally crosses the
+## trigger, the species sends its worst.
+func _tally_hunt(kind: WildlifeData) -> void:
+	if kind == null or Coop.is_guest():
+		return
+	if _hunt_cooldown.has(kind.id):
+		return
+	var tally: float = float(_hunt_tally.get(kind.id, 0.0)) + 1.0
+	if tally < Balance.HUNT_TALLY_TRIGGER:
+		_hunt_tally[kind.id] = tally
+		return
+	_hunt_tally.erase(kind.id)
+	_hunt_cooldown[kind.id] = Balance.HUNT_COOLDOWN
+	_send_a_savage(kind)
+
+
+## Puts a savage of `kind` on the field, at the edge, already hunting.
+##
+## It is spawned through the ordinary door so that everything else about an
+## animal - the shadow, the bar, the frames, the co-op serial - is true of it
+## too; what makes it a savage is the dressing and the numbers afterwards.
+func _send_a_savage(kind: WildlifeData) -> void:
+	if grid == null:
+		return
+	var hero: Node2D = _nearest_hero_node()
+	if hero == null:
+		return
+	var from: Vector2 = hero.global_position + Vector2.RIGHT.rotated(
+		_rng.randf() * TAU) * Balance.WILDLIFE_BOLT_DISTANCE
+	from = from.clamp(Vector2.ONE * -BattleGrid.CORE_HALF_EXTENT,
+		Vector2.ONE * BattleGrid.CORE_HALF_EXTENT)
+	var before: int = _living.size()
+	_spawn(kind, from)
+	if _living.size() <= before:
+		return
+	var animal: Dictionary = _living[_living.size() - 1]
+	_make_savage(animal, kind, hero)
+	EventBus.preparation_warning.emit(
+		"Something large has taken an interest in your hunting.")
+	Sfx.play("sfx_chieftain_roar")
+
+
+## Turns a freshly spawned animal into the thing the road sent.
+func _make_savage(animal: Dictionary, kind: WildlifeData, hero: Node2D) -> void:
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	animal["savage"] = true
+	animal["elite"] = true
+	# Rabid behaviour is what a savage *does* - hunts everything, never breaks
+	# off - so it rides that rather than growing a second state machine.
+	animal["rabid"] = true
+	animal["hp"] = kind.max_hp * Balance.HUNT_SAVAGE_HEALTH
+	animal["hunt"] = INF
+	animal["state"] = State.STALKING
+	animal["goal"] = hero.global_position
+	sprite.scale = Vector2.ONE * kind.scale * Balance.HUNT_SAVAGE_SCALE
+	sprite.modulate = Balance.HUNT_SAVAGE_TINT
+	var aura := Sprite2D.new()
+	aura.name = "Savage"
+	aura.texture = LightKit.falloff_texture()
+	aura.modulate = Balance.HUNT_SAVAGE_AURA
+	aura.scale = Vector2.ONE * (Balance.HUNT_SAVAGE_AURA_RADIUS
+		/ maxf(float(LightKit.falloff_texture().get_width()), 1.0)) / maxf(kind.scale, 0.01)
+	aura.z_index = -1
+	aura.z_as_relative = true
+	sprite.add_child(aura)
+	var breath: Tween = aura.create_tween().set_loops()
+	breath.tween_property(aura, "modulate:a", Balance.HUNT_SAVAGE_AURA.a * 0.4, 0.7)
+	breath.tween_property(aura, "modulate:a", Balance.HUNT_SAVAGE_AURA.a, 0.7)
+	Vfx.ring(sprite.global_position, 150.0, Balance.HUNT_SAVAGE_AURA, 0.9, 4.0)
+
+
+## The hero a savage is sent after: the nearest one on the field.
+func _nearest_hero_node() -> Node2D:
+	var best: Node2D = null
+	var best_distance: float = INF
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Node2D
+		if who == null or not is_instance_valid(who):
+			continue
+		var distance: float = who.global_position.distance_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = who
 	return best

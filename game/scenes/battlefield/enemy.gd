@@ -1447,6 +1447,14 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 		active_hero: bool = false) -> bool:
 	if _state == State.DYING or data == null or puppet:
 		return false
+	# **Every blow in the game goes through here**, which is why the impact is
+	# announced here rather than at each of the thirty places that deal one.
+	# Its weight is what the blow took off this body, so a shot that chips a
+	# boss is a tremor and one that halves a runner is a hit (owner brief,
+	# 2026-09-13).
+	if health != null and health.max_hp > 0.0:
+		EventBus.camera_impact.emit(global_position,
+			amount / health.max_hp / Balance.IMPACT_FULL_SHARE)
 	var was_telegraphing: bool = _state == State.WINDUP
 	var incoming: float = amount
 	if RunState.enemies_are_weakened():

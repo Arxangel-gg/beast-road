@@ -452,6 +452,34 @@ func _fish_row(kind: FishData) -> Container:
 		kind.rarity_colour().lerp(Color.WHITE, 0.35))
 	row.add_child(label)
 
+	# **Give it away.** A fish can go to the spirit at your shoulder or to a
+	# player beside you who is hurt (owner brief, 2026-09-13). Both are offered
+	# only when there is somebody to take it, because a button that always
+	# refuses teaches nothing.
+	var hero: Hero = _local_hero()
+	if hero != null and hero.spirit != null and is_instance_valid(hero.spirit):
+		var give := Button.new()
+		give.text = "Feed spirit"
+		give.custom_minimum_size = Vector2(126.0, ACTION_HEIGHT)
+		give.tooltip_text = "Heals your spirit and stops it eating for a while."
+		give.pressed.connect(func() -> void:
+			_message = RunState.feed_spirit(kind.id)
+			if _message.is_empty():
+				_message = "Gave the %s to your spirit." % kind.display_name
+			_refresh())
+		row.add_child(give)
+	if hero != null and hero.has_hurt_ally():
+		var share := Button.new()
+		share.text = "Share"
+		share.custom_minimum_size = Vector2(96.0, ACTION_HEIGHT)
+		share.tooltip_text = "Hands it to the hurt player beside you."
+		share.pressed.connect(func() -> void:
+			_message = RunState.feed_ally(kind.id)
+			if _message.is_empty():
+				_message = "Shared the %s." % kind.display_name
+			_refresh())
+		row.add_child(share)
+
 	var eat := Button.new()
 	eat.text = "Eat"
 	eat.custom_minimum_size = Vector2(96.0, ACTION_HEIGHT)
@@ -699,3 +727,18 @@ func _size_action(button: Button) -> void:
 		button.add_theme_stylebox_override(state, tight)
 	button.set_meta(UiMetrics.SELF_SIZED, true)
 	button.set_meta(UiMetrics.TOUCH_TARGET_HEIGHT, height)
+
+
+## The hero this screen belongs to, or null between runs.
+##
+## Found through the group rather than held, because the stash outlives any
+## one battlefield and a stale reference here would be a crash on the second
+## run rather than on the first.
+func _local_hero() -> Hero:
+	if not GameDirector.run_active:
+		return null
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP):
+		var who := node as Hero
+		if who != null and is_instance_valid(who) and who.is_local_player():
+			return who
+	return null

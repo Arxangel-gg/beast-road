@@ -340,6 +340,7 @@ func _ready() -> void:
 	spells.wound_guard_requested.connect(_on_wound_guard_requested)
 	spells.dash_refund_requested.connect(refund_dash)
 	EventBus.fish_eaten.connect(_on_fish_eaten)
+	EventBus.fish_given.connect(_on_fish_given)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
 	EventBus.boss_defeated.connect(_on_boss_bonus_changed)
@@ -446,6 +447,7 @@ func _physics_process(delta: float) -> void:
 ## between wading and walking on every ripple of the depth field.
 func _tick_swim(delta: float) -> void:
 	_tick_poison(delta)
+	_tick_meal(delta)
 	_swim_depth = 0.0
 	if field != null and field.has_method("water_depth_at") and is_in_group(GROUP_ANY):
 		_swim_depth = float(field.call("water_depth_at", global_position))
@@ -700,6 +702,7 @@ func move_speed() -> float:
 	if _pulse_left > 0.0:
 		bonus += DisciplineEffects.trained_value("support_kill_speed")
 	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
+	bonus += _meal_speed
 	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
 
 
@@ -728,7 +731,7 @@ func _on_loosed(from: Vector2, direction: Vector2, kind: AmmoData) -> void:
 
 ## Damage multiplier the attack chain applies to every swing.
 func damage_multiplier() -> float:
-	var multiplier: float = Modifiers.multiplier(Modifiers.HERO_DAMAGE)
+	var multiplier: float = Modifiers.multiplier(Modifiers.HERO_DAMAGE) * (1.0 + _meal_damage)
 	# Might. Additive with itself and multiplicative with everything else, so a
 	# hundred points is a known ceiling rather than something that compounds
 	# with relics into a number nobody predicted.
@@ -873,6 +876,36 @@ func _on_wound_guard_requested(fraction: float, delay: float, seconds: float) ->
 ##
 ## The partner does not eat this one: a fish comes out of one account's pantry
 ## and feeds the person who kept it.
+## A meal's lingering buff: seconds left, and what it is worth.
+##
+## The rarer the fish the longer and stronger (owner brief, 2026-09-13). Held
+## here rather than in `Modifiers` because it is a *meal*, not a relic: it
+## belongs to this body for this while, and a co-op partner who was handed the
+## fish carries their own.
+var _meal_left: float = 0.0
+var _meal_damage: float = 0.0
+var _meal_speed: float = 0.0
+
+
+## Whatever the fish was worth, for however long its rarity buys.
+func take_meal_buff(kind: FishData) -> void:
+	if kind == null:
+		return
+	var tier: int = clampi(int(kind.rarity), 0, Balance.FISH_BUFF_SECONDS.size() - 1)
+	_meal_left = maxf(_meal_left, Balance.FISH_BUFF_SECONDS[tier])
+	_meal_damage = maxf(_meal_damage, Balance.FISH_BUFF_DAMAGE[tier])
+	_meal_speed = maxf(_meal_speed, Balance.FISH_BUFF_SPEED[tier])
+
+
+func _tick_meal(delta: float) -> void:
+	if _meal_left <= 0.0:
+		return
+	_meal_left = maxf(_meal_left - delta, 0.0)
+	if _meal_left <= 0.0:
+		_meal_damage = 0.0
+		_meal_speed = 0.0
+
+
 func _on_fish_eaten(fish_id: String) -> void:
 	if health == null or health.is_dead or not is_local_player():
 		return
@@ -887,6 +920,7 @@ func _on_fish_eaten(fish_id: String) -> void:
 		mana = minf(mana + mana_max() * kind.mana_fraction, mana_max())
 		RunState.hero_mana = mana
 		EventBus.hero_mana_changed.emit(mana, mana_max())
+	take_meal_buff(kind)
 	Vfx.ring(combat_origin(), 54.0, kind.rarity_colour(), 0.4, 4.0)
 	Sfx.play("sfx_ui_confirm", -2.0)
 
@@ -1932,3 +1966,57 @@ func _refresh_spirit() -> void:
 	# other. Reported as "companions become invisible past a certain y".
 	var layer: Node = field.get("entity_root") as Node
 	(layer if layer != null else field).add_child(spirit)
+
+
+## A fish handed to somebody: the spirit at your shoulder, or a player beside
+## you who is hurt. Only the hero that gave it answers - the pantry belongs to
+## whoever caught the fish (owner brief, 2026-09-13).
+func _on_fish_given(fish_id: String, to: String) -> void:
+	if not is_local_player():
+		return
+	var kind: FishData = ContentDB.fish(fish_id)
+	if kind == null:
+		return
+	if to == "spirit":
+		if spirit != null and is_instance_valid(spirit):
+			spirit.feed(kind)
+		return
+	var ally: Hero = nearest_hurt_ally()
+	if ally == null:
+		return
+	if ally.health != null:
+		if kind.heal_fraction > 0.0:
+			ally.health.heal(ally.health.max_hp * kind.heal_fraction)
+		if kind.shield_fraction > 0.0:
+			ally.health.add_shield(ally.health.max_hp * kind.shield_fraction)
+	ally.take_meal_buff(kind)
+	Vfx.ring(ally.combat_origin(), 54.0, kind.rarity_colour(), 0.4, 4.0)
+	Sfx.play("sfx_ui_confirm", -2.0)
+
+
+## The nearest other hero in reach who has actually lost something, or null.
+##
+## "Who is hurt" rather than "who is nearest", for the same reason the well
+## pours for the most hurt: handing a meal to somebody at full health is a
+## meal thrown away, and the cap counts it.
+func nearest_hurt_ally() -> Hero:
+	var best: Hero = null
+	var best_distance: float = Balance.FISH_SHARE_RANGE
+	for node: Node in get_tree().get_nodes_in_group(GROUP_ANY):
+		var who := node as Hero
+		if who == null or who == self or not is_instance_valid(who):
+			continue
+		if who.health == null or who.health.is_dead:
+			continue
+		if who.health.current >= who.health.max_hp:
+			continue
+		var distance: float = who.global_position.distance_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = who
+	return best
+
+
+## Whether there is somebody beside this hero worth handing a fish to.
+func has_hurt_ally() -> bool:
+	return nearest_hurt_ally() != null

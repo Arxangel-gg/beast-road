@@ -598,3 +598,20 @@ func _dress_as_spirit() -> void:
 	var half: float = 0.5 / maxf(Balance.SPIRIT_BREATH_HZ, 0.05)
 	breath.tween_property(_sprite, "modulate", dim, half)
 	breath.tween_property(_sprite, "modulate", hue, half)
+
+
+## A fish, handed over (owner brief, 2026-09-13).
+##
+## Heals by the fish's rarity and stops the spirit being hungry for a while -
+## which is what makes a full larder worth spending on something other than
+## yourself, now that a spirit eats to stay out.
+func feed(kind: FishData) -> void:
+	if kind == null:
+		return
+	var tier: int = clampi(int(kind.rarity), 0, Balance.FISH_SPIRIT_HEAL.size() - 1)
+	_hp = minf(_hp + _max_hp * Balance.FISH_SPIRIT_HEAL[tier], _max_hp)
+	_refresh_bar()
+	RunState.feed_the_spirit(Balance.FISH_SPIRIT_FULL_SECONDS[tier])
+	Vfx.ring(global_position, 60.0, kind.rarity_colour(), 0.45, 4.0)
+	Vfx.spark(global_position, kind.rarity_colour(), 9, Vector2.UP, 150.0)
+	Sfx.play("sfx_ui_confirm", -3.0)
