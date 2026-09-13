@@ -37,6 +37,11 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	for butterfly: Dictionary in _butterflies:
+		# The shadow is a sibling rather than a child, so it is not carried off
+		# by freeing the butterfly and has to be let go of here.
+		var shadow := butterfly.get("shadow", null) as Sprite2D
+		if shadow != null and is_instance_valid(shadow):
+			shadow.queue_free()
 		var sprite := butterfly.get("sprite", null) as Sprite2D
 		if sprite != null and is_instance_valid(sprite):
 			sprite.queue_free()
@@ -48,6 +53,11 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	for butterfly: Dictionary in _butterflies:
 		_tick_butterfly(butterfly, delta)
+		# **After the tick, never inside it.** The tick moves the butterfly and
+		# returns early when it is perched, so a shadow placed at the top of it
+		# sat where the butterfly had been on the previous frame - measured as
+		# a shadow trailing a flying butterfly by about a pixel.
+		_place_shadow(butterfly, butterfly.get("sprite", null) as Sprite2D)
 
 
 func _frame_series(format: String) -> Array[Texture2D]:
@@ -58,6 +68,32 @@ func _frame_series(format: String) -> Array[Texture2D]:
 			break
 		out.append(load(path) as Texture2D)
 	return out
+
+
+## The shadow stays on the ground the butterfly is over, and shrinks and fades
+## as it climbs.
+##
+## The vertical gap is not set here and never could be: the sprite is drawn
+## `offset.y` above its own ground point and the shadow sits *at* that point, so
+## the distance between them is the altitude by construction. A perched
+## butterfly is two pixels up and all but touching its shadow; a flying one is
+## twenty-eight up and clearly separated, and it eases between the two because
+## the offset does.
+func _place_shadow(butterfly: Dictionary, sprite: Sprite2D) -> void:
+	var shadow := butterfly.get("shadow", null) as Sprite2D
+	if shadow == null or not is_instance_valid(shadow):
+		return
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	shadow.position = sprite.position
+	var lift: float = -sprite.offset.y
+	var climb: float = clampf(inverse_lerp(Balance.AMBIENT_BUTTERFLY_PERCH_LIFT,
+		Balance.AMBIENT_BUTTERFLY_LIFT, lift), 0.0, 1.0)
+	var base: Vector2 = butterfly.get("shadow_scale", Vector2.ONE)
+	shadow.scale = base * lerpf(Balance.AMBIENT_BUTTERFLY_SHADOW_SCALE.x,
+		Balance.AMBIENT_BUTTERFLY_SHADOW_SCALE.y, climb)
+	shadow.modulate.a = lerpf(Balance.AMBIENT_BUTTERFLY_SHADOW_ALPHA.x,
+		Balance.AMBIENT_BUTTERFLY_SHADOW_ALPHA.y, climb)
 
 
 func _build_butterflies() -> void:
@@ -78,10 +114,22 @@ func _build_butterflies() -> void:
 		sprite.offset.y = -Balance.AMBIENT_BUTTERFLY_LIFT
 		var visual_scale: float = _rng.randf_range(0.42, 0.68)
 		sprite.scale = Vector2.ONE * visual_scale
-		(host if host != null else self).add_child(sprite)
+		var parent: Node = host if host != null else self
+		parent.add_child(sprite)
+		# **A sibling, not a child of the butterfly.** `offset` moves only the
+		# drawn texture, so a shadow parented to the sprite would already sit on
+		# the ground - but it would also inherit the perched breathing squash,
+		# which would have the shadow swelling and pinching in time with the
+		# wings. Held beside it and moved by hand instead.
+		var shadow: Sprite2D = ShadowKit.add_contact_sized(parent,
+			Balance.AMBIENT_BUTTERFLY_SHADOW_WIDTH * visual_scale, 0.0)
+		if shadow != null:
+			shadow.position = at
 		var angle: float = _rng.randf() * TAU
 		_butterflies.append({
 			"sprite": sprite,
+			"shadow": shadow,
+			"shadow_scale": shadow.scale if shadow != null else Vector2.ONE,
 			"home": at,
 			"goal": at + Vector2.RIGHT.rotated(angle) * Balance.AMBIENT_BUTTERFLY_ROAM,
 			"heading": Vector2.RIGHT.rotated(angle),
@@ -111,7 +159,8 @@ func _tick_butterfly(butterfly: Dictionary, delta: float) -> void:
 		var resting_frames: Array[Texture2D] = _butterfly_side_frames \
 			if not _butterfly_side_frames.is_empty() else _butterfly_frames
 		sprite.texture = _butterfly_idle if _butterfly_idle != null else resting_frames[0]
-		sprite.offset.y = move_toward(sprite.offset.y, -2.0, delta * 28.0)
+		sprite.offset.y = move_toward(sprite.offset.y,
+			-Balance.AMBIENT_BUTTERFLY_PERCH_LIFT, delta * 28.0)
 		sprite.rotation = sin(float(butterfly["phase"]) * 0.38) * 0.025
 		sprite.flip_h = (butterfly["heading"] as Vector2).x < 0.0
 		var breathe: float = sin(float(butterfly["phase"]) * 0.72) * 0.035

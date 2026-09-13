@@ -2623,6 +2623,24 @@ const AMBIENT_BUTTERFLY_TURN: float = 3.2
 const AMBIENT_BUTTERFLY_ROAM: float = 280.0
 const AMBIENT_BUTTERFLY_FRAME_RATE: float = 8.0
 const AMBIENT_BUTTERFLY_LIFT: float = 28.0
+## How high a *perched* butterfly sits above its own ground point. Named rather
+## than written inline because the shadow reads it too: the gap between a
+## butterfly and its shadow is the difference between these two numbers, so if
+## they disagree the shadow is wrong by exactly that much. [TUNE]
+const AMBIENT_BUTTERFLY_PERCH_LIFT: float = 2.0
+
+## **The shadow is what makes the height readable** (owner brief, 2026-09-13).
+## A butterfly already rose and settled with its state - the sprite's offset
+## eases between the two lifts above - but with nothing on the ground underneath
+## there was no way to see it. The gap does the work; these only decide how the
+## shadow itself reads at each end.
+##
+## Width in the butterfly's own pixels before its scale is applied.
+const AMBIENT_BUTTERFLY_SHADOW_WIDTH: float = 15.0
+## Scale and opacity perched (x) and in flight (y). Higher is smaller and
+## fainter, which is what distance from the ground does to a shadow.
+const AMBIENT_BUTTERFLY_SHADOW_SCALE: Vector2 = Vector2(1.0, 0.58)
+const AMBIENT_BUTTERFLY_SHADOW_ALPHA: Vector2 = Vector2(0.5, 0.2)
 const AMBIENT_BUTTERFLY_LAND_CHANCE: float = 0.42
 const AMBIENT_BUTTERFLY_REST: Vector2 = Vector2(1.4, 4.2)
 const AMBIENT_BUTTERFLY_SWERVE_TIME: Vector2 = Vector2(0.24, 0.82)
