@@ -313,8 +313,16 @@ static func _action_columns() -> int:
 		var size: Vector2 = tree.root.get_visible_rect().size
 		landscape = size.x > size.y
 	return ACTION_COLUMNS_WIDE if landscape or span >= ACTION_WRAP_BELOW else ACTION_COLUMNS
-## What `_build_action_bar` puts in the bar. Horn, Raid, Build, Repair, Tend.
-const ACTION_BUTTON_COUNT: int = 5
+## What `_build_action_bar` puts in the bar: Horn, Raid, Build, Repair, Orders,
+## Tend.
+##
+## **Hand-kept, and it has to be**: `_action_band_height` is static and runs
+## before the bar exists, so it cannot count children. That makes it exactly the
+## kind of number that drifts - the Quartermaster's Orders button was added on
+## 2026-09-13 and this was left at five, so the band under-measured by a row and
+## the nav column came down over an ability slot at phone-landscape size.
+## `_build_action_bar` asserts the two agree now, so the next one fails loudly.
+const ACTION_BUTTON_COUNT: int = 6
 ## The authored height of one, before a thumb grows it.
 const ACTION_BUTTON_HEIGHT: float = 54.0
 const ACTION_ROW_GAP: float = 8.0
@@ -398,7 +406,7 @@ var _tension_bar: ProgressBar
 var _tension_band: ColorRect
 var _reel_bar: ProgressBar
 var _reel_showing: bool = false
-var _nav_bar: VBoxContainer
+var _nav_bar: GridContainer
 var _boss_box: VBoxContainer
 var _nav_buttons: Array[Button] = []
 var _boss_panel: PanelContainer
@@ -942,7 +950,13 @@ func _build_lane_ring() -> void:
 ## survives in the tooltip: useful to the people holding a keyboard, invisible to
 ## the people who are not.
 func _build_nav_bar() -> void:
-	var bar := VBoxContainer.new()
+	# **A grid of one column**, not a box. A landscape phone is 592 tall and six
+	# thumb-sized squares with their gaps are 592 - so on that shape the column
+	# is the entire screen and its last button lands on an ability slot, which
+	# is what `layout (phone landscape)` failed on. A grid can become two
+	# columns when it has to; a box cannot without being rebuilt.
+	var bar := GridContainer.new()
+	bar.columns = 1
 	_nav_bar = bar
 	bar.name = "NavBar"
 	bar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -1062,7 +1076,22 @@ func _build_panel_inset() -> float:
 ## Static so `TouchInput` can keep its buttons out of the rail without holding a
 ## reference to the HUD. The rail's width is a property of the constants, not of
 ## any particular HUD instance.
-static func nav_column_width() -> float:
+## How far in from the right edge the scope column reaches.
+##
+## Asked of the bar itself rather than computed from one square, because it may
+## be two squares wide on a short screen - see `_wrap_nav_bar`. Static callers
+## with no bar to ask get the single-column answer, which is what they had.
+func nav_column_width() -> float:
+	var grid: GridContainer = _nav_bar
+	if grid == null or grid.columns <= 1:
+		return one_nav_column()
+	return one_nav_column() * float(grid.columns)
+
+
+## One square plus its air. The static answer, for the callers that have no HUD
+## to ask - `TouchInput` reserves this much of the right edge before the HUD
+## exists.
+static func one_nav_column() -> float:
 	return (NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE) + 24.0
 
 
@@ -1130,6 +1159,35 @@ func _size_nav_bar() -> void:
 			button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if button.text.length() > 0:
 			button.add_theme_font_size_override("font_size", int(art * 0.36))
+	_wrap_nav_bar(side)
+
+
+## How many columns the scope bar needs to stay clear of the bottom row.
+##
+## **Wrapped rather than shrunk.** Shrinking was tried on 2026-09-12 and
+## reverted: it produced 49px targets under the 92px a thumb needs, which trades
+## one layout fault for a worse one. Two columns keeps every square the size it
+## has to be and simply takes another 92px of width, which a landscape phone has
+## and an upright one does not need.
+func _wrap_nav_bar(side: float) -> void:
+	var grid: GridContainer = _nav_bar
+	if grid == null:
+		return
+	var count: int = 0
+	for button: Button in _nav_buttons:
+		if button != null and is_instance_valid(button):
+			count += 1
+	if count <= 0:
+		return
+	var separation: float = float(grid.get_theme_constant("v_separation"))
+	if separation <= 0.0:
+		separation = 8.0
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var room: float = screen.y - NAV_BAR_TOP - _bottom_band_height() - SPELL_BAR_MARGIN
+	var tall: float = float(count) * side + float(count - 1) * separation
+	# Never more than two: a third column would start eating the field, and a
+	# column of three squares is already an odd shape to read.
+	grid.columns = 1 if tall <= room or room <= 0.0 else 2
 
 
 ## The combat half: what a player reaches for while something is happening.
@@ -1210,6 +1268,17 @@ func _build_action_bar(bar: Container) -> void:
 	charge_readout.tooltip_text = _charge_bar.tooltip_text
 	charge_readout.add_child(_charge_bar)
 	bar.add_child(charge_readout)
+
+	# **The count and the bar must agree.** See `ACTION_BUTTON_COUNT`: the band
+	# under every phone layout is measured from that constant, and a bar that
+	# has grown past it puts a row through the bottom of the screen.
+	var buttons: int = 0
+	for child: Node in bar.get_children():
+		if child is Button:
+			buttons += 1
+	assert(buttons == ACTION_BUTTON_COUNT,
+		"ACTION_BUTTON_COUNT is %d and the action bar has %d buttons"
+			% [ACTION_BUTTON_COUNT, buttons])
 
 
 ## The party feed, and the line a player types into.

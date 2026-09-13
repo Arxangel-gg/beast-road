@@ -1687,6 +1687,31 @@ ground colour and darkened, because a face is the side the sun is not on. Left
 untinted, a Saltpan ledge is the same brown earth as a Rustwood one and a snow
 camp has a summer bank in it.
 
+**The scope column wraps on a short screen, as of 2026-09-13.** A landscape
+phone is 592 tall; six thumb-sized squares with their gaps are 592. So on that
+one shape the scope column was the entire screen height and its last button sat
+on an ability slot - which is what `layout (phone landscape)` failed on the
+moment the sweep reached it.
+
+**Wrapped rather than shrunk, and that is the second time.** Shrinking was tried
+on 2026-09-12 and reverted: it produced 49px targets under the 92px a thumb
+needs, which trades one layout fault for a worse one. A second column keeps
+every square the size it has to be and takes another 92px of width - which a
+landscape phone has and an upright one does not need, so it only ever appears
+where it is the answer. The bar is a `GridContainer` of one column now, because
+a box cannot become two without being rebuilt.
+
+`HUD.nav_column_width` is an instance method that asks the bar, and
+`one_nav_column` is the static answer for callers with no HUD to ask -
+`TouchInput` reserves the thumb zone before the HUD exists.
+
+**And one number was quietly wrong the whole time.** `ACTION_BUTTON_COUNT` said
+five while the action bar had six buttons, and every phone layout measures its
+bottom band from that constant. It is hand-kept because `_action_band_height` is
+static and runs before the bar exists, which makes it exactly the kind of number
+that drifts - so `_build_action_bar` asserts the two agree now, and the next one
+fails loudly instead of under-measuring a row.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

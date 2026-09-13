@@ -205,7 +205,7 @@ func _test_revive_hold() -> void:
 ## working. The rail moved to the right edge after the dash was put there.
 func _test_dash_clears_the_rail() -> void:
 	var span: Vector2 = get_viewport().get_visible_rect().size
-	var rail: float = span.x - HUD.nav_column_width()
+	var rail: float = span.x - HUD.one_nav_column()
 	_check(TouchInput.dash_rect().end.x <= rail + 1.0,
 		"dash right edge %.0f must clear the scope rail at %.0f"
 			% [TouchInput.dash_rect().end.x, rail])

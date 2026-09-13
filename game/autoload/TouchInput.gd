@@ -390,7 +390,9 @@ func dash_rect() -> Rect2:
 	# column moved there, six squares from a little below the top bar to well
 	# past the middle. A button drawn beneath a HUD panel is not merely hidden:
 	# the sticks read `_unhandled_input`, so the panel eats the tap.
-	var reserved: float = HUD.nav_column_width()
+	# One column: the thumb zone is reserved before the HUD exists, and a
+	# second column only appears on a screen too short for one.
+	var reserved: float = HUD.one_nav_column()
 	return Rect2(span.x - reserved - side * 1.25, span.y * 0.5 - side * 0.5,
 		side, side)
 
