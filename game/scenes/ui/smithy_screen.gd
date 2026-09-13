@@ -156,14 +156,23 @@ func _pick_defaults() -> void:
 			continue
 		match kind.kind:
 			MaterialData.Kind.WOOD:
-				if _wood.is_empty() or held >= Balance.FORGE_WOOD_COST:
+				if _unusable(_wood, Balance.FORGE_WOOD_COST):
 					_wood = kind.id
 			MaterialData.Kind.ORE:
-				if _ore.is_empty() or held >= Balance.FORGE_ORE_COST:
+				if _unusable(_ore, Balance.FORGE_ORE_COST):
 					_ore = kind.id
 			_:
-				if _gem.is_empty():
+				if _unusable(_gem, Balance.FORGE_GEM_COST):
 					_gem = kind.id
+
+
+## Whether what is on the anvil could still be struck.
+##
+## **Only what is no longer usable is re-picked.** The first cut chose all three
+## on every open, so a player who deliberately set Ironbark found Bloodpine back
+## on the anvil the next time they walked in.
+func _unusable(id: String, needs: int) -> bool:
+	return id.is_empty() or MetaState.material_count(id) < needs
 
 
 func _refresh() -> void:

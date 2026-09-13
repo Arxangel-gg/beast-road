@@ -37,8 +37,18 @@ const FRAME_RATE: float = 5.0
 var grid: BattleGrid = null
 var field: Node = null
 var host: Node2D = null
-## Where the water and the gates already are, so nothing is dug on top of them.
+## Where the gates and the camps already are, so nothing is dug on top of them.
 var avoid: PackedVector2Array = []
+
+## **And the water, as rectangles rather than points.**
+##
+## A pond is a blob up to eight tiles across and fishing answers from its *rim*
+## plus half a cast - about 270 units - so a node cleared by a fixed distance
+## from the pond's centre can sit well inside that. Both systems read the same
+## Interact press, so the hero would have started casting and chopping on one
+## button. Measured from the rim, with both reaches added, the two prompts
+## cannot overlap.
+var avoid_water: Array[Rect2] = []
 
 ## {root, sprite, at, id, left, cooldown, frames, clock, swing, swinging}
 var _nodes: Array[Dictionary] = []
@@ -137,6 +147,15 @@ func _is_good_ground(at: Vector2) -> bool:
 			return false
 	for taken: Vector2 in avoid:
 		if at.distance_to(taken) < Balance.GATHER_NODE_SPACING:
+			return false
+	# Far enough from the water that a press can only mean one thing. See
+	# `avoid_water`: the reach is the pond's own, measured from its rim.
+	var wet: float = Balance.FISHING_RADIUS + Balance.FISHING_CAST_MAX * 0.5 \
+		+ Balance.GATHER_RADIUS
+	for pond: Rect2 in avoid_water:
+		var near := Vector2(clampf(at.x, pond.position.x, pond.end.x),
+			clampf(at.y, pond.position.y, pond.end.y))
+		if at.distance_to(near) < wet:
 			return false
 	for node: Dictionary in _nodes:
 		if at.distance_to(node["at"] as Vector2) < Balance.GATHER_NODE_SPACING:

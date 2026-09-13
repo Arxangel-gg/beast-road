@@ -83,6 +83,12 @@ static func forge(wood_id: String, ore_id: String, gem_id: String) -> Dictionary
 	if after > before:
 		EventBus.craft_levelled.emit("smith", after)
 	if not MetaState.take_gear(piece):
+		# Unreachable while `refusal` checks the stash first, and put back
+		# anyway: the one thing this function must never do is take a gem and
+		# hand back nothing, and "it cannot happen" is how that happens.
+		MetaState.gain_material(wood_id, Balance.FORGE_WOOD_COST)
+		MetaState.gain_material(ore_id, Balance.FORGE_ORE_COST)
+		MetaState.gain_material(gem_id, Balance.FORGE_GEM_COST)
 		return {"error": "The stash is full."}
 	return piece
 

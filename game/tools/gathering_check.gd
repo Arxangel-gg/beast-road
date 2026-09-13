@@ -277,6 +277,25 @@ func _test_a_new_act_relays_the_ground() -> void:
 				break
 	_check(same, "the same act re-entered must show the same nodes, not a reshuffle")
 
+	# **And no node stands where a press would mean two things.** A pond answers
+	# Interact from its own rim plus half a cast, and a node answers from its
+	# centre; a node inside the sum of those reaches would have the hero casting
+	# a line and swinging an axe on one button.
+	var ponds: Node = field.call("ponds") if field.has_method("ponds") else null
+	if ponds != null and ponds.has_method("pond_positions"):
+		var centres: PackedVector2Array = ponds.call("pond_positions")
+		var halves: PackedVector2Array = ponds.call("pond_extents")
+		var reach: float = Balance.FISHING_RADIUS + Balance.FISHING_CAST_MAX * 0.5 			+ Balance.GATHER_RADIUS
+		for spot: Vector2 in patch.node_positions():
+			for index: int in mini(centres.size(), halves.size()):
+				var rim := Rect2(centres[index] - halves[index], halves[index] * 2.0)
+				var near := Vector2(clampf(spot.x, rim.position.x, rim.end.x),
+					clampf(spot.y, rim.position.y, rim.end.y))
+				_check(spot.distance_to(near) >= reach - 0.5,
+					("a node at %s is %.0f from a pond's rim against a combined reach "
+						+ "of %.0f - one press would start two things")
+						% [str(spot), spot.distance_to(near), reach])
+
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()

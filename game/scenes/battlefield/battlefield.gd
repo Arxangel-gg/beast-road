@@ -779,6 +779,7 @@ func _build_gathering() -> void:
 	_gathering.field = self
 	_gathering.host = entity_root
 	_gathering.avoid = _taken_ground()
+	_gathering.avoid_water = _taken_water()
 	add_child(_gathering)
 	_gathering.scatter()
 
@@ -787,17 +788,34 @@ func gathering() -> Gathering:
 	return _gathering
 
 
-## The ground the water and the gates have already claimed.
+## The ground the gates and the camps have already claimed.
 ##
-## One function, because it is asked twice - once when the nodes are first dug
-## and again every time the act re-lays them - and two copies of it is how the
-## second one ends up not knowing about the rift gates.
+## The water is *not* in here - it is `_taken_water`, as rectangles, because a
+## pond is a shape and fishing answers from its rim.
 func _taken_ground() -> PackedVector2Array:
-	var taken: PackedVector2Array = _ponds.pond_positions() if _ponds != null 		else PackedVector2Array()
+	var taken: PackedVector2Array = []
 	if _rifts != null:
 		for at: Vector2 in _rifts.gate_positions():
 			taken.append(at)
+	# Camps exist by the time the act re-lays the ground, and not on the first
+	# build - they are dug after this. Asked rather than assumed, so the re-lay
+	# keeps nodes out of a camp the first dig could not have known about.
+	if _camps != null and _camps.has_method("map_marks"):
+		for mark: Dictionary in _camps.call("map_marks"):
+			taken.append(mark["at"] as Vector2)
 	return taken
+
+
+## The water, as the rectangles a pond actually occupies.
+func _taken_water() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _ponds == null:
+		return out
+	var at: PackedVector2Array = _ponds.pond_positions()
+	var half: PackedVector2Array = _ponds.pond_extents()
+	for index: int in mini(at.size(), half.size()):
+		out.append(Rect2(at[index] - half[index], half[index] * 2.0))
+	return out
 
 
 ## The camps on the outskirts. Built after the ponds and the gates so their
@@ -1866,6 +1884,7 @@ func refresh_terrain() -> void:
 	# keeps the previous act's version of itself for the whole run.
 	if _gathering != null:
 		_gathering.avoid = _taken_ground()
+		_gathering.avoid_water = _taken_water()
 		_gathering.scatter()
 	# The woods outside the field are regional too, and were **never** re-laid -
 	# so a run that began in the Maw walked through jungle canopy in the snow
