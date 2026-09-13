@@ -126,6 +126,13 @@ func _test_a_puppet_takes_what_it_is_told() -> void:
 	# the body 400 units in one window and that is not a walk, it is a body in
 	# the wrong place. A puppet teleports for those now - see below - so a test
 	# using one was asking whether an enemy walks while proving it does not.
+	#
+	# **Posed in profile for the test.** Since 2026-09-13 a breed says which way
+	# its art faces and a front-facing one is deliberately never mirrored, so
+	# the question here - does a puppet derive motion from mirrored positions -
+	# has to be asked of a breed that flips at all.
+	var posed: int = enemy.data.art_facing
+	enemy.data.art_facing = EnemyData.Facing.RIGHT
 	enemy.set_mirror_interval(0.1)
 	var step: Vector2 = Vector2(-maxf(enemy.data.move_speed, 60.0) * 0.1, 0.0)
 	var walking: Vector2 = told
@@ -136,6 +143,7 @@ func _test_a_puppet_takes_what_it_is_told() -> void:
 		await get_tree().process_frame
 	_check(enemy.sprite.flip_h,
 		"a puppet walking left must face left, from motion the host never sent")
+	enemy.data.art_facing = posed
 
 	# **And a correction nothing could have walked is a teleport.**
 	#
