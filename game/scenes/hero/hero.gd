@@ -1336,6 +1336,12 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 		if recovery != null:
 			EventBus.preparation_warning.emit(String(recovery.get("broken_line")))
 	_flash_left = Balance.HIT_FLASH_TIME
+	# **The blow the player feels most.** Every other impact in the game shakes
+	# the camera by how hard it landed and how far away it was; the one landing
+	# on the hero did not, which is the one the camera is sitting on.
+	if health != null and health.max_hp > 0.0:
+		EventBus.camera_impact.emit(global_position,
+			amount / health.max_hp / Balance.IMPACT_FULL_SHARE)
 	var body_at: Vector2 = combat_origin()
 	_impact_direction = (body_at - from).normalized()
 	BloodStain.strike(_blood, _impact_direction)

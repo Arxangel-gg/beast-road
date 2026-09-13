@@ -370,7 +370,11 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 	EventBus.beast_speed_changed.emit(RunState.beast_speed)
 	_apply_stage()
 	EventBus.town_damaged.emit(amount, health.current_hp, health.max_hp)
-	EventBus.camera_shake_requested.emit(6.0, 0.25)
+	# Scaled by the bite taken rather than a flat six, and placed at the wall so
+	# a hero standing on the far road feels it less than one at the gate. The
+	# flat shake said every hit on the town was the same size; they are not.
+	EventBus.camera_impact.emit(global_position,
+		amount / maxf(health.max_hp, 1.0) / Balance.IMPACT_FULL_SHARE)
 	# Shaking the camera says "you were hit"; shaking the city says "the city was
 	# hit". They are different sentences and the second one was missing - the town
 	# flashed white and otherwise stood there as though nothing had touched it.
