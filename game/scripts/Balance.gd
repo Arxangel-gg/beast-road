@@ -3744,6 +3744,71 @@ const BOSS_RESOURCE_REWARD: int = 180
 ## were. Beyond them it climbs more gently than the 1.6x-per-act the first
 ## three set: ten acts of that would end at ninety times Act I, which is not a
 ## boss, it is a wall. [TUNE]
+# --- What a boss may do at range (2026-09-13) ---------------------------------
+## **A boss's reach is bounded by the hero, not by its own contact damage.**
+##
+## Slams and volleys were added on 2026-09-13 scaled from `contact_damage`, so
+## that nothing downstream had to learn bosses have abilities. That bound is
+## still right for the *mechanism* and was wrong for the *magnitude*, because
+## the two things it ties together do not grow together at all:
+##
+##   `BOSS_ACT_SCALE` runs 1.25 to 12.30 - about seventeenfold on contact.
+##   A hero's health runs about 103 to 131, because there is no per-level health
+##   in this game: only Vigour, the Sanctum and ascension raise it.
+##
+## So a volley shot worth 41% of the hero's health in Act I is worth 112% by Act
+## IV and 289% by Act X. **Every boss from about Act IV one-shot the player from
+## eight hundred units away** - through a telegraph they had no health to survive
+## being wrong about - and the Act I boss threw five such shots every 3.8
+## seconds, the shortest interval and longest range in the roster, at the first
+## boss anybody meets. Reported from play: four towers is not enough for the Act
+## I boss. It was not the towers.
+##
+## `curve_report` could never have caught it: a boss fight is not wave pressure
+## and the report says so in as many words.
+##
+## The baseline hero at each act, from the level curve (`level_curve.gd` reads
+## 9, 19, 30, 38, 47, 55, 65, 74, 84, 93) with a third of the points in Vigour -
+## a balanced build rather than a Vigour specialist, so the bound is safe for a
+## player who spent elsewhere. Deliberately excludes the Sanctum and ascension,
+## which are investments a player may not have made. [TUNE]
+const BOSS_HERO_HEALTH_BY_ACT: Array[float] = [
+	103.0, 106.0, 110.0, 113.0, 116.0, 118.0, 122.0, 125.0, 128.0, 131.0,
+]
+
+## The most of that health one shot may take, and the most a whole volley may
+## take if every shot lands. A volley is dodgeable and telegraphed, so it is
+## allowed to hurt - it is not allowed to end the fight from off screen.
+## 0.36 rather than 0.30 because of the Gatekeeper: it throws two heavy shots
+## rather than a spray, and a single-shot share below half the burst share means
+## a two-shot boss can never reach its intended weight. At 0.36 a hero still
+## survives two full shots from anything in the game.
+const BOSS_VOLLEY_SHOT_SHARE: float = 0.36
+const BOSS_VOLLEY_BURST_SHARE: float = 0.75
+## A slam is one blow, at the boss's feet, with a ring drawn before it lands -
+## the most avoidable thing a boss does, so it may hit hardest.
+const BOSS_SLAM_SHARE: float = 0.55
+
+
+## The baseline hero's health at this act.
+static func boss_hero_health(act: int) -> float:
+	var at: int = clampi(act - 1, 0, BOSS_HERO_HEALTH_BY_ACT.size() - 1)
+	return BOSS_HERO_HEALTH_BY_ACT[at]
+
+
+## The most one volley shot may take off that hero, with the whole burst shared
+## out when a boss throws many.
+static func boss_volley_shot_ceiling(act: int, shots: int) -> float:
+	var health: float = boss_hero_health(act)
+	var spread: float = health * BOSS_VOLLEY_BURST_SHARE / float(maxi(shots, 1))
+	return minf(health * BOSS_VOLLEY_SHOT_SHARE, spread)
+
+
+## And the most a slam may take.
+static func boss_slam_ceiling(act: int) -> float:
+	return boss_hero_health(act) * BOSS_SLAM_SHARE
+
+
 const BOSS_ACT_SCALE: Array[float] = [
 	1.25, 2.10, 3.20, 4.20, 5.30, 6.50, 7.80, 9.20, 10.70, 12.30,
 ]

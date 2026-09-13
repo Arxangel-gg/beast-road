@@ -2431,6 +2431,10 @@ func _land_slam() -> void:
 		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+	# Bounded by what a hero can live through. See `Balance.boss_slam_ceiling`:
+	# the authored multiplier decides the boss's character and the ceiling
+	# decides whether the player gets to be wrong about a telegraph once.
+	damage = minf(damage, Balance.boss_slam_ceiling(RunState.act))
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
@@ -2456,8 +2460,12 @@ func _throw_volley(quarry: Node2D) -> void:
 		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
-	var aim: Vector2 = (quarry.global_position - combat_origin()).normalized()
 	var shots: int = maxi(data.boss_volley_shots, 1)
+	# **The shot, and the whole burst.** A boss that throws six has each of them
+	# bounded by the burst rather than by the single-shot share, so throwing
+	# more shots spreads a volley out instead of multiplying it.
+	damage = minf(damage, Balance.boss_volley_shot_ceiling(RunState.act, shots))
+	var aim: Vector2 = (quarry.global_position - combat_origin()).normalized()
 	for index: int in shots:
 		var share: float = 0.0 if shots <= 1 \
 			else (float(index) / float(shots - 1) - 0.5) * 2.0
