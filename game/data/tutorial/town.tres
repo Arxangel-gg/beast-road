@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "town"
 display_name = "The town"
-trigger = 15
+trigger = 14
 order = 0
 body = "The town rides on Yuri's back. Wood, Food and Stone raise its buildings, and each one changes the run: the Hero Mansion trains disciplines, the Forge deepens towers, the Market trades resources."
 seconds = 10.0

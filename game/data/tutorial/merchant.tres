@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "merchant"
 display_name = "A merchant"
-trigger = 13
+trigger = 12
 order = 0
 body = "A travelling merchant has stopped by the road. Trade during Preparation. Visit them often enough across runs and they settle in your town for good."
 seconds = 10.0

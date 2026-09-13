@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "bow"
 display_name = "The bow"
-trigger = 12
+trigger = 11
 order = 0
 body = "Press F to loose an arrow at the cursor. Arrows are spent: find more on the road, or craft them in town from blueprints you have learned."
 seconds = 10.0

@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "spells"
 display_name = "Spells"
-trigger = 11
+trigger = 10
 order = 0
 body = "Spells sit on 1 to 4 and draw on mana, which Focus deepens and refills faster. Disciplines drafted at crossroads add spells and change what the ones you have do."
 seconds = 10.0

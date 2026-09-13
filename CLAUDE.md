@@ -1757,6 +1757,31 @@ five acts, just never into an active slot - rather than an empty hero. A hero
 with nothing trained has depth zero everywhere and genuinely cannot be offered a
 tier-three Ultimate, which is the tree working rather than a slot being dead.
 
+**Twelve tutorial steps fired on the wrong thing, found 2026-09-13.** A step
+names its trigger by index; `TutorialStepData.Trigger` gained `RAID_AVAILABLE`
+at position seven after the data was written, and every step from there on
+shifted by one. A new player was told about raids when they found gear, about
+gear when they levelled, about levelling when they cast - and never about rift
+gates at all, because the last step named index 19 in an enum of nineteen.
+
+**Nothing failed and nothing could have.** Godot does not clamp an out-of-range
+enum on a resource, the coach simply never matched it, and the tutorial is the
+one system whose audience cannot tell that it is wrong. It was found by walking
+every `.tres` in the project against its own script's enums - the same sweep
+that caught the Arcane roles an hour earlier.
+
+`tutorial_check` holds four things: every step's trigger is in range, every
+trigger has a step, every trigger is fired by some script, and every step says
+something for long enough to read. The first two together are exactly what the
+shift broke - an out-of-range index at one end and a gap at the other - and
+putting the fault back names both.
+
+**The lesson is about enums that data indexes by number.** `Role` and `Trigger`
+both grew a member in the middle of their life, and both left content pointing
+at the wrong thing in perfect silence. Appending is not enough on its own: what
+makes it safe is a gate that walks the data against the enum, and there are two
+of those now.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

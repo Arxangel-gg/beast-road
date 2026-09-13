@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "level_up"
 display_name = "Level up"
-trigger = 10
+trigger = 9
 order = 0
 body = "Level up. Spend attribute points in the Hero Mansion (F2 opens the town): Might hits harder, Vigour lasts longer, Swiftness moves faster, Focus deepens spells and Command."
 seconds = 10.0

@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "fishing"
 display_name = "A catch"
-trigger = 17
+trigger = 16
 order = 0
 body = "You landed one. The Food is yours now; the fish went to your stash, under the Fish tab. Eat one there during a run to restore health - three meals a run, so keep the good ones."
 seconds = 11.0

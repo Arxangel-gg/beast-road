@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "gear"
 display_name = "Gear"
-trigger = 9
+trigger = 8
 order = 0
 body = "Gear. Between runs it lives in your stash: wear the best, break the rest for shards. Every worn piece grants attribute points, the same capped scale as levelling."
 seconds = 10.0

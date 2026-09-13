@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "spirits"
 display_name = "A wild spirit"
-trigger = 16
+trigger = 15
 order = 0
 body = "You met a wild animal. Meet enough of its kind and its spirit bonds to you: one companion that follows you into every run. Most bond by getting close, not by the kill."
 seconds = 10.0

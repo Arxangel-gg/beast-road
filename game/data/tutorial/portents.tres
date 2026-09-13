@@ -6,7 +6,7 @@
 script = ExtResource("1_step")
 id = "portents"
 display_name = "Portents"
-trigger = 14
+trigger = 13
 order = 0
 body = "The act's boss is down. Read one of three portents: each is a bane and a boon kept for the rest of the run, and they stack with the ones before."
 seconds = 10.0
