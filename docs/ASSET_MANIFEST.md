@@ -2866,6 +2866,37 @@ ground and needed to say it was armed.
 | `trap_tar_snare_idle_03.png` | 64×64 | T | `#6E667A` |
 | `trap_tar_snare_idle_04.png` | 64×64 | T | `#6E667A` |
 
+### 5.31 Four more traps — `res://art/traps/`
+
+Iron Jaws, the Bile Pot, the Rime Sigil and the Bell Wire, with four
+idle frames each (owner brief, 2026-09-13: "Need even more trap
+varieties!"). The Firebloom was redrawn in the same pass: its old art
+was a side-view torch on a road seen from above, which is the
+"some have bad visuals" half of the same report.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `trap_bell_wire.png` | 64×64 | T | `#6E667A` |
+| `trap_bell_wire_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_bell_wire_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_bell_wire_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_bell_wire_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_bile_pot.png` | 64×64 | T | `#6E667A` |
+| `trap_bile_pot_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_bile_pot_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_bile_pot_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_bile_pot_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_iron_jaws.png` | 64×64 | T | `#6E667A` |
+| `trap_iron_jaws_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_iron_jaws_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_iron_jaws_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_iron_jaws_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_rime_sigil.png` | 64×64 | T | `#6E667A` |
+| `trap_rime_sigil_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_rime_sigil_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_rime_sigil_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_rime_sigil_idle_04.png` | 64×64 | T | `#6E667A` |
+
 ### 5.26 Butterflies — `res://art/wildlife/`
 
 Three species (2026-09-12): azure, monarch and swallowtail, each with a

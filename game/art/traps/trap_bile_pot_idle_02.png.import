@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc8rr31sim0q3"
-path="res://.godot/imported/trap_firebloom_idle_01.png-c3f00842ddd887208fc463497f853b77.ctex"
+uid="uid://d0wjjdfdgjylf"
+path="res://.godot/imported/trap_bile_pot_idle_02.png-f115a1548e4e6083b0e22d303d31b1e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/traps/trap_firebloom_idle_01.png"
-dest_files=["res://.godot/imported/trap_firebloom_idle_01.png-c3f00842ddd887208fc463497f853b77.ctex"]
+source_file="res://art/traps/trap_bile_pot_idle_02.png"
+dest_files=["res://.godot/imported/trap_bile_pot_idle_02.png-f115a1548e4e6083b0e22d303d31b1e9.ctex"]
 
 [params]
 

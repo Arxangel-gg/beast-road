@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cc8rr31sim0q3"
-path="res://.godot/imported/trap_firebloom_idle_01.png-c3f00842ddd887208fc463497f853b77.ctex"
+uid="uid://c1dux1w8d08do"
+path="res://.godot/imported/trap_iron_jaws_idle_01.png-45742791a1704d6a76b51d8f0518a3e0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/traps/trap_firebloom_idle_01.png"
-dest_files=["res://.godot/imported/trap_firebloom_idle_01.png-c3f00842ddd887208fc463497f853b77.ctex"]
+source_file="res://art/traps/trap_iron_jaws_idle_01.png"
+dest_files=["res://.godot/imported/trap_iron_jaws_idle_01.png-45742791a1704d6a76b51d8f0518a3e0.ctex"]
 
 [params]
 

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trap_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rime_sigil"
+display_name = "Rime Sigil"
+description = "Frost cut into the road. It barely wounds and it stops a charge dead."
+triggers = 6
+arm_seconds = 0.7
+damage = 24.0
+radius = 126.0
+knockback = 0.0
+slow_factor = 0.28
+slow_duration = 3.2
+burn_dps = 0.0
+burn_duration = 0.0
+cost = {"gold": 45, "stone": 25}
+colour = Color(0.62, 0.86, 0.96, 1)

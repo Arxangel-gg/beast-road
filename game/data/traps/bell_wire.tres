@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TrapData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trap_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bell_wire"
+display_name = "Bell Wire"
+description = "A wire and a bell. It throws what trips it back up the road and wakes your towers to it."
+triggers = 5
+arm_seconds = 0.4
+damage = 45.0
+radius = 96.0
+knockback = 420.0
+slow_factor = 1.0
+slow_duration = 0.0
+burn_dps = 0.0
+burn_duration = 0.0
+cost = {"gold": 35, "wood": 25}
+colour = Color(0.86, 0.72, 0.38, 1)
