@@ -174,6 +174,10 @@ var _target: Node2D = null
 var _provoker: Node2D = null
 var _provoker_source: Node = null
 var _provoked_left: float = 0.0
+## When this boss may slam and volley again, and how long its tell has left.
+var _slam_left: float = 0.0
+var _volley_left: float = 0.0
+var _slam_tell: float = 0.0
 
 var _knockback: Vector2 = Vector2.ZERO
 var _hitstun_left: float = 0.0
@@ -492,6 +496,7 @@ func _process(delta: float) -> void:
 	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_provoked_left = maxf(_provoked_left - delta, 0.0)
+	_tick_boss_abilities(delta)
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.ENEMY_KNOCKBACK_DECAY * delta)
 
 	var before: Vector2 = global_position
@@ -2353,3 +2358,103 @@ func _bounced(at: Vector2) -> Vector2:
 		out.y = clampf(out.y, -edge, edge)
 		_knockback.y = -_knockback.y * Balance.KNOCKBACK_BOUNCE
 	return out
+
+
+# --- What an act boss does (2026-09-13) --------------------------------------------------
+
+## A boss's own two attacks, on their own clocks.
+##
+## Independent of the walk and of the ordinary strike, because that is what
+## makes a boss different from a large marcher: it is dangerous while it is
+## walking, and it is dangerous at range. Both are authored per boss; a body
+## with neither does nothing here.
+func _tick_boss_abilities(delta: float) -> void:
+	if data == null or not data.has_boss_abilities() or puppet:
+		return
+	if _state == State.DYING or _freeze_left > 0.0:
+		return
+	if _slam_tell > 0.0:
+		_slam_tell = maxf(_slam_tell - delta, 0.0)
+		if _slam_tell <= 0.0:
+			_land_slam()
+		return
+	_slam_left = maxf(_slam_left - delta, 0.0)
+	_volley_left = maxf(_volley_left - delta, 0.0)
+	var quarry: Node2D = _field.nearest_foe(global_position) \
+		if _field != null and _field.has_method("nearest_foe") else null
+	if quarry == null or not is_instance_valid(quarry):
+		return
+	var gap: float = global_position.distance_to(quarry.global_position)
+	if data.boss_slam_damage > 0.0 and _slam_left <= 0.0 \
+			and gap <= data.boss_slam_radius * Balance.BOSS_SLAM_COMMIT:
+		_begin_slam()
+		return
+	if data.boss_volley_damage > 0.0 and data.boss_volley_shots > 0 \
+			and _volley_left <= 0.0 and gap <= data.boss_volley_range:
+		_throw_volley(quarry)
+
+
+## The tell. A circle the size of the blow, for exactly as long as the player
+## has to leave it - drawn from the damage's own radius so the ring cannot
+## lie about where the blow lands.
+func _begin_slam() -> void:
+	_slam_tell = Balance.BOSS_SLAM_TELL
+	_slam_left = data.boss_slam_interval
+	Vfx.ring(global_position, data.boss_slam_radius,
+		Balance.BOSS_SLAM_TELL_COLOUR, Balance.BOSS_SLAM_TELL, 5.0)
+	Sfx.play("sfx_boss_stinger", -6.0)
+
+
+## And the blow, on everything of the player's inside it.
+func _land_slam() -> void:
+	var damage: float = data.contact_damage * data.boss_slam_damage * _damage_scale \
+		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
+	if _boss_phase > 0:
+		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+	EventBus.camera_impact.emit(global_position, 0.9)
+	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
+	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		if who.global_position.distance_to(global_position) > data.boss_slam_radius:
+			continue
+		var health: Health = Health.of(who)
+		if health != null:
+			RunState.note_blow(promoted_name(), damage)
+			health.take_damage(damage, global_position)
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var pet := node as Companion
+		if pet != null and is_instance_valid(pet) and pet.is_alive() \
+				and pet.global_position.distance_to(global_position) <= data.boss_slam_radius:
+			pet.take_damage(damage * 0.6, global_position)
+
+
+## The volley: a fan of shots at whoever it can see.
+##
+## Through the ordinary enemy projectile, so nothing downstream learns that
+## bosses throw things - and so a shot the player dodges is dodged the same
+## way every other shot in the game is.
+func _throw_volley(quarry: Node2D) -> void:
+	_volley_left = data.boss_volley_interval
+	var damage: float = data.contact_damage * data.boss_volley_damage * _damage_scale \
+		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
+	if _boss_phase > 0:
+		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
+	var aim: Vector2 = (quarry.global_position - combat_origin()).normalized()
+	var shots: int = maxi(data.boss_volley_shots, 1)
+	for index: int in shots:
+		var share: float = 0.0 if shots <= 1 \
+			else (float(index) / float(shots - 1) - 0.5) * 2.0
+		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
+		# Aimed at a point rather than at the body, so a fan is a fan: a
+		# volley that all homed on the same target would be one shot drawn
+		# three times.
+		shot.configure_toward(combat_origin()
+			+ aim.rotated(share * Balance.BOSS_VOLLEY_SPREAD) * data.boss_volley_range,
+			combat_origin())
+		shot.set("_damage", damage)
+		shot.set("_target", quarry)
+		_field.add_child(shot)
+	Sfx.play("sfx_boss_stinger", -9.0)

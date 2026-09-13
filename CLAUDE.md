@@ -1366,6 +1366,25 @@ tower's own numbers before and after - and it caught the hole on its first
 run: the choice could be taken the moment a tower was built, which skips the
 ladder the split exists to put a decision on.
 
+**An act boss fights, as of 2026-09-13.** The owner walked up to the Act IV
+boss and was not attacked. It was true of all eleven: a boss authored
+`contact_damage` and nothing else, walked at 46 units a second toward the
+town, and swung only at whatever it happened to touch - a player standing two
+body-lengths away was in no danger at all.
+
+Every boss now has two things the roster does not: a **slam** it telegraphs
+and lands in a circle, and a **volley** it throws at whoever it can see. Both
+are authored per boss on `EnemyData`, with eleven different shapes - the
+Gatekeeper slams hardest and barely throws, the Drowned Choir throws five and
+barely slams - so no boss is a branch in code (working rule 3) and a boss with
+neither authored fights exactly as it did.
+
+**The bound is that both are `contact_damage`-scaled and go through the same
+`take_damage` every other blow does**, so nothing downstream learns that
+bosses have abilities. `curve_report` reads 0.433-0.446 mean pressure across
+party sizes, unchanged: a boss fight is not wave pressure, and the curve the
+ten acts are tuned to is measuring waves.
+
 **The well is drunk from, as of the same date.** A full well shows a gauge
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.

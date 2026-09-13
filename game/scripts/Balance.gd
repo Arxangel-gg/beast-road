@@ -6440,3 +6440,29 @@ const TOWER_CAPSTONE_FOCUS_DAMAGE: float = 0.45
 const TOWER_CAPSTONE_FOCUS_PIERCE: int = 1
 const TOWER_CAPSTONE_SPREAD_TARGETS: int = 2
 const TOWER_CAPSTONE_SPREAD_AOE: float = 0.35
+
+
+# --- An act boss fights (2026-09-13) -------------------------------------------------------
+## **A boss that only has contact damage is a slow wall.**
+##
+## The owner reported walking up to the Act IV boss and not being attacked.
+## It was true of all of them: an act boss authored `contact_damage` and
+## nothing else, walked at 46 units a second toward the town, and swung only
+## at whatever it happened to touch. A player standing two body-lengths away
+## was in no danger at all.
+##
+## So every boss gets two things it does not share with the roster: a **slam**
+## it telegraphs and lands in a circle, and a **volley** it throws at whoever
+## it can see. Both are authored per boss on `EnemyData`, so each act's
+## monster is dangerous in its own shape and no boss is a branch in code
+## (working rule 3). A boss with neither authored behaves exactly as it did.
+##
+## The bound: both are `contact_damage`-scaled and go through the same
+## `take_damage` every other blow does, so nothing downstream learns that
+## bosses have abilities and the curve reads the same way it always did. [TUNE]
+const BOSS_SLAM_TELL: float = 0.72
+const BOSS_SLAM_TELL_COLOUR: Color = Color(1.0, 0.42, 0.3, 0.55)
+const BOSS_VOLLEY_SPREAD: float = 0.22
+const BOSS_VOLLEY_SPEED: float = 430.0
+## How much closer than its slam radius a boss has to be before it bothers.
+const BOSS_SLAM_COMMIT: float = 0.85

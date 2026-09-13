@@ -103,6 +103,33 @@ enum Facing { FRONT, RIGHT, LEFT }
 @export var phase_speed_bonus: float = 0.0
 @export var phase_damage_bonus: float = 0.0
 
+# --- What an act boss does that the roster does not (2026-09-13) --------------
+#
+# A boss with neither authored fights exactly as it did before: slow, and
+# dangerous only to whatever it walks into. Anything above zero here is a
+# boss that comes at the player.
+
+## The slam: a telegraphed blow in a circle around the boss, on a cadence.
+## `boss_slam_damage` is a multiple of `contact_damage`, so a boss that is
+## re-tuned stays in proportion with itself.
+@export_range(0.0, 8.0) var boss_slam_damage: float = 0.0
+@export_range(0.0, 600.0) var boss_slam_radius: float = 0.0
+@export_range(0.0, 30.0) var boss_slam_interval: float = 6.0
+@export_range(0.0, 900.0) var boss_slam_knockback: float = 260.0
+
+## The volley: shots thrown at whoever it can see, on its own cadence.
+@export_range(0.0, 8.0) var boss_volley_damage: float = 0.0
+@export_range(0, 12) var boss_volley_shots: int = 0
+@export_range(0.0, 30.0) var boss_volley_interval: float = 5.0
+@export_range(0.0, 2400.0) var boss_volley_range: float = 900.0
+
+
+## Whether this body has anything a boss does. Asked rather than
+## `category == BOSS`, so a future elite could be given one without the test
+## having to learn about it.
+func has_boss_abilities() -> bool:
+	return boss_slam_damage > 0.0 or (boss_volley_damage > 0.0 and boss_volley_shots > 0)
+
 
 func get_sprite_path() -> String:
 	var visual_id: String = sprite_id if not sprite_id.is_empty() else id
