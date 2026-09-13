@@ -44,6 +44,7 @@ func _ready() -> void:
 	_test_the_names_exist()
 	await _test_the_split()
 	_test_the_bound()
+	_test_every_capstone_moves_a_real_number()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -131,6 +132,52 @@ func _test_the_split() -> void:
 ##
 ## Measured rather than asserted from the constants, because the question is
 ## whether the *tower* changed, not whether the table says it should.
+## **A capstone half that nothing reads is a capstone half nobody gets.**
+##
+## The Focus capstone promised damage and a pierce; only the damage was wired.
+## A player who chose Focus and paid to level ten received half of what the path
+## offered, while Spread's capstone delivered both of its halves - and nothing
+## anywhere said so. Found by auditing every constant in Balance.gd for a
+## consumer, the same sweep that has previously turned up six discipline effects
+## and a Focus spell bonus that were described to the player and read by nothing.
+##
+## Pierce was not simply wired in, either: no tower has one, it exists only on
+## the hero's bow, so building it would have been a mechanic arriving through an
+## upgrade - the one thing the path bound forbids.
+##
+## So this asserts the shape rather than the values: every capstone constant
+## belongs to a path, and every one of them is named by the tower script. A
+## constant added here with no consumer fails the gate rather than the player.
+func _test_every_capstone_moves_a_real_number() -> void:
+	var source := FileAccess.open("res://scenes/battlefield/tower.gd", FileAccess.READ)
+	_check(source != null, "the tower script is missing")
+	if source == null:
+		return
+	var code: String = source.get_as_text()
+	var named: PackedStringArray = []
+	for constant: String in ["TOWER_CAPSTONE_FOCUS_DAMAGE",
+			"TOWER_CAPSTONE_FOCUS_RANGE", "TOWER_CAPSTONE_SPREAD_TARGETS",
+			"TOWER_CAPSTONE_SPREAD_AOE"]:
+		_check(code.contains(constant),
+			("%s is authored and the tower reads it nowhere - a capstone half "
+				+ "the player pays for and never receives") % constant)
+		if code.contains(constant):
+			named.append(constant)
+	# Both paths have to get a capstone worth the tenth level, or one of them is
+	# simply the better buy at the top of the ladder.
+	var focus: int = 0
+	var spread: int = 0
+	for constant: String in named:
+		if constant.contains("FOCUS"):
+			focus += 1
+		else:
+			spread += 1
+	_check(focus >= 2, "the Focus capstone lands %d effects against Spread's %d"
+		% [focus, spread])
+	_check(spread >= 2, "the Spread capstone lands %d effects against Focus's %d"
+		% [spread, focus])
+
+
 func _test_the_bound() -> void:
 	var field: Battlefield = _run.battlefield
 	var data: TowerData = null

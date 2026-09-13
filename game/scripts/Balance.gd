@@ -6636,7 +6636,24 @@ const TOWER_SPREAD_DAMAGE: float = -0.12
 ## player buys on that emplacement, so it is allowed to be the loudest - but
 ## it is still only numbers the tower already had.
 const TOWER_CAPSTONE_FOCUS_DAMAGE: float = 0.45
-const TOWER_CAPSTONE_FOCUS_PIERCE: int = 1
+## **This was `TOWER_CAPSTONE_FOCUS_PIERCE` and nothing read it.**
+##
+## The Focus capstone promised damage *and* a pierce, and only the damage was
+## ever wired - so a player who chose Focus and paid all the way to level ten
+## got half of what the path offered, while Spread's capstone delivered both of
+## its halves. Found on 2026-09-13 by auditing every constant in this file for a
+## consumer, the same way six discipline effects and a Focus spell bonus were
+## found before it.
+##
+## Pierce could not simply be wired, either: no tower in this game has a pierce,
+## it exists only on the hero's bow. Building one would have been a *mechanic*
+## arriving through an upgrade, which is the one thing the path bound forbids -
+## "a specialisation may only move a number the tower already has".
+##
+## So the capstone grants the other half of what Focus already is. Fewer,
+## harder, **further**: range is the path's own number, moved at the
+## specialisation step already, and this is the second step of it.
+const TOWER_CAPSTONE_FOCUS_RANGE: float = 0.30
 const TOWER_CAPSTONE_SPREAD_TARGETS: int = 2
 const TOWER_CAPSTONE_SPREAD_AOE: float = 0.35
 

@@ -32,6 +32,12 @@ func _ready() -> void:
 	if cam != null:
 		cam.make_current()
 		cam.global_position = Vector2.ZERO
+		# **A diagnostic framing, not the game's.** Play sits at about 0.95,
+		# which shows 2021x1137 units - the arena fills 69% of the width and the
+		# hero lights 51% of it. This pulls back to 0.30 so the whole camp is in
+		# one picture, which makes the fog look far tighter than a player ever
+		# sees it. Do not measure readability or framing from this tool's output;
+		# it was read as a badly framed raid once already.
 		cam.zoom = Vector2(0.30, 0.30)
 	for _f: int in 6:
 		await get_tree().process_frame

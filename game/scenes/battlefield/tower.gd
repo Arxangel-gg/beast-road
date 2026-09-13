@@ -681,8 +681,22 @@ func _hit(enemy: Enemy) -> void:
 
 
 func effective_range() -> float:
-	var path: float = 1.0 + (Balance.TOWER_FOCUS_RANGE if _path == TowerData.Path.FOCUS else 0.0)
-	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) * path
+	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) 		* path_range_scale()
+
+
+## What the chosen path does to this tower's reach, capstone included.
+##
+## Its own function rather than an expression inside `effective_range`, so the
+## gate can read the path's reach the way it already reads its damage, its rate,
+## its targets and its blast - the dead half of the Focus capstone survived
+## precisely because reach was the one path number nothing could ask about.
+func path_range_scale() -> float:
+	if _path != TowerData.Path.FOCUS:
+		return 1.0
+	var further: float = 1.0 + Balance.TOWER_FOCUS_RANGE
+	if level >= Balance.TOWER_CAPSTONE_LEVEL:
+		further += Balance.TOWER_CAPSTONE_FOCUS_RANGE
+	return further
 
 
 ## Taunting towers are actual blockers now. They use the same Health component
