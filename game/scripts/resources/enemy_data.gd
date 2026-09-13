@@ -124,12 +124,23 @@ enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
 ## that rises with the breed's difficulty.
 ##
 ## Shared files rather than fields, so a second breed that throws the same fire
-## bolt references it (working rule 3) and the two cannot drift apart.
-## By id, the way every other cross-reference in this project works - a
-## terrain names its `enemy_ids`, a discipline node names its `spell_id`.
-## Resolved through ContentDB rather than embedded, so a shot may be re-tuned in
-## one file and every breed that throws it changes with it.
+## bolt references it (working rule 3) and the two cannot drift apart. Named by
+## id, the way every other cross-reference in this project works - a terrain
+## names its `enemy_ids`, a discipline node names its `spell_id` - so a shot may
+## be re-tuned in one file and every breed that throws it changes with it.
 @export var shot_ids: PackedStringArray = PackedStringArray()
+
+## **Loaded by path rather than through ContentDB, and that is not a style
+## choice.** `run_tool.gd` runs under `--script`, which registers no autoloads,
+## so an autoload named anywhere in a resource script is a *compile* error there
+## - GDScript resolves singletons when it compiles, not when it runs. Reaching
+## for ContentDB here took the audit and the asset report down with it and the
+## sweep reported three gates DIRTY rather than failed.
+##
+## The id implies the file, which is the same convention art already uses, and
+## Godot caches the load. ContentDB still indexes the folder so gates can
+## enumerate every shot that exists.
+const SHOT_PATH: String = "res://data/enemy_shots/%s.tres"
 
 
 ## The repertoire, resolved.
@@ -140,7 +151,10 @@ enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
 func repertoire() -> Array[EnemyShotData]:
 	var out: Array[EnemyShotData] = []
 	for id: String in shot_ids:
-		var entry: EnemyShotData = ContentDB.enemy_shot(id)
+		var path: String = SHOT_PATH % id
+		if not ResourceLoader.exists(path):
+			continue
+		var entry := load(path) as EnemyShotData
 		if entry != null:
 			out.append(entry)
 	return out
