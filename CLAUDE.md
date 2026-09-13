@@ -1657,6 +1657,36 @@ three:
 Wood is still the cheap way to mend a wall and there is still only so much of
 it. Gold is the way there is always more of, and it gets dearer.
 
+**A raid camp's elevation can be seen, as of 2026-09-13.** The owner asked for
+"raids to be overhauled, especially the stairs and the upper levels" and for "an
+elevation tileset for this so it looks correct".
+
+**The elevation itself was never the problem.** A camp has had ledges, ramps, a
+stepping rule and cliff collision since it was built, and all of it is real -
+`can_step` is one function and the hero genuinely cannot walk up a bank. What it
+did not have is any way to *see* the height: a raised plate was the region's own
+ground with a two-pixel line round it, which reads as a paint mark on flat earth
+rather than as something you are standing on top of.
+
+So the south edge of every ledge has a face now - the exposed earth bank under
+it, grass overhanging the top - and a ramp has steps cut into that same face.
+**South only**, and that is not a shortcut: the camera looks down and slightly
+along, so the south side is the only face a player can ever see, and a north
+face would be drawn behind the plate that owns it.
+
+**Drawn, not baked**, and the first cut got that wrong. The plates are baked
+into one texture at half a texel per world unit, which is right for ground; a
+bank authored 64 pixels tall blended into that bake came out 21 pixels and was
+then scaled back up on screen. It read as a coloured stripe - exactly the "low
+res from being scaled up" the owner reported about the foliage. The faces are
+one `Node2D` and one `_draw` now: a few hundred textured quads on a single
+canvas item, which is the same argument the plates were baked under.
+
+**One bank is authored and ten regions use it**, tinted to the region's own mean
+ground colour and darkened, because a face is the side the sun is not on. Left
+untinted, a Saltpan ledge is the same brown earth as a Rustwood one and a snow
+camp has a summer bank in it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

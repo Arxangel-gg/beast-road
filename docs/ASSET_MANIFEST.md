@@ -2268,6 +2268,18 @@ Files: `projectile_air_idle_01.png` … `projectile_air_idle_05.png`
 | `captive_glassborn.png` | 128×128 | T | `#6B8A9E` |
 | `captive_steppehorde.png` | 128×128 | T | `#8C3A2B` |
 
+The elevation, added 2026-09-13. A camp has had ledges, ramps and cliff
+collision since it was built; what it did not have is any way to see the height.
+The face is the exposed earth bank under a south-facing ledge, authored two
+tiles wide and seamless left to right so a long ledge is not one slice repeated;
+the stairs are cut into that same face where a ramp meets it. Both are baked
+into the camp's terrain texture rather than drawn as sprites.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `raid_cliff_face.png` | 128×64 | O | `#3A2E24` |
+| `raid_stairs.png` | 128×64 | T | `#3A2E24` |
+
 ### 5.17 UI frames — `res://art/ui/`
 
 Nine-slice frames and bars. **Square on purpose.** These are stretched in code,

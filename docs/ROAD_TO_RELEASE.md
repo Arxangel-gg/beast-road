@@ -3030,3 +3030,48 @@ the history.
   corner, the Warden centred, the build top right, a faded seed row, rain,
   rays, fireflies, animated braziers and a grade; 77 of the owner's own songs
   imported; and `fog_check` in both workflows.
+
+- 2026-09-13, the third polish push, from eight screenshots and a long list.
+  What was asked for and what was built:
+
+  - **A fifth attribute.** Resolve: blows land softer to a hard ceiling, wards
+    given to the hero are worth more, and the spirit at their shoulder is
+    tougher. It adds no points - five attributes is the same power spread five
+    ways - and sixteen kinds of gear, two in every slot, favour it.
+    `attribute_check` in both workflows.
+  - **Ranged enemies stopped throwing one thing.** Five shots - a bolt, a fan,
+    a mortar, a lance and a hex - authored per breed, each answered by a
+    different thing to do with your feet. A shot changes the shape of a blow
+    and never its size; `enemy_shot_check` measures that by firing each one at
+    a body with a known pool, and caught two real faults doing it.
+  - **Woodcutting, mining and a forge.** Crafts that persist, eleven kinds of
+    node out past the inner square, rarer the further out and gated on
+    practice, gems from geodes, a Smithy in the Hold, and nothing at all in the
+    store on a new account. `gathering_check` in both workflows.
+  - **The six skills that did nothing.** A third of the discipline tree was
+    authored, priced and read by nothing. All six are wired; `DECLARED_ONLY` is
+    empty; and "implemented" is checked rather than trusted now.
+  - **A fourth discipline.** The Arcane, ten nodes, five of them handing over
+    ranged spells the game already had and nothing wanted. It caught its own
+    predecessor's gate on the first run.
+  - **Gold that stays worth carrying.** Measured first: a ten-act run earned
+    about 7,700 Gold while capability went flat from wave 48. Income came down
+    a little with no change to the curve at all, and the Quartermaster is a
+    sink that never runs out, always gets dearer, and buys nothing new.
+  - **The slowest bodies animate.** The Chainmaker changed frame 0.4 times a
+    second. There is a floor under the cycle now and all three bosses measured
+    sit at 3.4.
+  - **Plants stop at their own edge.** Fifty-nine families had content on the
+    canvas border; fixed by transform, one factor per family about the bottom
+    centre.
+  - **One frame, hung on everything that is a picture** - the minimap, the
+    Guide's photographs, the codex, the forge, the material swatches.
+  - **The reel gate stopped being a coin toss**, which is what started all of
+    this: it failed about one CI run in six on an unseeded stream in the system
+    under test.
+
+  Still outstanding from that list, and honestly so: the raid overhaul with
+  elevation and stairs tilesets is not built, and the hero's chop and mine
+  animations reuse the heavy swing sheet rather than having sheets of their own
+  (see the note in CLAUDE.md for why).
+
