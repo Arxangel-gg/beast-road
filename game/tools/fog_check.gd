@@ -221,11 +221,17 @@ func _test_the_toggle_exists() -> void:
 	if InputMap.has_action(&"toggle_minimap"):
 		_check(not InputMap.action_get_events(&"toggle_minimap").is_empty(),
 			"`toggle_minimap` must be bound to something")
-	var rebindable: bool = false
+	# **Not rebindable, and that is the decision.** `balance_test` requires a
+	# controller binding for every rebindable action, and the pad is full -
+	# every face, shoulder, stick, dpad and misc button already does something.
+	# So the map is a view control like zoom: a key, a button in the column,
+	# and a switch in the video settings. What has to be true is that at least
+	# one of those exists for a player with no keyboard at all.
 	for row: Dictionary in KeyBindings.REBINDABLE:
-		if StringName(row.get("action", &"")) == &"toggle_minimap":
-			rebindable = true
-	_check(rebindable, "the minimap key must be rebindable like every other key")
+		_check(StringName(row.get("action", &"")) != &"toggle_minimap",
+			"the minimap is a view control - rebinding it would demand a pad button the pad has not got")
+	_check(Graphics.KEY_MINIMAP != "",
+		"the minimap must have a settings switch, which is how a pad turns it off")
 
 
 ## Every stage of a dungeon is fresh discovery: the second stage's fog knows
