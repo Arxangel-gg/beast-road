@@ -387,7 +387,14 @@ Instrumental game soundtrack, no vocals, no lyrics, no singing. Dark grim-fantas
 Instrumental game soundtrack, no vocals, no lyrics, no singing. Dark grim-fantasy orchestral with sparse hand percussion, low strings, and a lone wind instrument carrying the melody. Muted, weathered, patient - the sound of a long march across hostile country, not a battle anthem. It must loop: begin and end on the same sustained chord with no fade-in or fade-out. Keep the mix uncluttered so it can sit under gameplay for a long time without becoming tiring. act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased.
 ```
 
-### `music_act01_06`
+### `music_act01_06` - VACANT
+
+**Removed from the game 2026-09-13: the recording had vocals.** The slot is
+deliberately empty and Act I plays eleven songs; a slot with no file is not in
+the shuffle and says nothing, so nothing needs doing unless a replacement is
+recorded. If one is, it goes at the path below and must be instrumental.
+
+### `music_act01_06` (brief kept for a replacement)
 
 `game/audio/music/music_act01_06.ogg`  -  target length **2:00-3:00**  -  suggested tool: **Suno**
 
