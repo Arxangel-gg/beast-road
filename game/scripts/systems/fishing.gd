@@ -123,15 +123,37 @@ var _prompt_button: String = ""
 var _bite_in: float = 0.0
 var _water_colour: Color = Color(0.16, 0.34, 0.48)
 var _water_colour_for: String = ""
-## Cosmetic timing - nibbles, the fish's rhythm, the ambient stir. Not the run's
-## stream, because nothing here decides what is caught.
+## The fight's own timing - nibbles, the fish's rhythm, the ambient stir, and
+## the drift of the safe band while a fish is on the line.
+##
+## **Not the run's stream**, because none of it decides what is caught: which
+## fish bites is `RunState.rng("fishing")` and always has been, so two machines
+## agree on the catch while each player fights their own line.
+##
+## This comment used to say "cosmetic", and that stopped being true when the
+## third cut (2026-09-12) gave the band a drift: how the band wanders decides
+## whether the fish is landed, which is the opposite of cosmetic. It is still
+## right for it to be local and unpredictable - a fight you could memorise is
+## not a fight - but a *gate* cannot drive an unrepeatable one, and
+## `fishing_check` was failing about one run in six on exactly that. So the
+## seed is a documented seam (`test_fight_seed`) rather than a wall clock only.
 var _jitter: RandomNumberGenerator = RandomNumberGenerator.new()
+
+## Set to anything but -1 before this node enters the tree and the fight is
+## reproducible. The gate sets it; nothing in the game does.
+##
+## The same shape as `MusicPlayer.test_slots`: a seam named here, in the system
+## it belongs to, rather than a harness reaching in and pretending to be one.
+static var test_fight_seed: int = -1
 ## The patches' own drift, seeded with the dig so both machines agree.
 var _drift: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	_jitter.randomize()
+	if test_fight_seed >= 0:
+		_jitter.seed = test_fight_seed
+	else:
+		_jitter.randomize()
 	# A blow takes the line out of the water. Fishing is a thing you do instead
 	# of fighting, not a thing you do while being hit.
 	EventBus.hero_damaged.connect(_on_hero_damaged)
@@ -1277,6 +1299,17 @@ func state() -> State:
 ## The reel, for the gate: tension and how far in the fish is.
 func reel_state() -> Vector2:
 	return Vector2(_tension, _progress)
+
+
+## Where the safe band is *now*, low and high.
+##
+## The HUD already draws this, from `EventBus.fishing_reel`, so a player at the
+## screen can see it and aim at it. Until this existed a gate could not, and so
+## `fishing_check` steered at the band's *starting* centre while the real band
+## drifted away from it - which passed or failed on a dice roll rather than on
+## whether the reel works.
+func band_state() -> Vector2:
+	return Vector2(_band_centre - _band_half, _band_centre + _band_half)
 
 
 func grip() -> float:

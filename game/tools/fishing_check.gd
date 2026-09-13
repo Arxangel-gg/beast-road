@@ -25,8 +25,15 @@ var _caught: Array[String] = []
 var _failed_reasons: Array[String] = []
 
 
+## The fight the reel tests drive. Seeded through `Fishing`'s own seam so the
+## same fish fights the same way every run - see `_test_a_steady_hand` for why
+## that is a fix rather than a convenience.
+const FIGHT_SEED: int = 20260913
+
+
 func _ready() -> void:
 	MetaState.hold_saves()
+	Fishing.test_fight_seed = FIGHT_SEED
 	RunState.reset(false, 20260911)
 	RunState.phase = RunState.Phase.ROAD_BATTLE
 	EventBus.fish_caught.connect(func(fish_id: String, _food: int) -> void:
@@ -39,6 +46,7 @@ func _ready() -> void:
 	await _test_ponds_sit_at_the_edge_off_the_roads_in_every_region()
 	await _test_the_same_seed_digs_the_same_ponds()
 	await _test_a_catch_is_cast_hooked_and_reeled()
+	await _test_a_steady_hand_lands_every_fight()
 	await _test_a_slack_or_snapped_line_pays_nothing()
 	_test_the_angler_only_fishes()
 	_test_the_meal_cap_holds()
@@ -49,12 +57,13 @@ func _ready() -> void:
 	for _f: int in 10:
 		await get_tree().process_frame
 	Sfx.stop_immediately()
+	Fishing.test_fight_seed = -1
 	MetaState.resume_saves()
 	if _failures > 0:
 		push_error("[fishing] FAIL - %d problem(s) across %d tests" % [_failures, _ran])
 		get_tree().quit(1)
 		return
-	print("[fishing] PASS - %d tests: ponds, the cast, the reel, the Angler, the meal cap and the pantry"
+	print("[fishing] PASS - %d tests: ponds, the cast, the reel, the steady hand, the Angler, the meal cap and the pantry"
 		% _ran)
 	get_tree().quit(0)
 
@@ -256,14 +265,7 @@ func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	ponds._process(0.05)
 	_check(ponds.state() == Fishing.State.REELING, "a press inside the window hooks the fish")
 	var before_food: int = int((field.get("paid") as Dictionary).get(RunState.FOOD, 0))
-	var landed: bool = false
-	for _step: int in 3000:
-		var reel: Vector2 = ponds.reel_state()
-		angler.call("hold_interact", reel.x < Balance.FISHING_SAFE_BAND_CENTRE)
-		ponds._process(0.05)
-		if ponds.state() != Fishing.State.REELING:
-			landed = _caught.size() > 0
-			break
+	var landed: bool = _reel_it_in(ponds, angler)
 	_check(landed, "keeping the tension in the band must land the fish (state %d, reasons %s)"
 		% [ponds.state(), str(_failed_reasons)])
 	_check(int((field.get("paid") as Dictionary).get(RunState.FOOD, 0)) > before_food,
@@ -277,6 +279,77 @@ func _test_a_catch_is_cast_hooked_and_reeled() -> void:
 	ponds.queue_free()
 	await get_tree().process_frame
 	_ran += 1
+
+
+## A hand that follows the band lands the fish, whatever bit and however it
+## fought.
+##
+## **This test exists because the one above it was a coin toss.** It steered at
+## `FISHING_SAFE_BAND_CENTRE` - the band's *starting* place - while the real
+## band drifts, by an amount set by the fish's rarity, on a stream
+## (`Fishing._jitter`) that was seeded off the wall clock. So the gate failed
+## about one run in six, on CI and locally alike, with the fish having slipped
+## away; and a gate that is red one run in six is a gate people stop reading.
+##
+## Two things fix it, and both are the same idea: give the gate what the player
+## has. A player sees the band drawn on the screen, so the gate reads
+## `band_state()` and aims at where the band is *now*. A player fights a fish
+## that is unpredictable but not unrepeatable, so `Fishing.test_fight_seed`
+## pins the fight for the length of this gate and hands it back after.
+##
+## What that buys is this test: four different fights, four different fish,
+## every one of them landed by the same steady hand. One fixed fight would only
+## have proved that one fixed fight works.
+func _test_a_steady_hand_lands_every_fight() -> void:
+	var fights: int = 0
+	var landed: int = 0
+	for offset: int in 4:
+		Fishing.test_fight_seed = FIGHT_SEED + offset * 977
+		var ponds: Fishing = await _dug("jungle", 20260911 + offset)
+		if ponds.pond_count() <= 0:
+			ponds.queue_free()
+			continue
+		var angler: CharacterBody2D = _angler(ponds)
+		MetaState.fish.clear()
+		_caught.clear()
+		_failed_reasons.clear()
+		angler.velocity = Vector2.ZERO
+		ponds._process(0.05)
+		angler.call("press_interact")
+		ponds._process(0.05)
+		ponds._process(0.05)
+		_tick(ponds, Balance.FISHING_CAST_TIME + 0.2)
+		if _tick_until(ponds, Fishing.State.BITE, 120.0):
+			angler.call("press_interact")
+			ponds._process(0.05)
+			ponds._process(0.05)
+			fights += 1
+			if _reel_it_in(ponds, angler):
+				landed += 1
+			else:
+				print("  note: fight %d was lost - %s" % [offset, str(_failed_reasons)])
+		angler.queue_free()
+		ponds.queue_free()
+		await get_tree().process_frame
+	Fishing.test_fight_seed = FIGHT_SEED
+	_check(fights >= 4, "the harness must get four fish on the line; it got %d" % fights)
+	_check(landed == fights,
+		"a hand that follows the band must land every fish: %d of %d" % [landed, fights])
+	_ran += 1
+
+
+## The reel, driven the way a player drives it: hold while the line is slack of
+## the band, let go while it is tight of it, and read the band off the screen
+## every frame rather than assuming it stayed where it started.
+func _reel_it_in(ponds: Fishing, angler: CharacterBody2D) -> bool:
+	for _step: int in 3000:
+		var band: Vector2 = ponds.band_state()
+		var tension: float = ponds.reel_state().x
+		angler.call("hold_interact", tension < (band.x + band.y) * 0.5)
+		ponds._process(0.05)
+		if ponds.state() != Fishing.State.REELING:
+			return not _caught.is_empty()
+	return false
 
 
 ## Holding the line tight snaps it; a slack line loses the fish. Neither pays.
