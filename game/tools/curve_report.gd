@@ -79,6 +79,9 @@ var _bought_level: int = 1
 ## the rule and is asked directly, so this cannot drift from what the director
 ## actually does when two people are playing.
 var _players: int = 1
+## Whether to model the returning player's bonded spirit. Off by default: the
+## curve is tuned for a first run, which has none.
+var _with_companion: bool = false
 var _body_scale: float = 0.0
 
 
@@ -86,6 +89,8 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--players="):
 			_players = maxi(int(argument.split("=")[1]), 1)
+		elif argument == "--companion":
+			_with_companion = true
 		# An override, so a scaling value can be swept without editing Balance
 		# and rebuilding an opinion each time. Reporting only - the game always
 		# reads the table.
@@ -188,7 +193,15 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# Both heroes count. Two players is two of them on the field, which is most of
 	# why twice the bodies is close to the right answer rather than double the
 	# difficulty.
-	var capability: float = _hero_dps() * float(_players) 		+ _affordable_dps(_earned_gold)
+	# **And the spirit at their shoulder, when they have one.**
+	#
+	# A bonded companion is a persistent second body that fights, and this model
+	# did not know it existed. Measured on 2026-09-13: the hero model is 38.3
+	# damage a second, the best companion's base is 41.3, and at apex rarity it
+	# is 88.9 - **two hundred and thirty-two per cent of the hero**. It is off by
+	# default because a first run has no companion and the curve is tuned for
+	# that player; `--companion` reports the returning one.
+	var capability: float = _hero_dps() * float(_players) 		+ _companion_dps() * float(_players) 		+ _affordable_dps(_earned_gold)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -210,6 +223,22 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 ##
 ## Read from the same arrays the hero fights with, so a rebalance of the combo
 ## moves this number too rather than leaving a typed-in constant behind.
+## What the spirit at the hero's shoulder adds, at the rarity being modelled.
+##
+## Zero unless asked for. Read from the companion roster and
+## `SPIRIT_APEX_POWER` rather than typed in, so re-tuning either moves this too.
+func _companion_dps() -> float:
+	if not _with_companion:
+		return 0.0
+	var best: float = 0.0
+	for value: Variant in ContentDB.companions.values():
+		var kind := value as CompanionData
+		if kind == null or kind.attack_interval <= 0.0:
+			continue
+		best = maxf(best, kind.damage / kind.attack_interval)
+	return best * Balance.SPIRIT_APEX_POWER
+
+
 func _hero_dps() -> float:
 	var damage: float = 0.0
 	var duration: float = 0.0
