@@ -496,6 +496,7 @@ jobs:
           # walked ground stays known, the minimap darkens with the field's own
           # fog texture, and every dungeon stage is fresh discovery.
           check "fog of war" --headless --path game res://tools/fog_check.tscn
+          check "beast tail" --headless --path game res://tools/beast_tail_check.tscn
           # A tower's split at level five and its capstone at ten: the choice
           # waits for its level, is made once, and moves only numbers the
           # tower already had.

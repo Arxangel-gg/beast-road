@@ -1,0 +1,202 @@
+extends Node
+
+## The beast's tail: joined where its own art says, faded behind real body, and
+## lit like the beast it grows out of.
+##
+##   godot --headless --path game res://tools/beast_tail_check.tscn
+##
+## **Three faults in one limb, all reported by eye and none catchable before.**
+## The tail is a separate sprite hung on a body frame by three constants, and
+## every one of them was a guess that looked plausible in the file:
+##
+## 1. **`BEAST_TAIL_ROOT.y` was 0.56 and the art says 0.365.** That hung the
+##    whole tail about nineteen of its own pixels - some seventy on screen -
+##    above the haunch. Reported twice as an offset, and nudged by eye the first
+##    time, which is why it was still wrong the second time.
+## 2. **The fade was on the wrong asset entirely.** The first two cuts
+##    feathered the *tail sprite's* root, which fades away the one stretch that
+##    has to be continuous - so the tail stopped short of the flank in mid-air
+##    however far it was tucked under. The owner's correction: the beast's own
+##    baked stub is the end that should dissolve, with the whole tail drawn
+##    behind showing through it, and the tail itself neither faded nor scaled.
+## 3. **The join shader threw the modulate away.** Both screens tint the beast
+##    to the scene's light and a sprite inherits that through `modulate`;
+##    `COLOR = art` discards it, so the tail was drawn at full brightness
+##    against a body at half of it.
+##
+## None of it errored, nothing failed, and every gate in the project stayed
+## green - a sprite in the wrong place is still a sprite. So this measures the
+## art instead of trusting the numbers: where the root row actually is, whether
+## the ramp has body to hide behind, and whether the shader still multiplies by
+## the colour it is handed.
+
+## How far the measured root row may sit from the authored fraction, as a
+## fraction of the tail's height. Four of ninety-six pixels: tight enough to
+## catch the 0.195 that was wrong, loose enough that the frames may breathe.
+const ROOT_TOLERANCE: float = 0.042
+
+var _failures: PackedStringArray = []
+var _checks: int = 0
+
+
+func _ready() -> void:
+	MetaState.hold_saves()
+	_test_the_root_row_is_where_the_art_says()
+	_test_the_stub_fade_has_tail_behind_it()
+	_test_the_body_carries_a_stub_that_far()
+	_test_the_stub_fades_and_the_tail_does_not()
+	MetaState.resume_saves()
+	if _failures.is_empty():
+		print("[beast-tail] PASS - %d checks: root row, stub fade, stub reach, tint"
+			% _checks)
+	else:
+		for failure: String in _failures:
+			push_error("[beast-tail] " + failure)
+	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+
+func _check(condition: bool, why: String) -> void:
+	_checks += 1
+	if not condition:
+		_failures.append(why)
+
+
+func _tail_frames() -> Array[String]:
+	var out: Array[String] = []
+	for format: String in [Balance.BEAST_TAIL_IDLE_FRAME_FORMAT,
+			Balance.BEAST_TAIL_WALK_FRAME_FORMAT]:
+		for index: int in 16:
+			var path: String = format % index
+			if ResourceLoader.exists(path):
+				out.append(path)
+	return out
+
+
+## Where the painted tail actually crosses its own root column.
+##
+## Measured at the column the shader calls the root rather than at the sprite's
+## extreme edge: the last pixel or two of a tapered tail is a tip of the
+## silhouette and says nothing about where the limb's centre line is.
+func _root_row_of(image: Image) -> float:
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var column: int = clampi(int(round(Balance.BEAST_TAIL_ROOT.x * float(width - 1))),
+		0, width - 1)
+	var rows: Array[int] = []
+	for y: int in height:
+		if image.get_pixel(column, y).a > 0.16:
+			rows.append(y)
+	if rows.is_empty():
+		return -1.0
+	return float(rows.min() + rows.max()) * 0.5 / float(height)
+
+
+func _test_the_root_row_is_where_the_art_says() -> void:
+	var frames: Array[String] = _tail_frames()
+	_check(not frames.is_empty(), "no tail frames on disk at all")
+	for path: String in frames:
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			_check(false, "%s will not load" % path)
+			continue
+		var measured: float = _root_row_of(texture.get_image())
+		if measured < 0.0:
+			_check(false, "%s has nothing painted on its root column" % path)
+			continue
+		_check(absf(measured - Balance.BEAST_TAIL_ROOT.y) <= ROOT_TOLERANCE,
+			("%s roots at %.3f of its height and BEAST_TAIL_ROOT.y says %.3f - "
+				+ "the tail would hang %.0f of its own pixels off the haunch")
+				% [path.get_file(), measured, Balance.BEAST_TAIL_ROOT.y,
+					absf(measured - Balance.BEAST_TAIL_ROOT.y)
+						* float(texture.get_height())])
+
+
+## Every dissolving pixel of the stub needs solid tail behind it.
+##
+## The stub fades over its last `BEAST_STUB_FADE_PX`; the tail is tucked
+## `BEAST_TAIL_OVERLAP` under. If the fade were the longer of the two, the body
+## would be turning transparent where there is no tail to show through, and the
+## beast would simply have a hole at the root of its tail.
+##
+## And the fade has to stay inside the stretch where the stub is the only thing
+## painted - past about 42 pixels the hind leg starts, and a fade that reached
+## it would dissolve the leg too.
+func _test_the_stub_fade_has_tail_behind_it() -> void:
+	_check(Balance.BEAST_STUB_FADE_PX <= Balance.BEAST_TAIL_OVERLAP,
+		("the stub dissolves over %.0fpx but the tail is only tucked %.0fpx "
+			+ "under it, so the last %.0fpx of the body fade out over nothing")
+			% [Balance.BEAST_STUB_FADE_PX, Balance.BEAST_TAIL_OVERLAP,
+				Balance.BEAST_STUB_FADE_PX - Balance.BEAST_TAIL_OVERLAP])
+	_check(Balance.BEAST_STUB_FADE_PX <= 40.0,
+		("the stub fade reaches %.0fpx and the hind leg starts at 44 - a fade "
+			+ "that far in stops being about the tail") % Balance.BEAST_STUB_FADE_PX)
+
+
+## And the body has to actually be painted that far in.
+##
+## The overlap is measured from the body frame's left edge, where the baked stub
+## leaves it. If the stub stopped short of the overlap the tail would be tucked
+## behind nothing at all, which is the same fault wearing the other hat.
+func _test_the_body_carries_a_stub_that_far() -> void:
+	var reach: int = int(ceil(Balance.BEAST_TAIL_OVERLAP))
+	for index: int in 8:
+		var path: String = "res://art/beast/beast_idle_%02d.png" % index
+		if not ResourceLoader.exists(path):
+			continue
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		var root: Vector2 = BeastTail.root_of(texture)
+		if root == Vector2.ZERO:
+			continue
+		var row: int = int(round(root.y + float(image.get_height()) * 0.5))
+		var painted: int = 0
+		for x: int in mini(reach, image.get_width()):
+			for y: int in range(maxi(0, row - 14),
+					mini(image.get_height(), row + 15)):
+				if image.get_pixel(x, y).a > 0.16:
+					painted += 1
+					break
+		_check(painted >= reach,
+			("%s paints its tail stub for only %d of the %d px the tail is "
+				+ "tucked under, so the feathered root has nothing to hide behind")
+				% [path.get_file(), painted, reach])
+
+
+## The stub fades, the tail does not, and the tint survives both.
+##
+## Greps, the way `discipline_check` proves an effect is wired: weak proof of
+## behaviour, strong proof that the lines which caused each reported fault are
+## not back. Measured in Godot 4.7.1 before the shader was written this way -
+## with a white texture and a modulate of (0.25, 0.50, 0.75), `COLOR = art`
+## renders white and `COLOR = art * COLOR` renders the modulate exactly. There
+## is no `MODULATE` built-in in this version; it does not compile.
+func _test_the_stub_fades_and_the_tail_does_not() -> void:
+	var path: String = "res://scripts/shaders/beast_stub_fade.gdshader"
+	var file := FileAccess.open(path, FileAccess.READ)
+	_check(file != null, "the stub fade shader is missing")
+	if file != null:
+		var code: String = file.get_as_text()
+		_check(not code.contains("COLOR = art;"),
+			("the stub shader assigns the raw texture to COLOR, which throws the "
+				+ "beast's modulate away"))
+		_check(code.contains("COLOR = art * COLOR"),
+			"the stub shader no longer multiplies by the colour it is handed")
+	# The fade goes on the body. A shader on the tail is the fault the owner
+	# corrected - it fades the stretch that has to stay continuous, and it costs
+	# the tail the scene tint on the way.
+	for screen: String in ["res://scenes/ui/menu_stage.gd",
+			"res://scenes/run/beast_scope.gd"]:
+		var source := FileAccess.open(screen, FileAccess.READ)
+		if source == null:
+			_check(false, "%s is missing" % screen)
+			continue
+		var code: String = source.get_as_text()
+		_check(not code.contains("_tail.material = "),
+			("%s puts a material on the tail sprite - the tail is drawn whole "
+				+ "and the beast's stub is what dissolves into it")
+				% screen.get_file())
+		_check(code.contains("beast_stub_fade.gdshader"),
+			"%s never fades the beast's own stub, so the join is a butt-joint"
+				% screen.get_file())

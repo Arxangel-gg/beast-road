@@ -371,13 +371,13 @@ func _load_tail() -> void:
 	_tail.name = "Tail"
 	_tail.texture = _tail_walk[0] if not _tail_walk.is_empty() else _tail_idle[0]
 	_tail.centered = true
-	# Its root end feathered, so the join under the flank is a join rather
-	# than a butt-joint (2026-09-13). See `tail_join.gdshader`.
-	var join := ShaderMaterial.new()
-	join.shader = load("res://scripts/shaders/tail_join.gdshader")
-	join.set_shader_parameter("feather", Balance.BEAST_TAIL_FEATHER)
-	join.set_shader_parameter("root_at", Balance.BEAST_TAIL_ROOT.x)
-	_tail.material = join
+	# **The tail carries no material and is never scaled to fit.** It is drawn
+	# whole and placed; the beast's own stub is the end that dissolves into it.
+	# See `beast_stub_fade.gdshader` (owner's correction, 2026-09-13).
+	var fade := ShaderMaterial.new()
+	fade.shader = load("res://scripts/shaders/beast_stub_fade.gdshader")
+	fade.set_shader_parameter("fade_px", Balance.BEAST_STUB_FADE_PX)
+	beast.material = fade
 	# The root of the tail sits on the anchor: the art's root fraction decides
 	# where in the tail image that is.
 	var size: Vector2 = _tail.texture.get_size()

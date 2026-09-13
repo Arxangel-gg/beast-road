@@ -5870,8 +5870,16 @@ const BEAST_TAIL_IDLE_FRAME_FORMAT: String = "res://art/beast/beast_tail_idle_%0
 ## Where the tail's root sits on the body frame, in the frame's own pixels
 ## from its centre, and where the root sits on the tail art as a fraction of
 ## its width and height.
+##
+## **The y was 0.56 and the art says 0.365**, which hung the whole tail about
+## nineteen of its own pixels - some seventy on screen - above the haunch it
+## grows out of. Reported twice as the tail "still having an offset" and fixed
+## by eye the first time, which is why it was still wrong: the number is
+## measurable. At the root end (u 0.93-1.0) the painted rows of every idle and
+## walk frame centre on y 34.5-35.5 of 96, so the root fraction is 35/96.
+## Measure it again from the frames if the tail is ever redrawn.
 const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 28.0)
-const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.56)
+const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
@@ -6274,8 +6282,29 @@ const ROW_RULE_HEIGHT: float = 1.0
 ## How far the tail's root is pushed under the body, and how much of its root
 ## end is faded out to meet the flank. A butt-joint at the edge reads as a
 ## seam however well the root is found; an overlap with a feather does not.
-const BEAST_TAIL_OVERLAP: float = 22.0
-const BEAST_TAIL_FEATHER: float = 0.24
+## **The fade belongs to the beast's own stub, and the tail stays whole.**
+##
+## Owner's correction, 2026-09-13: "the tail that is a part of the actual rest
+## of the beast is the asset that should have the end of its tail part feather
+## faded. The tail end that is anchor attached to the rest of the tailbody
+## should not have feather fading, or scaling."
+##
+## That is the right way round and the first two cuts had it backwards. Fading
+## the *tail sprite's* root fades away the one stretch that has to be continuous,
+## so the tail stopped short of the flank in mid-air however far it was pushed
+## under - which is what "the fade is on the wrong tail" was describing. The
+## body frame's stub is the end that should dissolve, because the whole tail is
+## drawn behind it and shows through as it goes.
+##
+## `BEAST_STUB_FADE_PX` is how many of the body frame's own pixels dissolve at
+## its left edge. It must stay well under 42: that is where the hind leg starts
+## in every frame, and out to there the stub is the only thing painted.
+##
+## `BEAST_TAIL_OVERLAP` is then only how far the tail's root is tucked under the
+## body, and its one job is to be longer than the fade so there is solid tail
+## behind every dissolving pixel. Nothing is stretched to make the two meet.
+const BEAST_TAIL_OVERLAP: float = 28.0
+const BEAST_STUB_FADE_PX: float = 22.0
 
 
 # --- Scarcity, per wallet (2026-09-13) -----------------------------------------------------

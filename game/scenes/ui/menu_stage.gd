@@ -306,6 +306,7 @@ func _build_beast() -> void:
 			_beast.region_enabled = true
 			_beast.region_rect = Rect2(0.0, 0.0,
 				float(_frames[0].get_width()), float(_baseline))
+	_fade_the_stub(_beast)
 	add_child(_beast)
 	# The tail, rooted on the frame's own stub and drawn behind the body
 	# (owner brief, 2026-09-12: the menu's Yuri had none).
@@ -316,11 +317,10 @@ func _build_beast() -> void:
 		_tail.texture = _tail_frames[0]
 		_tail.centered = true
 		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		var join := ShaderMaterial.new()
-		join.shader = load("res://scripts/shaders/tail_join.gdshader")
-		join.set_shader_parameter("feather", Balance.BEAST_TAIL_FEATHER)
-		join.set_shader_parameter("root_at", Balance.BEAST_TAIL_ROOT.x)
-		_tail.material = join
+		# **No material on the tail.** It is drawn whole and simply placed; the
+		# beast's own stub is what dissolves into it (`_fade_the_stub`). A
+		# shader here also cost the tail the scene tint, because assigning to
+		# COLOR throws the inherited modulate away.
 		var size: Vector2 = _tail.texture.get_size()
 		_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
 			size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
@@ -632,6 +632,18 @@ func _series(format: String) -> Array[Texture2D]:
 
 func _load(path: String) -> Texture2D:
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+## The beast's own tail stub dissolves at the canvas edge, so the separate
+## tail behind it shows through rather than butting against it.
+##
+## On the body rather than on the tail: see `beast_stub_fade.gdshader` and the
+## note on `Balance.BEAST_STUB_FADE_PX`.
+static func _fade_the_stub(body: Sprite2D) -> void:
+	var fade := ShaderMaterial.new()
+	fade.shader = load("res://scripts/shaders/beast_stub_fade.gdshader")
+	fade.set_shader_parameter("fade_px", Balance.BEAST_STUB_FADE_PX)
+	body.material = fade
 
 
 ## Roots the menu tail on the current frame's stub. With the region cut at the
