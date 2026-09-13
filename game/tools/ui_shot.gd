@@ -77,6 +77,24 @@ func _ready() -> void:
 		}))
 	run.results_ui.visible = false
 	await _shot("ending", func() -> void: run.ending_ui.play())
+	run.ending_ui.visible = false
+
+	# **The forge** (2026-09-13). It is the newest full screen in the game and
+	# it was the only one nothing photographed - and it is the one screen whose
+	# whole job is to show numbers before the player spends anything, which is
+	# exactly the kind of screen a layout gate passes and an eye does not.
+	#
+	# Stocked first, because an empty store draws one sentence and says nothing
+	# about the screen. Held saves are already on, so none of this reaches a
+	# real account.
+	var forge := SmithyScreen.new()
+	add_child(forge)
+	await _shot("forge", func() -> void:
+		for kind: MaterialData in ContentDB.materials_sorted():
+			MetaState.gain_material(kind.id, 40)
+		MetaState.gain_profession_xp("smith", 900)
+		forge.open())
+	forge.hide_screen()
 
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
 	run.queue_free()

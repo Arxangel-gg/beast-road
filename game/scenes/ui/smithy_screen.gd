@@ -19,7 +19,9 @@ extends CanvasLayer
 signal closed()
 
 const PANEL_WIDTH: float = 980.0
-const SWATCH: float = 44.0
+## The material swatch. Photographed at 44 and the four woods were four brown
+## boxes; the frame round them was louder than the art inside it.
+const SWATCH: float = 58.0
 const FORGE_ART: String = "res://art/battlefield/smithy.png"
 ## The header, and the screen height below which it is not worth its room.
 ##
@@ -256,7 +258,12 @@ func _choice_row(material: MaterialData, held: int) -> PanelContainer:
 	row.add_child(copy)
 
 	var name_label := Label.new()
-	name_label.text = "%s  ·  %d held" % [material.display_name, held]
+	# **What it is, not only what it is called.** A player choosing between four
+	# logs could read the flavour text or guess; the rarity is the thing the
+	# forge actually reads, so the row says it.
+	name_label.text = "%s  ·  %s  ·  %d held" % [material.display_name,
+		Balance.SPIRIT_RARITY_NAMES[clampi(material.rarity, 0,
+			Balance.SPIRIT_RARITY_NAMES.size() - 1)], held]
 	name_label.add_theme_font_size_override("font_size", 17)
 	name_label.add_theme_color_override("font_color",
 		Color("e8a33d") if chosen else Color("d8d2c4"))
