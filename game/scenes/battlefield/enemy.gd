@@ -176,6 +176,8 @@ var _provoker_source: Node = null
 var _provoked_left: float = 0.0
 ## When this boss may slam and volley again, and how long its tell has left.
 var _slam_left: float = 0.0
+## Which shot the current attack drew, so the projectile can be painted.
+var _shot_paint: EnemyShotData = null
 var _volley_left: float = 0.0
 var _slam_tell: float = 0.0
 
@@ -2501,7 +2503,11 @@ func _loose_a_shot(damage: float) -> void:
 	# (see `EnemyGroundStrike`), so a mortar aimed at the gate would hit nothing
 	# at all - a siege breed would quietly stop being able to besiege.
 	var at_a_person: bool = _target is Hero or _target is Companion
+	var chosen: EnemyShotData = _choose_a_shot() if at_a_person else null
 	var shot: int = data.shot if at_a_person else EnemyData.Shot.BOLT
+	if chosen != null:
+		shot = int(chosen.kind)
+	_shot_paint = chosen
 	match shot:
 		EnemyData.Shot.SPRAY:
 			_loose_a_fan(damage)
@@ -2515,10 +2521,48 @@ func _loose_a_shot(damage: float) -> void:
 			_loose_a_bolt(damage, _target, EnemyProjectile.Kind.BOLT)
 
 
+## **Which of the things it knows how to throw, this time.**
+##
+## Weighted rather than gated: a shot is favoured inside its own band and still
+## possible outside it. A band that decided absolutely would make a breed a
+## state machine the player reads off a tape measure, and the owner asked for
+## the choice to be random *and* range-dependent, which is both halves of this.
+##
+## Drawn from the battlefield's own stream rather than a seeded one: which shot
+## a body throws is not something a replay has to reproduce, and putting it on a
+## named stream would move every roll made after it (see `decoration needs its
+## own RNG stream`).
+func _choose_a_shot() -> EnemyShotData:
+	var known: Array[EnemyShotData] = data.repertoire()
+	if known.is_empty() or _target == null or not is_instance_valid(_target):
+		return null
+	var gap: float = global_position.distance_to(_target.global_position)
+	var total: float = 0.0
+	for entry: EnemyShotData in known:
+		if entry != null:
+			total += maxf(entry.draw_weight(gap), 0.0)
+	if total <= 0.0:
+		return null
+	var roll: float = randf() * total
+	for entry: EnemyShotData in known:
+		if entry == null:
+			continue
+		roll -= maxf(entry.draw_weight(gap), 0.0)
+		if roll <= 0.0:
+			return entry
+	return known[known.size() - 1]
+
+
 ## One shot, committed at release. What every ranged breed did before this.
 func _loose_a_bolt(damage: float, at: Node2D, kind: int) -> EnemyProjectile:
 	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
 	shot.kind = kind
+	# A fire bolt is this and nothing else: the projectile is drawn from
+	# constants rather than from art, so painting one costs no sprite.
+	if _shot_paint != null and _shot_paint.has_tint():
+		shot.tint = _shot_paint.tint
+		shot.core_tint = _shot_paint.core_tint if _shot_paint.core_tint.a > 0.0 \
+			else _shot_paint.tint
 	shot.configure(at, damage, combat_origin())
 	_field.add_child(shot)
 	return shot

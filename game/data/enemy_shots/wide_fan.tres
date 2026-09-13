@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "wide_fan"
+display_name = "Wide Fan"
+description = "A spread thrown across the road. Leave the middle of it."
+kind = 1
+near = 220.0
+far = 720.0
+weight = 2.20
+stray_weight = 0.45

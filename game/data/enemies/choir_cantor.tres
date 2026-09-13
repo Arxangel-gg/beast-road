@@ -6,6 +6,7 @@
 script = ExtResource("1_enemy")
 shot = 1
 shot_range = 560
+shot_ids = PackedStringArray("close_fan", "wide_fan", "hex_crawl")
 id = "choir_cantor"
 display_name = "Choir Cantor"
 description = "The song is what holds the drowned together. Kill the singer."

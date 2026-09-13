@@ -6,6 +6,7 @@
 script = ExtResource("1_enemy")
 shot = 2
 shot_range = 700
+shot_ids = PackedStringArray("fire_bolt", "ember_mortar", "stone_mortar", "far_bolt")
 id = "ash_caller"
 display_name = "Ash Caller"
 description = "It calls the fire back up out of the ground it came from."

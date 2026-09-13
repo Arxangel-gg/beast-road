@@ -114,6 +114,37 @@ enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
 ## what the roster did before shots varied.
 @export_range(0.0, 2400.0) var shot_range: float = 0.0
 
+## **Everything this breed knows how to throw.**
+##
+## Empty means the single `shot` above, which is what the whole roster did until
+## 2026-09-13. With entries, the breed picks one per attack: weighted toward
+## whichever suits the range it is shooting at, and never certain, so a Shaman at
+## arm's length usually snaps a bolt and occasionally still commits to a mortar.
+## Owner's brief: "random uses of both as well as range dependent", and variety
+## that rises with the breed's difficulty.
+##
+## Shared files rather than fields, so a second breed that throws the same fire
+## bolt references it (working rule 3) and the two cannot drift apart.
+## By id, the way every other cross-reference in this project works - a
+## terrain names its `enemy_ids`, a discipline node names its `spell_id`.
+## Resolved through ContentDB rather than embedded, so a shot may be re-tuned in
+## one file and every breed that throws it changes with it.
+@export var shot_ids: PackedStringArray = PackedStringArray()
+
+
+## The repertoire, resolved.
+##
+## One accessor so nothing downstream has to ask which of the two shapes a breed
+## is using: the single `shot` that existed before this and the list that
+## joined it answer the same question here.
+func repertoire() -> Array[EnemyShotData]:
+	var out: Array[EnemyShotData] = []
+	for id: String in shot_ids:
+		var entry: EnemyShotData = ContentDB.enemy_shot(id)
+		if entry != null:
+			out.append(entry)
+	return out
+
 
 ## Boss encounter phases. Empty for non-bosses. Crossing each health ratio in
 ## order triggers the matching name, reinforcements, and another step of the

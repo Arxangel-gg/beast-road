@@ -14,6 +14,14 @@ var kind: int = Kind.BOLT
 ## How much mana a HEX takes off whoever it reaches.
 var mana_burn: float = 0.0
 
+## **What it looks like in flight**, set from the shot that threw it before it
+## enters the tree. The projectile is drawn from constants rather than from art,
+## so a fire bolt costs a colour and no sprite. Left at the roster's own values,
+## every shot looks the way every shot has always looked.
+var tint: Color = Balance.ENEMY_PROJECTILE_COLOUR
+var core_tint: Color = Balance.ENEMY_PROJECTILE_CORE_COLOUR
+var shell_tint: Color = Balance.ENEMY_PROJECTILE_SHELL_COLOUR
+
 var _target: Node2D = null
 var _destination: Vector2 = Vector2.ZERO
 var _direction: Vector2 = Vector2.RIGHT
@@ -54,7 +62,7 @@ func _ready() -> void:
 	_trail = Line2D.new()
 	_trail.top_level = true
 	_trail.width = Balance.ENEMY_PROJECTILE_WIDTH
-	_trail.default_color = Color(Balance.ENEMY_PROJECTILE_SHELL_COLOUR, 0.90)
+	_trail.default_color = Color(shell_tint, 0.90)
 	_trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 	_trail.width_curve = _trail_taper()
@@ -63,7 +71,7 @@ func _ready() -> void:
 	_filament = Line2D.new()
 	_filament.top_level = true
 	_filament.width = Balance.ENEMY_PROJECTILE_FILAMENT_WIDTH
-	_filament.default_color = Color(Balance.ENEMY_PROJECTILE_CORE_COLOUR, 0.88)
+	_filament.default_color = Color(core_tint, 0.88)
 	_filament.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	_filament.end_cap_mode = Line2D.LINE_CAP_ROUND
 	_filament.width_curve = _trail_taper()
@@ -71,10 +79,10 @@ func _ready() -> void:
 
 	var glow := Sprite2D.new()
 	glow.texture = LightKit.falloff_texture()
-	glow.modulate = Color(Balance.ENEMY_PROJECTILE_COLOUR, 0.72)
+	glow.modulate = Color(tint, 0.72)
 	glow.scale = Vector2.ONE * Balance.ENEMY_PROJECTILE_GLOW_SCALE
 	add_child(glow)
-	LightKit.add_light(self, Balance.ENEMY_PROJECTILE_COLOUR,
+	LightKit.add_light(self, tint,
 		Balance.ENEMY_PROJECTILE_LIGHT_RADIUS, Balance.ENEMY_PROJECTILE_LIGHT_ENERGY)
 	_mote_left = Balance.ENEMY_PROJECTILE_MOTE_INTERVAL
 	queue_redraw()
@@ -105,7 +113,7 @@ func _process(delta: float) -> void:
 	if _mote_left <= 0.0:
 		_mote_left += Balance.ENEMY_PROJECTILE_MOTE_INTERVAL
 		Vfx.spark(global_position - _direction * Balance.ENEMY_PROJECTILE_HEAD_RADIUS,
-			Balance.ENEMY_PROJECTILE_CORE_COLOUR, 1, -_direction,
+			core_tint, 1, -_direction,
 			Balance.ENEMY_PROJECTILE_MOTE_SPEED)
 	queue_redraw()
 	# **A shot hits what it passes through.**
@@ -151,14 +159,14 @@ func _impact() -> void:
 			if who != null:
 				who.mana = maxf(who.mana - mana_burn, 0.0)
 				EventBus.hero_mana_changed.emit(who.mana, who.mana_max())
-	Vfx.spark(global_position, Balance.ENEMY_PROJECTILE_CORE_COLOUR,
+	Vfx.spark(global_position, core_tint,
 		Balance.ENEMY_PROJECTILE_IMPACT_SPARKS,
 		-_direction, 180.0)
 	Vfx.ring(global_position, Balance.ENEMY_PROJECTILE_BLAST_RADIUS * 0.58,
-		Color(Balance.ENEMY_PROJECTILE_CORE_COLOUR, 0.82), 0.20, 2.5)
+		Color(core_tint, 0.82), 0.20, 2.5)
 	Vfx.ring(global_position, Balance.ENEMY_PROJECTILE_BLAST_RADIUS,
-		Color(Balance.ENEMY_PROJECTILE_COLOUR, 0.66), 0.34, 5.0)
-	Vfx.flash_at(global_position, Color(Balance.ENEMY_PROJECTILE_CORE_COLOUR, 0.72),
+		Color(tint, 0.66), 0.34, 5.0)
+	Vfx.flash_at(global_position, Color(core_tint, 0.72),
 		Balance.ENEMY_PROJECTILE_HEAD_RADIUS * 2.2)
 	queue_free()
 
@@ -167,21 +175,21 @@ func _draw() -> void:
 	var pulse: float = sin(_life * Balance.ENEMY_PROJECTILE_PULSE_SPEED) * 0.5 + 0.5
 	var head: float = Balance.ENEMY_PROJECTILE_HEAD_RADIUS
 	draw_circle(Vector2.ZERO, head * (1.55 + pulse * 0.16),
-		Color(Balance.ENEMY_PROJECTILE_COLOUR, 0.12 + pulse * 0.08))
+		Color(tint, 0.12 + pulse * 0.08))
 	var shell := PackedVector2Array([
 		Vector2(head * 1.35, 0.0), Vector2(0.0, -head),
 		Vector2(-head * 1.05, 0.0), Vector2(0.0, head)])
-	draw_colored_polygon(shell, Balance.ENEMY_PROJECTILE_SHELL_COLOUR)
+	draw_colored_polygon(shell, shell_tint)
 	var edge := PackedVector2Array([shell[0], shell[1], shell[2], shell[3], shell[0]])
-	draw_polyline(edge, Color(Balance.ENEMY_PROJECTILE_COLOUR, 0.92), 1.8, true)
+	draw_polyline(edge, Color(tint, 0.92), 1.8, true)
 	draw_circle(Vector2(head * 0.12, 0.0), head * (0.42 + pulse * 0.08),
-		Balance.ENEMY_PROJECTILE_CORE_COLOUR)
+		core_tint)
 	var spin: float = _life * Balance.ENEMY_PROJECTILE_PULSE_SPEED * 0.55
 	draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS, spin,
-		spin + PI * 0.72, 12, Color(Balance.ENEMY_PROJECTILE_CORE_COLOUR, 0.78),
+		spin + PI * 0.72, 12, Color(core_tint, 0.78),
 		Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
 	draw_arc(Vector2.ZERO, Balance.ENEMY_PROJECTILE_RUNE_RADIUS, spin + PI,
-		spin + PI * 1.72, 12, Color(Balance.ENEMY_PROJECTILE_COLOUR, 0.68),
+		spin + PI * 1.72, 12, Color(tint, 0.68),
 		Balance.ENEMY_PROJECTILE_RUNE_WIDTH, true)
 
 

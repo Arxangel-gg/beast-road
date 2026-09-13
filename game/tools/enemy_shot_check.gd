@@ -250,6 +250,12 @@ func _a_shooter(field: Battlefield, at: Node2D, shot: int) -> Enemy:
 	# breed's own data is never what decides whether its shot is covered here.
 	var posed: EnemyData = breed.duplicate() as EnemyData
 	posed.shot = shot
+	# **And its repertoire is emptied**, or the pose decides nothing. Since
+	# 2026-09-13 a breed draws from `shot_ids` when it has one, so posing `shot`
+	# on a breed that knows several would test whichever the draw happened to
+	# pick - which is how this gate started reporting that a hex took no mana.
+	# The repertoire has its own gate; this one is about the five kinds.
+	posed.shot_ids = PackedStringArray()
 	var enemy := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
 	# Through `setup` rather than by assigning `data`: `_ready` refuses a body
 	# that has no field and frees itself, and a freed probe reads exactly like a

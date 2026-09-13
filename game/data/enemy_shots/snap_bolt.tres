@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "snap_bolt"
+display_name = "Snap Bolt"
+description = "A committed shot at whatever is close. Sidestep it."
+kind = 0
+near = 0.0
+far = 440.0
+weight = 3.00
+stray_weight = 0.40

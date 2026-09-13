@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "close_fan"
+display_name = "Close Fan"
+description = "Three at once, divided between them. Do not stand in the middle."
+kind = 1
+near = 0.0
+far = 400.0
+weight = 2.60
+stray_weight = 0.40

@@ -6,6 +6,7 @@
 script = ExtResource("1_enemy")
 shot = 4
 shot_range = 700
+shot_ids = PackedStringArray("snap_bolt", "lash_lance", "long_lance", "wide_fan")
 id = "glass_singer"
 display_name = "Glass Singer"
 description = "The note is just above hearing, and everything of glass answers it."

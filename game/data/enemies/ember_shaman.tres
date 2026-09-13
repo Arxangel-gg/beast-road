@@ -5,6 +5,7 @@ script = ExtResource("1_enemy")
 art_facing = 2
 shot = 2
 shot_range = 640
+shot_ids = PackedStringArray("fire_bolt", "ember_mortar")
 id = "ember_shaman"
 display_name = "Ember Shaman"
 description = "A ranged support whose censer accelerates nearby raiders."

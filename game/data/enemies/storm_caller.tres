@@ -4,6 +4,7 @@
 script = ExtResource("1_enemy")
 shot = 4
 shot_range = 620
+shot_ids = PackedStringArray("snap_bolt", "lash_lance", "long_lance")
 id = "storm_caller"
 display_name = "Storm Caller"
 description = "A ranged support that drives the White Teeth through the snow."

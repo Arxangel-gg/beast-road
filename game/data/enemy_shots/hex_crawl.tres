@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+id = "hex_crawl"
+display_name = "Creeping Hex"
+description = "Slow, following, and hungry for what a caster needs. Outrun it."
+kind = 3
+near = 260.0
+far = 760.0
+weight = 2.00
+stray_weight = 0.50

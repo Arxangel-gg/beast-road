@@ -4,6 +4,7 @@
 script = ExtResource("1_enemy")
 shot = 3
 shot_range = 620
+shot_ids = PackedStringArray("snap_bolt", "hex_crawl", "wide_fan", "lash_lance", "stone_mortar")
 id = "mirage_seer"
 display_name = "Mirage Seer"
 description = "An elite ranged support orbiting a dangerous mirrored halo."

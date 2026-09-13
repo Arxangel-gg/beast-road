@@ -9,6 +9,8 @@ extends Node
 
 var towers: Dictionary = {}
 var enemies: Dictionary = {}
+## What the ranged breeds know how to throw, shared across the roster.
+var enemy_shots: Dictionary = {}
 var relics: Dictionary = {}
 var items: Dictionary = {}
 var spells: Dictionary = {}
@@ -93,6 +95,7 @@ var combinations: Array[TowerData] = []
 func _ready() -> void:
 	towers = _load_dir("res://data/towers")
 	enemies = _load_dir("res://data/enemies")
+	enemy_shots = _load_dir("res://data/enemy_shots")
 	relics = _load_dir("res://data/relics")
 	spells = _load_dir("res://data/spells")
 	terrains = _load_dir("res://data/terrains")
@@ -147,6 +150,11 @@ func tower(id: String) -> TowerData:
 
 func enemy(id: String) -> EnemyData:
 	return enemies.get(id, null) as EnemyData
+
+
+## One thing a ranged breed knows how to throw.
+func enemy_shot(id: String) -> EnemyShotData:
+	return enemy_shots.get(id, null) as EnemyShotData
 
 
 func relic(id: String) -> RelicData:
