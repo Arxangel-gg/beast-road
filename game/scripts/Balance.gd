@@ -4196,8 +4196,15 @@ const WEATHER_DB: float = -22.0
 ## sound effects. [TUNE]
 const MUSIC_DB: float = -8.0
 ## The battlefield playlist (2026-09-11): how many songs an act may hold, and
-## the slower crossfade a boss arrives and leaves on. Twelve is the owner's
-## number; a slot without a file is simply not in the shuffle.
+## the slower crossfade a boss arrives and leaves on. A slot without a file is
+## simply not in the shuffle, so this is a ceiling and never a requirement.
+##
+## **Twelve was the owner's number and the soundtrack outgrew it.** Acts II and
+## III each came in with twenty-four songs, so the ceiling was raised to match
+## them in the second polish push - and this comment still said twelve for a
+## day afterwards. Worth knowing which way that failure points: a ceiling below
+## what is on disk ships every extra song in the export and plays none of them,
+## which nothing fails on and nobody hears.
 const MUSIC_PLAYLIST_SLOTS: int = 24
 const MUSIC_BOSS_FADE: float = 2.4
 

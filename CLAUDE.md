@@ -1036,8 +1036,10 @@ player and 0.446 for four, last wave 0.75. The towers are two an element in the 
 Skirmisher/Sniper pairing the ladder uses, each a combination the roster did
 not have, and they join `ROSTER_UNLOCK_ORDER` ahead of the well.
 
-**The soundtrack is a playlist, as of 2026-09-11.** Up to twelve songs an act
-at `MusicPlayer.PLAYLIST_FORMAT`, dealt shuffled when the act opens and played
+**The soundtrack is a playlist, as of 2026-09-11.** Up to
+`Balance.MUSIC_PLAYLIST_SLOTS` songs an act - twelve when this was written and
+twenty-four since Acts II and III were recorded - at
+`MusicPlayer.PLAYLIST_FORMAT`, dealt shuffled when the act opens and played
 end to end, resumed from where they were on a scope change; a boss theme an
 act at `BOSS_FORMAT`, arriving on a slow crossfade under a stinger and handing
 back when the boss falls. **A slot with no file is not in the shuffle and
@@ -1756,6 +1758,24 @@ The gate that caught it tests the state that was actually reported - trained for
 five acts, just never into an active slot - rather than an empty hero. A hero
 with nothing trained has depth zero everywhere and genuinely cannot be offered a
 tier-three Ultimate, which is the tree working rather than a slot being dead.
+
+**And it took a third cut, because a served role did not spend its place.** The
+second cut skipped a role the shuffle had already covered on its own, which is
+correct - and skipped it *without taking that offer's index out of play*, so the
+write position stayed on the back offer and the Ultimate write landed on top of
+the very Power node that had satisfied the check. The offer proving the slot was
+served was the one destroyed. The two ways a role gets served - dealt by the
+shuffle, or placed deliberately - now agree about which index is spent.
+
+**It failed on CI and passed here, and that half is the more useful lesson.**
+The gate called `RunState.reset()`, which rolls a *fresh* seed, so it read a
+different three offers on every run; the fault needs a Power node dealt into last
+place, which is about one road in six. Measured at 7 of 40 seeds. That is the
+fourth time this project has shipped a gate whose verdict was a coin toss - after
+the scattered volley, the 34% banner and the unseeded fishing stream - and the
+answer is the same one every time: **a guarantee is a property of every road or
+it is not a guarantee.** It walks 24 fixed roads now and names each one that
+breaks it.
 
 **Twelve tutorial steps fired on the wrong thing, found 2026-09-13.** A step
 names its trigger by index; `TutorialStepData.Trigger` gained `RAID_AVAILABLE`
