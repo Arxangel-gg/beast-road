@@ -1625,6 +1625,38 @@ code" check refused it by name. The reach is computed at the caster now, in one
 function every throw in that file goes through - a reach applied at four of five
 call sites is a node that works on some spells.
 
+**Gold has somewhere to go for the whole run, as of 2026-09-13.** The owner
+reported that gold "generates too much and becomes meaningless as there is no
+reason to have so much" and asked for it to "stay hard earned with continual
+sinks". Both halves are here, and the complaint was measured before it was
+believed: `curve_report` prints the purse, and a ten-act run earned about 7,700
+Gold while capability went flat from wave 48 - the last third of the road paid
+for nothing at all.
+
+**The income came down a little.** `KILL_ACT_VALUE_SCALE` now tops out at 2.76
+rather than 3.20. That is a 6% smaller purse at wave 72 and **no change to the
+curve at all** - mean pressure moved 0.433 to 0.434 - which is itself the proof
+that the surplus was never buying anything.
+
+**The Quartermaster is the sink**, and it is three standing orders taken as
+often as the player likes during Preparation: mend the wall, mend the towers,
+rearm every trap. One button on the bar offers whichever of the three would
+actually do something, cheapest worry first.
+
+Three rules make it a sink rather than a shop, and `balance_test` holds all
+three:
+
+- **It never runs out.** The price is geometric and unbounded. A sink with a
+  ceiling stops being a sink the moment it is reached.
+- **It always gets dearer.** A price that stops rising turns a big purse into a
+  second economy.
+- **It buys nothing new.** Every order returns something the player already had
+  and already paid for. If one ever granted power it would be a gold-priced
+  power scale the acts were never tuned against.
+
+Wood is still the cheap way to mend a wall and there is still only so much of
+it. Gold is the way there is always more of, and it gets dearer.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

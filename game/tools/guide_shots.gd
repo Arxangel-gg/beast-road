@@ -151,6 +151,7 @@ func _ready() -> void:
 	_copy("towers", "gathering")
 	_copy("stash", "forge")
 	_copy("spells", "arcane")
+	_copy("preparation", "quartermaster")
 
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])

@@ -60,6 +60,7 @@ func _ready() -> void:
 	_test_four_currency_economy()
 	await _test_live_tower_utility()
 	_test_opening_envelope()
+	_test_the_quartermaster()
 	_test_preparation_envelope()
 	_test_coop_scaling()
 	_test_act_curves()
@@ -271,6 +272,59 @@ func _test_act_curves() -> void:
 
 ## New players can establish a four-road baseline and learn one pressure at a
 ## time, while every modifier is neutral before the midgame begins.
+## **Gold keeps meaning something to the end of the run.**
+##
+## Owner report, 2026-09-13: gold "generates too much and becomes meaningless
+## ... needs to stay hard earned with continual sinks". `curve_report` had the
+## evidence: about 7,700 Gold earned over ten acts while capability goes flat
+## from wave 48, so the last third of the road paid for nothing.
+##
+## The Quartermaster is the sink and this holds the three things that make it
+## one rather than a shop:
+##
+## 1. **It never runs out.** The price is geometric and unbounded; a sink with a
+##    ceiling stops being a sink the moment it is reached.
+## 2. **It always gets dearer.** Otherwise a big purse buys a flat amount of
+##    relief forever, which is a second economy rather than a sink.
+## 3. **It buys nothing new.** Every order returns something the player already
+##    had. If one ever grants power, it is a gold-priced power scale and the
+##    acts were never tuned against it.
+func _test_the_quartermaster() -> void:
+	RunState.reset()
+	var first: int = RunState.quartermaster_price()
+	_check(first > 0, "the first standing order must cost something")
+	var last: int = first
+	var total: int = 0
+	for taken: int in 12:
+		var price: int = RunState.quartermaster_price()
+		_check(price >= last,
+			"order %d costs %d against the previous %d - a sink that gets cheaper "
+				% [taken + 1, price, last] + "is a shop")
+		if taken > 0:
+			_check(price > last,
+				"order %d costs the same as the one before it, so the sink has a ceiling"
+					% (taken + 1))
+		last = price
+		total += price
+		RunState.gain_currency(RunState.GOLD, price)
+		_check(RunState.pay_the_quartermaster(),
+			"an affordable order must be payable")
+	_check(RunState.quartermaster_orders == 12,
+		"twelve orders must be counted, not %d" % RunState.quartermaster_orders)
+	# The whole point: a dozen orders has to be able to absorb the late-run
+	# surplus, or the sink is decoration.
+	_check(total >= 2000,
+		"a dozen standing orders absorb only %d Gold, which is not a sink against "
+			% total + "a run that earns thousands")
+	# And an empty purse buys nothing.
+	RunState.reset()
+	var price: int = RunState.quartermaster_price()
+	_check(not RunState.pay_the_quartermaster(),
+		"an empty purse must not be able to place a %d Gold order" % price)
+	_check(RunState.quartermaster_orders == 0, "and a refused order must not be counted")
+	RunState.reset()
+
+
 func _test_opening_envelope() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
 	_set_progress(1, 0.0, 1, "jungle", 1)

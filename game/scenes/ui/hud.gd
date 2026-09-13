@@ -243,6 +243,7 @@ var _charge_bar: ProgressBar
 var _horn_button: Button
 var _raid_button: Button
 var _repair_button: Button
+var _orders_button: Button
 
 ## Build or Fight, during Preparation. Hidden outside it, because outside it
 ## there is nothing to build and the question does not arise.
@@ -1170,6 +1171,16 @@ func _build_action_bar(bar: Container) -> void:
 	_repair_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_repair_button, "upgrade", 22)
 
+	# **The Quartermaster** (owner brief, 2026-09-13: gold needs continual
+	# sinks). One button, three orders offered in turn - whichever of the three
+	# would actually do something, cheapest problem first - so the bar gains a
+	# button rather than three.
+	_orders_button = _add_button(bar,
+		"Orders",
+		func() -> void: _report(battlefield.try_standing_order(_standing_order())))
+	_orders_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
+	IconKit.on_button(_orders_button, "gold", 22)
+
 	_tend_button = _add_button(bar,
 		"Tend",
 		func() -> void: _report(battlefield.try_tend_hero()))
@@ -1339,6 +1350,38 @@ func _update_mode_button() -> void:
 	IconKit.on_button(_mode_button, "upgrade" if building else "war_horn", 22)
 
 
+## Which standing order the button would place, and what it says.
+##
+## The wall first, then the towers, then the traps: the order a player would
+## worry about them in, and the one that makes a single button honest.
+func _standing_order() -> String:
+	if battlefield == null:
+		return "wall"
+	for order: String in ["wall", "towers", "traps"]:
+		if String(battlefield.call("_would_do", order)).is_empty():
+			return order
+	return "wall"
+
+
+func _update_orders_button() -> void:
+	if _orders_button == null or battlefield == null:
+		return
+	var price: int = RunState.quartermaster_price()
+	var order: String = _standing_order()
+	var nothing: String = String(battlefield.call("_would_do", order))
+	_orders_button.disabled = not RunState.is_preparation() 		or not nothing.is_empty() 		or not RunState.can_afford_cost({RunState.GOLD: price})
+	const NAMES: Dictionary = {
+		"wall": "Mend the wall", "towers": "Mend the towers", "traps": "Rearm the traps",
+	}
+	_orders_button.text = "Orders  %d" % price
+	_orders_button.tooltip_text = ("The Quartermaster's standing order, during "
+		+ "Preparation. Next: %s, for %d Gold.
+"
+		+ "Every order is dearer than the last, and each one buys back something "
+		+ "you already had rather than something new.") % [
+			String(NAMES.get(order, "an order")), price]
+
+
 func _update_repair_button() -> void:
 	if _repair_button == null or battlefield == null or battlefield.town == null:
 		return
@@ -1346,6 +1389,8 @@ func _update_repair_button() -> void:
 	_repair_button.disabled = health == null or health.current_hp >= health.max_hp \
 		or not RunState.can_afford_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST}) \
 		or not RunState.is_preparation()
+
+	_update_orders_button()
 
 	if _tend_button == null:
 		return

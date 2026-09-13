@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "quartermaster"
+display_name = "The Quartermaster"
+title = "The Quartermaster"
+category = "Resources"
+order = 31
+image = "res://art/guide/quartermaster.png"
+body = "Gold buys towers, and towers run out. Once every emplacement is filled and every level the Forge allows is bought, a purse that keeps growing is a purse that has stopped meaning anything.
+
+The Quartermaster is where the rest of it goes. During Preparation you may place a standing order: mend the wall, mend the towers, or rearm every trap you have laid. The button offers whichever of the three would actually do something.
+
+Every order costs more than the one before it, for the whole run, with no ceiling. That is the design rather than a limit: a sink you can empty stops being a sink, and a price that stops rising turns a big purse into a second economy.
+
+Nothing the Quartermaster sells is new. Every order buys back something you already had and already paid for. Wood is still the cheap way to mend a wall and there is still only so much of it; Gold is the way there is always more of, and it gets dearer."

@@ -228,6 +228,11 @@ var raid_keys: int = 0
 ## during the window should be hasted too and a tower sold during it should not
 ## leave a dangling timer. Read in `Tower.path_interval_scale`, which is the one
 ## place every firing clock already asks.
+## How many standing orders the Quartermaster has filled this run. The price
+## of the next one is built from it, so gold always has somewhere to go and the
+## somewhere always gets dearer.
+var quartermaster_orders: int = 0
+
 var tower_haste_left: float = 0.0
 var tower_haste_scale: float = 1.0
 
@@ -572,6 +577,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	town_damage_taken = 0.0
 	tower_haste_left = 0.0
 	tower_haste_scale = 1.0
+	quartermaster_orders = 0
 	town_hits_taken = 0
 	peak_lane_pressure = 0.0
 	wave_archetype_counts.clear()
@@ -2143,3 +2149,49 @@ func tick_tower_haste(delta: float) -> void:
 	tower_haste_left = maxf(tower_haste_left - delta, 0.0)
 	if tower_haste_left <= 0.0:
 		tower_haste_scale = 1.0
+
+
+# --- The Quartermaster (2026-09-13) -------------------------------------------
+
+## What the next standing order costs. Geometric and unbounded on purpose: a
+## sink with a ceiling stops being a sink the moment it is reached.
+func quartermaster_price() -> int:
+	return maxi(int(round(float(Balance.QUARTERMASTER_BASE_GOLD)
+		* pow(Balance.QUARTERMASTER_STEP, float(quartermaster_orders)))), 1)
+
+
+## Takes the price, or says why not. The caller does the work.
+func pay_the_quartermaster() -> bool:
+	var price: int = quartermaster_price()
+	if not can_afford_cost({GOLD: price}):
+		return false
+	if not spend_cost({GOLD: price}):
+		return false
+	quartermaster_orders += 1
+	return true
+
+
+## Rearms every trap on the roads to its full count of triggers.
+##
+## Bought back rather than granted: a trap the player already laid and already
+## paid for, returned to what it was. Returns how many were rearmed.
+func rearm_the_traps() -> int:
+	var rearmed: int = 0
+	for key: Variant in traps:
+		var tile: Vector2i = key as Vector2i
+		var entry: Dictionary = traps[tile]
+		var kind: TrapData = ContentDB.trap(String(entry.get("trap_id", "")))
+		if kind == null:
+			continue
+		var level: int = int(entry.get("level", 1))
+		# The same arithmetic the level upgrade uses, so a raised trap is
+		# rearmed to what it is now rather than to what it was when it was laid.
+		var full: int = kind.triggers + Balance.TRAP_LEVEL_TRIGGERS[
+			clampi(level - 1, 0, Balance.TRAP_LEVEL_TRIGGERS.size() - 1)]
+		if int(entry.get("triggers_left", 0)) >= full:
+			continue
+		entry["triggers_left"] = full
+		traps[tile] = entry
+		EventBus.trap_changed.emit(tile)
+		rearmed += 1
+	return rearmed

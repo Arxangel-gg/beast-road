@@ -1730,6 +1730,76 @@ func try_repair_town() -> String:
 	return ""
 
 
+## **The Quartermaster's standing orders.** Owner brief, 2026-09-13: gold
+## "generates too much and becomes meaningless ... needs to stay hard earned
+## with continual sinks".
+##
+## Three orders, taken as often as the player likes, each dearer than the last
+## and each buying back something they already had. Nothing here raises a
+## ceiling: Wood is still the cheap way to mend a wall and it is still limited;
+## Gold is the way there is always more of, and it gets dearer every time.
+##
+## One function for all three, so the price is charged in one place and the
+## refusals cannot drift apart.
+func try_standing_order(order: String) -> String:
+	if not RunState.can_build_now():
+		return "Standing orders are placed during Preparation."
+	var price: int = RunState.quartermaster_price()
+	if not RunState.can_afford_cost({RunState.GOLD: price}):
+		return "Needs %d Gold." % price
+	var did: String = _would_do(order)
+	if not did.is_empty():
+		return did
+	if not RunState.pay_the_quartermaster():
+		return "Needs %d Gold." % price
+	match order:
+		"wall":
+			town.health.heal(Balance.TOWN_REPAIR_AMOUNT)
+			Vfx.ring(town.global_position, Balance.TOWN_RADIUS * 1.3,
+				Color(0.55, 0.88, 0.68, 0.65), 0.55, 6.0)
+		"towers":
+			for built: Tower in _towers.values():
+				if built != null and is_instance_valid(built) and built.needs_repair():
+					built.repair(Balance.QUARTERMASTER_TOWER_FRACTION)
+		"traps":
+			RunState.rearm_the_traps()
+	Sfx.play("sfx_tower_upgrade", -3.0)
+	return ""
+
+
+## Whether an order would do anything, said before the Gold is taken. A sink
+## that charges for nothing is a sink nobody uses twice.
+func _would_do(order: String) -> String:
+	match order:
+		"wall":
+			if town == null or town.health == null:
+				return "The town cannot be reached."
+			if town.health.current_hp >= town.health.max_hp:
+				return "The town is already whole."
+		"towers":
+			for built: Tower in _towers.values():
+				if built != null and is_instance_valid(built) and built.needs_repair():
+					return ""
+			return "Every tower is already whole."
+		"traps":
+			if RunState.traps.is_empty():
+				return "There are no traps laid."
+			for key: Variant in RunState.traps:
+				var entry: Dictionary = RunState.traps[key]
+				var kind: TrapData = ContentDB.trap(String(entry.get("trap_id", "")))
+				if kind == null:
+					continue
+				var level: int = int(entry.get("level", 1))
+				var full: int = kind.triggers + Balance.TRAP_LEVEL_TRIGGERS[
+					clampi(level - 1, 0, Balance.TRAP_LEVEL_TRIGGERS.size() - 1)]
+				if int(entry.get("triggers_left", 0)) < full:
+					return ""
+			return "Every trap is already armed."
+		_:
+			return "No such order."
+	return ""
+
+
 func try_repair_tower(anchor: Vector2i) -> String:
 	if not RunState.can_build_now():
 		return "Tower repairs are prepared between road battles."

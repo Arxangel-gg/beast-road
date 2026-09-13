@@ -3173,7 +3173,7 @@ const KILL_RESOURCE_SCALE: float = 0.5
 ## the one stretch of this economy measured against a player learning the game,
 ## and `balance_test._test_opening_envelope` owns it.
 const KILL_ACT_VALUE_SCALE: Array[float] = [
-	1.0, 1.0, 1.10, 1.25, 1.45, 1.70, 2.00, 2.35, 2.75, 3.20,
+	1.0, 1.0, 1.10, 1.25, 1.45, 1.68, 1.92, 2.18, 2.46, 2.76,
 ]
 
 
@@ -6764,3 +6764,33 @@ const ARCANE_CHAIN_SECONDS: float = 3.2
 ## Well under half, because an echo that matched the cast would be a flat
 ## damage multiplier on every spell in the game.
 const ARCANE_ECHO_POWER: float = 0.40
+
+
+# --- The Quartermaster (2026-09-13) --------------------------------------------
+## **"Gold generates too much and becomes meaningless."**
+##
+## Measured before it was believed. `curve_report` prints the purse, and over a
+## ten-act run it earns about 7,700 Gold while capability goes flat from wave 48
+## onward: the last third of the road pays for nothing, because every
+## emplacement is filled and every level the Forge allows is bought. Gold stops
+## being a decision two thirds of the way through the game.
+##
+## The owner asked for two things and both are here: gold **stays hard-earned**,
+## and it has **continual sinks**.
+##
+## The sink is the Quartermaster: three standing orders, taken as often as the
+## player likes, that buy back things they already had - a mended wall, mended
+## towers, rearmed traps. **Nothing here raises a ceiling.** Wood is still the
+## cheap way and it is still limited; Gold is the way there is always more of,
+## and it gets dearer every time it is used.
+##
+## The price rises geometrically and forever, which is the whole design: a sink
+## with a floor is a shop, and a shop with a finite stock stops being a sink the
+## moment it is cleared. Each order is worth less than the last for the same
+## reason, so a huge purse buys a lot of *relief* and never a lot of *power*.
+## [TUNE]
+const QUARTERMASTER_BASE_GOLD: int = 90
+const QUARTERMASTER_STEP: float = 1.28
+## And a floor under how much the first order is worth, so it is never a
+## rounding error against a full purse.
+const QUARTERMASTER_TOWER_FRACTION: float = 0.5
