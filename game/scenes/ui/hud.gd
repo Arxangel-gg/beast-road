@@ -145,8 +145,6 @@ const NAV_ICON_PAD: float = 8.0
 ## How far down the scope column starts. Below the top bar and no further:
 ## sitting higher with less padding was the whole objection to the old one.
 const NAV_BAR_TOP: float = 104.0
-## The clearance the nav column keeps above the experience band.
-const NAV_BAR_FOOT: float = 18.0
 ## Where the minimap's top sits, under the spirit panel (2026-09-12).
 const MINIMAP_TOP: float = 162.0
 
@@ -973,11 +971,16 @@ func _build_nav_bar() -> void:
 	zoom_in.text = "+"
 	_nav_buttons.append(zoom_in)
 
-	# The minimap, for a thumb that has no M key (2026-09-12).
-	var map_button: Button = _add_icon_button(bar, "", "Minimap  (M)",
-		func() -> void: _toggle_minimap())
-	map_button.text = "M"
-	_nav_buttons.append(map_button)
+	# The minimap, on a keyboard's column only (2026-09-12). A phone's column
+	# is already six thumb-sized targets and a seventh does not fit above the
+	# experience band without going under the 92px minimum a thumb needs - so
+	# on touch the map is turned off in the video settings, where it also
+	# lives, and it steps aside on its own whenever a sheet opens over it.
+	if not touch_ui():
+		var map_button: Button = _add_icon_button(bar, "", "Minimap  (M)",
+			func() -> void: _toggle_minimap())
+		map_button.text = "M"
+		_nav_buttons.append(map_button)
 
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
@@ -1112,18 +1115,6 @@ func _size_nav_bar() -> void:
 		return
 	var side: float = NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE
 	var art: int = NAV_TOUCH_ICON_ART if touch_ui() else NAV_ICON_ART
-	# **The column is cut to the room it has.** A phone held sideways is 720
-	# tall, and a fixed icon size ran the bottom of the column into the
-	# experience band the moment a seventh button arrived (the minimap, on
-	# 2026-09-12). Measured rather than nudged: whatever is between the bar's
-	# top and the band, shared out over however many buttons there are.
-	var count: int = maxi(_nav_buttons.size(), 1)
-	var room: float = get_viewport().get_visible_rect().size.y - NAV_BAR_TOP 		- _xp_bar_height() - _bottom_band_height() - NAV_BAR_FOOT
-	var separation: float = float(_nav_bar.get_theme_constant("separation"))
-	var fits: float = (room - separation * float(count - 1)) / float(count)
-	if fits > 24.0 and fits < side:
-		art = int(round(float(art) * fits / side))
-		side = fits
 	for button: Button in _nav_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
