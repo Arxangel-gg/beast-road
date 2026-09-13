@@ -618,11 +618,47 @@ const SEGMENTS_PER_ACT: int = 2
 ## Distance units in one segment; segment boundaries are crossroads.
 const SEGMENT_DISTANCE: float = 200.0
 
-## 2 segments per act.
-const ACT_DISTANCE: float = 400.0
+## **The opening act is longer, and only the opening act.**
+##
+## Acts advance on distance and distance accrues in real time, so an act holds
+## as many waves as fit in its length - about forty distance to a wave cycle out
+## here. At 400 the opening act was ten waves, and the opening needs more than
+## ten: roads open one at a time and reach all four on act-wave ten, and a tower
+## for every road is not affordable until about wave twelve. Both of those
+## landed *after* the Act I boss, so the player met it with two towers covering
+## two roads. Reported from play, 2026-09-13: "I reached act 1 boss before I was
+## able to get even 3 towers down! There should have been a lot more waves".
+##
+## **Only Act I**, because Act I is the only act that starts with nothing built.
+## Every later act opens with the towers the player already paid for, so it has
+## no such hole - and lengthening all ten pushed the run to a hundred waves and
+## carried co-op's mean pressure out of its band, which is a different game
+## rather than a fixed one. This adds four waves where the fault is. [TUNE]
+const ACT_OPENING_EXTRA_DISTANCE: float = 170.0
+
+## Derived, not restated. These were three literals that had to agree and
+## nothing checked that they did.
+const ACT_DISTANCE: float = SEGMENT_DISTANCE * float(SEGMENTS_PER_ACT)
 
 ## 10 acts. Filling this bar is the win condition (GDD §2, decision 1).
-const JOURNEY_TOTAL_DISTANCE: float = 4000.0
+const JOURNEY_TOTAL_DISTANCE: float = ACT_DISTANCE * float(ACT_COUNT) \
+	+ ACT_OPENING_EXTRA_DISTANCE
+
+
+## Where the given act ends and its boss walks in.
+##
+## One function, because the opening act is longer than the rest and three
+## places used to work that out by multiplying. A boundary computed two ways is
+## a boundary that will disagree with itself.
+static func act_end_distance(act: int) -> float:
+	if act <= 0:
+		return 0.0
+	return float(act) * ACT_DISTANCE + ACT_OPENING_EXTRA_DISTANCE
+
+
+## And where it begins.
+static func act_start_distance(act: int) -> float:
+	return act_end_distance(act - 1)
 
 ## The Final Ascent (GDD v4 §"Final Ascent - Crown of the World").
 ##
@@ -2950,6 +2986,12 @@ const WAVE_OPENING_SINGLE_LANE_WAVES: int = 2
 
 ## Seconds between spawns inside one wave. [TUNE]
 const WAVE_SPAWN_SPACING: float = 0.65
+
+## Roughly how long a formation stays on the road once it has walked on, before
+## the last body is dealt with. Shared, because both `curve_report` and
+## `balance_test` need it to work out how many waves fit in an act - and an act
+## boundary computed two ways is a boundary that will disagree with itself. [TUNE]
+const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
 const WAVE_BASE_COUNT: int = 4

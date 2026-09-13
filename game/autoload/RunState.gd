@@ -1973,7 +1973,7 @@ func journey_ratio() -> float:
 
 ## Distance at which this act ends and its boss walks in.
 func act_boss_distance() -> float:
-	return float(act) * Balance.ACT_DISTANCE
+	return Balance.act_end_distance(act)
 
 
 ## How far the beast still has to walk before the act boss appears. This was
@@ -1986,8 +1986,9 @@ func distance_to_boss() -> float:
 
 ## 0..1 progress through the current act.
 func act_progress() -> float:
-	var start: float = float(act - 1) * Balance.ACT_DISTANCE
-	return clampf((distance_travelled - start) / Balance.ACT_DISTANCE, 0.0, 1.0)
+	var start: float = Balance.act_start_distance(act)
+	var length: float = maxf(Balance.act_end_distance(act) - start, 1.0)
+	return clampf((distance_travelled - start) / length, 0.0, 1.0)
 
 
 ## Distance remaining until the next crossroad.

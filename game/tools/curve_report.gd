@@ -40,7 +40,7 @@ const SLOTS_PER_LANE: int = 10
 ## It is an estimate and it is load bearing: acts advance on distance, distance
 ## accrues in real time, so the length of a wave cycle is what decides how many
 ## waves an act contains. Getting it wrong moves every act boundary. [TUNE]
-const ENGAGEMENT_SECONDS: float = 16.0
+const ENGAGEMENT_SECONDS: float = Balance.WAVE_ENGAGEMENT_SECONDS
 
 ## Why the between-wave breather is **not** in the wave cycle.
 ##
@@ -109,8 +109,10 @@ func _ready() -> void:
 	var act_wave: int = 0
 	var act: int = 1
 	for wave: int in range(1, MAX_WAVES + 1):
-		var now_act: int = clampi(int(floor(distance / Balance.ACT_DISTANCE)) + 1,
-			1, Balance.ACT_COUNT)
+		var now_act: int = 1
+		while now_act < Balance.ACT_COUNT \
+				and distance >= Balance.act_end_distance(now_act):
+			now_act += 1
 		if now_act != act:
 			act = now_act
 			act_wave = 0

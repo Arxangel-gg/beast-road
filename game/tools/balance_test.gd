@@ -357,9 +357,25 @@ func _test_opening_envelope() -> void:
 	_check(first_tower_wave > 0 and first_tower_wave <= 4,
 		"clearing the opening must pay for a first tower by wave 4, got %s" % (
 			"never" if first_tower_wave == 0 else str(first_tower_wave)))
-	_check(baseline_wave > 0 and baseline_wave <= 12,
-		"a tower for every road must be affordable by wave 12, got %s" % (
-			"never" if baseline_wave == 0 else str(baseline_wave)))
+	# **Against the act's own length, not against a number.**
+	#
+	# This said "by wave 12" and passed for months while the opening act was ten
+	# waves long, so the promise it guards - a tower on every road - landed in
+	# Act II. The player met the first boss with two towers covering two roads,
+	# which is exactly what was reported from play on 2026-09-13. A wave budget
+	# is only meaningful next to how many waves there are.
+	var opening_waves: int = _waves_in_the_opening_act(director, terrain)
+	_check(opening_waves >= 8,
+		"the opening act is only %d waves long, which is not an act" % opening_waves)
+	# **With room to spare, not on the final wave.** Affordable on the last wave
+	# of the act means bought as the boss walks in, which is the reported
+	# experience rather than a defence. Two waves is the smallest margin that is
+	# a margin: one to buy them, one to have them shooting.
+	_check(baseline_wave > 0 and baseline_wave + 2 <= opening_waves,
+		("a tower for every road must be affordable before the Act I boss with "
+			+ "waves to spare - the act is %d waves and it is not affordable "
+			+ "until %s")
+			% [opening_waves, "never" if baseline_wave == 0 else str(baseline_wave)])
 	director._wave_timer = 1.0
 	RunState.wave_number = 0
 	director._on_act_started(1, "jungle")
@@ -377,7 +393,10 @@ func _test_opening_envelope() -> void:
 	# had no opinion about the thing that actually matters.
 	var widest: int = 0
 	var previous_lanes: int = 0
-	for act_wave: int in range(1, 20):
+	# Walked over the act's real length. This used to walk to 19 - twice what
+	# the act actually held - so "reaches every road before it ends" was true of
+	# a wave the player never saw.
+	for act_wave: int in range(1, opening_waves + 1):
 		var lanes: int = director._progressive_lane_count(act_wave)
 		_check(lanes >= previous_lanes,
 			"roads must never close again: wave %d went %d -> %d" % [
@@ -388,7 +407,9 @@ func _test_opening_envelope() -> void:
 		previous_lanes = lanes
 		widest = maxi(widest, lanes)
 	_check(widest == Balance.WAVE_LANES_MAX,
-		"the opening act must reach every road before it ends")
+		("the opening act must reach every road before it ends - it is %d waves "
+			+ "long and reaches %d of %d roads")
+			% [opening_waves, widest, Balance.WAVE_LANES_MAX])
 
 	# Opening curves protect and then get out of the way. Anything above 1.0
 	# would be an opening that is harder than the curve it is protecting.
@@ -414,6 +435,28 @@ func _test_opening_envelope() -> void:
 			Balance.STARTING_GOLD, supply_total])
 
 
+## How many waves the opening act actually contains.
+##
+## Acts advance on distance, distance accrues in real time, and a wave cycle is
+## the interval plus the walking-on plus the fighting - so a bigger wave takes
+## longer and eats more of the act. That is the same model `curve_report` walks,
+## and it is why the answer is measured here rather than written down: an act is
+## as long as its waves make it.
+func _waves_in_the_opening_act(director: WaveDirector, terrain: TerrainData) -> int:
+	var distance: float = 0.0
+	var act_wave: int = 0
+	var was_act: int = RunState.act
+	RunState.act = 1
+	while distance < Balance.act_end_distance(1) and act_wave < 60:
+		act_wave += 1
+		var bodies: int = director._wave_size(act_wave, terrain)
+		distance += (Balance.WAVE_INTERVAL
+			+ float(bodies) * Balance.WAVE_SPAWN_SPACING
+			+ Balance.WAVE_ENGAGEMENT_SECONDS) * Balance.BEAST_BASE_SPEED
+	RunState.act = was_act
+	return act_wave
+
+
 ## When the opening can afford its first tower, and one for every road.
 ##
 ## Walks the opening waves adding what clearing each one pays - bodies times the
@@ -421,12 +464,22 @@ func _test_opening_envelope() -> void:
 ## milestone lands on. Best case throughout: every body killed, nothing spent
 ## before the milestone. A ramp the best case cannot reach is unarguable.
 func _opening_gold_ramp(director: WaveDirector, terrain: TerrainData) -> Dictionary:
-	var per_body: float = _gold_per_body()
+	# **The opening's own roster, not the game's average.** This asked what a
+	# body pays across all fifty-six breeds, including the ones that only appear
+	# in Act IX - so it credited the opening with money the opening's enemies do
+	# not carry, and reported a defence as affordable several waves before it
+	# was. Half of why the gate was green while the player met the first boss
+	# with two towers.
+	var per_body: float = _gold_per_body(terrain)
 	var earned: float = float(Balance.STARTING_GOLD)
 	var first_tower: int = 0
 	var baseline: int = 0
 	var trail: PackedStringArray = []
-	for act_wave: int in range(1, 13):
+	# And walked over the act, not over a hardcoded twelve. A ramp that stops at
+	# twelve cannot report a baseline later than twelve, however long the act is
+	# or however poor the opening.
+	var opening_waves: int = _waves_in_the_opening_act(director, terrain)
+	for act_wave: int in range(1, opening_waves + 2):
 		var bodies: int = director._wave_size(act_wave, terrain) \
 			* director._progressive_lane_count(act_wave)
 		earned += float(bodies) * per_body
@@ -447,12 +500,16 @@ func _opening_gold_ramp(director: WaveDirector, terrain: TerrainData) -> Diction
 ##
 ## Read from the content rather than typed in, so rebalancing a drop moves the
 ## gate with it instead of leaving it asserting against a remembered number.
-func _gold_per_body() -> float:
+func _gold_per_body(terrain: TerrainData = null) -> float:
 	var total: float = 0.0
 	var count: int = 0
+	var roster: PackedStringArray = terrain.enemy_ids if terrain != null \
+		else PackedStringArray()
 	for value: Variant in ContentDB.enemies.values():
 		var enemy := value as EnemyData
 		if enemy == null or enemy.category == EnemyData.Category.BOSS:
+			continue
+		if roster.size() > 0 and not roster.has(enemy.id):
 			continue
 		total += float(enemy.resource_value)
 		count += 1
