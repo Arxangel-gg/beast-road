@@ -3,7 +3,7 @@
 [resource]
 script = ExtResource("1")
 discipline = 3
-role = 5
+role = 3
 mansion_tier = 3
 food_cost = 90
 effect_id = "spell_echo"

@@ -729,11 +729,22 @@ func refresh_discipline_offers() -> void:
 ## that fills it, whenever the eligible pool holds one. It replaces the last
 ## offer rather than adding a fourth: the draft is still three, and refusing
 ## is still the common case.
+## **Both empty slots, not the same offer twice.** The first cut of this wrote
+## every role into `size - 1`, so with Power *and* Ultimate empty the Power
+## offer was written and then immediately overwritten by the Ultimate one - and
+## a player in exactly the reported state was still never offered a Power node.
+## Each role takes its own place from the back now.
+##
+## Index 0 is never taken, so the draft always keeps one offer that is not
+## dictated by a dead slot. With three offers and two dead slots that is two
+## fixed and one free, which is the right trade for a state the player has to
+## be dug out of.
 func _offer_an_empty_slot(eligible: Array[DisciplineNodeData]) -> void:
 	if discipline_offers.is_empty():
 		return
+	var at: int = discipline_offers.size() - 1
 	for role: int in [DisciplineNodeData.Role.POWER, DisciplineNodeData.Role.ULTIMATE]:
-		if _slot_is_filled(role):
+		if at <= 0 or _slot_is_filled(role):
 			continue
 		var already: bool = false
 		for id: String in discipline_offers:
@@ -744,7 +755,10 @@ func _offer_an_empty_slot(eligible: Array[DisciplineNodeData]) -> void:
 		for node: DisciplineNodeData in eligible:
 			if node.role != role or not node.is_slot_unlocked(act):
 				continue
-			discipline_offers[discipline_offers.size() - 1] = node.id
+			if discipline_offers.has(node.id):
+				continue
+			discipline_offers[at] = node.id
+			at -= 1
 			break
 
 

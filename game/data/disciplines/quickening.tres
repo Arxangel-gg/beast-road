@@ -3,10 +3,9 @@
 [resource]
 script = ExtResource("1")
 discipline = 3
-role = 4
+role = 5
 mansion_tier = 3
 food_cost = 80
-spell_id = "cinder_nova"
 effect_id = "cast_haste_chain"
 effect_value = 0.18
 id = "quickening"

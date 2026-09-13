@@ -3,7 +3,7 @@
 [resource]
 script = ExtResource("1")
 discipline = 3
-role = 3
+role = 4
 mansion_tier = 2
 food_cost = 75
 spell_id = "sky_lance"

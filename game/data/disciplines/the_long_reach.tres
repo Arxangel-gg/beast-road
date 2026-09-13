@@ -3,7 +3,7 @@
 [resource]
 script = ExtResource("1")
 discipline = 3
-role = 5
+role = 3
 mansion_tier = 2
 food_cost = 65
 effect_id = "arcane_reach"

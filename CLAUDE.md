@@ -1733,6 +1733,30 @@ jungle ponds in it.
 that scatters by hand passes with the omission still in place. Checked by
 removing the line, which the gate refused by name.
 
+**Two Arcane nodes were authored against the wrong enum, found 2026-09-13.**
+`Role` is `ATTACK, DEFENSE, POWER, PASSIVE, ULTIMATE, AUGMENT` - Ultimate is
+**4** - and `slot_index()` maps it to slot **3**. The tree was written against
+the slot numbers, so Sky Lance and Stonefall landed on PASSIVE carrying a spell.
+A passive is trained and never slotted, so both spells were content that could
+never reach the combat bar.
+
+`discipline_check` refuses a `spell_id` on a node that sits in no slot now. It
+is the same failure as a misspelt effect key one layer up: the node trains, the
+card draws, and the thing it promised is unreachable. Checked by putting one of
+them back, which the gate named.
+
+**And the dead-slot guarantee only ever filled one slot.** The fix of earlier
+the same day wrote every role into `discipline_offers[size - 1]`, so with Power
+*and* Ultimate empty the Power offer was written and immediately overwritten by
+the Ultimate one - half the state the owner screenshotted was still unreachable.
+Each role takes its own place from the back now, and index 0 is never taken so
+the draft always keeps one offer that is not dictated by a dead slot.
+
+The gate that caught it tests the state that was actually reported - trained for
+five acts, just never into an active slot - rather than an empty hero. A hero
+with nothing trained has depth zero everywhere and genuinely cannot be offered a
+tier-three Ultimate, which is the tree working rather than a slot being dead.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

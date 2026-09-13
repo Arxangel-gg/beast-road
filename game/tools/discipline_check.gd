@@ -55,6 +55,8 @@ func _ready() -> void:
 	_check(seen.size() == RunState.discipline_offers.size(),
 		"Mansion offers must not contain duplicates")
 
+	_test_a_spell_can_always_be_cast()
+	_test_a_dead_slot_is_offered_a_way_out()
 	_test_every_effect_is_accounted_for()
 	_test_every_node_can_be_offered()
 
@@ -795,6 +797,78 @@ func _mentions(path: String, wanted: String) -> bool:
 		name = directory.get_next()
 	directory.list_dir_end()
 	return false
+
+
+## **A dead slot is dug out of, and both of them at once.**
+##
+## Owner report, 2026-09-13, with a screenshot: a tier-three Mansion in Act V
+## with the Power and Ultimate slots empty and nothing saying why. Power opens
+## on Act II and Ultimate on Act III, both from the same three-a-road rotation,
+## so a player who kept taking the Attack and Defense nodes in front of them
+## could arrive there and never be offered a way out.
+##
+## The guarantee is that an unlocked empty slot gets one of the three offers.
+## This checks **both** at once, because the first cut wrote every role into the
+## same index - the Power offer was written and then overwritten by the Ultimate
+## one, and half the reported state was still unreachable.
+## **A spell on a node nobody can equip is a spell nobody can cast.**
+##
+## `is_active_slot` is Attack, Defense, Power and Ultimate; a Passive or an
+## Augment is trained and never slotted, so a `spell_id` on one is content that
+## can never reach the combat bar. Two Arcane nodes were authored that way on
+## 2026-09-13 - the Role enum is `ATTACK, DEFENSE, POWER, PASSIVE, ULTIMATE,
+## AUGMENT` and they were written against the order `slot_index` returns, which
+## puts Ultimate at 3 rather than 4.
+##
+## The same failure as a misspelt effect key, one layer up: the node trains, the
+## card draws, and the thing it promised is unreachable.
+func _test_a_spell_can_always_be_cast() -> void:
+	var stranded: PackedStringArray = []
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.spell_id.is_empty():
+			continue
+		if not node.is_active_slot():
+			stranded.append("%s (%s)" % [node.id, node.slot_name()])
+		_check(ContentDB.spells.has(node.spell_id),
+			"%s hands over \"%s\", which no spell names" % [node.id, node.spell_id])
+	_check(stranded.is_empty(),
+		("these carry a spell and sit in no slot, so the spell can never be cast: %s")
+			% ", ".join(stranded))
+
+
+func _test_a_dead_slot_is_offered_a_way_out() -> void:
+	RunState.reset()
+	RunState.act = 5
+	RunState.building_tiers["sanctum"] = 3
+	# **The reported state, not an empty one.** The player had been training for
+	# five acts - just never into Power or Ultimate - and depth is what makes
+	# the deeper nodes eligible at all. A hero with nothing trained has depth
+	# zero everywhere and genuinely cannot be offered a tier-three Ultimate,
+	# which is the tree working rather than the slot being dead.
+	RunState.trained_discipline_nodes.clear()
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if node.role in [DisciplineNodeData.Role.ATTACK,
+				DisciplineNodeData.Role.DEFENSE] 				and node.discipline == DisciplineNodeData.Discipline.BLOOD:
+			RunState.trained_discipline_nodes.append(node.id)
+	RunState.equipped_discipline_slots = ["", "", "", ""]
+	RunState.refresh_discipline_offers()
+	var roles: Dictionary = {}
+	for id: String in RunState.discipline_offers:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node != null:
+			roles[node.role] = true
+	_check(RunState.discipline_offers.size() == 3,
+		"the draft is three offers, not %d" % RunState.discipline_offers.size())
+	_check(roles.has(DisciplineNodeData.Role.POWER),
+		"a Power slot standing empty in Act V must be offered a way out: %s"
+			% str(RunState.discipline_offers))
+	_check(roles.has(DisciplineNodeData.Role.ULTIMATE),
+		"and so must an empty Ultimate slot: %s" % str(RunState.discipline_offers))
+	_check(RunState.discipline_offers[0] != RunState.discipline_offers[1]
+			and RunState.discipline_offers[1] != RunState.discipline_offers[2]
+			and RunState.discipline_offers[0] != RunState.discipline_offers[2],
+		"the same node must not be offered twice: %s" % str(RunState.discipline_offers))
+	RunState.reset()
 
 
 func _test_every_node_can_be_offered() -> void:
