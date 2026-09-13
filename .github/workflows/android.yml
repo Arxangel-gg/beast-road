@@ -218,15 +218,23 @@ jobs:
           # Waiting rather than creating it: whoever creates the release decides
           # its title and notes, and that is the Release workflow's job. Creating
           # a bare one here would race it into a worse outcome than a late APK.
-          for attempt in $(seq 1 60); do
+          #
+          # **Sixty minutes, not ten.** Ten was the first guess and v0.17.0
+          # spent longer than that exporting: the Release workflow builds a
+          # Windows zip and a web build out of 250 MB of assets, and the APK
+          # finished first by a wide margin. The APK built, the release did not
+          # exist yet, and the step failed having successfully made the thing.
+          # A long wait costs a runner sitting idle; a short one costs the
+          # download link on the web build, which 404s until somebody notices.
+          for attempt in $(seq 1 180); do
             if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
               break
             fi
-            if [ "$attempt" -eq 60 ]; then
+            if [ "$attempt" -eq 180 ]; then
               echo "::error title=Android::Release ${GITHUB_REF_NAME} never appeared, so the APK could not be attached. It built fine - download it from this run's artifacts."
               exit 1
             fi
-            sleep 10
+            sleep 20
           done
           gh release upload "${GITHUB_REF_NAME}" build/android/BeastRoad.apk --clobber
           echo "::notice title=Android::APK attached to ${GITHUB_REF_NAME}."
