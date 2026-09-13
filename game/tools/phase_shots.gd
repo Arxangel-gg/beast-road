@@ -8,7 +8,9 @@ extends Node
 ##
 ##   Godot --path game res://tools/phase_shots.tscn
 
-const OUT: String = "C:/Users/Hamed/AppData/Local/Temp/claude/E--Arxangel-GameDev-BeastRoad/32e9c9cb-1491-428b-b139-1034ae2fac29/scratchpad/shots/"
+## Under `user://`, like every other tool that writes: an absolute path to
+## somebody's temp directory only works on the machine it was typed on.
+const OUT: String = "user://phase_shots/"
 const SIZE := Vector2i(1600, 900)
 
 var run: Run = null
@@ -20,7 +22,7 @@ func _ready() -> void:
 	MetaState.settings["tutorial_seen"] = true
 	get_window().mode = Window.MODE_WINDOWED
 	get_window().size = SIZE
-	DirAccess.make_dir_recursive_absolute(OUT)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
 	RunState.reset(false, 20260912)
 	GameDirector.run_active = true
 	run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
@@ -61,7 +63,8 @@ func _ready() -> void:
 	menu.queue_free()
 	for _f: int in 10:
 		await get_tree().process_frame
-	print("[phase-shots] wrote %d pictures to %s" % [_written.size(), OUT])
+	print("[phase-shots] wrote %d pictures to %s" % [_written.size(),
+		ProjectSettings.globalize_path(OUT)])
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
