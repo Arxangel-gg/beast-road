@@ -462,6 +462,21 @@ func _ready() -> void:
 		if achievement != null:
 			_show_message("Achievement  \u00b7  %s" % achievement.title)
 			Sfx.play("sfx_achievement"))
+	# **Practice that nobody told the player about.**
+	#
+	# Both of these have been emitted since the crafts were built and connected
+	# by nothing, so levelling the Angler or the Smith - which takes real time
+	# out on the road - happened in silence. Found by auditing every EventBus
+	# signal for a listener; thirty-three are emitted and heard by nothing.
+	#
+	# One line rather than a card: a craft level is a reward, not a chapter, and
+	# the region card is what announces chapters.
+	EventBus.craft_levelled.connect(func(craft: String, level: int) -> void:
+		_show_message("%s  ·  level %d" % [_craft_name(craft), level])
+		Sfx.play("sfx_ui_confirm", -3.0))
+	EventBus.profession_levelled.connect(func(craft: String, level: int) -> void:
+		_show_message("%s  ·  level %d" % [_craft_name(craft), level])
+		Sfx.play("sfx_ui_confirm", -3.0))
 	_build_party_feed()
 	_build_xp_bar()
 	_build_boss_bar()
@@ -3246,6 +3261,14 @@ func _on_boss_announced(boss_id: String, act: int) -> void:
 ## Shows the card, then takes it away. Never blocks: the road does not stop for
 ## a title, and a card that paused the game during a boss walk-in would be
 ## taking the fight away at the exact moment it started.
+## A craft's player-facing name. The ids are "angler", "woodcutter" and the
+## rest; nothing else in the HUD has had to say one out loud before.
+func _craft_name(craft: String) -> String:
+	if craft.is_empty():
+		return "Craft"
+	return craft.substr(0, 1).to_upper() + craft.substr(1)
+
+
 func announce(kicker: String, title: String) -> void:
 	if _region_card == null:
 		return

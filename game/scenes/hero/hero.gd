@@ -1111,10 +1111,29 @@ func _on_enemy_died(enemy_id: String, _at: Vector2) -> void:
 		attack.fill_fury()
 
 
+## **What a perfect evade looks like.**
+##
+## Drawn here rather than on a listener because the signal is the announcement
+## and this is the reaction: a system that wants to *count* evades listens, and
+## a player who wants to know they nailed one needs it on the frame it happened.
+##
+## A cold ring and a brief freeze, not a hit's warm burst - an evade is a blow
+## that did not land, and dressing it like damage would read as one.
+func _show_a_perfect_evade() -> void:
+	EventBus.hitstop_requested.emit(Balance.EVADE_HITSTOP)
+	Vfx.ring(global_position, Balance.EVADE_RING_RADIUS,
+		Color(Balance.EVADE_TINT, 0.9), 0.26, 3.0)
+	Vfx.flash_at(global_position, Color(Balance.EVADE_TINT, 0.5),
+		Balance.EVADE_FLASH_RADIUS)
+	EventBus.camera_impact.emit(global_position, Balance.EVADE_SHAKE)
+	Sfx.play("sfx_dash", -4.0)
+
+
 func _on_evaded(into: float, from: Vector2) -> void:
 	if into > Balance.HERO_PERFECT_EVADE_WINDOW:
 		return
 	EventBus.hero_perfect_evade.emit(global_position)
+	_show_a_perfect_evade()
 	# **No Ground Given.** A perfect evade is this game's block - the i-frame
 	# window is how a committed hit is answered - so it empowers the *next
 	# finisher* rather than every swing after it. One evade, one blow.

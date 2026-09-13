@@ -1596,6 +1596,27 @@ const SPAWN_BURST_END: int = 3
 ## for a slow-motion feel instead.
 const HITSTOP_TIME_SCALE: float = 0.0
 
+# --- Telling the player they did it (2026-09-13) ------------------------------
+## **A perfect evade is this game's block, and nothing said so.**
+##
+## `EventBus.hero_perfect_evade` has been emitted since the i-frame window was
+## built and connected by nothing at all, so the one moment the whole dodge
+## design is about - reading a committed blow and slipping it - produced no
+## sound, no flash and no pause. A player could not tell a perfect evade from an
+## ordinary one, which is the same as not having the mechanic.
+##
+## Found by auditing every EventBus signal for a listener: thirty-three are
+## emitted and heard by nothing.
+##
+## The freeze is shorter than a light hit's (0.035) because an evade is a
+## *release* rather than an impact - long enough to register, too short to
+## interrupt the dodge it belongs to. [TUNE]
+const EVADE_HITSTOP: float = 0.028
+const EVADE_RING_RADIUS: float = 118.0
+const EVADE_FLASH_RADIUS: float = 92.0
+const EVADE_TINT: Color = Color(0.78, 0.92, 1.0)
+const EVADE_SHAKE: float = 0.22
+
 ## Seconds a unit stays tinted after being hit.
 const HIT_FLASH_TIME: float = 0.09
 
