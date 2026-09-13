@@ -213,6 +213,19 @@ func _process(delta: float) -> void:
 		_tick_swing(who, delta)
 		return
 	if near < 0:
+		# **A worked-out seam is the other half of the report.** `_node_near`
+		# skips a node on cooldown, so walking up to one you had emptied gave no
+		# prompt at all and no reason - indistinguishable from standing in the
+		# wrong place. It says what it is and when it is back instead.
+		var resting: int = _resting_node_near(who.global_position)
+		if resting >= 0:
+			var spent_kind: GatherNodeData = ContentDB.gather_node(
+				String(_nodes[resting]["id"]))
+			if spent_kind != null:
+				_set_prompt("%s  ·  worked out  ·  back in %s"
+					% [spent_kind.display_name,
+						_rest_left(float(_nodes[resting]["cooldown"]))], "")
+				return
 		_set_prompt("", "")
 		return
 	var kind: GatherNodeData = ContentDB.gather_node(String(_nodes[near]["id"]))
@@ -256,7 +269,8 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	var level: int = MetaState.profession_level(kind.craft)
 	var share: float = float(level - 1) / maxf(float(Balance.PROFESSION_MAX_LEVEL - 1), 1.0)
 	var amount: int = kind.material_per_swing
-	if _roll.randf() < share * Balance.GATHER_SKILL_DOUBLE_CHANCE:
+	var lucky: bool = _roll.randf() < share * Balance.GATHER_SKILL_DOUBLE_CHANCE
+	if lucky:
 		amount *= 2
 	MetaState.gain_material(kind.material_id, amount)
 	var before: int = MetaState.profession_level(kind.craft)
@@ -272,17 +286,49 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	var who: Node2D = _local_hero()
 	var back: Vector2 = (who.global_position - at).normalized() \
 		if who != null else Vector2.UP
-	Vfx.spark(at, _spark_colour(kind), 7, back, 190.0)
+	Vfx.spark(at, _spark_colour(kind),
+		Balance.GATHER_LUCKY_SPARKS if lucky else 7, back, 190.0)
 	Sfx.play("sfx_hit_stone", -5.0)
-	EventBus.camera_impact.emit(at, 0.18)
+	EventBus.camera_impact.emit(at, Balance.GATHER_LUCKY_SHAKE if lucky \
+		else Balance.GATHER_SWING_SHAKE)
 	_recoil(_working, -back)
+	_say_the_take(at, kind, amount, lucky)
 
 	_nodes[_working]["left"] = int(node["left"]) - 1
-	if int(_nodes[_working]["left"]) <= 0:
+	var left: int = int(_nodes[_working]["left"])
+	if left <= 0:
 		_work_it_out(kind)
 		return
 	_swing_left = _swing_seconds(kind)
 	_swing_the_hero(_working)
+	# What is left, while the work is happening. A seam that is one swing from
+	# empty should not be a surprise.
+	_set_prompt("%s  ·  %s  ·  %d left" % [_verb(kind), kind.display_name, left],
+		"")
+
+
+## **What the swing paid, said out loud.**
+##
+## `EventBus.gathered` has carried this since the crafts were built and nothing
+## ever listened, so every swing looked the same as every other - which is the
+## whole of the owner's report. The word floats off the node in the material's
+## own colour, and a swing the craft doubled says so in a bigger one: that roll
+## is the only place practice is visible, and it was invisible.
+func _say_the_take(at: Vector2, kind: GatherNodeData, amount: int,
+		lucky: bool) -> void:
+	var material: MaterialData = ContentDB.material(kind.material_id)
+	var named: String = material.display_name if material != null \
+		else kind.display_name
+	var colour: Color = _spark_colour(kind)
+	if lucky:
+		# Brightened rather than recoloured: it has to read as the same material
+		# struck well, not as a different material.
+		colour = colour.lerp(Color.WHITE, 0.35)
+	Vfx.word(at + Vector2(0.0, -26.0), "+%d %s" % [amount, named], colour,
+		Balance.GATHER_LUCKY_WORD_SIZE if lucky else Balance.GATHER_WORD_SIZE)
+	if lucky:
+		Vfx.ring(at, 64.0, Color(colour, 0.7), 0.32, 3.0)
+		Sfx.play("sfx_relic_socket", -7.0)
 
 
 ## The node is spent. It goes grey and comes back on its own clock, so a region
@@ -295,6 +341,9 @@ func _work_it_out(kind: GatherNodeData) -> void:
 	var at: Vector2 = _nodes[index]["at"] as Vector2
 	Vfx.dust(at, Color(0.44, 0.38, 0.3), 12, 60.0)
 	Vfx.ring(at, 70.0, Color(_spark_colour(kind), 0.6), 0.35, 4.0)
+	# Said on the node as well as in the log: the log is at the edge of the
+	# screen and the player is looking at the seam they just emptied.
+	Vfx.word(at + Vector2(0.0, -46.0), "Worked out", Color(0.78, 0.74, 0.66), 22)
 	_fell(index, kind)
 	_stop_working("%s is worked out." % kind.display_name)
 
@@ -392,6 +441,29 @@ func _node_near(at: Vector2) -> int:
 			nearest = gap
 			best = index
 	return best
+
+
+## The nearest node that is resting, for the prompt that explains itself.
+func _resting_node_near(at: Vector2) -> int:
+	var best: int = -1
+	var nearest: float = INF
+	for index: int in _nodes.size():
+		var node: Dictionary = _nodes[index]
+		if float(node["cooldown"]) <= 0.0:
+			continue
+		var gap: float = at.distance_to(node["at"] as Vector2)
+		if gap <= Balance.GATHER_RADIUS and gap < nearest:
+			nearest = gap
+			best = index
+	return best
+
+
+## A rest read as minutes and seconds rather than as a number of seconds.
+func _rest_left(seconds: float) -> String:
+	var whole: int = int(ceil(maxf(seconds, 0.0)))
+	if whole < 60:
+		return "%ds" % whole
+	return "%dm %02ds" % [whole / 60, whole % 60]
 
 
 func _verb(kind: GatherNodeData) -> String:

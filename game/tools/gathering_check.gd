@@ -296,6 +296,10 @@ func _test_a_new_act_relays_the_ground() -> void:
 						+ "of %.0f - one press would start two things")
 						% [str(spot), spot.distance_to(near), reach])
 
+	# The same standing battlefield answers the readout questions, rather than
+	# a second one being built for them.
+	await _test_the_work_says_what_it_did(field, patch)
+
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
@@ -310,6 +314,90 @@ func _test_a_new_act_relays_the_ground() -> void:
 ##
 ## A forge that spent first and failed second would eat the gem, which is the
 ## scarce half of the price and the one a player went out past the camps for.
+## **A swing that paid and a seam that is empty must not look the same.**
+##
+## Owner report: mining "doesn't give enough of an indication of whether
+## anything was gathered or if it was an unsuccessful/empty mine attempt". The
+## amount and the material were already on `EventBus.gathered` and nothing in
+## the game listened, so every swing looked like every other one - and a seam on
+## cooldown is skipped by `_node_near`, so walking up to one you had just
+## emptied offered no prompt and no reason, which is indistinguishable from
+## standing in the wrong place.
+##
+## Driven rather than grepped: the prompt is read off the real signal, from a
+## real node put on a real cooldown.
+## **Given the harness rather than standing up its own.** A third Run inside one
+## gate re-connects the autoload signals a freed one left behind - "signal
+## already connected", "lambda capture was freed" - and the release gate fails
+## on a warning exactly as it fails on an assertion.
+func _test_the_work_says_what_it_did(field: Battlefield, patch: Gathering) -> void:
+	if field == null or patch == null or patch.node_count() <= 0:
+		_check(false, "the harness needs a battlefield with its nodes dug")
+		return
+
+	# A rest is read as a clock. "back in 130.0" is a number, not an answer.
+	_check(String(patch.call("_rest_left", 45.0)) == "45s",
+		"a short rest should read as seconds, got \"%s\""
+			% str(patch.call("_rest_left", 45.0)))
+	_check(String(patch.call("_rest_left", 130.0)) == "2m 10s",
+		"a long rest should read as minutes and seconds, got \"%s\""
+			% str(patch.call("_rest_left", 130.0)))
+
+	var nodes: Array = patch.get("_nodes") as Array
+	_check(nodes.size() > 0, "the patch should hold its nodes")
+	if nodes.is_empty():
+		return
+	var seam: Dictionary = nodes[0] as Dictionary
+	var hero: Node2D = field.get("hero") as Node2D
+	if hero == null:
+		_check(false, "the harness needs a hero to stand at the seam")
+		return
+
+	var said: PackedStringArray = []
+	var listen := func(text: String, _button: String) -> void:
+		said.append(text)
+	EventBus.interact_prompt.connect(listen)
+
+	# Standing at a seam that is resting.
+	seam["cooldown"] = 130.0
+	hero.global_position = seam["at"] as Vector2
+	for _frame: int in 4:
+		await get_tree().process_frame
+	var resting: String = said[said.size() - 1] if said.size() > 0 else ""
+	_check(resting.to_lower().contains("worked out"),
+		("a seam on cooldown must say so - it is skipped for work, so with no "
+			+ "prompt it is indistinguishable from standing nowhere. Got \"%s\"")
+			% resting)
+	_check(resting.contains("2m"),
+		"and must say when it is back, got \"%s\"" % resting)
+
+	# And a seam that is ready offers the work again.
+	said.clear()
+	seam["cooldown"] = 0.0
+	for _frame: int in 4:
+		await get_tree().process_frame
+	var ready_text: String = said[said.size() - 1] if said.size() > 0 else ""
+	_check(not ready_text.to_lower().contains("worked out"),
+		"a seam off cooldown must stop calling itself worked out, got \"%s\""
+			% ready_text)
+	EventBus.interact_prompt.disconnect(listen)
+
+	# And the swing itself has to say what it paid. A grep, because the readout
+	# is a floating word with no state to read back - but the fault it guards is
+	# exactly a call that is not made.
+	var source := FileAccess.open("res://scripts/systems/gathering.gd", FileAccess.READ)
+	if source != null:
+		var code: String = source.get_as_text()
+		var swing: int = code.find("func _land_a_swing")
+		var says: int = code.find("_say_the_take(", swing)
+		var ends: int = code.find("\nfunc ", swing + 10)
+		_check(swing >= 0 and says >= 0 and (ends < 0 or says < ends),
+			("a swing must say what it paid - `gathered` carried the amount for "
+				+ "a fortnight and nothing listened, which is the whole report"))
+	# Put the seam back the way it was found, since the harness lives on.
+	seam["cooldown"] = 0.0
+
+
 func _test_the_forge_validates_before_it_spends() -> void:
 	MetaState.erase_progress()
 	var wood: MaterialData = _one_of(MaterialData.Kind.WOOD)

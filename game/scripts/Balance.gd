@@ -6871,6 +6871,27 @@ const QUARTERMASTER_TOWER_FRACTION: float = 0.5
 ##
 ## The recoil is *away from the hero*, which is what makes it read as a blow
 ## rather than as a wobble. [TUNE]
+# --- Telling the player what a swing did (2026-09-13) --------------------------
+## **A swing that pays and a swing that does nothing looked identical.**
+##
+## Owner: mining "doesn't give enough of an indication of whether anything was
+## gathered or if it was an unsuccessful/empty mine attempt". It was worse than
+## unclear - `EventBus.gathered` carried the amount and the material and *nothing
+## in the game listened to it*, so the only feedback a swing ever gave was a
+## generic spark and a stone knock, identical whether it paid one, paid two, or
+## whether the seam was about to run out.
+##
+## These decide how the readout reads. The readout itself is the fix. [TUNE]
+## How high the "+2 Ironbark" floats, and how long it hangs.
+const GATHER_WORD_SIZE: int = 22
+## A swing the craft doubled is the one moment practice is visible, so it gets
+## its own size, its own spark count and its own kick.
+const GATHER_LUCKY_WORD_SIZE: int = 30
+const GATHER_LUCKY_SPARKS: int = 16
+const GATHER_LUCKY_SHAKE: float = 0.34
+## The ordinary swing's kick, so the lucky one has something to be bigger than.
+const GATHER_SWING_SHAKE: float = 0.18
+
 const GATHER_RECOIL: float = 7.0
 const GATHER_RECOIL_SECONDS: float = 0.26
 ## How far the node leans back at the peak of a recoil, in degrees.
