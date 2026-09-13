@@ -1823,6 +1823,10 @@ func _offer_bond(animal: Dictionary) -> void:
 ## tiny alternating steps and flipped every frame (owner report).
 func _face(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, motion: Vector2,
 		delta: float, immediate: bool = false) -> void:
+	# Art drawn from above has no left or right to choose between; `_bank`
+	# turns it onto its heading instead.
+	if kind.art_top_down:
+		return
 	animal["face_hold"] = maxf(float(animal.get("face_hold", 0.0)) - delta, 0.0)
 	var length: float = motion.length()
 	if length <= 0.001:
@@ -1844,9 +1848,23 @@ func _bank(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delta: floa
 		moving: bool) -> void:
 	if not kind.flies:
 		return
+	var heading_now: Vector2 = animal.get("heading", Vector2.RIGHT) as Vector2
+	if kind.art_top_down:
+		# The art points north, so north is rotated onto the heading. Eased
+		# rather than snapped, and held through a hover so a resting moth does
+		# not spin to whatever the last stray vector was.
+		sprite.flip_h = false
+		if moving and not heading_now.is_zero_approx():
+			var wanted_turn: float = heading_now.angle() + PI * 0.5
+			var turn: float = float(animal.get("bank", wanted_turn))
+			turn += wrapf(wanted_turn - turn, -PI, PI) \
+				* clampf(Balance.WILDLIFE_TOP_DOWN_TURN * delta, 0.0, 1.0)
+			animal["bank"] = turn
+			sprite.rotation = turn
+		return
 	var wanted: float = 0.0
 	if moving:
-		var heading: Vector2 = animal.get("heading", Vector2.RIGHT) as Vector2
+		var heading: Vector2 = heading_now
 		var facing_right: bool = sprite.flip_h != kind.art_faces_right
 		wanted = clampf(heading.y, -1.0, 1.0) * Balance.WILDLIFE_FLIGHT_BANK \
 			* (1.0 if facing_right else -1.0)
@@ -1960,3 +1978,34 @@ func apply_fog(fog: FogOfWar) -> void:
 		if sprite == null or not is_instance_valid(sprite):
 			continue
 		sprite.visible = fog == null or fog.sees(sprite.global_position)
+
+
+## Where the nearest animal actually hunting `who` is, or `Vector2.INF`.
+##
+## A companion asks this to know whether its owner is being hunted by
+## something that is not an enemy of the road (owner brief, 2026-09-13: a
+## bear that watched wolves take its owner apart). Stalking and striking are
+## the two states that mean it; a rabid animal counts wherever it is looking,
+## because a rabid animal is hostile to everything.
+func threat_to(who: Node2D, radius: float) -> Vector2:
+	if who == null or not is_instance_valid(who):
+		return Vector2.INF
+	var at: Vector2 = who.global_position
+	var best: Vector2 = Vector2.INF
+	var best_distance: float = radius
+	for animal: Dictionary in _living:
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var sprite := animal.get("sprite", null) as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var state: int = int(animal.get("state", 0))
+		var hunting: bool = state == State.STALKING or state == State.STRIKING \
+			or bool(animal.get("rabid", false))
+		if not hunting:
+			continue
+		var distance: float = sprite.global_position.distance_to(at)
+		if distance < best_distance:
+			best_distance = distance
+			best = sprite.global_position
+	return best

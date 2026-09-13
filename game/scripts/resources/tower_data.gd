@@ -136,6 +136,11 @@ func get_sprite_path() -> String:
 func build_cost() -> int:
 	if is_combination:
 		return Balance.TOWER_COMBO_BUILD_COST
+	# The well is priced as itself, not as its role. It answers the recovery
+	# economy rather than a lane, and at a Warden's price it answered it for
+	# nothing (2026-09-13).
+	if is_well():
+		return Balance.WELL_BUILD_GOLD
 	var gold: int = Balance.TOWER_ROLE_GOLD[int(role)]
 	var scaled: float = float(gold) * Balance.TOWER_ELEMENT_GOLD_SCALE[int(element)]
 	# Rounded to the nearest 5. Prices a player has to read at a glance should
@@ -152,6 +157,9 @@ func build_cost_table() -> Dictionary:
 	var cost: Dictionary = {RunStateCurrency.GOLD: build_cost()}
 	if is_combination:
 		cost[RunStateCurrency.STONE] = Balance.TOWER_COMBO_STONE_COST
+		return cost
+	if is_well():
+		cost[RunStateCurrency.STONE] = Balance.WELL_BUILD_STONE
 		return cost
 	var secondary: String = Balance.TOWER_ELEMENT_SECONDARY[int(element)]
 	var amount: int = Balance.TOWER_ELEMENT_SECONDARY_COST[int(element)]

@@ -199,7 +199,17 @@ func _physics_process(delta: float) -> void:
 	_cooldown = maxf(_cooldown - delta, 0.0)
 
 	var quarry: Enemy = _nearest_enemy()
-	var goal: Vector2 = _goal(quarry)
+	# **What is hunting my owner comes first.** A wolf pack is wildlife, not an
+	# enemy of the road, and a companion that only ever looked for an `Enemy`
+	# stood and watched while its owner was taken apart (owner brief,
+	# 2026-09-13). A threat nearer to the owner than the chosen body is
+	# answered instead.
+	var threat: Vector2 = _threat_to_owner()
+	var guard: bool = threat != Vector2.INF
+	if guard and quarry != null and owner_hero != null and is_instance_valid(owner_hero):
+		guard = threat.distance_to(owner_hero.global_position) \
+			< quarry.global_position.distance_to(owner_hero.global_position)
+	var goal: Vector2 = threat if guard else _goal(quarry)
 	var toward: Vector2 = goal - global_position
 	var moving: bool = toward.length() > 8.0
 	if moving:
@@ -216,7 +226,10 @@ func _physics_process(delta: float) -> void:
 			_sprite.flip_h = (facing > 0.0) != _faces_right
 	_moving = moving
 
-	if quarry != null and global_position.distance_to(quarry.global_position) \
+	if guard and global_position.distance_to(threat) <= data.attack_range \
+			and _cooldown <= 0.0:
+		_bite_wildlife(threat)
+	elif quarry != null and global_position.distance_to(quarry.global_position) \
 			<= data.attack_range and _cooldown <= 0.0:
 		_strike(quarry)
 
@@ -285,6 +298,39 @@ func _nearest_enemy() -> Enemy:
 			best_score = score
 			best = enemy
 	return best
+
+
+## **What is actually hunting my owner**, when it is not an enemy of the road.
+##
+## A bonded bear watched a pack of wolves take its owner apart, because the
+## only thing a companion ever looked for was an `Enemy` - and a wolf is
+## wildlife. Reported 2026-09-13. A predator stalking or striking the owner
+## is a threat, and so is anything rabid nearby; the companion goes for it
+## with the same swing it uses on a body, landed through the wildlife
+## system's own door.
+func _threat_to_owner() -> Vector2:
+	if owner_hero == null or not is_instance_valid(owner_hero):
+		return Vector2.INF
+	var animals: Node = null
+	if field != null and field.has_method("wildlife_system"):
+		animals = field.call("wildlife_system")
+	if animals == null or not animals.has_method("threat_to"):
+		return Vector2.INF
+	return animals.call("threat_to", owner_hero, Balance.COMPANION_GUARD_RANGE) as Vector2
+
+
+## Bites whatever is at that spot. Wildlife owns its own numbers, so the
+## wound goes through `Wildlife.wound_near` exactly as the hero's swing does.
+func _bite_wildlife(at: Vector2) -> void:
+	var animals: Node = null
+	if field != null and field.has_method("wildlife_system"):
+		animals = field.call("wildlife_system")
+	if animals == null or not animals.has_method("wound_near"):
+		return
+	animals.call("wound_near", at, Balance.COMPANION_BITE_RADIUS, _swing_power())
+	_striking_left = Balance.COMPANION_STRIKE_FRAMES_SECONDS
+	_cooldown = data.attack_interval
+	Sfx.play("sfx_companion_strike")
 
 
 ## The damage this swing lands, personality included.

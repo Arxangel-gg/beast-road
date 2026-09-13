@@ -267,7 +267,9 @@ func _pour(_delta: float) -> void:
 	var source := thirsty.get("input") as HeroInput
 	if source == null or not source.pressed(HeroInput.BUTTON_INTERACT):
 		return
-	var healed: float = data.well_heal * (1.0
+	# Scaled down at level one and earned back with the levels the player
+	# pays for (2026-09-13). The free early answer is what has gone.
+	var healed: float = data.well_heal * Balance.WELL_EARLY_HEAL_SCALE * (1.0
 		+ float(maxi(level - 1, 0)) * Balance.WELL_HEAL_PER_LEVEL)
 	thirsty.drink_from_well(healed)
 	Sfx.play("sfx_well_drink")
@@ -320,7 +322,8 @@ func _build_gauge() -> void:
 ## one is still a well rather than a fountain.
 func well_refill_seconds() -> float:
 	var share: float = 1.0 - float(maxi(level - 1, 0)) * Balance.WELL_REFILL_PER_LEVEL
-	return maxf(data.well_refill_seconds * maxf(share, 0.1), Balance.WELL_MIN_REFILL)
+	return maxf(data.well_refill_seconds * Balance.WELL_REFILL_SCALE * maxf(share, 0.1),
+		Balance.WELL_MIN_REFILL)
 
 
 ## The hero in reach who has actually lost something worth pouring for.
@@ -462,6 +465,16 @@ func _acquire_targets() -> Array[Enemy]:
 	var found: Array[Enemy] = []
 	var reach: float = effective_range()
 	var candidates: Array[Enemy] = _field.enemies_near(origin(), reach)
+	# **A camp is somewhere you go, not something that walks into your guns.**
+	#
+	# Camp bodies patrol their own ground and never take the road; a tower in
+	# reach of one farmed it forever for spoils the player never earned, which
+	# is what the owner reported on 2026-09-13. Ignoring them entirely would be
+	# wrong the other way - a camp roused by a player and chasing them home
+	# should meet the defence it is running into. So: a camp body is invisible
+	# to a tower until something provokes it, and then it is fair game.
+	candidates = candidates.filter(func(enemy: Enemy) -> bool:
+		return not enemy.is_camp_mob() or enemy.is_provoked())
 	if candidates.is_empty():
 		return found
 

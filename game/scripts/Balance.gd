@@ -6193,3 +6193,125 @@ const FOLIAGE_KIND_NATIVE_HEIGHT: Dictionary = {
 ## How far past the grid the fog's rim reaches: the treeline and the
 ## backdrop beyond the field are never seen, so they are never lit.
 const FOG_RIM_REACH: float = 3200.0
+
+
+# --- The edge of the world (2026-09-13) ----------------------------------------------------
+## How much of a shove survives bouncing off the border. A body knocked past
+## the edge used to leave the map entirely, where nothing could reach it and
+## it could not walk back. [TUNE]
+const KNOCKBACK_BOUNCE: float = 0.45
+
+
+# --- Top-down flyers (2026-09-13) ------------------------------------------------------------
+## How fast a moth or butterfly swings onto its heading. High enough that a
+## turn reads as a turn, low enough that it is not a snap. [TUNE]
+const WILDLIFE_TOP_DOWN_TURN: float = 7.0
+
+
+# --- The minimap's look, and the stash's rows (2026-09-13) -----------------------------
+## How solid the minimap is over the field, and its frame. A map that blocks
+## the road it describes is worse than no map. [TUNE]
+const MINIMAP_OPACITY: float = 0.82
+const MINIMAP_FRAME_THICK: float = 3.0
+const MINIMAP_FRAME_INNER: Color = Color(0.34, 0.29, 0.2, 0.9)
+const MINIMAP_CORNER: Color = Color(0.78, 0.68, 0.46, 0.95)
+const MINIMAP_CORNER_SIZE: float = 9.0
+## A list reads as rows when the rows are told apart. Every other row is
+## lifted, the one under the pointer is lifted further, and a hairline sits
+## between them so a long stash is scannable and clickable.
+const ROW_STRIPE: Color = Color(1.0, 0.96, 0.88, 0.035)
+const ROW_HOVER: Color = Color(1.0, 0.9, 0.62, 0.1)
+const ROW_RULE: Color = Color(0.72, 0.66, 0.52, 0.14)
+const ROW_RULE_HEIGHT: float = 1.0
+
+
+# --- The beast's tail, joined (2026-09-13) -----------------------------------------------
+## How far the tail's root is pushed under the body, and how much of its root
+## end is faded out to meet the flank. A butt-joint at the edge reads as a
+## seam however well the root is found; an overlap with a feather does not.
+const BEAST_TAIL_OVERLAP: float = 22.0
+const BEAST_TAIL_FEATHER: float = 0.24
+
+
+# --- Scarcity, per wallet (2026-09-13) -----------------------------------------------------
+## **One multiplier a currency, applied where currency is granted.**
+##
+## The owner reached Act III with eight hundred Food and reported it as
+## meaningless: the Wheat Farm pays per distance, rations and crates pay on
+## kills, fish pay on a catch, and no single one of them was wrong - the sum
+## was. Trimming any one source would have moved the problem rather than
+## fixed it, so the trim lives at the one door every source goes through
+## (`RunState.gain_currency`), with a fractional carry so a small grant is
+## reduced rather than rounded away to nothing.
+##
+## Gold is left alone here on purpose. Its problem is the opposite shape -
+## late abundance rather than a wrong rate - and the opening envelope
+## `balance_test` guards is measured against the income it has today. Gold is
+## answered with sinks: tower specialisation, the capstone, trap upgrades and
+## the well's new price. [TUNE]
+const CURRENCY_YIELD_SCALE: Dictionary = {
+	"food": 0.40,
+	"wood": 0.80,
+	"stone": 0.85,
+	"gold": 1.0,
+}
+
+# --- The healing well, priced and limited (2026-09-13) ---------------------------
+## **One well, and it costs like one.**
+##
+## The owner finished Act III with a well that "does more than enough for
+## me". It was a Warden-priced tower that answered the entire recovery
+## economy - the Tonic, the rations, the pantry and the wounds - for a third
+## of what a gun costs, and a second one made the answer permanent.
+##
+## So: one per player, a price of its own rather than its role's, and a heal
+## that starts small and grows with the levels the player pays for. Early is
+## where it mattered most, and early is where it is now weakest.
+const WELL_BUILD_GOLD: int = 420
+const WELL_BUILD_STONE: int = 60
+const WELL_LIMIT_PER_PLAYER: int = 1
+## What a level-one well draws, as a share of what it used to. The scaling
+## with level (`WELL_HEAL_PER_LEVEL`) is unchanged, so a player who invests
+## gets most of it back - the free early answer is what has gone.
+const WELL_EARLY_HEAL_SCALE: float = 0.46
+## And it draws slower: a draught every half-minute rather than every
+## eighteen seconds, before the Forge's refill scaling.
+const WELL_REFILL_SCALE: float = 1.7
+
+
+# --- A companion eats, and answers what hunts you (2026-09-13) ---------------
+## **A companion is fed or it is not there.**
+##
+## The owner asked for Food to matter, and for a bonded spirit to cost
+## something to keep at your shoulder. So calling one costs a meal up front
+## and it eats while it is out; when the larder is empty it goes home on its
+## own. That is what makes the Wheat Farm a decision again rather than a
+## number that only goes up.
+##
+## The rate is per species size, not per animal: a bear eats like a bear.
+## `COMPANION_UPKEEP_BY_SCALE` maps the spirit's own visual scale onto a
+## rate, so a new species is fed correctly by existing.  [TUNE]
+const COMPANION_CALL_COST: int = 12
+const COMPANION_UPKEEP_PER_MINUTE: float = 9.0
+const COMPANION_UPKEEP_BY_SCALE: Array[Vector2] = [
+	Vector2(0.7, 0.55), Vector2(1.0, 1.0), Vector2(1.4, 1.7), Vector2(2.0, 2.4),
+]
+## How far a companion will go from its owner to answer a threat, and how
+## wide its bite lands on an animal.
+const COMPANION_GUARD_RANGE: float = 520.0
+const COMPANION_BITE_RADIUS: float = 74.0
+
+# --- Traps that grow (2026-09-13) ------------------------------------------------------------
+## **A trap is a build, so it upgrades like one.**
+##
+## A laid trap was a one-off purchase that never changed, which made the road
+## panel a shopping list rather than a decision. Levels give the Gold a place
+## to go late, when the roads are already covered and the player has nothing
+## left to buy - the sink the owner asked for. Each level multiplies the
+## damage and adds triggers; the price climbs faster than the power. [TUNE]
+const TRAP_MAX_LEVEL: int = 5
+const TRAP_LEVEL_DAMAGE: Array[float] = [1.0, 1.34, 1.72, 2.14, 2.6]
+const TRAP_LEVEL_TRIGGERS: Array[int] = [0, 1, 2, 3, 5]
+const TRAP_LEVEL_RADIUS: Array[float] = [1.0, 1.06, 1.12, 1.18, 1.26]
+## What the next level costs, as a share of the trap's own build price.
+const TRAP_UPGRADE_COST_SCALE: Array[float] = [0.0, 0.9, 1.35, 2.0, 3.0]

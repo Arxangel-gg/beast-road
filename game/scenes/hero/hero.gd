@@ -1905,7 +1905,10 @@ func _refresh_spirit() -> void:
 	# for something the other player only ever sees.
 	if not is_inside_tree() or input == null or not input.is_local():
 		return
-	var wanted: String = MetaState.equipped_spirit
+	# **Sent away stays away.** The spirit is a toggle now (owner brief,
+	# 2026-09-13): calling one costs a meal, keeping one costs Food while it
+	# is out, and a player who cannot or does not want to pay sends it home.
+	var wanted: String = MetaState.equipped_spirit if RunState.spirit_called else ""
 	if spirit != null and is_instance_valid(spirit):
 		if spirit.spirit_key == wanted and spirit.field == field:
 			return

@@ -30,6 +30,9 @@ var _pulse: float = 0.0
 var _frames: Array[Texture2D] = []
 var _frame_clock: float = 0.0
 var _glow: Sprite2D = null
+## What level this trap was laid or raised to. The authored numbers are
+## level one; every level above multiplies them (2026-09-13).
+var level: int = 1
 
 
 func setup(trap_data: TrapData, at: Vector2i, arena: Node) -> void:
@@ -43,7 +46,8 @@ func _ready() -> void:
 		queue_free()
 		return
 	add_to_group(GROUP)
-	_left = data.triggers
+	level = maxi(RunState.trap_level(tile), 1)
+	_left = data.triggers + Balance.TRAP_LEVEL_TRIGGERS[_level_index()]
 	_arming = data.arm_seconds
 	_sprite = Sprite2D.new()
 	var path: String = data.get_sprite_path()
@@ -97,7 +101,7 @@ func _physics_process(delta: float) -> void:
 	# spending the same trap's triggers against their own copies of the enemies.
 	if puppet or field == null or not field.has_method("enemies_near"):
 		return
-	for enemy: Enemy in field.enemies_near(global_position, data.radius):
+	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
 		if not enemy.is_dying():
 			fire()
 			return
@@ -110,7 +114,7 @@ func fire() -> void:
 	_left -= 1
 	if not puppet:
 		_bite()
-	Vfx.ring(global_position, data.radius, Color(data.colour, 0.7), 0.35, 4.0)
+	Vfx.ring(global_position, radius_now(), Color(data.colour, 0.7), 0.35, 4.0)
 	Vfx.spark(global_position, data.colour, 10, Vector2.UP, 220.0)
 	EventBus.trap_triggered.emit(tile, data.id, _left)
 	if _left <= 0:
@@ -130,11 +134,11 @@ func fire() -> void:
 func _bite() -> void:
 	if field == null or not field.has_method("enemies_near"):
 		return
-	for enemy: Enemy in field.enemies_near(global_position, data.radius):
+	for enemy: Enemy in field.enemies_near(global_position, radius_now()):
 		if enemy.is_dying():
 			continue
 		if data.damage > 0.0:
-			enemy.take_damage(data.damage, global_position, data.knockback, false)
+			enemy.take_damage(damage_now(), global_position, data.knockback, false)
 		if data.slow_factor < 1.0:
 			enemy.apply_slow(data.slow_factor, data.slow_duration)
 		if data.burn_dps > 0.0:
@@ -149,3 +153,20 @@ func triggers_left() -> int:
 ## Restores a trap's remaining triggers when its node is rebuilt from RunState.
 func set_triggers_left(value: int) -> void:
 	_left = maxi(value, 0)
+
+
+## The level's index into the tuning tables, clamped so a save written with a
+## level this build does not know cannot read off the end.
+func _level_index() -> int:
+	return clampi(level - 1, 0, Balance.TRAP_MAX_LEVEL - 1)
+
+
+## What this trap hits for at its level.
+func damage_now() -> float:
+	return data.damage * Balance.TRAP_LEVEL_DAMAGE[_level_index()]
+
+
+## How far it reaches at its level. A raised trap covers a little more road,
+## which is most of what makes the last levels worth the Gold.
+func radius_now() -> float:
+	return data.radius * Balance.TRAP_LEVEL_RADIUS[_level_index()]

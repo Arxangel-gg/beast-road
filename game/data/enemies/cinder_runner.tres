@@ -18,4 +18,4 @@ raid_charge_value = 1.0
 resource_value = 1
 spawn_distance_scale = 1.0
 targets_towers = false
-
+art_facing = 1

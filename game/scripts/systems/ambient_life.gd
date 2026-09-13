@@ -154,21 +154,19 @@ func _tick_butterfly(butterfly: Dictionary, delta: float) -> void:
 	sprite.position += (butterfly["heading"] as Vector2) \
 		* float(butterfly["speed"]) * delta
 	var travel: Vector2 = butterfly["heading"] as Vector2
-	var use_side: bool = not _butterfly_side_frames.is_empty() \
-		and absf(travel.x) > absf(travel.y) * 0.78
-	var frames: Array[Texture2D] = _butterfly_side_frames if use_side \
-		else _butterfly_frames
+	# **Every flight frame is a top view, including the ones called "side".**
+	# The side sheet is a butterfly seen from above at an angle, not in
+	# profile, so the old branch that swapped to it for horizontal travel
+	# left the sprite pointing north while it flew east - the 90 degrees
+	# reported on 2026-09-13. The side frames keep their job as the perched
+	# pose and no longer steer.
+	var frames: Array[Texture2D] = _butterfly_frames
 	var frame: int = int(floor(float(butterfly["frame"]))) % frames.size()
 	sprite.texture = frames[frame]
-	if use_side:
-		sprite.flip_h = travel.x < 0.0
-		sprite.rotation = clampf(travel.y / maxf(absf(travel.x), 0.01), -1.0, 1.0) * 0.18
-	else:
-		# The top-view source faces north. Rotate that north vector onto travel;
-		# this is orientation, not decorative sway, so it remains correct through
-		# every turn rather than pointing north forever.
-		sprite.flip_h = false
-		sprite.rotation = travel.angle() + PI * 0.5
+	# The source faces north. Rotate that north vector onto travel; this is
+	# orientation, not decorative sway, so it stays correct through every turn.
+	sprite.flip_h = false
+	sprite.rotation = travel.angle() + PI * 0.5
 
 
 func _build_fireflies() -> void:

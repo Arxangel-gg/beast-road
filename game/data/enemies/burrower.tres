@@ -19,3 +19,4 @@ targets_towers = true
 id = "burrower"
 display_name = "Dune Burrower"
 description = "Surfaces inside the ring and tears into the nearest tower."
+art_facing = 1

@@ -233,8 +233,22 @@ func _mark_diamond(at: Vector2, reach: float, colour: Color) -> void:
 		at + Vector2(reach, 0.0), at + Vector2(0.0, reach), at + Vector2(-reach, 0.0)]), colour)
 
 
-## The pixel frame, like the health bars': a dark outline and a lit bevel.
+## The frame, in the same language as the health bars and the panels: a dark
+## outline, a lit bevel inside it, a shadowed inner rule, and a bracket at
+## each corner. Thin on purpose - it has to say "this is a window" without
+## taking room from the map inside it.
 func _draw_frame() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	_frame.draw_rect(rect, Balance.MINIMAP_FRAME_OUTLINE, false, 2.0)
-	_frame.draw_rect(rect.grow(-2.0), Balance.MINIMAP_FRAME_LIGHT, false, 1.0)
+	var thick: float = Balance.MINIMAP_FRAME_THICK
+	_frame.draw_rect(rect, Balance.MINIMAP_FRAME_OUTLINE, false, thick)
+	_frame.draw_rect(rect.grow(-thick), Balance.MINIMAP_FRAME_LIGHT, false, 1.0)
+	_frame.draw_rect(rect.grow(-thick - 1.0), Balance.MINIMAP_FRAME_INNER, false, 1.0)
+	var reach: float = Balance.MINIMAP_CORNER_SIZE
+	for corner: Vector2 in [Vector2.ZERO, Vector2(size.x, 0.0), Vector2(0.0, size.y), size]:
+		var toward := Vector2(1.0 if corner.x <= 0.0 else -1.0,
+			1.0 if corner.y <= 0.0 else -1.0)
+		var at: Vector2 = corner + toward * (thick * 0.5)
+		_frame.draw_line(at, at + Vector2(toward.x * reach, 0.0),
+			Balance.MINIMAP_CORNER, thick)
+		_frame.draw_line(at, at + Vector2(0.0, toward.y * reach),
+			Balance.MINIMAP_CORNER, thick)

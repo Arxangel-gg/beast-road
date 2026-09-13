@@ -38,6 +38,22 @@ enum Role {
 ## is replaced by the authored faction roster. Empty keeps the conventional id.
 @export var sprite_id: String = ""
 
+## **Which way this breed's art faces, if it faces a way at all.**
+##
+## The field mirrors a body to face its travel, which is right for a sprite
+## drawn in profile and wrong for one drawn facing the viewer: mirroring a
+## front-facing figure swaps the lantern into the other hand and the shield
+## onto the other arm, and the eye reads that as a body turned away. Reported
+## on 2026-09-13 against the lantern-bearer, the herald, the stalker and the
+## Act IV boss, all of which are front-facing and none of which was ever
+## going to look right flipped.
+##
+## FRONT is the honest default for this roster: most of it is drawn head-on.
+## RIGHT and LEFT are for the ones genuinely in profile - the runners, the
+## riders and the mounts - and those are the only ones that flip.
+enum Facing { FRONT, RIGHT, LEFT }
+@export var art_facing: Facing = Facing.FRONT
+
 @export var max_hp: float = Balance.ENEMY_MAX_HP
 
 ## Damage dealt on contact with the hero or the city.

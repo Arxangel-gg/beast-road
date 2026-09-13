@@ -371,6 +371,13 @@ func _load_tail() -> void:
 	_tail.name = "Tail"
 	_tail.texture = _tail_walk[0] if not _tail_walk.is_empty() else _tail_idle[0]
 	_tail.centered = true
+	# Its root end feathered, so the join under the flank is a join rather
+	# than a butt-joint (2026-09-13). See `tail_join.gdshader`.
+	var join := ShaderMaterial.new()
+	join.shader = load("res://scripts/shaders/tail_join.gdshader")
+	join.set_shader_parameter("feather", Balance.BEAST_TAIL_FEATHER)
+	join.set_shader_parameter("root_at", Balance.BEAST_TAIL_ROOT.x)
+	_tail.material = join
 	# The root of the tail sits on the anchor: the art's root fraction decides
 	# where in the tail image that is.
 	var size: Vector2 = _tail.texture.get_size()
@@ -832,5 +839,9 @@ func _place_tail() -> void:
 	if root == Vector2.ZERO:
 		_tail.position = Balance.BEAST_TAIL_ANCHOR
 		return
-	# A few pixels inside the edge, so the join is under the body's own paint.
-	_tail.position = root + Vector2(6.0, 0.0)
+	# **Well inside the edge, not a few pixels.** The tail is drawn behind the
+	# body, so the further its root sits under the flank the less of a seam
+	# there is to see; six pixels left a visible butt-joint that moved with
+	# every frame, reported 2026-09-13. `BEAST_TAIL_OVERLAP` is how far in it
+	# goes, and the sprite's own root end is feathered to meet it.
+	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, 0.0)

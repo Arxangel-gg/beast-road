@@ -24,3 +24,4 @@ phase_damage_bonus = 0.12
 id = "drowned_choir"
 display_name = "Rakka Coal-Eye, Wolf Marshal"
 description = "Warlord of the Cinderpaint Host. His horn turns a column into a charge; break the marshal and the pack loses its nerve."
+art_facing = 1

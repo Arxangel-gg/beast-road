@@ -20,3 +20,4 @@ spawn_distance_scale = 0.88
 targets_towers = false
 aura_radius = 150.0
 aura_strength = 0.10
+art_facing = 1

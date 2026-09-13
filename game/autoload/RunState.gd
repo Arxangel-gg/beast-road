@@ -100,6 +100,9 @@ var resources: int:
 ## Fractional enemy drops carried between kills. Large waves stay rewarding
 ## without turning every one-HP body into a whole resource.
 var kill_resource_remainder: float = 0.0
+## The fraction of a scarcity-trimmed grant not yet paid, per wallet. Run
+## scoped like every other wallet figure; see `_scarcity`.
+var _yield_remainder: Dictionary = {}
 
 ## Crossroad pairs this run may still redraw. Granted by Sigil rank 2.
 var crossroad_rerolls_left: int = 0
@@ -670,6 +673,47 @@ func refresh_discipline_offers() -> void:
 				if node.discipline != lead.discipline:
 					discipline_offers[discipline_offers.size() - 1] = node.id
 					break
+	_offer_an_empty_slot(eligible)
+
+
+## **An unlocked slot the hero cannot fill is a dead slot.**
+##
+## Power opens on Act II and Ultimate on Act III, and both are drawn from the
+## same three-a-road rotation as everything else. A player who kept taking
+## the Attack and Defense nodes in front of them could reach Act V with a
+## tier-three Mansion and two empty slots and nothing telling them why -
+## reported 2026-09-13 with a screenshot of exactly that.
+##
+## So when a slot is unlocked and empty, one of the three offers is a node
+## that fills it, whenever the eligible pool holds one. It replaces the last
+## offer rather than adding a fourth: the draft is still three, and refusing
+## is still the common case.
+func _offer_an_empty_slot(eligible: Array[DisciplineNodeData]) -> void:
+	if discipline_offers.is_empty():
+		return
+	for role: int in [DisciplineNodeData.Role.POWER, DisciplineNodeData.Role.ULTIMATE]:
+		if _slot_is_filled(role):
+			continue
+		var already: bool = false
+		for id: String in discipline_offers:
+			var offered: DisciplineNodeData = ContentDB.discipline_node(id)
+			already = already or (offered != null and offered.role == role)
+		if already:
+			continue
+		for node: DisciplineNodeData in eligible:
+			if node.role != role or not node.is_slot_unlocked(act):
+				continue
+			discipline_offers[discipline_offers.size() - 1] = node.id
+			break
+
+
+## Whether anything trained already sits in that slot.
+func _slot_is_filled(role: int) -> bool:
+	for id: String in trained_discipline_nodes:
+		var node: DisciplineNodeData = ContentDB.discipline_node(id)
+		if node != null and node.role == role:
+			return true
+	return false
 
 
 ## Spends a key if one is held. Returns whether it could.
@@ -1005,9 +1049,35 @@ func trap_triggers_left(tile: Vector2i) -> int:
 	return int((traps.get(tile, {}) as Dictionary).get("triggers_left", 0))
 
 
-func set_trap(tile: Vector2i, trap_id: String, triggers_left: int) -> void:
-	traps[tile] = {"trap_id": trap_id, "triggers_left": triggers_left}
+func set_trap(tile: Vector2i, trap_id: String, triggers_left: int, level: int = 1) -> void:
+	traps[tile] = {"trap_id": trap_id, "triggers_left": triggers_left,
+		"level": maxi(level, 1)}
 	EventBus.trap_changed.emit(tile)
+
+
+## What level the trap on that tile is, or 0 if nothing is laid there.
+func trap_level(tile: Vector2i) -> int:
+	var entry: Dictionary = traps.get(tile, {}) as Dictionary
+	return int(entry.get("level", 1)) if not entry.is_empty() else 0
+
+
+## Raises a laid trap by one level, restoring its triggers with it. Returns
+## whether it could. The caller has already taken the price.
+func upgrade_trap(tile: Vector2i) -> bool:
+	var entry: Dictionary = traps.get(tile, {}) as Dictionary
+	if entry.is_empty():
+		return false
+	var level: int = int(entry.get("level", 1))
+	if level >= Balance.TRAP_MAX_LEVEL:
+		return false
+	var kind: TrapData = ContentDB.trap(String(entry.get("trap_id", "")))
+	entry["level"] = level + 1
+	# A rebuilt trap is a whole trap: the point of paying is a fresh one that
+	# hits harder, not a spent one that hits harder once.
+	entry["triggers_left"] = kind.triggers if kind != null else int(entry.get("triggers_left", 1))
+	traps[tile] = entry
+	EventBus.trap_changed.emit(tile)
+	return true
 
 
 func clear_trap(tile: Vector2i) -> void:
@@ -1542,6 +1612,10 @@ func spend_cost(cost: Dictionary) -> bool:
 func gain_currency(id: String, amount: int) -> void:
 	if not CURRENCIES.has(id) or amount == 0:
 		return
+	if amount > 0:
+		amount = _scarcity(id, amount)
+		if amount <= 0:
+			return
 	currencies[id] = maxi(currency(id) + amount, 0)
 	if amount > 0:
 		currency_earned[id] = int(currency_earned.get(id, 0)) + amount
@@ -1572,9 +1646,35 @@ func gain_resources(amount: int) -> void:
 ## Funds every wallet. For harnesses that want to build without the economy
 ## being the subject of the test - since towers draw on a secondary currency per
 ## element now, funding Gold alone buys only the Fire roster.
+##
+## **Unscaled.** This is a harness funding itself, not the game paying out, so
+## it skips the scarcity trim: a test that asked for 2400 and was handed 960
+## would be testing `CURRENCY_YIELD_SCALE` rather than whatever it meant to.
 func gain_every_currency(amount: int) -> void:
 	for id: String in CURRENCIES:
-		gain_currency(id, amount)
+		if amount > 0:
+			currencies[id] = maxi(currency(id) + amount, 0)
+			currency_earned[id] = int(currency_earned.get(id, 0)) + amount
+			resources_earned += amount
+			_emit_currency(id)
+		else:
+			gain_currency(id, amount)
+
+
+## The scarcity trim for one wallet, carrying the fraction it cannot pay.
+##
+## Without the carry a trim of 0.4 on a grant of one is a grant of nothing,
+## and Food arrives one unit at a time from half its sources - the wallet
+## would have stopped filling rather than filled slower, which is a different
+## and much worse game. See `Balance.CURRENCY_YIELD_SCALE`.
+func _scarcity(id: String, amount: int) -> int:
+	var scale: float = float(Balance.CURRENCY_YIELD_SCALE.get(id, 1.0))
+	if is_equal_approx(scale, 1.0):
+		return amount
+	var carried: float = float(_yield_remainder.get(id, 0.0)) + float(amount) * scale
+	var whole: int = int(floor(carried))
+	_yield_remainder[id] = carried - float(whole)
+	return whole
 
 
 ## Adds a scaled enemy drop while retaining fractions across kills.
@@ -1833,3 +1933,67 @@ func item_with_effect(effect: int, automatic_only: bool = false) -> ItemData:
 			continue
 		return kind
 	return null
+
+
+# --- The companion's larder (2026-09-13) --------------------------------------------------
+
+## Whether the bonded spirit is out. Run scoped: a new road starts with the
+## companion called if the larder can pay for it, and a player who sent it
+## away has sent it away for this run.
+var spirit_called: bool = true
+## The fraction of a Food unit the companion has eaten but not yet been
+## charged, so a slow drain is a drain rather than a rounding error.
+var spirit_upkeep_carry: float = 0.0
+
+
+## What this spirit eats a minute, from its own size. A bear eats like a bear.
+func spirit_upkeep(kind: CompanionData) -> float:
+	if kind == null:
+		return Balance.COMPANION_UPKEEP_PER_MINUTE
+	var share: float = 1.0
+	for step: Vector2 in Balance.COMPANION_UPKEEP_BY_SCALE:
+		if kind.scale >= step.x:
+			share = step.y
+	return Balance.COMPANION_UPKEEP_PER_MINUTE * share
+
+
+## Calls the spirit out, if the larder can pay the meal it takes to do it.
+## Returns why it could not, or "" on success.
+func call_spirit() -> String:
+	if MetaState.equipped_spirit.is_empty():
+		return "No spirit is bonded."
+	if spirit_called:
+		return ""
+	if currency(FOOD) < Balance.COMPANION_CALL_COST:
+		return "Calling a spirit takes %d Food." % Balance.COMPANION_CALL_COST
+	spend_cost({FOOD: Balance.COMPANION_CALL_COST})
+	spirit_called = true
+	spirit_upkeep_carry = 0.0
+	EventBus.spirit_equipped.emit(MetaState.equipped_spirit)
+	return ""
+
+
+## Sends it home. Free, and immediate.
+func send_spirit_away() -> void:
+	if not spirit_called:
+		return
+	spirit_called = false
+	spirit_upkeep_carry = 0.0
+	EventBus.spirit_equipped.emit("")
+
+
+## Eats. Called by the battlefield while a spirit is out; when the larder
+## runs dry the spirit goes home rather than starving in place.
+func tick_spirit_upkeep(kind: CompanionData, delta: float) -> void:
+	if not spirit_called or kind == null:
+		return
+	spirit_upkeep_carry += spirit_upkeep(kind) * delta / 60.0
+	var whole: int = int(floor(spirit_upkeep_carry))
+	if whole <= 0:
+		return
+	spirit_upkeep_carry -= float(whole)
+	if currency(FOOD) < whole:
+		send_spirit_away()
+		EventBus.preparation_warning.emit("Your spirit went home: nothing left to feed it.")
+		return
+	spend_cost({FOOD: whole})

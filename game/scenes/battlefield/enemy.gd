@@ -358,6 +358,12 @@ func route_point_at(fraction: float) -> Vector2:
 	return _route[0]
 
 
+## Whether something provoked this body recently enough that it is still
+## coming for whoever did it. Public because the towers ask (2026-09-13).
+func is_provoked() -> bool:
+	return _provoked_left > 0.0
+
+
 func is_camp_mob() -> bool:
 	return camp_home != Vector2.INF
 
@@ -492,7 +498,8 @@ func _process(delta: float) -> void:
 	if _freeze_left <= 0.0 and _hitstun_left <= 0.0:
 		_tick_state(delta)
 
-	global_position += _knockback * delta
+	if not _knockback.is_zero_approx():
+		global_position = _bounced(global_position + _knockback * delta)
 	_motion = (global_position - before) / maxf(delta, 0.0001)
 	animator.set_motion(_motion, maxf(data.move_speed, 1.0), delta)
 	_update_sprite(delta)
@@ -1216,8 +1223,19 @@ func _camp_target() -> Node2D:
 
 ## Whether a foe - hero or companion - is still something to fight.
 func _foe_stands(foe: Node2D) -> bool:
+	if foe == null or not is_instance_valid(foe):
+		return false
 	if foe is Companion:
 		return (foe as Companion).is_alive()
+	# **This** hero, not any hero. Asking the field whether somebody is alive
+	# kept a body walking at a hero who had gone into a raid: the node is
+	# still there, still at its last position, hidden and stilled - so the
+	# enemy stood in the open swinging at nothing. Reported 2026-09-13 as
+	# "enemies get stuck targeting something invisible", and it is the same
+	# fault `Hero.set_present` was written for, one layer further out.
+	var who := foe as Hero
+	if who != null:
+		return who.is_alive() and who.is_in_group(Hero.GROUP_ANY)
 	return _field.hero_is_alive()
 
 
@@ -2172,11 +2190,16 @@ func _update_sprite(delta: float = 0.0) -> void:
 	# is left alone rather than reset, so a road running straight up the screen
 	# does not blank it.
 	# A body running away faces the way it is running, like any other.
-	if (_state == State.WALKING or _state == State.ROUTED) \
-			and absf(_motion.x) > Balance.FACING_DEADZONE:
-		sprite.flip_h = _motion.x < 0.0
-	elif _target != null and is_instance_valid(_target):
-		sprite.flip_h = _target.global_position.x < global_position.x
+	# **A front-facing sprite is never mirrored.** See `EnemyData.art_facing`:
+	# flipping art drawn head-on moves the props to the wrong hands and reads
+	# as a body turned away.
+	if data.art_facing != EnemyData.Facing.FRONT:
+		var faces_right: bool = data.art_facing == EnemyData.Facing.RIGHT
+		if (_state == State.WALKING or _state == State.ROUTED) \
+				and absf(_motion.x) > Balance.FACING_DEADZONE:
+			sprite.flip_h = (_motion.x < 0.0) == faces_right
+		elif _target != null and is_instance_valid(_target):
+			sprite.flip_h = (_target.global_position.x < global_position.x) == faces_right
 
 	_advance_walk_frames(delta)
 
@@ -2304,3 +2327,21 @@ func _advance_attack_frames() -> bool:
 	sprite.texture = _attack_frames[clampi(frame, 0, count - 1)]
 	_walk_phase = 0.0
 	return true
+
+
+## Keeps a shove inside the ground the field actually has.
+##
+## A hard enough blow used to throw a body past the border row and off the
+## map, where nothing could reach it and it could not walk back. It bounces
+## instead: the component that would leave is reflected and damped, which
+## also reads better than a body sliding along an invisible wall.
+func _bounced(at: Vector2) -> Vector2:
+	var edge: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+	var out := at
+	if absf(out.x) > edge:
+		out.x = clampf(out.x, -edge, edge)
+		_knockback.x = -_knockback.x * Balance.KNOCKBACK_BOUNCE
+	if absf(out.y) > edge:
+		out.y = clampf(out.y, -edge, edge)
+		_knockback.y = -_knockback.y * Balance.KNOCKBACK_BOUNCE
+	return out

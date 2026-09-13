@@ -316,6 +316,11 @@ func _build_beast() -> void:
 		_tail.texture = _tail_frames[0]
 		_tail.centered = true
 		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var join := ShaderMaterial.new()
+		join.shader = load("res://scripts/shaders/tail_join.gdshader")
+		join.set_shader_parameter("feather", Balance.BEAST_TAIL_FEATHER)
+		join.set_shader_parameter("root_at", Balance.BEAST_TAIL_ROOT.x)
+		_tail.material = join
 		var size: Vector2 = _tail.texture.get_size()
 		_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
 			size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
@@ -642,7 +647,7 @@ func _place_menu_tail() -> void:
 	var cut: float = 0.0
 	if _beast.region_enabled:
 		cut = float(_beast.texture.get_height()) - _beast.region_rect.size.y
-	_tail.position = root + Vector2(6.0, cut * 0.5)
+	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, cut * 0.5)
 
 
 func _drive_menu_tail() -> void:

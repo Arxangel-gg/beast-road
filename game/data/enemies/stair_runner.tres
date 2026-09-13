@@ -14,3 +14,4 @@ move_speed = 90.0
 body_radius = 24.0
 knockback_resistance = 0.05
 resource_value = 3
+art_facing = 1

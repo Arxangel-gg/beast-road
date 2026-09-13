@@ -60,6 +60,11 @@ const KEY_MINIMAP: String = "minimap"
 
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
+## Nodes that read a display preference of their own and need telling when
+## one changes. `apply_to_scene` calls `refresh_from_settings` on each.
+## Without it the minimap switch in the video settings changed the saved
+## value and nothing on screen, which is how a setting reads as broken.
+const SETTINGS_GROUP: StringName = &"reads_display_settings"
 
 ## How far the darkest grade may be lifted toward white. Not to 1.0: at a full
 ## lift the day/night cycle stops existing, and a setting that can erase a core
@@ -349,6 +354,12 @@ static func apply_to_scene() -> void:
 		var occluder := node as LightOccluder2D
 		if occluder != null:
 			occluder.visible = show_casters
+
+	# Anything that reads a preference directly is told, rather than left to
+	# notice on its next scope change.
+	for node: Node in tree.get_nodes_in_group(SETTINGS_GROUP):
+		if node.has_method("refresh_from_settings"):
+			node.call("refresh_from_settings")
 
 	# Re-filter scaled pixel art, so the smoothing toggle takes effect on the
 	# field being looked at rather than on the next one built.

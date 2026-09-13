@@ -237,6 +237,13 @@ func _process(delta: float) -> void:
 	# next. It is suspended with everything else during a raid, because
 	# `_process` is, which is the behaviour working rule 8 asks for.
 	_ration_cooldown = maxf(_ration_cooldown - delta, 0.0)
+	# A spirit at your shoulder eats while it is there (owner brief,
+	# 2026-09-13). `RunState` owns the larder and sends it home when the
+	# larder is empty; the field only says that time passed.
+	if hero != null and is_instance_valid(hero):
+		var spirit := hero.get("spirit") as Companion
+		if spirit != null and is_instance_valid(spirit) and spirit.data != null:
+			RunState.tick_spirit_upkeep(spirit.data, delta)
 	_pressure_timer -= delta
 	if _pressure_timer <= 0.0:
 		_pressure_timer = PRESSURE_INTERVAL
@@ -1264,6 +1271,12 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 		if not allowed:
 			return "Nothing beside this tile fuses into %s." % tower_data.display_name
 
+	# **One well.** It answers the whole recovery economy - the Tonic, the
+	# rations, the pantry and the wounds - and a second made that answer
+	# permanent. Reported 2026-09-13 as a well that "does more than enough".
+	if tower_data.is_well() and _wells_standing() >= Balance.WELL_LIMIT_PER_PLAYER:
+		return "One well is all a road can draw from."
+
 	var build_cost: Dictionary = cost_of(tower_data)
 	if not RunState.can_afford_cost(build_cost):
 		return "Needs %s." % RunState.format_cost(build_cost)
@@ -1306,6 +1319,46 @@ func try_place_trap(tile: Vector2i, trap_data: TrapData) -> String:
 	RunState.set_trap(tile, trap_data.id, trap_data.triggers)
 	RunState.traps_laid += 1
 	Vfx.build_burst(BattleGrid.tile_to_world(tile), trap_data.colour)
+	return ""
+
+
+## What raising the trap on that tile costs, or an empty dictionary when it
+## is maxed or nothing is there.
+static func trap_upgrade_cost(tile: Vector2i) -> Dictionary:
+	var kind: TrapData = RunState.trap_at(tile)
+	var level: int = RunState.trap_level(tile)
+	if kind == null or level <= 0 or level >= Balance.TRAP_MAX_LEVEL:
+		return {}
+	var share: float = Balance.TRAP_UPGRADE_COST_SCALE[clampi(level, 0, Balance.TRAP_MAX_LEVEL - 1)]
+	var cost: Dictionary = {}
+	for key: Variant in kind.cost:
+		cost[String(key)] = maxi(int(round(float(kind.cost[key]) * share)), 1)
+	return cost
+
+
+## Raises a laid trap by one level, or says why not.
+##
+## The same shape as `try_build` and `try_place_trap`: one door, the phase
+## asked of `can_build_now()`, and the price taken where the refusal is
+## decided so a quote and a charge cannot disagree.
+func try_upgrade_trap(tile: Vector2i) -> String:
+	if not RunState.can_build_now():
+		return "Traps are raised during Preparation."
+	if _ask_the_host(CoopRelay.Request.PLACE_TRAP, [tile, "upgrade"]):
+		return ""
+	var kind: TrapData = RunState.trap_at(tile)
+	if kind == null:
+		return "Nothing is laid here."
+	if RunState.trap_level(tile) >= Balance.TRAP_MAX_LEVEL:
+		return "%s is already at its last level." % kind.display_name
+	var cost: Dictionary = trap_upgrade_cost(tile)
+	if not RunState.can_afford_cost(cost):
+		return "Needs %s." % RunState.format_cost(cost)
+	RunState.spend_cost(cost)
+	if not RunState.upgrade_trap(tile):
+		return "Nothing is laid here."
+	Vfx.build_burst(BattleGrid.tile_to_world(tile), kind.colour)
+	Sfx.play("sfx_tower_upgrade")
 	return ""
 
 
@@ -2140,3 +2193,15 @@ func _vision_sources() -> Array:
 	if town != null and is_instance_valid(town):
 		out.append({"at": town.global_position, "radius": Balance.FOG_VISION_TOWN})
 	return out
+
+
+## How many wells stand on the field now. The limit is per road rather than
+## per player: in co-op the party shares one, for the same reason one player
+## sharing it with themselves was already too much.
+func _wells_standing() -> int:
+	var found: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower != null and is_instance_valid(tower) and tower.data != null 	and tower.data.is_well():
+			found += 1
+	return found

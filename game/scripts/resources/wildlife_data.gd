@@ -185,6 +185,16 @@ func roll_weight(act: int) -> float:
 ## so every animal in the game walked backwards.
 @export var art_faces_right: bool = false
 
+## **Drawn from above rather than from the side.**
+##
+## A moth and a butterfly are painted head-up, wings spread either side. The
+## field was flipping them horizontally and adding a small banking roll,
+## which is what a profile sprite wants and leaves a top-down one pointing
+## north however it flies - reported 2026-09-13 as flyers "90 degrees off
+## from the direction they're moving in". A top-down flier is rotated onto
+## its heading instead, and never mirrored.
+@export var art_top_down: bool = false
+
 ## What it takes to bring one down, and what it is worth.
 ##
 ## All three scale together with the animal's size, which is what makes hunting a

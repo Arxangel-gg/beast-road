@@ -377,8 +377,10 @@ func _refresh() -> void:
 		_list.add_child(empty)
 		return
 
+	var stripe: int = 0
 	for index: int in _sorted_indices():
-		_list.add_child(_row(index))
+		_list.add_child(_stripe(_row(index), stripe))
+		stripe += 1
 
 
 ## The pantry: what was pulled out of the ponds, and the button that eats it.
@@ -467,6 +469,41 @@ func _fish_row(kind: FishData) -> Container:
 ## Big enough that a 128px icon still reads at a glance, small enough that a
 ## full stash does not turn into a gallery.
 const ICON_SIZE: float = 44.0
+
+
+## A row's own backing: every other one lifted, the one under the pointer
+## lifted further, and a hairline under it.
+##
+## A stash of ninety-six pieces with four buttons a row is a wall, and the
+## owner reported losing which button belonged to which piece. Striping is
+## the cheapest fix that survives any width; the hover is what makes the
+## click feel aimed.
+func _stripe(row: Control, index: int) -> Container:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Balance.ROW_STRIPE if index % 2 == 1 else Color(0, 0, 0, 0)
+	style.border_width_bottom = int(Balance.ROW_RULE_HEIGHT)
+	style.border_color = Balance.ROW_RULE
+	style.content_margin_left = 6.0
+	style.content_margin_right = 6.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	var lit := StyleBoxFlat.new()
+	lit.bg_color = Balance.ROW_HOVER
+	lit.border_width_bottom = int(Balance.ROW_RULE_HEIGHT)
+	lit.border_color = Balance.ROW_RULE
+	lit.content_margin_left = 6.0
+	lit.content_margin_right = 6.0
+	lit.content_margin_top = 3.0
+	lit.content_margin_bottom = 3.0
+	panel.mouse_entered.connect(func() -> void:
+		panel.add_theme_stylebox_override("panel", lit))
+	panel.mouse_exited.connect(func() -> void:
+		panel.add_theme_stylebox_override("panel", style))
+	panel.add_child(row)
+	return panel
 
 
 func _row(index: int) -> Container:

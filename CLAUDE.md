@@ -1243,6 +1243,70 @@ now shown - rock, shake, dust and a shader fade - and `RiftArena._finish`
 returns the reward on the frame when `DisplayServer` is headless. Without that
 every gate that finishes a rift waits on an animation nobody is watching.
 
+**The owner's second play report, 2026-09-13.** Eleven more screenshots and
+a long list. What follows is the part of it that is a decision; the rest is in
+the commits.
+
+**A front-facing sprite is never mirrored.** Four separate reports of enemies
+"facing backwards" turned out to be one fault: the field flips a body to face
+its travel, which is right for a sprite drawn in profile and wrong for one
+drawn head-on - mirroring moves the lantern into the other hand and the shield
+onto the other arm. A contact sheet of all thirty-nine breeds and eleven bosses
+says most of this roster is front-facing. `EnemyData.art_facing` names it, and
+only the twelve genuinely in profile flip.
+
+**The same mistake in the air.** A moth and a butterfly are painted head-up
+from above, and the field was flipping them horizontally and adding a banking
+roll - which leaves a top-down sprite pointing north however it flies.
+`WildlifeData.art_top_down` turns them onto their heading instead. The ambient
+butterfly had its own version of this: a "side" sheet that is a top view at an
+angle, used whenever travel was mostly horizontal.
+
+**A foe is a foe, not "somebody is alive".** `Enemy._foe_stands` asked the
+field whether *any* hero lived, so a body kept walking at a hero who had gone
+into a raid - present in the tree, hidden and stilled. That is the "enemies get
+stuck targeting something invisible" report, and it is `Hero.set_present`'s
+distinction one layer further out.
+
+**Food is trimmed at the door, not at a source.** The owner reached Act III
+with eight hundred Food. The Wheat Farm, the crates, the rations and the
+pantry were each defensible and the sum was not, so
+`Balance.CURRENCY_YIELD_SCALE` trims at `RunState.gain_currency` with a
+fractional carry. **Gold is deliberately not trimmed there**: its problem is
+late abundance rather than a wrong rate, and the opening envelope
+`balance_test` guards is measured against today's income. Gold is answered
+with sinks - trap levels now, tower specialisation next.
+
+**One well, priced as itself.** It answered the whole recovery economy - the
+Tonic, the rations, the pantry and the wounds - at a Warden's price, and a
+second made that answer permanent. One a road, its own Gold and Stone price,
+a level-one draught at 46% of what it was, and a slower refill. The scaling
+with level is untouched, so a player who invests gets most of it back.
+
+**A companion is fed, and it answers what is actually hunting you.** A bonded
+bear watched a wolf pack take its owner apart, because the only thing a
+companion ever looked for was an `Enemy` and a wolf is wildlife;
+`Wildlife.threat_to` is the door it asks through now. And it eats: a meal to
+call, a trickle to keep, and it goes home on its own when the larder is empty.
+That is what makes the Wheat Farm a decision again rather than a number that
+only goes up, and it is a toggle so a player can choose the Food instead.
+
+**Towers ignore a sleeping camp.** Camp bodies patrol their own ground and
+never take the road, so a tower in reach farmed one forever for spoils the
+player never earned. They are invisible to a tower until something provokes
+them - a camp roused and chasing a player home still meets the defence it is
+running into.
+
+**An unlocked slot the hero cannot fill is a dead slot.** Power opens on Act
+II and Ultimate on Act III, both drawn from the same three-a-road rotation as
+everything else, and a player who kept taking what was in front of them
+reached Act V with a tier-three Mansion and two empty slots. One of the three
+offers now fills an empty unlocked slot whenever the pool holds one.
+
+**Music encodes at Vorbis q1.** Eighty-eight songs at q4 were 222 MB of a
+300 MB game. Under combat, weather and a war horn, q1 is not the thing anybody
+hears; sound effects stay at q5 because they are short and exposed.
+
 **The well is drunk from, as of the same date.** A full well shows a gauge
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.

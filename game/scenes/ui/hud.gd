@@ -386,6 +386,7 @@ var _party_total: float = 0.0
 var _party_deciding: bool = false
 var _spirit_panel: VBoxContainer
 var _spirit_label: Label
+var _spirit_button: Button = null
 var _spirit_bar: ProgressBar
 var _spirit_clock_left: float = 0.0
 var _spirit_clock_total: float = 0.0
@@ -1459,9 +1460,22 @@ func _refresh_road_panel() -> void:
 	var wall: BarricadeData = RunState.barricade_at(_road_tile)
 	if standing != null or wall != null:
 		var name: String = standing.display_name if standing != null else wall.display_name
-		var note: Label = _label("%s is already here." % name, 15)
+		var level: int = RunState.trap_level(_road_tile)
+		var note: Label = _label("%s is already here.%s" % [name,
+			("  Level %d of %d." % [level, Balance.TRAP_MAX_LEVEL]) if level > 0 else ""], 15)
 		note.add_theme_color_override("font_color", Color("aebcb8"))
 		_road_list.add_child(note)
+		# **A laid trap can be raised** (owner brief, 2026-09-13). Late Gold has
+		# somewhere to go once the roads are covered, and a road the player has
+		# already committed to gets better rather than wider.
+		if standing != null:
+			var cost: Dictionary = Battlefield.trap_upgrade_cost(_road_tile)
+			if not cost.is_empty():
+				_add_road_row("Raise %s" % standing.display_name,
+					"Level %d: harder, wider, and rebuilt to full triggers." % (level + 1),
+					cost,
+					func() -> void: _report(battlefield.try_upgrade_trap(_road_tile)),
+					standing.get_sprite_path(), _trap_tooltip(standing))
 	else:
 		for trap: TrapData in ContentDB.trap_kinds():
 			_add_road_row(trap.display_name, trap.description, trap.cost,
@@ -2276,6 +2290,15 @@ func _build_spirit_panel() -> void:
 	_spirit_bar.custom_minimum_size = Vector2(240.0, 8.0)
 	_spirit_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_spirit_panel.add_child(_spirit_bar)
+	# **Called or sent home, and the Food it costs to keep out.** The spirit is
+	# a toggle since 2026-09-13: a meal to call, a trickle to keep, and a
+	# player who would rather eat sends it away.
+	_spirit_button = Button.new()
+	_spirit_button.name = "SpiritToggle"
+	_spirit_button.focus_mode = Control.FOCUS_NONE
+	_spirit_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_spirit_button.pressed.connect(_toggle_spirit)
+	_spirit_panel.add_child(_spirit_button)
 	EventBus.spirit_downed.connect(func(_key: String, seconds: float) -> void:
 		_spirit_clock_left = seconds
 		_spirit_clock_total = maxf(seconds, 0.01))
@@ -2288,9 +2311,15 @@ func _update_spirit_panel(delta: float) -> void:
 	if _spirit_panel == null:
 		return
 	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
+	_refresh_spirit_button()
 	if spirit == null or not is_instance_valid(spirit):
-		_spirit_panel.visible = false
+		# Nothing at your shoulder, but a bond to call on: the panel stays so
+		# the player can call it back.
+		_spirit_panel.visible = not MetaState.equipped_spirit.is_empty()
+		_spirit_bar.visible = false
+		_spirit_label.text = "Spirit sent home"
 		return
+	_spirit_bar.visible = true
 	var recovering: float = spirit.recovery_left()
 	if recovering > 0.0:
 		_spirit_clock_left = recovering
@@ -2301,7 +2330,11 @@ func _update_spirit_panel(delta: float) -> void:
 		return
 	var ratio: float = spirit.spirit_health_ratio()
 	if ratio >= 0.999:
-		_spirit_panel.visible = false
+		# Whole, so no bar - but the panel stays for the toggle and the upkeep.
+		_spirit_panel.visible = true
+		_spirit_bar.visible = false
+		_spirit_label.text = "%s  ·  %d Food a minute" % [spirit.data.display_name,
+			int(round(RunState.spirit_upkeep(spirit.data)))]
 		return
 	_spirit_panel.visible = true
 	_spirit_label.text = "%s  \u00b7  %d%%" % [spirit.data.display_name, int(round(ratio * 100.0))]
@@ -4139,7 +4172,10 @@ func _build_minimap() -> void:
 	_minimap.battlefield = battlefield
 	_minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_minimap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_minimap.modulate.a = Balance.MINIMAP_OPACITY
 	add_child(_minimap)
+	# So the video settings reach it while a run is on screen.
+	add_to_group(Graphics.SETTINGS_GROUP)
 	_place_minimap()
 	_refresh_minimap_visible()
 
@@ -4174,3 +4210,36 @@ func _toggle_minimap() -> void:
 	Graphics.set_display(Graphics.KEY_MINIMAP, not Graphics.minimap_shown())
 	_refresh_minimap_visible()
 	MetaState.save_game()
+
+
+## Called by `Graphics.apply_to_scene` when a display preference changes, so
+## the minimap switch in the video settings takes effect on the field being
+## looked at rather than on the next one built.
+func refresh_from_settings() -> void:
+	_refresh_minimap_visible()
+
+
+## Calls the spirit out or sends it home, and says why when it cannot.
+func _toggle_spirit() -> void:
+	if RunState.spirit_called:
+		RunState.send_spirit_away()
+	else:
+		var refusal: String = RunState.call_spirit()
+		if not refusal.is_empty():
+			EventBus.preparation_warning.emit(refusal)
+	if _hero != null and is_instance_valid(_hero):
+		_hero.call("_refresh_spirit")
+	_refresh_spirit_button()
+
+
+## What the toggle says: the price of calling, or the word for sending home.
+func _refresh_spirit_button() -> void:
+	if _spirit_button == null or not is_instance_valid(_spirit_button):
+		return
+	if RunState.spirit_called:
+		_spirit_button.text = "Send home"
+		_spirit_button.tooltip_text = "Your spirit stops eating and leaves the field."
+	else:
+		_spirit_button.text = "Call  ·  %d Food" % Balance.COMPANION_CALL_COST
+		_spirit_button.tooltip_text = "Calls your bonded spirit out. It eats while it is here."
+		_spirit_button.disabled = RunState.currency(RunState.FOOD) < Balance.COMPANION_CALL_COST

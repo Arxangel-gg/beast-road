@@ -31,3 +31,4 @@ art_faces_right = true
 
 stay_min = 25.0
 stay_max = 70.0
+art_top_down = true

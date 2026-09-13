@@ -11,3 +11,4 @@ contact_damage = 8.0
 move_speed = 118.0
 body_radius = 25.0
 resource_value = 2
+art_facing = 1

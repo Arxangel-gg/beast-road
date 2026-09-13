@@ -42,9 +42,16 @@ TARGETS = {
     "sfx": -14.0,
 }
 
-# Vorbis quality. 4 is transparent enough for game audio and roughly halves the
-# size of the mp3s coming in.
-QUALITY = {"music": 4, "ambience": 3, "sfx": 5}
+# Vorbis quality.
+#
+# **Music sits at 1, and that is a size decision made on purpose.** Eighty-eight
+# songs at q4 were 222 MB of a 300 MB game, and the owner asked for the download
+# back (2026-09-13). q1 is roughly 80 kbps stereo: on a track playing under
+# combat, footsteps, a war horn and weather it is not the thing anybody will
+# hear, and it takes better than a third off every file. Sound effects stay at 5
+# because they are short, sharp and exposed - a cymbal artefact on a sword swing
+# is audible in a way a slightly softer string pad is not.
+QUALITY = {"music": 1, "ambience": 3, "sfx": 5}
 
 
 def find_ffmpeg() -> str:
