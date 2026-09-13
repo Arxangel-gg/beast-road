@@ -740,7 +740,7 @@ func _mansion_training(tier: int) -> void:
 	# being unintuitive, so the standing is shown before the offers that it
 	# decided.
 	var depth: Dictionary = RunState.discipline_depth()
-	var tree_names: Array[String] = ["Blood", "Holy", "Berserk"]
+	var tree_names: Array[String] = DisciplineNodeData.DISCIPLINE_NAMES
 	actions.add_child(_heading("Your disciplines"))
 	var deepest: int = 0
 	for which: int in tree_names.size():
@@ -872,7 +872,7 @@ func _mansion_tree(tier: int) -> void:
 	for which: int in Balance.DISCIPLINE_IDS.size() + 1:
 		var index: int = which - 1
 		var tab := Button.new()
-		tab.text = "All" if index < 0 else ["Blood", "Holy", "Berserk"][index]
+		tab.text = "All" if index < 0 else DisciplineNodeData.DISCIPLINE_NAMES[index]
 		tab.toggle_mode = true
 		tab.button_pressed = _tree_filter == index
 		tab.custom_minimum_size = Vector2(0.0, 40.0)
@@ -884,7 +884,9 @@ func _mansion_tree(tier: int) -> void:
 		filters.add_child(tab)
 	actions.add_child(filters)
 	_note("Blood trades health for damage. Holy shields and cleanses. Berserk "
-		+ "breaks formations. Mix them freely — nothing locks you to one.")
+		+ "breaks formations. Arcane fights at range, on mana rather than on "
+		+ "blood. Mix them freely — nothing locks you to one, but depth in one "
+		+ "is what opens its deeper nodes.")
 
 	_show_synergies()
 

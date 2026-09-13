@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 3
+role = 2
+mansion_tier = 1
+food_cost = 45
+spell_id = "frost_lance"
+id = "frost_lance_rite"
+display_name = "Frost Lance"
+description = "A flash of ice along the aim. Short, immediate, and it does not care what is between you and the end of it."

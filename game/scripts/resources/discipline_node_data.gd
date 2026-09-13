@@ -5,7 +5,23 @@ extends GameData
 ## slot role and the implemented spell adapter all live in data; the Mansion UI
 ## never branches on a node id.
 
-enum Discipline { BLOOD, HOLY, BERSERK }
+## The four trees.
+##
+## **Appended, never reordered.** A trained node is stored by id rather than by
+## discipline, so this is not on disk - but every screen that lists the trees
+## indexes into a parallel array of names, and reordering would rename three
+## trees at once.
+##
+## Arcane was added on 2026-09-13: the owner asked for "a wizard spec more
+## ranged caster type build", and the three trees were a melee bruiser, a melee
+## paladin and a melee berserker. Focus, mana and five ranged spells all existed
+## and nothing in the tree wanted them.
+enum Discipline { BLOOD, HOLY, BERSERK, ARCANE }
+
+## What each tree is called, in one place. Three screens kept their own copy of
+## a three-entry array, which is three chances to add a fourth and remember
+## twice.
+const DISCIPLINE_NAMES: Array[String] = ["Blood", "Holy", "Berserk", "Arcane"]
 enum Role { ATTACK, DEFENSE, POWER, PASSIVE, ULTIMATE, AUGMENT }
 
 @export var discipline: Discipline = Discipline.BLOOD
@@ -89,7 +105,7 @@ func slot_name() -> String:
 
 
 func discipline_name() -> String:
-	return ["Blood", "Holy", "Berserk"][clampi(int(discipline), 0, 2)]
+	return DISCIPLINE_NAMES[clampi(int(discipline), 0, DISCIPLINE_NAMES.size() - 1)]
 
 
 func is_slot_unlocked(act: int) -> bool:

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 3
+role = 5
+mansion_tier = 1
+food_cost = 40
+effect_id = "mana_on_kill"
+effect_value = 0.045
+id = "arcane_wellspring"
+display_name = "Wellspring"
+description = "A kill gives back a share of your mana. The pool refills either way; this decides how fast you may spend it."

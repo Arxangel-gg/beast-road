@@ -26,7 +26,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	RunState.reset()
 	# 24 authored nodes, plus one summon per discipline from 2026-08-25 and a
-	# second from 2026-09-01: 30.
+	# second from 2026-09-01: 30. Plus the ten Arcane nodes of 2026-09-13: 40.
 	#
 	# **A tripwire against loss, not a ceiling.** The count is asserted rather
 	# than derived on purpose - a node that vanishes from the data is a hero
@@ -34,8 +34,8 @@ func _ready() -> void:
 	# Raising it when nodes are deliberately added is the intended maintenance;
 	# what must never happen is it being *lowered* to match a roster that got
 	# smaller by accident.
-	_check(ContentDB.discipline_nodes.size() == 30,
-		"expected 30 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
+	_check(ContentDB.discipline_nodes.size() == 40,
+		"expected 40 authored discipline nodes, got %d" % ContentDB.discipline_nodes.size())
 	_check(RunState.trained_discipline_nodes.size() == 2,
 		"a run must begin with the curated Attack and Defense pair")
 	_check(RunState.discipline_node_in_slot(0) != null \

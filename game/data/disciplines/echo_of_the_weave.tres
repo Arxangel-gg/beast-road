@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 3
+role = 5
+mansion_tier = 3
+food_cost = 90
+effect_id = "spell_echo"
+effect_value = 0.25
+id = "echo_of_the_weave"
+display_name = "Echo of the Weave"
+description = "A cast sometimes happens twice. The second is a fraction of the first, and it cannot echo itself."

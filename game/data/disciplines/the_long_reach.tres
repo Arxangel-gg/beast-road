@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 3
+role = 5
+mansion_tier = 2
+food_cost = 65
+effect_id = "arcane_reach"
+effect_value = 0.22
+id = "the_long_reach"
+display_name = "The Long Reach"
+description = "Everything you throw goes further. Reach, not damage - a caster's advantage is where they are standing."

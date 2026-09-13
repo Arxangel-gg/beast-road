@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DisciplineNodeData" format=3]
+[ext_resource type="Script" path="res://scripts/resources/discipline_node_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+discipline = 3
+role = 2
+mansion_tier = 1
+food_cost = 45
+spell_id = "ember_fall"
+id = "ember_fall_rite"
+display_name = "Ember Fall"
+description = "A burning stone falls where you pointed, a moment after you point. The delay is the spell - what stands there has time to leave."

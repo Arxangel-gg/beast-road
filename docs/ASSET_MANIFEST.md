@@ -1819,7 +1819,18 @@ All 192×192, type T, placeholder colour `#8C3A2B`.
 `discipline_call_ram.png` ·
 `discipline_call_bear.png`
 
-The three families share blackened iron and aged brass; Blood uses controlled
+The Arcane, added 2026-09-13 with the fourth discipline. Same 192×192 and the
+same blackened iron and aged brass ring; the tree's own colour is violet and
+cold blue, so a caster's row is distinguishable from the other three at a
+glance.
+
+`discipline_arcane_wellspring.png` · `discipline_ember_fall_rite.png` ·
+`discipline_frost_lance_rite.png` · `discipline_thorn_volley_rite.png` ·
+`discipline_sky_lance_rite.png` · `discipline_the_long_reach.png` ·
+`discipline_siphoning_veil.png` · `discipline_stonefall_rite.png` ·
+`discipline_quickening.png` · `discipline_echo_of_the_weave.png`
+
+The four families share blackened iron and aged brass; Blood uses controlled
 crimson, Holy uses ivory-gold, and Berserk uses ember-orange so discipline
 identity survives without relying on text alone.
 
@@ -2773,11 +2784,11 @@ loot drops use rather than gear's cold steel.
 
 ### 5.30 Guide pictures of 2026-09-13 — `res://art/guide/`
 
-Thirteen more sections, each borrowing the photograph that actually shows
+Fourteen more sections, each borrowing the photograph that actually shows
 the thing it describes: the fog and the map are in every battlefield
 shot, a tower's paths are read on the tower sheet, a raised trap is
 still a trap. `tools/guide_shots.gd` writes them, so a re-run keeps them
-in step with the screens rather than leaving thirteen stale copies.
+in step with the screens rather than leaving fourteen stale copies.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -2794,6 +2805,7 @@ in step with the screens rather than leaving thirteen stale copies.
 | `crafts.png` | 640×360 | O | `#2E3A33` |
 | `gathering.png` | 640×360 | O | `#2E3A33` |
 | `forge.png` | 640×360 | O | `#2E3A33` |
+| `arcane.png` | 640×360 | O | `#2E3A33` |
 
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 

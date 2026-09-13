@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "arcane"
+display_name = "The Arcane"
+title = "The Arcane"
+category = "Fighting"
+order = 43
+image = "res://art/guide/arcane.png"
+body = "Three trees were a bruiser, a paladin and a berserker, and all three answered every question by walking at it. The Arcane is the fourth, and it fights from where it is standing.
+
+Five of its ten nodes simply hand you a spell: Ember Fall and Stonefall drop on a place you pointed at a moment ago, Frost Lance and Sky Lance flash along your aim, and Thorn Volley scatters over a patch of road. All five already existed and nothing in the tree wanted them.
+
+The other five are what make it a build. WELLSPRING gives mana back on a kill, so casting is paced by fighting rather than by waiting. THE LONG REACH throws everything further - reach, not damage, because where you are standing is a caster's whole advantage. SIPHONING VEIL leaves a ward behind every cast, deepened by Focus. QUICKENING makes the next spell come back sooner if you cast soon after casting, and the window closes the moment you stop. ECHO OF THE WEAVE sometimes casts twice, the second for a fraction of the first.
+
+Focus is the attribute that pays for all of it: a deeper pool, a faster refill, sharper spells and shorter cooldowns.
+
+Nothing locks you to one tree. What depth buys is access - a tier-three Arcane node wants two Arcane nodes already trained, so breadth is a real choice with a real cost rather than the only option."

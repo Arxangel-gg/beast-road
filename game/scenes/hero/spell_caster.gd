@@ -31,6 +31,13 @@ signal dash_refund_requested(fraction: float)
 ## A cast was refused for want of mana. The HUD flashes the bar.
 signal cast_starved(slot: int)
 
+## **Wellspring**: a kill gave mana back, as a share of the pool. A share rather
+## than a number so it is worth the same at level one and at level a hundred.
+signal mana_refunded(share: float)
+
+## **Siphoning Veil**: a cast left a ward worth this share of the hero's health.
+signal ward_requested(share: float)
+
 ## A spell resolved, for feedback and the HUD.
 signal spell_cast(slot: int, spell_id: String, at: Vector2)
 
@@ -59,6 +66,14 @@ var _beam_left: float = 0.0
 var _beam_extended: float = 0.0
 ## Where the last elite fell, so the flourish has somewhere to happen.
 var _beam_from: Vector2 = Vector2.ZERO
+
+## Quickening: how long the chain has left. A window rather than a flat
+## reduction, so it ends the moment the player stops casting - which is what
+## keeps it from being a cooldown cut wearing a card's clothes.
+var _chain_left: float = 0.0
+
+## Echo of the Weave: true while an echo is resolving, so an echo cannot echo.
+var _echoing: bool = false
 var _beam_spell: SpellData = null
 var _beam_aim: Vector2 = Vector2.RIGHT
 
@@ -85,6 +100,9 @@ func _ready() -> void:
 	_cooldowns.resize(Balance.HERO_MAX_SPELL_SLOTS)
 	_cooldowns.fill(0.0)
 	EventBus.elite_fell.connect(func(at: Vector2) -> void: extend_channel_on_elite(at))
+	# **Wellspring.** A kill gives mana back. Announced as a fact by the body
+	# that fell rather than polled, like every other reaction in this file.
+	EventBus.enemy_died.connect(func(_id: String, _at: Vector2) -> void: _wellspring())
 
 
 func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
@@ -94,6 +112,7 @@ func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
 		_cooldowns[i] = maxf(_cooldowns[i] - delta, 0.0)
 		cooldown_changed.emit(i, cooldown_ratio(i))
 
+	_chain_left = maxf(_chain_left - delta, 0.0)
 	if _ward_left > 0.0:
 		_ward_left = maxf(_ward_left - delta, 0.0)
 		if _ward_left <= 0.0:
@@ -219,10 +238,16 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 			cast_starved.emit(slot)
 			return false
 
-	_cooldowns[slot] = _effective_cooldown(spell)
+	# **Quickening** lands on the cooldown this cast lays down, which is the
+	# *next* one the player waits for - a cast that shortened its own cooldown
+	# would be a rate increase rather than a reward for casting.
+	_cooldowns[slot] = _effective_cooldown(spell) * _quickening_scale()
 	cooldown_changed.emit(slot, 1.0)
 	_resolve(spell, aim, origin)
 	_rider(slot, spell, aim, origin)
+	# **Siphoning Veil** and **Echo of the Weave**, after the cast they ride.
+	_siphon_ward(origin)
+	_echo(slot, spell, aim, origin)
 	spell_cast.emit(slot, spell.id, origin)
 	EventBus.spell_cast.emit(spell.id, slot, origin)
 	return true
@@ -372,15 +397,15 @@ func _road_shockwave(origin: Vector2, spell: SpellData, scale: float) -> void:
 ## Red Pursuit: a Rift Step whose line passes through marked prey - branded, or
 ## the priority bodies the read is about - gives back part of the dash.
 func _pursuit(origin: Vector2, aim: Vector2, spell: SpellData, fraction: float) -> void:
-	var middle: Vector2 = origin + aim * (spell.cast_range * 0.5)
-	var sweep: float = spell.cast_range * 0.5 + Balance.DISCIPLINE_PURSUIT_WIDTH
+	var middle: Vector2 = origin + aim * (_reach(spell) * 0.5)
+	var sweep: float = _reach(spell) * 0.5 + Balance.DISCIPLINE_PURSUIT_WIDTH
 	for enemy: Enemy in field.enemies_near(middle, sweep):
 		if enemy.is_dying():
 			continue
 		if not (enemy.is_branded() or enemy.is_priority()):
 			continue
 		var body: Vector2 = enemy.combat_origin()
-		var t: float = clampf((body - origin).dot(aim), 0.0, spell.cast_range)
+		var t: float = clampf((body - origin).dot(aim), 0.0, _reach(spell))
 		if body.distance_to(origin + aim * t) <= Balance.DISCIPLINE_PURSUIT_WIDTH:
 			dash_refund_requested.emit(fraction)
 			Vfx.ring(enemy.global_position, 40.0, Color("ff6a5c"), 0.3, 4.0)
@@ -428,7 +453,7 @@ func _tempest_heal(origin: Vector2, spell: SpellData, cap: float) -> void:
 func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 	var heaviest: Enemy = null
 	var best: float = Balance.DISCIPLINE_HEAVY_RESISTANCE
-	for enemy: Enemy in field.enemies_near(origin, spell.cast_range):
+	for enemy: Enemy in field.enemies_near(origin, _reach(spell)):
 		if enemy.data == null or enemy.is_dying():
 			continue
 		if enemy.data.knockback_resistance >= best:
@@ -450,14 +475,18 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 	blink_requested.emit(heaviest.global_position - approach.normalized() * stand_off)
 
 
-func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
-	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) * focus_power()
+## `share` is what an **Echo of the Weave** is worth: one for an ordinary cast,
+## a fraction for the echo that follows it. Threaded through as a scale rather
+## than as a second code path, so an echo is the same spell resolving again and
+## nothing downstream has to learn that echoes exist.
+func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.0) -> void:
+	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) 		* focus_power() * share
 	match spell.kind:
 		SpellData.Kind.BLINK:
 			# The destination is a place to stand, so it is built from the feet.
 			# `origin` is the body, a head-height above them; adding the step to
 			# it landed the hero that much up-screen on every Rift Step.
-			blink_requested.emit(_foot(origin) + aim * spell.cast_range)
+			blink_requested.emit(_foot(origin) + aim * _reach(spell))
 		SpellData.Kind.NOVA:
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin)
 			# **Blood Remembers.** Asked here rather than in `_rider`, because it
@@ -488,11 +517,11 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 		SpellData.Kind.COMPANION:
 			_summon(spell, origin, aim)
 		SpellData.Kind.METEOR:
-			_aim_strike(_foot(origin) + aim * spell.cast_range,
+			_aim_strike(_foot(origin) + aim * _reach(spell),
 				spell.effect_radius, power, spell.knockback,
 				Balance.SPELL_METEOR_DELAY)
 		SpellData.Kind.VOLLEY:
-			_volley(_foot(origin) + aim * spell.cast_range, spell, power)
+			_volley(_foot(origin) + aim * _reach(spell), spell, power)
 
 
 ## Calls a companion in beside the hero.
@@ -581,7 +610,7 @@ func _damage_area(centre: Vector2, radius: float, power: float, knockback: float
 
 
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:
-	for enemy: Enemy in field.enemies_near(origin, spell.cast_range):
+	for enemy: Enemy in field.enemies_near(origin, _reach(spell)):
 		enemy.take_damage(power, origin, 0.0, true)
 		# Negative knockback would be a hack; pulling is its own operation.
 		enemy.pull_toward(origin, spell.knockback)
@@ -693,3 +722,75 @@ func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
 	# At the enemy that fell rather than at the caster: this is a Node, not a
 	# Node2D - it deliberately does not know where the hero is standing.
 	Vfx.spark(_beam_from, Color("ffb35c"), 8, Vector2.UP, 200.0)
+
+
+# --- The Arcane (2026-09-13) --------------------------------------------------
+
+## **Wellspring.** A kill gives back a share of the pool.
+##
+## A share rather than a number, so it is worth the same at level one and at
+## level a hundred - a flat refund would be everything early and nothing late,
+## which is the shape that makes a node feel dead by Act III.
+## **The Long Reach.** How far this spell actually throws.
+##
+## One function, and every throw in this file goes through it - a reach applied
+## at four of five call sites is a node that works on some spells.
+func _reach(spell: SpellData) -> float:
+	return spell.cast_range * (1.0 + minf(
+		DisciplineEffects.trained_value("arcane_reach"), Balance.ARCANE_REACH_CAP))
+
+
+func _wellspring() -> void:
+	if not DisciplineEffects.trained("mana_on_kill"):
+		return
+	mana_refunded.emit(Balance.ARCANE_MANA_ON_KILL)
+
+
+## **Quickening.** A cast inside the window takes a share off the next
+## cooldown, and starts the window again.
+##
+## Returns the scale the cooldown just laid down should be multiplied by, so
+## the reduction lands on the *next* spell rather than on the one that earned
+## it - a cast that shortened its own cooldown would be a rate increase.
+func _quickening_scale() -> float:
+	var share: float = DisciplineEffects.trained_value("cast_haste_chain")
+	if share <= 0.0:
+		return 1.0
+	var scale: float = 1.0 - clampf(share, 0.0, 0.6) if _chain_left > 0.0 else 1.0
+	_chain_left = Balance.ARCANE_CHAIN_SECONDS
+	return scale
+
+
+## **Siphoning Veil.** A cast leaves a ward, and Focus deepens it.
+##
+## The one Arcane effect that reads an attribute, and it reads the caster's own:
+## a wizard's answer to being hit is that they were casting when it happened.
+func _siphon_ward(origin: Vector2) -> void:
+	var share: float = DisciplineEffects.trained_value("focus_ward")
+	if share <= 0.0:
+		return
+	var focus: int = RunState.attribute(RunState.Attribute.FOCUS)
+	var deepened: float = share + minf(float(focus) * Balance.ARCANE_WARD_FOCUS_PER_POINT,
+		Balance.ARCANE_WARD_FOCUS_CAP)
+	ward_requested.emit(deepened)
+	Vfx.ring(_foot(origin), Balance.DISCIPLINE_AEGIS_RADIUS * 0.7,
+		Color("c39bff"), 0.5, 4.0)
+
+
+## **Echo of the Weave.** A cast sometimes happens twice, at a fraction.
+##
+## `_echoing` is what stops an echo echoing: without it a twenty-five percent
+## chance is a geometric series rather than one extra cast, and the tail of that
+## series is where a build stops being balanceable.
+func _echo(_slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> bool:
+	if _echoing:
+		return false
+	var chance: float = DisciplineEffects.trained_value("spell_echo")
+	if chance <= 0.0 or RunState.rng("combat").randf() >= chance:
+		return false
+	_echoing = true
+	_resolve(spell, aim, origin, Balance.ARCANE_ECHO_POWER)
+	_echoing = false
+	Vfx.ring(_foot(origin), Balance.DISCIPLINE_AEGIS_RADIUS * 0.5,
+		Color("c39bff"), 0.4, 3.0)
+	return true

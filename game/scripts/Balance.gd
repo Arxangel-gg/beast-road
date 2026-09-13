@@ -6725,3 +6725,42 @@ const DISCIPLINE_WALL_WARD_RADIUS: float = 460.0
 
 ## Dawn Bell: how long the towers keep the haste the bell gave them.
 const DISCIPLINE_TOWER_HASTE_SECONDS: float = 8.0
+
+
+# --- The Arcane (2026-09-13) ---------------------------------------------------
+## **A wizard had nowhere to put their points.**
+##
+## The owner asked for "a wizard spec more ranged caster type build". Everything
+## a caster needs already existed - Focus, a mana pool, five ranged spells, a
+## meteor and two lances - and the skill tree had nothing to say about any of
+## it: three trees, all melee, a bruiser and a paladin and a berserker.
+##
+## Arcane is the fourth. Ten nodes, the same shape as the other three, and five
+## effects that move numbers the caster already has: the mana pool, a spell's
+## reach, a cooldown, a ward, and a spell's own damage. Nothing here is a new
+## system, and nothing here raises a cap - `mana_check` and `spell_strike_check`
+## still measure the same things. [TUNE]
+
+## Wellspring: the share of the pool a kill gives back. Small, because the pool
+## already refills and this is about *pace* rather than about never running dry.
+const ARCANE_MANA_ON_KILL: float = 0.045
+
+## The Long Reach: how much further a spell throws. Reach rather than damage,
+## because damage is what every other tree already sells.
+const ARCANE_REACH_CAP: float = 0.40
+
+## Siphoning Veil: the ward a cast leaves, as a share of the hero's own health,
+## and how much Focus deepens it.
+const ARCANE_WARD_FOCUS_PER_POINT: float = 0.004
+const ARCANE_WARD_FOCUS_CAP: float = 0.55
+
+## Quickening: how much of the *next* spell's cooldown a cast takes off, and how
+## long the window lasts. A chain, so casting keeps casting cheap - and it ends
+## the moment the player stops, which is what keeps it from being a flat
+## cooldown reduction wearing a card's clothes.
+const ARCANE_CHAIN_SECONDS: float = 3.2
+
+## Echo of the Weave: what an echo is worth, against the cast that made it.
+## Well under half, because an echo that matched the cast would be a flat
+## damage multiplier on every spell in the game.
+const ARCANE_ECHO_POWER: float = 0.40

@@ -339,6 +339,15 @@ func _ready() -> void:
 	EventBus.spirit_equipped.connect(func(_key: String) -> void: _refresh_spirit())
 	spells.veil_requested.connect(_on_veil)
 	spells.heal_requested.connect(func(amount: float) -> void: health.heal(amount))
+	# **Wellspring** and **Siphoning Veil**, the two Arcane effects that reach
+	# the body rather than the field. Shares rather than numbers, resolved here
+	# where the pool and the health are - the caster deliberately does not know
+	# how deep either is.
+	spells.mana_refunded.connect(func(share: float) -> void:
+		mana = minf(mana + mana_max() * share, mana_max())
+		EventBus.hero_mana_changed.emit(mana, mana_max()))
+	spells.ward_requested.connect(func(share: float) -> void:
+		health.add_shield(health.max_hp * share))
 	spells.armor_requested.connect(_on_armor_requested)
 	spells.wound_guard_requested.connect(_on_wound_guard_requested)
 	spells.dash_refund_requested.connect(refund_dash)

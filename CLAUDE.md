@@ -1586,6 +1586,45 @@ ledger. A grep is a weak proof of behaviour and a strong proof of *wiring*,
 which is the half that was silently false for twenty-one effects. Checked by
 adding a key nothing reads, which the gate refused.
 
+**There is a fourth discipline, the Arcane, as of 2026-09-13.** The owner asked
+for "a wizard spec more ranged caster type build". Everything a caster needs
+already existed - Focus, a mana pool, five ranged spells, a meteor and two
+lances - and the skill tree had nothing to say about any of it: three trees, all
+melee, a bruiser and a paladin and a berserker, all three of which answer every
+question by walking at it.
+
+**Ten nodes, the same shape as the other three**, and half of them simply hand
+the player a ranged spell that was already in the game and that nothing in the
+tree wanted. The other five are what make it a build, and every one of them
+moves a number the caster already has: the pool, a reach, a cooldown, a ward,
+and a spell's own damage.
+
+- **Wellspring** gives mana back on a kill, as a *share* of the pool rather than
+  a number - a flat refund is everything at level one and nothing at level a
+  hundred, which is the shape that makes a node feel dead by Act III.
+- **The Long Reach** throws everything further. Reach rather than damage,
+  because damage is what every other tree already sells and where you are
+  standing is a caster's whole advantage.
+- **Siphoning Veil** leaves a ward behind a cast, deepened by Focus.
+- **Quickening** takes a share off the *next* cooldown, in a window that closes
+  the moment the player stops casting. A cast that shortened its own cooldown
+  would be a rate increase; one that shortens the next is a reward for casting.
+- **Echo of the Weave** casts twice, sometimes, the second for a fraction. The
+  `_echoing` flag is what stops an echo echoing - without it a one-in-four
+  chance is a geometric series rather than one extra cast, and the tail of that
+  series is where a build stops being balanceable.
+
+**`DISCIPLINE_NAMES` is the one list now.** Three screens kept their own
+three-entry array of tree names, which is three chances to add a fourth and
+remember twice.
+
+**The gate caught the change that added it, which is the point of the gate.**
+`arcane_reach` was read through a helper on `DisciplineEffects`, so the key was
+named nowhere a consumer could be seen and the new "implemented means named in
+code" check refused it by name. The reach is computed at the caster now, in one
+function every throw in that file goes through - a reach applied at four of five
+call sites is a node that works on some spells.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

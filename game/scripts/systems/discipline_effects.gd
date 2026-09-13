@@ -68,6 +68,14 @@ const IMPLEMENTED: Array[String] = [
 	"isolated_crit",
 	"repair_blocker_shields",
 	"tower_haste",
+	# The Arcane, 2026-09-13. Owner brief: "a wizard spec more ranged caster
+	# type build". Five effects, all of them moving a number the caster already
+	# had - the pool, a reach, a cooldown, a ward, and a spell's own damage.
+	"mana_on_kill",
+	"arcane_reach",
+	"focus_ward",
+	"cast_haste_chain",
+	"spell_echo",
 ]
 
 ## Authored, described to the player, and not yet read by anything.
@@ -113,3 +121,25 @@ static func trained(effect_id: String) -> bool:
 		if node != null and node.effect_id == effect_id:
 			return true
 	return false
+
+
+# --- The Arcane (2026-09-13) --------------------------------------------------
+
+## The five the fourth tree added. Kept beside `IMPLEMENTED` rather than inside
+## it only in this comment: they are in that list, and every one is read.
+##
+## - `mana_on_kill`   - a kill gives back a share of the pool.
+## - `arcane_reach`   - spells throw further.
+## - `focus_ward`     - a cast leaves a ward, deepened by Focus.
+## - `cast_haste_chain` - casting keeps casting cheap, while it lasts.
+## - `spell_echo`     - a cast sometimes happens twice, at a fraction.
+##
+## All five move a number the caster already has. None of them raises a cap.
+
+
+## **The Long Reach is read at the caster, not here**, and that is deliberate.
+##
+## A helper in this file would leave `"arcane_reach"` named nowhere a consumer
+## can be seen, and `discipline_check` greps for exactly that - it caught this
+## the first time it ran, which is the gate doing its job on the change that
+## added it. See `SpellCaster._reach`.
