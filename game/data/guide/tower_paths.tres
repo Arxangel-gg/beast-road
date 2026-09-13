@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "tower_paths"
+display_name = "A tower's path"
+title = "A tower's path"
+category = "Building"
+order = 14
+image = "res://art/guide/tower_paths.png"
+body = "At level five a tower chooses what it becomes, once and for free.\n\nFOCUS is fewer, harder, further: more damage, more reach, a slower swing. SPREAD is more, faster, wider: another target, a quicker rate, a bigger blast, softer blows. Each element names its two - a concentrating Fire tower is a Lance, a Water one an Icespear - and the mechanics are the same everywhere.\n\nAt level ten the path you took pays once more: Focus hits harder again and carries its shot through a body, Spread reaches two more targets and widens further. That is where late Gold goes once every road is covered."

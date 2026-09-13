@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "minimap"
+display_name = "The minimap"
+title = "The minimap"
+category = "Basics"
+order = 8
+image = "res://art/guide/minimap.png"
+body = "Top right, and M turns it off. It draws the roads, the ponds, the rift gates, the camps and what state each is in, your towers, your town, and everyone in your party - and enemies, elites, bosses, wildlife and loot only where somebody of yours can see them.\n\nIt darkens with the same fog the field does, so it can never claim you have been somewhere you have not. It steps aside while a build or road sheet is open."

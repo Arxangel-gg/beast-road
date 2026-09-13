@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "sharing_fish"
+display_name = "Sharing a catch"
+title = "Sharing a catch"
+category = "Resources"
+order = 27
+image = "res://art/guide/sharing_fish.png"
+body = "A fish can be eaten, given to the spirit at your shoulder, or handed to a player standing beside you who is hurt.\n\nA fed spirit heals and stops being hungry for a while. A rarer fish also leaves whoever ate it quicker and hitting harder for a short time. The limit on meals counts the fish, not the mouth - three a run, however you spend them."

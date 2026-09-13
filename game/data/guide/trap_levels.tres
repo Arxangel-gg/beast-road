@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "trap_levels"
+display_name = "Raising a trap"
+title = "Raising a trap"
+category = "Building"
+order = 17
+image = "res://art/guide/trap_levels.png"
+body = "A laid trap can be raised, five levels in all. Each one hits harder, covers a little more road, and rebuilds the trap to its full count of triggers - so a trap you have nearly spent is worth raising rather than replacing.\n\nOnly one trap to a tile. The road sheet offers the raise on any tile that already has one."

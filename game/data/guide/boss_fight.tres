@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "boss_fight"
+display_name = "Fighting an act boss"
+title = "Fighting an act boss"
+category = "Fighting"
+order = 41
+image = "res://art/guide/boss_fight.png"
+body = "An act boss is not a large marcher. Each one slams: a circle is drawn around it at exactly the size of the blow, and you have that long to be somewhere else. Each one also throws, a fan of shots at whoever it can see, from further than you can reach.\n\nThe eleven are different shapes. Some slam hard and rarely throw; others throw five at a time and slam almost never. Learn which one you are standing in front of."

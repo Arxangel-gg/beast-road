@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "hunted"
+display_name = "Hunted"
+title = "Hunted"
+category = "Camps & Rifts"
+order = 36
+image = "res://art/guide/hunted.png"
+body = "Kill enough of one kind of animal in a short while and its worst comes looking for you: a savage of that species, far bigger and far angrier than the rest, hostile to everything and worth six times the bounty.\n\nIt is a consequence rather than a punishment. If you want the fight, you know how to start one."

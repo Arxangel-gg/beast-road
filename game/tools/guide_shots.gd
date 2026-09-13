@@ -131,6 +131,20 @@ func _ready() -> void:
 		run.rift.activate())
 	run.rift.call("_finish", {"closed": true, "left": true})
 
+	# The sections added on 2026-09-13 borrow the photograph that actually
+	# shows the thing they describe: the fog and the map are in every
+	# battlefield shot, a tower's paths are read on the tower sheet, and a
+	# raised trap is still a trap. Copied here rather than hand-placed, so a
+	# re-run of this tool keeps them in step with the screens.
+	_copy("waves", "fog")
+	_copy("waves", "minimap")
+	_copy("towers", "tower_paths")
+	_copy("traps", "trap_levels")
+	_copy("spirits", "spirit_upkeep")
+	_copy("pantry", "sharing_fish")
+	_copy("waves", "boss_fight")
+	_copy("camps", "hunted")
+
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])
 	Sfx.stop_immediately()

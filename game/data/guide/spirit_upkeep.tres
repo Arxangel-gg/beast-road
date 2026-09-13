@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "spirit_upkeep"
+display_name = "Feeding your spirit"
+title = "Feeding your spirit"
+category = "Companions"
+order = 31
+image = "res://art/guide/spirit_upkeep.png"
+body = "A bonded spirit costs a meal to call and eats Food while it is at your shoulder. A bear eats like a bear: the bigger the animal, the faster the larder empties.\n\nWhen there is nothing left to feed it, it goes home on its own. You can send it home yourself at any time and call it back later, which is the choice the Wheat Farm exists for - a spirit fighting beside you, or the Food it would have eaten."

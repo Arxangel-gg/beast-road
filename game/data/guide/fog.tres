@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "fog"
+display_name = "The fog of war"
+title = "The fog of war"
+category = "Basics"
+order = 7
+image = "res://art/guide/fog.png"
+body = "The road beyond what your party can see is dark. You, your spirit, your towers and the town all give sight; ground you have walked stays on the map but dims, and anything standing in the dark is not drawn at all.\n\nYour city's own four roads start known, so Preparation can be read at a glance. What the fog is really about is the outskirts: the camps, the forks, the ponds and the rift gates. Every stage of a dungeon is fresh discovery again."

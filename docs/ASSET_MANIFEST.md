@@ -2679,6 +2679,25 @@ The demonstration pictures the Guide shows beside each section, one per
 
 ---
 
+### 5.30 Guide pictures of 2026-09-13 — `res://art/guide/`
+
+Eight more sections, each borrowing the photograph that actually shows
+the thing it describes: the fog and the map are in every battlefield
+shot, a tower's paths are read on the tower sheet, a raised trap is
+still a trap. `tools/guide_shots.gd` writes them, so a re-run keeps them
+in step with the screens rather than leaving eight stale copies.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `fog.png` | 640×360 | O | `#2E3A33` |
+| `minimap.png` | 640×360 | O | `#2E3A33` |
+| `tower_paths.png` | 640×360 | O | `#2E3A33` |
+| `trap_levels.png` | 640×360 | O | `#2E3A33` |
+| `spirit_upkeep.png` | 640×360 | O | `#2E3A33` |
+| `sharing_fish.png` | 640×360 | O | `#2E3A33` |
+| `boss_fight.png` | 640×360 | O | `#2E3A33` |
+| `hunted.png` | 640×360 | O | `#2E3A33` |
+
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 
 Owner brief, 2026-09-12: no outside foliage inside a pond, plants of the
