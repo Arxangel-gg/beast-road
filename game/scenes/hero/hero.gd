@@ -445,6 +445,7 @@ func _physics_process(delta: float) -> void:
 ## Hysteresis on the threshold, so a hero standing on a bank does not flicker
 ## between wading and walking on every ripple of the depth field.
 func _tick_swim(delta: float) -> void:
+	_tick_poison(delta)
 	_swim_depth = 0.0
 	if field != null and field.has_method("water_depth_at") and is_in_group(GROUP_ANY):
 		_swim_depth = float(field.call("water_depth_at", global_position))
@@ -455,6 +456,7 @@ func _tick_swim(delta: float) -> void:
 		if _swim_cover != null:
 			_swim_cover.visible = wet
 			_swim_cover.waterline = Balance.SWIM_WATERLINE
+			_swim_cover.field = field
 			if wet and field.has_method("water_colour"):
 				var colour: Color = field.call("water_colour") as Color
 				colour.a = Balance.SWIM_COVER_ALPHA
@@ -488,6 +490,33 @@ func _tick_swim(delta: float) -> void:
 ## Whether this hero is in the water.
 func is_swimming() -> bool:
 	return _swimming
+
+
+## A rabid animal's bite (2026-09-12): damage over time, in small bites, from
+## nowhere in particular so it does not knock the hero about.
+var _poison_left: float = 0.0
+var _poison_dps: float = 0.0
+var _poison_tick: float = 0.0
+
+
+func apply_poison(dps: float, seconds: float) -> void:
+	_poison_dps = maxf(_poison_dps, dps)
+	_poison_left = maxf(_poison_left, seconds)
+
+
+func _tick_poison(delta: float) -> void:
+	if _poison_left <= 0.0:
+		return
+	_poison_left -= delta
+	_poison_tick -= delta
+	if _poison_tick > 0.0:
+		return
+	_poison_tick = 0.5
+	if health != null and is_alive():
+		health.take_damage(_poison_dps * 0.5, global_position + Vector2.DOWN * 8.0)
+		Vfx.spark(global_position + Vector2.UP * 30.0, Balance.WILDLIFE_RABID_AURA, 3, Vector2.UP, 70.0)
+	if _poison_left <= 0.0:
+		_poison_dps = 0.0
 
 
 ## How deep the water under the hero is, for the readouts.
@@ -1893,4 +1922,10 @@ func _refresh_spirit() -> void:
 	spirit.setup(SpiritBond.companion_form(kind, wanted), self, field)
 	spirit.global_position = global_position \
 		+ Vector2.RIGHT.rotated(randf() * TAU) * 90.0
-	field.add_child(spirit)
+	# Into the sorted layer with everything else that stands on the ground.
+	# Parented to the field itself, the companion sat beside the ground and
+	# the cloud layers and sorted against them by its own z - which put it
+	# under the ground on one side of the town and over the weather on the
+	# other. Reported as "companions become invisible past a certain y".
+	var layer: Node = field.get("entity_root") as Node
+	(layer if layer != null else field).add_child(spirit)

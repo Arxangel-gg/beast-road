@@ -97,9 +97,7 @@ func scatter() -> void:
 func clear() -> void:
 	for site: Dictionary in _sites:
 		_dismiss_mobs(site)
-		var props: Node = site.get("props", null)
-		if props != null and is_instance_valid(props):
-			props.queue_free()
+		_clear_props(site)
 	_sites.clear()
 	for pair: Variant in _barriers:
 		for barrier: Dictionary in (pair as Array):
@@ -122,16 +120,19 @@ func _dismiss_mobs(site: Dictionary) -> void:
 ## inside the clearing, all sorted by their feet like everything else that
 ## stands on the field. The war camp gets its totem as well.
 func _build_props(site: Dictionary) -> void:
-	var root := Node2D.new()
-	root.name = "Camp%d_%d" % [int(site["lane"]), int(site["tier"])]
-	(host if host != null else self).add_child(root)
-	site["props"] = root
+	# **Each prop is its own child of the sorted layer.** They used to hang
+	# off one root node per camp, and children of a node sort at *that node's*
+	# position - so every tent in the camp drew at the origin's depth and the
+	# bodies walked behind them (owner brief, 2026-09-12).
+	var root: Node2D = host if host != null else self
+	var props: Array = []
+	site["props"] = props
 	var rect: Rect2 = site["rect"] as Rect2
 	var centre: Vector2 = site["centre"] as Vector2
 	var fire: Texture2D = _prop_art.get("fire", null)
 	var placed: Array[Vector2] = []
 	if fire != null:
-		_plant_prop(root, fire, centre + Vector2(0.0, 20.0))
+		props.append(_plant_prop(root, fire, centre + Vector2(0.0, 20.0), "fire"))
 		placed.append(centre)
 	var kinds: Array[String] = []
 	for kind: String in PROP_KINDS:
@@ -153,31 +154,64 @@ func _build_props(site: Dictionary) -> void:
 			if crowded:
 				continue
 			placed.append(at)
-			_plant_prop(root, _prop_art[kinds[_rng.randi_range(0, kinds.size() - 1)]], at)
+			var kind: String = kinds[_rng.randi_range(0, kinds.size() - 1)]
+			props.append(_plant_prop(root, _prop_art[kind], at, kind))
 	if int(site["tier"]) == BattleGrid.CampTier.BARON and ResourceLoader.exists(TOTEM_ART):
-		var totem: Sprite2D = _plant_prop(root, load(TOTEM_ART), centre + Vector2(0.0, -8.0))
+		var totem: Sprite2D = _plant_prop(root, load(TOTEM_ART), centre + Vector2(0.0, -8.0), "totem")
 		site["totem"] = totem
+		props.append(totem)
 	_dress_props(site)
 
 
-func _plant_prop(root: Node2D, art: Texture2D, at: Vector2) -> Sprite2D:
-	var prop := Sprite2D.new()
+func _plant_prop(root: Node2D, art: Texture2D, at: Vector2, kind: String = "") -> Sprite2D:
+	var prop: Sprite2D = CampFire.new() if kind == "fire" else Sprite2D.new()
 	prop.texture = art
 	prop.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	prop.add_to_group(Graphics.FILTER_GROUP)
 	prop.offset = Foliage.foot_offset(art)
 	prop.position = at
-	prop.flip_h = _rng.randf() < 0.5
+	prop.scale = Vector2.ONE * float(Balance.CAMP_PROP_SCALE.get(kind, 1.0))
+	prop.flip_h = kind != "fire" and _rng.randf() < 0.5
 	root.add_child(prop)
+	ShadowKit.add_contact(prop, prop)
 	return prop
+
+
+## Frees a camp's furniture: the props, and the marker if one stands.
+func _clear_props(site: Dictionary) -> void:
+	for prop: Variant in (site.get("props", []) as Array):
+		if prop != null and is_instance_valid(prop):
+			(prop as Node).queue_free()
+	site["props"] = []
+	var marker: Node = site.get("marker", null) as Node
+	if marker != null and is_instance_valid(marker):
+		marker.queue_free()
+	site["marker"] = null
+
+
+## The sign that a razed camp will stand again, over its fire pit.
+func _show_marker(site: Dictionary) -> void:
+	var marker: CampMarker = site.get("marker", null) as CampMarker
+	if marker == null or not is_instance_valid(marker):
+		marker = CampMarker.new()
+		marker.name = "CampMarker"
+		marker.position = (site["centre"] as Vector2) + Vector2(0.0, -34.0)
+		(host if host != null else self).add_child(marker)
+		site["marker"] = marker
+	marker.total = maxf(float(site.get("respawn_total", site.get("respawn_left", 1.0))), 0.01)
+	marker.left = float(site.get("respawn_left", 0.0))
+
+
+func _hide_marker(site: Dictionary) -> void:
+	var marker: Node = site.get("marker", null) as Node
+	if marker != null and is_instance_valid(marker):
+		marker.queue_free()
+	site["marker"] = null
 
 
 ## Props read the camp's state: lit and whole while it stands, scorched while
 ## it is down, and dim while a war camp is still asleep.
 func _dress_props(site: Dictionary) -> void:
-	var root: Node2D = site.get("props", null) as Node2D
-	if root == null or not is_instance_valid(root):
-		return
 	var tint: Color = Color.WHITE
 	match int(site["state"]):
 		State.LOCKED:
@@ -186,8 +220,18 @@ func _dress_props(site: Dictionary) -> void:
 			tint = Color(0.42, 0.36, 0.34, 0.95)
 		_:
 			tint = Color.WHITE
-	var tween: Tween = root.create_tween()
-	tween.tween_property(root, "modulate", tint, Balance.CAMP_RAZE_FADE)
+	for prop: Variant in (site.get("props", []) as Array):
+		var sprite := prop as CanvasItem
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var tween: Tween = sprite.create_tween()
+		tween.tween_property(sprite, "modulate", tint, Balance.CAMP_RAZE_FADE)
+		# A razed camp's fire goes out; a standing one burns.
+		if sprite is CampFire:
+			(sprite as CampFire).set_process(int(site["state"]) == State.ALIVE)
+			var glow: CanvasItem = sprite.get_node_or_null("Glow") as CanvasItem
+			if glow != null:
+				glow.visible = int(site["state"]) == State.ALIVE
 
 
 ## The two barriers across a lane's legs: a body the hero cannot pass and the
@@ -235,6 +279,7 @@ func _stand_up(site: Dictionary) -> void:
 	_dismiss_mobs(site)
 	site["state"] = State.ALIVE
 	site["respawn_left"] = 0.0
+	_hide_marker(site)
 	_dress_props(site)
 	var tier: int = int(site["tier"])
 	var lane: int = int(site["lane"])
@@ -354,6 +399,7 @@ func _process(delta: float) -> void:
 					_raze(site)
 			State.RESPAWNING:
 				site["respawn_left"] = float(site["respawn_left"]) - delta
+				_show_marker(site)
 				if float(site["respawn_left"]) <= 0.0:
 					_stand_up(site)
 			_:
@@ -394,7 +440,9 @@ func _raze(site: Dictionary) -> void:
 		return
 	site["state"] = State.RESPAWNING
 	site["respawn_left"] = Balance.CAMP_RESPAWN_SECONDS[tier]
+	site["respawn_total"] = Balance.CAMP_RESPAWN_SECONDS[tier]
 	_dress_props(site)
+	_show_marker(site)
 	_announce(site)
 	EventBus.preparation_warning.emit("%s camp razed on the %s road" % [
 		"Outer" if tier == BattleGrid.CampTier.EASY else "Inner", _lane_name(lane)])
@@ -499,6 +547,8 @@ func _on_rift_ended(_reward: Dictionary) -> void:
 			site["state"] = State.RESPAWNING
 			site["respawn_left"] = Balance.CAMP_RESPAWN_SECONDS[BattleGrid.CampTier.BARON] \
 				+ Balance.CAMP_BARON_DUNGEON_GRACE
+			site["respawn_total"] = float(site["respawn_left"])
+			_show_marker(site)
 			_announce(site)
 
 
@@ -568,3 +618,13 @@ func stand_now(lane: int, tier: int) -> void:
 	for site: Dictionary in _sites:
 		if int(site["lane"]) == lane and int(site["tier"]) == tier:
 			_stand_up(site)
+
+
+## The camps for the minimap (2026-09-12): where, in what state, and whether
+## it is the war camp.
+func map_marks() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for site: Dictionary in _sites:
+		out.append({"at": site["centre"] as Vector2, "state": int(site["state"]),
+			"baron": int(site["tier"]) == BattleGrid.CampTier.BARON})
+	return out

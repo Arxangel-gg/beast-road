@@ -48,6 +48,8 @@ var _ponds: Fishing = null
 var _rifts: RiftGates = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
+var _fog: FogOfWar = null
+var _wildlife: Wildlife = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -810,6 +812,8 @@ func _build_wildlife() -> void:
 	# so every animal in the game drew at the town's depth.
 	wildlife.host = entity_root
 	add_child(wildlife)
+	_wildlife = wildlife
+	_build_fog()
 
 
 ## 0..1, how dark a lane is. Dimming is continuous, so pressure grows before the
@@ -2093,3 +2097,46 @@ func _update_pressure() -> void:
 		if not is_equal_approx(value, _pressure[lane]):
 			_pressure[lane] = value
 			EventBus.lane_pressure_changed.emit(lane, value)
+
+
+# --- The fog of war (2026-09-12) ----------------------------------------------------------
+
+## Over the weather and under the interface. What can see is the party, its
+## companions, its towers and the town; see `FogOfWar` for the rest.
+func _build_fog() -> void:
+	_fog = FogOfWar.new()
+	_fog.half_extent = BattleGrid.HALF_EXTENT
+	_fog.cell = BattleGrid.TILE
+	_fog.z_index = Z_WEATHER + 1
+	_fog.sources = _vision_sources
+	_fog.hide_groups = [Enemy.GROUP, LootDrop.GROUP]
+	_fog.wildlife = _wildlife
+	add_child(_fog)
+	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
+
+
+func fog() -> FogOfWar:
+	return _fog
+
+
+func wildlife_system() -> Wildlife:
+	return _wildlife
+
+
+func _vision_sources() -> Array:
+	var out: Array = []
+	for who: Hero in heroes():
+		if who != null and is_instance_valid(who) and who.is_alive() and who.visible:
+			out.append({"at": who.global_position, "radius": Balance.FOG_VISION_HERO})
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var companion: Companion = node as Companion
+		if companion != null and is_instance_valid(companion) and companion.is_alive():
+			out.append({"at": companion.global_position, "radius": Balance.FOG_VISION_COMPANION})
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower: Tower = node as Tower
+		if tower != null and is_instance_valid(tower):
+			out.append({"at": tower.global_position,
+				"radius": tower.effective_range() + Balance.FOG_VISION_TOWER_MARGIN})
+	if town != null and is_instance_valid(town):
+		out.append({"at": town.global_position, "radius": Balance.FOG_VISION_TOWN})
+	return out

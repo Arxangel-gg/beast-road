@@ -24,6 +24,9 @@ var _trail_ratio: float = 1.0
 var _ratio: float = 1.0
 ## Width against the ordinary bar; the ranked wear a wider one.
 var _width_scale: float = 1.0
+## Whether this bar dresses as a ranked body's: a warm frame with end caps
+## and a ticked fill, so an elite reads as one across the field.
+var _ranked: bool = false
 
 
 func _ready() -> void:
@@ -43,6 +46,9 @@ func _ready() -> void:
 		move_child(_trail, fill.get_index())
 	_apply_size()
 	visible = not hide_until_damaged
+	# The frame is drawn over the rects, so it has to redraw when they move.
+	if fill != null:
+		fill.visibility_changed.connect(queue_redraw)
 
 
 func bind(health: Health) -> void:
@@ -57,7 +63,8 @@ func bind(health: Health) -> void:
 
 func _apply_size() -> void:
 	var w: float = Balance.HEALTH_BAR_WIDTH * _width_scale
-	var h: float = Balance.HEALTH_BAR_HEIGHT
+	var h: float = Balance.HEALTH_BAR_RANK_HEIGHT if _ranked else Balance.HEALTH_BAR_HEIGHT
+	queue_redraw()
 	if background != null:
 		background.position = Vector2(-w * 0.5, 0.0)
 		background.size = Vector2(w, h)
@@ -73,8 +80,11 @@ func _apply_size() -> void:
 ## rather than on the first hit, so the rank is visible before it matters.
 func set_ranked(scale_width: float) -> void:
 	_width_scale = maxf(scale_width, 1.0)
+	_ranked = true
 	hide_until_damaged = false
 	visible = true
+	if fill != null:
+		fill.color = Balance.HEALTH_BAR_RANK_FILL
 	_apply_size()
 
 
@@ -101,3 +111,32 @@ func _process(delta: float) -> void:
 	# A short hold, then a drain: the eye catches the pale bite before it goes.
 	_trail_ratio = maxf(_trail_ratio - delta * Balance.HEALTH_BAR_TRAIL_RATE, _ratio)
 	_apply_size()
+
+
+## The pixel frame: a one-pixel outline with a bevel, so the bar reads as a
+## piece of the interface rather than two rectangles (owner brief,
+## 2026-09-12). A ranked bar wears a warm frame with end caps and ticks
+## across the fill, which is how an elite reads as one at a glance.
+func _draw() -> void:
+	if background == null:
+		return
+	var rect: Rect2 = Rect2(background.position, background.size)
+	var outline: Color = Balance.HEALTH_BAR_RANK_FRAME if _ranked else Balance.HEALTH_BAR_FRAME_OUTLINE
+	# Outline, one pixel outside the rects.
+	draw_rect(rect.grow(1.0), outline, false, 1.0)
+	if _ranked:
+		draw_rect(rect.grow(2.0), Balance.HEALTH_BAR_FRAME_OUTLINE, false, 1.0)
+		# End caps.
+		draw_rect(Rect2(rect.position.x - 3.0, rect.position.y - 1.0, 2.0, rect.size.y + 2.0), outline)
+		draw_rect(Rect2(rect.end.x + 1.0, rect.position.y - 1.0, 2.0, rect.size.y + 2.0), outline)
+		# Ticks across the fill, so a quarter is a quarter.
+		for tick: int in range(1, Balance.HEALTH_BAR_RANK_TICKS):
+			var x: float = rect.position.x + rect.size.x * float(tick) / float(Balance.HEALTH_BAR_RANK_TICKS)
+			draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y),
+				Color(Balance.HEALTH_BAR_FRAME_OUTLINE, 0.7), 1.0)
+	else:
+		# Bevel: light along the top and left, shade along the bottom and right.
+		draw_line(rect.position + Vector2(0.0, 0.5), Vector2(rect.end.x, rect.position.y + 0.5),
+			Balance.HEALTH_BAR_FRAME_LIGHT, 1.0)
+		draw_line(Vector2(rect.position.x, rect.end.y - 0.5), rect.end - Vector2(0.0, 0.5),
+			Balance.HEALTH_BAR_FRAME_SHADE, 1.0)

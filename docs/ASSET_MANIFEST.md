@@ -903,9 +903,9 @@ toward the region's sampled ground palette so it sits in the same light.
 | `butterfly_side_07.png` | 32×32 | T | `#8155B8` |
 | `butterfly_side_08.png` | 32×32 | T | `#8155B8` |
 | `butterfly_idle_01.png` | 32×32 | T | `#8155B8` |
-| `plant_jungle.png` | 48×64 | T | `#2E4A33` |
-| `plant_desert.png` | 48×64 | T | `#C0AC7E` |
-| `plant_snow.png` | 48×64 | T | `#A8BCCC` |
+| `plant_jungle.png` | 96×128 | T | `#2E4A33` |
+| `plant_desert.png` | 96×128 | T | `#C0AC7E` |
+| `plant_snow.png` | 96×128 | T | `#A8BCCC` |
 
 ### 5.7c Foliage kinds — `res://art/foliage/`
 
@@ -920,29 +920,29 @@ point is that a clump is occasionally *not* what you expected.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `plant_jungle_shrub.png` | 56×64 | T | `#2E3A33` |
-| `plant_jungle_flower.png` | 32×40 | T | `#2E3A33` |
-| `plant_jungle_fern.png` | 64×40 | T | `#2E3A33` |
-| `plant_desert_shrub.png` | 56×64 | T | `#6E5B3C` |
-| `plant_desert_flower.png` | 32×40 | T | `#6E5B3C` |
-| `plant_jungle_tallgrass.png` | 40×64 | T | `#24401F` |
-| `plant_desert_tallgrass.png` | 40×64 | T | `#8A7B4E` |
-| `plant_snow_tallgrass.png` | 40×64 | T | `#7C8A96` |
-| `plant_jungle_creeper.png` | 64×40 | T | `#24401F` |
-| `plant_desert_creeper.png` | 64×40 | T | `#8A7B4E` |
-| `plant_snow_creeper.png` | 64×40 | T | `#7C8A96` |
+| `plant_jungle_shrub.png` | 112×128 | T | `#2E3A33` |
+| `plant_jungle_flower.png` | 64×80 | T | `#2E3A33` |
+| `plant_jungle_fern.png` | 128×80 | T | `#2E3A33` |
+| `plant_desert_shrub.png` | 112×128 | T | `#6E5B3C` |
+| `plant_desert_flower.png` | 64×80 | T | `#6E5B3C` |
+| `plant_jungle_tallgrass.png` | 80×128 | T | `#24401F` |
+| `plant_desert_tallgrass.png` | 80×128 | T | `#8A7B4E` |
+| `plant_snow_tallgrass.png` | 80×128 | T | `#7C8A96` |
+| `plant_jungle_creeper.png` | 128×80 | T | `#24401F` |
+| `plant_desert_creeper.png` | 128×80 | T | `#8A7B4E` |
+| `plant_snow_creeper.png` | 128×80 | T | `#7C8A96` |
 | `prop_cairn.png` | 40×56 | T | `#6E6A62` |
 | `prop_signpost.png` | 40×64 | T | `#6B5344` |
 | `prop_driftwood.png` | 72×40 | T | `#8A7B57` |
 | `prop_burrow.png` | 48×40 | T | `#6B5344` |
-| `plant_desert_fern.png` | 64×40 | T | `#6E5B3C` |
-| `plant_snow_shrub.png` | 56×64 | T | `#7C8A96` |
-| `plant_snow_flower.png` | 32×40 | T | `#7C8A96` |
-| `plant_snow_fern.png` | 64×40 | T | `#7C8A96` |
-| `plant_jungle_bush.png` | 64×56 | T | `#2E3A33` |
-| `plant_jungle_blossom.png` | 32×40 | T | `#2E3A33` |
-| `plant_desert_blossom.png` | 32×40 | T | `#6E5B3C` |
-| `plant_snow_blossom.png` | 32×40 | T | `#7C8A96` |
+| `plant_desert_fern.png` | 128×80 | T | `#6E5B3C` |
+| `plant_snow_shrub.png` | 112×128 | T | `#7C8A96` |
+| `plant_snow_flower.png` | 64×80 | T | `#7C8A96` |
+| `plant_snow_fern.png` | 128×80 | T | `#7C8A96` |
+| `plant_jungle_bush.png` | 128×112 | T | `#2E3A33` |
+| `plant_jungle_blossom.png` | 64×80 | T | `#2E3A33` |
+| `plant_desert_blossom.png` | 64×80 | T | `#6E5B3C` |
+| `plant_snow_blossom.png` | 64×80 | T | `#7C8A96` |
 | `prop_mushrooms.png` | 48×40 | T | `#6B5344` |
 | `prop_bones.png` | 56×32 | T | `#B4AC97` |
 | `prop_reeds.png` | 40×56 | T | `#6E7A4C` |
@@ -951,8 +951,8 @@ point is that a clump is occasionally *not* what you expected.
 | `prop_wildflower_02.png` | 64×64 | T | `#596B3C` |
 | `prop_wildflower_03.png` | 64×64 | T | `#596B3C` |
 | `prop_wildflower_04.png` | 64×64 | T | `#596B3C` |
-| `plant_desert_bush.png` | 64×56 | T | `#6E5B3C` |
-| `plant_snow_bush.png` | 64×56 | T | `#7C8A96` |
+| `plant_desert_bush.png` | 128×112 | T | `#6E5B3C` |
+| `plant_snow_bush.png` | 128×112 | T | `#7C8A96` |
 | `prop_rock.png` | 48×40 | T | `#4A4A46` |
 | `prop_boulder.png` | 64×56 | T | `#4A4A46` |
 | `prop_log.png` | 72×40 | T | `#4A4A46` |
@@ -985,42 +985,42 @@ is only the loop target.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `plant_jungle_fern_idle_01.png` | 64×40 | T | `#2E3A33` |
-| `plant_jungle_fern_idle_02.png` | 64×40 | T | `#2E3A33` |
-| `plant_jungle_fern_idle_03.png` | 64×40 | T | `#2E3A33` |
-| `plant_snow_fern_idle_01.png` | 64×40 | T | `#7C8A96` |
-| `plant_snow_fern_idle_02.png` | 64×40 | T | `#7C8A96` |
-| `plant_snow_fern_idle_03.png` | 64×40 | T | `#7C8A96` |
-| `plant_desert_fern_idle_01.png` | 64×40 | T | `#6E5B3C` |
-| `plant_desert_fern_idle_02.png` | 64×40 | T | `#6E5B3C` |
-| `plant_desert_fern_idle_03.png` | 64×40 | T | `#6E5B3C` |
-| `plant_jungle_shrub_idle_01.png` | 56×64 | T | `#2E3A33` |
-| `plant_jungle_shrub_idle_02.png` | 56×64 | T | `#2E3A33` |
-| `plant_jungle_shrub_idle_03.png` | 56×64 | T | `#2E3A33` |
-| `plant_jungle_bush_idle_01.png` | 64×56 | T | `#2E3A33` |
-| `plant_jungle_bush_idle_02.png` | 64×56 | T | `#2E3A33` |
-| `plant_jungle_bush_idle_03.png` | 64×56 | T | `#2E3A33` |
-| `plant_jungle_idle_01.png` | 48×64 | T | `#2E3A33` |
-| `plant_jungle_idle_02.png` | 48×64 | T | `#2E3A33` |
-| `plant_jungle_idle_03.png` | 48×64 | T | `#2E3A33` |
-| `plant_snow_shrub_idle_01.png` | 56×64 | T | `#7C8A96` |
-| `plant_snow_shrub_idle_02.png` | 56×64 | T | `#7C8A96` |
-| `plant_snow_shrub_idle_03.png` | 56×64 | T | `#7C8A96` |
-| `plant_snow_bush_idle_01.png` | 64×56 | T | `#7C8A96` |
-| `plant_snow_bush_idle_02.png` | 64×56 | T | `#7C8A96` |
-| `plant_snow_bush_idle_03.png` | 64×56 | T | `#7C8A96` |
-| `plant_snow_idle_01.png` | 48×64 | T | `#7C8A96` |
-| `plant_snow_idle_02.png` | 48×64 | T | `#7C8A96` |
-| `plant_snow_idle_03.png` | 48×64 | T | `#7C8A96` |
-| `plant_desert_shrub_idle_01.png` | 56×64 | T | `#6E5B3C` |
-| `plant_desert_shrub_idle_02.png` | 56×64 | T | `#6E5B3C` |
-| `plant_desert_shrub_idle_03.png` | 56×64 | T | `#6E5B3C` |
-| `plant_desert_bush_idle_01.png` | 64×56 | T | `#6E5B3C` |
-| `plant_desert_bush_idle_02.png` | 64×56 | T | `#6E5B3C` |
-| `plant_desert_bush_idle_03.png` | 64×56 | T | `#6E5B3C` |
-| `plant_desert_idle_01.png` | 48×64 | T | `#6E5B3C` |
-| `plant_desert_idle_02.png` | 48×64 | T | `#6E5B3C` |
-| `plant_desert_idle_03.png` | 48×64 | T | `#6E5B3C` |
+| `plant_jungle_fern_idle_01.png` | 128×80 | T | `#2E3A33` |
+| `plant_jungle_fern_idle_02.png` | 128×80 | T | `#2E3A33` |
+| `plant_jungle_fern_idle_03.png` | 128×80 | T | `#2E3A33` |
+| `plant_snow_fern_idle_01.png` | 128×80 | T | `#7C8A96` |
+| `plant_snow_fern_idle_02.png` | 128×80 | T | `#7C8A96` |
+| `plant_snow_fern_idle_03.png` | 128×80 | T | `#7C8A96` |
+| `plant_desert_fern_idle_01.png` | 128×80 | T | `#6E5B3C` |
+| `plant_desert_fern_idle_02.png` | 128×80 | T | `#6E5B3C` |
+| `plant_desert_fern_idle_03.png` | 128×80 | T | `#6E5B3C` |
+| `plant_jungle_shrub_idle_01.png` | 112×128 | T | `#2E3A33` |
+| `plant_jungle_shrub_idle_02.png` | 112×128 | T | `#2E3A33` |
+| `plant_jungle_shrub_idle_03.png` | 112×128 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_01.png` | 128×112 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_02.png` | 128×112 | T | `#2E3A33` |
+| `plant_jungle_bush_idle_03.png` | 128×112 | T | `#2E3A33` |
+| `plant_jungle_idle_01.png` | 96×128 | T | `#2E3A33` |
+| `plant_jungle_idle_02.png` | 96×128 | T | `#2E3A33` |
+| `plant_jungle_idle_03.png` | 96×128 | T | `#2E3A33` |
+| `plant_snow_shrub_idle_01.png` | 112×128 | T | `#7C8A96` |
+| `plant_snow_shrub_idle_02.png` | 112×128 | T | `#7C8A96` |
+| `plant_snow_shrub_idle_03.png` | 112×128 | T | `#7C8A96` |
+| `plant_snow_bush_idle_01.png` | 128×112 | T | `#7C8A96` |
+| `plant_snow_bush_idle_02.png` | 128×112 | T | `#7C8A96` |
+| `plant_snow_bush_idle_03.png` | 128×112 | T | `#7C8A96` |
+| `plant_snow_idle_01.png` | 96×128 | T | `#7C8A96` |
+| `plant_snow_idle_02.png` | 96×128 | T | `#7C8A96` |
+| `plant_snow_idle_03.png` | 96×128 | T | `#7C8A96` |
+| `plant_desert_shrub_idle_01.png` | 112×128 | T | `#6E5B3C` |
+| `plant_desert_shrub_idle_02.png` | 112×128 | T | `#6E5B3C` |
+| `plant_desert_shrub_idle_03.png` | 112×128 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_01.png` | 128×112 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_02.png` | 128×112 | T | `#6E5B3C` |
+| `plant_desert_bush_idle_03.png` | 128×112 | T | `#6E5B3C` |
+| `plant_desert_idle_01.png` | 96×128 | T | `#6E5B3C` |
+| `plant_desert_idle_02.png` | 96×128 | T | `#6E5B3C` |
+| `plant_desert_idle_03.png` | 96×128 | T | `#6E5B3C` |
 
 **Generated with the loop pinned to its own first frame.** Left open-ended, the
 generator does not produce an idle at all — it produces *growth*: the first pass
@@ -1058,42 +1058,42 @@ motion the generator can find without inventing geometry.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `plant_jungle_flower_idle_01.png` | 32×40 | T | `#2E3A33` |
-| `plant_jungle_flower_idle_02.png` | 32×40 | T | `#2E3A33` |
-| `plant_jungle_flower_idle_03.png` | 32×40 | T | `#2E3A33` |
-| `plant_desert_flower_idle_01.png` | 32×40 | T | `#6E5B3C` |
-| `plant_jungle_tallgrass_idle_01.png` | 40×64 | T | `#24401F` |
-| `plant_jungle_tallgrass_idle_02.png` | 40×64 | T | `#24401F` |
-| `plant_jungle_tallgrass_idle_03.png` | 40×64 | T | `#24401F` |
-| `plant_desert_tallgrass_idle_01.png` | 40×64 | T | `#8A7B4E` |
-| `plant_desert_tallgrass_idle_02.png` | 40×64 | T | `#8A7B4E` |
-| `plant_desert_tallgrass_idle_03.png` | 40×64 | T | `#8A7B4E` |
-| `plant_snow_tallgrass_idle_01.png` | 40×64 | T | `#7C8A96` |
-| `plant_snow_tallgrass_idle_02.png` | 40×64 | T | `#7C8A96` |
-| `plant_snow_tallgrass_idle_03.png` | 40×64 | T | `#7C8A96` |
-| `plant_jungle_creeper_idle_01.png` | 64×40 | T | `#24401F` |
-| `plant_jungle_creeper_idle_02.png` | 64×40 | T | `#24401F` |
-| `plant_jungle_creeper_idle_03.png` | 64×40 | T | `#24401F` |
-| `plant_desert_creeper_idle_01.png` | 64×40 | T | `#8A7B4E` |
-| `plant_desert_creeper_idle_02.png` | 64×40 | T | `#8A7B4E` |
-| `plant_desert_creeper_idle_03.png` | 64×40 | T | `#8A7B4E` |
-| `plant_snow_creeper_idle_01.png` | 64×40 | T | `#7C8A96` |
-| `plant_snow_creeper_idle_02.png` | 64×40 | T | `#7C8A96` |
-| `plant_snow_creeper_idle_03.png` | 64×40 | T | `#7C8A96` |
-| `plant_desert_flower_idle_02.png` | 32×40 | T | `#6E5B3C` |
-| `plant_desert_flower_idle_03.png` | 32×40 | T | `#6E5B3C` |
-| `plant_snow_flower_idle_01.png` | 32×40 | T | `#7C8A96` |
-| `plant_snow_flower_idle_02.png` | 32×40 | T | `#7C8A96` |
-| `plant_snow_flower_idle_03.png` | 32×40 | T | `#7C8A96` |
-| `plant_jungle_blossom_idle_01.png` | 32×40 | T | `#2E3A33` |
-| `plant_jungle_blossom_idle_02.png` | 32×40 | T | `#2E3A33` |
-| `plant_jungle_blossom_idle_03.png` | 32×40 | T | `#2E3A33` |
-| `plant_desert_blossom_idle_01.png` | 32×40 | T | `#6E5B3C` |
-| `plant_desert_blossom_idle_02.png` | 32×40 | T | `#6E5B3C` |
-| `plant_desert_blossom_idle_03.png` | 32×40 | T | `#6E5B3C` |
-| `plant_snow_blossom_idle_01.png` | 32×40 | T | `#7C8A96` |
-| `plant_snow_blossom_idle_02.png` | 32×40 | T | `#7C8A96` |
-| `plant_snow_blossom_idle_03.png` | 32×40 | T | `#7C8A96` |
+| `plant_jungle_flower_idle_01.png` | 64×80 | T | `#2E3A33` |
+| `plant_jungle_flower_idle_02.png` | 64×80 | T | `#2E3A33` |
+| `plant_jungle_flower_idle_03.png` | 64×80 | T | `#2E3A33` |
+| `plant_desert_flower_idle_01.png` | 64×80 | T | `#6E5B3C` |
+| `plant_jungle_tallgrass_idle_01.png` | 80×128 | T | `#24401F` |
+| `plant_jungle_tallgrass_idle_02.png` | 80×128 | T | `#24401F` |
+| `plant_jungle_tallgrass_idle_03.png` | 80×128 | T | `#24401F` |
+| `plant_desert_tallgrass_idle_01.png` | 80×128 | T | `#8A7B4E` |
+| `plant_desert_tallgrass_idle_02.png` | 80×128 | T | `#8A7B4E` |
+| `plant_desert_tallgrass_idle_03.png` | 80×128 | T | `#8A7B4E` |
+| `plant_snow_tallgrass_idle_01.png` | 80×128 | T | `#7C8A96` |
+| `plant_snow_tallgrass_idle_02.png` | 80×128 | T | `#7C8A96` |
+| `plant_snow_tallgrass_idle_03.png` | 80×128 | T | `#7C8A96` |
+| `plant_jungle_creeper_idle_01.png` | 128×80 | T | `#24401F` |
+| `plant_jungle_creeper_idle_02.png` | 128×80 | T | `#24401F` |
+| `plant_jungle_creeper_idle_03.png` | 128×80 | T | `#24401F` |
+| `plant_desert_creeper_idle_01.png` | 128×80 | T | `#8A7B4E` |
+| `plant_desert_creeper_idle_02.png` | 128×80 | T | `#8A7B4E` |
+| `plant_desert_creeper_idle_03.png` | 128×80 | T | `#8A7B4E` |
+| `plant_snow_creeper_idle_01.png` | 128×80 | T | `#7C8A96` |
+| `plant_snow_creeper_idle_02.png` | 128×80 | T | `#7C8A96` |
+| `plant_snow_creeper_idle_03.png` | 128×80 | T | `#7C8A96` |
+| `plant_desert_flower_idle_02.png` | 64×80 | T | `#6E5B3C` |
+| `plant_desert_flower_idle_03.png` | 64×80 | T | `#6E5B3C` |
+| `plant_snow_flower_idle_01.png` | 64×80 | T | `#7C8A96` |
+| `plant_snow_flower_idle_02.png` | 64×80 | T | `#7C8A96` |
+| `plant_snow_flower_idle_03.png` | 64×80 | T | `#7C8A96` |
+| `plant_jungle_blossom_idle_01.png` | 64×80 | T | `#2E3A33` |
+| `plant_jungle_blossom_idle_02.png` | 64×80 | T | `#2E3A33` |
+| `plant_jungle_blossom_idle_03.png` | 64×80 | T | `#2E3A33` |
+| `plant_desert_blossom_idle_01.png` | 64×80 | T | `#6E5B3C` |
+| `plant_desert_blossom_idle_02.png` | 64×80 | T | `#6E5B3C` |
+| `plant_desert_blossom_idle_03.png` | 64×80 | T | `#6E5B3C` |
+| `plant_snow_blossom_idle_01.png` | 64×80 | T | `#7C8A96` |
+| `plant_snow_blossom_idle_02.png` | 64×80 | T | `#7C8A96` |
+| `plant_snow_blossom_idle_03.png` | 64×80 | T | `#7C8A96` |
 | `prop_wildflower_01_idle_01.png` | 64×64 | T | `#596B3C` |
 | `prop_wildflower_01_idle_02.png` | 64×64 | T | `#596B3C` |
 | `prop_wildflower_01_idle_03.png` | 64×64 | T | `#596B3C` |
@@ -2506,62 +2506,62 @@ painted layer). Generated with PixelLab and animated by job URL.
 | `tree_saltpan_idle_02.png` | 96×128 | T | `#2E4A2A` |
 | `tree_saltpan_idle_03.png` | 96×128 | T | `#2E4A2A` |
 | `tree_saltpan_idle_04.png` | 96×128 | T | `#2E4A2A` |
-| `plant_ashen_reach.png` | 48×64 | T | `#3A5A3A` |
-| `plant_ashen_reach_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_ashen_reach_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_ashen_reach_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_ashen_reach_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_ashen_reach_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_ashen_reach_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_ashen_reach_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_glass_fields.png` | 48×64 | T | `#3A5A3A` |
-| `plant_glass_fields_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_glass_fields_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_glass_fields_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_glass_fields_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_glass_fields_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_glass_fields_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_glass_fields_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_hollow_marches.png` | 48×64 | T | `#3A5A3A` |
-| `plant_hollow_marches_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_hollow_marches_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_hollow_marches_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_hollow_marches_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_hollow_marches_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_hollow_marches_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_hollow_marches_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_iron_steppe.png` | 48×64 | T | `#3A5A3A` |
-| `plant_iron_steppe_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_iron_steppe_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_iron_steppe_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_iron_steppe_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_iron_steppe_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_iron_steppe_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_iron_steppe_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_last_terrace.png` | 48×64 | T | `#3A5A3A` |
-| `plant_last_terrace_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_last_terrace_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_last_terrace_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_last_terrace_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_last_terrace_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_last_terrace_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_last_terrace_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_rustwood.png` | 48×64 | T | `#3A5A3A` |
-| `plant_rustwood_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_rustwood_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_rustwood_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_rustwood_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_rustwood_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_rustwood_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_rustwood_tallgrass.png` | 40×64 | T | `#3A5A3A` |
-| `plant_saltpan.png` | 48×64 | T | `#3A5A3A` |
-| `plant_saltpan_blossom.png` | 32×40 | T | `#3A5A3A` |
-| `plant_saltpan_bush.png` | 64×56 | T | `#3A5A3A` |
-| `plant_saltpan_creeper.png` | 64×40 | T | `#3A5A3A` |
-| `plant_saltpan_fern.png` | 64×40 | T | `#3A5A3A` |
-| `plant_saltpan_flower.png` | 32×40 | T | `#3A5A3A` |
-| `plant_saltpan_shrub.png` | 56×64 | T | `#3A5A3A` |
-| `plant_saltpan_tallgrass.png` | 40×64 | T | `#3A5A3A` |
+| `plant_ashen_reach.png` | 96×128 | T | `#3A5A3A` |
+| `plant_ashen_reach_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_ashen_reach_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_ashen_reach_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_ashen_reach_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_ashen_reach_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_ashen_reach_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_ashen_reach_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_glass_fields.png` | 96×128 | T | `#3A5A3A` |
+| `plant_glass_fields_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_glass_fields_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_glass_fields_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_glass_fields_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_glass_fields_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_glass_fields_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_glass_fields_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_hollow_marches.png` | 96×128 | T | `#3A5A3A` |
+| `plant_hollow_marches_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_hollow_marches_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_hollow_marches_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_hollow_marches_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_hollow_marches_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_hollow_marches_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_hollow_marches_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_iron_steppe.png` | 96×128 | T | `#3A5A3A` |
+| `plant_iron_steppe_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_iron_steppe_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_iron_steppe_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_iron_steppe_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_iron_steppe_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_iron_steppe_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_iron_steppe_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_last_terrace.png` | 96×128 | T | `#3A5A3A` |
+| `plant_last_terrace_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_last_terrace_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_last_terrace_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_last_terrace_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_last_terrace_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_last_terrace_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_last_terrace_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_rustwood.png` | 96×128 | T | `#3A5A3A` |
+| `plant_rustwood_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_rustwood_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_rustwood_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_rustwood_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_rustwood_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_rustwood_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_rustwood_tallgrass.png` | 80×128 | T | `#3A5A3A` |
+| `plant_saltpan.png` | 96×128 | T | `#3A5A3A` |
+| `plant_saltpan_blossom.png` | 64×80 | T | `#3A5A3A` |
+| `plant_saltpan_bush.png` | 128×112 | T | `#3A5A3A` |
+| `plant_saltpan_creeper.png` | 128×80 | T | `#3A5A3A` |
+| `plant_saltpan_fern.png` | 128×80 | T | `#3A5A3A` |
+| `plant_saltpan_flower.png` | 64×80 | T | `#3A5A3A` |
+| `plant_saltpan_shrub.png` | 112×128 | T | `#3A5A3A` |
+| `plant_saltpan_tallgrass.png` | 80×128 | T | `#3A5A3A` |
 
 ### 5.16 Camps and forks — `res://art/battlefield/`
 
@@ -2676,6 +2676,345 @@ The demonstration pictures the Guide shows beside each section, one per
 | `traps.png` | 640×360 | O | `#1E2E33` |
 | `waves.png` | 640×360 | O | `#1E2E33` |
 | `wells.png` | 640×360 | O | `#1E2E33` |
+
+---
+
+### 5.23 Pond and shore plants — `res://art/foliage/`
+
+Owner brief, 2026-09-12: no outside foliage inside a pond, plants of the
+pond's own for every region, and shore plants around the rim.
+`pond_<region>_pads` float on water between depth 0.15 and 0.7,
+`pond_<region>_reeds` stand at the rim wearing `submerged.gdshader`, and
+shore_<region> art sits on the dry ground just outside it. Three idle
+frames beside each, on the convention every plant follows.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `pond_ashen_reach_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_ashen_reach_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_ashen_reach_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_ashen_reach_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_ashen_reach_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_ashen_reach_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_ashen_reach_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_ashen_reach_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_desert_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_desert_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_desert_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_desert_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_desert_reeds.png` | 48×64 | T | `#3E6A5A` |
+| `pond_desert_reeds_idle_01.png` | 48×64 | T | `#3E6A5A` |
+| `pond_desert_reeds_idle_02.png` | 48×64 | T | `#3E6A5A` |
+| `pond_desert_reeds_idle_03.png` | 48×64 | T | `#3E6A5A` |
+| `pond_glass_fields_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_glass_fields_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_glass_fields_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_glass_fields_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_glass_fields_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_glass_fields_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_glass_fields_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_glass_fields_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_hollow_marches_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_hollow_marches_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_hollow_marches_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_hollow_marches_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_hollow_marches_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_hollow_marches_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_hollow_marches_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_hollow_marches_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_iron_steppe_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_iron_steppe_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_iron_steppe_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_iron_steppe_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_iron_steppe_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_iron_steppe_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_iron_steppe_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_iron_steppe_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_jungle_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_jungle_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_jungle_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_jungle_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_jungle_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_jungle_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_jungle_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_jungle_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_last_terrace_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_last_terrace_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_last_terrace_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_last_terrace_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_last_terrace_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_last_terrace_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_last_terrace_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_last_terrace_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_rustwood_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_rustwood_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_rustwood_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_rustwood_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_rustwood_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_rustwood_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_rustwood_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_rustwood_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_saltpan_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_saltpan_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_saltpan_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_saltpan_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_saltpan_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_saltpan_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_saltpan_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_saltpan_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `pond_snow_pads.png` | 64×48 | T | `#3E6A5A` |
+| `pond_snow_pads_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `pond_snow_pads_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `pond_snow_pads_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `pond_snow_reeds.png` | 48×72 | T | `#3E6A5A` |
+| `pond_snow_reeds_idle_01.png` | 48×72 | T | `#3E6A5A` |
+| `pond_snow_reeds_idle_02.png` | 48×72 | T | `#3E6A5A` |
+| `pond_snow_reeds_idle_03.png` | 48×72 | T | `#3E6A5A` |
+| `shore_ashen_reach.png` | 64×48 | T | `#3E6A5A` |
+| `shore_ashen_reach_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_ashen_reach_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_ashen_reach_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_desert.png` | 64×48 | T | `#3E6A5A` |
+| `shore_desert_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_desert_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_desert_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_glass_fields.png` | 64×48 | T | `#3E6A5A` |
+| `shore_glass_fields_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_glass_fields_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_glass_fields_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_hollow_marches.png` | 64×48 | T | `#3E6A5A` |
+| `shore_hollow_marches_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_hollow_marches_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_hollow_marches_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_iron_steppe.png` | 64×48 | T | `#3E6A5A` |
+| `shore_iron_steppe_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_iron_steppe_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_iron_steppe_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_jungle.png` | 64×48 | T | `#3E6A5A` |
+| `shore_jungle_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_jungle_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_jungle_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_last_terrace.png` | 64×48 | T | `#3E6A5A` |
+| `shore_last_terrace_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_last_terrace_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_last_terrace_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_rustwood.png` | 64×48 | T | `#3E6A5A` |
+| `shore_rustwood_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_rustwood_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_rustwood_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_saltpan.png` | 64×48 | T | `#3E6A5A` |
+| `shore_saltpan_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_saltpan_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_saltpan_idle_03.png` | 64×48 | T | `#3E6A5A` |
+| `shore_snow.png` | 64×48 | T | `#3E6A5A` |
+| `shore_snow_idle_01.png` | 64×48 | T | `#3E6A5A` |
+| `shore_snow_idle_02.png` | 64×48 | T | `#3E6A5A` |
+| `shore_snow_idle_03.png` | 64×48 | T | `#3E6A5A` |
+
+### 5.24 Camp fire frames — `res://art/battlefield/`
+
+Six frames beside camp_fire art (2026-09-12). `CampFire` plays them and
+hangs a flickering `PointLight2D` over them, so a camp reads as inhabited
+from across the field and goes dark when it is razed.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `camp_fire_idle_01.png` | 63×67 | T | `#C4552E` |
+| `camp_fire_idle_02.png` | 63×67 | T | `#C4552E` |
+| `camp_fire_idle_03.png` | 63×67 | T | `#C4552E` |
+| `camp_fire_idle_04.png` | 63×67 | T | `#C4552E` |
+| `camp_fire_idle_05.png` | 63×67 | T | `#C4552E` |
+| `camp_fire_idle_06.png` | 63×67 | T | `#C4552E` |
+
+### 5.25 Trap frames — `res://art/traps/`
+
+Four frames per trap beside the base sprite (2026-09-12), played by `Trap`
+under a glow of the trap's own colour — a tar pit is a dark thing on dark
+ground and needed to say it was armed.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `trap_firebloom_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_firebloom_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_firebloom_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_firebloom_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_spike_pit_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_spike_pit_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_spike_pit_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_spike_pit_idle_04.png` | 64×64 | T | `#6E667A` |
+| `trap_tar_snare_idle_01.png` | 64×64 | T | `#6E667A` |
+| `trap_tar_snare_idle_02.png` | 64×64 | T | `#6E667A` |
+| `trap_tar_snare_idle_03.png` | 64×64 | T | `#6E667A` |
+| `trap_tar_snare_idle_04.png` | 64×64 | T | `#6E667A` |
+
+### 5.26 Butterflies — `res://art/wildlife/`
+
+Three species (2026-09-12): azure, monarch and swallowtail, each with a
+base pose, four idle frames and six flight frames. The owner asked for more
+varieties than the one ambient moth.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `wildlife_butterfly_azure.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_05.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_fly_06.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_idle_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_idle_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_idle_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_azure_idle_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_05.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_fly_06.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_idle_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_idle_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_idle_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_monarch_idle_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_05.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_fly_06.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_01.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_02.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_04.png` | 48×48 | T | `#8155B8` |
+
+### 5.27 Rootcrusher and Thunderhead — `res://art/towers/`
+
+One more earth tower and one more air tower (owner brief, 2026-09-12): the
+build rail showed five fire and five water towers against four of the other
+two. Base, three idle frames and three firing frames each, 192×192 like the
+rest of the roster.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `tower_rootcrusher.png` | 192×192 | T | `#6E667A` |
+| `tower_rootcrusher_idle_01.png` | 192×192 | T | `#6E667A` |
+| `tower_rootcrusher_idle_02.png` | 192×192 | T | `#6E667A` |
+| `tower_rootcrusher_idle_03.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_idle_01.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_idle_02.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_idle_03.png` | 192×192 | T | `#6E667A` |
+
+| `tower_rootcrusher_attack_01.png` | 192×192 | T | `#6E667A` |
+| `tower_rootcrusher_attack_02.png` | 192×192 | T | `#6E667A` |
+| `tower_rootcrusher_attack_03.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_attack_01.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_attack_02.png` | 192×192 | T | `#6E667A` |
+| `tower_thunderhead_attack_03.png` | 192×192 | T | `#6E667A` |
+
+### 5.28 Menu flame — `res://art/ui/`
+
+The camp fire's flame with its stone ring cropped away, for the braziers the
+menu's key art already paints (2026-09-12).
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `menu_flame.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_01.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_02.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_03.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_04.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_05.png` | 63×42 | T | `#C4552E` |
+| `menu_flame_idle_06.png` | 63×42 | T | `#C4552E` |
+
+### 5.29 Painted plant idle frames — `res://art/foliage/`
+
+Every painted plant in every region breathes (owner brief, 2026-09-12:
+the foliage "is also not animated"). Three frames beside each base, drawn
+on the base's own canvas — `foliage_art_check` fails a sequence whose
+canvas differs, because a frame of another size jumps rather than
+animates. Generated by feeding each plant's own PixelLab job URL back
+into the animator, so no image data passed through an agent's context.
+
+Grouped by canvas, because a plant's kind decides its canvas: a
+creeper is wide and low, a tallgrass is narrow and tall.
+
+
+All 64×80, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_blossom_idle_01.png` … `plant_ashen_reach_blossom_idle_03.png`
+Files: `plant_ashen_reach_flower_idle_01.png` … `plant_ashen_reach_flower_idle_03.png`
+Files: `plant_glass_fields_blossom_idle_01.png` … `plant_glass_fields_blossom_idle_03.png`
+Files: `plant_glass_fields_flower_idle_01.png` … `plant_glass_fields_flower_idle_03.png`
+Files: `plant_hollow_marches_blossom_idle_01.png` … `plant_hollow_marches_blossom_idle_03.png`
+Files: `plant_hollow_marches_flower_idle_01.png` … `plant_hollow_marches_flower_idle_03.png`
+Files: `plant_iron_steppe_blossom_idle_01.png` … `plant_iron_steppe_blossom_idle_03.png`
+Files: `plant_iron_steppe_flower_idle_01.png` … `plant_iron_steppe_flower_idle_03.png`
+Files: `plant_last_terrace_blossom_idle_01.png` … `plant_last_terrace_blossom_idle_03.png`
+Files: `plant_last_terrace_flower_idle_01.png` … `plant_last_terrace_flower_idle_03.png`
+Files: `plant_rustwood_blossom_idle_01.png` … `plant_rustwood_blossom_idle_03.png`
+Files: `plant_rustwood_flower_idle_01.png` … `plant_rustwood_flower_idle_03.png`
+Files: `plant_saltpan_blossom_idle_01.png` … `plant_saltpan_blossom_idle_03.png`
+Files: `plant_saltpan_flower_idle_01.png` … `plant_saltpan_flower_idle_03.png`
+
+All 80×128, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_tallgrass_idle_01.png` … `plant_ashen_reach_tallgrass_idle_03.png`
+Files: `plant_glass_fields_tallgrass_idle_01.png` … `plant_glass_fields_tallgrass_idle_03.png`
+Files: `plant_hollow_marches_tallgrass_idle_01.png` … `plant_hollow_marches_tallgrass_idle_03.png`
+Files: `plant_iron_steppe_tallgrass_idle_01.png` … `plant_iron_steppe_tallgrass_idle_03.png`
+Files: `plant_last_terrace_tallgrass_idle_01.png` … `plant_last_terrace_tallgrass_idle_03.png`
+Files: `plant_rustwood_tallgrass_idle_01.png` … `plant_rustwood_tallgrass_idle_03.png`
+Files: `plant_saltpan_tallgrass_idle_01.png` … `plant_saltpan_tallgrass_idle_03.png`
+
+All 96×128, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_idle_01.png` … `plant_ashen_reach_idle_03.png`
+Files: `plant_glass_fields_idle_01.png` … `plant_glass_fields_idle_03.png`
+Files: `plant_hollow_marches_idle_01.png` … `plant_hollow_marches_idle_03.png`
+Files: `plant_iron_steppe_idle_01.png` … `plant_iron_steppe_idle_03.png`
+Files: `plant_last_terrace_idle_01.png` … `plant_last_terrace_idle_03.png`
+Files: `plant_rustwood_idle_01.png` … `plant_rustwood_idle_03.png`
+Files: `plant_saltpan_idle_01.png` … `plant_saltpan_idle_03.png`
+
+All 112×128, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_shrub_idle_01.png` … `plant_ashen_reach_shrub_idle_03.png`
+Files: `plant_glass_fields_shrub_idle_01.png` … `plant_glass_fields_shrub_idle_03.png`
+Files: `plant_hollow_marches_shrub_idle_01.png` … `plant_hollow_marches_shrub_idle_03.png`
+Files: `plant_iron_steppe_shrub_idle_01.png` … `plant_iron_steppe_shrub_idle_03.png`
+Files: `plant_last_terrace_shrub_idle_01.png` … `plant_last_terrace_shrub_idle_03.png`
+Files: `plant_rustwood_shrub_idle_01.png` … `plant_rustwood_shrub_idle_03.png`
+Files: `plant_saltpan_shrub_idle_01.png` … `plant_saltpan_shrub_idle_03.png`
+
+All 128×80, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_creeper_idle_01.png` … `plant_ashen_reach_creeper_idle_03.png`
+Files: `plant_ashen_reach_fern_idle_01.png` … `plant_ashen_reach_fern_idle_03.png`
+Files: `plant_glass_fields_creeper_idle_01.png` … `plant_glass_fields_creeper_idle_03.png`
+Files: `plant_glass_fields_fern_idle_01.png` … `plant_glass_fields_fern_idle_03.png`
+Files: `plant_hollow_marches_creeper_idle_01.png` … `plant_hollow_marches_creeper_idle_03.png`
+Files: `plant_hollow_marches_fern_idle_01.png` … `plant_hollow_marches_fern_idle_03.png`
+Files: `plant_iron_steppe_creeper_idle_01.png` … `plant_iron_steppe_creeper_idle_03.png`
+Files: `plant_iron_steppe_fern_idle_01.png` … `plant_iron_steppe_fern_idle_03.png`
+Files: `plant_last_terrace_creeper_idle_01.png` … `plant_last_terrace_creeper_idle_03.png`
+Files: `plant_last_terrace_fern_idle_01.png` … `plant_last_terrace_fern_idle_03.png`
+Files: `plant_rustwood_creeper_idle_01.png` … `plant_rustwood_creeper_idle_03.png`
+Files: `plant_rustwood_fern_idle_01.png` … `plant_rustwood_fern_idle_03.png`
+Files: `plant_saltpan_creeper_idle_01.png` … `plant_saltpan_creeper_idle_03.png`
+Files: `plant_saltpan_fern_idle_01.png` … `plant_saltpan_fern_idle_03.png`
+
+All 128×112, type T, placeholder colour `#2E3A33`.
+
+Files: `plant_ashen_reach_bush_idle_01.png` … `plant_ashen_reach_bush_idle_03.png`
+Files: `plant_glass_fields_bush_idle_01.png` … `plant_glass_fields_bush_idle_03.png`
+Files: `plant_hollow_marches_bush_idle_01.png` … `plant_hollow_marches_bush_idle_03.png`
+Files: `plant_iron_steppe_bush_idle_01.png` … `plant_iron_steppe_bush_idle_03.png`
+Files: `plant_last_terrace_bush_idle_01.png` … `plant_last_terrace_bush_idle_03.png`
+Files: `plant_rustwood_bush_idle_01.png` … `plant_rustwood_bush_idle_03.png`
+Files: `plant_saltpan_bush_idle_01.png` … `plant_saltpan_bush_idle_03.png`
 
 ---
 

@@ -53,6 +53,23 @@ func hero_is_alive() -> bool:
 ## the HUD describes it. An enemy has no such attachment: it should walk at
 ## whichever hero is nearer, and asking it the local one made every enemy in a
 ## two-player game ignore the guest completely.
+## The nearest thing on the player's side that can be fought: a living hero
+## or a standing companion (owner brief, 2026-09-12: companions are targets
+## like players, the closer one in range taken first).
+func nearest_foe(from: Vector2) -> Node2D:
+	var best: Node2D = nearest_hero(from)
+	var best_distance: float = from.distance_to(best.global_position) if best != null else INF
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var spirit := node as Companion
+		if spirit == null or not spirit.is_alive():
+			continue
+		var distance: float = from.distance_to(spirit.global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = spirit
+	return best
+
+
 func nearest_hero(_from: Vector2) -> Node2D:
 	return null
 

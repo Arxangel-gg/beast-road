@@ -94,6 +94,12 @@ func _setup_ground() -> void:
 	if ground == null:
 		return
 	var extent: float = 1600.0
+	# **Under everything, explicitly.** The ground sprite was left at z 0 while
+	# `TownGrounds` lays its ring, its grass and its trees at -1 and -2 - so an
+	# opaque square of terrain was drawn over the whole yard and none of it had
+	# ever been visible. Found on 2026-09-12 while adding the beds around the
+	# plot ring, which did not appear either.
+	ground.z_index = -10
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true

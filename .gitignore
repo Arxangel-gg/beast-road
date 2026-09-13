@@ -37,6 +37,15 @@ art_inbox/
 game/.automated_checks/
 
 # ------------------------------------------------------------------------------
+# Audio staging, the same bargain as art_inbox and for the same reason. The
+# owner drops WAVs and MP3s here per act; tools/import_audio.py converts them
+# to OGG at the loudness the game wants and files them into game/audio/, which
+# IS committed. The inbox was 1.2 GB of source recordings on 2026-09-12 - one
+# `git add -A` from tripling the clone.
+# ------------------------------------------------------------------------------
+audio_inbox/
+
+# ------------------------------------------------------------------------------
 # Builds and exports
 # ------------------------------------------------------------------------------
 build/

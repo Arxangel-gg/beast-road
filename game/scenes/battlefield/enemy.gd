@@ -156,6 +156,8 @@ var camp_home: Vector2 = Vector2.INF
 var camp_leash: float = 0.0
 var _camp_goal: Vector2 = Vector2.INF
 var _camp_pause: float = 0.0
+## Seconds a camp body has gone without a target or a blow.
+var _camp_calm: float = 0.0
 var _camp_returning: bool = false
 
 var _field: EnemyField = null
@@ -398,7 +400,12 @@ func _ready() -> void:
 	# rather than after `setup` because the health node is filled on this line -
 	# a promotion that arrived a moment later left a champion with a common's
 	# hit points and nothing said so.
-	health.max_hp = data.max_hp * _hp_scale * _rank_scale().x 		* _affix_product(&"health_scale")
+	# Every multiplier at once, under one ceiling. Act scale, camp scale, a
+	# war camp's champion scale, a rank and two affixes stacked to eighty
+	# times a breed's health once - a body the owner hit for five minutes to
+	# take a quarter off. Nothing here is a twenty-minute wall.
+	var stacked: float = _hp_scale * _rank_scale().x * _affix_product(&"health_scale")
+	health.max_hp = data.max_hp * minf(stacked, Balance.ENEMY_HEALTH_MULTIPLIER_CEILING)
 	health.revive()
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
@@ -810,6 +817,7 @@ func _walk(delta: float) -> void:
 func _walk_camp(delta: float) -> void:
 	var from_home: float = global_position.distance_to(camp_home)
 	if _target != null and is_instance_valid(_target) and not _camp_returning:
+		_camp_calm = 0.0
 		if from_home > camp_leash:
 			# Followed as far as it will. Home, and healing on the way.
 			_camp_returning = true
@@ -824,9 +832,19 @@ func _walk_camp(delta: float) -> void:
 			_camp_returning = false
 			_camp_goal = global_position
 			_camp_pause = 0.4
+			# Home: a reset camp is a reset camp. Whole again, the League way.
+			if health != null:
+				health.heal(health.max_hp)
+			_camp_calm = Balance.CAMP_IDLE_HEAL_DELAY
 			return
 		_advance((camp_home - global_position).normalized(), delta)
 		return
+	# Left alone at home long enough, a camp body mends. Owner brief,
+	# 2026-09-12: back to full after being unprovoked and idle a while.
+	_camp_calm += delta
+	if _camp_calm >= Balance.CAMP_IDLE_HEAL_DELAY and health != null \
+			and health.current_hp < health.max_hp:
+		health.heal(health.max_hp * Balance.CAMP_IDLE_REGEN * delta)
 	# Patrol: a slow potter between points on its own ground.
 	_camp_pause -= delta
 	var to_goal: Vector2 = _camp_goal - global_position
@@ -1139,14 +1157,18 @@ func _pick_target() -> Node2D:
 	# The *nearest* hero, not this machine's own. Asking for the local one made
 	# every enemy in a two-player game walk past the guest as though they were
 	# not there - no aggro, no melee, no ranged fire, and therefore no damage.
-	var hero: Node2D = _field.nearest_hero(global_position)
+	# The nearest foe: a hero or a companion, whichever is closer (owner brief,
+	# 2026-09-12). A companion that stood in the line and was never chosen
+	# was a free wall.
+	var hero: Node2D = _field.nearest_foe(global_position) if _field.has_method("nearest_foe") \
+		else _field.nearest_hero(global_position)
 	var town: Node2D = _field.town_node()
 	# A barricade is not chosen over the hero: a wall does not distract somebody
 	# already in a fight. It is chosen over the *town*, because it is the thing
 	# physically in the way of getting there.
 	var wall: Node2D = _field.blocking_barricade_ahead(global_position,
 		_road_direction())
-	if hero != null and is_instance_valid(hero) and _field.hero_is_alive():
+	if hero != null and is_instance_valid(hero) and _foe_stands(hero):
 		# With no town to march on — the raid arena — the hero is the only
 		# objective there is, at any distance.
 		if town == null:
@@ -1176,8 +1198,9 @@ func _pick_target() -> Node2D:
 func _camp_target() -> Node2D:
 	if _camp_returning:
 		return null
-	var hero: Node2D = _field.nearest_hero(global_position)
-	if hero == null or not is_instance_valid(hero) or not _field.hero_is_alive():
+	var hero: Node2D = _field.nearest_foe(global_position) if _field.has_method("nearest_foe") \
+		else _field.nearest_hero(global_position)
+	if hero == null or not is_instance_valid(hero) or not _foe_stands(hero):
 		return null
 	var reach: float = Balance.CAMP_AGGRO
 	if _target == hero:
@@ -1189,6 +1212,13 @@ func _camp_target() -> Node2D:
 	if hero.global_position.distance_to(camp_home) > camp_leash:
 		return null
 	return hero
+
+
+## Whether a foe - hero or companion - is still something to fight.
+func _foe_stands(foe: Node2D) -> bool:
+	if foe is Companion:
+		return (foe as Companion).is_alive()
+	return _field.hero_is_alive()
 
 
 ## How far this one can hit, and **exactly what its ring shows**.
@@ -1237,7 +1267,7 @@ func _strike() -> void:
 				(_target.global_position - global_position).normalized(), 190.0)
 		return
 	var target_health: Health = Health.of(_target)
-	if target_health == null:
+	if target_health == null and not (_target is Companion):
 		return
 	# Rolled, like a tower's shot. A blow that lands for the same number every
 	# time reads as arithmetic; the average is unchanged, so nothing balanced
@@ -1280,6 +1310,9 @@ func _strike() -> void:
 		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
 		shot.configure(_target, damage, combat_origin())
 		_field.add_child(shot)
+		return
+	if _target is Companion:
+		(_target as Companion).take_damage(damage, combat_origin())
 		return
 	target_health.take_damage(damage, global_position)
 
@@ -1597,6 +1630,20 @@ func _on_damaged(_amount: float, from: Vector2) -> void:
 	_flash_left = Balance.HIT_FLASH_TIME
 	_impact_direction = (global_position - from).normalized()
 	BloodStain.strike(_blood, _impact_direction)
+	_camp_calm = 0.0
+	# Hit from close by while busy with the wall or the town: whoever did it is
+	# the fight now. A body that kept chewing the gate while a companion bit
+	# its heels read as ignoring the companion (owner brief, 2026-09-12).
+	if _field == null or not _field.has_method("nearest_foe"):
+		return
+	if _target != null and is_instance_valid(_target) \
+			and (_target is Hero or _target is Companion):
+		return
+	var foe: Node2D = _field.nearest_foe(global_position)
+	if foe != null and is_instance_valid(foe) and _foe_stands(foe) \
+			and foe.global_position.distance_to(from) <= Balance.ENEMY_RETALIATE_RANGE \
+			and global_position.distance_to(foe.global_position) <= Balance.ENEMY_RETALIATE_RANGE:
+		_target = foe
 
 
 ## Whatever it leaves behind. Volatile and its kin.
@@ -1935,7 +1982,8 @@ func _apply_category_scale() -> void:
 		# Y-sort key and combat position—to its feet.
 		global_position.y += _depth_lift
 		sprite.position.y -= _depth_lift
-		health_bar.position.y = -float(sprite.texture.get_height()) * visual_scale * 0.92
+		health_bar.position.y = -float(sprite.texture.get_height()) * visual_scale * 0.92 \
+			- (Balance.HEALTH_BAR_RANK_LIFT if rank != Rank.COMMON else 0.0)
 
 
 ## Centre-authored combat position, kept separate from the feet used for depth.

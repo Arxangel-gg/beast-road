@@ -145,6 +145,10 @@ const NAV_ICON_PAD: float = 8.0
 ## How far down the scope column starts. Below the top bar and no further:
 ## sitting higher with less padding was the whole objection to the old one.
 const NAV_BAR_TOP: float = 104.0
+## The clearance the nav column keeps above the experience band.
+const NAV_BAR_FOOT: float = 18.0
+## Where the minimap's top sits, under the spirit panel (2026-09-12).
+const MINIMAP_TOP: float = 162.0
 
 ## The command column, top left.
 ## The currency marks along the top edge.
@@ -425,6 +429,9 @@ var _command_buttons: Dictionary = {}
 var _last_stand_spent: bool = false
 
 
+var _minimap: Minimap = null
+
+
 func _ready() -> void:
 	# World post-processing sits on layer 2; interface must remain ungraded.
 	layer = 20
@@ -555,6 +562,7 @@ func _ready() -> void:
 	_on_hero_wounds_changed(RunState.hero_wounds, RunState.max_wounds())
 	_refresh_recovery_status()
 	_refresh_xp_bar()
+	_build_minimap()
 	_on_touch_layout_changed(touch_ui())
 	_on_scope_changed(int(GameDirector.current_scope))
 
@@ -562,6 +570,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_update_spirit_panel(delta)
 	_tick_party_prompt(delta)
+	_tick_tooltip_picture(delta)
 	# A slow warm breath rather than a flash: the player is being told an
 	# option exists, not alarmed. Driven here because the refresh that
 	# decides urgency runs on events, and a pulse has to run on frames.
@@ -964,6 +973,12 @@ func _build_nav_bar() -> void:
 	zoom_in.text = "+"
 	_nav_buttons.append(zoom_in)
 
+	# The minimap, for a thumb that has no M key (2026-09-12).
+	var map_button: Button = _add_icon_button(bar, "", "Minimap  (M)",
+		func() -> void: _toggle_minimap())
+	map_button.text = "M"
+	_nav_buttons.append(map_button)
+
 	# Escape is the only other way to reach the pause menu, and a phone browser
 	# has no Escape - so without this there is no way off the battlefield, out of
 	# the settings, or out of the game.
@@ -1097,6 +1112,18 @@ func _size_nav_bar() -> void:
 		return
 	var side: float = NAV_TOUCH_ICON_SIZE if touch_ui() else NAV_ICON_SIZE
 	var art: int = NAV_TOUCH_ICON_ART if touch_ui() else NAV_ICON_ART
+	# **The column is cut to the room it has.** A phone held sideways is 720
+	# tall, and a fixed icon size ran the bottom of the column into the
+	# experience band the moment a seventh button arrived (the minimap, on
+	# 2026-09-12). Measured rather than nudged: whatever is between the bar's
+	# top and the band, shared out over however many buttons there are.
+	var count: int = maxi(_nav_buttons.size(), 1)
+	var room: float = get_viewport().get_visible_rect().size.y - NAV_BAR_TOP 		- _xp_bar_height() - _bottom_band_height() - NAV_BAR_FOOT
+	var separation: float = float(_nav_bar.get_theme_constant("separation"))
+	var fits: float = (room - separation * float(count - 1)) / float(count)
+	if fits > 24.0 and fits < side:
+		art = int(round(float(art) * fits / side))
+		side = fits
 	for button: Button in _nav_buttons:
 		if button == null or not is_instance_valid(button):
 			continue
@@ -1224,6 +1251,10 @@ func _build_party_feed() -> void:
 ## a LineEdit with focus eats the key before an unhandled handler ever sees it,
 ## so the second Enter would never reach this.
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"toggle_minimap") and not (_chat_box != null and is_instance_valid(_chat_box) and _chat_box.visible):
+		_toggle_minimap()
+		get_viewport().set_input_as_handled()
+		return
 	if not _chat_available():
 		return
 	if _chat_box.visible and event.is_action_pressed(&"ui_cancel"):
@@ -1440,7 +1471,8 @@ func _refresh_road_panel() -> void:
 	else:
 		for trap: TrapData in ContentDB.trap_kinds():
 			_add_road_row(trap.display_name, trap.description, trap.cost,
-				func() -> void: _report(battlefield.try_place_trap(_road_tile, trap)))
+				func() -> void: _report(battlefield.try_place_trap(_road_tile, trap)),
+				trap.get_sprite_path(), _trap_tooltip(trap))
 		for value: Variant in ContentDB.barricades.values():
 			var barricade := value as BarricadeData
 			if barricade == null:
@@ -1454,13 +1486,18 @@ func _refresh_road_panel() -> void:
 
 ## One offer on the road sheet.
 func _add_road_row(name: String, description: String, cost: Dictionary,
-		on_press: Callable) -> void:
+		on_press: Callable, picture: String = "", figures: String = "") -> void:
 	var row: Button = _add_button(_road_list, "%s   %s" % [
 		name, RunState.format_cost(cost)], func() -> void:
 		on_press.call()
 		_refresh_road_panel())
-	row.tooltip_text = description
 	row.disabled = not RunState.can_afford_cost(cost)
+	# The same box the towers open, beside the panel, with the asset in it:
+	# a trap's numbers and its picture (owner brief, 2026-09-12). Godot's own
+	# tooltip opened at the cursor, over the rows being compared.
+	var text: String = description if figures.is_empty() else "%s\n%s" % [description, figures]
+	row.mouse_entered.connect(func() -> void: _show_build_tooltip(text, row, picture))
+	row.mouse_exited.connect(func() -> void: _hide_build_tooltip())
 
 
 ## The build panel: everything visible at once, no scrolling in either axis.
@@ -1584,21 +1621,49 @@ func _build_side_tooltip() -> void:
 	_build_tooltip.visible = false
 	add_child(_build_tooltip)
 
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 6)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_tooltip.add_child(stack)
+	# The asset itself, first: a tower's picture is the fastest way to tell
+	# two towers apart, and one with an idle loop plays it here (owner brief,
+	# 2026-09-12).
+	_build_tooltip_picture = TextureRect.new()
+	_build_tooltip_picture.custom_minimum_size = Vector2(Balance.BUILD_TOOLTIP_PICTURE,
+		Balance.BUILD_TOOLTIP_PICTURE)
+	_build_tooltip_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_build_tooltip_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_build_tooltip_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_build_tooltip_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_tooltip_picture.visible = false
+	stack.add_child(_build_tooltip_picture)
 	_build_tooltip_label = _label("", 14)
 	_build_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_build_tooltip_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_build_tooltip.add_child(_build_tooltip_label)
+	stack.add_child(_build_tooltip_label)
 
 
 ## Shows the figures for `near`, aligned with the row that asked.
-func _show_build_tooltip(text: String, near: Control) -> void:
+func _show_build_tooltip(text: String, near: Control, picture: String = "") -> void:
 	if _build_tooltip == null:
 		return
 	if text.is_empty() or near == null or not is_instance_valid(near):
 		_hide_build_tooltip()
 		return
 	_build_tooltip_label.text = text
+	_set_tooltip_picture(picture)
 	_build_tooltip.visible = true
+	# **Against the panel that opened it, wherever that panel actually is.**
+	# The box was placed at the authored panel width, and a panel that grows
+	# with the screen (or the touch scale) sat under the box - the figures
+	# covered the rows they described (owner report, 2026-09-12). The panel's
+	# own left edge is the truth.
+	var panel: Control = _panel_of(near)
+	var left_edge: float = panel.global_position.x if panel != null \
+		else get_viewport().get_visible_rect().size.x - BUILD_PANEL_MARGIN - BUILD_PANEL_WIDTH
+	_build_tooltip.offset_right = left_edge - BUILD_TOOLTIP_GAP \
+		- get_viewport().get_visible_rect().size.x
+	_build_tooltip.offset_left = _build_tooltip.offset_right - BUILD_TOOLTIP_WIDTH
 	# Straight from the row's global position, with nothing subtracted: this is a
 	# CanvasLayer at the identity transform, so a child's offsets and a Control's
 	# global position are already the same viewport space.
@@ -1627,6 +1692,47 @@ func _clamp_build_tooltip(row_top: float) -> void:
 func _hide_build_tooltip() -> void:
 	if _build_tooltip != null:
 		_build_tooltip.visible = false
+	_tooltip_frames.clear()
+
+
+## The panel a row belongs to: the first PanelContainer above it.
+func _panel_of(row: Control) -> Control:
+	var node: Node = row
+	while node != null:
+		if node is PanelContainer and node != _build_tooltip:
+			return node as Control
+		node = node.get_parent()
+	return null
+
+
+var _build_tooltip_picture: TextureRect = null
+var _tooltip_frames: Array[Texture2D] = []
+var _tooltip_frame_clock: float = 0.0
+
+
+## The asset in the tooltip: its picture, or its idle loop when it has one.
+func _set_tooltip_picture(path: String) -> void:
+	_tooltip_frames.clear()
+	if _build_tooltip_picture == null:
+		return
+	if path.is_empty() or not ResourceLoader.exists(path):
+		_build_tooltip_picture.visible = false
+		return
+	var art: Texture2D = load(path) as Texture2D
+	_build_tooltip_picture.texture = art
+	_build_tooltip_picture.visible = art != null
+	var loop: Array[Texture2D] = GameData.load_idle_frames(path)
+	if not loop.is_empty():
+		_tooltip_frames.append(art)
+		_tooltip_frames.append_array(loop)
+		_tooltip_frame_clock = 0.0
+
+
+func _tick_tooltip_picture(delta: float) -> void:
+	if _tooltip_frames.is_empty() or _build_tooltip == null or not _build_tooltip.visible:
+		return
+	_tooltip_frame_clock += delta * Balance.BUILD_TOOLTIP_FRAME_RATE
+	_build_tooltip_picture.texture = _tooltip_frames[int(floor(_tooltip_frame_clock)) % _tooltip_frames.size()]
 
 
 func _build_raid_panel() -> void:
@@ -1817,8 +1923,10 @@ func _place_preparation_panel() -> void:
 			_preparation_label.visible = true
 		if _ride_on_button != null:
 			_ride_on_button.custom_minimum_size.y = 34.0
-		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
-		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
+		# Lower, on a desktop (owner brief, 2026-09-12): tucked just above the
+		# bottom band rather than a third of the way up the screen.
+		_preparation_panel.offset_bottom = -(_bottom_band_height() + Balance.PREPARATION_PANEL_LIFT)
+		_preparation_panel.offset_top = _preparation_panel.offset_bottom - 116.0
 
 
 
@@ -2883,6 +2991,7 @@ func _refresh_xp_bar() -> void:
 ## The HUD only owns the structural follow-through: short labels, a taller spell
 ## frame and moving the panels that intentionally sit above that frame.
 func _on_touch_layout_changed(showing: bool) -> void:
+	_place_minimap()
 	if _horn_button != null:
 		_horn_button.text = "HORN" if showing else "Q  War Horn"
 	if _raid_button != null:
@@ -2923,8 +3032,10 @@ func _on_touch_layout_changed(showing: bool) -> void:
 		_wave_preview.offset_top = 214.0 if showing else 158.0
 		_fit_centred(_wave_preview, 360.0 if showing else 420.0)
 	if _preparation_panel != null:
-		_preparation_panel.offset_top = -272.0 - _bottom_band_height()
-		_preparation_panel.offset_bottom = -156.0 - _bottom_band_height()
+		# Lower, on a desktop (owner brief, 2026-09-12): tucked just above the
+		# bottom band rather than a third of the way up the screen.
+		_preparation_panel.offset_bottom = -(_bottom_band_height() + Balance.PREPARATION_PANEL_LIFT)
+		_preparation_panel.offset_top = _preparation_panel.offset_bottom - 116.0
 	if _command_panel != null:
 		_command_panel.offset_top = -276.0 - _bottom_band_height()
 		_command_panel.offset_bottom = -164.0 - _bottom_band_height()
@@ -3651,7 +3762,7 @@ func _tower_card(tower: TowerData, anchor: Vector2i) -> Button:
 	var figures: String = _tower_tooltip(tower, cost_map)
 	button.mouse_entered.connect(func() -> void:
 		_show_build_detail(blurb if affordable else "%s\nInsufficient currency." % blurb)
-		_show_build_tooltip(figures, button))
+		_show_build_tooltip(figures, button, tower.get_sprite_path()))
 	button.mouse_exited.connect(func() -> void:
 		_show_build_detail("")
 		_hide_build_tooltip())
@@ -3863,6 +3974,7 @@ func _on_act(act: int, terrain_id: String) -> void:
 
 
 func _on_scope_changed(scope: int) -> void:
+	_refresh_minimap_visible()
 	var in_raid: bool = scope == int(GameDirector.Scope.RAID)
 	var on_field: bool = scope == int(GameDirector.Scope.BATTLEFIELD)
 	if _wave_preview != null:
@@ -4001,3 +4113,57 @@ func _on_spirit_bonded(bond_key: String) -> void:
 	_show_message("%s UNLOCKED" % words)
 	Vfx.flash(SpiritBond.tint(SpiritBond.rarity_of(bond_key),
 		SpiritBond.shiny_of(bond_key)), 0.10, 0.45)
+
+
+## The numbers behind a trap, for its hover tooltip.
+func _trap_tooltip(trap: TrapData) -> String:
+	var lines: PackedStringArray = []
+	if trap.damage > 0.0:
+		lines.append("Damage %d" % int(round(trap.damage)))
+	if trap.burn_dps > 0.0:
+		lines.append("Burns %d/s for %.0fs" % [int(round(trap.burn_dps)), trap.burn_duration])
+	if trap.slow_factor < 1.0:
+		lines.append("Slows to %d%% for %.0fs" % [int(round(trap.slow_factor * 100.0)), trap.slow_duration])
+	if trap.knockback > 0.0:
+		lines.append("Knockback %d" % int(round(trap.knockback)))
+	lines.append("Radius %d  ·  %d triggers  ·  arms in %.0fs" % [int(round(trap.radius)),
+		trap.triggers, trap.arm_seconds])
+	lines.append("Cost: %s" % RunState.format_cost(trap.cost))
+	return "\n".join(lines)
+
+
+# --- The minimap (2026-09-12) -------------------------------------------------------------
+
+## Top right under the spirit panel and clear of the nav strip; shown on the
+## battlefield only, and only while wanted. See `Minimap`.
+func _build_minimap() -> void:
+	_minimap = Minimap.new()
+	_minimap.battlefield = battlefield
+	_minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_minimap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	add_child(_minimap)
+	_place_minimap()
+	_refresh_minimap_visible()
+
+
+func _place_minimap() -> void:
+	if _minimap == null:
+		return
+	var side: float = Balance.MINIMAP_SIZE_TOUCH if touch_ui() else Balance.MINIMAP_SIZE
+	_minimap.offset_right = -(NAV_STRIP + 10.0)
+	_minimap.offset_left = _minimap.offset_right - side
+	_minimap.offset_top = MINIMAP_TOP
+	_minimap.offset_bottom = _minimap.offset_top + side
+
+
+func _refresh_minimap_visible() -> void:
+	if _minimap == null:
+		return
+	_minimap.visible = Graphics.minimap_shown() \
+		and int(GameDirector.current_scope) == GameDirector.Scope.BATTLEFIELD
+
+
+func _toggle_minimap() -> void:
+	Graphics.set_display(Graphics.KEY_MINIMAP, not Graphics.minimap_shown())
+	_refresh_minimap_visible()
+	MetaState.save_game()

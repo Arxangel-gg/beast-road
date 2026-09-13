@@ -4165,7 +4165,7 @@ const MUSIC_DB: float = -8.0
 ## The battlefield playlist (2026-09-11): how many songs an act may hold, and
 ## the slower crossfade a boss arrives and leaves on. Twelve is the owner's
 ## number; a slot without a file is simply not in the shuffle.
-const MUSIC_PLAYLIST_SLOTS: int = 12
+const MUSIC_PLAYLIST_SLOTS: int = 24
 const MUSIC_BOSS_FADE: float = 2.4
 
 # ==============================================================================
@@ -5987,3 +5987,209 @@ const DUNGEON_PROP_KINDS: Array[String] = ["bones", "crates", "pot", "cage", "ra
 ## players, so the audio thread releases their playbacks before the server
 ## is torn down. Exit only; nothing in play reads it. [TUNE]
 const AUDIO_EXIT_SETTLE_MSEC: int = 80
+
+
+# --- The living field, second pass (2026-09-12) ------------------------------------
+#
+# Owner brief: companions are targets like players, camp bodies heal at home,
+# wildlife flees a blow, drinks, keeps a truce by the water, and some of it is
+# rabid. [TUNE]
+## Whether a body swings back at whatever hit it when that thing is this close.
+const ENEMY_RETALIATE_RANGE: float = 220.0
+## A camp body left alone this long heals this fraction of its health a second.
+const CAMP_IDLE_HEAL_DELAY: float = 6.0
+const CAMP_IDLE_REGEN: float = 0.12
+## The ceiling on every health multiplier stacked on a breed (act, camp, rank,
+## affixes together), so no body is a twenty-minute wall.
+const ENEMY_HEALTH_MULTIPLIER_CEILING: float = 16.0
+## An animal turns to face its motion only past this fraction of a step, and
+## holds that facing at least this long - the cure for a snake flickering left
+## and right every frame while it stood still.
+const WILDLIFE_FACE_DEADZONE: float = 0.3
+const WILDLIFE_FACE_HOLD: float = 0.28
+## Fleeing: how far a bolt goes, away from what frightened it.
+const WILDLIFE_BOLT_DISTANCE: float = 460.0
+## A hostile animal that takes a blow may break off and come back later.
+const WILDLIFE_HOSTILE_FLEE_CHANCE: float = 0.35
+const WILDLIFE_HOSTILE_REGROUP: Vector2 = Vector2(3.0, 7.0)
+## Drinking: the chance a settled walker heads for water, how far it will go,
+## how long it drinks, and how far from a pond the truce holds.
+const WILDLIFE_DRINK_CHANCE: float = 0.16
+const WILDLIFE_DRINK_RANGE: float = 1100.0
+const WILDLIFE_DRINK_SECONDS: Vector2 = Vector2(3.5, 7.0)
+const WILDLIFE_POND_TRUCE_RADIUS: float = 300.0
+const WILDLIFE_POND_TRUCE_CHANCE: float = 0.8
+## Rabies: the chance a hostile animal is born with it, the bite's poison, and
+## the sickly light around it.
+const WILDLIFE_RABID_CHANCE: float = 0.07
+const WILDLIFE_RABID_POISON_DPS: float = 4.0
+const WILDLIFE_RABID_POISON_SECONDS: float = 5.0
+const WILDLIFE_RABID_AURA: Color = Color(0.55, 1.0, 0.35, 0.55)
+const WILDLIFE_RABID_AURA_RADIUS: float = 70.0
+## Shadows under animals: width against the sprite, and how a flier's differs.
+const WILDLIFE_SHADOW_WIDTH: float = 0.72
+const WILDLIFE_SHADOW_FLIGHT_ALPHA: float = 0.42
+const WILDLIFE_SHADOW_FLIGHT_SCALE: float = 0.7
+## How far a flier banks into its heading, and how fast the bank follows.
+const WILDLIFE_FLIGHT_BANK: float = 0.55
+const WILDLIFE_FLIGHT_BANK_RATE: float = 6.0
+## A ranked body wears its bar this much higher, clear of its crown.
+const HEALTH_BAR_RANK_LIFT: float = 14.0
+
+
+# --- Camp furniture (2026-09-12) ------------------------------------------------------
+## Props by kind, against the art: tents and cages read too small beside a
+## body, so they are grown. [TUNE]
+const CAMP_PROP_SCALE: Dictionary = {"tent": 1.55, "cage": 1.25, "palisade": 1.15,
+	"banner": 1.2, "crates": 1.1, "pot": 1.1, "rack": 1.15, "bones": 1.0, "fire": 1.15}
+## The fire's light: colour, reach, and how hard it breathes.
+const CAMP_FIRE_LIGHT: Color = Color(1.0, 0.64, 0.3, 0.6)
+const CAMP_FIRE_LIGHT_RADIUS: float = 190.0
+const CAMP_FIRE_FRAME_RATE: float = 8.0
+## The respawn marker over a razed camp: radius of its ring and its colours.
+const CAMP_MARKER_RADIUS: float = 26.0
+const CAMP_MARKER_COLOUR: Color = Color(0.95, 0.55, 0.35, 0.9)
+const CAMP_MARKER_DIM: Color = Color(0.3, 0.22, 0.2, 0.55)
+
+
+# --- Health bar frames (2026-09-12) ---------------------------------------------------
+## The pixel frame round every bar: outline, bevel light, bevel shade. The
+## ranked wear a warm frame with end caps and a ticked fill. [TUNE]
+const HEALTH_BAR_FRAME_OUTLINE: Color = Color(0.06, 0.05, 0.06, 0.95)
+const HEALTH_BAR_FRAME_LIGHT: Color = Color(0.62, 0.58, 0.5, 0.9)
+const HEALTH_BAR_FRAME_SHADE: Color = Color(0.22, 0.19, 0.18, 0.9)
+const HEALTH_BAR_RANK_FRAME: Color = Color(0.86, 0.66, 0.3, 0.95)
+const HEALTH_BAR_RANK_FILL: Color = Color(0.62, 0.16, 0.2, 1.0)
+const HEALTH_BAR_RANK_HEIGHT: float = 9.0
+const HEALTH_BAR_RANK_TICKS: int = 4
+
+
+# --- Build tooltips and the Preparation panel (2026-09-12) --------------------------
+## The picture in a tower's or trap's tooltip: its height, and how fast an
+## idle loop plays there. [TUNE]
+const BUILD_TOOLTIP_PICTURE: float = 96.0
+const BUILD_TOOLTIP_FRAME_RATE: float = 4.0
+## How far the Preparation panel sits above the bottom edge on a desktop
+## screen, and on a touch one (where the thumb buttons need the room).
+const PREPARATION_PANEL_LIFT: float = 96.0
+const PREPARATION_PANEL_LIFT_TOUCH: float = 210.0
+
+
+# --- Ponds, third pass (2026-09-12) ------------------------------------------------------
+## The water over a swimmer: how deep its top edge feathers (pixels) and
+## how wide the side feather is. [TUNE]
+const SWIM_COVER_FEATHER: float = 9.0
+const SWIM_COVER_SIDE_FEATHER: float = 8.0
+## The shore's fade beyond the tiles, in pixels, and its strength.
+const POND_SHORE_FADE: float = 44.0
+const POND_SHORE_FADE_ALPHA: float = 0.55
+## A fished-out pond begins to restock after this long, one fish per
+## interval, back to `FISHING_POND_STOCK`.
+const FISHING_RESTOCK_DELAY: float = 240.0
+const FISHING_RESTOCK_INTERVAL: float = 75.0
+## The pond's own plants: how many pads on the water and reeds at the rim per
+## pond, and how far outside the rim the shore plants stand.
+const POND_PADS_PER_POND: Vector2i = Vector2i(2, 5)
+const POND_REEDS_PER_POND: Vector2i = Vector2i(3, 7)
+const POND_SHORE_REACH: float = 46.0
+## The submerged tint: the water colour's share over the part under the line.
+const POND_SUBMERGE_TINT: float = 0.62
+
+
+# --- The colour grade (2026-09-12) --------------------------------------------------------
+## The frame-wide grade: how fast it eases between regions, the default
+## vignette, and how far night cools and mutes it. [TUNE]
+const GRADE_EASE: float = 1.6
+const GRADE_VIGNETTE: float = 0.26
+const GRADE_NIGHT_STRENGTH: float = 0.8
+
+
+# --- Tower auras, the collapse shown, traps that breathe (2026-09-12) ------------
+## How high above a tower's node its aura is born.
+const TOWER_AURA_CROWN: float = 96.0
+## The collapse's last act: how long the fall takes before the field is
+## left, and how hard it shakes at the end.
+const DUNGEON_COLLAPSE_OUT_SECONDS: float = 1.3
+const DUNGEON_COLLAPSE_OUT_SHAKE: float = 22.0
+## A trap's idle loop rate, and its glow.
+const TRAP_FRAME_RATE: float = 5.0
+const TRAP_GLOW_RADIUS: float = 70.0
+
+
+# --- Fog of war and the minimap (2026-09-12) -------------------------------------------
+## How often the fog is restamped, how soft a sight disc's rim is, and how
+## much of a cell must be seen for a body standing in it to be drawn. [TUNE]
+const FOG_TICK: float = 0.1
+const FOG_FEATHER: float = 110.0
+const FOG_SEEN_THRESHOLD: int = 90
+## The veil's darkness over ground never seen, and over ground seen and left.
+const FOG_UNEXPLORED_ALPHA: float = 0.93
+const FOG_EXPLORED_ALPHA: float = 0.5
+## How far each thing of the party's can see.
+const FOG_VISION_HERO: float = 640.0
+const FOG_VISION_COMPANION: float = 380.0
+const FOG_VISION_TOWER_MARGIN: float = 110.0
+const FOG_VISION_TOWN: float = 1050.0
+const FOG_VISION_ARENA_HERO: float = 520.0
+## The arena's fog draws over its cliffs and bodies.
+const RAID_FOG_Z: int = 60
+## The minimap's side, on a desktop and on a phone, and its fog's darkness.
+const MINIMAP_SIZE: float = 224.0
+const MINIMAP_SIZE_TOUCH: float = 150.0
+const MINIMAP_UNEXPLORED_ALPHA: float = 0.62
+const MINIMAP_EXPLORED_ALPHA: float = 0.3
+## The minimap's colours.
+const MINIMAP_GROUND: Color = Color(0.11, 0.12, 0.10, 0.94)
+const MINIMAP_CORE: Color = Color(0.16, 0.17, 0.14, 1.0)
+const MINIMAP_ROAD: Color = Color(0.55, 0.47, 0.33, 1.0)
+const MINIMAP_WATER: Color = Color(0.3, 0.55, 0.8, 1.0)
+const MINIMAP_RIFT: Color = Color(0.7, 0.4, 0.9, 1.0)
+const MINIMAP_CAMP_ALIVE: Color = Color(0.85, 0.35, 0.2, 1.0)
+const MINIMAP_CAMP_LOCKED: Color = Color(0.3, 0.28, 0.26, 1.0)
+const MINIMAP_CAMP_RAZED: Color = Color(0.45, 0.45, 0.42, 1.0)
+const MINIMAP_CAMP_RESPAWNING: Color = Color(0.6, 0.4, 0.25, 1.0)
+const MINIMAP_TOWN: Color = Color(0.95, 0.8, 0.4, 1.0)
+const MINIMAP_TOWER: Color = Color(0.8, 0.85, 0.9, 1.0)
+const MINIMAP_ENEMY: Color = Color(0.95, 0.25, 0.2, 1.0)
+const MINIMAP_ELITE: Color = Color(1.0, 0.6, 0.2, 1.0)
+const MINIMAP_BOSS: Color = Color(1.0, 0.15, 0.1, 1.0)
+const MINIMAP_WILDLIFE: Color = Color(0.85, 0.85, 0.75, 1.0)
+const MINIMAP_HOSTILE_WILDLIFE: Color = Color(0.95, 0.5, 0.5, 1.0)
+const MINIMAP_RABID: Color = Color(0.75, 0.3, 0.9, 1.0)
+const MINIMAP_LOOT: Color = Color(1.0, 0.85, 0.3, 1.0)
+const MINIMAP_COMPANION: Color = Color(0.5, 0.9, 0.6, 1.0)
+const MINIMAP_HERO: Color = Color(0.35, 1.0, 0.45, 1.0)
+const MINIMAP_ALLY: Color = Color(0.35, 0.8, 1.0, 1.0)
+const MINIMAP_FRAME_OUTLINE: Color = Color(0.05, 0.04, 0.03, 1.0)
+const MINIMAP_FRAME_LIGHT: Color = Color(0.62, 0.55, 0.4, 0.8)
+
+
+# --- The main menu's layout and weather (2026-09-12) --------------------------------
+## The column's inset from the bottom-left corner, and how faded the seed row
+## sits until it is hovered, focused or filled. [TUNE]
+const MENU_COLUMN_INSET: Vector2 = Vector2(72.0, 56.0)
+const MENU_SEED_FADE: float = 0.38
+## The rain over the gate, the fires on it, and the grade over the lot.
+const MENU_RAIN_AMOUNT: int = 150
+const MENU_RAIN_SPEED: Vector2 = Vector2(520.0, 760.0)
+const MENU_FIRE_SCALE: float = 0.9
+const MENU_GRADE_TINT: Color = Color(1.03, 0.95, 0.86, 1.0)
+const MENU_GRADE_SATURATION: float = 1.1
+const MENU_GRADE_CONTRAST: float = 1.08
+const MENU_GRADE_VIGNETTE: float = 0.3
+
+
+# --- The painted plants' native canvas (2026-09-12) ------------------------------
+## The height each plant kind was first drawn at. A plant drawn taller than
+## this (the regenerated art is drawn at twice the canvas, so it is not
+## chunky when it stands beside a 192px body) is scaled down by the ratio
+## wherever it is planted, so the field's stature did not change when the
+## art did. See `Foliage.painted_scale`.
+const FOLIAGE_KIND_NATIVE_HEIGHT: Dictionary = {
+	"base": 64.0, "shrub": 64.0, "flower": 40.0, "blossom": 40.0, "fern": 40.0,
+	"creeper": 40.0, "bush": 56.0, "tallgrass": 64.0,
+}
+
+## How far past the grid the fog's rim reaches: the treeline and the
+## backdrop beyond the field are never seen, so they are never lit.
+const FOG_RIM_REACH: float = 3200.0

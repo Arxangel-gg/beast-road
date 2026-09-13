@@ -50,5 +50,15 @@ extends GameData
 ## The ground texture tiles across the whole arena, so it must be seamless.
 @export var tile_size: int = 512
 
+## The region's colour grade (2026-09-12): a tint multiplied over the whole
+## frame, saturation and contrast about the middle, a lift under the
+## shadows, and the vignette. Neutral by default, so a region with no
+## opinion looks as it always did. Read by `ColorGrade`.
+@export var grade_tint: Color = Color.WHITE
+@export_range(0.5, 1.5) var grade_saturation: float = 1.0
+@export_range(0.7, 1.4) var grade_contrast: float = 1.0
+@export_range(0.0, 0.2) var grade_lift: float = 0.0
+@export_range(0.0, 0.6) var grade_vignette: float = 0.26
+
 func get_sprite_path() -> String:
 	return GameData.derive_path("terrain", "terrain_", id)

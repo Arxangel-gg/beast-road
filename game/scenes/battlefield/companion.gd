@@ -221,9 +221,10 @@ func _physics_process(delta: float) -> void:
 		_strike(quarry)
 
 	_animate(delta)
-	# Sorted by its feet like everything else that stands on the ground, except
-	# a flier, which is over it.
-	z_index = int(global_position.y) + (200 if data.flies else 0)
+	# Sorted by its feet by the layer it lives in, like everything else that
+	# stands on the ground; a flier sits a step above the ground-bound.
+	z_index = 1 if data.flies else 0
+	_tick_poison(delta)
 
 
 ## Where it wants to be: on top of something to hit, or near its summoner.
@@ -468,6 +469,46 @@ func _tick_recovery(delta: float) -> void:
 ## Seconds until it returns, for the interface. Zero when it is present.
 func recovery_left() -> float:
 	return _recovering
+
+
+## Standing and fighting: not down, not dismissed. What the things that can
+## target it ask.
+func is_alive() -> bool:
+	return data != null and _recovering <= 0.0 and _hp > 0.0 and _left > 0.0
+
+
+## A blow from something that chose it (owner brief, 2026-09-12: companions
+## are targets like players). Same road as the contact damage it already
+## takes; going down is the same going down.
+func take_damage(amount: float, from: Vector2) -> void:
+	if not is_alive() or amount <= 0.0:
+		return
+	_hp -= amount
+	Vfx.spark(global_position, data.colour, 5, (global_position - from).normalized(), 130.0)
+	_refresh_bar()
+	if _hp <= 0.0:
+		_go_down()
+
+
+## A rabid bite: damage over time, ticked here.
+var _poison_left: float = 0.0
+var _poison_dps: float = 0.0
+
+
+func apply_poison(dps: float, seconds: float) -> void:
+	_poison_dps = maxf(_poison_dps, dps)
+	_poison_left = maxf(_poison_left, seconds)
+
+
+func _tick_poison(delta: float) -> void:
+	if _poison_left <= 0.0:
+		return
+	_poison_left -= delta
+	take_damage(_poison_dps * delta, global_position + Vector2.DOWN)
+
+
+func contact_radius() -> float:
+	return 30.0 * (data.scale if data != null else 1.0)
 
 
 func spirit_health_ratio() -> float:

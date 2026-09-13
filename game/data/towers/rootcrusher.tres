@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+role = 1
+element = 2
+damage = 34.0
+attack_interval = 1.6
+aoe_radius = 90.0
+knockback = 140.0
+id = "rootcrusher"
+display_name = "Rootcrusher"
+description = "Siege. Heaves a boulder that lands hard and shoves the pack back a step. Slow, and worth the wait on a choke."

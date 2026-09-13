@@ -337,6 +337,7 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 		"half": half,
 		"nodes": nodes,
 		"stock": Balance.FISHING_POND_STOCK,
+		"restock": 0.0,
 		"ripples": rings,
 		"cursor": 0,
 		"ambient_in": _jitter.randf_range(0.2, Balance.FISHING_AMBIENT_RIPPLE.y),
@@ -345,11 +346,16 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 		"stains": stains,
 		"stain_cursor": 0,
 	})
+	# The shore's fade under the tiles, and the pond's own plants (2026-09-12).
+	_lay_shore_fade(root, depth, at, half, _shore_tint())
+	_plant_pond(_ponds.size() - 1, _ponds.back(), RunState.rng("fishing"))
 
 
 # --- The water -----------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_tick_restock(delta)
+	_tick_pond_plants(delta)
 	_clock += delta
 	_tick_water(delta)
 	if _ponds.is_empty():
@@ -1279,3 +1285,207 @@ func charge() -> float:
 ## The depth the line is in, for the gate.
 func hooked_depth() -> float:
 	return _depth_hooked
+
+
+# --- The third pass (2026-09-12) ----------------------------------------------------------
+
+## A fished-out pond fills again, slowly: nothing for a long while, then a
+## fish at a time. So a run that empties every pond in the first act still
+## has somewhere to cast in the third, and standing over one pond never pays.
+func _tick_restock(delta: float) -> void:
+	for index: int in _ponds.size():
+		var pond: Dictionary = _ponds[index]
+		if int(pond["stock"]) >= Balance.FISHING_POND_STOCK:
+			pond["restock"] = 0.0
+			continue
+		pond["restock"] = float(pond.get("restock", 0.0)) + delta
+		var wait: float = Balance.FISHING_RESTOCK_DELAY if int(pond["stock"]) <= 0 \
+			else Balance.FISHING_RESTOCK_INTERVAL
+		if float(pond["restock"]) >= wait:
+			pond["restock"] = 0.0
+			pond["stock"] = int(pond["stock"]) + 1
+			var material: ShaderMaterial = pond.get("material", null) as ShaderMaterial
+			if material != null:
+				material.set_shader_parameter("spent", 0.0)
+			_ripple_at(index, pond["at"] as Vector2, 0.5)
+
+
+## The shore's fade: the pond's tiles end in a hard edge against the ground,
+## so a soft halo of the region's shore colour is laid under them, blurred
+## outward, and the join disappears (owner report, 2026-09-12).
+func _lay_shore_fade(root: Node2D, mask: Image, at: Vector2, half: Vector2, tint: Color) -> void:
+	if mask == null or mask.is_empty():
+		return
+	var step: int = PondTiles.MASK_STEP
+	var pad: int = int(ceil(Balance.POND_SHORE_FADE / float(step))) + 1
+	var width: int = mask.get_width() + pad * 2
+	var height: int = mask.get_height() + pad * 2
+	var halo: Image = Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	# Dilate the water mask by the fade distance, with a falloff.
+	var reach: float = float(pad)
+	for y: int in height:
+		for x: int in width:
+			var nearest: float = reach + 1.0
+			for oy: int in range(-pad, pad + 1):
+				var sy: int = y - pad + oy
+				if sy < 0 or sy >= mask.get_height():
+					continue
+				for ox: int in range(-pad, pad + 1):
+					var sx: int = x - pad + ox
+					if sx < 0 or sx >= mask.get_width():
+						continue
+					if mask.get_pixel(sx, sy).a > 0.5:
+						nearest = minf(nearest, Vector2(float(ox), float(oy)).length())
+			var alpha: float = clampf(1.0 - nearest / reach, 0.0, 1.0)
+			halo.set_pixel(x, y, Color(tint.r, tint.g, tint.b, alpha * alpha * Balance.POND_SHORE_FADE_ALPHA))
+	var sprite := Sprite2D.new()
+	sprite.name = "ShoreFade"
+	sprite.texture = ImageTexture.create_from_image(halo)
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	sprite.centered = true
+	sprite.scale = Vector2.ONE * float(step)
+	sprite.position = Vector2.ZERO
+	sprite.z_index = -1
+	sprite.z_as_relative = true
+	root.add_child(sprite)
+	root.move_child(sprite, 0)
+
+
+## The pond's own plants: pads on the water, reeds at the rim, shore plants a
+## step outside it - each region's own art, on the structure-idle convention
+## so a sequence dropped beside them breathes. The part of a reed under the
+## line is tinted the water's colour through `submerged.gdshader`.
+func _plant_pond(index: int, pond: Dictionary, rng: RandomNumberGenerator) -> void:
+	var region: String = RunState.terrain_id
+	var pads: String = "res://art/foliage/pond_%s_pads.png" % region
+	var reeds: String = "res://art/foliage/pond_%s_reeds.png" % region
+	var shore: String = "res://art/foliage/shore_%s.png" % region
+	var root: Node2D = pond["root"] as Node2D
+	var at: Vector2 = pond["at"] as Vector2
+	var half: Vector2 = pond["half"] as Vector2
+	var placed: Array[Vector2] = []
+	var colour: Color = water_colour()
+	if ResourceLoader.exists(pads):
+		var art: Texture2D = load(pads)
+		var wanted: int = rng.randi_range(Balance.POND_PADS_PER_POND.x, Balance.POND_PADS_PER_POND.y)
+		for _try: int in wanted * 8:
+			if placed.size() >= wanted:
+				break
+			var spot: Vector2 = at + Vector2(rng.randf_range(-half.x, half.x), rng.randf_range(-half.y, half.y))
+			var depth: float = water_depth_at(spot)
+			if depth < 0.15 or depth > 0.7 or _crowded(spot, placed, 70.0):
+				continue
+			placed.append(spot)
+			_plant_water_sprite(root, art, spot, 1.0, rng, false)
+	var rim: Array[Vector2] = []
+	if ResourceLoader.exists(reeds):
+		var art: Texture2D = load(reeds)
+		var wanted: int = rng.randi_range(Balance.POND_REEDS_PER_POND.x, Balance.POND_REEDS_PER_POND.y)
+		for _try: int in wanted * 10:
+			if rim.size() >= wanted:
+				break
+			var direction: Vector2 = Vector2.from_angle(rng.randf() * TAU)
+			var spot: Vector2 = _rim_point(at, direction)
+			if spot == Vector2.INF or _crowded(spot, rim, 60.0):
+				continue
+			rim.append(spot)
+			var wet: Vector2 = spot - direction * 10.0
+			_plant_water_sprite(root, art, wet, 1.0, rng, true)
+	if ResourceLoader.exists(shore):
+		var art: Texture2D = load(shore)
+		var wanted: int = rng.randi_range(Balance.POND_REEDS_PER_POND.x, Balance.POND_REEDS_PER_POND.y)
+		var out: Array[Vector2] = []
+		for _try: int in wanted * 10:
+			if out.size() >= wanted:
+				break
+			var direction: Vector2 = Vector2.from_angle(rng.randf() * TAU)
+			var spot: Vector2 = _rim_point(at, direction)
+			if spot == Vector2.INF:
+				continue
+			spot += direction * rng.randf_range(Balance.POND_SHORE_REACH * 0.5, Balance.POND_SHORE_REACH)
+			if _crowded(spot, out, 56.0) or not ground_is_open(grid, Rect2(spot - Vector2(8, 8), Vector2(16, 16)), 0):
+				continue
+			out.append(spot)
+			_plant_water_sprite(root, art, spot, 1.0, rng, false)
+
+
+## The first dry point walking out from the centre along `direction`.
+func _rim_point(centre: Vector2, direction: Vector2) -> Vector2:
+	var point: Vector2 = centre
+	for _step: int in 80:
+		var next: Vector2 = point + direction * 8.0
+		if water_depth_at(next) <= 0.0:
+			return point
+		point = next
+	return Vector2.INF
+
+
+func _crowded(spot: Vector2, others: Array[Vector2], spacing: float) -> bool:
+	for other: Vector2 in others:
+		if spot.distance_to(other) < spacing:
+			return true
+	return false
+
+
+## One plant on or by the water. In the sorted layer with everything else,
+## so the hero walks in front of a reed at the near bank and behind one at
+## the far bank; a plant standing in the water wears the submerged tint.
+func _plant_water_sprite(root: Node2D, art: Texture2D, at: Vector2, plant_scale: float,
+		rng: RandomNumberGenerator, in_water: bool) -> void:
+	var plant := Sprite2D.new()
+	plant.texture = art
+	plant.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	plant.add_to_group(Graphics.FILTER_GROUP)
+	plant.offset = Foliage.foot_offset(art)
+	plant.position = at
+	plant.scale = Vector2.ONE * plant_scale * rng.randf_range(0.85, 1.15)
+	plant.flip_h = rng.randf() < 0.5
+	if in_water:
+		var material := ShaderMaterial.new()
+		material.shader = load("res://scripts/shaders/submerged.gdshader")
+		material.set_shader_parameter("water_colour", water_colour())
+		material.set_shader_parameter("waterline", 0.42)
+		material.set_shader_parameter("tint", Balance.POND_SUBMERGE_TINT)
+		material.set_shader_parameter("feather", 0.12)
+		plant.material = material
+	else:
+		plant.material = Foliage.kind_material("reeds")
+	var layer: Node = field.get("entity_root") if field != null else null
+	(layer if layer != null else root).add_child(plant)
+	_pond_plants.append(plant)
+	var frames: Array[Texture2D] = GameData.load_idle_frames(art.resource_path)
+	if not frames.is_empty():
+		_pond_animated.append({"sprite": plant, "frames": frames, "phase": rng.randf() * 10.0})
+
+
+var _pond_plants: Array[Sprite2D] = []
+var _pond_animated: Array[Dictionary] = []
+var _pond_plant_clock: float = 0.0
+
+
+func _tick_pond_plants(delta: float) -> void:
+	if _pond_animated.is_empty():
+		return
+	_pond_plant_clock += delta * Balance.FOLIAGE_IDLE_FRAME_RATE
+	for entry: Dictionary in _pond_animated:
+		var sprite: Sprite2D = entry["sprite"]
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		var frames: Array = entry["frames"]
+		var index: int = int(floor(_pond_plant_clock + float(entry["phase"]))) % frames.size()
+		sprite.texture = frames[index]
+
+
+func _clear_pond_plants() -> void:
+	for plant: Sprite2D in _pond_plants:
+		if plant != null and is_instance_valid(plant):
+			plant.queue_free()
+	_pond_plants.clear()
+	_pond_animated.clear()
+
+
+## The colour the shore fades with: the water lightened toward sand, so the
+## halo reads as wet ground rather than a blue smudge.
+func _shore_tint() -> Color:
+	var water: Color = water_colour()
+	return water.lerp(Color(0.72, 0.62, 0.46), 0.7)

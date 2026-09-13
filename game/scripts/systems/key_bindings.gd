@@ -51,6 +51,7 @@ const REBINDABLE: Array[Dictionary] = [
 	{"action": &"ranged", "label": "Loose an arrow"},
 	{"action": &"ammo_cycle", "label": "Change ammunition"},
 	{"action": &"interact", "label": "Cast / hook / reel"},
+	{"action": &"toggle_minimap", "label": "Minimap"},
 	{"action": &"pause", "label": "Pause"},
 ]
 

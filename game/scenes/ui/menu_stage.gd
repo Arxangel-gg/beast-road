@@ -57,6 +57,8 @@ const GATE_LIGHTS: Array[Vector2] = [
 
 var _backdrop: TextureRect = null
 var _beast: Sprite2D = null
+var _tail: Sprite2D = null
+var _tail_frames: Array[Texture2D] = []
 var _shadow: Sprite2D = null
 var _baseline: int = 0
 var _mist: Array[ColorRect] = []
@@ -67,6 +69,14 @@ var _laid_out_at := Vector2.ZERO
 var _shimmer: ColorRect = null
 var _glow: ColorRect = null
 var _gate_lights: Array[Sprite2D] = []
+## The weather and the light (owner brief, 2026-09-12).
+var _rays: ColorRect = null
+var _rain: CPUParticles2D = null
+var _fires: Array[Sprite2D] = []
+var _fireflies: CPUParticles2D = null
+var _logo_glow: Sprite2D = null
+var _logo_sparks: CPUParticles2D = null
+var _grade: ColorRect = null
 
 
 func _ready() -> void:
@@ -77,9 +87,15 @@ func _ready() -> void:
 	_build_glow()
 	_build_mist()
 	_build_gate_lights()
+	_build_fires()
 	_build_beast()
+	_build_fireflies()
+	_build_rays()
 	_build_embers()
+	_build_rain()
+	_build_logo_glow()
 	_build_vignette()
+	_build_grade()
 	_layout()
 
 
@@ -291,6 +307,21 @@ func _build_beast() -> void:
 			_beast.region_rect = Rect2(0.0, 0.0,
 				float(_frames[0].get_width()), float(_baseline))
 	add_child(_beast)
+	# The tail, rooted on the frame's own stub and drawn behind the body
+	# (owner brief, 2026-09-12: the menu's Yuri had none).
+	_tail_frames = _series("res://art/beast/beast_tail_idle_%02d.png")
+	if not _tail_frames.is_empty():
+		_tail = Sprite2D.new()
+		_tail.name = "Tail"
+		_tail.texture = _tail_frames[0]
+		_tail.centered = true
+		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var size: Vector2 = _tail.texture.get_size()
+		_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
+			size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
+		_tail.show_behind_parent = true
+		_beast.add_child(_tail)
+		_place_menu_tail()
 
 
 ## The row the beast art draws its own ground line on, or 0 if it has none.
@@ -547,6 +578,7 @@ func _process(delta: float) -> void:
 		if not _frames.is_empty():
 			var step: int = int(_time / maxf(Balance.MENU_BEAST_FRAME_TIME, 0.01))
 			_beast.texture = _frames[step % _frames.size()]
+			_drive_menu_tail()
 		# Against the backdrop rather than with it, so the two separate in depth.
 		# A foreground that drifts in step with its background is one flat image
 		# being slid around.
@@ -568,6 +600,8 @@ func _process(delta: float) -> void:
 		var material: ShaderMaterial = _mist[index].material as ShaderMaterial
 		if material != null:
 			material.set_shader_parameter("drift", _time * rate)
+
+	_drive_weather(span, backdrop_drift)
 
 	for index: int in _gate_lights.size():
 		var light: Sprite2D = _gate_lights[index]
@@ -593,3 +627,221 @@ func _series(format: String) -> Array[Texture2D]:
 
 func _load(path: String) -> Texture2D:
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+
+## Roots the menu tail on the current frame's stub. With the region cut at the
+## baseline the frame's centre moves up by half the cut, so the root is
+## shifted the same.
+func _place_menu_tail() -> void:
+	if _tail == null or _beast == null or _beast.texture == null:
+		return
+	var root: Vector2 = BeastTail.root_of(_beast.texture)
+	if root == Vector2.ZERO:
+		_tail.position = Balance.BEAST_TAIL_ANCHOR
+		return
+	var cut: float = 0.0
+	if _beast.region_enabled:
+		cut = float(_beast.texture.get_height()) - _beast.region_rect.size.y
+	_tail.position = root + Vector2(6.0, cut * 0.5)
+
+
+func _drive_menu_tail() -> void:
+	if _tail == null or _tail_frames.is_empty():
+		return
+	_tail.texture = _tail_frames[int(floor(_time * Balance.BEAST_TAIL_IDLE_FRAME_RATE)) % _tail_frames.size()]
+	_place_menu_tail()
+
+
+# --- The weather and the light (2026-09-12) ------------------------------------------
+
+const RAYS_SHADER: String = """
+shader_type canvas_item;
+render_mode blend_add;
+
+uniform float time_now = 0.0;
+uniform vec2 origin = vec2(0.82, -0.18);
+uniform vec4 tint : source_color = vec4(1.0, 0.86, 0.6, 1.0);
+uniform float strength = 0.14;
+
+void fragment() {
+	vec2 d = UV - origin;
+	float angle = atan(d.y, d.x);
+	float dist = length(d);
+	float rays = sin(angle * 18.0 + time_now * 0.11) * 0.5 + 0.5;
+	rays *= sin(angle * 7.0 - time_now * 0.07) * 0.5 + 0.5;
+	rays = pow(rays, 2.2);
+	float fade = smoothstep(1.4, 0.15, dist) * smoothstep(-0.05, 0.3, UV.y);
+	COLOR = vec4(tint.rgb, rays * fade * strength);
+}
+"""
+
+
+## Light rays: a slow fan from the upper right, over the gate and the beast.
+func _build_rays() -> void:
+	_rays = _shaded("Rays", RAYS_SHADER)
+	_rays.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+
+## Rain: thin streaks falling across the whole frame, angled with the wind.
+func _build_rain() -> void:
+	_rain = CPUParticles2D.new()
+	_rain.name = "Rain"
+	_rain.texture = _streak_texture()
+	_rain.amount = maxi(int(float(Balance.MENU_RAIN_AMOUNT) * Graphics.particle_scale()), 8)
+	_rain.lifetime = 2.6
+	_rain.preprocess = 2.6
+	_rain.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_rain.direction = Vector2(-0.16, 1.0)
+	_rain.spread = 2.0
+	_rain.gravity = Vector2.ZERO
+	_rain.initial_velocity_min = Balance.MENU_RAIN_SPEED.x
+	_rain.initial_velocity_max = Balance.MENU_RAIN_SPEED.y
+	_rain.angle_min = 9.0
+	_rain.angle_max = 9.0
+	_rain.scale_amount_min = 0.8
+	_rain.scale_amount_max = 1.5
+	_rain.color = Color(0.78, 0.86, 1.0, 0.26)
+	add_child(_rain)
+
+
+## A drop: a short vertical streak, bright in the middle and soft at both ends.
+func _streak_texture() -> Texture2D:
+	var image := Image.create(3, 18, false, Image.FORMAT_RGBA8)
+	for y: int in 18:
+		var along: float = float(y) / 17.0
+		var alpha: float = sin(along * PI)
+		image.set_pixel(1, y, Color(1.0, 1.0, 1.0, alpha))
+		image.set_pixel(0, y, Color(1.0, 1.0, 1.0, alpha * 0.35))
+		image.set_pixel(2, y, Color(1.0, 1.0, 1.0, alpha * 0.35))
+	return ImageTexture.create_from_image(image)
+
+
+## The gate's fires, animated: the camp fire's own frames, with its glow and
+## its light, sat on each brazier the key art paints.
+func _build_fires() -> void:
+	# The flame alone, cropped off the camp fire's frames: the braziers are
+	# painted into the key art already, and a stone ring floating on a gate
+	# pillar read as exactly that.
+	var art: String = "res://art/ui/menu_flame.png"
+	if not ResourceLoader.exists(art):
+		return
+	for index: int in GATE_LIGHTS.size():
+		var fire := CampFire.new()
+		fire.name = "GateFlame%d" % index
+		fire.texture = load(art)
+		fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(fire)
+		_fires.append(fire)
+
+
+## Fireflies about the beast: a slow drift, blinking.
+func _build_fireflies() -> void:
+	_fireflies = CPUParticles2D.new()
+	_fireflies.name = "Fireflies"
+	_fireflies.amount = 16
+	_fireflies.lifetime = 6.0
+	_fireflies.preprocess = 6.0
+	_fireflies.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_fireflies.emission_sphere_radius = 160.0
+	_fireflies.direction = Vector2.RIGHT
+	_fireflies.spread = 180.0
+	_fireflies.gravity = Vector2.ZERO
+	_fireflies.initial_velocity_min = 4.0
+	_fireflies.initial_velocity_max = 14.0
+	_fireflies.scale_amount_min = 1.4
+	_fireflies.scale_amount_max = 2.6
+	var blink := Gradient.new()
+	blink.set_color(0, Color(0.8, 1.0, 0.55, 0.0))
+	blink.set_color(1, Color(0.8, 1.0, 0.55, 0.0))
+	blink.add_point(0.2, Color(0.85, 1.0, 0.6, 0.9))
+	blink.add_point(0.45, Color(0.85, 1.0, 0.6, 0.1))
+	blink.add_point(0.7, Color(0.85, 1.0, 0.6, 0.8))
+	_fireflies.color_ramp = blink
+	add_child(_fireflies)
+
+
+## The wordmark's glow and the sparks that rise off it.
+func _build_logo_glow() -> void:
+	_logo_glow = Sprite2D.new()
+	_logo_glow.name = "LogoGlow"
+	_logo_glow.texture = LightKit.falloff_texture()
+	_logo_glow.modulate = Color(1.0, 0.8, 0.45, 0.16)
+	add_child(_logo_glow)
+	_logo_sparks = CPUParticles2D.new()
+	_logo_sparks.name = "LogoSparks"
+	_logo_sparks.amount = 22
+	_logo_sparks.lifetime = 3.4
+	_logo_sparks.preprocess = 3.4
+	_logo_sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_logo_sparks.emission_rect_extents = Vector2(300.0, 90.0)
+	_logo_sparks.direction = Vector2.UP
+	_logo_sparks.spread = 40.0
+	_logo_sparks.gravity = Vector2(0.0, -8.0)
+	_logo_sparks.initial_velocity_min = 6.0
+	_logo_sparks.initial_velocity_max = 18.0
+	_logo_sparks.scale_amount_min = 0.8
+	_logo_sparks.scale_amount_max = 1.8
+	var gold := Gradient.new()
+	gold.set_color(0, Color(1.0, 0.85, 0.45, 0.0))
+	gold.set_color(1, Color(1.0, 0.7, 0.3, 0.0))
+	gold.add_point(0.3, Color(1.0, 0.9, 0.55, 0.85))
+	_logo_sparks.color_ramp = gold
+	add_child(_logo_sparks)
+
+
+## The grade over the stage: warm, a touch more saturated and contrasted, and
+## vignetted, so the key art, the beast frames and the effects composite as
+## one picture rather than layers.
+func _build_grade() -> void:
+	_grade = ColorRect.new()
+	_grade.name = "Grade"
+	_grade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_grade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = load("res://scripts/shaders/color_grade.gdshader")
+	material.set_shader_parameter("tint", Balance.MENU_GRADE_TINT)
+	material.set_shader_parameter("saturation", Balance.MENU_GRADE_SATURATION)
+	material.set_shader_parameter("contrast", Balance.MENU_GRADE_CONTRAST)
+	material.set_shader_parameter("lift", 0.02)
+	material.set_shader_parameter("vignette", Balance.MENU_GRADE_VIGNETTE)
+	material.set_shader_parameter("night", 0.0)
+	_grade.material = material
+	_grade.visible = Graphics.grade_enabled()
+	add_child(_grade)
+
+
+## Everything above, placed and driven each frame.
+func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
+	var unit: float = span.y / 1080.0
+	if _rays != null:
+		var material: ShaderMaterial = _rays.material as ShaderMaterial
+		if material != null:
+			material.set_shader_parameter("time_now", _time)
+	if _rain != null:
+		_rain.position = Vector2(span.x * 0.5, -30.0)
+		_rain.emission_rect_extents = Vector2(span.x * 0.7, 6.0)
+		_rain.lifetime = span.y / 520.0 + 0.4
+	for index: int in _fires.size():
+		var fire: Sprite2D = _fires[index]
+		fire.position = span * GATE_LIGHTS[index] + backdrop_drift + Vector2(0.0, -6.0 * unit)
+		fire.scale = Vector2.ONE * unit * Balance.MENU_FIRE_SCALE
+	if _fireflies != null and _beast != null:
+		_fireflies.position = _beast.position + Vector2(0.0, -span.y * 0.12)
+		_fireflies.emission_sphere_radius = span.x * 0.09
+	var title: Control = get_parent().get_node_or_null("Title") as Control if get_parent() != null else null
+	if title != null:
+		var centre: Vector2 = title.position + title.size * 0.5
+		if _logo_glow != null:
+			_logo_glow.position = centre
+			var falloff: Texture2D = _logo_glow.texture
+			var width: float = float(falloff.get_width()) if falloff != null else 256.0
+			_logo_glow.scale = Vector2(title.size.x * 1.15 / width, title.size.y * 1.4 / width)
+			_logo_glow.modulate.a = 0.13 + 0.05 * sin(_time * 1.3)
+		if _logo_sparks != null:
+			_logo_sparks.position = centre
+			_logo_sparks.emission_rect_extents = title.size * Vector2(0.36, 0.26)
+	if _grade != null:
+		_grade.visible = Graphics.grade_enabled()
+		var material: ShaderMaterial = _grade.material as ShaderMaterial
+		if material != null:
+			material.set_shader_parameter("now", _time)

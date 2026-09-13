@@ -97,6 +97,12 @@ func _ready() -> void:
 	hud.rift = rift
 	hud.descend_requested.connect(func() -> void: rift.descend())
 	hud.leave_rift_requested.connect(func() -> void: rift.leave())
+	# The colour grade, under the HUD and over the world (2026-09-12).
+	var grade := ColorGrade.new()
+	grade.layer = hud.layer if hud is CanvasLayer else 1
+	add_child(grade)
+	if hud != null:
+		move_child(grade, hud.get_index())
 	party_events = PartyEvents.new()
 	party_events.name = "PartyEvents"
 	party_events.run = self

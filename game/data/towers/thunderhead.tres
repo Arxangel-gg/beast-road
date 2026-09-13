@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+role = 1
+element = 3
+damage = 26.0
+attack_interval = 1.4
+aoe_radius = 70.0
+extra_targets = 2
+id = "thunderhead"
+display_name = "Thunderhead"
+description = "Siege. A stormcloud that cracks over a knot of bodies, and the bolt jumps to two more."

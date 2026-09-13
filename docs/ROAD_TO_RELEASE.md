@@ -3004,3 +3004,29 @@ the history.
   for all ten regions; wells drunk from; raids and rifts a party vote in
   co-op with the road running on for those who stay; and six new gates in
   both workflows.
+
+- 2026-09-12, the second polish push, from eleven screenshots and a long
+  list: a fog of war around the party with towers and the town giving vision,
+  the city's own core known from the first frame and the outskirts discovered;
+  a toggleable minimap drawn against that same fog texture, with roads, ponds,
+  rift gates, camps by state, towers, the town, every hero and companion, and
+  enemies, elites, bosses, wildlife and loot only where the party can see;
+  all eighty painted plants redrawn at twice the canvas with margins and every
+  one of them animated; pond pads, rim reeds and shore plants for all ten
+  regions, animated, with the submerged shader and a shore fade; a frame-wide
+  colour grade per region and per hour; per-element tower auras; the dungeon's
+  collapse shown with rock, shake, dust and a shader fade; traps that breathe
+  under a glow of their own colour; camp fires with frames and a flickering
+  light; a respawn ring on a razed camp; elite health bars lifted and framed;
+  build and trap tooltips that show the asset and clear the panel; the
+  preparation panel lowered; the beast's tail on the menu and in the scope;
+  companions parented into the sorted layer so they stop vanishing; camp mobs
+  that target companions, retaliate and regenerate; wildlife that drinks,
+  flees in its own manner, goes rabid, keeps a truce at the water and casts a
+  shadow; a health ceiling; the cinder hound mirrored with a real lunge; one
+  more earth tower and one more air tower so every element shows five; a
+  redrawn glacier; three butterflies; the town's grounds made visible at all
+  and given beds around the plot ring; a main menu with the column in the
+  corner, the Warden centred, the build top right, a faded seed row, rain,
+  rays, fireflies, animated braziers and a grade; 77 of the owner's own songs
+  imported; and `fog_check` in both workflows.

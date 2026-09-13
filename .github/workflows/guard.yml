@@ -492,6 +492,10 @@ jobs:
           check "camps" --headless --path game res://tools/camps_check.tscn
           # Ponds draw under the hero and the hero swims in them.
           check "swimming" --headless --path game res://tools/swim_check.tscn
+          # The fog of war covers the road, the hero and the towers lift it,
+          # walked ground stays known, the minimap darkens with the field's own
+          # fog texture, and every dungeon stage is fresh discovery.
+          check "fog of war" --headless --path game res://tools/fog_check.tscn
           # The battlefield playlist deals what is on disk, advances on the end
           # of a song, holds for a boss and hands back. Missing songs are quiet.
           check "music" --headless --path game res://tools/music_check.tscn

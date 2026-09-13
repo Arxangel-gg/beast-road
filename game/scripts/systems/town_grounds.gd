@@ -23,6 +23,11 @@ const PROP_RADIUS: Vector2 = Vector2(430.0, 1000.0)
 const TREE_COUNT: int = 42
 const PROP_COUNT: int = 44
 const TUFT_COUNT: int = 70
+## The beds round the buildings (owner brief, 2026-09-12): the region's low
+## plants in a band just outside the plot ring, animated where they have frames.
+const BED_RADIUS: Vector2 = Vector2(372.0, 470.0)
+const BED_COUNT: int = 44
+const BED_KINDS: Array[String] = ["flower", "blossom", "tallgrass", "fern", "shrub"]
 const GRASS_FORMAT: String = "res://art/foliage/grass_%s.png"
 
 var _for_region: String = ""
@@ -93,6 +98,15 @@ func rebuild() -> void:
 			var art: Texture2D = props[rng.randi_range(0, props.size() - 1)]
 			_plant(at, art, rng.randf_range(1.4, 2.0), rng)
 
+	# The beds, hugging the ring of buildings.
+	var beds: Array[Texture2D] = _bed_art(region)
+	if not beds.is_empty():
+		for _bed: int in BED_COUNT:
+			var at: Vector2 = Vector2.RIGHT.rotated(rng.randf() * TAU) \
+				* rng.randf_range(BED_RADIUS.x, BED_RADIUS.y)
+			var art: Texture2D = beds[rng.randi_range(0, beds.size() - 1)]
+			_plant(at, art, rng.randf_range(1.2, 1.7), rng)
+
 	# Trees, beyond, thickening outward so the town sits in a clearing.
 	var trees: Array[Texture2D] = _tree_art(region)
 	if not trees.is_empty():
@@ -116,12 +130,16 @@ func _plant(at: Vector2, art: Texture2D, size: float, rng: RandomNumberGenerator
 	sprite.texture = art
 	sprite.position = at
 	sprite.offset = Foliage.foot_offset(art)
-	sprite.scale = Vector2.ONE * size
+	sprite.scale = Vector2.ONE * size * Foliage.painted_scale(art)
 	sprite.flip_h = rng.randf() < 0.5
 	var shade: float = rng.randf_range(0.82, 1.04)
 	sprite.modulate = Color(shade, shade, shade)
 	sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
-	sprite.material = Foliage.canopy_material(RunState.terrain_id)
+	# A plant leans by its kind; a tree sways as a canopy.
+	if art.resource_path.get_file().begins_with("plant_"):
+		sprite.material = Foliage.kind_material(Foliage.kind_of(art.resource_path))
+	else:
+		sprite.material = Foliage.canopy_material(RunState.terrain_id)
 	_sorted.add_child(sprite)
 	var frames: Array[Texture2D] = Foliage.idle_sequence(art)
 	if not frames.is_empty():
@@ -195,3 +213,13 @@ func _process(delta: float) -> void:
 			continue
 		var frames: Array = entry["frames"]
 		sprite.texture = frames[(step + int(entry["phase"])) % frames.size()]
+
+
+## The region's low plants, for the beds.
+func _bed_art(region: String) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for kind: String in BED_KINDS:
+		var path: String = Foliage.REGIONAL_KIND_FORMAT % [region, kind]
+		if ResourceLoader.exists(path):
+			out.append(load(path))
+	return out

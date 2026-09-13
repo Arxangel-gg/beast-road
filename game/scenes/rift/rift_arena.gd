@@ -512,12 +512,60 @@ func _finish(result: Dictionary) -> void:
 	set_process(false)
 	if hero != null:
 		hero.set_active(false)
-		hero.set_present(false)
 	if EventBus.enemy_died.is_connected(_on_enemy_died):
 		EventBus.enemy_died.disconnect(_on_enemy_died)
 	EventBus.interact_prompt.emit("", "")
 	var reward: Dictionary = _build_rift_reward(result)
 	_clear_enemies()
+	# The fall, shown, before the road is back (owner brief, 2026-09-12): a
+	# collapse that ran out and a dungeon left behind both come down the
+	# same way - rock falls, the picture shakes and darkens, and the field
+	# fades. Dying skips it: a dead hero has nothing left to watch.
+	# A screen that cannot be seen is not waited on either: a headless gate
+	# gets the reward on the frame, which is what it is checking.
+	if bool(result.get("died", false)) or DisplayServer.get_name() == "headless":
+		if hero != null:
+			hero.set_present(false)
+		EventBus.rift_ended.emit(reward)
+		return
+	_play_collapse_out(reward)
+
+
+## The stage coming down over the hero, then the reward.
+func _play_collapse_out(reward: Dictionary) -> void:
+	var seconds: float = Balance.DUNGEON_COLLAPSE_OUT_SECONDS
+	Sfx.play("sfx_dungeon_collapse")
+	EventBus.camera_shake_requested.emit(Balance.DUNGEON_COLLAPSE_OUT_SHAKE, seconds)
+	EventBus.rift_collapsing.emit(seconds)
+	var shade := CanvasLayer.new()
+	shade.name = "CollapseShade"
+	shade.layer = 3
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = load("res://scripts/shaders/collapse_out.gdshader")
+	material.set_shader_parameter("progress", 0.0)
+	rect.material = material
+	shade.add_child(rect)
+	add_child(shade)
+	var tween: Tween = create_tween()
+	tween.tween_method(func(value: float) -> void:
+		material.set_shader_parameter("progress", value), 0.0, 1.0, seconds)
+	var clock: float = 0.0
+	while clock < seconds:
+		var delta: float = get_process_delta_time()
+		clock += delta
+		if hero != null and is_instance_valid(hero) and fmod(clock, 0.12) < delta:
+			for _rock: int in 4:
+				var at: Vector2 = hero.global_position + Vector2(_rng.randf_range(-320.0, 320.0),
+					_rng.randf_range(-220.0, 220.0))
+				Vfx.dust(at, Color(0.4, 0.35, 0.32, 0.95), 8, 46.0)
+				Vfx.spark(at, Color(0.55, 0.5, 0.45), 3, Vector2.DOWN, 240.0)
+		await get_tree().process_frame
+	if hero != null and is_instance_valid(hero):
+		hero.set_present(false)
+	shade.queue_free()
 	EventBus.rift_ended.emit(reward)
 
 

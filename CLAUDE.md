@@ -1191,6 +1191,58 @@ changes where a stage is paid, never how much (working rule 7 is untouched).
 `dungeon_check` holds the floor and the steering; `rift_check` the clock, the
 chest, the doors and the reward.
 
+**The polish pass of 2026-09-12, second half.** The owner played the camps
+build and sent eleven screenshots with a long list. What follows is the part
+of it that is a decision rather than a fix, and the fixes are in the commit.
+
+**The road is fogged, and there is a map.** `FogOfWar` is one small image over
+the field - a cell a tile, luminance for what has ever been seen and alpha for
+what is seen now - stamped on the CPU ten times a second and drawn through a
+shader whose bilinear read is what makes the edge soft. Heroes, companions,
+towers and the town give vision; a body in the fog is not *drawn*, which is
+the whole difference between a fog of war and a tint. `Minimap` darkens with
+**that same texture** rather than a second copy, so the two can never disagree
+about where the party has been, and M toggles it.
+
+**It is generic on purpose, and that is what makes a dungeon fresh.** The
+battlefield hands it the grid's extent and the road's vision; a raid or a rift
+hands it the arena's and the hero alone, and every stage stands a new one up -
+so going deeper is discovery again rather than a map you already own.
+`fog_check` holds all of it, and it caught the one thing a hand test would
+have missed: the town sees far enough that ground near it stays lit after the
+hero walks off, which is correct and makes a careless test read as a bug.
+
+**The bound is that the fog hides and never helps.** Nothing about targeting,
+spawning, pathing or reward reads it: an enemy the player cannot see can still
+see them. A fog that fed the AI would be a difficulty setting nobody chose, and
+`Graphics.KEY_FOG` turns the drawing off without changing a single number.
+
+**Every painted plant in the game was redrawn and every one of them breathes.**
+The owner reported foliage with "cut off edges" that "appears low res from being
+scaled up too much". Both halves were true and had the same cause: the art was
+drawn at 48x64 and the field scales it 1.15 to 2.35 times. Eighty plants across
+ten regions were regenerated at twice the canvas with an explicit margin, and
+`Foliage.painted_scale` divides the new height by the kind's old one - so the
+field's *stature* is exactly what it was and only the resolution changed. Then
+each one was animated from its own PixelLab job URL, three frames apiece.
+
+**`Foliage.kind_of` was reading the wrong thing for seven regions.** It took
+everything after the first underscore, so "plant_hollow_marches_fern" had a
+kind of "marches", which is in no table - and every plant in Hollow Marches,
+Iron Steppe, Glass Fields, Ashen Reach and the Last Terrace swayed like the
+default instead of like a fern. It matches against the known kinds now.
+
+**The health ceiling moved to 16.** It was put at 9 the same day to stop a
+five-minute enemy, and `elite_check` immediately failed: an elite with two
+affixes came out the same as one with one, because the clamp was below what a
+champion legitimately reaches. The ceiling is there to catch a *product* of
+multipliers running away, not to flatten the ranks the curve is tuned on.
+
+**A screen that cannot be seen is not waited on.** The dungeon's collapse is
+now shown - rock, shake, dust and a shader fade - and `RiftArena._finish`
+returns the reward on the frame when `DisplayServer` is headless. Without that
+every gate that finishes a rift waits on an animation nobody is watching.
+
 **The well is drunk from, as of the same date.** A full well shows a gauge
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.

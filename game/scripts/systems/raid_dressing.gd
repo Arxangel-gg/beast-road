@@ -12,20 +12,23 @@ extends Node2D
 ## only walls there are. Parented to the arena's sorted layer, so the hero
 ## walks behind a tent and in front of a fire.
 ##
-## A fire is the one thing here that moves: a warm glow under it that
-## breathes, so a camp at night is lit by its own fires.
+## A fire is the one thing here that moves: `CampFire` burns and lights.
+##
+## Every prop is a direct child of the sorted layer, tracked in a list:
+## children of this node would sort at this node's own position, which is
+## the origin, and every tent would draw under every body.
 
-var _fires: Array[Sprite2D] = []
-var _clock: float = 0.0
+var _props: Array[Node] = []
 
 
 ## Furnishes `layout` with `count` props from `rng`, keeping clear of the
 ## arrival, the chests and the keys.
 func dress(layout: RaidLayout, rng: RandomNumberGenerator, count: int,
 		kinds: Array[String] = Camps.PROP_KINDS) -> void:
-	for child: Node in get_children():
-		child.queue_free()
-	_fires.clear()
+	for prop: Node in _props:
+		if prop != null and is_instance_valid(prop):
+			prop.queue_free()
+	_props.clear()
 	if layout == null:
 		return
 	var art: Dictionary = {}
@@ -77,35 +80,23 @@ func dress(layout: RaidLayout, rng: RandomNumberGenerator, count: int,
 
 
 func _plant(texture: Texture2D, at: Vector2, is_fire: bool, rng: RandomNumberGenerator) -> void:
-	var prop := Sprite2D.new()
+	var prop: Sprite2D = CampFire.new() if is_fire else Sprite2D.new()
 	prop.texture = texture
 	prop.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
 	prop.add_to_group(Graphics.FILTER_GROUP)
 	prop.offset = Foliage.foot_offset(texture)
 	prop.position = at
-	prop.flip_h = rng.randf() < 0.5
-	add_child(prop)
+	var kind: String = "fire" if is_fire else texture.resource_path.get_file().trim_prefix("camp_").get_basename()
+	prop.scale = Vector2.ONE * float(Balance.CAMP_PROP_SCALE.get(kind, 1.0))
+	prop.flip_h = not is_fire and rng.randf() < 0.5
+	var layer: Node = get_parent() if get_parent() != null else self
+	layer.add_child(prop)
+	_props.append(prop)
 	ShadowKit.add_contact(prop, prop)
-	if is_fire:
-		var glow := Sprite2D.new()
-		glow.texture = LightKit.falloff_texture()
-		glow.modulate = Balance.RAID_FIRE_GLOW
-		glow.scale = Vector2.ONE * (Balance.RAID_FIRE_GLOW_RADIUS
-			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
-		glow.z_index = -1
-		glow.position = Vector2(0.0, -8.0)
-		prop.add_child(glow)
-		_fires.append(glow)
 
 
-func _process(delta: float) -> void:
-	if _fires.is_empty():
-		return
-	_clock += delta
-	for index: int in _fires.size():
-		var glow: Sprite2D = _fires[index]
-		if not is_instance_valid(glow):
-			continue
-		var flicker: float = 0.82 + 0.18 * sin(_clock * 7.0 + float(index) * 1.7) \
-			* sin(_clock * 3.1 + float(index))
-		glow.modulate.a = Balance.RAID_FIRE_GLOW.a * flicker
+func _exit_tree() -> void:
+	for prop: Node in _props:
+		if prop != null and is_instance_valid(prop):
+			prop.queue_free()
+	_props.clear()

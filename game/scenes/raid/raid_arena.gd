@@ -49,6 +49,7 @@ var _chieftain: Enemy = null
 var _chieftain_out: bool = false
 var _finished: bool = false
 
+var _fog: FogOfWar = null
 var _rng := RandomNumberGenerator.new()
 
 ## The camp's terrain. Rebuilt per raid, so two camps are never the same shape.
@@ -490,6 +491,18 @@ func _build_camp() -> void:
 		# rather than by the old circle.
 		hero.bounds_extent = Vector2.ONE * (RaidLayout.HALF_EXTENT - RaidLayout.TILE)
 		hero.global_position = Vector2.ZERO
+	# The fog (2026-09-12): a fresh one a stage, so a dungeon is discovered
+	# floor by floor and only the hero and its companion can see.
+	if _fog != null and is_instance_valid(_fog):
+		_fog.queue_free()
+	_fog = FogOfWar.new()
+	_fog.half_extent = RaidLayout.HALF_EXTENT + RaidLayout.TILE * 2.0
+	_fog.cell = RaidLayout.TILE
+	_fog.z_index = Balance.RAID_FOG_Z
+	_fog.sources = _arena_vision_sources
+	_fog.hide_groups = [Enemy.GROUP, LootDrop.GROUP, RaidChest.GROUP, RaidKey.GROUP,
+		DungeonChest.GROUP, DungeonPortal.GROUP]
+	add_child(_fog)
 
 
 ## The camp's furniture. A rift furnishes differently; see `RiftArena`.
@@ -603,3 +616,19 @@ func _setup_ground() -> void:
 	var half: float = extent / tile_scale
 	ground.region_rect = Rect2(-half, -half, half * 2.0, half * 2.0)
 	ground.scale = Vector2.ONE * tile_scale
+
+
+## What can see in an arena: the hero and its companion, nothing else.
+func _arena_vision_sources() -> Array:
+	var out: Array = []
+	if hero != null and is_instance_valid(hero) and hero.is_alive():
+		out.append({"at": hero.global_position, "radius": Balance.FOG_VISION_ARENA_HERO})
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var companion: Companion = node as Companion
+		if companion != null and is_instance_valid(companion) and companion.is_alive():
+			out.append({"at": companion.global_position, "radius": Balance.FOG_VISION_COMPANION})
+	return out
+
+
+func fog() -> FogOfWar:
+	return _fog

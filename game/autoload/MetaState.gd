@@ -83,6 +83,9 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"tide_caller", "grit_sling",
 	"cinder_lance", "glacial_mortar",
 	"stonewatch", "zephyr_needle",
+	# One more each for earth and air (owner brief, 2026-09-12): the rail showed
+	# five fire and five water towers against four of the other two.
+	"rootcrusher", "thunderhead",
 	"ashen_censer", "stormvane",
 	# The eight of 2026-09-11, two per element in the same pairing the rest of
 	# the ladder uses: a Warden and a Siege, then a Skirmisher and a Sniper -

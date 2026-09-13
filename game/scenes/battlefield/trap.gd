@@ -27,6 +27,9 @@ var _left: int = 0
 var _arming: float = 0.0
 var _sprite: Sprite2D = null
 var _pulse: float = 0.0
+var _frames: Array[Texture2D] = []
+var _frame_clock: float = 0.0
+var _glow: Sprite2D = null
 
 
 func setup(trap_data: TrapData, at: Vector2i, arena: Node) -> void:
@@ -46,7 +49,24 @@ func _ready() -> void:
 	var path: String = data.get_sprite_path()
 	if ResourceLoader.exists(path):
 		_sprite.texture = load(path)
+		# An idle loop dropped beside the art plays (2026-09-12).
+		_frames = GameData.load_idle_frames(path)
+		if not _frames.is_empty():
+			_frames.push_front(_sprite.texture)
+	_sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	add_child(_sprite)
+	# A glow of its own colour under it, so a trap reads as armed from across
+	# the road - a tar pit is a dark thing on dark ground.
+	_glow = Sprite2D.new()
+	_glow.texture = LightKit.falloff_texture()
+	_glow.modulate = Color(data.colour, 0.28)
+	_glow.scale = Vector2.ONE * (Balance.TRAP_GLOW_RADIUS
+		/ maxf(float(LightKit.falloff_texture().get_width()), 1.0))
+	_glow.z_index = -1
+	_glow.z_as_relative = true
+	add_child(_glow)
+	move_child(_glow, 0)
 	# Under everything that walks, and *relative* so the entity root's y-sorting
 	# still places it against the ground rather than lifting it out of the scene.
 	# Absolute z put every trap in the game at one depth, in front of things that
@@ -59,6 +79,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if data == null:
 		return
+	_frame_clock += delta
+	if not _frames.is_empty() and _sprite != null:
+		_sprite.texture = _frames[int(floor(_frame_clock * Balance.TRAP_FRAME_RATE)) % _frames.size()]
+	if _glow != null:
+		_glow.modulate.a = (0.2 + 0.1 * sin(_frame_clock * 3.0)) * (0.5 if _arming > 0.0 else 1.0)
 	if _arming > 0.0:
 		_arming = maxf(_arming - delta, 0.0)
 		# A slow pulse while arming, so "not yet" is visible rather than implied.

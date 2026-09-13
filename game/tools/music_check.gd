@@ -67,13 +67,20 @@ func _test_situations() -> void:
 
 ## No song for an act: the regional track it always had, and nothing said.
 func _test_an_act_without_songs_plays_what_it_had() -> void:
-	MusicPlayer.test_slots.clear()
+	# **An empty act is declared, not assumed.** This used to clear the seam and
+	# read the disk, on the premise that "most of those songs do not exist yet"
+	# - which stopped being true on 2026-09-12 when the owner's own recordings
+	# were imported and act 1 gained twelve. A gate whose premise is "the
+	# content is missing" fails the moment the content arrives, and says
+	# nothing about the behaviour it was written to protect. The seam exists
+	# precisely so an empty act can be asked for.
+	MusicPlayer.test_slots = {1: [], 5: []}
 	MusicPlayer.stop_immediately()
 	RunState.act = 1
 	RunState.terrain_id = "jungle"
 	MusicPlayer.play(MusicPlayer.BATTLE)
 	var state: Dictionary = MusicPlayer.playlist_state()
-	_check(int(state["songs"]) == 0, "act 1 has no songs on disk yet; found %d" % int(state["songs"]))
+	_check(int(state["songs"]) == 0, "an act declared empty must deal nothing; dealt %d" % int(state["songs"]))
 	_check(MusicPlayer.current_track() == "battle_jungle",
 		"with no songs the jungle plays its battle track, not '%s'" % MusicPlayer.current_track())
 	# A region past the third has no track of its own; it rotates through the
@@ -83,6 +90,7 @@ func _test_an_act_without_songs_plays_what_it_had() -> void:
 	MusicPlayer.play(MusicPlayer.BATTLE)
 	_check(MusicPlayer.current_track() == "battle_desert",
 		"act 5 with no songs rotates to the desert track, not '%s'" % MusicPlayer.current_track())
+	MusicPlayer.test_slots.clear()
 
 
 func _test_a_playlist_is_dealt_shuffled_and_advanced() -> void:

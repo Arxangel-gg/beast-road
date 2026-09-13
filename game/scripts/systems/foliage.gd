@@ -275,15 +275,35 @@ static func kind_material(kind: String) -> ShaderMaterial:
 
 ## The kind suffix of a plant sprite, from `plant_<region>_<kind>.png` or
 ## `prop_<kind>.png`. Empty for a region's own plant, which is the baseline.
+## How much to scale a painted plant so that art drawn on a larger canvas
+## than its kind's native one stands the same height it always did. 1.0 for
+## the native canvas, so the old and the new art can stand side by side.
+static func painted_scale(art: Texture2D) -> float:
+	if art == null:
+		return 1.0
+	var kind: String = kind_of(art.resource_path)
+	if kind.is_empty() and art.resource_path.get_file().begins_with("plant_"):
+		kind = "base"
+	var native: float = float(Balance.FOLIAGE_KIND_NATIVE_HEIGHT.get(kind, 0.0))
+	if native <= 0.0:
+		return 1.0
+	return native / maxf(float(art.get_height()), 1.0)
+
+
 static func kind_of(path: String) -> String:
 	var name: String = path.get_file().get_basename()
 	if name.begins_with("prop_"):
 		return name.substr(5)
 	if not name.begins_with("plant_"):
 		return ""
+	# By the known kinds rather than by the first underscore: a two-word
+	# region ("hollow_marches") used to read as a kind called "marches", so
+	# every plant in seven regions leaned like the default (2026-09-12).
 	var rest: String = name.substr(6)
-	var cut: int = rest.find("_")
-	return "" if cut < 0 else rest.substr(cut + 1)
+	for kind: String in REGIONAL_KINDS:
+		if rest.ends_with("_" + kind):
+			return kind
+	return ""
 
 
 ## The idle sequence for a plant or tree texture, or an empty array. Cached per
@@ -632,7 +652,7 @@ func _add_painted(art: Texture2D, at: Vector2, plant_scale: float, tint: Color,
 	plant.material = Foliage.kind_material(Foliage.kind_of(art.resource_path))
 	plant.offset = Foliage.foot_offset(art)
 	plant.position = at
-	plant.scale = Vector2.ONE * plant_scale
+	plant.scale = Vector2.ONE * plant_scale * Foliage.painted_scale(art)
 	plant.modulate = tint
 	plant.flip_h = flip
 	parent.add_child(plant)

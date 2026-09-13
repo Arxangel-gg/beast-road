@@ -378,6 +378,7 @@ func _load_tail() -> void:
 		size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
 	_tail.position = Balance.BEAST_TAIL_ANCHOR
 	_tail.show_behind_parent = true
+	_place_tail()
 	_tail.texture_filter = beast.texture_filter
 	beast.add_child(_tail)
 
@@ -443,6 +444,7 @@ func _drive_frames(delta: float, walking: bool, speed_ratio: float) -> void:
 		_frame_clock += delta * Balance.BEAST_IDLE_FRAME_RATE
 		index = int(floor(_frame_clock)) % series.size()
 	beast.texture = series[maxi(index, 0)]
+	_place_tail()
 
 
 ## The backdrop was a single sprite whose x was decremented forever. Once it had
@@ -820,3 +822,15 @@ func _update_route() -> void:
 	if route_marker == null or not _zoomed_out:
 		return
 	route_marker.position = Vector2(lerpf(-820.0, 820.0, RunState.journey_ratio()), 220.0)
+
+
+## Roots the tail on the current frame's own stub. See `BeastTail`.
+func _place_tail() -> void:
+	if _tail == null or beast == null or beast.texture == null:
+		return
+	var root: Vector2 = BeastTail.root_of(beast.texture)
+	if root == Vector2.ZERO:
+		_tail.position = Balance.BEAST_TAIL_ANCHOR
+		return
+	# A few pixels inside the edge, so the join is under the body's own paint.
+	_tail.position = root + Vector2(6.0, 0.0)

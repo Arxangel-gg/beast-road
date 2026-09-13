@@ -178,7 +178,10 @@ func _tick_gait(delta: float) -> void:
 	_gait_strength = lerpf(_gait_strength, target_strength, smooth)
 	if _gait_pause_left > 0.0:
 		_gait_pause_left = maxf(_gait_pause_left - delta, 0.0)
-	else:
+	elif speed_ratio > 0.0:
+		# Only while the journey moves. The floor of a quarter pace kept the
+		# phase rolling through Preparation, so a step was planted - and the
+		# camera shaken - every few seconds on a beast that stood still.
 		_gait_phase += delta * Balance.BEAST_GAIT_FREQUENCY * TAU * maxf(speed_ratio, 0.25)
 		var step: int = int(floor(_gait_phase / PI))
 		if step > _gait_step:

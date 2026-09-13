@@ -32,6 +32,7 @@ func lane() -> int:
 var _field: Battlefield = null
 var _cooldown: float = 0.0
 var _light: PointLight2D = null
+var _aura: TowerAura = null
 var _command_overdrive_left: float = 0.0
 var _command_rally_left: float = 0.0
 
@@ -136,6 +137,12 @@ func _ready() -> void:
 	_idle_phase = RunState.rng("combat").randf() * TAU
 	if not _idle_frames.is_empty():
 		_idle_frame_clock = _idle_phase / TAU * float(_idle_frames.size())
+	# What its element does to the air (2026-09-12). A well is water enough.
+	_aura = TowerAura.new()
+	_aura.element = int(data.element)
+	_aura.level = level
+	_aura.position = sprite.position
+	add_child(_aura)
 	_apply_level_look()
 	_build_health()
 	_build_gauge()
@@ -382,7 +389,14 @@ func command_reset_attack() -> void:
 	_cooldown = 0.0
 
 
+func _refresh_aura_level() -> void:
+	if _aura != null and is_instance_valid(_aura):
+		_aura.level = level
+		_aura.amount = maxi(int(float(_aura.amount) * 1.08), 1)
+
+
 func upgrade_to(new_level: int) -> void:
+	_refresh_aura_level()
 	var previous_level: int = level
 	level = clampi(new_level, 1, Balance.TOWER_MAX_LEVEL)
 	_draw_range_ring()

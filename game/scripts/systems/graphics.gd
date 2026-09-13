@@ -52,6 +52,11 @@ const KEY_BRIGHTNESS: String = "display_brightness"
 ## players genuinely prefer them softened - and because the alternative to an
 ## option is a forum argument.
 const KEY_SMOOTHING: String = "display_smoothing"
+## The fog of war, the colour grade and the minimap (2026-09-12): display
+## preferences rather than quality switches, so none of them unlabels a preset.
+const KEY_FOG: String = "fog_of_war"
+const KEY_GRADE: String = "color_grade"
+const KEY_MINIMAP: String = "minimap"
 
 ## Canvas items whose filter follows the setting.
 const FILTER_GROUP: StringName = &"scaled_pixel_art"
@@ -405,3 +410,23 @@ static func set_fps_cap(value: int) -> void:
 
 static func fps_label(value: int) -> String:
 	return "Uncapped" if value <= 0 else "%d" % value
+
+
+## Whether the frame-wide colour grade runs. Off headless - a screen read on
+## a server with no screen is a wasted pass - and off when the player turns
+## it off in the video settings.
+static func grade_enabled() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	return bool(_chosen.get(KEY_GRADE, true))
+
+
+## Whether the fog of war covers the field. On by default; a player who
+## wants the whole road visible turns it off in the video settings.
+static func fog_of_war() -> bool:
+	return bool(_chosen.get(KEY_FOG, true))
+
+
+## Whether the minimap is shown. M toggles it in play as well.
+static func minimap_shown() -> bool:
+	return bool(_chosen.get(KEY_MINIMAP, true))

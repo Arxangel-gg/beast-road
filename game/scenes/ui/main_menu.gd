@@ -27,6 +27,12 @@ var _codex: CanvasLayer
 var _hub: HubScreen
 var _guide: GuideScreen
 var _coop_button: Button
+## The Warden's line (bottom centre) and the build (top right), placed by
+## `_fit_menu` (owner brief, 2026-09-12).
+var _warden_label: Label = null
+var _version_label: Label = null
+var _seed_hovered: bool = false
+var _seed_tween: Tween = null
 
 
 func _exit_tree() -> void:
@@ -43,6 +49,7 @@ func _fit_menu() -> void:
 	if scroll == null or title == null or stats_label == null:
 		return
 	var screen: Vector2 = get_viewport_rect().size
+	var column: Control = scroll.get_node_or_null("Buttons") as Control
 	if TouchInput.is_showing() and screen.y > screen.x:
 		var margin: float = Balance.UI_PANEL_MARGIN
 		var width: float = screen.x - margin * 2.0
@@ -58,23 +65,55 @@ func _fit_menu() -> void:
 		scroll.position = Vector2(margin, title.position.y + logo_height + margin)
 		scroll.size = Vector2(width, maxf(0.0,
 			stats_label.position.y - margin - scroll.position.y))
+		if column != null:
+			column.size_flags_vertical = Control.SIZE_FILL
+		if _warden_label != null:
+			_warden_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_warden_label.position = Vector2(margin, stats_label.position.y - 30.0)
+			_warden_label.size = Vector2(width, 26.0)
+		if _version_label != null:
+			_version_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_version_label.position = Vector2(margin, 4.0)
+			_version_label.size = Vector2(width, 22.0)
 	else:
-		# Restore the authored desktop/landscape layout after rotation.
+		# The desktop layout (owner brief, 2026-09-12): the wordmark top
+		# centre, the column hugging the bottom-left corner, the Warden's line
+		# bottom centre, the statistics bottom right, the build top right.
 		title.set_anchors_preset(Control.PRESET_CENTER_TOP)
 		title.offset_left = -420.0
 		title.offset_top = 54.0
 		title.offset_right = 420.0
 		title.offset_bottom = 474.0
-		scroll.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-		scroll.offset_left = 140.0
-		scroll.offset_top = 24.0
-		scroll.offset_right = 520.0
-		scroll.offset_bottom = -24.0
+		scroll.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		scroll.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		scroll.offset_left = Balance.MENU_COLUMN_INSET.x
+		scroll.offset_right = scroll.offset_left + 400.0
+		scroll.offset_bottom = -Balance.MENU_COLUMN_INSET.y
+		# As tall as the column wants and no taller, so the buttons sit on
+		# the bottom edge; a ScrollContainer fills its child to its own height
+		# whatever the child's size flags say.
+		var wanted: float = screen.y - 24.0 - Balance.MENU_COLUMN_INSET.y
+		if column != null:
+			column.size_flags_vertical = Control.SIZE_FILL
+			wanted = minf(column.get_combined_minimum_size().y + 8.0, wanted)
+		scroll.offset_top = scroll.offset_bottom - wanted
 		stats_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 		stats_label.offset_left = -640.0
 		stats_label.offset_top = -190.0
 		stats_label.offset_right = -40.0
 		stats_label.offset_bottom = -40.0
+		if _warden_label != null:
+			_warden_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+			_warden_label.offset_left = -320.0
+			_warden_label.offset_right = 320.0
+			_warden_label.offset_top = -40.0
+			_warden_label.offset_bottom = -14.0
+		if _version_label != null:
+			_version_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			_version_label.offset_left = -400.0
+			_version_label.offset_right = -20.0
+			_version_label.offset_top = 14.0
+			_version_label.offset_bottom = 38.0
 
 
 func _ready() -> void:
@@ -114,10 +153,14 @@ func _ready() -> void:
 	_build_guide_button()
 	_build_settings()
 	settings_button.pressed.connect(func() -> void: _show_settings(true))
+	_build_version_label()
+	_dress_seed_row()
 
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
 	_setup_stage()
+	# Again, now that the lines this lays out exist.
+	_fit_menu.call_deferred()
 
 
 ## Where focus lands when a screen closes: the room if it is open, else the
@@ -268,14 +311,18 @@ func _build_tier_row() -> void:
 	if column == null:
 		return
 
-	var hero := Label.new()
-	hero.text = "%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level]
+	# The Warden's line sits bottom centre (owner brief, 2026-09-12) rather
+	# than in the column; `_fit_menu` places it.
+	_warden_label = Label.new()
+	_warden_label.name = "Warden"
+	_warden_label.text = "%s  ·  level %d" % [MetaState.warden_title(), MetaState.hero_level]
 	if MetaState.hero_attribute_points > 0:
-		hero.text += "  ·  %d unspent" % MetaState.hero_attribute_points
-	hero.add_theme_font_size_override("font_size", 15)
-	hero.add_theme_color_override("font_color", Color("b8ae98"))
-	column.add_child(hero)
-	column.move_child(hero, new_run_button.get_index())
+		_warden_label.text += "  ·  %d unspent" % MetaState.hero_attribute_points
+	_warden_label.add_theme_font_size_override("font_size", 16)
+	_warden_label.add_theme_color_override("font_color", Color("d8cfb4"))
+	_warden_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_warden_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_warden_label)
 
 	var unlocked: Array[CampaignTierData] = []
 	for tier: CampaignTierData in ContentDB.tiers_sorted():
@@ -527,3 +574,55 @@ func _summary() -> String:
 		"Chronicle   %d of %d deeds kept" % [MetaState.chronicle_completed_count(),
 			ContentDB.chronicle_objectives.size()],
 	])
+
+
+# --- The build, and the seed row's fade (2026-09-12) --------------------------------
+
+## Which build this is, top right. A development build says so.
+func _build_version_label() -> void:
+	_version_label = Label.new()
+	_version_label.name = "Version"
+	_version_label.text = ("v" + BuildInfo.VERSION.trim_prefix("v")) if BuildInfo.is_release() \
+		else "dev build"
+	_version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_version_label.add_theme_font_size_override("font_size", 14)
+	_version_label.add_theme_color_override("font_color", Color("9a927e"))
+	_version_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_version_label)
+
+
+## The seed row sits above "Take the road", faded until it is wanted: hovered,
+## focused, or holding a seed. A row most players never use should not be the
+## brightest thing in the column.
+func _dress_seed_row() -> void:
+	if seed_input == null:
+		return
+	var row: Control = seed_input.get_parent() as Control
+	if row == null:
+		return
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	for node: Control in [row, seed_input]:
+		node.mouse_entered.connect(_on_seed_hover.bind(true))
+		node.mouse_exited.connect(_on_seed_hover.bind(false))
+	seed_input.focus_entered.connect(_refresh_seed_fade)
+	seed_input.focus_exited.connect(_refresh_seed_fade)
+	seed_input.text_changed.connect(func(_value: String) -> void: _refresh_seed_fade())
+	row.modulate.a = Balance.MENU_SEED_FADE
+	_refresh_seed_fade()
+
+
+func _on_seed_hover(over: bool) -> void:
+	_seed_hovered = over
+	_refresh_seed_fade()
+
+
+func _refresh_seed_fade() -> void:
+	var row: Control = seed_input.get_parent() as Control
+	if row == null:
+		return
+	var lit: bool = _seed_hovered or seed_input.has_focus() \
+		or not seed_input.text.strip_edges().is_empty()
+	if _seed_tween != null and _seed_tween.is_valid():
+		_seed_tween.kill()
+	_seed_tween = create_tween()
+	_seed_tween.tween_property(row, "modulate:a", 1.0 if lit else Balance.MENU_SEED_FADE, 0.18)

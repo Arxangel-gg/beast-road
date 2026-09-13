@@ -478,6 +478,12 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_brightness_row())
 	column.add_child(_display_toggle_row("Smooth pixel art", Graphics.KEY_SMOOTHING,
 		"Softens the hard edges of scaled pixel art. Off is how the art was drawn."))
+	column.add_child(_pref_toggle_row("Fog of war", Graphics.KEY_FOG, Graphics.fog_of_war(),
+		"The road beyond what the party, its towers and the town can see is dark."))
+	column.add_child(_pref_toggle_row("Colour grade", Graphics.KEY_GRADE, Graphics.grade_enabled(),
+		"The region's tint and vignette over the whole picture."))
+	column.add_child(_pref_toggle_row("Minimap", Graphics.KEY_MINIMAP, Graphics.minimap_shown(),
+		"The field at a glance. M toggles it in play."))
 	column.add_child(_fps_row())
 	column.add_child(_display_row())
 	column.add_child(_touch_row())
@@ -571,6 +577,29 @@ func _amount_row(text: String, key: String) -> HBoxContainer:
 ## Custom, and it should when somebody turns shadows off - that genuinely is no
 ## longer High. Smoothing is about how the art looks to this person on this
 ## screen, and silently unlabelling their chosen preset for it is wrong.
+## A display preference with its own reader (2026-09-12): the fog, the grade
+## and the minimap. Same row as the smoothing one, with the state passed in.
+func _pref_toggle_row(text: String, key: String, on: bool, hint: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	var label: Label = _label(text)
+	label.custom_minimum_size = Vector2(120.0, 0.0)
+	label.tooltip_text = hint
+	row.add_child(label)
+	var button := Button.new()
+	button.toggle_mode = true
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.tooltip_text = hint
+	button.button_pressed = on
+	button.text = "On" if on else "Off"
+	button.pressed.connect(func() -> void:
+		Graphics.set_display(key, button.button_pressed)
+		button.text = "On" if button.button_pressed else "Off"
+		_queue_save())
+	row.add_child(button)
+	return row
+
+
 func _display_toggle_row(text: String, key: String, hint: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
