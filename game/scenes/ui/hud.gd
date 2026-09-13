@@ -1373,7 +1373,10 @@ func _update_orders_button() -> void:
 	const NAMES: Dictionary = {
 		"wall": "Mend the wall", "towers": "Mend the towers", "traps": "Rearm the traps",
 	}
-	_orders_button.text = "Orders  %d" % price
+	# The price is in the tooltip rather than on the face. The action bar is
+	# six buttons wide at 1600x900 and every label was already clipping at the
+	# ends; a seventh word on one of them made the whole row worse.
+	_orders_button.text = "Orders"
 	_orders_button.tooltip_text = ("The Quartermaster's standing order, during "
 		+ "Preparation. Next: %s, for %d Gold.
 "

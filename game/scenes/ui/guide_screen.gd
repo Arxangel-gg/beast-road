@@ -179,6 +179,9 @@ func _section(section: GuideSectionData) -> Control:
 		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		picture.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		# Hung rather than floated. A photograph with no edge reads as a hole in
+		# the panel rather than as something on it (owner brief, 2026-09-13).
+		FrameKit.hang(picture)
 		row.add_child(picture)
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -216,6 +219,9 @@ func _lore_row(entry: LoreEntryData) -> Control:
 		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		picture.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		# Hung rather than floated. A photograph with no edge reads as a hole in
+		# the panel rather than as something on it (owner brief, 2026-09-13).
+		FrameKit.hang(picture)
 		row.add_child(picture)
 	var text := VBoxContainer.new()
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL

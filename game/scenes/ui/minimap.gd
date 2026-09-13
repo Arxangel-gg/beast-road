@@ -117,6 +117,20 @@ func _draw() -> void:
 	if gates != null and gates.has_method("gate_positions"):
 		for at: Vector2 in gates.call("gate_positions"):
 			_draw_diamond(_to_map(at), maxf(size.x / 60.0, 2.5), Balance.MINIMAP_RIFT)
+	# Trees and seams. A worked-out node is drawn dim rather than removed: the
+	# player went out there once and should be able to see it is worth going
+	# back, which is the whole reason a node respawns at all.
+	var patch: Node = battlefield.call("gathering") if battlefield.has_method("gathering") else null
+	if patch != null and patch.has_method("node_positions"):
+		var spots: PackedVector2Array = patch.call("node_positions")
+		var ids: Array[String] = patch.call("node_ids")
+		for index: int in spots.size():
+			var kind: GatherNodeData = ContentDB.gather_node(ids[index]) 				if index < ids.size() else null
+			var spent: bool = bool(patch.call("node_is_spent", index))
+			var tint: Color = Balance.MINIMAP_WOOD if kind != null 				and kind.craft == "woodcutter" else Balance.MINIMAP_ORE
+			if spent:
+				tint = Color(tint, tint.a * 0.35)
+			draw_circle(_to_map(spots[index]), maxf(size.x / 76.0, 2.0), tint)
 	# Camps, by state.
 	var camps: Node = battlefield.call("camps") if battlefield.has_method("camps") else null
 	if camps != null and camps.has_method("map_marks"):
@@ -237,18 +251,11 @@ func _mark_diamond(at: Vector2, reach: float, colour: Color) -> void:
 ## outline, a lit bevel inside it, a shadowed inner rule, and a bracket at
 ## each corner. Thin on purpose - it has to say "this is a window" without
 ## taking room from the map inside it.
+##
+## **The same frame every picture in the game wears**, rather than this screen's
+## own copy of the idea. The owner asked for a thin aesthetic border here and
+## then for frames generally, so the drawing moved to `FrameKit` and this became
+## one line. The constants below it kept their names and are now unread by
+## anything but the marks, which is where the outline colour still belongs.
 func _draw_frame() -> void:
-	var rect := Rect2(Vector2.ZERO, size)
-	var thick: float = Balance.MINIMAP_FRAME_THICK
-	_frame.draw_rect(rect, Balance.MINIMAP_FRAME_OUTLINE, false, thick)
-	_frame.draw_rect(rect.grow(-thick), Balance.MINIMAP_FRAME_LIGHT, false, 1.0)
-	_frame.draw_rect(rect.grow(-thick - 1.0), Balance.MINIMAP_FRAME_INNER, false, 1.0)
-	var reach: float = Balance.MINIMAP_CORNER_SIZE
-	for corner: Vector2 in [Vector2.ZERO, Vector2(size.x, 0.0), Vector2(0.0, size.y), size]:
-		var toward := Vector2(1.0 if corner.x <= 0.0 else -1.0,
-			1.0 if corner.y <= 0.0 else -1.0)
-		var at: Vector2 = corner + toward * (thick * 0.5)
-		_frame.draw_line(at, at + Vector2(toward.x * reach, 0.0),
-			Balance.MINIMAP_CORNER, thick)
-		_frame.draw_line(at, at + Vector2(0.0, toward.y * reach),
-			Balance.MINIMAP_CORNER, thick)
+	FrameKit.draw_frame(_frame, Rect2(Vector2.ZERO, size))

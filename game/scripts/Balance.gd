@@ -6177,6 +6177,11 @@ const MINIMAP_CORE: Color = Color(0.16, 0.17, 0.14, 1.0)
 const MINIMAP_ROAD: Color = Color(0.55, 0.47, 0.33, 1.0)
 const MINIMAP_WATER: Color = Color(0.3, 0.55, 0.8, 1.0)
 const MINIMAP_RIFT: Color = Color(0.7, 0.4, 0.9, 1.0)
+## Trees and seams on the outskirts (2026-09-13). Two colours rather than
+## one, because which craft a node wants is the thing a player is deciding
+## whether to walk out for.
+const MINIMAP_WOOD: Color = Color(0.52, 0.72, 0.38, 1.0)
+const MINIMAP_ORE: Color = Color(0.82, 0.72, 0.5, 1.0)
 const MINIMAP_CAMP_ALIVE: Color = Color(0.85, 0.35, 0.2, 1.0)
 const MINIMAP_CAMP_LOCKED: Color = Color(0.3, 0.28, 0.26, 1.0)
 const MINIMAP_CAMP_RAZED: Color = Color(0.45, 0.45, 0.42, 1.0)

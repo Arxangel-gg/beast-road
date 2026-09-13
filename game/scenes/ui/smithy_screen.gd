@@ -82,6 +82,7 @@ func _build() -> void:
 		_art.custom_minimum_size = Vector2(0.0, HEADER_HEIGHT)
 		_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		FrameKit.hang(_art)
 		column.add_child(_art)
 
 	_heading = Label.new()
@@ -237,6 +238,7 @@ func _choice_row(material: MaterialData, held: int) -> PanelContainer:
 		art.custom_minimum_size = Vector2(SWATCH, SWATCH)
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		FrameKit.hang(art)
 		row.add_child(art)
 
 	var copy := VBoxContainer.new()
