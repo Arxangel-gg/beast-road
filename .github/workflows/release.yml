@@ -145,6 +145,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/swim_check.tscn
           run_godot_clean --headless --path game res://tools/fog_check.tscn
           run_godot_clean --headless --path game res://tools/beast_tail_check.tscn
+          run_godot_clean --headless --path game res://tools/enemy_facing_check.tscn
           run_godot_clean --headless --path game res://tools/tower_path_check.tscn
           run_godot_clean --headless --path game res://tools/attribute_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_shot_check.tscn

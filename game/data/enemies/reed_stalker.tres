@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 2
 id = "reed_stalker"
 display_name = "Reed Stalker"
 description = "You hear the reeds move once. The second time it is already on you."

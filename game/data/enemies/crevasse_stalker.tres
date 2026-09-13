@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+art_facing = 1
 id = "crevasse_stalker"
 display_name = "Crevasse Stalker"
 description = "It was already under the snow when the road got here."

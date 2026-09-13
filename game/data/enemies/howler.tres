@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_yfb0w")
+art_facing = 1
 category = 1
 role = 3
 sprite_id = "pack_howler"

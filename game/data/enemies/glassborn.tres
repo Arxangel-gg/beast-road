@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vu077")
+art_facing = 1
 role = 1
 sprite_id = "veiled_skirmisher"
 max_hp = 18.0

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+art_facing = 1
 id = "salt_marcher"
 display_name = "Salt Marcher"
 description = "Wrapped against the glare, and it does not stop for it either."
