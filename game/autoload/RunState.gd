@@ -1069,10 +1069,49 @@ func level_at(anchor: Vector2i) -> int:
 
 
 func set_tower(anchor: Vector2i, tower_id: String, level: int) -> void:
-	var priority: int = int(tower_entry(anchor).get("target_priority",
-		TowerData.TargetPriority.FIRST))
-	towers[anchor] = {"tower_id": tower_id, "level": level, "target_priority": priority}
+	var entry: Dictionary = tower_entry(anchor)
+	var priority: int = int(entry.get("target_priority", TowerData.TargetPriority.FIRST))
+	# The path survives a level, because it is the thing the levels are for.
+	var path: int = int(entry.get("path", TowerData.Path.NONE))
+	towers[anchor] = {"tower_id": tower_id, "level": level, "target_priority": priority,
+		"path": path}
 	EventBus.tower_changed.emit(anchor)
+
+
+## Which way the tower on that tile was taken, or NONE.
+func tower_path(anchor: Vector2i) -> int:
+	return int(tower_entry(anchor).get("path", TowerData.Path.NONE))
+
+
+## Sets it, once. Returns whether it took - a path already chosen is not
+## changed, because a free re-pick every Preparation is not a decision.
+func set_tower_path(anchor: Vector2i, path: int) -> bool:
+	var entry: Dictionary = tower_entry(anchor)
+	if entry.is_empty() or int(entry.get("path", TowerData.Path.NONE)) != TowerData.Path.NONE:
+		return false
+	# **Not before the level it belongs to.** Without this the choice could be
+	# taken the moment a tower was built, which skips the ladder the split
+	# exists to put a decision on - `tower_path_check` caught it on its first
+	# run, which is the whole reason the gate walks the levels rather than
+	# asserting the constants.
+	if int(entry.get("level", 1)) < Balance.TOWER_SPECIALISE_LEVEL:
+		return false
+	if path != TowerData.Path.FOCUS and path != TowerData.Path.SPREAD:
+		return false
+	entry["path"] = path
+	towers[anchor] = entry
+	EventBus.tower_changed.emit(anchor)
+	return true
+
+
+## Whether this tower is standing at the level where it must choose, and has
+## not. The build sheet asks; so does the gate.
+func tower_awaits_path(anchor: Vector2i) -> bool:
+	var entry: Dictionary = tower_entry(anchor)
+	if entry.is_empty():
+		return false
+	return int(entry.get("level", 1)) >= Balance.TOWER_SPECIALISE_LEVEL \
+		and int(entry.get("path", TowerData.Path.NONE)) == TowerData.Path.NONE
 
 
 ## What is laid on a tile, or null.

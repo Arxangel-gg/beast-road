@@ -26,6 +26,9 @@ var data: TowerData = null
 ## brighter, longer-tailed shots, so the investment shows in flight rather than
 ## only in the damage numbers.
 var tier: int = 1
+## What the firing tower's path does to this shot's blast. 1.0 unless the
+## tower took the spreading path (2026-09-13).
+var aoe_scale: float = 1.0
 
 var _target: Enemy = null
 var _direction: Vector2 = Vector2.RIGHT
@@ -315,7 +318,7 @@ func _impact() -> void:
 	var field: Battlefield = _find_field()
 	# `tier` is the firing tower's level, so the blast grows with the upgrade
 	# rather than staying at the resource's level-one radius forever.
-	var blast: float = data.aoe_at(tier)
+	var blast: float = data.aoe_at(tier) * aoe_scale
 	if field != null and blast > 0.0:
 		for enemy: Enemy in field.enemies_near(global_position, blast):
 			_apply(enemy)

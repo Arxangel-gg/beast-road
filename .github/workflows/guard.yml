@@ -496,6 +496,10 @@ jobs:
           # walked ground stays known, the minimap darkens with the field's own
           # fog texture, and every dungeon stage is fresh discovery.
           check "fog of war" --headless --path game res://tools/fog_check.tscn
+          # A tower's split at level five and its capstone at ten: the choice
+          # waits for its level, is made once, and moves only numbers the
+          # tower already had.
+          check "tower paths" --headless --path game res://tools/tower_path_check.tscn
           # The battlefield playlist deals what is on disk, advances on the end
           # of a song, holds for a boss and hands back. Missing songs are quiet.
           check "music" --headless --path game res://tools/music_check.tscn

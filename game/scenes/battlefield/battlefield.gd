@@ -2071,6 +2071,12 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 
 ## A placement change can alter another tower's synergy or road armour, so every
 ## standing tower recomputes rather than guessing which ones were affected.
+## Re-reads every standing tower's modifiers, which is also how a freshly
+## chosen specialisation reaches the emplacement that chose it.
+func refresh_towers() -> void:
+	_refresh_tower_modifiers()
+
+
 func _refresh_tower_modifiers() -> void:
 	for key: Variant in _towers:
 		var built: Tower = _towers[key] as Tower

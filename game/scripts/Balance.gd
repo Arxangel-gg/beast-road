@@ -6398,3 +6398,45 @@ const FISH_BUFF_SPEED: Array[float] = [0.04, 0.07, 0.11, 0.16]
 const FISH_SPIRIT_FULL_SECONDS: Array[float] = [25.0, 45.0, 75.0, 120.0]
 ## And how much of its health a fish puts back into a spirit.
 const FISH_SPIRIT_HEAL: Array[float] = [0.25, 0.4, 0.6, 0.85]
+
+
+# --- A tower chooses what it becomes (2026-09-13) --------------------------------
+## **Ten levels was a ladder. This makes it a decision.**
+##
+## The owner asked for a split at five and something of its own at ten, so a
+## road of eight towers is eight builds rather than eight numbers. A
+## specialisation is chosen once, free, at the moment the fifth level is
+## bought; the capstone arrives with the tenth and is decided by the path
+## already taken.
+##
+## **The bound is the one every other addition here is held to: a
+## specialisation may only move a number the tower already has.** Reach,
+## rate, damage, targets, slow, burn - all of them exist and all of them are
+## in the curve `balance_test` measures. A path that added a *mechanic* would
+## be a content system wearing an upgrade's clothes, and the ten-act pressure
+## curve could not be read against it.
+##
+## The two paths are the same two questions on every element, which is what
+## makes them learnable: FOCUS is fewer, harder, further; SPREAD is more,
+## faster, wider. What differs by element is which of its own numbers each
+## path moves, and that lives in the table below. [TUNE]
+const TOWER_SPECIALISE_LEVEL: int = 5
+const TOWER_CAPSTONE_LEVEL: int = 10
+
+## Focus: one target, further, harder.
+const TOWER_FOCUS_DAMAGE: float = 0.30
+const TOWER_FOCUS_RANGE: float = 0.22
+const TOWER_FOCUS_RATE: float = -0.10
+## Spread: more targets, faster, wider.
+const TOWER_SPREAD_TARGETS: int = 1
+const TOWER_SPREAD_RATE: float = 0.24
+const TOWER_SPREAD_AOE: float = 0.28
+const TOWER_SPREAD_DAMAGE: float = -0.12
+
+## What the tenth level adds on top, by path. A capstone is the last thing a
+## player buys on that emplacement, so it is allowed to be the loudest - but
+## it is still only numbers the tower already had.
+const TOWER_CAPSTONE_FOCUS_DAMAGE: float = 0.45
+const TOWER_CAPSTONE_FOCUS_PIERCE: int = 1
+const TOWER_CAPSTONE_SPREAD_TARGETS: int = 2
+const TOWER_CAPSTONE_SPREAD_AOE: float = 0.35

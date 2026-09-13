@@ -1344,6 +1344,28 @@ Both are water now. `tools/install_pond_tiles.py` is back and documents the
 rule the lost version got wrong: a tile's place on the sheet comes from its
 own `bounding_box`, never from its `wang_N` name or its `original_position`.
 
+**A tower chooses what it becomes, as of 2026-09-13.** Ten levels was a
+ladder; the owner asked for a split at five and something of its own at ten,
+so that a road of eight towers is eight builds rather than eight numbers.
+
+Two paths on every element, which is what makes them learnable: **Focus** is
+fewer, harder, further; **Spread** is more, faster, wider. The names differ by
+element - a concentrating Fire tower is a Lance, a Water one an Icespear - and
+the mechanics do not. The choice is free, made once, at the moment the fifth
+level is bought; the capstone arrives with the tenth and is decided by the
+path already taken.
+
+**The bound is the one every addition here is held to: a path may only move a
+number the tower already has.** Damage, rate, reach, targets and blast all
+exist and all are in the curve `balance_test` measures. A path that added a
+*mechanic* would be a content system wearing an upgrade's clothes, and the
+ten-act pressure curve could not be read against it.
+
+`tower_path_check` measures rather than asserts the constants - it reads the
+tower's own numbers before and after - and it caught the hole on its first
+run: the choice could be taken the moment a tower was built, which skips the
+ladder the split exists to put a decision on.
+
 **The well is drunk from, as of the same date.** A full well shows a gauge
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.

@@ -45,6 +45,10 @@ var _shadow_base_y: float = 0.0
 
 ## Extra damage from the lane's same-element synergy (GDD §4.2) and terrain.
 var _damage_bonus: float = 0.0
+## Which way this emplacement was taken at level five, and what the tenth
+## level added on top. Read from `RunState` on every refresh rather than
+## held, so a co-op guest and a reloaded save agree with the host.
+var _path: int = TowerData.Path.NONE
 
 ## The live weather's multiplier for this tower's element.
 var _weather_scale: float = 1.0
@@ -153,12 +157,13 @@ func _ready() -> void:
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.beast_step_landed.connect(_on_beast_step)
 	# Stagger the first shot so a freshly built lane does not fire in lockstep.
-	_cooldown = RunState.rng("combat").randf() * data.interval_at(level)
+	_cooldown = RunState.rng("combat").randf() * data.interval_at(level) * path_interval_scale()
 
 
 ## Recomputed whenever the lane's contents or the terrain change, rather than
 ## every frame — these only move when the player builds something.
 func refresh_modifiers() -> void:
+	_path = RunState.tower_path(anchor)
 	_damage_bonus = 0.0
 	_weather_scale = 1.0
 	_extra_chain_targets = 0
@@ -225,7 +230,7 @@ func _process(delta: float) -> void:
 	var targets: Array[Enemy] = _acquire_targets()
 	if targets.is_empty():
 		return
-	_cooldown = data.interval_at(level)
+	_cooldown = data.interval_at(level) * path_interval_scale()
 	_fire(targets)
 
 
@@ -360,7 +365,7 @@ func effective_damage() -> float:
 	# HUD and actual combat state disagreeing until some unrelated refresh.
 	var relic_bonus: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
 	var total: float = 1.0 + _damage_bonus + relic_bonus + command_bonus
-	return data.damage_at(level) * total * _weather_scale
+	return data.damage_at(level) * total * _weather_scale * _path_damage()
 
 
 ## What this shot actually lands for.
@@ -482,7 +487,7 @@ func _acquire_targets() -> Array[Enemy]:
 	candidates.sort_custom(func(a: Enemy, b: Enemy) -> bool:
 		return _target_score(a, priority) > _target_score(b, priority))
 
-	var wanted: int = 1 + data.extra_targets_at(level) + _extra_chain_targets
+	var wanted: int = 1 + data.extra_targets_at(level) + _extra_chain_targets + path_extra_targets()
 	for enemy: Enemy in candidates:
 		if found.size() >= wanted:
 			break
@@ -650,6 +655,8 @@ func _launch(enemy: Enemy) -> void:
 	shot.setup(enemy, data, rolled_damage(),
 		data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK),
 		level)
+	# The spreading path widens every blast this tower throws (2026-09-13).
+	shot.aoe_scale = path_aoe_scale()
 	_field.add_projectile(shot, origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT))
 
 
@@ -674,7 +681,8 @@ func _hit(enemy: Enemy) -> void:
 
 
 func effective_range() -> float:
-	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE)
+	var path: float = 1.0 + (Balance.TOWER_FOCUS_RANGE if _path == TowerData.Path.FOCUS else 0.0)
+	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) * path
 
 
 ## Taunting towers are actual blockers now. They use the same Health component
@@ -883,3 +891,56 @@ func _draw_range_ring() -> void:
 	range_ring.width = 2.0
 	range_ring.default_color = Color(TowerData.element_colour(data.element), 0.35)
 	range_ring.visible = false
+
+
+# --- The path a tower was taken (2026-09-13) -------------------------------------------
+
+## What the chosen path does to this tower's damage, capstone included.
+func _path_damage() -> float:
+	match _path:
+		TowerData.Path.FOCUS:
+			var focus: float = 1.0 + Balance.TOWER_FOCUS_DAMAGE
+			if level >= Balance.TOWER_CAPSTONE_LEVEL:
+				focus += Balance.TOWER_CAPSTONE_FOCUS_DAMAGE
+			return focus
+		TowerData.Path.SPREAD:
+			return 1.0 + Balance.TOWER_SPREAD_DAMAGE
+		_:
+			return 1.0
+
+
+## And to how often it fires. Spread is faster, focus is slower; a shorter
+## interval is a faster tower, so the sign is inverted from the note.
+func path_interval_scale() -> float:
+	match _path:
+		TowerData.Path.FOCUS:
+			return 1.0 - Balance.TOWER_FOCUS_RATE
+		TowerData.Path.SPREAD:
+			return 1.0 / (1.0 + Balance.TOWER_SPREAD_RATE)
+		_:
+			return 1.0
+
+
+## How many extra bodies it reaches on the spread path, capstone included.
+func path_extra_targets() -> int:
+	if _path != TowerData.Path.SPREAD:
+		return 0
+	var extra: int = Balance.TOWER_SPREAD_TARGETS
+	if level >= Balance.TOWER_CAPSTONE_LEVEL:
+		extra += Balance.TOWER_CAPSTONE_SPREAD_TARGETS
+	return extra
+
+
+## And how much wider its blast is.
+func path_aoe_scale() -> float:
+	if _path != TowerData.Path.SPREAD:
+		return 1.0
+	var wider: float = 1.0 + Balance.TOWER_SPREAD_AOE
+	if level >= Balance.TOWER_CAPSTONE_LEVEL:
+		wider += Balance.TOWER_CAPSTONE_SPREAD_AOE
+	return wider
+
+
+## Which path this tower took. For the sheet and for the gate.
+func path() -> int:
+	return _path

@@ -3457,6 +3457,37 @@ func _refresh_build_panel() -> void:
 			IconKit.on_button(repair_button, "upgrade", 22)
 			repair_button.disabled = not repair_afford
 		var level_cap: int = RunState.tower_level_cap()
+		# **The split at level five.** A tower that has reached it and not
+		# chosen is asked before anything else on the sheet: the choice is
+		# free, it is made once, and every number below it depends on the
+		# answer (owner brief, 2026-09-13).
+		if RunState.tower_awaits_path(anchor):
+			_build_list.add_child(_label(
+				"%s has reached its fifth level. Choose what it becomes."
+					% existing.display_name, 15))
+			for path: int in [TowerData.Path.FOCUS, TowerData.Path.SPREAD]:
+				var named: String = TowerData.path_name(existing.element, path)
+				var pick: Button = _add_button(_build_list, named,
+					func() -> void:
+						if RunState.set_tower_path(anchor, path):
+							battlefield.refresh_towers()
+							Sfx.play("sfx_tower_upgrade")
+						_refresh_build_panel())
+				pick.tooltip_text = TowerData.path_note(path)
+				_build_list.add_child(_label(TowerData.path_note(path), 13))
+		elif RunState.tower_path(anchor) != TowerData.Path.NONE:
+			var taken: int = RunState.tower_path(anchor)
+			_build_list.add_child(_label("%s  ·  %s" % [
+				TowerData.path_name(existing.element, taken),
+				TowerData.path_note(taken)], 13))
+			if level < Balance.TOWER_CAPSTONE_LEVEL:
+				_build_list.add_child(_label("At level %d: %s" % [
+					Balance.TOWER_CAPSTONE_LEVEL,
+					TowerData.capstone_note(existing.element, taken)], 13))
+			else:
+				_build_list.add_child(_label(
+					TowerData.capstone_note(existing.element, taken), 13))
+
 		if level < Balance.TOWER_MAX_LEVEL and level >= level_cap:
 			_build_list.add_child(_label(
 				"Forge tier %d required for level %d."

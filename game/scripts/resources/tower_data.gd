@@ -18,6 +18,13 @@ enum Element {
 ## What a tower is *for*, independent of its element (GDD §21). The grid is
 ## deliberately uniform: a player who learns one element can read the other
 ## three, and the element decides how that role does its job.
+## Which way a tower was taken at level five. NONE until it is chosen.
+##
+## Two paths on every element, which is what makes them learnable: FOCUS is
+## fewer, harder, further; SPREAD is more, faster, wider.
+enum Path { NONE, FOCUS, SPREAD }
+
+
 enum Role {
 	SKIRMISHER,
 	SIEGE,
@@ -322,3 +329,52 @@ static func target_priority_description(priority: int) -> String:
 
 func _level_index(level: int) -> int:
 	return clampi(level - 1, 0, Balance.TOWER_MAX_LEVEL - 1)
+
+
+## What this element calls its two paths, and what each one promises.
+##
+## Named per element rather than shared, because "Focus" and "Spread" are the
+## mechanics and a player reads the name. A Fire tower that concentrates is a
+## Lance; a Water one is a Spear of ice. Same numbers, and the road tells you
+## which is which at a glance.
+static func path_name(element: int, path: int) -> String:
+	const NAMES: Array[Array] = [
+		["Lance", "Wildfire"],
+		["Icespear", "Squall"],
+		["Boulder", "Scree"],
+		["Bolt", "Gale"],
+	]
+	if path == Path.NONE:
+		return ""
+	var row: Array = NAMES[clampi(element, 0, NAMES.size() - 1)]
+	return String(row[0] if path == Path.FOCUS else row[1])
+
+
+## One line saying what the path does, for the sheet that offers it.
+static func path_note(path: int) -> String:
+	match path:
+		Path.FOCUS:
+			return "One target at a time: %d%% more damage, %d%% more reach, and a slower swing." % [
+				int(round(Balance.TOWER_FOCUS_DAMAGE * 100.0)),
+				int(round(Balance.TOWER_FOCUS_RANGE * 100.0))]
+		Path.SPREAD:
+			return "The whole road: one more target, %d%% faster, %d%% wider, and softer blows." % [
+				int(round(Balance.TOWER_SPREAD_RATE * 100.0)),
+				int(round(Balance.TOWER_SPREAD_AOE * 100.0))]
+		_:
+			return ""
+
+
+## What the tenth level adds, by the path already taken.
+static func capstone_note(element: int, path: int) -> String:
+	match path:
+		Path.FOCUS:
+			return "%s Mastery: %d%% more damage again, and its shot carries through one body." % [
+				path_name(element, path),
+				int(round(Balance.TOWER_CAPSTONE_FOCUS_DAMAGE * 100.0))]
+		Path.SPREAD:
+			return "%s Mastery: two more targets, and %d%% wider still." % [
+				path_name(element, path),
+				int(round(Balance.TOWER_CAPSTONE_SPREAD_AOE * 100.0))]
+		_:
+			return ""
