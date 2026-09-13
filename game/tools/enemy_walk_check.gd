@@ -29,6 +29,7 @@ func _ready() -> void:
 	RunState.reset()
 	_test_every_sprite_has_a_cycle()
 	await _test_a_walking_enemy_animates()
+	await _test_the_slowest_bodies_still_read_as_moving()
 	await _test_idle_priority()
 	_finish()
 
@@ -134,6 +135,77 @@ func _test_a_walking_enemy_animates() -> void:
 	_check(not is_instance_valid(foe),
 		"the test enemy must be freed with its field, or this gate leaks")
 	_check(not rest.is_empty(), "the resting pose must have a path")
+
+
+## **The biggest bodies in the game ran their cycles slowest.**
+##
+## Owner report, 2026-09-13: the Act IV boss "isn't animated". Every boss has
+## three idle, four move and four attack frames on disk, so the fault was
+## playback - and measured, it was worse than it looked: the Chainmaker changed
+## frame **0.4 times a second**, one swap every two and a half seconds, on a
+## body the size of a gatehouse.
+##
+## The cause is that the cycle is driven by distance covered, which is right for
+## feet that should land where the ground is - but a boss walks at 30 to 50
+## units a second against an ordinary breed's 90 to 120, so the slowest bodies
+## animated slowest and they are the ones a player stares at longest.
+##
+## `Balance.ENEMY_WALK_FRAME_FLOOR` is the fix and this measures it, on the
+## slowest body in the roster rather than on a boss picked by name - the next
+## slow thing added should be held to it too.
+func _test_the_slowest_bodies_still_read_as_moving() -> void:
+	var slowest: EnemyData = null
+	for value: Variant in ContentDB.enemies.values():
+		var one := value as EnemyData
+		if one == null or GameData.load_move_frames(one.get_sprite_path()).size() < 2:
+			continue
+		if slowest == null or one.move_speed < slowest.move_speed:
+			slowest = one
+	_check(slowest != null, "the roster needs a body with a walk cycle")
+	if slowest == null:
+		return
+
+	var field := EnemyField.new()
+	add_child(field)
+	var foe := (load("res://scenes/battlefield/enemy.tscn") as PackedScene).instantiate() as Enemy
+	foe.setup(slowest, 0, field, 1.0)
+	field.add_child(foe)
+	foe.set_process(false)
+	await get_tree().process_frame
+
+	# Driven a second of walking at this body's own pace, in sixtieths, and the
+	# swaps counted off the sprite. A second is the unit that matters: below
+	# about three frames in one the eye stops reading a cycle at all.
+	foe._state = Enemy.State.WALKING
+	foe._motion = Vector2.RIGHT * slowest.move_speed
+	var swaps: int = 0
+	var last: Texture2D = null
+	for _step: int in 60:
+		foe._advance_walk_frames(1.0 / 60.0)
+		if foe.sprite.texture != last:
+			swaps += 1
+			last = foe.sprite.texture
+	_check(swaps >= 3,
+		("the slowest body in the roster (%s at %.0f units a second) changed frame "
+			+ "%d times in a second - below three it reads as a photograph being dragged")
+			% [slowest.id, slowest.move_speed, swaps])
+
+	# And every boss carries the full set, because the report started as "the
+	# art is missing" and it is worth being able to say that it is not.
+	for value: Variant in ContentDB.enemies.values():
+		var boss := value as EnemyData
+		if boss == null or boss.category != EnemyData.Category.BOSS:
+			continue
+		var path: String = boss.get_sprite_path()
+		_check(GameData.load_move_frames(path).size() >= 2,
+			"%s has no walk cycle" % boss.id)
+		_check(GameData.load_idle_frames(path).size() >= 2,
+			"%s does not breathe" % boss.id)
+		_check(GameData.load_attack_frames(path).size() >= 2,
+			"%s has no swing" % boss.id)
+
+	field.queue_free()
+	await get_tree().process_frame
 
 
 func _finish() -> void:

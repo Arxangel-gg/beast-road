@@ -2276,7 +2276,12 @@ func _advance_walk_frames(delta: float) -> void:
 		# stopped with one leg forward reads as a bug, and it is where the
 		# attack sequence starts from.
 		_walk_phase = 0.0
-		if not _idle_frames.is_empty() and _state in [State.WALKING, State.RECOVER]:
+		# Breathing while stopped, in every state that is not a swing, a stun or
+		# a death. This used to be WALKING and RECOVER only, so a boss standing
+		# at the gate - which is where a player looks at one longest - held a
+		# single frame indefinitely. The states that must not breathe are
+		# already refused above.
+		if not _idle_frames.is_empty():
 			_idle_phase = fmod(_idle_phase + delta * Balance.ENEMY_IDLE_FRAME_RATE,
 				float(_idle_frames.size()))
 			sprite.texture = _idle_frames[int(_idle_phase)]
@@ -2286,7 +2291,11 @@ func _advance_walk_frames(delta: float) -> void:
 	_idle_phase = 0.0
 	if _walk_frames.is_empty():
 		return
-	_walk_phase += _motion.length() * delta * Balance.ENEMY_WALK_FRAMES_PER_PIXEL
+	# Distance-driven, with a floor. See `ENEMY_WALK_FRAME_FLOOR`: the cycle
+	# follows the ground the body covers, except when that is so slow the eye
+	# stops reading it as a cycle - which is every boss in the game.
+	_walk_phase += maxf(_motion.length() * Balance.ENEMY_WALK_FRAMES_PER_PIXEL,
+		Balance.ENEMY_WALK_FRAME_FLOOR) * delta
 	sprite.texture = _walk_frames[int(_walk_phase) % _walk_frames.size()]
 
 

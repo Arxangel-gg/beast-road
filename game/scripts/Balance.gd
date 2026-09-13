@@ -3765,6 +3765,26 @@ const ANIM_SETTLE_SPEED: float = 12.0
 ## rather than moon-walk. This is radians-equivalent - one full cycle per this
 ## many pixels of ground covered. [TUNE]
 const ENEMY_WALK_FRAMES_PER_PIXEL: float = 0.030
+
+## **The floor under a walk cycle, in frames a second.**
+##
+## The owner reported the Act IV boss as "not animated". Every boss has three
+## idle, four move and four attack frames on disk, so it was playback rather
+## than art - and `boss_anim_probe` measured it: the Chainmaker changed frame
+## **0.4 times a second**, one swap every two and a half seconds, on a body the
+## size of a gatehouse. That is a photograph being dragged up the road.
+##
+## The cause is that the cycle is driven by *distance covered*, which is right
+## for a body whose feet should land where the ground is - but bosses walk at 30
+## to 50 units a second against an ordinary breed's 90 to 120, so the biggest
+## bodies in the game ran their cycles slowest, and they are the ones where a
+## still sprite is most obvious.
+##
+## A floor rather than a faster rate for everybody: below about three frames a
+## second the eye stops reading a cycle at all, and above the floor the
+## distance-driven rate is still what decides the gait. A slow body's feet slide
+## a little; a slow body that does not move at all reads as a bug. [TUNE]
+const ENEMY_WALK_FRAME_FLOOR: float = 3.2
 ## Authored breathing at rest; attacks and crowd-control always override it. [TUNE]
 const ENEMY_IDLE_FRAME_RATE: float = 3.0
 
