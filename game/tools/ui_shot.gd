@@ -50,6 +50,24 @@ func _ready() -> void:
 			run.town_panel.open("sanctum")
 			run.town_panel.set("_mansion_page", which)
 			run.town_panel.call("_refresh"))
+	# **The reported state, photographed** (owner screenshots, 2026-09-13): a
+	# tier-three Mansion in Act V with the Power and Ultimate slots empty. The
+	# fix is that the draft offers a way out of it, and the only way to know the
+	# offers say so is to look at them.
+	await _shot("mansion_dead_slots", func() -> void:
+		RunState.act = 5
+		RunState.building_tiers["sanctum"] = 3
+		RunState.trained_discipline_nodes.clear()
+		for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+			if node.discipline == DisciplineNodeData.Discipline.BLOOD 					and node.role in [DisciplineNodeData.Role.ATTACK,
+						DisciplineNodeData.Role.DEFENSE]:
+				RunState.trained_discipline_nodes.append(node.id)
+		RunState.equipped_discipline_slots = ["", "", "", ""]
+		RunState.hero_skill_points = 4
+		RunState.refresh_discipline_offers()
+		run.town_panel.open("sanctum")
+		run.town_panel.set("_mansion_page", 1)
+		run.town_panel.call("_refresh"))
 	run.town_panel.close()
 	await _shot("pause", func() -> void: run.pause_ui.toggle())
 	run.pause_ui.set_showing(false)
