@@ -71,6 +71,14 @@ const SETTINGS_GROUP: StringName = &"reads_display_settings"
 ## system is a setting that will be used to erase it by accident.
 const BRIGHTNESS_MAX_LIFT: float = 0.55
 
+## How far past the tint the slider may push, as a share of the lift.
+##
+## This is the half that reaches daylight. At full lift it is a gain of about
+## 1.28, which is a readable field rather than a washed-out one - the point is
+## that the setting does something at every hour, not that the default look
+## changes. The default lift is still zero and the shipped game is untouched.
+const BRIGHTNESS_DAY_GAIN: float = 0.50
+
 ## World tints that must be re-graded when brightness changes.
 const TINT_GROUP: StringName = &"world_tint"
 
@@ -248,7 +256,28 @@ static func brightness_lift() -> float:
 ## Every scope that tints for time of day goes through here, so the setting
 ## cannot be honoured on the battlefield and quietly ignored in the town.
 static func graded(tint: Color) -> Color:
-	return tint.lerp(Color.WHITE, brightness_lift())
+	var lift: float = brightness_lift()
+	if lift <= 0.0:
+		return tint
+	# **Toward white, and then past it.**
+	#
+	# Lerping toward white was the whole of this, and it meant the setting did
+	# nothing at all during the day: the midday stop is Color(1, 1, 1) by
+	# design - "midday, unfiltered" - so lerping it toward white returns the
+	# same white. Measured at both ends of the slider on 2026-09-13: day read
+	# (1.0, 1.0, 1.0) at zero lift and (1.0, 1.0, 1.0) at maximum, while night
+	# moved (0.13, 0.17, 0.33) to (0.61, 0.63, 0.70). So a player who found the
+	# game too dark and dragged brightness to the top saw their setting work
+	# only after dusk - which is the half of the cycle they were not complaining
+	# about.
+	#
+	# A CanvasModulate multiplies, and its colour may exceed one, so the gain is
+	# what reaches the hours that are already unfiltered. The lerp is kept for
+	# the coloured hours: it pulls dusk and night back toward neutral rather
+	# than merely making them a brighter blue.
+	var lifted: Color = tint.lerp(Color.WHITE, lift)
+	var gain: float = 1.0 + lift * BRIGHTNESS_DAY_GAIN
+	return Color(lifted.r * gain, lifted.g * gain, lifted.b * gain, tint.a)
 
 
 ## The texture filter scaled pixel art should use.

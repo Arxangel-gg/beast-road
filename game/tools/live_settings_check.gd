@@ -24,11 +24,48 @@ func _ready() -> void:
 
 	await _check_graphics()
 	await _check_colourblind()
+	_check_brightness_reaches_every_hour()
 
 	for problem: String in _failures:
 		push_error(problem)
-	print("[live] %d of 11 live/persistence checks pass" % (11 - _failures.size()))
+	print("[live] %d of 14 live/persistence checks pass" % (14 - _failures.size()))
 	_bail(1 if not _failures.is_empty() else 0)
+
+
+## **The brightness slider has to do something at every hour of the day.**
+##
+## It lifted the world tint *toward white*, and the midday stop is Color(1, 1, 1)
+## by design - "midday, unfiltered". So lerping white toward white returned the
+## same white and the setting was completely inert for the whole day half of the
+## cycle. Measured on 2026-09-13: day read (1.0, 1.0, 1.0) at both ends of the
+## slider while night moved (0.13, 0.17, 0.33) to (0.61, 0.63, 0.70). A player
+## who found the game too dark and dragged it to maximum saw nothing change
+## until dusk - which is not the half they were complaining about.
+##
+## Driven through the real `graded` rather than asserting the constant, and at
+## the two stops that matter: the one that is already white, and one that is not.
+func _check_brightness_reaches_every_hour() -> void:
+	var was: Variant = Graphics._value(Graphics.KEY_BRIGHTNESS)
+	var midday := Color(1.0, 1.0, 1.0)
+	var midnight := Color(0.13, 0.17, 0.33)
+	Graphics.set_display(Graphics.KEY_BRIGHTNESS, 0.0)
+	var day_flat: Color = Graphics.graded(midday)
+	var night_flat: Color = Graphics.graded(midnight)
+	Graphics.set_display(Graphics.KEY_BRIGHTNESS, Graphics.BRIGHTNESS_MAX_LIFT)
+	var day_lit: Color = Graphics.graded(midday)
+	var night_lit: Color = Graphics.graded(midnight)
+	Graphics.set_display(Graphics.KEY_BRIGHTNESS, was if was != null else 0.0)
+	if day_lit.r <= day_flat.r + 0.01:
+		_failures.append(("[live] brightness does nothing at midday: %s at rest "
+			+ "and %s at full. The midday tint is already white, so a setting "
+			+ "that only lerps toward white is inert for the whole day")
+			% [str(day_flat), str(day_lit)])
+	if night_lit.r <= night_flat.r + 0.01:
+		_failures.append("[live] brightness does nothing at night: %s to %s"
+			% [str(night_flat), str(night_lit)])
+	if day_flat.r != midday.r or night_flat.r != midnight.r:
+		_failures.append(("[live] brightness at rest is not a no-op - the shipped "
+			+ "look must be exactly the authored tint"))
 
 
 func _check_graphics() -> void:
