@@ -227,6 +227,21 @@ func _test_blade_trail_is_never_degenerate() -> void:
 	_check(ribbon.polygon.is_empty(),
 		"a zero-degree swing must draw no ribbon, had %d points" % ribbon.polygon.size())
 
+	# **And a progress that is merely tiny, which is neither of the above.**
+	#
+	# The guard was `progress <= 0.0`, and a first tween step of 1e-7 is not
+	# zero - the two arcs still land on each other within float precision and
+	# the triangulator still refuses. Measured on 2026-09-13: it failed at 1e-7
+	# and succeeded from 1e-5, so the guard had a hole four orders of magnitude
+	# wide. It surfaced once in a sweep of eighty-one gates and in none of three
+	# re-runs, because `tween_method` decides where the first step lands.
+	for tiny: float in [0.000000001, 0.0000001, 0.00001, 0.0001]:
+		Vfx._draw_blade_trail(tiny, ribbon, Vector2.ZERO, reach, 0.0, 1.2, Color.WHITE)
+		_check(ribbon.polygon.is_empty(),
+			("at progress %s the ribbon had %d points and no area - Godot cannot "
+				+ "triangulate that and an error line fails a release")
+				% [str(tiny), ribbon.polygon.size()])
+
 	# And once there is an arc it has to be a real shape, or the guard above has
 	# simply switched the trail off.
 	for progress: float in [0.15, 0.5, 1.0]:
@@ -234,6 +249,21 @@ func _test_blade_trail_is_never_degenerate() -> void:
 		_check(_area(ribbon.polygon) > reach * reach * 0.002,
 			"at progress %.2f the ribbon encloses %.2f, which is nothing"
 				% [progress, _area(ribbon.polygon)])
+
+	# **Asked of the triangulator itself, across the whole sweep.**
+	#
+	# Area was the proxy and it is not the thing that failed: Godot triangulates
+	# on draw, so the only honest test is to triangulate. Every progress a tween
+	# can pass through, including the ones that have to come back empty.
+	for step: int in 64:
+		var progress: float = float(step) / 63.0
+		Vfx._draw_blade_trail(progress, ribbon, Vector2.ZERO, reach, 0.0, 1.2,
+			Color.WHITE)
+		if ribbon.polygon.size() < 3:
+			continue
+		_check(not Geometry2D.triangulate_polygon(ribbon.polygon).is_empty(),
+			("the ribbon at progress %.4f has %d points that Godot refuses to "
+				+ "triangulate") % [progress, ribbon.polygon.size()])
 	ribbon.queue_free()
 
 

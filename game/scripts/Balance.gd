@@ -4142,6 +4142,25 @@ const VFX_BLADE_TRAIL_STEPS: int = 44
 ## How the strip opens from its tail: an exponent on the distance along the
 ## arc. Below one it widens early and reads as a fan; above one it stays thin
 ## for most of the swing and flares at the steel. [TUNE]
+## **The smallest arc worth drawing, in radians.**
+##
+## The trail is guarded against `progress <= 0`, because at zero every point
+## lands on the same angle and the strip has no area - Godot refuses to
+## triangulate that and prints an error, which fails a release however green the
+## exit code. A *tiny positive* progress is neither zero nor a zero-width arc,
+## and collapses it just as completely: measured on 2026-09-13, triangulation
+## fails at a progress of 1e-7 and succeeds from 1e-5, so the guard had a hole
+## roughly four orders of magnitude wide.
+##
+## `tween_method` interpolates from its start value, so where the first step
+## lands decides whether a swing trips it - which is why it surfaced once in a
+## sweep of eighty-one gates and in none of three re-runs.
+##
+## Guarded on the swept angle rather than on progress, because that is the thing
+## that actually has to have width. Half a thousandth of a radian is a
+## thirtieth of a degree: below anything an eye resolves, and four hundred times
+## the arc that was still failing. [TUNE]
+const VFX_BLADE_TRAIL_MIN_SWEPT: float = 0.0005
 const VFX_BLADE_TRAIL_TAPER: float = 0.55
 ## How long the ribbon lingers after the edge has passed, as a multiple of the
 ## sweep. Short: this is the part that must not feel slow.
