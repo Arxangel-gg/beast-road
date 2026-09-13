@@ -266,9 +266,16 @@ func _land_a_swing(kind: GatherNodeData) -> void:
 	EventBus.gathered.emit(kind.material_id, amount)
 
 	var at: Vector2 = node["at"] as Vector2
-	Vfx.spark(at, _spark_colour(kind), 7, Vector2.UP, 190.0)
+	# Chips come off *toward* whoever swung, not straight up: a spray that
+	# ignores where the blow came from reads as the node doing something to
+	# itself.
+	var who: Node2D = _local_hero()
+	var back: Vector2 = (who.global_position - at).normalized() \
+		if who != null else Vector2.UP
+	Vfx.spark(at, _spark_colour(kind), 7, back, 190.0)
 	Sfx.play("sfx_hit_stone", -5.0)
 	EventBus.camera_impact.emit(at, 0.18)
+	_recoil(_working, -back)
 
 	_nodes[_working]["left"] = int(node["left"]) - 1
 	if int(_nodes[_working]["left"]) <= 0:
@@ -288,6 +295,7 @@ func _work_it_out(kind: GatherNodeData) -> void:
 	var at: Vector2 = _nodes[index]["at"] as Vector2
 	Vfx.dust(at, Color(0.44, 0.38, 0.3), 12, 60.0)
 	Vfx.ring(at, 70.0, Color(_spark_colour(kind), 0.6), 0.35, 4.0)
+	_fell(index, kind)
 	_stop_working("%s is worked out." % kind.display_name)
 
 
@@ -345,7 +353,31 @@ func _tick_node(index: int, delta: float) -> void:
 	var frames: Array[Texture2D] = node["frames"]
 	if frames.size() > 1 and not spent:
 		sprite.texture = frames[int(clock * FRAME_RATE) % frames.size()]
+	# A node that has come back stands up again: the fall left it rotated,
+	# dropped and transparent, and nothing else would ever undo that.
+	# The foot anchor lives in `sprite.offset`, so a standing node's position is
+	# zero and anything else is something the recoil or the fall did to it.
+	if not spent and float(node.get("recoil", 0.0)) <= 0.0 \
+			and (not is_zero_approx(sprite.rotation) or not sprite.position.is_zero_approx()):
+		sprite.rotation = 0.0
+		sprite.position = Vector2.ZERO
 	sprite.modulate = Color(0.42, 0.44, 0.42, 0.75) if spent else Color.WHITE
+
+	# The recoil, ticked here because this is the clock the node already has.
+	# A half sine over its own life: away hard, back soft.
+	var recoil: float = float(node.get("recoil", 0.0))
+	if recoil <= 0.0:
+		return
+	recoil = maxf(recoil - delta, 0.0)
+	_nodes[index]["recoil"] = recoil
+	var share: float = recoil / maxf(Balance.GATHER_RECOIL_SECONDS, 0.001)
+	var push: float = sin(share * PI) * Balance.GATHER_RECOIL
+	var away: Vector2 = node.get("recoil_from", Vector2.RIGHT)
+	# Mostly sideways: a blow shoves a trunk off its line far more than it
+	# lifts it, and a node that bobbed vertically would read as floating.
+	sprite.position = Vector2(away.x * push, away.y * push * 0.4)
+	sprite.rotation = deg_to_rad(Balance.GATHER_RECOIL_TILT) * sin(share * PI) \
+		* (-1.0 if away.x < 0.0 else 1.0)
 
 
 func _node_near(at: Vector2) -> int:
@@ -426,3 +458,50 @@ func node_is_spent(index: int) -> bool:
 ## Whether the hero is mid-swing, so the field can play the right pose.
 func is_working() -> bool:
 	return _working >= 0
+
+
+# --- What a struck node does (2026-09-13) --------------------------------------
+
+## One blow's worth of recoil, away from whoever swung.
+##
+## Written onto the node's own entry rather than tweened, because a tween on a
+## sprite that the respawn is about to reset is a tween nobody cancels - and the
+## node's clock is already being ticked every frame in `_tick_node`.
+func _recoil(index: int, away: Vector2) -> void:
+	if index < 0 or index >= _nodes.size():
+		return
+	_nodes[index]["recoil"] = Balance.GATHER_RECOIL_SECONDS
+	_nodes[index]["recoil_from"] = away
+
+
+## The node goes over. A tree falls; a seam drops and crumbles.
+##
+## The direction is the one the blow came from, so a tree falls away from the
+## axe rather than in whatever direction the code happened to pick.
+func _fell(index: int, kind: GatherNodeData) -> void:
+	if index < 0 or index >= _nodes.size():
+		return
+	var sprite: Sprite2D = _nodes[index]["sprite"] as Sprite2D
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	var away: Vector2 = _nodes[index].get("recoil_from", Vector2.RIGHT)
+	var timber: bool = kind.craft == "woodcutter"
+	var at: Vector2 = _nodes[index]["at"] as Vector2
+	var tween: Tween = sprite.create_tween()
+	tween.set_parallel(true)
+	if timber:
+		# Pivoted at the foot, because a tree hinges where it is rooted. The
+		# sprite is offset up by its own height already, so its origin *is* the
+		# foot and the rotation needs no re-anchoring.
+		var lean: float = deg_to_rad(Balance.GATHER_FALL_DEGREES) \
+			* (-1.0 if away.x < 0.0 else 1.0)
+		tween.tween_property(sprite, "rotation", lean, Balance.GATHER_FALL_SECONDS) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	else:
+		tween.tween_property(sprite, "position",
+			sprite.position + Vector2(0.0, Balance.GATHER_CRUMBLE_DROP),
+			Balance.GATHER_FALL_SECONDS * 0.5).set_trans(Tween.TRANS_BOUNCE)
+	tween.tween_property(sprite, "modulate:a", 0.0, Balance.GATHER_FALL_SECONDS)
+	Sfx.play("sfx_tower_upgrade" if timber else "sfx_hit_stone", -6.0)
+	Vfx.dust(at, Color(0.5, 0.44, 0.34), 16, 90.0)
+	EventBus.camera_impact.emit(at, 0.34)

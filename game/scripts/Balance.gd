@@ -6799,3 +6799,33 @@ const QUARTERMASTER_STEP: float = 1.28
 ## And a floor under how much the first order is worth, so it is never a
 ## rounding error against a full purse.
 const QUARTERMASTER_TOWER_FRACTION: float = 0.5
+
+
+# --- A worked node answers the axe (2026-09-13) --------------------------------
+## **The hero swings and the tree did nothing.**
+##
+## The Warden plays their heavy swing at a node and a few chips come off it, and
+## that is all that happened: the tree stood perfectly still through four blows
+## and then went grey. The blow reads as landing on the air in front of it.
+##
+## The answer is on the *node* rather than on the hero, and that is the cheap
+## half of the same feeling: a struck thing recoils away from what struck it,
+## sheds something, and finally goes over. A dedicated chop sheet for the hero
+## would be eight directions of generated frames against a character that no
+## longer exists in the account; this is a sine and a tween and reads as the
+## same event.
+##
+## The recoil is *away from the hero*, which is what makes it read as a blow
+## rather than as a wobble. [TUNE]
+const GATHER_RECOIL: float = 7.0
+const GATHER_RECOIL_SECONDS: float = 0.26
+## How far the node leans back at the peak of a recoil, in degrees.
+const GATHER_RECOIL_TILT: float = 3.5
+
+## The fall. A tree goes over and a seam collapses, so the two crafts do not end
+## the same way - and the direction is the one the hero was standing in, because
+## a tree falls away from the axe.
+const GATHER_FALL_SECONDS: float = 0.85
+const GATHER_FALL_DEGREES: float = 78.0
+## What a collapsing seam does instead: down, not over.
+const GATHER_CRUMBLE_DROP: float = 12.0
