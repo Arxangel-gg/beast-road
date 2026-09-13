@@ -1286,7 +1286,7 @@ func _strike() -> void:
 	# the blow is handed back to whoever owns it rather than applied here.
 	if _provoker_source != null and _target == _provoker:
 		var bite: float = data.contact_damage * _damage_scale \
-			* Balance.ENEMY_CONTACT_DAMAGE_SCALE
+			* _enemy_damage_scale()
 		if _provoker_source.call("wound_sprite", _target, bite):
 			Vfx.spark(_target.global_position, Color("c4552e"), 6,
 				(_target.global_position - global_position).normalized(), 190.0)
@@ -1300,7 +1300,7 @@ func _strike() -> void:
 	var damage: float = TowerData.roll_damage(
 		data.contact_damage * _damage_scale * _rank_scale().y
 			* _affix_product(&"damage_scale")
-			* Balance.ENEMY_CONTACT_DAMAGE_SCALE, RunState.rng("combat"))
+			* _enemy_damage_scale(), RunState.rng("combat"))
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	if data.role != EnemyData.Role.HOWLER:
@@ -2428,9 +2428,26 @@ func _begin_slam() -> void:
 
 
 ## And the blow, on everything of the player's inside it.
+## How hard this body hits, with everything the road has done to that.
+##
+## **`Modifiers.ENEMY_DAMAGE` was declared, written by five omens and three
+## relics, and resolved by nothing.** In `the_far_horn` it is the *bane* - the
+## price paid for the boon - so the portent handed over its `raid_charge` for
+## free, and the run got easier the more portents were read. That is the exact
+## inversion `omen_check` exists to prevent, arriving by a different route than
+## the misspelling it watches for: the key was spelt correctly and no system
+## ever asked for it.
+##
+## One function, because four places work out a blow - an ordinary strike, a
+## bite at a provoked animal, a boss slam and a boss volley - and a modifier
+## applied at three of four is a portent that charges most of the time.
+func _enemy_damage_scale() -> float:
+	return Balance.ENEMY_CONTACT_DAMAGE_SCALE 		* maxf(Modifiers.multiplier(Modifiers.ENEMY_DAMAGE), 0.0)
+
+
 func _land_slam() -> void:
 	var damage: float = data.contact_damage * data.boss_slam_damage * _damage_scale \
-		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
+		* _enemy_damage_scale()
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	# Bounded by what a hero can live through. See `Balance.boss_slam_ceiling`:
@@ -2459,7 +2476,7 @@ func _land_slam() -> void:
 func _throw_volley(quarry: Node2D) -> void:
 	_volley_left = data.boss_volley_interval
 	var damage: float = data.contact_damage * data.boss_volley_damage * _damage_scale \
-		* Balance.ENEMY_CONTACT_DAMAGE_SCALE
+		* _enemy_damage_scale()
 	if _boss_phase > 0:
 		damage *= 1.0 + data.phase_damage_bonus * float(_boss_phase)
 	var shots: int = maxi(data.boss_volley_shots, 1)

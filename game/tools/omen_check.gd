@@ -19,7 +19,7 @@ extends Node
 var _failures: int = 0
 var _checked: int = 0
 var _finished: int = 0
-const EXPECTED_TESTS: int = 8
+const EXPECTED_TESTS: int = 9
 
 ## Effect keys the game reads as a whole number of things rather than as a
 ## fraction of something.
@@ -63,6 +63,7 @@ func _ready() -> void:
 	_test_counted_effects_are_whole()
 	_test_every_half_is_authored()
 	_test_every_effect_key_is_real()
+	_test_every_modifier_key_is_resolved()
 	_test_the_bane_actually_costs_something()
 	_test_a_taken_omen_reaches_the_modifier_table()
 	_test_they_stack_and_a_run_clears_them()
@@ -169,6 +170,75 @@ func _test_every_effect_key_is_real() -> void:
 					+ "it will land in the table under a name nothing reads")
 					% [omen.id, key])
 	_finished += 1
+
+
+## **And a key nothing resolves is the same fault one layer down.**
+##
+## The test above asks whether an omen's key is one this gate knows about, which
+## is a hand-kept list. It says "which `Modifiers` does not resolve" and it was
+## never checking that - so a correctly spelt key that no *system* reads passed
+## it cleanly.
+##
+## Two did, found on 2026-09-13 by auditing the table for readers.
+## `Modifiers.ENEMY_DAMAGE` was written by five omens and three relics and
+## resolved by nothing: in `the_far_horn` it is the bane, so the portent handed
+## over its boon for free and the run got easier the more portents were read -
+## the exact inversion this gate exists to prevent, reached by a different road
+## than the misspelling it watches for. `Modifiers.BEAST_SPEED` was the same,
+## written by a gear affix, a Road Card, two relics and two omens.
+##
+## So every key on the table must be named by some script that is not the table
+## and is not a tool. A grep: weak proof of behaviour, strong proof that
+## somebody asks for it, which is the half that was false.
+func _test_every_modifier_key_is_resolved() -> void:
+	var code: String = _every_game_script()
+	for name: String in _modifier_constants():
+		_checked += 1
+		_check(code.contains("Modifiers.%s" % name),
+			("`Modifiers.%s` is declared and no system outside the table resolves "
+				+ "it - content may write it, pay for it, and receive nothing")
+				% name)
+	_finished += 1
+
+
+## The constant names on the modifier table.
+func _modifier_constants() -> PackedStringArray:
+	var out: PackedStringArray = []
+	var file := FileAccess.open("res://autoload/Modifiers.gd", FileAccess.READ)
+	if file == null:
+		return out
+	var finder := RegEx.create_from_string(
+		"(?m)^const ([A-Z][A-Z0-9_]*)\\s*:\\s*String\\s*=")
+	for found: RegExMatch in finder.search_all(file.get_as_text()):
+		out.append(found.get_string(1))
+	return out
+
+
+## Every game script, which is deliberately not the tools: a gate naming a key
+## is not a system resolving one.
+func _every_game_script() -> String:
+	var parts: PackedStringArray = []
+	for root: String in ["res://scripts", "res://scenes", "res://autoload"]:
+		_gather_scripts(root, parts)
+	return "\n".join(parts)
+
+
+func _gather_scripts(path: String, into: PackedStringArray) -> void:
+	var directory := DirAccess.open(path)
+	if directory == null:
+		return
+	directory.list_dir_begin()
+	var name: String = directory.get_next()
+	while not name.is_empty():
+		var full: String = path.path_join(name)
+		if directory.current_is_dir():
+			_gather_scripts(full, into)
+		elif name.ends_with(".gd") and full != "res://autoload/Modifiers.gd":
+			var file := FileAccess.open(full, FileAccess.READ)
+			if file != null:
+				into.append(file.get_as_text())
+		name = directory.get_next()
+	directory.list_dir_end()
 
 
 ## **The one this gate is for.** The bane has to hurt.
