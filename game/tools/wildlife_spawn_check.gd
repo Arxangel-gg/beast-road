@@ -49,6 +49,7 @@ func _ready() -> void:
 	_test_ecology(wildlife)
 	_test_hoarders(wildlife)
 	_test_the_road_goes_quiet(wildlife)
+	_test_a_savage_is_actually_savage(wildlife)
 
 	if _failures == 0:
 		print("[wildlife] PASS - arrivals keep their distance, every tier is "
@@ -335,3 +336,49 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	push_error("[wildlife] FAIL: %s" % why)
+
+
+## **A savage has to be worth having provoked.**
+##
+## Over-farming a species sends a savage of that kind after the hunter, and the
+## constants describe it as "bigger, tougher, harder-hitting and faster". It
+## arrived five and a half times as tough, half again as large, tinted, lit,
+## rabid and worth six times the bounty - and `HUNT_SAVAGE_DAMAGE` and
+## `HUNT_SAVAGE_SPEED` were read by nothing at all, so it bit for exactly what
+## an ordinary animal of its kind bites for and walked at exactly its pace.
+##
+## Nothing caught it because nothing tested the hunt: this gate covered spawn
+## clearance, rarity, animation, the ecology and the pre-boss hush, and the
+## savage not at all. Found by auditing every constant in Balance.gd for a
+## consumer, on 2026-09-13.
+##
+## Measured through the real functions rather than against the constants, and at
+## both places a bite is worked out - the spirit at your shoulder is bitten by
+## different code from the hero, and applying a multiplier to one of the two is
+## exactly the shape of the fault this is replacing.
+func _test_a_savage_is_actually_savage(wildlife: Wildlife) -> void:
+	var kind: WildlifeData = null
+	for species: WildlifeData in ContentDB.wildlife():
+		if species != null and species.damage > 0.0:
+			kind = species
+			break
+	_check(kind != null, "no species in the roster bites at all")
+	if kind == null:
+		return
+	var ordinary: Dictionary = {"size": 1.0}
+	var savage: Dictionary = {"size": 1.0, "savage": true}
+	var plain_bite: float = float(wildlife.call("_bite_of", ordinary, kind))
+	var savage_bite: float = float(wildlife.call("_bite_of", savage, kind))
+	_check(plain_bite > 0.0, "an ordinary animal of a biting species must bite")
+	_check(savage_bite > plain_bite,
+		("a savage %s bites for %.1f against an ordinary %.1f - it is five and a "
+			+ "half times as tough and worth six times the bounty, so a bite that "
+			+ "lands the same is a chore rather than a consequence")
+			% [kind.id, savage_bite, plain_bite])
+	var plain_pace: float = float(wildlife.call("_savage_speed", ordinary))
+	var savage_pace: float = float(wildlife.call("_savage_speed", savage))
+	_check(is_equal_approx(plain_pace, 1.0),
+		"an ordinary animal must move at its own pace, got %.2f" % plain_pace)
+	_check(savage_pace > plain_pace,
+		("a savage moves at %.2f of its kind's pace - it is sent to hunt, and "
+			+ "something that cannot close is not hunting") % savage_pace)

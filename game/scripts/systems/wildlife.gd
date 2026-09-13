@@ -642,7 +642,7 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			return true
 
 	var state: int = int(animal["state"])
-	var speed: float = kind.speed
+	var speed: float = kind.speed * _savage_speed(animal)
 	if state == State.FLEEING or state == State.LEAVING:
 		speed *= kind.flee_speed_scale
 	var toward: Vector2 = (animal["goal"] as Vector2) - sprite.global_position
@@ -1222,7 +1222,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# town attacker by accident.
 	if quarry is Companion:
 		var spirit := quarry as Companion
-		var bite: float = kind.damage * float(animal["size"]) * Balance.wildlife_bite(RunState.act)
+		var bite: float = _bite_of(animal, kind)
 		spirit.take_damage(bite, sprite.global_position)
 		if bool(animal.get("rabid", false)):
 			spirit.apply_poison(Balance.WILDLIFE_RABID_POISON_DPS, Balance.WILDLIFE_RABID_POISON_SECONDS)
@@ -1251,7 +1251,7 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 	# hero has 100; three of them arriving in Act I read as the wilderness being
 	# the boss fight. The ramp is by act rather than by wave so it is legible to
 	# a player who noticed it, and so the late game is untouched.
-	var power: float = kind.damage * float(animal["size"]) * Balance.wildlife_bite(RunState.act)
+	var power: float = _bite_of(animal, kind)
 	var from: Vector2 = sprite.global_position
 	var enemy := quarry as Enemy
 	if enemy != null:
@@ -2086,6 +2086,32 @@ func _send_a_savage(kind: WildlifeData) -> void:
 
 
 ## Turns a freshly spawned animal into the thing the road sent.
+## **What a savage hits for, and how fast it moves.**
+##
+## `HUNT_SAVAGE_DAMAGE` and `HUNT_SAVAGE_SPEED` were authored with the rest of
+## the savage and read by nothing, so the thing the constants describe as
+## "bigger, tougher, harder-hitting and faster" was only the first two of those.
+## It arrived five and a half times as tough, half again as large, tinted, lit,
+## rabid and worth six times the bounty - and it bit for exactly what an
+## ordinary animal of its kind bites for, at exactly its walking speed. A tank
+## that cannot hurt you is a chore rather than a consequence, which is the
+## opposite of what over-farming is supposed to earn.
+##
+## Both go through one function each so the multiplier cannot be applied at one
+## of the two places a bite is worked out - the spirit at your shoulder is bitten
+## by different code from the hero, and half a fix is how the first one of these
+## got lost.
+func _bite_of(animal: Dictionary, kind: WildlifeData) -> float:
+	var bite: float = kind.damage * float(animal["size"]) 		* Balance.wildlife_bite(RunState.act)
+	if bool(animal.get("savage", false)):
+		bite *= Balance.HUNT_SAVAGE_DAMAGE
+	return bite
+
+
+func _savage_speed(animal: Dictionary) -> float:
+	return Balance.HUNT_SAVAGE_SPEED if bool(animal.get("savage", false)) else 1.0
+
+
 func _make_savage(animal: Dictionary, kind: WildlifeData, hero: Node2D) -> void:
 	var sprite := animal.get("sprite", null) as Sprite2D
 	if sprite == null or not is_instance_valid(sprite):
