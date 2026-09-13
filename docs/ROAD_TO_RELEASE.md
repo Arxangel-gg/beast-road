@@ -3075,3 +3075,24 @@ the history.
   animations reuse the heavy swing sheet rather than having sheets of their own
   (see the note in CLAUDE.md for why).
 
+- **v0.17.0 published 2026-09-13.** Tagged on the commit that passed CI guard
+  and all 74 release gates; the Windows zip, the web build and the launcher are
+  attached. The APK built in the same minute and was **not** attached: the
+  Android workflow waits ten minutes for the release to exist and the release
+  took longer, so the step failed having successfully made the thing it was
+  trying to attach. The wait is an hour now and the APK is being re-attached to
+  the existing release.
+
+  Found after the tag and fixed on main, so they land in the next one:
+
+  - A worked gather node stood perfectly still through four blows and then went
+    grey. It recoils, sheds toward whoever struck it, and falls.
+  - The forge showed four brown boxes at 44 pixels with no rarity on the row.
+  - **Two Arcane spells could never be cast.** `Role` is `ATTACK, DEFENSE,
+    POWER, PASSIVE, ULTIMATE, AUGMENT` and the tree was authored against the
+    slot numbers, which put Ultimate at 3. Sky Lance and Stonefall sat on
+    PASSIVE carrying a spell, and a passive is never slotted.
+  - **The dead-slot guarantee only half worked**: both roles were written into
+    the same offer, so with Power and Ultimate both empty the Power offer was
+    overwritten. The reported state is photographed now.
+
