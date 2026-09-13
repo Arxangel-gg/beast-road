@@ -187,12 +187,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed:
 		var wheel := event as InputEventMouseButton
-		if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_ladder(1)
-			get_viewport().set_input_as_handled()
-			return
-		if wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_ladder(-1)
+		var up: bool = wheel.button_index == MOUSE_BUTTON_WHEEL_UP
+		if up or wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			# **A menu keeps the wheel even at the end of its travel.**
+			#
+			# Godot hands the wheel to `_unhandled_input` only when the GUI did
+			# not use it, and a ScrollContainer stops using it the moment it
+			# reaches the end of its range. So reading to the bottom of a list
+			# and scrolling once more fell straight through to the zoom ladder -
+			# which at the bottom of *its* range does not stop either, it
+			# changes scope. A player finishing a menu was thrown into another
+			# view. Reported from play, 2026-09-13.
+			if _pointer_is_over_a_scroller():
+				get_viewport().set_input_as_handled()
+				return
+			_zoom_ladder(1 if up else -1)
 			get_viewport().set_input_as_handled()
 			return
 	# Number keys jump between scopes; the whole point of the run layer is that
@@ -222,6 +231,27 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Wheel-in moves toward tactical detail; wheel-out moves toward the whole
 ## journey. Battlefield consumes steps internally until its wide limit, then
 ## the next detent crosses to Town and the following one to Beast.
+## Whether the pointer is inside something that scrolls.
+func _pointer_is_over_a_scroller() -> bool:
+	return scrolls_under(get_viewport().gui_get_hovered_control())
+
+
+## Whether `hovered`, or anything it sits inside, is a scrolling panel.
+##
+## Static and taking the control rather than reading the mouse, so the rule can
+## be driven by a gate: the live version is one line above, and the thing worth
+## testing is the *walk*. A button inside a list inside a scroller has to answer
+## the same as the scroller itself, or the wheel escapes through the first
+## child that happens to be hovered.
+static func scrolls_under(hovered: Node) -> bool:
+	var at: Node = hovered
+	while at != null:
+		if at is ScrollContainer:
+			return true
+		at = at.get_parent()
+	return false
+
+
 func _zoom_ladder(direction: int) -> void:
 	match _scope:
 		GameDirector.Scope.BATTLEFIELD:

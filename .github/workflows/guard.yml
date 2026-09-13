@@ -498,6 +498,7 @@ jobs:
           check "fog of war" --headless --path game res://tools/fog_check.tscn
           check "beast tail" --headless --path game res://tools/beast_tail_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
+          check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           # A tower's split at level five and its capstone at ten: the choice
           # waits for its level, is made once, and moves only numbers the
           # tower already had.
