@@ -431,7 +431,11 @@ func _test_the_angler_only_fishes() -> void:
 	for attribute: int in RunState.Attribute.size():
 		_check(RunState.attribute(attribute) == before[attribute],
 			"a maxed Angler changed attribute %d - a profession must not touch the fight" % attribute)
-	_check(MetaState.gain_profession_xp("smith", 10) == 1 and not MetaState.profession_xp.has("smith"),
+	# Named after nothing the game has a craft for. This said "smith" until the
+	# Smith became one on 2026-09-13, at which point the gate was asserting that
+	# a real craft could not be trained.
+	_check(MetaState.gain_profession_xp("tanner", 10) == 1
+			and not MetaState.profession_xp.has("tanner"),
 		"a profession the game does not name must not be trained")
 	# Round trip, with a stale profession dropped.
 	var written: String = MetaState.serialized_save()

@@ -1965,7 +1965,14 @@ const FISHING_RIPPLE_SLOTS: int = 8
 # the two capped scales the campaign tiers are tuned against; a profession
 # may only change how well the hero does the thing the profession is - the
 # Angler fishes better and fights exactly as they did. The Angler is the first.
-const PROFESSIONS: Array[String] = ["angler"]
+## **The crafts a Warden may practise.** Only ids named here are ever read from
+## a save or trained, which is the bound professions were added under on
+## 2026-09-11 and is unchanged by there now being four of them.
+##
+## The Smith is here and has no node of its own on purpose: it is trained by
+## *making* things out of what the other two brought back, so the three form a
+## loop rather than three parallel bars. [TUNE]
+const PROFESSIONS: Array[String] = ["angler", "woodcutter", "miner", "smith"]
 const PROFESSION_MAX_LEVEL: int = 20
 ## XP needed to leave level L is PROFESSION_XP_BASE * L^PROFESSION_XP_CURVE:
 ## 30 for the first level, about 1,700 in total to reach the cap - roughly
@@ -6567,3 +6574,95 @@ const ENEMY_SHOT_HEX_TINT: Color = Color(0.72, 0.52, 1.0)
 const ENEMY_SHOT_SPIRIT_SHARE: float = 0.6
 ## How hard an area blow shakes the camera, on the scale `camera_impact` reads.
 const ENEMY_SHOT_IMPACT_SHARE: float = 0.55
+
+
+# --- Woodcutting, mining and the forge (2026-09-13) ----------------------------
+## **"There isn't enough to do in the game."**
+##
+## The owner asked for woodcutting, mining, smithing and fishing as skills that
+## persist across runs, with resource nodes of different rarities and cooldowns,
+## gems out of the ground, a rarity chance when a gem is forged by a practised
+## smith, a place to smith, and **no materials at all on a new account**.
+##
+## Fishing and the Angler shipped on 2026-09-11 and are the shape the rest
+## follow: a craft touches nothing but its own craft. A practised woodcutter
+## fells faster and finds better trees; they do not hit harder.
+##
+## **Where the nodes go is the owner's other instruction and it is the
+## interesting half.** They sit beyond the inner square the four roads make -
+## the same outer band the ponds and the rift gates use - and the further out a
+## node is, the rarer it is allowed to be. So the safe ground near the city
+## grows common wood, and Duskstone is out past the camps where the road does
+## not go. Skill is the second gate: a rare node is not drawn at all until the
+## craft is practised enough to work it. [TUNE]
+
+## How many of one material the store will hold. A ceiling rather than none,
+## because a number in a save is a claim and an unbounded one is an invitation.
+const MATERIAL_STACK_CEILING: int = 9999
+
+## How much likelier a node is in a region it names, and how much rarer
+## elsewhere. A preference rather than a gate, the way wildlife acts are - a
+## region with a hole in it where a tree ought to be reads as a bug.
+const GATHER_REGION_FAVOUR: float = 3.0
+const GATHER_REGION_ELSEWHERE: float = 0.35
+
+## How many nodes a region gets, and the share of the map's half-extent a node
+## must be past before it may be rolled at each rarity.
+##
+## Rarity 0 may be anywhere in the band; rarity 3 only out past four fifths of
+## the way to the rim, which on the 75x75 grid is the ground beyond the camps.
+const GATHER_NODES_PER_REGION: int = 7
+const GATHER_DISTANCE_BY_RARITY: Array[float] = [0.0, 0.45, 0.62, 0.78]
+
+## And how much of the craft's ladder a rarity wants behind it, as a share of
+## `PROFESSION_MAX_LEVEL`. Read together with each node's own `min_level`,
+## whichever is higher.
+const GATHER_LEVEL_SHARE_BY_RARITY: Array[float] = [0.0, 0.15, 0.35, 0.60]
+
+## The band a node may be dug in, as a share of the half-extent. Same shape as
+## `FISHING_EDGE_BAND` and for the same reason: the middle is the city's.
+const GATHER_EDGE_BAND: float = 0.55
+const GATHER_NODE_CLEARANCE_TILES: int = 1
+const GATHER_NODE_SPACING: float = 260.0
+const GATHER_PLACEMENT_ATTEMPTS: int = 260
+## How close the hero must stand, and how far they may drift before the swing
+## is abandoned. A gather is a thing you stop to do, like fishing.
+const GATHER_RADIUS: float = 116.0
+const GATHER_STILL_SPEED: float = 14.0
+
+## What practice buys, and nothing else. At the cap a swing takes three fifths
+## of the time and a node gives one more swing than it otherwise would.
+const GATHER_SKILL_SPEED_FLOOR: float = 0.60
+const GATHER_SKILL_BONUS_SWINGS: int = 2
+## And a practised hand sometimes takes two from one swing.
+const GATHER_SKILL_DOUBLE_CHANCE: float = 0.22
+
+## A worked-out node comes back, on its own clock, so a region is not a fixed
+## budget the player empties in Act I and then walks past for nine acts.
+const GATHER_RESPAWN_SECONDS: Array[float] = [70.0, 110.0, 170.0, 260.0]
+
+# --- The forge ----------------------------------------------------------------
+## **What a smith makes is gear, which is already on the capped scale.** That is
+## the whole reason materials are allowed to persist: they buy nothing directly.
+## A forged piece rolls on the same `Stash` tables a dropped one does, at a
+## rarity the gem and the smith's own level tilt - so the Smithy is another way
+## to *reach* the loot ladder and never a way to climb past it.
+##
+## The price is deliberately steep in gems, which are the scarce half: wood and
+## ore accumulate from walking past things, and a gem is a geode somebody went
+## out past the camps for.
+const FORGE_WOOD_COST: int = 12
+const FORGE_ORE_COST: int = 12
+const FORGE_GEM_COST: int = 1
+## The rarity a forged piece starts at, and how far a gem and a practised smith
+## may push it. A gem of rarity R adds R steps of *chance*, never R steps of
+## rarity - so a Duskstone is a better lottery ticket and not a guarantee.
+const FORGE_BASE_RARITY: int = 0
+const FORGE_GEM_RARITY_CHANCE: Array[float] = [0.18, 0.34, 0.52, 0.72]
+const FORGE_SKILL_RARITY_CHANCE: float = 0.30
+const FORGE_MAX_RARITY_STEPS: int = 4
+## What a forged piece is worth in experience for the Smith.
+const FORGE_XP: int = 34
+## And how practised the Smith has to be before the forge will attempt a piece
+## with a gem of each rarity in it.
+const FORGE_GEM_LEVEL: Array[int] = [1, 4, 9, 14]

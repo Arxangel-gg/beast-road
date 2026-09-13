@@ -183,6 +183,74 @@ func spend_fish(id: String) -> bool:
 
 # --- Professions --------------------------------------------------------------
 
+## What the Warden has cut down and dug up, by `MaterialData.id`.
+##
+## **The newest kind of persistence, and the most tightly bounded.** CLAUDE.md
+## §7 names what a save may hold; materials were added to it on 2026-09-13 with
+## one rule: a material is an input to the Smithy and nothing else. It grants no
+## attribute, buys no tower, pays no wave and does not exchange for a run
+## currency. What it makes is gear, which is already on the capped scale
+## levelling shares.
+##
+## A new account has none, which is the owner's own instruction and is also what
+## makes the first geode mean something.
+var materials: Dictionary = {}
+
+
+## How many of one material are in the account's store.
+func material_count(id: String) -> int:
+	return int(materials.get(id, 0))
+
+
+## Everything held, most valuable first, for the Smithy.
+func materials_held() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for kind: MaterialData in ContentDB.materials_sorted():
+		var held: int = material_count(kind.id)
+		if held > 0:
+			out.append({"id": kind.id, "count": held})
+	return out
+
+
+## Adds to the store. Refuses anything the content does not name, so a misspelt
+## id cannot quietly create a material nothing can ever spend.
+func gain_material(id: String, amount: int) -> bool:
+	if amount <= 0 or ContentDB.material(id) == null:
+		return false
+	materials[id] = mini(material_count(id) + amount, Balance.MATERIAL_STACK_CEILING)
+	save_game()
+	EventBus.materials_changed.emit()
+	return true
+
+
+## Takes from it. Returns false and changes nothing when there are not enough -
+## the forge asks before it spends, and a partial spend would lose materials.
+func spend_material(id: String, amount: int) -> bool:
+	if amount <= 0 or material_count(id) < amount:
+		return false
+	var left: int = material_count(id) - amount
+	if left > 0:
+		materials[id] = left
+	else:
+		materials.erase(id)
+	save_game()
+	EventBus.materials_changed.emit()
+	return true
+
+
+## Reads the store back, keeping only ids the content names and counts that are
+## counts. A save is a file on somebody's disk; everything in it is a claim.
+func _read_materials(block: Dictionary) -> void:
+	materials.clear()
+	for key: Variant in block:
+		var id: String = String(key)
+		if ContentDB.material(id) == null:
+			continue
+		var held: int = int(block[key])
+		if held > 0:
+			materials[id] = mini(held, Balance.MATERIAL_STACK_CEILING)
+
+
 ## Reads the professions back, keeping only the ones the game names.
 func _read_professions(block: Dictionary) -> void:
 	profession_xp.clear()
@@ -842,6 +910,7 @@ func erase_progress() -> void:
 	tier_cleared = -1
 	last_tier_id = "normal"
 	profession_xp.clear()
+	materials.clear()
 	stash.clear()
 	equipped.clear()
 	marks = 0
@@ -1476,6 +1545,11 @@ func serialized_save() -> String:
 		"professions": {
 			"xp": profession_xp,
 		},
+		# Additive, like the pantry and the spirits before it: a save written
+		# before the mines simply has no "materials" key and reads back empty,
+		# which is also what a new account is. No SAVE_VERSION bump, no
+		# migration to get wrong.
+		"materials": materials,
 		"spirits": {
 			"encounters": spirit_encounters,
 			"bonded": spirit_bonded,
@@ -1573,6 +1647,7 @@ func load_save() -> void:
 	_read_hero(data.get("hero", {}) as Dictionary)
 	_read_pantry(data.get("pantry", {}) as Dictionary)
 	_read_professions(data.get("professions", {}) as Dictionary)
+	_read_materials(data.get("materials", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)

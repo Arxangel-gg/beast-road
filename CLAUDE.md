@@ -1489,6 +1489,66 @@ breed is to kill it after it commits, and the telegraph becomes a reward rather
 than a warning. Living under the battlefield is also what freezes it for a raid
 (working rule 8) with nothing having to know it exists.
 
+**Three more crafts, and the ground they work, as of 2026-09-13.** The owner
+asked for woodcutting, mining, smithing and fishing as skills that persist
+across runs, with resource nodes of different rarities and cooldowns, gems out
+of the ground, a chance at rarity when a practised smith sets a gem, a place to
+smith, and **nothing at all in the store on a new account**. The framing was
+"there isn't enough to do in the game".
+
+**The Angler was the shape; these follow it.** A craft touches nothing but its
+own craft (2026-09-11). A maxed Woodcutter fells faster and gets a little more
+out of the same tree; they do not hit harder, move faster or carry more health.
+`gathering_check` maxes all four and fills the store, then reads every attribute
+back.
+
+**It amends working rule 7 once more: materials persist.** `MetaState.materials`
+is the wood, ore and gems the road gave up, and the bound is one sentence - **a
+material is an input to the Smithy and nothing else.** It grants no attribute,
+buys no tower, pays no wave and does not exchange for a run currency. What it
+makes is *gear*, which is already on the capped scale levelling shares, rolled
+on the same `Stash` tables a drop is. So the third power scale this project
+keeps refusing does not arrive through the back of a mine. Additive, like the
+pantry and the spirits: a save written before this has no `materials` key and
+reads as an empty store, which is also what a new account is. `SAVE_VERSION` did
+not move.
+
+**Where the nodes go is the owner's other instruction and it is the interesting
+half.** They sit beyond the inner square the four roads make - the same outer
+band the ponds and the rift gates use, drawn from `Fishing.band_tiles` because
+open ground out there is four corner pockets - and **the further out a spot is,
+the rarer the node it may grow**. Practice is the second gate: a rare node is
+not drawn at all until the craft can work it. So the ground near the city grows
+common wood forever, the good seams are past the camps, and a Duskstone geode is
+not merely rare - it is somewhere a new Warden would not have found it and could
+not have broken it open.
+
+A node holds a few swings and comes back on its own clock by rarity, so a region
+is never a fixed budget emptied in Act I and walked past for nine more acts.
+Working one is a thing you stop to do: walking away takes you off it, exactly as
+it takes the line out of the water.
+
+**The forge is in the Hold, beside the stash**, because materials persist and a
+run does not. Wood and ore decide how good a piece it may attempt; the gem
+decides how often the piece climbs a rung of rarity, and the Smith adds to that.
+**The odds are drawn on the screen before anything is spent** - a forge that hid
+its chances would be a slot machine.
+
+**A gem is a lottery ticket rather than a promise**, and that bound is gated: a
+maxed Smith setting the best gem in the game must never reach the top rarity, or
+the rarest gear stops being found and starts being bought - the same failure
+`exchange_check` exists to prevent on the other side of the economy. The forge
+validates, then spends, then makes, in that order, and puts materials back if a
+later step fails; the scarce half of the price is the gem, and a forge that ate
+one on a race nobody can reproduce is worse than one that refuses.
+
+**The hero visibly works, and it is the heavy swing sheet.** That is a choice
+rather than a gap: the Warden's frames came from a PixelLab character that no
+longer exists in the account, so a new eight-direction state is not a generation
+away, and at 168x160 an axe into a trunk and a two-handed sword into a body are
+the same body doing the same thing. `Hero.play_work_swing` is one function and a
+dedicated chop or mine sheet drops into it by name.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

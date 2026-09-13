@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MaterialData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/material_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+kind = 2
+rarity = 1
+forge_value = 6
+description = "Warm in the hand. A smith sets one and the work comes out better."
+id = "amber_gem"
+display_name = "Amber"

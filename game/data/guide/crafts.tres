@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "crafts"
+display_name = "The four crafts"
+title = "The four crafts"
+category = "Resources"
+order = 28
+image = "res://art/guide/crafts.png"
+body = "The Angler was the first. There are four now, and every one of them keeps what it has learned between runs.
+
+WOODCUTTER fells the trees on the outskirts. MINER breaks the seams and cracks the geodes. SMITH turns what the other two brought back into gear. ANGLER fishes.
+
+A craft touches nothing but its own craft. A maxed Woodcutter fells faster and gets more out of the same tree; they do not hit harder, move faster or carry more health. That is a rule rather than an oversight - your level and your gear are the two things that decide how strong you are, and a third would make the road impossible to balance.
+
+You start a new account with nothing at all: no wood, no ore, no gems, and every craft at one."

@@ -1059,6 +1059,18 @@ func _test_tiers_and_persistence() -> void:
 	# whole wound economy decoration. No fish grants an attribute point, so
 	# nothing in this block can be edited into a stronger hero either.
 	# `fishing_check` holds both ends, and has been checked by removing them.
+	# `materials` is the wood, ore and gems the crafts brought back. Added
+	# 2026-09-13 with woodcutting, mining and the forge, under an owner
+	# amendment to working rule 7 recorded in CLAUDE.md.
+	#
+	# It is allowed here for one reason: **a material is an input to the Smithy
+	# and nothing else.** It grants no attribute, buys no tower, pays no wave and
+	# does not exchange for a run currency; what it makes is gear, which is
+	# already on the capped scale levelling shares, rolled on the same tables a
+	# drop is. So nothing in this block can be edited into a stronger hero - it
+	# can only be edited into more attempts at the ladder everyone else is
+	# already climbing. `gathering_check` holds that end of it, including that
+	# the best gem a maxed smith can set never reaches the top rarity.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1067,7 +1079,7 @@ func _test_tiers_and_persistence() -> void:
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
-				"spirits", "pantry", "professions"],
+				"spirits", "pantry", "professions", "materials"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

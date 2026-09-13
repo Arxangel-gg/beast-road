@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "gathering"
+display_name = "Trees and seams"
+title = "Trees and seams"
+category = "Resources"
+order = 29
+image = "res://art/guide/gathering.png"
+body = "Out past the roads, where the ground opens up, there are trees to fell and rock to break. Walk up and press Interact to start swinging; walking away stops you, exactly as it does at a pond.
+
+Where a thing grows tells you what it is. The ground near the city grows common wood and copper forever. Better seams sit further out. Duskstone is past the camps, in the dark, and it will not even appear until your Miner is practised enough to break one open.
+
+A node holds a few swings and then is worked out. It comes back on its own clock - a common one quickly, a rare one slowly - so a region is never a fixed budget you empty once and walk past afterwards.
+
+Practice buys two things and only two: swings come faster, and a node gives up a little more before it is spent."

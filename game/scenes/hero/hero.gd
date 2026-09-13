@@ -1819,6 +1819,28 @@ func _drive_frames() -> void:
 		frames.play("idle")
 
 
+## **The work pose.** Asked for by `Gathering` when a swing starts.
+##
+## The heavy swing sheet rather than a sheet of its own, and that is a choice
+## rather than a gap. The Warden's frames came from a PixelLab character that no
+## longer exists in the account, so a new eight-direction state is not a
+## generation away - and at 168x160 an axe into a trunk and a two-handed sword
+## into a body are the same body doing the same thing. What matters is that the
+## hero visibly *works*, facing the thing they are working, once per swing and
+## in time with it.
+##
+## If a dedicated chop and mine sheet are ever drawn, they drop in here by name
+## and nothing else changes.
+func play_work_swing(toward: Vector2) -> void:
+	if frames == null:
+		return
+	var facing: Vector2 = toward - global_position
+	if facing.length_squared() > 1.0:
+		frames.set_facing(facing.normalized())
+	var state: String = "attack_3" if frames.has_state("attack_3") else "attack_1a"
+	_lock_frames(state)
+
+
 ## Plays a state that movement cannot interrupt.
 func _lock_frames(state: String) -> void:
 	if frames == null or not frames.has_state(state):

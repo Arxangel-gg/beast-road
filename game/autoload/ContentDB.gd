@@ -31,6 +31,11 @@ var barricades: Dictionary = {}
 var tiers: Dictionary = {}
 var gear_kinds: Dictionary = {}
 
+## The things on the outskirts that can be worked, and what comes out of them
+## (owner brief, 2026-09-13).
+var gather_nodes: Dictionary = {}
+var materials: Dictionary = {}
+
 ## First-run coach prompts. Content because the strings are player-facing and
 ## CLAUDE.md keeps those out of scripts.
 var tutorial_steps: Dictionary = {}
@@ -127,6 +132,8 @@ func _ready() -> void:
 	omens = _load_dir("res://data/omens")
 	road_cards = _load_dir("res://data/road_cards")
 	fish_kinds = _load_dir("res://data/fish")
+	gather_nodes = _load_dir("res://data/gather")
+	materials = _load_dir("res://data/materials")
 
 	for value: Variant in towers.values():
 		var tower := value as TowerData
@@ -552,4 +559,41 @@ func _load_dir(path: String) -> Dictionary:
 			push_warning("ContentDB: duplicate id '%s' in %s" % [data.id, path])
 		else:
 			out[data.id] = data
+	return out
+
+
+## One gather node by id.
+func gather_node(id: String) -> GatherNodeData:
+	return gather_nodes.get(id, null) as GatherNodeData
+
+
+## Every gather node, in a stable order.
+func gather_nodes_sorted() -> Array[GatherNodeData]:
+	var out: Array[GatherNodeData] = []
+	for value: Variant in gather_nodes.values():
+		var node := value as GatherNodeData
+		if node != null:
+			out.append(node)
+	out.sort_custom(func(a: GatherNodeData, b: GatherNodeData) -> bool: return a.id < b.id)
+	return out
+
+
+## One material by id.
+func material(id: String) -> MaterialData:
+	return materials.get(id, null) as MaterialData
+
+
+## Every material, in a stable order.
+func materials_sorted() -> Array[MaterialData]:
+	var out: Array[MaterialData] = []
+	for value: Variant in materials.values():
+		var kind := value as MaterialData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: MaterialData, b: MaterialData) -> bool:
+		if a.kind != b.kind:
+			return a.kind < b.kind
+		if a.rarity != b.rarity:
+			return a.rarity < b.rarity
+		return a.id < b.id)
 	return out

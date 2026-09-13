@@ -2693,13 +2693,91 @@ The demonstration pictures the Guide shows beside each section, one per
 
 ---
 
+### 5.31 Gather nodes of 2026-09-13 — `res://art/battlefield/`
+
+The trees and seams on the outskirts, and what comes out of them (owner brief:
+woodcutting, mining, smithing, gems from the ground, and a place to smith).
+Nodes are 96×96 props in the camp props' warm language — bone white, rust
+orange and amber over dark brown — and stand on the ground like everything else
+out there. The nine that move carry three idle frames beside them on the
+convention every animated prop follows: `<name>_idle_01..03.png`. Copper and
+iron seams are inert rock and are deliberately still.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `node_ironbark.png` | 96×96 | O | `#3A3128` |
+| `node_ashwood.png` | 96×96 | O | `#3A3128` |
+| `node_glasswillow.png` | 96×96 | O | `#3A3128` |
+| `node_bloodpine.png` | 96×96 | O | `#3A3128` |
+| `node_copper_seam.png` | 96×96 | O | `#3A3128` |
+| `node_iron_seam.png` | 96×96 | O | `#3A3128` |
+| `node_star_iron.png` | 96×96 | O | `#3A3128` |
+| `node_voidrock.png` | 96×96 | O | `#3A3128` |
+| `node_amber_geode.png` | 96×96 | O | `#3A3128` |
+| `node_frost_geode.png` | 96×96 | O | `#3A3128` |
+| `node_duskstone_geode.png` | 96×96 | O | `#3A3128` |
+| `smithy.png` | 160×160 | O | `#3A3128` |
+
+All node idle frames are 96×96. Nine nodes carry three each:
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `node_ironbark_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_ironbark_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_ironbark_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_ashwood_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_ashwood_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_ashwood_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_glasswillow_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_glasswillow_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_glasswillow_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_bloodpine_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_bloodpine_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_bloodpine_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_star_iron_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_star_iron_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_star_iron_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_voidrock_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_voidrock_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_voidrock_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_amber_geode_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_amber_geode_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_amber_geode_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_frost_geode_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_frost_geode_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_frost_geode_idle_03.png` | 96×96 | O | `#3A3128` |
+| `node_duskstone_geode_idle_01.png` | 96×96 | O | `#3A3128` |
+| `node_duskstone_geode_idle_02.png` | 96×96 | O | `#3A3128` |
+| `node_duskstone_geode_idle_03.png` | 96×96 | O | `#3A3128` |
+
+### 5.32 Materials of 2026-09-13 — `res://art/icons/ui/`
+
+What the trees and the seams give up. 128×128 like the gear icons they sit
+beside, which is where `MaterialData` derives their path from — wood and ore as
+small piles, gems as single cut stones, all in the warm painterly language the
+loot drops use rather than gear's cold steel.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `ui_ironbark_log.png` | 128×128 | O | `#3A3128` |
+| `ui_ashwood_log.png` | 128×128 | O | `#3A3128` |
+| `ui_glasswillow_log.png` | 128×128 | O | `#3A3128` |
+| `ui_bloodpine_log.png` | 128×128 | O | `#3A3128` |
+| `ui_copper_ore.png` | 128×128 | O | `#3A3128` |
+| `ui_iron_ore.png` | 128×128 | O | `#3A3128` |
+| `ui_star_iron_ore.png` | 128×128 | O | `#3A3128` |
+| `ui_voidrock_ore.png` | 128×128 | O | `#3A3128` |
+| `ui_amber_gem.png` | 128×128 | O | `#3A3128` |
+| `ui_frost_gem.png` | 128×128 | O | `#3A3128` |
+| `ui_duskstone_gem.png` | 128×128 | O | `#3A3128` |
+
 ### 5.30 Guide pictures of 2026-09-13 — `res://art/guide/`
 
-Ten more sections, each borrowing the photograph that actually shows
+Thirteen more sections, each borrowing the photograph that actually shows
 the thing it describes: the fog and the map are in every battlefield
 shot, a tower's paths are read on the tower sheet, a raised trap is
 still a trap. `tools/guide_shots.gd` writes them, so a re-run keeps them
-in step with the screens rather than leaving ten stale copies.
+in step with the screens rather than leaving thirteen stale copies.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -2713,6 +2791,9 @@ in step with the screens rather than leaving ten stale copies.
 | `hunted.png` | 640×360 | O | `#2E3A33` |
 | `attributes.png` | 640×360 | O | `#2E3A33` |
 | `enemy_shots.png` | 640×360 | O | `#2E3A33` |
+| `crafts.png` | 640×360 | O | `#2E3A33` |
+| `gathering.png` | 640×360 | O | `#2E3A33` |
+| `forge.png` | 640×360 | O | `#2E3A33` |
 
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 

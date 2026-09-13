@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GatherNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gather_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+craft = "woodcutter"
+rarity = 0
+material_id = "ironbark_log"
+material_per_swing = 1
+swings = 5
+swing_seconds = 1.6
+xp_per_swing = 6
+min_level = 1
+weight = 1.00
+regions = Array[String](["jungle", "hollow_marches", "rustwood"])
+id = "ironbark"
+display_name = "Ironbark"

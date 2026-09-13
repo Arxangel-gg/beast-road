@@ -197,10 +197,35 @@ func _build_hold() -> void:
 	column.move_child(button, (coop.get_index() + 1) if coop != null else new_run_button.get_index() + 1)
 	_hub.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _hub.open())
-	for door: String in ["Stash", "Ledger", "Chronicle", "Codex", "Leaderboard"]:
+	_build_smithy_button(column)
+	for door: String in ["Stash", "Ledger", "Smithy", "Chronicle", "Codex", "Leaderboard"]:
 		var found: Node = column.get_node_or_null(door)
 		if found is Button:
 			_hub.adopt(found as Button)
+
+
+## The forge (owner brief, 2026-09-13).
+##
+## Built here and then adopted into the Hold with the other doors, which is the
+## pattern every screen in this room follows: the menu owns the screen, the room
+## owns the button, and the button is the same button either way.
+##
+## **Always present, unlike the stash button.** The stash hides until there is
+## gear or Marks because an empty stash is a promise the game has not made yet;
+## the forge is the opposite - it is the thing that tells a new Warden that the
+## trees and seams on the outskirts are worth stopping for at all. It says so
+## when the store is empty rather than not being there.
+func _build_smithy_button(column: Node) -> void:
+	var button := Button.new()
+	button.name = "Smithy"
+	button.text = "The Forge"
+	IconKit.on_button(button, "quarry_gauntlets", 24)
+	column.add_child(button)
+
+	var screen := SmithyScreen.new()
+	add_child(screen)
+	screen.closed.connect(_focus_home)
+	button.pressed.connect(func() -> void: screen.open())
 
 
 ## Swaps the still key art for the living one.

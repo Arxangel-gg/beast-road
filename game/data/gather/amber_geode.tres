@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="GatherNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gather_node_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+craft = "miner"
+rarity = 1
+material_id = "amber_gem"
+material_per_swing = 1
+swings = 2
+swing_seconds = 2.4
+xp_per_swing = 16
+min_level = 1
+weight = 0.55
+regions = Array[String]([])
+id = "amber_geode"
+display_name = "Amber Geode"

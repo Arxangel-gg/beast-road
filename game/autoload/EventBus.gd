@@ -42,6 +42,19 @@ signal fish_caught(fish_id: String, food: int)
 ## A fish was eaten out of the stash.
 signal fish_eaten(fish_id: String)
 
+## What the Warden is carrying from the mines and the treeline changed. The
+## Smithy and the Hold read it; nothing in a run does.
+signal materials_changed()
+
+## A node on the outskirts gave up something: `material_id` and how many.
+signal gathered(material_id: String, amount: int)
+
+## A craft reached a new level, so a screen that shows one should re-read it.
+signal craft_levelled(craft: String, level: int)
+
+## A swing was abandoned, and why. Said the way a lost fish is.
+signal gather_stopped(reason: String)
+
 ## A fish handed to somebody else: `to` is "spirit" or "ally" (owner
 ## brief, 2026-09-13). The hero answers it, because the hero is the thing
 ## that knows what is standing next to it.

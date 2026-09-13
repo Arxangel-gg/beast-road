@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "forge"
+display_name = "The Forge"
+title = "The Forge"
+category = "Resources"
+order = 30
+image = "res://art/guide/forge.png"
+body = "In the Hold, beside the stash. Wood, ore and a gem go in; a piece of gear comes out.
+
+The wood and the ore decide how good a piece the forge may attempt at all - better stock, higher level. The gem decides how often the piece climbs a rung of rarity, and your Smith adds to that. The screen shows you the odds before you spend anything.
+
+A gem is a chance rather than a promise. A Duskstone gives you four attempts at a good rung and can still hand you something ordinary - the rarest gear in the game is found on the road, not made at an anvil, and the forge is deliberately unable to beat it.
+
+Everything the forge makes is rolled on the same tables a drop is. It is another way onto the ladder, never a way past it."

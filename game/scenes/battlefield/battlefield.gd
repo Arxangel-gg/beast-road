@@ -46,6 +46,7 @@ var _coop_world: CoopWorld = null
 var _ponds: Fishing = null
 ## The rift gates and dungeon mouths, re-laid with the ponds.
 var _rifts: RiftGates = null
+var _gathering: Gathering = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
@@ -704,6 +705,7 @@ func _build_foliage() -> void:
 	_build_wildlife()
 	_build_ponds()
 	_build_rift_gates()
+	_build_gathering()
 	_build_camps()
 
 
@@ -754,6 +756,31 @@ func _build_rift_gates() -> void:
 
 func rift_gates() -> RiftGates:
 	return _rifts
+
+
+## The trees and seams on the outskirts (owner brief, 2026-09-13).
+##
+## Dug after the ponds and the gates so it can keep clear of both, and by the
+## same rule they are: out past the inner square the roads make, on open ground
+## drawn from the band's own tiles. See `Gathering` for the two extra gates on
+## rarity - how far out a spot is, and how practised the craft is.
+func _build_gathering() -> void:
+	_gathering = Gathering.new()
+	_gathering.name = "Gathering"
+	_gathering.grid = grid
+	_gathering.field = self
+	_gathering.host = entity_root
+	var taken: PackedVector2Array = _ponds.pond_positions() if _ponds != null 		else PackedVector2Array()
+	if _rifts != null:
+		for at: Vector2 in _rifts.gate_positions():
+			taken.append(at)
+	_gathering.avoid = taken
+	add_child(_gathering)
+	_gathering.scatter()
+
+
+func gathering() -> Gathering:
+	return _gathering
 
 
 ## The camps on the outskirts. Built after the ponds and the gates so their
