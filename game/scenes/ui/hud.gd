@@ -610,6 +610,7 @@ func _process(delta: float) -> void:
 	_update_boss_bar()
 	_update_carried_items()
 	_update_boss_track()
+	_orders_delta = delta
 	_update_repair_button()
 	_update_wave_preview()
 
@@ -1432,9 +1433,28 @@ func _standing_order() -> String:
 	return "wall"
 
 
-func _update_orders_button() -> void:
+## **On a slow clock, not every frame.**
+##
+## Deciding which order to offer walks every tower and every trap on the field,
+## and the answer only changes when something is damaged or the purse moves -
+## neither of which happens between two frames in a way a player can act on.
+## Per-frame it was eighty iterations and a content lookup each, sixty times a
+## second, for a button that is only live during Preparation.
+const ORDERS_REFRESH: float = 0.25
+var _orders_clock: float = 0.0
+## The frame's delta, handed to the orders refresh through `_update_repair_button`
+## rather than threaded through its signature - that function is called from two
+## places and only one of them is a frame.
+var _orders_delta: float = 0.0
+
+
+func _update_orders_button(delta: float = 0.0) -> void:
 	if _orders_button == null or battlefield == null:
 		return
+	_orders_clock -= delta
+	if delta > 0.0 and _orders_clock > 0.0:
+		return
+	_orders_clock = ORDERS_REFRESH
 	var price: int = RunState.quartermaster_price()
 	var order: String = _standing_order()
 	var nothing: String = String(battlefield.call("_would_do", order))
@@ -1462,7 +1482,7 @@ func _update_repair_button() -> void:
 		or not RunState.can_afford_cost({RunState.WOOD: Balance.TOWN_REPAIR_COST}) \
 		or not RunState.is_preparation()
 
-	_update_orders_button()
+	_update_orders_button(_orders_delta)
 
 	if _tend_button == null:
 		return
@@ -4065,6 +4085,9 @@ func _on_currency_changed(id: String, amount: int) -> void:
 		label.text = str(amount)
 	if _build_panel.visible:
 		_refresh_build_panel()
+	# The purse moved, which is one of the two things the orders button reads -
+	# so this path refreshes it at once rather than waiting out the clock.
+	_orders_delta = 0.0
 	_update_repair_button()
 
 
