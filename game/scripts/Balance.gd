@@ -708,10 +708,6 @@ const DAMAGE_SPREAD: float = 0.18
 # TOWERS & FUSION — GDD §4
 # ==============================================================================
 
-## Two adjacent towers of the same element grant this damage bonus instead of a
-## fusion, so mono-element is a real strategy rather than a mistake. [TUNE]
-const SAME_ELEMENT_DAMAGE_BONUS: float = 0.25
-
 ## Four slots in a ring means four adjacencies per loadout.
 const TOWER_SLOT_COUNT: int = 4
 
@@ -3240,9 +3236,6 @@ const KILL_ACT_VALUE_SCALE: Array[float] = [
 ## The multiplier on everything a body pays, for the act it died in.
 static func kill_act_scale(act: int) -> float:
 	return KILL_ACT_VALUE_SCALE[clampi(act - 1, 0, KILL_ACT_VALUE_SCALE.size() - 1)]
-
-## Extra resource rate per Granary tier. [TUNE]
-const GRANARY_TIER_BONUS: float = 0.30
 
 ## Extra resource rate per captive assigned to the Scavenging Post. [TUNE]
 const CAPTIVE_WORK_BONUS: float = 0.22

@@ -501,6 +501,7 @@ jobs:
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn
           check "enemy repertoire" --headless --path game res://tools/enemy_repertoire_check.tscn
+          check "balance reach" --headless --path game res://tools/balance_reach_check.tscn
           # A tower's split at level five and its capstone at ten: the choice
           # waits for its level, is made once, and moves only numbers the
           # tower already had.
