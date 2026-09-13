@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 3
+shot_range = 540
 id = "fog_lantern"
 display_name = "Fog Lantern"
 description = "The light is the trap. Whatever carries it is only there to carry it."

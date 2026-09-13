@@ -4,6 +4,16 @@ extends Node2D
 ## A dodgeable hostile shot. It commits to the target's position at release,
 ## so moving during the telegraph is the answer; it never homes after the hero.
 
+## Which of the three flying shots this is. LOB and LANCE are not projectiles
+## at all - they are `EnemyGroundStrike`, because what they hit is a place.
+enum Kind { BOLT, SPRAY, HEX }
+
+## Set before the shot enters the tree. BOLT is what every shot was until
+## 2026-09-13, so a caller that sets nothing gets exactly the old behaviour.
+var kind: int = Kind.BOLT
+## How much mana a HEX takes off whoever it reaches.
+var mana_burn: float = 0.0
+
 var _target: Node2D = null
 var _destination: Vector2 = Vector2.ZERO
 var _direction: Vector2 = Vector2.RIGHT
@@ -75,8 +85,17 @@ func _process(delta: float) -> void:
 	if _life >= Balance.ENEMY_PROJECTILE_MAX_LIFE:
 		queue_free()
 		return
+	# A hex follows, slowly. It turns at a fixed rate rather than homing
+	# exactly, which is what makes outrunning one possible and what makes
+	# putting a body between you and it work.
+	if kind == Kind.HEX and _target != null and is_instance_valid(_target):
+		_destination = _combat_origin(_target)
+		var wanted: float = (_destination - global_position).angle()
+		_direction = Vector2.RIGHT.rotated(
+			rotate_toward(_direction.angle(), wanted, Balance.ENEMY_SHOT_HEX_TURN * delta))
+		rotation = _direction.angle()
 	var distance_before: float = global_position.distance_to(_destination)
-	global_position += _direction * Balance.ENEMY_PROJECTILE_SPEED * delta
+	global_position += _direction * Balance.ENEMY_PROJECTILE_SPEED * _pace() * delta
 	_history.append(global_position)
 	while _history.size() > Balance.ENEMY_PROJECTILE_TRAIL_POINTS:
 		_history.remove_at(0)
@@ -89,10 +108,32 @@ func _process(delta: float) -> void:
 			Balance.ENEMY_PROJECTILE_CORE_COLOUR, 1, -_direction,
 			Balance.ENEMY_PROJECTILE_MOTE_SPEED)
 	queue_redraw()
-	var distance_after: float = global_position.distance_to(_destination)
-	if distance_after <= Balance.ENEMY_PROJECTILE_HIT_RADIUS \
-			or distance_after > distance_before:
+	# **A shot hits what it passes through.**
+	#
+	# Until 2026-09-13 a shot only ever resolved where its *destination* was,
+	# which was invisible while every shot was aimed at a body - the body and
+	# the destination were the same place. The fan and the boss volley are aimed
+	# at points either side of their target instead, so both flew straight past
+	# whoever they were thrown at and burst harmlessly at the far end of their
+	# range. Caught by `enemy_shot_check` measuring the damage rather than
+	# trusting the aim.
+	if _target != null and is_instance_valid(_target) 			and global_position.distance_to(_combat_origin(_target)) 				<= Balance.ENEMY_PROJECTILE_BLAST_RADIUS:
 		_impact()
+		return
+	var distance_after: float = global_position.distance_to(_destination)
+	if distance_after <= Balance.ENEMY_PROJECTILE_HIT_RADIUS:
+		_impact()
+		return
+	# A hex is *steering* at its destination, so "it stopped getting closer"
+	# would end it on every turn it takes. It flies until it arrives or until
+	# its life runs out, and that is the thing being outrun.
+	if kind != Kind.HEX and distance_after > distance_before:
+		_impact()
+
+
+## How fast this one flies, against the baseline.
+func _pace() -> float:
+	return Balance.ENEMY_SHOT_HEX_SPEED if kind == Kind.HEX else 1.0
 
 
 func _impact() -> void:
@@ -101,6 +142,15 @@ func _impact() -> void:
 		var target_health: Health = Health.of(_target)
 		if target_health != null:
 			target_health.take_damage(_damage, global_position)
+		# And a hex takes mana with it. Nothing else in the game does, which is
+		# why a hex is the shot a caster has to respect and a swordhand does
+		# not - the one difference between five shots that is about *who* you
+		# are rather than about where you are standing.
+		if mana_burn > 0.0:
+			var who := _target as Hero
+			if who != null:
+				who.mana = maxf(who.mana - mana_burn, 0.0)
+				EventBus.hero_mana_changed.emit(who.mana, who.mana_max())
 	Vfx.spark(global_position, Balance.ENEMY_PROJECTILE_CORE_COLOUR,
 		Balance.ENEMY_PROJECTILE_IMPACT_SPARKS,
 		-_direction, 180.0)

@@ -503,6 +503,9 @@ jobs:
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn
+          # Five ranged answers instead of one, and the bound that keeps them
+          # honest: a shot changes the shape of a blow, never its size.
+          check "enemy shots" --headless --path game res://tools/enemy_shot_check.tscn
           # The battlefield playlist deals what is on disk, advances on the end
           # of a song, holds for a boss and hands back. Missing songs are quiet.
           check "music" --headless --path game res://tools/music_check.tscn

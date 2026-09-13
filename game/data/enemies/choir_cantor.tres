@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 1
+shot_range = 560
 id = "choir_cantor"
 display_name = "Choir Cantor"
 description = "The song is what holds the drowned together. Kill the singer."

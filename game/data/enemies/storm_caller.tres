@@ -2,6 +2,8 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+shot = 4
+shot_range = 620
 id = "storm_caller"
 display_name = "Storm Caller"
 description = "A ranged support that drives the White Teeth through the snow."

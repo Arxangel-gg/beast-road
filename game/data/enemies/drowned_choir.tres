@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_qocbu")
+shot = 3
+shot_range = 560
 category = 2
 role = 3
 max_hp = 4200.0

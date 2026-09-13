@@ -1330,9 +1330,7 @@ func _strike() -> void:
 	if net_id != 0:
 		EventBus.enemy_struck.emit(net_id, _target.global_position)
 	if data.role == EnemyData.Role.HOWLER:
-		var shot: Node2D = load("res://scenes/battlefield/enemy_projectile.gd").new() as Node2D
-		shot.configure(_target, damage, combat_origin())
-		_field.add_child(shot)
+		_loose_a_shot(damage)
 		return
 	if _target is Companion:
 		(_target as Companion).take_damage(damage, combat_origin())
@@ -2414,21 +2412,15 @@ func _land_slam() -> void:
 	EventBus.camera_impact.emit(global_position, 0.9)
 	Vfx.ring(global_position, data.boss_slam_radius, Color(1.0, 0.62, 0.34, 0.8), 0.3, 6.0)
 	Vfx.dust(global_position, Color(0.42, 0.36, 0.32), 14, data.boss_slam_radius * 0.6)
-	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
-		var who := node as Hero
-		if who == null or not is_instance_valid(who) or not who.is_alive():
-			continue
-		if who.global_position.distance_to(global_position) > data.boss_slam_radius:
-			continue
-		var health: Health = Health.of(who)
-		if health != null:
-			RunState.note_blow(promoted_name(), damage)
-			health.take_damage(damage, global_position)
-	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
-		var pet := node as Companion
-		if pet != null and is_instance_valid(pet) and pet.is_alive() \
-				and pet.global_position.distance_to(global_position) <= data.boss_slam_radius:
-			pet.take_damage(damage * 0.6, global_position)
+	# Through the one function that knows what "everything of the player's"
+	# means. This had its own copy until the ranged shots needed the same
+	# answer, and two copies of that rule is how one of them forgets about
+	# spirits.
+	var centre: Vector2 = global_position
+	var radius: float = data.boss_slam_radius
+	EnemyGroundStrike.strike_the_players(get_tree(), damage, promoted_name(),
+		func(at: Vector2) -> bool:
+			return centre.distance_to(at) <= radius)
 
 
 ## The volley: a fan of shots at whoever it can see.
@@ -2458,3 +2450,123 @@ func _throw_volley(quarry: Node2D) -> void:
 		shot.set("_target", quarry)
 		_field.add_child(shot)
 	Sfx.play("sfx_boss_stinger", -9.0)
+
+
+# --- What a ranged breed throws (2026-09-13) ----------------------------------
+
+## The five shots, dispatched from the breed's own data.
+##
+## Owner report: "the ranged enemies all have one attack and the same one". They
+## did - `role == HOWLER` built one `EnemyProjectile` and nothing varied - so
+## fourteen breeds across ten regions posed one question between them.
+##
+## **The bound is that a shot changes the shape of a blow and never its size.**
+## A fan divides the strike it rolled, a mortar and a lance land that one strike
+## on whoever is standing there, and a hex trades part of it for mana. Nothing
+## here multiplies `damage`, which is what lets the ten-act curve still be read
+## against the same numbers.
+func _loose_a_shot(damage: float) -> void:
+	# A shooter whose target is the wall or a tower throws an ordinary bolt at
+	# it, whatever its breed. An area blow resolves on heroes and spirits only
+	# (see `EnemyGroundStrike`), so a mortar aimed at the gate would hit nothing
+	# at all - a siege breed would quietly stop being able to besiege.
+	var at_a_person: bool = _target is Hero or _target is Companion
+	var shot: int = data.shot if at_a_person else EnemyData.Shot.BOLT
+	match shot:
+		EnemyData.Shot.SPRAY:
+			_loose_a_fan(damage)
+		EnemyData.Shot.LOB:
+			_mark_the_ground(damage)
+		EnemyData.Shot.LANCE:
+			_level_a_lance(damage)
+		EnemyData.Shot.HEX:
+			_loose_a_hex(damage)
+		_:
+			_loose_a_bolt(damage, _target, EnemyProjectile.Kind.BOLT)
+
+
+## One shot, committed at release. What every ranged breed did before this.
+func _loose_a_bolt(damage: float, at: Node2D, kind: int) -> EnemyProjectile:
+	var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+	shot.kind = kind
+	shot.configure(at, damage, combat_origin())
+	_field.add_child(shot)
+	return shot
+
+
+## A fan. The strike is **divided** between the shots rather than fired once
+## each, so standing in the middle of one costs exactly what a bolt costs and
+## the fan is about position rather than about damage.
+func _loose_a_fan(damage: float) -> void:
+	var shots: int = maxi(Balance.ENEMY_SHOT_SPRAY_SHOTS, 1)
+	var share: float = damage / float(shots)
+	var aim: Vector2 = (_combat_point(_target) - combat_origin()).normalized()
+	var span: float = Balance.ENEMY_SHOT_SPRAY_SPREAD
+	for index: int in shots:
+		var offset: float = 0.0 if shots <= 1 \
+			else (float(index) / float(shots - 1) - 0.5) * 2.0 * span
+		var shot := load("res://scenes/battlefield/enemy_projectile.gd").new() as EnemyProjectile
+		shot.kind = EnemyProjectile.Kind.SPRAY
+		# Aimed at a *point* rather than at the body: three shots that all
+		# homed on one target would be one shot drawn three times.
+		shot.configure_toward(combat_origin() + aim.rotated(offset) * _throw_range(),
+			combat_origin())
+		shot.set("_damage", share)
+		shot.set("_target", _target)
+		_field.add_child(shot)
+
+
+## A mortar on the ground where the target is standing *now*. The delay is the
+## dodge, and the circle is drawn at the radius the blow will actually use.
+func _mark_the_ground(damage: float) -> void:
+	var blow := EnemyGroundStrike.new()
+	blow.shape = EnemyGroundStrike.Shape.CIRCLE
+	blow.damage = damage
+	blow.delay = Balance.ENEMY_SHOT_LOB_DELAY
+	blow.reach = Balance.ENEMY_SHOT_LOB_RADIUS
+	blow.tint = Balance.ENEMY_SHOT_LOB_TINT
+	blow.blamed_on = promoted_name()
+	# On the ground under the target, not at its chest: `strike_the_players`
+	# measures from a body's feet, which is where a body stands.
+	blow.global_position = _target.global_position
+	_field.add_child(blow)
+
+
+## A line out of the thrower, struck along its whole length after a tell.
+func _level_a_lance(damage: float) -> void:
+	var blow := EnemyGroundStrike.new()
+	blow.shape = EnemyGroundStrike.Shape.LINE
+	blow.damage = damage
+	blow.delay = Balance.ENEMY_SHOT_LANCE_DELAY
+	blow.reach = Balance.ENEMY_SHOT_LANCE_RANGE
+	blow.half_width = Balance.ENEMY_SHOT_LANCE_HALF_WIDTH
+	blow.tint = Balance.ENEMY_SHOT_LANCE_TINT
+	# Ground to ground. Drawn from the chests it would run a body's height above
+	# the floor, and `strike_the_players` measures feet - so the first cut of
+	# this struck nobody at all and the gate said so.
+	blow.aim = (_target.global_position - global_position).normalized()
+	blow.blamed_on = promoted_name()
+	blow.global_position = global_position
+	_field.add_child(blow)
+
+
+## Slow, and it follows. Less damage than a bolt, and it takes mana with it.
+func _loose_a_hex(damage: float) -> void:
+	var shot: EnemyProjectile = _loose_a_bolt(
+		damage * Balance.ENEMY_SHOT_HEX_DAMAGE_SHARE, _target, EnemyProjectile.Kind.HEX)
+	shot.mana_burn = damage * Balance.ENEMY_SHOT_HEX_MANA_SHARE
+
+
+## Where a target's body actually is, for aiming at the ground under it.
+func _combat_point(at: Node2D) -> Vector2:
+	if at == null or not is_instance_valid(at):
+		return global_position
+	var who := at as Hero
+	return who.combat_origin() if who != null and who.has_method("combat_origin") \
+		else at.global_position
+
+
+## How far this breed throws, for a shot that needs a distance rather than a
+## body - a fan aims at points, not at people.
+func _throw_range() -> float:
+	return data.shot_range if data != null and data.shot_range > 0.0 else attack_reach()

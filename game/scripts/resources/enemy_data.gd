@@ -92,6 +92,29 @@ enum Facing { FRONT, RIGHT, LEFT }
 ## another id check in Enemy.
 @export var targets_towers: bool = false
 
+## **What this breed throws.**
+##
+## Before 2026-09-13 there was one answer and every shooter used it, so the
+## fourteen ranged breeds were distinguishable by their sprites and by nothing
+## a player had to do differently. Each of these is a different *verb*:
+##
+## - BOLT - the original. One fast shot, committed at release. Sidestep it.
+## - SPRAY - a fan, dividing the strike between its shots. Do not stand in the
+##   middle of it.
+## - LOB - a mortar at a marked circle after a telegraph. Leave the circle.
+## - HEX - slow and following, trading damage for mana. Outrun it.
+## - LANCE - a telegraphed line struck along its whole length. Step off it.
+##
+## A breed that authors nothing here throws BOLT, which is what every breed
+## threw before this existed.
+enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
+@export var shot: Shot = Shot.BOLT
+
+## How far this breed can throw. Zero means "as far as it can reach", which is
+## what the roster did before shots varied.
+@export_range(0.0, 2400.0) var shot_range: float = 0.0
+
+
 ## Boss encounter phases. Empty for non-bosses. Crossing each health ratio in
 ## order triggers the matching name, reinforcements, and another step of the
 ## authored speed/damage escalation. This keeps boss identity in .tres content.

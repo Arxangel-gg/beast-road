@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 4
+shot_range = 660
 id = "crown_herald"
 display_name = "Crown Herald"
 description = "It announces the gate. The gate, unfortunately, listens."

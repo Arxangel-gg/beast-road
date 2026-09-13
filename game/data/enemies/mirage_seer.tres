@@ -2,6 +2,8 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+shot = 3
+shot_range = 620
 id = "mirage_seer"
 display_name = "Mirage Seer"
 description = "An elite ranged support orbiting a dangerous mirrored halo."

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 4
+shot_range = 700
 id = "glass_singer"
 display_name = "Glass Singer"
 description = "The note is just above hearing, and everything of glass answers it."

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+shot = 1
+shot_range = 600
 id = "glass_chanter"
 display_name = "Glass Chanter"
 description = "Holds a shard up to the sun and the whole line hardens behind it."

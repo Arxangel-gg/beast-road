@@ -2695,11 +2695,11 @@ The demonstration pictures the Guide shows beside each section, one per
 
 ### 5.30 Guide pictures of 2026-09-13 — `res://art/guide/`
 
-Nine more sections, each borrowing the photograph that actually shows
+Ten more sections, each borrowing the photograph that actually shows
 the thing it describes: the fog and the map are in every battlefield
 shot, a tower's paths are read on the tower sheet, a raised trap is
 still a trap. `tools/guide_shots.gd` writes them, so a re-run keeps them
-in step with the screens rather than leaving nine stale copies.
+in step with the screens rather than leaving ten stale copies.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -2712,6 +2712,7 @@ in step with the screens rather than leaving nine stale copies.
 | `boss_fight.png` | 640×360 | O | `#2E3A33` |
 | `hunted.png` | 640×360 | O | `#2E3A33` |
 | `attributes.png` | 640×360 | O | `#2E3A33` |
+| `enemy_shots.png` | 640×360 | O | `#2E3A33` |
 
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 

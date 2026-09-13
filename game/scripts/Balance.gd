@@ -6511,3 +6511,59 @@ const HERO_RESOLVE_WARD_CAP: float = 1.20
 ## exactly where the bond and the trait left it.
 const HERO_RESOLVE_SPIRIT_PER_POINT: float = 0.012
 const HERO_RESOLVE_SPIRIT_CAP: float = 1.50
+
+
+# --- Five ranged answers instead of one (2026-09-13) ---------------------------
+## **Every ranged enemy in the game fired the identical bolt.**
+##
+## The owner reported it plainly: "the ranged enemies all have one attack and
+## the same one". It was literally one branch - `role == HOWLER` built an
+## `EnemyProjectile` and nothing else varied - so fourteen breeds across ten
+## regions posed one question, and a player who learned to sidestep in Act I had
+## learned the whole ranged game.
+##
+## There are five now, and what separates them is **the verb that answers
+## them**: sidestep a bolt, spread out against a fan, leave the circle a mortar
+## marked, outrun a hex, step off a lance's line. Authored per breed on
+## `EnemyData` (working rule 3), so another shooter is a file rather than a
+## branch.
+##
+## **The bound: a shot may change the shape of a blow, never its size.** A fan
+## of three divides the strike it rolled rather than firing it three times, a
+## mortar and a lance land the one blow they rolled on whoever is standing
+## there, and a hex trades some of its damage for the mana it burns. Nothing
+## here multiplies `contact_damage`, so the ten-act pressure curve still reads
+## against the same numbers, and `enemy_shot_check` measures that rather than
+## trusting it. [TUNE]
+
+## SPRAY: a fan, dividing one strike between its shots.
+const ENEMY_SHOT_SPRAY_SPREAD: float = 0.30
+const ENEMY_SHOT_SPRAY_SHOTS: int = 3
+
+## LOB: a mortar. The delay is the dodge, and the ring is drawn at exactly the
+## radius the blow will use.
+const ENEMY_SHOT_LOB_DELAY: float = 1.05
+const ENEMY_SHOT_LOB_RADIUS: float = 132.0
+const ENEMY_SHOT_LOB_TINT: Color = Color(1.0, 0.52, 0.26)
+
+## LANCE: a line, telegraphed and then struck along its whole length.
+const ENEMY_SHOT_LANCE_DELAY: float = 0.9
+const ENEMY_SHOT_LANCE_RANGE: float = 620.0
+const ENEMY_SHOT_LANCE_HALF_WIDTH: float = 34.0
+const ENEMY_SHOT_LANCE_TINT: Color = Color(0.62, 0.82, 1.0)
+
+## HEX: slow, and it follows. Outrun it, or break its line with a body.
+## It trades damage for mana, which is the one thing in the game that only
+## matters to somebody who casts - so a hex is the shot a Focus build fears and
+## a Might build shrugs off, which is variety the other four cannot give.
+const ENEMY_SHOT_HEX_SPEED: float = 0.42
+const ENEMY_SHOT_HEX_TURN: float = 1.5
+const ENEMY_SHOT_HEX_DAMAGE_SHARE: float = 0.55
+const ENEMY_SHOT_HEX_MANA_SHARE: float = 0.28
+const ENEMY_SHOT_HEX_TINT: Color = Color(0.72, 0.52, 1.0)
+
+## What a spirit standing in an area blow takes of it. It is smaller than the
+## person it is standing beside, and it was never the target.
+const ENEMY_SHOT_SPIRIT_SHARE: float = 0.6
+## How hard an area blow shakes the camera, on the scale `camera_impact` reads.
+const ENEMY_SHOT_IMPACT_SHARE: float = 0.55

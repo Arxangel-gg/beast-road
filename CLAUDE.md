@@ -1440,6 +1440,55 @@ a player's Oathbound sword may dress different attributes than it did. That is
 the price of deriving affixes from the name rather than storing them, which is
 what keeps them out of the save.
 
+**Ranged enemies throw five different things, as of 2026-09-13.** The owner
+reported that "the ranged enemies all have one attack and the same one". They
+did, literally: `role == HOWLER` built one `EnemyProjectile` and nothing else
+varied, so fourteen breeds across ten regions posed one question between them
+and a player who learned to sidestep in Act I had learned the whole ranged
+game.
+
+**What separates the five is the verb that answers them.** Sidestep a BOLT,
+spread out against a SPRAY, leave the circle a LOB marked, step off a LANCE's
+line, outrun a HEX. Authored per breed on `EnemyData.shot` (working rule 3), so
+another shooter is a file rather than a branch, and a breed that authors nothing
+throws the bolt every breed threw before this.
+
+**The bound is that a shot changes the shape of a blow and never its size.** A
+fan *divides* the strike it rolled between its three shots; a mortar and a lance
+land that one strike on whoever is standing there; a hex trades part of its
+damage for mana. Nothing multiplies `contact_damage`, which is what lets the
+ten-act pressure curve still be read against the same numbers - `curve_report`
+models a ranged enemy as its contact damage and would never have noticed.
+`enemy_shot_check` **measures** that rather than reading it back, by firing each
+shot at a body with a known pool.
+
+The hex is the only one whose threat depends on *who you are* rather than where
+you are standing, and that is deliberate: mana is the one resource that matters
+to a caster and not at all to a swordhand, so the five shots vary along two axes
+instead of one.
+
+**Two real faults fell out of gating it, and both predated the change.** A shot
+only ever resolved where its *destination* was, which was invisible while every
+shot was aimed at a body - so the boss volley added on the same day, which aims
+at points either side of its target, flew straight past whoever it was thrown at
+and burst at the far end of its range. And an area blow drawn from chest height
+struck nobody, because `strike_the_players` measures from a body's feet. Ground
+blows are laid on the ground now, and a shot hits what it passes through.
+
+**"Everything of the player's" has one definition.** `EnemyGroundStrike.strike_the_players`
+is it: heroes and their spirits, never the town and never a tower. The boss slam
+had its own copy and now calls this one, because two copies of that rule is how
+one of them ends up forgetting about companions. A shooter whose target *is* the
+wall falls back to an ordinary bolt, so a siege breed does not quietly stop being
+able to besiege.
+
+**A blow already thrown lands even if its thrower does not.** `EnemyGroundStrike`
+is a node under the battlefield rather than a timer on the enemy, so it survives
+the death of whatever threw it - otherwise the correct play against every mortar
+breed is to kill it after it commits, and the telegraph becomes a reward rather
+than a warning. Living under the battlefield is also what freezes it for a raid
+(working rule 8) with nothing having to know it exists.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

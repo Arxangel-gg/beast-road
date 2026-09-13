@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "enemy_shots"
+display_name = "Shots from a distance"
+title = "Shots from a distance"
+category = "Fighting"
+order = 42
+image = "res://art/guide/enemy_shots.png"
+body = "Not every shot from a distance is the same shot, and the answer to each is a different thing to do with your feet.
+
+A BOLT is one fast shot, thrown at where you were standing when it left. Sidestep it.
+
+A SPRAY is a fan of three that share one blow between them. Do not stand in the middle of it - the edges are thinner than the centre.
+
+A LOB marks a circle on the ground and lands in it a moment later. The circle is drawn at exactly the size of the blow and fills as your time runs out. Leave it.
+
+A LANCE draws a line out of the thrower and strikes along its whole length. Stepping sideways is free; running down it is not.
+
+A HEX is slow and it follows you. It hurts less than a bolt and takes mana with it, so it is the shot a caster has to respect. Outrun it, or put something between you and it.
+
+Each breed throws one of the five, always the same one, so the enemy you are looking at tells you what is coming."

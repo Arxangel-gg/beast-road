@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 1
+shot_range = 560
 id = "bell_priest"
 display_name = "Bell Priest"
 description = "Every ring of it is a rust flake coming loose somewhere in you."

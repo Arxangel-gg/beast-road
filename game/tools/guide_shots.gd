@@ -146,6 +146,7 @@ func _ready() -> void:
 	_copy("camps", "hunted")
 	# The fifth attribute (2026-09-13) is read on the Mansion's hero page.
 	_copy("town", "attributes")
+	_copy("waves", "enemy_shots")
 
 	print("[guide-shots] wrote %d pictures to %s" % [_written.size(),
 		ProjectSettings.globalize_path(OUT)])

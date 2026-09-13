@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot = 2
+shot_range = 700
 id = "ash_caller"
 display_name = "Ash Caller"
 description = "It calls the fire back up out of the ground it came from."
