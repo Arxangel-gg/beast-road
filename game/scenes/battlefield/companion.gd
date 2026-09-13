@@ -96,7 +96,16 @@ func _ready() -> void:
 		_left = INF
 		var scale: float = SpiritBond.power_scale(
 			SpiritBond.rarity_of(spirit_key), SpiritBond.shiny_of(spirit_key))
-		_max_hp = data.damage * Balance.SPIRIT_HEALTH_PER_DAMAGE * scale
+		# The spirit stands where the Warden stands: Resolve is the one
+		# attribute that reaches past the hero's own body. Health only - a
+		# spirit's damage is `SPIRIT_APEX_POWER`'s business and the trait's,
+		# and a fifth attribute quietly raising it would be the third power
+		# scale this project keeps refusing.
+		var keeper: float = 1.0 + minf(
+			float(RunState.attribute(RunState.Attribute.RESOLVE))
+				* Balance.HERO_RESOLVE_SPIRIT_PER_POINT,
+			Balance.HERO_RESOLVE_SPIRIT_CAP)
+		_max_hp = data.damage * Balance.SPIRIT_HEALTH_PER_DAMAGE * scale * keeper
 		_hp = _max_hp
 	# Snapshot at summon time rather than read per strike.
 	#

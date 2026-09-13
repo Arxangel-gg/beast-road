@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "attributes"
+display_name = "The five attributes"
+title = "The five attributes"
+category = "Basics"
+order = 4
+image = "res://art/guide/attributes.png"
+body = "Every level brings one attribute point, and there are five places to put it. Five, not four: Resolve was added last and no hero who levelled before it lost anything - it simply starts at nothing.
+
+MIGHT is damage on every swing and every shot. VIGOUR is how much health you have. SWIFTNESS is how fast you move and how fast you swing. FOCUS is spell damage, mana, cooldowns and Command.
+
+RESOLVE is what does not break. Blows land softer - up to a fixed ceiling, so it can never make you untouchable - wards given to you are worth more, and the spirit at your shoulder is tougher, because it stands where you stand.
+
+Vigour and Resolve are not the same answer to the same question. Vigour is a bigger pool; Resolve is a pool that empties slower, and it multiplies every heal, every draught and every fish you have ever eaten. A hero with a hundred of each is not the hero with two hundred of either.
+
+Gear grants attribute points too, never raw numbers, so a piece is always measured on the same scale a level is. Two kinds in every slot favour Resolve, and the rarest pieces bonus as many as five attributes at once - dividing what the piece was worth, never adding to it."

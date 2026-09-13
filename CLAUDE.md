@@ -1389,6 +1389,57 @@ ten acts are tuned to is measuring waves.
 and prompts; the draught is taken with Interact by a hero who is hurt, and
 a hero who is fine walks past a full well and leaves it full.
 
+**There is a fifth attribute, Resolve, as of 2026-09-13.** The owner asked for
+"a new 5th stat attribute for our player and gear for more build diversity".
+Four attributes had four fantasies - hit hard, have a lot of health, move and
+swing fast, cast - and the gap between them was the difference between a
+*bigger* pool and a pool that is *harder to empty*. Vigour is the first.
+
+**Resolve is what does not break.** Blows land softer up to a hard ceiling,
+wards given to the hero are worth more, and the spirit at their shoulder is
+tougher, because it stands where they stand. Every one of those numbers already
+existed: `Health.damage_scale` is what Iron Roar has always used, `add_shield`
+is what Aegis has always granted, and a spirit's health has always been its
+damage times a constant. A fifth attribute that introduced a *mechanic* would
+be a content system wearing an attribute's clothes - the bound omens, Road
+Cards, spirit traits and tower paths are all built under.
+
+**It adds no points, and that is the whole argument for it being safe.** A
+level still grants one point, and gear still grants what the budget pays for
+(working rule 7); five attributes is the same power spread five ways rather
+than four. Nothing in `curve_report` or the campaign tiers had to move, and
+`attribute_check` asserts the "one point a level" contract first and hardest,
+by *taking* a level rather than by reading a constant.
+
+**Vigour and Resolve are not the same answer.** Vigour is a bigger pool;
+Resolve is a pool that empties slower, and it multiplies every heal, every
+draught and every fish in the game. Mitigation is therefore the one number here
+that is capped rather than merely scaled - uncapped it compounds with the pool
+and with healing into something nobody is tuning.
+
+**Sixteen kinds of gear favour it, two in every slot.** Reachable only as a
+*secondary* bonus is reachable only by accident, and nobody builds for an
+accident. Two a slot rather than sixteen in one, because `Stash.roll` picks by
+weight across every kind rather than per slot: piling them into one slot would
+quietly make that slot commoner and every other rarer, which `balance_test`
+already caught once. The top two rarities now dress four and five attributes
+(`GEAR_AFFIX_COUNT` ends `4, 5`) and the budget is still *divided* - five is
+the ceiling because a hero has five places to put it.
+
+**Resolve is last in the enum on purpose.** `hero_attributes` is positional on
+disk, so a save written before this reads its four numbers into the first four
+slots and arrives with Resolve at zero. Nothing migrates, `SAVE_VERSION` did
+not move, and `attribute_check` drives a four-entry hero through the real load
+path to prove it. **Never reorder that enum.**
+
+One consequence worth knowing: widening `Stash.ATTRIBUTE_COUNT` re-draws the
+*secondary* attributes of every piece already in a stash, because the pool a
+piece's name draws from got bigger. The primary is the kind's own and does not
+move, and the budget is untouched, so no piece became stronger or weaker - but
+a player's Oathbound sword may dress different attributes than it did. That is
+the price of deriving affixes from the name rather than storing them, which is
+what keeps them out of the save.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -231,8 +231,16 @@ func shield() -> float:
 
 ## Adds to the pool rather than replacing it, but never past a ceiling: two
 ## wards running should be worth more than one and not worth unlimited.
+## What a ward given to this body is worth. One for everything but a hero who
+## has placed Resolve - see `Hero._apply_permanent_bonuses`.
+##
+## Applied inside `add_shield` rather than at each grant, because there are five
+## grant sites and the sixth would have been the one that forgot.
+var shield_scale: float = 1.0
+
+
 func add_shield(amount: float) -> void:
 	if is_dead or amount <= 0.0:
 		return
-	_shield = minf(_shield + amount, max_hp * Balance.HEALTH_SHIELD_CEILING)
+	_shield = minf(_shield + amount * shield_scale, max_hp * Balance.HEALTH_SHIELD_CEILING)
 	shield_changed.emit(_shield)

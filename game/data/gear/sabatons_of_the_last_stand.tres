@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 5
+attribute = 4
+base_points = 4
+weight = 0.70
+min_tier = 1
+description = "Thick soles, deep buckles. Made for standing, not for running."
+id = "sabatons_of_the_last_stand"
+display_name = "Sabatons of the Last Stand"

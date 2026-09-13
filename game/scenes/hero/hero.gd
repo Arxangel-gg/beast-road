@@ -683,6 +683,25 @@ func contact_radius() -> float:
 
 
 ## Base speed after the Sanctum, relics and an active Ash Veil.
+## Resolve's share: what a blow is worth when it lands.
+##
+## Returned as the `damage_scale` a hero stands at when nothing else is
+## happening to them, rather than as a bonus, because that is the field Iron
+## Roar and the Sanguine Guard already take the *minimum* of. A hero with no
+## Resolve stands at exactly 1.0, which is where every hero stood before this.
+func _resolve_scale() -> float:
+	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
+	return 1.0 - minf(float(points) * Balance.HERO_RESOLVE_MITIGATION_PER_POINT,
+		Balance.HERO_RESOLVE_MITIGATION_CAP)
+
+
+## And what a ward given to them is worth.
+func _resolve_ward_scale() -> float:
+	var points: int = RunState.attribute(RunState.Attribute.RESOLVE)
+	return 1.0 + minf(float(points) * Balance.HERO_RESOLVE_WARD_PER_POINT,
+		Balance.HERO_RESOLVE_WARD_CAP)
+
+
 ## Vigour's share of the health pool.
 func _vigour_bonus() -> float:
 	var points: int = RunState.attribute(RunState.Attribute.VIGOUR)
@@ -765,6 +784,13 @@ func _apply_permanent_bonuses() -> void:
 	else:
 		health.current_hp = health.max_hp
 	health.changed.emit(health.current_hp, health.max_hp)
+	# Resolve, re-read here because this is the one function every source of
+	# permanent hero power already flows through - a level, a socket, a piece of
+	# gear, a wound. `maxf` against any armour currently running, so re-reading
+	# it in the middle of an Iron Roar does not cancel the Roar.
+	health.damage_scale = minf(health.damage_scale, _resolve_scale()) \
+		if _armor_left > 0.0 else _resolve_scale()
+	health.shield_scale = _resolve_ward_scale()
 	# Mana comes back the same way health does: what the last scope left, or
 	# full when there was no last scope.
 	mana = clampf(RunState.hero_mana, 0.0, mana_max()) if RunState.hero_mana >= 0.0 else mana_max()
@@ -1175,7 +1201,9 @@ func _tick_timers(delta: float) -> void:
 	if _armor_left > 0.0:
 		_armor_left = maxf(_armor_left - delta, 0.0)
 		if _armor_left <= 0.0 and health != null:
-			health.damage_scale = 1.0
+			# Back to what Resolve alone is worth, not to nothing. Before the
+			# fifth attribute these were the same number.
+			health.damage_scale = _resolve_scale()
 	if _wound_delay_left > 0.0:
 		_wound_delay_left = maxf(_wound_delay_left - delta, 0.0)
 		if _wound_delay_left <= 0.0 and health != null:

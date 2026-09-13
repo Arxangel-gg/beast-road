@@ -604,7 +604,7 @@ func _show_mansion() -> void:
 			_mansion_hero(tier)
 
 
-## Level, the four attributes, and the four ability slots — everything the hero
+## Level, the five attributes, and the four ability slots — everything the hero
 ## *is* right now. Available whether or not the Mansion is built, because an
 ## earned attribute point is a reward already paid for, and making the player
 ## build a plot before they can spend it turns levelling up into an IOU.
@@ -620,13 +620,11 @@ func _mansion_hero(tier: int) -> void:
 	else:
 		_note("No points to place. The next level brings one.")
 
-	var names: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
-	var blurbs: Array[String] = [
-		"Damage on every swing and every shot.",
-		"Maximum health.",
-		"Movement and swing speed.",
-		"Spell damage, mana, cooldowns and Command.",
-	]
+	# Read from `RunState` rather than kept here. This screen and the gear
+	# tooltip both used to hold their own copy, which is two places to remember
+	# a fifth attribute and one of them that would not have.
+	var names: Array[String] = RunState.ATTRIBUTE_NAMES
+	var blurbs: Array[String] = RunState.ATTRIBUTE_NOTES
 	var spendable: bool = RunState.hero_attribute_points > 0
 	for index: int in names.size():
 		var placed: int = RunState.hero_attributes[index]

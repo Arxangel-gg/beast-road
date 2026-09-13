@@ -500,6 +500,9 @@ jobs:
           # waits for its level, is made once, and moves only numbers the
           # tower already had.
           check "tower paths" --headless --path game res://tools/tower_path_check.tscn
+          # Five attributes, and the fifth adds choices rather than points: a
+          # level still grants exactly one, and gear still divides its budget.
+          check "attributes" --headless --path game res://tools/attribute_check.tscn
           # The battlefield playlist deals what is on disk, advances on the end
           # of a song, holds for a boss and hands back. Missing songs are quiet.
           check "music" --headless --path game res://tools/music_check.tscn

@@ -233,7 +233,11 @@ const LOOT_Z_INDEX: int = -2
 ## which is what 160 was to 73 kinds. This number is a *consequence* of the
 ## roster rather than a decision of its own - if kinds are ever cut, it should
 ## come back down.
-const STASH_CAPACITY: int = 216
+##
+## **Raised 216 -> 252 on 2026-09-13, with the sixteen Resolve kinds.** Third
+## time, same arithmetic, and the gate caught it on the first run again: 114
+## kinds is 228 before any slack. A tenth on top of that is 252.
+const STASH_CAPACITY: int = 252
 
 ## How many pieces one side may put on the trade table at once.
 ##
@@ -2017,8 +2021,9 @@ const FISH_STASH_CAPACITY: int = 40
 ## This is what the two rarities added on 2026-09-11 mostly buy. The budget is
 ## divided rather than added to (`Stash.affixes`), so a fourth bonus is breadth
 ## and never magnitude - the same bound the affixes themselves were built under.
-## Four is the ceiling because a hero has four attributes. [TUNE]
-const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3, 3, 4]
+## The ceiling is however many attributes a hero has - four until Resolve was
+## added on 2026-09-13, five after. [TUNE]
+const GEAR_AFFIX_COUNT: Array[int] = [1, 1, 2, 2, 3, 4, 5]
 
 ## How the budget divides across those bonuses. Each row sums to one, which is
 ## what keeps the total identical to a single-bonus piece of the same rarity.
@@ -2031,6 +2036,7 @@ const GEAR_AFFIX_SPLIT: Array[Array] = [
 	[0.72, 0.28],
 	[0.62, 0.24, 0.14],
 	[0.55, 0.22, 0.14, 0.09],
+	[0.50, 0.20, 0.13, 0.10, 0.07],
 ]
 const TREELINE_LANE_CLEARANCE: float = 320.0
 
@@ -6466,3 +6472,42 @@ const BOSS_VOLLEY_SPREAD: float = 0.22
 const BOSS_VOLLEY_SPEED: float = 430.0
 ## How much closer than its slam radius a boss has to be before it bothers.
 const BOSS_SLAM_COMMIT: float = 0.85
+
+
+# --- The fifth attribute (2026-09-13) ------------------------------------------
+## **Resolve: what does not break.**
+##
+## The owner asked for "a new 5th stat attribute for our player and gear for
+## more build diversity". Four attributes had four fantasies - hit hard, have a
+## lot of health, move and swing fast, cast - and the gap between them was the
+## difference between a *bigger* pool and a pool that is *harder to empty*.
+## Vigour is the first. Resolve is the second, and the two multiply rather than
+## overlap: a hundred points of Vigour and a hundred of Resolve are not the same
+## hero, and neither is a hero with fifty of each.
+##
+## **It adds no points, and that is the whole argument for it being safe.** A
+## level still grants one point and gear still grants what the budget pays for
+## (working rule 7); five attributes is the same power spread five ways rather
+## than four. Nothing in `curve_report` or the campaign tiers had to move.
+##
+## **And every number it touches already existed.** `Health.damage_scale` is
+## what Iron Roar has always used, `add_shield` is what Aegis has always
+## granted, and a spirit's health has always been its damage times a constant.
+## A fifth attribute that introduced a *mechanic* would be a content system
+## wearing an attribute's clothes - the bound omens, Road Cards, spirit traits
+## and tower paths are all held to. [TUNE]
+const HERO_RESOLVE_MITIGATION_PER_POINT: float = 0.0040
+## Capped, because mitigation compounds with the health pool and with every
+## heal in the game. At the cap a blow lands for six tenths of itself, which is
+## worth about two thirds of what a fully-placed Vigour is worth on its own -
+## and rather more alongside one.
+const HERO_RESOLVE_MITIGATION_CAP: float = 0.40
+## What a ward is worth in the hands of somebody who holds it. Aegis, the
+## Sanguine Guard and the fish that leave a ward all go through `add_shield`.
+const HERO_RESOLVE_WARD_PER_POINT: float = 0.010
+const HERO_RESOLVE_WARD_CAP: float = 1.20
+## And the spirit at your shoulder stands where you stand. The companion's
+## *health* only - its damage is `SPIRIT_APEX_POWER`'s business and stays
+## exactly where the bond and the trait left it.
+const HERO_RESOLVE_SPIRIT_PER_POINT: float = 0.012
+const HERO_RESOLVE_SPIRIT_CAP: float = 1.50

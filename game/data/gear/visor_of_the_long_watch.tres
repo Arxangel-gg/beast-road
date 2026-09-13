@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 3
+attribute = 4
+base_points = 3
+weight = 0.95
+min_tier = 0
+description = "You see less through it. You also stop flinching."
+id = "visor_of_the_long_watch"
+display_name = "Visor of the Long Watch"

@@ -16,7 +16,9 @@ extends RefCounted
 ## what it is worth.
 
 const ICON_SIZE: float = 40.0
-const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus"]
+## An alias so this file reads the one list rather than a copy of it. A
+## fifth attribute arriving here and nowhere else drew "+3 " with no name.
+const ATTRIBUTE_NAMES: Array[String] = RunState.ATTRIBUTE_NAMES
 
 
 ## Works for a partner's gear and for gear nobody owns yet, because everything

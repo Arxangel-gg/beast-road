@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 6
+attribute = 4
+base_points = 3
+weight = 0.90
+min_tier = 0
+description = "No seam, no join, no stone. Somebody wanted to make a point."
+id = "ring_of_the_unbroken"
+display_name = "Ring of the Unbroken"

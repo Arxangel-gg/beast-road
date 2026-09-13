@@ -1723,7 +1723,7 @@ otherwise the same grey ring.
 `ui_harriers_token.png`
 
 Each of the five went to five kinds rather than three, so that every slot can
-raise any of the four attributes and the question a slot poses is which
+raise any of the attributes and the question a slot poses is which
 attribute this loadout wants rather than which piece scores highest.
 
 `ui_watchers_coif.png` · `ui_kilnglass_visor.png` ·
@@ -1731,6 +1731,20 @@ attribute this loadout wants rather than which piece scores highest.
 `ui_stillstep_boots.png` · `ui_ashwalk_greaves.png` ·
 `ui_harebone_band.png` · `ui_quarryman_signet.png` ·
 `ui_boarstooth_amulet.png` · `ui_deepglass_torc.png`
+
+Sixteen more arrived with **Resolve**, the fifth attribute, on 2026-09-13: two
+in every slot, so that the new attribute can be a piece's *primary* rather than
+only a secondary bonus nobody builds for. Same cold blue-grey steel and
+near-black leather as the rest of the set, and the same 128x128.
+
+`ui_bulwark_blade.png` · `ui_oathkeepers_maul.png` ·
+`ui_unyielding_carapace.png` · `ui_scarwrought_plate.png` ·
+`ui_knot_of_endurance.png` · `ui_stonefast_totem.png` ·
+`ui_visor_of_the_long_watch.png` · `ui_ironwill_barbute.png` ·
+`ui_gauntlets_of_the_held_line.png` · `ui_bracers_of_still_hands.png` ·
+`ui_sabatons_of_the_last_stand.png` · `ui_rootbound_treads.png` ·
+`ui_ring_of_the_unbroken.png` · `ui_band_of_quiet_iron.png` ·
+`ui_amulet_of_the_standing_stone.png` · `ui_pendant_of_the_kept_word.png`
 
 Four of these were drawn twice. Hand armour generates as leg armour unless the
 prompt insists on fingers, and a ring generates as a slab unless it insists on
@@ -2681,11 +2695,11 @@ The demonstration pictures the Guide shows beside each section, one per
 
 ### 5.30 Guide pictures of 2026-09-13 — `res://art/guide/`
 
-Eight more sections, each borrowing the photograph that actually shows
+Nine more sections, each borrowing the photograph that actually shows
 the thing it describes: the fog and the map are in every battlefield
 shot, a tower's paths are read on the tower sheet, a raised trap is
 still a trap. `tools/guide_shots.gd` writes them, so a re-run keeps them
-in step with the screens rather than leaving eight stale copies.
+in step with the screens rather than leaving nine stale copies.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
@@ -2697,6 +2711,7 @@ in step with the screens rather than leaving eight stale copies.
 | `sharing_fish.png` | 640×360 | O | `#2E3A33` |
 | `boss_fight.png` | 640×360 | O | `#2E3A33` |
 | `hunted.png` | 640×360 | O | `#2E3A33` |
+| `attributes.png` | 640×360 | O | `#2E3A33` |
 
 ### 5.23 Pond and shore plants — `res://art/foliage/`
 

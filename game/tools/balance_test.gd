@@ -766,7 +766,7 @@ func _test_hero_levelling() -> void:
 	RunState.hero_xp = 0.0
 	RunState.hero_attribute_points = 0
 	RunState.hero_skill_points = 0
-	RunState.hero_attributes = [0, 0, 0, 0]
+	RunState.hero_attributes = [0, 0, 0, 0, 0]
 	MetaState.hero_xp = 0.0
 	RunState.gain_hero_xp(3.0)
 	_check(is_equal_approx(MetaState.hero_xp, 3.0),
@@ -1123,7 +1123,7 @@ func _test_tiers_and_persistence() -> void:
 			% (placed + MetaState.hero_attribute_points))
 
 	MetaState.hero_level = 1
-	MetaState.hero_attributes = [0, 0, 0, 0]
+	MetaState.hero_attributes = [0, 0, 0, 0, 0]
 	MetaState.hero_attribute_points = 0
 	RunState.reset()
 
@@ -1142,7 +1142,7 @@ func _test_stash_economy() -> void:
 		return
 	for kind: GearData in kinds:
 		_check(kind.base_points > 0, "%s must be worth something" % kind.id)
-		_check(kind.attribute >= 0 and kind.attribute < 4,
+		_check(kind.attribute >= 0 and kind.attribute < RunState.Attribute.size(),
 			"%s names attribute %d, which does not exist" % [kind.id, kind.attribute])
 
 	var stash_before: Array = MetaState.stash.duplicate(true)
@@ -2624,8 +2624,9 @@ func _test_gear_farming() -> void:
 				+ "below two thirds of even, a player hunting that slot waits "
 				+ "without being told why")
 				% [GearData.name_of_slot(slot), share * 100.0, even_share * 100.0])
-	_check(attributes.size() == 4,
-		"gear must be able to raise all four attributes, reaches %d" % attributes.size())
+	_check(attributes.size() == RunState.Attribute.size(),
+		"gear must be able to raise every attribute, reaches %d of %d"
+			% [attributes.size(), RunState.Attribute.size()])
 
 	# 3b. The loadout's total worth, which is the bound the eight slots were
 	# added under. `GEAR_TOTAL_SLOT_CEILING` said so from the day it was written

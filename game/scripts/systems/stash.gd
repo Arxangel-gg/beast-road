@@ -221,7 +221,15 @@ static func points(piece: Dictionary, kind: GearData) -> int:
 
 ## How many attributes a hero has. Here rather than reached for through an
 ## autoload, because this class is deliberately checkable without a scene.
-const ATTRIBUTE_COUNT: int = 4
+## How many attributes a hero has. Five since 2026-09-13.
+##
+## Widening this re-draws the *secondary* attributes of every piece already in
+## a stash, because the pool a name draws from got bigger. The primary is the
+## kind's own and does not move, and `Stash.points` - the budget - is untouched,
+## so no piece became stronger or weaker. What changed is which attributes a
+## piece happens to dress, which is the price of deriving them from the name
+## rather than storing them.
+const ATTRIBUTE_COUNT: int = 5
 
 
 ## Every attribute this piece bonuses, and by how much.

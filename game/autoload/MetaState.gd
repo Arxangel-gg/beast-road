@@ -316,7 +316,7 @@ var tools: int = 0
 ## The hero's level, experience and placed attributes, carried between runs.
 var hero_level: int = 1
 var hero_xp: float = 0.0
-var hero_attributes: Array[int] = [0, 0, 0, 0]
+var hero_attributes: Array[int] = [0, 0, 0, 0, 0]
 var hero_attribute_points: int = 0
 var hero_skill_points: int = 0
 ## The Warden's ascension rank, 0 to `Balance.ASCENSION_MAX` (owner request,
@@ -835,7 +835,7 @@ func erase_progress() -> void:
 	sigils = 0
 	hero_level = 1
 	hero_xp = 0.0
-	hero_attributes = [0, 0, 0, 0]
+	hero_attributes = [0, 0, 0, 0, 0]
 	hero_attribute_points = 0
 	hero_skill_points = 0
 	ascension = 0
@@ -1028,7 +1028,7 @@ func _read_hero(hero: Dictionary) -> void:
 	last_tier_id = String(hero.get("last_tier", "normal"))
 	story_intro_seen = bool(hero.get("story_seen", false))
 
-	hero_attributes = [0, 0, 0, 0]
+	hero_attributes = [0, 0, 0, 0, 0]
 	var stored: Array = hero.get("attributes", []) as Array
 	for i: int in mini(stored.size(), hero_attributes.size()):
 		hero_attributes[i] = maxi(int(stored[i]), 0)
@@ -1162,9 +1162,11 @@ func equipped_piece(slot: int) -> Dictionary:
 	return stash[index]
 
 
-## Attribute points every equipped piece grants, as a four-entry array.
+## Attribute points every equipped piece grants, one entry per attribute.
 func gear_attribute_points() -> Array[int]:
-	var out: Array[int] = [0, 0, 0, 0]
+	var out: Array[int] = []
+	out.resize(RunState.ATTRIBUTE_NAMES.size())
+	out.fill(0)
 	for slot: Variant in equipped:
 		var piece: Dictionary = equipped_piece(int(slot))
 		if piece.is_empty():

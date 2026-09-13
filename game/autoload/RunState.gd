@@ -183,8 +183,31 @@ var hero_ascension: int = 0
 # All of it run-scoped. GDD v4 SS974 forbids a hero level persisting, and
 # CLAUDE.md SS7 names the save's whole contents - none of this is in it.
 
-## The four attributes, in the order their points are stored.
-enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS }
+## The five attributes, in the order their points are stored.
+##
+## Resolve was added on 2026-09-13 and is deliberately **last**, so a save
+## written before it reads its four numbers into the first four slots and
+## arrives with Resolve at zero. Nothing migrates and `SAVE_VERSION` did not
+## move. Never reorder this: the array is positional on disk.
+enum Attribute { MIGHT, VIGOUR, SWIFTNESS, FOCUS, RESOLVE }
+
+## What each one is called, and what it does, in one place.
+##
+## Two screens and a tooltip used to keep their own copies of this list, which
+## is three chances to add a fifth attribute and only two of them remembering.
+const ATTRIBUTE_NAMES: Array[String] = ["Might", "Vigour", "Swiftness", "Focus", "Resolve"]
+const ATTRIBUTE_NOTES: Array[String] = [
+	"Damage on every swing and every shot.",
+	"Maximum health.",
+	"Movement and swing speed.",
+	"Spell damage, mana, cooldowns and Command.",
+	"Blows land softer, wards hold longer, and your spirit stands where you stand.",
+]
+
+
+## The name of an attribute, safely.
+static func attribute_name(which: int) -> String:
+	return ATTRIBUTE_NAMES[which] if which >= 0 and which < ATTRIBUTE_NAMES.size() else ""
 
 ## The weather over the battlefield. Rolled per road, held for its duration.
 ##
@@ -211,7 +234,7 @@ var hero_attribute_points: int = 0
 var hero_skill_points: int = 0
 
 ## Points placed, one entry per Attribute.
-var hero_attributes: Array[int] = [0, 0, 0, 0]
+var hero_attributes: Array[int] = [0, 0, 0, 0, 0]
 
 ## Carried between scopes so a raid is not a free heal and the walk back from
 ## the town is not a reset. -1 means "start at full".

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 0
+attribute = 4
+base_points = 4
+weight = 0.80
+min_tier = 1
+reach_scale = 0.900000
+swing_scale = 1.111111
+description = "Short, thick and unlovely. It is meant to be behind a shield."
+id = "bulwark_blade"
+display_name = "Bulwark Blade"

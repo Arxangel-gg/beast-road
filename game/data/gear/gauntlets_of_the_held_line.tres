@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 4
+attribute = 4
+base_points = 3
+weight = 0.95
+min_tier = 0
+description = "Worn by the rank that did not move. Most of them, anyway."
+id = "gauntlets_of_the_held_line"
+display_name = "Gauntlets of the Held Line"

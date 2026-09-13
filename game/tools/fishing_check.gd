@@ -420,7 +420,7 @@ func _test_a_slack_or_snapped_line_pays_nothing() -> void:
 func _test_the_angler_only_fishes() -> void:
 	MetaState.profession_xp.clear()
 	var before: Array[int] = []
-	for attribute: int in 4:
+	for attribute: int in RunState.Attribute.size():
 		before.append(RunState.attribute(attribute))
 	_check(MetaState.profession_level("angler") == 1, "a fresh account is an Angler of level 1")
 	MetaState.gain_profession_xp("angler", int(MetaState.profession_xp_to_cap()) + 500)
@@ -428,7 +428,7 @@ func _test_the_angler_only_fishes() -> void:
 		"the Angler must cap at %d, not %d" % [Balance.PROFESSION_MAX_LEVEL, MetaState.profession_level("angler")])
 	_check(float(MetaState.profession_xp.get("angler", 0.0)) <= MetaState.profession_xp_to_cap() + 0.01,
 		"experience past the cap must not be kept")
-	for attribute: int in 4:
+	for attribute: int in RunState.Attribute.size():
 		_check(RunState.attribute(attribute) == before[attribute],
 			"a maxed Angler changed attribute %d - a profession must not touch the fight" % attribute)
 	_check(MetaState.gain_profession_xp("smith", 10) == 1 and not MetaState.profession_xp.has("smith"),

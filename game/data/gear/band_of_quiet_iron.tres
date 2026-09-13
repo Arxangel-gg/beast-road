@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="GearData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+slot = 6
+attribute = 4
+base_points = 3
+weight = 0.85
+min_tier = 1
+description = "Wound with wire by a hand that had nothing else to do."
+id = "band_of_quiet_iron"
+display_name = "Band of Quiet Iron"
