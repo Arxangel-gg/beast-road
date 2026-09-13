@@ -273,6 +273,11 @@ signal enemy_spawned(enemy_id: String, at: Vector2)
 ## An enemy reached zero HP. Kill credit, raid charge and drops read off this.
 signal enemy_died(enemy_id: String, at: Vector2)
 
+## An elite or a boss fell. Distinct from `enemy_died` because the things
+## that care about a *leader* going down should not have to re-derive rank
+## from an id - Break the Host is the first of them.
+signal elite_fell(at: Vector2)
+
 ## The hero reached a new level, and how much is now unspent.
 signal hero_levelled(level: int, attribute_points: int, skill_points: int)
 

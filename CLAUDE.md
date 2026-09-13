@@ -1549,6 +1549,43 @@ away, and at 168x160 an axe into a trunk and a two-handed sword into a body are
 the same body doing the same thing. `Hero.play_work_swing` is one function and a
 dedicated chop or mine sheet drops into it by name.
 
+**The six nodes that did nothing now do what their cards say, as of
+2026-09-13.** The owner played the tree and reported that "the skills were all
+boring". A third of it was worse than boring: `DisciplineEffects` had listed six
+`effect_id`s since 2026-09-09 as authored, described to the player, priced at a
+skill point and a lot of Food, and **read by nothing at all**.
+
+- **No Ground Given** - a perfect evade is this game's block, and it empowers
+  the next *finisher* rather than every swing after it. Spent by that blow
+  whether or not it lands.
+- **Open Vein** - a body with nothing else within a body-length is a body you
+  have time to place a blow on. Rolled per body, because a crowd has no isolated
+  enemy in it by definition and a roll per swing would hand the crowd one
+  verdict.
+- **Blood Remembers** - the Tempest takes the brands with it, one extra blow per
+  branded body, the whole burst capped so a road of forty marked bodies is not a
+  one-cast wipe.
+- **Break the Host** - an elite falling while a channel runs buys it a moment
+  more, up to the hard cap its own card promises.
+- **Unbroken Oath** - a ward puts a shield on the walls near it. A shield rather
+  than health, which is the card's own distinction: "never permanent tower HP".
+- **Dawn Bell** - the towers fire faster for a while. The window lives on
+  `RunState` rather than on each tower, so a tower built during it is hasted and
+  one sold during it leaves no timer behind, and it counts down on the
+  battlefield, which is the thing that freezes for a raid.
+
+**`DECLARED_ONLY` is empty, and the list stays.** A future node that cannot be
+wired in the same change belongs there, visibly, rather than quietly missing
+from both lists.
+
+**And "implemented" is now checked rather than trusted.** `DisciplineEffects`
+said in as many words that a key added to `IMPLEMENTED` without a consumer "is
+the exact lie this file exists to prevent, and `discipline_check` cannot detect
+it". It can: every key on that list must be named by some script other than the
+ledger. A grep is a weak proof of behaviour and a strong proof of *wiring*,
+which is the half that was silently false for twenty-one effects. Checked by
+adding a key nothing reads, which the gate refused.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

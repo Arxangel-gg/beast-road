@@ -57,14 +57,11 @@ const IMPLEMENTED: Array[String] = [
 	"recoverable_wound",
 	"road_line_disrupt",
 	"selected_road_shockwave",
-]
-
-## Authored, described to the player, and not yet read by anything.
-##
-## Each of these has a sentence in its `.tres` that promises a behaviour, and an
-## `effect_value` sized for it. They are not design questions — they are unwritten
-## implementations. Shortening this list is the work.
-const DECLARED_ONLY: Array[String] = [
+	# The six that were only ever described, wired 2026-09-13. Owner report:
+	# "the skills were all boring". A third of the tree was worse than boring -
+	# it was a sentence the player paid a skill point and a lot of Food for and
+	# which nothing read. `DECLARED_ONLY` is empty now, and the rule above is
+	# what keeps it that way.
 	"block_finisher",
 	"consume_marks_burst",
 	"elite_extend_ultimate",
@@ -72,6 +69,24 @@ const DECLARED_ONLY: Array[String] = [
 	"repair_blocker_shields",
 	"tower_haste",
 ]
+
+## Authored, described to the player, and not yet read by anything.
+##
+## Each of these has a sentence in its `.tres` that promises a behaviour, and an
+## `effect_value` sized for it. They are not design questions — they are unwritten
+## implementations. Shortening this list is the work.
+## **Empty, as of 2026-09-13, and it should stay that way.**
+##
+## It held six keys for four days. Each had a sentence in its own file promising
+## a behaviour, an `effect_value` sized for it, a skill point and a lot of Food
+## as a price, and nothing at all reading it. The owner played the tree and
+## reported the skills as "all boring", which is what a third of a skill tree
+## being placebo feels like from the other side.
+##
+## Leaving the list in place rather than deleting it: a future node that cannot
+## be wired in the same change belongs here, visibly, rather than quietly
+## missing from both lists - which is what `discipline_check` refuses.
+const DECLARED_ONLY: Array[String] = []
 
 
 ## The authored magnitude for an effect the hero has *trained*, or 0.

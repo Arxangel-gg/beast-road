@@ -6686,3 +6686,42 @@ const FORGE_XP: int = 34
 ## And how practised the Smith has to be before the forge will attempt a piece
 ## with a gem of each rarity in it.
 const FORGE_GEM_LEVEL: Array[int] = [1, 4, 9, 14]
+
+
+# --- The six nodes that did nothing (2026-09-13) ------------------------------
+## **"The skills were all boring."**
+##
+## They were, and a third of them were worse than boring: `DisciplineEffects`
+## has listed six `effect_id`s since 2026-09-09 as authored, described to the
+## player, priced in a skill point and a lot of Food, and **read by nothing**.
+## Each has a sentence in its own file promising a behaviour and an
+## `effect_value` sized for it. That list is the work, and this is it being
+## finished.
+##
+## Every one of them moves a number the game already has, which is the bound
+## every addition here is held to. Nothing below is a new system. [TUNE]
+
+## No Ground Given: a perfect evade is this game's block - the i-frame window
+## is what a committed hit is answered with - and it empowers the next finisher
+## rather than every swing after it. One evade, one blow.
+const DISCIPLINE_GUARD_SECONDS: float = 4.0
+
+## Open Vein: how far a body must be from every other body to count as
+## isolated, and how long the telling blow's mark shows.
+const DISCIPLINE_ISOLATED_RADIUS: float = 190.0
+
+## Blood Remembers: how much of a brand's remaining worth the Tempest takes
+## when it consumes it, and the ceiling on the whole burst so a road of forty
+## branded bodies is not a one-cast wipe.
+const DISCIPLINE_MARK_BURST_CAP: float = 6.0
+
+## Break the Host: the ceiling on how far elite kills may push a channel. The
+## node authors the step; this is the hard cap its own card promises.
+const DISCIPLINE_CHANNEL_EXTEND_CAP: float = 4.5
+
+## Unbroken Oath: a ward repairs the walls near it, as a shield rather than as
+## health. The distinction is the card's own: "never permanent tower HP".
+const DISCIPLINE_WALL_WARD_RADIUS: float = 460.0
+
+## Dawn Bell: how long the towers keep the haste the bell gave them.
+const DISCIPLINE_TOWER_HASTE_SECONDS: float = 8.0

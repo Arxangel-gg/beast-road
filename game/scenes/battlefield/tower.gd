@@ -912,13 +912,17 @@ func _path_damage() -> float:
 ## And to how often it fires. Spread is faster, focus is slower; a shorter
 ## interval is a faster tower, so the sign is inverted from the note.
 func path_interval_scale() -> float:
+	# Dawn Bell rides here rather than on each tower's own clock: a tower built
+	# during the window should be hasted too, and one sold during it should not
+	# leave a timer behind. See `RunState.haste_the_towers`.
+	var haste: float = RunState.tower_haste()
 	match _path:
 		TowerData.Path.FOCUS:
-			return 1.0 - Balance.TOWER_FOCUS_RATE
+			return (1.0 - Balance.TOWER_FOCUS_RATE) * haste
 		TowerData.Path.SPREAD:
-			return 1.0 / (1.0 + Balance.TOWER_SPREAD_RATE)
+			return haste / (1.0 + Balance.TOWER_SPREAD_RATE)
 		_:
-			return 1.0
+			return haste
 
 
 ## How many extra bodies it reaches on the spread path, capstone included.

@@ -748,6 +748,54 @@ func _test_every_effect_is_accounted_for() -> void:
 	print("[discipline] %d effects implemented, %d authored and still owed"
 		% [implemented.size(), declared.size()])
 
+	# **And "implemented" is checked rather than trusted.**
+	#
+	# `DisciplineEffects` says in as many words that adding a key to
+	# `IMPLEMENTED` without a consumer "is the exact lie this file exists to
+	# prevent, and `discipline_check` cannot detect it". It can now: every key
+	# on that list must be named by some script other than the ledger itself.
+	# A grep is a weak proof of behaviour and a strong proof of *wiring*, which
+	# is the half that was silently false for twenty-one effects.
+	var unread: PackedStringArray = []
+	for key: String in implemented:
+		if not _named_in_code(key):
+			unread.append(key)
+	_check(unread.is_empty(),
+		("listed as implemented and named by no script but the ledger, which is "
+			+ "the placebo this file exists to prevent: %s") % ", ".join(unread))
+
+
+## Whether any script outside the ledger mentions this key.
+func _named_in_code(key: String) -> bool:
+	const ROOTS: Array[String] = ["res://scenes", "res://scripts", "res://autoload"]
+	var wanted: String = "\"%s\"" % key
+	for root: String in ROOTS:
+		if _mentions(root, wanted):
+			return true
+	return false
+
+
+func _mentions(path: String, wanted: String) -> bool:
+	var directory := DirAccess.open(path)
+	if directory == null:
+		return false
+	directory.list_dir_begin()
+	var name: String = directory.get_next()
+	while not name.is_empty():
+		var full: String = path.path_join(name)
+		if directory.current_is_dir():
+			if _mentions(full, wanted):
+				directory.list_dir_end()
+				return true
+		elif name.ends_with(".gd") and name != "discipline_effects.gd":
+			var file := FileAccess.open(full, FileAccess.READ)
+			if file != null and file.get_as_text().contains(wanted):
+				directory.list_dir_end()
+				return true
+		name = directory.get_next()
+	directory.list_dir_end()
+	return false
+
 
 func _test_every_node_can_be_offered() -> void:
 	var before_seed: int = RunState.run_seed

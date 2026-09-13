@@ -245,6 +245,10 @@ func _process(delta: float) -> void:
 		var spirit := hero.get("spirit") as Companion
 		if spirit != null and is_instance_valid(spirit) and spirit.data != null:
 			RunState.tick_spirit_upkeep(spirit.data, delta)
+	# Dawn Bell's haste, counted here because this is the thing that freezes
+	# for a raid - a timer anywhere else would run through the pause, which is
+	# what working rule 8 exists to stop.
+	RunState.tick_tower_haste(delta)
 	_pressure_timer -= delta
 	if _pressure_timer <= 0.0:
 		_pressure_timer = PRESSURE_INTERVAL

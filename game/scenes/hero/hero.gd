@@ -132,6 +132,9 @@ var _dash_cooldown_left: float = 0.0
 var _dash_refunded: bool = false
 var _dash_direction: Vector2 = Vector2.RIGHT
 
+## No Ground Given: how long the answered blow stays worth something.
+var _guard_left: float = 0.0
+
 ## Iron Roar: seconds of armour left. The share it turns away sits on `health`.
 var _armor_left: float = 0.0
 
@@ -765,6 +768,12 @@ func damage_multiplier() -> float:
 				multiplier *= 1.05
 			"crowd_finisher_force":
 				multiplier *= 1.04
+	# **No Ground Given**, spent on the finisher and on nothing else. Asked here
+	# rather than applied at the evade, so the bonus rides the swing the card
+	# names rather than whatever the hero happened to do next.
+	if _guard_left > 0.0 and attack != null \
+			and attack.current_step() >= Balance.HERO_CHAIN_LENGTH - 1:
+		multiplier *= 1.0 + DisciplineEffects.trained_value("block_finisher")
 	return multiplier
 
 
@@ -1097,6 +1106,11 @@ func _on_evaded(into: float, from: Vector2) -> void:
 	if into > Balance.HERO_PERFECT_EVADE_WINDOW:
 		return
 	EventBus.hero_perfect_evade.emit(global_position)
+	# **No Ground Given.** A perfect evade is this game's block - the i-frame
+	# window is how a committed hit is answered - so it empowers the *next
+	# finisher* rather than every swing after it. One evade, one blow.
+	if DisciplineEffects.trained("block_finisher"):
+		_guard_left = Balance.DISCIPLINE_GUARD_SECONDS
 	if attack != null:
 		attack.grant_haste(Balance.HERO_EVADE_HASTE_SECONDS)
 	# One refund per dash. See `_dash_refunded`.
@@ -2070,3 +2084,42 @@ func nearest_hurt_ally() -> Hero:
 ## Whether there is somebody beside this hero worth handing a fish to.
 func has_hurt_ally() -> bool:
 	return nearest_hurt_ally() != null
+
+
+# --- The six that used to do nothing (2026-09-13) -----------------------------
+
+## No Ground Given: the answered blow fades if it is not spent.
+##
+## Called from the hero's own tick, so it is suspended with the battlefield like
+## everything else the hero owns.
+func tick_guard(delta: float) -> void:
+	_guard_left = maxf(_guard_left - delta, 0.0)
+
+
+## And spent, by the swing that used it.
+func spend_guard() -> void:
+	_guard_left = 0.0
+
+
+func is_guarded() -> bool:
+	return _guard_left > 0.0
+
+
+## **Open Vein.** A body with nothing else near it is a body you have time to
+## place a blow on, and this is the chance of placing one.
+##
+## Rolled per body rather than per swing, so a finisher into a crowd is not a
+## lottery ticket for the whole crowd - the node's own text is about *isolated*
+## enemies, and a crowd has none in it by definition.
+func telling_blow(enemy: Node2D) -> float:
+	var chance: float = DisciplineEffects.trained_value("isolated_crit")
+	if chance <= 0.0 or enemy == null or field == null:
+		return 1.0
+	var near: Array = field.enemies_near(enemy.global_position,
+		Balance.DISCIPLINE_ISOLATED_RADIUS)
+	# Itself, and nobody else.
+	if near.size() > 1:
+		return 1.0
+	if RunState.rng("combat").randf() >= chance:
+		return 1.0
+	return 2.0

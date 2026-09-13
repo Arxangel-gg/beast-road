@@ -221,6 +221,16 @@ static func attribute_name(which: int) -> String:
 ## chest opening rather than a search.
 var raid_keys: int = 0
 
+## Dawn Bell's gift to the towers: how long the haste has left and what it is
+## worth, as a multiplier on the interval (below one is faster).
+##
+## Run-scoped and on `RunState` rather than on each tower, because a tower built
+## during the window should be hasted too and a tower sold during it should not
+## leave a dangling timer. Read in `Tower.path_interval_scale`, which is the one
+## place every firing clock already asks.
+var tower_haste_left: float = 0.0
+var tower_haste_scale: float = 1.0
+
 var weather_id: String = "clear"
 
 ## The campaign tier this run is being played on.
@@ -560,6 +570,8 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	towers_sold = 0
 	towers_lost = 0
 	town_damage_taken = 0.0
+	tower_haste_left = 0.0
+	tower_haste_scale = 1.0
 	town_hits_taken = 0
 	peak_lane_pressure = 0.0
 	wave_archetype_counts.clear()
@@ -2106,3 +2118,28 @@ func tick_spirit_upkeep(kind: CompanionData, delta: float) -> void:
 ## A fed spirit stops eating for a while.
 func feed_the_spirit(seconds: float) -> void:
 	spirit_full_left = maxf(spirit_full_left, seconds)
+
+
+# --- Dawn Bell's haste (2026-09-13) -------------------------------------------
+
+## Hastens every tower for a while. `fraction` is how much faster, so 0.32 is a
+## third quicker.
+func haste_the_towers(fraction: float, seconds: float) -> void:
+	if fraction <= 0.0 or seconds <= 0.0:
+		return
+	tower_haste_scale = 1.0 / (1.0 + fraction)
+	tower_haste_left = maxf(tower_haste_left, seconds)
+
+
+## What a tower's firing interval is multiplied by right now.
+func tower_haste() -> float:
+	return tower_haste_scale if tower_haste_left > 0.0 else 1.0
+
+
+## Counted down by the battlefield, which is the thing that freezes for a raid.
+func tick_tower_haste(delta: float) -> void:
+	if tower_haste_left <= 0.0:
+		return
+	tower_haste_left = maxf(tower_haste_left - delta, 0.0)
+	if tower_haste_left <= 0.0:
+		tower_haste_scale = 1.0

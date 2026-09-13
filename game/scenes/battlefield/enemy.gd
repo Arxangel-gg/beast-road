@@ -1432,6 +1432,14 @@ func is_branded() -> bool:
 	return _brand_left > 0.0
 
 
+## Takes the brand off. **Blood Remembers** is the only thing that does this -
+## a brand otherwise runs out on its own clock - and it is why the node is
+## called what it is: the mark is spent rather than merely expiring.
+func clear_brand() -> void:
+	_brand_left = 0.0
+	_brand_amplifier = 0.0
+
+
 ## What a tower's damage is multiplied by against this body. 1.0 when unbranded,
 ## so every caller can multiply unconditionally.
 func brand_multiplier() -> float:
@@ -1750,6 +1758,11 @@ func _on_died(_from: Vector2) -> void:
 				Balance.ENEMY_MORALE_RADIUS):
 			if other != self:
 				other.shake_morale(Balance.ENEMY_MORALE_LEADER_LOSS)
+	# **Break the Host.** An elite falling while a channel runs buys it a
+	# moment more. Said as a fact rather than reached for: the caster is the
+	# thing that knows whether a channel is running.
+	if rank != Rank.COMMON or data.category != EnemyData.Category.BREED:
+		EventBus.elite_fell.emit(_visual_origin())
 	EventBus.enemy_died.emit(data.id, _visual_origin())
 
 

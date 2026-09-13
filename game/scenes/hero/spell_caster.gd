@@ -54,6 +54,11 @@ var _ward_lane: int = -1
 var _ward_left: float = 0.0
 
 var _beam_left: float = 0.0
+## Break the Host: how much of the cap this channel has already spent, so a
+## long fight cannot extend one beam indefinitely a second at a time.
+var _beam_extended: float = 0.0
+## Where the last elite fell, so the flourish has somewhere to happen.
+var _beam_from: Vector2 = Vector2.ZERO
 var _beam_spell: SpellData = null
 var _beam_aim: Vector2 = Vector2.RIGHT
 
@@ -79,6 +84,7 @@ var _aegis_fields: Array[Dictionary] = []
 func _ready() -> void:
 	_cooldowns.resize(Balance.HERO_MAX_SPELL_SLOTS)
 	_cooldowns.fill(0.0)
+	EventBus.elite_fell.connect(func(at: Vector2) -> void: extend_channel_on_elite(at))
 
 
 func tick(delta: float, aim: Vector2, origin: Vector2) -> void:
@@ -172,6 +178,7 @@ func clear_cooldowns() -> void:
 		_cooldowns[i] = 0.0
 		cooldown_changed.emit(i, 0.0)
 	_beam_left = 0.0
+	_beam_extended = 0.0
 	_beam_spell = null
 	_falling.clear()
 
@@ -189,6 +196,7 @@ func clear_cooldowns() -> void:
 ## ended any other way.
 func cancel_channel() -> void:
 	_beam_left = 0.0
+	_beam_extended = 0.0
 	_beam_spell = null
 	_falling.clear()
 
@@ -281,6 +289,14 @@ func _rider(slot: int, spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			_road_shockwave(origin, spell, node.effect_value)
 		"marked_dash_refund":
 			_pursuit(origin, aim, spell, node.effect_value)
+		"tower_haste":
+			# **Dawn Bell.** The stagger is Tremor's own; this is the bell that
+			# follows it, and it reaches the towers rather than the bodies.
+			RunState.haste_the_towers(node.effect_value,
+				Balance.DISCIPLINE_TOWER_HASTE_SECONDS)
+			Vfx.ring(_foot(origin), Balance.DISCIPLINE_WALL_WARD_RADIUS,
+				Color("ffd98a"), 0.7, 5.0)
+			Sfx.play("sfx_spell_nova", -4.0)
 
 
 ## Iron Roar: a radial stagger on the cast, and armour that outlasts the veil.
@@ -444,6 +460,10 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 			blink_requested.emit(_foot(origin) + aim * spell.cast_range)
 		SpellData.Kind.NOVA:
 			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin)
+			# **Blood Remembers.** Asked here rather than in `_rider`, because it
+			# is a passive with no `spell_id` of its own - the Tempest is simply
+			# the nova this hero happens to be casting.
+			_consume_the_brands(origin, spell)
 			EventBus.camera_shake_requested.emit(7.0, 0.25)
 		SpellData.Kind.HOOK:
 			_hook(origin, spell, power)
@@ -457,6 +477,10 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2) -> void:
 		SpellData.Kind.WARD:
 			_ward_lane = _lane_at(origin)
 			_ward_left = spell.duration
+			# **Unbroken Oath.** A ward that shields the lane shields what is
+			# standing in it, walls included. A passive again, so it is asked
+			# rather than dispatched.
+			_ward_the_walls(origin)
 		SpellData.Kind.BEAM:
 			_beam_spell = spell
 			_beam_left = spell.duration
@@ -597,3 +621,75 @@ func _lane_at(point: Vector2) -> int:
 			best_dot = dot
 			best = lane
 	return best
+
+
+# --- The three that used to do nothing (2026-09-13) ---------------------------
+
+## **Blood Remembers.** The Tempest takes the brands with it.
+##
+## A passive rather than a rider: it has no `spell_id` of its own, so it is
+## asked at the cast rather than dispatched from `_rider`. Every branded body
+## inside the nova gives up its brand for one extra blow, and the whole burst is
+## capped - a road of forty branded bodies must not be a one-cast wipe.
+func _consume_the_brands(origin: Vector2, spell: SpellData) -> void:
+	var share: float = DisciplineEffects.trained_value("consume_marks_burst")
+	if share <= 0.0 or field == null:
+		return
+	var spent: float = 0.0
+	var taken: int = 0
+	for enemy: Enemy in field.enemies_near(origin, spell.effect_radius):
+		if enemy.is_dying() or not enemy.is_branded():
+			continue
+		var blow: float = minf(spell.damage * share,
+			Balance.DISCIPLINE_MARK_BURST_CAP - spent)
+		if blow <= 0.0:
+			break
+		spent += blow
+		taken += 1
+		enemy.clear_brand()
+		enemy.take_damage(blow, origin, 0.0, false)
+		Vfx.spark(enemy.combat_origin(), Color(0.86, 0.24, 0.3), 8, Vector2.UP, 210.0)
+	if taken > 0:
+		Vfx.ring(_foot(origin), spell.effect_radius, Color(0.86, 0.24, 0.3, 0.7), 0.35, 5.0)
+
+
+## **Unbroken Oath.** A ward puts a shield on the walls near it.
+##
+## A shield rather than health, which is the card's own distinction - "never
+## permanent tower HP". A barricade repaired outright would make the wall
+## economy free; a shield is spent by the next thing that hits it.
+func _ward_the_walls(origin: Vector2) -> void:
+	var share: float = DisciplineEffects.trained_value("repair_blocker_shields")
+	if share <= 0.0:
+		return
+	var centre: Vector2 = _foot(origin)
+	var warded: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Barricade.GROUP):
+		var wall := node as Barricade
+		if wall == null or not is_instance_valid(wall) or wall.health == null:
+			continue
+		if wall.global_position.distance_to(centre) > Balance.DISCIPLINE_WALL_WARD_RADIUS:
+			continue
+		wall.health.add_shield(wall.health.max_hp * share)
+		warded += 1
+	if warded > 0:
+		Vfx.ring(centre, Balance.DISCIPLINE_WALL_WARD_RADIUS,
+			Color("9fd3ff"), 0.6, 4.0)
+
+
+## **Break the Host.** An elite falling while a channel runs buys it a moment
+## more, up to a hard cap the card promises out loud.
+func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
+	_beam_from = at
+	var step: float = DisciplineEffects.trained_value("elite_extend_ultimate")
+	if step <= 0.0 or _beam_left <= 0.0:
+		return
+	var room: float = Balance.DISCIPLINE_CHANNEL_EXTEND_CAP - _beam_extended
+	if room <= 0.0:
+		return
+	var given: float = minf(step, room)
+	_beam_left += given
+	_beam_extended += given
+	# At the enemy that fell rather than at the caster: this is a Node, not a
+	# Node2D - it deliberately does not know where the hero is standing.
+	Vfx.spark(_beam_from, Color("ffb35c"), 8, Vector2.UP, 200.0)

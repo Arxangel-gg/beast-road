@@ -282,7 +282,17 @@ func _strike() -> void:
 		# is always in the arc rather than sometimes unhittable.
 		if distance > 0.001 and absf(_swing_aim.angle_to(to)) > half_arc:
 			continue
-		if not enemy.take_damage(damage, _swing_origin, knockback, true):
+		# **Open Vein.** Rolled per body, because the card is about *isolated*
+		# enemies and a crowd has none in it - a roll per swing would hand the
+		# whole crowd one verdict.
+		var blow: float = damage
+		var owner := get_parent() as Node
+		if owner != null and owner.has_method("telling_blow"):
+			blow *= float(owner.call("telling_blow", enemy))
+			if blow > damage:
+				Vfx.spark(enemy.combat_origin(), Color(1.0, 0.86, 0.5), 9,
+					_swing_aim, 240.0)
+		if not enemy.take_damage(blow, _swing_origin, knockback, true):
 			continue
 		_hit_ids[id] = true
 		hits += 1
@@ -291,6 +301,13 @@ func _strike() -> void:
 	# swing that touched no enemy is still a swing, and something small standing
 	# in front of the hero should know about it.
 	EventBus.hero_swing_resolved.emit(_swing_origin, _swing_aim, reach, _step)
+	# **No Ground Given** is spent by the blow it paid for, whether or not that
+	# blow found anything. A bonus that survived a missed finisher would be a
+	# bonus the player keeps until it is convenient.
+	if _step >= Balance.HERO_CHAIN_LENGTH - 1:
+		var owner := get_parent() as Node
+		if owner != null and owner.has_method("spend_guard"):
+			owner.call("spend_guard")
 	if hits == 0:
 		return
 	landed.emit(_step, hits, _swing_origin)
