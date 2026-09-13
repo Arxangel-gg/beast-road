@@ -47,6 +47,7 @@ var _ponds: Fishing = null
 ## The rift gates and dungeon mouths, re-laid with the ponds.
 var _rifts: RiftGates = null
 var _gathering: Gathering = null
+var _treeline: Treeline = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
@@ -738,6 +739,9 @@ func _build_treeline() -> void:
 	trees.host = entity_root
 	add_child(trees)
 	trees.scatter()
+	# Held, because `refresh_terrain` re-lays it when the act changes and a
+	# system nobody keeps a reference to is a system nobody can re-lay.
+	_treeline = trees
 
 
 ## The water off the roads, and the fish in it.
@@ -774,17 +778,26 @@ func _build_gathering() -> void:
 	_gathering.grid = grid
 	_gathering.field = self
 	_gathering.host = entity_root
-	var taken: PackedVector2Array = _ponds.pond_positions() if _ponds != null 		else PackedVector2Array()
-	if _rifts != null:
-		for at: Vector2 in _rifts.gate_positions():
-			taken.append(at)
-	_gathering.avoid = taken
+	_gathering.avoid = _taken_ground()
 	add_child(_gathering)
 	_gathering.scatter()
 
 
 func gathering() -> Gathering:
 	return _gathering
+
+
+## The ground the water and the gates have already claimed.
+##
+## One function, because it is asked twice - once when the nodes are first dug
+## and again every time the act re-lays them - and two copies of it is how the
+## second one ends up not knowing about the rift gates.
+func _taken_ground() -> PackedVector2Array:
+	var taken: PackedVector2Array = _ponds.pond_positions() if _ponds != null 		else PackedVector2Array()
+	if _rifts != null:
+		for at: Vector2 in _rifts.gate_positions():
+			taken.append(at)
+	return taken
 
 
 ## The camps on the outskirts. Built after the ponds and the gates so their
@@ -1846,6 +1859,20 @@ func refresh_terrain() -> void:
 	# And the camps, which close the forks again with the act.
 	if _camps != null:
 		_camps.scatter()
+	# **And the trees and seams, which are regional in both directions** - an
+	# Ironbark is a Rustwood tree and a Star-Iron fall belongs to the Glass
+	# Fields. Added 2026-09-13 with the crafts, and it is the same fault the
+	# note above this one describes: anything regional that is not re-laid here
+	# keeps the previous act's version of itself for the whole run.
+	if _gathering != null:
+		_gathering.avoid = _taken_ground()
+		_gathering.scatter()
+	# The woods outside the field are regional too, and were **never** re-laid -
+	# so a run that began in the Maw walked through jungle canopy in the snow
+	# for nine acts. Found by reading this function rather than by anything
+	# failing, which is why the list is here rather than spread over signals.
+	if _treeline != null:
+		_treeline.scatter()
 
 
 func _setup_ground() -> void:

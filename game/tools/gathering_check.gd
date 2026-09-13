@@ -50,6 +50,7 @@ func _ready() -> void:
 	_test_every_node_is_real_and_reachable()
 	_test_the_store_only_takes_what_is_named()
 	await _test_nodes_stand_outside_the_city()
+	await _test_a_new_act_relays_the_ground()
 	_test_the_forge_validates_before_it_spends()
 	_test_a_forged_piece_is_an_ordinary_piece()
 	_test_the_crafts_only_craft()
@@ -213,6 +214,77 @@ func _test_nodes_stand_outside_the_city() -> void:
 	_check(dug > 0, "four regions must dig at least one node between them; dug %d" % dug)
 	patch.queue_free()
 	await get_tree().process_frame
+
+
+## **A new act re-lays the ground, and that includes the trees and seams.**
+##
+## `Battlefield.refresh_terrain` is the one function that re-skins a region, and
+## anything regional left out of it keeps the previous act's version of itself
+## for the rest of the run. The gather nodes were left out of it when they were
+## added - so from Act II onward the road would have grown Act I's trees, in Act
+## I's places, preferring Act I's region.
+##
+## Driven through the real battlefield and the real function, because the
+## failure is an omission from a list: a test that called `scatter()` itself
+## would pass with the omission still there. That is the same reasoning the
+## comment inside `refresh_terrain` gives for keeping this list in one function
+## rather than spreading it over signals.
+func _test_a_new_act_relays_the_ground() -> void:
+	MetaState.erase_progress()
+	GameDirector.run_active = true
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var patch: Gathering = field.gathering() if field != null else null
+	if field == null or patch == null:
+		_check(false, "the harness needs a battlefield with its nodes dug")
+		if run != null:
+			run.queue_free()
+		return
+
+	RunState.terrain_id = "jungle"
+	field.refresh_terrain()
+	var before: PackedVector2Array = patch.node_positions()
+	_check(before.size() > 0, "the first region must dig nodes")
+
+	# A different region, through the real re-lay.
+	RunState.act = 3
+	RunState.terrain_id = "snow"
+	field.refresh_terrain()
+	var after: PackedVector2Array = patch.node_positions()
+	var moved: bool = before.size() != after.size()
+	if not moved:
+		for index: int in before.size():
+			if not before[index].is_equal_approx(after[index]):
+				moved = true
+				break
+	_check(moved,
+		("a new act must re-lay the trees and seams; %d nodes stood in exactly "
+			+ "the same places after the region changed") % after.size())
+
+	# And the same seed and region gives the same ground back, so a scope left
+	# and returned to is not a reshuffle.
+	RunState.terrain_id = "snow"
+	field.refresh_terrain()
+	var again: PackedVector2Array = patch.node_positions()
+	var same: bool = again.size() == after.size()
+	if same:
+		for index: int in again.size():
+			if not again[index].is_equal_approx(after[index]):
+				same = false
+				break
+	_check(same, "the same act re-entered must show the same nodes, not a reshuffle")
+
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+	GameDirector.run_active = false
+	MetaState.erase_progress()
 
 
 ## Validate, then spend, then make.

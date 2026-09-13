@@ -1712,6 +1712,27 @@ static and runs before the bar exists, which makes it exactly the kind of number
 that drifts - so `_build_action_bar` asserts the two agree now, and the next one
 fails loudly instead of under-measuring a row.
 
+**Everything regional is re-laid in one function, as of 2026-09-13.**
+`Battlefield.refresh_terrain` re-skins the ground, the roads, the water, the
+rift gates and the camps when an act changes. Two things were not in that list.
+
+The **gather nodes** were left out when they were added on the same day, so from
+Act II onward the road would have grown Act I's trees, in Act I's places,
+preferring Act I's region. And the **treeline** was never in it at all - a run
+that began in the Verdant Maw walked through jungle canopy in the snow for nine
+acts.
+
+Found by reading the function rather than by anything failing, which is the
+argument for the list living in one function: the comment inside it already
+warns that a second path listening to a signal is a second path that can be
+right when this one is wrong, and it names a real case - a snowfield with green
+jungle ponds in it.
+
+`gathering_check` drives the real `refresh_terrain` rather than calling
+`scatter()` itself, because the failure is an *omission from a list* and a test
+that scatters by hand passes with the omission still in place. Checked by
+removing the line, which the gate refused by name.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
