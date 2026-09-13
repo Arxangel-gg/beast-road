@@ -1314,6 +1314,7 @@ func _on_build_mode_changed(building: bool) -> void:
 	_close_build_panel()
 	if _road_panel != null:
 		_road_panel.visible = false
+		_refresh_minimap_visible()
 
 
 ## The pointer says which click you are about to make.
@@ -1417,6 +1418,7 @@ func _build_road_panel() -> void:
 	_road_panel.offset_bottom = -_build_panel_lift()
 	_road_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_road_panel.visible = false
+	_refresh_minimap_visible()
 	add_child(_road_panel)
 
 	var column := VBoxContainer.new()
@@ -1450,6 +1452,7 @@ func _open_road_panel(tile: Vector2i) -> void:
 	# The tower sheet closes, for the same reason: one question at a time.
 	_close_build_panel()
 	_road_panel.visible = true
+	_refresh_minimap_visible()
 	_refresh_road_panel()
 
 
@@ -1533,6 +1536,7 @@ func _build_tower_panel() -> void:
 	_build_panel.offset_bottom = -_build_panel_lift()
 	_build_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_build_panel.visible = false
+	_refresh_minimap_visible()
 	TouchInput.set_actions_visible(true)
 	add_child(_build_panel)
 
@@ -3293,6 +3297,7 @@ func _aimed_tower() -> Vector2i:
 func _open_build_panel(anchor: Vector2i) -> void:
 	if _road_panel != null:
 		_road_panel.visible = false
+		_refresh_minimap_visible()
 	# Cleared before the selection moves, or the previous tower keeps its ring.
 	_show_selected_range(false)
 	_selected = anchor
@@ -3304,6 +3309,7 @@ func _open_build_panel(anchor: Vector2i) -> void:
 	_refresh_build_panel()
 	_show_selected_range(true)
 	_build_panel.visible = true
+	_refresh_minimap_visible()
 	# The dash button lives under the right-hand sheet. See `set_actions_visible`.
 	TouchInput.set_actions_visible(false)
 	_fit_build_panel.call_deferred()
@@ -3331,6 +3337,7 @@ func _close_build_panel() -> void:
 		return
 	_show_selected_range(false)
 	_build_panel.visible = false
+	_refresh_minimap_visible()
 	TouchInput.set_actions_visible(true)
 	_show_build_detail("")
 	_hide_build_tooltip()
@@ -4156,10 +4163,19 @@ func _place_minimap() -> void:
 	_minimap.offset_bottom = _minimap.offset_top + side
 
 
+## Shown on the battlefield, wanted, and not while a sheet is open over it.
+##
+## **The sheets own the right edge.** The build sheet and the road sheet
+## are anchored bottom-right and grow with their contents; on a phone held
+## sideways the tallest of them reaches the map. A player reading a sheet
+## is choosing a tower rather than watching the road, so the map steps
+## aside instead of being squeezed somewhere worse.
 func _refresh_minimap_visible() -> void:
 	if _minimap == null:
 		return
-	_minimap.visible = Graphics.minimap_shown() \
+	var sheet_open: bool = (_build_panel != null and _build_panel.visible) \
+		or (_road_panel != null and _road_panel.visible)
+	_minimap.visible = Graphics.minimap_shown() and not sheet_open \
 		and int(GameDirector.current_scope) == GameDirector.Scope.BATTLEFIELD
 
 

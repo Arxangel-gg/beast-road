@@ -348,7 +348,12 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 	})
 	# The shore's fade under the tiles, and the pond's own plants (2026-09-12).
 	_lay_shore_fade(root, depth, at, half, _shore_tint())
-	_plant_pond(_ponds.size() - 1, _ponds.back(), RunState.rng("fishing"))
+	# **Its own stream, not the fishing one.** Where a lily pad lands is
+	# decoration; what a cast catches is the game. Drawing the plants from
+	# `fishing` moved every roll made after them, and the reel stopped
+	# landing the fish the gate had scripted - the same class of fault as
+	# seeding a stream and moving the global one.
+	_plant_pond(_ponds.size() - 1, _ponds.back(), RunState.rng("pond_plants"))
 
 
 # --- The water -----------------------------------------------------------------
