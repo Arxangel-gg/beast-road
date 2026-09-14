@@ -33,6 +33,13 @@ var gear: Dictionary = {}
 ## are picked up exactly like everything else, because a discovery the player has
 ## to walk over is a discovery they notice.
 var blueprint: String = ""
+## Set down by a player rather than shaken out of something that died.
+##
+## It changes two things and deliberately nothing else: the drop lasts far
+## longer, and it never expires into the void without being offered back. A
+## piece a player put on the floor is a message to somebody, and the road
+## should not eat it while they are walking over.
+var player_dropped: bool = false
 
 var _sprite: Sprite2D
 var _velocity: Vector2 = Vector2.ZERO
@@ -240,7 +247,8 @@ func _process(delta: float) -> void:
 			sin(angle) * Balance.LOOT_ORBIT_RADIUS.y - 5.0)
 		mote.modulate.a = 0.48 + 0.34 * (0.5 + 0.5 * sin(angle * 1.7))
 
-	if _life >= Balance.LOOT_LIFETIME:
+	var span: float = Balance.LOOT_PLAYER_DROP_LIFETIME if player_dropped 		else Balance.LOOT_LIFETIME
+	if _life >= span:
 		# Expiry fades rather than vanishing, and pays out anyway. Losing a reward
 		# already earned by killing the thing teaches a player to stop fighting
 		# and stand on the road hoovering, which is worse than either extreme.

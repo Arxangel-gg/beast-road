@@ -118,6 +118,8 @@ enum Fact {
 	PARTY_EVENT_RETURNED = 57,
 	## A seat stepped off the road into an event, or came back to it.
 	PARTY_EVENT_AWAY = 58,
+	## A piece of gear on the ground, with the identity `LOOT_TAKEN` settles by.
+	GEAR_DROPPED = 59,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -169,6 +171,13 @@ enum Request {
 	## The party events (2026-09-12): a guest proposes a raid or a rift, votes
 	## on one, decides one it proposed, reports its return, and asks for the
 	## reward of an event it ran alone - by *result*, never by amount.
+	## A guest put a piece out of its own stash and wants it on the ground.
+	##
+	## The guest removes it from its stash *before* sending this, which is what
+	## stops a double press making two swords. The host owns whether the drop
+	## exists on the field, so a forged packet can only ever create a piece the
+	## sender had; it cannot mint one out of nothing for the host.
+	DROP_GEAR = 32,
 	PARTY_EVENT_PROPOSE = 26,
 	PARTY_EVENT_VOTE = 27,
 	PARTY_EVENT_DECIDE = 28,
@@ -350,6 +359,7 @@ func _fact_bindings() -> Array:
 		["coop_barricade_state", _on_coop_barricade_state],
 		["coop_loot_spawned", _on_coop_loot_spawned],
 		["coop_loot_taken", _on_coop_loot_taken],
+		["coop_gear_dropped", _on_coop_gear_dropped],
 		["coop_wildlife_spawned", _on_coop_wildlife_spawned],
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
@@ -438,6 +448,11 @@ func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
 
 func _on_coop_loot_taken(net_id: int) -> void:
 	_relay(Fact.LOOT_TAKEN, [net_id])
+
+
+func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
+		by_a_player: bool) -> void:
+	_relay(Fact.GEAR_DROPPED, [net_id, piece, at, by_a_player])
 
 
 func _on_coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
@@ -919,6 +934,10 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.LOOT_TAKEN:
 			if args.size() == 1:
 				bus.coop_loot_taken.emit(int(args[0]))
+		Fact.GEAR_DROPPED:
+			if args.size() == 4:
+				bus.coop_gear_dropped.emit(int(args[0]), args[1] as Dictionary,
+					args[2] as Vector2, bool(args[3]))
 		Fact.BARRICADE_STATE:
 			if args.size() == 3:
 				bus.coop_barricade_state.emit(args[0] as Vector2i, String(args[1]),

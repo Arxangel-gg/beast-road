@@ -74,6 +74,7 @@ func _ready() -> void:
 	_test_the_table_is_bounded()
 	_test_the_wire_round_trips()
 	_test_deliverability_refuses_every_way_it_can_fail()
+	_test_putting_a_piece_down_does_not_copy_it()
 	_test_a_whole_swap_conserves_every_piece()
 	_test_a_colliding_name_is_renamed_on_arrival()
 	_test_a_refused_half_moves_nothing()
@@ -726,3 +727,41 @@ func _finish() -> void:
 	else:
 		push_error("[trade] FAIL - %d of %d" % [_failures, _checked])
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Putting a piece on the ground may not make a second one.**
+##
+## Dropping gear was added on 2026-09-14 and it is the third route by which a
+## piece can leave a stash, after a trade and a vendor. It is held to the same
+## bound as the other two and it is the only bound that really matters here:
+## `MetaState.drop_gear` gives the piece up *before* the drop exists, so a
+## double press cannot leave two swords - and the failure direction, if the
+## spawn never happens, is that the piece is lost rather than copied. That is
+## the same direction a failed trade fails in and it is the safe one.
+func _test_putting_a_piece_down_does_not_copy_it() -> void:
+	var held: Array = MetaState.stash.duplicate(true)
+	MetaState.stash = [Stash.make("iron_sword", 0, 1), Stash.make("iron_sword", 0, 1)]
+	var before: int = MetaState.stash.size()
+	var uid_before: String = str((MetaState.stash[0] as Dictionary).get("uid", ""))
+
+	var taken: Dictionary = MetaState.drop_gear(0)
+	_check(not taken.is_empty(), "dropping the first piece returned nothing")
+	_check(MetaState.stash.size() == before - 1,
+		"the stash still holds %d of %d after a piece was put down"
+			% [MetaState.stash.size(), before])
+	for left: Variant in MetaState.stash:
+		_check(str((left as Dictionary).get("uid", "")) != uid_before,
+			"the piece that was put down is still in the stash as well")
+
+	# And picking it back up returns exactly one.
+	var room: bool = MetaState.take_gear(taken)
+	_check(room, "the stash refused a piece it had just given up")
+	_check(MetaState.stash.size() == before,
+		"picking the piece back up left %d of %d" % [MetaState.stash.size(), before])
+	var copies: int = 0
+	for back: Variant in MetaState.stash:
+		if str((back as Dictionary).get("uid", "")) == uid_before:
+			copies += 1
+	_check(copies == 1,
+		"the dropped piece came back %d times - gear must never be created" % copies)
+	MetaState.stash = held

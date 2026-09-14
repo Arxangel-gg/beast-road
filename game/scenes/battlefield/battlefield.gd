@@ -1218,12 +1218,64 @@ func spawn_blueprint(plan_id: String, at: Vector2) -> void:
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
 
 
-func spawn_gear(piece: Dictionary, at: Vector2) -> void:
+func spawn_gear(piece: Dictionary, at: Vector2, by_a_player: bool = false) -> void:
 	if piece.is_empty():
 		return
 	var drop := LootDrop.new()
 	drop.setup_gear(piece, at)
+	drop.player_dropped = by_a_player
+	# **Gear did not replicate at all until 2026-09-14.** Only coins did, so a
+	# partner never saw a piece on the floor - which is most of why putting one
+	# down was not a thing a player could do. It carries an identity now, like
+	# a coin, and `LOOT_TAKEN` already settles who got it.
+	if Coop.is_host() and Coop.partner_present():
+		_loot_net_id += 1
+		drop.net_id = drop.net_id if drop.net_id != 0 else _loot_net_id
+		EventBus.coop_gear_dropped.emit(drop.net_id, piece, at, by_a_player)
 	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
+## A piece a player put down, mirrored onto the other machine.
+##
+## Draws only, exactly as `mirror_loot` does: the host decides who picked it up
+## and says so with `LOOT_TAKEN`. A guest that banked its own copy would be the
+## one way this system could make a sword exist twice.
+func mirror_gear(net_id: int, piece: Dictionary, at: Vector2,
+		by_a_player: bool) -> void:
+	var drop := LootDrop.new()
+	drop.setup_gear(piece, at)
+	drop.net_id = net_id
+	drop.puppet = true
+	drop.player_dropped = by_a_player
+	(_feedback_root if _feedback_root != null else self).add_child(drop)
+
+
+## **Puts a piece out of the stash onto the ground in front of the hero.**
+##
+## Owner request, 2026-09-14. The bound is the one the trade system is built
+## under and it is the only thing here that really matters: **a piece is never
+## created.** The stash gives it up *before* the drop exists, so a press that
+## races itself cannot leave two of the same sword - and if the drop fails to
+## spawn after that, the piece is gone, which is the same failure direction a
+## failed trade has and is documented on `TradeBooth.settle`.
+func try_drop_gear(index: int) -> String:
+	if hero == null or not hero.is_alive():
+		return "There is nobody to put it down."
+	if not RunState.is_preparation():
+		return "Sort your pack during Preparation."
+	var piece: Dictionary = MetaState.drop_gear(index)
+	if piece.is_empty():
+		return "There is nothing in that slot."
+	var at: Vector2 = hero.global_position + Vector2(0.0, Balance.LOOT_DROP_REACH)
+	if Coop.is_guest():
+		# The guest has already given the piece up locally, which is what stops
+		# it being dropped twice. The host owns whether it appears on the field.
+		var relay: CoopRelay = Coop.relay()
+		if relay != null:
+			relay.request(CoopRelay.Request.DROP_GEAR, [piece, at])
+			return ""
+	spawn_gear(piece, at, true)
+	return ""
 
 
 func nearest_enemy_distance() -> float:

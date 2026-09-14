@@ -82,6 +82,7 @@ func _ready() -> void:
 	EventBus.coop_barricade_state.connect(_on_coop_barricade_state)
 	EventBus.coop_loot_spawned.connect(_on_coop_loot_spawned)
 	EventBus.coop_loot_taken.connect(_on_coop_loot_taken)
+	EventBus.coop_gear_dropped.connect(_on_coop_gear_dropped)
 	EventBus.coop_tower_fired.connect(_on_coop_tower_fired)
 	EventBus.enemy_struck.connect(_on_enemy_struck)
 	EventBus.coop_enemy_struck.connect(_on_coop_enemy_struck)
@@ -308,6 +309,16 @@ func _on_coop_phase(phase: int, _previous: int) -> void:
 
 
 ## The host dropped a coin, so one appears here too. Guest side.
+## A piece the host says is on the ground. Drawn only; the host banks it.
+func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
+		by_a_player: bool) -> void:
+	if not Coop.is_guest():
+		return
+	var battlefield := field as Battlefield
+	if battlefield != null:
+		battlefield.mirror_gear(net_id, piece, at, by_a_player)
+
+
 func _on_coop_loot_spawned(net_id: int, currency: String, amount: int,
 		at: Vector2) -> void:
 	if not Coop.is_guest():
@@ -511,6 +522,16 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 			if infirmary != null:
 				_answer(from, CoopRelay.Request.TEND_HERO,
 					infirmary.try_tend_hero(infirmary.partner_hero()))
+		CoopRelay.Request.DROP_GEAR:
+			# **The guest has already given the piece up.** It removed it from
+			# its own stash before asking, which is what stops a double press
+			# making two swords - so the host's job is only to put it on the
+			# field and give it an identity everybody can agree on.
+			if args.size() == 2:
+				var floor_field := field as Battlefield
+				if floor_field != null:
+					floor_field.spawn_gear(args[0] as Dictionary,
+						args[1] as Vector2, true)
 		CoopRelay.Request.REPAIR_TOWN:
 			var arena := field as Battlefield
 			if arena != null:

@@ -572,6 +572,15 @@ signal coop_loot_spawned(net_id: int, currency: String, amount: int, at: Vector2
 ## That loot was picked up — on the host's say-so.
 signal coop_loot_taken(net_id: int)
 
+## The host put a piece of gear on the ground and gave it an identity.
+##
+## Separate from `coop_loot_spawned` because a piece is a dictionary rather
+## than a currency and an amount, and because a player-dropped piece lives far
+## longer than a coin. Collection still settles through `coop_loot_taken`:
+## there is one authority on who picked a thing up and it does not need two.
+signal coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
+	by_a_player: bool)
+
 ## A barricade was raised, damaged or broken.
 signal barricade_changed(tile: Vector2i)
 

@@ -162,6 +162,23 @@ const LOOT_DRAG: float = 420.0
 ## is worse than either extreme. [TUNE]
 const LOOT_LIFETIME: float = 24.0
 
+## How long a piece a *player* put down lasts before the road takes it.
+##
+## Far longer than a battlefield drop, and for a different reason. A coin that
+## falls in a fight is a reward the player has seconds to notice; a piece set
+## down deliberately is a message - "this is yours" - and a partner crossing
+## the map to fetch it must not arrive at nothing. Long enough to cross the
+## field twice and still be refused by the road eventually, because a floor
+## that keeps everything forever is a second stash nobody is managing. [TUNE]
+const LOOT_PLAYER_DROP_LIFETIME: float = 240.0
+
+## How far in front of the hero a piece lands when it is put down.
+##
+## Below the feet rather than on them: a drop directly under a standing hero is
+## picked straight back up by the magnet, which makes putting something down
+## look like it did nothing at all. [TUNE]
+const LOOT_DROP_REACH: float = 58.0
+
 ## Painted drop art, by currency id. Absent falls back to the UI icon.
 const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
 
