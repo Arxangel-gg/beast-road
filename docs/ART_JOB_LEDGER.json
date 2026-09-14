@@ -155,6 +155,18 @@
   "art/enemies/enemy_wolf_rider": {
     "move": "78493cb3-92cd-4a7b-b366-dd5e57509826"
   },
+  "art/icons/ui/ui_food": {
+    "base": "ce7a1603-7aff-4446-810f-3141db9abd71"
+  },
+  "art/icons/ui/ui_gold": {
+    "base": "2e0cf77f-dde1-4a24-afe9-cf619773e2c0"
+  },
+  "art/icons/ui/ui_stone": {
+    "base": "3d27723e-2be4-4d60-b926-0127bec6f104"
+  },
+  "art/icons/ui/ui_wood": {
+    "base": "3c805d3c-3672-40b7-8590-437ae1b74b72"
+  },
   "art/towers/tower_ash_thrower": {
     "attack": "89c74f3c-7184-4306-95da-554703ce7b86",
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/24bab177-df28-4db3-992b-b6d3b4d38be2/rotations/unknown.png",

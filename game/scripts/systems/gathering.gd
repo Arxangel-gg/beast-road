@@ -52,6 +52,9 @@ var avoid_water: Array[Rect2] = []
 
 ## {root, sprite, at, id, left, cooldown, frames, clock, swing, swinging}
 var _nodes: Array[Dictionary] = []
+## Decoration's own dice: the glints are not on the run's stream, so they
+## move no roll that matters.
+var _jitter: RandomNumberGenerator = RandomNumberGenerator.new()
 var _near: int = -1
 var _prompt: String = ""
 var _prompt_button: String = ""
@@ -187,6 +190,9 @@ func _dig(kind: GatherNodeData, at: Vector2, rng: RandomNumberGenerator) -> void
 		"root": root, "sprite": sprite, "at": at, "id": kind.id,
 		"left": _swings_in(kind), "cooldown": 0.0,
 		"frames": GameData.load_idle_frames(path), "clock": rng.randf() * 3.0,
+		# The tell: when it next glints, and when the reach ring next breathes.
+		"glint_in": rng.randf_range(Balance.GATHER_GLINT_SECONDS.x, Balance.GATHER_GLINT_SECONDS.y),
+		"ring_in": 0.0,
 	})
 
 
@@ -418,6 +424,8 @@ func _tick_node(index: int, delta: float) -> void:
 		sprite.modulate = Color(0.16, 0.13, 0.11, 0.9)
 		return
 	sprite.modulate = Color(0.42, 0.44, 0.42, 0.75) if spent else Color.WHITE
+	if not spent:
+		_tick_tell(index, node, delta)
 
 	# The recoil, ticked here because this is the clock the node already has.
 	# A half sine over its own life: away hard, back soft.
@@ -576,6 +584,37 @@ func is_working() -> bool:
 ## Written onto the node's own entry rather than tweened, because a tween on a
 ## sprite that the respawn is about to reset is a tween nobody cancels - and the
 ## node's clock is already being ticked every frame in `_tick_node`.
+## What says "this can be worked" from across the road: a glint now and
+## then - ore throws a mineral spark upward, timber lets a leaf or two drift
+## down - brighter by rarity, and a ring that breathes while the hero stands
+## in reach. Drawn only; nothing reads it.
+func _tick_tell(index: int, node: Dictionary, delta: float) -> void:
+	var at: Vector2 = node["at"] as Vector2
+	var glint_in: float = float(node.get("glint_in", 0.0)) - delta
+	if glint_in <= 0.0:
+		glint_in = _jitter.randf_range(Balance.GATHER_GLINT_SECONDS.x, Balance.GATHER_GLINT_SECONDS.y)
+		var kind: GatherNodeData = ContentDB.gather_node(String(node["id"]))
+		if kind != null:
+			var sprite: Sprite2D = node["sprite"] as Sprite2D
+			var height: float = float(sprite.texture.get_height()) * sprite.scale.y if sprite != null and sprite.texture != null else 64.0
+			var count: int = 2 + kind.rarity * Balance.GATHER_GLINT_RARITY_SPARKS
+			if kind.craft == "woodcutter":
+				Vfx.spark(at + Vector2(0.0, -height * 0.6), Color(0.62, 0.72, 0.36), count, Vector2.DOWN, 34.0)
+			else:
+				Vfx.spark(at + Vector2(0.0, -height * 0.35), Color(1.0, 0.96, 0.8).lerp(_spark_colour(kind), 0.4),
+					count, Vector2.UP, 48.0 + 14.0 * float(kind.rarity))
+	_nodes[index]["glint_in"] = glint_in
+	if _near == index and _working < 0:
+		var ring_in: float = float(node.get("ring_in", 0.0)) - delta
+		if ring_in <= 0.0:
+			ring_in = Balance.GATHER_REACH_RING_SECONDS
+			var kind: GatherNodeData = ContentDB.gather_node(String(node["id"]))
+			Vfx.ring(at, 56.0, Color(_spark_colour(kind) if kind != null else Color.WHITE, 0.45), 0.7, 2.0)
+		_nodes[index]["ring_in"] = ring_in
+	else:
+		_nodes[index]["ring_in"] = 0.0
+
+
 func _recoil(index: int, away: Vector2) -> void:
 	if index < 0 or index >= _nodes.size():
 		return

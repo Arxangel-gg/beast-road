@@ -2119,7 +2119,10 @@ the *same instance* on a second load - `ResourceLoader.has_cached` answers
 by a texture's remapped import path and says no to the path anyone asks
 for, which is the wrong tool for this. `perf_check` keeps a hitch ledger
 now: each hitch with the nodes and the texture memory that arrived in its
-frame, so a load, a spawn and script time are told apart.
+frame, so a load, a spawn and script time are told apart. **Measured after:
+0 hitches in the same two minutes, worst frame 26 ms, p99 19.5 ms** - the
+stutter the owner would have felt in every first wave of every act was the
+loader, and nothing else.
 
 **Loops close on their own pose, as of the same date.** An audit of all 250
 frame sequences measured the jump from the last frame back to the first
@@ -2136,6 +2139,18 @@ with the pinned base as the contact pose. The audit script is worth
 keeping in mind before generating another cycle: a walk is judged last-to-
 first, an idle base-to-first, and `holes` counts the gaps between limbs, so
 only *pinholes* - enclosed specks under a dozen pixels - mean a fault.
+
+**The things that can be worked say so from across the road, as of
+2026-09-14.** A gather node glints every few seconds - ore a mineral spark
+upward, timber a leaf drifting down, more sparks a rarity step - and
+breathes a ring in its material's colour while the hero stands in reach; a
+rift gate lets motes rise and breathes; a fish surfaces in every pond now
+and then. All of it is drawn and none of it is read (`Gathering._tick_tell`,
+`RiftGates._tick_gate`, `Fishing._tick_water`), on the decoration's own
+dice rather than the run's stream. And the HUD's four resource icons were
+regenerated in the style of the loot drops, with each drop as the style
+image, because a counter and the thing it counts should be one thing drawn
+twice. `juice_shot` photographs the three tells.
 
 ### The three escape hatches — and why there are only three
 

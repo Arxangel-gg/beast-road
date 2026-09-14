@@ -367,6 +367,7 @@ func _dig(tiles: Texture2D, at: Vector2, half: Vector2, nodes: Array[Vector2i],
 		"ripples": rings,
 		"cursor": 0,
 		"ambient_in": _jitter.randf_range(0.2, Balance.FISHING_AMBIENT_RIPPLE.y),
+		"surface_in": _jitter.randf_range(Balance.POND_SURFACE_SECONDS.x, Balance.POND_SURFACE_SECONDS.y),
 		"depth": depth,
 		"spots": spots,
 		"stains": stains,
@@ -459,6 +460,21 @@ func _tick_water(delta: float) -> void:
 			left = _jitter.randf_range(Balance.FISHING_AMBIENT_RIPPLE.x,
 				Balance.FISHING_AMBIENT_RIPPLE.y) * (1.8 if spent else 1.0)
 		_ponds[index]["ambient_in"] = left
+		# A fish surfaces: a ring, a few drops, a plop. The pond saying it
+		# has fish in it, from across the road.
+		var surface_in: float = float(pond.get("surface_in", 0.0)) - delta
+		if surface_in <= 0.0:
+			surface_in = _jitter.randf_range(Balance.POND_SURFACE_SECONDS.x, Balance.POND_SURFACE_SECONDS.y)
+			var nodes: Array = pond["nodes"]
+			if not nodes.is_empty():
+				var node: Vector2i = nodes[_jitter.randi_range(0, nodes.size() - 1)]
+				var layer: Node2D = pond["layer"] as Node2D
+				if layer != null and is_instance_valid(layer):
+					var where: Vector2 = layer.to_global(PondTiles.node_px(node))
+					Vfx.ring(where, 30.0, Color(0.85, 0.93, 1.0, 0.7), 0.6, 2.0)
+					Vfx.spark(where, Color(0.7, 0.85, 1.0), 4, Vector2.UP, 90.0)
+					Sfx.play("sfx_fish_nibble", -9.0)
+		_ponds[index]["surface_in"] = surface_in
 		_tick_spots(index, pond, delta)
 
 

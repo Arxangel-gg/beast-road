@@ -96,8 +96,25 @@ func report() -> Dictionary:
 	lines.append("")
 	_append_group(lines, "STILL PLACEHOLDER", placeholders)
 
+	# Every problem on its own line, for a caller that has to say why the
+	# verdict was not clean in a place that only quotes error lines - CI's
+	# release helper - rather than leave "exited 1 with no error line".
+	var problems: PackedStringArray = []
+	for path: String in missing:
+		problems.append("missing (in manifest, not on disk): %s" % path)
+	for path: String in orphans:
+		problems.append("orphan (on disk, not in manifest): %s" % path)
+	for line: String in wrong_size:
+		problems.append("wrong size: %s" % line)
+	for path: String in unreadable:
+		problems.append("unreadable: %s" % path)
+	for line: String in parser.errors:
+		problems.append("manifest parse: %s" % line)
+	for path: String in placeholders:
+		problems.append("still a placeholder: %s" % path)
 	return {
 		"text": "\n".join(lines),
+		"problems": problems,
 		"manifest_rows": assets.size(),
 		"on_disk": on_disk.size(),
 		"placeholders": placeholders.size(),

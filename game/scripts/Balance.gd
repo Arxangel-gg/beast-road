@@ -6871,6 +6871,21 @@ const SPELL_HEAT_PER_MANA: float = 0.25
 const SPELL_WET_PER_MANA: float = 0.006
 const SPELL_STRAIN_PER_MANA: float = 12.0
 const SPELL_WORLD_RADIUS: float = 420.0
+## The things on the road that can be worked say so from a distance (owner
+## brief, 2026-09-14: "ponds, woodcutting trees, mineable rocks more apparent
+## with VFX"). A gather node glints every `GATHER_GLINT_SECONDS` - ore throws
+## a mineral spark upward, timber lets a leaf or two drift down - with
+## `GATHER_GLINT_RARITY_SPARKS` more sparks a rarity step, and breathes a
+## ring every `GATHER_REACH_RING_SECONDS` while the hero stands in reach; a
+## rift gate lets a mote rise every `GATE_MOTE_SECONDS` and breathes a ring
+## every `GATE_BREATHE_SECONDS`; a fish surfaces in every pond every
+## `POND_SURFACE_SECONDS`. All of it is drawn, none of it is read. [TUNE]
+const GATHER_GLINT_SECONDS: Vector2 = Vector2(2.6, 5.2)
+const GATHER_GLINT_RARITY_SPARKS: int = 2
+const GATHER_REACH_RING_SECONDS: float = 1.1
+const GATE_MOTE_SECONDS: float = 0.35
+const GATE_BREATHE_SECONDS: float = 3.2
+const POND_SURFACE_SECONDS: Vector2 = Vector2(9.0, 16.0)
 ## Rubble where a tower stood, and how long it takes to settle into the ground.
 const DEBRIS_FADE_SECONDS: float = 14.0
 const BEAST_WEATHER_REACH: float = 1200.0

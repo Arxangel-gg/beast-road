@@ -119,6 +119,7 @@ func _dig(kind: int, at: Vector2, art: Texture2D) -> void:
 	_gates.append({
 		"root": root, "sprite": sprite, "at": at, "kind": kind, "spent": false,
 		"frames": frames, "clock": randf() * 3.0,
+		"mote_in": randf() * Balance.GATE_MOTE_SECONDS, "breathe_in": randf() * Balance.GATE_BREATHE_SECONDS,
 	})
 
 
@@ -159,6 +160,22 @@ func _tick_gate(index: int, delta: float) -> void:
 	var pulse: float = 0.9 + 0.1 * sin(clock * 2.2)
 	sprite.modulate = Color(0.55, 0.55, 0.6, 0.85) if bool(gate["spent"]) \
 		else Color(pulse, pulse, 1.0 if int(gate["kind"]) == RiftArena.Kind.RIFT else pulse)
+	if bool(gate["spent"]):
+		return
+	# Motes rise out of an open gate, and it breathes a ring: the thing that
+	# says "a door" from across the road.
+	var at: Vector2 = gate["at"] as Vector2
+	var tint: Color = Color("9fe8b8") if int(gate["kind"]) == RiftArena.Kind.RIFT else Color("e8c89f")
+	var mote_in: float = float(gate.get("mote_in", 0.0)) - delta
+	if mote_in <= 0.0:
+		mote_in = Balance.GATE_MOTE_SECONDS
+		Vfx.spark(at + Vector2(randf_range(-30.0, 30.0), randf_range(-20.0, 8.0)), tint, 1, Vector2.UP, 46.0)
+	_gates[index]["mote_in"] = mote_in
+	var breathe_in: float = float(gate.get("breathe_in", 0.0)) - delta
+	if breathe_in <= 0.0:
+		breathe_in = Balance.GATE_BREATHE_SECONDS
+		Vfx.ring(at, 88.0, Color(tint, 0.32), 1.3, 2.0)
+	_gates[index]["breathe_in"] = breathe_in
 
 
 func _gate_near(at: Vector2) -> int:
