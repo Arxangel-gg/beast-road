@@ -709,16 +709,9 @@ func _process(delta: float) -> void:
 func _grade_the_interface() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	_enrol(self)
-	UiTint.apply(get_tree(), _menu_light())
+	UiTint.enrol(get_tree(), self)
+	UiTint.apply(get_tree(), _menu_light(), true)
 
-
-## Everything that draws a frame, recursively.
-func _enrol(from: Node) -> void:
-	for child: Node in from.get_children():
-		if child is Button or child is PanelContainer or child is Panel:
-			(child as Control).add_to_group(UiTint.GROUP)
-		_enrol(child)
 
 
 ## The menu's own light, taken off the stage rather than from the day cycle.

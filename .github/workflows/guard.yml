@@ -298,6 +298,7 @@ jobs:
           # itself in three places and five controls were under the thumb floor,
           # none of which the desktop run can see. A layout check that only ever
           # measures the shape it was authored at is checking the easy case.
+          check "ui tint" --headless --path game res://tools/ui_tint_check.tscn
           check "layout (phone)" --headless --path game res://tools/layout_check.tscn             -- --touch=on --viewport=430x932
           # **Landscape as well as portrait.** A phone on its side is the shape
           # most people play a game in, and it is a different layout problem:

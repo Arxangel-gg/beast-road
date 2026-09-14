@@ -52,12 +52,53 @@ static func for_the_world() -> Color:
 
 ## Applies a tint to everything in the group, and remembers it for anything
 ## that joins later.
-static func apply(tree: SceneTree, wanted: Color) -> void:
-	_wanted = _normalised(wanted)
+##
+## **Refuses work it does not need to do.** `DayNight.phase_changed` fires every
+## frame the sun moves, and repainting a hundred-odd controls at sixty hertz to
+## follow a colour that takes minutes to cross a shade would be the most
+## expensive thing on the screen. Below `STEP` the tint is simply not worth
+## re-laying, and a caller that has just built new controls passes `force`.
+static func apply(tree: SceneTree, wanted: Color, force: bool = false) -> void:
+	var settled: Color = _normalised(wanted)
+	if not force and _moved(settled, _wanted) < STEP:
+		return
+	_wanted = settled
 	for node: Node in tree.get_nodes_in_group(GROUP):
 		var control := node as Control
 		if control != null:
 			paint(control)
+
+
+## Puts every frame-drawing control under `root` into the group, and paints it.
+##
+## Walked rather than listed, because the HUD builds its bars and panels in a
+## dozen functions and a list of them is a list that goes stale. Controls that
+## are already enrolled are cheap to revisit: `paint` reuses the stylebox it
+## made the first time.
+static func enrol(tree: SceneTree, root: Node) -> void:
+	_gather(root)
+	for node: Node in tree.get_nodes_in_group(GROUP):
+		var control := node as Control
+		if control != null:
+			paint(control)
+
+
+static func _gather(from: Node) -> void:
+	for child: Node in from.get_children():
+		if child is Button or child is PanelContainer or child is Panel:
+			var control := child as Control
+			if not control.is_in_group(GROUP):
+				control.add_to_group(GROUP)
+		_gather(child)
+
+
+## How far apart two tints are, summed across the channels.
+static func _moved(a: Color, b: Color) -> float:
+	return absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b)
+
+
+## Below this, a re-tint is not worth walking the tree for.
+const STEP: float = 0.012
 
 
 ## The tint currently in force, for a control that has just been built.

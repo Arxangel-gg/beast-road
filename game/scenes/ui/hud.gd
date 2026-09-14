@@ -590,6 +590,13 @@ func _ready() -> void:
 	_refresh_xp_bar()
 	_build_minimap()
 	_on_touch_layout_changed(touch_ui())
+	_grade_the_interface(true)
+	# The light moves all day, so the HUD follows it - `UiTint.apply` refuses
+	# the work when the colour has not travelled far enough to be worth a walk
+	# of the tree, which is what makes a per-frame signal safe to sit on.
+	DayNight.phase_changed.connect(
+		func(_phase: float, _tint: Color, _dark: float) -> void:
+			_grade_the_interface(false))
 	_on_scope_changed(int(GameDirector.current_scope))
 
 
@@ -1229,6 +1236,11 @@ static func _action_label(key: String, what: String) -> String:
 
 
 func _build_action_bar(bar: Container) -> void:
+	# **Deferred, so it runs once this bar has finished being built.** A control
+	# created after the tint was last applied keeps the theme's untinted frame,
+	# and these two rebuild during a run - a player would spend the rest of an
+	# act with one bar the wrong colour.
+	_grade_the_interface.call_deferred(true)
 	# **No key hints on a thumb.** "Q", "R" and "TAB" are instructions for a
 	# keyboard nobody holding a phone has, and on a 720-wide screen the three
 	# labels together are wider than the screen - the last button was pushed off
@@ -2940,6 +2952,11 @@ func _build_spell_bar(parent: Node = null) -> void:
 
 
 func _rebuild_spell_bar() -> void:
+	# **Deferred, so it runs once this bar has finished being built.** A control
+	# created after the tint was last applied keeps the theme's untinted frame,
+	# and these two rebuild during a run - a player would spend the rest of an
+	# act with one bar the wrong colour.
+	_grade_the_interface.call_deferred(true)
 	if _spell_bar == null:
 		return
 	for child: Node in _spell_bar.get_children():
@@ -3298,6 +3315,10 @@ func _on_run_opened() -> void:
 
 
 func _on_act_started(act: int, terrain_id: String) -> void:
+	# A new region is a new palette, and the interface belongs to it now.
+	# Forced, because the act may have changed the ground without the hour
+	# having moved at all.
+	_grade_the_interface(true)
 	var terrain: TerrainData = ContentDB.terrain(terrain_id)
 	# **Who holds this road, and how they fight.** Ten factions carry a name and
 	# a `mechanical_identity` - "slows, drowned crowds and seers that read the
@@ -4619,3 +4640,23 @@ func _name_the_bar(bar: ProgressBar, name_text: String) -> void:
 	mark.add_theme_constant_override("outline_size", 4)
 	mark.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.85))
 	bar.add_child(mark)
+
+
+## Grades the HUD's frames to the act and the hour the player is standing in.
+##
+## Owner brief, 2026-09-14: the interface should adapt to the world without
+## ever becoming hard to read. `UiTint` is where that bound lives - it moves
+## `StyleBoxTexture.modulate_color` and never a font, and it renormalises the
+## tint to its own luminance, so deep night hands over a *cold* interface
+## rather than a dark one.
+##
+## Re-enrolled rather than enrolled once: the HUD rebuilds its spell bar, its
+## action bar and its panels during a run, and a control built after the walk
+## would keep the theme's untinted frame. Cheap to repeat - `UiTint.paint`
+## reuses the stylebox it made the first time.
+func _grade_the_interface(force: bool) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	if force:
+		UiTint.enrol(get_tree(), self)
+	UiTint.apply(get_tree(), UiTint.for_the_world(), force)
