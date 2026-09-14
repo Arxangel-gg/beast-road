@@ -196,8 +196,17 @@ const LOOT_ORBIT_RADIUS: Vector2 = Vector2(30.0, 12.0)
 const LOOT_ORBIT_SPEED: float = 2.8
 const LOOT_ORBIT_SIZE: float = 13.0
 const LOOT_BEACON_WIDTH: float = 30.0
-const LOOT_BEACON_HEIGHT: float = 150.0
-const LOOT_BEACON_ALPHA: float = 0.17
+## How far the spire reaches and how strongly it reads. [TUNE]
+##
+## **Photographed rather than guessed, on 2026-09-14.** The first pass was 150
+## tall at 0.17 alpha, which on the Verdant Maw at night is a candle: the drops
+## were findable only because their own icons are lit. The brief was a light
+## spire "similar to legendary drops in Diablo though not as high reaching", and
+## `loot_shot` is what a change to either of these should be looked at through -
+## a row of all seven rarities plus a coin and a stack of Wood, on the real
+## battlefield, on a real renderer.
+const LOOT_BEACON_HEIGHT: float = 230.0
+const LOOT_BEACON_ALPHA: float = 0.38
 
 ## How much taller and wider the rarest drop's spire is than the commonest.
 ##
