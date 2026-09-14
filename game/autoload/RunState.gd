@@ -1910,7 +1910,7 @@ func production_rate(currency_id: String) -> float:
 	var producer: BuildingData = ContentDB.building(building_id)
 	var rate: float = producer.effect_at(building_tier(building_id)) \
 		if producer != null else 0.0
-	rate += float(assigned_captive_count()) * Balance.CAPTIVE_WORK_BONUS \
+	rate += assigned_captive_work() * Balance.CAPTIVE_WORK_BONUS \
 		* Modifiers.multiplier(Modifiers.CAPTIVE_OUTPUT)
 	return rate * Modifiers.multiplier(Modifiers.RESOURCE_RATE)
 
@@ -1940,6 +1940,24 @@ func building_tier(id: String) -> int:
 
 func assigned_captive_count() -> int:
 	return captive_assignments.size()
+
+
+## The work the assigned leaders actually do, as a count of standard shifts.
+##
+## `CaptiveData.work_multiplier` was authored - a Glass-born at 1.2, a Steppe
+## Horde leader at 1.4 - and read by nothing, so production counted *heads*
+## and every leader was worth the same shift. Which leader you won from a raid
+## decided nothing at all.
+##
+## The default is 1.0 and that is what a leader authoring nothing contributes,
+## so this changes no existing number: it only lets the ones written down as
+## better actually be better.
+func assigned_captive_work() -> float:
+	var shifts: float = 0.0
+	for captive_id: Variant in captive_assignments:
+		var who: CaptiveData = ContentDB.captive(String(captive_id))
+		shifts += maxf(who.work_multiplier, 0.0) if who != null else 1.0
+	return shifts
 
 
 ## Relic sockets available: Town Hall tier plus the one meta bonus.

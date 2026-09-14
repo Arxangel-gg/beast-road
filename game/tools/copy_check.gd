@@ -51,6 +51,7 @@ var _scanned: int = 0
 func _ready() -> void:
 	_scan_data("res://data")
 	_scan_seeder()
+	_check_the_role_noun_comes_from_content()
 	print("[copy] %d player-facing strings scanned" % _scanned)
 	for problem: String in _failures:
 		push_error(problem)
@@ -150,3 +151,37 @@ func _is_code(value: String) -> bool:
 	if value.begins_with("res://") or value.begins_with("user://"):
 		return true
 	return not value.contains(" ") and value == value.to_lower()
+
+
+## The word for these leaders is content, and a screen must ask for it.
+##
+## `CaptiveData.role_noun` carries the noun - and its own comment explains why
+## the examples on it matter, because "a doc comment offering the wrong word is
+## how an unreviewed one gets in". `acquire_verb` beside it has been read by
+## the town panel since the framing was flagged as unsettled. The noun was read
+## by **nothing**, and the screens spelled it out themselves.
+##
+## That is not a language failure today - every screen says "Oathbound", which
+## is the reviewed word - it is the review *surface* being wrong. §57 asks that
+## the wording be reviewable in one place, and it cannot be while the screens
+## carry their own copy of it.
+func _check_the_role_noun_comes_from_content() -> void:
+	for value: Variant in ContentDB.captives.values():
+		var who := value as CaptiveData
+		if who == null:
+			continue
+		if who.role_noun.strip_edges().is_empty():
+			_failures.append(("[copy] %s has no role_noun, so any screen naming"
+				% who.id) + " it has to invent the word")
+	# And somebody has to be asking. A field authored and read by nothing is
+	# the same failure as a misspelt one: the review has a place to look and
+	# the game does not use it.
+	var asked: bool = false
+	for path: String in ["res://scenes/ui/town_panel.gd",
+			"res://scenes/ui/results_screen.gd", "res://scenes/city/town_scope.gd"]:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file != null and file.get_as_text().contains("role_noun"):
+			asked = true
+	if not asked:
+		_failures.append("[copy] no screen reads role_noun, so the noun the"
+			+ " player sees is written in logic rather than content")

@@ -1579,6 +1579,41 @@ func _test_enemy_roles() -> void:
 	_check(regular_ids.size() == 12 and elite_ids.size() == 6,
 		"launch roster must contain twelve unique regulars and six unique elites")
 
+	# **An Oathbound leader works their own shift.** `CaptiveData.work_multiplier`
+	# was authored - a Glass-born at 1.2, a Steppe Horde leader at 1.4 - and
+	# production counted heads, so which leader a raid won decided nothing.
+	var kept: Dictionary = RunState.captive_assignments.duplicate()
+	RunState.captive_assignments = {}
+	_check(is_zero_approx(RunState.assigned_captive_work()),
+		"no leader assigned must be no work")
+	var best: CaptiveData = null
+	var plain: CaptiveData = null
+	for value: Variant in ContentDB.captives.values():
+		var who := value as CaptiveData
+		if who == null:
+			continue
+		_check(who.work_multiplier > 0.0,
+			"%s contributes nothing when assigned" % who.id)
+		if best == null or who.work_multiplier > best.work_multiplier:
+			best = who
+		if plain == null or who.work_multiplier < plain.work_multiplier:
+			plain = who
+	if best != null and plain != null:
+		RunState.captive_assignments = {best.id: "scavenging_post"}
+		var strong: float = RunState.assigned_captive_work()
+		RunState.captive_assignments = {plain.id: "scavenging_post"}
+		var weak: float = RunState.assigned_captive_work()
+		_check(is_equal_approx(strong, best.work_multiplier),
+			"the best leader works %.2f shifts where the data says %.2f"
+				% [strong, best.work_multiplier])
+		# The bound: a leader authoring the 1.0 default must work exactly one
+		# shift, or wiring the field re-tuned production for everybody.
+		_check(is_equal_approx(weak, plain.work_multiplier) and weak >= 1.0,
+			"a plain leader works %.2f shifts, so the baseline moved" % weak)
+		_check(strong > weak,
+			"every leader works the same shift - work_multiplier is unread")
+	RunState.captive_assignments = kept
+
 	# **A breed's swing cadence, and the constant that describes it.**
 	#
 	# `ENEMY_CONTACT_INTERVAL` read 0.8 from the day it was written while the

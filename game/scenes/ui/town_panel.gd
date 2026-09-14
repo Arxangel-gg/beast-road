@@ -1014,6 +1014,26 @@ func _show_relics() -> void:
 			_note("◆ %s  —  always active" % core.display_name)
 
 
+## What the player calls these leaders, taken from content.
+##
+## `CaptiveData.role_noun` was authored by every one of them and read by
+## nothing, while the verb next to it has been data since the framing of this
+## system was flagged as unsettled. GDD §57 makes "no unreviewed enslavement
+## language ships" a release requirement, and the whole point of keeping the
+## word in data is that there is one place to review it - which does not work
+## while the screens spell it out themselves.
+func _role_noun() -> String:
+	for captive_id: String in RunState.captives:
+		var held: CaptiveData = ContentDB.captive(captive_id)
+		if held != null and not held.role_noun.is_empty():
+			return held.role_noun
+	for value: Variant in ContentDB.captives.values():
+		var any := value as CaptiveData
+		if any != null and not any.role_noun.is_empty():
+			return any.role_noun
+	return "Oathbound"
+
+
 ## Oathbound leaders won from war camps and assigned a one-run duty. Internal
 ## save names remain compatible with v3; no captivity framing reaches players.
 func _show_captives() -> void:
@@ -1027,7 +1047,7 @@ func _show_captives() -> void:
 		return
 
 	if RunState.captives.is_empty():
-		_note("No Oathbound leader yet. Complete a raid.")
+		_note("No %s leader yet. Complete a raid." % _role_noun())
 		return
 
 	for captive_id: String in RunState.captives:
@@ -1036,7 +1056,8 @@ func _show_captives() -> void:
 			continue
 		var assigned_to: String = String(RunState.captive_assignments.get(captive_id, ""))
 		if assigned_to == _building_id:
-			var held := _row("%s   —   working here" % captive.display_name, 42.0)
+			var held := _row("%s, %s   —   working here"
+				% [captive.display_name, captive.role_noun], 42.0)
 			held.disabled = true
 			actions.add_child(held)
 			continue
