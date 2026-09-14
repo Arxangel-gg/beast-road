@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="TutorialStepData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tutorial_step_data.gd" id="1_step"]
+
+[resource]
+script = ExtResource("1_step")
+id = "farming"
+display_name = "A crop"
+trigger = 19
+order = 0
+body = "A crop, out on the outskirts. Take a wild one's seeds and plant them in a bare plot; the crop grows as the beast walks, on ground that suits it. A plant that droops and browns is telling you the ground is wrong - warmer, wetter, colder, drier - and a practised Farmer gets more from the same ground."
+seconds = 12.0

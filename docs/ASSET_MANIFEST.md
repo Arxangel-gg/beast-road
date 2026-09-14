@@ -2887,6 +2887,7 @@ in step with the screens rather than leaving fifteen stale copies.
 |------|------|------|--------------------|
 | `fog.png` | 640×360 | O | `#2E3A33` |
 | `minimap.png` | 640×360 | O | `#2E3A33` |
+| `farming.png` | 640×360 | O | `#2E3A33` |
 | `tower_paths.png` | 640×360 | O | `#2E3A33` |
 | `trap_levels.png` | 640×360 | O | `#2E3A33` |
 | `spirit_upkeep.png` | 640×360 | O | `#2E3A33` |

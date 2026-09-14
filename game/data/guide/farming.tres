@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "farming"
+display_name = "Plots and crops"
+title = "Plots and crops"
+category = "Resources"
+order = 31
+image = "res://art/guide/farming.png"
+body = "The road lays a few tilled plots on the outskirts when a run begins, and every region grows a few of its own crops wild among them. Walk up to a wild crop and press Interact to take its seeds; walk up to a bare plot and the Warden plants whichever seed you hold that suits the ground best.
+
+A crop grows as the beast walks, never while it stands. It grows fastest on ground that is what it wants - barley on open ground, ember pepper in heat, frost root in cold, glowcap and marsh reed in the wet, stone melon on dry rock - and off its ground it wilts, droops and browns, and dies with its seed if you leave it. Fire towers warm the ground under them and water towers wet and cool it, which is how a pepper grows in the jungle.
+
+A ripe crop is pulled for Food. Seeds are the run's and go with it; only the Farmer's practice is kept, and a practised Farmer's crops tolerate ground further from what they want, grow faster, pay more, and give a seed back more often. No attribute moves: a craft touches nothing but the craft."

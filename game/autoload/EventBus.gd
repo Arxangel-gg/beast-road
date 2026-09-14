@@ -67,6 +67,9 @@ signal interact_prompt(text: String, button: String)
 ## What the nearest water is asking of the player, or "" for nothing. `button`
 ## is the label a touch button wears for it - "CAST", "HOOK", "REEL" - or "".
 signal fishing_prompt(text: String, button: String)
+## The hero stood by a plot or a wild crop (the Farmer, 2026-09-14): which
+## crop, and whether it is the wild one whose seeds are taken.
+signal crop_near(crop_id: String, wild: bool)
 
 ## Something took the line. `window` is how long the player has to hook it.
 signal fishing_bite(window: float)

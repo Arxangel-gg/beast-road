@@ -51,6 +51,9 @@ enum Trigger {
 	POND_NEAR,
 	## The hero first stood by a rift gate or a dungeon mouth.
 	GATE_NEAR,
+	## The hero first stood by a wild crop or a plot (the Farmer, 2026-09-14).
+	## Appended, never inserted: the data indexes this enum by number.
+	CROP_NEAR,
 }
 
 @export var trigger: Trigger = Trigger.RUN_STARTED

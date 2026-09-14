@@ -2289,6 +2289,13 @@ works its own - and only the Food, which is the run's, crosses the wire,
 asked by crop id and never by amount. `farming_check` holds all of it,
 including that the clock grows nothing.
 
+The first plot the hero stands by opens a coach step (`Trigger.CROP_NEAR`,
+appended to the enum, never inserted - the data indexes it by number), the
+Guide has "Plots and crops" with a photograph from `guide_shots`, and the
+map marks the plots. Fixed in passing: the rift's coach step fired on *any*
+interact prompt, so it used to open at a tree; it opens on the gate's own
+button now.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

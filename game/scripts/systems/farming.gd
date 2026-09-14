@@ -56,6 +56,8 @@ var _prompt_button: String = ""
 ## Decoration's dice: the glints move no roll that matters.
 var _jitter: RandomNumberGenerator = RandomNumberGenerator.new()
 var _distance_seen: float = -1.0
+## The plot the hero was last told about, so the tell fires once an approach.
+var _told: int = -1
 var _art: Dictionary = {}
 var _soil: Texture2D = null
 
@@ -429,10 +431,14 @@ func _process(delta: float) -> void:
 	var near: int = _plot_near(who.global_position)
 	_near = near
 	if near < 0:
+		_told = -1
 		_set_prompt("", "")
 		return
 	var plot: Dictionary = _plots[near]
 	var crop: CropData = ContentDB.crop(String(plot["crop_id"]))
+	if _told != near:
+		_told = near
+		EventBus.crop_near.emit(String(plot["crop_id"]), bool(plot["wild"]))
 	var source := who.get("input") as HeroInput
 	var pressed: bool = source != null and source.pressed(HeroInput.BUTTON_INTERACT)
 	if crop == null:

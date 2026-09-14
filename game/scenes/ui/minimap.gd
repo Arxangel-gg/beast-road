@@ -131,6 +131,21 @@ func _draw() -> void:
 			if spent:
 				tint = Color(tint, tint.a * 0.35)
 			draw_circle(_to_map(spots[index]), maxf(size.x / 76.0, 2.0), tint)
+	# Plots and the crops in them: bare earth, growing, ripe. A wilting crop
+	# is drawn dim, which is the same tell the plant itself gives.
+	var farm: Node = battlefield.call("farming") if battlefield.has_method("farming") else null
+	if farm != null and farm.has_method("plot_state"):
+		for index: int in int(farm.call("plot_count")):
+			var plot: Dictionary = farm.call("plot_state", index)
+			var tint: Color = Balance.MINIMAP_PLOT
+			if not String(plot.get("crop_id", "")).is_empty():
+				tint = Balance.MINIMAP_CROP_RIPE if float(plot.get("growth", 0.0)) >= 1.0 \
+					else Balance.MINIMAP_CROP
+				if bool(plot.get("wilting", false)):
+					tint = Color(tint, tint.a * 0.45)
+			var half: float = maxf(size.x / 96.0, 1.5)
+			var spot: Vector2 = _to_map(plot["at"] as Vector2)
+			draw_rect(Rect2(spot - Vector2.ONE * half, Vector2.ONE * half * 2.0), tint)
 	# Camps, by state.
 	var camps: Node = battlefield.call("camps") if battlefield.has_method("camps") else null
 	if camps != null and camps.has_method("map_marks"):

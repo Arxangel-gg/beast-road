@@ -7247,6 +7247,10 @@ const MINIMAP_RIFT: Color = Color(0.7, 0.4, 0.9, 1.0)
 ## whether to walk out for.
 const MINIMAP_WOOD: Color = Color(0.52, 0.72, 0.38, 1.0)
 const MINIMAP_ORE: Color = Color(0.82, 0.72, 0.5, 1.0)
+## The Farmer's plots: bare earth, a growing crop, a ripe one.
+const MINIMAP_PLOT: Color = Color(0.5, 0.38, 0.26, 1.0)
+const MINIMAP_CROP: Color = Color(0.45, 0.8, 0.4, 1.0)
+const MINIMAP_CROP_RIPE: Color = Color(0.95, 0.82, 0.4, 1.0)
 const MINIMAP_CAMP_ALIVE: Color = Color(0.85, 0.35, 0.2, 1.0)
 const MINIMAP_CAMP_LOCKED: Color = Color(0.3, 0.28, 0.26, 1.0)
 const MINIMAP_CAMP_RAZED: Color = Color(0.45, 0.45, 0.42, 1.0)

@@ -137,9 +137,13 @@ func _ready() -> void:
 	EventBus.fishing_prompt.connect(func(text: String, _button: String) -> void:
 		if not text.is_empty():
 			_fire(TutorialStepData.Trigger.POND_NEAR))
-	EventBus.interact_prompt.connect(func(text: String, _button: String) -> void:
-		if not text.is_empty():
+	# The gate's own button, not any prompt: a tree, a well, a chest and a plot
+	# all ask for the same press, and the rift's step used to open at a tree.
+	EventBus.interact_prompt.connect(func(text: String, button: String) -> void:
+		if not text.is_empty() and button == "ENTER":
 			_fire(TutorialStepData.Trigger.GATE_NEAR))
+	EventBus.crop_near.connect(func(_crop_id: String, _wild: bool) -> void:
+		_fire(TutorialStepData.Trigger.CROP_NEAR))
 
 
 ## Sorted once, so two steps sharing a trigger keep their authored order rather

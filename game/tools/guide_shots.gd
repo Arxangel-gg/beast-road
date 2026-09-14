@@ -56,6 +56,7 @@ func _ready() -> void:
 	await _shot("depth", func() -> void: _stand_at(pond + Vector2(0.0, 120.0)); _zoom(1.5))
 	_zoom(0.0)
 	await _shot("swimming", func() -> void: _stand_at(pond))
+	await _shot("farming", func() -> void: _stand_at(_wild_crop() + Vector2(64.0, 36.0)))
 	_copy("swimming", "reel")
 	await _shot("camps", func() -> void: _stand_at(_camp_centre()))
 	await _shot("forks", func() -> void: _stand_at(_barrier_at()))
@@ -226,6 +227,18 @@ func _zoom(level: float) -> void:
 	var cam: Node = run.battlefield.camera
 	if cam != null:
 		cam.set("zoom_level", level)
+
+
+## A wild crop on the outskirts, or the first plot, or somewhere off the road.
+func _wild_crop() -> Vector2:
+	var farm: Farming = run.battlefield.farming()
+	if farm != null:
+		for index: int in farm.plot_count():
+			if bool(farm.plot_state(index)["wild"]):
+				return farm.plot_state(index)["at"]
+		if farm.plot_count() > 0:
+			return farm.plot_state(0)["at"]
+	return Vector2(-900.0, 900.0)
 
 
 func _pond_centre() -> Vector2:

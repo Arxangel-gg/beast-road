@@ -5,14 +5,14 @@
 [resource]
 script = ExtResource("1_s")
 id = "crafts"
-display_name = "The four crafts"
-title = "The four crafts"
+display_name = "The five crafts"
+title = "The five crafts"
 category = "Resources"
 order = 28
 image = "res://art/guide/crafts.png"
-body = "The Angler was the first. There are four now, and every one of them keeps what it has learned between runs.
+body = "The Angler was the first. There are five now, and every one of them keeps what it has learned between runs.
 
-WOODCUTTER fells the trees on the outskirts. MINER breaks the seams and cracks the geodes. SMITH turns what the other two brought back into gear. ANGLER fishes.
+WOODCUTTER fells the trees on the outskirts. MINER breaks the seams and cracks the geodes. SMITH turns what the other two brought back into gear. ANGLER fishes. FARMER plants what the road gives and pulls it when it is ripe.
 
 A craft touches nothing but its own craft. A maxed Woodcutter fells faster and gets more out of the same tree; they do not hit harder, move faster or carry more health. That is a rule rather than an oversight - your level and your gear are the two things that decide how strong you are, and a third would make the road impossible to balance.
 
