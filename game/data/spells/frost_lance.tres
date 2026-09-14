@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+element = 1
 kind = 7
 mana_cost = 22.0
 cooldown = 8.0

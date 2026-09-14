@@ -789,7 +789,9 @@ func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		var dealt: float = rolled_damage() * enemy.brand_multiplier()
+		# Conductive: a storm tower's shot hits a wet body harder.
+		var dealt: float = rolled_damage() * enemy.brand_multiplier() \
+			* (enemy.shock_scale() if data.element == TowerData.Element.AIR else 1.0)
 		enemy.take_damage(dealt, origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
 		# The earth remembers every element's work, each on its own clock. And
@@ -803,6 +805,7 @@ func _hit(enemy: Enemy) -> void:
 						Balance.WILDFIRE_TOWER_CHANCE, true)
 			TowerData.Element.WATER:
 				RunState.tide += dealt * Balance.TIDE_PER_DAMAGE
+				enemy.apply_wet(Balance.WET_SECONDS)
 			TowerData.Element.EARTH:
 				RunState.tremor += dealt * Balance.TREMOR_PER_DAMAGE
 	var utility: float = data.utility_at(level)

@@ -51,6 +51,12 @@ enum Kind {
 
 @export var kind: Kind = Kind.NOVA
 
+## Which element the spell works, as a `TowerData.Element`, or -1 for none.
+## A spell of an element touches the world the way a tower of it does: it
+## warms or wets the ground where it lands and feeds that element's strain,
+## and a water spell leaves the bodies it hits wet.
+@export_range(-1, 3) var element: int = -1
+
 @export var cooldown: float = 6.0
 
 ## What a cast draws from the hero's mana. Zero means "not authored", which

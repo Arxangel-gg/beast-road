@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_mvvgn")
+element = 0
 mana_cost = 25.0
 cooldown = 9.0
 damage = 55.0

@@ -319,7 +319,7 @@ func strike_at(at: Vector2) -> void:
 			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 		var struck: Array[Enemy] = field.enemies_near(at, radius)
 		for enemy: Enemy in struck:
-			enemy.take_damage(Balance.LIGHTNING_ENEMY_DAMAGE * act_scale, at, 0.0)
+			enemy.take_damage(Balance.LIGHTNING_ENEMY_DAMAGE * act_scale * enemy.shock_scale(), at, 0.0)
 		_chain(at, struck, Balance.LIGHTNING_ENEMY_DAMAGE * act_scale)
 		var hero_pool: float = 100.0
 		if field.hero != null and field.hero.health != null:
@@ -1040,11 +1040,16 @@ func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
 	var struck: Array[Enemy] = already.duplicate()
 	var here: Vector2 = from
 	var worth: float = damage
+	# The body the arc leaves from: wet, it carries the arc further.
+	var carrier: Enemy = already.back() if not already.is_empty() else null
 	for _jump: int in jumps:
 		worth *= Balance.CHAIN_FALLOFF
 		var next: Enemy = null
-		var nearest: float = range_now
-		for enemy: Enemy in field.enemies_near(here, range_now):
+		var reach_now: float = range_now
+		if carrier != null and is_instance_valid(carrier) and carrier.is_wet():
+			reach_now *= Balance.WET_CHAIN_RANGE
+		var nearest: float = reach_now
+		for enemy: Enemy in field.enemies_near(here, reach_now):
 			if enemy in struck:
 				continue
 			var away: float = enemy.global_position.distance_to(here)
@@ -1055,7 +1060,8 @@ func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
 			break
 		struck.append(next)
 		var to: Vector2 = next.combat_origin()
-		next.take_damage(worth, here, 0.0)
+		next.take_damage(worth * next.shock_scale(), here, 0.0)
+		carrier = next
 		chain_arcs += 1
 		var arc: Line2D = _bolt_line(_jagged(here, to, 6, 22.0), 4.0, 0.9)
 		if _bolts != null:

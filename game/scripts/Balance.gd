@@ -6818,6 +6818,27 @@ const TORNADO_FIRE_DPS: float = 30.0
 ## chance, and with more under a heatwave.
 const LIGHTNING_IGNITE_CHANCE: float = 0.18
 const LIGHTNING_IGNITE_HOT_SCALE: float = 2.5
+## Wet, and what it does (the fourth forwarded document, 2026-09-14). A body
+## is wet for `WET_SECONDS` after water hits it, and for as long as rain past
+## `WET_RAIN_FROM` falls or the flood stands at the knee. Wet shapes a blow:
+## lightning hits a wet body harder and chains further off it (conductive),
+## chill fills faster on it (flash freeze), and fire on a wet body steams the
+## wet away rather than burning - rain-wet halves the burn instead. Each is
+## one number, measured by `reaction_check`. [TUNE]
+const WET_SECONDS: float = 6.0
+const WET_RAIN_FROM: float = 0.5
+const WET_SHOCK_DAMAGE: float = 1.5
+const WET_CHAIN_RANGE: float = 1.6
+const WET_CHILL_SCALE: float = 1.6
+const WET_BURN_SCALE: float = 0.5
+## Spells touch the world the way towers do, by the mana they spend: a fire
+## spell warms the ground where it lands and feeds the ember, a water spell
+## wets and cools and feeds the tide, earth the tremor, air the gale. One
+## aggregated event per cast, never per particle. [TUNE]
+const SPELL_HEAT_PER_MANA: float = 0.25
+const SPELL_WET_PER_MANA: float = 0.006
+const SPELL_STRAIN_PER_MANA: float = 12.0
+const SPELL_WORLD_RADIUS: float = 420.0
 ## Rubble where a tower stood, and how long it takes to settle into the ground.
 const DEBRIS_FADE_SECONDS: float = 14.0
 const BEAST_WEATHER_REACH: float = 1200.0

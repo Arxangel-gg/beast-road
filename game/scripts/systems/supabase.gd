@@ -70,8 +70,19 @@ func request(path: String, method: int, body: Dictionary, done: Callable) -> voi
 			# on a busy connection, which are opposite problems with opposite
 			# fixes. `ok` still says whether it worked; `parsed` now says why
 			# it did not.
+			# Parsed without printing: a gateway answering "Internal Server
+			# Error" in plain text is a failure to report, not an ERROR line
+			# on the console - which is what turned a service hiccup into a
+			# red gate in the 2026-09-14 sweep. The instance parser keeps its
+			# complaint to itself; the text comes back in the failure.
 			if raw.size() > 0:
-				parsed = JSON.parse_string(raw.get_string_from_utf8())
+				var text: String = raw.get_string_from_utf8()
+				var reader := JSON.new()
+				if reader.parse(text) == OK:
+					parsed = reader.data
+				elif not ok:
+					parsed = {"code": "HTTP", "result": result, "status": code,
+						"body": text.strip_edges().left(200)}
 			if not ok and not (parsed is Dictionary):
 				# A failure with no body from the service is a failure that
 				# never reached it. `result` says which - timeout, could not

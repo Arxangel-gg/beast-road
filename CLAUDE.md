@@ -1967,6 +1967,39 @@ anchor's calm, the quiet floor, the free fells, the player's fire, the four
 strains and their clocks, and the wind - on the heat, because `wrath()`
 clamps and a legendary alone reaches the ceiling.
 
+**Wet, and spells that touch the world, as of 2026-09-14 (fourth pass).**
+The owner forwarded a complete spellcasting design (`docs/ChatGPT_More_Ideas_4.md`).
+Two pieces of it multiply what exists and were built; the rest is triaged in
+`docs/IDEAS_REVIEW_2026-09-14.md`.
+
+**Wet is a status, and it shapes a blow.** `Enemy.apply_wet` for
+`WET_SECONDS` from water that hits a body (a water tower's shot, a water
+spell's area); rain past `WET_RAIN_FROM` and a flood at the knee wet
+everybody without a timer. Three reactions, one number each: lightning hits
+a wet body `WET_SHOCK_DAMAGE` harder and a chain leaving a wet body reaches
+`WET_CHAIN_RANGE` further (conductive); chill fills `WET_CHILL_SCALE` faster
+on it (flash freeze); fire on a soaked body steams the wet away and does
+not burn, while rain-wet halves the burn (steam). Water on a burning body
+puts it out. `reaction_check` measures all of it on bodies with deep pools,
+because the first cut's strike killed both bodies outright and "took the
+same from each".
+
+**The bound is the one every status is held to: Wet changes the shape of a
+blow and never adds a source of damage.** Every multiplier lands on a blow
+that was already being dealt, through `take_damage`, so `curve_report`
+still reads the same waves. A puppet never decides its own wet.
+
+**A spell of an element works the world the way a tower of it does.**
+`SpellData.element` is authored per spell (nine of nineteen carry one); on
+resolve, `SpellCaster._touch_the_world` warms or wets and cools the ground
+where the spell lands by the mana it spent and feeds that element's strain
+- one aggregated event per cast, never per particle (the document's own
+rate-limiting rule). A water spell leaves what it hits wet.
+
+**Refused: a second tree.** A Spellcasting skill with its own discipline
+points beside the four disciplines is the third draft this project keeps
+refusing. The Arcane discipline *is* the caster's tree.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -494,6 +494,11 @@ func _reverse_hook(origin: Vector2, spell: SpellData) -> void:
 ## nothing downstream has to learn that echoes exist.
 func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.0) -> void:
 	var power: float = spell.damage * Modifiers.multiplier(Modifiers.HERO_DAMAGE) 		* focus_power() * share
+	# Where the spell lands, for what it does to the world.
+	var lands: Vector2 = origin
+	if spell.kind == SpellData.Kind.METEOR or spell.kind == SpellData.Kind.VOLLEY:
+		lands = _foot(origin) + aim * _reach(spell)
+	_touch_the_world(spell, lands, share)
 	match spell.kind:
 		SpellData.Kind.BLINK:
 			# The destination is a place to stand, so it is built from the feet.
@@ -501,7 +506,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 			# it landed the hero that much up-screen on every Rift Step.
 			blink_requested.emit(_foot(origin) + aim * _reach(spell))
 		SpellData.Kind.NOVA:
-			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin)
+			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
 			# **Blood Remembers.** Asked here rather than in `_rider`, because it
 			# is a passive with no `spell_id` of its own - the Tempest is simply
 			# the nova this hero happens to be casting.
@@ -512,7 +517,7 @@ func _resolve(spell: SpellData, aim: Vector2, origin: Vector2, share: float = 1.
 		SpellData.Kind.DRAIN:
 			_drain(origin, aim, spell, power)
 		SpellData.Kind.SHOCKWAVE:
-			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin)
+			_damage_area(origin, spell.effect_radius, power, spell.knockback, origin, spell.element)
 			EventBus.camera_shake_requested.emit(10.0, 0.35)
 		SpellData.Kind.VEIL:
 			veil_requested.emit(spell.duration, spell.speed_bonus)
@@ -614,12 +619,43 @@ func _tick_falling(delta: float) -> void:
 		_falling.remove_at(index)
 
 
-func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2) -> float:
+func _damage_area(centre: Vector2, radius: float, power: float, knockback: float, from: Vector2,
+		element: int = -1) -> float:
 	var dealt: float = 0.0
 	for enemy: Enemy in field.enemies_near(centre, radius):
 		if enemy.take_damage(power, from, knockback, true):
 			dealt += power
+			# A water spell leaves what it hits wet.
+			if element == TowerData.Element.WATER:
+				enemy.apply_wet(Balance.WET_SECONDS)
 	return dealt
+
+
+## A spell of an element works the world the way a tower of it does, by the
+## mana it spent: fire warms the ground and feeds the ember, water wets and
+## cools and feeds the tide, earth the tremor, air the gale. One event per
+## cast; the climate takes it on its own tick.
+func _touch_the_world(spell: SpellData, at: Vector2, share: float = 1.0) -> void:
+	if spell == null or spell.element < 0 or field == null:
+		return
+	var spent: float = maxf(spell.mana_cost, 0.0) * share
+	if spent <= 0.0:
+		return
+	var ground: Climate = field.climate() if field.has_method("climate") else null
+	match spell.element:
+		TowerData.Element.FIRE:
+			if ground != null:
+				ground.add_heat(at, Balance.SPELL_HEAT_PER_MANA * spent, Balance.SPELL_WORLD_RADIUS)
+			RunState.ember += Balance.SPELL_STRAIN_PER_MANA * spent
+		TowerData.Element.WATER:
+			if ground != null:
+				ground.add_heat(at, -Balance.SPELL_HEAT_PER_MANA * spent, Balance.SPELL_WORLD_RADIUS)
+				ground.add_wet(at, Balance.SPELL_WET_PER_MANA * spent, Balance.SPELL_WORLD_RADIUS)
+			RunState.tide += Balance.SPELL_STRAIN_PER_MANA * spent
+		TowerData.Element.EARTH:
+			RunState.tremor += Balance.SPELL_STRAIN_PER_MANA * spent
+		TowerData.Element.AIR:
+			RunState.gale += Balance.SPELL_STRAIN_PER_MANA * spent * 0.05
 
 
 func _hook(origin: Vector2, spell: SpellData, power: float) -> void:

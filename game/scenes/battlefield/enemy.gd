@@ -234,6 +234,9 @@ var _freeze_refractory: float = 0.0
 var _freeze_left: float = 0.0
 var _burn_dps: float = 0.0
 var _burn_left: float = 0.0
+## Wet: seconds left of it from water that hit this body. Rain and a flood
+## wet everybody without a timer - see `is_wet`.
+var _wet_left: float = 0.0
 
 ## Velocity from the previous frame drives the procedural gait. Keeping it here
 ## also makes hitstun and freezing visibly settle instead of walking in place.
@@ -1622,6 +1625,9 @@ func _add_chill(amount: float) -> void:
 		return
 	if data != null and data.category == EnemyData.Category.BOSS:
 		amount *= Balance.CHILL_BOSS_RESIST
+	# Flash freeze: a wet body chills faster.
+	if is_wet():
+		amount *= Balance.WET_CHILL_SCALE
 	_chill = minf(_chill + amount, 1.0)
 	if _chill >= 1.0:
 		_shatter()
@@ -1651,8 +1657,38 @@ func apply_stagger(duration: float) -> void:
 func apply_burn(dps: float, duration: float) -> void:
 	if dps <= 0.0 or duration <= 0.0 or puppet:
 		return
+	# Steam: fire on a body soaked by water takes the wet off it and nothing
+	# else. Rain-wet is thinner - the burn takes, for half as long.
+	if _wet_left > 0.0:
+		_wet_left = 0.0
+		Vfx.dust(global_position + Vector2(0.0, -20.0), Color(0.86, 0.9, 0.94), 7, 44.0)
+		return
+	if is_wet():
+		duration *= Balance.WET_BURN_SCALE
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_left = maxf(_burn_left, duration)
+
+
+## Water hit this body: wet for a while. A host decision, like damage.
+func apply_wet(seconds: float) -> void:
+	if seconds <= 0.0 or puppet or _state == State.DYING:
+		return
+	if _wet_left <= 0.0:
+		Vfx.dust(global_position + Vector2(0.0, -16.0), Color(0.45, 0.62, 0.86), 5, 30.0)
+	_wet_left = maxf(_wet_left, seconds)
+	# Wet puts a burn out.
+	_burn_left = 0.0
+
+
+## Wet by water that hit it, by rain heavy enough, or by a flood at the knee.
+func is_wet() -> bool:
+	return _wet_left > 0.0 or RunState.rain_intensity >= Balance.WET_RAIN_FROM \
+		or RunState.flood >= Balance.FLOOD_KNEE
+
+
+## What lightning does to this body against a dry one: conductive when wet.
+func shock_scale() -> float:
+	return Balance.WET_SHOCK_DAMAGE if is_wet() else 1.0
 
 
 func _tick_status(delta: float) -> void:
@@ -1665,6 +1701,8 @@ func _tick_status(delta: float) -> void:
 	_slow_factor = lerpf(1.0, Balance.CHILL_SLOW_FLOOR, _chill)
 	if _freeze_left > 0.0:
 		_freeze_left -= delta
+	if _wet_left > 0.0:
+		_wet_left -= delta
 	if _burn_left > 0.0:
 		_burn_left -= delta
 		health.take_damage(_burn_dps * delta, global_position)

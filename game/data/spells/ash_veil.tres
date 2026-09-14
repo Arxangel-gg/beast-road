@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_arxik")
+element = 0
 kind = 5
 mana_cost = 20.0
 cooldown = 18.0
