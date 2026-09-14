@@ -1160,25 +1160,34 @@ motion the generator can find without inventing geometry.
 
 ### 5.8 Backdrops — `res://art/bg/`
 
-> The three `macro_act*` backdrops are **688×384 pixel art**, scaled to fill the
+> The ten `macro_act*` backdrops are **2064×1152 pixel art**, scaled to fill the
 > view height at draw time. They were 1920×1080 paintings, which read as a
 > different game once the beast standing in front of them became pixel art — the
 > rest of the project is pixel art and the backdrops were the outlier. The
 > remaining 1920×1080 entries here are UI key art, which is never seen beside a
 > sprite.
+>
+> **They were drawn at 688×384 and are stored at 3× that**, which is a change of
+> scale rather than of resolution: at 688×384 the beast scope magnified them
+> 2.8×, and a pixel artist's dithered sky gradient magnified 2.8× is a hard line
+> with a screen door under it. `tools/smooth_backdrops.py` resolves each dither
+> into the gradient it stands for and writes the result at 3×, so the sky is
+> now *minified* at draw time like every other painting here. Silhouettes are
+> untouched — only windows flat enough to be a gradient move. Run it again after
+> replacing one of these files.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `macro_act1.png` | 688×384 | O | `#1E2E33` |
-| `macro_act2.png` | 688×384 | O | `#2E3A42` |
-| `macro_act3.png` | 688×384 | O | `#3A2E2E` |
-| `macro_act4.png` | 688×384 | O | `#2B3430` |
-| `macro_act5.png` | 688×384 | O | `#33201A` |
-| `macro_act6.png` | 688×384 | O | `#3C4744` |
-| `macro_act7.png` | 688×384 | O | `#3E3524` |
-| `macro_act8.png` | 688×384 | O | `#26384A` |
-| `macro_act9.png` | 688×384 | O | `#241F1E` |
-| `macro_act10.png` | 688×384 | O | `#32353A` |
+| `macro_act1.png` | 2064×1152 | O | `#1E2E33` |
+| `macro_act2.png` | 2064×1152 | O | `#2E3A42` |
+| `macro_act3.png` | 2064×1152 | O | `#3A2E2E` |
+| `macro_act4.png` | 2064×1152 | O | `#2B3430` |
+| `macro_act5.png` | 2064×1152 | O | `#33201A` |
+| `macro_act6.png` | 2064×1152 | O | `#3C4744` |
+| `macro_act7.png` | 2064×1152 | O | `#3E3524` |
+| `macro_act8.png` | 2064×1152 | O | `#26384A` |
+| `macro_act9.png` | 2064×1152 | O | `#241F1E` |
+| `macro_act10.png` | 2064×1152 | O | `#32353A` |
 | `crossroad_bg.png` | 1920×1080 | O | `#1E2E33` |
 | `raid_arena_bg.png` | 1920×1080 | O | `#160E12` |
 | `menu_key_art.png` | 688×384 | O | `#0B1416` |
