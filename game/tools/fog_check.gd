@@ -46,6 +46,7 @@ func _ready() -> void:
 
 	await _test_the_field_is_covered()
 	await _test_the_hero_sees_and_remembers()
+	await _test_a_lit_torch_shows_its_road()
 	await _test_towers_give_vision()
 	await _test_bodies_in_the_fog_are_not_drawn()
 	await _test_the_minimap_reads_the_same_fog()
@@ -85,6 +86,12 @@ func _test_the_field_is_covered() -> void:
 	_check(fog != null, "the battlefield must stand a fog of war up")
 	if fog == null:
 		return
+	# The torches are sight now (2026-09-14) and they line every road through
+	# the core, so what this test is about - the hero's own eyes against the
+	# town's - has to be measured with them out. `_test_a_lit_torch_shows_its_road`
+	# is where they are measured on.
+	_snuff_every_torch()
+	await _settle()
 	var far := Vector2(BattleGrid.HALF_EXTENT * 0.9, BattleGrid.HALF_EXTENT * 0.9)
 	_check(not fog.sees(far), "the outskirts of a fresh field must not be visible")
 	_check(not fog.explored_at(far), "the outskirts of a fresh field must not be explored")
@@ -106,6 +113,9 @@ func _test_the_hero_sees_and_remembers() -> void:
 	if fog == null or hero == null:
 		_check(false, "the run must have a hero to see with")
 		return
+	# The north road is lined with torches, and a lit torch is sight; this is
+	# about the hero's, so they go out first.
+	_snuff_every_torch()
 	# Well clear of the town, which sees `FOG_VISION_TOWN` in every direction
 	# and would otherwise keep this ground lit after the hero walked off it -
 	# which is correct behaviour and a useless place to test from.
@@ -274,3 +284,57 @@ func _test_every_dungeon_stage_is_fresh() -> void:
 func _settle() -> void:
 	for _frame: int in 24:
 		await get_tree().process_frame
+
+
+## Every post on the field, put out. The tests of the hero's own sight need
+## the road dark, because a lit torch is sight now.
+func _snuff_every_torch() -> void:
+	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
+		var torch := node as Torch
+		if torch != null and is_instance_valid(torch):
+			torch.extinguish()
+
+
+## A lit torch shows the road around it; a dead one shows nothing.
+##
+## Owner brief, 2026-09-14: torches should give sight through the fog while
+## lit. Which makes relighting them worth something a player can see, and it
+## is the one vision source on the field the enemy can take away - so both
+## halves are held: the ground under a burning post is seen with nobody near
+## it, and the moment the post is put out that ground goes dark again.
+func _test_a_lit_torch_shows_its_road() -> void:
+	var fog: FogOfWar = _fog()
+	var hero: Hero = _run.battlefield.hero
+	if fog == null or hero == null:
+		_check(false, "the run must have a hero and a fog")
+		return
+	var chosen: Torch = null
+	var farthest: float = 0.0
+	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
+		var torch := node as Torch
+		if torch == null or not is_instance_valid(torch):
+			continue
+		# The one furthest from the town, so the town's own sight cannot be
+		# what is lighting the ground under it.
+		var away: float = torch.global_position.length()
+		if away > farthest:
+			farthest = away
+			chosen = torch
+	_check(chosen != null, "the field must stand torches up")
+	if chosen == null:
+		return
+	_check(farthest > Balance.FOG_VISION_TOWN + Balance.FOG_VISION_TORCH,
+		"the furthest torch stands %.0f out, inside the town's own sight, so this "
+			% farthest + "test could not tell the two apart")
+	# The hero well away, and the post burning.
+	hero.global_position = -chosen.global_position.normalized() \
+		* (Balance.FOG_VISION_TOWN + Balance.FOG_VISION_HERO * 1.5)
+	chosen.relight()
+	await _settle()
+	_check(fog.sees(chosen.global_position),
+		"the ground under a lit torch must be seen with nobody near it")
+	chosen.extinguish()
+	await _settle()
+	_check(not fog.sees(chosen.global_position),
+		"the ground under a torch that has gone out must go dark")
+	chosen.relight()

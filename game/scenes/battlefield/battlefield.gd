@@ -2397,6 +2397,14 @@ func _vision_sources() -> Array:
 				"radius": tower.effective_range() + Balance.FOG_VISION_TOWER_MARGIN})
 	if town != null and is_instance_valid(town):
 		out.append({"at": town.global_position, "radius": Balance.FOG_VISION_TOWN})
+	# A lit torch is sight down the road it stands on, by how strongly it burns.
+	# A guttering one sees less, a dead one nothing - which is one more reason
+	# to walk out and relight it.
+	for node: Node in get_tree().get_nodes_in_group(Torch.GROUP):
+		var torch := node as Torch
+		if torch != null and is_instance_valid(torch) and torch.is_lit():
+			out.append({"at": torch.global_position,
+				"radius": Balance.FOG_VISION_TORCH * torch.light_strength()})
 	return out
 
 

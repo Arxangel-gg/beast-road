@@ -42,6 +42,9 @@ var _pressure_sample_left: float = 0.0
 var _flame: Flame
 var _embers_out: Sprite2D
 var _relight_glow: Sprite2D
+## The warm pool on the ground under the post - see `_build_pool`.
+var _pool: Sprite2D
+var _pool_phase: float = 0.0
 
 
 func _ready() -> void:
@@ -68,6 +71,7 @@ func _build() -> void:
 	# texture to measure - see `ShadowKit.add_contact_sized`. The origin is
 	# already the contact point at the foot of the post, so the offset is zero.
 	ShadowKit.add_contact_sized(self, Balance.TORCH_SHADOW_WIDTH)
+	_build_pool()
 
 	_flame = Flame.new()
 	_flame.name = "Fire"
@@ -92,6 +96,57 @@ func _build() -> void:
 	_relight_glow.material = additive
 	_relight_glow.scale = Vector2.ZERO
 	add_child(_relight_glow)
+
+
+## The pool of light on the ground, on every torch, at no cost in lights.
+##
+## **Owner, 2026-09-14: torches can be on and it is still dark around them, as
+## if there were no lighting.** True, and measured: `night_check` puts a
+## torch's real light at a lift of 0.018 in luminance - present, provable, and
+## invisible. It is that faint for two good reasons that add up to a bad one.
+## Every `PointLight2D` re-draws everything under it, so only every second post
+## carries a light at all (`TORCH_LIGHT_EVERY`), and the energy of the ones that
+## do was brought down so overlapping pools would not sum into bright knots.
+## The road is lit *evenly*, and evenly is what nobody can see.
+##
+## So the pool the eye wants is faked, which the owner asked for by name and
+## which is the right answer regardless: an additive falloff sprite squashed
+## onto the ground, on **every** post whether or not it carries a light, costing
+## one quad each. It follows the flame's strength, the day's darkness and a
+## slow flicker, so it vanishes by noon and gutters with the torch. The real
+## lights still do what only lights can - shade the sprites and cast the
+## shadows - and `night_check` still measures them, because this is in both of
+## its passes and cancels out of the lift.
+func _build_pool() -> void:
+	_pool = Sprite2D.new()
+	_pool.name = "Pool"
+	_pool.texture = LightKit.falloff_texture()
+	var additive := CanvasItemMaterial.new()
+	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	_pool.material = additive
+	var across: float = maxf(float(_pool.texture.get_width()), 1.0)
+	var span: float = Balance.TORCH_POOL_RADIUS * 2.0 / across
+	# Flattened into an ellipse: the camera looks down and along, so a circle of
+	# light on the ground is a circle seen at an angle.
+	_pool.scale = Vector2(span, span * Balance.TORCH_POOL_SQUASH)
+	_pool.modulate = Color(Balance.TORCH_LIGHT_COLOUR, 0.0)
+	# Under the post and the shadow, over the ground the torch stands on.
+	_pool.z_index = -2
+	add_child(_pool)
+	_pool_phase = randf() * TAU
+	DayNight.phase_changed.connect(func(_p: float, _t: Color, _d: float) -> void:
+		_refresh_pool())
+	_refresh_pool()
+
+
+## How bright the pool is right now: the flame's strength, by the night.
+func _refresh_pool(wobble: float = 1.0) -> void:
+	if _pool == null:
+		return
+	var night: float = lerpf(Balance.TORCH_POOL_DAY, 1.0, DayNight.darkness)
+	var strength: float = _strength if _lit else 0.0
+	_pool.modulate.a = Balance.TORCH_POOL_ALPHA * strength * night * wobble
+	_pool.visible = _pool.modulate.a > 0.004
 
 
 ## The post and brazier. Drawn rather than art because at this size a PNG would
@@ -180,6 +235,11 @@ func _tick_strength(delta: float) -> void:
 	_strength = clampf(_strength, 0.0, 1.0)
 	if not is_equal_approx(before, _strength):
 		_apply_strength()
+	# The pool breathes with the flame. Two sines of unrelated periods, like
+	# the light's own flicker, so a row of posts never pulses together.
+	_pool_phase += delta
+	_refresh_pool(1.0 + Balance.TORCH_POOL_FLICKER
+		* (sin(_pool_phase * 6.1) * 0.6 + sin(_pool_phase * 11.7) * 0.4))
 	if _strength <= 0.001 and not hero_near:
 		extinguish()
 
@@ -288,6 +348,7 @@ func _apply_state(quiet: bool = false) -> void:
 		_flame.set_intensity(_strength)
 	if _embers_out != null:
 		_embers_out.modulate.a = 0.55
+	_refresh_pool()
 	_show_rekindle(0.0)
 	if not quiet:
 		state_changed.emit(_lit)
@@ -299,3 +360,4 @@ func _apply_strength() -> void:
 		_flame.set_intensity(_strength)
 	if _embers_out != null:
 		_embers_out.modulate.a = lerpf(0.55, 0.12, _strength)
+	_refresh_pool()

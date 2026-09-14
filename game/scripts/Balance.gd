@@ -4826,6 +4826,25 @@ const TORCH_LIGHT_RADIUS: float = 360.0
 ## bright torch used to, and the road is lit evenly instead of in bright knots.
 const TORCH_LIGHT_ENERGY: float = 1.15
 
+## The faked pool on the ground under every post - see `Torch._build_pool`.
+##
+## Radius in world units, and the ellipse's height as a share of its width. The
+## real light reaches 360 and is nearly invisible; this reaches less and is
+## meant to be *seen*, so a road at night reads as a row of warm pools rather
+## than a row of small fires in the dark. [TUNE]
+const TORCH_POOL_RADIUS: float = 230.0
+const TORCH_POOL_SQUASH: float = 0.62
+## Peak alpha at full strength on the darkest night. Additive, so this is a
+## lift rather than a paint: the ground's own texture stays under it.
+const TORCH_POOL_ALPHA: float = 0.62
+## How much of it is left at noon. Nothing: a pool of lamplight in daylight is
+## a mistake the eye catches at once.
+const TORCH_POOL_DAY: float = 0.0
+## Slow breathing on the pool's alpha, as a fraction. Slower and smaller than
+## the flame's own flicker - the pool is the light on the ground, which
+## averages the flame over its whole reach.
+const TORCH_POOL_FLICKER: float = 0.10
+
 ## High features one full cast-shadow pool per road; every other brazier still
 ## lights, dims and flickers, while Ultra promotes all twenty-four to shadow
 ## casters. The featured stop is central so the effect crosses the most-played
@@ -6644,6 +6663,14 @@ const FOG_VISION_HERO: float = 640.0
 const FOG_VISION_COMPANION: float = 380.0
 const FOG_VISION_TOWER_MARGIN: float = 110.0
 const FOG_VISION_TOWN: float = 1050.0
+## A lit torch lifts the fog around itself, scaled by how strongly it burns.
+##
+## Owner brief, 2026-09-14: torches should also give the players sight through
+## the fog of war while lit. Which is what a torch on a road is *for* - a lit
+## road is a road you can see down - and it makes keeping them lit worth more
+## than the wave director's darkness bonus. Smaller than the hero's own sight,
+## so a row of posts shows the road and not the whole field.
+const FOG_VISION_TORCH: float = 300.0
 const FOG_VISION_ARENA_HERO: float = 520.0
 ## The arena's fog draws over its cliffs and bodies.
 const RAID_FOG_Z: int = 60
