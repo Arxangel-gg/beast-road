@@ -287,6 +287,14 @@ func _report() -> void:
 	var reporter := AssetReporter.new()
 	var result: Dictionary = reporter.report()
 	print(result["text"])
+	if not bool(result["clean"]):
+		# Said as errors, so a CI step that quotes only error lines names the
+		# file rather than "exited 1 with no error line" (v0.26.0, Linux).
+		var problems: PackedStringArray = result.get("problems", PackedStringArray())
+		for index: int in mini(problems.size(), 24):
+			push_error("[asset-report] " + problems[index])
+		if problems.size() > 24:
+			push_error("[asset-report] ... and %d more" % (problems.size() - 24))
 	quit(0 if bool(result["clean"]) else 1)
 
 

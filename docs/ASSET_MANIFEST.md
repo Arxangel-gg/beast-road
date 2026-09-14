@@ -3165,6 +3165,28 @@ menu's key art already paints (2026-09-12).
 | `menu_flame_idle_05.png` | 63×42 | T | `#C4552E` |
 | `menu_flame_idle_06.png` | 63×42 | T | `#C4552E` |
 
+### 5.33 Crops — `res://art/crops/`
+
+All 64×64, type T, placeholder colour `#8CB26A`.
+
+`crop_barley_0.png` · `crop_barley_1.png` · `crop_barley_2.png` · `crop_barley_3.png` ·
+`crop_ember_pepper_0.png` · `crop_ember_pepper_1.png` · `crop_ember_pepper_2.png` · `crop_ember_pepper_3.png` ·
+`crop_frost_root_0.png` · `crop_frost_root_1.png` · `crop_frost_root_2.png` · `crop_frost_root_3.png` ·
+`crop_glowcap_0.png` · `crop_glowcap_1.png` · `crop_glowcap_2.png` · `crop_glowcap_3.png` ·
+`crop_marsh_reed_0.png` · `crop_marsh_reed_1.png` · `crop_marsh_reed_2.png` · `crop_marsh_reed_3.png` ·
+`crop_stone_melon_0.png` · `crop_stone_melon_1.png` · `crop_stone_melon_2.png` · `crop_stone_melon_3.png`
+
+Six crops at four growth stages each - a seedling, a shoot, a green plant and
+the plant ready to pull - staged for the Farming craft (owner brief,
+2026-09-14: farming as a slow skill tied to the climate grid's soil, moisture
+and temperature). They arrived in the tree on 2026-09-14 ahead of the system
+that reads them, and are listed here so the art folder and this manifest stay
+the same list (§4): nothing draws them yet. Each crop belongs to a soil the
+grid can name - barley to open ground, ember pepper to hot and dry, frost root
+to cold, glowcap to the wet and the dark, marsh reed to standing water, stone
+melon to rocky ground - which is the whole reason there are six rather than
+one.
+
 ### 5.29 Painted plant idle frames — `res://art/foliage/`
 
 Every painted plant in every region breathes (owner brief, 2026-09-12:
