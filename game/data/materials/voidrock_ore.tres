@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 1
 rarity = 3
-forge_value = 7
 description = "Cold to the touch and lighter than it looks. Nobody agrees what it is."
 id = "voidrock_ore"
 display_name = "Voidrock"

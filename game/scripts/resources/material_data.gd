@@ -26,9 +26,6 @@ enum Kind { WOOD, ORE, GEM }
 ## with it; wood and ore decide how good a piece the forge may attempt at all.
 @export_range(0, 3) var rarity: int = 0
 
-## What one of these is worth at the forge, as a share of what a piece costs.
-@export_range(1, 200) var forge_value: int = 1
-
 
 func get_sprite_path() -> String:
 	return GameData.derive_path("icons/ui", "ui_", id)

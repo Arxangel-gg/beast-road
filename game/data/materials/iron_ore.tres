@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 1
 rarity = 1
-forge_value = 2
 description = "The ore everything on this road is eventually made of."
 id = "iron_ore"
 display_name = "Iron Ore"

@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 0
 rarity = 1
-forge_value = 2
 description = "Pale, light and springy. Half the hafts on the road are this."
 id = "ashwood_log"
 display_name = "Ashwood Log"

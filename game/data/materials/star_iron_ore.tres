@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 1
 rarity = 2
-forge_value = 4
 description = "Came down burning. It takes an edge nothing else holds."
 id = "star_iron_ore"
 display_name = "Star-Iron Ore"

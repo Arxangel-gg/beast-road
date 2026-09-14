@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 2
 rarity = 1
-forge_value = 6
 description = "Warm in the hand. A smith sets one and the work comes out better."
 id = "amber_gem"
 display_name = "Amber"

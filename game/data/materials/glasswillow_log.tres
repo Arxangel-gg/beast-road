@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 0
 rarity = 2
-forge_value = 4
 description = "It rings when it is struck, and it does not warp."
 id = "glasswillow_log"
 display_name = "Glasswillow Log"

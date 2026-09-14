@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 2
 rarity = 3
-forge_value = 30
 description = "Found past the camps, in the dark, by people who went looking."
 id = "duskstone_gem"
 display_name = "Duskstone"

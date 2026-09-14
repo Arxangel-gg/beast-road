@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 1
 rarity = 0
-forge_value = 1
 description = "Green-flecked and soft. Good for fittings, poor for edges."
 id = "copper_ore"
 display_name = "Copper Ore"

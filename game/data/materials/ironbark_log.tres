@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 0
 rarity = 0
-forge_value = 1
 description = "Dense enough to blunt an axe and heavy enough to be worth the trouble."
 id = "ironbark_log"
 display_name = "Ironbark Log"

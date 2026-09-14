@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 2
 rarity = 2
-forge_value = 14
 description = "It frosts the anvil it is set on. Worth the ruined gloves."
 id = "frost_gem"
 display_name = "Frostglass"

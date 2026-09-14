@@ -6,7 +6,6 @@
 script = ExtResource("1")
 kind = 0
 rarity = 3
-forge_value = 7
 description = "The sap never quite dries. Smiths swear by it and will not say why."
 id = "bloodpine_log"
 display_name = "Bloodpine Log"
