@@ -384,6 +384,11 @@ func _load_tail() -> void:
 	_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
 		size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
 	_tail.position = Balance.BEAST_TAIL_ANCHOR
+	# **The tail was drawn darker than the hide it grows out of.** `modulate`
+	# is inherited from the beast, so the day tint and the environment grade
+	# already reach it; this multiplies on top and corrects only the difference
+	# the two assets were generated with. See `Balance.BEAST_TAIL_GRADE`.
+	_tail.modulate = Balance.BEAST_TAIL_GRADE
 	_tail.show_behind_parent = true
 	_place_tail()
 	_tail.texture_filter = beast.texture_filter

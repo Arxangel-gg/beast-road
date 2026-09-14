@@ -6113,8 +6113,48 @@ const BEAST_TAIL_IDLE_FRAME_FORMAT: String = "res://art/beast/beast_tail_idle_%0
 ## measurable. At the root end (u 0.93-1.0) the painted rows of every idle and
 ## walk frame centre on y 34.5-35.5 of 96, so the root fraction is 35/96.
 ## Measure it again from the frames if the tail is ever redrawn.
-const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 28.0)
+##
+## **And then it sat slightly too low** (owner, 2026-09-14). That is this
+## number rather than the root fraction above: the root says where the tail's
+## own art begins, the anchor says where on the haunch it is pinned. Lifted
+## four body pixels, which is sixteen on screen at `BEAST_FRAME_SCALE`.
+const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 24.0)
+## Where in the tail image its root sits, as a fraction of the frame.
+##
+## Measured from the frames, not chosen: `beast_tail_check` reads the painted
+## rows at the root end and refuses a value that disagrees with the art. Raising
+## the tail on the body is `BEAST_TAIL_ANCHOR`'s job, not this one.
 const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
+
+## What the tail is multiplied by so it matches the hide it grows out of.
+##
+## **The two assets were generated separately and do not agree.**
+##
+## Measured **at the join**, which is the only place the two have to match: the
+## body's stub (its own left 42 columns, all that is painted out to there) and
+## the tail's root end (u 0.88-1.0). Over four walk frames the stub averages
+## (55.9, 60.0, 46.0) and the root (49.1, 52.5, 41.8) - the tail is about 87%
+## of the hide, which reads as a greyer creature joined at the hip.
+##
+## The first cut compared whole-image means and got 1.19 - a different question,
+## since the body frame carries the town's red roofs and the tail frame its own
+## dark tip. Two images with different subjects have no business being averaged
+## against each other.
+##
+## **And the seam is not what the eye complains about.** The root is tucked
+## `BEAST_TAIL_OVERLAP` under the haunch and dissolves, so almost none of it is
+## ever seen; what is seen is the tail's *length*, which renders about 1.2x the
+## haunch because the stub sits in the body's own shadow and the length does
+## not. The two do not differ in brightness so much as in **hue**: the tail is
+## grey stone where the body is mossy olive. So this is a green-ward shift -
+## red and blue down, green held - rather than the darkening two earlier
+## measurements argued for. Judged on a render, which is the only place the
+## lighting, the moss and the foliage in front of it all apply at once.
+##
+## A gain rather than a repaint: the tail is a child of the beast, so it already
+## inherits the day tint and the environment grade, and this corrects only what
+## the art was drawn with. Re-measure at the seam if either asset is redrawn.
+const BEAST_TAIL_GRADE: Color = Color(0.92, 1.00, 0.86)
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
