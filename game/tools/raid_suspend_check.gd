@@ -33,6 +33,29 @@ func _ready() -> void:
 	_check(RunState.raid_charge > Balance.RAID_CHARGE_PER_KILL,
 		"War Horn kills must accelerate raid charge")
 
+	# **What one body puts in the horn depends on which body it was.**
+	#
+	# `EnemyData.raid_charge_value` was authored by thirteen breeds and read by
+	# nothing, so a Siege Lizard worth 5 and a Salt Marcher worth 1 filled the
+	# meter identically. Measured here rather than read back, under identical
+	# conditions each time so the horn multiplier cancels out of the comparison.
+	var fill := func(who: String) -> float:
+		RunState.raid_charge = 0.0
+		EventBus.enemy_died.emit(who, Vector2.ZERO)
+		return RunState.raid_charge
+	var light: float = fill.call("salt_marcher")
+	var heavy: float = fill.call("siege_lizard")
+	var unknown: float = fill.call("no-such-breed")
+	_check(heavy > light * 2.0,
+		("a Siege Lizard fills %.4f and a Salt Marcher %.4f - the horn is not"
+			% [heavy, light]) + " reading raid_charge_value")
+	# And the baseline did not move. A breed authoring the 1.0 default must put
+	# in exactly what a body with no data at all puts in, or wiring the field
+	# quietly re-tuned every ordinary kill in the game.
+	_check(is_equal_approx(light, unknown),
+		("an ordinary breed fills %.5f where the baseline is %.5f - wiring the"
+			% [light, unknown]) + " field changed what a plain kill is worth")
+
 	var data: EnemyData = ContentDB.enemy("bogkin")
 	var enemy: Enemy = _run.battlefield.spawn_enemy(data, 0, 1.0)
 	await get_tree().process_frame

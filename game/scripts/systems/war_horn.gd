@@ -70,10 +70,25 @@ func consume_charge() -> void:
 	EventBus.raid_charge_changed.emit(0.0)
 
 
-func _on_enemy_died(_id: String, _at: Vector2) -> void:
+## What a kill puts in the horn.
+##
+## **The id used to be underscored.** `EnemyData.raid_charge_value` was
+## authored by thirteen breeds - a Siege Lizard and a White Maw Giant at 5, the
+## six regional elites at 4 or 5, a Salt Marcher at 1 - and nothing read it, so
+## a champion and the smallest body on the road filled the meter identically.
+##
+## The baseline is deliberately unchanged: `raid_charge_value` defaults to 1.0
+## and thirty-four of thirty-nine breeds author exactly that, so an ordinary
+## body contributes precisely what it always did and the horn was not silently
+## re-tuned. What changed is only that the heavy bodies now count for what they
+## were written down as being worth.
+func _on_enemy_died(id: String, _at: Vector2) -> void:
 	if RunState.raid_charge >= 1.0:
 		return
 	var gain: float = Balance.RAID_CHARGE_PER_KILL * Modifiers.multiplier(Modifiers.RAID_CHARGE)
+	var breed: EnemyData = ContentDB.enemy(id)
+	if breed != null:
+		gain *= maxf(breed.raid_charge_value, 0.0)
 	var road: RoadData = RunState.active_road()
 	if road != null:
 		gain *= road.raid_charge_scale
