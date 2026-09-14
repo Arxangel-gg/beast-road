@@ -249,6 +249,13 @@ var flood: float = 0.0
 var storm_charge: float = 0.0
 var temperature: float = 20.0
 
+## The earth's wrath and what feeds it. Hidden from the player by design; see
+## `Balance` under THE EARTH'S WRATH. `ember` is the fire towers' recent
+## damage and `gale` is the storm towers' recent running, both decaying.
+var wrath: float = 0.0
+var ember: float = 0.0
+var gale: float = 0.0
+
 ## The campaign tier this run is being played on.
 var tier_id: String = "normal"
 
@@ -533,6 +540,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	flood = 0.0
 	storm_charge = 0.0
 	temperature = 20.0
+	wrath = 0.0
+	ember = 0.0
+	gale = 0.0
 	# Restored from the account, not zeroed.
 	#
 	# This is the owner amendment of 2026-08-20 in one place: the hero is the only
@@ -847,12 +857,12 @@ func roll_weather() -> void:
 			pool.append(option)
 	var total: float = 0.0
 	for option: WeatherData in pool:
-		total += option.weight_for_act(act)
+		total += _wrathful_weight(option)
 	if total <= 0.0:
 		return
 	var target: float = rng("weather").randf() * total
 	for option: WeatherData in pool:
-		target -= option.weight_for_act(act)
+		target -= _wrathful_weight(option)
 		if target <= 0.0:
 			weather_id = option.id
 			MetaState.record_seen("weather", option.id)
@@ -873,6 +883,20 @@ func well_refill_scale() -> float:
 ## Seconds of refill a well loses every second in this heat, 0 when it is not hot.
 func well_evaporation() -> float:
 	return maxf(temperature - Balance.WELL_EVAPORATE_FROM, 0.0) * Balance.WELL_EVAPORATE_PER_DEGREE
+
+
+## A sky's weight at the crossroad, leaned on by the earth's anger: the harsh
+## ones grow likelier the more has been killed on the road.
+func _wrathful_weight(option: WeatherData) -> float:
+	var weight: float = option.weight_for_act(act)
+	if option.wrathful:
+		weight *= 1.0 + clampf(wrath, 0.0, Balance.WRATH_CAP) * Balance.WRATH_WEATHER_BIAS
+	return weight
+
+
+## Whether the water is over the knee: no dashing, no Aegis Step.
+func flood_over_knee() -> bool:
+	return flood > Balance.FLOOD_KNEE
 
 
 ## XP required to leave a level.

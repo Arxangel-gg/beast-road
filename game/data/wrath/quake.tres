@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+warning = "The ground hums. Something under the road is waking."
+warning_title = "TREMOR"
+announce = "The earth shakes. Everything on it is thrown."
+announce_title = "EARTHQUAKE"
+colour = Color(0.75, 0.6, 0.35, 1)
+id = "quake"
+display_name = "Earthquake"

@@ -620,6 +620,19 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			Vfx.dust(sprite.global_position, Color("6b7a4a"), 5, 30.0)
 			return true
 
+	# Burning: hurt a little every frame until it goes out, and lit while it does.
+	if float(animal.get("burning", 0.0)) > 0.0:
+		animal["burning"] = float(animal["burning"]) - delta
+		sprite.modulate = Color(1.0, 0.6, 0.35) if fmod(float(animal["burning"]), 0.2) < 0.1 else Color.WHITE
+		if not Coop.is_guest():
+			var index: int = _living.find(animal)
+			if index >= 0:
+				_wound(index, animal, Balance.WILDFIRE_WILDLIFE_DPS * delta, false)
+				if float(animal["dying"]) > 0.0:
+					return true
+		if float(animal["burning"]) <= 0.0:
+			sprite.modulate = Color.WHITE
+
 	# A hoarder's clock runs whatever it is doing, and when it runs out the
 	# animal does not walk to the edge - it rifts, because the walk would be
 	# the window it just ran out of.
@@ -1541,6 +1554,70 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	animal["state"] = State.LEAVING
 
 
+## Everything within `radius` of a point bolts from it. Fire, a funnel, the
+## ground shaking - the animals do not stay to see what it was.
+func scare_from(at: Vector2, radius: float) -> void:
+	for animal: Dictionary in _living:
+		var sprite := animal["sprite"] as Sprite2D
+		var kind := animal["data"] as WildlifeData
+		if sprite == null or not is_instance_valid(sprite) or kind == null:
+			continue
+		if float(animal["dying"]) > 0.0 or bool(animal.get("treed", false)):
+			continue
+		if kind.is_hostile():
+			continue
+		var state: int = int(animal["state"])
+		if state == State.FLEEING or state == State.LEAVING:
+			continue
+		if sprite.global_position.distance_to(at) > radius:
+			continue
+		animal["state"] = State.FLEEING
+		animal["drinking"] = false
+		animal["goal"] = _bolt_target(sprite.global_position, at if radius < INF else Vector2.INF)
+
+
+## Hurts every animal within `radius` of a point, not only the nearest. The
+## earth's own blows - a quake, a funnel, a meteor - reach all of them, and
+## none of those is the player's doing, so `by_player` is false and nothing
+## pays out or counts against the earth.
+func wound_within(at: Vector2, radius: float, damage: float, by_player: bool = false) -> int:
+	if Coop.is_guest() or damage <= 0.0:
+		return 0
+	var hit: int = 0
+	for index: int in _living.size():
+		var animal: Dictionary = _living[index]
+		if float(animal.get("dying", 0.0)) > 0.0 or float(animal.get("hp", 0.0)) <= 0.0:
+			continue
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		if sprite.global_position.distance_to(at) > radius:
+			continue
+		_wound(index, animal, damage, by_player)
+		hit += 1
+	return hit
+
+
+## Caught by a fire: burning for a while, hurt by it every frame, and running.
+func burn_near(at: Vector2, radius: float, damage_now: float) -> void:
+	if Coop.is_guest():
+		return
+	for index: int in _living.size():
+		var animal: Dictionary = _living[index]
+		if float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		var sprite := animal["sprite"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		if sprite.global_position.distance_to(at) > radius:
+			continue
+		if float(animal.get("burning", 0.0)) <= 0.0:
+			Vfx.spark(sprite.global_position, Balance.FLAME_MID, 5, Vector2.UP, 120.0)
+		animal["burning"] = Balance.WILDFIRE_BURNING_SECONDS
+		if damage_now > 0.0:
+			_wound(index, animal, damage_now, false)
+
+
 ## The ground floods (owner brief, 2026-09-14): the flyers leave, the climbers
 ## get up a tree and wait, and what is too small to do either drowns where it
 ## stands and leaves what it would have. Decided once as the water reaches
@@ -1555,7 +1632,14 @@ func _on_flood(level: float) -> void:
 	_flood_struck = true
 	var trunks: PackedVector2Array = PackedVector2Array()
 	if field != null and field.has_method("tree_positions"):
-		trunks = field.call("tree_positions")
+		# Only trunks inside the field. The treeline stands beyond the grid,
+		# where an animal is forgotten for having wandered off the world - so
+		# a climber sent to the nearest of those was quietly deleted on its
+		# way up. The gathering trees are inside and are what it climbs.
+		var inside: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
+			if absf(trunk.x) <= inside and absf(trunk.y) <= inside:
+				trunks.append(trunk)
 	for animal: Dictionary in _living:
 		var sprite := animal["sprite"] as Sprite2D
 		var kind := animal["data"] as WildlifeData

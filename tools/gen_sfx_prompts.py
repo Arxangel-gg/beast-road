@@ -553,6 +553,16 @@ ROWS = [
      "lightning striking close: a sharp crack that tears, then a heavy rolling boom that decays over two seconds, no rain"),
     ("sfx_thunder_far", "sfx", "sfx", "3.4s", "ElevenLabs",
      "distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain"),
+    ("sfx_quake", "sfx", "sfx", "3.2s", "ElevenLabs",
+     "an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and settles, with small stones rattling"),
+    ("sfx_wildfire", "sfx", "sfx", "2.0s", "ElevenLabs",
+     "dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices"),
+    ("sfx_tornado", "sfx", "sfx", "2.6s", "ElevenLabs",
+     "a tornado passing near: a huge low howl with grit hissing through it and a rising whine, no music"),
+    ("sfx_meteor_whistle", "sfx", "sfx", "2.2s", "ElevenLabs",
+     "a meteor falling: a thin descending whistle that grows into a roar over two seconds, no impact"),
+    ("sfx_meteor_impact", "sfx", "sfx", "2.4s", "ElevenLabs",
+     "a meteor hitting earth: a huge deep thud, a blast of gravel, and a long low aftershock, no fire"),
     ("sfx_party_prompt", "sfx", "sfx", "0.7s", "ElevenLabs",
      "a party invitation arriving: two clear ascending notes on a hunting horn, close and polite"),
     ("sfx_party_accept", "sfx", "sfx", "0.6s", "ElevenLabs",
@@ -583,7 +593,8 @@ WILDLIFE_IDS = {row[0] for row in ROWS if row[0].startswith("sfx_wildlife_")}
 # gate fails on any warning). They are the audio equivalent of a magenta
 # placeholder PNG and are listed as owed until a real recording overwrites them.
 PLACEHOLDER_IDS = {
-    "sfx_thunder_near", "sfx_thunder_far",
+    "sfx_thunder_near", "sfx_thunder_far", "sfx_quake", "sfx_wildfire", "sfx_tornado",
+    "sfx_meteor_whistle", "sfx_meteor_impact",
     "sfx_fish_cast", "sfx_fish_splash", "sfx_fish_nibble", "sfx_fish_bite", "sfx_fish_hook",
     "sfx_fish_reel", "sfx_fish_land", "sfx_fish_snap", "sfx_fish_escape", "sfx_profession_level",
     "sfx_boss_stinger", "sfx_boss_fall",

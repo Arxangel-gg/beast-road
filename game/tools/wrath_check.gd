@@ -1,0 +1,786 @@
+extends Node
+
+## The earth's wrath: kills feed it, it leans the weather, and it shakes,
+## burns, spins and throws stones. Each of those is measured on the real field.
+##
+##   godot --headless --path game res://tools/wrath_check.tscn
+##
+## Owner brief, 2026-09-14. Every event here has a way of lying that would not
+## error - a quake that shakes the screen and hurts nobody, a fire that draws a
+## flame and never spreads or never goes out, a funnel that walks past a tower
+## and leaves it standing, a stone that lands in an empty field - so the gate
+## drives each on the real battlefield with real bodies and real towers and
+## reads the numbers back.
+
+var _failures: PackedStringArray = []
+var _checks: int = 0
+var _run: Run = null
+var _field: Battlefield = null
+var _sky: WeatherSky = null
+var _fire: Wildfire = null
+
+
+func _ready() -> void:
+	MetaState.hold_saves()
+	RunState.reset()
+	GameDirector.run_active = true
+	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(_run)
+	for _f: int in 12:
+		await get_tree().process_frame
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_run.call("switch_scope", GameDirector.Scope.BATTLEFIELD)
+	for _f: int in 12:
+		await get_tree().process_frame
+	_field = _run.get("battlefield") as Battlefield
+	_sky = _field.sky() if _field != null else null
+	_fire = _field.wildfire() if _field != null else null
+	_check(_sky != null and _fire != null and _field.scorch() != null,
+		"the battlefield must stand a sky, a wildfire and the scorch marks up")
+	if _sky != null and _fire != null:
+		_sky.events_enabled = false
+		_test_wrath_rises_and_cools()
+		await _test_the_earth_answers_on_its_own()
+		await _test_acts_ease_the_wrath()
+		_test_wrath_leans_the_weather()
+		await _test_the_quake()
+		await _test_the_wildfire()
+		await _test_the_rain_puts_fire_out()
+		await _test_the_tornado()
+		await _test_the_meteor()
+		await _test_chain_lightning()
+		await _test_water_feeds_the_water_towers()
+		await _test_deep_water_stops_the_dash()
+		await _test_enemies_turn_on_towers()
+		await _test_the_ground_stays_charged()
+		await _test_the_quake_is_telegraphed()
+		await _test_the_tornado_is_telegraphed()
+		await _test_the_fire_whirl()
+		await _test_dry_lightning()
+		await _test_the_guest_only_draws()
+		await _test_the_guest_is_told()
+	MetaState.resume_saves()
+	if _failures.is_empty():
+		print("[wrath] PASS - %d checks: the measure, the acts, the weather, the quake, the fire, the "
+			% _checks + "funnel, the stone, the chain, the water, the dash, the towers, the charged "
+			+ "ground, the tells, the fire whirl, the dry strike and the guest")
+	else:
+		for failure: String in _failures:
+			push_error("[wrath] " + failure)
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+
+func _check(condition: bool, why: String) -> void:
+	_checks += 1
+	if not condition:
+		_failures.append(why)
+
+
+func _weather(id: String) -> void:
+	RunState.weather_id = id
+	EventBus.weather_changed.emit(id)
+
+
+func _step(seconds: float, step: float = 0.5) -> void:
+	var left: float = seconds
+	while left > 0.0:
+		var dt: float = minf(step, left)
+		_sky._process(dt)
+		left -= dt
+
+
+func _dry() -> void:
+	_sky.forced_intensity = 0.0
+	_step(Balance.FLOOD_DRAIN_SECONDS + 30.0)
+	_sky.forced_intensity = -1.0
+	_weather("clear")
+	_step(5.0)
+	RunState.flood = 0.0
+
+
+func _body(at: Vector2, hp_scale: float = 1.0) -> Enemy:
+	var enemy: Enemy = _field.spawn_enemy(ContentDB.enemy("bogkin"), 0, hp_scale)
+	enemy.global_position = at
+	return enemy
+
+
+## A fusion is a property of where you built: two finished parents either
+## side of an empty plot. Finds three open anchors in a row inside the pocket,
+## builds the parents on the outer two and the fusion between them.
+func _build_fusion(id: String, parent_id: String, around: Vector2) -> Tower:
+	var centre: Vector2i = BattleGrid.world_to_tile(around)
+	for dy: int in range(-6, 7):
+		for dx: int in range(-6, 7):
+			var anchor: Vector2i = centre + Vector2i(dx, dy)
+			for axis: Vector2i in [Vector2i(BattleGrid.FOOTPRINT, 0), Vector2i(0, BattleGrid.FOOTPRINT)]:
+				var a: Vector2i = anchor - axis
+				var b: Vector2i = anchor + axis
+				if not _field.placement_problem(anchor).is_empty():
+					continue
+				if not _field.placement_problem(a).is_empty() or not _field.placement_problem(b).is_empty():
+					continue
+				var left: Tower = _build(parent_id, BattleGrid.tile_to_world(a))
+				var right: Tower = _build(parent_id, BattleGrid.tile_to_world(b))
+				if left == null or right == null:
+					return null
+				return _build(id, BattleGrid.tile_to_world(anchor))
+	return null
+
+
+## The nearest open build anchor to a point within `radius`, as a world
+## position, or INF when the ground there is all road, water or rock.
+func _open_anchor_near(at: Vector2, radius: float) -> Vector2:
+	var centre: Vector2i = BattleGrid.world_to_tile(at)
+	var reach: int = int(ceil(radius / BattleGrid.TILE)) + 1
+	var best: Vector2 = Vector2.INF
+	var nearest: float = radius
+	for dy: int in range(-reach, reach + 1):
+		for dx: int in range(-reach, reach + 1):
+			var anchor: Vector2i = centre + Vector2i(dx, dy)
+			if not _field.placement_problem(anchor).is_empty():
+				continue
+			# Measured from where the tower will stand, returned as the tile
+			# `_build` turns back into that anchor.
+			var away: float = BattleGrid.footprint_centre(anchor).distance_to(at)
+			if away < nearest:
+				nearest = away
+				best = BattleGrid.tile_to_world(anchor)
+	return best
+
+
+## Every tower off the field, so each test builds on a free pocket.
+func _clear_towers() -> void:
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower != null and is_instance_valid(tower):
+			RunState.clear_tower(tower.anchor)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _pocket(lane: int) -> Vector2:
+	return _field.grid.lane_pocket_centre(lane)
+
+
+## With the earth furious and its events allowed, something happens within a
+## while. Proves the hazard path the rest of the gate switches off.
+func _test_the_earth_answers_on_its_own() -> void:
+	_dry()
+	_sky.set("_wrath_floor", Balance.WRATH_CAP)
+	_sky.events_enabled = true
+	var before: int = _sky.quakes + _sky.wildfires + _sky.tornadoes
+	var waited: float = 0.0
+	while _sky.quakes + _sky.wildfires + _sky.tornadoes == before and waited < 1800.0:
+		_sky._process(0.5)
+		waited += 0.5
+	_check(_sky.quakes + _sky.wildfires + _sky.tornadoes > before,
+		"half an hour of a furious earth and nothing happened")
+	_sky.events_enabled = false
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	_sky.set("_quake_left", 0.0)
+	for node: Node in get_tree().get_nodes_in_group(Tornado.GROUP):
+		node.queue_free()
+	_fire.call("_clear")
+	await get_tree().process_frame
+
+
+func _build(id: String, at: Vector2) -> Tower:
+	RunState.gain_every_currency(20000)
+	var data: TowerData = ContentDB.tower(id)
+	if data == null:
+		_check(false, "no tower called %s" % id)
+		return null
+	var anchor: Vector2i = BattleGrid.world_to_tile(at)
+	RunState.set_phase(RunState.Phase.PREPARATION)
+	var problem: String = _field.try_build(anchor, data)
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	_check(problem.is_empty(), "the harness must be able to build %s: %s" % [id, problem])
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower != null and tower.data == data and tower.anchor == anchor:
+			return tower
+	return null
+
+
+## Kills raise it - a floor for the run and a heat that cools - and nothing
+## reaches the HUD.
+func _test_wrath_rises_and_cools() -> void:
+	_check(_sky.wrath() == 0.0, "a fresh road starts with no wrath (%.3f)" % _sky.wrath())
+	for _i: int in 6:
+		EventBus.wildlife_killed.emit("rabbit", 3, Vector2.ZERO)
+	var hot: float = _sky.wrath()
+	_check(hot > 0.2, "six kills left the earth at %.3f" % hot)
+	_step(Balance.WRATH_HEAT_HALF_LIFE * 3.0)
+	var cooled: float = _sky.wrath()
+	_check(cooled < hot * 0.6, "half an hour later the earth is still at %.3f of %.3f" % [cooled, hot])
+	_check(cooled >= Balance.WRATH_FLOOR_PER_KILL * 6.0 - 0.001,
+		"the floor cooled away too: %.3f" % cooled)
+	_check(is_equal_approx(RunState.wrath, cooled), "RunState.wrath is not what the sky says")
+
+
+## The crossroad's harsh skies grow likelier with wrath.
+func _test_wrath_leans_the_weather() -> void:
+	var downpour: WeatherData = ContentDB.weather("downpour")
+	var clear: WeatherData = ContentDB.weather("clear")
+	_check(downpour != null and downpour.wrathful and clear != null and not clear.wrathful,
+		"a downpour is wrathful and a clear sky is not")
+	var was: float = RunState.wrath
+	RunState.wrath = 0.0
+	var calm_rain: float = RunState._wrathful_weight(downpour)
+	var calm_clear: float = RunState._wrathful_weight(clear)
+	RunState.wrath = 1.0
+	_check(RunState._wrathful_weight(downpour) > calm_rain * 2.0,
+		"full wrath does not lean the crossroad toward a downpour")
+	_check(is_equal_approx(RunState._wrathful_weight(clear), calm_clear),
+		"wrath changed the weight of a clear sky")
+	RunState.wrath = was
+
+
+## The ground shakes and everything alive is hurt by it.
+func _test_the_quake() -> void:
+	var body: Enemy = _body(Vector2(700.0, 700.0))
+	await get_tree().process_frame
+	var body_hp: float = body.health.current_hp
+	var hero_hp: float = _field.hero.health.current_hp
+	await _clear_towers()
+	var wall: Tower = _build("grit_sling", _pocket(0))
+	var before: int = _sky.quakes
+	_sky.quake(1.0)
+	_check(_sky.quakes == before + 1, "the quake was not counted")
+	_check(body.health.current_hp < body_hp, "the quake did not hurt a body")
+	if wall != null and is_instance_valid(wall):
+		_check(wall.health_ratio() < 1.0 and wall.is_vulnerable(),
+			"the quake should chip a standing tower and never fell it (%.2f)" % wall.health_ratio())
+	_check(_field.hero.health.current_hp < hero_hp, "the quake did not hurt the hero")
+	_check(_field.hero.health.current_hp > 0.0, "a full quake killed a full hero outright")
+	body.queue_free()
+	await get_tree().process_frame
+
+
+## A plant catches, hurts what stands in it, heats the fire towers, spreads,
+## and when it is gone the plant is gone, the ground is marked, and a tree it
+## reached never grows back.
+func _test_the_wildfire() -> void:
+	_dry()
+	var foliage: Foliage = _fire.call("_foliage")
+	_check(foliage != null, "the wildfire knows the foliage")
+	if foliage == null:
+		return
+	# A plant with neighbours that has open ground within a fire tower's reach
+	# of it, so spread has somewhere to go and the tower somewhere to stand.
+	await _clear_towers()
+	var seed_at: Vector2 = Vector2.INF
+	var stand: Vector2 = Vector2.INF
+	for candidate: Dictionary in foliage.plants_near(Vector2.ZERO, BattleGrid.CORE_HALF_EXTENT * 1.4):
+		var around: Array[Dictionary] = foliage.plants_near(candidate["at"] as Vector2,
+			Balance.WILDFIRE_SPREAD_RADIUS * 0.8)
+		if around.size() < 3:
+			continue
+		var open: Vector2 = _open_anchor_near(candidate["at"] as Vector2, Balance.WILDFIRE_TOWER_BUFF_RADIUS * 0.6)
+		if open.is_finite():
+			seed_at = candidate["at"]
+			stand = open
+			break
+	_check(seed_at.is_finite(), "no plant with neighbours and open ground within a fire tower's reach")
+	if not seed_at.is_finite():
+		return
+	# The fire tower stands first and is read calm, so the heat is measured
+	# against a number taken before anything was burning.
+	var coil: Tower = _build("ash_thrower", stand)
+	await get_tree().process_frame
+	var calm: float = coil.effective_damage() if coil != null else 0.0
+	_check(_fire.ignite_near(seed_at, 20.0, 1.0), "a dry plant did not catch")
+	_check(_fire.fire_count() == 1, "one plant lit means one fire (%d)" % _fire.fire_count())
+	# A body standing in it burns; a fire tower near it heats.
+	var body: Enemy = _body(seed_at)
+	await get_tree().process_frame
+	var body_hp: float = body.health.current_hp
+	_fire.set("_mirror", false)
+	for _i: int in 4:
+		_fire._process(0.5)
+	_check(body.health.current_hp < body_hp, "a body standing in the fire was not hurt")
+	if coil != null:
+		_check(coil.effective_damage() > calm * 1.05,
+			"a fire tower beside a wildfire deals %.1f against %.1f calm" % [coil.effective_damage(), calm])
+	# It spreads.
+	for _i: int in 40:
+		_fire._process(0.5)
+	_check(_fire.lit_count >= 2, "twenty seconds beside dry neighbours and the fire never spread (%d lit)" % _fire.lit_count)
+	# And it goes out, leaving its marks. Bounded: a blaze lights at most so
+	# many plants over so many generations, so it must be out well inside a
+	# generation's worth of burn time each.
+	var burnt_before: int = foliage.burnt_count()
+	for _i: int in int(Balance.WILDFIRE_BURN_SECONDS * 2.0 * float(Balance.WILDFIRE_MAX_GENERATIONS + 1)) + 40:
+		_fire._process(0.5)
+	_check(_fire.fire_count() == 0, "the fire never went out (%d still burning)" % _fire.fire_count())
+	_check(_fire.lit_count <= Balance.WILDFIRE_MAX_LIT + 1,
+		"one blaze lit %d plants against a bound of %d" % [_fire.lit_count, Balance.WILDFIRE_MAX_LIT])
+	_check(foliage.burnt_count() > burnt_before, "no plant was left burnt")
+	_check(_field.scorch().marked_at(seed_at), "the ground under the fire is not marked")
+	# A tree the fire reaches is charred for good.
+	var trees: Gathering = _fire.gathering
+	if trees != null and trees.node_count() > 0:
+		var index: int = -1
+		var ids: Array[String] = trees.node_ids()
+		for i: int in ids.size():
+			var kind: GatherNodeData = ContentDB.gather_node(ids[i])
+			if kind != null and kind.craft == "woodcutter":
+				index = i
+				break
+		_check(index >= 0, "the field grows at least one woodcutting tree")
+		if index >= 0:
+			var at: Vector2 = trees.node_positions()[index]
+			_check(trees.burn_near(at, 10.0) == 1, "the tree beside the fire did not char")
+			_check(trees.node_is_burned(index) and trees.node_is_spent(index), "a charred tree is not spent")
+			trees._process(10000.0)
+			_check(trees.node_is_spent(index), "a charred tree grew back")
+	body.queue_free()
+	await get_tree().process_frame
+
+
+## Rain shortens a fire, and a flood ends it.
+func _test_the_rain_puts_fire_out() -> void:
+	var foliage: Foliage = _fire.call("_foliage")
+	var plants: Array[Dictionary] = foliage.plants_near(Vector2(-900.0, 900.0), 2400.0)
+	_check(not plants.is_empty(), "plants to light on the far side")
+	if plants.is_empty():
+		return
+	_fire.ignite_near(plants[0]["at"], 20.0, 1.0)
+	_check(_fire.fire_count() >= 1, "a plant lit for the rain test")
+	_sky.forced_intensity = 1.0
+	_sky._process(0.1)
+	var seconds: float = 0.0
+	while _fire.fire_count() > 0 and seconds < Balance.WILDFIRE_BURN_SECONDS:
+		_fire._process(0.5)
+		seconds += 0.5
+	_check(_fire.fire_count() == 0 and seconds < Balance.WILDFIRE_BURN_SECONDS * 0.6,
+		"the heaviest rain took %.0fs to put a fire out that burns %.0fs dry" % [seconds, Balance.WILDFIRE_BURN_SECONDS])
+	_check(not _fire.ignite_near(plants[1]["at"] if plants.size() > 1 else plants[0]["at"], 20.0, 1.0),
+		"a plant caught fire in a downpour")
+	_dry()
+	_fire.ignite_near(plants[0]["at"], 20.0, 1.0)
+	RunState.flood = 0.8
+	_fire._process(0.1)
+	_check(_fire.fire_count() == 0, "a flood left a fire burning")
+	RunState.flood = 0.0
+	await get_tree().process_frame
+
+
+## A funnel tears down the tower in its wake and hurts what stands near it.
+func _test_the_tornado() -> void:
+	await _clear_towers()
+	var at: Vector2 = _pocket(1)
+	var tower: Tower = _build("grit_sling", at)
+	_check(tower != null, "a tower to put in the funnel's way")
+	if tower == null:
+		return
+	# Tough enough to survive the edge of the funnel and show the difference
+	# between the wake and the wind around it.
+	var bystander: Enemy = _body(tower.global_position + Vector2(0.0, Balance.TORNADO_AOE * 0.8), 40.0)
+	await get_tree().process_frame
+	var bystander_hp: float = bystander.health.current_hp
+	var before: int = _sky.tornadoes
+	var funnel: Tornado = _sky.spawn_tornado(tower.global_position + Vector2(-Balance.TORNADO_SPEED * 3.0, 0.0),
+		tower.global_position + Vector2(Balance.TORNADO_SPEED * 3.0, 0.0), 40.0)
+	_check(funnel != null and _sky.tornadoes == before + 1, "the funnel was spawned and counted")
+	if funnel == null:
+		return
+	# Aimed at the tower and walking straight: the wander is what the gate is
+	# not measuring, and with it on the funnel missed one run in three.
+	funnel.wander = 0.0
+	var seconds: float = 0.0
+	while tower != null and is_instance_valid(tower) and tower.is_vulnerable() and seconds < 12.0:
+		funnel._process(0.1)
+		seconds += 0.1
+	_check(funnel.towers_felled >= 1, "the funnel walked over a tower and left it standing")
+	_check(bystander.health.current_hp < bystander_hp and bystander.health.current_hp > 0.0,
+		"a body beside the funnel's path was not hurt, or was killed outright")
+	funnel.seconds_left = 0.0
+	funnel._process(0.1)
+	await get_tree().process_frame
+	bystander.queue_free()
+	await get_tree().process_frame
+
+
+## A stone lands near a tower, hurts it and everything around, and marks the
+## ground.
+func _test_the_meteor() -> void:
+	await _clear_towers()
+	var at: Vector2 = _pocket(2)
+	var tower: Tower = _build("grit_sling", at)
+	_check(tower != null, "a tower for the stone to aim at")
+	if tower == null:
+		return
+	var before: int = _sky.meteors
+	var stone: Meteor = _sky.drop_meteor()
+	_check(stone != null and _sky.meteors == before + 1, "the stone was thrown and counted")
+	if stone == null:
+		return
+	var near_some_tower: bool = false
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var built := node as Tower
+		if built != null and built.global_position.distance_to(stone.at) <= Balance.METEOR_SCATTER + 1.0:
+			near_some_tower = true
+	_check(near_some_tower, "the stone was aimed nowhere near a tower")
+	_check(stone.at.length() >= Balance.LIGHTNING_TOWN_CLEARANCE, "the stone was aimed at the city")
+	var victim: Enemy = _body(stone.at)
+	await get_tree().process_frame
+	var victim_hp: float = victim.health.current_hp
+	var ratio_before: float = 1.0
+	var target: Tower = _field.tower_near(stone.at, Balance.METEOR_RADIUS)
+	if target != null:
+		ratio_before = target.health_ratio()
+	stone._process(Balance.METEOR_WARNING + 0.1)
+	_check(victim.health.current_hp < victim_hp, "the body under the stone was not hurt")
+	if target != null:
+		_check(target.health_ratio() < ratio_before, "the tower under the stone was not hurt")
+	_check(_field.scorch().marked_at(stone.at), "the stone left no mark")
+	victim.queue_free()
+	await get_tree().process_frame
+	_fire.call("_clear")
+
+
+## Dry, the arc reaches a body two hundred units on and no further; in a
+## flood it reaches one three times further.
+func _test_chain_lightning() -> void:
+	_dry()
+	var at: Vector2 = Vector2(-800.0, -800.0)
+	var first: Enemy = _body(at + Vector2(140.0, 0.0))
+	var second: Enemy = _body(at + Vector2(140.0 + Balance.CHAIN_RANGE * 1.4, 0.0))
+	await get_tree().process_frame
+	var first_hp: float = first.health.current_hp
+	var second_hp: float = second.health.current_hp
+	var arcs: int = _sky.chain_arcs
+	_sky.strike_at(at)
+	_check(first.health.current_hp < first_hp, "the arc did not reach the body beside the strike")
+	_check(is_equal_approx(second.health.current_hp, second_hp), "on dry ground the arc reached a body it could not")
+	_check(_sky.chain_arcs > arcs, "no arc was drawn")
+	RunState.flood = 1.0
+	second_hp = second.health.current_hp
+	_sky.strike_at(at)
+	_check(second.health.current_hp < second_hp, "in a flood the arc did not carry to the far body")
+	RunState.flood = 0.0
+	first.queue_free()
+	second.queue_free()
+	await get_tree().process_frame
+
+
+## The flood and the rain feed the water towers; the rain fills the wells.
+func _test_water_feeds_the_water_towers() -> void:
+	await _clear_towers()
+	var lance: Tower = _build("rime_lance", _pocket(3))
+	if lance == null:
+		return
+	RunState.flood = 0.0
+	RunState.rain_intensity = 0.0
+	var calm: float = lance.effective_damage()
+	RunState.flood = 1.0
+	_check(lance.effective_damage() > calm * 1.3, "a flood did not feed the water tower")
+	RunState.flood = 0.0
+	RunState.rain_intensity = 1.0
+	_check(lance.effective_damage() > calm * 1.15, "the rain did not feed the water tower")
+	var well: Tower = _build("healing_well", _pocket(0))
+	if well != null:
+		RunState.rain_intensity = 0.0
+		var slow: float = well.well_refill_seconds()
+		RunState.rain_intensity = 1.0
+		_check(well.well_refill_seconds() < slow * 0.7, "the rain did not fill the well faster")
+	RunState.rain_intensity = 0.0
+	await get_tree().process_frame
+
+
+## Over the knee, nobody dashes.
+func _test_deep_water_stops_the_dash() -> void:
+	var hero: Hero = _field.hero
+	hero.refund_dash(1.0)
+	RunState.flood = 1.0
+	hero._try_dash()
+	_check(float(hero.get("_dash_left")) <= 0.0, "the hero dashed through a flood")
+	RunState.flood = 0.0
+	hero.refund_dash(1.0)
+	hero._try_dash()
+	_check(float(hero.get("_dash_left")) > 0.0, "the hero could not dash on dry ground")
+	await get_tree().process_frame
+	hero.set("_dash_left", 0.0)
+
+
+## A body a tower hits may turn on it; a Bastion pulls some in and not others,
+## and wears armour for it.
+func _test_enemies_turn_on_towers() -> void:
+	await _clear_towers()
+	var tower: Tower = _build("grit_sling", _pocket(1))
+	_check(tower != null, "a tower to be turned on")
+	if tower == null:
+		return
+	var body: Enemy = _body(tower.global_position + Vector2(120.0, 0.0))
+	await get_tree().process_frame
+	var blows: int = 0
+	while body.get("_grudge") == null and blows < 60:
+		body.take_damage(1.0, tower.origin(), 0.0)
+		blows += 1
+	_check(body.get("_grudge") != null, "sixty blows from a tower and the body never turned on it")
+	_check(body._pick_target() == tower, "a grudge did not make the tower the target")
+	body.queue_free()
+	# The Bastion: a chance, not a certainty, and armour. It is a fusion, so
+	# it wants two Earth parents either side of an empty plot.
+	var bastion: Tower = _build_fusion("bastion", "grit_sling", _pocket(2))
+	_check(bastion != null, "the harness must be able to fuse a Bastion")
+	if bastion != null:
+		var pulled: int = 0
+		var bodies: Array[Enemy] = []
+		for _i: int in 30:
+			var one: Enemy = _body(bastion.global_position + Vector2(100.0, 0.0))
+			bodies.append(one)
+		await get_tree().process_frame
+		for one: Enemy in bodies:
+			if bool(one.call("_taunted_by", bastion)):
+				pulled += 1
+			one.queue_free()
+		_check(pulled > 0 and pulled < 30, "the Bastion pulled %d of 30 bodies: a taunt is a chance" % pulled)
+		var armour: Health = Health.of(bastion)
+		_check(armour != null and armour.flat_damage_reduction >= Balance.TAUNT_TOWER_ARMOUR,
+			"the Bastion wears no extra armour")
+	await get_tree().process_frame
+
+
+## A guest draws what it is told and hurts nothing.
+func _test_the_guest_only_draws() -> void:
+	var mirror := Wildfire.new()
+	mirror.field = _field
+	mirror.foliage = _fire.call("_foliage")
+	add_child(mirror)
+	await get_tree().process_frame
+	mirror.set("_mirror", true)
+	var plants: Array[Dictionary] = mirror.foliage.plants_near(Vector2(900.0, -900.0), 1200.0)
+	if not plants.is_empty():
+		EventBus.coop_wildfire_lit.emit(plants[0]["at"])
+		_check(mirror.fire_count() == 1, "a guest's wildfire did not light the plant it was told about")
+		var body: Enemy = _body(plants[0]["at"])
+		await get_tree().process_frame
+		var hp: float = body.health.current_hp
+		for _i: int in 6:
+			mirror._process(0.5)
+		_check(is_equal_approx(body.health.current_hp, hp), "a guest's fire hurt a body")
+		body.queue_free()
+	mirror.call("_clear")
+	mirror.queue_free()
+	await get_tree().process_frame
+
+
+## Between acts the earth eases and does not forget.
+func _test_acts_ease_the_wrath() -> void:
+	_sky.set("_wrath_floor", 0.4)
+	_sky.set("_wrath_heat", 0.3)
+	var before: float = _sky.wrath()
+	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
+	await get_tree().process_frame
+	var after: float = _sky.wrath()
+	_check(after < before and after > 0.0,
+		"an act should ease the wrath and keep some of it (%.2f -> %.2f)" % [before, after])
+	# A frame of cooling sits between the two reads, so a hundredth of slack.
+	_check(absf(after - before * Balance.WRATH_ACT_CARRY) < 0.01,
+		"the carry is %.2f of what it was, not %.2f" % [Balance.WRATH_ACT_CARRY, after / maxf(before, 0.001)])
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	_sky.set("_tier_told", 0)
+	await get_tree().process_frame
+
+
+## A strike leaves a storm core; the air towers on it are overcharged, the
+## others are not; it fades, it caps, it renews rather than doubles, and an
+## act clears it.
+func _test_the_ground_stays_charged() -> void:
+	_dry()
+	await _clear_towers()
+	var ground: WrathZones = _field.zones()
+	_check(ground != null, "the field stands charged ground up")
+	if ground == null:
+		return
+	ground.clear()
+	var air_id: String = ""
+	for value: Variant in ContentDB.towers.values():
+		var data := value as TowerData
+		if data != null and data.element == TowerData.Element.AIR and not data.is_combination:
+			air_id = data.id
+			break
+	_check(not air_id.is_empty(), "an air tower to stand in the storm")
+	if air_id.is_empty():
+		return
+	var tower: Tower = _build(air_id, _pocket(3))
+	if tower == null:
+		return
+	var calm: float = tower.effective_damage()
+	var opened: int = ground.opened
+	var centre: Vector2 = tower.global_position + Vector2(40.0, 0.0)
+	_check(ground.open("storm_core", centre, Balance.ZONE_STORM_RADIUS), "a storm core opens")
+	_check(ground.opened == opened + 1 and ground.count() == 1, "one zone opened and stands")
+	_check(tower.effective_damage() > calm * 1.2,
+		"an air tower on a storm core deals %.1f against %.1f calm" % [tower.effective_damage(), calm])
+	_check(is_zero_approx(ground.boost_at(TowerData.Element.EARTH, centre)), "the wrong element was fed")
+	var edge: float = ground.boost_at(TowerData.Element.AIR, centre + Vector2(Balance.ZONE_STORM_RADIUS * 0.9, 0.0))
+	_check(ground.boost_at(TowerData.Element.AIR, centre) > edge and edge > 0.0,
+		"the charge should fall toward the edge and still count there")
+	_check(is_zero_approx(ground.boost_at(TowerData.Element.AIR, centre + Vector2(Balance.ZONE_STORM_RADIUS * 1.2, 0.0))),
+		"outside the zone is charged")
+	# The same kind over the same ground renews it.
+	ground.open("storm_core", centre + Vector2(30.0, 0.0), Balance.ZONE_STORM_RADIUS)
+	_check(ground.count() == 1, "a second storm core on the first doubled it (%d)" % ground.count())
+	# A strike opens one on its own.
+	ground.clear()
+	_sky.strike_at(_pocket(0))
+	_check(ground.kind_at(_pocket(0)) == "storm_core", "a strike left no storm core under it")
+	# The cap.
+	for index: int in Balance.ZONE_MAX + 3:
+		ground.open("burning_ground", Vector2(-2000.0 + float(index) * Balance.ZONE_BURN_RADIUS * 2.5, -1800.0),
+			Balance.ZONE_BURN_RADIUS)
+	_check(ground.count() == Balance.ZONE_MAX, "%d zones stand against a cap of %d" % [ground.count(), Balance.ZONE_MAX])
+	# They fade.
+	ground._process(Balance.ZONE_SECONDS + 1.0)
+	_check(ground.count() == 0, "the zones outlived their seconds (%d)" % ground.count())
+	# And an act clears them.
+	ground.open("storm_core", centre, Balance.ZONE_STORM_RADIUS)
+	EventBus.act_started.emit(RunState.act, RunState.terrain_id)
+	await get_tree().process_frame
+	_check(ground.count() == 0, "an act began and the ground stayed charged")
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	_fire.call("_clear")
+	await get_tree().process_frame
+
+
+## The ground hums first, then breaks, and leaves a fault.
+func _test_the_quake_is_telegraphed() -> void:
+	_dry()
+	_sky.set("_quake_left", 0.0)
+	_sky.set("_quake_warning_left", 0.0)
+	var quakes: int = _sky.quakes
+	var ground: WrathZones = _field.zones()
+	var opened: int = ground.opened if ground != null else 0
+	var warned: Array[String] = []
+	var catcher: Callable = func(kind_id: String, _at: Vector2, _seconds: float) -> void: warned.append(kind_id)
+	EventBus.wrath_warned.connect(catcher)
+	_sky.warn_quake(0.8)
+	_check(warned.has("quake"), "the quake was not warned")
+	_check(_sky.quakes == quakes, "the warning is not the quake")
+	_step(Balance.QUAKE_WARNING_SECONDS * 0.5)
+	_check(_sky.quakes == quakes, "halfway through the warning the ground broke")
+	_step(Balance.QUAKE_WARNING_SECONDS * 0.5 + 1.0)
+	_check(_sky.quakes == quakes + 1, "the warning ran out and the quake did not come")
+	if ground != null:
+		_check(ground.opened == opened + 1, "the quake left no fault")
+		ground.clear()
+	EventBus.wrath_warned.disconnect(catcher)
+	_step(Balance.QUAKE_SECONDS + 0.5)
+	await get_tree().process_frame
+
+
+## The wind rises first, then the funnel is born where it rose.
+func _test_the_tornado_is_telegraphed() -> void:
+	var before: int = _sky.tornadoes
+	var from: Vector2 = _pocket(2) + Vector2(-600.0, 0.0)
+	_sky.warn_tornado(from, _pocket(2), 6.0)
+	_check(_sky.tornadoes == before, "the wind rising is not the funnel")
+	_step(Balance.TORNADO_WARNING_SECONDS * 0.5)
+	_check(_sky.tornadoes == before, "the funnel came before the wind finished rising")
+	_step(Balance.TORNADO_WARNING_SECONDS * 0.5 + 1.0)
+	_check(_sky.tornadoes == before + 1, "the wind rose and no funnel came")
+	for node: Node in get_tree().get_nodes_in_group(Tornado.GROUP):
+		node.queue_free()
+	await get_tree().process_frame
+	if _field.zones() != null:
+		_field.zones().clear()
+
+
+## A funnel through a fire carries it, and lights the brush in its wake.
+func _test_the_fire_whirl() -> void:
+	_dry()
+	_fire.call("_clear")
+	var foliage: Foliage = _fire.call("_foliage")
+	var seed_at: Vector2 = Vector2.INF
+	for candidate: Dictionary in foliage.plants_near(Vector2.ZERO, BattleGrid.CORE_HALF_EXTENT * 1.4):
+		if foliage.plants_near(candidate["at"] as Vector2, Balance.WILDFIRE_SPREAD_RADIUS).size() >= 4:
+			seed_at = candidate["at"]
+			break
+	_check(seed_at.is_finite(), "a thicket for the fire whirl")
+	if not seed_at.is_finite():
+		return
+	_check(_fire.ignite_near(seed_at, 20.0, 1.0), "the thicket did not catch")
+	var lit: int = _fire.lit_count
+	var funnel: Tornado = _sky.spawn_tornado(seed_at + Vector2(-Balance.TORNADO_SPEED * 2.0, 0.0),
+		seed_at + Vector2(Balance.TORNADO_SPEED * 2.0, 0.0), 30.0)
+	funnel.wander = 0.0
+	_check(not funnel.burning(), "a funnel is born burning")
+	for _i: int in 50:
+		funnel._process(0.1)
+	_check(funnel.burning(), "a funnel through a fire did not catch")
+	_check(_fire.lit_count > lit, "a fire whirl lit nothing in its wake")
+	funnel.seconds_left = 0.0
+	funnel._process(0.1)
+	await get_tree().process_frame
+	_fire.call("_clear")
+	if _field.zones() != null:
+		_field.zones().clear()
+
+
+## A strike on dry brush under a heatwave lights it; one in a downpour does not.
+func _test_dry_lightning() -> void:
+	_dry()
+	_fire.call("_clear")
+	_weather("heatwave")
+	_sky.set("_temperature", 40.0)
+	_step(2.0)
+	var foliage: Foliage = _fire.call("_foliage")
+	var plants: Array[Dictionary] = foliage.plants_near(Vector2(-900.0, -900.0), 2400.0)
+	_check(not plants.is_empty(), "plants for the dry lightning")
+	if plants.is_empty():
+		return
+	var at: Vector2 = plants[0]["at"]
+	var lit: bool = false
+	for _i: int in 40:
+		_sky.strike_at(at)
+		if _fire.fire_count() > 0:
+			lit = true
+			break
+	_check(lit, "forty dry strikes on the brush under a heatwave and nothing caught")
+	_fire.call("_clear")
+	_weather("downpour")
+	_sky.forced_intensity = 1.0
+	_step(3.0)
+	for _i: int in 20:
+		_sky.strike_at(at)
+	_check(_fire.fire_count() == 0, "a strike in a downpour lit the brush")
+	_dry()
+	_fire.call("_clear")
+	if _field.zones() != null:
+		_field.zones().clear()
+	await get_tree().process_frame
+
+
+## A guest opens the ground it is told about, says the warning it is told,
+## and never fires the event itself.
+func _test_the_guest_is_told() -> void:
+	var mirror := WrathZones.new()
+	add_child(mirror)
+	await get_tree().process_frame
+	mirror.set("_mirror", true)
+	EventBus.coop_wrath_zone_opened.emit("storm_core", Vector2(500.0, 500.0), 200.0, 30.0)
+	_check(mirror.count() == 1, "a guest did not open the zone it was told about")
+	_check(not mirror.open("storm_core", Vector2.ZERO, 200.0), "a guest opened a zone on its own")
+	mirror.queue_free()
+	var said: Array[String] = []
+	var catcher: Callable = func(line: String, _title: String) -> void: said.append(line)
+	EventBus.sky_warned.connect(catcher)
+	var quakes: int = _sky.quakes
+	_sky.set("_mirror", true)
+	EventBus.coop_wrath_warned.emit("quake", Vector2.ZERO, 1.0)
+	_step(2.0)
+	_sky.set("_mirror", false)
+	EventBus.sky_warned.disconnect(catcher)
+	var kind: WrathEventData = ContentDB.wrath_event("quake")
+	_check(kind != null and said.has(kind.warning), "a guest did not say the warning it was told")
+	_check(_sky.quakes == quakes, "a guest's warning ran out and it shook the ground itself")
+	await get_tree().process_frame

@@ -395,7 +395,7 @@ func _tick_node(index: int, delta: float) -> void:
 	if cooldown > 0.0:
 		cooldown = maxf(cooldown - delta, 0.0)
 		_nodes[index]["cooldown"] = cooldown
-		if cooldown <= 0.0:
+		if cooldown <= 0.0 and not bool(node.get("burned", false)):
 			var kind: GatherNodeData = ContentDB.gather_node(String(node["id"]))
 			if kind != null:
 				_nodes[index]["left"] = _swings_in(kind)
@@ -414,6 +414,9 @@ func _tick_node(index: int, delta: float) -> void:
 			and (not is_zero_approx(sprite.rotation) or not sprite.position.is_zero_approx()):
 		sprite.rotation = 0.0
 		sprite.position = Vector2.ZERO
+	if bool(node.get("burned", false)):
+		sprite.modulate = Color(0.16, 0.13, 0.11, 0.9)
+		return
 	sprite.modulate = Color(0.42, 0.44, 0.42, 0.75) if spent else Color.WHITE
 
 	# The recoil, ticked here because this is the clock the node already has.
@@ -505,6 +508,36 @@ func _set_prompt(text: String, button: String) -> void:
 
 
 # --- For the minimap, and for the gate ------------------------------------------
+
+## A fire reached these trees. A woodcutting tree that burns is charred and
+## never worked again this run (owner brief, 2026-09-14) - the ore and the
+## stone do not burn.
+func burn_near(at: Vector2, radius: float) -> int:
+	var burned: int = 0
+	for index: int in _nodes.size():
+		var node: Dictionary = _nodes[index]
+		if bool(node.get("burned", false)):
+			continue
+		if (node["at"] as Vector2).distance_to(at) > radius:
+			continue
+		var kind: GatherNodeData = ContentDB.gather_node(String(node["id"]))
+		if kind == null or kind.craft != "woodcutter":
+			continue
+		_nodes[index]["burned"] = true
+		_nodes[index]["left"] = 0
+		_nodes[index]["cooldown"] = 0.0
+		var sprite := node.get("sprite") as Sprite2D
+		if sprite != null and is_instance_valid(sprite):
+			sprite.modulate = Color(0.16, 0.13, 0.11, 0.9)
+		burned += 1
+	return burned
+
+
+func node_is_burned(index: int) -> bool:
+	if index < 0 or index >= _nodes.size():
+		return false
+	return bool(_nodes[index].get("burned", false))
+
 
 func node_count() -> int:
 	return _nodes.size()

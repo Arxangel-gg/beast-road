@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+warning = "A shadow grows on the ground. Get out from under it."
+warning_title = "FALLING STAR"
+colour = Color(1.0, 0.7, 0.4, 1)
+id = "meteor"
+display_name = "Falling Star"

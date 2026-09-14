@@ -35,6 +35,11 @@ func _ready() -> void:
 	_sky = _field.sky() if _field != null else null
 	_check(_sky != null, "the battlefield must stand a sky up")
 	if _sky != null:
+		# The weather is the subject here and the earth's wrath is
+		# `wrath_check`'s. Left on, the animals this gate drowns and strikes
+		# anger the earth enough for a quake to fire inside the lightning test
+		# and hurt the body that was supposed to be out of reach.
+		_sky.events_enabled = false
 		_test_the_rain_swells()
 		_test_the_swell_is_deterministic()
 		await _test_the_flood()
@@ -231,6 +236,11 @@ func _test_the_storm_towers() -> void:
 		"a charged storm tower deals %.1f against %.1f calm" % [tower.effective_damage(), calm])
 	tower._process(Balance.LIGHTNING_EMPOWER_SECONDS + 1.0)
 	_check(not tower.storm_charged(), "the charge did not run down")
+	# The strike also left a storm core under the tower, which is the other
+	# thing an air tower is fed by and is `wrath_check`'s to measure; cleared
+	# here so this reads the charge alone.
+	if _field.zones() != null:
+		_field.zones().clear()
 	_check(is_equal_approx(tower.effective_damage(), calm), "damage did not settle back after the charge")
 	# And a strike well out of reach charges nothing.
 	_sky.strike_at(tower.global_position + Vector2(Balance.LIGHTNING_EMPOWER_RADIUS * 3.0, 0.0))

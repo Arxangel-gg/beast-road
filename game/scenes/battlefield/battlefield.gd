@@ -53,6 +53,9 @@ var _camps: Camps = null
 var _fog: FogOfWar = null
 var _wildlife: Wildlife = null
 var _sky: WeatherSky = null
+var _wildfire: Wildfire = null
+var _scorch: ScorchMarks = null
+var _zones: WrathZones = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -487,8 +490,29 @@ func _setup_lighting() -> void:
 
 	# The sky above the veil: what the weather does while it holds. A child of
 	# the field so it freezes with it for a raid (working rule 8).
+	# The ground's memory and the fire that writes on it, under the sky.
+	_scorch = ScorchMarks.new()
+	_scorch.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
+	_scorch.z_index = Balance.SCORCH_Z
+	add_child(_scorch)
+	# The ground a disaster leaves charged, over the marks and under the field.
+	_zones = WrathZones.new()
+	add_child(_zones)
+	_wildfire = Wildfire.new()
+	_wildfire.field = self
+	_wildfire.marks = _scorch
+	_wildfire.gathering = _gathering
+	_wildfire.animals = _wildlife
+	_wildfire.zones = _zones
+	for child: Node in get_children():
+		if child is Foliage:
+			_wildfire.foliage = child as Foliage
+	add_child(_wildfire)
 	_sky = WeatherSky.new()
 	_sky.field = self
+	_sky.wildfire = _wildfire
+	_sky.marks = _scorch
+	_sky.zones = _zones
 	add_child(_sky)
 
 	# Snow lies on the floor and under everything that walks on it. Directly
@@ -843,7 +867,11 @@ func _build_camps() -> void:
 ## it stands in an arena as often as on the road, and an arena has no ponds -
 ## so an answer of "dry" is the right one there.
 func water_depth_at(at: Vector2) -> float:
-	return _ponds.water_depth_at(at) if _ponds != null else 0.0
+	# The flood is water too (2026-09-14): at its height the whole field is as
+	# deep as a pond's shallows, and a walker wades through it the way a
+	# swimmer crosses one.
+	var pond: float = _ponds.water_depth_at(at) if _ponds != null else 0.0
+	return maxf(pond, RunState.flood * Balance.FLOOD_SWIM_DEPTH)
 
 
 func water_colour() -> Color:
@@ -2390,6 +2418,43 @@ func fog() -> FogOfWar:
 
 func sky() -> WeatherSky:
 	return _sky
+
+
+func wildfire() -> Wildfire:
+	return _wildfire
+
+
+func zones() -> WrathZones:
+	return _zones
+
+
+## The foliage, wherever it was planted in the tree. Cached once found.
+var _foliage_found: Foliage = null
+func foliage_node() -> Foliage:
+	if _foliage_found != null and is_instance_valid(_foliage_found):
+		return _foliage_found
+	for node: Node in find_children("*", "Foliage", true, false):
+		_foliage_found = node as Foliage
+		break
+	return _foliage_found
+
+
+func scorch() -> ScorchMarks:
+	return _scorch
+
+
+## The nearest standing tower to a point within `radius`, or null.
+func tower_near(at: Vector2, radius: float) -> Tower:
+	var best: Tower = null
+	var nearest: float = radius
+	for tower: Tower in all_towers():
+		if not is_instance_valid(tower):
+			continue
+		var away: float = tower.global_position.distance_to(at)
+		if away <= nearest:
+			nearest = away
+			best = tower
+	return best
 
 
 func wildlife() -> Wildlife:

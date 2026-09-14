@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+announce = "Everything alive is running. Something is coming."
+announce_title = "CATACLYSM"
+colour = Color(0.95, 0.3, 0.2, 1)
+id = "unrest_4"
+display_name = "Cataclysm"

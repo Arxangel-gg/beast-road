@@ -561,6 +561,53 @@ func scatter() -> void:
 
 ## The density gate needs the number of plants represented by the batched draw
 ## data, not the number of CanvasItems used to render them.
+## Every painted plant within `radius` of a point, as {band, index, at, scale}.
+## What a wildfire chooses from; the blades between them are grass and burn
+## with the ground rather than as things of their own.
+func plants_near(at: Vector2, radius: float) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for band_index: int in _bands.size():
+		var band: FoliageBand = _bands[band_index]
+		if band == null or not is_instance_valid(band) or band._painted == null:
+			continue
+		var plants: Array[Dictionary] = band._painted.plants
+		for index: int in plants.size():
+			var plant: Dictionary = plants[index]
+			if bool(plant.get("burnt", false)):
+				continue
+			var where: Vector2 = plant["at"]
+			if where.distance_to(at) <= radius:
+				out.append({"band": band_index, "index": index, "at": where,
+					"scale": float(plant.get("scale", 1.0))})
+	return out
+
+
+## A plant is gone for the act. It stays in the list, marked, so every other
+## index keeps its meaning; the layer simply stops drawing it. `scatter` on
+## the next region grows everything afresh, which is the regrowth.
+func burn_plant(band_index: int, index: int) -> void:
+	if band_index < 0 or band_index >= _bands.size():
+		return
+	var band: FoliageBand = _bands[band_index]
+	if band == null or not is_instance_valid(band) or band._painted == null:
+		return
+	if index < 0 or index >= band._painted.plants.size():
+		return
+	band._painted.plants[index]["burnt"] = true
+	band._painted.queue_redraw()
+
+
+func burnt_count() -> int:
+	var total: int = 0
+	for band: FoliageBand in _bands:
+		if band == null or not is_instance_valid(band) or band._painted == null:
+			continue
+		for plant: Dictionary in band._painted.plants:
+			if bool(plant.get("burnt", false)):
+				total += 1
+	return total
+
+
 func clump_count() -> int:
 	return _clump_count
 
@@ -1063,6 +1110,8 @@ class PaintedLayer extends Node2D:
 
 	func _draw() -> void:
 		for plant: Dictionary in plants:
+			if bool(plant.get("burnt", false)):
+				continue
 			var texture: Texture2D = plant["texture"]
 			var at: Vector2 = plant["at"]
 			if plant.has("region"):

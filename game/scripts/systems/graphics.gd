@@ -32,6 +32,9 @@ const KEY_PRESET: String = "graphics_preset"
 const KEY_CAST_SHADOWS: String = "graphics_cast_shadows"
 const KEY_CONTACT_SHADOWS: String = "graphics_contact_shadows"
 const KEY_PARTICLES: String = "graphics_particles"
+## Whether flood water reads and bends the ground beneath it. A frame copy
+## while the field is flooded; off on Low, where the water is a flat sheet.
+const KEY_WATER_REFRACTION: String = "graphics_water_refraction"
 const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
@@ -97,6 +100,7 @@ const PRESETS: Dictionary = {
 		KEY_PARTICLES: 0.35,
 		KEY_FOLIAGE: 0.25,
 		KEY_CLOUDS: false,
+		KEY_WATER_REFRACTION: false,
 	},
 	PRESET_MEDIUM: {
 		KEY_CAST_SHADOWS: false,
@@ -104,6 +108,7 @@ const PRESETS: Dictionary = {
 		KEY_PARTICLES: 0.7,
 		KEY_FOLIAGE: 0.6,
 		KEY_CLOUDS: true,
+		KEY_WATER_REFRACTION: true,
 	},
 	PRESET_HIGH: {
 		KEY_CAST_SHADOWS: true,
@@ -111,6 +116,7 @@ const PRESETS: Dictionary = {
 		KEY_PARTICLES: 1.0,
 		KEY_FOLIAGE: 0.6,
 		KEY_CLOUDS: true,
+		KEY_WATER_REFRACTION: true,
 	},
 	# For machines with power to spare. High is the authored look; Ultra pushes
 	# the two things that genuinely reward more of them - undergrowth density and
@@ -125,6 +131,7 @@ const PRESETS: Dictionary = {
 		KEY_PARTICLES: MAX_DENSITY,
 		KEY_FOLIAGE: 1.45,
 		KEY_CLOUDS: true,
+		KEY_WATER_REFRACTION: true,
 	},
 }
 
@@ -227,6 +234,14 @@ static func shadow_cull_mask() -> int:
 ## without it sprites read as stickers sliding over the floor.
 static func contact_shadows() -> bool:
 	return bool(_value(KEY_CONTACT_SHADOWS))
+
+
+## Whether flood water bends the ground beneath it. Off headless: there is
+## no frame to read.
+static func water_refraction() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	return bool(_value(KEY_WATER_REFRACTION))
 
 
 ## Multiplier on every particle emitter's amount.

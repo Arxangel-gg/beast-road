@@ -701,6 +701,34 @@ signal sky_warned(line: String, title: String)
 ## made them, because the rain's swell is rolled and a guest must not roll.
 signal coop_sky_clock(rain_scale: float, flood: float, charge: float, temperature: float)
 
+## The earth shook. Everyone draws it; the host has already applied it.
+signal earthquake(magnitude: float, seconds: float)
+signal coop_earthquake(magnitude: float, seconds: float)
+
+## A plant caught fire here. A guest lights its own nearest plant.
+signal wildfire_lit(at: Vector2)
+signal coop_wildfire_lit(at: Vector2)
+
+## A funnel was born here, heading for there, for this long; and where it is
+## now, twice a second. A guest draws it where it is told.
+signal tornado_spawned(at: Vector2, target: Vector2, seconds: float)
+signal coop_tornado_spawned(at: Vector2, target: Vector2, seconds: float)
+signal tornado_moved(at: Vector2, burning: bool)
+signal coop_tornado_moved(at: Vector2, burning: bool)
+
+## A stone is coming down here, `METEOR_WARNING` from now.
+signal meteor_incoming(at: Vector2)
+signal coop_meteor_incoming(at: Vector2)
+
+## Ground a disaster left charged: which kind (a `WrathEventData` id), where,
+## how wide and for how long. The host opens it; the guest opens the same.
+signal wrath_zone_opened(kind_id: String, at: Vector2, radius: float, seconds: float)
+signal coop_wrath_zone_opened(kind_id: String, at: Vector2, radius: float, seconds: float)
+## A disaster telegraphed - or a sign of the earth's mood: which kind, where
+## it will land, in how many seconds (0 for a sign with nothing behind it).
+signal wrath_warned(kind_id: String, at: Vector2, seconds: float)
+signal coop_wrath_warned(kind_id: String, at: Vector2, seconds: float)
+
 ## How much snow is lying on the ground, 0..1.
 ##
 ## Announced rather than applied: the weather has no business reaching into the

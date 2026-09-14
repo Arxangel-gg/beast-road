@@ -193,7 +193,10 @@ func refresh_modifiers() -> void:
 		if data.extra_targets > 0:
 			_extra_chain_targets += terrain.bonus_chain_targets
 	if _health != null:
-		_health.flat_damage_reduction = _field.lane_armour(lane())
+		# A taunting tower - the Bastion and its kin - is built to be hit, and
+		# wears armour for it (owner brief, 2026-09-14).
+		_health.flat_damage_reduction = _field.lane_armour(lane()) \
+			+ (Balance.TAUNT_TOWER_ARMOUR if data.taunts else 0.0)
 
 
 func _on_weather_changed(_id: String) -> void:
@@ -334,9 +337,11 @@ func _build_gauge() -> void:
 ## one is still a well rather than a fountain.
 func well_refill_seconds() -> float:
 	var share: float = 1.0 - float(maxi(level - 1, 0)) * Balance.WELL_REFILL_PER_LEVEL
-	# Slower in the heat (2026-09-14): a well under a heatwave draws less.
+	# Slower in the heat and faster in the rain (2026-09-14): a well under a
+	# heatwave draws less, and one under a downpour fills by the rate of it.
 	return maxf(data.well_refill_seconds * Balance.WELL_REFILL_SCALE * maxf(share, 0.1),
-		Balance.WELL_MIN_REFILL) * RunState.well_refill_scale()
+		Balance.WELL_MIN_REFILL) * RunState.well_refill_scale() \
+		/ (1.0 + clampf(RunState.rain_intensity, 0.0, 1.0) * Balance.RAIN_WELL_REFILL)
 
 
 ## A strike near a storm tower charges it (owner brief, 2026-09-14): harder
@@ -359,6 +364,37 @@ func storm_charged() -> bool:
 
 func _storm_damage() -> float:
 	return Balance.STORM_EMPOWER_DAMAGE if _storm_left > 0.0 else 1.0
+
+
+## Water feeds the water towers: the flood and the rain both (owner brief,
+## 2026-09-14). Read each shot rather than cached, because the flood moves.
+func _water_damage() -> float:
+	if data == null or data.element != TowerData.Element.WATER:
+		return 1.0
+	return 1.0 + clampf(RunState.flood, 0.0, 1.0) * Balance.FLOOD_WATER_EMPOWER \
+		+ clampf(RunState.rain_intensity, 0.0, 1.0) * Balance.RAIN_WATER_EMPOWER
+
+
+## Fire feeds the fire towers: a wildfire burning nearby heats them.
+func _wildfire_damage() -> float:
+	if data == null or data.element != TowerData.Element.FIRE or _field == null:
+		return 1.0
+	var fire: Wildfire = _field.wildfire()
+	if fire == null:
+		return 1.0
+	return 1.0 + Balance.WILDFIRE_TOWER_BUFF * minf(fire.heat_at(origin(), Balance.WILDFIRE_TOWER_BUFF_RADIUS), 2.0)
+
+
+## Charged ground feeds the towers of its element standing on it: a storm
+## core the air towers, burning ground the fire towers, and so on. One
+## number on a figure the tower already has, which is the bound.
+func _zone_damage() -> float:
+	if data == null or _field == null:
+		return 1.0
+	var ground: WrathZones = _field.zones()
+	if ground == null or ground.count() == 0:
+		return 1.0
+	return 1.0 + Balance.ZONE_TOWER_BUFF * ground.boost_at(int(data.element), origin())
 
 
 func _storm_interval() -> float:
@@ -433,7 +469,8 @@ func effective_damage() -> float:
 	# HUD and actual combat state disagreeing until some unrelated refresh.
 	var relic_bonus: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
 	var total: float = 1.0 + _damage_bonus + relic_bonus + command_bonus
-	return data.damage_at(level) * total * _weather_scale * _path_damage() * _storm_damage()
+	return data.damage_at(level) * total * _weather_scale * _path_damage() * _storm_damage() \
+		* _water_damage() * _wildfire_damage() * _zone_damage()
 
 
 ## What this shot actually lands for.
@@ -602,6 +639,9 @@ func _fire(targets: Array[Enemy]) -> void:
 	var primary: Enemy = targets[0]
 	EventBus.tower_fired.emit(anchor, primary.global_position)
 	kick(primary.global_position)
+	# The storm towers running stir the air; enough of it and a funnel forms.
+	if data.element == TowerData.Element.AIR:
+		RunState.gale += Balance.GALE_PER_SHOT
 
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.
@@ -732,8 +772,16 @@ func _hit(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
 	if effective_damage() > 0.0:
-		enemy.take_damage(rolled_damage() * enemy.brand_multiplier(), origin(),
+		var dealt: float = rolled_damage() * enemy.brand_multiplier()
+		enemy.take_damage(dealt, origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
+		if data.element == TowerData.Element.FIRE:
+			# The earth remembers fire. And a fire tower's shot may light the
+			# plant beside whatever it hit.
+			RunState.ember += dealt * Balance.EMBER_PER_DAMAGE
+			if _field != null and _field.wildfire() != null:
+				_field.wildfire().ignite_near(enemy.global_position, Balance.WILDFIRE_TOWER_REACH,
+					Balance.WILDFIRE_TOWER_CHANCE)
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
 		# A stronger slow is a *lower* factor, so the relic subtracts.
@@ -812,12 +860,55 @@ func _on_destroyed(_from: Vector2) -> void:
 	Vfx.ring(origin(), 110.0,
 		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
 	EventBus.camera_shake_requested.emit(9.0, 0.4)
+	_leave_rubble()
 	RunState.towers_lost += 1
 	RunState.clear_tower(anchor)
 
 
+## What a broken tower leaves: a scatter of stone that settles into the ground
+## over a while, and the ground under it marked. On the field rather than on
+## this node, which is about to go, and the spot is free to build on again the
+## moment it does - the rubble is a picture, not a thing.
+func _leave_rubble() -> void:
+	if _field == null:
+		return
+	var rubble := Polygon2D.new()
+	rubble.name = "Rubble"
+	var points: PackedVector2Array = PackedVector2Array()
+	var rng: RandomNumberGenerator = RunState.rng("wrath")
+	for s: int in 9:
+		var angle: float = TAU * float(s) / 9.0
+		points.append(Vector2(cos(angle), sin(angle) * 0.55) * rng.randf_range(26.0, 44.0))
+	rubble.polygon = points
+	rubble.color = Color(0.3, 0.27, 0.24, 0.95)
+	rubble.global_position = global_position
+	rubble.z_index = Balance.SCORCH_Z + 1
+	rubble.z_as_relative = false
+	_field.add_child(rubble)
+	var fade: Tween = rubble.create_tween()
+	fade.tween_interval(Balance.DEBRIS_FADE_SECONDS * 0.5)
+	fade.tween_property(rubble, "modulate:a", 0.0, Balance.DEBRIS_FADE_SECONDS * 0.5)
+	fade.tween_callback(rubble.queue_free)
+	Vfx.dust(global_position, Color(0.42, 0.38, 0.32), 14, 90.0)
+	if _field.scorch() != null:
+		_field.scorch().stamp(global_position, 70.0, 0.5)
+
+
 func is_vulnerable() -> bool:
 	return _health != null and not _health.is_dead
+
+
+## A blow from the world - a funnel, a stone - through the same health every
+## enemy's swing reaches, so the repair, the flames and the collapse all
+## follow.
+func hurt(amount: float, from: Vector2) -> void:
+	if _health == null or _health.is_dead or amount <= 0.0:
+		return
+	_health.take_damage(amount, from)
+
+
+func health_ratio() -> float:
+	return _health.ratio() if _health != null and _health.max_hp > 0.0 else 1.0
 
 
 func needs_repair() -> bool:

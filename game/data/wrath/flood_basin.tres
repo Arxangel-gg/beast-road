@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+element = 1
+announce = "Water stands deep here. Water towers in it are fed."
+announce_title = "FLOOD BASIN"
+colour = Color(0.38, 0.62, 0.95, 1)
+id = "flood_basin"
+display_name = "Flood Basin"

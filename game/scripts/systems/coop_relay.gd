@@ -114,6 +114,14 @@ enum Fact {
 	SKY_CLOCK = 53,
 	## Lightning came down, host to guest: a place and a radius, to draw.
 	LIGHTNING = 54,
+	## The earth's wrath, host to guest, each a thing to draw. See `WeatherSky`.
+	EARTHQUAKE = 55,
+	WILDFIRE_LIT = 56,
+	TORNADO_SPAWNED = 57,
+	TORNADO_MOVED = 58,
+	METEOR_INCOMING = 59,
+	WRATH_ZONE = 60,
+	WRATH_WARNED = 61,
 	## The party events, host to everyone. See `PartyEvents`.
 	PARTY_EVENT_PROPOSED = 53,
 	PARTY_EVENT_VOTES = 54,
@@ -350,6 +358,13 @@ func _fact_bindings() -> Array:
 		["coop_world_clock", _on_coop_world_clock],
 		["coop_sky_clock", _on_coop_sky_clock],
 		["lightning_struck", _on_lightning_struck],
+		["earthquake", _on_earthquake],
+		["wildfire_lit", _on_wildfire_lit],
+		["tornado_spawned", _on_tornado_spawned],
+		["tornado_moved", _on_tornado_moved],
+		["meteor_incoming", _on_meteor_incoming],
+		["wrath_zone_opened", _on_wrath_zone_opened],
+		["wrath_warned", _on_wrath_warned],
 		["coop_chronicle_progress", _on_chronicle_progress],
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
@@ -659,6 +674,34 @@ func _on_coop_sky_clock(rain_scale: float, flood: float, charge: float, temperat
 
 func _on_lightning_struck(at: Vector2, radius: float) -> void:
 	_relay(Fact.LIGHTNING, [at, radius])
+
+
+func _on_earthquake(magnitude: float, seconds: float) -> void:
+	_relay(Fact.EARTHQUAKE, [magnitude, seconds])
+
+
+func _on_wildfire_lit(at: Vector2) -> void:
+	_relay(Fact.WILDFIRE_LIT, [at])
+
+
+func _on_tornado_spawned(at: Vector2, target: Vector2, seconds: float) -> void:
+	_relay(Fact.TORNADO_SPAWNED, [at, target, seconds])
+
+
+func _on_tornado_moved(at: Vector2, burning: bool) -> void:
+	_relay(Fact.TORNADO_MOVED, [at, burning])
+
+
+func _on_meteor_incoming(at: Vector2) -> void:
+	_relay(Fact.METEOR_INCOMING, [at])
+
+
+func _on_wrath_zone_opened(kind_id: String, at: Vector2, radius: float, seconds: float) -> void:
+	_relay(Fact.WRATH_ZONE, [kind_id, at, radius, seconds])
+
+
+func _on_wrath_warned(kind_id: String, at: Vector2, seconds: float) -> void:
+	_relay(Fact.WRATH_WARNED, [kind_id, at, seconds])
 
 
 func _on_chronicle_progress(summary: Dictionary) -> void:
@@ -999,6 +1042,27 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.LIGHTNING:
 			if args.size() == 2:
 				bus.coop_lightning.emit(args[0] as Vector2, float(args[1]))
+		Fact.EARTHQUAKE:
+			if args.size() == 2:
+				bus.coop_earthquake.emit(float(args[0]), float(args[1]))
+		Fact.WILDFIRE_LIT:
+			if args.size() == 1:
+				bus.coop_wildfire_lit.emit(args[0] as Vector2)
+		Fact.TORNADO_SPAWNED:
+			if args.size() == 3:
+				bus.coop_tornado_spawned.emit(args[0] as Vector2, args[1] as Vector2, float(args[2]))
+		Fact.TORNADO_MOVED:
+			if args.size() == 2:
+				bus.coop_tornado_moved.emit(args[0] as Vector2, bool(args[1]))
+		Fact.METEOR_INCOMING:
+			if args.size() == 1:
+				bus.coop_meteor_incoming.emit(args[0] as Vector2)
+		Fact.WRATH_ZONE:
+			if args.size() == 4:
+				bus.coop_wrath_zone_opened.emit(String(args[0]), args[1] as Vector2, float(args[2]), float(args[3]))
+		Fact.WRATH_WARNED:
+			if args.size() == 3:
+				bus.coop_wrath_warned.emit(String(args[0]), args[1] as Vector2, float(args[2]))
 		Fact.PAUSED:
 			if args.size() == 1:
 				bus.coop_paused.emit(bool(args[0]))

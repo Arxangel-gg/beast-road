@@ -1802,6 +1802,68 @@ at the wrong thing in perfect silence. Appending is not enough on its own: what
 makes it safe is a gate that walks the data against the enum, and there are two
 of those now.
 
+**The earth's wrath, as of 2026-09-14.** The owner asked for the elements to
+answer the road: lightning that chains further in a flood, floods that slow
+and stop the dash, tornadoes that tear towers down, wildfires that spread
+through the foliage and scorch the ground, meteors drawn by fire, earthquakes
+by magnitude - and, from the ChatGPT notes they forwarded, charged ground,
+telegraphs and compound disasters. What follows is the part that is a decision.
+
+**Wrath is hidden, and that is the design.** `WeatherSky.wrath()` is a floor
+that only rises for the run plus a heat that decays, fed by wildlife killed by
+players and enemies and never by other wildlife - that is the cycle. There is
+no readout and there must never be one: the signs are the `data/wrath/unrest_N`
+lines - the birds, the ground, the sky - said once each time the anger climbs
+a step. An act eases it by `WRATH_ACT_CARRY` and never resets it (owner,
+2026-09-14: "may reduce earth's wrath accumulation but not reset it
+completely").
+
+**Every event goes through the doors every other blow uses** - `take_damage`,
+`strike_the_players`, `Wildlife.wound_within`, `Tower.hurt` - so nothing
+downstream learns the earth exists, and every one is rolled from a seeded
+stream on the host and told to the guest as a fact (`CoopRelay` 53-61). The
+guest draws and never hurts; `wrath_check` holds that for each of them.
+
+**Charged ground is one number on a figure the tower already has.** A strike
+leaves a storm core, a blaze or a stone burning ground, a flood at the knee a
+basin, a quake a fault; the towers of that element standing on it deal
+`ZONE_TOWER_BUFF` more, falling toward the edge, for `ZONE_SECONDS`, no more
+than `ZONE_MAX` at once, and the same kind over the same ground renews rather
+than doubles. That is the bound omens, Road Cards and tower paths are all
+built under, and it is what lets the ten-act curve still be read: a zone that
+added a *mechanic* would be a content system wearing a buff's clothes.
+
+**A wildfire is bounded three ways, because an unbounded one burned 193
+plants and was still going.** Spread decays by generation, `WILDFIRE_MAX_FIRES`
+burn at once, and one blaze lights `WILDFIRE_MAX_LIT` plants before it can
+only burn down; a heatwave lifts the last. A woodcutting tree it reaches never
+grows back; a plant grows back with the next act's scatter.
+
+**Major disasters are telegraphed.** A quake hums for `QUAKE_WARNING_SECONDS`
+- the line, a rising tremor, every animal running - and a tornado's dust
+streaks in for `TORNADO_WARNING_SECONDS` before the funnel is born. The
+meteor's warning is its shadow. A blow from nowhere is the thing the notes
+warned against, and the gate asserts the warning is not the event.
+
+**What was taken from the notes and what was not.** Taken: charged ground
+(their "hotspots"), telegraphs, the tiers as world signs rather than a bar,
+fire whirls (a funnel through a fire carries it), dry lightning (a strike with
+no rain lights the brush, more under a heatwave), conductive floods (already
+the chain rule), and the historic trace (scorch, fault cracks). Not taken, and
+why: volcanic fissures, sinkholes, landslides, hail, dust storms, mudslides,
+geysers, floods that freeze and supercells are each a new terrain state or a
+new movement rule rather than a number the game already has an opinion about,
+and would arrive as content systems beside the six that exist. The right time
+to argue for any of them is after the six have been played.
+
+**The flood is drawn as water, not as a colour.** `flood_sheen.gdshader` reads
+the frame beneath it (`hint_screen_texture`), bends it by the surface's slope,
+cools and darkens it by depth, and lays foam along the shore, glints on the
+crests and rain rings on the sheet. `Graphics.KEY_WATER_REFRACTION` is the
+low-end switch back to a flat sheet, and it is off headless, where there is no
+frame to read. Like every shader here it cannot be seen by a gate:
+`shader_lint_check` holds the grammar and `sky_shot` photographs it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

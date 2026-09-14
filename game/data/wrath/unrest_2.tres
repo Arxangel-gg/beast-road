@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+announce = "The ground is warm underfoot, and the wind has changed."
+announce_title = "UNREST"
+colour = Color(0.7, 0.6, 0.45, 1)
+id = "unrest_2"
+display_name = "Unrest"

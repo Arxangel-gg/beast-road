@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+element = 0
+announce = "The ground still burns. Fire towers on it hit harder."
+announce_title = "BURNING GROUND"
+colour = Color(1.0, 0.52, 0.22, 1)
+id = "burning_ground"
+display_name = "Burning Ground"

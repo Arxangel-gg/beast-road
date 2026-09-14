@@ -31,7 +31,7 @@ All wildlife calls are present on disk.
 ---
 
 
-## STILL TO RECORD (128)
+## STILL TO RECORD (133)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -158,6 +158,11 @@ missing stream - so none of these block a build.
 | `sfx_well_drink.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.9s | ElevenLabs | drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief |
 | `sfx_thunder_near.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.6s | ElevenLabs | lightning striking close: a sharp crack that tears, then a heavy rolling boom that decays over two seconds, no rain |
 | `sfx_thunder_far.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 3.4s | ElevenLabs | distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain |
+| `sfx_quake.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 3.2s | ElevenLabs | an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and settles, with small stones rattling |
+| `sfx_wildfire.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.0s | ElevenLabs | dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices |
+| `sfx_tornado.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.6s | ElevenLabs | a tornado passing near: a huge low howl with grit hissing through it and a rising whine, no music |
+| `sfx_meteor_whistle.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.2s | ElevenLabs | a meteor falling: a thin descending whistle that grows into a roar over two seconds, no impact |
+| `sfx_meteor_impact.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.4s | ElevenLabs | a meteor hitting earth: a huge deep thud, a blast of gravel, and a long low aftershock, no fire |
 | `sfx_party_prompt.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.7s | ElevenLabs | a party invitation arriving: two clear ascending notes on a hunting horn, close and polite |
 | `sfx_party_accept.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a party member accepting: a bright three-note affirmative chime |
 | `sfx_party_decline.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.5s | ElevenLabs | a party member declining: a single soft falling note, not unkind |
@@ -171,13 +176,13 @@ missing stream - so none of these block a build.
 
 ---
 
-## PROMPTED BUT NEVER PLAYED (155)
+## PROMPTED BUT NEVER PLAYED (156)
 
 Prompts for sounds nothing in the game names by literal. Not a fault - a
 few are chosen from data rather than written into code - but worth a
 glance before recording one, in case it is for something that was cut.
 
-`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
+`ambience_ashen_reach`, `ambience_beast_walk`, `ambience_desert`, `ambience_glass_fields`, `ambience_hollow_marches`, `ambience_iron_steppe`, `ambience_jungle`, `ambience_last_terrace`, `ambience_rustwood`, `ambience_saltpan`, `ambience_snow`, `music_act01_01`, `music_act01_02`, `music_act01_03`, `music_act01_04`, `music_act01_05`, `music_act01_06`, `music_act01_07`, `music_act01_08`, `music_act01_09`, `music_act01_10`, `music_act01_11`, `music_act01_12`, `music_act02_01`, `music_act02_02`, `music_act02_03`, `music_act02_04`, `music_act02_05`, `music_act02_06`, `music_act02_07`, `music_act02_08`, `music_act02_09`, `music_act02_10`, `music_act02_11`, `music_act02_12`, `music_act03_01`, `music_act03_02`, `music_act03_03`, `music_act03_04`, `music_act03_05`, `music_act03_06`, `music_act03_07`, `music_act03_08`, `music_act03_09`, `music_act03_10`, `music_act03_11`, `music_act03_12`, `music_act04_01`, `music_act04_02`, `music_act04_03`, `music_act04_04`, `music_act04_05`, `music_act04_06`, `music_act04_07`, `music_act04_08`, `music_act04_09`, `music_act04_10`, `music_act04_11`, `music_act04_12`, `music_act05_01`, `music_act05_02`, `music_act05_03`, `music_act05_04`, `music_act05_05`, `music_act05_06`, `music_act05_07`, `music_act05_08`, `music_act05_09`, `music_act05_10`, `music_act05_11`, `music_act05_12`, `music_act06_01`, `music_act06_02`, `music_act06_03`, `music_act06_04`, `music_act06_05`, `music_act06_06`, `music_act06_07`, `music_act06_08`, `music_act06_09`, `music_act06_10`, `music_act06_11`, `music_act06_12`, `music_act07_01`, `music_act07_02`, `music_act07_03`, `music_act07_04`, `music_act07_05`, `music_act07_06`, `music_act07_07`, `music_act07_08`, `music_act07_09`, `music_act07_10`, `music_act07_11`, `music_act07_12`, `music_act08_01`, `music_act08_02`, `music_act08_03`, `music_act08_04`, `music_act08_05`, `music_act08_06`, `music_act08_07`, `music_act08_08`, `music_act08_09`, `music_act08_10`, `music_act08_11`, `music_act08_12`, `music_act09_01`, `music_act09_02`, `music_act09_03`, `music_act09_04`, `music_act09_05`, `music_act09_06`, `music_act09_07`, `music_act09_08`, `music_act09_09`, `music_act09_10`, `music_act09_11`, `music_act09_12`, `music_act10_01`, `music_act10_02`, `music_act10_03`, `music_act10_04`, `music_act10_05`, `music_act10_06`, `music_act10_07`, `music_act10_08`, `music_act10_09`, `music_act10_10`, `music_act10_11`, `music_act10_12`, `music_battle_desert`, `music_battle_jungle`, `music_battle_snow`, `music_boss`, `music_boss_act01`, `music_boss_act02`, `music_boss_act03`, `music_boss_act04`, `music_boss_act05`, `music_boss_act06`, `music_boss_act07`, `music_boss_act08`, `music_boss_act09`, `music_boss_act10`, `music_crossroad`, `music_defeat`, `music_menu`, `music_raid`, `music_town`, `music_victory`, `sfx_wildfire`, `weather_downpour`, `weather_duststorm`, `weather_heatwave`, `weather_snowfall`
 
 ---
 
@@ -1466,7 +1471,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 88 files
+## Sound effects - 93 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -2092,6 +2097,46 @@ lightning striking close: a sharp crack that tears, then a heavy rolling boom th
 
 ```text
 distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain.
+```
+
+### `sfx_quake`
+
+`game/audio/sfx/sfx_quake.ogg`  -  target length **3.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+an earthquake underfoot: a deep grinding rumble that builds, shudders twice, and settles, with small stones rattling.
+```
+
+### `sfx_wildfire`
+
+`game/audio/sfx/sfx_wildfire.ogg`  -  target length **2.0s**  -  suggested tool: **ElevenLabs**
+
+```text
+dry brush catching fire: a rising crackle with small pops and a soft roar behind it, no voices.
+```
+
+### `sfx_tornado`
+
+`game/audio/sfx/sfx_tornado.ogg`  -  target length **2.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+a tornado passing near: a huge low howl with grit hissing through it and a rising whine, no music.
+```
+
+### `sfx_meteor_whistle`
+
+`game/audio/sfx/sfx_meteor_whistle.ogg`  -  target length **2.2s**  -  suggested tool: **ElevenLabs**
+
+```text
+a meteor falling: a thin descending whistle that grows into a roar over two seconds, no impact.
+```
+
+### `sfx_meteor_impact`
+
+`game/audio/sfx/sfx_meteor_impact.ogg`  -  target length **2.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+a meteor hitting earth: a huge deep thud, a blast of gravel, and a long low aftershock, no fire.
 ```
 
 ### `sfx_party_prompt`

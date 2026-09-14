@@ -6498,6 +6498,228 @@ const TORCH_RAIN_HIT: float = 0.025
 const TORCH_RAIN_POOL_DIM: float = 0.35
 ## How far up its trunk a treed animal is drawn.
 const WILDLIFE_CLIMB_LIFT: float = 46.0
+
+# ------------------------------------------------------------------------------
+# THE EARTH'S WRATH (2026-09-14)
+# ------------------------------------------------------------------------------
+# Owner brief: the earth keeps count of what is killed on it and answers. Wrath
+# is hidden - no readout, ever; it is a thing the player senses through what
+# the sky and the ground start doing. See `WeatherSky._tick_wrath` and the
+# events below. Every one of them is rolled from the run's `wrath` stream on
+# the host and told to the guest as a fact.
+
+## What a wildlife kill by a player or an enemy adds. Two parts: a *floor*
+## that only rises for the run, and a *heat* that decays - "both in total and
+## over a long period". Predators killing prey add nothing: that is the cycle.
+const WRATH_FLOOR_PER_KILL: float = 0.012
+const WRATH_FLOOR_CAP: float = 0.55
+const WRATH_HEAT_PER_KILL: float = 0.05
+const WRATH_HEAT_HALF_LIFE: float = 540.0
+## An elite or a savage is worth more of the earth's anger than a rabbit.
+const WRATH_ELITE_KILL_SCALE: float = 2.5
+const WRATH_CAP: float = 1.5
+
+## Between acts the earth eases and does not forget (owner, 2026-09-14: "may
+## reduce earth's wrath accumulation but not reset it completely"): the floor
+## and the heat are both kept at this share of what they were.
+const WRATH_ACT_CARRY: float = 0.6
+## The signs of the earth's mood, in steps of the wrath: each step up says
+## one line from `data/wrath/unrest_N` - the birds, the ground, the sky -
+## and never a number.
+const WRATH_TIER_STEP: float = 0.3
+const WRATH_TIERS: int = 4
+## Fire damage feeds the earth's anger as well, a little, and is what draws
+## a meteor: `ember` is the fire towers' recent damage, decaying.
+const WRATH_PER_FIRE_DAMAGE: float = 0.00004
+const EMBER_PER_DAMAGE: float = 1.0
+const EMBER_DECAY_PER_SECOND: float = 40.0
+const EMBER_FULL: float = 9000.0
+## The storm towers running: each air shot adds to `gale`, which decays, and
+## enough of it draws a tornado whether the earth is angry or not.
+const GALE_PER_SHOT: float = 1.0
+const GALE_DECAY_PER_SECOND: float = 0.35
+const GALE_FULL: float = 240.0
+
+## How wrath leans the crossroad's weather: a wrathful sky's weight is
+## multiplied by `1 + wrath * WRATH_WEATHER_BIAS`, and the rain's swell may
+## surge `WRATH_RAIN_SURGE` further at full wrath. [TUNE]
+const WRATH_WEATHER_BIAS: float = 2.2
+const WRATH_RAIN_SURGE: float = 0.35
+
+## Earthquakes: a hazard per second of `QUAKE_RATE * wrath^2`, so a calm
+## earth never shakes and an angry one shakes often. Magnitude 0..1 sets the
+## hurt - a share of a hero's pool, a flat figure on a body by the act, a
+## flat one on the animals - and the shake. [TUNE]
+const QUAKE_RATE: float = 1.0 / 240.0
+const QUAKE_SECONDS: float = 3.2
+const QUAKE_HERO_SHARE: float = 0.18
+const QUAKE_ENEMY_DAMAGE: float = 90.0
+const QUAKE_WILDLIFE_DAMAGE: float = 40.0
+## A strong quake chips every tower standing; nothing falls to one alone.
+const QUAKE_TOWER_DAMAGE: float = 45.0
+const QUAKE_SHAKE: float = 26.0
+
+## Wildfire: a hazard of `WILDFIRE_RATE * wrath * dryness`; a fire tower's hit
+## lights a plant near its target with `WILDFIRE_TOWER_CHANCE`. A burning
+## plant lasts `WILDFIRE_BURN_SECONDS`, tries to spread every tick to a
+## neighbour within the spread radius, hurts what stands within the hurt
+## radius, heats every fire tower within the buff radius, and when it goes
+## it scorches the ground and takes a felled tree with it. Rain shortens it;
+## a downpour or a flood ends it.
+##
+## A fire is bounded three ways, because an unbounded one burned 193 plants
+## and was still going: the spread chance decays by generation, no more than
+## `WILDFIRE_MAX_FIRES` burn at once, and one blaze lights at most
+## `WILDFIRE_MAX_LIT` plants before it can only burn down. A heatwave lifts
+## the last bound by `WILDFIRE_HOT_LIT_SCALE`, which is what "dry" costs. [TUNE]
+const WILDFIRE_RATE: float = 1.0 / 150.0
+const WILDFIRE_SPREAD_DECAY: float = 0.82
+const WILDFIRE_MAX_GENERATIONS: int = 7
+const WILDFIRE_MAX_FIRES: int = 24
+const WILDFIRE_MAX_LIT: int = 44
+const WILDFIRE_HOT_LIT_SCALE: float = 1.6
+const WILDFIRE_BURN_SECONDS: float = 26.0
+const WILDFIRE_SPREAD_TICK: float = 2.2
+const WILDFIRE_SPREAD_CHANCE: float = 0.55
+const WILDFIRE_SPREAD_RADIUS: float = 150.0
+const WILDFIRE_WIND_SPREAD: float = 1.4
+const WILDFIRE_HOT_FROM: float = 30.0
+const WILDFIRE_HOT_SPREAD: float = 1.5
+const WILDFIRE_HURT_RADIUS: float = 70.0
+const WILDFIRE_DPS: float = 14.0
+const WILDFIRE_HERO_SHARE_PER_SECOND: float = 0.05
+const WILDFIRE_WILDLIFE_DPS: float = 9.0
+const WILDFIRE_BURNING_SECONDS: float = 4.0
+const WILDFIRE_SCARE_RADIUS: float = 260.0
+const WILDFIRE_SCARE_TICK: float = 0.5
+const WILDFIRE_RAIN_STOPS: float = 0.75
+const WILDFIRE_RAIN_QUENCH: float = 3.0
+const WILDFIRE_FLOOD_STOPS: float = 0.5
+const WILDFIRE_TOWER_CHANCE: float = 0.03
+const WILDFIRE_TOWER_REACH: float = 90.0
+const WILDFIRE_TOWER_BUFF: float = 0.22
+const WILDFIRE_TOWER_BUFF_RADIUS: float = 260.0
+const WILDFIRE_SCORCH_RADIUS: float = 58.0
+const WILDFIRE_SCORCH_STRENGTH: float = 0.75
+const WILDFIRE_TREE_REACH: float = 52.0
+const WILDFIRE_FLAME_SIZE: float = 30.0
+const WILDFIRE_FLAME_LIFT: float = 10.0
+const WILDFIRE_Z: int = 1
+## The scorch marks: a texel this many units across, and their colour.
+const SCORCH_TEXEL: float = 16.0
+const SCORCH_TINT: Color = Color(0.09, 0.07, 0.06, 0.82)
+const SCORCH_Z: int = -28
+
+## Tornadoes: a hazard of `TORNADO_RATE * (wrath + gale / GALE_FULL)`. One
+## walks `TORNADO_SECONDS` at `TORNADO_SPEED`, wandering. In its wake a tower
+## is torn down and a body thrown; out to the aoe everything alive is hurt a
+## little and pushed. [TUNE]
+const TORNADO_RATE: float = 1.0 / 260.0
+const TORNADO_SECONDS: float = 24.0
+const TORNADO_SPEED: float = 120.0
+const TORNADO_WANDER: float = 0.9
+const TORNADO_WAKE: float = 84.0
+const TORNADO_AOE: float = 280.0
+const TORNADO_HEIGHT: float = 420.0
+const TORNADO_SPIN: float = 9.0
+const TORNADO_TOWER_DPS: float = 700.0
+const TORNADO_WAKE_DPS: float = 120.0
+const TORNADO_AOE_DPS: float = 18.0
+const TORNADO_HERO_SHARE_PER_SECOND: float = 0.06
+const TORNADO_WILDLIFE_DPS: float = 12.0
+const TORNADO_PUSH: float = 900.0
+const TORNADO_Z: int = 38
+
+## Meteors: a hazard of `METEOR_RATE * ember / EMBER_FULL * (0.3 + wrath)`,
+## aimed within `METEOR_SCATTER` of one of the player's towers. Warned by a
+## growing shadow for `METEOR_WARNING` seconds, the stone visible for the
+## last `METEOR_FALL` of them. The blast hurts every tower and body in its
+## radius and lights the plants around it. [TUNE]
+const METEOR_RATE: float = 1.0 / 200.0
+const METEOR_SCATTER: float = 220.0
+const METEOR_WARNING: float = 2.2
+const METEOR_FALL: float = 0.55
+const METEOR_FALL_FROM: Vector2 = Vector2(900.0, 1400.0)
+const METEOR_RADIUS: float = 230.0
+const METEOR_TOWER_DAMAGE: float = 520.0
+const METEOR_ENEMY_DAMAGE: float = 260.0
+const METEOR_HERO_SHARE: float = 0.35
+const METEOR_WILDLIFE_DAMAGE: float = 120.0
+const METEOR_PUSH: float = 520.0
+const METEOR_FIRES: int = 3
+const METEOR_FLASH: float = 0.7
+const METEOR_SHAKE: float = 2.6
+const METEOR_Z: int = 39
+
+## Chain lightning: a strike arcs on to the nearest unstruck body within
+## `CHAIN_RANGE`, up to `CHAIN_JUMPS` times, each arc worth `CHAIN_FALLOFF`
+## of the last. In a flood the water carries it: range and jumps both grow
+## with the flood, "frying most things it can reach". [TUNE]
+const CHAIN_RANGE: float = 200.0
+const CHAIN_JUMPS: int = 3
+const CHAIN_FALLOFF: float = 0.72
+const CHAIN_FLOOD_RANGE: float = 2.2
+const CHAIN_FLOOD_JUMPS: int = 7
+
+## Water and the water towers. A flood and the rain both feed them, and rain
+## fills the wells. [TUNE]
+const FLOOD_WATER_EMPOWER: float = 0.6
+const RAIN_WATER_EMPOWER: float = 0.35
+const RAIN_WELL_REFILL: float = 0.8
+## Above this share of the flood's height - the knee - nobody dashes and
+## Aegis Step will not take, and the whole field reads as water to a walker.
+const FLOOD_KNEE: float = 0.5
+const FLOOD_SWIM_DEPTH: float = 0.34
+
+## Enemies and towers. A body a tower has just hit rolls, once, to turn on
+## it for `ENEMY_TOWER_GRUDGE_SECONDS` if it is within reach; a body passing
+## a tower rolls, once per tower, a far rarer chance to turn on it unprovoked;
+## and a taunting tower - the Bastion and its kin - pulls a body in with a
+## chance rather than always, and wears more armour for it. Low on purpose:
+## a body that prefers the road is what the ten-act curve is tuned on. [TUNE]
+const ENEMY_TOWER_RETALIATE_CHANCE: float = 0.22
+const ENEMY_TOWER_PREEMPT_CHANCE: float = 0.04
+const ENEMY_TOWER_GRUDGE_SECONDS: float = 7.0
+const ENEMY_TOWER_GRUDGE_REACH: float = 300.0
+const ENEMY_TOWER_BLAME_RADIUS: float = 70.0
+const ENEMY_TOWER_NOTICE: float = 200.0
+const ENEMY_TOWER_NOTICE_TICK: float = 0.5
+const BASTION_TAUNT_CHANCE: float = 0.6
+const BASTION_TAUNT_RADIUS: float = 320.0
+const TAUNT_TOWER_ARMOUR: float = 6.0
+## Charged ground (owner brief by way of the ChatGPT notes, 2026-09-14:
+## "build toward the disaster"). A strike leaves a storm core, a stone or a
+## blaze burning ground, a flood at the knee a basin, a quake a fault. The
+## towers of that element standing on it deal `ZONE_TOWER_BUFF` more at the
+## centre, less toward the edge, for `ZONE_SECONDS`; no more than `ZONE_MAX`
+## stand at once. A blaze leaves ground only once it has burnt
+## `ZONE_BLAZE_MIN_BURNT` plants - a single scorched fern is not a fire. [TUNE]
+const ZONE_TOWER_BUFF: float = 0.45
+const ZONE_SECONDS: float = 75.0
+const ZONE_MAX: int = 6
+const ZONE_STORM_RADIUS: float = 300.0
+const ZONE_BURN_RADIUS: float = 260.0
+const ZONE_FAULT_RADIUS: float = 320.0
+const ZONE_BASIN_RADIUS: float = 340.0
+const ZONE_BLAZE_MIN_BURNT: int = 6
+const ZONE_Z: int = -27
+## Telegraphs. A quake hums for `QUAKE_WARNING_SECONDS` before it breaks and
+## a tornado's wind rises for `TORNADO_WARNING_SECONDS` before the funnel is
+## born: five to ten seconds of "oh no" rather than a blow from nowhere.
+const QUAKE_WARNING_SECONDS: float = 4.5
+const TORNADO_WARNING_SECONDS: float = 6.0
+## Fire whirls: a funnel crossing a wildfire carries it for
+## `TORNADO_FIRE_SECONDS`, lighting the brush in its wake every
+## `TORNADO_FIRE_IGNITE_TICK` and burning what it touches for more.
+const TORNADO_FIRE_SECONDS: float = 8.0
+const TORNADO_FIRE_IGNITE_TICK: float = 0.6
+const TORNADO_FIRE_DPS: float = 30.0
+## Dry lightning: a strike with no rain on it lights the brush with this
+## chance, and with more under a heatwave.
+const LIGHTNING_IGNITE_CHANCE: float = 0.18
+const LIGHTNING_IGNITE_HOT_SCALE: float = 2.5
+## Rubble where a tower stood, and how long it takes to settle into the ground.
+const DEBRIS_FADE_SECONDS: float = 14.0
 const BEAST_WEATHER_REACH: float = 1200.0
 const BEAST_BRUSH_SCROLL: float = 1.35
 const BEAST_BRUSH_BASELINE: float = 604.0

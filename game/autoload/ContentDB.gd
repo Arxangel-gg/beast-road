@@ -19,6 +19,8 @@ var buildings: Dictionary = {}
 var captives: Dictionary = {}
 var wave_archetypes: Dictionary = {}
 var weathers: Dictionary = {}
+## The earth's wrath: its events, its signs and the ground it leaves charged.
+var wrath_events: Dictionary = {}
 var wildlife_kinds: Dictionary = {}
 
 ## Spirit Companion personalities. Adding one is adding a `.tres`, and every
@@ -100,6 +102,7 @@ func _ready() -> void:
 	spells = _load_dir("res://data/spells")
 	terrains = _load_dir("res://data/terrains")
 	weathers = _load_dir("res://data/weather")
+	wrath_events = _load_dir("res://data/wrath")
 	wildlife_kinds = _load_dir("res://data/wildlife")
 	spirit_traits = _load_dir("res://data/spirit_traits")
 	run_titles = _load_dir("res://data/run_titles")
@@ -288,6 +291,10 @@ func weathers_for_act(act: int) -> Array[WeatherData]:
 
 func weather(id: String) -> WeatherData:
 	return weathers.get(id, null) as WeatherData
+
+
+func wrath_event(id: String) -> WrathEventData:
+	return wrath_events.get(id, null) as WrathEventData
 
 
 ## Every animal that can turn up on the field, in a stable order.

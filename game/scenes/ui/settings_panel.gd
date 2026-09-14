@@ -471,6 +471,7 @@ func _build_video(column: VBoxContainer) -> void:
 	column.add_child(_toggle_row("Ground shadows", Graphics.KEY_CONTACT_SHADOWS,
 		"Cheaper, and worth more to how the game looks."))
 	column.add_child(_toggle_row("Cloud shadows", Graphics.KEY_CLOUDS, ""))
+	column.add_child(_toggle_row("Water refraction", Graphics.KEY_WATER_REFRACTION, ""))
 	column.add_child(_amount_row("Particles", Graphics.KEY_PARTICLES))
 	column.add_child(_amount_row("Foliage", Graphics.KEY_FOLIAGE))
 

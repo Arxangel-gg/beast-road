@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_w")
+wrathful = true
 lightning_rate = 0.8
 floods = true
 rain_variability = 0.85

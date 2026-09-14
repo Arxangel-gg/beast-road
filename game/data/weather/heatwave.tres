@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_w")
+wrathful = true
 temperature = 39.0
 heat_line = "The wells are drying in the heat. Drink while there is something to drink."
 heat_title = "HEATWAVE"

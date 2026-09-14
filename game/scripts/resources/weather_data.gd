@@ -132,6 +132,10 @@ enum Precipitation {
 ## The air under this sky, in degrees, before the region, the hour and the
 ## rain move it. The HUD forecasts from it and the wells dry by it.
 @export_range(-30.0, 55.0) var temperature: float = 20.0
+## Whether the earth reaches for this sky when it is angry. The harsh ones,
+## which is what makes the wrath something a player can sense without a
+## number: the road that killed too much gets worse weather.
+@export var wrathful: bool = false
 ## Said once when the flood this sky brought reaches `FLOOD_ANNOUNCE`. Empty
 ## for a sky that cannot flood. Data, not code: working rule 9.
 @export var flood_line: String = ""

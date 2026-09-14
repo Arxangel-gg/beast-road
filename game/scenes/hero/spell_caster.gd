@@ -239,6 +239,11 @@ func try_cast(slot: int, aim: Vector2, origin: Vector2) -> bool:
 	var spell: SpellData = spell_in_slot(slot)
 	if spell == null:
 		return false
+	# Aegis Step is a step, and over the knee there is no stepping (owner
+	# brief, 2026-09-14). Refused before it is paid for.
+	if spell.id == "aegis_step" and RunState.flood_over_knee():
+		Vfx.word(origin + Vector2(0.0, -40.0), "Too deep", Color(0.7, 0.85, 1.0), 20)
+		return false
 	# Paid before it resolves, and refused if it cannot be. A bare caster with
 	# no hero - the gates - casts for free, which is what they need.
 	if hero != null and hero.has_method("spend_mana"):

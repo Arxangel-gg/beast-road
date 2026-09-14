@@ -748,6 +748,8 @@ func _react_to_mirrored_hit(lost: float) -> void:
 func _tick_state(delta: float) -> void:
 	match _state:
 		State.WALKING:
+			_grudge_left = maxf(_grudge_left - delta, 0.0)
+			_notice_towers(delta)
 			_target = _pick_target()
 			if _target != null and _in_reach(_target):
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
@@ -1168,8 +1170,13 @@ func _pick_target() -> Node2D:
 		return animal
 	if is_camp_mob():
 		return _camp_target()
+	# A tower this body holds a grudge against, while it does and while the
+	# tower stands (owner brief, 2026-09-14).
+	if _grudge != null and is_instance_valid(_grudge) and _grudge_left > 0.0 \
+			and (_grudge as Tower).is_vulnerable():
+		return _grudge
 	var taunt: Node2D = _field.taunting_tower_in_lane(lane)
-	if taunt != null and is_instance_valid(taunt):
+	if taunt != null and is_instance_valid(taunt) and _taunted_by(taunt):
 		return taunt
 	if data.targets_towers:
 		var structure: Node2D = _field.vulnerable_tower_in_lane(lane, global_position)
@@ -1485,6 +1492,7 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	incoming *= 1.0 - _affix_best(&"damage_resistance")
 	if not health.take_damage(incoming, from):
 		return false
+	_note_tower_blow(from)
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
 		if active_hero else null
 	if attack_node != null and attack_node.effect_id == "tower_damage_brand" \
@@ -1690,6 +1698,71 @@ func _on_damaged(_amount: float, from: Vector2) -> void:
 			and foe.global_position.distance_to(from) <= Balance.ENEMY_RETALIATE_RANGE \
 			and global_position.distance_to(foe.global_position) <= Balance.ENEMY_RETALIATE_RANGE:
 		_target = foe
+
+
+# --- Grudges against towers (2026-09-14) ----------------------------------------
+
+## A tower this body has turned on, and for how much longer.
+var _grudge: Node2D = null
+var _grudge_left: float = 0.0
+## Towers this body has already rolled against, by instance id, so a roll is
+## one roll: a Bastion is a chance to be pulled in, not a chance per frame.
+var _tower_rolls: Dictionary = {}
+var _notice_timer: float = 0.0
+
+
+## A blow landed. If a tower threw it, this body may turn on that tower for a
+## while - "attack a tower back after being attacked by it" - with a chance,
+## and only if the tower is close enough to reach without leaving the fight.
+func _note_tower_blow(from: Vector2) -> void:
+	if _field == null or is_camp_mob() or puppet or _grudge_left > 0.0:
+		return
+	if not _field.has_method("tower_near"):
+		return
+	var tower: Tower = _field.tower_near(from, Balance.ENEMY_TOWER_BLAME_RADIUS)
+	if tower == null or not tower.is_vulnerable():
+		return
+	if global_position.distance_to(tower.global_position) > Balance.ENEMY_TOWER_GRUDGE_REACH:
+		return
+	if RunState.rng("combat").randf() < Balance.ENEMY_TOWER_RETALIATE_CHANCE:
+		_grudge = tower
+		_grudge_left = Balance.ENEMY_TOWER_GRUDGE_SECONDS
+
+
+## Passing a tower unprovoked: a far rarer roll, once per tower, to go for it
+## anyway. A body still prefers the road, which is what the curve is tuned on.
+func _notice_towers(delta: float) -> void:
+	if _field == null or is_camp_mob() or puppet or _grudge_left > 0.0:
+		return
+	_notice_timer -= delta
+	if _notice_timer > 0.0:
+		return
+	_notice_timer = Balance.ENEMY_TOWER_NOTICE_TICK
+	if not _field.has_method("tower_near"):
+		return
+	var tower: Tower = _field.tower_near(global_position, Balance.ENEMY_TOWER_NOTICE)
+	if tower == null or not tower.is_vulnerable():
+		return
+	var key: int = tower.get_instance_id()
+	if _tower_rolls.has(key):
+		return
+	var chosen: bool = RunState.rng("combat").randf() < Balance.ENEMY_TOWER_PREEMPT_CHANCE
+	_tower_rolls[key] = chosen
+	if chosen:
+		_grudge = tower
+		_grudge_left = Balance.ENEMY_TOWER_GRUDGE_SECONDS
+
+
+## Whether a taunting tower pulls this body in: within its reach, and by a
+## roll made once per tower. A taunt that always worked was a wall that
+## chose every fight; a chance is a wall that changes some.
+func _taunted_by(taunt: Node2D) -> bool:
+	if global_position.distance_to(taunt.global_position) > Balance.BASTION_TAUNT_RADIUS:
+		return false
+	var key: int = taunt.get_instance_id() + 1
+	if not _tower_rolls.has(key):
+		_tower_rolls[key] = RunState.rng("combat").randf() < Balance.BASTION_TAUNT_CHANCE
+	return bool(_tower_rolls[key])
 
 
 ## Whatever it leaves behind. Volatile and its kin.

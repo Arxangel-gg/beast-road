@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+warning = "The wind turns. Dust rises at the edge of the field."
+warning_title = "GALE"
+announce = "A funnel walks the field. Nothing in its path stands."
+announce_title = "TORNADO"
+colour = Color(0.7, 0.72, 0.68, 1)
+id = "tornado"
+display_name = "Tornado"

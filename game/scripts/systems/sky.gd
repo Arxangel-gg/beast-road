@@ -31,6 +31,19 @@ extends Node2D
 
 ## The field this sky is over. Set by the battlefield before `_ready`.
 var field: Battlefield = null
+## The earth's tools, set by the battlefield: the fire and the ground's memory.
+var wildfire: Wildfire = null
+var marks: ScorchMarks = null
+var zones: WrathZones = null
+## Telegraphs: the hum before a quake and the wind before a funnel.
+var _quake_warning_left: float = 0.0
+var _quake_pending: float = -1.0
+var _warn_tremor_timer: float = 0.0
+## {from, target, seconds, left, spawn, gust} while a funnel is on its way.
+var _pending_tornado: Dictionary = {}
+var _basin_opened: bool = false
+var _tier_told: int = 0
+var _zone_rng: RandomNumberGenerator = null
 
 var _rng: RandomNumberGenerator = null
 var _weather: WeatherData = null
@@ -60,16 +73,34 @@ var _mirror: bool = false
 var strikes: int = 0
 ## Test seam: a fixed intensity in place of the rolling one, or -1 to roll.
 var forced_intensity: float = -1.0
+## Test seam: whether the earth's events roll at all. A gate that measures a
+## quake it caused cannot also have the earth throwing its own.
+var events_enabled: bool = true
 
 var _sheen: ColorRect = null
 var _sheen_material: ShaderMaterial = null
 var _bolts: Node2D = null
+
+## The earth's wrath. A floor that only rises for the run and a heat that
+## decays; hidden, sensed. See Balance under THE EARTH'S WRATH.
+var _wrath_floor: float = 0.0
+var _wrath_heat: float = 0.0
+## A quake in progress: seconds left and how hard.
+var _quake_left: float = 0.0
+var _quake_magnitude: float = 0.0
+var _tremor_timer: float = 0.0
+## For the gate.
+var quakes: int = 0
+var tornadoes: int = 0
+var meteors: int = 0
+var wildfires: int = 0
 
 
 func _ready() -> void:
 	name = "Sky"
 	z_as_relative = false
 	_rng = RunState.rng("sky")
+	_zone_rng = RunState.rng("zones")
 	_phases = Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)
 	_mirror = Coop.is_guest()
 	_build_sheen()
@@ -82,6 +113,13 @@ func _ready() -> void:
 	EventBus.coop_sky_clock.connect(_on_sky_clock)
 	EventBus.coop_lightning.connect(_on_lightning_seen)
 	EventBus.lightning_struck.connect(_on_lightning_seen)
+	EventBus.wildlife_killed.connect(_on_wildlife_killed)
+	EventBus.coop_earthquake.connect(_on_earthquake_seen)
+	EventBus.earthquake.connect(_on_earthquake_seen)
+	EventBus.coop_tornado_spawned.connect(_on_tornado_elsewhere)
+	EventBus.coop_meteor_incoming.connect(_on_meteor_elsewhere)
+	EventBus.coop_wrath_warned.connect(_on_warned_elsewhere)
+	EventBus.act_started.connect(_on_act_started)
 	_apply(ContentDB.weather(RunState.weather_id))
 	_temperature = _temperature_target
 	_publish(true)
@@ -89,6 +127,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if _mirror:
+		_tick_warnings(delta)
+		_tick_quake(delta)
 		_drive_visuals(delta)
 		return
 	_clock += delta
@@ -97,6 +137,11 @@ func _process(delta: float) -> void:
 	_tick_charge(delta)
 	_tick_lightning(delta)
 	_tick_temperature(delta)
+	_tick_wrath(delta)
+	if events_enabled:
+		_tick_wrath_events(delta)
+	_tick_warnings(delta)
+	_tick_quake(delta)
 	_publish(false)
 	_tick_sync(delta)
 	_tick_announcements(delta)
@@ -142,7 +187,9 @@ func _tick_rain(delta: float) -> void:
 			+ 0.15 * sin(TAU * _clock / Balance.SKY_RAIN_PERIODS.z + _phases.z))
 		var swing: float = clampf(_weather.rain_variability, 0.0, 1.0)
 		var low: float = lerpf(1.0, Balance.SKY_RAIN_SCALE_RANGE.x, swing)
-		var high: float = lerpf(1.0, Balance.SKY_RAIN_SCALE_RANGE.y, swing)
+		# An angry earth's storms surge harder.
+		var high: float = lerpf(1.0, Balance.SKY_RAIN_SCALE_RANGE.y, swing) \
+			* (1.0 + clampf(wrath(), 0.0, 1.0) * Balance.WRATH_RAIN_SURGE)
 		_scale_target = lerpf(low, high, wave)
 	_scale = lerpf(_scale, _scale_target, minf(delta * Balance.SKY_RAIN_SMOOTHING, 1.0))
 	_trend_timer += delta
@@ -182,6 +229,15 @@ func _tick_flood(delta: float) -> void:
 	else:
 		_flood = maxf(_flood - delta / maxf(Balance.FLOOD_DRAIN_SECONDS, 1.0), 0.0)
 	RunState.flood = _flood
+	# At the knee the water finds its basin: charged ground for the water
+	# towers, once per flood.
+	if not _mirror and zones != null:
+		if _flood >= Balance.FLOOD_KNEE and not _basin_opened:
+			_basin_opened = true
+			zones.open("flood_basin", _pick_strike_point(_zone_rng), Balance.ZONE_BASIN_RADIUS,
+				Balance.ZONE_SECONDS * 2.0)
+		elif _flood < Balance.FLOOD_KNEE * 0.5:
+			_basin_opened = false
 	# Announced when it has moved a visible amount since it was last announced,
 	# not since the last frame - a flood rises a few thousandths a step, and
 	# measured frame to frame it never crossed the line and was never told.
@@ -224,10 +280,12 @@ func _tick_lightning(delta: float) -> void:
 
 
 ## Somewhere on the field, never on the city.
-func _pick_strike_point() -> Vector2:
+func _pick_strike_point(rng: RandomNumberGenerator = null) -> Vector2:
+	if rng == null:
+		rng = _rng
 	var reach: float = BattleGrid.HALF_EXTENT * 0.86
 	for _attempt: int in 12:
-		var at := Vector2(_rng.randf_range(-reach, reach), _rng.randf_range(-reach, reach))
+		var at := Vector2(rng.randf_range(-reach, reach), rng.randf_range(-reach, reach))
 		if at.length() >= Balance.LIGHTNING_TOWN_CLEARANCE:
 			return at
 	return Vector2(reach * 0.7, reach * 0.7)
@@ -248,8 +306,10 @@ func strike_at(at: Vector2) -> void:
 	if field != null:
 		var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
-		for enemy: Enemy in field.enemies_near(at, radius):
+		var struck: Array[Enemy] = field.enemies_near(at, radius)
+		for enemy: Enemy in struck:
 			enemy.take_damage(Balance.LIGHTNING_ENEMY_DAMAGE * act_scale, at, 0.0)
+		_chain(at, struck, Balance.LIGHTNING_ENEMY_DAMAGE * act_scale)
 		var hero_pool: float = 100.0
 		if field.hero != null and field.hero.health != null:
 			hero_pool = field.hero.health.max_hp
@@ -267,6 +327,11 @@ func strike_at(at: Vector2) -> void:
 				continue
 			if tower.global_position.distance_to(at) <= Balance.LIGHTNING_EMPOWER_RADIUS:
 				tower.storm_charge(Balance.LIGHTNING_EMPOWER_SECONDS)
+	if not _mirror:
+		# The air where it struck stays charged; dry brush under it catches.
+		if zones != null:
+			zones.open("storm_core", at, Balance.ZONE_STORM_RADIUS)
+		_dry_lightning(at)
 	EventBus.lightning_struck.emit(at, radius)
 
 
@@ -298,7 +363,9 @@ func _draw_bolt(at: Vector2) -> void:
 		return
 	var top: Vector2 = at + Vector2(_rng.randf_range(-120.0, 120.0), -Balance.LIGHTNING_BOLT_HEIGHT)
 	var main: PackedVector2Array = _jagged(top, at, 12, 70.0)
-	var lines: Array[Line2D] = [_bolt_line(main, 7.0, 1.0)]
+	# A wide, faint stroke under the bright one: the glow of the air the bolt
+	# passed through, which is what makes a line read as light.
+	var lines: Array[Line2D] = [_bolt_line(main, 26.0, 0.22), _bolt_line(main, 7.0, 1.0)]
 	# One or two branches off the main stroke, thinner and shorter.
 	for _b: int in 1 + (1 if _rng.randf() < 0.6 else 0):
 		var from_index: int = _rng.randi_range(3, main.size() - 4)
@@ -370,6 +437,7 @@ func _publish(force: bool) -> void:
 	RunState.rain_intensity = intensity()
 	RunState.storm_charge = _charge
 	RunState.temperature = _temperature
+	RunState.wrath = wrath()
 	if force:
 		RunState.flood = _flood
 
@@ -458,6 +526,8 @@ func _drive_visuals(_delta: float) -> void:
 	_sheen.visible = _flood > 0.01 and _sheen_material != null
 	if _sheen_material != null:
 		_sheen_material.set_shader_parameter("level", _flood)
+		_sheen_material.set_shader_parameter("rain", clampf(RunState.rain_intensity, 0.0, 1.0))
+		_sheen_material.set_shader_parameter("refracts", Graphics.water_refraction())
 
 
 # --- For the rest of the game, and the gate --------------------------------------------
@@ -481,3 +551,394 @@ func rain_scale() -> float:
 ## The chance per second of a strike right now, for the gate and the HUD.
 func hazard_now() -> float:
 	return _hazard()
+
+
+# --- The earth's wrath -------------------------------------------------------------------
+
+## What the earth holds against the road, 0..`WRATH_CAP`.
+func wrath() -> float:
+	return clampf(_wrath_floor + _wrath_heat, 0.0, Balance.WRATH_CAP)
+
+
+## A wildlife kill by a player or an enemy. Predators killing prey never
+## reach here - `Wildlife` announces only the kills that were not the cycle.
+func _on_wildlife_killed(_kind_id: String, _food: int, _at: Vector2) -> void:
+	if _mirror:
+		return
+	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL, Balance.WRATH_FLOOR_CAP)
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL
+
+
+## A worse kill: an elite, a savage, a shiny. The gate and the wildlife call it.
+func note_grave_kill() -> void:
+	if _mirror:
+		return
+	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL * Balance.WRATH_ELITE_KILL_SCALE,
+		Balance.WRATH_FLOOR_CAP)
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * Balance.WRATH_ELITE_KILL_SCALE
+
+
+## The heat cools, the fire's ash and the storm's wind settle.
+func _tick_wrath(delta: float) -> void:
+	var half: float = maxf(Balance.WRATH_HEAT_HALF_LIFE, 1.0)
+	_wrath_heat *= pow(0.5, delta / half)
+	# Fire fed into the earth's anger, a little, before the ember cools.
+	_wrath_heat += RunState.ember * Balance.WRATH_PER_FIRE_DAMAGE * delta
+	RunState.ember = maxf(RunState.ember - Balance.EMBER_DECAY_PER_SECOND * delta, 0.0)
+	RunState.gale = maxf(RunState.gale - Balance.GALE_DECAY_PER_SECOND * delta, 0.0)
+	# The signs. Never a number: the birds, the ground, the sky, once each
+	# time the anger climbs a step, and again only after it has come down.
+	var tier: int = wrath_tier()
+	if tier > _tier_told:
+		_tier_told = tier
+		_tell("unrest_%d" % tier, Vector2.ZERO, 0.0)
+	elif tier < _tier_told - 1:
+		_tier_told = tier
+
+
+## The earth's mood in steps, 0 calm to `WRATH_TIERS`. For the signs only;
+## nothing shows it as a number.
+func wrath_tier() -> int:
+	return clampi(int(floor(wrath() / maxf(Balance.WRATH_TIER_STEP, 0.01))), 0, Balance.WRATH_TIERS)
+
+
+## An act ends: the earth eases and does not forget. Whatever was on its way
+## is dropped with the field it was coming to.
+func _on_act_started(_act: int, _terrain: String) -> void:
+	_quake_warning_left = 0.0
+	_quake_pending = -1.0
+	_pending_tornado = {}
+	_basin_opened = false
+	if _mirror:
+		return
+	_wrath_floor *= Balance.WRATH_ACT_CARRY
+	_wrath_heat *= Balance.WRATH_ACT_CARRY
+	_tier_told = mini(_tier_told, wrath_tier())
+
+
+## Whether the earth answers this frame, and how.
+func _tick_wrath_events(delta: float) -> void:
+	var anger: float = wrath()
+	# A quake: the square, so a calm earth never shakes. Warned first.
+	if _quake_left <= 0.0 and _quake_warning_left <= 0.0 \
+			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * delta:
+		warn_quake(lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0)))
+	# A wildfire: dry air and an angry earth. Rain and flood stop it at the source.
+	var dry: float = clampf(1.0 - RunState.rain_intensity * 2.0, 0.0, 1.0)
+	if RunState.flood > Balance.WILDFIRE_FLOOD_STOPS:
+		dry = 0.0
+	if RunState.temperature > Balance.WILDFIRE_HOT_FROM:
+		dry *= Balance.WILDFIRE_HOT_SPREAD
+	if wildfire != null and _rng.randf() < Balance.WILDFIRE_RATE * anger * dry * delta:
+		start_wildfire()
+	# A tornado: the earth's anger, or the storm towers' own running.
+	var whirl: float = anger + clampf(RunState.gale / Balance.GALE_FULL, 0.0, 1.0)
+	if _pending_tornado.is_empty() and _rng.randf() < Balance.TORNADO_RATE * whirl * delta:
+		warn_tornado()
+	# A meteor: the fire towers' recent damage, sharpened by the anger.
+	var ash: float = clampf(RunState.ember / Balance.EMBER_FULL, 0.0, 1.0)
+	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * delta:
+		drop_meteor()
+
+
+## The ground shakes: everything alive is hurt by the magnitude, and the
+## screen with it.
+func quake(magnitude: float) -> void:
+	quakes += 1
+	_quake_magnitude = clampf(magnitude, 0.0, 1.0)
+	_quake_left = Balance.QUAKE_SECONDS
+	if field != null and not _mirror:
+		var act_scale: float = Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
+			Balance.WAVE_ACT_HP_SCALE.size() - 1)]
+		for enemy: Enemy in field.enemies_near(Vector2.ZERO, INF):
+			enemy.take_damage(Balance.QUAKE_ENEMY_DAMAGE * act_scale * _quake_magnitude, enemy.global_position, 0.0)
+		var hero_pool: float = 100.0
+		if field.hero != null and field.hero.health != null:
+			hero_pool = field.hero.health.max_hp
+		EnemyGroundStrike.strike_the_players(get_tree(), hero_pool * Balance.QUAKE_HERO_SHARE * _quake_magnitude,
+			"earthquake", func(_where: Vector2) -> bool: return true)
+		# Every tower standing is shaken; a chip by the magnitude, never a fall.
+		for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+			var tower := node as Tower
+			if tower != null and is_instance_valid(tower) and tower.is_vulnerable():
+				tower.hurt(Balance.QUAKE_TOWER_DAMAGE * _quake_magnitude, tower.global_position)
+		var animals: Wildlife = field.wildlife()
+		if animals != null:
+			animals.wound_within(Vector2.ZERO, INF, Balance.QUAKE_WILDLIFE_DAMAGE * _quake_magnitude, false)
+			animals.scare_from(Vector2.ZERO, INF)
+		# The fault it opens: charged ground for the earth towers, and a
+		# line of cracks across it that stays.
+		var fault: Vector2 = _pick_strike_point(_zone_rng)
+		if zones != null:
+			zones.open("seismic_fault", fault, Balance.ZONE_FAULT_RADIUS)
+		if marks != null:
+			var along: Vector2 = Vector2.RIGHT.rotated(_zone_rng.randf() * TAU)
+			for step: int in 5:
+				marks.stamp(fault + along * (float(step) - 2.0) * Balance.ZONE_FAULT_RADIUS * 0.3,
+					34.0, 0.35 * _quake_magnitude)
+	if not _mirror:
+		EventBus.earthquake.emit(_quake_magnitude, Balance.QUAKE_SECONDS)
+
+
+func _on_earthquake_seen(magnitude: float, seconds: float) -> void:
+	if _mirror:
+		_quake_magnitude = magnitude
+		_quake_left = seconds
+	EventBus.camera_shake_requested.emit(magnitude * Balance.QUAKE_SHAKE, seconds)
+	Sfx.play("sfx_quake", 0.0)
+
+
+## Tremors while it lasts: dust thrown up around whoever is watching.
+func _tick_quake(delta: float) -> void:
+	if _quake_left <= 0.0:
+		return
+	_quake_left -= delta
+	_tremor_timer -= delta
+	if _tremor_timer <= 0.0:
+		_tremor_timer = 0.3
+		var around: Vector2 = field.hero.global_position if field != null and field.hero != null else Vector2.ZERO
+		for _i: int in 3:
+			Vfx.dust(around + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * 420.0,
+				Color(0.36, 0.3, 0.24), 4, 40.0 + 30.0 * _quake_magnitude)
+		EventBus.camera_shake_requested.emit(_quake_magnitude * Balance.QUAKE_SHAKE * 0.6, 0.35)
+
+
+## A fire somewhere in the foliage, away from the city.
+func start_wildfire() -> bool:
+	if wildfire == null:
+		return false
+	for _attempt: int in 8:
+		var at: Vector2 = _pick_strike_point()
+		if wildfire.ignite_near(at, Balance.WILDFIRE_SPREAD_RADIUS * 2.0, 1.0):
+			wildfires += 1
+			_tell("wildfire", at, 0.0)
+			return true
+	return false
+
+
+## A strike with no rain on it lights the brush (ChatGPT notes: "Drought +
+## Lightning"). Under a heatwave, much more often.
+func _dry_lightning(at: Vector2) -> void:
+	if wildfire == null or RunState.rain_intensity > 0.05 or RunState.flood > Balance.WILDFIRE_FLOOD_STOPS:
+		return
+	var chance: float = Balance.LIGHTNING_IGNITE_CHANCE
+	if RunState.temperature > Balance.WILDFIRE_HOT_FROM:
+		chance *= Balance.LIGHTNING_IGNITE_HOT_SCALE
+	if wildfire.ignite_near(at, Balance.LIGHTNING_RADIUS, chance):
+		wildfires += 1
+		_tell("wildfire", at, 0.0)
+
+
+# --- Telegraphs ------------------------------------------------------------------------------
+
+## The ground hums before it breaks: announced, felt, and then the quake.
+func warn_quake(magnitude: float) -> void:
+	if _quake_warning_left > 0.0:
+		return
+	_quake_pending = clampf(magnitude, 0.0, 1.0)
+	_quake_warning_left = Balance.QUAKE_WARNING_SECONDS
+	_warn_tremor_timer = 0.0
+	_tell("quake", Vector2.ZERO, Balance.QUAKE_WARNING_SECONDS)
+
+
+## The wind rises at the edge before the funnel is born there.
+func warn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF, seconds: float = -1.0) -> void:
+	if not _pending_tornado.is_empty():
+		return
+	var reach: float = BattleGrid.HALF_EXTENT * 0.95
+	if not from.is_finite():
+		from = Vector2.RIGHT.rotated(_rng.randf() * TAU) * reach
+	if not target.is_finite():
+		target = Vector2(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.6, 0.6)) * reach
+	if seconds < 0.0:
+		seconds = Balance.TORNADO_SECONDS
+	_pending_tornado = {"from": from, "target": target, "seconds": seconds,
+		"left": Balance.TORNADO_WARNING_SECONDS, "spawn": true, "gust": 0.0}
+	_tell("tornado", from, Balance.TORNADO_WARNING_SECONDS)
+
+
+## Says a warning here and tells the guest, who says it there.
+func _tell(kind_id: String, at: Vector2, seconds: float) -> void:
+	_show_warning(kind_id, at, seconds)
+	if not _mirror:
+		EventBus.wrath_warned.emit(kind_id, at, seconds)
+
+
+func _on_warned_elsewhere(kind_id: String, at: Vector2, seconds: float) -> void:
+	if not _mirror:
+		return
+	_show_warning(kind_id, at, seconds)
+	# The guest runs the tell and not the event: the quake and the funnel
+	# arrive as facts of their own when the host's clock runs out.
+	match kind_id:
+		"quake":
+			_quake_pending = -1.0
+			_quake_warning_left = seconds
+			_warn_tremor_timer = 0.0
+		"tornado":
+			_pending_tornado = {"from": at, "target": at, "seconds": 0.0, "left": seconds,
+				"spawn": false, "gust": 0.0}
+
+
+## The line and the animals: what a warning is on every machine. A kind with
+## no warning of its own says its announcement, which is what the signs do.
+func _show_warning(kind_id: String, at: Vector2, _seconds: float) -> void:
+	var kind: WrathEventData = ContentDB.wrath_event(kind_id)
+	if kind == null:
+		return
+	var telegraphed: bool = not kind.warning.is_empty()
+	var line: String = kind.warning if telegraphed else kind.announce
+	var title: String = kind.warning_title if telegraphed else kind.announce_title
+	if not line.is_empty():
+		EventBus.sky_warned.emit(line, title)
+	# The animals run from what is coming; a sign of the earth's mood, with
+	# nothing behind it yet, only quiets them.
+	if field != null and not _mirror and _seconds > 0.0:
+		var animals: Wildlife = field.wildlife()
+		if animals != null:
+			animals.scare_from(at, INF if kind_id == "quake" else 700.0)
+
+
+## The tells run down: the hum grows into the quake, the gust into the funnel.
+func _tick_warnings(delta: float) -> void:
+	if _quake_warning_left > 0.0:
+		_quake_warning_left -= delta
+		var progress: float = 1.0 - _quake_warning_left / maxf(Balance.QUAKE_WARNING_SECONDS, 0.1)
+		_warn_tremor_timer -= delta
+		if _warn_tremor_timer <= 0.0:
+			_warn_tremor_timer = 0.32
+			EventBus.camera_shake_requested.emit(Balance.QUAKE_SHAKE * 0.12 * (0.3 + progress), 0.3)
+			var around: Vector2 = field.hero.global_position if field != null and field.hero != null else Vector2.ZERO
+			Vfx.dust(around + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * 360.0,
+				Color(0.4, 0.34, 0.27), 3, 30.0)
+		if _quake_warning_left <= 0.0 and _quake_pending >= 0.0:
+			var magnitude: float = _quake_pending
+			_quake_pending = -1.0
+			quake(magnitude)
+	if not _pending_tornado.is_empty():
+		_pending_tornado["left"] = float(_pending_tornado["left"]) - delta
+		_pending_tornado["gust"] = float(_pending_tornado["gust"]) - delta
+		if float(_pending_tornado["gust"]) <= 0.0:
+			_pending_tornado["gust"] = 0.22
+			var from: Vector2 = _pending_tornado["from"]
+			var toward: Vector2 = ((_pending_tornado["target"] as Vector2) - from).normalized()
+			# Dust streaking in from where it will come, further each gust.
+			var along: float = (1.0 - float(_pending_tornado["left"]) / maxf(Balance.TORNADO_WARNING_SECONDS, 0.1)) * 900.0
+			Vfx.dust(from + toward * along + toward.orthogonal() * _rng.randf_range(-260.0, 260.0),
+				Color(0.5, 0.45, 0.36), 4, 60.0)
+		if float(_pending_tornado["left"]) <= 0.0:
+			var pending: Dictionary = _pending_tornado
+			_pending_tornado = {}
+			if bool(pending["spawn"]):
+				spawn_tornado(pending["from"], pending["target"], float(pending["seconds"]))
+
+
+## A funnel from the edge of the field, heading for a point inside it.
+func spawn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF,
+		seconds: float = -1.0) -> Tornado:
+	if field == null:
+		return null
+	var reach: float = BattleGrid.HALF_EXTENT * 0.95
+	if not from.is_finite():
+		var edge: Vector2 = Vector2.RIGHT.rotated(_rng.randf() * TAU)
+		from = edge * reach
+	if not target.is_finite():
+		target = Vector2(_rng.randf_range(-0.6, 0.6), _rng.randf_range(-0.6, 0.6)) * reach
+	if seconds < 0.0:
+		seconds = Balance.TORNADO_SECONDS
+	var funnel := Tornado.new()
+	funnel.at = from
+	funnel.seconds_left = seconds
+	funnel.field = field
+	funnel.aim_at(target)
+	field.add_child(funnel)
+	tornadoes += 1
+	if not _mirror:
+		EventBus.tornado_spawned.emit(from, target, seconds)
+	return funnel
+
+
+func _on_tornado_elsewhere(at: Vector2, target: Vector2, seconds: float) -> void:
+	if _mirror:
+		spawn_tornado(at, target, seconds)
+
+
+## A stone aimed near one of the player's towers - or, with none built, near
+## the road they are standing on.
+func drop_meteor(at: Vector2 = Vector2.INF) -> Meteor:
+	if field == null:
+		return null
+	if not at.is_finite():
+		var towers: Array = get_tree().get_nodes_in_group(Tower.GROUP)
+		var anchor: Vector2 = field.hero.global_position if field.hero != null else Vector2.ZERO
+		if not towers.is_empty():
+			var picked := towers[_rng.randi_range(0, towers.size() - 1)] as Node2D
+			if picked != null:
+				anchor = picked.global_position
+		at = anchor + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)).normalized() \
+			* _rng.randf_range(Balance.METEOR_SCATTER * 0.3, Balance.METEOR_SCATTER)
+		if at.length() < Balance.LIGHTNING_TOWN_CLEARANCE:
+			at = at.normalized() * Balance.LIGHTNING_TOWN_CLEARANCE
+	var stone := Meteor.new()
+	stone.at = at
+	stone.field = field
+	stone.wildfire = wildfire
+	stone.marks = marks
+	field.add_child(stone)
+	meteors += 1
+	if not _mirror:
+		EventBus.meteor_incoming.emit(at)
+	return stone
+
+
+func _on_meteor_elsewhere(at: Vector2) -> void:
+	if _mirror:
+		drop_meteor(at)
+
+
+## The arc from a strike to the bodies near it, and on from them.
+##
+## Dry ground carries it a little way to a few; a flood carries it far and to
+## many, which is what standing in water during a storm ought to cost. Each
+## arc is worth a share of the last, so the tail of a chain is a sting.
+func _chain(from: Vector2, already: Array[Enemy], damage: float) -> void:
+	if field == null:
+		return
+	var flood: float = clampf(RunState.flood, 0.0, 1.0)
+	var range_now: float = Balance.CHAIN_RANGE * (1.0 + flood * Balance.CHAIN_FLOOD_RANGE)
+	var jumps: int = Balance.CHAIN_JUMPS + int(round(flood * float(Balance.CHAIN_FLOOD_JUMPS)))
+	var struck: Array[Enemy] = already.duplicate()
+	var here: Vector2 = from
+	var worth: float = damage
+	for _jump: int in jumps:
+		worth *= Balance.CHAIN_FALLOFF
+		var next: Enemy = null
+		var nearest: float = range_now
+		for enemy: Enemy in field.enemies_near(here, range_now):
+			if enemy in struck:
+				continue
+			var away: float = enemy.global_position.distance_to(here)
+			if away < nearest:
+				nearest = away
+				next = enemy
+		if next == null:
+			break
+		struck.append(next)
+		var to: Vector2 = next.combat_origin()
+		next.take_damage(worth, here, 0.0)
+		chain_arcs += 1
+		var arc: Line2D = _bolt_line(_jagged(here, to, 6, 22.0), 4.0, 0.9)
+		if _bolts != null:
+			_bolts.add_child(arc)
+			var fade: Tween = create_tween()
+			fade.tween_interval(0.12)
+			fade.tween_callback(arc.queue_free)
+		Vfx.flash_at(to, Balance.LIGHTNING_COLOUR, 34.0)
+		here = to
+	var animals: Wildlife = field.wildlife()
+	if animals != null and flood > 0.0:
+		animals.wound_within(from, range_now, Balance.LIGHTNING_WILDLIFE_DAMAGE * 0.5, false)
+
+
+## For the gate: how many arcs the last strikes threw.
+var chain_arcs: int = 0

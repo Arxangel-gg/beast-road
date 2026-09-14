@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+announce = "The sky has a colour it should not have. The earth remembers what was taken."
+announce_title = "FURY"
+colour = Color(0.85, 0.45, 0.3, 1)
+id = "unrest_3"
+display_name = "Fury"

@@ -121,6 +121,7 @@ var _facing: Vector2 = Vector2.RIGHT
 var _facing_hold: float = 0.0
 
 var _dash_left: float = 0.0
+var _dash_refused_said: float = 0.0
 var _dash_cooldown_left: float = 0.0
 
 ## Whether the dash now running has already been paid for by a perfect evade.
@@ -742,7 +743,8 @@ func move_speed() -> float:
 	bonus += _meal_speed
 	# Wading (2026-09-14). A multiplier rather than a bonus, so it cannot be
 	# summed away by Swiftness: water is water whoever is walking through it.
-	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * RunState.flood_slow()
+	# A swimmer is already paying the water's price and does not pay it twice.
+	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * (1.0 if _swimming else RunState.flood_slow())
 
 
 ## Puts the hero's shot in the world.
@@ -1238,6 +1240,7 @@ func _compute_aim() -> Vector2:
 
 func _tick_timers(delta: float) -> void:
 	_dash_left = maxf(_dash_left - delta, 0.0)
+	_dash_refused_said = maxf(_dash_refused_said - delta, 0.0)
 	_tick_mana(delta)
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
@@ -1275,6 +1278,13 @@ func _tick_timers(delta: float) -> void:
 
 
 func _try_dash() -> void:
+	# Over the knee there is no dashing (owner brief, 2026-09-14): the water
+	# takes the legs. Said once at the feet, not refused in silence.
+	if RunState.flood_over_knee():
+		if _dash_refused_said <= 0.0:
+			_dash_refused_said = 1.2
+			Vfx.word(global_position + Vector2(0.0, -40.0), "Too deep", Color(0.7, 0.85, 1.0), 20)
+		return
 	if _dash_cooldown_left > 0.0 or _dash_left > 0.0:
 		return
 	# Dash where you are steering; fall back to where you are looking, so a
