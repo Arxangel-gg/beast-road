@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 2
 id = "ember_husk"
 display_name = "Ember Husk"
 description = "Burnt hollow and still walking, because nobody told it to stop."

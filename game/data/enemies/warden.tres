@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_b1i6m")
+hide = 1
 category = 1
 role = 2
 sprite_id = "avalanche_warden"

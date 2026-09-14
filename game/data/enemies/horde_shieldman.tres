@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 1
 art_facing = 1
 id = "horde_shieldman"
 display_name = "Horde Shieldman"

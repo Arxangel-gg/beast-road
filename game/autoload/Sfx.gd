@@ -707,8 +707,20 @@ func _on_swing_started(chain_step: int, _at: Vector2) -> void:
 ## Only the impact here - the whoosh already played when the swing started.
 ## One impact per swing however many it caught, with a small boost for a wide
 ## hit: six overlapping impacts is noise, not weight.
-func _on_attack_landed(_chain_step: int, targets: int, _at: Vector2) -> void:
-	play_group("impact", minf(float(targets - 1) * 1.2, 4.0))
+func _on_attack_landed(_chain_step: int, targets: int, _at: Vector2, hide: int = 0) -> void:
+	play_group(hit_group_for(hide), minf(float(targets - 1) * 1.2, 4.0))
+
+
+## Which impact a blow makes, by what it landed on. Flesh cracks, armour
+## rings, stone chips; a spirit takes the flesh sound, softer, because a
+## fourth recording is not what makes it read as a spirit - the sparks do.
+static func hit_group_for(hide: int) -> String:
+	match hide:
+		EnemyData.Hide.ARMOUR:
+			return "sfx_hit_armour"
+		EnemyData.Hide.STONE:
+			return "sfx_hit_stone"
+	return "sfx_hit_flesh"
 
 
 ## Footsteps are throttled hard. Forty walking enemies would otherwise be a

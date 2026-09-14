@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_qocbu")
+hide = 3
 shot = 3
 shot_range = 560
 shot_ids = PackedStringArray("snap_bolt", "hex_crawl", "close_fan", "lash_lance", "ember_mortar")

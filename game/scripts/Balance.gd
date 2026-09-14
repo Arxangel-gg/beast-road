@@ -1513,6 +1513,10 @@ const HERO_ATTACK_SHAKE: Array[float] = [2.0, 2.5, 7.0]
 ## Time the whole game is frozen on a connecting hit, per chain step. This is
 ## the single biggest contributor to whether a swing feels like it landed.
 const HERO_ATTACK_HITSTOP: Array[float] = [0.035, 0.04, 0.09]
+## The hitstop scaled by what the blow landed on (`EnemyData.Hide`): flesh
+## as authored, armour held a beat longer, stone a little, a spirit less.
+## Feel, never damage: the blow is the same blow. [TUNE]
+const HIDE_HITSTOP_SCALE: Array[float] = [1.0, 1.35, 1.15, 0.75]
 
 # ------------------------------------------------------------------------------
 # Enemy — Stage 1 uses one breed

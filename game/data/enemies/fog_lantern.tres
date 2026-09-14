@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 3
 shot = 3
 shot_range = 540
 shot_ids = PackedStringArray("snap_bolt", "hex_crawl", "wide_fan")

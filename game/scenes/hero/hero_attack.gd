@@ -264,6 +264,7 @@ func _strike() -> void:
 	var damage: float = Balance.HERO_ATTACK_DAMAGE[_step] * damage_multiplier
 	var knockback: float = Balance.HERO_ATTACK_KNOCKBACK[_step] * Modifiers.multiplier(Modifiers.KNOCKBACK)
 	var hits: int = 0
+	var struck_hide: int = -1
 
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
@@ -296,6 +297,9 @@ func _strike() -> void:
 			continue
 		_hit_ids[id] = true
 		hits += 1
+		# The first body struck decides what the hit sounds and looks like.
+		if struck_hide < 0 and enemy.data != null:
+			struck_hide = int(enemy.data.hide)
 
 	# Announced whether or not it connected, and *before* the early return: a
 	# swing that touched no enemy is still a swing, and something small standing
@@ -311,6 +315,9 @@ func _strike() -> void:
 	if hits == 0:
 		return
 	landed.emit(_step, hits, _swing_origin)
-	EventBus.hero_attack_landed.emit(_step, hits, _swing_origin)
-	EventBus.hitstop_requested.emit(Balance.HERO_ATTACK_HITSTOP[_step])
+	var hide: int = maxi(struck_hide, 0)
+	EventBus.hero_attack_landed.emit(_step, hits, _swing_origin, hide)
+	# Armour holds the blade a beat longer than flesh; a spirit barely does.
+	EventBus.hitstop_requested.emit(Balance.HERO_ATTACK_HITSTOP[_step]
+		* float(Balance.HIDE_HITSTOP_SCALE[clampi(hide, 0, Balance.HIDE_HITSTOP_SCALE.size() - 1)]))
 	EventBus.camera_shake_requested.emit(Balance.HERO_ATTACK_SHAKE[_step], Balance.HIT_FLASH_TIME * 2.0)

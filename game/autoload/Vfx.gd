@@ -1257,7 +1257,7 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> v
 
 
 ## The impact. Only on a hit, which is correct - sparks come off something.
-func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
+func _on_attack_landed(chain_step: int, targets: int, at: Vector2, hide: int = 0) -> void:
 	# The hero who actually swung, taken as the one nearest the impact rather
 	# than whichever the HUD is following. With four on the field the sparks
 	# used to fly along someone else's aim.
@@ -1267,8 +1267,24 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2) -> void:
 		aim = hero.aim_direction()
 	var finisher: bool = chain_step >= Balance.HERO_CHAIN_LENGTH - 1
 
-	spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,
-		320.0 if finisher else 220.0)
+	# What the blow landed on colours the sparks: flesh a warm spray, armour
+	# bright steel with more of them and a ring, stone grey chips and dust,
+	# a spirit a few pale wisps.
+	match hide:
+		EnemyData.Hide.ARMOUR:
+			spark(at + aim * 60.0, Color("fff4b0"), 10 + targets * 3, aim,
+				380.0 if finisher else 280.0)
+			ring(at + aim * 50.0, 34.0, Color(1.0, 0.95, 0.7, 0.7), 0.18, 3.0)
+		EnemyData.Hide.STONE:
+			spark(at + aim * 60.0, Color("c9c2b4"), 8 + targets * 2, aim,
+				260.0 if finisher else 180.0)
+			dust(at + aim * 56.0, Color(0.55, 0.52, 0.47), 5, 36.0)
+		EnemyData.Hide.SPIRIT:
+			spark(at + aim * 60.0, Color("bfe8ff"), 3 + targets, aim,
+				200.0 if finisher else 140.0)
+		_:
+			spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,
+				320.0 if finisher else 220.0)
 	# **Drawn steel over the procedural sparks** (2026-09-11). The sparks carry
 	# direction and count; the sheet carries the look of a blow - a thin bright
 	# cut for the fast steps, a white-hot burst for the finisher - and both

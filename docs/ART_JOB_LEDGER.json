@@ -1,4 +1,22 @@
 {
+  "art/crops/crop_barley": {
+    "strip": "b9d6d3ef-995b-49e4-8484-d3ee7089e443"
+  },
+  "art/crops/crop_ember_pepper": {
+    "strip": "624edafa-2261-4a46-bbdc-4ceff9159654"
+  },
+  "art/crops/crop_frost_root": {
+    "strip": "85fe291a-b652-47ab-b586-bbd40811a9cd"
+  },
+  "art/crops/crop_glowcap": {
+    "strip": "c0256991-01a5-4983-8e04-f1d13205a20a"
+  },
+  "art/crops/crop_marsh_reed": {
+    "strip": "8a248ef9-9e73-48a3-be6f-359897ae31f5"
+  },
+  "art/crops/crop_stone_melon": {
+    "strip": "2b25a09b-c8c9-4ed3-b68c-45f39f38382c"
+  },
   "art/enemies/elite_avalanche_warden": {
     "move": "fd6723e6-44bf-4db9-a2b6-79ee3b4b02d3"
   },

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 1
 id = "brine_drowned"
 display_name = "Brine Drowned"
 description = "Salt kept it. Salt keeps everything it takes."

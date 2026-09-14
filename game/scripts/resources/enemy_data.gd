@@ -54,6 +54,16 @@ enum Role {
 enum Facing { FRONT, RIGHT, LEFT }
 @export var art_facing: Facing = Facing.FRONT
 
+## **What a blow lands on.** The sound, the sparks and the hitstop of a hit
+## differ by it (the fifth forwarded list, 2026-09-14: "different feedback
+## for flesh, armor, shields, stone, towers and bosses"): flesh takes the
+## blade with a wet crack and blood, armour rings and throws sparks and holds
+## the blade a beat longer, stone chips and dusts, a spirit barely resists.
+## Authored per breed, read by `HeroAttack` on the body it struck; nothing
+## about damage changes with it.
+enum Hide { FLESH, ARMOUR, STONE, SPIRIT }
+@export var hide: Hide = Hide.FLESH
+
 @export var max_hp: float = Balance.ENEMY_MAX_HP
 
 ## Damage dealt on contact with the hero or the city.

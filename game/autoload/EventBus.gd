@@ -148,7 +148,9 @@ signal footfall(at: Vector2, mass: float)
 signal beast_step_landed(impulse: Vector2, strength: float)
 
 ## A swing connected with at least one target. `chain_step` is 0-based.
-signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2)
+## `hide` is the `EnemyData.Hide` of the first body the swing struck, which
+## decides the sound, the sparks and the hitstop of the hit.
+signal hero_attack_landed(chain_step: int, targets_hit: int, at: Vector2, hide: int)
 
 ## A swing was resolved, whether or not it touched an enemy.
 ##

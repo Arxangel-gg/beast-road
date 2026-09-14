@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+hide = 1
 art_facing = 2
 id = "frost_herald"
 display_name = "Frost Herald"

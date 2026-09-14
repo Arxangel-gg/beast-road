@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 2
 id = "salt_crawler"
 display_name = "Salt Crawler"
 description = "It comes across the crust sideways and much too quickly."

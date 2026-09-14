@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 1
 id = "rust_hulk"
 display_name = "Rust Hulk"
 description = "The iron went in through the wounds and never stopped."

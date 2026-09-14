@@ -2035,6 +2035,24 @@ is submitted in waves; every job id is kept in `docs/ART_JOB_LEDGER.json`
 by frame path, which is what makes a frame re-fetchable and an animation
 re-doable without the base going through the conversation.
 
+**A blow is felt by what it lands on, as of 2026-09-14.** From the fifth
+forwarded list's "give every hit exceptional feedback": `EnemyData.hide` -
+FLESH, ARMOUR, STONE, SPIRIT - authored per breed, read by `HeroAttack` off
+the first body a swing struck and carried on `hero_attack_landed`. Flesh
+cracks with a warm spray; armour rings, throws more and brighter sparks with
+a small ring, and holds the blade a beat longer (`HIDE_HITSTOP_SCALE`);
+stone chips and dusts; a spirit takes the flesh sound softer and a few pale
+wisps. The three impact recordings had been on disk since the audio pass
+and played *at random* under one "impact" group - a hit on a stone golem
+could crack like meat. `Sfx.hit_group_for` is the one place that picks.
+
+**The bound is the one every feel change is held to: nothing about damage
+moves.** The blow is the same blow; only its sound, its sparks and its
+hitstop follow the hide. `hit_feel_check` drives the real `_strike` against
+an armoured body and a fleshy one and reads the hide and the hitstop back,
+because a hide authored on every breed and read by nothing would pass a
+data walk.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

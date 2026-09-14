@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 1
 art_facing = 1
 id = "gate_sentinel"
 display_name = "Gate Sentinel"

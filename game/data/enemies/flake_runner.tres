@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 2
 id = "flake_runner"
 display_name = "Flake Runner"
 description = "Most of it has already come off. What is left is fast."

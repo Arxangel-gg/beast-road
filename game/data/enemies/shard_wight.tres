@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+hide = 2
 id = "shard_wight"
 display_name = "Shard Wight"
 description = "It cuts on the way in and on the way out."

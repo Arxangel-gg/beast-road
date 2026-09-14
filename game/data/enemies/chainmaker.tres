@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_chain")
+hide = 1
 category = 2
 role = 2
 max_hp = 16000.0

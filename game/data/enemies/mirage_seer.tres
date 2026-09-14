@@ -2,6 +2,7 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+hide = 3
 shot = 3
 shot_range = 620
 shot_ids = PackedStringArray("snap_bolt", "hex_crawl", "wide_fan", "lash_lance", "stone_mortar")
