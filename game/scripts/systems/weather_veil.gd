@@ -206,6 +206,18 @@ var _settling: bool = false
 var _melt_scale: float = 1.0
 
 
+## How far the veil has to reach, when the caller knows better than the grid.
+##
+## The battlefield leaves this at zero and gets the grid-derived extent below.
+## The beast scope sets it, because that view is a side-on band a fraction of
+## the battlefield's size - sized from `BattleGrid` it would draw raindrops the
+## size of the beast, since the cell count scales with the quad.
+var reach: float = 0.0
+
+## What it settled on, for anything that needs to know how far it covers.
+var _extent: float = 0.0
+
+
 func _ready() -> void:
 	z_as_relative = false
 	# Wide enough to cover everywhere a player can walk.
@@ -214,8 +226,7 @@ func _ready() -> void:
 	# roams to 2000 - so walking out past the city found a hard edge where the
 	# rain simply stopped. Reported from play, and it is the kind of thing that
 	# reads as the sky being a texture.
-	var extent: float = maxf(BattleGrid.HALF_EXTENT * 1.2,
-		Balance.WEATHER_VEIL_REACH)
+	var extent: float = reach if reach > 0.0 		else maxf(BattleGrid.HALF_EXTENT * 1.2, Balance.WEATHER_VEIL_REACH)
 	_rect = ColorRect.new()
 	_rect.name = "Veil"
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -232,6 +243,7 @@ func _ready() -> void:
 	# the veil has to reach.
 	_material.set_shader_parameter("cells",
 		Balance.WEATHER_VEIL_CELLS * (extent / Balance.WEATHER_VEIL_REACH))
+	_extent = extent
 	_apply_quality()
 	_rect.material = _material
 	add_child(_rect)

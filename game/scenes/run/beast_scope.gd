@@ -64,6 +64,11 @@ var _idle_breath: float = 0.0
 var _step_shake_left: float = 0.0
 var _rng := RandomNumberGenerator.new()
 var _day_tint: CanvasModulate = null
+## The scope's own weather, the same system the road uses.
+var _weather: WeatherVeil = null
+## Two more distances in the parallax ladder (2026-09-14).
+var _range_band: ParallaxBand = null
+var _mid_band: ParallaxBand = null
 var _town_light_anchor: Node2D = null
 
 ## The tail, a child of the body so it inherits the gait and the scale, drawn
@@ -483,6 +488,7 @@ func _setup_backdrop() -> void:
 	_backdrop_clone.z_index = backdrop.z_index
 	backdrop.add_sibling(_backdrop_clone)
 	_build_parallax()
+	_build_weather()
 	_apply_act_backdrop()
 
 
@@ -493,6 +499,15 @@ func _setup_backdrop() -> void:
 ## and must stay ordered against the sky and the ground: anything out of order
 ## reads as the world turning inside out.
 func _build_parallax() -> void:
+	# The furthest shape in the view, behind the ridge: nearly all air.
+	_range_band = ParallaxBand.new()
+	_range_band.name = "FarRange"
+	_range_band.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0) * 1.4
+	_range_band.band_height = Balance.BEAST_RANGE_HEIGHT
+	_range_band.baseline = Balance.BEAST_RANGE_BASELINE
+	_range_band.z_index = Balance.BEAST_RANGE_Z
+	add_child(_range_band)
+
 	_ridge = ParallaxBand.new()
 	_ridge.name = "Ridge"
 	_ridge.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0)
@@ -500,6 +515,15 @@ func _build_parallax() -> void:
 	_ridge.baseline = Balance.BEAST_RIDGE_BASELINE
 	_ridge.z_index = Balance.BEAST_RIDGE_Z
 	add_child(_ridge)
+
+	# Between the woods and the brush, which was the one big jump in the ladder.
+	_mid_band = ParallaxBand.new()
+	_mid_band.name = "MidRise"
+	_mid_band.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0) * 0.85
+	_mid_band.band_height = Balance.BEAST_MID_HEIGHT
+	_mid_band.baseline = Balance.BEAST_MID_BASELINE
+	_mid_band.z_index = Balance.BEAST_MID_Z
+	add_child(_mid_band)
 
 	_foreground = ParallaxBand.new()
 	_foreground.name = "NearBand"
@@ -557,6 +581,23 @@ func _apply_parallax_palette() -> void:
 	_ridge.colour.a = 1.0
 	_ridge.shape_seed = hash(RunState.terrain_id + "ridge")
 	_ridge.rebuild()
+
+	# The two added distances, hazed and shaded from the same horizon: the far
+	# range is mostly the air in front of it, the mid rise barely at all.
+	if _range_band != null:
+		var far_haze: Color = horizon.lerp(Color(horizon.r, horizon.g, horizon.b)
+			.lightened(0.30), Balance.BEAST_RANGE_HAZE)
+		_range_band.colour = far_haze.darkened(Balance.BEAST_RANGE_SHADE)
+		_range_band.colour.a = 1.0
+		_range_band.shape_seed = hash(RunState.terrain_id + "range")
+		_range_band.rebuild()
+	if _mid_band != null:
+		var mid_haze: Color = horizon.lerp(Color(horizon.r, horizon.g, horizon.b)
+			.lightened(0.18), Balance.BEAST_MID_HAZE)
+		_mid_band.colour = mid_haze.darkened(Balance.BEAST_MID_SHADE)
+		_mid_band.colour.a = 1.0
+		_mid_band.shape_seed = hash(RunState.terrain_id + "mid")
+		_mid_band.rebuild()
 
 	_foreground.colour = Color(horizon.r, horizon.g, horizon.b, 1.0) 		.darkened(1.0 - Balance.BEAST_FOREGROUND_DARKEN)
 	_foreground.shape_seed = hash(RunState.terrain_id + "near")
@@ -653,6 +694,10 @@ func _scroll_backdrop() -> void:
 	# ground, then the band that overtakes the beast.
 	if _ridge != null:
 		_ridge.scroll_to(RunState.distance_travelled, Balance.BEAST_RIDGE_SCROLL)
+	if _range_band != null:
+		_range_band.scroll_to(RunState.distance_travelled, Balance.BEAST_RANGE_SCROLL)
+	if _mid_band != null:
+		_mid_band.scroll_to(RunState.distance_travelled, Balance.BEAST_MID_SCROLL)
 	if _woods != null:
 		_woods.scroll_to(RunState.distance_travelled, Balance.BEAST_WOODS_SCROLL)
 	if _foreground != null:
@@ -850,3 +895,23 @@ func _place_tail() -> void:
 	# every frame, reported 2026-09-13. `BEAST_TAIL_OVERLAP` is how far in it
 	# goes, and the sprite's own root end is feathered to meet it.
 	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, 0.0)
+
+
+## The same weather the road is having, over the scope.
+##
+## **The two views used to disagree.** The battlefield had rain, dust and snow
+## and the beast scope had none, so watching the beast walk through a downpour
+## showed a clear evening - two windows on one world that did not agree about
+## the weather in it.
+##
+## The battlefield's own `WeatherVeil`, not a copy of it: it listens to
+## `EventBus.weather_changed` itself, so both views turn at the same moment and
+## there is one place to tune a storm. Sized to this scope's band rather than to
+## the battle grid, because the veil scales its cell count with its quad and a
+## grid-sized one out here would drop raindrops the size of the beast.
+func _build_weather() -> void:
+	_weather = WeatherVeil.new()
+	_weather.name = "WeatherVeil"
+	_weather.reach = Balance.BEAST_WEATHER_REACH
+	_weather.z_index = Balance.BEAST_WEATHER_Z
+	add_child(_weather)

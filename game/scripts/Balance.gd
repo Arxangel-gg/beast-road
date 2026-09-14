@@ -5823,6 +5823,33 @@ const TORCH_SHADOW_WIDTH: float = 26.0
 ## ridge, then ground, then the near band that passes in front of the beast.
 ## Anything out of order reads as the world turning inside out.
 const BEAST_RIDGE_Z: int = -12
+## **Two more distances between the sky and the beast** (owner, 2026-09-14).
+##
+## The scope had a backdrop, a ridge, the woods, the brush and the near band -
+## and the gap from the woods at 0.42 to the brush at 1.35 is most of the
+## depth in the view, crossed in one step. Depth is a *ladder*: the eye reads
+## distance from how many things move at different speeds, not from how far
+## apart the two extremes are.
+##
+## Drawn bands rather than art, like the ridge they sit either side of, so ten
+## regions gain two layers each without ten regions of new tilesets. Each is
+## hazed and shaded to its own distance from the same horizon colour, which is
+## what keeps the whole stack reading as one atmosphere.
+const BEAST_RANGE_SCROLL: float = 0.18
+const BEAST_RANGE_HEIGHT: float = 190.0
+const BEAST_RANGE_BASELINE: float = 330.0
+const BEAST_RANGE_Z: int = -16
+## Furthest thing with a shape, so it is nearly all air.
+const BEAST_RANGE_HAZE: float = 0.86
+const BEAST_RANGE_SHADE: float = 0.16
+
+const BEAST_MID_SCROLL: float = 0.78
+const BEAST_MID_HEIGHT: float = 108.0
+const BEAST_MID_BASELINE: float = 404.0
+const BEAST_MID_Z: int = -7
+const BEAST_MID_HAZE: float = 0.30
+const BEAST_MID_SHADE: float = 0.52
+
 const BEAST_RIDGE_SCROLL: float = 0.34
 const BEAST_RIDGE_HEIGHT: float = 130.0
 
@@ -6225,6 +6252,21 @@ const BEAST_WOODS_HAZE: float = 0.55
 ## The near brush: the region's plants passing in front of the beast, dark
 ## and fast.
 const BEAST_BRUSH_Z: int = 42
+
+## The weather over the beast scope.
+##
+## **The road had weather and the scope did not** (owner, 2026-09-14). A player
+## who watched the beast walk through a downpour saw a clear evening, which
+## makes the two views read as two different worlds rather than two windows on
+## one. It is the same `WeatherVeil` the battlefield uses, so a downpour is the
+## same downpour and there is one thing to tune.
+##
+## Sized to the scope's own band rather than to the battle grid: the veil scales
+## its cell count with its quad, so a grid-sized veil out here would drop
+## raindrops the size of the beast. In front of everything, including the near
+## brush, because precipitation is between the player and the world. [TUNE]
+const BEAST_WEATHER_Z: int = 46
+const BEAST_WEATHER_REACH: float = 1200.0
 const BEAST_BRUSH_SCROLL: float = 1.35
 const BEAST_BRUSH_BASELINE: float = 604.0
 const BEAST_BRUSH_COUNT: int = 26
