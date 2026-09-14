@@ -135,6 +135,7 @@ func _ready() -> void:
 
 	_print_table()
 	var bad: int = _judge_party_scaling()
+	bad += _judge_escalation()
 
 	# Tear gameplay down before draining audio. The full run owns deferred
 	# wildlife arrivals; stopping Sfx first allowed one of those callbacks to
@@ -372,6 +373,77 @@ func _judge_party_scaling() -> int:
 	if failed == 0:
 		print("[curve] PASS - every party size plays the same curve")
 	return failed
+
+
+## **Does the campaign get harder as it goes?**
+##
+## The party check asks whether everyone plays the same curve. It says nothing
+## about the curve's *shape*, and the shape was wrong: measured over ten acts,
+## the hardest act in the game was **Act III** at 0.477, and every one of the
+## seven acts after it was easier - the finale easiest of all at 0.335. A
+## player who beat the old three-act finale then coasted for two thirds of the
+## campaign.
+##
+## That was invisible for two reasons, both now fixed. The run mean is a
+## perfectly healthy 0.348 whatever shape produces it, and the model had
+## capability pinned flat from wave 50, which flattered the late acts into
+## looking like they were holding up.
+##
+## Two properties, and they are deliberately loose. Per-act means carry real
+## noise - acts differ in how many waves they hold and where those waves fall
+## against the purse - so this is not a monotonic ladder. It asks only that the
+## end of the road is harder than the start of it, and that no act is a
+## holiday.
+func _judge_escalation() -> int:
+	if _players != 1 or _body_scale > 0.0:
+		return 0
+	var totals: Dictionary = {}
+	var counts: Dictionary = {}
+	for row: Dictionary in _rows:
+		var act: int = int(row["act"])
+		totals[act] = float(totals.get(act, 0.0)) + float(row["pressure"])
+		counts[act] = int(counts.get(act, 0)) + 1
+	var means: Array[float] = []
+	var readout: String = ""
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		if not counts.has(act):
+			continue
+		var mean: float = float(totals[act]) / float(counts[act])
+		means.append(mean)
+		readout += "%d:%.2f " % [act, mean]
+	print("")
+	print("[curve] mean pressure by act   %s" % readout)
+	if means.size() < Balance.ACT_COUNT:
+		return 0
+
+	var failed: int = 0
+	var opening: float = (means[0] + means[1] + means[2]) / 3.0
+	var closing: float = (means[means.size() - 3] + means[means.size() - 2]
+		+ means[means.size() - 1]) / 3.0
+	if closing < opening * ESCALATION_RATIO:
+		printerr(("[curve] the road does not escalate: the last three acts "
+			+ "average %.3f against the first three at %.3f, and a ten-act "
+			+ "campaign whose hardest stretch is its opening is a campaign "
+			+ "that coasts") % [closing, opening])
+		failed += 1
+	var act_one: float = means[0]
+	for index: int in range(3, means.size()):
+		if means[index] < act_one * HOLIDAY_FLOOR:
+			printerr(("[curve] act %d sits at %.3f against Act I at %.3f - an "
+				+ "act later than the third that asks less than the first is a "
+				+ "holiday in the middle of the road")
+				% [index + 1, means[index], act_one])
+			failed += 1
+	if failed == 0:
+		print("[curve] PASS - the road escalates and no act is a holiday")
+	return failed
+
+
+## How much harder the last three acts must be than the first three, and how
+## far below Act I any later act may fall. Loose on purpose: per-act means
+## carry real noise from how many waves an act holds. [TUNE]
+const ESCALATION_RATIO: float = 1.25
+const HOLIDAY_FLOOR: float = 0.95
 
 
 ## How far apart the easiest and hardest party sizes may be, and the band each

@@ -3043,7 +3043,7 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## there is no reason to have walked; the hero grows across ten acts too, and
 ## `curve_report` is where the two are read against each other. [TUNE]
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.0, 1.14, 1.30, 1.46, 1.62, 1.78, 1.94, 2.10, 2.26, 2.42,
+	1.0, 1.14, 1.26, 1.46, 1.62, 1.80, 1.98, 2.18, 2.40, 2.62,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -3091,16 +3091,37 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## pressure 0.70 against a band of 0.26-0.46, and a last wave at 1.87 that
 ## no purse pays for. The per-wave growth underneath is linear and already
 ## lifts wave 72 far above wave 24, and `WAVE_ACT_COUNT_SCALE` adds a seventh
-## more bodies an act; the act multiplier only has to keep each region's
-## first formation readable as *harder*, so past Act III it moves a percent
-## a step. Damage holds at Act III's multiplier: a hit that took a third of
-## the bar there must not take all of it in Act X, or every late-run mistake
-## is a death - the extra bodies are the late acts' teeth. The kill values of
+## more bodies an act. Damage holds at Act III's multiplier: a hit that took
+## a third of the bar there must not take all of it in Act X, or every
+## late-run mistake is a death. The kill values of
 ## the new breeds sit on the shipped roster's average (3.7 a body) because
 ## `curve_report` earns Gold from that average and eleven percent less of it
 ## read as a harder game everywhere. [TUNE]
+## **Re-derived 2026-09-13, because the campaign was coasting.** The table
+## above this one said the act multiplier "only has to keep each region's
+## first formation readable as harder, so past Act III it moves a percent a
+## step" - 1.60, 1.61, 1.62 and on to 1.67. That reasoning was sound and the
+## result was not: measured per act, the hardest stretch of a ten-act
+## campaign was **Act III** at 0.477, and all seven acts after it were
+## easier, the finale easiest of all. A player beat what used to be the final
+## boss and then coasted for two thirds of the road.
+##
+## It hid behind a healthy-looking run mean of 0.348 - an average says nothing
+## about shape - and behind a model that pinned capability flat from wave 50,
+## which flattered the late acts into looking like they were holding. Both are
+## fixed, and `curve_report._judge_escalation` now fails a curve that does not
+## climb, so this cannot quietly happen again.
+##
+## Act III comes *down* as well: 1.60 to 1.42. It was carrying a 25% step
+## because it was once the last act in the game, and a ten-act road wants a
+## ramp there rather than a wall. Acts I and II are untouched, because the
+## opening envelope `balance_test` guards is measured against them.
+##
+## Measured after: 0.31 0.39 0.42 0.31 0.34 0.32 0.47 0.43 0.53 0.53, a run
+## mean of 0.393 against the 0.26-0.46 band, and a finale that is finally the
+## hardest thing on the road. [TUNE]
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.28, 1.60, 1.61, 1.62, 1.63, 1.64, 1.65, 1.66, 1.67,
+	1.0, 1.28, 1.42, 1.60, 1.74, 1.88, 2.02, 2.16, 2.30, 2.44,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.0, 1.12, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28,
