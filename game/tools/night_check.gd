@@ -36,17 +36,54 @@ extends Node
 ## and colour remain plainly visible in the saved frame. The low floor still
 ## catches what it is for - an unlit road or a sprite truly identical to its
 ## background collapses to zero. Foliage scatter must not make a good build red.
-const ROAD_OVER_GROUND: float = 0.025
+## **What the torches are worth**, rather than how bright the road is.
+##
+## This was `ROAD_OVER_GROUND = 0.025` - the road had to sit that far above the
+## ground in absolute luminance - and on 2026-09-13 it failed at 0.018 with the
+## lighting working perfectly well. Measuring the same points at midday says
+## why: the road reads **0.124 against ground at 0.129**. The two surfaces are
+## the same brightness now, and the road is told apart by its colour and its
+## texture. The old threshold was calibrated against ground art that was darker
+## than the road, and the ten-region re-skin on 2026-09-12 replaced it; no
+## amount of light could have met the bar afterwards.
+##
+## So the question is asked of the lights directly: the same night is captured
+## twice, once with every torch light on and once with them switched off, and
+## what is compared is **the same pixels in both**. The ground art, the night
+## tint, the foliage scatter and the fog are identical across the pair, so the
+## difference is the lighting and cannot be anything else.
+##
+## Four earlier attempts each measured something that was not the lights, and
+## each looked convincing until it was checked by turning the torches off:
+##
+## - road against ground, which the re-skin had flattened to nothing;
+## - the same, minus a daylight reference, which still passed with every light
+##   extinguished - it was reading the blue night tint crushing green foliage
+##   harder than it crushes a neutral road;
+## - the torch posts themselves, which are dark sprites;
+## - the pools against distant ground, which is a different surface, and which
+##   read the pools as *darker* than open ground.
+##
+## Measured at 0.018 lit against 0.009 unlit - the torches very nearly double
+## what is under them - so the floor is set at half of that. [TUNE]
+const TORCH_LIFT: float = 0.004
 const ENEMY_OVER_LOCAL: float = 0.005
 const FLOOR_LUMINANCE: float = 0.020
 
-## Deep night, the darkest stop on the day/night ramp.
+## Deep night, the darkest stop on the day/night ramp - and the midday stop the
+## torch lift is measured against.
 const NIGHT_PHASE: float = 0.85
+const DAY_PHASE: float = 0.28
 
 ## Frames averaged per measurement, to see past the torch flicker.
 const SETTLE_FRAMES: int = 24
 
 var _failures: int = 0
+## Road minus ground at midday: what the art gives before any torch is lit.
+var _day_separation: float = 0.0
+## The same night, with every torch light switched off.
+var _unlit: Array[Image] = []
+var _light_count: int = 0
 
 
 func _ready() -> void:
@@ -73,6 +110,11 @@ func _ready() -> void:
 	# numbers between runs without being what is under test. Clouds off; the
 	# flicker is small enough to live with once the rest is pinned.
 	Graphics.set_switch(Graphics.KEY_CLOUDS, false)
+	# **And the fog, which is exploration rather than lighting.** Most of the
+	# eighty-odd torches stand far from where the hero happens to be, so with
+	# fog on this samples ground that is deliberately not drawn - it read the
+	# pools as darker than open ground.
+	Graphics.set_switch(Graphics.KEY_FOG, false)
 	var enemy: Enemy = _plant_enemy(run.battlefield)
 
 	# Long enough for the tint, the torch flames and the planted enemy's own
@@ -95,12 +137,52 @@ func _ready() -> void:
 		enemy.set_process(false)
 		await get_tree().process_frame
 
+	# **The daylight reference, from the same staging.** The torch lift is a
+	# difference of differences, so both halves have to come off the same
+	# camera, the same scatter and the same planted body - a figure carried in
+	# from another run would be measuring the foliage seed as much as the light.
+	DayNight._apply(DAY_PHASE)
+	for _f: int in 12:
+		await get_tree().process_frame
+	var day: Array[Image] = []
+	for _f: int in SETTLE_FRAMES:
+		var lit: Image = _grab()
+		if lit != null:
+			day.append(lit)
+		await get_tree().process_frame
+	if not day.is_empty():
+		_day_separation = _mean(day, _road_samples(run.battlefield)) 			- _mean(day, _ground_samples())
+	DayNight._apply(NIGHT_PHASE)
+	for _f: int in 12:
+		await get_tree().process_frame
+
 	var frames: Array[Image] = []
 	for _f: int in SETTLE_FRAMES:
 		var shot: Image = _grab()
 		if shot != null:
 			frames.append(shot)
 		await get_tree().process_frame
+
+	# **The control pass: the same night with the torch lights switched off.**
+	# Everything that is not the lighting - the ground art, the night tint, the
+	# foliage scatter, the fog - is identical between the two, so the
+	# difference is the light and nothing else. Four earlier attempts at this
+	# gate each measured something other than the lights; this one cannot.
+	var lights: Array[PointLight2D] = _torch_lights()
+	for light: PointLight2D in lights:
+		light.enabled = false
+	for _f: int in 8:
+		await get_tree().process_frame
+	var dark: Array[Image] = []
+	for _f: int in SETTLE_FRAMES:
+		var shot: Image = _grab()
+		if shot != null:
+			dark.append(shot)
+		await get_tree().process_frame
+	for light: PointLight2D in lights:
+		light.enabled = true
+	_unlit = dark
+	_light_count = lights.size()
 	# **Refuses rather than passes when it cannot see.** Run headless this gate
 	# read from the dummy renderer, which has no textures: `texture_2d_get`
 	# returned null two dozen times, `_measure` was handed an empty array, and it
@@ -137,10 +219,32 @@ func _measure(frames: Array[Image], field: Battlefield, enemy: Enemy) -> void:
 	# lighting is decoration rather than information.
 	var road: float = _mean(frames, _road_samples(field))
 	var ground: float = _mean(frames, _ground_samples())
-	print("[night] lit road %.3f vs unlit ground %.3f  (separation %.3f, need %.3f)"
-		% [road, ground, road - ground, ROAD_OVER_GROUND])
-	if road - ground < ROAD_OVER_GROUND:
-		push_error("the lit road does not separate from unlit ground at minimum brightness")
+	print("[night] road %.3f vs ground %.3f  (separation %.3f, daylight %.3f)"
+		% [road, ground, road - ground, _day_separation])
+	# **What the torches are actually worth**, measured inside their pools
+	# against ground that no light reaches. The road-versus-ground figure above
+	# is printed for context and asserted on no longer: at deep night the tint
+	# is (0.13, 0.17, 0.33), so green foliage loses far more luminance than a
+	# neutral road does, and most of that separation is the *colour* of night
+	# rather than anything being lit. Proved by putting `TORCH_LIGHT_EVERY` to
+	# 9999 and measuring again - the separation went up.
+	var pools: Array[Vector2] = _pool_samples()
+	var lit: float = _mean(frames, pools)
+	var unlit: float = _mean(_unlit, pools) if not _unlit.is_empty() else lit
+	var lift: float = lit - unlit
+	print(("[night] torch pools %.3f lit vs %.3f unlit across %d samples and %d "
+		+ "lights  (lift %.3f, need %.3f)")
+		% [lit, unlit, pools.size(), _light_count, lift, TORCH_LIFT])
+	if pools.is_empty() or _light_count == 0:
+		push_error("no torch carries a light, so night is unlit")
+		_failures += 1
+	elif _unlit.is_empty():
+		push_error("the unlit control pass captured no frames, so the torch "
+			+ "lift went unmeasured")
+		_failures += 1
+	elif lift < TORCH_LIFT:
+		push_error("switching every torch light off changes nothing under them:"
+			+ " the lighting is decoration rather than information")
 		_failures += 1
 	if road < FLOOR_LUMINANCE:
 		push_error("the lit road is below the readable floor at minimum brightness")
@@ -229,6 +333,44 @@ func _ground_samples() -> Array[Vector2]:
 	for lane: int in Balance.LANE_COUNT:
 		points.append(BattleGrid.lane_vector(lane).rotated(PI * 0.25) * 620.0)
 	return points
+
+
+## Inside the torch pools, and well outside every one of them.
+##
+## Sampled on a ring a third of the light radius out rather than at the post,
+## because a torch post is a dark sprite and sampling it measures the post.
+## Only posts that actually carry a light are asked - `TORCH_LIGHT_EVERY` means
+## most of them are scenery.
+func _pool_samples() -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	var step: float = Balance.TORCH_LIGHT_RADIUS * 0.33
+	for node: Node in get_tree().get_nodes_in_group(&"torches"):
+		var torch := node as Node2D
+		if torch == null or not bool(torch.get("carries_light")):
+			continue
+		for turn: int in 4:
+			points.append(torch.global_position
+				+ Vector2.RIGHT.rotated(TAU * float(turn) / 4.0) * step)
+	return points
+
+
+## Every PointLight2D a torch owns.
+##
+## Walked rather than asked for: the light lives on the flame inside the post,
+## and a gate that reaches for `_flame` breaks the first time that is renamed.
+func _torch_lights() -> Array[PointLight2D]:
+	var out: Array[PointLight2D] = []
+	for node: Node in get_tree().get_nodes_in_group(&"torches"):
+		_lights_under(node, out)
+	return out
+
+
+func _lights_under(node: Node, into: Array[PointLight2D]) -> void:
+	var light := node as PointLight2D
+	if light != null:
+		into.append(light)
+	for child: Node in node.get_children():
+		_lights_under(child, into)
 
 
 ## One enemy, on a road, at a fixed distance out.
