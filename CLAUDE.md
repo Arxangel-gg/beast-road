@@ -2315,6 +2315,34 @@ speak of; the next millisecond is in the long tail (enemies, torches,
 foliage, the veil, the climate, the fog), and the minimum-spec question is
 still open.
 
+**The Rootshield was drawn disagreeing with itself, and every tower's frames
+are locked to its base, as of 2026-09-14 (sixth facing report).** The owner
+reported the green shield-bearers "still facing backwards in all their
+states" for the fifth and sixth time. The flag was right and the art was
+wrong: the sprite's *face* looked right while its *shield* hung left, so
+whichever way `art_facing` pointed, half of the body walked backwards - the
+2026-09-14 rule "a shield-bearer faces its shield" turned the shield the right
+way and the head the wrong way. No flag can fix art that disagrees with
+itself. The breed was regenerated as a clear left-facing profile (face, chest
+and shield all leading), re-animated by job URL, and the flag stayed LEFT.
+**The lesson is a check, not a rule:** before setting `art_facing`, confirm
+the head and the leading prop agree; when they do not, redraw. `facing_shot`
+now reveals the fog and saves a crop around the body, because the first cut
+photographed a road the fog had emptied and nobody noticed.
+
+**Tower frames drift and shed their foundations, and the base is the master.**
+The owner's screenshots: barrow stakes shifting a pixel in their idle, scree
+guns losing rubble and growing transparent holes at the foot between frames.
+Measured across all 222 frames: the animator re-renders the whole sprite, so
+masonry drifts by one or two pixels, foundation pebbles are re-invented or
+dropped, and fine detail smooths away - none of which is animation.
+`tools/lock_tower_frames.py` aligns each frame to its base by silhouette and
+keeps the frame's pixels only in connected regions that differ strongly (a
+glow, water, ice, a discharge) or that add pixels the base has none of (a
+splash, a flash); everywhere else the base's own pixels stand, so the loop
+closes on the base exactly. Run it after any tower animation is regenerated.
+A tower whose frames were already the base (Deep Freeze) is untouched by it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

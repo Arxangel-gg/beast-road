@@ -126,7 +126,10 @@
     "move": "8fb0bbb3-b5ac-4ff5-a7ef-3d1e67425978"
   },
   "art/enemies/enemy_rootshield": {
-    "move": "de7dce5a-05e9-43fb-96ee-74ca998fb810"
+    "attack": "dbeb04f8-8660-4433-98fc-8eecaf2a4dc7",
+    "idle": "64207674-ea50-4725-b79d-0d2ebc2249eb",
+    "image": "a2aa930b-1fc0-4d46-8eb8-8a4c7ccfd959",
+    "move": "ca0b6cee-7208-4d77-bd01-85608c6cace0"
   },
   "art/enemies/enemy_rust_hulk": {
     "move": "6f29b74b-130a-48f7-a2cb-461e761df32d"

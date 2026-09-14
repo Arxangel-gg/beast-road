@@ -52,6 +52,15 @@ func _ready() -> void:
 		push_error("[facing] no battlefield or hero")
 		get_tree().quit(1)
 		return
+	# The fog hides a body the hero has not seen and the road's head is past
+	# the hero's sight, so the first version of this photographed an empty road
+	# and nobody noticed for a day. Everything is revealed, and the camera is
+	# brought in so the body is more than forty pixels tall in the frame.
+	if field.fog() != null:
+		field.fog().reveal_all()
+	var rig: CameraRig = field.camera as CameraRig
+	if rig != null:
+		rig.zoom_by(3)
 	for id: String in _breeds:
 		var data: EnemyData = ContentDB.enemy(id)
 		if data == null:
@@ -73,9 +82,24 @@ func _ready() -> void:
 			for _f: int in 70:
 				await get_tree().process_frame
 			var path: String = "user://facing_%s_%s.png" % [id, heading]
-			get_viewport().get_texture().get_image().save_png(path)
+			var frame: Image = get_viewport().get_texture().get_image()
+			frame.save_png(path)
+			# And the body alone, cut from the same frame around where it stands,
+			# so the facing can be read without hunting a forty-pixel figure.
+			# The canvas transform answers in the project's stretched design space
+			# and the frame is the window's own size, which on a 1440p monitor is
+			# not the same thing, so the point is scaled into the frame.
+			var on_screen: Vector2 = get_viewport().get_canvas_transform() * body.global_position
+			on_screen *= Vector2(frame.get_size()) / get_viewport().get_visible_rect().size
+			var box := Rect2i(Vector2i(on_screen) - Vector2i(180, 200), Vector2i(360, 320))
+			box = box.intersection(Rect2i(Vector2i.ZERO, frame.get_size()))
+			if box.size.x > 0 and box.size.y > 0:
+				frame.get_region(box).save_png("user://facing_%s_%s_body.png" % [id, heading])
 			print("[facing] %s walking %s (flip_h %s) -> %s" % [id, heading,
 				str(body.sprite.flip_h), ProjectSettings.globalize_path(path)])
+			print("[facing]   body at %s on screen %s visible %s/%s modulate %s state %s" % [
+				str(body.global_position), str(on_screen), str(body.visible),
+				str(body.sprite.visible), str(body.modulate), str(body.get("_state"))])
 			body.queue_free()
 			await get_tree().process_frame
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
