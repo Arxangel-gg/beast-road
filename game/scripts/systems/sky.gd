@@ -44,6 +44,16 @@ var _pending_tornado: Dictionary = {}
 var _basin_opened: bool = false
 var _tier_told: int = 0
 var _zone_rng: RandomNumberGenerator = null
+## The legendary shock and the stillness that comes with it.
+var _shock_left: float = 0.0
+var _wind_still_left: float = 0.0
+## Seconds since the road last killed, felled or burnt anything.
+var _quiet: float = 0.0
+## When the recent trees fell, on the sky's clock.
+var _fells: Array[float] = []
+var _burnt_seen: int = 0
+## For the gate.
+var shocks: int = 0
 
 var _rng: RandomNumberGenerator = null
 var _weather: WeatherData = null
@@ -120,6 +130,7 @@ func _ready() -> void:
 	EventBus.coop_meteor_incoming.connect(_on_meteor_elsewhere)
 	EventBus.coop_wrath_warned.connect(_on_warned_elsewhere)
 	EventBus.act_started.connect(_on_act_started)
+	EventBus.gathered.connect(_on_gathered)
 	_apply(ContentDB.weather(RunState.weather_id))
 	_temperature = _temperature_target
 	_publish(true)
@@ -436,6 +447,7 @@ func _tick_temperature(delta: float) -> void:
 
 ## Writes what the sky is doing where everything reads it.
 func _publish(force: bool) -> void:
+	RunState.wind = wind()
 	RunState.rain_scale = _scale if _falling() or forced_intensity >= 0.0 else 1.0
 	RunState.rain_intensity = intensity()
 	RunState.storm_charge = _charge
@@ -573,30 +585,104 @@ func wrath() -> float:
 
 ## A wildlife kill by a player or an enemy. Predators killing prey never
 ## reach here - `Wildlife` announces only the kills that were not the cycle.
-func _on_wildlife_killed(_kind_id: String, _food: int, _at: Vector2) -> void:
+func _on_wildlife_killed(_kind_id: String, _food: int, at: Vector2, rarity: int, shiny: bool, grave: bool) -> void:
 	if _mirror:
 		return
-	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL, Balance.WRATH_FLOOR_CAP)
-	_wrath_heat += Balance.WRATH_HEAT_PER_KILL
+	var scale: float = float(Balance.WRATH_RARITY_SCALE[clampi(rarity, 0, Balance.WRATH_RARITY_SCALE.size() - 1)])
+	if shiny:
+		scale *= Balance.WRATH_SHINY_SCALE
+	if grave:
+		scale *= Balance.WRATH_ELITE_KILL_SCALE
+	_count_kill(scale)
+	# A legendary is a moment the world notices: the shock, and the signs.
+	if rarity >= WildlifeData.Rarity.LEGENDARY:
+		shocks += 1
+		_shock_left = Balance.WRATH_SHOCK_SECONDS
+		_tell("legendary_slain", at, Balance.WRATH_SHOCK_SECONDS)
 
 
-## A worse kill: an elite, a savage, a shiny. The gate and the wildlife call it.
+## A worse kill: an elite, a savage. The gate calls it.
 func note_grave_kill() -> void:
 	if _mirror:
 		return
-	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL * Balance.WRATH_ELITE_KILL_SCALE,
-		Balance.WRATH_FLOOR_CAP)
-	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * Balance.WRATH_ELITE_KILL_SCALE
+	_count_kill(Balance.WRATH_ELITE_KILL_SCALE)
+
+
+func _count_kill(scale: float) -> void:
+	_wrath_floor = minf(_wrath_floor + Balance.WRATH_FLOOR_PER_KILL * scale, Balance.WRATH_FLOOR_CAP)
+	_wrath_heat += Balance.WRATH_HEAT_PER_KILL * scale
+	_quiet = 0.0
+
+
+## A tree felled. A few are the road living; more than that inside the
+## window is clear-cutting, and the earth counts it.
+func _on_gathered(material_id: String, _amount: int) -> void:
+	if _mirror or not material_id.ends_with("_log"):
+		return
+	_fells.append(_clock)
+	while not _fells.is_empty() and _clock - _fells[0] > Balance.WRATH_FELL_WINDOW:
+		_fells.pop_front()
+	_quiet = 0.0
+	if _fells.size() > Balance.WRATH_FELL_FREE:
+		_wrath_heat += Balance.WRATH_PER_FELL
+
+
+## How many living legendaries steady the road right now.
+func anchors() -> int:
+	var animals: Wildlife = field.wildlife() if field != null else null
+	return animals.living_legendaries() if animals != null else 0
+
+
+## What the earth's hazards are multiplied by this moment: the legendary
+## shock lifts them, every anchor standing calms them.
+func hazard_boost() -> float:
+	var boost: float = Balance.WRATH_SHOCK_HAZARD if _shock_left > 0.0 else 1.0
+	return boost / (1.0 + float(anchors()) * Balance.WRATH_ANCHOR_CALM)
+
+
+## The wind over the field: the weather's own along the road, wandering on
+## a slow clock and gusting, and still for a while after a legendary dies.
+func wind() -> Vector2:
+	if _wind_still_left > 0.0 or _weather == null:
+		return Vector2.ZERO
+	var along: float = clampf(_weather.wind, -1.0, 1.0)
+	if is_zero_approx(along):
+		return Vector2.ZERO
+	var angle: float = sin(_clock * 0.05 + _phases.x) * Balance.WIND_WANDER
+	var gust: float = 1.0 + 0.25 * sin(_clock * 0.7 + _phases.y)
+	return Vector2(along, 0.0).rotated(angle) * gust
 
 
 ## The heat cools, the fire's ash and the storm's wind settle.
 func _tick_wrath(delta: float) -> void:
 	var half: float = maxf(Balance.WRATH_HEAT_HALF_LIFE, 1.0)
 	_wrath_heat *= pow(0.5, delta / half)
-	# Fire fed into the earth's anger, a little, before the ember cools.
-	_wrath_heat += RunState.ember * Balance.WRATH_PER_FIRE_DAMAGE * delta
-	RunState.ember = maxf(RunState.ember - Balance.EMBER_DECAY_PER_SECOND * delta, 0.0)
+	_shock_left = maxf(_shock_left - delta, 0.0)
+	_wind_still_left = maxf(_wind_still_left - delta, 0.0)
+	_quiet += delta
+	# The elements' strain feeds the anger by its share of full, each
+	# settling on its own clock: fire cools, faster in the rain; air is
+	# volatile; water drains unless a flood stands; the ground remembers.
+	var strain: float = RunState.ember / Balance.EMBER_FULL + RunState.gale / Balance.GALE_FULL \
+		+ RunState.tide / Balance.TIDE_FULL + RunState.tremor / Balance.TREMOR_FULL
+	_wrath_heat += strain * Balance.WRATH_STRAIN_PER_SECOND * delta
+	var rain: float = clampf(RunState.rain_intensity, 0.0, 1.0)
+	RunState.ember = maxf(RunState.ember - Balance.EMBER_DECAY_PER_SECOND
+		* (1.0 + rain * Balance.EMBER_RAIN_DECAY_SCALE) * delta, 0.0)
 	RunState.gale = maxf(RunState.gale - Balance.GALE_DECAY_PER_SECOND * delta, 0.0)
+	if RunState.flood < Balance.FLOOD_KNEE:
+		RunState.tide = maxf(RunState.tide - Balance.TIDE_DECAY_PER_SECOND * delta, 0.0)
+	RunState.tremor = maxf(RunState.tremor - Balance.TREMOR_DECAY_PER_SECOND * delta, 0.0)
+	# A forest burnt by the player's own fire.
+	if wildfire != null and wildfire.burnt_by_player > _burnt_seen:
+		_wrath_heat += float(wildfire.burnt_by_player - _burnt_seen) * Balance.WRATH_PER_PLANT_BURNT
+		_burnt_seen = wildfire.burnt_by_player
+		_quiet = 0.0
+	# Left alone long enough, the earth forgets a little - and faster for
+	# every legendary still standing on it.
+	if _quiet > Balance.WRATH_QUIET_SECONDS:
+		_wrath_floor = maxf(_wrath_floor - Balance.WRATH_FLOOR_RECOVERY_PER_SECOND
+			* (1.0 + float(anchors())) * delta, 0.0)
 	# The signs. Never a number: the birds, the ground, the sky, once each
 	# time the anger climbs a step, and again only after it has come down.
 	var tier: int = wrath_tier()
@@ -620,6 +706,10 @@ func _on_act_started(_act: int, _terrain: String) -> void:
 	_quake_pending = -1.0
 	_pending_tornado = {}
 	_basin_opened = false
+	_shock_left = 0.0
+	_wind_still_left = 0.0
+	_fells.clear()
+	_burnt_seen = 0
 	if _mirror:
 		return
 	_wrath_floor *= Balance.WRATH_ACT_CARRY
@@ -630,22 +720,24 @@ func _on_act_started(_act: int, _terrain: String) -> void:
 ## Whether the earth answers this frame, and how.
 func _tick_wrath_events(delta: float) -> void:
 	var anger: float = wrath()
+	# Lifted by the legendary shock, calmed by every anchor standing.
+	var boost: float = hazard_boost()
 	# A quake: the square, so a calm earth never shakes. Warned first.
 	if _quake_left <= 0.0 and _quake_warning_left <= 0.0 \
-			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * delta:
+			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * boost * delta:
 		warn_quake(lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0)))
 	# A wildfire: an angry earth, and ground dry enough where it tries. A
 	# flood stops it at the source; `start_wildfire` asks the ground.
 	if wildfire != null and RunState.flood <= Balance.WILDFIRE_FLOOD_STOPS \
-			and _rng.randf() < Balance.WILDFIRE_RATE * anger * delta:
+			and _rng.randf() < Balance.WILDFIRE_RATE * anger * boost * delta:
 		start_wildfire()
 	# A tornado: the earth's anger, or the storm towers' own running.
 	var whirl: float = anger + clampf(RunState.gale / Balance.GALE_FULL, 0.0, 1.0)
-	if _pending_tornado.is_empty() and _rng.randf() < Balance.TORNADO_RATE * whirl * delta:
+	if _pending_tornado.is_empty() and _rng.randf() < Balance.TORNADO_RATE * whirl * boost * delta:
 		warn_tornado()
 	# A meteor: the fire towers' recent damage, sharpened by the anger.
 	var ash: float = clampf(RunState.ember / Balance.EMBER_FULL, 0.0, 1.0)
-	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * delta:
+	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * boost * delta:
 		drop_meteor()
 
 
@@ -818,6 +910,17 @@ func _show_warning(kind_id: String, at: Vector2, _seconds: float) -> void:
 	var title: String = kind.warning_title if telegraphed else kind.announce_title
 	if not line.is_empty():
 		EventBus.sky_warned.emit(line, title)
+	# A legendary dead: the wind stops, the light goes strange for a beat,
+	# the ambience drops and comes back. On every machine.
+	if kind_id == "legendary_slain":
+		_wind_still_left = Balance.WRATH_STILL_SECONDS
+		Vfx.flash(Color(0.04, 0.02, 0.08), 0.42, 1.6)
+		Sfx.play("sfx_thunder_far", -4.0)
+		var bus: int = AudioServer.get_bus_index(AudioBuses.AMBIENCE)
+		if bus >= 0:
+			AudioServer.set_bus_volume_db(bus, AudioServer.get_bus_volume_db(bus) - 14.0)
+			get_tree().create_timer(Balance.WRATH_STILL_SECONDS * 0.75).timeout.connect(
+				func() -> void: AudioBuses.apply_volumes())
 	# The animals run from what is coming; a sign of the earth's mood, with
 	# nothing behind it yet, only quiets them.
 	if field != null and not _mirror and _seconds > 0.0:

@@ -255,6 +255,10 @@ var temperature: float = 20.0
 var wrath: float = 0.0
 var ember: float = 0.0
 var gale: float = 0.0
+var tide: float = 0.0
+var tremor: float = 0.0
+## The wind over the field this frame, as a vector; the sky writes it.
+var wind: Vector2 = Vector2.ZERO
 
 ## The campaign tier this run is being played on.
 var tier_id: String = "normal"
@@ -543,6 +547,9 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	wrath = 0.0
 	ember = 0.0
 	gale = 0.0
+	tide = 0.0
+	tremor = 0.0
+	wind = Vector2.ZERO
 	# Restored from the account, not zeroed.
 	#
 	# This is the owner amendment of 2026-08-20 in one place: the hero is the only

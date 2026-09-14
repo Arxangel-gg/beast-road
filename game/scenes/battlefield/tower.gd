@@ -792,13 +792,19 @@ func _hit(enemy: Enemy) -> void:
 		var dealt: float = rolled_damage() * enemy.brand_multiplier()
 		enemy.take_damage(dealt, origin(),
 			data.knockback_at(level) * Modifiers.multiplier(Modifiers.KNOCKBACK))
-		if data.element == TowerData.Element.FIRE:
-			# The earth remembers fire. And a fire tower's shot may light the
-			# plant beside whatever it hit.
-			RunState.ember += dealt * Balance.EMBER_PER_DAMAGE
-			if _field != null and _field.wildfire() != null:
-				_field.wildfire().ignite_near(enemy.global_position, Balance.WILDFIRE_TOWER_REACH,
-					Balance.WILDFIRE_TOWER_CHANCE)
+		# The earth remembers every element's work, each on its own clock. And
+		# a fire tower's shot may light the plant beside whatever it hit - a
+		# fire the player lit, which the earth holds against the road.
+		match data.element:
+			TowerData.Element.FIRE:
+				RunState.ember += dealt * Balance.EMBER_PER_DAMAGE
+				if _field != null and _field.wildfire() != null:
+					_field.wildfire().ignite_near(enemy.global_position, Balance.WILDFIRE_TOWER_REACH,
+						Balance.WILDFIRE_TOWER_CHANCE, true)
+			TowerData.Element.WATER:
+				RunState.tide += dealt * Balance.TIDE_PER_DAMAGE
+			TowerData.Element.EARTH:
+				RunState.tremor += dealt * Balance.TREMOR_PER_DAMAGE
 	var utility: float = data.utility_at(level)
 	if data.slow_factor < 1.0:
 		# A stronger slow is a *lower* factor, so the relic subtracts.

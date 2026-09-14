@@ -248,7 +248,13 @@ func _test_the_storm_towers() -> void:
 	# here so this reads the charge alone.
 	if _field.zones() != null:
 		_field.zones().clear()
-	_check(is_equal_approx(tower.effective_damage(), calm), "damage did not settle back after the charge")
+	# The charge's own multiplier and the ground's, back to one. Not the
+	# absolute figure: a relic adapter crossing its town-health line or a
+	# weather change between the two reads moves that for reasons that are
+	# not the charge, and this gate once failed on exactly that in a sweep.
+	_check(is_equal_approx(float(tower.call("_storm_damage")), 1.0), "the charge's multiplier did not settle back")
+	_check(is_equal_approx(float(tower.call("_zone_damage")), 1.0), "the ground's multiplier did not settle back")
+	_check(tower.effective_damage() < calm * 1.3, "damage stayed charged after the charge ran down")
 	# And a strike well out of reach charges nothing.
 	_sky.strike_at(tower.global_position + Vector2(Balance.LIGHTNING_EMPOWER_RADIUS * 3.0, 0.0))
 	_check(not tower.storm_charged(), "a strike three reaches away charged the tower")

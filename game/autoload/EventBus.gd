@@ -262,7 +262,10 @@ signal coop_wildlife_removed(net_id: int)
 signal coop_wildlife_died(net_id: int)
 
 ## An animal was hunted — on the host's say-so, so both players see it fall.
-signal wildlife_killed(kind_id: String, food: int, at: Vector2)
+## An animal killed by a player or an enemy (never by another animal): its
+## species, the food it left, where, its species' rarity, whether it shone,
+## and whether it was an elite or a savage. The earth's wrath reads all of it.
+signal wildlife_killed(kind_id: String, food: int, at: Vector2, rarity: int, shiny: bool, grave: bool)
 
 ## An individual enemy was struck by the hero; Command reads the tactical value.
 signal hero_enemy_hit(enemy_id: String, lane: int, priority: bool, interrupted: bool, at: Vector2)

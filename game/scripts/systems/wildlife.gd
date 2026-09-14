@@ -1542,7 +1542,8 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	RunState.gain_hero_xp(float(kind.xp_reward) * bounty)
 	if _is_authority_with_company():
 		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
-	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position)
+	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position, int(kind.rarity),
+		bool(animal.get("shiny", false)), bool(animal.get("elite", false)) or bool(animal.get("savage", false)))
 	# A hostile animal is bonded by besting it. The harmless ones are bonded by
 	# getting close instead - see `_offer_bond` - because a collection system
 	# that required slaughtering rabbits would be a different game.
@@ -1682,6 +1683,22 @@ func _is_authority_or_alone() -> bool:
 
 
 var _flood_struck: bool = false
+
+
+## How many legendaries stand alive on the road. A living legendary is an
+## anchor: it steadies its region against the earth's wrath, and killing it
+## removes that for the run (ChatGPT notes, 2026-09-14, the one idea put
+## above the rest).
+func living_legendaries() -> int:
+	var total: int = 0
+	for animal: Dictionary in _living:
+		var kind := animal["data"] as WildlifeData
+		if kind == null or kind.rarity != WildlifeData.Rarity.LEGENDARY:
+			continue
+		if float(animal.get("dying", 0.0)) > 0.0 or bool(animal.get("rifted", false)):
+			continue
+		total += 1
+	return total
 
 
 ## The sack a hoarder carries: the tell that this animal is worth chasing, and

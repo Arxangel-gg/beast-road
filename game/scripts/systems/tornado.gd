@@ -82,8 +82,9 @@ func _process(delta: float) -> void:
 	# every frame, so the path is a curve nobody can stand in the way of by
 	# reading a straight line.
 	var wanted: Vector2 = (_target - at).normalized() if at.distance_to(_target) > 40.0 else heading
-	heading = heading.lerp(wanted, minf(delta * 1.4, 1.0)).rotated(
-		_rng.randf_range(-1.0, 1.0) * wander * delta).normalized()
+	heading = (heading.lerp(wanted, minf(delta * 1.4, 1.0)).rotated(
+		_rng.randf_range(-1.0, 1.0) * wander * delta)
+		+ RunState.wind * Balance.TORNADO_WIND_PUSH * delta).normalized()
 	at += heading * Balance.TORNADO_SPEED * delta
 	position = at
 	_tick_fire(delta)

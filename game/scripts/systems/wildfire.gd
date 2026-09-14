@@ -34,6 +34,10 @@ var _scare_timer: float = 0.0
 ## How many plants this wildfire has lit this act. For the gate.
 var lit_count: int = 0
 var burnt_count: int = 0
+## Plants burnt by a fire the *player* lit - a tower's shot - as against the
+## earth's own. Clearing a forest with fire is what the earth holds against
+## the road; its own lightning is the cycle.
+var burnt_by_player: int = 0
 ## Plants lit by the blaze currently burning. Reset when the last fire goes
 ## out, so the bound is per blaze and not per act.
 var _blaze_lit: int = 0
@@ -54,7 +58,7 @@ func _ready() -> void:
 
 ## Tries to light a plant near a point. `chance` is rolled once, and the
 ## nearest unburnt plant inside `radius` catches. Returns whether one did.
-func ignite_near(at: Vector2, radius: float, chance: float = 1.0) -> bool:
+func ignite_near(at: Vector2, radius: float, chance: float = 1.0, by_player: bool = false) -> bool:
 	if _mirror or _foliage() == null:
 		return false
 	if chance < 1.0 and _rng.randf() > chance:
@@ -65,7 +69,7 @@ func ignite_near(at: Vector2, radius: float, chance: float = 1.0) -> bool:
 	var plant: Dictionary = _nearest_unburnt(at, radius)
 	if plant.is_empty():
 		return false
-	_light(plant)
+	_light(plant, 0, by_player)
 	return true
 
 
@@ -99,7 +103,7 @@ func _is_burning(band: int, index: int) -> bool:
 	return false
 
 
-func _light(plant: Dictionary, generation: int = 0) -> void:
+func _light(plant: Dictionary, generation: int = 0, by_player: bool = false) -> void:
 	var at: Vector2 = plant["at"]
 	var flame := Flame.new()
 	flame.name = "Wildfire%d" % lit_count
@@ -109,7 +113,7 @@ func _light(plant: Dictionary, generation: int = 0) -> void:
 		Balance.FLAME_MID, 1.0, false, false)
 	_fires.append({"at": at, "left": Balance.WILDFIRE_BURN_SECONDS, "band": int(plant["band"]),
 		"index": int(plant["index"]), "flame": flame, "spread": Balance.WILDFIRE_SPREAD_TICK,
-		"generation": generation})
+		"generation": generation, "player": by_player})
 	lit_count += 1
 	_blaze_lit += 1
 	Vfx.spark(at, Balance.FLAME_MID, 8, Vector2.UP, 160.0)
@@ -155,7 +159,7 @@ func _process(delta: float) -> void:
 			fire["spread"] = float(fire["spread"]) - delta
 			if float(fire["spread"]) <= 0.0:
 				fire["spread"] = Balance.WILDFIRE_SPREAD_TICK
-				_try_spread(at, int(fire.get("generation", 0)))
+				_try_spread(at, int(fire.get("generation", 0)), bool(fire.get("player", false)))
 		if drowned or float(fire["left"]) <= 0.0:
 			_burn_out(index, drowned)
 	if _fires.is_empty():
@@ -186,7 +190,7 @@ func _hurt_around(at: Vector2, delta: float) -> void:
 
 
 ## A neighbour catches, by how dry the air is and how hard the wind blows.
-func _try_spread(at: Vector2, generation: int) -> void:
+func _try_spread(at: Vector2, generation: int, by_player: bool = false) -> void:
 	if generation >= Balance.WILDFIRE_MAX_GENERATIONS or _fires.size() >= Balance.WILDFIRE_MAX_FIRES:
 		return
 	# The ground under the fire: its own dryness and heat where there is a
@@ -207,10 +211,12 @@ func _try_spread(at: Vector2, generation: int) -> void:
 	chance *= pow(Balance.WILDFIRE_SPREAD_DECAY, float(generation))
 	if _rng.randf() > chance:
 		return
+	# Downwind, mostly: the wind carries the embers.
 	var plant: Dictionary = _nearest_unburnt(at + Vector2(_rng.randf_range(-1.0, 1.0),
-		_rng.randf_range(-1.0, 1.0)) * Balance.WILDFIRE_SPREAD_RADIUS * 0.5, Balance.WILDFIRE_SPREAD_RADIUS)
+		_rng.randf_range(-1.0, 1.0)) * Balance.WILDFIRE_SPREAD_RADIUS * 0.5
+		+ RunState.wind * Balance.WILDFIRE_WIND_DRIFT, Balance.WILDFIRE_SPREAD_RADIUS)
 	if not plant.is_empty() and (plant["at"] as Vector2).distance_to(at) > 4.0:
-		_light(plant, generation + 1)
+		_light(plant, generation + 1, by_player)
 
 
 ## The plant is gone for the act, the ground is marked, and a felled tree it
@@ -226,6 +232,8 @@ func _burn_out(index: int, drowned: bool) -> void:
 		Vfx.dust(at, Color(0.55, 0.6, 0.65), 6, 40.0)
 		return
 	burnt_count += 1
+	if bool(fire.get("player", false)):
+		burnt_by_player += 1
 	_blaze_burnt += 1
 	_blaze_sum += at
 	if _foliage() != null:

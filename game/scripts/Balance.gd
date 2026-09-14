@@ -6569,9 +6569,40 @@ const WRATH_FLOOR_PER_KILL: float = 0.012
 const WRATH_FLOOR_CAP: float = 0.55
 const WRATH_HEAT_PER_KILL: float = 0.05
 const WRATH_HEAT_HALF_LIFE: float = 540.0
-## An elite or a savage is worth more of the earth's anger than a rabbit.
+## An elite or a savage is worth more of the earth's anger than a rabbit,
+## and the rarer the animal the sharper the cost (owner brief, 2026-09-14:
+## "the rarer the wildlife that is killed, the more the increase"). By the
+## species' rarity - common, uncommon, rare, legendary - then a shiny on top.
 const WRATH_ELITE_KILL_SCALE: float = 2.5
+const WRATH_RARITY_SCALE: Array[float] = [1.0, 3.0, 8.0, 24.0]
+const WRATH_SHINY_SCALE: float = 1.5
 const WRATH_CAP: float = 1.5
+## The legendary shock: for a while after a legendary dies the earth's events
+## roll this many times as often. Not a certainty - "uncertainty makes it
+## scarier" - and the world says so first: the wind stops, the birds go, the
+## ambience drops (`data/wrath/legendary_slain`).
+const WRATH_SHOCK_SECONDS: float = 45.0
+const WRATH_SHOCK_HAZARD: float = 10.0
+const WRATH_STILL_SECONDS: float = 8.0
+## Anchors: a living legendary steadies its region - each one divides the
+## earth's hazards by `1 + WRATH_ANCHOR_CALM` and speeds the floor's recovery
+## - and killing it removes that for the run.
+const WRATH_ANCHOR_CALM: float = 0.35
+## Recovery: the floor eases while nothing has been killed, felled or burnt
+## for `WRATH_QUIET_SECONDS`, slowly, and faster for each anchor standing.
+## "Nature recovers": borrowed power is debt, and debt can be paid down.
+const WRATH_QUIET_SECONDS: float = 90.0
+const WRATH_FLOOR_RECOVERY_PER_SECOND: float = 0.0006
+## Ecological strain. Felling past `WRATH_FELL_FREE` trees inside the window
+## is clear-cutting and costs; every plant a fire the *player* lit burns
+## costs; and the four elements' strain - fire's ember, air's gale, water's
+## tide, earth's tremor, each on its own clock - feeds the heat by its share
+## of full. "Repeatedly hammering one element" is one strain at full.
+const WRATH_FELL_FREE: int = 4
+const WRATH_FELL_WINDOW: float = 150.0
+const WRATH_PER_FELL: float = 0.03
+const WRATH_PER_PLANT_BURNT: float = 0.012
+const WRATH_STRAIN_PER_SECOND: float = 0.004
 
 ## Between acts the earth eases and does not forget (owner, 2026-09-14: "may
 ## reduce earth's wrath accumulation but not reset it completely"): the floor
@@ -6582,17 +6613,32 @@ const WRATH_ACT_CARRY: float = 0.6
 ## and never a number.
 const WRATH_TIER_STEP: float = 0.3
 const WRATH_TIERS: int = 4
-## Fire damage feeds the earth's anger as well, a little, and is what draws
-## a meteor: `ember` is the fire towers' recent damage, decaying.
-const WRATH_PER_FIRE_DAMAGE: float = 0.00004
+## The elements' strain, each with a personality (ChatGPT notes: "wrath decay
+## should be asymmetric"). `ember` is the fire towers' recent damage and it
+## cools, faster in the rain, and is what draws a meteor. `gale` is the storm
+## towers' running, volatile: it spikes and drops fast, and enough of it
+## draws a tornado whether the earth is angry or not. `tide` is the water
+## towers' damage and drains unless a flood is standing. `tremor` is the earth
+## towers' damage and settles slowly, because the ground remembers.
 const EMBER_PER_DAMAGE: float = 1.0
 const EMBER_DECAY_PER_SECOND: float = 40.0
+const EMBER_RAIN_DECAY_SCALE: float = 3.0
 const EMBER_FULL: float = 9000.0
-## The storm towers running: each air shot adds to `gale`, which decays, and
-## enough of it draws a tornado whether the earth is angry or not.
 const GALE_PER_SHOT: float = 1.0
-const GALE_DECAY_PER_SECOND: float = 0.35
+const GALE_DECAY_PER_SECOND: float = 1.2
 const GALE_FULL: float = 240.0
+const TIDE_PER_DAMAGE: float = 1.0
+const TIDE_DECAY_PER_SECOND: float = 55.0
+const TIDE_FULL: float = 9000.0
+const TREMOR_PER_DAMAGE: float = 1.0
+const TREMOR_DECAY_PER_SECOND: float = 12.0
+const TREMOR_FULL: float = 9000.0
+## The wind as a vector: the weather's own wind along the road, wandering
+## by up to `WIND_WANDER` radians on a slow clock and gusting; it drifts a
+## wildfire's spread and leans a funnel.
+const WIND_WANDER: float = 0.9
+const WILDFIRE_WIND_DRIFT: float = 110.0
+const TORNADO_WIND_PUSH: float = 0.5
 
 ## How wrath leans the crossroad's weather: a wrathful sky's weight is
 ## multiplied by `1 + wrath * WRATH_WEATHER_BIAS`, and the rain's swell may

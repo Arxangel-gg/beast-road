@@ -42,6 +42,9 @@ func _ready() -> void:
 		_test_wrath_rises_and_cools()
 		await _test_the_earth_answers_on_its_own()
 		await _test_acts_ease_the_wrath()
+		await _test_rarity_and_the_shock()
+		await _test_anchors_and_recovery()
+		_test_strain_and_the_wind()
 		_test_wrath_leans_the_weather()
 		await _test_the_quake()
 		await _test_the_wildfire()
@@ -61,9 +64,9 @@ func _ready() -> void:
 		await _test_the_guest_is_told()
 	MetaState.resume_saves()
 	if _failures.is_empty():
-		print("[wrath] PASS - %d checks: the measure, the acts, the weather, the quake, the fire, the "
-			% _checks + "funnel, the stone, the chain, the water, the dash, the towers, the charged "
-			+ "ground, the tells, the fire whirl, the dry strike and the guest")
+		print("[wrath] PASS - %d checks: the measure, the acts, the rarity, the anchors, the strain, "
+			% _checks + "the weather, the quake, the fire, the funnel, the stone, the chain, the water, "
+			+ "the dash, the towers, the charged ground, the tells, the fire whirl, the dry strike and the guest")
 	else:
 		for failure: String in _failures:
 			push_error("[wrath] " + failure)
@@ -213,13 +216,16 @@ func _build(id: String, at: Vector2) -> Tower:
 func _test_wrath_rises_and_cools() -> void:
 	_check(_sky.wrath() == 0.0, "a fresh road starts with no wrath (%.3f)" % _sky.wrath())
 	for _i: int in 6:
-		EventBus.wildlife_killed.emit("rabbit", 3, Vector2.ZERO)
+		EventBus.wildlife_killed.emit("rabbit", 3, Vector2.ZERO, 0, false, false)
 	var hot: float = _sky.wrath()
 	_check(hot > 0.2, "six kills left the earth at %.3f" % hot)
 	_step(Balance.WRATH_HEAT_HALF_LIFE * 3.0)
 	var cooled: float = _sky.wrath()
 	_check(cooled < hot * 0.6, "half an hour later the earth is still at %.3f of %.3f" % [cooled, hot])
-	_check(cooled >= Balance.WRATH_FLOOR_PER_KILL * 6.0 - 0.001,
+	# The floor stays - a quiet road eases it, slowly, and never to nothing
+	# inside an hour and a half of six kills.
+	_check(cooled > 0.0 and cooled >= Balance.WRATH_FLOOR_PER_KILL * 6.0
+		- Balance.WRATH_FLOOR_RECOVERY_PER_SECOND * Balance.WRATH_HEAT_HALF_LIFE * 3.0 - 0.001,
 		"the floor cooled away too: %.3f" % cooled)
 	_check(is_equal_approx(RunState.wrath, cooled), "RunState.wrath is not what the sky says")
 
@@ -268,6 +274,7 @@ func _test_the_quake() -> void:
 ## reached never grows back.
 func _test_the_wildfire() -> void:
 	_dry()
+	var lit_at_start: int = _fire.lit_count
 	var foliage: Foliage = _fire.call("_foliage")
 	_check(foliage != null, "the wildfire knows the foliage")
 	if foliage == null:
@@ -322,8 +329,8 @@ func _test_the_wildfire() -> void:
 	# A blaze heats the ground it burns on, so the hot bound is the one it
 	# may reach: a fire that grows its own weather is the design, not a leak.
 	var most: int = int(round(Balance.WILDFIRE_MAX_LIT * Balance.WILDFIRE_HOT_LIT_SCALE)) + 1
-	_check(_fire.lit_count <= most,
-		"one blaze lit %d plants against a bound of %d" % [_fire.lit_count, most])
+	_check(_fire.lit_count - lit_at_start <= most,
+		"one blaze lit %d plants against a bound of %d" % [_fire.lit_count - lit_at_start, most])
 	_check(foliage.burnt_count() > burnt_before, "no plant was left burnt")
 	_check(_field.scorch().marked_at(seed_at), "the ground under the fire is not marked")
 	# A tree the fire reaches is charred for good.
@@ -789,3 +796,138 @@ func _test_the_guest_is_told() -> void:
 	_check(kind != null and said.has(kind.warning), "a guest did not say the warning it was told")
 	_check(_sky.quakes == quakes, "a guest's warning ran out and it shook the ground itself")
 	await get_tree().process_frame
+
+
+## The rarer the animal the sharper the cost; a shiny and an elite more; a
+## legendary is a shock the world announces and a window of raised hazard.
+func _test_rarity_and_the_shock() -> void:
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	# Measured on the heat, which has no cap; `wrath()` clamps and a
+	# legendary alone reaches the ceiling.
+	var costs: Array[float] = []
+	for rarity: int in 4:
+		var before: float = float(_sky.get("_wrath_heat"))
+		EventBus.wildlife_killed.emit("stag", 3, Vector2.ZERO, rarity, false, false)
+		costs.append(float(_sky.get("_wrath_heat")) - before)
+	for rarity: int in 3:
+		_check(costs[rarity + 1] > costs[rarity] * 1.5,
+			"rarity %d should cost sharply more than %d (%.3f against %.3f)" % [rarity + 1, rarity, costs[rarity + 1], costs[rarity]])
+	var plain: float = float(_sky.get("_wrath_heat"))
+	EventBus.wildlife_killed.emit("stag", 3, Vector2.ZERO, 1, true, false)
+	var shiny_cost: float = float(_sky.get("_wrath_heat")) - plain
+	_check(shiny_cost > costs[1] * 1.2, "a shiny should cost more than its rarity alone")
+	plain = float(_sky.get("_wrath_heat"))
+	EventBus.wildlife_killed.emit("stag", 3, Vector2.ZERO, 1, false, true)
+	_check(float(_sky.get("_wrath_heat")) - plain > costs[1] * 1.5, "an elite should cost more than its rarity alone")
+	# The legendary above told the world and opened the shock.
+	_check(_sky.shocks >= 1, "a legendary died and the earth was not shocked")
+	_check(_sky.hazard_boost() > 1.0, "the shock did not lift the earth's hazards")
+	_check(_sky.wind() == Vector2.ZERO, "the wind did not stop for the legendary")
+	_step(Balance.WRATH_SHOCK_SECONDS + 1.0)
+	_check(is_equal_approx(_sky.hazard_boost(), 1.0 / (1.0 + float(_sky.anchors()) * Balance.WRATH_ANCHOR_CALM)),
+		"the shock did not pass")
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	_sky.set("_tier_told", 0)
+	await get_tree().process_frame
+
+
+## A living legendary calms the earth and speeds its recovery; the floor
+## recovers only when the road has been quiet, and never below nothing.
+func _test_anchors_and_recovery() -> void:
+	var animals: Wildlife = _field.wildlife()
+	var legendary: WildlifeData = null
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind.rarity == WildlifeData.Rarity.LEGENDARY:
+			legendary = kind
+			break
+	_check(legendary != null, "a legendary species to anchor the road")
+	var calm_alone: float = _sky.hazard_boost()
+	var living_before: int = animals.living_legendaries()
+	if legendary != null:
+		animals.call("_spawn", legendary, Vector2(900.0, -300.0))
+		await get_tree().process_frame
+		_check(animals.living_legendaries() == living_before + 1, "the legendary did not stand")
+		_check(_sky.hazard_boost() < calm_alone, "a living legendary did not calm the earth (%.2f against %.2f)" % [_sky.hazard_boost(), calm_alone])
+	# Quiet: nothing killed, felled or burnt - the floor eases.
+	_sky.set("_wrath_floor", 0.3)
+	_sky.set("_quiet", 0.0)
+	_step(Balance.WRATH_QUIET_SECONDS * 0.5)
+	_check(is_equal_approx(float(_sky.get("_wrath_floor")), 0.3), "the floor eased before the road was quiet")
+	_step(Balance.WRATH_QUIET_SECONDS + 120.0)
+	var eased: float = float(_sky.get("_wrath_floor"))
+	_check(eased < 0.3 and eased > 0.0, "a quiet road should ease the floor and keep some (%.3f)" % eased)
+	# A kill resets the quiet.
+	EventBus.wildlife_killed.emit("rabbit", 1, Vector2.ZERO, 0, false, false)
+	_check(float(_sky.get("_quiet")) == 0.0, "a kill did not reset the quiet")
+	# Clear-cutting: a few fells are free, the rest cost.
+	_sky.set("_wrath_heat", 0.0)
+	for _i: int in Balance.WRATH_FELL_FREE:
+		EventBus.gathered.emit("ashwood_log", 1)
+	_check(is_zero_approx(float(_sky.get("_wrath_heat"))), "the first fells should be free")
+	for _i: int in 4:
+		EventBus.gathered.emit("ashwood_log", 1)
+	_check(float(_sky.get("_wrath_heat")) > 0.0, "clear-cutting cost nothing")
+	EventBus.gathered.emit("iron_ore", 1)
+	var after_ore: float = float(_sky.get("_wrath_heat"))
+	EventBus.gathered.emit("iron_ore", 1)
+	_check(is_equal_approx(float(_sky.get("_wrath_heat")), after_ore), "ore is not a tree")
+	# A fire the player lit burns a forest: the earth counts the plants.
+	_dry()
+	_fire.call("_clear")
+	var foliage: Foliage = _fire.call("_foliage")
+	var plants: Array[Dictionary] = foliage.plants_near(Vector2(-900.0, -900.0), 2400.0)
+	if not plants.is_empty():
+		_sky.set("_wrath_heat", 0.0)
+		_check(_fire.ignite_near(plants[0]["at"], 20.0, 1.0, true), "the player's fire did not catch")
+		for _i: int in int(Balance.WILDFIRE_BURN_SECONDS * 2.0) + 4:
+			_fire._process(0.5)
+		_sky._process(0.5)
+		_check(_fire.burnt_by_player >= 1, "a plant the player's fire burnt was not counted")
+		_check(float(_sky.get("_wrath_heat")) > 0.0, "a forest burnt by the player's fire cost nothing")
+	_fire.call("_clear")
+	if _field.zones() != null:
+		_field.zones().clear()
+	_sky.set("_wrath_floor", 0.0)
+	_sky.set("_wrath_heat", 0.0)
+	_sky.set("_tier_told", 0)
+	await get_tree().process_frame
+
+
+## Every element's strain feeds the anger, each settling on its own clock,
+## and the wind is a vector that leans with the weather.
+func _test_strain_and_the_wind() -> void:
+	_sky.set("_wrath_heat", 0.0)
+	RunState.tide = Balance.TIDE_FULL
+	RunState.tremor = Balance.TREMOR_FULL
+	_sky._process(1.0)
+	_check(float(_sky.get("_wrath_heat")) > 0.0, "water and earth strain fed nothing")
+	_check(RunState.tide < Balance.TIDE_FULL and RunState.tremor < Balance.TREMOR_FULL, "the strains did not settle")
+	_check(RunState.tide < RunState.tremor, "water should drain faster than the ground settles (%.0f against %.0f)" % [RunState.tide, RunState.tremor])
+	RunState.tide = 0.0
+	RunState.tremor = 0.0
+	# Fire cools faster in the rain.
+	RunState.ember = 2000.0
+	_sky._process(1.0)
+	var dry_left: float = RunState.ember
+	RunState.ember = 2000.0
+	RunState.rain_intensity = 1.0
+	_sky._process(1.0)
+	_check(RunState.ember < dry_left, "rain should cool the ember faster (%.0f against %.0f dry)" % [RunState.ember, dry_left])
+	RunState.rain_intensity = 0.0
+	RunState.ember = 0.0
+	# The wind: none in still air, a vector along the road in a wind.
+	# A clear sky carries its authored breeze and no more; a downpour blows.
+	_weather("clear")
+	_sky._process(0.5)
+	var breeze: float = absf(ContentDB.weather("clear").wind)
+	_check(_sky.wind().length() <= breeze * 1.3 + 0.001, "a clear sky blows %.2f against its %.2f" % [_sky.wind().length(), breeze])
+	_weather("downpour")
+	_sky._process(0.5)
+	var blowing: Vector2 = _sky.wind()
+	_check(blowing.length() > 0.2, "a downpour's wind is %.2f" % blowing.length())
+	_check(RunState.wind == blowing, "the wind was not published")
+	_dry()
+	_sky.set("_wrath_heat", 0.0)
+	_sky.set("_tier_told", 0)

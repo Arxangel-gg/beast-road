@@ -1913,6 +1913,60 @@ fire grows its own weather. That is the design - "wildfire produces more
 heat" was in the notes - and `wrath_check` holds the hot bound rather than
 the cool one.
 
+**The earth keeps a ledger, as of 2026-09-14 (third pass).** The owner's
+own idea and the notes behind it: the rarer the animal the sharper the
+cost, a legendary a shock, and wrath as the world's answer to ecological
+imbalance rather than to tower use alone. Six things, each a decision.
+
+**A kill costs by the species' rarity, sharply.** `WRATH_RARITY_SCALE` is
+1, 3, 8, 24 - a legendary is not eight rabbits and a bit, it is a different
+order of thing - and a shiny or an elite multiplies on top. The signal
+carries the rarity (`wildlife_killed` grew three arguments; the sky is its
+only listener).
+
+**A legendary is a moment the world notices, and a window.** The wind stops
+for `WRATH_STILL_SECONDS`, the light goes strange for a beat, the ambience
+drops and comes back, every animal runs, and the line is said
+(`data/wrath/legendary_slain`) - on every machine, through the same relay
+the telegraphs use. For `WRATH_SHOCK_SECONDS` the earth's events roll
+`WRATH_SHOCK_HAZARD` times as often. Not a certainty: "uncertainty makes it
+scarier" was the owner's own note, and the gate asserts the boost and
+never an event.
+
+**A living legendary is an anchor.** `Wildlife.living_legendaries()`
+divides every hazard by `1 + n * WRATH_ANCHOR_CALM` and speeds the floor's
+recovery. Killing it is a strong reward, a shock, *and* the loss of that
+for the run - which is what turns the kill from "rare mob" into "you
+removed one of the things holding the region together".
+
+**Borrowed power is debt, and debt can be paid down.** The floor, which
+used to only rise within an act, eases at `WRATH_FLOOR_RECOVERY_PER_SECOND`
+once the road has been quiet - nothing killed, felled or burnt - for
+`WRATH_QUIET_SECONDS`. Slow, capped at nothing, and never a thing to farm:
+there is no action that *reduces* wrath, only the absence of the ones that
+raise it.
+
+**Strain has a personality per element.** Fire's ember cools, faster in
+rain; air's gale spikes and drops; water's tide drains unless a flood
+stands; earth's tremor settles slowly. Each feeds the heat by its share of
+full (`WRATH_STRAIN_PER_SECOND`), so hammering one element is one strain at
+full. Clear-cutting is more than `WRATH_FELL_FREE` timber fells in a window;
+a forest burnt by a fire *the player lit* (`Wildfire.burnt_by_player`,
+tracked from the tower's shot through every spread) costs per plant; the
+earth's own lightning fires do not, because that is the cycle.
+
+**The wind is a vector.** `WeatherSky.wind()`: the weather's own wind along
+the road, wandering on a slow clock and gusting, published to
+`RunState.wind`; a wildfire spreads downwind and a funnel leans with it.
+Deterministic from the sky's clock rather than a stream, so it costs no
+roll and the guest's copy is cosmetic.
+
+**What none of this is:** a number the player is shown. `wrath_check`
+(133 checks) measures the rarity curve, the shock and its passing, the
+anchor's calm, the quiet floor, the free fells, the player's fire, the four
+strains and their clocks, and the wind - on the heat, because `wrath()`
+clamps and a legendary alone reaches the ceiling.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

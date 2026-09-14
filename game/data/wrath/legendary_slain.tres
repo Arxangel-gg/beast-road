@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+announce = "The wind stops. Every bird on the road takes flight. Something has noticed."
+announce_title = "THE WORLD NOTICES"
+colour = Color(0.55, 0.35, 0.7, 1)
+id = "legendary_slain"
+display_name = "A Legendary Slain"
