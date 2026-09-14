@@ -199,8 +199,13 @@ func _test_lightning() -> void:
 	# the flood is standing from the wait above - with room for the frame
 	# or two of walking between placing the bodies and the strike: at three
 	# radii it sat ten units inside the chain's reach and CI caught it.
+	# Past the chain's reach at its longest: a full flood *and* a wet carrier,
+	# because in a flood at the knee every body is wet and the arc leaving the
+	# struck one reaches WET_CHAIN_RANGE further. Whether the flood had risen
+	# by the time the first strike came was a coin toss, and CI lost it
+	# (v0.25.0).
 	far.global_position = at + Vector2(maxf(Balance.LIGHTNING_RADIUS * 3.0,
-		Balance.CHAIN_RANGE * (1.0 + Balance.CHAIN_FLOOD_RANGE) + 200.0), 0.0)
+		Balance.CHAIN_RANGE * (1.0 + Balance.CHAIN_FLOOD_RANGE) * Balance.WET_CHAIN_RANGE + 200.0), 0.0)
 	await get_tree().process_frame
 	var near_hp: float = near.health.current_hp
 	var far_hp: float = far.health.current_hp
