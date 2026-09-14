@@ -112,8 +112,26 @@ func _ready() -> void:
 		_check(not is_equal_approx(town.sprite.rotation, upright),
 			"the city must rock when the beast puts a foot down")
 
+		# **The ring over the city shows only while the city is hurt.** A ring
+		# that is always there is furniture, and the walls are whole for most
+		# of a good run - so the one thing on the field that ends the run would
+		# have become something the eye stopped reading.
+		# Searched from the run rather than from the town: `_setup_visual_depth`
+		# reparents the visual host into the battlefield's sorted layer, so the
+		# ring is not a descendant of the `TownCore` node that owns it.
+		var ring: Control = _find_ring(_run)
+		_check(ring != null, "the city has no health ring")
+		if ring != null:
+			_check(not ring.visible, "the ring is drawn while the city is whole")
+
 		town.health.take_damage(20.0, town.global_position + Vector2(300.0, 0.0))
 		await get_tree().process_frame
+		if ring != null:
+			# Two frames: the ring is refreshed in `_process`, which has not run
+			# yet on the frame the blow landed.
+			await get_tree().process_frame
+			_check(ring.visible,
+				"the city took a blow and its ring stayed hidden")
 		_check(town.sprite.position.distance_to(rest) > 0.5,
 			"and must shudder when it is struck")
 		var town_settle: float = Balance.TOWN_JOLT_SECONDS + 0.5
@@ -189,3 +207,14 @@ func _check_firing_poses() -> void:
 				"missing discharge art must retain the authored idle fallback")
 		one.queue_free()
 		await get_tree().process_frame
+
+
+## The city's health ring, wherever it ended up in the visual host.
+func _find_ring(from: Node) -> Control:
+	for child: Node in from.get_children():
+		if child.name == "HealthRing":
+			return child as Control
+		var deeper: Control = _find_ring(child)
+		if deeper != null:
+			return deeper
+	return null

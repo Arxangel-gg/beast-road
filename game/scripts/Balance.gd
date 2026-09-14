@@ -4736,6 +4736,25 @@ const UI_CLOCK_EASY: Color = Color(0.42, 0.82, 0.40)
 const UI_CLOCK_SOON: Color = Color(0.95, 0.74, 0.25)
 const UI_CLOCK_URGENT: Color = Color(0.92, 0.28, 0.22)
 
+## The city's own health ring, drawn over the base when it is not whole.
+##
+## The town bar in the corner is the number; this is the *place*. A player
+## fighting on the far road has no reason to look at the top of the screen, and
+## the one thing that ends a run was only ever readable there.
+##
+## Hidden entirely at full health: a ring that is always on is furniture, and
+## the walls are whole for most of a good run. [TUNE]
+const TOWN_RING_RADIUS: float = 86.0
+const TOWN_RING_THICKNESS: float = 0.17
+## Lifted off the roofs so it reads as hanging over the city rather than
+## painted on it, and so the towers behind never poke through the band.
+const TOWN_RING_LIFT: float = -104.0
+const TOWN_RING_FULL: Color = Color(0.85, 0.72, 0.35, 0.92)
+const TOWN_RING_HURT: Color = Color(0.86, 0.28, 0.22, 0.96)
+## How long the ring takes to catch up with a blow, in seconds of travel.
+## It chases rather than snaps, so a hit reads as a slide the eye can follow.
+const TOWN_RING_CATCH_UP: float = 2.4
+
 const TORCH_LIGHT_RADIUS: float = 360.0
 
 ## Per-torch energy, deliberately low for the radius.

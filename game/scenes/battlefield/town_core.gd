@@ -42,6 +42,10 @@ var _jolt_from: Vector2 = Vector2.UP
 
 ## Where the sprite sits when nothing is moving it.
 var _sprite_home: Vector2 = Vector2.ZERO
+## The ring over the city, and the number it is sliding toward.
+var _health_ring: ColorRect = null
+var _ring_shown: float = 1.0
+var _ring_clock: float = 0.0
 var _sprite_scale: Vector2 = Vector2.ONE
 var _ended: bool = false
 var _stage: int = -1
@@ -87,6 +91,7 @@ func _ready() -> void:
 	# The city is on the beast's back. It should move when the beast does, and
 	# that is the whole of its idle - see `Balance.TOWN_GAIT_DEGREES`.
 	EventBus.beast_step_landed.connect(_on_beast_step)
+	_build_health_ring()
 	EventBus.town_health_changed.emit(health.current_hp, health.max_hp)
 	EventBus.relic_socketed.connect(_on_relic_changed)
 	EventBus.relic_unsocketed.connect(_on_relic_changed)
@@ -94,6 +99,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_idle(delta)
+	_tick_health_ring(delta)
 	if _flash_left > 0.0:
 		_flash_left = maxf(_flash_left - delta, 0.0)
 		sprite.modulate = Balance.HIT_FLASH_COLOUR.lerp(Color.WHITE,
@@ -396,3 +402,64 @@ func _on_died(_from: Vector2) -> void:
 		return
 	_ended = true
 	GameDirector.end_run(false)
+
+
+## The ring over the city, built once and hidden until it is needed.
+##
+## A child of the visual host rather than of the sprite, so it rides the gait
+## with the city but is not scaled by the damage stages - a ring that shrank
+## when the walls fell would be reporting the wrong thing twice.
+func _build_health_ring() -> void:
+	var host: Node = visual_host if visual_host != null else self
+	_health_ring = ColorRect.new()
+	_health_ring.name = "HealthRing"
+	_health_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_health_ring.visible = false
+	var side: float = Balance.TOWN_RING_RADIUS * 2.0
+	_health_ring.size = Vector2(side, side)
+	_health_ring.position = Vector2(-Balance.TOWN_RING_RADIUS,
+		-Balance.TOWN_RING_RADIUS + Balance.TOWN_RING_LIFT)
+	_health_ring.z_index = Balance.VFX_Z - 1
+	# **No shader headless.** The dummy renderer refuses to compile one and
+	# prints `Shader compilation failed`, which the sweep reads as a failed
+	# gate - a real error from a machine with no screen to draw on. The ring is
+	# a picture and nothing depends on it, so headless simply goes without.
+	if DisplayServer.get_name() != "headless":
+		var paint := ShaderMaterial.new()
+		paint.shader = load("res://scripts/shaders/town_health_ring.gdshader")
+		paint.set_shader_parameter("thickness", Balance.TOWN_RING_THICKNESS)
+		paint.set_shader_parameter("full_tint", Balance.TOWN_RING_FULL)
+		paint.set_shader_parameter("hurt_tint", Balance.TOWN_RING_HURT)
+		_health_ring.material = paint
+	host.add_child(_health_ring)
+	_ring_shown = _town_share()
+
+
+## Chases the real number rather than snapping to it.
+##
+## `clock` is fed from here rather than read from `TIME` in the shader, so the
+## pulse stops when the battlefield is suspended for a raid - working rule 8,
+## which a shader reading its own clock would quietly break.
+func _tick_health_ring(delta: float) -> void:
+	if _health_ring == null:
+		return
+	var share: float = _town_share()
+	var whole: bool = share >= 0.999
+	_health_ring.visible = not whole
+	if whole:
+		_ring_shown = share
+		return
+	_ring_shown = move_toward(_ring_shown, share,
+		delta / maxf(Balance.TOWN_RING_CATCH_UP, 0.01))
+	_ring_clock += delta
+	var paint: ShaderMaterial = _health_ring.material as ShaderMaterial
+	if paint == null:
+		return
+	paint.set_shader_parameter("fill", _ring_shown)
+	paint.set_shader_parameter("clock", _ring_clock)
+
+
+func _town_share() -> float:
+	if health == null or health.max_hp <= 0.0:
+		return 1.0
+	return clampf(health.current_hp / health.max_hp, 0.0, 1.0)
