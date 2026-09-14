@@ -3744,10 +3744,22 @@ const MENU_BEAST_LIGHT_FLOOR: float = 0.58
 # Beast parallax
 # ------------------------------------------------------------------------------
 
-## Where the strip sits, and how fast it passes. Faster than the sky, which is
-## what sells the distance.
 ## How tall the beast scope draws its backdrop, whatever the art's native size.
 const BEAST_BACKDROP_HEIGHT: float = 1080.0
+
+## How far the painted sky slides per unit of road travelled.
+##
+## **The slowest thing in the scope, and it used to be the second fastest.** It
+## was 2.4 - a sky crossing its own width every 806 units while the near brush
+## took 1,422 and the far range 10,750. The furthest layer outran all but one of
+## the layers in front of it, which inverts the only cue parallax has; the scope
+## was reported as reading like "a texture sliding rather than land being
+## crossed" and this was most of why.
+##
+## `parallax_cover_check` holds the whole ladder in order now, so a layer added
+## later cannot be dropped into the middle of it at whatever rate looked right
+## on its own. [TUNE]
+const BEAST_BACKDROP_SCROLL: float = 0.11
 
 const BEAST_GROUND_Y: float = 452.0
 ## The sky sits behind everything, including the ground the beast walks on.
@@ -5876,7 +5888,30 @@ const BEAST_RANGE_Z: int = -16
 const BEAST_RANGE_HAZE: float = 0.86
 const BEAST_RANGE_SHADE: float = 0.16
 
-const BEAST_MID_SCROLL: float = 0.78
+## The painted horizon: one strip an act, at the mid distance.
+##
+## The drawn bands either side of it give the *shape* of a distance and every
+## region the same grammar of hills. This one is art, so the Verdant Maw's
+## horizon is a canopy and the Last Terrace's is ruins - which is most of what
+## makes two acts look like two places rather than one place recoloured.
+##
+## Between the ridge and the woods so it reads as a middle distance, and hazed
+## like the bands are: a painted strip at full strength would jump forward out
+## of the stack it belongs to. [TUNE]
+const BEAST_SKYLINE_SCROLL: float = 0.26
+const BEAST_SKYLINE_HEIGHT: float = 168.0
+const BEAST_SKYLINE_BASELINE: float = 372.0
+const BEAST_SKYLINE_Z: int = -14
+const BEAST_SKYLINE_HAZE: float = 0.70
+const BEAST_SKYLINE_SHADE: float = 0.24
+## `res://art/beast/skyline_<region>.png`. A region without one draws nothing,
+## which is how this ships one act at a time.
+const BEAST_SKYLINE_FORMAT: String = "res://art/beast/skyline_%s.png"
+
+## Between the woods behind it and the ground in front, which is where it sits.
+## It was 0.78 and the ground is 0.55, so the middle distance outran the earth
+## the beast was standing on. [TUNE]
+const BEAST_MID_SCROLL: float = 0.50
 const BEAST_MID_HEIGHT: float = 108.0
 const BEAST_MID_BASELINE: float = 404.0
 const BEAST_MID_Z: int = -7
@@ -5906,6 +5941,17 @@ const BEAST_RIDGE_HAZE: float = 0.62
 ## the ground". Kept short so it frames the bottom of the view rather than
 ## eating it.
 const BEAST_FOREGROUND_Z: int = 40
+
+## How fast the near band passes, per unit of road travelled.
+##
+## **Between the ground and the brush, and the geometry decides that rather than
+## taste.** The band fills from its own skyline down past the brush's baseline,
+## so the brush has to draw over it or it is never seen at all - which makes the
+## brush the nearer of the two, which makes it the faster of the two. It was
+## 6.0, eleven times the ground's rate and four times the brush's, and a layer
+## moving that much faster than the earth reads as something thrown past the
+## camera rather than as ground close to it. [TUNE]
+const BEAST_FOREGROUND_SCROLL: float = 0.95
 
 ## Tall enough that its peaks rise *above* the ground line and cross the beast's
 ## feet. The first attempt kept it entirely below that line, where it was a dark

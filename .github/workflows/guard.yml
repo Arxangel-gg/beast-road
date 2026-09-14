@@ -498,6 +498,11 @@ jobs:
           # fog texture, and every dungeon stage is fresh discovery.
           check "fog of war" --headless --path game res://tools/fog_check.tscn
           check "beast tail" --headless --path game res://tools/beast_tail_check.tscn
+          # Every parallax layer covers the whole screen wherever it is on its
+          # own scroll. Three classes each laid their content from their own
+          # origin forward, and the camera sits on that origin, so the left of
+          # the view was bare for half of every period.
+          check "parallax cover" --headless --path game res://tools/parallax_cover_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn

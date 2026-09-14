@@ -7,10 +7,12 @@ extends Node2D
 ## in the BG and foreground ... Sonic, Super Mario").
 ##
 ## **Seamless by construction.** Every prop is placed inside one period of
-## `band_width`, and each is drawn twice - at its place and one period on - so
-## sliding the band by any amount inside a period leaves the view covered and
-## the wrap invisible. The same rule `ParallaxBand` uses for its silhouette,
-## applied to sprites.
+## `band_width` and laid down once per entry in `ParallaxBand.PERIODS` - one
+## period behind this node's origin, at it, and one on - so sliding the band by
+## any amount inside a period leaves the view covered and the wrap invisible.
+## The same rule `ParallaxBand` uses for its silhouette, applied to sprites, and
+## it borrows that list rather than keeping its own: both layers had the same
+## off-by-one-period hole and fixing one of them would not have fixed the other.
 ##
 ## **Procedural from the region's own art.** The props are the act's trees and
 ## plants - the same textures the battlefield grows - so the road the beast
@@ -21,6 +23,8 @@ extends Node2D
 ## rate the scope hands `scroll_to`. A far layer is small, pale and slow; a near
 ## one large, dark and fast.
 
+## One period, in world units. Must be at least half the view width, which is
+## what makes `ParallaxBand.PERIODS` enough of them.
 var band_width: float = 1920.0
 ## Where the props stand, in this node's own space.
 var baseline: float = 0.0
@@ -62,7 +66,7 @@ func rebuild(art: Array[Texture2D]) -> void:
 		var size: float = rng.randf_range(scale_range.x, scale_range.y)
 		var flip: bool = rng.randf() < 0.5
 		var shade: float = rng.randf_range(0.9, 1.06)
-		for period: int in 2:
+		for period: int in ParallaxBand.PERIODS:
 			var sprite := Sprite2D.new()
 			sprite.texture = texture
 			sprite.centered = true

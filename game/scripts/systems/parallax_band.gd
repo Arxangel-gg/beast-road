@@ -5,9 +5,9 @@ extends Node2D
 ##
 ## The beast scope had exactly two depths — a painted sky and the ground under
 ## the feet — so distance read as a texture sliding rather than as land being
-## crossed. `FOREGROUND_SCROLL` had been sitting in `beast_scope.gd` unused since
-## whenever it was written, which is the shape of a layer that was planned and
-## never built.
+## crossed. The near band's scroll rate had been sitting in `beast_scope.gd`
+## unused since whenever it was written, which is the shape of a layer that was
+## planned and never built.
 ##
 ## **Drawn rather than painted**, and that is what makes it possible at all. New
 ## painted art is an art-direction task and the house style is painterly, which
@@ -34,8 +34,28 @@ const WEIGHTS: Array[float] = [0.52, 0.26, 0.14, 0.08]
 ## these bands are drawn at, cheap enough to rebuild whenever an act changes.
 const RESOLUTION: int = 96
 
-## One period, in world units. Two are drawn so the view is always covered.
+## One period, in world units. `PERIODS` of them are drawn, so the view is
+## always covered however far the band has slid.
+##
+## Must be at least half the view width, which is what makes three enough.
 var band_width: float = 1920.0
+
+## The periods `_draw` lays down, as multiples of `band_width` from this node's
+## own origin.
+##
+## **Three, starting one period behind it, and the missing one was the bug.**
+## The pair that shipped ran [0, 2w] while `scroll_to` slides the node over
+## (-w, 0], so a band that had travelled less than half a period covered none of
+## the left half of the screen. The scope's camera sits on this node's origin,
+## so the view is [-960, 960] in its own space and a run beginning at 0 starts
+## in the middle of it. What a player saw was the far ridge ending at a hard
+## vertical edge with sky beside it, on roughly every other stretch of road.
+##
+## Kept as a constant rather than written into the loop because the gate reads
+## this array: the property it asserts is about the periods that are actually
+## drawn, and a copy of the arithmetic in a test would have passed with the
+## fault still in place.
+const PERIODS: Array[int] = [-1, 0, 1]
 
 ## How tall the silhouette stands above its baseline at full amplitude.
 var band_height: float = 180.0
@@ -89,10 +109,9 @@ func rebuild() -> void:
 func _draw() -> void:
 	if _profile.size() < 2:
 		return
-	# Two periods, so a band scrolled anywhere within one width still covers the
-	# view. The second is the first translated by exactly one period, which the
+	# Each period is the one before translated by exactly one width, which the
 	# harmonic construction makes indistinguishable from a continuation.
-	for period: int in 2:
+	for period: int in PERIODS:
 		var shifted: PackedVector2Array = PackedVector2Array()
 		var offset: float = float(period) * band_width
 		for point: Vector2 in _profile:

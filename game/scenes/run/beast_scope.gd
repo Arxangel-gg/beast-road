@@ -7,13 +7,6 @@ extends Node2D
 ## This scope shows state and changes nothing. Its job is to make distance feel
 ## like a place rather than a number in the corner of a HUD.
 
-## How far the parallax layers scroll per distance unit.
-##
-## `FOREGROUND_SCROLL` sat here unused for a long time - the shape of a layer
-## that was planned and never built. It drives the near band now.
-const BACKDROP_SCROLL: float = 2.4
-const FOREGROUND_SCROLL: float = 6.0
-
 @export var backdrop: Sprite2D
 @export var beast: Sprite2D
 @export var route_line: Line2D
@@ -68,6 +61,8 @@ var _day_tint: CanvasModulate = null
 var _weather: WeatherVeil = null
 ## Two more distances in the parallax ladder (2026-09-14).
 var _range_band: ParallaxBand = null
+## The region's own painted horizon (2026-09-14).
+var _skyline: ParallaxStrip = null
 var _mid_band: ParallaxBand = null
 var _town_light_anchor: Node2D = null
 
@@ -508,6 +503,14 @@ func _build_parallax() -> void:
 	_range_band.z_index = Balance.BEAST_RANGE_Z
 	add_child(_range_band)
 
+	# The painted horizon, between the far range and the ridge.
+	_skyline = ParallaxStrip.new()
+	_skyline.name = "Skyline"
+	_skyline.band_height = Balance.BEAST_SKYLINE_HEIGHT
+	_skyline.baseline = Balance.BEAST_SKYLINE_BASELINE
+	_skyline.z_index = Balance.BEAST_SKYLINE_Z
+	add_child(_skyline)
+
 	_ridge = ParallaxBand.new()
 	_ridge.name = "Ridge"
 	_ridge.band_width = Balance.BEAST_BACKDROP_HEIGHT * (16.0 / 9.0)
@@ -581,6 +584,16 @@ func _apply_parallax_palette() -> void:
 	_ridge.colour.a = 1.0
 	_ridge.shape_seed = hash(RunState.terrain_id + "ridge")
 	_ridge.rebuild()
+
+	# **The painted horizon for this region**, if one has been drawn. Hazed with
+	# the same arithmetic the drawn bands use, so it sits inside the stack
+	# rather than in front of it.
+	if _skyline != null:
+		var art: String = Balance.BEAST_SKYLINE_FORMAT % RunState.terrain_id
+		_skyline.texture = load(art) as Texture2D if ResourceLoader.exists(art) 			else null
+		var sky_haze: Color = horizon.lerp(Color(horizon.r, horizon.g, horizon.b)
+			.lightened(0.24), Balance.BEAST_SKYLINE_HAZE)
+		_skyline.tint = Color(sky_haze.darkened(Balance.BEAST_SKYLINE_SHADE), 1.0)
 
 	# The two added distances, hazed and shaded from the same horizon: the far
 	# range is mostly the air in front of it, the mid rise barely at all.
@@ -685,7 +698,8 @@ func _scroll_backdrop() -> void:
 	var width: float = backdrop.texture.get_width() * backdrop.scale.x
 	if width <= 0.0:
 		return
-	var offset: float = fmod(RunState.distance_travelled * BACKDROP_SCROLL, width)
+	var offset: float = fmod(RunState.distance_travelled
+		* Balance.BEAST_BACKDROP_SCROLL, width)
 	backdrop.position.x = -offset
 	_backdrop_clone.position.x = -offset + width
 	_backdrop_clone.position.y = backdrop.position.y
@@ -694,6 +708,8 @@ func _scroll_backdrop() -> void:
 	# ground, then the band that overtakes the beast.
 	if _ridge != null:
 		_ridge.scroll_to(RunState.distance_travelled, Balance.BEAST_RIDGE_SCROLL)
+	if _skyline != null:
+		_skyline.scroll_to(RunState.distance_travelled, Balance.BEAST_SKYLINE_SCROLL)
 	if _range_band != null:
 		_range_band.scroll_to(RunState.distance_travelled, Balance.BEAST_RANGE_SCROLL)
 	if _mid_band != null:
@@ -701,7 +717,8 @@ func _scroll_backdrop() -> void:
 	if _woods != null:
 		_woods.scroll_to(RunState.distance_travelled, Balance.BEAST_WOODS_SCROLL)
 	if _foreground != null:
-		_foreground.scroll_to(RunState.distance_travelled, FOREGROUND_SCROLL)
+		_foreground.scroll_to(RunState.distance_travelled,
+			Balance.BEAST_FOREGROUND_SCROLL)
 	if _brush != null:
 		_brush.scroll_to(RunState.distance_travelled, Balance.BEAST_BRUSH_SCROLL)
 

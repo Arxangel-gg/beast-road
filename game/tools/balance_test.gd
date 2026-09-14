@@ -1628,6 +1628,20 @@ func _test_enemy_roles() -> void:
 		"%d distinct boss cores across %d acts"
 			% [cores_seen.size(), Balance.ACT_COUNT])
 
+	# **Every region has a horizon of its own.** The drawn parallax bands give
+	# the shape of a distance and hand all ten the same grammar of hills; the
+	# skyline strip is what makes the Verdant Maw a canopy and the Last Terrace
+	# a flight of stairs. A region without one silently draws no layer, which is
+	# the failure this catches - the scope would simply look emptier there and
+	# nothing would say why.
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var region: TerrainData = ContentDB.terrain_for_act(act)
+		if region == null:
+			continue
+		var strip: String = Balance.BEAST_SKYLINE_FORMAT % region.id
+		_check(ResourceLoader.exists(strip),
+			"act %d (%s) has no horizon strip at %s" % [act, region.id, strip])
+
 	# **Every act is held by somebody, and the card says who.** The ten
 	# factions were authored with a name, a look and a way of fighting so that
 	# "codex, previews and localization consume the same source", and until the

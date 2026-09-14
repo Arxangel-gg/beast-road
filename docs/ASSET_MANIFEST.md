@@ -2639,6 +2639,42 @@ furnish themselves from the same props.
 | `fork_barrier.png` | 185×93 | T | `#5A4A3A` |
 | `war_totem.png` | 96×160 | T | `#5A4A3A` |
 
+### 5.16b Beast scope skylines — `res://art/beast/`
+
+The region's own horizon at the middle distance (2026-09-14). The drawn
+parallax bands either side of it give the *shape* of a distance and hand every
+region the same grammar of hills; these are what make the Verdant Maw's horizon
+a canopy and the Last Terrace's a flight of terraces.
+
+> Flat silhouettes with nothing inside them, because they are tinted at runtime
+> from the backdrop's own horizon colour - a strip with its own palette would
+> fight whatever sky is behind it. Laid down in mirrored pairs by
+> `ParallaxStrip`, so they need not tile.
+
+> **Each is trimmed to its own content, so the heights differ and that is the
+> point.** They were all drawn on a 512×128 canvas and a sparse horizon is
+> supposed to be a shorter horizon: the Iron Steppe is 54 rows of open plain and
+> the Last Terrace is the full 128. `ParallaxStrip` scales every one of them by
+> the same `band_height / 128`, so the ten keep their relative statures and one
+> number in `Balance` moves them together. Trim a replacement the same way, and
+> put its real height in the table - `production art` reads this column.
+
+> A region with no strip simply draws no layer, which is how this could ship
+> one act at a time.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `skyline_jungle.png` | 512×105 | T | `#1A1A20` |
+| `skyline_desert.png` | 512×121 | T | `#1A1A20` |
+| `skyline_snow.png` | 512×80 | T | `#1A1A20` |
+| `skyline_hollow_marches.png` | 512×101 | T | `#1A1A20` |
+| `skyline_rustwood.png` | 512×122 | T | `#1A1A20` |
+| `skyline_saltpan.png` | 512×66 | T | `#1A1A20` |
+| `skyline_iron_steppe.png` | 512×54 | T | `#1A1A20` |
+| `skyline_glass_fields.png` | 512×122 | T | `#1A1A20` |
+| `skyline_ashen_reach.png` | 512×89 | T | `#1A1A20` |
+| `skyline_last_terrace.png` | 512×128 | T | `#1A1A20` |
+
 ### 5.17 The beast's tail — `res://art/beast/`
 
 The tail the generated beast lost off the edge of its canvas, drawn on
