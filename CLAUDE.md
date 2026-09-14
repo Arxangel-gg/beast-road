@@ -2082,6 +2082,29 @@ clock. A cap authored and read by nothing is the frame going away, which is
 why the director and the wildlife are driven rather than their constants
 read. Frame timing stays `perf_check`'s, on the release, with a renderer.
 
+**The raccoon is a thief with an AI, as of 2026-09-14.** The owner's brief
+from the third play report: the loot indicator more apparent, not every
+raccoon carrying, and a raccoon that searches, steals, hides. `WildlifeData`
+grew `hoard_chance` (the raccoon is born with its sack 45% of the time) and
+`steals`; three states joined `Wildlife.State` - SCAVENGING, HIDING,
+FORAGING - and `_tick_thief` runs them on the host: every half second it
+looks for loot on the ground within reach of its nose and goes for the
+*richest* (gear by rarity, then Gold by the coin), takes it
+(`LootDrop.steal`, which removes the drop from every machine and pays
+nobody), runs it to the nearest tree standing far from every hero and lies
+low there half-seen, breaks cover and bolts when a hero comes close, and
+with nothing in its sack forages the foliage for Gold. The sack is the tell:
+bigger, and it glints - never while hiding. What it took falls when it dies
+and goes with it when it rifts.
+
+**Two bounds.** A piece a player put down on purpose is never taken
+(`player_dropped`), and neither is a crate, an orb, a spark or a blueprint -
+a thief carries what a thief can carry. And a guest's puppet decides nothing:
+the host tells it its sack and its cover (`coop_wildlife_sack`, Fact 63),
+and `coop_loot_taken` already removes the drop. `raccoon_check` measures each
+part on the real field, stopping the road first, because a wave walking past
+frightens a thief mid-errand exactly as it should.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

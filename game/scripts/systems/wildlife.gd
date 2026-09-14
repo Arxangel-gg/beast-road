@@ -33,7 +33,8 @@ const BATCH_INTERVAL: float = 0.2
 ## `STALKING` and `STRIKING` are the hostile half. Deliberately only two: an
 ## ambient creature with a combat state machine as deep as an enemy's is a
 ## maintenance cost paid for something the player reads as "the wolf is coming".
-enum State { ARRIVING, SETTLED, FLEEING, LEAVING, STALKING, STRIKING, GRAZING, ALERT }
+enum State { ARRIVING, SETTLED, FLEEING, LEAVING, STALKING, STRIKING, GRAZING, ALERT,
+	SCAVENGING, HIDING, FORAGING }
 
 ## The grid, so animals can be kept off the roads. Assigned by the battlefield.
 var grid: BattleGrid = null
@@ -93,6 +94,7 @@ func _ready() -> void:
 	# Replicated so a hunt is shared. A guest whose field held different animals
 	# could not help farm one, and would watch its partner swing at nothing.
 	EventBus.coop_wildlife_spawned.connect(_on_coop_spawned)
+	EventBus.coop_wildlife_sack.connect(_on_coop_sack)
 	EventBus.coop_wildlife_batch.connect(_on_coop_batch)
 	EventBus.coop_wildlife_removed.connect(_on_coop_removed)
 	EventBus.coop_wildlife_died.connect(_on_coop_died)
@@ -442,7 +444,11 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	sprite.z_as_relative = false
 	(host if host != null else self).add_child(sprite)
 	var impact_material: ShaderMaterial = ActorPolishScript.attach(sprite)
-	if kind.hoards:
+	# Born with its sack `hoard_chance` of the time. Rolled on both machines
+	# from the same stream like the rabid roll above; the host's word arrives
+	# as a fact as well, so a guest that rolled differently is corrected.
+	var innate: bool = kind.hoards and _rng.randf() < kind.hoard_chance
+	if innate:
 		_hang_sack(sprite, kind)
 
 
@@ -562,7 +568,21 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		# Whether this one keeps the truce by the water.
 		"truce": _rng.randf() < Balance.WILDLIFE_POND_TRUCE_CHANCE,
 		"drinking": false,
+		# A thief's sack, what is in it, and its clocks. `innate` is the hoard
+		# it was born with, rolled only when it dies; `loot` is what it took.
+		"sack": innate,
+		"innate": innate,
+		"loot": [],
+		"look": _rng.randf() * Balance.THIEF_LOOK_TICK,
+		"hide_left": 0.0,
+		"forage_left": 0.0,
+		"forage_dust": 0.0,
+		"glint": 0.0,
+		"hiding": false,
+		"target_loot": 0,
 	})
+	if innate and _is_authority_with_company():
+		EventBus.coop_wildlife_sack.emit(identity, true, false)
 	_apply_visual_anchor(sprite, kind, size, kind.flies, 0.0,
 		float(sprite.texture.get_height()) if sprite.texture != null else 0.0)
 	_cast_shadow(sprite, kind, size)
@@ -643,6 +663,12 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			var warning: bool = left <= Balance.WILDLIFE_HOARD_WARNING_SECONDS
 			var lit: bool = warning and fmod(left, 0.3) < 0.15
 			sack.modulate = Color(1.0, 0.55, 0.45) if lit else Color.WHITE
+			# The sack glints: the tell that this one is worth the chase, and
+			# it stops glinting when the animal lies low with it.
+			animal["glint"] = float(animal.get("glint", 0.0)) - delta
+			if float(animal["glint"]) <= 0.0 and not bool(animal.get("hiding", false)):
+				animal["glint"] = Balance.THIEF_SACK_GLINT_SECONDS
+				Vfx.spark(sack.global_position, Color(1.0, 0.86, 0.45), 3, Vector2.UP, 90.0)
 		if left <= 0.0:
 			_rift_out(animal, sprite)
 			return false
@@ -653,6 +679,13 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	if kind.is_hostile() and not _hostile_arrivals_allowed():
 		animal["state"] = State.LEAVING
 		animal["goal"] = _bolt_target(sprite.global_position)
+
+	# A thief decides its own frames: the loot it saw, the cover it runs to,
+	# the plant it digs at. The host decides; a guest's puppet is walked by
+	# the batch and dressed by the sack fact.
+	if kind.steals and _is_authority_or_alone():
+		if _tick_thief(animal, sprite, kind, delta):
+			return true
 
 	# A hostile animal decides differently, and gets first refusal on the frame.
 	if kind.is_hostile() and int(animal["state"]) != State.LEAVING:
@@ -1537,7 +1570,7 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
 	if field != null and field.has_method("spawn_loot"):
 		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
-	if kind.hoards:
+	if kind.hoards or not (animal.get("loot", []) as Array).is_empty():
 		_drop_the_hoard(animal, kind, sprite.global_position)
 	RunState.gain_hero_xp(float(kind.xp_reward) * bounty)
 	if _is_authority_with_company():
@@ -1738,6 +1771,20 @@ func _rift_out(animal: Dictionary, sprite: Sprite2D) -> void:
 ## rare thing pays like a rare thing - and an elite carries more of both.
 func _drop_the_hoard(animal: Dictionary, kind: WildlifeData, at: Vector2) -> void:
 	if field == null or not field.has_method("spawn_loot"):
+		return
+	# What it took comes back first, coin for coin and piece for piece.
+	for held: Variant in animal.get("loot", []) as Array:
+		var item: Dictionary = held
+		var where: Vector2 = at + Vector2(_rng.randf_range(-1.0, 1.0), _rng.randf_range(-1.0, 1.0)) * 26.0
+		var piece: Dictionary = item.get("gear", {})
+		if not piece.is_empty() and field.has_method("spawn_gear"):
+			field.spawn_gear(piece, where)
+		elif int(item.get("amount", 0)) > 0 and not String(item.get("currency", "")).is_empty():
+			field.spawn_loot(String(item["currency"]), int(item["amount"]), where)
+	# Then the hoard it was born with, if it was born with one. A record with
+	# no say on the matter - a stub, or one from before the sack was a chance
+	# - is a hoarder that was born with its sack.
+	if not bool(animal.get("innate", true)):
 		return
 	var bounty: float = Balance.WILDLIFE_ELITE_REWARD if bool(animal.get("elite", false)) else 1.0
 	var gold: int = int(round(float(_rng.randi_range(kind.hoard_gold_min, kind.hoard_gold_max)) * bounty))
@@ -2338,3 +2385,243 @@ func _nearest_hero_node() -> Node2D:
 			best_distance = distance
 			best = who
 	return best
+
+
+# --- Thieves ---------------------------------------------------------------------------------
+
+## A thief's frame. True when it took the frame - it is lying low or digging -
+## and false to let the ordinary walk carry it toward its goal.
+##
+## Owner brief, 2026-09-14: a loot goblin with an AI. It notices the loot on
+## the ground and takes the richest, runs it to cover away from every hero
+## and lies low half-seen, breaks cover and bolts when one comes close, and
+## when it has nothing it forages the foliage for something. What it carries
+## falls when it dies (`_drop_the_hoard`) and goes with it when it rifts. The
+## host decides all of it; the guest's puppet is walked by the batch and
+## dressed by the sack fact.
+func _tick_thief(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delta: float) -> bool:
+	var at: Vector2 = sprite.global_position
+	var state: int = int(animal["state"])
+	match state:
+		State.SCAVENGING:
+			var drop := instance_from_id(int(animal.get("target_loot", 0))) as LootDrop
+			if drop == null or not is_instance_valid(drop) or drop.steal_worth() <= 0.0:
+				animal["state"] = State.SETTLED
+				animal["goal"] = at
+				return false
+			if _frightened(at, kind):
+				_give_up(animal, sprite, at)
+				return false
+			animal["goal"] = drop.global_position
+			if at.distance_to(drop.global_position) <= Balance.THIEF_GRAB_REACH:
+				var held: Dictionary = drop.steal()
+				if not held.is_empty():
+					(animal["loot"] as Array).append(held)
+					_set_sack(animal, sprite, kind, true)
+					Sfx.play_group("sfx_loot_drop", -6.0)
+				_run_for_cover(animal, sprite, at)
+			return false
+		State.HIDING:
+			var spot: Vector2 = animal["goal"]
+			if at.distance_to(spot) > 8.0:
+				if _frightened(at, kind):
+					_give_up(animal, sprite, at)
+				return false
+			if not bool(animal.get("hiding", false)):
+				_set_hiding(animal, sprite, true)
+				animal["hide_left"] = _rng.randf_range(Balance.THIEF_HIDE_SECONDS.x, Balance.THIEF_HIDE_SECONDS.y)
+			animal["hide_left"] = float(animal["hide_left"]) - delta
+			var near: Node2D = _nearest_hero_node()
+			if near != null and at.distance_to(near.global_position) <= Balance.THIEF_HIDE_BREAK:
+				_set_hiding(animal, sprite, false)
+				animal["state"] = State.FLEEING
+				animal["goal"] = _bolt_target(at, near.global_position)
+				return false
+			if float(animal["hide_left"]) <= 0.0:
+				_set_hiding(animal, sprite, false)
+				animal["state"] = State.SETTLED
+				animal["home"] = at
+				return false
+			_animate(animal, sprite, delta, false)
+			return true
+		State.FORAGING:
+			var plant: Vector2 = animal["goal"]
+			if at.distance_to(plant) > 10.0:
+				if _frightened(at, kind):
+					_give_up(animal, sprite, at)
+				return false
+			animal["forage_left"] = float(animal["forage_left"]) - delta
+			animal["forage_dust"] = float(animal.get("forage_dust", 0.0)) - delta
+			if float(animal["forage_dust"]) <= 0.0:
+				animal["forage_dust"] = 0.6
+				Vfx.dust(at + Vector2(0.0, 6.0), Color(0.42, 0.34, 0.24), 3, 22.0)
+			if _frightened(at, kind):
+				_give_up(animal, sprite, at)
+				return false
+			if float(animal["forage_left"]) <= 0.0:
+				animal["state"] = State.SETTLED
+				animal["home"] = at
+				if _rng.randf() < Balance.THIEF_FORAGE_FIND:
+					var gold: int = int(round(float(_rng.randi_range(kind.hoard_gold_min, kind.hoard_gold_max))
+						* Balance.THIEF_FORAGE_GOLD_SCALE))
+					if gold > 0:
+						(animal["loot"] as Array).append({"currency": RunState.GOLD, "amount": gold, "gear": {}})
+						_set_sack(animal, sprite, kind, true)
+						Vfx.spark(at, Color(1.0, 0.86, 0.45), 8, Vector2.UP, 160.0)
+				return false
+			_animate(animal, sprite, delta, false)
+			return true
+		State.SETTLED:
+			animal["look"] = float(animal.get("look", 0.0)) - delta
+			if float(animal["look"]) > 0.0:
+				return false
+			animal["look"] = Balance.THIEF_LOOK_TICK
+			var drop: LootDrop = _richest_loot_near(at, Balance.THIEF_NOTICE)
+			if drop != null:
+				animal["state"] = State.SCAVENGING
+				animal["target_loot"] = drop.get_instance_id()
+				animal["goal"] = drop.global_position
+				return false
+			# Nothing to take and nothing carried: dig for something.
+			if not bool(animal.get("sack", false)) and float(animal["pause"]) <= 0.0 \
+					and _rng.randf() < Balance.THIEF_FORAGE_CHANCE:
+				var plant: Vector2 = _plant_near(at, Balance.THIEF_FORAGE_REACH)
+				if plant.is_finite():
+					animal["state"] = State.FORAGING
+					animal["goal"] = plant
+					animal["forage_left"] = _rng.randf_range(Balance.THIEF_FORAGE_SECONDS.x, Balance.THIEF_FORAGE_SECONDS.y)
+					animal["pause"] = 1.0
+					return false
+	return false
+
+
+## Frightened mid-errand: it runs, keeps what it holds, and forgets the rest.
+func _give_up(animal: Dictionary, sprite: Sprite2D, at: Vector2) -> void:
+	_set_hiding(animal, sprite, false)
+	animal["state"] = State.FLEEING
+	animal["goal"] = _bolt_target(at, _nearest_threat(at, INF))
+
+
+## Off to cover with what it took.
+func _run_for_cover(animal: Dictionary, sprite: Sprite2D, at: Vector2) -> void:
+	animal["state"] = State.HIDING
+	animal["hiding"] = false
+	animal["goal"] = _hiding_spot(at)
+
+
+## The richest thing lying within reach of its nose, or null.
+func _richest_loot_near(at: Vector2, radius: float) -> LootDrop:
+	var best: LootDrop = null
+	var best_worth: float = 0.0
+	var best_away: float = INF
+	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
+		var drop := node as LootDrop
+		if drop == null or not is_instance_valid(drop):
+			continue
+		var away: float = drop.global_position.distance_to(at)
+		if away > radius:
+			continue
+		var worth: float = drop.steal_worth()
+		if worth <= 0.0:
+			continue
+		if worth > best_worth or (is_equal_approx(worth, best_worth) and away < best_away):
+			best = drop
+			best_worth = worth
+			best_away = away
+	return best
+
+
+## A plant to dig at within reach, on ground it may stand on, or INF.
+func _plant_near(at: Vector2, reach: float) -> Vector2:
+	if field == null or not field.has_method("foliage_node"):
+		return Vector2.INF
+	var foliage: Foliage = field.call("foliage_node") as Foliage
+	if foliage == null:
+		return Vector2.INF
+	var plants: Array[Dictionary] = foliage.plants_near(at, reach)
+	for _try: int in mini(plants.size(), 6):
+		var pick: Dictionary = plants[_rng.randi_range(0, plants.size() - 1)]
+		var where: Vector2 = pick["at"]
+		if _is_clear(where) and where.distance_to(at) > 24.0:
+			return where
+	return Vector2.INF
+
+
+## Cover: the nearest tree standing far enough from every hero, on ground
+## it may stand on; failing that, a bolt away from the nearest one.
+func _hiding_spot(from: Vector2) -> Vector2:
+	var heroes: Array = get_tree().get_nodes_in_group(Hero.GROUP_ANY)
+	var best: Vector2 = Vector2.INF
+	var best_away: float = INF
+	if field != null and field.has_method("tree_positions"):
+		var inside: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
+		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
+			if absf(trunk.x) > inside or absf(trunk.y) > inside:
+				continue
+			var clear: bool = true
+			for node: Node in heroes:
+				var hero := node as Node2D
+				if hero != null and trunk.distance_to(hero.global_position) < Balance.THIEF_HIDE_DISTANCE:
+					clear = false
+					break
+			if not clear or not _is_clear(trunk):
+				continue
+			var away: float = trunk.distance_to(from)
+			if away < best_away:
+				best_away = away
+				best = trunk
+	if best.is_finite():
+		return best
+	var near: Node2D = _nearest_hero_node()
+	return _bolt_target(from, near.global_position if near != null else Vector2.INF)
+
+
+## The sack on or off, and the guest told.
+func _set_sack(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, carrying: bool) -> void:
+	animal["sack"] = carrying
+	var sack: Node = sprite.get_node_or_null("Sack")
+	if carrying and sack == null:
+		_hang_sack(sprite, kind)
+	elif not carrying and sack != null:
+		sack.queue_free()
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_sack.emit(int(animal["net_id"]), carrying, bool(animal.get("hiding", false)))
+
+
+## Lying low: half seen, and the sack does not glint.
+func _set_hiding(animal: Dictionary, sprite: Sprite2D, hiding: bool) -> void:
+	if bool(animal.get("hiding", false)) == hiding:
+		return
+	animal["hiding"] = hiding
+	sprite.modulate.a = Balance.THIEF_HIDE_ALPHA if hiding else 1.0
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_sack.emit(int(animal["net_id"]), bool(animal.get("sack", false)), hiding)
+
+
+## The host's word on a puppet's sack and cover.
+func _on_coop_sack(net_id: int, carrying: bool, hiding: bool) -> void:
+	if not Coop.is_guest():
+		return
+	for animal: Dictionary in _living:
+		if int(animal["net_id"]) != net_id:
+			continue
+		var sprite := animal["sprite"] as Sprite2D
+		var kind := animal["data"] as WildlifeData
+		if sprite == null or not is_instance_valid(sprite) or kind == null:
+			return
+		animal["sack"] = carrying
+		var sack: Node = sprite.get_node_or_null("Sack")
+		if carrying and sack == null:
+			_hang_sack(sprite, kind)
+		elif not carrying and sack != null:
+			sack.queue_free()
+		animal["hiding"] = hiding
+		sprite.modulate.a = Balance.THIEF_HIDE_ALPHA if hiding else 1.0
+		return
+
+
+## For the gate: what an animal holds.
+func carried_loot(index: int) -> Array:
+	if index < 0 or index >= _living.size():
+		return []
+	return _living[index].get("loot", []) as Array

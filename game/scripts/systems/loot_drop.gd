@@ -351,6 +351,41 @@ func collect_mirrored() -> void:
 	_dissolve_and_free()
 
 
+## What this drop is worth to a thief, 0 for a thing a thief cannot carry:
+## gear by its rarity, Gold by the coin, anything else by less. A crate, an
+## orb, a spark and a blueprint are not carried off, and neither is a piece a
+## player put down on purpose.
+func steal_worth() -> float:
+	if puppet or _taken or player_dropped or _homing:
+		return 0.0
+	if not gear.is_empty():
+		return 2.0 + float(int(gear.get("rarity", 0)))
+	if not blueprint.is_empty() or currency == Balance.SUPPLY_CRATE_ID \
+			or currency == Balance.HEALING_ORB_ID or currency == Balance.MENDER_SPARK_ID:
+		return 0.0
+	if amount <= 0 or currency.is_empty():
+		return 0.0
+	return float(amount) / (40.0 if currency == RunState.GOLD else 120.0)
+
+
+## A thief takes it: the drop is gone from every machine and nobody is paid;
+## what it held comes back as the thief's own. Empty when it could not be.
+func steal() -> Dictionary:
+	if steal_worth() <= 0.0:
+		return {}
+	_taken = true
+	if net_id != 0:
+		EventBus.coop_loot_taken.emit(net_id)
+	var held: Dictionary = {"currency": currency, "amount": amount, "gear": gear.duplicate(true)}
+	Vfx.dust(global_position, Color(0.5, 0.45, 0.4), 5, 30.0)
+	_dissolve_and_free()
+	return held
+
+
+func is_taken() -> bool:
+	return _taken
+
+
 func _collect(who: Hero = null) -> void:
 	# A guest's drop is a picture. The host decides what was picked up and says
 	# so, or two machines would each bank the same coin.

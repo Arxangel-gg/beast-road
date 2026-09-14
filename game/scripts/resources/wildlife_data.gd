@@ -223,6 +223,16 @@ func roll_weight(act: int) -> float:
 ## all. That makes it a prize with a clock on it: worth leaving the line for,
 ## and worth the bow, since it runs faster than the hero walks.
 @export var hoards: bool = false
+## How often a hoarder is born with its sack. Below one, a sackless one is a
+## thief with nothing yet - see `steals` - and the sack is the tell that this
+## particular animal is worth the chase (owner brief, 2026-09-14: "not every
+## raccoon has loot").
+@export_range(0.0, 1.0) var hoard_chance: float = 1.0
+## Whether this animal hunts loot: takes the richest drop lying on the ground
+## within reach of its nose, runs it to cover and lies low, and forages the
+## foliage when it has nothing. What it carries falls when it dies and goes
+## with it when it rifts.
+@export var steals: bool = false
 @export_range(0, 400) var hoard_gold_min: int = 0
 @export_range(0, 400) var hoard_gold_max: int = 0
 @export_range(0.0, 1.0) var hoard_gear_chance: float = 0.0

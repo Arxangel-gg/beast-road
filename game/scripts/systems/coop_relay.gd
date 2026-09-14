@@ -123,6 +123,7 @@ enum Fact {
 	WRATH_ZONE = 60,
 	WRATH_WARNED = 61,
 	CLIMATE_BAND = 62,
+	WILDLIFE_SACK = 63,
 	## The party events, host to everyone. See `PartyEvents`.
 	PARTY_EVENT_PROPOSED = 53,
 	PARTY_EVENT_VOTES = 54,
@@ -387,6 +388,7 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_batch", _on_coop_wildlife_batch],
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_wildlife_died", _on_coop_wildlife_died],
+		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_camp_state", _on_coop_camp_state],
 		["coop_fork_opened", _on_coop_fork_opened],
 		["coop_party_event_proposed", _on_coop_party_event_proposed],
@@ -492,6 +494,10 @@ func _on_coop_wildlife_removed(net_id: int) -> void:
 
 func _on_coop_wildlife_died(net_id: int) -> void:
 	_relay(Fact.WILDLIFE_DIED, [net_id])
+
+
+func _on_coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool) -> void:
+	_relay(Fact.WILDLIFE_SACK, [net_id, carrying, hiding])
 
 
 func _on_coop_camp_state(lane: int, tier: int, state: int) -> void:
@@ -914,6 +920,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WILDLIFE_DIED:
 			if args.size() == 1:
 				bus.coop_wildlife_died.emit(int(args[0]))
+		Fact.WILDLIFE_SACK:
+			if args.size() == 3:
+				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))
 		Fact.RUN_ENDED:
 			if args.size() == 1 and args[0] is bool:
 				bus.coop_run_ended.emit(bool(args[0]))

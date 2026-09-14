@@ -262,6 +262,9 @@ signal coop_wildlife_removed(net_id: int)
 
 ## A host-authored wildlife death starts the same fall on every peer.
 signal coop_wildlife_died(net_id: int)
+## A thief's sack and cover, decided by the host: whether it carries anything
+## now and whether it is lying low. The guest dresses its puppet to match.
+signal coop_wildlife_sack(net_id: int, carrying: bool, hiding: bool)
 
 ## An animal was hunted — on the host's say-so, so both players see it fall.
 ## An animal killed by a player or an enemy (never by another animal): its

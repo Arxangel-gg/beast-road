@@ -2988,7 +2988,30 @@ const WILDLIFE_ELITE_REWARD: float = 2.4
 ## Hoarders. The sack drawn above one, in world units, and how high above the
 ## feet it floats; and how many seconds before it rifts away the sack flashes,
 ## so a player looking elsewhere is told the clock is nearly out. [TUNE]
-const WILDLIFE_HOARD_SACK_SIZE: float = 30.0
+const WILDLIFE_HOARD_SACK_SIZE: float = 40.0
+## Thieves (owner brief, 2026-09-14: the raccoon as a loot goblin with an AI
+## of its own). A thief looks for loot on the ground within `THIEF_NOTICE`
+## every `THIEF_LOOK_TICK`, takes the richest within `THIEF_GRAB_REACH`, runs
+## it to cover at least `THIEF_HIDE_DISTANCE` from every hero and lies low
+## for `THIEF_HIDE_SECONDS`, half seen; a hero inside `THIEF_HIDE_BREAK`
+## sends it running. Empty-handed it forages: `THIEF_FORAGE_CHANCE` a pause
+## to walk to a plant within `THIEF_FORAGE_REACH` and dig for
+## `THIEF_FORAGE_SECONDS`, `THIEF_FORAGE_FIND` to come up with Gold at
+## `THIEF_FORAGE_GOLD_SCALE` of its hoard. A carried sack glints every
+## `THIEF_SACK_GLINT_SECONDS`, never while hiding. [TUNE]
+const THIEF_NOTICE: float = 520.0
+const THIEF_LOOK_TICK: float = 0.5
+const THIEF_GRAB_REACH: float = 44.0
+const THIEF_HIDE_DISTANCE: float = 520.0
+const THIEF_HIDE_SECONDS: Vector2 = Vector2(14.0, 30.0)
+const THIEF_HIDE_BREAK: float = 190.0
+const THIEF_HIDE_ALPHA: float = 0.5
+const THIEF_FORAGE_CHANCE: float = 0.35
+const THIEF_FORAGE_REACH: float = 420.0
+const THIEF_FORAGE_SECONDS: Vector2 = Vector2(2.5, 4.5)
+const THIEF_FORAGE_FIND: float = 0.3
+const THIEF_FORAGE_GOLD_SCALE: float = 0.5
+const THIEF_SACK_GLINT_SECONDS: float = 1.4
 const WILDLIFE_HOARD_SACK_LIFT: float = 70.0
 const WILDLIFE_HOARD_WARNING_SECONDS: float = 4.0
 const WILDLIFE_ELITE_TINT: Color = Color(1.0, 0.72, 0.62, 1.0)
