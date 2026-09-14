@@ -99,6 +99,8 @@ func _dry() -> void:
 	_weather("clear")
 	_step(5.0)
 	RunState.flood = 0.0
+	if _field.climate() != null:
+		_field.climate().reset(0.0)
 
 
 func _body(at: Vector2, hp_scale: float = 1.0) -> Enemy:
@@ -317,8 +319,11 @@ func _test_the_wildfire() -> void:
 	for _i: int in int(Balance.WILDFIRE_BURN_SECONDS * 2.0 * float(Balance.WILDFIRE_MAX_GENERATIONS + 1)) + 40:
 		_fire._process(0.5)
 	_check(_fire.fire_count() == 0, "the fire never went out (%d still burning)" % _fire.fire_count())
-	_check(_fire.lit_count <= Balance.WILDFIRE_MAX_LIT + 1,
-		"one blaze lit %d plants against a bound of %d" % [_fire.lit_count, Balance.WILDFIRE_MAX_LIT])
+	# A blaze heats the ground it burns on, so the hot bound is the one it
+	# may reach: a fire that grows its own weather is the design, not a leak.
+	var most: int = int(round(Balance.WILDFIRE_MAX_LIT * Balance.WILDFIRE_HOT_LIT_SCALE)) + 1
+	_check(_fire.lit_count <= most,
+		"one blaze lit %d plants against a bound of %d" % [_fire.lit_count, most])
 	_check(foliage.burnt_count() > burnt_before, "no plant was left burnt")
 	_check(_field.scorch().marked_at(seed_at), "the ground under the fire is not marked")
 	# A tree the fire reaches is charred for good.

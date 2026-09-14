@@ -122,6 +122,7 @@ enum Fact {
 	METEOR_INCOMING = 59,
 	WRATH_ZONE = 60,
 	WRATH_WARNED = 61,
+	CLIMATE_BAND = 62,
 	## The party events, host to everyone. See `PartyEvents`.
 	PARTY_EVENT_PROPOSED = 53,
 	PARTY_EVENT_VOTES = 54,
@@ -365,6 +366,7 @@ func _fact_bindings() -> Array:
 		["meteor_incoming", _on_meteor_incoming],
 		["wrath_zone_opened", _on_wrath_zone_opened],
 		["wrath_warned", _on_wrath_warned],
+		["climate_band_changed", _on_climate_band_changed],
 		["coop_chronicle_progress", _on_chronicle_progress],
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
@@ -702,6 +704,10 @@ func _on_wrath_zone_opened(kind_id: String, at: Vector2, radius: float, seconds:
 
 func _on_wrath_warned(kind_id: String, at: Vector2, seconds: float) -> void:
 	_relay(Fact.WRATH_WARNED, [kind_id, at, seconds])
+
+
+func _on_climate_band_changed(cell: int, temp_band: int, wet_band: int) -> void:
+	_relay(Fact.CLIMATE_BAND, [cell, temp_band, wet_band])
 
 
 func _on_chronicle_progress(summary: Dictionary) -> void:
@@ -1063,6 +1069,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WRATH_WARNED:
 			if args.size() == 3:
 				bus.coop_wrath_warned.emit(String(args[0]), args[1] as Vector2, float(args[2]))
+		Fact.CLIMATE_BAND:
+			if args.size() == 3:
+				bus.coop_climate_band_changed.emit(int(args[0]), int(args[1]), int(args[2]))
 		Fact.PAUSED:
 			if args.size() == 1:
 				bus.coop_paused.emit(bool(args[0]))

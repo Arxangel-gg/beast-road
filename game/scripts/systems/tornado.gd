@@ -213,12 +213,15 @@ func _draw() -> void:
 		var sway: float = sin(_spin * 0.7 + t * 4.0) * width * 0.18
 		var alpha: float = lerpf(0.55, 0.16, t)
 		var shade: float = lerpf(0.28, 0.62, t)
+		var layer: PackedVector2Array = _funnel_layer(t, height, width, sway)
+		if layer.size() < 3:
+			continue
 		if burning():
 			# A fire whirl: lit from inside, brightest at the foot.
 			var glow: Color = Color(1.0, lerpf(0.45, 0.7, t), lerpf(0.12, 0.3, t), alpha * 1.15)
-			draw_colored_polygon(_funnel_layer(t, height, width, sway), glow)
+			draw_colored_polygon(layer, glow)
 			continue
-		draw_colored_polygon(_funnel_layer(t, height, width, sway), Color(shade, shade * 0.92, shade * 0.8, alpha))
+		draw_colored_polygon(layer, Color(shade, shade * 0.92, shade * 0.8, alpha))
 	# The foot on the ground.
 	var foot: PackedVector2Array = PackedVector2Array()
 	for s: int in 16:
@@ -229,6 +232,9 @@ func _draw() -> void:
 
 func _funnel_layer(t: float, height: float, width: float, sway: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()
+	# A layer thinner than a pixel is no polygon; the caller skips an empty one.
+	if width < 2.0:
+		return points
 	var steps: int = 18
 	for s: int in steps:
 		var angle: float = TAU * float(s) / float(steps) + _spin * (1.0 + t)

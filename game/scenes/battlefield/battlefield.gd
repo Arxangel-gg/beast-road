@@ -56,6 +56,7 @@ var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
 var _scorch: ScorchMarks = null
 var _zones: WrathZones = null
+var _climate: Climate = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -490,6 +491,11 @@ func _setup_lighting() -> void:
 
 	# The sky above the veil: what the weather does while it holds. A child of
 	# the field so it freezes with it for a raid (working rule 8).
+	# The ground's own weather, under everything the weather does to it.
+	_climate = Climate.new()
+	_climate.field = self
+	_climate.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
+	add_child(_climate)
 	# The ground's memory and the fire that writes on it, under the sky.
 	_scorch = ScorchMarks.new()
 	_scorch.half_extent = BattleGrid.HALF_EXTENT + Balance.TREELINE_RING
@@ -2426,6 +2432,10 @@ func wildfire() -> Wildfire:
 
 func zones() -> WrathZones:
 	return _zones
+
+
+func climate() -> Climate:
+	return _climate
 
 
 ## The foliage, wherever it was planted in the tree. Cached once found.

@@ -35,6 +35,11 @@ uniform float wave_height = 0.0009;
 // Where the light comes from, over the field. Top-left, like the shadows.
 uniform vec2 light_dir = vec2(-0.55, -0.8);
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
+// The climate's picture (G is wetness), spanning the same square: ground wet
+// enough puddles before the flood rises, and stays puddled after it drains.
+uniform sampler2D wet_tex : hint_default_black, filter_linear;
+uniform float puddle_from = 0.55;
+uniform float puddle_level = 0.5;
 
 float hash21(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -61,14 +66,17 @@ float surface(vec2 uv, float t) {
 }
 
 void fragment() {
-	if (level <= 0.001) {
+	// The flood, or the ground's own wetness where that stands higher.
+	float local = smoothstep(puddle_from, 0.98, texture(wet_tex, UV).g) * puddle_level;
+	float here = max(level, local);
+	if (here <= 0.001) {
 		COLOR = vec4(0.0);
 	} else {
 		vec2 p = UV * cells;
 		// Two octaves of hollows. The ground's low points fill first: a pixel
 		// is wet once the water has risen past its own height.
 		float ground = vnoise(p) * 0.65 + vnoise(p * 2.7 + 13.1) * 0.35;
-		float rise = level * 1.15;
+		float rise = here * 1.15;
 		float water = smoothstep(ground - 0.08, ground + 0.08, rise);
 		// How deep it stands here: the rise over the ground's own height.
 		float depth = clamp((rise - ground) / 0.6, 0.0, 1.0);
@@ -113,7 +121,7 @@ void fragment() {
 		float shore = smoothstep(0.0, 0.5, water) * (1.0 - smoothstep(0.5, 1.0, water));
 		float foam = shore * (0.45 + 0.55 * vnoise(UV * cells * 6.0 + vec2(TIME * 0.35, -TIME * 0.2))) * 0.42;
 
-		float a = water * peak_alpha * (0.55 + 0.45 * level);
+		float a = water * peak_alpha * (0.55 + 0.45 * here);
 		if (refracts) {
 			// The ground seen through the water: bent by the slope, cooled
 			// and darkened by depth, the caustic net laid on it, then the

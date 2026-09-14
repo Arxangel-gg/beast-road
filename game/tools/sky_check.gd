@@ -84,6 +84,8 @@ func _dry() -> void:
 	_sky.forced_intensity = -1.0
 	_weather("clear")
 	_step(5.0)
+	if _field.climate() != null:
+		_field.climate().reset(0.0)
 
 
 ## Steps the sky by hand, the way `camps_check` steps the camps: sky time is
@@ -193,7 +195,12 @@ func _test_lightning() -> void:
 	var far: Enemy = _field.spawn_enemy(data, 0, 1.0)
 	await get_tree().process_frame
 	near.global_position = at
-	far.global_position = at + Vector2(Balance.LIGHTNING_RADIUS * 3.0, 0.0)
+	# Out of reach of the strike *and* of the chain a full flood carries -
+	# the flood is standing from the wait above - with room for the frame
+	# or two of walking between placing the bodies and the strike: at three
+	# radii it sat ten units inside the chain's reach and CI caught it.
+	far.global_position = at + Vector2(maxf(Balance.LIGHTNING_RADIUS * 3.0,
+		Balance.CHAIN_RANGE * (1.0 + Balance.CHAIN_FLOOD_RANGE) + 200.0), 0.0)
 	await get_tree().process_frame
 	var near_hp: float = near.health.current_hp
 	var far_hp: float = far.health.current_hp
@@ -330,9 +337,14 @@ func _test_the_wildlife() -> void:
 	_check(int(bird["state"]) == Wildlife.State.LEAVING, "the butterfly did not leave the flood")
 	_check(bool(squirrel.get("climbing", false)), "the squirrel did not make for a tree")
 	_check(float(rabbit["dying"]) > 0.0, "the rabbit did not drown")
-	# The squirrel reaches its trunk and goes up it.
+	# The squirrel reaches its trunk and goes up it. The trunk is the nearest
+	# tree, the trees are scattered by the run's own seed, and an animal
+	# further from every hero than `WILDLIFE_FORGET_DISTANCE` is forgotten
+	# before it can climb - so the hero, who is the observer, stands beside
+	# it. Without this the verdict was a property of the seed (CI, v0.21.0).
 	var trunk: Vector2 = squirrel["goal"] as Vector2
 	(squirrel["sprite"] as Node2D).global_position = trunk
+	_field.hero.global_position = trunk + Vector2(120.0, 0.0)
 	animals.call("_tick_one", squirrel, 0.5)
 	_check(bool(squirrel.get("treed", false)), "the squirrel at its trunk did not climb")
 	# And comes down when the water does.

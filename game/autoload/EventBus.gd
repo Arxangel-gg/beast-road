@@ -728,6 +728,10 @@ signal coop_wrath_zone_opened(kind_id: String, at: Vector2, radius: float, secon
 ## it will land, in how many seconds (0 for a sign with nothing behind it).
 signal wrath_warned(kind_id: String, at: Vector2, seconds: float)
 signal coop_wrath_warned(kind_id: String, at: Vector2, seconds: float)
+## The ground's own weather: a climate cell crossed a temperature or wetness
+## band. Only crossings travel; the guest eases its copy toward the band.
+signal climate_band_changed(cell: int, temp_band: int, wet_band: int)
+signal coop_climate_band_changed(cell: int, temp_band: int, wet_band: int)
 
 ## How much snow is lying on the ground, 0..1.
 ##

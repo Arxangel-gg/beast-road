@@ -56,7 +56,8 @@ func _draw() -> void:
 	for s: int in 24:
 		var angle: float = TAU * float(s) / 24.0
 		shadow.append(Vector2(cos(angle), sin(angle) * 0.45) * radius)
-	draw_colored_polygon(shadow, Color(0.0, 0.0, 0.0, 0.18 + 0.4 * progress))
+	if radius >= 2.0:
+		draw_colored_polygon(shadow, Color(0.0, 0.0, 0.0, 0.18 + 0.4 * progress))
 	# The rim pulses faster as it comes.
 	var pulse: float = 0.5 + 0.5 * sin(progress * progress * 40.0)
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 40, Color(1.0, 0.45, 0.15, 0.25 + 0.5 * pulse * progress), 3.0)
@@ -81,6 +82,8 @@ func _land() -> void:
 	Sfx.play("sfx_meteor_impact", 0.0)
 	if marks != null:
 		marks.stamp(at, Balance.METEOR_RADIUS * 0.9, 1.0)
+	if field != null and field.climate() != null:
+		field.climate().add_heat(at, Balance.CLIMATE_HEAT_PER_METEOR, Balance.METEOR_RADIUS * 1.5)
 	if not _mirror:
 		_hurt()
 		if wildfire != null:

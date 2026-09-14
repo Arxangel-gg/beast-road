@@ -328,9 +328,12 @@ func strike_at(at: Vector2) -> void:
 			if tower.global_position.distance_to(at) <= Balance.LIGHTNING_EMPOWER_RADIUS:
 				tower.storm_charge(Balance.LIGHTNING_EMPOWER_SECONDS)
 	if not _mirror:
-		# The air where it struck stays charged; dry brush under it catches.
+		# The air where it struck stays charged; the ground under it warms;
+		# dry brush under it catches.
 		if zones != null:
 			zones.open("storm_core", at, Balance.ZONE_STORM_RADIUS)
+		if field != null and field.climate() != null:
+			field.climate().add_heat(at, Balance.CLIMATE_HEAT_PER_STRIKE, Balance.LIGHTNING_RADIUS * 1.5)
 		_dry_lightning(at)
 	EventBus.lightning_struck.emit(at, radius)
 
@@ -514,6 +517,12 @@ func _build_sheen() -> void:
 		_sheen_material.set_shader_parameter("level", 0.0)
 		_sheen_material.set_shader_parameter("tint", Balance.FLOOD_TINT)
 		_sheen_material.set_shader_parameter("peak_alpha", Balance.FLOOD_SHEEN_ALPHA)
+		_sheen_material.set_shader_parameter("puddle_from", Balance.CLIMATE_PUDDLE_FROM)
+		_sheen_material.set_shader_parameter("puddle_level", Balance.CLIMATE_PUDDLE_LEVEL)
+		# Wet ground puddles before the flood rises: the water reads the
+		# climate's own picture, which spans the same square.
+		if field != null and field.climate() != null:
+			_sheen_material.set_shader_parameter("wet_tex", field.climate().texture())
 		_sheen.material = _sheen_material
 	else:
 		_sheen.color = Color(0.0, 0.0, 0.0, 0.0)
@@ -523,7 +532,9 @@ func _build_sheen() -> void:
 func _drive_visuals(_delta: float) -> void:
 	if _sheen == null:
 		return
-	_sheen.visible = _flood > 0.01 and _sheen_material != null
+	var puddled: bool = field != null and field.climate() != null \
+		and field.climate().wettest() > Balance.CLIMATE_PUDDLE_FROM
+	_sheen.visible = (_flood > 0.01 or puddled) and _sheen_material != null
 	if _sheen_material != null:
 		_sheen_material.set_shader_parameter("level", _flood)
 		_sheen_material.set_shader_parameter("rain", clampf(RunState.rain_intensity, 0.0, 1.0))
@@ -623,13 +634,10 @@ func _tick_wrath_events(delta: float) -> void:
 	if _quake_left <= 0.0 and _quake_warning_left <= 0.0 \
 			and _rng.randf() < Balance.QUAKE_RATE * anger * anger * delta:
 		warn_quake(lerpf(0.35, 1.0, clampf(anger / Balance.WRATH_CAP, 0.0, 1.0)))
-	# A wildfire: dry air and an angry earth. Rain and flood stop it at the source.
-	var dry: float = clampf(1.0 - RunState.rain_intensity * 2.0, 0.0, 1.0)
-	if RunState.flood > Balance.WILDFIRE_FLOOD_STOPS:
-		dry = 0.0
-	if RunState.temperature > Balance.WILDFIRE_HOT_FROM:
-		dry *= Balance.WILDFIRE_HOT_SPREAD
-	if wildfire != null and _rng.randf() < Balance.WILDFIRE_RATE * anger * dry * delta:
+	# A wildfire: an angry earth, and ground dry enough where it tries. A
+	# flood stops it at the source; `start_wildfire` asks the ground.
+	if wildfire != null and RunState.flood <= Balance.WILDFIRE_FLOOD_STOPS \
+			and _rng.randf() < Balance.WILDFIRE_RATE * anger * delta:
 		start_wildfire()
 	# A tornado: the earth's anger, or the storm towers' own running.
 	var whirl: float = anger + clampf(RunState.gale / Balance.GALE_FULL, 0.0, 1.0)
@@ -709,6 +717,9 @@ func start_wildfire() -> bool:
 		return false
 	for _attempt: int in 8:
 		var at: Vector2 = _pick_strike_point()
+		# Dry ground catches; soaked ground refuses, however angry the earth.
+		if _rng.randf() > _dryness_at(at):
+			continue
 		if wildfire.ignite_near(at, Balance.WILDFIRE_SPREAD_RADIUS * 2.0, 1.0):
 			wildfires += 1
 			_tell("wildfire", at, 0.0)
@@ -716,13 +727,29 @@ func start_wildfire() -> bool:
 	return false
 
 
+## How readily the brush burns at a point: the ground's own answer where
+## there is a climate, the sky's where there is not.
+func _dryness_at(at: Vector2) -> float:
+	if field != null and field.climate() != null:
+		return field.climate().dryness_at(at)
+	var dry: float = clampf(1.0 - RunState.rain_intensity * 2.0, 0.0, 1.0)
+	if RunState.temperature > Balance.WILDFIRE_HOT_FROM:
+		dry *= Balance.WILDFIRE_HOT_SPREAD
+	return dry
+
+
 ## A strike with no rain on it lights the brush (ChatGPT notes: "Drought +
 ## Lightning"). Under a heatwave, much more often.
 func _dry_lightning(at: Vector2) -> void:
 	if wildfire == null or RunState.rain_intensity > 0.05 or RunState.flood > Balance.WILDFIRE_FLOOD_STOPS:
 		return
+	# The ground under the strike: soaked ground does not catch.
+	var ground: Climate = field.climate() if field != null else null
+	if ground != null and ground.wetness_at(at) > Balance.CLIMATE_WET_BANDS[0] * 1.75:
+		return
 	var chance: float = Balance.LIGHTNING_IGNITE_CHANCE
-	if RunState.temperature > Balance.WILDFIRE_HOT_FROM:
+	var degrees: float = ground.temperature_at(at) if ground != null else RunState.temperature
+	if degrees > Balance.WILDFIRE_HOT_FROM:
 		chance *= Balance.LIGHTNING_IGNITE_HOT_SCALE
 	if wildfire.ignite_near(at, Balance.LIGHTNING_RADIUS, chance):
 		wildfires += 1

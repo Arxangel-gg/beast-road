@@ -415,10 +415,18 @@ func _tick_storm(delta: float) -> void:
 
 ## A well in the heat: the draught it has drawn goes back into the ground, and
 ## the one it is drawing comes slower. Nothing here reaches any other tower.
+## A well evaporates by the ground it stands on, not the sky alone: one
+## beside a cluster of fire towers dries while one across the field does not.
+func evaporation_now() -> float:
+	if _field != null and _field.climate() != null:
+		return _field.climate().evaporation_at(origin())
+	return RunState.well_evaporation()
+
+
 func _tick_heat(delta: float) -> void:
 	if data == null or not data.is_well():
 		return
-	var evaporation: float = RunState.well_evaporation()
+	var evaporation: float = evaporation_now()
 	if evaporation <= 0.0:
 		_evaporated = maxf(_evaporated - delta * 0.2, 0.0)
 		return
@@ -642,6 +650,15 @@ func _fire(targets: Array[Enemy]) -> void:
 	# The storm towers running stir the air; enough of it and a funnel forms.
 	if data.element == TowerData.Element.AIR:
 		RunState.gale += Balance.GALE_PER_SHOT
+	# A fire tower warms the ground it stands on and a water tower cools and
+	# wets it - additive, so a cluster is a hotspot (owner brief, 2026-09-14).
+	var ground: Climate = _field.climate() if _field != null else null
+	if ground != null:
+		if data.element == TowerData.Element.FIRE:
+			ground.add_heat(origin(), Balance.CLIMATE_HEAT_PER_FIRE_SHOT)
+		elif data.element == TowerData.Element.WATER:
+			ground.add_heat(origin(), -Balance.CLIMATE_COOL_PER_WATER_SHOT)
+			ground.add_wet(origin(), Balance.CLIMATE_WET_PER_WATER_SHOT)
 
 	# An aura tower has no projectile: it affects everything in reach at once,
 	# and a shot flying out to each target would be a lie about how it works.

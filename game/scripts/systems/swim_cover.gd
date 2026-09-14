@@ -61,7 +61,16 @@ func _draw() -> void:
 	# edge over the bank or the pond's own rim (owner report, 2026-09-12).
 	var steps: int = 14
 	var feather: float = Balance.SWIM_COVER_FEATHER
-	var rows: Array[float] = [0.0, feather, drawn.y * waterline * 0.5, drawn.y * waterline + 6.0]
+	# The last row is clear too, so the band fades out under the feet rather
+	# than ending in a hard line on the water (owner report, 2026-09-14).
+	var rows: Array[float] = [0.0, feather, drawn.y * waterline * 0.5, drawn.y * waterline + 6.0,
+		drawn.y * waterline + 6.0 + feather * 3.0]
+	# In a flood the band wears the flood's colour, a little thinner, so it
+	# is the same water as the sheet around it.
+	var body: Color = water
+	if RunState.flood > 0.0:
+		body = water.lerp(Balance.FLOOD_TINT, RunState.flood * 0.7)
+		body.a = water.a * (1.0 - 0.35 * RunState.flood)
 	var points := PackedVector2Array()
 	var colours := PackedColorArray()
 	for row: int in rows.size():
@@ -70,8 +79,8 @@ func _draw() -> void:
 			var wobble: float = sin(x * 0.11 + _clock * 4.2) * 2.2 + sin(x * 0.05 - _clock * 2.7) * 1.4
 			var y: float = line + rows[row] + (wobble if row < 2 else 0.0)
 			points.append(Vector2(x, y))
-			var alpha: float = water.a
-			if row == 0:
+			var alpha: float = body.a
+			if row == 0 or row == rows.size() - 1:
 				alpha = 0.0
 			var side: float = minf(x - left, right - x)
 			alpha *= clampf(side / Balance.SWIM_COVER_SIDE_FEATHER, 0.0, 1.0)
@@ -79,7 +88,7 @@ func _draw() -> void:
 				var world: Vector2 = get_global_transform() * Vector2(x, y)
 				if float(field.call("water_depth_at", world)) <= 0.0:
 					alpha = 0.0
-			colours.append(Color(water.r, water.g, water.b, alpha))
+			colours.append(Color(body.r, body.g, body.b, alpha))
 	var indices := PackedInt32Array()
 	for row: int in rows.size() - 1:
 		for index: int in steps:

@@ -1864,6 +1864,55 @@ low-end switch back to a flat sheet, and it is off headless, where there is no
 frame to read. Like every shader here it cannot be seen by a gate:
 `shader_lint_check` holds the grammar and `sky_shot` photographs it.
 
+**The ground has its own weather, as of 2026-09-14.** The owner forwarded a
+second set of notes - a coarse environmental grid, event-driven, staggered,
+replicated only on threshold crossings, never visually square - with six
+foundation requirements attached. `Climate` is that grid, and each
+requirement is a rule here rather than a preference.
+
+**A cell is eight tiles a side and carries a heat, a wetness, a soil byte and
+whether it is awake.** The heat is degrees above or below the sky's; the
+wetness runs from tinder to standing water; the soil byte is *reserved* -
+only NORMAL is written - so lava, ice, mud, ash and the rest plug in as
+values of a byte that already exists rather than as a second grid. A cell
+with nothing happening to it is asleep and costs nothing.
+
+**Sources add, with falloff.** `add_heat` and `add_wet` spread a source over
+the cells within a radius, most at the centre, and stack: three fire towers
+side by side make a hotter spot than one, which is the whole reason to have
+cells rather than a number. A fire tower's shot warms its ground, a water
+tower's cools and wets it, a burning plant warms and dries, a strike and a
+stone warm, rain and flood wet everything.
+
+**Nothing on screen or in play shows the square.** Every read is a bilinear
+sample across the four nearest cells, the picture is one texel a cell drawn
+through a linear filter and broken up by noise, and the guest *eases* toward
+a band it is told rather than snapping to it. `climate_check` measures the
+slope between two cells and the ease on a mirror.
+
+**Only band crossings travel.** `NORMAL -> HOT`, `WET -> FLOODED`: a cell is
+told once when it crosses and never while it stays. The gate counts.
+
+**The things that read the sky read the ground now.** The wildfire's spread
+asks the dryness under the plant, a well evaporates by the temperature it
+stands in, dry lightning refuses soaked ground, and the earth's own wildfire
+refuses a soaked point. `wrath_check` and `sky_check` reset the climate dry
+after every rain they make, because the ground remembers rain the way the
+sky does not.
+
+**Interactions are one line each in `_tick`.** Heat dries wet ground; that is
+the one this pass ships. Wind on the fire, cold freezing the wet, moisture
+suppressing ignition further - each is a line beside it, not a system.
+
+**F7 shows the cells** - band colours, figures, awake markers - for tuning,
+and is not rebindable (the pad is full). The player is never shown a number.
+
+**One consequence worth knowing:** a blaze heats the ground it burns on, and
+hot ground lifts the wildfire's own bound (`WILDFIRE_HOT_LIT_SCALE`), so a
+fire grows its own weather. That is the design - "wildfire produces more
+heat" was in the notes - and `wrath_check` holds the hot bound rather than
+the cool one.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

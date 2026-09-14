@@ -524,6 +524,10 @@ jobs:
           # The earth's wrath: kills feed it, it leans the weather, and it shakes,
           # burns, spins and throws stones - each measured on the real field.
           check "wrath" --headless --path game res://tools/wrath_check.tscn
+          # The ground's own weather: sources add with falloff, heat spreads
+          # and cools, rain wets and heat dries, cells sleep, bands cross once,
+          # the guest eases, and the wells and the fire read the ground.
+          check "climate" --headless --path game res://tools/climate_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn

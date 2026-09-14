@@ -6500,6 +6500,60 @@ const TORCH_RAIN_POOL_DIM: float = 0.35
 const WILDLIFE_CLIMB_LIFT: float = 46.0
 
 # ------------------------------------------------------------------------------
+# THE GROUND'S OWN WEATHER (2026-09-14): the climate grid
+# ------------------------------------------------------------------------------
+# A coarse grid of cells over the field, each warmer or colder than the sky
+# and wetter or drier than rest, fed by what fires and burns and floods on it.
+# See `Climate`. Everything that used to read one temperature for the whole
+# road reads the ground under it now.
+
+## A cell is this many tiles a side; the grid steps every `CLIMATE_TICK`.
+const CLIMATE_CELL_TILES: int = 8
+const CLIMATE_TICK: float = 0.5
+## Ground at rest is a little damp: 0 is tinder, 1 is standing water.
+const CLIMATE_WET_REST: float = 0.3
+## How far a source reaches and what each puts in. Additive, most at the
+## centre: two fire towers side by side make a hotter spot than one. [TUNE]
+const CLIMATE_SOURCE_RADIUS: float = 560.0
+const CLIMATE_HEAT_PER_FIRE_SHOT: float = 0.35
+const CLIMATE_COOL_PER_WATER_SHOT: float = 0.3
+const CLIMATE_WET_PER_WATER_SHOT: float = 0.012
+const CLIMATE_HEAT_PER_FIRE_SECOND: float = 1.4
+const CLIMATE_DRY_PER_FIRE_SECOND: float = 0.02
+const CLIMATE_FIRE_RADIUS: float = 300.0
+const CLIMATE_HEAT_PER_STRIKE: float = 6.0
+const CLIMATE_HEAT_PER_METEOR: float = 30.0
+## Heat moves toward the neighbours by this share a tick and cools toward
+## the sky over `CLIMATE_HEAT_TAU` seconds; wet ground dries toward rest
+## over `CLIMATE_WET_TAU`, faster by the degree where it is hot; rain wets
+## every cell at this rate. A cell this close to rest goes to sleep. [TUNE]
+const CLIMATE_DIFFUSION: float = 0.14
+const CLIMATE_HEAT_TAU: float = 45.0
+const CLIMATE_WET_TAU: float = 90.0
+const CLIMATE_RAIN_WET_RATE: float = 0.06
+const CLIMATE_DRY_PER_DEGREE: float = 0.0008
+const CLIMATE_SLEEP_HEAT: float = 0.05
+const CLIMATE_SLEEP_WET: float = 0.01
+## The bands - on degrees and on wetness - and the figure the guest eases
+## toward when told a cell crossed one. Only crossings travel.
+const CLIMATE_TEMP_BANDS: Array[float] = [5.0, 29.0, 38.0]
+const CLIMATE_WET_BANDS: Array[float] = [0.2, 0.6, 0.9]
+const CLIMATE_BAND_HEAT: Array[float] = [-10.0, 0.0, 12.0, 22.0]
+const CLIMATE_BAND_WET: Array[float] = [0.08, 0.4, 0.75, 0.95]
+const CLIMATE_EASE: float = 0.6
+## Wet ground quenches: how much wetness takes off the brush's dryness, and
+## how much faster a fire standing on it goes out.
+const CLIMATE_WET_QUENCH: float = 1.4
+const CLIMATE_WET_QUENCH_FIRE: float = 2.0
+## The picture: degrees across the red channel, the tint's strength, and
+## where wet ground starts to puddle in the flood's shader and how deep.
+const CLIMATE_PICTURE_DEGREES: float = 40.0
+const CLIMATE_OVERLAY_ALPHA: float = 0.42
+const CLIMATE_PUDDLE_FROM: float = 0.5
+const CLIMATE_PUDDLE_LEVEL: float = 0.7
+const CLIMATE_Z: int = -30
+
+# ------------------------------------------------------------------------------
 # THE EARTH'S WRATH (2026-09-14)
 # ------------------------------------------------------------------------------
 # Owner brief: the earth keeps count of what is killed on it and answers. Wrath

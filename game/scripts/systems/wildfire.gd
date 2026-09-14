@@ -132,6 +132,7 @@ func _process(delta: float) -> void:
 		return
 	# Rain shortens every fire; a flood ends them all.
 	var quench: float = 1.0 + RunState.rain_intensity * Balance.WILDFIRE_RAIN_QUENCH
+	var ground: Climate = field.climate() if field != null else null
 	var drowned: bool = RunState.flood > Balance.WILDFIRE_FLOOD_STOPS
 	_scare_timer -= delta
 	var scare: bool = _scare_timer <= 0.0
@@ -140,8 +141,14 @@ func _process(delta: float) -> void:
 	for index: int in range(_fires.size() - 1, -1, -1):
 		var fire: Dictionary = _fires[index]
 		var at: Vector2 = fire["at"]
-		fire["left"] = float(fire["left"]) - delta * quench
+		# Wet ground under a fire puts it out sooner; a fire warms and dries
+		# the ground it burns on.
+		var soaked: float = ground.wetness_at(at) if ground != null else 0.0
+		fire["left"] = float(fire["left"]) - delta * (quench + soaked * Balance.CLIMATE_WET_QUENCH_FIRE)
 		if not _mirror:
+			if ground != null:
+				ground.add_heat(at, Balance.CLIMATE_HEAT_PER_FIRE_SECOND * delta, Balance.CLIMATE_FIRE_RADIUS)
+				ground.add_wet(at, -Balance.CLIMATE_DRY_PER_FIRE_SECOND * delta, Balance.CLIMATE_FIRE_RADIUS)
 			_hurt_around(at, delta)
 			if scare and animals != null:
 				animals.scare_from(at, Balance.WILDFIRE_SCARE_RADIUS)
@@ -182,11 +189,16 @@ func _hurt_around(at: Vector2, delta: float) -> void:
 func _try_spread(at: Vector2, generation: int) -> void:
 	if generation >= Balance.WILDFIRE_MAX_GENERATIONS or _fires.size() >= Balance.WILDFIRE_MAX_FIRES:
 		return
-	var hot: bool = RunState.temperature > Balance.WILDFIRE_HOT_FROM
+	# The ground under the fire: its own dryness and heat where there is a
+	# climate to ask, the sky's where there is not.
+	var ground: Climate = field.climate() if field != null else null
+	var hot: bool = (ground.temperature_at(at) if ground != null else RunState.temperature) > Balance.WILDFIRE_HOT_FROM
 	var most: int = int(round(Balance.WILDFIRE_MAX_LIT * (Balance.WILDFIRE_HOT_LIT_SCALE if hot else 1.0)))
 	if _blaze_lit >= most:
 		return
 	var dry: float = clampf(1.0 - RunState.rain_intensity * 2.0, 0.0, 1.0)
+	if ground != null:
+		dry = minf(dry, ground.dryness_at(at) / (Balance.WILDFIRE_HOT_SPREAD if hot else 1.0))
 	if hot:
 		dry *= Balance.WILDFIRE_HOT_SPREAD
 	var weather: WeatherData = ContentDB.weather(RunState.weather_id)
