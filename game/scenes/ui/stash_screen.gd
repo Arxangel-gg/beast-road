@@ -82,6 +82,7 @@ func _build() -> void:
 	_panel.add_child(column)
 
 	_header = Label.new()
+	_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_header.add_theme_font_size_override("font_size", 22)
 	_header.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(_header)
@@ -89,6 +90,14 @@ func _build() -> void:
 	_note = Label.new()
 	_note.add_theme_font_size_override("font_size", 13)
 	_note.add_theme_color_override("font_color", Color("b8ae98"))
+	# **A Label's minimum width is its whole text.** This one says "17 of 96
+	# held - full-stash drops auto-break into Shards", it sits outside the
+	# scroll as a direct child of the panel, and at touch font sizes it demanded
+	# 1318 units on a 430-wide phone - so the panel grew to fit *it*, carried
+	# the Close button off the bottom with it, and `layout_check` reported a
+	# stash with no way out. Wrapped, its minimum is one word wide and the
+	# panel is governed by its own `custom_minimum_size` again.
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_note)
 
 	# Bulk work, above the list rather than in it.
@@ -561,6 +570,11 @@ func _row(index: int) -> Container:
 
 	var label := Label.new()
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Wrapped for the same reason the note above it is: a row reads
+	# "Beastcalled Ashwalk Greaves - Boots - Lv47 - +3 Vigour, +2 Resolve",
+	# and unwrapped that is the row's *minimum* width, which the panel then
+	# grows to fit. Inside the scroll, so the extra height costs nothing.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_font_size_override("font_size", 15)
 	if kind == null:
 		label.text = "Unknown"

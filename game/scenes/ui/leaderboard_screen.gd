@@ -211,6 +211,12 @@ func _row(place: int, entry: Dictionary) -> HBoxContainer:
 	var name_label := Label.new()
 	name_label.text = String(entry.get("name", "—"))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# **Trimmed, not wrapped.** A Warden's name is player-entered and its full
+	# width was the row's minimum, which the panel then grew to fit - 903 units
+	# on a 430-wide phone. A name is an identifier rather than prose, so it
+	# reads better cut with an ellipsis than folded onto two lines.
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.clip_text = true
 	name_label.add_theme_color_override("font_color", tint)
 	row.add_child(name_label)
 
@@ -219,7 +225,10 @@ func _row(place: int, entry: Dictionary) -> HBoxContainer:
 	# the same run, and the wave is what separates them.
 	reached.text = "Act %d · wave %d" % [int(entry.get("act", 1)),
 		int(entry.get("wave", 0))]
-	reached.custom_minimum_size = Vector2(190.0, 0.0)
+	# Enough for "Act 10 - wave 75" and no more: a fixed 190 plus the rank and
+	# level columns is most of a phone's width before the name has any.
+	reached.custom_minimum_size = Vector2(0.0, 0.0)
+	reached.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	reached.add_theme_color_override("font_color", Color("8f9b98"))
 	row.add_child(reached)
 
