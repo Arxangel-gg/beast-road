@@ -90,6 +90,9 @@ func _test_the_director_waits_at_the_cap() -> void:
 	if director == null:
 		return
 	director.call("stop")
+	# Driven by hand: the director's own tick would spawn from the queue on
+	# its own clock, which on a slow CI frame is every frame.
+	director.set_process(false)
 	var data: EnemyData = ContentDB.enemy("bogkin")
 	while _field.enemy_count() < Balance.BATTLEFIELD_MAX_ENEMIES:
 		_field.spawn_enemy(data, _field.enemy_count() % 4, 1.0)
@@ -106,15 +109,22 @@ func _test_the_director_waits_at_the_cap() -> void:
 	_check((director.get("_spawn_queue") as Array).size() == 1, "the director dropped the body it was waiting to spawn")
 	# Room again: the same entry is spawned.
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		node.queue_free()
+		var enemy := node as Enemy
+		if enemy != null and not enemy.is_camp_mob():
+			enemy.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var before: int = _field.enemy_count()
 	director.call("_spawn_next")
 	await get_tree().process_frame
-	_check(_field.enemy_count() == 1, "with room the director did not spawn the waiting body (%d)" % _field.enemy_count())
+	_check(_field.enemy_count() == before + 1,
+		"with room the director did not spawn the waiting body (%d from %d)" % [_field.enemy_count(), before])
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
-		node.queue_free()
+		var enemy := node as Enemy
+		if enemy != null and not enemy.is_camp_mob():
+			enemy.queue_free()
 	(director.get("_spawn_queue") as Array).clear()
+	director.set_process(true)
 	await get_tree().process_frame
 
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ur7c8g6o3roa"
-path="res://.godot/imported/wildlife_hawk_idle_05.png-b9027d6334daca15ecaa0e9db2c1e0ae.ctex"
+uid="uid://dnrsqexxsjwys"
+path="res://.godot/imported/wildlife_frost_elk_move_08.png-9a197538cf1a938d223e47aedc6d640f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/wildlife/wildlife_hawk_idle_05.png"
-dest_files=["res://.godot/imported/wildlife_hawk_idle_05.png-b9027d6334daca15ecaa0e9db2c1e0ae.ctex"]
+source_file="res://art/wildlife/wildlife_frost_elk_move_08.png"
+dest_files=["res://.godot/imported/wildlife_frost_elk_move_08.png-9a197538cf1a938d223e47aedc6d640f.ctex"]
 
 [params]
 

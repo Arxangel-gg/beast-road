@@ -53,12 +53,17 @@ func _ready() -> void:
 			if enemy != null and not enemy.is_camp_mob():
 				enemy.queue_free()
 		await get_tree().process_frame
+		# Driven by hand from here: the engine's own tick, which on a slow CI
+		# frame carries a delta of a third of a second, would walk the animal
+		# between two of the gate's reads.
+		_animals.set_process(false)
 		_test_not_every_raccoon_has_loot()
 		await _test_it_takes_the_richest_and_hides()
 		await _test_a_hero_breaks_cover()
 		await _test_it_never_takes_what_a_player_put_down()
 		await _test_it_forages()
 		await _test_it_drops_everything_it_took()
+		_animals.set_process(true)
 	MetaState.resume_saves()
 	if _failures.is_empty():
 		print("[thieves] PASS - %d checks: the sack is a chance, the richest is taken, cover is "

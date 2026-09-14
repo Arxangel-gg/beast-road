@@ -93,6 +93,10 @@ var _nag: float = 1.0
 var _frame_ms: Array[float] = []
 var _hitches: int = 0
 var _worst_ms: float = 0.0
+## Each hitch: when, how long, and what arrived that frame.
+var _hitch_ledger: Array[Dictionary] = []
+var _nodes_last: int = 0
+var _textures_last: float = 0.0
 
 ## Sampled once a second rather than per frame: the question is a trend over
 ## minutes, and sixty samples a second only makes the array bigger.
@@ -243,8 +247,16 @@ func _process(delta: float) -> void:
 	var ms: float = delta * 1000.0
 	_frame_ms.append(ms)
 	_worst_ms = maxf(_worst_ms, ms)
+	# What the frame did, for the hitch ledger: nodes that arrived and texture
+	# memory that appeared are the two signatures of a load mid-fight.
+	var nodes_now: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	var textures_now: float = float(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED))
 	if ms > HITCH_MS:
 		_hitches += 1
+		_hitch_ledger.append({"at": _elapsed, "ms": ms, "nodes": nodes_now - _nodes_last,
+			"textures_kb": (textures_now - _textures_last) / 1024.0})
+	_nodes_last = nodes_now
+	_textures_last = textures_now
 
 	_sample_left -= delta
 	if _sample_left <= 0.0:
@@ -296,6 +308,20 @@ func _check_timing() -> void:
 		% [average, fps, p99, _worst_ms])
 	_notes.append("hitches over %.0f ms: %d  (%.1f per minute, budget %.1f)"
 		% [HITCH_MS, _hitches, per_minute, MAX_HITCHES_PER_MINUTE])
+	# The worst eight, with what arrived in the frame: a hitch with a texture
+	# jump is a load, one with a node jump is a spawn, one with neither is
+	# script time.
+	_hitch_ledger.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["ms"]) > float(b["ms"]))
+	var loads: int = 0
+	for hitch: Dictionary in _hitch_ledger:
+		if float(hitch["textures_kb"]) > 256.0:
+			loads += 1
+	if not _hitch_ledger.is_empty():
+		_notes.append("hitches that loaded textures: %d of %d" % [loads, _hitch_ledger.size()])
+	for index: int in mini(_hitch_ledger.size(), 8):
+		var hitch: Dictionary = _hitch_ledger[index]
+		_notes.append("  hitch %.1f ms at %.0fs  nodes %+d  textures %+.0f KB" % [
+			float(hitch["ms"]), float(hitch["at"]), int(hitch["nodes"]), float(hitch["textures_kb"])])
 	_notes.append("render objects %d  primitives %d  draw calls %d" % [
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),

@@ -2105,6 +2105,38 @@ and `coop_loot_taken` already removes the drop. `raccoon_check` measures each
 part on the real field, stopping the road first, because a wave walking past
 frightens a thief mid-errand exactly as it should.
 
+**The act is warm before it is fought, as of 2026-09-14.** `perf_check` on
+an RTX 3070 Ti: the average frame on vsync and **12.5 hitches a minute over
+33 ms against a budget of 3**, worst 146 ms. Nothing preloaded anything: the
+first spawn of every breed loaded its thirteen frames from disk mid-wave,
+every animal did the same on arrival, and every shader compiled on the first
+frame that drew it. `RosterWarmup.warm_act` loads the region's breeds, its
+elites, its boss, every wildlife kind and every tower before the act, and
+`warm_shaders` draws every shader once on a speck; the battlefield calls it
+in `_ready` and in `refresh_terrain`, the one function everything regional
+goes through. `warmup_check` proves every frame the act can draw hands back
+the *same instance* on a second load - `ResourceLoader.has_cached` answers
+by a texture's remapped import path and says no to the path anyone asks
+for, which is the wrong tool for this. `perf_check` keeps a hitch ledger
+now: each hitch with the nodes and the texture memory that arrived in its
+frame, so a load, a spawn and script time are told apart.
+
+**Loops close on their own pose, as of the same date.** An audit of all 250
+frame sequences measured the jump from the last frame back to the first
+against the mean step between frames. The idle loops play the base sprite
+as frame zero and the worst of them - heron, hedgehog, hawk, raven, bog
+crane, frost elk, steppe horse, glass moth, swallowtail - jumped four times
+a step back onto it; the walks that were regenerated on 2026-09-14 (glass
+singer, ice hauler, horde shieldman, fog lantern, pack howler, snowhide
+brute, frost elk, squirrel) did not return to their own first frame. All
+seventeen were re-animated with `animate_image`'s `last_frame_url` pinned
+to the base sprite, which is the one instruction that makes a loop a loop;
+idles install three frames and drop the pinned fourth, walks keep all eight
+with the pinned base as the contact pose. The audit script is worth
+keeping in mind before generating another cycle: a walk is judged last-to-
+first, an idle base-to-first, and `holes` counts the gaps between limbs, so
+only *pinholes* - enclosed specks under a dozen pixels - mean a fault.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

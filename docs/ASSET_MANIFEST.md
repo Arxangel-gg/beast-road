@@ -1433,13 +1433,13 @@ Files: `wildlife_salt_crab_move_01.png` · `wildlife_salt_crab_move_02.png` · `
 Files: `wildlife_salt_crab_attack_01.png` · `wildlife_salt_crab_attack_02.png` · `wildlife_salt_crab_attack_03.png` · `wildlife_salt_crab_attack_04.png` · `wildlife_salt_crab_attack_05.png`
 Files: `wildlife_steppe_horse_idle_01.png` · `wildlife_steppe_horse_idle_02.png` · `wildlife_steppe_horse_idle_03.png`
 Files: `wildlife_steppe_horse_move_01.png` · `wildlife_steppe_horse_move_02.png` · `wildlife_steppe_horse_move_03.png` · `wildlife_steppe_horse_move_04.png` · `wildlife_steppe_horse_move_05.png` · `wildlife_steppe_horse_move_06.png` · `wildlife_steppe_horse_move_07.png`
-Files: `wildlife_glass_moth_idle_01.png` · `wildlife_glass_moth_idle_02.png` · `wildlife_glass_moth_idle_03.png` · `wildlife_glass_moth_idle_04.png`
+Files: `wildlife_glass_moth_idle_01.png` · `wildlife_glass_moth_idle_02.png` · `wildlife_glass_moth_idle_03.png`
 Files: `wildlife_glass_moth_fly_01.png` · `wildlife_glass_moth_fly_02.png` · `wildlife_glass_moth_fly_03.png` · `wildlife_glass_moth_fly_04.png` · `wildlife_glass_moth_fly_05.png` · `wildlife_glass_moth_fly_06.png` · `wildlife_glass_moth_fly_07.png`
-Files: `wildlife_ash_hound_idle_01.png` · `wildlife_ash_hound_idle_02.png` · `wildlife_ash_hound_idle_03.png`
-Files: `wildlife_ash_hound_move_01.png` · `wildlife_ash_hound_move_02.png` · `wildlife_ash_hound_move_03.png` · `wildlife_ash_hound_move_04.png` · `wildlife_ash_hound_move_05.png` · `wildlife_ash_hound_move_06.png` · `wildlife_ash_hound_move_07.png`
+Files: `wildlife_ash_hound_idle_01.png` · `wildlife_ash_hound_idle_02.png` · `wildlife_ash_hound_idle_03.png` · `wildlife_ash_hound_idle_04.png`
+Files: `wildlife_ash_hound_move_01.png` · `wildlife_ash_hound_move_02.png` · `wildlife_ash_hound_move_03.png` · `wildlife_ash_hound_move_04.png` · `wildlife_ash_hound_move_05.png` · `wildlife_ash_hound_move_06.png` · `wildlife_ash_hound_move_07.png` · `wildlife_ash_hound_move_08.png`
 Files: `wildlife_ash_hound_attack_01.png` · `wildlife_ash_hound_attack_02.png` · `wildlife_ash_hound_attack_03.png` · `wildlife_ash_hound_attack_04.png` · `wildlife_ash_hound_attack_05.png`
-Files: `wildlife_cliff_goat_idle_01.png` · `wildlife_cliff_goat_idle_02.png` · `wildlife_cliff_goat_idle_03.png`
-Files: `wildlife_cliff_goat_move_01.png` · `wildlife_cliff_goat_move_02.png` · `wildlife_cliff_goat_move_03.png` · `wildlife_cliff_goat_move_04.png` · `wildlife_cliff_goat_move_05.png` · `wildlife_cliff_goat_move_06.png` · `wildlife_cliff_goat_move_07.png`
+Files: `wildlife_cliff_goat_idle_01.png` · `wildlife_cliff_goat_idle_02.png` · `wildlife_cliff_goat_idle_03.png` · `wildlife_cliff_goat_idle_04.png`
+Files: `wildlife_cliff_goat_move_01.png` · `wildlife_cliff_goat_move_02.png` · `wildlife_cliff_goat_move_03.png` · `wildlife_cliff_goat_move_04.png` · `wildlife_cliff_goat_move_05.png` · `wildlife_cliff_goat_move_06.png` · `wildlife_cliff_goat_move_07.png` · `wildlife_cliff_goat_move_08.png`
 Files: `wildlife_cliff_goat_attack_01.png` · `wildlife_cliff_goat_attack_02.png` · `wildlife_cliff_goat_attack_03.png` · `wildlife_cliff_goat_attack_04.png` · `wildlife_cliff_goat_attack_05.png`
 
 
@@ -1513,13 +1513,13 @@ structures use — so the animator is the same code, and a creature shipped with
 no continuation frame is a supported state rather than a broken one. Generated
 img2img from the base pose so the palette cannot drift between frames.
 
-Files: `wildlife_raven_idle_01.png` … `wildlife_raven_idle_05.png`
+Files: `wildlife_raven_idle_01.png` · `wildlife_raven_idle_02.png` · `wildlife_raven_idle_03.png`
 Files: `wildlife_fox_idle_01.png` · `wildlife_fox_idle_02.png` · `wildlife_fox_idle_03.png`
 Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildlife_rabbit_idle_03.png`
 Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
 Files: `wildlife_stag_idle_01.png` · `wildlife_stag_idle_02.png` · `wildlife_stag_idle_03.png`
-Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png` · `wildlife_heron_idle_04.png`
-Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png` · `wildlife_hedgehog_idle_04.png`
+Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png`
+Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png`
 Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
 Files: `wildlife_tortoise_idle_01.png` · `wildlife_tortoise_idle_02.png` · `wildlife_tortoise_idle_03.png` · `wildlife_tortoise_idle_04.png`
 Files: `wildlife_jackal_idle_01.png` · `wildlife_jackal_idle_02.png` · `wildlife_jackal_idle_03.png` · `wildlife_jackal_idle_04.png`
@@ -1527,12 +1527,12 @@ Files: `wildlife_scorpion_idle_01.png` · `wildlife_scorpion_idle_02.png` · `wi
 Files: `wildlife_snow_hare_idle_01.png` · `wildlife_snow_hare_idle_02.png` · `wildlife_snow_hare_idle_03.png` · `wildlife_snow_hare_idle_04.png`
 Files: `wildlife_ptarmigan_idle_01.png` · `wildlife_ptarmigan_idle_02.png` · `wildlife_ptarmigan_idle_03.png` · `wildlife_ptarmigan_idle_04.png`
 Files: `wildlife_snow_lynx_idle_01.png` · `wildlife_snow_lynx_idle_02.png` · `wildlife_snow_lynx_idle_03.png` · `wildlife_snow_lynx_idle_04.png`
-Files: `wildlife_frost_elk_idle_01.png` · `wildlife_frost_elk_idle_02.png` · `wildlife_frost_elk_idle_03.png` · `wildlife_frost_elk_idle_04.png`
-Files: `wildlife_badger_idle_01.png` … `wildlife_badger_idle_04.png`
-Files: `wildlife_bear_idle_01.png` … `wildlife_bear_idle_04.png`
-Files: `wildlife_boar_idle_01.png` … `wildlife_boar_idle_04.png`
-Files: `wildlife_viper_idle_01.png` … `wildlife_viper_idle_04.png`
-Files: `wildlife_wolf_idle_01.png` … `wildlife_wolf_idle_04.png`
+Files: `wildlife_frost_elk_idle_01.png` · `wildlife_frost_elk_idle_02.png` · `wildlife_frost_elk_idle_03.png`
+Files: `wildlife_badger_idle_01.png` · `wildlife_badger_idle_02.png` · `wildlife_badger_idle_03.png` · `wildlife_badger_idle_04.png`
+Files: `wildlife_bear_idle_01.png` · `wildlife_bear_idle_02.png` · `wildlife_bear_idle_03.png` · `wildlife_bear_idle_04.png`
+Files: `wildlife_boar_idle_01.png` · `wildlife_boar_idle_02.png` · `wildlife_boar_idle_03.png` · `wildlife_boar_idle_04.png`
+Files: `wildlife_viper_idle_01.png` · `wildlife_viper_idle_02.png` · `wildlife_viper_idle_03.png` · `wildlife_viper_idle_04.png`
+Files: `wildlife_wolf_idle_01.png` · `wildlife_wolf_idle_02.png` · `wildlife_wolf_idle_03.png` · `wildlife_wolf_idle_04.png`
 
 The five predators had **no** idle sequence until 2026-08-31, so a wolf waiting
 by the road stood as a single frozen frame while every harmless animal breathed —
@@ -1595,15 +1595,15 @@ Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildli
 Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png` · `wildlife_squirrel_move_03.png` · `wildlife_squirrel_move_04.png` · `wildlife_squirrel_move_05.png` · `wildlife_squirrel_move_06.png` · `wildlife_squirrel_move_07.png` · `wildlife_squirrel_move_08.png`
 Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png` · `wildlife_stag_move_03.png` · `wildlife_stag_move_04.png` · `wildlife_stag_move_05.png` · `wildlife_stag_move_06.png` · `wildlife_stag_move_07.png`
 Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png` · `wildlife_heron_move_03.png` · `wildlife_heron_move_04.png` · `wildlife_heron_move_05.png` · `wildlife_heron_move_06.png` · `wildlife_heron_move_07.png`
-Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png`
+Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png` · `wildlife_hedgehog_move_08.png`
 Files: `wildlife_lynx_move_01.png` · `wildlife_lynx_move_02.png` · `wildlife_lynx_move_03.png` · `wildlife_lynx_move_04.png` · `wildlife_lynx_move_05.png` · `wildlife_lynx_move_06.png` · `wildlife_lynx_move_07.png`
-Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png` · `wildlife_tortoise_move_03.png` · `wildlife_tortoise_move_04.png` · `wildlife_tortoise_move_05.png` · `wildlife_tortoise_move_06.png` · `wildlife_tortoise_move_07.png`
+Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png` · `wildlife_tortoise_move_03.png` · `wildlife_tortoise_move_04.png` · `wildlife_tortoise_move_05.png` · `wildlife_tortoise_move_06.png` · `wildlife_tortoise_move_07.png` · `wildlife_tortoise_move_08.png`
 Files: `wildlife_jackal_move_01.png` · `wildlife_jackal_move_02.png` · `wildlife_jackal_move_03.png` · `wildlife_jackal_move_04.png` · `wildlife_jackal_move_05.png` · `wildlife_jackal_move_06.png` · `wildlife_jackal_move_07.png`
 Files: `wildlife_scorpion_move_01.png` · `wildlife_scorpion_move_02.png` · `wildlife_scorpion_move_03.png` · `wildlife_scorpion_move_04.png` · `wildlife_scorpion_move_05.png` · `wildlife_scorpion_move_06.png` · `wildlife_scorpion_move_07.png`
 Files: `wildlife_snow_hare_move_01.png` · `wildlife_snow_hare_move_02.png` · `wildlife_snow_hare_move_03.png` · `wildlife_snow_hare_move_04.png` · `wildlife_snow_hare_move_05.png` · `wildlife_snow_hare_move_06.png` · `wildlife_snow_hare_move_07.png`
 Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png` · `wildlife_ptarmigan_move_03.png` · `wildlife_ptarmigan_move_04.png` · `wildlife_ptarmigan_move_05.png` · `wildlife_ptarmigan_move_06.png` · `wildlife_ptarmigan_move_07.png`
 Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png` · `wildlife_snow_lynx_move_03.png` · `wildlife_snow_lynx_move_04.png` · `wildlife_snow_lynx_move_05.png` · `wildlife_snow_lynx_move_06.png` · `wildlife_snow_lynx_move_07.png`
-Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png` · `wildlife_frost_elk_move_03.png` · `wildlife_frost_elk_move_04.png` · `wildlife_frost_elk_move_05.png` · `wildlife_frost_elk_move_06.png` · `wildlife_frost_elk_move_07.png`
+Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png` · `wildlife_frost_elk_move_03.png` · `wildlife_frost_elk_move_04.png` · `wildlife_frost_elk_move_05.png` · `wildlife_frost_elk_move_06.png` · `wildlife_frost_elk_move_07.png` · `wildlife_frost_elk_move_08.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 
@@ -1660,7 +1660,7 @@ Both birds also land between flights. Their grounded loops are perched
 silhouettes with planted feet and restrained breathing/head motion, not frozen
 in-flight frames.
 
-Files: `wildlife_hawk_idle_01.png` … `wildlife_hawk_idle_05.png`
+Files: `wildlife_hawk_idle_01.png` · `wildlife_hawk_idle_02.png` · `wildlife_hawk_idle_03.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 
@@ -3123,7 +3123,6 @@ varieties than the one ambient moth.
 | `wildlife_butterfly_swallowtail_idle_01.png` | 48×48 | T | `#8155B8` |
 | `wildlife_butterfly_swallowtail_idle_02.png` | 48×48 | T | `#8155B8` |
 | `wildlife_butterfly_swallowtail_idle_03.png` | 48×48 | T | `#8155B8` |
-| `wildlife_butterfly_swallowtail_idle_04.png` | 48×48 | T | `#8155B8` |
 
 ### 5.27 Rootcrusher and Thunderhead — `res://art/towers/`
 

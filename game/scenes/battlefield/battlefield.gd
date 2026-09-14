@@ -186,6 +186,10 @@ var placement: PlacementCursor = null
 
 
 func _ready() -> void:
+	# The first act's roster, animals, towers and shaders, loaded before
+	# anything below can draw them. Every later act goes through
+	# `refresh_terrain`, which warms again.
+	_warm_the_act()
 	_pressure.resize(Balance.LANE_COUNT)
 	_setup_sorting()
 	_build_feedback_root()
@@ -1945,7 +1949,22 @@ func try_repair_tower(anchor: Vector2i) -> String:
 ## a strip of trodden ground running out along one cardinal, and everywhere else
 ## is open country.
 ## The act's terrain changed; re-skin the floor without rebuilding the scope.
+## What the last warm-up loaded, for the gate.
+var warmed_textures: int = 0
+
+
+## Everything the act will draw, loaded now rather than mid-wave. Called from
+## `refresh_terrain` because that is the one function everything regional
+## goes through; a second path that remembered to warm would be a second
+## path that could forget.
+func _warm_the_act() -> void:
+	warmed_textures = RosterWarmup.warm_act(RunState.act, RunState.terrain_id)
+	if DisplayServer.get_name() != "headless":
+		RosterWarmup.warm_shaders(self)
+
+
 func refresh_terrain() -> void:
+	_warm_the_act()
 	_setup_ground()
 	# The road is regional too, so a new act re-lays it. Without this the ground
 	# changed underfoot and the road stayed the previous region's.

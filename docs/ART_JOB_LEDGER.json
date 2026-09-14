@@ -24,7 +24,7 @@
     "move": "3967b1e9-548d-456e-a7a9-62e95f618b8c"
   },
   "art/enemies/elite_pack_howler": {
-    "move": "e6000c80-8145-4daa-b40e-9b52461b2992"
+    "move": "4bee02ac-2b87-4eda-9100-77221a9fe4c6"
   },
   "art/enemies/elite_siege_lizard": {
     "move": "cbeac41e-3c61-44e2-9ee1-d97f0e850401"
@@ -75,7 +75,7 @@
     "move": "9e83c7d9-a576-4066-b88a-d7854d0cc80d"
   },
   "art/enemies/enemy_fog_lantern": {
-    "move": "50a39134-4a44-43cc-ac8d-85d591c01b0f"
+    "move": "d1770b6e-a223-4eb8-8c4e-66723bec58db"
   },
   "art/enemies/enemy_frost_herald": {
     "move": "6753d8e3-b0a1-4129-a5c7-71495b16fdf9"
@@ -87,7 +87,7 @@
     "move": "186fee58-0164-4cb7-8ed3-767a7c50029d"
   },
   "art/enemies/enemy_glass_singer": {
-    "move": "6f4ca53d-6729-4a0f-beaf-4c42711d6211"
+    "move": "76a95c71-ef38-4a86-8300-8976c281a961"
   },
   "art/enemies/enemy_glassguard": {
     "attack": "a4026d48-437b-4701-bac6-2fc2ba841667",
@@ -102,10 +102,10 @@
     "move": "a5146f8a-e827-4e23-b530-ab8a84482a1b"
   },
   "art/enemies/enemy_horde_shieldman": {
-    "move": "470aa51b-d33d-454d-8e84-6386a4b18a54"
+    "move": "0651888d-6d03-4e4f-9c84-08e4641b9724"
   },
   "art/enemies/enemy_ice_hauler": {
-    "move": "45a331a7-1866-4352-8266-9804a9737309"
+    "move": "0087b21d-1324-4ff7-a380-100c4c1fff46"
   },
   "art/enemies/enemy_loam_lurker": {
     "move": "08c0508d-6e13-43cc-a853-d424ab59f875"
@@ -141,7 +141,7 @@
     "move": "60d60ad2-cc26-4456-a0e5-66a13aed6202"
   },
   "art/enemies/enemy_snowhide_brute": {
-    "move": "1fb892f6-965e-477c-af9a-47d23a5525e1"
+    "move": "ae613fe7-59c5-49f6-ab05-377894ddcdae"
   },
   "art/enemies/enemy_stair_runner": {
     "move": "885ae502-cc12-41c9-8ab1-076f96d8f560"
@@ -197,10 +197,38 @@
     "idle": "5f4de089-6519-42f8-83e1-b1d578eaf8cd",
     "object": "4ad5c560-abd8-4778-9e3d-bec6fee22b44"
   },
+  "art/wildlife/wildlife_bog_crane": {
+    "idle": "da967118-b14f-4aeb-b100-2ea690001ef2"
+  },
+  "art/wildlife/wildlife_butterfly_swallowtail": {
+    "idle": "f4193db9-0a04-4917-a6f9-9abced439df3"
+  },
+  "art/wildlife/wildlife_frost_elk": {
+    "idle": "862b371a-4e34-41d9-8d79-9bdb17d43489",
+    "move": "6e6328a2-2ace-426c-9518-32834134d15c"
+  },
+  "art/wildlife/wildlife_glass_moth": {
+    "idle": "9c03373d-5944-46c7-9e32-c75a1d48021d"
+  },
+  "art/wildlife/wildlife_hawk": {
+    "idle": "94c3206e-360a-4117-bc54-1a4792e338c5"
+  },
+  "art/wildlife/wildlife_hedgehog": {
+    "idle": "8f5066a5-bcdb-412e-8b90-1d37910058fe"
+  },
+  "art/wildlife/wildlife_heron": {
+    "idle": "7f7e50ea-a854-4b28-a0bd-6391a7e31935"
+  },
   "art/wildlife/wildlife_rabbit": {
     "move": "6c03ce9c-7091-465b-8af3-64d6da28ba0c"
   },
+  "art/wildlife/wildlife_raven": {
+    "idle": "55d2214f-d75f-4282-a4fa-ea276bebd593"
+  },
   "art/wildlife/wildlife_squirrel": {
-    "move": "d4be6808-3024-4f85-9216-a26c274ddbaa"
+    "move": "3f47e646-eed3-4a87-8483-adb524c6c4c0"
+  },
+  "art/wildlife/wildlife_steppe_horse": {
+    "idle": "174c5d51-7bc8-48c3-b671-c589003c293e"
   }
 }
