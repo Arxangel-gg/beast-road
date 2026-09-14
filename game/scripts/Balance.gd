@@ -6310,35 +6310,27 @@ const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 24.0)
 ## the tail on the body is `BEAST_TAIL_ANCHOR`'s job, not this one.
 const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 
-## What the tail is multiplied by so it matches the hide it grows out of.
+## What the tail is multiplied by over the hide it grows out of: nothing.
 ##
-## **The two assets were generated separately and do not agree.**
+## **This was a gain twice, measured twice, and wrong twice** (owner, third
+## report, 2026-09-14). The first cut darkened the tail to match the stub's
+## brightness at the join; the second pushed it green on the reasoning that the
+## tail read as grey stone against mossy olive. Both were defensible readings of
+## a render and both had to fail, because a single multiplier cannot turn one
+## distribution of colours into another: the tail's palette was 88% the hide's
+## brightness *and* bluer *and* had a different spread, and any gain that fixed
+## one of those moved the other two.
 ##
-## Measured **at the join**, which is the only place the two have to match: the
-## body's stub (its own left 42 columns, all that is painted out to there) and
-## the tail's root end (u 0.88-1.0). Over four walk frames the stub averages
-## (55.9, 60.0, 46.0) and the root (49.1, 52.5, 41.8) - the tail is about 87%
-## of the hide, which reads as a greyer creature joined at the hip.
-##
-## The first cut compared whole-image means and got 1.19 - a different question,
-## since the body frame carries the town's red roofs and the tail frame its own
-## dark tip. Two images with different subjects have no business being averaged
-## against each other.
-##
-## **And the seam is not what the eye complains about.** The root is tucked
-## `BEAST_TAIL_OVERLAP` under the haunch and dissolves, so almost none of it is
-## ever seen; what is seen is the tail's *length*, which renders about 1.2x the
-## haunch because the stub sits in the body's own shadow and the length does
-## not. The two do not differ in brightness so much as in **hue**: the tail is
-## grey stone where the body is mossy olive. So this is a green-ward shift -
-## red and blue down, green held - rather than the darkening two earlier
-## measurements argued for. Judged on a render, which is the only place the
-## lighting, the moss and the foliage in front of it all apply at once.
-##
-## A gain rather than a repaint: the tail is a child of the beast, so it already
-## inherits the day tint and the environment grade, and this corrects only what
-## the art was drawn with. Re-measure at the seam if either asset is redrawn.
-const BEAST_TAIL_GRADE: Color = Color(0.92, 1.00, 0.86)
+## The tail's pixels are painted in the hide's own distribution now -
+## `tools/match_tail_palette.py`, a channel-by-channel histogram match against
+## the body's stub, haunch, belly and rear legs, one mapping across every frame
+## so the walk and the idle still agree. `beast_tail_check` measures the result
+## against the same region of the body and refuses a tail that has drifted. So
+## this is white, and it stays white: the tail is a child of the beast and
+## inherits the day tint and the environment grade exactly as the body does,
+## which is what "identically" has to mean. If the tail is ever redrawn, run
+## the tool, not a number.
+const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 ## The far woods: the region's trees on the ridge, hazed and slow.

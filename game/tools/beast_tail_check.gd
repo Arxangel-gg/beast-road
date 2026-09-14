@@ -45,10 +45,11 @@ func _ready() -> void:
 	_test_the_stub_fade_has_tail_behind_it()
 	_test_the_body_carries_a_stub_that_far()
 	_test_the_stub_fades_and_the_tail_does_not()
+	_test_the_tail_wears_the_hide()
 	MetaState.resume_saves()
 	if _failures.is_empty():
-		print("[beast-tail] PASS - %d checks: root row, stub fade, stub reach, tint"
-			% _checks)
+		print("[beast-tail] PASS - %d checks: root row, stub fade, stub reach, "
+			% _checks + "tint, and the tail is painted in the hide's own colours")
 	else:
 		for failure: String in _failures:
 			push_error("[beast-tail] " + failure)
@@ -200,3 +201,81 @@ func _test_the_stub_fades_and_the_tail_does_not() -> void:
 		_check(code.contains("beast_stub_fade.gdshader"),
 			"%s never fades the beast's own stub, so the join is a butt-joint"
 				% screen.get_file())
+
+
+## The tail is painted in the same colours as the hide it grows out of.
+##
+## **Three reports, two wrong gains** (owner, 2026-09-14). The tail was
+## generated on its own and its palette was 88% the hide's brightness, bluer,
+## and spread differently; a `modulate` cannot fix a distribution, and two
+## measured attempts proved it. `tools/match_tail_palette.py` rewrites the
+## pixels instead, and this is what holds it there: the tail's pooled colour
+## against the body's stub, haunch, belly and rear legs - the same region the
+## tool matched against - on mean brightness and on the two channel ratios
+## that carry the hue. Compared as art, before any tint, because that is where
+## the difference lived and where the fix was made.
+##
+## `BEAST_TAIL_GRADE` is held at white alongside, so a future "small
+## correction" cannot quietly reintroduce the gain that failed twice.
+func _test_the_tail_wears_the_hide() -> void:
+	_check(Balance.BEAST_TAIL_GRADE.is_equal_approx(Color.WHITE),
+		"BEAST_TAIL_GRADE is %s: the tail is matched in its pixels now, and a gain "
+			% str(Balance.BEAST_TAIL_GRADE)
+			+ "on top of that is the thing that was wrong twice")
+	var hide: Array[float] = _pooled_colour(_body_frames(), true)
+	var tail: Array[float] = _pooled_colour(_tail_frames(), false)
+	if hide.is_empty() or tail.is_empty():
+		_check(false, "could not read the body or the tail frames to compare them")
+		return
+	# Mean luminance, R/G and B/G. Tolerances wide enough for pixel-art
+	# quantisation and narrow enough to have caught the tail that shipped:
+	# it sat at 0.93 of the hide's brightness and 0.985 of its B/G.
+	var lum_ratio: float = tail[0] / maxf(hide[0], 0.001)
+	_check(absf(lum_ratio - 1.0) <= HIDE_LUMINANCE_TOLERANCE,
+		"the tail is %.2fx the hide's brightness; run tools/match_tail_palette.py"
+			% lum_ratio)
+	_check(absf(tail[1] - hide[1]) <= HIDE_RATIO_TOLERANCE,
+		"the tail's R/G is %.3f against the hide's %.3f" % [tail[1], hide[1]])
+	_check(absf(tail[2] - hide[2]) <= HIDE_RATIO_TOLERANCE,
+		"the tail's B/G is %.3f against the hide's %.3f" % [tail[2], hide[2]])
+
+
+const HIDE_LUMINANCE_TOLERANCE: float = 0.06
+const HIDE_RATIO_TOLERANCE: float = 0.02
+
+## The body frames the tail was matched against, or the single profile.
+func _body_frames() -> Array[String]:
+	var out: Array[String] = []
+	for index: int in 16:
+		var path: String = Balance.BEAST_WALK_FRAME_FORMAT % index
+		if ResourceLoader.exists(path):
+			out.append(path)
+	return out
+
+
+## [mean luminance, R/G, B/G] over every solid pixel of the given frames. For
+## the body, only the hide at the join - the lower left of the canvas, which is
+## the stub, the haunch, the belly and the rear legs and none of the town.
+func _pooled_colour(paths: Array[String], hide_only: bool) -> Array[float]:
+	var total := Vector3.ZERO
+	var count: int = 0
+	for path: String in paths:
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		var x_to: int = int(float(image.get_width()) * 0.375) if hide_only else image.get_width()
+		var y_from: int = image.get_height() / 2 if hide_only else 0
+		for y: int in range(y_from, image.get_height()):
+			for x: int in range(0, x_to):
+				var at: Color = image.get_pixel(x, y)
+				if at.a >= 0.5:
+					total += Vector3(at.r, at.g, at.b)
+					count += 1
+	if count == 0:
+		return []
+	var mean: Vector3 = total / float(count)
+	var lum: float = 0.2126 * mean.x + 0.7152 * mean.y + 0.0722 * mean.z
+	return [lum, mean.x / maxf(mean.y, 0.001), mean.z / maxf(mean.y, 0.001)]
