@@ -160,6 +160,7 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	var terrain: TerrainData = ContentDB.terrain_for_act(act)
 	RunState.terrain_id = terrain.id if terrain != null else "jungle"
 	director._act_wave = act_wave
+	_bank_the_cores_won_so_far(act)
 	# Measured in daylight. Night is a modifier on top of everything here and
 	# folding it in would hide which curve is doing the work.
 	DayNight._apply(0.25)
@@ -201,7 +202,9 @@ func _measure(director: WaveDirector, wave: int, act: int, act_wave: int,
 	# is 88.9 - **two hundred and thirty-two per cent of the hero**. It is off by
 	# default because a first run has no companion and the curve is tuned for
 	# that player; `--companion` reports the returning one.
-	var capability: float = _hero_dps() * float(_players) 		+ _companion_dps() * float(_players) 		+ _affordable_dps(_earned_gold)
+	var capability: float = _hero_dps() * _core_scale(Modifiers.HERO_DAMAGE) * float(_players) \
+		+ _companion_dps() * float(_players) \
+		+ _affordable_dps(_earned_gold) * _core_scale(Modifiers.TOWER_DAMAGE)
 
 	return {
 		"wave": wave, "act": act, "act_wave": act_wave,
@@ -447,3 +450,46 @@ func _print_worst_steps() -> void:
 	var last: float = float(_rows[_rows.size() - 1]["pressure"])
 	print("Wave 1 to %d: %.2f -> %.2f (%+.0f%% overall)" % [
 		_rows.size(), first, last, (last / maxf(first, 0.001) - 1.0) * 100.0])
+
+
+## The permanent rewards a run is actually carrying by this act.
+##
+## **This model knew about none of them.** A ten-act run banks one boss core an
+## act - always active, never socketed, no choice involved - and the report
+## measured a hero and a set of towers that had never killed anything. By Act X
+## a real player holds nine of them, so the late acts were being scored as
+## harder than they are.
+##
+## Cores only, and that is the line. Relics, portents and Road Cards are all
+## *choices* - which one, whether to take it, and a portent charges a bane for
+## its boon - so modelling them means modelling a player's judgement, and the
+## report would start measuring a strategy rather than a curve. A core is paid
+## for killing a boss and every run gets the same ones in the same order, which
+## is exactly what a baseline wants.
+##
+## The act's own core is deliberately excluded: it is paid for *killing* this
+## act's boss, so it is not in hand while this act is being fought.
+##
+## **Measured: mean pressure 0.433 before this, 0.353 after.** That is not the
+## game getting easier - it is the model catching up with a game that had been
+## handing out a permanent +25% tower damage since Act III and scoring the
+## seven acts after it as though nobody had one. The band is 0.26 to 0.46 and
+## the midpoint is 0.36, so the honest figure sits closer to the middle than
+## the flattering one did.
+func _bank_the_cores_won_so_far(act: int) -> void:
+	var held: Array[String] = []
+	for earlier: int in range(1, act):
+		var core: RelicData = ContentDB.boss_core_for_act(earlier)
+		if core != null:
+			held.append(core.id)
+	RunState.boss_cores = held
+	Modifiers.rebuild()
+
+
+## What the banked cores do to one number, as a multiplier.
+##
+## Read off the live table rather than summed from the data, so a core authored
+## onto a different key moves this by itself - and so the model cannot drift
+## from what the game resolves.
+func _core_scale(key: String) -> float:
+	return maxf(Modifiers.multiplier(key), 0.0)
