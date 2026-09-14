@@ -219,6 +219,19 @@ func _add_last_scar_offer() -> void:
 	IconKit.on_button(_last_scar_button, "last_scar", 24)
 	_last_scar_button.pressed.connect(_accept_last_scar)
 	box.add_child(_last_scar_button)
+	# **What the vow actually asks, in words.** `offer_line` says it plainly -
+	# "take no new Wound, keep the Town Hall above 60%, and bring down the
+	# marked pursuer" - and was read by nothing, so the only explanation a
+	# player ever got was the four-token summary below it, which is a reminder
+	# for somebody who already knows rather than an offer to somebody deciding.
+	var offer: String = String(challenge.get("offer_line"))
+	if not offer.is_empty():
+		var says := Label.new()
+		says.text = offer
+		says.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		says.add_theme_font_size_override("font_size", 15)
+		says.add_theme_color_override("font_color", Color("e8d8cf"))
+		box.add_child(says)
 	var line := Label.new()
 	line.text = "%s\n%s" % [String(challenge.get("condition_line")),
 		String(challenge.get("reward_line"))]

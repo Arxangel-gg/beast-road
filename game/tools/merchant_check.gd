@@ -230,6 +230,13 @@ func _test_settling_is_earned_and_permanent() -> void:
 	_checked += 1
 	_check(not MerchantYard.settled(data.id),
 		"%s counts as settled with no business done" % data.id)
+	# What they say before any of it. `settle_line` was authored by all three
+	# merchants and read by nothing, so settling changed the banner and the
+	# restock note while the trader went on saying their travelling greeting.
+	var travelling: String = MerchantYard.spoken_line(data.id)
+	_checked += 1
+	_check(travelling == data.greeting,
+		"%s does not greet with its greeting before settling" % data.id)
 
 	for i: int in data.settle_trades - 1:
 		MetaState.record_seen("traded:%s" % data.id, "%s%d" % [PROBE_GOOD, i])
@@ -248,6 +255,22 @@ func _test_settling_is_earned_and_permanent() -> void:
 	MetaState.record_seen("traded:%s" % data.id, PROBE_GOOD + "last")
 	_checked += 1
 	_check(MerchantYard.settled(data.id), "%s never settles" % data.id)
+	_checked += 1
+	_check(MerchantYard.spoken_line(data.id) == data.settle_line,
+		"%s settles and goes on saying the line it says on every road" % data.id)
+	_checked += 1
+	_check(MerchantYard.spoken_line(data.id) != travelling,
+		"%s says the same thing settled as travelling, so nothing marks the"
+			% data.id + " one moment the merchant system builds toward")
+	# And every merchant has both to say, or the beat lands for some traders
+	# and silently does not for others.
+	for who: MerchantData in MerchantYard.all_sorted():
+		_checked += 1
+		_check(not who.settle_line.is_empty(),
+			"%s has no line for settling in town" % who.id)
+		_checked += 1
+		_check(who.settle_line != who.greeting,
+			"%s says the same line settled as travelling" % who.id)
 
 	_fresh_run()
 	RunState.act = 3

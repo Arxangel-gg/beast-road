@@ -458,9 +458,15 @@ func _show_merchant() -> void:
 		left, "" if left == 1 else "s"]
 
 	var lines: PackedStringArray = [data.description]
-	if not data.greeting.is_empty():
+	# A settled merchant speaks their own line about staying. `settle_line` was
+	# authored by all three of them - "I have seen enough of your custom to stop
+	# packing the cart" - and read by nothing, so the payoff of the whole
+	# merchant system arrived as a banner and a restock note with the trader
+	# themselves saying the same thing they say on every other road.
+	var said: String = MerchantYard.spoken_line(_merchant_id)
+	if not said.is_empty():
 		lines.append("
-\"%s\"" % data.greeting)
+\"%s\"" % said)
 	if resident:
 		lines.append("
 Settled in town. Restocks every Preparation, every run.")

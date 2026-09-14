@@ -81,6 +81,24 @@ static func trades_done(merchant_id: String) -> int:
 	return MetaState.seen_count("traded:%s" % merchant_id)
 
 
+## What this merchant says about themselves right now.
+##
+## `MerchantData.settle_line` was authored by all three of them and read by
+## nothing, so the payoff of the whole merchant system - a trader who stops
+## packing the cart because of your custom - arrived as a banner and a restock
+## note, with the merchant still saying the same greeting they say on every
+## other road. A settled one speaks their own line about staying.
+##
+## Here rather than inline in the panel so that the gate drives the real rule.
+static func spoken_line(merchant_id: String) -> String:
+	var data: MerchantData = ContentDB.merchant(merchant_id)
+	if data == null:
+		return ""
+	if settled(merchant_id) and not data.settle_line.is_empty():
+		return data.settle_line
+	return data.greeting
+
+
 static func settled(merchant_id: String) -> bool:
 	var data: MerchantData = ContentDB.merchant(merchant_id)
 	if data == null:
