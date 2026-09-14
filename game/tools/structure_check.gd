@@ -51,8 +51,12 @@ func _ready() -> void:
 	# and structures. Test its physical recipients here; CameraRig owns its
 	# deterministic timing assertion in balance_test.
 	EventBus.beast_step_landed.emit(Vector2(14.0, 5.0), 1.0)
-	_check((_run.battlefield.hero.get("_beast_impulse") as Vector2).length() > 0.0,
-		"beast step did not nudge the hero")
+	# By name, so a rename of the field does not fail here as a null cast that
+	# takes the whole gate down with it - which is exactly what happened when
+	# `_beast_impulse` became `_shoved`.
+	var nudged: Variant = _run.battlefield.hero.get("_shoved")
+	_check(nudged is Vector2 and (nudged as Vector2).length() > 0.0,
+		"beast step did not nudge the hero (the field may have been renamed)")
 	_check((burrower.get("_knockback") as Vector2).length() > 0.0,
 		"beast step did not disturb enemies")
 	_check(absf(float(tower.get("_step_wobble"))) > 0.0,

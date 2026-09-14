@@ -1579,6 +1579,40 @@ func _test_enemy_roles() -> void:
 	_check(regular_ids.size() == 12 and elite_ids.size() == 6,
 		"launch roster must contain twelve unique regulars and six unique elites")
 
+	# **A breed's swing cadence, and the constant that describes it.**
+	#
+	# `ENEMY_CONTACT_INTERVAL` read 0.8 from the day it was written while the
+	# real cycle was 1.32 - wind-up plus strike plus recovery - and nothing
+	# consulted either it or `EnemyData.contact_interval`. So one number was
+	# wrong, a second was inert, and a breed could not be authored to swing
+	# slowly however hard it hit. Derived now, and asserted here so the
+	# constant cannot drift away from the states that make it up again.
+	var cycle: float = Balance.ENEMY_ATTACK_WINDUP + Balance.ENEMY_ATTACK_STRIKE \
+		+ Balance.ENEMY_ATTACK_RECOVERY
+	_check(is_equal_approx(Balance.ENEMY_CONTACT_INTERVAL, cycle),
+		"the contact interval says %.2fs and the attack cycle takes %.2fs"
+			% [Balance.ENEMY_CONTACT_INTERVAL, cycle])
+	# And the default is exactly a no-op: every breed that authors nothing must
+	# recover for precisely as long as it always has, or wiring the knob would
+	# have quietly re-tuned all fifty-six of them.
+	var spare: float = Balance.ENEMY_CONTACT_INTERVAL - Balance.ENEMY_ATTACK_WINDUP \
+		- Balance.ENEMY_ATTACK_STRIKE
+	_check(is_equal_approx(maxf(Balance.ENEMY_ATTACK_RECOVERY, spare),
+			Balance.ENEMY_ATTACK_RECOVERY),
+		"the default contact interval lengthens recovery to %.2fs from %.2fs,"
+			% [maxf(Balance.ENEMY_ATTACK_RECOVERY, spare), Balance.ENEMY_ATTACK_RECOVERY]
+			+ " which re-tunes every breed that authors nothing")
+	# A breed may only ever be authored *slower*: the wind-up and the blow are
+	# what the player dodges and are not a breed's to shorten.
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null:
+			continue
+		_check(breed.contact_interval >= cycle - 0.001,
+			("%s authors a %.2fs contact interval, under the %.2fs cycle - it"
+				% [breed.id, breed.contact_interval, cycle])
+				+ " would read as a faster swing and deliver nothing")
+
 
 func _test_wave_archetypes() -> void:
 	_check(ContentDB.wave_archetypes.size() >= 10,

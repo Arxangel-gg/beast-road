@@ -25,6 +25,7 @@ description = "The fire is not on him. The fire is the shape he has instead of a
 boss_slam_damage = 0.144
 boss_slam_radius = 340.0
 boss_slam_interval = 5.5
+boss_slam_knockback = 240.0
 boss_volley_damage = 0.049
 boss_volley_shots = 4
 boss_volley_interval = 5.0

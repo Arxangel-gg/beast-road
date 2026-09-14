@@ -84,7 +84,8 @@ func _test_a_host_vote_does_not_lock_the_fork() -> void:
 	if party.size() != 2:
 		_failures += 1
 		push_error("[crossroad-vote] the probe party has %d seats, not 2" % party.size())
-	var screen := (load("res://scenes/ui/crossroad_screen.tscn") as PackedScene)		.instantiate() as CrossroadScreen
+	var screen := (load("res://scenes/ui/crossroad_screen.tscn") as PackedScene) \
+		.instantiate() as CrossroadScreen
 	add_child(screen)
 	await get_tree().process_frame
 	screen.open(0)

@@ -204,7 +204,13 @@ var party_slot: int = 1:
 		_apply_party_colour()
 var _flash_left: float = 0.0
 var _impact_direction: Vector2 = Vector2.UP
-var _beast_impulse: Vector2 = Vector2.ZERO
+## Motion the hero did not ask for: the beast's footfall, and a boss slam.
+##
+## One field rather than two, because everything that reads it wants the same
+## thing - the part of `velocity` that is not the player walking. It is
+## subtracted from `own_speed`, from the gait, and from anything else that
+## asks what the hero is doing under their own power.
+var _shoved: Vector2 = Vector2.ZERO
 
 # --- Swimming (2026-09-12) ---------------------------------------------------
 #
@@ -442,7 +448,7 @@ func _physics_process(delta: float) -> void:
 		if _swimming:
 			movement_scale *= Balance.SWIM_SPEED_SCALE
 		velocity = move_input * move_speed() * movement_scale
-	velocity += _lunge_velocity + _beast_impulse
+	velocity += _lunge_velocity + _shoved
 
 	move_and_slide()
 
@@ -1234,7 +1240,7 @@ func _tick_timers(delta: float) -> void:
 	_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_beast_stun_left = maxf(_beast_stun_left - delta, 0.0)
-	_beast_impulse = _beast_impulse.move_toward(Vector2.ZERO, 260.0 * delta)
+	_shoved = _shoved.move_toward(Vector2.ZERO, Balance.HERO_SHOVE_DECAY * delta)
 	_pulse_left = maxf(_pulse_left - delta, 0.0)
 	if _veil_left > 0.0:
 		_veil_left = maxf(_veil_left - delta, 0.0)
@@ -1377,12 +1383,12 @@ func _on_damaged(amount: float, from: Vector2) -> void:
 ## from moving swings, spells and hit feedback down to the Warden's boots.
 ## How fast the hero is moving under their own power.
 ##
-## The beast's footfall shoves the body through `_beast_impulse`, and that
+## The beast's footfall shoves the body through `_shoved`, and that
 ## shove is real motion the physics sees - but it is not the hero going
 ## anywhere. Fishing reads this: the first cut read `velocity` and a hero on a
 ## walking beast was never still enough to cast.
 func own_speed() -> float:
-	return (velocity - _beast_impulse).length()
+	return (velocity - _shoved).length()
 
 
 func combat_origin() -> Vector2:
@@ -1450,6 +1456,28 @@ func mender_seconds_left() -> float:
 	return _mender_left
 
 
+## Throw this hero, without hurting them.
+##
+## The boss slam is the caller that needed this: `boss_slam_knockback` was
+## authored for eleven bosses and read by nothing, so a telegraphed blow that
+## covered four hundred units moved the player not at all.
+##
+## Capped at `Balance.shove_ceiling`, because a shove is a decaying impulse and
+## its reach grows with the square of the speed - so a number typed one digit
+## too long is the difference between staggering back and being posted across
+## the field. It adds no stun: the player keeps full control of a body that is
+## briefly sliding, which is the difference between a shove and a stun.
+func shove(push: Vector2) -> void:
+	if not is_alive() or push.is_zero_approx():
+		return
+	var speed: float = minf(push.length(), Balance.shove_ceiling())
+	# The total, not the new push: two slams landing on the same frame would
+	# otherwise sum past the bound `HERO_SHOVE_MAX_TRAVEL` is there to hold.
+	_shoved = (_shoved + push.normalized() * speed).limit_length(
+		Balance.shove_ceiling())
+	animator.stagger(push.normalized(), 0.5)
+
+
 func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	if field is RaidArena or not is_alive():
 		return
@@ -1457,9 +1485,9 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	# no footfall arrives here. A second guard on this side made a stray step
 	# - which `structure_check` sends on purpose - do nothing, and the physical
 	# recipients of a plant must all answer the same event.
-	_beast_impulse += impulse * clampf(strength, 0.0, 1.2)
+	_shoved += impulse * clampf(strength, 0.0, 1.2)
 	_beast_stun_left = maxf(_beast_stun_left, Balance.BEAST_STEP_STUN * strength)
-	animator.beast_step(impulse, strength)
+	animator.stagger(impulse, strength)
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -1853,12 +1881,12 @@ func _drive_frames() -> void:
 	frames.set_facing(_facing)
 	if not _locked_state.is_empty():
 		return
-	# The beast's footfall shoves the hero through `_beast_impulse`, and that
+	# The beast's footfall shoves the hero through `_shoved`, and that
 	# shove is real motion - the body slides - but it is not a stride. Reading
 	# it as one played the walk cycle every time the deck pitched, and on a
 	# stopped beast the impulse decays over most of a second, so the hero was
 	# walking on the spot for the first second of every Preparation.
-	var own: Vector2 = velocity - _beast_impulse
+	var own: Vector2 = velocity - _shoved
 	var speed: float = own.length()
 	if speed > 4.0:
 		frames.set_speed_scale(speed / maxf(move_speed(), 1.0))

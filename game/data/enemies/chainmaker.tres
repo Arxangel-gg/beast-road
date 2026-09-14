@@ -25,6 +25,7 @@ description = "The one who bound the beast. He commands every road at once, and 
 boss_slam_damage = 2.4
 boss_slam_radius = 360.0
 boss_slam_interval = 6.0
+boss_slam_knockback = 270.0
 boss_volley_damage = 1.0
 boss_volley_shots = 3
 boss_volley_interval = 6.0

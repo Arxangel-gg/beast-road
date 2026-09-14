@@ -25,6 +25,7 @@ description = "Set at the last step and told to wait. Nobody has come back to re
 boss_slam_damage = 0.126
 boss_slam_radius = 400.0
 boss_slam_interval = 6.5
+boss_slam_knockback = 300.0
 boss_volley_damage = 0.085
 boss_volley_shots = 2
 boss_volley_interval = 7.0

@@ -36,6 +36,10 @@ var aim: Vector2 = Vector2.RIGHT
 var tint: Color = Color(1.0, 0.5, 0.3, 1.0)
 ## Said out loud when the blow lands, so a debrief can name what killed you.
 var blamed_on: String = ""
+## How hard this throws whoever it catches, in px/s. Zero for every shot the
+## roster fires: a bolt that moved you would be a second mechanic to learn on
+## top of the five shapes, and the shapes are the lesson.
+var knockback: float = 0.0
 
 var _left: float = 0.0
 var _drawn: bool = false
@@ -77,7 +81,7 @@ func _land() -> void:
 		Vfx.spark(tip, tint, 8, aim, 220.0)
 		Vfx.flash_at(global_position + aim * reach * 0.5, Color(tint, 0.5), half_width * 2.0)
 	strike_the_players(get_tree(), damage, blamed_on, func(at: Vector2) -> bool:
-		return _covers(at))
+		return _covers(at), knockback, global_position)
 
 
 ## Whether a point is inside this blow.
@@ -100,8 +104,14 @@ func _covers(at: Vector2) -> bool:
 ## Static and shared, because the boss slam wants exactly this and had its own
 ## copy of it. Two copies of "who counts as the player" is how one of them ends
 ## up forgetting about companions.
+## `push` throws whoever it catches away from `thrown_from`, in px/s. It is the
+## one thing here that is not damage, and it is bounded at the hero
+## (`Balance.shove_ceiling`) rather than trusted to the caller. A spirit is not
+## thrown at all: a companion is a follower with no momentum of its own, and a
+## shove would only fight its own steering.
 static func strike_the_players(tree: SceneTree, amount: float, blame: String,
-		covers: Callable) -> int:
+		covers: Callable, push: float = 0.0,
+		thrown_from: Vector2 = Vector2.ZERO) -> int:
 	var struck: int = 0
 	for node: Node in tree.get_nodes_in_group(Hero.GROUP_ANY):
 		var who := node as Hero
@@ -115,6 +125,13 @@ static func strike_the_players(tree: SceneTree, amount: float, blame: String,
 		if not blame.is_empty():
 			RunState.note_blow(blame, amount)
 		health.take_damage(amount, who.global_position)
+		if push > 0.0:
+			# Standing exactly on the centre has no direction to be thrown in,
+			# so the blow picks one rather than dropping the shove in silence.
+			var away: Vector2 = who.global_position - thrown_from
+			if away.is_zero_approx():
+				away = Vector2.DOWN
+			who.shove(away.normalized() * push)
 		struck += 1
 	for node: Node in tree.get_nodes_in_group(Companion.GROUP):
 		var pet := node as Companion

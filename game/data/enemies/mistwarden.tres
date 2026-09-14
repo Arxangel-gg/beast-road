@@ -25,6 +25,7 @@ description = "It stood in the fog before anyone cut a road through it, and it h
 boss_slam_damage = 0.323
 boss_slam_radius = 330.0
 boss_slam_interval = 6.5
+boss_slam_knockback = 245.0
 boss_volley_damage = 0.153
 boss_volley_shots = 3
 boss_volley_interval = 5.2

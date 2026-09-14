@@ -138,7 +138,8 @@ func _check_raid_enemies_come_for_the_hero(raid: RaidArena) -> void:
 	var bodies: Array[Enemy] = []
 	for spot: Vector2 in [Vector2(-700.0, -600.0), Vector2(-800.0, 200.0),
 			Vector2(200.0, 800.0), Vector2(-200.0, -900.0)]:
-		var foe := (load("res://scenes/battlefield/enemy.tscn") as PackedScene)			.instantiate() as Enemy
+		var foe := (load("res://scenes/battlefield/enemy.tscn") as PackedScene) \
+			.instantiate() as Enemy
 		foe.setup(breed, 0, raid, 1.0)
 		raid.add_child(foe)
 		foe.global_position = spot

@@ -25,6 +25,7 @@ description = "The Rimebound crown. Armoured against the cold and everything els
 boss_slam_damage = 0.441
 boss_slam_radius = 310.0
 boss_slam_interval = 6.0
+boss_slam_knockback = 220.0
 boss_volley_damage = 0.159
 boss_volley_shots = 4
 boss_volley_interval = 5.4

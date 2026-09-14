@@ -141,7 +141,7 @@ func impact_frame(duration: float = Balance.IMPACT_FRAME_TIME) -> void:
 ## So the shove is split by axis: pushed sideways the body tips, pushed along its
 ## own facing it buckles instead. Every cardinal gets a reaction, and a diagonal
 ## impulse still gets a blend of both.
-func beast_step(direction: Vector2, strength: float) -> void:
+func stagger(direction: Vector2, strength: float) -> void:
 	var push: Vector2 = direction.normalized()
 	_squash = maxf(_squash, (0.055 + 0.045 * absf(push.y)) * strength)
 	_balance_wobble = -push.x * Balance.BEAST_STEP_WOBBLE_DEGREES * strength

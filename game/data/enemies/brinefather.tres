@@ -25,6 +25,7 @@ description = "Salt does not rot what it takes. He has had a very long time to t
 boss_slam_damage = 0.221
 boss_slam_radius = 300.0
 boss_slam_interval = 7.0
+boss_slam_knockback = 230.0
 boss_volley_damage = 0.102
 boss_volley_shots = 3
 boss_volley_interval = 5.5

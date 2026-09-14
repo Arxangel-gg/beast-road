@@ -26,6 +26,7 @@ art_facing = 1
 boss_slam_damage = 0.595
 boss_slam_radius = 250.0
 boss_slam_interval = 4.5
+boss_slam_knockback = 140.0
 boss_volley_damage = 0.219
 boss_volley_shots = 4
 boss_volley_interval = 4.0

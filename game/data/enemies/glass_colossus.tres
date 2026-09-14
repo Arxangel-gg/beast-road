@@ -25,6 +25,7 @@ description = "Every piece of him was once part of the ice. Every piece of him c
 boss_slam_damage = 0.167
 boss_slam_radius = 320.0
 boss_slam_interval = 6.0
+boss_slam_knockback = 235.0
 boss_volley_damage = 0.038
 boss_volley_shots = 6
 boss_volley_interval = 4.6

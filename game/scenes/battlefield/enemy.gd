@@ -767,7 +767,14 @@ func _tick_state(delta: float) -> void:
 		State.STRIKE:
 			_state_left -= delta
 			if _state_left <= 0.0:
-				_enter(State.RECOVER, Balance.ENEMY_ATTACK_RECOVERY)
+				# Recovery carries the breed's own cadence. `contact_interval`
+				# is a floor under the *whole* cycle, so what is spent here is
+				# whatever the wind-up and the blow did not already cover - at
+				# the derived default that is exactly `ENEMY_ATTACK_RECOVERY`,
+				# so a breed that authors nothing swings as it always did.
+				_enter(State.RECOVER, maxf(Balance.ENEMY_ATTACK_RECOVERY,
+					data.contact_interval - Balance.ENEMY_ATTACK_WINDUP
+						- Balance.ENEMY_ATTACK_STRIKE))
 		State.RECOVER:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -1524,7 +1531,7 @@ func _on_beast_step(impulse: Vector2, strength: float) -> void:
 	var resistance: float = data.knockback_resistance if data != null else 0.0
 	_knockback += impulse * strength * (1.0 - resistance) * 0.72
 	_add_hitstun(Balance.BEAST_STEP_STUN * strength)
-	animator.beast_step(impulse, strength / sqrt(maxf(_mass_for_category(), 1.0)))
+	animator.stagger(impulse, strength / sqrt(maxf(_mass_for_category(), 1.0)))
 
 
 ## Pushed away from a point without being hurt.
@@ -2442,7 +2449,8 @@ func _begin_slam() -> void:
 ## bite at a provoked animal, a boss slam and a boss volley - and a modifier
 ## applied at three of four is a portent that charges most of the time.
 func _enemy_damage_scale() -> float:
-	return Balance.ENEMY_CONTACT_DAMAGE_SCALE 		* maxf(Modifiers.multiplier(Modifiers.ENEMY_DAMAGE), 0.0)
+	return Balance.ENEMY_CONTACT_DAMAGE_SCALE \
+		* maxf(Modifiers.multiplier(Modifiers.ENEMY_DAMAGE), 0.0)
 
 
 func _land_slam() -> void:
@@ -2465,7 +2473,8 @@ func _land_slam() -> void:
 	var radius: float = data.boss_slam_radius
 	EnemyGroundStrike.strike_the_players(get_tree(), damage, promoted_name(),
 		func(at: Vector2) -> bool:
-			return centre.distance_to(at) <= radius)
+			return centre.distance_to(at) <= radius,
+		data.boss_slam_knockback, centre)
 
 
 ## The volley: a fan of shots at whoever it can see.

@@ -1497,7 +1497,15 @@ const ENEMY_CONTACT_DAMAGE: float = 8.5
 const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.85
 
 ## Minimum time between two contact hits from the same enemy.
-const ENEMY_CONTACT_INTERVAL: float = 0.8
+## The floor under how often one body may land a contact blow.
+##
+## It said 0.8 from the day it was written and **the real figure was 1.32** -
+## the attack cycle is windup plus strike plus recovery, and nothing consulted
+## this constant at all. Derived now, so the number and the game agree, and so
+## a breed authoring `EnemyData.contact_interval` above it is authoring a
+## genuinely slower swing rather than a value silently under the floor.
+const ENEMY_CONTACT_INTERVAL: float = ENEMY_ATTACK_WINDUP + ENEMY_ATTACK_STRIKE \
+	+ ENEMY_ATTACK_RECOVERY
 
 ## Radius of the enemy's body for contact and hurt checks.
 ## Crowd separation: how bodies keep out of each other.
@@ -6715,6 +6723,42 @@ const BOSS_VOLLEY_SPREAD: float = 0.22
 const BOSS_VOLLEY_SPEED: float = 430.0
 ## How much closer than its slam radius a boss has to be before it bothers.
 const BOSS_SLAM_COMMIT: float = 0.85
+
+## What a slam does besides damage: it throws you.
+##
+## `EnemyData.boss_slam_knockback` was authored with a 260 default on
+## 2026-09-13 and **read by nothing at all** - so eleven bosses landed a
+## telegraphed blow that moved the player not at all, and a slam was a damage
+## number rather than an event. A blow that big has to move something or the
+## telegraph is teaching a lesson the blow does not deliver.
+##
+## The bound is that a shove changes *where the player is standing* and never
+## how much they took. It adds no stun, no damage and no attribute: the hero
+## keeps full control of a body that happens to be moving, which is exactly
+## what the beast's footfall already does to them. Mitigation, wards and
+## Resolve are untouched, so the curve reads the same. [TUNE]
+const HERO_SHOVE_DECAY: float = 260.0
+
+## The furthest any single shove may ever carry a hero, in world units.
+##
+## A push is a decaying impulse, so its reach is `speed * speed / (2 * decay)`
+## - which grows with the *square* of the number a designer types. At the 900
+## the export allows that is 1558 units, most of the way across the field, and
+## the player would spend a second and a half as a passenger. Clamped here
+## rather than trusted to authoring, and `boss_reach_check` measures the real
+## travel against it.
+const HERO_SHOVE_MAX_TRAVEL: float = 190.0
+
+
+## The fastest shove that stays inside `HERO_SHOVE_MAX_TRAVEL`.
+static func shove_ceiling() -> float:
+	return sqrt(2.0 * HERO_SHOVE_DECAY * HERO_SHOVE_MAX_TRAVEL)
+
+
+## How far a shove of this speed actually carries, in world units.
+static func shove_travel(speed: float) -> float:
+	var capped: float = minf(maxf(speed, 0.0), shove_ceiling())
+	return capped * capped / (2.0 * HERO_SHOVE_DECAY)
 
 
 # --- The fifth attribute (2026-09-13) ------------------------------------------
