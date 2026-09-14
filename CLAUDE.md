@@ -2068,6 +2068,20 @@ authored and never fed would say "nothing this time" after a run that
 levelled twice. Nothing new persists: the counters are of things that
 already do.
 
+**The economy is tested like a hostile player, and the budgets are enforced
+where they say they are, as of 2026-09-14.** Two gates from the fifth list.
+`exploit_check` drives the real doors: a tower sold never pays back what it
+cost at any level, a drop pays once however often it is collected and never
+to a puppet, the stash never overfills and the overflow is salvage, XP stops
+at the cap, a material at its ceiling. `budget_check` holds the caps inside
+the ceilings the frame was measured under (`ENEMY_CEILING` and the rest are
+its constants - raising one is a perf run, not an edit), that the director
+*waits* at the enemy cap with its queue intact, that the wildlife stops
+arriving at its own, and that nothing crossing the wire is on a per-frame
+clock. A cap authored and read by nothing is the frame going away, which is
+why the director and the wildlife are driven rather than their constants
+read. Frame timing stays `perf_check`'s, on the release, with a renderer.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
