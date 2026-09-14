@@ -2622,9 +2622,16 @@ func _mark_the_ground(damage: float) -> void:
 	var blow := EnemyGroundStrike.new()
 	blow.shape = EnemyGroundStrike.Shape.CIRCLE
 	blow.damage = damage
-	blow.delay = Balance.ENEMY_SHOT_LOB_DELAY
-	blow.reach = Balance.ENEMY_SHOT_LOB_RADIUS
-	blow.tint = Balance.ENEMY_SHOT_LOB_TINT
+	# The shot's own numbers when it authors them, the kind's when it does not.
+	# Four shots were painted and sized on 2026-09-14 and none of it reached the
+	# screen, because this read three global constants instead.
+	blow.delay = _shot_number(
+		func(s: EnemyShotData) -> float: return s.tell_delay,
+		Balance.ENEMY_SHOT_LOB_DELAY)
+	blow.reach = _shot_number(
+		func(s: EnemyShotData) -> float: return s.blast_radius,
+		Balance.ENEMY_SHOT_LOB_RADIUS)
+	blow.tint = _shot_tint(Balance.ENEMY_SHOT_LOB_TINT)
 	blow.blamed_on = promoted_name()
 	# On the ground under the target, not at its chest: `strike_the_players`
 	# measures from a body's feet, which is where a body stands.
@@ -2637,10 +2644,14 @@ func _level_a_lance(damage: float) -> void:
 	var blow := EnemyGroundStrike.new()
 	blow.shape = EnemyGroundStrike.Shape.LINE
 	blow.damage = damage
-	blow.delay = Balance.ENEMY_SHOT_LANCE_DELAY
-	blow.reach = Balance.ENEMY_SHOT_LANCE_RANGE
+	blow.delay = _shot_number(
+		func(s: EnemyShotData) -> float: return s.tell_delay,
+		Balance.ENEMY_SHOT_LANCE_DELAY)
+	blow.reach = _shot_number(
+		func(s: EnemyShotData) -> float: return s.blast_radius,
+		Balance.ENEMY_SHOT_LANCE_RANGE)
 	blow.half_width = Balance.ENEMY_SHOT_LANCE_HALF_WIDTH
-	blow.tint = Balance.ENEMY_SHOT_LANCE_TINT
+	blow.tint = _shot_tint(Balance.ENEMY_SHOT_LANCE_TINT)
 	# Ground to ground. Drawn from the chests it would run a body's height above
 	# the floor, and `strike_the_players` measures feet - so the first cut of
 	# this struck nobody at all and the gate said so.
@@ -2670,3 +2681,22 @@ func _combat_point(at: Node2D) -> Vector2:
 ## body - a fan aims at points, not at people.
 func _throw_range() -> float:
 	return data.shot_range if data != null and data.shot_range > 0.0 else attack_reach()
+
+
+## One authored number off the shot being thrown, or the kind's default.
+##
+## The shot is only consulted when it actually said something: zero means "as
+## every shot of this kind behaves", so a breed that authors nothing is
+## untouched and nothing in the curve moves.
+func _shot_number(pick: Callable, fallback: float) -> float:
+	if _shot_paint == null:
+		return fallback
+	var authored: float = float(pick.call(_shot_paint))
+	return authored if authored > 0.0 else fallback
+
+
+## The colour this shot flies and lands in.
+func _shot_tint(fallback: Color) -> Color:
+	if _shot_paint != null and _shot_paint.has_tint():
+		return _shot_paint.tint
+	return fallback

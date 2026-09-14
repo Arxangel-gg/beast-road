@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+shot_ids = PackedStringArray("snap_bolt", "wide_fan", "stone_mortar")
 id = "horde_drummer"
 display_name = "Horde Drummer"
 description = "The drum sets the pace. Everything around it keeps it."

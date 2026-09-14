@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_shot")
+core_tint = Color(0.940, 1.000, 0.780, 1.000)
+tint = Color(0.740, 0.820, 0.520, 1.000)
 id = "wide_fan"
 display_name = "Wide Fan"
 description = "A spread thrown across the road. Leave the middle of it."

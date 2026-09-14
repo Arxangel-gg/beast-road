@@ -34,6 +34,12 @@ const EXPECTED: Dictionary = {
 	"storm_caller": 3, "fog_lantern": 3, "bell_priest": 3, "choir_cantor": 3,
 	"glass_singer": 4, "glass_chanter": 4, "ash_caller": 4, "crown_herald": 4,
 	"mirage_seer": 5, "drowned_choir": 5,
+	# Added 2026-09-14. These three had the HOWLER role and **no repertoire at
+	# all**, so they threw the one bolt every shooter threw before repertoires
+	# existed - which is what the owner was seeing when they reported the
+	# variety as missing. The two elites get three, since the brief allowed up
+	# to five for elites and champions.
+	"howler": 3, "wolf_standard_bearer": 3, "horde_drummer": 3,
 }
 
 ## Distances the draw is measured at, **as a share of the breed's own reach**.
@@ -61,6 +67,8 @@ func _ready() -> void:
 	_test_each_breed_knows_what_it_should()
 	_test_a_repertoire_spans_its_ranges()
 	_test_the_draw_leans_on_range_without_gating()
+	_test_every_shooter_has_a_repertoire()
+	_test_every_shot_looks_like_itself()
 	MetaState.resume_saves()
 	if _failures.is_empty():
 		print("[repertoire] PASS - %d checks: %d shots, %d breeds, range leans and never gates"
@@ -215,3 +223,54 @@ func _draw(known: Array[EnemyShotData], gap: float) -> Dictionary:
 				counts[shot.id] = int(counts.get(shot.id, 0)) + 1
 				break
 	return counts
+
+
+## **Every breed that shoots has something to shoot with.**
+##
+## `EXPECTED` only names breeds somebody thought to list, so a shooter left out
+## of it was never checked at all - which is how `howler`, `horde_drummer` and
+## `wolf_standard_bearer` kept firing the single pre-2026-09-13 bolt for a day
+## after the rest of the roster stopped. The roster asks this question of
+## itself now rather than of a hand-kept table.
+func _test_every_shooter_has_a_repertoire() -> void:
+	var shooters: int = 0
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or breed.role != EnemyData.Role.HOWLER:
+			continue
+		shooters += 1
+		_check(breed.repertoire().size() >= 2,
+			("%s shoots for a living and knows %d shots - a breed with one is "
+				+ "the single bolt this whole system replaced")
+				% [breed.id, breed.repertoire().size()])
+		_check(EXPECTED.has(breed.id),
+			("%s shoots and EXPECTED does not name it, so nothing above checked "
+				+ "how many shots it has") % breed.id)
+	_check(shooters >= 12,
+		"only %d shooters found; the roster should be full of them" % shooters)
+
+
+## **A shot the player cannot tell apart from another shot is one shot.**
+##
+## Five shapes shipped on 2026-09-13 and eight of the ten authored shots left
+## `tint` fully transparent, which means "keep the roster default" - so a stone
+## mortar, a snap bolt, a hex and two lances all flew in the same grey-blue. The
+## mechanics varied and the screen did not, and the owner reported the variety
+## as missing. It was there; it was invisible.
+func _test_every_shot_looks_like_itself() -> void:
+	var seen: Array[Color] = []
+	for value: Variant in ContentDB.enemy_shots.values():
+		var shot := value as EnemyShotData
+		if shot == null:
+			continue
+		_check(shot.tint.a > 0.0,
+			("%s leaves its tint transparent, so it flies in whatever colour "
+				+ "every other shot flies in") % shot.id)
+		for other: Color in seen:
+			# Not a hue apart, just far enough that two shots crossing the same
+			# lane are two things rather than one thing twice.
+			var apart: float = absf(shot.tint.r - other.r) 				+ absf(shot.tint.g - other.g) + absf(shot.tint.b - other.b)
+			_check(apart > 0.18,
+				("%s flies in a colour another shot already uses - they are "
+					+ "the same shot as far as the player is concerned") % shot.id)
+		seen.append(shot.tint)

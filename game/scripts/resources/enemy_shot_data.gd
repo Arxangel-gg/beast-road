@@ -52,6 +52,20 @@ enum Kind { BOLT, SPRAY, LOB, HEX, LANCE }
 @export var tint: Color = Color(0.0, 0.0, 0.0, 0.0)
 @export var core_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
 
+## **What a LOB or a LANCE does differently from the next one.**
+##
+## Both resolve as `EnemyGroundStrike`, and until 2026-09-14 both read their
+## size and their warning off a single global constant - so a stone mortar and
+## an ember mortar were the same blow in the same colour, and the only thing
+## separating two shots of a kind was which breed happened to throw it.
+##
+## Zero means "use the kind's default", so a shot that authors nothing behaves
+## exactly as every shot of its kind always has.
+@export_range(0.0, 400.0) var blast_radius: float = 0.0
+## How long the telegraph hangs before it lands. A slower blow is a fairer one
+## and a bigger one, which is the trade these two numbers make together.
+@export_range(0.0, 4.0) var tell_delay: float = 0.0
+
 
 ## Whether the target's distance falls in this shot's band.
 func suits(gap: float) -> bool:

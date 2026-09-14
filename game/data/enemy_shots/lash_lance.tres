@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_shot")
+tell_delay = 0.6
+core_tint = Color(1.000, 0.760, 0.800, 1.000)
+tint = Color(0.960, 0.320, 0.420, 1.000)
 id = "lash_lance"
 display_name = "Lash"
 description = "A line struck along its whole length. Step off it."

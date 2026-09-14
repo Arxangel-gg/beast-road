@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_shot")
+core_tint = Color(0.900, 0.720, 1.000, 1.000)
+tint = Color(0.660, 0.360, 0.860, 1.000)
 id = "hex_crawl"
 display_name = "Creeping Hex"
 description = "Slow, following, and hungry for what a caster needs. Outrun it."

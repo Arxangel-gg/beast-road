@@ -2,6 +2,7 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+shot_ids = PackedStringArray("snap_bolt", "lash_lance", "long_lance")
 art_facing = 1
 id = "wolf_standard_bearer"
 display_name = "Wolf Standard-Bearer"

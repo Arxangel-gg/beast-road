@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_shot")
+core_tint = Color(0.920, 0.980, 1.000, 1.000)
+tint = Color(0.720, 0.860, 1.000, 1.000)
 id = "snap_bolt"
 display_name = "Snap Bolt"
 description = "A committed shot at whatever is close. Sidestep it."
