@@ -2651,29 +2651,39 @@ a canopy and the Last Terrace's a flight of terraces.
 > fight whatever sky is behind it. Laid down in mirrored pairs by
 > `ParallaxStrip`, so they need not tile.
 
-> **Each is trimmed to its own content, so the heights differ and that is the
-> point.** They were all drawn on a 512×128 canvas and a sparse horizon is
-> supposed to be a shorter horizon: the Iron Steppe is 54 rows of open plain and
-> the Last Terrace is the full 128. `ParallaxStrip` scales every one of them by
-> the same `band_height / 128`, so the ten keep their relative statures and one
-> number in `Balance` moves them together. Trim a replacement the same way, and
-> put its real height in the table - `production art` reads this column.
+> **Each is cropped to its own content on both axes, and the sizes differ for
+> two different reasons.** They were all drawn on a 512×128 canvas.
+>
+> The *height* is the interesting one: a sparse horizon is supposed to be a
+> shorter horizon, so the Iron Steppe keeps 54 rows of open plain and the Last
+> Terrace the full 128, and `ParallaxStrip` scales every one of them by the same
+> `band_height / 128` - the ten keep their relative statures and one number in
+> `Balance` moves them together. Padding them back to a common height would make
+> an empty plain stand as tall as a canopy.
+>
+> The *width* is a hard requirement rather than a preference. A strip is laid in
+> mirrored pairs, so the art has to reach both edges of its own image or every
+> join is a column of sky - 35 device pixels of it at the scale these are drawn,
+> and three of the ten shipped that way. `tools/trim_skylines.py` does both
+> crops and `parallax_cover_check` refuses a strip with a margin on either side.
+> Run the tool after generating a replacement and put the size it reports in the
+> table, which `run_tool.gd -- report` reads.
 
 > A region with no strip simply draws no layer, which is how this could ship
 > one act at a time.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `skyline_jungle.png` | 512×105 | T | `#1A1A20` |
+| `skyline_jungle.png` | 472×105 | T | `#1A1A20` |
 | `skyline_desert.png` | 512×121 | T | `#1A1A20` |
 | `skyline_snow.png` | 512×80 | T | `#1A1A20` |
 | `skyline_hollow_marches.png` | 512×101 | T | `#1A1A20` |
 | `skyline_rustwood.png` | 512×122 | T | `#1A1A20` |
-| `skyline_saltpan.png` | 512×66 | T | `#1A1A20` |
+| `skyline_saltpan.png` | 471×66 | T | `#1A1A20` |
 | `skyline_iron_steppe.png` | 512×54 | T | `#1A1A20` |
 | `skyline_glass_fields.png` | 512×122 | T | `#1A1A20` |
 | `skyline_ashen_reach.png` | 512×89 | T | `#1A1A20` |
-| `skyline_last_terrace.png` | 512×128 | T | `#1A1A20` |
+| `skyline_last_terrace.png` | 495×128 | T | `#1A1A20` |
 
 ### 5.17 The beast's tail — `res://art/beast/`
 

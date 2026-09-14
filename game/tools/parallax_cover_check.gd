@@ -89,6 +89,7 @@ func _drive_the_scope() -> void:
 		await get_tree().process_frame
 
 	_test_the_baselines_are_stacked()
+	_test_every_strip_reaches_its_edges()
 	await _test_the_ladder_is_in_order(scope)
 	var layers: Array[Node] = []
 	_gather(scope, layers)
@@ -229,3 +230,51 @@ func _test_the_ladder_is_in_order(scope: BeastScope) -> void:
 					+ "(%.2f against %.2f): depth is saying two opposite things"
 					% [float(rung[2]), float(behind[2])])
 		behind = rung
+
+
+## A horizon strip's art has to touch both edges of its own image.
+##
+## `ParallaxStrip` lays a strip down in mirrored pairs, which is what buys a
+## painted horizon per region for one asset each instead of a tiling puzzle each.
+## The whole trick rests on one property of the *canvas* rather than of the
+## drawing: a transparent margin at the left or right edge is a column of sky at
+## every join, about 35 device pixels of it at the scale these are drawn.
+##
+## Three of the first ten shipped with one - the Verdant Maw with 20 pixels
+## either side, the saltpan with 20 and 21, the Last Terrace with 17 on the left.
+## Nothing could have noticed: the manifest checks a size, the art gate checks a
+## file exists, and a gap in a hazed layer at the back of the scope is the kind
+## of thing an eye reads as "the sky" rather than as a fault.
+##
+## `tools/trim_skylines.py` is the fix and this is what keeps it applied.
+func _test_every_strip_reaches_its_edges() -> void:
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var region: TerrainData = ContentDB.terrain_for_act(act)
+		if region == null:
+			continue
+		var path: String = Balance.BEAST_SKYLINE_FORMAT % region.id
+		if not ResourceLoader.exists(path):
+			continue
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			continue
+		var art: Image = texture.get_image()
+		if art == null:
+			continue
+		var tall: int = art.get_height()
+		var wide: int = art.get_width()
+		for side: int in 2:
+			var column: int = 0 if side == 0 else wide - 1
+			var drawn: int = 0
+			for y: int in tall:
+				if art.get_pixel(column, y).a > EDGE_ALPHA:
+					drawn += 1
+			_check(drawn > 0,
+				"%s: column %d of %d is empty, so the mirrored join opens a gap "
+					% [region.id, column, wide]
+					+ "of sky - run tools/trim_skylines.py")
+
+
+## Above this an alpha is drawing rather than a generator's stray haze. The same
+## threshold `tools/trim_skylines.py` crops to, as a fraction.
+const EDGE_ALPHA: float = 8.0 / 255.0
