@@ -116,12 +116,19 @@ func _fit_menu() -> void:
 			_version_label.offset_bottom = 38.0
 
 
+## The wordmark's sheen, and its own clock.
+var _title_paint: ShaderMaterial = null
+var _title_clock: float = 0.0
+
+
 func _ready() -> void:
 	ScreenFit.set_menu_layout(true)
 	get_viewport().size_changed.connect(_fit_menu)
 	TouchInput.shown_changed.connect(func(_showing: bool) -> void: _fit_menu.call_deferred())
 	_fit_menu.call_deferred()
 	MusicPlayer.play("menu")
+	_light_the_title()
+	_grade_the_interface.call_deferred()
 	# **The menu column scrolls.** It used to sit in a fixed 310px box anchored
 	# to the middle of the screen while holding far more than that - on a tall
 	# desktop the overflow happened to land on screen and nobody noticed, and on
@@ -651,3 +658,91 @@ func _refresh_seed_fade() -> void:
 		_seed_tween.kill()
 	_seed_tween = create_tween()
 	_seed_tween.tween_property(row, "modulate:a", 1.0 if lit else Balance.MENU_SEED_FADE, 0.18)
+
+
+## The wordmark, lit from inside.
+##
+## Owner brief, 2026-09-14: the title should read as holographic. The obvious
+## reading of that word - scanlines and a cyan tint - would put a
+## science-fiction interface on the front of a grimdark fantasy game, so what
+## `title_hologram.gdshader` takes from a hologram is its *behaviour*: a sheen
+## that travels the letters, a rim that refracts, a slow instability. The
+## colours stay the wordmark's own. Gold leaf catching a moving light, not a
+## computer.
+##
+## Skipped headless, where the dummy renderer cannot compile a shader and says
+## so as an error the sweep reads as a failure.
+func _light_the_title() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var title := get_node_or_null("Title") as TextureRect
+	if title == null:
+		return
+	var paint := ShaderMaterial.new()
+	paint.shader = load("res://scripts/shaders/title_hologram.gdshader")
+	paint.set_shader_parameter("strength", Balance.MENU_TITLE_SHEEN)
+	paint.set_shader_parameter("sheen_width", Balance.MENU_TITLE_SHEEN_WIDTH)
+	paint.set_shader_parameter("split", Balance.MENU_TITLE_SPLIT)
+	title.material = paint
+	_title_paint = paint
+
+
+func _process(delta: float) -> void:
+	if _title_paint == null:
+		return
+	# Fed from here rather than read from `TIME` in the shader, so the sheen
+	# stops with the menu instead of running while a dialog is over it.
+	_title_clock += delta
+	_title_paint.set_shader_parameter("clock", _title_clock)
+
+
+## Grades the menu's buttons to the menu's own sky.
+##
+## Owner brief, 2026-09-14. The buttons were cold grey against a warm orange
+## scene, which reads as an interface pasted over a painting rather than one
+## belonging to it.
+##
+## Every button and panel joins `UiTint.GROUP` and is then painted from the
+## backdrop's own colour, so the menu grades itself to whatever act's art it is
+## showing. Frames only: `UiTint` moves `StyleBoxTexture.modulate_color` and
+## never a font, so nothing here can make a word harder to read.
+func _grade_the_interface() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	_enrol(self)
+	UiTint.apply(get_tree(), _menu_light())
+
+
+## Everything that draws a frame, recursively.
+func _enrol(from: Node) -> void:
+	for child: Node in from.get_children():
+		if child is Button or child is PanelContainer or child is Panel:
+			(child as Control).add_to_group(UiTint.GROUP)
+		_enrol(child)
+
+
+## The menu's own light, taken off the stage rather than from the day cycle.
+##
+## The main menu is not standing in an act - it has no terrain and no hour - so
+## asking `UiTint.for_the_world` here would grade it to whatever run was loaded
+## last. The backdrop is the only honest source.
+func _menu_light() -> Color:
+	# **Found by what it can do, not by what it is called.** The stage node is
+	# named "Art" in the scene, and looking it up by a guessed name returned
+	# null silently - so the menu graded itself to a hardcoded fallback and the
+	# whole feature did nothing while appearing to work.
+	var stage: Node = _stage_with_light(self)
+	if stage != null:
+		return stage.call("stage_light") as Color
+	return Color(1.0, 0.92, 0.82)
+
+
+## The first descendant that can report the stage's light.
+func _stage_with_light(from: Node) -> Node:
+	for child: Node in from.get_children():
+		if child.has_method("stage_light"):
+			return child
+		var deeper: Node = _stage_with_light(child)
+		if deeper != null:
+			return deeper
+	return null

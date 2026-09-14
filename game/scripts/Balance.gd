@@ -5437,6 +5437,39 @@ const MENU_OVERSCAN: float = 1.0 + MENU_DRIFT * 2.4
 ## breath that keeps time with a walk reads as impatience.
 const MENU_BEAST_FRAME_TIME: float = 0.22
 
+## The menu's foreground foliage: vines from the top corners, ferns at the feet.
+##
+## Owner brief, 2026-09-14. Drawn rather than animated - see `MenuFoliage` for
+## why nothing here is a sprite - so these are the only numbers it needs.
+##
+## Sized as fractions of the screen so a phone and an ultrawide both get a
+## corner that reads as a corner rather than a decal of a fixed pixel size.
+const MENU_VINE_REACH: float = 0.30
+const MENU_FERN_REACH: float = 0.26
+## How far a tip travels. Generous on the vines, which hang and should look
+## weightless; restrained on the ferns, which are rooted.
+const MENU_VINE_SWAY: float = 0.30
+const MENU_FERN_SWAY: float = 0.16
+## Where each piece is rooted, as a fraction of the screen. The vines start
+## slightly *outside* the frame so the branch has no visible beginning.
+const MENU_VINE_LEFT: Vector2 = Vector2(-0.04, -0.02)
+const MENU_VINE_RIGHT: Vector2 = Vector2(1.04, -0.02)
+const MENU_FERN_LEFT: Vector2 = Vector2(0.05, 1.03)
+const MENU_FERN_RIGHT: Vector2 = Vector2(0.95, 1.03)
+## In front of the stage and behind the interface: foliage is scenery, and a
+## frond over a button is a frond in the way.
+const MENU_FOLIAGE_Z: int = 6
+
+## The wordmark's sheen: how strong, how wide the travelling band, and how far
+## the rim refracts.
+##
+## Restrained on purpose. The effect has to survive being looked at every time
+## the game is opened, and anything that announces itself on the first launch
+## is tiresome by the tenth. [TUNE]
+const MENU_TITLE_SHEEN: float = 0.85
+const MENU_TITLE_SHEEN_WIDTH: float = 0.17
+const MENU_TITLE_SPLIT: float = 0.0035
+
 ## How fast the menu's mist bands cross, in pixels a second at 1080p. Slow
 ## enough to be weather rather than a scrolling texture.
 const MENU_MIST_SPEED: float = 7.5

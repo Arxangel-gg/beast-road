@@ -57,6 +57,8 @@ const GATE_LIGHTS: Array[Vector2] = [
 
 var _backdrop: TextureRect = null
 var _beast: Sprite2D = null
+## The drawn corners: two hanging vines and two ferns.
+var _foliage: Array[MenuFoliage] = []
 var _tail: Sprite2D = null
 var _tail_frames: Array[Texture2D] = []
 var _shadow: Sprite2D = null
@@ -94,6 +96,7 @@ func _ready() -> void:
 	_build_embers()
 	_build_rain()
 	_build_logo_glow()
+	_build_foliage()
 	_build_vignette()
 	_build_grade()
 	_layout()
@@ -477,6 +480,7 @@ func _layout() -> void:
 	if span.x <= 0.0 or span.y <= 0.0:
 		return
 	_laid_out_at = span
+	_place_foliage(span)
 
 	# Overscanned so the drift can never pull a bare edge into frame.
 	var over: float = Balance.MENU_OVERSCAN
@@ -608,6 +612,17 @@ func _process(delta: float) -> void:
 
 	_drive_weather(span, backdrop_drift)
 
+	# **The gate fires move with the backdrop, and that is correct.**
+	#
+	# Reported as looking like they sway with the beast's camera (owner,
+	# 2026-09-14). They do move - but with the *backdrop*, by exactly its own
+	# drift, because each one is the glow of a torch painted into that art. Held
+	# still while the painting drifts, every flame would slide off its own
+	# torch within a few seconds, which is the bug this looks like but is not.
+	#
+	# They are deliberately not parented to the backdrop: it is overscanned and
+	# scaled to the window, and a child of it would be scaled too - a flame the
+	# size of the gate on an ultrawide.
 	for index: int in _gate_lights.size():
 		var light: Sprite2D = _gate_lights[index]
 		light.position = span * GATE_LIGHTS[index] + backdrop_drift
@@ -862,3 +877,95 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 		var material: ShaderMaterial = _grade.material as ShaderMaterial
 		if material != null:
 			material.set_shader_parameter("now", _time)
+
+
+## The corners: branches with hanging vines above, ferns at the feet.
+##
+## **Drawn, not animated** - the owner's brief called looping pixel animation
+## repetitive, and it is: the moment a viewer sees the loop they stop seeing the
+## plant. `MenuFoliage` sums sines of incommensurable periods instead, so the
+## motion never returns to a pose and there is nothing to recognise.
+##
+## Silhouettes in the backdrop's own darkest value, so they belong to whatever
+## sky is behind them without needing a set of assets per act. In front of the
+## stage and behind the interface: foliage is scenery, and a frond over a button
+## is a frond in the way.
+func _build_foliage() -> void:
+	var pieces: Array[Array] = [
+		[MenuFoliage.Kind.VINE, Balance.MENU_VINE_LEFT, 1.0, 0.0],
+		[MenuFoliage.Kind.VINE, Balance.MENU_VINE_RIGHT, -1.0, 2.2],
+		[MenuFoliage.Kind.FERN, Balance.MENU_FERN_LEFT, 1.0, 1.1],
+		[MenuFoliage.Kind.FERN, Balance.MENU_FERN_RIGHT, -1.0, 3.4],
+	]
+	for row: Array in pieces:
+		var leaf := MenuFoliage.new()
+		leaf.name = "Foliage%d" % _foliage.size()
+		leaf.kind = int(row[0])
+		leaf.anchor = row[1] as Vector2
+		leaf.facing = float(row[2])
+		leaf.phase = float(row[3])
+		leaf.sway = Balance.MENU_VINE_SWAY if leaf.kind == MenuFoliage.Kind.VINE 			else Balance.MENU_FERN_SWAY
+		leaf.z_index = Balance.MENU_FOLIAGE_Z
+		add_child(leaf)
+		_foliage.append(leaf)
+
+
+## Places and sizes the corners for the window as it is now.
+##
+## Called from `_layout` rather than set once, because the menu is re-laid on
+## every resize and a corner piece sized for a desktop is a smear on a phone.
+func _place_foliage(span: Vector2) -> void:
+	for leaf: MenuFoliage in _foliage:
+		leaf.position = span * leaf.anchor
+		var share: float = Balance.MENU_VINE_REACH 			if leaf.kind == MenuFoliage.Kind.VINE else Balance.MENU_FERN_REACH
+		leaf.reach = span.y * share
+		leaf.tint = _foliage_tint()
+		leaf.queue_redraw()
+
+
+## The darkest thing in the sky, which is what a near silhouette should be.
+##
+## Taken from the backdrop rather than typed in, so every act's menu gets
+## foliage that belongs to its own sky - a black frond against a pale dawn is
+## a hole in the screen, and the same frond against a night sky disappears.
+func _foliage_tint() -> Color:
+	var sky: Color = Color(0.05, 0.06, 0.06)
+	if _backdrop != null and _backdrop.texture != null:
+		var image: Image = _backdrop.texture.get_image()
+		if image != null:
+			sky = image.get_pixel(int(image.get_width() * 0.5),
+				int(image.get_height() * 0.86))
+	return Color(sky.r * 0.22, sky.g * 0.24, sky.b * 0.26, 0.94)
+
+
+## The stage's own light, for anything grading itself to this screen.
+##
+## The warm middle of the backdrop rather than its darkest value - that one is
+## the foliage silhouette's business. Normalised by the caller; this only has
+## to report the hue the scene is lit in.
+func stage_light() -> Color:
+	if _backdrop == null or _backdrop.texture == null:
+		return Color(1.0, 0.92, 0.82)
+	var image: Image = _backdrop.texture.get_image()
+	if image == null:
+		return Color(1.0, 0.92, 0.82)
+	# **The light in the scene, not the average of it.** Averaging the whole
+	# band returned the dusky purple sky and graded the interface cold, on a
+	# screen whose identity is the warm horizon behind the gate. A scene is lit
+	# by its brightest quarter - here the sunset, at night the moon - so that is
+	# what is sampled.
+	var wide: int = image.get_width()
+	var tall: int = image.get_height()
+	var seen: Array[Color] = []
+	for x: int in range(int(wide * 0.15), int(wide * 0.85), maxi(wide / 64, 1)):
+		for y: int in range(int(tall * 0.12), int(tall * 0.70), maxi(tall / 48, 1)):
+			seen.append(image.get_pixel(x, y))
+	if seen.is_empty():
+		return Color(1.0, 0.92, 0.82)
+	seen.sort_custom(func(a: Color, b: Color) -> bool:
+		return (a.r + a.g + a.b) > (b.r + b.g + b.b))
+	var take: int = maxi(seen.size() / 4, 1)
+	var total: Color = Color(0.0, 0.0, 0.0)
+	for index: int in take:
+		total += seen[index]
+	return Color(total.r / float(take), total.g / float(take), total.b / float(take))
