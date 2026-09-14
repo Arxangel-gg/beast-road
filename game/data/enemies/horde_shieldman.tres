@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 1
 id = "horde_shieldman"
 display_name = "Horde Shieldman"
 description = "It walks behind a wall it brought with it."

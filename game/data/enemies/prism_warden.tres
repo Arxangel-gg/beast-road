@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 1
 id = "prism_warden"
 display_name = "Prism Warden"
 description = "Every blow you land comes back at you in colours."

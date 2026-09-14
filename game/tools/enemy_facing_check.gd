@@ -54,18 +54,35 @@ extends Node
 ## these two are the only left-facing art in the game. Read a rider by its
 ## *mount*: the human torso is often turned toward the viewer while the
 ## animal underneath it is in clean profile, which is what fooled me twice.
+##
+## **A shield-bearer faces its shield (owner, fourth report, 2026-09-14).**
+## The Rootshield, the Horde Shieldman, the Glassguard, the Gate Sentinel and
+## the Prism Warden were all re-read as FRONT on 2026-09-13, on the reasoning
+## above - their bodies are square to the camera. That reading was correct
+## about the art and wrong about the game. A guard stance holds the shield to
+## one side, and a body that never turns walks half the roads on the map with
+## its shield *trailing*, which from the outside is a soldier walking
+## backwards. The owner reported it four times, and "they used to be fine" was
+## literally true: before `art_facing` existed every breed mirrored to face
+## its travel, so the shield always led.
+##
+## So the rule for a breed with a leading prop is the prop, not the torso: it
+## is marked as a profile toward the shield and turns like one. The shield
+## swapping arms at a turn is what every 2D game does and nobody sees; the
+## shield trailing is what everybody sees. `facing_shot` photographs a breed
+## walking each way on the real field, and is what settles the next report.
 const ROSTER: Dictionary = {
 	"ash_caller": 0, "bell_priest": 0, "bogkin": 0, "brine_drowned": 0,
 	"brinefather": 0, "burrower": 1, "chainmaker": 0, "choir_cantor": 0,
 	"cinder_hound": 1, "cinder_runner": 1, "cinder_titan": 0,
 	"crevasse_stalker": 0, "crown_herald": 0, "drowned_choir": 1,
 	"ember_husk": 0, "ember_shaman": 0, "flake_runner": 1, "fog_lantern": 0,
-	"frost_herald": 2, "gate_sentinel": 0, "gatekeeper": 0, "glass_chanter": 0,
-	"glass_colossus": 0, "glass_singer": 0, "glassborn": 1, "glassguard": 0,
-	"horde_drummer": 0, "horde_lancer": 2, "horde_shieldman": 0,
+	"frost_herald": 2, "gate_sentinel": 1, "gatekeeper": 0, "glass_chanter": 0,
+	"glass_colossus": 0, "glass_singer": 0, "glassborn": 1, "glassguard": 2,
+	"horde_drummer": 0, "horde_lancer": 2, "horde_shieldman": 1,
 	"horde_warlord": 0, "howler": 0, "ice_hauler": 0, "loam_lurker": 0,
 	"mirage_seer": 0, "mire_shambler": 0, "mirrorfang": 1, "mistwarden": 0,
-	"prism_warden": 0, "reed_stalker": 0, "rootshield": 0, "rust_crown": 0,
+	"prism_warden": 1, "reed_stalker": 0, "rootshield": 2, "rust_crown": 0,
 	"rust_hulk": 0, "rustmother": 0, "salt_crawler": 0, "salt_marcher": 1,
 	"scale_rider": 1, "shard_wight": 0, "siege_lizard": 1, "snowhide_brute": 0,
 	"stair_runner": 1, "steppehorde": 0, "storm_caller": 0, "warden": 0,

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 1
 id = "gate_sentinel"
 display_name = "Gate Sentinel"
 description = "Set on the stair and told to hold it. It is still holding it."
