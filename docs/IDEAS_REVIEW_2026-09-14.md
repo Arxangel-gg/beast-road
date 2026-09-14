@@ -158,6 +158,52 @@ existing tables), spell acquisition by grimoire and archaeology (after
 Archaeology), anti-magic enemies (a breed with a resistance is a `.tres`
 away once resistances exist), spell criticals and resistances.
 
+## The fifth list: seventy-nine things, and the north star
+
+The owner forwarded a production-priority list of seventy-nine items ending
+in five priorities - combat feel, one finished Act as a vertical slice, the
+wrath/climate/disaster integration, the extraction and persistence loop, and
+multiplayer stability, performance, UX and save integrity - and a rule:
+*add or keep a system only if it creates better decisions, stronger
+interactions, or more memorable Wilderhold stories.* That rule is adopted as
+the bar for everything after this line, and it is the same bar CLAUDE.md has
+been applying under other words ("a number the game already has an opinion
+about", "one excellent boss is worth several forgettable ones").
+
+**Already here, and to be judged rather than rebuilt:** hidden wrath with
+telegraphs, recovery and anchors; the climate grid; the world remembering
+(scorch, faults, burnt trees); elemental chemistry (Wet); magic in the same
+physics; tower paths and charged ground; mechanical gear affixes and
+legendary identities; the Guide/Codex, achievements, tutorials on triggers;
+fog of war; the encounter director's pressure curve; co-op with host
+authority, party events and trade; the Ledger's provenance and sinks; save
+migration with backups; the sweep of gates; feathered floods.
+
+**Taken as the next order of work, from the five priorities:**
+
+1. **Art and animation to a finished standard** - the towers on the wrong
+   perspective regenerated, eight-frame walks for every road body, and a
+   character-by-character audit for looks, loops, holes and baked shadows,
+   regenerating what fails it. This is the "vertical slice quality" item
+   applied to what the player looks at every second.
+2. **Combat feel**: hitstop, buffering and reaction differences by what was
+   hit (flesh, armour, stone, tower, boss); Aegis Step as a signature with
+   its perfect-timing reward already paying mana. Measured by photographs
+   and by a feel gate that reads the timings back.
+3. **The extraction loop's presentation** - "push another Act?" as a
+   decision with rising stakes, the results screen as an accomplishment,
+   the death screen naming what killed you and what was kept.
+4. **Multiplayer hardening** - drop-in/out, disconnect and rejoin, host
+   migration's absence stated, save integrity across versions, exploit
+   tests as gates (duplication, refund loops, XP loops).
+5. **Performance budgets as constants** with a gate that refuses a scene
+   over budget, and telemetry of the pressure curve per run.
+
+**Recorded, not taken now:** dynamic expedition conditions and intents,
+challenge runs, an evolving Hold, renown, biome identity passes beyond the
+art audit, landmarks, the encounter director's roster jobs - each after the
+five above, and each against the rule.
+
 ## Two principles adopted from the lists
 
 - **Skills change how the player treats the land, not only their numbers.**

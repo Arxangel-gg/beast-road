@@ -2427,8 +2427,12 @@ func _advance_walk_frames(delta: float) -> void:
 	# Distance-driven, with a floor. See `ENEMY_WALK_FRAME_FLOOR`: the cycle
 	# follows the ground the body covers, except when that is so slow the eye
 	# stops reading it as a cycle - which is every boss in the game.
+	# Scaled by the frames on disk against the count the stride was authored
+	# for: an eight-frame walk has twice the poses in the same step, not a
+	# step twice as long.
+	var density: float = float(_walk_frames.size()) / maxf(Balance.ENEMY_WALK_CYCLE_FRAMES, 1.0)
 	_walk_phase += maxf(_motion.length() * Balance.ENEMY_WALK_FRAMES_PER_PIXEL,
-		Balance.ENEMY_WALK_FRAME_FLOOR) * delta
+		Balance.ENEMY_WALK_FRAME_FLOOR) * density * delta
 	sprite.texture = _walk_frames[int(_walk_phase) % _walk_frames.size()]
 
 

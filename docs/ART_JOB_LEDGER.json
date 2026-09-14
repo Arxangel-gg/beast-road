@@ -1,0 +1,188 @@
+{
+  "art/enemies/elite_avalanche_warden": {
+    "move": "fd6723e6-44bf-4db9-a2b6-79ee3b4b02d3"
+  },
+  "art/enemies/elite_mirage_seer": {
+    "move": "3967b1e9-548d-456e-a7a9-62e95f618b8c"
+  },
+  "art/enemies/elite_pack_howler": {
+    "move": "e6000c80-8145-4daa-b40e-9b52461b2992"
+  },
+  "art/enemies/elite_siege_lizard": {
+    "move": "cbeac41e-3c61-44e2-9ee1-d97f0e850401"
+  },
+  "art/enemies/elite_white_maw_giant": {
+    "move": "1f8b63bf-7761-4915-9722-4782fd87467e"
+  },
+  "art/enemies/elite_wolf_standard_bearer": {
+    "move": "5c3394b5-3a73-4360-a41f-91d6d8d38a24"
+  },
+  "art/enemies/enemy_ash_caller": {
+    "move": "4348c0c4-d4cb-4ccc-8c10-b7863d523c09"
+  },
+  "art/enemies/enemy_bell_priest": {
+    "move": "db4bac8d-66d2-4590-a5dc-2a575139d21a"
+  },
+  "art/enemies/enemy_brine_drowned": {
+    "move": "9e51ec5c-eed1-4b38-a028-ff835e7344c5"
+  },
+  "art/enemies/enemy_choir_cantor": {
+    "move": "f8a903b1-91ed-46b9-a074-67450048131e"
+  },
+  "art/enemies/enemy_cinder_hound": {
+    "move": "74bbd2c8-b0ec-40fc-b685-186c1da8c4bb"
+  },
+  "art/enemies/enemy_cinder_runner": {
+    "move": "9e69bdd3-b5b4-4b4c-b846-f03bb02d7889"
+  },
+  "art/enemies/enemy_coalpaint_raider": {
+    "move": "5a54562d-cb0f-48ce-8d7f-0282cd7ae3bb"
+  },
+  "art/enemies/enemy_crevasse_stalker": {
+    "move": "c0817989-d3a1-4529-b777-ceb146023d4d"
+  },
+  "art/enemies/enemy_crown_herald": {
+    "move": "05859b9d-0c65-4ccf-8838-039a87d2081e"
+  },
+  "art/enemies/enemy_dune_burrower": {
+    "move": "96f56fcd-1184-46d7-8332-3256a2379e9d"
+  },
+  "art/enemies/enemy_ember_husk": {
+    "move": "91de3bc7-d236-4fd8-ba9f-ca308b4b6d10"
+  },
+  "art/enemies/enemy_ember_shaman": {
+    "move": "0dbb6870-2279-4cd9-9aaf-6377fde7fa6c"
+  },
+  "art/enemies/enemy_flake_runner": {
+    "move": "9e83c7d9-a576-4066-b88a-d7854d0cc80d"
+  },
+  "art/enemies/enemy_fog_lantern": {
+    "move": "50a39134-4a44-43cc-ac8d-85d591c01b0f"
+  },
+  "art/enemies/enemy_frost_herald": {
+    "move": "6753d8e3-b0a1-4129-a5c7-71495b16fdf9"
+  },
+  "art/enemies/enemy_gate_sentinel": {
+    "move": "5af8944e-cb87-4d11-9bb3-5262e592ea69"
+  },
+  "art/enemies/enemy_glass_chanter": {
+    "move": "186fee58-0164-4cb7-8ed3-767a7c50029d"
+  },
+  "art/enemies/enemy_glass_singer": {
+    "move": "6f4ca53d-6729-4a0f-beaf-4c42711d6211"
+  },
+  "art/enemies/enemy_glassguard": {
+    "attack": "a4026d48-437b-4701-bac6-2fc2ba841667",
+    "base_url": "https://api.pixellab.ai/mcp/images/40199eee-c375-43c8-90e4-33a3e69249ad/download",
+    "idle": "807fa8e3-fa71-49f0-8a95-11c63e09a46e",
+    "move": "b8524e3e-be14-425c-a389-efce7b10ba56"
+  },
+  "art/enemies/enemy_horde_drummer": {
+    "move": "a9cb1316-8293-4e21-9956-70789f056469"
+  },
+  "art/enemies/enemy_horde_lancer": {
+    "move": "a5146f8a-e827-4e23-b530-ab8a84482a1b"
+  },
+  "art/enemies/enemy_horde_shieldman": {
+    "move": "470aa51b-d33d-454d-8e84-6386a4b18a54"
+  },
+  "art/enemies/enemy_ice_hauler": {
+    "move": "45a331a7-1866-4352-8266-9804a9737309"
+  },
+  "art/enemies/enemy_loam_lurker": {
+    "move": "08c0508d-6e13-43cc-a853-d424ab59f875"
+  },
+  "art/enemies/enemy_mire_shambler": {
+    "move": "466f9aaa-7051-41d5-8857-e8562caab011"
+  },
+  "art/enemies/enemy_prism_warden": {
+    "move": "de83469e-1339-4f4e-ac26-1274eeeb63c6"
+  },
+  "art/enemies/enemy_reed_stalker": {
+    "move": "45c99272-0490-4049-98a4-7941228876c9"
+  },
+  "art/enemies/enemy_rime_marauder": {
+    "move": "8fb0bbb3-b5ac-4ff5-a7ef-3d1e67425978"
+  },
+  "art/enemies/enemy_rootshield": {
+    "move": "de7dce5a-05e9-43fb-96ee-74ca998fb810"
+  },
+  "art/enemies/enemy_rust_hulk": {
+    "move": "6f29b74b-130a-48f7-a2cb-461e761df32d"
+  },
+  "art/enemies/enemy_salt_crawler": {
+    "move": "eac6040a-df4a-4630-a795-8fc31dd14036"
+  },
+  "art/enemies/enemy_salt_marcher": {
+    "move": "50a1575f-18db-42d0-845a-277537bcfb65"
+  },
+  "art/enemies/enemy_scale_rider": {
+    "move": "25693f98-23aa-4773-9acb-44e77b6255a2"
+  },
+  "art/enemies/enemy_shard_wight": {
+    "move": "60d60ad2-cc26-4456-a0e5-66a13aed6202"
+  },
+  "art/enemies/enemy_snowhide_brute": {
+    "move": "1fb892f6-965e-477c-af9a-47d23a5525e1"
+  },
+  "art/enemies/enemy_stair_runner": {
+    "move": "885ae502-cc12-41c9-8ab1-076f96d8f560"
+  },
+  "art/enemies/enemy_storm_caller": {
+    "move": "ef13497a-7efa-4b7c-9d38-8a9f1707025c"
+  },
+  "art/enemies/enemy_veiled_skirmisher": {
+    "move": "6d5f8238-e7db-46cb-970a-ed02ffed92c2"
+  },
+  "art/enemies/enemy_wolf_rider": {
+    "move": "78493cb3-92cd-4a7b-b366-dd5e57509826"
+  },
+  "art/towers/tower_ash_thrower": {
+    "attack": "89c74f3c-7184-4306-95da-554703ce7b86",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/24bab177-df28-4db3-992b-b6d3b4d38be2/rotations/unknown.png",
+    "idle": "1006ac18-88e4-474f-9acb-1194db7fbe97",
+    "object": "24bab177-df28-4db3-992b-b6d3b4d38be2"
+  },
+  "art/towers/tower_barrow_stake": {
+    "attack": "dcf48c69-2cb7-44fd-ae5b-47cb5a875fe9",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/1be778ac-9bd5-42b7-b29d-8eef91a80cb2/rotations/unknown.png",
+    "idle": "77dbfebd-4e50-474e-af32-9a1056154e90",
+    "object": "1be778ac-9bd5-42b7-b29d-8eef91a80cb2"
+  },
+  "art/towers/tower_glacier": {
+    "attack": "4367f02f-d15d-4c20-8698-4a237d1ac50d",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/57296eaa-1adf-41f3-b55f-d470aaeea47b/rotations/unknown.png",
+    "idle": "90baed68-c5af-4356-9937-5e0bba807827",
+    "object": "57296eaa-1adf-41f3-b55f-d470aaeea47b"
+  },
+  "art/towers/tower_hailcaster": {
+    "attack": "2621a482-77bb-4a46-832b-ffcb1da88287",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/e780e757-1739-47c2-bf3d-987f1dc8fe6c/rotations/unknown.png",
+    "idle": "1312a371-ece4-4756-9673-5ecad3688f20",
+    "object": "e780e757-1739-47c2-bf3d-987f1dc8fe6c"
+  },
+  "art/towers/tower_rime_ward": {
+    "attack": "f9421ed5-d1e2-4093-95cd-f2e2cb63a509",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/bda8f3d4-f4a8-4bae-b88b-84c1c6013ee0/rotations/unknown.png",
+    "idle": "3db4db85-ee7c-4163-9c50-efdcf7f50553",
+    "object": "bda8f3d4-f4a8-4bae-b88b-84c1c6013ee0"
+  },
+  "art/towers/tower_rootcrusher": {
+    "attack": "3f16f5e3-a082-497c-b197-d79d4a803be9",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/51805428-0de2-4280-b1a8-f213ae7e56f4/rotations/unknown.png",
+    "idle": "bd936c93-ce8e-43d3-815c-023bb96e6b20",
+    "object": "51805428-0de2-4280-b1a8-f213ae7e56f4"
+  },
+  "art/towers/tower_scree_gun": {
+    "attack": "72df1fa2-3fe4-4f87-8a38-0b95d48d6fbf",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/4ad5c560-abd8-4778-9e3d-bec6fee22b44/rotations/unknown.png",
+    "idle": "5f4de089-6519-42f8-83e1-b1d578eaf8cd",
+    "object": "4ad5c560-abd8-4778-9e3d-bec6fee22b44"
+  },
+  "art/wildlife/wildlife_rabbit": {
+    "move": "6c03ce9c-7091-465b-8af3-64d6da28ba0c"
+  },
+  "art/wildlife/wildlife_squirrel": {
+    "move": "d4be6808-3024-4f85-9216-a26c274ddbaa"
+  }
+}

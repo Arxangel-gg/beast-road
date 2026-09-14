@@ -4039,6 +4039,11 @@ const ENEMY_WALK_FRAMES_PER_PIXEL: float = 0.030
 ## distance-driven rate is still what decides the gait. A slow body's feet slide
 ## a little; a slow body that does not move at all reads as a bug. [TUNE]
 const ENEMY_WALK_FRAME_FLOOR: float = 3.2
+## The frame count the two figures above were authored against. A body with
+## more frames on disk (the eight-frame walks of 2026-09-14) advances its
+## phase faster in proportion, so a full cycle still covers the same ground
+## and takes the same time - more poses in the stride, not a longer stride.
+const ENEMY_WALK_CYCLE_FRAMES: float = 4.0
 ## Authored breathing at rest; attacks and crowd-control always override it. [TUNE]
 const ENEMY_IDLE_FRAME_RATE: float = 3.0
 

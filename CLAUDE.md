@@ -2000,6 +2000,41 @@ rate-limiting rule). A water spell leaves what it hits wet.
 points beside the four disciplines is the third draft this project keeps
 refusing. The Arcane discipline *is* the caster's tree.
 
+**Every tower stands square on the grid, and every road body walks on eight
+frames, as of 2026-09-14.** The owner's report: some towers were built on a
+diagonal, isometric base "that doesn't align with our game's grid system",
+and four-frame walks read as low quality.
+
+**A contact sheet found the seven.** Ash Thrower, Barrow Stake, Glacier,
+Hailcaster, Rime Ward, Rootcrusher and Scree Gun sat on a rotated square
+while the other thirty stood front-on with a slight top-down angle. They
+were regenerated as PixelLab Pro Flash *objects* with `view: low top-down`
+and a style image of a tower that was already right, then each was
+animated from its own result by URL for three idle and three attack frames.
+Same file names, same 192px, no manifest change - which is the whole point
+of the art convention (§4).
+
+**The perspective rule, stated so it is not re-learned:** a Wilderhold
+structure is drawn from the front with a slight top-down angle, its base
+flat and straight-on to the camera. Never an isometric corner, never a
+diamond base. Say so in the prompt, in capitals if need be; the model's
+default for "tower" is isometric.
+
+**Eight-frame walks.** `GameData.load_move_frames` had loaded up to eight
+frames since it was written and every breed had four. All thirty-nine
+breeds, the six elites, the squirrel and the rabbit were animated from
+their base sprite by its public raw-GitHub URL (`animate_image`, 192px,
+eight frames, "moving forward in its natural gait ... facing exactly as
+drawn"). The stride is distance-driven, so `ENEMY_WALK_CYCLE_FRAMES` scales
+the phase by the frames on disk against the four the constants were
+authored for: a cycle still covers the same ground in the same time. Bosses
+are 384px, over the animator's 256 cap, and keep their four.
+
+**Twenty concurrent jobs is PixelLab's limit**, so a batch of forty-seven
+is submitted in waves; every job id is kept in `docs/ART_JOB_LEDGER.json`
+by frame path, which is what makes a frame re-fetchable and an animation
+re-doable without the base going through the conversation.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

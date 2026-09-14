@@ -364,99 +364,99 @@ the enemy table above is grouped.
 
 All 192×192, type T, placeholder colour `#4A6B4F`.
 
-Files: `elite_pack_howler_move_01.png` · `elite_pack_howler_move_02.png` · `elite_pack_howler_move_03.png` · `elite_pack_howler_move_04.png`
-Files: `elite_wolf_standard_bearer_move_01.png` · `elite_wolf_standard_bearer_move_02.png` · `elite_wolf_standard_bearer_move_03.png` · `elite_wolf_standard_bearer_move_04.png`
-Files: `enemy_coalpaint_raider_move_01.png` · `enemy_coalpaint_raider_move_02.png` · `enemy_coalpaint_raider_move_03.png` · `enemy_coalpaint_raider_move_04.png`
-Files: `enemy_ember_shaman_move_01.png` · `enemy_ember_shaman_move_02.png` · `enemy_ember_shaman_move_03.png` · `enemy_ember_shaman_move_04.png`
-Files: `enemy_rootshield_move_01.png` · `enemy_rootshield_move_02.png` · `enemy_rootshield_move_03.png` · `enemy_rootshield_move_04.png`
-Files: `enemy_wolf_rider_move_01.png` · `enemy_wolf_rider_move_02.png` · `enemy_wolf_rider_move_03.png` · `enemy_wolf_rider_move_04.png`
-Files: `enemy_loam_lurker_move_01.png` · `enemy_loam_lurker_move_02.png` · `enemy_loam_lurker_move_03.png` · `enemy_loam_lurker_move_04.png`
-Files: `enemy_cinder_runner_move_01.png` · `enemy_cinder_runner_move_02.png` · `enemy_cinder_runner_move_03.png` · `enemy_cinder_runner_move_04.png`
+Files: `elite_pack_howler_move_01.png` · `elite_pack_howler_move_02.png` · `elite_pack_howler_move_03.png` · `elite_pack_howler_move_04.png` · `elite_pack_howler_move_05.png` · `elite_pack_howler_move_06.png` · `elite_pack_howler_move_07.png` · `elite_pack_howler_move_08.png`
+Files: `elite_wolf_standard_bearer_move_01.png` · `elite_wolf_standard_bearer_move_02.png` · `elite_wolf_standard_bearer_move_03.png` · `elite_wolf_standard_bearer_move_04.png` · `elite_wolf_standard_bearer_move_05.png` · `elite_wolf_standard_bearer_move_06.png` · `elite_wolf_standard_bearer_move_07.png` · `elite_wolf_standard_bearer_move_08.png`
+Files: `enemy_coalpaint_raider_move_01.png` · `enemy_coalpaint_raider_move_02.png` · `enemy_coalpaint_raider_move_03.png` · `enemy_coalpaint_raider_move_04.png` · `enemy_coalpaint_raider_move_05.png` · `enemy_coalpaint_raider_move_06.png` · `enemy_coalpaint_raider_move_07.png` · `enemy_coalpaint_raider_move_08.png`
+Files: `enemy_ember_shaman_move_01.png` · `enemy_ember_shaman_move_02.png` · `enemy_ember_shaman_move_03.png` · `enemy_ember_shaman_move_04.png` · `enemy_ember_shaman_move_05.png` · `enemy_ember_shaman_move_06.png` · `enemy_ember_shaman_move_07.png` · `enemy_ember_shaman_move_08.png`
+Files: `enemy_rootshield_move_01.png` · `enemy_rootshield_move_02.png` · `enemy_rootshield_move_03.png` · `enemy_rootshield_move_04.png` · `enemy_rootshield_move_05.png` · `enemy_rootshield_move_06.png` · `enemy_rootshield_move_07.png` · `enemy_rootshield_move_08.png`
+Files: `enemy_wolf_rider_move_01.png` · `enemy_wolf_rider_move_02.png` · `enemy_wolf_rider_move_03.png` · `enemy_wolf_rider_move_04.png` · `enemy_wolf_rider_move_05.png` · `enemy_wolf_rider_move_06.png` · `enemy_wolf_rider_move_07.png` · `enemy_wolf_rider_move_08.png`
+Files: `enemy_loam_lurker_move_01.png` · `enemy_loam_lurker_move_02.png` · `enemy_loam_lurker_move_03.png` · `enemy_loam_lurker_move_04.png` · `enemy_loam_lurker_move_05.png` · `enemy_loam_lurker_move_06.png` · `enemy_loam_lurker_move_07.png` · `enemy_loam_lurker_move_08.png`
+Files: `enemy_cinder_runner_move_01.png` · `enemy_cinder_runner_move_02.png` · `enemy_cinder_runner_move_03.png` · `enemy_cinder_runner_move_04.png` · `enemy_cinder_runner_move_05.png` · `enemy_cinder_runner_move_06.png` · `enemy_cinder_runner_move_07.png` · `enemy_cinder_runner_move_08.png`
 
 
 #### Desert walk frames
 
 All 192×192, type T, placeholder colour `#6B8A9E`.
 
-Files: `elite_mirage_seer_move_01.png` · `elite_mirage_seer_move_02.png` · `elite_mirage_seer_move_03.png` · `elite_mirage_seer_move_04.png`
-Files: `elite_siege_lizard_move_01.png` · `elite_siege_lizard_move_02.png` · `elite_siege_lizard_move_03.png` · `elite_siege_lizard_move_04.png`
-Files: `enemy_dune_burrower_move_01.png` · `enemy_dune_burrower_move_02.png` · `enemy_dune_burrower_move_03.png` · `enemy_dune_burrower_move_04.png`
-Files: `enemy_glassguard_move_01.png` · `enemy_glassguard_move_02.png` · `enemy_glassguard_move_03.png` · `enemy_glassguard_move_04.png`
-Files: `enemy_scale_rider_move_01.png` · `enemy_scale_rider_move_02.png` · `enemy_scale_rider_move_03.png` · `enemy_scale_rider_move_04.png`
-Files: `enemy_veiled_skirmisher_move_01.png` · `enemy_veiled_skirmisher_move_02.png` · `enemy_veiled_skirmisher_move_03.png` · `enemy_veiled_skirmisher_move_04.png`
-Files: `enemy_glass_chanter_move_01.png` · `enemy_glass_chanter_move_02.png` · `enemy_glass_chanter_move_03.png` · `enemy_glass_chanter_move_04.png`
-Files: `enemy_salt_marcher_move_01.png` · `enemy_salt_marcher_move_02.png` · `enemy_salt_marcher_move_03.png` · `enemy_salt_marcher_move_04.png`
+Files: `elite_mirage_seer_move_01.png` · `elite_mirage_seer_move_02.png` · `elite_mirage_seer_move_03.png` · `elite_mirage_seer_move_04.png` · `elite_mirage_seer_move_05.png` · `elite_mirage_seer_move_06.png` · `elite_mirage_seer_move_07.png` · `elite_mirage_seer_move_08.png`
+Files: `elite_siege_lizard_move_01.png` · `elite_siege_lizard_move_02.png` · `elite_siege_lizard_move_03.png` · `elite_siege_lizard_move_04.png` · `elite_siege_lizard_move_05.png` · `elite_siege_lizard_move_06.png` · `elite_siege_lizard_move_07.png` · `elite_siege_lizard_move_08.png`
+Files: `enemy_dune_burrower_move_01.png` · `enemy_dune_burrower_move_02.png` · `enemy_dune_burrower_move_03.png` · `enemy_dune_burrower_move_04.png` · `enemy_dune_burrower_move_05.png` · `enemy_dune_burrower_move_06.png` · `enemy_dune_burrower_move_07.png` · `enemy_dune_burrower_move_08.png`
+Files: `enemy_glassguard_move_01.png` · `enemy_glassguard_move_02.png` · `enemy_glassguard_move_03.png` · `enemy_glassguard_move_04.png` · `enemy_glassguard_move_05.png` · `enemy_glassguard_move_06.png` · `enemy_glassguard_move_07.png` · `enemy_glassguard_move_08.png`
+Files: `enemy_scale_rider_move_01.png` · `enemy_scale_rider_move_02.png` · `enemy_scale_rider_move_03.png` · `enemy_scale_rider_move_04.png` · `enemy_scale_rider_move_05.png` · `enemy_scale_rider_move_06.png` · `enemy_scale_rider_move_07.png` · `enemy_scale_rider_move_08.png`
+Files: `enemy_veiled_skirmisher_move_01.png` · `enemy_veiled_skirmisher_move_02.png` · `enemy_veiled_skirmisher_move_03.png` · `enemy_veiled_skirmisher_move_04.png` · `enemy_veiled_skirmisher_move_05.png` · `enemy_veiled_skirmisher_move_06.png` · `enemy_veiled_skirmisher_move_07.png` · `enemy_veiled_skirmisher_move_08.png`
+Files: `enemy_glass_chanter_move_01.png` · `enemy_glass_chanter_move_02.png` · `enemy_glass_chanter_move_03.png` · `enemy_glass_chanter_move_04.png` · `enemy_glass_chanter_move_05.png` · `enemy_glass_chanter_move_06.png` · `enemy_glass_chanter_move_07.png` · `enemy_glass_chanter_move_08.png`
+Files: `enemy_salt_marcher_move_01.png` · `enemy_salt_marcher_move_02.png` · `enemy_salt_marcher_move_03.png` · `enemy_salt_marcher_move_04.png` · `enemy_salt_marcher_move_05.png` · `enemy_salt_marcher_move_06.png` · `enemy_salt_marcher_move_07.png` · `enemy_salt_marcher_move_08.png`
 
 
 #### Snow walk frames
 
 All 192×192, type T, placeholder colour `#9CB9D8`.
 
-Files: `elite_avalanche_warden_move_01.png` · `elite_avalanche_warden_move_02.png` · `elite_avalanche_warden_move_03.png` · `elite_avalanche_warden_move_04.png`
-Files: `elite_white_maw_giant_move_01.png` · `elite_white_maw_giant_move_02.png` · `elite_white_maw_giant_move_03.png` · `elite_white_maw_giant_move_04.png`
-Files: `enemy_ice_hauler_move_01.png` · `enemy_ice_hauler_move_02.png` · `enemy_ice_hauler_move_03.png` · `enemy_ice_hauler_move_04.png`
-Files: `enemy_rime_marauder_move_01.png` · `enemy_rime_marauder_move_02.png` · `enemy_rime_marauder_move_03.png` · `enemy_rime_marauder_move_04.png`
-Files: `enemy_snowhide_brute_move_01.png` · `enemy_snowhide_brute_move_02.png` · `enemy_snowhide_brute_move_03.png` · `enemy_snowhide_brute_move_04.png`
-Files: `enemy_storm_caller_move_01.png` · `enemy_storm_caller_move_02.png` · `enemy_storm_caller_move_03.png` · `enemy_storm_caller_move_04.png`
-Files: `enemy_crevasse_stalker_move_01.png` · `enemy_crevasse_stalker_move_02.png` · `enemy_crevasse_stalker_move_03.png` · `enemy_crevasse_stalker_move_04.png`
-Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `enemy_frost_herald_move_03.png` · `enemy_frost_herald_move_04.png`
+Files: `elite_avalanche_warden_move_01.png` · `elite_avalanche_warden_move_02.png` · `elite_avalanche_warden_move_03.png` · `elite_avalanche_warden_move_04.png` · `elite_avalanche_warden_move_05.png` · `elite_avalanche_warden_move_06.png` · `elite_avalanche_warden_move_07.png` · `elite_avalanche_warden_move_08.png`
+Files: `elite_white_maw_giant_move_01.png` · `elite_white_maw_giant_move_02.png` · `elite_white_maw_giant_move_03.png` · `elite_white_maw_giant_move_04.png` · `elite_white_maw_giant_move_05.png` · `elite_white_maw_giant_move_06.png` · `elite_white_maw_giant_move_07.png` · `elite_white_maw_giant_move_08.png`
+Files: `enemy_ice_hauler_move_01.png` · `enemy_ice_hauler_move_02.png` · `enemy_ice_hauler_move_03.png` · `enemy_ice_hauler_move_04.png` · `enemy_ice_hauler_move_05.png` · `enemy_ice_hauler_move_06.png` · `enemy_ice_hauler_move_07.png` · `enemy_ice_hauler_move_08.png`
+Files: `enemy_rime_marauder_move_01.png` · `enemy_rime_marauder_move_02.png` · `enemy_rime_marauder_move_03.png` · `enemy_rime_marauder_move_04.png` · `enemy_rime_marauder_move_05.png` · `enemy_rime_marauder_move_06.png` · `enemy_rime_marauder_move_07.png` · `enemy_rime_marauder_move_08.png`
+Files: `enemy_snowhide_brute_move_01.png` · `enemy_snowhide_brute_move_02.png` · `enemy_snowhide_brute_move_03.png` · `enemy_snowhide_brute_move_04.png` · `enemy_snowhide_brute_move_05.png` · `enemy_snowhide_brute_move_06.png` · `enemy_snowhide_brute_move_07.png` · `enemy_snowhide_brute_move_08.png`
+Files: `enemy_storm_caller_move_01.png` · `enemy_storm_caller_move_02.png` · `enemy_storm_caller_move_03.png` · `enemy_storm_caller_move_04.png` · `enemy_storm_caller_move_05.png` · `enemy_storm_caller_move_06.png` · `enemy_storm_caller_move_07.png` · `enemy_storm_caller_move_08.png`
+Files: `enemy_crevasse_stalker_move_01.png` · `enemy_crevasse_stalker_move_02.png` · `enemy_crevasse_stalker_move_03.png` · `enemy_crevasse_stalker_move_04.png` · `enemy_crevasse_stalker_move_05.png` · `enemy_crevasse_stalker_move_06.png` · `enemy_crevasse_stalker_move_07.png` · `enemy_crevasse_stalker_move_08.png`
+Files: `enemy_frost_herald_move_01.png` · `enemy_frost_herald_move_02.png` · `enemy_frost_herald_move_03.png` · `enemy_frost_herald_move_04.png` · `enemy_frost_herald_move_05.png` · `enemy_frost_herald_move_06.png` · `enemy_frost_herald_move_07.png` · `enemy_frost_herald_move_08.png`
 
 
 #### Hollow Marches walk frames
 
 All 192×192, type T, placeholder colour `#4F6350`.
 
-Files: `enemy_mire_shambler_move_01.png` · `enemy_mire_shambler_move_02.png` · `enemy_mire_shambler_move_03.png` · `enemy_mire_shambler_move_04.png`
-Files: `enemy_fog_lantern_move_01.png` · `enemy_fog_lantern_move_02.png` · `enemy_fog_lantern_move_03.png` · `enemy_fog_lantern_move_04.png`
-Files: `enemy_reed_stalker_move_01.png` · `enemy_reed_stalker_move_02.png` · `enemy_reed_stalker_move_03.png` · `enemy_reed_stalker_move_04.png`
+Files: `enemy_mire_shambler_move_01.png` · `enemy_mire_shambler_move_02.png` · `enemy_mire_shambler_move_03.png` · `enemy_mire_shambler_move_04.png` · `enemy_mire_shambler_move_05.png` · `enemy_mire_shambler_move_06.png` · `enemy_mire_shambler_move_07.png` · `enemy_mire_shambler_move_08.png`
+Files: `enemy_fog_lantern_move_01.png` · `enemy_fog_lantern_move_02.png` · `enemy_fog_lantern_move_03.png` · `enemy_fog_lantern_move_04.png` · `enemy_fog_lantern_move_05.png` · `enemy_fog_lantern_move_06.png` · `enemy_fog_lantern_move_07.png` · `enemy_fog_lantern_move_08.png`
+Files: `enemy_reed_stalker_move_01.png` · `enemy_reed_stalker_move_02.png` · `enemy_reed_stalker_move_03.png` · `enemy_reed_stalker_move_04.png` · `enemy_reed_stalker_move_05.png` · `enemy_reed_stalker_move_06.png` · `enemy_reed_stalker_move_07.png` · `enemy_reed_stalker_move_08.png`
 
 #### Rustwood walk frames
 
 All 192×192, type T, placeholder colour `#7A4A3A`.
 
-Files: `enemy_rust_hulk_move_01.png` · `enemy_rust_hulk_move_02.png` · `enemy_rust_hulk_move_03.png` · `enemy_rust_hulk_move_04.png`
-Files: `enemy_bell_priest_move_01.png` · `enemy_bell_priest_move_02.png` · `enemy_bell_priest_move_03.png` · `enemy_bell_priest_move_04.png`
-Files: `enemy_flake_runner_move_01.png` · `enemy_flake_runner_move_02.png` · `enemy_flake_runner_move_03.png` · `enemy_flake_runner_move_04.png`
+Files: `enemy_rust_hulk_move_01.png` · `enemy_rust_hulk_move_02.png` · `enemy_rust_hulk_move_03.png` · `enemy_rust_hulk_move_04.png` · `enemy_rust_hulk_move_05.png` · `enemy_rust_hulk_move_06.png` · `enemy_rust_hulk_move_07.png` · `enemy_rust_hulk_move_08.png`
+Files: `enemy_bell_priest_move_01.png` · `enemy_bell_priest_move_02.png` · `enemy_bell_priest_move_03.png` · `enemy_bell_priest_move_04.png` · `enemy_bell_priest_move_05.png` · `enemy_bell_priest_move_06.png` · `enemy_bell_priest_move_07.png` · `enemy_bell_priest_move_08.png`
+Files: `enemy_flake_runner_move_01.png` · `enemy_flake_runner_move_02.png` · `enemy_flake_runner_move_03.png` · `enemy_flake_runner_move_04.png` · `enemy_flake_runner_move_05.png` · `enemy_flake_runner_move_06.png` · `enemy_flake_runner_move_07.png` · `enemy_flake_runner_move_08.png`
 
 #### Saltpan walk frames
 
 All 192×192, type T, placeholder colour `#B9B3A5`.
 
-Files: `enemy_brine_drowned_move_01.png` · `enemy_brine_drowned_move_02.png` · `enemy_brine_drowned_move_03.png` · `enemy_brine_drowned_move_04.png`
-Files: `enemy_salt_crawler_move_01.png` · `enemy_salt_crawler_move_02.png` · `enemy_salt_crawler_move_03.png` · `enemy_salt_crawler_move_04.png`
-Files: `enemy_choir_cantor_move_01.png` · `enemy_choir_cantor_move_02.png` · `enemy_choir_cantor_move_03.png` · `enemy_choir_cantor_move_04.png`
+Files: `enemy_brine_drowned_move_01.png` · `enemy_brine_drowned_move_02.png` · `enemy_brine_drowned_move_03.png` · `enemy_brine_drowned_move_04.png` · `enemy_brine_drowned_move_05.png` · `enemy_brine_drowned_move_06.png` · `enemy_brine_drowned_move_07.png` · `enemy_brine_drowned_move_08.png`
+Files: `enemy_salt_crawler_move_01.png` · `enemy_salt_crawler_move_02.png` · `enemy_salt_crawler_move_03.png` · `enemy_salt_crawler_move_04.png` · `enemy_salt_crawler_move_05.png` · `enemy_salt_crawler_move_06.png` · `enemy_salt_crawler_move_07.png` · `enemy_salt_crawler_move_08.png`
+Files: `enemy_choir_cantor_move_01.png` · `enemy_choir_cantor_move_02.png` · `enemy_choir_cantor_move_03.png` · `enemy_choir_cantor_move_04.png` · `enemy_choir_cantor_move_05.png` · `enemy_choir_cantor_move_06.png` · `enemy_choir_cantor_move_07.png` · `enemy_choir_cantor_move_08.png`
 
 #### Iron Steppe walk frames
 
 All 192×192, type T, placeholder colour `#8A7B55`.
 
-Files: `enemy_horde_lancer_move_01.png` · `enemy_horde_lancer_move_02.png` · `enemy_horde_lancer_move_03.png` · `enemy_horde_lancer_move_04.png`
-Files: `enemy_horde_shieldman_move_01.png` · `enemy_horde_shieldman_move_02.png` · `enemy_horde_shieldman_move_03.png` · `enemy_horde_shieldman_move_04.png`
-Files: `enemy_horde_drummer_move_01.png` · `enemy_horde_drummer_move_02.png` · `enemy_horde_drummer_move_03.png` · `enemy_horde_drummer_move_04.png`
+Files: `enemy_horde_lancer_move_01.png` · `enemy_horde_lancer_move_02.png` · `enemy_horde_lancer_move_03.png` · `enemy_horde_lancer_move_04.png` · `enemy_horde_lancer_move_05.png` · `enemy_horde_lancer_move_06.png` · `enemy_horde_lancer_move_07.png` · `enemy_horde_lancer_move_08.png`
+Files: `enemy_horde_shieldman_move_01.png` · `enemy_horde_shieldman_move_02.png` · `enemy_horde_shieldman_move_03.png` · `enemy_horde_shieldman_move_04.png` · `enemy_horde_shieldman_move_05.png` · `enemy_horde_shieldman_move_06.png` · `enemy_horde_shieldman_move_07.png` · `enemy_horde_shieldman_move_08.png`
+Files: `enemy_horde_drummer_move_01.png` · `enemy_horde_drummer_move_02.png` · `enemy_horde_drummer_move_03.png` · `enemy_horde_drummer_move_04.png` · `enemy_horde_drummer_move_05.png` · `enemy_horde_drummer_move_06.png` · `enemy_horde_drummer_move_07.png` · `enemy_horde_drummer_move_08.png`
 
 #### Glass Fields walk frames
 
 All 192×192, type T, placeholder colour `#7FA6C4`.
 
-Files: `enemy_shard_wight_move_01.png` · `enemy_shard_wight_move_02.png` · `enemy_shard_wight_move_03.png` · `enemy_shard_wight_move_04.png`
-Files: `enemy_prism_warden_move_01.png` · `enemy_prism_warden_move_02.png` · `enemy_prism_warden_move_03.png` · `enemy_prism_warden_move_04.png`
-Files: `enemy_glass_singer_move_01.png` · `enemy_glass_singer_move_02.png` · `enemy_glass_singer_move_03.png` · `enemy_glass_singer_move_04.png`
+Files: `enemy_shard_wight_move_01.png` · `enemy_shard_wight_move_02.png` · `enemy_shard_wight_move_03.png` · `enemy_shard_wight_move_04.png` · `enemy_shard_wight_move_05.png` · `enemy_shard_wight_move_06.png` · `enemy_shard_wight_move_07.png` · `enemy_shard_wight_move_08.png`
+Files: `enemy_prism_warden_move_01.png` · `enemy_prism_warden_move_02.png` · `enemy_prism_warden_move_03.png` · `enemy_prism_warden_move_04.png` · `enemy_prism_warden_move_05.png` · `enemy_prism_warden_move_06.png` · `enemy_prism_warden_move_07.png` · `enemy_prism_warden_move_08.png`
+Files: `enemy_glass_singer_move_01.png` · `enemy_glass_singer_move_02.png` · `enemy_glass_singer_move_03.png` · `enemy_glass_singer_move_04.png` · `enemy_glass_singer_move_05.png` · `enemy_glass_singer_move_06.png` · `enemy_glass_singer_move_07.png` · `enemy_glass_singer_move_08.png`
 
 #### Ashen Reach walk frames
 
 All 192×192, type T, placeholder colour `#5A4A48`.
 
-Files: `enemy_ember_husk_move_01.png` · `enemy_ember_husk_move_02.png` · `enemy_ember_husk_move_03.png` · `enemy_ember_husk_move_04.png`
-Files: `enemy_cinder_hound_move_01.png` · `enemy_cinder_hound_move_02.png` · `enemy_cinder_hound_move_03.png` · `enemy_cinder_hound_move_04.png`
-Files: `enemy_ash_caller_move_01.png` · `enemy_ash_caller_move_02.png` · `enemy_ash_caller_move_03.png` · `enemy_ash_caller_move_04.png`
+Files: `enemy_ember_husk_move_01.png` · `enemy_ember_husk_move_02.png` · `enemy_ember_husk_move_03.png` · `enemy_ember_husk_move_04.png` · `enemy_ember_husk_move_05.png` · `enemy_ember_husk_move_06.png` · `enemy_ember_husk_move_07.png` · `enemy_ember_husk_move_08.png`
+Files: `enemy_cinder_hound_move_01.png` · `enemy_cinder_hound_move_02.png` · `enemy_cinder_hound_move_03.png` · `enemy_cinder_hound_move_04.png` · `enemy_cinder_hound_move_05.png` · `enemy_cinder_hound_move_06.png` · `enemy_cinder_hound_move_07.png` · `enemy_cinder_hound_move_08.png`
+Files: `enemy_ash_caller_move_01.png` · `enemy_ash_caller_move_02.png` · `enemy_ash_caller_move_03.png` · `enemy_ash_caller_move_04.png` · `enemy_ash_caller_move_05.png` · `enemy_ash_caller_move_06.png` · `enemy_ash_caller_move_07.png` · `enemy_ash_caller_move_08.png`
 
 #### Last Terrace walk frames
 
 All 192×192, type T, placeholder colour `#7A7C80`.
 
-Files: `enemy_gate_sentinel_move_01.png` · `enemy_gate_sentinel_move_02.png` · `enemy_gate_sentinel_move_03.png` · `enemy_gate_sentinel_move_04.png`
-Files: `enemy_stair_runner_move_01.png` · `enemy_stair_runner_move_02.png` · `enemy_stair_runner_move_03.png` · `enemy_stair_runner_move_04.png`
-Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `enemy_crown_herald_move_03.png` · `enemy_crown_herald_move_04.png`
+Files: `enemy_gate_sentinel_move_01.png` · `enemy_gate_sentinel_move_02.png` · `enemy_gate_sentinel_move_03.png` · `enemy_gate_sentinel_move_04.png` · `enemy_gate_sentinel_move_05.png` · `enemy_gate_sentinel_move_06.png` · `enemy_gate_sentinel_move_07.png` · `enemy_gate_sentinel_move_08.png`
+Files: `enemy_stair_runner_move_01.png` · `enemy_stair_runner_move_02.png` · `enemy_stair_runner_move_03.png` · `enemy_stair_runner_move_04.png` · `enemy_stair_runner_move_05.png` · `enemy_stair_runner_move_06.png` · `enemy_stair_runner_move_07.png` · `enemy_stair_runner_move_08.png`
+Files: `enemy_crown_herald_move_01.png` · `enemy_crown_herald_move_02.png` · `enemy_crown_herald_move_03.png` · `enemy_crown_herald_move_04.png` · `enemy_crown_herald_move_05.png` · `enemy_crown_herald_move_06.png` · `enemy_crown_herald_move_07.png` · `enemy_crown_herald_move_08.png`
 
 ### 5.3 Bosses — `res://art/bosses/`
 
@@ -1591,8 +1591,8 @@ Files: `wildlife_boar_move_01.png` · `wildlife_boar_move_02.png` · `wildlife_b
 Files: `wildlife_bear_move_01.png` · `wildlife_bear_move_02.png` · `wildlife_bear_move_03.png` · `wildlife_bear_move_04.png` · `wildlife_bear_move_05.png` · `wildlife_bear_move_06.png` · `wildlife_bear_move_07.png`
 Files: `wildlife_viper_move_01.png` · `wildlife_viper_move_02.png` · `wildlife_viper_move_03.png` · `wildlife_viper_move_04.png` · `wildlife_viper_move_05.png` · `wildlife_viper_move_06.png` · `wildlife_viper_move_07.png`
 Files: `wildlife_badger_move_01.png` · `wildlife_badger_move_02.png` · `wildlife_badger_move_03.png` · `wildlife_badger_move_04.png` · `wildlife_badger_move_05.png` · `wildlife_badger_move_06.png` · `wildlife_badger_move_07.png`
-Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildlife_rabbit_move_03.png` · `wildlife_rabbit_move_04.png` · `wildlife_rabbit_move_05.png`
-Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png`
+Files: `wildlife_rabbit_move_01.png` · `wildlife_rabbit_move_02.png` · `wildlife_rabbit_move_03.png` · `wildlife_rabbit_move_04.png` · `wildlife_rabbit_move_05.png` · `wildlife_rabbit_move_06.png` · `wildlife_rabbit_move_07.png` · `wildlife_rabbit_move_08.png`
+Files: `wildlife_squirrel_move_01.png` · `wildlife_squirrel_move_02.png` · `wildlife_squirrel_move_03.png` · `wildlife_squirrel_move_04.png` · `wildlife_squirrel_move_05.png` · `wildlife_squirrel_move_06.png` · `wildlife_squirrel_move_07.png` · `wildlife_squirrel_move_08.png`
 Files: `wildlife_stag_move_01.png` · `wildlife_stag_move_02.png` · `wildlife_stag_move_03.png` · `wildlife_stag_move_04.png` · `wildlife_stag_move_05.png` · `wildlife_stag_move_06.png` · `wildlife_stag_move_07.png`
 Files: `wildlife_heron_move_01.png` · `wildlife_heron_move_02.png` · `wildlife_heron_move_03.png` · `wildlife_heron_move_04.png` · `wildlife_heron_move_05.png` · `wildlife_heron_move_06.png` · `wildlife_heron_move_07.png`
 Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wildlife_hedgehog_move_03.png` · `wildlife_hedgehog_move_04.png` · `wildlife_hedgehog_move_05.png` · `wildlife_hedgehog_move_06.png` · `wildlife_hedgehog_move_07.png`
