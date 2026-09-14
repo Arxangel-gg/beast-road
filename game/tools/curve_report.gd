@@ -278,32 +278,51 @@ func _gold_per_body() -> float:
 func _affordable_dps(earned: float) -> float:
 	var gold: float = float(Balance.STARTING_GOLD) + earned
 
-	# Spend it on whole towers first, then on the upgrades those towers can take.
-	# A tower is worth far more than its cost in raw damage once levelled, so a
-	# model that only counts new builds understates a prepared player badly.
-	var towers: int = mini(int(gold / float(Balance.TOWER_BUILD_COST)),
-		Balance.LANE_COUNT * SLOTS_PER_LANE)
-	var spent: float = float(towers) * float(Balance.TOWER_BUILD_COST)
-	var level: int = 1
-	var cap: int = Balance.TOWER_MAX_LEVEL
-	# A round of upgrades across no towers is free, so an unguarded loop would
-	# report a purse of six Gold standing at level 10.
-	while towers > 0 and level < cap:
-		var step: int = Balance.TOWER_UPGRADE_COSTS[mini(level - 1,
-			Balance.TOWER_UPGRADE_COSTS.size() - 1)]
-		var round_cost: float = float(step) * float(towers)
-		if spent + round_cost > gold:
-			break
-		spent += round_cost
-		level += 1
-
-	_bought_towers = towers
-	_bought_level = level
+	# **The best build the purse can buy, not the first one it can afford.**
+	#
+	# This used to fill every slot with a level-one tower and only then start
+	# upgrading, a round at a time across all forty. Nobody plays that way, and
+	# the arithmetic is brutal: a round of upgrades across forty towers costs
+	# forty times a step, so the model reached wave 73 of a ten-act run still
+	# at **level 2**, with capability pinned flat from wave 50 - the moment the
+	# fortieth slot filled - through the last twenty-three waves of the game.
+	# Every conclusion about the late acts was drawn from that flat line.
+	#
+	# The docstring above already said spending is "assumed perfect". It now is:
+	# every count of towers at every level is priced, and the most damaging one
+	# the purse covers wins.
 	var reference: TowerData = ContentDB.tower("ember_spire")
 	if reference == null:
-		return float(towers)
-	var interval: float = maxf(reference.interval_at(level), 0.01)
-	return float(towers) * reference.damage_at(level) / interval
+		_bought_towers = 0
+		_bought_level = 1
+		return 0.0
+	var slots: int = Balance.LANE_COUNT * SLOTS_PER_LANE
+	var best: float = 0.0
+	var best_towers: int = 0
+	var best_level: int = 1
+	# What one tower costs to stand at each level, accumulated once.
+	var to_level: PackedFloat64Array = [float(Balance.TOWER_BUILD_COST)]
+	for step: int in range(1, Balance.TOWER_MAX_LEVEL):
+		var price: int = Balance.TOWER_UPGRADE_COSTS[mini(step - 1,
+			Balance.TOWER_UPGRADE_COSTS.size() - 1)]
+		to_level.append(to_level[step - 1] + float(price))
+	for level: int in range(1, Balance.TOWER_MAX_LEVEL + 1):
+		var each: float = to_level[level - 1]
+		if each <= 0.0:
+			continue
+		var towers: int = mini(int(gold / each), slots)
+		if towers <= 0:
+			continue
+		var interval: float = maxf(reference.interval_at(level), 0.01)
+		var output: float = float(towers) * reference.damage_at(level) / interval
+		if output > best:
+			best = output
+			best_towers = towers
+			best_level = level
+
+	_bought_towers = best_towers
+	_bought_level = best_level
+	return best
 
 
 ## **Does every party size get the same game?**
