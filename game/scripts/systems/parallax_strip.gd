@@ -15,9 +15,9 @@ extends Node2D
 ## its own reflection and no seam exists to find. It is the trick `beast_scope`
 ## already uses for the backdrop, which is why the sky has never shown a cut.
 ##
-## The pair is the period, so three of them are laid rather than three single
-## copies: see `ParallaxBand.PERIODS` for why the count starts one period behind
-## this node's origin rather than at it.
+## The pair is the period, so pairs are laid rather than single copies: see
+## `ParallaxBand.periods_for` for how many, and for why the count reaches either
+## side of this node's origin rather than forward from it.
 ##
 ## The cost of mirroring is that the horizon is symmetric over two widths. At
 ## these distances, moving at a fraction of the beast's speed and hazed most of
@@ -63,6 +63,8 @@ var _width: float = 0.0
 
 
 func _ready() -> void:
+	# How many pairs are needed depends on how wide the window is.
+	get_viewport().size_changed.connect(_rebuild)
 	_rebuild()
 
 
@@ -80,13 +82,19 @@ func _rebuild() -> void:
 	var grow: float = band_height / REFERENCE_HEIGHT
 	_width = native.x * grow
 	_stands = native.y * grow
-	# One mirrored pair per period, laid from one period behind this node's own
-	# origin. The scope's camera sits on that origin, so a run of pairs starting
-	# at 0 would begin in the middle of the view and leave the left of the screen
-	# bare for half of every period - the same hole `ParallaxBand.PERIODS` exists
-	# to close, and this borrows that list so the two cannot drift apart.
-	for period: int in ParallaxBand.PERIODS:
-		var base: float = float(period) * _width * 2.0
+	# **The pair is the period here, not the strip.** A pair is the art and its
+	# reflection, and it is the pair that repeats - so the span handed to
+	# `periods_for` is two widths, and each period lays two sprites.
+	#
+	# Laid either side of this node's origin rather than forward from it: the
+	# scope's camera sits on that origin, so pairs starting at 0 would begin in
+	# the middle of the view and leave the left of the screen bare for half of
+	# every period. That is the hole `periods_for` exists to close, and this
+	# borrows it so the three parallax classes cannot drift apart.
+	var span: float = _width * 2.0
+	for period: int in ParallaxBand.periods_for(span,
+			ParallaxBand.half_view(self)):
+		var base: float = float(period) * span
 		for index: int in 2:
 			var piece := Sprite2D.new()
 			piece.name = "Strip%d_%d" % [period, index]

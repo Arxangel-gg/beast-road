@@ -147,6 +147,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/fog_check.tscn
           run_godot_clean --headless --path game res://tools/beast_tail_check.tscn
           run_godot_clean --headless --path game res://tools/parallax_cover_check.tscn
+          run_godot_clean --headless --path game res://tools/shader_lint_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_facing_check.tscn
           run_godot_clean --headless --path game res://tools/scroll_zoom_check.tscn
           run_godot_clean --headless --path game res://tools/boss_reach_check.tscn

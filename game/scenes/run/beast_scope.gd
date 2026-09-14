@@ -22,7 +22,9 @@ func activate() -> void:
 		camera.make_current()
 	CursorKit.use_default()
 
-var _backdrop_clone: Sprite2D = null
+## The mirrored copies of the sky either side of the authored one. Rebuilt when
+## the act changes the art and when the window changes how much of it is seen.
+var _backdrop_copies: Array[Sprite2D] = []
 
 ## Two procedural silhouettes: a hazed ridge between the sky and the ground, and
 ## a near band that passes in front of the beast. Built rather than painted -
@@ -463,8 +465,7 @@ func _drive_frames(delta: float, walking: bool, speed_ratio: float) -> void:
 ## travelled its own width there was nothing behind it, so the view went blank -
 ## and the texture never changed, so every act looked like Ashfen.
 ##
-## A second copy sits one width to the right and the pair wrap around each other,
-## which tiles an arbitrary distance from two nodes.
+## Mirrored copies either side of the authored one, enough to cover the view.
 func _setup_backdrop() -> void:
 	if backdrop == null:
 		return
@@ -473,18 +474,63 @@ func _setup_backdrop() -> void:
 	# the screen, leaving the rest as the project's grey clear colour.
 	backdrop.centered = true
 	backdrop.z_index = Balance.BEAST_BACKDROP_Z
-	_backdrop_clone = Sprite2D.new()
-	_backdrop_clone.centered = true
-	# Mirrored, so the join is a reflection rather than a cut. The backdrop is a
-	# painting and does not tile: butting its right edge against its own left edge
-	# put a hard vertical seam through the sky every time the pair leapfrogged.
-	# Flipped, both joins are edge-against-identical-edge and neither shows.
-	_backdrop_clone.flip_h = true
-	_backdrop_clone.z_index = backdrop.z_index
-	backdrop.add_sibling(_backdrop_clone)
+	get_viewport().size_changed.connect(_rebuild_backdrop_copies)
 	_build_parallax()
 	_build_weather()
 	_apply_act_backdrop()
+
+
+## Lays as many mirrored copies of the sky as the window needs.
+##
+## **Mirrored, so a join is a reflection rather than a cut.** The backdrop is a
+## painting and does not tile: butting its right edge against its own left edge
+## put a hard vertical seam through the sky every time the pair leapfrogged.
+## Flipped, both joins are edge-against-identical-edge and neither shows - so
+## every odd copy is flipped and every even one is not, and consecutive copies
+## always meet reflected edges.
+##
+## **There used to be exactly one clone**, one width to the right, which covers
+## `[-w/2, 3w/2]` of the node's own space while the scroll slides it over
+## `(-w, 0]`. The guaranteed span was therefore only 967 units either side of the
+## camera - fine on the 1920-wide desktop shape it was written against, and
+## short on the 1280x592 landscape phone CI already builds for, whose visible
+## world is 2,335 units across. The sky simply stopped, partway down the run,
+## near the right edge of the screen.
+func _rebuild_backdrop_copies() -> void:
+	for copy: Sprite2D in _backdrop_copies:
+		if is_instance_valid(copy):
+			copy.queue_free()
+	_backdrop_copies.clear()
+	if backdrop == null or backdrop.texture == null:
+		return
+	var width: float = backdrop.texture.get_width() * backdrop.scale.x
+	if width <= 0.0:
+		return
+	# **Half a width of headroom, because this sprite is centred and the layers
+	# are not.** A band's period occupies `[k*w, (k+1)*w]`, so `periods_for`
+	# promises `[-r*w, r*w]`; a centred sky straddles its own position instead,
+	# which costs exactly half a width off the right of that promise. Asking for
+	# half a width more reach is the correction, and it is done here rather than
+	# in the helper so the three layers that share it stay simple.
+	var reach: float = ParallaxBand.half_view(backdrop) + width * 0.5
+	for period: int in ParallaxBand.periods_for(width, reach):
+		if period == 0:
+			# The authored node is the copy at zero; a second one on top of it
+			# would double the sky's brightness wherever it is transparent.
+			continue
+		var copy := Sprite2D.new()
+		copy.name = "Sky%d" % period
+		copy.centered = true
+		copy.flip_h = absi(period) % 2 == 1
+		copy.texture = backdrop.texture
+		copy.scale = backdrop.scale
+		copy.modulate = backdrop.modulate
+		copy.z_index = backdrop.z_index
+		copy.texture_filter = backdrop.texture_filter
+		copy.set_meta(&"sky_period", period)
+		backdrop.add_sibling(copy)
+		_backdrop_copies.append(copy)
+	_scroll_backdrop()
 
 
 ## The two drawn bands.
@@ -680,20 +726,17 @@ func _apply_act_backdrop() -> void:
 	# texture so it stays right whatever size the art is next time.
 	var fill: float = Balance.BEAST_BACKDROP_HEIGHT / maxf(float(texture.get_height()), 1.0)
 	backdrop.scale = Vector2.ONE * fill
-	if _backdrop_clone != null:
-		_backdrop_clone.texture = texture
-		_backdrop_clone.scale = backdrop.scale
-		_backdrop_clone.modulate = backdrop.modulate
+	# The art decides how wide a period is, so a new sky is a new count of copies.
+	_rebuild_backdrop_copies()
 	# A new sky is new light and, past Act I, new ground under it.
 	_refresh_ground()
 	_apply_parallax_palette()
 	_apply_beast_environment_tint()
 
 
-## Two sprites leapfrogging: whichever has scrolled fully off the left is moved
-## one width to the right of the other.
+## Slides the sky, and carries its mirrored copies with it.
 func _scroll_backdrop() -> void:
-	if backdrop == null or backdrop.texture == null or _backdrop_clone == null:
+	if backdrop == null or backdrop.texture == null:
 		return
 	var width: float = backdrop.texture.get_width() * backdrop.scale.x
 	if width <= 0.0:
@@ -701,8 +744,10 @@ func _scroll_backdrop() -> void:
 	var offset: float = fmod(RunState.distance_travelled
 		* Balance.BEAST_BACKDROP_SCROLL, width)
 	backdrop.position.x = -offset
-	_backdrop_clone.position.x = -offset + width
-	_backdrop_clone.position.y = backdrop.position.y
+	for copy: Sprite2D in _backdrop_copies:
+		var period: int = copy.get_meta(&"sky_period", 0) as int
+		copy.position.x = -offset + float(period) * width
+		copy.position.y = backdrop.position.y
 	_scroll_ground()
 	# Ordered slowest to fastest, which is the whole illusion: sky, ridge,
 	# ground, then the band that overtakes the beast.
@@ -852,8 +897,8 @@ func set_zoomed_out(value: bool) -> void:
 	var tint: Color = Color(0.55, 0.55, 0.6) if value else Color.WHITE
 	if backdrop != null:
 		backdrop.modulate = tint
-	if _backdrop_clone != null:
-		_backdrop_clone.modulate = tint
+	for copy: Sprite2D in _backdrop_copies:
+		copy.modulate = tint
 
 
 func is_zoomed_out() -> bool:

@@ -16,17 +16,25 @@ So the dither is resolved **offline, once**, rather than by turning the filter t
 linear at runtime - which would have smoothed the mountains and the aurora too,
 and those are the subject. Only the flat gradients move.
 
-  python tools/smooth_backdrops.py [--factor 3] [--check]
+  python tools/smooth_backdrops.py [--factor 3] [--check] [--force]
 
-`--check` reports what would change and writes nothing.
+`--check` reports what would change and writes nothing; `--force` re-processes a
+sky this has already written, which is almost always a mistake.
 
 **What counts as dither is a local spread, not a colour count.** Every 3x3
 window is measured; a window whose channels span at most `GRADIENT_SPREAD` is a
 gradient or a dither and is smoothed, and anything wider is an edge somebody drew
 on purpose and is left exactly as it is. That is one threshold rather than a
 palette analysis, and it cannot mistake a silhouette for a gradient: a mountain
-against the sky spans 128 and an aurora against it spans 78, while the dither
-that caused this spans 35.
+against the sky spans 128 and a star against night sky 96, while the sky gradient
+spans 35 and the moon's halo 82.
+
+**It runs on the drawing, never on its own output.** Smoothing an already
+smoothed sky compounds the blur and doubles the file, and nothing about the
+result would say so. Every file this writes carries a `Wilderhold-dither` text
+chunk and is refused on a second pass; to change the threshold, restore the
+originals first (`git show <commit>^:game/art/bg/macro_actN.png`) and run it
+again against those.
 
 The blur is **normalised against the mask** (`G(x*m) / G(m)`), so no colour from
 outside a smoothed region can bleed into it. A plain blur would have pulled the
@@ -46,6 +54,7 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageFilter
+from PIL.PngImagePlugin import PngInfo
 
 # The repo's own art directory, found from this file rather than the cwd.
 BACKDROP_DIR = pathlib.Path(__file__).resolve().parent.parent / "game" / "art" / "bg"
@@ -53,12 +62,22 @@ BACKDROP_GLOB = "macro_act*.png"
 
 # How far a 3x3 window may span, per channel, and still be called a gradient.
 #
-# Measured on the ten skies: the dither that caused the report spans 35 (124 vs
-# 159 on blue), the next band up spans 15, an aurora edge spans 78 and a mountain
-# silhouette spans 113-128. Anything from about 50 to 70 separates them; 48 is
-# the conservative end of that, so a band pair the eye would have blended anyway
-# stays crisp rather than an edge being softened. [TUNE]
-GRADIENT_SPREAD = 48
+# Measured on the ten skies. The sky-gradient dither that caused the report
+# spans 35 (124 against 159 on blue) and the band above it 15; a mountain
+# silhouette spans 113 to 128 and a star against night sky 96, and both of those
+# have to stay exactly as drawn.
+#
+# **48 was the first value and it was too careful.** It resolved the flat
+# gradients and left the moon's halo checkered, because that halo is dithered
+# from four values at once - 92, 111, 159 and 174 - and a window holding the two
+# ends of it spans 82. The halo is the single most obvious dither left in the
+# game at 2.8x, so the threshold has to clear it.
+#
+# Contact-sheeted at 48, 70, 88 and 110 against the moon, the aurora and the
+# mountains. 70 clears the halo but rings the small stars; 110 starts softening
+# the snow line on the peaks, which is drawing. 88 clears the halo and the rings
+# and leaves the mountains pixel-for-pixel what they were. [TUNE]
+GRADIENT_SPREAD = 88
 
 # Blur radius, in *source* pixels. One source pixel is the dither's own period,
 # so a radius of one covers a checker and a little more; anything larger starts
@@ -91,8 +110,16 @@ def spread_mask(pixels: np.ndarray, spread: int) -> np.ndarray:
     return (widest > 0) & (widest <= spread)
 
 
-def smooth(path: pathlib.Path, factor: int, check: bool) -> tuple[bool, str]:
+# Stamped into every sky this writes, and refused on the way back in.
+PROVENANCE = "Wilderhold-dither"
+
+
+def smooth(path: pathlib.Path, factor: int, check: bool,
+        force: bool = False) -> tuple[bool, str]:
     source = Image.open(path)
+    already = source.info.get(PROVENANCE, "")
+    if already and not force:
+        return False, "%-20s already resolved (%s)" % (path.name, already)
     had_alpha = source.mode in ("RGBA", "LA") or "transparency" in source.info
     source = source.convert("RGBA" if had_alpha else "RGB")
     pixels = np.asarray(source, dtype=np.uint8)
@@ -134,7 +161,10 @@ def smooth(path: pathlib.Path, factor: int, check: bool) -> tuple[bool, str]:
         source.height, result.width, result.height, share * 100.0)
     if check:
         return False, line + "  (check only)"
-    result.save(path, optimize=True)
+    stamp = PngInfo()
+    stamp.add_text(PROVENANCE, "spread %d, blur %.2f, %dx"
+        % (GRADIENT_SPREAD, BLUR_SOURCE_RADIUS, factor))
+    result.save(path, optimize=True, pnginfo=stamp)
     return True, line + "  %d KB" % (path.stat().st_size // 1024)
 
 
@@ -144,6 +174,8 @@ def main() -> int:
         help="upscale factor; 3 takes the sky from 2.8x magnified to 0.94x minified")
     parser.add_argument("--check", action="store_true",
         help="report and write nothing")
+    parser.add_argument("--force", action="store_true",
+        help="re-process a sky this has already written; compounds the blur")
     args = parser.parse_args()
     if args.factor < 1:
         print("factor must be at least 1", file=sys.stderr)
@@ -156,7 +188,7 @@ def main() -> int:
         return 1
     written = 0
     for path in paths:
-        did, line = smooth(path, args.factor, args.check)
+        did, line = smooth(path, args.factor, args.check, args.force)
         written += 1 if did else 0
         print(line)
     print("%d of %d rewritten" % (written, len(paths)))

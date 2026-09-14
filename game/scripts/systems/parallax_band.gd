@@ -34,28 +34,52 @@ const WEIGHTS: Array[float] = [0.52, 0.26, 0.14, 0.08]
 ## these bands are drawn at, cheap enough to rebuild whenever an act changes.
 const RESOLUTION: int = 96
 
-## One period, in world units. `PERIODS` of them are drawn, so the view is
-## always covered however far the band has slid.
-##
-## Must be at least half the view width, which is what makes three enough.
+## One period, in world units. As many are drawn as `periods_for` asks for, so
+## the view is always covered however far the band has slid and however wide the
+## window is.
 var band_width: float = 1920.0
 
-## The periods `_draw` lays down, as multiples of `band_width` from this node's
-## own origin.
+## How many periods have to be laid, and from where, to cover the view.
 ##
-## **Three, starting one period behind it, and the missing one was the bug.**
-## The pair that shipped ran [0, 2w] while `scroll_to` slides the node over
-## (-w, 0], so a band that had travelled less than half a period covered none of
-## the left half of the screen. The scope's camera sits on this node's origin,
-## so the view is [-960, 960] in its own space and a run beginning at 0 starts
-## in the middle of it. What a player saw was the far ridge ending at a hard
-## vertical edge with sky beside it, on roughly every other stretch of road.
+## **The pair that shipped ran [0, 2w] and covered none of the left of the
+## screen.** `scroll_to` slides a layer over (-w, 0] and the scope's camera sits
+## on its origin, so content beginning at 0 begins in the middle of the view: a
+## band that had travelled less than half a period ended at a hard vertical edge
+## with sky beside it. Every parallax class in this project had that hole and
+## every one of them said in its own comment that two periods were enough.
 ##
-## Kept as a constant rather than written into the loop because the gate reads
-## this array: the property it asserts is about the periods that are actually
-## drawn, and a copy of the arithmetic in a test would have passed with the
-## fault still in place.
-const PERIODS: Array[int] = [-1, 0, 1]
+## **Derived from the viewport rather than fixed at three**, which is the second
+## half of the same fault. With content at `k * period` for k in [lo, hi] and the
+## node at `p` in (-period, 0], the covered span is
+## `[p + lo*period, p + (hi+1)*period]`, so the *guaranteed* span - the worst p
+## in that range - is `[lo*period, hi*period]`. Three periods therefore promise
+## exactly one period either side of the camera, and the project ships a
+## landscape phone whose visible world is 2,335 units wide against a near band
+## whose period is 1,152. A constant would have been right for the desktop shape
+## and wrong for a device in CI.
+static func periods_for(period: float, half_view: float) -> Array[int]:
+	if period <= 0.0:
+		return [0]
+	var reach: int = maxi(1, int(ceil(half_view / period)))
+	var spread: Array[int] = []
+	for k: int in range(-reach, reach + 1):
+		spread.append(k)
+	return spread
+
+
+## Half the world the viewport is showing, in this item's own units.
+##
+## `get_viewport_rect()` is already in canvas-item space, so the project's
+## "expand" stretch - which hands a wider window *more world* rather than a
+## stretched one - is accounted for without anything here knowing about it.
+static func half_view(item: CanvasItem) -> float:
+	if item == null or not item.is_inside_tree():
+		return DEFAULT_HALF_VIEW
+	return maxf(item.get_viewport_rect().size.x * 0.5, 1.0)
+
+
+## What to assume before a layer is in the tree: the project's own width.
+const DEFAULT_HALF_VIEW: float = 960.0
 
 ## How tall the silhouette stands above its baseline at full amplitude.
 var band_height: float = 180.0
@@ -74,6 +98,9 @@ var _profile: PackedVector2Array = PackedVector2Array()
 
 func _ready() -> void:
 	y_sort_enabled = false
+	# A window that gets wider needs more periods, and `_draw` only runs when
+	# something asks it to.
+	get_viewport().size_changed.connect(queue_redraw)
 	rebuild()
 
 
@@ -111,7 +138,7 @@ func _draw() -> void:
 		return
 	# Each period is the one before translated by exactly one width, which the
 	# harmonic construction makes indistinguishable from a continuation.
-	for period: int in PERIODS:
+	for period: int in periods_for(band_width, half_view(self)):
 		var shifted: PackedVector2Array = PackedVector2Array()
 		var offset: float = float(period) * band_width
 		for point: Vector2 in _profile:

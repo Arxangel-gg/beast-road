@@ -64,7 +64,15 @@ jobs:
     # A hard ceiling, because the thing this project actually suffers from is
     # hangs rather than failures: a check with no deadline turns a stall into a
     # silent seventy-six minute wait that nobody is watching.
-    timeout-minutes: 12
+    #
+    # **It is a hang guard and not a budget**, and on 2026-09-14 it stopped being
+    # read that way: the suite had grown to 106 gates and was finishing in 11m58s
+    # against a 12-minute ceiling, so the next two gates added turned a green
+    # suite into a cancelled job with no failure in it. A run killed for being
+    # one gate too long teaches nothing and costs a whole cycle to work out.
+    # Every individual check still carries its own `CHECK_TIMEOUT`, which is the
+    # deadline that actually catches a stall.
+    timeout-minutes: 20
 
     steps:
       - name: Check out
@@ -503,6 +511,12 @@ jobs:
           # origin forward, and the camera sits on that origin, so the left of
           # the view was bare for half of every period.
           check "parallax cover" --headless --path game res://tools/parallax_cover_check.tscn
+          # Shaders do not compile under --headless, so no gate in this suite
+          # has ever read a line of GLSL. The city health ring shipped with a
+          # `const float TAU` in it, failed to compile on every real machine,
+          # and drew nothing. This reads the source for the traps that fail
+          # silently; run a `*_shot` tool windowed for the rest.
+          check "shader lint" --headless --path game res://tools/shader_lint_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn

@@ -23,8 +23,6 @@ uniform vec4 track_tint : source_color = vec4(0.05, 0.04, 0.06, 0.55);
 // the battlefield when a raid freezes it (working rule 8).
 uniform float clock = 0.0;
 
-const float TAU = 6.28318530718;
-
 void fragment() {
 	vec2 from_middle = UV - vec2(0.5);
 	float radius = length(from_middle) * 2.0;
