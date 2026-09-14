@@ -84,6 +84,15 @@ var _grade: ColorRect = null
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# **The whole stage sits below the interface, and it has to say so itself.**
+	# Tree order puts it under the logo and the buttons, which is right until
+	# something inside it wants a `z_index` - `z_index` sorts across the entire
+	# canvas layer rather than within a parent, so the foliage at 6 was drawing
+	# over the menu buttons and a frond was sitting across Quit. Pushing the
+	# stage negative keeps its own internal ordering exactly as it was (children
+	# are relative) while putting the top of it under everything the player has
+	# to read.
+	z_index = Balance.MENU_STAGE_Z
 	_build_backdrop()
 	_build_shimmer()
 	_build_glow()

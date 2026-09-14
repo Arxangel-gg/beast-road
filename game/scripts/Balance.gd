@@ -5479,6 +5479,17 @@ const MENU_FERN_LEFT: Vector2 = Vector2(0.05, 1.03)
 const MENU_FERN_RIGHT: Vector2 = Vector2(0.95, 1.03)
 ## In front of the stage and behind the interface: foliage is scenery, and a
 ## frond over a button is a frond in the way.
+## How far under the interface the whole menu stage sits.
+##
+## **`z_index` sorts across a canvas layer, not within a parent**, so the moment
+## anything inside the stage wanted a z of its own it jumped in front of the
+## buttons - which is how a fern ended up drawn across Quit and Settings, and
+## `MenuFoliage`'s own comment ("a frond over a button is a frond in the way")
+## described a thing that was not happening. Deep enough that the foliage's own
+## +6 still lands below the interface's 0, and children are relative so nothing
+## inside the stage reorders. [TUNE]
+const MENU_STAGE_Z: int = -8
+
 const MENU_FOLIAGE_Z: int = 6
 
 ## The wordmark's sheen: how strong, how wide the travelling band, and how far
