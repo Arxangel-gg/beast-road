@@ -26,6 +26,9 @@ extends Node
 ## real renderer - and `SHADER ERROR` in the output is the whole test:
 ##
 ##   godot --path game res://tools/vfx_shot.tscn 2>&1 | grep "SHADER ERROR"
+##
+## `town_ring_shot.tscn` exists for the same reason and photographs the ring this
+## gate was written for, at whatever share of the city's health you ask for.
 
 ## Names Godot's shading language already defines, which a shader may not
 ## redeclare. Doing so is a hard compile error and takes the whole file with it.
