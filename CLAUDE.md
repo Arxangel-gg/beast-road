@@ -2297,6 +2297,24 @@ map marks the plots. Fixed in passing: the rift's coach step fired on *any*
 interact prompt, so it used to open at a tree; it opens on the gate's own
 button now.
 
+**The frame, re-measured after the outskirts, as of 2026-09-14.** `perf_check`
+at 1920x1080, High, vsync off, on the RTX 3070 Ti: **18.5 ms (54 fps)** on the
+built field, against the 7.8 ms recorded on 2026-09-08. Not one thing: the
+map is 2.8 times the area since the outskirts, with a hundred torches on its
+roads, camps with fires, ponds, gates, nodes and plots, the fog, the climate,
+the weather veil and the wrath. Every `--off=` switch moved the frame by a
+millisecond or less and Low quality was still 16.2 ms, so the cost is
+simulation and canvas, not the gated visuals. `perf_bisect` at eight seconds
+a script (three is noise) put `flame.gd` first at 5.2 ms: a hundred flames,
+each in view rebuilding three polygons every frame. Flames redraw at
+`FLAME_REDRAW_HZ` (30) now and a pond's bubbles at `POND_BUBBLE_HZ` (20) and
+only in view - the clocks still run at frame rate, only the drawing is
+sampled. **Measured after: 16.6 ms (60 fps), the bisect's fighting baseline
+17.7 to 13.2 ms.** The budget is met on this machine with no headroom to
+speak of; the next millisecond is in the long tail (enemies, torches,
+foliage, the veil, the climate, the fog), and the minimum-spec question is
+still open.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -21,6 +21,7 @@ const RISE_SECONDS: float = 1.6
 ## and the bite; drawn here.
 var radius: float = 44.0
 var _clock: float = 0.0
+var _redraw_debt: float = 0.0
 var _phases: PackedFloat32Array = []
 var _offsets: PackedVector2Array = []
 var _sizes: PackedFloat32Array = []
@@ -41,6 +42,20 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	# Redrawn at `POND_BUBBLE_HZ` and only in view: eight bubbles and a pop
+	# ring each are twenty draw commands a patch, and a pond off the screen
+	# was paying them every frame (perf, 2026-09-14).
+	_redraw_debt += delta
+	if _redraw_debt < 1.0 / Balance.POND_BUBBLE_HZ:
+		return
+	_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.POND_BUBBLE_HZ)
+	var view: Viewport = get_viewport()
+	if view != null:
+		var at: Vector2 = get_global_transform_with_canvas().origin
+		var size: Vector2 = view.get_visible_rect().size
+		var margin: float = radius * 3.0
+		if at.x < -margin or at.y < -margin or at.x > size.x + margin or at.y > size.y + margin:
+			return
 	queue_redraw()
 
 

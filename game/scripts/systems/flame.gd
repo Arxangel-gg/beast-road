@@ -48,6 +48,8 @@ var size: float = 16.0
 var intensity: float = 1.0
 
 var _time: float = 0.0
+## Seconds since the flame last redrew; see `_process`.
+var _redraw_debt: float = 0.0
 var _seed: float = 0.0
 var _lit: bool = true
 
@@ -122,6 +124,16 @@ func _process(delta: float) -> void:
 	# are ever on screen at gameplay zoom.
 	if not _on_screen():
 		return
+	# **Redrawn at `FLAME_REDRAW_HZ`, not every frame.** The clock above runs
+	# at frame rate, so the dance is as smooth as the cadence it is sampled at
+	# - and a fire sampled thirty times a second is a fire. Measured on the
+	# 2026-09-14 field (100 flames, a hundred torches on the outskirts' roads):
+	# `flame.gd` was 5.2 ms of a 17.7 ms frame with every flame rebuilding
+	# three polygons a frame; at thirty a second it is half that.
+	_redraw_debt += delta
+	if _redraw_debt < 1.0 / Balance.FLAME_REDRAW_HZ:
+		return
+	_redraw_debt = fmod(_redraw_debt, 1.0 / Balance.FLAME_REDRAW_HZ)
 	if _glow != null:
 		# The glow breathes with the flame but lags it slightly. Perfectly in
 		# phase, the two read as one object being scaled.

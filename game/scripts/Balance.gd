@@ -4967,6 +4967,11 @@ const FLAME_SEGMENTS: int = 9
 
 ## How fast the tongues travel up the flame. [TUNE]
 const FLAME_DANCE_SPEED: float = 3.4
+## How many times a second a flame in view rebuilds its polygons, and a
+## pond's bubbles their rings. The clocks run at frame rate; only the
+## drawing is sampled (perf, 2026-09-14). [TUNE]
+const FLAME_REDRAW_HZ: float = 30.0
+const POND_BUBBLE_HZ: float = 20.0
 
 ## How far the tip wanders sideways, as a fraction of flame height. The base
 ## never moves - the displacement grows with height, which is the whole
