@@ -216,8 +216,20 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
+[sub_resource type="FontVariation" id="FontVariation_body_bold"]
+base_font = ExtResource("7_g4wr8")
+variation_opentype = {
+2003265652: 500
+}
+
+[sub_resource type="FontVariation" id="FontVariation_display_bold"]
+base_font = ExtResource("1_5y56j")
+variation_opentype = {
+2003265652: 600
+}
+
 [resource]
-default_font = ExtResource("7_g4wr8")
+default_font = SubResource("FontVariation_body_bold")
 default_font_size = 18
 Button/colors/font_color = Color(0.85098, 0.80392, 0.72157, 1)
 Button/colors/font_disabled_color = Color(0.52, 0.5, 0.45, 0.55)
@@ -226,7 +238,7 @@ Button/colors/font_outline_color = Color(0.02, 0.04, 0.05, 0.9)
 Button/colors/font_pressed_color = Color(0.9098, 0.63922, 0.23922, 1)
 Button/constants/outline_size = 4
 Button/font_sizes/font_size = 17
-Button/fonts/font = ExtResource("1_5y56j")
+Button/fonts/font = SubResource("FontVariation_display_bold")
 Button/styles/disabled = SubResource("StyleBoxTexture_5y56j")
 Button/styles/focus = SubResource("StyleBoxFlat_g4wr8")
 Button/styles/hover = SubResource("StyleBoxTexture_wgsb3")
@@ -240,9 +252,9 @@ InnerPanel/styles/panel = SubResource("StyleBoxTexture_wtrrt")
 Label/colors/font_color = Color(0.85098, 0.80392, 0.72157, 1)
 Label/colors/font_outline_color = Color(0.02, 0.04, 0.05, 0.85)
 Label/constants/outline_size = 5
-Label/fonts/font = ExtResource("7_g4wr8")
+Label/fonts/font = SubResource("FontVariation_body_bold")
 LineEdit/colors/font_color = Color(0.85098, 0.80392, 0.72157, 1)
-LineEdit/fonts/font = ExtResource("7_g4wr8")
+LineEdit/fonts/font = SubResource("FontVariation_body_bold")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_yuc8m")
 Panel/styles/panel = SubResource("StyleBoxTexture_fdstn")
 PanelContainer/styles/panel = SubResource("StyleBoxTexture_fdstn")
@@ -250,10 +262,10 @@ PopupPanel/styles/panel = SubResource("StyleBoxTexture_x2bbx")
 ProgressBar/styles/background = SubResource("StyleBoxTexture_nhcad")
 ProgressBar/styles/fill = SubResource("StyleBoxTexture_684jh")
 RichTextLabel/colors/default_color = Color(0.85098, 0.80392, 0.72157, 1)
-RichTextLabel/fonts/bold_font = ExtResource("1_5y56j")
-RichTextLabel/fonts/normal_font = ExtResource("7_g4wr8")
+RichTextLabel/fonts/bold_font = SubResource("FontVariation_display_bold")
+RichTextLabel/fonts/normal_font = SubResource("FontVariation_body_bold")
 TooltipLabel/colors/font_color = Color(0.85098, 0.80392, 0.72157, 1)
-TooltipLabel/fonts/font = ExtResource("1_5y56j")
+TooltipLabel/fonts/font = SubResource("FontVariation_display_bold")
 TooltipPanel/styles/panel = SubResource("StyleBoxTexture_x2bbx")
 VScrollBar/styles/grabber = SubResource("StyleBoxFlat_bysmj")
 VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_nvl62")

@@ -266,6 +266,10 @@ const BANNER_MIN_HALF: float = 150.0
 const NARROW_WIDTH: float = 1500.0
 ## The width the nav bar column occupies, plus a gap.
 const NAV_STRIP: float = 140.0
+
+## The spirit readout's own width, and how far it keeps off the nav column.
+const SPIRIT_PANEL_WIDTH: float = 240.0
+const SPIRIT_PANEL_GAP: float = 10.0
 ## How many action buttons fit across a phone before they have to wrap.
 ## How many action buttons fit across, when a thumb is driving.
 ##
@@ -2486,10 +2490,9 @@ func _build_spirit_panel() -> void:
 	_spirit_panel = VBoxContainer.new()
 	_spirit_panel.name = "SpiritPanel"
 	_spirit_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_spirit_panel.offset_left = -(NAV_STRIP + 250.0)
-	_spirit_panel.offset_right = -(NAV_STRIP + 10.0)
 	_spirit_panel.offset_top = 108.0
 	_spirit_panel.offset_bottom = 152.0
+	_place_spirit_panel()
 	_spirit_panel.add_theme_constant_override("separation", 3)
 	_spirit_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_spirit_panel.visible = false
@@ -2497,6 +2500,15 @@ func _build_spirit_panel() -> void:
 	_spirit_label = _label("", 14)
 	_spirit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_spirit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# **A Label's minimum width is its whole text**, so "Uncommon Wolf Spirit -
+	# 15 Food a minute" made this wider than the panel holding it and it ran
+	# under the navigation column on a phone. Trimmed with an ellipsis instead,
+	# which is what stops the minimum growing with the spirit's name - a
+	# Beastcalled variant has a longer one than an Uncommon.
+	_spirit_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_spirit_label.clip_text = true
+	_spirit_label.custom_minimum_size.x = SPIRIT_PANEL_WIDTH
+	_spirit_label.size_flags_horizontal = Control.SIZE_FILL
 	_spirit_panel.add_child(_spirit_label)
 	_spirit_bar = _make_bar(Color("8fc8ff"), 240.0)
 	_spirit_bar.custom_minimum_size = Vector2(240.0, 8.0)
@@ -2524,6 +2536,14 @@ func _update_spirit_panel(delta: float) -> void:
 		return
 	var spirit: Companion = _hero.spirit if _hero != null and is_instance_valid(_hero) else null
 	_refresh_spirit_button()
+	# **Ambient information yields to an active decision.** On a landscape
+	# phone there is not room for both this and the build panel, and the two
+	# overlapped - the spirit readout is something to glance at, while the
+	# build panel is something the player is using. Hidden rather than moved,
+	# because every place it could move to on that screen is also in use.
+	if _build_panel != null and _build_panel.visible and touch_ui():
+		_spirit_panel.visible = false
+		return
 	if spirit == null or not is_instance_valid(spirit):
 		# Nothing at your shoulder, but a bond to call on: the panel stays so
 		# the player can call it back.
@@ -3302,6 +3322,11 @@ func _on_touch_layout_changed(showing: bool) -> void:
 	_size_build_scrollbar()
 	_fit_build_panel()
 	_size_top_bar()
+	# **Last, not first.** The navigation column's width moves with the
+	# controls, and the spirit readout is placed against it - asked before
+	# this function re-lays the bar, it reads the width the bar is about to
+	# stop having.
+	_place_spirit_panel()
 
 
 ## The opening beat, before Act I names itself.
@@ -4660,3 +4685,27 @@ func _grade_the_interface(force: bool) -> void:
 	if force:
 		UiTint.enrol(get_tree(), self)
 	UiTint.apply(get_tree(), UiTint.for_the_world(), force)
+
+
+## Keeps the spirit readout clear of the navigation column.
+##
+## **It was placed against `NAV_STRIP`, a constant, and the column is not one.**
+## The bar wraps to two columns on a short screen - which is how a landscape
+## phone gets thumb-sized buttons at all - and at that width a bonded spirit's
+## line ran under the navigation buttons. `layout_check` never saw it because a
+## clean profile has no bonded spirit and so never draws this panel, which is
+## the same shape as the `ACTION_BUTTON_COUNT` drift: a hand-kept number that
+## stopped describing the thing it was measured from.
+##
+## Asked rather than assumed, and re-asked whenever the controls change, since
+## the column's width moves with them.
+func _place_spirit_panel() -> void:
+	if _spirit_panel == null:
+		return
+	# Floored at the old constant. Asking the bar is right when it has *wrapped*
+	# and is wider than 140; in landscape one column is narrower than that, and
+	# moving the readout left to meet it walked it into the build panel. The
+	# floor keeps the behaviour that was correct and adds the case that was not.
+	var column: float = maxf(nav_column_width() + SPIRIT_PANEL_GAP, NAV_STRIP)
+	_spirit_panel.offset_left = -(column + SPIRIT_PANEL_WIDTH)
+	_spirit_panel.offset_right = -column
