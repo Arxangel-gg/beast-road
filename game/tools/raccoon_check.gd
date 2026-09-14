@@ -22,9 +22,17 @@ var _animals: Wildlife = null
 var _kind: WildlifeData = null
 
 
+## Fixed, so every run of this gate lays the same road. An unseeded reset
+## dealt a different scatter of ponds, plants and packs each time, and one
+## road in a few put something between the raccoon and the gear - which read
+## as a thief that would not steal, once in the sweep and once in three by
+## hand. A guarantee is a property of a road, so the road is named.
+const SEED: int = 20260911
+
+
 func _ready() -> void:
 	MetaState.hold_saves()
-	RunState.reset()
+	RunState.reset(false, SEED)
 	GameDirector.run_active = true
 	_run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(_run)

@@ -167,6 +167,36 @@
   "art/icons/ui/ui_wood": {
     "base": "3c805d3c-3672-40b7-8590-437ae1b74b72"
   },
+  "art/raid/dungeon_crystals": {
+    "image": "faeda173-0d2c-41ed-92d1-591998e8e4b8"
+  },
+  "art/raid/dungeon_puddle": {
+    "image": "aa754125-9614-4089-994d-37a453e8aeb1"
+  },
+  "art/raid/dungeon_rocks": {
+    "image": "a845c81d-f67f-49fe-b59a-df72a1db7dac"
+  },
+  "art/raid/dungeon_rubble": {
+    "image": "3ab9bdd9-15ce-419b-bcdc-0057ef6592bf"
+  },
+  "art/raid/dungeon_runes_dungeon": {
+    "image": "7c65c8b0-40cc-4f0b-b3e9-f7618844ff5d"
+  },
+  "art/raid/dungeon_runes_rift": {
+    "image": "23ca26d9-bda7-4674-9fbf-ab1c06a4bf16"
+  },
+  "art/raid/dungeon_sconce": {
+    "image": "b0b194ac-ae9b-4371-9a4f-1efe2f3efd02"
+  },
+  "art/raid/dungeon_stalagmite": {
+    "image": "d9557ac3-5d64-4a05-b45a-7510c94847fc"
+  },
+  "art/raid/dungeon_tiles_dungeon": {
+    "tileset": "527e1e19-85cb-4832-a63c-f0eceaebbaa3"
+  },
+  "art/raid/dungeon_tiles_rift": {
+    "tileset": "106b2253-f151-4d3a-9411-2b9f5c5a1067"
+  },
   "art/towers/tower_ash_thrower": {
     "attack": "89c74f3c-7184-4306-95da-554703ce7b86",
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/24bab177-df28-4db3-992b-b6d3b4d38be2/rotations/unknown.png",
@@ -215,6 +245,9 @@
   "art/wildlife/wildlife_butterfly_swallowtail": {
     "idle": "f4193db9-0a04-4917-a6f9-9abced439df3"
   },
+  "art/wildlife/wildlife_butterfly_swallowtail_idle": {
+    "strip": "be01eb10-afde-4fa0-a852-9d97129cc2ea"
+  },
   "art/wildlife/wildlife_frost_elk": {
     "idle": "862b371a-4e34-41d9-8d79-9bdb17d43489",
     "move": "6e6328a2-2ace-426c-9518-32834134d15c"
@@ -222,8 +255,14 @@
   "art/wildlife/wildlife_glass_moth": {
     "idle": "9c03373d-5944-46c7-9e32-c75a1d48021d"
   },
+  "art/wildlife/wildlife_glass_moth_idle": {
+    "strip": "a897a0fd-fe0f-46a5-ba2f-9c73d97c8003"
+  },
   "art/wildlife/wildlife_hawk": {
     "idle": "94c3206e-360a-4117-bc54-1a4792e338c5"
+  },
+  "art/wildlife/wildlife_hawk_idle": {
+    "strip": "0acbf3f1-2830-4e83-bbe0-1770535d8f37"
   },
   "art/wildlife/wildlife_hedgehog": {
     "idle": "8f5066a5-bcdb-412e-8b90-1d37910058fe"
@@ -236,6 +275,9 @@
   },
   "art/wildlife/wildlife_raven": {
     "idle": "55d2214f-d75f-4282-a4fa-ea276bebd593"
+  },
+  "art/wildlife/wildlife_raven_idle": {
+    "strip": "0b8f04b6-a601-4408-bfb9-5bdb11e5b879"
   },
   "art/wildlife/wildlife_squirrel": {
     "move": "3f47e646-eed3-4a87-8483-adb524c6c4c0"

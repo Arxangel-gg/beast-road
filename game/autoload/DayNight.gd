@@ -46,6 +46,15 @@ var tint: Color = Color.WHITE
 ## 0 at midday, 1 at deep night. What lights are scaled by.
 var darkness: float = 0.0
 
+## Underground, the sun is somewhere else (2026-09-14). A rift publishes deep
+## night to every light and tint - `darkness` 1, a tint of its own - while
+## the sun's own reading is kept for `is_night()` and the difficulty, so the
+## night's teeth stay on the road rather than following the player down.
+var underground: bool = false
+var _sun_tint: Color = Color.WHITE
+var _sun_darkness: float = 0.0
+var _deep_tint: Color = Color(0.3, 0.31, 0.4)
+
 var _was_night: bool = false
 
 
@@ -59,15 +68,36 @@ func _on_distance(total_distance: float, _to_crossroad: float) -> void:
 	_apply(fmod(Balance.DAY_START_PHASE + total_distance / DAY_LENGTH, 1.0))
 
 
-## True while the night difficulty modifiers apply.
+## True while the night difficulty modifiers apply. The sun's, never the deep's.
 func is_night() -> bool:
-	return darkness >= Balance.NIGHT_THRESHOLD
+	return _sun_darkness >= Balance.NIGHT_THRESHOLD
 
 
 ## Multiplier on enemy count and stats. Night is meant to be felt as pressure,
-## not just as a colour grade.
+## not just as a colour grade. The sun's, never the deep's.
 func difficulty_multiplier() -> float:
-	return 1.0 + darkness * Balance.NIGHT_DIFFICULTY_BONUS
+	return 1.0 + _sun_darkness * Balance.NIGHT_DIFFICULTY_BONUS
+
+
+## The sun's own darkness, whatever is published: what the road's weather and
+## its waves read while a player is underground.
+func sun_darkness() -> float:
+	return _sun_darkness
+
+
+## Down into the deep, or back up. Publishes the change at once.
+func set_underground(on: bool, deep_tint: Color = Color(0.3, 0.31, 0.4)) -> void:
+	underground = on
+	_deep_tint = deep_tint
+	_publish()
+
+
+## What every light and tint reads: the deep's dark underground, the sun's
+## otherwise.
+func _publish() -> void:
+	tint = _deep_tint if underground else _sun_tint
+	darkness = 1.0 if underground else _sun_darkness
+	phase_changed.emit(phase, tint, darkness)
 
 
 ## Human-readable, for the HUD.
@@ -103,10 +133,9 @@ func _apply(new_phase: float) -> void:
 
 	var span: float = maxf(float(upper["at"]) - float(lower["at"]), 0.0001)
 	var t: float = clampf((phase - float(lower["at"])) / span, 0.0, 1.0)
-	tint = (lower["tint"] as Color).lerp(upper["tint"] as Color, t)
-	darkness = lerpf(float(lower["light"]), float(upper["light"]), t)
-
-	phase_changed.emit(phase, tint, darkness)
+	_sun_tint = (lower["tint"] as Color).lerp(upper["tint"] as Color, t)
+	_sun_darkness = lerpf(float(lower["light"]), float(upper["light"]), t)
+	_publish()
 
 	var night_now: bool = is_night()
 	if night_now != _was_night:

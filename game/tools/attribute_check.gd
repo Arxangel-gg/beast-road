@@ -108,6 +108,11 @@ func _test_there_are_five_and_all_are_named() -> void:
 ## would be a power scale the acts were never tuned against.
 func _test_a_level_still_grants_one_point() -> void:
 	RunState.hero_level = 1
+	# And no experience carried in from the account's own hero: `reset` copies
+	# the saved hero into the run, so on a machine with a levelled save the
+	# eighteen points below were landing on top of hundreds and buying fifteen
+	# levels. Fresh on CI, which is why this only ever failed at home.
+	RunState.hero_xp = 0.0
 	RunState.hero_attribute_points = 0
 	RunState.hero_attributes = [0, 0, 0, 0, 0]
 	var before: int = RunState.hero_attribute_points

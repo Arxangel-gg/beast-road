@@ -36,6 +36,7 @@ func _ready() -> void:
 
 	_test_the_floor()
 	await _test_the_arena()
+	await _test_the_look()
 
 	MusicPlayer.stop_immediately()
 	Sfx.stop_immediately()
@@ -50,7 +51,7 @@ func _ready() -> void:
 		push_error("[dungeon] FAIL - %d of %d" % [_failures, _checked])
 		get_tree().quit(1)
 		return
-	print("[dungeon] PASS - %d checks: the maze, the cavern, where bodies appear and how they come" % _checked)
+	print("[dungeon] PASS - %d checks: the maze, the cavern, where bodies appear and how they come, and the look of the deep" % _checked)
 	get_tree().quit(0)
 
 
@@ -169,6 +170,127 @@ func _test_the_arena() -> void:
 	rift.call("_finish", {"died": true})
 	rift.queue_free()
 	await get_tree().process_frame
+
+
+## The look of the deep (2026-09-14): the sun does not reach it, the floor
+## is drawn from its corners, the walls carry sconces, the floor is strewn,
+## the vault wears its runes, the air moves, and the place groans and sheds
+## rock before it comes down.
+func _test_the_look() -> void:
+	# The sun stays the sun.
+	var was_night: bool = DayNight.is_night()
+	var sun: float = DayNight.sun_darkness()
+	DayNight.set_underground(true, Balance.DUNGEON_TINT)
+	_check(is_equal_approx(DayNight.darkness, 1.0), "underground publishes deep night to the lights")
+	_check(DayNight.tint == Balance.DUNGEON_TINT, "and the deep's own tint")
+	_check(DayNight.is_night() == was_night, "the night's teeth stay with the sun")
+	_check(is_equal_approx(DayNight.sun_darkness(), sun), "the sun's own reading is kept")
+	DayNight.set_underground(false)
+	_check(is_equal_approx(DayNight.darkness, sun), "back in the light, the sun is the sun again")
+	# The floor is drawn from its corners.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1001
+	var layout := DungeonLayout.new(rng, false)
+	var art: String = DungeonTiles.art_for(RiftArena.Kind.DUNGEON)
+	_check(ResourceLoader.exists(art), "the dungeon's tile sheet is on disk")
+	_check(ResourceLoader.exists(DungeonTiles.art_for(RiftArena.Kind.RIFT)), "the rift's tile sheet is on disk")
+	if ResourceLoader.exists(art):
+		var tiles := DungeonTiles.new()
+		add_child(tiles)
+		tiles.lay(layout, load(art))
+		var across: int = RaidLayout.SIZE + DungeonTiles.PAD * 2 + 1
+		_check(tiles.get_used_cells().size() == across * across,
+			"every cell of the floor and the rock is laid (%d)" % tiles.get_used_cells().size())
+		var seen: Dictionary = {}
+		for cell: Vector2i in tiles.get_used_cells():
+			seen[tiles.get_cell_atlas_coords(cell)] = true
+		_check(seen.size() >= 12, "the maze uses most of the sixteen corner tiles (%d)" % seen.size())
+		_check(tiles.get_cell_atlas_coords(Vector2i(-DungeonTiles.PAD, -DungeonTiles.PAD))
+			== DungeonTiles.atlas_coords(15), "beyond the rim is solid rock")
+		_check(DungeonTiles.index_at(layout, layout.entry + Vector2i(1, 1)) != 15,
+			"the entry is not rock")
+		var floor_cells: int = 0
+		for cell: Vector2i in tiles.get_used_cells():
+			if tiles.get_cell_atlas_coords(cell) == DungeonTiles.atlas_coords(0):
+				floor_cells += 1
+		_check(floor_cells > 0, "there is open floor drawn (%d cells)" % floor_cells)
+		tiles.queue_free()
+	# The arena dresses the deep.
+	var rift: RiftArena = (load(ARENA) as PackedScene).instantiate() as RiftArena
+	add_child(rift)
+	for _f: int in 3:
+		await get_tree().process_frame
+	rift.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
+	rift.set_process(false)
+	var maze: DungeonLayout = rift.dungeon()
+	_check(DayNight.underground, "an open stage is underground")
+	_check(rift.get_node_or_null("ArenaTint") is CanvasModulate
+		and (rift.get_node("ArenaTint") as CanvasItem).visible, "the deep has its own dark")
+	_check(rift.tiles() != null, "the stage's floor is the tile sheet")
+	var decor: DungeonDecor = rift.decor()
+	_check(decor != null, "the deep is dressed")
+	if decor != null and maze != null:
+		var count: int = decor.sconce_count()
+		_check(count > 0 and count <= Balance.DUNGEON_SCONCE_MAX, "sconces hang on the walls (%d)" % count)
+		var on_faces: bool = true
+		var lights: int = 0
+		var spaced: bool = true
+		var spots: Array[DungeonSconce] = decor.sconces()
+		for index: int in spots.size():
+			var sconce: DungeonSconce = spots[index]
+			var wall: Vector2i = RaidLayout.world_to_tile(sconce.position + Vector2(0.0, -RaidLayout.TILE * 0.5))
+			if maze.cell_at(wall) != RaidLayout.Cell.WALL or maze.cell_at(wall + Vector2i(0, 1)) != RaidLayout.Cell.OPEN:
+				on_faces = false
+			if sconce.carries_light:
+				lights += 1
+			for other: int in range(index + 1, spots.size()):
+				var there: Vector2i = RaidLayout.world_to_tile(spots[other].position + Vector2(0.0, -RaidLayout.TILE * 0.5))
+				if maxi(absi(there.x - wall.x), absi(there.y - wall.y)) < Balance.DUNGEON_SCONCE_EVERY:
+					spaced = false
+		_check(on_faces, "every sconce hangs on a wall with floor at its foot")
+		_check(spaced, "sconces keep their spacing")
+		_check(lights >= 1 and lights <= int(ceil(float(count) / float(Balance.DUNGEON_SCONCE_LIGHT_EVERY))),
+			"a few of them carry a real light (%d of %d)" % [lights, count])
+		_check(decor.decal_count() > 0 and decor.decal_count() <= Balance.DUNGEON_DECAL_COUNT,
+			"the floor is strewn (%d pieces)" % decor.decal_count())
+		var strewn_on_floor: bool = true
+		for piece: Sprite2D in decor.decals():
+			if not maze.is_open(piece.global_position):
+				strewn_on_floor = false
+		_check(strewn_on_floor, "every piece lies on open floor")
+		_check(decor.has_runes() and decor.runes_at() == RaidLayout.tile_to_world(maze.deep),
+			"the runes sit on the vault")
+	_check(rift.air() != null and rift.air().mote_count() == Balance.DUNGEON_MOTES,
+		"the air of the deep moves (%d motes)" % (rift.air().mote_count() if rift.air() != null else 0))
+	# The tell before the collapse: the place groans and sheds rock.
+	rift._process(Balance.RIFT_TIME_LIMIT - Balance.DUNGEON_TREMOR_WARNING - 1.0)
+	_check(_rocks_in(rift) == 0, "no rock falls before the warning")
+	rift._process(1.0 + Balance.DUNGEON_TREMOR_EVERY + 0.1)
+	_check(_rocks_in(rift) >= 1, "the place groans before it comes down (%d rocks)" % _rocks_in(rift))
+	var before: int = _rocks_in(rift)
+	rift._process(Balance.DUNGEON_TREMOR_WARNING)
+	_check(bool(rift.status()["collapsing"]), "then it collapses")
+	rift._process(1.05)
+	_check(_rocks_in(rift) >= before + Balance.DUNGEON_ROCKS_PER_BITE,
+		"every bite of the collapse sheds rock (%d)" % _rocks_in(rift))
+	# A rock lands.
+	var rock := FallingRock.new()
+	add_child(rock)
+	rock._process(Balance.DUNGEON_ROCK_FALL_SECONDS + 0.1)
+	_check(rock.landed(), "a rock lands")
+	rock.queue_free()
+	rift.call("_finish", {"died": true})
+	_check(not DayNight.underground, "leaving the deep gives the sun back")
+	rift.queue_free()
+	await get_tree().process_frame
+
+
+func _rocks_in(rift: RiftArena) -> int:
+	var rocks: int = 0
+	for node: Node in rift.entity_root.get_children():
+		if node is FallingRock:
+			rocks += 1
+	return rocks
 
 
 func _check(passed: bool, message: String) -> void:

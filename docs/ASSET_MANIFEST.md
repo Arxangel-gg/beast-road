@@ -1433,7 +1433,7 @@ Files: `wildlife_salt_crab_move_01.png` · `wildlife_salt_crab_move_02.png` · `
 Files: `wildlife_salt_crab_attack_01.png` · `wildlife_salt_crab_attack_02.png` · `wildlife_salt_crab_attack_03.png` · `wildlife_salt_crab_attack_04.png` · `wildlife_salt_crab_attack_05.png`
 Files: `wildlife_steppe_horse_idle_01.png` · `wildlife_steppe_horse_idle_02.png` · `wildlife_steppe_horse_idle_03.png`
 Files: `wildlife_steppe_horse_move_01.png` · `wildlife_steppe_horse_move_02.png` · `wildlife_steppe_horse_move_03.png` · `wildlife_steppe_horse_move_04.png` · `wildlife_steppe_horse_move_05.png` · `wildlife_steppe_horse_move_06.png` · `wildlife_steppe_horse_move_07.png`
-Files: `wildlife_glass_moth_idle_01.png` · `wildlife_glass_moth_idle_02.png` · `wildlife_glass_moth_idle_03.png`
+Files: `wildlife_glass_moth_idle_01.png` · `wildlife_glass_moth_idle_02.png` · `wildlife_glass_moth_idle_03.png` · `wildlife_glass_moth_idle_04.png` · `wildlife_glass_moth_idle_05.png`
 Files: `wildlife_glass_moth_fly_01.png` · `wildlife_glass_moth_fly_02.png` · `wildlife_glass_moth_fly_03.png` · `wildlife_glass_moth_fly_04.png` · `wildlife_glass_moth_fly_05.png` · `wildlife_glass_moth_fly_06.png` · `wildlife_glass_moth_fly_07.png`
 Files: `wildlife_ash_hound_idle_01.png` · `wildlife_ash_hound_idle_02.png` · `wildlife_ash_hound_idle_03.png` · `wildlife_ash_hound_idle_04.png`
 Files: `wildlife_ash_hound_move_01.png` · `wildlife_ash_hound_move_02.png` · `wildlife_ash_hound_move_03.png` · `wildlife_ash_hound_move_04.png` · `wildlife_ash_hound_move_05.png` · `wildlife_ash_hound_move_06.png` · `wildlife_ash_hound_move_07.png` · `wildlife_ash_hound_move_08.png`
@@ -1513,7 +1513,7 @@ structures use — so the animator is the same code, and a creature shipped with
 no continuation frame is a supported state rather than a broken one. Generated
 img2img from the base pose so the palette cannot drift between frames.
 
-Files: `wildlife_raven_idle_01.png` · `wildlife_raven_idle_02.png` · `wildlife_raven_idle_03.png`
+Files: `wildlife_raven_idle_01.png` · `wildlife_raven_idle_02.png` · `wildlife_raven_idle_03.png` · `wildlife_raven_idle_04.png` · `wildlife_raven_idle_05.png`
 Files: `wildlife_fox_idle_01.png` · `wildlife_fox_idle_02.png` · `wildlife_fox_idle_03.png`
 Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildlife_rabbit_idle_03.png`
 Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
@@ -1660,7 +1660,7 @@ Both birds also land between flights. Their grounded loops are perched
 silhouettes with planted feet and restrained breathing/head motion, not frozen
 in-flight frames.
 
-Files: `wildlife_hawk_idle_01.png` · `wildlife_hawk_idle_02.png` · `wildlife_hawk_idle_03.png`
+Files: `wildlife_hawk_idle_01.png` · `wildlife_hawk_idle_02.png` · `wildlife_hawk_idle_03.png` · `wildlife_hawk_idle_04.png` · `wildlife_hawk_idle_05.png`
 
 ### 5.11 UI icons — `res://art/icons/ui/`
 
@@ -2297,6 +2297,29 @@ into the camp's terrain texture rather than drawn as sprites.
 |------|------|------|--------------------|
 | `raid_cliff_face.png` | 128×64 | O | `#3A2E24` |
 | `raid_stairs.png` | 128×64 | T | `#3A2E24` |
+
+### 5.16c The deep — `res://art/raid/`
+
+A rift's floor and rock (2026-09-14), drawn from a corner-indexed Wang sheet
+of 64px tiles (`DungeonTiles`; rock is corner value 1, index = NW·8 + NE·4 +
+SW·2 + SE), repacked from PixelLab by `tools/install_dungeon_tiles.py` - the
+rock is the upper terrain, the other way round from the ponds; the iron
+sconce the walls carry; the rune circle on the vault's floor; the rubble, the
+puddle, the crystals and the stalagmite the floor is dressed with; and the
+three rock chunks, side by side, that fall when the place comes down.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `dungeon_tiles_dungeon.png` | 256×256 | O | `#3A3A44` |
+| `dungeon_tiles_rift.png` | 256×256 | O | `#3A2E4A` |
+| `dungeon_sconce.png` | 64×80 | T | `#2A2622` |
+| `dungeon_runes_dungeon.png` | 128×128 | T | `#C4552E` |
+| `dungeon_runes_rift.png` | 128×128 | T | `#8A4AC4` |
+| `dungeon_rubble.png` | 80×48 | T | `#5A5A5A` |
+| `dungeon_puddle.png` | 80×48 | T | `#3A4A5A` |
+| `dungeon_crystals.png` | 64×80 | T | `#8A4AC4` |
+| `dungeon_stalagmite.png` | 64×96 | T | `#4A4A5A` |
+| `dungeon_rocks.png` | 96×48 | T | `#5A5A5A` |
 
 ### 5.17 UI frames — `res://art/ui/`
 
@@ -3117,6 +3140,8 @@ varieties than the one ambient moth.
 | `wildlife_butterfly_swallowtail_idle_01.png` | 48×48 | T | `#8155B8` |
 | `wildlife_butterfly_swallowtail_idle_02.png` | 48×48 | T | `#8155B8` |
 | `wildlife_butterfly_swallowtail_idle_03.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_04.png` | 48×48 | T | `#8155B8` |
+| `wildlife_butterfly_swallowtail_idle_05.png` | 48×48 | T | `#8155B8` |
 
 ### 5.27 Rootcrusher and Thunderhead — `res://art/towers/`
 

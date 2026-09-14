@@ -7026,6 +7026,41 @@ const DUNGEON_WALL_TINT: Color = Color(0.36, 0.34, 0.4, 1.0)
 const RIFT_WALL_TINT: Color = Color(0.42, 0.34, 0.5, 1.0)
 const DUNGEON_PROP_COUNT: int = 14
 const DUNGEON_PROP_KINDS: Array[String] = ["bones", "crates", "pot", "cage", "rack"]
+## The deep, dressed (2026-09-14): a rift's floor and rock are one Wang sheet
+## (`DungeonTiles`), the walls carry iron sconces, the floor is strewn, the
+## vault wears a rune circle that wakes with the fill, dust or embers hang in
+## the air, and the place groans and sheds rock for `DUNGEON_TREMOR_WARNING`
+## seconds before it comes down. The dark is the deep's own:
+## `DayNight.set_underground` publishes deep night to every light and tint
+## while the sun's own reading keeps the night's teeth on the road. [TUNE]
+const DUNGEON_TINT: Color = Color(0.30, 0.31, 0.40)
+const RIFT_TINT: Color = Color(0.33, 0.26, 0.42)
+const DUNGEON_SCONCE_EVERY: int = 4
+const DUNGEON_SCONCE_MAX: int = 36
+const DUNGEON_SCONCE_LIGHT_EVERY: int = 3
+const DUNGEON_SCONCE_SCALE: float = 0.85
+const DUNGEON_SCONCE_FLAME_SIZE: float = 14.0
+const DUNGEON_SCONCE_LIGHT_RADIUS: float = 300.0
+const DUNGEON_SCONCE_LIGHT_ENERGY: float = 1.0
+const DUNGEON_SCONCE_COLOUR: Color = Color(1.0, 0.68, 0.32)
+const RIFT_SCONCE_COLOUR: Color = Color(0.78, 0.52, 1.0)
+const DUNGEON_SCONCE_POOL_RADIUS: float = 130.0
+const DUNGEON_SCONCE_POOL_ALPHA: float = 0.40
+const DUNGEON_DECAL_COUNT: int = 22
+const DUNGEON_RUNES_SCALE: float = 1.7
+const DUNGEON_MOTES: int = 48
+const DUNGEON_DRIP_SECONDS: Vector2 = Vector2(1.4, 3.8)
+const DUNGEON_DRIP_FALL: float = 0.38
+const DUNGEON_AIR_Z: int = 30
+const DUNGEON_TREMOR_WARNING: float = 8.0
+const DUNGEON_TREMOR_EVERY: float = 1.5
+const DUNGEON_ROCK_FALL_SECONDS: float = 0.42
+const DUNGEON_ROCK_FALL_HEIGHT: float = 240.0
+const DUNGEON_ROCKS_PER_BITE: int = 3
+const DUNGEON_ROCK_SIZE: float = 0.8
+const DUNGEON_PEBBLE_SIZE: float = 0.45
+const DUNGEON_ROCK_IMPACT: float = 0.22
+const DUNGEON_ROCK_LINGER: float = 6.0
 
 
 ## Milliseconds each audio autoload waits at process exit after stopping its
@@ -7186,6 +7221,10 @@ const FOG_VISION_TORCH: float = 300.0
 const FOG_VISION_ARENA_HERO: float = 520.0
 ## The arena's fog draws over its cliffs and bodies.
 const RAID_FOG_Z: int = 60
+## Tiles beyond the camp's own square before the fog's rim begins. Two put the
+## rim inside a corner room's vision, where the seen disc met the rim's flat
+## shade as a hard line; ten keeps the rim past anything the hero can see.
+const RAID_FOG_MARGIN_TILES: float = 10.0
 ## The minimap's side, on a desktop and on a phone, and its fog's darkness.
 const MINIMAP_SIZE: float = 224.0
 const MINIMAP_SIZE_TOUCH: float = 150.0

@@ -2152,6 +2152,61 @@ regenerated in the style of the loot drops, with each drop as the style
 image, because a counter and the thing it counts should be one thing drawn
 twice. `juice_shot` photographs the three tells.
 
+**The deep looks like the deep, as of 2026-09-14.** The maze under a rift
+had been drawn as the raid draws a camp: the region's ground on raised plates
+with a line round each, which reads as paint marks on flat earth. Photographed
+first (`dungeon_shot`), then rebuilt as a place.
+
+**The floor and the rock are one tile sheet.** `DungeonTiles` is the ponds'
+trick the other way round - the floor is what was cut *out of* the rock, so
+the rock is the upper terrain and corner value 1 - one `TileMapLayer` on a
+dual grid, a 64px PixelLab Wang sheet per kind repacked by
+`tools/install_dungeon_tiles.py`, the rock continuing past the rim so the
+camera never sees where it stops. A missing sheet leaves the plates as they
+were: the maze is never invisible. Collision and `can_step` still answer from
+the layout; this is what the place looks like, never what it is.
+
+**The dark is the deep's own.** An arena had no CanvasModulate - the
+battlefield's is hidden with the battlefield - so a rift was played in whatever
+light the sun happened to give, which underground is wrong at noon and wrong at
+midnight. `DayNight.set_underground` publishes deep night to every light and
+tint (`darkness` 1, a tint of the kind's own) **while the sun's own reading is
+kept for `is_night()`, the difficulty and the wave count** - the night's teeth
+stay on the road rather than following the player down - and the arena carries
+a CanvasModulate that is visible only while a stage is open. Then the maze is
+*lit*: iron sconces every few tiles of wall, each a `Flame` and a pool on the
+floor, every third carrying a real `PointLight2D` for the same reason only
+every second lane torch does. Measured at play zoom on the 3070 Ti: 4.5 ms
+mean, 8.3 ms p99, 13 lights.
+
+**A raid is lit by the same node**, and that closes a gap that predates the
+deep: a camp had been fought in noon light at midnight, because the only
+CanvasModulate in the game was the battlefield's. `RaidArena._tint_node`
+follows `DayNight` exactly as the field's does - the sun's tint for a raid,
+the deep's for a rift - and is visible only while the arena runs, so it never
+stands beside the field's. A night raid is dark and its fires light the
+banks (`raid_shot -- night close`).
+
+**The rest is what a place has and a picture does not.** Rubble, puddles and
+bones on a dungeon's flagstones; crystal, stalagmite and rubble in a rift's
+cavern; a rune circle on the vault's floor that brightens as the rift fills
+and flares when the guardian steps through, so the player is told the guardian
+is near by the floor and never by a number; dust hanging in the corridors and
+water dripping from a ceiling nobody can see, embers rising in a rift; and the
+place *groans* for `DUNGEON_TREMOR_WARNING` seconds before its clock runs out -
+a shudder and a pebble, harder as it nears - because a collapse from nowhere is
+the blow from nowhere the telegraph rule refuses. The collapse itself sheds
+rock (`FallingRock`: a chunk, a growing shadow, dust, a stone knock and a
+distance-weighted shake on landing) rather than dust alone.
+
+**None of it is read.** The dressing draws its own dice by run and stage so
+where a body appears cannot depend on where the rubble fell; a sconce blocks
+nothing; the runes are a picture of the fill. `dungeon_check` holds the sun
+staying the sun, every corner tile laid and the rim solid, sconces on faces
+with floor at their foot and spaced, a few carrying light, every piece on open
+floor, the runes on the vault, the air moving, no rock before the warning and
+rock on every bite.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

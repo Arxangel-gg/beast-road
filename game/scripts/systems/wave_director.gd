@@ -468,7 +468,7 @@ func _wave_size(act_wave: int, terrain: TerrainData) -> int:
 		size *= terrain.wave_size_multiplier
 	size *= _opening_scale(Balance.WAVE_OPENING_COUNT_SCALE, act_wave)
 	size *= _act_opening_scale(act_wave)
-	size *= 1.0 + DayNight.darkness * Balance.WAVE_NIGHT_COUNT_BONUS
+	size *= 1.0 + DayNight.sun_darkness() * Balance.WAVE_NIGHT_COUNT_BONUS
 	if RunState.distance_to_boss() <= Balance.ACT_BOSS_RAMP_DISTANCE:
 		var ramp: float = 1.0 - RunState.distance_to_boss() / Balance.ACT_BOSS_RAMP_DISTANCE
 		size *= 1.0 + ramp * Balance.ACT_BOSS_RAMP_COUNT

@@ -59,12 +59,33 @@ var layout: RaidLayout = null
 var _terrain_root: Node2D = null
 ## The camp's furniture, in the sorted layer with the bodies.
 var _dressing: RaidDressing = null
+## The arena's own light (2026-09-14). A CanvasModulate tints the whole canvas
+## it stands on, and the battlefield's is hidden with the battlefield - so a
+## camp was fought in noon light at midnight, and a rift in whatever the sun
+## happened to give. This one follows `DayNight` exactly as the field's does:
+## the sun's tint for a raid, the deep's for a rift (`DayNight.set_underground`).
+## Visible only while the arena runs, so it never stands beside the field's.
+var _tint_node: CanvasModulate = null
 
 
 func _ready() -> void:
 	_rng = RunState.rng("raids")
 	_setup_ground()
+	_tint_node = CanvasModulate.new()
+	_tint_node.name = "ArenaTint"
+	_tint_node.visible = false
+	_tint_node.add_to_group(Graphics.TINT_GROUP)
+	add_child(_tint_node)
+	DayNight.phase_changed.connect(func(_p: float, tint: Color, _d: float) -> void:
+		_tint_node.color = Graphics.graded(tint))
+	_tint_node.color = Graphics.graded(DayNight.tint)
 	set_process(false)
+
+
+## The arena's light on, or off: on with the camp, off with the reward.
+func _light_the_arena(on: bool) -> void:
+	if _tint_node != null and is_instance_valid(_tint_node):
+		_tint_node.visible = on
 
 
 func begin() -> void:
@@ -90,6 +111,7 @@ func begin() -> void:
 	_chieftain_out = false
 	set_process(true)
 	visible = true
+	_light_the_arena(true)
 	if hero != null:
 		hero.field = self
 		hero.sync_from_run_state()
@@ -318,6 +340,7 @@ func _finish(result: Dictionary) -> void:
 
 	var reward: Dictionary = _build_reward(result)
 	_clear_enemies()
+	_light_the_arena(false)
 	EventBus.raid_ended.emit(reward)
 
 
@@ -496,7 +519,7 @@ func _build_camp() -> void:
 	if _fog != null and is_instance_valid(_fog):
 		_fog.queue_free()
 	_fog = FogOfWar.new()
-	_fog.half_extent = RaidLayout.HALF_EXTENT + RaidLayout.TILE * 2.0
+	_fog.half_extent = RaidLayout.HALF_EXTENT + RaidLayout.TILE * Balance.RAID_FOG_MARGIN_TILES
 	_fog.cell = RaidLayout.TILE
 	_fog.z_index = Balance.RAID_FOG_Z
 	_fog.sources = _arena_vision_sources

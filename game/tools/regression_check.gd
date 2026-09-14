@@ -476,7 +476,10 @@ func _check(condition: bool, why: String) -> void:
 	if condition:
 		return
 	_failures += 1
-	printerr("[regression] %s" % why)
+	# `push_error` rather than `printerr`: CI's release helper quotes only the
+	# `ERROR:` lines of a failed tool, and four failures here read as "exited 4
+	# with no error line" on the v0.31.1 release.
+	push_error("[regression] %s" % why)
 
 
 ## Animals turn up, and they stay off the roads.

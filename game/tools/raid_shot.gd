@@ -2,9 +2,19 @@ extends Node
 
 ## Renders a raid camp so the generated terrain can be looked at.
 ## Diagnostic only, never a gate.
+##
+## `--` args: `night` sets the world clock to deep night before the camp is
+## entered, so the arena's own tint (2026-09-14) and the fires' light can be
+## looked at; `close` frames it at play zoom instead of the whole camp.
 
 func _ready() -> void:
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var night: bool = args.has("night")
+	var close: bool = args.has("close")
 	RunState.reset()
+	RunState.terrain_id = "jungle"
+	if night:
+		DayNight._apply(0.8)
 	GameDirector.run_active = true
 	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
 	add_child(run)
@@ -38,10 +48,23 @@ func _ready() -> void:
 		# one picture, which makes the fog look far tighter than a player ever
 		# sees it. Do not measure readability or framing from this tool's output;
 		# it was read as a badly framed raid once already.
-		cam.zoom = Vector2(0.30, 0.30)
-	for _f: int in 6:
+		cam.zoom = Vector2(0.95, 0.95) if close else Vector2(0.30, 0.30)
+		if close and raid.hero != null:
+			cam.global_position = raid.hero.global_position
+	for _f: int in 30 if close else 6:
 		await get_tree().process_frame
-	get_viewport().get_texture().get_image().save_png("user://raid_shot.png")
-	print("[raid] camp -> %s" % ProjectSettings.globalize_path("user://raid_shot.png"))
+	var tint_node: CanvasModulate = raid.get_node_or_null("ArenaTint") as CanvasModulate
+	print("[raid] clock phase %.2f tint %s darkness %.2f; arena tint %s visible %s" % [
+		DayNight.phase, str(DayNight.tint), DayNight.darkness,
+		str(tint_node.color) if tint_node != null else "none",
+		str(tint_node.visible) if tint_node != null else "-"])
+	if args.has("notint") and tint_node != null:
+		tint_node.visible = false
+		for _f: int in 3:
+			await get_tree().process_frame
+	var suffix: String = ("_night" if night else "") + ("_close" if close else "") + ("_notint" if args.has("notint") else "")
+	var path: String = "user://raid_shot%s.png" % suffix
+	get_viewport().get_texture().get_image().save_png(path)
+	print("[raid] camp -> %s" % ProjectSettings.globalize_path(path))
 	Sfx.stop_immediately(); MusicPlayer.stop_immediately(); Ambience.stop_immediately()
 	get_tree().quit(0)

@@ -433,7 +433,7 @@ func _bolt_line(points: PackedVector2Array, width: float, alpha: float) -> Line2
 func _target_temperature() -> float:
 	var base: float = _weather.temperature if _weather != null else 20.0
 	base += float(Balance.SKY_REGION_TEMPERATURE.get(RunState.terrain_id, 0.0))
-	base += Balance.SKY_TEMPERATURE_NIGHT * DayNight.darkness
+	base += Balance.SKY_TEMPERATURE_NIGHT * DayNight.sun_darkness()
 	base += Balance.SKY_TEMPERATURE_RAIN * intensity()
 	return base
 

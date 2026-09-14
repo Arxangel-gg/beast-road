@@ -60,12 +60,24 @@ var _flow_timer: float = 0.0
 var _chest: DungeonChest = null
 var _exit: DungeonPortal = null
 var _stairs: DungeonPortal = null
+## The look of the deep (2026-09-14): the floor and rock as one tile sheet,
+## the sconces and the strewn floor, the air, and the dark of its own.
+var _tiles: DungeonTiles = null
+var _decor: DungeonDecor = null
+var _air: DungeonAir = null
+var _tremor_in: float = 0.0
 
 
 func _ready() -> void:
 	super()
 	# Its own stream, so a rift's camp and a raid's are not the same shape.
 	_rng = RunState.rng("rifts")
+	# The deep's dark is the arena's own tint (`RaidArena._tint_node`) fed the
+	# deep's night - see `DayNight.set_underground`.
+	_air = DungeonAir.new()
+	_air.name = "Air"
+	_air.camera = camera
+	add_child(_air)
 
 
 ## Opens a rift of `which` kind, entered from `from` on the battlefield.
@@ -103,6 +115,11 @@ func _begin_stage() -> void:
 	_setup_ground()
 	_build_camp()
 	_tint_for_kind()
+	DayNight.set_underground(true, Balance.RIFT_TINT if kind == Kind.RIFT else Balance.DUNGEON_TINT)
+	_light_the_arena(true)
+	_tremor_in = Balance.DUNGEON_TREMOR_EVERY
+	if _air != null:
+		_air.begin(kind, dungeon())
 	_running = true
 	_finished = false
 	_kills = 0
@@ -130,8 +147,110 @@ func _begin_stage() -> void:
 func _tint_for_kind() -> void:
 	if _terrain_root == null:
 		return
+	# The tint was for the plates; the tile sheet is its own colour.
+	if _tiles != null:
+		_terrain_root.modulate = Color.WHITE
+		return
 	_terrain_root.modulate = Balance.RIFT_WALL_TINT if kind == Kind.RIFT \
 		else Balance.DUNGEON_WALL_TINT
+
+
+## The camp, then the deep's own skin over it.
+func _build_camp() -> void:
+	super()
+	_skin_the_deep()
+
+
+## The floor and the rock as one tile sheet, the plates hidden under it; the
+## sconces, the strewn floor and the vault's runes. A missing sheet leaves the
+## plates as they were, so the maze is never invisible.
+func _skin_the_deep() -> void:
+	_tiles = null
+	var art: String = DungeonTiles.art_for(kind)
+	if _terrain_root != null and ResourceLoader.exists(art):
+		for child: Node in _terrain_root.get_children():
+			if child is RaidTerrain:
+				(child as CanvasItem).visible = false
+		_tiles = DungeonTiles.new()
+		_tiles.name = "Floor"
+		_tiles.z_index = Balance.RAID_TERRAIN_Z
+		_terrain_root.add_child(_tiles)
+		_terrain_root.move_child(_tiles, 0)
+		_tiles.lay(layout, load(art))
+	# The dressing's own dice, by run and stage, so it moves no roll on the
+	# rift's stream: where a body appears must not depend on where the rubble
+	# fell.
+	var dice := RandomNumberGenerator.new()
+	dice.seed = hash(RunState.run_seed) ^ (_stage * 7919) ^ (int(kind) * 104729)
+	_decor_root().dress(dungeon(), kind, dice)
+
+
+func _decor_root() -> DungeonDecor:
+	if _decor == null or not is_instance_valid(_decor):
+		_decor = DungeonDecor.new()
+		_decor.name = "Decor"
+		_decor.arena = self
+		_props_root().add_child(_decor)
+	return _decor
+
+
+func decor() -> DungeonDecor:
+	return _decor
+
+
+func air() -> DungeonAir:
+	return _air
+
+
+func tiles() -> DungeonTiles:
+	return _tiles
+
+
+## How full the rift is, for the floor that glows with it.
+func fill() -> float:
+	return _fill
+
+
+## Rock coming down around `around`, on open floor only.
+func _drop_rocks(around: Vector2, count: int, size: float, power: float) -> void:
+	var maze: DungeonLayout = dungeon()
+	for _rock: int in count:
+		var at: Vector2 = around
+		for _try: int in 6:
+			at = around + Vector2(_rng.randf_range(-200.0, 200.0), _rng.randf_range(-150.0, 150.0))
+			if maze == null or maze.is_open(at):
+				break
+		var rock := FallingRock.new()
+		rock.size = size
+		rock.power = power
+		rock.position = at
+		_props_root().add_child(rock)
+
+
+## The place groans before it comes down: for the last `DUNGEON_TREMOR_WARNING`
+## seconds the picture shudders and a pebble falls, harder as the clock runs
+## out. A collapse from nowhere is the blow from nowhere the telegraph rule
+## refuses.
+func _tick_tremor(delta: float) -> void:
+	var left: float = Balance.RIFT_TIME_LIMIT - _stage_clock
+	if left > Balance.DUNGEON_TREMOR_WARNING or left <= 0.0:
+		return
+	_tremor_in -= delta
+	if _tremor_in > 0.0:
+		return
+	_tremor_in = Balance.DUNGEON_TREMOR_EVERY
+	var dread: float = 1.0 - left / Balance.DUNGEON_TREMOR_WARNING
+	EventBus.camera_shake_requested.emit(2.0 + 5.0 * dread, 0.3)
+	if hero != null:
+		_drop_rocks(hero.global_position, 1, Balance.DUNGEON_PEBBLE_SIZE, 0.05)
+
+
+## Back to the sun: the deep's dark and its lights hand the day back.
+func _surface() -> void:
+	DayNight.set_underground(false)
+	_light_the_arena(false)
+	if _air != null:
+		_air.stop()
 
 
 ## A dungeon is furnished with what was left in it: bones, cages, crates.
@@ -157,6 +276,7 @@ func _process(delta: float) -> void:
 		if _guardian_out:
 			_watch_guardian()
 		return
+	_tick_tremor(delta)
 	if _stage_clock >= Balance.RIFT_TIME_LIMIT and not _finished:
 		_begin_collapse()
 		return
@@ -311,6 +431,10 @@ func _spawn_guardian() -> void:
 	EventBus.camera_shake_requested.emit(12.0, 0.5)
 	Vfx.ring(at, 160.0, Color(0.95, 0.5, 0.9, 0.9), 0.8, 6.0)
 	Sfx.play("sfx_boss_spawn")
+	# The vault's floor wakes and the ceiling over it sheds rock.
+	if _decor != null and is_instance_valid(_decor):
+		_decor.wake()
+	_drop_rocks(at, 3, Balance.DUNGEON_ROCK_SIZE, 0.1)
 
 
 ## The guardian fell: the stage is banked, the chest lands where it died, and
@@ -484,13 +608,10 @@ func _tick_collapse(delta: float) -> void:
 			hero.health.take_damage(hero.health.max_hp * Balance.DUNGEON_COLLAPSE_DAMAGE,
 				hero.global_position + Vector2.UP * 40.0)
 		EventBus.camera_shake_requested.emit(6.0, 0.35)
-		var maze: DungeonLayout = dungeon()
-		if maze != null and hero != null:
+		if hero != null:
 			# Rock falling around the hero, wherever they are running.
-			for _rock: int in 3:
-				var at: Vector2 = hero.global_position + Vector2(_rng.randf_range(-220.0, 220.0),
-					_rng.randf_range(-160.0, 160.0))
-				Vfx.dust(at, Color(0.45, 0.4, 0.36, 0.9), 6, 40.0)
+			_drop_rocks(hero.global_position, Balance.DUNGEON_ROCKS_PER_BITE,
+				Balance.DUNGEON_ROCK_SIZE, Balance.DUNGEON_ROCK_IMPACT)
 	if _collapse_left <= 0.0 and not _finished:
 		_finish({"collapsed": true})
 
@@ -526,6 +647,7 @@ func _finish(result: Dictionary) -> void:
 	if bool(result.get("died", false)) or DisplayServer.get_name() == "headless":
 		if hero != null:
 			hero.set_present(false)
+		_surface()
 		EventBus.rift_ended.emit(reward)
 		return
 	_play_collapse_out(reward)
@@ -562,10 +684,12 @@ func _play_collapse_out(reward: Dictionary) -> void:
 					_rng.randf_range(-220.0, 220.0))
 				Vfx.dust(at, Color(0.4, 0.35, 0.32, 0.95), 8, 46.0)
 				Vfx.spark(at, Color(0.55, 0.5, 0.45), 3, Vector2.DOWN, 240.0)
+			_drop_rocks(hero.global_position, 1, Balance.DUNGEON_ROCK_SIZE, Balance.DUNGEON_ROCK_IMPACT)
 		await get_tree().process_frame
 	if hero != null and is_instance_valid(hero):
 		hero.set_present(false)
 	shade.queue_free()
+	_surface()
 	EventBus.rift_ended.emit(reward)
 
 
