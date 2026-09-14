@@ -113,6 +113,15 @@ func _process(delta: float) -> void:
 	if not _lit:
 		return
 	_time += delta * Balance.FLAME_DANCE_SPEED
+	# **A flame the camera cannot see costs nothing.** The clock still runs, so
+	# one sliding into frame is already mid-dance rather than starting from a
+	# standstill - but the glow is not re-scaled and nothing is redrawn.
+	#
+	# This is the whole of `flame.gd`'s frame cost: three polygons rebuilt per
+	# flame per frame, times every torch on a 75x75 grid, of which a handful
+	# are ever on screen at gameplay zoom.
+	if not _on_screen():
+		return
 	if _glow != null:
 		# The glow breathes with the flame but lags it slightly. Perfectly in
 		# phase, the two read as one object being scaled.
@@ -120,6 +129,21 @@ func _process(delta: float) -> void:
 		_glow.scale = Vector2.ONE * _glow_base_scale() * pulse * intensity
 		_glow.modulate.a = Balance.FLAME_GLOW_ALPHA * intensity * (0.86 + 0.14 * pulse)
 	queue_redraw()
+
+
+## Whether any of this flame could land inside the viewport.
+##
+## `get_global_transform_with_canvas` gives the position in viewport pixels
+## directly, so this costs one transform and four comparisons - against three
+## polygons rebuilt from a sine outline, which is what it replaces.
+func _on_screen() -> bool:
+	var view: Viewport = get_viewport()
+	if view == null:
+		return true
+	var at: Vector2 = get_global_transform_with_canvas().origin
+	var size: Vector2 = view.get_visible_rect().size
+	var margin: float = Balance.FLAME_OFFSCREEN_MARGIN
+	return at.x > -margin and at.y > -margin 		and at.x < size.x + margin and at.y < size.y + margin
 
 
 func _draw() -> void:

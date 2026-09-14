@@ -4707,6 +4707,19 @@ const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
 ## against a darker field left the road legible only directly under the flame.
 ## At 360 the pools overlap along a straight, so a road reads as a lit ribbon
 ## through darkness rather than as a row of separate glows. [TUNE]
+## How far outside the viewport a flame keeps animating, in screen pixels.
+##
+## **A flame the camera cannot see was costing exactly as much as one it
+## could.** `perf_bisect` put `flame.gd` at 6.18 ms of a 15.8 ms frame across
+## 84 nodes on 2026-09-13 - by far the largest single cost in the game, and
+## more than four times the next script - because every torch on a 75x75 grid
+## redrew three polygons every frame whether or not it was on screen.
+##
+## Generous rather than tight: a flame's glow reaches well past the post, and
+## the margin has to cover the widest zoom the camera can reach, or torches
+## will visibly start animating as they slide into frame. [TUNE]
+const FLAME_OFFSCREEN_MARGIN: float = 320.0
+
 const TORCH_LIGHT_RADIUS: float = 360.0
 
 ## Per-torch energy, deliberately low for the radius.
