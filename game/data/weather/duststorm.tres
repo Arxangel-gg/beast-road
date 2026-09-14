@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_w")
+rain_variability = 0.5
+temperature = 31.0
 element_scale = Array[float]([1.0, 0.9, 1.12, 1.2])
 acts = Array[int]([2])
 weight = 0.5

@@ -517,6 +517,10 @@ jobs:
           # and drew nothing. This reads the source for the traps that fail
           # silently; run a `*_shot` tool windowed for the rest.
           check "shader lint" --headless --path game res://tools/shader_lint_check.tscn
+          # The sky: rain that swells on its own, lightning that charges the
+          # air, a flood that slows and drowns, heat that dries the wells, and
+          # the guest told the same four numbers. Every half of it is measured.
+          check "sky" --headless --path game res://tools/sky_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn

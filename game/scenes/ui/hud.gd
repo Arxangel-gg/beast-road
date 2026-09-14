@@ -3211,6 +3211,8 @@ func _build_region_card() -> void:
 	EventBus.run_started.connect(_on_run_opened)
 	EventBus.hero_levelled.connect(_on_hero_levelled)
 	EventBus.weather_changed.connect(_on_weather_changed)
+	EventBus.sky_changed.connect(_on_sky_changed)
+	EventBus.sky_warned.connect(_on_sky_warned)
 
 
 ## Weather is a condition the player has to build for, so it is announced when
@@ -3224,6 +3226,38 @@ func _on_weather_changed(weather_id: String) -> void:
 		_weather.tooltip_text = weather.effect_line
 	if weather.id != "clear":
 		announce(weather.effect_line, weather.display_name.to_upper())
+
+
+## The forecast, once a second: the weather's name with the temperature, and
+## a word for where the rain is going. The detail lives in the tooltip; the
+## label has to stay one glance.
+func _on_sky_changed(temperature: float, trend: float, flood: float, charge: float) -> void:
+	if _weather == null:
+		return
+	var weather: WeatherData = ContentDB.weather(RunState.weather_id)
+	var name: String = weather.display_name if weather != null else "Clear"
+	var mark: String = ""
+	if RunState.rain_intensity > 0.0:
+		mark = "  \u2191" if trend > 0.15 else ("  \u2193" if trend < -0.15 else "")
+	_weather.text = "%s \u00b7 %d\u00b0%s" % [name, int(round(temperature)), mark]
+	var lines: PackedStringArray = []
+	if weather != null and not weather.effect_line.is_empty():
+		lines.append(weather.effect_line)
+	if RunState.rain_intensity > 0.0:
+		var going: String = "building" if trend > 0.15 else ("easing" if trend < -0.15 else "steady")
+		lines.append("Rain %s." % going)
+	if flood > 0.05:
+		lines.append("Flood at %d%%: everything on foot is slowed." % int(round(flood * 100.0)))
+	if charge > 0.3:
+		lines.append("The air is charged - lightning is likely.")
+	if RunState.well_evaporation() > 0.0:
+		lines.append("The wells are drying in this heat.")
+	_weather.tooltip_text = "\n".join(lines) if not lines.is_empty() else "Weather over the road."
+
+
+func _on_sky_warned(line: String, title: String) -> void:
+	if not line.is_empty():
+		announce(line, title)
 
 
 ## A level is worth announcing: it is the only reward in the run that arrives

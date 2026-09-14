@@ -4,6 +4,12 @@
 
 [resource]
 script = ExtResource("1_w")
+lightning_rate = 0.8
+floods = true
+rain_variability = 0.85
+temperature = 13.0
+flood_line = "The road is under water. Everything on it slows, and the small things drown."
+flood_title = "FLOOD"
 element_scale = Array[float]([0.78, 1.28, 1.0, 0.95])
 acts = Array[int]([1])
 weight = 0.5

@@ -238,6 +238,17 @@ var tower_haste_scale: float = 1.0
 
 var weather_id: String = "clear"
 
+## What the sky is doing right now, written by `Sky` and read by everything
+## else. Rain scale is the rain's multiplier on its authored density; the
+## intensity is the rain in absolute terms, 0..1; the flood is 0..1 of the
+## height that drowns; the charge is the lightning's potential; and the
+## temperature is degrees. A guest is told all five twice a second.
+var rain_scale: float = 1.0
+var rain_intensity: float = 0.0
+var flood: float = 0.0
+var storm_charge: float = 0.0
+var temperature: float = 20.0
+
 ## The campaign tier this run is being played on.
 var tier_id: String = "normal"
 
@@ -517,6 +528,11 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	hero_ascension = 0
 	raid_keys = 0
 	weather_id = "clear"
+	rain_scale = 1.0
+	rain_intensity = 0.0
+	flood = 0.0
+	storm_charge = 0.0
+	temperature = 20.0
 	# Restored from the account, not zeroed.
 	#
 	# This is the owner amendment of 2026-08-20 in one place: the hero is the only
@@ -842,6 +858,21 @@ func roll_weather() -> void:
 			MetaState.record_seen("weather", option.id)
 			EventBus.weather_changed.emit(option.id)
 			return
+
+
+## How much of its speed anything walking keeps in the flood, 1 on dry ground.
+func flood_slow() -> float:
+	return lerpf(1.0, Balance.FLOOD_SLOW_FLOOR, clampf(flood, 0.0, 1.0))
+
+
+## How much longer a well takes to refill in this heat, 1 when it is not hot.
+func well_refill_scale() -> float:
+	return 1.0 + maxf(temperature - Balance.WELL_HEAT_FROM, 0.0) * Balance.WELL_HEAT_REFILL_PER_DEGREE
+
+
+## Seconds of refill a well loses every second in this heat, 0 when it is not hot.
+func well_evaporation() -> float:
+	return maxf(temperature - Balance.WELL_EVAPORATE_FROM, 0.0) * Balance.WELL_EVAPORATE_PER_DEGREE
 
 
 ## XP required to leave a level.

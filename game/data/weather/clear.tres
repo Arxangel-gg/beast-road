@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_w")
+temperature = 21.0
 element_scale = Array[float]([1.0, 1.0, 1.0, 1.0])
 acts = Array[int]([])
 weight = 1.8

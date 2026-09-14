@@ -6383,6 +6383,121 @@ const BEAST_BRUSH_Z: int = 42
 ## raindrops the size of the beast. In front of everything, including the near
 ## brush, because precipitation is between the player and the world. [TUNE]
 const BEAST_WEATHER_Z: int = 46
+
+# ------------------------------------------------------------------------------
+# THE SKY (2026-09-14): rain that rises and falls, lightning, the flood, the heat
+# ------------------------------------------------------------------------------
+# See scripts/systems/sky.gd. Weather is still chosen at the crossroad; this
+# is how it behaves from moment to moment, and everything here is a number
+# the sky writes into RunState for the rest of the game to read.
+
+## The three periods, in seconds, of the sines the rain's swell is summed
+## from. Unrelated to each other on purpose, so the swell never repeats on a
+## scale a player would notice. [TUNE]
+const SKY_RAIN_PERIODS: Vector3 = Vector3(95.0, 41.0, 17.0)
+## How far the rain may swing from its authored density at full variability:
+## down to a third, up to almost half again. [TUNE]
+const SKY_RAIN_SCALE_RANGE: Vector2 = Vector2(0.35, 1.45)
+## How quickly the rain follows its swell, per second. Slow, so a squall
+## builds rather than switches. [TUNE]
+const SKY_RAIN_SMOOTHING: float = 0.35
+## How often the host tells the guest the sky's four numbers, in seconds.
+const SKY_SYNC_INTERVAL: float = 0.5
+
+## The flood. Rain above `FLOOD_RISE_ABOVE` raises it and anything below lets
+## it drain; at that rate a downpour held at its heaviest floods the field in
+## `FLOOD_RISE_SECONDS`, and a field left alone empties in `FLOOD_DRAIN_SECONDS`.
+## Long enough that a flood is a stretch of a road rather than a flicker. [TUNE]
+const FLOOD_RISE_ABOVE: float = 0.62
+const FLOOD_RISE_SECONDS: float = 200.0
+const FLOOD_DRAIN_SECONDS: float = 150.0
+## How slow everything that walks is at the flood's height, as a share of its
+## speed. Flyers are exempt. **Below the knee**, which is what bounds the
+## whole thing: the water never stops anybody, it only costs them. [TUNE]
+const FLOOD_SLOW_FLOOR: float = 0.64
+## The flood at which the small things drown, the torches go out, and the
+## climbers are up their trees; and the level they come back down at.
+const FLOOD_DROWN_LEVEL: float = 0.97
+const FLOOD_CLIMB_DOWN: float = 0.45
+## Species drawn below this scale are below the water at its height.
+const FLOOD_DROWN_SCALE: float = 1.0
+## When the HUD says the road is flooding.
+const FLOOD_ANNOUNCE: float = 0.5
+## The standing water's look: just over the ground and the roads, under
+## everything that walks. Its tint and how opaque it is at full flood.
+const FLOOD_SHEEN_Z: int = -29
+const FLOOD_SHEEN_ALPHA: float = 0.42
+const FLOOD_TINT: Color = Color(0.36, 0.48, 0.62, 1.0)
+
+## Lightning. Nothing below `LIGHTNING_MIN_INTENSITY` of rain; above it the
+## hazard climbs with the square of the excess, and every strike charges the
+## sky by `LIGHTNING_CHARGE_PER_STRIKE`, decaying over the decay seconds, with
+## the hazard scaled by `1 + charge * LIGHTNING_CHARGE_HAZARD`. So a steady
+## storm throws one now and then and a charged one throws them in bursts. [TUNE]
+const LIGHTNING_MIN_INTENSITY: float = 0.45
+const LIGHTNING_CHARGE_PER_STRIKE: float = 0.35
+const LIGHTNING_CHARGE_DECAY_SECONDS: float = 50.0
+const LIGHTNING_CHARGE_HAZARD: float = 2.2
+const LIGHTNING_CHARGE_CAP: float = 1.6
+## What a strike does. The enemy figure is scaled by the act like the health
+## it is measured against; the hero takes a share of their own pool; the
+## wildlife a flat wound. Never within `LIGHTNING_TOWN_CLEARANCE` of the city.
+const LIGHTNING_RADIUS: float = 150.0
+const LIGHTNING_ENEMY_DAMAGE: float = 140.0
+const LIGHTNING_HERO_SHARE: float = 0.22
+const LIGHTNING_WILDLIFE_DAMAGE: float = 90.0
+const LIGHTNING_TOWN_CLEARANCE: float = 300.0
+## The storm towers within this of a strike are charged for this long, and
+## what charged is worth: harder and faster. Air is the element that reads as
+## the storm's own. [TUNE]
+const LIGHTNING_EMPOWER_RADIUS: float = 560.0
+const LIGHTNING_EMPOWER_SECONDS: float = 14.0
+const STORM_EMPOWER_DAMAGE: float = 1.7
+const STORM_EMPOWER_INTERVAL: float = 0.78
+## The look and sound of it. The bolt is drawn from this far above the strike;
+## the screen flashes to this alpha; thunder travels at this many units a
+## second and is the near clip inside `THUNDER_NEAR`.
+const LIGHTNING_Z: int = 40
+const LIGHTNING_COLOUR: Color = Color(0.82, 0.9, 1.0)
+const LIGHTNING_BOLT_HEIGHT: float = 1500.0
+const LIGHTNING_FLASH: float = 0.55
+const THUNDER_SPEED: float = 900.0
+const THUNDER_NEAR: float = 900.0
+
+## Temperature. Each sky authors its own; the region, the night and the rain
+## move it; and it eases toward the target at this rate so a weather change
+## is a front coming through rather than a switch. [TUNE]
+const SKY_TEMPERATURE_NIGHT: float = -7.0
+const SKY_TEMPERATURE_RAIN: float = -4.0
+const SKY_TEMPERATURE_EASE: float = 0.06
+const SKY_REGION_TEMPERATURE: Dictionary = {
+	"jungle": 3.0, "desert": 8.0, "snow": -10.0, "hollow_marches": -1.0,
+	"rustwood": 0.0, "saltpan": 6.0, "iron_steppe": -2.0, "glass_fields": 2.0,
+	"ashen_reach": 5.0, "last_terrace": -4.0,
+}
+## The wells in the heat. Above `WELL_HEAT_FROM` a well refills slower by this
+## much per degree; above `WELL_EVAPORATE_FROM` it loses this many seconds of
+## refill a second per degree, and a drawn draught goes back into the ground.
+const WELL_HEAT_FROM: float = 29.0
+const WELL_HEAT_REFILL_PER_DEGREE: float = 0.05
+const WELL_EVAPORATE_FROM: float = 34.0
+const WELL_EVAPORATE_PER_DEGREE: float = 0.10
+
+## The torches in the rain. Every `TORCH_RAIN_SAMPLE` seconds a lit post rolls
+## against the rain's intensity times `TORCH_RAIN_HIT_CHANCE`; a hit takes
+## `TORCH_RAIN_HIT` of its strength. Between hits it recovers as it always
+## did, so a drizzle costs a torch nothing it does not get back and a downpour
+## puts it out in a realistic while - and each post rolls its own, so a row
+## does not go out together. The pool dims with the rain besides.
+## Measured: at these figures the heaviest rain puts a post out in about a
+## minute with its recovery rained off, and at half intensity recovery still
+## wins - so a shower costs nothing and a storm costs the road its light.
+const TORCH_RAIN_SAMPLE: float = 1.0
+const TORCH_RAIN_HIT_CHANCE: float = 0.55
+const TORCH_RAIN_HIT: float = 0.025
+const TORCH_RAIN_POOL_DIM: float = 0.35
+## How far up its trunk a treed animal is drawn.
+const WILDLIFE_CLIMB_LIFT: float = 46.0
 const BEAST_WEATHER_REACH: float = 1200.0
 const BEAST_BRUSH_SCROLL: float = 1.35
 const BEAST_BRUSH_BASELINE: float = 604.0

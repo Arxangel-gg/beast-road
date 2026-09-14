@@ -740,7 +740,9 @@ func move_speed() -> float:
 		bonus += DisciplineEffects.trained_value("support_kill_speed")
 	bonus += float(RunState.attribute(RunState.Attribute.SWIFTNESS)) * Balance.HERO_SWIFTNESS_MOVE_PER_POINT
 	bonus += _meal_speed
-	return Balance.HERO_MOVE_SPEED * (1.0 + bonus)
+	# Wading (2026-09-14). A multiplier rather than a bonus, so it cannot be
+	# summed away by Swiftness: water is water whoever is walking through it.
+	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * RunState.flood_slow()
 
 
 ## Puts the hero's shot in the world.

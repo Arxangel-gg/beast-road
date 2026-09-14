@@ -677,6 +677,30 @@ signal trade_completed(given: int, received: int)
 ## with the lower one's number.
 signal coop_xp_awarded(amount: float)
 
+## Lightning came down here, this wide. The host applies what it does before
+## emitting; every machine draws it.
+signal lightning_struck(at: Vector2, radius: float)
+
+## A strike the host announced, arriving on a guest. Drawn, never applied.
+signal coop_lightning(at: Vector2, radius: float)
+
+## How deep the flood stands, 0..1 of the height that drowns. Announced rather
+## than applied, like the snow: the sky says how deep, and each thing that
+## walks decides what that costs it.
+signal flood_changed(level: float)
+
+## The sky's forecast, once a second: the temperature, which way the rain is
+## going, the flood and the lightning's charge. For the HUD.
+signal sky_changed(temperature: float, trend: float, flood: float, charge: float)
+
+## Something about the sky worth saying out loud, with the words from data.
+signal sky_warned(line: String, title: String)
+
+## The host's sky, twice a second, for the guest's: the rain's scale, the flood,
+## the charge and the temperature. Four numbers rather than the weather that
+## made them, because the rain's swell is rolled and a guest must not roll.
+signal coop_sky_clock(rain_scale: float, flood: float, charge: float, temperature: float)
+
 ## How much snow is lying on the ground, 0..1.
 ##
 ## Announced rather than applied: the weather has no business reaching into the

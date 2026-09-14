@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+climbs = true
 id = "lynx"
 display_name = "Forest Lynx"
 description = "One set of tracks, and they only go one way."

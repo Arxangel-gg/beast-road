@@ -146,6 +146,15 @@ func _has_trunk_room(at: Vector2) -> bool:
 	return true
 
 
+## Where every tree stands, for whatever needs a trunk.
+func positions() -> PackedVector2Array:
+	var out: PackedVector2Array = PackedVector2Array()
+	for tree: Sprite2D in _trees:
+		if is_instance_valid(tree):
+			out.append(tree.position)
+	return out
+
+
 ## How many trees are standing. For the gate.
 func count() -> int:
 	return _trees.size()

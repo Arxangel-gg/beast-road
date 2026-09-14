@@ -31,7 +31,7 @@ All wildlife calls are present on disk.
 ---
 
 
-## STILL TO RECORD (177)
+## STILL TO RECORD (128)
 
 Everything the game asks for and does not have, checked against
 `game/audio/` when this file was generated. The game is *silent* in
@@ -40,58 +40,7 @@ missing stream - so none of these block a build.
 
 | File | Folder | Length | Tool | Prompt |
 |---|---|---|---|---|
-| `music_act01_01.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 1 of 12, 'the march in': the act opens: purposeful, mid-tempo, the theme stated plainly |
-| `music_act01_02.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 2 of 12, 'first blood': the first real fight: faster, the drums come forward |
-| `music_act01_03.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 3 of 12, 'the long middle': steady and patient, a groove that can sit under twenty minutes of play |
-| `music_act01_04.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 4 of 12, 'night falls': darker and sparser, the melody drops an octave, space between the hits |
-| `music_act01_05.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
 | `music_act01_06.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
-| `music_act01_07.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 7 of 12, 'a lull': almost ambient, the theme hinted on one instrument over a drone |
-| `music_act01_08.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 8 of 12, 'dread': slow and menacing, dissonant, something is coming |
-| `music_act01_09.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 9 of 12, 'the rally': rising, hopeful under the grit, the one the player hums |
-| `music_act01_10.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 10 of 12, 'the dirge': a funeral pace, low voices, for the waves after a loss |
-| `music_act01_11.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 11 of 12, 'the hunt': quick and light-footed, syncopated, predatory |
-| `music_act01_12.ogg` | `music` | 2:00-3:00 | Suno | act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 12 of 12, 'the last wave': the act's climax: the theme at full force, building toward the boss |
-| `music_act02_01.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 1 of 12, 'the march in': the act opens: purposeful, mid-tempo, the theme stated plainly |
-| `music_act02_02.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 2 of 12, 'first blood': the first real fight: faster, the drums come forward |
-| `music_act02_03.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 3 of 12, 'the long middle': steady and patient, a groove that can sit under twenty minutes of play |
-| `music_act02_04.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 4 of 12, 'night falls': darker and sparser, the melody drops an octave, space between the hits |
-| `music_act02_05.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
-| `music_act02_06.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
-| `music_act02_07.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 7 of 12, 'a lull': almost ambient, the theme hinted on one instrument over a drone |
-| `music_act02_08.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 8 of 12, 'dread': slow and menacing, dissonant, something is coming |
-| `music_act02_09.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 9 of 12, 'the rally': rising, hopeful under the grit, the one the player hums |
-| `music_act02_10.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 10 of 12, 'the dirge': a funeral pace, low voices, for the waves after a loss |
-| `music_act02_11.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 11 of 12, 'the hunt': quick and light-footed, syncopated, predatory |
-| `music_act02_12.ogg` | `music` | 2:00-3:00 | Suno | act 2, the Sunglass Waste, a desert of fused sand - desert: brittle high metallic tones, bowed glass, thin dry percussion, heat shimmer and a sharp nervous energy. Song 12 of 12, 'the last wave': the act's climax: the theme at full force, building toward the boss |
-| `music_act03_01.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 1 of 12, 'the march in': the act opens: purposeful, mid-tempo, the theme stated plainly |
-| `music_act03_02.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 2 of 12, 'first blood': the first real fight: faster, the drums come forward |
-| `music_act03_03.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 3 of 12, 'the long middle': steady and patient, a groove that can sit under twenty minutes of play |
-| `music_act03_04.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 4 of 12, 'night falls': darker and sparser, the melody drops an octave, space between the hits |
-| `music_act03_05.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
-| `music_act03_06.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
-| `music_act03_07.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 7 of 12, 'a lull': almost ambient, the theme hinted on one instrument over a drone |
-| `music_act03_08.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 8 of 12, 'dread': slow and menacing, dissonant, something is coming |
-| `music_act03_09.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 9 of 12, 'the rally': rising, hopeful under the grit, the one the player hums |
-| `music_act03_10.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 10 of 12, 'the dirge': a funeral pace, low voices, for the waves after a loss |
-| `music_act03_11.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 11 of 12, 'the hunt': quick and light-footed, syncopated, predatory |
-| `music_act03_12.ogg` | `music` | 2:00-3:00 | Suno | act 3, the White Teeth, a frozen mountain approach - snow: driving low toms, war drums under a storm, hard bright metal struck in rhythm. Song 12 of 12, 'the last wave': the act's climax: the theme at full force, building toward the boss |
-| `music_act04_01.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 1 of 12, 'the march in': the act opens: purposeful, mid-tempo, the theme stated plainly |
-| `music_act04_02.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 2 of 12, 'first blood': the first real fight: faster, the drums come forward |
-| `music_act04_03.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 3 of 12, 'the long middle': steady and patient, a groove that can sit under twenty minutes of play |
-| `music_act04_04.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 4 of 12, 'night falls': darker and sparser, the melody drops an octave, space between the hits |
-| `music_act04_05.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
-| `music_act04_06.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
-| `music_act04_07.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 7 of 12, 'a lull': almost ambient, the theme hinted on one instrument over a drone |
-| `music_act04_08.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 8 of 12, 'dread': slow and menacing, dissonant, something is coming |
-| `music_act04_09.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 9 of 12, 'the rally': rising, hopeful under the grit, the one the player hums |
-| `music_act04_10.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 10 of 12, 'the dirge': a funeral pace, low voices, for the waves after a loss |
-| `music_act04_11.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 11 of 12, 'the hunt': quick and light-footed, syncopated, predatory |
-| `music_act04_12.ogg` | `music` | 2:00-3:00 | Suno | act 4, the Hollow Marches, a drowned fog-bound marsh - hollow marches: low bowed strings, dripping wet percussion, distant fog horns, a reed flute that never resolves, everything damp and close. Song 12 of 12, 'the last wave': the act's climax: the theme at full force, building toward the boss |
-| `music_act05_01.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 1 of 12, 'the march in': the act opens: purposeful, mid-tempo, the theme stated plainly |
-| `music_act05_02.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 2 of 12, 'first blood': the first real fight: faster, the drums come forward |
-| `music_act05_03.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 3 of 12, 'the long middle': steady and patient, a groove that can sit under twenty minutes of play |
-| `music_act05_04.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 4 of 12, 'night falls': darker and sparser, the melody drops an octave, space between the hits |
 | `music_act05_05.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased |
 | `music_act05_06.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 6 of 12, 'the siege': the heaviest track of the act, relentless, every drum in the kit |
 | `music_act05_07.ogg` | `music` | 2:00-3:00 | Suno | act 5, the Rustwood, a forest of iron-stained trees - rustwood: rusted bells, scraped and bowed metal, creaking wood, slow hammer rhythms like a forge heard through trees. Song 7 of 12, 'a lull': almost ambient, the theme hinted on one instrument over a drone |
@@ -207,6 +156,8 @@ missing stream - so none of these block a build.
 | `sfx_companion_return.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.8s | ElevenLabs | a spirit animal re-forming beside its keeper: a rising three-note chime, bright and quick |
 | `sfx_companion_strike.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.2s | ElevenLabs | an animal's bite landing: a short snap of teeth with a small impact thud, for repeating |
 | `sfx_well_drink.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.9s | ElevenLabs | drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief |
+| `sfx_thunder_near.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 2.6s | ElevenLabs | lightning striking close: a sharp crack that tears, then a heavy rolling boom that decays over two seconds, no rain |
+| `sfx_thunder_far.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 3.4s | ElevenLabs | distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain |
 | `sfx_party_prompt.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.7s | ElevenLabs | a party invitation arriving: two clear ascending notes on a hunting horn, close and polite |
 | `sfx_party_accept.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.6s | ElevenLabs | a party member accepting: a bright three-note affirmative chime |
 | `sfx_party_decline.ogg` **(synthesised placeholder on disk - replace)** | `sfx` | 0.5s | ElevenLabs | a party member declining: a single soft falling note, not unkind |
@@ -387,14 +338,7 @@ Instrumental game soundtrack, no vocals, no lyrics, no singing. Dark grim-fantas
 Instrumental game soundtrack, no vocals, no lyrics, no singing. Dark grim-fantasy orchestral with sparse hand percussion, low strings, and a lone wind instrument carrying the melody. Muted, weathered, patient - the sound of a long march across hostile country, not a battle anthem. It must loop: begin and end on the same sustained chord with no fade-in or fade-out. Keep the mix uncluttered so it can sit under gameplay for a long time without becoming tiring. act 1, the Verdant Maw, a rain-heavy jungle - jungle: wet low toms, damp skin drums, detuned strings under a steady insistent pulse, ember warmth pushing through cold rain. Song 5 of 12, 'dawn on the road': a lighter variation, the same theme with the tension eased.
 ```
 
-### `music_act01_06` - VACANT
-
-**Removed from the game 2026-09-13: the recording had vocals.** The slot is
-deliberately empty and Act I plays eleven songs; a slot with no file is not in
-the shuffle and says nothing, so nothing needs doing unless a replacement is
-recorded. If one is, it goes at the path below and must be instrumental.
-
-### `music_act01_06` (brief kept for a replacement)
+### `music_act01_06`
 
 `game/audio/music/music_act01_06.ogg`  -  target length **2:00-3:00**  -  suggested tool: **Suno**
 
@@ -1522,7 +1466,7 @@ Ambient background loop for a video game, no melody, no drums, no vocals. Textur
 
 ---
 
-## Sound effects - 86 files
+## Sound effects - 88 files
 
 One-shots. Use ElevenLabs Sound Effects, not Suno.
 
@@ -2132,6 +2076,22 @@ an animal's bite landing: a short snap of teeth with a small impact thud, for re
 
 ```text
 drinking from a stone well: a ladle dipped, water poured and swallowed, two soft bell notes of relief.
+```
+
+### `sfx_thunder_near`
+
+`game/audio/sfx/sfx_thunder_near.ogg`  -  target length **2.6s**  -  suggested tool: **ElevenLabs**
+
+```text
+lightning striking close: a sharp crack that tears, then a heavy rolling boom that decays over two seconds, no rain.
+```
+
+### `sfx_thunder_far`
+
+`game/audio/sfx/sfx_thunder_far.ogg`  -  target length **3.4s**  -  suggested tool: **ElevenLabs**
+
+```text
+distant thunder across a valley: a low soft rumble that swells and rolls away, no crack, no rain.
 ```
 
 ### `sfx_party_prompt`

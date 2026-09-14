@@ -163,6 +163,10 @@ func roll_weight(act: int) -> float:
 ## A flier ignores the ground rules on the way in and on the way out - it is
 ## crossing the sky, not the field - and obeys them only while it is down.
 @export var flies: bool = false
+## Whether it can get up a tree when the ground floods. A climber makes for
+## the nearest trunk and waits the water out; a flyer leaves; anything else
+## small enough drowns where it stands. See `Wildlife._on_flood`.
+@export var climbs: bool = false
 
 ## Short isolated call used on arrival and on a committed strike. Kept in the
 ## creature resource so adding wildlife also states which recording it needs;

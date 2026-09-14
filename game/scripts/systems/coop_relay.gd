@@ -110,6 +110,10 @@ enum Fact {
 	CAMP_STATE = 51,
 	## A road's fork opened, host to guest.
 	FORK_OPENED = 52,
+	## The sky's four numbers, host to guest, twice a second. See `Sky`.
+	SKY_CLOCK = 53,
+	## Lightning came down, host to guest: a place and a radius, to draw.
+	LIGHTNING = 54,
 	## The party events, host to everyone. See `PartyEvents`.
 	PARTY_EVENT_PROPOSED = 53,
 	PARTY_EVENT_VOTES = 54,
@@ -344,6 +348,8 @@ func _fact_bindings() -> Array:
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
 		["coop_world_clock", _on_coop_world_clock],
+		["coop_sky_clock", _on_coop_sky_clock],
+		["lightning_struck", _on_lightning_struck],
 		["coop_chronicle_progress", _on_chronicle_progress],
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
@@ -645,6 +651,14 @@ func _on_coop_host_input(slot: int, snapshot: Array) -> void:
 
 func _on_coop_world_clock(distance: float, weather_id: String, act: int) -> void:
 	_relay(Fact.WORLD_CLOCK, [distance, weather_id, act])
+
+
+func _on_coop_sky_clock(rain_scale: float, flood: float, charge: float, temperature: float) -> void:
+	_relay(Fact.SKY_CLOCK, [rain_scale, flood, charge, temperature])
+
+
+func _on_lightning_struck(at: Vector2, radius: float) -> void:
+	_relay(Fact.LIGHTNING, [at, radius])
 
 
 func _on_chronicle_progress(summary: Dictionary) -> void:
@@ -979,6 +993,12 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WORLD_CLOCK:
 			if args.size() == 3:
 				bus.coop_world_clock.emit(float(args[0]), String(args[1]), int(args[2]))
+		Fact.SKY_CLOCK:
+			if args.size() == 4:
+				bus.coop_sky_clock.emit(float(args[0]), float(args[1]), float(args[2]), float(args[3]))
+		Fact.LIGHTNING:
+			if args.size() == 2:
+				bus.coop_lightning.emit(args[0] as Vector2, float(args[1]))
 		Fact.PAUSED:
 			if args.size() == 1:
 				bus.coop_paused.emit(bool(args[0]))

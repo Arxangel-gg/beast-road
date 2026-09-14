@@ -253,8 +253,13 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not is_equal_approx(_amount, _wanted):
-		_amount = move_toward(_amount, _wanted,
+	# The authored density, swelled and slackened by the sky (2026-09-14): a
+	# downpour is not one rate. Both veils - the field's and the beast scope's -
+	# read the same number, so the two views agree about how hard it is coming
+	# down without either knowing the other exists.
+	var target: float = clampf(_wanted * RunState.rain_scale, 0.0, 1.0)
+	if not is_equal_approx(_amount, target):
+		_amount = move_toward(_amount, target,
 			delta / maxf(Balance.WEATHER_FADE_SECONDS, 0.01))
 		_material.set_shader_parameter("amount", _amount)
 	_tick_cover(delta)

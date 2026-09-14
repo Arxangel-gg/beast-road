@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+climbs = true
 id = "raccoon"
 display_name = "Raccoon"
 description = "A masked thief with a sack of whatever the road left behind. Corner it before it bolts through a rift."

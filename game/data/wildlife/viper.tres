@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+climbs = true
 id = "viper"
 display_name = "Viper"
 description = "You will not see it until it has already bitten."

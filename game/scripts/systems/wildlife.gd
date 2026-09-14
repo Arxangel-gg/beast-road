@@ -76,6 +76,7 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	EventBus.flood_changed.connect(_on_flood)
 	# Its own stream, seeded from the run. Ambient life must never draw from the
 	# combat stream, or a seeded replay would produce a different wave because a
 	# rabbit happened to turn up.
@@ -599,6 +600,26 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	animal["patience"] = float(animal["patience"]) - delta
 	animal["swing"] = maxf(float(animal["swing"]) - delta, 0.0)
 
+	# Up a tree with the water under it. Nothing else happens to a climber
+	# until the flood falls; then it comes down and carries on as it was.
+	if bool(animal.get("treed", false)):
+		if RunState.flood < Balance.FLOOD_CLIMB_DOWN:
+			animal["treed"] = false
+			sprite.modulate.a = 1.0
+			sprite.position.y += Balance.WILDLIFE_CLIMB_LIFT
+			animal["state"] = State.SETTLED
+			animal["goal"] = sprite.global_position
+		return true
+	if bool(animal.get("climbing", false)) and int(animal["state"]) == State.FLEEING:
+		if (animal["goal"] as Vector2).distance_to(sprite.global_position) < 10.0:
+			animal["climbing"] = false
+			animal["treed"] = true
+			# Up the trunk and half hidden in the leaves.
+			sprite.position.y -= Balance.WILDLIFE_CLIMB_LIFT
+			sprite.modulate.a = 0.55
+			Vfx.dust(sprite.global_position, Color("6b7a4a"), 5, 30.0)
+			return true
+
 	# A hoarder's clock runs whatever it is doing, and when it runs out the
 	# animal does not walk to the edge - it rifts, because the walk would be
 	# the window it just ran out of.
@@ -643,6 +664,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 
 	var state: int = int(animal["state"])
 	var speed: float = kind.speed * _savage_speed(animal)
+	if not kind.flies:
+		speed *= RunState.flood_slow()
 	if state == State.FLEEING or state == State.LEAVING:
 		speed *= kind.flee_speed_scale
 	var toward: Vector2 = (animal["goal"] as Vector2) - sprite.global_position
@@ -1516,6 +1539,65 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# that deletes its own body reads as the animal never having been there.
 	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
 	animal["state"] = State.LEAVING
+
+
+## The ground floods (owner brief, 2026-09-14): the flyers leave, the climbers
+## get up a tree and wait, and what is too small to do either drowns where it
+## stands and leaves what it would have. Decided once as the water reaches
+## the height, and forgotten once it has fallen, so a flood that comes and
+## goes is two events and not a per-frame cull.
+func _on_flood(level: float) -> void:
+	if level < Balance.FLOOD_CLIMB_DOWN:
+		_flood_struck = false
+		return
+	if level < Balance.FLOOD_DROWN_LEVEL or _flood_struck:
+		return
+	_flood_struck = true
+	var trunks: PackedVector2Array = PackedVector2Array()
+	if field != null and field.has_method("tree_positions"):
+		trunks = field.call("tree_positions")
+	for animal: Dictionary in _living:
+		var sprite := animal["sprite"] as Sprite2D
+		var kind := animal["data"] as WildlifeData
+		if sprite == null or not is_instance_valid(sprite) or kind == null:
+			continue
+		if float(animal["dying"]) > 0.0 or bool(animal.get("treed", false)):
+			continue
+		if kind.flies:
+			animal["state"] = State.LEAVING
+			animal["goal"] = _bolt_target(sprite.global_position)
+		elif kind.climbs and not trunks.is_empty():
+			var nearest: Vector2 = trunks[0]
+			for trunk: Vector2 in trunks:
+				if trunk.distance_to(sprite.global_position) < nearest.distance_to(sprite.global_position):
+					nearest = trunk
+			animal["state"] = State.FLEEING
+			animal["goal"] = nearest
+			animal["climbing"] = true
+			animal["drinking"] = false
+		elif kind.scale < Balance.FLOOD_DROWN_SCALE:
+			_drown(animal, sprite, kind)
+
+
+## Drowned. The body falls where it stood and leaves its food, because a
+## flood that took the small things and left nothing would read as the
+## animals simply vanishing.
+func _drown(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
+	var food: int = _rng.randi_range(kind.food_min, kind.food_max)
+	Vfx.dust(sprite.global_position, Color("5a7a92"), 8, 40.0)
+	if field != null and field.has_method("spawn_loot") and _is_authority_or_alone():
+		field.spawn_loot(RunState.FOOD, food, sprite.global_position)
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
+	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
+	animal["state"] = State.LEAVING
+
+
+func _is_authority_or_alone() -> bool:
+	return not Coop.is_guest()
+
+
+var _flood_struck: bool = false
 
 
 ## The sack a hoarder carries: the tell that this animal is worth chasing, and

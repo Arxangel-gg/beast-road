@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_w")
+temperature = 39.0
+heat_line = "The wells are drying in the heat. Drink while there is something to drink."
+heat_title = "HEATWAVE"
 element_scale = Array[float]([1.25, 0.82, 1.0, 0.94])
 acts = Array[int]([1, 2])
 weight = 0.5

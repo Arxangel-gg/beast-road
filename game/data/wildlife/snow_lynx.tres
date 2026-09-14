@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+climbs = true
 id = "snow_lynx"
 display_name = "Snow Lynx"
 description = "The cold does not slow it. Very little does."

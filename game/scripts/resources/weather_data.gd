@@ -117,6 +117,30 @@ enum Precipitation {
 @export_range(0.0, 12.0) var snow_melt_scale: float = 1.0
 
 
+## Strikes a minute at the heaviest this sky gets; zero for a sky that never
+## does. The real rate climbs with the square of how far past
+## `LIGHTNING_MIN_INTENSITY` the rain is, and with the charge the last strike
+## left, so this is the ceiling of a calm storm rather than an average.
+@export_range(0.0, 6.0) var lightning_rate: float = 0.0
+## Whether rain held at its heaviest floods the ground. Snow and dust never do,
+## and a cold drizzle that only wets the road is a file with this off.
+@export var floods: bool = false
+## How much the fall rises and falls on its own, 0..1: zero is the one steady
+## rate weather had until 2026-09-14, one swings between a third and half
+## again of the authored density. See `Sky._tick_rain`.
+@export_range(0.0, 1.0) var rain_variability: float = 0.0
+## The air under this sky, in degrees, before the region, the hour and the
+## rain move it. The HUD forecasts from it and the wells dry by it.
+@export_range(-30.0, 55.0) var temperature: float = 20.0
+## Said once when the flood this sky brought reaches `FLOOD_ANNOUNCE`. Empty
+## for a sky that cannot flood. Data, not code: working rule 9.
+@export var flood_line: String = ""
+@export var flood_title: String = ""
+## Said once when this sky is hot enough to dry the wells.
+@export var heat_line: String = ""
+@export var heat_title: String = ""
+
+
 func scale_for(element: int) -> float:
 	if element < 0 or element >= element_scale.size():
 		return 1.0

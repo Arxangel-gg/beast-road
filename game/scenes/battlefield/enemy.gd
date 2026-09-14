@@ -1124,7 +1124,7 @@ func current_speed() -> float:
 ## 180-enemy formation into thousands of group scans per tower volley. Global,
 ## status and boss-phase speed are enough to rank runners correctly.
 func targeting_speed() -> float:
-	var speed: float = data.move_speed * _speed_scale * _slow_factor
+	var speed: float = data.move_speed * _speed_scale * _slow_factor * RunState.flood_slow()
 	if _boss_phase > 0:
 		speed *= 1.0 + data.phase_speed_bonus * float(_boss_phase)
 	if RunState.horn_active:

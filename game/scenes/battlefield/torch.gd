@@ -45,6 +45,11 @@ var _relight_glow: Sprite2D
 ## The warm pool on the ground under the post - see `_build_pool`.
 var _pool: Sprite2D
 var _pool_phase: float = 0.0
+## Each post rolls its own weather, from the run's seed and its own place,
+## so a row of torches in the rain goes out one at a time and the same
+## torches go out on both machines.
+var _rain_rng := RandomNumberGenerator.new()
+var _rain_sample_left: float = 0.0
 
 
 func _ready() -> void:
@@ -53,6 +58,8 @@ func _ready() -> void:
 	# torch under this unsorted branch makes EntityRoot compare that point to the
 	# hero's feet instead of sorting the elevated flame as a separate object.
 	y_sort_enabled = false
+	_rain_rng.seed = RunState.run_seed ^ hash(Vector2i(global_position.round()))
+	_rain_sample_left = _rain_rng.randf() * Balance.TORCH_RAIN_SAMPLE
 	_build()
 	_apply_state(true)
 
@@ -145,7 +152,9 @@ func _refresh_pool(wobble: float = 1.0) -> void:
 		return
 	var night: float = lerpf(Balance.TORCH_POOL_DAY, 1.0, DayNight.darkness)
 	var strength: float = _strength if _lit else 0.0
-	_pool.modulate.a = Balance.TORCH_POOL_ALPHA * strength * night * wobble
+	# Rain on the ground scatters the pool. Dimmer, not smaller.
+	var wet: float = 1.0 - Balance.TORCH_RAIN_POOL_DIM * RunState.rain_intensity
+	_pool.modulate.a = Balance.TORCH_POOL_ALPHA * strength * night * wobble * wet
 	_pool.visible = _pool.modulate.a > 0.004
 
 
@@ -224,12 +233,29 @@ func light_strength() -> float:
 func _tick_strength(delta: float) -> void:
 	var hero_near: bool = _hero_is_near()
 	var before: float = _strength
+	# A flood at its height puts every post out. No roll: the brazier is under
+	# water.
+	if RunState.flood >= Balance.FLOOD_DROWN_LEVEL:
+		extinguish()
+		return
+	# The rain. A droplet in the bowl now and then, by how hard it is falling;
+	# the recovery below is what a light rain never gets ahead of.
+	var rain: float = RunState.rain_intensity
+	if rain > 0.0:
+		_rain_sample_left -= delta
+		if _rain_sample_left <= 0.0:
+			_rain_sample_left = Balance.TORCH_RAIN_SAMPLE
+			if _rain_rng.randf() < rain * Balance.TORCH_RAIN_HIT_CHANCE:
+				_strength -= Balance.TORCH_RAIN_HIT * (0.6 + 0.8 * rain)
 	if _pressure > 0.0:
 		_strength -= Balance.TORCH_DIM_PER_ENEMY_SECOND * _pressure * delta
 		if hero_near:
 			_strength = maxf(_strength, Balance.TORCH_HERO_MIN_STRENGTH)
 	else:
-		_strength += Balance.TORCH_RECOVERY_PER_SECOND * delta
+		# A brazier does not dry out while it is being rained on. Recovery is
+		# what a drizzle never gets ahead of and a downpour does, and the
+		# difference between the two is this one line.
+		_strength += Balance.TORCH_RECOVERY_PER_SECOND * delta * (1.0 - rain)
 		if hero_near:
 			_strength += Balance.TORCH_HERO_RECOVERY_PER_SECOND * delta
 	_strength = clampf(_strength, 0.0, 1.0)
@@ -253,6 +279,12 @@ func _enemy_pressure() -> float:
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
 		if enemy == null or enemy.lane != lane or enemy.is_dying():
+			continue
+		# A camp body never walks the road. It patrols its own clearing off the
+		# corridor, and with the camps moved closer to the road (2026-09-14) it
+		# was putting out torches from the trees - the same "torches going out
+		# with nothing on their stretch of road" the lateral check was added for.
+		if enemy.is_camp_mob():
 			continue
 		var offset: Vector2 = enemy.global_position - global_position
 		if absf(offset.dot(direction)) > Balance.TORCH_SNUFF_RANGE:
@@ -316,6 +348,11 @@ func relight() -> void:
 ## Held near a dead torch, the hero rekindles it. Deliberately not instant: it
 ## has to cost a moment of standing still in a lane, or it is not a decision.
 func _tick_relight(delta: float) -> void:
+	# Nothing lights under water. The flood has to fall first.
+	if RunState.flood >= Balance.FLOOD_DROWN_LEVEL:
+		_relight = 0.0
+		_show_rekindle(0.0)
+		return
 	# Whoever is standing here. The relight timer used to run only for the
 	# player's own hero, so a guest could hold a dead torch all night.
 	if Hero.nearest_on_field(get_tree(), global_position,

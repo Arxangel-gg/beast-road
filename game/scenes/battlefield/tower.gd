@@ -52,6 +52,11 @@ var _path: int = TowerData.Path.NONE
 
 ## The live weather's multiplier for this tower's element.
 var _weather_scale: float = 1.0
+## Seconds of the storm's charge left on this tower - see `storm_charge`.
+var _storm_left: float = 0.0
+var _storm_pulse: float = 0.0
+## How much of a drawn draught the heat has taken back, 0..1.
+var _evaporated: float = 0.0
 var _extra_chain_targets: int = 0
 var _health: Health = null
 var _health_bar: HealthBar = null
@@ -214,6 +219,8 @@ func _process(delta: float) -> void:
 	var rate: float = Balance.COMMAND_OVERDRIVE_RATE \
 		if _command_overdrive_left > 0.0 else 1.0
 	_cooldown -= delta * rate
+	_tick_storm(delta)
+	_tick_heat(delta)
 	if _cooldown > 0.0:
 		return
 
@@ -327,8 +334,69 @@ func _build_gauge() -> void:
 ## one is still a well rather than a fountain.
 func well_refill_seconds() -> float:
 	var share: float = 1.0 - float(maxi(level - 1, 0)) * Balance.WELL_REFILL_PER_LEVEL
+	# Slower in the heat (2026-09-14): a well under a heatwave draws less.
 	return maxf(data.well_refill_seconds * Balance.WELL_REFILL_SCALE * maxf(share, 0.1),
-		Balance.WELL_MIN_REFILL)
+		Balance.WELL_MIN_REFILL) * RunState.well_refill_scale()
+
+
+## A strike near a storm tower charges it (owner brief, 2026-09-14): harder
+## and faster for a while, which is what an air tower is for. The longer of
+## the two windows rather than their sum, so a burst of strikes is one long
+## charge and not an unbounded one.
+func storm_charge(seconds: float) -> void:
+	if data == null or data.element != TowerData.Element.AIR:
+		return
+	var fresh: bool = _storm_left <= 0.0
+	_storm_left = maxf(_storm_left, seconds)
+	if fresh and sprite != null:
+		Vfx.ring(global_position + Vector2(0.0, -24.0), 60.0, Color(Balance.LIGHTNING_COLOUR, 0.9), 0.5, 5.0)
+		Vfx.spark(global_position + Vector2(0.0, -24.0), Balance.LIGHTNING_COLOUR, 14, Vector2.UP, 260.0)
+
+
+func storm_charged() -> bool:
+	return _storm_left > 0.0
+
+
+func _storm_damage() -> float:
+	return Balance.STORM_EMPOWER_DAMAGE if _storm_left > 0.0 else 1.0
+
+
+func _storm_interval() -> float:
+	return Balance.STORM_EMPOWER_INTERVAL if _storm_left > 0.0 else 1.0
+
+
+## The charge running down, crackling while it does.
+func _tick_storm(delta: float) -> void:
+	if _storm_left <= 0.0:
+		return
+	_storm_left = maxf(_storm_left - delta, 0.0)
+	_storm_pulse -= delta
+	if _storm_pulse <= 0.0:
+		_storm_pulse = 0.45
+		Vfx.spark(global_position + Vector2(0.0, -36.0), Balance.LIGHTNING_COLOUR, 4,
+			Vector2.UP, 150.0)
+
+
+## A well in the heat: the draught it has drawn goes back into the ground, and
+## the one it is drawing comes slower. Nothing here reaches any other tower.
+func _tick_heat(delta: float) -> void:
+	if data == null or not data.is_well():
+		return
+	var evaporation: float = RunState.well_evaporation()
+	if evaporation <= 0.0:
+		_evaporated = maxf(_evaporated - delta * 0.2, 0.0)
+		return
+	var refill: float = maxf(well_refill_seconds(), 1.0)
+	if _draught_ready:
+		_evaporated += delta * evaporation / refill
+		if _evaporated >= 1.0:
+			_evaporated = 0.0
+			_draught_ready = false
+			_cooldown = refill * 0.35
+			_say("", "")
+	else:
+		# The fill falls: the cooldown grows, but never past a full refill.
+		_cooldown = minf(_cooldown + delta * evaporation, refill)
 
 
 ## The hero in reach who has actually lost something worth pouring for.
@@ -365,7 +433,7 @@ func effective_damage() -> float:
 	# HUD and actual combat state disagreeing until some unrelated refresh.
 	var relic_bonus: float = Modifiers.value(Modifiers.TOWER_DAMAGE)
 	var total: float = 1.0 + _damage_bonus + relic_bonus + command_bonus
-	return data.damage_at(level) * total * _weather_scale * _path_damage()
+	return data.damage_at(level) * total * _weather_scale * _path_damage() * _storm_damage()
 
 
 ## What this shot actually lands for.
@@ -929,7 +997,7 @@ func path_interval_scale() -> float:
 	# Dawn Bell rides here rather than on each tower's own clock: a tower built
 	# during the window should be hasted too, and one sold during it should not
 	# leave a timer behind. See `RunState.haste_the_towers`.
-	var haste: float = RunState.tower_haste()
+	var haste: float = RunState.tower_haste() * _storm_interval()
 	match _path:
 		TowerData.Path.FOCUS:
 			return (1.0 - Balance.TOWER_FOCUS_RATE) * haste

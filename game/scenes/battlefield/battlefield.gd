@@ -52,6 +52,7 @@ var _treeline: Treeline = null
 var _camps: Camps = null
 var _fog: FogOfWar = null
 var _wildlife: Wildlife = null
+var _sky: WeatherSky = null
 var _regional_polish: CanvasLayer = null
 
 
@@ -483,6 +484,12 @@ func _setup_lighting() -> void:
 	weather.name = "WeatherVeil"
 	weather.z_index = Z_WEATHER
 	add_child(weather)
+
+	# The sky above the veil: what the weather does while it holds. A child of
+	# the field so it freezes with it for a raid (working rule 8).
+	_sky = WeatherSky.new()
+	_sky.field = self
+	add_child(_sky)
 
 	# Snow lies on the floor and under everything that walks on it. Directly
 	# above the ground rather than in the sorted layer: whitening the sorted
@@ -2379,6 +2386,25 @@ func _build_fog() -> void:
 
 func fog() -> FogOfWar:
 	return _fog
+
+
+func sky() -> WeatherSky:
+	return _sky
+
+
+func wildlife() -> Wildlife:
+	return _wildlife
+
+
+## Every trunk something could climb: the treeline's and the gathering trees.
+## For the animals that get up one when the ground floods.
+func tree_positions() -> PackedVector2Array:
+	var out: PackedVector2Array = PackedVector2Array()
+	if _treeline != null and is_instance_valid(_treeline):
+		out.append_array(_treeline.positions())
+	if _gathering != null and is_instance_valid(_gathering):
+		out.append_array(_gathering.node_positions())
+	return out
 
 
 func wildlife_system() -> Wildlife:
