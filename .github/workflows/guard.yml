@@ -491,6 +491,9 @@ jobs:
           # The welcome: a guest whose field has just stood up is told the run
           # as it stands, so a drop can be followed by a rejoin.
           check "rejoin" --headless --path game res://tools/rejoin_check.tscn
+          # The Farmer: plots, seeds, growth by road at the ground's pace,
+          # the harvest, and a craft that touches nothing but the craft.
+          check "farming" --headless --path game res://tools/farming_check.tscn
           # The party's conversation before a raid or a rift: unanimous goes and
           # freezes, a mixed answer is the proposer's call, silence is a no, and
           # the first return thaws the field once.

@@ -17,6 +17,9 @@
   "art/crops/crop_stone_melon": {
     "strip": "2b25a09b-c8c9-4ed3-b68c-45f39f38382c"
   },
+  "art/crops/plot_soil": {
+    "image": "1eca9f12-5b70-4e6e-8073-e039847e3ebc"
+  },
   "art/enemies/elite_avalanche_warden": {
     "move": "fd6723e6-44bf-4db9-a2b6-79ee3b4b02d3"
   },

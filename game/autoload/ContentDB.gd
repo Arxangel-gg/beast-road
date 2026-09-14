@@ -38,6 +38,7 @@ var gear_kinds: Dictionary = {}
 ## The things on the outskirts that can be worked, and what comes out of them
 ## (owner brief, 2026-09-13).
 var gather_nodes: Dictionary = {}
+var crops: Dictionary = {}
 var materials: Dictionary = {}
 
 ## First-run coach prompts. Content because the strings are player-facing and
@@ -139,6 +140,7 @@ func _ready() -> void:
 	road_cards = _load_dir("res://data/road_cards")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
+	crops = _load_dir("res://data/crops")
 	materials = _load_dir("res://data/materials")
 
 	for value: Variant in towers.values():
@@ -621,6 +623,21 @@ func gather_nodes_sorted() -> Array[GatherNodeData]:
 		if node != null:
 			out.append(node)
 	out.sort_custom(func(a: GatherNodeData, b: GatherNodeData) -> bool: return a.id < b.id)
+	return out
+
+
+func crop(id: String) -> CropData:
+	return crops.get(id, null) as CropData
+
+
+## Every crop, in a stable order.
+func crops_sorted() -> Array[CropData]:
+	var out: Array[CropData] = []
+	for value: Variant in crops.values():
+		var kind := value as CropData
+		if kind != null:
+			out.append(kind)
+	out.sort_custom(func(a: CropData, b: CropData) -> bool: return a.id < b.id)
 	return out
 
 

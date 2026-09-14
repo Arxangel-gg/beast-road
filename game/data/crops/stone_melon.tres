@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = 3
+food_yield = 110
+xp = 26
+grow_distance = 220.0
+temp_min = 16.0
+temp_max = 38.0
+wet_min = 0.0
+wet_max = 0.32
+regions = Array[String](["glass_fields", "iron_steppe"])
+id = "stone_melon"
+display_name = "Stone Melon"

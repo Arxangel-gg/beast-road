@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = 2
+food_yield = 75
+xp = 20
+grow_distance = 180.0
+temp_min = 8.0
+temp_max = 24.0
+wet_min = 0.5
+wet_max = 1.0
+regions = Array[String](["jungle", "hollow_marches"])
+id = "glowcap"
+display_name = "Glowcap"

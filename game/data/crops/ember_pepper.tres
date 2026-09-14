@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = 2
+food_yield = 80
+xp = 22
+grow_distance = 190.0
+temp_min = 27.0
+temp_max = 48.0
+wet_min = 0.0
+wet_max = 0.3
+regions = Array[String](["desert", "ashen_reach"])
+id = "ember_pepper"
+display_name = "Ember Pepper"

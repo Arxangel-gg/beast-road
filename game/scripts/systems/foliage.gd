@@ -573,7 +573,7 @@ func plants_near(at: Vector2, radius: float) -> Array[Dictionary]:
 		var plants: Array[Dictionary] = band._painted.plants
 		for index: int in plants.size():
 			var plant: Dictionary = plants[index]
-			if bool(plant.get("burnt", false)):
+			if bool(plant.get("burnt", false)) or bool(plant.get("cleared", false)):
 				continue
 			var where: Vector2 = plant["at"]
 			if where.distance_to(at) <= radius:
@@ -595,6 +595,38 @@ func burn_plant(band_index: int, index: int) -> void:
 		return
 	band._painted.plants[index]["burnt"] = true
 	band._painted.queue_redraw()
+
+
+## A clearing: every painted plant within `radius` of a point stops being
+## drawn, for the Farmer's plots (2026-09-14) - a crop lost in the undergrowth
+## is a crop the player cannot find. Cleared rather than burnt, so the fire's
+## ledger and the debrief do not count it, and grown back by the next
+## region's scatter like everything else.
+func clear_near(at: Vector2, radius: float) -> int:
+	var cleared: int = 0
+	for band: FoliageBand in _bands:
+		if band == null or not is_instance_valid(band) or band._painted == null:
+			continue
+		var touched: bool = false
+		var plants: Array[Dictionary] = band._painted.plants
+		for index: int in plants.size():
+			var plant: Dictionary = plants[index]
+			if bool(plant.get("cleared", false)) or bool(plant.get("burnt", false)):
+				continue
+			if (plant["at"] as Vector2).distance_to(at) <= radius:
+				plants[index]["cleared"] = true
+				touched = true
+				cleared += 1
+		if touched:
+			band._painted.queue_redraw()
+	# And the undergrowth itself, cut out of the baked bands.
+	for band: FoliageBand in _bands:
+		if band == null or not is_instance_valid(band):
+			continue
+		if absf(band.position.y - at.y) > radius + BattleGrid.HALF_EXTENT * 2.0 / float(BAND_COUNT) + 64.0:
+			continue
+		cleared += band.remove_near(at - band.position, radius)
+	return cleared
 
 
 func burnt_count() -> int:
@@ -978,6 +1010,10 @@ class FoliageBand extends Node2D:
 	var _shapes: Array[PackedVector2Array] = []
 	var _uvs: Array[PackedVector2Array] = []
 	var _colours: Array[Color] = []
+	## Where each blade is rooted, band-local, so a clearing can be cut out of
+	## a baked band (2026-09-14: the Farmer's plots) without a re-scatter. The
+	## shape arrays are kept after the bake for the same reason.
+	var _roots: PackedVector2Array = PackedVector2Array()
 	var _mesh: ArrayMesh = null
 
 	## Painted plants, batched in one child canvas item above the blades.
@@ -1044,6 +1080,33 @@ class FoliageBand extends Node2D:
 		_shapes.append(points)
 		_uvs.append(uvs)
 		_colours.append(colour)
+		_roots.append(at)
+
+	## Drops every blade rooted within `radius` of a band-local point and
+	## bakes again. The cost is one bake of one band, once, at a plot.
+	func remove_near(local_at: Vector2, radius: float) -> int:
+		var keep_shapes: Array[PackedVector2Array] = []
+		var keep_uvs: Array[PackedVector2Array] = []
+		var keep_colours: Array[Color] = []
+		var keep_roots := PackedVector2Array()
+		var dropped: int = 0
+		for index: int in _shapes.size():
+			var root: Vector2 = _roots[index] if index < _roots.size() else Vector2.INF
+			if root.distance_to(local_at) <= radius:
+				dropped += 1
+				continue
+			keep_shapes.append(_shapes[index])
+			keep_uvs.append(_uvs[index])
+			keep_colours.append(_colours[index])
+			keep_roots.append(root)
+		if dropped == 0:
+			return 0
+		_shapes = keep_shapes
+		_uvs = keep_uvs
+		_colours = keep_colours
+		_roots = keep_roots
+		bake()
+		return dropped
 
 	## A stable 0..1 phase for a blade rooted here.
 	##
@@ -1089,9 +1152,8 @@ class FoliageBand extends Node2D:
 			arrays[Mesh.ARRAY_INDEX] = indices
 			_mesh = ArrayMesh.new()
 			_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		_shapes.clear()
-		_uvs.clear()
-		_colours.clear()
+		# The shape arrays are kept: a clearing (`remove_near`) rebakes from
+		# them, and they are a few thousand points a band.
 		queue_redraw()
 
 	func _draw() -> void:
@@ -1110,7 +1172,7 @@ class PaintedLayer extends Node2D:
 
 	func _draw() -> void:
 		for plant: Dictionary in plants:
-			if bool(plant.get("burnt", false)):
+			if bool(plant.get("burnt", false)) or bool(plant.get("cleared", false)):
 				continue
 			var texture: Texture2D = plant["texture"]
 			var at: Vector2 = plant["at"]

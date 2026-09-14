@@ -2098,7 +2098,7 @@ const FISHING_RIPPLE_SLOTS: int = 8
 ## The Smith is here and has no node of its own on purpose: it is trained by
 ## *making* things out of what the other two brought back, so the three form a
 ## loop rather than three parallel bars. [TUNE]
-const PROFESSIONS: Array[String] = ["angler", "woodcutter", "miner", "smith"]
+const PROFESSIONS: Array[String] = ["angler", "woodcutter", "miner", "smith", "farmer"]
 const PROFESSION_MAX_LEVEL: int = 20
 ## XP needed to leave level L is PROFESSION_XP_BASE * L^PROFESSION_XP_CURVE:
 ## 30 for the first level, about 1,700 in total to reach the cap - roughly
@@ -7789,6 +7789,38 @@ const GATHER_EDGE_BAND: float = 0.55
 const GATHER_NODE_CLEARANCE_TILES: int = 1
 const GATHER_NODE_SPACING: float = 260.0
 const GATHER_PLACEMENT_ATTEMPTS: int = 260
+
+## The Farmer (2026-09-14): plots the road lays on the outskirts, the
+## region's crops growing wild among them, seeds that are the run's, and
+## crops that grow by road walked at the pace the ground under them allows
+## (`Farming.fit_for`: the crop's temperature and wetness bands against
+## `Climate`). Outside its band by more than the Farmer's tolerance a crop
+## wilts and, `FARM_WILT_DISTANCE` of road later, dies. The craft's own
+## numbers - tolerance, pace, yield, the seed back - are the only things a
+## level moves. [TUNE]
+const FARM_PLOTS_PER_RUN: int = 6
+const FARM_WILD_PER_REGION: int = 3
+const FARM_PLOT_SPACING: float = 220.0
+const FARM_RADIUS: float = 96.0
+const FARM_PLACEMENT_ATTEMPTS: int = 400
+const FARM_TOLERANCE_DEGREES: float = 4.0
+const FARM_TOLERANCE_PER_LEVEL: float = 0.35
+const FARM_WET_TOLERANCE: float = 0.12
+const FARM_WET_TOLERANCE_PER_LEVEL: float = 0.01
+const FARM_WILT_BELOW: float = 0.25
+const FARM_WILT_DISTANCE: float = 90.0
+const FARM_GROW_PER_LEVEL: float = 0.03
+const FARM_YIELD_PER_LEVEL: float = 0.04
+const FARM_SEED_BACK_BASE: float = 0.1
+const FARM_SEED_BACK_PER_LEVEL: float = 0.03
+const FARM_WILD_SEEDS: Vector2i = Vector2i(2, 3)
+const FARM_WILD_XP: int = 8
+const FARM_SEED_CAP: int = 12
+const FARM_GLINT_SECONDS: Vector2 = Vector2(3.0, 6.0)
+## How large the plot and its crop are drawn, and how far round each the
+## undergrowth is cleared so it can be seen from the road.
+const FARM_ART_SCALE: float = 1.5
+const FARM_CLEARING: float = 120.0
 ## How close the hero must stand, and how far they may drift before the swing
 ## is abandoned. A gather is a thing you stop to do, like fishing.
 const GATHER_RADIUS: float = 116.0

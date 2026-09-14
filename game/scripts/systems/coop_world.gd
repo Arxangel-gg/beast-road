@@ -585,6 +585,15 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 		# DECLARE_TIER is answered by `Coop` itself: it arrives in the menu, the
 		# moment a guest connects, when there is no battlefield for this router
 		# to have been built under.
+		CoopRelay.Request.HARVEST_CROP:
+			# A guest pulled a crop. As with a fish: the request names the
+			# crop and the host reads the Food off its own tables, at its own
+			# Farmer's practice, never off the packet.
+			if args.size() >= 1:
+				var crop: CropData = ContentDB.crop(String(args[0]))
+				if crop != null:
+					RunState.gain_currency(RunState.FOOD,
+						Farming.food_for(crop, MetaState.profession_level(Farming.CRAFT)))
 		CoopRelay.Request.LAND_FISH:
 			# A guest landed a fish. The fish itself is already in that player's
 			# own account and never crosses the wire; only the Food is the

@@ -213,6 +213,9 @@ func _kept_lines(kept: Dictionary, victory: bool) -> PackedStringArray:
 	var spirits: int = int(round(float(kept.get("spirits", 0.0))))
 	if spirits > 0:
 		parts.append("%d spirit%s bonded" % [spirits, "" if spirits == 1 else "s"])
+	var harvests: int = int(round(float(kept.get("harvests", 0.0))))
+	if harvests > 0:
+		parts.append("%d harvest%s" % [harvests, "" if harvests == 1 else "s"])
 	var craft: int = int(round(float(kept.get("craft_xp", 0.0))))
 	if craft > 0:
 		parts.append("+%d craft XP" % craft)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/crop_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rarity = 1
+food_yield = 50
+xp = 16
+grow_distance = 140.0
+temp_min = 6.0
+temp_max = 32.0
+wet_min = 0.7
+wet_max = 1.0
+regions = Array[String](["hollow_marches", "saltpan"])
+id = "marsh_reed"
+display_name = "Marsh Reed"

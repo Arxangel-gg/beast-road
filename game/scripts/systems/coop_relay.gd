@@ -204,6 +204,8 @@ enum Request {
 	PARTY_EVENT_AWAY = 31,
 	## A guest's field is up: tell me the run as it stands.
 	WELCOME = 32,
+	## A guest pulled a crop: pay the run its Food, by crop id.
+	HARVEST_CROP = 33,
 }
 
 ## Facts that are *state announcements* rather than events.

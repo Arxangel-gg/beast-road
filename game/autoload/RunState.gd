@@ -590,6 +590,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	enemies_killed = 0
 	kept.clear()
 	earth_events.clear()
+	seeds.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
 	raids_completed = 0
@@ -1672,6 +1673,11 @@ var last_blow: Dictionary = {}
 ## stories instead of frustration"). Keys: xp, levels, materials, fish, gear,
 ## spirits, craft_xp. Cleared with the run.
 var kept: Dictionary = {}
+
+## The Farmer's seeds, by crop id (2026-09-14). The run's, and cleared with
+## it: nothing here persists, which is what keeps farming inside working
+## rule 7 as the Angler's craft is. See `Farming`.
+var seeds: Dictionary = {}
 ## What the earth did this run, by kind - strikes, quakes, tornadoes, meteors,
 ## wildfires - counted where each is *seen*, so a guest's debrief agrees with
 ## the host's. Cleared with the run.
@@ -1682,6 +1688,23 @@ func note_kept(key: String, amount: float = 1.0) -> void:
 	if amount <= 0.0 or key.is_empty():
 		return
 	kept[key] = float(kept.get(key, 0.0)) + amount
+
+
+func add_seeds(id: String, count: int) -> void:
+	if count <= 0 or ContentDB.crop(id) == null:
+		return
+	seeds[id] = mini(int(seeds.get(id, 0)) + count, Balance.FARM_SEED_CAP)
+
+
+func take_seed(id: String) -> bool:
+	if int(seeds.get(id, 0)) <= 0:
+		return false
+	seeds[id] = int(seeds[id]) - 1
+	return true
+
+
+func seed_count(id: String) -> int:
+	return int(seeds.get(id, 0))
 
 
 func note_earth(kind: String) -> void:

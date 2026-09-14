@@ -47,6 +47,7 @@ var _ponds: Fishing = null
 ## The rift gates and dungeon mouths, re-laid with the ponds.
 var _rifts: RiftGates = null
 var _gathering: Gathering = null
+var _farming: Farming = null
 var _treeline: Treeline = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
@@ -814,6 +815,17 @@ func rift_gates() -> RiftGates:
 ## drawn from the band's own tiles. See `Gathering` for the two extra gates on
 ## rarity - how far out a spot is, and how practised the craft is.
 func _build_gathering() -> void:
+	# The Farmer's plots first, from the run's seed, so the nodes below can
+	# keep clear of them the same way on the first build and on a re-lay.
+	_farming = Farming.new()
+	_farming.name = "Farming"
+	_farming.grid = grid
+	_farming.field = self
+	_farming.host = entity_root
+	_farming.avoid = _taken_ground()
+	_farming.avoid_water = _taken_water()
+	add_child(_farming)
+	_farming.lay_plots()
 	_gathering = Gathering.new()
 	_gathering.name = "Gathering"
 	_gathering.grid = grid
@@ -823,6 +835,13 @@ func _build_gathering() -> void:
 	_gathering.avoid_water = _taken_water()
 	add_child(_gathering)
 	_gathering.scatter()
+	# And the region's wild crops, after the nodes so they keep clear of them.
+	_farming.avoid = _taken_ground() + _gathering.node_positions()
+	_farming.refresh_region()
+
+
+func farming() -> Farming:
+	return _farming
 
 
 func gathering() -> Gathering:
@@ -844,6 +863,14 @@ func _taken_ground() -> PackedVector2Array:
 	if _camps != null and _camps.has_method("map_marks"):
 		for mark: Dictionary in _camps.call("map_marks"):
 			taken.append(mark["at"] as Vector2)
+	# The plots, which are laid once from the run's seed *before* the first
+	# node scatter - so the nodes keep clear of them on the first build and on
+	# every re-lay alike, and a re-entered act shows the same nodes. The nodes
+	# themselves are never in this list: a scatter that avoided its own last
+	# layout would reshuffle on every re-lay.
+	if _farming != null:
+		for at: Vector2 in _farming.plot_positions():
+			taken.append(at)
 	return taken
 
 
@@ -1998,6 +2025,11 @@ func refresh_terrain() -> void:
 		_gathering.avoid = _taken_ground()
 		_gathering.avoid_water = _taken_water()
 		_gathering.scatter()
+	# The region's wild crops; the plots the run laid stay where they are.
+	if _farming != null:
+		_farming.avoid = _taken_ground() + (_gathering.node_positions() if _gathering != null else PackedVector2Array())
+		_farming.avoid_water = _taken_water()
+		_farming.refresh_region()
 	# The woods outside the field are regional too, and were **never** re-laid -
 	# so a run that began in the Maw walked through jungle canopy in the snow
 	# for nine acts. Found by reading this function rather than by anything

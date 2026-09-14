@@ -2257,6 +2257,38 @@ from a real field and feeds it back through the relay's own receive path as
 a guest; `coop_check` proves the wire tells a late arrival the seed, once,
 and tells the host nothing.
 
+**The Farmer, as of 2026-09-14.** The fifth craft, and the one the ideas
+review put first among the new ones because it reads the climate grid - "the
+skill that ties the simulation to the player". The six crops had been in the
+tree since the grid was built, drawn by nothing.
+
+**What it is.** The road lays a few tilled plots on the outskirts when a run
+begins, and every region grows a few of its own crops wild among them. Seeds
+are taken from the wild plants, a seed goes into a bare plot, and the crop
+grows **by road walked** - never by the clock, so a beast standing still
+farms nothing - at the pace the ground under it allows: `Farming.fit_for`
+reads the crop's temperature and wetness bands against `Climate`, whole
+inside them and falling to nothing over the Farmer's tolerance outside. Off
+its ground a crop wilts - droops, browns - and `FARM_WILT_DISTANCE` of road
+later it dies with its seed. The Warden plants the seed that fits the ground
+best of those held, which is the craft's knowledge read *for* the player
+rather than shown as a number, and the prompt says why a crop is failing.
+So an ember pepper wants the desert, a heatwave, or a cluster of fire towers
+warming the ground; a glowcap wants rain, a flood or a water tower; and a
+frost root planted in the snow becomes a decision when the road reaches the
+Saltpan, because the plots stay and the region does not.
+
+**The bound is the Angler's, and it is gated.** A craft touches nothing but
+its own craft: a practised Farmer's crops tolerate ground further from their
+band, grow faster, pay more Food, and give a seed back more often. No
+attribute moves. **Nothing new persists**: seeds are the run's
+(`RunState.seeds`), plots are the run's, and only the practice is kept -
+working rule 7 is unchanged. Farming is personal in co-op exactly as
+gathering is - both machines dig the same plots from the seed and each Warden
+works its own - and only the Food, which is the run's, crosses the wire,
+asked by crop id and never by amount. `farming_check` holds all of it,
+including that the clock grows nothing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

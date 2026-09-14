@@ -3195,15 +3195,17 @@ All 64×64, type T, placeholder colour `#8CB26A`.
 `crop_stone_melon_0.png` · `crop_stone_melon_1.png` · `crop_stone_melon_2.png` · `crop_stone_melon_3.png`
 
 Six crops at four growth stages each - a seedling, a shoot, a green plant and
-the plant ready to pull - staged for the Farming craft (owner brief,
-2026-09-14: farming as a slow skill tied to the climate grid's soil, moisture
-and temperature). They arrived in the tree on 2026-09-14 ahead of the system
-that reads them, and are listed here so the art folder and this manifest stay
-the same list (§4): nothing draws them yet. Each crop belongs to a soil the
-grid can name - barley to open ground, ember pepper to hot and dry, frost root
-to cold, glowcap to the wet and the dark, marsh reed to standing water, stone
-melon to rocky ground - which is the whole reason there are six rather than
-one.
+the plant ready to pull - for the Farming craft (owner brief, 2026-09-14:
+farming as a slow skill tied to the climate grid's soil, moisture and
+temperature). `Farming` draws them by `CropData.stage_path`, and each crop
+names the air and the ground it wants in `data/crops/` - barley open ground,
+ember pepper hot and dry, frost root cold, glowcap the wet, marsh reed
+standing water, stone melon dry rock - which is the whole reason there are
+six rather than one. The tilled plot under a planted crop:
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `plot_soil.png` | 80×48 | T | `#5A4A3A` |
 
 ### 5.29 Painted plant idle frames — `res://art/foliage/`
 
