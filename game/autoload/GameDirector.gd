@@ -356,6 +356,9 @@ func _settle_run(victory: bool) -> void:
 		"command_orders": RunState.command_orders_used.duplicate(true),
 		"wounds": RunState.wounds_suffered,
 		"hearthmends": RunState.hearthmends_used,
+		# What the road was worth whatever happened, and what the earth did.
+		"kept": RunState.kept.duplicate(true),
+		"earth": RunState.earth_events.duplicate(true),
 	}
 	var unlocks: Array[String] = _pay_out_unlocks(victory)
 

@@ -177,6 +177,51 @@ func _show_score(summary: Dictionary) -> void:
 		_submit_note.text = ""
 
 
+## The earth's line: nothing when it did nothing, one line naming what it did.
+func _earth_lines(earth: Dictionary) -> PackedStringArray:
+	var names: Dictionary = {"strikes": ["strike", "strikes"], "quakes": ["quake", "quakes"],
+		"tornadoes": ["tornado", "tornadoes"], "meteors": ["meteor", "meteors"],
+		"wildfires": ["wildfire", "wildfires"]}
+	var parts: PackedStringArray = []
+	for kind: String in names.keys():
+		var count: int = int(earth.get(kind, 0))
+		if count > 0:
+			parts.append("%d %s" % [count, (names[kind] as Array)[0 if count == 1 else 1]])
+	if parts.is_empty():
+		return PackedStringArray()
+	return PackedStringArray(["", "THE EARTH", "   " + "   ·   ".join(parts)])
+
+
+## What stays with the account, or the one line that says nothing did.
+func _kept_lines(kept: Dictionary, victory: bool) -> PackedStringArray:
+	var parts: PackedStringArray = []
+	var xp: int = int(round(float(kept.get("xp", 0.0))))
+	if xp > 0:
+		parts.append("+%d XP" % xp)
+	var levels: int = int(round(float(kept.get("levels", 0.0))))
+	if levels > 0:
+		parts.append("%d level%s" % [levels, "" if levels == 1 else "s"])
+	var materials: int = int(round(float(kept.get("materials", 0.0))))
+	if materials > 0:
+		parts.append("%d material%s" % [materials, "" if materials == 1 else "s"])
+	var fish: int = int(round(float(kept.get("fish", 0.0))))
+	if fish > 0:
+		parts.append("%d fish" % fish)
+	var gear: int = int(round(float(kept.get("gear", 0.0))))
+	if gear > 0:
+		parts.append("%d piece%s of gear" % [gear, "" if gear == 1 else "s"])
+	var spirits: int = int(round(float(kept.get("spirits", 0.0))))
+	if spirits > 0:
+		parts.append("%d spirit%s bonded" % [spirits, "" if spirits == 1 else "s"])
+	var craft: int = int(round(float(kept.get("craft_xp", 0.0))))
+	if craft > 0:
+		parts.append("+%d craft XP" % craft)
+	var header: String = "KEPT" if victory else "KEPT  ·  the road ends, this does not"
+	if parts.is_empty():
+		return PackedStringArray(["", header, "   nothing this time"])
+	return PackedStringArray(["", header, "   " + "   ·   ".join(parts)])
+
+
 ## Thousands separated, because a five-digit score is unreadable without it.
 func _grouped(value: int) -> String:
 	var digits: String = str(absi(value))
@@ -354,6 +399,16 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 			int(round(float(summary.get("command_earned", 0.0)))), command_order_total],
 		"Wounds suffered %d   ·   Hearthmends %d" % [
 			int(summary.get("wounds", 0)), int(summary.get("hearthmends", 0))],
+	])
+	# **What the earth did**, when it did anything. A run the sky struck twice
+	# and shook once was a different run, and the line that says so is the
+	# only readout the wrath will ever have.
+	lines.append_array(_earth_lines(summary.get("earth", {})))
+	# **What the road paid whatever happened.** Levels, materials, fish, gear
+	# and spirits are the account's and stay; on a loss this is the answer to
+	# "was that worth anything", and it is asked before the unlock list.
+	lines.append_array(_kept_lines(summary.get("kept", {}), victory))
+	lines.append_array([
 		"",
 		"Tools %d   ·   Legacy rank %d of %d" % [
 			int(summary.get("tools", 0)), int(summary.get("sigils", 0)),

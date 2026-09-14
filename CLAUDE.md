@@ -2053,6 +2053,21 @@ an armoured body and a fleshy one and reads the hide and the hitstop back,
 because a hide authored on every breed and read by nothing would pass a
 data walk.
 
+**The debrief says what the road paid and what the earth did, as of
+2026-09-14.** From the fifth forwarded list: "failure should produce stories
+instead of frustration", "make death screens informative". `RunState.kept` is
+counted where each gain is banked - XP and levels in `gain_hero_xp`,
+materials in `gain_material`, fish in `take_fish`, gear in `receive_gear`,
+bonds in `record_spirit_encounter`, craft XP in `gain_profession_xp` - and
+`RunState.earth_events` where each of the earth's events is *seen*, so a
+guest's debrief agrees with the host's. Both ride the run summary; the
+results screen says "KEPT · the road ends, this does not" on a loss and names
+what the earth did only when it did something. `debrief_check` feeds every
+counter through its real path and reads the screen back, because a counter
+authored and never fed would say "nothing this time" after a run that
+levelled twice. Nothing new persists: the counters are of things that
+already do.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

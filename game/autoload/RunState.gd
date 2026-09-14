@@ -588,6 +588,8 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	last_stand_used = false
 
 	enemies_killed = 0
+	kept.clear()
+	earth_events.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
 	raids_completed = 0
@@ -934,6 +936,7 @@ func gain_hero_xp(amount: float) -> void:
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_xp_awarded.emit(amount)
 	hero_xp += amount
+	note_kept("xp", amount)
 	var gained: int = 0
 	while hero_level < Balance.HERO_MAX_LEVEL:
 		var needed: float = hero_xp_for_level(hero_level)
@@ -952,6 +955,7 @@ func gain_hero_xp(amount: float) -> void:
 	# value without turning every enemy death into a disk write.
 	MetaState.hero_xp = hero_xp
 	if gained > 0:
+		note_kept("levels", float(gained))
 		_store_hero()
 		EventBus.hero_levelled.emit(hero_level, hero_attribute_points, hero_skill_points)
 	var needed: float = hero_xp_for_level(hero_level)
@@ -1661,6 +1665,29 @@ func spend_command(cost: float, order_id: String) -> bool:
 ## Cleared with the run. The debrief reads it to answer the one question a death
 ## screen has always owed the player: what killed me, and for how much.
 var last_blow: Dictionary = {}
+
+## What the run keeps whatever happens to it: the account's gains, counted
+## where each is banked, so the debrief can say what the road was worth even
+## when it ended badly (the fifth forwarded list: "failure should produce
+## stories instead of frustration"). Keys: xp, levels, materials, fish, gear,
+## spirits, craft_xp. Cleared with the run.
+var kept: Dictionary = {}
+## What the earth did this run, by kind - strikes, quakes, tornadoes, meteors,
+## wildfires - counted where each is *seen*, so a guest's debrief agrees with
+## the host's. Cleared with the run.
+var earth_events: Dictionary = {}
+
+
+func note_kept(key: String, amount: float = 1.0) -> void:
+	if amount <= 0.0 or key.is_empty():
+		return
+	kept[key] = float(kept.get(key, 0.0)) + amount
+
+
+func note_earth(kind: String) -> void:
+	if kind.is_empty():
+		return
+	earth_events[kind] = int(earth_events.get(kind, 0)) + 1
 
 
 ## Notes a blow against a hero. Cheap enough to call from every strike.

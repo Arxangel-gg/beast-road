@@ -164,6 +164,7 @@ func take_fish(id: String) -> bool:
 	if fish_total() >= Balance.FISH_STASH_CAPACITY:
 		return false
 	fish[id] = fish_count(id) + 1
+	RunState.note_kept("fish", 1.0)
 	save_game()
 	return true
 
@@ -218,6 +219,7 @@ func gain_material(id: String, amount: int) -> bool:
 	if amount <= 0 or ContentDB.material(id) == null:
 		return false
 	materials[id] = mini(material_count(id) + amount, Balance.MATERIAL_STACK_CEILING)
+	RunState.note_kept("materials", float(amount))
 	save_game()
 	EventBus.materials_changed.emit()
 	return true
@@ -312,6 +314,7 @@ func gain_profession_xp(id: String, amount: int) -> int:
 	var before: int = profession_level(id)
 	profession_xp[id] = minf(float(profession_xp.get(id, 0.0)) + float(amount),
 		profession_xp_to_cap())
+	RunState.note_kept("craft_xp", float(amount))
 	var after: int = profession_level(id)
 	if after > before:
 		EventBus.profession_levelled.emit(id, after)
@@ -1272,6 +1275,7 @@ func receive_gear(piece: Dictionary) -> Dictionary:
 	if piece.is_empty():
 		return {"stored": false, "shards": 0}
 	if take_gear(piece):
+		RunState.note_kept("gear", 1.0)
 		return {"stored": true, "shards": 0}
 	var salvaged: int = Stash.salvage_yield(piece)
 	shards += salvaged
@@ -1835,6 +1839,7 @@ func record_spirit_encounter(species_id: String, rarity: int, shiny: bool,
 			# back as "no personality" and costs nothing to have.
 			spirit_bonded[key] = trait_id
 			result["bonded"].append(key)
+			RunState.note_kept("spirits", 1.0)
 	save_game()
 	return result
 

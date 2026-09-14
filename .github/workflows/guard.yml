@@ -534,6 +534,9 @@ jobs:
           # What a blow lands on: every breed names a hide, the landed signal
           # carries the one struck, and the sound, sparks and hitstop follow it.
           check "hit feel" --headless --path game res://tools/hit_feel_check.tscn
+          # The debrief says what the road paid whatever happened and what the
+          # earth did: counted where each gain is banked and each event seen.
+          check "debrief" --headless --path game res://tools/debrief_check.tscn
           check "enemy facing" --headless --path game res://tools/enemy_facing_check.tscn
           check "scroll and zoom" --headless --path game res://tools/scroll_zoom_check.tscn
           check "boss reach" --headless --path game res://tools/boss_reach_check.tscn

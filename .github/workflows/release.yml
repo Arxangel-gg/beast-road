@@ -153,6 +153,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/climate_check.tscn
           run_godot_clean --headless --path game res://tools/reaction_check.tscn
           run_godot_clean --headless --path game res://tools/hit_feel_check.tscn
+          run_godot_clean --headless --path game res://tools/debrief_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_facing_check.tscn
           run_godot_clean --headless --path game res://tools/scroll_zoom_check.tscn
           run_godot_clean --headless --path game res://tools/boss_reach_check.tscn

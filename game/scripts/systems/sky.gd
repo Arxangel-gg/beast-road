@@ -351,6 +351,7 @@ func strike_at(at: Vector2) -> void:
 
 ## The picture of a strike, on every machine that hears of one.
 func _on_lightning_seen(at: Vector2, radius: float) -> void:
+	RunState.note_earth("strikes")
 	_draw_bolt(at)
 	Vfx.flash(Balance.LIGHTNING_COLOUR, Balance.LIGHTNING_FLASH, 0.22)
 	Vfx.flash_at(at, Balance.LIGHTNING_COLOUR, 70.0)
@@ -781,6 +782,7 @@ func quake(magnitude: float) -> void:
 
 
 func _on_earthquake_seen(magnitude: float, seconds: float) -> void:
+	RunState.note_earth("quakes")
 	if _mirror:
 		_quake_magnitude = magnitude
 		_quake_left = seconds
@@ -905,6 +907,8 @@ func _show_warning(kind_id: String, at: Vector2, _seconds: float) -> void:
 	var kind: WrathEventData = ContentDB.wrath_event(kind_id)
 	if kind == null:
 		return
+	if kind_id == "wildfire":
+		RunState.note_earth("wildfires")
 	var telegraphed: bool = not kind.warning.is_empty()
 	var line: String = kind.warning if telegraphed else kind.announce
 	var title: String = kind.warning_title if telegraphed else kind.announce_title
@@ -983,6 +987,7 @@ func spawn_tornado(from: Vector2 = Vector2.INF, target: Vector2 = Vector2.INF,
 	funnel.aim_at(target)
 	field.add_child(funnel)
 	tornadoes += 1
+	RunState.note_earth("tornadoes")
 	if not _mirror:
 		EventBus.tornado_spawned.emit(from, target, seconds)
 	return funnel
@@ -1016,6 +1021,7 @@ func drop_meteor(at: Vector2 = Vector2.INF) -> Meteor:
 	stone.marks = marks
 	field.add_child(stone)
 	meteors += 1
+	RunState.note_earth("meteors")
 	if not _mirror:
 		EventBus.meteor_incoming.emit(at)
 	return stone
