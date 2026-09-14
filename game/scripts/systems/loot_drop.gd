@@ -39,6 +39,8 @@ var _velocity: Vector2 = Vector2.ZERO
 var _life: float = 0.0
 var _homing: bool = false
 var _glow: Sprite2D
+## The plate naming this drop, on gear and blueprints only.
+var _plate: Label = null
 var _beacon: Sprite2D
 var _orbiters: Array[Sprite2D] = []
 var _glow_colour: Color = Balance.LOOT_GLOW_COLOUR
@@ -151,6 +153,7 @@ func _ready() -> void:
 	add_child(glow)
 	_glow = glow
 	_build_attention_fx()
+	_build_name_plate()
 
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
@@ -214,6 +217,17 @@ func _process(delta: float) -> void:
 		_glow.scale = Vector2.ONE * (_glow_size * pulse
 			/ maxf(LightKit.falloff_texture().get_width(), 1.0))
 	if _beacon != null:
+		var spire: ShaderMaterial = _beacon.material as ShaderMaterial
+		if spire != null:
+			spire.set_shader_parameter("clock", _life)
+		# **The plate fades with distance** rather than being drawn at full
+		# strength across the whole field: near the hero it is a label, far
+		# away it would be one more piece of text over the fight.
+		if _plate != null:
+			var who: Node2D = _nearest_hero()
+			var gap: float = global_position.distance_to(who.global_position) 				if who != null else Balance.LOOT_PLATE_FADE_RANGE
+			_plate.modulate.a = clampf(
+				1.0 - gap / maxf(Balance.LOOT_PLATE_FADE_RANGE, 1.0), 0.0, 1.0)
 		var beam_pulse: float = 0.88 + 0.12 * sin(_life * 2.1)
 		_beacon.modulate.a = Balance.LOOT_BEACON_ALPHA * beam_pulse
 		_beacon.scale.x = Balance.LOOT_BEACON_WIDTH * (0.92 + 0.08 * beam_pulse) \
@@ -249,15 +263,28 @@ func _build_attention_fx() -> void:
 	var light: Texture2D = LightKit.falloff_texture()
 	if light == null:
 		return
+	# **A column, not a blob.** A stretched falloff sprite says "something
+	# glows here" and nothing else; the spire shader gives it a hot core, a
+	# flared foot and motes climbing it, and scales all three by how rare the
+	# drop is - so an Oathbound piece is findable across a field of foliage and
+	# a copper coin is a candle. See `loot_beacon.gdshader`.
+	var rich: float = _richness()
+	var tall: float = Balance.LOOT_BEACON_HEIGHT 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_HEIGHT, rich)
+	var wide: float = Balance.LOOT_BEACON_WIDTH 		* lerpf(1.0, Balance.LOOT_BEACON_RARE_WIDTH, rich)
 	_beacon = Sprite2D.new()
 	_beacon.name = "PickupBeacon"
 	_beacon.texture = light
 	_beacon.modulate = Color(_glow_colour, Balance.LOOT_BEACON_ALPHA)
-	_beacon.scale = Vector2(
-		Balance.LOOT_BEACON_WIDTH / maxf(float(light.get_width()), 1.0),
-		Balance.LOOT_BEACON_HEIGHT / maxf(float(light.get_height()), 1.0))
-	_beacon.position.y = -Balance.LOOT_BEACON_HEIGHT * 0.30
+	_beacon.scale = Vector2(wide / maxf(float(light.get_width()), 1.0),
+		tall / maxf(float(light.get_height()), 1.0))
+	_beacon.position.y = -tall * 0.30
 	_beacon.z_index = -1
+	if DisplayServer.get_name() != "headless":
+		var spire := ShaderMaterial.new()
+		spire.shader = load("res://scripts/shaders/loot_beacon.gdshader")
+		spire.set_shader_parameter("richness", rich)
+		spire.set_shader_parameter("tint", Color(_glow_colour, 1.0))
+		_beacon.material = spire
 	add_child(_beacon)
 
 	for index: int in Balance.LOOT_ORBIT_COUNT:
@@ -539,3 +566,85 @@ func _noticed_by_companion() -> bool:
 		if reach > 0.0 and friend.global_position.distance_to(global_position) <= reach:
 			return true
 	return false
+
+
+## How rare this drop is, 0 for the commonest and 1 for the top of the ladder.
+##
+## One number, because the spire, the plate and the take-burst all want the
+## same answer and asking three times is three chances to disagree. A currency
+## drop has no rarity at all and reads as 0 - a coin is a coin.
+func _richness() -> float:
+	var top: float = maxf(float(Balance.GEAR_RARITY_COLOURS.size() - 1), 1.0)
+	if not gear.is_empty():
+		return clampf(float(int(gear.get("rarity", 0))) / top, 0.0, 1.0)
+	if not blueprint.is_empty():
+		var plan := ContentDB.blueprints.get(blueprint, null) as BlueprintData
+		var rank: int = ["common", "uncommon", "rare", "legendary"].find(
+			plan.rarity if plan != null else "common")
+		return clampf(float(maxi(rank, 0)) / top, 0.0, 1.0)
+	return 0.0
+
+
+## The plate that names what is lying there.
+##
+## **Gear is named by its slot, not by its kind.** "Boots" is the question a
+## player on the field actually has - do I care - and which boots they are is a
+## question for the stash. It is how Diablo names an unidentified drop and it is
+## the right amount of information for something you are deciding whether to
+## walk toward.
+##
+## Only gear and blueprints get one. A coin is self-evident from its own colour,
+## and a plate over every copper piece would bury the field in text.
+func _build_name_plate() -> void:
+	var words: String = _plate_text()
+	if words.is_empty():
+		return
+	_plate = Label.new()
+	_plate.name = "PickupPlate"
+	_plate.text = words
+	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_plate.add_theme_font_size_override("font_size", Balance.LOOT_PLATE_SIZE)
+	_plate.add_theme_color_override("font_color",
+		Color(_glow_colour.r, _glow_colour.g, _glow_colour.b, 1.0))
+	_plate.add_theme_constant_override("outline_size", 5)
+	_plate.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.03, 0.9))
+	# The backing is a StyleBox on the label rather than a second node: one
+	# control, one draw, and it cannot drift out of line with its own text.
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = Balance.LOOT_PLATE_BACKING
+	backing.corner_radius_top_left = 3
+	backing.corner_radius_top_right = 3
+	backing.corner_radius_bottom_left = 3
+	backing.corner_radius_bottom_right = 3
+	backing.content_margin_left = Balance.LOOT_PLATE_PAD.x
+	backing.content_margin_right = Balance.LOOT_PLATE_PAD.x
+	backing.content_margin_top = Balance.LOOT_PLATE_PAD.y
+	backing.content_margin_bottom = Balance.LOOT_PLATE_PAD.y
+	# A rarity-tinted hairline, so the frame carries the colour too rather than
+	# leaving it all to the text.
+	backing.border_width_bottom = 2
+	backing.border_color = Color(_glow_colour.r, _glow_colour.g, _glow_colour.b, 0.75)
+	_plate.add_theme_stylebox_override("normal", backing)
+	add_child(_plate)
+	_place_plate()
+
+
+## Centred over the drop, which needs the label's own measured width.
+func _place_plate() -> void:
+	if _plate == null:
+		return
+	var wide: float = _plate.get_minimum_size().x
+	_plate.position = Vector2(-wide * 0.5, Balance.LOOT_PLATE_LIFT)
+
+
+## What the plate says, or nothing at all.
+func _plate_text() -> String:
+	if not gear.is_empty():
+		var kind: GearData = ContentDB.gear(String(gear.get("kind", "")))
+		if kind != null:
+			return kind.slot_name()
+		return "Gear"
+	if not blueprint.is_empty():
+		return "Blueprint"
+	return ""

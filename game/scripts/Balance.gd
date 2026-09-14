@@ -182,6 +182,28 @@ const LOOT_BEACON_WIDTH: float = 30.0
 const LOOT_BEACON_HEIGHT: float = 150.0
 const LOOT_BEACON_ALPHA: float = 0.17
 
+## How much taller and wider the rarest drop's spire is than the commonest.
+##
+## A common coin should be a candle and an Oathbound sword a column with light
+## climbing it. The shader carries most of that difference as *behaviour* -
+## more motes, faster, a hotter core - and these two carry the rest as size,
+## because a rare drop should also be findable from further away. [TUNE]
+const LOOT_BEACON_RARE_HEIGHT: float = 2.1
+const LOOT_BEACON_RARE_WIDTH: float = 1.55
+
+## The plate that says what a drop is, the way Diablo names an item on the floor.
+##
+## Gear is named by its **slot** rather than by its kind until it is picked up:
+## "Boots" tells a player whether they care, and which sword it is, is a
+## question for the stash. Everything else says what it plainly is. [TUNE]
+const LOOT_PLATE_LIFT: float = -64.0
+const LOOT_PLATE_SIZE: int = 13
+const LOOT_PLATE_PAD: Vector2 = Vector2(9.0, 3.0)
+const LOOT_PLATE_BACKING: Color = Color(0.04, 0.04, 0.06, 0.62)
+## Past this, a plate would be one more thing on a crowded field: only gear and
+## blueprints get named, since a coin is self-evident from its own colour.
+const LOOT_PLATE_FADE_RANGE: float = 620.0
+
 ## How big a drop is drawn, in world units.
 ##
 ## This was 26.0, which was measured against nothing. The arithmetic that says
