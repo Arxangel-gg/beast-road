@@ -2716,10 +2716,6 @@ move frames for the species whose first art carried baked ground.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `wildlife_ash_hound_idle_04.png` | 64×64 | T | `#6A5A3A` |
-| `wildlife_ash_hound_move_08.png` | 64×64 | T | `#6A5A3A` |
-| `wildlife_cliff_goat_idle_04.png` | 64×64 | T | `#6A5A3A` |
-| `wildlife_cliff_goat_move_08.png` | 64×64 | T | `#6A5A3A` |
 | `wildlife_deer_graze_01.png` | 64×64 | T | `#6A5A3A` |
 | `wildlife_deer_graze_02.png` | 64×64 | T | `#6A5A3A` |
 | `wildlife_deer_graze_03.png` | 64×64 | T | `#6A5A3A` |
@@ -2728,8 +2724,6 @@ move frames for the species whose first art carried baked ground.
 | `wildlife_deer_graze_06.png` | 64×64 | T | `#6A5A3A` |
 | `wildlife_deer_graze_07.png` | 64×64 | T | `#6A5A3A` |
 | `wildlife_deer_graze_08.png` | 64×64 | T | `#6A5A3A` |
-| `wildlife_hedgehog_move_08.png` | 64×64 | T | `#6A5A3A` |
-| `wildlife_tortoise_move_08.png` | 64×64 | T | `#6A5A3A` |
 
 ### 5.19 Guide pictures — `res://art/guide/`
 
