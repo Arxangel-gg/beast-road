@@ -2249,7 +2249,8 @@ before the field exists land on nothing; and the host answers with
 clock, the phase, every purse and the wall, then every tower, barricade and
 trap, every *announced* body and animal, and every drop with an identity -
 each as the fact the guest already knows how to apply, so no second
-application path exists to drift. Bosses are not yet in it.
+application path exists to drift; a boss out on the field arrives as a boss,
+in the phase it has reached.
 
 **Host migration is still out of scope**, and stated: the run is the host's,
 and a host that drops ends it for both. `rejoin_check` composes the welcome

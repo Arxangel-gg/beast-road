@@ -1387,6 +1387,12 @@ func is_telegraphing() -> bool:
 	return _state == State.WINDUP
 
 
+## Which phase a boss is in, 0 before the first break. For the welcome
+## (2026-09-14), so a guest arriving mid-fight is told the boss as it stands.
+func boss_phase() -> int:
+	return _boss_phase
+
+
 func apply_boss_phase(phase: int) -> void:
 	_boss_phase = maxi(phase, _boss_phase)
 	if _boss_phase <= 0:

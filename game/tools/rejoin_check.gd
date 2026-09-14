@@ -89,6 +89,12 @@ func _test_the_welcome_is_the_world() -> void:
 		return
 	told.net_id = 7
 	also.net_id = 8
+	# And a boss mid-fight, a phase in.
+	var bosses: Array[EnemyData] = ContentDB.enemies_of_category(EnemyData.Category.BOSS)
+	var boss: Enemy = _field.spawn_enemy(bosses[0], 3, 1.0) if not bosses.is_empty() else null
+	if boss != null:
+		boss.net_id = 9
+		boss.apply_boss_phase(1)
 	_field.spawn_loot(RunState.GOLD, 20, Vector2(900.0, 900.0))
 	await get_tree().process_frame
 	var coin: LootDrop = null
@@ -115,8 +121,10 @@ func _test_the_welcome_is_the_world() -> void:
 		"every purse (%d)" % int(kinds.get(CoopRelay.Fact.CURRENCY_CHANGED, 0)))
 	_check(int(kinds.get(CoopRelay.Fact.TOWN_HEALTH, 0)) == 1, "the wall's health")
 	_check(int(kinds.get(CoopRelay.Fact.TOWER_STATE, 0)) == 2, "both towers (%d)" % int(kinds.get(CoopRelay.Fact.TOWER_STATE, 0)))
-	_check(int(kinds.get(CoopRelay.Fact.ENEMY_SPAWNED, 0)) == 2,
-		"the two announced bodies and not the one nobody announced (%d)" % int(kinds.get(CoopRelay.Fact.ENEMY_SPAWNED, 0)))
+	_check(int(kinds.get(CoopRelay.Fact.ENEMY_SPAWNED, 0)) == 3,
+		"the announced bodies and not the one nobody announced (%d)" % int(kinds.get(CoopRelay.Fact.ENEMY_SPAWNED, 0)))
+	_check(int(kinds.get(CoopRelay.Fact.BOSS_SPAWNED, 0)) == 1 and int(kinds.get(CoopRelay.Fact.BOSS_PHASE_CHANGED, 0)) == 1,
+		"the boss, as a boss, in the phase it reached")
 	_check(int(kinds.get(CoopRelay.Fact.LOOT_SPAWNED, 0)) == 1, "the coin on the ground")
 	var gold_told: int = -1
 	var ids: Array[int] = []
@@ -132,7 +140,7 @@ func _test_the_welcome_is_the_world() -> void:
 				anchors.append(fact[1][0])
 	ids.sort()
 	_check(gold_told == gold, "the purse as it stands (%d vs %d)" % [gold_told, gold])
-	_check(ids == [7, 8], "the bodies by their identities (%s)" % str(ids))
+	_check(ids == [7, 8, 9], "the bodies by their identities (%s)" % str(ids))
 	_check(anchors.has(first) and anchors.has(second), "the towers where they stand")
 
 	# The guest's side: the same run with none of it, fed the welcome through
@@ -141,8 +149,9 @@ func _test_the_welcome_is_the_world() -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	RunState.clear_tower(first)
 	RunState.clear_tower(second)
-	for enemy: Enemy in [told, also, nobody]:
-		enemy.queue_free()
+	for enemy: Enemy in [told, also, nobody, boss]:
+		if enemy != null:
+			enemy.queue_free()
 	if coin != null:
 		coin.queue_free()
 	await get_tree().process_frame
@@ -174,7 +183,7 @@ func _test_the_welcome_is_the_world() -> void:
 			puppets += 1
 			found.append(body.net_id)
 	found.sort()
-	_check(puppets == 2 and found == [7, 8], "the bodies stand again, as puppets (%s)" % str(found))
+	_check(puppets == 3 and found == [7, 8, 9], "the bodies stand again, as puppets (%s)" % str(found))
 	var drops: int = 0
 	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
 		var drop := node as LootDrop
