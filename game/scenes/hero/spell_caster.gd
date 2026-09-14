@@ -169,8 +169,16 @@ func _foot(origin: Vector2) -> Vector2:
 
 
 ## True while a channelled spell is resolving; the hero is rooted.
+##
+## **A BEAM is not the same thing as a channel**, and reading it as one rooted
+## the Arcane caster on every lance. `SpellData.is_channelled` was authored for
+## exactly this distinction and read by nothing: `beasts_breath` is a cone the
+## hero stands and holds, while Frost Lance and Sky Lance are BEAMs of 0.5 and
+## 0.4 seconds - a flash along the aim. Rooting the player for those took away
+## the one thing the Arcane tree sells, which is where they are standing, and
+## locked the whole spell bar for the duration besides (see `cast`).
 func is_channelling() -> bool:
-	return _beam_left > 0.0
+	return _beam_left > 0.0 and _beam_spell != null and _beam_spell.is_channelled
 
 
 func is_lane_warded(lane: int) -> bool:
@@ -711,7 +719,7 @@ func _ward_the_walls(origin: Vector2) -> void:
 func extend_channel_on_elite(at: Vector2 = Vector2.ZERO) -> void:
 	_beam_from = at
 	var step: float = DisciplineEffects.trained_value("elite_extend_ultimate")
-	if step <= 0.0 or _beam_left <= 0.0:
+	if step <= 0.0 or _beam_left <= 0.0 or not is_channelling():
 		return
 	var room: float = Balance.DISCIPLINE_CHANNEL_EXTEND_CAP - _beam_extended
 	if room <= 0.0:

@@ -71,6 +71,7 @@ func _ready() -> void:
 	await _test_a_volley_is_many(volley)
 	await _test_preparation_clears_the_air(meteor)
 	_test_the_same_seed_scatters_the_same_way(volley)
+	_test_only_a_true_channel_roots_the_caster()
 	await _finish()
 
 
@@ -299,3 +300,49 @@ func _finish() -> void:
 	else:
 		push_error("[spell-strike] FAIL - %d of %d" % [_failures, _checked])
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## A BEAM is not automatically a channel, and reading it as one rooted the
+## caster on every lance.
+##
+## `is_channelling` returned `_beam_left > 0.0`, so Frost Lance (0.5s) and Sky
+## Lance (0.4s) pinned the hero in place and locked the whole spell bar for
+## their duration - while `SpellData.is_channelled`, authored for exactly this
+## distinction, was read by nothing in the project. The Arcane tree sells
+## *where you are standing*; rooting it on every cast sold the opposite.
+##
+## Measured off the caster rather than off the flag, and both halves are
+## required: a BEAM that is not channelled must still **be** a beam, or this
+## would pass just as well on a spell that failed to cast at all.
+func _test_only_a_true_channel_roots_the_caster() -> void:
+	var channelled: int = 0
+	var flashes: int = 0
+	for id: Variant in ContentDB.spells:
+		var spell: SpellData = ContentDB.spells[id] as SpellData
+		if spell == null or spell.kind != SpellData.Kind.BEAM:
+			continue
+		_equip(spell)
+		_caster.cancel_channel()
+		_caster.clear_cooldowns()
+		_caster.try_cast(0, Vector2.RIGHT, Vector2.ZERO)
+		var beaming: bool = float(_caster.get("_beam_left")) > 0.0
+		_checked += 1
+		_check(beaming,
+			"%s is a BEAM and casting it started no beam, so this gate is"
+				% spell.id + " measuring a cast that never happened")
+		_checked += 1
+		_check(_caster.is_channelling() == spell.is_channelled,
+			("%s authors is_channelled=%s and the caster says %s - a lance that"
+				% [spell.id, spell.is_channelled, _caster.is_channelling()])
+				+ " roots the hero takes away the one thing the Arcane sells")
+		if spell.is_channelled:
+			channelled += 1
+		else:
+			flashes += 1
+		_caster.cancel_channel()
+	# Both kinds have to exist or the distinction is untested and this gate
+	# would go green on a roster where every BEAM is the same thing.
+	_checked += 1
+	_check(channelled > 0 and flashes > 0,
+		("%d channelled BEAMs and %d flashes - the distinction needs both"
+			% [channelled, flashes]))
