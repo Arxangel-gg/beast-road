@@ -1956,7 +1956,14 @@ const TREELINE_GIANT_SCALE: Vector2 = Vector2(1.35, 1.72)
 ## Keeps independently scattered trunks from occupying effectively one pixel.
 ## Canopies may overlap naturally; the ground contacts may not. [TUNE]
 const TREELINE_TRUNK_SPACING: float = 92.0
-const TREELINE_REACH: float = 3400.0
+## How deep the wood stands beyond the grid's edge, in world units.
+##
+## A depth rather than a radius from the town: the grid has grown twice and a
+## radius that merely *ought* to clear it stops clearing it the day it grows
+## again. 950 is what the wood measured when `TREELINE_REACH` was 3400 against
+## a 2400 half-extent, so the forest the regions were tuned against is the one
+## that still grows. [TUNE]
+const TREELINE_RING: float = 950.0
 const TREELINE_ATTEMPTS: int = 1100
 
 # --- Fishing (2026-09-11) ------------------------------------------------------

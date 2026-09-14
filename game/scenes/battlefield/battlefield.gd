@@ -1953,7 +1953,11 @@ func _setup_ground() -> void:
 	# the viewport shows far more world than the lanes occupy, and anything the
 	# floor does not reach renders as empty grey.
 	var visible_half: float = maxf(1920.0, 1080.0) / Balance.CAMERA_ZOOM_BATTLEFIELD
-	var extent: float = maxf(Balance.LANE_SPAWN_RADIUS * 1.4, visible_half)
+	# And out to the treeline, whatever the grid has grown to: the wood stands
+	# `TREELINE_RING` beyond the edge, and a tree on the clear colour is a tree
+	# on nothing.
+	var extent: float = maxf(maxf(Balance.LANE_SPAWN_RADIUS * 1.4, visible_half),
+		BattleGrid.HALF_EXTENT + Balance.TREELINE_RING + BattleGrid.TILE * 2.0)
 	ground.centered = true
 	ground.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	ground.region_enabled = true

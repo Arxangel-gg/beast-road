@@ -162,11 +162,16 @@ func _outside_point(rng: RandomNumberGenerator, shape: Dictionary) -> Vector2:
 		# Biased outward from the grid edge, then clumped: trees gather. An even
 		# scatter over a ring reads as a texture rather than as woodland.
 		var lean: float = pow(rng.randf(), 1.0 - float(shape["clump"]) * 0.5)
-		var radius: float = half * 1.02 + lean * (Balance.TREELINE_REACH - half)
+		# A ring of fixed *width* beyond the grid, rather than out to a fixed
+		# radius from the town. When the outskirts grew six tiles on 2026-09-14
+		# a fixed reach left the wood 560 units deep where it had been 950, the
+		# trunks ran out of room, and the regional densities the gate holds
+		# turned into noise.
+		var radius: float = half * 1.02 + lean * Balance.TREELINE_RING
 		var at: Vector2 = Vector2.RIGHT.rotated(rng.randf() * TAU) * radius
 		if not BattleGrid.in_bounds(BattleGrid.world_to_tile(at)):
 			return at
-	return Vector2.RIGHT.rotated(rng.randf() * TAU) * Balance.TREELINE_REACH
+	return Vector2.RIGHT.rotated(rng.randf() * TAU) * (half + Balance.TREELINE_RING)
 
 
 ## Where each lane meets the edge, pointing outward.

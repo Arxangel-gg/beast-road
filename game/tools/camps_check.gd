@@ -81,6 +81,49 @@ func _test_the_camps_stand(camps: Camps, grid: BattleGrid) -> void:
 		_check(near.size() >= 2 and BattleGrid.beyond_core(near[0]),
 			"lane %d: the road starts on the outskirts" % lane)
 		_near_start[lane] = near[0].length() if near.size() >= 1 else 0.0
+		_test_the_ambush_ground(grid, lane)
+
+
+## While the fork is closed a lane's bodies come out of the trees either side
+## of the corridor, just outside the core, and nobody sees them arrive.
+##
+## Owner brief, 2026-09-14. Four things make it an ambush rather than a spawn
+## in a new place, and each is held: the two points are on open ground, not
+## road; they are outside the core the fog primes and outside the town's own
+## sight, so a fresh run does not show them; the way in touches the corridor
+## before the core, so the body walks *onto* the road; and there is one on
+## each side, so a wave comes out of both woods.
+func _test_the_ambush_ground(grid: BattleGrid, lane: int) -> void:
+	var sides: Array = grid.active_spawn_points(lane)
+	_check(sides.size() == 2, "lane %d: a closed fork ambushes from both sides (%d)"
+		% [lane, sides.size()])
+	for spawn: Variant in sides:
+		var at: Vector2 = spawn as Vector2
+		var tile: Vector2i = BattleGrid.world_to_tile(at)
+		_check(grid.cell_at(tile) == BattleGrid.Cell.OPEN,
+			"lane %d: the ambush ground at %s is not open ground (cell %d)"
+				% [lane, str(tile), grid.cell_at(tile)])
+		_check(BattleGrid.beyond_core(at),
+			"lane %d: the ambush ground at %s is inside the core the fog primes"
+				% [lane, str(at)])
+		_check(at.length() > Balance.FOG_VISION_TOWN,
+			"lane %d: the ambush ground at %.0f is inside the town's sight of %.0f"
+				% [lane, at.length(), Balance.FOG_VISION_TOWN])
+	# Every route from either side reaches the corridor before the core.
+	var onto: Vector2 = grid.spawn_points[lane] as Vector2
+	_check(grid.cell_at(BattleGrid.world_to_tile(onto)) == BattleGrid.Cell.ROAD,
+		"lane %d: the point the ambush steps onto is not road" % lane)
+	for path: Variant in grid.routes[lane]:
+		var route: PackedVector2Array = path as PackedVector2Array
+		_check(route.size() >= 3 and route[1].distance_to(onto) < 1.0,
+			"lane %d: a route from the trees does not step onto the corridor first" % lane)
+	# And the far spawns stand inside the map, on a cell the fog knows.
+	for spawn: Variant in grid.far_spawn_points[lane]:
+		var far: Vector2 = spawn as Vector2
+		var tile: Vector2i = BattleGrid.world_to_tile(far)
+		_check(tile.x >= 0 and tile.y >= 0 and tile.x < BattleGrid.SIZE and tile.y < BattleGrid.SIZE,
+			"lane %d: far spawn %s is outside the grid, where the fog's veil ends and "
+				% [lane, str(tile)] + "a body straddles its edge")
 
 
 func _test_a_fork_opens(camps: Camps, grid: BattleGrid, field: Battlefield) -> void:

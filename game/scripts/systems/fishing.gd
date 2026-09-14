@@ -255,6 +255,10 @@ func _is_good_water(at: Vector2, half: Vector2) -> bool:
 	for spawn: Variant in grid.spawn_points:
 		if rim.grow(Balance.FISHING_SPAWN_CLEARANCE).has_point(spawn as Vector2):
 			return false
+	for lane: int in grid.ambush_points.size():
+		for spawn: Variant in (grid.ambush_points[lane] as Array):
+			if rim.grow(Balance.FISHING_SPAWN_CLEARANCE).has_point(spawn as Vector2):
+				return false
 	for lane: int in grid.far_spawn_points.size():
 		for spawn: Variant in (grid.far_spawn_points[lane] as Array):
 			if rim.grow(Balance.FISHING_SPAWN_CLEARANCE * 0.6).has_point(spawn as Vector2):

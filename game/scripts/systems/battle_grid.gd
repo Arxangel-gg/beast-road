@@ -50,7 +50,7 @@ const LAYOUT_PATH: String = "res://data/maps/battlefield_layout.json"
 ## The authored core: 45x45 tiles at 64 units.
 const CORE_SIZE: int = 45
 ## Tiles laid beyond the core on every side.
-const OUTSKIRTS: int = 15
+const OUTSKIRTS: int = 21
 ## The whole field. 75x75 tiles at 64 units is a 4800x4800 world.
 const SIZE: int = CORE_SIZE + OUTSKIRTS * 2
 const TILE: float = 64.0
@@ -92,20 +92,46 @@ enum Cell { OPEN, ROAD, TOWN, BORDER, CAMP }
 ## The outskirts template, in lane-local tiles. `d` runs outward from the old
 ## edge (0 is the core's outermost row, `OUTSKIRTS` is the map's edge); `v`
 ## runs sideways from the road's centre line. See `_lay_outskirts`.
-const CORRIDOR_DEPTH: int = 9
-const FORK_DEPTH: int = 9
+##
+## **Re-laid on 2026-09-14 from the owner's second play of the camps.** The
+## outskirts grew from 15 tiles to 21; the first camp moved from 2 tiles off
+## the core to 4 and the second from 6 to 10, so the road between them is a
+## road rather than a doorway; both camps branch further from the corridor;
+## and the war camp and the barriers moved out with the edge. The far spawns
+## stand one tile *inside* the edge now rather than one beyond it - a body
+## spawned past the last cell straddled the line where the fog's veil ends and
+## its rim begins, and was reported as "enemies get cut off at the ends of the
+## map". Everything that measures the field - fog, foliage, the treeline, the
+## veil, the hero's bounds - derives from `SIZE`, so nothing else moved by hand.
+const CORRIDOR_DEPTH: int = 13
+const FORK_DEPTH: int = 13
 const FORK_BAR_HALF: int = 5
 const LEG_CENTRE: int = 4
-const CAMP_BRANCH_NEAR: int = 2
-const CAMP_BRANCH_FAR: int = 5
-const CAMP_CLEARING_NEAR: int = 6
-const CAMP_CLEARING_FAR: int = 10
-const CAMP_A_DEPTH: int = 2
-const CAMP_B_DEPTH: int = 6
+const CAMP_BRANCH_NEAR: int = 3
+const CAMP_BRANCH_FAR: int = 7
+const CAMP_CLEARING_NEAR: int = 8
+const CAMP_CLEARING_FAR: int = 12
+const CAMP_A_DEPTH: int = 4
+const CAMP_B_DEPTH: int = 10
 const BARON_HALF: int = 2
-const BARON_DEPTH_FROM: int = 12
+const BARON_DEPTH_FROM: int = 17
 ## Where the barrier stands across each leg while the fork is closed.
-const BARRIER_DEPTH: int = 12
+const BARRIER_DEPTH: int = 16
+## How far inside the map's edge a far spawn stands. One tile: the body is on
+## the last cell the fog knows about rather than half across its edge.
+const SPAWN_INSET: int = 1
+## Where a lane's waves come from while its fork is closed: not the junction,
+## but the trees either side of the corridor just outside the core - between
+## the city's own square and the first camp.
+##
+## Owner brief, 2026-09-14: while the forks are locked, enemies should spawn
+## between the central square and the first camp, walking onto the road from
+## unpathed ground on both sides "so it seems they're ambushing from the
+## forests", and still start outside the fog so nobody sees them coming until
+## they are near the square. `AMBUSH_DEPTH` is tiles out from the core's edge;
+## `AMBUSH_SIDE` is tiles off the road's centre line, which is the trees.
+const AMBUSH_DEPTH: int = 2
+const AMBUSH_SIDE: int = 6
 
 ## Camp tiers, outermost last.
 enum CampTier { EASY, HARD, BARON }
@@ -125,9 +151,15 @@ var routes: Array = []
 ## once the fork is open. Same shape as `routes`.
 var far_routes: Array = []
 
-## Where each lane's enemies enter the map while its fork is closed, in world
-## space: the mouth of the fork junction.
+## Where each lane's enemies step onto the road while its fork is closed, in
+## world space: the corridor just outside the core. The bodies themselves start
+## in the trees either side of it - see `ambush_points`.
 var spawn_points: Array = []
+
+## The two points in the trees a closed lane's bodies actually appear at, one
+## per side of the corridor, per lane. Anything that keeps clear of the spawns
+## - ponds, seams, rift gates - keeps clear of these too.
+var ambush_points: Array = []
 
 ## Where each lane's enemies enter once its fork is open: one point per leg.
 var far_spawn_points: Array = []
@@ -167,7 +199,7 @@ func _init(layout_seed: int = 0) -> void:
 		fork_open.append(false)
 		var found: Array = _routes_for(lane)
 		routes.append(found)
-		lane_paths.append(found[0] if not found.is_empty() else PackedVector2Array())
+		lane_paths.append(_road_path_for(lane))
 		far_routes.append(_far_routes_for(lane, found))
 
 
@@ -319,6 +351,13 @@ func _lay_outskirts() -> void:
 			for v: int in range(LEG_CENTRE - 1, LEG_CENTRE + 2):
 				_put(local_tile(lane, d, v), Cell.ROAD)
 				_put(local_tile(lane, d, -v), Cell.ROAD)
+		# The ambush ground: open by construction, but *kept* open here so no
+		# camp branch, clearing or later template change can grow over the two
+		# points a closed lane's bodies appear at.
+		for side: int in [-1, 1]:
+			for d: int in range(AMBUSH_DEPTH - 1, AMBUSH_DEPTH + 2):
+				for v: int in range(AMBUSH_SIDE - 1, AMBUSH_SIDE + 2):
+					_put(local_tile(lane, d, v * side), Cell.OPEN)
 		# The camps. The first branches to the seed's side, the second to the
 		# other, so the road reads as a road with things off it rather than as
 		# a corridor with a mirror.
@@ -543,12 +582,35 @@ func _leg_node(lane: int, side: int) -> Vector2i:
 func _routes_for(lane: int) -> Array:
 	var entry: Vector2i = _entry_node(lane)
 	var found: Array = _walk_routes(entry)
-	# The near spawn: one tile out from the junction into the bar, so enemies
-	# walk on to the mouth rather than appear on it.
-	var frame: Array[Vector2i] = lane_frame(lane)
-	var spawn: Vector2 = tile_to_world(entry + frame[0])
-	spawn_points.append(spawn)
-	return _finish_routes(found, spawn)
+	# Where the ambushers step onto the road: the corridor, `AMBUSH_DEPTH` out
+	# from the core. This is the point everything else keeps clear of, and the
+	# head of `lane_paths` - the road as drawn, without the stub through the
+	# trees that the bodies walk to reach it.
+	var onto: Vector2 = tile_to_world(local_tile(lane, AMBUSH_DEPTH, 0))
+	spawn_points.append(onto)
+	# One spawn in the trees either side, and every route from each: a body
+	# rolls a side with its route, so a wave comes out of both woods at once.
+	var sides: Array = []
+	var out: Array = []
+	for side: int in [-1, 1]:
+		var spawn: Vector2 = tile_to_world(local_tile(lane, AMBUSH_DEPTH, AMBUSH_SIDE * side))
+		sides.append(spawn)
+		for path: PackedVector2Array in _finish_routes(found, spawn, onto):
+			out.append(path)
+	ambush_points.append(sides)
+	out.sort_custom(func(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+		return _world_length(a) < _world_length(b))
+	return out
+
+
+## The road a lane's enemies walk as drawn: from the corridor outside the core
+## to the wall, with no stub through the trees. For the minimap, the torches
+## and anything else that wants the road rather than a body's way onto it.
+func _road_path_for(lane: int) -> PackedVector2Array:
+	var found: Array = _walk_routes(_entry_node(lane))
+	var onto: Vector2 = tile_to_world(local_tile(lane, AMBUSH_DEPTH, 0))
+	var paths: Array = _finish_routes(found, onto)
+	return paths[0] if not paths.is_empty() else PackedVector2Array()
 
 
 ## The routes from the far spawns: each leg's own end at the map's edge, down
@@ -559,8 +621,13 @@ func _far_routes_for(lane: int, _near: Array) -> Array:
 	var out: Array = []
 	for side: int in [-1, 1]:
 		var node: Vector2i = _leg_node(lane, side)
-		# One tile beyond the edge, so enemies walk on rather than appear.
-		var spawn: Vector2 = tile_to_world(local_tile(lane, OUTSKIRTS + 1, LEG_CENTRE * side))
+		# **Inside the edge, not beyond it.** The spawn stood one tile past the
+		# last cell, which is past the fog's veil and under its rim, so a body
+		# there straddled the line between the two and drew cut in half -
+		# reported as "enemies get cut off at the ends of the map". The last
+		# cell inside is still off the far end of a leg nobody stands on, so
+		# bodies still walk on rather than appear.
+		var spawn: Vector2 = tile_to_world(local_tile(lane, OUTSKIRTS - SPAWN_INSET, LEG_CENTRE * side))
 		spawns.append(spawn)
 		var found: Array = _walk_routes(node)
 		for path: PackedVector2Array in _finish_routes(found, spawn):
@@ -597,7 +664,7 @@ func _walk_routes(entry: Vector2i) -> Array:
 ## stands. Owner report, 2026-09-12: "melee units should not head all the way
 ## into the city base at origin but rather attack it from just outside its
 ## walls on their cardinal direction."
-func _finish_routes(found: Array, spawn: Vector2) -> Array:
+func _finish_routes(found: Array, spawn: Vector2, via: Vector2 = Vector2.INF) -> Array:
 	var shortest: int = _tile_length(found[0]) if not found.is_empty() else 0
 	var out: Array = []
 	for path: Array in found:
@@ -606,6 +673,11 @@ func _finish_routes(found: Array, spawn: Vector2) -> Array:
 			continue
 		var points: PackedVector2Array = PackedVector2Array()
 		points.append(spawn)
+		# The way onto the road, when the spawn is off it: an ambusher crosses
+		# the open ground to the corridor first, then walks the road like any
+		# other body.
+		if via.is_finite() and via.distance_to(spawn) > 1.0:
+			points.append(via)
 		var last: int = path.size() - 1 if path.size() <= 2 else path.size() - 2
 		for index: int in range(0, last + 1):
 			points.append(tile_to_world(path[index]))
@@ -679,7 +751,7 @@ func route_for(lane: int, roll: float) -> PackedVector2Array:
 func active_spawn_points(lane: int) -> Array:
 	if lane < fork_open.size() and fork_open[lane] and lane < far_spawn_points.size():
 		return far_spawn_points[lane]
-	return [spawn_points[lane]] if lane < spawn_points.size() else []
+	return ambush_points[lane] if lane < ambush_points.size() else []
 
 
 static func _world_length(path: PackedVector2Array) -> float:
