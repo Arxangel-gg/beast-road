@@ -4720,6 +4720,22 @@ const TORCH_LIGHT_COLOUR: Color = Color(1.0, 0.70, 0.34)
 ## will visibly start animating as they slide into frame. [TUNE]
 const FLAME_OFFSCREEN_MARGIN: float = 320.0
 
+## The mana pool's colour, and the one thing on the bar that is only mana.
+##
+## It was `5b8fd9`, within a few percent of the Water tower's tint, the chill
+## readout and the co-op ally colour - so the bar a caster watches looked like
+## four other things on the same screen. Indigo is nothing else's. [TUNE]
+const UI_MANA_INDIGO: String = "6a5acd"
+
+## The preparation clock, from plenty of time to none.
+##
+## Read from the corner of the eye while the player is placing a tower, so it
+## is a colour before it is a number: green while there is room, amber while
+## the bonus is running out, red on the last seconds. [TUNE]
+const UI_CLOCK_EASY: Color = Color(0.42, 0.82, 0.40)
+const UI_CLOCK_SOON: Color = Color(0.95, 0.74, 0.25)
+const UI_CLOCK_URGENT: Color = Color(0.92, 0.28, 0.22)
+
 const TORCH_LIGHT_RADIUS: float = 360.0
 
 ## Per-torch energy, deliberately low for the radius.

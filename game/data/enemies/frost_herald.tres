@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+art_facing = 2
 id = "frost_herald"
 display_name = "Frost Herald"
 description = "It runs ahead to sound the horn, and the rest arrive knowing where you are."
@@ -20,4 +21,3 @@ spawn_distance_scale = 0.88
 targets_towers = false
 aura_radius = 150.0
 aura_strength = 0.10
-art_facing = 1

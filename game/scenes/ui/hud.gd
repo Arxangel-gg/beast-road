@@ -253,6 +253,7 @@ var _mode_button: Button
 var _party_log: PartyLog = null
 var _chat_box: LineEdit = null
 var _tend_button: Button
+var _tend_progress: ProgressBar
 ## Whether healing is both needed and affordable. Drives the pulse below.
 var _tend_urgent: bool = false
 var _tend_pulse: float = 0.0
@@ -429,6 +430,7 @@ var _boss_label: Label
 var _action_row: Container = null
 var _preparation_panel: PanelContainer
 var _preparation_label: Label
+var _preparation_clock: Label
 var _ride_on_button: Button
 var _command_panel: PanelContainer
 var _command_bar: ProgressBar
@@ -786,15 +788,28 @@ func _build_top_bar() -> void:
 
 	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
+
 	# Health over mana, in the width health had alone. The top bar is already
 	# full at phone widths, and a second full-width bar beside it pushed the
 	# wound count off the screen - layout_check caught it at 430 and 1280 wide.
 	var pools := VBoxContainer.new()
 	pools.add_theme_constant_override("separation", 2)
 	pools.add_child(_hero_bar)
-	_mana_bar = _make_bar(Color("5b8fd9"), HERO_BAR_WIDTH)
+	# **The icon alone did not say what the bar was.** An icon is a picture of a
+	# heart to somebody who already knows; two letters are the same two letters
+	# in every game a player has met.
+	#
+	# Written *on* the bar rather than beside it, because the top bar has no
+	# width to give - a 22px name column beside these pushed the boss readout
+	# under the city icon, which `layout_check` refused.
+	_name_the_bar(_hero_bar, "HP")
+	# Indigo, not the blue it had: that blue was within a few percent of the
+	# Water tower's, the chill readout's and the co-op ally tint, so the one bar
+	# a caster watches looked like four other things on the same screen.
+	_mana_bar = _make_bar(Color(Balance.UI_MANA_INDIGO), HERO_BAR_WIDTH)
 	_mana_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 8.0)
 	_mana_bar.tooltip_text = "Mana. Spells draw on it; Focus deepens it and refills it faster."
+	_name_the_bar(_mana_bar, "MP")
 	pools.add_child(_mana_bar)
 	bar.add_child(pools)
 	var wound_row := HBoxContainer.new()
@@ -1256,8 +1271,12 @@ func _build_action_bar(bar: Container) -> void:
 	_orders_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_orders_button, "gold", 22)
 
+	# **"Tend" out, "Heal" in.** It is the clearest word in English for what the
+	# button does, and the one a player with weak English already knows. The
+	# internal names stay - `try_tend_hero`, `HERO_TEND_COST` - because renaming
+	# those is a refactor with no player on the other end of it.
 	_tend_button = _add_button(bar,
-		"Tend",
+		"Heal",
 		func() -> void: _report(battlefield.try_tend_hero()))
 	_tend_button.tooltip_text = ("Preparation: restore %d%% of the hero's health for %d Food.\n"
 		+ "Under fire: a field ration restores %d%% for %d Food, once every %ds, "
@@ -1267,6 +1286,22 @@ func _build_action_bar(bar: Container) -> void:
 			int(Balance.RATION_COOLDOWN), Balance.RATION_ESCALATION]
 	_tend_button.mouse_default_cursor_shape = Control.CURSOR_CAN_DROP
 	IconKit.on_button(_tend_button, "hero_health", 22)
+	# **How close the larder is, when it is not close enough.** A greyed button
+	# says "no" and nothing else; a player who cannot read the Food counter
+	# across the screen has no idea whether they are one kill away or twenty.
+	# Drawn inside the button so it cannot be mistaken for another widget, and
+	# only while the price is out of reach.
+	_tend_progress = ProgressBar.new()
+	_tend_progress.name = "HealSaving"
+	_tend_progress.show_percentage = false
+	_tend_progress.max_value = 1.0
+	_tend_progress.value = 0.0
+	_tend_progress.visible = false
+	_tend_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tend_progress.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_tend_progress.custom_minimum_size = Vector2(0.0, HEAL_SAVING_BAR_HEIGHT)
+	_tend_progress.offset_top = -HEAL_SAVING_BAR_HEIGHT
+	_tend_button.add_child(_tend_progress)
 
 	var charge_readout := VBoxContainer.new()
 	# 92 rather than 108: the bar ends where the spell slots begin, and the last
@@ -1515,8 +1550,9 @@ func _update_repair_button() -> void:
 		or (not preparing and not battlefield.ration_blocked().is_empty())
 	# The label carries the price: the two modes cost different amounts, and a
 	# button that quietly charges more than expected is worse than a greyed one.
-	_tend_button.text = _action_label("V", "TEND  %d" % price) if preparing \
+	_tend_button.text = _action_label("V", "HEAL  %d" % price) if preparing \
 		else _action_label("V", "RATION  %d" % price)
+	_show_the_heal_saving(price)
 	# **Healing announces itself when it is worth taking.**
 	#
 	# A hero on their last third has one button that answers the situation
@@ -2034,6 +2070,16 @@ func _build_preparation_panel() -> void:
 	title.add_theme_font_size_override("font_size", 15)
 	title.add_theme_color_override("font_color", Color("e8a33d"))
 	column.add_child(title)
+	# **The clock, read from the corner of the eye.** The countdown used to live
+	# inside a sentence at 11pt - "the wave rolls in 6 sec" - which a player
+	# placing a tower on the far road never saw. It is its own line now, large
+	# and outlined, and it says how long is left as a *colour* before it says it
+	# as a number.
+	_preparation_clock = _label("", PREPARATION_CLOCK_SIZE)
+	_preparation_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_preparation_clock.add_theme_constant_override("outline_size", 6)
+	_preparation_clock.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03, 0.9))
+	column.add_child(_preparation_clock)
 	_preparation_label = _label("Build, upgrade and reposition before the road.", 11)
 	_preparation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_preparation_label)
@@ -2268,6 +2314,7 @@ func _on_preparation_changed(seconds_left: float, ready: bool) -> void:
 	var reward: int = Balance.preparation_early_gold(seconds_left)
 	_ride_on_button.text = "RIDE ON  ·  +%d GOLD" % reward if reward > 0 else "RIDE ON"
 	_preparation_label.text = _preparation_text(seconds_left, reward)
+	_paint_the_clock(seconds_left)
 
 
 ## What the breather says it is doing. Three states, because the countdown has
@@ -4055,6 +4102,27 @@ const REGION_CARD_HOLD: float = 2.1
 ## reshaping the card, wide enough that a faction's line is two lines at most.
 const REGION_NOTE_WIDTH: float = 560.0
 
+## The preparation clock: big enough to read without looking at it.
+##
+## 34pt against the 11pt sentence it used to hide inside. The urgent window is
+## the last stretch where a player can still act on the number - shorter and it
+## is a jump-scare, longer and the red stops meaning anything.
+const PREPARATION_CLOCK_SIZE: int = 34
+const PREPARATION_URGENT_SECONDS: float = 5.0
+
+## The saving bar under the Heal button: how tall, and the two ends of it.
+##
+## Blue is "a long way off" and red is "almost there" - a thing warming up
+## rather than a warning. Flip the two if that ever reads backwards; they are
+## named for their meaning rather than their colour so it stays one edit.
+## Where a pool's name sits on its own bar, and how big it is.
+const BAR_NAME_INSET: float = 5.0
+const BAR_NAME_SIZE: int = 11
+
+const HEAL_SAVING_BAR_HEIGHT: float = 4.0
+const HEAL_SAVING_FAR: Color = Color(0.26, 0.45, 0.85, 0.95)
+const HEAL_SAVING_NEAR: Color = Color(0.90, 0.30, 0.24, 0.95)
+
 const BUILD_HINT: String = "Point at a tower to see what it does."
 
 
@@ -4468,3 +4536,86 @@ func _refresh_spirit_button() -> void:
 		_spirit_button.text = "Call  ·  %d Food" % Balance.COMPANION_CALL_COST
 		_spirit_button.tooltip_text = "Calls your bonded spirit out. It eats while it is here."
 		_spirit_button.disabled = RunState.currency(RunState.FOOD) < Balance.COMPANION_CALL_COST
+
+
+## The countdown, as a colour and a number.
+##
+## Green while there is room, amber as the bonus window closes, red on the last
+## few seconds - and nothing at all when the breather has no clock, because an
+## untimed Preparation genuinely has no deadline and a frozen "0" would read as
+## one. The thresholds come off the same schedule the Gold bonus uses, so the
+## colour changes on the beat the reward does rather than on a second number
+## nobody can see.
+func _paint_the_clock(seconds_left: float) -> void:
+	if _preparation_clock == null:
+		return
+	if seconds_left <= 0.0:
+		_preparation_clock.text = ""
+		_preparation_clock.visible = false
+		return
+	_preparation_clock.visible = true
+	_preparation_clock.text = "%.0f" % ceil(seconds_left)
+	var tint: Color = Balance.UI_CLOCK_EASY
+	if seconds_left <= PREPARATION_URGENT_SECONDS:
+		tint = Balance.UI_CLOCK_URGENT
+	elif Balance.preparation_early_gold(seconds_left) <= Balance.PREPARATION_EARLY_GOLD_FLOOR:
+		tint = Balance.UI_CLOCK_SOON
+	_preparation_clock.add_theme_color_override("font_color", tint)
+	# A beat on the last seconds, because a colour that never moves stops being
+	# noticed by the eye it is aimed at.
+	if seconds_left <= PREPARATION_URGENT_SECONDS:
+		var beat: float = 1.0 + sin(float(Time.get_ticks_msec()) * 0.012) * 0.06
+		_preparation_clock.scale = Vector2.ONE * beat
+		_preparation_clock.pivot_offset = _preparation_clock.size * 0.5
+	else:
+		_preparation_clock.scale = Vector2.ONE
+
+
+## How far the larder is from the next heal, shown only while it is short.
+##
+## Cold to hot: blue while the Food is far off, red as it comes within reach,
+## which is the temperature reading of a thing charging up rather than the
+## traffic-light reading of a thing going wrong. Nothing is drawn once the
+## price is affordable - at that point the button itself is the answer.
+func _show_the_heal_saving(price: int) -> void:
+	if _tend_progress == null:
+		return
+	var held: int = RunState.currency(RunState.FOOD)
+	if price <= 0 or held >= price:
+		_tend_progress.visible = false
+		return
+	var share: float = clampf(float(held) / float(price), 0.0, 1.0)
+	_tend_progress.visible = true
+	_tend_progress.value = share
+	_tend_progress.tooltip_text = "%d of %d Food" % [held, price]
+	var fill: StyleBoxFlat = _tend_progress.get_theme_stylebox("fill") as StyleBoxFlat
+	if fill == null or not fill.has_meta(&"heal_saving"):
+		fill = StyleBoxFlat.new()
+		fill.set_meta(&"heal_saving", true)
+		var empty := StyleBoxFlat.new()
+		empty.bg_color = Color(0.05, 0.05, 0.07, 0.7)
+		_tend_progress.add_theme_stylebox_override("background", empty)
+		_tend_progress.add_theme_stylebox_override("fill", fill)
+	fill.bg_color = HEAL_SAVING_FAR.lerp(HEAL_SAVING_NEAR, share)
+
+
+## Writes a pool's two-letter name onto its own bar.
+##
+## A child of the bar, ignoring the mouse and taking no layout width, so it
+## cannot push anything along the row it sits in. Outlined rather than merely
+## coloured: the fill slides out from under it as the pool empties, so the
+## letters have to stay legible against both the fill and the empty track.
+func _name_the_bar(bar: ProgressBar, name_text: String) -> void:
+	if bar == null:
+		return
+	var mark := Label.new()
+	mark.text = name_text
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+	mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mark.offset_left = BAR_NAME_INSET
+	mark.add_theme_font_size_override("font_size", BAR_NAME_SIZE)
+	mark.add_theme_color_override("font_color", Color(0.96, 0.94, 0.90, 0.95))
+	mark.add_theme_constant_override("outline_size", 4)
+	mark.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.85))
+	bar.add_child(mark)

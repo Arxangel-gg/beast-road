@@ -31,20 +31,43 @@ extends Node
 ## FRONT stays the answer wherever the body is square to the camera.
 
 ## breed id -> EnemyData.Facing. 0 FRONT, 1 RIGHT, 2 LEFT.
+## **Eight of these were wrong until 2026-09-14, and the owner reported it.**
+##
+## `rootshield`, `crevasse_stalker`, `reed_stalker`, `ice_hauler`,
+## `shard_wight`, `howler`, `ember_shaman` and `frost_herald` were recorded as
+## profiles and are drawn **head-on**. A FRONT sprite that flips does not turn
+## around - it swaps its own left and right, so the Rootshield's shield moved
+## to the other arm every time it changed direction, which is what "facing
+## backwards" looks like from the outside.
+##
+## This table was written from the same wrong reading as the data, so it agreed
+## with the bug and went green. The reading was redone at 200px on a contact
+## sheet, which is the only way to settle it - a thumbnail is not enough, and a
+## sprite's own name tells you nothing. `cinder_hound` is the trap: the flame
+## is its *tail*, so it looks left-facing until it is big enough to see.
+##
+## **And 200px was still not big enough.** The owner caught `horde_lancer`
+## and `frost_herald` in the very contact sheet that was supposed to settle
+## this: both are drawn facing **left**, and both had been read as right at
+## thumbnail scale. Re-read at 420px every mounted breed in the roster is
+## unambiguous - muzzle right, tail left, on all eight of the others - and
+## these two are the only left-facing art in the game. Read a rider by its
+## *mount*: the human torso is often turned toward the viewer while the
+## animal underneath it is in clean profile, which is what fooled me twice.
 const ROSTER: Dictionary = {
 	"ash_caller": 0, "bell_priest": 0, "bogkin": 0, "brine_drowned": 0,
 	"brinefather": 0, "burrower": 1, "chainmaker": 0, "choir_cantor": 0,
 	"cinder_hound": 1, "cinder_runner": 1, "cinder_titan": 0,
-	"crevasse_stalker": 1, "crown_herald": 0, "drowned_choir": 1,
-	"ember_husk": 0, "ember_shaman": 2, "flake_runner": 1, "fog_lantern": 0,
-	"frost_herald": 1, "gate_sentinel": 0, "gatekeeper": 0, "glass_chanter": 0,
+	"crevasse_stalker": 0, "crown_herald": 0, "drowned_choir": 1,
+	"ember_husk": 0, "ember_shaman": 0, "flake_runner": 1, "fog_lantern": 0,
+	"frost_herald": 2, "gate_sentinel": 0, "gatekeeper": 0, "glass_chanter": 0,
 	"glass_colossus": 0, "glass_singer": 0, "glassborn": 1, "glassguard": 0,
-	"horde_drummer": 0, "horde_lancer": 1, "horde_shieldman": 0,
-	"horde_warlord": 0, "howler": 1, "ice_hauler": 2, "loam_lurker": 0,
+	"horde_drummer": 0, "horde_lancer": 2, "horde_shieldman": 0,
+	"horde_warlord": 0, "howler": 0, "ice_hauler": 0, "loam_lurker": 0,
 	"mirage_seer": 0, "mire_shambler": 0, "mirrorfang": 1, "mistwarden": 0,
-	"prism_warden": 0, "reed_stalker": 2, "rootshield": 2, "rust_crown": 0,
+	"prism_warden": 0, "reed_stalker": 0, "rootshield": 0, "rust_crown": 0,
 	"rust_hulk": 0, "rustmother": 0, "salt_crawler": 0, "salt_marcher": 1,
-	"scale_rider": 1, "shard_wight": 1, "siege_lizard": 1, "snowhide_brute": 0,
+	"scale_rider": 1, "shard_wight": 0, "siege_lizard": 1, "snowhide_brute": 0,
 	"stair_runner": 1, "steppehorde": 0, "storm_caller": 0, "warden": 0,
 	"white_maw_giant": 0, "wolf_rider": 1, "wolf_standard_bearer": 1,
 }
@@ -124,6 +147,12 @@ func _test_something_still_turns() -> void:
 	for id: Variant in ROSTER:
 		if int(ROSTER[id]) != EnemyData.Facing.FRONT:
 			turning += 1
-	_check(turning >= 20,
+	# Twenty until 2026-09-14, when all twenty-two declared profiles were read
+	# again at 200px and **eight turned out to be drawn head-on**. Fourteen is
+	# the verified count, not a bar lowered to admit a failure: the eight were
+	# mirroring front-facing art, which is the bug this file's header describes
+	# rather than the feature it protects. Twelve leaves room for a re-read to
+	# correct one or two more without hiding a real drift to the default.
+	_check(turning >= 12,
 		("only %d breeds of %d ever turn to face their travel - the roster has "
 			+ "drifted back toward the silent default") % [turning, ROSTER.size()])

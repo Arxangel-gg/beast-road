@@ -1699,7 +1699,7 @@ func _refund_orphaned_fusions() -> void:
 func try_tend_hero(who: Hero = null) -> String:
 	var preparing: bool = RunState.is_preparation()
 	if not preparing and not RunState.is_command_combat():
-		return "Tending is unavailable here."
+		return "Healing is unavailable here."
 	if who == null and _ask_the_host(CoopRelay.Request.TEND_HERO):
 		return ""
 	var patient: Hero = who if who != null else hero
