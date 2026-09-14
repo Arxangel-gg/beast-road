@@ -3043,7 +3043,7 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## there is no reason to have walked; the hero grows across ten acts too, and
 ## `curve_report` is where the two are read against each other. [TUNE]
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.0, 1.14, 1.26, 1.46, 1.62, 1.80, 1.98, 2.18, 2.40, 2.62,
+	1.0, 1.14, 1.26, 1.46, 1.62, 1.80, 1.98, 2.16, 2.30, 2.40,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -3117,11 +3117,21 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## ramp there rather than a wall. Acts I and II are untouched, because the
 ## opening envelope `balance_test` guards is measured against them.
 ##
-## Measured after: 0.31 0.39 0.42 0.31 0.34 0.32 0.47 0.43 0.53 0.53, a run
-## mean of 0.393 against the 0.26-0.46 band, and a finale that is finally the
-## hardest thing on the road. [TUNE]
+## Measured after: 0.31 0.39 0.42 0.31 0.34 0.32 0.47 0.43 0.47 0.53, a run
+## mean of 0.396 against the 0.26-0.46 band, and a finale that is finally the
+## hardest thing on the road - peaking at 0.74 across 64 bodies on the last
+## wave before the Gatekeeper.
+##
+## **The first cut of this was tuned against a truncated Act X.** `curve_report`
+## ended its walk at `ACT_DISTANCE * ACT_COUNT` while the road is
+## `JOURNEY_TOTAL_DISTANCE`, which is 170 units longer since the opening act
+## was lengthened - so the last two waves in the game were never measured, Act
+## X looked like four waves rather than six, and the top of this table was set
+## to make a finale out of what was actually its middle. Corrected, that put
+## the final wave at 0.90 against 72 bodies, which is a wall rather than a
+## climax, and the top two acts came back down. [TUNE]
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.28, 1.42, 1.60, 1.74, 1.88, 2.02, 2.16, 2.30, 2.44,
+	1.0, 1.28, 1.42, 1.60, 1.74, 1.88, 2.02, 2.14, 2.22, 2.28,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.0, 1.12, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28,

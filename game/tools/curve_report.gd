@@ -130,7 +130,7 @@ func _ready() -> void:
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
 		distance += cycle * Balance.BEAST_BASE_SPEED
-		if distance >= Balance.ACT_DISTANCE * float(Balance.ACT_COUNT):
+		if distance >= Balance.JOURNEY_TOTAL_DISTANCE:
 			break
 
 	_print_table()
@@ -491,7 +491,7 @@ func _mean_pressure_for(count: int) -> float:
 			+ float(row["bodies"]) * Balance.WAVE_SPAWN_SPACING \
 			+ ENGAGEMENT_SECONDS
 		distance += cycle * Balance.BEAST_BASE_SPEED
-		if distance >= Balance.ACT_DISTANCE * float(Balance.ACT_COUNT):
+		if distance >= Balance.JOURNEY_TOTAL_DISTANCE:
 			break
 	director.free()
 	_players = was
