@@ -206,9 +206,15 @@ func _grant_rewards(act: int) -> void:
 	RunState._sync_discipline_spells()
 
 	# 2. Boss core — permanent, always active, never socketed.
-	var core_id: String = "core_" + _expected_boss_id(act)
-	if ContentDB.relics.has(core_id) and not RunState.boss_cores.has(core_id):
-		RunState.boss_cores.append(core_id)
+	#
+	# By act rather than by the boss's name. The id was assembled as
+	# `"core_" + boss_id` and awarded only `if ContentDB.relics.has(core_id)`,
+	# so an act whose core had never been authored paid nothing and said
+	# nothing - which was true of acts IV to X, seven tenths of the campaign,
+	# against a comment above promising all three parts every act.
+	var core: RelicData = ContentDB.boss_core_for_act(act)
+	if core != null and not RunState.boss_cores.has(core.id):
+		RunState.boss_cores.append(core.id)
 
 	# 3. The next act's terrain, which the journey switches to at the boundary.
 	RunState.gain_resources(Balance.BOSS_RESOURCE_REWARD)

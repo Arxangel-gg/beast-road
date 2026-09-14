@@ -1579,6 +1579,85 @@ func _test_enemy_roles() -> void:
 	_check(regular_ids.size() == 12 and elite_ids.size() == 6,
 		"launch roster must contain twelve unique regulars and six unique elites")
 
+	# **Every act pays its boss core.** The grant was written as "award it if
+	# the relic exists", and the id was assembled from the boss's name, so the
+	# seven regions added with the ten-act road paid no core at all - silently,
+	# against a comment promising all three parts of the reward every act. This
+	# is the fifth three-act table the campaign outgrew without telling anyone.
+	var cores_seen: Dictionary = {}
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var core: RelicData = ContentDB.boss_core_for_act(act)
+		_check(core != null,
+			"act %d pays no boss core, so two thirds of its reward arrives and"
+				% act + " the third is missing without a word")
+		if core == null:
+			continue
+		_check(not cores_seen.has(core.id),
+			"%s is the core for more than one act" % core.id)
+		cores_seen[core.id] = true
+		_check(core.is_boss_core, "%s is paid as a core and is not one" % core.id)
+		# Taken for real and read back, the way `omen_check` proves a portent
+		# charges what it promises. A misspelt key lands in the table under a
+		# name nothing asks for: the core is awarded, the panel lists it, and
+		# it does nothing forever.
+		_check(not is_zero_approx(core.effect_magnitude),
+			"%s grants nothing at all" % core.id)
+		var held: Array[String] = RunState.boss_cores.duplicate()
+		RunState.boss_cores = []
+		Modifiers.rebuild()
+		var before: float = Modifiers.value(core.effect_id)
+		RunState.boss_cores = [core.id]
+		Modifiers.rebuild()
+		_check(is_equal_approx(Modifiers.value(core.effect_id) - before,
+				core.effect_magnitude),
+			("%s says it moves '%s' by %+.2f and the table moved by %+.2f")
+				% [core.id, core.effect_id, core.effect_magnitude,
+					Modifiers.value(core.effect_id) - before])
+		RunState.boss_cores = held
+		Modifiers.rebuild()
+		# A counted key read with `int()` turns anything under one into zero.
+		if core.effect_id == "wave_foresight" or core.effect_id == "chain_targets":
+			_check(is_equal_approx(core.effect_magnitude,
+					round(core.effect_magnitude))
+					and absf(core.effect_magnitude) >= 1.0,
+				"%s moves the counted key '%s' by %+.2f, which reads as zero"
+					% [core.id, core.effect_id, core.effect_magnitude])
+		_check(not core.display_name.is_empty() and not core.description.is_empty(),
+			"%s has no name or no line for the town panel" % core.id)
+	_check(cores_seen.size() == Balance.ACT_COUNT,
+		"%d distinct boss cores across %d acts"
+			% [cores_seen.size(), Balance.ACT_COUNT])
+
+	# **Every act is held by somebody, and the card says who.** The ten
+	# factions were authored with a name, a look and a way of fighting so that
+	# "codex, previews and localization consume the same source", and until the
+	# act card asked for one, `ContentDB.faction` had no caller in the game at
+	# all - ten regions of copy that no player could reach.
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var holder: FactionData = ContentDB.faction_for_act(act)
+		_check(holder != null, "act %d has no faction, so its card has no name"
+			% act)
+		if holder == null:
+			continue
+		_check(not holder.display_name.is_empty(),
+			"the faction of act %d is nameless" % act)
+		_check(not holder.mechanical_identity.is_empty(),
+			"%s says nothing about how it fights, which is the line the act"
+				% holder.id + " card shows")
+		_check(not holder.visual_identity.is_empty(),
+			"%s says nothing about how it looks" % holder.id)
+		# The rosters a faction names are documentation, and documentation that
+		# can drift is worse than none - so they are cross-checked rather than
+		# merely authored. This is the only thing that reads them.
+		for id: String in holder.regular_enemy_ids:
+			_check(ContentDB.enemy(id) != null,
+				"%s names '%s' among its regulars and no such breed exists"
+					% [holder.id, id])
+		for id: String in holder.elite_enemy_ids:
+			var named: EnemyData = ContentDB.enemy(id)
+			_check(named != null and named.category == EnemyData.Category.ELITE,
+				"%s names '%s' as an elite and it is not one" % [holder.id, id])
+
 	# **An Oathbound leader works their own shift.** `CaptiveData.work_multiplier`
 	# was authored - a Glass-born at 1.2, a Steppe Horde leader at 1.4 - and
 	# production counted heads, so which leader a raid won decided nothing.

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_mfp8t"]
+
+[resource]
+script = ExtResource("1_mfp8t")
+is_boss_core = true
+source_act = 9
+effect_id = "burn_damage"
+effect_magnitude = 0.2
+id = "core_cinder_titan"
+display_name = "Core of the Cinder Titan"
+description = "Always active. Never socketed. The ash keeps a little of the fire."

@@ -417,6 +417,7 @@ var _tutorial: TutorialCoach
 var _region_card: VBoxContainer
 var _region_kicker: Label
 var _region_title: Label
+var _region_note: Label
 var _region_tween: Tween = null
 var _state_label: Label
 var _recovery_status: Label
@@ -3111,6 +3112,16 @@ func _build_region_card() -> void:
 	_region_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_region_card.add_child(_region_title)
 
+	# A third line, for what the region is going to do to you. Wrapped and
+	# width-capped: the card centres itself on its widest child, so a long
+	# sentence left unwrapped would drag the title off to one side.
+	_region_note = _label("", 18)
+	_region_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_region_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_region_note.custom_minimum_size.x = REGION_NOTE_WIDTH
+	_region_note.add_theme_color_override("font_color", Color("c3bdb2"))
+	_region_card.add_child(_region_note)
+
 	EventBus.act_started.connect(_on_act_started)
 	EventBus.boss_spawned.connect(_on_boss_announced)
 	EventBus.run_started.connect(_on_run_opened)
@@ -3241,7 +3252,17 @@ func _on_run_opened() -> void:
 
 func _on_act_started(act: int, terrain_id: String) -> void:
 	var terrain: TerrainData = ContentDB.terrain(terrain_id)
-	announce("Act %d" % act, terrain.display_name if terrain != null else terrain_id)
+	# **Who holds this road, and how they fight.** Ten factions carry a name and
+	# a `mechanical_identity` - "slows, drowned crowds and seers that read the
+	# lane before you do" - authored so that "codex, previews and localization
+	# consume the same source", and read by nothing at all. This is the moment
+	# the information is worth something: the player has just arrived.
+	var holder: FactionData = ContentDB.faction_for_act(act)
+	var kicker: String = "Act %d" % act
+	if holder != null and not holder.display_name.is_empty():
+		kicker = "Act %d  -  %s" % [act, holder.display_name]
+	announce(kicker, terrain.display_name if terrain != null else terrain_id,
+		holder.mechanical_identity if holder != null else "")
 
 
 func _on_boss_announced(boss_id: String, act: int) -> void:
@@ -3269,7 +3290,7 @@ func _craft_name(craft: String) -> String:
 	return craft.substr(0, 1).to_upper() + craft.substr(1)
 
 
-func announce(kicker: String, title: String) -> void:
+func announce(kicker: String, title: String, note: String = "") -> void:
 	if _region_card == null:
 		return
 	# The other direction of the same rule: a card arriving takes the centre back
@@ -3279,6 +3300,10 @@ func announce(kicker: String, title: String) -> void:
 	_message_left = 0.0
 	_region_kicker.text = kicker.to_upper()
 	_region_title.text = title
+	# Cleared rather than left: every other caller passes two arguments, and a
+	# note from the last card sitting under a boss name would be nonsense.
+	_region_note.text = note
+	_region_note.visible = not note.is_empty()
 	_region_card.visible = true
 	_region_card.modulate.a = 0.0
 
@@ -4023,6 +4048,12 @@ func _tower_tooltip(tower: TowerData, cost_map: Dictionary) -> String:
 ## not a cutscene, and the player is usually mid-wave when a boss one appears.
 const REGION_CARD_FADE: float = 0.45
 const REGION_CARD_HOLD: float = 2.1
+## How wide the region card's third line may run before it wraps.
+##
+## The card centres on its widest child, so an unwrapped sentence would pull
+## the act title sideways. Narrow enough to sit under a 52pt title without
+## reshaping the card, wide enough that a faction's line is two lines at most.
+const REGION_NOTE_WIDTH: float = 560.0
 
 const BUILD_HINT: String = "Point at a tower to see what it does."
 

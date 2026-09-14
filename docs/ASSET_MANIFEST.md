@@ -1297,7 +1297,16 @@ of the screen would be a downgrade on both.
 All 128×128, type T, placeholder colour `#E8A33D`.
 
 Files: `relic_01.png` … `relic_80.png`, plus `relic_core_drowned_choir.png`,
-`relic_core_mirrorfang.png`, `relic_core_rust_crown.png`.
+`relic_core_mirrorfang.png`, `relic_core_rust_crown.png`,
+`relic_core_mistwarden.png`, `relic_core_rustmother.png`,
+`relic_core_brinefather.png`, `relic_core_horde_warlord.png`,
+`relic_core_glass_colossus.png`, `relic_core_cinder_titan.png`,
+`relic_core_gatekeeper.png`.
+
+> One core an act, and there are ten acts. Seven of them were missing until
+> 2026-09-13, which meant seven acts paid no core at all - the reward is
+> granted only if the relic exists, so the gap was silent. `balance_test`
+> requires one per act now.
 
 > Rename these to match final relic `id`s once relics are designed in Stage 5.
 > Until then the numbered placeholders are correct.

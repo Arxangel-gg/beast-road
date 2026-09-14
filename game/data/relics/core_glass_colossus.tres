@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_mfp8t"]
+
+[resource]
+script = ExtResource("1_mfp8t")
+is_boss_core = true
+source_act = 8
+effect_id = "town_max_hp"
+effect_magnitude = 0.1
+id = "core_glass_colossus"
+display_name = "Core of the Glass Colossus"
+description = "Always active. Never socketed. What stood that long leaves something standing."

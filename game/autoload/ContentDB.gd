@@ -371,6 +371,37 @@ func faction(id: String) -> FactionData:
 	return factions.get(id, null) as FactionData
 
 
+## The boss core this act's kill is owed.
+##
+## Found by `RelicData.source_act` rather than by building an id out of the
+## boss's name, which is what `BossDirector` used to do - and that string was
+## the only thing deciding whether the reward existed. **Seven of the ten acts
+## silently paid no core at all**, because `core_mistwarden` and six like it
+## had never been authored and the grant is written as "award it if it exists".
+## A lookup by act cannot fail quietly in that way: a missing core is a missing
+## row, and `relic_check` fails on one.
+func boss_core_for_act(act: int) -> RelicData:
+	for value: Variant in relics.values():
+		var relic := value as RelicData
+		if relic != null and relic.is_boss_core and relic.source_act == act:
+			return relic
+	return null
+
+
+## Who holds the road in this act.
+##
+## Ten factions were authored with a name, a look and a way of fighting, and
+## **nothing in the game ever asked for one** - `faction()` itself had no caller
+## outside the tools. The act card is where that belongs: it is the one moment
+## the player is told where they now are.
+func faction_for_act(act: int) -> FactionData:
+	for value: Variant in factions.values():
+		var who := value as FactionData
+		if who != null and who.act == act:
+			return who
+	return null
+
+
 func road(id: String) -> RoadData:
 	return roads.get(id, null) as RoadData
 

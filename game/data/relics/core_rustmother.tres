@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic_data.gd" id="1_mfp8t"]
+
+[resource]
+script = ExtResource("1_mfp8t")
+is_boss_core = true
+source_act = 5
+effect_id = "tower_armour"
+effect_magnitude = 0.2
+id = "core_rustmother"
+display_name = "Core of the Rustmother"
+description = "Always active. Never socketed. Rust that hardens rather than eats."

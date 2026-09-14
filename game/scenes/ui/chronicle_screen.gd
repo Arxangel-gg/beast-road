@@ -18,6 +18,7 @@ var _scroll: ScrollContainer
 var _rows: VBoxContainer
 var _close_button: Button
 var _pins: Dictionary = {}
+var _badges: Dictionary = {}
 
 
 func _ready() -> void:
@@ -98,6 +99,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _refresh() -> void:
 	_pins.clear()
+	_badges.clear()
 	for child: Node in _rows.get_children():
 		child.queue_free()
 
@@ -135,6 +137,18 @@ func _objective_row(objective: ChronicleObjectiveData) -> PanelContainer:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_theme_constant_override("separation", 2)
 	row.add_child(copy)
+
+	# **Which goal is being tracked, said out loud.** `ChronicleText.tracking`
+	# is "TRACKED" and was the only string on that resource nothing read - so
+	# the one objective the run is actually following was distinguishable only
+	# by the word on its button, which a player has to go looking for.
+	var badge := Label.new()
+	badge.text = ChronicleGoals.COPY.tracking
+	badge.add_theme_font_size_override("font_size", 11)
+	badge.add_theme_color_override("font_color", Color("d9b271"))
+	badge.visible = false
+	_badges[objective.id] = badge
+	copy.add_child(badge)
 
 	var name_label := Label.new()
 	name_label.text = objective.display_name
@@ -180,6 +194,9 @@ func _refresh_pins() -> void:
 		var selected: bool = Chronicle.selected_id() == id
 		button.set_pressed_no_signal(selected)
 		button.text = ChronicleGoals.COPY.unpin if selected else ChronicleGoals.COPY.pin
+		var badge := _badges.get(id, null) as Label
+		if badge != null:
+			badge.visible = selected
 		button.disabled = MetaState.objective_completed(id) and not selected
 
 
