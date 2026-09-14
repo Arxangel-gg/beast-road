@@ -107,11 +107,11 @@ func set_paused(paused: bool) -> void:
 ##
 ## Personal state stays local; shared deed measurements come from the preceding
 ## final snapshot. Only a terminal fact replayed from the host may settle it.
-func _on_coop_run_ended(victory: bool) -> void:
+func _on_coop_run_ended(victory: bool, returned: bool = false) -> void:
 	var relay: CoopRelay = Coop.relay()
 	if not Coop.is_guest() or relay == null or not relay.is_replaying():
 		return
-	_settle_run(victory)
+	_settle_run(victory, returned)
 
 
 ## Somebody skipped a cinematic, so both of us skip it.
@@ -308,7 +308,16 @@ func end_run(victory: bool) -> void:
 	_settle_run(victory)
 
 
-func _settle_run(victory: bool) -> void:
+## The road home (2026-09-14): the run ends by choice at an act's end, its
+## Marks paid in full as a *return* - not a victory, which only the summit
+## is, and not a fall. Everything else a run end does, it does.
+func return_home() -> void:
+	if Coop.is_guest():
+		return
+	_settle_run(false, true)
+
+
+func _settle_run(victory: bool, returned: bool = false) -> void:
 	if not run_active:
 		return
 	run_active = false
@@ -317,10 +326,11 @@ func _settle_run(victory: bool) -> void:
 	# RunState, and waiting would leave it standing in its town with no report.
 	if Coop.is_host() and Coop.partner_present():
 		Chronicle.publish_progress(victory, true)
-		EventBus.coop_run_ended.emit(victory)
+		EventBus.coop_run_ended.emit(victory, returned)
 
 	var summary: Dictionary = {
 		"victory": victory,
+		"returned": returned,
 		"seed": RunState.run_seed,
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,

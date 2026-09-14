@@ -382,7 +382,7 @@ func _test_a_guest_cannot_author_a_fact() -> void:
 func _test_chronicle_facts_are_ordered_and_host_authored() -> void:
 	_guest_bus.coop_chronicle_progress.connect(func(summary: Dictionary) -> void:
 		_guest_chronicle.append(["progress", [summary.duplicate(true)]]))
-	_guest_bus.coop_run_ended.connect(func(victory: bool) -> void:
+	_guest_bus.coop_run_ended.connect(func(victory: bool, _returned: bool) -> void:
 		_guest_chronicle.append(["ended", [victory]]))
 	_host_bus.coop_chronicle_progress.connect(func(summary: Dictionary) -> void:
 		_host_chronicle.append(["progress", [summary.duplicate(true)]]))
@@ -413,7 +413,7 @@ func _test_chronicle_facts_are_ordered_and_host_authored() -> void:
 	final_summary["kills"] = 1000
 	final_summary["town_damage"] = 11.5
 	_host_bus.coop_chronicle_progress.emit(final_summary)
-	_host_bus.coop_run_ended.emit(true)
+	_host_bus.coop_run_ended.emit(true, false)
 	await _settle(func() -> bool: return _count(_guest_chronicle, "ended") >= 1)
 	_check(_guest_chronicle.size() == 3,
 		"the guest must hear two Chronicle snapshots and exactly one run end")

@@ -485,6 +485,9 @@ jobs:
           # entry, a vault at a real depth, bodies that appear on floor and are
           # steered by the maze rather than into rock.
           check "dungeon maze" --headless --path game res://tools/dungeon_check.tscn
+          # The road home: the pass after an act's boss, its stakes, and the
+          # return it pays in full.
+          check "the road home" --headless --path game res://tools/homecoming_check.tscn
           # The party's conversation before a raid or a rift: unanimous goes and
           # freezes, a mixed answer is the proposer's call, silence is a no, and
           # the first return thaws the field once.

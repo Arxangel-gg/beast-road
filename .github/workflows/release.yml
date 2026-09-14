@@ -139,6 +139,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/fishing_check.tscn
           run_godot_clean --headless --path game res://tools/rift_check.tscn
           run_godot_clean --headless --path game res://tools/dungeon_check.tscn
+          run_godot_clean --headless --path game res://tools/homecoming_check.tscn
           run_godot_clean --headless --path game res://tools/party_events_check.tscn
           run_godot_clean --headless --path game res://tools/guide_check.tscn
           run_godot_clean --headless --path game res://tools/gear_affix_check.tscn

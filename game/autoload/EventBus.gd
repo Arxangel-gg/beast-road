@@ -255,7 +255,7 @@ signal coop_relic_chosen(relic_id: String)
 ## A run is one shared thing. Without this the guest stood in its town with no
 ## report and no way out while the host read the results of a run they had both
 ## just lost.
-signal coop_run_ended(victory: bool)
+signal coop_run_ended(victory: bool, returned: bool)
 
 ## An animal left, whether hunted or forgotten.
 signal coop_wildlife_removed(net_id: int)

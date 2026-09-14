@@ -319,7 +319,10 @@ var _pending_summary: Dictionary = {}
 func show_results(victory: bool, summary: Dictionary) -> void:
 	_show_score(summary)
 	_offer_ascension(victory)
-	title.text = "The sanctuary" if victory else "The road ends here"
+	# A return (the road home, 2026-09-14) is the third ending, and it reads
+	# as a homecoming rather than as a fall.
+	var returned: bool = bool(summary.get("returned", false))
+	title.text = "The sanctuary" if victory else ("Home again" if returned else "The road ends here")
 	# Focused so a controller or the keyboard can leave without hunting for the
 	# button, and so the one way out is visibly the one way out.
 	menu_button.grab_focus.call_deferred()
@@ -407,7 +410,7 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# **What the road paid whatever happened.** Levels, materials, fish, gear
 	# and spirits are the account's and stay; on a loss this is the answer to
 	# "was that worth anything", and it is asked before the unlock list.
-	lines.append_array(_kept_lines(summary.get("kept", {}), victory))
+	lines.append_array(_kept_lines(summary.get("kept", {}), victory or returned))
 	lines.append_array([
 		"",
 		"Tools %d   ·   Legacy rank %d of %d" % [

@@ -2207,6 +2207,30 @@ with floor at their foot and spaced, a few carrying light, every piece on open
 floor, the runes on the vault, the air moving, no rock before the warning and
 rock on every bite.
 
+**The road home, as of 2026-09-14.** From the fifth list's fourth priority:
+"push another Act?" as a decision with rising stakes. The stakes were already
+in the game and nobody was asked about them: a run pays `RUN_MARKS_REWARD`
+Marks an act, and a fall pays `RUN_MARKS_LOSS_SHARE` of it. So once an act's
+boss is down, the pass behind the party is offered on the crossroad screen -
+**turn for home** and bank the run's Marks in full, or **push on** for
+another act's worth and fall for the share. The card shows what a return pays
+now, what the next act would pay, and what a fall keeps, read off the same
+arithmetic the end uses (`Run.homecoming_marks`) so the card and the purse
+cannot disagree.
+
+**A return is the third ending.** `GameDirector.return_home` settles the run
+as `returned` - not a victory, which only the summit is, so the Sigil and the
+victory Tools stay the summit's; and not a fall, so the Marks are whole and
+the debrief reads "Home again". It travels to a guest as a second flag on the
+run's end, and a host that does not send one ended the run the old way.
+
+**The host decides.** The run is one shared thing and the host's to end; a
+guest is told the outcome, not shown the card. A headless run is never held
+on the pass - `Run.ask_homecoming` is off there unless a gate says it will
+answer - which is what keeps every gate that fells a boss from hanging on a
+question. `homecoming_check` holds the stakes, the pass, pushing on and the
+return.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

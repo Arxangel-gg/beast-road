@@ -532,8 +532,8 @@ func _on_coop_party_event_away(slot: int, away: bool) -> void:
 	_relay(Fact.PARTY_EVENT_AWAY, [slot, away])
 
 
-func _on_coop_run_ended(victory: bool) -> void:
-	_relay(Fact.RUN_ENDED, [victory])
+func _on_coop_run_ended(victory: bool, returned: bool) -> void:
+	_relay(Fact.RUN_ENDED, [victory, returned])
 
 
 func _on_coop_crossroad_opened(segment: int) -> void:
@@ -924,8 +924,10 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))
 		Fact.RUN_ENDED:
-			if args.size() == 1 and args[0] is bool:
-				bus.coop_run_ended.emit(bool(args[0]))
+			# A return is a second flag beside the victory; a host that does
+			# not send one ended the run the old way.
+			if args.size() >= 1 and args[0] is bool:
+				bus.coop_run_ended.emit(bool(args[0]), args.size() >= 2 and bool(args[1]))
 		Fact.CHRONICLE_PROGRESS:
 			if args.size() == 1 and args[0] is Dictionary:
 				bus.coop_chronicle_progress.emit(args[0] as Dictionary)

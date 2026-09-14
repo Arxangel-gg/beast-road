@@ -19,6 +19,11 @@ var _vote_left: float = 0.0
 
 signal road_chosen(option_id: String)
 signal relic_chosen(relic_id: String)
+## The road home was answered: true to turn for home, false to push on.
+signal homecoming_decided(go_home: bool)
+
+## The last road-home offer's figures, for a gate to read back.
+var last_homecoming: Dictionary = {}
 
 @export var panel: Control
 
@@ -413,6 +418,52 @@ func open_omen_choice() -> void:
 		_buttons[omen.id] = button
 		options_box.add_child(button)
 	panel.visible = true
+
+
+## The road home (2026-09-14): the act's boss is down, and the party may
+## turn for home or push on. Two cards, the purse on each - what a return
+## pays now, what the next act would pay, and what a fall keeps - so the
+## decision is made with the numbers in view rather than remembered.
+func open_homecoming(act: int, home_marks: int, next_marks: int, fall_marks: int) -> void:
+	_road_row = null
+	_relic_followup_segment = -1
+	_buttons.clear()
+	_sent_pointer = Vector2.ZERO
+	_resolving = false
+	for child: Node in options_box.get_children():
+		child.queue_free()
+	last_homecoming = {"act": act, "home": home_marks, "next": next_marks, "fall": fall_marks}
+	title.text = "THE PASS BEHIND YOU  ·  Act %d is yours" % act
+	var ahead: TerrainData = ContentDB.terrain_for_act(act + 1)
+	var where: String = ahead.display_name if ahead != null else "the road ahead"
+	var push := _homecoming_card("PUSH ON\nAct %d, %s. Come home from it with %d Marks - or fall there, and keep %d." % [
+		act + 1, where, next_marks, fall_marks], false)
+	var home := _homecoming_card("TURN FOR HOME\nBring home %d Marks and everything kept. The road ends here, as a return." % home_marks, true)
+	_buttons["push"] = push
+	_buttons["home"] = home
+	options_box.add_child(push)
+	options_box.add_child(home)
+	panel.visible = true
+	push.grab_focus.call_deferred()
+
+
+func _homecoming_card(text: String, go_home: bool) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(CARD_WIDTH, 96.0)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.pressed.connect(_decide_homecoming.bind(go_home))
+	return button
+
+
+func _decide_homecoming(go_home: bool) -> void:
+	if _resolving:
+		return
+	_resolving = true
+	_buttons.clear()
+	panel.visible = false
+	homecoming_decided.emit(go_home)
 
 
 func _choose_omen(omen_id: String) -> void:

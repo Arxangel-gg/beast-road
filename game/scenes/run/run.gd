@@ -49,6 +49,10 @@ var _event_return_phase: int = RunState.Phase.ROAD_BATTLE
 var _preparation_left: float = 0.0
 var _coverage_warning_acknowledged: bool = false
 var _pending_boss_act: int = 0
+## Whether the road home is asked for real (2026-09-14). A headless run has
+## nobody to answer, so it pushes on without asking unless a gate says it
+## will answer.
+var ask_homecoming: bool = DisplayServer.get_name() != "headless"
 ## The phase the field was in when a rift gate was taken, so the road only
 ## resumes if it was moving.
 var _rift_return_phase: int = RunState.Phase.ROAD_BATTLE
@@ -685,6 +689,14 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 	if act >= Balance.ACT_COUNT and not RunState.is_final_ascent():
 		_begin_final_ascent()
 		return
+	# **The road home** (2026-09-14): with the act's boss down, the party may
+	# turn for home with the run's Marks paid in full, or push on. Asked
+	# before the road resumes, so a return is a clean end rather than a stop.
+	if _homecoming_open(act):
+		var home: bool = await _ask_homecoming(act)
+		if home:
+			GameDirector.return_home()
+			return
 	journey.resume_after_boss()
 	# A new act means new ground underfoot.
 	battlefield.refresh_terrain()
@@ -693,6 +705,35 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 	# a decision that stays needs a moment that is already about what comes next.
 	_offer_omens()
 	_enter_preparation(false)
+
+
+## Whether the pass behind the party is offered: for real, on the host, from
+## `HOMECOMING_FROM_ACT`. A guest is told the outcome rather than shown the
+## card, because the run is one shared thing and the host's to end.
+func _homecoming_open(act: int) -> bool:
+	return ask_homecoming and not Coop.is_guest() and crossroad_ui != null \
+		and act >= Balance.HOMECOMING_FROM_ACT
+
+
+## The offer, and the answer. What the card shows is read off the same
+## arithmetic the end pays, so the card and the purse cannot disagree.
+func _ask_homecoming(act: int) -> bool:
+	crossroad_ui.open_homecoming(act, homecoming_marks(act, true),
+		homecoming_marks(act + 1, true), homecoming_marks(act + 1, false))
+	var home: bool = await crossroad_ui.homecoming_decided
+	return home
+
+
+## What the road pays for `act`: in full for a return or the summit, the
+## loss share for a fall. Static, so a gate can read the stakes without a run.
+static func homecoming_marks(act: int, home: bool) -> int:
+	var tier: CampaignTierData = RunState.tier()
+	var earned: float = float(Balance.RUN_MARKS_REWARD) * float(maxi(act, 1))
+	if tier != null:
+		earned *= tier.loot_scale
+	if not home:
+		earned *= Balance.RUN_MARKS_LOSS_SHARE
+	return maxi(1, int(round(earned)))
 
 
 ## Three portents the road has not shown yet.
@@ -1122,15 +1163,14 @@ func _on_run_ended(victory: bool, summary: Dictionary) -> void:
 	# taught the player something and still cost them an hour; paying nothing for
 	# it makes the stash a reward for winning, which is exactly backwards for a
 	# system whose job is to make the *next* attempt stronger.
-	var tier: CampaignTierData = RunState.tier()
-	var earned: float = float(Balance.RUN_MARKS_REWARD) * float(RunState.act)
-	if tier != null:
-		earned *= tier.loot_scale
-	if not victory:
-		earned *= Balance.RUN_MARKS_LOSS_SHARE
-	MetaState.marks += maxi(1, int(round(earned)))
+	#
+	# A return (the road home, 2026-09-14) is paid in full: the party chose
+	# to bank the run rather than gamble it, and that is the whole decision.
+	var returned: bool = bool(summary.get("returned", false))
+	var marks: int = homecoming_marks(RunState.act, victory or returned)
+	MetaState.marks += marks
 	MetaState.save_game()
-	summary["marks"] = maxi(1, int(round(earned)))
+	summary["marks"] = marks
 
 	if hud != null:
 		hud.show_end_report()

@@ -513,6 +513,12 @@ const RUN_MARKS_REWARD: int = 45
 ## What a losing run still pays, as a share of a winning one. [TUNE]
 const RUN_MARKS_LOSS_SHARE: float = 0.55
 
+## The road home (2026-09-14): once an act's boss is down the party may turn
+## for home with the run's Marks paid in full, or push on for another act's
+## worth - and fall for `RUN_MARKS_LOSS_SHARE` of the lot. Offered from the
+## end of this act on. [TUNE]
+const HOMECOMING_FROM_ACT: int = 1
+
 const HERO_MAX_LEVEL: int = 100
 
 ## Runs per tier that `tools/level_curve.tscn` simulates. Reporting only.
