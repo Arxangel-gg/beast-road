@@ -686,6 +686,12 @@ func _on_peer_connected(id: int) -> void:
 			mine.cleared = MetaState.tier_cleared
 		party().seat(id, "Warden")
 		_publish_roster()
+		# **A late arrival is told the run** (2026-09-14). A guest joining - or
+		# rejoining after a drop - while a run is live is sent the seed alone,
+		# addressed to it, exactly as the party was told when the run began;
+		# its own run then stands up and asks for the rest (`Request.WELCOME`).
+		if GameDirector.run_active and _relay != null:
+			_relay.tell(id, CoopRelay.Fact.RUN_STARTED, [RunState.run_seed])
 	EventBus.coop_partner_joined.emit(id)
 
 

@@ -64,6 +64,7 @@ var _announced: Dictionary = {}
 
 func _ready() -> void:
 	EventBus.coop_tower_state.connect(_on_tower_state)
+	EventBus.coop_welcome.connect(_on_coop_welcome)
 	EventBus.coop_enemy_spawned.connect(_on_enemy_spawned)
 	EventBus.coop_enemy_batch.connect(_on_enemy_batch)
 	EventBus.coop_enemy_removed.connect(_on_enemy_removed)
@@ -445,6 +446,89 @@ func _on_coop_enemy_struck(net_id: int, at: Vector2) -> void:
 		enemy.strike_remote(at)
 
 
+# --- The welcome (2026-09-14) --------------------------------------------------------
+
+## Everything a guest whose field has just stood up needs to be standing in
+## the same run as the host - a fresh guest at the start, or one back after a
+## drop. Composed from what the host holds, as the facts the guest already
+## knows how to apply, and addressed to that peer alone so nobody else is
+## told the run started twice. Host side.
+func welcome(peer: int) -> void:
+	if not Coop.is_host():
+		return
+	var line: CoopRelay = Coop.relay()
+	if line == null:
+		return
+	for fact: Array in compose_welcome():
+		line.tell(peer, fact[0], fact[1])
+
+
+## The welcome as a list of [fact, args], in the order they must land: the
+## run itself, then the clock, the phase, the purses and the wall, then
+## everything standing on the field. Only what was *announced* is told -
+## a body with no identity cannot be mirrored, and a drop with none was
+## never on the wire.
+func compose_welcome() -> Array:
+	var facts: Array = []
+	facts.append([CoopRelay.Fact.WELCOME, [{
+		"seed": RunState.run_seed, "wave": RunState.wave_number, "phase": int(RunState.phase)}]])
+	facts.append([CoopRelay.Fact.WORLD_CLOCK,
+		[RunState.distance_travelled, RunState.weather_id, RunState.act]])
+	facts.append([CoopRelay.Fact.PHASE_CHANGED, [int(RunState.phase), int(RunState.phase)]])
+	for id: String in RunState.CURRENCIES:
+		facts.append([CoopRelay.Fact.CURRENCY_CHANGED, [id, RunState.currency(id)]])
+	var battlefield := field as Battlefield
+	if battlefield != null and battlefield.town != null and battlefield.town.health != null:
+		facts.append([CoopRelay.Fact.TOWN_HEALTH,
+			[battlefield.town.health.current_hp, battlefield.town.health.max_hp]])
+	for anchor: Variant in RunState.towers:
+		var data: TowerData = RunState.tower_at(anchor)
+		if data != null:
+			facts.append([CoopRelay.Fact.TOWER_STATE, [anchor, data.id, RunState.level_at(anchor)]])
+	for tile: Variant in RunState.barricades:
+		var barricade: BarricadeData = RunState.barricade_at(tile)
+		if barricade != null:
+			facts.append([CoopRelay.Fact.BARRICADE_STATE,
+				[tile, barricade.id, RunState.barricade_health(tile)]])
+	for tile: Variant in RunState.traps:
+		var trap: TrapData = RunState.trap_at(tile)
+		if trap != null:
+			facts.append([CoopRelay.Fact.TRAP_STATE, [tile, trap.id, RunState.trap_triggers_left(tile)]])
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var enemy := node as Enemy
+		if enemy == null or enemy.net_id <= 0 or enemy.is_dying() or enemy.data == null:
+			continue
+		facts.append([CoopRelay.Fact.ENEMY_SPAWNED, [enemy.net_id, enemy.data.id, enemy.lane,
+			enemy.global_position, enemy.hp_scale(), enemy.damage_scale(), enemy.speed_scale(),
+			enemy.oath_pursuer]])
+	if battlefield != null and battlefield.wildlife() != null:
+		for animal: Array in battlefield.wildlife().announced_animals():
+			facts.append([CoopRelay.Fact.WILDLIFE_SPAWNED, animal])
+	for node: Node in get_tree().get_nodes_in_group(LootDrop.GROUP):
+		var drop := node as LootDrop
+		if drop == null or drop.net_id <= 0 or drop.is_taken():
+			continue
+		if not drop.gear.is_empty():
+			facts.append([CoopRelay.Fact.GEAR_DROPPED,
+				[drop.net_id, drop.gear, drop.global_position, drop.player_dropped]])
+		elif not drop.currency.is_empty():
+			facts.append([CoopRelay.Fact.LOOT_SPAWNED,
+				[drop.net_id, drop.currency, drop.amount, drop.global_position]])
+	return facts
+
+
+## The run as it stands, received. Guest side. The wave is the one number
+## nothing else on the wire carries; the phase and the clock follow as their
+## own facts and land through their own handlers.
+func _on_coop_welcome(snapshot: Dictionary) -> void:
+	if not Coop.is_guest():
+		return
+	if int(snapshot.get("seed", RunState.run_seed)) != RunState.run_seed:
+		print("[coop] welcomed into seed %d while standing in %d" % [
+			int(snapshot.get("seed", 0)), RunState.run_seed])
+	RunState.wave_number = int(snapshot.get("wave", RunState.wave_number))
+
+
 ## Forwards this machine's own tower changes. Host side.
 func _on_tower_changed(anchor: Vector2i) -> void:
 	if not _is_authority_with_company():
@@ -485,6 +569,8 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 	if battlefield == null:
 		return
 	match kind:
+		CoopRelay.Request.WELCOME:
+			welcome(from)
 		CoopRelay.Request.BUILD_TOWER:
 			if args.size() == 2:
 				_answer(from, kind, battlefield.try_build(args[0] as Vector2i,

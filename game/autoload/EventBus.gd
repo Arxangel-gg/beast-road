@@ -754,6 +754,10 @@ signal snow_cover_changed(cover: float)
 ## guest's RunState mirrors the host's, and a mirror of a different world is not
 ## a mirror.
 signal coop_run_started(seed: int)
+## The run as it stands, told to a guest whose field has just stood up (the
+## welcome, 2026-09-14): {seed, wave, phase}. The rest of the welcome arrives
+## as the facts the guest already knows how to apply.
+signal coop_welcome(snapshot: Dictionary)
 
 ## The host's reachable address changed, or the attempt to find one finished.
 ## `external` is empty while unknown; `mapped` says whether UPnP opened the port.

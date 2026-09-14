@@ -2231,6 +2231,32 @@ answer - which is what keeps every gate that fells a boss from hanging on a
 question. `homecoming_check` holds the stakes, the pass, pushing on and the
 return.
 
+**A guest can rejoin a live run, as of 2026-09-14.** From the fifth list's
+multiplayer hardening: drop-in, and rejoin after a disconnect.
+`docs/COOP_DESIGN.md` §7 had said "the guest may rejoin" since the co-op
+decision, and the session layer always allowed it - reconnecting is the same
+code path as connecting - but nothing told the rejoined guest what it had
+missed: every tower, body, phase and purse is a fact sent once, on change, so
+a guest arriving in Act IV stood on an empty road with the right seed.
+
+**The welcome.** Three pieces, each the smallest thing that closes the gap:
+a peer connecting while the host's run is live is sent `RUN_STARTED` with
+the seed, **addressed to it alone** (`CoopRelay.tell`) - told to everybody it
+would start every other guest's run again; the guest's `Run` asks for the
+world once its field is up (`Request.WELCOME`), because facts that arrive
+before the field exists land on nothing; and the host answers with
+`CoopWorld.compose_welcome` - the run itself (seed, wave, phase), then the
+clock, the phase, every purse and the wall, then every tower, barricade and
+trap, every *announced* body and animal, and every drop with an identity -
+each as the fact the guest already knows how to apply, so no second
+application path exists to drift. Bosses are not yet in it.
+
+**Host migration is still out of scope**, and stated: the run is the host's,
+and a host that drops ends it for both. `rejoin_check` composes the welcome
+from a real field and feeds it back through the relay's own receive path as
+a guest; `coop_check` proves the wire tells a late arrival the seed, once,
+and tells the host nothing.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

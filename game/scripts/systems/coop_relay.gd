@@ -124,6 +124,9 @@ enum Fact {
 	WRATH_WARNED = 61,
 	CLIMATE_BAND = 62,
 	WILDLIFE_SACK = 63,
+	## The run as it stands, for a guest whose field has just stood up (the
+	## welcome, 2026-09-14). Addressed to that guest alone.
+	WELCOME = 64,
 	## The party events, host to everyone. See `PartyEvents`.
 	PARTY_EVENT_PROPOSED = 53,
 	PARTY_EVENT_VOTES = 54,
@@ -199,6 +202,8 @@ enum Request {
 	PARTY_EVENT_REWARD = 30,
 	## A guest stepped off the road into its own event, or came back.
 	PARTY_EVENT_AWAY = 31,
+	## A guest's field is up: tell me the run as it stands.
+	WELCOME = 32,
 }
 
 ## Facts that are *state announcements* rather than events.
@@ -792,6 +797,17 @@ func request(kind: Request, args: Array = []) -> bool:
 	return _send([TAG_REQUEST, int(kind), args])
 
 
+## Tells one peer a fact the rest already hold. Host side only.
+##
+## Addressed rather than broadcast, and that is the whole point: the welcome
+## (2026-09-14) re-states the run for a guest whose field has just stood up,
+## and told to everybody it would start every other guest's run again.
+func tell(peer: int, kind: Fact, args: Array) -> bool:
+	if session == null or not bool(session.call("is_host")):
+		return false
+	return _send([TAG_FACT, int(kind), args], peer)
+
+
 ## Tells one peer it cannot have what it asked for.
 ##
 ## Addressed rather than broadcast: the other player has no use for it, and a
@@ -1047,6 +1063,9 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.RUN_STARTED:
 			if args.size() == 1:
 				bus.coop_run_started.emit(int(args[0]))
+		Fact.WELCOME:
+			if args.size() == 1 and args[0] is Dictionary:
+				bus.coop_welcome.emit(args[0] as Dictionary)
 		Fact.HOST_INPUT:
 			if args.size() == 2 and args[1] is Array:
 				bus.coop_host_input.emit(int(args[0]), args[1] as Array)

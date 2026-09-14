@@ -69,6 +69,15 @@ func _ready() -> void:
 
 	EventBus.crossroad_reached.connect(_on_crossroad_reached)
 	EventBus.act_boss_due.connect(_on_act_boss_due)
+	# **A guest's field is up: ask for the world** (the welcome, 2026-09-14). A
+	# fresh guest is told an empty one; a guest back after a drop is told the
+	# towers, the bodies and the purse it missed. Asked from here rather than
+	# sent on connect, because facts that arrive before the field exists land
+	# on nothing.
+	if Coop.is_guest():
+		var line: CoopRelay = Coop.relay()
+		if line != null:
+			line.request(CoopRelay.Request.WELCOME)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	EventBus.raid_ended.connect(_on_raid_ended)
 	EventBus.rift_requested.connect(_on_rift_requested)

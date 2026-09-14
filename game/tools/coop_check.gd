@@ -122,6 +122,7 @@ func _ready() -> void:
 	await _test_world_facts_cross_the_wire()
 	await _test_a_refusal_is_addressed()
 	await _test_a_dropped_host_ends_the_guest_run()
+	await _test_a_late_guest_is_told_the_run()
 	await _test_guest_leaves_cleanly()
 	await _test_a_bad_address_fails_instead_of_hanging()
 	_test_a_code_survives_the_round_trip()
@@ -643,6 +644,35 @@ func _test_a_dropped_host_ends_the_guest_run() -> void:
 	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED)
 	_check(_guest.state() == _guest.State.CONNECTED,
 		"a session must be re-openable after a drop")
+
+
+## A guest arriving while a run is live is told the run - the seed,
+## addressed to it alone - so a drop can be followed by a rejoin (the
+## welcome, 2026-09-14). The rest of the welcome is `rejoin_check`'s.
+func _test_a_late_guest_is_told_the_run() -> void:
+	var seeds: Array[int] = []
+	var listener: Callable = func(seed_value: int) -> void: seeds.append(seed_value)
+	_guest_bus.coop_run_started.connect(listener)
+	var host_told: Array[int] = []
+	var host_listener: Callable = func(seed_value: int) -> void: host_told.append(seed_value)
+	_host_bus.coop_run_started.connect(host_listener)
+	# The guest leaves, the host's run goes on, and the guest comes back.
+	_guest.leave()
+	await _settle(func() -> bool: return not _host.partner_present())
+	var seed_before: int = RunState.run_seed
+	RunState.run_seed = 4242
+	GameDirector.run_active = true
+	_check(_guest.join("127.0.0.1", TEST_PORT), "the guest must be able to rejoin a live run")
+	await _settle(func() -> bool: return seeds.size() >= 1)
+	GameDirector.run_active = false
+	RunState.run_seed = seed_before
+	_guest_bus.coop_run_started.disconnect(listener)
+	_host_bus.coop_run_started.disconnect(host_listener)
+	_check(seeds.size() == 1 and seeds[0] == 4242,
+		"a late guest is told the run's seed, once, addressed to it (%s)" % str(seeds))
+	_check(host_told.is_empty(), "and the host is not told its own run started again")
+	await _settle(func() -> bool: return _guest.state() == _guest.State.CONNECTED and _host.partner_present())
+	_check(_guest.state() == _guest.State.CONNECTED, "and stands connected afterwards")
 
 
 func _test_guest_leaves_cleanly() -> void:

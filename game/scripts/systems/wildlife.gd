@@ -190,6 +190,22 @@ func _send_batch() -> void:
 		EventBus.coop_wildlife_batch.emit(entries)
 
 
+## Every animal the host has announced, as the arguments its spawn fact
+## carried, for the welcome (2026-09-14). Host side.
+func announced_animals() -> Array:
+	var out: Array = []
+	for animal: Dictionary in _living:
+		var sprite := animal.get("sprite", null) as Sprite2D
+		var kind := animal.get("data", null) as WildlifeData
+		if sprite == null or not is_instance_valid(sprite) or kind == null:
+			continue
+		if int(animal.get("net_id", 0)) <= 0 or float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		out.append([int(animal["net_id"]), kind.id, sprite.global_position,
+			bool(animal.get("shiny", false))])
+	return out
+
+
 ## The host put an animal down, so one appears here. Guest side.
 func _on_coop_spawned(net_id: int, kind_id: String, at: Vector2,
 		shiny: bool) -> void:
