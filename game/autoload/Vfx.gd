@@ -239,6 +239,18 @@ func clear_vignette() -> void:
 		material.set_shader_parameter("strength", 0.0)
 
 
+## How red the screen edge is, from 0 to `VFX_VIGNETTE_MAX`. For the gate, which
+## has no other way to ask whether a warning that belongs to a run has outlived
+## it.
+func vignette_strength() -> float:
+	if _vignette == null or not is_instance_valid(_vignette):
+		return 0.0
+	var material: ShaderMaterial = _vignette.material as ShaderMaterial
+	if material == null:
+		return 0.0
+	return float(material.get_shader_parameter("strength"))
+
+
 ## Parents an effect and enforces the cap by freeing the oldest child. Children
 ## are ordered by insertion, so child 0 is always the oldest still alive.
 func _track(node: Node) -> void:
@@ -1655,6 +1667,14 @@ func _on_hero_health(current: float, maximum: float) -> void:
 		return
 	var ratio: float = current / maximum
 	var danger: float = clampf(1.0 - ratio / Balance.VFX_VIGNETTE_THRESHOLD, 0.0, 1.0)
+	# **A settled run cannot raise it again.** The clear on `run_ended` is only
+	# as good as its ordering, and a health report arriving after it - a wipe
+	# settling, an arena tearing down, a co-op end crossing the wire late -
+	# would put the edge back on with nothing left to take it off. Belt and
+	# braces with `GameDirector.goto_menu`, deliberately: this one stops it
+	# being set, that one stops it being carried.
+	if danger > 0.0 and RunState.phase == RunState.Phase.ENDED:
+		return
 	var material: ShaderMaterial = _vignette.material as ShaderMaterial
 	if material != null:
 		material.set_shader_parameter("strength", danger * Balance.VFX_VIGNETTE_MAX)

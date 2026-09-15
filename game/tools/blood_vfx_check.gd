@@ -52,6 +52,8 @@ func _ready() -> void:
 				found_at_target = true
 	_check(found_at_target, "hero blood must appear on the Warden named by the damage fact")
 	_test_persistent_blood()
+	_test_the_vignette_belongs_to_the_run()
+	await _test_the_title_screen_opens_clean()
 
 	Vfx.clear()
 	Vfx.bind_world(null)
@@ -151,6 +153,82 @@ func _test_persistent_blood() -> void:
 			"healing must wash the stain off, left %.3f"
 				% BloodStain.level(material))
 	sprite.queue_free()
+
+
+
+## **The red edge is a warning about a hero, and it dies with the run.**
+##
+## Owner, 2026-09-15: "the red health vignette still appears on title screen in
+## some cases but shouldn't." It is a shader parameter on a `CanvasLayer` that
+## `Vfx` owns, and `Vfx` is an autoload - so it survives every scene change in
+## the game, and the only thing that ever takes it off is somebody choosing to.
+## Nothing on the main menu reports health, so whatever it was last told is what
+## the title screen wears.
+##
+## Three ways it outlives a run, and none of them shows in a still frame:
+##
+## - **A run that is left rather than settled.** Quitting from the pause menu
+##   and a co-op host going away both reach the menu without `run_ended`.
+## - **A report that lands after the end.** The clear on `run_ended` is only as
+##   good as its ordering; anything emitting health afterwards puts it back.
+## - **The new run that follows.** A fresh road must open with a clean screen
+##   whatever the last one ended as.
+func _test_the_vignette_belongs_to_the_run() -> void:
+	var phase: RunState.Phase = RunState.phase
+	var active: bool = GameDirector.run_active
+
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	EventBus.hero_health_changed.emit(1.0, 100.0)
+	var hurt: float = Vfx.vignette_strength()
+	_check(hurt > 0.0,
+		"a nearly dead hero must redden the screen edge, got %.3f" % hurt)
+	_check(hurt <= Balance.VFX_VIGNETTE_MAX + 0.001,
+		"and never past its own ceiling, got %.3f" % hurt)
+	EventBus.hero_health_changed.emit(100.0, 100.0)
+	_check(Vfx.vignette_strength() <= 0.001,
+		"a whole hero must wear none of it, left %.3f" % Vfx.vignette_strength())
+
+	# **Settled, and then reported at.** The refusal is on the setting rather
+	# than only on the clearing, so ordering cannot beat it.
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	EventBus.hero_health_changed.emit(1.0, 100.0)
+	RunState.set_phase(RunState.Phase.ENDED)
+	Vfx.clear_vignette()
+	EventBus.hero_health_changed.emit(1.0, 100.0)
+	_check(Vfx.vignette_strength() <= 0.001,
+		("a health report after the run ended must not put it back, left %.3f"
+			% Vfx.vignette_strength()))
+
+	# Back as it was found: this gate shares its autoloads with the next one.
+	RunState.set_phase(phase)
+	GameDirector.run_active = active
+	Vfx.clear_vignette()
+
+
+## **And the title screen itself opens clean**, whichever way it was reached.
+##
+## Driven rather than read, and driven on the real scene: the two paths that
+## reach the menu without settling a run - the pause menu's quit and a co-op
+## host going away - cannot be taken in a headless gate without the scene
+## change freeing the gate, so what is checked is the invariant they broke.
+## Standing the menu up while the edge is red is exactly the state the owner
+## screenshotted.
+func _test_the_title_screen_opens_clean() -> void:
+	var phase: RunState.Phase = RunState.phase
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	EventBus.hero_health_changed.emit(1.0, 100.0)
+	_check(Vfx.vignette_strength() > 0.0,
+		"the gate must start this one with a red screen or it proves nothing")
+	var scene := load("res://scenes/ui/main_menu.tscn") as PackedScene
+	var menu: Node = scene.instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	_check(Vfx.vignette_strength() <= 0.001,
+		("the main menu must open with no red edge however the player got "
+			+ "there, left %.3f") % Vfx.vignette_strength())
+	menu.queue_free()
+	await get_tree().process_frame
+	RunState.set_phase(phase)
 
 
 func _check(condition: bool, message: String) -> void:

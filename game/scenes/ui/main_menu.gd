@@ -127,6 +127,24 @@ var _shimmer_dice := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	# **No hero here, so nothing that reads one.**
+	#
+	# Owner, 2026-09-15: "the red health vignette still appears on title screen
+	# in some cases but shouldn't." It is a shader parameter on a layer `Vfx`
+	# owns, and `Vfx` is an autoload - so it outlives every scene change, and
+	# the only thing that ever takes it off is somebody choosing to. It was
+	# cleared when a run was *settled* (`run_ended`), which misses every way of
+	# leaving one that settles nothing: quitting from the pause menu, and a
+	# co-op host going away. Nothing on this screen reports health, so whatever
+	# the road last said was worn until the next run started.
+	#
+	# Cleared at the destination rather than at each door, because the
+	# invariant the owner reported is about *this screen* rather than about any
+	# particular way of reaching it - and a door added later cannot forget.
+	# Deliberately not done on every scope change: a raid must not wipe the
+	# warning that the hero is nearly dead, which is why `Vfx.clear` and
+	# `Vfx.clear_vignette` are two functions.
+	Vfx.clear_vignette()
 	ScreenFit.set_menu_layout(true)
 	get_viewport().size_changed.connect(_fit_menu)
 	TouchInput.shown_changed.connect(func(_showing: bool) -> void: _fit_menu.call_deferred())
