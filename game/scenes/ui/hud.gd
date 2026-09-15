@@ -1977,25 +1977,25 @@ func _build_raid_panel() -> void:
 func _build_rift_panel() -> void:
 	_rift_panel = PanelContainer.new()
 	_rift_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_fit_centred(_rift_panel, 300.0)
-	_rift_panel.offset_top = 130.0
+	_fit_centred(_rift_panel, Balance.RIFT_PANEL_NARROW)
+	_rift_panel.offset_top = Balance.RIFT_PANEL_TOP
 	_rift_panel.visible = false
 	add_child(_rift_panel)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 4)
 	_rift_panel.add_child(column)
-	_rift_status = _label("", 18)
+	_rift_status = _label("", Balance.RIFT_PANEL_SMALL_TEXT)
 	_rift_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_rift_status)
-	_rift_bar = _make_bar(Color("9b7fe0"), 260.0)
-	_rift_bar.custom_minimum_size = Vector2(260.0, 12.0)
+	_rift_bar = _make_bar(Color("9b7fe0"), Balance.RIFT_PANEL_NARROW - 40.0)
+	_rift_bar.custom_minimum_size = Vector2(Balance.RIFT_PANEL_NARROW - 40.0, 6.0)
 	_rift_bar.value = 0.0
 	column.add_child(_rift_bar)
 	# The clock as a bar under the progress: time and progress to the guardian
 	# are the two numbers a rift is about, and both read at a glance.
-	_rift_clock = _make_bar(Color("e0a44a"), 260.0)
-	_rift_clock.custom_minimum_size = Vector2(260.0, 6.0)
+	_rift_clock = _make_bar(Color("e0a44a"), Balance.RIFT_PANEL_NARROW - 40.0)
+	_rift_clock.custom_minimum_size = Vector2(Balance.RIFT_PANEL_NARROW - 40.0, 3.0)
 	_rift_clock.value = 1.0
 	column.add_child(_rift_clock)
 	_descend_button = _add_button(column, "Go deeper", func() -> void: descend_requested.emit())
@@ -2008,7 +2008,8 @@ func _build_rift_panel() -> void:
 		_rift_collapsing = false
 		_rift_clock.modulate = Color.WHITE
 		_descend_button.visible = false
-		_leave_button.visible = false)
+		_leave_button.visible = false
+		_rift_compact(true))
 	EventBus.rift_stage_cleared.connect(func(stage: int, stages: int) -> void:
 		_rift_collapsing = false
 		_rift_clock.modulate = Color.WHITE
@@ -2019,14 +2020,50 @@ func _build_rift_panel() -> void:
 			_rift_status.text = "Stage %d of %d cleared. The chest is yours; the stairs go down." % [stage, stages]
 			_descend_button.visible = true
 		_leave_button.visible = true
+		_rift_compact(false)
 		(_descend_button if _descend_button.visible else _leave_button).grab_focus())
 	EventBus.rift_collapsing.connect(func(_seconds: float) -> void:
 		_rift_collapsing = true
 		_rift_clock.modulate = Color("ff6a4a")
 		_descend_button.visible = false
-		_leave_button.visible = false)
+		_leave_button.visible = false
+		# Collapsing is a thing to read, not a thing to decide: back to a strip,
+		# with the clock gone red inside it.
+		_rift_compact(true))
 	EventBus.rift_ended.connect(func(_reward: Dictionary) -> void:
 		_rift_panel.visible = false)
+
+
+## **Small while it is only reporting, larger when it is asking.**
+##
+## Owner, 2026-09-15: "the dungeon progress panel takes up too much screen space
+## and blocks an important amount of the top part of the screen, make it more
+## subtle."
+##
+## The panel carried its clearing-a-stage size the whole time a rift was open -
+## two buttons of width, eighteen point type - and a rift is open for minutes at
+## a stretch while the player is fighting under it. Most of that time it has
+## nothing to say but "this much left", which is a strip.
+##
+## It grows only when a stage falls and the player has a decision to make, which
+## is the one moment the space is earned, and it fades back afterwards. The
+## plate is part-transparent in the small state as well, so the maze shows
+## through what is, for most of a rift, a progress bar.
+func _rift_compact(small: bool) -> void:
+	if _rift_panel == null:
+		return
+	var wide: float = Balance.RIFT_PANEL_NARROW if small else Balance.RIFT_PANEL_WIDE
+	_fit_centred(_rift_panel, wide)
+	_rift_panel.self_modulate.a = Balance.RIFT_PANEL_FADE if small else 1.0
+	if _rift_status != null:
+		_rift_status.add_theme_font_size_override("font_size",
+			Balance.RIFT_PANEL_SMALL_TEXT if small else Balance.RIFT_PANEL_LARGE_TEXT)
+	for bar: Variant in [_rift_bar, _rift_clock]:
+		var meter := bar as Control
+		if meter == null:
+			continue
+		var thick: float = meter.custom_minimum_size.y
+		meter.custom_minimum_size = Vector2(wide - 40.0, thick)
 
 
 func _update_rift_panel() -> void:

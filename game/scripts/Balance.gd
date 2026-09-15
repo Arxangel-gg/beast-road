@@ -2748,7 +2748,22 @@ const BARRICADE_GRIP_SECONDS: float = 0.6
 ## Below the floor something always arrives; above it arrival is a coin flip. The
 ## floor is what stops a field being empty for minutes at a time, and the flip
 ## above it is what stops the population reading as a quota. [TUNE]
-const WILDLIFE_MIN: int = 6
+## **Raised with the map, 2026-09-15.** These were set when the field was the
+## authored 45x45 core. The outskirts made it 75x75 - about 2.8 times the area,
+## with camps, ponds, rift gates, gather nodes and plots scattered through it -
+## and the same two dozen animals over that reads as a wilderness nobody lives
+## in. The owner: "there isn't enough wildlife for some reason in game."
+##
+## **The ceiling could not move and the floor could.** `budget_check` holds
+## `WILDLIFE_MAX` times the densest foliage preset under the frame's own
+## ceiling of 40, and 40 over 1.75 is exactly 22 - so the cap was already at
+## the limit the frame was measured for, and lifting it is a perf run rather
+## than an edit. What was actually wrong is that the population *sat* far below
+## it: a floor of six on a field nearly three times the old one meant long
+## stretches with almost nothing alive in them. The floor is twelve and
+## arrivals are likelier, so the road runs near its cap instead of near its
+## floor - which is the difference the owner was reporting.
+const WILDLIFE_MIN: int = 12
 const WILDLIFE_MAX: int = 22
 
 ## How far a hero's swing reaches an animal, how much of the field an animal may
@@ -2762,7 +2777,7 @@ const WILDLIFE_MAX: int = 22
 const WILDLIFE_KILL_REACH_BONUS: float = 40.0
 const WILDLIFE_FORGET_DISTANCE: float = 2600.0
 const WILDLIFE_FLIER_LIFT: float = 54.0
-const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
+const WILDLIFE_ARRIVAL_CHANCE: float = 0.78
 ## How far out from the town animals are placed.
 ##
 ## Widened from 1150: the ground being scattered across was barely larger than
@@ -2771,6 +2786,18 @@ const WILDLIFE_ARRIVAL_CHANCE: float = 0.55
 ## off the roads, it simply was not being offered much ground that is not one.
 ## [TUNE]
 const WILDLIFE_FIELD_SPAN: float = 2000.0
+## **Where the wilderness starts being wild** (owner, 2026-09-15: "more
+## dangerous hostile ones and rarer ones more likely the further from the base
+## that players venture away to, with more harmless wildlife preferring area
+## that is relatively closer to the central square").
+##
+## A fraction of the field's span. Inside it an arrival leans harmless and
+## common; outside it the roll opens up to the hunters and the rare kinds. A
+## lean rather than a gate: a wolf near the town is a thing that should be able
+## to happen, it should just be the story rather than the routine.
+const WILDLIFE_WILDS_FROM: float = 0.52
+## How strongly distance tilts the roll at the far edge of the field.
+const WILDLIFE_WILDS_TILT: float = 2.6
 const WILDLIFE_ENTRY_DISTANCE: float = 1500.0
 const WILDLIFE_PAUSE_MIN: float = 1.6
 const WILDLIFE_PAUSE_MAX: float = 7.0
@@ -7750,6 +7777,20 @@ const MENU_CAMP_PROP_FIRELIGHT: float = 0.55
 ## is already drawn, so this is the whole of what it can do - and past about one
 ## the mane stops being flame and becomes a white shape.
 const MENU_CAMP_FIRE_SHEEN: float = 0.85
+
+## **The rift readout, small while it reports and larger while it asks.**
+##
+## It used to hold its decision size for the whole of a rift - minutes at a
+## stretch, across the top of the screen, while saying nothing but how much was
+## left. The narrow state is a strip; the wide one arrives with the buttons.
+const RIFT_PANEL_NARROW: float = 210.0
+const RIFT_PANEL_WIDE: float = 320.0
+const RIFT_PANEL_TOP: float = 108.0
+const RIFT_PANEL_SMALL_TEXT: int = 12
+const RIFT_PANEL_LARGE_TEXT: int = 18
+## How solid the plate is while it is only reporting. The maze shows through a
+## progress bar and should.
+const RIFT_PANEL_FADE: float = 0.62
 
 # --- The carved frame round the menu -----------------------------------------
 #

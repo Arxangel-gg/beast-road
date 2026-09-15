@@ -478,7 +478,13 @@ func _consider_arrival() -> void:
 	# quota, while still guaranteeing the field is never empty for long.
 	if _living.size() >= Balance.WILDLIFE_MIN 			and _rng.randf() > Balance.WILDLIFE_ARRIVAL_CHANCE:
 		return
-	var kind: WildlifeData = _pick_kind(_hostile_arrivals_allowed())
+	# **Where first, then what.** The two used to be rolled the other way round,
+	# which makes distance impossible to read: a hunter picked before a place is
+	# a hunter that lands wherever the place happens to be. See `_wildness_at`.
+	var at: Vector2 = _clear_point()
+	if at == Vector2.ZERO:
+		return
+	var kind: WildlifeData = _pick_kind(_hostile_arrivals_allowed(), _wildness_at(at))
 	if kind == null:
 		return
 	# Predators are capped as a group, not weighted down as six species.
@@ -488,9 +494,6 @@ func _consider_arrival() -> void:
 	# of arrivals will, given a long enough road, put a dozen hunters on one
 	# field, and that is a second enemy faction rather than a wilderness.
 	if kind.is_hostile() and _hostile_count() >= Balance.WILDLIFE_HOSTILE_MAX:
-		return
-	var at: Vector2 = _clear_point()
-	if at == Vector2.ZERO:
 		return
 	_group_id += 1
 	var social_id: int = _group_id
@@ -547,22 +550,48 @@ func _hostile_count() -> int:
 	return count
 
 
-func _pick_kind(allow_hostile: bool = true) -> WildlifeData:
+func _pick_kind(allow_hostile: bool = true, wildness: float = 0.0) -> WildlifeData:
 	var total: float = 0.0
 	for kind: WildlifeData in _kinds:
 		if kind.is_hostile() and not allow_hostile:
 			continue
-		total += kind.roll_weight(RunState.act)
+		total += _tilted_weight(kind, wildness)
 	if total <= 0.0:
 		return null
 	var roll: float = _rng.randf() * total
 	for kind: WildlifeData in _kinds:
 		if kind.is_hostile() and not allow_hostile:
 			continue
-		roll -= kind.roll_weight(RunState.act)
+		roll -= _tilted_weight(kind, wildness)
 		if roll <= 0.0:
 			return kind
 	return null
+
+
+## A species' weight, tilted by how far out of the settled world the spot is.
+##
+## **The far ground favours the dangerous and the rare, and the near ground the
+## harmless and the common** (owner, 2026-09-15). The act preference is
+## untouched underneath - a region still gets the animals that belong to it -
+## and this only decides which of those a given *spot* leans toward.
+##
+## Multiplicative on the weight rather than a filter, so nothing becomes
+## impossible anywhere: a wolf near the square is a story, and a rabbit at the
+## map's edge is still a rabbit. `wildlife_spawn_check` reads reachability per
+## act and is unmoved by this, because at wildness zero it returns the weight
+## unchanged and every tier is still drawn somewhere.
+func _tilted_weight(kind: WildlifeData, wildness: float) -> float:
+	var weight: float = kind.roll_weight(RunState.act)
+	if wildness <= 0.0:
+		return weight
+	var lean: float = 1.0 + wildness * (Balance.WILDLIFE_WILDS_TILT - 1.0)
+	if kind.is_hostile():
+		weight *= lean
+	else:
+		weight /= lean
+	# Rarity rides the same slope: a Legendary is a thing you go looking for.
+	weight *= 1.0 + wildness * float(kind.rarity) * 0.5
+	return weight
 
 
 ## The opening Preparation is the player's guaranteed safe read of the board.
@@ -2117,6 +2146,23 @@ func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -
 
 
 ## A place to arrive at, or zero when the field is too built up to find one.
+## How far out of the settled world a point is, from 0 at the square to 1 at
+## the edge of the field.
+##
+## **The one number distance-based danger is made of.** Owner, 2026-09-15: the
+## dangerous and the rare should be likelier the further a player ventures, and
+## the harmless should prefer the ground nearer the square. A fraction rather
+## than a threshold, because a hard line is a thing players learn to stand
+## exactly inside.
+func _wildness_at(at: Vector2) -> float:
+	var span: float = maxf(Balance.WILDLIFE_FIELD_SPAN, 1.0)
+	var out: float = at.length() / span
+	var from: float = Balance.WILDLIFE_WILDS_FROM
+	if out <= from:
+		return 0.0
+	return clampf((out - from) / maxf(1.0 - from, 0.01), 0.0, 1.0)
+
+
 func _clear_point() -> Vector2:
 	var span: float = Balance.WILDLIFE_FIELD_SPAN
 	var floor_out: float = Balance.WILDLIFE_SPAWN_CLEARANCE
