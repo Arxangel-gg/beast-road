@@ -285,11 +285,17 @@
     "idle": "bad8a2dd-1e28-4f8e-a4af-d8c6e7696c3c",
     "object": "c2c7c075-2db1-45ce-8918-cedce67ce2bc"
   },
+  "art/vfx/blight": {
+    "image": "89f3de79-16ff-4281-bc52-bd743b10494b"
+  },
   "art/vfx/death_bones": {
     "image": "5f954da2-13e0-4b31-9e56-0a8c064600b2"
   },
   "art/vfx/death_stone": {
     "image": "c6e89521-e982-4510-9f6b-fd2202da6d93"
+  },
+  "art/vfx/heart": {
+    "image": "fdba38f5-5da0-418a-b6c6-4628d1dac2f9"
   },
   "art/wildlife/wildlife_bog_crane": {
     "idle": "da967118-b14f-4aeb-b100-2ea690001ef2"
@@ -300,9 +306,15 @@
   "art/wildlife/wildlife_butterfly_swallowtail_idle": {
     "strip": "be01eb10-afde-4fa0-a852-9d97129cc2ea"
   },
+  "art/wildlife/wildlife_deer_young": {
+    "image": "68723051-5798-451b-a3a7-5fdcbde09814"
+  },
   "art/wildlife/wildlife_frost_elk": {
     "idle": "862b371a-4e34-41d9-8d79-9bdb17d43489",
     "move": "6e6328a2-2ace-426c-9518-32834134d15c"
+  },
+  "art/wildlife/wildlife_frost_elk_young": {
+    "image": "3f12cc56-93d9-4125-84cb-eac2d7da0112"
   },
   "art/wildlife/wildlife_glass_moth": {
     "idle": "9c03373d-5944-46c7-9e32-c75a1d48021d"
@@ -333,6 +345,9 @@
   },
   "art/wildlife/wildlife_squirrel": {
     "move": "3f47e646-eed3-4a87-8483-adb524c6c4c0"
+  },
+  "art/wildlife/wildlife_stag_young": {
+    "image": "24c4b0f8-64bd-4aa9-bfd4-2d6019564985"
   },
   "art/wildlife/wildlife_steppe_horse": {
     "idle": "174c5d51-7bc8-48c3-b671-c589003c293e"

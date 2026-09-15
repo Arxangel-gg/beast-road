@@ -2465,6 +2465,35 @@ well still to buy with Tools. The five join that ladder rather than the
 starting set, for the same reason the well is last: a player meets one new
 tower at a time.
 
+**Eight wire numbers were shared by two names, found 2026-09-14.** Adding a
+fact for the families meant reading the `CoopRelay` enums, and both had
+collisions: the party events had been hand-numbered 53-58 straight into the
+weather block, and `Request.WELCOME` shared 32 with `DROP_GEAR`.
+
+**A duplicate does not error - it hands one name's traffic to the other.**
+`_receive` and `CoopWorld._on_request` are `match` statements on the number,
+and a match takes the **first** arm with that value. The party arms are
+written first, so a guest received every `SKY_CLOCK`, `LIGHTNING`,
+`EARTHQUAKE`, `WILDFIRE_LIT`, `TORNADO_SPAWNED`, `TORNADO_MOVED` and
+`METEOR_INCOMING` as a party event: **a guest saw no weather and no earth at
+all**, and most of it was then dropped by the arity check, which is why
+nothing ever errored. On the other side, a guest putting gear on the ground
+composed an entire welcome and dropped nothing.
+
+**Renumbered, and the invariant is checked rather than trusted.** The party
+events moved to 65-70 and `GEAR_DROPPED` to 71; `Request.WELCOME` moved to
+34. Two builds already refuse to play together on a version mismatch, so no
+live pairing spans the change. `coop_check._test_every_wire_number_is_its_own`
+walks both enums and names any two entries that share a value - checked by
+putting the 53 back, which it named.
+
+**Why no gate saw it.** Every co-op gate drives the *signals* either side of
+the relay, which is the right seam for "does the guest apply this fact"; none
+of them drove the numbered `match` for two facts at once, and no single fact
+is wrong on its own. The lesson is about hand-numbered enums that are a wire
+format: the numbers are content, they drift exactly as `Role` and `Trigger`
+drifted, and the answer is the same - walk the table rather than read it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

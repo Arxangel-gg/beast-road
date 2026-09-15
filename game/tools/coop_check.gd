@@ -110,6 +110,7 @@ func _ready() -> void:
 	EventBus.coop_failed.connect(func(why: String) -> void: _failure_reasons.append(why))
 
 	_build_two_sessions()
+	_test_every_wire_number_is_its_own()
 	_test_the_shipping_singleton()
 	await _test_offline_is_its_own_authority()
 	await _test_host_and_join()
@@ -1199,6 +1200,36 @@ func _settle_frames(count: int) -> void:
 	for _f: int in count:
 		_poll_both()
 		await get_tree().process_frame
+
+
+## No two facts and no two requests share a number.
+##
+## **The failure this catches is silent and total.** `_receive` and
+## `CoopWorld._on_request` are `match` statements on the number, and a match
+## takes the *first* arm with that value - so a duplicate does not error, it
+## quietly gives one name's traffic to the other name's handler. Found
+## 2026-09-14 with eight live collisions: the party events had been numbered
+## 53-58 into the weather block, so a guest received every SKY_CLOCK,
+## LIGHTNING, EARTHQUAKE, WILDFIRE_LIT, TORNADO_SPAWNED, TORNADO_MOVED and
+## METEOR_INCOMING as a party event and saw no weather at all; and
+## `Request.WELCOME` shared 32 with `DROP_GEAR`, so a guest putting gear on
+## the ground composed a whole welcome and dropped nothing. Both enums are
+## hand-numbered because the numbers are the wire, and hand-numbered is
+## exactly what drifts - so the invariant is checked rather than trusted.
+func _test_every_wire_number_is_its_own() -> void:
+	for named: Array in [["Fact", CoopRelay.Fact], ["Request", CoopRelay.Request]]:
+		var label: String = String(named[0])
+		var table: Dictionary = named[1] as Dictionary
+		var seen: Dictionary = {}
+		for key: Variant in table:
+			var value: int = int(table[key])
+			if seen.has(value):
+				_check(false, "%s.%s and %s.%s are both %d: a match takes the first arm, so one of them is dead on the wire"
+					% [label, String(key), label, String(seen[value]), value])
+			else:
+				seen[value] = String(key)
+		_check(seen.size() == table.size(),
+			"%s: %d names share %d numbers" % [label, table.size(), seen.size()])
 
 
 func _check(condition: bool, why: String) -> void:

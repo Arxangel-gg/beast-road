@@ -128,15 +128,32 @@ enum Fact {
 	## welcome, 2026-09-14). Addressed to that guest alone.
 	WELCOME = 64,
 	## The party events, host to everyone. See `PartyEvents`.
-	PARTY_EVENT_PROPOSED = 53,
-	PARTY_EVENT_VOTES = 54,
-	PARTY_EVENT_DECIDE_ASK = 55,
-	PARTY_EVENT_RESOLVED = 56,
-	PARTY_EVENT_RETURNED = 57,
+	##
+	## **These were 53-58 and collided with the weather block above**, found
+	## 2026-09-14. Two authors numbered by hand into the same range, and
+	## `_receive`'s match takes the *first* arm with a given value - so the
+	## party arms, which are written first, swallowed every SKY_CLOCK,
+	## LIGHTNING, EARTHQUAKE, WILDFIRE_LIT, TORNADO_SPAWNED, TORNADO_MOVED and
+	## METEOR_INCOMING a host ever sent. A guest saw no weather and no earth at
+	## all. Renumbered above the block rather than the weather renumbered into
+	## the gap, because these are the newer names; `coop_check` refuses a
+	## duplicate value now, which is the fix that lasts.
+	PARTY_EVENT_PROPOSED = 65,
+	PARTY_EVENT_VOTES = 66,
+	PARTY_EVENT_DECIDE_ASK = 67,
+	PARTY_EVENT_RESOLVED = 68,
+	PARTY_EVENT_RETURNED = 69,
 	## A seat stepped off the road into an event, or came back to it.
-	PARTY_EVENT_AWAY = 58,
+	PARTY_EVENT_AWAY = 70,
 	## A piece of gear on the ground, with the identity `LOOT_TAKEN` settles by.
-	GEAR_DROPPED = 59,
+	GEAR_DROPPED = 71,
+	## An animal's family life changed (2026-09-14): it began or ended a
+	## courtship, its blight moved on a stage, or it grew. `WildlifeFamilies.Word`
+	## says which, and the guest only draws it.
+	WILDLIFE_FAMILY = 72,
+	## A birth, so a guest's field holds the same young. The rarity, the shine
+	## and the sex are the host's; a guest never rolls one.
+	WILDLIFE_BORN = 73,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -203,7 +220,11 @@ enum Request {
 	## A guest stepped off the road into its own event, or came back.
 	PARTY_EVENT_AWAY = 31,
 	## A guest's field is up: tell me the run as it stands.
-	WELCOME = 32,
+	## **This was 32 and collided with `DROP_GEAR`**, found 2026-09-14 with the
+	## seven in `Fact`. `CoopWorld._on_request` matches WELCOME first, so a
+	## guest putting a piece of gear on the ground composed an entire welcome
+	## instead and dropped nothing.
+	WELCOME = 34,
 	## A guest pulled a crop: pay the run its Food, by crop id.
 	HARVEST_CROP = 33,
 }
