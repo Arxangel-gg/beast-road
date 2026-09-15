@@ -182,6 +182,12 @@ var _provoked_left: float = 0.0
 var _slam_left: float = 0.0
 ## Which shot the current attack drew, so the projectile can be painted.
 var _shot_paint: EnemyShotData = null
+## **Whether this wind-up ends in a throw rather than a blow**, and how long
+## until the next one is allowed. See `EnemyData.thrown_shot_id`: a body that
+## closes may let one thing go on the way in, and this is the whole of the extra
+## state that costs.
+var _throwing: bool = false
+var _throw_cooldown: float = 0.0
 var _volley_left: float = 0.0
 var _slam_tell: float = 0.0
 
@@ -795,10 +801,26 @@ func _tick_state(delta: float) -> void:
 			_target = _pick_target()
 			if _begin_behaviour():
 				return
+			_throw_cooldown = maxf(_throw_cooldown - delta, 0.0)
 			if _target != null and _in_reach(_target):
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
 				# Coil before the blow: the tell the player reads.
 				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+			elif _may_throw_on_the_way_in():
+				# **The same wind-up, so the tell is the tell.** A throw that
+				# had its own silent animation would be a blow from nowhere,
+				# which is the one thing every telegraph rule here refuses. It
+				# is held a little longer than a swing because it arrives from
+				# further away and the player has further to step.
+				# **Spent when it leaves the hand, not when the arm goes
+				# back.** An attempt broken by a blow costs nothing, which is
+				# what stops a body that keeps being interrupted from simply
+				# never throwing.
+				_throwing = true
+				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP
+					* Balance.ENEMY_THROW_WINDUP_SCALE)
+				animator.squash(Balance.ANIM_HURT_SQUASH * 0.8)
+				_walk(delta)
 			else:
 				_walk(delta)
 		State.WINDUP:
@@ -1105,6 +1127,14 @@ func _release_bank() -> void:
 
 
 func _enter(state: State, duration: float) -> void:
+	# **An interrupted throw is dropped rather than banked.** A wind-up that
+	# ends in anything but the blow it was coiling for - a hit that stuns, a
+	# rout, a death, a behaviour taking over - must not leave `_throwing`
+	# standing, or the *next* wind-up looses a javelin instead of landing the
+	# sword it was coiling for. Found by probe: the beast's own footfall stuns a
+	# body often enough that a rider was reliably interrupted mid-throw.
+	if state != State.WINDUP:
+		_throwing = false
 	_state = state
 	_state_left = duration
 
@@ -1606,6 +1636,10 @@ func _in_reach(target: Node2D) -> bool:
 
 
 func _strike() -> void:
+	if _throwing:
+		_throwing = false
+		_let_the_javelin_go()
+		return
 	if _target == null or not is_instance_valid(_target):
 		return
 	# Re-checked at the moment of the blow, slightly generously: stepping out
@@ -2989,6 +3023,68 @@ func _throw_volley(quarry: Node2D) -> void:
 ## on whoever is standing there, and a hex trades part of it for mana. Nothing
 ## here multiplies `damage`, which is what lets the ten-act curve still be read
 ## against the same numbers.
+## **Whether this one may let something go on the approach.**
+##
+## Five conditions and every one of them is a bound rather than a detail:
+##
+## - **It has one authored.** A breed with no `thrown_shot_id` never asks.
+## - **At a person.** A javelin at the wall or a tower is a siege engine, which
+##   is a different breed; and an area shot aimed at the gate resolves on
+##   nobody (see `EnemyGroundStrike`), so it would be a blow that vanished.
+## - **Out of melee reach.** It may never add a throw to an exchange it is
+##   already winning by touching you - that would be damage added rather than
+##   damage moved.
+## - **Within its own range**, which is authored and is not the Howler range.
+## - **Off cooldown**, which is long. One thing on the way in, not a volley.
+func _may_throw_on_the_way_in() -> bool:
+	if data == null or _throw_cooldown > 0.0 or _state != State.WALKING:
+		return false
+	if data.thrown_shot() == null:
+		return false
+	if not (_target is Hero or _target is Companion):
+		return false
+	if not is_instance_valid(_target):
+		return false
+	var gap: float = combat_origin().distance_to(_target.global_position) 		- _field.target_radius(_target)
+	return gap > attack_reach() and gap <= data.thrown_range
+
+
+## One javelin, at a share of what the body hits for.
+##
+## The damage is rolled through the same door a contact blow is, so every
+## modifier that shapes a blow - the rank, the affixes, the weakening, the
+## scaling - shapes this one too and nothing here is a second source of harm.
+func _let_the_javelin_go() -> void:
+	if _target == null or not is_instance_valid(_target) or data == null:
+		return
+	var shot: EnemyShotData = data.thrown_shot()
+	if shot == null:
+		return
+	_throw_cooldown = data.thrown_interval
+	var damage: float = TowerData.roll_damage(
+		data.contact_damage * _damage_scale * _rank_scale().y
+			* _affix_product(&"damage_scale")
+			* _enemy_damage_scale() * data.thrown_share, RunState.rng("combat"))
+	if RunState.enemies_are_weakened():
+		damage *= Balance.WEAKENED_STAT_SCALE
+	if _target is Hero:
+		RunState.note_blow(promoted_name(), damage)
+	if net_id != 0:
+		EventBus.enemy_struck.emit(net_id, _target.global_position)
+	_shot_paint = shot
+	match int(shot.kind):
+		EnemyData.Shot.SPRAY:
+			_loose_a_fan(damage)
+		EnemyData.Shot.LOB:
+			_mark_the_ground(damage)
+		EnemyData.Shot.LANCE:
+			_level_a_lance(damage)
+		EnemyData.Shot.HEX:
+			_loose_a_hex(damage)
+		_:
+			_loose_a_bolt(damage, _target, EnemyProjectile.Kind.BOLT)
+
+
 func _loose_a_shot(damage: float) -> void:
 	# A shooter whose target is the wall or a tower throws an ordinary bolt at
 	# it, whatever its breed. An area blow resolves on heroes and spirits only

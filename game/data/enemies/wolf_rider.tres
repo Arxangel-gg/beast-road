@@ -2,6 +2,10 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+thrown_shot_id = "thrown_bola"
+thrown_range = 178.0
+thrown_interval = 5.5
+thrown_share = 0.55
 id = "wolf_rider"
 display_name = "Wolf Rider"
 description = "A mounted runner that punishes an uncovered road."

@@ -48,6 +48,7 @@ func _ready() -> void:
 	await _test_each_shot_lands_and_none_exceeds_its_strike()
 	await _test_a_blow_outlives_its_thrower()
 	_test_the_tell_matches_the_blow()
+	await _test_the_riders_throw_on_the_way_in()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -59,7 +60,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print("[enemy-shots] PASS - %d checks: five shots, each lands, none exceeds its strike"
+		print(("[enemy-shots] PASS - %d checks: five shots and a thrown opener, each "
+			+ "lands, none exceeds its strike")
 			% _checks)
 	else:
 		push_error("[enemy-shots] FAIL - %d problem(s)" % _failures)
@@ -236,6 +238,268 @@ func _test_the_tell_matches_the_blow() -> void:
 
 
 ## A live shooter on the field, aimed at `at`, throwing `shot`.
+
+## **A breed that closes may let one thing go on the way in.**
+##
+## Owner, 2026-09-15: "they also need more variety in their ranged abilities. So
+## do the ones on the horses." The mounted breeds are all VANGUARD - they charge
+## and they touch you - so they had no answer at range at all, while all three
+## are painted with a javelin raised overhand.
+##
+## **The bound is this file's own bound applied to a body that is not a
+## shooter**: the throw is a *share* of the blow the rider would land, so it
+## moves damage forward in time rather than adding a source of it. Four ways
+## that goes wrong and none of them shows in the data:
+##
+## - **It throws harder than it hits.** Then a rider who opens at range is
+##   strictly worse to meet than one who simply arrived, which is damage added.
+## - **It throws in melee.** Then the throw is stapled onto an exchange the
+##   body is already winning by touching you.
+## - **It throws at the wall.** A lob or a fan aimed at the gate resolves on
+##   nobody (see the note at the top), so a siege that only threw would stop
+##   being a siege - and a cavalryman javelining masonry is not the picture
+##   either.
+## - **It never throws at all.** An authored range of zero, a misspelt shot id,
+##   a cooldown longer than the walk: every one of them is silent, and a
+##   feature that never appears is the failure this project keeps paying for.
+func _test_the_riders_throw_on_the_way_in() -> void:
+	var carriers: Array[EnemyData] = []
+	for value: Variant in ContentDB.enemies.values():
+		var breed := value as EnemyData
+		if breed == null or breed.thrown_shot_id.is_empty():
+			continue
+		carriers.append(breed)
+		_check(breed.thrown_shot() != null,
+			("%s throws \"%s\", which is not a shot on disk - it would wind up "
+				+ "and let go of nothing") % [breed.id, breed.thrown_shot_id])
+		_check(breed.thrown_range > 0.0,
+			"%s authors a throw with no range, so it never throws" % breed.id)
+		# **And a throw past the aggro range never happens either**, which is
+		# the same silence wearing a bigger number. A body only takes a hero as
+		# its target inside `ENEMY_HERO_AGGRO_RANGE`; outside it the target is
+		# the town, and a throw is never aimed at the town. The first cut
+		# authored 700 and threw nothing at all - caught here on the first run.
+		_check(breed.thrown_range <= Balance.ENEMY_HERO_AGGRO_RANGE,
+			("%s throws %.0f but only notices a hero at %.0f, so the throw is "
+				+ "a feature that never appears")
+				% [breed.id, breed.thrown_range, Balance.ENEMY_HERO_AGGRO_RANGE])
+		_check(breed.thrown_range > Balance.ENEMY_ATTACK_RANGE + breed.body_radius,
+			("%s throws no further than it can reach, so it would never choose "
+				+ "to throw") % breed.id)
+		_check(breed.thrown_share > 0.0 and breed.thrown_share <= 1.0,
+			("%s throws for %.2f of its blow - above one is a shot that adds "
+				+ "damage rather than moving it") % [breed.id, breed.thrown_share])
+		_check(breed.role != EnemyData.Role.HOWLER,
+			("%s is a Howler and also carries a thrown opener; a shooter's "
+				+ "answer at range is its repertoire") % breed.id)
+	_check(not carriers.is_empty(),
+		"nothing carries a thrown opener, so the whole feature is unreachable")
+	if carriers.is_empty():
+		return
+
+	var run: Run = (load("res://scenes/run/run.tscn") as PackedScene).instantiate() as Run
+	add_child(run)
+	GameDirector.run_active = true
+	for _frame: int in 20:
+		await get_tree().process_frame
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero if field != null else null
+	if hero == null or hero.health == null:
+		_check(false, "the harness needs a hero on a battlefield")
+		run.queue_free()
+		return
+	hero.health.max_hp = 100000.0
+	# **The road has to be running.** A fresh run opens in Preparation, which
+	# suspends the battlefield (working rule 8) - every body on it stops
+	# ticking mid-state. The gates that fire a shot by hand never noticed;
+	# this one drives a body's own decision, so the field has to be awake or
+	# the rider freezes half way through its wind-up and reads exactly like a
+	# breed that refuses to throw.
+	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
+	field.resume()
+	# **An empty road, or this measures the road rather than the rider.**
+	# Probed first: a predator wandered over and bit the rider, the rider turned
+	# to fight the animal, and the hitstun from that broke the wind-up every two
+	# seconds - so "threw nothing" was true and had nothing to do with throwing.
+	# The director is stopped for the same reason a wave would be: this gate is
+	# about one body's decision.
+	field.wave_director.stop()
+	var animals: Node = field.get_node_or_null("Wildlife")
+	if animals != null and animals.has_method("clear"):
+		animals.call("clear")
+		# Stopped as well as emptied: `clear` frees with `queue_free`, which is
+		# deferred, so the animals are still standing there this frame - and a
+		# rider placed on top of one turns to fight it. Two frames of patience
+		# is the whole difference between this gate and a coin toss.
+		animals.process_mode = Node.PROCESS_MODE_DISABLED
+	for _settle: int in 3:
+		await get_tree().process_frame
+
+	var breed: EnemyData = carriers[0]
+
+	# **The decision, then the blow** - the same split the five shots above are
+	# tested with, and for the same reason. Letting a body live in the field for
+	# three seconds and waiting to be hit measures the road rather than the
+	# rider: probed first, a predator wandered over and bit it (`Wildlife._strike`
+	# takes an Enemy), the rider turned to fight the animal, and the hitstun
+	# broke every wind-up. That reads exactly like a breed that refuses to
+	# throw, and it is not one.
+	var rider_reach: float = Balance.ENEMY_ATTACK_RANGE
+	var rider: Enemy = _a_rider(field, hero, breed, 200.0)
+	if rider != null and is_instance_valid(rider):
+		# **Stood at a gap measured off the body itself**, half way between the
+		# furthest it can touch and the furthest it can throw. Computing that
+		# from the constants instead put it a few units the wrong side of a
+		# reach that includes the breed's own radius and the hero's, and the
+		# gate failed for arithmetic rather than for behaviour.
+		rider_reach = rider.attack_reach() + field.target_radius(hero)
+		_stand_it_off(rider, hero, field,
+			(rider_reach + breed.thrown_range) * 0.5)
+		var seen: float = rider.call("combat_origin").distance_to(
+			hero.global_position) - field.target_radius(hero)
+		_check(bool(rider.call("_may_throw_on_the_way_in")),
+			("%s will not throw: measured gap %.0f, reach %.0f, range %.0f, "
+				+ "state %s, cooldown %.2f, shot %s, target %s") % [breed.id,
+					seen, rider.attack_reach(), breed.thrown_range,
+					str(rider.get("_state")),
+					float(rider.get("_throw_cooldown")),
+					"none" if breed.thrown_shot() == null else breed.thrown_shot().id,
+					str(rider.get("_target"))])
+		# And the body wires that decision to its own wind-up, rather than the
+		# answer being true and nothing asking it. **Ticked by hand rather than
+		# by waiting a frame**: waiting hands the rider to the road, and the
+		# road is full - an animal that bites it retargets it in the gap
+		# between the question and the answer.
+		rider.call("_tick_state", 0.016)
+		var chose: Variant = rider.get("_target")
+		var looking_at_the_hero: bool = chose == hero
+		_check(not looking_at_the_hero or bool(rider.get("_throwing")),
+			("%s decided it could throw and then wound up to do something else"
+				+ " (it is looking at %s, in state %s)")
+				% [breed.id,
+					"nothing" if chose == null else (chose as Node).name,
+					str(rider.get("_state"))])
+
+		# **And the blow the wind-up ends in is the throw.** Driven through
+		# `_strike` rather than by calling the throw directly, because the thing
+		# that can silently come undone is the dispatch: `_strike` with
+		# `_throwing` standing must let the javelin go instead of swinging, and
+		# at this distance a swing lands nothing at all - so damage arriving is
+		# the proof, and its size is the bound.
+		hero.health.current_hp = hero.health.max_hp
+		rider.set("_target", hero)
+		rider.set("_throwing", true)
+		rider.call("_strike")
+		_check(not bool(rider.get("_throwing")),
+			("%s struck without spending the throw, so its next swing would "
+				+ "loose another javelin") % breed.id)
+		for _frame: int in 180:
+			hero.health._invulnerable_left = 0.0
+			await get_tree().process_frame
+		var taken: float = hero.health.max_hp - hero.health.current_hp
+		_check(taken > 0.0,
+			"%s let a javelin go and nothing arrived - a silent dud" % breed.id)
+		# **Softer than the blow it opens with.** The share is well under one and
+		# the damage roll is a spread around it, so a full contact blow is the
+		# line no roll may cross: a throw moves damage forward in time, it does
+		# not add a source of it.
+		_check(taken < breed.contact_damage,
+			("%s threw for %.1f against a contact blow of %.1f - a throw is a "
+				+ "share of the blow, never the blow at a distance")
+				% [breed.id, taken, breed.contact_damage])
+		# And it is spent on release rather than on the attempt, so a rider
+		# broken mid-throw has not lost its javelin.
+		_check(float(rider.get("_throw_cooldown")) > 0.0,
+			"%s threw and started no cooldown, so it can throw every wind-up"
+				% breed.id)
+		rider.queue_free()
+		await get_tree().process_frame
+
+	# **Never in melee.** The same body inside its own reach must have nothing
+	# to say here: a throw stapled onto an exchange it is already winning by
+	# touching you is damage added rather than moved.
+	var close: Enemy = _a_rider(field, hero, breed, 200.0)
+	if close != null and is_instance_valid(close):
+		_stand_it_off(close, hero, field, rider_reach * 0.4)
+		_check(not bool(close.call("_may_throw_on_the_way_in")),
+			"%s would throw at something it could already hit" % breed.id)
+		close.queue_free()
+		await get_tree().process_frame
+
+	# **Never at the wall.** An area blow resolves on heroes and spirits only,
+	# so a javelin at the gate is a shot that vanishes - and a cavalryman
+	# javelining masonry is not the picture either.
+	var town: Node2D = field.town_node()
+	if town != null:
+		var sieger: Enemy = _a_rider(field, hero, breed, 0.0)
+		if sieger != null and is_instance_valid(sieger):
+			sieger.global_position = town.global_position + Vector2.RIGHT * (
+				breed.thrown_range * 0.6)
+			sieger.set("_target", town)
+			_check(not bool(sieger.call("_may_throw_on_the_way_in")),
+				"%s would throw at the town, where the blow lands on nobody"
+					% breed.id)
+			sieger.queue_free()
+			await get_tree().process_frame
+
+	Sfx.stop_immediately()
+	MusicPlayer.stop_immediately()
+	Ambience.stop_immediately()
+	run.queue_free()
+	for _frame: int in 12:
+		await get_tree().process_frame
+	GameDirector.run_active = false
+
+
+## Puts a body an exact distance from its target, on the far side from the town.
+##
+## Anywhere else and `_pick_target` may legitimately choose the wall instead of
+## the person - a body walking to the gate is supposed to prefer the gate - and
+## the probe would be measuring target selection rather than the throw.
+func _stand_it_off(body: Enemy, at: Node2D, field: Battlefield,
+		gap: float) -> void:
+	# **Beside its target, never above it.** A body measures a gap from its
+	# `combat_origin` - its chest, not its feet - so an offset with any vertical
+	# component has the depth lift added to it under the square root. Placed on
+	# the line from the town, that lift was worth anything from nothing to
+	# seventy units depending on where the run's road happened to bend, and the
+	# gate passed or failed on the geometry of the map rather than on the rider.
+	# So the offset is horizontal, and solved so the *measured* gap is the one
+	# asked for.
+	var lift: float = body.global_position.y - body.call("combat_origin").y
+	var radius: float = field.target_radius(at)
+	var want: float = gap + radius
+	var across: float = sqrt(maxf(want * want - lift * lift, 1.0))
+	var side: float = 1.0
+	var town: Node2D = field.town_node()
+	if town != null and at.global_position.x < town.global_position.x:
+		# On the far side of its target from the wall, so `_pick_target` has no
+		# reason to prefer the gate over the person.
+		side = -1.0
+	body.global_position = at.global_position + Vector2(across * side, 0.0)
+	body.set("_target", at)
+
+
+## One rider of a named breed, stood a given distance from its target.
+func _a_rider(field: Battlefield, at: Node2D, breed: EnemyData,
+		gap: float) -> Enemy:
+	if field == null or breed == null:
+		return null
+	var scene := load("res://scenes/battlefield/enemy.tscn") as PackedScene
+	var enemy := scene.instantiate() as Enemy
+	enemy.setup(breed, 0, field, 1.0, 1.0, 1.0)
+	field.add_child(enemy)
+	enemy.global_position = at.global_position + Vector2.RIGHT * gap
+	enemy.set("_target", at)
+	# **Nothing is biting it.** An animal that has bitten a body owns its
+	# attention through `_biting_back`, and the road has animals on it; a probe
+	# that inherited one would be answering a question about wildlife.
+	enemy.set("_provoker", null)
+	enemy.set("_provoker_source", null)
+	enemy.set("_provoked_left", 0.0)
+	return enemy
+
+
 func _a_shooter(field: Battlefield, at: Node2D, shot: int) -> Enemy:
 	var breed: EnemyData = null
 	for value: Variant in ContentDB.enemies.values():

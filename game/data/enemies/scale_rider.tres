@@ -2,6 +2,10 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+thrown_shot_id = "thrown_javelin"
+thrown_range = 188.0
+thrown_interval = 6.0
+thrown_share = 0.60
 id = "scale_rider"
 display_name = "Scale Rider"
 description = "A low cavalry charge with very little time in tower range."

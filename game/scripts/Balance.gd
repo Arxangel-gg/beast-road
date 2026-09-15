@@ -3209,6 +3209,14 @@ const WAVE_SPAWN_SPACING: float = 0.65
 ## the last body is dealt with. Shared, because both `curve_report` and
 ## `balance_test` need it to work out how many waves fit in an act - and an act
 ## boundary computed two ways is a boundary that will disagree with itself. [TUNE]
+## **How much longer a body winds up to throw than to swing.**
+##
+## A javelin arrives from four or five body-lengths away, so the window to step
+## off it has to be longer than the window to step out of a sword. Same tell,
+## held longer - which is also what tells the player, without a word, that this
+## particular coil ends in something leaving its hand. [TUNE]
+const ENEMY_THROW_WINDUP_SCALE: float = 1.8
+
 const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]

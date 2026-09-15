@@ -234,6 +234,56 @@ enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
 const SHOT_PATH: String = "res://data/enemy_shots/%s.tres"
 
 
+## **The one thing a breed that closes throws on the way in.**
+##
+## Owner, 2026-09-15, about the ranged roster: "they also need more variety in
+## their ranged abilities. So do the ones on the horses." The mounted breeds
+## were the one group that could not answer that, because all three of them are
+## VANGUARD - they charge, they touch you, and that is the whole of what they
+## do. Which is a shame, because all three are *painted* with a javelin raised
+## overhand.
+##
+## So this is not a repertoire and a breed that carries one is not a Howler. A
+## Howler stands off and shoots for a living; this is a single thing let go
+## once on the approach, after which the body keeps coming and fights the way it
+## always has.
+##
+## **The bound is the one every shot in this game is held to: it changes the
+## shape of a blow and never its size.** `thrown_share` is a *fraction* of the
+## breed's contact damage, so a rider who opens at range hits softer when it
+## arrives than one who simply arrived; it is thrown only at a person, only
+## while out of melee reach, and only once every `thrown_interval`, so it can
+## never be added to an exchange the body is already winning. A breed that
+## authors nothing here is untouched.
+@export var thrown_shot_id: String = ""
+## How far it will throw, and how often. Zero range means it never throws.
+@export_range(0.0, 1600.0) var thrown_range: float = 0.0
+@export_range(0.5, 30.0) var thrown_interval: float = 6.0
+## The share of its contact blow the throw carries. Never above one: see above.
+@export_range(0.0, 1.0) var thrown_share: float = 0.5
+
+
+## The shot this breed throws on the approach, or null.
+##
+## Loaded by path for the same reason the repertoire is - `run_tool.gd` runs
+## under `--script` with no autoloads, and naming ContentDB in a resource script
+## is a compile error there.
+func thrown_shot() -> EnemyShotData:
+	if thrown_shot_id.is_empty() or thrown_range <= 0.0:
+		return null
+	var path: String = SHOT_PATH % thrown_shot_id
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as EnemyShotData
+
+
+## Whether this breed ever throws anything at all - as a Howler, or on the way
+## in. Asked rather than `role == HOWLER` wherever the question is "does this
+## thing have an answer at range", so a javelin does not have to be a role.
+func throws_something() -> bool:
+	return role == Role.HOWLER or thrown_shot() != null
+
+
 ## The repertoire, resolved.
 ##
 ## One accessor so nothing downstream has to ask which of the two shapes a breed

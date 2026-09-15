@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyShotData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_shot_data.gd" id="1_shot"]
+
+[resource]
+script = ExtResource("1_shot")
+core_tint = Color(1.000, 0.960, 0.700, 1.000)
+tint = Color(0.920, 0.780, 0.220, 1.000)
+id = "thrown_javelin"
+display_name = "Javelin"
+description = "Thrown from the saddle on the way in. Sidestep it, then meet the charge."
+kind = 0
+near = 220.0
+far = 760.0
+weight = 1.00
+stray_weight = 0.00
