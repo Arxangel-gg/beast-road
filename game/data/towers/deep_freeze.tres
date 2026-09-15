@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_kuyhx")
+shot = 2
+ambient = 4
+juice_scale = 1.1
 element = 1
 is_combination = true
 parent_a = 1

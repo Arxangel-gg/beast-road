@@ -4,6 +4,10 @@
 
 [resource]
 script = ExtResource("1_tw")
+shot = 2
+ambient = 9
+shot_tint = Color(1.0, 0.72, 0.4, 1)
+juice_scale = 1.15
 role = 2
 element = 0
 damage = 62.0

@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_tower")
+shot = 2
+ambient = 7
+juice_scale = 1.15
 role = 2
 element = 3
 damage = 46.0

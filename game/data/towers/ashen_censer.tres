@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_tw")
+ambient = 2
+juice_scale = 1.0
 role = 3
 element = 0
 damage = 11.0

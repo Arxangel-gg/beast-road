@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_fs4e2")
+ambient = 5
+shot_tint = Color(0.98, 0.55, 0.25, 1)
+juice_scale = 1.0
 role = 3
 element = 2
 damage = 9.0

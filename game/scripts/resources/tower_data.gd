@@ -118,6 +118,59 @@ enum TargetPriority {
 ## regeneration aura with a roof on it.
 @export var well_refill_seconds: float = 18.0
 
+# --- The look of the shot (owner brief, 2026-09-14) -----------------------------
+#
+# "Ensure all towers including the newest additions all have game juice vfx
+# catered to each tower." Every effect a tower had was decided by its element:
+# four muzzle flashes, four shots, four impacts, four auras for forty-seven
+# towers. What follows is authored per tower, and **none of it is a number the
+# fight reads**: a shot's style changes how it is drawn in the air and never
+# where it is, its speed, or what it does when it lands. `tower_juice_check`
+# fires every style at a body and reads the damage back.
+
+## How a shot flies, to the eye.
+##
+## BOLT is the homing shot every tower threw. LOB rises on an arc with a shadow
+## on the ground and lands heavily. LANCE is a long bright streak. SPRAY
+## throws a fan of cosmetic pellets beside the real shot. CHAIN crackles along
+## a jagged trail. The hit is the same hit in all five.
+enum Shot { BOLT, LOB, LANCE, SPRAY, CHAIN }
+
+## What the air round the tower does while it stands. ELEMENT is the element's
+## own default (embers, drips, grit, gusts); the rest are authored per tower.
+enum Ambient { ELEMENT, EMBERS, SMOKE, DRIPS, FROST, GRIT, MOTES, GUSTS, SPARKS, GLINTS, NONE }
+
+@export var shot: Shot = Shot.BOLT
+@export var ambient: Ambient = Ambient.ELEMENT
+## The colour of this tower's shot, flash, impact and air. Transparent means
+## the element's colour; a tower whose art is not its element's colour (the
+## Barrow Stake's green, the Quake's violet) names its own.
+@export var shot_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
+## How hard the tower kicks, how big its flash and its landing are. A siege
+## piece above one, a skirmisher below; purely presentation.
+@export_range(0.5, 2.0) var juice_scale: float = 1.0
+
+
+## The colour everything this tower throws is drawn in.
+func shot_colour() -> Color:
+	if shot_tint.a > 0.0:
+		return Color(shot_tint.r, shot_tint.g, shot_tint.b, 1.0)
+	return TowerData.element_colour(element)
+
+
+static func shot_name(which: int) -> String:
+	match which:
+		Shot.LOB:
+			return "Lob"
+		Shot.LANCE:
+			return "Lance"
+		Shot.SPRAY:
+			return "Spray"
+		Shot.CHAIN:
+			return "Chain"
+		_:
+			return "Bolt"
+
 
 ## Borrow another tower's art. Same escape hatch `EnemyData` already has, and
 ## used for the same reason: eight new towers shipped as data before their

@@ -568,6 +568,10 @@ jobs:
           # waits for its level, is made once, and moves only numbers the
           # tower already had.
           check "tower paths" --headless --path game res://tools/tower_path_check.tscn
+          # Every tower authors a look of its own - shot style, air, colour,
+          # kick - and none of it moves a number: one tower of each style is
+          # fired at a body on the real field and the damage read back.
+          check "tower juice" --headless --path game res://tools/tower_juice_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

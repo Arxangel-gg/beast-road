@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_8ncoi")
+ambient = 6
+shot_tint = Color(0.72, 0.42, 0.95, 1)
+juice_scale = 1.4
 element = 2
 is_combination = true
 parent_a = 2

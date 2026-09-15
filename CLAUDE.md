@@ -2343,6 +2343,43 @@ splash, a flash); everywhere else the base's own pixels stand, so the loop
 closes on the base exactly. Run it after any tower animation is regenerated.
 A tower whose frames were already the base (Deep Freeze) is untouched by it.
 
+**Every tower has a look of its own, as of 2026-09-14.** The owner's brief:
+"ensure all towers including the newest additions all have game juice vfx
+catered to each tower properly and perfectly". Every effect a tower had was
+decided by its element - four muzzle flashes, four shots, four impacts, four
+airs for thirty-seven towers - so a Barrow Stake flashed the same orange-brown
+as a Rootcrusher and a Rime Lance threw the same bolt as a Tide Caller.
+
+`TowerData` authors four things per tower: a **shot style** (`Shot`: a bolt,
+a lob on an arc with a shadow and a heavy landing, a lance's long streak, a
+spray's fan of pellets, a chain's jagged crackle), an **air** (`Ambient`:
+embers, smoke, drips, frost, grit, motes, gusts, sparks, glints, or none),
+a **colour** (`shot_tint`, for the towers whose art is not their element's
+colour) and a **kick** (`juice_scale`, the recoil and flash size). All
+thirty-seven are authored, snipers lance and siege pieces lob or spray, and
+the well has an air though it never fires.
+
+**The bound is that a style is a look and never a fact.** A lob's picture
+rises off the straight path while the node that hits stays on it; a lance is
+the same speed drawn longer; a spray's pellets touch nothing and the one real
+shot lands; a chain's jitter is in the ribbon. `tower_juice_check` builds one
+tower of each style on the real field, fires it at a standing body, and reads
+the damage back - the shot's own against the tower's range, and the body's
+pool after it lands. The pressure curve is untouched because no number is.
+
+**It caught a bug older than itself.** The field positions a projectile
+*after* adding it, so `_ready` took its heading from the world origin: every
+shot in the game left its tower pointing somewhere else and curved round in
+the first tenth of a second, and a tower far from the origin threw shots that
+flew away from the body before homing back. The heading is taken on the
+first tick now. The gate saw it as a spray whose shot went the wrong way.
+
+**A gate that polls for a short-lived node is a coin toss.** The first cut
+looked for the shot each frame and read it while it flew; a shot born and
+landed inside one slow frame was never there. It is caught on
+`child_entered_tree` and read on `tree_exiting` now, which is the pattern for
+anything that lives less than a frame might last.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

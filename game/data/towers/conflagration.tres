@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_aq605")
+ambient = 1
+juice_scale = 1.1
 is_combination = true
 damage = 30.0
 attack_interval = 0.7

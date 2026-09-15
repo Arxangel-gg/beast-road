@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_tower")
+ambient = 6
+shot_tint = Color(0.5, 0.88, 0.55, 1)
+juice_scale = 1.0
 role = 3
 element = 2
 damage = 8.0

@@ -150,6 +150,9 @@ func _ready() -> void:
 	_aura = TowerAura.new()
 	_aura.element = int(data.element)
 	_aura.level = level
+	# Authored per tower since 2026-09-14: which air, in which colour.
+	_aura.kind = int(data.ambient)
+	_aura.tint = data.shot_colour()
 	_aura.position = sprite.position
 	add_child(_aura)
 	_apply_level_look()
@@ -666,11 +669,26 @@ func _fire(targets: Array[Enemy]) -> void:
 		for enemy: Enemy in _field.enemies_near(origin(), effective_range()):
 			_hit(enemy)
 		Vfx.ring(origin(), effective_range(),
-			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
+			Color(data.shot_colour(), 0.30), 0.45, 3.0)
 		return
 
 	for enemy: Enemy in targets:
 		_launch(enemy)
+	_spray(primary.global_position)
+
+
+## The fan of cosmetic pellets a spraying tower throws beside its real shot
+## (2026-09-14). Nothing here damages anything; the shot that left in
+## `_launch` is the whole of the hit.
+func _spray(toward: Vector2) -> void:
+	if data == null or int(data.shot) != TowerData.Shot.SPRAY:
+		return
+	var from: Vector2 = origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT)
+	var direction: Vector2 = (toward - from).normalized()
+	if direction.length_squared() < 0.5:
+		direction = Vector2.RIGHT
+	Vfx.pellets(from, direction, data.shot_colour(), Balance.TOWER_SPRAY_PELLETS,
+		effective_range() * Balance.TOWER_SPRAY_REACH, Balance.TOWER_SPRAY_LIFE)
 
 
 ## Plays a shot the host has already decided on.
@@ -692,7 +710,7 @@ func fire_remote(at: Vector2) -> void:
 	kick(at)
 	if _is_aura():
 		Vfx.ring(origin(), effective_range(),
-			Color(TowerData.element_colour(data.element), 0.30), 0.45, 3.0)
+			Color(data.shot_colour(), 0.30), 0.45, 3.0)
 		return
 	var target: Enemy = _nearest_enemy(at)
 	if target == null:
@@ -715,6 +733,7 @@ func fire_remote(at: Vector2) -> void:
 	if target == null:
 		return
 	_launch(target)
+	_spray(at)
 
 
 ## The nearest living enemy at any distance, or null when the field is clear.
@@ -1074,9 +1093,11 @@ func _tick_step_wobble(delta: float) -> void:
 	# assigning the same property is how the earlier sway and wobble bug happened,
 	# and a tower that stopped breathing while it recoiled would read as two
 	# animations fighting over one sprite.
+	# The kick is sized per tower (2026-09-14): a mortar bucks, a needle twitches.
+	var juice: float = data.juice_scale if data != null else 1.0
 	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE
-		+ kicked * Balance.TOWER_FIRE_KICK_SCALE)
-	sprite.position = _sprite_home 		+ _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH
+		+ kicked * Balance.TOWER_FIRE_KICK_SCALE * juice)
+	sprite.position = _sprite_home + _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH * juice
 
 
 func _draw_range_ring() -> void:

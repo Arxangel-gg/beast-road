@@ -4598,6 +4598,29 @@ const PROJECTILE_FILAMENT_WIDTH: float = 1.65
 const PROJECTILE_MOTE_INTERVAL: float = 0.055
 const PROJECTILE_MOTE_LIFE: float = 0.22
 
+## The look of a shot by style (owner brief, 2026-09-14: effects catered per
+## tower). All presentation: none of these moves where a shot is or what it
+## does. [TUNE]
+## A lobbed shot's peak height above its straight path, and the shadow it
+## throws on the ground under it.
+const PROJECTILE_LOB_HEIGHT: float = 96.0
+const PROJECTILE_LOB_SHADOW_ALPHA: float = 0.42
+## How hard a lob's landing is felt, as a camera impact weight.
+const PROJECTILE_LOB_IMPACT: float = 0.14
+## A lance's trail against a bolt's, and how far its head is stretched.
+const PROJECTILE_LANCE_TRAIL: float = 1.9
+const PROJECTILE_LANCE_STRETCH: Vector2 = Vector2(1.8, 0.62)
+## A chain's jitter off its own path, in pixels, and how much more often it
+## sheds motes.
+const PROJECTILE_CHAIN_JITTER: float = 7.0
+const PROJECTILE_CHAIN_MOTE_SCALE: float = 0.45
+## The cosmetic pellets a spraying tower throws beside its real shot: how
+## many, how wide the fan, how far they fly as a share of the tower's reach.
+const TOWER_SPRAY_PELLETS: int = 4
+const TOWER_SPRAY_SPREAD: float = 0.42
+const TOWER_SPRAY_REACH: float = 0.45
+const TOWER_SPRAY_LIFE: float = 0.32
+
 # ------------------------------------------------------------------------------
 # See-through structures
 # ------------------------------------------------------------------------------

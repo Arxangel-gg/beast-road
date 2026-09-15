@@ -4,6 +4,10 @@
 
 [resource]
 script = ExtResource("1_eky8d")
+shot = 3
+ambient = 2
+shot_tint = Color(0.9, 0.95, 1.0, 1)
+juice_scale = 1.1
 is_combination = true
 parent_b = 1
 damage = 20.0

@@ -483,11 +483,11 @@ func number(at: Vector2, amount: float, colour: Color, big: bool = false) -> voi
 ## once *under* the cone - the cone is the instantaneous white-hot stab that
 ## sells the timing, the sprite is the material.
 func muzzle(at: Vector2, direction: Vector2, colour: Color,
-		element: int = -1) -> void:
+		element: int = -1, size: float = 1.0) -> void:
 	if world == null:
 		return
 	# Drawn first, because whether there is art changes what the cone should be.
-	var painted: bool = _muzzle_art(at, direction, colour, element)
+	var painted: bool = _muzzle_art(at, direction, colour, element, size)
 
 	var flash := Polygon2D.new()
 	# **The cone shrinks and goes white when there is art behind it.**
@@ -498,8 +498,8 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color,
 	# is actually good at is the instant: a hard white stab at the barrel on the
 	# frame the shot leaves. So with art it becomes exactly that, and without it
 	# stays the whole effect it has always been.
-	var length: float = Balance.VFX_MUZZLE_LENGTH * (0.45 if painted else 1.0)
-	var spread: float = Balance.VFX_MUZZLE_WIDTH * (0.5 if painted else 1.0)
+	var length: float = Balance.VFX_MUZZLE_LENGTH * (0.45 if painted else 1.0) * size
+	var spread: float = Balance.VFX_MUZZLE_WIDTH * (0.5 if painted else 1.0) * size
 	flash.polygon = PackedVector2Array([
 		Vector2.ZERO,
 		Vector2(length, -spread),
@@ -519,6 +519,35 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color,
 	tween.chain().tween_callback(flash.queue_free)
 
 
+## A fan of cosmetic pellets beside a spraying tower's real shot (owner brief,
+## 2026-09-14). Bright dots that fly a share of the tower's reach and are gone;
+## they touch nothing, and the real shot is the one that lands.
+func pellets(at: Vector2, direction: Vector2, colour: Color, count: int,
+		reach: float, life: float) -> void:
+	if world == null or count <= 0:
+		return
+	for i: int in count:
+		var share: float = (float(i) / float(maxi(count - 1, 1)) - 0.5) * 2.0
+		var angle: float = direction.angle() + share * Balance.TOWER_SPRAY_SPREAD \
+			+ randf_range(-0.06, 0.06)
+		var dir: Vector2 = Vector2.RIGHT.rotated(angle)
+		var dot := Sprite2D.new()
+		dot.texture = Flame.dot_texture()
+		dot.modulate = Color(colour.lerp(Color.WHITE, 0.5), 0.9)
+		dot.scale = Vector2.ONE * randf_range(0.14, 0.22)
+		dot.z_index = Balance.VFX_Z - 1
+		_track(dot)
+		dot.global_position = at
+		var far: float = reach * randf_range(0.7, 1.0)
+		var tween: Tween = dot.create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(dot, "global_position", at + dir * far, life)\
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tween.tween_property(dot, "modulate:a", 0.0, life).set_ease(Tween.EASE_IN)
+		tween.tween_property(dot, "scale", dot.scale * 0.4, life)
+		tween.chain().tween_callback(dot.queue_free)
+
+
 ## Elemental art for the barrel flash, played once.
 ##
 ## A *sibling* rather than a child of the cone, unlike the ring's bloom: the cone
@@ -528,7 +557,8 @@ func muzzle(at: Vector2, direction: Vector2, colour: Color,
 ##
 ## Rotated to the shot so a flash reads as coming *out* of the tower, and given
 ## a random flip so a lane of one tower firing does not stamp the same picture.
-func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int) -> bool:
+func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int,
+		size: float = 1.0) -> bool:
 	if element < 0 or world == null:
 		return false
 	var path: String = MUZZLE_ART_FORMAT % TowerData.element_name(element).to_lower()
@@ -542,7 +572,7 @@ func _muzzle_art(at: Vector2, direction: Vector2, colour: Color, element: int) -
 	art.modulate = Color(colour.lerp(Color.WHITE, 0.4), 0.9)
 	art.rotation = direction.angle()
 	art.scale = Vector2(1.0, 1.0 if randf() < 0.5 else -1.0) \
-			* (Balance.VFX_MUZZLE_LENGTH * 2.0
+			* (Balance.VFX_MUZZLE_LENGTH * 2.0 * size
 			/ maxf(float(art.texture.get_width()), 1.0))
 	art.z_index = Balance.VFX_Z - 1
 	_track(art)
@@ -1214,8 +1244,10 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 	if tower == null or world == null:
 		return
 	var origin: Vector2 = BattleGrid.footprint_centre(anchor)
-	var colour: Color = TowerData.element_colour(tower.element)
-	muzzle(origin, (at - origin).normalized(), colour, tower.element)
+	# The tower's own colour and its own size (2026-09-14): a siege piece
+	# flashes bigger than a skirmisher, a Barrow Stake flashes green.
+	var colour: Color = tower.shot_colour()
+	muzzle(origin, (at - origin).normalized(), colour, tower.element, tower.juice_scale)
 
 
 ## The arc of a swing. Drawn for every swing, including the ones that miss.

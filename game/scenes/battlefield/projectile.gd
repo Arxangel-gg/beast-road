@@ -59,6 +59,21 @@ var _history: PackedVector2Array = []
 var _spin: float = 0.0
 var _mote_left: float = 0.0
 
+## The style this shot is drawn in (`TowerData.Shot`, owner brief 2026-09-14),
+## and what the style needs. **The style is a look and never a fact**: the
+## node's own position, speed, homing and hit are the same in all five, and
+## `tower_juice_check` fires each at a body and reads the damage back.
+var _shot: int = TowerData.Shot.BOLT
+## Everything that flies - head, glow, core, ember, light - hangs off this so
+## a lob can lift the picture off the straight path while the hit stays on it.
+var _body: Node2D = null
+## A lob's shadow on the ground beneath the lifted picture.
+var _shadow: Polygon2D = null
+var _lob_total: float = 0.0
+var _lift: float = 0.0
+var _peak_lift: float = 0.0
+var _aimed: bool = false
+
 
 ## Builds the shot. **`fired_at` is a parameter, not a field to assign after.**
 ##
@@ -74,12 +89,15 @@ func setup(target: Enemy, tower_data: TowerData, hit_damage: float,
 	data = tower_data
 	damage = hit_damage
 	knockback = hit_knockback
-	colour = TowerData.element_colour(tower_data.element)
+	colour = tower_data.shot_colour()
+	_shot = int(tower_data.shot)
 	speed = Balance.TOWER_PROJECTILE_SPEED
 
 
 func _ready() -> void:
 	z_index = Balance.VFX_Z - 1
+	_body = Node2D.new()
+	add_child(_body)
 
 	# The trail lives in world space, so it stays put as the head moves rather
 	# than rotating with the projectile.
@@ -120,14 +138,14 @@ func _ready() -> void:
 	_glow.polygon = _head_shape(Balance.PROJECTILE_GLOW_SCALE * _tier_scale())
 	# Blooms harder with the tier, so the shot reads brighter as well as bigger.
 	_glow.color = Color(colour, _glow_alpha(0.30))
-	add_child(_glow)
+	_body.add_child(_glow)
 
 	_core = Polygon2D.new()
 	_core.polygon = _head_shape(_tier_scale())
 	# A hot centre: the element colour lifted toward white reads as energy
 	# rather than as a coloured shape.
 	_core.color = colour.lerp(Color.WHITE, 0.55)
-	add_child(_core)
+	_body.add_child(_core)
 
 	# **An upgraded shot is hotter, not just larger.** Scale already carried the
 	# tier and a bigger shot still reads as the same shot; a white centre turning
@@ -138,22 +156,68 @@ func _ready() -> void:
 		_ember = Polygon2D.new()
 		_ember.polygon = _head_shape(_tier_scale() * Balance.PROJECTILE_HOT_SCALE)
 		_ember.color = Color(1.0, 0.97, 0.9, 0.92)
-		add_child(_ember)
+		_body.add_child(_ember)
 
 	_build_head()
 
 	# Every shot carries its own small light, which is most of why a night
 	# battlefield reads at all.
-	_light = LightKit.add_light(self, colour,
+	_light = LightKit.add_light(_body, colour,
 		Balance.PROJECTILE_LIGHT_RADIUS * _tier_scale(),
 		Balance.PROJECTILE_LIGHT_ENERGY * _tier_scale())
 
+	# **Aimed on the first tick, not here.** The field positions a shot *after*
+	# adding it to the tree, so in `_ready` the node still sits at the world
+	# origin, and a heading taken from there is a heading from the wrong side
+	# of the map: every shot left its tower pointing somewhere else and curved
+	# round over the first tenth of a second. A tower far from the origin
+	# threw shots that flew away from the body before homing back.
+	_dress_for_style()
+
+
+## The heading from where the shot actually is to what it is flying at.
+func _aim() -> void:
+	_aimed = true
 	if _target != null and is_instance_valid(_target):
 		_direction = (_target.global_position - global_position).normalized()
 	rotation = _direction.angle()
 
 
+## What the style changes about the picture, once, when the shot is built.
+func _dress_for_style() -> void:
+	match _shot:
+		TowerData.Shot.LANCE:
+			# A long bright streak: a thinner ribbon, a hotter filament and a
+			# head stretched along the flight.
+			_trail.width *= 0.8
+			_filament.width *= 1.7
+			_filament.default_color = Color(colour.lerp(Color.WHITE, 0.9), 1.0)
+			_body.scale = Balance.PROJECTILE_LANCE_STRETCH
+		TowerData.Shot.LOB:
+			# The arc is measured against the distance the shot had to fly when
+			# it left the tower, so it peaks halfway however far that is. Taken
+			# on the first tick rather than here: the field positions a shot
+			# *after* adding it, so in `_ready` it is still at the world origin.
+			_lob_total = 0.0
+			_shadow = Polygon2D.new()
+			var points: PackedVector2Array = []
+			var w: float = Balance.PROJECTILE_WIDTH * _tier_scale() * 2.2
+			for i: int in 10:
+				var a: float = TAU * float(i) / 10.0
+				points.append(Vector2(cos(a) * w, sin(a) * w * 0.55))
+			_shadow.polygon = points
+			_shadow.color = Color(0.0, 0.0, 0.0, Balance.PROJECTILE_LOB_SHADOW_ALPHA)
+			_shadow.top_level = true
+			_shadow.z_index = Balance.VFX_Z - 3
+			add_child(_shadow)
+			_shadow.global_position = global_position
+		_:
+			pass
+
+
 func _process(delta: float) -> void:
+	if not _aimed:
+		_aim()
 	_life += delta
 	if _life > Balance.PROJECTILE_MAX_LIFE:
 		_expire()
@@ -168,6 +232,7 @@ func _process(delta: float) -> void:
 
 	global_position += _direction * speed * delta
 	rotation = _direction.angle()
+	_tick_style()
 	if not _head_frames.is_empty() and _head != null:
 		var frame: int = int(_life * Balance.VFX_ART_FRAME_RATE) % _head_frames.size()
 		_head.texture = _head_frames[frame]
@@ -189,12 +254,41 @@ func _process(delta: float) -> void:
 	_mote_left -= delta
 	if _mote_left <= 0.0:
 		_mote_left = Balance.PROJECTILE_MOTE_INTERVAL
+		if _shot == TowerData.Shot.CHAIN:
+			_mote_left *= Balance.PROJECTILE_CHAIN_MOTE_SCALE
 		_shed_mote()
 
 	if _target != null:
 		var reach: float = _target.contact_radius() + Balance.PROJECTILE_HIT_RADIUS
 		if global_position.distance_to(_target.global_position) <= reach:
 			_impact()
+
+
+## What the style does every frame: a lob lifts its picture on an arc over the
+## straight path and drops a shadow where the hit will land.
+func _tick_style() -> void:
+	if _shot != TowerData.Shot.LOB or _body == null:
+		return
+	var left: float = 0.0
+	if _target != null and is_instance_valid(_target):
+		left = global_position.distance_to(_target.global_position)
+	if _lob_total <= 0.0:
+		_lob_total = maxf(left, 1.0)
+	var progress: float = clampf(1.0 - left / maxf(_lob_total, 1.0), 0.0, 1.0)
+	var arc: float = sin(progress * PI)
+	_lift = arc * Balance.PROJECTILE_LOB_HEIGHT * _tier_scale()
+	_peak_lift = maxf(_peak_lift, _lift)
+	# Screen-up, whichever way the node is turned.
+	_body.position = Vector2(0.0, -_lift).rotated(-rotation)
+	if _shadow != null:
+		_shadow.global_position = global_position
+		_shadow.scale = Vector2.ONE * (1.0 - 0.45 * arc)
+		_shadow.color.a = Balance.PROJECTILE_LOB_SHADOW_ALPHA * (1.0 - 0.5 * arc)
+
+
+## Where the picture is: the shot's own position, lifted by a lob's arc.
+func _drawn_at() -> Vector2:
+	return global_position + Vector2(0.0, -_lift)
 
 
 ## Element-specific head silhouettes. Fire is a teardrop, water a shard, earth a
@@ -224,7 +318,7 @@ func _build_head() -> void:
 	# Tinted toward the element rather than left neutral, so a Fire shot from a
 	# fused tower still reads as that tower's colour.
 	_head.modulate = colour.lerp(Color.WHITE, 0.35)
-	add_child(_head)
+	_body.add_child(_head)
 	_core.visible = false
 	# Still tier-scaled. This used to reset the alpha to a flat value, which
 	# quietly undid the upgrade's bloom for every tower that has painted head
@@ -239,6 +333,26 @@ func _build_head() -> void:
 ## so a painted shot bloomed the same at level 5 as at level 1.
 func _glow_alpha(base: float) -> float:
 	return minf(base + float(_tier_step()) * Balance.PROJECTILE_GLOW_TIER_STEP, 0.72)
+
+
+## The style this shot is drawn in, how far a lob has lifted its picture, and
+## whether it throws a shadow. For the gate.
+func style() -> int:
+	return _shot
+
+
+func lifted() -> float:
+	return _lift
+
+
+## The highest the picture rose over its whole flight, for a gate reading a
+## shot that has already landed.
+func peak_lift() -> float:
+	return _peak_lift
+
+
+func has_shadow() -> bool:
+	return _shadow != null and is_instance_valid(_shadow)
 
 
 ## Whether this shot carries the white heart of an upgraded tower. For the gate.
@@ -289,9 +403,23 @@ func _head_shape(scale: float) -> PackedVector2Array:
 
 ## Keeps the last N world positions and feeds them to the trail.
 func _push_trail() -> void:
-	_history.append(global_position)
-	while _history.size() > int(float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()):
+	_history.append(_drawn_at())
+	var held: float = float(Balance.PROJECTILE_TRAIL_POINTS) * _tier_scale()
+	if _shot == TowerData.Shot.LANCE:
+		held *= Balance.PROJECTILE_LANCE_TRAIL
+	while _history.size() > int(held):
 		_history.remove_at(0)
+	if _shot == TowerData.Shot.CHAIN:
+		# A jagged ribbon: every other point thrown off the path, freshly each
+		# frame, so the trail crackles rather than merely bends.
+		var jag: PackedVector2Array = PackedVector2Array(_history)
+		for index: int in range(1, jag.size() - 1, 2):
+			var along: Vector2 = (_history[index + 1] - _history[index - 1]).normalized()
+			jag[index] += along.orthogonal() * randf_range(-Balance.PROJECTILE_CHAIN_JITTER,
+				Balance.PROJECTILE_CHAIN_JITTER)
+		_trail.points = jag
+		_filament.points = jag
+		return
 	_trail.points = _history
 	_filament.points = _history
 
@@ -303,7 +431,7 @@ func _shed_mote() -> void:
 	mote.scale = Vector2.ONE * randf_range(0.08, 0.16) * _tier_scale()
 	mote.top_level = true
 	add_child(mote)
-	mote.global_position = global_position + Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
+	mote.global_position = _drawn_at() + Vector2(randf_range(-4.0, 4.0), randf_range(-4.0, 4.0))
 	var drift: Vector2 = -_direction * randf_range(18.0, 36.0) \
 		+ _direction.orthogonal() * randf_range(-14.0, 14.0)
 	var tween: Tween = mote.create_tween()
@@ -340,6 +468,11 @@ func _impact() -> void:
 	Vfx.ring(global_position, Balance.PROJECTILE_IMPACT_RING * _tier_scale(),
 		Color(colour, 0.7), 0.22, 3.0)
 	Vfx.flash_at(global_position, colour, Balance.PROJECTILE_IMPACT_FLASH * _tier_scale())
+	# A lob lands: dust off the ground and a tremor weighted by distance from
+	# the camera, through the same door every blow in the game uses.
+	if _shot == TowerData.Shot.LOB:
+		Vfx.dust(global_position, Color(colour.darkened(0.35), 0.5), 8, 62.0 * _tier_scale())
+		EventBus.camera_impact.emit(global_position, Balance.PROJECTILE_LOB_IMPACT * _tier_scale())
 	queue_free()
 
 
