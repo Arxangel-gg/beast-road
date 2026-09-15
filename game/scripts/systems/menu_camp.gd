@@ -86,6 +86,11 @@ var firelight: Color = Color(1.0, 0.72, 0.36, 1.0)
 ## and never by the grading of rock the fire is not on. A whole cliff
 ## brightening in time with a campfire is a stage light, not a fire.
 var fire_pulse: float = 1.0
+## The pass that lights the burning parts of what is up there. A node of its
+## own because a blend mode belongs to a canvas item and this one is drawn
+## over the same art the camp has already drawn - see `fire_sheen.gdshader`.
+var _fire_sheen: Node2D = null
+var _fire_paint: ShaderMaterial = null
 
 var _span: Vector2 = Vector2(1920.0, 1080.0)
 var _time: float = 0.0
@@ -288,11 +293,73 @@ func _ground() -> Vector2:
 	return Vector2(x, y)
 
 
+## The burning pass, built once and drawn over everything the camp draws.
+##
+## **Skipped headless**, where the dummy renderer cannot compile a shader and
+## says so as an error the sweep reads as a failure - the same guard the
+## wordmark and the frame carry.
+func _light_the_fire() -> void:
+	if _fire_sheen != null or DisplayServer.get_name() == "headless":
+		return
+	_fire_paint = ShaderMaterial.new()
+	_fire_paint.shader = load("res://scripts/shaders/fire_sheen.gdshader")
+	_fire_paint.set_shader_parameter("strength", Balance.MENU_CAMP_FIRE_SHEEN)
+	_fire_paint.set_shader_parameter("glow", Vector3(firelight.r, firelight.g,
+		firelight.b))
+	_fire_sheen = Node2D.new()
+	_fire_sheen.name = "FireSheen"
+	_fire_sheen.material = _fire_paint
+	_fire_sheen.draw.connect(_draw_burning)
+	add_child(_fire_sheen)
+
+
+## What burns up there: the horse's mane and hooves, and a mounted rider's
+## mount under them. The shader decides *which pixels* - see the note on it -
+## so this only has to say which sprites to offer.
+func _draw_burning() -> void:
+	if _camp.is_empty() or _fire_sheen == null:
+		return
+	var ground: Vector2 = _ground()
+	var size: float = _figure_size()
+	var facing: float = 1.0 if float(_camp["side"]) < 0.0 else -1.0
+	var lit := Color(1.0, 1.0, 1.0, clampf(fire_pulse, 0.6, 1.2))
+	if bool(_camp["horse"]):
+		var horse: Texture2D = _frame_of(HORSE_ART, float(_camp["phase"]))
+		if horse != null:
+			var wide: float = size * 1.5
+			var tall: float = wide * float(horse.get_height()) \
+				/ maxf(float(horse.get_width()), 1.0)
+			_burn(horse, ground + Vector2(-size * 0.78 * facing, 0.0),
+				wide, tall, facing, lit)
+	if int(_camp["pose"]) == Pose.MOUNTED:
+		var rider: Texture2D = _frame_of(RIDE_ART, float(_camp["phase"]) * 0.37)
+		if rider != null:
+			var wide: float = size * 1.55
+			var tall: float = wide * float(rider.get_height()) \
+				/ maxf(float(rider.get_width()), 1.0)
+			_burn(rider, ground, wide, tall, facing, lit)
+
+
+func _burn(texture: Texture2D, ground: Vector2, wide: float, tall: float,
+		facing: float, tint: Color) -> void:
+	_fire_sheen.draw_set_transform(ground, 0.0, Vector2(facing, 1.0))
+	_fire_sheen.draw_texture_rect(texture, Rect2(-wide * 0.5, -tall, wide, tall),
+		false, tint)
+	_fire_sheen.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
 func _process(delta: float) -> void:
 	_time += delta
 	if _time - _drawn_at >= 1.0 / maxf(Balance.MENU_CAMP_HZ, 1.0):
 		_drawn_at = _time
 		queue_redraw()
+		_light_the_fire()
+		if _fire_sheen != null:
+			_fire_sheen.queue_redraw()
+		if _fire_paint != null:
+			# Fed from here rather than read from `TIME`, so the flame stops
+			# with the menu instead of running under a dialog.
+			_fire_paint.set_shader_parameter("clock", _time)
 
 
 func _draw() -> void:
@@ -337,8 +404,17 @@ func _draw() -> void:
 			var tall: float = wide * float(horse.get_height()) \
 				/ maxf(float(horse.get_width()), 1.0)
 			# Behind and a little aside, so it never covers the person.
+			#
+			# **Graded like the rock now, not spared like a light.** It used to
+			# be drawn toward the firelight so that the flames in its art would
+			# survive the grading - which kept its whole body bright, and the
+			# owner reported the camp as needing "proper colour grading and
+			# tint for the scene". The burning pass puts the fire back on top
+			# (see `_draw_burning`), so the base is free to sit in the dark with
+			# everything else, and the flames read hotter for having something
+			# dark to be hot against.
 			_blit(horse, ground + Vector2(-size * 0.78 * facing, 0.0),
-				wide, tall, facing, _emberish(shade))
+				wide, tall, facing, shade)
 
 	var pose: int = int(_camp["pose"])
 	var key: String = SIT_ART if pose == Pose.SITTING \
@@ -350,8 +426,9 @@ func _draw() -> void:
 			/ maxf(float(figure.get_width()), 1.0)
 		# A mounted rider is only partly a silhouette: the horse under them is
 		# on fire and has to keep it.
-		_blit(figure, ground, wide, tall, facing,
-			_emberish(shade) if pose == Pose.MOUNTED else shade)
+		# A rider is graded like anyone else: the mount under them burns, and
+		# the burning pass is what says so.
+		_blit(figure, ground, wide, tall, facing, shade)
 		_draw_lantern(ground, size, tall, facing, pose)
 	_draw_props(ground, size, facing)
 

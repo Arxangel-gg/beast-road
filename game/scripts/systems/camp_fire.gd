@@ -115,7 +115,12 @@ func make_showpiece(glow_scale: float = 1.0) -> void:
 	_core.name = "Core"
 	_core.texture = LightKit.falloff_texture()
 	_core.modulate = Color(1.0, 0.86, 0.62, 0.5)
-	_core.z_index = 1
+	# **Never above the fire's own layer.** At +1 the core of a fire standing
+	# behind Yuri drew over him: a bright spot floating on the beast with no
+	# fire visible under it, which the owner reported as light showing through.
+	# Zero keeps it above the flame sprite by tree order and below anything the
+	# scene draws in front of the fire, which is the whole of what it needs.
+	_core.z_index = 0
 	_core.z_as_relative = true
 	_core.position = Vector2(0.0, -4.0)
 	add_child(_core)
@@ -145,7 +150,9 @@ func make_showpiece(glow_scale: float = 1.0) -> void:
 	additive.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	_embers.material = additive
 	_embers.position = Vector2(0.0, -6.0)
-	_embers.z_index = 1
+	# Same reason as the core above: embers from a fire behind the beast must
+	# not rise in front of it.
+	_embers.z_index = 0
 	_embers.z_as_relative = true
 	add_child(_embers)
 	# **Additive, like every other fire in this project draws itself.** See the

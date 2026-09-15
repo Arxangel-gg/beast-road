@@ -7746,6 +7746,10 @@ const MENU_CAMP_PROPS_MAX: int = 3
 ## How much of the firelight a prop standing right beside the fire takes. Less
 ## than the rider, who is *on* something burning.
 const MENU_CAMP_PROP_FIRELIGHT: float = 0.55
+## How hard the burning pass lights the fire horse. It is added over art that
+## is already drawn, so this is the whole of what it can do - and past about one
+## the mane stops being flame and becomes a white shape.
+const MENU_CAMP_FIRE_SHEEN: float = 0.85
 
 # --- The carved frame round the menu -----------------------------------------
 #
