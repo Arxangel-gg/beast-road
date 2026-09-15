@@ -2,6 +2,13 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 4
+behaviour_warning = 0.90
+behaviour_seconds = 0.60
+behaviour_recovery = 1.40
+behaviour_reach = 420.00
+behaviour_power = 0.85
+behaviour_interval = 10.00
 shot = 4
 shot_range = 620
 shot_ids = PackedStringArray("snap_bolt", "lash_lance", "long_lance")

@@ -2881,6 +2881,7 @@ The demonstration pictures the Guide shows beside each section, one per
 | `act_track.png` | 640×360 | O | `#1E2E33` |
 | `bow.png` | 640×360 | O | `#1E2E33` |
 | `camps.png` | 640×360 | O | `#1E2E33` |
+| `mythic_trail.png` | 640×360 | O | `#1E2E33` |
 | `cards.png` | 640×360 | O | `#1E2E33` |
 | `controls.png` | 640×360 | O | `#1E2E33` |
 | `coop.png` | 640×360 | O | `#1E2E33` |

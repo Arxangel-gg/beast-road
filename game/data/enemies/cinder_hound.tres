@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.40
+behaviour_recovery = 1.20
+behaviour_reach = 330.00
+behaviour_power = 0.00
+behaviour_interval = 7.00
 id = "cinder_hound"
 display_name = "Cinder Hound"
 description = "It hunts what the fire left. There is always something the fire left."

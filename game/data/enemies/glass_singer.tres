@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 3
+behaviour_warning = 1.10
+behaviour_seconds = 5.50
+behaviour_recovery = 1.40
+behaviour_reach = 260.00
+behaviour_power = 0.00
+behaviour_interval = 12.50
 hide = 3
 shot = 4
 shot_range = 700

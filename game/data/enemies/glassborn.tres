@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_vu077")
+behaviour = 2
+behaviour_warning = 0.55
+behaviour_seconds = 0.40
+behaviour_recovery = 1.20
+behaviour_reach = 280.00
+behaviour_power = 0.00
+behaviour_interval = 7.50
 hide = 2
 art_facing = 1
 role = 1

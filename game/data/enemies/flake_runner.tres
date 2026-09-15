@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 2
+behaviour_warning = 0.50
+behaviour_seconds = 0.38
+behaviour_recovery = 1.10
+behaviour_reach = 300.00
+behaviour_power = 0.00
+behaviour_interval = 6.50
 hide = 2
 id = "flake_runner"
 display_name = "Flake Runner"

@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_yfb0w")
+behaviour = 3
+behaviour_warning = 1.00
+behaviour_seconds = 6.00
+behaviour_recovery = 1.50
+behaviour_reach = 300.00
+behaviour_power = 0.00
+behaviour_interval = 13.00
 art_facing = 1
 shot_ids = PackedStringArray("snap_bolt", "close_fan", "far_bolt")
 category = 1

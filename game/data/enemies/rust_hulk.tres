@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 1
+behaviour_warning = 0.80
+behaviour_seconds = 3.20
+behaviour_recovery = 1.50
+behaviour_reach = 240.00
+behaviour_power = 0.00
+behaviour_interval = 10.00
 hide = 1
 id = "rust_hulk"
 display_name = "Rust Hulk"

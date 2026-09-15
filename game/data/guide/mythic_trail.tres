@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "mythic_trail"
+display_name = "Following something"
+title = "Following something"
+category = "The Road"
+order = 44
+image = "res://art/guide/mythic_trail.png"
+body = "Some animals are never simply out there. What you find first is what one left behind - tracks, a stripped sapling, hair on a thorn - out past the camps where nobody goes. Walk up to a sign to read it, and the next one appears further on, roughly the way the first was pointing. Follow five and the animal itself is at the end of them. The map remembers only the signs you have already found; it will not show you the next."

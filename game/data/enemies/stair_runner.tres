@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 2
+behaviour_warning = 0.50
+behaviour_seconds = 0.38
+behaviour_recovery = 1.10
+behaviour_reach = 310.00
+behaviour_power = 0.00
+behaviour_interval = 6.50
 id = "stair_runner"
 display_name = "Stair Runner"
 description = "It has climbed this stair every day of its life, and it is not tired."

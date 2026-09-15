@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+behaviour = 2
+behaviour_warning = 0.45
+behaviour_seconds = 0.36
+behaviour_recovery = 1.00
+behaviour_reach = 290.00
+behaviour_power = 0.00
+behaviour_interval = 6.00
 id = "cinder_runner"
 display_name = "Cinder Runner"
 description = "Fast, thin, and there are always more of them than you counted."

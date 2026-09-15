@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 1
+behaviour_warning = 0.75
+behaviour_seconds = 3.00
+behaviour_recovery = 1.30
+behaviour_reach = 220.00
+behaviour_power = 0.00
+behaviour_interval = 9.50
 hide = 1
 art_facing = 1
 id = "gate_sentinel"

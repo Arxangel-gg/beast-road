@@ -2,6 +2,13 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 4
+behaviour_warning = 0.95
+behaviour_seconds = 0.60
+behaviour_recovery = 1.50
+behaviour_reach = 440.00
+behaviour_power = 0.90
+behaviour_interval = 11.00
 hide = 3
 shot = 3
 shot_range = 620

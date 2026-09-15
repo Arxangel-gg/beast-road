@@ -59,6 +59,11 @@ func _ready() -> void:
 	await _shot("farming", func() -> void: _stand_at(_wild_crop() + Vector2(64.0, 36.0)))
 	_copy("swimming", "reel")
 	await _shot("camps", func() -> void: _stand_at(_camp_centre()))
+	# **A real sign, stood at**, and taken here with the other field pictures
+	# rather than down among the copies: by the time the rift shots have run the
+	# hero has been put back beside the town, and the first cut photographed the
+	# town square with a caption about tracking.
+	await _shot("mythic_trail", func() -> void: _stand_at_a_trail_sign(run))
 	await _shot("forks", func() -> void: _stand_at(_barrier_at()))
 	_stand_at(Vector2.ZERO)
 
@@ -359,6 +364,25 @@ func _shot(id: String, setup: Callable) -> void:
 	_written.append(id)
 	print("[guide-shots] %s" % id)
 
+
+
+## The hero, beside the first sign of whatever this run is about.
+##
+## Laid rather than waited for: the trail begins in the act its quarry belongs
+## to, and a photograph should not depend on the run having got there.
+func _stand_at_a_trail_sign(run: Run) -> void:
+	var trail: MythicTrail = run.battlefield.trail()
+	if trail == null:
+		return
+	RunState.act = maxi(RunState.act, 2)
+	trail.scatter()
+	var where: Dictionary = trail.report()
+	var places: Array = where.get("signs", [])
+	if places.is_empty():
+		return
+	var at: Vector2 = places[0]
+	if run.battlefield.hero != null:
+		run.battlefield.hero.global_position = at + Vector2(90.0, 30.0)
 
 func _copy(from: String, to: String) -> void:
 	var image: Image = Image.load_from_file(ProjectSettings.globalize_path(OUT + from + ".png"))
