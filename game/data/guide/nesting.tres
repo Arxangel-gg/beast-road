@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "nesting"
+display_name = "Nests and eggs"
+title = "Nests and eggs"
+category = "The Road"
+order = 45
+image = "res://art/guide/nesting.png"
+body = "The birds, the reptiles and the insects out there do not carry their young: a pair leaves a clutch on the ground and comes back to it. A nest hatches by road walked rather than by time, so standing still hatches nothing. You can take an egg from one - it is worth a meal and it teaches you the animal - but whatever laid it will know, and that species will come for you for the rest of the act."

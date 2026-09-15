@@ -8061,6 +8061,8 @@ const MINIMAP_WATER: Color = Color(0.3, 0.55, 0.8, 1.0)
 const MINIMAP_RIFT: Color = Color(0.7, 0.4, 0.9, 1.0)
 ## A sign on a mythical animal's trail, once the party has read it.
 const MINIMAP_TRAIL: Color = Color(0.780, 0.920, 1.000, 0.850)
+## A clutch on the ground, waiting on road rather than on the clock.
+const MINIMAP_NEST: Color = Color(0.960, 0.900, 0.700, 0.880)
 ## Trees and seams on the outskirts (2026-09-13). Two colours rather than
 ## one, because which craft a node wants is the thing a player is deciding
 ## whether to walk out for.

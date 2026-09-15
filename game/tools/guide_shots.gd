@@ -150,6 +150,7 @@ func _ready() -> void:
 	_copy("pantry", "sharing_fish")
 	_copy("waves", "boss_fight")
 	_copy("camps", "hunted")
+	_copy("mythic_trail", "nesting")
 	# The fifth attribute (2026-09-13) is read on the Mansion's hero page.
 	_copy("town", "attributes")
 	_copy("waves", "enemy_shots")

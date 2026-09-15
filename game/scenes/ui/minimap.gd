@@ -146,6 +146,14 @@ func _draw() -> void:
 			_draw_diamond(_to_map(places[index] as Vector2),
 				maxf(size.x / 70.0, 2.0), Color(Balance.MINIMAP_TRAIL,
 					Balance.MINIMAP_TRAIL.a * fade))
+	# **A clutch on the ground.** Marked because a nest is a place you go back
+	# to - it hatches by road walked, so the thing a player wants to know is
+	# where it was when they passed it.
+	var clutches: Node = battlefield.call("nests") if battlefield.has_method("nests") else null
+	if clutches != null and clutches.has_method("report"):
+		for nest: Dictionary in clutches.call("report"):
+			draw_circle(_to_map(nest["at"] as Vector2),
+				maxf(size.x / 78.0, 2.0), Balance.MINIMAP_NEST)
 	# Plots and the crops in them: bare earth, growing, ripe. A wilting crop
 	# is drawn dim, which is the same tell the plant itself gives.
 	var farm: Node = battlefield.call("farming") if battlefield.has_method("farming") else null
