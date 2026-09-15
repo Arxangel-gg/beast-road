@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 0
+reading = "One print, and the ground cracked around it taking the weight."
+species = "hollowhorn"
+scale = 1.00
+id = "hollowhorn_hoof"
+display_name = "One hoofprint"
+description = "A single cloven print sunk deep into dry cracked earth."

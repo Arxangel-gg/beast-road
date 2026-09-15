@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 1
+reading = "A tail feather the colour of a forge, and it has not set the grass alight. That is the strange part."
+species = "phoenix"
+scale = 1.00
+id = "phoenix_plume"
+display_name = "A burning plume"
+description = "One long tail feather the colour of a forge, lying on the ground."

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 3
+reading = "A boulder split in two and burnt where it broke. Nothing else on this road does that with its head."
+species = "hollowhorn"
+scale = 1.15
+id = "hollowhorn_stone"
+display_name = "A split stone"
+description = "A boulder halved clean, both faces scorched black at the break."

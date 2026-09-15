@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 2
+reading = "Ash, cold now, in a trail rather than a heap. It was falling off something walking."
+species = "hollowhorn"
+scale = 1.10
+id = "hollowhorn_ash"
+display_name = "Ash on the soil"
+description = "Grey ash and dead cinders scattered over bare soil."

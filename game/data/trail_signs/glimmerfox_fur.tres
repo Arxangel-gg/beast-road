@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 2
+reading = "Silver fur on a thorn, at the height of something small and in a hurry."
+species = "glimmerfox"
+scale = 1.10
+id = "glimmerfox_fur"
+display_name = "Silver on a thorn"
+description = "A tuft of silver-blue fur caught on a low thorn."

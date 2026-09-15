@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 1
+reading = "A furrow torn through the ground for twenty paces. It was dragging a horn and did not care."
+species = "hollowhorn"
+scale = 1.00
+id = "hollowhorn_gouge"
+display_name = "A dragged furrow"
+description = "A long furrow torn through the ground by something carried low."

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 0
+reading = "Four small prints, and the light in them has not gone out yet."
+species = "glimmerfox"
+scale = 1.00
+id = "glimmerfox_print"
+display_name = "Small bright prints"
+description = "Four neat paw prints in soft earth, each one faintly lit."

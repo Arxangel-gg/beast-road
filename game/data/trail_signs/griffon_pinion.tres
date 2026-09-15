@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 1
+reading = "A flight feather longer than your forearm. It is still warm."
+species = "griffon"
+scale = 1.00
+id = "griffon_pinion"
+display_name = "A shed pinion"
+description = "One flight feather, longer than a forearm, lying where it fell."

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 3
+reading = "Blackened twigs drawn into a nest with the embers banked in the middle, the way you bank a fire you mean to come back to."
+species = "phoenix"
+scale = 1.15
+id = "phoenix_nest"
+display_name = "A nest of cinders"
+description = "Blackened twigs drawn into a nest, embers banked at the centre."

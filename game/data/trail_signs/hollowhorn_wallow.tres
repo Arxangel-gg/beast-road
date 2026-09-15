@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 4
+reading = "It lay down here. You could park a cart in the shape it left."
+species = "hollowhorn"
+scale = 1.30
+id = "hollowhorn_wallow"
+display_name = "A wallow"
+description = "A broad shallow wallow of churned ash-grey mud."

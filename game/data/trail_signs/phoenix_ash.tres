@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 2
+reading = "Ash stacked too neatly to have fallen that way, and one ember still going in the middle of it."
+species = "phoenix"
+scale = 1.10
+id = "phoenix_ash"
+display_name = "A cone of ash"
+description = "A neat cone of pale ash with one ember still alive inside it."

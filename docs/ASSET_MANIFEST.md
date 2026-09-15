@@ -1526,6 +1526,13 @@ that Mythic is a *classification* rather than a sixth rarity.
 
 `wildlife_moonstag.png`
 
+Four more followed on the same day, one for each of the five the triage
+shortlisted out of a document of a hundred and twelve. `MythicTrail._choose`
+picks whichever one belongs to the act, so a run meets one legend rather than
+four.
+
+`wildlife_griffon.png` · `wildlife_glimmerfox.png` · `wildlife_hollowhorn.png` · `wildlife_phoenix.png`
+
 The young of the antlered species are drawn rather than scaled down
 (2026-09-14): a fawn wearing a full rack reads as a shrunken stag. Everything
 else's young wear the adult's art at a smaller size, which is what
@@ -1601,6 +1608,10 @@ Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildli
 Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
 Files: `wildlife_stag_idle_01.png` · `wildlife_stag_idle_02.png` · `wildlife_stag_idle_03.png`
 Files: `wildlife_moonstag_idle_01.png` · `wildlife_moonstag_idle_02.png` · `wildlife_moonstag_idle_03.png`
+Files: `wildlife_griffon_idle_01.png` · `wildlife_griffon_idle_02.png` · `wildlife_griffon_idle_03.png`
+Files: `wildlife_glimmerfox_idle_01.png` · `wildlife_glimmerfox_idle_02.png` · `wildlife_glimmerfox_idle_03.png`
+Files: `wildlife_hollowhorn_idle_01.png` · `wildlife_hollowhorn_idle_02.png` · `wildlife_hollowhorn_idle_03.png`
+Files: `wildlife_phoenix_idle_01.png` · `wildlife_phoenix_idle_02.png` · `wildlife_phoenix_idle_03.png`
 Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png`
 Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png`
 Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
@@ -1694,6 +1705,9 @@ Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png` · `
 Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png` · `wildlife_snow_lynx_move_03.png` · `wildlife_snow_lynx_move_04.png` · `wildlife_snow_lynx_move_05.png` · `wildlife_snow_lynx_move_06.png` · `wildlife_snow_lynx_move_07.png`
 Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png` · `wildlife_frost_elk_move_03.png` · `wildlife_frost_elk_move_04.png` · `wildlife_frost_elk_move_05.png` · `wildlife_frost_elk_move_06.png` · `wildlife_frost_elk_move_07.png` · `wildlife_frost_elk_move_08.png`
 Files: `wildlife_moonstag_move_01.png` · `wildlife_moonstag_move_02.png` · `wildlife_moonstag_move_03.png` · `wildlife_moonstag_move_04.png` · `wildlife_moonstag_move_05.png` · `wildlife_moonstag_move_06.png` · `wildlife_moonstag_move_07.png` · `wildlife_moonstag_move_08.png`
+Files: `wildlife_griffon_move_01.png` · `wildlife_griffon_move_02.png` · `wildlife_griffon_move_03.png` · `wildlife_griffon_move_04.png` · `wildlife_griffon_move_05.png` · `wildlife_griffon_move_06.png` · `wildlife_griffon_move_07.png` · `wildlife_griffon_move_08.png`
+Files: `wildlife_glimmerfox_move_01.png` · `wildlife_glimmerfox_move_02.png` · `wildlife_glimmerfox_move_03.png` · `wildlife_glimmerfox_move_04.png` · `wildlife_glimmerfox_move_05.png` · `wildlife_glimmerfox_move_06.png` · `wildlife_glimmerfox_move_07.png` · `wildlife_glimmerfox_move_08.png`
+Files: `wildlife_hollowhorn_move_01.png` · `wildlife_hollowhorn_move_02.png` · `wildlife_hollowhorn_move_03.png` · `wildlife_hollowhorn_move_04.png` · `wildlife_hollowhorn_move_05.png` · `wildlife_hollowhorn_move_06.png` · `wildlife_hollowhorn_move_07.png` · `wildlife_hollowhorn_move_08.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 
@@ -1723,6 +1737,8 @@ Files: `wildlife_snow_lynx_attack_01.png` … `wildlife_snow_lynx_attack_05.png`
 Files: `wildlife_frost_elk_attack_01.png` … `wildlife_frost_elk_attack_05.png`
 Files: `wildlife_badger_attack_01.png` … `wildlife_badger_attack_05.png`
 Files: `wildlife_hawk_attack_01.png` … `wildlife_hawk_attack_05.png`
+Files: `wildlife_griffon_attack_01.png` … `wildlife_griffon_attack_05.png`
+Files: `wildlife_hollowhorn_attack_01.png` … `wildlife_hollowhorn_attack_05.png`
 
 **No death frames, and that is the better answer rather than the cheaper one.**
 Dying is procedural — the body topples, settles and fades. One routine covers six
@@ -1745,6 +1761,7 @@ keeps the lowest part of the beat visible at gameplay frame rates.
 
 Files: `wildlife_raven_fly_01.png` … `wildlife_raven_fly_08.png`
 Files: `wildlife_hawk_fly_01.png` … `wildlife_hawk_fly_08.png`
+Files: `wildlife_phoenix_fly_01.png` … `wildlife_phoenix_fly_08.png`
 
 Both birds also land between flights. Their grounded loops are perched
 silhouettes with planted feet and restrained breathing/head motion, not frozen
@@ -2799,6 +2816,26 @@ a hatched clutch and a robbed one both leave behind.
 | `sign_moonstag_tuft.png` | 96×64 | T | `#5A4A3A` |
 | `sign_moonstag_bed.png` | 96×64 | T | `#5A4A3A` |
 | `sign_moonstag_ring.png` | 96×64 | T | `#5A4A3A` |
+| `sign_griffon_talon.png` | 96×64 | T | `#5A4A3A` |
+| `sign_griffon_pinion.png` | 96×64 | T | `#5A4A3A` |
+| `sign_griffon_kill.png` | 96×64 | T | `#5A4A3A` |
+| `sign_griffon_scrape.png` | 96×64 | T | `#5A4A3A` |
+| `sign_griffon_downdraft.png` | 96×64 | T | `#5A4A3A` |
+| `sign_glimmerfox_print.png` | 96×64 | T | `#5A4A3A` |
+| `sign_glimmerfox_mote.png` | 96×64 | T | `#5A4A3A` |
+| `sign_glimmerfox_fur.png` | 96×64 | T | `#5A4A3A` |
+| `sign_glimmerfox_den.png` | 96×64 | T | `#5A4A3A` |
+| `sign_glimmerfox_ring.png` | 96×64 | T | `#5A4A3A` |
+| `sign_hollowhorn_hoof.png` | 96×64 | T | `#5A4A3A` |
+| `sign_hollowhorn_gouge.png` | 96×64 | T | `#5A4A3A` |
+| `sign_hollowhorn_ash.png` | 96×64 | T | `#5A4A3A` |
+| `sign_hollowhorn_stone.png` | 96×64 | T | `#5A4A3A` |
+| `sign_hollowhorn_wallow.png` | 96×64 | T | `#5A4A3A` |
+| `sign_phoenix_scorch.png` | 96×64 | T | `#5A4A3A` |
+| `sign_phoenix_plume.png` | 96×64 | T | `#5A4A3A` |
+| `sign_phoenix_ash.png` | 96×64 | T | `#5A4A3A` |
+| `sign_phoenix_nest.png` | 96×64 | T | `#5A4A3A` |
+| `sign_phoenix_pyre.png` | 96×64 | T | `#5A4A3A` |
 | `nest.png` | 96×64 | T | `#5A4A3A` |
 | `nest_empty.png` | 96×64 | T | `#5A4A3A` |
 

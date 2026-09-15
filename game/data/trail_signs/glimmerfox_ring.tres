@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 4
+reading = "A ring of lights on the ground, and each one is a mushroom. It comes back to this place."
+species = "glimmerfox"
+scale = 1.30
+id = "glimmerfox_ring"
+display_name = "A lit ring"
+description = "A circle of small pale mushrooms, every one of them glowing."

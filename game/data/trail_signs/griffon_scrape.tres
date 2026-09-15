@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 3
+reading = "Rock scraped down to the pale under it. Something stood here a long while and then pushed off hard."
+species = "griffon"
+scale = 1.15
+id = "griffon_scrape"
+display_name = "A scraped perch"
+description = "Bare rock scraped clean, claw marks across it, grit pushed aside."

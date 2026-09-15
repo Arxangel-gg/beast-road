@@ -3048,6 +3048,37 @@ listens to `dragon_overhead`, changes no number, rolls no die and sends no
 message - and the pass says the word once, as it comes over, so the road and the
 walk cannot disagree about how long the light was out.
 
+**Four more mythics, and the trail is a system rather than an animal, as of
+2026-09-15.** `IDEAS_REVIEW_2026-09-15` shortlisted five creatures out of a
+forwarded document of a hundred and twelve, on the grounds that the good idea in
+that document was **Evidence -> Tracking -> Encounter** rather than any of the
+creatures. The Moonstag was built with the trail; the Griffon, the Glimmerfox,
+the Hollowhorn and the Phoenix are the other four.
+
+**They cost the system nothing, and that is the test the trail had to pass.** A
+mythic is a `WildlifeData` with `mythic = true` and five `TrailSignData` signs;
+`MythicTrail._choose` takes whichever one belongs to the act. No code changed to
+add four of them, which is working rule 3 doing its job - adding content meant
+adding files.
+
+**One legend a run, spread down the road.** `trail_first_act` runs 2, 3, 5, 6, 8
+so the later acts have more to choose between rather than the same animal every
+time, and a road still carries exactly one trail: three legends on one road is
+none.
+
+**Two of them fight and three of them flee**, which is the variety the first one
+could not have on its own. The Griffon and the Hollowhorn are TERRITORIAL and
+hold their ground; the Glimmerfox is the fastest thing on the road and the
+Phoenix leaves. Every one of them is still an ordinary animal to the rarity
+ladder, the sheen, the population cap, the wrath and the bond.
+
+**And a lesson about the artefact cleaner**, because it nearly cost something:
+`animator-invents-bright-blobs` says dark additions are motion and bright ones
+are artefacts, and that rule is right for a griffon and **wrong for a creature
+painted in light**. Stripping bright specks off the silhouette took the
+Phoenix's embers with them - the effect was the sprite. The cleaner is run per
+species, never over the roster.
+
 **The crowd grid stopped reaching as far as the widest body on it, found
 2026-09-15.** `crowd_check` went red on CI - eight of the widest non-boss body
 stacked, and two of them ended 4.5 units inside each other and stayed there.

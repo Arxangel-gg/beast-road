@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 4
+reading = "The grass is laid flat in a circle with nothing in the middle of it. It came down here, and not gently."
+species = "griffon"
+scale = 1.30
+id = "griffon_downdraft"
+display_name = "Grass laid flat"
+description = "A wide circle of grass pressed outward from nothing at its centre."

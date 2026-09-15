@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+mythic = true
+trail_signs = PackedStringArray("hollowhorn_hoof", "hollowhorn_gouge", "hollowhorn_ash", "hollowhorn_stone", "hollowhorn_wallow")
+trail_first_act = 6
+coat_pattern = 3
+coat_pattern_strength = 0.30
+coat_pattern_scale = 8.0
+coat_pattern_tint = Color(0.420, 0.400, 0.420, 0.720)
+coat_hue_spread = 0.012
+coat_light_spread = 0.14
+coat_saturation_spread = 0.10
+breeds = false
+protection = 2
+id = "hollowhorn"
+display_name = "Hollowhorn"
+description = "Its horns are empty and something is still burning in them. The ground remembers where it stood."
+vocal_sfx = "sfx_wildlife_boar"
+rarity = 3
+temperament = 2
+movement_style = 0
+damage = 46.0
+attack_interval = 1.90
+attack_range = 132.0
+aggro_radius = 460.0
+knockback = 164.0
+charge_speed_scale = 1.55
+acts = Array[int]([])
+weight = 0.0
+group_min = 1
+group_max = 1
+social_spacing = 200.0
+group_cohesion = 0.0
+activity = 0.42
+speed = 94.0
+roam = 700.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 3.60
+max_hp = 1500.0
+food_min = 38
+food_max = 58
+xp_reward = 420
+art_faces_right = true
+stay_min = 180.0
+stay_max = 360.0
+elite_chance = 0.0

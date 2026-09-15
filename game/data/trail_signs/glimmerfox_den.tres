@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 3
+reading = "A hollow under a root, lined and slept in. It is not in it now."
+species = "glimmerfox"
+scale = 1.15
+id = "glimmerfox_den"
+display_name = "A lined hollow"
+description = "A dug hollow under a root, lined with the same silver fur."

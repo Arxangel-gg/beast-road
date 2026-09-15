@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 0
+reading = "Three gouges in the earth, evenly spaced. Whatever made them was not hunting when it did."
+species = "griffon"
+scale = 1.00
+id = "griffon_talon"
+display_name = "Talon gouges"
+description = "Three gouges raked into bare earth, evenly spaced."
