@@ -43,6 +43,32 @@ const RIDE_ART: String = "res://art/ui/menu_warden_ride.png"
 const HORSE_ART: String = "res://art/ui/menu_fire_horse.png"
 
 const LANTERN_ART: String = "res://art/ui/menu_lantern.png"
+## **What else is up there** (owner, 2026-09-15: "make more props that can also
+## be placed around the cliffs for world building").
+##
+## Eleven, because two or three are drawn and a set of four would repeat inside
+## a session. Each is a thing somebody camped here would have put down, and none
+## of them is a light - the fire and the lantern are the only two sources in the
+## vignette and a third would flatten both.
+const PROP_ART: Array[String] = [
+	"res://art/ui/menu_prop_tent.png",
+	"res://art/ui/menu_prop_woodpile.png",
+	"res://art/ui/menu_prop_rack.png",
+	"res://art/ui/menu_prop_banner.png",
+	"res://art/ui/menu_prop_cairn.png",
+	"res://art/ui/menu_prop_crates.png",
+	"res://art/ui/menu_prop_bedroll.png",
+	"res://art/ui/menu_prop_totem.png",
+	"res://art/ui/menu_prop_cart.png",
+	"res://art/ui/menu_prop_pillar.png",
+	"res://art/ui/menu_prop_pelts.png",
+]
+## How tall each is drawn against the Warden. A tent is chest height on a
+## standing person and a bedroll is at their ankle; one scale for all eleven
+## would put a cairn the size of a horse beside them.
+const PROP_HEIGHT: Array[float] = [
+	0.95, 0.42, 0.78, 1.35, 0.62, 0.50, 0.24, 1.05, 0.55, 0.88, 0.80,
+]
 
 static var _art: Dictionary = {}
 ## Each moving piece and its idle cycle, base frame first.
@@ -81,8 +107,10 @@ static func _load_art() -> void:
 	if _looked:
 		return
 	_looked = true
-	for key: String in [CLIFF_ART, SIT_ART, STAND_ART, RIDE_ART, HORSE_ART,
-			LANTERN_ART]:
+	var wanted: Array[String] = [CLIFF_ART, SIT_ART, STAND_ART, RIDE_ART,
+		HORSE_ART, LANTERN_ART]
+	wanted.append_array(PROP_ART)
+	for key: String in wanted:
 		if ResourceLoader.exists(key):
 			_art[key] = load(key) as Texture2D
 	# **Nothing out there is a statue** (owner, 2026-09-15: "there should be
@@ -105,7 +133,11 @@ static func _load_art() -> void:
 
 ## Whether every piece is on disk. For the gate.
 func furnished() -> bool:
-	return _art.size() == 6
+	# **Derived, not counted by hand.** This said `== 6` and adding the
+	# eleven ledge props made it false, which reported as the camp being
+	# "quietly missing somebody" - the one thing it exists to catch, said
+	# about a camp that had everything.
+	return _art.size() == 6 + PROP_ART.size()
 
 
 ## How many frames a piece moves through. For the gate: a piece with one frame
@@ -172,7 +204,42 @@ func _pitch() -> void:
 		# Warden when they are afoot, hanging off the horse when there is one -
 		# a rider does not carry a lantern in a sword hand.
 		"lantern": _rng.randf() < Balance.MENU_CAMP_LANTERN_CHANCE,
+		"props": _pick_props(),
 	}
+
+
+## Which props are up there this visit, where each one stands and how big.
+##
+## **Drawn without replacement**, so a camp never has two tents. Each is placed
+## along the ledge by a *fraction of the figure's own size* rather than by
+## pixels, because the figure's size is itself rolled - a prop placed in pixels
+## would crowd a big Warden and float away from a small one.
+##
+## Behind the figure, never in front: this vignette's whole job is that a person
+## is standing there looking at the beast, and a crate drawn over their knees
+## costs that for a crate. The near side of the ledge stays clear.
+func _pick_props() -> Array:
+	var chosen: Array = []
+	var bag: Array[int] = []
+	for index: int in PROP_ART.size():
+		bag.append(index)
+	var many: int = Balance.MENU_CAMP_PROPS_MIN + int(_rng.randi() % \
+		maxi(Balance.MENU_CAMP_PROPS_MAX - Balance.MENU_CAMP_PROPS_MIN + 1, 1))
+	for _taken: int in mini(many, bag.size()):
+		var at: int = int(_rng.randi() % bag.size())
+		var which: int = bag[at]
+		bag.remove_at(at)
+		chosen.append({
+			"art": which,
+			# Out along the ledge away from the figure, in figure-widths. The
+			# near end is kept clear so nothing stands between the viewer and
+			# the Warden.
+			"out": _rng.randf_range(0.9, 2.6),
+			"lift": _rng.randf_range(-0.04, 0.02),
+			"size": _rng.randf_range(0.86, 1.14),
+			"mirror": _rng.randf() < 0.5,
+		})
+	return chosen
 
 
 ## What is pitched out there right now. For the gate, and for the stage, which
@@ -286,6 +353,44 @@ func _draw() -> void:
 		_blit(figure, ground, wide, tall, facing,
 			_emberish(shade) if pose == Pose.MOUNTED else shade)
 		_draw_lantern(ground, size, tall, facing, pose)
+	_draw_props(ground, size, facing)
+
+
+## The camp's own things, standing on the ledge behind the Warden.
+##
+## **Graded like the rock, not like the fire.** These are objects the light
+## falls on rather than sources of it, so they take `shade` exactly as the cliff
+## does - and the ones near enough to the fire warm slightly toward it, which is
+## the same distinction the rider and the horse are drawn under.
+##
+## Drawn *after* the figure and away from it, so tree order and distance both
+## say the same thing about what is in front of what.
+func _draw_props(ground: Vector2, size: float, facing: float) -> void:
+	var props: Array = _camp.get("props", [])
+	if props.is_empty() or size <= 0.0:
+		return
+	var fire: Vector2 = fire_at()
+	for prop: Dictionary in props:
+		var which: int = int(prop["art"])
+		if which < 0 or which >= PROP_ART.size():
+			continue
+		var texture := _art.get(PROP_ART[which]) as Texture2D
+		if texture == null:
+			continue
+		var tall: float = size * PROP_HEIGHT[which] * float(prop["size"])
+		var wide: float = tall * float(texture.get_width()) \
+			/ maxf(float(texture.get_height()), 1.0)
+		var at: Vector2 = ground + Vector2(size * float(prop["out"]) * -facing,
+			size * float(prop["lift"]))
+		# Warmed by how close it is to the fire, and by nothing else. A prop at
+		# the far end of the ledge is lit by the sky like the rock it stands on.
+		var warmth: float = 0.0
+		if fire != Vector2.ZERO:
+			warmth = clampf(1.0 - at.distance_to(fire) / maxf(size * 2.4, 1.0), 0.0, 1.0)
+		var lit: Color = shade.lerp(_emberish(shade),
+			warmth * Balance.MENU_CAMP_PROP_FIRELIGHT)
+		_blit(texture, at, wide, tall,
+			-facing if bool(prop["mirror"]) else facing, lit)
 
 
 ## The lantern, and where it hangs.

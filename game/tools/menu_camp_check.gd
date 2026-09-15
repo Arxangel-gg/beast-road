@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_the_camp_stands_on_the_ground_it_is_given()
 	_test_the_camp_keeps_out_of_the_interface()
 	_test_no_two_visits_are_the_same_camp()
+	_test_the_ledge_is_furnished()
 	_finish()
 
 
@@ -143,6 +144,51 @@ func _finish() -> void:
 	else:
 		push_error("[menu-camp] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+
+
+## **The ledge has things on it, and they are behind the person.**
+##
+## Owner, 2026-09-15: "make more props that can also be placed around the cliffs
+## for world building". Eleven are authored and two or three are pitched each
+## visit, which makes three ways this can be quietly wrong and none of them
+## visible in a still: the same prop twice, a prop standing between the viewer
+## and the Warden, and a set that is the same set every visit.
+func _test_the_ledge_is_furnished() -> void:
+	for path: String in MenuCamp.PROP_ART:
+		_check(ResourceLoader.exists(path), "%s must exist" % path)
+	_check(MenuCamp.PROP_HEIGHT.size() == MenuCamp.PROP_ART.size(),
+		("every prop needs its own height against the Warden: %d heights for %d "
+			+ "props") % [MenuCamp.PROP_HEIGHT.size(), MenuCamp.PROP_ART.size()])
+
+	var sets: Dictionary = {}
+	for _visit: int in 40:
+		var camp: MenuCamp = _camp()
+		var props: Array = camp.camp().get("props", [])
+		_check(props.size() >= Balance.MENU_CAMP_PROPS_MIN
+				and props.size() <= Balance.MENU_CAMP_PROPS_MAX,
+			"a visit pitched %d props" % props.size())
+		var seen: Dictionary = {}
+		var ids: Array[int] = []
+		for prop: Dictionary in props:
+			var which: int = int(prop["art"])
+			_check(not seen.has(which),
+				"a camp must not own two of the same thing: %s"
+					% MenuCamp.PROP_ART[which])
+			seen[which] = true
+			ids.append(which)
+			# Out along the ledge, away from the figure. A crate drawn over the
+			# Warden's knees costs the whole vignette for a crate.
+			_check(float(prop["out"]) >= 0.8,
+				"a prop stands %.2f figure-widths out, which is on top of them"
+					% float(prop["out"]))
+		ids.sort()
+		sets[str(ids)] = true
+		camp.queue_free()
+	_check(sets.size() >= 20,
+		("forty visits pitched %d different sets of props, which is a painted "
+			+ "backdrop rather than a camp") % sets.size())
 
 
 func _check(condition: bool, why: String) -> void:

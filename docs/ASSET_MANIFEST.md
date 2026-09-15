@@ -3301,6 +3301,17 @@ symmetrical about its own axis, so nothing moves to the wrong side.
 | `menu_branch_mossy.png` | 249x54 | T | `#2A2730` |
 | `menu_branch_forked.png` | 246x43 | T | `#2A2730` |
 | `menu_lantern.png` | 20x54 | T | `#2A2730` |
+| `menu_prop_banner.png` | 48x96 | T | `#2A2730` |
+| `menu_prop_bedroll.png` | 64x40 | T | `#2A2730` |
+| `menu_prop_cairn.png` | 48x64 | T | `#2A2730` |
+| `menu_prop_cart.png` | 80x56 | T | `#2A2730` |
+| `menu_prop_crates.png` | 64x48 | T | `#2A2730` |
+| `menu_prop_pelts.png` | 64x72 | T | `#2A2730` |
+| `menu_prop_pillar.png` | 48x72 | T | `#2A2730` |
+| `menu_prop_rack.png` | 64x64 | T | `#2A2730` |
+| `menu_prop_tent.png` | 96x64 | T | `#2A2730` |
+| `menu_prop_totem.png` | 48x80 | T | `#2A2730` |
+| `menu_prop_woodpile.png` | 64x48 | T | `#2A2730` |
 | `menu_warden_stand_idle_01.png` | 71x78 | T | `#2A2730` |
 | `menu_warden_stand_idle_02.png` | 71x78 | T | `#2A2730` |
 | `menu_warden_stand_idle_03.png` | 71x78 | T | `#2A2730` |

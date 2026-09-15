@@ -7646,6 +7646,14 @@ const CAMP_FIRE_LIGHT_RADIUS: float = 190.0
 ## so it throws further than a real one would.
 const MENU_GATE_FIRE_GLOW: float = 0.72
 const MENU_CAMP_FIRE_GLOW: float = 1.25
+## How many of the camp's own things stand on the ledge. Two or three: one
+## reads as a stray object and four crowds a corner that also holds a Warden, a
+## horse, a fire and the run statistics.
+const MENU_CAMP_PROPS_MIN: int = 2
+const MENU_CAMP_PROPS_MAX: int = 3
+## How much of the firelight a prop standing right beside the fire takes. Less
+## than the rider, who is *on* something burning.
+const MENU_CAMP_PROP_FIRELIGHT: float = 0.55
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0
