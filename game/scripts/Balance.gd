@@ -1562,6 +1562,40 @@ const ENEMY_CONTACT_DAMAGE_SCALE: float = 0.85
 ## this constant at all. Derived now, so the number and the game agree, and so
 ## a breed authoring `EnemyData.contact_interval` above it is authoring a
 ## genuinely slower swing rather than a value silently under the floor.
+# --- What a breed does that you remember it for (owner brief, 2026-09-15) ----
+#
+# From a forwarded design review: "give each enemy a recognisable threat, a
+# readable warning, and a satisfying way to beat it. The strongest test is
+# whether seeing that enemy changes the player's next decision."
+#
+# A behaviour is a tell, a commitment that cannot be taken back, and a recovery
+# that is the opening. **The bound is that it changes the shape of a fight and
+# never its size**: nothing here multiplies `contact_damage`, an anchor pays for
+# its guard in forward progress and attacks not made, a ward turns one blow per
+# ally and is spent, and a release gives back only what was banked.
+## The defaults a breed that authors nothing falls back to.
+const ENEMY_BEHAVIOUR_WARNING: float = 0.8
+const ENEMY_BEHAVIOUR_SECONDS: float = 2.4
+const ENEMY_BEHAVIOUR_RECOVERY: float = 1.1
+const ENEMY_BEHAVIOUR_REACH: float = 220.0
+const ENEMY_BEHAVIOUR_INTERVAL: float = 9.0
+## How much of its reach the tell's ring draws at.
+const ENEMY_BEHAVIOUR_TELL_SHARE: float = 0.55
+## **Non-stacking and bounded**, which is the review's own rule for guards: one
+## bell may turn one blow for at most this many bodies, and a second bell over
+## the same body refreshes rather than adds.
+const ENEMY_WARD_MAX_ALLIES: int = 5
+## How much of its own health a Prism Warden must be dealt to fill its bank.
+## Above one it would never open; well below one it would open constantly.
+const ENEMY_STORE_SHARE: float = 0.45
+const ENEMY_STORE_HALF_WIDTH: float = 46.0
+## How far behind a planted shield a body may stand and still be covered, and
+## how far off its line. **Redirected, never reduced**: the shield takes the
+## blow instead of the body, so the wave's total health is untouched and the
+## ten-act curve reads the same.
+const ENEMY_ANCHOR_COVER: float = 190.0
+const ENEMY_ANCHOR_HALF_WIDTH: float = 54.0
+
 const ENEMY_CONTACT_INTERVAL: float = ENEMY_ATTACK_WINDUP + ENEMY_ATTACK_STRIKE \
 	+ ENEMY_ATTACK_RECOVERY
 

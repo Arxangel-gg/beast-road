@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 1
+behaviour_warning = 0.7
+behaviour_seconds = 3.0
+behaviour_recovery = 1.2
+behaviour_reach = 200.0
+behaviour_power = 0.0
+behaviour_interval = 9.5
 hide = 1
 art_facing = 1
 id = "horde_shieldman"

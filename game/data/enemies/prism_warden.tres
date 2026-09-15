@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 4
+behaviour_warning = 0.9
+behaviour_seconds = 0.5
+behaviour_recovery = 1.6
+behaviour_reach = 420.0
+behaviour_power = 1.2
+behaviour_interval = 6.0
 hide = 1
 art_facing = 1
 id = "prism_warden"

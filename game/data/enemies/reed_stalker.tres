@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 2
+behaviour_warning = 0.6
+behaviour_seconds = 0.45
+behaviour_recovery = 1.2
+behaviour_reach = 340.0
+behaviour_power = 0.0
+behaviour_interval = 7.5
 id = "reed_stalker"
 display_name = "Reed Stalker"
 description = "You hear the reeds move once. The second time it is already on you."

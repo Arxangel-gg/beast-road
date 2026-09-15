@@ -3,6 +3,13 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
 
 [resource]
+behaviour = 2
+behaviour_warning = 0.65
+behaviour_seconds = 0.45
+behaviour_recovery = 1.3
+behaviour_reach = 300.0
+behaviour_power = 0.0
+behaviour_interval = 9.0
 script = ExtResource("1_enemy_data")
 id = "loam_lurker"
 display_name = "Loam Lurker"

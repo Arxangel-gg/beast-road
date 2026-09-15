@@ -117,6 +117,56 @@ enum Hide { FLESH, ARMOUR, STONE, SPIRIT }
 ##
 ## A breed that authors nothing here throws BOLT, which is what every breed
 ## threw before this existed.
+## **What this breed does that you remember it for** (owner brief, 2026-09-15,
+## from a forwarded design review).
+##
+## The review's test is the right one: "when I see a Bell Priest, I save an
+## interrupt for its bell" is an identity, and "the Bell Priest has more health"
+## is not. Fourteen breeds threw one bolt between them until the shots were
+## authored; most of the roster still *moves* one way between them, and the
+## heavy ones differ by their statistics alone.
+##
+## A behaviour is one committed action with three parts, and all three are the
+## point: a **tell** the player can read, a **commitment** that cannot be taken
+## back, and a **recovery** that is the opening. An enemy that can cancel is an
+## enemy with no counterplay.
+##
+## - `ANCHOR` plants and raises a guard that covers what is behind it. It cannot
+##   move or strike while it holds, and its flanks are bare - so the answer is
+##   to go round it or to break it before it sets.
+## - `POUNCE` crouches, marks a line, leaps along it and overshoots. The answer
+##   is to step off the line and hit it while it is getting up.
+## - `WARD` winds up and hands the allies near it one turned blow each. The
+##   answer is to interrupt the wind-up, kill the ward, or spend the guards.
+## - `STORE` banks a capped share of what is done to it and gives it back as one
+##   telegraphed strike along a line. The answer is to leave the line - never to
+##   stop shooting, which is why this is a *release* rather than a reflection.
+##
+## **The bound is the one every addition here is held to: a behaviour changes
+## the shape of a fight and never its size.** Nothing below multiplies
+## `contact_damage`; a guard turns one blow and is gone; an anchor buys time and
+## spends forward progress and attacks for it; a release deals what was banked
+## and no more. `curve_report` reads the same waves, and `enemy_behaviour_check`
+## measures each of those sentences rather than reading the constants back.
+enum Behaviour { NONE, ANCHOR, POUNCE, WARD, STORE }
+@export var behaviour: Behaviour = Behaviour.NONE
+## How long the tell lasts before the commitment. Zero uses the roster default.
+@export_range(0.0, 4.0) var behaviour_warning: float = 0.0
+## How long the commitment lasts.
+@export_range(0.0, 12.0) var behaviour_seconds: float = 0.0
+## How long it is helpless afterwards. This is the opening, and a behaviour with
+## no recovery is a behaviour with no answer.
+@export_range(0.0, 4.0) var behaviour_recovery: float = 0.0
+## How far it reaches: an anchor's shelter, a pounce's leap, a ward's call, a
+## release's line.
+@export_range(0.0, 900.0) var behaviour_reach: float = 0.0
+## What the commitment is worth, as a share of `contact_damage` for a strike or
+## a fraction of a blow turned for a guard. Never a number of its own.
+@export_range(0.0, 3.0) var behaviour_power: float = 0.0
+## How long it waits between commitments.
+@export_range(0.0, 60.0) var behaviour_interval: float = 8.0
+
+
 enum Shot { BOLT, SPRAY, LOB, HEX, LANCE }
 @export var shot: Shot = Shot.BOLT
 

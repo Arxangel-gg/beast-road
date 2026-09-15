@@ -3,6 +3,13 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy_data"]
 
 [resource]
+behaviour = 2
+behaviour_warning = 0.6
+behaviour_seconds = 0.45
+behaviour_recovery = 1.2
+behaviour_reach = 330.0
+behaviour_power = 0.0
+behaviour_interval = 8.0
 script = ExtResource("1_enemy_data")
 id = "crevasse_stalker"
 display_name = "Crevasse Stalker"

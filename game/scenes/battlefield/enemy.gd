@@ -74,6 +74,10 @@ enum State {
 	## Broken and running. Appended rather than inserted: the state travels over
 	## the wire as its integer, so every value before this has to keep its place.
 	ROUTED,
+	## The tell before a breed's own committed action, and the action itself.
+	## Appended for the same reason as `ROUTED`: these are wire values.
+	BRACE,
+	COMMIT,
 }
 
 @export var health: Health
@@ -218,6 +222,14 @@ var _speed_scale: float = 1.0
 ## Movement penalty, derived from `_chill` every tick. Kept as its own field
 ## because movement and target sorting both read it on hot paths.
 var _slow_factor: float = 1.0
+## The breed's own committed action: when it may next take one, which way it is
+## committed, and what it has banked toward one.
+var _behaviour_wait: float = 0.0
+var _behaviour_aim: Vector2 = Vector2.RIGHT
+var _behaviour_bank: float = 0.0
+## How long a guard this body is standing behind has left, and whose it is. A
+## guard turns one blow; see `_absorb_guard`.
+var _guard_left: float = 0.0
 
 ## The chill meter, 0..1. Every slow in the game feeds this one value rather than
 ## overwriting the last one, and it is the single source of both how slowly the
@@ -754,6 +766,8 @@ func _tick_state(delta: float) -> void:
 			_grudge_left = maxf(_grudge_left - delta, 0.0)
 			_notice_towers(delta)
 			_target = _pick_target()
+			if _begin_behaviour():
+				return
 			if _target != null and _in_reach(_target):
 				_enter(State.WINDUP, Balance.ENEMY_ATTACK_WINDUP)
 				# Coil before the blow: the tell the player reads.
@@ -784,6 +798,17 @@ func _tick_state(delta: float) -> void:
 			_state_left -= delta
 			if _state_left <= 0.0:
 				_enter(State.WALKING, 0.0)
+		State.BRACE:
+			# The tell. It cannot be cancelled by the breed - only interrupted,
+			# and only where the behaviour says a blow interrupts it.
+			_state_left -= delta
+			if _state_left <= 0.0:
+				_commit_behaviour()
+		State.COMMIT:
+			_state_left -= delta
+			_hold_behaviour(delta)
+			if _state_left <= 0.0:
+				_end_behaviour()
 		State.ROUTED:
 			_rout_left -= delta
 			if _rout_left <= 0.0:
@@ -797,6 +822,259 @@ func _tick_state(delta: float) -> void:
 				_rout(delta)
 		_:
 			pass
+
+
+# --- What this breed does that you remember it for (2026-09-15) ---------------
+#
+# One committed action with three parts - a tell, a commitment that cannot be
+# taken back, and a recovery that is the opening - authored per breed on
+# `EnemyData.behaviour` rather than branched on by name (working rule 3).
+#
+# **The bound: a behaviour changes the shape of a fight and never its size.**
+# Nothing here multiplies `contact_damage`. An anchor buys time and pays for it
+# in forward progress and attacks not made; a ward turns one blow per ally and
+# is spent; a release deals what was banked and no more; a pounce covers ground
+# it would have walked anyway. `curve_report` reads the same waves, and
+# `enemy_behaviour_check` measures each of those sentences.
+
+
+## Whether this breed is about to do its own thing, and the setting up of it.
+func _begin_behaviour() -> bool:
+	if data == null or data.behaviour == EnemyData.Behaviour.NONE or puppet:
+		return false
+	if _behaviour_wait > 0.0:
+		return false
+	if not _behaviour_wants_to():
+		return false
+	_behaviour_aim = _behaviour_heading()
+	_enter(State.BRACE, _behaviour_warning())
+	# The tell. Every one of these is a *pose* rather than a particle, because
+	# the thing a player has to read in a crowd is the silhouette.
+	match data.behaviour:
+		EnemyData.Behaviour.ANCHOR:
+			animator.squash(Balance.ANIM_HURT_SQUASH * 1.3)
+		EnemyData.Behaviour.POUNCE:
+			animator.squash(Balance.ANIM_HURT_SQUASH * 1.6)
+		_:
+			animator.squash(Balance.ANIM_HURT_SQUASH)
+	Vfx.ring(global_position, _behaviour_reach() * Balance.ENEMY_BEHAVIOUR_TELL_SHARE,
+		_behaviour_colour(), _behaviour_warning(), 3.0)
+	return true
+
+
+## Whether the moment is right. Each behaviour answers for itself, and each
+## answer is about what is in front of it rather than about a clock alone.
+func _behaviour_wants_to() -> bool:
+	match data.behaviour:
+		EnemyData.Behaviour.ANCHOR:
+			# Something worth sheltering from in front, and somebody behind to
+			# shelter. A shield with nobody behind it is a slower marcher.
+			return _target != null and is_instance_valid(_target) \
+				and _allies_within(_behaviour_reach()) > 0
+		EnemyData.Behaviour.POUNCE:
+			if _target == null or not is_instance_valid(_target):
+				return false
+			var gap: float = global_position.distance_to(_target.global_position)
+			# Out of reach but inside the leap: the whole point of a pounce is
+			# the ground it crosses.
+			return gap > attack_reach() and gap <= _behaviour_reach()
+		EnemyData.Behaviour.WARD:
+			return _allies_within(_behaviour_reach()) > 0
+		EnemyData.Behaviour.STORE:
+			return _behaviour_bank >= 1.0
+	return false
+
+
+## Which way it is committed. Taken once, at the tell, and never updated - that
+## is what "committed" means and it is the whole of the counterplay.
+func _behaviour_heading() -> Vector2:
+	if _target != null and is_instance_valid(_target):
+		var toward: Vector2 = _target.global_position - global_position
+		if toward.length() > 0.01:
+			return toward.normalized()
+	return _facing_heading()
+
+
+func _facing_heading() -> Vector2:
+	return Vector2.LEFT if sprite != null and sprite.flip_h else Vector2.RIGHT
+
+
+func _behaviour_warning() -> float:
+	return data.behaviour_warning if data.behaviour_warning > 0.0 \
+		else Balance.ENEMY_BEHAVIOUR_WARNING
+
+
+func _behaviour_reach() -> float:
+	return data.behaviour_reach if data.behaviour_reach > 0.0 \
+		else Balance.ENEMY_BEHAVIOUR_REACH
+
+
+func _behaviour_colour() -> Color:
+	match data.behaviour:
+		EnemyData.Behaviour.ANCHOR:
+			return Color(0.62, 0.76, 0.45, 0.7)
+		EnemyData.Behaviour.POUNCE:
+			return Color(0.9, 0.62, 0.3, 0.75)
+		EnemyData.Behaviour.WARD:
+			return Color(0.95, 0.88, 0.55, 0.75)
+	return Color(0.66, 0.78, 1.0, 0.8)
+
+
+## The commitment lands.
+func _commit_behaviour() -> void:
+	_enter(State.COMMIT, maxf(data.behaviour_seconds,
+		Balance.ENEMY_BEHAVIOUR_SECONDS))
+	match data.behaviour:
+		EnemyData.Behaviour.POUNCE:
+			# A leap is a shove along the marked line, through the same slip the
+			# knockback uses, so nothing downstream learns a pounce exists.
+			_slip = _behaviour_aim * _behaviour_reach() \
+				/ maxf(data.behaviour_seconds, 0.2)
+			animator.punch(_behaviour_aim, 1.5)
+		EnemyData.Behaviour.WARD:
+			# One turned blow each, to a bounded number of allies, and it does
+			# not stack: a second bell over the same body refreshes rather than
+			# adds. That is the review's own rule and it is what stops two
+			# priests from making a wave unkillable.
+			var given: int = 0
+			for other: Enemy in _allies_in(_behaviour_reach()):
+				if given >= Balance.ENEMY_WARD_MAX_ALLIES:
+					break
+				other.grant_guard(maxf(data.behaviour_seconds,
+					Balance.ENEMY_BEHAVIOUR_SECONDS))
+				given += 1
+			Vfx.ring(global_position, _behaviour_reach(), _behaviour_colour(), 0.4, 5.0)
+		EnemyData.Behaviour.STORE:
+			# What was banked, given back along the line it was told to. Through
+			# the ground strike every other telegraphed blow uses, so it hits
+			# what a ground blow hits and nothing new learns about it.
+			_release_bank()
+		_:
+			pass
+
+
+## Held for as long as the commitment lasts.
+func _hold_behaviour(delta: float) -> void:
+	match data.behaviour:
+		EnemyData.Behaviour.ANCHOR:
+			# Rooted: it does not advance and it does not swing. That is what it
+			# is paying, and it is why the guard is not a free damage reduction.
+			_slip = Vector2.ZERO
+		EnemyData.Behaviour.POUNCE:
+			_slip = _slip.move_toward(Vector2.ZERO, delta * 240.0)
+
+
+func _end_behaviour() -> void:
+	_behaviour_wait = maxf(data.behaviour_interval, Balance.ENEMY_BEHAVIOUR_INTERVAL)
+	_behaviour_bank = 0.0
+	# **The recovery is the opening.** It cannot act, it cannot move, and it is
+	# the only window some of these breeds ever give.
+	_enter(State.RECOVER, maxf(data.behaviour_recovery,
+		Balance.ENEMY_BEHAVIOUR_RECOVERY))
+
+
+## Somebody standing behind this body, close enough to shelter or to hear a bell.
+func _allies_in(within: float) -> Array[Enemy]:
+	var out: Array[Enemy] = []
+	if _field == null:
+		return out
+	for node: Node in get_tree().get_nodes_in_group(GROUP):
+		var other := node as Enemy
+		if other == null or other == self or not is_instance_valid(other):
+			continue
+		if other.puppet or other._state == State.DYING:
+			continue
+		if other.global_position.distance_to(global_position) <= within:
+			out.append(other)
+	return out
+
+
+func _allies_within(within: float) -> int:
+	return _allies_in(within).size()
+
+
+## The planted shield standing between this body and a blow, if there is one.
+##
+## **Never itself**, and never another shield's shield: a chain of redirections
+## would be a wall nothing could reach, and one hop is what makes the flank the
+## answer. The test is geometric - the shield has to be on the side the blow
+## came from and roughly on its line - so a Rootshield covers the bodies it is
+## actually in front of and nothing else.
+func _anchor_covering(from: Vector2) -> Enemy:
+	if data == null or _state == State.DYING or puppet:
+		return null
+	if data.behaviour == EnemyData.Behaviour.ANCHOR:
+		return null
+	var incoming: Vector2 = global_position - from
+	if incoming.length() < 0.01:
+		return null
+	var heading: Vector2 = incoming.normalized()
+	for other: Enemy in _allies_in(Balance.ENEMY_ANCHOR_COVER):
+		if other.data == null or other.data.behaviour != EnemyData.Behaviour.ANCHOR:
+			continue
+		if not other.is_anchored():
+			continue
+		var toward: Vector2 = other.global_position - global_position
+		# In front of this body with respect to the blow, and near its line.
+		if toward.dot(heading) > 0.0:
+			continue
+		var along: float = absf(toward.dot(heading))
+		var across: float = (toward + heading * along).length()
+		if across <= Balance.ENEMY_ANCHOR_HALF_WIDTH:
+			return other
+	return null
+
+
+## Whether this body is planted behind its own shield right now.
+func is_anchored() -> bool:
+	return _state == State.COMMIT and data != null \
+		and data.behaviour == EnemyData.Behaviour.ANCHOR
+
+
+## A turned blow. One, and it is spent on the next thing that lands.
+func grant_guard(seconds: float) -> void:
+	_guard_left = maxf(_guard_left, seconds)
+
+
+## Whether a guard stands, for the gate and for the shield's own drawing.
+func guarded() -> bool:
+	return _guard_left > 0.0
+
+
+## Bank a share of a blow, up to the ceiling. Used by `STORE`.
+func _bank_blow(amount: float) -> void:
+	if data == null or data.behaviour != EnemyData.Behaviour.STORE:
+		return
+	if health == null or health.max_hp <= 0.0:
+		return
+	_behaviour_bank = minf(_behaviour_bank
+		+ amount / health.max_hp / maxf(Balance.ENEMY_STORE_SHARE, 0.001), 1.0)
+
+
+## Give the bank back as one telegraphed strike along the committed line.
+##
+## **A release rather than a reflection**, which is the review's own point: a
+## reflection punishes shooting and a tower shoots on its own, so the player has
+## no agency in it at all. A line you can step off is a decision.
+func _release_bank() -> void:
+	if _field == null:
+		return
+	var blow := EnemyGroundStrike.new()
+	blow.shape = EnemyGroundStrike.Shape.LINE
+	# What was banked and no more: a share of this body's own contact damage,
+	# scaled by how full the bank was when it opened. A release that dealt a
+	# number of its own would be the third power scale this project refuses.
+	blow.damage = data.contact_damage * maxf(data.behaviour_power, 0.5) \
+		* clampf(_behaviour_bank, 0.0, 1.0)
+	blow.delay = _behaviour_warning()
+	blow.reach = _behaviour_reach()
+	blow.half_width = Balance.ENEMY_STORE_HALF_WIDTH
+	blow.tint = _behaviour_colour()
+	# Ground to ground, along the line it committed to at the tell.
+	blow.aim = _behaviour_aim
+	blow.blamed_on = promoted_name()
+	blow.global_position = global_position
+	_field.add_child(blow)
 
 
 func _enter(state: State, duration: float) -> void:
@@ -1501,7 +1779,27 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	if health != null and health.max_hp > 0.0:
 		EventBus.camera_impact.emit(global_position,
 			amount / health.max_hp / Balance.IMPACT_FULL_SHARE)
+	# **A planted shield takes the blow instead of the body behind it.**
+	#
+	# Redirected rather than reduced, and that distinction is the whole reason
+	# this is allowed to exist. A frontal damage reduction raises the effective
+	# health of a wave and `curve_report` would have to be re-derived against
+	# it; moving the blow to the shield changes *where* the damage goes and not
+	# how much there is, so the ten-act curve reads exactly the same. It is also
+	# the better fight: the answer is to flank it or to break it, which is what
+	# the review asked for, rather than to shoot harder.
+	var cover: Enemy = _anchor_covering(from)
+	if cover != null:
+		return cover.take_damage(amount, from, knockback, active_hero)
 	var was_telegraphing: bool = _state == State.WINDUP
+	# **A ward turns one blow and is spent.** Checked before anything else so
+	# the turned blow is the whole blow, and so a guard can never be worn down
+	# by chip damage into something that outlasts a fight.
+	if _guard_left > 0.0:
+		_guard_left = 0.0
+		Vfx.ring(global_position, data.body_radius * 2.2,
+			Color(0.95, 0.88, 0.55, 0.8), 0.22, 3.0)
+		return false
 	var incoming: float = amount
 	if RunState.enemies_are_weakened():
 		incoming /= Balance.WEAKENED_STAT_SCALE
@@ -1511,6 +1809,8 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	incoming *= 1.0 - _affix_best(&"damage_resistance")
 	if not health.take_damage(incoming, from):
 		return false
+	# A Prism Warden banks a capped share of what it is given.
+	_bank_blow(incoming)
 	_note_tower_blow(from)
 	var attack_node: DisciplineNodeData = RunState.discipline_node_in_slot(0) \
 		if active_hero else null
@@ -1707,7 +2007,15 @@ func shock_scale() -> float:
 	return Balance.WET_SHOCK_DAMAGE if is_wet() else 1.0
 
 
+## The behaviour's own clocks: when it may next commit, and how long a guard
+## somebody gave this body has left.
+func _tick_behaviour_clocks(delta: float) -> void:
+	_behaviour_wait = maxf(_behaviour_wait - delta, 0.0)
+	_guard_left = maxf(_guard_left - delta, 0.0)
+
+
 func _tick_status(delta: float) -> void:
+	_tick_behaviour_clocks(delta)
 	_tick_brand(delta)
 	_freeze_refractory = maxf(_freeze_refractory - delta, 0.0)
 	if _chill_hold > 0.0:

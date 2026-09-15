@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1_enemy")
+behaviour = 3
+behaviour_warning = 1.1
+behaviour_seconds = 6.0
+behaviour_recovery = 1.4
+behaviour_reach = 240.0
+behaviour_power = 0.0
+behaviour_interval = 12.0
 shot = 1
 shot_range = 560
 shot_ids = PackedStringArray("close_fan", "wide_fan", "snap_bolt")

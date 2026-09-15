@@ -608,6 +608,10 @@ jobs:
           # stays on screen for ever, and a quake moves Yuri and not only the
           # camera.
           check "beast omens" --headless --path game res://tools/beast_omens_check.tscn
+          # What a breed does that you remember it for: every behaviour
+          # authored and told before it happens, a guard that turns one blow
+          # and is spent, and a shield that redirects rather than reduces.
+          check "enemy behaviour" --headless --path game res://tools/enemy_behaviour_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn
