@@ -726,11 +726,49 @@ func _build_resume_button() -> void:
 	column.move_child(button, new_run_button.get_index())
 	button.pressed.connect(func() -> void:
 		GameDirector.start_run(0, true))
+
+	# **And the bill for what is broken out there**, offered only when something
+	# is. A fortress that comes home damaged and cannot be mended would be a
+	# fortress that only ever gets worse.
+	if standing.y > 0:
+		var mend := Button.new()
+		mend.name = "Mend"
+		mend.text = "Mend the front \u00b7 %d damaged" % standing.y
+		mend.tooltip_text = _mend_bill_text()
+		mend.custom_minimum_size = new_run_button.custom_minimum_size
+		mend.theme_type_variation = settings_button.theme_type_variation
+		IconKit.on_button(mend, "wood", 24)
+		column.add_child(mend)
+		column.move_child(mend, button.get_index() + 1)
+		mend.pressed.connect(func() -> void:
+			var refused: String = MetaState.mend_expedition()
+			if refused.is_empty():
+				mend.queue_free()
+				button.tooltip_text = "The front stands whole."
+			else:
+				mend.text = refused)
 	# The fresh run says what it costs, because it is the one press here that
 	# throws away a campaign.
 	new_run_button.tooltip_text = ("A new expedition from Act I. Your banked "
 		+ "front stays where it is until you extract from a new one.")
 	button.grab_focus()
+
+
+## What mending the front would cost, written out. Read off the same bill the
+## purchase spends, so the tooltip and the till cannot disagree.
+func _mend_bill_text() -> String:
+	var bill: Dictionary = Expedition.repair_bill(MetaState.expedition)
+	if bill.is_empty():
+		return "Nothing out there is damaged."
+	var parts: PackedStringArray = []
+	var ids: Array = bill.keys()
+	ids.sort()
+	for id: Variant in ids:
+		var kind: MaterialData = ContentDB.materials.get(String(id), null) as MaterialData
+		var held: int = int(MetaState.materials.get(String(id), 0))
+		parts.append("%d %s (you have %d)" % [int(bill[id]),
+			String(id) if kind == null else kind.display_name, held])
+	return "Timber and ore to put the fortress right: " + ", ".join(parts)
 
 
 func _start_run() -> void:

@@ -1970,6 +1970,28 @@ func has_expedition() -> bool:
 	return Expedition.is_readable(expedition)
 
 
+## **Mend every damaged fortification on the banked front.**
+##
+## Returns why it could not, or "" on success. Validate, then spend, then mend -
+## in that order and with the whole bill checked first, which is the rule the
+## forge is built under: a mend that ate half a player's timber and then found
+## it was short of ore is worse than one that refuses.
+func mend_expedition() -> String:
+	if not has_expedition():
+		return "There is no front to mend."
+	var bill: Dictionary = Expedition.repair_bill(expedition)
+	if bill.is_empty():
+		return "Nothing out there is damaged."
+	for id: Variant in bill:
+		if int(materials.get(String(id), 0)) < int(bill[id]):
+			return "Not enough %s." % String(id).replace("_", " ")
+	for id: Variant in bill:
+		spend_material(String(id), int(bill[id]))
+	expedition = Expedition.mend(expedition)
+	save_game()
+	return ""
+
+
 ## **Give up the frontier.** Starting a fresh campaign from Act I abandons it,
 ## and the player is asked first - this is the one thing here that destroys
 ## something they spent hundreds of waves building.

@@ -165,6 +165,76 @@ static func describe(stored: Dictionary) -> String:
 	return where if named.is_empty() else "%s · %s" % [named, where]
 
 
+## **What it costs to mend everything that is hurt**, as material ids to counts.
+##
+## Priced off each tower's own Gold cost and how much health it is missing, so a
+## battered Bulwark costs more to put right than a scratched Barrow Stake, and a
+## fortress that has been through a hundred waves is a real bill. Paid in wood
+## and ore because the mines are the between-runs economy, and a fortress that
+## weathers over a long campaign is the reason to work them.
+##
+## **Timber and ore rather than Gold** on purpose: Gold is a *run* currency and
+## resets, so paying in it would mean mending was free the moment a new run
+## started. Materials persist, which is what makes this a decision taken with
+## something the player actually had to go and get.
+static func repair_bill(stored: Dictionary) -> Dictionary:
+	var bill: Dictionary = {}
+	for tower: Variant in (stored.get("towers", []) as Array):
+		var row := tower as Dictionary
+		if row == null:
+			continue
+		var missing: float = 1.0 - clampf(float(row.get("health", 1.0)), 0.0, 1.0)
+		if missing <= 0.001:
+			continue
+		var kind: TowerData = ContentDB.tower(String(row.get("kind", "")))
+		if kind == null:
+			continue
+		var worth: float = float(kind.build_cost()) \
+			* float(maxi(int(row.get("level", 1)), 1))
+		var units: int = maxi(1, int(round(worth * missing
+			* Balance.FORTIFY_REPAIR_PER_HEALTH)))
+		# Split between the two workable materials rather than one, so mending is
+		# a reason to fell *and* to mine rather than to hoard whichever is
+		# cheaper - the same argument the forge is priced under.
+		bill[_cheapest(MaterialData.Kind.WOOD)] = int(bill.get(
+			_cheapest(MaterialData.Kind.WOOD), 0)) + units
+		bill[_cheapest(MaterialData.Kind.ORE)] = int(bill.get(
+			_cheapest(MaterialData.Kind.ORE), 0)) + maxi(1, units / 2)
+	return bill
+
+
+## The commonest material of a kind: mending wants the plentiful stuff, never
+## the Duskstone somebody walked past three camps for.
+static func _cheapest(kind: int) -> String:
+	var best: MaterialData = null
+	for value: Variant in ContentDB.materials.values():
+		var one := value as MaterialData
+		if one == null or one.kind != kind:
+			continue
+		if best == null or one.rarity < best.rarity \
+				or (one.rarity == best.rarity and one.id < best.id):
+			best = one
+	return "" if best == null else best.id
+
+
+## **Put the fortress right.** Every damaged emplacement, or none of them.
+##
+## All or nothing because a partial mend is a bill the player cannot read: they
+## spend, and the fortress is still broken somewhere they cannot see until they
+## are standing in it.
+static func mend(stored: Dictionary) -> Dictionary:
+	var out: Dictionary = stored.duplicate(true)
+	var towers: Array = out.get("towers", []) as Array
+	for index: int in towers.size():
+		var row := towers[index] as Dictionary
+		if row == null:
+			continue
+		row["health"] = 1.0
+		towers[index] = row
+	out["towers"] = towers
+	return out
+
+
 ## How many towers the fortress holds, and how many of them are hurt. For the
 ## menu and for the repair screen.
 static func fortifications(stored: Dictionary) -> Vector2i:
