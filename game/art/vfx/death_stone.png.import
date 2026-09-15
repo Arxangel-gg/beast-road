@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bfmnpxyv248t6"
-path="res://.godot/imported/fallen_marker.png-9030e4dacf4dddf0407be1fc752b8792.ctex"
+uid="uid://duaia83scxtq6"
+path="res://.godot/imported/death_stone.png-03b617d5015cc7c119662e639d080d82.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/vfx/fallen_marker.png"
-dest_files=["res://.godot/imported/fallen_marker.png-9030e4dacf4dddf0407be1fc752b8792.ctex"]
+source_file="res://art/vfx/death_stone.png"
+dest_files=["res://.godot/imported/death_stone.png-03b617d5015cc7c119662e639d080d82.ctex"]
 
 [params]
 

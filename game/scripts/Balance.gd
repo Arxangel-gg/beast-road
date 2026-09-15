@@ -4621,6 +4621,19 @@ const TOWER_SPRAY_SPREAD: float = 0.42
 const TOWER_SPRAY_REACH: float = 0.45
 const TOWER_SPRAY_LIFE: float = 0.32
 
+## Where the players fell (owner brief, 2026-09-14): the stone's drop, its
+## landing, its going, and the room between two markers on one spot. [TUNE]
+const DEATH_STONE_FALL_HEIGHT: float = 260.0
+## The stone's size on the field; drawn at 64x80 and stood beside a Warden
+## of 168x160, one to one read as a kerb.
+const DEATH_STONE_SCALE: float = 1.35
+const DEATH_STONE_FALL_SECONDS: float = 0.55
+const DEATH_STONE_IMPACT: float = 0.12
+const DEATH_STONE_SOUND_DB: float = -7.0
+const DEATH_STONE_DISSOLVE_SECONDS: float = 0.9
+const DEATH_MARKER_OVERLAP: float = 26.0
+const DEATH_BONES_ALPHA: float = 0.92
+
 # ------------------------------------------------------------------------------
 # See-through structures
 # ------------------------------------------------------------------------------

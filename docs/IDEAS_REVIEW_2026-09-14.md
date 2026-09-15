@@ -32,6 +32,17 @@ become a meter.
 - Water drawn as water: refraction, depth, foam, glints, rain rings, puddles
   where the ground is wet.
 
+## Built since (2026-09-14, later the same day)
+
+- **Death markers** (the owner's three-stage brief, stage one): one stone per
+  hero down, falling, landing, standing while recovery is needed and
+  dissolving on the revive; skeletal remains at the death position until the
+  act ends; every death path and every scope. `DeathMarkers`, `DeathStone`,
+  `stone_dissolve.gdshader`, `death_marker_check`. Presentation only:
+  nothing reads it, nothing persists, nothing crosses the wire.
+- **Every tower's look** (`TowerData.shot`, `ambient`, `shot_tint`,
+  `juice_scale`; `tower_juice_check`) - see CLAUDE.md.
+
 ## Next, in order
 
 1. **Rarity-scaled wrath and the legendary shock.** Per-kill cost by rarity,

@@ -52,6 +52,7 @@ var _treeline: Treeline = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
+var _death_markers: DeathMarkers = null
 var _wildlife: Wildlife = null
 var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
@@ -2467,10 +2468,25 @@ func _build_fog() -> void:
 	_fog.wildlife = _wildlife
 	add_child(_fog)
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
+	_build_death_markers()
 
 
 func fog() -> FogOfWar:
 	return _fog
+
+
+# --- Where the players fell (2026-09-14) ----------------------------------------
+
+## Under the sorted layer, so a stone y-sorts with the bodies walking round it
+## and freezes with the field for a raid. Watches this scope's heroes only.
+func _build_death_markers() -> void:
+	_death_markers = DeathMarkers.new()
+	_death_markers.scope = self
+	(entity_root if entity_root != null else self).add_child(_death_markers)
+
+
+func death_markers() -> DeathMarkers:
+	return _death_markers
 
 
 func sky() -> WeatherSky:

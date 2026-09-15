@@ -572,6 +572,9 @@ jobs:
           # kick - and none of it moves a number: one tower of each style is
           # fired at a body on the real field and the damage read back.
           check "tower juice" --headless --path game res://tools/tower_juice_check.tscn
+          # Where the players fell: one stone per hero down, falling, landing and
+          # dissolving on revival; remains until the act ends; every death path.
+          check "death markers" --headless --path game res://tools/death_marker_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

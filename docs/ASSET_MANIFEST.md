@@ -2108,17 +2108,17 @@ a junction and can never appear on open terrain.
 | `path_snow_14.png` | 64×64 | T | `#8A8D95` |
 | `path_snow_15.png` | 64×64 | T | `#8A8D95` |
 
-### 5.17b Fallen marker — `res://art/vfx/`
+### 5.17c Death markers — `res://art/vfx/`
 
-The stone that stands where a player went down, and disappears the moment they
-are helped up. A collapsed hero hides its own sprite — it has to, or a corpse
-lies on the field looking alive — and a revive bar alone is a few pixels of
-outline at a distance, so a partner crossing the map had nothing to walk
-*towards*. Never drawn in a solo run: nobody is coming.
+The stone that falls where a player collapsed (2026-09-14) and dissolves when
+they stand, and the remains that stay on that spot until the act ends. The
+stone is drawn front-on with a slight top-down angle and its base is its
+ground contact; the bones are a flat ground decal, wider than tall.
 
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
-| `fallen_marker.png` | 40×48 | T | `#8A9099` |
+| `death_stone.png` | 64×80 | T | `#8A9099` |
+| `death_bones.png` | 80×48 | T | `#B8B0A0` |
 
 ### 5.18 Projectiles — `res://art/vfx/`
 

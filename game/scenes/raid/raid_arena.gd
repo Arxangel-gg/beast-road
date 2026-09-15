@@ -20,6 +20,8 @@ extends EnemyField
 ## scope changes, so switching does not leave the view sitting in another scope.
 @export var camera: Camera2D
 
+var _death_markers: DeathMarkers = null
+
 
 ## Takes ownership of the effect world while the camp is open. The battlefield
 ## claims it back in its own `activate`; see the note there for what it cost to
@@ -79,7 +81,16 @@ func _ready() -> void:
 	DayNight.phase_changed.connect(func(_p: float, tint: Color, _d: float) -> void:
 		_tint_node.color = Graphics.graded(tint))
 	_tint_node.color = Graphics.graded(DayNight.tint)
+	# A death in a camp or a dungeon marks the camp or the dungeon, never the
+	# road above it: the arena's own markers watch the arena's own hero.
+	_death_markers = DeathMarkers.new()
+	_death_markers.scope = self
+	(entity_root if entity_root != null else self).add_child(_death_markers)
 	set_process(false)
+
+
+func death_markers() -> DeathMarkers:
+	return _death_markers
 
 
 ## The arena's light on, or off: on with the camp, off with the reward.

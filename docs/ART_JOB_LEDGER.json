@@ -255,6 +255,12 @@
     "idle": "5f4de089-6519-42f8-83e1-b1d578eaf8cd",
     "object": "4ad5c560-abd8-4778-9e3d-bec6fee22b44"
   },
+  "art/vfx/death_bones": {
+    "image": "5f954da2-13e0-4b31-9e56-0a8c064600b2"
+  },
+  "art/vfx/death_stone": {
+    "image": "c6e89521-e982-4510-9f6b-fd2202da6d93"
+  },
   "art/wildlife/wildlife_bog_crane": {
     "idle": "da967118-b14f-4aeb-b100-2ea690001ef2"
   },

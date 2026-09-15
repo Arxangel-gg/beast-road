@@ -650,6 +650,12 @@ func is_alive() -> bool:
 	return not health.is_dead and not _downed
 
 
+## Whether the last collapse was in the water. The death markers ask, because
+## a stone over a drowning lands with a splash and leaves no bones.
+func is_drowned() -> bool:
+	return _drowned
+
+
 ## Whether this hero may swing and cast right now.
 ##
 ## Read from `RunState`, which both heroes share, so the phase binds the pair
@@ -1609,6 +1615,8 @@ func _tick_respawn(delta: float) -> void:
 func _finish_respawn(to_spawn: bool = true) -> void:
 	if to_spawn:
 		global_position = spawn_point
+	# Standing again is standing on land, whatever took them down.
+	_drowned = false
 	RunState.hero_hp = -1.0
 	_apply_permanent_bonuses()
 	_restore_presence()

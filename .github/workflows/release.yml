@@ -168,6 +168,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/balance_reach_check.tscn
           run_godot_clean --headless --path game res://tools/tower_path_check.tscn
           run_godot_clean --headless --path game res://tools/tower_juice_check.tscn
+          run_godot_clean --headless --path game res://tools/death_marker_check.tscn
           run_godot_clean --headless --path game res://tools/attribute_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_shot_check.tscn
           run_godot_clean --headless --path game res://tools/gathering_check.tscn

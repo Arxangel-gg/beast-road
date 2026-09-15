@@ -2380,6 +2380,46 @@ landed inside one slow frame was never there. It is caught on
 `child_entered_tree` and read on `tree_exiting` now, which is the pattern for
 anything that lives less than a frame might last.
 
+**Where the players fell, as of 2026-09-14.** The owner's brief, first of
+three stages: on an actual collapse, one marker at the recorded death
+position; a stone falls from above, lands with a restrained knock, dust and a
+settle, stands while the player needs recovery, and dissolves with a shader
+when they are up; the remains stay on that spot until the act ends, as
+scenery; solo deaths, co-op downs, the solo clock, a partner's revive and a
+team wipe all covered; a stable identity so no message can plant a second
+stone; a death in an arena marks the arena and never the road.
+
+**The markers watch the heroes; they do not listen for a message.**
+`DeathMarkers` is a node under each scope's sorted layer - the field's and
+each arena's - and every frame each hero under that scope is either standing
+or not; a change is a fall or a rise. That one decision is most of the brief:
+every death path arrives through `Hero.is_alive()` without a signal per path,
+a hero has at most one stone so nothing can plant a second, a death in a
+dungeon marks the dungeon because only the dungeon's markers watch the
+dungeon's hero, and a raid's freeze holds a stone in the air because the node
+freezes with the scope (working rule 8). In co-op each machine draws its own
+stones from the downs it already mirrors; nothing crosses the wire.
+
+**What a stone is and is not.** `DeathStone` is presentation: it reads the
+hero through the markers and is read by nothing. It falls from
+`DEATH_STONE_FALL_HEIGHT` over `DEATH_STONE_FALL_SECONDS` under a growing
+shadow, lands with `sfx_hit_stone_1` at `DEATH_STONE_SOUND_DB`, dust and a
+`camera_impact` weighted by distance, and dissolves through
+`stone_dissolve.gdshader` - a crumble from a noise field with a lit edge,
+not a fade. Revived during the fall it dissolves where it is rather than
+landing on somebody standing. Drowned, it lands with a splash and leaves no
+bones: the river keeps the body. Two deaths on one spot stand
+`DEATH_MARKER_OVERLAP` apart. Nothing persists.
+
+`ReviveBar` used to plant its own stone for a downed partner and delete it
+on the revive, co-op only; that is gone with `fallen_marker.png`, because two
+stones on one body is one too many. `death_marker_check` (44 checks) drives
+every path through the real doors - a lethal blow and the wound clock,
+`go_down` said three times, `revive_in_place`, `respawn_from_wipe`, a
+drowning, `Battlefield.suspend`, `act_started`, and the raid arena's own hero
+- and `death_marker_shot` photographs the fall, the stand, the dissolve and
+the bones.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
