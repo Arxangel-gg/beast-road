@@ -2881,6 +2881,69 @@ after the run has ended may no longer set it. Deliberately **not** on every
 scope change: a raid must not wipe the warning that the hero is nearly dead,
 which is why `Vfx.clear` and `Vfx.clear_vignette` are two functions.
 
+**The interface is allowed to be dimmer than the art it sits on, as of
+2026-09-15.** `ui_tint_check` held one rule since it was written: the tint the
+interface is painted with may never be worth less than one, "and the darkest
+hours are exactly when a player can least afford it". That reasoning is about
+*readability* and was being enforced as *brightness*, and the two are not the
+same thing - so a menu at midnight kept its plates at the pale lavender they
+were authored at and read as an interface pasted over a painting. The owner
+reported it twice as the buttons being "too bright".
+
+`UiTint._normalised` takes them down now, and **the gate's bound moves from a
+number to a floor**: a plate may be darkened to `SHADE_FLOOR * PLATE` of what it
+was painted and no further, read off those constants rather than typed into the
+gate. At those values a midnight menu is about three fifths of its authored
+brightness - clearly dimmer than the art, nowhere near dark enough to stop being
+a button. The other half of the old rule is untouched and is the half that was
+ever about readability: **a frame is tinted and a font is not**, which is the
+next test in that file.
+
+This is recorded rather than quietly changed because amending a gate's
+invariant is the one kind of change that makes every later run of it agree with
+the bug it was built to catch.
+
+**Four gates were red on main and nobody had run them, found by the release
+sweep of 2026-09-15.** Worth writing down as a pattern rather than as four
+fixes, because three of the four landed the same day they were caught and none
+of them announced itself:
+
+- **`ui_tint_check`** - the decision above, made in code and not in the gate.
+- **`enemy_walk_check`** - five idle frames of the camp breeds and one wyvern
+  drift off their base's ground line by more than two pixels. The animator
+  re-renders the whole sprite, so the feet wander; `tools/lock_animation_region.py
+  --align-ground` translates a frame back onto the base's foot without
+  repainting a generated pixel, and that is the repair for this every time.
+- **`enemy_facing_check`** - the Moonstag had no recorded facing, which is the
+  ledger added hours earlier working exactly as intended on the first animal
+  added after it.
+- **`enemy_shot_check`** - passing its own checks and printing three ERROR
+  lines, which the *release* bar fails on and a casual read of the PASS line
+  does not. Two real faults behind them, and both are the same shape: **a
+  connection that outlives the thing that made it.**
+
+  `Battlefield._ready` connected `EventBus.weather_changed` to
+  `PathBlend.set_weather`, which is **static**, so Godot has no object to drop
+  the connection with when the battlefield is freed - every later battlefield in
+  the same process errors with "already connected". And three scopes -
+  the battlefield, the raid arena and the beast scope - followed `DayNight` with
+  a *lambda*, which captures what it reads; when the scope goes, the capture is
+  freed and every later tick of the sun prints "Lambda capture at index 0 was
+  freed" and then assigns a colour on nothing. **Guarding inside the lambda does
+  not fix that** - the engine complains at the call, before the body runs. A
+  named method does, because its connection belongs to a real object that Godot
+  drops. All three are methods now.
+
+  A game builds one of each per process and never sees either; a gate that
+  stands up two runs sees both immediately.
+
+**The lesson is about when a sweep is run.** A gate is only as good as the last
+time somebody ran it, and the three gates above went red the day their subject
+was authored. The release sweep is the thing that finds them, so it belongs
+*before the tag and after the last edit* - which also means a sweep started
+before the work is finished is wasted, because every later commit invalidates
+it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

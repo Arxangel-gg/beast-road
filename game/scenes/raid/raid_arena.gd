@@ -30,6 +30,13 @@ func claim_effects() -> void:
 	Vfx.bind_world(effect_root if effect_root != null else self)
 
 
+
+## The hour, on the arena's own tint.
+func _on_day_phase(_phase: float, tint: Color, _darkness: float) -> void:
+	if _tint_node != null and is_instance_valid(_tint_node):
+		_tint_node.color = Graphics.graded(tint)
+
+
 func activate() -> void:
 	claim_effects()
 	if camera != null:
@@ -78,8 +85,10 @@ func _ready() -> void:
 	_tint_node.visible = false
 	_tint_node.add_to_group(Graphics.TINT_GROUP)
 	add_child(_tint_node)
-	DayNight.phase_changed.connect(func(_p: float, tint: Color, _d: float) -> void:
-		_tint_node.color = Graphics.graded(tint))
+	# A method rather than a lambda, for the reason `Battlefield._setup_lighting`
+	# spells out: a lambda captures, and a capture that is freed while the
+	# signal still fires is an ERROR line in every log.
+	DayNight.phase_changed.connect(_on_day_phase)
 	_tint_node.color = Graphics.graded(DayNight.tint)
 	# A death in a camp or a dungeon marks the camp or the dungeon, never the
 	# road above it: the arena's own markers watch the arena's own hero.

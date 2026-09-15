@@ -51,6 +51,9 @@ var _farming: Farming = null
 var _treeline: Treeline = null
 ## What a mythical animal left behind, and where it is at the end of it.
 var _trail: MythicTrail = null
+## The CanvasModulate the hour is painted on. A member rather than a local
+## so the tint can follow the sun through a method instead of a lambda.
+var _day_tint_node: CanvasModulate = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
@@ -204,7 +207,16 @@ func _ready() -> void:
 	grid = BattleGrid.new(RunState.run_seed)
 	_build_lanes()
 	PathBlend.set_weather(RunState.weather_id)
-	EventBus.weather_changed.connect(PathBlend.set_weather)
+	# **Guarded, because `set_weather` is static.** Godot drops a connection when
+	# the object on the receiving end is freed - but a static function has no
+	# object, so this one survives the battlefield that made it and every later
+	# one errors with "already connected". Nothing notices in a game, which
+	# builds one battlefield per process; a gate that stands up two runs sees it
+	# immediately, and the release bar fails on any ERROR line. Found by
+	# `enemy_shot_check` on 2026-09-15, which is the third time this project has
+	# paid for a connect with no `is_connected` in front of it.
+	if not EventBus.weather_changed.is_connected(PathBlend.set_weather):
+		EventBus.weather_changed.connect(PathBlend.set_weather)
 	_regional_polish = RegionalPolishScript.new() as CanvasLayer
 	_regional_polish.name = "RegionalPolish"
 	_regional_polish.set("field", self)
@@ -462,15 +474,30 @@ func _build_feedback_root() -> void:
 	sorted.add_child(_feedback_root)
 
 
+## The hour, on the field's own tint.
+func _on_day_phase(_phase: float, tint: Color, _darkness: float) -> void:
+	if _day_tint_node != null and is_instance_valid(_day_tint_node):
+		_day_tint_node.color = Graphics.graded(tint)
+
+
 ## A CanvasModulate tints everything under it, which is what turns the day/night
 ## phase into an actual look rather than a number on the HUD.
 func _setup_lighting() -> void:
 	var modulate_node := CanvasModulate.new()
 	modulate_node.name = "DayTint"
 	add_child(modulate_node)
-	DayNight.phase_changed.connect(
-		func(_p: float, tint: Color, _d: float) -> void:
-			modulate_node.color = Graphics.graded(tint))
+	_day_tint_node = modulate_node
+	# **A named method rather than a lambda, and that is the whole fix.**
+	#
+	# A lambda captures what it reads, and Godot reports "Lambda capture at
+	# index 0 was freed" the moment the signal fires after that capture has
+	# gone - which happens every time a battlefield is torn down while
+	# `DayNight` is still ticking several times a second. A method's connection
+	# belongs to *this node*, so the engine drops it when this node goes and
+	# there is nothing left to capture. Found by the release sweep on
+	# 2026-09-15: the gate passed and the log carried two ERROR lines, which
+	# the release bar fails on and the PASS line hides.
+	DayNight.phase_changed.connect(_on_day_phase)
 	modulate_node.color = Graphics.graded(DayNight.tint)
 	# Grouped so `Graphics.apply_to_scene` can re-grade a field that is already
 	# standing. Without it, changing brightness from the pause menu does nothing

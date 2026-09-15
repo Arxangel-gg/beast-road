@@ -17,6 +17,13 @@ extends Node2D
 @export var camera: Camera2D
 
 
+
+## The hour, on the walk's own tint.
+func _on_day_phase(_phase: float, tint: Color, _darkness: float) -> void:
+	if _day_tint != null and is_instance_valid(_day_tint):
+		_day_tint.color = Graphics.graded(tint)
+
+
 func activate() -> void:
 	if camera != null:
 		camera.make_current()
@@ -107,8 +114,8 @@ func _setup_lighting() -> void:
 	_day_tint.color = Graphics.graded(DayNight.tint)
 	_day_tint.add_to_group(Graphics.TINT_GROUP)
 	add_child(_day_tint)
-	DayNight.phase_changed.connect(func(_phase: float, tint: Color, _darkness: float) -> void:
-		_day_tint.color = Graphics.graded(tint))
+	# A method rather than a lambda: see `Battlefield._setup_lighting`.
+	DayNight.phase_changed.connect(_on_day_phase)
 
 	_omens = BeastOmens.new()
 	_omens.name = "Omens"

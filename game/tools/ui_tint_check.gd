@@ -25,12 +25,12 @@ var _checks: int = 0
 
 func _ready() -> void:
 	MetaState.hold_saves()
-	_test_no_hour_makes_the_interface_darker()
+	_test_no_hour_makes_the_interface_unreadable()
 	_test_the_hue_actually_follows_the_hour()
 	_test_a_frame_is_tinted_and_a_font_is_not()
 	MetaState.resume_saves()
 	if _failures.is_empty():
-		print("[ui-tint] PASS - %d checks: the interface follows the light and never dims"
+		print(("[ui-tint] PASS - %d checks: the interface follows the light, dims no further than a button can bear, and never touches a font")
 			% _checks)
 	else:
 		for failure: String in _failures:
@@ -44,18 +44,45 @@ func _check(condition: bool, why: String) -> void:
 		_failures.append(why)
 
 
-## **The whole point.** Walk the day and confirm the tint's own brightness never
-## drops below one, whatever colour the sky is.
-func _test_no_hour_makes_the_interface_darker() -> void:
+## **The rule this holds changed on 2026-09-15, and the change is the decision.**
+##
+## It used to be "the tint may never drop below one, whatever colour the sky
+## is", on the reasoning that the darkest hours are exactly when a player can
+## least afford dimmer frames. That reasoning is about *readability*, and it was
+## being enforced as *brightness*, which are not the same thing - so a menu at
+## midnight kept plates at the pale lavender they were authored at and read as
+## an interface pasted over a painting. The owner reported it twice as the
+## buttons being "too bright", and `UiTint._normalised` now takes them down.
+##
+## So the bound moves from a number to a floor, and the floor is read off the
+## constants that set it rather than typed here: a plate may be darkened to
+## `SHADE_FLOOR * PLATE` of its authored brightness and no further. At those
+## values a midnight menu's buttons are about three fifths of what they were
+## painted - clearly dimmer than the art, nowhere near dark enough to stop
+## being a button.
+##
+## **What has not moved is the half that was ever about readability**, and it is
+## the next test down: a frame is tinted and a font is not. Text is what a
+## player has to read, and nothing in this file may touch it.
+func _test_no_hour_makes_the_interface_unreadable() -> void:
+	# The floor, derived. A gate that typed the number would pass whatever the
+	# constants were changed to, which is the failure it exists to prevent.
+	var floor_value: float = UiTint.SHADE_FLOOR * UiTint.PLATE - 0.02
 	for step: int in 48:
 		var phase: float = float(step) / 48.0
 		DayNight._apply(phase)
 		var tint: Color = _settled(UiTint.for_the_world())
 		var value: float = 0.2126 * tint.r + 0.7152 * tint.g + 0.0722 * tint.b
-		_check(value >= 0.985,
-			("at phase %.2f the interface tint is worth %.3f - anything under "
-				+ "one dims the frames, and the darkest hours are exactly when "
-				+ "a player can least afford it") % [phase, value])
+		_check(value >= floor_value,
+			("at phase %.2f the interface tint is worth %.3f against a floor "
+				+ "of %.3f - past that a plate stops reading as a button")
+				% [phase, value, floor_value])
+		# And no hour may be *brighter* than the art was authored: the dimming
+		# is one-directional, so a tint over one is a bug rather than a choice.
+		_check(value <= 1.001,
+			("at phase %.2f the interface is brighter than it was painted "
+				+ "(%.3f) - the grade only ever takes light away")
+				% [phase, value])
 		# And nothing may blow out either: a tint over one would bloom the
 		# frame art on a bright afternoon.
 		_check(maxf(maxf(tint.r, tint.g), tint.b) <= 1.6,

@@ -114,11 +114,33 @@ func _test_the_director_waits_at_the_cap() -> void:
 			enemy.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var before: int = _field.enemy_count()
+	# **What the director spawned, not what is standing there.**
+	#
+	# This counted the field, and the field is not only the director's: the
+	# camps stand their own bodies up on their own clock, and a camp mob is
+	# invisible to `enemy_count` only *after* `make_camp_mob` has been applied
+	# to it. Caught by the release sweep on 2026-09-15 reading three bodies
+	# where one was asked for - a verdict that depended on where a camp's
+	# respawn timer happened to be, which is a coin toss wearing a gate's
+	# clothes.
+	#
+	# Counting the *new instances* is strictly more precise rather than merely
+	# quieter: a director that really did spawn three would still fail this,
+	# and now it would say which three.
+	var before: Dictionary = _bodies_on_the_field()
 	director.call("_spawn_next")
 	await get_tree().process_frame
-	_check(_field.enemy_count() == before + 1,
-		"with room the director did not spawn the waiting body (%d from %d)" % [_field.enemy_count(), before])
+	var arrived: Array[String] = []
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Enemy
+		if body == null or not is_instance_valid(body) or body.is_dying():
+			continue
+		if body.is_camp_mob() or before.has(body.get_instance_id()):
+			continue
+		arrived.append(body.data.id if body.data != null else "?")
+	_check(arrived.size() == 1 and arrived[0] == "bogkin",
+		("with room the director must spawn exactly the body it was waiting "
+			+ "on; it produced %s") % str(arrived))
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
 		if enemy != null and not enemy.is_camp_mob():
@@ -126,6 +148,23 @@ func _test_the_director_waits_at_the_cap() -> void:
 	(director.get("_spawn_queue") as Array).clear()
 	director.set_process(true)
 	await get_tree().process_frame
+
+
+
+## Every road body standing on the field right now, by instance id.
+##
+## Camp bodies are left out on purpose: they are not the director's and they
+## arrive on their own clock, which is exactly the noise this exists to remove.
+func _bodies_on_the_field() -> Dictionary:
+	var out: Dictionary = {}
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Enemy
+		if body == null or not is_instance_valid(body) or body.is_dying():
+			continue
+		if body.is_camp_mob():
+			continue
+		out[body.get_instance_id()] = true
+	return out
 
 
 ## The road's population stops arriving at the cap however often it is asked.
