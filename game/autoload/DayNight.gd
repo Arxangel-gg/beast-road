@@ -87,6 +87,11 @@ func sun_darkness() -> float:
 
 ## Down into the deep, or back up. Publishes the change at once.
 func set_underground(on: bool, deep_tint: Color = Color(0.3, 0.31, 0.4)) -> void:
+	# There is no weather down here. One flag beside the light, because the two
+	# are the same fact - the sky cannot reach this place - and keeping them in
+	# one call is what stops a future arena from remembering the dark and
+	# forgetting the air.
+	RunState.wind_sheltered = on
 	underground = on
 	_deep_tint = deep_tint
 	_publish()

@@ -154,6 +154,10 @@ enum Fact {
 	## A birth, so a guest's field holds the same young. The rarity, the shine
 	## and the sex are the host's; a guest never rolls one.
 	WILDLIFE_BORN = 73,
+	## The wind, as a heading and a strength (2026-09-15). Sent on a threshold
+	## rather than a clock: silent through a settled quarter, talking through a
+	## turn. A guest eases toward it and simulates every leaf itself.
+	WIND = 74,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -396,6 +400,7 @@ func _fact_bindings() -> Array:
 		["wrath_zone_opened", _on_wrath_zone_opened],
 		["wrath_warned", _on_wrath_warned],
 		["climate_band_changed", _on_climate_band_changed],
+		["wind_changed", _on_wind_changed],
 		["coop_chronicle_progress", _on_chronicle_progress],
 		["coop_paused", _on_coop_paused],
 		["coop_hero_down", _on_coop_hero_down],
@@ -754,6 +759,10 @@ func _on_climate_band_changed(cell: int, temp_band: int, wet_band: int) -> void:
 	_relay(Fact.CLIMATE_BAND, [cell, temp_band, wet_band])
 
 
+func _on_wind_changed(blowing: Vector2) -> void:
+	_relay(Fact.WIND, [blowing])
+
+
 func _on_chronicle_progress(summary: Dictionary) -> void:
 	_relay(Fact.CHRONICLE_PROGRESS, [summary])
 
@@ -979,6 +988,9 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 4 and args[3] is Dictionary:
 				bus.coop_wildlife_born.emit(int(args[0]), String(args[1]),
 					args[2] as Vector2, args[3] as Dictionary)
+		Fact.WIND:
+			if args.size() == 1 and args[0] is Vector2:
+				bus.coop_wind_changed.emit(args[0] as Vector2)
 		Fact.RUN_ENDED:
 			# A return is a second flag beside the victory; a host that does
 			# not send one ended the run the old way.

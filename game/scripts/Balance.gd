@@ -6763,6 +6763,60 @@ const TREMOR_FULL: float = 9000.0
 ## by up to `WIND_WANDER` radians on a slow clock and gusting; it drifts a
 ## wildfire's spread and leans a funnel.
 const WIND_WANDER: float = 0.9
+
+# --- The wind, as a thing you walk into (owner brief, 2026-09-15) -------------
+#
+# "An aesthetically appealing wind system that can blow in any cardinal
+# direction and can change its strength. The wind can affect movement speed for
+# all characters, slowing them against the wind or speeding them up in its
+# direction."
+#
+# **This is the one addition in a long line that is allowed to move a gameplay
+# number**, and it is worth saying why it does not become the third power scale
+# this project keeps refusing. Every other look-and-feel change here is held to
+# "a look, never a number"; the owner asked for this one to be felt, so the
+# bound moves to the shape of the number instead:
+#
+# - **It is symmetric.** The same dot product, the same cap, for a hero, an
+#   enemy, an animal and a companion. Nothing can build for it and nothing is
+#   exempt from it.
+# - **It is small and capped.** `WIND_PUSH_MAX` either way, and the scale is
+#   clamped, so no stacking of gusts and weather can ever exceed it.
+# - **It averages to nothing.** The heading wanders the full circle over a run
+#   and the four roads point four ways, so a wind that hurries one lane holds
+#   another back. There is no run-long advantage to be had in either direction,
+#   which is what keeps the ten-act pressure curve readable.
+# - **It is never felt indoors.** A raid camp and a rift are sheltered.
+#
+# Anything that breaks one of those four is a difficulty setting nobody chose.
+## How far the heading may sit from the cardinal it has settled on.
+const WIND_CARDINAL_WANDER_DEGREES: float = 26.0
+## How long a heading holds before the wind turns to another quarter.
+const WIND_QUARTER_SECONDS: float = 52.0
+## How long the turn itself takes. A wind that snapped through ninety degrees
+## would be a switch rather than weather.
+const WIND_TURN_SECONDS: float = 7.0
+## The gust, as a fraction of the settled strength, and how fast it breathes.
+const WIND_GUST_SHARE: float = 0.3
+const WIND_GUST_RATE: float = 0.7
+## The most the wind may take off or add to a character's speed, walking
+## straight into it or straight with it.
+const WIND_PUSH_MAX: float = 0.1
+
+# Replication. The heading and the strength are the only things that travel;
+# every leaf, every blade of grass and every drifting mote is simulated on each
+# machine from them. The host sends one message when the wind has moved further
+# than a player could fail to notice, never on a clock.
+## How far the heading must turn, or the strength change, before it is worth a
+## message.
+const WIND_RELAY_DEGREES: float = 9.0
+const WIND_RELAY_STRENGTH: float = 0.07
+## And never more often than this, whatever the sky does.
+const WIND_RELAY_INTERVAL: float = 0.45
+## How fast a guest's wind eases toward what it was told. Easing rather than
+## snapping is what hides the gap between messages: the guest is always a
+## fraction of a second behind and never wrong in a way a player can see.
+const WIND_EASE: float = 2.6
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 

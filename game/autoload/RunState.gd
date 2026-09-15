@@ -278,6 +278,33 @@ var tide: float = 0.0
 var tremor: float = 0.0
 ## The wind over the field this frame, as a vector; the sky writes it.
 var wind: Vector2 = Vector2.ZERO
+## True while the party is somewhere the sky cannot reach: a raid camp under a
+## cliff, a rift, the maze under a dungeon. Set where `DayNight.set_underground`
+## is, and for the same reason - the road's weather is the road's.
+var wind_sheltered: bool = false
+
+
+## What the wind does to the speed of something travelling this way.
+##
+## **One function, so there is one bound.** Walking straight into the wind at
+## full strength costs `Balance.WIND_PUSH_MAX` of your speed and walking with it
+## gains the same; across the quarter it falls away as the cosine, which is what
+## makes a crosswind cost nothing and is the only honest reading of a push.
+##
+## Symmetric across every mover on the field, capped, and exactly 1.0 when the
+## party is sheltered or the air is still. See the note on `WIND_PUSH_MAX` for
+## why those four properties are the whole of what keeps this from being a
+## difficulty setting nobody chose.
+func wind_push(direction: Vector2) -> float:
+	if wind_sheltered or wind == Vector2.ZERO:
+		return 1.0
+	var length: float = direction.length()
+	if length <= 0.001:
+		return 1.0
+	var strength: float = minf(wind.length(), 1.0)
+	var with_it: float = wind.normalized().dot(direction / length)
+	return clampf(1.0 + with_it * strength * Balance.WIND_PUSH_MAX,
+		1.0 - Balance.WIND_PUSH_MAX, 1.0 + Balance.WIND_PUSH_MAX)
 
 ## The campaign tier this run is being played on.
 var tier_id: String = "normal"

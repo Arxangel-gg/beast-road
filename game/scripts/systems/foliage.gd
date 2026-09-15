@@ -359,7 +359,36 @@ static func canopy_material(region: String = "") -> ShaderMaterial:
 ## change no matter how much grass is on the field.
 static func set_wind(weather: WeatherData) -> void:
 	var wind: float = 0.0 if weather == null else clampf(weather.wind, -1.0, 1.0)
-	var strength: float = absf(wind)
+	_authored = wind
+	_apply_wind(wind, absf(wind))
+
+
+## The live wind, which is what the plants actually lean into.
+##
+## **A plant is a billboard, so only the across-screen half of the wind can
+## become a lean.** A wind blowing toward or away from the camera cannot bend a
+## flat sprite in any honest direction, so it ruffles instead: it feeds the sway
+## rate and the sway angle and leaves the bias alone. That is not a compromise
+## so much as the only reading that does not have grass leaning uphill.
+##
+## Called when the wind has moved enough to see rather than every frame - two
+## shader parameter writes per material, and there is one material per painted
+## kind, so this is cheap but it is not free.
+static func set_wind_vector(blowing: Vector2) -> void:
+	var strength: float = minf(blowing.length(), 1.0)
+	if strength <= 0.001:
+		_apply_wind(_authored, absf(_authored))
+		return
+	# The across-screen component decides the lean and its sign; the whole
+	# magnitude decides how hard everything is breathing.
+	_apply_wind(clampf(blowing.x, -1.0, 1.0), strength)
+
+
+## What the current weather was authored with, as the still-air fallback.
+static var _authored: float = 0.0
+
+
+static func _apply_wind(wind: float, strength: float) -> void:
 	var degrees: float = Balance.FOLIAGE_SWAY_DEGREES 		* (1.0 + strength * Balance.FOLIAGE_WIND_SWAY_GAIN)
 	var speed: float = Balance.FOLIAGE_SWAY_SPEED 		* (1.0 + strength * Balance.FOLIAGE_WIND_SPEED_GAIN)
 	var bias: float = wind * Balance.FOLIAGE_WIND_BIAS_DEGREES

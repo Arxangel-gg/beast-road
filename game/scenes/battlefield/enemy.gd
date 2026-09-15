@@ -885,7 +885,8 @@ func _walk_camp(delta: float) -> void:
 	# Half pace on patrol: a camp that paced at charging speed reads as agitated
 	# rather than as at home.
 	_tick_slip(delta, to_goal.normalized())
-	var step: Vector2 = to_goal.normalized() * current_speed() * 0.5 * delta
+	var step: Vector2 = to_goal.normalized() * current_speed() * 0.5 * delta \
+		* RunState.wind_push(to_goal)
 	if step.length() > to_goal.length():
 		step = to_goal
 	if _field.step_is_legal(global_position, global_position + step):
@@ -898,9 +899,18 @@ func _walk_camp(delta: float) -> void:
 ## a retreat that did not honour the cliffs would walk bodies through the island
 ## faces the ramps exist to funnel them around - and a second copy of this is
 ## exactly the copy that would not be fixed the next time the first one was.
+## One step along a heading.
+##
+## The wind is applied here rather than in `current_speed` for the reason the
+## hero applies it at `velocity`: a push depends on which way you are walking,
+## and `current_speed` does not know. `targeting_speed` deliberately does not
+## read it either - a tower ranking runners wants the body's own pace, not the
+## weather's opinion of it, and paying for a dot product inside a sort
+## comparator is the mistake that comment already warns about.
 func _advance(direction: Vector2, delta: float) -> void:
 	_tick_slip(delta, direction)
-	var step: Vector2 = (direction * current_speed() + _slip) * delta
+	var step: Vector2 = (direction * current_speed() * RunState.wind_push(direction)
+		+ _slip) * delta
 	var wanted: Vector2 = global_position + step
 	if _field.step_is_legal(global_position, wanted):
 		global_position = wanted

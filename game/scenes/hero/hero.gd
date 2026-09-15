@@ -448,7 +448,13 @@ func _physics_process(delta: float) -> void:
 			movement_scale *= ranged.move_scale()
 		if _swimming:
 			movement_scale *= Balance.SWIM_SPEED_SCALE
-		velocity = move_input * move_speed() * movement_scale
+		# **And the wind.** A multiplier at the point of travel rather than a
+		# bonus inside `move_speed`, because which way you are going is the
+		# whole of it: `move_speed` has no direction and a crosswind costs
+		# nothing. Symmetric with every other mover on the field and capped in
+		# `RunState.wind_push`; see the note on `Balance.WIND_PUSH_MAX`.
+		velocity = move_input * move_speed() * movement_scale \
+			* RunState.wind_push(move_input)
 	velocity += _lunge_velocity + _shoved
 
 	move_and_slide()

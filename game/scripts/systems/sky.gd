@@ -122,6 +122,7 @@ func _ready() -> void:
 	EventBus.weather_changed.connect(_on_weather_changed)
 	EventBus.coop_sky_clock.connect(_on_sky_clock)
 	EventBus.coop_lightning.connect(_on_lightning_seen)
+	EventBus.coop_wind_changed.connect(_on_wind_elsewhere)
 	EventBus.lightning_struck.connect(_on_lightning_seen)
 	EventBus.wildlife_killed.connect(_on_wildlife_killed)
 	EventBus.coop_earthquake.connect(_on_earthquake_seen)
@@ -444,11 +445,116 @@ func _tick_temperature(delta: float) -> void:
 		minf(delta * Balance.SKY_TEMPERATURE_EASE, 1.0))
 
 
+# --- The wind (2026-09-15) ---------------------------------------------------
+
+## What the guest was last told, and when. Host-side only.
+var _wind_told: Vector2 = Vector2.ZERO
+var _wind_told_at: float = -1000.0
+## What a guest has been told to ease toward.
+var _wind_wanted: Vector2 = Vector2.ZERO
+var _wind_heard: bool = false
+## What the foliage was last leaned to. Every plant on the field shares a
+## handful of materials, so this is two parameter writes rather than a per-plant
+## cost - but it is not free, and a wind that wanders continuously would pay it
+## every frame for a change no eye can see.
+var _wind_drawn: Vector2 = Vector2(9.0, 9.0)
+## The gust, kept for the drawing. Simulated on every machine from its own
+## clock rather than told, which is the whole reason it is separate from
+## `RunState.wind`.
+var _gusted: Vector2 = Vector2.ZERO
+
+
+## Publish the wind, and tell the other machines when it has moved enough to
+## be worth a message.
+##
+## **The wind travels; nothing it moves does.** A leaf, a blade of grass, a
+## drifting mote and the lean of every plant on the field are simulated on each
+## machine from these two numbers, which is the whole design: the alternative
+## is sending a field of foliage sixty times a second to say something both
+## machines could have worked out.
+##
+## A message goes out when the heading has turned `WIND_RELAY_DEGREES` or the
+## strength has moved `WIND_RELAY_STRENGTH` since the last one, and never more
+## often than `WIND_RELAY_INTERVAL`. On a clock it would be a steady trickle
+## saying nothing; on a threshold it is silent through a settled quarter and
+## talks through a turn, which is when it matters.
+func _set_wind(blowing: Vector2) -> void:
+	if not Coop.is_host():
+		# A guest eases toward what it was told rather than deriving its own.
+		# The derivation is deterministic and would *usually* agree, and
+		# "usually" is not a thing to build a shared fight on: the two clocks
+		# start at different moments and a rejoining guest has no history at
+		# all.
+		if _wind_heard:
+			RunState.wind = RunState.wind.lerp(_wind_wanted,
+				minf(get_process_delta_time() * Balance.WIND_EASE, 1.0))
+			_lean_the_foliage()
+		return
+	RunState.wind = blowing
+	_lean_the_foliage()
+	_gusted = wind_gusting()
+	var now: float = _clock
+	if now - _wind_told_at < Balance.WIND_RELAY_INTERVAL:
+		return
+	# **Still air says nothing.** A heading is undefined when there is no wind,
+	# so an angle comparison against a zero vector has to fall back to "it
+	# turned as far as it could" - and with the wind at rest on both sides that
+	# fires every interval forever, which is a clock wearing a threshold's
+	# clothes. Measured at two messages a second over ten minutes of dead calm,
+	# against the two and a bit a pure clock would have sent.
+	if blowing == Vector2.ZERO and _wind_told == Vector2.ZERO:
+		return
+	var turned: float = absf(wrapf(blowing.angle() - _wind_told.angle(), -PI, PI)) \
+		if _wind_told != Vector2.ZERO and blowing != Vector2.ZERO else PI
+	var changed: float = absf(blowing.length() - _wind_told.length())
+	if turned < deg_to_rad(Balance.WIND_RELAY_DEGREES) \
+			and changed < Balance.WIND_RELAY_STRENGTH:
+		return
+	_wind_told = blowing
+	_wind_told_at = now
+	EventBus.wind_changed.emit(blowing)
+
+
+## A guest hearing the host's wind. Eased into rather than applied.
+func _on_wind_elsewhere(blowing: Vector2) -> void:
+	hear_wind(blowing)
+
+
+func hear_wind(blowing: Vector2) -> void:
+	_wind_wanted = blowing
+	if not _wind_heard:
+		# The first one lands outright: easing from a stale zero would leave a
+		# rejoining guest walking through still air for a second.
+		RunState.wind = blowing
+	_wind_heard = true
+
+
+## For the gate: what the host has actually put on the wire.
+func wind_told() -> Vector2:
+	return _wind_told
+
+
+## Lean every plant on the field into the wind, when it has moved enough to see.
+##
+## **Local on both machines, always.** This is the half of the design the brief
+## is most specific about: the wind travels and nothing it moves does. A guest
+## running this off its own eased copy is a frame or two behind the host on the
+## angle of a fern, which is not a thing anyone can perceive and is the reason
+## no foliage state has to cross the wire at all.
+func _lean_the_foliage() -> void:
+	# The gust belongs here and nowhere else: this is the drawing.
+	var showing: Vector2 = wind_gusting() if Coop.is_host() else RunState.wind
+	if showing.distance_to(_wind_drawn) < 0.02:
+		return
+	_wind_drawn = showing
+	Foliage.set_wind_vector(showing)
+
+
 # --- Publishing -----------------------------------------------------------------
 
 ## Writes what the sky is doing where everything reads it.
 func _publish(force: bool) -> void:
-	RunState.wind = wind()
+	_set_wind(wind())
 	RunState.rain_scale = _scale if _falling() or forced_intensity >= 0.0 else 1.0
 	RunState.rain_intensity = intensity()
 	RunState.storm_charge = _charge
@@ -643,15 +749,100 @@ func hazard_boost() -> float:
 
 ## The wind over the field: the weather's own along the road, wandering on
 ## a slow clock and gusting, and still for a while after a legendary dies.
+## The wind, as a heading and a strength.
+##
+## **It blows from any quarter now** (owner brief, 2026-09-15). It used to be
+## the weather's own east-west `wind` with half a radian of wander, which is a
+## fine thing for a wildfire to drift along and a poor thing to walk into: on a
+## map with four roads pointing four ways, a wind that only ever blew along one
+## axis would hurry two lanes and hold two back for the whole run.
+##
+## So the heading settles on a quarter, holds it for `WIND_QUARTER_SECONDS`,
+## and turns to another over `WIND_TURN_SECONDS` - a turn rather than a switch,
+## because a wind that snapped through ninety degrees is a state change and not
+## weather. Around the settled quarter it wanders by up to
+## `WIND_CARDINAL_WANDER_DEGREES` and gusts on its own faster clock.
+##
+## **Deterministic from the run's clock and its own phases**, like the rest of
+## this file, so the host pays no roll for it. That is not what makes a guest
+## agree, though - see `_relay_wind`: the moment the wind started moving
+## characters it became a fact, and a fact is told rather than re-derived.
 func wind() -> Vector2:
 	if _wind_still_left > 0.0 or _weather == null:
 		return Vector2.ZERO
-	var along: float = clampf(_weather.wind, -1.0, 1.0)
-	if is_zero_approx(along):
+	var strength: float = clampf(absf(_weather.wind), 0.0, 1.0)
+	if is_zero_approx(strength):
 		return Vector2.ZERO
-	var angle: float = sin(_clock * 0.05 + _phases.x) * Balance.WIND_WANDER
-	var gust: float = 1.0 + 0.25 * sin(_clock * 0.7 + _phases.y)
-	return Vector2(along, 0.0).rotated(angle) * gust
+	return Vector2.RIGHT.rotated(wind_heading()) * strength
+
+
+## The wind with its gust on it, which is what things *look* like.
+##
+## **The gust is deliberately not in `wind()`.** It breathes at
+## `WIND_GUST_RATE`, which is fast enough that the strength crosses the relay's
+## threshold several times a second - measured at two messages a second over
+## ten minutes, against the two and a bit a pure clock would have sent, so the
+## threshold was doing no work at all and the wire was carrying a sine wave.
+##
+## A gust is also the one part of the wind nobody needs to agree about: it is
+## thirty percent of a push that is capped at a tenth, so two machines a
+## half-breath apart differ by three percent of a walking speed for a second.
+## So the settled wind is the fact - it pushes characters, it travels, the
+## wildfire drifts along it - and the gust is drawn on top of it locally from
+## each machine's own clock. Both halves get to be honest.
+func wind_gusting() -> Vector2:
+	var settled: Vector2 = wind()
+	if settled == Vector2.ZERO:
+		return settled
+	return settled * (1.0 + Balance.WIND_GUST_SHARE
+		* sin(_clock * Balance.WIND_GUST_RATE + _phases.y))
+
+
+## Which way the wind is blowing, in radians, before the gust.
+##
+## Separate from `wind()` so the gate can read the heading without the gust
+## riding on it: a turn and a breath are different claims and a test that can
+## only see their product cannot check either.
+func wind_heading() -> float:
+	if _weather == null:
+		return 0.0
+	# Which quarter, and how far through the turn into it. The sequence is a
+	# function of the index rather than a walk, so any moment can be asked for
+	# without replaying the ones before it - which is what lets a rejoining
+	# guest and a gate both start in the middle.
+	var hold: float = maxf(Balance.WIND_QUARTER_SECONDS, 1.0)
+	var index: int = int(floor(_clock / hold))
+	var into: float = _clock - float(index) * hold
+	var from_angle: float = _quarter(index - 1)
+	var to_angle: float = _quarter(index)
+	# The short way round, so a turn from north to west goes through the west
+	# and not three times round the compass.
+	var swing: float = wrapf(to_angle - from_angle, -PI, PI)
+	# **The rate is constant, not the duration.** `WIND_TURN_SECONDS` is how
+	# long a *quarter* takes; a reversal is two quarters and takes twice as
+	# long. Fixed-duration turns made a half-circle swing round at twice the
+	# speed of a quarter one, which the gate caught by measuring the worst jump
+	# in a tenth of a second - and a wind that reverses in the time another one
+	# takes to shift a quarter is not weather.
+	var takes: float = maxf(Balance.WIND_TURN_SECONDS, 0.001) \
+		* absf(swing) / (PI * 0.5)
+	var turning: float = clampf(into / maxf(takes, 0.001), 0.0, 1.0)
+	var settled: float = from_angle + swing * smoothstep(0.0, 1.0, turning)
+	# The sign of the weather's own wind still decides which side it favours,
+	# so a weather authored as a westerly still reads as one.
+	var lean: float = 0.0 if _weather.wind >= 0.0 else PI
+	return settled + lean \
+		+ sin(_clock * 0.05 + _phases.x) * deg_to_rad(Balance.WIND_CARDINAL_WANDER_DEGREES)
+
+
+## The cardinal the wind settles on for a given quarter of the run's clock.
+##
+## Hashed from the index and the run's own phase rather than drawn, so it costs
+## no roll, never disturbs another stream (the lesson `decoration-needs-its-own-
+## RNG-stream` cost this project), and gives the same answer on every machine.
+func _quarter(index: int) -> float:
+	var seeded: int = abs(hash(Vector2i(index, int(_phases.z * 1000.0))))
+	return float(seeded % 4) * PI * 0.5
 
 
 ## The heat cools, the fire's ash and the storm's wind settle.

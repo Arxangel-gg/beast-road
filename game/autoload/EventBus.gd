@@ -759,6 +759,12 @@ signal coop_wrath_warned(kind_id: String, at: Vector2, seconds: float)
 ## band. Only crossings travel; the guest eases its copy toward the band.
 signal climate_band_changed(cell: int, temp_band: int, wet_band: int)
 signal coop_climate_band_changed(cell: int, temp_band: int, wet_band: int)
+## The wind turned or freshened enough to be worth telling the other machines
+## (2026-09-15). Two numbers, on a threshold rather than a clock; everything the
+## wind moves - leaves, grass, motes, the lean of every plant - is simulated on
+## each machine from them and none of it travels.
+signal wind_changed(blowing: Vector2)
+signal coop_wind_changed(blowing: Vector2)
 
 ## How much snow is lying on the ground, 0..1.
 ##

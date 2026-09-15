@@ -586,6 +586,10 @@ jobs:
           # drawn rather than the silhouette fallback, and a sway with no loop
           # a viewer could notice inside three minutes.
           check "menu foliage" --headless --path game res://tools/menu_foliage_check.tscn
+          # The wind: bounded and symmetric on every mover, nothing felt
+          # indoors, every quarter of the compass over a run, and two numbers
+          # on the wire with no foliage anywhere near it.
+          check "wind" --headless --path game res://tools/wind_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn
