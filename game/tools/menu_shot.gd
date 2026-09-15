@@ -49,6 +49,12 @@ func _ready() -> void:
 		print("[menu-shot] birds at %s" % str(flock.call("perches")))
 		print("[menu-shot] birds winged=%s global=%s"
 			% [str(flock.call("winged")), str((flock as Node2D).global_position)])
+	var camp: Node = menu.find_child("Camp", true, false)
+	if camp != null:
+		print("[menu-shot] camp %s" % str(camp.call("camp")))
+		print("[menu-shot] camp shade=%s firelight=%s furnished=%s"
+			% [str(camp.get("shade")), str(camp.get("firelight")),
+				str(camp.call("furnished"))])
 	var tail: Sprite2D = _find_tail(menu)
 	if tail == null:
 		print("[menu-shot] no tail sprite found")

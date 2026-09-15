@@ -598,6 +598,11 @@ jobs:
           # loses contrast, one skin a button however often the HUD rebuilds,
           # and the pad answered exactly as the mouse is.
           check "ui juice" --headless --path game res://tools/ui_juice_check.tscn
+          # The watcher on the road: every piece on disk, a figure that is
+          # never black on black, standing on the rock's lip rather than its
+          # topmost blade of grass, clear of the interface, and different
+          # every visit.
+          check "menu camp" --headless --path game res://tools/menu_camp_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

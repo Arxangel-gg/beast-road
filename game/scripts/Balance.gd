@@ -6834,6 +6834,10 @@ const MENU_LEAF_LIGHT_FLOOR: float = 0.34
 ## How far toward the corner's own hue the leaves are pulled. All the way and
 ## a sunset corner has orange foliage in it.
 const MENU_LEAF_TINT_STRENGTH: float = 0.5
+## How much darker a painted branch is than the leaves hanging off it. Bark
+## this near the camera is nearly a silhouette, but drawing it as one would
+## lose every knot and every strand of moss.
+const MENU_BRANCH_SHADE: float = 0.78
 
 # --- The menu is alive: birds and fireflies (owner brief, 2026-09-15) ---------
 #
@@ -6877,6 +6881,78 @@ const MENU_FIREFLY_HOMING: float = 9.0
 ## which is the shape of the real thing; 1.0 is a pulsing bead.
 const MENU_FIREFLY_SHARPNESS: float = 3.4
 const MENU_FIREFLY_HZ: float = 24.0
+
+# --- Somebody is out there watching (owner brief, 2026-09-15) ----------------
+#
+# "Put the warden riding a fire horse somewhere that would scale nicely in
+# contrast with the scene ... in the foreground like a cliff of sorts ... add a
+# camp fire also burning there ... or sometimes sitting by the campfire, looking
+# towards the beast ... sometimes maybe no cliff, or some sort of other various
+# setups to make it interesting each time players come visit."
+#
+# **The figure makes the beast colossal by being small.** The scene already says
+# the arch is enormous; what it has never had is a person to measure it against.
+# A foreground figure at a believable size would be the biggest thing on screen
+# and would take the scale away from the beast, so the Warden is about a tenth
+# of the screen's height - near enough to be sharp and unmistakably a person,
+# far enough that Yuri still towers behind them.
+## The Warden's height as a share of the screen's.
+const MENU_CAMP_FIGURE: float = 0.125
+## And a camp with no cliff under it is further off, so it is smaller.
+const MENU_CAMP_FAR_SCALE: float = 0.78
+## How high the cliff lifts the camp, as a share of the screen.
+const MENU_CAMP_CLIFF_LIFT: float = 0.07
+## How wide the outcrop is against the figure standing on it.
+const MENU_CAMP_CLIFF_WIDTH: float = 4.6
+## How much darker the rock is than what stands on it. A foreground mass
+## between the viewer and the light is the one thing here that should be close
+## to a true silhouette.
+const MENU_CAMP_ROCK: float = 0.44
+## How far the outcrop is pushed toward the corner, as a share of its own
+## width, so its far end runs off the screen rather than ending in mid-air.
+const MENU_CAMP_CLIFF_OFFSET: float = 0.34
+## How tall the campfire is against the figure beside it. Two thirds made a
+## fire taller than the Warden sitting at it, which is a bonfire rather than a
+## camp.
+const MENU_CAMP_FIRE_SIZE: float = 0.42
+## How often the Warden carries a lantern. Not always, by request: a thing that
+## is there every time stops being noticed.
+const MENU_CAMP_LANTERN_CHANCE: float = 0.62
+## How tall the lantern is against the figure.
+const MENU_CAMP_LANTERN_SIZE: float = 0.3
+## Frames a second for the camp's idle cycles. Slow: a cloak in a steady wind
+## and a breathing figure, not a run cycle.
+const MENU_CAMP_FRAME_RATE: float = 5.0
+## What varies between visits.
+const MENU_CAMP_CLIFF_CHANCE: float = 0.62
+const MENU_CAMP_MOUNTED_CHANCE: float = 0.34
+const MENU_CAMP_HORSE_CHANCE: float = 0.45
+const MENU_CAMP_FIRE_CHANCE: float = 0.7
+## How much of the firelight a burning thing keeps when the scene's grade is
+## applied. Rock and cloak take the grade whole; a light source does not.
+const MENU_CAMP_EMBER_KEEP: float = 0.42
+## The ground luminance below which a figure stops being a silhouette and is
+## lit by its own fire instead. The bottom of this scene is a wet road at about
+## a twentieth of full brightness, and a figure graded against it disappears -
+## which is what the first cut of the camp did, and what the first cut of the
+## birds did in the sky above it.
+const MENU_CAMP_DARK_GROUND: float = 0.16
+## How far toward the firelight a figure on dark ground is lifted.
+const MENU_CAMP_FIRELIT: float = 0.45
+## The least a camp sprite may be multiplied by. These are drawn as
+## near-silhouettes already, so a grade that takes much off them takes all of
+## them - unlike the beast, which is painted in mid-tones and can take a third.
+const MENU_CAMP_FLOOR: float = 0.66
+## How far toward the scene's hue a camp sprite is pulled.
+const MENU_CAMP_TINT: float = 0.34
+## Where along the bottom the camp may pitch, as a share of the screen's width
+## in from whichever side it chose. Inside the interface on both sides: buttons
+## down the left, the run statistics down the right.
+const MENU_CAMP_BAND: Vector2 = Vector2(0.3, 0.38)
+## How far down the screen the camp's ground is, as a share of its height.
+const MENU_CAMP_GROUND: float = 0.955
+## Redraws a second. Nothing here moves except the flame, which is its own node.
+const MENU_CAMP_HZ: float = 12.0
 
 # --- The interface answers being touched (owner brief, 2026-09-15) -----------
 #

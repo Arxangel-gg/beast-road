@@ -80,6 +80,16 @@ const SPRAY_ART: Array[String] = [
 	"res://art/ui/menu_leaves_narrow.png",
 	"res://art/ui/menu_leaves_round.png",
 ]
+## The limbs the vines hang from (owner, 2026-09-15: "make the branches have
+## sprites as well and also give them procedural sway, and keep them dark
+## colour graded tinted for the scene, and have variety too so they're not all
+## identical"). Three, drawn along the same curve the strands are rooted on,
+## so the branch and everything on it move together by construction.
+const BRANCH_ART: Array[String] = [
+	"res://art/ui/menu_branch_bare.png",
+	"res://art/ui/menu_branch_mossy.png",
+	"res://art/ui/menu_branch_forked.png",
+]
 const HANGER_ART: Array[String] = [
 	"res://art/ui/menu_hanger_berries.png",
 	"res://art/ui/menu_hanger_orchid.png",
@@ -92,9 +102,12 @@ static var _tendril: Texture2D = null
 static var _vines: Array[Texture2D] = []
 static var _sprays: Array[Texture2D] = []
 static var _hangers: Array[Texture2D] = []
+static var _branches: Array[Texture2D] = []
 static var _looked: bool = false
 
 var _time: float = 0.0
+## Which of the painted limbs this corner hangs from.
+var _branch_pick: float = 0.0
 var _rng := RandomNumberGenerator.new()
 ## Per-strand: length scale, hang angle, sway scale, its own phase.
 var _strands: Array[Dictionary] = []
@@ -103,6 +116,9 @@ var _strands: Array[Dictionary] = []
 func _ready() -> void:
 	_rng.seed = hash("menu-foliage") ^ int(phase * 1024.0) ^ int(anchor.x * 977.0)
 	_load_art()
+	# Which limb this corner grew. Drawn before the strands so the two corners
+	# of one screen are different trees.
+	_branch_pick = _rng.randf()
 	_grow()
 
 
@@ -121,6 +137,7 @@ static func _load_art() -> void:
 	_vines = _load_set(VINE_ART)
 	_sprays = _load_set(SPRAY_ART)
 	_hangers = _load_set(HANGER_ART)
+	_branches = _load_set(BRANCH_ART)
 
 
 static func _load_set(paths: Array[String]) -> Array[Texture2D]:
@@ -138,6 +155,11 @@ static func _load_set(paths: Array[String]) -> Array[Texture2D]:
 ## actually there rather than one file repeated.
 func variety() -> Vector3i:
 	return Vector3i(_vines.size(), _sprays.size(), _hangers.size())
+
+
+## How many limbs the corner has to choose from. For the gate.
+func limbs() -> int:
+	return _branches.size()
 
 
 ## Whether this corner is drawing painted art rather than silhouettes. For the
@@ -224,6 +246,20 @@ func _draw_branch() -> void:
 	var points := PackedVector2Array()
 	for step: int in BRANCH_POINTS:
 		points.append(_branch_at(float(step) / float(BRANCH_POINTS - 1)))
+	var limb: Texture2D = _one_of(_branches, _branch_pick)
+	if limb != null:
+		# **The painted limb, bent along the very curve the vines are rooted
+		# on.** It sags and breathes from `_branch_at` like everything else
+		# hanging off it, so the branch and its strands cannot drift apart -
+		# which is the gap that had to be fixed once already.
+		#
+		# Kept dark: this is the nearest thing in the corner and reads as
+		# almost a silhouette, which is what `tint` already is. Two strokes of
+		# the old drawn limb stay underneath, because the painted bark does not
+		# quite reach the corner and a limb that stops in mid-air is a gap.
+		draw_polyline(points, tint, reach * 0.030, true)
+		_draw_bent_across(points, limb, reach * 0.085, reach * 0.045)
+		return
 	# Drawn twice, thick then thin, so it tapers without needing a polygon.
 	draw_polyline(points, tint, reach * 0.055, true)
 	var half := PackedVector2Array()
@@ -396,6 +432,47 @@ func _one_of(set: Array[Texture2D], fraction: float) -> Texture2D:
 	if set.is_empty():
 		return null
 	return set[clampi(int(fraction * float(set.size())), 0, set.size() - 1)]
+
+
+## A texture laid along a polyline **lengthways**, one band per segment.
+##
+## `_draw_bent` lays a sprite down a chain because a vine hangs; a branch runs
+## along one, so its texture is read left to right instead of top to bottom and
+## its thickness is authored rather than derived. Same idea, transposed.
+func _draw_bent_across(points: PackedVector2Array, texture: Texture2D,
+		thick: float, thin: float) -> void:
+	if texture == null or points.size() < 2:
+		return
+	var bands: int = points.size() - 1
+	var box: Rect2i = ink_box(texture)
+	var source_width: float = float(box.size.x) / float(bands)
+	for index: int in bands:
+		var from: Vector2 = points[index]
+		var to: Vector2 = points[index + 1]
+		var along: Vector2 = to - from
+		var span: float = along.length()
+		if span <= 0.01:
+			continue
+		var middle: float = (float(index) + 0.5) / float(bands)
+		var height: float = lerpf(thick, thin, middle)
+		draw_set_transform(from, along.angle(), Vector2.ONE)
+		draw_texture_rect_region(texture,
+			Rect2(0.0, -height * 0.5, span * 1.06, height),
+			Rect2(float(box.position.x) + float(index) * source_width,
+				float(box.position.y), source_width, float(box.size.y)),
+			tint_branch())
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## What a painted limb is multiplied by.
+##
+## Darker than the leaves and warmer than the silhouette: bark this close to the
+## camera is nearly black, but drawing it in `tint` itself would lose every
+## knot and every hanging strand of moss on it.
+func tint_branch() -> Color:
+	return Color(leaf_tint.r * Balance.MENU_BRANCH_SHADE,
+		leaf_tint.g * Balance.MENU_BRANCH_SHADE * 0.96,
+		leaf_tint.b * Balance.MENU_BRANCH_SHADE * 0.92, 1.0)
 
 
 ## A texture laid along a polyline, one band per segment, each rotated to its

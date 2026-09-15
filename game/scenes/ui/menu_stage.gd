@@ -77,6 +77,8 @@ var _rain: CPUParticles2D = null
 var _fires: Array[Sprite2D] = []
 var _fireflies: MenuFireflies = null
 var _birds: MenuBirds = null
+var _camp: MenuCamp = null
+var _camp_fire: CampFire = null
 var _logo_glow: Sprite2D = null
 var _logo_sparks: CPUParticles2D = null
 var _grade: ColorRect = null
@@ -103,6 +105,7 @@ func _ready() -> void:
 	_build_beast()
 	_build_fireflies()
 	_build_birds()
+	_build_camp()
 	_build_rays()
 	_build_embers()
 	_build_rain()
@@ -797,6 +800,27 @@ func _build_fireflies() -> void:
 	add_child(_fireflies)
 
 
+## Somebody out there watching the beast.
+##
+## **Built late, so it is in front of everything.** The whole vignette depends
+## on reading as foreground - a Warden at a tenth of the screen's height is only
+## small if the eye can tell they are *near*, and nothing says near like being
+## in front of the weather.
+func _build_camp() -> void:
+	_camp = MenuCamp.new()
+	_camp.name = "Camp"
+	add_child(_camp)
+	# The campfire is the same animated flame the gate braziers burn, rather
+	# than a second kind of fire on one screen.
+	var art: String = "res://art/ui/menu_flame.png"
+	if ResourceLoader.exists(art):
+		_camp_fire = CampFire.new()
+		_camp_fire.name = "CampFlame"
+		_camp_fire.texture = load(art)
+		_camp_fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(_camp_fire)
+
+
 ## The birds. Behind the beast in tree order, so one crossing the arch passes
 ## behind the thing whose size the arch exists to state.
 func _build_birds() -> void:
@@ -884,6 +908,25 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 		# scene without taking its brightness away.
 		var lamp: Color = stage_light()
 		_fireflies.glow = Color(0.86, 0.94, 0.48).lerp(lamp, 0.25)
+	if _camp != null:
+		_camp.position = Vector2.ZERO
+		_camp.resize(span)
+		# Rock and cloak take the horizon's own colour, pushed dark - the same
+		# grade the beast and the corner foliage get. The fire does not: it is a
+		# light source, and grading a light by the dark it is lighting is how
+		# you get a campfire you cannot see.
+		var low: Color = _backdrop_near(Vector2(0.5, 0.86))
+		if low.a <= 0.0:
+			low = Color(0.22, 0.21, 0.26)
+		_camp.firelight = Color(1.0, 0.72, 0.36).lerp(stage_light(), 0.2)
+		_camp.shade = MenuCamp.graded_for(low, _camp.firelight)
+		if _camp_fire != null:
+			var where: Vector2 = _camp.fire_at()
+			_camp_fire.visible = where != Vector2.ZERO
+			_camp_fire.position = where
+			var tall: float = span.y * Balance.MENU_CAMP_FIGURE * Balance.MENU_CAMP_FIRE_SIZE
+			_camp_fire.scale = Vector2.ONE * (tall
+				/ maxf(float(_camp_fire.texture.get_height()), 1.0))
 	if _birds != null:
 		_birds.position = Vector2.ZERO
 		_birds.resize(span)

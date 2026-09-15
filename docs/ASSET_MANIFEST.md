@@ -3288,6 +3288,68 @@ The art is drawn flying right and **is** mirrored when a bird flies left, which
 makes it the exception the facing rule exists to name: a bird in profile is
 symmetrical about its own axis, so nothing moves to the wrong side.
 
+### 5.28d The watcher on the road - `res://art/ui/`
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `menu_camp_cliff.png` | 151x105 | T | `#2A2730` |
+| `menu_warden_sit.png` | 72x59 | T | `#2A2730` |
+| `menu_warden_stand.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_ride.png` | 126x118 | T | `#2A2730` |
+| `menu_fire_horse.png` | 148x98 | T | `#2A2730` |
+| `menu_branch_bare.png` | 256x45 | T | `#2A2730` |
+| `menu_branch_mossy.png` | 249x54 | T | `#2A2730` |
+| `menu_branch_forked.png` | 246x43 | T | `#2A2730` |
+| `menu_lantern.png` | 20x54 | T | `#2A2730` |
+| `menu_warden_stand_idle_01.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_stand_idle_02.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_stand_idle_03.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_stand_idle_04.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_stand_idle_05.png` | 71x78 | T | `#2A2730` |
+| `menu_warden_sit_idle_01.png` | 72x59 | T | `#2A2730` |
+| `menu_warden_sit_idle_02.png` | 72x59 | T | `#2A2730` |
+| `menu_warden_sit_idle_03.png` | 72x59 | T | `#2A2730` |
+| `menu_fire_horse_idle_01.png` | 148x98 | T | `#2A2730` |
+| `menu_fire_horse_idle_02.png` | 148x98 | T | `#2A2730` |
+| `menu_fire_horse_idle_03.png` | 148x98 | T | `#2A2730` |
+| `menu_fire_horse_idle_04.png` | 148x98 | T | `#2A2730` |
+| `menu_fire_horse_idle_05.png` | 148x98 | T | `#2A2730` |
+| `menu_warden_ride_idle_01.png` | 126x118 | T | `#2A2730` |
+| `menu_warden_ride_idle_02.png` | 126x118 | T | `#2A2730` |
+| `menu_warden_ride_idle_03.png` | 126x118 | T | `#2A2730` |
+| `menu_warden_ride_idle_04.png` | 126x118 | T | `#2A2730` |
+| `menu_warden_ride_idle_05.png` | 126x118 | T | `#2A2730` |
+
+Somebody out there watching the beast (owner brief, 2026-09-15: "put the warden
+riding a fire horse somewhere that would scale nicely in contrast with the
+scene ... in the foreground like a cliff of sorts ... add a camp fire also
+burning there ... or sometimes sitting by the campfire, looking towards the
+beast"). `MenuCamp` pitches a different one every visit from these five: which
+side, whether there is a cliff under it, whether the horse is grazing beside
+them, whether a fire is lit, and what the Warden is doing.
+
+**The figure makes the beast colossal by being small.** A foreground person at
+a believable size would be the biggest thing on the screen and would take the
+scale away from Yuri, so the Warden is about a tenth of the screen's height.
+Every sprite is cropped to its own ink on install, because each is placed by
+where it stands and an empty margin under one hangs it in the air.
+
+**Idle cycles, a lantern and three limbs** (owner, 2026-09-15: "there should
+be aesthetic idle animations for them all", and the branches "have sprites as
+well ... and have variety too so they're not all identical"). The cloak snaps
+in the wind, the seated Warden breathes, the horse's mane burns; every cycle is
+pinned to its own base frame so it closes, and all of a cycle's frames share one
+crop box, because a per-frame crop moves the origin and the figure jitters. The
+lantern hangs from the hand afoot and off the saddle when there is a horse, and
+not on every visit. The three limbs are drawn along the same curve the vines are
+rooted on, so a branch and its strands cannot drift apart.
+
+**Sizes are whatever the crop left.** These are placed by proportion rather
+than by pixel, so the manifest records what is on disk rather than prescribing
+it. The camp fire itself is not in this list: it is the menu flame declared in
+section 5.28 above, the same one the gate braziers burn, rather than a second
+kind of fire on one screen.
+
 ### 5.33 Crops — `res://art/crops/`
 
 All 64×64, type T, placeholder colour `#8CB26A`.
