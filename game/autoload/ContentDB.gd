@@ -69,6 +69,8 @@ var affixes: Dictionary = {}
 ## What a rare piece of gear does beyond its points (owner brief, 2026-09-12).
 ## See `GearAffixData`.
 var gear_affixes: Dictionary = {}
+## Matched sets, by id. A piece belongs to one through its *kind*.
+var gear_sets: Dictionary = {}
 
 ## The world's pages, the guide's sections and the account's achievements
 ## (owner brief, 2026-09-12). Data, like every string a player reads.
@@ -132,6 +134,7 @@ func _ready() -> void:
 	blueprints = _load_dir("res://data/blueprints")
 	affixes = _load_dir("res://data/affixes")
 	gear_affixes = _load_dir("res://data/gear_affixes")
+	gear_sets = _load_dir("res://data/gear_sets")
 	lore = _load_dir("res://data/lore")
 	guide_sections = _load_dir("res://data/guide")
 	achievements = _load_dir("res://data/achievements")
@@ -245,6 +248,29 @@ func achievements_sorted() -> Array[AchievementData]:
 
 ## Every legendary affix, in a stable order, so a roll from a uid lands on
 ## the same one on every machine and every launch.
+## Every set, in a stable order. Sorted because a dictionary's order is not a
+## promise and two machines reading the same loadout must agree.
+func gear_sets_sorted() -> Array[GearSetData]:
+	var out: Array[GearSetData] = []
+	for value: Variant in gear_sets.values():
+		var one := value as GearSetData
+		if one != null:
+			out.append(one)
+	out.sort_custom(func(a: GearSetData, b: GearSetData) -> bool:
+		return a.id < b.id)
+	return out
+
+
+## Which set a gear kind belongs to, or null.
+func gear_set_of(kind_id: String) -> GearSetData:
+	if kind_id.is_empty():
+		return null
+	for one: GearSetData in gear_sets_sorted():
+		if one.has_member(kind_id):
+			return one
+	return null
+
+
 func gear_affixes_sorted() -> Array[GearAffixData]:
 	var out: Array[GearAffixData] = []
 	for value: Variant in gear_affixes.values():

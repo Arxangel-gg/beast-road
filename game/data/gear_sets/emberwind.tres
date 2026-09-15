@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["ashfall_glaive", "emberloop", "emberwind_charm"])
+tier_counts = Array[int]([2, 3])
+tier_effects = Array[String](["burn_damage", "hero_damage"])
+tier_magnitudes = Array[float]([0.12, 0.06])
+tier_lines = Array[String](["Two: the embers take better.", "Three: and you carry some of it."])
+aura_colour = Color(1.00, 0.78, 0.36, 0.90)
+id = "emberwind"
+display_name = "Emberwind"
+description = "Three things that have all been on fire and are all still going."

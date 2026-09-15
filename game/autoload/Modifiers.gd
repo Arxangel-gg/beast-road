@@ -48,6 +48,22 @@ func _ready() -> void:
 
 
 ## Summed magnitude for an effect. 0.0 when nothing grants it.
+## Every key this table has a constant for.
+##
+## Derived from the constants rather than kept as a second list, because a
+## hand-kept mirror of a set of constants is a mirror that drifts - which is
+## exactly how a misspelt effect key reaches disk and pays nothing. Used by the
+## gates that refuse an omen, a card, an affix or a set tier naming a key
+## nothing reads.
+func keys_in_use() -> PackedStringArray:
+	var out: PackedStringArray = []
+	for name: Variant in (get_script() as Script).get_script_constant_map():
+		var value: Variant = (get_script() as Script).get_script_constant_map()[name]
+		if value is String and not String(value).is_empty():
+			out.append(String(value))
+	return out
+
+
 func value(effect_id: String) -> float:
 	return float(_totals.get(effect_id, 0.0))
 
@@ -94,8 +110,73 @@ func rebuild() -> void:
 			if affix.effect_id.is_empty():
 				continue
 			_totals[affix.effect_id] = float(_totals.get(affix.effect_id, 0.0)) + affix.magnitude
+	# And what matches. A set tier is a relic the player assembled rather than
+	# found, and it lands where a relic lands - so nothing downstream learns that
+	# sets exist either.
+	_add_matched_sets()
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
+
+
+## **What the Warden is wearing enough of.**
+##
+## Counted by *kind* across the worn slots, so a piece of any rarity or level
+## counts toward its set - the thing to hunt is the match, which the road can
+## actually give you, rather than a second lottery on top of the drop tables.
+func _add_matched_sets() -> void:
+	var worn: Dictionary = {}
+	for slot: Variant in MetaState.equipped:
+		var piece: Dictionary = MetaState.equipped_piece(int(slot))
+		if piece.is_empty():
+			continue
+		var kind_id: String = String(piece.get("kind", ""))
+		var set_data: GearSetData = ContentDB.gear_set_of(kind_id)
+		if set_data == null:
+			continue
+		# By kind rather than by count of pieces: two of the same ring is one
+		# member of the set, not two, and slots make that impossible anyway -
+		# but a set that counted pieces would be wrong the day they do not.
+		var seen: Dictionary = worn.get(set_data.id, {}) as Dictionary
+		seen[kind_id] = true
+		worn[set_data.id] = seen
+	for set_id: Variant in worn:
+		var set_data: GearSetData = ContentDB.gear_sets.get(String(set_id), null) as GearSetData
+		if set_data == null:
+			continue
+		var count: int = (worn[set_id] as Dictionary).size()
+		for tier: int in set_data.tiers_at(count):
+			var key: String = set_data.tier_effects[tier]
+			if key.is_empty():
+				continue
+			_totals[key] = float(_totals.get(key, 0.0)) \
+				+ set_data.tier_magnitudes[tier]
+
+
+## How many pieces of this set are worn right now. For the screens and the gate.
+func set_pieces_worn(set_id: String) -> int:
+	var set_data: GearSetData = ContentDB.gear_sets.get(set_id, null) as GearSetData
+	if set_data == null:
+		return 0
+	var kinds: Dictionary = {}
+	for slot: Variant in MetaState.equipped:
+		var piece: Dictionary = MetaState.equipped_piece(int(slot))
+		if piece.is_empty():
+			continue
+		var kind_id: String = String(piece.get("kind", ""))
+		if set_data.has_member(kind_id):
+			kinds[kind_id] = true
+	return kinds.size()
+
+
+## The set the Warden is wearing in full, if any. One at a time: two full sets
+## would need sixteen slots and the hero has eight.
+func completed_set() -> GearSetData:
+	for one: GearSetData in ContentDB.gear_sets_sorted():
+		if one.members.is_empty():
+			continue
+		if set_pieces_worn(one.id) >= one.members.size():
+			return one
+	return null
 
 
 func _add(relic: RelicData) -> void:

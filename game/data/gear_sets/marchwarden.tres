@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["pilgrims_spear", "roadmenders_coat", "roadwardens_helm", "marchwarden_greaves", "road_token"])
+tier_counts = Array[int]([2, 3, 5])
+tier_effects = Array[String](["hero_speed", "beast_speed", "resource_rate"])
+tier_magnitudes = Array[float]([0.06, 0.05, 0.11])
+tier_lines = Array[String](["Two: the road is shorter under you.", "Three: and it is shorter under the beast.", "Five: the road pays a walker better."])
+aura_colour = Color(0.78, 0.72, 0.50, 0.85)
+id = "marchwarden"
+display_name = "The Marchwarden"
+description = "Five pieces of a kit for people who walked the whole road and came back."

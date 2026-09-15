@@ -3246,6 +3246,62 @@ things about writing it are worth keeping:
   chance is a coin toss wearing a gate's clothes and this project has shipped
   four of those.
 
+**Ten matched sets, as of 2026-09-15.** The owner: *"set items similar to
+Diablo's style which grant extra bonuses at appropriate increments in wearing
+enough of the set pieces. A wide variety of sets that are perfect and polished
+for our game! Wearing a full set should have a visual vfx game juicy effect on
+players!"*
+
+**A set tier moves a number `Modifiers` already resolves and nothing else** -
+the omen bound, the Road Card bound and the legendary-affix bound, applied once
+more. Every tier lands in the same flat table a socketed relic feeds, so a tower
+asking for `tower_damage` gets one number and nothing downstream learns that
+sets exist.
+
+**What a set costs is choice, and that is the honest answer to "extra".** Gear
+grants attribute points on the capped scale levelling shares (working rule 7),
+and a set changes none of that - every piece still grants exactly what its kind,
+rarity and level say. What the player gives up is the freedom to pick: five of
+eight slots locked to *particular kinds* is five slots where you cannot chase
+the attribute you wanted, the rarity you found, or the affixes you were hunting.
+`gear_set_check` measures the whole set against what the affix ceiling would
+have allowed in those same slots, rather than asserting a figure, so the day
+either ceiling moves the comparison still means what it says.
+
+**Rarity is deliberately not a member condition.** A Common Ashfall Glaive still
+counts toward Emberwind. A set that only assembled at the top rarity would be a
+second lottery on top of the drop tables; the thing to hunt is the *match*,
+which the road can actually give you.
+
+**Nothing was added to the save.** A piece is still `{kind, rarity, level,
+uid}`; whether it belongs to a set is a property of its *kind*, read from
+`data/gear_sets/`. Gear found before sets existed belongs to one the moment it is
+read, there is no migration, and `SAVE_VERSION` did not move. Every member is a
+kind that already drops - thirty-seven of the hundred and fourteen - so no art
+and no manifest row came with this.
+
+**And a finished set turns at the feet.** `SetAura` is a ring of motes in the
+set's own authored colour, flattened because the camera looks down and slightly
+along and a true circle at the feet reads as a hoop standing up. It is read by
+nothing, `Graphics.particle_scale` gives it away, and it *asks* `Modifiers`
+rather than listening for a signal - equipment cannot change during a run, so a
+wire for that event would be a wire for something that happens nowhere.
+
+**The legendary-weapon half of that brief was already built**, and is recorded
+here so it is not built twice: `Vfx._swing_signature` has graded the swing by the
+worn weapon's rarity since it was written - motes along the arc in the weapon's
+attribute colour, more of them at higher rarity, a ring on the finisher - and
+`weapon_vfx_check` holds it. The gap was the *set* aura, which is what was
+added.
+
+**The fault worth remembering is a typing one.** `members` was written into the
+`.tres` as a `PackedStringArray` against an `Array[String]` export, and Godot
+**drops a mismatched typed assignment in silence** - so all ten sets loaded with
+no members and could never be worn, while every file looked right. That is the
+same family as `PackedStringArray([...])` not being a constant expression and as
+data indexing an enum by number: a typed container in a `.tres` has to match the
+export exactly, and nothing says so when it does not.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

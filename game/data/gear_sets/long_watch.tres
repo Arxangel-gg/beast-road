@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["pelt_of_long_watch", "visor_of_the_long_watch", "band_of_the_watch", "wardens_step"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["tower_range", "wave_foresight"])
+tier_magnitudes = Array[float]([0.07, 1.0])
+tier_lines = Array[String](["Two: the towers see further.", "Four: and you see one wave further than that."])
+aura_colour = Color(0.66, 0.86, 0.90, 0.82)
+id = "long_watch"
+display_name = "The Long Watch"
+description = "Worn thin at the elbows by people who stood looking at the road."

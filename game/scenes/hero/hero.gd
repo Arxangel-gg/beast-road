@@ -56,6 +56,8 @@ var input: HeroInput = null
 @export var health: Health
 @export var attack: HeroAttack
 @export var sprite: Sprite2D
+## The ring a finished set turns at the feet. Presentation; read by nothing.
+var _set_aura: SetAura = null
 
 ## This hero's own stain material. See `BloodStain`.
 var _blood: ShaderMaterial = null
@@ -243,6 +245,11 @@ var _depth_lift: float = 0.0
 var _aim_guide: Line2D = null
 
 
+## The set this hero is wearing in full, or null. For the gate and the screens.
+func worn_set() -> GearSetData:
+	return _set_aura.worn_set() if _set_aura != null else null
+
+
 func _ready() -> void:
 	# Local unless something says otherwise, which is every hero in a
 	# single-player run and one of the two in co-op. Set before anything else:
@@ -265,6 +272,14 @@ func _ready() -> void:
 		body.position.y -= _depth_lift
 	if health_bar != null:
 		health_bar.position.y -= _depth_lift
+
+	# A finished set turns at the feet. Added here rather than to the scene so a
+	# raid's hero and the field's hero each get their own and neither has to be
+	# told about equipment: it asks `Modifiers`, which is the one place that
+	# knows what is worn.
+	_set_aura = SetAura.new()
+	add_child(_set_aura)
+	_set_aura.position.y = -_depth_lift
 
 	# NOT added to the group here. There are two Hero instances - one in the
 	# battlefield, one in the raid - and if both join the group then

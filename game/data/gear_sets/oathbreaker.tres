@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["oathbreakers_axe", "oathbreakers_loop", "berserkers_harness"])
+tier_counts = Array[int]([2, 3])
+tier_effects = Array[String](["hero_damage", "knockback"])
+tier_magnitudes = Array[float]([0.07, 0.14])
+tier_lines = Array[String](["Two: you hit harder than you should.", "Three: and they go further when you do."])
+aura_colour = Color(0.88, 0.32, 0.28, 0.88)
+id = "oathbreaker"
+display_name = "The Oathbreaker"
+description = "Taken off people who stopped keeping their word and did rather well out of it."

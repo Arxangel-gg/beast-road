@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["kilnforged_hauberk", "kilnglass_visor", "forgescarred_grips"])
+tier_counts = Array[int]([2, 3])
+tier_effects = Array[String](["burn_damage", "tower_damage"])
+tier_magnitudes = Array[float]([0.1, 0.07])
+tier_lines = Array[String](["Two: what you set alight burns harder.", "Three: the fires on the road burn with it."])
+aura_colour = Color(1.00, 0.62, 0.28, 0.90)
+id = "kilnforged"
+display_name = "Kilnforged"
+description = "Glass and plate out of the same fire, and it never entirely went out."

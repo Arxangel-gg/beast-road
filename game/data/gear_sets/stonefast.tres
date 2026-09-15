@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["stonewarden_hammer", "quarry_gauntlets", "stonefast_totem", "amulet_of_the_standing_stone"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["build_cost", "tower_armour"])
+tier_magnitudes = Array[float]([-0.07, 0.11])
+tier_lines = Array[String](["Two: stone comes cheaper to a stonemason.", "Four: and what it builds stands up to more."])
+aura_colour = Color(0.64, 0.60, 0.52, 0.88)
+id = "stonefast"
+display_name = "Stonefast"
+description = "Quarry work, and none of it is light."

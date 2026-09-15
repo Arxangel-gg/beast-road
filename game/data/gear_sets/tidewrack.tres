@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["riverwake_hood", "stormwake_mantle", "tidewrack_ring"])
+tier_counts = Array[int]([2, 3])
+tier_effects = Array[String](["slow_strength", "chain_targets"])
+tier_magnitudes = Array[float]([0.09, 1.0])
+tier_lines = Array[String](["Two: cold water holds them longer.", "Three: and what conducts, conducts further."])
+aura_colour = Color(0.42, 0.74, 0.96, 0.88)
+id = "tidewrack"
+display_name = "The Tidewrack"
+description = "Pulled out of the water still wearing most of itself."

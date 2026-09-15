@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["shieldbearers_vow", "unyielding_carapace", "gauntlets_of_the_held_line", "sabatons_of_the_last_stand"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["tower_armour", "town_max_hp"])
+tier_magnitudes = Array[float]([0.08, 0.1])
+tier_lines = Array[String](["Two: the walls hold a little longer.", "Four: the city stands behind a deeper wall."])
+aura_colour = Color(0.72, 0.78, 0.92, 0.85)
+id = "held_line"
+display_name = "The Held Line"
+description = "Four pieces worn by people whose whole job was not moving."

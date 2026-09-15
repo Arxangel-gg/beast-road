@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["scholars_mantle", "seers_circlet", "quiet_ledger", "quietstep_slippers"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["dash_cooldown", "kill_resources"])
+tier_magnitudes = Array[float]([-0.09, 0.12])
+tier_lines = Array[String](["Two: you move before you have decided to.", "Four: and you account for every body."])
+aura_colour = Color(0.74, 0.66, 0.94, 0.85)
+id = "quiet_ledger"
+display_name = "The Quiet Ledger"
+description = "A scholar's kit. Somebody counted everything and then went somewhere dangerous with it."

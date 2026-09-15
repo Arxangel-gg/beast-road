@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="GearSetData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/gear_set_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+members = Array[String](["oathkeepers_maul", "oathiron_ring", "pendant_of_the_kept_word", "warpriests_plate"])
+tier_counts = Array[int]([2, 4])
+tier_effects = Array[String](["hero_max_hp", "raid_charge"])
+tier_magnitudes = Array[float]([0.08, 0.12])
+tier_lines = Array[String](["Two: a promise is a thing to survive.", "Four: the horn answers sooner."])
+aura_colour = Color(0.96, 0.90, 0.64, 0.85)
+id = "kept_word"
+display_name = "The Kept Word"
+description = "What was sworn, worn."

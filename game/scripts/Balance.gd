@@ -7662,6 +7662,21 @@ const GEAR_LEGENDARY_COUNT: Array[int] = [0, 0, 0, 1, 1, 2, 2]
 ## refuses an affix above it.
 const GEAR_LEGENDARY_CEILING: float = 0.12
 
+## **How far one tier of a matched set may move a scaled number.**
+##
+## The same ceiling a legendary affix is held to, for the same reason: a set is a
+## *different* build rather than a better one, and a tier worth more than the
+## affixes the player gave up to wear it would make matching the only play. What
+## a set is allowed to be worth in total is several tiers of this, which is
+## roughly what a fully-affixed loadout of mixed legendaries already carries -
+## `gear_set_check` measures both sides rather than asserting either.
+const GEAR_SET_CEILING: float = 0.14
+
+## How long the full-set aura takes to breathe once, and how far it stands off
+## the wearer. Presentation: nothing reads it.
+const GEAR_SET_AURA_PERIOD: float = 2.3
+const GEAR_SET_AURA_RADIUS: float = 46.0
+
 
 ## Where a hero's nameplate sits above the feet, in co-op. [TUNE]
 const HERO_NAMEPLATE_LIFT: float = 128.0
