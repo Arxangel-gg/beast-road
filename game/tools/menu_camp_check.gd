@@ -25,6 +25,7 @@ func _ready() -> void:
 	_test_the_camp_keeps_out_of_the_interface()
 	_test_no_two_visits_are_the_same_camp()
 	_test_the_ledge_is_furnished()
+	_test_no_frame_invents_a_bright_patch()
 	_finish()
 
 
@@ -189,6 +190,63 @@ func _test_the_ledge_is_furnished() -> void:
 	_check(sets.size() >= 20,
 		("forty visits pitched %d different sets of props, which is a painted "
 			+ "backdrop rather than a camp") % sets.size())
+
+
+
+
+## **No idle frame paints something the base does not have.**
+##
+## The owner has been looking at a pale egg-shaped smear beside the standing
+## Warden since the camp was built, and it was neither lighting nor grading:
+## PixelLab's animator had painted a 645-pixel patch of near-white into the
+## empty air on `menu_warden_stand_idle_03` and a 365-pixel one on `_idle_04`.
+## The cycle showed each of them one frame in five. Every gate in the project
+## passed the whole time - a frame with a blob on it is still a frame on disk,
+## of the right size, made of real art.
+##
+## **What separates an artefact from animation is measured.** Every frame in
+## every cycle adds pixels the base has none of, because a cloak that moves has
+## to; across all four cycles those additions sit between 0.05 and 0.29
+## luminance. The two bad patches were at 0.99, against a base whose brightest
+## paint is 0.79. So the rule is: a *bright* thing in air the base leaves empty
+## is invented, and `tools/scrub_menu_frames.py` removes it.
+##
+## Checked by area as well as brightness, because a single stray pixel on an
+## edge is resampling and not a fault.
+func _test_no_frame_invents_a_bright_patch() -> void:
+	for stem: String in ["menu_warden_stand", "menu_warden_sit",
+			"menu_warden_ride", "menu_fire_horse"]:
+		var base_path: String = "res://art/ui/%s.png" % stem
+		var base_texture: Texture2D = load(base_path) as Texture2D
+		if base_texture == null:
+			continue
+		var base: Image = base_texture.get_image()
+		var ceiling: float = 0.0
+		for y: int in base.get_height():
+			for x: int in base.get_width():
+				var at: Color = base.get_pixel(x, y)
+				if at.a >= 0.5:
+					ceiling = maxf(ceiling, at.get_luminance())
+		for index: int in range(1, 9):
+			var frame_path: String = "res://art/ui/%s_idle_%02d.png" % [stem, index]
+			if not ResourceLoader.exists(frame_path):
+				continue
+			var frame: Image = (load(frame_path) as Texture2D).get_image()
+			if frame.get_width() != base.get_width() \
+					or frame.get_height() != base.get_height():
+				continue
+			var invented: int = 0
+			for y: int in frame.get_height():
+				for x: int in frame.get_width():
+					var here: Color = frame.get_pixel(x, y)
+					if here.a < 0.5 or base.get_pixel(x, y).a >= 0.5:
+						continue
+					if here.get_luminance() >= ceiling * 1.25:
+						invented += 1
+			_check(invented < 120,
+				("%s paints %d pixels of light into air the base leaves empty, "
+					+ "brighter than anything on the figure - run "
+					+ "tools/scrub_menu_frames.py") % [frame_path, invented])
 
 
 func _check(condition: bool, why: String) -> void:

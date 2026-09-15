@@ -264,20 +264,28 @@ func _setup_stage() -> void:
 ## `menu_frame.gd` for what is in it; this is where it is hung and where it is
 ## told what the player just did.
 ##
-## **A layer of its own, with input ignored.** The frame sits over the buttons
-## rather than under them - it is the edge of the screen, and an interface
-## element that could pass in front of it would break the illusion that the
-## picture is inside something. That only works because it cannot take a press:
-## a decoration that swallowed TAKE THE ROAD is the worst trade in the project.
+## **Over the picture, under the interface, and reading no input.** It frames
+## the scene rather than the screen: the buttons, the title and the statistics
+## all draw in front of it, which is what stops a carved border from clipping
+## the words in a corner - it did exactly that on the first pass, over the run
+## statistics. Input is ignored as well as ordered, because a decoration that
+## could swallow TAKE THE ROAD is the worst trade in the project.
 func _setup_frame() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "FrameLayer"
-	layer.layer = 6
-	add_child(layer)
+	var art: Node = get_node_or_null("Art")
 	_frame = MenuFrame.new()
-	_frame.name = "Frame"
+	_frame.name = "MenuBorder"
 	_frame.light = _menu_light()
-	layer.add_child(_frame)
+	add_child(_frame)
+	# **Over the picture and under the interface**, which is the whole of its
+	# placement. Photographed above everything on a CanvasLayer first: the
+	# border ran across the run statistics in the bottom right and clipped
+	# three words off them. A frame that covers text is worse than no frame,
+	# and no thickness small enough to miss that line is thick enough to read
+	# as carved - so the order is the answer rather than the size.
+	var stage: Node = get_node_or_null("Stage")
+	var after: Node = stage if stage != null else art
+	if after != null:
+		move_child(_frame, after.get_index() + 1)
 	_wire_frame_to(self)
 
 

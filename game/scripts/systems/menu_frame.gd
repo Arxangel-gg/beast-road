@@ -65,6 +65,14 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_time += delta
+	# **Sized from the viewport rather than trusted to the anchors.** The
+	# full-rect preset does the right thing here, but a frame is only correct
+	# if it is exactly the window - one line that asks cannot be wrong about
+	# that, and it re-draws itself when the window changes shape.
+	var span: Vector2 = get_viewport_rect().size
+	if not size.is_equal_approx(span):
+		size = span
+		_drawn_at = -1.0
 	_wave_left = maxf(_wave_left - delta * Balance.MENU_FRAME_WAVE_FADE, 0.0)
 	# Sampled, not driven. The frame is a few dozen quads and redrawing it every
 	# frame for a sheen nobody is watching closely is the trade `flame.gd`

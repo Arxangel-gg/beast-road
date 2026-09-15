@@ -55,6 +55,14 @@ func _ready() -> void:
 		print("[menu-shot] camp shade=%s firelight=%s furnished=%s"
 			% [str(camp.get("shade")), str(camp.get("firelight")),
 				str(camp.call("furnished"))])
+	var frame: Node = _find_named(menu, "MenuBorder")
+	if frame == null:
+		print("[menu-shot] no frame node")
+	else:
+		var control := frame as Control
+		print("[menu-shot] frame size %s visible=%s corner=%s"
+			% [str(control.size), str(control.visible),
+				str(ResourceLoader.exists(MenuFrame.CORNER_ART))])
 	var tail: Sprite2D = _find_tail(menu)
 	if tail == null:
 		print("[menu-shot] no tail sprite found")
@@ -104,4 +112,14 @@ func _find_tail(from: Node) -> Sprite2D:
 		var found: Sprite2D = _find_tail(child)
 		if found != null:
 			return found
+	return null
+
+
+func _find_named(from: Node, named: String) -> Node:
+	for child: Node in from.get_children():
+		if child.name == named:
+			return child
+		var deeper: Node = _find_named(child, named)
+		if deeper != null:
+			return deeper
 	return null
