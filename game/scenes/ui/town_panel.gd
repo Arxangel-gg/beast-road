@@ -735,8 +735,8 @@ func _mansion_training(tier: int) -> void:
 		RunState.trained_discipline_nodes.size(), RunState.discipline_cap()])
 	_note("A node costs one skill point — one arrives every %d levels — and its "
 		% Balance.HERO_SKILL_POINT_EVERY
-		+ "Food. Only the three offers below can be trained on this road; the "
-		+ "next road offers three more.")
+		+ "Food. Spend them on any node your disciplines are deep enough for. "
+		+ "The three below are this road's suggestions.")
 
 	# **What committing to a discipline has bought.**
 	#
@@ -793,6 +793,37 @@ func _mansion_training(tier: int) -> void:
 		card.disabled = not blocker.is_empty()
 		card.pressed.connect(func() -> void: _attempt(RunState.try_train_discipline(id)))
 		actions.add_child(card)
+
+	# **And the rest of the tree, since stage three** (owner, 2026-09-15).
+	#
+	# The offers above stopped being a fence on the same day; if this page still
+	# showed only three, the freedom would exist in `try_train_discipline` and
+	# nowhere a player could reach it - which is the same failure as a discipline
+	# effect nothing reads. Grouped by tree rather than listed flat, because what
+	# the player is choosing between is depth in one and breadth across three.
+	var rest: Array[DisciplineNodeData] = []
+	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+		if not RunState.discipline_offers.has(node.id):
+			rest.append(node)
+	if not rest.is_empty():
+		actions.add_child(_heading("The whole tree  ·  %d open" % rest.size()))
+		var last_tree: int = -1
+		for node: DisciplineNodeData in rest:
+			if node.discipline != last_tree:
+				last_tree = node.discipline
+				_note(node.discipline_name())
+			var blocked: String = _training_blocker(node)
+			var row := _row("%s  ·  %s  ·  %d Food\n%s%s" % [
+				node.display_name, node.slot_name(), node.food_cost,
+				node.description,
+				"\n— %s" % blocked if not blocked.is_empty() else ""], 66.0)
+			if ResourceLoader.exists(node.get_sprite_path()):
+				UiMetrics.row_icon(row, load(node.get_sprite_path()), 34)
+
+			row.disabled = not blocked.is_empty()
+			var pick: String = node.id
+			row.pressed.connect(func() -> void: _attempt(RunState.try_train_discipline(pick)))
+			actions.add_child(row)
 
 	if RunState.trained_discipline_nodes.is_empty():
 		return

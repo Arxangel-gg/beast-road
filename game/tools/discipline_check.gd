@@ -59,6 +59,7 @@ func _ready() -> void:
 	_test_a_dead_slot_is_offered_a_way_out()
 	_test_every_effect_is_accounted_for()
 	_test_every_node_can_be_offered()
+	_test_the_points_are_spent_freely()
 
 	var power: DisciplineNodeData = ContentDB.discipline_node("marrow_drain")
 	RunState.trained_discipline_nodes.append(power.id)
@@ -968,4 +969,97 @@ func _test_every_node_can_be_offered() -> void:
 	RunState.wave_number = before_wave
 	RunState.act = before_act
 	RunState.trained_discipline_nodes = before_trained
+	RunState.refresh_discipline_offers()
+
+
+## **Stage three: the points are spent freely** (owner, 2026-09-15).
+##
+## The three offers used to be a *fence* - `try_train_discipline` refused
+## anything that was not one of them - and the owner asked on 2026-09-09 for
+## something closer to a Diablo tree, which is freely spent points with
+## prerequisites. So what has to be checked here is both halves at once.
+##
+## **The freedom**: a node the hero is deep enough for trains whether or not the
+## road dealt it. And **every bound that was standing behind the fence is still
+## standing**: the depth in the node's own tree, the skill point, the cap, and
+## the three suggestions still being offered. A stage three that quietly dropped
+## one of those would pass a test that only looked for the freedom, and the tree
+## would have become a shopping list on the same day it became a tree.
+func _test_the_points_are_spent_freely() -> void:
+	var before_trained: Array[String] = RunState.trained_discipline_nodes.duplicate()
+	var before_slots: Array[String] = RunState.equipped_discipline_slots.duplicate()
+	var before_level: int = RunState.hero_level
+	var before_points: int = RunState.hero_skill_points
+
+	RunState.building_tiers["sanctum"] = 3
+	RunState.trained_discipline_nodes = []
+	RunState.hero_level = Balance.HERO_MAX_LEVEL
+	RunState.hero_skill_points = 8
+	RunState.gain_currency(RunState.FOOD, 9999)
+	RunState.refresh_discipline_offers()
+
+	_check(RunState.discipline_offers.size() == 3,
+		"the road must still suggest three - a wall of every node with nothing "
+			+ "highlighted is the unreadable Mansion this began as")
+
+	# **The freedom**, driven on a node deliberately off the draft.
+	var off_draft: DisciplineNodeData = null
+	for node: DisciplineNodeData in RunState.eligible_discipline_nodes():
+		if not RunState.discipline_offers.has(node.id):
+			off_draft = node
+			break
+	if _checked(off_draft != null,
+			"nine nodes open and three dealt must leave one off the draft"):
+		var refused: String = RunState.try_train_discipline(off_draft.id)
+		_check(refused.is_empty(),
+			"a node off the draft must train: %s answered \"%s\""
+				% [off_draft.id, refused])
+		_check(RunState.trained_discipline_nodes.has(off_draft.id),
+			"and an empty answer must mean it was actually trained")
+		_check(RunState.hero_skill_points == 7,
+			"and it must cost the point: %d of 8 left" % RunState.hero_skill_points)
+
+	# **The depth rule survives**, which is the prerequisite the freedom rests
+	# on: a node deeper than its own tree has been dug is still out of reach.
+	var too_deep: DisciplineNodeData = null
+	var depth: Dictionary = RunState.discipline_depth()
+	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
+		if RunState.trained_discipline_nodes.has(node.id):
+			continue
+		if node.required_depth() > int(depth.get(node.discipline, 0)):
+			too_deep = node
+			break
+	if _checked(too_deep != null,
+			"one point spent must not open the whole tree"):
+		_check(not RunState.try_train_discipline(too_deep.id).is_empty(),
+			"a node deeper than its tree must still be refused: %s" % too_deep.id)
+		_check(not RunState.trained_discipline_nodes.has(too_deep.id),
+			"and a refusal must leave it untrained")
+
+	# **The skill point survives.** Eligible, off the draft, nothing to spend.
+	RunState.hero_skill_points = 0
+	var open_now: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
+	if _checked(not open_now.is_empty(), "the tree must still have something open"):
+		_check(not RunState.try_train_discipline(open_now[0].id).is_empty(),
+			"a point must still be spent to train %s" % open_now[0].id)
+
+	# **And the cap survives**, which is the one that keeps a levelled hero from
+	# owning the tree. Filled to the ceiling at level one, with points to burn.
+	RunState.hero_skill_points = 8
+	RunState.hero_level = 1
+	while RunState.trained_discipline_nodes.size() < RunState.discipline_cap():
+		var open_more: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
+		if open_more.is_empty():
+			break
+		RunState.trained_discipline_nodes.append(open_more[0].id)
+	var at_cap: Array[DisciplineNodeData] = RunState.eligible_discipline_nodes()
+	if _checked(not at_cap.is_empty(), "something must still be open at the cap"):
+		_check(not RunState.try_train_discipline(at_cap[0].id).is_empty(),
+			"the cap must hold at %d trained of %d allowed"
+				% [RunState.trained_discipline_nodes.size(), RunState.discipline_cap()])
+
+	RunState.hero_level = before_level
+	RunState.hero_skill_points = before_points
+	RunState.trained_discipline_nodes = before_trained
+	RunState.equipped_discipline_slots = before_slots
 	RunState.refresh_discipline_offers()

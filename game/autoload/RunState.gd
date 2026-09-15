@@ -734,13 +734,18 @@ func discipline_depth() -> Dictionary:
 	return depth
 
 
-func refresh_discipline_offers() -> void:
-	discipline_offers.clear()
+## **Every node the hero could train right now**, in the tree's own order.
+##
+## One function, because the draft and the training door used to make this
+## judgement separately and stage three (below) turns the second of them into
+## the only one that matters. `refresh_discipline_offers` picks three of these
+## to suggest; `try_train_discipline` allows any of them.
+func eligible_discipline_nodes() -> Array[DisciplineNodeData]:
+	var out: Array[DisciplineNodeData] = []
 	var mansion_tier: int = building_tier("sanctum")
 	if mansion_tier <= 0:
-		return
+		return out
 	var depth: Dictionary = discipline_depth()
-	var eligible: Array[DisciplineNodeData] = []
 	for node: DisciplineNodeData in ContentDB.discipline_nodes_sorted():
 		if node.mansion_tier > mansion_tier or trained_discipline_nodes.has(node.id):
 			continue
@@ -749,9 +754,23 @@ func refresh_discipline_offers() -> void:
 		# the player has committed to. Without it all thirty nodes were available
 		# to everyone at once and no run's hero differed from another's except by
 		# which four happened to be slotted.
+		#
+		# It carries more weight since stage three than it did when it was
+		# written: the per-road draft used to be the other thing stopping a
+		# player from walking straight to the best node, and depth is now the
+		# only one. A tier-three node still costs two nodes in its own tree.
 		if int(depth.get(node.discipline, 0)) < node.required_depth():
 			continue
-		eligible.append(node)
+		out.append(node)
+	return out
+
+
+func refresh_discipline_offers() -> void:
+	discipline_offers.clear()
+	var mansion_tier: int = building_tier("sanctum")
+	if mansion_tier <= 0:
+		return
+	var eligible: Array[DisciplineNodeData] = eligible_discipline_nodes()
 	# Deterministic per-road rotation: replaying a save cannot reroll by reopening
 	# the panel, while the next road still produces a new set.
 	#
@@ -1179,8 +1198,25 @@ func try_train_discipline(id: String) -> String:
 		return "Needs a skill point. Level up to earn one."
 	if building_tier("sanctum") < node.mansion_tier:
 		return "Hero Mansion tier %d is required." % node.mansion_tier
-	if not discipline_offers.has(id):
-		return "That node is not in this road's offers."
+	# **Stage three: the points are spent freely** (owner, 2026-09-15).
+	#
+	# This used to read `if not discipline_offers.has(id)`, and the three offers
+	# were a fence rather than a suggestion. The draft was doing two jobs - it
+	# forced variety, and it stopped a player walking straight at the one node
+	# they wanted - and the owner asked on 2026-09-09 for something closer to a
+	# Diablo tree, which is freely spent points with prerequisites. The first two
+	# stages built the prerequisites: depth in a tree opens its deeper nodes, and
+	# synergies reward pairs. This removes the fence.
+	#
+	# **Four bounds survive and they are what keep it a build rather than a
+	# shopping list**: a node still costs a skill point, which arrives with
+	# levels; it still costs Food, which is the Preparation decision against the
+	# towers; the total is still capped by `discipline_cap()`; and a deep node
+	# still wants depth in its own tree. The offers remain, as the road's
+	# suggestion, because a wall of thirty nodes with nothing highlighted is the
+	# unreadable Mansion the owner reported in the first place.
+	if not _is_eligible_discipline(node):
+		return "Your disciplines are not deep enough for that node yet."
 	if not can_afford_cost({FOOD: node.food_cost}):
 		return "Needs %d Food." % node.food_cost
 	spend_cost({FOOD: node.food_cost})
@@ -1194,6 +1230,14 @@ func try_train_discipline(id: String) -> String:
 			_sync_discipline_spells()
 	EventBus.discipline_trained.emit(id, node.food_cost)
 	return ""
+
+
+## Whether one node is trainable now, asked by the door rather than re-derived.
+func _is_eligible_discipline(node: DisciplineNodeData) -> bool:
+	for open_node: DisciplineNodeData in eligible_discipline_nodes():
+		if open_node.id == node.id:
+			return true
+	return false
 
 
 func try_equip_discipline(id: String) -> String:
