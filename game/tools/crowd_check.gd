@@ -7,15 +7,16 @@ extends Node
 ## The process-entry test also catches removal of EnemyField's separation hook;
 ## it does not claim to verify scheduling alongside a moving battlefield.
 ##
-## CI remains disabled until its original Linux failure is actually reproduced.
-## Stable fixtures and per-case diagnostics make that next run informative.
+## It runs in both workflows, and it earned that: on 2026-09-15 it was the gate
+## that caught the crowd grid having stopped reaching as far as the widest body
+## on it, which had been true since the camps gained lords.
 
 const FIXTURE_SEED: int = 20260902
 const STEP_DELTA: float = 1.0 / 60.0
 const SETTLE_STEPS: int = 90
 const STACK_SIZE: int = 8
 const POSITION_EPSILON: float = 0.01
-const EXPECTED_CASES: int = 7
+const EXPECTED_CASES: int = 8
 
 var _failures: int = 0
 var _ran: int = 0
@@ -69,6 +70,7 @@ func _ready() -> void:
 	_test_stack("largest body", largest, Vector2(600.0, 600.0), 2.0,
 		false, false, largest_steps)
 	_test_stack("process entry", breed, Vector2(600.0, 600.0), 2.0, false, true)
+	_test_the_grid_reaches_the_widest_body(largest)
 	_test_boss_exemption(breed, boss)
 	await _finish()
 
@@ -98,6 +100,62 @@ func _test_stack(label: String, data: EnemyData, anchor: Vector2, spacing: float
 		_dump_positions(label, crowd)
 	# Immediate teardown removes group membership before the next case. Merely
 	# queueing here would leave earlier cases participating in the next pass.
+	field.free()
+	_ran += 1
+
+
+## **The widest pair on the field must be able to see each other.**
+##
+## `separate_crowd` buckets bodies into `CROWD_CELL` squares and compares each
+## against the cells around it. That is correct only while a pair's combined
+## contact radius fits inside the cell - and the day the camps gained lords it
+## stopped being: two `dragon_stone` bodies want 116 units between them against a
+## 96-unit cell, so a pair 111 apart falls two cells apart, is never compared,
+## and stands inside itself for the rest of the run.
+##
+## The eight-body stack above did catch it, but by luck - it needed two of the
+## eight to settle two cells apart. This is the fault on purpose: two bodies
+## astride a cell boundary, overlapping, and further apart than one whole cell.
+## Checked by putting the 3x3 neighbourhood back, which fails here every time.
+func _test_the_grid_reaches_the_widest_body(largest: EnemyData) -> void:
+	var field: EnemyField = _field()
+	var cell: float = Balance.CROWD_CELL
+	# A gap wider than a cell, and still short of what the pair needs. A body
+	# this wide has no such gap to stand in, and the case is then vacuous rather
+	# than wrong - so say which it is.
+	var wanted: float = largest.body_radius * 2.0
+	var gap: float = cell + 10.0
+	if wanted <= gap:
+		print(("[crowd] grid reach: the widest body is %.0f across against a "
+			+ "%.0f cell, so no pair can hide - nothing to check")
+			% [wanted, cell])
+		field.free()
+		_ran += 1
+		return
+	# One body just inside the low side of a boundary and the other a whole cell
+	# and a little beyond it: that is what lands them two cells apart rather than
+	# one, and being two apart is the entire point of the case.
+	var edge: float = ceilf(600.0 / cell) * cell
+	var left: float = edge - 1.0
+	var crowd: Array[Enemy] = [
+		_place(field, largest, Vector2(left, 600.0)),
+		_place(field, largest, Vector2(left + gap, 600.0)),
+	]
+	var apart_cells: int = absi(int(floorf((left + gap) / cell))
+		- int(floorf(left / cell)))
+	_check(apart_cells >= 2,
+		("the fixture must put the pair more than one cell apart or it is not "
+			+ "testing the reach; got %d") % apart_cells)
+	var before: float = _worst_overlap(crowd)
+	_check(before > Balance.CROWD_RESIDUAL,
+		"grid reach must begin with real overlap, got %.3f" % before)
+	_settle(field, crowd, false, SETTLE_STEPS)
+	var after: float = _worst_overlap(crowd)
+	print(("[crowd] grid reach: %.0f-wide pair %d cells apart, overlap "
+		+ "%.3f -> %.3f") % [wanted, apart_cells, before, after])
+	_check(after <= Balance.CROWD_RESIDUAL,
+		("two bodies %.0f units across sat %d cells apart and never saw each "
+			+ "other: %.3f units still shared") % [wanted, apart_cells, after])
 	field.free()
 	_ran += 1
 

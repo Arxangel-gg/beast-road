@@ -182,6 +182,16 @@ func _process(delta: float) -> void:
 ## Nothing is pushed anywhere it could not have walked. The displacement is
 ## offered to `step_is_legal` exactly like a step, so separation cannot post a
 ## body through a cliff the pathing spent effort respecting.
+##
+## **The grid reaches as far as the widest body on it.** The neighbourhood used
+## to be the eight cells around a body, which is right only while every pair's
+## combined radius fits inside one cell - and it stopped being right the day the
+## camps gained lords. Two `dragon_stone` bodies want 116 units between them
+## against a 96-unit cell, so a pair sitting 111 apart falls two cells apart, is
+## never compared, and stands inside itself for ever. `_crowd_reach` derives the
+## span from the bodies actually present instead of from a constant, so a wave of
+## ordinary breeds still scans nine cells and the roster may grow a wider body
+## without anybody having to remember this.
 func separate_crowd(delta: float) -> void:
 	var bodies: Array[Enemy] = []
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
@@ -195,6 +205,7 @@ func separate_crowd(delta: float) -> void:
 		return
 
 	var cell: float = Balance.CROWD_CELL
+	var reach: int = _crowd_reach(bodies, cell)
 	var buckets: Dictionary = {}
 	for index: int in bodies.size():
 		var key: Vector2i = Vector2i((bodies[index].global_position / cell).floor())
@@ -214,8 +225,8 @@ func separate_crowd(delta: float) -> void:
 		var at: Vector2 = here.global_position
 		var mine: float = here.contact_radius()
 		var origin: Vector2i = Vector2i((at / cell).floor())
-		for dx: int in range(-1, 2):
-			for dy: int in range(-1, 2):
+		for dx: int in range(-reach, reach + 1):
+			for dy: int in range(-reach, reach + 1):
 				var key: Vector2i = origin + Vector2i(dx, dy)
 				if not buckets.has(key):
 					continue
@@ -262,6 +273,20 @@ func separate_crowd(delta: float) -> void:
 		var wanted: Vector2 = bodies[index].global_position + move
 		if step_is_legal(bodies[index].global_position, wanted):
 			bodies[index].global_position = wanted
+
+
+## How many cells out the neighbourhood has to look, for these bodies.
+##
+## Two bodies interact within the sum of their contact radii, so twice the widest
+## one bounds every pair on the field. A body that far away sits at most that many
+## cells away, and one cell of slack is never enough on its own - a pair straddling
+## a cell boundary is exactly the case that was being missed.
+func _crowd_reach(bodies: Array[Enemy], cell: float) -> int:
+	var widest: float = 0.0
+	for body: Enemy in bodies:
+		widest = maxf(widest, body.contact_radius())
+	widest = maxf(widest, Balance.HERO_BODY_RADIUS)
+	return maxi(1, ceili(widest * 2.0 / maxf(cell, 1.0)))
 
 
 func enemies_near(point: Vector2, radius: float) -> Array[Enemy]:

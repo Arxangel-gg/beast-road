@@ -3048,6 +3048,36 @@ listens to `dragon_overhead`, changes no number, rolls no die and sends no
 message - and the pass says the word once, as it comes over, so the road and the
 walk cannot disagree about how long the light was out.
 
+**The crowd grid stopped reaching as far as the widest body on it, found
+2026-09-15.** `crowd_check` went red on CI - eight of the widest non-boss body
+stacked, and two of them ended 4.5 units inside each other and stayed there.
+
+**The cause is the fourth instance of the same failure this project keeps
+paying for.** `EnemyField.separate_crowd` buckets bodies into `CROWD_CELL`
+squares and compares each against the eight cells around it, which is correct
+only while a pair's combined contact radius fits inside one cell. It did, for as
+long as the widest body on the road was an ordinary breed at 26. Then the camps
+gained lords - `dragon_stone` is 58 - and a pair of them wants 116 units between
+them against a 96-unit cell. Two sitting 111 apart land **two** cells apart, are
+never compared, and stand inside each other for the rest of the run. Nothing
+errored; the bodies simply overlapped, which is the thing the whole function
+exists to prevent.
+
+**Derived, not hand-kept.** `_crowd_reach` takes the widest body actually on the
+field and searches however many cells that needs. A wave of ordinary breeds
+still scans nine cells and pays exactly what it paid before; a camp with a lord
+in it scans twenty-five for those few frames; and the roster may grow a wider
+body without anybody having to remember this file. Raising `CROWD_CELL` instead
+would have fixed today and re-broken on the next big thing, which is precisely
+how it broke the first time.
+
+**And the gate caught it by luck, which is not the same as catching it.** The
+eight-body stack only fails when two of the eight happen to settle two cells
+apart. `_test_the_grid_reaches_the_widest_body` is the fault on purpose: two of
+the widest bodies astride a cell boundary, overlapping, and further apart than
+one whole cell. With the old neighbourhood put back it reads `overlap 10.000 ->
+10.000` - not one unit of movement - and names the reason.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
