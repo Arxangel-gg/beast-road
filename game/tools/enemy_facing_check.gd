@@ -71,22 +71,101 @@ extends Node
 ## swapping arms at a turn is what every 2D game does and nobody sees; the
 ## shield trailing is what everybody sees. `facing_shot` photographs a breed
 ## walking each way on the real field, and is what settles the next report.
+## **Four more, 2026-09-15, and two of them this table had already got wrong
+## twice.** The owner: "one of those black and orange wildlife canines are
+## still facing backwards in their animations. The enemy who holds the horn
+## trumpet thing and shoots ranged projectiles I think also might be
+## backwards."
+##
+## The canine is wildlife rather than a breed - the Ash Hound, a black wolf
+## with an orange fire crest, drawn facing left and authored
+## `art_faces_right = true` since it was made. It is not in this table because
+## wildlife carries its own flag; `tools/facing_sheet.py` now draws both
+## rosters the same way, which is how the other three here were found.
+##
+## - **`crown_herald` and `howler`** are the horn-bearers, and both were FRONT.
+##   Their torsos genuinely are square to the camera, which is the reading that
+##   put them here - but the herald blows a horn to the right and the howler a
+##   megaphone to the right, and that horn *is* the weapon: it is where the
+##   shot comes from. The shield rule above applies to it exactly. A shooter
+##   whose muzzle points away from what it is shooting at is the thing the
+##   owner saw, and it is worse than a spear changing hands.
+## - **`shard_wight`** was moved to FRONT on 2026-09-14 in the batch that
+##   corrected the eight over-read profiles. That one was over-corrected: at
+##   460px it is a clean running profile - head, eye and jaw to the right,
+##   spikes trailing left, fist forward - and nothing about it is square to the
+##   camera.
+## - **`cinder_runner`** had never been read at size. Its face, its dagger and
+##   its leading foot all point **left** and its ponytail trails right; it was
+##   authored RIGHT, so it has run backwards down every road since it was made.
+##
+## The lesson is the one the 420px re-read already learned and did not
+## generalise: **a thumbnail cannot settle a facing.** `tools/facing_sheet.py`
+## draws the whole roster at 210px to say which ones are worth opening, and the
+## answer comes from opening them.
+## **And eleven bodies were not in this table at all**, which is the exact
+## failure it was built to catch, arriving by the exact route it was built to
+## close. The camps' own breeds and the camp lords - three strangers, four
+## dragons and four wyverns - were authored on 2026-09-15 with no `art_facing`
+## line, so every one of them defaulted to FRONT and never turned. **The gate
+## was red on main from the moment they landed**, which is the system working;
+## nobody had run it. All eleven are genuinely square to the camera - a brute
+## with an axe over its shoulder, a shaman with a staff and a torch, and eight
+## winged things with their wings spread either side - so the decision is FRONT
+## and what was missing was the decision, not a correction.
 const ROSTER: Dictionary = {
+	"camp_brute": 0, "camp_hooker": 0, "camp_shaman": 0,
+	"dragon_fire": 0, "dragon_frost": 0, "dragon_stone": 0, "dragon_storm": 0,
+	"wyvern_bramble": 0, "wyvern_fire": 0, "wyvern_gale": 0, "wyvern_tide": 0,
 	"ash_caller": 0, "bell_priest": 0, "bogkin": 0, "brine_drowned": 0,
 	"brinefather": 0, "burrower": 1, "chainmaker": 0, "choir_cantor": 0,
-	"cinder_hound": 1, "cinder_runner": 1, "cinder_titan": 0,
-	"crevasse_stalker": 0, "crown_herald": 0, "drowned_choir": 1,
+	"cinder_hound": 1, "cinder_runner": 2, "cinder_titan": 0,
+	"crevasse_stalker": 0, "crown_herald": 1, "drowned_choir": 1,
 	"ember_husk": 0, "ember_shaman": 0, "flake_runner": 1, "fog_lantern": 0,
 	"frost_herald": 2, "gate_sentinel": 1, "gatekeeper": 0, "glass_chanter": 0,
 	"glass_colossus": 0, "glass_singer": 0, "glassborn": 1, "glassguard": 2,
 	"horde_drummer": 0, "horde_lancer": 2, "horde_shieldman": 1,
-	"horde_warlord": 0, "howler": 0, "ice_hauler": 0, "loam_lurker": 0,
+	"horde_warlord": 0, "howler": 1, "ice_hauler": 0, "loam_lurker": 0,
 	"mirage_seer": 0, "mire_shambler": 0, "mirrorfang": 1, "mistwarden": 0,
 	"prism_warden": 1, "reed_stalker": 0, "rootshield": 2, "rust_crown": 0,
 	"rust_hulk": 0, "rustmother": 0, "salt_crawler": 0, "salt_marcher": 1,
-	"scale_rider": 1, "shard_wight": 0, "siege_lizard": 1, "snowhide_brute": 0,
+	"scale_rider": 1, "shard_wight": 1, "siege_lizard": 1, "snowhide_brute": 0,
 	"stair_runner": 1, "steppehorde": 0, "storm_caller": 0, "warden": 0,
 	"white_maw_giant": 0, "wolf_rider": 1, "wolf_standard_bearer": 1,
+}
+
+## And the same record for the animals, for the same reason.
+##
+## **The Ash Hound is why this half exists.** `WildlifeData.art_faces_right` is
+## the wildlife spelling of the field above - a bool rather than an enum,
+## because an animal is never drawn head-on - and it has had no ledger since it
+## was added. The Ash Hound is a black wolf with an orange fire crest, drawn
+## facing left and authored `true`, so it ran backwards for as long as it
+## existed and the owner reported it twice. Nothing could have caught it,
+## because nothing was looking.
+##
+## Read the same way as the breeds: `python tools/facing_sheet.py` draws all
+## thirty-nine at 210px, and anything ambiguous gets opened. The traps here are
+## the ones with a plume or a tail brighter than the head - the Ash Hound's own
+## flames, the Copper Pheasant's tail - and the birds, whose beak is the only
+## thing that says which way they point.
+##
+## `true` means the head is on the right of the painting. A creature drawn from
+## above is exempt: `art_top_down` turns it onto its heading rather than
+## mirroring it, so its `art_faces_right` decides nothing and is not recorded
+## as a judgement.
+const WILDLIFE_FACING: Dictionary = {
+	"ash_hound": false, "badger": true, "bear": true, "boar": true,
+	"bog_crane": false, "butterfly_azure": true, "butterfly_monarch": true,
+	"butterfly_swallowtail": true, "cliff_goat": false,
+	"copper_pheasant": true, "deer": false, "dune_fennec": true,
+	"fox": true, "frost_elk": true, "glass_lizard": true, "glass_moth": false,
+	"hawk": true, "hedgehog": false, "heron": true, "iron_beetle": false,
+	"jackal": true, "lynx": true, "marsh_otter": true, "ptarmigan": true,
+	"rabbit": true, "raccoon": false, "raven": true, "reed_frog": true,
+	"salt_crab": true, "scorpion": true, "snow_hare": true, "snow_lynx": false,
+	"squirrel": true, "stag": false, "steppe_horse": false,
+	"steppe_marmot": true, "tortoise": true, "viper": false, "wolf": false,
 }
 
 var _failures: PackedStringArray = []
@@ -99,10 +178,12 @@ func _ready() -> void:
 	_test_the_data_agrees_with_the_record()
 	_test_the_roster_names_only_real_breeds()
 	_test_something_still_turns()
+	_test_every_animal_has_a_recorded_facing()
 	MetaState.resume_saves()
 	if _failures.is_empty():
-		print("[enemy-facing] PASS - %d checks over %d breeds, each facing decided and recorded"
-			% [_checks, ROSTER.size()])
+		print(("[enemy-facing] PASS - %d checks over %d breeds and %d animals, "
+			+ "each facing decided and recorded")
+			% [_checks, ROSTER.size(), WILDLIFE_FACING.size()])
 	else:
 		for failure: String in _failures:
 			push_error("[enemy-facing] " + failure)
@@ -173,3 +254,35 @@ func _test_something_still_turns() -> void:
 	_check(turning >= 12,
 		("only %d breeds of %d ever turn to face their travel - the roster has "
 			+ "drifted back toward the silent default") % [turning, ROSTER.size()])
+
+
+## Every animal, decided and agreeing with its data.
+##
+## Three ways this goes wrong and all three have happened to the breeds:
+## a species nobody judged (the silent default), a judgement the data
+## disagrees with, and a record for something that no longer exists.
+func _test_every_animal_has_a_recorded_facing() -> void:
+	for value: Variant in ContentDB.wildlife_kinds.values():
+		var kind := value as WildlifeData
+		if kind == null:
+			continue
+		_check(WILDLIFE_FACING.has(kind.id),
+			("%s has no recorded facing - open its sprite, decide which way it "
+				+ "is drawn, and add it to WILDLIFE_FACING. This is how the Ash "
+				+ "Hound ran backwards for its whole life") % kind.id)
+		if not WILDLIFE_FACING.has(kind.id):
+			continue
+		if kind.art_top_down:
+			# Drawn from above: the field rotates it onto its heading and never
+			# mirrors it, so the flag decides nothing and there is nothing here
+			# to be wrong about.
+			continue
+		var wanted: bool = bool(WILDLIFE_FACING[kind.id])
+		_check(kind.art_faces_right == wanted,
+			("%s is authored facing %s and this gate records %s - one of the "
+				+ "two is wrong") % [kind.id,
+					"right" if kind.art_faces_right else "left",
+					"right" if wanted else "left"])
+	for id: Variant in WILDLIFE_FACING:
+		_check(ContentDB.wildlife_kinds.has(String(id)),
+			"WILDLIFE_FACING names \"%s\", which is not an animal" % id)

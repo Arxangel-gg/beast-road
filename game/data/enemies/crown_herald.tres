@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 1
 hide = 1
 shot = 4
 shot_range = 660

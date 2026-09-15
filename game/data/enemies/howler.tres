@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_yfb0w")
+art_facing = 1
 shot_ids = PackedStringArray("snap_bolt", "close_fan", "far_bolt")
 category = 1
 role = 3

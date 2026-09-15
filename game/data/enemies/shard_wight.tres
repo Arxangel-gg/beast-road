@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+art_facing = 1
 hide = 2
 id = "shard_wight"
 display_name = "Shard Wight"
