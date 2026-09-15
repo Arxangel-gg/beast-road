@@ -1468,6 +1468,7 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_wolf.png` · `wildlife_boar.png` · `wildlife_bear.png` ·
 `wildlife_viper.png` · `wildlife_badger.png` · `wildlife_hawk.png` ·
 `wildlife_stag.png` ·
+`wildlife_marsh_otter.png` · `wildlife_dune_fennec.png` · `wildlife_copper_pheasant.png` · `wildlife_glass_lizard.png` · `wildlife_reed_frog.png` · `wildlife_steppe_marmot.png` ·
 `wildlife_heron.png` · `wildlife_hedgehog.png` · `wildlife_lynx.png` ·
 `wildlife_tortoise.png` · `wildlife_jackal.png` · `wildlife_scorpion.png` ·
 `wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
@@ -1538,6 +1539,12 @@ img2img from the base pose so the palette cannot drift between frames.
 
 Files: `wildlife_raven_idle_01.png` · `wildlife_raven_idle_02.png` · `wildlife_raven_idle_03.png` · `wildlife_raven_idle_04.png` · `wildlife_raven_idle_05.png`
 Files: `wildlife_fox_idle_01.png` · `wildlife_fox_idle_02.png` · `wildlife_fox_idle_03.png`
+Files: `wildlife_marsh_otter_idle_01.png` · `wildlife_marsh_otter_idle_02.png` · `wildlife_marsh_otter_idle_03.png`
+Files: `wildlife_dune_fennec_idle_01.png` · `wildlife_dune_fennec_idle_02.png` · `wildlife_dune_fennec_idle_03.png`
+Files: `wildlife_copper_pheasant_idle_01.png` · `wildlife_copper_pheasant_idle_02.png` · `wildlife_copper_pheasant_idle_03.png`
+Files: `wildlife_glass_lizard_idle_01.png` · `wildlife_glass_lizard_idle_02.png` · `wildlife_glass_lizard_idle_03.png`
+Files: `wildlife_reed_frog_idle_01.png` · `wildlife_reed_frog_idle_02.png` · `wildlife_reed_frog_idle_03.png`
+Files: `wildlife_steppe_marmot_idle_01.png` · `wildlife_steppe_marmot_idle_02.png` · `wildlife_steppe_marmot_idle_03.png`
 Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildlife_rabbit_idle_03.png`
 Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
 Files: `wildlife_stag_idle_01.png` · `wildlife_stag_idle_02.png` · `wildlife_stag_idle_03.png`
@@ -1607,6 +1614,12 @@ still have either, both or neither.
 
 Files: `wildlife_raven_move_01.png` · `wildlife_raven_move_02.png`
 Files: `wildlife_fox_move_01.png` · `wildlife_fox_move_02.png` · `wildlife_fox_move_03.png` · `wildlife_fox_move_04.png` · `wildlife_fox_move_05.png` · `wildlife_fox_move_06.png` · `wildlife_fox_move_07.png`
+Files: `wildlife_marsh_otter_move_01.png` · `wildlife_marsh_otter_move_02.png` · `wildlife_marsh_otter_move_03.png` · `wildlife_marsh_otter_move_04.png` · `wildlife_marsh_otter_move_05.png` · `wildlife_marsh_otter_move_06.png`
+Files: `wildlife_dune_fennec_move_01.png` · `wildlife_dune_fennec_move_02.png` · `wildlife_dune_fennec_move_03.png` · `wildlife_dune_fennec_move_04.png` · `wildlife_dune_fennec_move_05.png` · `wildlife_dune_fennec_move_06.png`
+Files: `wildlife_copper_pheasant_move_01.png` · `wildlife_copper_pheasant_move_02.png` · `wildlife_copper_pheasant_move_03.png` · `wildlife_copper_pheasant_move_04.png` · `wildlife_copper_pheasant_move_05.png` · `wildlife_copper_pheasant_move_06.png`
+Files: `wildlife_glass_lizard_move_01.png` · `wildlife_glass_lizard_move_02.png` · `wildlife_glass_lizard_move_03.png` · `wildlife_glass_lizard_move_04.png` · `wildlife_glass_lizard_move_05.png` · `wildlife_glass_lizard_move_06.png`
+Files: `wildlife_reed_frog_move_01.png` · `wildlife_reed_frog_move_02.png` · `wildlife_reed_frog_move_03.png` · `wildlife_reed_frog_move_04.png` · `wildlife_reed_frog_move_05.png` · `wildlife_reed_frog_move_06.png`
+Files: `wildlife_steppe_marmot_move_01.png` · `wildlife_steppe_marmot_move_02.png` · `wildlife_steppe_marmot_move_03.png` · `wildlife_steppe_marmot_move_04.png` · `wildlife_steppe_marmot_move_05.png` · `wildlife_steppe_marmot_move_06.png`
 Files: `wildlife_raccoon_move_01.png` · `wildlife_raccoon_move_02.png` · `wildlife_raccoon_move_03.png` · `wildlife_raccoon_move_04.png` · `wildlife_raccoon_move_05.png` · `wildlife_raccoon_move_06.png` · `wildlife_raccoon_move_07.png`
 Files: `wildlife_deer_move_01.png` · `wildlife_deer_move_02.png` · `wildlife_deer_move_03.png` · `wildlife_deer_move_04.png` · `wildlife_deer_move_05.png` · `wildlife_deer_move_06.png` · `wildlife_deer_move_07.png`
 Files: `wildlife_wolf_move_01.png` · `wildlife_wolf_move_02.png` · `wildlife_wolf_move_03.png` · `wildlife_wolf_move_04.png` · `wildlife_wolf_move_05.png` · `wildlife_wolf_move_06.png` · `wildlife_wolf_move_07.png`

@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+breeds = true
+breeding_group = "reed_frog"
+litter_min = 2
+litter_max = 6
+gestation_seconds = 34.00
+loyalty = 0.10
+infidelity = 0.50
+protection = 0
+id = "reed_frog"
+display_name = "Reed Frog"
+description = "Heard far more often than it is found."
+rarity = 0
+temperament = 0
+movement_style = 4
+acts = Array[int]([1, 4])
+weight = 1.10
+group_min = 2
+group_max = 5
+social_spacing = 58.00
+group_cohesion = 0.30
+activity = 0.46
+speed = 52.00
+roam = 180.00
+skittish_radius = 190.00
+flee_speed_scale = 2.80
+flies = false
+hops = true
+scale = 0.80
+max_hp = 18.00
+food_min = 1
+food_max = 3
+xp_reward = 4
+art_faces_right = true
+stay_min = 30.00
+stay_max = 95.00

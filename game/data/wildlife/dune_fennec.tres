@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+breeds = true
+breeding_group = "dune_fennec"
+litter_min = 1
+litter_max = 4
+gestation_seconds = 46.00
+loyalty = 0.75
+infidelity = 0.10
+protection = 1
+id = "dune_fennec"
+display_name = "Dune Fennec"
+description = "All ears. It heard you a long way back."
+rarity = 1
+temperament = 1
+movement_style = 2
+acts = Array[int]([2, 6])
+weight = 1.10
+group_min = 1
+group_max = 2
+social_spacing = 96.00
+group_cohesion = 0.20
+activity = 0.66
+speed = 124.00
+roam = 460.00
+skittish_radius = 380.00
+flee_speed_scale = 3.10
+flies = false
+hops = false
+scale = 1.10
+max_hp = 42.00
+food_min = 2
+food_max = 5
+xp_reward = 12
+art_faces_right = true
+stay_min = 26.00
+stay_max = 70.00

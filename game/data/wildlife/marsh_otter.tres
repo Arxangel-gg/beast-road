@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+breeds = true
+breeding_group = "marsh_otter"
+litter_min = 1
+litter_max = 3
+gestation_seconds = 52.00
+loyalty = 0.60
+infidelity = 0.20
+protection = 1
+id = "marsh_otter"
+display_name = "Marsh Otter"
+description = "Never still, and never far from water."
+rarity = 1
+temperament = 1
+movement_style = 1
+acts = Array[int]([4])
+weight = 0.85
+group_min = 1
+group_max = 3
+social_spacing = 70.00
+group_cohesion = 0.55
+activity = 0.78
+speed = 98.00
+roam = 420.00
+skittish_radius = 280.00
+flee_speed_scale = 2.90
+flies = false
+hops = false
+scale = 1.25
+max_hp = 55.00
+food_min = 3
+food_max = 6
+xp_reward = 11
+art_faces_right = true
+stay_min = 30.00
+stay_max = 85.00

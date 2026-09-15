@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+breeds = true
+breeding_group = "steppe_marmot"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 44.00
+loyalty = 0.50
+infidelity = 0.25
+protection = 1
+id = "steppe_marmot"
+display_name = "Steppe Marmot"
+description = "Stands up, looks at you, and is gone."
+rarity = 0
+temperament = 0
+movement_style = 1
+acts = Array[int]([7, 3])
+weight = 1.45
+group_min = 2
+group_max = 4
+social_spacing = 76.00
+group_cohesion = 0.50
+activity = 0.58
+speed = 88.00
+roam = 260.00
+skittish_radius = 420.00
+flee_speed_scale = 3.20
+flies = false
+hops = false
+scale = 1.00
+max_hp = 34.00
+food_min = 3
+food_max = 6
+xp_reward = 7
+art_faces_right = true
+stay_min = 28.00
+stay_max = 78.00

@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+breeds = true
+breeding_group = "copper_pheasant"
+litter_min = 2
+litter_max = 5
+gestation_seconds = 40.00
+loyalty = 0.35
+infidelity = 0.35
+protection = 0
+id = "copper_pheasant"
+display_name = "Copper Pheasant"
+description = "Loud, slow, and worth the walk."
+rarity = 1
+temperament = 0
+movement_style = 0
+acts = Array[int]([5])
+weight = 0.95
+group_min = 1
+group_max = 4
+social_spacing = 88.00
+group_cohesion = 0.40
+activity = 0.50
+speed = 64.00
+roam = 300.00
+skittish_radius = 250.00
+flee_speed_scale = 2.40
+flies = false
+hops = false
+scale = 1.15
+max_hp = 38.00
+food_min = 5
+food_max = 9
+xp_reward = 9
+art_faces_right = true
+stay_min = 34.00
+stay_max = 90.00
