@@ -36,6 +36,22 @@ const VOICES: int = 24
 ##
 ## Regenerate with: python tools/gen_sfx_table.py
 const SOUNDS: Dictionary = {
+	# **The earth was silent.** These seven were recorded, placed on disk and
+	# named by the systems that throw them - `Meteor`, `WeatherSky` and
+	# `Tornado` all call them by id - and none of them was ever registered
+	# here, so every quake, tornado, thunderclap and meteor since the wrath
+	# system was built played nothing at all. `Sfx.play` counts a missing id
+	# and returns, which is the right behaviour and is also why nobody noticed:
+	# there is no error, only silence where a sound should be. Found on
+	# 2026-09-15 by `audio_verify` gaining a check that every stand-in carries
+	# its own mix row - the rows were there and the sounds were not.
+	"sfx_meteor_impact": "res://audio/sfx/sfx_meteor_impact.ogg",
+	"sfx_meteor_whistle": "res://audio/sfx/sfx_meteor_whistle.ogg",
+	"sfx_quake": "res://audio/sfx/sfx_quake.ogg",
+	"sfx_thunder_far": "res://audio/sfx/sfx_thunder_far.ogg",
+	"sfx_thunder_near": "res://audio/sfx/sfx_thunder_near.ogg",
+	"sfx_tornado": "res://audio/sfx/sfx_tornado.ogg",
+	"sfx_wildfire": "res://audio/sfx/sfx_wildfire.ogg",
 	"sfx_achievement": "res://audio/sfx/sfx_achievement.ogg",
 	"sfx_air_shot_1": "res://audio/sfx/sfx_air_shot_1.ogg",
 	"sfx_air_shot_2": "res://audio/sfx/sfx_air_shot_2.ogg",
@@ -221,6 +237,13 @@ const SOUNDS: Dictionary = {
 ## because every value is about how one specific recording sits against the
 ## others, and none of it is a design decision.
 const MIX: Dictionary = {
+	"sfx_wildfire":                {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_tornado":                 {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_thunder_near":            {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_thunder_far":             {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_quake":                   {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_meteor_whistle":          {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
+	"sfx_meteor_impact":           {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.08},
 	"sfx_air_shot_1":            {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_air_shot_2":            {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_air_shot_3":            {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
@@ -303,43 +326,43 @@ const MIX: Dictionary = {
 	"sfx_water_shot_1":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_water_shot_2":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
 	"sfx_water_shot_3":          {"db": -9.0, "pitch": 0.17, "limit": 4, "gap": 0.05},
-	"sfx_fish_cast":            {"db": -6.0, "pitch": 0.08, "limit": 1, "gap": 0.20},
-	"sfx_fish_splash":          {"db": -5.0, "pitch": 0.10, "limit": 2, "gap": 0.10},
-	"sfx_fish_nibble":          {"db": -10.0, "pitch": 0.12, "limit": 1, "gap": 0.30},
-	"sfx_fish_bite":            {"db": -2.0, "pitch": 0.05, "limit": 1, "gap": 0.30},
-	"sfx_fish_hook":            {"db": -4.0, "pitch": 0.06, "limit": 1, "gap": 0.30},
-	"sfx_fish_reel":            {"db": -12.0, "pitch": 0.10, "limit": 2, "gap": 0.05},
-	"sfx_fish_land":            {"db": -2.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
-	"sfx_fish_snap":            {"db": -3.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
-	"sfx_fish_escape":          {"db": -6.0, "pitch": 0.08, "limit": 1, "gap": 0.50},
-	"sfx_profession_level":     {"db": 0.0, "pitch": 0.00, "limit": 1, "gap": 1.00},
-	"sfx_boss_stinger":         {"db": 4.0, "pitch": 0.00, "limit": 1, "gap": 2.00},
-	"sfx_boss_fall":            {"db": 3.0, "pitch": 0.00, "limit": 1, "gap": 2.00},
+	"sfx_fish_cast":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.20},
+	"sfx_fish_splash":          {"db": -13.0, "pitch": 0.10, "limit": 2, "gap": 0.10},
+	"sfx_fish_nibble":          {"db": -18.0, "pitch": 0.12, "limit": 1, "gap": 0.30},
+	"sfx_fish_bite":            {"db": -10.0, "pitch": 0.05, "limit": 1, "gap": 0.30},
+	"sfx_fish_hook":            {"db": -12.0, "pitch": 0.06, "limit": 1, "gap": 0.30},
+	"sfx_fish_reel":            {"db": -16.1, "pitch": 0.10, "limit": 2, "gap": 0.05},
+	"sfx_fish_land":            {"db": -10.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
+	"sfx_fish_snap":            {"db": -11.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
+	"sfx_fish_escape":          {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.50},
+	"sfx_profession_level":     {"db": -8.0, "pitch": 0.00, "limit": 1, "gap": 1.00},
+	"sfx_boss_stinger":         {"db": -4.0, "pitch": 0.00, "limit": 1, "gap": 2.00},
+	"sfx_boss_fall":            {"db": -5.0, "pitch": 0.00, "limit": 1, "gap": 2.00},
 	# The water, the camps, the companions and the rest of 2026-09-12.
-	"sfx_swim_enter":           {"db": -3.0, "pitch": 0.08, "limit": 2, "gap": 0.30},
-	"sfx_swim_exit":            {"db": -6.0, "pitch": 0.08, "limit": 2, "gap": 0.30},
-	"sfx_swim_stroke":          {"db": -12.0, "pitch": 0.14, "limit": 2, "gap": 0.20},
-	"sfx_water_bite":           {"db": -2.0, "pitch": 0.06, "limit": 1, "gap": 0.40},
-	"sfx_drown":                {"db": 0.0, "pitch": 0.02, "limit": 1, "gap": 1.00},
-	"sfx_fish_cast_charge":     {"db": -8.0, "pitch": 0.04, "limit": 1, "gap": 0.30},
-	"sfx_fish_miss":            {"db": -6.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
-	"sfx_camp_razed":           {"db": 2.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
-	"sfx_fork_open":            {"db": 3.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
-	"sfx_companion_summon":     {"db": -2.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
-	"sfx_companion_down":       {"db": -2.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
-	"sfx_companion_return":     {"db": -2.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
-	"sfx_companion_strike":     {"db": -9.0, "pitch": 0.14, "limit": 3, "gap": 0.08},
-	"sfx_well_drink":           {"db": -3.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
-	"sfx_party_prompt":         {"db": 0.0, "pitch": 0.00, "limit": 1, "gap": 0.50},
-	"sfx_party_accept":         {"db": 0.0, "pitch": 0.00, "limit": 1, "gap": 0.30},
-	"sfx_party_decline":        {"db": -2.0, "pitch": 0.00, "limit": 1, "gap": 0.30},
-	"sfx_achievement":          {"db": 2.0, "pitch": 0.00, "limit": 1, "gap": 1.50},
-	"sfx_dungeon_collapse":     {"db": 4.0, "pitch": 0.02, "limit": 1, "gap": 2.00},
-	"sfx_chest_open":           {"db": 0.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
-	"sfx_dungeon_exit":         {"db": 0.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
-	"sfx_raid_window":          {"db": 1.0, "pitch": 0.00, "limit": 1, "gap": 1.00},
-	"sfx_chieftain_roar":       {"db": 4.0, "pitch": 0.04, "limit": 1, "gap": 1.50},
-	"sfx_raid_extract":         {"db": 1.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
+	"sfx_swim_enter":           {"db": -11.0, "pitch": 0.08, "limit": 2, "gap": 0.30},
+	"sfx_swim_exit":            {"db": -14.0, "pitch": 0.08, "limit": 2, "gap": 0.30},
+	"sfx_swim_stroke":          {"db": -16.0, "pitch": 0.14, "limit": 2, "gap": 0.20},
+	"sfx_water_bite":           {"db": -10.0, "pitch": 0.06, "limit": 1, "gap": 0.40},
+	"sfx_drown":                {"db": -8.0, "pitch": 0.02, "limit": 1, "gap": 1.00},
+	"sfx_fish_cast_charge":     {"db": -16.0, "pitch": 0.04, "limit": 1, "gap": 0.30},
+	"sfx_fish_miss":            {"db": -14.0, "pitch": 0.08, "limit": 1, "gap": 0.30},
+	"sfx_camp_razed":           {"db": -6.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
+	"sfx_fork_open":            {"db": -5.0, "pitch": 0.02, "limit": 1, "gap": 1.50},
+	"sfx_companion_summon":     {"db": -10.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
+	"sfx_companion_down":       {"db": -10.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
+	"sfx_companion_return":     {"db": -10.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
+	"sfx_companion_strike":     {"db": -15.4, "pitch": 0.14, "limit": 3, "gap": 0.08},
+	"sfx_well_drink":           {"db": -11.0, "pitch": 0.05, "limit": 1, "gap": 0.50},
+	"sfx_party_prompt":         {"db": -8.0, "pitch": 0.00, "limit": 1, "gap": 0.50},
+	"sfx_party_accept":         {"db": -8.0, "pitch": 0.00, "limit": 1, "gap": 0.30},
+	"sfx_party_decline":        {"db": -10.0, "pitch": 0.00, "limit": 1, "gap": 0.30},
+	"sfx_achievement":          {"db": -6.0, "pitch": 0.00, "limit": 1, "gap": 1.50},
+	"sfx_dungeon_collapse":     {"db": -4.0, "pitch": 0.02, "limit": 1, "gap": 2.00},
+	"sfx_chest_open":           {"db": -8.0, "pitch": 0.04, "limit": 1, "gap": 0.50},
+	"sfx_dungeon_exit":         {"db": -8.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
+	"sfx_raid_window":          {"db": -7.0, "pitch": 0.00, "limit": 1, "gap": 1.00},
+	"sfx_chieftain_roar":       {"db": -4.0, "pitch": 0.04, "limit": 1, "gap": 1.50},
+	"sfx_raid_extract":         {"db": -7.0, "pitch": 0.03, "limit": 1, "gap": 1.00},
 	"sfx_wave_incoming":         {"db": -1.0,  "pitch": 0.03, "limit": 1, "gap": 0.5},
 	"sfx_wildlife_badger":       {"db": -11.0, "pitch": 0.08, "limit": 1, "gap": 3.0},
 	"sfx_wildlife_bear":         {"db": -8.0,  "pitch": 0.05, "limit": 1, "gap": 4.0},
@@ -356,6 +379,38 @@ const MIX: Dictionary = {
 }
 
 ## Defaults for any sound not listed above.
+## **Which of these are stand-ins.** Synthesised, not recorded, and listed here
+## rather than only in `docs/SFX_PROMPTS.md` so that something in the game can
+## check them - the way `asset_report` knows which art is still a placeholder.
+##
+## They were measured on 2026-09-15 and the set played **eight decibels louder
+## than the 139 real recordings** (-17.3 against -25.2 effective, weighted by
+## the level `MIX` actually plays each at). Eight decibels is about twice as
+## loud: every fishing cue, every disaster and every boss stinger jumped out of
+## the mix, and seven of them had no mix row at all so they played at the
+## loudest default there is. `tools/level_placeholders.py` brought the set onto
+## the corpus - the two means are now 0.2 dB apart - and `audio_verify` holds
+## the part of that a gate can see: a stand-in must carry its own row, and that
+## row must be quieter than the default.
+const PLACEHOLDERS: Array[String] = [
+	"sfx_achievement", "sfx_boss_fall", "sfx_boss_stinger",
+	"sfx_camp_razed", "sfx_chest_open", "sfx_chieftain_roar",
+	"sfx_companion_down", "sfx_companion_return", "sfx_companion_strike",
+	"sfx_companion_summon", "sfx_drown", "sfx_dungeon_collapse",
+	"sfx_dungeon_exit", "sfx_fish_bite", "sfx_fish_cast",
+	"sfx_fish_cast_charge", "sfx_fish_escape", "sfx_fish_hook",
+	"sfx_fish_land", "sfx_fish_miss", "sfx_fish_nibble",
+	"sfx_fish_reel", "sfx_fish_snap", "sfx_fish_splash",
+	"sfx_fork_open", "sfx_meteor_impact", "sfx_meteor_whistle",
+	"sfx_party_accept", "sfx_party_decline", "sfx_party_prompt",
+	"sfx_profession_level", "sfx_quake", "sfx_raid_extract",
+	"sfx_raid_window", "sfx_swim_enter", "sfx_swim_exit",
+	"sfx_swim_stroke", "sfx_thunder_far", "sfx_thunder_near",
+	"sfx_tornado", "sfx_water_bite", "sfx_well_drink",
+	"sfx_wildfire",
+]
+
+
 const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0.04}
 
 ## Sounds that come in variants. Asking for the group picks one at random, which

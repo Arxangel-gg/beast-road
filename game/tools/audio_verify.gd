@@ -48,6 +48,51 @@ func _ready() -> void:
 			if wildlife_group.size() < 4:
 				failures.append("wildlife mix \"%s\" needs at least four recorded takes" % key)
 
+	# **A sound on disk that nothing registers is silence with a file behind
+	# it.** Seven were found that way on 2026-09-15 - every quake, tornado,
+	# thunderclap and meteor in the game - recorded, placed, named by the
+	# systems that throw them, and absent from `SOUNDS`. `Sfx.play` counts a
+	# missing id and returns, which is correct and is exactly why nobody
+	# noticed: no error, just nothing where a sound should be. The table used
+	# to be the only record of what exists; the directory is the other one, and
+	# the two have to agree.
+	var audio := DirAccess.open("res://audio/sfx")
+	if audio == null:
+		failures.append("the sound directory must be readable")
+	else:
+		var registered: Dictionary = {}
+		for key: Variant in paths:
+			registered[String(paths[key]).get_file()] = true
+		for file: String in audio.get_files():
+			if not file.ends_with(".ogg"):
+				continue
+			if not registered.has(file):
+				failures.append(("%s is on disk and in no table, so nothing can "
+					+ "ever play it") % file)
+
+	# **A stand-in must not be the loudest thing in the room.**
+	#
+	# Measured on 2026-09-15: the 43 synthesised placeholders played eight
+	# decibels above the 139 recordings, and seven of them had no mix row at
+	# all, so they took the loudest default there is. Nothing could have caught
+	# that - no gate can hear - so the part of it a gate *can* see is held here:
+	# a sound the project knows is a stand-in carries its own authored level,
+	# and that level is below the default. The loudness itself is measured by
+	# `tools/level_placeholders.py`, which a human runs.
+	for stand_in: String in Sfx.PLACEHOLDERS:
+		if not paths.has(stand_in):
+			failures.append("placeholder \"%s\" is listed and is not a sound" % stand_in)
+			continue
+		if not Sfx.MIX.has(stand_in):
+			failures.append(("placeholder \"%s\" has no mix row, so it plays at the "
+				+ "loudest default there is") % stand_in)
+			continue
+		var level: float = float((Sfx.MIX[stand_in] as Dictionary).get("db", 0.0))
+		if level >= float(Sfx.DEFAULT_MIX.get("db", -3.0)):
+			failures.append(("placeholder \"%s\" is authored at %0.1f dB, at or above "
+				+ "the default: a stand-in must not shout over the recordings")
+				% [stand_in, level])
+
 	# A group that eventually resolves to nothing is the failure nesting could
 	# hide, so every chain is followed to a real sound.
 	for group: Variant in Sfx.GROUPS:
