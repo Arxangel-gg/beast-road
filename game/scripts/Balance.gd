@@ -7697,6 +7697,23 @@ const MENU_FRAME_SHEEN_SECONDS: float = 26.0
 const MENU_FRAME_WAVE: float = 0.42
 const MENU_FRAME_WAVE_REACH: float = 0.55
 const MENU_FRAME_WAVE_FADE: float = 1.25
+## How far a border segment shivers across its own band, as a share of the
+## band's thickness. A fortieth: enough that the pieces read as set by hand,
+## never enough to open the joint the ink box just closed.
+const MENU_FRAME_WOBBLE: float = 0.025
+
+## **Procedural lightning on the menu** (owner, 2026-09-15).
+##
+## How long one arc lives. A fifth of a second: a bolt is an event, and one that
+## lasts long enough to study is a glowing wire.
+const MENU_ARC_SECONDS: float = 0.19
+## How far the midpoint of a bolt is pushed off the straight line, as a share of
+## its own length, before the displacement starts halving. A tenth is lightning;
+## much more is a scribble and much less is a wire.
+const MENU_ARC_JAG: float = 0.11
+## The average gap between arcs along the frame's joints and off the title.
+const MENU_ARC_FRAME_EVERY: float = 1.9
+const MENU_ARC_TITLE_EVERY: float = 1.35
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0

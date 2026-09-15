@@ -50,6 +50,14 @@ var _drawn_at: float = -1.0
 ## of that wave is left.
 var _wave_at: float = 0.0
 var _wave_left: float = 0.0
+## The painted part of each piece, so copies butt together rather than
+## leaving the canvas margin between them. Cached per texture.
+static var _ink: Dictionary = {}
+## The lightning that snaps the segments together. See `menu_arcs.gd`.
+var _arcs: MenuArcs = null
+## Where the joints between segments are, in this node's space, rebuilt
+## whenever the window changes shape.
+var _joints: PackedVector2Array = PackedVector2Array()
 
 
 func _ready() -> void:
@@ -60,6 +68,18 @@ func _ready() -> void:
 	if ResourceLoader.exists(EDGE_ART):
 		_edge = load(EDGE_ART) as Texture2D
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# **The joints snap.** Owner, 2026-09-15: the segments should be "attached
+	# and seamless", and if they cannot be, connected "with a lightning
+	# snapping them together". They are seamless now - the gaps were the
+	# canvas margin either side of the carving, and `ink_box` closed them - so
+	# the lightning is the second half of that idea rather than a patch over
+	# the first: an arc leaps between two joints every second or so, which
+	# gives the border something to be doing.
+	_arcs = MenuArcs.new()
+	_arcs.name = "Arcs"
+	_arcs.spark_every = Balance.MENU_ARC_FRAME_EVERY
+	_arcs.weight = 2.4
+	add_child(_arcs)
 	set_process(true)
 
 
@@ -73,6 +93,7 @@ func _process(delta: float) -> void:
 	if not size.is_equal_approx(span):
 		size = span
 		_drawn_at = -1.0
+		_joints = PackedVector2Array()
 	_wave_left = maxf(_wave_left - delta * Balance.MENU_FRAME_WAVE_FADE, 0.0)
 	# Sampled, not driven. The frame is a few dozen quads and redrawing it every
 	# frame for a sheen nobody is watching closely is the trade `flame.gd`
@@ -112,13 +133,62 @@ func perimeter_of(where: Vector2) -> float:
 	return (span.x + span.y + span.x + (span.y - where.y)) * 0.5 / across
 
 
+## The painted part of a piece, in its own pixels.
+##
+## **This is what the gaps were.** The border strip is 96 pixels wide and its
+## carving stops at 93, with two clear columns at each end; laid end to end at
+## the canvas width, every joint showed four pixels of sky. The owner reported
+## it as "gaps in its modular segments though they should be attached and
+## seamless", and no amount of overlap fixes it, because the overlap was
+## overlapping empty canvas. The tiles are laid at the width of the *carving*
+## now, and the corner brackets sit in the actual corner rather than fourteen
+## pixels inside it.
+##
+## The same trick `menu_foliage.ink_box` uses, for the same reason, and cached
+## the same way: reading a texture back is not a per-frame thing to do.
+static func ink_box(texture: Texture2D) -> Rect2:
+	if texture == null:
+		return Rect2()
+	var key: int = texture.get_instance_id()
+	if _ink.has(key):
+		return _ink[key]
+	var found := Rect2(Vector2.ZERO, texture.get_size())
+	var image: Image = texture.get_image()
+	if image != null and not image.is_empty():
+		var left: int = image.get_width()
+		var right: int = -1
+		var top: int = image.get_height()
+		var bottom: int = -1
+		for y: int in image.get_height():
+			for x: int in image.get_width():
+				if image.get_pixel(x, y).a <= 0.08:
+					continue
+				left = mini(left, x)
+				right = maxi(right, x)
+				top = mini(top, y)
+				bottom = maxi(bottom, y)
+		if right >= left and bottom >= top:
+			found = Rect2(float(left), float(top),
+				float(right - left + 1), float(bottom - top + 1))
+	_ink[key] = found
+	return found
+
+
 func _draw() -> void:
 	if _corner == null or size.x <= 1.0 or size.y <= 1.0:
 		return
 	var short: float = minf(size.x, size.y)
 	var bracket: float = short * CORNER_SHARE
 	var thick: float = bracket * EDGE_SHARE
-	_draw_edges(bracket, thick)
+	var collect: bool = _joints.is_empty()
+	_draw_edges(bracket, thick, collect)
+	if collect and _arcs != null:
+		_arcs.anchors = _joints
+		# Two segments apart at most, or a bolt strings itself across a whole
+		# edge and reads as a wire rather than as a joint arcing.
+		_arcs.reach = thick * 5.0
+		_arcs.colour = Color(minf(light.r * 0.55 + 0.35, 1.0),
+			minf(light.g * 0.6 + 0.4, 1.0), 1.0, 1.0)
 	# The corners last, so a strip that runs a pixel long is covered by the
 	# bracket rather than drawn over it.
 	for index: int in 4:
@@ -131,11 +201,13 @@ func _draw() -> void:
 ## a smeared strip, and this is pixel art at four times its own size already.
 ## The copies are laid whole and the last one is clipped by the corner bracket
 ## that sits over it.
-func _draw_edges(bracket: float, thick: float) -> void:
+func _draw_edges(bracket: float, thick: float, collect: bool) -> void:
 	if _edge == null:
 		return
-	var tile: float = thick * float(_edge.get_width()) \
-		/ maxf(float(_edge.get_height()), 1.0)
+	var ink: Rect2 = ink_box(_edge)
+	if ink.size.x < 1.0 or ink.size.y < 1.0:
+		return
+	var tile: float = thick * ink.size.x / ink.size.y
 	if tile <= 1.0:
 		return
 	for side: int in 4:
@@ -159,10 +231,20 @@ func _draw_edges(bracket: float, thick: float) -> void:
 					at = Vector2(0.0, size.y - along)
 					turn = PI * 1.5
 			var here: float = _around(side, along, bracket)
-			draw_set_transform(at, turn, Vector2.ONE)
-			draw_texture_rect(_edge, Rect2(0.0, 0.0, tile + 1.0, thick),
-				false, light_at(here))
+			# **A segment wobbles a little in place** (owner, 2026-09-15). Each
+			# on its own clock, a fraction of a tile, so the border reads as
+			# pieces that were set by hand rather than as a repeated stamp.
+			var shiver: float = sin(_time * 0.9 + float(step) * 1.7
+				+ float(side) * 2.3) * Balance.MENU_FRAME_WOBBLE * thick
+			draw_set_transform(at + Vector2(0.0, shiver).rotated(turn), turn,
+				Vector2.ONE)
+			# Half a pixel over, on the carving rather than on the canvas: the
+			# margin is what the joints were showing.
+			draw_texture_rect_region(_edge,
+				Rect2(0.0, 0.0, tile + 0.5, thick), ink, light_at(here))
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			if collect:
+				_joints.append(at + Vector2(0.0, thick * 0.5).rotated(turn))
 
 
 func _draw_corner(index: int, bracket: float) -> void:
@@ -186,9 +268,10 @@ func _draw_corner(index: int, bracket: float) -> void:
 	# where the bracket meets the strip.
 	var breath: float = 1.0 + sin(_time * 0.37 + float(index) * 1.9) \
 		* Balance.MENU_FRAME_BREATH
+	var ink: Rect2 = ink_box(_corner)
 	draw_set_transform(at, turn, Vector2.ONE)
-	draw_texture_rect(_corner,
-		Rect2(0.0, 0.0, bracket * breath, bracket * breath), false,
+	draw_texture_rect_region(_corner,
+		Rect2(0.0, 0.0, bracket * breath, bracket * breath), ink,
 		light_at(float(index) * 0.25))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 

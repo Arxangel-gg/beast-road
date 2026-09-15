@@ -28,6 +28,7 @@ func _ready() -> void:
 	await _test_it_can_only_add_light()
 	await _test_the_sheen_travels()
 	await _test_a_press_is_answered_where_it_landed()
+	await _test_the_lightning_is_lightning()
 	_finish()
 
 
@@ -157,6 +158,68 @@ func _finish() -> void:
 	else:
 		push_error("[menu-frame] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+
+
+## **The lightning is lightning, and it stops.**
+##
+## Owner, 2026-09-15: arcs that snap the frame's segments together, and "little
+## lightning arcs procedurally spark off of the title text art". Four ways a
+## procedural bolt is quietly wrong, none of them visible in a still frame:
+##
+## - **It is straight.** A midpoint displacement with the push set to nothing is
+##   a wire, and a wire between two points on a border looks like a bug.
+## - **It is the same bolt every time.** The path is rolled from the arc's own
+##   seed so the three passes that draw it agree; if the seed did not vary, the
+##   frame would grow one permanent scribble.
+## - **It never ends.** An arc is an event. A crackle that runs for ever is a
+##   screensaver and the eye stops seeing it in a minute.
+## - **It darkens.** Additive, like everything else drawn over this menu.
+func _test_the_lightning_is_lightning() -> void:
+	var arcs := MenuArcs.new()
+	add_child(arcs)
+	await get_tree().process_frame
+
+	var from := Vector2(0.0, 0.0)
+	var to := Vector2(120.0, 0.0)
+	arcs.strike_between(from, to)
+	_check(arcs.burning() == 1, "a struck arc must be alive")
+	var path: PackedVector2Array = arcs.path_of_first()
+	_check(path.size() >= 8,
+		"a bolt must be subdivided, not a line: %d points" % path.size())
+	var worst: float = 0.0
+	for point: Vector2 in path:
+		worst = maxf(worst, absf(point.y))
+	_check(worst > 3.0,
+		("a bolt must leave the straight line between its ends: %.2f pixels off "
+			+ "a 120 span") % worst)
+	_check(worst < 120.0 * 0.5,
+		"and must not be a scribble: %.2f off a 120 span" % worst)
+	_check(is_equal_approx(path[0].x, from.x) and is_equal_approx(path[0].y, from.y),
+		"a bolt must start where it was struck")
+	_check(path[path.size() - 1].distance_to(to) < 0.01,
+		"and end where it was aimed")
+
+	# Two bolts are two bolts.
+	arcs.strike_between(from, to)
+	var second: PackedVector2Array = arcs.path_of_first()
+	var identical: bool = second.size() == path.size()
+	if identical:
+		var apart: float = 0.0
+		for index: int in path.size():
+			apart = maxf(apart, path[index].distance_to(second[index]))
+		identical = apart < 0.01
+	_check(not identical, "two arcs must not be the same scribble")
+
+	# And they end.
+	for _step: int in 40:
+		arcs.advance(0.05)
+	_check(arcs.burning() >= 0, "the arc list must stay sane")
+	var material := arcs.material as CanvasItemMaterial
+	_check(material != null and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD,
+		"the lightning must be additive: it is drawn over the interface")
+	arcs.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

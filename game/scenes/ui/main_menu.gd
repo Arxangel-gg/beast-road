@@ -120,6 +120,7 @@ func _fit_menu() -> void:
 ## The wordmark's sheen, and its own clock.
 var _title_paint: ShaderMaterial = null
 var _title_clock: float = 0.0
+var _title_arcs: MenuArcs = null
 
 
 func _ready() -> void:
@@ -129,6 +130,7 @@ func _ready() -> void:
 	_fit_menu.call_deferred()
 	MusicPlayer.play("menu")
 	_light_the_title()
+	_spark_the_title()
 	_grade_the_interface.call_deferred()
 	# **The menu column scrolls.** It used to sit in a fixed 310px box anchored
 	# to the middle of the screen while holding far more than that - on a tall
@@ -738,6 +740,57 @@ func _light_the_title() -> void:
 	paint.set_shader_parameter("split", Balance.MENU_TITLE_SPLIT)
 	title.material = paint
 	_title_paint = paint
+
+
+## **Little arcs off the wordmark** (owner, 2026-09-15: "make little lightning
+## arcs procedurally spark off of the title text art").
+##
+## The anchors are read off the wordmark's *own silhouette* rather than scattered
+## over its box: a bolt that starts in the empty space inside the D is a bolt
+## that came from nowhere. Every few rows of the painting, the leftmost and
+## rightmost opaque pixel are taken, which traces the outside of the lettering,
+## and `MenuArcs` joins pairs of those that are near enough to each other - so
+## the sparks run along the letters rather than across the word.
+##
+## Skipped headless: it is a decoration with a texture read in it, and the sweep
+## has nothing to look at.
+func _spark_the_title() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var title := get_node_or_null("Title") as TextureRect
+	if title == null or title.texture == null:
+		return
+	_title_arcs = MenuArcs.new()
+	_title_arcs.name = "TitleArcs"
+	_title_arcs.spark_every = Balance.MENU_ARC_TITLE_EVERY
+	_title_arcs.weight = 2.0
+	_title_arcs.colour = Color(1.0, 0.86, 0.55, 1.0)
+	title.add_child(_title_arcs)
+	_title_arcs.anchors = _edge_of(title)
+
+
+## Points around the outside of a wordmark, in the control's own space.
+func _edge_of(title: TextureRect) -> PackedVector2Array:
+	var found := PackedVector2Array()
+	var image: Image = title.texture.get_image()
+	if image == null or image.is_empty():
+		return found
+	var wide: float = title.size.x / maxf(float(image.get_width()), 1.0)
+	var tall: float = title.size.y / maxf(float(image.get_height()), 1.0)
+	var step: int = maxi(image.get_height() / 18, 1)
+	for y: int in range(0, image.get_height(), step):
+		var left: int = -1
+		var right: int = -1
+		for x: int in image.get_width():
+			if image.get_pixel(x, y).a > 0.4:
+				if left < 0:
+					left = x
+				right = x
+		if left < 0:
+			continue
+		found.append(Vector2(float(left) * wide, float(y) * tall))
+		found.append(Vector2(float(right) * wide, float(y) * tall))
+	return found
 
 
 func _process(delta: float) -> void:
