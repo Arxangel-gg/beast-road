@@ -340,6 +340,9 @@ func _build_beast() -> void:
 		_tail.name = "Tail"
 		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_tail.adopt(painting)
+		_tail.frame_time = Balance.MENU_BEAST_FRAME_TIME
+		if not _frames.is_empty():
+			_tail.harmonise(_frames[0])
 		# **No material on the tail.** It is drawn whole and simply placed; the
 		# beast's own stub is what dissolves into it (`_fade_the_stub`). A
 		# shader here also cost the tail the scene tint, because assigning to

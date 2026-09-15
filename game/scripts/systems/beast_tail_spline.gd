@@ -49,6 +49,9 @@ var _root: Vector2 = Vector2.ZERO
 var _time: float = 0.0
 var _drawn_at: float = -1.0
 var _phase: float = 0.0
+## How long one of the body's frames lasts. The limb's pose steps on the
+## same beat - see `_posed_time`.
+var frame_time: float = 0.22
 
 static var _measured: Dictionary = {}
 
@@ -117,6 +120,105 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
+## **Match the hide the limb grows out of, measured rather than painted.**
+##
+## Owner, four reports ending 2026-09-15: the tail "is still lighter than the
+## body's colour grading and tint, it's not receiving whatever custom thing is
+## going on there for the body's colour grading".
+##
+## Every *render-time* grade does reach it - the modulate chain carries the
+## scene tint, the day, the fog - and that has been checked. What does not
+## reach it is the one thing no chain can carry: the two paintings are
+## different paintings, and the tail's own mid-tones sit above the hide's at
+## the place they meet. Four passes over the pixels narrowed that and never
+## closed it, because a pass over a whole limb cannot know which end of it is
+## against which part of the body.
+##
+## So it is closed here, by measurement, once per pair of textures: the mean
+## surface brightness of the body's stub against the mean of the tail's root,
+## applied as a `self_modulate` on the limb. Whatever either painting is, they
+## meet at the same tone - and if either is ever redrawn, the number follows on
+## its own rather than needing a fifth pass.
+##
+## **Only ever darkening.** Brightening a limb to meet a hide is how a tail ends
+## up glowing in a night scene, and two earlier attempts at a gain were wrong in
+## exactly that direction.
+func harmonise(body: Texture2D) -> void:
+	if body == null or _texture == null:
+		return
+	var key: String = "%s|%s" % [body.resource_path, _texture.resource_path]
+	if not _harmony.has(key):
+		_harmony[key] = _measure_harmony(body, _texture)
+	self_modulate = _harmony[key] as Color
+
+
+## The ratio between the hide at the stub and the limb at its root.
+static func _measure_harmony(body: Texture2D, tail: Texture2D) -> Color:
+	var hide: float = _surface_mean(body, 0.0, 0.34, 0.35, 1.0)
+	var limb: float = _surface_mean(tail, 0.62, 1.0, 0.0, 1.0)
+	if hide <= 0.001 or limb <= 0.001:
+		return Color.WHITE
+	# **And then the offset the eye asked for.**
+	#
+	# The measurement above closes a gap when there is one. On today's art there
+	# is not: mean, median and upper quartile of the hide's haunch and the
+	# limb's surface agree within three percent, checked six ways. The owner has
+	# still reported the tail as lighter four times, and four reports beat a
+	# histogram - a limb hanging in open air beside a mass that is shadowed by
+	# its own bulk reads brighter than the numbers say it is, because there is
+	# nothing around it to compare against.
+	#
+	# So `BEAST_TAIL_SEAT` is an authored offset rather than a derived one, and
+	# it is written down as such. If the art is ever redrawn far enough apart
+	# for the measurement to bite, it takes over and this only trims.
+	var ratio: float = clampf(hide / limb, Balance.BEAST_TAIL_HARMONY_FLOOR, 1.0) 		* Balance.BEAST_TAIL_SEAT
+	return Color(ratio, ratio, ratio, 1.0)
+
+
+## Mean brightness of the painted surface inside a box, ink held out.
+##
+## Ink is held out for the reason `match_tail_palette.py` learnt the hard way: a
+## limb carries more outline per unit of area than a flank does, and averaging
+## the two together compares line weight rather than colour.
+static func _surface_mean(texture: Texture2D, from_x: float, to_x: float,
+		from_y: float, to_y: float) -> float:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return 0.0
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var total: float = 0.0
+	var count: int = 0
+	for y: int in range(int(float(height) * from_y), int(float(height) * to_y)):
+		for x: int in range(int(float(width) * from_x), int(float(width) * to_x)):
+			var at: Color = image.get_pixel(x, y)
+			if at.a < 0.5:
+				continue
+			if at.r <= 0.05 and at.g <= 0.05 and at.b <= 0.05:
+				continue
+			total += at.get_luminance()
+			count += 1
+	return total / float(count) if count > 0 else 0.0
+
+
+## **The pose steps on the body's own beat** (owner, 2026-09-15: "change the FPS
+## of Yuri's tail spline animations to match the FPS of his body's animations
+## and to change on matching times with it").
+##
+## The chain is continuous arithmetic and would happily move every frame, which
+## beside a body that steps five times a second reads as two animals. Quantised
+## to the same step and offset to the same instants, the limb moves when the
+## body moves - which is what pixel art wants and what makes the two read as one
+## creature. The *drawing* still samples at `BEAST_TAIL_HZ`; only the pose is
+## stepped.
+func _posed_time() -> float:
+	var step: float = maxf(frame_time, 0.01)
+	return floor(_time / step) * step
+
+
+static var _harmony: Dictionary = {}
+
+
 ## Advance the limb's own clock. For the gate, which has no frames to spend.
 func advance(delta: float) -> void:
 	_time += delta
@@ -158,8 +260,9 @@ func chain() -> PackedVector2Array:
 ## built from, so the motion has no period a player can catch; the wind leans
 ## the whole thing one way on top of that.
 func _wave(along: float) -> float:
-	return sin(_time * 1.15 + _phase + along * 2.4) * 0.62 \
-		+ sin(_time * 1.86 + _phase * 1.31 + along * 4.1) * 0.38 \
+	var beat: float = _posed_time()
+	return sin(beat * 1.15 + _phase + along * 2.4) * 0.62 \
+		+ sin(beat * 1.86 + _phase * 1.31 + along * 4.1) * 0.38 \
 		+ wind * 0.7
 
 

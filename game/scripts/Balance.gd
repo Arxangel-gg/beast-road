@@ -6583,6 +6583,19 @@ const BEAST_TAIL_HZ: float = 30.0
 ## How much harder the tail works on the march than at rest. A walking beast
 ## swings its tail; a standing one lets it hang and breathe.
 const BEAST_TAIL_WALK_SWAY: float = 1.9
+## The darkest the tail may be pulled to meet the hide it grows from. A floor
+## rather than a free ratio: a limb dragged past this stops reading as the same
+## animal, and the paintings have never been more than a fifth apart.
+const BEAST_TAIL_HARMONY_FLOOR: float = 0.72
+## **The offset that answers the eye rather than the histogram.**
+##
+## The tail and the hide measure the same tone - mean, median and upper quartile
+## within three percent - and the owner has reported the limb as lighter four
+## times regardless. A limb hanging in open air beside a mass shadowed by its own
+## bulk reads brighter than it measures. This is the deliberate correction for
+## that, and it is a constant rather than a derivation so that it is honest about
+## being one.
+const BEAST_TAIL_SEAT: float = 0.88
 
 ## **How far up the tail is nudged from where the stub row puts it.**
 ##
@@ -6998,16 +7011,24 @@ const MENU_BRANCH_SHADE: float = 0.78
 # drawn at a believable size for its own sake shrinks the arch to a garden gate,
 # so the size here is deliberately below what a bird "should" be.
 ## A near bird's height as a share of the screen's. A far one is a third of it.
-const MENU_BIRD_SIZE: float = 0.013
+const MENU_BIRD_SIZE: float = 0.034
+## **Depth, and what it does.** A bird's distance decides three things at once
+## and all three have to agree or the parallax reads as birds of random size:
+## how large it is drawn, how fast it crosses, and how far it fades into the
+## haze. The near end is deliberately much larger than the far - the owner's
+## "different distances in the foreground to background ... and parallax moved
+## with appropriate speeds" is a spread, not a jitter.
+const MENU_BIRD_NEAR_SCALE: float = 1.9
+const MENU_BIRD_FAR_SCALE: float = 0.3
 ## The band of sky they cross, top and bottom, as a share of the screen.
-const MENU_BIRD_BAND: Vector2 = Vector2(0.06, 0.42)
+const MENU_BIRD_BAND: Vector2 = Vector2(0.10, 0.56)
 ## How long a crossing takes, as screen widths a second, far and near.
 const MENU_BIRD_SPEED: Vector2 = Vector2(0.035, 0.1)
 ## Seconds between one bird or flock and the next.
-const MENU_BIRD_GAP: Vector2 = Vector2(2.6, 9.0)
+const MENU_BIRD_GAP: Vector2 = Vector2(1.6, 5.2)
 ## Never more than this on screen at once. A sky with a dozen birds in it is a
 ## flock, and a flock is an event rather than atmosphere.
-const MENU_BIRD_CEILING: int = 9
+const MENU_BIRD_CEILING: int = 12
 ## How much of its colour a far bird keeps. Haze, and the only thing that makes
 ## a flat sky read as deep.
 const MENU_BIRD_FAR_FADE: float = 0.45

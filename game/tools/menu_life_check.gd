@@ -41,20 +41,40 @@ func _test_every_species_has_its_wingbeat() -> void:
 	birds.queue_free()
 
 
-## **Tiny is the brief, and it is a statement about the gate.** The scene says
-## that a beast with a city on its back walks under that arch; a bird drawn at
-## a believable size for its own sake shrinks the arch to a garden gate. And
-## dim rather than black: a pure silhouette is a hole cut in the picture.
+## **Small against the gate, and at a spread of distances** - which is two
+## rules, not one, and the second replaced part of the first on 2026-09-15.
+##
+## The scene says a beast with a city on its back walks under that arch, so a
+## bird drawn at a believable size for its own sake shrinks the arch to a garden
+## gate. That is why the ceiling exists and it stays.
+##
+## What changed is the floor. Every bird used to be held under two percent of
+## the screen, which made them all far - and at nineteen pixels of near-black
+## against a near-black upper sky the owner never saw one at all, which is the
+## report this answers. **The depth has to read**: the nearest bird is several
+## times the size of the furthest, and both are still small beside the arch.
+##
+## And dim rather than black: a pure silhouette is a hole cut in the picture.
 func _test_the_birds_stay_tiny_and_dim() -> void:
 	var birds: MenuBirds = _birds()
 	birds.resize(Vector2(1920.0, 1080.0))
 	var widest: float = 0.0
+	var narrowest: float = 1e9
 	for _step: int in 3000:
 		birds.call("_process", 0.05)
 		widest = maxf(widest, birds.widest())
+		var thinnest: float = birds.narrowest()
+		if thinnest > 0.0:
+			narrowest = minf(narrowest, thinnest)
 	_check(widest > 2.0, "the birds must be drawn at all (%0.1f px)" % widest)
-	_check(widest <= 1080.0 * 0.02,
-		("a bird must stay tiny against the gate: %0.1f px at 1080p, against the "
+	_check(narrowest < 1e8 and widest >= narrowest * 2.5,
+		("the depth must read: the nearest bird is %0.1f px and the furthest "
+			+ "%0.1f, which is one distance wearing a jitter")
+			% [widest, narrowest])
+	_check(narrowest <= 1080.0 * 0.025,
+		("and the far end must stay far: %0.1f px" % narrowest))
+	_check(widest <= 1080.0 * 0.08,
+		("a bird must stay small against the gate: %0.1f px at 1080p, against the "
 			+ "21 px that is already generous") % widest)
 	var tint: Color = birds.tint
 	_check(tint.get_luminance() < 0.5,

@@ -42,17 +42,28 @@ enum Species { RAVEN, TOUCAN, HAWK, EAGLE }
 const ART: Array[String] = [
 	"res://art/ui/menu_bird_raven", "res://art/ui/menu_bird_toucan",
 	"res://art/ui/menu_bird_hawk", "res://art/ui/menu_bird_eagle",
+	"res://art/ui/menu_bird_phoenix",
 ]
 ## Wingbeats a second; how far the body rises and falls over one beat, as a
 ## share of its own height; and how much of the time it is beating at all.
 ## A soarer's tenth means it holds its wings nine tenths of the way across.
-const BEATS: Array[float] = [3.4, 4.6, 2.1, 1.5]
-const BOB: Array[float] = [0.18, 0.55, 0.06, 0.04]
-const BEATING: Array[float] = [0.85, 1.0, 0.22, 0.12]
+const BEATS: Array[float] = [3.4, 4.6, 2.1, 1.5, 2.4]
+const BOB: Array[float] = [0.18, 0.55, 0.06, 0.04, 0.12]
+const BEATING: Array[float] = [0.85, 1.0, 0.22, 0.12, 0.6]
 ## How often each species turns up, relative to the others, and how many come
 ## at once. Ravens travel together; an eagle does not.
-const WEIGHT: Array[float] = [3.0, 2.0, 1.5, 0.6]
-const FLOCK: Array[int] = [4, 3, 1, 1]
+## **And the phoenix, at one crossing in eighty.** Owner, 2026-09-15: "all
+## flying birds including the rare mythical phoenix should be spotable with
+## appropriately tuned rarity". Rare enough that seeing one is worth telling
+## somebody about, common enough that a player who sits on the menu for a few
+## minutes across a week will meet one.
+const WEIGHT: Array[float] = [3.0, 2.0, 1.5, 0.6, 0.09]
+const FLOCK: Array[int] = [4, 3, 1, 1, 1]
+## **What the sky may not darken.** Every other bird is shaded against the sky
+## it crosses, because a bird is a shape the light falls on. A phoenix is the
+## light - grading it toward the dusk would put it out, which is the mistake
+## this project already made once with the fireflies and once with the camp.
+const SELF_LIT: Array[bool] = [false, false, false, false, true]
 
 ## What the birds are multiplied by when nothing better is known.
 var tint: Color = Color(0.30, 0.29, 0.33, 1.0)
@@ -168,7 +179,7 @@ func _launch() -> void:
 			# multiplied down to a near-silhouette, it produced a near-black
 			# bird on a near-black sky. The owner's "not completely blacked out"
 			# is about exactly this.
-			"shade": _shade_for(Vector2(
+			"shade": Color(1.0, 0.94, 0.86, 1.0) if SELF_LIT[species] else _shade_for(Vector2(
 				(0.5 if rightward else 0.5) * _span.x,
 				lerpf(Balance.MENU_BIRD_BAND.x, Balance.MENU_BIRD_BAND.y, high) * _span.y)),
 		})
@@ -240,7 +251,19 @@ func _fly(bird: Dictionary, delta: float) -> void:
 
 ## How big a bird of this depth is drawn, in pixels of screen height.
 func _size_of(depth: float) -> float:
-	return _span.y * Balance.MENU_BIRD_SIZE * lerpf(1.0, 0.34, depth)
+	return _span.y * Balance.MENU_BIRD_SIZE * lerpf(
+		Balance.MENU_BIRD_NEAR_SCALE, Balance.MENU_BIRD_FAR_SCALE, depth)
+
+
+## The smallest bird in the air, or zero. For the gate, which needs both ends
+## of the spread to know whether the depth reads.
+func narrowest() -> float:
+	var least: float = 0.0
+	for bird: Dictionary in _birds:
+		var wide: float = _size_of(float(bird["depth"]))
+		if least <= 0.0 or wide < least:
+			least = wide
+	return least
 
 
 func flying() -> int:

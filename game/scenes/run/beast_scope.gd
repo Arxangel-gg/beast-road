@@ -389,6 +389,9 @@ func _load_tail() -> void:
 	_tail = BeastTailSpline.new()
 	_tail.name = "Tail"
 	_tail.adopt(frames[0])
+	_tail.frame_time = 1.0 / maxf(Balance.BEAST_IDLE_FRAME_RATE, 1.0)
+	if beast.texture != null:
+		_tail.harmonise(beast.texture)
 	# **The tail carries no material and is never scaled to fit.** It is drawn
 	# whole and placed; the beast's own stub is the end that dissolves into it.
 	# See `beast_stub_fade.gdshader` (owner's correction, 2026-09-13).

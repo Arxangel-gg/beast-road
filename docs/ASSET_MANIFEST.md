@@ -3325,6 +3325,8 @@ All 64x32, type T, placeholder colour `#2A2A33`.
 `menu_bird_hawk.png` - `menu_bird_hawk_fly_01.png` - `menu_bird_hawk_fly_02.png` -
 `menu_bird_hawk_fly_03.png` - `menu_bird_hawk_fly_04.png` - `menu_bird_hawk_fly_05.png` -
 `menu_bird_eagle.png` - `menu_bird_eagle_fly_01.png` - `menu_bird_eagle_fly_02.png` -
+`menu_bird_phoenix.png` - `menu_bird_phoenix_fly_01.png` - `menu_bird_phoenix_fly_02.png` -
+`menu_bird_phoenix_fly_03.png` - `menu_bird_phoenix_fly_04.png` - `menu_bird_phoenix_fly_05.png` -
 `menu_bird_eagle_fly_03.png` - `menu_bird_eagle_fly_04.png` - `menu_bird_eagle_fly_05.png`
 
 Four species crossing the main menu's sky (owner brief, 2026-09-15), each a
