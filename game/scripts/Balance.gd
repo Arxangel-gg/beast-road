@@ -3267,6 +3267,30 @@ const TRAIL_PLACEMENT_TRIES: int = 60
 ## nest-robbing from being the fastest way to fill a collection is that you may
 ## only take a few, and that everything you took has to survive the road with
 ## you. [TUNE]
+## **Something enormous crosses the sky.** See `DragonPass`.
+##
+## Rolled beside the quake and the tornado off the same hidden wrath, and
+## telegraphed the way both of those are: the line is said and every animal
+## bolts before the shadow arrives. It strikes nothing - what it leaves is a
+## wildfire, which is a thing the earth already knows how to spread and bound.
+## [TUNE]
+const DRAGON_WARNING_SECONDS: float = 3.2
+const DRAGON_PASS_SECONDS: float = 7.5
+## How often it breathes on the way over, how far that reaches, and how likely
+## a plant under it catches. Sparse on purpose: a solid line of fire across the
+## map is a wildfire nobody can answer.
+const DRAGON_FIRE_INTERVAL: float = 0.55
+const DRAGON_FIRE_RADIUS: float = 190.0
+const DRAGON_FIRE_CHANCE: float = 0.55
+## How much hotter it leaves the ground it passed over.
+const DRAGON_HEAT: float = 9.0
+## How big it is drawn, how far above its own shadow, and what it draws over.
+const DRAGON_SCALE: float = 1.45
+const DRAGON_HEIGHT: float = 190.0
+const DRAGON_Z: int = 900
+## How often the earth sends one at full anger, per second.
+const DRAGON_RATE: float = 0.0016
+
 const EGGS_CARRIED_MAX: int = 4
 
 const NEST_INCUBATION_DISTANCE: float = 95.0

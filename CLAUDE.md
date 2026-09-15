@@ -3007,6 +3007,35 @@ the Food is the run's and the run is the host's - the rule the fish and the crop
 are already asked under, and the reason a number in that message would have been
 a currency printer.
 
+**Something enormous crosses the sky, as of 2026-09-15.** The owner asked for
+dragons breathing fire in their land and flying states, affecting the
+environment, with world events the map knows about.
+`docs/IDEAS_REVIEW_2026-09-15.md` staged them *after* the trail and as **a
+world-event system rather than a creature** - "they should be the rarest thing
+in the game and the map should know one is there". `DragonPass` is that event.
+
+It is rolled beside the quake, the funnel, the stone and the blaze, off the same
+hidden wrath - and on the **cube** of the anger rather than the square, which is
+what separates "what a hard road costs" from "what emptying a region costs". A
+quiet run will never see one.
+
+**It is warned, and it strikes nothing.** The line is said and every animal
+bolts before the shadow arrives, which is the rule every disaster here obeys.
+What it does on the way over is light the foliage through `Wildfire.ignite_near`
+and warm the ground through `Climate.add_heat`, and *nothing else*: the fire it
+leaves spreads by dryness, is bounded by `WILDFIRE_MAX_FIRES`, and costs the
+player no wrath, because a fire they did not light is the cycle rather than the
+debt. A dragon that dealt damage of its own would be a power scale nobody is
+tuning, arriving from the sky.
+
+**And it needs no new wire numbers.** The warning travels on `wrath_warned`,
+which the quake and the tornado already use; every plant it lights travels as
+`coop_wildfire_lit`, which the wildfire already sends. A guest draws the same
+shadow from the same warning and burns the same plants when told.
+
+The art is the one view the whole event is: drawn from directly above, so the
+same painting is the shadow on the ground and the thing casting it.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

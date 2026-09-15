@@ -103,6 +103,9 @@ var _tremor_timer: float = 0.0
 var quakes: int = 0
 var tornadoes: int = 0
 var meteors: int = 0
+## How many dragons have crossed this run, and the one crossing now.
+var dragons: int = 0
+var _dragon: DragonPass = null
 var wildfires: int = 0
 
 
@@ -931,6 +934,12 @@ func _tick_wrath_events(delta: float) -> void:
 	var ash: float = clampf(RunState.ember / Balance.EMBER_FULL, 0.0, 1.0)
 	if ash > 0.0 and _rng.randf() < Balance.METEOR_RATE * ash * (0.3 + anger) * boost * delta:
 		drop_meteor()
+	# **And, rarely, something enormous crosses the sky.** The cube of the anger
+	# rather than the square: a quake is what a hard road costs, and a dragon is
+	# what the very end of the scale costs - so it is effectively impossible on a
+	# quiet run and a real prospect on one that has emptied a region.
+	if _dragon == null and _rng.randf() < Balance.DRAGON_RATE * anger * anger * anger * boost * delta:
+		send_dragon()
 
 
 ## The ground shakes: everything alive is hurt by the magnitude, and the
@@ -1191,6 +1200,39 @@ func _on_tornado_elsewhere(at: Vector2, target: Vector2, seconds: float) -> void
 
 ## A stone aimed near one of the player's towers - or, with none built, near
 ## the road they are standing on.
+## Something enormous crosses the field, and what it passes over catches.
+##
+## See `DragonPass` for the design and the bounds. Here because it belongs with
+## the quake, the funnel and the stone: it is the earth's, it is rolled off the
+## same hidden wrath, and it is warned before it arrives.
+##
+## The line it flies is drawn from the sky's own stream so both machines could
+## agree on it - though only the host ever lights anything, and a guest draws
+## the same shadow from the warning it is told.
+func send_dragon(from: Vector2 = Vector2.INF, to: Vector2 = Vector2.INF) -> DragonPass:
+	if field == null or _dragon != null:
+		return null
+	if not from.is_finite() or not to.is_finite():
+		var span: float = BattleGrid.HALF_EXTENT * 1.6
+		var heading: float = _rng.randf() * TAU
+		var across: Vector2 = Vector2.RIGHT.rotated(heading)
+		var off: Vector2 = across.orthogonal() * _rng.randf_range(-span * 0.4, span * 0.4)
+		from = -across * span + off
+		to = across * span + off
+	var wyrm := DragonPass.new()
+	wyrm.from = from
+	wyrm.to = to
+	wyrm.field = field
+	wyrm.wildfire = wildfire
+	field.add_child(wyrm)
+	_dragon = wyrm
+	dragons += 1
+	RunState.note_earth("dragons")
+	# Warned the way a quake is, on every machine, and every animal runs.
+	_tell("dragon", from, Balance.DRAGON_WARNING_SECONDS)
+	return wyrm
+
+
 func drop_meteor(at: Vector2 = Vector2.INF) -> Meteor:
 	if field == null:
 		return null

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WrathEventData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wrath_event_data.gd" id="1_wr"]
+
+[resource]
+script = ExtResource("1_wr")
+warning = "The birds are gone. Something big enough to put the road in shadow is coming over, and it is burning as it goes."
+warning_title = "THE LIGHT GOES OUT"
+colour = Color(0.86, 0.32, 0.18, 1)
+id = "dragon"
+display_name = "A Shadow on the Road"

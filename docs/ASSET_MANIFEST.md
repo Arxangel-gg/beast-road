@@ -2210,6 +2210,17 @@ has to be legible at combat zoom before the frenzy starts.
 | `heart.png` | 24×24 | T | `#D2647E` |
 | `blight.png` | 24×24 | T | `#79A64C` |
 
+### 5.17e The dragon overhead — `res://art/vfx/`
+
+The world event (2026-09-15): something enormous crosses the field and what it
+passes over catches. Drawn from **directly above** rather than from the front,
+which is the one view the whole event is - it is a shadow on the ground and the
+thing casting it, and the same painting serves as both.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `dragon_overhead.png` | 192×192 | T | `#6E3226` |
+
 ### 5.17c Death markers — `res://art/vfx/`
 
 The stone that falls where a player collapsed (2026-09-14) and dissolves when
