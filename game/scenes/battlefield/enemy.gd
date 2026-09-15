@@ -312,6 +312,32 @@ func promote(to_rank: Rank, worn: Array[EnemyAffixData]) -> void:
 	if health_bar != null and to_rank != Rank.COMMON:
 		health_bar.set_ranked(Balance.HEALTH_BAR_ELITE_WIDTH if to_rank == Rank.ELITE \
 			else Balance.HEALTH_BAR_CHAMPION_WIDTH)
+	_wear_rank()
+
+
+## **A hint of light on the bodies that are the fight** (owner, 2026-09-15:
+## "elite and champion enemies should have a hint of holographic-esque vfx juice
+## as well"). A champion and an elite wear it faintly; a camp lord, which is a
+## miniboss on its own, wears it a little harder.
+##
+## Called from `promote` and from `_ready`, because the two ways a body becomes
+## notable are unrelated: rank is rolled and handed in, and the category is
+## authored. A lord is never promoted, so reading only `promote` would have left
+## every dragon in the game unlit.
+##
+## It reads nothing back. See `rank_sheen.gd` for why it is an overlay node
+## rather than a material on this sprite.
+func _wear_rank() -> void:
+	if sprite == null or data == null:
+		return
+	var amount: float = 0.0
+	if data.category == EnemyData.Category.CAMP_LORD:
+		amount = Balance.RANK_SHEEN_LORD
+	elif rank != Rank.COMMON or data.is_promoted():
+		amount = Balance.RANK_SHEEN_ELITE
+	if amount <= 0.0:
+		return
+	RankSheen.dress(sprite, amount, Balance.RANK_SHEEN_ENEMY_COLOUR)
 
 
 ## The combined multiplier for one stat across every affix worn.
@@ -437,6 +463,7 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	health_bar.bind(health)
+	_wear_rank()
 	if data != null and data.category == EnemyData.Category.BOSS:
 		health_bar.set_ranked(Balance.HEALTH_BAR_BOSS_WIDTH)
 	if oath_pursuer:

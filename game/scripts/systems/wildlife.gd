@@ -674,6 +674,15 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		shiny = SpiritBond.rolls_shiny(kind.id, kind.rarity, _rng)
 	if shiny:
 		_dress_as_shiny(sprite, kind, impact_material)
+	# **Rank, said in light** (owner, 2026-09-15: "rarer wildlife should have it
+	# as well slightly as well as a slight colour tint to indicate their rarity
+	# as well as having an outline aura too. Shinys should be super holographic
+	# and high contrast ... especially legendary shinies").
+	#
+	# The amplitude climbs with the rarity and a shiny jumps to the top of the
+	# scale, so a Legendary shiny is the loudest thing on the road and a Common
+	# one wears nothing at all - which is what keeps the signal worth reading.
+	_wear_rarity(sprite, kind.rarity, shiny)
 
 	# **Every animal gets a serial, co-op or not.**
 	#
@@ -2212,6 +2221,20 @@ func clear() -> void:
 ## The tint survives as the fallback for a build with no material, unchanged. Its
 ## reasoning still holds there: nothing is drawn *around* a 64px animal, because
 ## at that size anything around it covers it up.
+## What rarity an animal wears, and how brightly.
+##
+## One table for the ordinary case and one for a shiny, indexed by the same
+## rarity - so the two can never disagree about which is louder, and a Common
+## shiny still outshines a Legendary that is not.
+static func _wear_rarity(sprite: Sprite2D, rarity: int, shiny: bool) -> void:
+	if sprite == null:
+		return
+	var table: Array[float] = Balance.RANK_SHEEN_SHINY if shiny \
+		else Balance.RANK_SHEEN_RARE
+	var at: int = clampi(rarity, 0, table.size() - 1)
+	RankSheen.dress(sprite, table[at], Balance.rank_colour(rarity), shiny)
+
+
 func _dress_as_shiny(sprite: Sprite2D, kind: WildlifeData,
 		material: ShaderMaterial) -> void:
 	if ActorState.carried(material):

@@ -6369,6 +6369,45 @@ const CAMP_STRANGER_SHARE: Array[float] = [0.0, 0.55, 0.75]
 ## the second, and better than even odds at the war camp, so a lord stays a
 ## thing you tell somebody about rather than a fixture.
 const CAMP_LORD_CHANCE: Array[float] = [0.0, 0.12, 0.55]
+
+# --- What a creature's rank looks like ---------------------------------------
+#
+# Owner, 2026-09-15: a hint on an elite, a tint and an aura on a rare animal,
+# and "super holographic and high contrast" on a shiny. One shader at three
+# amplitudes - see `rank_sheen.gd` - so the three can never drift apart.
+
+## How much of the rarity colour washes into the art at full rank. Deliberately
+## small: a creature the player cannot recognise is worse than one they cannot
+## rank, and the wash is strongest on the highlights so a dark animal stays dark.
+const RANK_SHEEN_TINT: float = 0.16
+## The aura on the silhouette, and the holographic scan across it.
+const RANK_SHEEN_RIM: float = 0.9
+const RANK_SHEEN_SCAN: float = 0.35
+const RANK_SHEEN_LINES: float = 46.0
+## The amplitude each rank is worn at. An elite is a hint you catch in the
+## corner of your eye; a legendary shiny is the loudest thing on the road.
+const RANK_SHEEN_ELITE: float = 0.26
+const RANK_SHEEN_LORD: float = 0.42
+const RANK_SHEEN_RARE: Array[float] = [0.0, 0.18, 0.34, 0.5]
+const RANK_SHEEN_SHINY: Array[float] = [0.7, 0.8, 0.9, 1.0]
+## What a promoted body's sheen is made of. Cold, so it never reads as fire or
+## as a status: the polish already owns burning, chill and wet, and a rank that
+## looked like one of those would be a lie about what is happening to the body.
+const RANK_SHEEN_ENEMY_COLOUR: Color = Color(0.72, 0.84, 1.0, 1.0)
+## The four rarities, in the colours the rest of the game already says them in.
+const RANK_SHEEN_RARITY_COLOURS: Array[Color] = [
+	Color(0.78, 0.80, 0.82, 1.0),
+	Color(0.52, 0.86, 0.56, 1.0),
+	Color(0.44, 0.68, 1.00, 1.0),
+	Color(1.00, 0.76, 0.32, 1.0),
+]
+
+
+## The colour a rarity is said in. One table, because a second would drift from
+## this one the first time either was tuned.
+static func rank_colour(rarity: int) -> Color:
+	return RANK_SHEEN_RARITY_COLOURS[clampi(rarity, 0,
+		RANK_SHEEN_RARITY_COLOURS.size() - 1)]
 ## How far from its home a camp body notices a hero, and how far it will
 ## follow before it turns back. A hero who leaves the leash is left alone -
 ## the League rule - and the body walks home healing.

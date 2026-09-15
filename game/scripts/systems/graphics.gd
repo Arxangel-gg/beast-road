@@ -35,6 +35,7 @@ const KEY_PARTICLES: String = "graphics_particles"
 ## Whether flood water reads and bends the ground beneath it. A frame copy
 ## while the field is flooded; off on Low, where the water is a flat sheet.
 const KEY_WATER_REFRACTION: String = "graphics_water_refraction"
+const KEY_RANK_SHEEN: String = "graphics_rank_sheen"
 const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
@@ -480,6 +481,15 @@ static func grade_enabled() -> bool:
 ## wants the whole road visible turns it off in the video settings.
 static func fog_of_war() -> bool:
 	return bool(_chosen.get(KEY_FOG, true))
+
+
+## Whether elites, rare animals and shinies wear their rank in light.
+##
+## On by default. It is a *look* and nothing reads it, so switching it off
+## changes no number anywhere - which is what makes it safe to give a weak
+## machine, and the same bound the fog is held to.
+static func rank_sheen() -> bool:
+	return bool(_chosen.get(KEY_RANK_SHEEN, true))
 
 
 ## Whether the minimap is shown. M toggles it in play as well.
