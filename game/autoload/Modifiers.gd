@@ -114,6 +114,10 @@ func rebuild() -> void:
 	# found, and it lands where a relic lands - so nothing downstream learns that
 	# sets exist either.
 	_add_matched_sets()
+	# **And how far the party has pushed without banking.** Discovery only: see
+	# `Balance.MOMENTUM_PER_CROSSROAD` for why momentum may never reach a damage
+	# number. It is the one modifier here bought by refusing to save.
+	_add_momentum()
 	_base_totals = _totals.duplicate()
 	_apply_regional_adapters()
 
@@ -177,6 +181,22 @@ func completed_set() -> GearSetData:
 		if set_pieces_worn(one.id) >= one.members.size():
 			return one
 	return null
+
+
+## **Expedition Momentum**, and the two keys it is allowed to touch.
+##
+## Pressing past a crossroads without extracting pays a little more of what the
+## road is hiding - resources off bodies, and one more wave read ahead. It does
+## **not** touch `hero_damage`, `tower_damage` or anything else that decides a
+## fight: a damage stack bought by refusing to save is a power scale nobody is
+## tuning, and `curve_report` would be measuring a game that only exists for
+## players who never bank.
+func _add_momentum() -> void:
+	if RunState.momentum <= 0.0:
+		return
+	var push: float = clampf(RunState.momentum, 0.0, Balance.MOMENTUM_MAX)
+	_totals[KILL_RESOURCES] = float(_totals.get(KILL_RESOURCES, 0.0)) + push
+	_totals[RESOURCE_RATE] = float(_totals.get(RESOURCE_RATE, 0.0)) + push * 0.5
 
 
 func _add(relic: RelicData) -> void:

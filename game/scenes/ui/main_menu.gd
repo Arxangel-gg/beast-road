@@ -182,6 +182,7 @@ func _ready() -> void:
 	_build_chronicle_button()
 	_build_codex_button()
 	_build_pen_button()
+	_build_resume_button()
 	_build_leaderboard_button()
 	_build_hold()
 	_build_guide_button()
@@ -696,6 +697,40 @@ func _build_chronicle_button() -> void:
 			ContentDB.chronicle_objectives.size()]
 		button.grab_focus())
 	button.pressed.connect(func() -> void: _chronicle.open())
+
+
+## **Back to the front.**
+##
+## Offered only when there is a banked frontier, and it sits above New run
+## because a player with a campaign in progress almost always means to continue
+## it - and starting a fresh one from this screen should be the deliberate press
+## rather than the accidental one.
+func _build_resume_button() -> void:
+	if new_run_button == null or not MetaState.has_expedition():
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var front: Dictionary = MetaState.expedition
+	var standing: Vector2i = Expedition.fortifications(front)
+	var button := Button.new()
+	button.name = "Resume"
+	button.text = "Resume · %s" % Expedition.describe(front)
+	button.tooltip_text = ("%d fortifications standing, %d of them damaged. The "
+		+ "road will be alive again; what you built will not have moved.") % [
+		standing.x, standing.y]
+	button.custom_minimum_size = new_run_button.custom_minimum_size
+	button.theme_type_variation = new_run_button.theme_type_variation
+	IconKit.on_button(button, "distance", 26)
+	column.add_child(button)
+	column.move_child(button, new_run_button.get_index())
+	button.pressed.connect(func() -> void:
+		GameDirector.start_run(0, true))
+	# The fresh run says what it costs, because it is the one press here that
+	# throws away a campaign.
+	new_run_button.tooltip_text = ("A new expedition from Act I. Your banked "
+		+ "front stays where it is until you extract from a new one.")
+	button.grab_focus()
 
 
 func _start_run() -> void:

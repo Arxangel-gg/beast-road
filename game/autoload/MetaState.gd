@@ -382,6 +382,25 @@ var pen: Array[Dictionary] = []
 ## companions were un-cut: what §54 refuses is a *roster* the player commands.
 var pen_taken: String = ""
 
+## **The frontier the Warden can go back to.**
+##
+## One snapshot, written on a successful extraction and on nothing else. A wipe
+## does *not* clear it, which is the whole anti-frustration rule: everything
+## since the last crossroads is at risk and everything before it is banked, so
+## pushing deeper is exciting rather than horrifying (owner ruling, 2026-09-15).
+##
+## **It carries no account progress.** No hero level, no gear, no attribute, no
+## unlock - working rule 7's list is untouched. What it holds is *the road*: the
+## seed, the act, the wave, the fortifications and the run's own purse, all of
+## which already reset every run and none of which has ever been allowed to
+## persist. That is not a loophole in the rule, it is a change to what a "run"
+## is: an expedition is a run put down and picked up, and the thing that is now
+## resumable is the *world* rather than the Warden.
+##
+## Additive: a save from before this has no `expedition` key and reads back as
+## no frontier, which is what a new account is. `SAVE_VERSION` did not move.
+var expedition: Dictionary = {}
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -1591,6 +1610,10 @@ func serialized_save() -> String:
 			"animals": pen,
 			"taken": pen_taken,
 		},
+		# The frontier. One snapshot, and an unreadable one is dropped on load
+		# rather than half-applied - half a fortress is worse than none, because
+		# the player cannot tell which half is missing.
+		"expedition": expedition,
 		"resource_cache": resource_cache,
 		"chronicle": {
 			"completed": completed_objectives,
@@ -1686,6 +1709,8 @@ func load_save() -> void:
 	_read_materials(data.get("materials", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
 	_read_pen(data.get("pen", {}) as Dictionary)
+	var front: Dictionary = data.get("expedition", {}) as Dictionary
+	expedition = front if Expedition.is_readable(front) else {}
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
@@ -1929,6 +1954,30 @@ func spirit_is_known(bond_key: String) -> bool:
 
 
 ## Equips a bonded spirit, or clears the slot with "".
+## --- The frontier -----------------------------------------------------------
+
+## **Bank the road as it stands.** Called by an extraction and nothing else.
+func bank_expedition(snapshot: Dictionary) -> bool:
+	if not Expedition.is_readable(snapshot):
+		return false
+	expedition = snapshot
+	save_game()
+	return true
+
+
+## Whether there is a frontier to go back to.
+func has_expedition() -> bool:
+	return Expedition.is_readable(expedition)
+
+
+## **Give up the frontier.** Starting a fresh campaign from Act I abandons it,
+## and the player is asked first - this is the one thing here that destroys
+## something they spent hundreds of waves building.
+func abandon_expedition() -> void:
+	expedition = {}
+	save_game()
+
+
 ## --- The pen ---------------------------------------------------------------
 
 ## Reads the kept animals off a save. Anything malformed is dropped rather than

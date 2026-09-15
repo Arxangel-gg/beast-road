@@ -3381,6 +3381,27 @@ const BEAST_OMEN_DRAGON_HEIGHT: float = 1.25
 ## next egg unhatched - and that decision is the whole reason a pen is more
 ## interesting than a list. Big enough that a player who likes raising things has
 ## room to keep favourites, small enough that keeping one *means* something.
+## **Expedition Momentum: what pressing past a crossroads without banking is
+## worth.**
+##
+## Owner ruling, 2026-09-15. If extracting at every crossroads were strictly
+## optimal, every player would, and the frontier would never be pushed - so
+## carrying on pays, a little, and banking resets it.
+##
+## **It is held to the bound every addition here is held to**: it moves numbers
+## `Modifiers` already resolves, and deliberately the *discovery* ones rather
+## than power. What momentum buys is that the road gives up more of what it is
+## hiding, never that the party hits harder - a damage stack would be a power
+## scale nobody is tuning, bought by refusing to save.
+const MOMENTUM_PER_CROSSROAD: float = 0.10
+const MOMENTUM_MAX: float = 0.60
+
+## What a fortification costs to mend between expeditions, as a share of the
+## tower's Gold price in materials per point of health. Paid in wood and ore,
+## because the mines are the between-runs economy and a fortress that weathers
+## over hundreds of waves is the reason to work them.
+const FORTIFY_REPAIR_PER_HEALTH: float = 0.035
+
 const PEN_CAPACITY: int = 12
 
 ## How long a penned animal holds a pose before it picks another - grazing,

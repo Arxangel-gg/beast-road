@@ -821,6 +821,13 @@ func _open_crossroad(segment_index: int) -> void:
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.suspend()
 	crossroad_ui.open(segment_index)
+	# **A fork passed without banking pays a little more of what the road is
+	# hiding.** Raised here rather than when the fork is *answered*, because
+	# extracting at this fork ends the run before the road resumes - so the
+	# momentum a player builds is exactly the momentum they refused to bank.
+	RunState.momentum = minf(RunState.momentum
+		+ Balance.MOMENTUM_PER_CROSSROAD, Balance.MOMENTUM_MAX)
+	Modifiers.rebuild()
 	# Both players stand at the fork. Only the *segment* travels: the offers are
 	# drawn from a seeded stream both machines share, so naming the crossroad
 	# gets the guest the identical three roads without sending any of them.

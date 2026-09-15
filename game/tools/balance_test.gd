@@ -1214,6 +1214,25 @@ func _test_tiers_and_persistence() -> void:
 	# can only be edited into more attempts at the ladder everyone else is
 	# already climbing. `gathering_check` holds that end of it, including that
 	# the best gem a maxed smith can set never reaches the top rarity.
+	# `pen` is the living companions the Warden raised. Added 2026-09-15 under an
+	# owner amendment to working rule 7, and allowed here for one reason: **the
+	# bond is permanent and the animal is not.** `spirit_bonded` is the
+	# collection and the pen never touches it, so an animal dying on the road
+	# costs that creature and never a line in the journal. A penned animal grants
+	# no attribute, banks no currency, and is no stronger for having been kept
+	# longer - its power is its variant's rarity, fixed when it hatched, exactly
+	# as a bonded spirit's is. `pen_check` holds the bound, hardest at the check
+	# that losing one leaves the collection exactly the size it was.
+	#
+	# `expedition` is the banked frontier. Added 2026-09-15 under the owner's
+	# expedition-persistence ruling, and it is the one block here that is *not*
+	# an amendment to rule 7 - because it carries no account progress at all. No
+	# hero level, no gear, no attribute, no unlock: what it holds is the seed,
+	# the act, the wave, the fortifications and the run's own purse, every one of
+	# which already resets each run and none of which has ever been allowed to
+	# persist. What changed is what a "run" is - a road put down and picked up
+	# rather than a second account - and `expedition_check` holds exactly that:
+	# banking and restoring a front must leave the account byte-identical.
 	var text: String = MetaState.serialized_save()
 	var parsed: Variant = JSON.parse_string(text)
 	_check(parsed is Dictionary, "the save must be a dictionary")
@@ -1222,7 +1241,8 @@ func _test_tiers_and_persistence() -> void:
 		for key: Variant in keys:
 			_check(String(key) in ["version", "unlocked", "resource_cache", "stats",
 				"settings", "hero", "stash", "board", "social", "chronicle",
-				"spirits", "pantry", "professions", "materials"],
+				"spirits", "pantry", "professions", "materials", "pen",
+				"expedition"],
 				"unexpected top-level save key \"%s\"" % key)
 		# Chronicle entries are completed content ids only. Their Tool reward is
 		# paid once and stored in the already-sanctioned Tools balance; no live

@@ -3365,6 +3365,78 @@ the mid-run refusal live in one place and a screen cannot disagree with them.
 mid-run refusal, the dangling name, the malformed row, the read-back, and -
 hardest - that losing an animal leaves the collection exactly the size it was.
 
+**The road can be put down and picked up, as of 2026-09-15.** The owner
+proposed 100 waves an act across ten acts - a thousand-wave campaign - with
+extraction at crossroads and act ends that banks the world so the next run
+resumes it. Two decisions came out of that and they are recorded separately
+because they have very different costs.
+
+**The wave count is deferred, and it is deferred on a measurement.** A full
+ten-act campaign today is **79 waves**, and `curve_report` ends it holding **40
+emplacements at level 2-3** on a purse of 7,510 Gold - with capability already
+*flat* from wave 72, because by then the board is bought. Maxing the whole board
+is roughly 78,000 Gold. At a thousand waves the purse is some thirteen times
+larger: every tower reaches level 10 somewhere in Act VIII and there are then two
+hundred waves in which the player can buy **nothing at all** while pressure keeps
+climbing. That is the exact failure measured on 2026-09-13 - "capability went
+flat from wave 48, the last third of the road paid for nothing" - three times
+longer.
+
+So a thousand waves needs one of: more build spots (the map is hand-authored), a
+longer tower ladder (a new power scale, refused eleven times), or **waves towers
+do not answer**. The third is the real answer, and it means the wave-type library
+*is* the thousand waves - siege, sabotage, caravan, rescue, holdout, ritual,
+hunt, calm. **Owner ruling, 2026-09-15: build the library first, then set the
+count by measuring what it supports.** A count set first and filled in later is
+how an act becomes a hundred repetitions of one loop.
+
+**Expedition persistence is built, and it is independent of all of that.** It
+works at 79 waves exactly as it would at a thousand.
+
+**Two layers, and the split is the whole design.** *Persistent*: the seed, the
+act, the wave, every tower with its level, its path and **how damaged it is**,
+the run's currencies and the wall. *Regenerated*: the wildlife, the foliage, the
+corpses, the drops, the weather. `Battlefield.refresh_terrain` already **is**
+that second half - it is the one function everything regional goes through - so
+coming back is the road being alive again rather than a battlefield frozen in
+amber since Tuesday.
+
+**It carries the road and never the account, and that is why it is not a second
+save game.** No hero level, no gear, no attribute, no unlock: working rule 7's
+list is untouched. Everything a snapshot holds already reset every run and none
+of it has ever been allowed to persist. What changed is what a *run* is - a road
+put down and picked up. `balance_test`'s save-key guard now names `expedition`
+with that reasoning written beside it, and `expedition_check`'s hardest assertion
+is that banking and restoring a front leaves the account byte-identical.
+
+**A damaged fortification comes back damaged.** Owner ruling: extraction that
+healed the board would make "leave the moment anything is damaged" the correct
+play and attrition would stop existing. Tower health lives on the node and has
+never been in `RunState` - it does not cross the wire either - so the snapshot
+leaves the ratio in `RunState.tower_health_restore`, which `Tower._ready` reads
+**once and erases**. A tower rebuilt for any other reason - a guest's welcome, a
+re-sync - is whole; only the one an expedition actually restored is hurt.
+
+**A wipe does not clear the front.** That is the anti-frustration rule and it is
+the difference between pushing deeper being exciting and being horrifying:
+everything before the last extraction is banked, everything since is at risk.
+The gate drives a reset and refuses a build where the frontier goes with it.
+
+**Momentum is bought by refusing to bank, and may never reach a fight.** Each
+crossroad passed without extracting raises `RunState.momentum` toward
+`MOMENTUM_MAX`; it feeds `kill_resources` and `resource_rate` and **nothing
+else**. A damage stack bought by declining to save would be a power scale nobody
+is tuning, and `curve_report` would be measuring a game that only exists for
+players who never extract. `expedition_check` walks six forbidden keys and
+refuses any movement in them - checked by adding `hero_damage`, which it named.
+
+**Refused from the same proposal**, and recorded so they are not re-argued:
+a third resource pool beside the stash and the vault (an expedition's currencies
+are the *run's* currencies coming home, which is a flag rather than an
+inventory); and crossroads that sometimes cannot be extracted from, because the
+whole system rests on trusting the crossroads and the proposal's own "use very
+rarely" is the shape of a feature that is either invisible or infuriating.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

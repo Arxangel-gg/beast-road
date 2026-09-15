@@ -263,7 +263,14 @@ func _play_intro() -> void:
 	intro.queue_free()
 
 
-func start_run(requested_seed: int = 0) -> void:
+## Begins a run, or resumes the banked frontier.
+##
+## `resume_front` is the owner's *"start the next run fresh from there"*: the
+## seed, the act, the wave, the fortifications and the purse come back, while
+## the wildlife, the foliage and everything else alive is rolled again - which
+## is `refresh_terrain`, the one function everything regional already goes
+## through.
+func start_run(requested_seed: int = 0, resume_front: bool = false) -> void:
 	var consumed_cache: bool = not MetaState.resource_cache.is_empty()
 	# The world is rolled and announced **before** the cinematic, not after.
 	#
@@ -278,6 +285,14 @@ func start_run(requested_seed: int = 0) -> void:
 	# actually rolled: a fresh run requests 0 and `RunState` picks, so announcing
 	# the request would send a zero and have the guest roll a world of its own.
 	RunState.reset(true, requested_seed)
+	# **And if the Warden is going back to a front, the road is put down first.**
+	#
+	# After the reset and before the field is built, so the battlefield stands
+	# the towers up through `_sync_towers` - the same one path that makes a tower
+	# node for a guest being handed a host's world. A second application path is
+	# a second thing that can drift.
+	if resume_front and MetaState.has_expedition():
+		Expedition.apply(MetaState.expedition)
 	if Coop.is_host() and Coop.partner_present():
 		EventBus.coop_run_started.emit(RunState.run_seed)
 	# The party is playing, so it is not looking for anybody. The row goes now
@@ -314,7 +329,35 @@ func end_run(victory: bool) -> void:
 func return_home() -> void:
 	if Coop.is_guest():
 		return
+	# **The frontier is banked before the run is settled.** A successful
+	# extraction is the only thing that writes a snapshot, and it writes it from
+	# the field that is still standing - once `_settle_run` has run there are no
+	# towers left to photograph.
+	bank_the_front()
 	_settle_run(false, true)
+
+
+## **Photograph the road and keep it**, so the Warden can come back to this
+## front rather than to Act I.
+##
+## Called by every extraction and by nothing else. Only the host banks: the run
+## is one shared thing and the world belongs to whoever owns it, so a guest
+## playing on somebody else's front takes their own progress home and leaves the
+## fortress where it stands (owner ruling, 2026-09-15).
+func bank_the_front() -> bool:
+	if Coop.is_guest():
+		return false
+	var field: Battlefield = _live_battlefield()
+	return MetaState.bank_expedition(Expedition.compose(field))
+
+
+## The battlefield that is currently standing, or null. Asked rather than held,
+## because the run owns it and this autoload outlives every run.
+func _live_battlefield() -> Battlefield:
+	var run: Node = get_tree().current_scene if get_tree() != null else null
+	if run == null:
+		return null
+	return run.get("battlefield") as Battlefield
 
 
 ## The eggs in the pack, opened at home.

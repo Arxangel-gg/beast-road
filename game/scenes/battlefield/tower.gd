@@ -147,6 +147,21 @@ func _ready() -> void:
 	if range_ring != null:
 		range_ring.position.y -= Balance.TOWER_SORT_LIFT
 
+	# **A restored fortification stands up as hurt as it was left.**
+	#
+	# Read once and taken off the list, so a tower rebuilt for any other reason -
+	# a guest's welcome, a re-sync - is whole, and only the one the expedition
+	# actually restored is damaged. Extraction that healed every emplacement
+	# would make "leave the moment anything is damaged" the correct play, and
+	# attrition would stop existing (owner ruling, 2026-09-15).
+	if RunState.tower_health_restore.has(anchor) and _health != null:
+		var ratio: float = clampf(
+			float(RunState.tower_health_restore[anchor]), 0.05, 1.0)
+		RunState.tower_health_restore.erase(anchor)
+		_health.current_hp = _health.max_hp * ratio
+		_health.changed.emit(_health.current_hp, _health.max_hp)
+		_rebuild_damage_flames()
+
 	_shadow = ShadowKit.add_contact(self, sprite)
 	if _shadow != null:
 		_shadow_base_scale = _shadow.scale

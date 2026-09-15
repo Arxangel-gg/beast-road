@@ -642,6 +642,8 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	# run ended, and a flag carried across runs would lose one for a death it
 	# already paid for.
 	pen_companion_fell = false
+	momentum = 0.0
+	tower_health_restore.clear()
 	companion_sex.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
@@ -2369,6 +2371,21 @@ var spirit_called: bool = true
 ## and the whole stake of taking one out is that it might not come back. Run
 ## scoped; `MetaState` decides what it means when the run ends.
 var pen_companion_fell: bool = false
+
+## **How far the party has pushed since it last banked**, as a fraction.
+##
+## Raised at each crossroads passed without extracting, cleared when one is
+## taken. Read by `Modifiers` into discovery keys only - see
+## `Balance.MOMENTUM_PER_CROSSROAD` for why it may never reach a damage number.
+var momentum: float = 0.0
+
+## **How hurt each restored tower should stand up.**
+##
+## Tower health lives on the node rather than here - it has never crossed the
+## wire and still does not - so a snapshot has nowhere to put it except a place
+## the node can read once as it is built. Keyed by anchor, consumed by
+## `Tower._ready`, and empty for every tower that was not restored.
+var tower_health_restore: Dictionary = {}
 ## The fraction of a Food unit the companion has eaten but not yet been
 ## charged, so a slow drain is a drain rather than a rounding error.
 var spirit_upkeep_carry: float = 0.0

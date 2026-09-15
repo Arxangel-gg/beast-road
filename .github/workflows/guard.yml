@@ -621,6 +621,7 @@ jobs:
           check "stagger" --headless --path game res://tools/stagger_check.tscn
           check "gear set" --headless --path game res://tools/gear_set_check.tscn
           check "pen" --headless --path game res://tools/pen_check.tscn
+          check "expedition" --headless --path game res://tools/expedition_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the
