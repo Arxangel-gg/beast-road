@@ -582,6 +582,10 @@ jobs:
           # Families, births, growth and the Wildblight: the inheritance odds
           # measured, the bounds held, and a frenzy that works on a rabbit.
           check "wildlife families" --headless --path game res://tools/wildlife_family_check.tscn
+          # The menu's corner plants: the three painted pieces on disk and
+          # drawn rather than the silhouette fallback, and a sway with no loop
+          # a viewer could notice inside three minutes.
+          check "menu foliage" --headless --path game res://tools/menu_foliage_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

@@ -3219,6 +3219,28 @@ menu's key art already paints (2026-09-12).
 | `menu_flame_idle_05.png` | 63×42 | T | `#C4552E` |
 | `menu_flame_idle_06.png` | 63×42 | T | `#C4552E` |
 
+### 5.28b Menu foliage - `res://art/ui/`
+
+The painted pieces the main menu's corner plants are drawn from (owner brief,
+2026-09-14: "main menu vines and foliage animated should have pixelart sprite
+assets attached to them").
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `menu_leaves.png` | 128x128 | T | `#3F6B33` |
+| `menu_frond.png` | 96x128 | T | `#2F5C2A` |
+| `menu_tendril.png` | 64x128 | T | `#4A7A38` |
+
+Three pieces rather than an animation, because the motion is procedural and
+must not loop: `MenuFoliage` walks a chain of segments whose angle is the sum
+of two sines of incommensurable periods, then lays the art along that chain -
+the tendril and the frond as a stack of bands, one per segment, each rotated
+to its own piece of the curve, and the leaf cluster as a sprite hung at a
+point. The frond is painted tip-up and read in reverse, because a fern grows
+stem-first. A missing file costs nothing: the silhouettes the menu drew before
+these existed are still the fallback, which is why the menu is never blank
+because a file is late.
+
 ### 5.33 Crops — `res://art/crops/`
 
 All 64×64, type T, placeholder colour `#8CB26A`.

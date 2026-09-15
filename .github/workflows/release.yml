@@ -171,6 +171,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/death_marker_check.tscn
           run_godot_clean --headless --path game res://tools/tower_support_check.tscn
           run_godot_clean --headless --path game res://tools/wildlife_family_check.tscn
+          run_godot_clean --headless --path game res://tools/menu_foliage_check.tscn
           run_godot_clean --headless --path game res://tools/attribute_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_shot_check.tscn
           run_godot_clean --headless --path game res://tools/gathering_check.tscn
