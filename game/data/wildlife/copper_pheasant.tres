@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1")
+lays_eggs = true
+incubation_distance = 85.0
 coat_pattern = 1
 coat_pattern_strength = 0.32
 coat_pattern_scale = 3.0
@@ -13,7 +15,7 @@ coat_light_spread = 0.13
 coat_saturation_spread = 0.16
 breeds = true
 breeding_group = "copper_pheasant"
-litter_min = 2
+litter_min = 3
 litter_max = 5
 gestation_seconds = 40.00
 loyalty = 0.35

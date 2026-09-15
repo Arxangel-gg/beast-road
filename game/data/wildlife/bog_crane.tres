@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "bog_crane"
+litter_min = 2
+litter_max = 3
+gestation_seconds = 45.0
+protection = 1
+lays_eggs = true
+incubation_distance = 105.0
 id = "bog_crane"
 display_name = "Bog Crane"
 description = "It has been standing in that water since before the road came through, and it has not blinked."

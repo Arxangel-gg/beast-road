@@ -2775,6 +2775,12 @@ the same family and are listed with them.
 Adding a mythic is a `WildlifeData` with `mythic = true`, a `.tres` per sign in
 `data/trail_signs/`, and a sprite named for each sign's id — no code.
 
+**And the nests the laying half of the roster leaves (2026-09-15)**, listed here
+because they are the same kind of thing: an object lying on the ground at the
+same slight top-down angle. One painting serves every species - a nest is a
+nest, and what differs is what is standing beside it - and the empty one is what
+a hatched clutch and a robbed one both leave behind.
+
 | File | Size | Type | Placeholder colour |
 |------|------|------|--------------------|
 | `sign_moonstag_track.png` | 96×64 | T | `#5A4A3A` |
@@ -2782,6 +2788,8 @@ Adding a mythic is a `WildlifeData` with `mythic = true`, a `.tres` per sign in
 | `sign_moonstag_tuft.png` | 96×64 | T | `#5A4A3A` |
 | `sign_moonstag_bed.png` | 96×64 | T | `#5A4A3A` |
 | `sign_moonstag_ring.png` | 96×64 | T | `#5A4A3A` |
+| `nest.png` | 96×64 | T | `#5A4A3A` |
+| `nest_empty.png` | 96×64 | T | `#5A4A3A` |
 
 ### 5.16b Beast scope skylines — `res://art/beast/`
 

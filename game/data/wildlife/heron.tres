@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "heron"
+litter_min = 2
+litter_max = 3
+gestation_seconds = 45.0
+protection = 1
+lays_eggs = true
+incubation_distance = 100.0
 id = "heron"
 display_name = "Grey Heron"
 description = "It stands in the shallows so long you stop seeing it, and then it is gone."

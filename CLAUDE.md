@@ -2944,6 +2944,51 @@ was authored. The release sweep is the thing that finds them, so it belongs
 before the work is finished is wasted, because every later commit invalidates
 it.
 
+**Half the roster lays rather than bears, as of 2026-09-15.** The owner
+forwarded an essay on egg and nesting ecology. The families built on 2026-09-14
+place a cub beside its mother, which is right for a wolf and wrong for a crane -
+and worse, of this roster's birds, reptiles and insects only the Copper Pheasant
+and the Reed Frog ever paired at all, so the half of the ecology that should
+have been leaving clutches on the ground was not reproducing.
+
+Sixteen species lay now, and thirteen of them breed for the first time. A laying
+pair leaves a **nest**: the clutch is rolled by the same `_roll_clutch` a litter
+is - the same inheritance, the same shiny rules, the same act budget - and then
+it sits there and hatches by **road walked**, never by the clock, for the same
+reason a crop grows that way. A beast standing still hatches nothing.
+
+**And it can be robbed.** `IDEAS_REVIEW_2026-09-15` triaged the forwarded
+proposal's best beat - steal the egg and be hunted all the way out - and found
+that this game's translation is the homecoming pass rather than an extraction.
+This is the honest smaller version: take an egg and that species comes for you
+for the rest of the act, wherever you go. `Wildlife.rouse_species` is a third
+reason an animal attacks, beside being a hunter by nature and being taken by the
+Wildblight, and it goes through the same branch - what separates it is the
+target. A frenzy attacks everything living including its own kind; a robbed
+parent wants the people who robbed it.
+
+**Three bounds, each one something else here is already held to.**
+
+- **An egg is never a power scale.** It pays Food, which is a run currency, and
+  credits the *sighting* of that variant, which is the credit a birth already
+  pays. No attribute, no bond, no gear.
+- **A robbed parent's bite is its own.** `WildlifeFamilies.blight_bite` is the
+  helper that already answers "what does an animal that never fought hit with",
+  and nothing here multiplies damage.
+- **Nothing persists.** A nest is the run's, like a plot and a trail, and a
+  grudge is forgotten when the act changes - a species angered in Act I hunting
+  the party in Act X would be a difficulty setting picked up by accident.
+
+**Co-op needs three wire entries and they are all "by name, never by amount".**
+A clutch crosses as a species, a count and a place (`Fact.WILDLIFE_NESTED`);
+what the eggs *become* is the host's decision and arrives later as an ordinary
+birth, so a guest never rolls a clutch of its own. A theft crosses as the nest's
+new count and the species that is now hunting (`Fact.WILDLIFE_ROBBED`). And a
+guest taking an egg **asks** (`Request.TAKE_EGG`) with the species id, because
+the Food is the run's and the run is the host's - the rule the fish and the crop
+are already asked under, and the reason a number in that message would have been
+a currency printer.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

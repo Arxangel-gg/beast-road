@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "tortoise"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 45.0
+protection = 0
+lays_eggs = true
+incubation_distance = 130.0
 id = "tortoise"
 display_name = "Sand Tortoise"
 description = "Older than the road. It has seen this before and was not impressed then either."

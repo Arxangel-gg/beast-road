@@ -34,6 +34,9 @@ const HEART_ART: String = "res://art/vfx/heart.png"
 const BLIGHT_ART: String = "res://art/vfx/blight.png"
 
 var wild: Wildlife = null
+## Where a laying species puts its clutch. Null on a field with no nests,
+## which makes every species bear its young - the behaviour before this.
+var nests: WildlifeNests = null
 ## Births and outbreaks this act; reset when the act changes.
 var births_this_act: int = 0
 var outbreaks_this_act: int = 0
@@ -575,18 +578,50 @@ func _give_birth(mother: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> vo
 	var father_rarity: int = rarity_of(father) if not father.is_empty() else rarity_of(mother)
 	var father_shiny: bool = bool(father.get("shiny", false)) if not father.is_empty() else false
 	var litter: int = _rng().randi_range(kind.litter_min, kind.litter_max)
-	var born_count: int = 0
-	var credited_variants: Dictionary = {}
 	wild.next_family()
 	var family: int = wild.family_id()
+	# **Rolled first, placed second**, so a nest can sit between the two. The
+	# inheritance, the shine and the act's budget are decided in exactly one
+	# place whether the species bears its young or lays them - an egg must
+	# never be a second route to a rarer animal.
+	var clutch: Array[Dictionary] = _roll_clutch(mother, kind, litter, family,
+		father_rarity, father_shiny)
+	if clutch.is_empty():
+		return
+	# **A nest is the birth event**, and its budget is spent when it is laid
+	# rather than when it opens: a clutch that had to re-ask for room at the end
+	# of a region could quietly hatch into nothing, which is the silent failure
+	# this project keeps refusing.
+	if kind.lays_eggs and nests != null:
+		nests.lay(kind, sprite.global_position, clutch, family)
+		_bump_familiarity(mother, int(mother.get("litter_by", 0)), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
+		if not father.is_empty():
+			_bump_familiarity(father, int(mother["net_id"]), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
+		return
+	var born_count: int = _place_clutch(kind, sprite.global_position, clutch)
+	if born_count > 0:
+		_bump_familiarity(mother, int(mother.get("litter_by", 0)), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
+		if not father.is_empty():
+			_bump_familiarity(father, int(mother["net_id"]), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
+		RunState.note_kept("births", float(born_count))
+		EventBus.wildlife_born.emit(kind.id, born_count, sprite.global_position)
+
+
+
+## The clutch a pair would produce: one entry per young, or fewer where the
+## act's budget or the population cap runs out.
+func _roll_clutch(mother: Dictionary, kind: WildlifeData, litter: int,
+		family: int, father_rarity: int, father_shiny: bool) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	for _cub: int in litter:
-		if births_this_act >= Balance.WILDLIFE_BIRTHS_PER_ACT or wild.population() >= wild.population_cap():
+		if births_this_act >= Balance.WILDLIFE_BIRTHS_PER_ACT \
+				or wild.population() + out.size() >= wild.population_cap():
 			break
 		var rarity: int = inherit_rarity(rarity_of(mother), father_rarity, _rng())
-		var shiny: bool = inherit_shiny(rarity, bool(mother.get("shiny", false)), father_shiny, _rng())
-		var at: Vector2 = sprite.global_position + Vector2.RIGHT.rotated(_rng().randf() * TAU) \
-			* _rng().randf_range(kind.social_spacing * 0.4, kind.social_spacing * 0.8)
-		var born: Dictionary = {
+		var shiny: bool = inherit_shiny(rarity, bool(mother.get("shiny", false)),
+			father_shiny, _rng())
+		births_this_act += 1
+		out.append({
 			"sex": _rng().randi_range(0, 1),
 			"rarity": rarity,
 			"shiny": shiny,
@@ -594,26 +629,42 @@ func _give_birth(mother: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> vo
 			"born_act": RunState.act,
 			"parents": [int(mother["net_id"]), int(mother.get("litter_by", 0))],
 			"family": family,
-		}
-		var cub: Dictionary = wild.spawn_born(kind, at, born)
+		})
+	return out
+
+
+## A rolled clutch becomes animals on the ground.
+func _place_clutch(kind: WildlifeData, at: Vector2,
+		clutch: Array[Dictionary]) -> int:
+	var born_count: int = 0
+	var credited_variants: Dictionary = {}
+	for born: Dictionary in clutch:
+		var where: Vector2 = at + Vector2.RIGHT.rotated(_rng().randf() * TAU) \
+			* _rng().randf_range(kind.social_spacing * 0.4, kind.social_spacing * 0.8)
+		var cub: Dictionary = wild.spawn_born(kind, where, born)
 		if cub.is_empty():
 			break
-		births_this_act += 1
 		born_count += 1
 		# Collection: one credit per birth event and variant, not one per
 		# identical sibling. Observation, never slaughter.
-		var variant: String = SpiritBond.key(kind.id, rarity, shiny)
+		var variant: String = SpiritBond.key(kind.id, int(born["rarity"]),
+			bool(born["shiny"]))
 		if credited_variants.has(variant):
 			cub["credited"] = true
 		else:
 			credited_variants[variant] = true
-		_announce_birth(cub, kind, rarity, shiny, at)
+		_announce_birth(cub, kind, int(born["rarity"]), bool(born["shiny"]), where)
+	return born_count
+
+
+## A nest opens. The same door a litter goes through, so nothing downstream
+## learns that some of this roster lays eggs.
+func hatch(kind: WildlifeData, at: Vector2, clutch: Array[Dictionary],
+		_family: int) -> void:
+	var born_count: int = _place_clutch(kind, at, clutch)
 	if born_count > 0:
-		_bump_familiarity(mother, int(mother.get("litter_by", 0)), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
-		if not father.is_empty():
-			_bump_familiarity(father, int(mother["net_id"]), Balance.WILDLIFE_FAMILIARITY_PER_BIRTH)
 		RunState.note_kept("births", float(born_count))
-		EventBus.wildlife_born.emit(kind.id, born_count, sprite.global_position)
+		EventBus.wildlife_born.emit(kind.id, born_count, at)
 
 
 ## A rustle and a quiet call; a rarity above the parents' is a restrained

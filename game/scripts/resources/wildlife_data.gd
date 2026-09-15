@@ -357,6 +357,18 @@ enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS }
 @export_range(1, 10) var trail_first_act: int = 1
 
 
+## **Half this roster does not give birth.**
+##
+## Owner brief, 2026-09-15 (the forwarded essay on egg and nesting ecology). The
+## families built on 2026-09-14 place a cub beside its mother, which is right
+## for a wolf and wrong for a crane. A laying species leaves a **nest** instead:
+## the same clutch, rolled the same way, sitting on the ground and hatching by
+## road walked. See `WildlifeNests`.
+@export var lays_eggs: bool = false
+## How much road the clutch needs before it opens. Zero uses the roster default.
+@export_range(0.0, 400.0) var incubation_distance: float = 0.0
+
+
 ## The group this species pairs inside: its own name unless it shares one.
 func breeding_group_id() -> String:
 	return breeding_group if not breeding_group.is_empty() else id

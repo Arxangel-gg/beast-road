@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "glass_moth"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 45.0
+protection = 0
+lays_eggs = true
+incubation_distance = 65.0
 coat_hue_spread = 0.032
 coat_light_spread = 0.09
 coat_saturation_spread = 0.18

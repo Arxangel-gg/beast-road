@@ -602,6 +602,17 @@ func _carry_out(kind: int, args: Array, from: int) -> void:
 				if crop != null:
 					RunState.gain_currency(RunState.FOOD,
 						Farming.food_for(crop, MetaState.profession_level(Farming.CRAFT)))
+		CoopRelay.Request.TAKE_EGG:
+			# A guest took an egg. The Food is the *run's* and the run is the
+			# host's to pay out; the collection credit is that player's own
+			# account and never crosses. Named by species, so the amount is read
+			# off the host's own content.
+			if args.size() >= 1:
+				var robbed := ContentDB.wildlife_kinds.get(String(args[0]),
+					null) as WildlifeData
+				if robbed != null:
+					RunState.gain_currency(RunState.FOOD,
+						randi_range(robbed.food_min, robbed.food_max))
 		CoopRelay.Request.LAND_FISH:
 			# A guest landed a fish. The fish itself is already in that player's
 			# own account and never crosses the wire; only the Food is the

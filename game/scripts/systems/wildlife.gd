@@ -138,6 +138,39 @@ func living() -> Array[Dictionary]:
 	return _living
 
 
+## Every living animal of a species decides to fight, because somebody took an
+## egg out of one of its nests.
+##
+## **A third reason an animal comes at you**, beside being a hunter by nature
+## and being taken by the Wildblight - and it goes through the same branch, so
+## nothing downstream learns that robbery exists. What separates it from the
+## frenzy is the target: a frenzied animal attacks everything living including
+## its own kind, and a robbed parent wants the people who robbed it.
+##
+## The bite is `WildlifeFamilies.blight_bite`, which is the helper that already
+## answers "what does an animal that never fought hit with" - so a robbed crane
+## is a crane that has decided to fight rather than a new number.
+func rouse_species(species_id: String, toward: Vector2) -> void:
+	for animal: Dictionary in _living:
+		var kind := animal.get("data") as WildlifeData
+		if kind == null or kind.id != species_id:
+			continue
+		if float(animal.get("dying", 0.0)) > 0.0:
+			continue
+		animal["angered"] = true
+		animal["wary"] = 0.0
+		animal["hunt"] = Balance.WILDLIFE_HUNT_MAX
+		var sprite := animal.get("sprite") as Node2D
+		if sprite != null and is_instance_valid(sprite):
+			animal["goal"] = toward
+			Vfx.spark(sprite.global_position, Color(0.92, 0.42, 0.30), 6,
+				(toward - sprite.global_position).normalized(), 130.0)
+	if not species_id.is_empty():
+		var kind: WildlifeData = ContentDB.wildlife_kinds.get(species_id, null) as WildlifeData
+		if kind != null and not kind.vocal_sfx.is_empty():
+			Sfx.play(kind.vocal_sfx, -2.0)
+
+
 ## One animal by its serial, or an empty record.
 func animal_by_id(net_id: int) -> Dictionary:
 	if net_id == 0:
@@ -968,7 +1001,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	# A hostile animal decides differently, and gets first refusal on the frame.
 	# A frenzied one hunts whatever its species is: the Wildblight is what turns
 	# a rabbit into something that comes at you.
-	if (kind.is_hostile() or WildlifeFamilies.is_frenzied(animal)) \
+	if (kind.is_hostile() or WildlifeFamilies.is_frenzied(animal)
+			or bool(animal.get("angered", false))) \
 			and int(animal["state"]) != State.LEAVING:
 		if _tick_hostile(animal, sprite, kind, delta):
 			return true
@@ -1413,7 +1447,8 @@ func _tick_hostile(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 		return false
 
 	var quarry: Node2D = _quarry_for(sprite.global_position, kind, sprite,
-		bool(animal.get("rabid", false)), bool(animal.get("truce", false)))
+		bool(animal.get("rabid", false)), bool(animal.get("truce", false)),
+		bool(animal.get("angered", false)))
 	if quarry == null:
 		# Nothing worth attacking. A territorial animal goes back to standing
 		# about; a predator keeps looking while it wanders.
@@ -1491,13 +1526,13 @@ func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
 ## A territorial animal only answers inside its own ground; a predator reaches as
 ## far as it can see. Same number, two meanings - see `aggro_radius`.
 func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
-		rabid: bool = false, truce: bool = false) -> Node2D:
+		rabid: bool = false, truce: bool = false, angered: bool = false) -> Node2D:
 	var best: Node2D = null
 	# A frenzied grazer has no aggro radius of its own - nothing harmless does -
 	# so the blight lends it one, or a turned rabbit would look for trouble and
 	# find none (2026-09-14).
 	var reach: float = kind.aggro_radius
-	if rabid:
+	if rabid or angered:
 		reach = maxf(reach, Balance.WILDBLIGHT_FRENZY_AGGRO) * 1.5
 	var best_distance: float = reach
 	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):

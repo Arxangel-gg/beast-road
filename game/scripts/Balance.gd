@@ -3254,6 +3254,19 @@ const TRAIL_SIGN_SPENT: float = 0.45
 ## How many band tiles are sampled when a sign looks for its ground.
 const TRAIL_PLACEMENT_TRIES: int = 60
 
+## **A nest, and what it costs to rob one.** See `WildlifeNests`.
+##
+## Incubation is measured in *road*, like a crop, for the same reason: a beast
+## standing still must hatch nothing, or a nest is a thing to farm by waiting.
+## About a sixth of an act, so a clutch laid early in a region opens inside it
+## and one laid late travels with the party. [TUNE]
+const NEST_INCUBATION_DISTANCE: float = 95.0
+## How near a hero has to be to reach into one, and how big it is drawn.
+const NEST_REACH: float = 120.0
+const NEST_SCALE: float = 1.0
+## How long an emptied nest lingers before it fades.
+const NEST_SPENT_SECONDS: float = 6.0
+
 const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]

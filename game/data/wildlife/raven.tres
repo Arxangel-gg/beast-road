@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "raven"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 45.0
+protection = 1
+lays_eggs = true
+incubation_distance = 90.0
 id = "raven"
 display_name = "Raven"
 description = "Comes for the battle, not despite it."

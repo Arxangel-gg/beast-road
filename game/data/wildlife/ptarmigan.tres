@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "ptarmigan"
+litter_min = 3
+litter_max = 5
+gestation_seconds = 45.0
+protection = 1
+lays_eggs = true
+incubation_distance = 80.0
 id = "ptarmigan"
 display_name = "Ptarmigan"
 description = "It holds its nerve far longer than seems wise, and breaks all at once."

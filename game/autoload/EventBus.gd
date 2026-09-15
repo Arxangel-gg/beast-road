@@ -279,6 +279,11 @@ signal wildlife_killed(kind_id: String, food: int, at: Vector2, rarity: int, shi
 ## species, how many arrived and where. Presentation and the debrief read it;
 ## nothing about a reward travels on it.
 signal wildlife_born(kind_id: String, count: int, at: Vector2)
+## A laying species left a clutch on the ground. Drawn and counted; nothing
+## reads it for a number.
+signal wildlife_nested(species_id: String, eggs: int, at: Vector2)
+## Somebody took an egg, and that species now has a reason.
+signal wildlife_robbed(species_id: String, at: Vector2)
 
 ## An animal's Wildblight reached its frenzy. Said once, where it turned.
 signal wildlife_blighted(kind_id: String, at: Vector2)
@@ -290,6 +295,13 @@ signal coop_wildlife_family(net_id: int, word: int, value: int)
 ## The host bore young, so a guest's field holds the same ones. Everything
 ## rolled - the sex, the rarity, the shine - is the host's.
 signal coop_wildlife_born(net_id: int, kind_id: String, at: Vector2, born: Dictionary)
+## A clutch was laid, host to guest: a species, a count and a place to draw it.
+## The eggs themselves never cross - what they become is decided by the host and
+## arrives as an ordinary birth.
+signal coop_wildlife_nested(kind_id: String, eggs: int, at: Vector2)
+## An egg was taken from a nest, host to everyone: how many are left, and the
+## species that now has a reason.
+signal coop_wildlife_robbed(kind_id: String, at: Vector2, left: int)
 
 ## An individual enemy was struck by the hero; Command reads the tactical value.
 signal hero_enemy_hit(enemy_id: String, lane: int, priority: bool, interrupted: bool, at: Vector2)

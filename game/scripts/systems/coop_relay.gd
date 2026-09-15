@@ -154,6 +154,13 @@ enum Fact {
 	## A birth, so a guest's field holds the same young. The rarity, the shine
 	## and the sex are the host's; a guest never rolls one.
 	WILDLIFE_BORN = 73,
+	## A clutch on the ground, host to guest. Only a species, a count and a
+	## place: what the eggs become is the host's decision and arrives as a
+	## birth. See `WildlifeNests`.
+	WILDLIFE_NESTED = 75,
+	## An egg taken, host to everyone: the nest's new count and the species
+	## that is now hunting.
+	WILDLIFE_ROBBED = 76,
 	## The wind, as a heading and a strength (2026-09-15). Sent on a threshold
 	## rather than a clock: silent through a settled quarter, talking through a
 	## turn. A guest eases toward it and simulates every leaf itself.
@@ -194,6 +201,10 @@ enum Request {
 	## worst a forged packet can carry is the name of a fish that does not
 	## exist. A number in this message would have been a currency printer.
 	LAND_FISH = 24,
+	## A guest took an egg. **By species, never by amount**, the same rule the
+	## fish and the crop are asked under: the host reads the Food off its own
+	## content, so the worst a forged packet carries is the name of an animal.
+	TAKE_EGG = 35,
 	# --- Trading (owner brief, 2026-09-10) -----------------------------------
 	#
 	# Six verbs rather than one, because a trade is a conversation and the
@@ -424,6 +435,8 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
 		["coop_wildlife_family", _on_coop_wildlife_family],
 		["coop_wildlife_born", _on_coop_wildlife_born],
+		["coop_wildlife_nested", _on_coop_wildlife_nested],
+		["coop_wildlife_robbed", _on_coop_wildlife_robbed],
 		["coop_camp_state", _on_coop_camp_state],
 		["coop_fork_opened", _on_coop_fork_opened],
 		["coop_party_event_proposed", _on_coop_party_event_proposed],
@@ -525,6 +538,14 @@ func _on_coop_wildlife_family(net_id: int, word: int, value: int) -> void:
 
 func _on_coop_wildlife_born(net_id: int, kind_id: String, at: Vector2, born: Dictionary) -> void:
 	_relay(Fact.WILDLIFE_BORN, [net_id, kind_id, at, born])
+
+
+func _on_coop_wildlife_nested(kind_id: String, eggs: int, at: Vector2) -> void:
+	_relay(Fact.WILDLIFE_NESTED, [kind_id, eggs, at])
+
+
+func _on_coop_wildlife_robbed(kind_id: String, at: Vector2, left: int) -> void:
+	_relay(Fact.WILDLIFE_ROBBED, [kind_id, at, left])
 
 
 func _on_coop_wildlife_batch(entries: Array) -> void:
@@ -988,6 +1009,14 @@ func _replay(kind: int, args: Array) -> void:
 			if args.size() == 4 and args[3] is Dictionary:
 				bus.coop_wildlife_born.emit(int(args[0]), String(args[1]),
 					args[2] as Vector2, args[3] as Dictionary)
+		Fact.WILDLIFE_NESTED:
+			if args.size() == 3 and args[2] is Vector2:
+				bus.coop_wildlife_nested.emit(String(args[0]), int(args[1]),
+					args[2] as Vector2)
+		Fact.WILDLIFE_ROBBED:
+			if args.size() == 3 and args[1] is Vector2:
+				bus.coop_wildlife_robbed.emit(String(args[0]),
+					args[1] as Vector2, int(args[2]))
 		Fact.WIND:
 			if args.size() == 1 and args[0] is Vector2:
 				bus.coop_wind_changed.emit(args[0] as Vector2)

@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "viper"
+litter_min = 3
+litter_max = 5
+gestation_seconds = 45.0
+protection = 2
+lays_eggs = true
+incubation_distance = 90.0
 coat_pattern = 2
 coat_pattern_strength = 0.48
 coat_pattern_scale = 4.0

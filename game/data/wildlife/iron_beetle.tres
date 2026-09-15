@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "iron_beetle"
+litter_min = 2
+litter_max = 5
+gestation_seconds = 45.0
+protection = 0
+lays_eggs = true
+incubation_distance = 70.0
 coat_pattern = 2
 coat_pattern_strength = 0.30
 coat_pattern_scale = 4.0

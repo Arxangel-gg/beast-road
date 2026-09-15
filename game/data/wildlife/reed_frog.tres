@@ -4,12 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+lays_eggs = true
+incubation_distance = 60.0
 coat_hue_spread = 0.034
 coat_light_spread = 0.10
 coat_saturation_spread = 0.18
 breeds = true
 breeding_group = "reed_frog"
-litter_min = 2
+litter_min = 3
 litter_max = 6
 gestation_seconds = 34.00
 loyalty = 0.10

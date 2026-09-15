@@ -51,6 +51,8 @@ var _farming: Farming = null
 var _treeline: Treeline = null
 ## What a mythical animal left behind, and where it is at the end of it.
 var _trail: MythicTrail = null
+## The clutches the laying half of the roster leaves on the ground.
+var _nests: WildlifeNests = null
 ## The CanvasModulate the hour is painted on. A member rather than a local
 ## so the tint can follow the sun through a method instead of a lambda.
 var _day_tint_node: CanvasModulate = null
@@ -785,6 +787,7 @@ func _build_foliage() -> void:
 	_build_gathering()
 	_build_camps()
 	_build_trail()
+	_build_nests()
 
 
 func _build_ambient_life() -> void:
@@ -845,6 +848,29 @@ func rift_gates() -> RiftGates:
 ## same rule they are: out past the inner square the roads make, on open ground
 ## drawn from the band's own tiles. See `Gathering` for the two extra gates on
 ## rarity - how far out a spot is, and how practised the craft is.
+## Where the laying half of the roster puts its clutches.
+##
+## Built after the wildlife, because the families hand it what they rolled, and
+## handed back to them in the same breath - one object, two references, so
+## neither can be right while the other is wrong.
+func _build_nests() -> void:
+	_nests = WildlifeNests.new()
+	_nests.name = "WildlifeNests"
+	_nests.grid = grid
+	_nests.animals = _wildlife
+	add_child(_nests)
+	if _wildlife != null:
+		var families: WildlifeFamilies = _wildlife.families()
+		if families != null:
+			families.nests = _nests
+			_nests.families = families
+
+
+## The nests, for the map and the gate.
+func nests() -> WildlifeNests:
+	return _nests
+
+
 ## The evidence a mythical animal leaves. Built after the camps, because its
 ## signs want ground nothing else has taken.
 func _build_trail() -> void:
@@ -2077,6 +2103,11 @@ func refresh_terrain() -> void:
 		_farming.avoid = _taken_ground() + (_gathering.node_positions() if _gathering != null else PackedVector2Array())
 		_farming.avoid_water = _taken_water()
 		_farming.refresh_region()
+	# And the nests: a clutch belongs to the ground it was laid on, and a
+	# species angered in one region does not follow the party into the next.
+	if _nests != null:
+		_nests.wipe()
+		_nests.forget()
 	# And the trail, which is an act's own: a mythic belongs to a region, and a
 	# trail half walked when the road moves on is a trail to nowhere.
 	if _trail != null:

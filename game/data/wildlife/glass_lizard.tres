@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "glass_lizard"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 45.0
+protection = 0
+lays_eggs = true
+incubation_distance = 75.0
 coat_pattern = 1
 coat_pattern_strength = 0.36
 coat_pattern_scale = 3.0
@@ -11,7 +19,6 @@ coat_pattern_tint = Color(0.800, 0.940, 0.980, 0.750)
 coat_hue_spread = 0.030
 coat_light_spread = 0.14
 coat_saturation_spread = 0.18
-breeds = false
 id = "glass_lizard"
 display_name = "Glass Lizard"
 description = "You see the light through it before you see it."
