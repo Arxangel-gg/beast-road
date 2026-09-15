@@ -46,6 +46,7 @@ func _ready() -> void:
 	_test_the_body_carries_a_stub_that_far()
 	_test_the_stub_fades_and_the_tail_does_not()
 	_test_the_tail_wears_the_hide()
+	_test_the_tail_is_drawn_in_the_same_ink()
 	MetaState.resume_saves()
 	if _failures.is_empty():
 		print("[beast-tail] PASS - %d checks: root row, stub fade, stub reach, "
@@ -243,6 +244,89 @@ func _test_the_tail_wears_the_hide() -> void:
 const HIDE_LUMINANCE_TOLERANCE: float = 0.06
 const HIDE_RATIO_TOLERANCE: float = 0.02
 
+## At or below this in every channel, a pixel is ink rather than hide. The same
+## number `tools/match_tail_palette.py` separates on, and for the same reason.
+const INK: float = 12.0 / 255.0
+## How far the tail's share of ink may fall short of the hide's. It may exceed
+## it freely: a thin limb is mostly outline, and that is geometry.
+const INK_FLOOR_SHARE: float = 0.6
+
+
+## **A mean cannot see a missing outline, and that is what shipped.**
+##
+## The tail and the hide agreed on mean brightness, on R/G and on B/G - every
+## number the check above reads - while the tail carried **0.0%** of its pixels
+## below luminance 0.04 against the hide's 13.5%. Not one true black in the
+## whole limb. Its outline and the moss hanging off it had been matched away
+## into grey by a histogram that could not tell a line from a surface, and
+## beside a body still drawn in crisp black it read as a different, flatter,
+## lighter material joined at the hip. Three owner reports; four counting the
+## one that found it.
+##
+## So this measures the two things a mean averages over: **the ink is there and
+## it is the body's ink**, and **nothing on the tail is brighter than the
+## brightest thing on the body**. The second is not hypothetical either - one
+## pixel came back at pure white against a hide whose highlight stops at 188.
+func _test_the_tail_is_drawn_in_the_same_ink() -> void:
+	var hide: Dictionary = _ink_and_ceiling(_body_frames(), true)
+	var tail: Dictionary = _ink_and_ceiling(_tail_frames(), false)
+	if hide.is_empty() or tail.is_empty():
+		_check(false, "could not read the body or the tail frames to compare their ink")
+		return
+	_check(float(hide["share"]) > 0.01,
+		"the body must be drawn with ink at all for this check to mean anything (%.3f)"
+			% float(hide["share"]))
+	_check(float(tail["share"]) >= float(hide["share"]) * INK_FLOOR_SHARE,
+		("the tail is %.1f%% ink against the hide's %.1f%%: its outline has been "
+			+ "matched away into grey; run tools/match_tail_palette.py")
+			% [100.0 * float(tail["share"]), 100.0 * float(hide["share"])])
+	var body_ink := Color(hide["ink"])
+	var tail_ink := Color(tail["ink"])
+	_check(absf(tail_ink.get_luminance() - body_ink.get_luminance()) <= 0.02,
+		"the tail's ink is %s against the body's %s"
+			% [str(tail_ink), str(body_ink)])
+	_check(float(tail["ceiling"]) <= float(hide["ceiling"]) + 0.01,
+		("the tail's brightest pixel is %.3f against the hide's %.3f: a gain has "
+			+ "blown a highlight the body never reaches")
+			% [float(tail["ceiling"]), float(hide["ceiling"])])
+
+
+## The share of a set of frames that is ink, the mean colour of that ink, and
+## the brightest surface pixel in them.
+func _ink_and_ceiling(paths: Array[String], hide_only: bool) -> Dictionary:
+	var ink := Vector3.ZERO
+	var ink_count: int = 0
+	var solid: int = 0
+	var ceiling: float = 0.0
+	for path: String in paths:
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		var x_to: int = int(float(image.get_width()) * 0.375) if hide_only else image.get_width()
+		var y_from: int = image.get_height() / 2 if hide_only else 0
+		for y: int in range(y_from, image.get_height()):
+			for x: int in range(0, x_to):
+				var at: Color = image.get_pixel(x, y)
+				if at.a < 0.5:
+					continue
+				solid += 1
+				if at.r <= INK and at.g <= INK and at.b <= INK:
+					ink += Vector3(at.r, at.g, at.b)
+					ink_count += 1
+				else:
+					ceiling = maxf(ceiling, maxf(at.r, maxf(at.g, at.b)))
+	if solid == 0:
+		return {}
+	var mean: Vector3 = ink / maxf(float(ink_count), 1.0)
+	return {
+		"share": float(ink_count) / float(solid),
+		"ink": Color(mean.x, mean.y, mean.z),
+		"ceiling": ceiling,
+	}
+
 ## The body frames the tail was matched against, or the single profile.
 func _body_frames() -> Array[String]:
 	var out: Array[String] = []
@@ -253,9 +337,16 @@ func _body_frames() -> Array[String]:
 	return out
 
 
-## [mean luminance, R/G, B/G] over every solid pixel of the given frames. For
-## the body, only the hide at the join - the lower left of the canvas, which is
-## the stub, the haunch, the belly and the rear legs and none of the town.
+## [mean luminance, R/G, B/G] over the *surface* of the given frames. For the
+## body, only the hide at the join - the lower left of the canvas, which is the
+## stub, the haunch, the belly and the rear legs and none of the town.
+##
+## **Ink is left out, because a mean over line and surface together measures
+## the shape rather than the colour.** A tail is a thin limb and is therefore a
+## bigger share of outline than a haunch is; counted in, that reads as a tail
+## 0.89 times the hide's brightness however exactly its hide is matched. The
+## ink is checked separately, and by the thing that actually matters about it -
+## that it is there, and that it is the body's ink.
 func _pooled_colour(paths: Array[String], hide_only: bool) -> Array[float]:
 	var total := Vector3.ZERO
 	var count: int = 0
@@ -271,7 +362,7 @@ func _pooled_colour(paths: Array[String], hide_only: bool) -> Array[float]:
 		for y: int in range(y_from, image.get_height()):
 			for x: int in range(0, x_to):
 				var at: Color = image.get_pixel(x, y)
-				if at.a >= 0.5:
+				if at.a >= 0.5 and not (at.r <= INK and at.g <= INK and at.b <= INK):
 					total += Vector3(at.r, at.g, at.b)
 					count += 1
 	if count == 0:

@@ -2572,6 +2572,34 @@ const VFX_ART_FRAME_RATE: float = 12.0
 ## steps; the finisher plays it larger. [TUNE]
 const VFX_HIT_SHEET_SIZE: float = 72.0
 
+## **What the worn weapon does to the look of a blow** (owner brief,
+## 2026-09-15: "even juicier attack vfx and game juice that is also further
+## affected by player's gear appropriately").
+##
+## Every number here is a picture and none of them is a fact. The blow is the
+## same blow: `HeroAttack` computes it, `take_damage` takes it, and nothing
+## downstream asks what the player is wearing. That is the same bound the hide
+## effects, the tower styles, the omens and the tower paths are built under, and
+## it is what lets the ten-act pressure curve still be read against the numbers
+## it was tuned on. If any of these ever reaches the fight, it has become a
+## power scale nobody is tuning.
+##
+## Rarity is expressed as a *grade* from 0 at Common to 1 at Beastcalled, so the
+## ladder lengthening again costs nothing here.
+const GEAR_VFX_GRADE_SPARKS: float = 1.6
+const GEAR_VFX_GRADE_SPEED: float = 1.45
+const GEAR_VFX_GRADE_BLADE_TINT: float = 0.55
+## The rarity at which a weapon starts leaving its attribute's colour in the
+## air. An aura on every weapon is not a reward.
+const GEAR_VFX_AURA_FROM_RARITY: int = 3
+const GEAR_VFX_AURA_MOTES: int = 7
+## A heavy weapon throws dust and a wide slow ring; a quick one throws more,
+## smaller, faster sparks. Taken from `reach_scale`, whose product with
+## `swing_scale` is held at 1, so this reads the weapon's character and never
+## its power.
+const GEAR_VFX_HEAVY_FROM: float = 1.12
+const GEAR_VFX_QUICK_BELOW: float = 0.9
+
 ## How wide a painted impact burst is drawn for a shot with no blast radius. An
 ## area shot uses its own radius instead, so the picture matches the damage. [TUNE]
 const PROJECTILE_IMPACT_ART_SIZE: float = 86.0
@@ -6418,7 +6446,15 @@ const BEAST_TAIL_IDLE_FRAME_FORMAT: String = "res://art/beast/beast_tail_idle_%0
 ## number rather than the root fraction above: the root says where the tail's
 ## own art begins, the anchor says where on the haunch it is pinned. Lifted
 ## four body pixels, which is sixteen on screen at `BEAST_FRAME_SCALE`.
-const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 24.0)
+##
+## **And again, five more** (owner, 2026-09-15, fourth report: "bring yuri's
+## tail attachment a bit higher"). Nine body pixels above where the join was
+## first measured, which is thirty-six on screen. The root fraction below is
+## still what the art says; this is only where on the haunch it is pinned, and
+## `beast_tail_check` holds the one thing that must not move with it - the
+## stub's fade must stay shorter than the overlap, so there is solid tail
+## behind every dissolving pixel however high the pin goes.
+const BEAST_TAIL_ANCHOR: Vector2 = Vector2(-98.0, 19.0)
 ## Where in the tail image its root sits, as a fraction of the frame.
 ##
 ## Measured from the frames, not chosen: `beast_tail_check` reads the painted

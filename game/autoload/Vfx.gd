@@ -1025,6 +1025,48 @@ func blade_tint(texture: Texture2D, fallback: Color) -> Color:
 	_blade_tints[key] = mean
 	return mean
 
+## **What the worn weapon says about how a blow should look.**
+##
+## Owner brief, 2026-09-15: the attack effects should be "further affected by
+## player's gear appropriately". Three things about a weapon are legible to a
+## player and all three are already authored, so none of this invents content:
+##
+## - its **rarity**, as a grade from 0 to 1, which decides how much of
+##   everything there is - sparks, speed, and whether it leaves anything in the
+##   air at all;
+## - the **attribute it favours**, which decides the colour of what it leaves;
+## - its **heft**, taken from `reach_scale`, whose product with `swing_scale` is
+##   held at 1 by `weapon_variety_check` - so a maul reads as a maul and a short
+##   blade as a short blade, and neither is stronger for it.
+##
+## **Nothing here is a number the fight reads.** The blow is computed, taken and
+## paid for without anyone asking what the player is wearing; this is the look
+## of it afterwards. That is the same bound the hide effects, the tower styles,
+## the omens and the tower paths are all built under, and it is what lets the
+## ten-act pressure curve still be read against the numbers it was tuned on.
+##
+## Empty when nothing is worn, which every caller reads as "no opinion".
+func worn_signature() -> Dictionary:
+	var piece: Dictionary = MetaState.equipped_piece(GearData.Slot.WEAPON)
+	if piece.is_empty():
+		return {}
+	var kind: GearData = ContentDB.gear(String(piece.get("kind", "")))
+	if kind == null:
+		return {}
+	var rarity: int = clampi(int(piece.get("rarity", 0)), 0, Stash.RARITY_NAMES.size() - 1)
+	var steps: float = maxf(float(Stash.RARITY_NAMES.size() - 1), 1.0)
+	var blade: Array = _worn_blade()
+	var texture := blade[0] as Texture2D
+	return {
+		"rarity": rarity,
+		"grade": float(rarity) / steps,
+		"attribute": int(kind.attribute),
+		"aura": RunState.attribute_colour(int(kind.attribute)),
+		"heft": float(kind.reach_scale),
+		"edge": blade_tint(texture, (blade[1] as Color).lerp(Color.WHITE, 0.35)),
+	}
+
+
 ## The icon of the weapon the player is wearing, and the colour of its rarity.
 ## Returns a null texture when the slot is empty, which every caller reads as
 ## "draw no blade".
@@ -1286,6 +1328,38 @@ func _on_swing_resolved(at: Vector2, aim: Vector2, reach: float, step: int) -> v
 	# the fallback for a weapon whose icon has nothing to say.
 	blade_sweep(at, aim, reach, arc, texture,
 		blade_tint(texture, (blade[1] as Color).lerp(Color.WHITE, 0.35)))
+	_swing_signature(at, aim, reach, arc, finisher)
+
+
+## What the worn weapon leaves in the air behind the swing.
+##
+## **A good weapon has to be visible before it lands**, which is the half of the
+## brief the impact cannot answer: a swing that misses still says what is in the
+## player's hands. So the flourish rides the sweep rather than the hit, on the
+## same signal and for the same co-op reason - a guest's own swings are the ones
+## it must never miss seeing.
+##
+## Rarity decides whether there is anything at all, because a flourish on every
+## weapon in the game is not a reward. The attribute the weapon favours decides
+## its colour, and heft decides where it sits: a heavy weapon drags the air out
+## at the edge of its reach, a short blade flicks it in close.
+func _swing_signature(at: Vector2, aim: Vector2, reach: float, arc_degrees: float,
+		finisher: bool) -> void:
+	var worn: Dictionary = worn_signature()
+	if worn.is_empty() or int(worn["rarity"]) < Balance.GEAR_VFX_AURA_FROM_RARITY:
+		return
+	var grade: float = float(worn["grade"])
+	var aura := Color(worn["aura"])
+	aura.a = minf(lerpf(0.35, 0.8, grade) * (1.25 if finisher else 1.0), 1.0)
+	var half: float = deg_to_rad(arc_degrees) * 0.5
+	var count: int = maxi(2, int(round(float(Balance.GEAR_VFX_AURA_MOTES) * grade)))
+	var heft: float = float(worn["heft"])
+	var out: float = reach * lerpf(0.52, 0.86, clampf(heft - 0.6, 0.0, 1.0))
+	for index: int in count:
+		var across: float = lerpf(-half, half, float(index) / maxf(float(count - 1), 1.0))
+		dust(at + aim.rotated(across) * out, aura, 2, reach * 0.10)
+	if finisher:
+		ring(at, reach * 0.72, Color(aura.r, aura.g, aura.b, aura.a * 0.5), 0.26, 3.0)
 
 
 ## The impact. Only on a hit, which is correct - sparks come off something.
@@ -1302,21 +1376,43 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2, hide: int = 0
 	# What the blow landed on colours the sparks: flesh a warm spray, armour
 	# bright steel with more of them and a ring, stone grey chips and dust,
 	# a spirit a few pale wisps.
+	# **What is in the player's hand, as a look and never as a number.** The
+	# blow has already been computed, taken and paid for; what this decides is
+	# how many sparks come off it, how fast they leave, and what colour they
+	# are. A rarer weapon throws more and brighter, and they carry some of the
+	# blade's own colour so the hit matches the sweep that caused it.
+	var worn: Dictionary = worn_signature()
+	var grade: float = float(worn.get("grade", 0.0))
+	var lift: float = 1.0 + grade * (Balance.GEAR_VFX_GRADE_SPARKS - 1.0)
+	var rush: float = 1.0 + grade * (Balance.GEAR_VFX_GRADE_SPEED - 1.0)
+	var edge := Color(worn.get("edge", Color.WHITE))
+	var heft: float = float(worn.get("heft", 1.0))
+	# A quick weapon throws more and smaller, a heavy one fewer and harder -
+	# the same trade its reach and its swing speed already make.
+	if heft <= Balance.GEAR_VFX_QUICK_BELOW:
+		lift *= 1.25
+	elif heft >= Balance.GEAR_VFX_HEAVY_FROM:
+		rush *= 1.2
+
 	match hide:
 		EnemyData.Hide.ARMOUR:
-			spark(at + aim * 60.0, Color("fff4b0"), 10 + targets * 3, aim,
-				380.0 if finisher else 280.0)
+			spark(at + aim * 60.0, _edged(Color("fff4b0"), edge, grade),
+				_more(10 + targets * 3, lift), aim, (380.0 if finisher else 280.0) * rush)
 			ring(at + aim * 50.0, 34.0, Color(1.0, 0.95, 0.7, 0.7), 0.18, 3.0)
 		EnemyData.Hide.STONE:
-			spark(at + aim * 60.0, Color("c9c2b4"), 8 + targets * 2, aim,
-				260.0 if finisher else 180.0)
+			spark(at + aim * 60.0, _edged(Color("c9c2b4"), edge, grade),
+				_more(8 + targets * 2, lift), aim, (260.0 if finisher else 180.0) * rush)
 			dust(at + aim * 56.0, Color(0.55, 0.52, 0.47), 5, 36.0)
 		EnemyData.Hide.SPIRIT:
-			spark(at + aim * 60.0, Color("bfe8ff"), 3 + targets, aim,
-				200.0 if finisher else 140.0)
+			spark(at + aim * 60.0, _edged(Color("bfe8ff"), edge, grade),
+				_more(3 + targets, lift), aim, (200.0 if finisher else 140.0) * rush)
 		_:
-			spark(at + aim * 60.0, Color("ffd9a0"), 6 + targets * 2, aim,
-				320.0 if finisher else 220.0)
+			spark(at + aim * 60.0, _edged(Color("ffd9a0"), edge, grade),
+				_more(6 + targets * 2, lift), aim, (320.0 if finisher else 220.0) * rush)
+	# A heavy weapon leaves the ground shaken where it landed. Drawn, never
+	# felt: the camera's weight still comes from what the blow removed.
+	if heft >= Balance.GEAR_VFX_HEAVY_FROM:
+		dust(at + aim * 48.0, Color(0.58, 0.54, 0.48, 0.8), 4 + int(grade * 4.0), 44.0)
 	# **Drawn steel over the procedural sparks** (2026-09-11). The sparks carry
 	# direction and count; the sheet carries the look of a blow - a thin bright
 	# cut for the fast steps, a white-hot burst for the finisher - and both
@@ -1329,6 +1425,26 @@ func _on_attack_landed(chain_step: int, targets: int, at: Vector2, hide: int = 0
 		ring(at, 70.0, Color(1.0, 0.82, 0.5, 0.55), 0.3, 5.0)
 		rays(at + aim * 46.0, Color(1.0, 0.9, 0.67, 0.85), 9, 68.0, aim.angle())
 		flash_at(at + aim * 54.0, Color("ffd99b"), 22.0)
+		# The finisher is where a great weapon gets to be a great weapon, and
+		# it is its own attribute that bursts out of the blow - nobody else's.
+		if int(worn.get("rarity", 0)) >= Balance.GEAR_VFX_AURA_FROM_RARITY:
+			var aura := Color(worn.get("aura", Color.WHITE))
+			rays(at + aim * 46.0, Color(aura.r, aura.g, aura.b, 0.7),
+				6 + int(grade * 6.0), 84.0, aim.angle())
+			ring(at + aim * 40.0, 44.0 + grade * 36.0,
+				Color(aura.r, aura.g, aura.b, 0.5), 0.34, 4.0)
+
+
+## More of something, by a factor, without ever making it none.
+func _more(count: int, by: float) -> int:
+	return maxi(1, int(round(float(count) * by)))
+
+
+## A spark colour pulled toward the blade's own, by grade. A Common weapon
+## leaves every effect exactly as it was, which is what keeps this an upgrade
+## the player earns rather than a re-skin of every hit in the game.
+func _edged(base: Color, edge: Color, grade: float) -> Color:
+	return base.lerp(edge, grade * Balance.GEAR_VFX_GRADE_BLADE_TINT)
 
 
 func _on_enemy_died(enemy_id: String, at: Vector2) -> void:

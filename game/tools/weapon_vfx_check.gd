@@ -45,6 +45,8 @@ func _ready() -> void:
 	_test_blade_trail_is_never_degenerate()
 	_test_shadow_casters_are_never_degenerate()
 	_test_blade_tint()
+	_test_the_gear_signature()
+	await _test_a_blow_costs_the_same_whatever_is_worn()
 	await _test_bow_loose()
 
 	MetaState.stash = old_stash
@@ -350,6 +352,150 @@ func _test_bow_loose() -> void:
 
 
 ## Sprites currently alive in the effect layer, at any depth.
+## **What the worn weapon says about how a blow should look**, and the bound
+## that keeps it a look.
+##
+## Owner brief, 2026-09-15: the attack effects should be "further affected by
+## player's gear appropriately". Three authored things about a weapon are read -
+## its rarity as a grade, the attribute it favours, and its heft - and the
+## danger in all of it is a single line: if any of it ever reaches the fight, a
+## rarer weapon starts hitting harder through a door nobody is tuning. That is
+## the third power scale this project has refused for spirit traits, discipline
+## depth, synergies, omens, fish, tower paths and hides.
+func _test_the_gear_signature() -> void:
+	var was: Dictionary = MetaState.equipped.duplicate(true)
+	var stash: Array = MetaState.stash.duplicate(true)
+	var weapon: GearData = null
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind != null and kind.slot == GearData.Slot.WEAPON \
+				and ResourceLoader.exists(kind.get_sprite_path()):
+			weapon = kind
+			break
+	_check(weapon != null, "the gate needs a weapon with art")
+	if weapon == null:
+		return
+
+	MetaState.equipped = {}
+	MetaState.stash = []
+	_check(Vfx.worn_signature().is_empty(),
+		"an empty weapon slot must say nothing about how a blow looks")
+
+	# The grade must span the whole ladder and must be derived from it, so that
+	# the two rarities added on 2026-09-11 - and any added later - cost nothing
+	# here. A hand-written top rarity is what `balance_test` caught nine tables
+	# doing.
+	var grades: Array[float] = []
+	var top: int = Stash.RARITY_NAMES.size() - 1
+	for rarity: int in Stash.RARITY_NAMES.size():
+		MetaState.stash = [{
+			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "gate-%d" % rarity,
+		}]
+		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		var worn: Dictionary = Vfx.worn_signature()
+		_check(not worn.is_empty(), "a worn weapon must have a signature")
+		if worn.is_empty():
+			continue
+		_check(int(worn["rarity"]) == rarity,
+			"the signature must carry the piece's own rarity (%d of %d)"
+				% [int(worn["rarity"]), rarity])
+		grades.append(float(worn["grade"]))
+		_check(float(worn["grade"]) >= 0.0 and float(worn["grade"]) <= 1.0,
+			"the grade must be a fraction of the ladder (%0.3f)" % float(worn["grade"]))
+		_check(int(worn["attribute"]) == int(weapon.attribute),
+			"the signature must name the attribute the kind favours")
+		_check(Color(worn["aura"]) == RunState.attribute_colour(int(weapon.attribute)),
+			"and the colour must come from the one attribute table")
+		_check(is_equal_approx(float(worn["heft"]), weapon.reach_scale),
+			"the heft must be the weapon's own reach scale")
+	_check(grades.size() == Stash.RARITY_NAMES.size(),
+		"every rarity must produce a signature (%d of %d)"
+			% [grades.size(), Stash.RARITY_NAMES.size()])
+	if grades.size() == Stash.RARITY_NAMES.size():
+		_check(is_zero_approx(grades[0]), "Common must be grade nought (%0.3f)" % grades[0])
+		_check(is_equal_approx(grades[top], 1.0),
+			"and the top rarity grade one (%0.3f)" % grades[top])
+		for index: int in range(1, grades.size()):
+			_check(grades[index] > grades[index - 1],
+				"the grade must rise with rarity at %s" % Stash.RARITY_NAMES[index])
+
+	# The aura is a reward, so it must not be on the weapon a new account is
+	# handed - and it must be reachable, which is the failure a discipline node
+	# and a tower level have each paid for here.
+	_check(Balance.GEAR_VFX_AURA_FROM_RARITY > 0,
+		"the aura must not be on every weapon in the game")
+	_check(Balance.GEAR_VFX_AURA_FROM_RARITY <= top,
+		"the aura must be reachable: rarity %d of a ladder ending at %d"
+			% [Balance.GEAR_VFX_AURA_FROM_RARITY, top])
+
+	MetaState.stash = stash
+	MetaState.equipped = was
+
+
+## **The bound, driven rather than read.** The same enemy takes the same blow
+## from a Common weapon and from the best in the game. The signature may add a
+## hundred sparks; it may not remove a hundredth of a point of health.
+func _test_a_blow_costs_the_same_whatever_is_worn() -> void:
+	var was: Dictionary = MetaState.equipped.duplicate(true)
+	var stash: Array = MetaState.stash.duplicate(true)
+	var weapon: GearData = null
+	for value: Variant in ContentDB.gear_kinds.values():
+		var kind := value as GearData
+		if kind != null and kind.slot == GearData.Slot.WEAPON:
+			weapon = kind
+			break
+	if weapon == null:
+		return
+	var taken: Array[float] = []
+	for rarity: int in [0, Stash.RARITY_NAMES.size() - 1]:
+		MetaState.stash = [{
+			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "blow-%d" % rarity,
+		}]
+		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		# The effects are what is under test, so they are driven for real: the
+		# signal the field emits, with a world bound, on a known hide.
+		var before: int = _sprites().size() + _line_trails()
+		EventBus.hero_attack_landed.emit(Balance.HERO_CHAIN_LENGTH - 1, 2,
+			Vector2(400.0, 300.0), EnemyData.Hide.ARMOUR)
+		await get_tree().process_frame
+		taken.append(float(_sprites().size() + _line_trails() - before))
+	_check(taken.size() == 2 and taken[1] >= taken[0],
+		"a better weapon must not draw *less* than a Common one (%s)" % str(taken))
+	# And the numbers the fight reads are untouched by any of it. Checked on the
+	# attribute scale itself, which is the one door gear is allowed through.
+	var points: Array[int] = []
+	for rarity: int in [0, Stash.RARITY_NAMES.size() - 1]:
+		MetaState.stash = [{
+			"kind": weapon.id, "rarity": rarity, "level": 1, "uid": "blow-%d" % rarity,
+		}]
+		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		var granted: Array[int] = MetaState.gear_attribute_points()
+		var sum: int = 0
+		for value: int in granted:
+			sum += value
+		points.append(sum)
+	_check(points.size() == 2,
+		"the gate must read the attribute points at both ends")
+	# This is deliberately *not* an equality: gear is allowed to grant attribute
+	# points and a rarer piece grants more. What it asserts is that the
+	# signature did not add a second, unauthored channel on top - the whole
+	# grant comes from `Stash.points`, and nothing in `Vfx` may appear in it.
+	if points.size() == 2:
+		var by_stash: int = 0
+		MetaState.stash = [{
+			"kind": weapon.id, "rarity": Stash.RARITY_NAMES.size() - 1,
+			"level": 1, "uid": "blow-top",
+		}]
+		MetaState.equipped = {GearData.Slot.WEAPON: 0}
+		by_stash = Stash.points(MetaState.stash[0] as Dictionary, weapon)
+		_check(points[1] <= by_stash,
+			("a worn piece must grant no more than its own `Stash.points`: "
+				+ "%d granted against %d authored") % [points[1], by_stash])
+
+	MetaState.stash = stash
+	MetaState.equipped = was
+
+
 func _sprites() -> Array[Sprite2D]:
 	var out: Array[Sprite2D] = []
 	if _layer == null:

@@ -205,9 +205,28 @@ const ATTRIBUTE_NOTES: Array[String] = [
 ]
 
 
+## And what each one looks like. Beside the names for the reason the names are
+## here: a sixth place keeping its own copy of this is a sixth chance to add an
+## attribute and remember five times.
+##
+## Read by the attack effects, which colour a blow by the attribute the weapon
+## favours. Nothing reads them as a number.
+const ATTRIBUTE_COLOURS: Array[Color] = [
+	Color("ff8a5c"), Color("7fd66a"), Color("6fe3d2"), Color("b58cff"), Color("ffd45c"),
+]
+
+
 ## The name of an attribute, safely.
 static func attribute_name(which: int) -> String:
 	return ATTRIBUTE_NAMES[which] if which >= 0 and which < ATTRIBUTE_NAMES.size() else ""
+
+
+## The colour of an attribute, safely. White for anything unknown, which reads
+## as "no opinion" everywhere this is used.
+static func attribute_colour(which: int) -> Color:
+	if which < 0 or which >= ATTRIBUTE_COLOURS.size():
+		return Color.WHITE
+	return ATTRIBUTE_COLOURS[which]
 
 ## The weather over the battlefield. Rolled per road, held for its duration.
 ##
