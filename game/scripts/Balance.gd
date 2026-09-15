@@ -6859,6 +6859,13 @@ const MENU_BIRD_CEILING: int = 9
 ## How much of its colour a far bird keeps. Haze, and the only thing that makes
 ## a flat sky read as deep.
 const MENU_BIRD_FAR_FADE: float = 0.45
+## The sky luminance below which a bird stops being a silhouette and starts
+## catching the light instead. Below this a near-black shape on a near-black
+## sky is simply not there, which is what the first cut of the birds was: the
+## flock shared one tint taken from the top of the backdrop, which in this
+## scene is a dark purple, multiplied down to a near-silhouette. Seven birds
+## were on screen and not one of them could be seen.
+const MENU_BIRD_DARK_SKY: float = 0.2
 ## Redraws a second. The clocks run at frame rate; only the drawing is sampled,
 ## which is the fix `flame.gd` needed twice.
 const MENU_BIRD_HZ: float = 24.0

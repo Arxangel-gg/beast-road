@@ -802,11 +802,12 @@ func _build_fireflies() -> void:
 func _build_birds() -> void:
 	_birds = MenuBirds.new()
 	_birds.name = "Birds"
-	# Above the backdrop, below everything with an edge. A bird drawn over the
-	# gate's stonework reads as a fly on the screen.
-	_birds.z_index = -1
+	# **Tree order, and no `z_index`.** The first cut put them at -1 to keep
+	# them behind the gate's stonework, which put them behind the *backdrop* -
+	# and the backdrop is one opaque texture across the whole screen, so every
+	# bird flew where nobody could see it. Built here, after the beast and
+	# before the rain, they are above the painting and under the weather.
 	add_child(_birds)
-	move_child(_birds, maxi(get_child_count() - 1, 0))
 
 
 ## The wordmark's glow and the sparks that rise off it.
@@ -889,10 +890,13 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 		# **Dim, not black** (owner brief). The corner sky's own colour at a
 		# third of its brightness: a warm grey against a sunset, a cool one at
 		# night, and never a hole cut in the picture.
-		var sky: Color = _backdrop_near(Vector2(0.5, 0.2))
-		if sky.a <= 0.0:
-			sky = Color(0.3, 0.29, 0.33)
-		_birds.tint = Color(sky.r * 0.42, sky.g * 0.4, sky.b * 0.44, 0.9)
+		_birds.tint = Color(0.3, 0.29, 0.33, 0.9)
+		# Each bird shades itself against the stretch of sky it is about to
+		# cross, rather than the whole flock sharing one colour taken from one
+		# point. See `MenuBirds._shade_for`.
+		_birds.sky_at = func(at: Vector2) -> Color:
+			return _backdrop_near(Vector2(at.x / maxf(span.x, 1.0),
+				at.y / maxf(span.y, 1.0)))
 	var title: Control = get_parent().get_node_or_null("Title") as Control if get_parent() != null else null
 	if title != null:
 		var centre: Vector2 = title.position + title.size * 0.5

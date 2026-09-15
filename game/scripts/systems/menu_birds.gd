@@ -54,8 +54,11 @@ const BEATING: Array[float] = [0.85, 1.0, 0.22, 0.12]
 const WEIGHT: Array[float] = [3.0, 2.0, 1.5, 0.6]
 const FLOCK: Array[int] = [4, 3, 1, 1]
 
-## What the birds are multiplied by. Set by the stage from its own sky.
+## What the birds are multiplied by when nothing better is known.
 var tint: Color = Color(0.30, 0.29, 0.33, 1.0)
+## Asks the backdrop what colour the sky is at a point, in this node's own
+## space. Set by the stage; without it every bird wears `tint`.
+var sky_at: Callable = Callable()
 
 static var _frames: Array = []
 static var _looked: bool = false
@@ -158,7 +161,42 @@ func _launch() -> void:
 			"flurry": 0.0,
 			"until": _rng.randf_range(1.5, 4.0),
 			"gone": false,
+			# **Each bird is shaded against the sky it will actually cross**,
+			# sampled once at launch rather than shared. One tint for the whole
+			# flock was the first cut and it was invisible: taken from the top
+			# of the backdrop, which in this scene is a dark purple, and
+			# multiplied down to a near-silhouette, it produced a near-black
+			# bird on a near-black sky. The owner's "not completely blacked out"
+			# is about exactly this.
+			"shade": _shade_for(Vector2(
+				(0.5 if rightward else 0.5) * _span.x,
+				lerpf(Balance.MENU_BIRD_BAND.x, Balance.MENU_BIRD_BAND.y, high) * _span.y)),
 		})
+
+
+## What one bird is multiplied by, given the sky it is about to cross.
+##
+## **Dark against a bright sky, faintly lit against a dark one.** The first is
+## what a bird looks like at dusk and the second is what it looks like against
+## a night sky - a shape catching the last of the light - and between them the
+## bird is always visible, which a fixed multiplier cannot promise. The
+## threshold is the point where a near-silhouette stops separating from what is
+## behind it.
+func _shade_for(at: Vector2) -> Color:
+	var sky: Color = tint
+	if sky_at.is_valid():
+		var sampled: Color = sky_at.call(at)
+		if sampled.a > 0.0:
+			sky = sampled
+	var light: float = sky.get_luminance()
+	if light >= Balance.MENU_BIRD_DARK_SKY:
+		# Bright enough to silhouette against.
+		return Color(sky.r * 0.35, sky.g * 0.34, sky.b * 0.38, 0.95)
+	# Too dark to silhouette against, so the bird catches the light instead -
+	# still dim, still far from white, and now separable from its background.
+	var lift: float = Balance.MENU_BIRD_DARK_SKY / maxf(light, 0.01)
+	return Color(minf(sky.r * lift, 0.52), minf(sky.g * lift, 0.5),
+		minf(sky.b * lift * 1.1, 0.58), 0.9)
 
 
 func _pick() -> int:
@@ -209,6 +247,14 @@ func flying() -> int:
 	return _birds.size()
 
 
+## Where every bird is, for a diagnostic shot that needs to know where to look.
+func perches() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for bird: Dictionary in _birds:
+		out.append(bird["at"])
+	return out
+
+
 ## For the gate: the biggest bird on screen right now, in pixels.
 func widest() -> float:
 	var worst: float = 0.0
@@ -243,7 +289,8 @@ func _draw() -> void:
 		# Further birds are dimmer as well as smaller: haze, and the only thing
 		# that makes a flat sky read as deep.
 		var haze: float = lerpf(1.0, Balance.MENU_BIRD_FAR_FADE, float(bird["depth"]))
-		var shade := Color(tint.r, tint.g, tint.b, tint.a * haze)
+		var own := Color(bird.get("shade", tint))
+		var shade := Color(own.r, own.g, own.b, own.a * haze)
 		# Turned to its own heading, and mirrored when it is going left. The art
 		# is drawn flying right, so this is the one sprite in the project that
 		# *should* be flipped - a bird in profile is symmetrical about its own

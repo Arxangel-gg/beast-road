@@ -16,6 +16,7 @@ var _checks: int = 0
 func _ready() -> void:
 	_test_every_species_has_its_wingbeat()
 	_test_the_birds_stay_tiny_and_dim()
+	_test_a_bird_is_visible_against_any_sky()
 	_test_the_sky_never_fills_up()
 	_test_the_species_actually_fly_differently()
 	_test_the_fireflies_keep_their_own_time()
@@ -61,6 +62,46 @@ func _test_the_birds_stay_tiny_and_dim() -> void:
 	_check(tint.get_luminance() > 0.02,
 		("and not a pure silhouette, which reads as a hole in the picture "
 			+ "(%0.3f)") % tint.get_luminance())
+	birds.queue_free()
+
+
+## **A bird nobody can see is not a bird.**
+##
+## The first cut of this shipped seven birds in the sky and not one of them was
+## visible, and every number said it was working: the flock was launching, it
+## was on screen, it was ten pixels wide, its node was visible and its modulate
+## was white. What was wrong is the one thing none of that measures - the whole
+## flock shared a tint sampled from the top of the backdrop, which in this scene
+## is a dark purple, multiplied down to a near-silhouette. A near-black bird on
+## a near-black sky is nothing at all, and the owner's brief says so in as many
+## words: "not completely blacked out".
+##
+## Each bird is shaded against the stretch of sky it is about to cross now, and
+## this drives that with both extremes of sky and measures the separation.
+func _test_a_bird_is_visible_against_any_sky() -> void:
+	var birds: MenuBirds = _birds()
+	birds.resize(Vector2(1920.0, 1080.0))
+	for sky: Color in [Color(0.04, 0.03, 0.07), Color(0.45, 0.28, 0.2),
+			Color(0.75, 0.62, 0.5)]:
+		birds.sky_at = func(_at: Vector2) -> Color: return sky
+		var shade: Color = birds.call("_shade_for", Vector2(960.0, 200.0))
+		var apart: float = absf(shade.get_luminance() - sky.get_luminance())
+		_check(apart > 0.03,
+			("a bird over a sky of %0.3f is drawn at %0.3f, which is nothing at "
+				+ "all against it") % [sky.get_luminance(), shade.get_luminance()])
+		_check(shade.get_luminance() < 0.62,
+			"and it must never be a bright bird (%0.3f)" % shade.get_luminance())
+	# Against a bright sky it is a silhouette; against a dark one it catches the
+	# light. Both are real and the difference is the whole trick.
+	birds.sky_at = func(_at: Vector2) -> Color: return Color(0.75, 0.62, 0.5)
+	var bright: Color = birds.call("_shade_for", Vector2(960.0, 200.0))
+	birds.sky_at = func(_at: Vector2) -> Color: return Color(0.04, 0.03, 0.07)
+	var dark: Color = birds.call("_shade_for", Vector2(960.0, 200.0))
+	_check(bright.get_luminance() < 0.75,
+		"a bird against a bright sky must be darker than it")
+	_check(dark.get_luminance() > 0.04,
+		"and a bird against a dark sky must be lighter than it (%0.3f)"
+			% dark.get_luminance())
 	birds.queue_free()
 
 
