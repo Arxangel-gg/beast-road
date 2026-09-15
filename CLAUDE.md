@@ -3351,7 +3351,17 @@ row - a species the roster does not have - is dropped rather than trusted,
 because that list is the one place a bad row would put a companion with nothing
 to draw on the road.
 
-`pen_check` (65 checks) holds the cap, the release, the one-at-a-time, the
+**And the pen is drawn rather than listed.** `PenYard` stands one sprite per
+kept creature, each with **its own clock**, so a pen of twelve is never twelve
+copies of one animation - they graze, wander somewhere and lie down on their own
+schedules, and the gate drives forty seconds and refuses a yard where every
+animal is doing the same thing. Their coats come from `Phenotype` off each
+animal's own name, so the fox in the pen is the fox that walks out of it. The
+yard is a *picture*: it writes nothing, and every button on `PenScreen` calls a
+door on `MetaState` and re-reads the answer, so the cap, the one-at-a-time and
+the mid-run refusal live in one place and a screen cannot disagree with them.
+
+`pen_check` (71 checks) holds the cap, the release, the one-at-a-time, the
 mid-run refusal, the dangling name, the malformed row, the read-back, and -
 hardest - that losing an animal leaves the collection exactly the size it was.
 

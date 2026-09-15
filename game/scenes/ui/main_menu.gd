@@ -5,6 +5,7 @@ const LeaderboardScreenScript = preload("res://scenes/ui/leaderboard_screen.gd")
 const CoopScreenScript = preload("res://scenes/ui/coop_screen.gd")
 const ChronicleScreenScript = preload("res://scenes/ui/chronicle_screen.gd")
 const CodexScreenScript = preload("res://scenes/ui/codex_screen.gd")
+const PenScreenScript = preload("res://scenes/ui/pen_screen.gd")
 
 ## The front door. Shows what the unlock pool has grown to, because that is the
 ## only thing that persists between runs (GDD §10) and it should be visible.
@@ -22,6 +23,7 @@ var _leaderboard: CanvasLayer
 var _coop: CanvasLayer
 var _chronicle: CanvasLayer
 var _codex: CanvasLayer
+var _pen: CanvasLayer
 var _frame: MenuFrame = null
 ## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
 ## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
@@ -179,6 +181,7 @@ func _ready() -> void:
 	_build_coop_button()
 	_build_chronicle_button()
 	_build_codex_button()
+	_build_pen_button()
 	_build_leaderboard_button()
 	_build_hold()
 	_build_guide_button()
@@ -231,7 +234,7 @@ func _build_hold() -> void:
 	_hub.closed.connect(func() -> void: button.grab_focus())
 	button.pressed.connect(func() -> void: _hub.open())
 	_build_smithy_button(column)
-	for door: String in ["Stash", "Ledger", "Smithy", "Chronicle", "Codex", "Leaderboard"]:
+	for door: String in ["Stash", "Ledger", "Smithy", "Pen", "Chronicle", "Codex", "Leaderboard"]:
 		var found: Node = column.get_node_or_null(door)
 		if found is Button:
 			_hub.adopt(found as Button)
@@ -621,6 +624,42 @@ func _build_codex_button() -> void:
 		if not _codex.visible:
 			button.text = _codex_label()
 			button.grab_focus())
+
+
+## The pen, beside the codex.
+##
+## Always present, like the codex and unlike the stash: an empty pen still says
+## what there is to raise, and "carry an egg home" is a thing a player has to be
+## told once somewhere.
+func _build_pen_button() -> void:
+	if new_run_button == null:
+		return
+	var column: Node = new_run_button.get_parent()
+	if column == null:
+		return
+	var button := Button.new()
+	button.name = "Pen"
+	button.text = _pen_label()
+	button.custom_minimum_size = settings_button.custom_minimum_size
+	button.theme_type_variation = settings_button.theme_type_variation
+	IconKit.on_button(button, "spirit", 24)
+	column.add_child(button)
+	column.move_child(button, settings_button.get_index())
+
+	_pen = PenScreenScript.new()
+	add_child(_pen)
+	button.pressed.connect(func() -> void:
+		_pen.call("open"))
+	_pen.visibility_changed.connect(func() -> void:
+		if not _pen.visible:
+			button.text = _pen_label()
+			button.grab_focus())
+
+
+## "Pen · 3 / 12", so the cap is visible before the screen is opened - a full
+## pen is a decision and the door should say so.
+func _pen_label() -> String:
+	return "Pen · %d / %d" % [MetaState.pen.size(), Balance.PEN_CAPACITY]
 
 
 ## "Codex · 14 / 38", counted across every section the screen shows.

@@ -44,6 +44,7 @@ func _ready() -> void:
 	_test_taking_one_out()
 	_test_losing_one_keeps_the_bond()
 	_test_it_reads_back()
+	await _test_the_yard()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[pen] PASS - %d checks: the pen caps and releases, one goes out "
@@ -211,6 +212,51 @@ func _test_it_reads_back() -> void:
 		"taken": ""})
 	_check(MetaState.pen.is_empty(),
 		"a row naming no real species was kept, and it has nothing to draw")
+	_clear()
+
+
+## **The yard is a picture of the pen and nothing more.**
+##
+## It stands one animal per kept creature, gives each its own clock so a pen of
+## twelve is not twelve copies of one animation, and writes nothing back - the
+## brief asked for animals that idle, roam and rest, and the failure worth
+## catching is a yard that quietly became the authority on what is kept.
+func _test_the_yard() -> void:
+	_clear()
+	var species: String = _a_species()
+	for index: int in 6:
+		MetaState.pen_add(species, index % 4, index == 3, "")
+	var screen: PenScreen = PenScreen.new()
+	add_child(screen)
+	await get_tree().process_frame
+	screen.open()
+	await get_tree().process_frame
+	var yard: PenYard = screen.yard()
+	_check(yard != null, "the screen must build a yard")
+	if yard != null:
+		_check(yard.standing() == 6,
+			"six kept animals stood up %d in the yard" % yard.standing())
+		# **Each keeps its own clock.** Driven for a while; if every animal is
+		# doing the same thing, the yard is one animation drawn six times.
+		yard.advance(40.0, 200)
+		var poses: Dictionary = {}
+		for animal: Dictionary in MetaState.pen:
+			poses[yard.pose_of(String(animal.get("uid", "")))] = true
+		_check(poses.size() >= 2,
+			("after forty seconds every animal in the pen was doing the same "
+				+ "thing, so the yard is one clock rather than six"))
+		# **And it decided nothing.**
+		_check(MetaState.pen.size() == 6,
+			"the yard changed the pen: %d animals" % MetaState.pen.size())
+		_check(MetaState.pen_taken.is_empty(),
+			"the yard took an animal out on its own")
+		# An empty pen is a yard with nothing in it rather than a broken one.
+		_clear()
+		screen.refresh()
+		_check(yard.standing() == 0,
+			"an emptied pen left %d animals standing" % yard.standing())
+	screen.queue_free()
+	await get_tree().process_frame
 	_clear()
 
 
