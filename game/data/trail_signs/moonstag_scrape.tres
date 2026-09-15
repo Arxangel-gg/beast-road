@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 1
+reading = "The bark is stripped from this sapling, head-high and higher. Whatever did it was not reaching up."
+species = "moonstag"
+scale = 1.0
+id = "moonstag_scrape"
+display_name = "Antler scrape"
+description = "Bark stripped from a sapling, well above head height."

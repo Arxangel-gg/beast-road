@@ -153,6 +153,23 @@ func population_cap() -> int:
 	return int(round(float(Balance.WILDLIFE_MAX) * Graphics.foliage_scale()))
 
 
+## Put a mythic on the field at the end of its own trail.
+##
+## **The one door a mythic comes through.** `_pick_kind` refuses them, so this
+## is the only way one arrives - which is the whole of what the classification
+## means. Everything after the placement is ordinary: the same serial, the same
+## coat, the same rank sheen, the same bond, the same wrath for killing it, and
+## the same count against the population cap that `budget_check` holds.
+func place_mythic(kind: WildlifeData, at: Vector2) -> void:
+	if kind == null or not kind.mythic or Coop.is_guest():
+		return
+	for animal: Dictionary in _living:
+		if (animal["data"] as WildlifeData) == kind:
+			# One at a time. A second is not rarer for being duplicated.
+			return
+	_spawn(kind, at)
+
+
 ## The young of one parent, by its serial.
 func young_of(parent_id: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
@@ -581,6 +598,11 @@ func _pick_kind(allow_hostile: bool = true, wildness: float = 0.0) -> WildlifeDa
 ## act and is unmoved by this, because at wildness zero it returns the weight
 ## unchanged and every tier is still drawn somewhere.
 func _tilted_weight(kind: WildlifeData, wildness: float) -> float:
+	# **A mythic is never scattered.** That is the whole of what the
+	# classification means: it weighs nothing in the roll, so the only way one
+	# reaches the field is `place_mythic`, at the end of its own trail.
+	if kind.mythic:
+		return 0.0
 	var weight: float = kind.roll_weight(RunState.act)
 	if wildness <= 0.0:
 		return weight

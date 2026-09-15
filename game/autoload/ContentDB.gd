@@ -38,6 +38,7 @@ var gear_kinds: Dictionary = {}
 ## The things on the outskirts that can be worked, and what comes out of them
 ## (owner brief, 2026-09-13).
 var gather_nodes: Dictionary = {}
+var trail_signs: Dictionary = {}
 var crops: Dictionary = {}
 var materials: Dictionary = {}
 
@@ -140,6 +141,7 @@ func _ready() -> void:
 	road_cards = _load_dir("res://data/road_cards")
 	fish_kinds = _load_dir("res://data/fish")
 	gather_nodes = _load_dir("res://data/gather")
+	trail_signs = _load_dir("res://data/trail_signs")
 	crops = _load_dir("res://data/crops")
 	materials = _load_dir("res://data/materials")
 

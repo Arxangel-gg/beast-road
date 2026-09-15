@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+mythic = true
+trail_signs = PackedStringArray("moonstag_track", "moonstag_scrape", "moonstag_tuft", "moonstag_bed", "moonstag_ring")
+trail_first_act = 2
+coat_pattern = 1
+coat_pattern_strength = 0.30
+coat_pattern_scale = 7.0
+coat_pattern_tint = Color(0.980, 0.980, 1.000, 0.700)
+coat_hue_spread = 0.014
+coat_light_spread = 0.10
+coat_saturation_spread = 0.10
+breeds = false
+protection = 0
+id = "moonstag"
+display_name = "Moonstag"
+description = "White as the frost it leaves. The oldest thing on this road, and it was here first."
+vocal_sfx = "sfx_wildlife_deer"
+rarity = 3
+temperament = 1
+movement_style = 0
+acts = Array[int]([])
+weight = 0.0
+group_min = 1
+group_max = 1
+social_spacing = 200.0
+group_cohesion = 0.0
+activity = 0.18
+speed = 118.0
+roam = 900.0
+skittish_radius = 420.0
+flee_speed_scale = 3.2
+flies = false
+scale = 3.2
+max_hp = 900.0
+food_min = 30
+food_max = 46
+xp_reward = 320
+art_faces_right = false
+stay_min = 150.0
+stay_max = 320.0
+elite_chance = 0.0

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 2
+reading = "Hair on the thorns, pale as frost, and it does not darken when the cloud goes over."
+species = "moonstag"
+scale = 0.9
+id = "moonstag_tuft"
+display_name = "Pale hair"
+description = "A tuft of hair caught on a thorn, and it will not stay dark."

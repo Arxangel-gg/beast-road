@@ -131,6 +131,21 @@ func _draw() -> void:
 			if spent:
 				tint = Color(tint, tint.a * 0.35)
 			draw_circle(_to_map(spots[index]), maxf(size.x / 76.0, 2.0), tint)
+	# **What something mythical left behind.** Only the signs the party has
+	# actually walked up to: a map that marked the next one would turn tracking
+	# into following a waypoint, which is the whole of what this feature is not.
+	# The freshest is drawn brightest, so the map says which way the trail was
+	# going without saying where it ends.
+	var trail: Node = battlefield.call("trail") if battlefield.has_method("trail") else null
+	if trail != null and trail.has_method("report"):
+		var walked: Dictionary = trail.call("report")
+		var places: Array = walked.get("signs", [])
+		var read: int = int(walked.get("stage", 0))
+		for index: int in mini(read, places.size()):
+			var fade: float = 0.45 + 0.55 * (float(index + 1) / maxf(float(read), 1.0))
+			_draw_diamond(_to_map(places[index] as Vector2),
+				maxf(size.x / 70.0, 2.0), Color(Balance.MINIMAP_TRAIL,
+					Balance.MINIMAP_TRAIL.a * fade))
 	# Plots and the crops in them: bare earth, growing, ripe. A wilting crop
 	# is drawn dim, which is the same tell the plant itself gives.
 	var farm: Node = battlefield.call("farming") if battlefield.has_method("farming") else null

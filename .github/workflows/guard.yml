@@ -614,6 +614,7 @@ jobs:
           # status polish.
           check "rank sheen" --headless --path game res://tools/rank_sheen_check.tscn
           check "phenotype" --headless --path game res://tools/phenotype_check.tscn
+          check "mythic trail" --headless --path game res://tools/mythic_trail_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the

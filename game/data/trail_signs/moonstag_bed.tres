@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 3
+reading = "The grass here is flattened and still warm. The frost around it has not gone, and it is not a cold night."
+species = "moonstag"
+scale = 1.15
+id = "moonstag_bed"
+display_name = "A bed in the grass"
+description = "Flattened grass, still warm, and the frost around it has not gone."

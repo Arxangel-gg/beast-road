@@ -338,6 +338,25 @@ enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS }
 @export var coat_pattern_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
 
 
+## **A classification rather than a sixth rarity.**
+##
+## `docs/IDEAS_REVIEW_2026-09-15.md` triaged a proposal for 112 mythical
+## creatures and settled this: Mythic is a *classification*, because a sixth
+## rarity moves nine tables - the wrath scale, the sheen ladder, the bond
+## variants, the inheritance odds - and buys nothing the classification does not.
+##
+## A mythic is an ordinary animal in every respect the tables care about. What
+## it is not is *scattered*: `Wildlife._pick_kind` never offers one, so the only
+## way to meet it is to follow what it leaves behind. See `MythicTrail`.
+@export var mythic: bool = false
+## The signs this one leaves, by `TrailSignData` id. The trail deals one of each
+## stage in order, so a species wants at least one sign per stage - a hole is a
+## trail that ends early, and `mythic_trail_check` refuses one.
+@export var trail_signs: PackedStringArray = PackedStringArray()
+## The first act its trail may begin in.
+@export_range(1, 10) var trail_first_act: int = 1
+
+
 ## The group this species pairs inside: its own name unless it shares one.
 func breeding_group_id() -> String:
 	return breeding_group if not breeding_group.is_empty() else id

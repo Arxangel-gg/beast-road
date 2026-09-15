@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TrailSignData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/trail_sign_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+stage = 4
+reading = "A ring of white grass with nothing standing in it. It has been here, and it was not long ago."
+species = "moonstag"
+scale = 1.3
+id = "moonstag_ring"
+display_name = "A ring of frost"
+description = "A circle of white grass with nothing in the middle of it."

@@ -1518,6 +1518,14 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
 `wildlife_snow_lynx.png` · `wildlife_frost_elk.png`
 
+**The Moonstag is the first mythic (2026-09-15)**, and is never scattered: the
+only way one reaches the field is at the end of its own trail (§5.16c). It is
+an ordinary `WildlifeData` in every other respect - the same rarity ladder, the
+same sheen, the same population cap - because `IDEAS_REVIEW_2026-09-15` settled
+that Mythic is a *classification* rather than a sixth rarity.
+
+`wildlife_moonstag.png`
+
 The young of the antlered species are drawn rather than scaled down
 (2026-09-14): a fawn wearing a full rack reads as a shrunken stag. Everything
 else's young wear the adult's art at a smaller size, which is what
@@ -1592,6 +1600,7 @@ Files: `wildlife_steppe_marmot_idle_01.png` · `wildlife_steppe_marmot_idle_02.p
 Files: `wildlife_rabbit_idle_01.png` · `wildlife_rabbit_idle_02.png` · `wildlife_rabbit_idle_03.png`
 Files: `wildlife_deer_idle_01.png` · `wildlife_deer_idle_02.png` · `wildlife_deer_idle_03.png`
 Files: `wildlife_stag_idle_01.png` · `wildlife_stag_idle_02.png` · `wildlife_stag_idle_03.png`
+Files: `wildlife_moonstag_idle_01.png` · `wildlife_moonstag_idle_02.png` · `wildlife_moonstag_idle_03.png`
 Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png`
 Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png`
 Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
@@ -1684,6 +1693,7 @@ Files: `wildlife_snow_hare_move_01.png` · `wildlife_snow_hare_move_02.png` · `
 Files: `wildlife_ptarmigan_move_01.png` · `wildlife_ptarmigan_move_02.png` · `wildlife_ptarmigan_move_03.png` · `wildlife_ptarmigan_move_04.png` · `wildlife_ptarmigan_move_05.png` · `wildlife_ptarmigan_move_06.png` · `wildlife_ptarmigan_move_07.png`
 Files: `wildlife_snow_lynx_move_01.png` · `wildlife_snow_lynx_move_02.png` · `wildlife_snow_lynx_move_03.png` · `wildlife_snow_lynx_move_04.png` · `wildlife_snow_lynx_move_05.png` · `wildlife_snow_lynx_move_06.png` · `wildlife_snow_lynx_move_07.png`
 Files: `wildlife_frost_elk_move_01.png` · `wildlife_frost_elk_move_02.png` · `wildlife_frost_elk_move_03.png` · `wildlife_frost_elk_move_04.png` · `wildlife_frost_elk_move_05.png` · `wildlife_frost_elk_move_06.png` · `wildlife_frost_elk_move_07.png` · `wildlife_frost_elk_move_08.png`
+Files: `wildlife_moonstag_move_01.png` · `wildlife_moonstag_move_02.png` · `wildlife_moonstag_move_03.png` · `wildlife_moonstag_move_04.png` · `wildlife_moonstag_move_05.png` · `wildlife_moonstag_move_06.png` · `wildlife_moonstag_move_07.png` · `wildlife_moonstag_move_08.png`
 
 ### 5.10f Wildlife attack frames — `res://art/wildlife/`
 
@@ -2753,6 +2763,25 @@ furnish themselves from the same props.
 | `camp_tent.png` | 79×75 | T | `#5A4A3A` |
 | `fork_barrier.png` | 185×93 | T | `#5A4A3A` |
 | `war_totem.png` | 96×160 | T | `#5A4A3A` |
+
+### 5.16c A mythical animal's trail — `res://art/battlefield/`
+
+What something that does not want to be found leaves behind (2026-09-15).
+`MythicTrail` lays one of these at a time out in the outskirts; walking near
+reads it and the next is laid further on. They are lying on the ground and are
+seen at the same slight top-down angle the camp props are, so they belong to
+the same family and are listed with them.
+
+Adding a mythic is a `WildlifeData` with `mythic = true`, a `.tres` per sign in
+`data/trail_signs/`, and a sprite named for each sign's id — no code.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `sign_moonstag_track.png` | 96×64 | T | `#5A4A3A` |
+| `sign_moonstag_scrape.png` | 96×64 | T | `#5A4A3A` |
+| `sign_moonstag_tuft.png` | 96×64 | T | `#5A4A3A` |
+| `sign_moonstag_bed.png` | 96×64 | T | `#5A4A3A` |
+| `sign_moonstag_ring.png` | 96×64 | T | `#5A4A3A` |
 
 ### 5.16b Beast scope skylines — `res://art/beast/`
 

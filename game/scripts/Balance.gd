@@ -3229,6 +3229,31 @@ const PHENOTYPE_HUE_CEILING: float = 0.055
 const PHENOTYPE_LIGHT_CEILING: float = 0.22
 const PHENOTYPE_SATURATION_CEILING: float = 0.30
 
+## **The trail to something mythical.** See `MythicTrail`.
+##
+## Five signs is the shortest thing that reads as a *trail* rather than as a
+## pointer: the first is a curiosity, the second says it was not a coincidence,
+## and by the fourth the player is looking for the next one on purpose. [TUNE]
+const TRAIL_LENGTH: int = 5
+## How far out the first sign is laid, and how far the next one is from the
+## last. Far enough that the trail is a reason to leave the roads, close enough
+## that following it is not the whole act.
+const TRAIL_FIRST_DISTANCE: float = 1100.0
+const TRAIL_STEP: float = 620.0
+## How far a trail may bend between signs. A straight line is a corridor and a
+## free choice of direction is a scatter; a wedge is a trail.
+const TRAIL_TURN: float = 0.9
+## How near a hero has to be to read a sign, and how often that is asked.
+const TRAIL_READ_RADIUS: float = 150.0
+const TRAIL_LOOK_INTERVAL: float = 0.25
+## How long a sign takes to fade in when it is laid, and how solid it is left
+## once it has been read - it stays, because a trail you can look back along is
+## a trail.
+const TRAIL_SIGN_FADE: float = 0.8
+const TRAIL_SIGN_SPENT: float = 0.45
+## How many band tiles are sampled when a sign looks for its ground.
+const TRAIL_PLACEMENT_TRIES: int = 60
+
 const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
@@ -8021,6 +8046,8 @@ const MINIMAP_CORE: Color = Color(0.16, 0.17, 0.14, 1.0)
 const MINIMAP_ROAD: Color = Color(0.55, 0.47, 0.33, 1.0)
 const MINIMAP_WATER: Color = Color(0.3, 0.55, 0.8, 1.0)
 const MINIMAP_RIFT: Color = Color(0.7, 0.4, 0.9, 1.0)
+## A sign on a mythical animal's trail, once the party has read it.
+const MINIMAP_TRAIL: Color = Color(0.780, 0.920, 1.000, 0.850)
 ## Trees and seams on the outskirts (2026-09-13). Two colours rather than
 ## one, because which craft a node wants is the thing a player is deciding
 ## whether to walk out for.

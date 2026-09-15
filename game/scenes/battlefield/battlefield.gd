@@ -49,6 +49,8 @@ var _rifts: RiftGates = null
 var _gathering: Gathering = null
 var _farming: Farming = null
 var _treeline: Treeline = null
+## What a mythical animal left behind, and where it is at the end of it.
+var _trail: MythicTrail = null
 ## The raider camps on the outskirts, and the fork barriers.
 var _camps: Camps = null
 var _fog: FogOfWar = null
@@ -755,6 +757,7 @@ func _build_foliage() -> void:
 	_build_rift_gates()
 	_build_gathering()
 	_build_camps()
+	_build_trail()
 
 
 func _build_ambient_life() -> void:
@@ -815,6 +818,22 @@ func rift_gates() -> RiftGates:
 ## same rule they are: out past the inner square the roads make, on open ground
 ## drawn from the band's own tiles. See `Gathering` for the two extra gates on
 ## rarity - how far out a spot is, and how practised the craft is.
+## The evidence a mythical animal leaves. Built after the camps, because its
+## signs want ground nothing else has taken.
+func _build_trail() -> void:
+	_trail = MythicTrail.new()
+	_trail.name = "MythicTrail"
+	_trail.grid = grid
+	_trail.animals = _wildlife
+	add_child(_trail)
+	_trail.scatter()
+
+
+## The trail, for the map and for the gate.
+func trail() -> MythicTrail:
+	return _trail
+
+
 func _build_gathering() -> void:
 	# The Farmer's plots first, from the run's seed, so the nodes below can
 	# keep clear of them the same way on the first build and on a re-lay.
@@ -2031,6 +2050,10 @@ func refresh_terrain() -> void:
 		_farming.avoid = _taken_ground() + (_gathering.node_positions() if _gathering != null else PackedVector2Array())
 		_farming.avoid_water = _taken_water()
 		_farming.refresh_region()
+	# And the trail, which is an act's own: a mythic belongs to a region, and a
+	# trail half walked when the road moves on is a trail to nowhere.
+	if _trail != null:
+		_trail.scatter()
 	# The woods outside the field are regional too, and were **never** re-laid -
 	# so a run that began in the Maw walked through jungle canopy in the snow
 	# for nine acts. Found by reading this function rather than by anything
