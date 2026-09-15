@@ -36,6 +36,7 @@ func _ready() -> void:
 	_test_the_pad_gets_the_same_answer()
 	await _test_a_press_tears_and_recovers()
 	await _test_the_sweep_is_an_answer_and_not_a_loop()
+	await _test_a_hover_never_leaves_its_layout_place()
 	_finish()
 
 
@@ -180,3 +181,69 @@ func _check(condition: bool, why: String) -> void:
 		return
 	_failures += 1
 	print("[ui-juice] FAIL: %s" % why)
+
+
+## **A hovered button never leaves the layout's own place by more than a nudge.**
+##
+## Owner report, 2026-09-15: the Preparation card's RIDE ON button "moves way
+## too far", is "hard to click" and "covers up the ui texts including
+## countdown". The lift was two pixels and the fault was not its size - it
+## remembered where the button had been on the first hover and tweened back to
+## that forever, while the container went on re-laying the column out under it
+## every time the countdown's text changed size. The button then jumped out from
+## under the cursor, which un-hovered it, which dropped it back: a bounce that
+## no screenshot and no static layout check can see.
+##
+## So this drives the real thing: a real container, a sibling that changes size
+## the way a clock does, and the displacement measured against where the layout
+## put the button rather than against where it started.
+func _test_a_hover_never_leaves_its_layout_place() -> void:
+	var column := VBoxContainer.new()
+	column.size = Vector2(220.0, 200.0)
+	_root.add_child(column)
+	var clock := Label.new()
+	clock.text = "12 sec"
+	clock.add_theme_font_size_override("font_size", 26)
+	column.add_child(clock)
+	var ride := Button.new()
+	ride.text = "RIDE ON"
+	column.add_child(ride)
+	await get_tree().process_frame
+	UiJuice.dress(ride)
+
+	# Hovered where it stands: at most the authored nudge, upward.
+	ride.mouse_entered.emit()
+	for _frame: int in 24:
+		await get_tree().process_frame
+	var laid_out: float = column.position.y + clock.size.y 		+ column.get_theme_constant(&"separation")
+	_check(absf(ride.position.y - laid_out) <= Balance.UI_HOLO_LIFT + 0.6,
+		"a hovered button must sit within %0.1fpx of where the column put it: %0.1f against %0.1f"
+			% [Balance.UI_HOLO_LIFT, ride.position.y, laid_out])
+
+	# **The clock ticks, and the column re-sorts under the hovered button.**
+	# This is the fault: the remembered home is now wrong by however much the
+	# row above grew.
+	clock.add_theme_font_size_override("font_size", 52)
+	clock.text = "GO"
+	column.queue_sort()
+	for _frame: int in 8:
+		await get_tree().process_frame
+	ride.mouse_exited.emit()
+	ride.mouse_entered.emit()
+	for _frame: int in 24:
+		await get_tree().process_frame
+	var moved: float = column.position.y + clock.size.y 		+ column.get_theme_constant(&"separation")
+	_check(absf(ride.position.y - moved) <= Balance.UI_HOLO_LIFT + 0.6,
+		("after the column re-sorts, a hover must still land within %0.1fpx of "
+			+ "the new layout: %0.1f against %0.1f")
+			% [Balance.UI_HOLO_LIFT, ride.position.y, moved])
+
+	# And left alone it returns exactly, rather than settling a nudge higher
+	# every time it is pointed at.
+	ride.mouse_exited.emit()
+	for _frame: int in 24:
+		await get_tree().process_frame
+	_check(absf(ride.position.y - moved) <= 0.6,
+		"and it must come back to the layout's own place: %0.1f against %0.1f"
+			% [ride.position.y, moved])
+	column.queue_free()

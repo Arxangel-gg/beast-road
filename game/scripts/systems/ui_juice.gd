@@ -30,6 +30,11 @@ const SHADER: String = "res://scripts/shaders/ui_hologram.gdshader"
 ## The overlay's name inside a control, so a second enrol finds it rather than
 ## stacking another one.
 const SKIN: StringName = &"HoloSkin"
+## What this file has put on a control, so the layout's own answer can be
+## recovered from where the control currently is.
+const APPLIED: StringName = &"holo_lift"
+const TWEEN: StringName = &"holo_tween"
+const WATCHED: StringName = &"holo_watched"
 
 static var _shader: Shader = null
 
@@ -199,17 +204,55 @@ static func _tween_to(control: Control, material: ShaderMaterial,
 ##
 ## **Pivoted and offset rather than scaled.** Scaling a `Control` inside a
 ## container fights the container's own layout every frame, and this project
-## has a `layout_check` that would rightly fail a button whose rect moved. An
-## offset on the *skin's* parent is not available either, so the nudge lives on
-## `position` and is put back exactly - the containers here lay out on resize
-## rather than continuously, which is what makes that safe.
+## has a `layout_check` that would rightly fail a button whose rect moved.
+##
+## **And home is asked for rather than remembered** (owner, 2026-09-15). This
+## used to cache `position` in a meta on the first hover and tween back to that
+## forever after. A container re-lays its children out whenever anything inside
+## it changes size, and the Preparation card's countdown re-sorts that column
+## every second - so the remembered home went stale, and hovering RIDE ON threw
+## the button tens of pixels up the card, over the clock it sits under. Worse,
+## it then left the cursor, so the button fell back, was entered again, and
+## bounced: reported as a button that "moves way too far", is "hard to click"
+## and "covers up the ui texts including countdown".
+##
+## Three things make it safe now. The home is *derived* - wherever the layout
+## has put the button, less whatever lift is already on it - so a stale one
+## cannot exist. The offset is clamped to the authored lift, so no arithmetic
+## slip can move a button further than a nudge. And a container's own re-sort
+## clears the applied offset, because after a sort the child is exactly where
+## the layout wants it and nothing of ours is on it any more.
 static func _lift(control: Control, by: float) -> void:
 	if control == null or not is_instance_valid(control):
 		return
-	if not control.has_meta(&"holo_home"):
-		control.set_meta(&"holo_home", control.position)
-	var home: Vector2 = control.get_meta(&"holo_home")
+	var wanted: float = clampf(by, -Balance.UI_HOLO_LIFT, Balance.UI_HOLO_LIFT)
+	_follow_the_layout(control)
+	var applied: float = float(control.get_meta(APPLIED, 0.0))
+	var home: Vector2 = control.position + Vector2(0.0, applied)
+	control.set_meta(APPLIED, wanted)
+	# One tween per control. Two lifts racing each other on `position` is the
+	# other half of a button that will not sit still.
+	# `get_meta` with a null default still errors on a missing key, which is a
+	# red gate rather than a fallback.
+	if control.has_meta(TWEEN):
+		var running := control.get_meta(TWEEN) as Tween
+		if running != null and running.is_valid():
+			running.kill()
 	var tween: Tween = control.create_tween()
+	control.set_meta(TWEEN, tween)
 	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tween.tween_property(control, "position", home + Vector2(0.0, -by),
+	tween.tween_property(control, "position", home + Vector2(0.0, -wanted),
 		Balance.UI_HOLO_RISE)
+
+
+## Once per control: when its container re-sorts, whatever we had put on it is
+## gone, so the bookkeeping has to agree. Connected lazily because a control can
+## be re-parented between the enrol and the first hover.
+static func _follow_the_layout(control: Control) -> void:
+	var box := control.get_parent() as Container
+	if box == null or control.has_meta(WATCHED):
+		return
+	control.set_meta(WATCHED, true)
+	box.sort_children.connect(func() -> void:
+		if is_instance_valid(control):
+			control.set_meta(APPLIED, 0.0))
