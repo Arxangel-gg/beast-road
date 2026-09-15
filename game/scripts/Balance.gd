@@ -3375,6 +3375,21 @@ const DRAGON_RATE: float = 0.0016
 const BEAST_OMEN_DRAGON_SPAN: float = 1.15
 const BEAST_OMEN_DRAGON_HEIGHT: float = 1.25
 
+## **How many living companions the pen holds.**
+##
+## A cap rather than a wall: a full pen is a decision - release one, or leave the
+## next egg unhatched - and that decision is the whole reason a pen is more
+## interesting than a list. Big enough that a player who likes raising things has
+## room to keep favourites, small enough that keeping one *means* something.
+const PEN_CAPACITY: int = 12
+
+## How long a penned animal holds a pose before it picks another - grazing,
+## wandering, lying down. Presentation only; nothing reads it.
+const PEN_POSE_SECONDS: Vector2 = Vector2(3.5, 9.0)
+## How far one wanders from where it settled, and how fast.
+const PEN_ROAM_RADIUS: float = 96.0
+const PEN_ROAM_SPEED: float = 26.0
+
 const EGGS_CARRIED_MAX: int = 4
 
 const NEST_INCUBATION_DISTANCE: float = 95.0

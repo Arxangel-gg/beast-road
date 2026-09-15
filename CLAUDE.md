@@ -3302,6 +3302,59 @@ same family as `PackedStringArray([...])` not being a constant expression and as
 data indexing an enum by number: a typed container in a `.tres` has to match the
 export exactly, and nothing says so when it does not.
 
+**There is a pen, and what is in it can be lost, as of 2026-09-15.** The
+owner asked for living companions kept at a pen with idle, roaming and resting
+animations, a cap with the option to release one to make room, a choice of which
+one to take on an expedition, and - the important half - *"alive companions that
+are removed from a pen will stay with the player for expeditions until the
+player safely places them back in the pen outside of runs if the companion has
+not died during the run it was taken into"*.
+
+**This amends working rule 7, and the amendment is one sentence: the bond is
+permanent and the animal is not.** `MetaState.pen` is a roster of *individual
+living creatures* - `{uid, species, rarity, shiny, trait}` - capped at
+`PEN_CAPACITY`. `spirit_bonded` is untouched by any of it, so an animal dying on
+the road costs the player **that creature** and never a line in the journal: the
+same variant can be raised again, and the entry that says they raised one stands.
+A gate that let those two get confused would be a gate that let a death eat
+discovery, which nothing else in this project does.
+
+**A raised animal does not re-form, and that is the entire stake.** A bonded
+spirit has come back after being beaten since companions were un-cut - that is
+what `SpiritBond.recovery_seconds` is for and it stays exactly as it was.
+`Companion.from_pen` is the one flag that separates them: a raised creature that
+goes down is gone, told once on the field and *settled when the run ends*,
+because a run still being played might yet be abandoned and the pen is not a
+run's to edit.
+
+**Lost only if it actually died.** A Warden who fell on the road did not get
+their animal killed, so a lost run brings the creature home. That is a reading
+of the owner's own conditional - "if the companion has not died during the run" -
+rather than of "because of a successful extraction", which would also support
+losing it on any failure. **Recorded as a reading rather than a certainty**: it
+is one condition in `GameDirector._settle_run` if it is ever meant the other way.
+
+**And the pen cannot be edited during a run.** Swapping the animal out the
+moment it starts to look like dying is the decision being made after the risk
+instead of before it, which is the whole thing taking a favourite out is
+supposed to cost. `pen_take` refuses outside `Phase.ENDED`.
+
+**One at a time, still.** What §54 cut is a *roster the player commands*, and a
+raised animal walks in the same single slot a bonded spirit does - it is not a
+stronger companion, it is the same variant at the same rarity on the same power
+scale. It simply happens to be *that creature*.
+
+**Additive, like everything before it.** A save written before the pen has no
+`pen` key and reads back as an empty pen, which is also what a new account is.
+`SAVE_VERSION` did not move and there is no migration to get wrong. A malformed
+row - a species the roster does not have - is dropped rather than trusted,
+because that list is the one place a bad row would put a companion with nothing
+to draw on the road.
+
+`pen_check` (65 checks) holds the cap, the release, the one-at-a-time, the
+mid-run refusal, the dangling name, the malformed row, the read-back, and -
+hardest - that losing an animal leaves the collection exactly the size it was.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

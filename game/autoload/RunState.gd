@@ -638,6 +638,10 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	earth_events.clear()
 	seeds.clear()
 	carried_eggs.clear()
+	# A fresh road: whatever happened to the last animal was settled when that
+	# run ended, and a flag carried across runs would lose one for a death it
+	# already paid for.
+	pen_companion_fell = false
 	companion_sex.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
@@ -2356,6 +2360,15 @@ func item_with_effect(effect: int, automatic_only: bool = false) -> ItemData:
 ## companion called if the larder can pay for it, and a player who sent it
 ## away has sent it away for this run.
 var spirit_called: bool = true
+
+## **Whether the animal taken out of the pen went down on this road.**
+##
+## A bonded *spirit* re-forms - that is what `SpiritBond.recovery_seconds` is for
+## and it has been the design since companions were un-cut. A **raised** animal
+## does not: it is one particular creature rather than an entry in a collection,
+## and the whole stake of taking one out is that it might not come back. Run
+## scoped; `MetaState` decides what it means when the run ends.
+var pen_companion_fell: bool = false
 ## The fraction of a Food unit the companion has eaten but not yet been
 ## charged, so a slow drain is a drain rather than a rounding error.
 var spirit_upkeep_carry: float = 0.0

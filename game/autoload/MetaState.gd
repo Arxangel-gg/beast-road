@@ -360,6 +360,28 @@ var spirit_bonded: Dictionary = {}
 ## would be painful to migrate.
 var equipped_spirit: String = ""
 
+## **Living companions the Warden keeps**, each its own animal rather than an
+## entry in a collection: `{uid, species, rarity, shiny, trait, born}`.
+##
+## **This is the amendment to working rule 7 that the pen makes**, and its bound
+## is one sentence: **the bond is permanent and the animal is not.**
+## `spirit_bonded` is the collection and nothing here touches it, so an animal
+## dying on the road costs the player *that animal* and never a line in the
+## journal - the same variant can be raised again. A penned animal grants no
+## attribute, banks no currency, and is no stronger for having been kept longer;
+## its power is its variant's rarity, fixed when it hatched, exactly as a bonded
+## spirit's is.
+##
+## Additive, like the pantry, the spirits and the materials before it: a save
+## written before the pen has no `pen` key and reads back as an empty pen, which
+## is also what a new account is. `SAVE_VERSION` did not move.
+var pen: Array[Dictionary] = []
+
+## The uid of the one animal that is out of the pen and on the road, or empty.
+## One at a time, which is the same bound `equipped_spirit` has had since the
+## companions were un-cut: what §54 refuses is a *roster* the player commands.
+var pen_taken: String = ""
+
 ## Milestone-gated construction pool. These are content permissions, not built
 ## tiers; every building still starts over each run.
 var unlocked_buildings: Array[String] = []
@@ -1562,6 +1584,13 @@ func serialized_save() -> String:
 			"bonded": spirit_bonded,
 			"equipped": equipped_spirit,
 		},
+		# The living ones. Additive for the same reason everything above it is:
+		# a save from before the pen reads back as an empty pen, which is what a
+		# new account is, so there is no migration to get wrong.
+		"pen": {
+			"animals": pen,
+			"taken": pen_taken,
+		},
 		"resource_cache": resource_cache,
 		"chronicle": {
 			"completed": completed_objectives,
@@ -1656,6 +1685,7 @@ func load_save() -> void:
 	_read_professions(data.get("professions", {}) as Dictionary)
 	_read_materials(data.get("materials", {}) as Dictionary)
 	_read_spirits(data.get("spirits", {}) as Dictionary)
+	_read_pen(data.get("pen", {}) as Dictionary)
 	_read_social(data.get("social", {}) as Dictionary)
 	_read_stash(data.get("stash", {}) as Dictionary)
 	_read_board(data.get("board", {}) as Dictionary)
@@ -1899,6 +1929,144 @@ func spirit_is_known(bond_key: String) -> bool:
 
 
 ## Equips a bonded spirit, or clears the slot with "".
+## --- The pen ---------------------------------------------------------------
+
+## Reads the kept animals off a save. Anything malformed is dropped rather than
+## trusted: this list is the one place a bad row would put a companion on the
+## road with no species to draw.
+func _read_pen(stored: Dictionary) -> void:
+	pen.clear()
+	pen_taken = ""
+	for row: Variant in (stored.get("animals", []) as Array):
+		var animal := row as Dictionary
+		if animal == null:
+			continue
+		var species: String = String(animal.get("species", ""))
+		if species.is_empty() or ContentDB.wildlife_kinds.get(species, null) == null:
+			continue
+		pen.append({
+			"uid": String(animal.get("uid", _fresh_pen_uid())),
+			"species": species,
+			"rarity": clampi(int(animal.get("rarity", 0)), 0, 3),
+			"shiny": bool(animal.get("shiny", false)),
+			"trait": String(animal.get("trait", "")),
+		})
+		if pen.size() >= Balance.PEN_CAPACITY:
+			break
+	var taken: String = String(stored.get("taken", ""))
+	if not taken.is_empty() and penned(taken).is_empty():
+		# An animal that was out when the game closed and is not in the list is
+		# not a companion, it is a dangling name. Better an empty field than a
+		# road with a ghost on it.
+		taken = ""
+	pen_taken = taken
+
+
+## A name for one animal, unique within this account's pen.
+func _fresh_pen_uid() -> String:
+	var taken: Dictionary = {}
+	for animal: Dictionary in pen:
+		taken[String(animal.get("uid", ""))] = true
+	var next: int = pen.size() + 1
+	while taken.has("pen%d" % next):
+		next += 1
+	return "pen%d" % next
+
+
+## The animal with this name, or an empty dictionary.
+func penned(uid: String) -> Dictionary:
+	for animal: Dictionary in pen:
+		if String(animal.get("uid", "")) == uid:
+			return animal
+	return {}
+
+
+## Whether the pen has room for one more.
+func pen_has_room() -> bool:
+	return pen.size() < Balance.PEN_CAPACITY
+
+
+## **Put a living animal in the pen.** Returns its name, or empty if it is full.
+##
+## The caller is expected to have bonded the variant separately: hatching does
+## both, because meeting an animal and keeping one are two different facts and
+## the journal should record the first whether or not there is room for the
+## second.
+func pen_add(species_id: String, rarity: int, shiny: bool,
+		trait_id: String = "") -> String:
+	if species_id.is_empty() or not pen_has_room():
+		return ""
+	if ContentDB.wildlife_kinds.get(species_id, null) == null:
+		return ""
+	var uid: String = _fresh_pen_uid()
+	pen.append({
+		"uid": uid,
+		"species": species_id,
+		"rarity": clampi(rarity, 0, 3),
+		"shiny": shiny,
+		"trait": trait_id,
+	})
+	save_game()
+	return uid
+
+
+## **Let one go.** It leaves the pen and the account keeps the bond, which is the
+## bound this whole thing rests on: releasing costs the animal, never the
+## journal entry that says you raised one.
+func pen_release(uid: String) -> bool:
+	for index: int in pen.size():
+		if String(pen[index].get("uid", "")) != uid:
+			continue
+		if pen_taken == uid:
+			pen_taken = ""
+		pen.remove_at(index)
+		save_game()
+		return true
+	return false
+
+
+## **Take one out for the next expedition.** Empty puts everything back.
+##
+## Refused during a run: what goes on the road is decided before leaving, which
+## is what makes taking a favourite a decision with a cost rather than a swap
+## made the moment one looks like dying.
+func pen_take(uid: String) -> bool:
+	if RunState.phase != RunState.Phase.ENDED:
+		return false
+	if uid.is_empty():
+		pen_taken = ""
+		save_game()
+		return true
+	if penned(uid).is_empty():
+		return false
+	pen_taken = uid
+	save_game()
+	return true
+
+
+## The animal currently out of the pen, or an empty dictionary.
+func pen_companion() -> Dictionary:
+	return penned(pen_taken) if not pen_taken.is_empty() else {}
+
+
+## **It did not come home.** The animal is gone from the pen for good.
+##
+## The bond is untouched, on purpose and as the bound: the player can raise
+## another of that variant, and the journal still says they raised this one.
+func pen_lose_taken() -> bool:
+	if pen_taken.is_empty():
+		return false
+	var lost: String = pen_taken
+	pen_taken = ""
+	for index: int in pen.size():
+		if String(pen[index].get("uid", "")) == lost:
+			pen.remove_at(index)
+			save_game()
+			return true
+	save_game()
+	return false
+
+
 func equip_spirit(bond_key: String) -> bool:
 	if bond_key.is_empty():
 		equipped_spirit = ""

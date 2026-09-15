@@ -343,9 +343,14 @@ func _hatch_what_was_carried(home: bool) -> Array[String]:
 		# than rolled fresh - so two eggs from one clutch are two animals.
 		var serial: int = absi(RunState.run_seed ^ hash(species + str(hatched.size())))
 		var temperament: SpiritTraitData = SpiritBond.trait_for(species, serial)
-		if MetaState.bond_from_egg(species, rarity, shiny,
-				"" if temperament == null else temperament.id):
+		var trait_id: String = "" if temperament == null else temperament.id
+		if MetaState.bond_from_egg(species, rarity, shiny, trait_id):
 			hatched.append(SpiritBond.key(species, rarity, shiny))
+		# **And the animal itself goes in the pen**, which is a different fact
+		# from the bond: meeting a variant is recorded whether or not there is
+		# room to keep the creature, and a full pen turns the next egg into a
+		# decision rather than swallowing it silently.
+		MetaState.pen_add(species, rarity, shiny, trait_id)
 	RunState.carried_eggs.clear()
 	return hatched
 
@@ -360,6 +365,14 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 	if Coop.is_host() and Coop.partner_present():
 		Chronicle.publish_progress(victory, true)
 		EventBus.coop_run_ended.emit(victory, returned)
+
+	# **And what was taken out of the pen, before anything else is settled.**
+	# Lost only if it actually went down: a Warden who fell on the road did not
+	# get their animal killed, and the owner's condition is "if the companion has
+	# not died during the run it was taken into".
+	if RunState.pen_companion_fell:
+		MetaState.pen_lose_taken()
+	RunState.pen_companion_fell = false
 
 	# **What was carried home, before the summary is built**, so the debrief can
 	# say what hatched. A fall reaches here too and hatches nothing: the eggs go

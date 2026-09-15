@@ -2109,9 +2109,21 @@ func _refresh_spirit() -> void:
 	# **Sent away stays away.** The spirit is a toggle now (owner brief,
 	# 2026-09-13): calling one costs a meal, keeping one costs Food while it
 	# is out, and a player who cannot or does not want to pay sends it home.
-	var wanted: String = MetaState.equipped_spirit if RunState.spirit_called else ""
+	# **An animal taken out of the pen walks ahead of a bonded spirit.**
+	#
+	# One companion at a time is the bound §54's cut left standing, so when the
+	# Warden has taken a raised animal out that is the one at their shoulder. It
+	# is not a stronger spirit - the same variant, the same rarity, the same
+	# power scale - it is *that creature*, and the difference is that it does not
+	# come back if it goes down.
+	var raised: Dictionary = MetaState.pen_companion()
+	var wanted: String = ""
+	if RunState.spirit_called:
+		wanted = SpiritBond.key(String(raised.get("species", "")),
+			int(raised.get("rarity", 0)), bool(raised.get("shiny", false))) 			if not raised.is_empty() else MetaState.equipped_spirit
+	var from_pen: bool = not raised.is_empty() and not wanted.is_empty()
 	if spirit != null and is_instance_valid(spirit):
-		if spirit.spirit_key == wanted and spirit.field == field:
+		if spirit.spirit_key == wanted and spirit.field == field 				and spirit.from_pen == from_pen:
 			return
 		spirit.dismiss()
 		spirit = null
@@ -2123,6 +2135,7 @@ func _refresh_spirit() -> void:
 		return
 	spirit = Companion.new()
 	spirit.spirit_key = wanted
+	spirit.from_pen = from_pen
 	spirit.setup(SpiritBond.companion_form(kind, wanted), self, field)
 	spirit.global_position = global_position \
 		+ Vector2.RIGHT.rotated(randf() * TAU) * 90.0

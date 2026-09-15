@@ -43,6 +43,13 @@ var _cooldown: float = 0.0
 ## Non-empty puts this companion in spirit mode. A `SpiritBond` key.
 var spirit_key: String = ""
 
+## **True when this is an animal the Warden raised** rather than a bonded spirit.
+##
+## The difference is the only one that matters here: a spirit re-forms after it
+## is beaten and a raised animal does not. One creature, one life, and the reason
+## taking a favourite out of the pen is a decision rather than a free upgrade.
+var from_pen: bool = false
+
 var _hp: float = 0.0
 var _max_hp: float = 0.0
 
@@ -514,6 +521,17 @@ func _suffer_contact(delta: float) -> void:
 
 ## Beaten, not killed. It dissolves and begins re-forming.
 func _go_down() -> void:
+	# **A raised animal does not re-form.** It is told once, here, and what that
+	# costs is settled when the run ends - not now, because a run that is still
+	# being played might yet be abandoned and the pen is not a run's to edit.
+	if from_pen:
+		RunState.pen_companion_fell = true
+		if data != null:
+			Vfx.ring(global_position, 110.0, Color(data.colour, 0.75), 0.7, 6.0)
+		Sfx.play_at("sfx_companion_down", global_position, 2.0)
+		EventBus.spirit_downed.emit(spirit_key, 0.0)
+		queue_free()
+		return
 	_recovering = SpiritBond.recovery_seconds(SpiritBond.rarity_of(spirit_key),
 		SpiritBond.shiny_of(spirit_key))
 	if _sprite != null:
