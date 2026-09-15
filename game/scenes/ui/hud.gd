@@ -4149,10 +4149,17 @@ func _tower_tooltip(tower: TowerData, cost_map: Dictionary) -> String:
 	var rate: float = 1.0 / maxf(tower.interval_at(level), 0.001)
 	var lines: PackedStringArray = [
 		"%s  -  %s" % [tower.display_name, TowerData.element_name(tower.element)],
-		"Damage %.0f  -  %.2f shots/sec  -  %.0f DPS" % [
-			tower.damage_at(level), rate, tower.damage_at(level) * rate],
-		"Range %.0f" % tower.range_at(level),
 	]
+	# A support tower says what it does for its neighbours rather than
+	# "Damage 0" (2026-09-14); the numbers are the resource's own.
+	if tower.is_support():
+		lines.append(_support_line(tower))
+	else:
+		lines.append("Damage %.0f  -  %.2f shots/sec  -  %.0f DPS" % [
+			tower.damage_at(level), rate, tower.damage_at(level) * rate])
+	lines.append("Range %.0f" % tower.range_at(level))
+	if tower.windup_seconds > 0.0:
+		lines.append("Winds up %.1fs before it fires" % tower.windup_seconds)
 	if tower.aoe_at(level) > 0.0:
 		lines.append("Blast radius %.0f" % tower.aoe_at(level))
 	if tower.extra_targets_at(level) > 0:
@@ -4166,6 +4173,25 @@ func _tower_tooltip(tower: TowerData, cost_map: Dictionary) -> String:
 		lines.append("Structure %.0f HP" % tower.max_hp)
 	lines.append("Cost: %s" % RunState.format_cost(cost_map))
 	return "\n".join(lines)
+
+
+## One line for what a support tower does, from its own numbers.
+func _support_line(tower: TowerData) -> String:
+	match int(tower.support):
+		TowerData.Support.HASTE:
+			return "Hastes towers in reach %d%% for %.1fs every %.0fs" % [
+				int(round(tower.support_strength * 100.0)), tower.support_window, tower.support_interval]
+		TowerData.Support.ABSORB:
+			return "Swallows %d hostile shots, one back every %.0fs" % [
+				tower.support_capacity, tower.support_interval]
+		TowerData.Support.REPAIR:
+			return "Mends towers in reach %d%% every %.0fs, never a fallen one" % [
+				int(round(tower.support_strength * 100.0)), tower.support_interval]
+		TowerData.Support.REACH:
+			return "Towers in reach shoot %d%% further; never another relay" % [
+				int(round(tower.support_strength * 100.0))]
+		_:
+			return "Fires nothing"
 
 
 ## Blank means "nothing hovered", which reads as a hole in the panel rather than

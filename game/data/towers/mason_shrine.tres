@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+ambient = 9
+shot_tint = Color(0.95, 0.8, 0.5, 1)
+juice_scale = 1.0
+support = 3
+support_strength = 0.05
+support_interval = 5.0
+role = 3
+element = 2
+damage = 0.0
+attack_interval = 1.0
+attack_range = 280.0
+max_hp = 700.0
+id = "mason_shrine"
+display_name = "Mason Shrine"
+description = "Warden. Fires nothing. Its masons mend the towers beside it a little at a time, every few breaths, and never past whole. Stone that has fallen stays fallen; a shrine raises nothing."

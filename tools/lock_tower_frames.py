@@ -67,6 +67,13 @@ def lock(base, frame):
         small = np.isin(labels, [i + 1 for i, s in enumerate(sizes) if s < MIN_BLOB])
         keep &= ~small
     keep = ndimage.binary_dilation(keep, iterations=1) & (f_on | ~b_on)
+    # Nothing below the ground line. A burst or a ring the animator drew
+    # spilling under the base's foot moves the tower's ground anchor, which
+    # `structure_art_check` refuses: a tower stands on the row its base
+    # stands on, whatever its discharge does above it.
+    rows = np.where(b_on.any(axis=1))[0]
+    if rows.size:
+        keep[rows.max() + 1:, :] = False
     out = base.copy()
     out[keep] = frame[keep]
     return out, (dx, dy), int(keep.sum())

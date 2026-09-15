@@ -4623,6 +4623,17 @@ const TOWER_SPRAY_LIFE: float = 0.32
 
 ## Where the players fell (owner brief, 2026-09-14): the stone's drop, its
 ## landing, its going, and the room between two markers on one spot. [TUNE]
+## Support towers (2026-09-14): how much haste and reach may stack from
+## several forges or relays on one tower, however many stand in reach. A
+## window or a relay is a gift on a number the curve already reads, and an
+## unbounded stack of them is the third power scale this project refuses.
+## [TUNE]
+const TOWER_SUPPORT_HASTE_CAP: float = 0.6
+const TOWER_SUPPORT_REACH_CAP: float = 0.4
+## The telegraph a winding-up tower draws at its target, as a share of its
+## blast, and the pulse a support tower plays when it works.
+const TOWER_WINDUP_RING_ALPHA: float = 0.55
+
 const DEATH_STONE_FALL_HEIGHT: float = 260.0
 ## The stone's size on the field; drawn at 64x80 and stood beside a Warden
 ## of 168x160, one to one read as a kerb.

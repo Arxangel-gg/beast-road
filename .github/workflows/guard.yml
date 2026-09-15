@@ -575,6 +575,10 @@ jobs:
           # Where the players fell: one stone per hero down, falling, landing and
           # dissolving on revival; remains until the act ends; every death path.
           check "death markers" --headless --path game res://tools/death_marker_check.tscn
+          # Eight towers an element, and the five support towers measured on
+          # the real field: the window, the reach, the mend, the mirror, the
+          # wind-up.
+          check "tower support" --headless --path game res://tools/tower_support_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

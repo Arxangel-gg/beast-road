@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+ambient = 2
+shot_tint = Color(1, 0.7, 0.35, 1)
+juice_scale = 1.1
+support = 1
+support_strength = 0.35
+support_interval = 12.0
+support_window = 3.5
+role = 3
+element = 0
+damage = 0.0
+attack_interval = 1.0
+attack_range = 300.0
+max_hp = 600.0
+id = "bellows_forge"
+display_name = "Bellows Forge"
+description = "Warden. Fires nothing. Every few breaths its bellows heave and the towers round it fire faster for a moment - a window, never a standing gift, and two forges on one tower give less than twice one."

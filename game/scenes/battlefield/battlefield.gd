@@ -2489,6 +2489,72 @@ func death_markers() -> DeathMarkers:
 	return _death_markers
 
 
+# --- Support towers (2026-09-14) ----------------------------------------------------------
+
+## The forges, relays and mirrors on the field, read once a frame rather than
+## by every tower asking every other tower on every call to its reach.
+var _support_frame: int = -1
+var _haste_towers: Array[Tower] = []
+var _reach_towers: Array[Tower] = []
+var _mirror_towers: Array[Tower] = []
+
+
+func _refresh_support() -> void:
+	var frame: int = Engine.get_process_frames()
+	if frame == _support_frame:
+		return
+	_support_frame = frame
+	_haste_towers.clear()
+	_reach_towers.clear()
+	_mirror_towers.clear()
+	for node: Node in get_tree().get_nodes_in_group(Tower.GROUP):
+		var tower := node as Tower
+		if tower == null or tower.data == null or not tower.data.is_support():
+			continue
+		match int(tower.data.support):
+			TowerData.Support.HASTE:
+				if tower.is_support_active():
+					_haste_towers.append(tower)
+			TowerData.Support.REACH:
+				if tower.is_support_active():
+					_reach_towers.append(tower)
+			TowerData.Support.ABSORB:
+				if tower.is_support_active():
+					_mirror_towers.append(tower)
+			_:
+				pass
+
+
+## The interval scale the open forges round `at` give: 1 with none, smaller
+## with more, never past the cap.
+func support_haste_at(at: Vector2) -> float:
+	_refresh_support()
+	var bonus: float = 0.0
+	for tower: Tower in _haste_towers:
+		if is_instance_valid(tower) and at.distance_to(tower.origin()) <= tower.effective_range():
+			bonus += tower.data.support_strength
+	return 1.0 / (1.0 + minf(bonus, Balance.TOWER_SUPPORT_HASTE_CAP))
+
+
+## The reach scale the relays round `at` give: 1 with none, never past the cap.
+func support_reach_at(at: Vector2) -> float:
+	_refresh_support()
+	var bonus: float = 0.0
+	for tower: Tower in _reach_towers:
+		if is_instance_valid(tower) and at.distance_to(tower.origin()) <= tower.effective_range():
+			bonus += tower.data.support_strength
+	return 1.0 + minf(bonus, Balance.TOWER_SUPPORT_REACH_CAP)
+
+
+## A hostile shot at `at`: the first mirror with a charge in reach swallows it.
+func absorb_hostile_shot(at: Vector2) -> bool:
+	_refresh_support()
+	for tower: Tower in _mirror_towers:
+		if is_instance_valid(tower) and tower.absorb(at):
+			return true
+	return false
+
+
 func sky() -> WeatherSky:
 	return _sky
 

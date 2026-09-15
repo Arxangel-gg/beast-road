@@ -94,6 +94,9 @@ const ROSTER_UNLOCK_ORDER: Array[String] = [
 	"scree_gun", "squall_vane",
 	"ash_thrower", "hailcaster",
 	"barrow_stake", "gale_lance",
+	# The five of 2026-09-14, to eight an element: the towers that work for
+	# their neighbours, after every gun, and the kiln with them.
+	"flash_kiln", "mason_shrine", "stillwater_mirror", "wind_relay", "bellows_forge",
 	# The well is last on purpose. It is the only tower that does not shoot, and
 	# a player offered one before they have learned what a road costs them will
 	# read it as a worse gun rather than as a trade.

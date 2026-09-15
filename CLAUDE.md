@@ -2420,6 +2420,51 @@ drowning, `Battlefield.suspend`, `act_started`, and the raid arena's own hero
 - and `death_marker_shot` photographs the fall, the stand, the dissolve and
 the bones.
 
+**Eight towers an element, as of 2026-09-14.** The owner's brief, second of
+three stages: the roster to eight per element with the ten fusions kept, five
+arrivals with levels, both paths, a capstone, an unlock, a description,
+authored art and effects. Fire had six, the others seven; the five are the
+Flash Kiln and the Bellows Forge (fire), the Stillwater Mirror (water), the
+Mason Shrine (earth) and the Wind Relay (air), and they join
+`ROSTER_UNLOCK_ORDER` after every gun and ahead of the well.
+
+**Four of the five fire nothing, and each does one thing for its neighbours
+on a number they already have.** `TowerData.support` names it: the Forge
+opens a `support_window` every `support_interval` in which the towers in
+reach fire `support_strength` faster; the Relay carries its neighbours'
+reach by its strength while it stands; the Shrine mends each damaged tower
+in reach by its strength every interval; the Mirror swallows
+`support_capacity` hostile shots that cross its reach and recovers one an
+interval. The Kiln shoots: a short-reach burst with `windup_seconds` of open
+shutters first, and a ring at its target the size of the blast for exactly
+that long, so the tell and the blow cannot disagree.
+
+**The bounds, each gated by `tower_support_check` on the real field.** A
+window is never a standing gift and two forges give less than twice one
+(`TOWER_SUPPORT_HASTE_CAP`); a relay never carries another relay and a
+fallen relay carries nothing (`TOWER_SUPPORT_REACH_CAP`); a shrine mends
+never past whole and **stone that has fallen stays fallen** - `Tower.repair`
+refuses a dead tower and that refusal is the rule; a mirror emptied is a
+basin until its clock fills it, and a shot out of its reach is not swallowed.
+Every one moves a rate, a reach, a pool or a shot the fight already had, so
+`curve_report` reads the same waves - the same bound paths, omens, cards and
+airs are all held to. The field reads the forges, relays and mirrors once a
+frame (`Battlefield._refresh_support`) rather than every tower asking every
+other on every call to its reach.
+
+**Co-op.** Tower health never crossed the wire and still does not; a support
+tower's clock runs on both machines, the guest's towers are told their shots
+as before, and a hostile shot is a local picture on a guest, so a mirror's
+charges are local too. Nothing new is sent and nothing persists.
+
+**And the "six Earth and Air options" the owner saw is the unlock order, not
+a fault.** The build sheet lists `ContentDB.unlocked_base_towers()`; an
+account that has bought the roster up to the Hailcaster holds six of Air's
+seven and seven of Earth's, with the Gale Lance, the Barrow Stake and the
+well still to buy with Tools. The five join that ladder rather than the
+starting set, for the same reason the well is last: a player meets one new
+tower at a time.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

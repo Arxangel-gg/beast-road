@@ -78,6 +78,14 @@ var _level_scale: Vector2 = Vector2.ONE
 ## How much of the firing kick is left: 1 at the shot, 0 at rest.
 var _fire_kick: float = 0.0
 
+## What a support tower is doing (2026-09-14): its clock, whether its window
+## is open, and the shots it can still swallow. A shooter's wind-up.
+var _support_clock: float = 0.0
+var _support_active: bool = false
+var _charges: int = 0
+var _charge_clock: float = 0.0
+var _windup_left: float = 0.0
+
 ## Which way the recoil pushes — away from what was shot at.
 var _fire_recoil: Vector2 = Vector2.UP
 
@@ -146,6 +154,7 @@ func _ready() -> void:
 	_idle_phase = RunState.rng("combat").randf() * TAU
 	if not _idle_frames.is_empty():
 		_idle_frame_clock = _idle_phase / TAU * float(_idle_frames.size())
+	_charges = data.support_capacity
 	# What its element does to the air (2026-09-12). A well is water enough.
 	_aura = TowerAura.new()
 	_aura.element = int(data.element)
@@ -227,6 +236,22 @@ func _process(delta: float) -> void:
 	_cooldown -= delta * rate
 	_tick_storm(delta)
 	_tick_heat(delta)
+	# A support tower works on its own clock and never shoots; a puppet's
+	# copy runs too, because what it changes is what the guest sees and the
+	# guest's towers are told their shots anyway.
+	if data.is_support():
+		_tick_support(delta)
+		return
+	# Shutters open: the shot leaves when the wind-up ends, at whatever is in
+	# reach then, so a body that walks out of the cone is spared and one that
+	# walks in is not.
+	if _windup_left > 0.0:
+		_windup_left -= delta
+		if _windup_left <= 0.0 and not puppet:
+			var wound: Array[Enemy] = _acquire_targets()
+			if not wound.is_empty():
+				_fire(wound)
+		return
 	if _cooldown > 0.0:
 		return
 
@@ -244,7 +269,112 @@ func _process(delta: float) -> void:
 	if targets.is_empty():
 		return
 	_cooldown = data.interval_at(level) * path_interval_scale()
+	if data.windup_seconds > 0.0:
+		_begin_windup(targets[0])
+		return
 	_fire(targets)
+
+
+## The tell before a slow tower's blow: its first attack frame held, and a
+## ring at the target the size of the blast to come, over the whole wind-up,
+## so the tell and the blow cannot disagree about where or when.
+func _begin_windup(primary: Enemy) -> void:
+	_windup_left = data.windup_seconds
+	if not _attack_frames.is_empty():
+		sprite.texture = _attack_frames[0]
+		_attack_left = data.windup_seconds
+	if primary != null and is_instance_valid(primary):
+		Vfx.ring(primary.combat_origin(), maxf(data.aoe_at(level) * path_aoe_scale(), 40.0),
+			Color(data.shot_colour(), Balance.TOWER_WINDUP_RING_ALPHA), data.windup_seconds, 3.0)
+
+
+func is_winding_up() -> bool:
+	return _windup_left > 0.0
+
+
+# --- Support towers (2026-09-14) -----------------------------------------------------------------------
+
+func _tick_support(delta: float) -> void:
+	match int(data.support):
+		TowerData.Support.HASTE:
+			_support_clock += delta
+			var was: bool = _support_active
+			_support_active = fmod(_support_clock, maxf(data.support_interval, 0.01)) < data.support_window
+			if _support_active and not was:
+				pulse()
+				Vfx.ring(origin(), effective_range(), Color(data.shot_colour(), 0.35), 0.5, 3.0)
+		TowerData.Support.REPAIR:
+			_support_clock += delta
+			if _support_clock >= data.support_interval:
+				_support_clock -= data.support_interval
+				_mend_neighbours()
+		TowerData.Support.ABSORB:
+			if _charges < data.support_capacity:
+				_charge_clock += delta
+				if _charge_clock >= data.support_interval:
+					_charge_clock -= data.support_interval
+					_charges += 1
+		_:
+			pass
+
+
+## Whether this tower's gift is on right now.
+func is_support_active() -> bool:
+	if data == null or not data.is_support() or not is_vulnerable():
+		return false
+	match int(data.support):
+		TowerData.Support.HASTE:
+			return _support_active
+		TowerData.Support.ABSORB:
+			return _charges > 0
+		_:
+			return true
+
+
+## The shots this mirror can still swallow. For the gate.
+func charges() -> int:
+	return _charges
+
+
+## A hostile shot crossing a mirror's reach: swallowed, one charge spent.
+func absorb(at: Vector2) -> bool:
+	if data == null or int(data.support) != TowerData.Support.ABSORB or _charges <= 0:
+		return false
+	if not is_vulnerable() or at.distance_to(origin()) > effective_range():
+		return false
+	_charges -= 1
+	_charge_clock = 0.0
+	pulse()
+	Vfx.ring(at, 34.0, Color(data.shot_colour(), 0.8), 0.25, 3.0)
+	Vfx.flash_at(at, data.shot_colour(), 12.0)
+	Vfx.spark(origin() + Vector2(0.0, -Balance.TOWER_SPRITE_LIFT), data.shot_colour().lerp(Color.WHITE, 0.5), 6,
+		Vector2.UP, 90.0)
+	return true
+
+
+## The shrine's pulse: every damaged tower in reach mended a little. Never
+## one that has fallen - `repair` refuses a dead tower, and that refusal is
+## the rule that stone that has fallen stays fallen.
+func _mend_neighbours() -> void:
+	var mended: int = 0
+	for node: Node in get_tree().get_nodes_in_group(GROUP):
+		var other := node as Tower
+		if other == null or other == self or not other.needs_repair():
+			continue
+		if other.origin().distance_to(origin()) > effective_range():
+			continue
+		other.repair(data.support_strength, true)
+		mended += 1
+	if mended > 0:
+		pulse()
+		Vfx.ring(origin(), effective_range(), Color(data.shot_colour(), 0.3), 0.5, 3.0)
+
+
+## The attack frames played without a recoil: a support tower working.
+func pulse() -> void:
+	_attack_left = Balance.TOWER_FIRE_ANIMATION_SECONDS
+	if not _attack_frames.is_empty():
+		sprite.texture = _attack_frames[0]
 
 
 # --- Healing wells ------------------------------------------------------------
@@ -842,7 +972,16 @@ func _hit(enemy: Enemy) -> void:
 
 
 func effective_range() -> float:
-	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) 		* path_range_scale()
+	return data.range_at(level) * Modifiers.multiplier(Modifiers.TOWER_RANGE) \
+		* path_range_scale() * _support_reach_scale()
+
+
+## What the relays in reach do to this tower's reach (2026-09-14). A relay
+## never carries another relay, so the chain stops at one.
+func _support_reach_scale() -> float:
+	if _field == null or data == null or int(data.support) == TowerData.Support.REACH:
+		return 1.0
+	return _field.support_reach_at(origin())
 
 
 ## What the chosen path does to this tower's reach, capstone included.
@@ -960,11 +1099,16 @@ func needs_repair() -> bool:
 	return is_vulnerable() and _health.current_hp < _health.max_hp - 0.5
 
 
-func repair(fraction: float) -> void:
+func repair(fraction: float, quiet: bool = false) -> void:
 	if not is_vulnerable():
 		return
 	_health.heal(_health.max_hp * clampf(fraction, 0.0, 1.0))
 	_refresh_damage_flames()
+	# A shrine's pulse is a small thing every few seconds; the Quartermaster's
+	# mend is an event. The quiet one keeps the ring and drops the sound.
+	if quiet:
+		Vfx.ring(origin(), 44.0, Color(0.95, 0.8, 0.5, 0.5), 0.35, 3.0)
+		return
 	Vfx.ring(origin(), 74.0, Color(0.58, 0.88, 0.64, 0.65), 0.45, 5.0)
 	Vfx.spark(origin(), Color("b7e6c0"), 12, Vector2.UP, 150.0)
 	Sfx.play("sfx_tower_upgrade", -5.0)
@@ -1076,7 +1220,10 @@ func _tick_step_wobble(delta: float) -> void:
 	# The same kick starts it on host and guest; no gameplay timing is delayed.
 	_attack_left = maxf(_attack_left - delta, 0.0)
 	if _attack_left > 0.0 and not _attack_frames.is_empty():
-		var progress: float = 1.0 - _attack_left / Balance.TOWER_FIRE_ANIMATION_SECONDS
+		# Clamped: a wind-up parks `_attack_left` past the animation's length so
+		# the first frame holds until the last beat, and a negative progress
+		# would index the array from the wrong end.
+		var progress: float = clampf(1.0 - _attack_left / Balance.TOWER_FIRE_ANIMATION_SECONDS, 0.0, 1.0)
 		var attack_frame: int = mini(int(progress * _attack_frames.size()),
 			_attack_frames.size() - 1)
 		pose = _attack_frames[attack_frame]
@@ -1136,6 +1283,9 @@ func path_interval_scale() -> float:
 	# during the window should be hasted too, and one sold during it should not
 	# leave a timer behind. See `RunState.haste_the_towers`.
 	var haste: float = RunState.tower_haste() * _storm_interval()
+	# And the forges whose window is open round this tower (2026-09-14).
+	if _field != null:
+		haste *= _field.support_haste_at(origin())
 	match _path:
 		TowerData.Path.FOCUS:
 			return (1.0 - Balance.TOWER_FOCUS_RATE) * haste

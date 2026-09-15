@@ -1,6 +1,10 @@
 class_name EnemyProjectile
 extends Node2D
 
+## The field this shot crosses, found once by walking up, for the mirrors.
+var _field: Battlefield = null
+var _looked_for_field: bool = false
+
 ## A dodgeable hostile shot. It commits to the target's position at release,
 ## so moving during the telegraph is the answer; it never homes after the hero.
 
@@ -91,6 +95,17 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_life += delta
 	if _life >= Balance.ENEMY_PROJECTILE_MAX_LIFE:
+		queue_free()
+		return
+	# A Stillwater Mirror in its way swallows it (2026-09-14): the shot ends
+	# here with no impact, and the mirror spends a charge.
+	if _field == null and not _looked_for_field:
+		_looked_for_field = true
+		var node: Node = get_parent()
+		while node != null and _field == null:
+			_field = node as Battlefield
+			node = node.get_parent()
+	if _field != null and _field.absorb_hostile_shot(global_position):
 		queue_free()
 		return
 	# A hex follows, slowly. It turns at a fixed rate rather than homing

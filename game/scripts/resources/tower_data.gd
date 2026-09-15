@@ -151,6 +151,57 @@ enum Ambient { ELEMENT, EMBERS, SMOKE, DRIPS, FROST, GRIT, MOTES, GUSTS, SPARKS,
 @export_range(0.5, 2.0) var juice_scale: float = 1.0
 
 
+# --- What a tower does for its neighbours (owner brief, 2026-09-14) ----------------
+#
+# The roster to eight an element. Four of the five arrivals fire nothing:
+# each does one thing for the towers round it, and each thing is a number
+# those towers already have - their rate, their reach, their health - or a
+# hostile shot that never arrives. The bound every addition here is held to
+# (a path, an omen, a card may only move a number the game already has an
+# opinion about) holds for these too, and `tower_support_check` measures each
+# on the real field. The fifth, the Flash Kiln, is a shooter with a
+# telegraph: `windup_seconds` of open shutters before the burst.
+
+## What a support tower does. NONE fires; the rest never do.
+##
+## HASTE: for `support_window` seconds every `support_interval`, the towers in
+## reach fire `support_strength` faster - a window, never a standing gift, and
+## capped across forges. ABSORB: swallows `support_capacity` hostile shots that
+## cross its reach and recovers one every `support_interval` seconds. REPAIR:
+## every `support_interval` seconds mends each damaged tower in reach by
+## `support_strength` of its maximum, and never one that has fallen. REACH:
+## the towers in reach shoot `support_strength` further; a relay never
+## carries another relay.
+enum Support { NONE, HASTE, ABSORB, REPAIR, REACH }
+
+@export var support: Support = Support.NONE
+@export var support_strength: float = 0.0
+@export var support_interval: float = 0.0
+@export var support_window: float = 0.0
+@export var support_capacity: int = 0
+## Seconds a tower shows its hand before the shot leaves. Zero fires at once.
+@export var windup_seconds: float = 0.0
+
+
+## Whether this tower works for its neighbours rather than shooting.
+func is_support() -> bool:
+	return support != Support.NONE
+
+
+static func support_name(which: int) -> String:
+	match which:
+		Support.HASTE:
+			return "Haste"
+		Support.ABSORB:
+			return "Absorb"
+		Support.REPAIR:
+			return "Repair"
+		Support.REACH:
+			return "Reach"
+		_:
+			return ""
+
+
 ## The colour everything this tower throws is drawn in.
 func shot_colour() -> Color:
 	if shot_tint.a > 0.0:

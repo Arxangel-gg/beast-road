@@ -590,6 +590,11 @@ All 192×192, type T. Placeholder colour by element.
 | `tower_barrow_stake.png` | Stone | `#7A6E5C` |
 | `tower_squall_vane.png` | Storm | `#9B8FC4` |
 | `tower_gale_lance.png` | Storm | `#9B8FC4` |
+| `tower_flash_kiln.png` | Fire | `#C4552E` |
+| `tower_bellows_forge.png` | Fire | `#C4552E` |
+| `tower_stillwater_mirror.png` | Frost | `#7FA6BF` |
+| `tower_mason_shrine.png` | Stone | `#7A6E5C` |
+| `tower_wind_relay.png` | Storm | `#9B8FC4` |
 
 ### 5.4b Tower idle frames — `res://art/towers/`
 
@@ -634,6 +639,11 @@ Files: `tower_scree_gun_idle_01.png` … `tower_scree_gun_idle_03.png`
 Files: `tower_barrow_stake_idle_01.png` … `tower_barrow_stake_idle_03.png`
 Files: `tower_squall_vane_idle_01.png` … `tower_squall_vane_idle_03.png`
 Files: `tower_gale_lance_idle_01.png` … `tower_gale_lance_idle_03.png`
+Files: `tower_flash_kiln_idle_01.png` … `tower_flash_kiln_idle_03.png`
+Files: `tower_bellows_forge_idle_01.png` … `tower_bellows_forge_idle_03.png`
+Files: `tower_stillwater_mirror_idle_01.png` … `tower_stillwater_mirror_idle_03.png`
+Files: `tower_mason_shrine_idle_01.png` … `tower_mason_shrine_idle_03.png`
+Files: `tower_wind_relay_idle_01.png` … `tower_wind_relay_idle_03.png`
 
 ### 5.4c Tower firing frames — `res://art/towers/`
 
@@ -677,6 +687,11 @@ Files: `tower_scree_gun_attack_01.png` … `tower_scree_gun_attack_03.png`
 Files: `tower_barrow_stake_attack_01.png` … `tower_barrow_stake_attack_03.png`
 Files: `tower_squall_vane_attack_01.png` … `tower_squall_vane_attack_03.png`
 Files: `tower_gale_lance_attack_01.png` … `tower_gale_lance_attack_03.png`
+Files: `tower_flash_kiln_attack_01.png` … `tower_flash_kiln_attack_03.png`
+Files: `tower_bellows_forge_attack_01.png` … `tower_bellows_forge_attack_03.png`
+Files: `tower_stillwater_mirror_attack_01.png` … `tower_stillwater_mirror_attack_03.png`
+Files: `tower_mason_shrine_attack_01.png` … `tower_mason_shrine_attack_03.png`
+Files: `tower_wind_relay_attack_01.png` … `tower_wind_relay_attack_03.png`
 Files: `tower_rime_lance_attack_01.png` … `tower_rime_lance_attack_03.png`
 Files: `tower_shard_thrower_attack_01.png` … `tower_shard_thrower_attack_03.png`
 Files: `tower_steam_burst_attack_01.png` … `tower_steam_burst_attack_03.png`

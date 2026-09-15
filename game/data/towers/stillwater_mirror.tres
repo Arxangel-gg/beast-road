@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/tower_data.gd" id="1_tw"]
+
+[resource]
+script = ExtResource("1_tw")
+ambient = 9
+shot_tint = Color(0.75, 0.9, 1, 1)
+juice_scale = 1.0
+support = 2
+support_interval = 4.0
+support_capacity = 6
+role = 3
+element = 1
+damage = 0.0
+attack_interval = 1.0
+attack_range = 260.0
+max_hp = 520.0
+id = "stillwater_mirror"
+display_name = "Stillwater Mirror"
+description = "Warden. Fires nothing. Its still water swallows the shots the enemy throws across it - a handful at a time, and it takes a breath to clear each one. A mirror emptied is a basin until it fills."

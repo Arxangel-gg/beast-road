@@ -219,6 +219,18 @@
     "idle": "77dbfebd-4e50-474e-af32-9a1056154e90",
     "object": "1be778ac-9bd5-42b7-b29d-8eef91a80cb2"
   },
+  "art/towers/tower_bellows_forge": {
+    "attack": "e9b1d448-fb93-4cdd-a613-841191cb604c",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/22cf03fd-de62-4f4e-9940-d42e889f6bc7/rotations/unknown.png",
+    "idle": "49356f37-17f7-4de7-afb1-ab1f51571c34",
+    "object": "22cf03fd-de62-4f4e-9940-d42e889f6bc7"
+  },
+  "art/towers/tower_flash_kiln": {
+    "attack": "58505e65-8cba-4079-a29b-1201d3311086",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/3d6b08f8-2429-46cf-b17c-769e64543c7f/rotations/unknown.png",
+    "idle": "7fd24536-395a-45cd-ab93-7099e146c85e",
+    "object": "3d6b08f8-2429-46cf-b17c-769e64543c7f"
+  },
   "art/towers/tower_glacier": {
     "attack": "4367f02f-d15d-4c20-8698-4a237d1ac50d",
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/57296eaa-1adf-41f3-b55f-d470aaeea47b/rotations/unknown.png",
@@ -230,6 +242,12 @@
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/e780e757-1739-47c2-bf3d-987f1dc8fe6c/rotations/unknown.png",
     "idle": "1312a371-ece4-4756-9673-5ecad3688f20",
     "object": "e780e757-1739-47c2-bf3d-987f1dc8fe6c"
+  },
+  "art/towers/tower_mason_shrine": {
+    "attack": "a3fd5a5a-ae48-4ee0-9381-35c304d1f30a",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/5d167a74-09f7-4260-a036-a7e1d6a31019/rotations/unknown.png",
+    "idle": "5a3c063c-332f-4646-a374-baed5a42cb31",
+    "object": "5d167a74-09f7-4260-a036-a7e1d6a31019"
   },
   "art/towers/tower_quake": {
     "attack": "4b0c9a4c-a0ac-4baa-95a0-0cc3451bbfad",
@@ -254,6 +272,18 @@
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/4ad5c560-abd8-4778-9e3d-bec6fee22b44/rotations/unknown.png",
     "idle": "5f4de089-6519-42f8-83e1-b1d578eaf8cd",
     "object": "4ad5c560-abd8-4778-9e3d-bec6fee22b44"
+  },
+  "art/towers/tower_stillwater_mirror": {
+    "attack": "5b1488cb-7186-4da1-94d5-b666b3da2812",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/6f793ce8-e80a-44d9-85b8-d3e40575d7c4/rotations/unknown.png",
+    "idle": "e501fe94-cba0-4cc4-bd12-d1b7a9b130e8",
+    "object": "6f793ce8-e80a-44d9-85b8-d3e40575d7c4"
+  },
+  "art/towers/tower_wind_relay": {
+    "attack": "5f111fe8-cc29-4712-a4fd-5c384a94f6c3",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/c2c7c075-2db1-45ce-8918-cedce67ce2bc/rotations/unknown.png",
+    "idle": "bad8a2dd-1e28-4f8e-a4af-d8c6e7696c3c",
+    "object": "c2c7c075-2db1-45ce-8918-cedce67ce2bc"
   },
   "art/vfx/death_bones": {
     "image": "5f954da2-13e0-4b31-9e56-0a8c064600b2"

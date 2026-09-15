@@ -42,6 +42,10 @@ become a meter.
   nothing reads it, nothing persists, nothing crosses the wire.
 - **Every tower's look** (`TowerData.shot`, `ambient`, `shot_tint`,
   `juice_scale`; `tower_juice_check`) - see CLAUDE.md.
+- **Eight towers an element** (stage two): the Flash Kiln, the Bellows
+  Forge, the Stillwater Mirror, the Mason Shrine and the Wind Relay.
+  `TowerData.support` and `windup_seconds`; `tower_support_check`. Each
+  support moves a number its neighbours already have; see CLAUDE.md.
 
 ## Next, in order
 
