@@ -417,6 +417,8 @@ func _fact_bindings() -> Array:
 		["coop_wildlife_removed", _on_coop_wildlife_removed],
 		["coop_wildlife_died", _on_coop_wildlife_died],
 		["coop_wildlife_sack", _on_coop_wildlife_sack],
+		["coop_wildlife_family", _on_coop_wildlife_family],
+		["coop_wildlife_born", _on_coop_wildlife_born],
 		["coop_camp_state", _on_coop_camp_state],
 		["coop_fork_opened", _on_coop_fork_opened],
 		["coop_party_event_proposed", _on_coop_party_event_proposed],
@@ -510,6 +512,14 @@ func _on_coop_gear_dropped(net_id: int, piece: Dictionary, at: Vector2,
 
 func _on_coop_wildlife_spawned(net_id: int, kind_id: String, at: Vector2) -> void:
 	_relay(Fact.WILDLIFE_SPAWNED, [net_id, kind_id, at])
+
+
+func _on_coop_wildlife_family(net_id: int, word: int, value: int) -> void:
+	_relay(Fact.WILDLIFE_FAMILY, [net_id, word, value])
+
+
+func _on_coop_wildlife_born(net_id: int, kind_id: String, at: Vector2, born: Dictionary) -> void:
+	_relay(Fact.WILDLIFE_BORN, [net_id, kind_id, at, born])
 
 
 func _on_coop_wildlife_batch(entries: Array) -> void:
@@ -962,6 +972,13 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WILDLIFE_SACK:
 			if args.size() == 3:
 				bus.coop_wildlife_sack.emit(int(args[0]), bool(args[1]), bool(args[2]))
+		Fact.WILDLIFE_FAMILY:
+			if args.size() == 3:
+				bus.coop_wildlife_family.emit(int(args[0]), int(args[1]), int(args[2]))
+		Fact.WILDLIFE_BORN:
+			if args.size() == 4 and args[3] is Dictionary:
+				bus.coop_wildlife_born.emit(int(args[0]), String(args[1]),
+					args[2] as Vector2, args[3] as Dictionary)
 		Fact.RUN_ENDED:
 			# A return is a second flag beside the victory; a host that does
 			# not send one ended the run the old way.

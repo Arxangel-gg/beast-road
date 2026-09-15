@@ -7160,6 +7160,118 @@ const WILDLIFE_POND_TRUCE_CHANCE: float = 0.8
 ## Rabies: the chance a hostile animal is born with it, the bite's poison, and
 ## the sickly light around it.
 const WILDLIFE_RABID_CHANCE: float = 0.07
+
+# --- Families, growth and the Wildblight (owner brief, 2026-09-14) -------------
+#
+# Every figure here is a starting value the brief called preliminary, and the
+# ones that matter are the *bounds* rather than the rates: a birth budget an
+# act, a population cap births count against, a cap on how far inheritance may
+# climb, one natural outbreak an act and a ceiling on how many may be sick at
+# once. `wildlife_family_check` measures the tables rather than reading them.
+
+## A subtle tell, under the rarity tint and well under a shiny's. Female
+## first, to match `WildlifeFamilies.Sex`. [TUNE]
+const WILDLIFE_SEX_TINT: Array[Color] = [
+	Color(1.0, 0.97, 0.98),
+	Color(0.96, 0.98, 1.0),
+]
+
+## How far a heart or a warning icon is drawn, in pixels of its own art.
+const WILDLIFE_HEART_SCALE: float = 0.62
+
+## Courtship: how far a partner is looked for, how close the pair must stay,
+## how long the appraisal and the mating take, and how long after either a
+## success or a refusal before trying again. [TUNE]
+const WILDLIFE_COURT_RADIUS: float = 520.0
+const WILDLIFE_COURT_BREAK_DISTANCE: float = 700.0
+const WILDLIFE_COURT_ASSESS_SECONDS: float = 3.0
+const WILDLIFE_MATING_SECONDS: float = 4.0
+const WILDLIFE_COURT_RETRY: float = 14.0
+const WILDLIFE_COURT_COOLDOWN: float = 75.0
+## A flood at this depth ends a courtship, as a fright does.
+const WILDLIFE_COURT_FLOOD: float = 0.35
+
+## **One appraisal, not a chain of coin flips.** The brief's own note: four
+## chained 50% gates make a birth something nobody ever sees. The stages
+## before this one can be *interrupted*, but only this one can refuse, so a
+## pair left alone usually succeeds. A familiar partner is likelier and a
+## mixed-rarity pair a little less so - a preference, never a gate. [TUNE]
+const WILDLIFE_COURT_ACCEPT: float = 0.72
+const WILDLIFE_COURT_FAMILIAR_BONUS: float = 0.18
+const WILDLIFE_COURT_MIXED_RARITY: float = 0.85
+
+## Familiarity: what one success and one birth add, how fast it fades while
+## apart, and how near counts as together. Bounded 0..1 by the code. [TUNE]
+const WILDLIFE_FAMILIARITY_PER_SUCCESS: float = 0.34
+const WILDLIFE_FAMILIARITY_PER_BIRTH: float = 0.22
+const WILDLIFE_FAMILIARITY_DECAY: float = 0.012
+const WILDLIFE_FAMILIARITY_RADIUS: float = 620.0
+
+## **The birth budget.** Births count toward the population cap as well, so
+## the field can never be flooded; this is the second bound, on the act, so
+## that standing beside a herd is not a way to farm anything. [TUNE]
+const WILDLIFE_BIRTHS_PER_ACT: int = 6
+
+## Growth: how long from birth to grown, when the middle stage starts, and
+## what each stage is worth. A baby is small, soft, slow, close to home and
+## worth a fraction; an adult is the animal the roster was tuned on. [TUNE]
+const WILDLIFE_GROWTH_SECONDS: float = 95.0
+const WILDLIFE_ADOLESCENT_AT: float = 0.45
+const WILDLIFE_STAGE_SIZE: Array[float] = [0.52, 0.76, 1.0]
+const WILDLIFE_STAGE_HEALTH: Array[float] = [0.35, 0.65, 1.0]
+const WILDLIFE_STAGE_YIELD: Array[float] = [0.3, 0.6, 1.0]
+const WILDLIFE_STAGE_SPEED: Array[float] = [0.82, 0.92, 1.0]
+const WILDLIFE_STAGE_ROAM: Array[float] = [0.45, 0.7, 1.0]
+
+## The family on the ground: how long a parent waits for a baby, how far a
+## young one may stray before it comes back, how far out a parent watches for
+## something near its young, and how long it answers one. [TUNE]
+const WILDLIFE_PARENT_WAIT: float = 50.0
+const WILDLIFE_YOUNG_STRAY: float = 2.4
+const WILDLIFE_FAMILY_RADIUS: float = 340.0
+const WILDLIFE_DEFEND_SECONDS: float = 6.0
+
+## **Inheritance.** Equal parents climb a rung rarely and Legendary never
+## climbs; unequal parents give the lower rarity most of the time and one
+## above it sometimes, and never two. Read by `WildlifeFamilies` and measured
+## by its gate over many births rather than asserted. [TUNE]
+const WILDLIFE_RARITY_CLIMB: Array[float] = [0.04, 0.02, 0.005, 0.0]
+const WILDLIFE_MIXED_CLIMB: float = 0.25
+
+## A shiny birth: the variant's own chance, lifted by how many parents shone,
+## and capped well under a certainty. Deliberately *not* joined to the
+## account's dry-streak lift (`SpiritBond.shiny_chance`), which belongs to
+## what the road shows a player and would otherwise be farmable by breeding.
+## [TUNE]
+const WILDLIFE_SHINY_PARENT_BONUS: Array[float] = [0.0, 0.03, 0.08]
+const WILDLIFE_SHINY_BIRTH_CAP: float = 0.20
+
+## The Wildblight. A fictional condition so that every species may carry one
+## (real rabies is a mammal's disease and this roster is not all mammals).
+##
+## **Bounded at every end**: rolled once per arrival and rarely, at most one
+## natural outbreak an act, a ceiling on how many may be sick at once by
+## campaign tier, never during Preparation or the opening waves, never on a
+## newborn inside its grace, and a finite life that ends in collapse. [TUNE]
+const WILDBLIGHT_ONSET_CHANCE: float = 0.008
+const WILDBLIGHT_ONSET_DELAY: Vector2 = Vector2(20.0, 120.0)
+const WILDBLIGHT_OUTBREAKS_PER_ACT: int = 1
+const WILDBLIGHT_ACTIVE_MAX: Array[int] = [1, 2, 2]
+const WILDBLIGHT_OPENING_WAVES: int = 3
+const WILDBLIGHT_BIRTH_GRACE: float = 30.0
+const WILDBLIGHT_WARNING_SECONDS: Vector2 = Vector2(3.0, 5.0)
+const WILDBLIGHT_FRENZY_SECONDS: Vector2 = Vector2(30.0, 60.0)
+const WILDBLIGHT_COLLAPSE_SECONDS: float = 2.5
+const WILDBLIGHT_COLLAPSE_SPEED: float = 0.35
+## What a species with no bite of its own hits for while frenzied, before its
+## size is applied. A frantic rabbit is a nuisance, not a wolf.
+const WILDBLIGHT_MIN_BITE: float = 3.0
+## Contagion: only a landed bite may pass it, once per pair, and a carrier
+## may seed at most one other - which a secondary may not do again. [TUNE]
+const WILDBLIGHT_SPREAD_CHANCE: float = 0.10
+## What a frenzied animal that never hunted can see and reach. A species with
+## no aggro radius of its own would otherwise turn and find nothing. [TUNE]
+const WILDBLIGHT_FRENZY_AGGRO: float = 430.0
 const WILDLIFE_RABID_POISON_DPS: float = 4.0
 const WILDLIFE_RABID_POISON_SECONDS: float = 5.0
 const WILDLIFE_RABID_AURA: Color = Color(0.55, 1.0, 0.35, 0.55)

@@ -4,6 +4,15 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "frost_elk"
+litter_min = 1
+litter_max = 1
+gestation_seconds = 60.0
+loyalty = 0.75
+infidelity = 0.1
+protection = 1
+young_id = "frost_elk_young"
 id = "frost_elk"
 display_name = "Frost Elk"
 description = "It has broken a road open before. The antlers are how you know."

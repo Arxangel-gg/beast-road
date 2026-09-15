@@ -1473,6 +1473,14 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
 `wildlife_snow_lynx.png` · `wildlife_frost_elk.png`
 
+The young of the antlered species are drawn rather than scaled down
+(2026-09-14): a fawn wearing a full rack reads as a shrunken stag. Everything
+else's young wear the adult's art at a smaller size, which is what
+`WildlifeData.young_id` being empty means.
+
+`wildlife_deer_young.png` · `wildlife_stag_young.png` ·
+`wildlife_frost_elk_young.png`
+
 The ten added on 2026-09-01 answer "more wildlife variety for all rarities of
 both harmless and predators for all regions". The gap was not rarity — that
 was already even — it was **Act III**, which had five species against nine and
@@ -2122,6 +2130,18 @@ a junction and can never appear on open terrain.
 | `path_snow_13.png` | 64×64 | T | `#8A8D95` |
 | `path_snow_14.png` | 64×64 | T | `#8A8D95` |
 | `path_snow_15.png` | 64×64 | T | `#8A8D95` |
+
+### 5.17d Family and blight icons — `res://art/vfx/`
+
+The pixel heart over a courting pair and the warning over an animal the
+Wildblight is taking (2026-09-14). Authored sprites rather than font glyphs:
+an emoji in a world drawn at this size reads as interface, and the warning
+has to be legible at combat zoom before the frenzy starts.
+
+| File | Size | Type | Placeholder colour |
+|------|------|------|--------------------|
+| `heart.png` | 24×24 | T | `#D2647E` |
+| `blight.png` | 24×24 | T | `#79A64C` |
 
 ### 5.17c Death markers — `res://art/vfx/`
 

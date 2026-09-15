@@ -33,8 +33,10 @@ const BATCH_INTERVAL: float = 0.2
 ## `STALKING` and `STRIKING` are the hostile half. Deliberately only two: an
 ## ambient creature with a combat state machine as deep as an enemy's is a
 ## maintenance cost paid for something the player reads as "the wolf is coming".
+## Appended, never inserted: a state is read by number in the records this
+## script keeps and by `WildlifeFamilies`.
 enum State { ARRIVING, SETTLED, FLEEING, LEAVING, STALKING, STRIKING, GRAZING, ALERT,
-	SCAVENGING, HIDING, FORAGING }
+	SCAVENGING, HIDING, FORAGING, COURTING }
 
 ## The grid, so animals can be kept off the roads. Assigned by the battlefield.
 var grid: BattleGrid = null
@@ -82,6 +84,7 @@ func _ready() -> void:
 	# combat stream, or a seeded replay would produce a different wave because a
 	# rabbit happened to turn up.
 	_rng.seed = hash("wildlife") ^ RunState.run_seed
+	_families = WildlifeFamilies.new(self)
 	# A hero's swing is the only thing that can kill an animal, and it is heard
 	# rather than fought for: putting wildlife in the enemy group would have
 	# towers shooting rabbits and waves never ending, which is a far worse bug
@@ -96,6 +99,8 @@ func _ready() -> void:
 	EventBus.coop_wildlife_spawned.connect(_on_coop_spawned)
 	EventBus.coop_wildlife_sack.connect(_on_coop_sack)
 	EventBus.coop_wildlife_batch.connect(_on_coop_batch)
+	EventBus.coop_wildlife_family.connect(_on_coop_family)
+	EventBus.coop_wildlife_born.connect(_on_coop_born)
 	EventBus.coop_wildlife_removed.connect(_on_coop_removed)
 	EventBus.coop_wildlife_died.connect(_on_coop_died)
 	EventBus.act_started.connect(func(_act: int, _terrain: String) -> void:
@@ -111,6 +116,128 @@ func _ready() -> void:
 ##
 ## A deer in the ash of Act III would be saying the wrong thing about the place,
 ## and describing the place is the entire job.
+## Sexes, courtship, births, growth and the Wildblight (2026-09-14). Beside
+## this script rather than inside it: this one is already the largest in the
+## project, and what a family does is its own subject.
+var _families: WildlifeFamilies = null
+## Every litter gets a family number, so young know their own parents apart
+## from another pair's standing beside them.
+var _family_id: int = 0
+
+
+func families() -> WildlifeFamilies:
+	return _families
+
+
+## The run's own stream for this system, for the families to roll on.
+func dice() -> RandomNumberGenerator:
+	return _rng
+
+
+func living() -> Array[Dictionary]:
+	return _living
+
+
+## One animal by its serial, or an empty record.
+func animal_by_id(net_id: int) -> Dictionary:
+	if net_id == 0:
+		return {}
+	for animal: Dictionary in _living:
+		if int(animal.get("net_id", 0)) == net_id:
+			return animal
+	return {}
+
+
+## The ceiling the arrivals respect, so a birth cannot push past it either.
+func population_cap() -> int:
+	return int(round(float(Balance.WILDLIFE_MAX) * Graphics.foliage_scale()))
+
+
+## The young of one parent, by its serial.
+func young_of(parent_id: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if parent_id == 0:
+		return out
+	for animal: Dictionary in _living:
+		if WildlifeFamilies.is_adult(animal):
+			continue
+		if (animal.get("parents", []) as Array).has(parent_id):
+			out.append(animal)
+	return out
+
+
+## The family the next litter belongs to.
+func next_family() -> void:
+	_family_id += 1
+
+
+func family_id() -> int:
+	return _family_id
+
+
+## How many are sick right now, for the outbreak ceiling.
+func sick_count() -> int:
+	var count: int = 0
+	for animal: Dictionary in _living:
+		if WildlifeFamilies.is_sick(animal) and float(animal.get("dying", 0.0)) <= 0.0:
+			count += 1
+	return count
+
+
+## The doors the families reach the rest of this script through, named rather
+## than reached into: what frightens a place, where to bolt to, what is near.
+func frightened_at(at: Vector2, kind: WildlifeData) -> bool:
+	return _frightened(at, kind)
+
+
+func bolt_from(at: Vector2, threat: Vector2) -> Vector2:
+	return _bolt_target(at, threat)
+
+
+func threat_near_for(at: Vector2, _kind: WildlifeData, radius: float) -> Vector2:
+	return _nearest_threat(at, radius)
+
+
+func is_authority_with_company() -> bool:
+	return _is_authority_with_company()
+
+
+## A blighted animal that has run its course. It simply dies, paying nobody:
+## no Food, no experience, no encounter and no wrath - the same treatment a
+## predator's kill gets, because neither is the player's doing.
+func perish(animal: Dictionary) -> void:
+	var sprite := animal.get("sprite", null) as Sprite2D
+	if sprite != null and is_instance_valid(sprite):
+		Vfx.dust(sprite.global_position, Color(0.5, 0.7, 0.4), 8, 44.0)
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_died.emit(int(animal.get("net_id", 0)))
+	animal["dying"] = Balance.WILDLIFE_DEATH_SECONDS
+	animal["state"] = State.LEAVING
+
+
+## The sickly light a frenzied animal wears. The same dress a born-rabid one
+## has always had, so the two read alike - which is correct: they are.
+func dress_frenzied(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData) -> void:
+	if sprite == null or not is_instance_valid(sprite):
+		return
+	if sprite.get_node_or_null("Rabid") == null:
+		_dress_as_rabid(sprite, kind)
+	animal["rabid"] = true
+
+
+## Young born to a pair, placed like any other animal and handed what their
+## parents gave them. Returns the record, or empty when the field is full.
+func spawn_born(kind: WildlifeData, at: Vector2, born: Dictionary) -> Dictionary:
+	var before: int = _living.size()
+	_spawn(kind, at, 0, int(born.get("family", 0)), -1, born)
+	if _living.size() <= before:
+		return {}
+	var cub: Dictionary = _living[_living.size() - 1]
+	if _is_authority_with_company():
+		EventBus.coop_wildlife_born.emit(int(cub["net_id"]), kind.id, at, born)
+	return cub
+
+
 func _refresh_kinds() -> void:
 	# **Every species, every act.** The act used to be a gate, which meant a
 	# region had character by having nothing else to offer - and the whole
@@ -125,6 +252,8 @@ func _refresh_kinds() -> void:
 
 func _process(delta: float) -> void:
 	_tick_hunt(delta)
+	if _families != null:
+		_families.tick(delta)
 	if Graphics.foliage_scale() <= 0.0:
 		clear()
 		return
@@ -214,6 +343,48 @@ func _on_coop_spawned(net_id: int, kind_id: String, at: Vector2,
 	for data: WildlifeData in ContentDB.wildlife():
 		if data.id == kind_id:
 			_spawn(data, at, net_id, 0, 1 if shiny else 0)
+			return
+
+
+## The host's word about one animal's family life. A guest only draws it.
+func _on_coop_family(net_id: int, word: int, value: int) -> void:
+	if not Coop.is_guest() or _families == null:
+		return
+	var animal: Dictionary = animal_by_id(net_id)
+	if animal.is_empty():
+		return
+	var sprite := animal.get("sprite", null) as Sprite2D
+	var kind := animal.get("data", null) as WildlifeData
+	if sprite == null or not is_instance_valid(sprite) or kind == null:
+		return
+	match word:
+		WildlifeFamilies.Word.COURTING:
+			_families.dress_courting(animal, value)
+		WildlifeFamilies.Word.BLIGHT:
+			_families.dress_blight(animal, sprite, kind, value)
+		WildlifeFamilies.Word.STAGE:
+			animal["stage"] = value
+			animal["age"] = Balance.WILDLIFE_GROWTH_SECONDS \
+				if value == WildlifeFamilies.Stage.ADULT else float(animal.get("age", 0.0))
+			_families.decorate(animal, kind, {
+				"sex": int(animal.get("sex", 0)),
+				"rarity": WildlifeFamilies.rarity_of(animal),
+				"stage": value,
+				"born_act": int(animal.get("born_act", -1)),
+				"parents": animal.get("parents", []),
+				"family": int(animal.get("family", 0)),
+			})
+		_:
+			pass
+
+
+## The host bore young, so a guest places the same ones.
+func _on_coop_born(net_id: int, kind_id: String, at: Vector2, born: Dictionary) -> void:
+	if not Coop.is_guest():
+		return
+	for data: WildlifeData in ContentDB.wildlife():
+		if data.id == kind_id:
+			_spawn(data, at, net_id, int(born.get("family", 0)), -1, born)
 			return
 
 
@@ -444,7 +615,7 @@ func _remember(kind: WildlifeData) -> void:
 
 
 func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
-		group_id: int = 0, told_shiny: int = -1) -> void:
+		group_id: int = 0, told_shiny: int = -1, born: Dictionary = {}) -> void:
 	_remember(kind)
 	var path: String = kind.get_sprite_path()
 	if not ResourceLoader.exists(path):
@@ -454,9 +625,17 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	sprite.scale = Vector2.ONE * kind.scale
 	# Walks or flies in from off the edge, so nothing pops into existence in the
 	# middle of a field somebody is looking at.
-	sprite.global_position = at + Vector2(
-		Balance.WILDLIFE_ENTRY_DISTANCE * (1.0 if _rng.randf() < 0.5 else -1.0),
-		-Balance.WILDLIFE_ENTRY_DISTANCE if kind.flies else 0.0)
+	#
+	# **Except something born, which is already here** (2026-09-14). A cub
+	# placed at the entry point would be carried 1500 units from its mother and
+	# walk the whole way back, which is not a birth - it is an arrival wearing a
+	# birth's clothes, and the family would never form.
+	if born.is_empty():
+		sprite.global_position = at + Vector2(
+			Balance.WILDLIFE_ENTRY_DISTANCE * (1.0 if _rng.randf() < 0.5 else -1.0),
+			-Balance.WILDLIFE_ENTRY_DISTANCE if kind.flies else 0.0)
+	else:
+		sprite.global_position = at
 	sprite.z_as_relative = false
 	(host if host != null else self).add_child(sprite)
 	var impact_material: ShaderMaterial = ActorPolishScript.attach(sprite)
@@ -488,7 +667,10 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	# already decided. A guest must never roll - it draws from its own
 	# stream and would disagree with the host about which animal shone.
 	var shiny: bool = told_shiny == 1
-	if told_shiny < 0:
+	if born.has("shiny"):
+		# A birth's shine is its parents' business, decided before it is placed.
+		shiny = bool(born["shiny"])
+	elif told_shiny < 0:
 		shiny = SpiritBond.rolls_shiny(kind.id, kind.rarity, _rng)
 	if shiny:
 		_dress_as_shiny(sprite, kind, impact_material)
@@ -545,7 +727,9 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		"credited": false,
 		"group_id": group_id,
 		"sprite": sprite,
-		"state": State.ARRIVING,
+		# Something born is already where it belongs, so it starts settled
+		# rather than walking in from the edge.
+		"state": State.SETTLED if not born.is_empty() else State.ARRIVING,
 		"home": at,
 		"goal": at,
 		"base": sprite.texture,
@@ -599,6 +783,12 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 	})
 	if innate and _is_authority_with_company():
 		EventBus.coop_wildlife_sack.emit(identity, true, false)
+	# Its sex, its own rarity, its stage of growth and whether it is sickening.
+	# Done before the shadow and the anchor, because a baby is a different size
+	# and both are measured from it.
+	if _families != null:
+		_families.decorate(_living[_living.size() - 1], kind, born)
+		size = float(_living[_living.size() - 1].get("size", size))
 	_apply_visual_anchor(sprite, kind, size, kind.flies, 0.0,
 		float(sprite.texture.get_height()) if sprite.texture != null else 0.0)
 	_cast_shadow(sprite, kind, size)
@@ -703,8 +893,17 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		if _tick_thief(animal, sprite, kind, delta):
 			return true
 
+	# Growing, courting, sickening. A courting animal is doing nothing else,
+	# which is what the true means; everything else falls through.
+	if _families != null and _families.tick_animal(animal, sprite, kind, delta):
+		_animate(animal, sprite, delta, false)
+		return true
+
 	# A hostile animal decides differently, and gets first refusal on the frame.
-	if kind.is_hostile() and int(animal["state"]) != State.LEAVING:
+	# A frenzied one hunts whatever its species is: the Wildblight is what turns
+	# a rabbit into something that comes at you.
+	if (kind.is_hostile() or WildlifeFamilies.is_frenzied(animal)) \
+			and int(animal["state"]) != State.LEAVING:
 		if _tick_hostile(animal, sprite, kind, delta):
 			return true
 
@@ -725,7 +924,9 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 			return true
 
 	var state: int = int(animal["state"])
-	var speed: float = kind.speed * _savage_speed(animal)
+	# A baby is slower than its mother, and a collapsing one slower still.
+	var speed: float = kind.speed * _savage_speed(animal) \
+		* WildlifeFamilies.speed_scale(animal)
 	if not kind.flies:
 		speed *= RunState.flood_slow()
 	if state == State.FLEEING or state == State.LEAVING:
@@ -790,7 +991,8 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 						else:
 							animal["goal"] = _wander_from(animal["home"] as Vector2, kind)
 					else:
-						animal["goal"] = _wander_from(animal["home"] as Vector2, kind)
+						animal["goal"] = _wander_from(animal["home"] as Vector2, kind,
+							WildlifeFamilies.roam_scale(animal))
 
 	_animate(animal, sprite, delta, moving)
 	return true
@@ -1225,7 +1427,13 @@ func _drift_from_town(animal: Dictionary, sprite: Sprite2D) -> void:
 func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
 		rabid: bool = false, truce: bool = false) -> Node2D:
 	var best: Node2D = null
-	var best_distance: float = kind.aggro_radius * (1.5 if rabid else 1.0)
+	# A frenzied grazer has no aggro radius of its own - nothing harmless does -
+	# so the blight lends it one, or a turned rabbit would look for trouble and
+	# find none (2026-09-14).
+	var reach: float = kind.aggro_radius
+	if rabid:
+		reach = maxf(reach, Balance.WILDBLIGHT_FRENZY_AGGRO) * 1.5
+	var best_distance: float = reach
 	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
 		var hero := node as Hero
 		if hero == null or not hero.is_alive():
@@ -1274,7 +1482,7 @@ func _quarry_for(at: Vector2, kind: WildlifeData, self_sprite: Node2D = null,
 	# its radius. Written once as `distance < best_distance * interest` it was
 	# comparing against whatever had already been found, which is a different
 	# rule that happens to look like this one.
-	var prey_reach: float = kind.aggro_radius * Balance.WILDLIFE_PREY_INTEREST
+	var prey_reach: float = reach * Balance.WILDLIFE_PREY_INTEREST
 	if rabid:
 		prey_reach = best_distance
 	for other: Dictionary in _living:
@@ -1326,6 +1534,10 @@ func _strike(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData,
 				continue
 			var prey_kind := prey["data"] as WildlifeData
 			_wound(index, prey, prey_kind.max_hp * Balance.WILDLIFE_PREY_BITE_SHARE, false)
+			# A landed bite is the only way the Wildblight travels, and only
+			# ever once per pair and once per carrier.
+			if _families != null:
+				_families.expose(animal, prey, prey_kind)
 			Vfx.spark(quarry.global_position, Color("c4552e"), 5,
 				(quarry.global_position - sprite.global_position).normalized(), 150.0)
 			if not kind.vocal_sfx.is_empty():
@@ -1576,11 +1788,15 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	var bounty: float = Balance.WILDLIFE_ELITE_REWARD if bool(animal["elite"]) else 1.0
 	if bool(animal.get("savage", false)):
 		bounty = Balance.HUNT_SAVAGE_REWARD
-	else:
+	elif not WildlifeFamilies.is_sick(animal):
 		# One more of this kind on the tally; enough of them and its worst
 		# comes looking (owner brief, 2026-09-13). A savage does not count
-		# towards the next one - clearing the consequence is not more farming.
+		# towards the next one - clearing the consequence is not more farming,
+		# and neither is putting down something the blight already has.
 		_tally_hunt(kind)
+	# A fawn is worth a fraction of a hind: the stage scales what the body
+	# gives, so a family is never worth more than the adults in it.
+	bounty *= WildlifeFamilies.yield_scale(animal)
 	var food: int = int(round(float(_rng.randi_range(kind.food_min, kind.food_max))
 		* bounty))
 	Vfx.dust(sprite.global_position, Color("c4552e"), 10, 60.0)
@@ -1591,8 +1807,15 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	RunState.gain_hero_xp(float(kind.xp_reward) * bounty)
 	if _is_authority_with_company():
 		EventBus.coop_wildlife_died.emit(int(animal["net_id"]))
-	EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position, int(kind.rarity),
-		bool(animal.get("shiny", false)), bool(animal.get("elite", false)) or bool(animal.get("savage", false)))
+	# **A mercy is not a hunt.** Putting down something the Wildblight has taken
+	# costs the earth nothing and counts toward no tally: the animal was dying
+	# anyway, and a consequence for ending it would read as the world punishing
+	# the player for the only sensible answer to a frenzy. Everything else pays
+	# exactly what it always did, at this animal's own rarity.
+	if not WildlifeFamilies.is_sick(animal):
+		EventBus.wildlife_killed.emit(kind.id, food, sprite.global_position,
+			WildlifeFamilies.rarity_of(animal), bool(animal.get("shiny", false)),
+			bool(animal.get("elite", false)) or bool(animal.get("savage", false)))
 	# A hostile animal is bonded by besting it. The harmless ones are bonded by
 	# getting close instead - see `_offer_bond` - because a collection system
 	# that required slaughtering rabbits would be a different game.
@@ -1742,7 +1965,7 @@ func living_legendaries() -> int:
 	var total: int = 0
 	for animal: Dictionary in _living:
 		var kind := animal["data"] as WildlifeData
-		if kind == null or kind.rarity != WildlifeData.Rarity.LEGENDARY:
+		if kind == null or WildlifeFamilies.rarity_of(animal) != WildlifeData.Rarity.LEGENDARY:
 			continue
 		if float(animal.get("dying", 0.0)) > 0.0 or bool(animal.get("rifted", false)):
 			continue
@@ -1861,8 +2084,8 @@ func _bolt_target(from: Vector2, threat: Vector2 = Vector2.INF) -> Vector2:
 
 
 ## A new spot to potter over to, on ground it is allowed to stand on.
-func _wander_from(home: Vector2, kind: WildlifeData) -> Vector2:
-	var roam_scale: float = 1.0
+func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -> Vector2:
+	var roam_scale: float = stage_scale
 	match kind.movement_style:
 		WildlifeData.MovementStyle.GRAZER:
 			roam_scale = 0.48
@@ -2027,7 +2250,12 @@ func _credit_encounter(animal: Dictionary, _how: SpiritBond.Kind) -> void:
 	animal["credited"] = true
 	var shiny: bool = bool(animal.get("shiny", false))
 	var temperament := animal.get("trait", null) as SpiritTraitData
-	var result: Dictionary = MetaState.record_spirit_encounter(kind.id, kind.rarity,
+	# **This animal's rarity, never the species'.** A cub born a rung above its
+	# parents is that rarity for the collection, the reward and the wire, and
+	# writing the upgrade onto the shared `WildlifeData` would have made every
+	# animal of that species rarer for the rest of the run (2026-09-14).
+	var rarity: int = WildlifeFamilies.rarity_of(animal)
+	var result: Dictionary = MetaState.record_spirit_encounter(kind.id, rarity,
 		shiny, "" if temperament == null else temperament.id)
 	for key: Variant in (result["discovered"] as Array):
 		EventBus.spirit_discovered.emit(String(key),
@@ -2038,7 +2266,7 @@ func _credit_encounter(animal: Dictionary, _how: SpiritBond.Kind) -> void:
 		EventBus.spirit_bonded.emit(String(key))
 	var sprite := animal.get("sprite", null) as Sprite2D
 	if sprite != null and is_instance_valid(sprite) and not (result["bonded"] as Array).is_empty():
-		Vfx.ring(sprite.global_position, 96.0, Color(SpiritBond.tint(kind.rarity, shiny), 0.8),
+		Vfx.ring(sprite.global_position, 96.0, Color(SpiritBond.tint(rarity, shiny), 0.8),
 			0.7, 6.0)
 
 
@@ -2219,7 +2447,7 @@ func map_marks() -> Array[Dictionary]:
 		var kind: WildlifeData = animal["data"] as WildlifeData
 		out.append({"at": sprite.global_position,
 			"hostile": kind != null and kind.temperament != WildlifeData.Temperament.PASSIVE,
-			"rabid": bool(animal.get("rabid", false)),
+			"rabid": bool(animal.get("rabid", false)) or WildlifeFamilies.is_frenzied(animal),
 			"elite": bool(animal.get("elite", false)),
 			"hoards": kind != null and kind.hoards})
 	return out
@@ -2348,7 +2576,11 @@ func _send_a_savage(kind: WildlifeData) -> void:
 ## by different code from the hero, and half a fix is how the first one of these
 ## got lost.
 func _bite_of(animal: Dictionary, kind: WildlifeData) -> float:
-	var bite: float = kind.damage * float(animal["size"]) 		* Balance.wildlife_bite(RunState.act)
+	# What the blight bites for, when the animal it took never had a bite.
+	var raw: float = kind.damage
+	if WildlifeFamilies.is_frenzied(animal):
+		raw = maxf(raw, WildlifeFamilies.blight_bite(animal, kind))
+	var bite: float = raw * float(animal["size"]) * Balance.wildlife_bite(RunState.act)
 	if bool(animal.get("savage", false)):
 		bite *= Balance.HUNT_SAVAGE_DAMAGE
 	return bite

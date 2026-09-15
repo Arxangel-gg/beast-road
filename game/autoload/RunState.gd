@@ -591,6 +591,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	kept.clear()
 	earth_events.clear()
 	seeds.clear()
+	companion_sex.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
 	raids_completed = 0
@@ -1678,6 +1679,14 @@ var kept: Dictionary = {}
 ## it: nothing here persists, which is what keeps farming inside working
 ## rule 7 as the Angler's craft is. See `Farming`.
 var seeds: Dictionary = {}
+
+## The sex of each bonded spirit summoned this run, by bond key.
+##
+## Decided once and kept for the run (owner brief, 2026-09-14), so dismissing
+## a companion, re-equipping it or reconnecting all read the same answer. Run
+## scoped on purpose: working rule 7 is untouched, and a sex banked on the
+## account would be one more thing `MetaState` writes for no gain.
+var companion_sex: Dictionary = {}
 ## What the earth did this run, by kind - strikes, quakes, tornadoes, meteors,
 ## wildfires - counted where each is *seen*, so a guest's debrief agrees with
 ## the host's. Cleared with the run.

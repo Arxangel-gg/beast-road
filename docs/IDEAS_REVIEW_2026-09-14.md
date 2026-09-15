@@ -42,6 +42,14 @@ become a meter.
   nothing reads it, nothing persists, nothing crosses the wire.
 - **Every tower's look** (`TowerData.shot`, `ambient`, `shot_tint`,
   `juice_scale`; `tower_juice_check`) - see CLAUDE.md.
+- **Families, births and the Wildblight** (stage three): sex, breeding
+  groups, interruptible courtship, inheritance of rarity and shine with
+  bounded climbs, a birth budget, growth stages with their own art for the
+  antlered species, parental protection by temperament, and a frenzy that
+  works on species that never fought. `WildlifeFamilies`,
+  `wildlife_family_check`. **Not built, deliberately**: towers shooting
+  frenzied wildlife, and a companion courting a wild animal - both are
+  subsystems rather than flags; see CLAUDE.md.
 - **Eight towers an element** (stage two): the Flash Kiln, the Bellows
   Forge, the Stillwater Mirror, the Mason Shrine and the Wind Relay.
   `TowerData.support` and `windup_seconds`; `tower_support_check`. Each

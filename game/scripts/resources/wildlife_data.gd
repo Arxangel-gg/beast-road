@@ -250,6 +250,73 @@ func roll_weight(act: int) -> float:
 @export var hops: bool = false
 
 
+# --- Families and the Wildblight (owner brief, 2026-09-14) -----------------------
+#
+# Authored per species rather than inferred, for the reason everything else
+# here is: a marsh bird and a wolf raise young differently, and a rule that
+# guessed from `temperament` would have no way to say that a heron guides and
+# a badger stands its ground. See `WildlifeFamilies` for what reads each.
+
+## How a parent answers something that comes near its young.
+##
+## GUIDE takes them away - what a deer does. DEFEND puts itself between and
+## fights for a moment - a badger, a boar. HUNT goes after it, which is what a
+## predator does to everything anyway.
+enum Protection { GUIDE, DEFEND, HUNT }
+
+## Whether this species pairs and bears young at all. Off by default: a
+## species opts in with a group to pair inside and a litter to bear.
+@export var breeds: bool = false
+
+## Who this species may pair with. Empty means "its own kind only"; a shared
+## name is a breeding group, so a Deer and a Pale Stag may pair by both
+## naming "deer". **Explicit rather than derived** - nothing about the two
+## ids says they are the same animal, and a rule that guessed would pair a
+## Snow Hare with a Saltpan Crab the day somebody renamed one.
+@export var breeding_group: String = ""
+
+## How many arrive at once, and how long after the mating they take.
+@export_range(1, 6) var litter_min: int = 1
+@export_range(1, 6) var litter_max: int = 1
+@export_range(4.0, 300.0) var gestation_seconds: float = 40.0
+
+## How strongly a pair that has succeeded before prefers each other, and how
+## often one goes to a nearer stranger anyway. Both 0..1, and both read only
+## when a familiar partner and a stranger are both in reach.
+@export_range(0.0, 1.0) var loyalty: float = 0.5
+@export_range(0.0, 1.0) var infidelity: float = 0.15
+
+## How this species protects its young.
+@export var protection: Protection = Protection.GUIDE
+
+## The id of the young's own sprite, where one is drawn. Empty means the
+## young wears the adult's art at a smaller size, which is right for most
+## species and wrong for the antlered ones - a fawn with a full rack reads
+## as a shrunken stag.
+@export var young_id: String = ""
+
+## Whether the Wildblight can take this species. True for everything by
+## default: the condition is fictional precisely so that birds, reptiles and
+## insects can catch it (rabies is a mammal's disease, and this roster is not
+## all mammals).
+@export var blight_eligible: bool = true
+
+## What this species bites for while frenzied, when it has no bite of its
+## own. A rabbit that turns has to be able to hurt something or the frenzy is
+## a light show; a bear needs no help. Zero falls back to a small bite scaled
+## by the animal's size.
+@export_range(0.0, 60.0) var blight_damage: float = 0.0
+
+
+## The group this species pairs inside: its own name unless it shares one.
+func breeding_group_id() -> String:
+	return breeding_group if not breeding_group.is_empty() else id
+
+
+func protection_of() -> Protection:
+	return protection
+
+
 ## True for anything that will fight rather than flee.
 func is_hostile() -> bool:
 	return damage > 0.0 and (temperament == Temperament.TERRITORIAL

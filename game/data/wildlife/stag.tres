@@ -4,6 +4,15 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "deer"
+litter_min = 1
+litter_max = 1
+gestation_seconds = 60.0
+loyalty = 0.8
+infidelity = 0.08
+protection = 1
+young_id = "stag_young"
 id = "stag"
 display_name = "Pale Stag"
 description = "Moss on its back and no fear in it. Older than the road."

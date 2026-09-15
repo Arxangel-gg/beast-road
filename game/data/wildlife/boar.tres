@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "boar"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 50.0
+loyalty = 0.5
+infidelity = 0.22
+protection = 1
 id = "boar"
 display_name = "Wild Boar"
 description = "It waits. Then it does not."

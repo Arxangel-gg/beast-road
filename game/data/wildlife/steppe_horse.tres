@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "steppe_horse"
+litter_min = 1
+litter_max = 1
+gestation_seconds = 70.0
+loyalty = 0.65
+infidelity = 0.18
 id = "steppe_horse"
 display_name = "Steppe Horse"
 description = "Nobody has ridden one of these in living memory and they have not forgotten why."

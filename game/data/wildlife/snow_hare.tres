@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "rabbit"
+litter_min = 2
+litter_max = 3
+gestation_seconds = 28.0
+loyalty = 0.25
+infidelity = 0.4
 id = "snow_hare"
 display_name = "Snow Hare"
 description = "White on white until it moves, and then it is already elsewhere."

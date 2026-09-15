@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+blight_eligible = false
 climbs = true
 id = "raccoon"
 display_name = "Raccoon"

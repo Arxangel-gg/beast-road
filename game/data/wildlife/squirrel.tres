@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "squirrel"
+litter_min = 1
+litter_max = 3
+gestation_seconds = 30.0
+loyalty = 0.35
+infidelity = 0.3
 climbs = true
 id = "squirrel"
 display_name = "Squirrel"

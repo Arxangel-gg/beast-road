@@ -579,6 +579,9 @@ jobs:
           # the real field: the window, the reach, the mend, the mirror, the
           # wind-up.
           check "tower support" --headless --path game res://tools/tower_support_check.tscn
+          # Families, births, growth and the Wildblight: the inheritance odds
+          # measured, the bounds held, and a frenzy that works on a rabbit.
+          check "wildlife families" --headless --path game res://tools/wildlife_family_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

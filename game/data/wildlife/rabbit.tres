@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "rabbit"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 26.0
+loyalty = 0.25
+infidelity = 0.4
 id = "rabbit"
 display_name = "Rabbit"
 description = "Gone before you have finished looking at it."

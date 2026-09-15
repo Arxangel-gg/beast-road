@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "goat"
+litter_min = 1
+litter_max = 2
+gestation_seconds = 46.0
+loyalty = 0.55
+infidelity = 0.2
+protection = 1
 id = "cliff_goat"
 display_name = "Terrace Goat"
 description = "It stands on the part of the step that is not there any more."

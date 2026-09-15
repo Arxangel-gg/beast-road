@@ -2494,6 +2494,106 @@ is wrong on its own. The lesson is about hand-numbered enums that are a wire
 format: the numbers are content, they drift exactly as `Role` and `Trigger`
 drifted, and the answer is the same - walk the table rather than read it.
 
+**The road raises families, and the Wildblight takes them, as of
+2026-09-14.** The owner's brief, third of three stages, with a forwarded
+design behind it. Every part of it is presentation and ecology: **nothing
+here persists and nothing here is a new power scale.**
+
+**Every animal is four independent things**, which is the brief's own first
+rule and the one that keeps the rest honest: a rarity, a shine, a stage of
+growth and a state of health. A cub may be a Shiny Rare and still be weaker
+than its mother; being taken by the blight upgrades nothing.
+
+**A rarity now belongs to the animal, not to the species.** That is the trap
+the brief names by name and it was real: `WildlifeData.rarity` is shared by
+every animal of a kind, so writing a cub's upgrade onto it would have made
+every deer on the road rarer for the rest of the run.
+`WildlifeFamilies.rarity_of` reads the animal's own, and the collection, the
+reward, the wrath and the wire all go through it.
+
+**Courtship is stages that can be interrupted, and one appraisal that can
+refuse.** Seeking, approaching, assessing, mating, carrying, cooldown; a
+fright, a fight, a flood, a parting or a death ends it wherever it got to.
+Only the *appraisal* rolls - the brief's own note is that four chained coin
+flips make a birth something nobody ever sees - so a pair left alone usually
+succeeds, and what makes births rare is the budget rather than the odds.
+
+**Inheritance climbs slowly and never twice.** Equal parents bear their own
+rarity, or one rung above it rarely (4%, 2%, 0.5%, never for Legendary);
+unequal parents bear the *lower* rarity three times in four and one above it
+otherwise - so a Common and a Legendary bear a Common or an Uncommon, never a
+Legendary. A shiny birth is the variant's own chance lifted by the parents
+that shone and capped at 20%, and deliberately **not** joined to the
+account's dry-streak lift, which belongs to what the road shows a player and
+would otherwise be farmable by breeding.
+
+**Births are bounded twice**: an act's budget (`WILDLIFE_BIRTHS_PER_ACT`) and
+the population cap the arrivals already respect. They pay no Food, no
+experience, no gear and unlock no companion; collection credit is one per
+birth event and variant rather than one per identical sibling, and offspring
+are wildlife - never an extra companion.
+
+**Growth is four numbers and a sprite.** A baby is smaller, softer, slower,
+stays nearer home and is worth a fraction; an adolescent is between; an adult
+is the animal the roster was tuned on. The antlered species have their own
+young art, because a fawn wearing a full rack reads as a shrunken stag.
+Parents wait for a baby rather than wandering off, and answer something near
+it by their authored `protection`: a deer guides its young away, a badger
+puts itself between, a wolf hunts.
+
+**The Wildblight is the frenzy, and it is fictional on purpose.** Rabies is a
+mammal's disease and this roster is birds, reptiles and insects too, so the
+condition is invented and every species may carry one. Healthy, warning
+(3-5s, a symbol and an unsettled idle), frenzied (30-60s, attacks heroes,
+companions, road enemies and other wildlife including its own kind),
+collapsing, dead. **Bounded at every end**: rolled rarely on arrival, one
+natural outbreak an act, a ceiling by campaign tier on how many may be sick
+at once, never in Preparation or the opening waves, never on a newborn in its
+grace. A species with no bite of its own is lent one, or a turned rabbit is a
+light show - and the gate turns a rabbit and watches it draw blood. Contagion
+is a bounded extension: only a landed bite, once per pair, one secondary per
+carrier, and a secondary spreads no further.
+
+**A mercy is not a hunt.** Putting down something the blight has taken pays
+no wrath and counts toward no hunting-retaliation tally. The animal was dying
+anyway, and a consequence for ending it would read as the world punishing the
+player for the only sensible answer to a frenzy. That is a decision, and the
+gate holds both halves - a healthy kill still pays everything it always did.
+
+**Two faults came out of building it, and both predated the gate.** A birth
+was being placed at the *arrival* entry point fifteen hundred units off the
+edge and walking back, so a cub was never beside its mother and a family
+could not form. And **the field walks its animals backwards through its
+list**, so in every pair the male reached the end of the mating first and
+ended the courtship for both - no female ever conceived, on any frame. The
+seeker ends it now and moves the pair on together.
+
+**Nothing new persists, and nothing new is rolled twice.** A companion's sex
+is decided once a run from the run's seed and kept in
+`RunState.companion_sex`, so dismissing it, re-equipping it and reconnecting
+all read the same answer and no packet carries it. `coop_wildlife_family` and
+`coop_wildlife_born` tell a guest what happened; a guest rolls nothing and
+draws everything.
+
+**Two pieces of the brief are deliberately not built, and are the next
+work.** Towers do not yet shoot frenzied wildlife: a tower targets `Enemy`
+nodes and an animal is a record on the wildlife layer, so it needs a second
+target list, a damage route, co-op authority for that damage and a look at
+whether a tower farming a frenzy for Food is a hole - a subsystem, not a
+flag. And a companion does not court: the courtship machine pairs two
+wildlife *records* and a companion is a node, so letting one pair needs the
+machine to handle both kinds. Both are recorded here rather than half-built.
+
+`wildlife_family_check` (150 checks) measures the inheritance tables over
+forty thousand rolls rather than reading them back, proves one animal's
+rarity never moves another's, drives a real pair through every stage to a
+birth, interrupts one with a fright, spends the act's budget, grows a cub,
+re-applies a host's word to prove nothing rerolls, runs the blight to its
+collapse, turns a rabbit and watches it bite, kills a blighted animal and
+hears the earth stay quiet, and suspends the whole of it with the field.
+`wildlife_family_shot` photographs the hearts, a hind with her fawns, the
+warning and the frenzy.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

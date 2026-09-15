@@ -4,6 +4,14 @@
 
 [resource]
 script = ExtResource("1")
+breeds = true
+breeding_group = "badger"
+litter_min = 1
+litter_max = 2
+gestation_seconds = 46.0
+loyalty = 0.6
+infidelity = 0.18
+protection = 1
 id = "badger"
 display_name = "Badger"
 description = "Small, and entirely unwilling to stop."

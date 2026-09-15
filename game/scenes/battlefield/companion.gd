@@ -599,6 +599,14 @@ func _dress_as_spirit() -> void:
 	var hue: Color = data.colour
 	hue.a = Balance.SPIRIT_DRAW_ALPHA
 	_sprite.modulate = hue
+	# **A spirit has a sex, and it is the same one all run** (owner brief,
+	# 2026-09-14). Decided once per bond key from the run's seed and kept in
+	# `RunState.companion_sex`, so dismissing it, re-equipping it and
+	# reconnecting all read the same answer and nothing has to cross the wire.
+	# Worn on `self_modulate`, which is under the rarity hue and well under a
+	# shiny's band - a tell for a player who looks, never a second palette.
+	_sprite.self_modulate = Balance.WILDLIFE_SEX_TINT[
+		clampi(WildlifeFamilies.companion_sex(spirit_key), 0, 1)]
 	# A slow breath rather than a flicker: it has to survive being looked at for
 	# a whole run, which is a much harder test than looking good for a second.
 	var breath: Tween = _sprite.create_tween().set_loops()
