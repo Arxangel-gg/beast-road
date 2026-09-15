@@ -57,6 +57,9 @@ var _gait_step: int = 0
 var _step_sink: float = 0.0
 var _idle_breath: float = 0.0
 var _step_shake_left: float = 0.0
+## The quake's own push on the beast, taken off again next frame so it never
+## accumulates into the gait.
+var _quake_offset: Vector2 = Vector2.ZERO
 var _rng := RandomNumberGenerator.new()
 var _day_tint: CanvasModulate = null
 ## The scope's own weather, the same system the road uses.
@@ -67,6 +70,8 @@ var _range_band: ParallaxBand = null
 var _skyline: ParallaxStrip = null
 var _mid_band: ParallaxBand = null
 var _town_light_anchor: Node2D = null
+## What the earth is doing to the battlefield, drawn on the carried town.
+var _omens: BeastOmens = null
 
 ## The tail, a child of the body so it inherits the gait and the scale, drawn
 ## behind the body from the rear hip. Its frames run on the body's own gait
@@ -108,6 +113,9 @@ func _setup_lighting() -> void:
 	DayNight.phase_changed.connect(func(_phase: float, tint: Color, _darkness: float) -> void:
 		_day_tint.color = Graphics.graded(tint))
 
+	_omens = BeastOmens.new()
+	_omens.name = "Omens"
+	add_child(_omens)
 	_town_light_anchor = Node2D.new()
 	_town_light_anchor.name = "CarriedTownLight"
 	add_child(_town_light_anchor)
@@ -122,6 +130,12 @@ func _update_town_light() -> void:
 	if _town_light_anchor != null and beast != null:
 		_town_light_anchor.position = beast.position \
 			+ Vector2(0.0, -Balance.BEAST_TOWN_LIGHT_LIFT)
+	# The omens hang off the same place the town's own light does, so a funnel
+	# stands over the keep rather than over the animal carrying it.
+	if _omens != null and beast != null:
+		_omens.town = beast.position + Vector2(0.0, -Balance.BEAST_TOWN_LIGHT_LIFT)
+		_omens.town_width = Balance.BEAST_OMEN_TOWN_WIDTH * _frame_scale
+		_omens.light = DayNight.tint
 
 
 func _apply_beast_environment_tint() -> void:
@@ -682,6 +696,9 @@ func _rebuild_scatter(horizon: Color) -> void:
 		var fallback: String = Treeline.TREE_ART_FORMAT % "jungle"
 		if ResourceLoader.exists(fallback):
 			trees.append(load(fallback))
+	# Trees sway like trees and brush like brush: the canopy material is slower
+	# and reaches further, which is the difference `Foliage` already authors.
+	_woods.sway_material = Foliage.canopy_material(region)
 	_woods.tint = horizon.lightened(0.2)
 	_woods.tint.a = 1.0
 	_woods.tint_strength = Balance.BEAST_WOODS_HAZE
@@ -700,6 +717,7 @@ func _rebuild_scatter(horizon: Color) -> void:
 		var path: String = Foliage.SHARED_KIND_FORMAT % kind
 		if ResourceLoader.exists(path):
 			plants.append(load(path))
+	_brush.sway_material = Foliage.wind_material()
 	_brush.tint = Color(horizon.r, horizon.g, horizon.b, 1.0).darkened(0.7)
 	_brush.tint_strength = Balance.BEAST_BRUSH_DARKEN
 	_brush.shape_seed = hash(region + "brush") ^ RunState.run_seed
@@ -869,11 +887,34 @@ func _lumbered_phase(raw_phase: float) -> float:
 	return (half_step + eased) * PI
 
 
+## The camera's own movement: the footfall, and the earth under it.
+##
+## **A quake shakes Yuri as well** (owner, 2026-09-15). Moving only the camera
+## reads as the operator flinching; the beast is the biggest thing on screen and
+## it is standing on the ground that is moving, so it takes its own offset on
+## top of its gait. The scale is the ground's magnitude and the player's own
+## shake setting, exactly as the footfall is.
 func _update_step_shake(delta: float, strength: float) -> void:
 	if camera == null:
 		return
+	var quake: float = _omens.quake_shake() if _omens != null else 0.0
+	var shaking: float = float(MetaState.settings.get(UserSettings.SHAKE_KEY, 1.0))
+	if beast != null:
+		var rock: float = quake * Balance.BEAST_QUAKE_SHAKE * shaking
+		_quake_offset = Vector2(_rng.randf_range(-rock, rock),
+			_rng.randf_range(-rock, rock)) if rock > 0.01 else Vector2.ZERO
+		beast.position += _quake_offset
+	if _step_shake_left <= 0.0 and quake <= 0.0:
+		if camera.is_current():
+			camera.offset = Vector2.ZERO
+		return
+	if quake > 0.0 and camera.is_current():
+		var world: float = quake * Balance.BEAST_QUAKE_SHAKE * shaking
+		camera.offset = Vector2(_rng.randf_range(-world, world),
+			_rng.randf_range(-world, world))
 	if _step_shake_left <= 0.0 or not camera.is_current():
-		camera.offset = Vector2.ZERO
+		if quake <= 0.0:
+			camera.offset = Vector2.ZERO
 		return
 	_step_shake_left = maxf(_step_shake_left - delta, 0.0)
 	var falloff: float = _step_shake_left / maxf(Balance.BEAST_STEP_SHAKE_TIME, 0.01)

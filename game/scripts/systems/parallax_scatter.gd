@@ -41,6 +41,17 @@ var shape_seed: int = 0
 ## A group the sprites join, so a global filter setting reaches them.
 var filter_group: StringName = &""
 
+## What every scattered piece is drawn through.
+##
+## **The walk had no wind in it** (owner, 2026-09-15). The battlefield's plants
+## have swayed in a shader since they were painted, and the beast scope built
+## its woods and its brush from the same art as plain sprites - so the one view
+## whose whole subject is travelling through weather was the only still thing in
+## the game. Assigning the foliage's own shared material gives every scattered
+## plant the same sway, follows the live wind for free, and costs one material
+## rather than one per sprite.
+var sway_material: ShaderMaterial = null
+
 var _sprites: Array[Sprite2D] = []
 ## What it was last laid out from, so a resize can lay it out again.
 var _art: Array[Texture2D] = []
@@ -84,6 +95,7 @@ func rebuild(art: Array[Texture2D]) -> void:
 			sprite.flip_h = flip
 			sprite.modulate = Color(shade, shade, shade).lerp(tint, tint_strength)
 			sprite.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+			sprite.material = sway_material
 			if filter_group != &"":
 				sprite.add_to_group(filter_group)
 			add_child(sprite)

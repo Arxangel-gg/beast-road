@@ -2605,6 +2605,108 @@ hears the earth stay quiet, and suspends the whole of it with the field.
 `wildlife_family_shot` photographs the hearts, a hind with her fawns, the
 warning and the frenzy.
 
+**The wind blows, and you can feel it, as of 2026-09-15.** The owner asked for
+"an aesthetically appealing wind system that can blow in any cardinal direction
+and can change its strength" that "can affect movement speed for all characters
+slowing them against the wind or speeding them up in its direction", with
+"optimized coop replication" and foliage "simulated on each client from the
+replicated wind updates".
+
+**This is the one addition in a long line that is allowed to move a gameplay
+number**, so the bound moves from "a look, never a number" to the shape of the
+number. Four properties, all held by `wind_check`:
+
+- **Symmetric.** One function, `RunState.wind_push`, and the same dot product
+  and the same cap for a hero, an enemy, an animal and a companion.
+- **Capped** at `Balance.WIND_PUSH_MAX` either way and clamped, so no
+  combination of gust and weather exceeds it. A crosswind costs exactly nothing.
+- **It averages to nothing.** The heading settles on a quarter, holds about
+  fifty seconds and turns at a constant rate - a quarter in seven seconds, a
+  reversal in fourteen - and reaches every quarter of the compass over a run.
+  With four roads facing four ways there is no free ride in it, and
+  `balance_test` reads the same 28,988 assertions.
+- **Never felt indoors.** `RunState.wind_sheltered` is set beside
+  `DayNight.set_underground`, because a rift having no sky and no weather is one
+  fact rather than two.
+
+**Two numbers cross the wire and nothing a leaf does.** The host sends the wind
+when the heading has turned `WIND_RELAY_DEGREES` or the strength moved
+`WIND_RELAY_STRENGTH`, never more often than `WIND_RELAY_INTERVAL`; a guest
+eases toward it and leans every plant on its own field. **The gust is
+deliberately not in `wind()`**: it breathes fast enough to cross the threshold
+several times a second, which made the relay a clock wearing a threshold's
+clothes - measured at two messages a second over ten minutes. A gust is also
+the one part of the wind nobody needs to agree about, so the settled wind is
+the fact and the gust is drawn locally. **Still air is silent** for the same
+reason: a heading is undefined with no wind, and the fallback fired for ever.
+
+**And the walk has the wind in it too.** `ParallaxScatter.sway_material` puts
+the foliage's own shared material on the beast scope's woods and brush, which
+had been plain sprites since they were built - so the one view whose subject is
+travelling through weather was the only still thing in the game.
+
+**What the earth is doing is visible from the road, as of 2026-09-15.** The
+owner asked for the battlefield's disasters to show in the beast scope: a
+funnel over the base, fire for a wildfire, water pouring off the castle base on
+Yuri's back when it floods, a world shake for a quake "that also shakes Yuri
+too", and lightning.
+
+`BeastOmens` is that readout, and **the bound is that a readout reads**: it
+listens to the facts the earth already publishes - the same ones relayed to a
+guest - reads `RunState` for the standing conditions, and changes no number,
+rolls no die and sends no message. Turn the node off and the run is identical,
+which is the fog of war's bound in a second place. It draws on the carried town
+rather than in a corner, because a corner icon is a notification and this is
+weather. `beast_omens_check` snapshots the run and drives every event through
+it; the quake moves the camera **and** the beast, and the gate refuses a build
+where only the camera moves.
+
+**The interface answers being touched, as of 2026-09-15.** Holograms on hover,
+focus and tap: scanlines, a one-shot sweep, a rim, and a tear on a press.
+**Additive, and that is a safety rule rather than a look** - `UiTint` may grade
+frames and may never touch text, and an additive layer can only add light, so
+over dark plates and pale lettering no glyph loses contrast. `ui_juice_check`
+reads the blend mode and the ceiling off the shader and refuses `blend_mix`.
+The pad and the thumb get the same answer as the mouse, and the sweep is driven
+rather than looped: a hover is an event, and a shimmer that loops for ever is a
+screensaver behind a button.
+
+**The main menu is a place, as of 2026-09-15.** Painted corner foliage with
+three vines, three leaf sprays and three fruits or flowers hanging off them,
+all graded to the corner they hang in; painted branches with their own variety,
+laid along the very curve the strands are rooted on so the two cannot drift
+apart; fireflies that each keep their own clock; four species of tiny bird; and
+the Warden in the bottom-right corner on a dark outcrop with a campfire, a
+lantern and a fire horse, arranged differently every visit.
+
+**The figure makes the beast colossal by being small**, which is the one design
+decision in that list: a foreground person at a believable size would be the
+biggest thing on screen and would take the scale away from Yuri.
+
+**Three faults in that work are worth remembering because they are one fault.**
+The birds were graded from the dark upper sky and came out near-black on
+near-black; the Warden was graded the way the beast is and came out black on
+black; and the vines rolled an index from 0 to 8 against sets of three, so most
+strands drew nothing and the corner silently fell back to its silhouettes. In
+every case the numbers all said the feature was working and a photograph said
+it was not. **Grading a near-silhouette by the ground it stands on is the
+recurring mistake**: the beast survives that grade because it is painted in
+mid-tones, and nothing else here is.
+
+**The mythical wildlife proposal is triaged rather than built.** The owner
+forwarded 112 creatures, a Mythic classification, evidence-and-tracking
+encounters, mythic materials and a sanctuary. `docs/IDEAS_REVIEW_2026-09-15.md`
+is the triage. The short of it: the best idea in the document is not a creature
+but **Evidence -> Tracking -> Encounter**, which multiplies the wrath system,
+the fog and the raccoon's hiding rather than adding a system beside them; the
+document assumes an extraction game, which this is not, so the egg-theft beat
+translates to the homecoming pass or not at all; a werewolf with a blood moon
+is the Wildblight built a second time and should be a **Cursed** variant of it;
+and the ocean creatures want water this game does not have. Five are
+shortlisted - Moonstag, Griffon, Glimmerfox, Hollowhorn, Phoenix - and dragons
+are a world-event system rather than a creature. **Nothing is built and no
+ruling is assumed.**
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -603,6 +603,11 @@ jobs:
           # topmost blade of grass, clear of the interface, and different
           # every visit.
           check "menu camp" --headless --path game res://tools/menu_camp_check.tscn
+          # The walk can see what the earth is doing to the town: every
+          # disaster reaches the road, the readout changes nothing, nothing
+          # stays on screen for ever, and a quake moves Yuri and not only the
+          # camera.
+          check "beast omens" --headless --path game res://tools/beast_omens_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

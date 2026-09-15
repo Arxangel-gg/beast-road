@@ -6486,6 +6486,40 @@ const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
+# --- What the earth is doing, seen from the road (owner brief, 2026-09-15) ---
+#
+# "Ways of indicating any natural disasters going on on the battlefield also on
+# beastscope view ... tornado over the base, or fire if wildfire, or flooding
+# make water pouring out from the castle base on Yuri the beast's back. And
+# earthquake should also have a worldshake in beast scope view that also shakes
+# Yuri too."
+#
+# **Every number here is a picture.** `BeastOmens` listens to the facts the
+# earth already publishes and reads `RunState` for the standing conditions; it
+# changes nothing, rolls nothing and sends nothing. Turn the node off and the
+# run is identical.
+## Where the omens draw, and how wide the carried town is at frame scale.
+const BEAST_OMEN_Z: int = 40
+const BEAST_OMEN_TOWN_WIDTH: float = 96.0
+## Redraws a second. The clocks run at frame rate; only the drawing is sampled.
+const BEAST_OMEN_HZ: float = 24.0
+## How long a funnel is assumed to stand after its last reported position.
+const BEAST_OMEN_TORNADO_HOLD: float = 2.5
+const BEAST_OMEN_TORNADO_HEIGHT: float = 1.5
+const BEAST_OMEN_TORNADO_RINGS: int = 14
+const BEAST_OMEN_TORNADO_MOTES: int = 12
+## Wildfires are counted up as plants are lit and fade on their own, because the
+## field reports each ignition and never reports one going out.
+const BEAST_OMEN_FIRE_MAX: float = 8.0
+const BEAST_OMEN_FIRE_FADE: float = 0.22
+const BEAST_OMEN_FIRE_PLUMES: int = 4
+const BEAST_OMEN_SMOKE_PUFFS: int = 6
+## How many spouts a full flood pours off the platform's lip.
+const BEAST_OMEN_SPOUTS: int = 5
+const BEAST_OMEN_FLASH_SECONDS: float = 0.45
+const BEAST_OMEN_METEOR_SECONDS: float = 1.6
+## How hard a full-magnitude quake moves the camera and the beast, in pixels.
+const BEAST_QUAKE_SHAKE: float = 7.0
 const BEAST_WOODS_Z: int = -9
 const BEAST_WOODS_SCROLL: float = 0.42
 const BEAST_WOODS_BASELINE: float = 392.0
