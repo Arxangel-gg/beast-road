@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+hide = 2
+art_facing = 0
+category = 4
+id = "dragon_stone"
+display_name = "Cairnwyrm"
+description = "Not a dragon on a hill. The hill."
+role = 2
+max_hp = 610.00
+contact_damage = 32.00
+move_speed = 28.00
+body_radius = 58.00
+knockback_resistance = 0.98
+resource_value = 44

@@ -1711,7 +1711,7 @@ func apply_boss_phase(phase: int) -> void:
 func is_priority() -> bool:
 	if data == null:
 		return false
-	return data.category != EnemyData.Category.BREED \
+	return data.is_promoted() \
 		or data.role == EnemyData.Role.HOWLER \
 		or data.role == EnemyData.Role.BURROWER
 
@@ -2205,7 +2205,7 @@ func _on_died(_from: Vector2) -> void:
 	# **Break the Host.** An elite falling while a channel runs buys it a
 	# moment more. Said as a fact rather than reached for: the caster is the
 	# thing that knows whether a channel is running.
-	if rank != Rank.COMMON or data.category != EnemyData.Category.BREED:
+	if rank != Rank.COMMON or data.is_promoted():
 		EventBus.elite_fell.emit(_visual_origin())
 	EventBus.enemy_died.emit(data.id, _visual_origin())
 
@@ -2244,7 +2244,7 @@ func dismiss() -> void:
 func _drop_loot() -> void:
 	if _field == null or not _field.has_method("spawn_loot"):
 		return
-	var elite: bool = data.category != EnemyData.Category.BREED
+	var elite: bool = data.is_promoted()
 	var chance: float = Balance.LOOT_DROP_CHANCE
 	if elite:
 		chance = 1.0
@@ -2329,7 +2329,7 @@ func _drop_supply_crate() -> void:
 ## What a crate from this body carries, as the currency value of one spill.
 func crate_value() -> int:
 	var share: float = float(data.resource_value) * Balance.KILL_RESOURCE_SCALE 		* Balance.LOOT_BONUS_SHARE * Balance.SUPPLY_CRATE_VALUE_SCALE 		* Balance.kill_act_scale(RunState.act)
-	if data.category != EnemyData.Category.BREED:
+	if data.is_promoted():
 		share *= Balance.LOOT_ELITE_MULTIPLIER
 	var tier: CampaignTierData = RunState.tier()
 	if tier != null:

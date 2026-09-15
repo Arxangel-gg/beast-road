@@ -201,9 +201,15 @@ two effects a hero cannot hold at once - the three finishers are all Attack-slot
 and only one node sits in a slot, so a synergy between two of them could never
 fire at all.
 
-**Stage three is still open.** Whether the per-road draft should be replaced by
-freely spending skill points has not been decided or built. Do not treat the
-paths or the synergies above as that decision.
+**Stage three is built, as of 2026-09-15.** The owner approved replacing the
+per-road draft with freely spent points, and `eligible_discipline_nodes` is one
+function now: the draft picks three of them to suggest and the training door
+allows any of them, so the two can no longer disagree about what is trainable.
+Four bounds survive and the gate drives each rather than reading a constant - a
+skill point, its Food, `discipline_cap()`, and depth in the node's own tree. The
+Mansion page lists the whole open tree under the road's three suggestions,
+because copy saying "spend them on any node" over a page showing three is the
+same failure as an effect nothing reads.
 
 **Ranged combat, ammunition, blueprints and crafting are in scope, as of
 2026-08-31.** None of them appears in v4. The owner asked for all four after
@@ -540,8 +546,9 @@ recorded here so it is neither forgotten nor quietly built as a re-cut.
    added to, and the five thin slots went from five kinds each to ten.
 3. More towers and more wildlife: data plus art, gated by PixelLab budget.
 4. More ranged spells: `SpellData` kinds already cover it; content and icons.
-5. The skills revamp: discipline stage three (freely spent skill points) is
-   still an open owner question and should be answered before a revamp.
+5. ~~The skills revamp.~~ Discipline stage three - freely spent skill points -
+   was the open question this waited on, and it was answered and built on
+   2026-09-15. See the note above.
 
 **~~Need an owner ruling before any code~~ - RULED ON 2026-09-11: build them
 all.** See the note below for the ruling and the order. The list is kept as
@@ -2706,6 +2713,34 @@ and the ocean creatures want water this game does not have. Five are
 shortlisted - Moonstag, Griffon, Glimmerfox, Hollowhorn, Phoenix - and dragons
 are a world-event system rather than a creature. **Nothing is built and no
 ruling is assumed.**
+
+**There is no cooking system, and that is a decision, as of 2026-09-15.** The
+owner listed "No cooking system" among a batch of work and, asked which of the
+two readings they meant, answered: *"Don't build cooking, yet? If you think it's
+better for our game to have it then implement it as you see best."* So the call
+is recorded here rather than left as an item that gets re-asked every few
+sessions.
+
+**The design space cooking would occupy is already occupied.** The Angler
+catches eleven fish across three ponds; the pantry keeps them between runs; the
+rarer ones carry a short damage-and-speed buff; a fish can be given to a spirit
+or to a hurt player beside you. Whatever a cooking craft would *do* - turn a
+caught thing into a better consumable - is a second lever on the same fish.
+
+**And the lever it would pull is the one bound the recovery economy has.**
+`Balance.FISH_MEALS_PER_RUN` is why a deep pantry buys a better *choice* of meal
+and never more of them; without it a player with a full larder cannot be killed
+and the wounds, the Tonic and the well are decoration. Cooking makes each of
+those three meals stronger, which is exactly the pressure that cap exists to
+resist - so it would arrive either as a power scale nobody is tuning, or as a
+craft deliberately built to do nothing much, and neither is worth a sixth
+profession.
+
+**What would make it worth building** is the thing it is not: a reason to
+combine *several* materials into something the road cannot drop. If cooking ever
+returns, it should take wood or ore or a crop alongside the fish and produce an
+effect that is not "more health" - and it still has to answer
+`FISH_MEALS_PER_RUN` before it gets a line of code.
 
 ### The three escape hatches — and why there are only three
 

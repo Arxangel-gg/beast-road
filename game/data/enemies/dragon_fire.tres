@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+hide = 2
+art_facing = 0
+category = 4
+id = "dragon_fire"
+display_name = "Emberwyrm"
+description = "The fire under a war camp, and it is awake."
+role = 2
+max_hp = 520.00
+contact_damage = 34.00
+move_speed = 34.00
+body_radius = 56.00
+knockback_resistance = 0.96
+resource_value = 42

@@ -40,6 +40,15 @@ const EXPECTED: Dictionary = {
 	# variety as missing. The two elites get three, since the brief allowed up
 	# to five for elites and champions.
 	"howler": 3, "wolf_standard_bearer": 3, "horde_drummer": 3,
+	# Added 2026-09-15 with the camp lords. The storm dragon is the only one
+	# of the eight that throws; it gets four, which is what the brief allows
+	# a champion, and the gate named it the moment it was authored without
+	# one.
+	"dragon_storm": 4,
+	# The camp-only shooter, added the same day. Three, like the road's
+	# ordinary casters: a camp breed is harder than a road body and is not a
+	# champion.
+	"camp_shaman": 3,
 }
 
 ## Distances the draw is measured at, **as a share of the breed's own reach**.

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+hide = 0
+art_facing = 0
+category = 3
+shot_ids = PackedStringArray("fire_bolt", "ember_mortar", "close_fan")
+id = "camp_shaman"
+display_name = "Pyre Shaman"
+description = "Kill this one first. The camp gets slower without it."
+role = 3
+max_hp = 115.00
+contact_damage = 13.00
+move_speed = 46.00
+body_radius = 29.00
+knockback_resistance = 0.42
+resource_value = 13

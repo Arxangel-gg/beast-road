@@ -6358,6 +6358,17 @@ const CAMP_DAMAGE_SCALE: Array[float] = [1.15, 1.45, 1.6]
 const CAMP_BARON_SCALE: float = 4.5
 ## Chance a camp body is promoted, by tier. The war camp's champion is always.
 const CAMP_ELITE_CHANCE: Array[float] = [0.25, 0.55, 1.0]
+## How often a camp body is one of the camp-only breeds rather than one of the
+## region's own, per tier. **Nothing at the first camp**: it is where a player
+## learns what a camp is, against bodies they already know from the road. Past
+## it, most of the camp is strangers - which is what makes the detour a fight
+## rather than a slower lane.
+const CAMP_STRANGER_SHARE: Array[float] = [0.0, 0.55, 0.75]
+## How often the thing at the back of a camp is an epic lord - a dragon or a
+## wyvern - instead of an ordinary champion. Nothing at the first camp, rare at
+## the second, and better than even odds at the war camp, so a lord stays a
+## thing you tell somebody about rather than a fixture.
+const CAMP_LORD_CHANCE: Array[float] = [0.0, 0.12, 0.55]
 ## How far from its home a camp body notices a hero, and how far it will
 ## follow before it turns back. A hero who leaves the leash is left alone -
 ## the League rule - and the body walks home healing.

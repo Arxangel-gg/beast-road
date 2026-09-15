@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+hide = 1
+art_facing = 0
+category = 4
+shot_ids = PackedStringArray("lash_lance", "long_lance", "snap_bolt", "wide_fan")
+id = "dragon_storm"
+display_name = "Stormwyrm"
+description = "The weather over the camp has teeth."
+role = 3
+max_hp = 480.00
+contact_damage = 29.00
+move_speed = 36.00
+body_radius = 54.00
+knockback_resistance = 0.94
+resource_value = 44

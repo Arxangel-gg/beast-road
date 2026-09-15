@@ -287,7 +287,8 @@ func _stand_up(site: Dictionary) -> void:
 	var count: int = _rng.randi_range(Balance.CAMP_MOBS_MIN[tier], Balance.CAMP_MOBS_MAX[tier])
 	var mobs: Array = []
 	if tier == BattleGrid.CampTier.BARON:
-		var champion: Enemy = _spawn_body(site, _pick_elite(), centre, Balance.CAMP_BARON_SCALE, true)
+		var champion: Enemy = _spawn_body(site, _pick_elite(tier), centre,
+			Balance.CAMP_BARON_SCALE, true)
 		if champion != null:
 			mobs.append(champion)
 	for index: int in count:
@@ -348,8 +349,26 @@ func _roll_affixes(count: int) -> Array[EnemyAffixData]:
 
 
 ## A body for a camp of this tier: the region's own breeds, with the harder
-## camp leaning on the sturdier roles.
+## camp leaning on the sturdier roles - and, past the first camp, bodies that
+## are only ever found in a camp.
+##
+## **The second and third camp are not the road with more health** (owner,
+## 2026-09-15: "second camp should have some unique camp only harder mobs, and
+## third camp should as well"). Scaling the same breeds up is what made walking
+## into a camp feel like holding a lane against slower numbers; a body the
+## player has not met on the road is what makes the detour its own fight. The
+## `CAMP_BREED` category is what keeps them out of the wave roll - they are not
+## in any region's `enemy_ids` and nothing else reads that category.
+##
+## The region's own breeds stay in the mix rather than being replaced, because
+## a camp of nothing but strangers stops reading as *this* region's camp.
 func _pick_breed(tier: int) -> EnemyData:
+	if tier >= BattleGrid.CampTier.HARD:
+		var strangers: Array[EnemyData] = ContentDB.enemies_of_category(
+			EnemyData.Category.CAMP_BREED)
+		if not strangers.is_empty() and _rng.randf() < Balance.CAMP_STRANGER_SHARE[
+				clampi(tier, 0, Balance.CAMP_STRANGER_SHARE.size() - 1)]:
+			return strangers[_rng.randi_range(0, strangers.size() - 1)]
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	var pool: Array[EnemyData] = []
 	if terrain != null:
@@ -371,7 +390,23 @@ func _pick_breed(tier: int) -> EnemyData:
 	return pool[_rng.randi_range(0, pool.size() - 1)]
 
 
-func _pick_elite() -> EnemyData:
+## The thing at the back of the camp.
+##
+## **Sometimes it is a lord rather than a champion** (owner, 2026-09-15: the
+## third camp should have "a higher chance of also having a rarer epic camp mob
+## that is a miniboss of its own. Sometimes that might even be a dragon"). The
+## chance rises with the tier and is nothing at all at the first camp, so the
+## first camp on a road teaches what a camp is before one of these is behind it.
+##
+## **A camp dragon is never a companion**, and that falls out of the type rather
+## than out of a flag: these are `EnemyData`, and bonding reads `WildlifeData`.
+## The wild ones the owner *does* want bondable are their own roster.
+func _pick_elite(tier: int = BattleGrid.CampTier.BARON) -> EnemyData:
+	var lords: Array[EnemyData] = ContentDB.enemies_of_category(
+		EnemyData.Category.CAMP_LORD)
+	if not lords.is_empty() and _rng.randf() < Balance.CAMP_LORD_CHANCE[
+			clampi(tier, 0, Balance.CAMP_LORD_CHANCE.size() - 1)]:
+		return lords[_rng.randi_range(0, lords.size() - 1)]
 	var terrain: TerrainData = ContentDB.terrain(RunState.terrain_id)
 	var pool: Array[EnemyData] = []
 	if terrain != null:

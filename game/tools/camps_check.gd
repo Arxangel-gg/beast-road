@@ -33,6 +33,7 @@ func _ready() -> void:
 	for _f: int in 12:
 		await get_tree().process_frame
 
+	_test_the_camps_escalate()
 	var field: Battlefield = run.battlefield
 	var camps: Camps = field.camps()
 	var grid: BattleGrid = field.grid
@@ -184,6 +185,86 @@ func _fell(mobs: Array) -> void:
 		if parent != null:
 			parent.remove_child(enemy)
 		enemy.free()
+
+
+
+
+## **The three camps are three different fights.**
+##
+## Owner, 2026-09-15: "second camp should have some unique camp only harder
+## mobs, and third camp should as well, but also have a higher chance of also
+## having a rarer epic camp mob that is a miniboss of its own. Sometimes that
+## might even be a dragon."
+##
+## Four things have to hold and none of them is visible in one camp:
+##
+## - **The first camp is the region's own**, so a player meets a camp against
+##   bodies they already know before one full of strangers.
+## - **The second and third are mostly strangers**, which is what makes the
+##   detour its own fight rather than a lane with more health.
+## - **A lord is rare at the second camp and common at the war camp**, and never
+##   certain anywhere - a fixture is not a miniboss.
+## - **A camp lord never reaches the road.** The category is the only thing
+##   keeping it out of the wave roll, so a lord listed in a region's
+##   `enemy_ids` would walk up the lane as rank and file.
+func _test_the_camps_escalate() -> void:
+	var lords: Array[EnemyData] = ContentDB.enemies_of_category(
+		EnemyData.Category.CAMP_LORD)
+	var strangers: Array[EnemyData] = ContentDB.enemies_of_category(
+		EnemyData.Category.CAMP_BREED)
+	_check(lords.size() >= 4,
+		"a war camp needs lords to draw from: %d authored" % lords.size())
+	_check(not strangers.is_empty(),
+		"the harder camps need camp-only breeds: %d authored" % strangers.size())
+
+	# **Never on the road.** Checked against every region rather than the
+	# current one: a lord added to one terrain's list is a dragon in a wave.
+	for value: Variant in ContentDB.terrains.values():
+		var region := value as TerrainData
+		if region == null:
+			continue
+		for id: String in region.enemy_ids:
+			var breed: EnemyData = ContentDB.enemy(id)
+			if breed == null:
+				continue
+			_check(breed.category != EnemyData.Category.CAMP_LORD,
+				"%s lists the camp lord %s, which would walk up the lane"
+					% [region.id, id])
+			_check(breed.category != EnemyData.Category.CAMP_BREED,
+				"%s lists the camp-only breed %s" % [region.id, id])
+
+	# **And a camp dragon is never a companion** (owner's ruling in the same
+	# breath: wild dragons are bondable, camp ones are not). It falls out of the
+	# types - bonding reads `WildlifeData` - and this is what would notice if a
+	# wild roster were ever given one of these ids.
+	for lord: EnemyData in lords:
+		_check(not ContentDB.wildlife_kinds.has(lord.id),
+			("%s is a camp lord and also a wildlife kind, so killing one in a "
+				+ "camp would credit the collection") % lord.id)
+
+	# The escalation itself, read off the constants the roll uses.
+	_check(is_zero_approx(Balance.CAMP_STRANGER_SHARE[BattleGrid.CampTier.EASY]),
+		"the first camp must be the region's own bodies")
+	_check(is_zero_approx(Balance.CAMP_LORD_CHANCE[BattleGrid.CampTier.EASY]),
+		"and must never hold a lord")
+	_check(Balance.CAMP_STRANGER_SHARE[BattleGrid.CampTier.HARD] > 0.2
+			and Balance.CAMP_STRANGER_SHARE[BattleGrid.CampTier.BARON]
+				>= Balance.CAMP_STRANGER_SHARE[BattleGrid.CampTier.HARD],
+		"strangers must arrive at the second camp and not thin out at the third")
+	_check(Balance.CAMP_LORD_CHANCE[BattleGrid.CampTier.BARON]
+			> Balance.CAMP_LORD_CHANCE[BattleGrid.CampTier.HARD],
+		"a lord must be likelier at the war camp than at the second")
+	_check(Balance.CAMP_LORD_CHANCE[BattleGrid.CampTier.BARON] < 1.0,
+		"and never certain: a fixture is not a miniboss")
+
+	# A lord is a set piece and a camp breed is not - the distinction four
+	# separate `!= BREED` expressions used to get wrong.
+	for lord: EnemyData in lords:
+		_check(lord.is_promoted(), "%s must count as promoted" % lord.id)
+	for stranger: EnemyData in strangers:
+		_check(not stranger.is_promoted(),
+			("%s is rank and file that lives in a camp; counting it promoted "
+				+ "pays it elite loot") % stranger.id)
 
 
 func _check(passed: bool, message: String) -> void:

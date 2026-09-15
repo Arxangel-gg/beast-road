@@ -1474,7 +1474,7 @@ func _on_enemy_died(enemy_id: String, at: Vector2) -> void:
 	dust(at, Color(0.34, 0.22, 0.18, 0.34), 4 + spark_count / 5, radius * 0.9)
 	ring(at, radius, Color(colour, 0.48), 0.28 + radius / 500.0, 3.0 + radius / 35.0)
 	flash_at(at, colour, 14.0 + radius * 0.18)
-	if data != null and data.category != EnemyData.Category.BREED:
+	if data != null and data.is_promoted():
 		rays(at, colour.lerp(Color.WHITE, 0.42), 8 if data.category == EnemyData.Category.ELITE else 16,
 			radius * 1.25)
 	# In a burning region the dead go up in embers rather than dust: the same

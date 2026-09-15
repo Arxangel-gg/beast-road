@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
+[resource]
+script = ExtResource("1_enemy")
+hide = 2
+art_facing = 0
+category = 4
+id = "dragon_frost"
+display_name = "Rimewyrm"
+description = "It has been still so long the camp built around it."
+role = 2
+max_hp = 560.00
+contact_damage = 30.00
+move_speed = 31.00
+body_radius = 56.00
+knockback_resistance = 0.97
+resource_value = 42

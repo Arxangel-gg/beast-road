@@ -18,6 +18,19 @@ enum Category {
 	ELITE,
 	## One per act, ends the act.
 	BOSS,
+	## **Appended, never inserted** - `.tres` files index this enum by number,
+	## and a member added in the middle silently repoints every resource after
+	## it. `Role` and `Trigger` both taught this project that, in silence.
+	##
+	## Camp-only rank and file: harder than the road's bodies, and never seen on
+	## the road. The second and third camp are built from these (owner,
+	## 2026-09-15: "second camp should have some unique camp only harder mobs,
+	## and third camp should as well"), which is what makes walking into one a
+	## different proposition from holding a lane.
+	CAMP_BREED,
+	## The epic thing at the back of a war camp: a miniboss of its own, rolled
+	## in place of the camp's champion. Dragons and wyverns are these.
+	CAMP_LORD,
 }
 
 ## Mechanical identities stay data-driven: the shared enemy script interprets
@@ -32,6 +45,24 @@ enum Role {
 }
 
 @export var category: Category = Category.BREED
+
+
+## **Whether this body is one of the fight's set pieces**, rather than one of
+## the many.
+##
+## Every reader of the category used to spell this as `!= Category.BREED`, which
+## was exactly right while the enum held three members and quietly wrong the
+## moment it held five: `CAMP_BREED` is rank and file that happens to live in a
+## camp, and four separate expressions would have started paying it elite loot,
+## a guaranteed drop, the elite crate multiplier and an `elite_fell` that buys a
+## channel more time. None of that would have errored and all of it would have
+## been felt.
+##
+## So the question has one answer in one place. A camp lord *is* a set piece - it
+## is the miniboss at the back of a war camp - and a camp breed is not.
+func is_promoted() -> bool:
+	return category == Category.ELITE or category == Category.BOSS \
+		or category == Category.CAMP_LORD
 @export var role: Role = Role.MARCHER
 
 ## Stable data ids survive save migration even when a provisional launch sprite
