@@ -36,6 +36,7 @@ func _ready() -> void:
 	_test_the_camps_escalate()
 	var field: Battlefield = run.battlefield
 	var camps: Camps = field.camps()
+	_test_an_ambush_walks_inward(field.grid)
 	var grid: BattleGrid = field.grid
 	_check(camps != null and grid != null, "the battlefield has camps and a grid")
 	if camps != null and grid != null:
@@ -265,6 +266,57 @@ func _test_the_camps_escalate() -> void:
 		_check(not stranger.is_promoted(),
 			("%s is rank and file that lives in a camp; counting it promoted "
 				+ "pays it elite loot") % stranger.id)
+
+
+
+
+## **An ambusher walks in, and never back out first.**
+##
+## Owner, 2026-09-15: wave enemies "spawn at the correct location between camp 1
+## and closer to the central square ... but then they head to the fork joint
+## where camp 3 is before heading back to the central square."
+##
+## They did, and it was every closed-fork wave in the game. `_entry_node` finds
+## the lattice node *furthest out* along a lane, so every route is written from
+## the fork junction inward - correct for a body that enters at the fork, and
+## a round trip for one that ambushes from the trees beside the core. The route
+## was laid whole behind the ambush point, so the body crossed to the corridor
+## and then walked the entire road outward before turning round.
+##
+## **Measured as a property of the path rather than by watching a body**: from
+## the moment it steps onto the road, nothing on a closed-fork route may be
+## further from the town than the point it joined at. A route that weaves is
+## fine; one that goes back out to the edge is the bug.
+func _test_an_ambush_walks_inward(grid: BattleGrid) -> void:
+	if grid == null:
+		_check(false, "the route test needs a grid")
+		return
+	var worst: float = 0.0
+	var worst_lane: int = -1
+	var counted: int = 0
+	for lane: int in grid.routes.size():
+		if lane < grid.fork_open.size() and grid.fork_open[lane]:
+			continue
+		for value: Variant in (grid.routes[lane] as Array):
+			var route: PackedVector2Array = value
+			if route.size() < 3:
+				continue
+			counted += 1
+			# Point 0 is the spawn in the trees and point 1 is the corridor it
+			# steps onto; the road proper starts after that.
+			var joined: float = route[1].length()
+			for index: int in range(2, route.size()):
+				var out: float = route[index].length() - joined
+				if out > worst:
+					worst = out
+					worst_lane = lane
+	_check(counted > 0, "there must be closed-fork routes to measure")
+	# A tile of slack: the lattice does not put a node exactly on the corridor.
+	var slack: float = float(BattleGrid.TILE) * 1.5
+	_check(worst <= slack,
+		("an ambusher on lane %d walks %.0f further out than where it joined "
+			+ "the road before turning back - the route is laid from the fork "
+			+ "rather than from the corridor") % [worst_lane, worst])
 
 
 func _check(passed: bool, message: String) -> void:

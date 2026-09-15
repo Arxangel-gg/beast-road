@@ -664,6 +664,32 @@ func _walk_routes(entry: Vector2i) -> Array:
 ## stands. Owner report, 2026-09-12: "melee units should not head all the way
 ## into the city base at origin but rather attack it from just outside its
 ## walls on their cardinal direction."
+## Where a route is joined by a body stepping onto it part way along.
+##
+## **The first step that is no further from the town than the joining point**,
+## rather than the nearest one. Nearest is the obvious answer and it is two
+## tiles wrong: the lattice node closest to the corridor can still sit outside
+## it, and the couple of steps after that lead outward before the road turns -
+## so an ambusher still walked away from the town first, just less far. A route
+## runs outermost to town, so the first step inside the corridor is where the
+## body belongs.
+func _join_step(path: Array, at: Vector2) -> int:
+	var reach: float = at.length()
+	for index: int in path.size():
+		if tile_to_world(path[index]).length() <= reach:
+			return index
+	# Nothing inside it: fall back to the nearest, which is the old behaviour
+	# and cannot be worse than the whole road.
+	var best: int = 0
+	var closest: float = INF
+	for index: int in path.size():
+		var gap: float = tile_to_world(path[index]).distance_squared_to(at)
+		if gap < closest:
+			closest = gap
+			best = index
+	return best
+
+
 func _finish_routes(found: Array, spawn: Vector2, via: Vector2 = Vector2.INF) -> Array:
 	var shortest: int = _tile_length(found[0]) if not found.is_empty() else 0
 	var out: Array = []
@@ -676,10 +702,27 @@ func _finish_routes(found: Array, spawn: Vector2, via: Vector2 = Vector2.INF) ->
 		# The way onto the road, when the spawn is off it: an ambusher crosses
 		# the open ground to the corridor first, then walks the road like any
 		# other body.
+		var joins: int = 0
 		if via.is_finite() and via.distance_to(spawn) > 1.0:
 			points.append(via)
+			# **And it joins the road where it steps onto it**, not at the far
+			# end of it.
+			#
+			# `_entry_node` finds the lattice node *furthest out* along the
+			# lane, so every route in `found` is written from the fork junction
+			# inward - which is right for a body that enters at the fork and
+			# wrong for one that ambushes from the trees beside the core. Laid
+			# whole, the route sent an ambusher to the corridor, then out past
+			# both camps to the junction, then all the way back in past itself.
+			#
+			# Owner, 2026-09-15: wave enemies "spawn at the correct location
+			# between camp 1 and closer to the central square ... but then they
+			# head to the fork joint where camp 3 is before heading back to the
+			# central square". This is that, and it was every closed-fork wave
+			# in the game.
+			joins = _join_step(path, via)
 		var last: int = path.size() - 1 if path.size() <= 2 else path.size() - 2
-		for index: int in range(0, last + 1):
+		for index: int in range(joins, last + 1):
 			points.append(tile_to_world(path[index]))
 		out.append(points)
 	return out
