@@ -36,6 +36,7 @@ func _ready() -> void:
 	_test_kinds_that_sway_have_frames()
 	_test_kinds_that_do_not_sway_have_none()
 	_test_frames_match_their_base()
+	_test_every_plant_has_a_soft_edge()
 	_test_the_tuning_is_tuned()
 
 	if _failures == 0:
@@ -129,6 +130,59 @@ func _test_frames_match_their_base() -> void:
 
 
 ## A per-kind table whose values are all the same is a table nobody tuned.
+## **A binary silhouette magnified two and a half times is a staircase.**
+##
+## Owner report, 2026-09-15: foliage with hard edges. Measured, 192 of the 330
+## plant and grass sprites had no partial alpha anywhere - which on its own is
+## just pixel art, and becomes a fault only alongside the other half of the
+## arithmetic: `Foliage` draws them between 1.15 and 2.35 times their painted
+## size and `Graphics.canvas_filter` is NEAREST unless the player turns
+## smoothing on.
+##
+## `tools/feather_foliage.py` adds one ring of partial alpha *outside* each
+## silhouette, tinted from the opaque pixels it touches. This holds the result,
+## because the next plant generated will arrive binary like all the others and
+## nothing else would notice.
+func _test_every_plant_has_a_soft_edge() -> void:
+	var directory := DirAccess.open(FOLIAGE_DIR)
+	if directory == null:
+		_check(false, "the foliage directory must be readable")
+		return
+	var hard: Array[String] = []
+	var looked: int = 0
+	for file: String in directory.get_files():
+		if not file.ends_with(".png"):
+			continue
+		if not (file.begins_with("plant_") or file.begins_with("grass_")):
+			continue
+		var texture: Texture2D = load("%s/%s" % [FOLIAGE_DIR, file]) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		looked += 1
+		var painted: int = 0
+		var soft: int = 0
+		# A grid rather than every pixel: a fringe is a property of the whole
+		# silhouette and 330 sprites at full resolution is a slow gate.
+		for y: int in range(0, image.get_height(), 2):
+			for x: int in range(0, image.get_width(), 2):
+				var a: float = image.get_pixel(x, y).a
+				if a <= 0.03:
+					continue
+				painted += 1
+				if a < 0.97:
+					soft += 1
+		if painted > 0 and float(soft) / float(painted) < 0.02:
+			hard.append(file)
+	_check(looked > 100, "the gate must find the plants to measure (%d)" % looked)
+	_check(hard.is_empty(),
+		("%d plants still have an entirely hard silhouette, which is a staircase "
+			+ "at the scale the field draws them - run tools/feather_foliage.py "
+			+ "(first: %s)") % [hard.size(), hard[0] if not hard.is_empty() else ""])
+
+
 func _test_the_tuning_is_tuned() -> void:
 	var kind_values: Dictionary = {}
 	for kind: Variant in Balance.FOLIAGE_KIND_SWAY:
