@@ -262,7 +262,7 @@ func _gold_per_body() -> float:
 	var count: int = 0
 	for value: Variant in ContentDB.enemies.values():
 		var enemy := value as EnemyData
-		if enemy == null or enemy.category == EnemyData.Category.BOSS:
+		if enemy == null or not _walks_the_road(enemy):
 			continue
 		total += float(enemy.resource_value)
 		count += 1
@@ -270,6 +270,30 @@ func _gold_per_body() -> float:
 		return Balance.KILL_RESOURCE_SCALE
 	return total / float(count) * Balance.KILL_RESOURCE_SCALE
 
+
+
+## Whether a body of this kind is one a wave ever sends up a lane.
+##
+## **The average this report earns its Gold from is an average of road
+## bodies**, and the only thing that ever made that true was that every
+## non-boss enemy in the game happened to be one. It stopped being true on
+## 2026-09-15, when the second and third camps were given breeds of their own
+## and the war camp a lord - eleven resources that live in a camp, never take a
+## route, and are worth several times what a road body is because going to
+## find one is supposed to be worth the detour.
+##
+## **The report went on averaging them in, and it was a 143% error in the
+## purse**: 8.88 Gold a body against the 3.64 a road actually pays. The model
+## bought roughly two and a half times the towers it should have, so modelled
+## capability nearly doubled and mean pressure fell from 0.434 to 0.227 -
+## straight through the 0.26 floor and out the bottom of the band, reported on
+## every release since with nothing failing, because this report is advisory
+## and its own band check only prints.
+##
+## Nothing about the *game* moved. A camp lord pays what it always paid, to a
+## player who went and killed one.
+func _walks_the_road(enemy: EnemyData) -> bool:
+	return enemy.category == EnemyData.Category.BREED 		or enemy.category == EnemyData.Category.ELITE
 
 ## Best-case tower damage per second for a given amount of Gold earned.
 ##
@@ -478,8 +502,15 @@ func _mean_pressure_for(count: int) -> float:
 	var act: int = 1
 	while wave < MAX_WAVES:
 		wave += 1
-		var now: int = clampi(int(floor(distance / Balance.ACT_DISTANCE)) + 1, 1,
-			Balance.ACT_COUNT)
+		# **Asked the same way the table asks it.** This divided by
+		# `ACT_DISTANCE`, which is every act the same length - so it did not
+		# know about `ACT_OPENING_EXTRA_DISTANCE` and put every act boundary in
+		# the replay several waves away from where the table has it. The two
+		# were then reporting two different campaigns, and the party means were
+		# the wrong one.
+		var now: int = 1
+		while now < Balance.ACT_COUNT and distance >= Balance.act_end_distance(now):
+			now += 1
 		if now != act:
 			act = now
 			act_wave = 0

@@ -687,8 +687,24 @@ const SEGMENT_DISTANCE: float = 200.0
 ## Every later act opens with the towers the player already paid for, so it has
 ## no such hole - and lengthening all ten pushed the run to a hundred waves and
 ## carried co-op's mean pressure out of its band, which is a different game
-## rather than a fixed one. This adds four waves where the fault is. [TUNE]
-const ACT_OPENING_EXTRA_DISTANCE: float = 170.0
+## rather than a fixed one. [TUNE]
+##
+## **170 until 2026-09-15, and it was measured against a lie.** The owner
+## reported the same fault a second time - "the path to the first act 1 boss
+## was too short!" - and they were right, because the four waves the first cut
+## added were checked with `curve_report` believing the player reached wave 12
+## with nine towers. It believed that because its Gold-a-body average had
+## quietly started including camp lords, which are worth ten times a road body
+## and never walk up a lane (see `_walks_the_road` in that report). With the
+## purse telling the truth, the first cut reached the Act I boss on wave 13
+## holding **four** level-one towers - exactly one per road, bought on the wave
+## before, with nothing upgraded and nothing spare.
+##
+## At 390 the boss is met on wave 17 with eight, which is two a road, and the
+## act's mean pressure goes 0.31 to 0.33 against a run mean of 0.41. That is
+## the difference between meeting the first boss with a defence and meeting it
+## with a purchase.
+const ACT_OPENING_EXTRA_DISTANCE: float = 390.0
 
 ## Derived, not restated. These were three literals that had to agree and
 ## nothing checked that they did.

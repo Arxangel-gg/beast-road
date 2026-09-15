@@ -325,6 +325,12 @@ func _test_the_quartermaster() -> void:
 	RunState.reset()
 
 
+## How many waves must stand between a defence becoming affordable and the Act
+## I boss. See the note inside `_test_opening_envelope` for why it is four and
+## not two. [TUNE]
+const OPENING_BASELINE_MARGIN: int = 4
+
+
 func _test_opening_envelope() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
 	_set_progress(1, 0.0, 1, "jungle", 1)
@@ -369,13 +375,27 @@ func _test_opening_envelope() -> void:
 		"the opening act is only %d waves long, which is not an act" % opening_waves)
 	# **With room to spare, not on the final wave.** Affordable on the last wave
 	# of the act means bought as the boss walks in, which is the reported
-	# experience rather than a defence. Two waves is the smallest margin that is
-	# a margin: one to buy them, one to have them shooting.
-	_check(baseline_wave > 0 and baseline_wave + 2 <= opening_waves,
-		("a tower for every road must be affordable before the Act I boss with "
-			+ "waves to spare - the act is %d waves and it is not affordable "
+	# experience rather than a defence.
+	#
+	# **The margin was two waves and it was not enough, 2026-09-15.** The owner
+	# reported the same fault a second time - "the path to the first act 1 boss
+	# was too short!" - with this gate green, and green honestly: the ramp above
+	# is a *best case that never spends*, so "affordable since wave 11" means
+	# the player could have had four towers only if they had bought nothing at
+	# all until then. `curve_report`, which does model spending, had them
+	# reaching the boss on wave 13 with four level-one towers - one a road,
+	# bought on the wave before, nothing upgraded.
+	#
+	# So the margin has to cover the difference between a purse that can afford
+	# a defence and a player who has actually built one, and four waves is what
+	# that costs. At 390 units of opening the boss is met on wave 17 with eight
+	# towers, which is two a road.
+	_check(baseline_wave > 0 and baseline_wave + OPENING_BASELINE_MARGIN <= opening_waves,
+		("a tower for every road must be affordable at least %d waves before "
+			+ "the Act I boss - the act is %d waves and it is not affordable "
 			+ "until %s")
-			% [opening_waves, "never" if baseline_wave == 0 else str(baseline_wave)])
+			% [OPENING_BASELINE_MARGIN, opening_waves,
+				"never" if baseline_wave == 0 else str(baseline_wave)])
 	director._wave_timer = 1.0
 	RunState.wave_number = 0
 	director._on_act_started(1, "jungle")
@@ -449,7 +469,19 @@ func _waves_in_the_opening_act(director: WaveDirector, terrain: TerrainData) -> 
 	RunState.act = 1
 	while distance < Balance.act_end_distance(1) and act_wave < 60:
 		act_wave += 1
-		var bodies: int = director._wave_size(act_wave, terrain)
+		# **The whole formation, not one lane of it.** `_spawn_queue` is one
+		# queue for every road and `_spawn_next` takes one body off it at a
+		# time, so what sets how long a wave takes to walk on is the total. This
+		# counted a lane and called it a wave, which made every cycle up to four
+		# times too short and the opening act **sixteen** waves where the road
+		# holds thirteen - so "a tower on every road with waves to spare" was
+		# measured against three waves that do not exist, and passed while the
+		# owner met the Act I boss holding four level-one towers bought on the
+		# wave before. `curve_report` has always counted the whole wave; the two
+		# models now agree, which is the point of them both reading
+		# `WAVE_ENGAGEMENT_SECONDS` off `Balance`.
+		var bodies: int = director._wave_size(act_wave, terrain) \
+			* director._progressive_lane_count(act_wave)
 		distance += (Balance.WAVE_INTERVAL
 			+ float(bodies) * Balance.WAVE_SPAWN_SPACING
 			+ Balance.WAVE_ENGAGEMENT_SECONDS) * Balance.BEAST_BASE_SPEED
