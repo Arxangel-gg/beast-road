@@ -1611,7 +1611,7 @@ Files: `wildlife_moonstag_idle_01.png` · `wildlife_moonstag_idle_02.png` · `wi
 Files: `wildlife_griffon_idle_01.png` · `wildlife_griffon_idle_02.png` · `wildlife_griffon_idle_03.png`
 Files: `wildlife_glimmerfox_idle_01.png` · `wildlife_glimmerfox_idle_02.png` · `wildlife_glimmerfox_idle_03.png`
 Files: `wildlife_hollowhorn_idle_01.png` · `wildlife_hollowhorn_idle_02.png` · `wildlife_hollowhorn_idle_03.png`
-Files: `wildlife_phoenix_idle_01.png` · `wildlife_phoenix_idle_02.png` · `wildlife_phoenix_idle_03.png`
+Files: `wildlife_phoenix_idle_01.png` · `wildlife_phoenix_idle_02.png` · `wildlife_phoenix_idle_03.png` · `wildlife_phoenix_idle_04.png` · `wildlife_phoenix_idle_05.png`
 Files: `wildlife_heron_idle_01.png` · `wildlife_heron_idle_02.png` · `wildlife_heron_idle_03.png`
 Files: `wildlife_hedgehog_idle_01.png` · `wildlife_hedgehog_idle_02.png` · `wildlife_hedgehog_idle_03.png`
 Files: `wildlife_lynx_idle_01.png` · `wildlife_lynx_idle_02.png` · `wildlife_lynx_idle_03.png` · `wildlife_lynx_idle_04.png`
