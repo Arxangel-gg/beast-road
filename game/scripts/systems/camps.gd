@@ -91,6 +91,34 @@ func scatter() -> void:
 		for site: Dictionary in _sites:
 			if int(site["state"]) == State.ALIVE:
 				_stand_up(site)
+	# The outskirts sleep through Preparation and wake with the road.
+	#
+	# **Guarded, because `scatter` runs again on every act.** An unguarded
+	# connect here stacks one listener per region, so by Act IV a single phase
+	# change slept and stood every camp four times over - which hangs a gate and
+	# would have been a stutter at every horn in the game.
+	if not EventBus.phase_changed.is_connected(_on_phase_changed):
+		EventBus.phase_changed.connect(_on_phase_changed)
+	if RunState.is_preparation():
+		_sleep_camps()
+
+
+func _on_phase_changed(phase: int, previous: int) -> void:
+	var resting: bool = phase == RunState.Phase.PREPARATION
+	var was_resting: bool = previous == RunState.Phase.PREPARATION
+	if resting != was_resting:
+		rest(resting)
+
+
+## **The one door in and out of sleep.** The phase calls it and so does the
+## gate, which is the point: a test that drove the run's own phase to get here
+## would be testing the wave director, and a test that copied this logic would
+## pass while this one was wrong.
+func rest(resting: bool) -> void:
+	if resting:
+		_sleep_camps()
+	else:
+		_wake_camps()
 
 
 ## Takes everything down: props, barriers, bodies.
@@ -272,10 +300,88 @@ func _build_barriers(lane: int) -> Array:
 	return out
 
 
+# --- Sleeping and waking -------------------------------------------------------
+
+## **A camp is empty and its fire is cold while the road is preparing.**
+##
+## Owner, 2026-09-15: "camp mobs should be empty during preparations with the
+## camp fires appearing off and inactive."
+##
+## It is also the better reading of what Preparation *is*. The phase is the one
+## stretch where the field is supposed to be safe enough to build in, and a
+## raider standing in its clearing on the far side of a barrier is a thing the
+## player can walk into during it. Asleep, the outskirts are quiet until the
+## horn, which is what makes the horn mean something out there as well as on
+## the road.
+##
+## **The state does not change.** A sleeping camp is still `ALIVE` - it has not
+## been razed, the fork still waits on it, the marker still says it is there.
+## Only its bodies and its fire go.
+func _sleep_camps() -> void:
+	if Coop.is_guest():
+		return
+	for site: Dictionary in _sites:
+		if int(site["state"]) != State.ALIVE:
+			continue
+		# **Remember what was standing.** Waking is not a fresh camp: a player
+		# who clears three of four and lets the wave end must find one, not
+		# four. Anything else is a spoils printer.
+		var standing: int = 0
+		var champion: bool = false
+		var tier: int = int(site["tier"])
+		for mob: Variant in (site["mobs"] as Array):
+			var enemy := mob as Enemy
+			if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
+				continue
+			# **Only the war camp's champion is counted apart**, because only
+			# the war camp spawns one separately. An ordinary camp promotes
+			# some of its own bodies through `CAMP_ELITE_CHANCE`, and counting
+			# those as champions recorded a camp of nothing - which woke empty
+			# and was razed on the next frame, paying the player for a camp
+			# they never fought.
+			if tier == BattleGrid.CampTier.BARON and enemy.rank != Enemy.Rank.COMMON 					and not champion:
+				champion = true
+			else:
+				standing += 1
+		site["rested"] = standing
+		site["rested_champion"] = champion
+		_dismiss_mobs(site)
+		_cool_fires(site, true)
+
+
+## The horn goes and the outskirts wake with the road.
+func _wake_camps() -> void:
+	if Coop.is_guest():
+		return
+	for site: Dictionary in _sites:
+		if int(site["state"]) != State.ALIVE or not site.has("rested"):
+			continue
+		var bring_back: int = int(site["rested"])
+		var champion: bool = bool(site.get("rested_champion", true))
+		site.erase("rested")
+		site.erase("rested_champion")
+		_stand_up(site, bring_back, champion)
+
+
+## A camp's fire, out or burning. The glow goes with it, because a cold fire
+## under a warm pool of light is worse than either.
+func _cool_fires(site: Dictionary, cold: bool) -> void:
+	for prop: Variant in (site.get("props", []) as Array):
+		var fire := prop as CampFire
+		if fire == null or not is_instance_valid(fire):
+			continue
+		fire.set_process(not cold)
+		fire.visible = not cold
+		var glow: CanvasItem = fire.get_node_or_null("Glow") as CanvasItem
+		if glow != null:
+			glow.visible = not cold
+
+
 # --- Standing a camp up --------------------------------------------------------
 
 ## Puts a camp's bodies down. Authority only.
-func _stand_up(site: Dictionary) -> void:
+func _stand_up(site: Dictionary, bring_back: int = -1,
+		with_champion: bool = true) -> void:
 	_dismiss_mobs(site)
 	site["state"] = State.ALIVE
 	site["respawn_left"] = 0.0
@@ -285,8 +391,14 @@ func _stand_up(site: Dictionary) -> void:
 	var lane: int = int(site["lane"])
 	var centre: Vector2 = site["centre"] as Vector2
 	var count: int = _rng.randi_range(Balance.CAMP_MOBS_MIN[tier], Balance.CAMP_MOBS_MAX[tier])
+	# **Waking brings back what went to sleep, never a fresh camp.** A camp that
+	# emptied for Preparation and refilled would be a spoils printer: clear
+	# three of four, let the wave end, and the fourth becomes four again. See
+	# `_sleep_camps`.
+	if bring_back >= 0:
+		count = bring_back
 	var mobs: Array = []
-	if tier == BattleGrid.CampTier.BARON:
+	if tier == BattleGrid.CampTier.BARON and with_champion:
 		var champion: Enemy = _spawn_body(site, _pick_elite(tier), centre,
 			Balance.CAMP_BARON_SCALE, true)
 		if champion != null:
@@ -430,7 +542,16 @@ func _process(delta: float) -> void:
 		match int(site["state"]):
 			State.ALIVE:
 				_prune(site)
-				if (site["mobs"] as Array).is_empty():
+				# **An empty camp is a razed camp - unless it is asleep.**
+				#
+				# This is how a camp falls: its last body dies, `_prune` takes
+				# it off the list, and the empty list is the verdict. Sleeping
+				# for Preparation empties the same list, so without this the
+				# first Preparation razed all twelve camps at once, paid for
+				# them, and opened every fork in the game for free. Found by
+				# `camps_check` failing forty-four ways rather than one, which
+				# is what a rule broken at the root looks like.
+				if (site["mobs"] as Array).is_empty() and not site.has("rested"):
 					_raze(site)
 			State.RESPAWNING:
 				site["respawn_left"] = float(site["respawn_left"]) - delta
@@ -633,6 +754,11 @@ func state_of(lane: int, tier: int) -> int:
 		if int(site["lane"]) == lane and int(site["tier"]) == tier:
 			return int(site["state"])
 	return -1
+
+
+## Every camp record. For the gate, which asks about all of them at once.
+func sites() -> Array[Dictionary]:
+	return _sites
 
 
 func mobs_of(lane: int, tier: int) -> Array:

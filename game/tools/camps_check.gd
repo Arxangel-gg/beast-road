@@ -40,9 +40,21 @@ func _ready() -> void:
 	var grid: BattleGrid = field.grid
 	_check(camps != null and grid != null, "the battlefield has camps and a grid")
 	if camps != null and grid != null:
+		# **Everything below is about a camp that is awake.** A run opens in
+		# Preparation and the outskirts now sleep through it, so they have to
+		# be woken before any of it means anything. Driven through `rest`
+		# rather than through the run's own phase: setting the phase here would
+		# start the wave director and put a whole road between this gate and
+		# its subject.
+		camps.rest(false)
+		for _frame: int in 4:
+			await get_tree().process_frame
 		_test_the_camps_stand(camps, grid)
 		await _test_a_fork_opens(camps, grid, field)
 		await _test_the_war_camp(camps, grid, field)
+		# **Last, because it thins a camp to prove waking does not refill it**,
+		# and everything above wants the camps it was given.
+		await _test_the_outskirts_sleep(camps)
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -317,6 +329,85 @@ func _test_an_ambush_walks_inward(grid: BattleGrid) -> void:
 		("an ambusher on lane %d walks %.0f further out than where it joined "
 			+ "the road before turning back - the route is laid from the fork "
 			+ "rather than from the corridor") % [worst_lane, worst])
+
+
+func _held(passed: bool, message: String) -> bool:
+	_check(passed, message)
+	return passed
+
+
+
+
+## **The outskirts are empty and dark while the road prepares.**
+##
+## Owner, 2026-09-15: "camp mobs should be empty during preparations with the
+## camp fires appearing off and inactive."
+##
+## Three things, and the third is the one that matters most:
+##
+## - A camp holds no bodies during Preparation and its fire is out.
+## - It is still *there*: `ALIVE`, not razed, so the fork still waits on it and
+##   the marker still says where it is.
+## - **Waking brings back what went to sleep, never a fresh camp.** Without
+##   that, clearing three of four and letting the wave end refills it - a
+##   spoils printer, and the exact shape of exploit `exploit_check` exists to
+##   refuse elsewhere.
+func _test_the_outskirts_sleep(camps: Camps) -> void:
+	# Put them to sleep first: this runs last now, after everything above has
+	# woken them deliberately.
+	camps.rest(true)
+	for _frame: int in 4:
+		await get_tree().process_frame
+	var sleeping: int = 0
+	var bodies: int = 0
+	for site: Dictionary in camps.sites():
+		if int(site["state"]) != Camps.State.ALIVE:
+			continue
+		sleeping += 1
+		bodies += (site["mobs"] as Array).size()
+	_check(sleeping > 0, "there must be standing camps to sleep")
+	_check(bodies == 0,
+		"%d camp bodies are out there during Preparation" % bodies)
+
+	# Awake, they hold bodies again.
+	camps.rest(false)
+	for _frame: int in 6:
+		await get_tree().process_frame
+	var woke: int = 0
+	for site: Dictionary in camps.sites():
+		if int(site["state"]) == Camps.State.ALIVE:
+			woke += (site["mobs"] as Array).size()
+	_check(woke > 0, "the camps must wake with the road: %d bodies" % woke)
+
+	# **And a camp that lost bodies does not get them back.** Killed down to
+	# one, slept and woken, it is still one.
+	var thinned: Dictionary = {}
+	for site: Dictionary in camps.sites():
+		if int(site["state"]) == Camps.State.ALIVE \
+				and (site["mobs"] as Array).size() >= 2:
+			thinned = site
+			break
+	if _held(not thinned.is_empty(), "a camp with bodies to thin"):
+		var mobs: Array = thinned["mobs"] as Array
+		var kept: int = 1
+		for index: int in range(kept, mobs.size()):
+			var body := mobs[index] as Enemy
+			if body != null and is_instance_valid(body):
+				body.dismiss()
+		thinned["mobs"] = [mobs[0]]
+		camps.rest(true)
+		for _frame: int in 4:
+			await get_tree().process_frame
+		camps.rest(false)
+		for _frame: int in 6:
+			await get_tree().process_frame
+		var back: int = (thinned["mobs"] as Array).size()
+		_check(back <= kept + 1,
+			("a thinned camp came back %d strong from %d - sleeping through "
+				+ "Preparation must not refill it") % [back, kept])
+	camps.rest(true)
+	for _frame: int in 4:
+		await get_tree().process_frame
 
 
 func _check(passed: bool, message: String) -> void:
