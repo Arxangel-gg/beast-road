@@ -18,7 +18,8 @@
     "strip": "2b25a09b-c8c9-4ed3-b68c-45f39f38382c"
   },
   "art/crops/plot_soil": {
-    "image": "1eca9f12-5b70-4e6e-8073-e039847e3ebc"
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/e4776e5c-ea9e-4517-8276-0dfd8ac41b53/rotations/unknown.png",
+    "object": "e4776e5c-ea9e-4517-8276-0dfd8ac41b53"
   },
   "art/enemies/elite_avalanche_warden": {
     "move": "fd6723e6-44bf-4db9-a2b6-79ee3b4b02d3"
@@ -72,7 +73,10 @@
     "move": "91de3bc7-d236-4fd8-ba9f-ca308b4b6d10"
   },
   "art/enemies/enemy_ember_shaman": {
-    "move": "0dbb6870-2279-4cd9-9aaf-6377fde7fa6c"
+    "attack": "cdf33fb1-f434-4583-9913-5f3f8a5bf844",
+    "idle": "09c0e689-db0a-4920-b9c5-87e6033765a0",
+    "image": "6b9ea186-a480-4800-abfd-2410a3aa41d4",
+    "move": "09f14674-1f21-4448-9ad5-938533522b28"
   },
   "art/enemies/enemy_flake_runner": {
     "move": "9e83c7d9-a576-4066-b88a-d7854d0cc80d"
@@ -226,6 +230,12 @@
     "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/e780e757-1739-47c2-bf3d-987f1dc8fe6c/rotations/unknown.png",
     "idle": "1312a371-ece4-4756-9673-5ecad3688f20",
     "object": "e780e757-1739-47c2-bf3d-987f1dc8fe6c"
+  },
+  "art/towers/tower_quake": {
+    "attack": "4b0c9a4c-a0ac-4baa-95a0-0cc3451bbfad",
+    "base_url": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/7fee4d87-e6dc-4993-a778-e0b5d817b996/0c8eaa8a-b86d-4012-9323-0bb43125ec4a/rotations/unknown.png",
+    "idle": "163f1de3-5020-400c-945a-cb5044e8a8af",
+    "object": "0c8eaa8a-b86d-4012-9323-0bb43125ec4a"
   },
   "art/towers/tower_rime_ward": {
     "attack": "f9421ed5-d1e2-4093-95cd-f2e2cb63a509",
