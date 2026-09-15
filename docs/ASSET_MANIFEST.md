@@ -3241,6 +3241,37 @@ stem-first. A missing file costs nothing: the silhouettes the menu drew before
 these existed are still the fallback, which is why the menu is never blank
 because a file is late.
 
+### 5.28c Menu birds - `res://art/ui/`
+
+All 64x32, type T, placeholder colour `#2A2A33`.
+
+`menu_bird_raven.png` - `menu_bird_raven_fly_01.png` - `menu_bird_raven_fly_02.png` -
+`menu_bird_raven_fly_03.png` - `menu_bird_raven_fly_04.png` - `menu_bird_raven_fly_05.png` -
+`menu_bird_toucan.png` - `menu_bird_toucan_fly_01.png` - `menu_bird_toucan_fly_02.png` -
+`menu_bird_toucan_fly_03.png` - `menu_bird_toucan_fly_04.png` - `menu_bird_toucan_fly_05.png` -
+`menu_bird_hawk.png` - `menu_bird_hawk_fly_01.png` - `menu_bird_hawk_fly_02.png` -
+`menu_bird_hawk_fly_03.png` - `menu_bird_hawk_fly_04.png` - `menu_bird_hawk_fly_05.png` -
+`menu_bird_eagle.png` - `menu_bird_eagle_fly_01.png` - `menu_bird_eagle_fly_02.png` -
+`menu_bird_eagle_fly_03.png` - `menu_bird_eagle_fly_04.png` - `menu_bird_eagle_fly_05.png`
+
+Four species crossing the main menu's sky (owner brief, 2026-09-15), each a
+base frame and a five-frame cycle. They fly differently, which is the only
+reason to have four: a raven beats steadily, a toucan beats harder and
+undulates, a hawk soars with a flurry of beats now and then, an eagle soars
+further and beats more rarely.
+
+**Drawn near-silhouette and tinted darker still by `MenuBirds`**, from the
+sky's own colour at the top of the backdrop, so a bird against a sunset is a
+warm grey shape and the same bird at night is a cool one. They are drawn at
+`Balance.MENU_BIRD_SIZE` of the screen's height - four to fourteen pixels at
+1080p - which is smaller than a bird "should" be on purpose: the scene exists
+to say that a beast with a city on its back walks under that arch, and a bird
+at a believable size shrinks the arch to a garden gate.
+
+The art is drawn flying right and **is** mirrored when a bird flies left, which
+makes it the exception the facing rule exists to name: a bird in profile is
+symmetrical about its own axis, so nothing moves to the wrong side.
+
 ### 5.33 Crops — `res://art/crops/`
 
 All 64×64, type T, placeholder colour `#8CB26A`.

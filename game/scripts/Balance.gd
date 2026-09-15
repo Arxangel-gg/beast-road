@@ -6817,6 +6817,59 @@ const WIND_RELAY_INTERVAL: float = 0.45
 ## snapping is what hides the gap between messages: the guest is always a
 ## fraction of a second behind and never wrong in a way a player can see.
 const WIND_EASE: float = 2.6
+
+# --- The menu's own light, on its painted leaves (owner brief, 2026-09-15) ----
+#
+# "Make sure main menu foliage is color graded and tinted to match the scene
+# realistically and perfectly."
+#
+# The same two numbers the beast is graded with, and for the same reason: the
+# corner plants are lit by the scene they hang in, and a leaf carrying its
+# daylight colour against a dusk horizon reads as a sticker. Sampled from the
+# backdrop at each corner rather than typed in, so every act's menu grades
+# itself.
+## How dark a corner may pull the leaves. Below this the plants stop reading as
+## plants and become part of the silhouette, which the fallback already is.
+const MENU_LEAF_LIGHT_FLOOR: float = 0.34
+## How far toward the corner's own hue the leaves are pulled. All the way and
+## a sunset corner has orange foliage in it.
+const MENU_LEAF_TINT_STRENGTH: float = 0.5
+
+# --- The menu is alive: birds and fireflies (owner brief, 2026-09-15) ---------
+#
+# "Add fireflies and birds that fly through the sky of the scene, they must be
+# tiny because of the scale of the scene ... birds must be tiny and their
+# movements appropriately tuned for realism and proceduralism."
+#
+# **Tiny is a statement about the gate, not about the birds.** The scene exists
+# to say that a beast with a city on its back walks under that arch. A bird
+# drawn at a believable size for its own sake shrinks the arch to a garden gate,
+# so the size here is deliberately below what a bird "should" be.
+## A near bird's height as a share of the screen's. A far one is a third of it.
+const MENU_BIRD_SIZE: float = 0.013
+## The band of sky they cross, top and bottom, as a share of the screen.
+const MENU_BIRD_BAND: Vector2 = Vector2(0.06, 0.42)
+## How long a crossing takes, as screen widths a second, far and near.
+const MENU_BIRD_SPEED: Vector2 = Vector2(0.035, 0.1)
+## Seconds between one bird or flock and the next.
+const MENU_BIRD_GAP: Vector2 = Vector2(2.6, 9.0)
+## Never more than this on screen at once. A sky with a dozen birds in it is a
+## flock, and a flock is an event rather than atmosphere.
+const MENU_BIRD_CEILING: int = 9
+## How much of its colour a far bird keeps. Haze, and the only thing that makes
+## a flat sky read as deep.
+const MENU_BIRD_FAR_FADE: float = 0.45
+## Redraws a second. The clocks run at frame rate; only the drawing is sampled,
+## which is the fix `flame.gd` needed twice.
+const MENU_BIRD_HZ: float = 24.0
+
+## Fireflies. How hard they are pulled back toward the greenery, how sharply
+## they blink, and how often the swarm is redrawn.
+const MENU_FIREFLY_HOMING: float = 9.0
+## The exponent on the blink. Higher is darker for longer with a briefer flare,
+## which is the shape of the real thing; 1.0 is a pulsing bead.
+const MENU_FIREFLY_SHARPNESS: float = 3.4
+const MENU_FIREFLY_HZ: float = 24.0
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 

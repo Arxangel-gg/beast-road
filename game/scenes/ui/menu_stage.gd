@@ -75,7 +75,8 @@ var _gate_lights: Array[Sprite2D] = []
 var _rays: ColorRect = null
 var _rain: CPUParticles2D = null
 var _fires: Array[Sprite2D] = []
-var _fireflies: CPUParticles2D = null
+var _fireflies: MenuFireflies = null
+var _birds: MenuBirds = null
 var _logo_glow: Sprite2D = null
 var _logo_sparks: CPUParticles2D = null
 var _grade: ColorRect = null
@@ -101,6 +102,7 @@ func _ready() -> void:
 	_build_fires()
 	_build_beast()
 	_build_fireflies()
+	_build_birds()
 	_build_rays()
 	_build_embers()
 	_build_rain()
@@ -776,29 +778,35 @@ func _build_fires() -> void:
 
 
 ## Fireflies about the beast: a slow drift, blinking.
+## The fireflies, and why they stopped being particles.
+##
+## **They were sixteen particles in a sphere over the beast's shoulder**, which
+## is a glowing cloud rather than an insect: they emitted, drifted outward and
+## died, all from one point, all on the same ramp. The owner's brief was
+## "procedurally coming on and off where they're more likely to be on the map as
+## they wander", and a particle system can do the blink and neither of the other
+## two - it has no notion of a place a fly would rather be, and its drift is an
+## initial velocity rather than a mind being changed.
+##
+## `MenuFireflies` is three dozen that each keep their own clock, wander with a
+## slow jitter, and are drawn back toward the greenery when they stray out over
+## the road. See the note on that file for why the blink curve is a power.
 func _build_fireflies() -> void:
-	_fireflies = CPUParticles2D.new()
+	_fireflies = MenuFireflies.new()
 	_fireflies.name = "Fireflies"
-	_fireflies.amount = 16
-	_fireflies.lifetime = 6.0
-	_fireflies.preprocess = 6.0
-	_fireflies.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	_fireflies.emission_sphere_radius = 160.0
-	_fireflies.direction = Vector2.RIGHT
-	_fireflies.spread = 180.0
-	_fireflies.gravity = Vector2.ZERO
-	_fireflies.initial_velocity_min = 4.0
-	_fireflies.initial_velocity_max = 14.0
-	_fireflies.scale_amount_min = 1.4
-	_fireflies.scale_amount_max = 2.6
-	var blink := Gradient.new()
-	blink.set_color(0, Color(0.8, 1.0, 0.55, 0.0))
-	blink.set_color(1, Color(0.8, 1.0, 0.55, 0.0))
-	blink.add_point(0.2, Color(0.85, 1.0, 0.6, 0.9))
-	blink.add_point(0.45, Color(0.85, 1.0, 0.6, 0.1))
-	blink.add_point(0.7, Color(0.85, 1.0, 0.6, 0.8))
-	_fireflies.color_ramp = blink
 	add_child(_fireflies)
+
+
+## The birds. Behind the beast in tree order, so one crossing the arch passes
+## behind the thing whose size the arch exists to state.
+func _build_birds() -> void:
+	_birds = MenuBirds.new()
+	_birds.name = "Birds"
+	# Above the backdrop, below everything with an edge. A bird drawn over the
+	# gate's stonework reads as a fly on the screen.
+	_birds.z_index = -1
+	add_child(_birds)
+	move_child(_birds, maxi(get_child_count() - 1, 0))
 
 
 ## The wordmark's glow and the sparks that rise off it.
@@ -866,9 +874,25 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 		var fire: Sprite2D = _fires[index]
 		fire.position = span * GATE_LIGHTS[index] + backdrop_drift + Vector2(0.0, -6.0 * unit)
 		fire.scale = Vector2.ONE * unit * Balance.MENU_FIRE_SCALE
-	if _fireflies != null and _beast != null:
-		_fireflies.position = _beast.position + Vector2(0.0, -span.y * 0.12)
-		_fireflies.emission_sphere_radius = span.x * 0.09
+	if _fireflies != null:
+		_fireflies.position = Vector2.ZERO
+		_fireflies.resize(span)
+		# Graded to the scene like everything else here, but only in hue: a
+		# firefly is its own light source and must not be dimmed by the dusk it
+		# is lighting. The stage's warm value pulls it slightly toward the
+		# scene without taking its brightness away.
+		var lamp: Color = stage_light()
+		_fireflies.glow = Color(0.86, 0.94, 0.48).lerp(lamp, 0.25)
+	if _birds != null:
+		_birds.position = Vector2.ZERO
+		_birds.resize(span)
+		# **Dim, not black** (owner brief). The corner sky's own colour at a
+		# third of its brightness: a warm grey against a sunset, a cool one at
+		# night, and never a hole cut in the picture.
+		var sky: Color = _backdrop_near(Vector2(0.5, 0.2))
+		if sky.a <= 0.0:
+			sky = Color(0.3, 0.29, 0.33)
+		_birds.tint = Color(sky.r * 0.42, sky.g * 0.4, sky.b * 0.44, 0.9)
 	var title: Control = get_parent().get_node_or_null("Title") as Control if get_parent() != null else null
 	if title != null:
 		var centre: Vector2 = title.position + title.size * 0.5
@@ -929,6 +953,11 @@ func _place_foliage(span: Vector2) -> void:
 		var share: float = Balance.MENU_VINE_REACH 			if leaf.kind == MenuFoliage.Kind.VINE else Balance.MENU_FERN_REACH
 		leaf.reach = span.y * share
 		leaf.tint = _foliage_tint()
+		# **The painted leaves are graded to the corner they hang in**, exactly
+		# as the beast is graded to the ground it stands on. A leaf carrying its
+		# own daylight green against this dusk reads as a sticker; the same leaf
+		# pulled halfway to the corner's hue and exposure sits in the scene.
+		leaf.leaf_tint = _leaf_grade(leaf.anchor)
 		leaf.queue_redraw()
 
 
@@ -945,6 +974,53 @@ func _foliage_tint() -> Color:
 			sky = image.get_pixel(int(image.get_width() * 0.5),
 				int(image.get_height() * 0.86))
 	return Color(sky.r * 0.22, sky.g * 0.24, sky.b * 0.26, 0.94)
+
+
+## What the painted foliage in a given corner is multiplied by.
+##
+## The beast's grade, applied to a leaf: the local backdrop's hue at half
+## strength over an exposure taken from its luminance, floored so a dark corner
+## does not swallow the plant it is supposed to be lighting. One function per
+## corner rather than one for the screen, because the top of this scene is a
+## purple sky and the bottom is a lit road, and a single grade cannot be right
+## for both.
+func _leaf_grade(at: Vector2) -> Color:
+	var sampled: Color = _backdrop_near(at)
+	if sampled.a <= 0.0:
+		return Color(0.46, 0.54, 0.44, 0.97)
+	var peak: float = maxf(maxf(sampled.r, sampled.g), maxf(sampled.b, 0.001))
+	var hue := Color(sampled.r / peak, sampled.g / peak, sampled.b / peak)
+	var exposure: float = clampf(sampled.get_luminance() * 2.4,
+		Balance.MENU_LEAF_LIGHT_FLOOR, 0.96)
+	var mixed: Color = Color.WHITE.lerp(hue, Balance.MENU_LEAF_TINT_STRENGTH)
+	return Color(mixed.r * exposure, mixed.g * exposure, mixed.b * exposure, 0.97)
+
+
+## The backdrop's mean colour around a point, as a fraction of the screen.
+## Alpha 0 when there is no backdrop to read, which every caller treats as
+## "no opinion" and falls back from.
+func _backdrop_near(at: Vector2) -> Color:
+	if _backdrop == null or _backdrop.texture == null:
+		return Color(0.0, 0.0, 0.0, 0.0)
+	var image: Image = _backdrop.texture.get_image()
+	if image == null or image.is_empty():
+		return Color(0.0, 0.0, 0.0, 0.0)
+	var centre := Vector2i(
+		clampi(roundi(float(image.get_width()) * at.x), 0, image.get_width() - 1),
+		clampi(roundi(float(image.get_height()) * at.y), 0, image.get_height() - 1))
+	var reach: int = maxi(mini(image.get_width(), image.get_height()) / 12, 3)
+	var sum := Vector3.ZERO
+	var count: int = 0
+	for y: int in range(maxi(centre.y - reach, 0),
+			mini(centre.y + reach + 1, image.get_height()), 3):
+		for x: int in range(maxi(centre.x - reach, 0),
+				mini(centre.x + reach + 1, image.get_width()), 3):
+			var pixel: Color = image.get_pixel(x, y)
+			sum += Vector3(pixel.r, pixel.g, pixel.b)
+			count += 1
+	if count <= 0:
+		return Color(0.0, 0.0, 0.0, 0.0)
+	return Color(sum.x / float(count), sum.y / float(count), sum.z / float(count), 1.0)
 
 
 ## The stage's own light, for anything grading itself to this screen.
