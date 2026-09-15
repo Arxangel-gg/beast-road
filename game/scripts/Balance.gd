@@ -1630,6 +1630,45 @@ const ENEMY_CONTACT_INTERVAL: float = ENEMY_ATTACK_WINDUP + ENEMY_ATTACK_STRIKE 
 ## they approach contact rather than snapping to it, and demanding zero would be
 ## demanding a stiffness that reads as jitter. A couple of units is touching
 ## shoulders. [TUNE]
+## **How far away a sound has to be before it stops being loud.**
+##
+## The camera has scaled its shake by distance since 2026-09-13 - a tower firing
+## on the far road is a tremor and a blow beside the hero is a hit - and the
+## audio never learned the same lesson, so the far tower was exactly as loud as
+## the near one. A sound at `SFX_NEAR` or closer plays at its authored level; by
+## `SFX_FAR` it has lost `SFX_FAR_DB`; past `SFX_CUTOFF` it is not played at all,
+## which also hands its voice back to something the player can actually hear.
+const SFX_NEAR: float = 420.0
+const SFX_FAR: float = 1800.0
+const SFX_FAR_DB: float = -17.0
+const SFX_CUTOFF: float = 3000.0
+
+## **A tower leans at what it is about to shoot.**
+##
+## A lean and a shift rather than a turret rotation, and that is the perspective
+## rule rather than a shortcut: a Wilderhold structure is drawn front-on with a
+## slight top-down angle (2026-09-14), so a tower rotated to face a body on its
+## flank would be lying on its side. A few degrees and a few pixels is enough to
+## say *that one* - which is the whole point of showing it.
+const TOWER_AIM_DEGREES: float = 4.5
+const TOWER_AIM_SHIFT: float = 3.2
+const TOWER_AIM_EASE: float = 7.0
+
+## **A tower is built rather than placed.** It rises out of its own foundation
+## over this long, from this far under the ground and starting this much of its
+## size.
+const TOWER_RISE_SECONDS: float = 0.34
+const TOWER_RISE_LIFT: float = 26.0
+const TOWER_RISE_SCALE: float = 0.62
+
+## **What element finished a body, and how long it is remembered for.**
+##
+## A window rather than a flag: the blow that kills is often not the one that
+## carried the element - a burn ticks the last point off a body a sword opened -
+## and a body that was set alight two seconds ago should still come apart in
+## embers. Wide enough to cover a status finishing the job, short enough that a
+## body which walked away from a fire and died to a spear does not.
+const DEATH_ELEMENT_MEMORY: float = 2.5
 const CROWD_RESIDUAL: float = 3.0
 
 const CROWD_CELL: float = 96.0

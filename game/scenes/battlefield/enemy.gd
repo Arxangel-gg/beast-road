@@ -1826,6 +1826,29 @@ func _tick_brand(delta: float) -> void:
 	_brand_left = maxf(_brand_left - delta, 0.0)
 	if _brand_left <= 0.0:
 		_brand_amplifier = 0.0
+	_death_element_left = maxf(_death_element_left - delta, 0.0)
+	if _death_element_left <= 0.0:
+		_death_element = -1
+
+
+## The element of the last elemental thing that touched this body, and how long
+## that is still true for. `TowerData.Element`, or -1 for nothing.
+##
+## **Marked rather than passed.** Threading an element through `take_damage`
+## would touch the thirty places that deal a blow, most of which have no element
+## to offer; the handful of things that *do* have one say so here instead, and
+## everything else leaves the memory alone.
+var _death_element: int = -1
+var _death_element_left: float = 0.0
+
+
+## Something of this element touched the body. Presentation only: nothing reads
+## this but the death, and a body with no mark dies exactly as it always did.
+func mark_element(element: int) -> void:
+	if _state == State.DYING:
+		return
+	_death_element = element
+	_death_element_left = Balance.DEATH_ELEMENT_MEMORY
 
 
 func take_damage(amount: float, from: Vector2, knockback: float,
@@ -2006,6 +2029,7 @@ func _add_chill(amount: float) -> void:
 	if is_wet():
 		amount *= Balance.WET_CHILL_SCALE
 	_chill = minf(_chill + amount, 1.0)
+	mark_element(TowerData.Element.WATER)
 	if _chill >= 1.0:
 		_shatter()
 
@@ -2044,6 +2068,7 @@ func apply_burn(dps: float, duration: float) -> void:
 		duration *= Balance.WET_BURN_SCALE
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_left = maxf(_burn_left, duration)
+	mark_element(TowerData.Element.FIRE)
 
 
 ## Water hit this body: wet for a while. A host decision, like damage.
@@ -2193,6 +2218,49 @@ func _taunted_by(taunt: Node2D) -> bool:
 ## Hurts enemies rather than the hero, which is deliberate: the blast is the
 ## *player's* problem to stand clear of, and making it friendly fire would turn
 ## a threat into a tool. It reads as a threat because it kills things.
+## **How a body comes apart, by what finished it.**
+##
+## A kill by fire should not look like a kill by frost, and until now every one
+## of them looked the same. The element is the one the body was last marked with
+## inside `DEATH_ELEMENT_MEMORY`; an ordinary sword leaves no mark and gets the
+## death it always got.
+##
+## **Nothing here is read by anything.** No loot, no reward, no timing and no
+## number changes - the corpse fades on the same clock, the drops are the same
+## drops. It is the same bound the fog, the rank sheen and the phenotype are
+## held to, and turning the particles down turns it down with nothing moving.
+func _elemental_end() -> void:
+	if _death_element < 0 or Graphics.particle_scale() <= 0.0:
+		return
+	var at: Vector2 = _visual_origin()
+	var size: float = clampf(data.body_radius / 26.0, 0.7, 2.6)
+	match _death_element:
+		TowerData.Element.FIRE:
+			# Charred, and still going out.
+			Vfx.spark(at, Color(1.0, 0.62, 0.22), int(10 * size), Vector2.UP, 130.0)
+			Vfx.dust(at, Color(0.24, 0.21, 0.2), int(8 * size), 46.0)
+			sprite.self_modulate = Color(0.34, 0.26, 0.24, 1.0)
+		TowerData.Element.WATER:
+			# Frozen through and then not there: the shatter it earned.
+			Vfx.spark(at, Color(0.74, 0.92, 1.0), int(14 * size), Vector2.ZERO, 210.0)
+			Vfx.ring(at, data.body_radius * 1.5, Color(0.78, 0.94, 1.0, 0.7),
+				0.22, 4.0)
+			animator.squash(1.5)
+			sprite.self_modulate = Color(0.78, 0.9, 1.0, 1.0)
+		TowerData.Element.AIR:
+			# Taken off its feet and scattered.
+			Vfx.spark(at, Color(0.86, 0.95, 1.0), int(12 * size),
+				Vector2.UP.rotated(randf_range(-0.8, 0.8)), 260.0)
+			animator.punch(Vector2.UP, 1.4)
+		TowerData.Element.EARTH:
+			# Down in one piece, and a piece of the ground with it.
+			Vfx.dust(at, Color(0.5, 0.44, 0.36), int(14 * size), 96.0)
+			Vfx.spark(at, Color(0.62, 0.55, 0.45), int(7 * size), Vector2.ZERO, 120.0)
+			animator.squash(1.6)
+			EventBus.camera_impact.emit(global_position,
+				Balance.IMPACT_FULL_SHARE * 0.35 * size)
+
+
 func _burst_on_death() -> void:
 	if _field == null:
 		return
@@ -2229,6 +2297,7 @@ func _on_died(_from: Vector2) -> void:
 			spoils *= Balance.ELITE_REWARD_SCALE
 	RunState.gain_kill_resources(int(round(spoils)))
 	_burst_on_death()
+	_elemental_end()
 	# XP scales with the enemy's health rather than an authored per-enemy number,
 	# so an elite is worth more than a runner with no second table to maintain,
 	# and act scaling carries the curve forward on its own.

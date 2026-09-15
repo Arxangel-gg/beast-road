@@ -650,6 +650,71 @@ func stop_immediately() -> void:
 
 ## Plays a sound by id. Silently does nothing if the file is missing, so an
 ## un-generated sound is an absence rather than a crash.
+## Where the player is listening from, in world units, and whether anybody is.
+##
+## Published by whatever is watching the field and by nothing else. Headless
+## there is no camera and no ear, so `play_at` is exactly `play` and every gate
+## hears what it always heard.
+var _ear: Vector2 = Vector2.ZERO
+var _listening: bool = false
+
+
+## The camera is watching here. Called each frame by the rig.
+func listen_from(point: Vector2) -> void:
+	_ear = point
+	_listening = true
+
+
+## Nobody is watching a field any more - a menu, a scope change, a gate.
+func stop_listening() -> void:
+	_listening = false
+
+
+## Whether a position is being taken into account at all. For the gate.
+func is_listening() -> bool:
+	return _listening
+
+
+## **A sound that happens somewhere.**
+##
+## The same recording as `play`, quieter by how far it is from what the camera
+## is watching. Past `SFX_CUTOFF` it is dropped rather than played inaudibly,
+## which hands the voice back to something the player can hear - on a field of a
+## hundred torches, four camps and forty bodies that is most of the value.
+##
+## **It decides nothing.** A dropped sound changes no state: the caller has
+## already done whatever it did, and this is the last thing it does. With no ear
+## this is `play`, unchanged, which is what keeps the gates honest.
+func play_at(id: String, at: Vector2, extra_db: float = 0.0) -> void:
+	if not _listening:
+		play(id, extra_db)
+		return
+	var away: float = _ear.distance_to(at)
+	if away > Balance.SFX_CUTOFF:
+		return
+	play(id, extra_db + distance_db(away))
+
+
+## How much quieter a sound is at this distance. Flat inside `SFX_NEAR`, falling
+## to `SFX_FAR_DB` by `SFX_FAR`, and no further - a floor rather than a curve
+## running off to silence, because a distant tower should still be *there*.
+## One of a group's takes, placed. The same `play_at` rules.
+func play_group_at(group: String, at: Vector2, extra_db: float = 0.0) -> void:
+	if not _listening:
+		play_group(group, extra_db)
+		return
+	var away: float = _ear.distance_to(at)
+	if away > Balance.SFX_CUTOFF:
+		return
+	play_group(group, extra_db + distance_db(away))
+
+
+func distance_db(away: float) -> float:
+	var span: float = maxf(Balance.SFX_FAR - Balance.SFX_NEAR, 1.0)
+	var out: float = clampf((away - Balance.SFX_NEAR) / span, 0.0, 1.0)
+	return Balance.SFX_FAR_DB * out
+
+
 func play(id: String, extra_db: float = 0.0) -> void:
 	_attempts += 1
 	var stream: AudioStream = _streams.get(id, null) as AudioStream
@@ -752,18 +817,18 @@ func _free_voice() -> AudioStreamPlayer:
 
 ## Every swing, hit or miss. This is the sound the player is owed for pressing
 ## the button.
-func _on_swing_started(chain_step: int, _at: Vector2) -> void:
+func _on_swing_started(chain_step: int, at: Vector2) -> void:
 	if chain_step >= Balance.HERO_CHAIN_LENGTH - 1:
-		play("sfx_hero_swing_heavy")
+		play_at("sfx_hero_swing_heavy", at)
 	else:
-		play_group("swing_light")
+		play_group_at("swing_light", at)
 
 
 ## Only the impact here - the whoosh already played when the swing started.
 ## One impact per swing however many it caught, with a small boost for a wide
 ## hit: six overlapping impacts is noise, not weight.
-func _on_attack_landed(_chain_step: int, targets: int, _at: Vector2, hide: int = 0) -> void:
-	play_group(hit_group_for(hide), minf(float(targets - 1) * 1.2, 4.0))
+func _on_attack_landed(_chain_step: int, targets: int, at: Vector2, hide: int = 0) -> void:
+	play_group_at(hit_group_for(hide), at, minf(float(targets - 1) * 1.2, 4.0))
 
 
 ## Which impact a blow makes, by what it landed on. Flesh cracks, armour
@@ -780,27 +845,27 @@ static func hit_group_for(hide: int) -> String:
 
 ## Footsteps are throttled hard. Forty walking enemies would otherwise be a
 ## continuous gravel roar, so only the hero and genuinely heavy things are heard.
-func _on_footfall(_at: Vector2, mass: float) -> void:
+func _on_footfall(at: Vector2, mass: float) -> void:
 	if mass >= Balance.ANIM_SHAKE_MASS_THRESHOLD:
-		play("sfx_footstep_heavy")
+		play_at("sfx_footstep_heavy", at)
 	elif mass <= Balance.ANIM_MASS_HERO:
-		play("sfx_footstep_dirt")
+		play_at("sfx_footstep_dirt", at)
 
 
 func _on_hero_damaged(_amount: float, _from: Vector2, _at: Vector2) -> void:
 	play("sfx_hero_hurt")
 
 
-func _on_enemy_died(_enemy_id: String, _at: Vector2) -> void:
-	play("sfx_enemy_die")
+func _on_enemy_died(_enemy_id: String, at: Vector2) -> void:
+	play_at("sfx_enemy_die", at)
 
 
-func _on_tower_fired(anchor: Vector2i, _at: Vector2) -> void:
+func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 	var tower: TowerData = RunState.tower_at(anchor)
 	if tower == null:
 		return
 	var index: int = clampi(int(tower.element), 0, ELEMENT_SHOTS.size() - 1)
-	play(ELEMENT_SHOTS[index])
+	play_at(ELEMENT_SHOTS[index], at)
 
 
 func _on_tower_changed(anchor: Vector2i) -> void:
@@ -813,11 +878,11 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 		play("sfx_tower_build")
 
 
-func _on_spell_cast(spell_id: String, _slot: int, _at: Vector2) -> void:
+func _on_spell_cast(spell_id: String, _slot: int, at: Vector2) -> void:
 	match spell_id:
 		"rift_step":
-			play("sfx_spell_blink")
+			play_at("sfx_spell_blink", at)
 		"cinder_nova", "tremor":
-			play("sfx_spell_nova")
+			play_at("sfx_spell_nova", at)
 		_:
-			play("sfx_spell_cast")
+			play_at("sfx_spell_cast", at)

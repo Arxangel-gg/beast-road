@@ -486,6 +486,12 @@ func _expire() -> void:
 func _apply(enemy: Enemy) -> void:
 	if enemy == null or not is_instance_valid(enemy) or enemy.is_dying():
 		return
+	# **What killed it decides how it comes apart.** Said before the blow rather
+	# than after, because the blow may be the one that finishes the body and the
+	# death reads the mark. Presentation only - `Enemy.mark_element` is read by
+	# nothing but `_elemental_end`.
+	if data != null:
+		enemy.mark_element(data.element)
 	if damage > 0.0:
 		# The brand is read at impact rather than at the muzzle: a shot in flight
 		# toward an elite that gets branded on the way should land the amplified

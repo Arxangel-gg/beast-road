@@ -88,6 +88,11 @@ var _windup_left: float = 0.0
 
 ## Which way the recoil pushes — away from what was shot at.
 var _fire_recoil: Vector2 = Vector2.UP
+## Which way the tower is leaning, eased toward whatever it is tracking, and how
+## far into its own construction it is. Both ride on top of the idle rather than
+## replacing it, for the reason the fire kick does.
+var _aim: Vector2 = Vector2.ZERO
+var _rise_left: float = 0.0
 
 ## Where the sprite sits when nothing is shoving it.
 var _sprite_home: Vector2 = Vector2.ZERO
@@ -1235,7 +1240,19 @@ func _tick_step_wobble(delta: float) -> void:
 	# back at a constant rate. A linear recoil reads as the tower being dragged.
 	_fire_kick = maxf(_fire_kick - delta / Balance.TOWER_FIRE_KICK_SECONDS, 0.0)
 	var kicked: float = _fire_kick * _fire_kick
-	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY)
+	# **The lean toward what it is about to shoot.** Eased rather than snapped,
+	# so a tower switching targets turns rather than teleports, and small enough
+	# that the structure still reads as standing square on its plot - a tower
+	# rotated to face a flank would be lying on its side (the perspective rule,
+	# 2026-09-14).
+	_aim = _aim.lerp(_aim_wanted(), clampf(delta * Balance.TOWER_AIM_EASE, 0.0, 1.0))
+	# **And how far out of the ground it is.** A tower is built rather than
+	# placed: it comes up out of its own foundation over a third of a second.
+	_rise_left = maxf(_rise_left - delta, 0.0)
+	var buried: float = _rise_left / maxf(Balance.TOWER_RISE_SECONDS, 0.01)
+	buried *= buried
+	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY
+		+ _aim.x * Balance.TOWER_AIM_DEGREES)
 	# The kick rides *on top of* the idle rather than replacing it. Two systems
 	# assigning the same property is how the earlier sway and wobble bug happened,
 	# and a tower that stopped breathing while it recoiled would read as two
@@ -1243,8 +1260,36 @@ func _tick_step_wobble(delta: float) -> void:
 	# The kick is sized per tower (2026-09-14): a mortar bucks, a needle twitches.
 	var juice: float = data.juice_scale if data != null else 1.0
 	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE
-		+ kicked * Balance.TOWER_FIRE_KICK_SCALE * juice)
-	sprite.position = _sprite_home + _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH * juice
+		+ kicked * Balance.TOWER_FIRE_KICK_SCALE * juice) \
+		* lerpf(1.0, Balance.TOWER_RISE_SCALE, buried)
+	sprite.position = _sprite_home \
+		+ _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH * juice \
+		+ _aim * Balance.TOWER_AIM_SHIFT \
+		+ Vector2(0.0, Balance.TOWER_RISE_LIFT * buried)
+
+
+## Which way the tower wants to lean: toward whatever it would shoot at right
+## now, as a unit vector, or nothing while it has no target.
+##
+## **It reads the same `_acquire_targets` the shot does**, so the lean can never
+## point at a body the tower is not about to fire on. Asking a second question
+## would be a second opinion about what this tower is doing, which is how a tell
+## ends up lying about the blow.
+func _aim_wanted() -> Vector2:
+	if data == null or _health == null or _health.is_dead:
+		return Vector2.ZERO
+	var seen: Array[Enemy] = _acquire_targets()
+	if seen.is_empty() or not is_instance_valid(seen[0]):
+		return Vector2.ZERO
+	var toward: Vector2 = seen[0].global_position - global_position
+	return toward.normalized() if toward.length() > 1.0 else Vector2.ZERO
+
+
+## Start the tower under its own plot, to come up out of it. Called when one is
+## built; a tower restored from a host's welcome skips it, because a structure
+## that has been standing for six waves should not rise again for a late guest.
+func begin_rise() -> void:
+	_rise_left = Balance.TOWER_RISE_SECONDS
 
 
 func _draw_range_ring() -> void:

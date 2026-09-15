@@ -49,7 +49,17 @@ func _ready() -> void:
 		global_position = target.global_position
 
 
+## The ear goes where the eye is.
+##
+## Published from the rig rather than from the hero because what the player can
+## hear should agree with what they can *see* - during a raid, a cinematic or a
+## drag of the view, the hero may be nowhere near the middle of the screen.
+func _exit_tree() -> void:
+	Sfx.stop_listening()
+
+
 func _process(delta: float) -> void:
+	Sfx.listen_from(global_position)
 	var zoom_t: float = 1.0 - exp(-Balance.CAMERA_ZOOM_LERP_SPEED * delta)
 	zoom = zoom.lerp(Vector2.ONE * _wanted_zoom, zoom_t)
 	if target != null and is_instance_valid(target):

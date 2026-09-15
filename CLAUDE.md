@@ -3048,6 +3048,82 @@ listens to `dragon_overhead`, changes no number, rolls no die and sends no
 message - and the pass says the word once, as it comes over, so the road and the
 walk cannot disagree about how long the light was out.
 
+**Four more things the world answers with, as of 2026-09-15.** The owner
+forwarded `ChatGPT_More_Ideas_5.md` - three long brainstorms, with their own
+caveat that it was written without access to the project. The caveat turned out
+to be the most important fact about it and the triage is
+`docs/IDEAS_REVIEW_2026-09-15b.md`.
+
+**Roughly half of the document is already built here**, under other names: the
+mythic trail *is* its "creature territories with clues at the borders", the
+homecoming pass *is* its "deep-extraction temptation", `EnemyData.hide` *is* its
+"material-aware impacts", `camera_impact` *is* its "localized camera shake", and
+so on for thirty-odd entries. A further large slice assumes a different genre -
+body recovery at a death site, secure pouches, forward outposts, rival AI
+parties, settlement districts - and is refused rather than adapted, for the same
+reason the egg-theft beat was refused as written.
+
+**Six gaps were named to the owner and two of them were wrong.** A body *does*
+recoil along the blow that hit it (`SpriteAnimator.recoil`, wired at
+`Enemy.take_damage` since it was written), and a fallen tower *does* shed debris
+and mark the ground (`Tower._leave_rubble`). Both were missed by searching for
+the wrong words. **Recorded because it is the recurring shape of this mistake**:
+a grep for a plausible name is not a survey, and this project has a habit of
+having built the thing already under a better one.
+
+**The four that were real, all presentation, all gated by `feel_check`:**
+
+- **Sound knows where it is.** `Sfx.play_at` quietens by distance from what the
+  camera is watching and drops a sound entirely past `SFX_CUTOFF`, which also
+  hands its voice back to something audible. Six of `Sfx`'s own signal handlers
+  had been *given* a world position since the day they were written and thrown
+  it away - the underscore in front of `_at` was the tell - so a partner
+  swinging across the map, a tower on the far road and a body dying two camps
+  over were all exactly as loud as the thing at the player's feet. The camera
+  has scaled its shake by distance since 2026-09-13; the audio finally agrees.
+- **A tower leans at what it is about to shoot.** A lean and a small shift
+  rather than a turret rotation, and that is the perspective rule rather than a
+  shortcut: a Wilderhold structure is drawn front-on with a slight top-down
+  angle, so one turned to face a flank is lying on its side. It reads the same
+  `_acquire_targets` the shot does, because a tell that asked its own question
+  could point at a body the tower is not firing on.
+- **A tower is built rather than placed.** It comes up out of its own
+  foundation over a third of a second. The rise rides on top of the idle exactly
+  as the fire kick does - two systems assigning one sprite property is a bug
+  this project has already shipped once.
+- **A body comes apart by what finished it.** Fire chars and smokes, water
+  shatters, air throws it, earth drops it and shakes the ground. The element is
+  *marked* rather than threaded through `take_damage`, which would have touched
+  the thirty places that deal a blow, most of which have no element to offer. It
+  is a window rather than a flag, because the blow that kills is often not the
+  one that carried the element.
+
+**The bound is the one every feel change here is held to: nothing about damage
+moves.** Every one of these is the last thing its caller does, and `feel_check`
+proves it rather than asserting it - a sound dropped past the cutoff leaves the
+run byte-identical, an expiring element mark takes no health, a marked body
+still counts as a kill, and leaning does not resize a tower.
+
+**One check in that gate matters to every other gate in this project.** Headless
+there is no camera and therefore no ear, so `play_at` must be exactly `play`.
+An ear that attenuated anyway would have a hundred gates quietly measuring a
+different game from the one that ships, and a missing sound errors nowhere. The
+first cut of the gate did not catch that - it was found by planting the fault
+and watching it pass - so there is now a check that plays a sound from nine
+times the cutoff with nobody listening and insists it starts a voice.
+
+**Two of the document's ideas need an owner and got one.** Named legendary
+individuals and Notorious elites are both new persistence axes under working
+rule 7. **Owner ruling, 2026-09-15: neither is built for 1.0.** They are
+recorded in the triage as the strongest 1.1 candidates, and if either is ever
+taken up it needs its bound written down first, exactly as spirits, the pantry,
+professions and materials each did.
+
+**And the second rank is deferred rather than refused** (owner, same date):
+persistent footprints, boss entrance behaviours, post-battle settling and
+anticipation audio on the telegraphs. All four are content rather than systems
+and none of them is blocked - they wait until the four above have been played.
+
 **Four more mythics, and the trail is a system rather than an animal, as of
 2026-09-15.** `IDEAS_REVIEW_2026-09-15` shortlisted five creatures out of a
 forwarded document of a hundred and twelve, on the grounds that the good idea in

@@ -16,6 +16,9 @@ const AmbientLifeScript = preload("res://scripts/systems/ambient_life.gd")
 
 @export var enemy_scene: PackedScene
 @export var tower_scene: PackedScene
+## The plot a tower was bought on this frame, so the node that appears for it
+## knows to come up out of the ground. Cleared the moment it is used.
+var _fresh_build: Vector2i = Vector2i(-9999, -9999)
 @export var projectile_scene: PackedScene
 
 @export var ground: Sprite2D
@@ -1540,6 +1543,10 @@ func try_build(anchor: Vector2i, tower_data: TowerData) -> String:
 	if not RunState.can_afford_cost(build_cost):
 		return "Needs %s." % RunState.format_cost(build_cost)
 	RunState.spend_cost(build_cost)
+	# Said *before* the tower is set, because setting it is what makes the node:
+	# `RunState.set_tower` reaches `_sync_towers` on this same frame, so a flag
+	# raised afterwards is raised after the thing it was meant to reach.
+	_fresh_build = anchor
 	RunState.set_tower(anchor, tower_data.id, 1)
 	RunState.towers_built += 1
 	Vfx.build_burst(BattleGrid.footprint_centre(anchor),
@@ -2442,6 +2449,13 @@ func _on_tower_changed(anchor: Vector2i) -> void:
 	var plot: Vector2 = BattleGrid.footprint_centre(anchor)
 	instance.position = plot + Vector2(0.0, Balance.TOWER_SORT_LIFT)
 	slot_root.add_child(instance)
+	# **Built, not placed** - but only when it was actually just built. This
+	# function also runs when a neighbour changes and when a guest is handed the
+	# host's whole field, and a tower that has stood for six waves climbing out
+	# of the ground again would be a lie about what just happened.
+	if _fresh_build == anchor:
+		instance.begin_rise()
+		_fresh_build = Vector2i(-9999, -9999)
 	_towers[anchor] = instance
 	_refresh_tower_modifiers()
 
