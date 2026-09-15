@@ -2742,6 +2742,145 @@ returns, it should take wood or ore or a crop alongside the fish and produce an
 effect that is not "more health" - and it still has to answer
 `FISH_MEALS_PER_RUN` before it gets a line of code.
 
+**The road to the first boss was measured against a lie, as of 2026-09-15.**
+The owner reported "the path to the first act 1 boss was too short!" for the
+second time, with the gate that guards the opening green. Both were true, and
+what sat between them was three faults in the two models that measure this
+game.
+
+**`curve_report` was averaging camp lords into what a road body pays.** Its
+Gold-a-body figure is described in its own docstring as "across the enemies that
+actually walk on", and that was true of every non-boss enemy until the second
+and third camps were given breeds of their own and the war camp a lord - eleven
+resources that live in a camp, never take a route, and are worth several times a
+road body *because* going to find one is meant to be worth the detour. Averaged
+in, a body paid 8.88 against the 3.64 a road actually pays: **a 143% error in
+the modelled purse**, two and a half times the towers, and mean pressure
+reported at 0.227 against a band of 0.26-0.46. Nothing failed, because that
+report is advisory. Corrected, the curve reads 0.403-0.407 across party sizes,
+which is what it read before the camps existed. *Nothing about the game had
+moved.*
+
+**And `balance_test` counted one lane and called it a wave.** The spawn queue is
+one queue for every road, so what sets how long a wave takes to walk on is the
+whole formation; the opening act measured sixteen waves where the road holds
+thirteen. `curve_report._mean_pressure_for` divided by `ACT_DISTANCE` and so did
+not know Act I is longer than the others. Both walk the road the same way now.
+
+**With the purse telling the truth, the first cut reached the Act I boss on wave
+13 holding four level-one towers** - one a road, bought the wave before, nothing
+upgraded. `ACT_OPENING_EXTRA_DISTANCE` goes 170 to 390: the boss is met on wave
+17 with eight, which is two a road, and Act I's mean pressure goes 0.31 to 0.33
+against a run mean of 0.41.
+
+The envelope's margin went with it. It asked for two waves between a defence
+becoming affordable and the boss, and passed at 170 honestly - its ramp is a
+best case that never spends, so "affordable since wave 11" means affordable to
+somebody who bought nothing. Four waves is what the difference between a purse
+and a defence costs.
+
+**The lesson is about advisory reports.** `curve_report` prints rather than
+fails, which is right - a curve is a judgement - but it means a model that
+starts lying says so only to whoever reads it, and this one had been lying on
+every release since the camps landed. When a report and a gate disagree about
+the same fact, one of them is wrong and it is worth finding out which before
+tuning anything.
+
+**Five things walked backwards and eleven nobody had judged, as of 2026-09-15.**
+The owner's sixth and seventh facing reports. The canine is the **Ash Hound** -
+a black wolf with an orange fire crest, drawn facing left and authored
+`art_faces_right = true` since the day it was made. Nothing could have caught
+it: `enemy_facing_check` keeps a ledger of every breed's facing and wildlife
+carried its own flag with no ledger at all. **It has one now**, and that gate
+holds both rosters.
+
+The horn-bearer is two of them: `crown_herald` blows a horn to the right and
+`howler` a megaphone to the right, and both were FRONT, which never mirrors - so
+on a road running the other way they shot out of the back of their own heads.
+Their torsos really are square to the camera, which is the reading that put them
+there; what it missed is that **the horn is the weapon**, which is the
+shield-bearer rule of 2026-09-14 applied to a muzzle. `shard_wight` was
+over-corrected to FRONT in that same batch and is a clean running profile;
+`cinder_runner` had never been read at size at all.
+
+**And the gate was red on main before any of it.** The camps' own breeds and the
+camp lords - three strangers, four dragons, four wyverns - were authored with no
+`art_facing` line, so eleven bodies defaulted to FRONT and were in no ledger.
+The system worked; nobody had run it. `tools/facing_sheet.py` makes the reading
+one command: the whole roster at 210px beside the flag that flips it, wildlife
+and enemies, by the same category rule the game derives sprite paths with - so
+elites and bosses are on it, which every one-off script before it missed.
+
+**The riders throw something on the way in, as of 2026-09-15.** The owner: "they
+also need more variety in their ranged abilities. So do the ones on the horses."
+The horn-bearers already grew a repertoire on 2026-09-13; the mounted breeds
+could not answer at all, because all three are VANGUARD - they charge and touch
+you and do nothing else - while all three are *painted* with a javelin raised
+overhand.
+
+So a breed that closes may now let one thing go on the approach
+(`EnemyData.thrown_shot_id`). It is not a repertoire and it makes a Howler of
+nothing: one throw, once every several seconds, and then the body keeps coming.
+
+**The bound is the bound every shot in this game is held to, applied to a body
+that is not a shooter: it changes the shape of a blow and never its size.**
+`thrown_share` is a *fraction* of the breed's contact damage, so a rider who
+opens at range hits softer when it arrives; it throws only at a person, only
+while out of melee reach, and only once a cooldown - so it can never be added to
+an exchange the body is already winning by touching you.
+
+Two things fell out of building it. **A throw beyond `ENEMY_HERO_AGGRO_RANGE`
+never happens**, because outside that a body's target is the town and a javelin
+is never aimed at the town - the first cut authored 700 against an aggro of 210
+and threw nothing at all. And an interrupted wind-up used to *bank* the throw,
+so the body's next swing would have loosed a javelin instead of landing the
+sword; it is dropped on any state change now, and the cooldown is spent when the
+javelin leaves the hand rather than when the arm goes back.
+
+**No two deer are the same deer, as of 2026-09-15.** The owner: "Wildlife should
+also all generate with some random variations using shaders appropriately for
+all wildlife with seeds ... companion made alive wildlife should keep the seed
+for the duration of its lifespan."
+
+Thirty-nine species share one painting each, so a field of six deer was one deer
+drawn six times. `Phenotype` derives a coat from the animal's own serial - the
+number `SpiritBond.trait_for` already reads a temperament off - and sets it on
+the material the sprite already wears. Every species gets a small shift of hue,
+lightness and saturation for free; twenty carry markings as well, chosen from
+the paintings rather than from a list of animals.
+
+**The first bound is that a coat may never be mistaken for a rarity.** The rank
+sheen says what an animal is worth, in light, on a ladder that climbs to a
+legendary shiny; a hue wide enough to turn a fox blue makes that ladder
+unreadable. `PHENOTYPE_HUE_CEILING` is about twenty degrees and
+`phenotype_check` refuses a species that authors past it.
+
+**The second is working rule 7 and it is untouched.** Nothing persists: a wild
+animal's coat lives as long as the animal, and a bonded spirit's is derived from
+the run's own seed and its variant key - so it is the same companion for the
+whole run, agrees on both machines without a packet, and is gone with the run.
+
+**And a phenotype is a look.** Nothing reads one - not rarity, not the
+collection, not the hunt, not loot, not the wrath the earth keeps - and
+`Graphics.KEY_PHENOTYPE` turns every one of them off with no number moving. Same
+bound as the fog and the rank sheen, and the same reason: it can be given away
+on a weak machine.
+
+The markings are laid out in **source pixels** rather than in UV. The art is
+pixel art; a pattern computed in smooth UV space is an airbrush over hard pixels
+and reads as a smudge at every zoom the camera has.
+
+**And the title screen wears no wound, as of the same date.** The red health
+vignette lives on a `CanvasLayer` that `Vfx` owns, and `Vfx` is an autoload - so
+it survives every scene change and the only thing that ever takes it off is
+somebody choosing to. It was cleared when a run was *settled*, which misses
+every way of leaving one that settles nothing: quitting from the pause menu, and
+a co-op host going away. Cleared where the invariant lives - the screen that
+must never show it - rather than at each door, and a health report that lands
+after the run has ended may no longer set it. Deliberately **not** on every
+scope change: a raid must not wipe the warning that the hero is nearly dead,
+which is why `Vfx.clear` and `Vfx.clear_vignette` are two functions.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
