@@ -2,6 +2,8 @@
 [ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1_enemy"]
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 1.2
+brace_chance = 0.45
 behaviour = 1
 behaviour_warning = 0.7
 behaviour_seconds = 3.0

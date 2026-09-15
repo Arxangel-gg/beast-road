@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 1.8
 hide = 2
 id = "ember_husk"
 display_name = "Ember Husk"

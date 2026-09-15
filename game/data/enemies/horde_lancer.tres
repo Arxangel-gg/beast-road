@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 4.8
 thrown_shot_id = "thrown_javelin"
 thrown_range = 196.0
 thrown_interval = 7.0

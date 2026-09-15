@@ -11,6 +11,7 @@ behaviour_reach = 330.0
 behaviour_power = 0.0
 behaviour_interval = 8.0
 script = ExtResource("1_enemy_data")
+stagger_tolerance = 3.9
 id = "crevasse_stalker"
 display_name = "Crevasse Stalker"
 description = "It was already under the snow when the road got here."

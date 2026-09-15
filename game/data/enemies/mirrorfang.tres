@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_a3xbi")
+stagger_tolerance = 1.0
 category = 2
 role = 1
 max_hp = 6400.0

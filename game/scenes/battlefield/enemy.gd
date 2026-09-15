@@ -544,6 +544,15 @@ func _process(delta: float) -> void:
 	_tick_status(delta)
 	_hitstun_left = maxf(_hitstun_left - delta, 0.0)
 	_hitstun_refractory = maxf(_hitstun_refractory - delta, 0.0)
+	# **The footing recovers whenever the blows stop**, which is what makes
+	# "leave it alone for a moment" the answer rather than a cooldown nobody can
+	# see. Ticked here beside the hitstun rather than with the brand, where the
+	# first cut put it - `_tick_brand` returns early unless a body is branded, so
+	# the load never drained and a plant never ended.
+	_stagger_load = maxf(_stagger_load
+		- delta / maxf(Balance.STAGGER_WINDOW, 0.01), 0.0)
+	_braced_left = maxf(_braced_left - delta, 0.0)
+	_brace_refractory = maxf(_brace_refractory - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
 	_provoked_left = maxf(_provoked_left - delta, 0.0)
 	_tick_boss_abilities(delta)
@@ -1841,6 +1850,12 @@ func _tick_brand(delta: float) -> void:
 var _death_element: int = -1
 var _death_element_left: float = 0.0
 
+## How reeled this body already is, 0 to 1, and how long it has been planted for.
+## Presentation and spacing only: nothing here reads or moves damage.
+var _stagger_load: float = 0.0
+var _braced_left: float = 0.0
+var _brace_refractory: float = 0.0
+
 
 ## Something of this element touched the body. Presentation only: nothing reads
 ## this but the death, and a body with no mark dies exactly as it always did.
@@ -1913,7 +1928,13 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 			* Modifiers.multiplier(Modifiers.HERO_DAMAGE)
 		if amount >= finisher_damage * 0.9:
 			apply_burn(amount * attack_node.effect_value, 3.0)
-	_add_hitstun(Balance.ENEMY_HITSTUN)
+	# **How much this blow is allowed to move the body**, before anything is
+	# moved by it. A fresh body reels exactly as it always did; one that has been
+	# taking blows faster than it can recover stops being pushed around, and a
+	# shield-bearer plants outright. The blow's *damage* was resolved above and
+	# is untouched by any of this.
+	var rocked: float = _absorb_a_blow()
+	_add_hitstun(Balance.ENEMY_HITSTUN * rocked)
 	# The number is the clearest signal that a hit registered at all, which
 	# matters most when a swing catches six things at once.
 	var body_at: Vector2 = _visual_origin()
@@ -1925,10 +1946,12 @@ func take_damage(amount: float, from: Vector2, knockback: float,
 	animator.impact_frame()
 	var away: Vector2 = global_position - from
 	away = away.normalized() if away.length() > 0.001 else Vector2.RIGHT
-	_knockback = away * knockback * (1.0 - data.knockback_resistance)
+	_knockback = away * knockback * (1.0 - data.knockback_resistance) * rocked
 	# Being hit hard enough interrupts a wind-up. This is what makes attacking
-	# into a telegraph a real answer rather than a trade.
-	if knockback > 0.0 and _state == State.WINDUP:
+	# into a telegraph a real answer rather than a trade - and a body that has
+	# planted is no longer interrupted by it, which is what the plant is *for*.
+	if knockback > 0.0 and rocked > Balance.STAGGER_MIN_SCALE \
+			and _state == State.WINDUP:
 		_enter(State.RECOVER, Balance.ENEMY_ATTACK_RECOVERY * 0.5)
 	if active_hero:
 		EventBus.hero_enemy_hit.emit(data.id, lane, is_priority(),
@@ -1987,6 +2010,75 @@ func pull_toward(point: Vector2, strength: float) -> void:
 ## enemy off, which is what a Glacial Mortar or a Pyre Cannon looked like from
 ## the player's side. Routing them all through here makes "an enemy always gets
 ## to move" a property of this class rather than of whatever is shooting it.
+## **What a blow is worth as a shove, and what it does to this body's footing.**
+##
+## Called once per blow, before the flinch and the shove are applied. Returns the
+## share of both that this blow gets, and raises the load on the way out, so the
+## next one gets less. A body left alone recovers over `STAGGER_WINDOW`.
+##
+## **Nothing here touches damage**, and that is what lets the ten-act pressure
+## curve still be read against the same numbers: a spammed body takes exactly the
+## health it always took, it simply stops being furniture.
+func _absorb_a_blow() -> float:
+	if data == null:
+		return 1.0
+	if _braced_left > 0.0:
+		return 0.0
+	var worth: float = lerpf(1.0, Balance.STAGGER_MIN_SCALE,
+		clampf(_stagger_load, 0.0, 1.0))
+	_stagger_load = minf(_stagger_load
+		+ 1.0 / maxf(data.stagger_tolerance, 1.0), 1.0)
+	if _stagger_load >= Balance.BRACE_AT and data.brace_chance > 0.0 \
+			and _brace_refractory <= 0.0 and _state != State.DYING \
+			and not puppet and RunState.rng("combat").randf() < data.brace_chance:
+		_set_the_shield()
+		return 0.0
+	return worth
+
+
+## It plants. No flinch, no shove, a ring of its own, and whoever was standing on
+## it is pushed off - which is the spacing the spam was buying, taken back.
+##
+## **A refusal, never a counter.** It deals no damage: a body that hit back here
+## would be a source of damage arriving out of a fight the player was winning,
+## and nothing in `curve_report` models it. What it costs the player is that the
+## body is now un-interrupted and free to swing.
+func _set_the_shield() -> void:
+	_braced_left = Balance.BRACE_SECONDS
+	_brace_refractory = Balance.BRACE_REFRACTORY + Balance.BRACE_SECONDS
+	_knockback = Vector2.ZERO
+	_hitstun_left = 0.0
+	var at: Vector2 = _visual_origin()
+	Vfx.ring(at, data.body_radius * 2.0, Color(0.86, 0.90, 1.0, 0.85), 0.28, 5.0)
+	Vfx.spark(at, Color(0.94, 0.96, 1.0), 10, Vector2.ZERO, 200.0)
+	animator.squash(1.2)
+	Sfx.play_at("sfx_hit_armour_1", global_position, 1.5)
+	EventBus.camera_impact.emit(global_position, Balance.IMPACT_FULL_SHARE * 0.25)
+	# Everyone standing on it goes back. Heroes only: a brace is an answer to
+	# being crowded by a player, and shoving the road's own bodies would be a
+	# formation change nobody asked for.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var who := node as Hero
+		if who == null or not who.is_alive():
+			continue
+		var apart: Vector2 = who.global_position - global_position
+		if apart.length() > data.body_radius + attack_reach():
+			continue
+		var push: Vector2 = apart.normalized() if apart.length() > 0.01 \
+			else Vector2.RIGHT
+		who.shove(push * Balance.BRACE_SHOVE)
+
+
+## Whether this body has planted itself. For the gate and for the field.
+func is_braced() -> bool:
+	return _braced_left > 0.0
+
+
+## How reeled this body is, 0 to 1. For the gate.
+func stagger_load() -> float:
+	return _stagger_load
+
+
 func _add_hitstun(duration: float) -> void:
 	if duration <= 0.0 or _hitstun_refractory > 0.0:
 		return

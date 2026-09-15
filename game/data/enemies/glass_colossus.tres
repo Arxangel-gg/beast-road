@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 1.0
 hide = 2
 category = 2
 role = 1

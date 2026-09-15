@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 5.0
 behaviour = 2
 behaviour_warning = 0.55
 behaviour_seconds = 0.40

@@ -113,6 +113,23 @@ enum Hide { FLESH, ARMOUR, STONE, SPIRIT }
 ## How hard this enemy resists knockback. 1.0 ignores it, 0.0 takes it in full.
 @export_range(0.0, 1.0) var knockback_resistance: float = 0.0
 
+## **How many blows in quick succession this body will be moved by.**
+##
+## Each one adds `1 / stagger_tolerance` to its stagger load, and a full load is
+## a body that plants rather than reeling (see `Balance.STAGGER_WINDOW`). A
+## runner is knocked around for half a fight; a stone golem stops after two.
+##
+## Never a damage figure: the blows all land for exactly what they are worth.
+@export_range(1.0, 12.0) var stagger_tolerance: float = 5.0
+
+## The chance that a heavily staggered body sets its shield instead of reeling,
+## refusing the flinch and the shove outright and pushing back whoever is on it.
+##
+## Zero for anything without a shield, which is most of the roster. This is the
+## owner's "a chance to stand their ground" (2026-09-15) and it is a *refusal*
+## rather than a counter-attack - it deals nothing.
+@export_range(0.0, 1.0) var brace_chance: float = 0.0
+
 ## Ashfen's bog-kin regenerate; most things do not. HP per second.
 @export var hp_regen: float = 0.0
 

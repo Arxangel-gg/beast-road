@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+stagger_tolerance = 4.6
 art_facing = 1
 id = "salt_marcher"
 display_name = "Salt Marcher"

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 3.3
 hide = 3
 shot = 3
 shot_range = 540

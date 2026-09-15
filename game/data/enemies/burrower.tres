@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_k4qo0")
+stagger_tolerance = 1.6
 hide = 2
 category = 0
 role = 4

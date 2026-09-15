@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 2.2
+brace_chance = 0.22
 hide = 1
 id = "brine_drowned"
 display_name = "Brine Drowned"

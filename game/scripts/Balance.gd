@@ -1713,6 +1713,46 @@ const FACING_DEADZONE: float = 6.0
 const HERO_ATTACK_FACING_HOLD: float = 0.35
 
 ## How fast knockback velocity bleeds off, in px/s per second.
+## **How a body stops being moved by being hit repeatedly.**
+##
+## `ENEMY_HITSTUN_GAP` already capped the *lock*; nothing capped the *shove*, and
+## the shove is the lock a player actually builds: a 170-unit knockback against a
+## 900-unit decay lasts about a fifth of a second, so a hero swinging faster than
+## five times a second keeps a body at arm's length for ever and never has to
+## stun it once.
+##
+## So every body carries a stagger load. Each blow that would flinch or shove it
+## adds `1 / stagger_tolerance` to that load; the load drains over
+## `STAGGER_WINDOW` seconds of not being hit, and what a blow's flinch and shove
+## are *worth* is scaled by what is left. A fresh body is knocked about exactly
+## as it always was. A body already reeling plants itself.
+##
+## **Damage is untouched, and that is the whole bound.** A blow at full stagger
+## load takes the same health off it always did; it simply stops moving the body
+## around. `curve_report` reads the same waves.
+const STAGGER_WINDOW: float = 1.5
+## What a blow is worth at a full stagger load. Zero would make a body immovable
+## in a way nothing in the game can answer, so the floor is small rather than
+## nothing - a heavy finisher still rocks something that has stopped flinching.
+const STAGGER_MIN_SCALE: float = 0.12
+
+## **A shield-bearer plants rather than reeling.**
+##
+## Past this much load a body that carries a shield may set itself: for
+## `BRACE_SECONDS` it takes no flinch and no shove at all, rings, and pushes
+## whoever is standing on it back by `BRACE_SHOVE`. Then it may not brace again
+## for `BRACE_REFRACTORY`, so bracing is a moment rather than a state.
+##
+## **It deals no damage.** A counter-attack would be a source of damage the
+## ten-act curve was never tuned against, arriving from a body the player chose
+## to keep hitting. What the brace takes away is the *spacing* - which is the
+## thing the spam was buying - and the body is then free to swing, because
+## nothing interrupted it. That is the punish.
+const BRACE_AT: float = 0.55
+const BRACE_SECONDS: float = 0.9
+const BRACE_SHOVE: float = 360.0
+const BRACE_REFRACTORY: float = 2.4
+
 const ENEMY_KNOCKBACK_DECAY: float = 900.0
 
 ## Time from death to the corpse disappearing.

@@ -4,6 +4,8 @@
 
 [resource]
 script = ExtResource("1_b1i6m")
+stagger_tolerance = 1.1
+brace_chance = 0.45
 behaviour = 1
 behaviour_warning = 0.85
 behaviour_seconds = 3.40

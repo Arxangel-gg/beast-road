@@ -11,6 +11,7 @@ behaviour_reach = 300.0
 behaviour_power = 0.0
 behaviour_interval = 9.0
 script = ExtResource("1_enemy_data")
+stagger_tolerance = 4.1
 id = "loam_lurker"
 display_name = "Loam Lurker"
 description = "Comes up through the wet ground behind the line, where the towers are not looking."

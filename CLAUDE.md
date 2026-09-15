@@ -3185,6 +3185,67 @@ the widest bodies astride a cell boundary, overlapping, and further apart than
 one whole cell. With the old neighbourhood put back it reads `overlap 10.000 ->
 10.000` - not one unit of movement - and names the reason.
 
+**A body cannot be held still by swinging faster, as of 2026-09-15.** The
+owner: *"even with enough swiftness players should not be able to hit/stunlock
+enemies from constant fast attacks ... including shield bearing enemies to be
+able to have an even higher chance of enduring/countering/blocking player hits
+and having a chance to stand their ground, or reduce knockback"*.
+
+**The hitstun was already capped and the knockback was not, and the knockback is
+the lock.** `ENEMY_HITSTUN_GAP` has held a body to at most 30% of its time
+locked since it was written, however fast it is hit - so the report read as
+false against the code and was true on the field. `HERO_ATTACK_KNOCKBACK` is 170
+units against an `ENEMY_KNOCKBACK_DECAY` of 900: a shove lasts about a fifth of
+a second, so a hero swinging faster than five times a second keeps a body at
+arm's length for ever and never stuns it once. **Swiftness bought spacing, not
+stun**, which is why looking at the stun constants said nothing.
+
+**So every body carries a footing.** Each blow that would flinch or shove it
+adds `1 / stagger_tolerance` to a stagger load; what a blow's flinch and shove
+are *worth* is scaled from full down to `STAGGER_MIN_SCALE` by that load; and
+the load drains over `STAGGER_WINDOW` of not being hit. A fresh body is knocked
+about exactly as it always was. A body already reeling plants itself. Leave it
+alone for a second and it can be knocked about again.
+
+**Damage never moves, and that is the whole bound.** A blow at a full load
+takes the same health it always took - `balance_test` reads the same 29,003
+assertions and `curve_report` the same band - because what changed is *where the
+body is standing* and nothing else. That is the same bound the shots, the
+statuses, the hides and the tower paths are all held to.
+
+**Shield-bearers plant, and a plant is a refusal rather than a counter.** Past
+`BRACE_AT` a body with a shield may set itself: no flinch, no shove, a ring of
+its own, and whoever is standing on it is pushed off. It **deals nothing** - a
+body that hit back here would be a source of damage arriving out of a fight the
+player was winning, and nothing in `curve_report` models one. What it costs the
+player is the spacing the spam was buying, and the body is then free to swing
+because nothing interrupted it. `BRACE_REFRACTORY` is longer than
+`BRACE_SECONDS`, which is the only thing between "a moment" and "a body that can
+never be moved again".
+
+**Both numbers are derived from what each body already declared** rather than
+typed into sixty-seven files: its hide, its behaviour, its category and the
+knockback resistance somebody already tuned. A boss endures one blow and then
+walks through the combo; an anchor two and plants 45% of the time; stone two;
+plate two and a half; an ordinary body five. Sixteen of the roster carry a
+shield. Adding a breed gives it a defensible footing without anybody having to
+remember a table.
+
+**`stagger_check` (188 checks) drives all of it on the real field**, and three
+things about writing it are worth keeping:
+
+- **Every probe is kept alive between blows.** The first cut did not, the body
+  died three blows into a twelve-blow flurry, and the gate then measured a
+  corpse's last shove and reported the system as broken. A probe that dies
+  mid-measurement reads exactly like a feature that does not work.
+- **The drain went in the wrong tick.** It was added beside the brand's decay,
+  and `_tick_brand` returns early unless a body is branded - so the footing
+  never recovered and a plant never ended, for every body that was not branded,
+  which is nearly all of them. It ticks beside the hitstun now.
+- **The brace is forced to a certainty** by duplicating the resource, because a
+  chance is a coin toss wearing a gate's clothes and this project has shipped
+  four of those.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

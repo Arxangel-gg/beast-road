@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy_data")
+stagger_tolerance = 5.0
 sprite_id = "coalpaint_raider"
 id = "bogkin"
 display_name = "Coalpaint Raider"

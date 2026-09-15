@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_enemy")
+stagger_tolerance = 4.5
 id = "mire_shambler"
 display_name = "Mire Shambler"
 description = "It was a man, and the marsh has been finishing the job for years."

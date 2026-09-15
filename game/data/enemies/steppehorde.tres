@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_1t4jp")
+stagger_tolerance = 5.0
 sprite_id = "rime_marauder"
 max_hp = 22.0
 contact_damage = 6.0

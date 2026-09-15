@@ -618,6 +618,7 @@ jobs:
           check "nesting" --headless --path game res://tools/nesting_check.tscn
           check "dragon" --headless --path game res://tools/dragon_check.tscn
           check "feel" --headless --path game res://tools/feel_check.tscn
+          check "stagger" --headless --path game res://tools/stagger_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the
