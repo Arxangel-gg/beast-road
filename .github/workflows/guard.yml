@@ -594,6 +594,10 @@ jobs:
           # tiny against the gate and never piling up, and a swarm that keeps
           # its own time over the valley.
           check "menu life" --headless --path game res://tools/menu_life_check.tscn
+          # The interface's holograms: additive and bounded so no glyph
+          # loses contrast, one skin a button however often the HUD rebuilds,
+          # and the pad answered exactly as the mouse is.
+          check "ui juice" --headless --path game res://tools/ui_juice_check.tscn
           # Five attributes, and the fifth adds choices rather than points: a
           # level still grants exactly one, and gear still divides its budget.
           check "attributes" --headless --path game res://tools/attribute_check.tscn

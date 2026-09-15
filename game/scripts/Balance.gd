@@ -6870,6 +6870,41 @@ const MENU_FIREFLY_HOMING: float = 9.0
 ## which is the shape of the real thing; 1.0 is a pulsing bead.
 const MENU_FIREFLY_SHARPNESS: float = 3.4
 const MENU_FIREFLY_HZ: float = 24.0
+
+# --- The interface answers being touched (owner brief, 2026-09-15) -----------
+#
+# "Holographic vfx for when players hover or tap on UI buttons as well and more
+# game juice to UI interactions."
+#
+# **The bound is `UiTint`'s and it is stricter here.** That system may move
+# frames and may never touch text, because an adaptive interface that gets it
+# wrong is an unreadable one. The hologram is additive, so it can only ever add
+# light, and over this game's dark plates and pale lettering it cannot reduce
+# the contrast of a glyph at all. The ceiling below is what stops "additive"
+# from becoming "a flood", and `ui_juice_check` reads it off the shader.
+## The light a hologram is made of before the scene's own colour is mixed in.
+const UI_HOLO_GLOW: Color = Color(0.55, 0.82, 1.0, 1.0)
+## How far it is pulled toward the interface's tint. All the way and it stops
+## reading as light of its own against the sunset behind it.
+const UI_HOLO_SCENE_SHARE: float = 0.35
+## How long the light takes to come up on a hover and to fall away after.
+const UI_HOLO_RISE: float = 0.14
+const UI_HOLO_FALL: float = 0.22
+## How long one sweep takes to cross. A one-shot, never a loop.
+const UI_HOLO_SWEEP: float = 0.42
+## How long the press tear lasts.
+const UI_HOLO_TEAR: float = 0.12
+## How far a button lifts when it is pointed at, in pixels. Small on purpose:
+## `layout_check` measures where controls are, and a button that wandered would
+## be a layout fault wearing juice's clothes.
+const UI_HOLO_LIFT: float = 2.0
+## The most light the hologram may add anywhere on a button. Above a quarter it
+## stops being light on a plate and becomes a wash over the words, which is the
+## one failure this whole effect is bounded against; `ui_juice_check` reads it
+## off the material rather than from here.
+const UI_HOLO_CEILING: float = 0.16
+## Scanlines across a control's height.
+const UI_HOLO_LINES: float = 42.0
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 

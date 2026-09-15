@@ -4744,7 +4744,9 @@ func _grade_the_interface(force: bool) -> void:
 		return
 	if force:
 		UiTint.enrol(get_tree(), self)
+		UiJuice.enrol(get_tree(), self)
 	UiTint.apply(get_tree(), UiTint.for_the_world(), force)
+	UiJuice.set_glow(get_tree(), UiTint.for_the_world())
 
 
 ## Keeps the spirit readout clear of the navigation column.

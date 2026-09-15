@@ -711,6 +711,10 @@ func _grade_the_interface() -> void:
 		return
 	UiTint.enrol(get_tree(), self)
 	UiTint.apply(get_tree(), _menu_light(), true)
+	# The holograms are lit by the same light the frames are graded to, so the
+	# two can never disagree about what the scene is lit by.
+	UiJuice.enrol(get_tree(), self)
+	UiJuice.set_glow(get_tree(), _menu_light())
 
 
 
