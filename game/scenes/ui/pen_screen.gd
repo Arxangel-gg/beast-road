@@ -22,6 +22,7 @@ var _panel: PanelContainer
 var _heading: Label
 var _note: Label
 var _yard: PenYard
+var _stage: Control
 var _list: VBoxContainer
 var _close_button: Button
 
@@ -71,9 +72,13 @@ func _build() -> void:
 	# depend on how many animals happen to be kept.
 	var stage := Control.new()
 	stage.name = "Yard"
-	stage.custom_minimum_size = Vector2(560.0, 280.0)
+	# Sized in `_refit` from what the window actually has. A fixed minimum here
+	# is what put the Close button off the bottom of a short screen.
+	stage.custom_minimum_size = Vector2(320.0, 150.0)
+	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(stage)
+	_stage = stage
 	_yard = YardScript.new()
 	_yard.name = "PenYard"
 	stage.add_child(_yard)
@@ -83,7 +88,7 @@ func _build() -> void:
 
 	var scroll := ScrollContainer.new()
 	UiMetrics.prepare_scroll(scroll, TouchInput.is_showing())
-	scroll.custom_minimum_size = Vector2(0.0, 220.0)
+	scroll.custom_minimum_size = Vector2(0.0, 110.0)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
 
@@ -181,12 +186,27 @@ func _row(animal: Dictionary) -> Control:
 	return row
 
 
+## **Everything here is a share of the window rather than a figure.**
+##
+## The first cut added fixed minimums - a 280-tall yard, a 220-tall list, a
+## heading, a note and a 44-tall button - which came to 853 on a 775-tall screen
+## and pushed the way out off the bottom. `menu_layout` refuses that, and it is
+## right to: a player who cannot see Close cannot leave. So the panel takes what
+## the window has and the yard takes what is left after the parts that must be
+## readable.
 func _refit() -> void:
 	if _panel == null:
 		return
 	var screen: Vector2 = Vector2(get_viewport().get_visible_rect().size)
-	_panel.custom_minimum_size = Vector2(
-		minf(screen.x * 0.9, 700.0), minf(screen.y * 0.9, 760.0))
+	var wide: float = minf(screen.x * 0.9, 700.0)
+	var tall: float = minf(screen.y * 0.88, 760.0)
+	_panel.custom_minimum_size = Vector2(wide, tall)
+	if _stage != null:
+		# The heading, the note, the list and the button, plus the panel's own
+		# margins - measured as a share so a theme change cannot strand it.
+		var kept_back: float = tall * 0.52 + 96.0
+		_stage.custom_minimum_size = Vector2(wide - 48.0,
+			clampf(tall - kept_back, 110.0, 300.0))
 
 
 ## The yard, for the gate.
