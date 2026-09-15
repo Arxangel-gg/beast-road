@@ -37,6 +37,7 @@ func _ready() -> void:
 	_test_the_art_is_on_disk()
 	_test_a_corner_is_painted()
 	_test_the_motion_never_repeats()
+	_test_no_two_strands_are_the_same_plant()
 	_test_every_strand_is_its_own()
 	_test_a_corner_stays_in_its_corner()
 	_finish()
@@ -136,6 +137,59 @@ func _test_the_motion_never_repeats() -> void:
 				+ "at an offset of %ds it followed %d of %d, which is a loop")
 				% [_named(kind), LOOP_HORIZON, at, longest, LOOP_RUN])
 		plant.queue_free()
+
+
+## **Three vines, three sprays, three things to carry, and a strand that can
+## reach all of them.**
+##
+## Owner brief, 2026-09-15. The failure this holds is the one the first cut
+## shipped: the strand rolled its choices as *indices from 0 to 8* against sets
+## of three, so six strands in nine drew nothing and the whole corner silently
+## fell back to its silhouettes - with every other check in this file still
+## passing, because the silhouettes are a legitimate fallback. A fraction into
+## the set cannot do that, and this drives it to be sure.
+func _test_no_two_strands_are_the_same_plant() -> void:
+	var plant: MenuFoliage = _plant(MenuFoliage.Kind.VINE)
+	var kinds: Vector3i = plant.variety()
+	_check(kinds.x >= 3, "there must be several vines to choose from (%d)" % kinds.x)
+	_check(kinds.y >= 3, "and several leaf sprays (%d)" % kinds.y)
+	_check(kinds.z >= 3, "and several things to hang on them (%d)" % kinds.z)
+	# Every piece a strand can name must resolve to a texture. A fraction that
+	# fell outside its set is exactly what went wrong.
+	for fraction: float in [0.0, 0.33, 0.5, 0.99, 1.0]:
+		for set_name: String in ["_vines", "_sprays", "_hangers"]:
+			var set: Array = plant.get(set_name)
+			var picked: Texture2D = plant.call("_one_of", set, fraction)
+			_check(picked != null,
+				"%s must answer for a fraction of %0.2f" % [set_name, fraction])
+	# And the strands must actually differ. Counted as distinct combinations
+	# over many corners rather than over one, because five strands cannot show
+	# twenty-seven possibilities.
+	var seen: Dictionary = {}
+	var carried: int = 0
+	var bare: int = 0
+	for corner: int in 40:
+		var other := MenuFoliage.new()
+		other.kind = MenuFoliage.Kind.VINE
+		other.phase = float(corner) * 0.7
+		other.anchor = Vector2(float(corner) * 0.013, 0.0)
+		add_child(other)
+		for strand: Dictionary in (other.get("_strands") as Array):
+			seen["%d|%d|%s" % [
+				int(float(strand["vine"]) * 3.0), int(float(strand["spray"]) * 3.0),
+				str(strand["carries"])]] = true
+			if bool(strand["carries"]):
+				carried += 1
+			else:
+				bare += 1
+		other.queue_free()
+	_check(seen.size() >= 12,
+		"the corners must grow different plants: %d combinations over forty"
+			% seen.size())
+	_check(carried > 0 and bare > 0,
+		("some strands must carry fruit and some must not (%d carrying, %d bare): "
+			+ "all of one is a display of produce or a bare wall") % [carried, bare])
+	plant.queue_free()
 
 
 ## Every strand its own length, lean, sway, phase and leaf size. One set of

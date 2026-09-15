@@ -57,9 +57,41 @@ const LEAF_ART: String = "res://art/ui/menu_leaves.png"
 const FROND_ART: String = "res://art/ui/menu_frond.png"
 const TENDRIL_ART: String = "res://art/ui/menu_tendril.png"
 
+## **Variety, because five identical strands is wallpaper** (owner brief,
+## 2026-09-15: "give that hanging vine itself you made variety too so they're
+## not all identical", and "a variety of fruits and flowers procedurally also
+## hanging on the hanging vines").
+##
+## Three vines, three leaf sprays and three things to hang off them, drawn from
+## the strand's own dice. A strand picks one of each and keeps it, so a corner
+## is a plant that grew rather than a row of stamps - and the combinations come
+## to twenty-seven before size, mirroring and where the hanger sits are counted.
+##
+## Every one is optional. A missing file drops out of its own list and the rest
+## carry on, which is the art convention (CLAUDE.md section 4) doing its job:
+## the menu is never blank because a file is late.
+const VINE_ART: Array[String] = [
+	"res://art/ui/menu_tendril.png",
+	"res://art/ui/menu_tendril_bare.png",
+	"res://art/ui/menu_tendril_mossy.png",
+]
+const SPRAY_ART: Array[String] = [
+	"res://art/ui/menu_leaves.png",
+	"res://art/ui/menu_leaves_narrow.png",
+	"res://art/ui/menu_leaves_round.png",
+]
+const HANGER_ART: Array[String] = [
+	"res://art/ui/menu_hanger_berries.png",
+	"res://art/ui/menu_hanger_orchid.png",
+	"res://art/ui/menu_hanger_fruit.png",
+]
+
 static var _leaves: Texture2D = null
 static var _frond: Texture2D = null
 static var _tendril: Texture2D = null
+static var _vines: Array[Texture2D] = []
+static var _sprays: Array[Texture2D] = []
+static var _hangers: Array[Texture2D] = []
 static var _looked: bool = false
 
 var _time: float = 0.0
@@ -86,12 +118,32 @@ static func _load_art() -> void:
 		_frond = load(FROND_ART) as Texture2D
 	if ResourceLoader.exists(TENDRIL_ART):
 		_tendril = load(TENDRIL_ART) as Texture2D
+	_vines = _load_set(VINE_ART)
+	_sprays = _load_set(SPRAY_ART)
+	_hangers = _load_set(HANGER_ART)
+
+
+static func _load_set(paths: Array[String]) -> Array[Texture2D]:
+	var out: Array[Texture2D] = []
+	for path: String in paths:
+		if ResourceLoader.exists(path):
+			var texture := load(path) as Texture2D
+			if texture != null:
+				out.append(texture)
+	return out
+
+
+## How many different vines, sprays and hangers the corner has to work with.
+## For the gate, and for anything that wants to know whether the variety is
+## actually there rather than one file repeated.
+func variety() -> Vector3i:
+	return Vector3i(_vines.size(), _sprays.size(), _hangers.size())
 
 
 ## Whether this corner is drawing painted art rather than silhouettes. For the
 ## gate, which has no other way to tell the two apart from outside.
 func painted() -> bool:
-	return _leaves != null and _frond != null and _tendril != null
+	return not _vines.is_empty() and not _sprays.is_empty() and _frond != null
 
 
 func _process(delta: float) -> void:
@@ -123,6 +175,22 @@ func _grow() -> void:
 			# strand is what reads as a repeated sticker rather than a plant,
 			# and it is the cheapest variation there is.
 			"leaf_size": _rng.randf_range(0.78, 1.22),
+			# Which vine, which spray and what it carries, as **fractions rather
+			# than indices**. A strand is grown before anything knows how many
+			# pieces are on disk, and the first cut rolled an index from 0 to 8
+			# against sets of three - so six strands in nine drew nothing at
+			# all and the whole corner fell back to its silhouettes.
+			"vine": _rng.randf(),
+			"spray": _rng.randf(),
+			# Not every strand fruits. A third bare is what stops the corner
+			# reading as a display of produce.
+			"carries": _rng.randf() < 0.55,
+			"hanger": _rng.randf(),
+			"hanger_at": _rng.randf_range(0.45, 0.82),
+			"hanger_size": _rng.randf_range(0.7, 1.15),
+			# Half the strands are mirrored, which costs nothing and doubles
+			# what a viewer has to look at before the repetition shows.
+			"mirror": _rng.randf() < 0.5,
 		})
 
 
@@ -137,16 +205,25 @@ func _draw() -> void:
 
 
 ## The limb the vines hang from: a thick tapering stroke into the corner.
+## Where the branch is at a given fraction of its length.
+##
+## **One function, because two copies of a curve is a gap.** The vines used to
+## work out their own root from the same arithmetic minus the breathing term,
+## so every strand hung a few pixels off a branch that was still moving - which
+## is the owner's "gap between where it should connect with the branch". Both
+## the branch and everything hanging from it read this now.
+func _branch_at(along: float) -> Vector2:
+	# Sags a little along its length, and breathes very slowly - a branch this
+	# thick barely moves, and moving it much reads as rubber.
+	var droop: float = along * along * reach * 0.16
+	var breath: float = sin(_time * 0.31 + phase) * reach * 0.012 * along
+	return Vector2(along * reach * BRANCH_SPAN * facing, droop + breath)
+
+
 func _draw_branch() -> void:
 	var points := PackedVector2Array()
-	var span: float = reach * BRANCH_SPAN
 	for step: int in BRANCH_POINTS:
-		var along: float = float(step) / float(BRANCH_POINTS - 1)
-		# Sags a little along its length, and breathes very slowly - a branch
-		# this thick barely moves, and moving it much reads as rubber.
-		var droop: float = along * along * reach * 0.16
-		var breath: float = sin(_time * 0.31 + phase) * reach * 0.012 * along
-		points.append(Vector2(along * span * facing, droop + breath))
+		points.append(_branch_at(float(step) / float(BRANCH_POINTS - 1)))
 	# Drawn twice, thick then thin, so it tapers without needing a polygon.
 	draw_polyline(points, tint, reach * 0.055, true)
 	var half := PackedVector2Array()
@@ -160,8 +237,8 @@ func _draw_branch() -> void:
 ## and the non-looping motion is the one thing here worth gating.
 func _vine_chain(strand: Dictionary) -> PackedVector2Array:
 	var along: float = float(strand["along"])
-	var root := Vector2(along * reach * BRANCH_SPAN * facing,
-		along * along * reach * 0.16)
+	# **On the branch, including its breath.** See `_branch_at`.
+	var root: Vector2 = _branch_at(along)
 	var length: float = reach * float(strand["length"])
 	var own_phase: float = float(strand["phase"]) + phase
 	var own_sway: float = sway * float(strand["sway"])
@@ -198,7 +275,9 @@ func _draw_vine(strand: Dictionary) -> void:
 	var leaves: Array[Vector2] = []
 	for step: int in steps:
 		leaves.append(points[step])
-	if _tendril != null:
+	var vine: Texture2D = _one_of(_vines, float(strand["vine"]))
+	var spray: Texture2D = _one_of(_sprays, float(strand["spray"]))
+	if vine != null:
 		# The woody line first, and **only where the painted vine is thin**.
 		# Run along the whole chain it becomes a bare thread hanging below the
 		# tendril's curl, because the art's ink stops short of its canvas -
@@ -210,12 +289,12 @@ func _draw_vine(strand: Dictionary) -> void:
 				joint.append(points[index])
 		if joint.size() > 1:
 			draw_polyline(joint, tint, maxf(reach * 0.006, 1.0), true)
-		_draw_bent(points, _tendril, 1.0, false)
+		_draw_bent(points, vine, 1.0, false)
 		# **Two clusters, never the same two.** One cluster at one depth on
 		# every strand is a tiling pattern a viewer picks out in a second, so
 		# the strand hangs its leaves at the points its own walk chose and at
 		# its own size. `leaves` already varies with the strand's dice.
-		if _leaves != null and leaves.size() > 0:
+		if spray != null and leaves.size() > 0:
 			var size: float = reach * 0.34 * float(strand["leaf_size"])
 			var hung: int = 0
 			for index: int in points.size():
@@ -224,10 +303,22 @@ func _draw_vine(strand: Dictionary) -> void:
 				if not leaves.has(points[index]):
 					continue
 				var lean: Vector2 = points[index + 1] - points[index]
-				_draw_sprite(points[index], _leaves,
+				_draw_sprite(points[index], spray,
 					size * (1.0 - 0.18 * float(hung)),
-					lean.angle() - PI * 0.5)
+					lean.angle() - PI * 0.5, bool(strand["mirror"]))
 				hung += 1
+		# **And what it is carrying.** Hung from its own point down the strand
+		# rather than at the tip: fruit grows where the vine is thick enough to
+		# hold it, and a bunch dangling off the very end reads as a pendulum.
+		var carried: Texture2D = _one_of(_hangers, float(strand["hanger"])) 			if bool(strand["carries"]) else null
+		if carried != null and points.size() > 3:
+			var where: int = clampi(
+				int(float(points.size() - 1) * float(strand["hanger_at"])),
+				1, points.size() - 2)
+			var swing: Vector2 = points[where + 1] - points[where]
+			_draw_sprite(points[where], carried,
+				reach * 0.125 * float(strand["hanger_size"]),
+				swing.angle() - PI * 0.5, bool(strand["mirror"]))
 		return
 	draw_polyline(points, tint, maxf(reach * 0.010, 1.5), true)
 	for step: int in steps:
@@ -295,6 +386,18 @@ func _draw_frond(strand: Dictionary) -> void:
 		draw_line(point, point - arm, tint, maxf(size * 0.34, 1.0), true)
 
 
+## One of a set, by a number the strand drew.
+##
+## **A fraction rather than an index**, because a strand is grown before
+## anything knows how many pieces are on disk. A set that is short because a
+## file is late simply offers fewer choices; it never leaves a strand with
+## nothing to draw, which is what an out-of-range index did.
+func _one_of(set: Array[Texture2D], fraction: float) -> Texture2D:
+	if set.is_empty():
+		return null
+	return set[clampi(int(fraction * float(set.size())), 0, set.size() - 1)]
+
+
 ## A texture laid along a polyline, one band per segment, each rotated to its
 ## own piece of the curve.
 ##
@@ -326,8 +429,11 @@ func _draw_bent(points: PackedVector2Array, texture: Texture2D,
 		length += points[index].distance_to(points[index + 1])
 	if length <= 0.01:
 		return
-	var wide: float = length * float(texture.get_width()) / float(texture.get_height())
-	var source_height: float = float(texture.get_height()) / float(bands)
+	# Measured on the ink rather than the canvas: a sprite with an empty margin
+	# would otherwise be drawn narrow and start late.
+	var box: Rect2i = ink_box(texture)
+	var wide: float = length * float(box.size.x) / maxf(float(box.size.y), 1.0)
+	var source_height: float = float(box.size.y) / float(bands)
 	for index: int in bands:
 		var from: Vector2 = points[index]
 		var to: Vector2 = points[index + 1]
@@ -345,19 +451,52 @@ func _draw_bent(points: PackedVector2Array, texture: Texture2D,
 		draw_texture_rect_region(texture,
 			Rect2(-width * 0.5, 0.0 if not reverse else -span * 1.06,
 				width, span * 1.06),
-			Rect2(0.0, float(row) * source_height,
-				float(texture.get_width()), source_height),
+			Rect2(float(box.position.x), float(box.position.y) + float(row) * source_height,
+				float(box.size.x), source_height),
 			leaf_tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+## The box of actually-painted pixels in a texture, cached.
+##
+## **A transparent margin is a gap.** `menu_tendril` is 64 wide and its vine
+## occupies about a third of that, with a few empty rows above the first knot;
+## laid along a chain by the canvas, the strand began a twentieth of its length
+## below the branch and was a third as wide as it should have been. Both are the
+## same mistake - treating the canvas as the art - and both are fixed by asking
+## the image where its ink is.
+static var _ink_boxes: Dictionary = {}
+
+
+static func ink_box(texture: Texture2D) -> Rect2i:
+	if texture == null:
+		return Rect2i()
+	var key: String = texture.resource_path
+	if _ink_boxes.has(key):
+		return _ink_boxes[key]
+	var image: Image = texture.get_image()
+	var box := Rect2i(0, 0, texture.get_width(), texture.get_height())
+	if image != null:
+		var used: Rect2i = image.get_used_rect()
+		if used.size.x > 0 and used.size.y > 0:
+			box = used
+	if not key.is_empty():
+		_ink_boxes[key] = box
+	return box
+
+
 ## One painted piece at a point, turned. `size` is its width in pixels.
-func _draw_sprite(at: Vector2, texture: Texture2D, size: float, angle: float) -> void:
+func _draw_sprite(at: Vector2, texture: Texture2D, size: float, angle: float,
+		mirror: bool = false) -> void:
 	if texture == null:
 		return
-	var height: float = size * float(texture.get_height()) / maxf(float(texture.get_width()), 1.0)
-	draw_set_transform(at, angle, Vector2.ONE)
-	draw_texture_rect(texture, Rect2(-size * 0.5, 0.0, size, height), false, leaf_tint)
+	# The ink again, not the canvas: a cluster hung by its canvas top floats
+	# below the strand by however much empty space the artist left.
+	var box: Rect2i = ink_box(texture)
+	var height: float = size * float(box.size.y) / maxf(float(box.size.x), 1.0)
+	draw_set_transform(at, angle, Vector2(-1.0 if mirror else 1.0, 1.0))
+	draw_texture_rect_region(texture, Rect2(-size * 0.5, 0.0, size, height),
+		Rect2(box.position, box.size), leaf_tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

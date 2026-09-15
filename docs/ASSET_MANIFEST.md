@@ -3230,6 +3230,13 @@ assets attached to them").
 | `menu_leaves.png` | 128x128 | T | `#3F6B33` |
 | `menu_frond.png` | 96x128 | T | `#2F5C2A` |
 | `menu_tendril.png` | 64x128 | T | `#4A7A38` |
+| `menu_tendril_bare.png` | 64x128 | T | `#4A7A38` |
+| `menu_tendril_mossy.png` | 64x128 | T | `#4A7A38` |
+| `menu_leaves_narrow.png` | 128x128 | T | `#3F6B33` |
+| `menu_leaves_round.png` | 128x128 | T | `#3F6B33` |
+| `menu_hanger_berries.png` | 128x128 | T | `#7A2432` |
+| `menu_hanger_orchid.png` | 128x128 | T | `#8A7AB0` |
+| `menu_hanger_fruit.png` | 128x128 | T | `#B08A30` |
 
 Three pieces rather than an animation, because the motion is procedural and
 must not loop: `MenuFoliage` walks a chain of segments whose angle is the sum
@@ -3240,6 +3247,15 @@ point. The frond is painted tip-up and read in reverse, because a fern grows
 stem-first. A missing file costs nothing: the silhouettes the menu drew before
 these existed are still the fallback, which is why the menu is never blank
 because a file is late.
+
+**Three of each, because five identical strands is wallpaper** (owner brief,
+2026-09-15: "give that hanging vine itself variety too so they're not all
+identical", and "a variety of fruits and flowers procedurally also hanging on
+the hanging vines"). A strand draws one vine, one leaf spray and - about half
+the time - one thing to carry, from its own dice, and keeps them; with size,
+mirroring and where the hanger sits that is well past a hundred strands before
+one repeats. Any of these may be missing: a short set offers fewer choices and
+the corner carries on.
 
 ### 5.28c Menu birds - `res://art/ui/`
 
