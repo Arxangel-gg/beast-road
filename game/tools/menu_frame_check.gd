@@ -29,6 +29,8 @@ func _ready() -> void:
 	await _test_the_sheen_travels()
 	await _test_a_press_is_answered_where_it_landed()
 	await _test_the_lightning_is_lightning()
+	_test_the_holographic_pass_only_adds()
+	await _test_one_element_crosses_at_a_time()
 	_finish()
 
 
@@ -220,6 +222,83 @@ func _test_the_lightning_is_lightning() -> void:
 	_check(material != null and material.blend_mode == CanvasItemMaterial.BLEND_MODE_ADD,
 		"the lightning must be additive: it is drawn over the interface")
 	arcs.queue_free()
+
+
+## **The holographic pass can only add light**, read out of the shader.
+##
+## Owner, 2026-09-15: "make the frame also holographic". The frame is drawn with
+## a per-piece tint that `light_at` computes and the gate above bounds; a shader
+## over the top that *assigned* to COLOR would throw that tint away, and one
+## that multiplied by less than one could darken the border to nothing on a dark
+## backdrop. Both are one character of somebody's edit, and neither shows in a
+## headless run, where no shader compiles at all.
+func _test_the_holographic_pass_only_adds() -> void:
+	var file := FileAccess.open("res://scripts/shaders/menu_frame_holo.gdshader",
+		FileAccess.READ)
+	_check(file != null, "the frame's hologram shader must be on disk")
+	if file == null:
+		return
+	var code: String = file.get_as_text()
+	_check(code.contains("art * COLOR"),
+		("the pass must multiply the art by the colour handed in: that is how "
+			+ "the per-piece tint reaches the pixel"))
+	_check(not code.contains("COLOR = art;"),
+		"and must never assign over it, which throws the tint away")
+	_check(code.contains("lit.rgb += "),
+		"the hologram itself must be added rather than mixed")
+	_check(not code.contains("blend_mul") and not code.contains("blend_sub"),
+		"and the frame must not multiply or subtract, which can darken stone")
+	_check(Balance.MENU_FRAME_HOLO_CEILING <= 0.2,
+		("the hologram may add at most a fifth: %.2f washes the carving out"
+			% Balance.MENU_FRAME_HOLO_CEILING))
+
+
+## **One element crosses at a time, briefly, and never the same one twice.**
+##
+## Owner, 2026-09-15: "make chain lightning and fire and other elements flow
+## through the menu". The failure that brief invites is everything at once - a
+## screen so busy that none of it is read and the beast stops being what you are
+## looking at - and the failure a rotation invites is a loop, which is what two
+## storms in a row reads as. Both are properties of a minute of running, not of
+## a frame, so neither can be photographed.
+func _test_one_element_crosses_at_a_time() -> void:
+	var scene := MenuElements.new()
+	add_child(scene)
+	scene.resize(Vector2(1920.0, 1080.0))
+	await get_tree().process_frame
+
+	var seen: Dictionary = {}
+	var order: Array[int] = []
+	var crossing: int = 0
+	var steps: int = 0
+	for _step: int in 900:
+		scene.advance(0.25)
+		steps += 1
+		var now: int = scene.passing()
+		if now < 0:
+			continue
+		crossing += 1
+		seen[now] = true
+		if order.is_empty() or order[order.size() - 1] != now:
+			order.append(now)
+	_check(seen.size() >= 3,
+		"the rotation must reach most of its elements: %d of 4 in under four "
+			% seen.size() + "minutes")
+	var repeats: int = 0
+	for index: int in range(1, order.size()):
+		if order[index] == order[index - 1]:
+			repeats += 1
+	_check(repeats == 0,
+		"an element must never follow itself: %d times in %d passes"
+			% [repeats, order.size()])
+	# And the menu is quiet most of the time.
+	var busy: float = float(crossing) / float(maxi(steps, 1))
+	_check(busy < 0.4,
+		("the elements must be an event: the menu was crossed %.0f%% of the "
+			+ "time") % (busy * 100.0))
+	_check(busy > 0.02,
+		"and must actually happen: %.1f%% of the time" % (busy * 100.0))
+	scene.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

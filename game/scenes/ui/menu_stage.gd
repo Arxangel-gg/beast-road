@@ -75,6 +75,7 @@ var _rays: ColorRect = null
 var _rain: CPUParticles2D = null
 var _fires: Array[Sprite2D] = []
 var _fireflies: MenuFireflies = null
+var _elements: MenuElements = null
 var _birds: MenuBirds = null
 var _camp: MenuCamp = null
 var _camp_fire: CampFire = null
@@ -103,6 +104,7 @@ func _ready() -> void:
 	_build_fires()
 	_build_beast()
 	_build_fireflies()
+	_build_elements()
 	_build_birds()
 	_build_camp()
 	_build_rays()
@@ -808,6 +810,14 @@ func _build_fireflies() -> void:
 	add_child(_fireflies)
 
 
+## The elements crossing the valley. See `menu_elements.gd`: one pass every
+## twenty seconds or so and never the same one twice running.
+func _build_elements() -> void:
+	_elements = MenuElements.new()
+	_elements.name = "Elements"
+	add_child(_elements)
+
+
 ## Somebody out there watching the beast.
 ##
 ## **Built late, so it is in front of everything.** The whole vignette depends
@@ -911,6 +921,10 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 	if _fireflies != null:
 		_fireflies.position = Vector2.ZERO
 		_fireflies.resize(span)
+	if _elements != null:
+		_elements.position = Vector2.ZERO
+		_elements.resize(span)
+		_elements.light = _sampled_beast_tint()
 		# Graded to the scene like everything else here, but only in hue: a
 		# firefly is its own light source and must not be dimmed by the dusk it
 		# is lighting. The stage's warm value pulls it slightly toward the

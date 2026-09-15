@@ -58,6 +58,7 @@ var _arcs: MenuArcs = null
 ## Where the joints between segments are, in this node's space, rebuilt
 ## whenever the window changes shape.
 var _joints: PackedVector2Array = PackedVector2Array()
+var _holo: ShaderMaterial = null
 
 
 func _ready() -> void:
@@ -75,6 +76,20 @@ func _ready() -> void:
 	# the lightning is the second half of that idea rather than a patch over
 	# the first: an arc leaps between two joints every second or so, which
 	# gives the border something to be doing.
+	# **And the stone is lit from inside** (owner: "make the frame also
+	# holographic"). What the shader takes from a hologram is its behaviour - a
+	# drifting scan, a rim that catches, a slow instability - and not its
+	# palette, the same call `title_hologram.gdshader` made about the wordmark.
+	# Skipped headless, where the dummy renderer cannot compile a shader and
+	# says so as an error the sweep reads as a failure.
+	if DisplayServer.get_name() != "headless":
+		var holo := ShaderMaterial.new()
+		holo.shader = load("res://scripts/shaders/menu_frame_holo.gdshader")
+		holo.set_shader_parameter("strength", Balance.MENU_FRAME_HOLO)
+		holo.set_shader_parameter("ceiling", Balance.MENU_FRAME_HOLO_CEILING)
+		holo.set_shader_parameter("lines", Balance.MENU_FRAME_HOLO_LINES)
+		material = holo
+		_holo = holo
 	_arcs = MenuArcs.new()
 	_arcs.name = "Arcs"
 	_arcs.spark_every = Balance.MENU_ARC_FRAME_EVERY
@@ -95,6 +110,11 @@ func _process(delta: float) -> void:
 		_drawn_at = -1.0
 		_joints = PackedVector2Array()
 	_wave_left = maxf(_wave_left - delta * Balance.MENU_FRAME_WAVE_FADE, 0.0)
+	# Fed from here rather than read from `TIME` in the shader, so the scan
+	# stops with the menu instead of running under a dialog - the same reason
+	# the wordmark's sheen is driven from `main_menu`.
+	if _holo != null:
+		_holo.set_shader_parameter("clock", _time)
 	# Sampled, not driven. The frame is a few dozen quads and redrawing it every
 	# frame for a sheen nobody is watching closely is the trade `flame.gd`
 	# already lost once.

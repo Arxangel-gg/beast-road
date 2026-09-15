@@ -7701,6 +7701,13 @@ const MENU_FRAME_WAVE_FADE: float = 1.25
 ## band's thickness. A fortieth: enough that the pieces read as set by hand,
 ## never enough to open the joint the ink box just closed.
 const MENU_FRAME_WOBBLE: float = 0.025
+## How lit the carved border is from inside, and the most light that pass may
+## add anywhere. Bounded for the reason every additive pass on this interface
+## is: past about a sixth the carving washes out and the frame stops reading as
+## stone. `menu_frame_check` reads the ceiling off the shader.
+const MENU_FRAME_HOLO: float = 0.5
+const MENU_FRAME_HOLO_CEILING: float = 0.14
+const MENU_FRAME_HOLO_LINES: float = 120.0
 
 ## **Procedural lightning on the menu** (owner, 2026-09-15).
 ##
@@ -7714,6 +7721,18 @@ const MENU_ARC_JAG: float = 0.11
 ## The average gap between arcs along the frame's joints and off the title.
 const MENU_ARC_FRAME_EVERY: float = 1.9
 const MENU_ARC_TITLE_EVERY: float = 1.35
+
+## **How often an element crosses the menu, and for how long.**
+##
+## One pass every twenty seconds or so, lasting four. The temptation with
+## "make the elements flow through the menu" is to run all of them at once, and
+## a screen that busy stops being read at all - the beast the picture is about
+## stops being the thing you are looking at. Rare and short is what makes a pass
+## something a player notices rather than tunes out.
+const MENU_ELEMENT_EVERY: float = 21.0
+const MENU_ELEMENT_SECONDS: float = 4.2
+## How fast the storm's chain hops while one is crossing.
+const MENU_ELEMENT_STORM_EVERY: float = 0.34
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0
