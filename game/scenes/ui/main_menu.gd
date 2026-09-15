@@ -22,6 +22,7 @@ var _leaderboard: CanvasLayer
 var _coop: CanvasLayer
 var _chronicle: CanvasLayer
 var _codex: CanvasLayer
+var _frame: MenuFrame = null
 ## The Hold: the room the stash, the Ledger, the Chronicle, the codex and the
 ## board moved into (owner ruling, 2026-09-11). See `HubScreen`.
 var _hub: HubScreen
@@ -166,6 +167,7 @@ func _ready() -> void:
 	stats_label.text = _summary()
 	new_run_button.grab_focus()
 	_setup_stage()
+	_setup_frame()
 	# Again, now that the lines this lays out exist.
 	_fit_menu.call_deferred()
 
@@ -253,6 +255,49 @@ func _setup_stage() -> void:
 	# and the statistics line and over nothing else.
 	art.add_sibling(stage)
 	move_child(stage, art.get_index() + 1)
+
+
+## The carved border, on its own layer over everything and reading nothing.
+##
+## Owner, 2026-09-15: a frame that is "gorgeous and maybe even has lively
+## animated elements with awesome game juice and even reactiveness". See
+## `menu_frame.gd` for what is in it; this is where it is hung and where it is
+## told what the player just did.
+##
+## **A layer of its own, with input ignored.** The frame sits over the buttons
+## rather than under them - it is the edge of the screen, and an interface
+## element that could pass in front of it would break the illusion that the
+## picture is inside something. That only works because it cannot take a press:
+## a decoration that swallowed TAKE THE ROAD is the worst trade in the project.
+func _setup_frame() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "FrameLayer"
+	layer.layer = 6
+	add_child(layer)
+	_frame = MenuFrame.new()
+	_frame.name = "Frame"
+	_frame.light = _menu_light()
+	layer.add_child(_frame)
+	_wire_frame_to(self)
+
+
+## Every button on the menu tells the frame where it was pressed.
+##
+## Walked rather than listed, because this screen builds several of its buttons
+## conditionally - the stash only appears once there is something in it - and a
+## hand-kept list is a button that quietly stops answering.
+func _wire_frame_to(from: Node) -> void:
+	for child: Node in from.get_children():
+		var button := child as BaseButton
+		if button != null and not button.button_down.is_connected(_on_frame_touched):
+			button.button_down.connect(_on_frame_touched.bind(button))
+		_wire_frame_to(child)
+
+
+func _on_frame_touched(button: Control) -> void:
+	if _frame == null or not is_instance_valid(button):
+		return
+	_frame.pulse_at(button.get_global_rect().get_center())
 
 
 ## The stash, reached from the menu rather than from a run.

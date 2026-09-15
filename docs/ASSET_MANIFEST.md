@@ -3312,6 +3312,8 @@ symmetrical about its own axis, so nothing moves to the wrong side.
 | `menu_prop_tent.png` | 96x64 | T | `#2A2730` |
 | `menu_prop_totem.png` | 48x80 | T | `#2A2730` |
 | `menu_prop_woodpile.png` | 64x48 | T | `#2A2730` |
+| `menu_frame_corner.png` | 128x128 | T | `#2A2730` |
+| `menu_frame_edge.png` | 96x32 | T | `#2A2730` |
 | `menu_warden_stand_idle_01.png` | 71x78 | T | `#2A2730` |
 | `menu_warden_stand_idle_02.png` | 71x78 | T | `#2A2730` |
 | `menu_warden_stand_idle_03.png` | 71x78 | T | `#2A2730` |

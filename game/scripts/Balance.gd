@@ -7654,6 +7654,34 @@ const MENU_CAMP_PROPS_MAX: int = 3
 ## How much of the firelight a prop standing right beside the fire takes. Less
 ## than the rider, who is *on* something burning.
 const MENU_CAMP_PROP_FIRELIGHT: float = 0.55
+
+# --- The carved frame round the menu -----------------------------------------
+#
+# Owner, 2026-09-15: a frame that is "gorgeous and maybe even has lively
+# animated elements with awesome game juice and even reactiveness". Every number
+# here is bounded the way `UiJuice`'s are: the frame may only ever *add* light,
+# so no value of any of these can swallow the edge of a dark backdrop.
+
+## How dark the carved stone is against the scene's own light. Darker than the
+## interface it surrounds, because a frame that competes with the buttons for
+## attention is a frame in the way.
+const MENU_FRAME_SHADE: float = 0.62
+## How often it is redrawn. Sampled rather than driven - see `flame.gd`.
+const MENU_FRAME_HZ: float = 24.0
+## How much the corner brackets swell on their own slow clock. A hundredth: the
+## vines carved on them should breathe, and a seam at the joint must not open.
+const MENU_FRAME_BREATH: float = 0.012
+## One quiet pass of light round the perimeter: how bright, how wide as a share
+## of the whole way round, and how long a lap takes.
+const MENU_FRAME_SHEEN: float = 0.22
+const MENU_FRAME_SHEEN_WIDTH: float = 0.10
+const MENU_FRAME_SHEEN_SECONDS: float = 26.0
+## The answer to a press: how bright the wave is where it leaves, how far round
+## the frame it reaches, and how fast it dies. Brighter than the sheen and gone
+## inside a second, because it is a reply rather than an ambience.
+const MENU_FRAME_WAVE: float = 0.42
+const MENU_FRAME_WAVE_REACH: float = 0.55
+const MENU_FRAME_WAVE_FADE: float = 1.25
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0

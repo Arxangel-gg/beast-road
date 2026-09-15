@@ -603,6 +603,11 @@ jobs:
           # topmost blade of grass, clear of the interface, and different
           # every visit.
           check "menu camp" --headless --path game res://tools/menu_camp_check.tscn
+          # The carved border round the menu: it covers every button on the
+          # screen and must never be able to take a press, it may only ever add
+          # light, its sheen travels rather than the whole frame brightening,
+          # and a press is answered at the edge it landed near.
+          check "menu frame" --headless --path game res://tools/menu_frame_check.tscn
           # The walk can see what the earth is doing to the town: every
           # disaster reaches the road, the readout changes nothing, nothing
           # stays on screen for ever, and a quake moves Yuri and not only the
