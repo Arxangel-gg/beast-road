@@ -77,10 +77,7 @@ var _omens: BeastOmens = null
 ## behind the body from the rear hip. Its frames run on the body's own gait
 ## phase while walking - the two are one animal - and on their own slow clock
 ## at rest.
-var _tail: Sprite2D = null
-var _tail_walk: Array[Texture2D] = []
-var _tail_idle: Array[Texture2D] = []
-var _tail_clock: float = 0.0
+var _tail: BeastTailSpline = null
 ## The far woods and the near brush: the region's own trees and plants,
 ## scattered once a period and slid past at their own rates.
 var _woods: ParallaxScatter = null
@@ -379,14 +376,19 @@ func _frame_series(format: String) -> Array[Texture2D]:
 ## The tail: loaded by the same convention as the body, attached at the rear
 ## hip, and absent without complaint when the frames are not there.
 func _load_tail() -> void:
-	_tail_walk = _frame_series(Balance.BEAST_TAIL_WALK_FRAME_FORMAT)
-	_tail_idle = _frame_series(Balance.BEAST_TAIL_IDLE_FRAME_FORMAT)
-	if beast == null or (_tail_walk.is_empty() and _tail_idle.is_empty()):
+	var frames: Array[Texture2D] = _frame_series(Balance.BEAST_TAIL_IDLE_FRAME_FORMAT)
+	if frames.is_empty():
+		frames = _frame_series(Balance.BEAST_TAIL_WALK_FRAME_FORMAT)
+	if beast == null or frames.is_empty():
 		return
-	_tail = Sprite2D.new()
+	# **A spline rather than a sprite** (owner, 2026-09-15). See
+	# `beast_tail_spline.gd`: the painting is cut into slices and laid along a
+	# chain whose first point is the body's own stub row, so the join cannot
+	# come apart on any frame of the gait, and the limb whips rather than
+	# cycling through six drawings of itself.
+	_tail = BeastTailSpline.new()
 	_tail.name = "Tail"
-	_tail.texture = _tail_walk[0] if not _tail_walk.is_empty() else _tail_idle[0]
-	_tail.centered = true
+	_tail.adopt(frames[0])
 	# **The tail carries no material and is never scaled to fit.** It is drawn
 	# whole and placed; the beast's own stub is the end that dissolves into it.
 	# See `beast_stub_fade.gdshader` (owner's correction, 2026-09-13).
@@ -394,11 +396,8 @@ func _load_tail() -> void:
 	fade.shader = load("res://scripts/shaders/beast_stub_fade.gdshader")
 	fade.set_shader_parameter("fade_px", Balance.BEAST_STUB_FADE_PX)
 	beast.material = fade
-	# The root of the tail sits on the anchor: the art's root fraction decides
-	# where in the tail image that is.
-	var size: Vector2 = _tail.texture.get_size()
-	_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
-		size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
+	# The spline puts its own root on its origin, so the node simply goes where
+	# the body's stub is - see `_place_tail`.
 	_tail.position = Balance.BEAST_TAIL_ANCHOR
 	# **The tail was drawn darker than the hide it grows out of.** `modulate`
 	# is inherited from the beast, so the day tint and the environment grade
@@ -411,22 +410,17 @@ func _load_tail() -> void:
 	beast.add_child(_tail)
 
 
-## The tail's frame: on the gait while walking, on its own clock at rest.
-func _drive_tail(delta: float, walking: bool) -> void:
+## What the tail is doing: harder on the march, and leaning with the weather.
+##
+## **The wind is the road's own**, not a second copy of it: `RunState.wind` is
+## what the foliage and the wildfire read, so the beast's tail and the plants
+## beside the road lean the same way at the same moment.
+func _drive_tail(_delta: float, walking: bool) -> void:
 	if _tail == null:
 		return
-	var series: Array[Texture2D] = _tail_walk if walking else _tail_idle
-	if series.is_empty():
-		series = _tail_idle if walking else _tail_walk
-	if series.is_empty():
-		return
-	var index: int = 0
-	if walking and not _tail_walk.is_empty():
-		index = int(floor(_bob / TAU * float(series.size()))) % series.size()
-	else:
-		_tail_clock += delta * Balance.BEAST_TAIL_IDLE_FRAME_RATE
-		index = int(floor(_tail_clock)) % series.size()
-	_tail.texture = series[maxi(index, 0)]
+	_tail.sway = Balance.BEAST_TAIL_WALK_SWAY if walking else 1.0
+	_tail.wind = clampf(RunState.wind.x, -1.0, 1.0)
+	_place_tail()
 
 
 ## The act track, on its own layer so the scope's camera never moves it.

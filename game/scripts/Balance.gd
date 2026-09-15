@@ -6520,6 +6520,21 @@ const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 
+## **How hard the tail whips**, as an angle accumulated down its own length.
+##
+## The deviation is divided by the number of segments and multiplied by how far
+## along the limb it is, so the root barely turns and the tip is the sum of
+## every turn before it. This number is the whole amplitude: at 2.6 the tip
+## travels about a sixth of the tail's length, which is a living limb; past
+## about four it reads as a rope being shaken.
+const BEAST_TAIL_WHIP: float = 1.6
+## How often the spline is redrawn. Twenty-four slices is forty quads and a
+## sampled redraw is what `flame.gd` cost this project to learn.
+const BEAST_TAIL_HZ: float = 30.0
+## How much harder the tail works on the march than at rest. A walking beast
+## swings its tail; a standing one lets it hang and breathe.
+const BEAST_TAIL_WALK_SWAY: float = 1.9
+
 ## **How far up the tail is nudged from where the stub row puts it.**
 ##
 ## The stub row is read off the body frame's own pixels and is exactly right

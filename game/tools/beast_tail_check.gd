@@ -48,6 +48,7 @@ func _ready() -> void:
 	_test_the_tail_wears_the_hide()
 	_test_the_tail_is_lit_where_it_hangs()
 	_test_the_tail_is_graded_by_the_body()
+	_test_the_spline_is_anchored_and_alive()
 	_test_the_tail_is_drawn_in_the_same_ink()
 	MetaState.resume_saves()
 	if _failures.is_empty():
@@ -93,6 +94,88 @@ func _test_the_tail_is_graded_by_the_body() -> void:
 		_check(not code.contains("_tail.self_modulate"),
 			("%s sets self_modulate on the tail, which lands on top of the body's "
 				+ "own grade rather than with it") % screen)
+
+
+
+
+## **The spline is anchored at the body and alive at the tip.**
+##
+## Owner's idea, 2026-09-15: "make the tail a spline animated procedural
+## solution". Four things have to be true of it and none of them can be seen in
+## a screenshot of one frame.
+##
+## **Its first point never moves.** That is the whole reason the spline exists -
+## every report about this tail since it was built has been about a placement,
+## and a limb whose root is the body's own stub row has no placement to get
+## wrong. Checked at many instants and with the wind hard over, because a root
+## that only holds still in calm air is not an anchor.
+##
+## **At rest it is the painting.** The art is not straightened or redrawn; it is
+## sliced and laid along a chain that, with no sway, *is* the centreline
+## measured off the painting. If that were not exact the tail would look
+## different from the day it was drawn, and every judgement made about its
+## colour would have been made about something else.
+##
+## **The tip travels and the root does not**, which is what a hanging limb
+## does, and **the motion never repeats**, which is the same claim the menu
+## foliage is held to and for the same reason: a loop a player can catch is
+## worse than no motion.
+func _test_the_spline_is_anchored_and_alive() -> void:
+	var painting: Texture2D = load("res://art/beast/beast_tail_idle_00.png") as Texture2D
+	if painting == null:
+		_check(false, "the spline needs the tail painting")
+		return
+	var limb := BeastTailSpline.new()
+	add_child(limb)
+	limb.adopt(painting)
+
+	# At rest, the chain is the painting's own centreline, walked backwards.
+	limb.sway = 0.0
+	limb.wind = 0.0
+	var rest: PackedVector2Array = limb.chain()
+	_check(rest.size() >= 8, "the chain must have segments: %d" % rest.size())
+	_check(limb.tip_drift() < 0.01,
+		"at rest the tip must be exactly where the painting puts it: %.3f off"
+			% limb.tip_drift())
+
+	# The root holds, whatever the wind is doing.
+	var anchor: Vector2 = rest[0] if rest.size() > 0 else Vector2.ZERO
+	var worst_root: float = 0.0
+	var travelled: float = 0.0
+	var poses: Array[Vector2] = []
+	for step: int in 30:
+		limb.advance(0.31)
+		limb.sway = 1.0
+		limb.wind = 1.0 if step % 2 == 0 else -1.0
+		var now: PackedVector2Array = limb.chain()
+		if now.is_empty():
+			continue
+		worst_root = maxf(worst_root, now[0].distance_to(anchor))
+		travelled = maxf(travelled, limb.tip_drift())
+		poses.append(now[now.size() - 1])
+	_check(worst_root < 0.01,
+		"the root must never move, and moved %.3f" % worst_root)
+	_check(travelled > 4.0,
+		"the tip must actually travel: %.2f pixels at its furthest" % travelled)
+	_check(travelled < float(painting.get_width()) * 0.5,
+		("and not be flung: %.2f pixels on a %d-wide painting - lower "
+			+ "BEAST_TAIL_WHIP") % [travelled, painting.get_width()])
+
+	# No period. Two poses far apart in time must differ, the same claim the
+	# menu foliage is held to.
+	var same: int = 0
+	for one: int in poses.size():
+		for two: int in range(one + 6, poses.size()):
+			if poses[one].distance_to(poses[two]) < 0.5:
+				same += 1
+	_check(same <= 2,
+		"the sway must not repeat: %d pairs of distant poses are the same" % same)
+
+	# And nothing on it may take the grading off it.
+	_check(limb.material == null,
+		"the spline must carry no material: a shader here throws away the "
+			+ "modulate the beast is graded with")
+	limb.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

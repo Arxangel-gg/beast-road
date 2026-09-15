@@ -59,8 +59,7 @@ var _backdrop: TextureRect = null
 var _beast: Sprite2D = null
 ## The drawn corners: two hanging vines and two ferns.
 var _foliage: Array[MenuFoliage] = []
-var _tail: Sprite2D = null
-var _tail_frames: Array[Texture2D] = []
+var _tail: BeastTailSpline = null
 var _shadow: Sprite2D = null
 var _baseline: int = 0
 var _mist: Array[ColorRect] = []
@@ -327,20 +326,22 @@ func _build_beast() -> void:
 	add_child(_beast)
 	# The tail, rooted on the frame's own stub and drawn behind the body
 	# (owner brief, 2026-09-12: the menu's Yuri had none).
-	_tail_frames = _series("res://art/beast/beast_tail_idle_%02d.png")
-	if not _tail_frames.is_empty():
-		_tail = Sprite2D.new()
+	# **A spline rather than a sprite** (owner, 2026-09-15). See
+	# `beast_tail_spline.gd`: the limb is the painting cut into slices and laid
+	# along a chain whose first point is the body's own stub row, so the join
+	# cannot come apart and the tail is alive rather than placed.
+	var painting: Texture2D = _load("res://art/beast/beast_tail_idle_00.png")
+	if painting == null:
+		painting = _load("res://art/beast/beast_tail.png")
+	if painting != null:
+		_tail = BeastTailSpline.new()
 		_tail.name = "Tail"
-		_tail.texture = _tail_frames[0]
-		_tail.centered = true
 		_tail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_tail.adopt(painting)
 		# **No material on the tail.** It is drawn whole and simply placed; the
 		# beast's own stub is what dissolves into it (`_fade_the_stub`). A
 		# shader here also cost the tail the scene tint, because assigning to
 		# COLOR throws the inherited modulate away.
-		var size: Vector2 = _tail.texture.get_size()
-		_tail.offset = Vector2(size.x * (0.5 - Balance.BEAST_TAIL_ROOT.x),
-			size.y * (0.5 - Balance.BEAST_TAIL_ROOT.y))
 		_tail.show_behind_parent = true
 		_beast.add_child(_tail)
 		_place_menu_tail()
@@ -692,10 +693,11 @@ func _place_menu_tail() -> void:
 		cut * 0.5 - Balance.BEAST_TAIL_LIFT)
 
 
+## **The spline moves itself**; this only keeps its root on the body, because
+## the body's own stub row changes with the frame of the idle.
 func _drive_menu_tail() -> void:
-	if _tail == null or _tail_frames.is_empty():
+	if _tail == null:
 		return
-	_tail.texture = _tail_frames[int(floor(_time * Balance.BEAST_TAIL_IDLE_FRAME_RATE)) % _tail_frames.size()]
 	_place_menu_tail()
 
 
