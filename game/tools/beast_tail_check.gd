@@ -47,6 +47,7 @@ func _ready() -> void:
 	_test_the_stub_fades_and_the_tail_does_not()
 	_test_the_tail_wears_the_hide()
 	_test_the_tail_is_lit_where_it_hangs()
+	_test_the_tail_is_graded_by_the_body()
 	_test_the_tail_is_drawn_in_the_same_ink()
 	MetaState.resume_saves()
 	if _failures.is_empty():
@@ -56,6 +57,42 @@ func _ready() -> void:
 		for failure: String in _failures:
 			push_error("[beast-tail] " + failure)
 	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+
+
+
+## **Whatever is done to the body happens to the tail, by construction.**
+##
+## Owner, 2026-09-15: "ensure you do whatever the colour grading and tinting you
+## applied to the beast body to also happen to the tail end attachment". It
+## already does, and the mechanism is the only reason: the tail is a *child* of
+## the beast sprite, so Godot multiplies the body's `modulate` into it - the
+## menu's sampled backdrop tint, the scope's ground tint, the day's colour, all
+## of it, without either screen having to remember the tail exists.
+##
+## That is a load-bearing piece of tree shape and nothing was holding it. A tail
+## re-parented to the scope to fix a sorting problem would keep drawing in the
+## right place and quietly stop being graded, which is a fault nobody would
+## connect to the change that caused it.
+##
+## Three ways the chain breaks, all of them one line of somebody's refactor:
+## the tail parented somewhere else, a `self_modulate` on it (which multiplies
+## on top of a grade the body never asked for), or a material (which is *not*
+## inherited, so anything the body's shader does the tail would not).
+func _test_the_tail_is_graded_by_the_body() -> void:
+	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
+		var file := FileAccess.open(screen, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % screen)
+			continue
+		var code: String = file.get_as_text()
+		var body: String = "_beast" if screen.contains("menu_stage") else "beast"
+		_check(code.contains("%s.add_child(_tail)" % body),
+			("%s must hang the tail off the beast sprite: that parenthood is how "
+				+ "every tint the body is given reaches it") % screen)
+		_check(not code.contains("_tail.self_modulate"),
+			("%s sets self_modulate on the tail, which lands on top of the body's "
+				+ "own grade rather than with it") % screen)
 
 
 func _check(condition: bool, why: String) -> void:

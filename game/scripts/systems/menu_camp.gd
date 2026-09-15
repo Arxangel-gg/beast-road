@@ -53,6 +53,13 @@ static var _looked: bool = false
 ## the stage from its own sky, and **floored**: see `graded_for`.
 var shade: Color = Color(0.22, 0.21, 0.26, 1.0)
 var firelight: Color = Color(1.0, 0.72, 0.36, 1.0)
+## How bright the camp's own fire is at this instant, pushed in by the stage
+## from `CampFire.flicker`. One is the fire at full; it never reaches zero.
+##
+## Read only where the *firelight* reaches - the ember shade and the lantern -
+## and never by the grading of rock the fire is not on. A whole cliff
+## brightening in time with a campfire is a stage light, not a fire.
+var fire_pulse: float = 1.0
 
 var _span: Vector2 = Vector2(1920.0, 1080.0)
 var _time: float = 0.0
@@ -397,4 +404,8 @@ static func graded_for(ground: Color, firelight: Color) -> Color:
 ## cloak are supposed to take. The same distinction the fireflies are drawn
 ## under - a light source is not lit by the scene.
 func _emberish(dark: Color) -> Color:
-	return dark.lerp(firelight, Balance.MENU_CAMP_EMBER_KEEP)
+	# The pulse rides on how *much* firelight is kept rather than on the
+	# colour, so a dim moment pulls the figure back toward its own shade
+	# instead of turning the fire brown.
+	return dark.lerp(firelight,
+		Balance.MENU_CAMP_EMBER_KEEP * clampf(fire_pulse, 0.6, 1.15))

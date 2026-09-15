@@ -6534,7 +6534,7 @@ const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 ## screen. `beast_tail_check` bounds it: a lift larger than the fade the stub
 ## dissolves over would pull the tail clear of the join it is supposed to hide
 ## inside.
-const BEAST_TAIL_LIFT: float = 5.0
+const BEAST_TAIL_LIFT: float = 12.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
 # --- What the earth is doing, seen from the road (owner brief, 2026-09-15) ---
 #
@@ -7640,6 +7640,12 @@ const CAMP_PROP_SCALE: Dictionary = {"tent": 1.55, "cage": 1.25, "palisade": 1.1
 ## The fire's light: colour, reach, and how hard it breathes.
 const CAMP_FIRE_LIGHT: Color = Color(1.0, 0.64, 0.3, 0.6)
 const CAMP_FIRE_LIGHT_RADIUS: float = 190.0
+## How far the menu's showpiece fires throw their glow, as a share of a
+## camp fire's. The gate braziers are far away and behind an arch; the
+## camp is in the foreground and is the thing the corner is built around,
+## so it throws further than a real one would.
+const MENU_GATE_FIRE_GLOW: float = 0.72
+const MENU_CAMP_FIRE_GLOW: float = 1.25
 const CAMP_FIRE_FRAME_RATE: float = 8.0
 ## The respawn marker over a razed camp: radius of its ring and its colours.
 const CAMP_MARKER_RADIUS: float = 26.0
@@ -7866,7 +7872,7 @@ const ROW_RULE_HEIGHT: float = 1.0
 ## `BEAST_TAIL_OVERLAP` is then only how far the tail's root is tucked under the
 ## body, and its one job is to be longer than the fade so there is solid tail
 ## behind every dissolving pixel. Nothing is stretched to make the two meet.
-const BEAST_TAIL_OVERLAP: float = 28.0
+const BEAST_TAIL_OVERLAP: float = 22.0
 const BEAST_STUB_FADE_PX: float = 22.0
 
 

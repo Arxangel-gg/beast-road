@@ -778,6 +778,11 @@ func _build_fires() -> void:
 		fire.texture = load(art)
 		fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(fire)
+		# **A fire nobody is fighting beside is a fire somebody looks at.**
+		# Owner, 2026-09-15: the menu's fires want glow that flickers, shafts,
+		# embers and light on the ground under them. `make_showpiece` is opt-in
+		# for exactly this reason - a battlefield burns dozens of these.
+		fire.make_showpiece(Balance.MENU_GATE_FIRE_GLOW)
 		_fires.append(fire)
 
 
@@ -819,6 +824,7 @@ func _build_camp() -> void:
 		_camp_fire.name = "CampFlame"
 		_camp_fire.texture = load(art)
 		_camp_fire.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_camp_fire.make_showpiece(Balance.MENU_CAMP_FIRE_GLOW)
 		add_child(_camp_fire)
 
 
@@ -922,6 +928,12 @@ func _drive_weather(span: Vector2, backdrop_drift: Vector2) -> void:
 		_camp.firelight = Color(1.0, 0.72, 0.36).lerp(stage_light(), 0.2)
 		_camp.shade = MenuCamp.graded_for(low, _camp.firelight)
 		if _camp_fire != null:
+			# **What the fire lights agrees with the fire.** The camp grades its
+			# rock, its cloak and its rider toward the firelight; read as a
+			# constant that is a painted highlight rather than a light, and a
+			# flame flickering beside a figure lit at a fixed level is the thing
+			# that reads as artificial in the wrong way.
+			_camp.fire_pulse = _camp_fire.flicker()
 			var where: Vector2 = _camp.fire_at()
 			_camp_fire.visible = where != Vector2.ZERO
 			_camp_fire.position = where
