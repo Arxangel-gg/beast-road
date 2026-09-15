@@ -213,6 +213,13 @@ func _kept_lines(kept: Dictionary, victory: bool) -> PackedStringArray:
 	var spirits: int = int(round(float(kept.get("spirits", 0.0))))
 	if spirits > 0:
 		parts.append("%d spirit%s bonded" % [spirits, "" if spirits == 1 else "s"])
+	# **Eggs, said separately from the spirits they became.** An imprint writes
+	# the same bond a hundred sightings would, and a line that only said
+	# "1 spirit bonded" would hide the fact that the player carried it home
+	# through a species that wanted it back.
+	var eggs: int = int(round(float(kept.get("eggs", 0.0))))
+	if eggs > 0:
+		parts.append("%d egg%s carried home" % [eggs, "" if eggs == 1 else "s"])
 	var harvests: int = int(round(float(kept.get("harvests", 0.0))))
 	if harvests > 0:
 		parts.append("%d harvest%s" % [harvests, "" if harvests == 1 else "s"])

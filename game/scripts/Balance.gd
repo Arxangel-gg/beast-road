@@ -3260,6 +3260,15 @@ const TRAIL_PLACEMENT_TRIES: int = 60
 ## standing still must hatch nothing, or a nest is a thing to farm by waiting.
 ## About a sixth of an act, so a clutch laid early in a region opens inside it
 ## and one laid late travels with the party. [TUNE]
+## **How many eggs a Warden may carry home.**
+##
+## Small on purpose. An egg that reaches home bonds its variant outright, which
+## is a real shortcut past the sightings a bond usually asks for - so what stops
+## nest-robbing from being the fastest way to fill a collection is that you may
+## only take a few, and that everything you took has to survive the road with
+## you. [TUNE]
+const EGGS_CARRIED_MAX: int = 4
+
 const NEST_INCUBATION_DISTANCE: float = 95.0
 ## How near a hero has to be to reach into one, and how big it is drawn.
 const NEST_REACH: float = 120.0

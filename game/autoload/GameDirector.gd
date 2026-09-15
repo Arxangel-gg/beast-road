@@ -317,6 +317,39 @@ func return_home() -> void:
 	_settle_run(false, true)
 
 
+## The eggs in the pack, opened at home.
+##
+## **Only on a road that ended well.** A run that fell loses what it was
+## carrying, which is what makes taking an egg a decision rather than a pickup -
+## and it is the same shape as the homecoming pass, where pushing on risks the
+## Marks a return would have banked.
+##
+## Each one writes the bond every sighting would eventually have written, and
+## nothing else: no level, no stat, no second kind of spirit. Working rule 7 is
+## exactly where it was.
+func _hatch_what_was_carried(home: bool) -> Array[String]:
+	var hatched: Array[String] = []
+	if not home:
+		RunState.carried_eggs.clear()
+		return hatched
+	for egg: Dictionary in RunState.carried_eggs:
+		var species: String = String(egg.get("species", ""))
+		var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
+		if kind == null:
+			continue
+		var rarity: int = int(egg.get("rarity", 0))
+		var shiny: bool = bool(egg.get("shiny", false))
+		# The temperament of the animal you raised, decided from the run rather
+		# than rolled fresh - so two eggs from one clutch are two animals.
+		var serial: int = absi(RunState.run_seed ^ hash(species + str(hatched.size())))
+		var temperament: SpiritTraitData = SpiritBond.trait_for(species, serial)
+		if MetaState.bond_from_egg(species, rarity, shiny,
+				"" if temperament == null else temperament.id):
+			hatched.append(SpiritBond.key(species, rarity, shiny))
+	RunState.carried_eggs.clear()
+	return hatched
+
+
 func _settle_run(victory: bool, returned: bool = false) -> void:
 	if not run_active:
 		return
@@ -328,9 +361,15 @@ func _settle_run(victory: bool, returned: bool = false) -> void:
 		Chronicle.publish_progress(victory, true)
 		EventBus.coop_run_ended.emit(victory, returned)
 
+	# **What was carried home, before the summary is built**, so the debrief can
+	# say what hatched. A fall reaches here too and hatches nothing: the eggs go
+	# with the run, which is the whole price of having taken them.
+	var hatched: Array[String] = _hatch_what_was_carried(victory or returned)
+
 	var summary: Dictionary = {
 		"victory": victory,
 		"returned": returned,
+		"hatched": hatched,
 		"seed": RunState.run_seed,
 		"roads": RunState.road_history.duplicate(true),
 		"distance": RunState.distance_travelled,

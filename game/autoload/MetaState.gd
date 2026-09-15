@@ -1816,6 +1816,33 @@ func _unique_string_array(value: Variant) -> Array[String]:
 ## is the animal you actually took - meeting nine foxes and bonding the tenth
 ## gives you the tenth one's temperament, which is the one you were standing next
 ## to when it agreed to come.
+## A bond made by raising one rather than by meeting many.
+##
+## **The same entry, reached another way.** An imprint writes the key every
+## sighting eventually would; it does not write a level, a stat or a second
+## kind of spirit, so working rule 7 is exactly where it was and a raised
+## companion is no stronger than a met one. What the egg bought is the *time*,
+## and it was paid for by carrying it home through a species that wanted it
+## back.
+##
+## Returns true when this is a bond the account did not already have.
+func bond_from_egg(species_id: String, rarity: int, shiny: bool,
+		trait_id: String = "") -> bool:
+	if species_id.is_empty():
+		return false
+	var key: String = SpiritBond.key(species_id, rarity, shiny)
+	# The sighting is recorded either way: an egg is an encounter with the
+	# animal, and the journal should say so even when the bond already stood.
+	spirit_encounters[key] = int(spirit_encounters.get(key, 0)) + 1
+	if spirit_bonded.has(key):
+		save_game()
+		return false
+	spirit_bonded[key] = trait_id
+	RunState.note_kept("spirits", 1.0)
+	save_game()
+	return true
+
+
 func record_spirit_encounter(species_id: String, rarity: int, shiny: bool,
 		trait_id: String = "") -> Dictionary:
 	var result: Dictionary = {"keys": [], "discovered": [], "bonded": []}

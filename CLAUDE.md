@@ -2979,6 +2979,24 @@ parent wants the people who robbed it.
   grudge is forgotten when the act changes - a species angered in Act I hunting
   the party in Act X would be a difficulty setting picked up by accident.
 
+**And an egg is carried home rather than banked, as of the same date** - which
+is the imprinted-companion half of the owner's brief. `RunState.carried_eggs`
+holds up to `EGGS_CARRIED_MAX`; reaching home, by the pass or by the summit,
+opens them and each bonds its variant **outright**. A run that falls loses them.
+
+**That is a real shortcut and it is paid for in the open.** A bond normally
+wants many sightings; an egg writes the key in one. What it costs is the road
+home, a species hunting the party for the act, and a pack that holds four - and
+the ecology itself bounds the rest, because a Legendary clutch needs Legendary
+parents and a shiny one needs shiny parents.
+
+**`MetaState.bond_from_egg` writes the key a sighting eventually would and
+nothing else** - no level, no stat, no second kind of spirit - so working rule 7
+is exactly where it was and a raised companion is no stronger than a met one.
+The pack is personal, like a caught fish and a craft's practice: it is one
+machine's list, never relayed, so one player's theft cannot fill another's
+journal.
+
 **Co-op needs three wire entries and they are all "by name, never by amount".**
 A clutch crosses as a species, a count and a place (`Fact.WILDLIFE_NESTED`);
 what the eggs *become* is the host's decision and arrives later as an ordinary

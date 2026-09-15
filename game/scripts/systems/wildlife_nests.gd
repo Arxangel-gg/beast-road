@@ -202,6 +202,14 @@ func _rob(index: int, who: Node2D) -> void:
 	Vfx.spark(nest["at"] as Vector2, Color(0.95, 0.92, 0.80), 8, Vector2.UP, 140.0)
 	Sfx.play("sfx_ui_confirm", -5.0)
 	RunState.note_kept("eggs", 1.0)
+	# **And it goes in the pack.** An egg that reaches home bonds its variant
+	# outright; a run that falls loses it. That is the proposal's steal-and-be-
+	# hunted beat in this game's grammar - the price is the road home rather
+	# than a sprint to an extraction point.
+	if not RunState.carry_egg(kind.id, int(egg.get("rarity", kind.rarity)),
+			bool(egg.get("shiny", false))):
+		EventBus.sky_warned.emit(
+			"There is no room left in the pack for another egg.", "Full")
 	# **And the parents come for you.** Not a number: the species decides to
 	# fight, for the rest of the act, and its own bite is what it fights with.
 	_robbed[kind.id] = true

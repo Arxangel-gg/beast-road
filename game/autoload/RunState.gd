@@ -637,6 +637,7 @@ func reset(use_treasury_cache: bool = false, requested_seed: int = 0) -> void:
 	kept.clear()
 	earth_events.clear()
 	seeds.clear()
+	carried_eggs.clear()
 	companion_sex.clear()
 	chronicle_host_progress.clear()
 	hero_deaths = 0
@@ -1776,11 +1777,38 @@ var seeds: Dictionary = {}
 ## a companion, re-equipping it or reconnecting all read the same answer. Run
 ## scoped on purpose: working rule 7 is untouched, and a sex banked on the
 ## account would be one more thing `MetaState` writes for no gain.
+## **The eggs this Warden is carrying**, each `{species, rarity, shiny}`.
+##
+## Owner brief, 2026-09-15: imprinted living companions. An egg taken from a
+## nest is carried rather than banked, and reaching home with one bonds that
+## variant outright - which is the translation `IDEAS_REVIEW_2026-09-15` argued
+## for, the proposal's steal-and-be-hunted beat written in this game's own
+## grammar rather than an extraction shooter's.
+##
+## **Run scoped, and personal.** Nothing persists - working rule 7 is untouched,
+## because what an egg finally becomes is a *bond*, which the account already
+## keeps. And each Warden carries their own: this is one machine's list, never
+## relayed, exactly as a caught fish and a craft's practice are that player's.
+## A run that falls loses them, which is the whole of the price.
+var carried_eggs: Array[Dictionary] = []
+
 var companion_sex: Dictionary = {}
 ## What the earth did this run, by kind - strikes, quakes, tornadoes, meteors,
 ## wildfires - counted where each is *seen*, so a guest's debrief agrees with
 ## the host's. Cleared with the run.
 var earth_events: Dictionary = {}
+
+
+## One egg into the pack.
+##
+## Capped, because a pack with forty eggs in it is a farm rather than a
+## decision - and the cap is what keeps a single act of nest-robbing from being
+## the fastest way to fill a collection.
+func carry_egg(species_id: String, rarity: int, shiny: bool) -> bool:
+	if species_id.is_empty() or carried_eggs.size() >= Balance.EGGS_CARRIED_MAX:
+		return false
+	carried_eggs.append({"species": species_id, "rarity": rarity, "shiny": shiny})
+	return true
 
 
 func note_kept(key: String, amount: float = 1.0) -> void:

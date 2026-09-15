@@ -32,11 +32,13 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	_test_the_content_is_authored()
 	await _test_a_nest_is_laid_hatched_and_robbed()
+	_test_an_egg_carried_home_bonds_and_a_fall_loses_it()
 	MetaState.resume_saves()
 	if _failures == 0:
 		print(("[nesting] PASS - %d checks: a clutch is rolled once, hatches on "
-			+ "road rather than on the clock, pays a meal and a sighting, and "
-			+ "costs a species that comes for you") % _checks)
+			+ "road rather than on the clock, pays a meal and a sighting, costs "
+			+ "a species that comes for you, and bonds only what got home")
+			% _checks)
 	else:
 		push_error("[nesting] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
@@ -155,6 +157,66 @@ func _test_a_nest_is_laid_hatched_and_robbed() -> void:
 	for _frame: int in 12:
 		await get_tree().process_frame
 
+
+
+## **An egg is a decision, and the price is the road home.**
+##
+## Owner brief, 2026-09-15: imprinted living companions. Reaching home with an
+## egg bonds that variant outright; a run that falls loses what it was carrying.
+## Four ways that goes wrong:
+##
+## - **The pack is bottomless.** Then one act of nest-robbing fills a
+##   collection, and the sightings every other bond asks for mean nothing.
+## - **A fall keeps them.** Then there is no price and the decision is not one.
+## - **An imprint writes more than a bond.** It must write the key a sighting
+##   eventually would and *nothing else* - no level, no stat, no second kind of
+##   spirit - or the collection becomes a power scale nobody is tuning.
+## - **It is not personal.** Each Warden carries their own, like their own fish
+##   and their own practice; a shared pack would mean one player's theft filling
+##   another's journal.
+func _test_an_egg_carried_home_bonds_and_a_fall_loses_it() -> void:
+	var kind: WildlifeData = null
+	for value: Variant in ContentDB.wildlife_kinds.values():
+		var candidate := value as WildlifeData
+		if candidate != null and candidate.lays_eggs:
+			kind = candidate
+			break
+	if kind == null:
+		_check(false, "the gate needs a laying species")
+		return
+	RunState.carried_eggs.clear()
+
+	# **Bounded.** Asked for twice the cap and given the cap.
+	for _egg: int in Balance.EGGS_CARRIED_MAX * 2:
+		RunState.carry_egg(kind.id, int(kind.rarity), false)
+	_check(RunState.carried_eggs.size() == Balance.EGGS_CARRIED_MAX,
+		"the pack holds %d against a cap of %d"
+			% [RunState.carried_eggs.size(), Balance.EGGS_CARRIED_MAX])
+
+	# **A fall loses them**, and bonds nothing.
+	var bonds: int = MetaState.spirit_bonded.size()
+	var lost: Array = GameDirector.call("_hatch_what_was_carried", false)
+	_check(lost.is_empty() and RunState.carried_eggs.is_empty(),
+		"a fall must lose what was carried and bond nothing")
+	_check(MetaState.spirit_bonded.size() == bonds,
+		"a fall bonded something (%d from %d)"
+			% [MetaState.spirit_bonded.size(), bonds])
+
+	# **And a road home opens them.**
+	var key: String = SpiritBond.key(kind.id, int(kind.rarity), false)
+	MetaState.spirit_bonded.erase(key)
+	RunState.carry_egg(kind.id, int(kind.rarity), false)
+	var hatched: Array = GameDirector.call("_hatch_what_was_carried", true)
+	_check(hatched.size() == 1 and String(hatched[0]) == key,
+		"carrying an egg home must bond its variant, got %s" % str(hatched))
+	_check(MetaState.spirit_bonded.has(key),
+		"%s should be bonded after an egg of it came home" % key)
+	_check(RunState.carried_eggs.is_empty(),
+		"the pack must be empty once it has been opened")
+	# **And nothing but the bond.** An imprint writes the key and the sighting;
+	# anything else here would be a second kind of spirit.
+	_check(MetaState.spirit_bonded[key] is String,
+		"a bond from an egg must carry a temperament and nothing else")
 
 func _check(condition: bool, why: String) -> void:
 	_checks += 1
