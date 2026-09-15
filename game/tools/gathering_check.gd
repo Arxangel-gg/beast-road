@@ -394,6 +394,53 @@ func _test_the_work_says_what_it_did(field: Battlefield, patch: Gathering) -> vo
 		_check(swing >= 0 and says >= 0 and (ends < 0 or says < ends),
 			("a swing must say what it paid - `gathered` carried the amount for "
 				+ "a fortnight and nothing listened, which is the whole report"))
+	# **Walking away stops the work**, and it is checked by walking away.
+	#
+	# This was broken for as long as it existed: the hero's speed is a float
+	# and `_tick_swing` declared it a `Vector2`, so the assignment failed, the
+	# value stayed zero and the check never fired. Nothing here noticed,
+	# because standing still is what a gate naturally does - so the test moves.
+	seam["cooldown"] = 0.0
+	hero.global_position = seam["at"] as Vector2
+	for _frame: int in 3:
+		await get_tree().process_frame
+	patch.set("_working", 0)
+	patch.set("_swing_left", 9.0)
+	await get_tree().process_frame
+	_check(int(patch.get("_working")) == 0, "the harness must be able to start a swing")
+	# A step away, at more than the stillness speed. The hero is asked for its
+	# own speed, so the harness sets the velocity the hero reports from.
+	hero.global_position = (seam["at"] as Vector2) + Vector2(Balance.GATHER_RADIUS * 2.0, 0.0)
+	for _frame: int in 4:
+		await get_tree().process_frame
+	_check(int(patch.get("_working")) < 0,
+		"walking out of reach must stop the work (still working: %d)"
+			% int(patch.get("_working")))
+
+	# **And the speed itself, which is the half the distance check cannot see.**
+	#
+	# Checked against the contract rather than by driving it, deliberately, and
+	# the reason is worth keeping: the only way to make the hero *read* as
+	# moving is to give it motion, and motion carries it out of reach, so the
+	# distance check above stops the work first and the test passes with the
+	# bug still in. Two attempts did exactly that.
+	#
+	# The bug this guards: `Hero.own_speed` returns a **float** - the magnitude
+	# with the beast's shove already subtracted - and `_tick_swing` declared it
+	# `Vector2`. The assignment failed every frame of every swing, the value
+	# stayed zero, and walking away never stopped you chopping. It printed a
+	# type error each frame and only CI ever saw it, because a gate that stands
+	# still never enters the branch.
+	_check(typeof(hero.call("own_speed")) == TYPE_FLOAT,
+		"Hero.own_speed must be a number; the gathering swing reads it as one")
+	var swing_source := FileAccess.open("res://scripts/systems/gathering.gd", FileAccess.READ)
+	if swing_source != null:
+		var swing_code: String = swing_source.get_as_text()
+		_check(not swing_code.contains("var own_speed: Vector2 = who.call(\"own_speed\")"),
+			("the swing must take the hero's speed as a number: typed as a "
+				+ "Vector2 the assignment fails silently and walking away "
+				+ "never stops the work"))
+
 	# Put the seam back the way it was found, since the harness lives on.
 	seam["cooldown"] = 0.0
 

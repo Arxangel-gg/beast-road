@@ -262,9 +262,18 @@ func _tick_swing(who: Node2D, delta: float) -> void:
 	if who.global_position.distance_to(node["at"] as Vector2) > Balance.GATHER_RADIUS * 1.2:
 		_stop_working("You walked away from it.")
 		return
-	var own_speed: Vector2 = who.call("own_speed") if who.has_method("own_speed") \
-		else (who.get("velocity") as Vector2)
-	if own_speed.length() > Balance.GATHER_STILL_SPEED:
+	# **A speed, not a velocity.** `Hero.own_speed` returns the magnitude with
+	# the beast's shove already subtracted; this declared it `Vector2`, so the
+	# assignment failed at runtime, the variable stayed `Vector2.ZERO`, and
+	# `length()` was always nought - **walking away from a tree never stopped
+	# you chopping it**. It printed a type error every frame of every swing and
+	# nothing failed, because the gate below stood still like a good citizen.
+	# Caught by the release, which refuses a run that prints `SCRIPT ERROR`,
+	# and only on CI because this machine's hero happened never to be working
+	# a node during that gate.
+	var moving: float = float(who.call("own_speed")) if who.has_method("own_speed") \
+		else (who.get("velocity") as Vector2).length()
+	if moving > Balance.GATHER_STILL_SPEED:
 		_stop_working("You walked away from it.")
 		return
 	_swing_left -= delta
