@@ -257,8 +257,22 @@ func _draw_branch() -> void:
 		# almost a silhouette, which is what `tint` already is. Two strokes of
 		# the old drawn limb stay underneath, because the painted bark does not
 		# quite reach the corner and a limb that stops in mid-air is a gap.
-		draw_polyline(points, tint, reach * 0.030, true)
-		_draw_bent_across(points, limb, reach * 0.085, reach * 0.045)
+		draw_polyline(points, tint, reach * 0.042, true)
+		_draw_bent_across(points, limb, reach * 0.128, reach * 0.064)
+		# **A second limb behind it, thinner and shorter.** One stroke into the
+		# corner reads as a pole, and the owner's "a bit too thin, lacking
+		# appeal" is as much about there being one of them as about its width.
+		# The spur leaves the same curve, droops harder and stops two thirds of
+		# the way along, so the corner has a fork in it rather than a rod.
+		var spur := PackedVector2Array()
+		for step: int in BRANCH_POINTS:
+			var reach_along: float = float(step) / float(BRANCH_POINTS - 1)
+			spur.append(_branch_at(reach_along * 0.68)
+				+ Vector2(0.0, reach_along * reach_along * reach * 0.19))
+		draw_polyline(spur, tint, reach * 0.024, true)
+		_draw_bent_across(spur,
+			_one_of(_branches, fposmod(_branch_pick + 0.37, 1.0)),
+			reach * 0.070, reach * 0.030)
 		return
 	# Drawn twice, thick then thin, so it tapers without needing a polygon.
 	draw_polyline(points, tint, reach * 0.055, true)
@@ -282,15 +296,46 @@ func _vine_chain(strand: Dictionary) -> PackedVector2Array:
 	var angle: float = float(strand["lean"])
 	var at: Vector2 = root
 	var step_length: float = length / float(VINE_SEGMENTS)
+	# **The root itself is the first point.** It was not, and that is the gap
+	# the owner has now reported twice: the loop stepped *before* it appended,
+	# so every strand began one segment - about four percent of the corner -
+	# below the branch it hangs from, with clear sky between. The painted vine
+	# and the dark joining line are both laid along this chain, so both of them
+	# started in mid-air. The root is `_branch_at`, the branch curve including
+	# its breath, so the strand now begins inside the bark.
+	points.append(at)
+	# **One gust over the whole corner.** Every strand having only its own
+	# private wobble is what made this read as machinery: nothing agreed with
+	# anything, so nothing looked like weather. A slow envelope shared by the
+	# corner swells and drops, and each strand still answers it on its own
+	# phase and at its own scale.
+	var gust: float = _gust()
 	for segment: int in VINE_SEGMENTS:
-		var down: float = float(segment) / float(VINE_SEGMENTS)
+		var down: float = float(segment + 1) / float(VINE_SEGMENTS)
 		# The lean accumulates down the strand, so the tip travels far and the
 		# root barely moves - which is how a hanging thing actually behaves.
-		angle += _wind_at(own_phase, down, VINE_WIND) * own_sway * down \
+		angle += _wind_at(own_phase, down, VINE_WIND) * own_sway * gust * down \
 			/ float(VINE_SEGMENTS) * 6.0
-		at += Vector2(sin(angle) * step_length, cos(angle) * step_length)
+		# **A pendulum is shorter across than it is long.** The segments
+		# foreshorten a little as the strand swings out, which is most of the
+		# difference between a hanging thing and a drawn arc that wobbles.
+		var swung: float = absf(sin(angle - float(strand["lean"])))
+		at += Vector2(sin(angle), cos(angle)) * step_length * (1.0 - 0.07 * swung)
 		points.append(at)
 	return points
+
+
+## **How hard this corner is being blown right now**, from about 0.55 to 1.55.
+##
+## Three slow sines rather than one, so the swell never lands on the same
+## beat twice inside a visit - the same reason a strand's own motion is built
+## from two. The corner's `phase` is in it, so the left and the right of the
+## screen never gust together, which is what would give the trick away.
+func _gust() -> float:
+	var swell: float = sin(_time * 0.21 + phase) * 0.5 \
+		+ sin(_time * 0.13 * PHI + phase * 1.7) * 0.33 \
+		+ sin(_time * 0.071 + phase * 0.6) * 0.17
+	return 1.05 + swell * 0.5
 
 
 ## Which of those segments carry leaves. A pure function of the strand's own
@@ -603,6 +648,26 @@ const PHI: float = 1.6180339887
 func _wind_at(own_phase: float, along: float, shape: Array[float]) -> float:
 	return sin(_time * shape[0] + own_phase + along * shape[1]) * 0.62 \
 		+ sin(_time * shape[0] * PHI + own_phase * 1.31 + along * shape[2]) * 0.38
+
+
+## How far each strand's first drawn point is from the branch it hangs on.
+##
+## **For the gate**, and it exists because this has been wrong twice. A hanging
+## vine is drawn along its chain, so if the chain does not *begin* on the branch
+## curve the strand hangs in mid-air - which is the owner's "gap between where
+## it should connect with the branch", reported on 2026-09-14 and again on
+## 2026-09-15 after the first fix moved the root and left the chain alone.
+## Nothing headless can see a gap, and nothing on screen can measure one.
+func joint_gaps() -> PackedFloat32Array:
+	var gaps := PackedFloat32Array()
+	if kind != Kind.VINE:
+		return gaps
+	for strand: Dictionary in _strands:
+		var chain: PackedVector2Array = _vine_chain(strand)
+		if chain.is_empty():
+			continue
+		gaps.append(chain[0].distance_to(_branch_at(float(strand["along"]))))
+	return gaps
 
 
 ## Where every strand's tip is at this instant.

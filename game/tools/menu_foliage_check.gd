@@ -40,6 +40,7 @@ func _ready() -> void:
 	_test_no_two_strands_are_the_same_plant()
 	_test_every_strand_is_its_own()
 	_test_a_corner_stays_in_its_corner()
+	_test_every_strand_starts_on_its_branch()
 	_finish()
 
 
@@ -263,6 +264,38 @@ func _finish() -> void:
 	else:
 		push_error("[menu-foliage] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+
+
+## **A hanging vine starts on the branch, not near it.**
+##
+## Owner, twice - 2026-09-14 and again on 2026-09-15 after the first fix: "the
+## connection of the vines hanging off the branches is still offset with a gap".
+## The first fix rooted the strand on `_branch_at` and was correct as far as it
+## went; the chain built from that root then stepped *before* it appended, so
+## the first point actually drawn sat one segment below the branch - about four
+## percent of the corner - with clear sky between. The vine sprite and the dark
+## joining line are both laid along that chain, so both of them began in the
+## air.
+##
+## Measured at several instants, because the branch breathes and the strand
+## sways: a join that only closes when the wind is still is not a join.
+func _test_every_strand_starts_on_its_branch() -> void:
+	var corner: MenuFoliage = _plant(MenuFoliage.Kind.VINE)
+	var worst: float = 0.0
+	var counted: int = 0
+	for step: int in 9:
+		corner.advance(0.37 * float(step) + 0.11)
+		var gaps: PackedFloat32Array = corner.joint_gaps()
+		_check(not gaps.is_empty(), "a vine corner must have strands to measure")
+		for gap: float in gaps:
+			counted += 1
+			worst = maxf(worst, gap)
+	_check(worst <= corner.reach * 0.002,
+		("a strand must begin on the branch: worst gap %.2f of a %.0f corner "
+			+ "across %d measurements") % [worst, corner.reach, counted])
+	corner.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:
