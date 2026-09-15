@@ -757,6 +757,9 @@ signal coop_tornado_moved(at: Vector2, burning: bool)
 
 ## A stone is coming down here, `METEOR_WARNING` from now.
 signal meteor_incoming(at: Vector2)
+## Something enormous is crossing the field, and how long it takes to pass.
+## Drawn by the walk and by nothing else - `DragonPass` does the burning.
+signal dragon_overhead(seconds: float)
 signal coop_meteor_incoming(at: Vector2)
 
 ## Ground a disaster left charged: which kind (a `WrathEventData` id), where,

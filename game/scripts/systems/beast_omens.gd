@@ -54,6 +54,9 @@ var _quake_left: float = 0.0
 var _quake_magnitude: float = 0.0
 var _flash_left: float = 0.0
 var _meteor_left: float = 0.0
+## Something crossing the sky over the walk, and how long it has left.
+var _dragon_left: float = 0.0
+var _dragon_total: float = 0.0
 
 
 func _ready() -> void:
@@ -66,6 +69,7 @@ func _ready() -> void:
 	EventBus.earthquake.connect(_on_earthquake)
 	EventBus.lightning_struck.connect(_on_lightning)
 	EventBus.meteor_incoming.connect(_on_meteor)
+	EventBus.dragon_overhead.connect(_on_dragon)
 	set_process(true)
 
 
@@ -97,8 +101,14 @@ func _on_meteor(_at: Vector2) -> void:
 	_meteor_left = Balance.BEAST_OMEN_METEOR_SECONDS
 
 
+func _on_dragon(seconds: float) -> void:
+	_dragon_total = maxf(seconds, 0.1)
+	_dragon_left = _dragon_total
+
+
 func _process(delta: float) -> void:
 	_time += delta
+	_dragon_left = maxf(_dragon_left - delta, 0.0)
 	_tornado_left = maxf(_tornado_left - delta, 0.0)
 	_quake_left = maxf(_quake_left - delta, 0.0)
 	_flash_left = maxf(_flash_left - delta, 0.0)
@@ -139,6 +149,8 @@ func _flood() -> float:
 
 func _draw() -> void:
 	# The sky first, then the town, then what is pouring off it.
+	if _dragon_left > 0.0:
+		_draw_dragon()
 	if _meteor_left > 0.0:
 		_draw_meteor()
 	if _flash_left > 0.0:
@@ -149,6 +161,40 @@ func _draw() -> void:
 		_draw_tornado()
 	if _flood() > 0.01:
 		_draw_flood()
+
+
+## A shadow crossing the sky over the carried town.
+##
+## The silhouette rather than the dragon: from the walk's distance what a
+## person sees is a shape blotting out the light, and drawing the painting here
+## would be a hundred and ninety pixels of detail nobody can resolve. It crosses
+## once, left to right, over exactly as long as the pass itself takes - so the
+## walk and the road agree about how long the light was out.
+func _draw_dragon() -> void:
+	var across: float = 1.0 - clampf(_dragon_left / maxf(_dragon_total, 0.01),
+		0.0, 1.0)
+	var span: float = town_width * 5.0
+	var high: float = town_width * Balance.BEAST_OMEN_DRAGON_HEIGHT
+	var centre: Vector2 = town + Vector2(lerpf(-span * 0.5, span * 0.5, across),
+		-high)
+	var wide: float = town_width * Balance.BEAST_OMEN_DRAGON_SPAN
+	# Darkest at the middle of the crossing, so it reads as passing rather than
+	# as appearing and vanishing.
+	var weight: float = sin(across * PI)
+	var ink := Color(0.04, 0.03, 0.05, 0.62 * weight)
+	# A body and two wings: three ellipses, which at this size is a dragon.
+	draw_set_transform(centre, 0.0, Vector2.ONE)
+	draw_circle(Vector2.ZERO, wide * 0.10, ink)
+	for side: float in [-1.0, 1.0]:
+		var beat: float = 0.72 + 0.28 * sin(_time * 2.6)
+		var tip := Vector2(side * wide * 0.5, -wide * 0.10 * beat)
+		var back := Vector2(side * wide * 0.16, wide * 0.10)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(side * wide * 0.06, -wide * 0.04), tip, back]), ink)
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-wide * 0.05, wide * 0.04), Vector2(wide * 0.05, wide * 0.04),
+		Vector2(0.0, wide * 0.34)]), ink)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## The funnel over the keep.

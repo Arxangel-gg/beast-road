@@ -66,6 +66,10 @@ func _process(delta: float) -> void:
 		if _left <= 0.0:
 			_flying = true
 			_left = Balance.DRAGON_PASS_SECONDS
+			# Said once, as it comes over: the walk draws a shadow crossing the
+			# sky above the carried town, because the one view whose subject is
+			# the world should be the view that sees the biggest thing in it.
+			EventBus.dragon_overhead.emit(Balance.DRAGON_PASS_SECONDS)
 		queue_redraw()
 		return
 	var travelled: float = 1.0 - clampf(_left / maxf(Balance.DRAGON_PASS_SECONDS,

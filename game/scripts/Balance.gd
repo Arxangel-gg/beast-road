@@ -3290,6 +3290,11 @@ const DRAGON_HEIGHT: float = 190.0
 const DRAGON_Z: int = 900
 ## How often the earth sends one at full anger, per second.
 const DRAGON_RATE: float = 0.0016
+## How wide the shadow is over the walk, against the carried town, and how far
+## above it. Big enough to be the biggest thing in that view, which is the whole
+## point of showing it there at all.
+const BEAST_OMEN_DRAGON_SPAN: float = 1.15
+const BEAST_OMEN_DRAGON_HEIGHT: float = 1.25
 
 const EGGS_CARRIED_MAX: int = 4
 

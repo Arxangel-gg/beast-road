@@ -3036,6 +3036,18 @@ shadow from the same warning and burns the same plants when told.
 The art is the one view the whole event is: drawn from directly above, so the
 same painting is the shadow on the ground and the thing casting it.
 
+**And the walk sees it, which is the half the brief actually asked for.** "The
+map should know one is there" is a sentence about the beast scope, so the shadow
+crosses the sky above the carried town there too - the whole width of it, once,
+over exactly the seconds the pass itself takes, darkest at the middle of the
+crossing so it reads as passing rather than as appearing. It is drawn as a
+silhouette rather than as the painting: from that distance a person sees a shape
+blotting out the light, and a hundred and ninety pixels of detail at that size is
+detail nobody can resolve. `BeastOmens` obeys the bound it was built under - it
+listens to `dragon_overhead`, changes no number, rolls no die and sends no
+message - and the pass says the word once, as it comes over, so the road and the
+walk cannot disagree about how long the light was out.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
