@@ -341,7 +341,7 @@ func light_at(around: float) -> Color:
 		light.b * Balance.MENU_FRAME_SHADE * 0.93, 1.0)
 	var add: float = _sheen(around) + _wave(around)
 	return Color(minf(base.r + add, 1.0), minf(base.g + add * 0.92, 1.0),
-		minf(base.b + add * 0.78, 1.0), 1.0)
+		minf(base.b + add * 0.78, 1.0), Balance.MENU_FRAME_ALPHA)
 
 
 ## One slow pass of light round the perimeter. A narrow band rather than a

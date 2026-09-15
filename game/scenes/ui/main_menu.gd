@@ -121,6 +121,9 @@ func _fit_menu() -> void:
 var _title_paint: ShaderMaterial = null
 var _title_clock: float = 0.0
 var _title_arcs: MenuArcs = null
+## The interface is never quite still: see `UiJuice.idle_shimmer`.
+var _shimmer_left: float = 1.5
+var _shimmer_dice := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -170,6 +173,7 @@ func _ready() -> void:
 	new_run_button.grab_focus()
 	_setup_stage()
 	_setup_frame()
+	_setup_front_leaves()
 	# Again, now that the lines this lays out exist.
 	_fit_menu.call_deferred()
 
@@ -308,6 +312,26 @@ func _on_frame_touched(button: Control) -> void:
 	if _frame == null or not is_instance_valid(button):
 		return
 	_frame.pulse_at(button.get_global_rect().get_center())
+
+
+## The rare leaves that cross in front of the buttons.
+##
+## On their own layer above the interface, which is the only way a leaf can pass
+## over a word - and the reason they are rare and small and quick: see
+## `menu_leaves.gd`. Input is ignored, like the frame, because a decoration that
+## could take a press is the worst trade in the project.
+func _setup_front_leaves() -> void:
+	var stage: Node = get_node_or_null("Stage")
+	if stage == null or not stage.has_method("front_leaves"):
+		return
+	var leaves: MenuLeaves = stage.call("front_leaves")
+	if leaves == null:
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "FrontLeafLayer"
+	layer.layer = 7
+	add_child(layer)
+	layer.add_child(leaves)
 
 
 ## The stash, reached from the menu rather than from a run.
@@ -794,6 +818,13 @@ func _edge_of(title: TextureRect) -> PackedVector2Array:
 
 
 func _process(delta: float) -> void:
+	# **Before the title's own guard**, because the two are unrelated: a menu
+	# whose wordmark shader failed to load should still have a living interface.
+	_shimmer_left -= delta
+	if _shimmer_left <= 0.0:
+		_shimmer_left = _shimmer_dice.randf_range(
+			Balance.UI_HOLO_IDLE_EVERY.x, Balance.UI_HOLO_IDLE_EVERY.y)
+		UiJuice.idle_shimmer(get_tree(), _shimmer_dice)
 	if _title_paint == null:
 		return
 	# Fed from here rather than read from `TIME` in the shader, so the sheen

@@ -142,6 +142,48 @@ static func _material_of(control: Control) -> ShaderMaterial:
 	return skin.material as ShaderMaterial if skin != null else null
 
 
+## **One button catches the light, unasked** (owner, 2026-09-15: the buttons
+## "should have some random holographic vfx randomly procedurally even when not
+## hovered").
+##
+## A single sweep across a single button, chosen at random, every few seconds -
+## never the rim, never the tear, and never two at once. That restraint is the
+## whole design: a hover is an *answer* and has to stay distinguishable from
+## the interface simply being alive, so the idle version borrows only the
+## quietest part of it and at a fraction of the strength.
+##
+## Driven by whoever owns the screen rather than by a timer in here, because a
+## static class with a clock is a clock that runs behind every dialog in the
+## game.
+static func idle_shimmer(tree: SceneTree, dice: RandomNumberGenerator) -> void:
+	var lit: Array[Node] = tree.get_nodes_in_group(GROUP)
+	if lit.is_empty():
+		return
+	var control := lit[dice.randi() % lit.size()] as Control
+	if control == null or not is_instance_valid(control) or not control.is_visible_in_tree():
+		return
+	var material: ShaderMaterial = _material_of(control)
+	if material == null:
+		return
+	# Already answering a player? Leave it alone: the quiet version must never
+	# step on the loud one.
+	if float(material.get_shader_parameter("strength")) > 0.05:
+		return
+	material.set_shader_parameter("sweep", -0.4)
+	var tween: Tween = control.create_tween()
+	tween.tween_method(func(value: float) -> void:
+		if is_instance_valid(control):
+			material.set_shader_parameter("sweep", value),
+		-0.4, 1.4, Balance.UI_HOLO_SWEEP * Balance.UI_HOLO_IDLE_SLOW)
+	# A whisper of rim under it, and gone. Never the full hover strength.
+	_tween_to(control, material, Balance.UI_HOLO_IDLE_STRENGTH, Balance.UI_HOLO_RISE)
+	var fade: Tween = control.create_tween()
+	fade.tween_interval(Balance.UI_HOLO_SWEEP * Balance.UI_HOLO_IDLE_SLOW)
+	fade.tween_callback(func() -> void:
+		if is_instance_valid(control) and not control.has_focus():
+			_tween_to(control, material, 0.0, Balance.UI_HOLO_FALL))
+
+
 ## Pointed at, or focused. One sweep across, and the rim comes up and stays.
 static func _on_noticed(control: Control) -> void:
 	var material: ShaderMaterial = _material_of(control)

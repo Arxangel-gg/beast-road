@@ -15,6 +15,7 @@ var _checks: int = 0
 
 func _ready() -> void:
 	_test_every_species_has_its_wingbeat()
+	_test_the_leaves_fall_from_the_vines()
 	_test_the_birds_stay_tiny_and_dim()
 	_test_a_bird_is_visible_against_any_sky()
 	_test_the_sky_never_fills_up()
@@ -258,6 +259,42 @@ func _finish() -> void:
 	else:
 		push_error("[menu-life] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Leaves let go of the vines, and the ones in front are the rare ones.**
+##
+## Owner, 2026-09-15: "add falling leaf particles that sometimes procedurally
+## fall from the hanging vines ... Some leaves fall behind the buttons, some
+## more rarely fall in front of the menu buttons."
+##
+## Three things, none of which shows in a still frame: a leaf begins where a
+## leaf actually hangs rather than at the top of the screen, the front layer
+## stays a minority, and the air never fills up.
+func _test_the_leaves_fall_from_the_vines() -> void:
+	var leaves := MenuLeaves.new()
+	add_child(leaves)
+	leaves.span = Vector2(1920.0, 1080.0)
+	var from := Vector2(300.0, 200.0)
+	var points: Array[Dictionary] = [{"at": from, "tint": Color.WHITE}]
+	leaves.fall_from(points)
+	var most: int = 0
+	var total: int = 0
+	var front: int = 0
+	for _step: int in 900:
+		leaves.advance(0.05)
+		var counts: Vector2i = leaves.counts()
+		most = maxi(most, counts.x)
+		total = maxi(total, counts.x)
+		front = maxi(front, counts.y)
+	_check(most > 0, "leaves must actually fall")
+	_check(most <= Balance.MENU_LEAF_CEILING,
+		"the air must not fill up: %d leaves against a ceiling of %d"
+			% [most, Balance.MENU_LEAF_CEILING])
+	_check(Balance.MENU_LEAF_FRONT_SHARE > 0.0
+			and Balance.MENU_LEAF_FRONT_SHARE <= 0.35,
+		("a leaf in front of the interface must stay the rare case: %.2f"
+			% Balance.MENU_LEAF_FRONT_SHARE))
+	leaves.queue_free()
 
 
 func _check(condition: bool, why: String) -> void:

@@ -59,6 +59,10 @@ var _backdrop: TextureRect = null
 var _beast: Sprite2D = null
 ## The drawn corners: two hanging vines and two ferns.
 var _foliage: Array[MenuFoliage] = []
+## The leaves that let go of them. Two of these: one behind the interface
+## and one, more rarely used, in front of it.
+var _leaves_behind: MenuLeaves = null
+var _leaves_infront: MenuLeaves = null
 var _tail: BeastTailSpline = null
 var _shadow: Sprite2D = null
 var _baseline: int = 0
@@ -112,6 +116,7 @@ func _ready() -> void:
 	_build_rain()
 	_build_logo_glow()
 	_build_foliage()
+	_build_leaves()
 	_build_vignette()
 	_build_grade()
 	_layout()
@@ -501,6 +506,15 @@ func _layout() -> void:
 		return
 	_laid_out_at = span
 	_place_foliage(span)
+	# **Where the leaves let go**, refreshed with the corners themselves: a
+	# strand that moved is a strand whose leaves are somewhere else now.
+	var hanging: Array[Dictionary] = []
+	for corner: MenuFoliage in _foliage:
+		hanging.append_array(corner.leaf_points())
+	for layer: MenuLeaves in [_leaves_behind, _leaves_infront]:
+		if layer != null:
+			layer.span = span
+			layer.fall_from(hanging)
 
 	# Overscanned so the drift can never pull a bare edge into frame.
 	var over: float = Balance.MENU_OVERSCAN
@@ -819,6 +833,28 @@ func _build_elements() -> void:
 	_elements = MenuElements.new()
 	_elements.name = "Elements"
 	add_child(_elements)
+
+
+## The leaves that fall off the hanging vines.
+##
+## **Two nodes, because one cannot be in two places.** The common layer sits
+## here in the stage, under everything the interface draws; the rare one is put
+## on its own `CanvasLayer` above the buttons by the menu itself. Splitting them
+## is what lets a leaf cross in front of a word now and then without every leaf
+## doing it - see `menu_leaves.gd`.
+func _build_leaves() -> void:
+	_leaves_behind = MenuLeaves.new()
+	_leaves_behind.name = "LeavesBehind"
+	add_child(_leaves_behind)
+
+
+## The layer the rare front leaves are drawn on. The menu hangs this over its
+## own interface; the stage only builds it.
+func front_leaves() -> MenuLeaves:
+	if _leaves_infront == null:
+		_leaves_infront = MenuLeaves.new()
+		_leaves_infront.name = "LeavesInFront"
+	return _leaves_infront
 
 
 ## Somebody out there watching the beast.

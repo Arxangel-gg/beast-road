@@ -670,6 +670,28 @@ func joint_gaps() -> PackedFloat32Array:
 	return gaps
 
 
+## Where this corner's leaves are hanging right now, in its own space, with the
+## tint each is drawn in.
+##
+## **For the leaves that fall off it** (see `menu_leaves.gd`). A leaf that lets
+## go from a point on a strand that is actually there reads as something
+## letting go; one that appears at the top of the screen is weather. The corner
+## is the only thing that knows where its own leaves are, so it is the thing
+## that says.
+func leaf_points() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if kind != Kind.VINE:
+		return out
+	for strand: Dictionary in _strands:
+		var chain: PackedVector2Array = _vine_chain(strand)
+		if chain.size() < 3:
+			continue
+		for step: int in _vine_leaf_steps(strand):
+			if step < chain.size():
+				out.append({"at": position + chain[step], "tint": leaf_tint})
+	return out
+
+
 ## Where every strand's tip is at this instant.
 ##
 ## **For the gate**, which has no other way in: the whole design rests on the

@@ -27,6 +27,17 @@ extends RefCounted
 ## interface should belong to the scene, not be repainted by it. [TUNE]
 const REACH: float = 0.50
 
+## How much of the scene's own *value* the frames take, and how dark that may
+## ever make them. See `_normalised`: without these the interface could follow
+## the light's colour and never its brightness. [TUNE]
+const SHADE: float = 0.55
+const SHADE_FLOOR: float = 0.74
+## How far every plate sits below the art it was authored at, whatever the
+## scene. The buttons were drawn pale so they would read on any backdrop, and
+## against this game's near-black scenes that reads as an interface pasted over
+## a painting - reported twice. [TUNE]
+const PLATE: float = 0.80
+
 ## Controls that have opted in. A group rather than a walk from the root,
 ## because the HUD rebuilds parts of itself and a cached list would go stale.
 const GROUP: StringName = &"ui_tinted"
@@ -143,7 +154,27 @@ static func _normalised(tint: Color) -> Color:
 	if value <= 0.01:
 		return Color.WHITE
 	var lifted: Color = Color(tint.r / value, tint.g / value, tint.b / value)
-	return Color.WHITE.lerp(lifted, REACH)
+	var hued: Color = Color.WHITE.lerp(lifted, REACH)
+	# **And some of the scene's darkness, which the line above throws away.**
+	#
+	# Dividing by luminance is what makes this a *hue* shift, and it is right
+	# for that - but it also means no scene, however dark, could ever take a
+	# button down a single step. On a night menu the plates stayed the pale
+	# lavender they were authored at and read as an interface pasted over a
+	# painting, which the owner reported twice as buttons being "too bright".
+	#
+	# Bounded, and only ever on the frames: `SHADE` is the most of the scene's
+	# own value a plate may take, and text is untouched here as everywhere else
+	# in this file. At the floor a midnight menu's buttons are about three
+	# quarters of their authored brightness - darker than the art, never dark
+	# enough to stop being a button.
+	# Two terms. The first follows the scene: a dark hour takes the plates down
+	# with it. The second is unconditional, because the scene's light is
+	# *normalised* before it ever gets here - a menu lit by a sunset arrives as
+	# a bright colour however dark the picture is, so a term that only followed
+	# the light would have done nothing on the one screen the report was about.
+	var shade: float = clampf(lerpf(1.0, value, SHADE), SHADE_FLOOR, 1.0) * PLATE
+	return Color(hued.r * shade, hued.g * shade, hued.b * shade, hued.a)
 
 
 ## The stylebox slots a button or a panel actually draws itself from.

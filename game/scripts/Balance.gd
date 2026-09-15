@@ -6595,7 +6595,7 @@ const BEAST_TAIL_HARMONY_FLOOR: float = 0.72
 ## bulk reads brighter than it measures. This is the deliberate correction for
 ## that, and it is a constant rather than a derivation so that it is honest about
 ## being one.
-const BEAST_TAIL_SEAT: float = 0.88
+const BEAST_TAIL_SEAT: float = 0.80
 
 ## **How far up the tail is nudged from where the stub row puts it.**
 ##
@@ -7157,6 +7157,13 @@ const UI_HOLO_LIFT: float = 2.0
 const UI_HOLO_CEILING: float = 0.16
 ## Scanlines across a control's height.
 const UI_HOLO_LINES: float = 42.0
+## The idle shimmer: how lit a button gets when it catches the light on its
+## own, how much slower that sweep travels than an answer to a hover, and how
+## long between them. Quiet and slow on purpose - a hover has to stay the loud
+## one or it stops reading as a reply.
+const UI_HOLO_IDLE_STRENGTH: float = 0.34
+const UI_HOLO_IDLE_SLOW: float = 2.1
+const UI_HOLO_IDLE_EVERY: Vector2 = Vector2(2.4, 6.5)
 const WILDFIRE_WIND_DRIFT: float = 110.0
 const TORNADO_WIND_PUSH: float = 0.5
 
@@ -7751,6 +7758,25 @@ const MENU_CAMP_PROP_FIRELIGHT: float = 0.55
 ## interface it surrounds, because a frame that competes with the buttons for
 ## attention is a frame in the way.
 const MENU_FRAME_SHADE: float = 0.62
+## How solid the carved border is over the picture (owner, 2026-09-15: "if you
+## think it will look better to make the border frame semi transparent as well
+## then do so"). It does: at full opacity the stone is a mask laid on the
+## painting, and at three quarters the scene reads *through* the carving at its
+## edges, which is what makes it a frame around a window rather than a picture
+## of a frame. Not lower - the vines and the studs stop being legible.
+const MENU_FRAME_ALPHA: float = 0.76
+
+## **Leaves off the hanging vines.** How long between one letting go, how many
+## may be in the air, how big one is against the screen, and how often one falls
+## in *front* of the interface rather than behind it.
+##
+## The front share is deliberately small. A leaf crossing a button is what makes
+## the screen read as having depth, and it is also the one that can sit over a
+## word - so it is uncommon, smaller and quicker through than the rest.
+const MENU_LEAF_EVERY: Vector2 = Vector2(1.1, 3.4)
+const MENU_LEAF_CEILING: int = 14
+const MENU_LEAF_SIZE: float = 0.028
+const MENU_LEAF_FRONT_SHARE: float = 0.18
 ## How often it is redrawn. Sampled rather than driven - see `flame.gd`.
 const MENU_FRAME_HZ: float = 24.0
 ## How much the corner brackets swell on their own slow clock. A hundredth: the
