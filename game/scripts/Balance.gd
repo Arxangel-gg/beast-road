@@ -6518,7 +6518,6 @@ const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 ## the tool, not a number.
 const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
-const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
 
 ## **How hard the tail whips**, as an angle accumulated down its own length.
 ##

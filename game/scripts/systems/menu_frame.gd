@@ -63,7 +63,11 @@ var _holo: ShaderMaterial = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# **Top left, not full rect.** A Control whose opposite anchors differ has
+	# its size overridden after `_ready`, and Godot says so as a WARNING -
+	# which is a failed release gate, not a note. This one is sized from the
+	# viewport every frame (see `_process`), so it wants no anchoring at all.
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
 	if ResourceLoader.exists(CORNER_ART):
 		_corner = load(CORNER_ART) as Texture2D
 	if ResourceLoader.exists(EDGE_ART):
