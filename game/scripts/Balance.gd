@@ -132,7 +132,7 @@ const LOOT_BONUS_SHARE: float = 0.45
 
 ## Chance a kill drops anything at all. Below one so drops are an event rather
 ## than a constant stream of coins to walk over. [TUNE]
-const LOOT_DROP_CHANCE: float = 0.34
+const LOOT_DROP_CHANCE: float = 0.27
 
 ## An elite or boss always drops, and drops more.
 const LOOT_ELITE_MULTIPLIER: float = 3.0
@@ -433,7 +433,7 @@ const GEAR_SLOT_WEIGHT: Array[float] = [
 const GEAR_TOTAL_SLOT_CEILING: float = 5.0
 
 ## Chance a raid chest also yields a piece of gear.
-const GEAR_CHEST_CHANCE: float = 0.55
+const GEAR_CHEST_CHANCE: float = 0.44
 
 ## Battlefield gear odds, by what died.
 ##
@@ -446,8 +446,8 @@ const GEAR_CHEST_CHANCE: float = 0.55
 ## The ordering is the part that must not move: a breed is a surprise, an elite
 ## is a prospect worth chasing across the field, and a boss always pays.
 ## `balance_test` holds the ordering and the floor. [TUNE]
-const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.024
-const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.45
+const GEAR_BATTLEFIELD_DROP_CHANCE: float = 0.019
+const GEAR_BATTLEFIELD_ELITE_CHANCE: float = 0.32
 const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
 
 ## Extra pieces a boss leaves beyond the guaranteed one.
@@ -456,7 +456,7 @@ const GEAR_BATTLEFIELD_BOSS_CHANCE: float = 1.0
 ## the same reward an elite could roll. Rolled separately, so the two can be
 ## different kinds and different rarities - a handful of loot is a moment, and
 ## one item is a line of text. [TUNE]
-const GEAR_BOSS_EXTRA_PIECES: int = 2
+const GEAR_BOSS_EXTRA_PIECES: int = 1
 
 ## How much a campaign tier multiplies the gear odds, on top of its `loot_scale`
 ## for currency.
@@ -2555,7 +2555,7 @@ static func forge_tier_for_level(level: int) -> int:
 ## Role sets the Gold. Reach is the premium stat: it decides how many enemies a
 ## tower ever gets to shoot, so it compounds with everything else a level buys.
 ## Indexed by TowerData.Role. [TUNE]
-const TOWER_ROLE_GOLD: Array[int] = [50, 95, 120, 70]
+const TOWER_ROLE_GOLD: Array[int] = [65, 120, 150, 90]
 
 ## Element sets a Gold modifier and a secondary currency, so a build competes
 ## with the town rather than only with itself. Indexed by TowerData.Element:
@@ -2606,7 +2606,7 @@ const TOWER_COMBO_BUILD_COST: int = 160
 ## are the spine of the ten-level ladder - every multiplier below is the old
 ## five-level curve read at these totals, so power per Gold is preserved and the
 ## acts already balanced did not have to be re-tuned. Was [90, 190, 340, 560].
-const TOWER_UPGRADE_COSTS: Array[int] = [60, 80, 110, 150, 190, 240, 300, 370, 450]
+const TOWER_UPGRADE_COSTS: Array[int] = [75, 100, 140, 190, 240, 305, 380, 470, 575]
 
 ## Damage and rate multipliers per level, indexed by level - 1. [TUNE]
 const TOWER_LEVEL_DAMAGE: Array[float] = [
@@ -3447,7 +3447,7 @@ const WAVE_COUNT_GROWTH: float = 0.285
 ## there is no reason to have walked; the hero grows across ten acts too, and
 ## `curve_report` is where the two are read against each other. [TUNE]
 const WAVE_ACT_COUNT_SCALE: Array[float] = [
-	1.0, 1.14, 1.26, 1.54, 1.72, 1.92, 1.98, 2.16, 2.30, 2.40,
+	1.0, 1.20, 1.36, 1.58, 1.74, 1.90, 2.00, 2.12, 2.22, 2.32,
 ]
 const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 
@@ -3544,7 +3544,7 @@ const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## the final wave at 0.90 against 72 bodies, which is a wall rather than a
 ## climax, and the top two acts came back down. [TUNE]
 const WAVE_ACT_HP_SCALE: Array[float] = [
-	1.0, 1.28, 1.42, 1.68, 1.84, 1.98, 2.02, 2.14, 2.22, 2.28,
+	1.0, 1.30, 1.46, 1.68, 1.82, 1.96, 2.04, 2.14, 2.22, 2.28,
 ]
 const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 	1.0, 1.12, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28, 1.28,
@@ -3558,8 +3558,8 @@ const WAVE_ACT_DAMAGE_SCALE: Array[float] = [
 ## peak is wanted; three multipliers arriving together is not. Count carries less
 ## of it now, since bodies are what the ramp was already adding through its own
 ## growth curve. [TUNE]
-const ACT_BOSS_RAMP_COUNT: float = 0.16
-const ACT_BOSS_RAMP_STATS: float = 0.18
+const ACT_BOSS_RAMP_COUNT: float = 0.10
+const ACT_BOSS_RAMP_STATS: float = 0.14
 
 ## Later regions remain dominated by their own breed while veterans from
 ## earlier terrain occasionally break up a predictable procession.
@@ -3568,12 +3568,12 @@ const ACT_BOSS_RAMP_STATS: float = 0.18
 ## an invader roll on top of that is punctuation, and a roll that kept rising
 ## would have Act X fought against Act I's roster with Act X's numbers.
 const WAVE_INVADER_CHANCE: Array[float] = [
-	0.0, 0.12, 0.22, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20, 0.20,
+	0.0, 0.14, 0.26, 0.26, 0.28, 0.28, 0.30, 0.30, 0.32, 0.32,
 ]
 
 ## Elites arrive as an increasing number of squad leaders, not one lottery roll
 ## per wave for the entire 45-minute run.
-const WAVE_ELITE_BASE_CHANCE: float = 0.13
+const WAVE_ELITE_BASE_CHANCE: float = 0.17
 const WAVE_ELITE_PROGRESS_BONUS: float = 0.75
 const WAVE_ELITE_ACT_BONUS: float = 0.20
 const WAVE_MAX_QUEUED: int = 180
@@ -3678,12 +3678,12 @@ const TOWN_DAMAGE_SCALE: float = 1.75
 const TOWER_ARMOUR_EFFECT_SCALE: float = 0.45
 
 ## Resources produced per distance unit travelled, before Granary tiers. [TUNE]
-const RESOURCE_PER_DISTANCE: float = 0.25
+const RESOURCE_PER_DISTANCE: float = 0.20
 
 ## Normal enemies still pop resource drops, but not every body is a full unit
 ## of currency. A fractional carry preserves the dopamine beat without making
 ## a large wave finance every remaining upgrade by itself.
-const KILL_RESOURCE_SCALE: float = 0.5
+const KILL_RESOURCE_SCALE: float = 0.36
 
 ## What a body is worth, by the act it dies in. [TUNE]
 ##
@@ -3702,7 +3702,7 @@ const KILL_RESOURCE_SCALE: float = 0.5
 ## the one stretch of this economy measured against a player learning the game,
 ## and `balance_test._test_opening_envelope` owns it.
 const KILL_ACT_VALUE_SCALE: Array[float] = [
-	1.0, 1.0, 1.10, 1.25, 1.45, 1.68, 1.92, 2.18, 2.46, 2.76,
+	1.0, 1.0, 1.08, 1.18, 1.32, 1.48, 1.64, 1.82, 2.00, 2.20,
 ]
 
 
@@ -8367,9 +8367,9 @@ const BEAST_STUB_FADE_PX: float = 22.0
 ## answered with sinks: tower specialisation, the capstone, trap upgrades and
 ## the well's new price. [TUNE]
 const CURRENCY_YIELD_SCALE: Dictionary = {
-	"food": 0.40,
-	"wood": 0.80,
-	"stone": 0.85,
+	"food": 0.34,
+	"wood": 0.70,
+	"stone": 0.75,
 	"gold": 1.0,
 }
 

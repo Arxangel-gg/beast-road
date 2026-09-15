@@ -3437,6 +3437,53 @@ inventory); and crossroads that sometimes cannot be extracted from, because the
 whole system rests on trusting the crossroads and the proposal's own "use very
 rarely" is the shape of a feature that is either invisible or infuriating.
 
+**The road pays less and asks more, as of 2026-09-15.** The owner: *"Reduce
+all gold income and rewards and loot and make everything more expensive and
+increase enemy counts and difficulty ... and make everything more balanced."*
+
+**Three multipliers pointing the same way, so it was done as passes against
+`curve_report` rather than as one edit.** Measured before: mean pressure
+0.390-0.406 across party sizes, last wave 0.77, purse 7,510 Gold. Measured
+after: **mean 0.501-0.506, spread 1%, last wave 0.99, acts ramping 0.42 to
+0.72.** `balance_test` reads 29,005 assertions unchanged.
+
+**The band moved, and that is the decision rather than the numbers.** This file
+recorded a target of 0.26-0.46 mean pressure, arrived at over ten acts of
+tuning. The owner has asked for a harder game, so the band is **0.44-0.58**
+now, with a last wave allowed to approach 1.0 - a campaign that ends at the edge
+of what a best-case defence can answer is a climax; one that passes it is a wall.
+The old band is not wrong, it described a different game.
+
+**Where the income cut was taken matters more than how big it was.** The first
+cut trimmed Gold at `CURRENCY_YIELD_SCALE` alongside Food, Wood and Stone, and
+`balance_test` refused it twice in one run: *a drop must pay exactly the amount
+printed on it*, and *an order the Quartermaster calls affordable must be
+payable*. Both are the game not lying to the player, and neither is worth a rate
+cut - which is precisely why 2026-09-13 left Gold out of that table. **The cut
+lives at the kill instead** (`KILL_RESOURCE_SCALE` 0.5 to 0.36), where a player
+reads it as "bodies are worth less" rather than as arithmetic nobody can see.
+
+- **Income**: a body pays 72% of what it did; the late-act ladder tops out at
+  2.20 rather than 2.76; the road's passive trickle is down a fifth; Food, Wood
+  and Stone are trimmed harder at the door.
+- **Costs**: a tower costs about a third more to place, and every rung of the
+  ten-level ladder is about a quarter dearer. The *shape* of the ladder is
+  preserved - each step is still around a third more than the last - so a player
+  still passes ten doors and each one simply costs more road.
+- **Loot**: a body drops gear on 1.9% of kills rather than 2.4%, an elite on
+  32% rather than 45%, a boss leaves two pieces rather than three, and a chest
+  pays 44% rather than 55%. The floor is `_test_gear_farming`'s promise, not the
+  constant: *a hundred ordinary kills must pay more often than not*. The first
+  cut at 0.017 missed 18% of the time and the gate named it.
+- **Pressure**: more bodies an act, more health, more invaders, and elites on
+  17% of waves rather than 13%.
+
+**And the act-end spike was eased where the spike is.** With a bigger count
+table underneath it, `ACT_BOSS_RAMP_COUNT` and `_STATS` pushed the campaign's
+last wave to 1.09 - past what a best-case defence answers. They are 0.10 and
+0.14 now. The peak is still wanted; its *sharpness* is what had to give, which is
+the same conclusion that table's own comment reached the first time.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
