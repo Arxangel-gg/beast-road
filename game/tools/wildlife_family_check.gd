@@ -436,10 +436,13 @@ func _test_the_blight_runs_its_course_and_is_bounded() -> void:
 	RunState.wave_number = Balance.WILDBLIGHT_OPENING_WAVES + 1
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 	var kind: WildlifeData = _find("rabbit")
+	# One patch of ground for the whole outbreak, so nothing here is retired
+	# for being too far from the hero while the test watches something else.
 	var one: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT})
 	if one.is_empty():
 		_check(false, "the harness needs an animal")
 		return
+	var ground: Vector2 = (one["sprite"] as Sprite2D).global_position
 	_check(not WildlifeFamilies.is_sick(one), "an animal arrives healthy")
 	var sprite := one["sprite"] as Sprite2D
 	_check(_families.call("_try_sicken", one, sprite, kind, true), "it can be taken")
@@ -447,7 +450,8 @@ func _test_the_blight_runs_its_course_and_is_bounded() -> void:
 	_check(sprite.get_node_or_null("Blight") != null, "and is drawn over its head")
 	_check(_families.outbreaks_this_act == 1, "and the act's outbreak is spent")
 	# A second natural outbreak this act is refused.
-	var two: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT})
+	var two: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT},
+		ground + Vector2(70.0, 0.0))
 	if not two.is_empty():
 		_check(not _families.call("_try_sicken", two, two["sprite"], kind, true),
 			"a second natural outbreak in one act is refused")
@@ -470,8 +474,10 @@ func _test_the_blight_runs_its_course_and_is_bounded() -> void:
 		await get_tree().process_frame
 	_check(float(one.get("dying", 0.0)) > 0.0, "and then it dies of it")
 	# Contagion: once per pair, once per carrier, and a secondary spreads none.
-	var carrier: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT})
-	var victim: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT})
+	var carrier: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT},
+		ground + Vector2(140.0, 0.0))
+	var victim: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT},
+		ground + Vector2(210.0, 0.0))
 	if not carrier.is_empty() and not victim.is_empty():
 		carrier["blight"] = WildlifeFamilies.Blight.FRENZIED
 		carrier["generation"] = 0
@@ -541,6 +547,7 @@ func _test_a_mercy_is_not_a_hunt() -> void:
 	if sick.is_empty():
 		_check(false, "the harness needs an animal")
 		return
+	var mercy_ground: Vector2 = (sick["sprite"] as Sprite2D).global_position
 	sick["blight"] = WildlifeFamilies.Blight.FRENZIED
 	var told: Array[String] = []
 	var ear: Callable = func(id: String, _food: int, _at: Vector2, _rarity: int,
@@ -553,7 +560,8 @@ func _test_a_mercy_is_not_a_hunt() -> void:
 	EventBus.wildlife_killed.disconnect(ear)
 	_check(told.is_empty(), "a blighted kill tells the earth nothing (%s)" % str(told))
 	# And a healthy one still does, or the rule above would be a hole.
-	var healthy: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT})
+	var healthy: Dictionary = _place(kind, {"stage": WildlifeFamilies.Stage.ADULT},
+		mercy_ground + Vector2(80.0, 0.0))
 	if healthy.is_empty():
 		return
 	var heard: Array[String] = []
@@ -661,9 +669,16 @@ func _stand_a_pair(id: String) -> Array[Dictionary]:
 ## animal is already where it belongs; an empty one places it at the entry
 ## point fifteen hundred units away, from where the hero cannot see it and the
 ## forget rule retires it on the next frame.
-func _place(kind: WildlifeData, born: Dictionary) -> Dictionary:
-	var at: Vector2 = _quiet_ground(kind)
-	_field.hero.global_position = at + Vector2(0.0, 1100.0)
+## **`near` keeps a group together.** Each call used to pick its own random
+## patch of quiet ground and move the hero to it, so an animal placed early
+## could end up further from the hero than `WILDLIFE_FORGET_DISTANCE` and be
+## retired in the middle of the test that was watching it - the blight never
+## advanced, about one run in four, and only in a long sweep. A test that
+## needs several animals asks for one spot and passes it to each.
+func _place(kind: WildlifeData, born: Dictionary, near: Vector2 = Vector2.INF) -> Dictionary:
+	var at: Vector2 = near if near != Vector2.INF else _quiet_ground(kind)
+	if near == Vector2.INF:
+		_field.hero.global_position = at + Vector2(0.0, 1100.0)
 	var animal: Dictionary = _animals.spawn_born(kind, at, born)
 	if animal.is_empty():
 		_check(false, "the harness could not place a %s" % kind.id)

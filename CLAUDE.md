@@ -2575,14 +2575,25 @@ all read the same answer and no packet carries it. `coop_wildlife_family` and
 `coop_wildlife_born` tell a guest what happened; a guest rolls nothing and
 draws everything.
 
-**Two pieces of the brief are deliberately not built, and are the next
-work.** Towers do not yet shoot frenzied wildlife: a tower targets `Enemy`
-nodes and an animal is a record on the wildlife layer, so it needs a second
-target list, a damage route, co-op authority for that damage and a look at
-whether a tower farming a frenzy for Food is a hole - a subsystem, not a
-flag. And a companion does not court: the courtship machine pairs two
-wildlife *records* and a companion is a node, so letting one pair needs the
-machine to handle both kinds. Both are recorded here rather than half-built.
+**Towers never target frenzied wildlife. Owner ruling, 2026-09-14.** The
+forwarded design proposed letting them, and the owner ruled the other way in
+as many words: "Wildlife with rabies should still not get targeted by
+towers." So the 2026-09-13 rule stands unchanged and unconditioned - a tower
+sees road bodies and provoked camp bodies, and no animal, whatever is wrong
+with it.
+
+**It is also the right answer, and the reason is the economy.** A blighted
+animal pays Food and experience like any other kill. A tower that could shoot
+one would farm an outbreak from behind the wall at no risk, which turns the
+Wildblight from a thing that happens *to* the player into a thing they set up
+and harvest - and the encounter the frenzy exists to create is one the player
+has to answer in person. The bound is therefore: **a frenzy is answered by
+the hero, the companions and the road's own bodies, never by the defence.**
+
+**One piece of the brief is deliberately not built.** A companion does not
+court a wild animal: the courtship machine pairs two wildlife *records* and a
+companion is a node, so letting one pair needs the machine to handle both
+kinds. Recorded here rather than half-built.
 
 `wildlife_family_check` (150 checks) measures the inheritance tables over
 forty thousand rolls rather than reading them back, proves one animal's

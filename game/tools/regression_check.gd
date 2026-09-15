@@ -745,6 +745,13 @@ func _test_the_field_is_inhabited() -> void:
 		"and more experience")
 
 	var before_food: int = RunState.currency(RunState.FOOD)
+	# **The level and the remainder together.** `gain_hero_xp` subtracts the
+	# threshold when it levels, so a kill that levels the hero *lowers*
+	# `hero_xp` - 80 to 3 - and an assertion on the remainder alone fails
+	# exactly when the payout was largest. It passed here on a save that
+	# already had experience and failed the v0.36.0 release on a clean
+	# profile, which is the same trap `attribute_check` fell into.
+	var before_level: int = RunState.hero_level
 	var before_xp: float = RunState.hero_xp
 	var hunted: bool = false
 	for entry: Dictionary in wildlife._living:
@@ -762,9 +769,9 @@ func _test_the_field_is_inhabited() -> void:
 	if hunted:
 		for _f: int in 6:
 			await get_tree().process_frame
-		_check(RunState.hero_xp > before_xp,
-			"hunting must grant experience: %0.1f -> %0.1f"
-				% [before_xp, RunState.hero_xp])
+		_check(RunState.hero_level > before_level or RunState.hero_xp > before_xp,
+			"hunting must grant experience: level %d xp %0.1f -> level %d xp %0.1f"
+				% [before_level, before_xp, RunState.hero_level, RunState.hero_xp])
 		# The food arrives as a dropped pickup rather than straight into the
 		# purse, so the wallet is not the assertion - the drop existing is.
 		_check(get_tree().get_nodes_in_group(LootDrop.GROUP).size() > 0

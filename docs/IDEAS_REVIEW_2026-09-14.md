@@ -47,9 +47,10 @@ become a meter.
   bounded climbs, a birth budget, growth stages with their own art for the
   antlered species, parental protection by temperament, and a frenzy that
   works on species that never fought. `WildlifeFamilies`,
-  `wildlife_family_check`. **Not built, deliberately**: towers shooting
-  frenzied wildlife, and a companion courting a wild animal - both are
-  subsystems rather than flags; see CLAUDE.md.
+  `wildlife_family_check`. **Refused by the owner, 2026-09-14**: towers
+  shooting frenzied wildlife - a tower that could would farm an outbreak
+  from behind the wall. **Not built**: a companion courting a wild animal.
+  See CLAUDE.md.
 - **Eight towers an element** (stage two): the Flash Kiln, the Bellows
   Forge, the Stillwater Mirror, the Mason Shrine and the Wind Relay.
   `TowerData.support` and `windup_seconds`; `tower_support_check`. Each
