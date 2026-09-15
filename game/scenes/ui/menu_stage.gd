@@ -688,7 +688,8 @@ func _place_menu_tail() -> void:
 	var cut: float = 0.0
 	if _beast.region_enabled:
 		cut = float(_beast.texture.get_height()) - _beast.region_rect.size.y
-	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, cut * 0.5)
+	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP,
+		cut * 0.5 - Balance.BEAST_TAIL_LIFT)
 
 
 func _drive_menu_tail() -> void:

@@ -63,6 +63,19 @@ func _ready() -> void:
 		print("[menu-shot] tail pos %s offset %s size %s beast-modulate %s"
 			% [str(tail.position), str(tail.offset), str(tail.texture.get_size()),
 				str((tail.get_parent() as CanvasItem).modulate)])
+		# **Where to crop.** Every report about this join is about a few dozen
+		# pixels in a 2560-wide photograph, and finding them by eye costs more
+		# than printing them does. Global, after the parent's scale.
+		var body := tail.get_parent() as Sprite2D
+		var scale_at: Vector2 = tail.get_global_transform().get_scale()
+		var span: Vector2 = tail.texture.get_size() * scale_at
+		var top_left: Vector2 = tail.get_global_position() 			+ (tail.offset - tail.texture.get_size() * 0.5) * scale_at
+		print("[menu-shot] tail on screen %s to %s  ·  join at %s"
+			% [str(top_left.round()), str((top_left + span).round()),
+				str(tail.get_global_position().round())])
+		if body != null:
+			print("[menu-shot] body centre %s scale %s"
+				% [str(body.get_global_position().round()), str(scale_at)])
 		if material != null:
 			if feather >= 0.0:
 				material.set_shader_parameter("feather", feather)

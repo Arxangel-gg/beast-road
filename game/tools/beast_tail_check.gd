@@ -46,6 +46,7 @@ func _ready() -> void:
 	_test_the_body_carries_a_stub_that_far()
 	_test_the_stub_fades_and_the_tail_does_not()
 	_test_the_tail_wears_the_hide()
+	_test_the_tail_is_lit_where_it_hangs()
 	_test_the_tail_is_drawn_in_the_same_ink()
 	MetaState.resume_saves()
 	if _failures.is_empty():
@@ -243,6 +244,12 @@ func _test_the_tail_wears_the_hide() -> void:
 
 const HIDE_LUMINANCE_TOLERANCE: float = 0.06
 const HIDE_RATIO_TOLERANCE: float = 0.02
+## How far the tail may sit from the hide's brightness at its own height.
+## Wider than the palette tolerance because this is a lighting match and the
+## tail's own modelling legitimately moves it either way - and narrow enough to
+## have caught what shipped, which stood at 1.115 against the low band while
+## every palette number agreed. It reads 1.042 now.
+const LOW_BAND_TOLERANCE: float = 0.08
 
 ## At or below this in every channel, a pixel is ink rather than hide. The same
 ## number `tools/match_tail_palette.py` separates on, and for the same reason.
@@ -370,3 +377,79 @@ func _pooled_colour(paths: Array[String], hide_only: bool) -> Array[float]:
 	var mean: Vector3 = total / float(count)
 	var lum: float = 0.2126 * mean.x + 0.7152 * mean.y + 0.0722 * mean.z
 	return [lum, mean.x / maxf(mean.y, 0.001), mean.z / maxf(mean.y, 0.001)]
+
+
+## **The tail is lit like the part of the animal it hangs from, not like its
+## back.** Owner, three reports ending 2026-09-15: the tail "is not matching the
+## colour grading and tint of the body it's attached to".
+##
+## The palette was not the fault, and four passes at it are the evidence. The
+## tail's surface sits within three percent of the hide's on all three channels,
+## on R/G, on B/G, on its share of moss and on its ink - the check above holds
+## every one of those and they were all already true. What was wrong is simpler
+## and nothing was looking at it: the beast is lit from above, its hide runs
+## from 64 across the back at row 120 down to 47 at the feet, and **the tail
+## hangs from row 142 to row 238 painted at 63** - the brightness of the back,
+## on the lowest limb of the animal. A limb lit by a different sun is exactly
+## what that report describes, and no hue match can answer it.
+##
+## So the reference here is the hide's **low band** rather than the whole
+## animal, which is the correction the art needed and the gate needed with it.
+func _test_the_tail_is_lit_where_it_hangs() -> void:
+	var low: float = _band_luminance(_body_frames(), 0.62, 1.0)
+	var back: float = _band_luminance(_body_frames(), 0.3, 0.55)
+	var tail: float = _band_luminance(_tail_frames(), 0.0, 1.0)
+	if low <= 0.0 or back <= 0.0 or tail <= 0.0:
+		_check(false, "could not read a light profile off the frames")
+		return
+	_check(back > low,
+		("the beast must be lit from above for any of this to mean anything: "
+			+ "back %.3f against low %.3f") % [back, low])
+	_check(tail <= back,
+		("the tail hangs at the beast's feet and must not be lit like its back: "
+			+ "%.3f against %.3f - run tools/seat_tail_light.py") % [tail, back])
+	var ratio: float = tail / maxf(low, 0.001)
+	_check(absf(ratio - 1.0) <= LOW_BAND_TOLERANCE,
+		("the tail is %.2fx the hide's brightness at its own height (%.3f against "
+			+ "%.3f) - run tools/seat_tail_light.py") % [ratio, tail, low])
+
+	# **And the lift stays inside the join it hides in.** A tail nudged further
+	# up than the stub dissolves over comes out from under the flank, which is
+	# the seam the overlap and the fade exist to bury.
+	_check(Balance.BEAST_TAIL_LIFT >= 0.0
+			and Balance.BEAST_TAIL_LIFT <= Balance.BEAST_STUB_FADE_PX,
+		("the tail lift is %.1f against a stub fade of %.1f: past that the root "
+			+ "leaves the body") % [Balance.BEAST_TAIL_LIFT, Balance.BEAST_STUB_FADE_PX])
+	# Read by both scopes, or one of them hangs the tail where the other does
+	# not - the fault that put the menu and the walk a few pixels apart before.
+	for screen: String in ["res://scenes/ui/menu_stage.gd", "res://scenes/run/beast_scope.gd"]:
+		var file := FileAccess.open(screen, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % screen)
+			continue
+		_check(file.get_as_text().contains("BEAST_TAIL_LIFT"),
+			"%s does not read BEAST_TAIL_LIFT, so the two views hang the tail differently"
+				% screen)
+
+
+## Mean surface luminance over a band of a frame's height, ink held out. The
+## band is a fraction so the body and the tail can be asked the same question
+## despite being different canvases.
+func _band_luminance(paths: Array[String], from: float, to: float) -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for path: String in paths:
+		var texture: Texture2D = load(path) as Texture2D
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		if image == null:
+			continue
+		var height: int = image.get_height()
+		for y: int in range(int(float(height) * from), mini(int(float(height) * to), height)):
+			for x: int in image.get_width():
+				var at: Color = image.get_pixel(x, y)
+				if at.a >= 0.5 and not (at.r <= INK and at.g <= INK and at.b <= INK):
+					total += at.get_luminance()
+					count += 1
+	return total / float(count) if count > 0 else 0.0

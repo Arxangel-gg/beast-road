@@ -997,7 +997,7 @@ func _place_tail() -> void:
 	# there is to see; six pixels left a visible butt-joint that moved with
 	# every frame, reported 2026-09-13. `BEAST_TAIL_OVERLAP` is how far in it
 	# goes, and the sprite's own root end is feathered to meet it.
-	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, 0.0)
+	_tail.position = root + Vector2(Balance.BEAST_TAIL_OVERLAP, -Balance.BEAST_TAIL_LIFT)
 
 
 ## The same weather the road is having, over the scope.

@@ -6519,6 +6519,22 @@ const BEAST_TAIL_ROOT: Vector2 = Vector2(0.95, 0.365)
 const BEAST_TAIL_GRADE: Color = Color.WHITE
 ## The tail's idle sway rate, in frames a second.
 const BEAST_TAIL_IDLE_FRAME_RATE: float = 4.0
+
+## **How far up the tail is nudged from where the stub row puts it.**
+##
+## The stub row is read off the body frame's own pixels and is exactly right
+## for where the tail *leaves* the body; what it cannot know is that the tail
+## art was drawn with its root a few pixels below the middle of its own stub,
+## so the limb hangs low and the two read as joined rather than continuous.
+## Owner, twice (2026-09-14 and 2026-09-15): "bring the tail up a bit because
+## it is not lined up vertically properly".
+##
+## In the art's own pixels, before the scope's scale, so the menu and the beast
+## scope move it by the same amount of beast rather than the same amount of
+## screen. `beast_tail_check` bounds it: a lift larger than the fade the stub
+## dissolves over would pull the tail clear of the join it is supposed to hide
+## inside.
+const BEAST_TAIL_LIFT: float = 5.0
 ## The far woods: the region's trees on the ridge, hazed and slow.
 # --- What the earth is doing, seen from the road (owner brief, 2026-09-15) ---
 #
