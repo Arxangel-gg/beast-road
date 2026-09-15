@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 1
+coat_pattern_strength = 0.26
+coat_pattern_scale = 6.0
+coat_pattern_tint = Color(0.920, 0.900, 0.840, 0.700)
+coat_hue_spread = 0.016
+coat_light_spread = 0.13
+coat_saturation_spread = 0.12
 breeds = true
 breeding_group = "deer"
 litter_min = 1

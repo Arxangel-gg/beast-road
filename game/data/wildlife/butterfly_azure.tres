@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1")
+coat_hue_spread = 0.034
+coat_light_spread = 0.08
+coat_saturation_spread = 0.16
 id = "butterfly_azure"
 display_name = "Azure Butterfly"
 description = "A scrap of sky that landed. It lifts before anything gets near."

@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 4
+coat_pattern_strength = 0.24
+coat_pattern_scale = 1.0
+coat_pattern_tint = Color(0.220, 0.180, 0.160, 0.650)
+coat_hue_spread = 0.018
+coat_light_spread = 0.14
+coat_saturation_spread = 0.12
 breeds = true
 breeding_group = "rabbit"
 litter_min = 2

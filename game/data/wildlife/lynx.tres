@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 1
+coat_pattern_strength = 0.34
+coat_pattern_scale = 4.0
+coat_pattern_tint = Color(0.160, 0.150, 0.140, 0.750)
+coat_hue_spread = 0.016
+coat_light_spread = 0.14
+coat_saturation_spread = 0.12
 climbs = true
 id = "lynx"
 display_name = "Forest Lynx"

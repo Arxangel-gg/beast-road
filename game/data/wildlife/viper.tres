@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 2
+coat_pattern_strength = 0.48
+coat_pattern_scale = 4.0
+coat_pattern_tint = Color(0.120, 0.140, 0.100, 0.800)
+coat_hue_spread = 0.024
+coat_light_spread = 0.13
+coat_saturation_spread = 0.16
 climbs = true
 id = "viper"
 display_name = "Viper"

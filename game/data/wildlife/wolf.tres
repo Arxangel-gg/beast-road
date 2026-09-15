@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 3
+coat_pattern_strength = 0.30
+coat_pattern_scale = 8.0
+coat_pattern_tint = Color(0.140, 0.150, 0.170, 0.700)
+coat_hue_spread = 0.012
+coat_light_spread = 0.16
+coat_saturation_spread = 0.10
 breeds = true
 breeding_group = "wolf"
 litter_min = 2

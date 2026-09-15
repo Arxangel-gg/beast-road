@@ -308,6 +308,36 @@ enum Protection { GUIDE, DEFEND, HUNT }
 @export_range(0.0, 60.0) var blight_damage: float = 0.0
 
 
+## **What varies between two animals of a kind.** See `Phenotype`.
+##
+## Every species gets the three spreads for free - a slightly warmer or cooler,
+## lighter or darker, richer or duller version of its own painting - because a
+## field of six identical deer is the thing this exists to fix and authoring
+## thirty-nine files to get it would mean most of them never got it.
+##
+## **A pattern is authored and is the species' own.** A rabbit does not grow
+## stripes because a die came up stripes; a fallow deer has dapples and a badger
+## has patches, and what a seed decides is *where they fall and how strongly*.
+##
+## **Appended, never inserted** - `.tres` files index this enum by number, and
+## `Role` and `Trigger` both taught this project that in silence.
+enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS }
+@export var coat_pattern: Coat = Coat.NONE
+## How far a coat may wander from the painting, per species. Bounded again by
+## `Balance.PHENOTYPE_*_CEILING`, which is the hard limit: past it the variation
+## stops reading as an individual and starts reading as a rarity, and the rank
+## sheen is what says rarity.
+@export_range(0.0, 0.2) var coat_hue_spread: float = 0.018
+@export_range(0.0, 0.5) var coat_light_spread: float = 0.10
+@export_range(0.0, 0.6) var coat_saturation_spread: float = 0.12
+## How strong the markings are at their strongest, how big they are in source
+## pixels, and what colour they are. A pattern with a transparent tint marks
+## nothing, which `phenotype_check` refuses.
+@export_range(0.0, 1.0) var coat_pattern_strength: float = 0.0
+@export_range(1.0, 32.0) var coat_pattern_scale: float = 6.0
+@export var coat_pattern_tint: Color = Color(0.0, 0.0, 0.0, 0.0)
+
+
 ## The group this species pairs inside: its own name unless it shares one.
 func breeding_group_id() -> String:
 	return breeding_group if not breeding_group.is_empty() else id

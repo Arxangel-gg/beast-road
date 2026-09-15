@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 3
+coat_pattern_strength = 0.30
+coat_pattern_scale = 7.0
+coat_pattern_tint = Color(0.260, 0.220, 0.180, 0.720)
+coat_hue_spread = 0.018
+coat_light_spread = 0.14
+coat_saturation_spread = 0.12
 breeds = true
 breeding_group = "goat"
 litter_min = 1

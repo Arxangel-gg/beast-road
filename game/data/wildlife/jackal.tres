@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 4
+coat_pattern_strength = 0.26
+coat_pattern_scale = 1.0
+coat_pattern_tint = Color(0.160, 0.120, 0.100, 0.700)
+coat_hue_spread = 0.022
+coat_light_spread = 0.14
+coat_saturation_spread = 0.14
 id = "jackal"
 display_name = "Dune Jackal"
 description = "They wait for the wave to break on somebody else, then come for what is left."

@@ -178,6 +178,7 @@ jobs:
           run_godot_clean --headless --path game res://tools/menu_camp_check.tscn
           run_godot_clean --headless --path game res://tools/menu_frame_check.tscn
           run_godot_clean --headless --path game res://tools/rank_sheen_check.tscn
+          run_godot_clean --headless --path game res://tools/phenotype_check.tscn
           run_godot_clean --headless --path game res://tools/beast_omens_check.tscn
           run_godot_clean --headless --path game res://tools/enemy_behaviour_check.tscn
           run_godot_clean --headless --path game res://tools/attribute_check.tscn

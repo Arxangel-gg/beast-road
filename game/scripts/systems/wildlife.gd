@@ -728,6 +728,12 @@ func _spawn(kind: WildlifeData, at: Vector2, mirrored_id: int = 0,
 		if _is_authority_with_company():
 			EventBus.coop_wildlife_spawned.emit(identity, kind.id, at, shiny)
 
+	# **And its own coat**, derived from that serial. Here rather than beside the
+	# material, because the serial is only decided above - and a coat seeded
+	# from a number that is zero for every animal in a solo run is one coat for
+	# the whole road, which is exactly what happened to spirit personalities.
+	Phenotype.dress(impact_material, kind, identity)
+
 	# A bar over anything that can be hurt, hidden until it has been.
 	#
 	# Always-on bars over a field of rabbits is a HUD, not a world - but an

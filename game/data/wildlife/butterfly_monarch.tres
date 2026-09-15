@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1")
+coat_hue_spread = 0.030
+coat_light_spread = 0.08
+coat_saturation_spread = 0.16
 id = "butterfly_monarch"
 display_name = "Monarch Butterfly"
 description = "Orange and black, and never in a hurry. It follows the flowers, and the flowers follow the road."

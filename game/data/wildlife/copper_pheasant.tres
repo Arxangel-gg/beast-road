@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 1
+coat_pattern_strength = 0.32
+coat_pattern_scale = 3.0
+coat_pattern_tint = Color(0.180, 0.130, 0.100, 0.750)
+coat_hue_spread = 0.026
+coat_light_spread = 0.13
+coat_saturation_spread = 0.16
 breeds = true
 breeding_group = "copper_pheasant"
 litter_min = 2

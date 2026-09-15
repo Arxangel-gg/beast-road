@@ -56,6 +56,73 @@ float aura_noise(vec2 uv) {
 	return low * 0.65 + high * 0.35;
 }
 
+// --- Coat --------------------------------------------------------------------
+//
+// No two deer are the same deer. See `Phenotype` for the design and the bounds;
+// what matters here is that every one of these defaults to *nothing*, so an
+// enemy - which wears this same shader - is pixel-identical to what it was.
+uniform float coat_hue = 0.0;
+uniform float coat_light = 0.0;
+uniform float coat_saturation = 0.0;
+uniform int coat_pattern = 0;
+uniform float coat_pattern_strength : hint_range(0.0, 1.0) = 0.0;
+uniform float coat_pattern_scale = 6.0;
+uniform vec4 coat_pattern_tint : source_color = vec4(0.0, 0.0, 0.0, 0.0);
+uniform vec2 coat_offset = vec2(0.0, 0.0);
+
+vec3 rgb_to_hsv(vec3 c) {
+	vec4 k = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, k.wz), vec4(c.gb, k.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1.0e-10)),
+		d / (q.x + 1.0e-10), q.x);
+}
+
+vec3 hsv_to_rgb(vec3 c) {
+	vec4 k = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+	vec3 p = abs(fract(c.xxx + k.xyz) * 6.0 - k.www);
+	return c.z * mix(k.xxx, clamp(p - k.xxx, 0.0, 1.0), c.y);
+}
+
+// **Markings are laid out in source pixels, not in UV.** The art is pixel art;
+// a pattern computed in smooth UV space is an airbrush over hard pixels and
+// reads as a smudge at every zoom the camera has. Snapping to the texture's own
+// grid is what makes a dapple look painted on rather than projected onto.
+float coat_mark(vec2 uv, vec2 px) {
+	vec2 grid = floor(uv / px) + coat_offset;
+	float scale = max(coat_pattern_scale, 1.0);
+	if (coat_pattern == 1) {
+		return step(0.72, hash21(floor(grid / scale)));
+	}
+	if (coat_pattern == 2) {
+		return step(fract((grid.x + grid.y * 0.35) / scale), 0.34);
+	}
+	if (coat_pattern == 3) {
+		return step(0.58, value_noise(grid / (scale * 2.0)));
+	}
+	if (coat_pattern == 4) {
+		// Darker toward the ground: socks, and the shading under a belly.
+		return smoothstep(0.62, 0.94, uv.y);
+	}
+	return 0.0;
+}
+
+vec3 coat_apply(vec3 body, vec2 uv, vec2 px, float alpha) {
+	if (coat_pattern == 0 && abs(coat_hue) < 0.0005
+			&& abs(coat_light) < 0.0005 && abs(coat_saturation) < 0.0005) {
+		return body;
+	}
+	vec3 hsv = rgb_to_hsv(body);
+	hsv.x = fract(hsv.x + coat_hue);
+	hsv.y = clamp(hsv.y * (1.0 + coat_saturation), 0.0, 1.0);
+	hsv.z = clamp(hsv.z * (1.0 + coat_light), 0.0, 1.0);
+	vec3 coated = hsv_to_rgb(hsv);
+	float mark = coat_mark(uv, px) * coat_pattern_strength
+		* coat_pattern_tint.a * alpha;
+	return mix(coated, coat_pattern_tint.rgb, clamp(mark, 0.0, 1.0));
+}
+
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
 	vec4 source = COLOR;
@@ -69,7 +136,11 @@ void fragment() {
 	vec2 gradient = vec2(left_a - right_a, up_a - down_a);
 	float edge = length(gradient) > 0.001
 		? max(dot(normalize(gradient), normalize(impact_direction)), 0.0) : 0.0;
-	vec3 body = mix(source.rgb, impact_colour.rgb,
+	// The coat first, so everything after it - the impact flash, the burning,
+	// the chill, the wet, the dissolve - happens to *this* animal rather than
+	// to the roster's one painting.
+	vec3 coated = coat_apply(source.rgb, UV, px, source.a);
+	vec3 body = mix(coated, impact_colour.rgb,
 		edge * impact_strength * impact_colour.a * source.a);
 	float near = min(min(left_a, right_a), min(up_a, down_a));
 	body = state_body(body, UV, px, source.a, near);

@@ -36,6 +36,8 @@ const KEY_PARTICLES: String = "graphics_particles"
 ## while the field is flooded; off on Low, where the water is a flat sheet.
 const KEY_WATER_REFRACTION: String = "graphics_water_refraction"
 const KEY_RANK_SHEEN: String = "graphics_rank_sheen"
+## Seeded coats on the wildlife. A look and nothing else - see `Phenotype`.
+const KEY_PHENOTYPE: String = "graphics_phenotype"
 const KEY_FOLIAGE: String = "graphics_foliage"
 const KEY_CLOUDS: String = "graphics_clouds"
 const KEY_FPS_CAP: String = "graphics_fps_cap"
@@ -490,6 +492,15 @@ static func fog_of_war() -> bool:
 ## machine, and the same bound the fog is held to.
 static func rank_sheen() -> bool:
 	return bool(_chosen.get(KEY_RANK_SHEEN, true))
+
+
+## Whether every animal wears a coat of its own.
+##
+## On by default, and off changes no number anywhere: nothing in the game reads
+## a phenotype - not rarity, not the collection, not the hunt, not loot - which
+## is the same bound the rank sheen and the fog are held to.
+static func phenotypes() -> bool:
+	return bool(_chosen.get(KEY_PHENOTYPE, true))
 
 
 ## Whether the minimap is shown. M toggles it in play as well.

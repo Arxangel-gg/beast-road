@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 3
+coat_pattern_strength = 0.26
+coat_pattern_scale = 8.0
+coat_pattern_tint = Color(0.100, 0.100, 0.120, 0.700)
+coat_hue_spread = 0.012
+coat_light_spread = 0.15
+coat_saturation_spread = 0.10
 id = "ash_hound"
 display_name = "Ash Hound"
 description = "It hunts what the fire left. There is always something the fire left."

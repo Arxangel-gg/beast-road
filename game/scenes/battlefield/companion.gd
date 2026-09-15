@@ -125,6 +125,7 @@ func _ready() -> void:
 	_sprite.add_to_group(Graphics.FILTER_GROUP)
 	add_child(_sprite)
 	_bob = randf() * TAU
+	_wear_its_own_coat()
 	if not spirit_key.is_empty():
 		_dress_as_spirit()
 		_build_bar()
@@ -134,6 +135,34 @@ func _ready() -> void:
 	Sfx.play("sfx_companion_summon")
 	if not _vocal.is_empty():
 		Sfx.play(_vocal, -4.0)
+
+
+## **The spirit at your shoulder is one animal, not the species.**
+##
+## Owner, 2026-09-15: "companion made alive wildlife should keep the seed for
+## the duration of its lifespan." A bonded spirit wears the same coat every time
+## it is called for the whole run - dismiss it, re-equip it, reconnect, and it
+## is the same animal - and a *different* one next run.
+##
+## **Seeded from the run rather than from the save.** Nothing about a bond
+## persists but which variants have been met (working rule 7, amended
+## 2026-09-01), and a coat kept on disk would be a new kind of persistence for a
+## picture. The run seed and the variant key together are stable for exactly as
+## long as the run is, and are the same two numbers on both machines - so a
+## guest's companion wears the host's coat without a packet, the same way
+## `RunState.companion_sex` does.
+func _wear_its_own_coat() -> void:
+	if _sprite == null:
+		return
+	var species: String = data.wildlife_id
+	if not spirit_key.is_empty():
+		species = SpiritBond.species_of(spirit_key)
+	var kind := ContentDB.wildlife_kinds.get(species, null) as WildlifeData
+	if kind == null:
+		return
+	var serial: int = absi(RunState.run_seed ^ hash(spirit_key if not spirit_key.is_empty()
+		else data.id))
+	Phenotype.dress(ActorPolish.attach(_sprite), kind, serial)
 
 
 ## The frames this companion wears: a species' own, or its single sprite.

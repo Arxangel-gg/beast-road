@@ -4,6 +4,13 @@
 
 [resource]
 script = ExtResource("1")
+coat_pattern = 2
+coat_pattern_strength = 0.30
+coat_pattern_scale = 4.0
+coat_pattern_tint = Color(0.100, 0.090, 0.080, 0.720)
+coat_hue_spread = 0.022
+coat_light_spread = 0.13
+coat_saturation_spread = 0.16
 id = "iron_beetle"
 display_name = "Iron Beetle"
 description = "Its shell is the same rust as the trees. Nothing in the Rustwood grew its armour anywhere else."

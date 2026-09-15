@@ -3217,6 +3217,18 @@ const WAVE_SPAWN_SPACING: float = 0.65
 ## particular coil ends in something leaving its hand. [TUNE]
 const ENEMY_THROW_WINDUP_SCALE: float = 1.8
 
+## **How far a coat may ever wander from the painting.**
+##
+## A phenotype says "this is a different animal of the same kind"; the rank
+## sheen says "this animal is worth more". The two must not be confusable, so
+## the hue ceiling is about twenty degrees - enough that two wolves standing
+## together are visibly two wolves, nowhere near enough to make one of them read
+## as a rarity. `phenotype_check` refuses a species that authors past these.
+## [TUNE]
+const PHENOTYPE_HUE_CEILING: float = 0.055
+const PHENOTYPE_LIGHT_CEILING: float = 0.22
+const PHENOTYPE_SATURATION_CEILING: float = 0.30
+
 const WAVE_ENGAGEMENT_SECONDS: float = 16.0
 
 ## Enemies in wave 1, and how many are added per wave. [TUNE]
