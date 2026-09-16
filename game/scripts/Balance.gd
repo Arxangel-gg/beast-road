@@ -3455,6 +3455,17 @@ const THIEF_GRAB_REACH: float = 44.0
 const THIEF_HIDE_DISTANCE: float = 520.0
 const THIEF_HIDE_SECONDS: Vector2 = Vector2(14.0, 30.0)
 const THIEF_HIDE_BREAK: float = 190.0
+
+## How much room the walk to cover must leave around a hero, on top of whatever
+## would frighten the animal.
+##
+## The cover itself is already `THIEF_HIDE_DISTANCE` from everybody; this is
+## about the *route*, which nothing checked until 2026-09-16. The nearest tree
+## that satisfies the distance rule is frequently on the far side of the hero,
+## and a thief walking toward one takes fright half way and abandons the errand
+## - traced on the real field, it never once reached cover. The margin is on top
+## of the fright radius so it does not merely scrape past. [TUNE]
+const THIEF_ROUTE_CLEARANCE: float = 60.0
 const THIEF_HIDE_ALPHA: float = 0.5
 const THIEF_FORAGE_CHANCE: float = 0.35
 const THIEF_FORAGE_REACH: float = 420.0

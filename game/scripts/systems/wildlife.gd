@@ -3260,7 +3260,7 @@ func _tick_thief(animal: Dictionary, sprite: Sprite2D, kind: WildlifeData, delta
 					(animal["loot"] as Array).append(held)
 					_set_sack(animal, sprite, kind, true)
 					Sfx.play_group("sfx_loot_drop", -6.0)
-				_run_for_cover(animal, sprite, at)
+				_run_for_cover(animal, sprite, at, kind)
 			return false
 		State.HIDING:
 			var spot: Vector2 = animal["goal"]
@@ -3344,10 +3344,11 @@ func _give_up(animal: Dictionary, sprite: Sprite2D, at: Vector2) -> void:
 
 
 ## Off to cover with what it took.
-func _run_for_cover(animal: Dictionary, sprite: Sprite2D, at: Vector2) -> void:
+func _run_for_cover(animal: Dictionary, sprite: Sprite2D, at: Vector2,
+		kind: WildlifeData = null) -> void:
 	animal["state"] = State.HIDING
 	animal["hiding"] = false
-	animal["goal"] = _hiding_spot(at)
+	animal["goal"] = _hiding_spot(at, kind)
 
 
 ## The richest thing lying within reach of its nose, or null.
@@ -3390,10 +3391,28 @@ func _plant_near(at: Vector2, reach: float) -> Vector2:
 
 ## Cover: the nearest tree standing far enough from every hero, on ground
 ## it may stand on; failing that, a bolt away from the nearest one.
-func _hiding_spot(from: Vector2) -> Vector2:
+## **Cover it can actually reach without walking past anybody.**
+##
+## `THIEF_HIDE_DISTANCE` keeps the tree far from every hero and says nothing
+## at all about the *route* to it - so the nearest qualifying tree is often on
+## the far side of the hero, the thief takes fright half way there, gives up
+## the errand and goes back to shopping. Traced on the real field: it grabbed
+## the gear at 1.8s, was frightened at 8.4s with the cover still 900 units off,
+## and was scavenging again by 11.1s. It never hid once, which is the whole
+## behaviour the brief asked for.
+##
+## So a trunk is only cover if the straight walk to it stays clear of every
+## hero. Preferred rather than required: if nothing is reachable the best
+## far-from-everybody tree is still better than standing in the open holding
+## the loot.
+func _hiding_spot(from: Vector2, kind: WildlifeData = null) -> Vector2:
 	var heroes: Array = get_tree().get_nodes_in_group(Hero.GROUP_ANY)
+	var clearance: float = maxf(kind.skittish_radius if kind != null else 0.0,
+		Balance.THIEF_HIDE_BREAK) + Balance.THIEF_ROUTE_CLEARANCE
 	var best: Vector2 = Vector2.INF
 	var best_away: float = INF
+	var open_best: Vector2 = Vector2.INF
+	var open_away: float = INF
 	if field != null and field.has_method("tree_positions"):
 		var inside: float = BattleGrid.HALF_EXTENT - BattleGrid.TILE
 		for trunk: Vector2 in field.call("tree_positions") as PackedVector2Array:
@@ -3411,6 +3430,24 @@ func _hiding_spot(from: Vector2) -> Vector2:
 			if away < best_away:
 				best_away = away
 				best = trunk
+			if away >= open_away:
+				continue
+			# The walk, not just the destination.
+			var reachable: bool = true
+			for node: Node in heroes:
+				var hero := node as Node2D
+				if hero == null:
+					continue
+				var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(
+					hero.global_position, from, trunk)
+				if nearest.distance_to(hero.global_position) < clearance:
+					reachable = false
+					break
+			if reachable:
+				open_away = away
+				open_best = trunk
+	if open_best.is_finite():
+		return open_best
 	if best.is_finite():
 		return best
 	var near: Node2D = _nearest_hero_node()

@@ -4338,6 +4338,47 @@ so `layout_check` passing says only that they collide with nothing - a name that
 rendered as nothing at all would pass it perfectly. That is the same distinction
 `a-passing-art-gate-cannot-see-quality` records, arriving in the interface.
 
+**The loot goblin never once reached cover, found 2026-09-16.** `raccoon_check`
+was red on main — the fourth gate in two days to be — and the three failures
+cascaded from one: with the gear in its sack it did not run for cover.
+
+**The cause is that `THIEF_HIDE_DISTANCE` bounds the destination and says
+nothing about the route.** `_hiding_spot` took the *nearest* tree that stands
+`THIEF_HIDE_DISTANCE` from every hero, which is frequently on the far side of
+one. Traced on the real field: the thief grabbed the gear at 1.8s, picked cover
+732 units from the hero — legal — walked straight at him, took fright at 8.4s
+with the cover still 900 units off, gave up, settled at 10.5s, and by 11.1s was
+scavenging the coin it had left behind. **The entire "runs it to cover and lies
+low half-seen" behaviour the owner asked for had never happened.**
+
+So a trunk is only cover if the straight walk to it stays clear of every hero by
+the animal's own fright radius plus `THIEF_ROUTE_CLEARANCE`. *Preferred* rather
+than required: if nothing is reachable the best far-from-everybody tree still
+wins, because standing in the open holding the loot is worse than a risky walk.
+
+**It was found by tracing, not by reading.** Two passes of reading the state
+machine produced two wrong theories — the hide clock expiring, and the cover
+being too close — and both were disproved by one log of every state transition
+with the positions and the hero distance beside them. The gate said "did not run
+for cover" and the truth was "ran, was scared off, and went shopping again",
+which no amount of staring at the branch was going to produce.
+
+**And the weapons that shipped in the gear batch broke a cadence invariant.**
+`weapon_vfx_check` holds `reach_scale * swing_scale` within 0.01 of 1.0 — reach
+is bought with cadence, never given away, which is what keeps a weapon off the
+capped power scale. The Gravebell Maul and Oathkeeper Spear came out at 1.18 and
+1.38 of a baseline and the Ratcatcher's Awl at 0.62. All three are 1.000 now,
+shaped to their names: the maul and spear reach and are slow, the awl is short
+and quick.
+
+**The transferable half is how the gates to run were chosen.** Five were run
+after adding the gear, picked by their *names* looking relevant. Sixteen gates
+read `GearData`, and the one that failed is named after VFX. A gate is named
+after the system it guards, not the data it reads, so the list to run comes from
+a grep rather than from intuition:
+
+    grep -ln "GearData" game/tools/*_check.gd game/tools/*_test.gd
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
