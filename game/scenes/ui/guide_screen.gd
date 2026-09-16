@@ -28,6 +28,10 @@ const BODY_SCREEN_SHARE_PORTRAIT: float = 0.72
 const IMAGE_WIDTH: float = 420.0
 
 var _panel: PanelContainer
+## How tall one tab is. The strip is this plus a little air, and nothing more:
+## a row of buttons that all match needs no room for a scrollbar.
+const TAB_HEIGHT: float = 38.0
+
 var _tabs: HBoxContainer
 var _tab_scroll: ScrollContainer
 var _scroll: ScrollContainer
@@ -82,7 +86,17 @@ func _build() -> void:
 	UiMetrics.prepare_scroll(_tab_scroll, TouchInput.is_showing())
 	# ...and sideways as well: the tabs are a strip.
 	_tab_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	_tab_scroll.custom_minimum_size = Vector2(0.0, 50.0)
+	# **And never vertically.** `prepare_scroll` sets the vertical axis to AUTO
+	# for every menu surface, which is right for a long list and wrong for a row
+	# of tabs: it put a vertical scrollbar beside eight buttons that are all the
+	# same height, and the strip then had to be tall enough to hold a scrollbar
+	# it could never use. Reported by the owner as a tab row with a scrollbox in
+	# it. `menu_check` allows a strip this exemption and holds the rest of the
+	# contract - drag and focus-follow are what that check is actually about.
+	_tab_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Sized to the buttons rather than to a round number, so the strip is exactly
+	# as tall as a tab and no taller.
+	_tab_scroll.custom_minimum_size = Vector2(0.0, TAB_HEIGHT + 8.0)
 	column.add_child(_tab_scroll)
 	_tabs = HBoxContainer.new()
 	_tabs.add_theme_constant_override("separation", 6)

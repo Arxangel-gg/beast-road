@@ -280,23 +280,82 @@ func _line(text: String, colour: Color) -> void:
 	_card.add_child(label)
 
 
+## **The mark each craft is known by**, resolved through `IconKit` off gear the
+## game already has art for.
+##
+## The Farmer is deliberately absent rather than approximated: there is no crop
+## or seed in the icon set, and a root-ware charm standing in for farming would
+## read as a mistake rather than as a mark. A craft with no entry simply shows
+## none, and the row lays out the same either way.
+const CRAFT_MARKS: Dictionary = {
+	"angler": "reckoners_rod",
+	"woodcutter": "oathbreakers_axe",
+	"miner": "iron_ore",
+	"smith": "stonewarden_hammer",
+}
+
+## How big a craft's mark is drawn, and how tall its bar is inside its frame.
+const CRAFT_MARK: int = 22
+const CRAFT_BAR: float = 10.0
+
+
 func _profession_row(id: String) -> void:
 	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
+	row.add_theme_constant_override("separation", 3)
+
+	# **The name line carries the mark**, so the eye finds the craft before it
+	# reads the words - five identical rows of text is a spreadsheet.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 6)
+	var mark: Texture2D = IconKit.sized(String(CRAFT_MARKS.get(id, "")), CRAFT_MARK) \
+		if CRAFT_MARKS.has(id) else null
+	if mark != null:
+		var badge := TextureRect.new()
+		badge.texture = mark
+		badge.custom_minimum_size = Vector2(CRAFT_MARK, CRAFT_MARK)
+		badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		badge.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		head.add_child(badge)
+
 	var label := Label.new()
 	var progress: Vector2 = MetaState.profession_progress(id)
 	label.text = "%s  ·  level %d  ·  %d / %d" % [id.capitalize(),
 		MetaState.profession_level(id), int(progress.x), int(progress.y)]
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color("c9c2b4"))
-	row.add_child(label)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(label)
+	row.add_child(head)
+
+	# **The bar sits in a recess rather than on the card.** A bare bar on a flat
+	# panel has no edge of its own, so an empty one is invisible and a full one
+	# reads as a stripe of paint. A frame gives it both ends.
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", _bar_recess())
+	var pad := MarginContainer.new()
+	for edge: String in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(edge, 2)
+	frame.add_child(pad)
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0.0, 8.0)
+	bar.custom_minimum_size = Vector2(0.0, CRAFT_BAR)
 	bar.max_value = maxf(progress.y, 1.0)
 	bar.value = progress.x
 	bar.show_percentage = false
-	row.add_child(bar)
+	pad.add_child(bar)
+	row.add_child(frame)
 	_card.add_child(row)
+
+
+## The recess a craft's bar sits in: dark, with a lit edge on the side the light
+## is coming from, so it reads as cut into the card rather than laid on it.
+func _bar_recess() -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.05, 0.06, 0.07, 0.92)
+	box.border_color = Color(0.30, 0.34, 0.33, 0.85)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(3)
+	return box
 
 
 ## Sized against the screen, like the codex: the panel takes most of the

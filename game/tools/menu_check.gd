@@ -66,7 +66,22 @@ func _ready() -> void:
 		scroll_count += 1
 		var scroll := node as ScrollContainer
 		var bar: VScrollBar = scroll.get_v_scroll_bar()
-		if scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_AUTO \
+		# **A sideways strip may refuse the vertical axis.**
+		#
+		# This demanded vertical AUTO of every surface, which is right for a long
+		# list and wrong for a row of tabs: it put a scrollbar beside eight
+		# buttons of identical height, and the strip then had to be tall enough
+		# to hold something it could never use. Reported by the owner as a tab row
+		# with a scrollbox in it.
+		#
+		# What this check is *about* is drag and focus-follow - that a long
+		# surface is reachable by more than a mouse wheel - and a strip that
+		# scrolls sideways holds both. So the exemption is narrow: only a surface
+		# that genuinely scrolls the other way may switch this one off.
+		var sideways: bool = scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO
+		var vertical_ok: bool = scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO \
+			or (sideways and scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED)
+		if not vertical_ok \
 				or not scroll.follow_focus or scroll.focus_mode != Control.FOCUS_ALL:
 			push_error("every menu scroll surface must support drag and focus-follow")
 			get_tree().quit(1)
