@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_badger"
 haunts = "seam"
 haunt_pull = 0.85
 breeds = true
@@ -22,7 +23,6 @@ coat_saturation_spread = 0.12
 id = "oreback_pangolin"
 display_name = "Oreback"
 description = "It works the same seams you do, and it got there first."
-vocal_sfx = ""
 rarity = 1
 temperament = 0
 movement_style = 1

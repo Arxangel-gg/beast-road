@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_raven"
 breeds = true
 breeding_group = "ptarmigan"
 litter_min = 3

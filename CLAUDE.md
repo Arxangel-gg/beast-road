@@ -4827,6 +4827,41 @@ real blight needs a rabid animal, which is three harnesses for a check whose
 whole content is "this call exists". **The fault was an omission, and an omission
 is what a source walk sees.**
 
+**Two thirds of the ecology was mute, and a set never said it was a set, found
+2026-09-16.**
+
+**Thirty-three of fifty-one species carried no `vocal_sfx`** - including every
+animal added for acts IV to X. Voices are *shared* here and always have been (the
+griffon takes the hawk's, the moonstag the deer's), so most of that was a
+judgement rather than a recording: twenty-three species are voiced now, each
+mapped to the nearest of the twelve on disk by what the animal actually is.
+
+**The ledger matters more than the mapping.** A blank `vocal_sfx` could not tell
+*"nobody has got to this one"* apart from *"a scorpion does not make a noise"*,
+and nine of the ten still-silent species are the second kind. They are declared
+in `wildlife_spawn_check.SILENT` with a reason each, which is
+`DisciplineEffects.DECLARED_ONLY`'s pattern: a thing that cannot be wired yet
+belongs on a list, visibly, rather than missing from both. The tenth is the
+**reed frog**, which is loud and has nothing on disk it could honestly borrow -
+listed as owed a recording rather than declared silent, because a frog given a
+hiss is worse than a frog given nothing.
+
+**And `Modifiers.set_pieces_worn` documented itself "for the screens and the
+gate" while being called by the gate and by nothing else.** So the only thing
+that ever told a player a matched set existed was the ring of motes at their feet
+*once it was already finished*, and the only way to find the fourth Emberwind
+piece was to have noticed the first three. That is the argument the discipline
+synergies were built under, word for word - *"a synergy discovered by accident is
+a coincidence rather than a build"* - and it is truer of a set, which asks the
+player to pass over better gear in five slots to reach it. The stash row says
+`Emberwind 3/5` now, on the line read while deciding what to wear.
+
+**The gate for it was wrong first, in the way I had already been caught once
+today.** It called `GearRow.set_text` directly, so removing the *call site* in
+the row builder left it passing - it tested the function and not the wiring.
+It builds the row the stash builds and reads the label back now, and with the
+call site removed it quotes the line the player would actually have seen.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

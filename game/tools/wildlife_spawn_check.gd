@@ -45,6 +45,7 @@ func _ready() -> void:
 		% [offered, DRAWS, closest, Balance.WILDLIFE_SPAWN_CLEARANCE])
 
 	_test_rarity_coverage()
+	_test_every_species_is_voiced_or_declared_silent()
 	_test_animation_coverage()
 	_test_ecology(wildlife)
 	_test_hoarders(wildlife)
@@ -329,6 +330,59 @@ func _test_the_road_goes_quiet(wildlife: Wildlife) -> void:
 
 ## A field that only counts what lands on it, for the hoarder test.
 const LEDGER_SOURCE: String = "extends \"res://scripts/systems/enemy_field.gd\"\nvar gold: int = 0\nvar gear: int = 0\nfunc spawn_loot(currency: String, amount: int, _at: Vector2) -> void:\n\tif currency == \"gold\":\n\t\tgold += amount\nfunc spawn_gear(_piece: Dictionary, _at: Vector2) -> void:\n\tgear += 1\n"
+
+
+## **Every species has a voice, or is declared silent on purpose.**
+##
+## Thirty-three of fifty-one species carried no `vocal_sfx` - including every
+## animal added for acts IV to X - so two thirds of the ecology was mute and
+## nothing said whether that was a decision. Voices are *shared* here and always
+## have been (the griffon takes the hawk's, the moonstag the deer's), so the fix
+## for most of them was a judgement rather than a recording.
+##
+## The ledger is the point. A blank `vocal_sfx` cannot tell "nobody has got to
+## this one" apart from "a scorpion does not make a noise", and this project has
+## paid for that ambiguity before - `DisciplineEffects.DECLARED_ONLY` exists for
+## exactly this reason: a thing that cannot be wired yet belongs on a list,
+## visibly, rather than missing from both.
+const SILENT: Dictionary = {
+	"butterfly_azure": "a butterfly is silent",
+	"butterfly_monarch": "a butterfly is silent",
+	"butterfly_swallowtail": "a butterfly is silent",
+	"glass_moth": "a moth is silent",
+	"iron_beetle": "a beetle is silent",
+	"salt_crab": "a crab is silent",
+	"scorpion": "a scorpion is silent",
+	"reedback_terrapin": "a terrapin is silent",
+	"tortoise": "a tortoise is silent",
+	# **Owed a recording rather than silent.** A frog is loud and there is no
+	# croak among the twelve voices on disk; sharing a hiss or a bird call would
+	# be worse than saying nothing. Listed here so it is visible.
+	"reed_frog": "owed its own recording - a frog croaks and nothing on disk does",
+}
+
+
+func _test_every_species_is_voiced_or_declared_silent() -> void:
+	var voiced: int = 0
+	for kind: WildlifeData in ContentDB.wildlife():
+		if kind == null:
+			continue
+		if not kind.vocal_sfx.is_empty():
+			voiced += 1
+			_check(Sfx.SOUNDS.has(kind.vocal_sfx) or Sfx.GROUPS.has(kind.vocal_sfx),
+				("%s speaks with \"%s\", which is neither a sound nor a group"
+					% [kind.id, kind.vocal_sfx]))
+			continue
+		_check(SILENT.has(kind.id),
+			("%s has no voice and is not declared silent - a blank vocal_sfx "
+				+ "cannot say whether that is a decision") % kind.id)
+	_check(voiced >= 40, "only %d species have a voice" % voiced)
+	for id: Variant in SILENT:
+		var kind := ContentDB.wildlife_kinds.get(String(id)) as WildlifeData
+		_check(kind != null, "%s is declared silent and is not a species" % str(id))
+		if kind != null:
+			_check(kind.vocal_sfx.is_empty(),
+				"%s is declared silent and also has a voice" % str(id))
 
 
 func _check(condition: bool, why: String) -> void:

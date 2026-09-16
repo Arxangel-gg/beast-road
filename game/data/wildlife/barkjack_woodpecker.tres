@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_raven"
 haunts = "timber"
 haunt_pull = 0.85
 breeds = true
@@ -24,7 +25,6 @@ coat_saturation_spread = 0.18
 id = "barkjack_woodpecker"
 display_name = "Barkjack"
 description = "You hear it long before you see it, and you hear it from the good wood."
-vocal_sfx = ""
 rarity = 0
 temperament = 0
 movement_style = 4

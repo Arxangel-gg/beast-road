@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_squirrel"
 id = "hedgehog"
 display_name = "Hedgehog"
 description = "Rolls up and waits for the road to lose interest. It usually does."

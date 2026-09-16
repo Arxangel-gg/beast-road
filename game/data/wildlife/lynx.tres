@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_fox"
 coat_pattern = 1
 coat_pattern_strength = 0.34
 coat_pattern_scale = 4.0

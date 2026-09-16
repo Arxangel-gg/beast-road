@@ -83,11 +83,12 @@ static func build(piece: Dictionary) -> HBoxContainer:
 		# Marks are on the row because they are the only number in the game that
 		# says what a piece is *worth*, and both the trade table and the ledger
 		# exist to ask exactly that.
-		detail.text = "%s  ·  Lv%d  ·  %s  ·  %d Marks%s" % [
+		detail.text = "%s  ·  Lv%d  ·  %s  ·  %d Marks%s%s" % [
 			kind.slot_name(), int(piece.get("level", 1)),
 			bonus_text(piece, kind),
 			Stash.sell_price(piece),
-			"  ·  KEPT" if Stash.is_favourite(piece) else ""]
+			"  ·  KEPT" if Stash.is_favourite(piece) else "",
+			set_text(kind)]
 		row.tooltip_text = kind.description
 	text.add_child(detail)
 	return row
@@ -138,3 +139,28 @@ static func band(inner: Control, piece: Dictionary, lit: bool) -> PanelContainer
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(inner)
 	return box
+
+
+## **Which set a piece belongs to, and how much of it is on.**
+##
+## Sets shipped on 2026-09-15 with `Modifiers.set_pieces_worn` documented as
+## being "for the screens and the gate" - and it was called by the gate and by
+## nothing else. So the only thing that ever told a player a set existed was the
+## ring of motes at their feet once it was already **finished**, and the only way
+## to find the fourth Emberwind piece was to have noticed the first three.
+##
+## That is the argument the discipline synergies were built under, word for word:
+## *"a synergy discovered by accident is a coincidence rather than a build."* It
+## is truer of a set, because a set asks the player to pass over better gear in
+## five slots to get there.
+##
+## On the row rather than in a panel, because this is the line a player reads
+## while deciding what to wear.
+static func set_text(kind: GearData) -> String:
+	if kind == null:
+		return ""
+	var set_data: GearSetData = ContentDB.gear_set_of(kind.id)
+	if set_data == null or set_data.members.is_empty():
+		return ""
+	return "  ·  %s %d/%d" % [set_data.display_name,
+		Modifiers.set_pieces_worn(set_data.id), set_data.members.size()]

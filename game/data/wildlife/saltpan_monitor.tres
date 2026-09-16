@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_viper"
 amphibious = true
 water_seconds = Vector2(16, 40)
 land_seconds = Vector2(22, 55)
@@ -26,7 +27,6 @@ coat_saturation_spread = 0.18
 id = "saltpan_monitor"
 display_name = "Saltpan Monitor"
 description = "It tastes the air for you long before it decides anything."
-vocal_sfx = ""
 rarity = 1
 temperament = 3
 movement_style = 2

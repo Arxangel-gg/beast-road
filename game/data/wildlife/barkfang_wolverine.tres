@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_badger"
 haunts = "timber"
 haunt_pull = 0.7
 breeds = true
@@ -22,7 +23,6 @@ coat_saturation_spread = 0.15
 id = "barkfang_wolverine"
 display_name = "Barkfang"
 description = "It dens in the good timber, which is the timber you came for."
-vocal_sfx = ""
 rarity = 1
 temperament = 3
 movement_style = 2

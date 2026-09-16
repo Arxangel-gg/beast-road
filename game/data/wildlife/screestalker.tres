@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+vocal_sfx = "sfx_wildlife_wolf"
 haunts = "seam"
 haunt_pull = 0.72
 breeds = true
@@ -22,7 +23,6 @@ coat_saturation_spread = 0.12
 id = "screestalker"
 display_name = "Screestalker"
 description = "Stone does not move. Then some of it does."
-vocal_sfx = ""
 rarity = 2
 temperament = 3
 movement_style = 2

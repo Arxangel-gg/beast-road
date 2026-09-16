@@ -43,6 +43,7 @@ func _ready() -> void:
 	_test_every_set_can_be_assembled()
 	_test_every_tier_charges_something()
 	_test_the_ceiling()
+	_test_the_row_says_which_set_a_piece_is_in()
 	await _test_wearing_one()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -240,6 +241,84 @@ func _test_wearing_one() -> void:
 	MetaState.stash = stash_before
 	MetaState.equipped = equipped_before
 	Modifiers.rebuild()
+
+
+## **A set says so on the piece, before it is finished.**
+##
+## `Modifiers.set_pieces_worn` documented itself as "for the screens and the
+## gate" and was called by the gate and by nothing else, so the only thing that
+## ever told a player a set existed was the aura at their feet once it was
+## already complete. A player looking for the fourth Emberwind piece had no way
+## to know they held three.
+##
+## Driven through `GearRow.set_text`, which is the string the stash actually
+## draws, rather than through `set_pieces_worn` - the count was never the part
+## that was missing.
+func _test_the_row_says_which_set_a_piece_is_in() -> void:
+	var target: GearSetData = null
+	for one: GearSetData in ContentDB.gear_sets_sorted():
+		if not one.members.is_empty():
+			target = one
+			break
+	_check(target != null, "no set has members")
+	if target == null:
+		return
+	var member: GearData = ContentDB.gear(String(target.members[0]))
+	_check(member != null, "%s names a member that is not gear" % target.id)
+	if member == null:
+		return
+	# **Read off a real row, not off the helper.**
+	#
+	# The first cut of this called `GearRow.set_text` directly, so removing the
+	# call site in the row builder left it passing - it tested the function and
+	# not the wiring, which is the exact failure `audio_verify` was extended for
+	# this morning. It builds the row the stash builds and reads the label back.
+	var row: HBoxContainer = GearRow.build({
+		"kind": member.id, "rarity": 0, "level": 1, "uid": "gate",
+	})
+	_check(row != null, "the stash could not build a row for %s" % member.id)
+	var said: String = _row_detail(row)
+	if row != null:
+		row.queue_free()
+	_check(said.contains(target.display_name),
+		("a piece of %s does not name its set on the row, so the only way to find "
+			+ "the next piece is to have noticed the last one: \"%s\"")
+			% [target.display_name, said])
+	_check(said.contains("/%d" % target.members.size()),
+		"and it does not say how many the set takes: \"%s\"" % said)
+	# A piece in no set says nothing, rather than "none 0/0".
+	for value: Variant in ContentDB.gear_kinds.values():
+		var loner := value as GearData
+		if loner == null or ContentDB.gear_set_of(loner.id) != null:
+			continue
+		var plain: HBoxContainer = GearRow.build({
+			"kind": loner.id, "rarity": 0, "level": 1, "uid": "gate",
+		})
+		var plain_text: String = _row_detail(plain)
+		if plain != null:
+			plain.queue_free()
+		_check(not plain_text.contains("/"),
+			"%s is in no set and its row still printed set text: \"%s\""
+				% [loner.id, plain_text])
+		break
+
+
+## The second line of a built row - slot, level, bonuses, price, and the set.
+static func _row_detail(row: HBoxContainer) -> String:
+	if row == null:
+		return ""
+	for child: Node in row.get_children():
+		var column := child as VBoxContainer
+		if column == null:
+			continue
+		var lines: PackedStringArray = []
+		for inner: Node in column.get_children():
+			var label := inner as Label
+			if label != null:
+				lines.append(label.text)
+		if lines.size() >= 2:
+			return lines[1]
+	return ""
 
 
 func _check(condition: bool, why: String) -> void:
