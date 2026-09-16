@@ -164,7 +164,7 @@ func _ready() -> void:
 
 	add_child(_sprite)
 	z_index = Balance.LOOT_Z_INDEX
-	Sfx.play_group("loot_drop")
+	Sfx.play_group("sfx_loot_drop")
 
 	# **It arrives, rather than being there.** The scatter already threw drops
 	# clear of the corpse, but each one appeared at full size with no moment of
@@ -341,12 +341,13 @@ func _pickup_sound() -> void:
 	_last_pickup_msec = now
 	var shift: float = minf(float(_streak) * Balance.LOOT_STREAK_PITCH_STEP,
 		Balance.LOOT_STREAK_PITCH_MAX)
-	var louder: float = 0.0
-	if not gear.is_empty():
-		var rarity: int = int(gear.get("rarity", 0))
-		shift -= float(rarity) * Balance.LOOT_RARITY_PITCH_DROP
-		louder = float(rarity) * Balance.LOOT_RARITY_DB
-	Sfx.play_group("loot_collect", louder, shift)
+	# Gear says what it is worth; a coin is a coin. `Sfx.gear_arrived` owns the
+	# rarity half so the forge and the road agree about what a Beastcalled sounds
+	# like, and the streak stays here because it is a property of *collecting*.
+	if gear.is_empty():
+		Sfx.play_group("sfx_loot_collect", 0.0, shift)
+		return
+	Sfx.gear_arrived(int(gear.get("rarity", 0)), shift)
 
 
 func _burst() -> void:

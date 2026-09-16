@@ -3070,10 +3070,19 @@ the history.
     this: it failed about one CI run in six on an unseeded stream in the system
     under test.
 
-  Still outstanding from that list, and honestly so: the raid overhaul with
-  elevation and stairs tilesets is not built, and the hero's chop and mine
+  Still outstanding from that list, and honestly so: the hero's chop and mine
   animations reuse the heavy swing sheet rather than having sheets of their own
-  (see the note in CLAUDE.md for why).
+  (see the note in CLAUDE.md for why — the Warden's PixelLab character no longer
+  exists in the account, so there is no eight-direction source to animate from).
+
+  **The raid elevation half of this was listed as outstanding and was built the
+  same day** (2026-09-13). `RaidTerrain` draws a face on the south edge of every
+  ledge with `art/raid/raid_cliff_face.png`, cuts steps into it for a ramp, and
+  is stood up by both `RaidArena` and `RiftArena`. Checked on 2026-09-16 by
+  grepping for what the code *reads* rather than by its name; nothing had
+  updated this line. A list of outstanding work is a model, and this project has
+  now found three stale ones in the same week — the starting-gold value, the
+  seventeen Guide pictures, and this.
 
 - **v0.17.0 published 2026-09-13.** Tagged on the commit that passed CI guard
   and all 74 release gates; the Windows zip, the web build and the launcher are

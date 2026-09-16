@@ -4153,12 +4153,23 @@ game state behind them - `_screen_shot` stands one up alone and photographs it.
 Four more are zoomed rather than framed across a whole battlefield: the towers,
 the traps, the wells and the fishing.
 
-**The rest are still copies and are listed here rather than left implied**:
-`bow`, `boss_fight`, `enemy_shots`, `fog`, `minimap`, `attributes`, `nesting`,
-`hunted`, `arcane`, `quartermaster`, `sharing_fish`, `tower_paths`,
-`trap_levels`, `spirit_upkeep`, `gathering`, `crafts`, `gear`. Each needs a
-*state* driven rather than a screen opened - a boss on the field, an arrow in the
-air, a nest on the ground - which is a harness job apiece rather than one change.
+**This paragraph listed seventeen sections as "still copies" and was stale by
+2026-09-16.** They were converted across the sessions that followed, one harness
+job at a time, and nothing updated the list here. Measured rather than read:
+`guide_shots.gd` holds **three** `_copy` calls, and hashing `art/guide/` finds
+**71 distinct images across 73 pages**.
+
+The three are all glossary pages and all deliberate - `glossary_a` takes the act
+track, `glossary_b` the relics, `glossary_c` the night - because a glossary is a
+word list and the picture beside it is context for the words rather than a
+photograph of a thing. (`relics` has since been re-shot, so B differs from its
+source on disk.)
+
+**Recorded rather than quietly corrected**, for the reason the starting-gold
+paragraph was: this file is the first thing every session reads, and a list of
+outstanding work is a *model*. Hash the folder and grep the tool before building
+something that already exists - that is the same lesson the loot-magnetism
+triage taught on the same day, in the same document.
 
 **Blood stopped being circles, as of 2026-09-16.** The owner asked to "elevate
 the blood shaders on characters and vfx and game juice to maximum perfect
@@ -4562,6 +4573,46 @@ not the other, after `layout_check` and the phone shapes.
 to read this", and it had come to mean "nobody thought of a probe" - which is a
 row that is never checked by anybody, wearing a label that says checking it is
 somebody else's job.
+
+**Every loot sound in the game had never played, found 2026-09-16.**
+`Sfx.play_group(group)` does `GROUPS.get(group, [])` and returns when the array
+is empty - no error, no warning, not even the `_blocked_missing` tally `play`
+keeps, because nothing was *missing*: a key simply was not there. The keys carry
+an `sfx_` prefix and four call sites did not.
+
+**So a drop landing on the road, a drop being picked up and a raid key being
+taken were all silent**, along with the story intro's page turn. The
+loot-streak pitch and the rarity grading built earlier the same day were feeding
+a function that plays nothing.
+
+**`audio_verify` was thorough and could not see it.** It checks every sound
+resolves to a real stream, every group member is a sound or another group, every
+chain reaches a recording, every file on disk is registered and every
+placeholder has a mix row - and it checks the *tables against each other*. A
+table can be impeccable while nobody addresses it correctly. That is the
+`DisciplineEffects` lie in the audio system, and the answer is the same one this
+project has now reached four times: **walk the callers against the table**. The
+gate greps every `play_group("x")` in the project and refuses an `x` that is not
+a key; it skips comment lines, because its own docstring names one on purpose.
+
+**And `audio_verify` was on the release bar only**, the mirror image of
+`copy_check` being on the guard bar only - both found in the same hour. Both are
+on both bars now. **That is three guard/release splits in one session**, after
+`layout_check`, and the lesson has been recorded before: the two lists are
+hand-written and neither is a superset. Diff them before a tag.
+
+**Found by reading the function while adding a fifth bad call to it**, not by
+anything failing - the Smithy's new strike sound would have been the fifth. The
+Smithy now says what came off the anvil: the hammer, then the piece on the same
+rarity ladder a drop off the road uses (`Sfx.gear_arrived`, one function so the
+forge and the road cannot disagree about what a Beastcalled sounds like). That
+is #160 of the forwarded juice list - "players recognise what happened from
+audio alone" - and it is deliberately not a new sound, because a player has
+heard that ladder hundreds of times before they can afford a gem.
+
+**Worth knowing before the next play session: these mix levels have never been
+heard in play.** They were authored expecting to be audible and nothing has ever
+verified them by ear.
 
 ### The three escape hatches — and why there are only three
 

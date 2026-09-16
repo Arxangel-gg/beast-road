@@ -709,6 +709,24 @@ func play_group_at(group: String, at: Vector2, extra_db: float = 0.0) -> void:
 	play_group(group, extra_db + distance_db(away))
 
 
+## **The sound a piece of gear of `rarity` makes when it arrives.**
+##
+## Deeper and louder the rarer it is, on `LOOT_RARITY_PITCH_DROP` and
+## `LOOT_RARITY_DB` - the ladder a player has already learned from hundreds of
+## drops off the ground. `extra_shift` is the caller's own pitch on top: the
+## ground pickup adds its streak, the forge adds nothing.
+##
+## **One place, because it was about to be two.** The Smithy plays a piece
+## coming off the anvil and the drop plays one coming off the road, and two
+## copies of "what does rarity sound like" is how one of them ends up not
+## knowing about a rarity that was added. The same argument
+## `EnemyGroundStrike.strike_the_players` and `Stash.may_break` are single
+## functions for.
+func gear_arrived(rarity: int, extra_shift: float = 0.0) -> void:
+	var shift: float = extra_shift - float(rarity) * Balance.LOOT_RARITY_PITCH_DROP
+	play_group("sfx_loot_collect", float(rarity) * Balance.LOOT_RARITY_DB, shift)
+
+
 func distance_db(away: float) -> float:
 	var span: float = maxf(Balance.SFX_FAR - Balance.SFX_NEAR, 1.0)
 	var out: float = clampf((away - Balance.SFX_NEAR) / span, 0.0, 1.0)

@@ -742,6 +742,12 @@ jobs:
           # putting it all back. A release requirement that depends on somebody
           # remembering is not a requirement, it is a hope.
           check "§57 copy" --headless --path game res://tools/copy_check.tscn
+          # **The sound tables, and the call sites that name them.** This was on
+          # the release bar only, so a caller naming a group that does not exist
+          # - which plays nothing and warns about nothing - could sit on main
+          # until a tag. Four of them did, including every drop landing on the
+          # road and every pickup off it.
+          check "audio tables" --headless --path game res://tools/audio_verify.tscn
           # The summons, and specifically the two properties that keep them a
           # spell rather than the party roster §54 cut: they expire, and there is
           # only ever one. Both would rot silently - a duration that stopped

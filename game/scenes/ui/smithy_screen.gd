@@ -320,7 +320,20 @@ func _strike() -> void:
 	_result.text = "The forge gives up a %s %s, level %d. It is in the stash." % [
 		Stash.rarity_name(piece), kind.display_name if kind != null else "piece",
 		int(piece.get("level", 1))]
-	Sfx.play("sfx_ui_confirm", -2.0)
+	# **The forge says what came out of it, before the words are read.**
+	#
+	# #160 of the forwarded juice list, triaged as "players recognise what
+	# happened from audio alone": a strike used to be `sfx_ui_confirm` whatever
+	# it produced, so the one moment in the game that is *about* rarity - the gem
+	# either climbed a rung or it did not - sounded identical at every rarity.
+	#
+	# The hammer first, then the piece on the same ladder a drop off the road
+	# uses (`Sfx.gear_arrived`). Deliberately not a new sound: a player has heard
+	# that ladder hundreds of times by the time they can afford a gem, so it is
+	# already learned, and a Beastcalled off the anvil lands like a Beastcalled
+	# off the ground.
+	Sfx.play_group("sfx_hit_stone", -3.0)
+	Sfx.gear_arrived(int(piece.get("rarity", 0)))
 	_refresh()
 
 

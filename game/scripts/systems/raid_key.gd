@@ -44,6 +44,6 @@ func _process(delta: float) -> void:
 	if Hero.nearest_on_field(get_tree(), global_position, Balance.RAID_REACH) == null:
 		return
 	RunState.raid_keys += 1
-	Sfx.play_group("loot_collect")
+	Sfx.play_group("sfx_loot_collect")
 	EventBus.raid_key_taken.emit(RunState.raid_keys)
 	queue_free()

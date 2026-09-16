@@ -107,6 +107,24 @@ func _ready() -> void:
 			!= "sfx_wildlife_badger":
 		failures.append("wildlife variations do not share the base species mix policy")
 
+	# **And every group a caller names has to exist.**
+	#
+	# `Sfx.play_group` returns on its first line when the key is not in `GROUPS`
+	# - no error, no warning, not even the `_blocked_missing` tally `play` keeps,
+	# because nothing was missing: a key simply was not there. So a call site
+	# that names the wrong group is perfect silence with working code behind it.
+	#
+	# Everything above this line checks the *tables* against each other and
+	# against the directory, and all of it passed while four call sites named
+	# groups that have never existed - including every drop landing on the road
+	# and every pickup off it. That is the `DisciplineEffects` lie in the audio
+	# system: the data is impeccable and the consumer is wrong.
+	#
+	# `play` is deliberately not walked the same way: it falls back to a group of
+	# the same name and already counts what it cannot find.
+	for missing: String in _groups_callers_name_that_do_not_exist():
+		failures.append(missing)
+
 	print("[audio] %d sounds, %d groups, %d mix rows"
 		% [paths.size(), Sfx.GROUPS.size(), Sfx.MIX.size()])
 	for problem: String in failures:
@@ -127,3 +145,51 @@ func _resolves(id: String, paths: Dictionary, depth: int) -> int:
 	for option: Variant in Sfx.GROUPS[id] as Array:
 		total += _resolves(String(option), paths, depth + 1)
 	return total
+
+
+## Every `play_group("x")` and `play_group_at("x")` in the project whose `x` is
+## not a key in `GROUPS`. Source text rather than behaviour, deliberately: the
+## failure is that nothing happens, and a gate cannot hear nothing.
+func _groups_callers_name_that_do_not_exist() -> PackedStringArray:
+	var bad: PackedStringArray = []
+	for path: String in _every_script("res://"):
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		var line_number: int = 0
+		for line: String in file.get_as_text().split("
+"):
+			line_number += 1
+			# Its own docstring names a group that does not exist, on purpose.
+			if line.strip_edges().begins_with("#"):
+				continue
+			for call: String in ["play_group(\"", "play_group_at(\""]:
+				var at: int = line.find(call)
+				if at < 0:
+					continue
+				var from: int = at + call.length()
+				var shut: int = line.find("\"", from)
+				if shut < 0:
+					continue
+				var named: String = line.substr(from, shut - from)
+				if named.is_empty() or Sfx.GROUPS.has(named):
+					continue
+				bad.append(("%s:%d names the sound group \"%s\", which is not in "
+					+ "GROUPS - it plays nothing and says nothing")
+					% [path, line_number, named])
+	return bad
+
+
+func _every_script(root: String) -> PackedStringArray:
+	var found: PackedStringArray = []
+	var dir := DirAccess.open(root)
+	if dir == null:
+		return found
+	for name: String in dir.get_directories():
+		if name.begins_with("."):
+			continue
+		found.append_array(_every_script(root.path_join(name)))
+	for name: String in dir.get_files():
+		if name.ends_with(".gd"):
+			found.append(root.path_join(name))
+	return found

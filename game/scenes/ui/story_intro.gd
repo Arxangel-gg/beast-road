@@ -261,7 +261,7 @@ func _show(panel: Dictionary) -> void:
 	rise.tween_property(_title, "modulate:a", 1.0, FADE * 0.8)
 	rise.tween_property(_title, "position:y", start, FADE)
 	rise.tween_property(_line, "modulate:a", 1.0, FADE).set_delay(FADE * 0.4)
-	Sfx.play_group("story_panel")
+	Sfx.play_group("sfx_story_panel")
 
 	# The hold begins once the *line* has finished arriving, not once the panel
 	# started. Counting from the start gave the prose about a second and a half
