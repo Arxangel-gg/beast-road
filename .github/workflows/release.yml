@@ -292,7 +292,15 @@ jobs:
           run_godot_clean --headless --path game res://tools/foliage_art_check.tscn
           run_godot_clean --headless --path game res://tools/font_glyph_check.tscn
           run_godot_clean --headless --path game res://tools/morale_check.tscn
-          run_godot_clean --headless --path game res://tools/night_check.tscn
+          # night_check is deliberately NOT here, and guard.yml says why: it reads
+          # pixels and the runners are headless, where every grab returns null from
+          # the dummy renderer. It refuses to run rather than measuring nothing and
+          # printing PASS. Run it by hand on a machine with a renderer when touching
+          # lighting or torches:  godot --path game res://tools/night_check.tscn
+          #
+          # It was added here on 2026-09-16 by a script that diffed the two workflows
+          # and found this path *inside guard's comment explaining its absence* - the
+          # third time in one day that a source walk counted prose as code.
           run_godot_clean --headless --path game res://tools/omen_check.tscn
           run_godot_clean --headless --path game res://tools/recap_check.tscn
           run_godot_clean --headless --path game res://tools/road_card_check.tscn
