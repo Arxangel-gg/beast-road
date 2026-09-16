@@ -252,14 +252,61 @@ func _lore_row(entry: LoreEntryData) -> Control:
 	return panel
 
 
+## **A rule between two rows of a list: inset, and fading out at both ends.**
+##
+## Owner, 2026-09-16: the progress page "needs line break lines that do not
+## extend to the full reach of the sides of the window but help guide eyes to see
+## the rows better, and the line breaks should be stylized".
+##
+## Both halves of that are one shape. A line that runs wall to wall reads as a
+## divider *of the panel* and cuts the page into pieces; one that starts and ends
+## inside the text block reads as a rule *between two rows*, which is what it is.
+## And it fades rather than stopping, because a hard end is a second edge the eye
+## has to account for - the same argument the fire's light shafts are drawn
+## under.
+class Rule extends Control:
+	const INSET: float = 26.0
+	const TAPER: float = 0.34
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(0.0, 9.0)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var wide: float = size.x
+		if wide < INSET * 3.0:
+			return
+		var y: float = size.y * 0.5
+		var from: float = INSET
+		var to: float = wide - INSET
+		var fade: float = (to - from) * TAPER
+		var core := Color(0.62, 0.58, 0.48, 0.42)
+		var edge := Color(0.62, 0.58, 0.48, 0.0)
+		# Three bands: out of nothing, along, and back into nothing.
+		_band(from, from + fade, y, edge, core)
+		_band(from + fade, to - fade, y, core, core)
+		_band(to - fade, to, y, core, edge)
+
+	func _band(a: float, b: float, y: float, left: Color, right: Color) -> void:
+		draw_polygon(
+			PackedVector2Array([Vector2(a, y - 0.5), Vector2(b, y - 0.5),
+				Vector2(b, y + 0.5), Vector2(a, y + 0.5)]),
+			PackedColorArray([left, right, right, left]))
+
+
 # --- Progress --------------------------------------------------------------------
 
 func _build_progress() -> void:
 	_body.add_child(_heading("Where this account stands", 22))
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 6)
+	# **A column of rows with a rule between them**, rather than a grid.
+	#
+	# A grid lines the two columns up and gives the eye nothing to travel along,
+	# so fourteen statistics read as one block of text (owner, 2026-09-16: the
+	# page "needs line break lines ... to help guide eyes to see the rows
+	# better"). A rule between rows is what carries the eye across the gap from a
+	# name on the left to a number on the right.
+	var grid := VBoxContainer.new()
+	grid.add_theme_constant_override("separation", 2)
 	_body.add_child(grid)
 	var codex_total: int = 0
 	for source: String in ["enemies", "affixes", "wildlife_kinds", "weathers"]:
@@ -297,11 +344,20 @@ func _build_progress() -> void:
 		["Best distance", "%d" % int(MetaState.best_distance)],
 		["Marks and Shards", "%d  ·  %d" % [MetaState.marks, MetaState.shards]],
 	]
-	for pair: Array in rows:
+	for index: int in rows.size():
+		var pair: Array = rows[index]
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 24)
 		var key: Label = _paragraph(String(pair[0]), Color("e8a33d"))
+		key.custom_minimum_size.x = 190.0
 		var value: Label = _paragraph(String(pair[1]))
-		grid.add_child(key)
-		grid.add_child(value)
+		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(key)
+		line.add_child(value)
+		grid.add_child(line)
+		# No rule after the last row: a line under the final entry is a lid.
+		if index < rows.size() - 1:
+			grid.add_child(Rule.new())
 	_body.add_child(_note("Everything here is a statistic the account keeps. None of it is power."))
 
 
