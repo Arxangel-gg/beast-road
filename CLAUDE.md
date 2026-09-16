@@ -4061,30 +4061,33 @@ window always knows how big it is.
 - which is how both of those were caught, because each one leaves a launcher that
 loads perfectly cleanly and looks unchanged.
 
-**And a second pass, because the first one's foliage hung from nothing.** The
-owner: "the fruits and branches and frame are in need of fixing and polish and
-perfection". Three faults, all visible in one photograph:
+**And then the border and the foliage came out again, on the owner's call.**
+Two passes were spent on them - rooting the fruit on strands, insetting the band,
+grading everything down - and the owner's verdict was that they "just lower the
+quality and polish so just remove them". That is the right call and the reason is
+worth keeping: **it was a `_draw` laying the menu's textures flat.** The menu's
+frame gets its look from a shader, a wobble, a travelling sheen and per-strand
+placement; copying the art without the machinery was always going to read as
+flatter than the thing it was copying. Fewer pieces that move properly beat more
+pieces that do not.
 
-- **The fruit was placed, not rooted.** Pieces sat along the top edge in a row at
-  full brightness with no strand above them, so a pear and a bunch of berries
-  read as stickers pasted on the window. Every hanging thing grows from a strand
-  now, drawn as short segments so it can bend - a vine straight from root to
-  fruit reads as a wire - and the tip swings further than the root, because a
-  hanging thing is a pendulum. That is the beast's tail's argument in a second
-  place.
-- **The corner bracket fought the band.** The bracket was drawn at 2.4x the
-  band's thickness while the band tiled underneath it from zero, so every corner
-  was two pieces of art arguing. The band is inset and the bracket is the join.
-- **A branch was being hung by one end.** `menu_branch_mossy` was in the hanger
-  list and came out dangling vertically. The menu lays branches *along* the top,
-  where a branch belongs; until the launcher has somewhere to lay one it carries
-  only what a strand can legitimately hold.
+**What replaced it is the real shader.** `title_hologram.gdshader` is copied
+across from the game rather than reimplemented - two shaders claiming to be one
+effect would drift - and driven from the clock the launcher already runs. What it
+takes from a hologram is its *behaviour*: a sheen travelling across the lettering
+and a faint channel split. Not a blue palette; the wordmark is gold and stone,
+and tinting it would be a different logo. Skipped headless, where compiling a
+shader is an error the pipeline test reads as a failure.
 
-**And the grading is the mistake this project keeps making.** Foliage at full
-brightness in front of a dusk painting - the menu's birds came out black on
-black, the Warden came out black on black, and this came out as fruit glowing in
-a dark doorway. The direction differs; the fault is the same one every time,
-which is grading a thing by something other than the light it is actually in.
+**And the release notes stopped showing their own syntax.** The panel has
+`bbcode_enabled` and GitHub writes Markdown, so every note rendered with
+`**Full Changelog**` asterisks on show - the one piece of raw syntax on an
+otherwise finished window. Translated rather than stripped, and conservatively:
+anything unrecognised is left exactly as it was, because a note that renders
+plainly is a small fault and one mangled by a clever regex is a worse one.
+`String.replace` in GDScript takes **no count argument**, so the bold pass
+splices by index - a plain replace turns every marker on a line into an opening
+tag.
 
 ### The three escape hatches — and why there are only three
 

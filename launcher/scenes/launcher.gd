@@ -1,6 +1,10 @@
 class_name Launcher
 extends Control
 
+## The wordmark's travelling sheen, and the clock that moves it.
+var _title_paint: ShaderMaterial = null
+var _title_clock: float = 0.0
+
 ## The launcher window.
 ##
 ## One button that always says the single most useful thing it can: Install,
@@ -64,6 +68,82 @@ const SPINNER_FRAMES: Array[String] = ["·  ", "·· ", "···", " ··", "  ·
 ##
 ## `_unhandled_input` rather than `_input`, so a key pressed while a text field
 ## has focus goes to the field first.
+## **The wordmark, holographic and travelling** (owner, 2026-09-16: "make the
+## title text art holographic and animated in the launcher app as well").
+##
+## The game's own `title_hologram.gdshader`, copied across rather than
+## reimplemented - the launcher is its own Godot project and cannot reach into
+## the game's `res://`, and two shaders claiming to be one effect would drift.
+##
+## What it takes from a hologram is its *behaviour*: a sheen that travels across
+## the lettering and a faint channel split at the edges. Not a blue palette -
+## this wordmark is gold and stone, and tinting it would be a different logo.
+##
+## Skipped headless, where there is no renderer to compile a shader and the
+## attempt is an error the pipeline test reads as a failure.
+func _light_the_title() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var art := get_node_or_null("Logo") as TextureRect
+	if art == null:
+		return
+	var shader: Shader = load("res://scripts/title_hologram.gdshader") as Shader
+	if shader == null:
+		return
+	var paint := ShaderMaterial.new()
+	paint.shader = shader
+	# The same figures the menu runs it at, so the two wordmarks are one effect.
+	paint.set_shader_parameter("strength", 0.85)
+	paint.set_shader_parameter("sheen_width", 0.17)
+	paint.set_shader_parameter("split", 0.0035)
+	art.material = paint
+	_title_paint = paint
+
+
+## **Release notes are written in Markdown and this panel speaks BBCode.**
+##
+## The label has `bbcode_enabled`, so a note came out reading
+## `**Full Changelog**: https://...` with the asterisks on show - the one piece
+## of raw syntax on an otherwise finished window. Translated rather than
+## stripped: what GitHub writes is headings, bold and links, and all three have
+## somewhere to go here.
+##
+## Conservative on purpose. Anything it does not recognise is left exactly as it
+## was, because a note that renders plainly is a small fault and a note mangled
+## by a clever regex is a worse one.
+func _as_bbcode(notes: String) -> String:
+	var out: PackedStringArray = []
+	for raw: String in notes.split("
+"):
+		var line: String = raw
+		# Headings, deepest first so "###" is not eaten by the "#" rule.
+		for depth: int in [3, 2, 1]:
+			var mark: String = "#".repeat(depth) + " "
+			if line.begins_with(mark):
+				line = "[b]" + line.substr(mark.length()) + "[/b]"
+				break
+		# Bold, in pairs. An odd number of markers is left alone rather than
+		# guessed at.
+		if line.count("**") >= 2 and line.count("**") % 2 == 0:
+			var bold: bool = false
+			# Spliced by index rather than replaced: GDScript's `replace` takes no
+			# count, so a plain replace would turn every marker on the line into
+			# an opening tag.
+			var at: int = line.find("**")
+			while at >= 0:
+				var tag: String = "[/b]" if bold else "[b]"
+				line = line.substr(0, at) + tag + line.substr(at + 2)
+				bold = not bold
+				at = line.find("**")
+		# Bullets, which BBCode has no list for at this size - a dot reads better
+		# than a dash and costs nothing.
+		if line.begins_with("- ") or line.begins_with("* "):
+			line = "  · " + line.substr(2)
+		out.append(line)
+	return "
+".join(out)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -79,15 +159,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _ready() -> void:
-	# **The carved border and the corner foliage**, so the first thing anybody
-	# sees of this game looks like the game (owner, 2026-09-16). Added first and
-	# pushed behind the controls: it is scenery, and nothing on it is pressed.
-	# **Over the painting and under the controls.** Index 0 put it behind the
-	# backdrop, where a border is invisible; the three scenery nodes come first
-	# (Backdrop, Scrim, Vignette) and everything a player presses comes after.
-	var dress := LauncherDress.new()
-	add_child(dress)
-	move_child(dress, 3)
+	# **The wordmark is the living thing on this window.**
+	#
+	# A carved border and hanging foliage were tried here over two passes and
+	# removed (owner, 2026-09-16: "they're not properly done and just lower the
+	# quality"). They were a `_draw` laying the menu's textures flat, and the
+	# menu's frame gets its look from a shader, a wobble and a sheen - a copy of
+	# the art without the machinery was always going to read as flatter than the
+	# thing it was copying. The right answer was fewer, better-moving pieces.
+	_light_the_title()
 
 	_http = HTTPRequest.new()
 	_http.use_threads = true
@@ -121,6 +201,10 @@ func _process(delta: float) -> void:
 	# uses the same art and the same restrained motion language so the hand-off
 	# feels like one product: long backdrop drift, barely perceptible logo breath.
 	_stage_time += delta
+	# The wordmark's sheen travels on the same clock as everything else here.
+	if _title_paint != null:
+		_title_clock += delta
+		_title_paint.set_shader_parameter("clock", _title_clock)
 	if _backdrop != null:
 		var drift: float = sin(_stage_time * 0.075) * 10.0
 		_backdrop.offset_left = -18.0 + drift
@@ -244,7 +328,7 @@ func _on_release_fetched(result: int, code: int, _headers: PackedStringArray, bo
 		return
 
 	if not _latest.notes.is_empty():
-		notes_label.text = _latest.notes
+		notes_label.text = _as_bbcode(_latest.notes)
 		notes_panel.visible = true
 
 	_refresh_mirrors()
