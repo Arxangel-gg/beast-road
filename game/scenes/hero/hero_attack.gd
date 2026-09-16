@@ -35,6 +35,16 @@ signal landed(chain_step: int, targets: int, at: Vector2)
 ## Multiplier applied to every swing, set by the hero from relics and buildings.
 var damage_multiplier: float = 1.0
 
+## **How much longer every phase takes**, set by the hero from where it is
+## standing. One at the ordinary pace; above one is slower.
+##
+## Deep water is the only thing that sets it today (owner, 2026-09-16: a flooded
+## hero "should still be able to attack but at a much slower rate"). It lives
+## here as a plain number rather than as a `Hero` reference because this object
+## is a pure state machine and does not know what a Hero is - the same
+## arrangement `damage_multiplier` above already uses.
+var drag: float = 1.0
+
 var _phase: Phase = Phase.READY
 var _step: int = 0
 var _phase_left: float = 0.0
@@ -104,6 +114,16 @@ func grant_haste(seconds: float) -> void:
 ## together. Shortening the recovery alone would make the swing read as faster
 ## without its own telegraph shortening with it, which is the same mistake the
 ## weapon scale's comment warns about.
+## **Everything that stretches or shortens a swing, in one place.**
+##
+## The windup, the active and the recovery each multiplied these by hand, which
+## gave a new factor three chances to be added and two to be forgotten. That is
+## the fault an Arcane node shipped with when its reach reached four of five
+## throws.
+func _phase_scale() -> float:
+	return _swiftness_scale() * _weapon_scale() * _haste_scale() * maxf(drag, 0.01)
+
+
 func _haste_scale() -> float:
 	var scale: float = Balance.HERO_EVADE_HASTE_SCALE if _evade_haste_left > 0.0 else 1.0
 	return scale * _fury_scale()
@@ -231,10 +251,10 @@ func _advance_phase() -> void:
 	match _phase:
 		Phase.WINDUP:
 			_phase = Phase.ACTIVE
-			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
+			_phase_left += Balance.HERO_ATTACK_ACTIVE[_step] * _phase_scale()
 		Phase.ACTIVE:
 			_phase = Phase.RECOVERY
-			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
+			_phase_left += Balance.HERO_ATTACK_RECOVERY[_step] * _phase_scale()
 		Phase.RECOVERY:
 			_phase = Phase.READY
 			_phase_left = 0.0
@@ -247,7 +267,7 @@ func _advance_phase() -> void:
 func _begin_swing(step: int, aim: Vector2) -> void:
 	_step = clampi(step, 0, Balance.HERO_CHAIN_LENGTH - 1)
 	_phase = Phase.WINDUP
-	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _swiftness_scale() * _weapon_scale() * _haste_scale()
+	_phase_left = Balance.HERO_ATTACK_WINDUP[_step] * _phase_scale()
 	_swing_aim = aim.normalized() if aim.length() > 0.001 else Vector2.RIGHT
 	_buffer_left = 0.0
 	_chain_left = 0.0

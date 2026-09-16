@@ -4,10 +4,10 @@
 
 [resource]
 script = ExtResource("1")
-coat_pattern = 3
-coat_pattern_strength = 0.22
-coat_pattern_scale = 9.0
-coat_pattern_tint = Color(0.120, 0.120, 0.130, 0.650)
+coat_pattern = 7
+coat_pattern_strength = 0.80
+coat_pattern_scale = 5.0
+coat_pattern_tint = Color(0.940, 0.930, 0.900, 0.720)
 coat_hue_spread = 0.010
 coat_light_spread = 0.13
 coat_saturation_spread = 0.10

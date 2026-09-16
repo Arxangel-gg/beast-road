@@ -46,3 +46,7 @@ xp_reward = 13
 art_faces_right = true
 stay_min = 35.0
 stay_max = 95.0
+coat_pattern = 8
+coat_pattern_strength = 0.45
+coat_pattern_scale = 2.8
+coat_pattern_tint = Color(0.180, 0.170, 0.165, 0.600)

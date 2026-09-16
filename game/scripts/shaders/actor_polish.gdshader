@@ -105,6 +105,36 @@ float coat_mark(vec2 uv, vec2 px) {
 		// Darker toward the ground: socks, and the shading under a belly.
 		return smoothstep(0.62, 0.94, uv.y);
 	}
+	if (coat_pattern == 5) {
+		// DAPPLE: mottling that fades at its edges rather than stepping. A fawn,
+		// a young boar, light through leaves on anything.
+		return smoothstep(0.42, 0.78, value_noise(grid / max(scale, 1.0)));
+	}
+	if (coat_pattern == 6) {
+		// BANDS: rings across the body rather than along it - a ringed tail, a
+		// banded back. Softened at the edges so they read as fur and not as a
+		// barcode.
+		float band = fract(grid.y / max(scale, 1.0));
+		return smoothstep(0.30, 0.40, band) - smoothstep(0.60, 0.70, band);
+	}
+	if (coat_pattern == 7) {
+		// MASK: the leading end and the chest darker than the rest. A raccoon, a
+		// fox, a badger. Read off the sprite's own box, so it lands on the face
+		// whichever way the animal is drawn.
+		return smoothstep(0.42, 0.10, uv.x) * smoothstep(0.86, 0.38, uv.y);
+	}
+	if (coat_pattern == 8) {
+		// SPECKLE: fine dense flecking at close to pixel scale, for the birds,
+		// the frogs and the insects, where a spot the size of a spot would be
+		// most of the animal.
+		return step(0.80, hash21(floor(grid * 1.7)));
+	}
+	if (coat_pattern == 9) {
+		// COUNTERSHADE: back dark, belly light. The commonest pattern there is
+		// and the one that still reads when the sprite is forty pixels tall,
+		// which makes it the right answer for the small species.
+		return smoothstep(0.55, 0.05, uv.y);
+	}
 	return 0.0;
 }
 

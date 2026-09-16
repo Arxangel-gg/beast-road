@@ -404,8 +404,14 @@ func _physics_process(delta: float) -> void:
 	_update_aim_guide()
 	_tick_swim(delta)
 
-	# No weapon in the water: a swimmer has both hands full staying up.
-	var combat_input: bool = can_fight() and not _swimming
+	# **A swimmer still swings, slowly** (owner, 2026-09-16). This refused
+	# combat outright - "no weapon in the water: a swimmer has both hands full
+	# staying up" - which is a fair rule for somebody who swam out to a fishing
+	# spot and the wrong one for a flood, where the water arrives at a fight that
+	# is already happening and the bodies on the road do not stop.
+	if attack != null:
+		attack.drag = Balance.HERO_SWIM_ATTACK_DRAG if _swimming else 1.0
+	var combat_input: bool = can_fight()
 	if combat_input and _beast_stun_left <= 0.0 and (
 			input.pressed(HeroInput.BUTTON_ATTACK)
 			or input.held(HeroInput.HOLD_ATTACK)):

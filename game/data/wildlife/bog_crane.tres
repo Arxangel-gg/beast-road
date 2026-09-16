@@ -39,3 +39,7 @@ art_faces_right = false
 
 stay_min = 30.0
 stay_max = 90.0
+coat_pattern = 8
+coat_pattern_strength = 0.35
+coat_pattern_scale = 3.0
+coat_pattern_tint = Color(0.180, 0.170, 0.165, 0.600)

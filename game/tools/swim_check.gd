@@ -91,6 +91,18 @@ func _test(field: Battlefield, ponds: Node, hero: Hero) -> void:
 	_check(hero.swim_depth() > Balance.SWIM_THRESHOLD, "and reads the depth under it")
 	var cover: Node = hero.get("_swim_cover") as Node
 	_check(cover != null and (cover as CanvasItem).visible, "the water covers the submerged half")
+	# **A swimmer still swings, slowly** (owner, 2026-09-16: a flooded player
+	# "should still be able to attack but at a much slower rate than usual").
+	# Combat used to be refused outright in water, which is a spectator seat when
+	# the water arrives at a fight that is already happening. Held as both halves:
+	# it is slower, and it is not nothing.
+	if hero.attack != null:
+		_check(hero.attack.drag > 1.05,
+			"a swimmer swings at %.2f of the usual pace - that is not 'much slower'"
+				% hero.attack.drag)
+		_check(hero.attack.drag < 6.0,
+			"a swimmer swings %.1f times slower, which is refusing by another name"
+				% hero.attack.drag)
 	# The pace: the scale is applied to the stride in `Hero._physics_process`,
 	# which this gate cannot drive; what it can hold is that the scale is a
 	# real slowdown and that the walk it scales is a real walk.

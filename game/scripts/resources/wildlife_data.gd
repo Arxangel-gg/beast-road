@@ -321,7 +321,11 @@ enum Protection { GUIDE, DEFEND, HUNT }
 ##
 ## **Appended, never inserted** - `.tres` files index this enum by number, and
 ## `Role` and `Trigger` both taught this project that in silence.
-enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS }
+## **Appended, never inserted.** This is indexed by number out of every
+## `.tres` that names a coat, and inserting a member in the middle silently
+## repoints all of them - `Role` and `Trigger` both did exactly that here.
+enum Coat { NONE, SPOTS, STRIPES, PATCHES, SOCKS,
+	DAPPLE, BANDS, MASK, SPECKLE, COUNTERSHADE }
 @export var coat_pattern: Coat = Coat.NONE
 ## How far a coat may wander from the painting, per species. Bounded again by
 ## `Balance.PHENOTYPE_*_CEILING`, which is the hard limit: past it the variation

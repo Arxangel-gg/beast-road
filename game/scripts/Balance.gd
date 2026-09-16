@@ -7187,6 +7187,18 @@ const FLOOD_DROWN_LEVEL: float = 0.97
 const FLOOD_CLIMB_DOWN: float = 0.45
 ## Species drawn below this scale are below the water at its height.
 const FLOOD_DROWN_SCALE: float = 1.0
+
+## **How much longer every phase of a swing takes while the hero is swimming.**
+##
+## Owner, 2026-09-16: in a heavy flood a player "should still be able to attack
+## but at a much slower rate than usual". It used to be forbidden outright, which
+## is a fair rule for somebody who swam out to a fishing spot and the wrong one
+## for water that arrives where the fight already is.
+##
+## Applied to the windup, the active and the recovery together - the same rule
+## Swiftness and the weapon are under - so the telegraph stretches with the blow
+## rather than the swing becoming slow and unreadable. [TUNE]
+const HERO_SWIM_ATTACK_DRAG: float = 2.6
 ## When the HUD says the road is flooding.
 const FLOOD_ANNOUNCE: float = 0.5
 ## The standing water's look: just over the ground and the roads, under

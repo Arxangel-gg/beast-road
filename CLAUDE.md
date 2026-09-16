@@ -3953,6 +3953,51 @@ takes its reach, sway rate and flicker phase from its own irrational step throug
 the fire's seed, so no two over one flame fall into step; the old pair shared a
 length and read as two wipers rather than as light.
 
+**A hero in deep water still swings, slowly, as of 2026-09-16.** Owner: "Players
+can't attack when it becomes heavily flooded, they should still be able to attack
+but at a much slower rate than usual."
+
+**The refusal was written for a pond and a flood is not a pond.** `Hero._process`
+read `can_fight() and not _swimming` - "no weapon in the water: a swimmer has
+both hands full staying up" - which is fair for somebody who swam out to a
+fishing spot and wrong for water that arrives where the fight already is. The
+road is still full of bodies and they do not stop; being unable to answer is a
+spectator seat rather than a cost. `HERO_SWIM_ATTACK_DRAG` stretches **every
+phase together**, the same rule Swiftness and the weapon are under, so the
+telegraph stretches with the blow instead of the swing becoming slow and
+unreadable.
+
+**And three call sites became one.** The windup, the active and the recovery each
+multiplied `_swiftness_scale() * _weapon_scale() * _haste_scale()` by hand, so a
+fourth factor had three chances to be added and two to be forgotten - which is
+exactly how an Arcane node once shipped with its reach applied at four of five
+throws. `HeroAttack._phase_scale()` is the one place. `HeroAttack` still does not
+know what a `Hero` is: `drag` is a number the hero sets, as `damage_multiplier`
+already was.
+
+**Nine coat patterns instead of four, as of the same date.** Owner: wildlife
+"needs more shaders for their variety patterns to make them all more unique and
+diversified ... appropriately designed for each wildlife."
+
+Twenty of forty-four species carried one of the four old patterns and the other
+twenty-four carried none, so a raccoon, a raven and a marmot were each a flat
+colour shifted a little. **DAPPLE, BANDS, MASK, SPECKLE and COUNTERSHADE** are
+each a shape a coat actually has rather than another noise function - and
+countershading in particular is the one that still reads when a sprite is forty
+pixels tall, which is why the small species get it. Twenty-two species were
+re-coated to the shape of the animal: the raccoon's and badger's masks, the
+hedgehog's banded quills, the otter's countershading, the moth's speckling.
+
+**Appended to the enum, never inserted.** `WildlifeData.coat_pattern` is indexed
+by number out of every `.tres` that names one, and this project has twice shipped
+content pointing at the wrong member because somebody added one in the middle -
+`Role` and `Trigger` both did it.
+
+**The bound is unmoved: a coat is a look.** `PHENOTYPE_HUE_CEILING` still stops a
+fox turning blue, a marking must still never be mistaken for the rank sheen that
+says rarity, nothing reads a pattern, and `Graphics.KEY_PHENOTYPE` still turns
+every one of them off with no number moving.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

@@ -40,3 +40,7 @@ hops = true
 art_faces_right = true
 stay_min = 20.0
 stay_max = 55.0
+coat_pattern = 9
+coat_pattern_strength = 0.40
+coat_pattern_scale = 5.0
+coat_pattern_tint = Color(0.940, 0.930, 0.900, 0.720)
