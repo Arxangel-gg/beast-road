@@ -215,14 +215,30 @@ func _ready() -> void:
 			var hero: Hero = run.battlefield.hero
 			if hero != null and hero.spirit != null and is_instance_valid(hero.spirit):
 				_look_at((hero.spirit as Node2D).global_position))
-	_copy("spirits", "summons")
+	# **A summon is a spell, not a bond.** This copied the spirits picture, so the
+	# section about a wolf called for twenty seconds was illustrated by the
+	# permanent companion screen - a different system with a different rule. Six
+	# COMPANION spells exist and none of them had ever been photographed.
+	await _shot("summons", _call_a_summon,
+		func() -> void:
+			var called: Vector2 = _where_the_summon_is()
+			if called != Vector2.INF:
+				_stand_at(called + Vector2(-120.0, 70.0))
+				_look_at(called))
 	run.call("_on_ride_on_requested")
 	await _let_a_wave_arrive()
 	await _shot("waves", func() -> void: _apt_combat_post("waves"),
 		func() -> void: _apt_combat_post("waves"))
-	_copy("waves", "hud")
-	_copy("waves", "loop")
-	_copy("waves", "bow")
+	# **Three sections were one photograph.** Measured by hashing the folder:
+	# `hud`, `loop` and `waves` were byte-identical, which reads as laziness even
+	# where each is defensible on its own. They take their own moments now - the
+	# same fight, different beats - and the `bow` copy is gone outright because
+	# `bow` has had a real shot of an arrow in the air since it was written, and
+	# this line was overwriting nothing but still claiming to.
+	await _shot("hud", func() -> void: _apt_combat_post("hud"),
+		func() -> void: _apt_combat_post("hud"))
+	await _shot("loop", func() -> void: _apt_combat_post("loop"),
+		func() -> void: _apt_combat_post("loop"))
 	_crop("waves", "spells", Rect2(0.25, 0.8, 0.5, 0.2))
 	_crop("waves", "currencies", Rect2(0.0, 0.0, 0.42, 0.22))
 	await _shot("healing", func() -> void:
@@ -517,7 +533,18 @@ func _ready() -> void:
 			break)
 	if run.hud != null:
 		run.hud.call("_close_build_panel")
-	_copy("spirits", "spirit_upkeep")
+	# **Upkeep is the Food going down, so the Food has to be in frame.** This
+	# copied the spirits picture, which shows the animal and nothing about what
+	# it costs - and the section is entirely about what it costs.
+	await _shot("spirit_upkeep", func() -> void:
+		_bond_a_spirit()
+		# Left deliberately shallow: a full larder says nothing about upkeep, and
+		# the prompt that offers to send it home only appears when it is biting.
+		RunState.currencies[RunState.FOOD] = Balance.COMPANION_CALL_COST * 2,
+		func() -> void:
+			var hero: Hero = run.battlefield.hero
+			if hero != null and hero.spirit != null and is_instance_valid(hero.spirit):
+				_look_at((hero.spirit as Node2D).global_position))
 	# **A boss picture with a boss in it** (owner: "No act boss is visible in the
 	# demo screenshot but should be"). It was a copy of the ordinary wave
 	# photograph, so the section about fighting an act boss showed a road of
@@ -1621,6 +1648,33 @@ func _nearest_body_in_the_deep() -> Vector2:
 			nearest = away
 			best = body.global_position
 	return best
+
+
+## Calls a companion the way the spell does.
+##
+## Through `SpellCaster._summon` rather than by adding a `Companion` node: the
+## spell is what the section describes, and a hand-built node would be a picture
+## of something the game never makes.
+func _call_a_summon() -> void:
+	_apt_combat_post("summons")
+	var hero: Hero = run.battlefield.hero
+	if hero == null or hero.spells == null:
+		return
+	for id: Variant in ContentDB.spells:
+		var spell := ContentDB.spells[id] as SpellData
+		if spell == null or spell.kind != SpellData.Kind.COMPANION:
+			continue
+		hero.spells.call("_summon", spell, hero.global_position, Vector2.RIGHT)
+		break
+
+
+## Where the called companion stands, or INF.
+func _where_the_summon_is() -> Vector2:
+	for node: Node in get_tree().get_nodes_in_group(Companion.GROUP):
+		var called := node as Node2D
+		if called != null and is_instance_valid(called):
+			return called.global_position
+	return Vector2.INF
 
 
 func _wound_the_nearest() -> Vector2:

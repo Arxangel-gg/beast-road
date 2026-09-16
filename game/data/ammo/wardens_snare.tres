@@ -14,8 +14,8 @@ snares = true
 snare_strength = 1.85
 craft_batch = 3
 craft_cost = {
-"iron_ore": 6,
-"ashwood_log": 8
+"gold": 24,
+"wood": 18
 }
 bulk = 1
 known_from_the_start = false

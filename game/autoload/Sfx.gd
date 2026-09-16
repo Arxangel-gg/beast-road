@@ -715,7 +715,11 @@ func distance_db(away: float) -> float:
 	return Balance.SFX_FAR_DB * out
 
 
-func play(id: String, extra_db: float = 0.0) -> void:
+## `pitch_shift` is a *ratio* on top of the mix's own drift: 0.05 is five
+## percent sharp. Threaded through rather than set by the caller afterwards,
+## because the voice is chosen, started and released in here and a caller has
+## no handle on it.
+func play(id: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
 	_attempts += 1
 	var stream: AudioStream = _streams.get(id, null) as AudioStream
 	if stream == null:
@@ -728,14 +732,15 @@ func play(id: String, extra_db: float = 0.0) -> void:
 			return
 		_blocked_missing += 1
 		return
-	_play_stream(id, stream, id, extra_db)
+	_play_stream(id, stream, id, extra_db, pitch_shift)
 
 
 ## Starts one resolved recording. `mix_id` may be its variation group, allowing
 ## all takes to share one loudness, cooldown and polyphony budget. Wildlife
 ## calls need this: otherwise four quiet variants each inherit the much louder
 ## default and can bypass one another's cooldown.
-func _play_stream(id: String, stream: AudioStream, mix_id: String, extra_db: float) -> void:
+func _play_stream(id: String, stream: AudioStream, mix_id: String,
+		extra_db: float, pitch_shift: float = 0.0) -> void:
 	var mix: Dictionary = MIX.get(mix_id, MIX.get(id, DEFAULT_MIX))
 	var limiter_id: String = mix_id if MIX.has(mix_id) else id
 
@@ -758,7 +763,8 @@ func _play_stream(id: String, stream: AudioStream, mix_id: String, extra_db: flo
 	voice.stream = stream
 	# Pitch drift is symmetric in ratio, not in cents, which is close enough at
 	# these small ranges and much easier to reason about.
-	voice.pitch_scale = 1.0 + randf_range(-drift, drift)
+	voice.pitch_scale = maxf((1.0 + randf_range(-drift, drift))
+		* (1.0 + pitch_shift), 0.05)
 	voice.volume_db = float(mix.get("db", -8.0)) + extra_db
 	voice.play()
 
@@ -771,7 +777,7 @@ func _play_stream(id: String, stream: AudioStream, mix_id: String, extra_db: flo
 
 
 ## Plays one of a group's variants, never the same one twice running.
-func play_group(group: String, extra_db: float = 0.0) -> void:
+func play_group(group: String, extra_db: float = 0.0, pitch_shift: float = 0.0) -> void:
 	var options: Array = GROUPS.get(group, []) as Array
 	if options.is_empty():
 		return
@@ -785,7 +791,7 @@ func play_group(group: String, extra_db: float = 0.0) -> void:
 		choice = String(options[index])
 	_last_variant[group] = choice
 	if GROUPS.has(choice):
-		play_group(choice, extra_db)
+		play_group(choice, extra_db, pitch_shift)
 		return
 	var stream: AudioStream = _streams.get(choice, null) as AudioStream
 	if stream == null:
@@ -794,7 +800,7 @@ func play_group(group: String, extra_db: float = 0.0) -> void:
 	# A group-level row is intentional mix policy for every take. Groups without
 	# one retain their established per-variation mix rows.
 	var mix_id: String = variation_mix_id(group, choice)
-	_play_stream(choice, stream, mix_id, extra_db)
+	_play_stream(choice, stream, mix_id, extra_db, pitch_shift)
 
 
 ## Side-effect-free resolution shared with the release gate. Keeping this

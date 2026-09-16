@@ -229,6 +229,12 @@ var _wave_preview: Label
 var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
+## The pale bite left behind when health drops, and where it is draining to.
+var _hero_trail: ColorRect = null
+var _hero_trail_share: float = 1.0
+## What each resource counter reads now, and what it is counting toward.
+var _purse_shown: Dictionary = {}
+var _purse_target: Dictionary = {}
 var _mana_bar: ProgressBar
 ## Whether the hero's health is under the critical share, so the bar pulses.
 var _hero_critical: bool = false
@@ -628,6 +634,8 @@ func _process(delta: float) -> void:
 		_blink_clock += delta
 	elif _blink_clock != 0.0:
 		_blink_clock = 0.0
+	_tick_health_trail(delta)
+	_tick_purse(delta)
 	_update_spirit_panel(delta)
 	_tick_party_prompt(delta)
 	_tick_tooltip_picture(delta)
@@ -821,6 +829,20 @@ func _build_top_bar() -> void:
 	bar.add_child(_town_bar)
 
 	_hero_bar = _make_bar(Color("c4552e"), HERO_BAR_WIDTH)
+	# **The bite that is about to be taken** (#74 of the forwarded juice list).
+	# The enemy bars have had this since they were written - `HealthBar` drains a
+	# `_trail_ratio` at `HEALTH_BAR_TRAIL_RATE` - and the hero's, the one bar the
+	# player is actually watching, had nothing.
+	#
+	# A child of the bar rather than a second bar behind it: the region between
+	# the new value and the old one is *empty background* on a `ProgressBar`, so
+	# a rect drawn over it lands exactly where the trail belongs and needs no
+	# z-order argument with the fill.
+	_hero_trail = ColorRect.new()
+	_hero_trail.color = Balance.HEALTH_BAR_TRAIL_COLOUR
+	_hero_trail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hero_trail.visible = false
+	_hero_bar.add_child(_hero_trail)
 	bar.add_child(_bar_icon("hero_health", "Hero"))
 
 	# Health over mana, in the width health had alone. The top bar is already
@@ -4435,7 +4457,16 @@ func _nudge(node: Control) -> void:
 func _on_currency_changed(id: String, amount: int) -> void:
 	var label: Label = _currency_labels.get(id, null) as Label
 	if label != null:
-		label.text = str(amount)
+		# **Counted up to rather than swapped** (#72). Every resource number used
+		# to teleport, so a kill paying eleven Gold and one paying ninety looked
+		# identical. The roll is skipped on the first sight of a currency, or a
+		# fresh run counts up from zero to its opening purse.
+		if _purse_shown.has(id):
+			_purse_target[id] = amount
+		else:
+			_purse_shown[id] = float(amount)
+			_purse_target[id] = amount
+			label.text = str(amount)
 	if _build_panel.visible:
 		_refresh_build_panel()
 	# The purse moved, which is one of the two things the orders button reads -
@@ -4466,6 +4497,10 @@ func _on_hero_health(current: float, maximum: float) -> void:
 	# **Pulsing under the critical share** (owner, 2026-09-16). Driven from here
 	# rather than looped: a bar that pulses for ever is a screensaver, and this
 	# one has to stop the moment a draught lands.
+	# Only a *loss* leaves a trail. Healing catches it up at once, or a draught
+	# would leave a pale streak behind it reading as damage.
+	if share >= _hero_trail_share:
+		_hero_trail_share = share
 	_hero_critical = share > 0.0 and share <= Balance.UI_HEALTH_CRITICAL
 	if not _hero_critical:
 		_hero_bar.modulate = Color.WHITE
@@ -4474,6 +4509,54 @@ func _on_hero_health(current: float, maximum: float) -> void:
 ## The colour a health bar is at this share: cyan whole, amber wounded, red
 ## nearly gone. One function, so the bar over a head and the bar in the corner
 ## can never disagree about what half health looks like.
+## **Drains the pale bite toward the health that is actually left.**
+##
+## Driven rather than tweened, for the reason the critical pulse is: a tween
+## outlives the thing that started it, and a bar healed mid-drain would keep a
+## streak that no longer means anything.
+func _tick_health_trail(delta: float) -> void:
+	if _hero_trail == null or _hero_bar == null:
+		return
+	var share: float = float(_hero_bar.value)
+	if _hero_trail_share <= share + 0.0005:
+		_hero_trail_share = share
+		_hero_trail.visible = false
+		return
+	_hero_trail_share = maxf(
+		_hero_trail_share - delta * Balance.HEALTH_BAR_TRAIL_RATE, share)
+	var width: float = _hero_bar.size.x
+	_hero_trail.position = Vector2(width * share, 0.0)
+	_hero_trail.size = Vector2(maxf(width * (_hero_trail_share - share), 0.0),
+		_hero_bar.size.y)
+	_hero_trail.visible = _hero_trail.size.x > 0.5
+
+
+## **Walks each counter toward what the purse actually holds** (#72).
+##
+## Proportional and floored, so eleven Gold arrives quickly and nine hundred
+## still takes about the same moment - a fixed step makes a big payout crawl and
+## a small one invisible. Snapped inside one, because a counter resting on 89.6
+## and showing 89 is a counter lying about the total.
+func _tick_purse(delta: float) -> void:
+	for key: Variant in _purse_target:
+		var id: String = String(key)
+		var want: float = float(_purse_target[id])
+		var shown: float = float(_purse_shown.get(id, want))
+		if is_equal_approx(shown, want):
+			continue
+		var gap: float = want - shown
+		var step: float = maxf(absf(gap) * Balance.UI_PURSE_ROLL_RATE,
+			Balance.UI_PURSE_ROLL_FLOOR) * delta
+		if absf(gap) <= step or absf(gap) < 1.0:
+			shown = want
+		else:
+			shown += signf(gap) * step
+		_purse_shown[id] = shown
+		var label: Label = _currency_labels.get(id, null) as Label
+		if label != null:
+			label.text = str(int(round(shown)))
+
+
 func _paint_health(bar: ProgressBar, share: float) -> void:
 	if bar == null:
 		return

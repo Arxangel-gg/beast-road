@@ -37,6 +37,35 @@ class ArrowWildlife extends Wildlife:
 		return true
 
 
+## **Every price must be in something the player has a wallet for.**
+##
+## `RunState.can_afford_cost` walks whatever keys a cost carries and reads an
+## unknown one as zero, so an ammunition priced in anything but a run currency is
+## unaffordable for ever; `format_cost` walks only the four currencies, so the
+## refusal renders as "You cannot afford it: ." and names nothing at all.
+##
+## The Warden's Snare shipped priced in iron ore and ashwood - *materials*, which
+## working rule 7 sanctions as an input to the Smithy and nothing else - so it
+## could be neither bought from a quartermaster nor crafted in the town, and both
+## doors refused it blankly. Found by the sweep, not by anything erroring.
+##
+## A walk over the data rather than a behaviour test, because the failure is
+## silent at both doors and a behaviour test would have to guess which door.
+func _test_every_price_is_in_a_wallet() -> void:
+	for value: Variant in ContentDB.ammo_kinds.values():
+		var kind := value as AmmoData
+		if kind == null:
+			continue
+		for key: Variant in kind.craft_cost:
+			var id: String = String(key)
+			_check(RunState.CURRENCIES.has(id),
+				("%s is priced in '%s', which is not a run currency - it can be "
+					+ "neither bought nor crafted, and the refusal renders blank")
+					% [kind.id, id])
+			_check(int(kind.craft_cost[key]) > 0,
+				"%s prices '%s' at %d" % [kind.id, id, int(kind.craft_cost[key])])
+
+
 func _ready() -> void:
 	# Held for the whole run: this tool edits `MetaState`, and a tool that
 	# edits the account must never be able to write it to the player's disk.
@@ -44,6 +73,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	RunState.reset()
 	RunState.gain_every_currency(400)
+	_test_every_price_is_in_a_wallet()
 
 	# --- 1. blueprints gate crafting -----------------------------------------
 	var locked: String = "ember_arrow"

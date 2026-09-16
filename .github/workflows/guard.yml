@@ -72,7 +72,22 @@ jobs:
     # one gate too long teaches nothing and costs a whole cycle to work out.
     # Every individual check still carries its own `CHECK_TIMEOUT`, which is the
     # deadline that actually catches a stall.
-    timeout-minutes: 20
+    #
+    # **Raised 20 -> 60 on 2026-09-16, and this is the third time.** 12 was
+    # outgrown, then 20, and each time the symptom was the same: a cancelled job
+    # with no failure in it, which reads as a broken runner rather than as a
+    # suite that got longer. This one hid behind something else - the gate step
+    # ran 1101s of an 1100s budget while three gates ahead of it were red, so as
+    # soon as those were fixed the run got *further* and hit the wall, and the
+    # timeout looked like a regression introduced by the fixes.
+    #
+    # 60 is deliberate headroom rather than the next rung: 148 gates measured at
+    # about 10.5s each locally is ~26 minutes, and a CI runner is slower than
+    # this machine. **The real answer is to split this job** so the gates run on
+    # several runners at once - that fixes the wall-clock as well as the ceiling,
+    # and it is what should happen the next time this number is questioned rather
+    # than a fourth bump.
+    timeout-minutes: 60
 
     steps:
       - name: Check out

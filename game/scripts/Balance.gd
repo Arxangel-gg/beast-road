@@ -227,6 +227,20 @@ const LOOT_DROP_REACH: float = 58.0
 const LOOT_ART_FORMAT: String = "res://art/loot/loot_%s.png"
 
 ## The pool of light under a drop, which is what makes it findable on a lit road.
+## How a pickup sounds. All four are audio and nothing reads them elsewhere.
+##
+## A streak climbs while drops keep arriving inside the window and resets the
+## moment they stop, so hoovering a burst is a run of notes rather than one note
+## repeated. The ceiling is what stops a long haul ending somewhere shrill.
+##
+## Rarity pulls the other way - lower and louder - so the rarest piece cannot be
+## mistaken for the top of a streak. [TUNE]
+const LOOT_STREAK_WINDOW: float = 1.1
+const LOOT_STREAK_PITCH_STEP: float = 0.045
+const LOOT_STREAK_PITCH_MAX: float = 0.34
+const LOOT_RARITY_PITCH_DROP: float = 0.028
+const LOOT_RARITY_DB: float = 0.7
+
 const LOOT_GLOW_COLOUR: Color = Color(1.0, 0.86, 0.52, 0.5)
 const LOOT_GLOW_SIZE: float = 132.0
 const LOOT_GLOW_SPEED: float = 3.1
@@ -5596,6 +5610,11 @@ const UI_STAMINA_GREEN: String = "5fbf6a"
 const UI_HEALTH_FULL: String = "4fd2e0"
 const UI_HEALTH_HALF: String = "e0a34f"
 const UI_HEALTH_LOW: String = "d1382f"
+## How fast a resource counter walks to its new figure: a share of the gap a
+## second, with a floor so a change of three is still visible as motion. [TUNE]
+const UI_PURSE_ROLL_RATE: float = 6.0
+const UI_PURSE_ROLL_FLOOR: float = 12.0
+
 const UI_HEALTH_CRITICAL: float = 0.25
 const UI_HEALTH_BLINK_HZ: float = 2.6
 ## How far the pulse dips. Enough to catch the eye, not so far that the bar

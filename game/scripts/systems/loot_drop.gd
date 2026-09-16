@@ -311,6 +311,44 @@ func _build_attention_fx() -> void:
 ##
 ## Rarity was visible while a piece lay on the ground and invisible at the moment
 ## it was collected, which is the moment the player is actually looking at it.
+## **How a pickup sounds: a streak that climbs, and a weight from its rarity.**
+##
+## Static, because the streak belongs to the *player* rather than to any one
+## drop, and the drop that raises it is freed a frame later.
+static var _streak: int = 0
+static var _last_pickup_msec: int = 0
+
+
+## Plays the pickup, pitched.
+##
+## Hoovering a burst of drops climbs - each pickup inside `LOOT_STREAK_WINDOW`
+## of the last is a semitone-ish higher, to a ceiling, and the ladder resets the
+## moment the player stops. That is the whole of the "escalating pickup audio"
+## the notes asked for, and it is what turns six coins from one sound six times
+## into a run of them.
+##
+## Rarity pulls the other way: a rarer piece lands *lower* and a little louder,
+## so a Beastcalled sword reads as weight rather than as the top of a scale -
+## and cannot be confused with the sixth coin in a row.
+##
+## Audio only. Nothing here is read by anything that decides a payout.
+func _pickup_sound() -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _last_pickup_msec > int(Balance.LOOT_STREAK_WINDOW * 1000.0):
+		_streak = 0
+	else:
+		_streak += 1
+	_last_pickup_msec = now
+	var shift: float = minf(float(_streak) * Balance.LOOT_STREAK_PITCH_STEP,
+		Balance.LOOT_STREAK_PITCH_MAX)
+	var louder: float = 0.0
+	if not gear.is_empty():
+		var rarity: int = int(gear.get("rarity", 0))
+		shift -= float(rarity) * Balance.LOOT_RARITY_PITCH_DROP
+		louder = float(rarity) * Balance.LOOT_RARITY_DB
+	Sfx.play_group("loot_collect", louder, shift)
+
+
 func _burst() -> void:
 	Vfx.spark(global_position, _glow_colour, Balance.LOOT_TAKE_SPARKS,
 		Vector2.UP, Balance.LOOT_TAKE_SPEED)
@@ -340,7 +378,7 @@ func collect_mirrored() -> void:
 	if _taken:
 		return
 	_taken = true
-	Sfx.play_group("loot_collect")
+	_pickup_sound()
 	if currency == Balance.MENDER_SPARK_ID or currency == Balance.HEALING_ORB_ID:
 		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 		_burst()
@@ -402,13 +440,13 @@ func _collect(who: Hero = null) -> void:
 		# seconds is still worth what the thing that died was worth.
 		if who != null and is_instance_valid(who):
 			who.drink_healing_orb(float(amount))
-		Sfx.play_group("loot_collect")
+		_pickup_sound()
 		Vfx.ring(global_position, _glow_size * 0.6, _glow_colour, 0.36, 4.0)
 		_burst()
 	elif currency == Balance.MENDER_SPARK_ID:
 		if who != null and is_instance_valid(who):
 			who.apply_mender_spark()
-		Sfx.play_group("loot_collect")
+		_pickup_sound()
 		Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 		_burst()
 	elif not blueprint.is_empty():
@@ -433,12 +471,12 @@ func _collect(who: Hero = null) -> void:
 			EventBus.preparation_warning.emit("%s  %s  ·  %s" % [
 				Stash.rarity_name(gear), title, outcome])
 		EventBus.gear_collected.emit(gear, stored, salvaged, global_position)
-		Sfx.play_group("loot_collect")
+		_pickup_sound()
 		_celebrate_gear()
 		_burst()
 	elif amount > 0 and not currency.is_empty():
 		RunState.gain_currency(currency, amount)
-		Sfx.play_group("loot_collect")
+		_pickup_sound()
 		Vfx.number(global_position, float(amount), Balance.LOOT_GLOW_COLOUR, false)
 		# Taken, not merely deducted. The number said what was gained and nothing
 		# said it had been picked *up* - so collecting a coin looked the same as
@@ -499,7 +537,7 @@ func _break_open() -> void:
 	var field: Node = get_parent()
 	while field != null and not field.has_method("spawn_loot"):
 		field = field.get_parent()
-	Sfx.play_group("loot_collect")
+	_pickup_sound()
 	Vfx.ring(global_position, _glow_size * 0.85, Balance.SUPPLY_CRATE_COLOUR, 0.42, 5.0)
 	Vfx.spark(global_position, Balance.SUPPLY_CRATE_COLOUR, 12, Vector2.ZERO, 240.0)
 	Vfx.rays(global_position, Balance.SUPPLY_CRATE_COLOUR, 10, 74.0, randf() * TAU)
@@ -543,7 +581,7 @@ func _learn_it() -> void:
 	EventBus.preparation_warning.emit("%s  ·  %s" % [plan.display_name,
 		"recipe learned" if fresh else "already known"])
 	EventBus.blueprint_learned.emit(plan.id, fresh)
-	Sfx.play_group("loot_collect")
+	_pickup_sound()
 	Vfx.ring(global_position, _glow_size * 0.62, _glow_colour, 0.42, 5.0)
 	_burst()
 
