@@ -286,7 +286,7 @@ func _gold_per_body() -> float:
 ## purse**: 8.88 Gold a body against the 3.64 a road actually pays. The model
 ## bought roughly two and a half times the towers it should have, so modelled
 ## capability nearly doubled and mean pressure fell from 0.434 to 0.227 -
-## straight through the 0.26 floor and out the bottom of the band, reported on
+## straight through the floor and out the bottom of the band, reported on
 ## every release since with nothing failing, because this report is advisory
 ## and its own band check only prints.
 ##
@@ -474,8 +474,18 @@ const HOLIDAY_FLOOR: float = 0.95
 ## must sit in. Wide enough not to trip on model noise, narrow enough that a
 ## party size becoming a different game fails. [TUNE]
 const PARTY_SPREAD_LIMIT: float = 22.0
-const PARTY_PRESSURE_FLOOR: float = 0.26
-const PARTY_PRESSURE_CEILING: float = 0.46
+## **The band the campaign is tuned to sit inside.**
+##
+## Moved 2026-09-15 from 0.26-0.46 with the owner's ruling that the road should
+## pay less and ask more. The old band was not wrong - it described a different
+## game, and this file recorded the new one in CLAUDE.md while *these two
+## constants* were left behind, so the report judged the re-tune against the game
+## it replaced and exited non-zero while printing PASS on escalation.
+##
+## **A band recorded in prose and enforced by a number in another file is two
+## places to change and one place to forget.** This is the one that decides.
+const PARTY_PRESSURE_FLOOR: float = 0.44
+const PARTY_PRESSURE_CEILING: float = 0.58
 
 
 ## Replays the whole curve for one party size and averages the pressure.
@@ -595,7 +605,7 @@ func _print_worst_steps() -> void:
 ## **Measured: mean pressure 0.433 before this, 0.353 after.** That is not the
 ## game getting easier - it is the model catching up with a game that had been
 ## handing out a permanent +25% tower damage since Act III and scoring the
-## seven acts after it as though nobody had one. The band is 0.26 to 0.46 and
+## seven acts after it as though nobody had one. The band is 0.44 to 0.58 and
 ## the midpoint is 0.36, so the honest figure sits closer to the middle than
 ## the flattering one did.
 func _bank_the_cores_won_so_far(act: int) -> void:

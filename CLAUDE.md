@@ -3454,6 +3454,13 @@ now, with a last wave allowed to approach 1.0 - a campaign that ends at the edge
 of what a best-case defence can answer is a climax; one that passes it is a wall.
 The old band is not wrong, it described a different game.
 
+**And the release sweep caught the half of that which was only written down.**
+`curve_report.PARTY_PRESSURE_FLOOR` and `_CEILING` still held 0.26 and 0.46, so
+the report judged the re-tune against the game it replaced - printing PASS on
+escalation and exiting non-zero on the band, which only a sweep reads. **A bound
+recorded in prose here and enforced by a constant in a tool is two places to
+change and one place to forget**, and the constant is the one that decides.
+
 **Where the income cut was taken matters more than how big it was.** The first
 cut trimmed Gold at `CURRENCY_YIELD_SCALE` alongside Food, Wood and Stone, and
 `balance_test` refused it twice in one run: *a drop must pay exactly the amount

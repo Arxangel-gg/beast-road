@@ -78,6 +78,19 @@ func _ready() -> void:
 	#
 	# Ticking the real function by hand keeps the subject identical and makes the
 	# arithmetic the only variable.
+	# **Nothing in its sights while the kick is measured.**
+	#
+	# A tower leans at what it is about to shoot (2026-09-15), and that lean is a
+	# *second* legitimate offset from rest which persists for as long as a body
+	# stands in reach. With the burrower still on the field this read 2.89 off and
+	# named it as a kick that never settled, which it was not.
+	#
+	# The body goes rather than the bar moving: the half-pixel assertion below is
+	# the whole point of this block, and a gate loosened to fit a feature stops
+	# catching the failure it was written for.
+	burrower.queue_free()
+	await get_tree().process_frame
+
 	const STEP: float = 1.0 / 60.0
 	var home: Vector2 = tower.sprite.position
 	tower.kick(tower.origin() + Vector2(200.0, 0.0))
@@ -105,6 +118,14 @@ func _ready() -> void:
 	# "the city was hit", and only the first sentence was being spoken.
 	var town: TownCore = _run.battlefield.town
 	if town != null and town.sprite != null:
+		# Ticked to a true standstill first, with a fixed delta, for the reason
+		# the tower block above uses one: the gait the beast step kicked decays on
+		# its own clock, so a snapshot taken mid-decay is a moving target and
+		# "returns to within half a pixel of it" measures the phase rather than
+		# the shudder. Both channels reach zero and `_tick_motion` then returns on
+		# its first line, so this settles rather than spins.
+		for _calm: int in 600:
+			town.call("_tick_motion", 1.0 / 60.0)
 		var rest: Vector2 = town.sprite.position
 		var upright: float = town.sprite.rotation
 		EventBus.beast_step_landed.emit(Vector2.RIGHT, 1.0)
@@ -137,8 +158,8 @@ func _ready() -> void:
 		var town_settle: float = Balance.TOWN_JOLT_SECONDS + 0.5
 		var town_waited: float = 0.0
 		while town_waited < town_settle:
-			town_waited += get_process_delta_time()
-			await get_tree().process_frame
+			town.call("_tick_motion", 1.0 / 60.0)
+			town_waited += 1.0 / 60.0
 		_check(town.sprite.position.distance_to(rest) < 0.5,
 			"and both must settle, %.2f off" % town.sprite.position.distance_to(rest))
 
