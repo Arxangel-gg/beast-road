@@ -35,8 +35,15 @@ const BATCH_INTERVAL: float = 0.2
 ## maintenance cost paid for something the player reads as "the wolf is coming".
 ## Appended, never inserted: a state is read by number in the records this
 ## script keeps and by `WildlifeFamilies`.
+## **Appended, never inserted.** Nothing indexes this enum from data, unlike
+## `Role` and `Trigger` - both of which silently repointed every `.tres` after
+## them when a member was added in the middle - but the habit is the protection.
 enum State { ARRIVING, SETTLED, FLEEING, LEAVING, STALKING, STRIKING, GRAZING, ALERT,
-	SCAVENGING, HIDING, FORAGING, COURTING }
+	SCAVENGING, HIDING, FORAGING, COURTING,
+	## The water half of an amphibious animal's life (owner, 2026-09-16): under
+	## the surface, lying at it with its eyes out, hauling out onto the bank, and
+	## sliding back in. See `_tick_amphibian`.
+	SUBMERGED, SURFACED, EMERGING, ENTERING }
 
 ## The grid, so animals can be kept off the roads. Assigned by the battlefield.
 var grid: BattleGrid = null
@@ -1005,6 +1012,12 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 	# which is what the true means; everything else falls through.
 	if _families != null and _families.tick_animal(animal, sprite, kind, delta):
 		_animate(animal, sprite, delta, false)
+		return true
+
+	# **An amphibious animal owns the frame while it is in the water**, and hands
+	# it straight back the moment it is out - everything on the bank is the
+	# roster's own states. See `_tick_amphibian`.
+	if kind.amphibious and _tick_amphibian(animal, sprite, kind, delta):
 		return true
 
 	# A hostile animal decides differently, and gets first refusal on the frame.
@@ -2569,6 +2582,271 @@ func _dress_as_rabid(sprite: Sprite2D, kind: WildlifeData) -> void:
 ## with the position kept, so a bolt can go away from it.
 func _threat_near(at: Vector2, radius: float) -> Vector2:
 	return _nearest_threat(at, radius)
+
+
+# --- Amphibians (2026-09-16) -------------------------------------------------------------
+
+## **The water half of an amphibious animal's life.** True when it has spent the
+## frame; false when it is on land and everything else should run.
+func _tick_amphibian(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		delta: float) -> bool:
+	var state: int = int(animal["state"])
+	var wet: bool = state == State.SUBMERGED or state == State.SURFACED \
+		or state == State.EMERGING or state == State.ENTERING
+	if not wet:
+		# On the bank. Its land clock is the only thing this owns out here: when
+		# it runs out the animal goes looking for water again.
+		animal["land_left"] = float(animal.get("land_left", 0.0)) - delta
+		_hold_the_waterline(animal, sprite, 0.0, delta)
+		if float(animal["land_left"]) > 0.0 and animal.has("land_left"):
+			return false
+		var water: Vector2 = _water_to_enter(sprite.global_position)
+		if water == Vector2.INF:
+			# No pond in reach: it lives on land like anything else until one
+			# is. A region with no water must not strand a species.
+			animal["land_left"] = _rng.randf_range(kind.land_seconds.x, kind.land_seconds.y)
+			return false
+		animal["state"] = State.ENTERING
+		animal["goal"] = water
+		return false
+	match state:
+		State.ENTERING:
+			return _tick_entering(animal, sprite, kind, delta)
+		State.EMERGING:
+			return _tick_emerging(animal, sprite, kind, delta)
+		State.SURFACED:
+			return _tick_surfaced(animal, sprite, kind, delta)
+		_:
+			return _tick_submerged(animal, sprite, kind, delta)
+
+
+## Walking into the water: the line rises over it as it goes, so the body sinks
+## rather than switching.
+func _tick_entering(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		delta: float) -> bool:
+	var goal: Vector2 = animal["goal"]
+	var toward: Vector2 = goal - sprite.global_position
+	var deep: float = _depth_under(sprite.global_position)
+	_hold_the_waterline(animal, sprite,
+		Balance.AMPHIBIAN_SUBMERGED_LINE * clampf(deep * 1.6, 0.0, 1.0), delta)
+	if toward.length() <= 10.0 or deep >= 0.55:
+		animal["state"] = State.SUBMERGED
+		animal["water_left"] = _rng.randf_range(kind.water_seconds.x, kind.water_seconds.y)
+		_splash(sprite.global_position, 0.8)
+		return true
+	_swim_step(animal, sprite, kind, toward.normalized(), 1.0, delta)
+	return true
+
+
+## Under the surface: cruising the pond, leaving a wake, and coming up now and
+## then. This is where it spends most of its life and where it is hardest to see.
+func _tick_submerged(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		delta: float) -> bool:
+	_hold_the_waterline(animal, sprite, Balance.AMPHIBIAN_SUBMERGED_LINE, delta)
+	animal["water_left"] = float(animal.get("water_left", 0.0)) - delta
+	# **Closing on something.** A predator that marked prey from the surface
+	# finishes the approach under the water, which is the ambush.
+	var mark: Vector2 = animal.get("ambush", Vector2.INF) as Vector2
+	if mark != Vector2.INF:
+		var toward: Vector2 = mark - sprite.global_position
+		if toward.length() <= Balance.AMPHIBIAN_LUNGE_RANGE or _depth_under(mark) <= 0.0:
+			# Up, and from here it is an ordinary hostile animal.
+			animal["ambush"] = Vector2.INF
+			animal["state"] = State.SETTLED
+			animal["land_left"] = _rng.randf_range(kind.land_seconds.x, kind.land_seconds.y)
+			_splash(sprite.global_position, 1.25)
+			return false
+		_swim_step(animal, sprite, kind, toward.normalized(),
+			Balance.AMPHIBIAN_AMBUSH_SPEED, delta)
+		return true
+	var goal: Vector2 = animal["goal"]
+	if sprite.global_position.distance_to(goal) <= 14.0 or _depth_under(goal) <= 0.0:
+		if _rng.randf() < Balance.AMPHIBIAN_SURFACES:
+			animal["state"] = State.SURFACED
+			animal["surface_left"] = _rng.randf_range(
+				Balance.AMPHIBIAN_SURFACE_HOLD.x, Balance.AMPHIBIAN_SURFACE_HOLD.y)
+			_ripple_the_pond(sprite.global_position, 0.35)
+			return true
+		animal["goal"] = _somewhere_in_the_pond(sprite.global_position)
+	_swim_step(animal, sprite, kind, (goal - sprite.global_position).normalized(), 1.0, delta)
+	if float(animal["water_left"]) <= 0.0:
+		var bank: Vector2 = _drink_spot(sprite.global_position)
+		if bank != Vector2.INF:
+			animal["state"] = State.EMERGING
+			animal["goal"] = bank
+	return true
+
+
+## Lying at the surface with its eyes out: still, watching, and - if it hunts -
+## choosing. The state the whole thing exists for.
+func _tick_surfaced(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		delta: float) -> bool:
+	_hold_the_waterline(animal, sprite, Balance.AMPHIBIAN_EYELINE, delta)
+	animal["surface_left"] = float(animal.get("surface_left", 0.0)) - delta
+	# A pair of eyes on the water still ripples it, which is the only thing
+	# that gives one away at distance.
+	animal["wake"] = float(animal.get("wake", 0.0)) - delta
+	if float(animal["wake"]) <= 0.0:
+		animal["wake"] = Balance.AMPHIBIAN_WAKE_SECONDS * 2.0
+		_ripple_the_pond(sprite.global_position, 0.18)
+	if kind.is_hostile() or bool(animal.get("angered", false)):
+		var prey: Vector2 = _nearest_prey(sprite.global_position,
+			Balance.AMPHIBIAN_AMBUSH_REACH)
+		if prey != Vector2.INF:
+			animal["ambush"] = prey
+			animal["state"] = State.SUBMERGED
+			_ripple_the_pond(sprite.global_position, 0.5)
+			return true
+	if float(animal["surface_left"]) <= 0.0:
+		animal["state"] = State.SUBMERGED
+		animal["goal"] = _somewhere_in_the_pond(sprite.global_position)
+		_ripple_the_pond(sprite.global_position, 0.3)
+	_animate(animal, sprite, delta, false)
+	return true
+
+
+## Hauling out: the line slides off as it climbs the bank, so the body comes out
+## of the water rather than appearing beside it.
+func _tick_emerging(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		delta: float) -> bool:
+	var goal: Vector2 = animal["goal"]
+	var toward: Vector2 = goal - sprite.global_position
+	var deep: float = _depth_under(sprite.global_position)
+	_hold_the_waterline(animal, sprite,
+		Balance.AMPHIBIAN_SUBMERGED_LINE * clampf(deep * 1.6, 0.0, 1.0), delta)
+	if toward.length() <= 10.0 or deep <= 0.0:
+		animal["state"] = State.SETTLED
+		animal["home"] = sprite.global_position
+		animal["goal"] = sprite.global_position
+		animal["land_left"] = _rng.randf_range(kind.land_seconds.x, kind.land_seconds.y)
+		_splash(sprite.global_position, 0.5)
+		return false
+	_swim_step(animal, sprite, kind, toward.normalized(), 0.7, delta)
+	return true
+
+
+## One step of swimming: faster than it walks, steered like everything else, and
+## leaving a wake on the water behind it.
+func _swim_step(animal: Dictionary, sprite: Node2D, kind: WildlifeData,
+		direction: Vector2, urgency: float, delta: float) -> void:
+	var speed: float = kind.speed * kind.swim_speed_scale * urgency \
+		* WildlifeFamilies.speed_scale(animal)
+	var step: Vector2 = direction * speed * delta
+	sprite.global_position += step
+	animal["heading"] = direction
+	_face(animal, sprite as Sprite2D, kind, step, delta)
+	_animate(animal, sprite, delta, true)
+	animal["wake"] = float(animal.get("wake", 0.0)) - delta
+	if float(animal["wake"]) <= 0.0:
+		animal["wake"] = Balance.AMPHIBIAN_WAKE_SECONDS
+		_ripple_the_pond(sprite.global_position, 0.22)
+
+
+## **The waterline, eased.** The one thing that makes four states out of one
+## sprite: `submerged.gdshader` grades and bends everything below the line, so
+## sliding the line is the animal sinking and rising. The material is made on
+## first use rather than at birth, because most of the roster never needs one.
+func _hold_the_waterline(animal: Dictionary, sprite: Node2D, want: float,
+		delta: float) -> void:
+	var held: Variant = animal.get("waterline_material")
+	var material: ShaderMaterial = null
+	if held != null and is_instance_valid(held as Object):
+		material = held as ShaderMaterial
+	elif want <= 0.001 and float(animal.get("waterline", 0.0)) <= 0.001:
+		return
+	else:
+		material = ShaderMaterial.new()
+		material.shader = load("res://scripts/shaders/submerged.gdshader") as Shader
+		material.set_shader_parameter("tint", Balance.POND_SUBMERGE_TINT)
+		material.set_shader_parameter("feather", 0.1)
+		animal["waterline_material"] = material
+	var water: Node = field.call("ponds") if field != null and field.has_method("ponds") else null
+	if water != null and water.has_method("water_colour"):
+		material.set_shader_parameter("water_colour", water.call("water_colour"))
+	var line: float = lerpf(float(animal.get("waterline", 0.0)), want,
+		clampf(Balance.AMPHIBIAN_LINE_EASE * delta, 0.0, 1.0))
+	animal["waterline"] = line
+	material.set_shader_parameter("waterline", line)
+	# **Its own material only while it is wet.** On dry land the animal wears the
+	# blood-and-impact material every other body wears; swapping that out
+	# permanently would take its hit flashes with it.
+	var wet_enough: bool = line > 0.004
+	if wet_enough and sprite.material != material:
+		animal["dry_material"] = sprite.material
+		sprite.material = material
+	elif not wet_enough and sprite.material == material:
+		sprite.material = animal.get("dry_material", null) as Material
+
+
+## How deep the water is under a point, 0 on dry ground.
+func _depth_under(at: Vector2) -> float:
+	if field == null or not field.has_method("water_depth_at"):
+		return 0.0
+	return float(field.call("water_depth_at", at))
+
+
+## The nearest pond worth walking to, as a point in its water.
+func _water_to_enter(from: Vector2) -> Vector2:
+	if field == null or not field.has_method("ponds"):
+		return Vector2.INF
+	var ponds: Node = field.call("ponds") as Node
+	if ponds == null or not ponds.has_method("pond_positions"):
+		return Vector2.INF
+	var best: Vector2 = Vector2.INF
+	var nearest: float = Balance.AMPHIBIAN_SEEK_WATER
+	for heart: Vector2 in ponds.call("pond_positions") as PackedVector2Array:
+		var away: float = from.distance_to(heart)
+		if away < nearest:
+			nearest = away
+			best = heart
+	return best
+
+
+## Somewhere else in the pond it is currently in. Sampled rather than solved -
+## a pond is any shape at all, and the depth field is the only thing that knows.
+func _somewhere_in_the_pond(from: Vector2) -> Vector2:
+	for _try: int in 12:
+		var at: Vector2 = from + Vector2.from_angle(_rng.randf() * TAU) \
+			* _rng.randf_range(40.0, Balance.AMPHIBIAN_SWIM_ROAM)
+		if _depth_under(at) > 0.25:
+			return at
+	return from
+
+
+## The nearest thing an ambush predator would take, which is the same list
+## everything else in this file hunts - so a companion is refused here exactly
+## as `_strike` refuses one.
+func _nearest_prey(at: Vector2, reach: float) -> Vector2:
+	var best: Vector2 = Vector2.INF
+	var nearest: float = reach
+	# `Hero.GROUP_ANY` and a real cast, like every other search in this file -
+	# a hand-written group name is one typo from an ambush that never happens.
+	for node: Node in get_tree().get_nodes_in_group(Hero.GROUP_ANY):
+		var hero := node as Hero
+		if hero == null or not is_instance_valid(hero) or not hero.is_alive():
+			continue
+		var away: float = at.distance_to(hero.global_position)
+		if away < nearest:
+			nearest = away
+			best = hero.global_position
+	return best
+
+
+## A ring on the water where something moved under it, through the pond's own
+## door - this file has no business reaching into a water shader.
+func _ripple_the_pond(at: Vector2, strength: float) -> void:
+	if field == null or not field.has_method("ponds"):
+		return
+	var ponds: Node = field.call("ponds") as Node
+	if ponds != null and ponds.has_method("stir"):
+		ponds.call("stir", at, strength)
+
+
+func _splash(at: Vector2, strength: float) -> void:
+	_ripple_the_pond(at, strength)
+	Vfx.ring(at, 34.0 * strength, Color(0.86, 0.94, 1.0, 0.7), 0.5, 2.5)
+	Vfx.spark(at, Color(0.74, 0.86, 1.0), int(5.0 + 6.0 * strength), Vector2.UP, 150.0 * strength)
+	Sfx.play_at("sfx_fish_escape", at, -6.0)
 
 
 ## Whether a point is on or beside a pond.

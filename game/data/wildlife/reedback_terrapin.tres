@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+amphibious = true
+water_seconds = Vector2(24, 60)
+land_seconds = Vector2(20, 60)
+swim_speed_scale = 2.0
+breeds = true
+breeding_group = "reedback_terrapin"
+litter_min = 2
+litter_max = 6
+gestation_seconds = 50.0
+protection = 0
+lays_eggs = true
+incubation_distance = 100.0
+coat_pattern = 3
+coat_pattern_strength = 0.42
+coat_pattern_scale = 4.5
+coat_pattern_tint = Color(0.130, 0.160, 0.100, 0.800)
+coat_hue_spread = 0.026
+coat_light_spread = 0.14
+coat_saturation_spread = 0.2
+id = "reedback_terrapin"
+display_name = "Reedback Terrapin"
+description = "Basks until the moment it does not, and then it is simply a ring on the water."
+vocal_sfx = ""
+rarity = 0
+temperament = 0
+movement_style = 1
+damage = 0.0
+attack_interval = 1.10
+attack_range = 90.0
+aggro_radius = 0.0
+knockback = 0.0
+charge_speed_scale = 1.70
+elite_chance = 0.0
+acts = Array[int]([1, 2, 3, 4, 5, 7, 10])
+weight = 1.45
+group_min = 1
+group_max = 3
+social_spacing = 70.0
+group_cohesion = 0.3
+activity = 0.32
+speed = 26.0
+roam = 180.0
+skittish_radius = 230.0
+flee_speed_scale = 2.2
+flies = false
+scale = 0.95
+max_hp = 34.0
+food_min = 3
+food_max = 7
+xp_reward = 9
+art_faces_right = true
+stay_min = 70.0
+stay_max = 180.0

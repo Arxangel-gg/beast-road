@@ -163,6 +163,10 @@ const WILDLIFE_FACING: Dictionary = {
 	"glimmerfox": true, "griffon": true,
 	"hawk": true, "hedgehog": false, "heron": true, "hollowhorn": true,
 	"iron_beetle": false,
+	# The three amphibious reptiles (2026-09-16). Read off a contact sheet of
+	# all three walk cycles beside the roster they sit in: every frame is a
+	# right-facing profile, which is this project's wildlife convention.
+	"mireback_alligator": true, "saltpan_monitor": true, "reedback_terrapin": true,
 	"jackal": true, "lynx": true, "marsh_otter": true,
 	"moonstag": false, "phoenix": true, "ptarmigan": true,
 	"rabbit": true, "raccoon": false, "raven": true, "reed_frog": true,

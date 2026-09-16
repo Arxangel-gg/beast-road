@@ -230,6 +230,9 @@ var _act: Label
 var _town_bar: ProgressBar
 var _hero_bar: ProgressBar
 var _mana_bar: ProgressBar
+## Whether the hero's health is under the critical share, so the bar pulses.
+var _hero_critical: bool = false
+var _blink_clock: float = 0.0
 var _xp_band: Control
 var _xp_bar: ProgressBar
 var _xp_label: Label
@@ -605,6 +608,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# **The critical pulse.** Driven from the frame rather than from a looping
+	# tween, so it stops on the frame a draught lands instead of running until
+	# somebody kills the tween - the fault the title screen's wound vignette
+	# shipped with, where an autoload kept a warning alive past the run.
+	if _hero_critical and _hero_bar != null:
+		_blink_clock += delta
+		var pulse: float = 0.5 + 0.5 * sin(_blink_clock * TAU * Balance.UI_HEALTH_BLINK_HZ)
+		_hero_bar.modulate.a = 1.0 - Balance.UI_HEALTH_BLINK_DEPTH * pulse
+	elif _blink_clock != 0.0:
+		_blink_clock = 0.0
 	_update_spirit_panel(delta)
 	_tick_party_prompt(delta)
 	_tick_tooltip_picture(delta)
@@ -932,15 +945,68 @@ func _make_bar(colour: Color, width: float) -> ProgressBar:
 	var fill: StyleBox = bar.get_theme_stylebox("fill", "ProgressBar")
 	if fill is StyleBoxTexture:
 		var tinted: StyleBoxTexture = (fill as StyleBoxTexture).duplicate()
-		# The art is a neutral warm ramp so this multiply lands on the intended
-		# hue; a saturated source would drag every bar toward orange.
-		tinted.modulate_color = colour
+		tinted.modulate_color = _multiply_for(colour)
 		bar.add_theme_stylebox_override("fill", tinted)
 	else:
 		var flat := StyleBoxFlat.new()
 		flat.bg_color = colour
 		bar.add_theme_stylebox_override("fill", flat)
 	return bar
+
+
+## **What to multiply the fill art by so the bar comes out the colour it was
+## asked for.**
+##
+## The theme's fill is a texture and `modulate_color` multiplies it, so the
+## colour on screen is `wanted * ramp`. This file used to hand the wanted colour
+## straight in, under a comment claiming the art was "a neutral warm ramp" and
+## warning that "a saturated source would drag every bar toward orange" - and
+## the art is a saturated orange: mean rgb(0.730, 0.434, 0.204). Indigo through
+## it came out rgb(0.303, 0.153, 0.164), a dark red, which is what the owner
+## reported on 2026-09-16.
+##
+## Divided by the ramp's own mean instead, read off the texture rather than
+## written down, so this cannot disagree with the art and the day somebody
+## repaints `ui_bar_fill.png` every bar stays the colour it was set to.
+func _multiply_for(wanted: Color) -> Color:
+	var ramp: Color = _fill_ramp_mean()
+	return Color(
+		clampf(wanted.r / maxf(ramp.r, 0.05), 0.0, 4.0),
+		clampf(wanted.g / maxf(ramp.g, 0.05), 0.0, 4.0),
+		clampf(wanted.b / maxf(ramp.b, 0.05), 0.0, 4.0), wanted.a)
+
+
+## The mean colour of the fill art's lit pixels, measured once.
+static var _ramp_mean: Color = Color(0.0, 0.0, 0.0, 0.0)
+
+
+static func _fill_ramp_mean() -> Color:
+	if _ramp_mean.a > 0.0:
+		return _ramp_mean
+	# A safe middle if the art cannot be read: the bar is then the colour it
+	# always was rather than black.
+	_ramp_mean = Color(1.0, 1.0, 1.0, 1.0)
+	var art: Texture2D = load("res://art/ui/ui_bar_fill.png") as Texture2D
+	if art == null:
+		return _ramp_mean
+	var image: Image = art.get_image()
+	if image == null:
+		return _ramp_mean
+	var total := Vector3.ZERO
+	var lit: int = 0
+	# Every fourth texel: the ramp is a smooth gradient and a full read of it is
+	# two thousand `get_pixel` calls at start-up for the same answer.
+	for y: int in range(0, image.get_height(), 2):
+		for x: int in range(0, image.get_width(), 2):
+			var texel: Color = image.get_pixel(x, y)
+			if texel.a < 0.5:
+				continue
+			total += Vector3(texel.r, texel.g, texel.b)
+			lit += 1
+	if lit > 0:
+		var mean: Vector3 = total / float(lit)
+		_ramp_mean = Color(mean.x, mean.y, mean.z, 1.0)
+	return _ramp_mean
 
 
 ## The directional pressure indicator (GDD §3): four arcs hugging the town, on
@@ -4371,7 +4437,34 @@ func _on_town_health(current: float, maximum: float) -> void:
 
 
 func _on_hero_health(current: float, maximum: float) -> void:
-	_hero_bar.value = current / maximum if maximum > 0.0 else 0.0
+	var share: float = current / maximum if maximum > 0.0 else 0.0
+	_hero_bar.value = share
+	_hero_bar.tooltip_text = "Health %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	_paint_health(_hero_bar, share)
+	# **Pulsing under the critical share** (owner, 2026-09-16). Driven from here
+	# rather than looped: a bar that pulses for ever is a screensaver, and this
+	# one has to stop the moment a draught lands.
+	_hero_critical = share > 0.0 and share <= Balance.UI_HEALTH_CRITICAL
+	if not _hero_critical:
+		_hero_bar.modulate = Color.WHITE
+
+
+## The colour a health bar is at this share: cyan whole, amber wounded, red
+## nearly gone. One function, so the bar over a head and the bar in the corner
+## can never disagree about what half health looks like.
+func _paint_health(bar: ProgressBar, share: float) -> void:
+	if bar == null:
+		return
+	var tone: Color = Color(Balance.UI_HEALTH_LOW).lerp(
+		Color(Balance.UI_HEALTH_HALF), clampf(share / 0.5, 0.0, 1.0))
+	if share > 0.5:
+		tone = Color(Balance.UI_HEALTH_HALF).lerp(
+			Color(Balance.UI_HEALTH_FULL), clampf((share - 0.5) / 0.5, 0.0, 1.0))
+	var fill: StyleBox = bar.get_theme_stylebox("fill")
+	if fill is StyleBoxTexture:
+		(fill as StyleBoxTexture).modulate_color = _multiply_for(tone)
+	elif fill is StyleBoxFlat:
+		(fill as StyleBoxFlat).bg_color = tone
 
 
 func _on_hero_mana(current: float, maximum: float) -> void:

@@ -168,6 +168,29 @@ func roll_weight(act: int) -> float:
 ## small enough drowns where it stands. See `Wildlife._on_flood`.
 @export var climbs: bool = false
 
+## **Lives in the water and comes out of it** (owner, 2026-09-16).
+##
+## An amphibious animal is placed in a pond, spends most of its life submerged or
+## lying at the surface with only its eyes showing, and hauls out onto the bank
+## for a while before going back in. Everything else about it is ordinary
+## wildlife - it is bonded, hunted, bred, coated, counted by the earth and drawn
+## on the map through exactly the same doors as a deer.
+##
+## The four water states are drawn from this one sprite by `submerged.gdshader`,
+## which grades and bends whatever sits below a waterline. Nothing extra is
+## painted for them.
+@export var amphibious: bool = false
+
+## How long it lies in the water between haul-outs, and how long it stays out.
+## A predator waiting at the surface is the state worth watching, so the water
+## half is the long one.
+@export var water_seconds: Vector2 = Vector2(22.0, 60.0)
+@export var land_seconds: Vector2 = Vector2(12.0, 34.0)
+
+## How much faster it moves submerged than it walks. Water is where it is
+## dangerous and where it is hardest to see; the bank is where it is slow.
+@export_range(1.0, 4.0) var swim_speed_scale: float = 1.9
+
 ## Short isolated call used on arrival and on a committed strike. Kept in the
 ## creature resource so adding wildlife also states which recording it needs;
 ## a missing file is a supported silent state until the prompt is generated.

@@ -5471,6 +5471,17 @@ const FLAME_OFFSCREEN_MARGIN: float = 320.0
 ## readout and the co-op ally colour - so the bar a caster watches looked like
 ## four other things on the same screen. Indigo is nothing else's. [TUNE]
 const UI_MANA_INDIGO: String = "6a5acd"
+## **Health as a state, not a length** (owner, 2026-09-16). Cyan while it is
+## whole, through amber, to red as it empties - and under the critical share it
+## pulses, so a player whose eyes are on the field catches it without reading it.
+const UI_HEALTH_FULL: String = "4fd2e0"
+const UI_HEALTH_HALF: String = "e0a34f"
+const UI_HEALTH_LOW: String = "d1382f"
+const UI_HEALTH_CRITICAL: float = 0.25
+const UI_HEALTH_BLINK_HZ: float = 2.6
+## How far the pulse dips. Enough to catch the eye, not so far that the bar
+## disappears at the moment it matters most.
+const UI_HEALTH_BLINK_DEPTH: float = 0.45
 
 ## The preparation clock, from plenty of time to none.
 ##
@@ -8387,6 +8398,35 @@ const WILDLIFE_HOSTILE_REGROUP: Vector2 = Vector2(3.0, 7.0)
 const WILDLIFE_DRINK_CHANCE: float = 0.16
 const WILDLIFE_DRINK_RANGE: float = 1100.0
 const WILDLIFE_DRINK_SECONDS: Vector2 = Vector2(3.5, 7.0)
+## **Amphibious reptiles** (owner, 2026-09-16). Where the waterline sits in each
+## of the four states, as a fraction of the sprite's height from its feet: over
+## its back when it is under, at the top of the skull when it is lying at the
+## surface with its eyes out, and gone when it is on the bank.
+const AMPHIBIAN_SUBMERGED_LINE: float = 1.05
+const AMPHIBIAN_EYELINE: float = 0.78
+## How fast the line slides between them. A slide rather than a cut, because the
+## whole point of the surfaced state is watching something rise into it.
+const AMPHIBIAN_LINE_EASE: float = 1.9
+## How far an amphibian will walk to find water when it arrives, and how near the
+## pond's own heart it swims.
+const AMPHIBIAN_SEEK_WATER: float = 2200.0
+const AMPHIBIAN_SWIM_ROAM: float = 260.0
+## How long it holds still at the surface before deciding again, and how often a
+## spell under the water surfaces rather than continuing to cruise.
+const AMPHIBIAN_SURFACE_HOLD: Vector2 = Vector2(4.0, 13.0)
+const AMPHIBIAN_SURFACES: float = 0.62
+## **The ambush.** How far from the water's edge a surfaced predator will take
+## something, and how much faster it closes while submerged. The reach is short
+## on purpose: an alligator is a reason to stay off the bank, not a reason to
+## avoid the outskirts.
+const AMPHIBIAN_AMBUSH_REACH: float = 380.0
+const AMPHIBIAN_AMBUSH_SPEED: float = 2.4
+## How near it has to get before it comes up and the ordinary hostile tick takes
+## over the fight.
+const AMPHIBIAN_LUNGE_RANGE: float = 96.0
+## The wake a submerged animal leaves, and how often.
+const AMPHIBIAN_WAKE_SECONDS: float = 0.9
+
 const WILDLIFE_POND_TRUCE_RADIUS: float = 300.0
 const WILDLIFE_POND_TRUCE_CHANCE: float = 0.8
 ## Rabies: the chance a hostile animal is born with it, the bite's poison, and
