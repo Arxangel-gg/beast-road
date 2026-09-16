@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _test_the_pass_is_not_a_hold_by_default()
 	await _test_pushing_on()
 	await _test_turning_for_home()
+	await _test_the_fork_offers_the_road_home()
 
 	if _run != null and is_instance_valid(_run):
 		_run.queue_free()
@@ -64,6 +65,68 @@ func _ready() -> void:
 		return
 	print("[homecoming] PASS - %d checks: the stakes, the pass, pushing on, turning for home" % _checked)
 	get_tree().quit(0)
+
+
+## **The road can be put down at a fork, and it is worth what the pass is worth.**
+##
+## Expedition persistence was recorded as "the road is put down at a crossroad
+## and picked up next time", and `Run._open_crossroad` prices momentum as "the
+## momentum a player refused to bank" - while the only door to banking was the
+## pass at an act's end. A player paid for a decision that was never offered.
+##
+## Driven through `Run.extraction_open` and the screen's own build, because what
+## was wrong is that a *button did not exist* and no constant can be asked that.
+func _test_the_fork_offers_the_road_home() -> void:
+	var ui: CrossroadScreen = _run.crossroad_ui
+	RunState.momentum = 0.0
+	RunState.act = 2
+
+	# **Never headless**, for the reason the pass is not: a gate that fells a
+	# boss must not be held on a question.
+	_run.ask_homecoming = false
+	_check(not _run.extraction_open(),
+		"a headless run is never held at the fork for an answer")
+
+	# **Not on the first fork.** Banking a front nobody has built is a trip to
+	# the menu for nothing, and `HOMECOMING_FROM_ACT` does not stop it on its own
+	# because Act I opens with a fork.
+	_run.ask_homecoming = true
+	_check(not _run.extraction_open(),
+		"the road home is not offered before a single fork has been passed")
+
+	# One fork behind them, and it is offered.
+	RunState.momentum = Balance.MOMENTUM_PER_CROSSROAD
+	_check(_run.extraction_open(), "with a fork behind them, the road home is offered")
+
+	# **And it pays exactly what the pass pays.** Two doors to one ending that
+	# disagreed about its price would be worse than one door.
+	ui.extraction_offered = true
+	ui.extraction_marks = Run.homecoming_marks(RunState.act, true)
+	_check(ui.extraction_marks == Run.homecoming_marks(RunState.act, true),
+		"the fork and the act's end must agree what a return is worth")
+
+	# The card is on the panel, and pressing it says so once.
+	var taken: Array[bool] = [false]
+	var ear: Callable = func() -> void: taken[0] = true
+	ui.extraction_chosen.connect(ear)
+	ui.open(1)
+	await get_tree().process_frame
+	var button: Button = ui.get("_extract_button") as Button
+	_check(button != null and button.text.contains("TURN FOR HOME"),
+		"the fork must carry the road home as a pressable card")
+	if button != null:
+		button.pressed.emit()
+		await get_tree().process_frame
+		_check(taken[0], "pressing it must announce the return")
+		taken[0] = false
+		button.pressed.emit()
+		await get_tree().process_frame
+		_check(not taken[0], "and a second press must not settle the run twice")
+	ui.extraction_chosen.disconnect(ear)
+	ui.panel.visible = false
+	ui.extraction_offered = false
+	RunState.momentum = 0.0
+	_run.ask_homecoming = false
 
 
 func _test_the_stakes() -> void:

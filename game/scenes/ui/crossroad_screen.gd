@@ -60,6 +60,13 @@ var _resolving: bool = false
 ## a floor rather than a size - it stops a single offer collapsing to its text.
 const CARD_WIDTH: float = 460.0
 
+## How a fork arrives: each card a beat after the one before it.
+##
+## A decision that fades up in sequence lands; three cards appearing together is
+## a dialog box. Short enough that nobody waiting to press is kept waiting.
+const CARD_ENTRANCE_SECONDS: float = 0.22
+const CARD_ENTRANCE_STAGGER: float = 0.07
+
 ## How wide a portent's icon is drawn on its card. Sized against the three lines
 ## of text beside it rather than against the source art, which is 128.
 const OMEN_ICON: int = 64
@@ -195,6 +202,7 @@ func _open_roads(segment_index: int) -> void:
 	_add_last_scar_offer()
 	_add_extraction_offer()
 	_add_reroll()
+	_dress_options()
 	panel.visible = true
 
 
@@ -425,23 +433,120 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 		child.queue_free()
 	title.text = "RELIC HUNT COMPLETE  ·  choose one Rimebound treasure" \
 		if RunState.act == 3 else "RELIC HUNT COMPLETE  ·  choose one regional treasure"
+	# **Side by side, as cards** (owner, 2026-09-16: bigger, clearer, easier to
+	# press). These were the one bare `Button` on a screen whose other choices
+	# have been proper cards since they were written; three of them stacked in a
+	# column with a name and a description crammed into one string read as a list
+	# of rows rather than as a choice between treasures.
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = HBoxContainer.new()
+	_road_row.add_theme_constant_override("separation", 22)
+	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options_box.add_child(_road_row)
 	for relic_id: String in RunState.pending_road_relics:
 		var relic: RelicData = ContentDB.relic(relic_id)
 		if relic == null:
 			continue
-		var button := Button.new()
-		button.text = "%s\n%s" % [relic.display_name.to_upper(), relic.description]
-		button.custom_minimum_size = Vector2(CARD_WIDTH, 68.0)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		var path: String = relic.get_sprite_path()
-		if ResourceLoader.exists(path):
-			UiMetrics.row_icon(button, load(path), 44)
-		button.tooltip_text = "%s\n%s" % [relic.display_name, relic.description]
-		button.pressed.connect(_choose_relic.bind(relic.id))
-		_buttons[relic.id] = button
-		options_box.add_child(button)
+		_add_treasure_card(relic.id, relic.display_name, relic.description,
+			relic.get_sprite_path(), Color("e6c98a"), _choose_relic.bind(relic.id))
+	_road_row = null
+	_dress_options()
 	panel.visible = true
+
+
+## **One choice, drawn the way this screen draws a choice.**
+##
+## The same grammar as `_add_option`: a dark plate, a tall button carrying the
+## name and the mark at a size a thumb can find, and the description wrapped
+## underneath at reading size rather than folded into the button's own label.
+## Shared by the relics and the portents because they are the same moment.
+func _add_treasure_card(id: String, name_line: String, body: String,
+		icon_path: String, tint: Color, on_press: Callable) -> void:
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"InnerPanel"
+	card.custom_minimum_size = Vector2(CARD_WIDTH * 0.72, 0.0)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# **Shrink to its content, not to the panel.** Expanding vertically is right
+	# for the two road cards, which fill a row between them; a single treasure
+	# offered on its own then stretched into a tall empty plate.
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	card.add_child(box)
+
+	var button := Button.new()
+	button.text = name_line.to_upper()
+	button.custom_minimum_size = Vector2(0.0, 64.0)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.add_theme_font_size_override("font_size", 21)
+	button.add_theme_color_override("font_color", tint)
+	button.tooltip_text = "%s\n%s" % [name_line, body]
+	if ResourceLoader.exists(icon_path):
+		UiMetrics.row_icon(button, load(icon_path), 48)
+	button.pressed.connect(on_press)
+	_buttons[id] = button
+	box.add_child(button)
+
+	var text := Label.new()
+	text.text = body
+	text.add_theme_font_size_override("font_size", 18)
+	text.add_theme_constant_override("line_spacing", 6)
+	text.add_theme_color_override("font_color", Color("bcc9c4"))
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var indent := MarginContainer.new()
+	indent.add_theme_constant_override("margin_left", TEXT_INDENT)
+	indent.add_theme_constant_override("margin_right", 8)
+	indent.add_theme_constant_override("margin_bottom", 4)
+	indent.add_child(text)
+	box.add_child(indent)
+
+	if _road_row != null:
+		_road_row.add_child(card)
+	else:
+		options_box.add_child(card)
+
+
+## **Every choice answers being touched, and arrives rather than appears.**
+##
+## `UiJuice.enrol` is what gives a control its hover, focus and tap hologram. The
+## HUD and the main menu both call it and this screen never did - so the one
+## screen that is nothing *but* choices was the one whose choices sat inert. The
+## cards are rebuilt on every open, so it is enrolled on every open.
+##
+## And they come in one after another: a fork that fades up in sequence lands as
+## a decision, where three cards appearing at once is a dialog box.
+func _dress_options() -> void:
+	UiJuice.enrol(get_tree(), panel)
+	# **The fade only.** The first cut lifted each card and tweened it back, and
+	# a container re-sets its children's positions on every layout pass - so the
+	# tween and the `HBoxContainer` fought and the three cards came out drawn on
+	# top of one another with two of them invisible. A container owns position
+	# and size; it does not own `modulate`.
+	var step: int = 0
+	for card: Node in _entrance_cards():
+		var item := card as Control
+		if item == null:
+			continue
+		item.modulate.a = 0.0
+		var rise: Tween = create_tween()
+		rise.tween_interval(float(step) * CARD_ENTRANCE_STAGGER)
+		rise.tween_property(item, "modulate:a", 1.0, CARD_ENTRANCE_SECONDS) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		step += 1
+
+
+## The cards an entrance should play on: whatever is laid out in the row when
+## there is one, and the column's own children when there is not.
+func _entrance_cards() -> Array[Node]:
+	var out: Array[Node] = []
+	for child: Node in options_box.get_children():
+		if child is HBoxContainer:
+			out.append_array(child.get_children())
+		else:
+			out.append(child)
+	return out
 
 
 ## The portents, at the end of an act. One cost, one reward, kept for the run.
@@ -464,35 +569,24 @@ func open_omen_choice() -> void:
 	for child: Node in options_box.get_children():
 		child.queue_free()
 	title.text = "THE ROAD AHEAD  ·  read one portent"
+	# The same card grammar the roads and the relics use. The portents were three
+	# stacked buttons with the name, the bane and the boon folded into one label,
+	# and the boon - the half a player is actually deciding on - was the line that
+	# got clipped whenever the icon set the row's height.
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = HBoxContainer.new()
+	_road_row.add_theme_constant_override("separation", 22)
+	_road_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	options_box.add_child(_road_row)
 	for omen_id: String in RunState.pending_omens:
 		var omen: OmenData = ContentDB.omen(omen_id)
 		if omen == null:
 			continue
-		var button := Button.new()
-		button.text = "%s\n%s\n%s" % [omen.display_name.to_upper(),
-			omen.bane_text, omen.boon_text]
-		# **The Button's own `icon`, not a child laid out inside it.**
-		#
-		# A Button positions its own content within its frame, so an anchored
-		# child ignores that entirely - which is exactly how the first trade
-		# window put gear art on top of the carved border. `icon` is the native
-		# slot and the only one that cooperates with `alignment` and autowrap.
-		var art: String = omen.get_sprite_path()
-		if ResourceLoader.exists(art):
-			button.icon = load(art) as Texture2D
-			button.expand_icon = true
-			button.add_theme_constant_override("icon_max_width", OMEN_ICON)
-			button.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
-		# 92 clipped the third line once the icon set a floor on the row height:
-		# the name, the bane and the boon are three lines, and the boon is the
-		# one a player is deciding on.
-		button.custom_minimum_size = Vector2(CARD_WIDTH, 112.0)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.tooltip_text = omen.portent
-		button.pressed.connect(_choose_omen.bind(omen.id))
-		_buttons[omen.id] = button
-		options_box.add_child(button)
+		_add_treasure_card(omen.id, omen.display_name,
+			"%s\n%s" % [omen.bane_text, omen.boon_text],
+			omen.get_sprite_path(), Color("c9a6e6"), _choose_omen.bind(omen.id))
+	_road_row = null
+	_dress_options()
 	panel.visible = true
 
 
