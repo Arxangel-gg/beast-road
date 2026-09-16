@@ -53,6 +53,7 @@ func _ready() -> void:
 	_scan_seeder()
 	_check_the_role_noun_comes_from_content()
 	_check_the_beast_scope_names_yuri()
+	_check_every_modifier_has_a_reviewed_label()
 	print("[copy] %d player-facing strings scanned" % _scanned)
 	for problem: String in _failures:
 		push_error(problem)
@@ -166,6 +167,57 @@ func _is_code(value: String) -> bool:
 ## is the reviewed word - it is the review *surface* being wrong. §57 asks that
 ## the wording be reviewable in one place, and it cannot be while the screens
 ## carry their own copy of it.
+## **Every modifier key has an authored, reviewed label.**
+##
+## This gate scans `.tres` *fields*, which is the right scope for §57 and is why
+## it has always been able to say the class may stay `CaptiveData` - "nobody
+## reads it". That stopped being true: `CrossroadScreen.effect_label` built a
+## relic's stat row with `effect_id.replace("_", " ").capitalize()`, so the key
+## `captive_output` reached a treasure card as **"Captive Output"** - a word on
+## this gate's own FORBIDDEN list, printed above a description that says
+## "Oathbound", and invisible to every check here because **the string existed in
+## no file**. It was manufactured at runtime out of an identifier.
+##
+## So the labels are authored on `Modifiers` now and reviewed here, and the
+## derived fallback is checked too - a key added without a label would put its
+## own identifier back on the card.
+func _check_every_modifier_has_a_reviewed_label() -> void:
+	var file := FileAccess.open("res://autoload/Modifiers.gd", FileAccess.READ)
+	if file == null:
+		_failures.append("[copy] Modifiers.gd is missing, so no label can be reviewed")
+		return
+	var keys: PackedStringArray = []
+	for line: String in file.get_as_text().split("
+"):
+		var trimmed: String = line.strip_edges()
+		if not trimmed.begins_with("const ") or not trimmed.contains(": String = \""):
+			continue
+		var from: int = trimmed.find(": String = \"") + 12
+		var shut: int = trimmed.find("\"", from)
+		if shut > from:
+			keys.append(trimmed.substr(from, shut - from))
+	_check_keys_are_labelled(keys)
+
+
+func _check_keys_are_labelled(keys: PackedStringArray) -> void:
+	if keys.size() < 15:
+		_failures.append("[copy] only %d modifier keys were read; the walk is wrong"
+			% keys.size())
+	for key: String in keys:
+		if not Modifiers.LABELS.has(key):
+			_failures.append(("[copy] the modifier \"%s\" has no authored label, so a "
+				+ "card prints \"%s\" - an identifier, unreviewed")
+				% [key, Modifiers.label(key)])
+			continue
+		var shown: String = Modifiers.label(key)
+		_judge(shown, "res://autoload/Modifiers.gd", "LABELS[%s]" % key)
+		if shown.strip_edges().is_empty():
+			_failures.append("[copy] the modifier \"%s\" is labelled with nothing" % key)
+		if shown.contains("_"):
+			_failures.append(("[copy] the label for \"%s\" is \"%s\", which still "
+				+ "carries an identifier's underscore") % [key, shown])
+
+
 ## **The beast scope names Yuri, not "the beast".**
 ##
 ## `V4_CONFORMANCE` §6 has carried this as a `manual` row since it was written,

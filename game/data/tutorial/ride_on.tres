@@ -8,5 +8,5 @@ id = "ride_on"
 display_name = "Ride On"
 trigger = 2
 order = 0
-body = "RIDE ON starts the wave. Going early pays bonus Gold, and the breather ends by itself after 15 seconds."
+body = "RIDE ON starts the wave. Going early pays bonus Gold, and the breather ends by itself when its clock runs out."
 seconds = 9.0

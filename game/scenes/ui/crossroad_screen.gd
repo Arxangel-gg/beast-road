@@ -692,7 +692,10 @@ static func effect_figure(effect_id: String, magnitude: float) -> String:
 ## "tower_damage" -> "Tower damage". The keys are authored in snake_case and a
 ## card is read by a person.
 static func effect_label(effect_id: String) -> String:
-	return effect_id.replace("_", " ").capitalize() if not effect_id.is_empty() else "Effect"
+	# Authored on `Modifiers` rather than derived here. The derived form
+	# title-cased every word, so relics promised "Hero Max Hp" and one treasure
+	# card printed "Captive Output" above a description that says "Oathbound".
+	return Modifiers.label(effect_id)
 
 
 func _add_treasure_card(id: String, name_line: String, body: String,

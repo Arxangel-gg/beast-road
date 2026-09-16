@@ -34,6 +34,59 @@ const RAID_CHARGE: String = "raid_charge"
 const ENEMY_DAMAGE: String = "enemy_damage"
 const WAVE_FORESIGHT: String = "wave_foresight"
 
+
+## **What each key is called on a card**, authored rather than derived.
+##
+## Every screen that shows a modifier used to build its label with
+## `effect_id.replace("_", " ").capitalize()`, and Godot's `capitalize()`
+## title-cases every word - so a relic promised **"Hero Max Hp"** and a treasure
+## card printed **"Captive Output"**.
+##
+## The second one is a §57 matter rather than a typography one. v4 rewrote the
+## leader framing so that leaders are sworn, ransomed or memorialised and never
+## owned, and the card carrying that label describes itself as *"An Oathbound
+## leader's duty yields more."* - so the description was reviewed and the label
+## above it was an internal identifier in the exact vocabulary the reframing
+## removed. A derived label cannot be reviewed, which is the whole reason
+## working rule 9 asks for authored strings.
+##
+## A key with no entry still falls back to the derived form, so a modifier added
+## without a label is ugly rather than absent - and `modifier_label_check` is
+## what stops it staying that way.
+const LABELS: Dictionary = {
+	TOWER_DAMAGE: "Tower damage",
+	TOWER_RANGE: "Tower reach",
+	TOWER_ARMOUR: "Tower armour",
+	CHAIN_TARGETS: "Chain targets",
+	BURN_DAMAGE: "Burn damage",
+	SLOW_STRENGTH: "Slow strength",
+	KNOCKBACK: "Knockback",
+	HERO_DAMAGE: "Warden damage",
+	HERO_SPEED: "Warden speed",
+	HERO_MAX_HP: "Warden health",
+	DASH_COOLDOWN: "Dash cooldown",
+	TOWN_MAX_HP: "Town health",
+	RESOURCE_RATE: "Resource trickle",
+	KILL_RESOURCES: "Kill spoils",
+	CAPTIVE_OUTPUT: "Oathbound duty",
+	BUILD_COST: "Build cost",
+	BEAST_SPEED: "Yuri's pace",
+	RAID_CHARGE: "Raid charge",
+	ENEMY_DAMAGE: "Enemy damage",
+	WAVE_FORESIGHT: "Wave foresight",
+}
+
+
+## The player-facing name of a modifier key.
+static func label(key: String) -> String:
+	if LABELS.has(key):
+		return String(LABELS[key])
+	if key.is_empty():
+		return "Effect"
+	# Derived, and deliberately still here: an unlabelled key should read badly
+	# rather than vanish, so it is noticed the first time somebody sees the card.
+	return key.capitalize()
+
 var _totals: Dictionary = {}
 var _base_totals: Dictionary = {}
 
