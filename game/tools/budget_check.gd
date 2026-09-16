@@ -138,9 +138,31 @@ func _test_the_director_waits_at_the_cap() -> void:
 		if body.is_camp_mob() or before.has(body.get_instance_id()):
 			continue
 		arrived.append(body.data.id if body.data != null else "?")
-	_check(arrived.size() == 1 and arrived[0] == "bogkin",
-		("with room the director must spawn exactly the body it was waiting "
-			+ "on; it produced %s") % str(arrived))
+	# **One queue entry is one *entry*, not one body**, and this asked for one
+	# body. `_spawn_next` stands up a whole champion pack from a single entry
+	# when the rank roll comes up CHAMPION - three or four of the same breed
+	# wearing the same affix, which is authored behaviour with a comment
+	# explaining why ("one champion is a slightly tougher enemy; three wearing
+	# the same affix is a situation").
+	#
+	# So the gate read four bogkins and called the director broken. It failed on
+	# the release sweep of 2026-09-16 and passed seven runs by hand, because
+	# whether it fails depends on where the "rank" stream happens to be - the
+	# second coin toss found in this one check, after the camp mobs.
+	#
+	# What is actually being held is that the *waiting entry* is what gets
+	# spawned: the right breed, and a count the director is allowed to produce.
+	var legal_pack: bool = arrived.size() == 1 or (
+		arrived.size() >= Balance.CHAMPION_PACK_MIN
+		and arrived.size() <= Balance.CHAMPION_PACK_MAX)
+	var all_bogkin: bool = not arrived.is_empty()
+	for one: String in arrived:
+		if one != "bogkin":
+			all_bogkin = false
+	_check(legal_pack and all_bogkin,
+		("with room the director must spawn the body it was waiting on, alone or "
+			+ "as a champion pack of %d-%d; it produced %s")
+			% [Balance.CHAMPION_PACK_MIN, Balance.CHAMPION_PACK_MAX, str(arrived)])
 	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
 		var enemy := node as Enemy
 		if enemy != null and not enemy.is_camp_mob():
