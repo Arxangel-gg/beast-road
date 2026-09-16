@@ -421,6 +421,19 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	# and spirits are the account's and stay; on a loss this is the answer to
 	# "was that worth anything", and it is asked before the unlock list.
 	lines.append_array(_kept_lines(summary.get("kept", {}), victory or returned))
+	# **And the front, when one was just banked.**
+	#
+	# Banking a front is the whole reason to turn for home, and this screen never
+	# mentioned it: a player pressed the card, fought a withdrawal, and got the
+	# ordinary payout with no confirmation that their fortress had been kept or
+	# what state it came home in. The condition matters from 2026-09-16, because
+	# the withdrawal can wear the gate and nothing between runs mends a wall.
+	#
+	# Only on a return. A player who fell still has whatever front they banked
+	# last time, and saying so on a defeat screen would read as having kept
+	# something they did not keep on this road.
+	if returned:
+		lines.append_array(_front_lines())
 	lines.append_array([
 		"",
 		"Tools %d   ·   Legacy rank %d of %d" % [
@@ -481,3 +494,25 @@ func show_results(victory: bool, summary: Dictionary) -> void:
 	panel.visible = true
 	get_tree().paused = true
 	menu_button.grab_focus()
+
+
+## What the run just banked, or nothing if it banked nothing.
+##
+## Read back off `MetaState.expedition` rather than off the summary, because the
+## snapshot is what the Hold will actually offer to resume - a second copy of
+## those figures on the run summary could disagree with the thing it describes.
+func _front_lines() -> Array[String]:
+	var front: Dictionary = MetaState.expedition
+	if not Expedition.is_readable(front):
+		return []
+	var standing: Vector2i = Expedition.fortifications(front)
+	var gate: int = int(round(Expedition.wall_share(front) * 100.0))
+	var held: String = "%d fortification%s" % [standing.x, "" if standing.x == 1 else "s"]
+	if standing.y > 0:
+		held += ", %d of them damaged" % standing.y
+	return [
+		"",
+		"THE FRONT  ·  %s" % Expedition.describe(front),
+		"   %s   ·   the gate at %d%%" % [held, gate],
+		"   The Hold will offer this road again.",
+	]

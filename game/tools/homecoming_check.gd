@@ -272,6 +272,14 @@ func _test_turning_for_home() -> void:
 				+ " (%.2f then, %.2f banked)" % [wall_before, walls])
 	_check(int(summary.get("marks", 0)) == Run.homecoming_marks(3, true),
 		"and a withdrawal takes nothing off the purse")
+	# **And the debrief says the front was kept.** Banking one is the whole reason
+	# to turn for home, and the screen used to give the ordinary payout with no
+	# mention of it - so a player had to quit to the menu to find out whether the
+	# thing they pressed the card for had worked.
+	var said: String = _run.results_ui.body.text if _run.results_ui.body != null else ""
+	_check(said.contains("THE FRONT"), "the debrief names the front that was banked")
+	_check(said.contains("the gate at"),
+		"and says what condition the withdrawal left it in")
 
 
 ## **Pressure rises.** The owner ruled for rising pressure during the walk out,
