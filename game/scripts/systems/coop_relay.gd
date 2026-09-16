@@ -165,6 +165,21 @@ enum Fact {
 	## rather than a clock: silent through a settled quarter, talking through a
 	## turn. A guest eases toward it and simulates every leaf itself.
 	WIND = 74,
+	## **A partner's moment** (owner, 2026-09-16): a level, a craft level, and
+	## what they just worked out of the ground or the water.
+	##
+	## Cosmetic, and that is a bound rather than a description - see
+	## `EventBus.coop_partner_levelled`. A level is an account's own and my run
+	## is not changed by my partner's, so these may only draw. They grant no
+	## experience, no material, no fish and no level, which is why they are facts
+	## rather than requests: nothing here asks for anything, so nothing here can
+	## print anything.
+	##
+	## They travel both ways, unlike most facts, because a level is not the
+	## host's to announce - it happened on whichever machine earned it.
+	PARTNER_LEVELLED = 77,
+	PARTNER_CRAFT_LEVELLED = 78,
+	PARTNER_WORKED = 79,
 }
 
 ## Things a guest may ask the host to do. Arriving is all this step promises;
@@ -398,6 +413,9 @@ func _fact_bindings() -> Array:
 		["coop_enemy_batch", _on_coop_enemy_batch],
 		["coop_enemy_removed", _on_coop_enemy_removed],
 		["coop_xp_awarded", _on_coop_xp_awarded],
+		["coop_partner_levelled", _on_partner_levelled],
+		["coop_partner_craft_levelled", _on_partner_craft_levelled],
+		["coop_partner_worked", _on_partner_worked],
 		["coop_run_started", _on_coop_run_started],
 		["coop_host_input", _on_coop_host_input],
 		["coop_world_clock", _on_coop_world_clock],
@@ -463,6 +481,18 @@ func _fact_bindings() -> Array:
 
 func _on_enemy_died(id: String, at: Vector2) -> void:
 	_relay(Fact.ENEMY_DIED, [id, at])
+
+
+func _on_partner_levelled(seat: int, level: int) -> void:
+	_relay(Fact.PARTNER_LEVELLED, [seat, level])
+
+
+func _on_partner_craft_levelled(seat: int, craft: String, level: int) -> void:
+	_relay(Fact.PARTNER_CRAFT_LEVELLED, [seat, craft, level])
+
+
+func _on_partner_worked(seat: int, icon: String, line: String, colour: Color) -> void:
+	_relay(Fact.PARTNER_WORKED, [seat, icon, line, colour])
 
 
 func _on_wave_cleared(wave: int) -> void:
@@ -1020,6 +1050,19 @@ func _replay(kind: int, args: Array) -> void:
 		Fact.WIND:
 			if args.size() == 1 and args[0] is Vector2:
 				bus.coop_wind_changed.emit(args[0] as Vector2)
+		# **Drawn, never granted.** Each of these re-emits the same signal the
+		# sender did; `PartyJuice` is the only listener and it only draws.
+		Fact.PARTNER_LEVELLED:
+			if args.size() == 2:
+				bus.coop_partner_levelled.emit(int(args[0]), int(args[1]))
+		Fact.PARTNER_CRAFT_LEVELLED:
+			if args.size() == 3:
+				bus.coop_partner_craft_levelled.emit(int(args[0]),
+					String(args[1]), int(args[2]))
+		Fact.PARTNER_WORKED:
+			if args.size() == 4 and args[3] is Color:
+				bus.coop_partner_worked.emit(int(args[0]), String(args[1]),
+					String(args[2]), args[3] as Color)
 		Fact.RUN_ENDED:
 			# A return is a second flag beside the victory; a host that does
 			# not send one ended the run the old way.

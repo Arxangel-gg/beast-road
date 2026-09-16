@@ -62,6 +62,41 @@ const TOWER_RANGE: float = 350
 const TOWER_RANGE_SCALE: float = 1.15
 
 ## Duration of the dash's invulnerability window. [TUNE]
+## **SP: stamina, and sprinting** (owner, 2026-09-16, "tuned similarly to
+## diablo 2's sprinting but with ours being juicier").
+##
+## D2's shape is the good part: running drains, standing refills, and at empty
+## you are *forced* to walk until you have clawed back `HERO_SPRINT_FLOOR`. That
+## last rule is the whole reason stamina is a resource rather than a speed
+## setting - spending it all costs you something you feel for several seconds.
+##
+## **Tied to no attribute.** Levelling and gear are the two capped scales the
+## campaign tiers are tuned against; hanging stamina depth off Vigour would be a
+## third arriving through a movement feature. Flat for everybody.
+const HERO_STAMINA_MAX: float = 100.0
+const HERO_STAMINA_DRAIN: float = 19.0
+const HERO_STAMINA_REGEN: float = 14.0
+## How long after the last stride before it starts coming back. Without a pause
+## the correct play is to tap sprint on and off for ever, which is not a
+## decision, it is a keyboard exercise.
+const HERO_STAMINA_REGEN_DELAY: float = 0.65
+## How much faster a sprint is, and how much faster the legs go with it. The
+## stride is deliberately *more* than the speed, because a run that covers more
+## ground at the same cadence reads as ice.
+const HERO_SPRINT_SPEED: float = 1.45
+const HERO_SPRINT_STRIDE: float = 1.6
+## How far back from empty before it can be started again.
+const HERO_SPRINT_FLOOR: float = 18.0
+## How long the dash button must be held before it is a sprint rather than a
+## dash. The pad is full (see `KeyBindings.PAD_BUTTONS`), so a hold on the
+## button that already means "go faster" is the binding this gets.
+const HERO_SPRINT_HOLD: float = 0.17
+## How often running kicks dust off the heels.
+const HERO_SPRINT_DUST: float = 0.13
+## Below this share the bar flashes: the last of it should be felt before it is
+## gone, not discovered when the legs stop.
+const HERO_STAMINA_LOW: float = 0.25
+
 const HERO_DASH_IFRAMES: float = 0.3
 
 ## How many towers standing at the end make a run a *tower* run.
@@ -4954,6 +4989,30 @@ const VFX_BOW_OFFSET: float = 34.0
 ## Procedural blood impact sizing. The setting can suppress this entire layer;
 ## the ordinary hit spark and number remain so combat never becomes less
 ## readable for a player who disables gore. [TUNE]
+## **The prize flourish** (owner, 2026-09-16): what you just got, shown rather
+## than named. How big the icon is drawn, how far it rises, and how long it is up
+## for. Deliberately brief - this fires several times a seam.
+## **A partner's moment** (owner, 2026-09-16), drawn over their body and never
+## granting anything. See `PartyJuice`.
+const PARTY_JUICE_LEVEL: Color = Color(1.0, 0.88, 0.5)
+const PARTY_JUICE_CRAFT: Color = Color(0.72, 0.9, 0.62)
+const PARTY_JUICE_MATERIAL: Color = Color(0.82, 0.78, 0.66)
+## Quieter than your own: it is somebody else's moment and you are still in a
+## fight. The same reasoning the distance ear is built on.
+const PARTY_JUICE_QUIETER: float = -9.0
+
+const PRIZE_ICON_SIZE: float = 52.0
+const PRIZE_RISE: float = 64.0
+const PRIZE_SECONDS: float = 0.95
+## How much bigger a rare or lucky one is. A flourish that never varies is a
+## flourish nobody looks at twice.
+const PRIZE_BIG: float = 1.45
+## **And failure.** It falls instead of rising, which is the part that reads from
+## the corner of the eye before any word does.
+const DENIED_FALL: float = 26.0
+const DENIED_SECONDS: float = 0.8
+const DENIED_COLOUR: Color = Color(0.72, 0.68, 0.62)
+
 const VFX_BLOOD_HIT_SIZE: float = 54.0
 const VFX_BLOOD_DEATH_SIZE: float = 82.0
 const VFX_BLOOD_LIFE: float = 0.52
@@ -5471,6 +5530,9 @@ const FLAME_OFFSCREEN_MARGIN: float = 320.0
 ## readout and the co-op ally colour - so the bar a caster watches looked like
 ## four other things on the same screen. Indigo is nothing else's. [TUNE]
 const UI_MANA_INDIGO: String = "6a5acd"
+## SP. A green nothing else on this screen uses, so the three pools in the
+## column are told apart by hue before a letter is read.
+const UI_STAMINA_GREEN: String = "5fbf6a"
 ## **Health as a state, not a length** (owner, 2026-09-16). Cyan while it is
 ## whole, through amber, to red as it empties - and under the critical share it
 ## pulses, so a player whose eyes are on the field catches it without reading it.

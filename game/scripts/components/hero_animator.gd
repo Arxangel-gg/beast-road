@@ -41,6 +41,11 @@ const DIRECTION_COUNT: int = 8
 const STATES: Dictionary = {
 	"idle":      {"fps": 8.0,  "loop": true},
 	"walk":      {"fps": 12.0, "loop": true},
+	# **Sprinting** (owner, 2026-09-16). Listed so `hero_sprint.png` drops in the
+	# day it is drawn; until then `has_state("sprint")` is false and the hero
+	# runs on the walk sheet driven faster, which is what the note at the top of
+	# this file means by a partial art pass degrading rather than breaking.
+	"sprint":    {"fps": 16.0, "loop": true},
 	"attack_1a": {"fps": 28.0, "loop": false},
 	"attack_1b": {"fps": 28.0, "loop": false},
 	"attack_2":  {"fps": 29.0, "loop": false},

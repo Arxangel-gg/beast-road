@@ -262,6 +262,14 @@ func _ready() -> void:
 	_coop_world.name = "CoopWorld"
 	_coop_world.field = self
 	add_child(_coop_world)
+	# **A partner's moment, sent and drawn** (owner, 2026-09-16). Built in every
+	# session rather than only in co-op, for the reason the comment above gives
+	# about `CoopHeroes`: a system that only exists in co-op is a system that
+	# only gets exercised in co-op. Solo it connects four signals and never
+	# sends, because there is nobody to send to.
+	var party_juice := PartyJuice.new()
+	party_juice.heroes = _coop_heroes
+	add_child(party_juice)
 	# Everything the fire burns exists by now; see `_link_wildfire`.
 	_link_wildfire()
 	# **And what grows, last.** The water, the timber and the seams all cast

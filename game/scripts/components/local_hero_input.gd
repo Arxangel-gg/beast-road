@@ -86,6 +86,10 @@ func held(mask: int) -> bool:
 	# a key, a pad button and a thumb.
 	if mask == HOLD_INTERACT:
 		return Input.is_action_pressed(&"interact")
+	# The sprint. The same key, pad button and thumb button the dash uses - the
+	# hero tells a tap from a hold, not this.
+	if mask == HOLD_DASH:
+		return Input.is_action_pressed(&"dash")
 	# Held attack, for anything that wants to know the button is still down.
 	# Tested *after* the holds, so a future hold sharing this value cannot shadow
 	# it the way this branch once shadowed the revive.
@@ -126,4 +130,6 @@ func snapshot(current_aim: Vector2) -> Array:
 		holds |= HOLD_ATTACK
 	if held(HOLD_INTERACT):
 		holds |= HOLD_INTERACT
+	if held(HOLD_DASH):
+		holds |= HOLD_DASH
 	return [move(), current_aim, buttons, holds]

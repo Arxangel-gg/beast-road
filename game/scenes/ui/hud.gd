@@ -232,6 +232,9 @@ var _hero_bar: ProgressBar
 var _mana_bar: ProgressBar
 ## Whether the hero's health is under the critical share, so the bar pulses.
 var _hero_critical: bool = false
+var _stamina_bar: ProgressBar
+## Whether the pool is low enough to flash, and whether the legs have gone.
+var _stamina_low: bool = false
 var _blink_clock: float = 0.0
 var _xp_band: Control
 var _xp_bar: ProgressBar
@@ -505,6 +508,8 @@ func _ready() -> void:
 	EventBus.town_health_changed.connect(_on_town_health)
 	EventBus.hero_health_changed.connect(_on_hero_health)
 	EventBus.hero_mana_changed.connect(_on_hero_mana)
+	EventBus.hero_stamina_changed.connect(_on_hero_stamina)
+	EventBus.hero_winded.connect(_on_hero_winded)
 	EventBus.hero_wounds_changed.connect(_on_hero_wounds_changed)
 	EventBus.hero_xp_changed.connect(_on_hero_xp_changed)
 	EventBus.raid_charge_changed.connect(_on_charge)
@@ -612,10 +617,15 @@ func _process(delta: float) -> void:
 	# tween, so it stops on the frame a draught lands instead of running until
 	# somebody kills the tween - the fault the title screen's wound vignette
 	# shipped with, where an autoload kept a warning alive past the run.
+	if _stamina_low and _stamina_bar != null:
+		_stamina_bar.modulate.a = 1.0 - 0.3 * (0.5 + 0.5
+			* sin(_blink_clock * TAU * Balance.UI_HEALTH_BLINK_HZ * 0.7))
 	if _hero_critical and _hero_bar != null:
 		_blink_clock += delta
 		var pulse: float = 0.5 + 0.5 * sin(_blink_clock * TAU * Balance.UI_HEALTH_BLINK_HZ)
 		_hero_bar.modulate.a = 1.0 - Balance.UI_HEALTH_BLINK_DEPTH * pulse
+	elif _stamina_low:
+		_blink_clock += delta
 	elif _blink_clock != 0.0:
 		_blink_clock = 0.0
 	_update_spirit_panel(delta)
@@ -835,6 +845,18 @@ func _build_top_bar() -> void:
 	_mana_bar.tooltip_text = "Mana. Spells draw on it; Focus deepens it and refills it faster."
 	_name_the_bar(_mana_bar, "MP")
 	pools.add_child(_mana_bar)
+	# **SP** (owner, 2026-09-16). Under the mana for the same reason the mana is
+	# under the health: the top bar has no width to give, and three thin bars in
+	# one column is what `layout_check` has room for at 430 wide.
+	#
+	# Green, and deliberately a green nothing else on this screen uses: health is
+	# cyan-through-red and mana is indigo, so a glance at the column tells the
+	# three apart by hue before it reads a letter.
+	_stamina_bar = _make_bar(Color(Balance.UI_STAMINA_GREEN), HERO_BAR_WIDTH)
+	_stamina_bar.custom_minimum_size = Vector2(HERO_BAR_WIDTH, 7.0)
+	_stamina_bar.tooltip_text = "Stamina. Hold the dash button to sprint; it comes back when you stop."
+	_name_the_bar(_stamina_bar, "SP")
+	pools.add_child(_stamina_bar)
 	bar.add_child(pools)
 	var wound_row := HBoxContainer.new()
 	wound_row.add_theme_constant_override("separation", 5)
@@ -4465,6 +4487,29 @@ func _paint_health(bar: ProgressBar, share: float) -> void:
 		(fill as StyleBoxTexture).modulate_color = _multiply_for(tone)
 	elif fill is StyleBoxFlat:
 		(fill as StyleBoxFlat).bg_color = tone
+
+
+func _on_hero_stamina(current: float, maximum: float) -> void:
+	if _stamina_bar == null:
+		return
+	var share: float = current / maximum if maximum > 0.0 else 0.0
+	_stamina_bar.value = share
+	_stamina_bar.tooltip_text = "Stamina %d / %d" % [int(floor(current)), int(ceil(maximum))]
+	# The last of it should be felt before it is gone, not discovered when the
+	# legs stop.
+	_stamina_low = share > 0.0 and share <= Balance.HERO_STAMINA_LOW
+	if not _stamina_low:
+		_stamina_bar.modulate = Color.WHITE
+
+
+## The legs gave out. The bar says so once rather than the character silently
+## slowing down, which reads as the game stuttering.
+func _on_hero_winded() -> void:
+	if _stamina_bar == null:
+		return
+	var gasp: Tween = _stamina_bar.create_tween()
+	gasp.tween_property(_stamina_bar, "modulate", Color(1.7, 0.8, 0.6), 0.09)
+	gasp.tween_property(_stamina_bar, "modulate", Color.WHITE, 0.4)
 
 
 func _on_hero_mana(current: float, maximum: float) -> void:

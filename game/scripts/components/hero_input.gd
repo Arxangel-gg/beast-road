@@ -69,6 +69,20 @@ const BUTTON_USE_ITEM: int = 1 << 14
 const BUTTON_INTERACT: int = 1 << 15
 const HOLD_INTERACT: int = 1 << 10
 
+## **Sprinting** (owner, 2026-09-16): the dash button held rather than tapped.
+##
+## Bit 11, the next free bit *inside the hold range*, and tested after the
+## existing holds. The comment on `HOLD_REVIVE` is the reason for both: that
+## constant once shared a value with `BUTTON_ATTACK`, the first branch won, and
+## holding attack filled a partner's revive bar while the revive key did nothing
+## at all. The fix recorded there is to leave the two ranges alone rather than
+## reuse their gaps, and this obeys it.
+##
+## On the dash button because the pad is full - every rebindable action needs a
+## joypad button and there is no free one - and because the button that already
+## means "go faster" is the discoverable place for "keep going faster".
+const HOLD_DASH: int = 1 << 11
+
 ## The hero this speaks for. Needed by the local source, which asks the hero
 ## where it is in order to aim from the mouse.
 var hero: Node2D = null

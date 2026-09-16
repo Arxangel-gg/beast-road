@@ -727,6 +727,84 @@ func word(at: Vector2, text: String, colour: Color, size: int = 28) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 
+## **What you just got, shown rather than named.**
+##
+## The item's own icon - the one the stash and the journal use - rising out of
+## the point with its count beside it. A name in a colour is something a player
+## *reads*, and reading takes a beat nobody has mid-wave; an icon is recognised.
+##
+## `big` is for the ones worth a second look: a lucky double, a rare fish. It
+## scales the icon and adds a ring rather than changing the colour, so it reads
+## as the same thing gone well rather than as a different thing.
+func prize(at: Vector2, icon_path: String, label_text: String, colour: Color,
+		big: bool = false) -> void:
+	if world == null:
+		return
+	var scale_up: float = Balance.PRIZE_BIG if big else 1.0
+	if ResourceLoader.exists(icon_path):
+		var art: Texture2D = load(icon_path) as Texture2D
+		if art != null:
+			var icon := Sprite2D.new()
+			icon.texture = art
+			icon.texture_filter = Graphics.canvas_filter() as CanvasItem.TextureFilter
+			icon.z_index = Balance.VFX_Z + 2
+			_track(icon)
+			icon.global_position = at + Vector2(0.0, -30.0)
+			var wanted: float = Balance.PRIZE_ICON_SIZE * scale_up \
+				/ maxf(float(art.get_width()), 1.0)
+			icon.scale = Vector2.ONE * wanted * 0.4
+			var lift: Tween = icon.create_tween()
+			lift.set_parallel(true)
+			# Out with an overshoot and up on an ease, so it arrives rather than
+			# appears.
+			lift.tween_property(icon, "scale", Vector2.ONE * wanted, 0.22)\
+				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+			lift.tween_property(icon, "global_position",
+				icon.global_position + Vector2(0.0, -Balance.PRIZE_RISE),
+				Balance.PRIZE_SECONDS).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+			lift.tween_property(icon, "modulate:a", 0.0, Balance.PRIZE_SECONDS * 0.5)\
+				.set_delay(Balance.PRIZE_SECONDS * 0.5)
+			lift.chain().tween_callback(icon.queue_free)
+	if not label_text.is_empty():
+		word(at + Vector2(0.0, -6.0), label_text, colour, 26 if big else 22)
+	if big:
+		ring(at, 66.0, Color(colour, 0.7), 0.34, 3.0)
+	spark(at, colour, 10 if big else 5, Vector2.UP, 150.0)
+
+
+## **It did not work**, said where it happened.
+##
+## Every one of these used to be a sentence in a log at the edge of the screen
+## while the player was looking at the water. This falls rather than rises, which
+## is most of the work: somebody who has seen one of each knows which happened
+## from the corner of their eye, before any word resolves.
+func denied(at: Vector2, why: String) -> void:
+	if world == null:
+		return
+	dust(at, Color(0.5, 0.46, 0.4), 6, 34.0)
+	if why.is_empty():
+		return
+	var label := Label.new()
+	label.text = why.to_upper()
+	label.custom_minimum_size = Vector2(260.0, 44.0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	label.add_theme_color_override("font_color", Balance.DENIED_COLOUR)
+	label.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.025, 0.95))
+	label.add_theme_constant_override("outline_size", 8)
+	label.z_index = Balance.VFX_Z + 2
+	_track(label)
+	label.global_position = at + Vector2(-130.0, -56.0)
+	var fall: Tween = label.create_tween()
+	fall.set_parallel(true)
+	fall.tween_property(label, "global_position",
+		label.global_position + Vector2(0.0, Balance.DENIED_FALL),
+		Balance.DENIED_SECONDS).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	fall.tween_property(label, "modulate:a", 0.0, Balance.DENIED_SECONDS * 0.55)\
+		.set_delay(Balance.DENIED_SECONDS * 0.45)
+	fall.chain().tween_callback(label.queue_free)
+
+
 ## A wedge sweeping through the hero's swing arc.
 func slash(at: Vector2, direction: Vector2, reach: float, arc_degrees: float, colour: Color) -> void:
 	if world == null:

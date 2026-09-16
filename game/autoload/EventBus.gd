@@ -26,6 +26,21 @@ signal hero_health_changed(current_hp: float, max_hp: float)
 
 ## The local hero's mana moved. Throttled by the hero to a few times a second.
 signal hero_mana_changed(current: float, maximum: float)
+## SP: what is left to sprint on, and the full pool (owner, 2026-09-16).
+signal hero_stamina_changed(current: float, maximum: float)
+## **A partner's moment, to be drawn and nothing else** (owner, 2026-09-16).
+##
+## `seat` is which co-op seat it happened to, so the flourish lands over the
+## right body. These carry no reward: a level and a craft level belong to the
+## account that earned them, and the receiving machine only ever draws.
+signal coop_partner_levelled(seat: int, level: int)
+signal coop_partner_craft_levelled(seat: int, craft: String, level: int)
+## What a partner just pulled out of the ground or the water: an icon path, a
+## line to show and the colour to show it in. Composed by the sender, because
+## only the sender knows whether it was a fish, an ore or a log.
+signal coop_partner_worked(seat: int, icon: String, line: String, colour: Color)
+## The legs gave out. Drawn and heard rather than only read off the bar.
+signal hero_winded()
 
 ## A line went into a pond, and how long it will be there.
 signal fishing_started(seconds: float)

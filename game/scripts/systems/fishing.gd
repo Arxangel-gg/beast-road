@@ -1126,7 +1126,14 @@ func _land() -> void:
 	_ripple_at(index, at, 1.0)
 	Vfx.sheet_burst(at, SPLASH_ART, Balance.FISHING_SPLASH_SIZE * 1.15)
 	Vfx.ring(at, Balance.FISHING_SPLASH_RADIUS, kind.rarity_colour(), 0.5, 5.0)
-	Vfx.number(at, float(kind.food), Balance.LOOT_GLOW_COLOUR, false)
+	# **The fish itself**, not a number and a line of text at the edge of the
+	# screen (owner, 2026-09-16). The icon the pantry and the journal use, in its
+	# rarity's own colour, held up over the water it came out of - and a rare one
+	# gets the bigger version, because a Chainmaker's Koi is the whole reason
+	# anybody stood still for thirty seconds.
+	Vfx.prize(at, kind.get_sprite_path(),
+		"%s  ·  +%d Food" % [kind.display_name, kind.food],
+		kind.rarity_colour(), int(kind.rarity) >= FishData.Rarity.RARE)
 	Sfx.play("sfx_fish_land")
 	EventBus.preparation_warning.emit("%s landed  ·  +%d Food"
 		% [kind.display_name, kind.food])
@@ -1163,6 +1170,9 @@ func _abandon(reason: String) -> void:
 		EventBus.fishing_charge.emit(-1.0)
 	_finish_line()
 	if was_out and not reason.is_empty():
+		# Said on the water as well as in the log: a line that came back empty
+		# is the one moment a player is definitely looking at the float.
+		Vfx.denied(_float_at, reason)
 		EventBus.fishing_failed.emit(reason)
 
 

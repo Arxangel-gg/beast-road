@@ -150,6 +150,22 @@ var _wound_fraction: float = 0.0
 ## Mana: what spells draw on. Refills slowly, faster with Focus; carried across
 ## scopes through RunState like health; full again on a revive.
 var mana: float = 0.0
+## **SP.** Run-scoped like mana, tied to no attribute, and spent only on
+## sprinting. See `Balance.HERO_STAMINA_MAX` for why it is flat.
+var stamina: float = Balance.HERO_STAMINA_MAX
+var _sprinting: bool = false
+## How long the dash button has been held. Past `HERO_SPRINT_HOLD` it is a
+## sprint rather than a dash.
+var _dash_held: float = 0.0
+var _dash_spent: bool = false
+## Seconds until the pool starts refilling, and until the next puff of dust.
+var _stamina_rest: float = 0.0
+var _sprint_dust: float = 0.0
+## True while the legs have given out and have not yet clawed back the floor.
+var _winded: bool = false
+## The last value announced, so the bar is told when it changes and not 60
+## times a second.
+var _stamina_said: float = -1.0
 var _mana_announce_left: float = 0.0
 
 var _lunge_velocity: Vector2 = Vector2.ZERO
@@ -430,6 +446,7 @@ func _physics_process(delta: float) -> void:
 	# the map. It still costs its cooldown, so nothing is gained by spamming it.
 	if _beast_stun_left <= 0.0 and not _swimming and input.pressed(HeroInput.BUTTON_DASH):
 		_try_dash()
+	_tick_sprint(delta)
 	if ranged != null:
 		ranged.tick(delta)
 		if input.pressed(HeroInput.BUTTON_AMMO_CYCLE):
@@ -785,7 +802,9 @@ func move_speed() -> float:
 	# Wading (2026-09-14). A multiplier rather than a bonus, so it cannot be
 	# summed away by Swiftness: water is water whoever is walking through it.
 	# A swimmer is already paying the water's price and does not pay it twice.
-	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * (1.0 if _swimming else RunState.flood_slow())
+	var running: float = Balance.HERO_SPRINT_SPEED if _sprinting else 1.0
+	return Balance.HERO_MOVE_SPEED * (1.0 + bonus) * running \
+		* (1.0 if _swimming else RunState.flood_slow())
 
 
 ## Puts the hero's shot in the world.
@@ -1332,6 +1351,80 @@ func _tick_timers(delta: float) -> void:
 		health.heal(health.max_hp * Balance.MENDER_SPARK_REGEN_PER_SECOND * delta)
 	if _lunge_velocity != Vector2.ZERO:
 		_lunge_velocity = _lunge_velocity.move_toward(Vector2.ZERO, _lunge_decay * delta)
+
+
+## **SP, and the sprint it pays for.**
+##
+## Diablo II's shape, which is the good part of it: running drains, standing
+## refills after a pause, and at empty you are *forced* to walk until you have
+## clawed back `HERO_SPRINT_FLOOR`. That last rule is why stamina is a resource
+## rather than a speed setting - spending it all costs something you feel.
+##
+## A tap of the dash button is the dash it always was. Only a hold past
+## `HERO_SPRINT_HOLD` becomes a sprint, and only while actually moving: standing
+## on the button is not running, and draining the pool for it would be the one
+## way to be punished for nothing.
+func _tick_sprint(delta: float) -> void:
+	var down: bool = input != null and input.held(HeroInput.HOLD_DASH)
+	if down:
+		_dash_held += delta
+	else:
+		_dash_held = 0.0
+	var walking: bool = (velocity - _shoved).length() > 6.0
+	var may: bool = down and walking and _dash_held >= Balance.HERO_SPRINT_HOLD \
+		and not _winded and not _swimming and is_alive() \
+		and _beast_stun_left <= 0.0 and not RunState.flood_over_knee()
+	if may and stamina > 0.0:
+		_sprinting = true
+		stamina = maxf(stamina - Balance.HERO_STAMINA_DRAIN * delta, 0.0)
+		_stamina_rest = Balance.HERO_STAMINA_REGEN_DELAY
+		_kick_up_dust(delta)
+		if stamina <= 0.0:
+			_give_out()
+	else:
+		_sprinting = false
+		_stamina_rest = maxf(_stamina_rest - delta, 0.0)
+		if _stamina_rest <= 0.0 and stamina < Balance.HERO_STAMINA_MAX:
+			stamina = minf(stamina + Balance.HERO_STAMINA_REGEN * delta,
+				Balance.HERO_STAMINA_MAX)
+		# Back on its feet: the floor is what stops a player tapping sprint the
+		# instant the legs give out and getting a stride out of it.
+		if _winded and stamina >= Balance.HERO_SPRINT_FLOOR:
+			_winded = false
+	if not is_equal_approx(stamina, _stamina_said):
+		_stamina_said = stamina
+		EventBus.hero_stamina_changed.emit(stamina, Balance.HERO_STAMINA_MAX)
+
+
+## The legs gave out: forced to walk until the floor is back. Said out loud,
+## because a character that silently slows down reads as the game stuttering.
+func _give_out() -> void:
+	if _winded:
+		return
+	_winded = true
+	_sprinting = false
+	EventBus.hero_winded.emit()
+	Vfx.word(global_position + Vector2(0.0, -46.0), "Winded",
+		Color(0.85, 0.82, 0.7), 20)
+	Vfx.dust(global_position, Color(0.52, 0.46, 0.38), 8, 46.0)
+	Sfx.play_at("sfx_hero_hurt", global_position, -8.0)
+
+
+## Dust off the heels while running, on its own clock rather than every frame -
+## a puff a frame is a solid cloud, and this is feet leaving the ground.
+func _kick_up_dust(delta: float) -> void:
+	_sprint_dust -= delta
+	if _sprint_dust > 0.0:
+		return
+	_sprint_dust = Balance.HERO_SPRINT_DUST
+	var behind: Vector2 = global_position - velocity.normalized() * 14.0
+	Vfx.dust(behind, Color(0.55, 0.49, 0.4), 3, 26.0)
+
+
+## Whether the Warden is running. Read by the movement and by the animator, and
+## by the gate.
+func is_sprinting() -> bool:
+	return _sprinting
 
 
 func _try_dash() -> void:
@@ -1960,8 +2053,19 @@ func _drive_frames() -> void:
 	var own: Vector2 = velocity - _shoved
 	var speed: float = own.length()
 	if speed > 4.0:
-		frames.set_speed_scale(speed / maxf(move_speed(), 1.0))
-		frames.play("walk")
+		# **The stride is scaled against the walking speed, not the current one.**
+		# Dividing by `move_speed()` while sprinting gives a ratio near one and
+		# the legs would go at exactly the pace they do walking, which is what
+		# covering more ground at the same cadence looks like: ice.
+		var pace: float = speed / maxf(Balance.HERO_MOVE_SPEED, 1.0)
+		if _sprinting:
+			pace *= Balance.HERO_SPRINT_STRIDE
+		frames.set_speed_scale(pace)
+		# `HeroAnimator` tolerates a missing sheet by design, so `hero_sprint.png`
+		# drops in the day it exists and nothing else changes. Until then a run is
+		# the walk driven faster with the engine's own lean, bounce and footfall
+		# squash on top - which is what those were built to supply.
+		frames.play("sprint" if _sprinting and frames.has_state("sprint") else "walk")
 	else:
 		frames.play("idle")
 

@@ -387,6 +387,11 @@ func _swing_the_hero(index: int) -> void:
 func _stop_working(why: String = "") -> void:
 	if _working < 0:
 		return
+	# **Said where the work was**, as well as in the log (owner, 2026-09-16:
+	# "failure events also need clarity and need to be more apparent"). The log
+	# is at the edge of the screen and the player is looking at the seam.
+	if not why.is_empty() and _working < _nodes.size():
+		Vfx.denied((_nodes[_working]["at"] as Vector2) + Vector2(0.0, -20.0), why)
 	_working = -1
 	_swing_left = 0.0
 	if not why.is_empty():
