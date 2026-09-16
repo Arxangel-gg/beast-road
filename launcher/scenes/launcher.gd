@@ -79,6 +79,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _ready() -> void:
+	# **The carved border and the corner foliage**, so the first thing anybody
+	# sees of this game looks like the game (owner, 2026-09-16). Added first and
+	# pushed behind the controls: it is scenery, and nothing on it is pressed.
+	# **Over the painting and under the controls.** Index 0 put it behind the
+	# backdrop, where a border is invisible; the three scenery nodes come first
+	# (Backdrop, Scrim, Vignette) and everything a player presses comes after.
+	var dress := LauncherDress.new()
+	add_child(dress)
+	move_child(dress, 3)
+
 	_http = HTTPRequest.new()
 	_http.use_threads = true
 	add_child(_http)

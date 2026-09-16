@@ -4028,6 +4028,39 @@ player was doing while it downloaded and could not be moved aside. Windowed at
 `_unhandled_input` rather than `_input`, so a key pressed while a text field has
 focus reaches the field first.
 
+**The launcher wears the game's face, as of 2026-09-16.** Owner: "The launcher
+is outdated and needs the new aesthetics and polish for production ready release!
+It should be more like the main menu scene now!"
+
+**It was two generations behind and nobody had looked.** `launcher_bg.png` and
+`launcher_logo.png` are the *same dimensions* as the game's `menu_key_art.png`
+and `ui_logo.png` - they were copied across once and never again - so the first
+thing anybody sees of this game was a flat-colour pixel horizon from long before
+the painterly jungle-gate key art, under an old wordmark. Both are copies of the
+current art now.
+
+**The carved border and the corner foliage are a drawing rather than a port.**
+`MenuFrame` and the menu's foliage are several hundred lines each of shader,
+wobble, sheen and per-strand placement, and they live in the *game* project - the
+launcher is its own Godot project and cannot reach across a `res://`.
+`LauncherDress` is one `_draw` laying the same carved edge and corner art with
+the same hanging fronds, swaying on two rates so the motion has no period a
+person can catch. It redraws twenty times a second rather than every frame,
+because this is a window that spends its life waiting on a download.
+
+**Two faults in that work, and both are ones this project has hit before.**
+`move_child(dress, 0)` put the border *behind* the backdrop, where a frame is
+invisible - the three scenery nodes come first and everything pressable comes
+after, so it belongs at index 3. And `_draw` read `size`, which on a `Control`
+added from code is **zero until the next layout pass**, so the first cut drew a
+border zero pixels wide and the launcher came out looking exactly as it had. It
+reads `get_viewport_rect()` now: the window is the thing being framed and the
+window always knows how big it is.
+
+**Photographed rather than asserted**, through a new `launcher/tools/launcher_shot`
+- which is how both of those were caught, because each one leaves a launcher that
+loads perfectly cleanly and looks unchanged.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
