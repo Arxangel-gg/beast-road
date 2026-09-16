@@ -1804,6 +1804,12 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
+`ui_gravebell_maul.png` · `ui_ratcatchers_awl.png` · `ui_oathkeeper_spear.png` · `ui_slagplate_cuirass.png` ·
+`ui_stillwater_mail.png` · `ui_thornweave_jack.png` · `ui_ashbone_totem.png` · `ui_drowned_bell.png` ·
+`ui_emberseed_pouch.png` · `ui_sallet_of_the_long_watch.png` · `ui_ironcrown_barbute.png` · `ui_huntsman_hood.png` ·
+`ui_quarryman_mitts.png` · `ui_silkbind_wraps.png` · `ui_oathsteel_gauntlets.png` · `ui_marchwarden_boots.png` ·
+`ui_ghostfoot_sandals.png` · `ui_anchorplate_sabatons.png` · `ui_band_of_low_embers.png` · `ui_signet_of_still_water.png` ·
+`ui_ring_of_the_ninth_road.png` · `ui_pendant_of_the_deep_road.png` · `ui_throatpiece_of_ash.png` · `ui_charm_of_the_quiet_hour.png` ·
 `ui_interact_fishing.png` · `ui_interact_seam.png` · `ui_interact_timber.png` · `ui_interact_farming.png` · `ui_interact_rift_gates.png` · `ui_interact_nests.png` · `ui_interact_tower.png` · `ui_interact_dungeon_chest.png` · `ui_interact_dungeon_portal.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
 `ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` · `ui_last_scar.png` ·

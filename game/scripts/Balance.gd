@@ -329,7 +329,15 @@ const LOOT_Z_INDEX: int = -2
 ## **Raised 216 -> 252 on 2026-09-13, with the sixteen Resolve kinds.** Third
 ## time, same arithmetic, and the gate caught it on the first run again: 114
 ## kinds is 228 before any slack. A tenth on top of that is 252.
-const STASH_CAPACITY: int = 252
+##
+## **Raised 252 -> 304 on 2026-09-16, with the twenty-four loot-diversity
+## kinds.** Fourth time, and the gate caught it on the first run for the fourth
+## time, which is worth more than the number: 138 kinds is 276 before any
+## slack, and a tenth on top is 304. Nothing about this is a design decision -
+## it is the roster's size arriving in a constant, and the reason the check
+## exists is that a stash which cannot hold two of everything cannot be used to
+## compare duplicates, which is most of what a stash is for.
+const STASH_CAPACITY: int = 304
 
 ## How many pieces one side may put on the trade table at once.
 ##
