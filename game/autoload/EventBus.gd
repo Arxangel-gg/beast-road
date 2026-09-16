@@ -461,6 +461,15 @@ signal wave_cleared(wave_number: int)
 ## the top-left tile of its 2x2 footprint.
 signal tower_changed(anchor: Vector2i)
 
+## **A tower was broken by something, rather than taken down by its owner.**
+##
+## Emitted immediately before `tower_changed` and synchronously, so a listener
+## that cares about the difference can tell them apart. `tower_changed` alone
+## cannot: its own docstring says "built, upgraded, sold or destroyed", and the
+## only way to read it was "the tile is empty now", which is equally true of a
+## sale - so a tower smashed by a siege breed played the *sell* sound.
+signal tower_destroyed(anchor: Vector2i, at: Vector2)
+
 ## A tower fired at something. Purely for feedback systems.
 signal tower_fired(anchor: Vector2i, at: Vector2)
 

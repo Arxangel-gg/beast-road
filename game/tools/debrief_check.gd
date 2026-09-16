@@ -20,6 +20,7 @@ func _ready() -> void:
 	MetaState.hold_saves()
 	RunState.reset()
 	_test_the_gains_are_counted_where_they_are_banked()
+	_test_every_death_names_what_did_it()
 	_test_the_earth_is_counted_where_it_is_seen()
 	await _test_the_debrief_says_both()
 	MetaState.resume_saves()
@@ -33,6 +34,37 @@ func _ready() -> void:
 	MusicPlayer.stop_immediately()
 	Ambience.stop_immediately()
 	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+
+## **Every way a Warden can die names what did it.**
+##
+## `note_blow` was called by the things that swing: bodies, ground strikes, the
+## earth's events through `strike_the_players`, a bubble in a pond. It was not
+## called by the three deaths a player is least able to explain for themselves -
+## drowning, the Wildblight's venom, and a dungeon collapsing - so the debrief
+## confidently named whatever had last touched them, which on a collapse is the
+## body they fought on the way in and on a drowning can be a region ago.
+##
+## Source rather than behaviour, because driving a real drowning needs water, a
+## real collapse needs a dungeon and a real blight needs a rabid animal - three
+## harnesses for a check whose whole content is "this call exists". The fault was
+## an omission, and an omission is exactly what a source walk sees.
+func _test_every_death_names_what_did_it() -> void:
+	var paths: Dictionary = {
+		"res://scenes/hero/hero.gd": ["Deep water", "The Wildblight"],
+		"res://scenes/rift/rift_arena.gd": ["The collapse"],
+	}
+	for path: String in paths:
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			_check(false, "%s is missing" % path)
+			continue
+		var text: String = file.get_as_text()
+		for name: String in (paths[path] as Array):
+			_check(text.contains("note_blow(\"%s\"" % name),
+				("%s no longer names \"%s\" as a cause of death, so the debrief "
+					+ "will name the last thing that happened to touch them")
+					% [path, name])
 
 
 func _check(condition: bool, why: String) -> void:

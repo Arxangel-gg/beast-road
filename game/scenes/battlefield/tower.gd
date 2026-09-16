@@ -1076,10 +1076,17 @@ func _on_destroyed(_from: Vector2) -> void:
 		Vector2.ZERO, 260.0)
 	Vfx.ring(origin(), 110.0,
 		Color(TowerData.element_colour(data.element), 0.7), 0.5, 5.0)
-	EventBus.camera_shake_requested.emit(9.0, 0.4)
+	# **Felt where it fell.** This was a flat 9.0 shake wherever the tower stood,
+	# so a tower breaking on the far road rattled the screen as hard as one at the
+	# player's feet - the thing `camera_impact` was built to stop on 2026-09-13,
+	# in a place that never learned about it.
+	EventBus.camera_impact.emit(origin(), 9.0)
 	_leave_rubble()
 	RunState.towers_lost += 1
-	RunState.clear_tower(anchor)
+	# **Broken, not sold.** Told apart here because nothing downstream can tell
+	# from an empty tile, and a tower smashed by a siege breed used to play the
+	# sell sound.
+	RunState.clear_tower(anchor, origin())
 
 
 ## What a broken tower leaves: a scatter of stone that settles into the ground

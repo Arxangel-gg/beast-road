@@ -586,6 +586,12 @@ func _tick_poison(delta: float) -> void:
 		return
 	_poison_tick = 0.5
 	if health != null and is_alive():
+		# **The venom says it was the venom.** The bite that delivered it names
+		# itself through `Wildlife._strike`, and the poison that finishes the job
+		# did not - so a Warden killed by the Wildblight was told they were killed
+		# by whatever last touched them, on one of the three deaths in this game a
+		# player is least likely to be able to explain.
+		RunState.note_blow("The Wildblight", _poison_dps * 0.5)
 		health.take_damage(_poison_dps * 0.5, global_position + Vector2.DOWN * 8.0)
 		Vfx.spark(global_position + Vector2.UP * 30.0, Balance.WILDLIFE_RABID_AURA, 3, Vector2.UP, 70.0)
 	if _poison_left <= 0.0:
@@ -602,6 +608,9 @@ func swim_depth() -> float:
 ## the sprite fades with it.
 func _drown(at: Vector2) -> void:
 	_drowned = true
+	# Drowning takes the hero without a blow, so nothing named it and the debrief
+	# reported whatever had last hit them - often several minutes and a region ago.
+	RunState.note_blow("Deep water", maxf(health.max_hp, 1.0))
 	if _swim_cover != null:
 		_swim_cover.visible = true
 		var sink: Tween = _swim_cover.create_tween()

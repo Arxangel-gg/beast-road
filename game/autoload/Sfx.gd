@@ -421,6 +421,14 @@ const DEFAULT_MIX: Dictionary = {"db": -3.0, "pitch": 0.10, "limit": 3, "gap": 0
 ## falls through to a group of the same name, so every existing call site keeps
 ## working unchanged while the takes rotate underneath it. Adding a second take
 ## to a sound is a data change, not a code change.
+## An anchor no tile can have, so "nothing was just broken" is not a real slot.
+const NO_ANCHOR: Vector2i = Vector2i(-9999, -9999)
+
+## The tile whose tower was broken a moment ago, consumed by the very next
+## `tower_changed`. See `_on_tower_destroyed`.
+var _broken: Vector2i = NO_ANCHOR
+
+
 const GROUPS: Dictionary = {
 	"sfx_air_shot": ["sfx_air_shot_1", "sfx_air_shot_2", "sfx_air_shot_3"],
 	"sfx_dash": ["sfx_dash_1", "sfx_dash_2", "sfx_dash_3"],
@@ -491,6 +499,7 @@ func _ready() -> void:
 	EventBus.hero_dashed.connect(func(_i: float) -> void: play("sfx_dash"))
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.tower_fired.connect(_on_tower_fired)
+	EventBus.tower_destroyed.connect(_on_tower_destroyed)
 	EventBus.tower_changed.connect(_on_tower_changed)
 	EventBus.town_damaged.connect(func(_a: float, _c: float, _m: float) -> void: play("sfx_town_damaged"))
 	EventBus.spell_cast.connect(_on_spell_cast)
@@ -892,7 +901,24 @@ func _on_tower_fired(anchor: Vector2i, at: Vector2) -> void:
 	play_at(ELEMENT_SHOTS[index], at)
 
 
+## **A tower was broken.** Stone coming down, where it came down.
+##
+## `tower_destroyed` is emitted immediately before `tower_changed` and Godot's
+## signals are synchronous, so this runs to completion first and the anchor it
+## leaves behind is consumed by the very next handler. That is the whole lifetime
+## of `_broken`: it exists because an empty tile cannot say *why* it is empty.
+func _on_tower_destroyed(anchor: Vector2i, at: Vector2) -> void:
+	_broken = anchor
+	play_group_at("sfx_hit_stone", at, 2.0)
+
+
 func _on_tower_changed(anchor: Vector2i) -> void:
+	# **Broken is not sold.** This told the two apart by whether the tile is empty
+	# now, and a tower smashed by a siege breed empties its tile exactly as a sale
+	# does - so losing a tower to the enemy played a dismantle-and-refund noise.
+	if anchor == _broken:
+		_broken = NO_ANCHOR
+		return
 	# Built or upgraded versus sold, told apart by whether anything is there now.
 	if RunState.tile_is_empty(anchor):
 		play("sfx_tower_sell")

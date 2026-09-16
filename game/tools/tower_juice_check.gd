@@ -37,6 +37,7 @@ func _ready() -> void:
 	_test_every_tower_authors_a_look()
 	_test_every_look_is_worn()
 	await _test_every_style_lands_the_same_hit()
+	await _test_a_broken_tower_is_not_a_sold_one()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -51,6 +52,50 @@ func _ready() -> void:
 	else:
 		push_error("[tower-juice] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **Losing a tower must not sound like selling one.**
+##
+## `Sfx._on_tower_changed` told "built or upgraded" from "sold" by asking whether
+## the tile was empty afterwards - and a tower smashed by a siege breed empties
+## its tile exactly as a sale does, so the moment a player's defence came apart
+## played a dismantle-and-refund noise.
+##
+## Driven through the real doors: a tower is built, then broken through
+## `Health.kill`, and the gate reads back that the destruction was announced and
+## that the sale was not. It reads the *signals* rather than listening for audio,
+## because headless has no ear and the fault was never in the mixer.
+func _test_a_broken_tower_is_not_a_sold_one() -> void:
+	var anchor: Vector2i = _field.free_anchor_near(0)
+	var broken: Array[Vector2i] = []
+	var changed: Array[Vector2i] = []
+	var ear_broken: Callable = func(at_anchor: Vector2i, _at: Vector2) -> void:
+		broken.append(at_anchor)
+	var ear_changed: Callable = func(at_anchor: Vector2i) -> void:
+		changed.append(at_anchor)
+	EventBus.tower_destroyed.connect(ear_broken)
+	EventBus.tower_changed.connect(ear_changed)
+
+	# A sale empties the tile and must announce nothing broken.
+	RunState.set_tower(anchor, "ember_spire", 1)
+	RunState.clear_tower(anchor)
+	_check(broken.is_empty(), "selling a tower announced a destruction")
+	_check(changed.has(anchor), "selling a tower announced no change at all")
+
+	# Breaking one announces both, and the destruction first.
+	broken.clear()
+	changed.clear()
+	RunState.set_tower(anchor, "ember_spire", 1)
+	RunState.clear_tower(anchor, Vector2(120.0, 90.0))
+	_check(broken.has(anchor), "a broken tower announced no destruction")
+	_check(changed.has(anchor), "a broken tower announced no change")
+	# The order is what lets a listener tell them apart at all.
+	_check(Sfx._broken == Sfx.NO_ANCHOR,
+		"the sound layer kept the broken anchor instead of consuming it")
+
+	EventBus.tower_destroyed.disconnect(ear_broken)
+	EventBus.tower_changed.disconnect(ear_changed)
+	await get_tree().process_frame
 
 
 func _check(condition: bool, why: String) -> void:

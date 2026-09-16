@@ -605,8 +605,11 @@ func _tick_collapse(delta: float) -> void:
 	if _collapse_bite <= 0.0:
 		_collapse_bite = 1.0
 		if hero != null and hero.health != null:
-			hero.health.take_damage(hero.health.max_hp * Balance.DUNGEON_COLLAPSE_DAMAGE,
-				hero.global_position + Vector2.UP * 40.0)
+			var bite: float = hero.health.max_hp * Balance.DUNGEON_COLLAPSE_DAMAGE
+			# The ground is what is killing them, and the debrief used to name the
+			# last body they fought on the way in.
+			RunState.note_blow("The collapse", bite)
+			hero.health.take_damage(bite, hero.global_position + Vector2.UP * 40.0)
 		EventBus.camera_shake_requested.emit(6.0, 0.35)
 		if hero != null:
 			# Rock falling around the hero, wherever they are running.

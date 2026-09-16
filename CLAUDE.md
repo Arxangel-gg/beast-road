@@ -4793,6 +4793,40 @@ nothing - the same shape as a comparison of two nothings. The declaration rows
 are skipped now, and the check was validated by removing the call rather than by
 reading its output.
 
+**Losing a tower sounded like selling one, found 2026-09-16.**
+`Sfx._on_tower_changed` told "built or upgraded" from "sold" by asking whether
+the tile was empty afterwards - and a tower smashed by a siege breed empties its
+tile exactly as a sale does. So the moment a player's defence came apart played
+a dismantle-and-refund noise. `EventBus.tower_changed`'s own docstring says
+"built, upgraded, sold **or destroyed**", so the ambiguity was known and the
+sound layer was guessing.
+
+`clear_tower` says why now - a non-zero `broken_at` means broken - and
+`tower_destroyed` is emitted immediately before `tower_changed`, synchronously,
+so a listener reading the pair sees the reason before the consequence. That
+ordering is the whole mechanism and it is what the gate holds.
+
+**And the same line shook the screen on the flat channel.** A tower breaking
+emitted `camera_shake_requested(9.0, 0.4)` wherever it stood, so one lost on the
+far road rattled as hard as one at the player's feet - exactly what
+`camera_impact` was built to stop on 2026-09-13, in a place that never learned
+about it.
+
+**Three ways to die did not name what did it, found the same day.** `note_blow`
+is called by everything that swings - bodies, ground strikes, the earth's events
+through `strike_the_players`, a bubble in a pond - and by **none of the three
+deaths a player is least able to explain**: drowning, the Wildblight's venom, and
+a dungeon collapsing. So the debrief confidently named whatever had last touched
+them, which on a collapse is the body they fought on the way in and on a drowning
+can be a region ago. The bite that *delivers* the venom named itself; the venom
+that finished the job did not.
+
+`debrief_check` walks the source for those three rather than driving them,
+deliberately: a real drowning needs water, a real collapse needs a dungeon and a
+real blight needs a rabid animal, which is three harnesses for a check whose
+whole content is "this call exists". **The fault was an omission, and an omission
+is what a source walk sees.**
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

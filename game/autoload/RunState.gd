@@ -1437,10 +1437,17 @@ func clear_barricade(tile: Vector2i) -> void:
 	EventBus.barricade_changed.emit(tile)
 
 
-func clear_tower(anchor: Vector2i) -> void:
+## Takes the tower off `anchor`. `at` is where it stood, and a non-zero one means
+## it was **broken** rather than sold - the two are indistinguishable from the
+## tile afterwards, and they should not sound or feel the same.
+func clear_tower(anchor: Vector2i, broken_at: Vector2 = Vector2.ZERO) -> void:
 	if not towers.has(anchor):
 		return
 	towers.erase(anchor)
+	# Before `tower_changed` and synchronously, so a listener reading the pair
+	# sees the reason before it sees the consequence.
+	if broken_at != Vector2.ZERO:
+		EventBus.tower_destroyed.emit(anchor, broken_at)
 	EventBus.tower_changed.emit(anchor)
 
 
