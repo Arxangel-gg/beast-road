@@ -4614,6 +4614,50 @@ heard that ladder hundreds of times before they can afford a gem.
 heard in play.** They were authored expecting to be audible and nothing has ever
 verified them by ear.
 
+**The forwarded canon story is triaged rather than built, as of 2026-09-16.**
+`docs/ChatGPT_More_Ideas_6.md` had been committed and never read: a 1,001-line
+proposed canon - a setting, a timeline, an origin for the Chainmaker, a ten-act
+story table, an identity for the Gatekeeper, an alternate ending and a postgame.
+`docs/IDEAS_REVIEW_2026-09-16b.md` is the triage. **Nothing is built and no
+ruling is assumed**, because canon is an owner decision and several of these
+re-cut shipped fiction rather than extending it.
+
+**It is three turns of a transcript and they disagree.** Turn 1 proposes a
+post-apocalyptic future Earth; turn 2 is shown the game's lore and *explicitly
+reverses it* - "I would not make Wilderhold explicitly future Earth"; turn 3
+reinstates everything turn 2 discarded without noticing. **"Adopt the document"
+is therefore not an available action** - turn 2 and turn 3 are mutually
+exclusive, and turn 2 is the one written with the game in front of it.
+
+**One sentence must not ship and it is the §57 half no gate can catch.** Kharok
+"compelled workers to maintain the anchors" - forced labour with every
+denylisted word removed. `copy_check` passes all 1,001 lines, which is the
+point: the gate catches the vocabulary and §57 exists because a human has to
+catch the rest.
+
+**The first ruling needed is that the document inverts the final act.** It has
+Yuri as one of the last *unbound* Worldstriders and the plot as preventing his
+binding; the game says he is already bound and cutting his chains is the
+finale - in four player-facing strings and in v4 §201, which makes the chains a
+thing the hero *attacks*. Everything else in the document rests on it.
+
+**Refused outright**: the acts 6-10 rename and reorder (it breaks every banked
+expedition, the same hazard that stopped acts 1-3 being renumbered), the 2377 CE
+reinstatement, the Earthwitness layer (it needs a dialogue system and a set
+piece against a surface that is 27 lore entries and a four-panel intro), and
+"The Beast Beneath" as a name, since the beast is Yuri in fifteen strings.
+
+**What is worth having is words in existing fields**: Kharok was a Warden and
+one of the greatest, the Gatekeeper was his closest companion kept waiting by an
+order he chained into him, and "Roadsong" names the elemental system the game
+already runs. The game ships three sentences about Kharok and **no origin at
+all**, so that is the largest gap in the canon closed at the cost of prose.
+
+**And a large part of turn 2 is already true** - the Host's compulsion, the
+Warden explicitly not being a prophesied savior, the lantern's reason, and Acts
+1-5 down to the verbatim act titles. That is the fifth forwarded document in a
+row to be roughly half a description of what already ships.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
