@@ -22,6 +22,17 @@ signal relic_chosen(relic_id: String)
 ## The road home was answered: true to turn for home, false to push on.
 signal homecoming_decided(go_home: bool)
 
+## The party turned for home at an ordinary fork rather than at an act's end.
+signal extraction_chosen()
+
+## Whether the fork offers the road home at all, and what it pays. Set by the
+## run before it opens the screen, because whether a return may be taken is a
+## fact about the *run* - the host owns the ending, and a headless gate is never
+## held on a question.
+var extraction_offered: bool = false
+var extraction_marks: int = 0
+var _extract_button: Button = null
+
 ## The last road-home offer's figures, for a gate to read back.
 var last_homecoming: Dictionary = {}
 
@@ -182,8 +193,60 @@ func _open_roads(segment_index: int) -> void:
 		_add_option(offer["road"] as RoadData, offer["difficulty"] as RoadDifficultyData)
 
 	_add_last_scar_offer()
+	_add_extraction_offer()
 	_add_reroll()
 	panel.visible = true
+
+
+## **Turn for home, from the fork** (owner, 2026-09-16).
+##
+## Expedition persistence was recorded as "the road is put down at a crossroad
+## and picked up next time", and `Run._open_crossroad` prices momentum as "the
+## momentum a player refused to bank" - but the only door to banking was the
+## homecoming pass at an act's end. So a player passed fork after fork paying for
+## a decision that was never on the table.
+##
+## The same ending as the pass, read off the same arithmetic, so the fork and the
+## act end cannot disagree about what a return is worth. Whether it is offered at
+## all is the *run's* call - see `Run.extraction_open` - because the host owns
+## the ending and a headless gate must never be held on a question.
+func _add_extraction_offer() -> void:
+	_extract_button = null
+	if not extraction_offered:
+		return
+	var card := PanelContainer.new()
+	card.theme_type_variation = &"InnerPanel"
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	card.add_child(box)
+	_extract_button = Button.new()
+	_extract_button.text = "TURN FOR HOME  ·  bank this front and keep %d Marks" % extraction_marks
+	_extract_button.custom_minimum_size = Vector2(0.0, 48.0)
+	_extract_button.add_theme_font_size_override("font_size", 18)
+	_extract_button.add_theme_color_override("font_color", Color("9fd7a8"))
+	IconKit.on_button(_extract_button, "marks", 24)
+	_extract_button.pressed.connect(_choose_extraction)
+	box.add_child(_extract_button)
+	var note := Label.new()
+	note.text = ("The wall, the towers and their damage are kept where they stand. "
+		+ "Come back to this act rather than to the first.")
+	note.add_theme_font_size_override("font_size", 14)
+	note.add_theme_color_override("font_color", Color("9a9384"))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(note)
+	options_box.add_child(card)
+
+
+## Taken once: the run is ending, and a second press while it settles would
+## settle it twice. Same guard the road choices use.
+func _choose_extraction() -> void:
+	if _resolving:
+		return
+	_resolving = true
+	if _extract_button != null:
+		_extract_button.disabled = true
+	panel.visible = false
+	extraction_chosen.emit()
 
 
 ## Sigil rank 2's redraw, offered only while the run still holds a charge.
@@ -345,6 +408,14 @@ func draw_offers(segment_index: int) -> Array[Dictionary]:
 ## Relic Hunt resolves only after its danger has been survived. Present its
 ## authored regional reward before the next road (or the act boss) can begin.
 func open_relic_reward(followup_segment: int = -1) -> void:
+	# **A card with nothing on it is a dead end**, and a caller guarding is not
+	# the same as the screen being safe - `Run` checks the pool before calling,
+	# and the Guide's own shot tool did not, which is how a "RELIC HUNT COMPLETE"
+	# with no options underneath it reached the owner. The refusal lives here so
+	# there is one of it.
+	if RunState.pending_road_relics.is_empty():
+		push_warning("crossroad: asked to offer relics with none pending")
+		return
 	_road_row = null
 	_relic_followup_segment = followup_segment
 	_buttons.clear()
@@ -380,6 +451,11 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 ## second flow would be a second place for the co-op handshake to be subtly
 ## wrong. The card leads with the **cost**, because the cost is the decision.
 func open_omen_choice() -> void:
+	# The same refusal, for the same reason. `Run._offer_omens` will not open on
+	# fewer than three cards; this is what stops a second caller from doing so.
+	if RunState.pending_omens.is_empty():
+		push_warning("crossroad: asked to read portents with none pending")
+		return
 	_road_row = null
 	_relic_followup_segment = -1
 	_buttons.clear()

@@ -50,6 +50,9 @@ var _written: PackedStringArray = []
 ##     godot --path game res://tools/guide_shots.tscn -- --only=fishing,reel
 var _only: PackedStringArray = []
 
+## How many towers this run has put up, so each picture draws a different one.
+var _towers_built: int = 0
+
 
 func _asked_for() -> PackedStringArray:
 	for arg: String in OS.get_cmdline_user_args():
@@ -105,12 +108,17 @@ func _ready() -> void:
 	# in on, because the owner asked for the wells "zoomed in in game more" with
 	# the interaction showing, and any emplacement read across a whole
 	# battlefield is a speck.
+	# **Standing well below it, not beside it** (owner, 2026-09-16: a well must
+	# not be "blocked/faded by player positioned behind it"). An emplacement is
+	# the subject of these three, and a Warden a body's width away overlaps it;
+	# mostly below and a little to the side leaves the structure clear, and the
+	# gap between them is itself what the section is teaching.
 	await _made_subject_shot("towers", func() -> Vector2: return _build_some(false),
-		Vector2(104.0, 82.0), 1.0)
+		Vector2(24.0, 258.0), 1.0)
 	await _made_subject_shot("wells", func() -> Vector2: return _build_some(true),
-		Vector2(88.0, 70.0), 1.0)
+		Vector2(20.0, 246.0), 1.0)
 	await _made_subject_shot("traps", func() -> Vector2: return _place_trap(),
-		Vector2(78.0, 62.0), 1.0)
+		Vector2(18.0, 196.0), 1.0)
 	await _shot("town", func() -> void: run.switch_scope(GameDirector.Scope.TOWN))
 	await _shot("act_track", func() -> void: run.switch_scope(GameDirector.Scope.BEAST))
 	_copy("act_track", "glossary_a")
@@ -206,6 +214,13 @@ func _ready() -> void:
 	run.crossroad_ui.visible = false
 	RunState.pending_road_cards = []
 	await _shot("relics", func() -> void:
+		# **Rolled for real**, through `Journey`'s own documented seam - the same
+		# draw a completed road makes, with its eligibility and duplicate rules.
+		# Opened with an empty pool the card is a title over nothing, which is
+		# what the owner was shown.
+		if run.journey != null:
+			RunState.pending_road_relics = run.journey.regional_relic_choices_for_test(
+				RunState.act)
 		run.crossroad_ui.visible = true
 		run.crossroad_ui.open_relic_reward())
 	run.crossroad_ui.visible = false
@@ -388,54 +403,140 @@ func _ready() -> void:
 
 ## A couple of towers on legal ground near the town, so the picture shows a
 ## defence rather than a field.
-## Builds a couple of towers and **returns where the first one stands**, so the
+## Builds a few emplacements and **returns where the first one stands**, so the
 ## picture can be framed on it rather than on wherever the hero happened to be.
+##
+## **Three towers, three different towers, in three different places** (owner,
+## 2026-09-16). The first cut drew one kind and built three of it, and before
+## that it took whatever sorted first - so every tower picture in the Guide was
+## the same electric spire, three times over.
+##
+## Drawn without replacement from what the account has unlocked, on anchors
+## shuffled out of a band rather than taken in scan order, all on a seeded stream
+## keyed by how many pictures have built already: the board varies between
+## sections and the same run still produces the same board twice.
 func _build_some(well: bool) -> Vector2:
 	var field: Battlefield = run.battlefield
-	var data: TowerData = null
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("guide-build:%d" % _towers_built)
+	_towers_built += 1
+
+	var wanted: int = 1 if well else 3
+	var kinds: Array[TowerData] = []
 	if well:
-		data = ContentDB.tower("healing_well")
+		var draw: TowerData = ContentDB.tower("healing_well")
+		if draw != null:
+			kinds.append(draw)
 	else:
-		for id: Variant in ContentDB.towers:
-			var candidate: TowerData = ContentDB.towers[id] as TowerData
+		# **What the build sheet itself offers**, not every tower in the game.
+		# `ContentDB.towers` includes the ten *fusions*, which cannot be placed at
+		# all - they are made by fusing neighbours - so a random draw across the
+		# whole table refused every anchor with "nothing beside this tile fuses
+		# into Bastion" and the towers picture came out with no towers in it.
+		var roster: Array[TowerData] = []
+		for candidate: TowerData in ContentDB.unlocked_base_towers():
 			if candidate != null and not candidate.is_well():
-				data = candidate
+				roster.append(candidate)
+		# Sorted before it is shuffled: `ContentDB.towers` is a Dictionary and
+		# its order is not something to build a seeded draw on.
+		roster.sort_custom(func(a: TowerData, b: TowerData) -> bool: return a.id < b.id)
+		for _pick: int in wanted:
+			if roster.is_empty():
 				break
-	if data == null:
+			kinds.append(roster.pop_at(rng.randi_range(0, roster.size() - 1)))
+	if kinds.is_empty():
 		return Vector2.ZERO
-	var built: int = 0
+
+	var spots: Array[Vector2i] = _open_anchors(rng)
 	var first := Vector2.ZERO
+	var built: int = 0
+	for anchor: Vector2i in spots:
+		if built >= kinds.size():
+			break
+		if not field.placement_problem(anchor).is_empty():
+			continue
+		if not field.try_build(anchor, kinds[built]).is_empty():
+			continue
+		# **The frontmost one is the subject**, not the first one laid. The Warden
+		# stands below whatever this returns, and standing below the *first*
+		# tower put them on top of whichever of the others happened to be laid
+		# lower down the screen - which is the overlap the owner asked to be rid
+		# of. The lowest emplacement has nothing below it to stand on.
+		var here: Vector2 = BattleGrid.tile_to_world(anchor)
+		if built == 0 or here.y > first.y:
+			first = here
+		built += 1
+	if built < kinds.size():
+		var names: PackedStringArray = []
+		for kind: TowerData in kinds:
+			names.append(kind.id)
+		print("[guide-shots] built %d of %d (%s), gold %d"
+			% [built, kinds.size(), ", ".join(names), RunState.currency(RunState.GOLD)])
+	return first
+
+
+## **A cluster of legal ground, in a varied order.**
+##
+## Two cuts were wrong before this one. The scan used to walk rings out from the
+## exact middle and take the first anchors it met, so every picture put its
+## builds into the same tidy arc; shuffling the whole band instead scattered
+## three towers across a quarter of the map, and the picture then showed one of
+## them with the Warden standing on it.
+##
+## What a board actually looks like is a few emplacements **together**, so a
+## seeded legal anchor is taken as a centre and its neighbours are offered - then
+## shuffled among themselves, so which of them each tower takes still varies. The
+## cluster moves between pictures and the arrangement inside it moves with it.
+func _open_anchors(rng: RandomNumberGenerator) -> Array[Vector2i]:
+	var field: Battlefield = run.battlefield
 	var middle := Vector2i(BattleGrid.SIZE / 2, BattleGrid.SIZE / 2)
-	for ring: int in range(3, 12):
+	var legal: Array[Vector2i] = []
+	for ring: int in range(3, 16):
 		for dx: int in range(-ring, ring + 1):
 			for dy: int in [-ring, ring]:
-				for anchor: Vector2i in [middle + Vector2i(dx, dy), middle + Vector2i(dy, dx)]:
-					if built >= (1 if well else 3):
-						return first
-					if field.placement_problem(anchor).is_empty():
-						if field.try_build(anchor, data).is_empty():
-							built += 1
-							if built == 1:
-								first = BattleGrid.tile_to_world(anchor)
-	return first
+				for tile: Vector2i in [middle + Vector2i(dx, dy), middle + Vector2i(dy, dx)]:
+					if field.placement_problem(tile).is_empty():
+						legal.append(tile)
+	if legal.is_empty():
+		return legal
+	var centre: Vector2i = legal[rng.randi_range(0, legal.size() - 1)]
+	legal.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return Vector2(a - centre).length_squared() < Vector2(b - centre).length_squared())
+	var near: Array[Vector2i] = legal.slice(0, mini(9, legal.size()))
+	for index: int in range(near.size() - 1, 0, -1):
+		var other: int = rng.randi_range(0, index)
+		var swap_tile: Vector2i = near[index]
+		near[index] = near[other]
+		near[other] = swap_tile
+	# The rest stay on the end as a fallback: a cluster that turns out to be
+	# fully occupied must not leave a picture with nothing built in it.
+	near.append_array(legal.slice(mini(9, legal.size())))
+	return near
 
 
 ## Lays a trap and **returns the tile it went on**, for the same reason.
 func _place_trap() -> Vector2:
 	var field: Battlefield = run.battlefield
-	var data: TrapData = null
+	# The trap varies for the same reason the towers do.
+	var kinds: Array[TrapData] = []
 	for id: Variant in ContentDB.traps:
-		data = ContentDB.traps[id] as TrapData
-		if data != null:
-			break
+		var candidate: TrapData = ContentDB.traps[id] as TrapData
+		if candidate != null:
+			kinds.append(candidate)
+	kinds.sort_custom(func(a: TrapData, b: TrapData) -> bool: return a.id < b.id)
+	var data: TrapData = null
+	if not kinds.is_empty():
+		var pick := RandomNumberGenerator.new()
+		pick.seed = hash("guide-trap-kind:%d" % _towers_built)
+		data = kinds[pick.randi_range(0, kinds.size() - 1)]
 	if data == null:
 		return Vector2.ZERO
-	var middle := Vector2i(BattleGrid.SIZE / 2, BattleGrid.SIZE / 2)
-	for ring: int in range(3, 12):
-		for dx: int in range(-ring, ring + 1):
-			for tile: Vector2i in [middle + Vector2i(dx, -ring), middle + Vector2i(dx, ring)]:
-				if field.try_place_trap(tile, data).is_empty():
-					return BattleGrid.tile_to_world(tile)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("guide-trap:%d" % _towers_built)
+	_towers_built += 1
+	for tile: Vector2i in _open_anchors(rng):
+		if field.try_place_trap(tile, data).is_empty():
+			return BattleGrid.tile_to_world(tile)
 	return Vector2.ZERO
 
 

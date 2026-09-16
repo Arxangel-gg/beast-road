@@ -68,6 +68,7 @@ func _ready() -> void:
 	beast.visible = false
 
 	EventBus.crossroad_reached.connect(_on_crossroad_reached)
+	crossroad_ui.extraction_chosen.connect(_on_extraction_chosen)
 	EventBus.act_boss_due.connect(_on_act_boss_due)
 	# **A guest's field is up: ask for the world** (the welcome, 2026-09-14). A
 	# fresh guest is told an empty one; a guest back after a drop is told the
@@ -719,6 +720,19 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 ## Whether the pass behind the party is offered: for real, on the host, from
 ## `HOMECOMING_FROM_ACT`. A guest is told the outcome rather than shown the
 ## card, because the run is one shared thing and the host's to end.
+## Whether this fork offers the road home.
+##
+## The host's call, never a guest's, and never headless - the same three reasons
+## `_homecoming_open` gives, because it is the same decision at a different
+## moment. **And never on the first fork of a run**: banking a front nobody has
+## built yet is a trip to the menu for nothing, and `HOMECOMING_FROM_ACT` does
+## not stop it on its own because Act I opens with one.
+func extraction_open() -> bool:
+	return ask_homecoming and not Coop.is_guest() and crossroad_ui != null \
+		and RunState.act >= Balance.HOMECOMING_FROM_ACT \
+		and RunState.momentum > 0.0
+
+
 func _homecoming_open(act: int) -> bool:
 	return ask_homecoming and not Coop.is_guest() and crossroad_ui != null \
 		and act >= Balance.HOMECOMING_FROM_ACT
@@ -796,6 +810,14 @@ func _offer_omens() -> void:
 var _pending_crossroad: int = -1
 
 
+## **The party put the road down at a fork.** The same ending the pass gives -
+## the front banked from the field that is still standing, the run settled as a
+## return - so there is one definition of what turning for home means.
+func _on_extraction_chosen() -> void:
+	_locked = false
+	GameDirector.return_home()
+
+
 func _on_crossroad_reached(segment_index: int) -> void:
 	# The fork is the host's to declare, even though both machines walk the same
 	# road and both journeys notice the boundary.
@@ -820,6 +842,11 @@ func _open_crossroad(segment_index: int) -> void:
 	# The modal is part of safe planning time, not combat telemetry.
 	RunState.set_phase(RunState.Phase.PREPARATION)
 	battlefield.suspend()
+	# **The road home is offered at the fork too** (owner, 2026-09-16). The
+	# comment below prices momentum as what a player refused to bank, and until
+	# now the only door to banking was the pass at an act's end.
+	crossroad_ui.extraction_offered = extraction_open()
+	crossroad_ui.extraction_marks = homecoming_marks(RunState.act, true)
 	crossroad_ui.open(segment_index)
 	# **A fork passed without banking pays a little more of what the road is
 	# hiding.** Raised here rather than when the fork is *answered*, because
