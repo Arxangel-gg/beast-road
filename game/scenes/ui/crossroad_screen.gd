@@ -230,8 +230,11 @@ func _add_extraction_offer() -> void:
 	card.add_child(box)
 	_extract_button = Button.new()
 	_extract_button.text = "TURN FOR HOME  ·  bank this front and keep %d Marks" % extraction_marks
-	_extract_button.custom_minimum_size = Vector2(0.0, 48.0)
-	_extract_button.add_theme_font_size_override("font_size", 18)
+	# **Weighted like the decision it is.** It ends the run: at the size of a
+	# footnote it read as one, under two road cards that each fill a third of
+	# the screen.
+	_extract_button.custom_minimum_size = Vector2(0.0, 62.0)
+	_extract_button.add_theme_font_size_override("font_size", 21)
 	_extract_button.add_theme_color_override("font_color", Color("9fd7a8"))
 	IconKit.on_button(_extract_button, "marks", 24)
 	_extract_button.pressed.connect(_choose_extraction)
@@ -239,7 +242,7 @@ func _add_extraction_offer() -> void:
 	var note := Label.new()
 	note.text = ("The wall, the towers and their damage are kept where they stand. "
 		+ "Come back to this act rather than to the first.")
-	note.add_theme_font_size_override("font_size", 14)
+	note.add_theme_font_size_override("font_size", 16)
 	note.add_theme_color_override("font_color", Color("9a9384"))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(note)

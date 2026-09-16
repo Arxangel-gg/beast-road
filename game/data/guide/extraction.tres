@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "extraction"
+display_name = "Turning for home"
+title = "Turning for home"
+category = "The Road"
+order = 14
+image = "res://art/guide/extraction.png"
+body = "A road does not have to be finished in one sitting. At any fork past the first, the party may turn for home instead of choosing a way on: the run ends as a return rather than a fall, the Marks are paid in full, and the front is banked exactly as it stands — the wall, every tower, its level, its path and how badly it is damaged.
+
+Next time, the Hold offers to resume that front rather than starting again at the first act. Everything that lives and grows is laid fresh: the wildlife, the foliage, the weather, whatever was dropped on the ground. The road is alive again; only what you built is where you left it.
+
+A fortification comes back as hurt as it was left. Mending it is the Quartermaster's business, not the road's — leaving the moment anything is scratched would make attrition meaningless.
+
+Pushing past a fork without banking builds momentum, which pays a little more of what the road is hiding: more from every kill and a faster trickle. It buys nothing that reaches a fight. That is the whole trade — bank a front and keep it, or walk on and be paid for the risk.
+
+A wipe never clears the front. Everything before your last extraction is kept; everything since it is what you lose."

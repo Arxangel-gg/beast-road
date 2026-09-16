@@ -208,6 +208,17 @@ func _ready() -> void:
 	# --- The screens ------------------------------------------------------------------
 	await _shot("crossroads", func() -> void: run.crossroad_ui.open(1))
 	run.crossroad_ui.visible = false
+	# **Turning for home, at a fork** (owner, 2026-09-16: extraction at a
+	# crossroad needs its own Guide entry and picture). The card is only on the
+	# panel when the run says it may be, so the run is told to offer it - the
+	# same door `Run._open_crossroad` opens it through.
+	await _shot("extraction", func() -> void:
+		run.crossroad_ui.extraction_offered = true
+		run.crossroad_ui.extraction_marks = Run.homecoming_marks(RunState.act, true)
+		run.crossroad_ui.visible = true
+		run.crossroad_ui.open(2))
+	run.crossroad_ui.extraction_offered = false
+	run.crossroad_ui.visible = false
 	await _shot("cards", func() -> void:
 		run.crossroad_ui.visible = true
 		run.call("_offer_road_cards"))

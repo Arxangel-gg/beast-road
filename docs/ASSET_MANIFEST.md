@@ -3068,6 +3068,7 @@ in step with the screens rather than leaving fifteen stale copies.
 | `fog.png` | 1280×720 | O | `#2E3A33` |
 | `minimap.png` | 1280×720 | O | `#2E3A33` |
 | `farming.png` | 1280×720 | O | `#2E3A33` |
+| `extraction.png` | 1280×720 | O | `#2E3A33` |
 | `tower_paths.png` | 1280×720 | O | `#2E3A33` |
 | `trap_levels.png` | 1280×720 | O | `#2E3A33` |
 | `spirit_upkeep.png` | 1280×720 | O | `#2E3A33` |
