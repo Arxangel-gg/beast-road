@@ -635,6 +635,10 @@ func _finish(result: Dictionary) -> void:
 		hero.set_active(false)
 	if EventBus.enemy_died.is_connected(_on_enemy_died):
 		EventBus.enemy_died.disconnect(_on_enemy_died)
+	# Whoever held the line inside the arena is going away with it, so this clear
+	# is unconditional - it takes the line rather than asking for it.
+	EventBus.claim_prompt(&"rift_arena", "x")
+	EventBus.claim_prompt(&"rift_arena", "")
 	EventBus.interact_prompt.emit("", "")
 	var reward: Dictionary = _build_rift_reward(result)
 	_clear_enemies()

@@ -1235,8 +1235,19 @@ func _holding(angler: Node2D) -> bool:
 	return source != null and source.held(HeroInput.HOLD_INTERACT)
 
 
+## The name this system speaks on the shared prompt line under. `fishing_prompt`
+## is a different signal from `interact_prompt` and feeds the same label, so it
+## is the same line and the same arbitration.
+const PROMPT_OWNER: StringName = &"fishing"
+
+
 func _set_prompt(text: String, button: String) -> void:
-	if text == _prompt and button == _prompt_button:
+	# Deduped only while this system still holds the line - see
+	# `EventBus.claim_prompt`.
+	if text == _prompt and button == _prompt_button \
+			and EventBus.prompt_owner() == PROMPT_OWNER:
+		return
+	if not EventBus.claim_prompt(PROMPT_OWNER, text):
 		return
 	_prompt = text
 	_prompt_button = button

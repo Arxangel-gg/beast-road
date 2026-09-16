@@ -96,13 +96,21 @@ func _ready() -> void:
 	# The one picture the card belongs in stands it back up itself - `_settle`
 	# takes it down before every shot, which is what keeps it out of the rest.
 	await _shot("preparation", func() -> void:
-		GameDirector.set_build_mode(true); _show_preparation_card(true))
+		_apt_post("preparation")
+		GameDirector.set_build_mode(true)
+		_show_preparation_card(true),
+		func() -> void: _apt_post("preparation"))
 	GameDirector.set_build_mode(false)
-	await _shot("towers", func() -> void: _build_some(false); _zoom(1.4))
-	# Zoomed: the owner asked for the wells "zoomed in in game more" with the
-	# interaction showing, and a well read across a whole battlefield is a speck.
-	await _shot("wells", func() -> void: _build_some(true); _zoom(1.7))
-	await _shot("traps", func() -> void: _place_trap(); _zoom(1.5))
+	# Stood off and looked at, like everything else with a subject - and closed
+	# in on, because the owner asked for the wells "zoomed in in game more" with
+	# the interaction showing, and any emplacement read across a whole
+	# battlefield is a speck.
+	await _made_subject_shot("towers", func() -> Vector2: return _build_some(false),
+		Vector2(104.0, 82.0), 1.0)
+	await _made_subject_shot("wells", func() -> Vector2: return _build_some(true),
+		Vector2(88.0, 70.0), 1.0)
+	await _made_subject_shot("traps", func() -> Vector2: return _place_trap(),
+		Vector2(78.0, 62.0), 1.0)
 	await _shot("town", func() -> void: run.switch_scope(GameDirector.Scope.TOWN))
 	await _shot("act_track", func() -> void: run.switch_scope(GameDirector.Scope.BEAST))
 	_copy("act_track", "glossary_a")
@@ -135,8 +143,10 @@ func _ready() -> void:
 	# water however dry the ground under them is.
 	await _water_shot("reel", bank, Fishing.State.REELING, 1.0, middle)
 	await _shot("swimming", func() -> void: _stand_at(pond))
-	await _shot("farming", func() -> void: _stand_at(_wild_crop() + Vector2(64.0, 36.0)))
-	await _shot("camps", func() -> void: _stand_at(_camp_centre()))
+	await _subject_shot("farming", _wild_crop(), Vector2(70.0, 50.0), 1.0)
+	# Further off than the rest: a camp is a place rather than an object, and
+	# standing on top of one photographs a tent.
+	await _subject_shot("camps", _camp_centre(), Vector2(150.0, 130.0), 0.85)
 	# **A real sign, stood at**, and taken here with the other field pictures
 	# rather than down among the copies: by the time the rift shots have run the
 	# hero has been put back beside the town, and the first cut photographed the
@@ -146,31 +156,44 @@ func _ready() -> void:
 	# taken in a run whose act had quietly moved - which is how the act-boss
 	# photograph came out holding an Act II boss under a HUD reading Act I.
 	var act_was: int = RunState.act
-	await _shot("mythic_trail", func() -> void: _stand_at_a_trail_sign(run))
+	await _made_subject_shot("mythic_trail",
+		func() -> Vector2: return _stand_at_a_trail_sign(run),
+		Vector2(84.0, 58.0), 1.0)
 	RunState.act = act_was
-	await _shot("forks", func() -> void: _stand_at(_barrier_at()))
-	_stand_at(Vector2.ZERO)
+	await _subject_shot("forks", _barrier_at(), Vector2(126.0, 104.0), 0.9)
 
 	# --- The fight ---------------------------------------------------------------------------
 	await _shot("party_events", func() -> void:
-		EventBus.party_event_prompt.emit(0, 0, "Ren", 20.0, false))
+		_apt_post("party_events")
+		EventBus.party_event_prompt.emit(0, 0, "Ren", 20.0, false),
+		func() -> void: _apt_post("party_events"))
 	EventBus.party_event_prompt_closed.emit()
-	await _shot("spirits", func() -> void: _bond_a_spirit())
+	# The spirit is the subject, so it is what gets looked at once it is called.
+	await _shot("spirits", func() -> void:
+		_apt_post("spirits"); _bond_a_spirit(),
+		func() -> void:
+			var hero: Hero = run.battlefield.hero
+			if hero != null and hero.spirit != null and is_instance_valid(hero.spirit):
+				_look_at((hero.spirit as Node2D).global_position))
 	_copy("spirits", "summons")
 	run.call("_on_ride_on_requested")
-	for _f: int in 300:
-		await get_tree().process_frame
-	await _shot("waves", func() -> void: pass)
+	await _let_a_wave_arrive()
+	await _shot("waves", func() -> void: _apt_combat_post("waves"),
+		func() -> void: _apt_combat_post("waves"))
 	_copy("waves", "hud")
 	_copy("waves", "loop")
 	_copy("waves", "bow")
 	_crop("waves", "spells", Rect2(0.25, 0.8, 0.5, 0.2))
 	_crop("waves", "currencies", Rect2(0.0, 0.0, 0.42, 0.22))
 	await _shot("healing", func() -> void:
+		_apt_combat_post("healing")
 		if field.hero != null and field.hero.health != null:
 			field.hero.health.take_damage(field.hero.health.max_hp * 0.45,
-				field.hero.global_position + Vector2.LEFT * 30.0))
-	await _shot("night", func() -> void: DayNight.call("_apply", 0.78))
+				field.hero.global_position + Vector2.LEFT * 30.0),
+		func() -> void: _apt_combat_post("healing"))
+	await _shot("night", func() -> void:
+		_apt_combat_post("night"); DayNight.call("_apply", 0.78),
+		func() -> void: _apt_combat_post("night"))
 	_copy("night", "glossary_c")
 	DayNight.call("_apply", 0.18)
 
@@ -301,11 +324,12 @@ func _ready() -> void:
 	# **Something that has had enough of being hunted** (owner brief,
 	# 2026-09-13: over-farming a species sends a savage of it after you). It was
 	# a photograph of a camp, which is a different thing entirely.
-	await _shot("hunted", func() -> void: _send_a_hunter(); _zoom(1.5))
-	_zoom(0.0)
+	await _made_subject_shot("hunted", func() -> Vector2: return _send_a_hunter(),
+		Vector2(-120.0, 90.0), 1.0)
 	# **A nest picture with a nest in it** (owner: "Nests and eggs not visible in
 	# screenshot image"). It was a copy of the trail-sign photograph.
-	await _shot("nesting", func() -> void: _lay_a_nest(); _zoom(1.8))
+	await _made_subject_shot("nesting", func() -> Vector2: return _lay_a_nest(),
+		Vector2(74.0, 54.0), 1.0)
 	# **The fifth attribute is read on the Mansion's hero page**, which is where
 	# the section says to go - the picture was of the town square.
 	await _shot("attributes", func() -> void: _open_mansion(0))
@@ -328,10 +352,8 @@ func _ready() -> void:
 	# **A seam worth stopping at**, for the two sections about the crafts. They
 	# were copies of a tower picture and of the resource counters, neither of
 	# which has a gather node anywhere in it.
-	await _shot("gathering", func() -> void:
-		_stand_at(_a_gather_node() + Vector2(48.0, 34.0)); _zoom(1.8))
+	await _subject_shot("gathering", _a_gather_node(), Vector2(56.0, 40.0), 1.0)
 	_crop("gathering", "crafts", Rect2(0.2, 0.15, 0.6, 0.7))
-	_zoom(0.0)
 	# **A bow with an arrow in the air.** It was a photograph of an ordinary
 	# wave, because the hero starts a run melee-only and nothing in this tool
 	# had ever put a bow in their hands.
@@ -366,7 +388,9 @@ func _ready() -> void:
 
 ## A couple of towers on legal ground near the town, so the picture shows a
 ## defence rather than a field.
-func _build_some(well: bool) -> void:
+## Builds a couple of towers and **returns where the first one stands**, so the
+## picture can be framed on it rather than on wherever the hero happened to be.
+func _build_some(well: bool) -> Vector2:
 	var field: Battlefield = run.battlefield
 	var data: TowerData = null
 	if well:
@@ -378,23 +402,26 @@ func _build_some(well: bool) -> void:
 				data = candidate
 				break
 	if data == null:
-		return
+		return Vector2.ZERO
 	var built: int = 0
+	var first := Vector2.ZERO
 	var middle := Vector2i(BattleGrid.SIZE / 2, BattleGrid.SIZE / 2)
 	for ring: int in range(3, 12):
 		for dx: int in range(-ring, ring + 1):
 			for dy: int in [-ring, ring]:
 				for anchor: Vector2i in [middle + Vector2i(dx, dy), middle + Vector2i(dy, dx)]:
 					if built >= (1 if well else 3):
-						return
+						return first
 					if field.placement_problem(anchor).is_empty():
 						if field.try_build(anchor, data).is_empty():
 							built += 1
 							if built == 1:
-								_stand_at(BattleGrid.tile_to_world(anchor) + Vector2(60.0, 40.0))
+								first = BattleGrid.tile_to_world(anchor)
+	return first
 
 
-func _place_trap() -> void:
+## Lays a trap and **returns the tile it went on**, for the same reason.
+func _place_trap() -> Vector2:
 	var field: Battlefield = run.battlefield
 	var data: TrapData = null
 	for id: Variant in ContentDB.traps:
@@ -402,14 +429,14 @@ func _place_trap() -> void:
 		if data != null:
 			break
 	if data == null:
-		return
+		return Vector2.ZERO
 	var middle := Vector2i(BattleGrid.SIZE / 2, BattleGrid.SIZE / 2)
 	for ring: int in range(3, 12):
 		for dx: int in range(-ring, ring + 1):
 			for tile: Vector2i in [middle + Vector2i(dx, -ring), middle + Vector2i(dx, ring)]:
 				if field.try_place_trap(tile, data).is_empty():
-					_stand_at(BattleGrid.tile_to_world(tile) + Vector2(50.0, 30.0))
-					return
+					return BattleGrid.tile_to_world(tile)
+	return Vector2.ZERO
 
 
 func _stand_at(at: Vector2) -> void:
@@ -579,23 +606,26 @@ func _bond_a_spirit() -> void:
 ## Laid through `WildlifeNests.lay` - the same door the ecology lays one through
 ## - rather than by dropping a sprite, so what is photographed is a real nest
 ## with a real clutch in it and not a prop that looks like one.
-func _lay_a_nest() -> void:
+func _lay_a_nest() -> Vector2:
 	var nests: WildlifeNests = run.battlefield.nests()
 	var hero: Hero = run.battlefield.hero
 	if nests == null or hero == null:
-		return
+		return Vector2.ZERO
 	var layer: WildlifeData = null
 	for kind: WildlifeData in ContentDB.wildlife():
 		if kind != null and kind.lays_eggs:
 			layer = kind
 			break
 	if layer == null:
-		return
+		print("[guide-shots] warning: no laying species to leave a clutch")
+		return Vector2.ZERO
 	var clutch: Array[Dictionary] = []
 	for _egg: int in 3:
 		clutch.append({"stage": WildlifeFamilies.Stage.BABY,
 			"rarity": int(layer.rarity), "shiny": false})
-	nests.lay(layer, hero.global_position + Vector2(60.0, 30.0), clutch, 0)
+	var at: Vector2 = hero.global_position + Vector2(60.0, 30.0)
+	nests.lay(layer, at, clutch, 0)
+	return at
 
 
 ## **Somebody beside you, and hurt**, for the picture about sharing a catch.
@@ -645,8 +675,27 @@ func _a_gather_node() -> Vector2:
 		return Vector2.ZERO
 	var dug: Array = nodes.get("_nodes") as Array
 	if dug == null or dug.is_empty():
+		# Said out loud: a picture of the crafts with no seam in it is the fault
+		# this whole pass is about, and silence is how it shipped the first time.
+		print("[guide-shots] warning: no gather nodes on the field to photograph")
 		return Vector2.ZERO
-	return dug[0].get("at", Vector2.ZERO) as Vector2
+	# **The one furthest from any edge of the map**, not the first one dug and not
+	# the one nearest the middle either. Seams sit on the outskirts by design, so
+	# "nearest the centre" still picks one against the western border and a third
+	# of that photograph is the black beyond the edge of the world. What the
+	# frame wants is clearance on every side, which is a different measurement.
+	var best := Vector2.ZERO
+	var roomiest: float = -INF
+	for entry: Dictionary in dug:
+		var at: Vector2 = entry.get("at", Vector2.ZERO) as Vector2
+		var room: float = minf(BattleGrid.HALF_EXTENT - absf(at.x),
+			BattleGrid.HALF_EXTENT - absf(at.y))
+		if room > roomiest:
+			roomiest = room
+			best = at
+	print("[guide-shots] gather nodes: %d, framing the one at %s (%.0f from the edge)"
+		% [dug.size(), str(best), roomiest])
+	return best
 
 
 ## The Mansion, on one of its three pages.
@@ -654,6 +703,7 @@ func _a_gather_node() -> Vector2:
 ## `open` resets the page whenever the plot changes, so the page is set after it
 ## and the sheet redrawn - setting it first would be overwritten in silence.
 func _open_mansion(page: int, tree_filter: int = -1) -> void:
+	_park_clear()
 	RunState.building_tiers["sanctum"] = maxi(RunState.building_tier("sanctum"), 2)
 	RunState.hero_skill_points = maxi(RunState.hero_skill_points, 3)
 	RunState.hero_attribute_points = maxi(RunState.hero_attribute_points, 2)
@@ -743,6 +793,183 @@ func _hurt_the_defences() -> void:
 	RunState.gain_every_currency(6000)
 
 
+## **A picture of a thing standing on the field.**
+##
+## Stand a little off it, look at it, and look at it *again* six frames before
+## the shutter: `Hero.face`'s hold lapses, and `_look_at` computes the camera's
+## lean from where the rig has eased to - so aiming once in the setup is aiming
+## from the wrong place seventy frames later.
+func _subject_shot(id: String, at: Vector2, offset: Vector2, zoom: float) -> void:
+	await _shot(id, func() -> void:
+		_stand_at(at + offset)
+		_zoom(zoom)
+		_look_at(at),
+		func() -> void: _look_at(at))
+	_zoom(0.0)
+
+
+## The same, for a subject that does not exist until the picture makes it - a
+## tower to build, a trap to lay, a nest to leave, an animal to send.
+##
+## `make` returns where the thing ended up, which is why every one of those
+## helpers now returns a position instead of standing the hero somewhere and
+## forgetting where.
+func _made_subject_shot(id: String, make: Callable, offset: Vector2, zoom: float) -> void:
+	var at: Array[Vector2] = [Vector2.ZERO]
+	await _shot(id, func() -> void:
+		at[0] = make.call() as Vector2
+		_stand_at(at[0] + offset)
+		_zoom(zoom)
+		_look_at(at[0]),
+		func() -> void: _look_at(at[0]))
+	_zoom(0.0)
+
+
+## **Somewhere a player would actually be standing, looking where they would
+## actually be looking.**
+##
+## The hero starts on the town square, so every picture with no subject of its
+## own was taken there - the same spot several times over, and not a spot anybody
+## defends from. This puts the Warden out on one of the four roads, a third to
+## two thirds of the way to the gate, facing the way the road comes in.
+##
+## **Which road, how far along and the step either side are seeded by the
+## picture's own name**, so the set has the variety of somebody playing rather
+## than one pose repeated - and seeded rather than randomised, so the same run
+## produces the same set twice. Returns what the Warden is looking at, so a
+## caller with something better in mind can override it.
+func _apt_post(tag: String) -> Vector2:
+	var field: Battlefield = run.battlefield
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("guide-post:" + tag)
+	var route: PackedVector2Array = field.lane_path(rng.randi_range(0, Balance.LANE_COUNT - 1))
+	if route.size() < 3:
+		return Vector2.ZERO
+	# `lane_path` runs from the spawn to the town, so a lower index is further
+	# out - which is the way anything arrives from and the way to be looking.
+	var at: int = clampi(int(round(float(route.size() - 1) * rng.randf_range(0.34, 0.66))),
+		1, route.size() - 2)
+	var here: Vector2 = route[at]
+	var outward: Vector2 = (route[at - 1] - here).normalized()
+	_stand_at(here + Vector2(rng.randf_range(-44.0, 44.0), rng.randf_range(-34.0, 34.0)))
+	var look: Vector2 = here + outward * 340.0
+	_look_at(look)
+	return look
+
+
+## The same, but **where the fighting is**.
+##
+## A wave picture with no bodies in it is a picture of an empty road, and a
+## seeded verge is empty four times in five - the wave is on one lane and the
+## Warden was standing on another. This puts them a short walk off the middle of
+## whatever has arrived, looking at it; which side they stand on is seeded, so
+## the set still varies. It falls back to a road post only when nothing is out.
+func _apt_combat_post(tag: String) -> void:
+	var hero: Hero = run.battlefield.hero
+	if hero == null:
+		return
+	var busy: Vector2 = _where_the_wave_is()
+	if busy.x >= INF:
+		_look_at(_apt_post(tag))
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("guide-combat:" + tag)
+	_stand_at(busy + Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(160.0, 230.0))
+	_look_at(busy)
+
+
+## **Waits until there is actually a wave on the road.**
+##
+## Riding on starts the clock rather than the wave, and the first bodies then
+## have to walk in from the spawn - so a fixed three hundred frames was a guess,
+## and it was the wrong one: the wave picture had **no enemies in it at all**,
+## which is the one thing the section is about. It waits for bodies to arrive and
+## nudges the director once if the road stays empty, rather than counting frames
+## and hoping.
+func _let_a_wave_arrive() -> void:
+	var director: WaveDirector = run.battlefield.wave_director
+	for frame: int in 1200:
+		if _where_the_wave_is().x < INF:
+			# A moment more, so the front of it is properly on screen rather than
+			# a single body one step off the spawn.
+			for _f: int in 90:
+				await get_tree().process_frame
+			return
+		# **Asked again until it takes.** `Run._on_ride_on_requested` spends a
+		# *breather* when one is open and returns without starting anything, so a
+		# single call left the run sitting in Preparation - measured: phase=0,
+		# prep=true, the director not deploying, and the wave picture with no
+		# bodies in it at all. Asked once every half second until the phase
+		# actually leaves Preparation, which is what a player pressing the button
+		# would do.
+		if RunState.is_preparation() and frame % 30 == 0:
+			run.call("_on_ride_on_requested")
+		await get_tree().process_frame
+	print("[guide-shots] warning: no wave arrived to photograph (phase %d, prep %s)"
+		% [RunState.phase, str(RunState.is_preparation())])
+
+
+## The middle of what is on the road, or `INF` if nothing is.
+##
+## Camp bodies are skipped: they stand in their own clearing on the outskirts and
+## never take a route, so averaging them in drags the frame off the wave and out
+## into the trees - the same shape as camp lords drifting the road's own purse.
+func _where_the_wave_is() -> Vector2:
+	var total := Vector2.ZERO
+	var count: int = 0
+	for node: Node in get_tree().get_nodes_in_group(Enemy.GROUP):
+		var body := node as Enemy
+		if body == null or not is_instance_valid(body) or body.is_queued_for_deletion():
+			continue
+		if body.is_in_group(Enemy.CAMP_GROUP):
+			continue
+		total += body.global_position
+		count += 1
+	if count == 0:
+		return Vector2.ONE * INF
+	return total / float(count)
+
+
+## **Neutral framing**: the cursor on the Warden, so the rig's lean is zero.
+##
+## The default for any battlefield picture that has no particular subject. A
+## picture that *has* one moves the cursor onto it afterwards, which is what the
+## lean is for.
+## What each system that shares `EventBus.interact_prompt` currently believes it
+## is showing. Five of them emit on that one signal and each caches its own last
+## value, so a system that clears can wipe another's live prompt and never
+## re-assert it - measured rather than assumed.
+func _report_prompt(tag: String) -> void:
+	var parts: PackedStringArray = []
+	for pair: Array in [
+			["gather", run.battlefield.gathering()],
+			["farm", run.battlefield.farming()],
+			["gates", run.battlefield.rift_gates()],
+			["pond", run.battlefield.ponds()]] as Array[Array]:
+		var owner: Object = pair[1] as Object
+		if owner == null:
+			continue
+		parts.append("%s=%s" % [String(pair[0]), String(owner.get("_prompt"))])
+	print("[guide-shots] prompt(%s): %s" % [tag, ", ".join(parts)])
+
+
+func _park_on_hero() -> void:
+	var hero: Hero = run.battlefield.hero if run.battlefield != null else null
+	if hero != null:
+		_look_at(hero.global_position)
+
+
+## **Clear of every control**, for a picture of a screen.
+##
+## The cursor moves no camera over a menu, but whatever sits under it wears its
+## hover state - so a photograph of the Ledger came out with one of its buttons
+## looking pressed by nobody. The dark left margin is outside every panel this
+## game centres.
+func _park_clear() -> void:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	Input.warp_mouse(Vector2(view.x * 0.02, view.y * 0.5))
+
+
 ## **The Warden looks at the subject, and so does the camera.**
 ##
 ## Owner, 2026-09-16: "have the player aim towards whatever it is focusing on for
@@ -788,9 +1015,12 @@ func _look_at(at: Vector2) -> void:
 ## The arrival card comes down and the health bar stays: the bar is what a boss
 ## fight looks like, the card is what the second before one looks like.
 func _face_the_boss() -> void:
-	var boss: Node2D = run.boss_director.get("_active") as Node2D if run.boss_director != null else null
+	var standing: Variant = run.boss_director.get("_active") if run.boss_director != null else null
+	if standing == null or not is_instance_valid(standing):
+		return
+	var boss := standing as Node2D
 	var hero: Hero = run.battlefield.hero
-	if boss == null or not is_instance_valid(boss) or hero == null:
+	if boss == null or hero == null:
 		return
 
 	var art: Sprite2D = null
@@ -864,15 +1094,51 @@ func _report_light(tag: String) -> void:
 
 
 ## A species that has had enough of being hunted, for the picture about it.
-func _send_a_hunter() -> void:
+## **A savage put beside the Warden, not on the horizon.**
+##
+## `_send_a_savage` places one at the edge of the field and sets it hunting,
+## which is right for the game and useless for a photograph - by the time the
+## shutter opens it is still a speck several screens away. It is moved onto the
+## Warden's own ground afterwards, which is the state the section is about:
+## something has had enough of being hunted and has found you.
+func _send_a_hunter() -> Vector2:
 	var animals: Wildlife = run.battlefield.get("_wildlife") as Wildlife
-	if animals == null:
-		return
+	var hero: Hero = run.battlefield.hero
+	if animals == null or hero == null:
+		return Vector2.ZERO
+	# An animal is a record in `_living` carrying its own sprite - there is no
+	# node group to search, which is why the roster is read rather than the tree.
+	var living: Array = animals.get("_living") as Array
+	var before: int = living.size() if living != null else 0
+	# **Something that reads as a threat.** The first species in the roster is
+	# whatever happens to sort first - the picture came out with a Warden being
+	# menaced by a squirrel. A predator with real damage is what the section is
+	# about, and it is chosen by what the species *declares* rather than by id.
+	var hunter: WildlifeData = null
 	for kind: WildlifeData in ContentDB.wildlife():
 		if kind == null or kind.mythic:
 			continue
-		animals.call("_send_a_savage", kind)
-		return
+		if kind.temperament != WildlifeData.Temperament.PREDATORY:
+			continue
+		if hunter == null or kind.damage > hunter.damage:
+			hunter = kind
+	if hunter == null:
+		for kind: WildlifeData in ContentDB.wildlife():
+			if kind != null and not kind.mythic:
+				hunter = kind
+				break
+	if hunter != null:
+		print("[guide-shots] hunted: %s" % hunter.id)
+		animals.call("_send_a_savage", hunter)
+	living = animals.get("_living") as Array
+	if living == null or living.size() <= before:
+		print("[guide-shots] warning: no savage arrived to photograph")
+		return hero.global_position
+	var at: Vector2 = hero.global_position + Vector2(150.0, -40.0)
+	var beast := (living[living.size() - 1] as Dictionary).get("sprite") as Node2D
+	if beast != null and is_instance_valid(beast):
+		beast.global_position = at
+	return at
 
 
 func _stock_the_stash() -> void:
@@ -887,6 +1153,7 @@ func _stock_the_stash() -> void:
 
 
 func _pick_tab(screen: Node, title: String) -> void:
+	_park_clear()
 	for node: Node in _walk(screen):
 		if node is TabContainer:
 			var tabs := node as TabContainer
@@ -900,6 +1167,7 @@ func _pick_tab(screen: Node, title: String) -> void:
 
 
 func _open_settings(tab: String) -> void:
+	_park_clear()
 	var layer := CanvasLayer.new()
 	layer.name = "SettingsShot"
 	add_child(layer)
@@ -912,6 +1180,7 @@ func _open_settings(tab: String) -> void:
 
 
 func _open_coop() -> void:
+	_park_clear()
 	for node: Node in get_children():
 		if node.name == "SettingsShot":
 			node.queue_free()
@@ -936,6 +1205,7 @@ func _open_coop() -> void:
 ## A screen that can be built and opened needs no game state behind it, which is
 ## what makes these the ones worth converting first.
 func _screen_shot(maker: Callable, tag: String) -> void:
+	_park_clear()
 	for node: Node in get_children():
 		if node.name.ends_with("Shot"):
 			node.queue_free()
@@ -949,6 +1219,7 @@ func _screen_shot(maker: Callable, tag: String) -> void:
 
 
 func _open_hub() -> void:
+	_park_clear()
 	for node: Node in get_children():
 		if node.name == "CoopShot":
 			node.queue_free()
@@ -1082,6 +1353,18 @@ func _settle() -> void:
 			node.queue_free()
 	if run.battlefield != null and run.battlefield.is_suspended():
 		run.battlefield.resume()
+	# **The line comes out of the water.**
+	#
+	# `Fishing` takes it out when the angler *moves*, and it reads `own_speed` -
+	# which a teleport never raises. So walking the Warden to the next subject
+	# left a float sitting in a pond several screens away with the line drawn all
+	# the way to it, in every picture after the water ones.
+	var ponds: Fishing = run.battlefield.ponds() if run.battlefield != null else null
+	if ponds != null and ponds.is_fishing():
+		ponds.call("_abandon", "")
+	# **And the cursor.** See `_park_on_hero`: left where the desktop had it, it
+	# is an arbitrary shove in the frame of every battlefield picture.
+	_park_on_hero()
 	# **The party feed keeps what it was told.** Building three towers for the
 	# towers picture writes three "Red built ..." lines, and they then sat in the
 	# corner of every photograph taken after it.
@@ -1091,6 +1374,22 @@ func _settle() -> void:
 			line.queue_free()
 		feed.set("_lines", [] as Array[Label])
 	_show_preparation_card(false)
+	# **A summoned boss outlives its picture.** It keeps standing on the road and
+	# its name and health bar keep the top of the screen, so the boss shot was
+	# titling every photograph after it. Taken off the field rather than killed:
+	# a death runs the act-end cinematics, and this is a photograph session.
+	# **Held as a Variant until it is known to be alive.** `_active` keeps
+	# pointing at the body after it is freed, and casting a freed object is an
+	# error in itself - so the check has to come before the cast, and the
+	# director's own handle is cleared so no later settle sees it again.
+	var standing: Variant = run.boss_director.get("_active") if run.boss_director != null else null
+	if standing != null and is_instance_valid(standing):
+		(standing as Node).queue_free()
+		run.boss_director.set("_active", null)
+	if hud != null:
+		var bar: CanvasItem = hud.get("_boss_panel") as CanvasItem
+		if bar != null:
+			bar.visible = false
 	# **A wound outlives the picture that wanted it.** `Vfx` is an autoload and
 	# the vignette is its own layer, so the 45% the healing shot took off the
 	# hero tinted every screen photographed after it.
@@ -1149,8 +1448,8 @@ func _water_shot(id: String, bank: Vector2, want: int, zoom: float,
 	await _settle()
 	var own_hands: HeroInput = run.battlefield.hero.input
 	_zoom(zoom)
-	if await _fish_to(bank, want, aim_at):
-		await _shot_now(id)
+	if await _fish_to(bank, want, aim_at, id):
+		pass
 	else:
 		# A pond can be fished out and a picture is not worth failing a run over.
 		await _shot(id, func() -> void: _stand_at(bank); _zoom(zoom))
@@ -1217,7 +1516,8 @@ func _shot_now(id: String) -> void:
 ## goes to the nearest water instead of along the aim, which is the shortest
 ## throw there is; the charge is held until the reach it buys matches the
 ## distance to the aim, read off the same two constants `_let_fly` reads.
-func _fish_to(bank: Vector2, want: int, aim_at: Vector2 = Vector2.INF) -> bool:
+func _fish_to(bank: Vector2, want: int, aim_at: Vector2 = Vector2.INF,
+		shutter: String = "") -> bool:
 	var field: Battlefield = run.battlefield
 	var hero: Hero = field.hero
 	var ponds: Fishing = field.ponds()
@@ -1246,7 +1546,24 @@ func _fish_to(bank: Vector2, want: int, aim_at: Vector2 = Vector2.INF) -> bool:
 			hero.face((aim_at - hero.global_position).normalized())
 		hands.press = 0
 		hands.hold = 0
-		if here == want:
+		if here == want and want == Fishing.State.REELING:
+			# **Played, not merely entered.** The first frame of a reel is the
+			# marker wherever it happened to start; what teaches the minigame is
+			# the marker *inside the green*, which is the one thing it asks for.
+			# So it is played the way a player plays it - pull while the marker
+			# is under the band's middle, ease off above it - and the shutter
+			# waits until it is centred and the catch is visibly under way.
+			var tension: float = float(ponds.get("_tension"))
+			var band: float = float(ponds.get("_band_centre"))
+			var half: float = float(ponds.get("_band_half"))
+			if tension < band:
+				hands.hold = HeroInput.HOLD_INTERACT
+			if absf(tension - band) <= half * 0.3 \
+					and float(ponds.get("_progress")) > 0.2:
+				print("[guide-shots] reel: tension %.3f in band %.3f +-%.3f, %d%% landed"
+					% [tension, band, half, int(float(ponds.get("_progress")) * 100.0)])
+				reached = true
+		elif here == want:
 			# **Hold whatever this state is held by**, so the picture is of a
 			# state still running rather than of one letting go.
 			hands.hold = HeroInput.HOLD_INTERACT
@@ -1271,6 +1588,14 @@ func _fish_to(bank: Vector2, want: int, aim_at: Vector2 = Vector2.INF) -> bool:
 					# on a waiting line reels it back in empty.
 					hands.hold = HeroInput.HOLD_INTERACT
 		hero.velocity = Vector2.ZERO
+		# **Photographed on the frame that satisfied the condition**, not two
+		# frames later. A reel's marker moves several percent a frame, so a
+		# shutter that opens afterwards photographs a different moment - which is
+		# what made tightening the window produce no better a picture and
+		# eventually no picture at all.
+		if reached and not shutter.is_empty():
+			await RenderingServer.frame_post_draw
+			_capture(shutter)
 		frames += 1
 		await get_tree().process_frame
 	if not reached:
@@ -1291,19 +1616,18 @@ func _hands_back(driver: HeroInput) -> void:
 ##
 ## Laid rather than waited for: the trail begins in the act its quarry belongs
 ## to, and a photograph should not depend on the run having got there.
-func _stand_at_a_trail_sign(run: Run) -> void:
+func _stand_at_a_trail_sign(run: Run) -> Vector2:
 	var trail: MythicTrail = run.battlefield.trail()
 	if trail == null:
-		return
+		return Vector2.ZERO
 	RunState.act = maxi(RunState.act, 2)
 	trail.scatter()
 	var where: Dictionary = trail.report()
 	var places: Array = where.get("signs", [])
 	if places.is_empty():
-		return
-	var at: Vector2 = places[0]
-	if run.battlefield.hero != null:
-		run.battlefield.hero.global_position = at + Vector2(90.0, 30.0)
+		print("[guide-shots] warning: the trail laid no signs to photograph")
+		return Vector2.ZERO
+	return places[0] as Vector2
 
 func _copy(from: String, to: String) -> void:
 	if not _wanted(to):

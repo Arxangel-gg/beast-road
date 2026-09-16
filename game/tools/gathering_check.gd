@@ -54,6 +54,7 @@ func _ready() -> void:
 	_test_the_forge_validates_before_it_spends()
 	_test_a_forged_piece_is_an_ordinary_piece()
 	_test_the_crafts_only_craft()
+	await _test_a_seam_is_not_spoken_over()
 
 	Sfx.stop_immediately()
 	MusicPlayer.stop_immediately()
@@ -63,11 +64,73 @@ func _ready() -> void:
 		await get_tree().process_frame
 	MetaState.resume_saves()
 	if _failures == 0:
-		print("[gathering] PASS - %d checks: nothing on a new account, nodes out past the roads, and a forge that only makes gear"
+		print("[gathering] PASS - %d checks: nothing on a new account, nodes out past the roads, a forge that only makes gear, and a seam nobody speaks over"
 			% _checks)
 	else:
 		push_error("[gathering] FAIL - %d problem(s)" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+## **A seam's prompt survives another system having nothing to say.**
+##
+## `interact_prompt` and `fishing_prompt` feed one label and seven systems write
+## to it - seams, plots, rift gates, towers, nests, and the dungeon's chest and
+## portal - each caching its own last line so it does not spam the bus. That made
+## a *clear* dangerous: a system with nothing to say emitted "" after one with
+## something to say emitted its line, and with both now deduping **neither ever
+## re-asserted**. A Warden standing at a copper seam was shown nothing at all.
+##
+## Found by photographing the Guide's gathering section: `Gathering` held
+## "Mine - Copper Seam" and the screen was blank.
+##
+## Driven through the two real `_set_prompt`s in the order that broke it, reading
+## what actually reached the bus - two caches disagreeing about one label is not
+## something a constant can be asked about.
+func _test_a_seam_is_not_spoken_over() -> void:
+	var said: Array[String] = [""]
+	var ear: Callable = func(text: String, _button: String) -> void: said[0] = text
+	EventBus.interact_prompt.connect(ear)
+
+	var seams := Gathering.new()
+	var plots := Farming.new()
+	add_child(seams)
+	add_child(plots)
+	await get_tree().process_frame
+
+	# **The sequence a player actually walks**: past a plot, on to a seam, away
+	# from the plot. Ordered this way on purpose - with the plots never having
+	# spoken, their clear dedupes against their own empty cache and the bug hides.
+	plots.call("_set_prompt", "Plant a seed", "PLANT")
+	_check(said[0] == "Plant a seed",
+		"a plot must be able to say what it is; the line reads %s" % said[0])
+
+	# The seam is reached, and takes the line.
+	seams.call("_set_prompt", "Mine  ·  Copper Seam", "WORK")
+	_check(said[0] == "Mine  ·  Copper Seam",
+		"a seam in reach must take the line; it reads %s" % said[0])
+
+	# And the plot falls out of reach. **This is the clear that used to wipe the
+	# seam's words and leave the Warden told nothing at all.**
+	plots.call("_set_prompt", "", "")
+	_check(said[0] == "Mine  ·  Copper Seam",
+		"a system with nothing to say must not speak over one that has - "
+		+ "the line reads %s" % said[0])
+
+	# And a system that lost the line says its piece again rather than deduping
+	# against a cache that no longer describes the screen.
+	plots.call("_set_prompt", "Plant a seed", "PLANT")
+	seams.call("_set_prompt", "Mine  ·  Copper Seam", "WORK")
+	_check(said[0] == "Mine  ·  Copper Seam",
+		"a system that lost the line must re-assert it; it reads %s" % said[0])
+
+	# The owner may clear its own line.
+	seams.call("_set_prompt", "", "")
+	_check(said[0] == "", "the holder of the line must be able to clear it")
+
+	EventBus.interact_prompt.disconnect(ear)
+	seams.queue_free()
+	plots.queue_free()
+	await get_tree().process_frame
 
 
 func _check(condition: bool, why: String) -> void:

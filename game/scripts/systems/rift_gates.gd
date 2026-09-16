@@ -216,8 +216,17 @@ func _local_hero() -> Node2D:
 	return who if bool(who.call("is_alive")) else null
 
 
+## The name this system speaks on the shared prompt line under.
+const PROMPT_OWNER: StringName = &"rift_gates"
+
+
 func _set_prompt(text: String, button: String) -> void:
-	if text == _prompt and button == _prompt_button:
+	# Deduped only while this system still holds the shared prompt line - see
+	# `EventBus.claim_prompt`.
+	if text == _prompt and button == _prompt_button \
+			and EventBus.prompt_owner() == PROMPT_OWNER:
+		return
+	if not EventBus.claim_prompt(PROMPT_OWNER, text):
 		return
 	_prompt = text
 	_prompt_button = button

@@ -459,9 +459,18 @@ func _pour(_delta: float) -> void:
 
 ## The prompt, said once per change through the same road the ponds and the
 ## gates use.
+## The name this one speaks on the shared prompt line under.
+const PROMPT_OWNER: StringName = &"tower"
+
+
 func _say(text: String, button: String) -> void:
 	var wanted: bool = not text.is_empty()
-	if wanted == _prompting and not wanted:
+	# Deduped only while this system still holds the shared prompt line - see
+	# `EventBus.claim_prompt`.
+	if wanted == _prompting and not wanted \
+			and EventBus.prompt_owner() == PROMPT_OWNER:
+		return
+	if not EventBus.claim_prompt(PROMPT_OWNER, text):
 		return
 	_prompting = wanted
 	EventBus.interact_prompt.emit(text, button)

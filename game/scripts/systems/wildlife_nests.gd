@@ -316,8 +316,16 @@ func _local_hero() -> Node2D:
 	return field.hero
 
 
+## The name this system speaks on the shared prompt line under.
+const PROMPT_OWNER: StringName = &"nests"
+
+
 func _say(text: String, button: String) -> void:
-	if text == _prompt:
+	# Deduped only while this system still holds the shared prompt line - see
+	# `EventBus.claim_prompt`.
+	if text == _prompt and EventBus.prompt_owner() == PROMPT_OWNER:
+		return
+	if not EventBus.claim_prompt(PROMPT_OWNER, text):
 		return
 	_prompt = text
 	EventBus.interact_prompt.emit(text, button)

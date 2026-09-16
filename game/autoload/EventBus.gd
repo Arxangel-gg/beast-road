@@ -64,6 +64,42 @@ signal fish_given(fish_id: String, to: String)
 ## Same shape as `fishing_prompt`; the HUD and the touch button read both.
 signal interact_prompt(text: String, button: String)
 
+## **Who currently owns the one prompt line.**
+##
+## `interact_prompt` and `fishing_prompt` feed the same label, and six systems
+## write to it: the seams, the plots, the rift gates, the towers, the dungeon's
+## chest and portal, and the water. Each of them caches its own last line so it
+## does not spam the bus every frame - and that is exactly what made a *clear*
+## dangerous. A system with nothing to say emits "" after a system with something
+## to say emitted its line, and because both are now deduping **neither ever
+## re-asserts**: a Warden standing at a copper seam was shown nothing at all.
+##
+## Found by photographing the Guide's gathering section, where `Gathering` held
+## "Mine - Copper Seam" and the screen was blank.
+var _prompt_owner: StringName = &""
+
+
+## Whether `owner` may put `text` on the shared line.
+##
+## Anybody with something to say may take it. **A clear is only honoured from
+## whoever is currently holding it**, which is the whole of the fix: a system
+## with nothing to say can no longer speak over one that has.
+func claim_prompt(owner: StringName, text: String) -> bool:
+	if text.is_empty():
+		if _prompt_owner != owner:
+			return false
+		_prompt_owner = &""
+		return true
+	_prompt_owner = owner
+	return true
+
+
+## Who is being shown, so a system that has lost the line knows to say its piece
+## again rather than deduping against a cache that no longer describes the
+## screen.
+func prompt_owner() -> StringName:
+	return _prompt_owner
+
 ## What the nearest water is asking of the player, or "" for nothing. `button`
 ## is the label a touch button wears for it - "CAST", "HOOK", "REEL" - or "".
 signal fishing_prompt(text: String, button: String)
