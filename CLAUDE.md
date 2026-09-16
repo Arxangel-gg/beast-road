@@ -4737,10 +4737,19 @@ read one answer four times and passed while the property was being dropped. It
 walks every act now: a guarantee is a property of every act or it is not a
 guarantee.
 
-**The honest remaining gap is content, not code**: acts VI to X still have no
-music of their own, and the fallback is a mitigation rather than a soundtrack.
-A player who reaches the Saltpan hears a track written for the snow. The
-soundtrack grows by dropping a file in at `music_act%02d_%02d.ogg`.
+**The honest remaining gap is content, not code**, and `music_check` prints it
+every run rather than leaving it to somebody's memory:
+
+    [music] soundtrack: 76 songs over 5 of 10 acts (11, 24, 24, 13, 4, 0, 0, 0,
+    0, 0); 0 of 10 acts have a boss theme
+
+So acts VI to X have no music of their own and **no act has a boss theme at
+all** - eleven bosses sharing one generic track. Neither is a fault: the
+machinery is built and both fallbacks are deliberate, which is exactly why they
+are invisible. Nothing ever fails when a file is absent, so the only way either
+is ever noticed is by somebody counting - and a count off the disk cannot go
+stale the way a note in this file can. The soundtrack grows by dropping a file
+in at `music_act%02d_%02d.ogg` and `music_boss_act%02d.ogg`.
 
 ### The three escape hatches — and why there are only three
 

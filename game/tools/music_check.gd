@@ -35,6 +35,7 @@ func _ready() -> void:
 	_test_the_boss_holds_the_floor_and_hands_back()
 	_test_the_crossfade_is_a_crossfade()
 	_test_the_cues_are_registered()
+	_report_coverage()
 
 	MusicPlayer.test_slots.clear()
 	MusicPlayer.stop_immediately()
@@ -231,6 +232,40 @@ func _test_the_cues_are_registered() -> void:
 			"the boss cue %s has no file at %s" % [id, str(Sfx.SOUNDS.get(id, ""))])
 	_check(Balance.MUSIC_PLAYLIST_SLOTS >= 12, "the owner asked for twelve songs an act")
 	_check(Balance.MUSIC_BOSS_FADE > MusicPlayer.FADE_TIME, "a boss arrives slower than a scope change")
+
+
+## **What the soundtrack actually covers**, printed rather than asserted.
+##
+## The playlist machinery grows by dropping a file in, which is the right design
+## and means nothing ever fails when a file is absent - an act with no songs
+## plays its regional battle track and a boss with no theme plays the generic
+## one. Both are deliberate fallbacks, and both are invisible.
+##
+## Measured on 2026-09-16: acts I-V held 11, 24, 24, 13 and 4 songs, acts VI-X
+## held none, and **no act had a boss theme at all** - eleven bosses sharing one
+## track. That is content rather than a fault, and it is the kind of content that
+## is only ever noticed by somebody counting. So the gate counts, every run.
+##
+## A count off the disk cannot go stale the way a note in a file can.
+func _report_coverage() -> void:
+	var songs: int = 0
+	var acts_with_songs: int = 0
+	var bosses: int = 0
+	var per_act: PackedStringArray = []
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		var here: int = 0
+		for slot: int in range(1, Balance.MUSIC_PLAYLIST_SLOTS + 1):
+			if ResourceLoader.exists(MusicPlayer.PLAYLIST_FORMAT % [act, slot]):
+				here += 1
+		songs += here
+		if here > 0:
+			acts_with_songs += 1
+		if ResourceLoader.exists(MusicPlayer.BOSS_FORMAT % act):
+			bosses += 1
+		per_act.append(str(here))
+	print("[music] soundtrack: %d songs over %d of %d acts (%s); %d of %d acts have a boss theme"
+		% [songs, acts_with_songs, Balance.ACT_COUNT, ", ".join(per_act),
+			bosses, Balance.ACT_COUNT])
 
 
 func _check(passed: bool, message: String) -> void:
