@@ -49,6 +49,14 @@ var _recoil: Vector2 = Vector2.ZERO
 var _punch: Vector2 = Vector2.ZERO
 var _squash: float = 0.0
 var _lean: float = 0.0
+## **A held lean, for running** (owner, 2026-09-16). Unlike `_lean`, which is a
+## blow's kick and decays on its own, this is a posture: it is set every frame
+## while the Warden is sprinting and eased away when they stop.
+##
+## Supplied by the engine rather than drawn into frames, which is what the note
+## at the top of `HeroAnimator` means by keeping the sheets neutral - baking a
+## lean into a sprint sheet would double it the moment anything else leaned.
+var _drive: float = 0.0
 var _spin: float = 0.0
 var _stretch_dir: Vector2 = Vector2.ZERO
 var _stretch: float = 0.0
@@ -120,6 +128,26 @@ func dash(direction: Vector2, duration: float) -> void:
 
 
 ## A one-off vertical compress, for landings and heavy footfalls.
+## **Driving forward**, as a posture rather than a kick. `into` is which way the
+## body is going; `strength` is 0 to 1 and 0 stands it back up.
+##
+## A run is a walk with the weight in front of it, and this is that: the body
+## tips into the direction of travel and settles lower, which is most of what
+## separates a sprint from a fast walk to the eye.
+func drive(into: Vector2, strength: float) -> void:
+	var wanted: float = 0.0
+	if strength > 0.001 and absf(into.x) > 0.01:
+		wanted = signf(into.x) * Balance.ANIM_SPRINT_LEAN * clampf(strength, 0.0, 1.0)
+	_drive = move_toward(_drive, wanted, Balance.ANIM_SPRINT_LEAN_RATE
+		* get_process_delta_time())
+	_sprint_crouch = move_toward(_sprint_crouch,
+		Balance.ANIM_SPRINT_CROUCH * clampf(strength, 0.0, 1.0),
+		Balance.ANIM_SPRINT_LEAN_RATE * 0.02 * get_process_delta_time())
+
+
+var _sprint_crouch: float = 0.0
+
+
 func squash(amount: float) -> void:
 	_squash = maxf(_squash, amount)
 
@@ -201,10 +229,14 @@ func _process(delta: float) -> void:
 		# The net rotation cancels; the scale does not. Godot has no shear on
 		# Node2D, so this is the honest approximation and it reads fine in motion.
 
-	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin) + deg_to_rad(_balance_wobble)
+	rotation_now += deg_to_rad(_lean) + deg_to_rad(_spin) + deg_to_rad(_balance_wobble) 		+ deg_to_rad(_drive)
 
 	sprite.position = _home + offset
 	sprite.rotation = rotation_now
+	# The run settles lower and longer: weight forward, body stretched along the
+	# way it is going.
+	if _sprint_crouch != 0.0:
+		scale_now *= Vector2(1.0 + _sprint_crouch * 0.5, 1.0 - _sprint_crouch)
 	sprite.scale = _home_scale * scale_now
 
 

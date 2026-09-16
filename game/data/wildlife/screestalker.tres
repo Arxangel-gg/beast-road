@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+haunts = "seam"
+haunt_pull = 0.72
+breeds = true
+breeding_group = "screestalker"
+litter_min = 1
+litter_max = 2
+gestation_seconds = 70.0
+protection = 2
+coat_pattern = 5
+coat_pattern_strength = 0.5
+coat_pattern_scale = 4.5
+coat_pattern_tint = Color(0.130, 0.130, 0.150, 0.800)
+coat_hue_spread = 0.016
+coat_light_spread = 0.16
+coat_saturation_spread = 0.12
+id = "screestalker"
+display_name = "Screestalker"
+description = "Stone does not move. Then some of it does."
+vocal_sfx = ""
+rarity = 2
+temperament = 3
+movement_style = 2
+damage = 15.0
+attack_interval = 0.95
+attack_range = 92.0
+aggro_radius = 380.0
+knockback = 160.0
+charge_speed_scale = 2.80
+elite_chance = 0.1
+acts = Array[int]([3, 6, 8, 10])
+weight = 0.5
+group_min = 1
+group_max = 1
+social_spacing = 110.0
+group_cohesion = 0.0
+activity = 0.5
+speed = 84.0
+roam = 340.0
+skittish_radius = 0.0
+flee_speed_scale = 1.0
+flies = false
+scale = 1.25
+max_hp = 96.0
+food_min = 6
+food_max = 13
+xp_reward = 28
+art_faces_right = true
+stay_min = 80.0
+stay_max = 200.0

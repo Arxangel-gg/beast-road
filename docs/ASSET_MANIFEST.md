@@ -1518,6 +1518,7 @@ a `.tres` in `data/wildlife/` and a sprite named for its id — no code.
 `wildlife_snow_hare.png` · `wildlife_ptarmigan.png` ·
 `wildlife_snow_lynx.png` · `wildlife_frost_elk.png`
 `wildlife_mireback_alligator.png` · `wildlife_saltpan_monitor.png` · `wildlife_reedback_terrapin.png`
+`wildlife_barkjack_woodpecker.png` · `wildlife_barkfang_wolverine.png` · `wildlife_oreback_pangolin.png` · `wildlife_screestalker.png`
 
 **The Moonstag is the first mythic (2026-09-15)**, and is never scattered: the
 only way one reaches the field is at the end of its own trail (§5.16c). It is
@@ -1631,6 +1632,10 @@ Files: `wildlife_wolf_idle_01.png` · `wildlife_wolf_idle_02.png` · `wildlife_w
 Files: `wildlife_mireback_alligator_idle_01.png` · `wildlife_mireback_alligator_idle_02.png` · `wildlife_mireback_alligator_idle_03.png`
 Files: `wildlife_saltpan_monitor_idle_01.png` · `wildlife_saltpan_monitor_idle_02.png` · `wildlife_saltpan_monitor_idle_03.png`
 Files: `wildlife_reedback_terrapin_idle_01.png` · `wildlife_reedback_terrapin_idle_02.png` · `wildlife_reedback_terrapin_idle_03.png`
+Files: `wildlife_barkjack_woodpecker_idle_01.png` · `wildlife_barkjack_woodpecker_idle_02.png` · `wildlife_barkjack_woodpecker_idle_03.png`
+Files: `wildlife_barkfang_wolverine_idle_01.png` · `wildlife_barkfang_wolverine_idle_02.png` · `wildlife_barkfang_wolverine_idle_03.png`
+Files: `wildlife_oreback_pangolin_idle_01.png` · `wildlife_oreback_pangolin_idle_02.png` · `wildlife_oreback_pangolin_idle_03.png`
+Files: `wildlife_screestalker_idle_01.png` · `wildlife_screestalker_idle_02.png` · `wildlife_screestalker_idle_03.png`
 
 The five predators had **no** idle sequence until 2026-08-31, so a wolf waiting
 by the road stood as a single frozen frame while every harmless animal breathed —
@@ -1703,6 +1708,10 @@ Files: `wildlife_hedgehog_move_01.png` · `wildlife_hedgehog_move_02.png` · `wi
 Files: `wildlife_mireback_alligator_move_01.png` · `wildlife_mireback_alligator_move_02.png` · `wildlife_mireback_alligator_move_03.png` · `wildlife_mireback_alligator_move_04.png` · `wildlife_mireback_alligator_move_05.png` · `wildlife_mireback_alligator_move_06.png` · `wildlife_mireback_alligator_move_07.png` · `wildlife_mireback_alligator_move_08.png`
 Files: `wildlife_saltpan_monitor_move_01.png` · `wildlife_saltpan_monitor_move_02.png` · `wildlife_saltpan_monitor_move_03.png` · `wildlife_saltpan_monitor_move_04.png` · `wildlife_saltpan_monitor_move_05.png` · `wildlife_saltpan_monitor_move_06.png` · `wildlife_saltpan_monitor_move_07.png` · `wildlife_saltpan_monitor_move_08.png`
 Files: `wildlife_reedback_terrapin_move_01.png` · `wildlife_reedback_terrapin_move_02.png` · `wildlife_reedback_terrapin_move_03.png` · `wildlife_reedback_terrapin_move_04.png` · `wildlife_reedback_terrapin_move_05.png` · `wildlife_reedback_terrapin_move_06.png` · `wildlife_reedback_terrapin_move_07.png` · `wildlife_reedback_terrapin_move_08.png`
+Files: `wildlife_barkjack_woodpecker_move_01.png` · `wildlife_barkjack_woodpecker_move_02.png` · `wildlife_barkjack_woodpecker_move_03.png` · `wildlife_barkjack_woodpecker_move_04.png` · `wildlife_barkjack_woodpecker_move_05.png` · `wildlife_barkjack_woodpecker_move_06.png` · `wildlife_barkjack_woodpecker_move_07.png` · `wildlife_barkjack_woodpecker_move_08.png`
+Files: `wildlife_barkfang_wolverine_move_01.png` · `wildlife_barkfang_wolverine_move_02.png` · `wildlife_barkfang_wolverine_move_03.png` · `wildlife_barkfang_wolverine_move_04.png` · `wildlife_barkfang_wolverine_move_05.png` · `wildlife_barkfang_wolverine_move_06.png` · `wildlife_barkfang_wolverine_move_07.png` · `wildlife_barkfang_wolverine_move_08.png`
+Files: `wildlife_oreback_pangolin_move_01.png` · `wildlife_oreback_pangolin_move_02.png` · `wildlife_oreback_pangolin_move_03.png` · `wildlife_oreback_pangolin_move_04.png` · `wildlife_oreback_pangolin_move_05.png` · `wildlife_oreback_pangolin_move_06.png` · `wildlife_oreback_pangolin_move_07.png` · `wildlife_oreback_pangolin_move_08.png`
+Files: `wildlife_screestalker_move_01.png` · `wildlife_screestalker_move_02.png` · `wildlife_screestalker_move_03.png` · `wildlife_screestalker_move_04.png` · `wildlife_screestalker_move_05.png` · `wildlife_screestalker_move_06.png` · `wildlife_screestalker_move_07.png` · `wildlife_screestalker_move_08.png`
 Files: `wildlife_lynx_move_01.png` · `wildlife_lynx_move_02.png` · `wildlife_lynx_move_03.png` · `wildlife_lynx_move_04.png` · `wildlife_lynx_move_05.png` · `wildlife_lynx_move_06.png` · `wildlife_lynx_move_07.png`
 Files: `wildlife_tortoise_move_01.png` · `wildlife_tortoise_move_02.png` · `wildlife_tortoise_move_03.png` · `wildlife_tortoise_move_04.png` · `wildlife_tortoise_move_05.png` · `wildlife_tortoise_move_06.png` · `wildlife_tortoise_move_07.png` · `wildlife_tortoise_move_08.png`
 Files: `wildlife_jackal_move_01.png` · `wildlife_jackal_move_02.png` · `wildlife_jackal_move_03.png` · `wildlife_jackal_move_04.png` · `wildlife_jackal_move_05.png` · `wildlife_jackal_move_06.png` · `wildlife_jackal_move_07.png`
@@ -1747,6 +1756,8 @@ Files: `wildlife_hawk_attack_01.png` … `wildlife_hawk_attack_05.png`
 Files: `wildlife_griffon_attack_01.png` … `wildlife_griffon_attack_05.png`
 Files: `wildlife_mireback_alligator_attack_01.png` … `wildlife_mireback_alligator_attack_06.png`
 Files: `wildlife_saltpan_monitor_attack_01.png` … `wildlife_saltpan_monitor_attack_06.png`
+Files: `wildlife_barkfang_wolverine_attack_01.png` … `wildlife_barkfang_wolverine_attack_06.png`
+Files: `wildlife_screestalker_attack_01.png` … `wildlife_screestalker_attack_06.png`
 Files: `wildlife_hollowhorn_attack_01.png` … `wildlife_hollowhorn_attack_05.png`
 
 **No death frames, and that is the better answer rather than the cheaper one.**
@@ -3092,6 +3103,8 @@ in step with the screens rather than leaving fifteen stale copies.
 | `quake.png` | 1280×720 | O | `#2E3A33` |
 | `tornado.png` | 1280×720 | O | `#2E3A33` |
 | `meteor.png` | 1280×720 | O | `#2E3A33` |
+| `taming.png` | 1280×720 | O | `#2E3A33` |
+| `the_pen.png` | 1280×720 | O | `#2E3A33` |
 | `fire_whirl.png` | 1280×720 | O | `#2E3A33` |
 | `conductive_flood.png` | 1280×720 | O | `#2E3A33` |
 | `dry_lightning.png` | 1280×720 | O | `#2E3A33` |

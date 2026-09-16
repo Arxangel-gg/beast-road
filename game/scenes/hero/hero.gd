@@ -2112,6 +2112,14 @@ func _drive_frames() -> void:
 		frames.play("sprint" if _sprinting and frames.has_state("sprint") else "walk")
 	else:
 		frames.play("idle")
+	# **The run's posture, from the engine.** The sheets are deliberately neutral
+	# - see `HeroAnimator` - so the lean and the lower stance that separate a
+	# sprint from a fast walk are supplied here rather than drawn into frames,
+	# which is also the only way to have them at all: the Warden's own PixelLab
+	# character no longer exists, so a hand-posed sprint sheet is not a
+	# generation away.
+	animator.drive(own.normalized() if speed > 4.0 else Vector2.ZERO,
+		1.0 if _sprinting else 0.0)
 
 
 ## **The work pose.** Asked for by `Gathering` when a swing starts.

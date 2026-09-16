@@ -834,8 +834,6 @@ func _build_ambient_life() -> void:
 ## seams, which is working rule 5 and the same seam `RiftGates.avoid` uses - the
 ## ambient layer has no business reaching into the systems it decorates.
 func _light_the_work() -> void:
-	if _ambient == null or not is_instance_valid(_ambient):
-		return
 	var places: Array[Dictionary] = []
 	if _ponds != null:
 		for at: Vector2 in _ponds.pond_positions():
@@ -844,7 +842,13 @@ func _light_the_work() -> void:
 		for node: Dictionary in _gathering.node_report():
 			places.append({"at": node.get("at", Vector2.ZERO),
 				"kind": "timber" if bool(node.get("timber", false)) else "seam"})
-	_ambient.call("relight", places)
+	if _ambient != null and is_instance_valid(_ambient):
+		_ambient.call("relight", places)
+	# **And the animals that keep near the work** (owner, 2026-09-16). The same
+	# list, told rather than looked up: `Wildlife` has no business holding a
+	# reference to `Gathering` either.
+	if _wildlife != null and is_instance_valid(_wildlife):
+		_wildlife.haunts = places
 
 
 ## The wood beyond the field.

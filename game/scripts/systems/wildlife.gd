@@ -48,6 +48,12 @@ enum State { ARRIVING, SETTLED, FLEEING, LEAVING, STALKING, STRIKING, GRAZING, A
 ## The grid, so animals can be kept off the roads. Assigned by the battlefield.
 var grid: BattleGrid = null
 
+## **The places this region's crafts are worked** - the stands of timber and the
+## stone seams, as `{at, kind}`. Handed over by the battlefield rather than
+## looked up, which is the seam `RiftGates.avoid` and `AmbientLife.work_places`
+## already use: this system has no business holding a reference to `Gathering`.
+var haunts: Array[Dictionary] = []
+
 ## Where the sprites are parented, and it is not this node.
 ##
 ## They go into the battlefield's y-sorted entity root so each animal sorts
@@ -2035,6 +2041,32 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 
 ## Everything within `radius` of a point bolts from it. Fire, a funnel, the
 ## ground shaking - the animals do not stay to see what it was.
+## **A spot beside the nearest place of this kind of work**, or INF.
+##
+## Beside rather than on: an animal standing in the middle of a seam is an animal
+## the player cannot walk up to the seam past, and the whole point of these
+## species is that they are found *at* the work rather than instead of it.
+func _haunt_near(from: Vector2, wanted: String) -> Vector2:
+	var best: Vector2 = Vector2.INF
+	var nearest: float = Balance.WILDLIFE_HAUNT_REACH
+	for place: Dictionary in haunts:
+		if String(place.get("kind", "")) != wanted:
+			continue
+		var at: Vector2 = place.get("at", Vector2.ZERO)
+		var away: float = from.distance_to(at)
+		if away < nearest:
+			nearest = away
+			best = at
+	if best == Vector2.INF:
+		return Vector2.INF
+	for _try: int in 8:
+		var beside: Vector2 = best + Vector2.from_angle(_rng.randf() * TAU) 			* _rng.randf_range(Balance.WILDLIFE_HAUNT_CLEAR,
+				Balance.WILDLIFE_HAUNT_CLEAR * 2.4)
+		if _is_clear(beside):
+			return beside
+	return Vector2.INF
+
+
 ## Every living animal's body, for anything that wants to aim at one. Dying and
 ## already-dead records are left out: a rope thrown at a corpse is a rope the
 ## player will believe missed.
@@ -2351,6 +2383,14 @@ func _wander_from(home: Vector2, kind: WildlifeData, stage_scale: float = 1.0) -
 			roam_scale = 1.16
 		WildlifeData.MovementStyle.SKITTER:
 			roam_scale = 0.40
+	# **A haunt pulls, it does not tether** (owner, 2026-09-16). A species that
+	# keeps to the timber or to the seams mostly heads for one when it decides
+	# where to go next; the rest of the time it wanders like anything else, which
+	# is what keeps it an animal rather than a spawn point.
+	if not kind.haunts.is_empty() and _rng.randf() < kind.haunt_pull:
+		var drawn: Vector2 = _haunt_near(home, kind.haunts)
+		if drawn != Vector2.INF:
+			return drawn
 	for _attempt: int in 6:
 		var candidate: Vector2 = home + Vector2(
 			_rng.randf_range(-kind.roam, kind.roam) * roam_scale,

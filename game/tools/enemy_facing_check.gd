@@ -167,6 +167,12 @@ const WILDLIFE_FACING: Dictionary = {
 	# all three walk cycles beside the roster they sit in: every frame is a
 	# right-facing profile, which is this project's wildlife convention.
 	"mireback_alligator": true, "saltpan_monitor": true, "reedback_terrapin": true,
+	# The four that keep to the timber and the seams (2026-09-16). Contact
+	# sheeted before being recorded; the woodpecker was regenerated because the
+	# first one came out clinging to a trunk, which is a vertical pose and would
+	# have read as a bird lying on its back the moment it walked.
+	"barkjack_woodpecker": true, "barkfang_wolverine": true,
+	"oreback_pangolin": true, "screestalker": true,
 	"jackal": true, "lynx": true, "marsh_otter": true,
 	"moonstag": false, "phoenix": true, "ptarmigan": true,
 	"rabbit": true, "raccoon": false, "raven": true, "reed_frog": true,

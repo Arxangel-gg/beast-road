@@ -533,7 +533,12 @@ const PROMPT_KIND_SEAM: StringName = &"seam"
 ## Which symbol this node wears over the hero's head: an axe at timber, a
 ## pickaxe at stone. One owner on the prompt line, two kinds on the badge.
 func _kind_of(kind: GatherNodeData) -> StringName:
-	return PROMPT_KIND_TIMBER if kind.timber else PROMPT_KIND_SEAM
+	# **The craft, not a flag.** `GatherNodeData` has no `timber` field - the
+	# craft it trains is what says what it is, which is also what `node_report`
+	# derives its own `timber` from. Reached here only at runtime, because a
+	# property access on a `Resource` is resolved then rather than at compile
+	# time: `script_check` was green and the first real throw errored.
+	return PROMPT_KIND_TIMBER if kind.craft == "woodcutter" else PROMPT_KIND_SEAM
 
 
 func _set_prompt(text: String, button: String, kind: StringName = &"") -> void:

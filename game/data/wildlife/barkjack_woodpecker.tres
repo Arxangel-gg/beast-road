@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+haunts = "timber"
+haunt_pull = 0.85
+breeds = true
+breeding_group = "barkjack_woodpecker"
+litter_min = 2
+litter_max = 4
+gestation_seconds = 40.0
+protection = 0
+lays_eggs = true
+incubation_distance = 90.0
+coat_pattern = 6
+coat_pattern_strength = 0.4
+coat_pattern_scale = 5.0
+coat_pattern_tint = Color(0.140, 0.120, 0.110, 0.800)
+coat_hue_spread = 0.024
+coat_light_spread = 0.16
+coat_saturation_spread = 0.18
+id = "barkjack_woodpecker"
+display_name = "Barkjack"
+description = "You hear it long before you see it, and you hear it from the good wood."
+vocal_sfx = ""
+rarity = 0
+temperament = 0
+movement_style = 4
+damage = 0.0
+attack_interval = 1.10
+attack_range = 90.0
+aggro_radius = 0.0
+knockback = 0.0
+charge_speed_scale = 1.70
+elite_chance = 0.0
+acts = Array[int]([1, 2, 4, 5, 7, 10])
+weight = 0.9
+group_min = 1
+group_max = 2
+social_spacing = 64.0
+group_cohesion = 0.2
+activity = 0.62
+speed = 54.0
+roam = 260.0
+skittish_radius = 250.0
+flee_speed_scale = 2.6
+flies = false
+scale = 0.85
+max_hp = 22.0
+food_min = 2
+food_max = 5
+xp_reward = 7
+art_faces_right = true
+stay_min = 50.0
+stay_max = 140.0

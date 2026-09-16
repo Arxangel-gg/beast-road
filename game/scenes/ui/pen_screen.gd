@@ -142,6 +142,20 @@ func refresh() -> void:
 
 
 ## One kept animal: what it is, and the two things that may be done to it.
+## Real time, said the way a person says it. Never in seconds: nobody plans
+## around four thousand of them.
+func _how_long(seconds: float) -> String:
+	if seconds <= 60.0:
+		return "nearly rested"
+	var hours: int = int(floor(seconds / 3600.0))
+	var minutes: int = int(round(fmod(seconds, 3600.0) / 60.0))
+	if hours <= 0:
+		return "%d min" % maxi(minutes, 1)
+	if hours >= 24:
+		return "%d day%s" % [hours / 24, "" if hours / 24 == 1 else "s"]
+	return "%dh %02dm" % [hours, minutes]
+
+
 func _row(animal: Dictionary) -> Control:
 	var uid: String = String(animal.get("uid", ""))
 	var species: String = String(animal.get("species", ""))
@@ -164,6 +178,29 @@ func _row(animal: Dictionary) -> Control:
 			Balance.SPIRIT_RARITY_COLOURS.size() - 1)])
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
+
+	# **How hurt it is, and how long until it is not** (owner, 2026-09-16: the
+	# pen heals "over realtime durations whether in or out of the game").
+	#
+	# Said in hours and minutes rather than shown as a bar creeping, because a
+	# bar that moves a pixel an hour reads as a bar that is stuck - and the
+	# number is the thing a player is actually deciding on when they choose
+	# which animal to take out.
+	var mending := Label.new()
+	var health: float = MetaState.pen_health(uid)
+	if health >= 1.0:
+		mending.text = "Rested"
+		mending.add_theme_color_override("font_color", Balance.PEN_RESTED_COLOUR)
+	else:
+		mending.text = "%d%%  ·  %s" % [int(round(health * 100.0)),
+			_how_long(MetaState.pen_seconds_to_whole(uid))]
+		mending.add_theme_color_override("font_color",
+			Balance.PEN_HURT_COLOUR if health < 0.5 else Balance.PEN_MENDING_COLOUR)
+	mending.custom_minimum_size = Vector2(190.0, 0.0)
+	mending.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	mending.tooltip_text = ("The pen mends what is in it on the real clock, "
+		+ "whether or not the game is running.")
+	row.add_child(mending)
 
 	var take := Button.new()
 	take.text = "Leave here" if out else "Take along"

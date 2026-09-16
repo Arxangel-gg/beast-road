@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "the_pen"
+display_name = "The pen"
+title = "The pen"
+category = "Companions"
+order = 65
+image = "res://art/guide/the_pen.png"
+body = "Animals you have taken alive live here, and the pen mends them.
+
+Slowly, and on the real clock - an hour away from the game is an hour of mending, whether or not you were playing. How long one takes depends on how hurt it was and on how much it has to mend, so a bear and a rabbit both take about the same time to come back from half.
+
+One goes out at a time, and the choice is made between runs. A creature that dies on the road is gone - but the bond is not: the journal still says you raised one, and the same variant can be raised again."

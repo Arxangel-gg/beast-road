@@ -541,6 +541,12 @@ func _ready() -> void:
 	# a photograph of a camp, which is a different thing entirely.
 	await _made_subject_shot("hunted", func() -> Vector2: return _send_a_hunter(),
 		Vector2(-120.0, 90.0), 1.0)
+	# **A rope in the air over a worn-down animal** (owner, 2026-09-16). The
+	# whole of what taming is, in one frame: something already hurt, and the loop
+	# closing on it. Driven rather than posed - a real animal, really wounded,
+	# with a real throw at it - because a picture of a mechanic that was staged
+	# is a picture of a different mechanic.
+	await _taming_shot()
 	# **A nest picture with a nest in it** (owner: "Nests and eggs not visible in
 	# screenshot image"). It was a copy of the trail-sign photograph.
 	await _made_subject_shot("nesting", func() -> Vector2: return _lay_a_nest(),
@@ -556,6 +562,13 @@ func _ready() -> void:
 	run.switch_scope(GameDirector.Scope.BATTLEFIELD)
 	for _f: int in 8:
 		await get_tree().process_frame
+	# The pen, with something in it to look at.
+	await _shot("the_pen", func() -> void:
+		if MetaState.pen.is_empty():
+			MetaState.pen_add("fox", 1, false, "", 0.45)
+			MetaState.pen_add("deer", 0, false, "", 0.8)
+			MetaState.pen_add("reedback_terrapin", 0, true, "", 1.0)
+		_screen_shot(func() -> Node: return PenScreen.new(), "Pen"))
 	# **And the Forge is the Forge.** Same fault, same answer.
 	await _shot("forge", func() -> void:
 		_screen_shot(func() -> Node: return SmithyScreen.new(), "Smithy"))
@@ -1422,6 +1435,10 @@ func _clear_the_sky() -> void:
 		return
 	RunState.flood = 0.0
 	_hush()
+	# **And the screen's own transient tints.** A heat wash or a flash left over
+	# a picture of something else is the same fault as a standing flood, and
+	# `Vfx` owns a layer that survives every scope change by design.
+	Vfx.clear()
 	var sky: WeatherSky = field.sky()
 	if sky != null:
 		# Every strike still in the air (owner, 2026-09-16: "lightning strike
@@ -1505,6 +1522,82 @@ func _look_at(at: Vector2) -> void:
 	# the lean pointing at a place the camera can never reach.
 	if Rect2(Vector2.ZERO, view).has_point(on_screen):
 		Input.warp_mouse(on_screen)
+
+
+## **A worn-down animal with a rope closing on it.**
+##
+## The rope is thrown six frames before the shutter rather than in the setup: at
+## point-blank the whole throw - flight, close and three pulls - runs out inside
+## the seventy frames `_take` waits, so throwing it up front photographs the
+## aftermath. Same finding as the lightning bolt, in a second place.
+func _taming_shot() -> void:
+	if not _wanted("taming"):
+		return
+	await _settle()
+	var at: Vector2 = _wound_the_nearest()
+	if at == Vector2.INF:
+		return
+	_stand_at(at + Vector2(-96.0, 70.0))
+	_look_at(at)
+	await _take("taming", func() -> void: pass,
+		func() -> void:
+			_throw_a_rope()
+			_look_at(at))
+
+
+## **A worn-down animal with a rope closing on it.**
+##
+## Driven rather than posed: a real animal, really wounded through the system's
+## own door, with a real throw at it. A picture of a mechanic that was staged is
+## a picture of a different mechanic - which is the whole reason this tool
+## photographs the game rather than drawing the pictures.
+func _wound_the_nearest() -> Vector2:
+	var field: Battlefield = run.battlefield
+	var animals: Node = field.wildlife() if field != null else null
+	var hero: Hero = field.hero if field != null else null
+	if animals == null or hero == null:
+		return Vector2.INF
+	var bodies: Array[Node2D] = animals.call("living_sprites")
+	if bodies.is_empty():
+		return Vector2.INF
+	var quarry: Node2D = bodies[0]
+	for body: Node2D in bodies:
+		if body.global_position.distance_to(hero.global_position) 				< quarry.global_position.distance_to(hero.global_position):
+			quarry = body
+	var record: Dictionary = animals.call("record_for_id", quarry.get_instance_id())
+	if record.is_empty():
+		return Vector2.INF
+	# Worn down to where a throw is worth making, which is the state the picture
+	# is about. Written through the record rather than by swinging at it,
+	# because a real fight would as often as not kill it.
+	var kind: WildlifeData = record["data"]
+	record["hp"] = kind.max_hp * 0.12
+	var bar := record.get("bar", null) as ProgressBar
+	if bar != null and is_instance_valid(bar):
+		bar.visible = true
+		bar.value = 0.12
+	_roped = quarry.get_instance_id()
+	return quarry.global_position
+
+
+## The animal the picture's rope is aimed at, held by id.
+var _roped: int = 0
+
+
+func _throw_a_rope() -> void:
+	var field: Battlefield = run.battlefield
+	var hero: Hero = field.hero if field != null else null
+	var held: Variant = instance_from_id(_roped) if _roped != 0 else null
+	if field == null or hero == null or held == null 			or not is_instance_valid(held as Object):
+		return
+	var rope := Lasso.new()
+	rope.field = field
+	rope.thrower = hero
+	rope.target_id = _roped
+	field.add_child(rope)
+	_stage(rope)
+	rope.throw_from(hero.global_position,
+		((held as Node2D).global_position - hero.global_position).normalized())
 
 
 ## **Beside the boss, with the whole of it in frame, looking at it.**

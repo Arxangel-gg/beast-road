@@ -93,6 +93,15 @@ const HERO_SPRINT_FLOOR: float = 18.0
 const HERO_SPRINT_HOLD: float = 0.17
 ## How often running kicks dust off the heels.
 const HERO_SPRINT_DUST: float = 0.13
+## **The run's posture**, supplied by the engine rather than drawn into frames.
+## The Warden's eight-direction character no longer exists in the PixelLab
+## account, so a dedicated sprint sheet is not one generation away - but the
+## sheets were deliberately kept neutral for exactly this reason, and a run is a
+## walk with the weight in front of it. Degrees of lean, how fast it arrives, and
+## how much lower the body settles.
+const ANIM_SPRINT_LEAN: float = 7.0
+const ANIM_SPRINT_LEAN_RATE: float = 42.0
+const ANIM_SPRINT_CROUCH: float = 0.055
 ## Below this share the bar flashes: the last of it should be felt before it is
 ## gone, not discovered when the legs stop.
 const HERO_STAMINA_LOW: float = 0.25
@@ -8521,6 +8530,13 @@ const LASSO_SPIN: float = 9.0
 ## smaller number is a wider cone - 0.35 is about seventy degrees either side.
 const LASSO_AIM_COS: float = 0.35
 
+## **How far an animal will look for the work it keeps near** (owner,
+## 2026-09-16), and how far off it stands when it gets there. Beside rather than
+## on: something standing in the middle of a seam is something the player cannot
+## reach the seam past.
+const WILDLIFE_HAUNT_REACH: float = 1800.0
+const WILDLIFE_HAUNT_CLEAR: float = 70.0
+
 const WILDLIFE_REGEN_SHARE: float = 0.004
 ## How long it must go untouched before it starts mending faster, and how much
 ## faster it gets. The acceleration is what makes leaving a region and coming
@@ -8534,6 +8550,10 @@ const WILDLIFE_REGEN_RAMP_SECONDS: float = 18.0
 ## nothing is hunting it and somebody is feeding it - and because the pen is
 ## where a player leaves an animal precisely so that it gets better.
 const PEN_REGEN_SCALE: float = 9.0
+## How the pen says what it is doing: rested, mending, and badly hurt.
+const PEN_RESTED_COLOUR: Color = Color(0.62, 0.84, 0.6)
+const PEN_MENDING_COLOUR: Color = Color(0.86, 0.8, 0.56)
+const PEN_HURT_COLOUR: Color = Color(0.86, 0.5, 0.44)
 ## The most real time a single reckoning will credit, however long the game was
 ## shut. A month away should not be a different feature from a day away.
 const PEN_REGEN_MAX_HOURS: float = 48.0

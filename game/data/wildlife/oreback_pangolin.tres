@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="WildlifeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wildlife_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+haunts = "seam"
+haunt_pull = 0.85
+breeds = true
+breeding_group = "oreback_pangolin"
+litter_min = 1
+litter_max = 2
+gestation_seconds = 65.0
+protection = 1
+coat_pattern = 3
+coat_pattern_strength = 0.44
+coat_pattern_scale = 5.5
+coat_pattern_tint = Color(0.150, 0.150, 0.170, 0.800)
+coat_hue_spread = 0.018
+coat_light_spread = 0.15
+coat_saturation_spread = 0.12
+id = "oreback_pangolin"
+display_name = "Oreback"
+description = "It works the same seams you do, and it got there first."
+vocal_sfx = ""
+rarity = 1
+temperament = 0
+movement_style = 1
+damage = 0.0
+attack_interval = 1.10
+attack_range = 90.0
+aggro_radius = 0.0
+knockback = 0.0
+charge_speed_scale = 1.70
+elite_chance = 0.0
+acts = Array[int]([3, 6, 7, 8, 10])
+weight = 1.05
+group_min = 1
+group_max = 1
+social_spacing = 80.0
+group_cohesion = 0.0
+activity = 0.36
+speed = 32.0
+roam = 200.0
+skittish_radius = 200.0
+flee_speed_scale = 1.9
+flies = false
+scale = 1.05
+max_hp = 48.0
+food_min = 4
+food_max = 9
+xp_reward = 13
+art_faces_right = true
+stay_min = 80.0
+stay_max = 190.0

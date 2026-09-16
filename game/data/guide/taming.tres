@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="GuideSectionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/guide_section_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "taming"
+display_name = "Taking one alive"
+title = "Taking one alive"
+category = "The Road"
+order = 64
+image = "res://art/guide/taming.png"
+body = "Kill an animal and you get Food and a line in the journal. Take it alive and you get the animal.
+
+Wear it down first - that is the whole of it. A healthy animal shrugs a rope off almost every time; one that is nearly spent mostly does not, and the odds climb hardest over the last quarter of a fight. Then cycle to a Snare and throw it like any other shot.
+
+What you catch is what was standing there: the same species, the same rarity, the same shine, the same temperament. Nothing is rolled when the rope closes.
+
+It arrives in your pen as hurt as it was when you caught it, and it goes straight to work as your companion if nothing else is out. If you would rather not risk it, stand it down - it goes back to the pen and stays there for the rest of the run. You can always make things safer. You cannot make them riskier."

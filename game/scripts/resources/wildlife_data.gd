@@ -181,6 +181,24 @@ func roll_weight(act: int) -> float:
 ## painted for them.
 @export var amphibious: bool = false
 
+## **What this species keeps near** (owner, 2026-09-16): "timber", "seam", or
+## empty for the roster's ordinary even scatter.
+##
+## A preference and never a leash - the same shape `acts` has. A species that
+## haunts timber is far likelier to wander toward a stand of it and to settle
+## there, and merely uncommon elsewhere. A hard tether would be worse both ways:
+## a woodpecker that could not leave a tree would vanish from a region that
+## scattered its trees badly, and a predator pinned to a seam would be a spawn
+## point rather than an animal.
+##
+## It exists because the seams and the timber are already the reason to walk out
+## past the roads, and until now nothing lived there.
+@export var haunts: String = ""
+
+## How strongly. At 1 nearly every wander heads for one; at 0 it is the
+## ordinary scatter and the haunt is only flavour.
+@export_range(0.0, 1.0, 0.05) var haunt_pull: float = 0.7
+
 ## How long it lies in the water between haul-outs, and how long it stays out.
 ## A predator waiting at the surface is the state worth watching, so the water
 ## half is the long one.
