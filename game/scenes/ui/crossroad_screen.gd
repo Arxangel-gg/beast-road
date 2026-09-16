@@ -98,6 +98,7 @@ var _last_scar_button: Button = null
 ## the pointer somewhere else entirely on a different display.
 func _process(delta: float) -> void:
 	_tick_vote(delta)
+	_tick_holograms(delta)
 	if not is_open() or not Coop.partner_present():
 		return
 	_pointer_clock -= delta
@@ -447,8 +448,14 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 		var relic: RelicData = ContentDB.relic(relic_id)
 		if relic == null:
 			continue
-		_add_treasure_card(relic.id, relic.display_name, relic.description,
-			relic.get_sprite_path(), Color("e6c98a"), _choose_relic.bind(relic.id))
+		# A relic carries no rarity of its own, so every regional treasure is dealt
+		# at the same rank - the choice between them is what they *do*, which is
+		# the stat row.
+		_play_card(relic.id, relic.display_name, 2, relic.get_sprite_path(),
+			[[effect_label(relic.effect_id),
+				effect_figure(relic.effect_id, relic.effect_magnitude)],
+				["Region", "Act %d" % relic.region]],
+			relic.description, _choose_relic.bind(relic.id))
 	_road_row = null
 	_dress_options()
 	panel.visible = true
@@ -460,6 +467,231 @@ func open_relic_reward(followup_segment: int = -1) -> void:
 ## name and the mark at a size a thumb can find, and the description wrapped
 ## underneath at reading size rather than folded into the button's own label.
 ## Shared by the relics and the portents because they are the same moment.
+## **What a card looks like**, and the one table its colour comes from.
+##
+## Cool grey to gold: a Common reads as stock, a Rare as something worth the slot
+## it takes. The border, the name and the ribbon all read from here, so a card
+## cannot say Rare in one place and look Common in another.
+const RARITY_TINT: Array[Color] = [
+	Color("b8c1bc"), Color("8fd6a4"), Color("8fb6ef"), Color("d8a85f"),
+]
+const RARITY_WORD: Array[String] = ["COMMON", "UNCOMMON", "RARE", "LEGENDARY"]
+
+## Portrait, and wide enough for two stat rows without wrapping. Three of these
+## sit across the panel with room around them.
+const PLAY_CARD := Vector2(286.0, 404.0)
+const PLAY_CARD_ART: int = 150
+
+## The rarity from which a card wears the travelling sheen. Highest only: a
+## hologram on everything is wallpaper.
+const HOLO_FROM_RARITY: int = 2
+
+## How bright the sheen is, and how long it takes to cross. Low, because the card
+## has to stay readable underneath it - the additive layer is a highlight, not a
+## wash.
+const HOLO_STRENGTH: float = 0.5
+const HOLO_SWEEP_SECONDS: float = 3.4
+
+## Every holographic skin on screen, ticked from `_process`.
+var _holo_skins: Array[ColorRect] = []
+var _holo_clock: float = 0.0
+
+
+## **One choice, as a card.**
+##
+## `stats` is an array of `[label, value]` pairs - what the thing actually does,
+## in the numbers it does it by. `flavour` is the line in data that says it in
+## words (working rule 9).
+func _play_card(id: String, name_line: String, rarity: int, icon_path: String,
+		stats: Array, flavour: String, on_press: Callable) -> Button:
+	var tint: Color = RARITY_TINT[clampi(rarity, 0, RARITY_TINT.size() - 1)]
+
+	# The whole card is the button: a card you have to find a button inside is a
+	# card that is harder to press than the row it replaced.
+	var button := Button.new()
+	button.custom_minimum_size = PLAY_CARD
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	button.add_theme_stylebox_override("normal", _card_face(tint, 0.0))
+	button.add_theme_stylebox_override("hover", _card_face(tint, 0.35))
+	button.add_theme_stylebox_override("pressed", _card_face(tint, 0.5))
+	button.add_theme_stylebox_override("focus", _card_face(tint, 0.35))
+	button.tooltip_text = "%s\n%s" % [name_line, flavour]
+	button.pressed.connect(on_press)
+	_buttons[id] = button
+
+	var face := VBoxContainer.new()
+	face.add_theme_constant_override("separation", 6)
+	face.set_anchors_preset(Control.PRESET_FULL_RECT)
+	face.offset_left = 14.0
+	face.offset_right = -14.0
+	face.offset_top = 12.0
+	face.offset_bottom = -12.0
+	# Every part of the face is decoration; the press belongs to the card.
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(face)
+
+	face.add_child(_card_line(name_line.to_upper(), 19, tint,
+		HORIZONTAL_ALIGNMENT_CENTER, true))
+	face.add_child(_card_line(RARITY_WORD[clampi(rarity, 0, RARITY_WORD.size() - 1)],
+		12, tint.darkened(0.15), HORIZONTAL_ALIGNMENT_CENTER))
+
+	# **The art, framed.** A picture floating on the plate reads as an icon that
+	# happened to land there; a recess makes it the card's illustration.
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel", _art_recess(tint))
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var art := TextureRect.new()
+	art.custom_minimum_size = Vector2(0.0, float(PLAY_CARD_ART))
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(icon_path):
+		art.texture = load(icon_path) as Texture2D
+	frame.add_child(art)
+	face.add_child(frame)
+
+	# **What it does, in the numbers it does it by.**
+	for pair: Array in stats:
+		var row := HBoxContainer.new()
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var label: Label = _card_line(String(pair[0]), 15, Color("9aa39e"),
+			HORIZONTAL_ALIGNMENT_LEFT)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+		row.add_child(_card_line(String(pair[1]), 15, tint.lightened(0.15),
+			HORIZONTAL_ALIGNMENT_RIGHT))
+		face.add_child(row)
+
+	var rule := ColorRect.new()
+	rule.color = Color(tint.r, tint.g, tint.b, 0.28)
+	rule.custom_minimum_size = Vector2(0.0, 1.0)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	face.add_child(rule)
+
+	var words: Label = _card_line(flavour, 14, Color("a8b0aa"),
+		HORIZONTAL_ALIGNMENT_CENTER)
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	face.add_child(words)
+
+	if rarity >= HOLO_FROM_RARITY:
+		_make_holographic(button, tint)
+
+	if _road_row != null:
+		_road_row.add_child(button)
+	else:
+		options_box.add_child(button)
+	return button
+
+
+## The plate a card is printed on: dark, with its rarity around the edge.
+func _card_face(tint: Color, lift: float) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.055, 0.062, 0.068, 0.96).lerp(
+		Color(tint.r, tint.g, tint.b, 0.96), 0.06 + lift * 0.12)
+	box.border_color = Color(tint.r, tint.g, tint.b, 0.55 + lift * 0.45)
+	box.set_border_width_all(2)
+	box.set_corner_radius_all(9)
+	box.set_content_margin_all(10.0)
+	box.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
+	box.shadow_size = 6
+	return box
+
+
+## The recess the illustration sits in.
+func _art_recess(tint: Color) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.03, 0.035, 0.04, 0.92)
+	box.border_color = Color(tint.r, tint.g, tint.b, 0.30)
+	box.set_border_width_all(1)
+	box.set_corner_radius_all(5)
+	box.set_content_margin_all(4.0)
+	return box
+
+
+func _card_line(text: String, size: int, tint: Color, align: int,
+		shadowed: bool = false) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", tint)
+	label.horizontal_alignment = align
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if shadowed:
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.75))
+		label.add_theme_constant_override("shadow_offset_y", 2)
+	return label
+
+
+## **The sheen the best cards wear.**
+##
+## `ui_hologram.gdshader` is the interface's own skin - the one `UiJuice` lays
+## over a hovered control - rather than `title_hologram`, which paints a
+## *texture* from the inside and on a plain rect outputs a solid white card. This
+## one declares `blend_add`, and that is a safety rule rather than a look: an
+## additive layer can only add light, so no line on the card loses contrast to
+## it. `ui_juice_check` reads that blend mode off the shader and refuses
+## `blend_mix`. Mouse-transparent, because a decoration must never eat a press.
+func _make_holographic(card: Control, tint: Color) -> void:
+	var shader: Shader = load("res://scripts/shaders/ui_hologram.gdshader") as Shader
+	if shader == null:
+		return
+	var skin := ColorRect.new()
+	skin.name = "Holo"
+	skin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	skin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skin.color = Color(1, 1, 1, 1)
+	var paint := ShaderMaterial.new()
+	paint.shader = shader
+	paint.set_shader_parameter("strength", HOLO_STRENGTH)
+	paint.set_shader_parameter("glow", Color(tint.r, tint.g, tint.b, 1.0))
+	skin.material = paint
+	card.add_child(skin)
+	_holo_skins.append(skin)
+
+
+## The sheen travels. Driven rather than looped inside the shader so every card
+## on screen shares one clock and no two drift apart.
+func _tick_holograms(delta: float) -> void:
+	if _holo_skins.is_empty():
+		return
+	_holo_clock += delta
+	for index: int in range(_holo_skins.size() - 1, -1, -1):
+		var skin: ColorRect = _holo_skins[index]
+		if skin == null or not is_instance_valid(skin):
+			_holo_skins.remove_at(index)
+			continue
+		var paint := skin.material as ShaderMaterial
+		if paint == null:
+			continue
+		# The sheen crosses the card and rests, over and over. `sweep` is where
+		# the band is, from below the card to past its top; outside 0..1 the
+		# shader draws none, which is the rest between passes.
+		var cycle: float = fposmod(_holo_clock / HOLO_SWEEP_SECONDS, 1.0)
+		paint.set_shader_parameter("sweep", -0.35 + cycle * 1.9)
+		paint.set_shader_parameter("strength", HOLO_STRENGTH)
+
+
+## **"+18%" or "+1 chain target".**
+##
+## The same rule `GearAffixData.line` follows - `chain_targets` and
+## `wave_foresight` are whole counts and everything else is a fraction - because
+## two formats for one table of numbers is how a card ends up promising "+0.18
+## chain targets".
+static func effect_figure(effect_id: String, magnitude: float) -> String:
+	if effect_id == "chain_targets" or effect_id == "wave_foresight":
+		return "%+d" % int(round(magnitude))
+	return "%+d%%" % int(round(magnitude * 100.0))
+
+
+## "tower_damage" -> "Tower damage". The keys are authored in snake_case and a
+## card is read by a person.
+static func effect_label(effect_id: String) -> String:
+	return effect_id.replace("_", " ").capitalize() if not effect_id.is_empty() else "Effect"
+
+
 func _add_treasure_card(id: String, name_line: String, body: String,
 		icon_path: String, tint: Color, on_press: Callable) -> void:
 	var card := PanelContainer.new()
@@ -582,9 +814,12 @@ func open_omen_choice() -> void:
 		var omen: OmenData = ContentDB.omen(omen_id)
 		if omen == null:
 			continue
-		_add_treasure_card(omen.id, omen.display_name,
-			"%s\n%s" % [omen.bane_text, omen.boon_text],
-			omen.get_sprite_path(), Color("c9a6e6"), _choose_omen.bind(omen.id))
+		# **The cost first.** A portent is a bargain and the bane is the half that
+		# decides it, which is why the card leads with it - the same reasoning the
+		# screen was built under.
+		_play_card(omen.id, omen.display_name, 3, omen.get_sprite_path(),
+			[["Bane", omen.bane_text], ["Boon", omen.boon_text]],
+			omen.portent, _choose_omen.bind(omen.id))
 	_road_row = null
 	_dress_options()
 	panel.visible = true
@@ -711,14 +946,31 @@ func open_road_card_choice() -> void:
 	for child: Node in options_box.get_children():
 		child.queue_free()
 	title.text = "WHAT THE ROAD TAUGHT  ·  keep one"
+	# **The one draft that carries a real rarity**, so this is where the colour
+	# coding and the sheen actually mean something: a Common reads as stock and a
+	# Rare wears the travelling highlight.
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = HBoxContainer.new()
+	_road_row.add_theme_constant_override("separation", 22)
+	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	options_box.add_child(_road_row)
 	for card_id: String in RunState.pending_road_cards:
 		var card: RoadCardData = ContentDB.road_card(card_id)
 		if card == null:
 			continue
-		var button: Button = _card_button(card, _replacement_for(card))
-		button.pressed.connect(_choose_road_card.bind(card.id))
-		_buttons[card.id] = button
-		options_box.add_child(button)
+		var rows: Array = [[effect_label(card.effect_id),
+			effect_figure(card.effect_id, card.effect_magnitude)]]
+		var replaces: String = _replacement_for(card)
+		if not replaces.is_empty():
+			rows.append(["Replaces", replaces])
+		elif RunState.road_card_hand_is_full():
+			rows.append(["Hand", "full"])
+		_play_card(card.id, card.display_name, int(card.rarity),
+			card.get_sprite_path(), rows, card.card_text,
+			_choose_road_card.bind(card.id))
+	_road_row = null
+	_dress_options()
 	panel.visible = true
 
 
@@ -771,13 +1023,25 @@ func _open_drop_choice(card: RoadCardData) -> void:
 	for child: Node in options_box.get_children():
 		child.queue_free()
 	title.text = "%s  ·  leave one behind" % card.display_name.to_upper()
+	# The hand is shown as the cards it is: choosing which of five to leave
+	# behind is a comparison between five things, and a column of rows does not
+	# support one.
+	options_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_road_row = HBoxContainer.new()
+	_road_row.add_theme_constant_override("separation", 14)
+	_road_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_road_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	options_box.add_child(_road_row)
 	for held: String in RunState.road_cards:
 		var other: RoadCardData = ContentDB.road_card(held)
 		if other == null:
 			continue
-		var button: Button = _card_button(other, "")
-		button.text = "LEAVE %s\n%s" % [other.display_name.to_upper(), other.card_text]
-		button.pressed.connect(_send_road_card.bind(_pending_take, held))
+		var button: Button = _play_card(other.id, other.display_name,
+			int(other.rarity), other.get_sprite_path(),
+			[[effect_label(other.effect_id),
+				effect_figure(other.effect_id, other.effect_magnitude)],
+				["", "LEAVE THIS ONE"]],
+			other.card_text, _send_road_card.bind(_pending_take, held))
 		_buttons[held] = button
 		options_box.add_child(button)
 	panel.visible = true
