@@ -2021,6 +2021,11 @@ func _read_pen(stored: Dictionary) -> void:
 			"rarity": clampi(int(animal.get("rarity", 0)), 0, 3),
 			"shiny": bool(animal.get("shiny", false)),
 			"trait": String(animal.get("trait", "")),
+			# **How hurt it is, and when that was last worked out.** Absent on
+			# every entry written before 2026-09-16, which reads as a whole
+			# animal - which is what those animals were. See `pen_health`.
+			"health": clampf(float(animal.get("health", 1.0)), 0.0, 1.0),
+			"healed_at": float(animal.get("healed_at", 0.0)),
 		})
 		if pen.size() >= Balance.PEN_CAPACITY:
 			break
@@ -2064,7 +2069,7 @@ func pen_has_room() -> bool:
 ## the journal should record the first whether or not there is room for the
 ## second.
 func pen_add(species_id: String, rarity: int, shiny: bool,
-		trait_id: String = "") -> String:
+		trait_id: String = "", health: float = 1.0) -> String:
 	if species_id.is_empty() or not pen_has_room():
 		return ""
 	if ContentDB.wildlife_kinds.get(species_id, null) == null:
@@ -2076,9 +2081,84 @@ func pen_add(species_id: String, rarity: int, shiny: bool,
 		"rarity": clampi(rarity, 0, 3),
 		"shiny": shiny,
 		"trait": trait_id,
+		# Something caught is caught *hurt* - that is how it was caught - and
+		# the pen is where it gets better.
+		"health": clampf(health, 0.0, 1.0),
+		"healed_at": Time.get_unix_time_from_system(),
 	})
 	save_game()
 	return uid
+
+
+# --- The pen mends, on the wall clock (2026-09-16) ----------------------------------------
+
+## **How whole an animal in the pen is, 0 to 1**, reckoned now.
+##
+## Computed on read rather than kept up to date on write: a number that is only
+## correct after somebody remembered to refresh it is a number that is wrong, and
+## this is the one place that works it out, so the pen screen and the companion
+## that walks out of it cannot disagree.
+##
+## The rate is the road's own share of the pool, times `PEN_REGEN_SCALE` -
+## nothing is hunting it in there and somebody is feeding it - so a pen heals a
+## bear and a rabbit in the same time, respective to each one's own maximum,
+## which is the shape the owner asked for.
+func pen_health(uid: String) -> float:
+	var animal: Dictionary = penned(uid)
+	if animal.is_empty():
+		return 0.0
+	return _reckon_pen_health(animal)
+
+
+func _reckon_pen_health(animal: Dictionary) -> float:
+	var health: float = clampf(float(animal.get("health", 1.0)), 0.0, 1.0)
+	if health >= 1.0:
+		return 1.0
+	var stamped: float = float(animal.get("healed_at", 0.0))
+	var now: float = Time.get_unix_time_from_system()
+	if stamped <= 0.0:
+		animal["healed_at"] = now
+		return health
+	# **A clock that went backwards mends nothing.** A player who changes their
+	# system time, or a machine correcting itself, must not be able to make an
+	# animal *un*-heal; the stamp is simply moved up to now.
+	var elapsed: float = now - stamped
+	if elapsed <= 0.0:
+		animal["healed_at"] = now
+		return health
+	# Capped, because coming back after a month should not be a different
+	# feature from coming back after a day.
+	elapsed = minf(elapsed, Balance.PEN_REGEN_MAX_HOURS * 3600.0)
+	var rate: float = Balance.WILDLIFE_REGEN_SHARE * Balance.WILDLIFE_REGEN_CALM_SCALE \
+		* Balance.PEN_REGEN_SCALE
+	health = clampf(health + rate * elapsed, 0.0, 1.0)
+	animal["health"] = health
+	animal["healed_at"] = now
+	return health
+
+
+## How long until this one is whole, in seconds of real time. Zero when it is.
+## Used by the pen screen, which says it in hours and minutes rather than as a
+## bar creeping - a bar that moves a pixel an hour reads as a bar that is stuck.
+func pen_seconds_to_whole(uid: String) -> float:
+	var health: float = pen_health(uid)
+	if health >= 1.0:
+		return 0.0
+	var rate: float = Balance.WILDLIFE_REGEN_SHARE * Balance.WILDLIFE_REGEN_CALM_SCALE \
+		* Balance.PEN_REGEN_SCALE
+	return (1.0 - health) / maxf(rate, 0.000001)
+
+
+## An animal came home hurt - off the road, or out of a run. Stamped now, so its
+## mending starts from this moment rather than from whenever it was last read.
+func pen_set_health(uid: String, health: float) -> void:
+	for animal: Dictionary in pen:
+		if String(animal.get("uid", "")) != uid:
+			continue
+		animal["health"] = clampf(health, 0.0, 1.0)
+		animal["healed_at"] = Time.get_unix_time_from_system()
+		save_game()
+		return
 
 
 ## **Let one go.** It leaves the pen and the account keeps the bond, which is the

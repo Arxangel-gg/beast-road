@@ -44,6 +44,7 @@ func _ready() -> void:
 	_test_taking_one_out()
 	_test_losing_one_keeps_the_bond()
 	_test_it_reads_back()
+	_test_the_pen_mends_over_real_time()
 	await _test_the_yard()
 	MetaState.resume_saves()
 	if _failures == 0:
@@ -221,6 +222,51 @@ func _test_it_reads_back() -> void:
 ## twelve is not twelve copies of one animation, and writes nothing back - the
 ## brief asked for animals that idle, roam and rest, and the failure worth
 ## catching is a yard that quietly became the authority on what is kept.
+## **The pen mends on the wall clock** (owner, 2026-09-16).
+##
+## Driven by moving the stamp rather than by waiting, because the thing under
+## test is a clock and a gate cannot wait an hour. That is also the honest test:
+## the feature's whole claim is that it works on elapsed real time whether or not
+## the game was running, so backdating the stamp *is* the game having been shut.
+func _test_the_pen_mends_over_real_time() -> void:
+	MetaState.pen.clear()
+	var uid: String = MetaState.pen_add("rabbit", 0, false, "", 0.2)
+	_check(not uid.is_empty(), "a hurt animal goes into the pen")
+	_check(is_equal_approx(MetaState.pen_health(uid), 0.2),
+		"and it is as hurt as it was put in (%.2f)" % MetaState.pen_health(uid))
+	# An hour ago.
+	var animal: Dictionary = MetaState.penned(uid)
+	animal["healed_at"] = Time.get_unix_time_from_system() - 3600.0
+	var after: float = MetaState.pen_health(uid)
+	_check(after > 0.2, "an hour of real time mends it (%.2f -> %.2f)" % [0.2, after])
+	_check(after <= 1.0, "and never past whole (%.2f)" % after)
+	# **Never backwards.** A player who moves their system clock, or a machine
+	# correcting itself, must not be able to un-heal an animal.
+	var held: float = MetaState.pen_health(uid)
+	animal["healed_at"] = Time.get_unix_time_from_system() + 9000.0
+	_check(MetaState.pen_health(uid) >= held,
+		"a clock that went backwards did not un-heal it (%.2f -> %.2f)"
+			% [held, MetaState.pen_health(uid)])
+	# **Capped.** A month away is not a different feature from a day away.
+	MetaState.pen_set_health(uid, 0.05)
+	animal["healed_at"] = Time.get_unix_time_from_system() - 3600.0 * 24.0 * 400.0
+	_check(MetaState.pen_health(uid) <= 1.0, "a year away is still at most whole")
+	# And it survives being written out and read back, which is the whole point
+	# of storing the stamp rather than a countdown.
+	MetaState.pen_set_health(uid, 0.4)
+	var written: Dictionary = {"animals": MetaState.pen.duplicate(true),
+		"taken": MetaState.pen_taken}
+	MetaState.pen.clear()
+	MetaState.call("_read_pen", written)
+	_check(is_equal_approx(MetaState.pen_health(uid), 0.4),
+		"a hurt animal is still hurt after a save and a load (%.2f)"
+			% MetaState.pen_health(uid))
+	# A whole animal costs nothing to ask about and stays whole.
+	var well: String = MetaState.pen_add("fox", 0, false, "", 1.0)
+	_check(is_equal_approx(MetaState.pen_health(well), 1.0), "a whole animal stays whole")
+	MetaState.pen.clear()
+
+
 func _test_the_yard() -> void:
 	_clear()
 	var species: String = _a_species()

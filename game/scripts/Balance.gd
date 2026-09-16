@@ -8389,6 +8389,27 @@ const WILDLIFE_BOLT_DISTANCE: float = 460.0
 ## and it never should have stopped one *answering* a blow. This is the window in
 ## which a struck animal is allowed to, and it decays so that a predator left
 ## alone goes back to being docile rather than remembering for ever. [TUNE]
+## **Wildlife mend** (owner, 2026-09-16), and slowly enough that it is never a
+## way to win a fight. A share of the animal's own pool a second, so a bear takes
+## as long to come back from half as a rabbit does - the rate is respective to
+## what it has, which is what "respective to each wildlife's max hp" means.
+const WILDLIFE_REGEN_SHARE: float = 0.004
+## How long it must go untouched before it starts mending faster, and how much
+## faster it gets. The acceleration is what makes leaving a region and coming
+## back different from breaking off a fight and turning round.
+const WILDLIFE_REGEN_CALM_SECONDS: float = 26.0
+const WILDLIFE_REGEN_CALM_SCALE: float = 6.0
+## How long the acceleration takes to arrive once it starts, so an animal does
+## not visibly change gear the instant its clock runs out.
+const WILDLIFE_REGEN_RAMP_SECONDS: float = 18.0
+## **A pen mends on the wall clock.** How much faster than the road, because
+## nothing is hunting it and somebody is feeding it - and because the pen is
+## where a player leaves an animal precisely so that it gets better.
+const PEN_REGEN_SCALE: float = 9.0
+## The most real time a single reckoning will credit, however long the game was
+## shut. A month away should not be a different feature from a day away.
+const PEN_REGEN_MAX_HOURS: float = 48.0
+
 const WILDLIFE_PROVOKED_SECONDS: float = 8.0
 ## A hostile animal that takes a blow may break off and come back later.
 const WILDLIFE_HOSTILE_FLEE_CHANCE: float = 0.35
@@ -8426,6 +8447,24 @@ const AMPHIBIAN_AMBUSH_SPEED: float = 2.4
 const AMPHIBIAN_LUNGE_RANGE: float = 96.0
 ## The wake a submerged animal leaves, and how often.
 const AMPHIBIAN_WAKE_SECONDS: float = 0.9
+
+## **The symbol over the Warden's head** (owner, 2026-09-16). Drawn by
+## `InteractBadge`, which reads the prompt line and is read by nothing.
+const INTERACT_BADGE_Z: int = 8
+const INTERACT_BADGE_ART: String = "res://art/icons/ui/ui_interact_%s.png"
+const INTERACT_BADGE_SIZE: float = 46.0
+## How long it takes to arrive and to go. Eased rather than switched, so walking
+## along a line of seams shows the symbol travelling rather than flickering.
+const INTERACT_BADGE_FADE: float = 0.16
+## How far it overshoots on the way in. Arriving may bounce; leaving may not -
+## a bounce on the way out reads as a second event.
+const INTERACT_BADGE_OVERSHOOT: float = 0.38
+const INTERACT_BADGE_BOB: float = 4.0
+const INTERACT_BADGE_BOB_RATE: float = 2.6
+## The soft pool behind it, which is what makes a small symbol readable against
+## foliage without an outline.
+const INTERACT_BADGE_HALO: Color = Color(1.0, 0.92, 0.72, 0.3)
+const INTERACT_BADGE_HALO_SIZE: float = 92.0
 
 const WILDLIFE_POND_TRUCE_RADIUS: float = 300.0
 const WILDLIFE_POND_TRUCE_CHANCE: float = 0.8

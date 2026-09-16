@@ -227,6 +227,7 @@ var _swim_depth: float = 0.0
 var _swimming: bool = false
 var _swim_ripple_in: float = 0.0
 var _swim_cover: SwimCover = null
+var _badge: InteractBadge = null
 ## True from the moment a hero drowns until it stands again.
 var _drowned: bool = false
 var _beast_stun_left: float = 0.0
@@ -343,6 +344,13 @@ func _ready() -> void:
 	_swim_cover.name = "SwimCover"
 	_swim_cover.sprite = sprite
 	add_child(_swim_cover)
+	# **The symbol that says what can be done here** (owner, 2026-09-16). Only
+	# over this machine's own Warden: a partner's prompt is their business, and
+	# a badge over an ally would be this screen guessing at another player's
+	# reach. `InteractBadge` reads the prompt line and is read by nothing.
+	if is_local_player():
+		_badge = InteractBadge.new()
+		add_child(_badge)
 	attack.landed.connect(_on_attack_landed)
 
 	spells.field = field

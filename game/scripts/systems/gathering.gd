@@ -241,7 +241,7 @@ func _process(delta: float) -> void:
 	var kind: GatherNodeData = ContentDB.gather_node(String(_nodes[near]["id"]))
 	if kind == null:
 		return
-	_set_prompt("%s  ·  %s" % [_verb(kind), kind.display_name], "WORK")
+	_set_prompt("%s  ·  %s" % [_verb(kind), kind.display_name], "WORK", _kind_of(kind))
 	var source := who.get("input") as HeroInput
 	if source != null and source.pressed(HeroInput.BUTTON_INTERACT):
 		_begin(near, kind)
@@ -518,16 +518,28 @@ func _local_hero() -> Node2D:
 
 ## The name this system speaks on the shared prompt line under.
 const PROMPT_OWNER: StringName = &"gathering"
+## The two things this system offers. One owner, so the prompt line still
+## dedupes as one; two kinds, so the symbol over the hero's head is a pickaxe at
+## a seam and an axe at a stand of timber.
+const PROMPT_KIND_TIMBER: StringName = &"timber"
+const PROMPT_KIND_SEAM: StringName = &"seam"
 
 
-func _set_prompt(text: String, button: String) -> void:
+## Which symbol this node wears over the hero's head: an axe at timber, a
+## pickaxe at stone. One owner on the prompt line, two kinds on the badge.
+func _kind_of(kind: GatherNodeData) -> StringName:
+	return PROMPT_KIND_TIMBER if kind.timber else PROMPT_KIND_SEAM
+
+
+func _set_prompt(text: String, button: String, kind: StringName = &"") -> void:
 	# **Deduped only while this system still holds the line.** Six systems share
 	# it; one that has lost it has to say its piece again rather than sit on a
 	# cache that no longer describes the screen. See `EventBus.claim_prompt`.
 	if text == _prompt and button == _prompt_button \
 			and EventBus.prompt_owner() == PROMPT_OWNER:
 		return
-	if not EventBus.claim_prompt(PROMPT_OWNER, text):
+	if not EventBus.claim_prompt(PROMPT_OWNER, text,
+			kind if not kind.is_empty() else PROMPT_OWNER):
 		return
 	_prompt = text
 	_prompt_button = button

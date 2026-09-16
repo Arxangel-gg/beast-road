@@ -1001,6 +1001,11 @@ func _tick_one(animal: Dictionary, delta: float) -> bool:
 		animal["state"] = State.LEAVING
 		animal["goal"] = _bolt_target(sprite.global_position)
 
+	# **Mending**, before anything decides anything: an animal that has been left
+	# alone is slowly coming back, and a long-lived one that was hurt early in a
+	# region should not still be at a sliver when the road leaves it.
+	_mend(animal, kind, delta)
+
 	# A thief decides its own frames: the loot it saw, the cover it runs to,
 	# the plant it digs at. The host decides; a guest's puppet is walked by
 	# the batch and dressed by the sack fact.
@@ -1873,6 +1878,44 @@ func projectile_bodies(at: Vector2, radius: float) -> Array[Dictionary]:
 
 ## Puts damage into one animal, and pays out if that finishes it.
 ##
+## **A wounded animal comes back, slowly, and faster the longer it is left.**
+##
+## Deliberately too slow to matter inside a fight: at `WILDLIFE_REGEN_SHARE` a
+## deer takes minutes to climb out of half, so breaking off and turning round
+## meets the same animal. What it changes is the *region*: something wounded and
+## left alone is whole again by the time the road comes back past it.
+##
+## The rate is a share of the animal's own pool rather than a flat number, which
+## is what makes it respective to each species - a bear and a rabbit take the
+## same time to come back from half, which is the only version of this that does
+## not quietly make big animals unkillable or small ones invulnerable.
+func _mend(animal: Dictionary, kind: WildlifeData, delta: float) -> void:
+	var hp: float = float(animal.get("hp", 0.0))
+	if hp <= 0.0 or float(animal.get("dying", 0.0)) > 0.0:
+		return
+	var full: float = kind.max_hp * (Balance.WILDLIFE_ELITE_HEALTH
+		if bool(animal.get("elite", false)) else 1.0)
+	if hp >= full:
+		animal["calm"] = float(animal.get("calm", 0.0)) + delta
+		return
+	var calm: float = float(animal.get("calm", 0.0)) + delta
+	animal["calm"] = calm
+	# Eased in rather than switched on, so nothing visibly changes gear the
+	# instant a clock runs out.
+	var settled: float = clampf((calm - Balance.WILDLIFE_REGEN_CALM_SECONDS)
+		/ maxf(Balance.WILDLIFE_REGEN_RAMP_SECONDS, 0.01), 0.0, 1.0)
+	var rate: float = Balance.WILDLIFE_REGEN_SHARE \
+		* lerpf(1.0, Balance.WILDLIFE_REGEN_CALM_SCALE, settled)
+	animal["hp"] = minf(hp + full * rate * delta, full)
+	var bar := animal.get("bar", null) as ProgressBar
+	if bar != null and is_instance_valid(bar):
+		bar.value = clampf(float(animal["hp"]) / maxf(full, 1.0), 0.0, 1.0)
+		# Whole again: the bar goes away, which is how a player learns that
+		# leaving something alone works.
+		if float(animal["hp"]) >= full and not bool(animal.get("elite", false)):
+			bar.visible = false
+
+
 ## Health rather than a one-hit kill, because the owner asked for size to matter:
 ## a rabbit should die to a swing and a deer should take a few, which is the only
 ## way "larger gives more" is a decision rather than a lottery.
@@ -1903,6 +1946,10 @@ func _wound(index: int, animal: Dictionary, damage: float = -1.0, by_player: boo
 	# hunt; this is what lets one finish a fight somebody else started.
 	if by_player:
 		animal["provoked"] = Balance.WILDLIFE_PROVOKED_SECONDS
+	# **Hurt resets the calm.** Mending only accelerates after a stretch of not
+	# being touched, and this is the one funnel every wound goes through, so
+	# there is no second place that could forget to reset it.
+	animal["calm"] = 0.0
 	var body_at: Vector2 = _visual_origin(sprite)
 	Vfx.spark(body_at, Color("c4552e"), 6,
 		Vector2.UP, 170.0)

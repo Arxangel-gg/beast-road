@@ -84,14 +84,28 @@ var _prompt_owner: StringName = &""
 ## Anybody with something to say may take it. **A clear is only honoured from
 ## whoever is currently holding it**, which is the whole of the fix: a system
 ## with nothing to say can no longer speak over one that has.
-func claim_prompt(owner: StringName, text: String) -> bool:
+func claim_prompt(owner: StringName, text: String, kind: StringName = &"") -> bool:
 	if text.is_empty():
 		if _prompt_owner != owner:
 			return false
 		_prompt_owner = &""
+		_prompt_kind = &""
 		return true
 	_prompt_owner = owner
+	# **What kind of thing is offering**, for the symbol over the hero's head
+	# (owner, 2026-09-16). Defaults to the owner, which is right for seven of
+	# the eight: only `gathering` covers two different things - a stone seam and
+	# a stand of timber - and it says which.
+	_prompt_kind = kind if not kind.is_empty() else owner
 	return true
+
+
+var _prompt_kind: StringName = &""
+
+
+## What is being offered, for anything that wants to draw it rather than say it.
+func prompt_kind() -> StringName:
+	return _prompt_kind
 
 
 ## Who is being shown, so a system that has lost the line knows to say its piece

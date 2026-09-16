@@ -1793,6 +1793,7 @@ All 128×128, type T, placeholder colour `#D9CDB8`.
 `ui_captive.png` · `ui_wave.png` · `ui_upgrade.png` · `ui_build.png` ·
 `ui_pause.png` · `ui_settings.png` · `ui_lock.png` · `ui_close.png` ·
 `ui_command.png` · `ui_command_overdrive.png` · `ui_command_rally.png` ·
+`ui_interact_fishing.png` · `ui_interact_seam.png` · `ui_interact_timber.png` · `ui_interact_farming.png` · `ui_interact_rift_gates.png` · `ui_interact_nests.png` · `ui_interact_tower.png` · `ui_interact_dungeon_chest.png` · `ui_interact_dungeon_portal.png` ·
 `ui_command_last_stand.png` · `ui_wood.png` · `ui_food.png` · `ui_gold.png` ·
 `ui_stone.png` · `ui_hero_health.png` · `ui_wounds.png` · `ui_last_scar.png` ·
 `ui_resurrection_draught.png` · `ui_hearthroot_tonic.png` ·
