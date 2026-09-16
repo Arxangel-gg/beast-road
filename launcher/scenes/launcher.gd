@@ -55,6 +55,29 @@ var _skip_launcher_update: bool = false
 const SPINNER_FRAMES: Array[String] = ["·  ", "·· ", "···", " ··", "  ·", "   "]
 
 
+## **F11 fills the screen, F11 or Escape leaves it.**
+##
+## The launcher opened *forced* fullscreen at 1920x1080 (`window/size/mode=3`),
+## which is a lot of screen for a thing whose whole job is to fetch a zip: it
+## covered whatever the player was doing while it downloaded, and could not be
+## moved aside. It opens windowed and resizable now, and fullscreen is a choice.
+##
+## `_unhandled_input` rather than `_input`, so a key pressed while a text field
+## has focus goes to the field first.
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	var full: bool = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	if key.keycode == KEY_F11:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full
+			else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		get_viewport().set_input_as_handled()
+	elif key.keycode == KEY_ESCAPE and full:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		get_viewport().set_input_as_handled()
+
+
 func _ready() -> void:
 	_http = HTTPRequest.new()
 	_http.use_threads = true

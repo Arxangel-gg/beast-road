@@ -30,16 +30,55 @@ $cGreen  = [System.Drawing.Color]::FromArgb(122, 168, 108)
 
 $form                 = New-Object System.Windows.Forms.Form
 $form.Text            = 'Wilderhold - Update Manager'
-$form.Size            = New-Object System.Drawing.Size(776, 700)
+$form.Size            = New-Object System.Drawing.Size(1040, 760)
+# **A floor rather than a fixed size.** It used to be 776x700 and nothing inside
+# followed the window, so dragging it bigger only grew the grey around a fixed
+# island. The floor is what the Publish tab genuinely needs to lay out; above it
+# everything stretches.
+$form.MinimumSize     = New-Object System.Drawing.Size(720, 560)
 $form.StartPosition   = 'CenterScreen'
 $form.BackColor       = $cVoid
 $form.ForeColor       = $cBone
 $form.Font            = New-Object System.Drawing.Font('Segoe UI', 10)
+$form.KeyPreview      = $true
 
 $tabs                 = New-Object System.Windows.Forms.TabControl
-$tabs.Location        = New-Object System.Drawing.Point(6, 6)
-$tabs.Size            = New-Object System.Drawing.Size(752, 652)
+# Filled rather than placed, so the tab strip *is* the window.
+$tabs.Dock            = 'Fill'
+$form.Padding         = New-Object System.Windows.Forms.Padding(6)
 $form.Controls.Add($tabs)
+
+# --- Fullscreen ------------------------------------------------------------
+#
+# F11 in, F11 or Escape out. The bounds are remembered rather than recomputed so
+# that leaving puts the window back exactly where it was, instead of somewhere
+# near it - a maximised window restored by size alone drifts every time.
+$script:WasBounds = $null
+$script:WasState  = $form.WindowState
+function script:Toggle-Fullscreen {
+    if ($null -eq $script:WasBounds) {
+        $script:WasBounds = $form.Bounds
+        $script:WasState  = $form.WindowState
+        $form.WindowState = 'Normal'
+        $form.FormBorderStyle = 'None'
+        $form.Bounds = [System.Windows.Forms.Screen]::FromControl($form).Bounds
+    } else {
+        $form.FormBorderStyle = 'Sizable'
+        $form.WindowState = $script:WasState
+        $form.Bounds = $script:WasBounds
+        $script:WasBounds = $null
+    }
+}
+$form.Add_KeyDown({
+    param($sender, $e)
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::F11) {
+        script:Toggle-Fullscreen
+        $e.Handled = $true
+    } elseif ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape -and $null -ne $script:WasBounds) {
+        script:Toggle-Fullscreen
+        $e.Handled = $true
+    }
+})
 
 $pagePublish          = New-Object System.Windows.Forms.TabPage
 $pagePublish.Text     = 'Publish'
@@ -771,79 +810,112 @@ function New-TuningTab {
     $page.BackColor = $cVoid
     $TabControl.TabPages.Add($page)
 
+    # **Three docked bands rather than absolute points.** A filter strip at the
+    # top, the buttons at the bottom, and the middle takes whatever is left - so
+    # the window's size is the page's size. Added bottom-first: WinForms docks in
+    # reverse order of addition, and a Fill added before a Bottom eats the
+    # bottom's room.
+    $tuneBottom = New-Object System.Windows.Forms.Panel
+    $tuneBottom.Dock = 'Bottom'
+    $tuneBottom.Height = 104
+    $tuneBottom.BackColor = $cVoid
+    $page.Controls.Add($tuneBottom)
+
+    $tuneTop = New-Object System.Windows.Forms.Panel
+    $tuneTop.Dock = 'Top'
+    $tuneTop.Height = 44
+    $tuneTop.BackColor = $cVoid
+    $page.Controls.Add($tuneTop)
+
+    $tuneMiddle = New-Object System.Windows.Forms.Panel
+    $tuneMiddle.Dock = 'Fill'
+    $tuneMiddle.BackColor = $cVoid
+    $page.Controls.Add($tuneMiddle)
+
     # --- filter ---
     $lblFind = New-Object System.Windows.Forms.Label
     $lblFind.Text = 'Filter'
-    $lblFind.Location = New-Object System.Drawing.Point(14, 14)
+    $lblFind.Location = New-Object System.Drawing.Point(14, 12)
     $lblFind.Size = New-Object System.Drawing.Size(50, 24)
     $lblFind.ForeColor = $cBone
-    $page.Controls.Add($lblFind)
+    $tuneTop.Controls.Add($lblFind)
 
     $script:txtFind = New-Object System.Windows.Forms.TextBox
-    $script:txtFind.Location = New-Object System.Drawing.Point(64, 11)
+    $script:txtFind.Location = New-Object System.Drawing.Point(64, 9)
     $script:txtFind.Size = New-Object System.Drawing.Size(300, 26)
     $script:txtFind.BackColor = $cSlate
     $script:txtFind.ForeColor = $cBone
     $script:txtFind.BorderStyle = 'FixedSingle'
-    $page.Controls.Add($script:txtFind)
+    $tuneTop.Controls.Add($script:txtFind)
 
     $script:lblCount = New-Object System.Windows.Forms.Label
-    $script:lblCount.Location = New-Object System.Drawing.Point(376, 14)
+    $script:lblCount.Location = New-Object System.Drawing.Point(376, 12)
     $script:lblCount.Size = New-Object System.Drawing.Size(340, 24)
     $script:lblCount.ForeColor = [System.Drawing.Color]::FromArgb(150, 160, 160)
-    $page.Controls.Add($script:lblCount)
+    $tuneTop.Controls.Add($script:lblCount)
 
     # --- sections ---
     $script:tree = New-Object System.Windows.Forms.TreeView
-    $script:tree.Location = New-Object System.Drawing.Point(14, 48)
-    $script:tree.Size = New-Object System.Drawing.Size(230, 470)
+    $script:tree.Dock = 'Left'
+    $script:tree.Width = 260
     $script:tree.BackColor = $cSlate
     $script:tree.ForeColor = $cBone
     $script:tree.BorderStyle = 'FixedSingle'
     $script:tree.HideSelection = $false
-    $page.Controls.Add($script:tree)
+    $tuneMiddle.Controls.Add($script:tree)
+
+    # **The divider the owner asked for.** How much room the sections get against
+    # the values is a matter of what you are doing - reading a long list, or
+    # editing one number - so it is dragged rather than decided here.
+    $split = New-Object System.Windows.Forms.Splitter
+    $split.Dock = 'Left'
+    $split.Width = 6
+    $split.BackColor = [System.Drawing.Color]::FromArgb(70, 84, 90)
+    $split.MinExtra = 220
+    $split.MinSize = 160
+    $tuneMiddle.Controls.Add($split)
 
     # --- values ---
     $script:scroll = New-Object System.Windows.Forms.Panel
-    $script:scroll.Location = New-Object System.Drawing.Point(254, 48)
-    $script:scroll.Size = New-Object System.Drawing.Size(462, 470)
+    $script:scroll.Dock = 'Fill'
     $script:scroll.AutoScroll = $true
     $script:scroll.BackColor = [System.Drawing.Color]::FromArgb(8, 14, 16)
     $script:scroll.BorderStyle = 'FixedSingle'
-    $page.Controls.Add($script:scroll)
+    $tuneMiddle.Controls.Add($script:scroll)
 
     $lblHelp = New-Object System.Windows.Forms.Label
-    $lblHelp.Location = New-Object System.Drawing.Point(14, 524)
+    $lblHelp.Location = New-Object System.Drawing.Point(14, 4)
     $lblHelp.Size = New-Object System.Drawing.Size(702, 40)
+    $lblHelp.Anchor = 'Top, Left, Right'
     $lblHelp.ForeColor = [System.Drawing.Color]::FromArgb(150, 165, 160)
     $lblHelp.Text = 'Changes are only written when you press Save. Publish afterwards to ship them.'
-    $page.Controls.Add($lblHelp)
+    $tuneBottom.Controls.Add($lblHelp)
 
     $btnSave = New-Object System.Windows.Forms.Button
     $btnSave.Text = 'SAVE CHANGES'
-    $btnSave.Location = New-Object System.Drawing.Point(14, 566)
+    $btnSave.Location = New-Object System.Drawing.Point(14, 50)
     $btnSave.Size = New-Object System.Drawing.Size(200, 40)
     $btnSave.BackColor = $cRust
     $btnSave.ForeColor = $cBone
     $btnSave.FlatStyle = 'Flat'
     $btnSave.FlatAppearance.BorderColor = $cAmber
-    $page.Controls.Add($btnSave)
+    $tuneBottom.Controls.Add($btnSave)
 
     $btnReload = New-Object System.Windows.Forms.Button
     $btnReload.Text = 'Reload from disk'
-    $btnReload.Location = New-Object System.Drawing.Point(226, 566)
+    $btnReload.Location = New-Object System.Drawing.Point(226, 50)
     $btnReload.Size = New-Object System.Drawing.Size(160, 40)
     $btnReload.BackColor = $cSlate
     $btnReload.ForeColor = $cBone
     $btnReload.FlatStyle = 'Flat'
     $btnReload.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(70, 84, 90)
-    $page.Controls.Add($btnReload)
+    $tuneBottom.Controls.Add($btnReload)
 
     $script:lblSaved = New-Object System.Windows.Forms.Label
-    $script:lblSaved.Location = New-Object System.Drawing.Point(400, 576)
+    $script:lblSaved.Location = New-Object System.Drawing.Point(400, 60)
     $script:lblSaved.Size = New-Object System.Drawing.Size(316, 24)
     $script:lblSaved.ForeColor = $cGreen
-    $page.Controls.Add($script:lblSaved)
+    $tuneBottom.Controls.Add($script:lblSaved)
 
     # --- data ---
     $script:AllEntries = Load-TuningEntries

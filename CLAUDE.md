@@ -3998,6 +3998,36 @@ fox turning blue, a marking must still never be mistaken for the rank sheen that
 says rarity, nothing reads a pattern, and `Graphics.KEY_PHENOTYPE` still turns
 every one of them off with no number moving.
 
+**The Update Manager and the launcher are windows rather than fixed pictures, as
+of 2026-09-16.** Owner: "elevate the update manager tool app so that it can be
+resized appropriately and also allowing panels to be stretched for convenience,
+as well as allowing fullscreen support", and "elevate the launcher app".
+
+**The Update Manager resized and nothing followed.** The form was a fixed
+776x700 and every control inside it sat at an absolute point with an absolute
+size, so dragging the window bigger grew the grey around a 752x652 island - the
+tuning tree stayed 260 wide with a hundred entries in it however much room there
+was. The tab strip fills the form now, and the tuning page is three docked bands:
+a filter strip, a button strip, and a middle that takes the rest.
+
+**The divider is the part that was actually asked for.** A `Splitter` between the
+sections tree and the values panel, because how much room each deserves depends
+on what you are doing - reading a long list, or editing one number - and that is
+the user's call rather than a number in this file. **Docked bottom-first**, since
+WinForms docks in reverse order of addition and a `Fill` added before a `Bottom`
+eats the bottom's room.
+
+**F11 fills the screen in both apps**, Escape leaves. The bounds are *remembered*
+rather than recomputed, so leaving puts the window back exactly where it was - a
+window restored by size alone drifts a little every time.
+
+**And the launcher stops taking the whole screen to fetch a zip.** It opened
+forced fullscreen at 1920x1080 (`window/size/mode=3`), which covered whatever the
+player was doing while it downloaded and could not be moved aside. Windowed at
+1280x800 and resizable, with fullscreen as a choice. Its key handling is
+`_unhandled_input` rather than `_input`, so a key pressed while a text field has
+focus reaches the field first.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
