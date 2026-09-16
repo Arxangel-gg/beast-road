@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_terrain")
+battle_music = "battle_desert"
 breed_id = "horde_lancer"
 enemy_ids = Array[String](["horde_lancer", "horde_shieldman", "horde_drummer", "steppehorde", "wolf_rider"])
 elite_ids = Array[String](["wolf_standard_bearer", "siege_lizard"])

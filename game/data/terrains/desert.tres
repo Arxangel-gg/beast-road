@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vp5e3")
+battle_music = "battle_desert"
 boss_id = "mirrorfang"
 breed_id = "glassborn"
 enemy_ids = Array[String](["glassborn", "scale_rider", "glassguard", "burrower"])

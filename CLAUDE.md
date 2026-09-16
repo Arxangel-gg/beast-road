@@ -4700,6 +4700,48 @@ walk towers only, and a wall is mended inside a run with Wood or through the
 Quartermaster. That is a real gap rather than an oversight, and it is a decision
 if the Hold should ever sell that repair.
 
+**A glacier was playing the desert battle track, found 2026-09-16.** Counted
+rather than assumed: the act playlists hold **11, 24, 24, 13 and 4** songs for
+acts I to V and **nothing at all** for acts VI to X. Seven of the ten regions
+also have no `music_battle_<id>.ogg`. So five of the ten acts reach
+`MusicPlayer._battle_track`'s fallback - and the fallback was
+`posmod(act - 1, 3)`, the region's *position on the road* rather than anything
+about the region.
+
+**Four of those five were wrong**, and reading each region's own cinematic says
+why: the Glass Fields is *"a glacier ground over a city"* and played **desert**;
+the Ashen Reach is *"stumps, ash drifts and a glow under all of it"* and played
+**snow**; the Iron Steppe is *"grass to the horizon and no cover"* and the Last
+Terrace is *"cut stone steps climbing into cloud"*, and both played **jungle**.
+
+`TerrainData.battle_music` is authored per region now, from that description
+rather than from an index - on the resource rather than in a table inside
+`MusicPlayer`, so adding a region means adding a file (working rule 3), and an
+empty value still falls to the old rotation so an unjudged region is no worse off.
+
+**The gate held the bug, and amending it is recorded rather than quiet.**
+`music_check` asserted *"act 5 with no songs rotates to the desert track"* - true
+of the rotation, and the rotation was the fault. The replacement holds the
+invariant instead of the table: **where a region sits on the road may not decide
+what it sounds like**, so every terrain must resolve to a real track and to the
+*same* track in every act. Checked by putting the fault back, which it named as
+"glass_fields plays 3 different tracks depending on which act it lands in".
+
+**Two faults in that work were mine and both are ones this project has already
+written down.** The `.tres` edit put `battle_music` **before** the
+`script = ExtResource(...)` line, where Godot applies it to a Resource that does
+not yet have the script and **drops it in silence** - the anchor-on-the-script-line
+rule, paid for again. And the first cut of the new check sampled acts
+**[1, 4, 7, 10]**, which are all the same slot of a three-track rotation, so it
+read one answer four times and passed while the property was being dropped. It
+walks every act now: a guarantee is a property of every act or it is not a
+guarantee.
+
+**The honest remaining gap is content, not code**: acts VI to X still have no
+music of their own, and the fallback is a mitigation rather than a soundtrack.
+A player who reaches the Saltpan hears a track written for the snow. The
+soundtrack grows by dropping a file in at `music_act%02d_%02d.ogg`.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

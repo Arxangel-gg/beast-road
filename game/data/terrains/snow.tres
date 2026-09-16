@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_vssda")
+battle_music = "battle_snow"
 boss_id = "rust_crown"
 breed_id = "steppehorde"
 enemy_ids = Array[String](["steppehorde", "ice_hauler", "snowhide_brute", "storm_caller"])

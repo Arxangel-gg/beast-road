@@ -303,6 +303,19 @@ func _battle_track() -> String:
 	var terrain: String = RunState.terrain_id
 	if TRACKS.has("battle_" + terrain):
 		return "battle_" + terrain
+	# **Which track a region falls back to is the region's own business.**
+	#
+	# It used to be `posmod(act - 1, 3)` - the region's position on the road - so
+	# the Glass Fields, which is a glacier, played the desert track, and the Ashen
+	# Reach, which is on fire, played the snow one. Five of the ten acts reach
+	# this function and four of them were wrong.
+	#
+	# Authored on `TerrainData.battle_music` rather than in a table here, so
+	# adding a region means adding a file.
+	var here: TerrainData = ContentDB.terrain(terrain)
+	if here != null and TRACKS.has(here.battle_music):
+		return here.battle_music
+	# A region nobody has judged is no worse off than it was.
 	var rotation: Array[String] = ["battle_jungle", "battle_desert", "battle_snow"]
 	return rotation[posmod(maxi(RunState.act, 1) - 1, rotation.size())]
 

@@ -48,6 +48,23 @@ extends GameData
 @export var wave_interval_multiplier: float = 1.0
 
 ## The ground texture tiles across the whole arena, so it must be seamless.
+## **Which battle track this region falls back to** when it has no playlist of
+## its own, as a key in `MusicPlayer.TRACKS`.
+##
+## Seven of the ten regions have no `music_battle_<id>.ogg` and five have no act
+## playlist either, so five of the ten acts have always been played to one of the
+## three original battle tracks. Which one was decided by
+## `posmod(act - 1, 3)` - the region's *position on the road* rather than
+## anything about the region - and it was wrong for four of the five: the Glass
+## Fields is a glacier and played the desert track, the Ashen Reach is a burning
+## waste and played the snow one, and the Iron Steppe and the Last Terrace both
+## played jungle.
+##
+## Authored here rather than in a table inside `MusicPlayer` so that adding a
+## region means adding a file (working rule 3), and empty falls back to the old
+## rotation so a region nobody has judged is no worse off than it was.
+@export var battle_music: String = ""
+
 @export var tile_size: int = 512
 
 ## The region's colour grade (2026-09-12): a tint multiplied over the whole

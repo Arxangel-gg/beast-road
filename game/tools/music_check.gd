@@ -29,6 +29,7 @@ func _ready() -> void:
 
 	_test_situations()
 	_test_an_act_without_songs_plays_what_it_had()
+	_test_a_region_sounds_like_itself_wherever_it_stands()
 	_test_a_playlist_is_dealt_shuffled_and_advanced()
 	_test_a_scope_change_resumes_the_song()
 	_test_the_boss_holds_the_floor_and_hands_back()
@@ -83,14 +84,63 @@ func _test_an_act_without_songs_plays_what_it_had() -> void:
 	_check(int(state["songs"]) == 0, "an act declared empty must deal nothing; dealt %d" % int(state["songs"]))
 	_check(MusicPlayer.current_track() == "battle_jungle",
 		"with no songs the jungle plays its battle track, not '%s'" % MusicPlayer.current_track())
-	# A region past the third has no track of its own; it rotates through the
-	# three rather than falling silent or playing Act I's forever.
+	# **A region past the third falls back to a track chosen for the region.**
+	#
+	# This check used to assert `battle_desert` here, because the fallback was
+	# `posmod(act - 1, 3)` and the Hollow Marches happened to sit at act 5. That
+	# is the gate holding the bug: which music a region plays was decided by its
+	# *position on the road*, so the Glass Fields - a glacier - played the desert
+	# track and the Ashen Reach - on fire - played the snow one. Amended
+	# deliberately on 2026-09-16 and recorded in CLAUDE.md, because a gate whose
+	# invariant is wrong agrees with the fault for ever.
 	RunState.act = 5
 	RunState.terrain_id = "hollow_marches"
 	MusicPlayer.play(MusicPlayer.BATTLE)
-	_check(MusicPlayer.current_track() == "battle_desert",
-		"act 5 with no songs rotates to the desert track, not '%s'" % MusicPlayer.current_track())
+	_check(MusicPlayer.current_track() == "battle_jungle",
+		"the Marches are wet and overgrown and play the jungle track, not '%s'"
+			% MusicPlayer.current_track())
 	MusicPlayer.test_slots.clear()
+
+
+## **Where a region sits on the road may not decide what it sounds like.**
+##
+## The invariant, rather than the table: every terrain in the game resolves to a
+## real track, and resolves to the *same* one wherever it is placed. Driven
+## through the real `play` rather than read off `TerrainData`, because the fault
+## was in the resolver and an authored field a resolver ignores is the shape this
+## project keeps paying for.
+func _test_a_region_sounds_like_itself_wherever_it_stands() -> void:
+	var empty: Dictionary = {}
+	for act: int in range(1, Balance.ACT_COUNT + 1):
+		empty[act] = []
+	MusicPlayer.test_slots = empty
+	var heard: Dictionary = {}
+	for terrain: Variant in ContentDB.terrains.values():
+		var region := terrain as TerrainData
+		if region == null:
+			continue
+		var tracks: Dictionary = {}
+		# **Every act, not a sample.** The first cut of this check walked
+		# [1, 4, 7, 10] - which are all the same slot of a three-track rotation,
+		# so it read one answer four times and passed while the property it was
+		# meant to prove was being dropped. A guarantee is a property of every
+		# act or it is not a guarantee.
+		for act: int in range(1, Balance.ACT_COUNT + 1):
+			MusicPlayer.stop_immediately()
+			RunState.act = act
+			RunState.terrain_id = region.id
+			MusicPlayer.play(MusicPlayer.BATTLE)
+			tracks[MusicPlayer.current_track()] = true
+		_check(tracks.size() == 1,
+			("%s plays %d different tracks depending on which act it lands in: %s"
+				% [region.id, tracks.size(), str(tracks.keys())]))
+		var only: String = String(tracks.keys()[0]) if tracks.size() > 0 else ""
+		_check(MusicPlayer.TRACKS.has(only),
+			"%s falls back to '%s', which is not a track" % [region.id, only])
+		heard[region.id] = only
+	_check(heard.size() >= 10, "every region was asked (%d)" % heard.size())
+	MusicPlayer.test_slots.clear()
+	MusicPlayer.stop_immediately()
 
 
 func _test_a_playlist_is_dealt_shuffled_and_advanced() -> void:
