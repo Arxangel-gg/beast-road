@@ -230,19 +230,19 @@ func _ready() -> void:
 		run.raid.process_mode = Node.PROCESS_MODE_INHERIT
 		run.raid.begin()
 		run.raid.activate())
-	# **Waited out rather than assumed.** See `_wait_for`: with a renderer these
-	# finish over several seconds, and everything photographed in the meantime is
-	# photographed inside the arena that is closing.
-	run.raid.call("_finish", {"partial": true, "died": false, "kills": 14})
-	await _wait_for(EventBus.raid_ended, 12.0)
+	# **Waited out rather than assumed.** See `_close_arena`: with a renderer a
+	# rift finishes over several seconds, and everything photographed in the
+	# meantime is photographed inside the arena that is closing.
+	await _close_arena(run.raid, {"partial": true, "died": false, "kills": 14},
+		EventBus.raid_ended, 12.0)
 	await _shot("rifts", func() -> void:
 		field.suspend()
 		run.rift.visible = true
 		run.rift.process_mode = Node.PROCESS_MODE_INHERIT
 		run.rift.open(RiftArena.Kind.DUNGEON, Vector2.ZERO)
 		run.rift.activate())
-	run.rift.call("_finish", {"closed": true, "left": true})
-	await _wait_for(EventBus.rift_ended, 12.0)
+	await _close_arena(run.rift, {"closed": true, "left": true},
+		EventBus.rift_ended, 12.0)
 
 	# **The map, opened.** The fog is in every battlefield picture and so is a
 	# corner of the road, but the minimap is hidden until it is asked for - so
@@ -991,7 +991,7 @@ func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> v
 	_capture(id)
 
 
-## **Waits for an arena to hand the road back.**
+## **Ends an arena and waits for it to hand the road back.**
 ##
 ## `RaidArena` and `RiftArena` finish on the frame *only when nobody is
 ## watching* - `_finish` says so in as many words, because a gate should not hang
@@ -1002,10 +1002,15 @@ func _shot(id: String, setup: Callable, just_before: Callable = Callable()) -> v
 ##
 ## `Run` already puts the world back on these signals, so this waits for the real
 ## return rather than performing a second one of its own.
-func _wait_for(done: Signal, seconds: float) -> void:
+func _close_arena(arena: Node, result: Dictionary, done: Signal, seconds: float) -> void:
 	var landed: Array[bool] = [false]
 	var mark: Callable = func(_reward: Dictionary) -> void: landed[0] = true
+	# **Connected before the knock.** A rift awaits several seconds of collapse
+	# before it answers; a raid answers on the same frame, inside the call - so
+	# connecting afterwards loses that race every time, and the first cut sat out
+	# the whole ceiling warning about an arena that had already closed.
 	done.connect(mark, CONNECT_ONE_SHOT)
+	arena.call("_finish", result)
 	var waited: float = 0.0
 	while not landed[0] and waited < seconds:
 		waited += get_process_delta_time()
