@@ -590,6 +590,16 @@ const RUN_MARKS_LOSS_SHARE: float = 0.55
 ## for home with the run's Marks paid in full, or push on for another act's
 ## worth - and fall for `RUN_MARKS_LOSS_SHARE` of the lot. Offered from the
 ## end of this act on. [TUNE]
+## The departure beat when the party turns for home: how long the road is held
+## on the walking beast, and how far the room drops while it is.
+##
+## Long enough to read as leaving and short enough that nobody reaches for the
+## mouse. The hush is shallower than a boss falling - this is a departure rather
+## than a shock. [TUNE]
+const HOMECOMING_HOLD_SECONDS: float = 2.4
+const HOMECOMING_HUSH_SECONDS: float = 2.2
+const HOMECOMING_HUSH_DEPTH: float = 0.25
+
 const HOMECOMING_FROM_ACT: int = 1
 
 const HERO_MAX_LEVEL: int = 100
@@ -1866,6 +1876,14 @@ const TOWER_AIM_EASE: float = 7.0
 ## **A tower is built rather than placed.** It rises out of its own foundation
 ## over this long, from this far under the ground and starting this much of its
 ## size.
+## The swell an upgrade leaves behind: a half-sine that returns exactly to rest.
+##
+## Smaller and quicker than the build rise, because this happens forty times a
+## run and a full rise each time would read as the tower being rebuilt. [TUNE]
+const TOWER_UPGRADE_JOLT_SECONDS: float = 0.26
+const TOWER_UPGRADE_JOLT_SCALE: float = 0.11
+const TOWER_UPGRADE_JOLT_LIFT: float = 7.0
+
 const TOWER_RISE_SECONDS: float = 0.34
 const TOWER_RISE_LIFT: float = 26.0
 const TOWER_RISE_SCALE: float = 0.62
@@ -4866,6 +4884,16 @@ const BOSS_SPRITE_SCALE: float = 2.2
 # zero should leave a game that plays identically and feels dead.
 
 ## Draw order for transient effects - above units, below the HUD.
+## The plume over the last bodies of a wave. Above the fog, which is the whole
+## point - a body in fog is not drawn at all, and the last one of a wave is
+## routinely exactly there. All four are a drawing; nothing reads them. [TUNE]
+const STRAGGLER_Z: int = 44
+const STRAGGLER_PLUME_HEIGHT: float = 150.0
+const STRAGGLER_PLUME_WIDTH: float = 7.0
+const STRAGGLER_RING_RADIUS: float = 26.0
+const STRAGGLER_PULSE_HZ: float = 0.85
+const STRAGGLER_TONE: Color = Color(1.0, 0.82, 0.42, 0.7)
+
 const VFX_Z: int = 40
 
 ## Hard cap on live effect nodes. A wave of forty enemies dying at once would

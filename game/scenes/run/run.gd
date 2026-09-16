@@ -705,6 +705,7 @@ func _on_boss_defeated(boss_id: String, act: int) -> void:
 	if _homecoming_open(act):
 		var home: bool = await _ask_homecoming(act)
 		if home:
+			await _ride_home()
 			GameDirector.return_home()
 			return
 	journey.resume_after_boss()
@@ -745,6 +746,45 @@ func _ask_homecoming(act: int) -> bool:
 		homecoming_marks(act + 1, true), homecoming_marks(act + 1, false))
 	var home: bool = await crossroad_ui.homecoming_decided
 	return home
+
+
+## **Turning for home is a departure, not a cut.**
+##
+## #41 and #42 of the forwarded juice list called extraction the crown jewel, and
+## the objection was fair: turning for home is the largest decision in a run and
+## it resolved on the frame the card closed - a button, then a results screen.
+##
+## What is built here is the *departure beat*, with the pieces that already
+## exist: the view goes to the scope that actually carries the party home, the
+## room drops away, and the road is held for a moment before the run settles.
+##
+## **Deliberately not built: pressure during the walk out.** The document wants
+## the road behind you closing and the threat rising while you leave. That is a
+## gameplay change rather than a presentation one - it changes what a return
+## costs, which is the number `homecoming_marks` is balanced against and the
+## whole reason the pass is a decision. It needs an owner ruling, and it is
+## recorded here rather than slipped in behind a juice pass.
+##
+## Host-only and never headless, inherited from `_homecoming_open`: a gate that
+## fells a boss must never hang on a walk nobody is watching.
+func _ride_home() -> void:
+	# **Nothing is held for an audience that is not there.** `homecoming_check`
+	# turns `ask_homecoming` on to answer the card, so without this the gate read
+	# the run as not having ended - it had, two and a half seconds later than the
+	# gate looked. The same reason `RiftArena._finish` returns its reward on the
+	# frame when `DisplayServer` is headless: a beat nobody is watching is a gate
+	# waiting out an animation.
+	if DisplayServer.get_name() == "headless":
+		return
+	switch_scope(GameDirector.Scope.BEAST)
+	# The room goes quiet, then hands itself back as the results arrive - the
+	# same duck an act boss falling uses, for the same reason: a release lands
+	# only if something was taken away first.
+	MusicPlayer.hush(Balance.HOMECOMING_HUSH_SECONDS, Balance.HOMECOMING_HUSH_DEPTH)
+	var left: float = Balance.HOMECOMING_HOLD_SECONDS
+	while left > 0.0:
+		left -= get_process_delta_time()
+		await get_tree().process_frame
 
 
 ## What the road pays for `act`: in full for a return or the summit, the

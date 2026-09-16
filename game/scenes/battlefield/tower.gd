@@ -93,6 +93,8 @@ var _fire_recoil: Vector2 = Vector2.UP
 ## replacing it, for the reason the fire kick does.
 var _aim: Vector2 = Vector2.ZERO
 var _rise_left: float = 0.0
+## How far through the swell an upgrade leaves behind. See `begin_jolt`.
+var _jolt_left: float = 0.0
 
 ## Where the sprite sits when nothing is shoving it.
 var _sprite_home: Vector2 = Vector2.ZERO
@@ -694,6 +696,8 @@ func upgrade_to(new_level: int) -> void:
 	if level != previous_level:
 		var colour: Color = TowerData.element_colour(data.element)
 		Vfx.build_burst(origin(), colour, true)
+		# The stone itself answers, not only the air around it.
+		begin_jolt()
 
 
 ## Colourblind modes remap semantic element cues in-place. The sprite keeps its
@@ -1275,6 +1279,17 @@ func _tick_step_wobble(delta: float) -> void:
 	_rise_left = maxf(_rise_left - delta, 0.0)
 	var buried: float = _rise_left / maxf(Balance.TOWER_RISE_SECONDS, 0.01)
 	buried *= buried
+	# **And the swell an upgrade leaves behind.** Placement has risen out of its
+	# foundation since 2026-09-15; upgrading - the thing a player does forty times
+	# a run - changed a tint, a size and threw a burst, and the structure itself
+	# never moved. A half-sine, so it returns exactly to rest: a jolt that does
+	# not close on where it started leaves the tower a fraction off its anchor on
+	# every upgrade, ten times over a full ladder.
+	_jolt_left = maxf(_jolt_left - delta, 0.0)
+	var swell: float = 0.0
+	if _jolt_left > 0.0:
+		swell = sin(PI * (1.0 - _jolt_left
+			/ maxf(Balance.TOWER_UPGRADE_JOLT_SECONDS, 0.01)))
 	sprite.rotation = deg_to_rad(_step_wobble + sway * Balance.STRUCTURE_IDLE_SWAY
 		+ _aim.x * Balance.TOWER_AIM_DEGREES)
 	# The kick rides *on top of* the idle rather than replacing it. Two systems
@@ -1284,12 +1299,14 @@ func _tick_step_wobble(delta: float) -> void:
 	# The kick is sized per tower (2026-09-14): a mortar bucks, a needle twitches.
 	var juice: float = data.juice_scale if data != null else 1.0
 	sprite.scale = _level_scale * (1.0 + breathe * Balance.STRUCTURE_IDLE_SCALE
-		+ kicked * Balance.TOWER_FIRE_KICK_SCALE * juice) \
+		+ kicked * Balance.TOWER_FIRE_KICK_SCALE * juice
+		+ swell * Balance.TOWER_UPGRADE_JOLT_SCALE) \
 		* lerpf(1.0, Balance.TOWER_RISE_SCALE, buried)
 	sprite.position = _sprite_home \
 		+ _fire_recoil * kicked * Balance.TOWER_FIRE_KICK_PUSH * juice \
 		+ _aim * Balance.TOWER_AIM_SHIFT \
-		+ Vector2(0.0, Balance.TOWER_RISE_LIFT * buried)
+		+ Vector2(0.0, Balance.TOWER_RISE_LIFT * buried
+			- Balance.TOWER_UPGRADE_JOLT_LIFT * swell)
 
 
 ## Which way the tower wants to lean: toward whatever it would shoot at right
@@ -1312,6 +1329,16 @@ func _aim_wanted() -> Vector2:
 ## Start the tower under its own plot, to come up out of it. Called when one is
 ## built; a tower restored from a host's welcome skips it, because a structure
 ## that has been standing for six waves should not rise again for a late guest.
+## **A swell the structure makes when it grows.**
+##
+## Rides inside the one expression that already owns `sprite.scale` and
+## `sprite.position`, beside the idle breath, the fire kick and the build rise -
+## a second assignment to either would be the sway-and-wobble bug this file has
+## already shipped once, two animations fighting over one sprite.
+func begin_jolt() -> void:
+	_jolt_left = Balance.TOWER_UPGRADE_JOLT_SECONDS
+
+
 func begin_rise() -> void:
 	_rise_left = Balance.TOWER_RISE_SECONDS
 

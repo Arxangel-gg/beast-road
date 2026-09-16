@@ -63,6 +63,8 @@ var _day_tint_node: CanvasModulate = null
 var _camps: Camps = null
 var _fog: FogOfWar = null
 var _death_markers: DeathMarkers = null
+## Points at the last bodies of a wave. A drawing; see `Stragglers`.
+var _stragglers: Stragglers = null
 var _wildlife: Wildlife = null
 var _sky: WeatherSky = null
 var _wildfire: Wildfire = null
@@ -2723,6 +2725,7 @@ func _build_fog() -> void:
 	add_child(_fog)
 	_fog.prime_explored(BattleGrid.CORE_HALF_EXTENT)
 	_build_death_markers()
+	_build_stragglers()
 
 
 func fog() -> FogOfWar:
@@ -2741,6 +2744,24 @@ func _build_death_markers() -> void:
 
 func death_markers() -> DeathMarkers:
 	return _death_markers
+
+
+## **The tell for the last bodies of a wave.**
+##
+## Built beside the death markers because it is the same kind of thing - a node
+## that watches the field and draws, read by nothing - and because living under
+## the battlefield is what freezes it for a raid (working rule 8) with nothing
+## having to know it exists.
+func _build_stragglers() -> void:
+	_stragglers = Stragglers.new()
+	# Battlefield extends EnemyField, so the field it watches is this node.
+	_stragglers.field = self
+	_stragglers.director = wave_director
+	(entity_root if entity_root != null else self).add_child(_stragglers)
+
+
+func stragglers() -> Stragglers:
+	return _stragglers
 
 
 # --- Support towers (2026-09-14) ----------------------------------------------------------

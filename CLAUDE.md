@@ -4379,6 +4379,71 @@ a grep rather than from intuition:
 
     grep -ln "GearData" game/tools/*_check.gd game/tools/*_test.gd
 
+**The juice triage was wrong twice, and measuring is what said so, 2026-09-16.**
+`docs/IDEAS_REVIEW_2026-09-16.md` named loot magnetism (#32-34) as "none of it
+is built" and the Guide as having seventeen pictures that were photographs of
+something else. Both were checked before being built and both were overstated.
+
+**Loot magnetism was already built** - magnet range, acceleration, a latch so a
+drop at the edge does not stutter in and out of range, a Curious-spirit trait
+that widens the net without changing who gets paid, burst, settle, hover,
+beacon, and a distance-faded plate. The one genuine gap in that group was
+**audio**: one flat sound for a copper coin and a Beastcalled sword, and six
+drops hoovered in two seconds sounding like one drop six times.
+
+**The Guide had four duplicate pictures, not seventeen.** Hashing the folder
+found 67 distinct images across 73 pages; most of the list had been converted in
+earlier sessions and the note in this file went stale. Of the four, exactly one
+was a genuine fault - `summons`, a section about a *spell* that calls a wolf for
+twenty seconds, illustrated by the permanent bond journal, with six COMPANION
+spells in the game and none of them ever photographed.
+
+**The lesson is the one this project keeps paying for in new clothes**: a list
+of outstanding work is a model, and a model of a thing is not the thing. Hash
+the folder, grep for what a system *reads* rather than what it is called, and
+check before building something twice.
+
+**Three small things the same pass turned up, all built.** A tower now *swells*
+when it is upgraded - placement has risen out of its foundation since
+2026-09-15 and upgrading, the thing a player does forty times a run, changed a
+tint and threw a burst while the structure itself never moved. The swell is a
+half-sine so it returns exactly to rest, and it rides inside the one expression
+that already owns `sprite.scale` and `sprite.position`: a second assignment to
+either is the sway-and-wobble bug that file has already shipped once.
+
+The hero's health bar keeps the **delayed-damage trail** the enemy bars have had
+since they were written, drawn as a child rect in the empty background between
+the new value and the old so it needs no z-order argument with the fill. And the
+**purse rolls** rather than teleporting, proportional and floored so eleven Gold
+arrives quickly and nine hundred takes about the same moment, snapped inside one
+so a counter never rests on 89.6 showing 89.
+
+**`Stragglers` points at the last bodies of a wave.** A wave does not end until
+its pack is down, and the last one or two are routinely behind the treeline or
+in fog, which does not draw a body at all. Whatever is left when the queue is
+empty wears a plume tall enough to clear the canopy.
+
+**The fog's bound is narrowed rather than broken.** `FogOfWar` hides and never
+helps, and nothing about targeting, spawning, pathing or reward reads it. This
+reads nothing either - it is a drawing, it changes no number, and it appears
+only once a wave is in its tail. What it gives away is "the wave is not over and
+it is that way", which is what the wave clock is already charging for. Camp
+bodies are excluded, because nothing is waiting on one and pointing at it would
+send the player on an errand the clock never asked for.
+
+**And turning for home is a departure rather than a cut.** #41 and #42 called
+extraction the crown jewel and the objection was fair: the largest decision in a
+run resolved on the frame the card closed. The view now goes to the scope that
+actually carries the party home, the room drops away through the same duck an
+act boss uses, and the road is held for a moment before the run settles.
+
+**Deliberately not built: pressure during the walk out.** The document wants the
+road behind you closing and the threat rising while you leave. That is a
+gameplay change rather than a presentation one - it changes what a return
+*costs*, which is the number `homecoming_marks` is balanced against and the
+whole reason the pass is a decision at all. **It needs an owner ruling** and is
+recorded here rather than slipped in behind a juice pass.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
