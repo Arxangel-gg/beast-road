@@ -3584,6 +3584,49 @@ and the gate had stopped it to clear the road before hand-ticking - so it
 measured nothing and called it a wave that never ends. The harness, not the
 director. A gate that drives a system by hand has to start it first.
 
+**The opening act's extra road was never walked, found 2026-09-15.** The owner
+reported *"the path to the first act 1 boss was too short"* twice. Twice
+`ACT_OPENING_EXTRA_DISTANCE` was raised - 170, then 390 - and twice every model
+agreed the fix had landed. **The game never read it.**
+
+`Journey` closed an act on `_segment_index % SEGMENTS_PER_ACT`, which is a flat
+act length. `Balance.act_end_distance()` is the one function that knows the
+opening act is longer than the rest, and it is what `curve_report`,
+`balance_test` and `RunState.distance_to_boss()` all ask. **The walk asked none
+of them.** Driven on the real node: the Act I boss was called at distance **400**
+while the readout on screen still promised **390 units** of road, and the models
+all reported the act as 790 long. Every act was 390 units shorter in the game
+than in every measurement of it.
+
+**`distance_to_boss()`'s own comment is the bitter part.** It says it exists
+because "a correctly-working boss trigger looks like a bug" with nothing counting
+down. What it actually did was the exact inverse: it counted down honestly to a
+number the walk had no opinion about.
+
+**And a crossroad decided the act as well**, by dividing distance by
+`ACT_DISTANCE` - a second answer to a question `resume_after_boss` already
+answers, disagreeing with `act_end_distance` for every act on the road. It
+matched the *walk* only because the walk had the same fault. An act now begins in
+exactly one place: when its predecessor's boss falls.
+
+**Why `balance_reach_check` could not see it, which is the transferable half.**
+That gate holds every `Balance` constant to being read by something, and
+`ACT_OPENING_EXTRA_DISTANCE` *was* read - by `act_end_distance`. **A constant read
+only by a function the game never calls is exactly as dead as one nothing reads,
+and it is far harder to see**, because every report built on that function
+cheerfully says the feature works. It is the `DisciplineEffects` lie one layer
+out: there, a key was implemented and named by no consumer; here, a consumer
+existed and the game never reached it.
+
+`journey_check` (81 checks) drives the real `Journey` for a whole campaign and
+reads the distances back off it - never computing an act boundary a second way,
+since having two answers is the fault. It holds where each boss is called, that
+the countdown is spent when one arrives, that an act is announced once and only
+after the act before it finished, that every act still forks, and that the
+opening act is the long one **in the walk** rather than only in the table.
+Checked by putting the original `% SEGMENTS_PER_ACT` back, which it named for all
+ten acts and for the readout.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

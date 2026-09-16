@@ -22,6 +22,9 @@ var _resource_remainders: Dictionary = {RunState.WOOD: 0.0, RunState.FOOD: 0.0}
 var _segment_index: int = 0
 var _announced_act: int = 0
 
+## Which act's boss has already been called for. A threshold, not a crossing.
+var _boss_due_for: int = 0
+
 
 func start() -> void:
 	_running = true
@@ -73,16 +76,30 @@ func _process(delta: float) -> void:
 			_await_boss()
 		return
 
+	# **An act ends where `act_end_distance` says it ends**, and nowhere else.
+	#
+	# This was `_segment_index % SEGMENTS_PER_ACT`, which is a flat act length -
+	# so the opening act's extra road was never walked. `ACT_OPENING_EXTRA_DISTANCE`
+	# is read by `act_end_distance`, `act_end_distance` is read by `curve_report`,
+	# `balance_test` and the HUD's own boss countdown, and **the walk itself asked
+	# none of them**. The owner reported "the path to the first act 1 boss was too
+	# short" twice; both times the constant was raised, both times every model
+	# agreed it had worked, and both times the beast still met the Act I boss at
+	# distance 400 with the readout on screen saying 390 still to go.
+	#
+	# Guarded per act rather than levelled, because this is a threshold and not a
+	# boundary crossing: without the guard the last act re-summons its boss on
+	# every frame after the distance is passed.
+	var act_ends_at: float = Balance.act_end_distance(RunState.act)
+	if _boss_due_for != RunState.act and RunState.distance_travelled >= act_ends_at:
+		_boss_due_for = RunState.act
+		_await_boss()
+		return
+
 	var segment_now: int = _segment_for(RunState.distance_travelled)
 	if segment_now > _segment_index:
 		_segment_index = segment_now
-		# Every third segment closes an act, and an act closes with a boss
-		# rather than a fork in the road. The run is won by killing the Act 3
-		# boss, never by the distance bar filling on its own.
-		if _segment_index % Balance.SEGMENTS_PER_ACT == 0:
-			_await_boss()
-		else:
-			_reach_crossroad()
+		_reach_crossroad()
 
 
 func _accrue_resources(walked: float) -> void:
@@ -144,17 +161,12 @@ func _reach_crossroad() -> void:
 	_crossroad_pending = true
 	RunState.segment += 1
 
-	var segments_done: int = _segment_index
-	var new_act: int = clampi(int(floor(RunState.distance_travelled / Balance.ACT_DISTANCE)) + 1, 1, Balance.ACT_COUNT)
-	if new_act != RunState.act:
-		RunState.act = new_act
-		var terrain: TerrainData = ContentDB.terrain_for_act(new_act)
-		if terrain != null:
-			RunState.terrain_id = terrain.id
-		_announced_act = RunState.act
-		EventBus.act_started.emit(RunState.act, RunState.terrain_id)
-
-	EventBus.crossroad_reached.emit(segments_done)
+	# **A crossroad does not decide the act.** It used to, by dividing distance by
+	# `ACT_DISTANCE` - a second answer to a question `resume_after_boss` already
+	# answers, and one that disagreed with `act_end_distance` for every act on the
+	# road. It agreed with the *walk* only because the walk had the same fault.
+	# An act now begins in exactly one place: when its predecessor's boss falls.
+	EventBus.crossroad_reached.emit(_segment_index)
 
 
 ## Holds the walk until the act's boss is dead. The beast does not leave a
