@@ -4061,6 +4061,31 @@ window always knows how big it is.
 - which is how both of those were caught, because each one leaves a launcher that
 loads perfectly cleanly and looks unchanged.
 
+**And a second pass, because the first one's foliage hung from nothing.** The
+owner: "the fruits and branches and frame are in need of fixing and polish and
+perfection". Three faults, all visible in one photograph:
+
+- **The fruit was placed, not rooted.** Pieces sat along the top edge in a row at
+  full brightness with no strand above them, so a pear and a bunch of berries
+  read as stickers pasted on the window. Every hanging thing grows from a strand
+  now, drawn as short segments so it can bend - a vine straight from root to
+  fruit reads as a wire - and the tip swings further than the root, because a
+  hanging thing is a pendulum. That is the beast's tail's argument in a second
+  place.
+- **The corner bracket fought the band.** The bracket was drawn at 2.4x the
+  band's thickness while the band tiled underneath it from zero, so every corner
+  was two pieces of art arguing. The band is inset and the bracket is the join.
+- **A branch was being hung by one end.** `menu_branch_mossy` was in the hanger
+  list and came out dangling vertically. The menu lays branches *along* the top,
+  where a branch belongs; until the launcher has somewhere to lay one it carries
+  only what a strand can legitimately hold.
+
+**And the grading is the mistake this project keeps making.** Foliage at full
+brightness in front of a dusk painting - the menu's birds came out black on
+black, the Warden came out black on black, and this came out as fruit glowing in
+a dark doorway. The direction differs; the fault is the same one every time,
+which is grading a thing by something other than the light it is actually in.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need
