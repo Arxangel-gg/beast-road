@@ -11,6 +11,9 @@ extends Node
 ##
 ## - `HERO_FOCUS_SPELL_PER_POINT` - the Mansion had advertised spell power for
 ##   Focus since the attribute was authored, and nothing applied it.
+## - `CROSSROADS_PER_ACT` came off this list on 2026-09-15, which is the gate
+##   working: the road-card gate started reading it the day the acts stopped
+##   being the same length, and this refused to let it stay listed as unread.
 ## - `CROSSROADS_PER_ACT` and `CROSSROADS_PER_RUN` - both quietly wrong in both
 ##   directions, and consulted by nothing.
 ## - Six discipline `effect_id`s - described on cards, priced at a skill point
@@ -40,7 +43,7 @@ extends Node
 ## gate is about drift. **Shrink it whenever one is wired or removed.**
 const UNREAD: PackedStringArray = [
 	"BOSS_VOLLEY_SPEED", "CAMERA_ZOOM_RAID", "CITY_BUILD_SLOTS",
-	"COLOURBLIND_MODES", "COMMAND_ORDER_COUNT", "CROSSROADS_PER_ACT",
+	"COLOURBLIND_MODES", "COMMAND_ORDER_COUNT",
 	"ENEMY_LIGHT_ENERGY", "ENEMY_LIGHT_RADIUS", "ENEMY_SEPARATION_SPEED",
 	"ENEMY_SHOT_HEX_TINT", "FISHING_SLACK_GRACE", "FISHING_SPENT_TINT",
 	"FOLIAGE_GROUND_SWAY", "FOLIAGE_LANE_CLEARANCE", "FOLIAGE_SLOT_MARGIN",

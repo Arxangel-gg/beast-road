@@ -382,7 +382,14 @@ const EXCHANGE_FEED_ROWS: int = 120
 ## a fifth of a full journey to find a caravan and a well-priced one rather less.
 ## Orders progress on the road and nowhere else, which is the design: the Ledger
 ## pays you for playing, not for leaving the game open.
-const EXCHANGE_FILL_AT_GUIDE: float = 1.0 / 540.0
+## **540 units until 2026-09-15, when the campaign's road went from 4,390 to
+## 37,820.** The wait was authored in absolute road - about nine minutes of
+## walking - and against the old campaign that was an eighth of a run. On the
+## long road the same nine minutes is a seventieth, which `exchange_check`
+## names as a vending machine: an order that fills seventy times a campaign is
+## a shop counter, and the Ledger is supposed to be somewhere a caravan has to
+## reach. Re-authored as a share of the road rather than as minutes of it.
+const EXCHANGE_FILL_AT_GUIDE: float = 1.0 / 2400.0
 
 ## How much faster the best possible price is than the guide.
 const EXCHANGE_FILL_BEST_MULTIPLIER: float = 3.0
@@ -667,10 +674,15 @@ const TOWN_HALL_RELIC_SLOTS: Array[int] = [1, 2, 3, 4]
 ## run - while crossroads go from nine to twenty, so the player makes more than
 ## twice as many route choices in one campaign than they used to.
 const ACT_COUNT: int = 10
+## **Not an act's length any more**, and kept only because the opening comment
+## above reads against it. An act is `ACT_ROAD_DISTANCE`, and how many segments
+## fall inside one varies from about four to about eleven across the campaign.
+## Nothing may divide by this to find an act boundary - that is
+## `act_end_distance`, and `journey_check` exists because something did.
 const SEGMENTS_PER_ACT: int = 2
 
 ## Distance units in one segment; segment boundaries are crossroads.
-const SEGMENT_DISTANCE: float = 200.0
+const SEGMENT_DISTANCE: float = 560.0
 
 ## **The opening act is longer, and only the opening act.**
 ##
@@ -704,26 +716,71 @@ const SEGMENT_DISTANCE: float = 200.0
 ## act's mean pressure goes 0.31 to 0.33 against a run mean of 0.41. That is
 ## the difference between meeting the first boss with a defence and meeting it
 ## with a purchase.
-const ACT_OPENING_EXTRA_DISTANCE: float = 390.0
+## **How long each act's road is.** One entry per act, and the one place the
+## shape of the campaign is stated.
+##
+## The road ran 4,390 units - about seventy minutes and **79 waves** for the
+## whole of ten acts. That was measured, on the owner's ruling to build the wave
+## library first and then set the count by what it supports, and the measurement
+## said the campaign was ending long before the game did:
+##
+## - `curve_report` finished a full ten-act run with the board at **level 2 of
+##   10**. Ten tower levels were the owner's own decision of 2026-09-11, and
+##   eight of them were unreachable in a complete campaign - a ladder the player
+##   is shown, is priced, and can never climb.
+## - Maxing a board of forty costs about **103,000 Gold** against the **4,865** a
+##   79-wave campaign earns. The ladder runs out somewhere near seven hundred
+##   waves, which is where this table now puts the road.
+##
+## **The ramp is the design, and a flat hundred an act was not.** Act I draws
+## from about ten formations and Act X from twenty-four, so one wave count is a
+## procession at the front of the road and a campaign at the back. Act I is also
+## the one act that opens with nothing built, and ninety minutes of it before a
+## new player meets a boss is a tutorial nobody finishes.
+##
+## One unit is one second at `BEAST_BASE_SPEED`, and a wave cycle covers about
+## `WAVE_ROAD_DISTANCE` of road - so these are roughly 36 waves rising to 106,
+## and the campaign is a season rather than a sitting. **That is what expedition
+## persistence is for**: the road is put down at a crossroad and picked up next
+## time, so a ten-hour campaign is ten evenings and never a ten-hour sitting.
+## [TUNE]
+const ACT_ROAD_DISTANCE: Array[float] = [
+	2000.0, 2340.0, 2670.0, 3060.0, 3450.0, 3890.0, 4340.0, 4840.0, 5340.0, 5890.0,
+]
 
-## Derived, not restated. These were three literals that had to agree and
-## nothing checked that they did.
-const ACT_DISTANCE: float = SEGMENT_DISTANCE * float(SEGMENTS_PER_ACT)
+## Roughly how much road one wave cycle covers, at the beast's own speed.
+##
+## **Used to keep the per-wave growth rates invariant to how long the road is**,
+## and for nothing else - an act's length is the table above, never a wave count
+## multiplied by this. It is an estimate and it only has to be close: it scales a
+## rate, so a few percent out moves the curve a few percent, and `curve_report`
+## reads the result either way. [TUNE]
+const WAVE_ROAD_DISTANCE: float = 55.6
+
+## The mean act, for the few places that want one scalar rather than the table -
+## a crop's ripening measured against "an act", and nothing that decides where an
+## act ends. **Never use this for a boundary**: that is `act_end_distance`, and
+## computing a boundary a second way is the fault this file has already paid for.
+const ACT_DISTANCE: float = 3782.0
 
 ## 10 acts. Filling this bar is the win condition (GDD §2, decision 1).
-const JOURNEY_TOTAL_DISTANCE: float = ACT_DISTANCE * float(ACT_COUNT) \
-	+ ACT_OPENING_EXTRA_DISTANCE
+const JOURNEY_TOTAL_DISTANCE: float = 37820.0
 
 
 ## Where the given act ends and its boss walks in.
 ##
-## One function, because the opening act is longer than the rest and three
-## places used to work that out by multiplying. A boundary computed two ways is
-## a boundary that will disagree with itself.
+## One function, because the acts are not the same length and three places used
+## to work this out by multiplying. A boundary computed two ways is a boundary
+## that will disagree with itself - and for the whole life of this project one of
+## them was `Journey`, which closed an act on a flat segment count and so walked
+## a road 390 units shorter than every model of it. See `journey_check`.
 static func act_end_distance(act: int) -> float:
 	if act <= 0:
 		return 0.0
-	return float(act) * ACT_DISTANCE + ACT_OPENING_EXTRA_DISTANCE
+	var total: float = 0.0
+	for index: int in mini(act, ACT_ROAD_DISTANCE.size()):
+		total += ACT_ROAD_DISTANCE[index]
+	return total
 
 
 ## And where it begins.
@@ -787,7 +844,7 @@ const TOWER_SLOT_COUNT: int = 4
 
 ## Derived rather than typed, because a crossroad is not scheduled - `Journey`
 ## fires one whenever the beast crosses a `SEGMENT_DISTANCE` boundary, so the
-## count per act *is* the number of segments in an act.
+## count is however many of those the road holds.
 ##
 ## These were 3 and 9, and nothing read either of them. That is how they came to
 ## describe a three-act campaign with three crossroads an act while the code was
@@ -795,8 +852,14 @@ const TOWER_SLOT_COUNT: int = 4
 ## had quietly gone wrong in both figures at once. `V4_CONFORMANCE` probes
 ## `CROSSROADS_PER_RUN` by name, which is why they are derived here rather than
 ## deleted.
-const CROSSROADS_PER_ACT: int = SEGMENTS_PER_ACT
-const CROSSROADS_PER_RUN: int = SEGMENTS_PER_ACT * ACT_COUNT
+##
+## **Derived off the road rather than off `SEGMENTS_PER_ACT`, since 2026-09-15.**
+## The acts are no longer the same length, so "segments in an act" is not one
+## number any more - Act I holds about four forks and Act X about eleven. The
+## run's total is exact; the per-act figure is the mean, and is the one to be
+## careful with.
+const CROSSROADS_PER_RUN: int = int(JOURNEY_TOTAL_DISTANCE / SEGMENT_DISTANCE)
+const CROSSROADS_PER_ACT: int = CROSSROADS_PER_RUN / ACT_COUNT
 
 ## Two cards are compared, drawn from five authored road archetypes. [TUNE]
 const CROSSROAD_OPTIONS_SHOWN: int = 2
@@ -3482,6 +3545,75 @@ const WAVE_NIGHT_COUNT_BONUS: float = 0.16
 const WAVE_HP_GROWTH: float = 0.122
 const WAVE_DAMAGE_GROWTH: float = 0.019
 const WAVE_SPEED_GROWTH: float = 0.19
+
+## --- Keeping the wave curves invariant to the length of the road -------------
+##
+## `WAVE_HP_GROWTH`, `WAVE_DAMAGE_GROWTH` and `WAVE_COUNT_GROWTH` are *per wave*,
+## and they were solved against a campaign of 79 waves with about seven in an
+## ordinary act. `ACT_ROAD_DISTANCE` now buys a road eight times longer, and left
+## alone those three rates would take enemy health to 123 times its opening value
+## and a lane's pack to thirty-two bodies.
+##
+## **Scaled rather than re-tuned, on purpose.** Each of those constants carries a
+## long argument in this file about the shape it was measured into - what the
+## curve looks like after the map gained buildable ground, after the hero could
+## reach +105% damage, after free placement removed the slot ceiling. Rewriting
+## the numbers would throw all of that away. Dividing them by the length of the
+## road keeps the shape exactly and changes only how many steps it takes to walk
+## it, so the reasoning above each constant still describes it.
+##
+## **Per wave and not per unit of road**, which is a deliberate refusal.
+## Expressing growth against `journey_ratio()` would be tidier and would make a
+## player who lingers - fishing, working a seam, clearing camps - fight an
+## unbounded number of waves at a difficulty that never moves, which is a farm.
+## Waves getting harder while you stand still is what closes that door, and
+## `exploit_check` is the gate that cares.
+
+## **How far the curve climbs, stated in waves of the old campaign.**
+##
+## These read as "the reference run was 79 waves" and that is only where they
+## started. They are the *height* the three rates climb to, deliberately
+## separated from the *length* of the road, and the two are different questions:
+##
+## - Length is `ACT_ROAD_DISTANCE`, and it decides how many waves the campaign
+##   holds.
+## - Height is these, and it decides how much harder the last wave is than the
+##   first.
+##
+## Setting them to 79 and 7 reproduces the 79-wave campaign's difficulty exactly,
+## spread over however long the road now is - which is what the first cut did,
+## and it measured at 0.15 mean pressure against a band of 0.44-0.58. That is the
+## correct answer to the wrong question: threat stood still while a road eight
+## times longer earned eight times the purse, so the defence ran away from it.
+##
+## **The board is what sets the height.** A campaign now runs long enough to buy
+## the tenth tower level, which is about five times the capability the old road
+## ever reached - so the curve has to climb about that much further to stay the
+## same fight. [TUNE]
+const WAVE_GROWTH_REFERENCE_RUN: float = 313.0
+const WAVE_GROWTH_REFERENCE_ACT: float = 7.0
+
+
+## About how many waves fit in the whole campaign, at the beast's own pace.
+static func waves_in_run() -> float:
+	return maxf(JOURNEY_TOTAL_DISTANCE / maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
+
+
+## And about how many fit in one act.
+static func waves_in_act(act: int) -> float:
+	var index: int = clampi(act - 1, 0, ACT_ROAD_DISTANCE.size() - 1)
+	return maxf(ACT_ROAD_DISTANCE[index] / maxf(WAVE_ROAD_DISTANCE, 1.0), 1.0)
+
+
+## What a per-wave rate measured over a 79-wave run is worth over this one.
+static func run_growth_scale() -> float:
+	return WAVE_GROWTH_REFERENCE_RUN / waves_in_run()
+
+
+## And the same for a rate measured over an ordinary act.
+static func act_growth_scale(act: int) -> float:
+	return WAVE_GROWTH_REFERENCE_ACT / waves_in_act(act)
+
 const WAVE_DARK_DAMAGE_WEIGHT: float = 0.58
 const WAVE_DARK_SPEED_WEIGHT: float = 0.10
 ## Act boundaries introduce new enemy roles and lane patterns, so they should

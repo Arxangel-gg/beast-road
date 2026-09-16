@@ -971,7 +971,12 @@ func _setup_route() -> void:
 		var t: float = float(i) / float(segments)
 		var tick := Line2D.new()
 		var x: float = lerpf(left, right, t)
-		var is_act_boundary: bool = int(round(t * Balance.JOURNEY_TOTAL_DISTANCE)) % int(Balance.ACT_DISTANCE) == 0
+		# **An act boundary is where an act ends**, not where the distance divides
+		# evenly. With every act the same length a modulo found them; with
+		# `ACT_ROAD_DISTANCE` it finds none at all, and the walk would have drawn a
+		# road of sixty-seven identical ticks and no acts in it.
+		var is_act_boundary: bool = _is_act_end(t * Balance.JOURNEY_TOTAL_DISTANCE,
+			Balance.SEGMENT_DISTANCE * 0.5)
 		var height: float = 34.0 if is_act_boundary else 18.0
 		tick.points = PackedVector2Array([Vector2(x, 220.0 - height), Vector2(x, 220.0 + height)])
 		tick.width = 5.0 if is_act_boundary else 3.0
@@ -980,6 +985,18 @@ func _setup_route() -> void:
 
 	if route_marker != null:
 		route_marker.visible = false
+
+
+## True when this point on the road is where some act hands over to the next.
+##
+## Asked with the tick spacing as its tolerance, because a tick is drawn at a
+## rounded position and an act ends at an authored one - so "close enough to be
+## this tick" is the question, never "exactly equal".
+func _is_act_end(distance: float, tolerance: float) -> bool:
+	for act: int in range(1, Balance.ACT_COUNT):
+		if absf(Balance.act_end_distance(act) - distance) <= tolerance:
+			return true
+	return false
 
 
 func _update_route() -> void:

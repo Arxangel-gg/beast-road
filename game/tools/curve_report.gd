@@ -55,7 +55,7 @@ const ENGAGEMENT_SECONDS: float = Balance.WAVE_ENGAGEMENT_SECONDS
 ## game. Written down so the next person to notice the gap does not close it.
 
 ## Hard stop, in case a pacing change ever makes a run much longer than intended.
-const MAX_WAVES: int = 200
+const MAX_WAVES: int = 1200
 
 var _rows: Array[Dictionary] = []
 

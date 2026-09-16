@@ -238,33 +238,78 @@ func _test_live_tower_utility() -> void:
 	RunState.set_phase(RunState.Phase.ROAD_BATTLE)
 
 
+## Where an act's road actually is, rather than where it used to be.
+##
+## **Every probe in this file used to be a typed distance**, and they were
+## positions on a 4,390-unit road - one of them, 2550 for "Act 3", was a position
+## on the *three-act* road before that, and had been reading Act VI's stretch and
+## calling it Act III ever since the campaign went to ten. Nothing failed,
+## because the assertions around them were satisfied by a harder part of the
+## road than the one they named.
+##
+## `ACT_ROAD_DISTANCE` gives each act its own length, so a probe says how far
+## through which act it wants to stand and this works out the rest.
+func _at_act(act: int, through: float) -> Dictionary:
+	var from: float = Balance.act_start_distance(act)
+	var span: float = maxf(Balance.act_end_distance(act) - from, 1.0)
+	var distance: float = from + span * through
+	return {
+		"distance": distance,
+		"wave": maxi(int(round(distance / Balance.WAVE_ROAD_DISTANCE)), 1),
+		"act_wave": maxi(int(round(span * through / Balance.WAVE_ROAD_DISTANCE)), 1),
+	}
+
+
+## Stands the run at that point and hands back the act-wave it arrived at.
+func _stand_at(act: int, through: float, terrain_id: String) -> int:
+	var spot: Dictionary = _at_act(act, through)
+	_set_progress(act, float(spot["distance"]), int(spot["wave"]), terrain_id,
+		int(spot["act_wave"]))
+	return int(spot["act_wave"])
+
+
 func _test_act_curves() -> void:
 	var director: WaveDirector = _run.battlefield.wave_director
-	_set_progress(2, 1200.0, 48, "desert", 12)
-	var act2_size: int = director._wave_size(12, ContentDB.terrain("desert"))
+	var act2_wave: int = _stand_at(2, 0.85, "desert")
+	var act2_size: int = director._wave_size(act2_wave, ContentDB.terrain("desert"))
 	var act2_hp: float = director._hp_scale(0)
 	var act2_damage: float = director._damage_scale(0)
 	_check(act2_size >= 6, "Act 2 waves must outgrow the compact opening formations")
 	_check(act2_hp >= 2.4, "Act 2 durability must materially exceed Act 1")
 	_check(act2_damage < act2_hp, "damage must scale below HP to avoid cheap one-shots")
 
-	_set_progress(3, 2550.0, 88, "snow", 22)
-	var act3_size: int = director._wave_size(22, ContentDB.terrain("snow"))
+	var act3_wave: int = _stand_at(3, 0.85, "snow")
+	var act3_size: int = director._wave_size(act3_wave, ContentDB.terrain("snow"))
 	var act3_hp: float = director._hp_scale(0)
-	_check(act3_size > act2_size * 1.25, "Iron Steppe must deliver the largest packs")
+	# **Compared at the same point of their own acts**, which is what makes this a
+	# comparison between acts. It was 1.25 while the two probes sat at act-waves
+	# 12 and 22 of acts about seven waves long - so most of that ratio was the
+	# difference between two arbitrary indices rather than between two regions.
+	# Measured properly, `WAVE_ACT_COUNT_SCALE` steps adjacent acts by about a
+	# seventh and the whole campaign by 2.3 times, which is the ramp it is
+	# authored as.
+	_check(act3_size > act2_size * 1.08,
+		"Iron Steppe must deliver bigger packs than Saltglass")
 	_check(act3_hp > act2_hp * 1.35, "Act 3 must demand mastery upgrades")
+
+	# **Speed is asked at the end of the road, because that is what it says.**
+	# It climbs with `journey_ratio()` rather than with the wave number, so
+	# asking it in Act III asks what a fifth of a campaign is worth - and it only
+	# ever passed there because the typed distance was two thirds of the way
+	# along a road three acts long.
+	_stand_at(Balance.ACT_COUNT, 1.0, "snow")
 	_check(director._speed_scale(0) > 1.08, "late-run enemies must move faster")
 
 	# Crossing into Saltglass should reveal new tactics, not erase the player's
 	# progress with a seventy-percent stat jump on the very first formation.
 	DayNight._apply(0.18)
-	_set_progress(1, 790.0, 18, "jungle", 18)
+	_stand_at(1, 1.0, "jungle")
 	var act1_exit_hp: float = director._hp_scale(0)
-	_set_progress(2, 910.0, 19, "desert", 1)
+	_stand_at(2, 0.0, "desert")
 	var act2_entry_hp: float = director._hp_scale(0)
 	_check(act2_entry_hp <= act1_exit_hp * 1.40,
 		"Act 2 entry must rise smoothly instead of becoming an early stat wall")
-	_set_progress(3, 2550.0, 88, "snow", 22)
+	_stand_at(3, 0.85, "snow")
 	DayNight._apply(0.74)
 	print("[balance] Act2 per-lane=%d hp=%.2f damage=%.2f | Act3 per-lane=%d hp=%.2f" \
 		% [act2_size, act2_hp, act2_damage, act3_size, act3_hp])
@@ -1805,7 +1850,8 @@ func _test_wave_archetypes() -> void:
 			_check(ContentDB.enemy(archetype.signature_enemy_id) != null,
 				"wave signature enemy '%s' must exist" % archetype.signature_enemy_id)
 	var director: WaveDirector = _run.battlefield.wave_director
-	_set_progress(2, 1200.0, 48, "desert", 6)
+	_stand_at(2, 0.4, "desert")
+	_run.battlefield.wave_director._act_wave = 6
 	var siege: WaveArchetypeData = ContentDB.wave_archetype("siege_column")
 	var lanes: Array[int] = director._pick_archetype_lanes(siege, 7)
 	_check(lanes.size() == 1, "siege columns must concentrate on one lane")

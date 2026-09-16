@@ -26,6 +26,17 @@ extends Node
 ## So this gate drives the real `Journey` and reads the distances back off it,
 ## rather than checking that the constants exist.
 
+## Seconds of walking taken per hand-driven step.
+##
+## **Coarse on purpose.** Everything `Journey._process` does with its delta is
+## linear in it - distance, the resource carry, construction, the speed recovery
+## - so a one-second step walks exactly the road a sixty-frame second walks. At
+## a sixtieth the full campaign is over two million iterations, which is a gate
+## that costs minutes of CI to learn what it learns in seconds. The tolerance
+## every distance is judged against is derived from this rather than typed, so
+## changing it cannot quietly loosen a check.
+const STEP_SECONDS: float = 1.0
+
 var _failures: int = 0
 var _checks: int = 0
 
@@ -73,12 +84,12 @@ func _walk_the_whole_road() -> void:
 	# boss has been called or the road has plainly stopped advancing.
 	var guard: int = 0
 	var last_distance: float = -1.0
-	while not _boss_at.has(Balance.ACT_COUNT) and guard < 2000000:
+	while not _boss_at.has(Balance.ACT_COUNT) and guard < 400000:
 		guard += 1
 		# The HUD's own readout, sampled every frame so the last value before a
 		# boss is called is the one the player would have been looking at.
 		var showing: float = RunState.distance_to_boss()
-		journey._process(1.0 / 60.0)
+		journey._process(STEP_SECONDS)
 		if _boss_at.size() > _countdown_before.size():
 			_countdown_before[_boss_at.size()] = showing
 		if not bool(journey.get("_crossroad_pending")):
@@ -95,7 +106,7 @@ func _walk_the_whole_road() -> void:
 		else:
 			journey.resolve_crossroad("")
 		last_distance = RunState.distance_travelled
-	_check(guard < 2000000,
+	_check(guard < 400000,
 		"the walk never reached the last act's boss - it stopped at %.0f"
 			% last_distance)
 	EventBus.act_boss_due.disconnect(_on_boss_due)
@@ -115,7 +126,7 @@ func _test_the_boss_is_due_where_the_model_says() -> void:
 		var expected: float = Balance.act_end_distance(act)
 		# One frame of the beast's walk is the tolerance: the threshold is
 		# crossed inside a frame and the boss is called on that frame.
-		var slack: float = Balance.BEAST_BASE_SPEED / 60.0 + 0.5
+		var slack: float = Balance.BEAST_BASE_SPEED * STEP_SECONDS + 0.5
 		_check(absf(actual - expected) <= slack,
 			("act %d's boss is due at %.0f and the walk called it at %.0f - the "
 				+ "road the player walks is %.0f units %s than every model of it")
@@ -134,7 +145,7 @@ func _test_the_countdown_does_not_lie() -> void:
 		if not _countdown_before.has(act):
 			continue
 		var showing: float = float(_countdown_before[act])
-		_check(showing <= Balance.BEAST_BASE_SPEED / 60.0 + 1.0,
+		_check(showing <= Balance.BEAST_BASE_SPEED * STEP_SECONDS + 1.0,
 			("act %d's boss walked in while the readout still said %.0f units of "
 				+ "road to go") % [act, showing])
 
@@ -181,27 +192,46 @@ func _test_crossroads_still_happen_between_bosses() -> void:
 				+ "it is a corridor") % [act, from, to, inside])
 
 
-## **The opening act is longer than the rest, and that is the decision.**
+## **The opening is long enough to build in, and the road lengthens as it goes.**
 ##
-## Reported from play twice. It is held here as a property of the road rather
-## than as a constant's value, so the figure may be tuned and the shape may not
-## quietly go away.
+## This read "the opening act is the longest act", which was the shape while the
+## opening carried an extra 390 units on top of nine identical acts. The ramp in
+## `ACT_ROAD_DISTANCE` deliberately inverts that: Act I draws from about ten
+## formations and Act X from twenty-four, so the front of the road is the *short*
+## end and Act I is nonetheless far longer in absolute terms than it has ever
+## been - about 36 waves against the 14 it used to hold.
+##
+## So what is held is the thing the owner actually reported twice, which was never
+## "make act one the longest": **a player must reach the first boss with a
+## defence rather than with a purchase.** The floor is expressed in waves of road,
+## because waves are what a defence is bought with.
 func _test_the_opening_act_is_the_long_one() -> void:
 	var opening: float = Balance.act_end_distance(1) - Balance.act_start_distance(1)
-	var second: float = Balance.act_end_distance(2) - Balance.act_start_distance(2)
-	_check(opening > second,
-		("the opening act is %.0f units and the second is %.0f - act I is the one "
-			+ "act that starts with nothing built and it is not the longer one")
-			% [opening, second])
-	if not _boss_at.has(1):
-		return
+	var opening_waves: float = opening / Balance.WAVE_ROAD_DISTANCE
+	# Four roads open one at a time and reach all four on act-wave ten, and a
+	# tower for every road is not affordable until about wave twelve. An opening
+	# that ends before that is the fault that was reported from play.
+	_check(opening_waves >= 20.0,
+		("the opening act is %.0f units, about %.0f waves - every road opens by "
+			+ "act-wave ten and a tower for each is not affordable until about "
+			+ "twelve, so the first boss is met with a purchase")
+			% [opening, opening_waves])
 	# And it is long in the *walk*, not only in the table. This is the check that
 	# would have failed for the whole life of the fault.
-	var walked: float = float(_boss_at[1])
-	_check(walked > second,
-		("the beast walked %.0f units to the Act I boss against an ordinary act "
-			+ "of %.0f - the opening's extra road exists in the table and not on "
-			+ "the road") % [walked, second])
+	if _boss_at.has(1):
+		var walked: float = float(_boss_at[1])
+		_check(absf(walked - opening) <= Balance.BEAST_BASE_SPEED * STEP_SECONDS + 0.5,
+			("the beast walked %.0f units to the Act I boss against an opening act "
+				+ "of %.0f - the opening's road exists in the table and not under "
+				+ "the beast") % [walked, opening])
+	# **The road lengthens as it goes**, which is the ramp being a ramp. Held end
+	# to end rather than step by step, so the table may be shaped freely between.
+	var first: float = Balance.act_end_distance(1) - Balance.act_start_distance(1)
+	var last: float = Balance.act_end_distance(Balance.ACT_COUNT) \
+		- Balance.act_start_distance(Balance.ACT_COUNT)
+	_check(last > first,
+		("the last act is %.0f units against the first act's %.0f - the library "
+			+ "grows across the campaign and the road does not") % [last, first])
 
 
 func _on_boss_due(act: int) -> void:

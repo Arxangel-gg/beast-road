@@ -489,7 +489,7 @@ func _progressive_lane_count(act_wave: int) -> int:
 
 
 func _wave_size(act_wave: int, terrain: TerrainData) -> int:
-	var size: float = Balance.WAVE_BASE_COUNT + Balance.WAVE_COUNT_GROWTH * float(act_wave - 1)
+	var size: float = Balance.WAVE_BASE_COUNT + Balance.WAVE_COUNT_GROWTH * Balance.act_growth_scale(RunState.act) * float(act_wave - 1)
 	size *= Balance.WAVE_ACT_COUNT_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_COUNT_SCALE.size() - 1)]
 	if terrain != null:
@@ -700,7 +700,9 @@ func act_speed_scale(lane: int) -> float:
 
 func _hp_scale(lane: int) -> float:
 	var tier: CampaignTierData = RunState.tier()
-	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * float(RunState.wave_number - 1)
+	# Scaled by the length of the road, so the curve this rate was solved
+	# into is the curve the player walks however many waves it now takes.
+	var scale: float = 1.0 + Balance.WAVE_HP_GROWTH * Balance.run_growth_scale() * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_HP_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_HP_SCALE.size() - 1)]
 	scale *= _situational_scale(lane, 1.0)
@@ -712,7 +714,7 @@ func _hp_scale(lane: int) -> float:
 
 func _damage_scale(lane: int) -> float:
 	var tier: CampaignTierData = RunState.tier()
-	var scale: float = 1.0 + Balance.WAVE_DAMAGE_GROWTH * float(RunState.wave_number - 1)
+	var scale: float = 1.0 + Balance.WAVE_DAMAGE_GROWTH * Balance.run_growth_scale() * float(RunState.wave_number - 1)
 	scale *= Balance.WAVE_ACT_DAMAGE_SCALE[clampi(RunState.act - 1, 0,
 		Balance.WAVE_ACT_DAMAGE_SCALE.size() - 1)]
 	scale *= _situational_scale(lane, Balance.WAVE_DARK_DAMAGE_WEIGHT)

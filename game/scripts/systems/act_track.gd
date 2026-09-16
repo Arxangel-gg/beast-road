@@ -41,24 +41,37 @@ func _draw() -> void:
 	draw_line(Vector2(left, TRACK_Y), Vector2(right, TRACK_Y), Color(0.05, 0.05, 0.06, 0.6), 8.0)
 	draw_line(Vector2(left, TRACK_Y), Vector2(right, TRACK_Y), road, 4.0)
 	draw_line(Vector2(left, TRACK_Y), Vector2(lerpf(left, right, progress), TRACK_Y), done, 4.0)
-	# The crossroads: one every segment, the last one the boss.
-	var segments: int = maxi(int(round(Balance.ACT_DISTANCE / Balance.SEGMENT_DISTANCE)), 1)
-	for index: int in range(1, segments + 1):
-		var t: float = float(index) / float(segments)
+	# **The crossroads this act actually has, where it actually has them.**
+	#
+	# This divided `ACT_DISTANCE` by `SEGMENT_DISTANCE` and spaced that many marks
+	# evenly, which was a true picture only while every act was the same length
+	# and every act was a whole number of segments. `ACT_ROAD_DISTANCE` gives each
+	# act its own road now, so the marks are read off the real segment boundaries
+	# that fall inside this act - the same boundaries `Journey` forks at.
+	var from: float = Balance.act_start_distance(RunState.act)
+	var to: float = Balance.act_end_distance(RunState.act)
+	var span: float = maxf(to - from, 1.0)
+	var boundary: int = int(floor(from / Balance.SEGMENT_DISTANCE)) + 1
+	while true:
+		var at: float = float(boundary) * Balance.SEGMENT_DISTANCE
+		if at >= to:
+			break
+		boundary += 1
+		var t: float = (at - from) / span
 		var x: float = lerpf(left, right, t)
-		var passed: bool = progress >= t - 0.0001
-		if index == segments:
-			# The boss: a diamond at the road's end.
-			var colour: Color = Color(0.95, 0.35, 0.28, 1.0) if not passed else done
-			draw_colored_polygon(PackedVector2Array([Vector2(x, TRACK_Y - 11.0),
-				Vector2(x + 9.0, TRACK_Y), Vector2(x, TRACK_Y + 11.0), Vector2(x - 9.0, TRACK_Y)]),
-				colour)
-			_text(Vector2(x - 20.0, TRACK_Y + 26.0), "Boss", colour, 13)
-		else:
-			var colour: Color = done if passed else Color(0.86, 0.80, 0.70, 0.9)
-			draw_line(Vector2(x, TRACK_Y - 9.0), Vector2(x, TRACK_Y + 9.0), colour, 3.0)
-			draw_circle(Vector2(x, TRACK_Y - 13.0), 3.0, colour)
-			_text(Vector2(x - 36.0, TRACK_Y + 26.0), "Crossroad", colour, 12)
+		var colour: Color = done if progress >= t - 0.0001 \
+			else Color(0.86, 0.80, 0.70, 0.9)
+		draw_line(Vector2(x, TRACK_Y - 9.0), Vector2(x, TRACK_Y + 9.0), colour, 3.0)
+		draw_circle(Vector2(x, TRACK_Y - 13.0), 3.0, colour)
+		_text(Vector2(x - 36.0, TRACK_Y + 26.0), "Crossroad", colour, 12)
+	# The boss: a diamond at the road's end, which is where the act ends rather
+	# than at whichever segment happens to land near it.
+	var boss_passed: bool = progress >= 0.9999
+	var boss_colour: Color = done if boss_passed else Color(0.95, 0.35, 0.28, 1.0)
+	draw_colored_polygon(PackedVector2Array([Vector2(right, TRACK_Y - 11.0),
+		Vector2(right + 9.0, TRACK_Y), Vector2(right, TRACK_Y + 11.0),
+		Vector2(right - 9.0, TRACK_Y)]), boss_colour)
+	_text(Vector2(right - 20.0, TRACK_Y + 26.0), "Boss", boss_colour, 13)
 	# The beast: where it is now, as a bright marker with a soft halo.
 	var here: float = lerpf(left, right, progress)
 	draw_circle(Vector2(here, TRACK_Y), 9.0, Color(done, 0.35))

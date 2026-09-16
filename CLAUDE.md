@@ -3627,6 +3627,99 @@ opening act is the long one **in the walk** rather than only in the table.
 Checked by putting the original `% SEGMENTS_PER_ACT` back, which it named for all
 ten acts and for the readout.
 
+**The road is 622 waves long, as of 2026-09-15.** The owner proposed a hundred
+waves an act across ten acts and ruled: **build the wave library first, then set
+the count by measuring what it supports.** The library is built and this is the
+measurement being acted on.
+
+**The measurement overturned the objection I had made to it.** I had told the
+owner that a thousand waves would leave two hundred with nothing to buy, reading
+`curve_report`'s flat capability at wave 72 as "the board is bought". That was
+wrong: flat capability there is the model converting breadth into depth, holding
+forty emplacements at **level 2 of 10**. Ten tower levels were the owner's own
+decision of 2026-09-11 - and **eight of them could not be reached in a complete
+ten-act campaign.** The game was showing the player a ladder, pricing it, and
+ending the road two rungs up it.
+
+Maxing a board of forty costs about **103,000 Gold** against the **4,865** a
+79-wave campaign earned. The economy was never the blocker; it was the argument
+for a longer road.
+
+**622 waves, ramped 36 to 106 an act, not a flat hundred.** Act I draws from
+about ten formations and Act X from twenty-four, so one wave count is a
+procession at the front of the road and a campaign at the back. Act I is also
+the one act that opens with nothing built, and ninety minutes of it before a new
+player meets a boss is a tutorial nobody finishes. Measured after: **mean
+pressure 0.481-0.565** across party sizes against the 0.44-0.58 band, acts
+ramping 0.23 to 0.71, last wave 0.91, and the board finishing at **level 8** on a
+purse of 52,709 - so the ladder is nearly climbed on Normal and the last two
+rungs are what Nightmare and Hell are for.
+
+**`ACT_ROAD_DISTANCE` is the one place the shape of the campaign is stated**, and
+`act_end_distance` sums it. That is the whole change: a table the owner can dial.
+
+**The three per-wave growth rates are scaled rather than re-tuned**, which is the
+decision worth defending. `WAVE_HP_GROWTH`, `WAVE_DAMAGE_GROWTH` and
+`WAVE_COUNT_GROWTH` each carry a long argument in `Balance.gd` about the curve
+they were solved into - after the map gained buildable ground, after free
+placement removed the slot ceiling, after the hero could reach +105% damage.
+Rewriting those numbers would throw all of it away. Dividing them by the length
+of the road keeps the shape exactly and changes only how many steps it takes to
+walk it, so the reasoning above each constant still describes it.
+`WAVE_SPEED_GROWTH` needed nothing: it already climbed with `journey_ratio()`.
+
+**Height and length are separate knobs, and conflating them was the first cut's
+mistake.** Setting the growth span to the old 79 waves reproduces the old
+campaign's difficulty spread over the new road - and measured **0.15** mean
+pressure, because threat stood still while a road eight times longer earned eight
+times the purse. `WAVE_GROWTH_REFERENCE_RUN` is how far the curve *climbs*,
+stated in waves of the old campaign, and it is 313 because a board that can now
+reach level 8 is about five times the capability the old road ever bought.
+
+**Per wave and not per unit of road, deliberately.** Expressing growth against
+`journey_ratio()` would be tidier and would let a player who lingers - fishing,
+working a seam, clearing camps - fight unbounded waves at a difficulty that never
+moves. Waves getting harder while you stand still is what closes that door.
+
+**A campaign is now about ten and a half hours, and that is what expedition
+persistence is for.** The road is put down at a crossroad and picked up next
+time, so ten hours is ten evenings and never a ten-hour sitting. An act is
+33 to 98 minutes - a sitting each. Crossroads moved to every 560 units, about ten
+waves, because at 200 a road this long would fork 189 times and a decision taken
+every three waves is not a decision.
+
+**Four things had remembered the old road and none of them errored.**
+
+- **`balance_test` probed the wave curves at typed distances**, 1200 and 2550 -
+  and 2550 for "Act 3" was a position on the *three-act* road before that, so it
+  had been reading Act VI's stretch and calling it Act III ever since the
+  campaign went to ten. Its "late-run enemies must move faster" check only ever
+  passed because that distance was two thirds along a road three acts long;
+  asked in Act III on the real road it reads a fifth of a campaign. Probes say
+  how far through which act they want to stand now, and the speed check is asked
+  at the end of the road, which is what it says.
+- **"Iron Steppe must deliver the largest packs" wanted 1.25x** while its two
+  probes sat at act-waves 12 and 22 of acts about seven waves long - so most of
+  that ratio was the gap between two arbitrary indices rather than between two
+  regions. Compared at the same point of each act, `WAVE_ACT_COUNT_SCALE` steps
+  adjacent acts by about a seventh and the whole campaign by 2.3 times, which is
+  the ramp it is authored as.
+- **The Ledger became a vending machine.** An order fills over 540 units of road,
+  authored as about nine minutes of walking - an eighth of the old campaign and a
+  seventieth of this one. `exchange_check` named it. Re-authored as a share of
+  the road at 2,400 units.
+- **Three drawings of the road divided by `ACT_DISTANCE` to find an act
+  boundary**, which finds none at all once the acts differ: the act progress bar,
+  the beast scope's route ticks and their act markers. All three are `_draw`, so
+  the fault was purely that the player was shown a road nobody walks.
+
+**`ACT_DISTANCE` survives as the mean act and nothing may find a boundary with
+it.** `CROSSROADS_PER_ACT` and `CROSSROADS_PER_RUN` are derived off the road now
+rather than off `SEGMENTS_PER_ACT`, which stopped being an act's length - and
+`balance_reach_check` immediately refused to let `CROSSROADS_PER_ACT` stay on its
+unread list once the road-card gate started reading it, which is that gate
+working exactly as intended.
+
 ### The three escape hatches — and why there are only three
 
 The project is going all in on v4. That is the right call and it does not need

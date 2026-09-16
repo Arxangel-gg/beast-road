@@ -61,7 +61,7 @@ func _ready() -> void:
 func _test_the_pool_is_deep_enough() -> void:
 	var held: Array[String] = []
 	for act: int in range(1, Balance.ACT_COUNT + 1):
-		for _crossroad: int in Balance.SEGMENTS_PER_ACT:
+		for _crossroad: int in Balance.CROSSROADS_PER_ACT:
 			var drawn: Array[String] = RoadCardData.offer(held, act,
 				Balance.ROAD_CARD_OFFER_COUNT)
 			_checked += 1

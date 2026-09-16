@@ -72,7 +72,7 @@ requirements or establish production readiness.
 | Item | Target | Probe |
 |------|--------|-------|
 | Three acts plus a final summit — **ten acts since 2026-09-11** (owner re-cut, CLAUDE.md) | Final Ascent is a real state | `const:FINAL_ASCENT_DISTANCE` |
-| Nine road battles, six crossroads | **twenty crossroads since 2026-09-11** - two a segment across ten acts, derived from `SEGMENTS_PER_ACT` | `const:CROSSROADS_PER_RUN` |
+| Nine road battles, six crossroads | **sixty-seven crossroads since 2026-09-15** - the road is `ACT_ROAD_DISTANCE` long and forks every `SEGMENT_DISTANCE`, so the count is derived from the road rather than from a segments-per-act figure that no longer has one value | `const:CROSSROADS_PER_RUN` |
 | True final boss | Kharok the Chainmaker exists | `file:res://data/enemies/chainmaker.tres` |
 | Preparation is an explicit state | typed phase state, not a mode flag | `method:RunState.set_phase` |
 | Building locked outside Preparation | refused during combat | `method:RunState.can_build_now` |
